@@ -281,9 +281,9 @@ const testGroups = {
     // 'test452.txml', // conversion of <script> not implemented yet
     'test453.txml',
     // 'test456.txml', // conversion of <script> not implemented yet
-    // 'test457.txml', // <foreach> not implemented yet
-    // 'test459.txml', // <foreach> not implemented yet
-    // 'test460.txml', // <foreach> not implemented yet
+    'test457.txml',
+    'test459.txml',
+    'test460.txml',
     'test487.txml',
     // 'test488.txml', // error.execution when evaluating param
     'test495.txml',
@@ -301,7 +301,7 @@ const testGroups = {
     // 'test520.txml', // Basic HTTP Event I/O processor not implemented
     // 'test521.txml', // error.communication not implemented yet
     // 'test522.txml', // Basic HTTP Event I/O processor not implemented
-    // 'test525.txml', // <foreach> not implemented yet
+    'test525.txml',
     // 'test527.txml', // conversion of <donedata> not implemented yet
     // 'test528.txml', // conversion of <donedata> not implemented yet + error.execution when evaluating donedata
     // 'test529.txml', // conversion of <donedata> not implemented yet
