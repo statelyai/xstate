@@ -34,7 +34,7 @@
   "scripts": {
     "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
     "build": "tsc && rollup -c",
-    "test": "jest --env=jest-environment-jsdom-sixteen",
+    "test": "jest",
     "prepublish": "npm run build && npm run test"
   },
   "bugs": {
@@ -57,7 +57,6 @@
     "@testing-library/jest-dom": "^4.2.4",
     "@testing-library/vue": "^6.3.1",
     "@vue/compiler-sfc": "^3.0.4",
-    "@vue/test-utils": "^2.0.0-beta.12",
     "@xstate/fsm": "*",
     "babel-core": "^6.26.3",
     "jest": "^26.4.2",

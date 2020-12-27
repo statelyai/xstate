@@ -63,7 +63,14 @@ export function useMachine<
   } as TContext);
 
   const service = interpret(createdMachine, interpreterOptions).start(
-    rehydratedState ? (State.create(rehydratedState) as any) : undefined
+    rehydratedState
+      ? (State.create(rehydratedState) as State<
+          TContext,
+          TEvent,
+          any,
+          TTypestate
+        >)
+      : undefined
   );
 
   const state = shallowRef(service.state);
@@ -104,7 +111,6 @@ export function useService<
   watch(
     serviceRef,
     (service, _, onCleanup) => {
-      console.log('service changed', service.id);
       state.value = service.state;
       const { unsubscribe } = service.subscribe((currentState) => {
         if (currentState.changed) {
