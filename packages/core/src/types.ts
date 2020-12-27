@@ -74,7 +74,7 @@ export type ActionFunction<TContext, TEvent extends EventObject> = (
   meta: ActionMeta<TContext, TEvent>
 ) => void;
 
-export interface ChooseConditon<TContext, TEvent extends EventObject> {
+export interface ChooseCondition<TContext, TEvent extends EventObject> {
   guard?: GuardConfig<TContext, TEvent>;
   actions: Actions<TContext, TEvent>;
 }
@@ -695,7 +695,8 @@ export enum ActionTypes {
   ErrorCustom = 'xstate.error',
   Update = 'xstate.update',
   Pure = 'xstate.pure',
-  Choose = 'xstate.choose'
+  Choose = 'xstate.choose',
+  ForEach = 'xstate.forEach'
 }
 
 export interface RaiseAction<TEvent extends EventObject> {
@@ -919,7 +920,15 @@ export interface PureAction<TContext, TEvent extends EventObject>
 export interface ChooseAction<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {
   type: ActionTypes.Choose;
-  guards: Array<ChooseConditon<TContext, TEvent>>;
+  guards: Array<ChooseCondition<TContext, TEvent>>;
+}
+
+export interface ForEachAction<TContext, TEvent extends EventObject> {
+  type: ActionTypes.ForEach;
+  actions: Array<ActionObject<TContext, TEvent>>;
+  array: keyof TContext;
+  item: keyof TContext;
+  index: keyof TContext;
 }
 
 export interface TransitionDefinition<TContext, TEvent extends EventObject>

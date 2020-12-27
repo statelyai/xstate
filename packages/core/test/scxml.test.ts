@@ -44,7 +44,7 @@ const testGroups = {
     // 'error' // not implemented
   ],
   forEach: [
-    // 'test1', // not implemented
+    'test1' // not implemented
   ],
   hierarchy: ['hier0', 'hier1', 'hier2'],
   'hierarchy+documentOrder': ['test0', 'test1'],

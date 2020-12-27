@@ -5,7 +5,7 @@ import {
   SCXMLEventMeta,
   SendExpr,
   DelayExpr,
-  ChooseConditon
+  ChooseCondition
 } from './types';
 import { Machine } from './index';
 import { mapValues, keys, isString, flatten } from './utils';
@@ -230,9 +230,9 @@ function mapAction<
       );
     }
     case 'if': {
-      const conds: Array<ChooseConditon<TContext, TEvent>> = [];
+      const conds: Array<ChooseCondition<TContext, TEvent>> = [];
 
-      let current: ChooseConditon<TContext, TEvent> = {
+      let current: ChooseCondition<TContext, TEvent> = {
         guard: createGuard(element.attributes!.cond as string),
         actions: []
       };
@@ -263,6 +263,15 @@ function mapAction<
       conds.push(current);
       return actions.choose(conds);
     }
+    case 'foreach':
+      return actions.each<any, any>(
+        element.elements!.map((el) => mapAction(el)),
+        {
+          array: element.attributes!.array as string,
+          item: element.attributes!.item as string,
+          index: element.attributes!.index as string
+        }
+      );
     default:
       throw new Error(
         `Conversion of "${element.name}" elements is not implemented yet.`

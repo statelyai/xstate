@@ -30,7 +30,7 @@ import {
   DelayFunctionMap,
   SCXML,
   ExprWithMeta,
-  ChooseConditon,
+  ChooseCondition,
   ChooseAction,
   InvokeDefinition,
   InvokeActionObject,
@@ -48,7 +48,7 @@ import {
   toSCXMLEvent,
   isArray
 } from './utils';
-import { StopAction } from '.';
+import { ForEachAction, StopAction } from '.';
 
 export { actionTypes };
 
@@ -555,10 +555,25 @@ export function escalate<
 }
 
 export function choose<TContext, TEvent extends EventObject>(
-  guards: Array<ChooseConditon<TContext, TEvent>>
+  guards: Array<ChooseCondition<TContext, TEvent>>
 ): ChooseAction<TContext, TEvent> {
   return {
     type: ActionTypes.Choose,
     guards
+  };
+}
+
+export function each<TContext, TEvent extends EventObject>(
+  actions: Array<ActionObject<TContext, TEvent>>,
+  props: {
+    array: keyof TContext;
+    item: keyof TContext;
+    index: keyof TContext;
+  }
+): ForEachAction<TContext, TEvent> {
+  return {
+    type: ActionTypes.ForEach,
+    actions,
+    ...props
   };
 }

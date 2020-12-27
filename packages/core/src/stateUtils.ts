@@ -1,4 +1,10 @@
-import { EventObject, StateNode, StateValue, InvokeActionObject } from '.';
+import {
+  EventObject,
+  StateNode,
+  StateValue,
+  InvokeActionObject,
+  ForEachAction
+} from '.';
 import {
   keys,
   flatten,
@@ -62,7 +68,8 @@ import {
   resolveCancel,
   toActionObject,
   invoke,
-  resolveStop
+  resolveStop,
+  assign
 } from './actions';
 import { IS_PRODUCTION } from './environment';
 import { STATE_IDENTIFIER, NULL_EVENT, WILDCARD } from './constants';
@@ -1592,7 +1599,7 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
           break;
         case actionTypes.choose: {
           const chooseAction = actionObject as ChooseAction<TContext, TEvent>;
-          const matchedActions = chooseAction.guards.find((condition) => {
+          const chosenActions = chooseAction.guards.find((condition) => {
             const guard =
               condition.guard &&
               toGuardDefinition(
@@ -1605,9 +1612,9 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
             );
           })?.actions;
 
-          if (matchedActions) {
+          if (chosenActions) {
             toActionObjects(
-              toArray(matchedActions),
+              toArray(chosenActions),
               machine.options.actions
             ).forEach(resolveAction);
           }
@@ -1656,6 +1663,28 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
             _event
           );
           resActions.push(stopAction);
+          break;
+        case actionTypes.forEach:
+          const action = actionObject as ForEachAction<TContext, TEvent>;
+          const array = context[action.array];
+          if (isArray(array)) {
+            array.forEach((item, index) => {
+              const [nextContext] = updateContext(
+                context,
+                _event,
+                [
+                  assign<TContext, TEvent>({
+                    [action.item]: item as any, // TODO: fix
+                    [action.index]: index as any // TODO: fix
+                  } as any) // TODO: fix
+                ],
+                currentState,
+                service
+              );
+              context = nextContext;
+              action.actions.forEach(resolveAction);
+            });
+          }
           break;
         default:
           resActions.push(
