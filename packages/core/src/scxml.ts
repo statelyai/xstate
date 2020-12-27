@@ -137,7 +137,11 @@ function createGuard<
 function mapAction<
   TContext extends object,
   TEvent extends EventObject = EventObject
->(element: XMLElement): ActionObject<TContext, TEvent> {
+>(element: XMLElement): ActionObject<TContext, TEvent> | undefined {
+  if (element.type === 'comment') {
+    return undefined;
+  }
+
   switch (element.name) {
     case 'raise': {
       return actions.raise<TContext, TEvent>(
@@ -145,13 +149,12 @@ function mapAction<
       );
     }
     case 'assign': {
+      const fnBody = `
+          return {'${element.attributes!.location}': ${
+        element.attributes!.expr
+      }};
+        `;
       return actions.assign<TContext, TEvent>((context, e, meta) => {
-        const fnBody = `
-            return {'${element.attributes!.location}': ${
-          element.attributes!.expr
-        }};
-          `;
-
         return evaluateExecutableContent(context, e, meta, fnBody);
       });
     }
@@ -264,8 +267,21 @@ function mapAction<
       return actions.choose(conds);
     }
     case 'foreach':
+      const { array, item, index } = element.attributes!;
+
+      // check if expected attributes are plain variable identifiers
+      for (const value of [array, item, index]) {
+        if (value && !/^\w/.test(value as string)) {
+          return actions.raise('error.execution');
+        }
+      }
+
       return actions.each<any, any>(
-        element.elements?.map((el) => mapAction(el)) || [],
+        element.elements
+          ?.map((el) => mapAction(el))
+          .filter(
+            (action): action is ActionObject<any, any> => action !== undefined
+          ) || [],
         {
           array: element.attributes!.array as string,
           item: element.attributes!.item as string,
@@ -290,7 +306,11 @@ function mapActions<
       continue;
     }
 
-    mapped.push(mapAction(element));
+    const action = mapAction(element);
+
+    if (action) {
+      mapped.push(action);
+    }
   }
 
   return mapped;

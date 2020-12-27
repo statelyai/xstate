@@ -132,12 +132,12 @@ const testGroups = {
     'test147.txml',
     'test148.txml',
     'test149.txml',
-    'test150.txml', // <foreach> not implemented yet
-    'test151.txml', // <foreach> not implemented yet
-    'test152.txml', // <foreach> not implemented yet
-    'test153.txml', // <foreach> not implemented yet
-    'test155.txml', // <foreach> not implemented yet
-    'test156.txml', // <foreach> not implemented yet
+    'test150.txml',
+    'test151.txml',
+    'test152.txml',
+    'test153.txml',
+    'test155.txml',
+    // 'test156.txml', // assign should throw for invalid expressions
     'test158.txml',
     // 'test159.txml', // different error handling
     'test172.txml',
@@ -422,8 +422,8 @@ describe('scxml', () => {
   const testGroupKeys = ['w3c-ecma'];
 
   testGroupKeys.forEach((testGroupName) => {
-    // const testNames = testGroups[testGroupName];
-    const testNames = ['test152.txml'];
+    const testNames = testGroups[testGroupName];
+    // const testNames = ['test156.txml'];
 
     testNames.forEach((testName) => {
       const scxmlSource =
