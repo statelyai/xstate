@@ -265,7 +265,7 @@ function mapAction<
     }
     case 'foreach':
       return actions.each<any, any>(
-        element.elements!.map((el) => mapAction(el)),
+        element.elements?.map((el) => mapAction(el)) || [],
         {
           array: element.attributes!.array as string,
           item: element.attributes!.item as string,
@@ -525,11 +525,15 @@ function scxmlToMachine(
             );
           }
 
-          if (expr === '_sessionid') {
-            acc[id!] = undefined;
-          } else {
-            acc[id!] = eval(`(${expr})`);
-          }
+          const resolvedExpr =
+            element.elements?.length === 1 &&
+            element.elements![0].type === 'text'
+              ? eval(`(${element.elements![0].text})`)
+              : expr === '_sessionid'
+              ? undefined
+              : eval(`(${expr})`);
+
+          acc[id!] = resolvedExpr;
 
           return acc;
         }, {})

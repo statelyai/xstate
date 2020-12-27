@@ -1,16 +1,9 @@
-import {
-  EventObject,
-  StateNode,
-  StateValue,
-  InvokeActionObject,
-  ForEachAction
-} from '.';
+import { EventObject, StateNode, StateValue, InvokeActionObject } from '.';
 import {
   keys,
   flatten,
   toStatePath,
   toArray,
-  warn,
   isArray,
   isFunction,
   isString,
@@ -20,7 +13,6 @@ import {
   mapContext,
   toSCXMLEvent
 } from './utils';
-import { updateContext } from './updateContext';
 import {
   TransitionConfig,
   TransitionDefinition,
@@ -33,21 +25,11 @@ import {
   Transitions,
   ActionObject,
   StateValueMap,
-  AssignAction,
-  RaiseAction,
-  CancelAction,
-  SendAction,
-  LogAction,
-  PureAction,
-  RaiseActionObject,
-  SpecialTargets,
   HistoryValue,
   InitialTransitionConfig,
   InitialTransitionDefinition,
   Event,
-  ChooseAction,
   StopActionObject,
-  AnyEventObject,
   ActorRef
 } from './types';
 import { State } from './State';
@@ -62,21 +44,14 @@ import {
   stop,
   initEvent,
   actionTypes,
-  resolveRaise,
-  resolveSend,
-  resolveLog,
-  resolveCancel,
-  toActionObject,
-  invoke,
-  resolveStop,
-  assign
+  invoke
 } from './actions';
-import { IS_PRODUCTION } from './environment';
 import { STATE_IDENTIFIER, NULL_EVENT, WILDCARD } from './constants';
 import { isSpawnedActorRef } from './Actor';
 import { MachineNode } from './MachineNode';
 import { createActorRefFromInvokeAction } from './invoke';
 import { evaluateGuard, toGuardDefinition } from './guards';
+import { resolveActionsAndContext } from './actions/resolveActionsAndContext';
 
 type Configuration<TC, TE extends EventObject> = Iterable<StateNode<TC, TE>>;
 
@@ -1534,172 +1509,6 @@ export function resolveMicroTransition<
   });
 
   return nextState;
-}
-
-function resolveActionsAndContext<TContext, TEvent extends EventObject>(
-  actions: Array<ActionObject<TContext, TEvent>>,
-  machine: MachineNode<TContext, TEvent, any>,
-  _event: SCXML.Event<TEvent>,
-  currentState: State<TContext, TEvent, any, any> | undefined,
-  service?: ActorRef<TEvent>
-): {
-  actions: typeof actions;
-  raised: Array<RaiseActionObject<TEvent>>;
-  context: TContext;
-} {
-  let context: TContext = currentState ? currentState.context : machine.context;
-  const resActions: Array<ActionObject<TContext, TEvent>> = [];
-  const raisedActions: Array<RaiseActionObject<TEvent>> = [];
-
-  toActionObjects(actions, machine.options.actions).forEach(
-    function resolveAction(actionObject) {
-      switch (actionObject.type) {
-        case actionTypes.raise:
-          raisedActions.push(resolveRaise(actionObject as RaiseAction<TEvent>));
-          break;
-        case actionTypes.cancel:
-          resActions.push(
-            resolveCancel(
-              actionObject as CancelAction<TContext, TEvent>,
-              context,
-              _event
-            )
-          );
-          break;
-        case actionTypes.send:
-          const sendAction = resolveSend(
-            actionObject as SendAction<TContext, TEvent, AnyEventObject>,
-            context,
-            _event,
-            machine.machine.options.delays
-          );
-          if (!IS_PRODUCTION) {
-            // warn after resolving as we can create better contextual message here
-            warn(
-              !isString(actionObject.delay) ||
-                typeof sendAction.delay === 'number',
-              // tslint:disable-next-line:max-line-length
-              `No delay reference for delay expression '${actionObject.delay}' was found on machine '${machine.machine.id}'`
-            );
-          }
-          if (sendAction.to === SpecialTargets.Internal) {
-            raisedActions.push(sendAction as RaiseActionObject<any>);
-          } else {
-            resActions.push(sendAction);
-          }
-          break;
-        case actionTypes.log:
-          resActions.push(
-            resolveLog(
-              actionObject as LogAction<TContext, TEvent>,
-              context,
-              _event
-            )
-          );
-          break;
-        case actionTypes.choose: {
-          const chooseAction = actionObject as ChooseAction<TContext, TEvent>;
-          const chosenActions = chooseAction.guards.find((condition) => {
-            const guard =
-              condition.guard &&
-              toGuardDefinition(
-                condition.guard,
-                (guardType) => machine.options.guards[guardType]
-              );
-            return (
-              !guard ||
-              evaluateGuard(guard, context, _event, currentState as any)
-            );
-          })?.actions;
-
-          if (chosenActions) {
-            toActionObjects(
-              toArray(chosenActions),
-              machine.options.actions
-            ).forEach(resolveAction);
-          }
-          break;
-        }
-
-        case actionTypes.pure:
-          const matchedActions = (actionObject as PureAction<
-            TContext,
-            TEvent
-          >).get(context, _event.data);
-
-          if (matchedActions) {
-            toActionObjects(
-              toArray(matchedActions),
-              machine.options.actions
-            ).forEach(resolveAction);
-          }
-          break;
-        case actionTypes.assign:
-          try {
-            const [nextContext, nextActions] = updateContext(
-              context,
-              _event,
-              [actionObject as AssignAction<TContext, TEvent>],
-              currentState,
-              service
-            );
-            context = nextContext;
-            resActions.push(actionObject, ...nextActions);
-          } catch (err) {
-            // Raise error.execution events for failed assign actions
-            raisedActions.push({
-              type: actionTypes.raise,
-              _event: toSCXMLEvent({
-                type: actionTypes.errorExecution,
-                error: err
-              } as any) // TODO: fix
-            });
-          }
-          break;
-        case actionTypes.stop:
-          const stopAction = resolveStop(
-            actionObject as StopActionObject,
-            context,
-            _event
-          );
-          resActions.push(stopAction);
-          break;
-        case actionTypes.forEach:
-          const action = actionObject as ForEachAction<TContext, TEvent>;
-          const array = context[action.array];
-          if (isArray(array)) {
-            array.forEach((item, index) => {
-              const [nextContext] = updateContext(
-                context,
-                _event,
-                [
-                  assign<TContext, TEvent>({
-                    [action.item]: item as any, // TODO: fix
-                    [action.index]: index as any // TODO: fix
-                  } as any) // TODO: fix
-                ],
-                currentState,
-                service
-              );
-              context = nextContext;
-              action.actions.forEach(resolveAction);
-            });
-          }
-          break;
-        default:
-          resActions.push(
-            toActionObject(actionObject, machine.machine.options.actions)
-          );
-          break;
-      }
-    }
-  );
-
-  return {
-    actions: resActions,
-    raised: raisedActions,
-    context
-  };
 }
 
 export function macrostep<
