@@ -17,6 +17,10 @@
     "es/**/*.js",
     "es/**/*.d.ts"
   ],
+  "exports": {
+    "require": "./lib/index.js",
+    "import": "./es/index.js"
+  },
   "keywords": [
     "statechart",
     "state machine",
