@@ -23,6 +23,10 @@
     "es/**/*.js",
     "es/**/*.d.ts"
   ],
+  "exports": {
+    "require": "./lib/index.js",
+    "import": "./es/index.js"
+  },
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/davidkpiano/xstate.git"

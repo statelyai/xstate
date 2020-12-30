@@ -10,6 +10,10 @@
   "files": [
     "dist"
   ],
+  "exports": {
+    "require": "./dist/index.js",
+    "import": "./dist/viz.esm.js"
+  },
   "scripts": {
     "clean": "echo \"No clean script\"",
     "start": "tsdx watch",
