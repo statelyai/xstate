@@ -88,6 +88,11 @@ export function inspect(
   const inspectMachine = createInspectMachine(resolvedDevTools);
   const inspectService = interpret(inspectMachine).start();
   const listeners = new Set<Observer<any>>();
+
+  const sub = inspectService.subscribe((state) => {
+    listeners.forEach((listener) => listener.next(state));
+  });
+
   let targetWindow: Window | null | undefined;
   let client: any;
 
@@ -204,6 +209,7 @@ export function inspect(
     disconnect: () => {
       inspectService.send('disconnect');
       window.removeEventListener('message', messageHandler);
+      sub.unsubscribe();
     }
   } as Inspector;
 }
