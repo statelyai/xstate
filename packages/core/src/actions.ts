@@ -188,7 +188,7 @@ export function send<
       options && options.id !== undefined
         ? options.id
         : isFunction(event)
-        ? event.name
+        ? undefined
         : (getEventType<TSentEvent>(event) as string)
   };
 }
@@ -211,7 +211,10 @@ export function resolveSend<
   const resolvedEvent = toSCXMLEvent(
     isFunction(action.event)
       ? action.event(ctx, _event.data, meta)
-      : action.event
+      : action.event,
+    {
+      sendid: action.id
+    }
   );
 
   let resolvedDelay: number | undefined;

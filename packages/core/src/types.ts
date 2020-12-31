@@ -805,7 +805,7 @@ export interface SendAction<
     | undefined;
   event: TSentEvent | SendExpr<TContext, TEvent, TSentEvent>;
   delay?: number | string | DelayExpr<TContext, TEvent>;
-  id: string | number;
+  id?: string | undefined;
 }
 
 export interface SendActionObject<
@@ -817,7 +817,7 @@ export interface SendActionObject<
   _event: SCXML.Event<TSentEvent>;
   event: TSentEvent;
   delay?: number;
-  id: string | number;
+  id?: string | undefined;
 }
 
 export type Expr<TContext, TEvent extends EventObject, T> = (
@@ -843,7 +843,7 @@ export enum SpecialTargets {
 }
 
 export interface SendActionOptions<TContext, TEvent extends EventObject> {
-  id?: string | number;
+  id?: string;
   delay?: number | string | DelayExpr<TContext, TEvent>;
   to?:
     | string

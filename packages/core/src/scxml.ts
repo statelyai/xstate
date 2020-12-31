@@ -237,6 +237,23 @@ function mapAction<
         }
       }
 
+      if ('idlocation' in element.attributes!) {
+        return actions.pure(() => {
+          const generatedId = `${Math.random()}`;
+
+          return [
+            actions.assign<any, TEvent>({
+              [`${element.attributes!.idlocation}`]: generatedId
+            }),
+            actions.send<TContext, TEvent>(convertedEvent, {
+              delay: convertedDelay,
+              to: target as string | undefined,
+              id: generatedId
+            })
+          ];
+        });
+      }
+
       return actions.send<TContext, TEvent>(convertedEvent, {
         delay: convertedDelay,
         to: target as string | undefined,

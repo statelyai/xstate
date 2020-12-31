@@ -146,7 +146,7 @@ const testGroups = {
     'test175.txml',
     'test176.txml',
     'test179.txml',
-    // 'test183.txml', idlocation not implemented yet
+    'test183.txml',
     'test185.txml',
     'test186.txml',
     'test187.txml',
@@ -419,11 +419,11 @@ async function runTestToCompletion(
 
 describe('scxml', () => {
   const testGroupKeys = Object.keys(testGroups);
-  // const testGroupKeys = ['send-data'];
+  // const testGroupKeys = ['w3c-ecma'];
 
   testGroupKeys.forEach((testGroupName) => {
     const testNames = testGroups[testGroupName];
-    // const testNames = ['test156.txml'];
+    // const testNames = ['test333.txml'];
 
     testNames.forEach((testName) => {
       const scxmlSource =
