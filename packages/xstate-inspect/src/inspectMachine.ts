@@ -15,6 +15,12 @@ export function createInspectMachine(
 ) {
   const serviceMap = new Map<string, Interpreter<any, any, any>>();
 
+  // Listen for services being registered and index them
+  // by their sessionId for quicker lookup
+  const sub = devTools.onRegister((service) => {
+    serviceMap.set(service.sessionId, service);
+  });
+
   return createMachine<
     {
       client?: ActorRef<any>;
@@ -58,6 +64,9 @@ export function createInspectMachine(
         }
       },
       disconnected: {
+        entry: () => {
+          sub.unsubscribe();
+        },
         type: 'final'
       }
     },
