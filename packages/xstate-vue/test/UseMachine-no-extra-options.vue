@@ -24,7 +24,6 @@ const toggleMachine = Machine({
 export default {
   setup() {
     const { state, send } = useMachine(toggleMachine);
-    console.log(state)
     return { state, send };
   }
 };
