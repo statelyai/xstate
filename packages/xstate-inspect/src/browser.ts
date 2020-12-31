@@ -1,11 +1,5 @@
-import {
-  Interpreter,
-  interpret,
-  EventObject,
-  EventData,
-  Observer
-} from 'xstate';
-import { XStateDevInterface } from 'xstate/src/dev';
+import { interpret, EventObject, Observer, AnyInterpreter } from 'xstate';
+import { XStateDevInterface } from 'xstate/dev';
 import { toSCXMLEvent, toEventObject, toObserver } from 'xstate/src/utils';
 import { createInspectMachine } from './inspectMachine';
 import type {
@@ -24,10 +18,10 @@ import {
   stringify
 } from './utils';
 
-export const serviceMap = new Map<string, Interpreter<any>>();
+export const serviceMap = new Map<string, AnyInterpreter>();
 
 export function createDevTools(): XStateDevInterface {
-  const services = new Set<Interpreter<any>>();
+  const services = new Set<AnyInterpreter>();
   const serviceListeners = new Set<ServiceListener>();
 
   return {
@@ -90,7 +84,7 @@ export function inspect(
   const listeners = new Set<Observer<any>>();
 
   const sub = inspectService.subscribe((state) => {
-    listeners.forEach((listener) => listener.next(state));
+    listeners.forEach((listener) => listener.next?.(state));
   });
 
   let targetWindow: Window | null | undefined;
@@ -138,7 +132,7 @@ export function inspect(
       state: stringify(service.state || service.initialState),
       sessionId: service.sessionId,
       id: service.id,
-      parent: service.parent?.sessionId
+      parent: (service.parent as AnyInterpreter).sessionId
     });
 
     inspectService.send({
@@ -152,10 +146,7 @@ export function inspect(
     // while the sent one is being processed, which throws the order off
     const originalSend = service.send.bind(service);
 
-    service.send = function inspectSend(
-      event: EventObject,
-      payload?: EventData
-    ) {
+    service.send = function inspectSend(event: EventObject, payload?: any) {
       inspectService.send({
         type: 'service.event',
         event: stringify(
@@ -226,15 +217,16 @@ export function createWindowReceiver(
   const handler = (event: MessageEvent) => {
     const { data } = event;
     if (isReceiverEvent(data)) {
-      observers.forEach((listener) => listener.next(parseReceiverEvent(data)));
+      observers.forEach((listener) =>
+        listener.next?.(parseReceiverEvent(data))
+      );
     }
   };
 
   ownWindow.addEventListener('message', handler);
 
   const actorRef: InspectReceiver = {
-    id: 'xstate.windowReceiver',
-
+    name: 'xstate.windowReceiver',
     send(event) {
       if (!targetWindow) {
         return;
@@ -274,7 +266,7 @@ export function createWebSocketReceiver(
   const observers = new Set<Observer<ParsedReceiverEvent>>();
 
   const actorRef: InspectReceiver = {
-    id: 'xstate.webSocketReceiver',
+    name: 'xstate.webSocketReceiver',
     send(event) {
       ws.send(JSON.stringify(event));
     },
@@ -307,7 +299,7 @@ export function createWebSocketReceiver(
 
       if (isReceiverEvent(eventObject)) {
         observers.forEach((observer) => {
-          observer.next(parseReceiverEvent(eventObject));
+          observer.next?.(parseReceiverEvent(eventObject));
         });
       }
     } catch (e) {

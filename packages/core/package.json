@@ -14,7 +14,8 @@
     "actions",
     "invoke",
     "behavior",
-    "guards"
+    "guards",
+    "dev"
   ],
   "keywords": [
     "statechart",
@@ -53,7 +54,8 @@
       "actions",
       "invoke",
       "behavior",
-      "guards"
+      "guards",
+      "dev"
     ]
   }
 }

@@ -9,7 +9,8 @@ import {
   ActorRef,
   Lazy,
   Sender,
-  Receiver
+  Receiver,
+  SpawnedActorRef
 } from './types';
 import {
   toSCXMLEvent,
@@ -25,7 +26,7 @@ import { interpret, Interpreter } from './interpreter';
 import { State } from './State';
 
 export interface ActorContext {
-  self: ActorRef<any, any>; // TODO: use type params
+  self: SpawnedActorRef<any, any>; // TODO: use type params
   name: string;
 }
 

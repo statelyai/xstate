@@ -1,12 +1,6 @@
 import * as WebSocket from 'ws';
-import {
-  ActorRef,
-  EventData,
-  EventObject,
-  interpret,
-  Interpreter
-} from 'xstate';
-import { toEventObject, toSCXMLEvent } from 'xstate/lib/utils';
+import { ActorRef, EventObject, interpret, Interpreter } from 'xstate';
+import { toEventObject, toSCXMLEvent } from 'xstate/src/utils';
 
 import { createInspectMachine } from './inspectMachine';
 import { Inspector } from './types';
@@ -100,10 +94,7 @@ export function inspect(options: ServerInspectorOptions): Inspector {
     // while the sent one is being processed, which throws the order off
     const originalSend = service.send.bind(service);
 
-    service.send = function inspectSend(
-      event: EventObject,
-      payload?: EventData
-    ) {
+    service.send = function inspectSend(event: EventObject, payload?: any) {
       inspectService.send({
         type: 'service.event',
         event: stringify(
