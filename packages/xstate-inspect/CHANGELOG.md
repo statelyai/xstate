@@ -1,5 +1,11 @@
 # @xstate/inspect
 
+## 0.4.1
+
+### Patch Changes
+
+- [`d9282107`](https://github.com/davidkpiano/xstate/commit/d9282107b931b867d9cd297ede71b55fe11eb74d) [#1800](https://github.com/davidkpiano/xstate/pull/1800) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Fixed a bug where services were not being registered by the inspect client, affecting the ability to send events to inspected services.
+
 ## 0.4.0
 
 ### Minor Changes
