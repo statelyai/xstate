@@ -1,11 +1,4 @@
-import {
-  shallowRef,
-  watch,
-  isRef,
-  onMounted,
-  onBeforeUnmount,
-  Ref
-} from '@vue/composition-api';
+import { shallowRef, watch, isRef, onMounted, onBeforeUnmount, Ref } from 'vue';
 import {
   interpret,
   EventObject,
@@ -71,7 +64,14 @@ export function useMachine<
   });
 
   const service = interpret(createdMachine, interpreterOptions).start(
-    rehydratedState ? State.create(rehydratedState) : undefined
+    rehydratedState
+      ? (State.create(rehydratedState) as State<
+          TContext,
+          TEvent,
+          any,
+          TTypestate
+        >)
+      : undefined
   );
 
   const state = shallowRef(service.state);

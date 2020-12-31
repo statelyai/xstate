@@ -423,7 +423,7 @@ data: (context, event) => ({
 
 ### Done Data
 
-When a child machine reaches its top-level [final state](./final.md), it can send data in the "done" event (e.g., `{ type: 'done.invoke.someId', data: ... })`). This "done data" is specified on the final state's `data` property:
+When a child machine reaches its top-level [final state](./final.md), it can send data in the "done" event (e.g., `{ type: 'done.invoke.someId', data: ... }`). This "done data" is specified on the final state's `data` property:
 
 ```js
 const secretMachine = Machine({

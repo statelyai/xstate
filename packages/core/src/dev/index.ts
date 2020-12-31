@@ -19,8 +19,23 @@ export interface XStateDevInterface {
   services: Set<AnyInterpreter>;
 }
 
+// From https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/globalThis
+export function getGlobal(): any {
+  if (typeof self !== 'undefined') {
+    return self;
+  }
+  if (typeof window !== 'undefined') {
+    return window;
+  }
+  if (typeof global !== 'undefined') {
+    return global;
+  }
+
+  return undefined;
+}
+
 function getDevTools(): DevInterface | undefined {
-  const w = globalThis;
+  const w = getGlobal();
   if (!!w.__xstate__) {
     return w.__xstate__;
   }
