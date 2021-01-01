@@ -132,7 +132,7 @@ export function inspect(
       state: stringify(service.state || service.initialState),
       sessionId: service.sessionId,
       id: service.id,
-      parent: (service.parent as AnyInterpreter).sessionId
+      parent: (service.parent as AnyInterpreter)?.sessionId
     });
 
     inspectService.send({
