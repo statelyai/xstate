@@ -1,7 +1,7 @@
 import { StateMachine } from '..';
 import { FSTFrom } from './index';
 
-export function machineToFST<TMachine extends StateMachine<any, any, any>>(
+export function fromMachine<TMachine extends StateMachine<any, any, any>>(
   machine: TMachine,
   nextEvents?: FSTFrom<TMachine>['nextEvents']
 ): FSTFrom<TMachine> {

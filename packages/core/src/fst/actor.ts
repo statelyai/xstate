@@ -2,7 +2,7 @@ import { FST } from '.';
 import { ActorRef, EventObject, Observer } from '..';
 import { toObserver } from '../utils';
 
-export function toActorFST<TState, TEvent extends EventObject, TOutput = any>(
+export function fromActor<TState, TEvent extends EventObject, TOutput = any>(
   fst: FST<TState, TEvent, TOutput>,
   handleOutput?: (output: TOutput) => void
 ): ActorRef<TEvent, TState> {

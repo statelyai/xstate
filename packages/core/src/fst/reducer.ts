@@ -1,6 +1,6 @@
 import { FST } from './index';
 
-export function reducerToFST<TState, TInput>(
+export function fromReducer<TState, TInput>(
   reducer: (state: TState, input: TInput) => TState,
   initialState: TState,
   nextEvents?: (state: TState) => TInput[]
