@@ -1,0 +1,10 @@
+{
+  "title": "XState Documentation",
+  "url": "https://xstate.js.org/docs",
+  "logo": {
+    "light": "/logo-light.svg",
+    "dark": "/logo-dark.svg"
+  },
+  "github": "davidkpiano/xstate",
+  "twitter": "davidkpiano"
+}
