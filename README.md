@@ -9,16 +9,8 @@
   </a>
 </p>
 
-
-
-
-
 [![npm version](https://badge.fury.io/js/xstate.svg)](https://badge.fury.io/js/xstate)
 <img src="https://opencollective.com/xstate/tiers/backer/badge.svg?label=sponsors&color=brightgreen" />
-
-<div class="blm-callout">
-Black lives matter. <a href="https://support.eji.org/give/153413/#!/donation/checkout" target="_blank">Support the Equal Justice Initiative.</a> ✊🏽✊🏾✊🏿 
-</div>
 
 JavaScript and TypeScript [finite state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and [statecharts](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf) for the modern web.
 
@@ -172,9 +164,9 @@ Read [📽 the slides](http://slides.com/davidkhourshid/finite-state-machines) (
 <img src="https://imgur.com/rqqmkJh.png" alt="Light Machine" width="300" />
 
 ```js
-import { Machine } from 'xstate';
+import { createMachine } from 'xstate';
 
-const lightMachine = Machine({
+const lightMachine = createMachine({
   id: 'light',
   initial: 'green',
   states: {
@@ -208,7 +200,7 @@ const nextState = lightMachine.transition(currentState, 'TIMER').value;
 <img src="https://imgur.com/GDZAeB9.png" alt="Hierarchical Light Machine" width="300" />
 
 ```js
-import { Machine } from 'xstate';
+import { createMachine } from 'xstate';
 
 const pedestrianStates = {
   initial: 'walk',
@@ -227,7 +219,7 @@ const pedestrianStates = {
   }
 };
 
-const lightMachine = Machine({
+const lightMachine = createMachine({
   id: 'light',
   initial: 'green',
   states: {
@@ -285,7 +277,7 @@ lightMachine.transition({ red: 'stop' }, 'TIMER').value;
 <img src="https://imgur.com/GKd4HwR.png" width="300" alt="Parallel state machine" />
 
 ```js
-const wordMachine = Machine({
+const wordMachine = createMachine({
   id: 'word',
   type: 'parallel',
   states: {
@@ -371,7 +363,7 @@ const nextState = wordMachine.transition(
 <img src="https://imgur.com/I4QsQsz.png" width="300" alt="Machine with history state" />
 
 ```js
-const paymentMachine = Machine({
+const paymentMachine = createMachine({
   id: 'payment',
   initial: 'method',
   states: {
