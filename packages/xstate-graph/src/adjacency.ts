@@ -7,7 +7,7 @@ import {
   State
 } from 'xstate';
 import { flatten } from 'xstate/lib/utils';
-import { FST, machineToFST } from 'xstate/lib/fst';
+import { FST, fromMachine } from 'xstate/lib/fst';
 import { AdjacencyMap, ValueAdjMapOptions, AdjacencyMapFST } from './types';
 import { defaultValueAdjMapOptions, toEventObject } from './graph';
 
@@ -63,7 +63,7 @@ export function getAdjacencyMap<
 ): AdjacencyMap<TContext, TEvent> {
   const optionsWithDefaults = getValueAdjMapOptions(options);
 
-  const fst = machineToFST(
+  const fst = fromMachine(
     machine,
     nextEventsGetter(machine, optionsWithDefaults.events as any)
   );

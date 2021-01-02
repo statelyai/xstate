@@ -13,7 +13,7 @@ import {
   serializeEvent,
   deserializeEventString
 } from './graph';
-import { FST, machineToFST } from 'xstate/lib/fst';
+import { FST, fromMachine } from 'xstate/lib/fst';
 
 export function getShortestPaths<
   TContext = DefaultContext,
@@ -32,7 +32,7 @@ export function getShortestPaths<
     ...options
   } as ValueAdjMapOptions<TContext, TEvent>;
 
-  const fst = machineToFST(
+  const fst = fromMachine(
     machine,
     nextEventsGetter(machine, optionsWithDefaults.events as any)
   );

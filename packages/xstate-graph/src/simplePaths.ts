@@ -13,7 +13,7 @@ import {
   EMPTY_MAP,
   deserializeEventString
 } from './graph';
-import { FST, machineToFST } from 'xstate/lib/fst';
+import { FST, fromMachine } from 'xstate/lib/fst';
 
 export function getSimplePaths<
   TContext = DefaultContext,
@@ -31,7 +31,7 @@ export function getSimplePaths<
     return EMPTY_MAP;
   }
 
-  const fst = machineToFST(
+  const fst = fromMachine(
     machine,
     nextEventsGetter(machine, optionsWithDefaults.events as any)
   );
