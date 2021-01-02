@@ -21,7 +21,7 @@ function createUmdConfig({ input, output: file, name }) {
       globals: {
         xstate: 'XState',
         '@xstate/fsm': 'XStateFSM',
-        '@vue/composition-api': 'vueCompositionApi'
+        vue: 'Vue'
       }
     },
     plugins: [createTSCofig(), terser({ include: [/^.+\.min\.js$/] })]

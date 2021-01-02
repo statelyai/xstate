@@ -40,6 +40,7 @@ Get started by forking one of these templates on CodeSandbox:
 - [XState + React Template](https://codesandbox.io/s/xstate-react-template-3t2tg)
 - [XState + React + TypeScript Template](https://codesandbox.io/s/xstate-react-typescript-template-wjdvn)
 - [XState + Vue Template](https://codesandbox.io/s/xstate-vue-template-composition-api-1n23l)
+- [XState + Vue 3 Template](https://codesandbox.io/s/xstate-vue-3-template-vrkk9)
 - [XState + Svelte Template](https://codesandbox.io/s/xstate-svelte-template-jflv1)
 
 ## Super quick start

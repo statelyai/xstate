@@ -56,7 +56,7 @@ import { Scheduler } from './scheduler';
 import { Actor, isSpawnedActor, createDeferredActor } from './Actor';
 import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
-import { registerService } from './devTools';
+import { getGlobal, registerService } from './devTools';
 import * as serviceScope from './serviceScope';
 import {
   ActorRef,
@@ -1095,7 +1095,7 @@ export class Interpreter<
       if (canceled) {
         return;
       }
-      this.send(e);
+      this.send(toSCXMLEvent(e, { origin: id }));
     };
 
     let callbackStop;
@@ -1216,13 +1216,14 @@ export class Interpreter<
   }
 
   private attachDev(): void {
-    if (this.options.devTools && typeof window !== 'undefined') {
-      if ((window as any).__REDUX_DEVTOOLS_EXTENSION__) {
+    const global = getGlobal();
+    if (this.options.devTools && global) {
+      if ((global as any).__REDUX_DEVTOOLS_EXTENSION__) {
         const devToolsOptions =
           typeof this.options.devTools === 'object'
             ? this.options.devTools
             : undefined;
-        this.devTools = (window as any).__REDUX_DEVTOOLS_EXTENSION__.connect(
+        this.devTools = (global as any).__REDUX_DEVTOOLS_EXTENSION__.connect(
           {
             name: this.id,
             autoPause: true,
