@@ -805,7 +805,7 @@ export interface SendAction<
     | undefined;
   event: TSentEvent | SendExpr<TContext, TEvent, TSentEvent>;
   delay?: number | string | DelayExpr<TContext, TEvent>;
-  id?: string | undefined;
+  id?: string;
 }
 
 export interface SendActionObject<
