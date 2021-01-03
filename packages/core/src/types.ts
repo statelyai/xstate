@@ -639,7 +639,7 @@ export type DelayConfig<TContext, TEvent extends EventObject> =
 export interface MachineOptions<TContext, TEvent extends EventObject> {
   guards: Record<string, GuardPredicate<TContext, TEvent>>;
   actions: ActionFunctionMap<TContext, TEvent>;
-  behaviors: Record<string, BehaviorCreator<TContext, TEvent>>;
+  actors: Record<string, BehaviorCreator<TContext, TEvent>>;
   delays: DelayFunctionMap<TContext, TEvent>;
   context: Partial<TContext>;
 }

@@ -157,7 +157,7 @@ export function useMachine<
       services,
       delays
     };
-    const machineWithOptions = machine.withConfig(machineConfig).withContext({
+    const machineWithOptions = machine.withOptions(machineConfig).withContext({
       ...machine.context,
       ...context
     } as TContext);
@@ -258,7 +258,7 @@ export function useMachine<
   }, [actions]);
 
   useEffect(() => {
-    Object.assign(service.machine.options.behaviors, services);
+    Object.assign(service.machine.options.actors, services);
   }, [services]);
 
   // this is somewhat weird - this should always be flushed within useLayoutEffect

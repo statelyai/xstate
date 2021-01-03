@@ -42,8 +42,7 @@ export function useMachine<
     context,
     guards,
     actions,
-    activities,
-    behaviors,
+    actors,
     delays,
     state: rehydratedState,
     ...interpreterOptions
@@ -53,12 +52,11 @@ export function useMachine<
     context,
     guards,
     actions,
-    activities,
-    behaviors,
+    actors,
     delays
   };
 
-  const createdMachine = machine.withConfig({
+  const createdMachine = machine.withOptions({
     ...machineConfig,
     context
   });

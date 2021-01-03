@@ -41,7 +41,7 @@ const createDefaultOptions = <TContext>(
 ): MachineOptions<TContext, any> => ({
   actions: {},
   guards: {},
-  behaviors: {},
+  actors: {},
   delays: {},
   context
 });
@@ -142,22 +142,21 @@ export class MachineNode<
   }
 
   /**
-   * Clones this state machine with custom options and context.
+   * Clones this state machine with custom options.
    *
-   * @param options Options (actions, guards, behaviors, delays) to recursively merge with the existing options.
-   * @param context Custom context (will override predefined context)
+   * @param options Options (actions, guards, actors, delays, context) to recursively merge with the existing options.
    *
-   * @returns A new `MachineNode` instance with the custom options and context
+   * @returns A new `MachineNode` instance with the custom options
    */
-  public withConfig(
+  public withOptions(
     options: Partial<MachineOptions<TContext, TEvent>>
   ): MachineNode<TContext, TEvent, TStateSchema> {
-    const { actions, guards, behaviors, delays } = this.options;
+    const { actions, guards, actors, delays } = this.options;
 
     return new MachineNode(this.config, {
       actions: { ...actions, ...options.actions },
       guards: { ...guards, ...options.guards },
-      behaviors: { ...behaviors, ...options.behaviors },
+      actors: { ...actors, ...options.actors },
       delays: { ...delays, ...options.delays },
       context: resolveContext(this.context, options.context)
     });
@@ -173,7 +172,7 @@ export class MachineNode<
   public withContext(
     context: Partial<TContext>
   ): MachineNode<TContext, TEvent, TStateSchema> {
-    return this.withConfig({
+    return this.withOptions({
       context: resolveContext(this.context, context)
     });
   }

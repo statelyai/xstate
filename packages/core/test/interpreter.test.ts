@@ -518,7 +518,7 @@ describe('interpreter', () => {
         }
       },
       {
-        behaviors: {
+        actors: {
           myActivity: invokeActivity(() => {
             activityState = 'on';
             return () => (activityState = 'off');
@@ -565,7 +565,7 @@ describe('interpreter', () => {
           }
         },
         {
-          behaviors: {
+          actors: {
             myActivity: invokeActivity(() => {
               stopActivityState = 'on';
               return () => (stopActivityState = 'off');
@@ -606,7 +606,7 @@ describe('interpreter', () => {
           }
         },
         {
-          behaviors: {
+          actors: {
             blink: invokeActivity(() => {
               activityActive = true;
 
@@ -1096,7 +1096,7 @@ describe('interpreter', () => {
       const evenCounts: number[] = [];
       const oddCounts: number[] = [];
       const countService = interpret(
-        countMachine.withConfig({
+        countMachine.withOptions({
           actions: {
             evenAction: (ctx) => {
               evenCounts.push(ctx.count);
@@ -1643,7 +1643,7 @@ describe('interpreter', () => {
           }
         },
         {
-          behaviors: {
+          actors: {
             testService: invokeActivity(() => {
               // nothing
             })

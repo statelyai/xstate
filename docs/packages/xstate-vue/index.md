@@ -77,7 +77,7 @@ A [Vue composition function](https://vue-composition-api-rfc.netlify.com/) that 
 **Arguments**
 
 - `machine` - An [XState machine](https://xstate.js.org/docs/guides/machines.html).
-- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) OR one of the following Machine Config options: `guards`, `actions`, `activities`, `behaviors`, `delays`, `immediate`, `context`, or `state`.
+- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) OR one of the following Machine Config options: `guards`, `actions`, `actors`, `delays`, `immediate`, `context`, or `state`.
 
 **Returns** `{ state, send, service}`:
 
