@@ -278,7 +278,7 @@ export function getCandidates<TEvent extends EventObject>(
       return !transient;
     }
 
-    if (!matchTokens) {
+    if (!matchTokens && !transition.eventType.endsWith('.*')) {
       return false;
     }
 
