@@ -696,7 +696,7 @@ export enum ActionTypes {
   Update = 'xstate.update',
   Pure = 'xstate.pure',
   Choose = 'xstate.choose',
-  ForEach = 'xstate.forEach'
+  Each = 'xstate.each'
 }
 
 export interface RaiseAction<TEvent extends EventObject> {
@@ -924,7 +924,7 @@ export interface ChooseAction<TContext, TEvent extends EventObject>
 }
 
 export interface ForEachAction<TContext, TEvent extends EventObject> {
-  type: ActionTypes.ForEach;
+  type: ActionTypes.Each;
   actions: Array<ActionObject<TContext, TEvent>>;
   array: keyof TContext;
   item: keyof TContext;

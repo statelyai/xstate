@@ -575,7 +575,7 @@ export function each<TContext, TEvent extends EventObject>(
   }
 ): ForEachAction<TContext, TEvent> {
   return {
-    type: ActionTypes.ForEach,
+    type: ActionTypes.Each,
     actions,
     ...props
   };

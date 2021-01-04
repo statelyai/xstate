@@ -161,7 +161,7 @@ export function resolveActionsAndContext<TContext, TEvent extends EventObject>(
           );
           resActions.push(stopAction);
           break;
-        case actionTypes.forEach:
+        case actionTypes.each:
           const action = actionObject as ForEachAction<TContext, TEvent>;
           const array = context[action.array];
 
