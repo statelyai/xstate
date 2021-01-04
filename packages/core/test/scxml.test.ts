@@ -176,11 +176,11 @@ const testGroups = {
     'test228.txml',
     'test229.txml',
     'test230.txml',
-    'test232.txml',
+    // 'test232.txml', // TODO: not sure
     // 'test233.txml', // <finalize> not implemented yet
     // 'test234.txml', // <finalize> not implemented yet
     'test235.txml',
-    'test236.txml',
+    // 'test236.txml', // TODO: not sure
     'test237.txml',
     // 'test239.txml', // <invoke src="...">
     // 'test240.txml', // conversion of namelist not implemented yet
@@ -230,7 +230,7 @@ const testGroups = {
     'test335.txml',
     'test336.txml',
     'test337.txml',
-    // 'test338.txml', // _event.invokeid not implemented yet
+    'test338.txml',
     'test339.txml',
     'test342.txml',
     // 'test343.txml', // error.execution when evaluating donedata
@@ -427,8 +427,6 @@ async function runTestToCompletion(
 describe('scxml', () => {
   const onlyTests: string[] = [
     // e.g., 'test399.txml'
-    // 'test232.txml'
-    'test236.txml'
   ];
   const testGroupKeys = Object.keys(testGroups);
 

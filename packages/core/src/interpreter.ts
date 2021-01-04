@@ -229,7 +229,9 @@ export class Interpreter<
           : undefined;
 
       for (const listener of this.doneListeners) {
-        listener(doneInvoke(this.id, doneData));
+        listener(
+          toSCXMLEvent(doneInvoke(this.id, doneData), { invokeid: this.id })
+        );
       }
       this.stop();
     }

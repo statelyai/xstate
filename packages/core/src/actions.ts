@@ -474,10 +474,7 @@ export function done(id: string, data?: any): DoneEventObject {
  * @param invokeId The invoked service ID
  * @param data The data to pass into the event
  */
-export function doneInvoke(
-  invokeId: string,
-  data?: any
-): SCXML.Event<DoneEvent> {
+export function doneInvoke(invokeId: string, data?: any): DoneEvent {
   const type = `${ActionTypes.DoneInvoke}.${invokeId}`;
   const eventObject = {
     type,
@@ -486,7 +483,7 @@ export function doneInvoke(
 
   eventObject.toString = () => type;
 
-  return toSCXMLEvent(eventObject as DoneEvent, { invokeid: invokeId });
+  return eventObject as DoneEvent;
 }
 
 export function error(id: string, data?: any): ErrorPlatformEvent & string {

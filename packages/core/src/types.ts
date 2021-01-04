@@ -798,7 +798,6 @@ export interface SendAction<
 > extends ActionObject<TContext, TEvent> {
   to:
     | string
-    | number
     | ActorRef<any>
     | ExprWithMeta<
         TContext,

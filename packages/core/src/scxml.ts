@@ -318,6 +318,12 @@ function toConfig(
         target: target ? `#${target}` : undefined
       };
     }
+    // case 'final': {
+    //   return {
+    //     ...nodeJson.attributes,
+    //     type: 'final'
+    //   };
+    // }
     default:
       break;
   }
@@ -474,7 +480,7 @@ function toConfig(
     };
   }
 
-  return { id };
+  return { id, ...(nodeJson.name === 'final' ? { type: 'final' } : undefined) };
 }
 
 export interface ScxmlToMachineOptions {
