@@ -318,12 +318,6 @@ function toConfig(
         target: target ? `#${target}` : undefined
       };
     }
-    // case 'final': {
-    //   return {
-    //     ...nodeJson.attributes,
-    //     type: 'final'
-    //   };
-    // }
     default:
       break;
   }
