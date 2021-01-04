@@ -1742,7 +1742,6 @@ describe('interpreter', () => {
 
       const service = interpret(parentMachine)
         .onTransition((state) => {
-          console.log(state.value, state._event);
           if (state.matches('active')) {
             const childActor = state.children.childActor;
 
