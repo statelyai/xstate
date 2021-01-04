@@ -471,11 +471,14 @@ export function done(id: string, data?: any): DoneEventObject {
  * An invoked service is terminated when it has reached a top-level final state node,
  * but not when it is canceled.
  *
- * @param id The final state node ID
+ * @param invokeId The invoked service ID
  * @param data The data to pass into the event
  */
-export function doneInvoke(id: string, data?: any): DoneEvent {
-  const type = `${ActionTypes.DoneInvoke}.${id}`;
+export function doneInvoke(
+  invokeId: string,
+  data?: any
+): SCXML.Event<DoneEvent> {
+  const type = `${ActionTypes.DoneInvoke}.${invokeId}`;
   const eventObject = {
     type,
     data
@@ -483,7 +486,7 @@ export function doneInvoke(id: string, data?: any): DoneEvent {
 
   eventObject.toString = () => type;
 
-  return eventObject as DoneEvent;
+  return toSCXMLEvent(eventObject as DoneEvent, { invokeid: invokeId });
 }
 
 export function error(id: string, data?: any): ErrorPlatformEvent & string {
