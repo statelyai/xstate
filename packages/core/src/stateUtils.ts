@@ -301,8 +301,6 @@ export function getCandidates<TEvent extends EventObject>(
       if (partialEventToken !== eventToken) {
         return false;
       }
-
-      continue;
     }
 
     return true;
