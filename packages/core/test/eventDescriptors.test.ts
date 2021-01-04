@@ -212,5 +212,9 @@ describe('event descriptors', () => {
     expect(
       SCXMLMachine.transition(undefined, 'event.whatever').matches('success')
     ).toBeTruthy();
+    
+    expect(
+      SCXMLMachine.transition(undefined, 'eventually').matches('start')
+    ).toBeTruthy();
   });
 });
