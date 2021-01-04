@@ -272,10 +272,14 @@ export function getCandidates<TEvent extends EventObject>(
       return true;
     }
 
+    // transient transitions can't match non-transient events
+    if (transient) {
+        return false;
+    }
     // Then, check if transition is a wildcard transition,
-    // which matches all non-transient events
+    // which matches any non-transient events
     if (transition.eventType === WILDCARD) {
-      return !transient;
+      return true;
     }
 
     if (!matchTokens && !transition.eventType.endsWith('.*')) {
