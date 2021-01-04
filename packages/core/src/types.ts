@@ -656,6 +656,10 @@ export interface MachineConfig<
    * The machine's own version.
    */
   version?: string;
+  /**
+   * If `true`, will use SCXML semantics, such as event token matching.
+   */
+  scxml?: boolean;
 }
 
 export interface HistoryStateNode<TContext> extends StateNode<TContext> {
@@ -812,7 +816,7 @@ export interface SendActionObject<
   TEvent extends EventObject,
   TSentEvent extends EventObject = AnyEventObject
 > extends SendAction<TContext, TEvent, TSentEvent> {
-  to: string | number | ActorRef<TSentEvent> | undefined;
+  to: string | ActorRef<TSentEvent> | undefined;
   _event: SCXML.Event<TSentEvent>;
   event: TSentEvent;
   delay?: number;

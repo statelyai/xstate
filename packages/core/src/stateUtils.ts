@@ -259,15 +259,49 @@ export const isStateId = (str: string) => str[0] === STATE_IDENTIFIER;
 
 export function getCandidates<TEvent extends EventObject>(
   stateNode: StateNode<any, TEvent>,
-  eventName: TEvent['type'] | NullEvent['type'] | '*'
+  eventName: TEvent['type'] | NullEvent['type'],
+  /**
+   * If `true`, will use SCXML event token matching semantics
+   */
+  matchTokens: boolean = false
 ): Array<TransitionDefinition<any, TEvent>> {
   const transient = eventName === NULL_EVENT;
   const candidates = stateNode.transitions.filter((transition) => {
-    const sameEventType = transition.eventType === eventName;
-    // null events should only match against eventless transitions
-    return transient
-      ? sameEventType
-      : sameEventType || transition.eventType === WILDCARD;
+    // First, check the trivial case: event names are exactly equal
+    if (transition.eventType === eventName) {
+      return true;
+    }
+
+    // Then, check if transition is a wildcard transition,
+    // which matches all non-transient events
+    if (transition.eventType === WILDCARD) {
+      return !transient;
+    }
+
+    if (!matchTokens) {
+      return false;
+    }
+
+    const partialEventTokens = transition.eventType.split('.');
+    const eventTokens = eventName.split('.');
+
+    // tslint:disable-next-line: forin
+    for (const tokenIndex in partialEventTokens) {
+      const partialEventToken = partialEventTokens[tokenIndex];
+      const eventToken = eventTokens[tokenIndex];
+
+      if (partialEventToken === '*') {
+        return true;
+      }
+
+      if (partialEventToken !== eventToken) {
+        return false;
+      }
+
+      continue;
+    }
+
+    return true;
   });
 
   return candidates;
@@ -696,10 +730,9 @@ export function getStateNodes<TContext, TEvent extends EventObject>(
   }
 
   const childStateKeys = keys(stateValue);
-  const childStateNodes: Array<StateNode<
-    TContext,
-    TEvent
-  >> = childStateKeys
+  const childStateNodes: Array<
+    StateNode<TContext, TEvent>
+  > = childStateKeys
     .map((subStateKey) => getStateNode(stateNode, subStateKey))
     .filter(Boolean);
 
@@ -1354,10 +1387,9 @@ export function microstep<TContext, TEvent extends EventObject>(
 function selectEventlessTransitions<TContext, TEvent extends EventObject>(
   state: State<TContext, TEvent>
 ): Transitions<TContext, TEvent> {
-  const enabledTransitions: Set<TransitionDefinition<
-    TContext,
-    TEvent
-  >> = new Set();
+  const enabledTransitions: Set<
+    TransitionDefinition<TContext, TEvent>
+  > = new Set();
 
   const atomicStates = state.configuration.filter(isAtomicStateNode);
 

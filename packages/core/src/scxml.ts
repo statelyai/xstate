@@ -318,12 +318,6 @@ function toConfig(
         target: target ? `#${target}` : undefined
       };
     }
-    case 'final': {
-      return {
-        ...nodeJson.attributes,
-        type: 'final'
-      };
-    }
     default:
       break;
   }
@@ -377,13 +371,6 @@ function toConfig(
         );
 
         return events.map((event) => {
-          if (event === 'done.invoke') {
-            throw new Error(
-              'done.invoke gets often used in SCXML tests as inexact event descriptor.' +
-                " As long as this stay unimplemented or done.invoke doesn't get a specialcased while converting throw when seeing it to avoid tests using this to pass by accident."
-            );
-          }
-
           const targets = getAttribute(value, 'target');
           const internal = getAttribute(value, 'type') === 'internal';
 
@@ -472,6 +459,7 @@ function toConfig(
           }
         : undefined),
       ...(parallel ? { type: 'parallel' } : undefined),
+      ...(nodeJson.name === 'final' ? { type: 'final' } : undefined),
       ...(stateElements.length
         ? {
             states: mapValues(states, (state, key) =>
@@ -497,7 +485,18 @@ function scxmlToMachine(
   scxmlJson: XMLElement,
   options: ScxmlToMachineOptions
 ): MachineNode {
-  const machineElement = scxmlJson.elements!.find(
+  if (!scxmlJson.elements) {
+    // If there is no SCXML element, this should call 'done.invoke' immediately.
+    // TODO: there's probably a better way to do this
+    return Machine({
+      initial: 'final',
+      states: {
+        final: { type: 'final' }
+      }
+    });
+  }
+
+  const machineElement = scxmlJson.elements.find(
     (element) => element.name === 'scxml'
   ) as XMLElement;
 
@@ -529,7 +528,8 @@ function scxmlToMachine(
   return Machine({
     ...toConfig(machineElement, '(machine)', options),
     context,
-    delimiter: options.delimiter
+    delimiter: options.delimiter,
+    scxml: true
   });
 }
 

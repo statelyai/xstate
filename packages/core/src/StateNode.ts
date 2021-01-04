@@ -384,7 +384,11 @@ export class StateNode<
 
     const candidates: Array<TransitionDefinition<TContext, TEvent>> =
       this.__cache.candidates[eventName] ||
-      (this.__cache.candidates[eventName] = getCandidates(this, eventName));
+      (this.__cache.candidates[eventName] = getCandidates(
+        this,
+        eventName,
+        this.machine.config.scxml // Whether token matching should be used
+      ));
 
     for (const candidate of candidates) {
       const { guard } = candidate;
