@@ -799,11 +799,7 @@ export interface SendAction<
   to:
     | string
     | ActorRef<any>
-    | ExprWithMeta<
-        TContext,
-        TEvent,
-        string | number | ActorRef<any> | undefined
-      >
+    | ExprWithMeta<TContext, TEvent, string | ActorRef<any> | undefined>
     | undefined;
   event: TSentEvent | SendExpr<TContext, TEvent, TSentEvent>;
   delay?: number | string | DelayExpr<TContext, TEvent>;
@@ -849,22 +845,18 @@ export interface SendActionOptions<TContext, TEvent extends EventObject> {
   delay?: number | string | DelayExpr<TContext, TEvent>;
   to?:
     | string
-    | ExprWithMeta<
-        TContext,
-        TEvent,
-        string | number | ActorRef<any> | undefined
-      >
+    | ExprWithMeta<TContext, TEvent, string | ActorRef<any> | undefined>
     | undefined;
 }
 
 export interface CancelAction<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {
-  sendId: string | number | ExprWithMeta<TContext, TEvent, string | number>;
+  sendId: string | ExprWithMeta<TContext, TEvent, string>;
 }
 
 export interface CancelActionObject<TContext, TEvent extends EventObject>
   extends CancelAction<TContext, TEvent> {
-  sendId: string | number;
+  sendId: string;
 }
 
 export type Assigner<TContext, TEvent extends EventObject> = (

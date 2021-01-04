@@ -343,7 +343,7 @@ export const resolveLog = <TContext, TEvent extends EventObject>(
  * @param sendId The `id` of the `send(...)` action to cancel.
  */
 export const cancel = <TContext, TEvent extends EventObject>(
-  sendId: string | number | ExprWithMeta<TContext, TEvent, string | number>
+  sendId: string | ExprWithMeta<TContext, TEvent, string>
 ): CancelAction<TContext, TEvent> => {
   return {
     type: actionTypes.cancel,
