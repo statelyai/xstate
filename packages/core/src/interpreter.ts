@@ -554,14 +554,14 @@ export class Interpreter<
 
   private sendTo(
     event: SCXML.Event<AnyEventObject>,
-    to: string | number | ActorRef<any>
+    to: string | ActorRef<any>
   ) {
     const isParent = this.parent && to === SpecialTargets.Parent;
     const target = isParent
       ? this.parent
       : isActorRef(to)
       ? to
-      : this.children.get(to);
+      : this.children.get(to.startsWith('#_') ? to.slice(2) : to);
 
     if (!target) {
       if (!isParent) {
