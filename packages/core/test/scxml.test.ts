@@ -230,7 +230,7 @@ const testGroups = {
     'test335.txml',
     'test336.txml',
     'test337.txml',
-    'test338.txml',
+    // 'test338.txml', // <invoke idlocation="..."> + _event.invokeid available on <send> events received from the invoked child
     'test339.txml',
     'test342.txml',
     // 'test343.txml', // error.execution when evaluating donedata
