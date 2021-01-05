@@ -180,7 +180,7 @@ const testGroups = {
     // 'test233.txml', // <finalize> not implemented yet
     // 'test234.txml', // <finalize> not implemented yet
     'test235.txml',
-    // 'test236.txml', // TODO: not sure
+    // 'test236.txml', // reaching a final state should execute all onexit handlers
     'test237.txml',
     // 'test239.txml', // <invoke src="...">
     // 'test240.txml', // conversion of namelist not implemented yet
