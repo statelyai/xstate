@@ -212,9 +212,35 @@ describe('event descriptors', () => {
     expect(
       SCXMLMachine.transition(undefined, 'event.whatever').matches('success')
     ).toBeTruthy();
-    
+
     expect(
       SCXMLMachine.transition(undefined, 'eventually').matches('start')
     ).toBeTruthy();
+  });
+
+  it('should not match infix wildcards', () => {
+    const machine = Machine({
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            'event.*.bar.*': 'success',
+            '*.event.*': 'success'
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    expect(
+      machine
+        .transition(undefined, 'event.foo.bar.first.second')
+        .matches('success')
+    ).toBeFalsy();
+    expect(
+      machine.transition(undefined, 'whatever.event').matches('success')
+    ).toBeFalsy();
   });
 });

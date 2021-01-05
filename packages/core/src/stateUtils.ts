@@ -261,9 +261,10 @@ export function getCandidates<TEvent extends EventObject>(
   stateNode: StateNode<any, TEvent>,
   eventName: TEvent['type'] | NullEvent['type'],
   /**
-   * If `true`, will use SCXML event token matching semantics
+   * If `true`, will use SCXML event partial token matching semantics
+   * without the need for the ".*" suffix
    */
-  matchTokens: boolean = false
+  partialMatch: boolean = false
 ): Array<TransitionDefinition<any, TEvent>> {
   const transient = eventName === NULL_EVENT;
   const candidates = stateNode.transitions.filter((transition) => {
@@ -274,7 +275,7 @@ export function getCandidates<TEvent extends EventObject>(
 
     // transient transitions can't match non-transient events
     if (transient) {
-        return false;
+      return false;
     }
     // Then, check if transition is a wildcard transition,
     // which matches any non-transient events
@@ -282,20 +283,32 @@ export function getCandidates<TEvent extends EventObject>(
       return true;
     }
 
-    if (!matchTokens && !transition.eventType.endsWith('.*')) {
+    if (!partialMatch && !transition.eventType.endsWith('.*')) {
       return false;
     }
 
     const partialEventTokens = transition.eventType.split('.');
     const eventTokens = eventName.split('.');
 
-    // tslint:disable-next-line: forin
-    for (const tokenIndex in partialEventTokens) {
+    for (
+      let tokenIndex = 0;
+      tokenIndex < partialEventTokens.length;
+      tokenIndex++
+    ) {
       const partialEventToken = partialEventTokens[tokenIndex];
       const eventToken = eventTokens[tokenIndex];
 
       if (partialEventToken === '*') {
-        return true;
+        const isLastToken = tokenIndex === partialEventTokens.length - 1;
+
+        if (!IS_PRODUCTION) {
+          warn(
+            isLastToken,
+            `Infix wildcards in transition events are not allowed. Check the "${transition.eventType}" event.`
+          );
+        }
+
+        return isLastToken;
       }
 
       if (partialEventToken !== eventToken) {
