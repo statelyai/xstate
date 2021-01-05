@@ -259,36 +259,45 @@ export const isStateId = (str: string) => str[0] === STATE_IDENTIFIER;
 
 export function getCandidates<TEvent extends EventObject>(
   stateNode: StateNode<any, TEvent>,
-  eventName: TEvent['type'] | NullEvent['type'],
+  receivedEventType: TEvent['type'] | NullEvent['type'],
   /**
    * If `true`, will use SCXML event partial token matching semantics
    * without the need for the ".*" suffix
    */
   partialMatch: boolean = false
 ): Array<TransitionDefinition<any, TEvent>> {
-  const transient = eventName === NULL_EVENT;
+  const transient = receivedEventType === NULL_EVENT;
   const candidates = stateNode.transitions.filter((transition) => {
+    const { eventType } = transition;
     // First, check the trivial case: event names are exactly equal
-    if (transition.eventType === eventName) {
+    if (eventType === receivedEventType) {
       return true;
     }
 
-    // transient transitions can't match non-transient events
+    // Transient transitions can't match non-transient events
     if (transient) {
       return false;
     }
+
     // Then, check if transition is a wildcard transition,
     // which matches any non-transient events
-    if (transition.eventType === WILDCARD) {
+    if (eventType === WILDCARD) {
       return true;
     }
 
-    if (!partialMatch && !transition.eventType.endsWith('.*')) {
+    if (!partialMatch && !eventType.endsWith('.*')) {
       return false;
     }
 
-    const partialEventTokens = transition.eventType.split('.');
-    const eventTokens = eventName.split('.');
+    if (!IS_PRODUCTION) {
+      warn(
+        !/.*\*.+/.test(eventType),
+        `Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "${eventType}" event.`
+      );
+    }
+
+    const partialEventTokens = eventType.split('.');
+    const eventTokens = receivedEventType.split('.');
 
     for (
       let tokenIndex = 0;
@@ -304,7 +313,7 @@ export function getCandidates<TEvent extends EventObject>(
         if (!IS_PRODUCTION) {
           warn(
             isLastToken,
-            `Infix wildcards in transition events are not allowed. Check the "${transition.eventType}" event.`
+            `Infix wildcards in transition events are not allowed. Check the "${eventType}" event.`
           );
         }
 

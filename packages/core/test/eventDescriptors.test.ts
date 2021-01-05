@@ -243,4 +243,28 @@ describe('event descriptors', () => {
       machine.transition(undefined, 'whatever.event').matches('success')
     ).toBeFalsy();
   });
+
+  it('should not match wildcards as part of tokens', () => {
+    const machine = Machine({
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            'event*.bar.*': 'success',
+            '*event.*': 'success'
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    expect(
+      machine.transition(undefined, 'eventually.bar.baz').matches('success')
+    ).toBeFalsy();
+    expect(
+      machine.transition(undefined, 'prevent.whatever').matches('success')
+    ).toBeFalsy();
+  });
 });
