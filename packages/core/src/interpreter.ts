@@ -563,7 +563,7 @@ export class Interpreter<
       ? this.parent
       : isActorRef(to)
       ? to
-      : this.children.get(to.startsWith('#_') ? to.slice(2) : to);
+      : this.children.get(to);
 
     if (!target) {
       if (!isParent) {

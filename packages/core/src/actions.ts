@@ -226,9 +226,16 @@ export function resolveSend<
       : action.delay;
   }
 
-  const resolvedTarget = isFunction(action.to)
+  let resolvedTarget = isFunction(action.to)
     ? action.to(ctx, _event.data, meta)
     : action.to;
+  resolvedTarget =
+    isString(resolvedTarget) &&
+    resolvedTarget !== SpecialTargets.Parent &&
+    resolvedTarget !== SpecialTargets.Internal &&
+    resolvedTarget.startsWith('#_')
+      ? resolvedTarget.slice(2)
+      : resolvedTarget;
 
   return {
     ...action,
