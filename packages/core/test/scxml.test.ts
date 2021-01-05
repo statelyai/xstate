@@ -176,7 +176,7 @@ const testGroups = {
     'test228.txml',
     'test229.txml',
     'test230.txml',
-    // 'test232.txml', // TODO: not sure
+    'test232.txml',
     // 'test233.txml', // <finalize> not implemented yet
     // 'test234.txml', // <finalize> not implemented yet
     'test235.txml',
