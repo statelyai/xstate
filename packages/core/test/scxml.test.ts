@@ -175,7 +175,7 @@ const testGroups = {
     // 'test226.txml', // <invoke src="...">
     'test228.txml',
     'test229.txml',
-    'test230.txml',
+    // 'test230.txml', // Manual test (TODO: check)
     'test232.txml',
     // 'test233.txml', // <finalize> not implemented yet
     // 'test234.txml', // <finalize> not implemented yet
@@ -307,7 +307,7 @@ const testGroups = {
     // 'test527.txml', // conversion of <donedata> not implemented yet
     // 'test528.txml', // conversion of <donedata> not implemented yet + error.execution when evaluating donedata
     // 'test529.txml', // conversion of <donedata> not implemented yet
-    'test530.txml',
+    // 'test530.txml', // https://github.com/davidkpiano/xstate/pull/1811#discussion_r551897693
     // 'test531.txml', // Basic HTTP Event I/O processor not implemented
     // 'test532.txml', // Basic HTTP Event I/O processor not implemented
     'test533.txml',

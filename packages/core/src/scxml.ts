@@ -485,18 +485,7 @@ function scxmlToMachine(
   scxmlJson: XMLElement,
   options: ScxmlToMachineOptions
 ): MachineNode {
-  if (!scxmlJson.elements) {
-    // If there is no SCXML element, this should call 'done.invoke' immediately.
-    // TODO: there's probably a better way to do this
-    return Machine({
-      initial: 'final',
-      states: {
-        final: { type: 'final' }
-      }
-    });
-  }
-
-  const machineElement = scxmlJson.elements.find(
+  const machineElement = scxmlJson.elements!.find(
     (element) => element.name === 'scxml'
   ) as XMLElement;
 
