@@ -229,7 +229,9 @@ export class Interpreter<
           : undefined;
 
       for (const listener of this.doneListeners) {
-        listener(doneInvoke(this.id, doneData));
+        listener(
+          toSCXMLEvent(doneInvoke(this.id, doneData), { invokeid: this.id })
+        );
       }
       this.stop();
     }
@@ -554,7 +556,7 @@ export class Interpreter<
 
   private sendTo(
     event: SCXML.Event<AnyEventObject>,
-    to: string | number | ActorRef<any>
+    to: string | ActorRef<any>
   ) {
     const isParent = this.parent && to === SpecialTargets.Parent;
     const target = isParent
