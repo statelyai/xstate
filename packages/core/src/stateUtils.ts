@@ -11,7 +11,8 @@ import {
   normalizeTarget,
   toStateValue,
   mapContext,
-  toSCXMLEvent
+  toSCXMLEvent,
+  warn
 } from './utils';
 import {
   TransitionConfig,
@@ -52,6 +53,7 @@ import { MachineNode } from './MachineNode';
 import { createActorRefFromInvokeAction } from './invoke';
 import { evaluateGuard, toGuardDefinition } from './guards';
 import { resolveActionsAndContext } from './actions/resolveActionsAndContext';
+import { IS_PRODUCTION } from './environment';
 
 type Configuration<TC, TE extends EventObject> = Iterable<StateNode<TC, TE>>;
 
