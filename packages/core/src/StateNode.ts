@@ -692,7 +692,8 @@ class StateNode<
     return new State({
       ...state,
       value: this.resolve(state.value),
-      configuration
+      configuration,
+      done: isInFinalState(configuration, this)
     });
   }
 
