@@ -153,7 +153,7 @@ const testGroups = {
     'test189.txml',
     'test190.txml', // note: _sessionid is undefined for expressions
     'test191.txml',
-    // 'test192.txml', // done.invoke inexact event descriptor
+    'test192.txml',
     'test193.txml',
     'test194.txml',
     // 'test198.txml', // origintype not implemented yet
@@ -166,30 +166,30 @@ const testGroups = {
     // 'test210.txml', // sendidexpr not supported yet
     // 'test215.txml', // <invoke typeexpr="...">
     // 'test216.txml', // <invoke srcexpr="...">
-    // 'test220.txml', // done.invoke used as inexact event descriptor
+    'test220.txml',
     // 'test223.txml', // idlocation not implemented yet
-    // 'test224.txml', // done.invoke used as inexact event descriptor
+    // 'test224.txml', // <invoke idlocation="...">
     // 'test225.txml', // unique invokeids generated at invoke time
     // 'test226.txml', // <invoke src="...">
-    // 'test228.txml', // done.invoke used as inexact event descriptor + _event.invokeid not implemented yet
+    'test228.txml',
     'test229.txml',
-    // 'test230.txml', // done.invoke used as inexact event descriptor + SCXML _event properties not implemented yet
-    // 'test232.txml', // done.invoke used as inexact event descriptor
+    // 'test230.txml', // Manual test (TODO: check)
+    'test232.txml',
     // 'test233.txml', // <finalize> not implemented yet
     // 'test234.txml', // <finalize> not implemented yet
     'test235.txml',
-    // 'test236.txml', // done.invoke used as inexact event descriptor
-    // 'test237.txml', // done.invoke used as inexact event descriptor
-    // 'test239.txml', // done.invoke used as inexact event descriptor
+    // 'test236.txml', // reaching a final state should execute all onexit handlers
+    'test237.txml',
+    // 'test239.txml', // <invoke src="...">
     // 'test240.txml', // conversion of namelist not implemented yet
     // 'test241.txml', // conversion of namelist not implemented yet
     // 'test242.txml', // <invoke src="...">
     // 'test243.txml', // conversion of <param> in <scxml> not implemented yet
     // 'test244.txml', // conversion of namelist not implemented yet
     // 'test245.txml', // conversion of namelist not implemented yet
-    // 'test247.txml', // done.invoke used as inexact event descriptor
+    'test247.txml',
     // 'test250.txml', // this is a manual test - we could test it by snapshoting logged valued
-    // 'test252.txml', // done.invoke used as inexact event descriptor
+    'test252.txml',
     // 'test253.txml', // _event.origintype not implemented yet
     // 'test276.txml', // <invoke src="...">
     // 'test277.txml', // illegal expression in datamodel creates unbound variable
@@ -228,13 +228,13 @@ const testGroups = {
     'test335.txml',
     'test336.txml',
     'test337.txml',
-    // 'test338.txml', // _event.invokeid not implemented yet
+    // 'test338.txml', // <invoke idlocation="..."> + _event.invokeid available on <send> events received from the invoked child
     'test339.txml',
     'test342.txml',
     // 'test343.txml', // error.execution when evaluating donedata
     // 'test344.txml', // error in cond expression being treated as false and raises error.execution
     // 'test346.txml', // system variables can't be modified, we don't keep them in datamodel, so it might be hard to run this test
-    // 'test347.txml', // done.invoke used as inexact event descriptor
+    'test347.txml',
     'test348.txml',
     'test349.txml',
     // 'test350.txml', // _sessionid not yet available for expressions
@@ -251,9 +251,9 @@ const testGroups = {
     'test387.txml',
     'test388.txml',
     'test396.txml',
-    // 'test399.txml', // inexact prefix event matching not implemented
-    // 'test401.txml', // inexact "error" event (should be "error.execution")
-    // 'test402.txml', // error.execution when evaluating assign + inexact prefix event matching not implemented
+    'test399.txml',
+    'test401.txml',
+    // 'test402.txml', // TODO: investigate more, it expects error.execution when evaluating assign, check if assigning to a deep location is even allowed, check if assigning to an initialized datamodel is allowed, improve how datamodel is exposed to constructed functions
     'test403a.txml',
     'test403b.txml',
     'test403c.txml',
@@ -305,7 +305,7 @@ const testGroups = {
     // 'test527.txml', // conversion of <donedata> not implemented yet
     // 'test528.txml', // conversion of <donedata> not implemented yet + error.execution when evaluating donedata
     // 'test529.txml', // conversion of <donedata> not implemented yet
-    // 'test530.txml', // done.invoke used as inexact event descriptor
+    // 'test530.txml', // https://github.com/davidkpiano/xstate/pull/1811#discussion_r551897693
     // 'test531.txml', // Basic HTTP Event I/O processor not implemented
     // 'test532.txml', // Basic HTTP Event I/O processor not implemented
     'test533.txml',
@@ -356,14 +356,15 @@ async function runW3TestToCompletion(machine: MachineNode): Promise<void> {
         nextState = state;
       })
       .onDone(() => {
-        if (nextState.value === 'pass') {
+        // Add 'final' for test230.txml which does not have a 'pass' state
+        if (['final', 'pass'].includes(nextState.value as string)) {
           resolve();
         } else {
           reject(
             new Error(
               `Reached "fail" state with event ${JSON.stringify(
                 nextState.event
-              )}`
+              )} from state ${JSON.stringify(nextState.history?.value)}`
             )
           );
         }
@@ -388,12 +389,16 @@ async function runTestToCompletion(
     clock: new SimulatedClock()
   })
     .onTransition((state) => {
+      // console.log(state._event, state.value);
+
       nextState = state;
     })
     .onDone(() => {
       if (nextState.value === 'fail') {
         throw new Error(
-          `Reached "fail" state with event ${JSON.stringify(nextState.event)}`
+          `Reached "fail" state with event ${JSON.stringify(
+            nextState.event
+          )} from state ${JSON.stringify(nextState.history?.value)}`
         );
       }
       done = true;
@@ -418,14 +423,21 @@ async function runTestToCompletion(
 }
 
 describe('scxml', () => {
+  const onlyTests: string[] = [
+    // e.g., 'test399.txml'
+  ];
   const testGroupKeys = Object.keys(testGroups);
-  // const testGroupKeys = ['w3c-ecma'];
 
   testGroupKeys.forEach((testGroupName) => {
     const testNames = testGroups[testGroupName];
-    // const testNames = ['test333.txml'];
 
     testNames.forEach((testName) => {
+      const execTest = onlyTests.length
+        ? onlyTests.includes(testName)
+          ? it.only
+          : it.skip
+        : it;
+
       const scxmlSource =
         overrides[testGroupName] &&
         overrides[testGroupName].indexOf(testName) !== -1
@@ -445,7 +457,7 @@ describe('scxml', () => {
         )
       ) as SCIONTest;
 
-      it(`${testGroupName}/${testName}`, async () => {
+      execTest(`${testGroupName}/${testName}`, async () => {
         const machine = toMachine(scxmlDefinition, {
           delimiter: '$'
         });

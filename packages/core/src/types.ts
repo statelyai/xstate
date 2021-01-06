@@ -656,6 +656,10 @@ export interface MachineConfig<
    * The machine's own version.
    */
   version?: string;
+  /**
+   * If `true`, will use SCXML semantics, such as event token matching.
+   */
+  scxml?: boolean;
 }
 
 export interface HistoryStateNode<TContext> extends StateNode<TContext> {
@@ -795,13 +799,8 @@ export interface SendAction<
 > extends ActionObject<TContext, TEvent> {
   to:
     | string
-    | number
     | ActorRef<any>
-    | ExprWithMeta<
-        TContext,
-        TEvent,
-        string | number | ActorRef<any> | undefined
-      >
+    | ExprWithMeta<TContext, TEvent, string | ActorRef<any> | undefined>
     | undefined;
   event: TSentEvent | SendExpr<TContext, TEvent, TSentEvent>;
   delay?: number | string | DelayExpr<TContext, TEvent>;
@@ -813,7 +812,7 @@ export interface SendActionObject<
   TEvent extends EventObject,
   TSentEvent extends EventObject = AnyEventObject
 > extends SendAction<TContext, TEvent, TSentEvent> {
-  to: string | number | ActorRef<TSentEvent> | undefined;
+  to: string | ActorRef<TSentEvent> | undefined;
   _event: SCXML.Event<TSentEvent>;
   event: TSentEvent;
   delay?: number;
@@ -847,22 +846,18 @@ export interface SendActionOptions<TContext, TEvent extends EventObject> {
   delay?: number | string | DelayExpr<TContext, TEvent>;
   to?:
     | string
-    | ExprWithMeta<
-        TContext,
-        TEvent,
-        string | number | ActorRef<any> | undefined
-      >
+    | ExprWithMeta<TContext, TEvent, string | ActorRef<any> | undefined>
     | undefined;
 }
 
 export interface CancelAction<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {
-  sendId: string | number | ExprWithMeta<TContext, TEvent, string | number>;
+  sendId: string | ExprWithMeta<TContext, TEvent, string>;
 }
 
 export interface CancelActionObject<TContext, TEvent extends EventObject>
   extends CancelAction<TContext, TEvent> {
-  sendId: string | number;
+  sendId: string;
 }
 
 export type Assigner<TContext, TEvent extends EventObject> = (

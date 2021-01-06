@@ -1,6 +1,6 @@
 {
   "name": "@xstate/vue",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "XState tools for Vue",
   "keywords": [
     "state",
@@ -31,9 +31,8 @@
     "url": "https://github.com/davidkpiano/xstate/issues"
   },
   "peerDependencies": {
-    "@vue/composition-api": "^0.6.0",
     "@xstate/fsm": "^1.0.0",
-    "vue": "^2.6.10",
+    "vue": "^3.0.0",
     "xstate": "^4.7.8"
   },
   "peerDependenciesMeta": {
@@ -46,11 +45,10 @@
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^4.2.4",
-    "@testing-library/vue": "^4.1.0",
-    "@vue/composition-api": "^0.6.5",
-    "@vue/test-utils": "^1.0.0-beta.30",
+    "@testing-library/vue": "^6.3.1",
+    "@vue/compiler-sfc": "^3.0.4",
     "@xstate/fsm": "*",
-    "vue": "^2.6.10",
+    "vue": "^3.0.4",
     "xstate": "*"
   },
   "preconstruct": {

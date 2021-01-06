@@ -229,9 +229,16 @@ export function resolveSend<
       : action.delay;
   }
 
-  const resolvedTarget = isFunction(action.to)
+  let resolvedTarget = isFunction(action.to)
     ? action.to(ctx, _event.data, meta)
     : action.to;
+  resolvedTarget =
+    isString(resolvedTarget) &&
+    resolvedTarget !== SpecialTargets.Parent &&
+    resolvedTarget !== SpecialTargets.Internal &&
+    resolvedTarget.startsWith('#_')
+      ? resolvedTarget.slice(2)
+      : resolvedTarget;
 
   return {
     ...action,
@@ -346,7 +353,7 @@ export const resolveLog = <TContext, TEvent extends EventObject>(
  * @param sendId The `id` of the `send(...)` action to cancel.
  */
 export const cancel = <TContext, TEvent extends EventObject>(
-  sendId: string | number | ExprWithMeta<TContext, TEvent, string | number>
+  sendId: string | ExprWithMeta<TContext, TEvent, string>
 ): CancelAction<TContext, TEvent> => {
   return {
     type: actionTypes.cancel,
@@ -474,11 +481,11 @@ export function done(id: string, data?: any): DoneEventObject {
  * An invoked service is terminated when it has reached a top-level final state node,
  * but not when it is canceled.
  *
- * @param id The final state node ID
+ * @param invokeId The invoked service ID
  * @param data The data to pass into the event
  */
-export function doneInvoke(id: string, data?: any): DoneEvent {
-  const type = `${ActionTypes.DoneInvoke}.${id}`;
+export function doneInvoke(invokeId: string, data?: any): DoneEvent {
+  const type = `${ActionTypes.DoneInvoke}.${invokeId}`;
   const eventObject = {
     type,
     data

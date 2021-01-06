@@ -60,4 +60,211 @@ describe('event descriptors', () => {
     service.send('NEXT');
     expect(service.state.value).toBe('pass');
   });
+
+  it('should NOT support non-tokenized wildcards', () => {
+    const machine = Machine({
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            'event*': 'success'
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    expect(
+      machine.transition(undefined, 'event').matches('success')
+    ).toBeFalsy();
+    expect(
+      machine.transition(undefined, 'eventually').matches('success')
+    ).toBeFalsy();
+  });
+
+  it('should support prefix matching with wildcards (+0)', () => {
+    const machine = Machine({
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            'event.*': 'success'
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    expect(
+      machine.transition(undefined, 'event').matches('success')
+    ).toBeTruthy();
+    expect(
+      machine.transition(undefined, 'eventually').matches('success')
+    ).toBeFalsy();
+  });
+
+  it('should support prefix matching with wildcards (+1)', () => {
+    const machine = Machine({
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            'event.*': 'success'
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    expect(
+      machine.transition(undefined, 'event.whatever').matches('success')
+    ).toBeTruthy();
+    expect(
+      machine.transition(undefined, 'eventually').matches('success')
+    ).toBeFalsy();
+    expect(
+      machine.transition(undefined, 'eventually.event').matches('success')
+    ).toBeFalsy();
+  });
+
+  it('should support prefix matching with wildcards (+n)', () => {
+    const machine = Machine({
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            'event.*': 'success'
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    expect(
+      machine.transition(undefined, 'event.first.second').matches('success')
+    ).toBeTruthy();
+  });
+
+  it('should support prefix matching with wildcards (+n, multi-prefix)', () => {
+    const machine = Machine({
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            'event.foo.bar.*': 'success'
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    expect(
+      machine
+        .transition(undefined, 'event.foo.bar.first.second')
+        .matches('success')
+    ).toBeTruthy();
+  });
+
+  it('should only allow non-wildcard prefix matching for SCXML machines', () => {
+    const nonSCXMLMachine = Machine({
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            event: 'success'
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    const SCXMLMachine = Machine({
+      scxml: true,
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            event: 'success'
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    expect(
+      nonSCXMLMachine.transition(undefined, 'event.whatever').matches('start')
+    ).toBeTruthy();
+
+    expect(
+      SCXMLMachine.transition(undefined, 'event.whatever').matches('success')
+    ).toBeTruthy();
+
+    expect(
+      SCXMLMachine.transition(undefined, 'eventually').matches('start')
+    ).toBeTruthy();
+  });
+
+  it('should not match infix wildcards', () => {
+    const machine = Machine({
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            'event.*.bar.*': 'success',
+            '*.event.*': 'success'
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    expect(
+      machine
+        .transition(undefined, 'event.foo.bar.first.second')
+        .matches('success')
+    ).toBeFalsy();
+    expect(
+      machine.transition(undefined, 'whatever.event').matches('success')
+    ).toBeFalsy();
+  });
+
+  it('should not match wildcards as part of tokens', () => {
+    const machine = Machine({
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            'event*.bar.*': 'success',
+            '*event.*': 'success'
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    expect(
+      machine.transition(undefined, 'eventually.bar.baz').matches('success')
+    ).toBeFalsy();
+    expect(
+      machine.transition(undefined, 'prevent.whatever').matches('success')
+    ).toBeFalsy();
+  });
 });
