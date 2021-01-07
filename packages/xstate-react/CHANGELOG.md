@@ -1,5 +1,65 @@
 # Changelog
 
+## 1.2.2
+
+### Patch Changes
+
+- [`4b31cefb`](https://github.com/davidkpiano/xstate/commit/4b31cefb3d3497e5515314046639df7e27dbe9e8) [#1780](https://github.com/davidkpiano/xstate/pull/1780) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with some external packages not being bundled correctly into the UMD bundles.
+
+## 1.2.1
+
+### Patch Changes
+
+- [`a16a5f2f`](https://github.com/davidkpiano/xstate/commit/a16a5f2ff5ba9d4d7834ec3ca2d0adecf5d6a870) [#1756](https://github.com/davidkpiano/xstate/pull/1756) Thanks [@dimitardanailov](https://github.com/dimitardanailov)! - Fixed an issue with `process` references not being removed correctly from the UMD bundles.
+
+## 1.2.0
+
+### Minor Changes
+
+- [`dd98296e`](https://github.com/davidkpiano/xstate/commit/dd98296e9fcbae905da2395e67e876e28be7c774) [#1738](https://github.com/davidkpiano/xstate/pull/1738) Thanks [@dimitardanailov](https://github.com/dimitardanailov)! - Added UMD bundle.
+
+## 1.1.0
+
+### Minor Changes
+
+- [`89f9c27c`](https://github.com/davidkpiano/xstate/commit/89f9c27c453dc56bdfdf49c8ea1f0f87ff1f9b67) [#1622](https://github.com/davidkpiano/xstate/pull/1622) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Spawned/invoked actors and interpreters are now typed as extending `ActorRef` rather than `Actor` or `Interpreter`. This unification of types should make it more straightforward to provide actor types in React:
+
+  ```ts
+  import { ActorRef } from 'xstate';
+  import { useActor } from '@xstate/react';
+
+  const Child: React.FC<{ actorRef: ActorRef<SomeEvent, SomeEmitted> }> = ({
+    actorRef
+  }) => {
+    // `state` is typed as `SomeEmitted`
+    // `send` can be called with `SomeEvent` values
+    const [state, send] = useActor(actorRef);
+
+    // . ..
+  };
+  ```
+
+  It's also easier to specify the type of a spawned/invoked machine with `ActorRefFrom`:
+
+  ```ts
+  import { createMachine, ActorRefFrom } from 'xstate';
+  import { useActor } from '@xstate/react';
+
+  const someMachine = createMachine<SomeContext, SomeEvent>({
+    // ...
+  });
+
+  const Child: React.FC<{ someRef: ActorRefFrom<typeof someMachine> }> = ({
+    someRef
+  }) => {
+    // `state` is typed as `State<SomeContext, SomeEvent>`
+    // `send` can be called with `SomeEvent` values
+    const [state, send] = useActor(someRef);
+
+    // . ..
+  };
+  ```
+
 ## 1.0.3
 
 ### Patch Changes

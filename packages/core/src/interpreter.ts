@@ -20,7 +20,6 @@ import {
   SingleOrArray,
   Subscribable,
   DoneEvent,
-  Unsubscribable,
   MachineOptions,
   ActionFunctionMap,
   SCXML,
@@ -50,15 +49,23 @@ import {
   reportUnhandledExceptionOnInvocation,
   symbolObservable,
   toInvokeSource,
-  isError
+  isError,
+  toObserver,
+  isActor
 } from './utils';
 import { Scheduler } from './scheduler';
-import { Actor, isActor, createDeferredActor } from './Actor';
+import { Actor, isSpawnedActor, createDeferredActor } from './Actor';
 import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
-import { registerService } from './devTools';
+import { getGlobal, registerService } from './devTools';
 import * as serviceScope from './serviceScope';
-import { StopActionObject } from '.';
+import {
+  ActorRef,
+  ActorRefFrom,
+  SpawnedActorRef,
+  StopActionObject,
+  Subscription
+} from '.';
 
 export type StateListener<
   TContext,
@@ -120,10 +127,10 @@ export class Interpreter<
     deferEvents: true,
     clock: {
       setTimeout: (fn, ms) => {
-        return global.setTimeout.call(null, fn, ms);
+        return setTimeout(fn, ms);
       },
       clearTimeout: (id) => {
-        return global.clearTimeout.call(null, id);
+        return clearTimeout(id);
       }
     },
     logger: global.console.log.bind(console),
@@ -166,7 +173,7 @@ export class Interpreter<
    * The globally unique process ID for this invocation.
    */
   public sessionId: string;
-  public children: Map<string | number, Actor> = new Map();
+  public children: Map<string | number, SpawnedActorRef<any>> = new Map();
   private forwardTo: Set<string> = new Set();
 
   // Dev Tools
@@ -322,19 +329,19 @@ export class Interpreter<
   }
   public subscribe(
     observer: Observer<State<TContext, TEvent, any, TTypestate>>
-  ): Unsubscribable;
+  ): Subscription;
   public subscribe(
     nextListener?: (state: State<TContext, TEvent, any, TTypestate>) => void,
     errorListener?: (error: any) => void,
     completeListener?: () => void
-  ): Unsubscribable;
+  ): Subscription;
   public subscribe(
     nextListenerOrObserver?:
       | ((state: State<TContext, TEvent, any, TTypestate>) => void)
       | Observer<State<TContext, TEvent, any, TTypestate>>,
     _?: (error: any) => void, // TODO: error listener
     completeListener?: () => void
-  ): Unsubscribable {
+  ): Subscription {
     if (!nextListenerOrObserver) {
       return { unsubscribe: () => void 0 };
     }
@@ -672,15 +679,17 @@ export class Interpreter<
 
   private sendTo = (
     event: SCXML.Event<AnyEventObject>,
-    to: string | number | Actor
+    to: string | number | ActorRef<any>
   ) => {
     const isParent =
       this.parent && (to === SpecialTargets.Parent || this.parent.id === to);
     const target = isParent
       ? this.parent
+      : isString(to)
+      ? this.children.get(to as string) || registry.get(to as string)
       : isActor(to)
       ? to
-      : this.children.get(to) || registry.get(to as string);
+      : undefined;
 
     if (!target) {
       if (!isParent) {
@@ -948,12 +957,16 @@ export class Interpreter<
       child.stop();
     }
   }
-  public spawn(entity: Spawnable, name: string, options?: SpawnOptions): Actor {
+  public spawn(
+    entity: Spawnable,
+    name: string,
+    options?: SpawnOptions
+  ): SpawnedActorRef<any> {
     if (isPromiseLike(entity)) {
       return this.spawnPromise(Promise.resolve(entity), name);
     } else if (isFunction(entity)) {
       return this.spawnCallback(entity as InvokeCallback, name);
-    } else if (isActor(entity)) {
+    } else if (isSpawnedActor(entity)) {
       return this.spawnActor(entity);
     } else if (isObservable<TEvent>(entity)) {
       return this.spawnObservable(entity, name);
@@ -972,7 +985,7 @@ export class Interpreter<
   >(
     machine: StateMachine<TChildContext, TChildStateSchema, TChildEvent>,
     options: { id?: string; autoForward?: boolean; sync?: boolean } = {}
-  ): Interpreter<TChildContext, TChildStateSchema, TChildEvent> {
+  ): SpawnedActorRef<TChildEvent, State<TChildContext, TChildEvent>> {
     const childService = new Interpreter(machine, {
       ...this.options, // inherit options from this interpreter
       parent: this,
@@ -995,10 +1008,7 @@ export class Interpreter<
 
     const actor = childService;
 
-    this.children.set(
-      childService.id,
-      actor as Actor<State<TChildContext, TChildEvent>, TChildEvent>
-    );
+    this.children.set(childService.id, actor);
 
     if (resolvedOptions.autoForward) {
       this.forwardTo.add(childService.id);
@@ -1013,7 +1023,10 @@ export class Interpreter<
 
     return actor;
   }
-  private spawnPromise<T>(promise: Promise<T>, id: string): Actor<T, never> {
+  private spawnPromise<T>(
+    promise: Promise<T>,
+    id: string
+  ): SpawnedActorRef<never, T> {
     let canceled = false;
 
     promise.then(
@@ -1053,27 +1066,29 @@ export class Interpreter<
       }
     );
 
-    const actor = {
+    const actor: SpawnedActorRef<never, T> = {
       id,
       send: () => void 0,
-      subscribe: (next, handleError, complete) => {
+      subscribe: (next, handleError?, complete?) => {
+        const observer = toObserver(next, handleError, complete);
+
         let unsubscribed = false;
         promise.then(
           (response) => {
             if (unsubscribed) {
               return;
             }
-            next && next(response);
+            observer.next(response);
             if (unsubscribed) {
               return;
             }
-            complete && complete();
+            observer.complete();
           },
           (err) => {
             if (unsubscribed) {
               return;
             }
-            handleError(err);
+            observer.error(err);
           }
         );
 
@@ -1093,7 +1108,10 @@ export class Interpreter<
 
     return actor;
   }
-  private spawnCallback(callback: InvokeCallback, id: string): Actor {
+  private spawnCallback(
+    callback: InvokeCallback,
+    id: string
+  ): SpawnedActorRef<any> {
     let canceled = false;
     const receivers = new Set<(e: EventObject) => void>();
     const listeners = new Set<(e: EventObject) => void>();
@@ -1103,7 +1121,7 @@ export class Interpreter<
       if (canceled) {
         return;
       }
-      this.send(e);
+      this.send(toSCXMLEvent(e, { origin: id }));
     };
 
     let callbackStop;
@@ -1152,7 +1170,7 @@ export class Interpreter<
   private spawnObservable<T extends TEvent>(
     source: Subscribable<T>,
     id: string
-  ): Actor {
+  ): SpawnedActorRef<any, T> {
     const subscription = source.subscribe(
       (value) => {
         this.send(toSCXMLEvent(value, { origin: id }));
@@ -1167,10 +1185,10 @@ export class Interpreter<
       }
     );
 
-    const actor = {
+    const actor: SpawnedActorRef<any, T> = {
       id,
       send: () => void 0,
-      subscribe: (next, handleError, complete) => {
+      subscribe: (next, handleError?, complete?) => {
         return source.subscribe(next, handleError, complete);
       },
       stop: () => subscription.unsubscribe(),
@@ -1183,7 +1201,7 @@ export class Interpreter<
 
     return actor;
   }
-  private spawnActor<T extends Actor>(actor: T): T {
+  private spawnActor<T extends SpawnedActorRef<any>>(actor: T): T {
     this.children.set(actor.id, actor);
 
     return actor;
@@ -1224,13 +1242,14 @@ export class Interpreter<
   }
 
   private attachDev(): void {
-    if (this.options.devTools && typeof window !== 'undefined') {
-      if ((window as any).__REDUX_DEVTOOLS_EXTENSION__) {
+    const global = getGlobal();
+    if (this.options.devTools && global) {
+      if ((global as any).__REDUX_DEVTOOLS_EXTENSION__) {
         const devToolsOptions =
           typeof this.options.devTools === 'object'
             ? this.options.devTools
             : undefined;
-        this.devTools = (window as any).__REDUX_DEVTOOLS_EXTENSION__.connect(
+        this.devTools = (global as any).__REDUX_DEVTOOLS_EXTENSION__.connect(
           {
             name: this.id,
             autoPause: true,
@@ -1285,15 +1304,15 @@ const resolveSpawnOptions = (nameOrOptions?: string | SpawnOptions) => {
 export function spawn<TC, TE extends EventObject>(
   entity: StateMachine<TC, any, TE>,
   nameOrOptions?: string | SpawnOptions
-): Actor<State<TC, TE>, TE>;
+): ActorRefFrom<StateMachine<TC, any, TE>>;
 export function spawn(
   entity: Spawnable,
   nameOrOptions?: string | SpawnOptions
-): Actor;
+): SpawnedActorRef<any>;
 export function spawn(
   entity: Spawnable,
   nameOrOptions?: string | SpawnOptions
-): Actor {
+): SpawnedActorRef<any> {
   const resolvedOptions = resolveSpawnOptions(nameOrOptions);
 
   return serviceScope.consume((service) => {

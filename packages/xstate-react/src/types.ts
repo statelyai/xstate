@@ -26,25 +26,6 @@ export interface Subscribable<T> {
   ): Subscription;
 }
 
-export interface ActorRef<TEvent extends EventObject, TEmitted = any>
-  extends Subscribable<TEmitted> {
-  send: Sender<TEvent>;
-  stop: () => void;
-  /**
-   * The most recently emitted value.
-   */
-  current: TEmitted;
-  name: string;
-}
-
-// Compatibility with V4
-export interface ActorRefLike<TEvent extends EventObject, TEmitted = any>
-  extends Subscribable<TEmitted> {
-  send: Sender<TEvent>;
-  stop?: () => void;
-  [key: string]: any;
-}
-
 export type MaybeLazy<T> = T | (() => T);
 
 // TODO: remove these types (up to PayloadSender) when
@@ -75,4 +56,12 @@ export interface PayloadSender<TEvent extends EventObject> {
     eventType: K,
     payload: NeverIfEmpty<ExtractExtraParameters<TEvent, K>>
   ): void;
+}
+
+// TODO: use ActorRef from XState core instead.
+// Kept here because of breaking change/versioning concern:
+// https://github.com/davidkpiano/xstate/pull/1622#discussion_r528309213
+export interface ActorRef<TEvent extends EventObject, TEmitted = any>
+  extends Subscribable<TEmitted> {
+  send: Sender<TEvent>;
 }

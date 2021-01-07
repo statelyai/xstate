@@ -95,8 +95,9 @@ import {
   isInFinalState,
   isLeafNode
 } from './stateUtils';
-import { Actor, createInvocableActor } from './Actor';
+import { createInvocableActor } from './Actor';
 import { toInvokeDefinition } from './invokeUtils';
+import { ActorRef } from '.';
 
 const NULL_EVENT = '';
 const STATE_IDENTIFIER = '#';
@@ -647,11 +648,9 @@ class StateNode<
     }
 
     const subStateKeys = keys(stateValue);
-    const subStateNodes: Array<StateNode<
-      TContext,
-      any,
-      TEvent
-    >> = subStateKeys.map((subStateKey) => this.getStateNode(subStateKey));
+    const subStateNodes: Array<
+      StateNode<TContext, any, TEvent>
+    > = subStateKeys.map((subStateKey) => this.getStateNode(subStateKey));
 
     return subStateNodes.concat(
       subStateKeys.reduce((allSubStateNodes, subStateKey) => {
@@ -691,7 +690,8 @@ class StateNode<
     return new State({
       ...state,
       value: this.resolve(state.value),
-      configuration
+      configuration,
+      done: isInFinalState(configuration, this)
     });
   }
 
@@ -1202,7 +1202,7 @@ class StateNode<
       },
       currentState
         ? { ...currentState.children }
-        : ({} as Record<string, Actor>)
+        : ({} as Record<string, ActorRef<any>>)
     );
 
     const resolvedConfiguration = resolvedStateValue
@@ -1311,7 +1311,6 @@ class StateNode<
     maybeNextState.changed = changed;
 
     // Preserve original history after raised events
-    maybeNextState.historyValue = nextState.historyValue;
     maybeNextState.history = history;
 
     return maybeNextState;

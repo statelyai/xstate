@@ -32,7 +32,7 @@ import {
 } from './constants';
 import { IS_PRODUCTION } from './environment';
 import { StateNode } from './StateNode';
-import { State } from '.';
+import { Observer, State } from '.';
 import { Actor } from './Actor';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
@@ -695,4 +695,22 @@ export function toInvokeSource(
 
 export function isError(error: any): error is Error {
   return typeof error === 'object' && 'stack' in error && 'message' in error;
+}
+
+export function toObserver<T>(
+  nextHandler: Observer<T> | ((value: T) => void),
+  errorHandler?: (error: any) => void,
+  completionHandler?: () => void
+): Observer<T> {
+  if (typeof nextHandler === 'object') {
+    return nextHandler;
+  }
+
+  const noop = () => void 0;
+
+  return {
+    next: nextHandler,
+    error: errorHandler || noop,
+    complete: completionHandler || noop
+  };
 }

@@ -1,5 +1,72 @@
 # xstate
 
+## 4.15.4
+
+### Patch Changes
+
+- [`0cb8df9b`](https://github.com/davidkpiano/xstate/commit/0cb8df9b6c8cd01ada82afe967bf1015e24e75d9) [#1816](https://github.com/davidkpiano/xstate/pull/1816) Thanks [@Andarist](https://github.com/Andarist)! - `machine.resolveState(state)` calls should resolve to the correct value of `.done` property now.
+
+## 4.15.3
+
+### Patch Changes
+
+- [`63ba888e`](https://github.com/davidkpiano/xstate/commit/63ba888e19bd2b72f9aad2c9cd36cde297e0ffe5) [#1770](https://github.com/davidkpiano/xstate/pull/1770) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Instead of referencing `window` directly, XState now internally calls a `getGlobal()` function that will resolve to the proper `globalThis` value in all environments. This affects the dev tools code only.
+
+## 4.15.2
+
+### Patch Changes
+
+- [`497c543d`](https://github.com/davidkpiano/xstate/commit/497c543d2980ea1a277b30b340a7bcd3dd0b3cb6) [#1766](https://github.com/davidkpiano/xstate/pull/1766) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with events received from callback actors not having the appropriate `_event.origin` set.
+
+## 4.15.1
+
+### Patch Changes
+
+- [`8a8cfa32`](https://github.com/davidkpiano/xstate/commit/8a8cfa32d99aedf11f4af93ba56fa9ba68925c74) [#1704](https://github.com/davidkpiano/xstate/pull/1704) Thanks [@blimmer](https://github.com/blimmer)! - The default `clock` methods (`setTimeout` and `clearTimeout`) are now invoked properly with the global context preserved for those invocations which matter for some JS environments. More details can be found in the corresponding issue: [#1703](https://github.com/davidkpiano/xstate/issues/1703).
+
+## 4.15.0
+
+### Minor Changes
+
+- [`6596d0ba`](https://github.com/davidkpiano/xstate/commit/6596d0ba163341fc43d214b48115536cb4815b68) [#1622](https://github.com/davidkpiano/xstate/pull/1622) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Spawned/invoked actors and interpreters are now typed as extending `ActorRef` (e.g., `SpawnedActorRef`) rather than `Actor` or `Interpreter`. This unification of types should make it more straightforward to provide actor types:
+
+  ```diff
+  import {
+  - Actor
+  + ActorRef
+  } from 'xstate';
+
+  // ...
+
+  interface SomeContext {
+  - server?: Actor;
+  + server?: ActorRef<ServerEvent>;
+  }
+  ```
+
+  It's also easier to specify the type of a spawned/invoked machine with `ActorRefFrom`:
+
+  ```diff
+  import {
+    createMachine,
+  - Actor
+  + ActorRefFrom
+  } from 'xstate';
+
+  const serverMachine = createMachine<ServerContext, ServerEvent>({
+    // ...
+  });
+
+  interface SomeContext {
+  - server?: Actor; // difficult to type
+  + server?: ActorRefFrom<typeof serverMachine>;
+  }
+  ```
+
+### Patch Changes
+
+- [`75a91b07`](https://github.com/davidkpiano/xstate/commit/75a91b078a10a86f13edc9eec3ac1d6246607002) [#1692](https://github.com/davidkpiano/xstate/pull/1692) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with history state entering a wrong state if the most recent visit in its parent has been caused by a transient transition.
+
 ## 4.14.1
 
 ### Patch Changes

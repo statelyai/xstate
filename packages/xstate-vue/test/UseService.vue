@@ -6,10 +6,10 @@
 </template>
 
 <script lang="ts">
-import { PropType } from 'vue';
+import { PropType, toRefs } from 'vue';
 import { useService } from '../src';
 import { Interpreter } from 'xstate';
-import { watchEffect } from '@vue/composition-api';
+import { watchEffect } from 'vue';
 
 export default {
   props: {
@@ -18,13 +18,9 @@ export default {
     }
   },
   setup(props) {
-    let { state, send } = useService(props.service);
+    const { service } = toRefs(props);
+    let { state, send } = useService(service);
 
-    watchEffect(() => {
-      let currentState = useService(props.service);
-      state.value = currentState.state.value;
-      send = currentState.send;
-    });
 
     return { state, send };
   }

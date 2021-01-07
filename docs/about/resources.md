@@ -162,6 +162,9 @@ The workshop code examples are [open-sourced and available on GitHub](https://gi
 - [State Machines Workshop with XState](https://github.com/ooade/state-machines-workshop) by [Ademola (@ooade)](https://github.com/ooade)
 - [▶️ Finite State Machines in Vue 3](https://www.youtube.com/watch?v=fT9p9CCSrn8) by [Sarah Dayan](https://twitter.com/frontstuff_io)
 - [▶️ Frontend is Rocket Science - How to use XState in Vue 3 Now!](https://www.youtube.com/watch?v=wRktleOGKS4) by [Aleksej Dix](https://twitter.com/aleksejdix)
+- [▶️ React Wednesdays: XState and JavaScript State Machines](https://www.youtube.com/watch?v=1TT2ymkYGyM)
+- [▶️ Declarative and manageable state management with XState](https://www.youtube.com/watch?v=jCbV5aELY6A) on Decoupled Days
+- [▶️ Modeling a Voicemail Widget with XState](https://www.youtube.com/watch?v=D6LzWcV_-14) by [Constantin Druc](https://www.youtube.com/channel/UCsMdRMBnxIVO0K_YS0KHiMA)
 
 ## Exercises
 
