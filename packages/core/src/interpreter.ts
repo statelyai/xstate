@@ -49,7 +49,6 @@ import {
   reportUnhandledExceptionOnInvocation,
   symbolObservable,
   toInvokeSource,
-  isError,
   toObserver,
   isActor
 } from './utils';
@@ -86,7 +85,7 @@ export type EventListener<TEvent extends EventObject = EventObject> = (
   event: TEvent
 ) => void;
 
-export type ErrorListener = (error: Error) => void;
+export type ErrorListener = (error: unknown) => void;
 
 export type Listener = () => void;
 
@@ -440,17 +439,11 @@ export class Interpreter<
   }
 
   private handleError(errorData: unknown): void {
-    const errorInstance = isError(errorData)
-      ? errorData
-      : new Error(errorData as any);
-
     if (this.errorListeners.size === 0) {
-      throw errorInstance;
+      throw errorData;
     }
 
-    this.errorListeners.forEach((errorListener) =>
-      errorListener(errorInstance)
-    );
+    this.errorListeners.forEach((errorListener) => errorListener(errorData));
   }
   /**
    * Removes a listener.
