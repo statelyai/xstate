@@ -165,7 +165,5 @@ The workshop code examples are [open-sourced and available on GitHub](https://gi
 - [▶️ React Wednesdays: XState and JavaScript State Machines](https://www.youtube.com/watch?v=1TT2ymkYGyM)
 - [▶️ Declarative and manageable state management with XState](https://www.youtube.com/watch?v=jCbV5aELY6A) on Decoupled Days
 - [▶️ Modeling a Voicemail Widget with XState](https://www.youtube.com/watch?v=D6LzWcV_-14) by [Constantin Druc](https://www.youtube.com/channel/UCsMdRMBnxIVO0K_YS0KHiMA)
-
-## Exercises
-
 - [XState Brain Teaser #1 - Auth Flow](https://dev.to/mpocock1/xstate-brain-teaser-1-auth-flow-2jhl) by [Matt Pocock](https://twitter.com/mpocock1)
+- [▶️ Learning XState by refactoring an old project](https://fvsch.com/learning-xstate) by [Florens Verschelde](https://fvsch.com/)
