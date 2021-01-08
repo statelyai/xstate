@@ -159,8 +159,8 @@ describe('guard conditions', () => {
     });
 
     const service = interpret(machine).onError((err) => {
-      expect(err.message).toContain('machine.active');
-      expect(err.message).toContain('test');
+      expect((err as Error).message).toContain('machine.active');
+      expect((err as Error).message).toContain('test');
       done();
     });
 

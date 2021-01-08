@@ -873,30 +873,34 @@ export class Interpreter<
             ? mapContext(data, context, _event)
             : undefined;
 
-          const source = isFunction(serviceCreator)
-            ? serviceCreator(context, _event.data, {
-                data: resolvedData,
-                src: invokeSource
-              })
-            : serviceCreator;
+          try {
+            const source = isFunction(serviceCreator)
+              ? serviceCreator(context, _event.data, {
+                  data: resolvedData,
+                  src: invokeSource
+                })
+              : serviceCreator;
 
-          if (isPromiseLike(source)) {
-            this.spawnPromise(Promise.resolve(source), id);
-          } else if (isFunction(source)) {
-            this.spawnCallback(source, id);
-          } else if (isObservable<TEvent>(source)) {
-            this.spawnObservable(source, id);
-          } else if (isMachine(source)) {
-            // TODO: try/catch here
-            this.spawnMachine(
-              resolvedData ? source.withContext(resolvedData) : source,
-              {
-                id,
-                autoForward
-              }
-            );
-          } else {
-            // service is string
+            if (isPromiseLike(source)) {
+              this.spawnPromise(Promise.resolve(source), id);
+            } else if (isFunction(source)) {
+              this.spawnCallback(source, id);
+            } else if (isObservable<TEvent>(source)) {
+              this.spawnObservable(source, id);
+            } else if (isMachine(source)) {
+              // TODO: try/catch here
+              this.spawnMachine(
+                resolvedData ? source.withContext(resolvedData) : source,
+                {
+                  id,
+                  autoForward
+                }
+              );
+            } else {
+              // service is string
+            }
+          } catch (err) {
+            this.handleError(err);
           }
         } else {
           this.spawnActivity(activity);
