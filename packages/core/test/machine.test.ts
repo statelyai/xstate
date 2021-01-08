@@ -170,7 +170,7 @@ describe('machine', () => {
 
       const service = interpret(differentMachine).onError((err) => {
         expect(err).toBeInstanceOf(Error);
-        expect(err.message).toMatchInlineSnapshot(`"new entry"`);
+        expect((err as Error).message).toMatchInlineSnapshot(`"new entry"`);
         done();
       });
 

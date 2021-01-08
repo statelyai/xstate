@@ -231,7 +231,16 @@ export function useMachine<
           );
         }
       })
-      .start(rehydratedState ? State.create(rehydratedState) : undefined);
+      .start(
+        rehydratedState
+          ? (State.create(rehydratedState) as State<
+              TContext,
+              TEvent,
+              any,
+              TTypestate
+            >)
+          : undefined
+      );
 
     return () => {
       service.stop();

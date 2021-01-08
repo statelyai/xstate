@@ -1465,7 +1465,9 @@ describe('action errors', () => {
 
     const service = interpret(testMachine).onError((err) => {
       expect(err).toBeInstanceOf(Error);
-      expect(err.message).toMatchInlineSnapshot(`"example action error"`);
+      expect((err as Error).message).toMatchInlineSnapshot(
+        `"example action error"`
+      );
       done();
     });
 
