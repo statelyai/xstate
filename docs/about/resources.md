@@ -167,3 +167,4 @@ The workshop code examples are [open-sourced and available on GitHub](https://gi
 - [▶️ Modeling a Voicemail Widget with XState](https://www.youtube.com/watch?v=D6LzWcV_-14) by [Constantin Druc](https://www.youtube.com/channel/UCsMdRMBnxIVO0K_YS0KHiMA)
 - [XState Brain Teaser #1 - Auth Flow](https://dev.to/mpocock1/xstate-brain-teaser-1-auth-flow-2jhl) by [Matt Pocock](https://twitter.com/mpocock1)
 - [▶️ Learning XState by refactoring an old project](https://fvsch.com/learning-xstate) by [Florens Verschelde](https://fvsch.com/)
+- [Creating State Machines in JavaScript with XState](https://nisimdor.medium.com/creating-state-machines-in-javascript-with-xstate-21e1599521be) by [Dor Nisim](https://nisimdor.medium.com/)
