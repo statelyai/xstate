@@ -5,7 +5,7 @@
 So to run XState on Deno, you need to import it differently, via [Skypack](https://www.skypack.dev/).  Packages are 'installed' at runtime; no more `/node_modules`! 
 
 ```js
-import { ... } from "https://cdn.skypack.dev/xstate"
+import { createMachine } from "https://cdn.skypack.dev/xstate"
 ```
 
 You can see it [in action here](https://www.mycompiler.io/view/B8EgR64).
