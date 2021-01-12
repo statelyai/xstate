@@ -1051,7 +1051,6 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   configuration: Array<StateNode<TContext, TEvent>>;
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
   children: Record<string, SpawnedActorRef<any>>;
-  done?: boolean;
 }
 
 export interface StateSchema<TC = any> {

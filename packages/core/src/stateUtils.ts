@@ -239,7 +239,7 @@ export function nextEvents<TC, TE extends EventObject>(
 
 export function isInFinalState<TC, TE extends EventObject>(
   configuration: Array<StateNode<TC, TE>>,
-  stateNode: StateNode<TC, TE>
+  stateNode: StateNode<TC, TE> = configuration[0].machine
 ): boolean {
   if (stateNode.type === 'compound') {
     return getChildren(stateNode).some(
@@ -1493,7 +1493,7 @@ export function resolveMicroTransition<
     return inertState;
   }
 
-  let children = currentState ? { ...currentState.children } : {};
+  const children = currentState ? { ...currentState.children } : {};
 
   for (const action of resolved.actions) {
     if (action.type === actionTypes.stop) {
@@ -1516,7 +1516,6 @@ export function resolveMicroTransition<
     : currentState
     ? currentState.configuration
     : [];
-  const isDone = isInFinalState(resolvedConfiguration, machine);
 
   const meta = resolvedConfiguration.reduce((acc, subStateNode) => {
     if (subStateNode.meta !== undefined) {
@@ -1541,7 +1540,6 @@ export function resolveMicroTransition<
     configuration: resolvedConfiguration,
     transitions,
     children,
-    done: isDone,
     historyValue: resolved.historyValue
   });
 

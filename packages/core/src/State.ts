@@ -13,7 +13,7 @@ import {
 } from './types';
 import { matchesState, keys, isString } from './utils';
 import { StateNode } from './StateNode';
-import { nextEvents } from './stateUtils';
+import { isInFinalState, nextEvents } from './stateUtils';
 import { initEvent } from './actions';
 import { SpawnedActorRef } from '../dist/xstate.cjs';
 
@@ -77,10 +77,6 @@ export class State<
    * An initial state (with no history) will return `undefined`.
    */
   public changed: boolean | undefined;
-  /**
-   * Indicates whether the state is a final state.
-   */
-  public done: boolean | undefined;
   /**
    * The enabled state nodes representative of the state value.
    */
@@ -200,7 +196,6 @@ export class State<
     this.configuration = config.configuration;
     this.transitions = config.transitions;
     this.children = config.children;
-    this.done = !!config.done;
 
     Object.defineProperty(this, 'nextEvents', {
       enumerable: false,
@@ -252,5 +247,12 @@ export class State<
     TTypestate
   > & { value: TSV } {
     return matchesState(parentStateValue as StateValue, this.value);
+  }
+
+  /**
+   * Indicates whether the state is a final state.
+   */
+  public get done(): boolean {
+    return isInFinalState(this.configuration);
   }
 }
