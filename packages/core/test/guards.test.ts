@@ -166,6 +166,53 @@ describe('guard conditions', () => {
 
     service.start();
   });
+
+  it('errors from guards in invoke.onError transition should be captured in error.execution transition', (done) => {
+    const machine = Machine({
+      id: 'machine',
+      initial: 'active',
+      strict: true,
+      states: {
+        active: {
+          invoke: {
+            id: 'willThrow',
+            src: () => Promise.reject(),
+            onDone: 'complete',
+            onError: [
+              {
+                target: 'active',
+                cond: () => {
+                  throw new Error('test');
+                }
+              },
+              { target: 'error' }
+            ]
+          },
+          on: {
+            'error.execution': {
+              target: 'success',
+              cond: (_, e) => {
+                return (
+                  // error thrown by XState (failed to evaluate guard) but contains
+                  // original error
+                  e.data instanceof Error && e.data.message.includes('test')
+                );
+              }
+            }
+          }
+        },
+        error: {},
+        complete: {},
+        success: { type: 'final' }
+      }
+    });
+
+    const service = interpret(machine).onDone(() => {
+      done();
+    });
+
+    service.start();
+  });
 });
 
 describe('guard conditions', () => {

@@ -439,7 +439,18 @@ export class Interpreter<
   }
 
   private handleError(errorData: unknown): void {
-    if (this.errorListeners.size === 0) {
+    const errorEventHandled = this.state.nextEvents.some(
+      (event) => event === actionTypes.errorExecution
+    );
+
+    if (errorEventHandled) {
+      this.send({
+        type: actionTypes.errorExecution,
+        data: errorData
+      } as any); // TODO: allow this error type
+    }
+
+    if (!errorEventHandled && this.errorListeners.size === 0) {
       throw errorData;
     }
 
@@ -727,9 +738,9 @@ export class Interpreter<
     const _event = toSCXMLEvent(event);
 
     if (
-      _event.name.indexOf(actionTypes.errorPlatform) === 0 &&
-      !this.state.nextEvents.some(
-        (nextEvent) => nextEvent.indexOf(actionTypes.errorPlatform) === 0
+      _event.name.startsWith(actionTypes.errorPlatform) &&
+      !this.state.nextEvents.some((nextEvent) =>
+        nextEvent.startsWith(actionTypes.errorPlatform)
       )
     ) {
       throw (_event.data as any).data;
