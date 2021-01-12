@@ -1,5 +1,11 @@
 # xstate
 
+## 4.15.4
+
+### Patch Changes
+
+- [`0cb8df9b`](https://github.com/davidkpiano/xstate/commit/0cb8df9b6c8cd01ada82afe967bf1015e24e75d9) [#1816](https://github.com/davidkpiano/xstate/pull/1816) Thanks [@Andarist](https://github.com/Andarist)! - `machine.resolveState(state)` calls should resolve to the correct value of `.done` property now.
+
 ## 4.15.3
 
 ### Patch Changes
