@@ -169,3 +169,4 @@ The workshop code examples are [open-sourced and available on GitHub](https://gi
 - [▶️ Learning XState by refactoring an old project](https://fvsch.com/learning-xstate) by [Florens Verschelde](https://fvsch.com/)
 - [Creating State Machines in JavaScript with XState](https://nisimdor.medium.com/creating-state-machines-in-javascript-with-xstate-21e1599521be) by [Dor Nisim](https://nisimdor.medium.com/)
 - ["Just Use Props": An opinionated guide to React and XState](https://dev.to/mpocock1/just-use-props-an-opinionated-guide-to-react-and-xstate-fc9) by [Matt Pocock](https://dev.to/mpocock1)
+- [Infinite Scrolling con Svelte, IntersectionObserver & XState (en español)](https://www.youtube.com/watch?v=GMXrwrG0cL4) by [GCD Coder](https://www.youtube.com/channel/UCwkisgTJdCx3mNZMaaHAaVA)
