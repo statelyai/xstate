@@ -155,18 +155,6 @@ export type TransitionTargets<TContext> = Array<
   string | StateNode<TContext, any>
 >;
 
-export type RestrictedActions<
-  TContext,
-  TEvent extends EventObject,
-  TEventType extends TEvent['type']
-> = SingleOrArray<
-  | ActionType
-  | AssignAction<TContext, TEvent & { type: TEventType }>
-  | AssignAction<TContext, TEvent>
-  | ActionObject<TContext, TEvent>
-  | ActionFunction<TContext, TEvent>
->;
-
 export interface TransitionConfig<
   TContext,
   TEvent extends EventObject,
