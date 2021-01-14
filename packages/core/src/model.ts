@@ -15,6 +15,7 @@ export interface ContextModel<TContext, TEvent extends EventObject> {
       | PropertyAssigner<TContext, ExtractEvent<TEvent, TEventType>>,
     eventType?: TEventType
   ) => AssignAction<TContext, ExtractEvent<TEvent, TEventType>>;
+  reset: () => AssignAction<TContext, any>;
 }
 
 export function createModel<TContext, TEvent extends EventObject>(
@@ -22,7 +23,8 @@ export function createModel<TContext, TEvent extends EventObject>(
 ): ContextModel<TContext, TEvent> {
   const model: ContextModel<TContext, TEvent> = {
     initialContext,
-    assign
+    assign,
+    reset: () => assign(initialContext)
   };
 
   return model;
