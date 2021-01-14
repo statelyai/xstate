@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.2
+
+### Patch Changes
+
+- [`4b31cefb`](https://github.com/davidkpiano/xstate/commit/4b31cefb3d3497e5515314046639df7e27dbe9e8) [#1780](https://github.com/davidkpiano/xstate/pull/1780) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with some external packages not being bundled correctly into the UMD bundles.
+
 ## 1.2.1
 
 ### Patch Changes

@@ -1,4 +1,4 @@
-import { Machine, interpret } from '../src/index';
+import { Machine, interpret, createMachine } from '../src/index';
 import { State } from '../src/State';
 
 const pedestrianStates = {
@@ -281,6 +281,25 @@ describe('machine', () => {
       const resolvedState = resolveMachine.resolveState(tempState);
 
       expect(resolvedState.nextEvents.sort()).toEqual(['TO_BAR', 'TO_TWO']);
+    });
+
+    it('should resolve .done', () => {
+      const machine = createMachine({
+        initial: 'foo',
+        states: {
+          foo: {
+            on: { NEXT: 'bar' }
+          },
+          bar: {
+            type: 'final'
+          }
+        }
+      });
+      const tempState = State.from<any>('bar');
+
+      const resolvedState = machine.resolveState(tempState);
+
+      expect(resolvedState.done).toBe(true);
     });
   });
 

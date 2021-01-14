@@ -83,6 +83,90 @@ inspect();
 
 - `disconnect` (function) - a function that disconnects the inspector and cleans up any listeners.
 
+## Implementing
+
+You can implement your own inspector by creating a **receiver**. A **receiver** is an actor that receives inspector events from a source (like a parent window or a WebSocket connection):
+
+- `"service.register"`
+
+  ```ts
+  {
+    type: 'service.register';
+    machine: StateMachine<any, any, any>;
+    state: State<any, any>;
+    id: string;
+    sessionId: string;
+    parent?: string;
+    source?: string;
+  }
+  ```
+
+- `"service.stop"`
+
+  ```ts
+  {
+    type: 'service.stop';
+    sessionId: string;
+  }
+  ```
+
+- `"service.state"`
+
+  ```ts
+  {
+    type: 'service.state';
+    state: State<any, any>;
+    sessionId: string;
+  }
+  ```
+
+- `"service.event"`
+
+  ```ts
+  {
+    type: 'service.event';
+    event: SCXML.Event<any>;
+    sessionId: string
+  };
+  ```
+
+To listen to events from an inspected source, create a receiver with the appropriate `create*Receiver(...)` function; for example:
+
+```js
+import { createWindowReceiver } from '@xstate/inspect';
+
+const windowReceiver = createWindowReceiver(/* options? */);
+
+windowReceiver.subscribe((event) => {
+  // here, you will receive "service.*" events
+  console.log(event);
+});
+```
+
+You can also send events to the receiver:
+
+```js
+// ...
+
+// This will send the event to the inspected service
+windowReceiver.send({
+  type: 'xstate.event',
+  event: JSON.stringify({ type: 'someEvent' }),
+  service: /* session ID of the service this event is sent to */
+});
+```
+
+The typical inspection workflow is as follows:
+
+1. The `inspect(/* ... */)` call on the client opens the inspector (e.g., in a separate window, or creates a WebSocket connection)
+2. The receiver sends an `"xstate.inspecting"` event to the client
+3. The client sends `"service.register"` events to the receiver
+4. An inspector listening to the receiver (via `receiver.subscribe(...)`) registers the machine (`event.machine`) by its `event.sessionId`
+5. The machine is visually rendered, and its current state (`event.state`) is highlighted
+6. As the service at the source receives events and changes state, it will send the receiver `"service.event"` and `"service.state"` events, respectively
+7. The inspector can use those events to highlight the current state and keep a log of events sent to that service
+8. When the service stops, a `"service.stop"` event is sent to the receiver with the `event.sessionId` to identify the stopped service.
+
 ## FAQs
 
 - How do I run the inspector in a NextJS app?

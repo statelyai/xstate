@@ -15,16 +15,32 @@ export interface XStateDevInterface {
   services: Set<Interpreter<any>>;
 }
 
+// From https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/globalThis
+export function getGlobal() {
+  if (typeof self !== 'undefined') {
+    return self;
+  }
+  if (typeof window !== 'undefined') {
+    return window;
+  }
+  if (typeof global !== 'undefined') {
+    return global;
+  }
+
+  return undefined;
+}
+
 function getDevTools(): XStateDevInterface | undefined {
-  if (!!(window as any).__xstate__) {
-    return (window as any).__xstate__;
+  const global = getGlobal();
+  if (global && '__xstate__' in global) {
+    return (global as any).__xstate__;
   }
 
   return undefined;
 }
 
 export function registerService(service: AnyInterpreter) {
-  if (IS_PRODUCTION || typeof window === 'undefined') {
+  if (IS_PRODUCTION || !getGlobal()) {
     return;
   }
 

@@ -1,11 +1,4 @@
-import {
-  shallowRef,
-  isRef,
-  watch,
-  onMounted,
-  onBeforeUnmount,
-  Ref
-} from '@vue/composition-api';
+import { shallowRef, isRef, watch, onMounted, onBeforeUnmount, Ref } from 'vue';
 import {
   createMachine,
   interpret,

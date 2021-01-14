@@ -12,7 +12,7 @@
 <script lang="ts">
 import { useMachine } from '../src/fsm';
 import { createMachine, assign } from '@xstate/fsm';
-import { watch } from '@vue/composition-api';
+import { watch } from 'vue';
 
 const context = {
   data: undefined
