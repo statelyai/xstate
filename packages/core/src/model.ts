@@ -29,10 +29,3 @@ export function createModel<TContext, TEvent extends EventObject>(
 
   return model;
 }
-
-export function assertEvent<
-  TEvent extends EventObject,
-  TEventType extends TEvent['type']
->(event: TEvent, type: TEventType): event is TEvent & { type: TEventType } {
-  return event.type === type;
-}
