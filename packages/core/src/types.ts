@@ -155,13 +155,9 @@ export type TransitionTargets<TContext> = Array<
   string | StateNode<TContext, any>
 >;
 
-export interface TransitionConfig<
-  TContext,
-  TEvent extends EventObject,
-  TEventType extends TEvent['type'] = TEvent['type']
-> {
-  cond?: Condition<TContext, TEvent & { type: TEventType }>;
-  actions?: Actions<TContext, TEvent & { type: TEventType }>;
+export interface TransitionConfig<TContext, TEvent extends EventObject> {
+  cond?: Condition<TContext, TEvent>;
+  actions?: Actions<TContext, TEvent>;
   in?: StateValue;
   internal?: boolean;
   target?: TransitionTarget<TContext, TEvent>;
@@ -370,15 +366,13 @@ export type TransitionConfigTarget<TContext, TEvent extends EventObject> =
 
 export type TransitionConfigOrTarget<
   TContext,
-  TEvent extends EventObject,
-  TEventType extends TEvent['type'] = TEvent['type']
+  TEvent extends EventObject
 > = SingleOrArray<
-  | TransitionConfigTarget<TContext, TEvent>
-  | TransitionConfig<TContext, TEvent, TEventType>
+  TransitionConfigTarget<TContext, TEvent> | TransitionConfig<TContext, TEvent>
 >;
 
 export type TransitionsConfigMap<TContext, TEvent extends EventObject> = {
-  [K in TEvent['type']]?: TransitionConfigOrTarget<TContext, TEvent, K>;
+  [K in TEvent['type']]?: TransitionConfigOrTarget<TContext, TEvent>;
 } & {
   ''?: TransitionConfigOrTarget<TContext, TEvent>;
 } & {
