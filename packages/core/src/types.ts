@@ -371,7 +371,7 @@ export type TransitionConfigOrTarget<
   TransitionConfigTarget<TContext, TEvent> | TransitionConfig<TContext, TEvent>
 >;
 
-type TransitionsConfigMap<TContext, TEvent extends EventObject> = {
+export type TransitionsConfigMap<TContext, TEvent extends EventObject> = {
   [K in TEvent['type']]?: TransitionConfigOrTarget<
     TContext,
     TEvent extends { type: K } ? TEvent : never
@@ -936,14 +936,18 @@ export type Assigner<TContext, TEvent extends EventObject> = (
   meta: AssignMeta<TContext, TEvent>
 ) => Partial<TContext>;
 
+export type PartialAssigner<
+  TContext,
+  TEvent extends EventObject,
+  TKey extends keyof TContext
+> = (
+  context: TContext,
+  event: TEvent,
+  meta: AssignMeta<TContext, TEvent>
+) => TContext[TKey];
+
 export type PropertyAssigner<TContext, TEvent extends EventObject> = {
-  [K in keyof TContext]?:
-    | ((
-        context: TContext,
-        event: TEvent,
-        meta: AssignMeta<TContext, TEvent>
-      ) => TContext[K])
-    | TContext[K];
+  [K in keyof TContext]?: PartialAssigner<TContext, TEvent, K> | TContext[K];
 };
 
 export type Mapper<TContext, TEvent extends EventObject, TParams extends {}> = (
@@ -1245,6 +1249,11 @@ export type Spawnable =
   | Promise<any>
   | InvokeCallback
   | Subscribable<any>;
+
+export type ExtractEvent<
+  TEvent extends EventObject,
+  TEventType extends TEvent['type']
+> = TEvent extends { type: TEventType } ? TEvent : never;
 
 export interface ActorRef<TEvent extends EventObject, TEmitted = any>
   extends Subscribable<TEmitted> {

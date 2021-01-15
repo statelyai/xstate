@@ -29,7 +29,7 @@
 
   const shortestPaths = getShortestPaths(countMachine, {
     events: {
-      ADD: state => {
+      ADD: (state) => {
         // contrived example: if `context.count` is >= 10, increment by 10
         return state.context.count >= 10
           ? [{ type: 'ADD', value: 10 }]

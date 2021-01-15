@@ -1298,10 +1298,8 @@ describe('invoke', () => {
         },
         {
           services: {
-            someCallback: (ctx, e: BeginEvent) => (
-              cb: (ev: CallbackEvent) => void
-            ) => {
-              if (ctx.foo && e.payload) {
+            someCallback: (ctx, e) => (cb: (ev: CallbackEvent) => void) => {
+              if (ctx.foo && 'payload' in e) {
                 cb({
                   type: 'CALLBACK',
                   data: 40

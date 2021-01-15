@@ -330,7 +330,7 @@ class StateNode<
           (stateConfig: StateNodeConfig<TContext, any, TEvent>, key) => {
             const stateNode = new StateNode(stateConfig, {
               _parent: this,
-              _key: key
+              _key: key as string
             });
             Object.assign(this.idMap, {
               [stateNode.id]: stateNode,
@@ -1441,7 +1441,7 @@ class StateNode<
 
         return mapValues(stateValue, (subStateValue, subStateKey) => {
           return subStateValue
-            ? this.getStateNode(subStateKey).resolve(subStateValue)
+            ? this.getStateNode(subStateKey as string).resolve(subStateValue)
             : EMPTY_OBJECT;
         });
 
