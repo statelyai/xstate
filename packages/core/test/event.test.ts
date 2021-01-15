@@ -123,12 +123,12 @@ interface SignInContext {
   password: string;
 }
 
-type ChangePassword = {
+interface ChangePassword {
   type: 'changePassword';
   password: string;
-};
+}
 
-const authMachine = Machine<SignInContext>(
+const authMachine = Machine<SignInContext, ChangePassword>(
   {
     context: { email: '', password: '' },
     initial: 'passwordField',
@@ -151,7 +151,7 @@ const authMachine = Machine<SignInContext>(
         on: {
           changePassword: [
             {
-              cond: (_, event: ChangePassword) => event.password.length >= 10,
+              cond: (_, event) => event.password.length >= 10,
               target: '.invalid',
               actions: ['assignPassword']
             },
