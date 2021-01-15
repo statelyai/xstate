@@ -374,7 +374,7 @@ export type TransitionConfigOrTarget<
 export type TransitionsConfigMap<TContext, TEvent extends EventObject> = {
   [K in TEvent['type']]?: TransitionConfigOrTarget<
     TContext,
-    TEvent & { type: K }
+    TEvent extends { type: K } ? TEvent : never
   >;
 } & {
   ''?: TransitionConfigOrTarget<TContext, TEvent>;
