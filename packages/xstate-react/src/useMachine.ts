@@ -10,34 +10,18 @@ import {
   MachineOptions,
   StateConfig,
   Typestate,
-  ActionObject,
   ActionFunction,
-  ActionMeta,
   Observer
 } from 'xstate';
 import { toObserver } from 'xstate/src/utils';
-import { MaybeLazy } from './types';
+import {
+  MaybeLazy,
+  ReactActionFunction,
+  ReactActionObject,
+  ReactEffectType
+} from './types';
 import useConstant from './useConstant';
 import { partition } from './utils';
-
-enum ReactEffectType {
-  Effect = 1,
-  LayoutEffect = 2
-}
-
-export interface ReactActionFunction<TContext, TEvent extends EventObject> {
-  (
-    context: TContext,
-    event: TEvent,
-    meta: ActionMeta<TContext, TEvent>
-  ): () => void;
-  __effect: ReactEffectType;
-}
-
-export interface ReactActionObject<TContext, TEvent extends EventObject>
-  extends ActionObject<TContext, TEvent> {
-  exec: ReactActionFunction<TContext, TEvent>;
-}
 
 function createReactActionFunction<TContext, TEvent extends EventObject>(
   exec: ActionFunction<TContext, TEvent>,
@@ -267,7 +251,9 @@ export function useMachineObserver<
   });
 
   useIsomorphicLayoutEffect(() => {
-    service.start(rehydratedState ? State.create(rehydratedState) : undefined);
+    service.start(
+      rehydratedState ? (State.create(rehydratedState) as any) : undefined
+    );
 
     return () => {
       service.stop();
