@@ -244,19 +244,19 @@ describe('Raise events', () => {
           on: {
             DECIDE: [
               {
-                actions: raise<GreetingContext, { type: 'ALOHA' }>({
+                actions: raise({
                   type: 'ALOHA'
                 }),
                 guard: (_ctx, ev) => !!ev.aloha
               },
               {
-                actions: raise<GreetingContext, { type: 'MORNING' }>({
+                actions: raise({
                   type: 'MORNING'
                 }),
                 guard: (ctx) => ctx.hour < 12
               },
               {
-                actions: raise<GreetingContext, GreetingEvent>({
+                actions: raise({
                   type: 'AFTERNOON'
                 }),
                 guard: (ctx) => ctx.hour < 18
@@ -290,7 +290,9 @@ describe('Raise events', () => {
 
 describe('Typestates', () => {
   // Using "none" because undefined and null are unavailable when not in strict mode.
-  type None = { type: 'none' };
+  interface None {
+    type: 'none';
+  }
   const none: None = { type: 'none' };
 
   const taskMachineConfiguration = {
