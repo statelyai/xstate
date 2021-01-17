@@ -337,6 +337,25 @@ describe('machine', () => {
 
       expect(resolvedState.nextEvents.sort()).toEqual(['TO_BAR', 'TO_TWO']);
     });
+
+    it('should resolve .done', () => {
+      const machine = createMachine({
+        initial: 'foo',
+        states: {
+          foo: {
+            on: { NEXT: 'bar' }
+          },
+          bar: {
+            type: 'final'
+          }
+        }
+      });
+      const tempState = State.from<any>('bar');
+
+      const resolvedState = machine.resolveState(tempState);
+
+      expect(resolvedState.done).toBe(true);
+    });
   });
 
   describe('versioning', () => {

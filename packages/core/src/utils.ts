@@ -138,16 +138,11 @@ export function pathToStateValue(statePath: string[]): StateValue {
   return value;
 }
 
-export function mapValues<T, P>(
-  collection: { [key: string]: T },
-  iteratee: (
-    item: T,
-    key: string,
-    collection: { [key: string]: T },
-    i: number
-  ) => P
-): { [key: string]: P } {
-  const result: { [key: string]: P } = {};
+export function mapValues<T, P, O extends { [key: string]: T }>(
+  collection: O,
+  iteratee: (item: O[keyof O], key: keyof O, collection: O, i: number) => P
+): { [key in keyof O]: P } {
+  const result: Partial<{ [key in keyof O]: P }> = {};
 
   const collectionKeys = keys(collection);
   for (let i = 0; i < collectionKeys.length; i++) {
@@ -155,7 +150,7 @@ export function mapValues<T, P>(
     result[key] = iteratee(collection[key], key, collection, i);
   }
 
-  return result;
+  return result as { [key in keyof O]: P };
 }
 
 export function mapFilterValues<T, P>(

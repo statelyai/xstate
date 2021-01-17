@@ -239,7 +239,7 @@ export function nextEvents<TC, TE extends EventObject>(
 
 export function isInFinalState<TC, TE extends EventObject>(
   configuration: Array<StateNode<TC, TE>>,
-  stateNode: StateNode<TC, TE>
+  stateNode: StateNode<TC, TE> = configuration[0].machine
 ): boolean {
   if (stateNode.type === 'compound') {
     return getChildren(stateNode).some(
@@ -259,15 +259,73 @@ export const isStateId = (str: string) => str[0] === STATE_IDENTIFIER;
 
 export function getCandidates<TEvent extends EventObject>(
   stateNode: StateNode<any, TEvent>,
-  eventName: TEvent['type'] | NullEvent['type'] | '*'
+  receivedEventType: TEvent['type'] | NullEvent['type'],
+  /**
+   * If `true`, will use SCXML event partial token matching semantics
+   * without the need for the ".*" suffix
+   */
+  partialMatch: boolean = false
 ): Array<TransitionDefinition<any, TEvent>> {
-  const transient = eventName === NULL_EVENT;
+  const transient = receivedEventType === NULL_EVENT;
   const candidates = stateNode.transitions.filter((transition) => {
-    const sameEventType = transition.eventType === eventName;
-    // null events should only match against eventless transitions
-    return transient
-      ? sameEventType
-      : sameEventType || transition.eventType === WILDCARD;
+    const { eventType } = transition;
+    // First, check the trivial case: event names are exactly equal
+    if (eventType === receivedEventType) {
+      return true;
+    }
+
+    // Transient transitions can't match non-transient events
+    if (transient) {
+      return false;
+    }
+
+    // Then, check if transition is a wildcard transition,
+    // which matches any non-transient events
+    if (eventType === WILDCARD) {
+      return true;
+    }
+
+    if (!partialMatch && !eventType.endsWith('.*')) {
+      return false;
+    }
+
+    if (!IS_PRODUCTION) {
+      warn(
+        !/.*\*.+/.test(eventType),
+        `Wildcards can only be the last token of an event descriptor (e.g., "event.*") or the entire event descriptor ("*"). Check the "${eventType}" event.`
+      );
+    }
+
+    const partialEventTokens = eventType.split('.');
+    const eventTokens = receivedEventType.split('.');
+
+    for (
+      let tokenIndex = 0;
+      tokenIndex < partialEventTokens.length;
+      tokenIndex++
+    ) {
+      const partialEventToken = partialEventTokens[tokenIndex];
+      const eventToken = eventTokens[tokenIndex];
+
+      if (partialEventToken === '*') {
+        const isLastToken = tokenIndex === partialEventTokens.length - 1;
+
+        if (!IS_PRODUCTION) {
+          warn(
+            isLastToken,
+            `Infix wildcards in transition events are not allowed. Check the "${eventType}" event.`
+          );
+        }
+
+        return isLastToken;
+      }
+
+      if (partialEventToken !== eventToken) {
+        return false;
+      }
+    }
+
+    return true;
   });
 
   return candidates;
@@ -696,10 +754,9 @@ export function getStateNodes<TContext, TEvent extends EventObject>(
   }
 
   const childStateKeys = keys(stateValue);
-  const childStateNodes: Array<StateNode<
-    TContext,
-    TEvent
-  >> = childStateKeys
+  const childStateNodes: Array<
+    StateNode<TContext, TEvent>
+  > = childStateKeys
     .map((subStateKey) => getStateNode(stateNode, subStateKey))
     .filter(Boolean);
 
@@ -1354,10 +1411,9 @@ export function microstep<TContext, TEvent extends EventObject>(
 function selectEventlessTransitions<TContext, TEvent extends EventObject>(
   state: State<TContext, TEvent>
 ): Transitions<TContext, TEvent> {
-  const enabledTransitions: Set<TransitionDefinition<
-    TContext,
-    TEvent
-  >> = new Set();
+  const enabledTransitions: Set<
+    TransitionDefinition<TContext, TEvent>
+  > = new Set();
 
   const atomicStates = state.configuration.filter(isAtomicStateNode);
 
@@ -1437,7 +1493,7 @@ export function resolveMicroTransition<
     return inertState;
   }
 
-  let children = currentState ? { ...currentState.children } : {};
+  const children = currentState ? { ...currentState.children } : {};
 
   for (const action of resolved.actions) {
     if (action.type === actionTypes.stop) {
@@ -1460,7 +1516,6 @@ export function resolveMicroTransition<
     : currentState
     ? currentState.configuration
     : [];
-  const isDone = isInFinalState(resolvedConfiguration, machine);
 
   const meta = resolvedConfiguration.reduce((acc, subStateNode) => {
     if (subStateNode.meta !== undefined) {
@@ -1485,7 +1540,6 @@ export function resolveMicroTransition<
     configuration: resolvedConfiguration,
     transitions,
     children,
-    done: isDone,
     historyValue: resolved.historyValue
   });
 
