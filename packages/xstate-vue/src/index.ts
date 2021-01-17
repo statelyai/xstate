@@ -56,7 +56,7 @@ export function useMachine<
     delays
   };
 
-  const createdMachine = machine.withOptions({
+  const createdMachine = machine.provide({
     ...machineConfig,
     context
   });

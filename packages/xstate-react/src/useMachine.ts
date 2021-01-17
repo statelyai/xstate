@@ -157,7 +157,7 @@ export function useMachine<
       services,
       delays
     };
-    const machineWithOptions = machine.withOptions(machineConfig).withContext({
+    const machineWithOptions = machine.provide(machineConfig).withContext({
       ...machine.context,
       ...context
     } as TContext);

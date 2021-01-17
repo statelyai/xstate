@@ -87,7 +87,7 @@ describe('remembering activities', () => {
 
   it('should remember the activities even after an event', (done) => {
     const service = interpret(
-      machine.withOptions({
+      machine.provide({
         actors: {
           B_ACTIVITY: invokeActivity(() => {
             done();
@@ -104,7 +104,7 @@ describe('remembering activities', () => {
 describe('activities', () => {
   it('identifies initial activities', (done) => {
     const service = interpret(
-      lightMachine.withOptions({
+      lightMachine.provide({
         actors: {
           fadeInGreen: invokeActivity(() => {
             done();
@@ -117,7 +117,7 @@ describe('activities', () => {
   });
   it('identifies start activities', (done) => {
     const service = interpret(
-      lightMachine.withOptions({
+      lightMachine.provide({
         actors: {
           activateCrosswalkLight: invokeActivity(() => {
             done();
@@ -133,7 +133,7 @@ describe('activities', () => {
 
   it('identifies start activities for child states and active activities', (done) => {
     const service = interpret(
-      lightMachine.withOptions({
+      lightMachine.provide({
         actors: {
           blinkCrosswalkLight: invokeActivity(() => {
             done();
@@ -150,7 +150,7 @@ describe('activities', () => {
 
   it('identifies stop activities for child states', (done) => {
     const service = interpret(
-      lightMachine.withOptions({
+      lightMachine.provide({
         actors: {
           blinkCrosswalkLight: invokeActivity(() => {
             return () => {
@@ -172,7 +172,7 @@ describe('activities', () => {
     let stopActivateCrosswalkLightcalled = false;
 
     const service = interpret(
-      lightMachine.withOptions({
+      lightMachine.provide({
         actors: {
           fadeInGreen: invokeActivity(() => {
             if (stopActivateCrosswalkLightcalled) {
@@ -276,7 +276,7 @@ describe('transient activities', () => {
 
   it('should have started initial activities', (done) => {
     const service = interpret(
-      machine.withOptions({
+      machine.provide({
         actors: {
           A: invokeActivity(() => {
             done();
@@ -290,7 +290,7 @@ describe('transient activities', () => {
 
   it('should have started deep initial activities', (done) => {
     const service = interpret(
-      machine.withOptions({
+      machine.provide({
         actors: {
           A1: invokeActivity(() => {
             done();
@@ -303,7 +303,7 @@ describe('transient activities', () => {
 
   it('should have kept existing activities', (done) => {
     const service = interpret(
-      machine.withOptions({
+      machine.provide({
         actors: {
           A: invokeActivity(() => {
             done();
@@ -317,7 +317,7 @@ describe('transient activities', () => {
 
   it('should have kept same activities', (done) => {
     const service = interpret(
-      machine.withOptions({
+      machine.provide({
         actors: {
           C1: invokeActivity(() => {
             done();
@@ -331,7 +331,7 @@ describe('transient activities', () => {
 
   it('should have kept same activities after self transition', (done) => {
     const service = interpret(
-      machine.withOptions({
+      machine.provide({
         actors: {
           C1: invokeActivity(() => {
             done();
@@ -345,7 +345,7 @@ describe('transient activities', () => {
 
   it('should have stopped after automatic transitions', (done) => {
     const service = interpret(
-      machine.withOptions({
+      machine.provide({
         actors: {
           B2: invokeActivity(() => {
             done();

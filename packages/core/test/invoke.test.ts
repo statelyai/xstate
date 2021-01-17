@@ -615,7 +615,7 @@ describe('invoke', () => {
     );
 
     interpret(
-      someParentMachine.withOptions({
+      someParentMachine.provide({
         actors: {
           child: invokeMachine(
             Machine({

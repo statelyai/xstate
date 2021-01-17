@@ -1096,7 +1096,7 @@ describe('interpreter', () => {
       const evenCounts: number[] = [];
       const oddCounts: number[] = [];
       const countService = interpret(
-        countMachine.withOptions({
+        countMachine.provide({
           actions: {
             evenAction: (ctx) => {
               evenCounts.push(ctx.count);

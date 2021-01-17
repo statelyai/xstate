@@ -12,7 +12,7 @@ import {
   InterpreterOptions,
   DoneEvent,
   Subscription,
-  MachineOptions,
+  MachineImplementations,
   ActionFunctionMap,
   SCXML,
   Observer,
@@ -190,7 +190,7 @@ export class Interpreter<
    */
   public execute(
     state: State<TContext, TEvent, TStateSchema, TTypestate>,
-    actionsConfig?: MachineOptions<TContext, TEvent>['actions']
+    actionsConfig?: MachineImplementations<TContext, TEvent>['actions']
   ): void {
     for (const action of state.actions) {
       this.exec(action, state, actionsConfig);
