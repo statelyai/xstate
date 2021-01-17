@@ -142,7 +142,8 @@ export class MachineNode<
   }
 
   /**
-   * Clones this state machine with the provided implementations.
+   * Clones this state machine with the provided implementations
+   * and merges the `context` (if provided).
    *
    * @param implementations Options (`actions`, `guards`, `actors`, `delays`, `context`)
    *  to recursively merge with the existing options.
