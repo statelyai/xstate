@@ -171,3 +171,5 @@ The workshop code examples are [open-sourced and available on GitHub](https://gi
 - ["Just Use Props": An opinionated guide to React and XState](https://dev.to/mpocock1/just-use-props-an-opinionated-guide-to-react-and-xstate-fc9) by [Matt Pocock](https://dev.to/mpocock1)
 - [Usando XState y React para hacer peticiones HTTP (en español)](https://www.youtube.com/watch?v=Wo-rVyAsz-Q) by [GCD Coder](https://www.youtube.com/channel/UCwkisgTJdCx3mNZMaaHAaVA)
 - [Infinite Scrolling con Svelte, IntersectionObserver & XState (en español)](https://www.youtube.com/watch?v=GMXrwrG0cL4) by [GCD Coder](https://www.youtube.com/channel/UCwkisgTJdCx3mNZMaaHAaVA)
+- [▶️ Getting Started with XState in Vue 3](https://www.youtube.com/watch?v=g4YnmydXMP8) by [JacoboCode](https://www.youtube.com/channel/UCcE2YngHoargpdjIzkCNY2Q)
+- [▶️ Typing XState in Vue 3](https://www.youtube.com/watch?v=7tT45eRmyJE) by [JacoboCode](https://www.youtube.com/channel/UCcE2YngHoargpdjIzkCNY2Q)
