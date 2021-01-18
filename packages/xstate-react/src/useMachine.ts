@@ -7,7 +7,7 @@ import {
   State,
   Interpreter,
   InterpreterOptions,
-  MachineOptions,
+  MachineImplementations,
   StateConfig,
   Typestate,
   ActionObject,
@@ -108,7 +108,7 @@ export function useMachine<
   getMachine: MaybeLazy<MachineNode<TContext, TEvent, any, TTypestate>>,
   options: Partial<InterpreterOptions> &
     Partial<UseMachineOptions<TContext, TEvent>> &
-    Partial<MachineOptions<TContext, TEvent>> = {}
+    Partial<MachineImplementations<TContext, TEvent>> = {}
 ): [
   State<TContext, TEvent, any, TTypestate>,
   InterpreterOf<typeof machine>['send'],

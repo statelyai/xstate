@@ -6,7 +6,7 @@ import {
   State,
   Interpreter,
   InterpreterOptions,
-  MachineOptions,
+  MachineImplementations,
   StateConfig,
   Typestate,
   InterpreterOf
@@ -32,7 +32,7 @@ export function useMachine<
   machine: MachineNode<TContext, TEvent, any, TTypestate>,
   options: Partial<InterpreterOptions> &
     Partial<UseMachineOptions<TContext, TEvent>> &
-    Partial<MachineOptions<TContext, TEvent>> = {}
+    Partial<MachineImplementations<TContext, TEvent>> = {}
 ): {
   state: Ref<State<TContext, TEvent, any, TTypestate>>;
   send: InterpreterOf<typeof machine>['send'];
