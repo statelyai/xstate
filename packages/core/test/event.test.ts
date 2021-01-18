@@ -129,7 +129,7 @@ interface ChangePassword {
   password: string;
 }
 
-const authMachine = Machine<SignInContext>(
+const authMachine = Machine<SignInContext, ChangePassword>(
   {
     context: { email: '', password: '' },
     initial: 'passwordField',
@@ -152,7 +152,7 @@ const authMachine = Machine<SignInContext>(
         on: {
           changePassword: [
             {
-              guard: (_, event: ChangePassword) => event.password.length >= 10,
+              guard: (_, event) => event.password.length >= 10,
               target: '.invalid',
               actions: ['assignPassword']
             },

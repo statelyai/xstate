@@ -184,7 +184,7 @@ export class StateNode<
           (stateConfig: StateNodeConfig<TContext, TEvent>, key) => {
             const stateNode = new StateNode(stateConfig, {
               _parent: this,
-              _key: key
+              _key: key as string
             });
             Object.assign(this.idMap, {
               [stateNode.id]: stateNode,
