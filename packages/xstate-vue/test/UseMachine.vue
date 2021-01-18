@@ -57,7 +57,7 @@ export default {
       new Promise((res) => setTimeout(() => res('some data'), 50));
 
     const { state, send, service } = useMachine(fetchMachine, {
-      behaviors: {
+      actors: {
         fetchData: invokePromise(onFetch)
       },
       state: persistedState

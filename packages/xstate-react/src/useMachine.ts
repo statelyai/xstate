@@ -7,7 +7,7 @@ import {
   State,
   Interpreter,
   InterpreterOptions,
-  MachineOptions,
+  MachineImplementations,
   StateConfig,
   Typestate,
   ActionObject,
@@ -108,7 +108,7 @@ export function useMachine<
   getMachine: MaybeLazy<MachineNode<TContext, TEvent, any, TTypestate>>,
   options: Partial<InterpreterOptions> &
     Partial<UseMachineOptions<TContext, TEvent>> &
-    Partial<MachineOptions<TContext, TEvent>> = {}
+    Partial<MachineImplementations<TContext, TEvent>> = {}
 ): [
   State<TContext, TEvent, any, TTypestate>,
   InterpreterOf<typeof machine>['send'],
@@ -157,7 +157,7 @@ export function useMachine<
       services,
       delays
     };
-    const machineWithOptions = machine.withConfig(machineConfig).withContext({
+    const machineWithOptions = machine.provide(machineConfig).withContext({
       ...machine.context,
       ...context
     } as TContext);
@@ -258,7 +258,7 @@ export function useMachine<
   }, [actions]);
 
   useEffect(() => {
-    Object.assign(service.machine.options.behaviors, services);
+    Object.assign(service.machine.options.actors, services);
   }, [services]);
 
   // this is somewhat weird - this should always be flushed within useLayoutEffect

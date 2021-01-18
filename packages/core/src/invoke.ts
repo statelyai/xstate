@@ -129,7 +129,7 @@ export function createActorRefFromInvokeAction<
     actorRef = src as SpawnedActorRef<any>;
   } else {
     const behaviorCreator: BehaviorCreator<TContext, TEvent> | undefined =
-      machine.options.behaviors[src.type];
+      machine.options.actors[src.type];
 
     if (!behaviorCreator) {
       if (!IS_PRODUCTION) {

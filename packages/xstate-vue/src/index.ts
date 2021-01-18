@@ -6,7 +6,7 @@ import {
   State,
   Interpreter,
   InterpreterOptions,
-  MachineOptions,
+  MachineImplementations,
   StateConfig,
   Typestate,
   InterpreterOf
@@ -32,7 +32,7 @@ export function useMachine<
   machine: MachineNode<TContext, TEvent, any, TTypestate>,
   options: Partial<InterpreterOptions> &
     Partial<UseMachineOptions<TContext, TEvent>> &
-    Partial<MachineOptions<TContext, TEvent>> = {}
+    Partial<MachineImplementations<TContext, TEvent>> = {}
 ): {
   state: Ref<State<TContext, TEvent, any, TTypestate>>;
   send: InterpreterOf<typeof machine>['send'];
@@ -42,8 +42,7 @@ export function useMachine<
     context,
     guards,
     actions,
-    activities,
-    behaviors,
+    actors,
     delays,
     state: rehydratedState,
     ...interpreterOptions
@@ -53,12 +52,11 @@ export function useMachine<
     context,
     guards,
     actions,
-    activities,
-    behaviors,
+    actors,
     delays
   };
 
-  const createdMachine = machine.withConfig({
+  const createdMachine = machine.provide({
     ...machineConfig,
     context
   });

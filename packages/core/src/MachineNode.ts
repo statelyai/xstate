@@ -2,7 +2,7 @@ import { toArray, isBuiltInEvent, toSCXMLEvent } from './utils';
 import {
   Event,
   StateValue,
-  MachineOptions,
+  MachineImplementations,
   EventObject,
   StateSchema,
   MachineConfig,
@@ -38,10 +38,10 @@ export const WILDCARD = '*';
 
 const createDefaultOptions = <TContext>(
   context: TContext
-): MachineOptions<TContext, any> => ({
+): MachineImplementations<TContext, any> => ({
   actions: {},
   guards: {},
-  behaviors: {},
+  actors: {},
   delays: {},
   context
 });
@@ -80,7 +80,7 @@ export class MachineNode<
    */
   public delimiter: string;
 
-  public options: MachineOptions<TContext, TEvent>;
+  public options: MachineImplementations<TContext, TEvent>;
 
   public __xstatenode: true = true;
 
@@ -89,7 +89,7 @@ export class MachineNode<
      * The raw config used to create the machine.
      */
     public config: MachineConfig<TContext, TEvent, TStateSchema>,
-    options?: Partial<MachineOptions<TContext, TEvent>>
+    options?: Partial<MachineImplementations<TContext, TEvent>>
   ) {
     super(config, {
       _key: config.id || '(machine)'
@@ -142,24 +142,25 @@ export class MachineNode<
   }
 
   /**
-   * Clones this state machine with custom options and context.
+   * Clones this state machine with the provided implementations
+   * and merges the `context` (if provided).
    *
-   * @param options Options (actions, guards, behaviors, delays) to recursively merge with the existing options.
-   * @param context Custom context (will override predefined context)
+   * @param implementations Options (`actions`, `guards`, `actors`, `delays`, `context`)
+   *  to recursively merge with the existing options.
    *
-   * @returns A new `MachineNode` instance with the custom options and context
+   * @returns A new `MachineNode` instance with the provided implementations.
    */
-  public withConfig(
-    options: Partial<MachineOptions<TContext, TEvent>>
+  public provide(
+    implementations: Partial<MachineImplementations<TContext, TEvent>>
   ): MachineNode<TContext, TEvent, TStateSchema> {
-    const { actions, guards, behaviors, delays } = this.options;
+    const { actions, guards, actors, delays } = this.options;
 
     return new MachineNode(this.config, {
-      actions: { ...actions, ...options.actions },
-      guards: { ...guards, ...options.guards },
-      behaviors: { ...behaviors, ...options.behaviors },
-      delays: { ...delays, ...options.delays },
-      context: resolveContext(this.context, options.context)
+      actions: { ...actions, ...implementations.actions },
+      guards: { ...guards, ...implementations.guards },
+      actors: { ...actors, ...implementations.actors },
+      delays: { ...delays, ...implementations.delays },
+      context: resolveContext(this.context, implementations.context)
     });
   }
 
@@ -173,7 +174,7 @@ export class MachineNode<
   public withContext(
     context: Partial<TContext>
   ): MachineNode<TContext, TEvent, TStateSchema> {
-    return this.withConfig({
+    return this.provide({
       context: resolveContext(this.context, context)
     });
   }

@@ -323,7 +323,7 @@ const Fetcher = ({ onResolve }) => {
     actions: {
       notifySuccess: (ctx) => onResolve(ctx.data)
     },
-    behaviors: {
+    actors: {
       fetchData: invokePromise((_, event) =>
         fetch(`some/api/${event.query}`).then((res) => res.json())
       )

@@ -181,7 +181,7 @@ describe('invoke', () => {
         }
       },
       {
-        behaviors: {
+        actors: {
           child: invokeMachine(childMachine)
         }
       }
@@ -248,7 +248,7 @@ describe('invoke', () => {
         }
       },
       {
-        behaviors: {
+        actors: {
           child: invokeMachine(childMachine)
         }
       }
@@ -608,15 +608,15 @@ describe('invoke', () => {
         }
       },
       {
-        behaviors: {
+        actors: {
           child: invokeMachine(childMachine)
         }
       }
     );
 
     interpret(
-      someParentMachine.withConfig({
-        behaviors: {
+      someParentMachine.provide({
+        actors: {
           child: invokeMachine(
             Machine({
               id: 'child',
@@ -1061,7 +1061,7 @@ describe('invoke', () => {
             }
           },
           {
-            behaviors: {
+            actors: {
               somePromise: invokePromise(() =>
                 createPromise((resolve) => resolve())
               )
@@ -1131,7 +1131,7 @@ describe('invoke', () => {
             }
           },
           {
-            behaviors: {
+            actors: {
               somePromise: invokePromise(() =>
                 createPromise((resolve) => resolve({ count: 1 }))
               )
@@ -1211,7 +1211,7 @@ describe('invoke', () => {
             }
           },
           {
-            behaviors: {
+            actors: {
               somePromise: invokePromise(() =>
                 createPromise((resolve) => resolve({ count: 1 }))
               )
@@ -1257,7 +1257,7 @@ describe('invoke', () => {
             }
           },
           {
-            behaviors: {
+            actors: {
               somePromise: invokePromise((ctx, e: BeginEvent) => {
                 return createPromise((resolve, reject) => {
                   ctx.foo && e.payload ? resolve() : reject();
@@ -1323,7 +1323,7 @@ describe('invoke', () => {
           }
         },
         {
-          behaviors: {
+          actors: {
             someCallback: invokeCallback(
               (ctx, e: BeginEvent) => (cb: (ev: CallbackEvent) => void) => {
                 if (ctx.foo && e.payload) {
@@ -1380,7 +1380,7 @@ describe('invoke', () => {
           }
         },
         {
-          behaviors: {
+          actors: {
             someCallback: invokeCallback(() => (cb) => {
               cb('CALLBACK');
             })
@@ -1421,7 +1421,7 @@ describe('invoke', () => {
           }
         },
         {
-          behaviors: {
+          actors: {
             someCallback: invokeCallback(() => (cb) => {
               cb('CALLBACK');
             })
@@ -1469,7 +1469,7 @@ describe('invoke', () => {
           }
         },
         {
-          behaviors: {
+          actors: {
             someCallback: invokeCallback(() => (cb) => {
               cb('CALLBACK');
             })
@@ -2387,7 +2387,7 @@ describe('invoke', () => {
         }
       },
       {
-        behaviors: {
+        actors: {
           search: invokePromise(async (_, __, meta) => {
             expect(meta.src.endpoint).toEqual('example.com');
 
@@ -2428,7 +2428,7 @@ describe('services option', () => {
         }
       },
       {
-        behaviors: {
+        actors: {
           stringService: invokePromise((ctx, _, { data }) => {
             expect(ctx).toEqual({ count: 42 });
 
