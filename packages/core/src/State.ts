@@ -291,7 +291,11 @@ export class State<
   public matches<TSV extends TTypestate['value']>(
     parentStateValue: TSV
   ): this is State<
-    (TTypestate extends { value: TSV } ? TTypestate : never)['context'],
+    (TTypestate extends any
+      ? { value: TSV; context: any } extends TTypestate
+        ? TTypestate
+        : never
+      : never)['context'],
     TEvent,
     TStateSchema,
     TTypestate
