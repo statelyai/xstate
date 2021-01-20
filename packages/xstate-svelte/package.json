@@ -55,7 +55,7 @@
   "devDependencies": {
     "@testing-library/svelte": "^3.0.0",
     "@tsconfig/svelte": "^1.0.8",
-    "@types/jest": "^26.0.9",
+    "@types/jest": "^24.0.23",
     "@xstate/fsm": "*",
     "jest": "^26.4.2",
     "lerna-alias": "3.0.3-0",

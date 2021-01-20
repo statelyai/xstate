@@ -1797,7 +1797,7 @@
     "@types/puppeteer" "*"
     jest-environment-node ">=24 <=26"
 
-"@types/jest@26.x", "@types/jest@^26.0.9":
+"@types/jest@26.x":
   version "26.0.20"
   resolved "https://registry.yarnpkg.com/@types/jest/-/jest-26.0.20.tgz#cd2f2702ecf69e86b586e1f5223a60e454056307"
   integrity sha512-9zi2Y+5USJRxd0FsahERhBwlcvFh6D2GLQnY2FH2BzK8J9s9omvNHIbvABwIluXa0fD8XVKMLTO0aOEuUfACAA==
