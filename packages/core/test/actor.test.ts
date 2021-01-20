@@ -1,4 +1,4 @@
-import { Machine, spawn, interpret, Interpreter } from '../src';
+import { Machine, spawn, interpret, ActorRef, ActorRefFrom } from '../src';
 import {
   assign,
   send,
@@ -8,7 +8,6 @@ import {
   sendUpdate,
   respond
 } from '../src/actions';
-import { Actor } from '../src/Actor';
 import { interval } from 'rxjs';
 import { map } from 'rxjs/operators';
 
@@ -27,7 +26,7 @@ describe('spawning machines', () => {
   });
 
   const context = {
-    todoRefs: {} as Record<string, Actor>
+    todoRefs: {} as Record<string, ActorRef<any>>
   };
 
   type TodoEvent =
@@ -82,7 +81,7 @@ describe('spawning machines', () => {
     | { type: 'PONG' }
     | { type: 'SUCCESS' };
 
-  const serverMachine = Machine({
+  const serverMachine = Machine<any, PingPongEvent>({
     id: 'server',
     initial: 'waitPing',
     states: {
@@ -101,7 +100,7 @@ describe('spawning machines', () => {
   });
 
   interface ClientContext {
-    server?: Interpreter<any, any>;
+    server?: ActorRef<PingPongEvent>;
   }
 
   const clientMachine = Machine<ClientContext, PingPongEvent>({
@@ -439,7 +438,7 @@ describe('actors', () => {
   });
 
   it('should spawn null actors if not used within a service', () => {
-    const nullActorMachine = Machine<{ ref?: Actor }>({
+    const nullActorMachine = Machine<{ ref?: ActorRef<any> }>({
       initial: 'foo',
       context: { ref: undefined },
       states: {
@@ -506,7 +505,7 @@ describe('actors', () => {
     it('should not forward events to a spawned actor when { autoForward: false }', () => {
       let pongCounter = 0;
 
-      const machine = Machine<{ counter: number; serverRef?: Actor }>({
+      const machine = Machine<{ counter: number; serverRef?: ActorRef<any> }>({
         id: 'client',
         context: { counter: 0, serverRef: undefined },
         initial: 'initial',
@@ -600,7 +599,7 @@ describe('actors', () => {
     });
 
     it('should sync spawned actor state when { sync: true }', () => {
-      return new Promise((res) => {
+      return new Promise<void>((res) => {
         const service = interpret(parentMachine, {
           id: 'a-service'
         }).onTransition((s) => {
@@ -613,7 +612,7 @@ describe('actors', () => {
     });
 
     it('should not sync spawned actor state when { sync: false }', () => {
-      return new Promise((res, rej) => {
+      return new Promise<void>((res, rej) => {
         const service = interpret(parentMachine, {
           id: 'b-service'
         }).onTransition((s) => {
@@ -631,7 +630,7 @@ describe('actors', () => {
     });
 
     it('should not sync spawned actor state (default)', () => {
-      return new Promise((res, rej) => {
+      return new Promise<void>((res, rej) => {
         const service = interpret(parentMachine, {
           id: 'c-service'
         }).onTransition((s) => {
@@ -662,7 +661,7 @@ describe('actors', () => {
       });
 
       interface SyncMachineContext {
-        ref?: Interpreter<any, any>;
+        ref?: ActorRefFrom<typeof syncChildMachine>;
       }
 
       const syncMachine = Machine<SyncMachineContext>({
@@ -707,7 +706,7 @@ describe('actors', () => {
         });
 
         interface SyncMachineContext {
-          ref?: Interpreter<any, any>;
+          ref?: ActorRefFrom<typeof syncChildMachine>;
         }
 
         const syncMachine = Machine<SyncMachineContext>({
@@ -757,7 +756,7 @@ describe('actors', () => {
         });
 
         interface SyncMachineContext {
-          ref?: Interpreter<any, any>;
+          ref?: ActorRefFrom<typeof syncChildMachine>;
         }
 
         const syncMachine = Machine<SyncMachineContext>({
@@ -783,6 +782,42 @@ describe('actors', () => {
             }
           })
           .start();
+      });
+
+      it('should only spawn an actor in an initial state of a child that gets invoked in the initial state of a parent when the parent gets started', () => {
+        let spawnCounter = 0;
+
+        const child = Machine({
+          initial: 'bar',
+          context: {},
+          states: {
+            bar: {
+              entry: assign({
+                promise: () => {
+                  return spawn(() => {
+                    spawnCounter++;
+                    return Promise.resolve('answer');
+                  });
+                }
+              })
+            }
+          }
+        });
+
+        const parent = Machine({
+          initial: 'foo',
+          states: {
+            foo: {
+              invoke: {
+                src: child,
+                onDone: 'end'
+              }
+            },
+            end: { type: 'final' }
+          }
+        });
+        interpret(parent).start();
+        expect(spawnCounter).toBe(1);
       });
     });
   });

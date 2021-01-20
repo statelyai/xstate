@@ -37,12 +37,12 @@ const glassMachine = Machine(
         }
       },
       filling: {
+        // Transient transition
+        always: {
+          target: 'full',
+          cond: 'glassIsFull'
+        },
         on: {
-          // Transient transition
-          '': {
-            target: 'full',
-            cond: 'glassIsFull'
-          },
           FILL: {
             target: 'filling',
             actions: 'addWater'
@@ -65,7 +65,7 @@ The current context is referenced on the `State` as `state.context`:
 const nextState = glassMachine.transition(glassMachine.initialState, 'FILL');
 
 nextState.context;
-// => { count: 1 }
+// => { amount: 1 }
 ```
 
 ## Initial Context
@@ -206,10 +206,10 @@ const counterMachine = Machine({
       on: {
         INC_TWICE: {
           actions: [
-            context => console.log(`Before: ${context.count}`),
-            assign({ count: context => context.count + 1 }), // count === 1
-            assign({ count: context => context.count + 1 }), // count === 2
-            context => console.log(`After: ${context.count}`)
+            (context) => console.log(`Before: ${context.count}`),
+            assign({ count: (context) => context.count + 1 }), // count === 1
+            assign({ count: (context) => context.count + 1 }), // count === 2
+            (context) => console.log(`After: ${context.count}`)
           ]
         }
       }
@@ -238,13 +238,13 @@ const counterMachine = Machine({
       on: {
         INC_TWICE: {
           actions: [
-            context => console.log(`Before: ${context.prevCount}`),
+            (context) => console.log(`Before: ${context.prevCount}`),
             assign({
-              count: context => context.count + 1,
-              prevCount: context => context.count
+              count: (context) => context.count + 1,
+              prevCount: (context) => context.count
             }), // count === 1, prevCount === 0
-            assign({ count: context => context.count + 1 }), // count === 2
-            context => console.log(`After: ${context.count}`)
+            assign({ count: (context) => context.count + 1 }), // count === 2
+            (context) => console.log(`After: ${context.count}`)
           ]
         }
       }
@@ -393,7 +393,7 @@ on: {
   INCREMENT: {
     // Generics guarantee proper inference
     actions: assign<CounterContext, CounterEvent>({
-      count: context => {
+      count: (context) => {
         // context: { count: number }
         return context.count + 1;
       }

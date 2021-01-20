@@ -130,5 +130,6 @@ Final states correspond to the SCXML spec: [https://www.w3.org/TR/scxml/#final](
 ## Notes
 
 - A final state node only indicates that its immediate parent is _done_. It does not affect the _done_ status of any higher parents, except with parallel state nodes, which are _done_ when all of its child compound state nodes are _done_.
+- A parallel state that reaches a final substate does not stop receiving events until all its siblings are done. The final substate can still be exited with an event.
 - Final state nodes cannot have any children. They are atomic state nodes.
 - You can specify `entry` and `exit` actions on final state nodes.

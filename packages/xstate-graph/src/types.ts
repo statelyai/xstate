@@ -1,8 +1,59 @@
-import { State, EventObject, StateValue } from 'xstate';
+import {
+  State,
+  EventObject,
+  StateValue,
+  StateNode,
+  TransitionDefinition
+} from 'xstate';
 
 export interface TransitionMap {
   state: StateValue | undefined;
 }
+
+export type JSONSerializable<T extends object, U> = T & {
+  toJSON: () => U;
+};
+
+export type DirectedGraphLabel = JSONSerializable<
+  {
+    text: string;
+  },
+  {
+    text: string;
+  }
+>;
+
+export type DirectedGraphEdge = JSONSerializable<
+  {
+    id: string;
+    source: StateNode;
+    target: StateNode;
+    label: DirectedGraphLabel;
+    transition: TransitionDefinition<any, any>;
+  },
+  {
+    source: string;
+    target: string;
+    label: ReturnType<DirectedGraphLabel['toJSON']>;
+  }
+>;
+
+// Based on https://www.eclipse.org/elk/documentation/tooldevelopers/graphdatastructure/jsonformat.html
+export type DirectedGraphNode = JSONSerializable<
+  {
+    id: string;
+    stateNode: StateNode;
+    children: DirectedGraphNode[];
+    /**
+     * The edges representing all transitions from this `stateNode`.
+     */
+    edges: DirectedGraphEdge[];
+  },
+  {
+    id: string;
+    children: DirectedGraphNode[];
+  }
+>;
 
 export interface AdjacencyMap<TContext, TEvent extends EventObject> {
   [stateId: string]: Record<
@@ -58,9 +109,18 @@ export type Segments<TContext, TEvent extends EventObject> = Array<
   Segment<TContext, TEvent>
 >;
 
+export type ExtractEvent<
+  TEvent extends EventObject,
+  TType extends TEvent['type']
+> = TEvent extends { type: TType } ? TEvent : never;
+
 export interface ValueAdjMapOptions<TContext, TEvent extends EventObject> {
-  events: { [K in TEvent['type']]?: Array<TEvent & { type: K }> };
-  filter: (state: State<TContext, any>) => boolean;
-  stateSerializer: (state: State<TContext, any>) => string;
-  eventSerializer: (event: TEvent) => string;
+  events?: {
+    [K in TEvent['type']]?:
+      | Array<ExtractEvent<TEvent, K>>
+      | ((state: State<TContext, TEvent>) => Array<ExtractEvent<TEvent, K>>);
+  };
+  filter?: (state: State<TContext, any>) => boolean;
+  stateSerializer?: (state: State<TContext, any>) => string;
+  eventSerializer?: (event: TEvent) => string;
 }

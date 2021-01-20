@@ -1,14 +1,6 @@
-import { render, fireEvent, cleanup, wait } from '@testing-library/vue';
+import { render, fireEvent, waitFor } from '@testing-library/vue';
 import { Machine, assign, interpret } from 'xstate';
-// import { mount, createLocalVue } from '@vue/test-utils';
-import VueCompositionApi from '@vue/composition-api';
 import UseService from './UseService.vue';
-
-afterEach(cleanup);
-
-const renderWithCompositionApi = (component, options?) =>
-  // @ts-ignore
-  render(component, options, (vue) => vue.use(VueCompositionApi));
 
 describe('useService composable function', () => {
   const counterMachine = Machine<{ count: number }>({
@@ -39,8 +31,8 @@ describe('useService composable function', () => {
       props: ['service']
     };
 
-    const { getAllByTestId } = renderWithCompositionApi(twoServices, {
-      propsData: { service: counterService }
+    const { getAllByTestId } = render(twoServices as any, {
+      props: { service: counterService }
     });
 
     const countEls = getAllByTestId('count');
@@ -51,16 +43,16 @@ describe('useService composable function', () => {
 
     counterService.send('INC');
 
-    await wait();
-
-    countEls.forEach((countEl) => expect(countEl.textContent).toBe('1'));
+    await waitFor(() => {
+      expect(countEls.every((el) => el.textContent === '1'));
+    });
   });
 
   it('service should be updated when it changes', async () => {
     const counterService1 = interpret(counterMachine, { id: 'c1' }).start();
     const counterService2 = interpret(counterMachine, { id: 'c2' }).start();
 
-    const { getByTestId, updateProps } = renderWithCompositionApi(UseService, {
+    const { getByTestId, rerender } = render(UseService as any, {
       props: { service: counterService1 }
     });
 
@@ -71,8 +63,8 @@ describe('useService composable function', () => {
     await fireEvent.click(incButton);
     expect(countEl.textContent).toBe('1');
 
-    await updateProps({ service: counterService2 });
+    await rerender({ props: { service: counterService2 } });
 
-    await wait(() => expect(countEl.textContent).toBe('0'));
+    await waitFor(() => expect(getByTestId('count').textContent).toBe('0'));
   });
 });

@@ -49,7 +49,7 @@ const toggleMachine = Machine({
         /* ... */
       },
       meta: {
-        test: async page => {
+        test: async (page) => {
           await page.waitFor('input:checked');
         }
       }
@@ -59,7 +59,7 @@ const toggleMachine = Machine({
         /* ... */
       },
       meta: {
-        test: async page => {
+        test: async (page) => {
           await page.waitFor('input:not(:checked)');
         }
       }
@@ -78,7 +78,7 @@ const toggleMachine = Machine(/* ... */);
 
 const toggleModel = createModel(toggleMachine).withEvents({
   TOGGLE: {
-    exec: async page => {
+    exec: async (page) => {
       await page.click('input');
     }
   }
@@ -93,9 +93,9 @@ const toggleModel = createModel(toggleMachine).withEvents({
 describe('toggle', () => {
   const testPlans = toggleModel.getShortestPathPlans();
 
-  testPlans.forEach(plan => {
+  testPlans.forEach((plan) => {
     describe(plan.description, () => {
-      plan.paths.forEach(path => {
+      plan.paths.forEach((path) => {
         it(path.description, async () => {
           // do any setup, then...
 
@@ -142,7 +142,7 @@ Provides testing details for each event. Each key in `eventsMap` is an object wh
 ```js
 const toggleModel = createModel(toggleMachine).withEvents({
   TOGGLE: {
-    exec: async page => {
+    exec: async (page) => {
       await page.click('input');
     }
   }
@@ -155,7 +155,9 @@ Returns an array of testing plans based on the shortest paths from the test mode
 
 **Options**
 
-- `filter` (function): A function that takes in the `state` and returns `true` if the state should be traversed, or `false` if traversal should stop.
+| Argument | Type     | Description                                                                                                    |
+| -------- | -------- | -------------------------------------------------------------------------------------------------------------- |
+| `filter` | function | Takes in the `state` and returns `true` if the state should be traversed, or `false` if traversal should stop. |
 
 This is useful for preventing infinite traversals and stack overflow errors:
 
@@ -167,7 +169,7 @@ const todosModel = createModel(todosMachine).withEvents({
 const plans = todosModel.getShortestPathPlans({
   // Tell the algorithm to limit state/event adjacency map to states
   // that have less than 5 todos
-  filter: state => state.context.todos.length < 5
+  filter: (state) => state.context.todos.length < 5
 });
 ```
 
@@ -195,7 +197,7 @@ Tests that all state nodes were covered (traversed) in the exected tests.
 // Only test coverage for state nodes with a `.meta` property defined:
 
 testModel.testCoverage({
-  filter: stateNode => !!stateNode.meta
+  filter: (stateNode) => !!stateNode.meta
 });
 ```
 
@@ -219,3 +221,5 @@ Executes each step in `testPath.segments` by:
 2. Executing the event for `segment.event`
 
 And finally, verifying that the SUT is in the target `testPath.state`.
+
+NOTE: If your model has nested states, the `meta.test` method for each parent state of that nested state is also executed when verifying that the SUT is in that nested state.

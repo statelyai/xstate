@@ -1,6 +1,6 @@
 {
   "name": "@xstate/vue",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "description": "XState tools for Vue",
   "keywords": [
     "state",
@@ -41,9 +41,8 @@
     "url": "https://github.com/davidkpiano/xstate/issues"
   },
   "peerDependencies": {
-    "@vue/composition-api": "^0.6.0",
     "@xstate/fsm": "^1.0.0",
-    "vue": "^2.6.10",
+    "vue": "^3.0.0",
     "xstate": "^4.7.8"
   },
   "peerDependenciesMeta": {
@@ -56,20 +55,19 @@
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^4.2.4",
-    "@testing-library/vue": "^4.1.0",
-    "@vue/composition-api": "^0.6.5",
-    "@vue/test-utils": "^1.0.0-beta.30",
+    "@testing-library/vue": "^6.3.1",
+    "@vue/compiler-sfc": "^3.0.4",
     "@xstate/fsm": "*",
     "babel-core": "^6.26.3",
-    "jest": "^24.8.0",
+    "jest": "^26.4.2",
     "lerna-alias": "3.0.3-0",
-    "rollup": "^1.26.3",
+    "rollup": "^2.35.1",
     "rollup-plugin-terser": "^5.1.2",
-    "rollup-plugin-typescript2": "^0.25.2",
-    "ts-jest": "^24.1.9",
-    "typescript": "^3.9.7",
-    "vue": "^2.6.10",
-    "vue-jest": "^3.0.5",
+    "rollup-plugin-typescript2": "^0.29.0",
+    "ts-jest": "^26.4.0",
+    "typescript": "^4.1.2",
+    "vue": "^3.0.4",
+    "vue-jest": "5.0.0-alpha.7",
     "xstate": "*"
   }
 }

@@ -155,7 +155,9 @@ Returns an array of testing plans based on the shortest paths from the test mode
 
 **Options**
 
-- `filter` (function): A function that takes in the `state` and returns `true` if the state should be traversed, or `false` if traversal should stop.
+| Argument | Type     | Description                                                                                                    |
+| -------- | -------- | -------------------------------------------------------------------------------------------------------------- |
+| `filter` | function | Takes in the `state` and returns `true` if the state should be traversed, or `false` if traversal should stop. |
 
 This is useful for preventing infinite traversals and stack overflow errors:
 
@@ -219,3 +221,5 @@ Executes each step in `testPath.segments` by:
 2. Executing the event for `segment.event`
 
 And finally, verifying that the SUT is in the target `testPath.state`.
+
+NOTE: If your model has nested states, the `meta.test` method for each parent state of that nested state is also executed when verifying that the SUT is in that nested state.

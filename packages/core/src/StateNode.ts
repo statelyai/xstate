@@ -95,8 +95,9 @@ import {
   isInFinalState,
   isLeafNode
 } from './stateUtils';
-import { Actor, createInvocableActor } from './Actor';
+import { createInvocableActor } from './Actor';
 import { toInvokeDefinition } from './invokeUtils';
+import { ActorRef } from '.';
 
 const NULL_EVENT = '';
 const STATE_IDENTIFIER = '#';
@@ -329,7 +330,7 @@ class StateNode<
           (stateConfig: StateNodeConfig<TContext, any, TEvent>, key) => {
             const stateNode = new StateNode(stateConfig, {
               _parent: this,
-              _key: key
+              _key: key as string
             });
             Object.assign(this.idMap, {
               [stateNode.id]: stateNode,
@@ -425,6 +426,12 @@ class StateNode<
       .concat(this.invoke)
       .map((activity) => toActivityDefinition(activity));
     this.transition = this.transition.bind(this);
+
+    // TODO: this is the real fix for initialization once
+    // state node getters are deprecated
+    // if (!this.parent) {
+    //   this._init();
+    // }
   }
 
   private _init(): void {
@@ -685,7 +692,8 @@ class StateNode<
     return new State({
       ...state,
       value: this.resolve(state.value),
-      configuration
+      configuration,
+      done: isInFinalState(configuration, this)
     });
   }
 
@@ -1178,7 +1186,7 @@ class StateNode<
     const invokeActions = resolvedActions.filter((action) => {
       return (
         action.type === actionTypes.start &&
-        (action as ActivityActionObject<TContext, TEvent>).activity.type ===
+        (action as ActivityActionObject<TContext, TEvent>).activity?.type ===
           actionTypes.invoke
       );
     }) as Array<InvokeActionObject<TContext, TEvent>>;
@@ -1196,7 +1204,7 @@ class StateNode<
       },
       currentState
         ? { ...currentState.children }
-        : ({} as Record<string, Actor>)
+        : ({} as Record<string, ActorRef<any>>)
     );
 
     const resolvedConfiguration = resolvedStateValue
@@ -1305,7 +1313,6 @@ class StateNode<
     maybeNextState.changed = changed;
 
     // Preserve original history after raised events
-    maybeNextState.historyValue = nextState.historyValue;
     maybeNextState.history = history;
 
     return maybeNextState;
@@ -1434,7 +1441,7 @@ class StateNode<
 
         return mapValues(stateValue, (subStateValue, subStateKey) => {
           return subStateValue
-            ? this.getStateNode(subStateKey).resolve(subStateValue)
+            ? this.getStateNode(subStateKey as string).resolve(subStateValue)
             : EMPTY_OBJECT;
         });
 
@@ -1516,7 +1523,7 @@ class StateNode<
    * entering the initial state.
    */
   public get initialState(): State<TContext, TEvent, TStateSchema, TTypestate> {
-    this._init();
+    this._init(); // TODO: this should be in the constructor (see note in constructor)
     const { initialStateValue } = this;
 
     if (!initialStateValue) {

@@ -1,7 +1,7 @@
 <p align="center">
   <a href="https://xstate.js.org">
   <br />
-  <img src="https://i.imgur.com/FshbFOv.png" alt="XState" width="100"/>
+  <img src="https://user-images.githubusercontent.com/1093738/101672561-06aa7480-3a24-11eb-89d1-787fa7112138.png" alt="XState" width="150"/>
   <br />
     <sub><strong>JavaScript state machines and statecharts</strong></sub>
   <br />
@@ -10,12 +10,7 @@
 </p>
 
 [![npm version](https://badge.fury.io/js/xstate.svg)](https://badge.fury.io/js/xstate)
-[![Statecharts gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/statecharts/statecharts)
 <img src="https://opencollective.com/xstate/tiers/backer/badge.svg?label=sponsors&color=brightgreen" />
-
-<div class="blm-callout">
-Black lives matter. <a href="https://support.eji.org/give/153413/#!/donation/checkout" target="_blank">Support the Equal Justice Initiative.</a> ✊🏽✊🏾✊🏿 
-</div>
 
 JavaScript and TypeScript [finite state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and [statecharts](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf) for the modern web.
 
@@ -29,7 +24,8 @@ JavaScript and TypeScript [finite state machines](https://en.wikipedia.org/wiki/
 - [📉 `@xstate/graph`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-graph) - Graph traversal utilities for XState
 - [⚛️ `@xstate/react`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-react) - React hooks and utilities for using XState in React applications
 - [💚 `@xstate/vue`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-vue) - Vue composition functions and utilities for using XState in Vue applications
-- [✅ `@xstate/test`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-test) - Model-based testing utilities for XState
+- [✅ `@xstate/test`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-test) - Model-Based-Testing utilities (using XState) for testing any software
+- [🔍 `@xstate/inspect`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-inspect) - Inspection utilities for XState
 
 ## Templates
 
@@ -40,6 +36,7 @@ Get started by forking one of these templates on CodeSandbox:
 - [XState + React Template](https://codesandbox.io/s/xstate-react-template-3t2tg)
 - [XState + React + TypeScript Template](https://codesandbox.io/s/xstate-react-typescript-template-wjdvn)
 - [XState + Vue Template](https://codesandbox.io/s/xstate-vue-template-composition-api-1n23l)
+- [XState + Vue 3 Template](https://codesandbox.io/s/xstate-vue-3-template-vrkk9)
 - [XState + Svelte Template](https://codesandbox.io/s/xstate-svelte-template-jflv1)
 
 ## Super quick start
@@ -83,10 +80,10 @@ toggleService.send('TOGGLE');
 import { createMachine, interpret, assign } from 'xstate';
 
 const fetchMachine = createMachine({
-  id: 'SWAPI',
+  id: 'Dog API',
   initial: 'idle',
   context: {
-    user: null
+    dog: null
   },
   states: {
     idle: {
@@ -96,13 +93,15 @@ const fetchMachine = createMachine({
     },
     loading: {
       invoke: {
-        id: 'fetchLuke',
+        id: 'fetchDog',
         src: (context, event) =>
-          fetch('https://swapi.dev/api/people/1').then((res) => res.data),
+          fetch('https://dog.ceo/api/breeds/image/random').then((data) =>
+            data.json()
+          ),
         onDone: {
           target: 'resolved',
           actions: assign({
-            user: (_, event) => event.data
+            dog: (_, event) => event.data
           })
         },
         onError: 'rejected'
@@ -122,11 +121,11 @@ const fetchMachine = createMachine({
   }
 });
 
-const swService = interpret(fetchMachine)
+const dogService = interpret(fetchMachine)
   .onTransition((state) => console.log(state.value))
   .start();
 
-swService.send('FETCH');
+dogService.send('FETCH');
 ```
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
@@ -165,9 +164,9 @@ Read [📽 the slides](http://slides.com/davidkhourshid/finite-state-machines) (
 <img src="https://imgur.com/rqqmkJh.png" alt="Light Machine" width="300" />
 
 ```js
-import { Machine } from 'xstate';
+import { createMachine } from 'xstate';
 
-const lightMachine = Machine({
+const lightMachine = createMachine({
   id: 'light',
   initial: 'green',
   states: {
@@ -201,7 +200,7 @@ const nextState = lightMachine.transition(currentState, 'TIMER').value;
 <img src="https://imgur.com/GDZAeB9.png" alt="Hierarchical Light Machine" width="300" />
 
 ```js
-import { Machine } from 'xstate';
+import { createMachine } from 'xstate';
 
 const pedestrianStates = {
   initial: 'walk',
@@ -220,7 +219,7 @@ const pedestrianStates = {
   }
 };
 
-const lightMachine = Machine({
+const lightMachine = createMachine({
   id: 'light',
   initial: 'green',
   states: {
@@ -278,7 +277,7 @@ lightMachine.transition({ red: 'stop' }, 'TIMER').value;
 <img src="https://imgur.com/GKd4HwR.png" width="300" alt="Parallel state machine" />
 
 ```js
-const wordMachine = Machine({
+const wordMachine = createMachine({
   id: 'word',
   type: 'parallel',
   states: {
@@ -364,7 +363,7 @@ const nextState = wordMachine.transition(
 <img src="https://imgur.com/I4QsQsz.png" width="300" alt="Machine with history state" />
 
 ```js
-const paymentMachine = Machine({
+const paymentMachine = createMachine({
   id: 'payment',
   initial: 'method',
   states: {

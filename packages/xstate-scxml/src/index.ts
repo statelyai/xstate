@@ -55,8 +55,6 @@ function actionToSCXML(action: ActionObject<any, any>): XMLElement {
 export function transitionToSCXML(
   transition: TransitionDefinition<any, any>
 ): XMLElement {
-  // console.log(transition.cond!.predicate);
-
   const elements = transition.actions.map(actionToSCXML);
 
   return {

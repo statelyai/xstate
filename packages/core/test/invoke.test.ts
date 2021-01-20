@@ -952,6 +952,7 @@ describe('invoke', () => {
         }, 10);
       });
 
+      // tslint:disable-next-line:max-line-length
       it('should be invoked with a promise factory and stop on unhandled onError target when on strict mode', (done) => {
         const doneSpy = jest.fn();
 
@@ -1297,10 +1298,8 @@ describe('invoke', () => {
         },
         {
           services: {
-            someCallback: (ctx, e: BeginEvent) => (
-              cb: (ev: CallbackEvent) => void
-            ) => {
-              if (ctx.foo && e.payload) {
+            someCallback: (ctx, e) => (cb: (ev: CallbackEvent) => void) => {
+              if (ctx.foo && 'payload' in e) {
                 cb({
                   type: 'CALLBACK',
                   data: 40
@@ -2232,7 +2231,9 @@ describe('invoke', () => {
                   active: {
                     invoke: {
                       id: 'active',
-                      src: () => () => {}
+                      src: () => () => {
+                        /* ... */
+                      }
                     },
                     on: {
                       NEXT: {
@@ -2427,7 +2428,7 @@ describe('services option', () => {
 
             expect(data).toEqual({ newCount: 84, staticVal: 'hello' });
 
-            return new Promise((res) => {
+            return new Promise<void>((res) => {
               res();
             });
           }

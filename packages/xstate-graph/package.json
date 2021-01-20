@@ -1,6 +1,6 @@
 {
   "name": "@xstate/graph",
-  "version": "1.1.0",
+  "version": "1.3.0",
   "description": "XState graph utilities",
   "keywords": [
     "state",
@@ -40,10 +40,10 @@
     "xstate": "^4.9.0"
   },
   "devDependencies": {
-    "jest": "^24.8.0",
+    "jest": "^26.4.2",
     "lerna-alias": "3.0.3-0",
-    "ts-jest": "^24.1.9",
-    "typescript": "^3.9.7",
+    "ts-jest": "^26.4.0",
+    "typescript": "^4.1.2",
     "xstate": "*"
   },
   "dependencies": {}

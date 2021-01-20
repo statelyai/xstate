@@ -14,8 +14,7 @@ const stepMachine = Machine({
       on: { NEXT: 'three', PREV: 'one' }
     },
     three: {
-      type: 'final',
-      on: { PREV: 'two' }
+      type: 'final'
     }
   }
 });
@@ -40,7 +39,7 @@ Sometimes, many async (e.g., Promise-based) operations need to occur in sequence
 //   friends: [2, 3, 5, 7, 9] // friend IDs
 // }
 function getUserInfo(context) {
-  return fetch('/api/users/${context.userId}').then(response =>
+  return fetch(`/api/users/${context.userId}`).then((response) =>
     response.json()
   );
 }
@@ -50,8 +49,8 @@ function getUserFriends(context) {
   const { friends } = context.user;
 
   return Promise.all(
-    friends.map(friendId =>
-      fetch('/api/users/${context.userId}/').then(response => response.json())
+    friends.map((friendId) =>
+      fetch(`/api/users/${friendId}/`).then((response) => response.json())
     )
   );
 }

@@ -66,6 +66,8 @@ export default {
 </script>
 ```
 
+**Vue 2.x notice:** If you're using Vue 2.x, please see [the recipe](https://xstate.js.org/docs/recipes/vue.html) instead.
+
 ## API
 
 ### `useMachine(machine, options?)`
