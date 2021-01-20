@@ -641,7 +641,7 @@ export function reportUnhandledExceptionOnInvocation(
 }
 
 export function evaluateGuard<TContext, TEvent extends EventObject>(
-  machine: StateNode<TContext, any, TEvent>,
+  machine: StateNode<TContext, any, TEvent, any>,
   guard: Guard<TContext, TEvent>,
   context: TContext,
   _event: SCXML.Event<TEvent>,

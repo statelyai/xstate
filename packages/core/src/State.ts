@@ -61,7 +61,7 @@ export function isState<
 
 export function bindActionToState<TC, TE extends EventObject>(
   action: ActionObject<TC, TE>,
-  state: State<TC, TE>
+  state: State<TC, TE, any, any>
 ): ActionObject<TC, TE> {
   const { exec } = action;
   const boundAction: ActionObject<TC, TE> = {
@@ -113,7 +113,7 @@ export class State<
   /**
    * The enabled state nodes representative of the state value.
    */
-  public configuration: Array<StateNode<TContext, any, TEvent>>;
+  public configuration: Array<StateNode<TContext, any, TEvent, any>>;
   /**
    * The next events that will cause a transition from the current state.
    */
@@ -133,9 +133,9 @@ export class State<
    * @param context
    */
   public static from<TC, TE extends EventObject = EventObject>(
-    stateValue: State<TC, TE> | StateValue,
+    stateValue: State<TC, TE, any, any> | StateValue,
     context?: TC | undefined
-  ): State<TC, TE> {
+  ): State<TC, TE, any, any> {
     if (stateValue instanceof State) {
       if (stateValue.context !== context) {
         return new State<TC, TE>({

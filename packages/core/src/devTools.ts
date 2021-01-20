@@ -1,7 +1,7 @@
 import { Interpreter } from '.';
 import { IS_PRODUCTION } from './environment';
+import { AnyInterpreter } from './types';
 
-type AnyInterpreter = Interpreter<any, any, any>;
 type ServiceListener = (service: AnyInterpreter) => void;
 
 export interface XStateDevInterface {
