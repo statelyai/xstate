@@ -659,7 +659,7 @@ export interface MachineOptions<TContext, TEvent extends EventObject> {
   /**
    * @private
    */
-  _parent?: StateNode<TContext, any, TEvent>;
+  _parent?: StateNode<TContext, any, TEvent, any>;
   /**
    * @private
    */
@@ -742,13 +742,13 @@ export interface ActivityMap {
 // tslint:disable-next-line:class-name
 export interface StateTransition<TContext, TEvent extends EventObject> {
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
-  configuration: Array<StateNode<TContext, any, TEvent>>;
-  entrySet: Array<StateNode<TContext, any, TEvent>>;
-  exitSet: Array<StateNode<TContext, any, TEvent>>;
+  configuration: Array<StateNode<TContext, any, TEvent, any>>;
+  entrySet: Array<StateNode<TContext, any, TEvent, any>>;
+  exitSet: Array<StateNode<TContext, any, TEvent, any>>;
   /**
    * The source state that preceded the transition.
    */
-  source: State<TContext> | undefined;
+  source: State<TContext, any, any, any> | undefined;
   actions: Array<ActionObject<TContext, TEvent>>;
 }
 
@@ -1090,7 +1090,7 @@ export interface SCXMLEventMeta<TEvent extends EventObject> {
 }
 
 export interface StateMeta<TContext, TEvent extends EventObject> {
-  state: State<TContext, TEvent>;
+  state: State<TContext, TEvent, any, any>;
   _event: SCXML.Event<TEvent>;
 }
 
@@ -1138,7 +1138,7 @@ export interface InterpreterOptions {
   execute: boolean;
   clock: Clock;
   logger: (...args: any[]) => void;
-  parent?: Interpreter<any, any, any>;
+  parent?: AnyInterpreter;
   /**
    * If `true`, defers processing of sent events until the service
    * is initialized (`.start()`). Otherwise, an error will be thrown
@@ -1274,3 +1274,5 @@ export type ActorRefFrom<
       state: State<TContext, TEvent, any, TTypestate>;
     }
   : never;
+
+export type AnyInterpreter = Interpreter<any, any, any, any>;

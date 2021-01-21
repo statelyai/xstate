@@ -47,7 +47,7 @@ export function createNullActor(id: string): Actor {
  */
 export function createInvocableActor<TC, TE extends EventObject>(
   invokeDefinition: InvokeDefinition<TC, TE>,
-  machine: StateMachine<TC, any, TE>,
+  machine: StateMachine<TC, any, TE, any>,
   context: TC,
   _event: SCXML.Event<TE>
 ): Actor {
