@@ -12,7 +12,7 @@ interface UseMachineOptions<
   TEvent extends EventObject
 > {
   /**
-   * If provided, will be merged with machine's `actions`.
+   * If provided, will replace machine's `actions`.
    */
   actions: StateMachine.ActionMap<TContext, TEvent>;
 }
@@ -25,12 +25,10 @@ export function useMachine<
   machine: StateMachine.Machine<TContext, TEvent, TTypestate>,
   options: Partial<UseMachineOptions<TContext, TEvent>> = {}
 ) {
-  const resolvedMachine = createMachine(machine.config, {
-    actions: {
-      ...(machine as any)._options.actions,
-      ...options.actions
-    }
-  });
+  const resolvedMachine = createMachine(
+    machine.config,
+    options ? options : (machine as any)._options
+  );
 
   const service = interpret(resolvedMachine).start();
 
