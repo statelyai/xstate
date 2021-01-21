@@ -44,8 +44,5 @@ export function useMachine<
     };
   });
 
-  return {
-    state,
-    send: service.send
-  };
+  return { state, send: service.send, service };
 }
