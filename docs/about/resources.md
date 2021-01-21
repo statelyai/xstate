@@ -31,6 +31,7 @@ There is also a follow-up course: [State Modeling with React and XState](https:/
 - [🎙 (Egghead.io Podcast) 11: Introduction To State Machines And XState With Kyle Shevlin](https://egghead.io/podcasts/introduction-to-state-machines-and-xstate-with-kyle-shevlin)
 - [🎙 (Syntax.FM) 206: State Machines, CSS and Animations with David K Piano](https://syntax.fm/show/206/state-machines-css-and-animations-with-david-k-piano)
 - [🎙 (Modern Web) S07E20: Building State Machines using XState with David Khourshid](https://modernweb.podbean.com/e/s07e20-modern-web-podcast-building-state-machines-using-xstate-with-david-khourshid/)
+  - [▶️ Video](https://www.youtube.com/watch?v=uLlQjp5u2KQ)
 
 ## Articles and Videos
 
