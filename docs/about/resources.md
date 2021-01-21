@@ -8,6 +8,8 @@ Below is an incomplete collection of many resources for learning and applying XS
 Watch the official [State Machines in JavaScript with XState](https://frontendmasters.com/courses/xstate/) course by [@davidkpiano](https://twitter.com/davidkpiano) on Frontend Masters! In this course, you’ll learn the fundamentals of state machines and statecharts, from building your own without any libraries in pure JavaScript, up to using XState to take advantage of a wide variety of other features.
 
 The workshop code examples are [open-sourced and available on GitHub](https://github.com/davidkpiano/frontend-masters-xstate-workshop).
+
+There is also a follow-up course: [State Modeling with React and XState](https://frontendmasters.com/workshops/xstate-react/). Once you've gone through the first course, be sure to take this one too so you can learn how to apply state machines and statecharts to real-world apps and master advanced concepts such as spawning/invoking actors and model-based testing.
 :::
 
 **Other great courses and guides:**
@@ -28,6 +30,7 @@ The workshop code examples are [open-sourced and available on GitHub](https://gi
 - [🎙 (ShopTalk Show) 327: Working with State Machines with Jon Bellah and David Khourshid](https://shoptalkshow.com/327-working-state-machines/)
 - [🎙 (Egghead.io Podcast) 11: Introduction To State Machines And XState With Kyle Shevlin](https://egghead.io/podcasts/introduction-to-state-machines-and-xstate-with-kyle-shevlin)
 - [🎙 (Syntax.FM) 206: State Machines, CSS and Animations with David K Piano](https://syntax.fm/show/206/state-machines-css-and-animations-with-david-k-piano)
+- [🎙 (Modern Web) S07E20: Building State Machines using XState with David Khourshid](https://modernweb.podbean.com/e/s07e20-modern-web-podcast-building-state-machines-using-xstate-with-david-khourshid/)
 
 ## Articles and Videos
 
