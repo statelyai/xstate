@@ -1027,7 +1027,7 @@ export interface SCXMLEventMeta<TEvent extends EventObject> {
 }
 
 export interface StateMeta<TContext, TEvent extends EventObject> {
-  state: State<TContext, TEvent>;
+  state: State<TContext, TEvent, any, any>;
   _event: SCXML.Event<TEvent>;
 }
 
