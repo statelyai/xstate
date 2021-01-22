@@ -578,7 +578,7 @@ export function choose<TContext, TEvent extends EventObject>(
 }
 
 export function resolveActions<TContext, TEvent extends EventObject>(
-  machine: StateNode<TContext, any, TEvent>,
+  machine: StateNode<TContext, any, TEvent, any>,
   currentState: State<TContext, TEvent> | undefined,
   currentContext: TContext,
   _event: SCXML.Event<TEvent>,

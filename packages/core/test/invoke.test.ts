@@ -1302,7 +1302,7 @@ describe('invoke', () => {
         {
           services: {
             someCallback: (ctx, e) => (cb: (ev: CallbackEvent) => void) => {
-              if (ctx.foo && (e as BeginEvent).payload) {
+              if (ctx.foo && 'payload' in e) {
                 cb({
                   type: 'CALLBACK',
                   data: 40

@@ -371,7 +371,7 @@ export type TransitionConfigOrTarget<
   TransitionConfigTarget<TContext, TEvent> | TransitionConfig<TContext, TEvent>
 >;
 
-type TransitionsConfigMap<TContext, TEvent extends EventObject> = {
+export type TransitionsConfigMap<TContext, TEvent extends EventObject> = {
   [K in TEvent['type']]?: K extends 'error.execution'
     ? TransitionConfigOrTarget<
         TContext,
@@ -667,7 +667,7 @@ export interface MachineOptions<TContext, TEvent extends EventObject> {
   /**
    * @private
    */
-  _parent?: StateNode<TContext, any, TEvent>;
+  _parent?: StateNode<TContext, any, TEvent, any>;
   /**
    * @private
    */
@@ -750,13 +750,13 @@ export interface ActivityMap {
 // tslint:disable-next-line:class-name
 export interface StateTransition<TContext, TEvent extends EventObject> {
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
-  configuration: Array<StateNode<TContext, any, TEvent>>;
-  entrySet: Array<StateNode<TContext, any, TEvent>>;
-  exitSet: Array<StateNode<TContext, any, TEvent>>;
+  configuration: Array<StateNode<TContext, any, TEvent, any>>;
+  entrySet: Array<StateNode<TContext, any, TEvent, any>>;
+  exitSet: Array<StateNode<TContext, any, TEvent, any>>;
   /**
    * The source state that preceded the transition.
    */
-  source: State<TContext> | undefined;
+  source: State<TContext, any, any, any> | undefined;
   actions: Array<ActionObject<TContext, TEvent>>;
 }
 
@@ -944,14 +944,18 @@ export type Assigner<TContext, TEvent extends EventObject> = (
   meta: AssignMeta<TContext, TEvent>
 ) => Partial<TContext>;
 
+export type PartialAssigner<
+  TContext,
+  TEvent extends EventObject,
+  TKey extends keyof TContext
+> = (
+  context: TContext,
+  event: TEvent,
+  meta: AssignMeta<TContext, TEvent>
+) => TContext[TKey];
+
 export type PropertyAssigner<TContext, TEvent extends EventObject> = {
-  [K in keyof TContext]?:
-    | ((
-        context: TContext,
-        event: TEvent,
-        meta: AssignMeta<TContext, TEvent>
-      ) => TContext[K])
-    | TContext[K];
+  [K in keyof TContext]?: PartialAssigner<TContext, TEvent, K> | TContext[K];
 };
 
 export type Mapper<TContext, TEvent extends EventObject, TParams extends {}> = (
@@ -1094,7 +1098,7 @@ export interface SCXMLEventMeta<TEvent extends EventObject> {
 }
 
 export interface StateMeta<TContext, TEvent extends EventObject> {
-  state: State<TContext, TEvent>;
+  state: State<TContext, TEvent, any, any>;
   _event: SCXML.Event<TEvent>;
 }
 
@@ -1142,7 +1146,7 @@ export interface InterpreterOptions {
   execute: boolean;
   clock: Clock;
   logger: (...args: any[]) => void;
-  parent?: Interpreter<any, any, any>;
+  parent?: AnyInterpreter;
   /**
    * If `true`, defers processing of sent events until the service
    * is initialized (`.start()`). Otherwise, an error will be thrown
@@ -1254,6 +1258,11 @@ export type Spawnable =
   | InvokeCallback
   | Subscribable<any>;
 
+export type ExtractEvent<
+  TEvent extends EventObject,
+  TEventType extends TEvent['type']
+> = TEvent extends { type: TEventType } ? TEvent : never;
+
 export interface ActorRef<TEvent extends EventObject, TEmitted = any>
   extends Subscribable<TEmitted> {
   send: Sender<TEvent>;
@@ -1273,3 +1282,5 @@ export type ActorRefFrom<
       state: State<TContext, TEvent, any, TTypestate>;
     }
   : never;
+
+export type AnyInterpreter = Interpreter<any, any, any, any>;

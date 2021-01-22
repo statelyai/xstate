@@ -241,25 +241,25 @@ describe('Raise events', () => {
           on: {
             DECIDE: [
               {
-                actions: raise<GreetingContext, { type: 'ALOHA' }>({
+                actions: raise({
                   type: 'ALOHA'
-                }),
+                }) as any /* TODO: FIX */,
                 cond: (_ctx, ev) => !!ev.aloha
               },
               {
-                actions: raise<GreetingContext, { type: 'MORNING' }>({
+                actions: raise({
                   type: 'MORNING'
-                }),
+                }) as any /* TODO: FIX */,
                 cond: (ctx) => ctx.hour < 12
               },
               {
-                actions: raise<GreetingContext, GreetingEvent>({
+                actions: raise({
                   type: 'AFTERNOON'
-                }),
+                }) as any /* TODO: FIX */,
                 cond: (ctx) => ctx.hour < 18
               },
               {
-                actions: raise({ type: 'EVENING' }),
+                actions: raise({ type: 'EVENING' }) as any /* TODO: FIX */,
                 cond: (ctx) => ctx.hour < 22
               }
             ]
