@@ -10,10 +10,8 @@ import {
   MachineOptions,
   StateConfig,
   Typestate,
-  ActionFunction,
-  Observer
+  ActionFunction
 } from 'xstate';
-import { toObserver } from 'xstate/src/utils';
 import {
   MaybeLazy,
   ReactActionFunction,
@@ -99,19 +97,23 @@ export function useMachine<
   Interpreter<TContext, any, TEvent, TTypestate>['send'],
   Interpreter<TContext, any, TEvent, TTypestate>
 ] {
-  const service = useMachineObserver(getMachine, options, (s) => {
-    // Only change the current state if:
-    // - the incoming state is the "live" initial state (since it might have new actors)
-    // - OR the incoming state actually changed.
-    //
-    // The "live" initial state will have .changed === undefined.
-    const initialStateChanged =
-      s.changed === undefined && Object.keys(s.children).length;
+  const service = useInterpret(getMachine, options);
 
-    if (s.changed || initialStateChanged) {
-      setState(s);
-    }
-  });
+  useEffect(() => {
+    service.subscribe((s) => {
+      // Only change the current state if:
+      // - the incoming state is the "live" initial state (since it might have new actors)
+      // - OR the incoming state actually changed.
+      //
+      // The "live" initial state will have .changed === undefined.
+      const initialStateChanged =
+        s.changed === undefined && Object.keys(s.children).length;
+
+      if (s.changed || initialStateChanged) {
+        setState(s);
+      }
+    });
+  }, [service]);
 
   const [state, setState] = useState(() => {
     const { initialState } = service.machine;
@@ -188,7 +190,7 @@ export function useMachine<
   return [state, service.send, service];
 }
 
-export function useMachineObserver<
+export function useInterpret<
   TContext,
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
@@ -196,10 +198,7 @@ export function useMachineObserver<
   getMachine: MaybeLazy<StateMachine<TContext, any, TEvent, TTypestate>>,
   options: Partial<InterpreterOptions> &
     Partial<UseMachineOptions<TContext, TEvent>> &
-    Partial<MachineOptions<TContext, TEvent>> = {},
-  observerOrListener:
-    | Observer<State<TContext, TEvent, any, TTypestate>>
-    | ((value: State<TContext, TEvent, any, TTypestate>) => void)
+    Partial<MachineOptions<TContext, TEvent>> = {}
 ): Interpreter<TContext, any, TEvent, TTypestate> {
   const machine = useConstant(() => {
     return typeof getMachine === 'function' ? getMachine() : getMachine;
@@ -259,14 +258,6 @@ export function useMachineObserver<
       service.stop();
     };
   }, []);
-
-  useEffect(() => {
-    const observer = toObserver(observerOrListener);
-    const sub = service.subscribe(observer);
-    return () => {
-      sub.unsubscribe();
-    };
-  }, [observerOrListener]);
 
   // Make sure actions and services are kept updated when they change.
   // This mutation assignment is safe because the service instance is only used

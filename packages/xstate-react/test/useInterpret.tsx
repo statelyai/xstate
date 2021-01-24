@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { createMachine } from 'xstate';
 import { render, cleanup, fireEvent } from '@testing-library/react';
-import { useMachineObserver } from '../src/useMachine';
+import { useInterpret } from '../src/useMachine';
 
 afterEach(cleanup);
 
-describe('useMachineObserver', () => {
+describe('useInterpret', () => {
   it('observer should be called with initial state', (done) => {
     const machine = createMachine({
       initial: 'inactive',
@@ -20,10 +20,14 @@ describe('useMachineObserver', () => {
     });
 
     const App = () => {
-      useMachineObserver(machine, {}, (state) => {
-        expect(state.matches('inactive')).toBeTruthy();
-        done();
-      });
+      const service = useInterpret(machine, {});
+
+      React.useEffect(() => {
+        service.subscribe((state) => {
+          expect(state.matches('inactive')).toBeTruthy();
+          done();
+        });
+      }, [service]);
 
       return null;
     };
@@ -45,11 +49,15 @@ describe('useMachineObserver', () => {
     });
 
     const App = () => {
-      const service = useMachineObserver(machine, {}, (state) => {
-        if (state.matches('active')) {
-          done();
-        }
-      });
+      const service = useInterpret(machine, {});
+
+      React.useEffect(() => {
+        service.subscribe((state) => {
+          if (state.matches('active')) {
+            done();
+          }
+        });
+      }, [service]);
 
       return (
         <button
