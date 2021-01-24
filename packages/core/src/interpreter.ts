@@ -27,7 +27,8 @@ import {
   Observer,
   Spawnable,
   Typestate,
-  AnyEventObject
+  AnyEventObject,
+  AnyInterpreter
 } from './types';
 import { State, bindActionToState, isState } from './State';
 import * as actionTypes from './actionTypes';
@@ -685,7 +686,7 @@ export class Interpreter<
 
     if ('machine' in target) {
       // Send SCXML events to machines
-      (target as Interpreter<any, any, any>).send({
+      (target as AnyInterpreter).send({
         ...event,
         name:
           event.name === actionTypes.error ? `${error(this.id)}` : event.name,

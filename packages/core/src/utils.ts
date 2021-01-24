@@ -520,7 +520,8 @@ export function isObservable<T>(value: any): value is Subscribable<T> {
 }
 
 export const symbolObservable = (() =>
-  (typeof Symbol === 'function' && Symbol.observable) || '@@observable')();
+  (typeof Symbol === 'function' && (Symbol as any).observable) ||
+  '@@observable')();
 
 export function isMachine(value: any): value is StateMachine<any, any, any> {
   try {
@@ -641,7 +642,7 @@ export function reportUnhandledExceptionOnInvocation(
 }
 
 export function evaluateGuard<TContext, TEvent extends EventObject>(
-  machine: StateNode<TContext, any, TEvent>,
+  machine: StateNode<TContext, any, TEvent, any>,
   guard: Guard<TContext, TEvent>,
   context: TContext,
   _event: SCXML.Event<TEvent>,

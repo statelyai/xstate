@@ -207,7 +207,8 @@ import { State, interpret } from 'xstate';
 import { myMachine } from '../path/to/myMachine';
 
 // Retrieving the state definition from localStorage, if localStorage is empty use machine initial state
-const stateDefinition = JSON.parse(localStorage.getItem('app-state')) || myMachine.initialState
+const stateDefinition =
+  JSON.parse(localStorage.getItem('app-state')) || myMachine.initialState;
 
 // Use State.create() to restore state from a plain object
 const previousState = State.create(stateDefinition);

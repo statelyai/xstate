@@ -260,7 +260,7 @@ With the XState [interpreter](./interpretation.md), delayed actions will use the
 ```js
 import { interpret } from 'xstate';
 
-const service = interpret(lightDelayMachine).onTransition(state =>
+const service = interpret(lightDelayMachine).onTransition((state) =>
   console.log(state.value)
 );
 
@@ -281,7 +281,7 @@ import { SimulatedClock } from 'xstate/lib/SimulatedClock'; // >= 4.6.0
 
 const service = interpret(lightDelayMachine, {
   clock: new SimulatedClock()
-}).onTransition(state => console.log(state.value));
+}).onTransition((state) => console.log(state.value));
 
 service.start();
 // => 'green'
