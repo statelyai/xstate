@@ -2,7 +2,7 @@
 
 ## Quick Start
 
-1. Install `xstate` and `xstate/svelte`:
+1. Install `xstate` and `@xstate/svelte`:
 
 ```bash
 npm i xstate @xstate/svelte
@@ -11,7 +11,7 @@ npm i xstate @xstate/svelte
 **Via CDN**
 
 ```html
-<script src="https://unpkg.com/@xstate/svelte/dist/xstate-vue.min.js"></script>
+<script src="https://unpkg.com/@xstate/svelte/dist/xstate-svelte.min.js"></script>
 ```
 
 By using the global variable `XStateSvelte`
@@ -67,7 +67,7 @@ A function that interprets the given `machine` and starts a service that runs fo
 
 **Returns** `{ state, send, service}`:
 
-- `state` - A [Svelte Store](https://svelte.dev/docs#svelte_store) representing the current state of the machine as an XState `State` object. You should reference the store value by prefixing with `$` i.e. `$state`.
+- `state` - A [Svelte store](https://svelte.dev/docs#svelte_store) representing the current state of the machine as an XState `State` object. You should reference the store value by prefixing with `$` i.e. `$state`.
 - `send` - A function that sends events to the running service.
 - `service` - The created service.
 
@@ -83,7 +83,7 @@ This special `useMachine` hook is imported from `@xstate/svelte/lib/fsm`
 
 **Returns** an object `{state, send, service}`:
 
-- `state` - A [Svelte Store](https://svelte.dev/docs#svelte_store) representing the current state of the machine as an `@xstate/fsm` `StateMachine.State` object.
+- `state` - A [Svelte store](https://svelte.dev/docs#svelte_store) representing the current state of the machine as an `@xstate/fsm` `StateMachine.State` object. You should reference the store value by prefixing with `$` i.e. `$state`.
 - `send` - A function that sends events to the running service.
 - `service` - The created `@xstate/fsm` service.
 
