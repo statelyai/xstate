@@ -67,7 +67,7 @@ A function that interprets the given `machine` and starts a service that runs fo
 
 **Returns** `{ state, send, service}`:
 
-- `state` - A [Svelte Store](https://svelte.dev/docs#svelte_store) representing the current state of the machine as an XState `State` object.
+- `state` - A [Svelte Store](https://svelte.dev/docs#svelte_store) representing the current state of the machine as an XState `State` object. You should reference the store value by prefixing with `$` i.e. `$state`.
 - `send` - A function that sends events to the running service.
 - `service` - The created service.
 
@@ -256,3 +256,42 @@ const { state, send } = useMachine(someMachine, {
 ```
 
 ## Services
+
+`XState` services implement the [Svelte store contract](https://svelte.dev/docs#Store_contract). Existing services and spawned actors can therefore be accessed directly and subscriptions are handled automatically by prefixing the service name with `$`.
+
+**Example**
+
+```js
+// service.js
+
+import { createMachine, interpret } from 'xstate';
+
+const toggleMachine = createMachine({
+  id: 'toggle',
+  initial: 'inactive',
+  states: {
+    inactive: {
+      on: { TOGGLE: 'active' }
+    },
+    active: {
+      on: { TOGGLE: 'inactive' }
+    }
+  }
+});
+
+export const toggleService = interpret(toggleMachine).start();
+```
+
+```svelte
+// App.svelte
+
+<script>
+  import { toggleService } from './service';
+</script>
+
+<button on:click={() => toggleService.send('TOGGLE')}>
+  {$toggleService.value === 'inactive'
+    ? 'Click to activate'
+    : 'Active! Click to deactivate'}
+</button>
+```
