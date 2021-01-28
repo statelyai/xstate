@@ -1,0 +1,69 @@
+{
+  "name": "@xstate/svelte",
+  "version": "0.1.0",
+  "description": "XState tools for Svelte",
+  "keywords": [
+    "state",
+    "machine",
+    "statechart",
+    "scxml",
+    "state",
+    "graph",
+    "svelte",
+    "store"
+  ],
+  "author": "David Khourshid <davidkpiano@gmail.com>",
+  "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-svelte#readme",
+  "license": "MIT",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "sideEffects": false,
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "files": [
+    "lib/**/*.js",
+    "lib/**/*.d.ts"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
+  },
+  "scripts": {
+    "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
+    "build": "tsc",
+    "test": "jest",
+    "prepublish": "npm run build && npm run test"
+  },
+  "bugs": {
+    "url": "https://github.com/davidkpiano/xstate/issues"
+  },
+  "peerDependencies": {
+    "@xstate/fsm": "^1.0.0",
+    "svelte": "^3.24.1",
+    "xstate": "^4.11.0"
+  },
+  "peerDependenciesMeta": {
+    "@xstate/fsm": {
+      "optional": true
+    },
+    "xstate": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@testing-library/svelte": "^3.0.0",
+    "@tsconfig/svelte": "^1.0.8",
+    "@types/jest": "^24.0.23",
+    "@xstate/fsm": "*",
+    "jest": "^26.4.2",
+    "lerna-alias": "3.0.3-0",
+    "svelte": "^3.24.1",
+    "svelte-jester": "^1.1.2",
+    "svelte-preprocess": "^4.0.10",
+    "ts-jest": "^26.4.0",
+    "typescript": "^4.1.2",
+    "xstate": "*"
+  }
+}

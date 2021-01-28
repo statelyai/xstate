@@ -325,7 +325,8 @@ export function isObservable<T>(value: any): value is Subscribable<T> {
 }
 
 export const symbolObservable = (() =>
-  (typeof Symbol === 'function' && Symbol.observable) || '@@observable')();
+  (typeof Symbol === 'function' && (Symbol as any).observable) ||
+  '@@observable')();
 
 export function isMachineNode(value: any): value is MachineNode<any, any, any> {
   try {
