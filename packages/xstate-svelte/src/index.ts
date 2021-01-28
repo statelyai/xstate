@@ -2,10 +2,10 @@ import { readable } from 'svelte/store';
 import {
   interpret,
   EventObject,
-  StateMachine,
+  MachineNode,
   State,
   InterpreterOptions,
-  MachineOptions,
+  MachineImplementations,
   StateConfig,
   Typestate
 } from 'xstate';
@@ -30,10 +30,10 @@ export function useMachine<
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext>
 >(
-  machine: StateMachine<TContext, any, TEvent, TTypestate>,
+  machine: MachineNode<TContext, TEvent, any, TTypestate>,
   options: Partial<InterpreterOptions> &
     Partial<UseMachineOptions<TContext, TEvent>> &
-    Partial<MachineOptions<TContext, TEvent>> = {}
+    Partial<MachineImplementations<TContext, TEvent>> = {}
 ) {
   const {
     context,
@@ -55,10 +55,10 @@ export function useMachine<
     delays
   };
 
-  const resolvedMachine = machine.withConfig(machineConfig, {
-    ...machine.context,
-    ...context
-  } as TContext);
+  const resolvedMachine = machine.provide({
+    ...machineConfig,
+    context
+  });
 
   const service = interpret(resolvedMachine, interpreterOptions).start(
     rehydratedState ? new State(rehydratedState) : undefined

@@ -20,7 +20,7 @@ export const fetchMachine = Machine<typeof context, any>({
           actions: assign({
             data: (_, e) => e.data
           }),
-          cond: (_, e) => e.data.length
+          guard: (_, e) => e.data.length
         }
       }
     },
