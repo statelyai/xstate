@@ -2,7 +2,7 @@
 
 Inspection tools for XState.
 
-- [XState (Vanilla)](https://codesandbox.io/s/xstate-ts-viz-template-qzdvv)
+- [XState (Vanilla)](https://codesandbox.io/s/xstate-viz-template-f3dtr)
 - [XState + TypeScript](https://codesandbox.io/s/xstate-ts-viz-template-qzdvv)
 - [XState + Vue](https://codesandbox.io/s/xstate-vue-viz-template-r5wd7)
 - [XState + React](https://codesandbox.io/s/xstate-react-viz-template-5wq3q)
