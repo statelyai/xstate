@@ -151,6 +151,7 @@ Object syntax:
 - `target?` (string) - the state name to transition to.
 - `actions?` (Action | Action[]) - the [action(s)](#action-config) to execute when this transition is taken.
 - `cond?` (Guard) - the condition (predicate function) to test. If it returns `true`, the transition will be taken.
+- `internal?` (boolean) - if `true` marks transition as internal. Defaults to `false`. An internal transition is one that does not exit its state node.
 
 ### Machine options
 
