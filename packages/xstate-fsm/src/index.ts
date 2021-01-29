@@ -26,6 +26,23 @@ export function assign<TC extends object, TE extends EventObject = EventObject>(
   };
 }
 
+function getImplementation<
+  T extends { type: string },
+  TImpl extends (...args: any[]) => any
+>(
+  thing: string | T | TImpl,
+  thingMap: Record<string, T | TImpl | undefined> | undefined,
+  transform: (thingObject: T, impl?: T | TImpl) => T
+): T {
+  if (typeof thing === 'function') {
+    return transform({ type: thing.name } as T, thing);
+  }
+  if (typeof thing === 'string') {
+    return transform({ type: thing } as T, thingMap?.[thing]);
+  }
+  return transform(thing, thingMap?.[thing.type]);
+}
+
 function toActionObject<TContext extends object, TEvent extends EventObject>(
   // tslint:disable-next-line:ban-types
   action:
@@ -33,21 +50,13 @@ function toActionObject<TContext extends object, TEvent extends EventObject>(
     | StateMachine.ActionFunction<TContext, TEvent>
     | StateMachine.ActionObject<TContext, TEvent>,
   actionMap: StateMachine.ActionMap<TContext, TEvent> | undefined
-) {
-  action =
-    typeof action === 'string' && actionMap && actionMap[action]
-      ? actionMap[action]
-      : action;
-  return typeof action === 'string'
-    ? {
-        type: action
-      }
-    : typeof action === 'function'
-    ? {
-        type: action.name,
-        exec: action
-      }
-    : action;
+): StateMachine.ActionObject<TContext, TEvent> {
+  return getImplementation(action, actionMap, (actionObject, impl) => {
+    return {
+      ...actionObject,
+      ...(typeof impl === 'function' ? { exec: impl } : impl)
+    };
+  });
 }
 
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
@@ -118,9 +127,7 @@ export function createMachine<
   TState extends Typestate<TContext> = { value: any; context: TContext }
 >(
   fsmConfig: StateMachine.Config<TContext, TEvent, TState>,
-  options: {
-    actions?: StateMachine.ActionMap<TContext, TEvent>;
-  } = {}
+  options: StateMachine.Implementations<TContext, TEvent> = {}
 ): StateMachine.Machine<TContext, TEvent, TState> {
   if (!IS_PRODUCTION) {
     Object.keys(fsmConfig.states).forEach((state) => {

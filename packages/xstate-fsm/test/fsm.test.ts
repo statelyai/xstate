@@ -375,6 +375,32 @@ describe('interpreter', () => {
     expect(executed).toBe(true);
   });
 
+  it('should lookup object actions in options', () => {
+    let executed = false;
+
+    const machine = createMachine(
+      {
+        initial: 'foo',
+        states: {
+          foo: {
+            entry: { type: 'testAction' }
+          }
+        }
+      },
+      {
+        actions: {
+          testAction: () => {
+            executed = true;
+          }
+        }
+      }
+    );
+
+    interpret(machine).start();
+
+    expect(executed).toBe(true);
+  });
+
   it('should reveal the current state', () => {
     const machine = createMachine({
       initial: 'test',

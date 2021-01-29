@@ -23,6 +23,16 @@ export namespace StateMachine {
     TEvent extends EventObject
   > = Record<string, Exclude<Action<TContext, TEvent>, string>>;
 
+  export type Guard<TContext extends object, TEvent extends EventObject> = (
+    context: TContext,
+    event: TEvent
+  ) => boolean;
+
+  export type GuardMap<
+    TContext extends object,
+    TEvent extends EventObject
+  > = Record<string, Guard<TContext, TEvent>>;
+
   export interface ActionObject<
     TContext extends object,
     TEvent extends EventObject
@@ -140,6 +150,14 @@ export namespace StateMachine {
       | ((context: TContext, event: TEvent) => TContext[K])
       | TContext[K];
   };
+
+  export interface Implementations<
+    TContext extends object,
+    TEvent extends EventObject
+  > {
+    actions?: StateMachine.ActionMap<TContext, TEvent>;
+    guards?: StateMachine.GuardMap<TContext, TEvent>;
+  }
 }
 
 export interface Typestate<TContext extends object> {
