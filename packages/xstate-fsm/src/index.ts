@@ -177,7 +177,12 @@ export function createMachine<
             return createUnchangedState(value, context);
           }
 
-          const { target = value, actions = [], cond = () => true } =
+          const {
+            target = value,
+            actions = [],
+            cond = () => true,
+            internal = false
+          } =
             typeof transition === 'string'
               ? { target: transition }
               : transition;
@@ -185,7 +190,11 @@ export function createMachine<
           if (cond(context, eventObject)) {
             const nextStateConfig = fsmConfig.states[target];
             const allActions = ([] as any[])
-              .concat(stateConfig.exit, actions, nextStateConfig.entry)
+              .concat(
+                internal ? [] : stateConfig.exit,
+                actions,
+                internal ? [] : nextStateConfig.entry
+              )
               .filter((a) => a)
               .map<StateMachine.ActionObject<TContext, TEvent>>((action) =>
                 toActionObject(action, (machine as any)._options.actions)

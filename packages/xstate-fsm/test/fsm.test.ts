@@ -193,6 +193,64 @@ describe('@xstate/fsm', () => {
       expect(nextState.context.go).toBeFalsy();
     }
   });
+
+  describe('internal transitions', () => {
+    interface InternalContext {
+      didEntry: boolean;
+      didExit: boolean;
+      didAction: boolean;
+    }
+    type InternalEvents = { type: 'EXTERNAL' } | { type: 'INTERNAL' };
+    interface InternalStates {
+      value: 'initial';
+      context: InternalContext;
+    }
+
+    const definition = {
+      initial: 'initial',
+      context: {
+        didEntry: false,
+        didExit: false,
+        didAction: false
+      },
+      states: {
+        initial: {
+          entry: assign({ didEntry: true }),
+          exit: assign({ didExit: true }),
+          on: {
+            EXTERNAL: {
+              target: 'initial',
+              actions: assign({ didAction: true })
+            },
+            INTERNAL: {
+              actions: assign({ didAction: true }),
+              internal: true
+            }
+          }
+        }
+      }
+    };
+    it('should dispatch entry, exit and actions if internal not set', () => {
+      const next = createMachine<
+        InternalContext,
+        InternalEvents,
+        InternalStates
+      >(definition).transition('initial', 'EXTERNAL');
+      expect(next.context.didAction).toBeTruthy();
+      expect(next.context.didExit).toBeTruthy();
+      expect(next.context.didAction).toBeTruthy();
+    });
+    it('should dispatch actions only if internal is true', () => {
+      const next = createMachine<
+        InternalContext,
+        InternalEvents,
+        InternalStates
+      >(definition).transition('initial', 'INTERNAL');
+      expect(next.context.didAction).toBeTruthy();
+      expect(next.context.didExit).toBeFalsy();
+      expect(next.context.didEntry).toBeFalsy();
+    });
+  });
 });
 
 describe('interpreter', () => {
