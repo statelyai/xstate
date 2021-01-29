@@ -30,6 +30,7 @@ This package contains a minimal, 1kb implementation of [XState](https://github.c
 | Context                     |       ✅        |                       ✅                        |
 | Entry actions               |       ✅        |                       ✅                        |
 | Exit actions                |       ✅        |                       ✅                        |
+| Internal transitions        |       ✅        |                       ✅                        |
 | Transition actions          |       ✅        |                       ✅                        |
 | Parameterized actions       |       ❌        |                       ✅                        |
 | Transition guards           |       ✅        |                       ✅                        |
