@@ -223,6 +223,7 @@ describe('@xstate/fsm', () => {
               actions: assign({ didAction: true })
             },
             INTERNAL: {
+              target: 'initial',
               actions: assign({ didAction: true }),
               internal: true
             }
@@ -230,6 +231,7 @@ describe('@xstate/fsm', () => {
         }
       }
     };
+
     it('should dispatch entry, exit and actions if internal not set', () => {
       const next = createMachine<
         InternalContext,
@@ -240,6 +242,7 @@ describe('@xstate/fsm', () => {
       expect(next.context.didExit).toBeTruthy();
       expect(next.context.didAction).toBeTruthy();
     });
+
     it('should dispatch actions only if internal is true', () => {
       const next = createMachine<
         InternalContext,
