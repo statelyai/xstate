@@ -135,7 +135,7 @@ export function createActorRefFromInvokeAction<
       if (!IS_PRODUCTION) {
         warn(
           false,
-          `No behavior found for invocation '${src}' in machine '${machine.id}'.`
+          `No behavior found for invocation '${src.type}' in machine '${machine.id}'.`
         );
       }
       return;

@@ -39,8 +39,7 @@ export function useMachine<
     context,
     guards,
     actions,
-    activities,
-    services,
+    actors,
     delays,
     state: rehydratedState,
     ...interpreterOptions
@@ -50,8 +49,7 @@ export function useMachine<
     context,
     guards,
     actions,
-    activities,
-    services,
+    actors,
     delays
   };
 

@@ -15,6 +15,7 @@ export const fetchMachine = Machine<typeof context, any>({
     loading: {
       invoke: {
         src: 'fetchData',
+        id: 'fetchData',
         onDone: {
           target: 'success',
           actions: assign({

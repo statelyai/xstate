@@ -5,7 +5,14 @@ const { replacePathSepForRegex } = require('jest-regex-util');
 module.exports = {
   transform: {
     [constants.DEFAULT_JS_PATTERN]: 'babel-jest',
-    '^.+\\.vue$': 'vue-jest'
+    '^.+\\.vue$': 'vue-jest',
+    '^.+\\.svelte$': [
+      'svelte-jester',
+      {
+        preprocess: true,
+        rootMode: 'upward'
+      }
+    ]
   },
   testPathIgnorePatterns: [
     ...defaults.testPathIgnorePatterns,
