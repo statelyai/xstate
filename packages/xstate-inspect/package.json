@@ -16,7 +16,6 @@
   "license": "MIT",
   "main": "dist/inspect.cjs.js",
   "module": "dist/inspect.esm.js",
-  "types": "lib/index.d.ts",
   "sideEffects": false,
   "files": [
     "dist"

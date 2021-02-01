@@ -17,12 +17,7 @@
   "license": "MIT",
   "main": "dist/svelte.cjs.js",
   "module": "dist/svelte.esm.js",
-  "types": "lib/index.d.ts",
   "sideEffects": false,
-  "directories": {
-    "lib": "lib",
-    "test": "test"
-  },
   "files": [
     "dist"
   ],
@@ -30,12 +25,7 @@
     "type": "git",
     "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
   },
-  "scripts": {
-    "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
-    "build": "tsc",
-    "test": "jest",
-    "prepublish": "npm run build && npm run test"
-  },
+  "scripts": {},
   "bugs": {
     "url": "https://github.com/davidkpiano/xstate/issues"
   },
@@ -65,5 +55,10 @@
     "ts-jest": "^26.4.0",
     "typescript": "^4.1.2",
     "xstate": "*"
+  },
+  "preconstruct": {
+    "entrypoints": [
+      "."
+    ]
   }
 }
