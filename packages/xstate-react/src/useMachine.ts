@@ -120,10 +120,20 @@ export function useMachine<
   });
 
   const effectActionsRef = useRef<
-    Array<[ReactActionObject<TContext, TEvent>, State<TContext, TEvent>]>
+    Array<
+      [
+        ReactActionObject<TContext, TEvent>,
+        State<TContext, TEvent, any, TTypestate>
+      ]
+    >
   >([]);
   const layoutEffectActionsRef = useRef<
-    Array<[ReactActionObject<TContext, TEvent>, State<TContext, TEvent>]>
+    Array<
+      [
+        ReactActionObject<TContext, TEvent>,
+        State<TContext, TEvent, any, TTypestate>
+      ]
+    >
   >([]);
 
   useIsomorphicLayoutEffect(() => {
