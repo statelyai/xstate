@@ -53,12 +53,12 @@ export function asLayoutEffect<TContext, TEvent extends EventObject>(
 
 export type ActionStateTuple<TContext, TEvent extends EventObject> = [
   ReactActionObject<TContext, TEvent>,
-  State<TContext, TEvent>
+  State<TContext, TEvent, any, any>
 ];
 
 function executeEffect<TContext, TEvent extends EventObject>(
   action: ReactActionObject<TContext, TEvent>,
-  state: State<TContext, TEvent>
+  state: State<TContext, TEvent, any, any>
 ): void {
   const { exec } = action;
   const originalExec = exec!(state.context, state._event.data, {
@@ -116,7 +116,9 @@ export function useMachine<
 
   const [state, setState] = useState(() => {
     const { initialState } = service.machine;
-    return options.state ? State.create(options.state) : initialState;
+    return (options.state
+      ? State.create(options.state)
+      : initialState) as State<TContext, TEvent, any, TTypestate>;
   });
 
   const effectActionsRef = useRef<
