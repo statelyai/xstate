@@ -1,5 +1,5 @@
 module.exports = {
-  projects: ['<rootDir>/packages/!(xstate-dev)'],
+  projects: ['<rootDir>/packages/*'],
   watchPlugins: [
     'jest-watch-typeahead/filename',
     'jest-watch-typeahead/testname'
