@@ -150,13 +150,13 @@ export function createMachine<
     },
     transition: (
       state: string | StateMachine.State<TContext, TEvent, TState>,
-      event: string | (Record<string, any> & { type: string })
+      event: TEvent | TEvent['type']
     ): StateMachine.State<TContext, TEvent, TState> => {
       const { value, context } =
         typeof state === 'string'
           ? { value: state, context: fsmConfig.context! }
           : state;
-      const eventObject = toEventObject(event);
+      const eventObject = toEventObject<TEvent>(event);
       const stateConfig = fsmConfig.states[value];
 
       if (!IS_PRODUCTION) {
@@ -170,22 +170,31 @@ export function createMachine<
       }
 
       if (stateConfig.on) {
-        const transitions = toArray(stateConfig.on[eventObject.type]);
+        const transitions: Array<
+          StateMachine.Transition<TContext, TEvent>
+        > = toArray(stateConfig.on[eventObject.type]);
 
         for (const transition of transitions) {
           if (transition === undefined) {
             return createUnchangedState(value, context);
           }
 
-          const { target = value, actions = [], cond = () => true } =
+          const { target, actions = [], cond = () => true } =
             typeof transition === 'string'
               ? { target: transition }
               : transition;
 
+          const isInternal = target === undefined;
+
           if (cond(context, eventObject)) {
-            const nextStateConfig = fsmConfig.states[target];
+            const nextStateConfig = fsmConfig.states[target ?? value];
             const allActions = ([] as any[])
-              .concat(stateConfig.exit, actions, nextStateConfig.entry)
+              // Only add exit and entry actions
+              .concat(
+                !isInternal ? stateConfig.exit : [],
+                actions,
+                !isInternal ? nextStateConfig.entry : []
+              )
               .filter((a) => a)
               .map<StateMachine.ActionObject<TContext, TEvent>>((action) =>
                 toActionObject(action, (machine as any)._options.actions)
@@ -197,13 +206,15 @@ export function createMachine<
               eventObject
             );
 
+            const resolvedTarget = target ?? value;
+
             return {
-              value: target,
+              value: resolvedTarget,
               context: nextContext,
               actions: nonAssignActions,
               changed:
                 target !== value || nonAssignActions.length > 0 || assigned,
-              matches: createMatcher(target)
+              matches: createMatcher(resolvedTarget)
             };
           }
         }
