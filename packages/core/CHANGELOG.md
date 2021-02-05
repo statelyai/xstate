@@ -1,5 +1,11 @@
 # xstate
 
+## 4.16.1
+
+### Patch Changes
+
+- [`af6b7c70`](https://github.com/davidkpiano/xstate/commit/af6b7c70015db29d84f79dfd29ea0dc221b8f3e6) [#1865](https://github.com/davidkpiano/xstate/pull/1865) Thanks [@Andarist](https://github.com/Andarist)! - Improved `.matches(value)` inference for typestates containing union types as values.
+
 ## 4.16.0
 
 ### Minor Changes
@@ -130,7 +136,7 @@
 
   ```js
   // ...
-  actions: stop((context) => context.someActor);
+  actions: stop(context => context.someActor);
   ```
 
 ### Patch Changes
@@ -368,10 +374,10 @@
   ```js
   entry: [
     choose([
-      { cond: (ctx) => ctx > 100, actions: raise('TOGGLE') },
+      { cond: ctx => ctx > 100, actions: raise('TOGGLE') },
       {
         cond: 'hasMagicBottle',
-        actions: [assign((ctx) => ({ counter: ctx.counter + 1 }))]
+        actions: [assign(ctx => ({ counter: ctx.counter + 1 }))]
       },
       { actions: ['fallbackAction'] }
     ])
