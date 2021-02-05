@@ -1,6 +1,4 @@
-const path = require('path');
-const { defaults, constants } = require('jest-config');
-const { replacePathSepForRegex } = require('jest-regex-util');
+const { constants } = require('jest-config');
 
 module.exports = {
   transform: {
@@ -14,12 +12,6 @@ module.exports = {
       }
     ]
   },
-  testPathIgnorePatterns: [
-    ...defaults.testPathIgnorePatterns,
-    replacePathSepForRegex(
-      `${path.sep}packages${path.sep}xstate-dev${path.sep}`
-    )
-  ],
   watchPlugins: [
     'jest-watch-typeahead/filename',
     'jest-watch-typeahead/testname'

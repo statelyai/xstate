@@ -178,3 +178,9 @@ There is also a follow-up course: [State Modeling with React and XState](https:/
 - [Infinite Scrolling con Svelte, IntersectionObserver & XState (en español)](https://www.youtube.com/watch?v=GMXrwrG0cL4) by [GCD Coder](https://www.youtube.com/channel/UCwkisgTJdCx3mNZMaaHAaVA)
 - [▶️ Getting Started with XState in Vue 3](https://www.youtube.com/watch?v=g4YnmydXMP8) by [JacoboCode](https://www.youtube.com/channel/UCcE2YngHoargpdjIzkCNY2Q)
 - [▶️ Typing XState in Vue 3](https://www.youtube.com/watch?v=7tT45eRmyJE) by [JacoboCode](https://www.youtube.com/channel/UCcE2YngHoargpdjIzkCNY2Q)
+- [Infinite Scrolling with Svelte 3, XState and IntersectionObserver](https://dev.to/gcdcoder/infinite-scrolling-with-svelte-3-xstate-and-intersectionobserver-127j) by [Gustavo Castillo](https://dev.to/gcdcoder)
+- [Untangle complex flows in your React Native app with XState](https://medium.com/welld-tech/untangle-complex-flows-in-your-react-native-app-with-xstate-1b11d0b8a91f) by [Simone D'Avico](https://sdavico.medium.com/)
+- [Integrate XState with React Native and React Navigation](https://medium.com/welld-tech/integrate-xstate-with-react-native-and-react-navigation-21ead87391da) by [Simone D'Avico](https://sdavico.medium.com/)
+- [An Introduction to Finite State Machines: Simplifying React State Management with State Machines](https://soshace.com/an-introduction-to-finite-state-machines-simplifying-react-state-management-with-state-machines/) by [Bradley Kofi](https://soshace.com/author/bradstarart/)
+- [An Introduction to XState in TypeScript](https://medium.com/giant-machines/an-introduction-to-xstate-in-typescript-e71c7729ce88) by [Neeraj Khosla
+  ](https://medium.com/@n.khosla91)

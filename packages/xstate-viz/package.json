@@ -29,7 +29,7 @@
   },
   "dependencies": {
     "@xstate/react": "^1.0.0-rc.3",
-    "immer": "^6.0.3",
+    "immer": "^8.0.1",
     "styled-components": "^4.4.1"
   }
 }
