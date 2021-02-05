@@ -184,3 +184,4 @@ There is also a follow-up course: [State Modeling with React and XState](https:/
 - [An Introduction to Finite State Machines: Simplifying React State Management with State Machines](https://soshace.com/an-introduction-to-finite-state-machines-simplifying-react-state-management-with-state-machines/) by [Bradley Kofi](https://soshace.com/author/bradstarart/)
 - [An Introduction to XState in TypeScript](https://medium.com/giant-machines/an-introduction-to-xstate-in-typescript-e71c7729ce88) by [Neeraj Khosla
   ](https://medium.com/@n.khosla91)
+- [▶️ XState - Global state in React](https://www.youtube.com/watch?v=1kJcnFBrk2I) by [Matt Pocock](https://twitter.com/mpocock1)
