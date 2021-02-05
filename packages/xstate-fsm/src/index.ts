@@ -188,17 +188,14 @@ export function createMachine<
 
           if (cond(context, eventObject)) {
             const nextStateConfig = fsmConfig.states[target ?? value];
-            const allActions = ([] as any[])
-              // Only add exit and entry actions
-              .concat(
-                !isInternal ? stateConfig.exit : [],
-                actions,
-                !isInternal ? nextStateConfig.entry : []
-              )
-              .filter((a) => a)
-              .map<StateMachine.ActionObject<TContext, TEvent>>((action) =>
-                toActionObject(action, (machine as any)._options.actions)
-              );
+            const allActions = (isTargetless
+              ? toArray(actions)
+              : ([] as any[])
+                  .concat(stateConfig.exit, actions, nextStateConfig.entry)
+                  .filter((a) => a)
+            ).map<StateMachine.ActionObject<TContext, TEvent>>((action) =>
+              toActionObject(action, (machine as any)._options.actions)
+            );
 
             const [nonAssignActions, nextContext, assigned] = handleActions(
               allActions,
