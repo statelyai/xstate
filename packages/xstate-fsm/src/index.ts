@@ -184,7 +184,7 @@ export function createMachine<
               ? { target: transition }
               : transition;
 
-          const isInternal = target === undefined;
+          const isTargetless = target === undefined;
 
           if (cond(context, eventObject)) {
             const nextStateConfig = fsmConfig.states[target ?? value];
