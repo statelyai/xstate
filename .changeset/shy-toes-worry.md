@@ -2,4 +2,4 @@
 '@xstate/immer': minor
 ---
 
-Immer upgraded to version `8.0.1`
+Peer dependency range on [`immer`](https://immerjs.github.io/immer/docs/introduction) changed to `^8.0.1`.
