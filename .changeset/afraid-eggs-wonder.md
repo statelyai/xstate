@@ -1,5 +1,5 @@
 ---
-'@xstate/fsm': patch
+'@xstate/fsm': minor
 ---
 
 Transitions with `undefined` targets will no longer exit and re-enter the state, which means that `exit` and `entry` actions will not be executed:
