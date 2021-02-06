@@ -83,7 +83,7 @@ Read [📽 the slides](http://slides.com/davidkhourshid/finite-state-machines) (
 - [The World of Statecharts](https://statecharts.github.io/) by Erik Mogensen
 - [Pure UI](https://rauchg.com/2015/pure-ui) by Guillermo Rauch
 - [Pure UI Control](https://medium.com/@asolove/pure-ui-control-ac8d1be97a8d) by Adam Solove
-- [Spectrum - Statecharts Community](https://spectrum.chat/statecharts)
+- [Spectrum - Statecharts Community](https://spectrum.chat/statecharts) (For XState specific questions, please use the [GitHub Discussions](https://github.com/davidkpiano/xstate/discussions))
 
 ## Finite State Machines
 
