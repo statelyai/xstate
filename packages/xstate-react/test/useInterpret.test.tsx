@@ -20,7 +20,7 @@ describe('useInterpret', () => {
     });
 
     const App = () => {
-      const service = useInterpret(machine, {});
+      const service = useInterpret(machine);
 
       React.useEffect(() => {
         service.subscribe((state) => {
@@ -49,7 +49,7 @@ describe('useInterpret', () => {
     });
 
     const App = () => {
-      const service = useInterpret(machine, {});
+      const service = useInterpret(machine);
 
       React.useEffect(() => {
         service.subscribe((state) => {
