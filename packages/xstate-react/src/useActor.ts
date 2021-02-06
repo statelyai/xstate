@@ -19,6 +19,7 @@ function isDeferredActor<T extends ActorRef<any>>(
 type EventOfActorRef<
   TActor extends ActorRef<any, any>
 > = TActor extends ActorRef<infer TEvent, any> ? TEvent : never;
+
 type EmittedOfActorRef<
   TActor extends ActorRef<any, any>
 > = TActor extends ActorRef<any, infer TEmitted> ? TEmitted : never;
