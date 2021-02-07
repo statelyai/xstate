@@ -7,7 +7,7 @@ import { useSelector } from '../src/useSelector';
 afterEach(cleanup);
 
 describe('useSelector', () => {
-  it('selects values', () => {
+  it('only rerenders for selected values', () => {
     const machine = createMachine<{ count: number; other: number }>({
       initial: 'active',
       context: {
@@ -67,16 +67,75 @@ describe('useSelector', () => {
     fireEvent.click(otherButton);
     fireEvent.click(otherButton);
     fireEvent.click(otherButton);
-    fireEvent.click(otherButton);
-    fireEvent.click(otherButton);
-    fireEvent.click(otherButton);
-    fireEvent.click(otherButton);
-    fireEvent.click(otherButton);
 
     expect(rerenders).toEqual(0);
 
     fireEvent.click(incrementEl);
 
     expect(countButton.textContent).toBe('2');
+  });
+
+  it('should work with a custom comparison function', () => {
+    const machine = createMachine<{ name: string }>({
+      initial: 'active',
+      context: {
+        name: 'david'
+      },
+      states: {
+        active: {}
+      },
+      on: {
+        CHANGE: {
+          actions: assign({ name: (_, e) => e.value })
+        }
+      }
+    });
+
+    const App = () => {
+      const service = useInterpret(machine);
+      const name = useSelector(
+        service,
+        (state) => state.context.name,
+        (a, b) => a.toUpperCase() === b.toUpperCase()
+      );
+
+      return (
+        <>
+          <div data-testid="name">{name}</div>
+          <button
+            data-testid="sendUpper"
+            onClick={() => service.send({ type: 'CHANGE', value: 'DAVID' })}
+          ></button>
+          <button
+            data-testid="sendOther"
+            onClick={() => service.send({ type: 'CHANGE', value: 'other' })}
+          ></button>
+        </>
+      );
+    };
+
+    const { getByTestId } = render(
+      <React.StrictMode>
+        <App />
+      </React.StrictMode>
+    );
+    const nameEl = getByTestId('name');
+    const sendUpperButton = getByTestId('sendUpper');
+    const sendOtherButton = getByTestId('sendOther');
+
+    expect(nameEl.textContent).toEqual('david');
+
+    fireEvent.click(sendUpperButton);
+
+    // unchanged due to comparison function
+    expect(nameEl.textContent).toEqual('david');
+
+    fireEvent.click(sendOtherButton);
+
+    expect(nameEl.textContent).toEqual('other');
+
+    fireEvent.click(sendUpperButton);
+
+    expect(nameEl.textContent).toEqual('DAVID');
   });
 });
