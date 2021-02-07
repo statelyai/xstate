@@ -7,7 +7,8 @@ import {
   spawn,
   doneInvoke,
   State,
-  createMachine
+  createMachine,
+  send
 } from 'xstate';
 import {
   render,
@@ -18,7 +19,7 @@ import {
 } from '@testing-library/react';
 import { useState } from 'react';
 import { asEffect, asLayoutEffect } from '../src/useMachine';
-import { DoneEventObject } from 'xstate/src';
+import { DoneEventObject } from 'xstate';
 
 afterEach(cleanup);
 
@@ -722,6 +723,29 @@ describe('useMachine (strict mode)', () => {
       );
 
       expect(state.matches('idle')).toBeTruthy();
+
+      return null;
+    };
+
+    render(<App />);
+  });
+
+  it.only('should get all updates', () => {
+    const m = createMachine<any>({
+      initial: 'idle',
+      context: {
+        count: 0
+      },
+      entry: [assign({ count: 1 }), send('TEST')],
+      states: {
+        idle: {}
+      }
+    });
+
+    const App = () => {
+      const [state] = useMachine(m);
+
+      expect(state.changed).toBeTruthy();
 
       return null;
     };
