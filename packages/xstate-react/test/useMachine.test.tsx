@@ -730,7 +730,7 @@ describe('useMachine (strict mode)', () => {
     render(<App />);
   });
 
-  it.only('should get all updates', () => {
+  it('should get all updates', () => {
     const m = createMachine<any>({
       initial: 'idle',
       context: {

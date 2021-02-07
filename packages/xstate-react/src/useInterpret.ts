@@ -8,11 +8,14 @@ import {
   Interpreter,
   InterpreterOptions,
   MachineOptions,
-  Typestate
+  Typestate,
+  Observer
 } from 'xstate';
+import { toObserver } from 'xstate/lib/utils';
 import { MaybeLazy } from './types';
 import useConstant from './useConstant';
 import { UseMachineOptions } from './useMachine';
+import { useReactEffectActions } from './useReactEffectActions';
 
 export function useInterpret<
   TContext,
@@ -22,7 +25,10 @@ export function useInterpret<
   getMachine: MaybeLazy<StateMachine<TContext, any, TEvent, TTypestate>>,
   options: Partial<InterpreterOptions> &
     Partial<UseMachineOptions<TContext, TEvent>> &
-    Partial<MachineOptions<TContext, TEvent>> = {}
+    Partial<MachineOptions<TContext, TEvent>> = {},
+  observerOrListener?:
+    | Observer<State<TContext, TEvent, any, TTypestate>>
+    | ((value: State<TContext, TEvent, any, TTypestate>) => void)
 ): Interpreter<TContext, any, TEvent, TTypestate> {
   const machine = useConstant(() => {
     return typeof getMachine === 'function' ? getMachine() : getMachine;
@@ -74,6 +80,9 @@ export function useInterpret<
   });
 
   useIsomorphicLayoutEffect(() => {
+    if (observerOrListener) {
+      service.subscribe(toObserver(observerOrListener));
+    }
     service.start(
       rehydratedState ? (State.create(rehydratedState) as any) : undefined
     );
@@ -93,6 +102,8 @@ export function useInterpret<
   useEffect(() => {
     Object.assign(service.machine.options.services, services);
   }, [services]);
+
+  useReactEffectActions(service);
 
   return service;
 }
