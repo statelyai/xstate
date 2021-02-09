@@ -92,16 +92,17 @@ export function useInterpret<
     };
   }, []);
 
-  // Make sure actions and services are kept updated when they change.
+  // Make sure machine options are kept updated when they change.
   // This mutation assignment is safe because the service instance is only used
   // in one place -- this hook's caller.
   useEffect(() => {
-    Object.assign(service.machine.options.actions, actions);
-  }, [actions]);
-
-  useEffect(() => {
-    Object.assign(service.machine.options.services, services);
-  }, [services]);
+    Object.assign(service.machine.options, {
+      guards,
+      actions,
+      services,
+      delays
+    });
+  }, [guards, actions, services, delays]);
 
   useReactEffectActions(service);
 

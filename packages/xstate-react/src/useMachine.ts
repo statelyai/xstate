@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   EventObject,
   StateMachine,
@@ -17,6 +17,7 @@ import {
   ReactEffectType
 } from './types';
 import { useInterpret } from './useInterpret';
+import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 
 function createReactActionFunction<TContext, TEvent extends EventObject>(
   exec: ActionFunction<TContext, TEvent>,
@@ -96,7 +97,7 @@ export function useMachine<
 ] {
   const service = useInterpret(getMachine, options);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     service.subscribe((s) => {
       // Only change the current state if:
       // - the incoming state is the "live" initial state (since it might have new actors)
