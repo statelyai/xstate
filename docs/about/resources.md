@@ -186,3 +186,4 @@ There is also a follow-up course: [State Modeling with React and XState](https:/
   ](https://medium.com/@n.khosla91)
 - [▶️ XState - Global state in React](https://www.youtube.com/watch?v=1kJcnFBrk2I) by [Matt Pocock](https://twitter.com/mpocock1)
 - [▶️ XState Introduction](https://www.youtube.com/watch?v=clu2bqjk3c0) on [For Those Who Code](https://www.youtube.com/channel/UCS3-MF_4ADqglU2OSly4vIw)
+- [Future of state management in React with XState](https://blog.jskoneczny.pl/post/future-of-state-management-in-react-with-xstate) by [Jakub Skoneczny](https://blog.jskoneczny.pl/)
