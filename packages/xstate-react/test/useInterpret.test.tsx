@@ -74,4 +74,41 @@ describe('useInterpret', () => {
 
     fireEvent.click(button);
   });
+
+  it('actions created by a layout effect should access the latest closure values', () => {
+    const actual: number[] = [];
+
+    const machine = createMachine({
+      initial: 'foo',
+      states: {
+        foo: {
+          on: {
+            EXEC_ACTION: {
+              actions: 'recordProp'
+            }
+          }
+        }
+      }
+    });
+
+    const App = ({ value }: { value: number }) => {
+      const service = useInterpret(machine, {
+        actions: {
+          recordProp: () => actual.push(value)
+        }
+      });
+
+      React.useLayoutEffect(() => {
+        service.send('EXEC_ACTION');
+      });
+
+      return null;
+    };
+
+    const { rerender } = render(<App value={1} />);
+
+    rerender(<App value={42} />);
+
+    expect(actual).toEqual([1, 42]);
+  });
 });

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 import {
   interpret,
@@ -95,7 +95,7 @@ export function useInterpret<
   // Make sure machine options are kept updated when they change.
   // This mutation assignment is safe because the service instance is only used
   // in one place -- this hook's caller.
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     Object.assign(service.machine.options, {
       guards,
       actions,
