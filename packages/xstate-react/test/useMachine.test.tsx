@@ -730,13 +730,18 @@ describe('useMachine (strict mode)', () => {
     render(<App />);
   });
 
-  it('should get all updates', () => {
+  it('should not miss initial synchronous updates', () => {
     const m = createMachine<any>({
       initial: 'idle',
       context: {
         count: 0
       },
-      entry: [assign({ count: 1 }), send('TEST')],
+      entry: [assign({ count: 1 }), send('INC')],
+      on: {
+        INC: {
+          actions: [assign({ count: (ctx) => ++ctx.count }), send('UNHANDLED')]
+        }
+      },
       states: {
         idle: {}
       }
@@ -744,12 +749,11 @@ describe('useMachine (strict mode)', () => {
 
     const App = () => {
       const [state] = useMachine(m);
-
-      expect(state.changed).toBeTruthy();
-
-      return null;
+      return state.context.count;
     };
 
-    render(<App />);
+    const { container } = render(<App />);
+
+    expect(container.textContent).toBe('2');
   });
 });
