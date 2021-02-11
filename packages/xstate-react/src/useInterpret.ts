@@ -97,12 +97,11 @@ export function useInterpret<
   // in one place -- this hook's caller.
   useIsomorphicLayoutEffect(() => {
     Object.assign(service.machine.options, {
-      guards,
       actions,
       services,
       delays
     });
-  }, [guards, actions, services, delays]);
+  }, [actions, services, delays]);
 
   useReactEffectActions(service);
 
