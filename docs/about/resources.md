@@ -188,3 +188,4 @@ There is also a follow-up course: [State Modeling with React and XState](https:/
 - [▶️ XState Introduction](https://www.youtube.com/watch?v=clu2bqjk3c0) on [For Those Who Code](https://www.youtube.com/channel/UCS3-MF_4ADqglU2OSly4vIw)
 - [Future of state management in React with XState](https://blog.jskoneczny.pl/post/future-of-state-management-in-react-with-xstate) by [Jakub Skoneczny](https://blog.jskoneczny.pl/)
 - [▶️ Custom Svelte Store: XState as Svelte store](https://www.youtube.com/watch?v=NIfQsc5XAzU) by [lihautan](https://www.youtube.com/channel/UCbmC3HP3FaAFdcZkui8YoMQ)
+- [▶️ Finite State Machine on Frontend](https://www.youtube.com/watch?v=gCT-lCYYhf4) by [Eugenia Zigisova](https://twitter.com/jevgeniazi)
