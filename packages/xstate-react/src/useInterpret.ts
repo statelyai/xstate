@@ -80,9 +80,17 @@ export function useInterpret<
   });
 
   useIsomorphicLayoutEffect(() => {
+    let sub;
     if (observerOrListener) {
-      service.subscribe(toObserver(observerOrListener));
+      sub = service.subscribe(toObserver(observerOrListener));
     }
+
+    return () => {
+      sub?.unsubscribe();
+    };
+  }, [observerOrListener]);
+
+  useIsomorphicLayoutEffect(() => {
     service.start(
       rehydratedState ? (State.create(rehydratedState) as any) : undefined
     );
