@@ -7,6 +7,8 @@ function isService(actor: any): actor is Interpreter<any, any, any, any> {
   return 'state' in actor && 'machine' in actor;
 }
 
+const defaultCompare = (a, b) => a === b;
+
 export function useSelector<
   TActor extends ActorRef<any, any>,
   T,
@@ -14,7 +16,7 @@ export function useSelector<
 >(
   actor: TActor,
   selector: (emitted: TEmitted) => T,
-  compare: (a: T, b: T) => boolean = (a, b) => a === b,
+  compare: (a: T, b: T) => boolean = defaultCompare,
   getSnapshot: (a: TActor) => TEmitted = (a) =>
     isService(a)
       ? getServiceSnapshot(a)
@@ -33,7 +35,7 @@ export function useSelector<
     });
 
     return () => sub.unsubscribe();
-  });
+  }, [selector]);
 
   return selected;
 }
