@@ -414,4 +414,30 @@ describe('interpreter', () => {
 
     service.send('CHANGE');
   });
+
+  it('should not re-execute exit/entry actions for transitions with undefined targets', () => {
+    const machine = createMachine({
+      initial: 'test',
+      states: {
+        test: {
+          entry: ['entry'],
+          exit: ['exit'],
+          on: {
+            EVENT: {
+              // undefined target
+              actions: ['action']
+            }
+          }
+        }
+      }
+    });
+
+    const { initialState } = machine;
+
+    expect(initialState.actions.map((a) => a.type)).toEqual(['entry']);
+
+    const nextState = machine.transition(initialState, 'EVENT');
+
+    expect(nextState.actions.map((a) => a.type)).toEqual(['action']);
+  });
 });

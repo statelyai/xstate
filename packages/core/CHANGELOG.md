@@ -1,5 +1,17 @@
 # xstate
 
+## 4.16.2
+
+### Patch Changes
+
+- [`4194ffe8`](https://github.com/davidkpiano/xstate/commit/4194ffe84cfe7910e2c183701e36bc5cac5c9bcc) [#1710](https://github.com/davidkpiano/xstate/pull/1710) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Stopping an already stopped interpreter will no longer crash. See [#1697](https://github.com/davidkpiano/xstate/issues/1697) for details.
+
+## 4.16.1
+
+### Patch Changes
+
+- [`af6b7c70`](https://github.com/davidkpiano/xstate/commit/af6b7c70015db29d84f79dfd29ea0dc221b8f3e6) [#1865](https://github.com/davidkpiano/xstate/pull/1865) Thanks [@Andarist](https://github.com/Andarist)! - Improved `.matches(value)` inference for typestates containing union types as values.
+
 ## 4.16.0
 
 ### Minor Changes

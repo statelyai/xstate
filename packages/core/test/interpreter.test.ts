@@ -1418,6 +1418,19 @@ describe('interpreter', () => {
         done();
       }, 10);
     });
+
+    it('stopping a not-started interpreter should not crash', () => {
+      const service = interpret(
+        createMachine({
+          initial: 'a',
+          states: { a: {} }
+        })
+      );
+
+      expect(() => {
+        service.stop();
+      }).not.toThrow();
+    });
   });
 
   describe('off()', () => {
