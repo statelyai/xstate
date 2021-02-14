@@ -178,3 +178,13 @@ There is also a follow-up course: [State Modeling with React and XState](https:/
 - [Infinite Scrolling con Svelte, IntersectionObserver & XState (en español)](https://www.youtube.com/watch?v=GMXrwrG0cL4) by [GCD Coder](https://www.youtube.com/channel/UCwkisgTJdCx3mNZMaaHAaVA)
 - [▶️ Getting Started with XState in Vue 3](https://www.youtube.com/watch?v=g4YnmydXMP8) by [JacoboCode](https://www.youtube.com/channel/UCcE2YngHoargpdjIzkCNY2Q)
 - [▶️ Typing XState in Vue 3](https://www.youtube.com/watch?v=7tT45eRmyJE) by [JacoboCode](https://www.youtube.com/channel/UCcE2YngHoargpdjIzkCNY2Q)
+- [Infinite Scrolling with Svelte 3, XState and IntersectionObserver](https://dev.to/gcdcoder/infinite-scrolling-with-svelte-3-xstate-and-intersectionobserver-127j) by [Gustavo Castillo](https://dev.to/gcdcoder)
+- [Untangle complex flows in your React Native app with XState](https://medium.com/welld-tech/untangle-complex-flows-in-your-react-native-app-with-xstate-1b11d0b8a91f) by [Simone D'Avico](https://sdavico.medium.com/)
+- [Integrate XState with React Native and React Navigation](https://medium.com/welld-tech/integrate-xstate-with-react-native-and-react-navigation-21ead87391da) by [Simone D'Avico](https://sdavico.medium.com/)
+- [An Introduction to Finite State Machines: Simplifying React State Management with State Machines](https://soshace.com/an-introduction-to-finite-state-machines-simplifying-react-state-management-with-state-machines/) by [Bradley Kofi](https://soshace.com/author/bradstarart/)
+- [An Introduction to XState in TypeScript](https://medium.com/giant-machines/an-introduction-to-xstate-in-typescript-e71c7729ce88) by [Neeraj Khosla
+  ](https://medium.com/@n.khosla91)
+- [▶️ XState - Global state in React](https://www.youtube.com/watch?v=1kJcnFBrk2I) by [Matt Pocock](https://twitter.com/mpocock1)
+- [▶️ XState Introduction](https://www.youtube.com/watch?v=clu2bqjk3c0) on [For Those Who Code](https://www.youtube.com/channel/UCS3-MF_4ADqglU2OSly4vIw)
+- [Future of state management in React with XState](https://blog.jskoneczny.pl/post/future-of-state-management-in-react-with-xstate) by [Jakub Skoneczny](https://blog.jskoneczny.pl/)
+- [▶️ Custom Svelte Store: XState as Svelte store](https://www.youtube.com/watch?v=NIfQsc5XAzU) by [lihautan](https://www.youtube.com/channel/UCbmC3HP3FaAFdcZkui8YoMQ)

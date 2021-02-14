@@ -554,7 +554,10 @@ describe('plan description', () => {
     context: { count: 0 },
     states: {
       atomic: {
-        on: { NEXT: 'compound' }
+        on: { NEXT: 'compound', DONE: 'final' }
+      },
+      final: {
+        type: 'final'
       },
       compound: {
         initial: 'child',
@@ -604,6 +607,7 @@ describe('plan description', () => {
       Array [
         "reaches state: \\"#test.atomic\\" ({\\"count\\":0})",
         "reaches state: \\"#test.compound.child\\" ({\\"count\\":0})",
+        "reaches state: \\"#test.final\\" ({\\"count\\":0})",
         "reaches state: \\"child with meta\\" ({\\"count\\":0})",
         "reaches states: \\"#test.parallel.one\\", \\"two description\\" ({\\"count\\":0})",
         "reaches state: \\"noMetaDescription\\" ({\\"count\\":0})",

@@ -15,7 +15,10 @@
 JavaScript and TypeScript [finite state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and [statecharts](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf) for the modern web.
 
 📖 [Read the documentation](https://xstate.js.org/docs)
-📑 Adheres to the [SCXML specification](https://www.w3.org/TR/scxml/).
+
+📑 Adheres to the [SCXML specification](https://www.w3.org/TR/scxml/)
+
+💬 Chat on the [Stately Discord Community](https://discord.gg/KCtSX7Cdjh)
 
 ## Packages
 
@@ -157,7 +160,7 @@ Read [📽 the slides](http://slides.com/davidkhourshid/finite-state-machines) (
 - [The World of Statecharts](https://statecharts.github.io/) by Erik Mogensen
 - [Pure UI](https://rauchg.com/2015/pure-ui) by Guillermo Rauch
 - [Pure UI Control](https://medium.com/@asolove/pure-ui-control-ac8d1be97a8d) by Adam Solove
-- [Spectrum - Statecharts Community](https://spectrum.chat/statecharts)
+- [Spectrum - Statecharts Community](https://spectrum.chat/statecharts) (For XState specific questions, please use the [GitHub Discussions](https://github.com/davidkpiano/xstate/discussions))
 
 ## Finite State Machines
 

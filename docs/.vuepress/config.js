@@ -19,7 +19,7 @@ module.exports = {
     nav: [
       { text: 'API', link: 'https://xstate.js.org/api' },
       { text: 'Visualizer', link: 'https://xstate.js.org/viz' },
-      { text: 'Chat', link: 'https://gitter.im/statecharts/statecharts' },
+      { text: 'Discord', link: 'https://discord.gg/xtWgFTgvNV' },
       {
         text: 'Community',
         link: 'https://github.com/davidkpiano/xstate/discussions'
