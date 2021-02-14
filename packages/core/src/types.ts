@@ -1119,7 +1119,7 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   events?: TEvent[];
   configuration: Array<StateNode<TContext, any, TEvent>>;
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
-  children: Record<string, ActorRef<any>>;
+  children: Record<string, SpawnedActorRef<any>>;
   done?: boolean;
 }
 
@@ -1265,6 +1265,7 @@ export interface SpawnedActorRef<TEvent extends EventObject, TEmitted = any>
   id: string;
   stop?: () => void;
   toJSON?: () => any;
+  getSnapshot?: () => TEmitted;
 }
 
 export type ActorRefFrom<
@@ -1276,3 +1277,16 @@ export type ActorRefFrom<
   : never;
 
 export type AnyInterpreter = Interpreter<any, any, any, any>;
+
+export type StateSnapshot<TContext, TEvent extends EventObject> = Omit<
+  ReturnType<State<TContext, TEvent>['toJSON']>,
+  'children'
+> & {
+  children: Record<
+    string,
+    {
+      src: InvokeSourceDefinition;
+      snapshot: any;
+    }
+  >;
+};

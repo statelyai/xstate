@@ -51,7 +51,8 @@ import {
   symbolObservable,
   toInvokeSource,
   toObserver,
-  isActor
+  isActor,
+  mapValues
 } from './utils';
 import { Scheduler } from './scheduler';
 import { Actor, isSpawnedActor, createDeferredActor } from './Actor';
@@ -63,6 +64,7 @@ import {
   ActorRef,
   ActorRefFrom,
   SpawnedActorRef,
+  StateSnapshot,
   StopActionObject,
   Subscription
 } from '.';
@@ -475,12 +477,32 @@ export class Interpreter<
                 );
           });
 
+    // restore actors
+    if (initialState) {
+      Object.keys(resolvedState.children).forEach((key) => {
+        const actor = resolvedState.children[key];
+
+        if ('snapshot' in actor) {
+          this.children.set(key, {
+            id: key,
+            send: () => {
+              /* ... */
+            },
+            subscribe: null as any,
+            getSnapshot: (actor as SpawnedActorRef<any>).getSnapshot
+          });
+        }
+      });
+    }
+
     if (this.options.devTools) {
       this.attachDev();
     }
+
     this.scheduler.initialize(() => {
       this.update(resolvedState, initEvent as SCXML.Event<TEvent>);
     });
+
     return this;
   }
   /**
@@ -1000,7 +1022,7 @@ export class Interpreter<
       })
       .start();
 
-    return actor;
+    return actor as any; // TODO: fix
   }
   private spawnPromise<T>(
     promise: Promise<T>,
@@ -1258,6 +1280,26 @@ export class Interpreter<
       id: this.id
     };
   }
+
+  public getSnapshot(): StateSnapshot<TContext, TEvent> {
+    return {
+      ...this.state.toJSON(),
+      children: mapValues(this.state.children, (child) => {
+        return {
+          src: {
+            type: 'test'
+          },
+          snapshot: 'getSnapshot' in child ? child.getSnapshot?.() : undefined
+        };
+      })
+    };
+  }
+
+  // public restore(snapshot: State<TContext, TEvent>) {
+  //   const restoredState = serviceScope.provide(this, () => {
+  //     return this.machine.resolveState(snapshot);
+  //   });
+  // }
 
   public [symbolObservable]() {
     return this;

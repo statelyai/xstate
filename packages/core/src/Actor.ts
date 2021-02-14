@@ -24,6 +24,7 @@ export interface Actor<
   meta?: InvokeDefinition<TContext, TEvent>;
   state?: any;
   deferred?: boolean;
+  getSnapshot?: () => any;
 }
 
 export function createNullActor(id: string): Actor {
