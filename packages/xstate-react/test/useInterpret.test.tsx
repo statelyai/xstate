@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { createMachine } from 'xstate';
 import { render, cleanup, fireEvent } from '@testing-library/react';
-import { useInterpret } from '../src/useInterpret';
+import { useInterpret } from '../src';
 
 afterEach(cleanup);
 
