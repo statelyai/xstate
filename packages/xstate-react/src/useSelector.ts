@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActorRef, Interpreter, Subscribable } from 'xstate';
 import { isActorWithState } from './useActor';
 import { getServiceSnapshot } from './useService';
@@ -25,17 +25,26 @@ export function useSelector<
       : undefined
 ) {
   const [selected, setSelected] = useState(() => selector(getSnapshot(actor)));
+  const selectedRef = useRef<T>(selected);
 
   useEffect(() => {
+    const updateSelectedIfChanged = (nextSelected: T) => {
+      if (!compare(selectedRef.current, nextSelected)) {
+        setSelected(nextSelected);
+        selectedRef.current = nextSelected;
+      }
+    };
+
+    const initialSelected = selector(getSnapshot(actor));
+    updateSelectedIfChanged(initialSelected);
+
     const sub = actor.subscribe((emitted) => {
       const nextSelected = selector(emitted);
-      if (!compare(selected, nextSelected)) {
-        setSelected(nextSelected);
-      }
+      updateSelectedIfChanged(nextSelected);
     });
 
     return () => sub.unsubscribe();
-  }, [selector]);
+  }, [selector, compare]);
 
   return selected;
 }
