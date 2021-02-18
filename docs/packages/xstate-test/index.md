@@ -192,7 +192,7 @@ const plans = todosModel.getShortestPathPlansTo({
   filter: (state) => state.matches('TODO.DELETE')
 });
 
-// Equivelent:
+// Equivalent:
 const plans = todosModel.getShortestPathPlansTo('TODO.DELETE');
 ```
 
