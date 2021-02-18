@@ -1103,7 +1103,9 @@ export type AnyInterpreter = Interpreter<any, any, any>;
  *
  * @typeParam TM - the machine to infer the interpreter's types from
  */
-export type InterpreterOf<TM extends MachineNode> = TM extends MachineNode<
+export type InterpreterOf<
+  TM extends MachineNode<any, any, any, any>
+> = TM extends MachineNode<
   infer TContext,
   infer TEvent,
   infer TStateSchema,

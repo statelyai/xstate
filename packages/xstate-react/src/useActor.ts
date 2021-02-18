@@ -4,7 +4,7 @@ import { Sender } from './types';
 import { ActorRef, EventObject } from 'xstate';
 import useConstant from './useConstant';
 
-function isActorWithState<T extends ActorRef<any>>(
+export function isActorWithState<T extends ActorRef<any>>(
   actorRef: T
 ): actorRef is T & { state: any } {
   return 'state' in actorRef;
@@ -19,6 +19,7 @@ function isDeferredActor<T extends ActorRef<any>>(
 type EventOfActorRef<
   TActor extends ActorRef<any, any>
 > = TActor extends ActorRef<infer TEvent, any> ? TEvent : never;
+
 type EmittedOfActorRef<
   TActor extends ActorRef<any, any>
 > = TActor extends ActorRef<any, infer TEmitted> ? TEmitted : never;
