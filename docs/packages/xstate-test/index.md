@@ -225,7 +225,7 @@ const plans = todosModel.getSimplePathPlansTo({
   filter: (state) => state.matches('TODO.DELETE')
 });
 
-// Equivelent:
+// Equivalent:
 const plans = todosModel.getSimplePathPlansTo('TODO.DELETE');
 ```
 
