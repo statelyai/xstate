@@ -8,6 +8,12 @@ function isService(actor: any): actor is Interpreter<any, any, any, any> {
 }
 
 const defaultCompare = (a, b) => a === b;
+const defaultGetSnapshot = (a) =>
+  isService(a)
+    ? getServiceSnapshot(a)
+    : isActorWithState(a)
+    ? a.state
+    : undefined;
 
 export function useSelector<
   TActor extends ActorRef<any, any>,
@@ -17,12 +23,7 @@ export function useSelector<
   actor: TActor,
   selector: (emitted: TEmitted) => T,
   compare: (a: T, b: T) => boolean = defaultCompare,
-  getSnapshot: (a: TActor) => TEmitted = (a) =>
-    isService(a)
-      ? getServiceSnapshot(a)
-      : isActorWithState(a)
-      ? a.state
-      : undefined
+  getSnapshot: (a: TActor) => TEmitted = defaultGetSnapshot
 ) {
   const [selected, setSelected] = useState(() => selector(getSnapshot(actor)));
   const selectedRef = useRef<T>(selected);
