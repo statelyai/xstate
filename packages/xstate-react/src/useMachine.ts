@@ -83,22 +83,16 @@ export interface UseMachineOptions<TContext, TEvent extends EventObject> {
 export function useMachine<
   TContext,
   TEvent extends EventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext },
-  TMachine extends MachineNode<TContext, TEvent, any, TTypestate> = MachineNode<
-    TContext,
-    TEvent,
-    any,
-    TTypestate
-  >
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(
-  getMachine: MaybeLazy<TMachine>,
+  getMachine: MaybeLazy<MachineNode<TContext, TEvent, any, TTypestate>>,
   options: Partial<InterpreterOptions> &
     Partial<UseMachineOptions<TContext, TEvent>> &
     Partial<MachineImplementations<TContext, TEvent>> = {}
 ): [
   State<TContext, TEvent, any, TTypestate>,
-  InterpreterOf<TMachine>['send'],
-  InterpreterOf<TMachine>
+  InterpreterOf<MachineNode<TContext, TEvent, any, TTypestate>>['send'],
+  InterpreterOf<MachineNode<TContext, TEvent, any, TTypestate>>
 ] {
   const listener = useCallback(
     (nextState: State<TContext, TEvent, any, TTypestate>) => {
@@ -118,11 +112,7 @@ export function useMachine<
     []
   );
 
-  const service = useInterpret(
-    getMachine,
-    options,
-    listener
-  ) as InterpreterOf<TMachine>;
+  const service = useInterpret(getMachine, options, listener);
 
   const [state, setState] = useState(() => {
     const { initialState } = service.machine;

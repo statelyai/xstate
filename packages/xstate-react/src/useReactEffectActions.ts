@@ -6,7 +6,7 @@ import { partition } from './utils';
 import { ActionStateTuple, executeEffect } from './useMachine';
 
 export function useReactEffectActions<TContext, TEvent extends EventObject>(
-  service: Interpreter<TContext, any, TEvent, any>
+  service: Interpreter<TContext, TEvent, any, any>
 ) {
   const effectActionsRef = useRef<
     Array<
