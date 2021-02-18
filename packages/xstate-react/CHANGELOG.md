@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.1
+
+### Patch Changes
+
+- [`b076b253`](https://github.com/davidkpiano/xstate/commit/b076b25364224874f62e8065892be40dfbb28030) [#1947](https://github.com/davidkpiano/xstate/pull/1947) Thanks [@lukekarrys](https://github.com/lukekarrys)! - Fix typing of the service returned from the fsm useMachine hook by passing it Typestate
+
+* [`9b5dc784`](https://github.com/davidkpiano/xstate/commit/9b5dc7843c44f50bcca0ffccb843b3d50cef6ddc) [#1950](https://github.com/davidkpiano/xstate/pull/1950) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with `toObserver` being internally imported from `xstate/lib/utils` which has broken UMD build and the declared peer dep contract.
+
 ## 1.3.0
 
 ### Minor Changes
