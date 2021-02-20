@@ -191,3 +191,5 @@ There is also a follow-up course: [State Modeling with React and XState](https:/
 - [▶️ Finite State Machine on Frontend](https://www.youtube.com/watch?v=gCT-lCYYhf4) by [Eugenia Zigisova](https://twitter.com/jevgeniazi)
 - [#1 Introduction to XState in React](https://blog.imbhargav5.com/1-introduction-to-xstate-in-react) by [Bhargav Ponnapalli](https://blog.imbhargav5.com/)
 - [▶️ Modelling application behaviour with the XState library (in React)](https://www.youtube.com/watch?v=paZ4ImyI1YQ) by [Marc Klefter](https://twitter.com/marcklefter)
+- [Rsvp to weddings with XState](https://dev.to/droopytersen/rsvp-to-weddings-with-xstate-55nl) by [Andrew Peterson](https://dev.to/droopytersen)
+- [▶️ XState and State Machines in Vue](https://tallpad.com/series/xstate-misc/episode/1)
