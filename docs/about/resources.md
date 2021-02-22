@@ -193,3 +193,4 @@ There is also a follow-up course: [State Modeling with React and XState](https:/
 - [▶️ Modelling application behaviour with the XState library (in React)](https://www.youtube.com/watch?v=paZ4ImyI1YQ) by [Marc Klefter](https://twitter.com/marcklefter)
 - [Rsvp to weddings with XState](https://dev.to/droopytersen/rsvp-to-weddings-with-xstate-55nl) by [Andrew Peterson](https://dev.to/droopytersen)
 - [▶️ XState and State Machines in Vue](https://tallpad.com/series/xstate-misc/episode/1)
+- [Github - XState with React and Angular in Nx Workspace](https://github.com/nartc/nx-state-machine-todos-mvc) by [Chau Tran](https://nartc.me)
