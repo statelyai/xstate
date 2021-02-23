@@ -130,4 +130,68 @@ describe('createModel', () => {
 
     expect(resetState.context).toEqual(userModel.initialContext);
   });
+
+  it('can model events', () => {
+    const userModel = createModel(
+      {
+        name: 'David',
+        age: 30
+      },
+      {
+        updateName: (value: string) => ({ value }),
+        updateAge: (value: number) => ({ value }),
+        anotherEvent: () => ({})
+      }
+    );
+
+    // Example of an externally-defined assign action
+    const assignName = userModel.assign(
+      {
+        name: (_, event) => {
+          return event.value;
+        }
+      },
+      'updateName'
+    );
+
+    const machine = createMachine<
+      typeof userModel['types']['context'],
+      typeof userModel['types']['events']
+    >({
+      context: userModel.initialContext,
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            updateName: {
+              // pre-defined assign action
+              actions: assignName
+            },
+            updateAge: {
+              // inline assign action
+              actions: userModel.assign((_, e) => {
+                return {
+                  age: e.value
+                };
+              })
+            }
+          }
+        }
+      }
+    });
+
+    let updatedState = machine.transition(
+      undefined,
+      userModel.events.updateName('Anyone')
+    );
+
+    expect(updatedState.context.name).toEqual('Anyone');
+
+    updatedState = machine.transition(
+      updatedState,
+      userModel.events.updateAge(42)
+    );
+
+    expect(updatedState.context.age).toEqual(42);
+  });
 });
