@@ -15,7 +15,10 @@
 JavaScript and TypeScript [finite state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and [statecharts](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf) for the modern web.
 
 📖 [Read the documentation](https://xstate.js.org/docs)
-📑 Adheres to the [SCXML specification](https://www.w3.org/TR/scxml/).
+
+📑 Adheres to the [SCXML specification](https://www.w3.org/TR/scxml/)
+
+💬 Chat on the [Stately Discord Community](https://discord.gg/KCtSX7Cdjh)
 
 ## Packages
 
