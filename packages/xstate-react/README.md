@@ -9,6 +9,8 @@
   - [`useMachine(machine, options?)`](#usemachinemachine-options)
   - [`useService(service)`](#useserviceservice)
   - [`useActor(actor, getSnapshot)`](#useactoractor-getsnapshot)
+  - [`useInterpret(machine, options?, observer?)`](#useinterpretmachine-options-observer)
+  - [`useSelector(actor, selector, compare?, getSnapshot?)`](#useselectoractor-selector-compare-getsnapshot)
   - [`asEffect(action)`](#aseffectaction)
   - [`asLayoutEffect(action)`](#aslayouteffectaction)
   - [`useMachine(machine)` with `@xstate/fsm`](#usemachinemachine-with-xstatefsm)
