@@ -196,3 +196,4 @@ There is also a follow-up course: [State Modeling with React and XState](https:/
 - [Github - XState with React and Angular in Nx Workspace](https://github.com/nartc/nx-state-machine-todos-mvc) by [Chau Tran](https://nartc.me)
 - [Boost your React application's performance by XState](https://dev.to/alirezavalizade/boost-your-react-application-s-performance-by-xstate-42p8) by [Alireza Valizade](https://dev.to/alirezavalizade)
 - [Getting Started with XState, React, and Typescript | Part 1](https://www.youtube.com/watch?v=po1YRAk7irY) by [Modus Create](https://www.youtube.com/channel/UCsKwL0-e2eHRNa6Ne99AESw)
+- [Frontend is Rocket Science – Managing state in any JavaScript Application](https://blog.oddeven.ch/blog/frontend-is-rocket-science-managing-state-in-any-javascript-application/) by [Aleksej Dix](https://twitter.com/aleksejdix)
