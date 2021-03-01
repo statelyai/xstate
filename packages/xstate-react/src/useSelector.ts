@@ -25,7 +25,11 @@ export function useSelector<
   compare: (a: T, b: T) => boolean = defaultCompare,
   getSnapshot: (a: TActor) => TEmitted = defaultGetSnapshot
 ) {
-  const [selected, setSelected] = useState(() => selector(getSnapshot(actor)));
+  const selectorRef = useRef(selector);
+  selectorRef.current = selector;
+  const [selected, setSelected] = useState(() =>
+    selectorRef.current(getSnapshot(actor))
+  );
   const selectedRef = useRef<T>(selected);
 
   useEffect(() => {
@@ -36,16 +40,16 @@ export function useSelector<
       }
     };
 
-    const initialSelected = selector(getSnapshot(actor));
+    const initialSelected = selectorRef.current(getSnapshot(actor));
     updateSelectedIfChanged(initialSelected);
 
     const sub = actor.subscribe((emitted) => {
-      const nextSelected = selector(emitted);
+      const nextSelected = selectorRef.current(emitted);
       updateSelectedIfChanged(nextSelected);
     });
 
     return () => sub.unsubscribe();
-  }, [selector, compare]);
+  }, [compare]);
 
   return selected;
 }
