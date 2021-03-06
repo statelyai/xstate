@@ -1,4 +1,4 @@
-import { createMachine, interpret } from '../src';
+import { assign, createMachine, forwardTo, interpret } from '../src';
 
 describe('persistence', () => {
   it('persists actor state', () => {
@@ -10,13 +10,23 @@ describe('persistence', () => {
         },
         active: {
           invoke: {
-            src: createMachine({
+            id: 'counter',
+            src: createMachine<{ count: number }>({
               initial: 'counting',
               context: { count: 42 },
               states: {
-                counting: {}
+                counting: {
+                  on: {
+                    INC: {
+                      actions: assign({ count: (ctx) => ctx.count + 1 })
+                    }
+                  }
+                }
               }
             })
+          },
+          on: {
+            INC: { actions: forwardTo('counter') }
           }
         }
       }
@@ -24,7 +34,16 @@ describe('persistence', () => {
 
     const service = interpret(machine).start();
     service.send('NEXT');
+    service.send('INC');
 
-    console.log(JSON.stringify(service.getSnapshot(), null, 2));
+    const snapshot = service.getSnapshot();
+
+    service.stop();
+
+    const restoredService = interpret(machine).start(snapshot);
+
+    console.log(restoredService.children);
+
+    expect(restoredService.children['counter'].getSnapshot()).toEqual(42);
   });
 });

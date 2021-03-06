@@ -1263,6 +1263,7 @@ export interface ActorRef<TEvent extends EventObject, TEmitted = any>
 export interface SpawnedActorRef<TEvent extends EventObject, TEmitted = any>
   extends ActorRef<TEvent, TEmitted> {
   id: string;
+  src: InvokeSourceDefinition;
   stop?: () => void;
   toJSON?: () => any;
   getSnapshot?: () => TEmitted;

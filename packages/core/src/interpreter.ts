@@ -55,7 +55,12 @@ import {
   mapValues
 } from './utils';
 import { Scheduler } from './scheduler';
-import { Actor, isSpawnedActor, createDeferredActor } from './Actor';
+import {
+  Actor,
+  isSpawnedActor,
+  createDeferredActor,
+  createNullActor
+} from './Actor';
 import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
 import { getGlobal, registerService } from './devTools';
@@ -454,6 +459,7 @@ export class Interpreter<
     initialState?:
       | State<TContext, TEvent, TStateSchema, TTypestate>
       | StateValue
+      | StateSnapshot<TContext, TEvent>
   ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
     if (this.status === InterpreterStatus.Running) {
       // Do not restart the service if it is already started
@@ -464,18 +470,86 @@ export class Interpreter<
     this.initialized = true;
     this.status = InterpreterStatus.Running;
 
-    const resolvedState =
-      initialState === undefined
-        ? this.initialState
-        : serviceScope.provide(this, () => {
-            return isState<TContext, TEvent, TStateSchema, TTypestate>(
-              initialState
-            )
-              ? this.machine.resolveState(initialState)
-              : this.machine.resolveState(
-                  State.from(initialState, this.machine.context)
-                );
-          });
+    let resolvedState: State<TContext, TEvent, TStateSchema, TTypestate>;
+
+    function isSnapshot(x): x is StateSnapshot<TContext, TEvent> {
+      try {
+        return !(x instanceof State) && 'children' in x;
+      } catch {
+        return false;
+      }
+    }
+
+    if (isSnapshot(initialState)) {
+      resolvedState = serviceScope.provide(this, () => {
+        return this.machine.resolveState(
+          State.create({
+            ...initialState,
+            children: mapValues(initialState.children, (child, id) => {
+              const serviceCreator = this.machine.options.services[
+                child.src.type
+              ];
+
+              if (!serviceCreator) {
+                // tslint:disable-next-line:no-console
+                if (!IS_PRODUCTION) {
+                  warn(
+                    false,
+                    `No service found for invocation '${child.src.type}' in machine '${this.machine.id}'.`
+                  );
+                }
+                return createNullActor(id);
+              }
+
+              const source = isFunction(serviceCreator)
+                ? serviceCreator(
+                    initialState.context,
+                    initialState._event.data,
+                    {
+                      data: {},
+                      src: child.src
+                    }
+                  )
+                : serviceCreator;
+
+              if (isPromiseLike(source)) {
+                return this.spawnPromise(Promise.resolve(source), id);
+              } else if (isFunction(source)) {
+                return this.spawnCallback(source, id);
+              } else if (isObservable<TEvent>(source)) {
+                return this.spawnObservable(source, id);
+              } else if (isMachine(source)) {
+                // TODO: try/catch here
+                return this.spawnMachine(source, {
+                  id
+                });
+              } else {
+                return createNullActor(id);
+              }
+            }),
+            actions: [],
+            configuration: [],
+            transitions: []
+          })
+        );
+      });
+      console.log('restored', resolvedState);
+    } else {
+      resolvedState =
+        initialState === undefined
+          ? this.initialState
+          : serviceScope.provide(this, () => {
+              return isState<TContext, TEvent, TStateSchema, TTypestate>(
+                initialState
+              )
+                ? this.machine.resolveState(initialState)
+                : this.machine.resolveState(
+                    State.from(initialState, this.machine.context)
+                  );
+            });
+    }
+
+    console.log('CHILDREN', this.children);
 
     // restore actors
     if (initialState) {
