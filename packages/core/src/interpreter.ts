@@ -526,6 +526,11 @@ export class Interpreter<
       this.doneListeners.delete(listener);
     }
 
+    if (!this.initialized) {
+      // Interpreter already stopped; do nothing
+      return this;
+    }
+
     this.state.configuration.forEach((stateNode) => {
       for (const action of stateNode.definition.exit) {
         this.exec(action, this.state);

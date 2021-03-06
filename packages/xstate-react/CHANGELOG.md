@@ -1,5 +1,42 @@
 # Changelog
 
+## 1.3.1
+
+### Patch Changes
+
+- [`b076b253`](https://github.com/davidkpiano/xstate/commit/b076b25364224874f62e8065892be40dfbb28030) [#1947](https://github.com/davidkpiano/xstate/pull/1947) Thanks [@lukekarrys](https://github.com/lukekarrys)! - Fix typing of the service returned from the fsm useMachine hook by passing it Typestate
+
+* [`9b5dc784`](https://github.com/davidkpiano/xstate/commit/9b5dc7843c44f50bcca0ffccb843b3d50cef6ddc) [#1950](https://github.com/davidkpiano/xstate/pull/1950) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with `toObserver` being internally imported from `xstate/lib/utils` which has broken UMD build and the declared peer dep contract.
+
+## 1.3.0
+
+### Minor Changes
+
+- [`577ae023`](https://github.com/davidkpiano/xstate/commit/577ae02384926b49e876011c4393f212b49066f8) [#1915](https://github.com/davidkpiano/xstate/pull/1915) Thanks [@davidkpiano](https://github.com/davidkpiano)! - New hook: `useInterpret(machine)`, which is a low-level hook that interprets the `machine` and returns the `service`:
+
+  ```js
+  import { useInterpret } from '@xstate/react';
+  import { someMachine } from '../path/to/someMachine';
+
+  const App = () => {
+    const service = useInterpret(someMachine);
+
+    // ...
+  };
+  ```
+
+* [`577ae023`](https://github.com/davidkpiano/xstate/commit/577ae02384926b49e876011c4393f212b49066f8) [#1915](https://github.com/davidkpiano/xstate/pull/1915) Thanks [@davidkpiano](https://github.com/davidkpiano)! - New hook: `useSelector(actor, selector)`, which subscribes to `actor` and returns the selected state derived from `selector(snapshot)`:
+
+  ```js
+  import { useSelector } from '@xstate/react';
+
+  const App = ({ someActor }) => {
+    const count = useSelector(someActor, state => state.context.count);
+
+    // ...
+  };
+  ```
+
 ## 1.2.2
 
 ### Patch Changes
@@ -115,7 +152,7 @@ All notable changes to this project will be documented in this file.
 - The `useActor` hook now takes a second argument: `getSnapshot` which is a function that should return the last emitted value:
 
   ```js
-  const [state, send] = useActor(someActor, (actor) => actor.current);
+  const [state, send] = useActor(someActor, actor => actor.current);
   ```
 
 ## [1.0.0-rc.6]

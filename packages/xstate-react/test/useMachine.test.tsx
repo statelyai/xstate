@@ -7,7 +7,8 @@ import {
   spawn,
   doneInvoke,
   State,
-  createMachine
+  createMachine,
+  send
 } from 'xstate';
 import {
   render,
@@ -18,7 +19,7 @@ import {
 } from '@testing-library/react';
 import { useState } from 'react';
 import { asEffect, asLayoutEffect } from '../src/useMachine';
-import { DoneEventObject } from 'xstate/src';
+import { DoneEventObject } from 'xstate';
 
 afterEach(cleanup);
 
@@ -727,5 +728,32 @@ describe('useMachine (strict mode)', () => {
     };
 
     render(<App />);
+  });
+
+  it('should not miss initial synchronous updates', () => {
+    const m = createMachine<any>({
+      initial: 'idle',
+      context: {
+        count: 0
+      },
+      entry: [assign({ count: 1 }), send('INC')],
+      on: {
+        INC: {
+          actions: [assign({ count: (ctx) => ++ctx.count }), send('UNHANDLED')]
+        }
+      },
+      states: {
+        idle: {}
+      }
+    });
+
+    const App = () => {
+      const [state] = useMachine(m);
+      return state.context.count;
+    };
+
+    const { container } = render(<App />);
+
+    expect(container.textContent).toBe('2');
   });
 });

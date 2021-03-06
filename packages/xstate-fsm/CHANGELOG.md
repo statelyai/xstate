@@ -1,5 +1,26 @@
 # @xstate/fsm
 
+## 1.6.0
+
+### Minor Changes
+
+- [`b990d527`](https://github.com/davidkpiano/xstate/commit/b990d527b760ca6c3ed105a3af7dfcff8bc5b481) [#1911](https://github.com/davidkpiano/xstate/pull/1911) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Transitions with `undefined` targets will no longer exit and re-enter the state, which means that `exit` and `entry` actions will not be executed:
+
+  ```js
+  // ...
+  someState: {
+    entry: [/* ... */],
+    exit: [/* ... */],
+    on: {
+      SOME_EVENT: {
+        // undefined target - will not exit/re-enter
+        actions: [/* ... */]
+      }
+    }
+  }
+  // ...
+  ```
+
 ## 1.5.2
 
 ### Patch Changes
