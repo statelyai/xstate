@@ -97,7 +97,7 @@ import {
 } from './stateUtils';
 import { createInvocableActor } from './Actor';
 import { toInvokeDefinition } from './invokeUtils';
-import { ActorRef } from '.';
+import { ActorRef, MachineSchema } from '.';
 
 const NULL_EVENT = '';
 const STATE_IDENTIFIER = '#';
@@ -246,6 +246,8 @@ class StateNode<
 
   public options: MachineOptions<TContext, TEvent>;
 
+  public schema: MachineSchema<TContext, TEvent>;
+
   public __xstatenode: true = true;
 
   private __cache = {
@@ -285,7 +287,7 @@ class StateNode<
     /**
      * The initial extended state
      */
-    public context?: Readonly<TContext>
+    public context: Readonly<TContext> = undefined as any // TODO: this is unsafe, but we're removing it in v5 anyway
   ) {
     this.options = Object.assign(createDefaultOptions<TContext>(), options);
     this.parent = this.options._parent;
@@ -310,6 +312,10 @@ class StateNode<
         : this.config.history
         ? 'history'
         : 'atomic');
+    this.schema = this.parent
+      ? this.machine.schema
+      : (this.config as MachineConfig<TContext, TStateSchema, TEvent>).schema ??
+        ({} as this['schema']);
 
     if (!IS_PRODUCTION) {
       warn(
