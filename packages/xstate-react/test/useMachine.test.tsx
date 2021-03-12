@@ -7,21 +7,14 @@ import {
   doneInvoke,
   State,
   createMachine,
-  send
+  send,
+  spawnPromise
 } from 'xstate';
-import {
-  render,
-  fireEvent,
-  cleanup,
-  waitForElement,
-  act
-} from '@testing-library/react';
+import { render, fireEvent, waitForElement, act } from '@testing-library/react';
 import { useState } from 'react';
 import { invokePromise, invokeCallback, invokeMachine } from 'xstate/invoke';
 import { asEffect, asLayoutEffect } from '../src/useMachine';
 import { DoneEventObject } from 'xstate';
-
-afterEach(cleanup);
 
 describe('useMachine hook', () => {
   const context = {
@@ -196,8 +189,8 @@ describe('useMachine hook', () => {
       states: {
         start: {
           entry: assign({
-            ref: (_, __, { spawn }) =>
-              spawn.from(new Promise((res) => res(42)), 'my-promise')
+            ref: () =>
+              spawnPromise(() => new Promise((res) => res(42)), 'my-promise')
           }),
           on: {
             [doneInvoke('my-promise')]: 'success'

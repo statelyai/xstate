@@ -5,7 +5,6 @@ import {
   BehaviorCreator,
   SCXML,
   InvokeMeta,
-  ActorRef,
   InvokeActionObject
 } from './types';
 import { State } from './State';
@@ -20,7 +19,6 @@ import {
   createObservableBehavior,
   createPromiseBehavior
 } from './behavior';
-import { actionTypes } from './actions';
 import { isActorRef } from './Actor';
 import { ObservableActorRef } from './ObservableActorRef';
 import { IS_PRODUCTION } from './environment';
@@ -38,7 +36,7 @@ export function invokeMachine<
     | ((ctx: TContext, event: TEvent, meta: InvokeMeta) => TMachine),
   options: { sync?: boolean } = {}
 ): BehaviorCreator<TContext, TEvent> {
-  return (ctx, event, { parent, data, src, _event }) => {
+  return (ctx, event, { data, src, _event }) => {
     const resolvedContext = data ? mapContext(data, ctx, _event) : undefined;
     const machineOrDeferredMachine = isFunction(machine)
       ? () => {
@@ -54,7 +52,7 @@ export function invokeMachine<
       ? machine.withContext(resolvedContext)
       : machine;
 
-    return createMachineBehavior(machineOrDeferredMachine, parent, options);
+    return createMachineBehavior(machineOrDeferredMachine, options);
   };
 }
 
@@ -65,11 +63,11 @@ export function invokePromise<T>(
     meta: InvokeMeta
   ) => PromiseLike<T>
 ): BehaviorCreator<any, AnyEventObject> {
-  return (ctx, e, { parent, data, src, _event }) => {
+  return (ctx, e, { data, src, _event }) => {
     const resolvedData = data ? mapContext(data, ctx, _event) : undefined;
 
     const lazyPromise = () => getPromise(ctx, e, { data: resolvedData, src });
-    return createPromiseBehavior(lazyPromise, parent);
+    return createPromiseBehavior(lazyPromise);
   };
 }
 
@@ -86,18 +84,18 @@ export function invokeActivity<TC, TE extends EventObject>(
 export function invokeCallback<TC, TE extends EventObject = AnyEventObject>(
   callbackCreator: (ctx: TC, e: TE) => InvokeCallback
 ): BehaviorCreator<TC, TE> {
-  return (ctx, event, { parent }): Behavior<SCXML.Event<TE>, undefined> => {
+  return (ctx, event): Behavior<SCXML.Event<TE>, undefined> => {
     const lazyCallback = () => callbackCreator(ctx, event);
-    return createDeferredBehavior<SCXML.Event<TE>>(lazyCallback, parent);
+    return createDeferredBehavior<SCXML.Event<TE>>(lazyCallback);
   };
 }
 
 export function invokeObservable<T extends EventObject = AnyEventObject>(
   source: (ctx: any, event: any) => Subscribable<T>
 ): BehaviorCreator<any, any> {
-  return (ctx, e, { parent }): Behavior<never, T | undefined> => {
+  return (ctx, e): Behavior<never, T | undefined> => {
     const resolvedSource = isFunction(source) ? source(ctx, e) : source;
-    return createObservableBehavior(() => resolvedSource, parent);
+    return createObservableBehavior(() => resolvedSource);
   };
 }
 
@@ -105,23 +103,12 @@ export function createActorRefFromInvokeAction<
   TContext,
   TEvent extends EventObject
 >(
-  state: State<TContext, TEvent>,
+  state: State<TContext, TEvent, any, any>,
   invokeAction: InvokeActionObject,
-  machine: MachineNode<TContext, TEvent>,
-  parentRef?: ActorRef<any>
+  machine: MachineNode<TContext, TEvent>
 ): SpawnedActorRef<any> | undefined {
   const { id, data, src } = invokeAction;
   const { _event, context } = state;
-
-  // If the actor will be stopped right after it's started
-  // (such as in transient states) don't bother starting the actor.
-  if (
-    state.actions.find((otherAction) => {
-      return otherAction.type === actionTypes.stop && otherAction.actor === id;
-    })
-  ) {
-    return undefined;
-  }
 
   let actorRef: SpawnedActorRef<any>;
 
@@ -135,14 +122,13 @@ export function createActorRefFromInvokeAction<
       if (!IS_PRODUCTION) {
         warn(
           false,
-          `No behavior found for invocation '${src.type}' in machine '${machine.id}'.`
+          `No actor found for invocation '${src.type}' in machine '${machine.id}'.`
         );
       }
       return;
     }
 
     const behavior = behaviorCreator(context, _event.data, {
-      parent: parentRef as any, // TODO: fix
       id,
       data,
       src,
@@ -150,6 +136,7 @@ export function createActorRefFromInvokeAction<
     });
 
     actorRef = new ObservableActorRef(behavior, id);
+    invokeAction.src = actorRef;
   }
 
   return actorRef;

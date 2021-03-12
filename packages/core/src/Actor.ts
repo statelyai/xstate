@@ -5,9 +5,11 @@ import {
   InvokeCallback,
   InterpreterOptions,
   ActorRef,
-  SpawnedActorRef
+  SpawnedActorRef,
+  Lazy
 } from './types';
 import { MachineNode } from './MachineNode';
+import { State } from './State';
 import { Interpreter } from './interpreter';
 import {
   Behavior,
@@ -19,9 +21,11 @@ import {
   createDeferredBehavior,
   createPromiseBehavior,
   createObservableBehavior,
+  createBehaviorFrom,
   LifecycleSignal
 } from './behavior';
 import { registry } from './registry';
+import * as capturedState from './capturedState';
 import { ObservableActorRef } from './ObservableActorRef';
 
 const nullSubscription = {
@@ -38,47 +42,40 @@ export function isSpawnedActorRef(item: any): item is SpawnedActorRef<any> {
 
 export function fromObservable<T extends EventObject>(
   observable: Subscribable<T>,
-  parent: ActorRef<any>,
   name: string
 ): ActorRef<never> {
   return new ObservableActorRef(
-    createObservableBehavior(() => observable, parent),
+    createObservableBehavior(() => observable),
     name
   );
 }
 
 export function fromPromise<T>(
   promise: PromiseLike<T>,
-  parent: ActorRef<any>,
   name: string
 ): ActorRef<never> {
   return new ObservableActorRef(
-    createPromiseBehavior(() => promise, parent),
+    createPromiseBehavior(() => promise),
     name
   );
 }
 
 export function fromCallback<TEvent extends EventObject>(
   callback: InvokeCallback,
-  parent: ActorRef<any>,
   name: string
 ): ActorRef<SCXML.Event<TEvent>> {
   return new ObservableActorRef(
-    createDeferredBehavior(() => callback, parent),
+    createDeferredBehavior(() => callback),
     name
   );
 }
 
 export function fromMachine<TContext, TEvent extends EventObject>(
   machine: MachineNode<TContext, TEvent>,
-  parent: ActorRef<any>,
   name: string,
   options?: Partial<InterpreterOptions>
 ): ActorRef<TEvent> {
-  return new ObservableActorRef(
-    createMachineBehavior(machine, parent, options),
-    name
-  );
+  return new ObservableActorRef(createMachineBehavior(machine, options), name);
 }
 
 export function fromService<TContext, TEvent extends EventObject>(
@@ -86,6 +83,66 @@ export function fromService<TContext, TEvent extends EventObject>(
   name: string = registry.bookId()
 ): SpawnedActorRef<TEvent> {
   return new ObservableActorRef(createServiceBehavior(service), name);
+}
+
+export function spawn<TReceived extends EventObject, TEmitted>(
+  behavior: Behavior<TReceived, TEmitted>,
+  // TODO: use more universal uniqueid)
+  name: string = registry.bookId()
+) {
+  const actorRef = new ObservableActorRef(behavior, name);
+  return capturedState.captureSpawn(actorRef, name);
+}
+
+export function spawnPromise<T>(
+  lazyPromise: Lazy<PromiseLike<T>>,
+  name?: string
+) {
+  return spawn(createPromiseBehavior(lazyPromise), name);
+}
+
+export function spawnObservable<T extends EventObject>(
+  lazyObservable: Lazy<Subscribable<T>>,
+  name?: string
+) {
+  return spawn(createObservableBehavior(lazyObservable), name);
+}
+
+export function spawnMachine(
+  machine: MachineNode<any, any, any>,
+  name?: string
+) {
+  return spawn(createMachineBehavior(machine), name);
+}
+
+export function spawnCallback(callback: InvokeCallback, name?: string) {
+  return spawn(
+    createDeferredBehavior(() => callback),
+    name
+  );
+}
+
+export function spawnFrom<TEvent extends EventObject, TEmitted>(
+  entity: PromiseLike<TEmitted>,
+  name?: string
+): ObservableActorRef<TEvent, TEmitted>;
+export function spawnFrom<TEvent extends EventObject, TEmitted>(
+  entity: Subscribable<any>,
+  name?: string
+): ObservableActorRef<any, TEmitted>;
+export function spawnFrom<
+  TEvent extends EventObject,
+  TEmitted extends State<any, any>
+>(
+  entity: MachineNode<TEmitted['context'], any, TEmitted['event']>,
+  name?: string
+): ObservableActorRef<TEvent, TEmitted>;
+export function spawnFrom<TEvent extends EventObject>(
+  entity: InvokeCallback,
+  name?: string
+): ObservableActorRef<TEvent, undefined>;
+export function spawnFrom(entity: any): ObservableActorRef<any, any> {
+  return spawn(createBehaviorFrom(entity));
 }
 
 enum ProcessingStatus {

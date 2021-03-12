@@ -1,13 +1,17 @@
 import * as React from 'react';
 import { useState } from 'react';
 import { useMachine } from '../src';
-import { createMachine, sendParent, assign, ActorRefFrom } from 'xstate';
-import { render, cleanup, fireEvent } from '@testing-library/react';
+import {
+  createMachine,
+  sendParent,
+  assign,
+  ActorRefFrom,
+  spawnMachine
+} from 'xstate';
+import { render, fireEvent, act } from '@testing-library/react';
 import { useActor } from '../src/useActor';
 import { invokeMachine } from 'xstate/invoke';
 import { ActorRef } from '../src/types';
-
-afterEach(cleanup);
 
 describe('useActor', () => {
   it('initial invoked actor should be immediately available', (done) => {
@@ -140,7 +144,7 @@ describe('useActor', () => {
       states: {
         active: {
           entry: assign({
-            actorRef: (_, __, { spawn }) => spawn.from(childMachine)
+            actorRef: () => spawnMachine(childMachine)
           })
         }
       }
@@ -194,7 +198,7 @@ describe('useActor', () => {
       states: {
         active: {
           entry: assign({
-            actorRef: (_, __, { spawn }) => spawn.from(childMachine)
+            actorRef: () => spawnMachine(childMachine)
           }),
           on: { FINISH: 'success' }
         },
@@ -306,7 +310,6 @@ describe('useActor', () => {
   });
 
   it('send() should be stable', (done) => {
-    jest.useFakeTimers();
     const fakeSubscribe = () => {
       return {
         unsubscribe: () => {
@@ -335,7 +338,7 @@ describe('useActor', () => {
       React.useEffect(() => {
         setTimeout(() => {
           // The `send` here is closed-in
-          send({ type: 'anything' });
+          act(() => send({ type: 'anything' }));
         }, 10);
       }, []); // Intentionally omit `send` from dependency array
 
@@ -357,8 +360,6 @@ describe('useActor', () => {
     fireEvent.click(button);
 
     // At this point, `send` refers to the last actor
-
-    jest.advanceTimersByTime(20);
 
     // The effect will call the closed-in `send`, which originally
     // was the reference to the first actor. Now that `send` is stable,

@@ -1,0 +1,29 @@
+import { ObservableActorRef } from './ObservableActorRef';
+import { ActionTypes, ActorRef } from './types';
+
+export const CapturedState = {
+  current: {
+    actorRef: null as ActorRef<any> | null,
+    spawns: [] as any[]
+  }
+};
+
+export function captureSpawn(
+  actorRef: ObservableActorRef<any, any>,
+  name: string
+) {
+  CapturedState.current.spawns.push({
+    type: ActionTypes.Invoke,
+    src: actorRef,
+    id: name
+  });
+
+  return actorRef;
+}
+
+export function flushSpawns() {
+  const { current } = CapturedState;
+  const flushed = current.spawns;
+  current.spawns = [];
+  return flushed;
+}

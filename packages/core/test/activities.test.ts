@@ -2,6 +2,8 @@ import { stateIn } from '../src/guards';
 import { Machine, interpret } from '../src/index';
 import { invokeActivity } from '../src/invoke';
 
+// TODO: remove this file but before doing that ensure that things tested here are covered by other tests
+
 const lightMachine = Machine({
   key: 'light',
   initial: 'green',

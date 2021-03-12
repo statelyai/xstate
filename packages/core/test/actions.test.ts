@@ -3,7 +3,8 @@ import {
   createMachine,
   assign,
   forwardTo,
-  interpret
+  interpret,
+  spawnMachine
 } from '../src/index';
 import { pure, sendParent, log, choose } from '../src/actions';
 import { invokeMachine } from '../src/invoke';
@@ -1081,7 +1082,7 @@ describe('forwardTo()', () => {
       states: {
         first: {
           entry: assign({
-            child: (_, __, { spawn }) => spawn.from(child, 'x')
+            child: () => spawnMachine(child, 'x')
           }),
           on: {
             EVENT: {
