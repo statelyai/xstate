@@ -8,7 +8,7 @@ import type {
 } from './types';
 import { mapValues } from './utils';
 
-export interface ContextModel<
+export interface Model<
   TContext,
   TEvent extends EventObject,
   TEM extends EventCreatorMap<TEvent> = EventCreatorMap<TEvent>
@@ -21,12 +21,16 @@ export interface ContextModel<
     eventType?: TEventType
   ) => AssignAction<TContext, ExtractEvent<TEvent, TEventType>>;
   events: FullEventCreatorMap<TEM>;
-  types: {
-    context: TContext;
-    events: TEvent;
-  };
   reset: () => AssignAction<TContext, any>;
 }
+
+export type ModelContextFrom<
+  TModel extends Model<any, any>
+> = TModel extends Model<infer TContext, any> ? TContext : never;
+
+export type ModelEventsFrom<
+  TModel extends Model<any, any>
+> = TModel extends Model<any, infer TEvent> ? TEvent : never;
 
 type EventCreatorMap<TEvent extends EventObject> = {
   [key in TEvent['type']]: (
@@ -55,21 +59,18 @@ type GetEvents<T extends EventCreatorMap<any>> = Distribute<keyof T, T>;
 
 export function createModel<TContext, TEvent extends EventObject>(
   initialContext: TContext
-): ContextModel<TContext, TEvent, never>;
+): Model<TContext, TEvent, never>;
 export function createModel<
   TContext,
   TEM extends EventCreatorMap<any>,
   TEvent extends EventObject = GetEvents<TEM>
->(
-  initialContext: TContext,
-  eventCreators: TEM
-): ContextModel<TContext, TEvent, TEM>;
+>(initialContext: TContext, eventCreators: TEM): Model<TContext, TEvent, TEM>;
 export function createModel<
   TContext,
   TEM extends EventCreatorMap<any>,
   TEvent extends EventObject = GetEvents<TEM>
 >(initialContext: TContext, eventCreators?) {
-  const model: ContextModel<TContext, TEvent, TEM> = {
+  const model: Model<TContext, TEvent, TEM> = {
     initialContext,
     assign,
     events: (eventCreators
@@ -81,7 +82,6 @@ export function createModel<
           })
         )
       : undefined) as FullEventCreatorMap<TEM>,
-    types: {} as any,
     reset: () => assign(initialContext)
   };
 

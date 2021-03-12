@@ -1,5 +1,5 @@
 import { createMachine } from '../src';
-import { createModel } from '../src/model';
+import { createModel, ModelContextFrom, ModelEventsFrom } from '../src/model';
 
 describe('createModel', () => {
   it('model.assign updates context and is typed correctly', () => {
@@ -155,8 +155,8 @@ describe('createModel', () => {
     );
 
     const machine = createMachine<
-      typeof userModel['types']['context'],
-      typeof userModel['types']['events']
+      ModelContextFrom<typeof userModel>,
+      ModelEventsFrom<typeof userModel>
     >({
       context: userModel.initialContext,
       initial: 'active',
