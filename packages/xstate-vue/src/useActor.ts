@@ -32,14 +32,15 @@ export function useActor<TEvent extends EventObject, TEmitted>(
   getSnapshot: (actor: ActorRef<EventObject, unknown>) => unknown = (a) =>
     isActorWithState(a) ? a.state : undefined
 ): {
-  state: any;
+  state: unknown;
   send: Sender<EventObject>;
 } {
   const actorRef = isRef(actor) ? actor : shallowRef(actor);
   const state = shallowRef(getSnapshot(actorRef.value));
 
-  const send: Sender<EventObject> = (event: TEvent) =>
+  const send: Sender<EventObject> = (event: TEvent) => {
     actorRef.value.send(event);
+  };
 
   watch(
     actorRef,
