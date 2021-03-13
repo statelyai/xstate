@@ -2,12 +2,14 @@ import {
   interpret,
   EventObject,
   StateMachine,
+  State,
   Interpreter,
   InterpreterOptions,
   MachineOptions,
   Typestate
 } from 'xstate';
 import { UseMachineOptions } from './types';
+import { onBeforeUnmount } from 'vue';
 
 export function useInterpret<
   TContext,
@@ -39,14 +41,17 @@ export function useInterpret<
     delays
   };
 
-  const createdMachine = machine.withConfig(machineConfig, {
+  const machineWithConfig = machine.withConfig(machineConfig, {
     ...machine.context,
     ...context
   } as TContext);
 
-  const service = interpret(createdMachine, {
-    deferEvents: true,
-    ...interpreterOptions
+  const service = interpret(machineWithConfig, interpreterOptions).start(
+    rehydratedState ? (State.create(rehydratedState) as any) : undefined
+  );
+
+  onBeforeUnmount(() => {
+    service.stop();
   });
 
   return service;

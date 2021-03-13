@@ -1,6 +1,5 @@
-import { shallowRef, onMounted, onBeforeUnmount, Ref } from 'vue';
+import { shallowRef, onMounted, Ref } from 'vue';
 import {
-  interpret,
   EventObject,
   StateMachine,
   State,
@@ -11,6 +10,8 @@ import {
 } from 'xstate';
 
 import { UseMachineOptions } from './types';
+
+import { useInterpret } from './useInterpret';
 
 export function useMachine<
   TContext,
@@ -26,41 +27,7 @@ export function useMachine<
   send: Interpreter<TContext, any, TEvent, TTypestate>['send'];
   service: Interpreter<TContext, any, TEvent, TTypestate>;
 } {
-  const {
-    context,
-    guards,
-    actions,
-    activities,
-    services,
-    delays,
-    state: rehydratedState,
-    ...interpreterOptions
-  } = options;
-
-  const machineConfig = {
-    context,
-    guards,
-    actions,
-    activities,
-    services,
-    delays
-  };
-
-  const createdMachine = machine.withConfig(machineConfig, {
-    ...machine.context,
-    ...context
-  } as TContext);
-
-  const service = interpret(createdMachine, interpreterOptions).start(
-    rehydratedState
-      ? ((State.create(rehydratedState) as unknown) as State<
-          TContext,
-          TEvent,
-          any,
-          TTypestate
-        >)
-      : undefined
-  );
+  const service = useInterpret(machine, options);
 
   const state = shallowRef(service.state);
 
@@ -72,10 +39,6 @@ export function useMachine<
     });
 
     state.value = service.state;
-  });
-
-  onBeforeUnmount(() => {
-    service.stop();
   });
 
   return { state, send: service.send, service };
