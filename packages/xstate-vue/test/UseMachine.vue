@@ -14,7 +14,6 @@
 import { PropType } from 'vue';
 import { useMachine } from '../src';
 import { Machine, assign, State } from 'xstate';
-import { watch } from 'vue';
 
 const context = {
   data: undefined

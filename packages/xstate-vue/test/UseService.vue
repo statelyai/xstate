@@ -9,7 +9,6 @@
 import { PropType, toRefs } from 'vue';
 import { useService } from '../src';
 import { Interpreter } from 'xstate';
-import { watchEffect } from 'vue';
 
 export default {
   props: {
