@@ -25,15 +25,17 @@
   "files": [
     "lib/**/*.js",
     "lib/**/*.d.ts",
-    "dist/**/*.js"
+    "dist/**/*.js",
+    "es/**/*.js",
+    "es/**/*.d.ts"
   ],
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
   },
   "scripts": {
-    "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
-    "build": "tsc && rollup -c",
+    "clean": "rm -rf dist lib es tsconfig.tsbuildinfo",
+    "build": "tsc && tsc --outDir es --module es2015 && rollup -c",
     "test": "jest",
     "prepublish": "npm run build && npm run test"
   },
