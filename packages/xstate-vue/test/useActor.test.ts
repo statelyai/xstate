@@ -1,7 +1,10 @@
-import { render, fireEvent } from '@testing-library/vue';
+import { render, fireEvent, waitFor } from '@testing-library/vue';
 import UseActor from './UseActor.vue';
 import UseActorSimple from './UseActorSimple.vue';
 import UseActorCreateSimple from './UseActorCreateSimple.vue';
+import UseActorDeferred from './UseActorDeferred.vue';
+
+import { createMachine, interpret, sendParent } from 'xstate';
 
 describe('useActor composable function', () => {
   it('initial invoked actor should be immediately available', async () => {
@@ -12,6 +15,44 @@ describe('useActor composable function', () => {
 
     expect(machineStateEl.textContent).toBe('active');
     expect(actorStateEl.textContent).toBe('active');
+  });
+
+  it('invoked actor should be able to receive (deferred) events that it replays when active', async () => {
+    const childMachine = createMachine({
+      id: 'childMachine',
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            FINISH: { actions: sendParent('FINISH') }
+          }
+        }
+      }
+    });
+    const machine = createMachine({
+      initial: 'active',
+      invoke: {
+        id: 'child',
+        src: childMachine
+      },
+      states: {
+        active: {
+          on: { FINISH: 'success' }
+        },
+        success: {}
+      }
+    });
+
+    const serviceMachine = interpret(machine).start();
+
+    const { getByTestId } = render(UseActorDeferred, {
+      props: { actor: serviceMachine.state.children.child }
+    });
+
+    const actorStateEl = getByTestId('actor-state');
+    expect(actorStateEl.textContent).toBe('active');
+
+    await waitFor(() => expect(serviceMachine.state.value).toBe('success'));
   });
 
   it('actor should provide snapshot value immediately', () => {
