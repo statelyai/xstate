@@ -1,7 +1,7 @@
 import { render, fireEvent } from '@testing-library/vue';
 import UseActor from './UseActor.vue';
 import UseActorSimple from './UseActorSimple.vue';
-import UseActorCreateSimpleActor from './UseActorCreateSimpleActor.vue';
+import UseActorCreateSimple from './UseActorCreateSimple.vue';
 
 describe('useActor composable function', () => {
   it('initial invoked actor should be immediately available', async () => {
@@ -22,7 +22,7 @@ describe('useActor composable function', () => {
   });
 
   it('should update snapshot value when actor changes', async () => {
-    const { getByTestId } = render(UseActorCreateSimpleActor);
+    const { getByTestId } = render(UseActorCreateSimple);
 
     const stateEl = getByTestId('state');
     const button = getByTestId('button');
