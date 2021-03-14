@@ -2,4 +2,4 @@
 '@xstate/vue': minor
 ---
 
-New useInterpret & useActor composables + ES Module exports for Vue
+New useInterpret & useActor + updated useMachine & useService composables ported from @xstate/react.
