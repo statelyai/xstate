@@ -44,10 +44,10 @@ export function useActor(
   send: Sender<EventObject>;
 } {
   const actorRefRef = isRef(actorRef) ? actorRef : shallowRef(actorRef);
-  const state = shallowRef(getSnapshot(actorRefRef.value));
   const deferredEventsRef = shallowRef<EventObject[]>([]);
+  const state = shallowRef(getSnapshot(actorRefRef.value));
 
-  const send: Sender<EventObject> = (event) => {
+  const send: Sender<EventObject> = (event: EventObject) => {
     const currentActorRef = actorRefRef.value;
     // If the previous actor is a deferred actor,
     // queue the events so that they can be replayed
@@ -60,12 +60,10 @@ export function useActor(
   };
 
   watch(
-    actorRef,
+    actorRefRef,
     (newActor, _, onCleanup) => {
-      const newActorRef = isRef(newActor) ? newActor.value : newActor;
-      actorRefRef.value = newActorRef;
-      state.value = getSnapshot(newActorRef);
-      const { unsubscribe } = newActorRef.subscribe({
+      state.value = getSnapshot(newActor);
+      const { unsubscribe } = newActor.subscribe({
         next: (emitted) => (state.value = emitted),
         error: noop,
         complete: noop
@@ -74,7 +72,7 @@ export function useActor(
       // Dequeue deferred events from the previous deferred actorRef
       while (deferredEventsRef.value.length > 0) {
         const deferredEvent = deferredEventsRef.value.shift()!;
-        newActorRef.send(deferredEvent);
+        newActor.send(deferredEvent);
       }
 
       onCleanup(() => unsubscribe());
