@@ -6,7 +6,7 @@ import {
   PayloadSender
 } from 'xstate';
 
-import { Ref, isRef, shallowRef } from 'vue';
+import { Ref } from 'vue';
 
 import { useActor } from './useActor';
 
@@ -37,9 +37,7 @@ export function useService<
   //   );
   // }
 
-  const serviceRef = isRef(service) ? service : shallowRef(service);
-
-  const { state, send } = useActor(serviceRef, getServiceSnapshot);
+  const { state, send } = useActor(service, getServiceSnapshot);
 
   return { state, send };
 }

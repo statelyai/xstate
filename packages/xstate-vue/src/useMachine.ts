@@ -27,17 +27,25 @@ export function useMachine<
   send: Interpreter<TContext, any, TEvent, TTypestate>['send'];
   service: Interpreter<TContext, any, TEvent, TTypestate>;
 } {
-  const service = useInterpret(machine, options);
+  const service = useInterpret(machine, options, listener);
 
   const state = shallowRef(service.state);
 
-  onMounted(() => {
-    service.onTransition((currentState) => {
-      if (currentState.changed) {
-        state.value = currentState;
-      }
-    });
+  function listener(nextState: State<TContext, TEvent, any, TTypestate>) {
+    // Only change the current state if:
+    // - the incoming state is the "live" initial state (since it might have new actors)
+    // - OR the incoming state actually changed.
+    //
+    // The "live" initial state will have .changed === undefined.
+    const initialStateChanged =
+      nextState.changed === undefined && Object.keys(nextState.children).length;
 
+    if (nextState.changed || initialStateChanged) {
+      state.value = nextState;
+    }
+  }
+
+  onMounted(() => {
     state.value = service.state;
   });
 
