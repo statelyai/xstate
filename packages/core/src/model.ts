@@ -40,7 +40,7 @@ type EventCreatorMap<TEvent extends EventObject> = {
 
 type FullEventCreatorMap<
   TEM extends EventCreatorMap<any>,
-  TE extends EventObject = GetEvents<TEM>
+  TE extends EventObject = GetEventsFromEventCreatorMap<TEM>
 > = TEM extends any
   ? {
       [K in keyof TEM]: (
@@ -50,12 +50,24 @@ type FullEventCreatorMap<
   : never;
 
 type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
-type Distribute<U, V extends Record<string, () => object>> = U extends keyof V &
-  string
-  ? Expand<{ type: U } & ReturnType<V[U]>>
+
+// This turns an object like: {
+//   foo: (bar: string) => ({ bar }),
+//   baz: () => ({})
+// }
+// into this:
+// { type: 'foo', bar: string } | { type: 'baz' }
+type Distribute<
+  TKey,
+  TMapping extends { [TEventType in string]: () => object }
+> = TKey extends keyof TMapping & string
+  ? Expand<{ type: TKey } & ReturnType<TMapping[TKey]>>
   : never;
 
-type GetEvents<T extends EventCreatorMap<any>> = Distribute<keyof T, T>;
+type GetEventsFromEventCreatorMap<T extends EventCreatorMap<any>> = Distribute<
+  keyof T,
+  T
+>;
 
 export function createModel<TContext, TEvent extends EventObject>(
   initialContext: TContext
@@ -63,12 +75,12 @@ export function createModel<TContext, TEvent extends EventObject>(
 export function createModel<
   TContext,
   TEM extends EventCreatorMap<any>,
-  TEvent extends EventObject = GetEvents<TEM>
+  TEvent extends EventObject = GetEventsFromEventCreatorMap<TEM>
 >(initialContext: TContext, eventCreators: TEM): Model<TContext, TEvent, TEM>;
 export function createModel<
   TContext,
   TEM extends EventCreatorMap<any>,
-  TEvent extends EventObject = GetEvents<TEM>
+  TEvent extends EventObject = GetEventsFromEventCreatorMap<TEM>
 >(initialContext: TContext, eventCreators?) {
   const model: Model<TContext, TEvent, TEM> = {
     initialContext,
