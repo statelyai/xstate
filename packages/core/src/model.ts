@@ -11,7 +11,7 @@ import { mapValues } from './utils';
 export interface Model<
   TContext,
   TEvent extends EventObject,
-  TEM extends EventCreatorMap<TEvent> = EventCreatorMap<TEvent>
+  TEM extends EventCreatorMap<TEvent> = never
 > {
   initialContext: TContext;
   assign: <TEventType extends TEvent['type'] = TEvent['type']>(
@@ -25,12 +25,12 @@ export interface Model<
 }
 
 export type ModelContextFrom<
-  TModel extends Model<any, any>
-> = TModel extends Model<infer TContext, any> ? TContext : never;
+  TModel extends Model<any, any, any>
+> = TModel extends Model<infer TContext, any, any> ? TContext : never;
 
 export type ModelEventsFrom<
-  TModel extends Model<any, any>
-> = TModel extends Model<any, infer TEvent> ? TEvent : never;
+  TModel extends Model<any, any, any>
+> = TModel extends Model<any, infer TEvent, any> ? TEvent : never;
 
 type EventCreatorMap<TEvent extends EventObject> = {
   [key in TEvent['type']]: (
@@ -79,7 +79,7 @@ interface ModelCreators<
 
 export function createModel<TContext, TEvent extends EventObject>(
   initialContext: TContext
-): Model<TContext, TEvent, never>;
+): Model<TContext, TEvent>;
 export function createModel<
   TContext,
   TEM extends EventCreatorMap<any>,
