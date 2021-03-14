@@ -6,7 +6,6 @@ describe('useInterpret composable function', () => {
     const { getByTestId } = render(UseInterpret);
 
     const buttonEl = getByTestId('button');
-
     expect(buttonEl.textContent).toBe('Turn on');
   });
 

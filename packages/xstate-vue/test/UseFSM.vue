@@ -12,6 +12,7 @@
 <script lang="ts">
 import { useMachine } from '../src/fsm';
 import { createMachine, assign } from '@xstate/fsm';
+import { defineComponent } from 'vue';
 
 const context = {
   data: undefined
@@ -39,7 +40,7 @@ const fetchMachine = createMachine<typeof context, any>({
   }
 });
 
-export default {
+export default defineComponent({
   setup() {
     const onFetch = () =>
       new Promise((res) => setTimeout(() => res('some data'), 50));
@@ -56,5 +57,5 @@ export default {
 
     return { state, send, service };
   }
-};
+});
 </script>

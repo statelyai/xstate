@@ -8,7 +8,7 @@
 import { useInterpret } from '../src';
 import { createMachine } from 'xstate';
 
-import { ref } from 'vue';
+import { defineComponent, ref } from 'vue';
 const machine = createMachine({
   initial: 'inactive',
   states: {
@@ -25,7 +25,7 @@ const machine = createMachine({
   }
 });
 
-export default {
+export default defineComponent({
   setup() {
     const service = useInterpret(machine);
     const state = ref();
@@ -34,5 +34,5 @@ export default {
     });
     return { service, state };
   }
-};
+});
 </script>
