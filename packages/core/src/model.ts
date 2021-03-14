@@ -69,6 +69,14 @@ type GetEventsFromEventCreatorMap<T extends EventCreatorMap<any>> = Distribute<
   T
 >;
 
+interface ModelCreators<
+  _TContext,
+  TEvent extends EventObject,
+  TEM extends EventCreatorMap<TEvent>
+> {
+  events: TEM;
+}
+
 export function createModel<TContext, TEvent extends EventObject>(
   initialContext: TContext
 ): Model<TContext, TEvent, never>;
@@ -76,12 +84,17 @@ export function createModel<
   TContext,
   TEM extends EventCreatorMap<any>,
   TEvent extends EventObject = GetEventsFromEventCreatorMap<TEM>
->(initialContext: TContext, eventCreators: TEM): Model<TContext, TEvent, TEM>;
+>(
+  initialContext: TContext,
+  creators: ModelCreators<TContext, TEvent, TEM>
+): Model<TContext, TEvent, TEM>;
 export function createModel<
   TContext,
   TEM extends EventCreatorMap<any>,
   TEvent extends EventObject = GetEventsFromEventCreatorMap<TEM>
->(initialContext: TContext, eventCreators?) {
+>(initialContext: TContext, creators?) {
+  const eventCreators = creators?.events;
+
   const model: Model<TContext, TEvent, TEM> = {
     initialContext,
     assign,

@@ -138,12 +138,14 @@ describe('createModel', () => {
         age: 30
       },
       {
-        updateName: (value: string) => ({ value }),
-        updateAge: (value: number) => ({
-          value,
-          type: 'this should be overwritten'
-        }),
-        anotherEvent: () => ({})
+        events: {
+          updateName: (value: string) => ({ value }),
+          updateAge: (value: number) => ({
+            value,
+            type: 'this should be overwritten'
+          }),
+          anotherEvent: () => ({})
+        }
       }
     );
 
