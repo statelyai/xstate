@@ -49,7 +49,7 @@ type FullEventCreatorMap<
     }
   : never;
 
-type Expand<A extends any> = { [K in keyof A]: A[K] } & unknown;
+type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
 
 // This turns an object like: {
 //   foo: (bar: string) => ({ bar }),
@@ -89,8 +89,8 @@ export function createModel<
       ? mapValues(
           eventCreators,
           (fn, eventType) => (...args: Parameters<typeof fn>) => ({
-            type: eventType,
-            ...fn(...args)
+            ...fn(...args),
+            type: eventType
           })
         )
       : undefined) as FullEventCreatorMap<TEM>,
