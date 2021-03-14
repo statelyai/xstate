@@ -18,12 +18,12 @@ type EmittedOfActorRef<
 const noop = () => {};
 
 export function useActor<TActor extends ActorRef<any, any>>(
-  actorRef: TActor | Ref<TActor>,
+  actor: TActor | Ref<TActor>,
   getSnapshot?: (actor: TActor) => EmittedOfActorRef<TActor>
 ): { state: EmittedOfActorRef<TActor>; send: Sender<EventOfActorRef<TActor>> };
 
 export function useActor<TEvent extends EventObject, TEmitted>(
-  actorRef: ActorRef<TEvent, TEmitted> | Ref<ActorRef<TEvent, TEmitted>>,
+  actor: ActorRef<TEvent, TEmitted> | Ref<ActorRef<TEvent, TEmitted>>,
   getSnapshot?: (actor: ActorRef<TEvent, TEmitted>) => TEmitted
 ): { state: TEmitted; send: Sender<TEvent> };
 
