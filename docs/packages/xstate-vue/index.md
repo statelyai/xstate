@@ -116,13 +116,103 @@ This special `useMachine` hook is imported from `@xstate/vue/lib/fsm`
 
 **Example** (TODO)
 
-## Configuring Machines (TODO)
+## Configuring Machines
 
 Existing machines can be configured by passing the machine options as the 2nd argument of `useMachine(machine, options)`.
 
 Example: the `'fetchData'` service and `'notifySuccess'` action are both configurable:
 
-**Example** (TODO)
+```vue
+<template>
+  <template v-if="state.value === 'idle'">
+    <button @click="send('FETCH', { query: 'something' })">
+      Search for something
+    </button>
+  </template>
+
+  <template v-else-if="state.value === 'loading'">
+    <div>Searching...</div>
+  </template>
+
+  <template v-else-if="state.value === 'success'">
+    <div>Success! {{ state.context.data }}</div>
+  </template>
+
+  <template v-else-if="state.value === 'failure'">
+    <p>{{ state.context.error.message }}</p>
+    <button @click="send('RETRY')">Retry</button>
+  </template>
+</template>
+
+<script>
+import { assign, Machine } from 'xstate';
+import { useMachine } from '@xstate/vue';
+
+const fetchMachine = Machine({
+  id: 'fetch',
+  initial: 'idle',
+  context: {
+    data: undefined,
+    error: undefined,
+  },
+  states: {
+    idle: {
+      on: { FETCH: 'loading' },
+    },
+    loading: {
+      invoke: {
+        src: 'fetchData',
+        onDone: {
+          target: 'success',
+          actions: assign({
+            data: (_context, event) => event.data,
+          }),
+        },
+        onError: {
+          target: 'failure',
+          actions: assign({
+            error: (_context, event) => event.data,
+          }),
+        },
+      },
+    },
+    success: {
+      entry: 'notifySuccess',
+      type: 'final',
+    },
+    failure: {
+      on: {
+        RETRY: 'loading',
+      },
+    },
+  },
+});
+
+export default {
+  props: {
+    onResolve: {
+      type: Function,
+      default: () => {},
+    },
+  },
+  setup(props) {
+    const { state, send } = useMachine(fetchMachine, {
+      actions: {
+        notifySuccess: ctx => props.onResolve(ctx.data),
+      },
+      services: {
+        fetchData: (_context, event) =>
+          fetch(`some/api/${event.query}`).then(res => res.json()),
+      },
+    });
+    return {
+      state,
+      send,
+    };
+  },
+};
+</script>
+```
 
 ## Matching States
 

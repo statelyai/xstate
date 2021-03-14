@@ -623,7 +623,7 @@ const maybeDoThese = choose([
 ]);
 ```
 
-This is analogous to the SCXML `<if>`, `<elseif>`, and `<else>` elements: [www.w3.org/TR/scxml/#if](www.w3.org/TR/scxml/#if)
+This is analogous to the SCXML `<if>`, `<elseif>`, and `<else>` elements: [www.w3.org/TR/scxml/#if](https://www.w3.org/TR/scxml/#if)
 
 ## Pure Action
 
