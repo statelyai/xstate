@@ -49,7 +49,7 @@ type FullEventCreatorMap<
     }
   : never;
 
-type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
+type Expand<A extends any> = { [K in keyof A]: A[K] } & unknown;
 
 // This turns an object like: {
 //   foo: (bar: string) => ({ bar }),
