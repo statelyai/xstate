@@ -1980,9 +1980,10 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
               NEXT: {
                 target: 'gone',
                 actions: [
-                  stop((ctx) => ctx.machineRef),
-                  stop((ctx) => ctx.promiseRef),
-                  stop((ctx) => ctx.observableRef)
+                  // TODO: type these correctly in TContext
+                  stop((ctx) => (ctx as any).machineRef),
+                  stop((ctx) => (ctx as any).promiseRef),
+                  stop((ctx) => (ctx as any).observableRef)
                 ]
               }
             }
