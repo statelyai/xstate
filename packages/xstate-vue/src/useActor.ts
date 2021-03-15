@@ -26,12 +26,15 @@ const noop = () => {};
 export function useActor<TActor extends ActorRef<any, any>>(
   actorRef: TActor | Ref<TActor>,
   getSnapshot?: (actor: TActor) => EmittedOfActorRef<TActor>
-): { state: EmittedOfActorRef<TActor>; send: Sender<EventOfActorRef<TActor>> };
+): {
+  state: Ref<EmittedOfActorRef<TActor>>;
+  send: Sender<EventOfActorRef<TActor>>;
+};
 
 export function useActor<TEvent extends EventObject, TEmitted>(
   actorRef: ActorRef<TEvent, TEmitted> | Ref<ActorRef<TEvent, TEmitted>>,
   getSnapshot?: (actor: ActorRef<TEvent, TEmitted>) => TEmitted
-): { state: TEmitted; send: Sender<TEvent> };
+): { state: Ref<TEmitted>; send: Sender<TEvent> };
 
 export function useActor(
   actorRef:
@@ -40,7 +43,7 @@ export function useActor(
   getSnapshot: (actor: ActorRef<EventObject, unknown>) => unknown = (a) =>
     isActorWithState(a) ? a.state : undefined
 ): {
-  state: unknown;
+  state: Ref<unknown>;
   send: Sender<EventObject>;
 } {
   const actorRefRef = isRef(actorRef) ? actorRef : shallowRef(actorRef);

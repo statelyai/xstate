@@ -28,7 +28,7 @@ export function useService<
     | Interpreter<TContext, any, TEvent, TTypestate>
     | Ref<Interpreter<TContext, any, TEvent, TTypestate>>
 ): {
-  state: State<TContext, TEvent, any, TTypestate>;
+  state: Ref<State<TContext, TEvent, any, TTypestate>>;
   send: PayloadSender<TEvent>;
 } {
   // if (process.env.NODE_ENV !== 'production' && !('machine' in service)) {
