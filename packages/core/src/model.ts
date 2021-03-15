@@ -38,11 +38,20 @@ export type ModelEventsFrom<
   TModel extends Model<any, any, any>
 > = TModel extends Model<any, infer TEvent, any> ? TEvent : never;
 
+type EventCreator<
+  Self extends AnyFunction,
+  Return = ReturnType<Self>
+> = Return extends object
+  ? Return extends {
+      type: any;
+    }
+    ? "An event creator can't return an object with a type property"
+    : Self
+  : 'An event creator must return an object';
+
 type EventCreators<Self> = {
   [K in keyof Self]: Self[K] extends AnyFunction
-    ? ReturnType<Self[K]> extends { type: any }
-      ? "You can't return a type property from an event creator"
-      : Self[K]
+    ? EventCreator<Self[K]>
     : 'An event creator must be a function';
 };
 
