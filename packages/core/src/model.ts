@@ -95,7 +95,7 @@ export function createModel<
   >,
   TFinalModelCreators
 >;
-export function createModel(initialContext: object, creators?) {
+export function createModel(initialContext: object, creators?): unknown {
   const eventCreators = creators?.events;
 
   const model: Model<any, any, any> = {
