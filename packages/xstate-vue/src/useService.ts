@@ -6,7 +6,7 @@ import {
   PayloadSender
 } from 'xstate';
 
-import { Ref } from 'vue';
+import { Ref, isRef } from 'vue';
 
 import { useActor } from './useActor';
 
@@ -31,11 +31,14 @@ export function useService<
   state: Ref<State<TContext, TEvent, any, TTypestate>>;
   send: PayloadSender<TEvent>;
 } {
-  // if (process.env.NODE_ENV !== 'production' && !('machine' in service)) {
-  //   throw new Error(
-  //     `Attempted to use an actor-like object instead of a service in the useService() hook. Please use the useActor() hook instead.`
-  //   );
-  // }
+  if (
+    process.env.NODE_ENV !== 'production' &&
+    !('machine' in (isRef(service) ? service.value : service))
+  ) {
+    throw new Error(
+      `Attempted to use an actor-like object instead of a service in the useService() hook. Please use the useActor() hook instead.`
+    );
+  }
 
   const { state, send } = useActor(service, getServiceSnapshot);
 
