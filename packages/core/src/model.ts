@@ -8,10 +8,16 @@ import type {
 } from './types';
 import { mapValues } from './utils';
 
+type AnyFunction = (...args: any[]) => any;
+
+type Cast<A1 extends any, A2 extends any> = A1 extends A2 ? A1 : A2;
+type Compute<A extends any> = { [K in keyof A]: A[K] } & unknown;
+type Prop<T, K> = K extends keyof T ? T[K] : never;
+
 export interface Model<
   TContext,
   TEvent extends EventObject,
-  TEM extends EventCreatorMap<TEvent> = EventCreatorMap<TEvent>
+  TModelCreators = never
 > {
   initialContext: TContext;
   assign: <TEventType extends TEvent['type'] = TEvent['type']>(
@@ -20,93 +26,62 @@ export interface Model<
       | PropertyAssigner<TContext, ExtractEvent<TEvent, TEventType>>,
     eventType?: TEventType
   ) => AssignAction<TContext, ExtractEvent<TEvent, TEventType>>;
-  events: FullEventCreatorMap<TEM>;
+  events: Prop<TModelCreators, 'events'>;
   reset: () => AssignAction<TContext, any>;
 }
 
 export type ModelContextFrom<
-  TModel extends Model<any, any>
-> = TModel extends Model<infer TContext, any> ? TContext : never;
+  TModel extends Model<any, any, any>
+> = TModel extends Model<infer TContext, any, any> ? TContext : never;
 
 export type ModelEventsFrom<
-  TModel extends Model<any, any>
-> = TModel extends Model<any, infer TEvent> ? TEvent : never;
+  TModel extends Model<any, any, any>
+> = TModel extends Model<any, infer TEvent, any> ? TEvent : never;
 
-type EventCreatorMap<TEvent extends EventObject> = {
-  [key in TEvent['type']]: (
-    ...args: any[]
-  ) => Omit<TEvent & { type: key }, 'type'>;
+type EventCreators<Self> = {
+  [K in keyof Self]: Self[K] extends AnyFunction
+    ? ReturnType<Self[K]> extends { type: any }
+      ? "You can't return a type property from an event creator"
+      : Self[K]
+    : 'An event creator must be a function';
 };
 
-type FullEventCreatorMap<
-  TEM extends EventCreatorMap<any>,
-  TE extends EventObject = GetEventsFromEventCreatorMap<TEM>
-> = TEM extends any
-  ? {
-      [K in keyof TEM]: (
-        ...args: Parameters<TEM[K]>
-      ) => TE extends { type: K } ? TE : never;
-    }
-  : never;
+type ModelCreators<Self> = {
+  events: EventCreators<Prop<Self, 'events'>>;
+};
 
-type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
-
-// This turns an object like: {
-//   foo: (bar: string) => ({ bar }),
-//   baz: () => ({})
-// }
-// into this:
-// { type: 'foo', bar: string } | { type: 'baz' }
-type Distribute<
-  TKey,
-  TMapping extends { [TEventType in string]: () => object }
-> = TKey extends keyof TMapping & string
-  ? Expand<{ type: TKey } & ReturnType<TMapping[TKey]>>
-  : never;
-
-type GetEventsFromEventCreatorMap<T extends EventCreatorMap<any>> = Distribute<
-  keyof T,
-  T
->;
-
-interface ModelCreators<
-  _TContext,
-  TEvent extends EventObject,
-  TEM extends EventCreatorMap<TEvent>
-> {
-  events: TEM;
-}
+type EventFromEventCreators<EventCreators> = {
+  [K in keyof EventCreators]: EventCreators[K] extends AnyFunction
+    ? Compute<ReturnType<EventCreators[K]> & { type: K }>
+    : never;
+}[keyof EventCreators];
 
 export function createModel<TContext, TEvent extends EventObject>(
   initialContext: TContext
 ): Model<TContext, TEvent, never>;
 export function createModel<
   TContext,
-  TEM extends EventCreatorMap<any>,
-  TEvent extends EventObject = GetEventsFromEventCreatorMap<TEM>
+  TModelCreators extends ModelCreators<TModelCreators>
 >(
   initialContext: TContext,
-  creators: ModelCreators<TContext, TEvent, TEM>
-): Model<TContext, TEvent, TEM>;
-export function createModel<
+  creators: TModelCreators
+): Model<
   TContext,
-  TEM extends EventCreatorMap<any>,
-  TEvent extends EventObject = GetEventsFromEventCreatorMap<TEM>
->(initialContext: TContext, creators?) {
+  Cast<EventFromEventCreators<TModelCreators['events']>, EventObject>,
+  TModelCreators
+>;
+export function createModel(initialContext: object, creators?) {
   const eventCreators = creators?.events;
 
-  const model: Model<TContext, TEvent, TEM> = {
+  const model: Model<any, any, any> = {
     initialContext,
     assign,
     events: (eventCreators
-      ? mapValues(
-          eventCreators,
-          (fn, eventType) => (...args: Parameters<typeof fn>) => ({
-            ...fn(...args),
-            type: eventType
-          })
-        )
-      : undefined) as FullEventCreatorMap<TEM>,
+      ? mapValues(eventCreators, (fn, eventType) => (...args: any[]) => ({
+          ...fn(...args),
+          type: eventType
+        }))
+      : undefined) as any,
     reset: () => assign(initialContext)
   };
 

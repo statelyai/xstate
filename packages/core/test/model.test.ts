@@ -140,10 +140,13 @@ describe('createModel', () => {
       {
         events: {
           updateName: (value: string) => ({ value }),
-          updateAge: (value: number) => ({
-            value,
-            type: 'this should be overwritten'
-          }),
+          updateAge: (value: number) => {
+            const payload = {
+              value
+            };
+            (payload as any).type = 'this should be overwritten';
+            return payload;
+          },
           anotherEvent: () => ({})
         }
       }
