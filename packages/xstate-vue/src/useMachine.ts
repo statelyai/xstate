@@ -1,4 +1,4 @@
-import { shallowRef, onMounted, Ref } from 'vue';
+import { shallowRef, Ref } from 'vue';
 import {
   EventObject,
   StateMachine,
@@ -9,7 +9,7 @@ import {
   Typestate
 } from 'xstate';
 
-import { UseMachineOptions } from './types';
+import { UseMachineOptions, MaybeLazy } from './types';
 
 import { useInterpret } from './useInterpret';
 
@@ -18,7 +18,7 @@ export function useMachine<
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(
-  machine: StateMachine<TContext, any, TEvent, TTypestate>,
+  getMachine: MaybeLazy<StateMachine<TContext, any, TEvent, TTypestate>>,
   options: Partial<InterpreterOptions> &
     Partial<UseMachineOptions<TContext, TEvent>> &
     Partial<MachineOptions<TContext, TEvent>> = {}
@@ -27,9 +27,17 @@ export function useMachine<
   send: Interpreter<TContext, any, TEvent, TTypestate>['send'];
   service: Interpreter<TContext, any, TEvent, TTypestate>;
 } {
-  const service = useInterpret(machine, options, listener);
+  const service = useInterpret(getMachine, options, listener);
 
-  const state = shallowRef(service.state);
+  const { initialState } = service.machine;
+  const state = shallowRef(
+    (options.state ? State.create(options.state) : initialState) as State<
+      TContext,
+      TEvent,
+      any,
+      TTypestate
+    >
+  );
 
   function listener(nextState: State<TContext, TEvent, any, TTypestate>) {
     // Only change the current state if:
@@ -44,10 +52,6 @@ export function useMachine<
       state.value = nextState;
     }
   }
-
-  onMounted(() => {
-    state.value = service.state;
-  });
 
   return { state, send: service.send, service };
 }

@@ -9,7 +9,7 @@ import {
   Typestate,
   Observer
 } from 'xstate';
-import { UseMachineOptions } from './types';
+import { UseMachineOptions, MaybeLazy } from './types';
 import { onBeforeUnmount, onMounted } from 'vue';
 
 // copied from core/src/utils.ts
@@ -37,7 +37,7 @@ export function useInterpret<
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(
-  machine: StateMachine<TContext, any, TEvent, TTypestate>,
+  getMachine: MaybeLazy<StateMachine<TContext, any, TEvent, TTypestate>>,
   options: Partial<InterpreterOptions> &
     Partial<UseMachineOptions<TContext, TEvent>> &
     Partial<MachineOptions<TContext, TEvent>> = {},
@@ -45,6 +45,8 @@ export function useInterpret<
     | Observer<State<TContext, TEvent, any, TTypestate>>
     | ((value: State<TContext, TEvent, any, TTypestate>) => void)
 ): Interpreter<TContext, any, TEvent, TTypestate> {
+  const machine = typeof getMachine === 'function' ? getMachine() : getMachine;
+
   const {
     context,
     guards,
