@@ -6,17 +6,20 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, onMounted } from 'vue';
+import { defineComponent, onMounted, PropType } from 'vue';
 import { useActor } from '../src';
+import { ActorRefFrom } from 'xstate';
 
 export default defineComponent({
   props: {
     actor: {
-      type: Object
+      type: Object as PropType<ActorRefFrom<any>>
     }
   },
   setup(props) {
-    const { state: actorState, send: actorSend } = useActor(props.actor as any);
+    const { state: actorState, send: actorSend } = useActor(
+      props.actor as ActorRefFrom<any>
+    );
 
     onMounted(() => {
       actorSend({ type: 'FINISH' });

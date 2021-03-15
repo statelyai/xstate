@@ -1,5 +1,5 @@
 <template>
-  <button @click="service?.send('TOGGLE')" data-testid="button">
+  <button @click="service.send('TOGGLE')" data-testid="button">
     {{ state === 'inactive' ? 'Turn on' : 'Turn off' }}
   </button>
 </template>
