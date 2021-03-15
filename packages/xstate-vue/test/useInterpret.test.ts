@@ -1,4 +1,4 @@
-import { render, fireEvent } from '@testing-library/vue';
+import { render, fireEvent, waitFor } from '@testing-library/vue';
 import UseInterpret from './UseInterpret.vue';
 
 describe('useInterpret composable function', () => {
@@ -6,7 +6,7 @@ describe('useInterpret composable function', () => {
     const { getByTestId } = render(UseInterpret);
 
     const buttonEl = getByTestId('button');
-    expect(buttonEl.textContent).toBe('Turn on');
+    await waitFor(() => expect(buttonEl.textContent).toBe('Turn on'));
   });
 
   it('observer should be called with next state', async () => {
@@ -14,8 +14,8 @@ describe('useInterpret composable function', () => {
 
     const buttonEl = getByTestId('button');
 
-    expect(buttonEl.textContent).toBe('Turn on');
+    await waitFor(() => expect(buttonEl.textContent).toBe('Turn on'));
     await fireEvent.click(buttonEl);
-    expect(buttonEl.textContent).toBe('Turn off');
+    await waitFor(() => expect(buttonEl.textContent).toBe('Turn off'));
   });
 });

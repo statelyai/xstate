@@ -27,11 +27,11 @@ const machine = createMachine({
 
 export default defineComponent({
   setup() {
-    const service = useInterpret(machine);
     const state = ref();
-    service.subscribe((nextState) => {
+    const service = useInterpret(machine, {}, (nextState) => {
       state.value = nextState.value;
     });
+
     return { service, state };
   }
 });
