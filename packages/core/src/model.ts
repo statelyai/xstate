@@ -50,9 +50,21 @@ type ModelCreators<Self> = {
   events: EventCreators<Prop<Self, 'events'>>;
 };
 
+type FinalEventCreators<Self> = {
+  [K in keyof Self]: Self[K] extends AnyFunction
+    ? (
+        ...args: Parameters<Self[K]>
+      ) => Compute<ReturnType<Self[K]> & { type: K }>
+    : never;
+};
+
+type FinalModelCreators<Self> = {
+  events: FinalEventCreators<Prop<Self, 'events'>>;
+};
+
 type EventFromEventCreators<EventCreators> = {
   [K in keyof EventCreators]: EventCreators[K] extends AnyFunction
-    ? Compute<ReturnType<EventCreators[K]> & { type: K }>
+    ? ReturnType<EventCreators[K]>
     : never;
 }[keyof EventCreators];
 
@@ -61,14 +73,18 @@ export function createModel<TContext, TEvent extends EventObject>(
 ): Model<TContext, TEvent, never>;
 export function createModel<
   TContext,
-  TModelCreators extends ModelCreators<TModelCreators>
+  TModelCreators extends ModelCreators<TModelCreators>,
+  TFinalModelCreators = FinalModelCreators<TModelCreators>
 >(
   initialContext: TContext,
   creators: TModelCreators
 ): Model<
   TContext,
-  Cast<EventFromEventCreators<TModelCreators['events']>, EventObject>,
-  TModelCreators
+  Cast<
+    EventFromEventCreators<Prop<TFinalModelCreators, 'events'>>,
+    EventObject
+  >,
+  TFinalModelCreators
 >;
 export function createModel(initialContext: object, creators?) {
   const eventCreators = creators?.events;
