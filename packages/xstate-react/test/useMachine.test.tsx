@@ -731,7 +731,7 @@ describe('useMachine (strict mode)', () => {
   });
 
   it('should not miss initial synchronous updates', () => {
-    const m = createMachine<any>({
+    const m = createMachine<{ count: number }>({
       initial: 'idle',
       context: {
         count: 0
@@ -749,7 +749,7 @@ describe('useMachine (strict mode)', () => {
 
     const App = () => {
       const [state] = useMachine(m);
-      return state.context.count;
+      return <>{state.context.count}</>;
     };
 
     const { container } = render(<App />);
