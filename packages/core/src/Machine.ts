@@ -50,7 +50,7 @@ export function Machine<
 }
 
 export function createMachine<
-  TModel extends Model<any, any>,
+  TModel extends Model<any, any, any>,
   TContext = ModelContextFrom<TModel>,
   TEvent extends EventObject = ModelEventsFrom<TModel>,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
