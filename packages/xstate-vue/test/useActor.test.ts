@@ -2,7 +2,7 @@ import { render, fireEvent, waitFor } from '@testing-library/vue';
 import UseActor from './UseActor.vue';
 import UseActorSimple from './UseActorSimple.vue';
 import UseActorCreateSimple from './UseActorCreateSimple.vue';
-import UseActorDeferred from './UseActorDeferred.vue';
+import UseActorComponentProp from './UseActorComponentProp.vue';
 
 import { createMachine, interpret, sendParent } from 'xstate';
 
@@ -17,7 +17,7 @@ describe('useActor composable function', () => {
     expect(actorStateEl.textContent).toBe('active');
   });
 
-  it('invoked actor should be able to receive (deferred) events that it replays when active', async () => {
+  it('invoked actor in a standalone component should be able to receive events', async () => {
     const childMachine = createMachine({
       id: 'childMachine',
       initial: 'active',
@@ -45,7 +45,7 @@ describe('useActor composable function', () => {
 
     const serviceMachine = interpret(machine).start();
 
-    const { getByTestId } = render(UseActorDeferred, {
+    const { getByTestId } = render(UseActorComponentProp, {
       props: { actor: serviceMachine.state.children.child }
     });
 
