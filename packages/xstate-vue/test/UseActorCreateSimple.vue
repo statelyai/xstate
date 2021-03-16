@@ -1,6 +1,11 @@
 <template>
-  <div data-testid="state">{{ state }}</div>
-  <button data-testid="button" @click="actor = createSimpleActor(100)"></button>
+  <div>
+    <div data-testid="state">{{ state }}</div>
+    <button
+      data-testid="button"
+      @click="actor = createSimpleActor(100)"
+    ></button>
+  </div>
 </template>
 
 <script lang="ts">

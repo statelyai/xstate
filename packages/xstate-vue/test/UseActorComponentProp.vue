@@ -1,8 +1,10 @@
 <template>
-  <div data-testid="actor-state">
-    {{ actorState.value }}
+  <div>
+    <div data-testid="actor-state">
+      {{ actorState.value }}
+    </div>
+    <button @click="actorSend({ type: 'FINISH' })"></button>
   </div>
-  <button @click="actorSend({ type: 'FINISH' })"></button>
 </template>
 
 <script lang="ts">
