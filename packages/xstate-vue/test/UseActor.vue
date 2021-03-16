@@ -38,11 +38,6 @@ const machine = createMachine({
 });
 
 export default defineComponent({
-  props: {
-    machineService: {
-      type: Object
-    }
-  },
   setup() {
     const { state: machineState } = useMachine(machine);
 
