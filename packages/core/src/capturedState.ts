@@ -3,7 +3,7 @@ import { ActionTypes, ActorRef } from './types';
 
 export const CapturedState = {
   current: {
-    actorRef: null as ActorRef<any> | null,
+    actorRef: undefined as ActorRef<any> | undefined,
     spawns: [] as any[]
   }
 };

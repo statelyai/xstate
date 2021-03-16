@@ -71,7 +71,6 @@ export function useInterpret<
     context,
     guards,
     actions,
-    activities,
     actors,
     delays,
     state: rehydratedState,
@@ -83,7 +82,6 @@ export function useInterpret<
       context,
       guards,
       actions,
-      activities,
       actors,
       delays
     };

@@ -183,7 +183,7 @@ export class Interpreter<
       );
     } finally {
       CapturedState.current = {
-        actorRef: null,
+        actorRef: undefined,
         spawns: []
       };
     }
@@ -476,7 +476,7 @@ export class Interpreter<
       return this.machine.transition(state, event);
     } finally {
       CapturedState.current = {
-        actorRef: null,
+        actorRef: undefined,
         spawns: []
       };
     }
