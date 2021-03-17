@@ -63,7 +63,9 @@ import {
   Typestate,
   TransitionDefinitionMap,
   DelayExpr,
-  InvokeSourceDefinition
+  InvokeSourceDefinition,
+  ActorRef,
+  MachineSchema
 } from './types';
 import { matchesState } from './utils';
 import { State, stateValuesEqual } from './State';
@@ -97,7 +99,6 @@ import {
 } from './stateUtils';
 import { createInvocableActor } from './Actor';
 import { toInvokeDefinition } from './invokeUtils';
-import { ActorRef, MachineSchema } from '.';
 
 const NULL_EVENT = '';
 const STATE_IDENTIFIER = '#';

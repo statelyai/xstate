@@ -1,4 +1,5 @@
 import { createMachine } from '../src';
+import { createSchema } from '../src/schema';
 
 namespace JSONSchema {
   export interface String {
@@ -53,12 +54,14 @@ describe('schema', () => {
             }
           }
         }),
-        events: (null as any) as { type: 'FOO' } | { type: 'BAR' }
+        events: createSchema<{ type: 'FOO' } | { type: 'BAR' }>()
       },
       context: { foo: '', bar: 0, baz: { one: '' } },
       initial: 'active',
       states: {
-        active: {}
+        active: {
+          entry: ['asdf']
+        }
       }
     });
 
