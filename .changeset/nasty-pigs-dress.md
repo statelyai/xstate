@@ -2,4 +2,4 @@
 '@xstate/vue': minor
 ---
 
-Declare external package peerDependencies in UMD rollup build
+Fixed the UMD build by externalizing XState & Vue correctly. 
