@@ -9,6 +9,7 @@ import {
   Typestate
 } from './types';
 import { StateNode } from './StateNode';
+import { Model, ModelContextFrom, ModelEventsFrom } from './model';
 
 export function Machine<
   TContext = any,
@@ -48,6 +49,23 @@ export function Machine<
   ) as StateMachine<TContext, TStateSchema, TEvent>;
 }
 
+export function createMachine<
+  TModel extends Model<any, any, any>,
+  TContext = ModelContextFrom<TModel>,
+  TEvent extends EventObject = ModelEventsFrom<TModel>,
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+>(
+  config: MachineConfig<TContext, any, TEvent>,
+  options?: Partial<MachineOptions<TContext, TEvent>>
+): StateMachine<TContext, any, TEvent, TTypestate>;
+export function createMachine<
+  TContext,
+  TEvent extends EventObject = AnyEventObject,
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+>(
+  config: MachineConfig<TContext, any, TEvent>,
+  options?: Partial<MachineOptions<TContext, TEvent>>
+): StateMachine<TContext, any, TEvent, TTypestate>;
 export function createMachine<
   TContext,
   TEvent extends EventObject = AnyEventObject,
