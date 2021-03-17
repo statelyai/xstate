@@ -15,8 +15,8 @@
   "author": "David Khourshid <davidkpiano@gmail.com>",
   "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-react#readme",
   "license": "MIT",
-  "main": "dist/react.cjs.js",
-  "module": "dist/react.esm.js",
+  "main": "dist/xstate-react.cjs.js",
+  "module": "dist/xstate-react.esm.js",
   "sideEffects": false,
   "files": [
     "dist",
@@ -61,8 +61,8 @@
   },
   "preconstruct": {
     "entrypoints": [
-      ".",
-      "fsm"
+      "./index.ts",
+      "./fsm.ts"
     ]
   }
 }

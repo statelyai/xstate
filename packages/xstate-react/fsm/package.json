@@ -1,7 +1,4 @@
 {
-  "main": "dist/react.cjs.js",
-  "module": "dist/react.esm.js",
-  "preconstruct": {
-    "source": "../src/fsm"
-  }
+  "main": "dist/xstate-react-fsm.cjs.js",
+  "module": "dist/xstate-react-fsm.esm.js"
 }

@@ -12,8 +12,7 @@
   "files": [
     "dist",
     "actions",
-    "invoke",
-    "behavior",
+    "actors",
     "guards",
     "dev"
   ],
@@ -50,12 +49,11 @@
   "preconstruct": {
     "umdName": "XState",
     "entrypoints": [
-      ".",
-      "actions",
-      "invoke",
-      "behavior",
-      "guards",
-      "dev"
+      "./index.ts",
+      "./actions.ts",
+      "./actors.ts",
+      "./guards.ts",
+      "./dev/index.ts"
     ]
   }
 }

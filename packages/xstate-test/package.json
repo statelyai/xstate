@@ -16,11 +16,11 @@
   "author": "David Khourshid <davidkpiano@gmail.com>",
   "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-test#readme",
   "license": "MIT",
-  "main": "dist/test.cjs.js",
-  "module": "dist/test.esm.js",
+  "main": "dist/xstate-test.cjs.js",
+  "module": "dist/xstate-test.esm.js",
   "browser": {
-    "./dist/test.cjs.js": "./dist/test.browser.cjs.js",
-    "./dist/test.esm.js": "./dist/test.browser.esm.js"
+    "./dist/xstate-test.cjs.js": "./dist/xstate-test.browser.cjs.js",
+    "./dist/xstate-test.esm.js": "./dist/xstate-test.browser.esm.js"
   },
   "sideEffects": false,
   "files": [

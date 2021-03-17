@@ -13,8 +13,8 @@
   "author": "David Khourshid <davidkpiano@gmail.com>",
   "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-test#readme",
   "license": "MIT",
-  "main": "dist/graph.cjs.js",
-  "module": "dist/graph.esm.js",
+  "main": "dist/xstate-graph.cjs.js",
+  "module": "dist/xstate-graph.esm.js",
   "sideEffects": false,
   "files": [
     "dist"

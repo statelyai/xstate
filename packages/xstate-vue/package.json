@@ -15,8 +15,8 @@
   "author": "David Khourshid <davidkpiano@gmail.com>",
   "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-vue#readme",
   "license": "MIT",
-  "main": "dist/vue.cjs.js",
-  "module": "dist/vue.esm.js",
+  "main": "dist/xstate-vue.cjs.js",
+  "module": "dist/xstate-vue.esm.js",
   "sideEffects": false,
   "files": [
     "dist",
@@ -53,8 +53,8 @@
   },
   "preconstruct": {
     "entrypoints": [
-      ".",
-      "fsm"
+      "./index.ts",
+      "./fsm.ts"
     ]
   }
 }

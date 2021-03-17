@@ -14,8 +14,8 @@
   "author": "David Khourshid <davidkpiano@gmail.com>",
   "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-analytics#readme",
   "license": "MIT",
-  "main": "dist/analytics.cjs.js",
-  "module": "dist/analytics.esm.js",
+  "main": "dist/xstate-analytics.cjs.js",
+  "module": "dist/xstate-analytics.esm.js",
   "sideEffects": false,
   "files": [
     "dist"

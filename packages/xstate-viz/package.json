@@ -4,8 +4,8 @@
   "version": "0.1.0",
   "license": "MIT",
   "author": "David Khourshid",
-  "main": "dist/viz.cjs.js",
-  "module": "dist/viz.esm.js",
+  "main": "dist/xstate-viz.cjs.js",
+  "module": "dist/xstate-viz.esm.js",
   "files": [
     "dist"
   ],

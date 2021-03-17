@@ -13,8 +13,8 @@
   "author": "David Khourshid <davidkpiano@gmail.com>",
   "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-scxml#readme",
   "license": "MIT",
-  "main": "dist/scxml.cjs.js",
-  "module": "dist/scxml.esm.js",
+  "main": "dist/xstate-scxml.cjs.js",
+  "module": "dist/xstate-scxml.esm.js",
   "sideEffects": false,
   "files": [
     "dist"
