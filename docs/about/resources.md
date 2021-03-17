@@ -18,7 +18,7 @@ There is also a follow-up course: [State Modeling with React and XState](https:/
   - [GitHub - Course Notes](https://github.com/eggheadio-projects/introduction-to-state-machines-using-xstate-notes)
   - [GitHub - Workshop](https://github.com/kyleshevlin/intro-to-state-machines-and-xstate-workshop)
 - [Egghead - Construct Sturdy UIs with XState](https://egghead.io/courses/construct-sturdy-uis-with-xstate) by [Isaac Mann](https://twitter.com/MannIsaac)
-- [XState Guide](https://bradwoods.io/guides/xstate) by [Brad Woods](https://twitter.com/bradwoodsio)
+- [XState Guide](https://examples.bradwoods.io/xstate) by [Brad Woods](https://twitter.com/bradwoodsio)
 
 ## Podcasts
 
