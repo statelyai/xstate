@@ -122,7 +122,7 @@ export function createActorRefFromInvokeAction<
       if (!IS_PRODUCTION) {
         warn(
           false,
-          `No actor found for invocation '${src.type}' in machine '${machine.id}'.`
+          `Actor type '${src.type}' not found in machine '${machine.id}'.`
         );
       }
       return;
