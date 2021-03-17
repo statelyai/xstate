@@ -2,15 +2,11 @@
 '@xstate/vue': minor
 ---
 
-import { useInterpret } from '@xstate/vue';
-import { someMachine } from '../path/to/someMachine';
+Added new useInterpret which is a low-level composable that interprets the machine and returns the service:
 
-export default defineComponent({
-  setup() {
-    const state = ref();
-    const service = useInterpret(machine, {}, (nextState) => {
-      state.value = nextState.value;
-    });
-    return { service, state };
-  }
-});
+```vue
+import { useInterpret } from '@xstate/vue'; import { someMachine } from
+'../path/to/someMachine'; export default defineComponent({ setup() { const state
+= ref(); const service = useInterpret(machine, {}, (nextState) => { state.value
+= nextState.value; }); return { service, state }; } });
+```
