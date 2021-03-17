@@ -9,7 +9,7 @@ import { useActor } from '@xstate/vue';
 
 export default defineComponent({
   props: ['someSpawnedActor'],
-  setup() {
+  setup({ someSpawnedActor }) {
     const { state, send } = useActor(someSpawnedActor);
     return { state, send };
   }
