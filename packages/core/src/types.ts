@@ -684,9 +684,9 @@ export interface MachineConfig<
 export interface MachineSchema<TContext, TEvent extends EventObject> {
   context?: TContext;
   events?: TEvent;
-  actions?: ActionObject<TContext, TEvent>;
-  guards?: any;
-  services?: any;
+  actions?: { type: string; [key: string]: any };
+  guards?: { type: string; [key: string]: any };
+  services?: { type: string; [key: string]: any };
 }
 
 export interface StandardMachineConfig<
