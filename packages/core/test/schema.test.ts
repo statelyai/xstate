@@ -1,5 +1,4 @@
-import { createMachine } from '../src';
-import { createSchema } from '../src/schema';
+import { createMachine, createSchema } from '../src';
 
 namespace JSONSchema {
   export interface String {
