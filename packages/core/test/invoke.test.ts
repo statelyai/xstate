@@ -2310,6 +2310,40 @@ describe('invoke', () => {
 
       service.send('NEXT');
     });
+
+    it('should invoke an actor when reentering invoking state within a single macrostep', () => {
+      let actorStartedCount = 0;
+
+      const transientMachine = Machine<{ counter: number }>({
+        initial: 'active',
+        context: { counter: 0 },
+        states: {
+          active: {
+            invoke: {
+              src: invokeCallback(() => () => {
+                actorStartedCount++;
+              })
+            },
+            always: [
+              {
+                guard: (ctx) => ctx.counter === 0,
+                target: 'inactive'
+              }
+            ]
+          },
+          inactive: {
+            entry: assign({ counter: (ctx) => ++ctx.counter }),
+            always: 'active'
+          }
+        }
+      });
+
+      const service = interpret(transientMachine);
+
+      service.start();
+
+      expect(actorStartedCount).toBe(1);
+    });
   });
 
   describe('error handling', () => {
