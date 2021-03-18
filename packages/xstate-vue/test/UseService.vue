@@ -6,23 +6,21 @@
 </template>
 
 <script lang="ts">
-import { PropType, toRefs } from 'vue';
+import { defineComponent, PropType, toRefs, Ref } from 'vue';
 import { useService } from '../src';
 import { Interpreter } from 'xstate';
-import { watchEffect } from 'vue';
 
-export default {
+export default defineComponent({
   props: {
     service: {
       type: Object as PropType<Interpreter<any>>
     }
   },
   setup(props) {
-    const { service } = toRefs(props);
-    let { state, send } = useService(service);
-
+    const serviceRef = toRefs(props).service as Ref<typeof props.service>;
+    let { state, send } = useService(serviceRef);
 
     return { state, send };
   }
-};
+});
 </script>
