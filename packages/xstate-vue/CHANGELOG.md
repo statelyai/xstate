@@ -1,5 +1,43 @@
 # @xstate/vue
 
+## 0.5.0
+
+### Minor Changes
+
+- [`9f6a6e9e`](https://github.com/davidkpiano/xstate/commit/9f6a6e9ea8fdcbdffe0742343eb9c28da1aadb7f) [#1991](https://github.com/davidkpiano/xstate/pull/1991) Thanks [@santicros](https://github.com/santicros)! - Added new `useActor`, which is a composable that subscribes to emitted changes from an existing `actor`:
+
+  ```js
+  import { useActor } from '@xstate/vue';
+
+  export default defineComponent({
+    props: ['someSpawnedActor'],
+    setup(props) {
+      const { state, send } = useActor(props.someSpawnedActor);
+      return { state, send };
+    }
+  });
+  ```
+
+* [`bfe42972`](https://github.com/davidkpiano/xstate/commit/bfe42972cf624b990a280244e12e5976e5bd3048) [#1991](https://github.com/davidkpiano/xstate/pull/1991) Thanks [@santicros](https://github.com/santicros)! - Fixed the UMD build by externalizing XState & Vue correctly.
+
+- [`4346cabc`](https://github.com/davidkpiano/xstate/commit/4346cabc42963211b471f214056db4d4f7e85539) [#1991](https://github.com/davidkpiano/xstate/pull/1991) Thanks [@santicros](https://github.com/santicros)! - Added new `useInterpret`, which is a low-level composable that interprets the `machine` and returns the `service`:
+
+  ```js
+  import { useInterpret } from '@xstate/vue';
+  import { someMachine } from '../path/to/someMachine';
+  export default defineComponent({
+    setup() {
+      const state = ref();
+      const service = useInterpret(machine, {}, nextState => {
+        state.value = nextState.value;
+      });
+      return { service, state };
+    }
+  });
+  ```
+
+* [`012ef363`](https://github.com/davidkpiano/xstate/commit/012ef3635cc06d8e5199cb85326b4b372714ca89) [#1991](https://github.com/davidkpiano/xstate/pull/1991) Thanks [@santicros](https://github.com/santicros)! - Added a proper ESM file using the`"module"` field in the `package.json`. It helps bundlers to automatically pick this over a file authored using CommonJS and allows them to apply some optimizations easier.
+
 ## 0.4.0
 
 ### Minor Changes
