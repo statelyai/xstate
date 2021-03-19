@@ -46,9 +46,7 @@ import { createSchema, createMachine } from 'xstate';
 // Both `context` and `events` are inferred in the rest of the machine!
 const machine = createMachine({
   schema: {
-    context: createSchema<{ count: number }>({
-      // ...
-    }),
+    context: createSchema<{ count: number }>(),
     // No arguments necessary
     events: createSchema<{ type: 'FOO' } | { type: 'BAR' }>()
   }
