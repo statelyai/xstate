@@ -199,3 +199,4 @@ There is also a follow-up course: [State Modeling with React and XState](https:/
 - [Frontend is Rocket Science – Managing state in any JavaScript Application](https://blog.oddeven.ch/blog/frontend-is-rocket-science-managing-state-in-any-javascript-application/) by [Aleksej Dix](https://twitter.com/aleksejdix)
 - [▶️ Use State Machines to Build a Queue for Custom Twitch Overlays — Learn With Jason](https://www.youtube.com/watch?v=UzA5Mvk587M) by [Jason Lengstorf](https://www.youtube.com/channel/UCnty0z0pNRDgnuoirYXnC5A)
 - [How to Use Finite State Machines in React](https://www.telerik.com/blogs/how-to-use-finite-state-machines-react) by [Leonardo Maldonado](https://www.telerik.com/blogs/author/leonardo-maldonado)
+- [▶️ Maquinas de estado finito y gráficas de estado en React ](https://www.youtube.com/watch?v=Rm6AMY6-Wqw) by José L Narajo
