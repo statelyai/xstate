@@ -678,6 +678,15 @@ export interface MachineConfig<
    * The machine's own version.
    */
   version?: string;
+  schema?: MachineSchema<TContext, TEvent>;
+}
+
+export interface MachineSchema<TContext, TEvent extends EventObject> {
+  context?: TContext;
+  events?: TEvent;
+  actions?: { type: string; [key: string]: any };
+  guards?: { type: string; [key: string]: any };
+  services?: { type: string; [key: string]: any };
 }
 
 export interface StandardMachineConfig<
