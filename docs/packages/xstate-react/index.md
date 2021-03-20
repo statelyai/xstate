@@ -11,7 +11,7 @@
   - [`useActor(actor, getSnapshot)`](#useactoractor-getsnapshot)
   - [`useInterpret(machine, options?, observer?)`](#useinterpretmachine-options-observer)
   - [`useSelector(actor, selector, compare?, getSnapshot?)`](#useselectoractor-selector-compare-getsnapshot)
-  - [`asEffect(action)`](#aseffect-action)
+  - [`asEffect(action)`](#aseffectaction)
   - [`asLayoutEffect(action)`](#aslayouteffectaction)
   - [`useMachine(machine)` with `@xstate/fsm`](#usemachinemachine-with-xstatefsm)
 - [Configuring Machines](#configuring-machines)
