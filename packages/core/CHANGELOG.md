@@ -1,5 +1,105 @@
 # xstate
 
+## 4.17.0
+
+### Minor Changes
+
+- [`7763db8d`](https://github.com/davidkpiano/xstate/commit/7763db8d3615321d03839b2bd31c9b118ddee50c) [#1977](https://github.com/davidkpiano/xstate/pull/1977) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `schema` property has been introduced to the machine config passed into `createMachine(machineConfig)`, which allows you to provide metadata for the following:
+
+  - Context
+  - Events
+  - Actions
+  - Guards
+  - Services
+
+  This metadata can be accessed as-is from `machine.schema`:
+
+  ```js
+  const machine = createMachine({
+    schema: {
+      // Example in JSON Schema (anything can be used)
+      context: {
+        type: 'object',
+        properties: {
+          foo: { type: 'string' },
+          bar: { type: 'number' },
+          baz: {
+            type: 'object',
+            properties: {
+              one: { type: 'string' }
+            }
+          }
+        }
+      },
+      events: {
+        FOO: { type: 'object' },
+        BAR: { type: 'object' }
+      }
+    }
+    // ...
+  });
+  ```
+
+  Additionally, the new `createSchema()` identity function allows any schema "metadata" to be represented by a specific type, which makes type inference easier without having to specify generic types:
+
+  ```ts
+  import { createSchema, createMachine } from 'xstate';
+
+  // Both `context` and `events` are inferred in the rest of the machine!
+  const machine = createMachine({
+    schema: {
+      context: createSchema<{ count: number }>(),
+      // No arguments necessary
+      events: createSchema<{ type: 'FOO' } | { type: 'BAR' }>()
+    }
+    // ...
+  });
+  ```
+
+* [`5febfe83`](https://github.com/davidkpiano/xstate/commit/5febfe83a7e5e866c0a4523ea4f86a966af7c50f) [#1955](https://github.com/davidkpiano/xstate/pull/1955) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Event creators can now be modeled inside of the 2nd argument of `createModel()`, and types for both `context` and `events` will be inferred properly in `createMachine()` when given the `typeof model` as the first generic parameter.
+
+  ```ts
+  import { createModel } from 'xstate/lib/model';
+
+  const userModel = createModel(
+    // initial context
+    {
+      name: 'David',
+      age: 30
+    },
+    // creators (just events for now)
+    {
+      events: {
+        updateName: (value: string) => ({ value }),
+        updateAge: (value: number) => ({ value }),
+        anotherEvent: () => ({}) // no payload
+      }
+    }
+  );
+
+  const machine = createMachine<typeof userModel>({
+    context: userModel.initialContext,
+    initial: 'active',
+    states: {
+      active: {
+        on: {
+          updateName: {
+            /* ... */
+          },
+          updateAge: {
+            /* ... */
+          }
+        }
+      }
+    }
+  });
+
+  const nextState = machine.transition(
+    undefined,
+    userModel.events.updateName('David')
+  );
+  ```
+
 ## 4.16.2
 
 ### Patch Changes
