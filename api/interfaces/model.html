@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>ContextModel | xstate</title>
+	<title>Model | xstate</title>
 	<meta name="description" content="Documentation for xstate">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../assets/css/main.css">
@@ -56,10 +56,10 @@
 					<a href="../globals.html">Globals</a>
 				</li>
 				<li>
-					<a href="contextmodel.html">ContextModel</a>
+					<a href="model.html">Model</a>
 				</li>
 			</ul>
-			<h1>Interface ContextModel&lt;TContext, TEvent&gt;</h1>
+			<h1>Interface Model&lt;TContext, TEvent, TModelCreators&gt;</h1>
 		</div>
 	</div>
 </header>
@@ -75,13 +75,16 @@
 					<li>
 						<h4>TEvent<span class="tsd-signature-symbol">: </span><a href="eventobject.html" class="tsd-signature-type">EventObject</a></h4>
 					</li>
+					<li>
+						<h4>TModelCreators</h4>
+					</li>
 				</ul>
 			</section>
 			<section class="tsd-panel tsd-hierarchy">
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<span class="target">ContextModel</span>
+						<span class="target">Model</span>
 					</li>
 				</ul>
 			</section>
@@ -92,9 +95,10 @@
 						<section class="tsd-index-section ">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="contextmodel.html#assign" class="tsd-kind-icon">assign</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="contextmodel.html#initialcontext" class="tsd-kind-icon">initial<wbr>Context</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="contextmodel.html#reset" class="tsd-kind-icon">reset</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="model.html#assign" class="tsd-kind-icon">assign</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="model.html#events" class="tsd-kind-icon">events</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="model.html#initialcontext" class="tsd-kind-icon">initial<wbr>Context</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="model.html#reset" class="tsd-kind-icon">reset</a></li>
 							</ul>
 						</section>
 					</div>
@@ -108,7 +112,7 @@
 					<div class="tsd-signature tsd-kind-icon">assign<span class="tsd-signature-symbol">:</span> &lt;TEventType&gt;<span class="tsd-signature-symbol">(</span>assigner<span class="tsd-signature-symbol">: </span><a href="../globals.html#assigner" class="tsd-signature-type">Assigner</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><a href="../globals.html#extractevent" class="tsd-signature-type">ExtractEvent</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEventType</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> | </span><a href="../globals.html#propertyassigner" class="tsd-signature-type">PropertyAssigner</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><a href="../globals.html#extractevent" class="tsd-signature-type">ExtractEvent</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEventType</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span>, eventType<span class="tsd-signature-symbol">?: </span><a href="" class="tsd-signature-type">TEventType</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><a href="assignaction.html" class="tsd-signature-type">AssignAction</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><a href="../globals.html#extractevent" class="tsd-signature-type">ExtractEvent</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEventType</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/b370b9c8/packages/core/src/model.ts#L12">model.ts:12</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/2236b9f3/packages/core/src/model.ts#L23">model.ts:23</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-type-declaration">
@@ -143,12 +147,22 @@
 					</div>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+					<a name="events" class="tsd-anchor"></a>
+					<h3>events</h3>
+					<div class="tsd-signature tsd-kind-icon">events<span class="tsd-signature-symbol">:</span> <a href="../globals.html#prop" class="tsd-signature-type">Prop</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TModelCreators</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">"events"</span><span class="tsd-signature-symbol">&gt;</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/2236b9f3/packages/core/src/model.ts#L29">model.ts:29</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
 					<a name="initialcontext" class="tsd-anchor"></a>
 					<h3>initial<wbr>Context</h3>
 					<div class="tsd-signature tsd-kind-icon">initial<wbr>Context<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">TContext</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/b370b9c8/packages/core/src/model.ts#L11">model.ts:11</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/2236b9f3/packages/core/src/model.ts#L22">model.ts:22</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -158,7 +172,7 @@
 					<div class="tsd-signature tsd-kind-icon">reset<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><a href="assignaction.html" class="tsd-signature-type">AssignAction</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/b370b9c8/packages/core/src/model.ts#L18">model.ts:18</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/2236b9f3/packages/core/src/model.ts#L30">model.ts:30</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-type-declaration">
@@ -192,16 +206,19 @@
 				</ul>
 				<ul class="current">
 					<li class="current tsd-kind-interface tsd-has-type-parameter">
-						<a href="contextmodel.html" class="tsd-kind-icon">Context<wbr>Model</a>
+						<a href="model.html" class="tsd-kind-icon">Model</a>
 						<ul>
 							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="contextmodel.html#assign" class="tsd-kind-icon">assign</a>
+								<a href="model.html#assign" class="tsd-kind-icon">assign</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="contextmodel.html#initialcontext" class="tsd-kind-icon">initial<wbr>Context</a>
+								<a href="model.html#events" class="tsd-kind-icon">events</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="contextmodel.html#reset" class="tsd-kind-icon">reset</a>
+								<a href="model.html#initialcontext" class="tsd-kind-icon">initial<wbr>Context</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-interface">
+								<a href="model.html#reset" class="tsd-kind-icon">reset</a>
 							</li>
 						</ul>
 					</li>
