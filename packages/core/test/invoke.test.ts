@@ -2311,7 +2311,7 @@ describe('invoke', () => {
       service.send('NEXT');
     });
 
-    it('should invoke an actor when reentering invoking state within a single macrostep', (done) => {
+    it('should invoke an actor when reentering invoking state within a single macrostep', () => {
       let actorStartedCount = 0;
 
       const transientMachine = Machine<{ counter: number }>({

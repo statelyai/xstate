@@ -51,8 +51,7 @@ export function useInterpret<
     context,
     guards,
     actions,
-    activities,
-    services,
+    actors,
     delays,
     state: rehydratedState,
     ...interpreterOptions
@@ -62,8 +61,7 @@ export function useInterpret<
     context,
     guards,
     actions,
-    activities,
-    services,
+    actors,
     delays
   };
 

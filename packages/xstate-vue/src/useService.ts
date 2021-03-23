@@ -25,8 +25,8 @@ export function useService<
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(
   service:
-    | Interpreter<TContext, any, TEvent, TTypestate>
-    | Ref<Interpreter<TContext, any, TEvent, TTypestate>>
+    | Interpreter<TContext, TEvent, any, TTypestate>
+    | Ref<Interpreter<TContext, TEvent, any, TTypestate>>
 ): {
   state: Ref<State<TContext, TEvent, any, TTypestate>>;
   send: PayloadSender<TEvent>;
@@ -41,6 +41,5 @@ export function useService<
   }
 
   const { state, send } = useActor(service, getServiceSnapshot);
-
-  return { state, send };
+  return { state, send: (send as any) as PayloadSender<TEvent> };
 }

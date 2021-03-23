@@ -1,11 +1,11 @@
 import { shallowRef, Ref } from 'vue';
 import {
   EventObject,
-  StateMachine,
+  MachineNode,
   State,
   Interpreter,
   InterpreterOptions,
-  MachineOptions,
+  MachineImplementations,
   Typestate
 } from 'xstate';
 
@@ -18,14 +18,14 @@ export function useMachine<
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(
-  getMachine: MaybeLazy<StateMachine<TContext, any, TEvent, TTypestate>>,
+  getMachine: MaybeLazy<MachineNode<TContext, TEvent, any, TTypestate>>,
   options: Partial<InterpreterOptions> &
     Partial<UseMachineOptions<TContext, TEvent>> &
-    Partial<MachineOptions<TContext, TEvent>> = {}
+    Partial<MachineImplementations<TContext, TEvent>> = {}
 ): {
   state: Ref<State<TContext, TEvent, any, TTypestate>>;
-  send: Interpreter<TContext, any, TEvent, TTypestate>['send'];
-  service: Interpreter<TContext, any, TEvent, TTypestate>;
+  send: Interpreter<TContext, TEvent, any, TTypestate>['send'];
+  service: Interpreter<TContext, TEvent, any, TTypestate>;
 } {
   const service = useInterpret(getMachine, options, listener);
 

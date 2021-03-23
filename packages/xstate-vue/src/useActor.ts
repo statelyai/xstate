@@ -24,12 +24,10 @@ export function useActor<TActor extends ActorRef<any, any>>(
   state: Ref<EmittedOfActorRef<TActor>>;
   send: Sender<EventOfActorRef<TActor>>;
 };
-
 export function useActor<TEvent extends EventObject, TEmitted>(
   actorRef: ActorRef<TEvent, TEmitted> | Ref<ActorRef<TEvent, TEmitted>>,
   getSnapshot?: (actor: ActorRef<TEvent, TEmitted>) => TEmitted
 ): { state: Ref<TEmitted>; send: Sender<TEvent> };
-
 export function useActor(
   actorRef:
     | ActorRef<EventObject, unknown>
