@@ -120,6 +120,8 @@ export class StateNode<
    */
   public order: number = -1;
 
+  public __xstatenode: true = true;
+
   protected __cache = {
     events: undefined as Array<TEvent['type']> | undefined,
     initialState: undefined as State<TContext, TEvent> | undefined,

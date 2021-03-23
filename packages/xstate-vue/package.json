@@ -1,6 +1,6 @@
 {
   "name": "@xstate/vue",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "XState tools for Vue",
   "keywords": [
     "state",
@@ -44,11 +44,11 @@
     }
   },
   "devDependencies": {
-    "@testing-library/jest-dom": "^4.2.4",
-    "@testing-library/vue": "^6.3.1",
-    "@vue/compiler-sfc": "^3.0.4",
+    "@testing-library/jest-dom": "^5.11.9",
+    "@testing-library/vue": "^6.4.0",
+    "@vue/compiler-sfc": "^3.0.7",
     "@xstate/fsm": "*",
-    "vue": "^3.0.4",
+    "vue": "^3.0.7",
     "xstate": "*"
   },
   "preconstruct": {

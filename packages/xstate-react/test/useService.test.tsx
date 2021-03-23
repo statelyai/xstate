@@ -299,7 +299,7 @@ describe('useService hook', () => {
 
   it('service should accept the 2-argument variant', () => {
     const service = interpret(
-      createMachine<any, { type: 'EVENT'; value: number }>({
+      createMachine<{ value: number }, { type: 'EVENT'; value: number }>({
         initial: 'first',
         states: {
           first: {
