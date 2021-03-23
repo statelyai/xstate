@@ -99,7 +99,8 @@ module.exports = {
           'packages/xstate-fsm/',
           'packages/xstate-test/',
           'packages/xstate-immer/',
-          'packages/xstate-inspect/'
+          'packages/xstate-inspect/',
+          'packages/xstate-svelte/'
         ]
       },
       {
