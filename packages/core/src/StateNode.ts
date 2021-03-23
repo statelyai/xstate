@@ -1310,11 +1310,11 @@ class StateNode<
     // Detect if state changed
     const changed =
       maybeNextState.changed ||
-      (history
+      (_event !== initEvent
         ? !!maybeNextState.actions.length ||
           didUpdateContext ||
-          typeof history.value !== typeof maybeNextState.value ||
-          !stateValuesEqual(maybeNextState.value, history.value)
+          typeof history!.value !== typeof maybeNextState.value ||
+          !stateValuesEqual(maybeNextState.value, history!.value)
         : undefined);
 
     maybeNextState.changed = changed;
