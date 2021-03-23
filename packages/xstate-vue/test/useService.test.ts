@@ -63,7 +63,7 @@ describe('useService composable function', () => {
     await fireEvent.click(incButton);
     expect(countEl.textContent).toBe('1');
 
-    await rerender({ props: { service: counterService2 } });
+    await rerender({ service: counterService2 });
 
     await waitFor(() => expect(getByTestId('count').textContent).toBe('0'));
   });

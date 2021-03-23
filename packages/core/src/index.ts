@@ -25,6 +25,7 @@ import { interpret, Interpreter, InterpreterStatus } from './interpreter';
 import { matchState } from './match';
 export { MachineNode } from './MachineNode';
 export { SimulatedClock } from './SimulatedClock';
+import { createSchema } from './schema';
 
 const actions = {
   raise,
@@ -61,7 +62,8 @@ export {
   InterpreterStatus,
   matchState,
   doneInvoke,
-  createMachine
+  createMachine,
+  createSchema
 };
 
 export * from './types';

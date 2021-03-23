@@ -18,7 +18,7 @@ There is also a follow-up course: [State Modeling with React and XState](https:/
   - [GitHub - Course Notes](https://github.com/eggheadio-projects/introduction-to-state-machines-using-xstate-notes)
   - [GitHub - Workshop](https://github.com/kyleshevlin/intro-to-state-machines-and-xstate-workshop)
 - [Egghead - Construct Sturdy UIs with XState](https://egghead.io/courses/construct-sturdy-uis-with-xstate) by [Isaac Mann](https://twitter.com/MannIsaac)
-- [XState Guide](https://bradwoods.io/guides/xstate) by [Brad Woods](https://twitter.com/bradwoodsio)
+- [XState Guide](https://examples.bradwoods.io/xstate) by [Brad Woods](https://twitter.com/bradwoodsio)
 
 ## Podcasts
 
@@ -198,3 +198,5 @@ There is also a follow-up course: [State Modeling with React and XState](https:/
 - [Getting Started with XState, React, and Typescript | Part 1](https://www.youtube.com/watch?v=po1YRAk7irY) by [Modus Create](https://www.youtube.com/channel/UCsKwL0-e2eHRNa6Ne99AESw)
 - [Frontend is Rocket Science – Managing state in any JavaScript Application](https://blog.oddeven.ch/blog/frontend-is-rocket-science-managing-state-in-any-javascript-application/) by [Aleksej Dix](https://twitter.com/aleksejdix)
 - [▶️ Use State Machines to Build a Queue for Custom Twitch Overlays — Learn With Jason](https://www.youtube.com/watch?v=UzA5Mvk587M) by [Jason Lengstorf](https://www.youtube.com/channel/UCnty0z0pNRDgnuoirYXnC5A)
+- [How to Use Finite State Machines in React](https://www.telerik.com/blogs/how-to-use-finite-state-machines-react) by [Leonardo Maldonado](https://www.telerik.com/blogs/author/leonardo-maldonado)
+- [▶️ Maquinas de estado finito y gráficas de estado en React ](https://www.youtube.com/watch?v=Rm6AMY6-Wqw) by José L Narajo
