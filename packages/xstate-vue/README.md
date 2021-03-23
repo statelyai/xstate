@@ -1,5 +1,20 @@
 # @xstate/vue
 
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [@xstate/vue](#xstatevue)
+  - [Quick Start](#quick-start)
+  - [API](#api)
+    - [`useMachine(machine, options?)`](#usemachinemachine-options)
+    - [`useService(service)`](#useserviceservice)
+    - [`useMachine(machine)` with `@xstate/fsm`](#usemachinemachine-with-xstatefsm)
+  - [Configuring Machines](#configuring-machines)
+  - [Matching States](#matching-states)
+  - [Persisted and Rehydrated State](#persisted-and-rehydrated-state)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ## Quick Start
 
 1. Install `xstate` and `@xstate/vue`:
