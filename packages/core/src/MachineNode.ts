@@ -8,7 +8,8 @@ import {
   MachineConfig,
   SCXML,
   Typestate,
-  Transitions
+  Transitions,
+  MachineSchema
 } from './types';
 import { State } from './State';
 
@@ -81,6 +82,8 @@ export class MachineNode<
 
   public options: MachineImplementations<TContext, TEvent>;
 
+  public schema: MachineSchema<TContext, TEvent>;
+
   public __xstatenode: true = true;
 
   constructor(
@@ -106,6 +109,7 @@ export class MachineNode<
     this.path = [];
     this.delimiter = this.config.delimiter || STATE_DELIMITER;
     this.version = this.config.version;
+    this.schema = this.config.schema ?? (({} as any) as this['schema']);
 
     // Document order
     let order = 0;

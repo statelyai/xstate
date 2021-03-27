@@ -33,6 +33,7 @@ export {
   spawnObservable,
   spawnCallback
 } from './Actor';
+export { createSchema } from './schema';
 
 const actions = {
   raise,

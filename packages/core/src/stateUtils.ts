@@ -397,6 +397,11 @@ export function formatTransition<TContext, TEvent extends EventObject>(
       : true;
   const { guards } = stateNode.machine.options;
   const target = resolveTarget(stateNode, normalizedTarget);
+  if (!IS_PRODUCTION && (transitionConfig as any).cond) {
+    throw new Error(
+      `State "${stateNode.id}" has declared \`cond\` for one of its transitions. This property has been renamed to \`guard\`. Please update your code.`
+    );
+  }
   const transition = {
     ...transitionConfig,
     actions: toActionObjects(toArray(transitionConfig.actions)),

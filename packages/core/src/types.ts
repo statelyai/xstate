@@ -660,6 +660,15 @@ export interface MachineConfig<
    * If `true`, will use SCXML semantics, such as event token matching.
    */
   scxml?: boolean;
+  schema?: MachineSchema<TContext, TEvent>;
+}
+
+export interface MachineSchema<TContext, TEvent extends EventObject> {
+  context?: TContext;
+  events?: TEvent;
+  actions?: { type: string; [key: string]: any };
+  guards?: { type: string; [key: string]: any };
+  services?: { type: string; [key: string]: any };
 }
 
 export interface HistoryStateNode<TContext> extends StateNode<TContext> {
