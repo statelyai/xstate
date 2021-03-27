@@ -4,12 +4,10 @@ import {
   Subscribable,
   BehaviorCreator,
   SCXML,
-  InvokeMeta,
-  InvokeActionObject
+  InvokeMeta
 } from './types';
-import { State } from './State';
 
-import { isFunction, mapContext, warn } from './utils';
+import { isFunction, mapContext } from './utils';
 import { AnyEventObject } from './types';
 import { MachineNode } from './MachineNode';
 import {
@@ -19,10 +17,6 @@ import {
   createObservableBehavior,
   createPromiseBehavior
 } from './behavior';
-import { isActorRef } from './Actor';
-import { ObservableActorRef } from './ObservableActorRef';
-import { IS_PRODUCTION } from './environment';
-import { SpawnedActorRef } from '.';
 
 export const DEFAULT_SPAWN_OPTIONS = { sync: false };
 
@@ -97,47 +91,4 @@ export function invokeObservable<T extends EventObject = AnyEventObject>(
     const resolvedSource = isFunction(source) ? source(ctx, e) : source;
     return createObservableBehavior(() => resolvedSource);
   };
-}
-
-export function createActorRefFromInvokeAction<
-  TContext,
-  TEvent extends EventObject
->(
-  state: State<TContext, TEvent, any, any>,
-  invokeAction: InvokeActionObject,
-  machine: MachineNode<TContext, TEvent>
-): SpawnedActorRef<any> | undefined {
-  const { id, data, src } = invokeAction;
-  const { _event, context } = state;
-
-  let actorRef: SpawnedActorRef<any>;
-
-  if (isActorRef(src)) {
-    actorRef = src as SpawnedActorRef<any>;
-  } else {
-    const behaviorCreator: BehaviorCreator<TContext, TEvent> | undefined =
-      machine.options.actors[src.type];
-
-    if (!behaviorCreator) {
-      if (!IS_PRODUCTION) {
-        warn(
-          false,
-          `Actor type '${src.type}' not found in machine '${machine.id}'.`
-        );
-      }
-      return;
-    }
-
-    const behavior = behaviorCreator(context, _event.data, {
-      id,
-      data,
-      src,
-      _event
-    });
-
-    actorRef = new ObservableActorRef(behavior, id);
-    invokeAction.src = actorRef;
-  }
-
-  return actorRef;
 }

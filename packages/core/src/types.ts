@@ -631,10 +631,15 @@ export type DelayConfig<TContext, TEvent extends EventObject> =
   | number
   | DelayExpr<TContext, TEvent>;
 
+export type ActorMap<TContext, TEvent extends EventObject> = Record<
+  string,
+  BehaviorCreator<TContext, TEvent>
+>;
+
 export interface MachineImplementations<TContext, TEvent extends EventObject> {
   guards: Record<string, GuardPredicate<TContext, TEvent>>;
   actions: ActionFunctionMap<TContext, TEvent>;
-  actors: Record<string, BehaviorCreator<TContext, TEvent>>;
+  actors: ActorMap<TContext, TEvent>;
   delays: DelayFunctionMap<TContext, TEvent>;
   context: Partial<TContext>;
 }
@@ -745,13 +750,17 @@ export interface NullEvent {
   type: ActionTypes.NullEvent;
 }
 
-export interface InvokeActionObject {
+export interface InvokeAction {
   type: ActionTypes.Invoke;
   src: InvokeSourceDefinition | ActorRef<any>;
   id: string;
   autoForward?: boolean;
   data?: any;
   exec?: undefined;
+}
+
+export interface InvokeActionObject extends InvokeAction {
+  ref?: SpawnedActorRef<any>;
 }
 
 export interface StopAction<TC, TE extends EventObject> {

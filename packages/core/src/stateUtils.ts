@@ -1,4 +1,4 @@
-import { EventObject, StateNode, StateValue, InvokeActionObject } from '.';
+import { EventObject, StateNode, StateValue, InvokeAction } from '.';
 import {
   keys,
   flatten,
@@ -41,7 +41,8 @@ import {
   Event,
   ChooseAction,
   StopActionObject,
-  AnyEventObject
+  AnyEventObject,
+  InvokeSourceDefinition
 } from './types';
 import { State } from './State';
 import {
@@ -61,13 +62,13 @@ import {
   resolveCancel,
   toActionObject,
   invoke,
+  resolveInvoke,
   resolveStop
 } from './actions';
 import { IS_PRODUCTION } from './environment';
 import { STATE_IDENTIFIER, NULL_EVENT, WILDCARD } from './constants';
 import { isSpawnedActorRef } from './Actor';
 import { MachineNode } from './MachineNode';
-import { createActorRefFromInvokeAction } from './invoke';
 import { evaluateGuard, toGuardDefinition } from './guards';
 
 type Configuration<TC, TE extends EventObject> = Iterable<StateNode<TC, TE>>;
@@ -1557,16 +1558,8 @@ export function resolveMicroTransition<
   }
 
   nextState.actions.forEach((action) => {
-    if (action.type === actionTypes.invoke) {
-      const actorRef = createActorRefFromInvokeAction(
-        nextState,
-        action as InvokeActionObject,
-        machine
-      );
-
-      if (actorRef) {
-        children[actorRef.name] = actorRef;
-      }
+    if (action.type === actionTypes.invoke && action.ref) {
+      children[action.ref.name] = action.ref;
     }
   });
 
@@ -1690,6 +1683,23 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
               } as any) // TODO: fix
             });
           }
+          break;
+        case actionTypes.invoke:
+          const invokeAction = resolveInvoke(
+            actionObject as InvokeAction,
+            context,
+            _event,
+            machine.options.actors
+          );
+          if (!IS_PRODUCTION && !invokeAction.ref) {
+            warn(
+              false,
+              `Actor type '${
+                (invokeAction.src as InvokeSourceDefinition).type
+              }' not found in machine '${machine.id}'.`
+            );
+          }
+          resActions.push(invokeAction);
           break;
         case actionTypes.stop:
           const stopAction = resolveStop(

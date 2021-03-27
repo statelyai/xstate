@@ -734,9 +734,8 @@ export class Interpreter<
         break;
 
       case ActionTypes.Invoke: {
-        const { id, autoForward, src } = action as InvokeActionObject;
-        let actorRef = src as SpawnedActorRef<any> | undefined;
-        if (!isActorRef(actorRef)) {
+        const { id, autoForward, ref } = action as InvokeActionObject;
+        if (!ref) {
           break;
         }
         // If the actor will be stopped right after it's started
@@ -755,10 +754,10 @@ export class Interpreter<
             this.forwardTo.add(id);
           }
 
-          this.children.set(id, actorRef);
-          this.state.children[id] = actorRef;
+          this.children.set(id, ref);
+          this.state.children[id] = ref;
 
-          actorRef.subscribe({
+          ref.subscribe({
             error: () => {
               // TODO: handle error
               this.stop();
@@ -768,7 +767,7 @@ export class Interpreter<
             }
           });
 
-          actorRef.start?.();
+          ref.start?.();
         } catch (err) {
           this.send(error(id, err));
           break;
