@@ -1,5 +1,5 @@
 {
-  "name": "@xstate/docs",
+  "name": "xstate-docs",
   "private": true,
   "description": "Documentation for XState",
   "main": "index.js",
