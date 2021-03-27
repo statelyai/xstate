@@ -1,6 +1,6 @@
 {
   "name": "@xstate/docs",
-  "version": "1.0.0",
+  "private": true,
   "description": "Documentation for XState",
   "main": "index.js",
   "repository": "https://github.com/davidkpiano/xstate",
