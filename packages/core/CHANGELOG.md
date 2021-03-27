@@ -1,5 +1,11 @@
 # xstate
 
+## 4.17.1
+
+### Patch Changes
+
+- [`33302814`](https://github.com/davidkpiano/xstate/commit/33302814c38587d0044afd2ae61a4ff4779416c6) [#2041](https://github.com/davidkpiano/xstate/pull/2041) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with creatorless models not being correctly matched by `createMachine`'s overload responsible for using model-induced types.
+
 ## 4.17.0
 
 ### Minor Changes
