@@ -67,25 +67,6 @@ const machine = createMachine(
 
 **Breaking:** The way that you interface with invoked/spawned actors is now through `ActorRef` instances. An `ActorRef` is an opaque reference to an `Actor`, which should be never referenced directly.
 
-**Breaking:** The `spawn` function is no longer imported globally. Spawning actors is now done inside of `assign(...)`, as seen below:
-
-```diff
--import { createMachine, spawn } from 'xstate';
-+import { createMachine } from 'xstate';
-
-const machine = createMachine({
-  // ...
-  entry: assign({
--   someRef: (context, event) => {
-+   someRef: (context, event, { spawn }) => {
--     return spawn(somePromise);
-+     return spawn.from(somePromise);
-    }
-  })
-});
-
-```
-
 **Breaking:** The `src` of an `invoke` config is now either a string that references the machine's `options.actors`, or a `BehaviorCreator`, which is a function that takes in `context` and `event` and returns a `Behavior`:
 
 ```diff
