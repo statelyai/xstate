@@ -17,7 +17,7 @@ type Prop<T, K> = K extends keyof T ? T[K] : never;
 export interface Model<
   TContext,
   TEvent extends EventObject,
-  TModelCreators = never
+  TModelCreators = void
 > {
   initialContext: TContext;
   assign: <TEventType extends TEvent['type'] = TEvent['type']>(
@@ -79,7 +79,7 @@ type EventFromEventCreators<EventCreators> = {
 
 export function createModel<TContext, TEvent extends EventObject>(
   initialContext: TContext
-): Model<TContext, TEvent, never>;
+): Model<TContext, TEvent, void>;
 export function createModel<
   TContext,
   TModelCreators extends ModelCreators<TModelCreators>,
