@@ -9,7 +9,6 @@ import {
   SCXML,
   Typestate,
   Transitions,
-  ActorRef,
   MachineSchema
 } from './types';
 import { State } from './State';
@@ -210,12 +209,11 @@ export class MachineNode<
    */
   public transition(
     state: StateValue | State<TContext, TEvent> = this.initialState,
-    event: Event<TEvent> | SCXML.Event<TEvent>,
-    self?: ActorRef<TEvent>
+    event: Event<TEvent> | SCXML.Event<TEvent>
   ): State<TContext, TEvent, TStateSchema, TTypestate> {
     const currentState = toState(state, this);
 
-    return macrostep(currentState, event, this, self);
+    return macrostep(currentState, event, this);
   }
 
   /**
@@ -227,8 +225,7 @@ export class MachineNode<
    */
   public microstep(
     state: StateValue | State<TContext, TEvent> = this.initialState,
-    event: Event<TEvent> | SCXML.Event<TEvent>,
-    self?: ActorRef<TEvent>
+    event: Event<TEvent> | SCXML.Event<TEvent>
   ): State<TContext, TEvent, TStateSchema, TTypestate> {
     const resolvedState = toState(state, this);
     const _event = toSCXMLEvent(event);
@@ -248,13 +245,7 @@ export class MachineNode<
     const transitions: Transitions<TContext, TEvent> =
       transitionNode(this, resolvedState.value, resolvedState, _event) || [];
 
-    return resolveMicroTransition(
-      this,
-      transitions,
-      resolvedState,
-      _event,
-      self
-    );
+    return resolveMicroTransition(this, transitions, resolvedState, _event);
   }
 
   /**
@@ -274,20 +265,10 @@ export class MachineNode<
 
   /**
    * Returns the initial `State` instance, with reference to `self` as an `ActorRef`.
-   *
-   * @param self The `ActorRef` instance of this machine, if any.
    */
-  public getInitialState(
-    self?: ActorRef<TEvent>
-  ): State<TContext, TEvent, TStateSchema, TTypestate> {
+  public getInitialState(): State<TContext, TEvent, TStateSchema, TTypestate> {
     this._init();
-    const nextState = resolveMicroTransition(
-      this,
-      [],
-      undefined,
-      undefined,
-      self
-    );
+    const nextState = resolveMicroTransition(this, [], undefined, undefined);
     return macrostep(nextState, null as any, this) as State<
       TContext,
       TEvent,

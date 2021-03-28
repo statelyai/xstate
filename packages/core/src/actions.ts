@@ -33,11 +33,16 @@ import {
   ChooseConditon,
   ChooseAction,
   InvokeDefinition,
-  InvokeActionObject,
+  InvokeAction,
   StopActionObject,
   AnyEventObject,
   ActorRef,
-  Expr
+  Expr,
+  StopAction,
+  SpawnedActorRef,
+  BehaviorCreator,
+  ActorMap,
+  InvokeActionObject
 } from './types';
 import * as actionTypes from './actionTypes';
 import {
@@ -48,8 +53,8 @@ import {
   toSCXMLEvent,
   isArray
 } from './utils';
-import { StopAction } from '.';
-
+import { isActorRef } from './Actor';
+import { ObservableActorRef } from './ObservableActorRef';
 export { actionTypes };
 
 export const initEvent = toSCXMLEvent({ type: actionTypes.init });
@@ -246,6 +251,41 @@ export function resolveSend<
   };
 }
 
+export function resolveInvoke<TContext, TEvent extends EventObject>(
+  action: InvokeAction,
+  ctx: TContext,
+  _event: SCXML.Event<TEvent>,
+  actorMap: ActorMap<TContext, TEvent>
+): InvokeActionObject {
+  const { id, data, src } = action;
+
+  if (isActorRef(src)) {
+    return {
+      ...action,
+      ref: src as SpawnedActorRef<any>
+    };
+  }
+
+  const behaviorCreator: BehaviorCreator<TContext, TEvent> | undefined =
+    actorMap[src.type];
+
+  if (!behaviorCreator) {
+    return action;
+  }
+
+  const behavior = behaviorCreator(ctx, _event.data, {
+    id,
+    data,
+    src,
+    _event
+  });
+
+  return {
+    ...action,
+    ref: new ObservableActorRef(behavior, id)
+  };
+}
+
 /**
  * Sends an event to this machine's parent.
  *
@@ -377,7 +417,7 @@ export const resolveCancel = <TContext, TEvent extends EventObject>(
 
 export function invoke<TContext, TEvent extends EventObject>(
   invokeDef: InvokeDefinition<TContext, TEvent>
-): InvokeActionObject {
+): InvokeAction {
   return {
     type: ActionTypes.Invoke,
     src: invokeDef.src,

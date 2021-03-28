@@ -6,7 +6,6 @@ import {
   InterpreterOptions,
   Spawnable,
   Observer,
-  ActorRef,
   Lazy,
   Sender,
   Receiver,
@@ -24,6 +23,7 @@ import { doneInvoke, error, actionTypes } from './actions';
 import { MachineNode } from './MachineNode';
 import { interpret, Interpreter } from './interpreter';
 import { State } from './State';
+import { CapturedState } from './capturedState';
 
 export interface ActorContext {
   self: SpawnedActorRef<any, any>; // TODO: use type params
@@ -59,9 +59,9 @@ export interface Behavior<TReceived extends EventObject, TEmitted> {
 }
 
 export function createDeferredBehavior<TEvent extends EventObject>(
-  lazyEntity: () => InvokeCallback,
-  parent?: ActorRef<any>
+  lazyEntity: () => InvokeCallback
 ): Behavior<TEvent, undefined> {
+  const parent = CapturedState.current?.actorRef;
   let canceled = false;
   const receivers = new Set<(e: EventObject) => void>();
   let dispose;
@@ -128,9 +128,9 @@ export function createDeferredBehavior<TEvent extends EventObject>(
 }
 
 export function createPromiseBehavior<T, TEvent extends EventObject>(
-  lazyPromise: Lazy<PromiseLike<T>>,
-  parent?: ActorRef<any>
+  lazyPromise: Lazy<PromiseLike<T>>
 ): Behavior<TEvent, T | undefined> {
+  const parent = CapturedState.current?.actorRef;
   let canceled = false;
   const observers: Set<Observer<T>> = new Set();
 
@@ -199,10 +199,8 @@ export function createPromiseBehavior<T, TEvent extends EventObject>(
 export function createObservableBehavior<
   T extends EventObject,
   TEvent extends EventObject
->(
-  lazyObservable: Lazy<Subscribable<T>>,
-  parent?: ActorRef<any>
-): Behavior<TEvent, T | undefined> {
+>(lazyObservable: Lazy<Subscribable<T>>): Behavior<TEvent, T | undefined> {
+  const parent = CapturedState.current?.actorRef;
   let subscription: Subscription | undefined;
   let observable: Subscribable<T> | undefined;
 
@@ -247,9 +245,9 @@ export function createObservableBehavior<
 
 export function createMachineBehavior<TContext, TEvent extends EventObject>(
   machine: MachineNode<TContext, TEvent> | Lazy<MachineNode<TContext, TEvent>>,
-  parent?: ActorRef<any>,
   options?: Partial<InterpreterOptions>
 ): Behavior<TEvent, State<TContext, TEvent>> {
+  const parent = CapturedState.current?.actorRef;
   let service: Interpreter<TContext, TEvent> | undefined;
   let subscription: Subscription;
   let resolvedMachine: MachineNode<TContext, TEvent>;
@@ -330,43 +328,36 @@ export function createServiceBehavior<TContext, TEvent extends EventObject>(
 }
 
 export function createBehaviorFrom<TEvent extends EventObject, TEmitted>(
-  entity: PromiseLike<TEmitted>,
-  parent?: ActorRef<any>
+  entity: PromiseLike<TEmitted>
 ): Behavior<TEvent, TEmitted>;
 export function createBehaviorFrom<TEvent extends EventObject, TEmitted>(
-  entity: Subscribable<any>,
-  parent?: ActorRef<any>
+  entity: Subscribable<any>
 ): Behavior<any, TEmitted>;
 export function createBehaviorFrom<
   TEvent extends EventObject,
   TEmitted extends State<any, any>
 >(
-  entity: MachineNode<TEmitted['context'], any, TEmitted['event']>,
-  parent?: ActorRef<any>
+  entity: MachineNode<TEmitted['context'], any, TEmitted['event']>
 ): Behavior<TEvent, TEmitted>;
 export function createBehaviorFrom<TEvent extends EventObject>(
-  entity: InvokeCallback,
-  parent?: ActorRef<any>
+  entity: InvokeCallback
 ): Behavior<TEvent, undefined>;
-export function createBehaviorFrom(
-  entity: Spawnable,
-  parent?: ActorRef<any>
-): Behavior<any, any> {
+export function createBehaviorFrom(entity: Spawnable): Behavior<any, any> {
   if (isPromiseLike(entity)) {
-    return createPromiseBehavior(() => entity, parent);
+    return createPromiseBehavior(() => entity);
   }
 
   if (isObservable(entity)) {
-    return createObservableBehavior(() => entity, parent);
+    return createObservableBehavior(() => entity);
   }
 
   if (isMachineNode(entity)) {
     // @ts-ignore
-    return createMachineBehavior(entity, parent);
+    return createMachineBehavior(entity);
   }
 
   if (isFunction(entity)) {
-    return createDeferredBehavior(() => entity as InvokeCallback, parent);
+    return createDeferredBehavior(() => entity);
   }
 
   throw new Error(`Unable to create behavior from entity`);

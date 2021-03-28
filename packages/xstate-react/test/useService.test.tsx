@@ -10,11 +10,9 @@ import {
   sendParent,
   ActorRef
 } from 'xstate';
-import { render, cleanup, fireEvent, act } from '@testing-library/react';
+import { render, fireEvent, act } from '@testing-library/react';
 import { useActor } from '../src/useActor';
 import { invokeMachine } from 'xstate/invoke';
-
-afterEach(cleanup);
 
 describe('useService hook', () => {
   const counterMachine = Machine<

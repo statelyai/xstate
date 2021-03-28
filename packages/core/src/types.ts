@@ -62,10 +62,6 @@ export interface AssignMeta<TContext, TEvent extends EventObject> {
   state?: State<TContext, TEvent>;
   action: AssignAction<TContext, TEvent>;
   _event: SCXML.Event<TEvent>;
-  self?: ActorRef<TEvent>;
-  spawn: Spawner & {
-    from: <T extends Spawnable>(entity: T, name?: string) => ActorRefFrom<T>;
-  };
 }
 
 export type ActionFunction<TContext, TEvent extends EventObject> = (
@@ -263,7 +259,6 @@ export type BehaviorCreator<TContext, TEvent extends EventObject> = (
   context: TContext,
   event: TEvent,
   meta: {
-    parent: ActorRef<TEvent>;
     id: string;
     data?: any;
     src: InvokeSourceDefinition;
@@ -636,10 +631,15 @@ export type DelayConfig<TContext, TEvent extends EventObject> =
   | number
   | DelayExpr<TContext, TEvent>;
 
+export type ActorMap<TContext, TEvent extends EventObject> = Record<
+  string,
+  BehaviorCreator<TContext, TEvent>
+>;
+
 export interface MachineImplementations<TContext, TEvent extends EventObject> {
   guards: Record<string, GuardPredicate<TContext, TEvent>>;
   actions: ActionFunctionMap<TContext, TEvent>;
-  actors: Record<string, BehaviorCreator<TContext, TEvent>>;
+  actors: ActorMap<TContext, TEvent>;
   delays: DelayFunctionMap<TContext, TEvent>;
   context: Partial<TContext>;
 }
@@ -759,13 +759,17 @@ export interface NullEvent {
   type: ActionTypes.NullEvent;
 }
 
-export interface InvokeActionObject {
+export interface InvokeAction {
   type: ActionTypes.Invoke;
   src: InvokeSourceDefinition | ActorRef<any>;
   id: string;
   autoForward?: boolean;
   data?: any;
   exec?: undefined;
+}
+
+export interface InvokeActionObject extends InvokeAction {
+  ref?: SpawnedActorRef<any>;
 }
 
 export interface StopAction<TC, TE extends EventObject> {
@@ -1096,13 +1100,15 @@ export interface InterpreterOptions {
    * Default: `false`
    */
   devTools: boolean | DevToolsAdapter; // TODO: add enhancer options
-  [option: string]: any;
   /**
    * If `true`, events from the parent will be sent to this interpreter.
    *
    * Default: `false`
    */
   autoForward?: boolean;
+
+  sync?: boolean;
+  execute?: boolean;
 }
 
 export type AnyInterpreter = Interpreter<any, any, any>;
