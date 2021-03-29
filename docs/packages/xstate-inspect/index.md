@@ -25,11 +25,13 @@ npm install @xstate/inspect
 ```js
 import { inspect } from '@xstate/inspect';
 
-inspect({
-  // options
-  // url: 'https://statecharts.io/inspect', // (default)
-  iframe: false // open in new window
-});
+if (process.env.NODE_ENV !== 'production') {
+  inspect({
+    // options
+    // url: 'https://statecharts.io/inspect', // (default)
+    iframe: false // open in new window
+  });
+}
 ```
 
 3. Add `{ devTools: true }` to any interpreted machines you want to visualize:
