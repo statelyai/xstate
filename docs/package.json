@@ -11,7 +11,8 @@
     "docs:readme": "cpy ../README.md .",
     "docs:packages": "cpy '../packages/*/README.md' docs --parents --rename=index.md && cpy '../packages/*/docs/*.md' docs --parents",
     "docs:build": "npm run docs:readme && npm run docs:packages && vuepress build .",
-    "docs:pdf": "npm run docs:build && vuepress export ."
+    "docs:pdf": "npm run docs:build && vuepress export .",
+    "docs:publish": "npm run docs:build && gh-pages --dist .vuepress/dist --dest ./docs"
   },
   "dependencies": {
     "@vuepress/plugin-google-analytics": "^1.8.2",
