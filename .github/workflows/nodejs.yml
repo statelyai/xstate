@@ -28,3 +28,16 @@ jobs:
 
       - name: Test
         run: yarn test
+
+      - name: Build docs
+        run: |
+          cd docs
+          yarn install
+          yarn docs:build
+    
+      - name: Publish docs
+        uses: JamesIves/github-pages-deploy-action@4.1.0
+        with:
+            branch: gh-pages
+            folder: docs/dist
+            target-folder: docs
