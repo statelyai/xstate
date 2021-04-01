@@ -10,7 +10,8 @@ describe('@xstate/fsm', () => {
   type LightEvent =
     | { type: 'TIMER' }
     | { type: 'INC' }
-    | { type: 'EMERGENCY'; value: number };
+    | { type: 'EMERGENCY'; value: number }
+    | { type: 'TARGET_INVALID' };
 
   type LightState =
     | {
@@ -25,6 +26,8 @@ describe('@xstate/fsm', () => {
         value: 'red';
         context: LightContext & { go: false };
       };
+
+  const invalidState = 'invalid';
 
   const lightConfig: StateMachine.Config<
     LightContext,
@@ -48,6 +51,9 @@ describe('@xstate/fsm', () => {
           TIMER: {
             target: 'yellow',
             actions: ['g-y 1', 'g-y 2']
+          },
+          TARGET_INVALID: {
+            target: invalidState
           }
         }
       },
@@ -138,6 +144,14 @@ describe('@xstate/fsm', () => {
     expect(() => {
       lightFSM.transition('unknown', 'TIMER');
     }).toThrow();
+  });
+
+  it('should throw an error for undefined next state config', () => {
+    expect(() => {
+      lightFSM.transition('green', 'TARGET_INVALID');
+    }).toThrow(
+      `State '${invalidState}' not found on machine ${lightConfig.id ?? ''}`
+    );
   });
 
   it('should work with guards', () => {
