@@ -7,3 +7,4 @@ Added an explicit entrypoint for `@xstate/react/fsm` which you can use instead o
 ```diff
 -import { useMachine } from '@xstate/react/lib/fsm'
 +import { useMachine } from '@xstate/react/fsm'
+```
