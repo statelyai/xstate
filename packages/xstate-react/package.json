@@ -28,7 +28,8 @@
     "lib/**/*.d.ts",
     "dist/**/*.js",
     "es/**/*.js",
-    "es/**/*.d.ts"
+    "es/**/*.d.ts",
+    "fsm/package.json"
   ],
   "repository": {
     "type": "git",
