@@ -1,8 +1,8 @@
-import { Machine } from '../../src/index';
+import { createMachine } from '../../src/index';
 import { testAll } from '../utils';
 
 describe('Example 6.8', () => {
-  const machine = Machine({
+  const machine = createMachine({
     initial: 'A',
     states: {
       A: {

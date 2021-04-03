@@ -1,4 +1,4 @@
-import { Machine, State, StateFrom, interpret } from '../src/index';
+import { createMachine, State, StateFrom, interpret } from '../src/index';
 import { initEvent, assign } from '../src/actions';
 import { toSCXMLEvent } from '../src/utils';
 
@@ -19,7 +19,7 @@ type Events =
   | { type: 'TO_TWO_MAYBE' }
   | { type: 'TO_FINAL' };
 
-const machine = Machine<any, Events>({
+const machine = createMachine<any, Events>({
   initial: 'one',
   states: {
     one: {
@@ -142,7 +142,7 @@ describe('State', () => {
     });
 
     it('should report entering a final state as changed', () => {
-      const finalMachine = Machine({
+      const finalMachine = createMachine({
         id: 'final',
         initial: 'one',
         states: {
@@ -164,7 +164,7 @@ describe('State', () => {
     });
 
     it('should report any internal transition assignments as changed', () => {
-      const assignMachine = Machine<{ count: number }>({
+      const assignMachine = createMachine<{ count: number }>({
         id: 'assign',
         initial: 'same',
         context: {
@@ -199,7 +199,7 @@ describe('State', () => {
         | {
             type: 'SAVE';
           };
-      const toggleMachine = Machine<Ctx, ToggleEvents>({
+      const toggleMachine = createMachine<Ctx, ToggleEvents>({
         id: 'input',
         context: {
           value: ''
@@ -287,7 +287,7 @@ describe('State', () => {
     });
 
     it('returns no next events if there are none', () => {
-      const noEventsMachine = Machine({
+      const noEventsMachine = createMachine({
         id: 'no-events',
         initial: 'idle',
         states: {
@@ -437,7 +437,7 @@ describe('State', () => {
 
     describe('_sessionid', () => {
       it('_sessionid should be null for non-invoked machines', () => {
-        const testMachine = Machine({
+        const testMachine = createMachine({
           initial: 'active',
           states: {
             active: {}
@@ -448,7 +448,7 @@ describe('State', () => {
       });
 
       it('_sessionid should be the service sessionId for invoked machines', (done) => {
-        const testMachine = Machine({
+        const testMachine = createMachine({
           initial: 'active',
           states: {
             active: {
@@ -477,7 +477,7 @@ describe('State', () => {
       });
 
       it('_sessionid should persist through states (manual)', () => {
-        const testMachine = Machine({
+        const testMachine = createMachine({
           initial: 'active',
           states: {
             active: {

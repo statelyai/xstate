@@ -1,7 +1,7 @@
-import { Machine, assign } from 'xstate';
+import { createMachine, assign } from 'xstate';
 import { log } from 'xstate/actions';
 
-export default Machine<any>({
+export default createMachine<any>({
   initial: 'a',
   context: {
     i: undefined

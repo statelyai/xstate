@@ -1,4 +1,4 @@
-import { Machine } from '../src/index';
+import { createMachine } from '../src/index';
 
 describe('strict mode', () => {
   const pedestrianStates = {
@@ -26,7 +26,7 @@ describe('strict mode', () => {
     }
   };
 
-  const lightMachine = Machine({
+  const lightMachine = createMachine({
     strict: true,
     key: 'light',
     initial: 'green',

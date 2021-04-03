@@ -7,7 +7,7 @@ import {
   DelayExpr,
   ChooseConditon
 } from './types';
-import { Machine } from './index';
+import { createMachine } from './index';
 import { mapValues, keys, isString, flatten } from './utils';
 import * as actions from './actions';
 import { invokeMachine } from './invoke';
@@ -514,7 +514,7 @@ function scxmlToMachine(
         }, {})
     : undefined;
 
-  return Machine({
+  return createMachine({
     ...toConfig(machineElement, '(machine)', options),
     context,
     delimiter: options.delimiter,

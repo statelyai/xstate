@@ -1,5 +1,4 @@
 import {
-  Machine,
   createMachine,
   assign,
   forwardTo,
@@ -35,7 +34,7 @@ describe('entry/exit actions', () => {
     }
   };
 
-  const lightMachine = Machine({
+  const lightMachine = createMachine({
     key: 'light',
     initial: 'green',
     states: {
@@ -93,7 +92,7 @@ describe('entry/exit actions', () => {
     }
   };
 
-  const newLightMachine = Machine({
+  const newLightMachine = createMachine({
     key: 'light',
     initial: 'green',
     states: {
@@ -127,7 +126,7 @@ describe('entry/exit actions', () => {
     }
   });
 
-  const parallelMachine = Machine({
+  const parallelMachine = createMachine({
     type: 'parallel',
     states: {
       a: {
@@ -161,7 +160,7 @@ describe('entry/exit actions', () => {
     }
   });
 
-  const deepMachine = Machine({
+  const deepMachine = createMachine({
     initial: 'a',
     states: {
       a: {
@@ -216,7 +215,7 @@ describe('entry/exit actions', () => {
     }
   });
 
-  const parallelMachine2 = Machine({
+  const parallelMachine2 = createMachine({
     initial: 'A',
     states: {
       A: {
@@ -402,7 +401,7 @@ describe('entry/exit actions', () => {
         }
       };
 
-      const pingPong = Machine({
+      const pingPong = createMachine({
         initial: 'ping',
         key: 'machine',
         states: {
@@ -492,7 +491,7 @@ describe('entry/exit actions', () => {
 
   describe('parallel states', () => {
     it('should return entry action defined on parallel state', () => {
-      const parallelMachineWithEntry = Machine({
+      const parallelMachineWithEntry = createMachine({
         id: 'fetch',
         context: { attempts: 0 },
         initial: 'start',
@@ -529,7 +528,7 @@ describe('entry/exit actions', () => {
     it("shouldn't exit a state on a parent's targetless transition", (done) => {
       const actual: string[] = [];
 
-      const parent = Machine({
+      const parent = createMachine({
         initial: 'one',
         on: {
           WHATEVER: {
@@ -569,7 +568,7 @@ describe('entry/exit actions', () => {
     it("shouldn't exit (and reenter) state on targetless delayed transition", (done) => {
       const actual: string[] = [];
 
-      const machine = Machine({
+      const machine = createMachine({
         initial: 'one',
         states: {
           one: {
@@ -601,7 +600,7 @@ describe('entry/exit actions', () => {
 });
 
 describe('initial actions', () => {
-  const machine = Machine({
+  const machine = createMachine({
     initial: {
       target: 'a',
       actions: 'initialA'
@@ -670,7 +669,7 @@ describe('initial actions', () => {
 });
 
 describe('actions on invalid transition', () => {
-  const stopMachine = Machine({
+  const stopMachine = createMachine({
     initial: 'idle',
     states: {
       idle: {
@@ -702,16 +701,10 @@ describe('actions config', () => {
   interface Context {
     count: number;
   }
-  interface StateSchema {
-    states: {
-      a: {};
-      b: {};
-    };
-  }
 
   // tslint:disable-next-line:no-empty
   const definedAction = () => {};
-  const simpleMachine = Machine<Context, EventType, StateSchema>(
+  const simpleMachine = createMachine<Context, EventType>(
     {
       initial: 'a',
       context: {
@@ -769,7 +762,7 @@ describe('actions config', () => {
   });
 
   it('should be able to reference action implementations from action objects', () => {
-    const machine = Machine<Context, EventType, StateSchema>(
+    const machine = createMachine<Context, EventType>(
       {
         initial: 'a',
         context: {
@@ -814,7 +807,7 @@ describe('actions config', () => {
     let actionCalled = false;
     let exitCalled = false;
 
-    const anonMachine = Machine({
+    const anonMachine = createMachine({
       id: 'anon',
       initial: 'active',
       states: {
@@ -875,7 +868,7 @@ describe('actions config', () => {
 
 describe('action meta', () => {
   it('should provide the original action and state to the exec function', (done) => {
-    const testMachine = Machine(
+    const testMachine = createMachine(
       {
         id: 'test',
         initial: 'foo',
@@ -913,7 +906,7 @@ describe('purely defined actions', () => {
     | { type: 'NONE'; id: number }
     | { type: 'EACH' };
 
-  const dynamicMachine = Machine<Ctx, Events>({
+  const dynamicMachine = createMachine<Ctx, Events>({
     id: 'dynamic',
     initial: 'idle',
     context: {
@@ -1010,7 +1003,7 @@ describe('purely defined actions', () => {
 
 describe('forwardTo()', () => {
   it('should forward an event to a service', (done) => {
-    const child = Machine<void, { type: 'EVENT'; value: number }>({
+    const child = createMachine<void, { type: 'EVENT'; value: number }>({
       id: 'child',
       initial: 'active',
       states: {
@@ -1025,7 +1018,7 @@ describe('forwardTo()', () => {
       }
     });
 
-    const parent = Machine<
+    const parent = createMachine<
       undefined,
       { type: 'EVENT'; value: number } | { type: 'SUCCESS' }
     >({
@@ -1055,7 +1048,7 @@ describe('forwardTo()', () => {
   });
 
   it('should forward an event to a service (dynamic)', (done) => {
-    const child = Machine<void, { type: 'EVENT'; value: number }>({
+    const child = createMachine<void, { type: 'EVENT'; value: number }>({
       id: 'child',
       initial: 'active',
       states: {
@@ -1070,7 +1063,7 @@ describe('forwardTo()', () => {
       }
     });
 
-    const parent = Machine<
+    const parent = createMachine<
       { child?: ActorRef<any> },
       { type: 'EVENT'; value: number } | { type: 'SUCCESS' }
     >({
@@ -1106,7 +1099,7 @@ describe('forwardTo()', () => {
 });
 
 describe('log()', () => {
-  const logMachine = Machine<{ count: number }>({
+  const logMachine = createMachine<{ count: number }>({
     id: 'log',
     initial: 'string',
     context: {
@@ -1469,7 +1462,7 @@ describe('choose', () => {
   it('exit actions should be called when invoked machine reaches final state', (done) => {
     let exitCalled = false;
     let childExitCalled = false;
-    const childMachine = Machine({
+    const childMachine = createMachine({
       exit: () => {
         exitCalled = true;
       },
@@ -1484,7 +1477,7 @@ describe('choose', () => {
       }
     });
 
-    const parentMachine = Machine({
+    const parentMachine = createMachine({
       initial: 'active',
       states: {
         active: {
@@ -1512,7 +1505,7 @@ describe('choose', () => {
     let exitCalled = false;
     let childExitCalled = false;
 
-    const machine = Machine({
+    const machine = createMachine({
       exit: () => {
         exitCalled = true;
       },
@@ -1542,7 +1535,7 @@ describe('sendParent', () => {
       type: 'CHILD';
     }
 
-    const child = Machine<ChildContext, ChildEvent>({
+    const child = createMachine<ChildContext, ChildEvent>({
       id: 'child',
       initial: 'start',
       states: {

@@ -1,8 +1,8 @@
-import { Machine, actions } from '../../src';
+import { createMachine, actions } from '../../src';
 const { assign } = actions;
 
 // @ts-ignore
-const factorialMachine = Machine<{ n: number; fac: number }>({
+const factorialMachine = createMachine<{ n: number; fac: number }>({
   initial: 'iteration',
   context: { n: 5, fac: 1 },
   states: {
@@ -30,7 +30,7 @@ const factorialMachine = Machine<{ n: number; fac: number }>({
 });
 
 // @ts-ignore
-const testMachine = Machine<{ count: number }>({
+const testMachine = createMachine<{ count: number }>({
   context: { count: 11 },
   initial: 'init',
   states: {

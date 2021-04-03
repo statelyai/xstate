@@ -1,8 +1,8 @@
-import { Machine, interpret } from '../src/index';
+import { createMachine, interpret } from '../src/index';
 
 describe('event descriptors', () => {
   it('should fallback to using wildcard transition definition (if specified)', () => {
-    const machine = Machine({
+    const machine = createMachine({
       initial: 'A',
       states: {
         A: {
@@ -22,7 +22,7 @@ describe('event descriptors', () => {
   });
 
   it('should not use wildcard transition over explicit one when using object `.on` config - even if wildcard comes first', () => {
-    const machine = Machine({
+    const machine = createMachine({
       initial: 'A',
       states: {
         A: {
@@ -42,7 +42,7 @@ describe('event descriptors', () => {
   });
 
   it('should select wildcard over explicit event type for array `.on` config (according to document order)', () => {
-    const machine = Machine({
+    const machine = createMachine({
       initial: 'A',
       states: {
         A: {
@@ -62,7 +62,7 @@ describe('event descriptors', () => {
   });
 
   it('should NOT support non-tokenized wildcards', () => {
-    const machine = Machine({
+    const machine = createMachine({
       initial: 'start',
       states: {
         start: {
@@ -85,7 +85,7 @@ describe('event descriptors', () => {
   });
 
   it('should support prefix matching with wildcards (+0)', () => {
-    const machine = Machine({
+    const machine = createMachine({
       initial: 'start',
       states: {
         start: {
@@ -108,7 +108,7 @@ describe('event descriptors', () => {
   });
 
   it('should support prefix matching with wildcards (+1)', () => {
-    const machine = Machine({
+    const machine = createMachine({
       initial: 'start',
       states: {
         start: {
@@ -134,7 +134,7 @@ describe('event descriptors', () => {
   });
 
   it('should support prefix matching with wildcards (+n)', () => {
-    const machine = Machine({
+    const machine = createMachine({
       initial: 'start',
       states: {
         start: {
@@ -154,7 +154,7 @@ describe('event descriptors', () => {
   });
 
   it('should support prefix matching with wildcards (+n, multi-prefix)', () => {
-    const machine = Machine({
+    const machine = createMachine({
       initial: 'start',
       states: {
         start: {
@@ -176,7 +176,7 @@ describe('event descriptors', () => {
   });
 
   it('should only allow non-wildcard prefix matching for SCXML machines', () => {
-    const nonSCXMLMachine = Machine({
+    const nonSCXMLMachine = createMachine({
       initial: 'start',
       states: {
         start: {
@@ -190,7 +190,7 @@ describe('event descriptors', () => {
       }
     });
 
-    const SCXMLMachine = Machine({
+    const SCXMLMachine = createMachine({
       scxml: true,
       initial: 'start',
       states: {
@@ -219,7 +219,7 @@ describe('event descriptors', () => {
   });
 
   it('should not match infix wildcards', () => {
-    const machine = Machine({
+    const machine = createMachine({
       initial: 'start',
       states: {
         start: {
@@ -245,7 +245,7 @@ describe('event descriptors', () => {
   });
 
   it('should not match wildcards as part of tokens', () => {
-    const machine = Machine({
+    const machine = createMachine({
       initial: 'start',
       states: {
         start: {

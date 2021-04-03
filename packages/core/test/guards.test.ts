@@ -1,4 +1,4 @@
-import { Machine, interpret, State, createMachine } from '../src';
+import { interpret, State, createMachine } from '../src';
 import { and, not, or } from '../src/guards';
 
 describe('guard conditions', () => {
@@ -14,7 +14,7 @@ describe('guard conditions', () => {
     | { type: 'TIMER_COND_OBJ' }
     | { type: 'BAD_COND' };
 
-  const lightMachine = Machine<LightMachineCtx, LightMachineEvents>(
+  const lightMachine = createMachine<LightMachineCtx, LightMachineEvents>(
     {
       key: 'light',
       initial: 'green',
@@ -152,7 +152,7 @@ describe('guard conditions', () => {
 });
 
 describe('guard conditions', () => {
-  const machine = Machine({
+  const machine = createMachine({
     key: 'microsteps',
     type: 'parallel',
     states: {
@@ -253,7 +253,7 @@ describe('custom guards', () => {
     type: 'EVENT';
     value: number;
   }
-  const machine = Machine<Ctx, Events>(
+  const machine = createMachine<Ctx, Events>(
     {
       id: 'custom',
       initial: 'inactive',
@@ -308,7 +308,7 @@ describe('custom guards', () => {
 
 describe('referencing guards', () => {
   const stringGuardFn = () => true;
-  const guardsMachine = Machine(
+  const guardsMachine = createMachine(
     {
       id: 'guards',
       initial: 'active',
@@ -364,7 +364,7 @@ describe('referencing guards', () => {
   });
 
   it('should throw for guards with missing predicates', () => {
-    const machine = Machine({
+    const machine = createMachine({
       id: 'invalid-predicate',
       initial: 'active',
       states: {
@@ -385,7 +385,7 @@ describe('referencing guards', () => {
 
 describe('guards - other', () => {
   it('should allow for a fallback target to be a simple string', () => {
-    const machine = Machine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {

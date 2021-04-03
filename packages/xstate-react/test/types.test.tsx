@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { render } from '@testing-library/react';
 import {
-  Machine,
   interpret,
   assign,
   createMachine,
@@ -19,7 +18,7 @@ describe('useService', () => {
       todos: Array<ActorRefFrom<typeof todoMachine>>;
     }
 
-    const todoMachine = Machine<TodoCtx>({
+    const todoMachine = createMachine<TodoCtx>({
       context: {
         completed: false
       },
@@ -36,7 +35,7 @@ describe('useService', () => {
       }
     });
 
-    const todosMachine = Machine<TodosCtx, { type: 'CREATE' }>({
+    const todosMachine = createMachine<TodosCtx, { type: 'CREATE' }>({
       context: { todos: [] },
       initial: 'working',
       states: { working: {} },

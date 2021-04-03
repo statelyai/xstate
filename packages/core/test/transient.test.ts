@@ -1,10 +1,10 @@
-import { Machine, createMachine, interpret, State } from '../src/index';
+import { createMachine, interpret, State } from '../src/index';
 import { assign, raise } from '../src/actions';
 import { invokeMachine } from '../src/invoke';
 import { stateIn } from '../src/guards';
 
 const greetingContext = { hour: 10 };
-const greetingMachine = Machine<typeof greetingContext>({
+const greetingMachine = createMachine<typeof greetingContext>({
   key: 'greeting',
   initial: 'pending',
   context: greetingContext,
@@ -29,7 +29,7 @@ const greetingMachine = Machine<typeof greetingContext>({
 });
 
 describe('transient states (eventless transitions)', () => {
-  const updateMachine = Machine<{ data: boolean; status?: string }>({
+  const updateMachine = createMachine<{ data: boolean; status?: string }>({
     initial: 'G',
     states: {
       G: {
@@ -76,7 +76,7 @@ describe('transient states (eventless transitions)', () => {
 
   it('should choose the first candidate target that matches the cond (C)', () => {
     const nextState = updateMachine.transition(
-      State.from<any>('G', {
+      State.from('G', {
         data: true,
         status: 'X'
       }),
@@ -87,7 +87,7 @@ describe('transient states (eventless transitions)', () => {
 
   it('should choose the final candidate without a cond if none others match', () => {
     const nextState = updateMachine.transition(
-      State.from<any>('G', {
+      State.from('G', {
         data: true,
         status: 'other'
       }),
@@ -97,7 +97,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should carry actions from previous transitions within same step', () => {
-    const machine = Machine({
+    const machine = createMachine({
       initial: 'A',
       states: {
         A: {
@@ -130,7 +130,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should execute all internal events one after the other', () => {
-    const machine = Machine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         A: {
@@ -192,7 +192,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should execute all eventless transitions in the same microstep', () => {
-    const machine = Machine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         A: {
@@ -256,7 +256,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should execute all eventless transitions in the same microstep (with `always`)', () => {
-    const machine = Machine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         A: {
@@ -312,7 +312,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should check for automatic transitions even after microsteps are done', () => {
-    const machine = Machine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         A: {
@@ -363,7 +363,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should check for automatic transitions even after microsteps are done (with `always`)', () => {
-    const machine = Machine({
+    const machine = createMachine({
       type: 'parallel',
       states: {
         A: {
@@ -429,7 +429,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should select eventless transition before processing raised events', () => {
-    const machine = Machine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -459,7 +459,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should select eventless transition before processing raised events (with `always`)', () => {
-    const machine = Machine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -489,7 +489,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should select eventless transition for array `.on` config', () => {
-    const machine = Machine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -507,7 +507,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should not select wildcard for eventless transition', () => {
-    const machine = Machine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -525,7 +525,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should not select wildcard for eventless transition (array `.on`)', () => {
-    const machine = Machine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -547,7 +547,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should not select wildcard for eventless transition (with `always`)', () => {
-    const machine = Machine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -642,7 +642,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it("shouldn't crash when invoking a machine with initial transient transition depending on custom data", () => {
-    const timerMachine = Machine({
+    const timerMachine = createMachine({
       initial: 'initial',
       context: {
         duration: 0
@@ -664,7 +664,7 @@ describe('transient states (eventless transitions)', () => {
       }
     });
 
-    const machine = Machine({
+    const machine = createMachine({
       initial: 'active',
       context: {
         customDuration: 3000
