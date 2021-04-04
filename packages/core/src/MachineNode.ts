@@ -2,14 +2,14 @@ import { toArray, isBuiltInEvent, toSCXMLEvent } from './utils';
 import {
   Event,
   StateValue,
-  MachineOptions,
+  MachineImplementations,
   EventObject,
   StateSchema,
   MachineConfig,
   SCXML,
   Typestate,
   Transitions,
-  ActorRef
+  MachineSchema
 } from './types';
 import { State } from './State';
 
@@ -38,10 +38,10 @@ export const WILDCARD = '*';
 
 const createDefaultOptions = <TContext>(
   context: TContext
-): MachineOptions<TContext, any> => ({
+): MachineImplementations<TContext, any> => ({
   actions: {},
   guards: {},
-  behaviors: {},
+  actors: {},
   delays: {},
   context
 });
@@ -80,7 +80,9 @@ export class MachineNode<
    */
   public delimiter: string;
 
-  public options: MachineOptions<TContext, TEvent>;
+  public options: MachineImplementations<TContext, TEvent>;
+
+  public schema: MachineSchema<TContext, TEvent>;
 
   public __xstatenode: true = true;
 
@@ -89,7 +91,7 @@ export class MachineNode<
      * The raw config used to create the machine.
      */
     public config: MachineConfig<TContext, TEvent, TStateSchema>,
-    options?: Partial<MachineOptions<TContext, TEvent>>
+    options?: Partial<MachineImplementations<TContext, TEvent>>
   ) {
     super(config, {
       _key: config.id || '(machine)'
@@ -107,6 +109,7 @@ export class MachineNode<
     this.path = [];
     this.delimiter = this.config.delimiter || STATE_DELIMITER;
     this.version = this.config.version;
+    this.schema = this.config.schema ?? (({} as any) as this['schema']);
 
     // Document order
     let order = 0;
@@ -142,24 +145,25 @@ export class MachineNode<
   }
 
   /**
-   * Clones this state machine with custom options and context.
+   * Clones this state machine with the provided implementations
+   * and merges the `context` (if provided).
    *
-   * @param options Options (actions, guards, behaviors, delays) to recursively merge with the existing options.
-   * @param context Custom context (will override predefined context)
+   * @param implementations Options (`actions`, `guards`, `actors`, `delays`, `context`)
+   *  to recursively merge with the existing options.
    *
-   * @returns A new `MachineNode` instance with the custom options and context
+   * @returns A new `MachineNode` instance with the provided implementations.
    */
-  public withConfig(
-    options: Partial<MachineOptions<TContext, TEvent>>
+  public provide(
+    implementations: Partial<MachineImplementations<TContext, TEvent>>
   ): MachineNode<TContext, TEvent, TStateSchema> {
-    const { actions, guards, behaviors, delays } = this.options;
+    const { actions, guards, actors, delays } = this.options;
 
     return new MachineNode(this.config, {
-      actions: { ...actions, ...options.actions },
-      guards: { ...guards, ...options.guards },
-      behaviors: { ...behaviors, ...options.behaviors },
-      delays: { ...delays, ...options.delays },
-      context: resolveContext(this.context, options.context)
+      actions: { ...actions, ...implementations.actions },
+      guards: { ...guards, ...implementations.guards },
+      actors: { ...actors, ...implementations.actors },
+      delays: { ...delays, ...implementations.delays },
+      context: resolveContext(this.context, implementations.context)
     });
   }
 
@@ -173,7 +177,7 @@ export class MachineNode<
   public withContext(
     context: Partial<TContext>
   ): MachineNode<TContext, TEvent, TStateSchema> {
-    return this.withConfig({
+    return this.provide({
       context: resolveContext(this.context, context)
     });
   }
@@ -205,12 +209,11 @@ export class MachineNode<
    */
   public transition(
     state: StateValue | State<TContext, TEvent> = this.initialState,
-    event: Event<TEvent> | SCXML.Event<TEvent>,
-    self?: ActorRef<TEvent>
+    event: Event<TEvent> | SCXML.Event<TEvent>
   ): State<TContext, TEvent, TStateSchema, TTypestate> {
     const currentState = toState(state, this);
 
-    return macrostep(currentState, event, this, self);
+    return macrostep(currentState, event, this);
   }
 
   /**
@@ -222,8 +225,7 @@ export class MachineNode<
    */
   public microstep(
     state: StateValue | State<TContext, TEvent> = this.initialState,
-    event: Event<TEvent> | SCXML.Event<TEvent>,
-    self?: ActorRef<TEvent>
+    event: Event<TEvent> | SCXML.Event<TEvent>
   ): State<TContext, TEvent, TStateSchema, TTypestate> {
     const resolvedState = toState(state, this);
     const _event = toSCXMLEvent(event);
@@ -243,13 +245,7 @@ export class MachineNode<
     const transitions: Transitions<TContext, TEvent> =
       transitionNode(this, resolvedState.value, resolvedState, _event) || [];
 
-    return resolveMicroTransition(
-      this,
-      transitions,
-      resolvedState,
-      _event,
-      self
-    );
+    return resolveMicroTransition(this, transitions, resolvedState, _event);
   }
 
   /**
@@ -269,20 +265,10 @@ export class MachineNode<
 
   /**
    * Returns the initial `State` instance, with reference to `self` as an `ActorRef`.
-   *
-   * @param self The `ActorRef` instance of this machine, if any.
    */
-  public getInitialState(
-    self?: ActorRef<TEvent>
-  ): State<TContext, TEvent, TStateSchema, TTypestate> {
+  public getInitialState(): State<TContext, TEvent, TStateSchema, TTypestate> {
     this._init();
-    const nextState = resolveMicroTransition(
-      this,
-      [],
-      undefined,
-      undefined,
-      self
-    );
+    const nextState = resolveMicroTransition(this, [], undefined, undefined);
     return macrostep(nextState, null as any, this) as State<
       TContext,
       TEvent,

@@ -10,11 +10,9 @@ import {
   sendParent,
   ActorRef
 } from 'xstate';
-import { render, cleanup, fireEvent, act } from '@testing-library/react';
+import { render, fireEvent, act } from '@testing-library/react';
 import { useActor } from '../src/useActor';
 import { invokeMachine } from 'xstate/invoke';
-
-afterEach(cleanup);
 
 describe('useService hook', () => {
   const counterMachine = Machine<
@@ -299,7 +297,7 @@ describe('useService hook', () => {
 
   it('service should accept the 2-argument variant', () => {
     const service = interpret(
-      createMachine<any, { type: 'EVENT'; value: number }>({
+      createMachine<{ value: number }, { type: 'EVENT'; value: number }>({
         initial: 'first',
         states: {
           first: {

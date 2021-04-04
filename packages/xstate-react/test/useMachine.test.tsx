@@ -6,21 +6,15 @@ import {
   Interpreter,
   doneInvoke,
   State,
-  createMachine
+  createMachine,
+  send,
+  spawnPromise
 } from 'xstate';
-import {
-  render,
-  fireEvent,
-  cleanup,
-  waitForElement,
-  act
-} from '@testing-library/react';
+import { render, fireEvent, waitForElement, act } from '@testing-library/react';
 import { useState } from 'react';
 import { invokePromise, invokeCallback, invokeMachine } from 'xstate/invoke';
 import { asEffect, asLayoutEffect } from '../src/useMachine';
-import { DoneEventObject } from 'xstate/src';
-
-afterEach(cleanup);
+import { DoneEventObject } from 'xstate';
 
 describe('useMachine hook', () => {
   const context = {
@@ -68,7 +62,7 @@ describe('useMachine hook', () => {
     persistedState
   }) => {
     const [current, send] = useMachine(fetchMachine, {
-      services: {
+      actors: {
         fetchData: invokePromise(onFetch)
       },
       state: persistedState
@@ -195,8 +189,8 @@ describe('useMachine hook', () => {
       states: {
         start: {
           entry: assign({
-            ref: (_, __, { spawn }) =>
-              spawn.from(new Promise((res) => res(42)), 'my-promise')
+            ref: () =>
+              spawnPromise(() => new Promise((res) => res(42)), 'my-promise')
           }),
           on: {
             [doneInvoke('my-promise')]: 'success'
@@ -542,6 +536,145 @@ describe('useMachine hook', () => {
     );
     done();
   });
+
+  it('should accept a lazily created machine', () => {
+    const App = () => {
+      const [state] = useMachine(() =>
+        createMachine({
+          initial: 'idle',
+          states: {
+            idle: {}
+          }
+        })
+      );
+
+      expect(state.matches('idle')).toBeTruthy();
+
+      return null;
+    };
+
+    render(<App />);
+  });
+
+  it('should not miss initial synchronous updates', () => {
+    const m = createMachine<{ count: number }>({
+      initial: 'idle',
+      context: {
+        count: 0
+      },
+      entry: [assign({ count: 1 }), send('INC')],
+      on: {
+        INC: {
+          actions: [assign({ count: (ctx) => ++ctx.count }), send('UNHANDLED')]
+        }
+      },
+      states: {
+        idle: {}
+      }
+    });
+
+    const App = () => {
+      const [state] = useMachine(m);
+      return <>{state.context.count}</>;
+    };
+
+    const { container } = render(<App />);
+
+    expect(container.textContent).toBe('2');
+  });
+
+  // TODO
+  it.skip('should only render once when initial microsteps are involved', () => {
+    let rerenders = 0;
+
+    const m = createMachine<{ stuff: number[] }>(
+      {
+        initial: 'init',
+        context: { stuff: [1, 2, 3] },
+        states: {
+          init: {
+            entry: 'setup',
+            always: 'ready'
+          },
+          ready: {}
+        }
+      },
+      {
+        actions: {
+          setup: assign({
+            stuff: (context) => [...context.stuff, 4]
+          })
+        }
+      }
+    );
+
+    const App = () => {
+      useMachine(m);
+      rerenders++;
+      return null;
+    };
+
+    render(<App />);
+
+    expect(rerenders).toBe(1);
+  });
+
+  // TODO
+  it.skip('should maintain the same reference for objects created when resolving initial state', () => {
+    let effectsFired = 0;
+
+    const m = createMachine<{ counter: number; stuff: number[] }>(
+      {
+        initial: 'init',
+        context: { counter: 0, stuff: [1, 2, 3] },
+        states: {
+          init: {
+            entry: 'setup'
+          }
+        },
+        on: {
+          INC: {
+            actions: 'increase'
+          }
+        }
+      },
+      {
+        actions: {
+          setup: assign({
+            stuff: (context) => [...context.stuff, 4]
+          }),
+          increase: assign({
+            counter: (context) => ++context.counter
+          })
+        }
+      }
+    );
+
+    const App = () => {
+      const [state, send] = useMachine(m);
+
+      // this effect should only fire once since `stuff` never changes
+      React.useEffect(() => {
+        effectsFired++;
+      }, [state.context.stuff]);
+
+      return (
+        <>
+          <div>{`Counter: ${state.context.counter}`}</div>
+          <button onClick={() => send('INC')}>Increase</button>
+        </>
+      );
+    };
+
+    const { getByRole } = render(<App />);
+
+    expect(effectsFired).toBe(1);
+
+    const button = getByRole('button');
+    fireEvent.click(button);
+
+    expect(effectsFired).toBe(1);
+  });
 });
 
 describe('useMachine (strict mode)', () => {
@@ -713,24 +846,5 @@ describe('useMachine (strict mode)', () => {
     } finally {
       jest.useRealTimers();
     }
-  });
-
-  it('should accept a lazily created machine', () => {
-    const App = () => {
-      const [state] = useMachine(() =>
-        createMachine({
-          initial: 'idle',
-          states: {
-            idle: {}
-          }
-        })
-      );
-
-      expect(state.matches('idle')).toBeTruthy();
-
-      return null;
-    };
-
-    render(<App />);
   });
 });

@@ -13,7 +13,29 @@
 
 This package contains a minimal, 1kb implementation of [XState](https://github.com/davidkpiano/xstate) for **finite state machines**.
 
-**Features:**
+## Features
+
+|                             | **@xstate/fsm** | [XState](https://github.com/davidkpiano/xstate) |
+| --------------------------- | :-------------: | :---------------------------------------------: |
+| Finite states               |       ✅        |                       ✅                        |
+| Initial state               |       ✅        |                       ✅                        |
+| Transitions (object)        |       ✅        |                       ✅                        |
+| Transitions (string target) |       ✅        |                       ✅                        |
+| Delayed transitions         |       ❌        |                       ✅                        |
+| Eventless transitions       |       ❌        |                       ✅                        |
+| Nested states               |       ❌        |                       ✅                        |
+| Parallel states             |       ❌        |                       ✅                        |
+| History states              |       ❌        |                       ✅                        |
+| Final states                |       ❌        |                       ✅                        |
+| Context                     |       ✅        |                       ✅                        |
+| Entry actions               |       ✅        |                       ✅                        |
+| Exit actions                |       ✅        |                       ✅                        |
+| Transition actions          |       ✅        |                       ✅                        |
+| Parameterized actions       |       ❌        |                       ✅                        |
+| Transition guards           |       ✅        |                       ✅                        |
+| Parameterized guards        |       ❌        |                       ✅                        |
+| Spawned actors              |       ❌        |                       ✅                        |
+| Invoked actors              |       ❌        |                       ✅                        |
 
 - Finite states (non-nested)
 - Initial state
@@ -39,8 +61,6 @@ npm i @xstate/fsm
 ```js
 import { createMachine } from '@xstate/fsm';
 
-// Stateless finite state machine definition
-// machine.transition(...) is a pure function.
 const toggleMachine = createMachine({
   id: 'toggle',
   initial: 'inactive',
@@ -54,8 +74,6 @@ const { initialState } = toggleMachine;
 
 const toggledState = toggleMachine.transition(initialState, 'TOGGLE');
 toggledState.value;
-// => 'active'
-
 const untoggledState = toggleMachine.transition(toggledState, 'TOGGLE');
 untoggledState.value;
 // => 'inactive'
@@ -66,9 +84,7 @@ untoggledState.value;
 ```js
 import { createMachine, interpret } from '@xstate/fsm';
 
-const toggleMachine = createMachine({
-  /* ... */
-});
+const toggleMachine = createMachine({});
 
 const toggleService = interpret(toggleMachine).start();
 
@@ -77,11 +93,7 @@ toggleService.subscribe((state) => {
 });
 
 toggleService.send('TOGGLE');
-// => logs 'active'
-
 toggleService.send('TOGGLE');
-// => logs 'inactive'
-
 toggleService.stop();
 ```
 
@@ -180,11 +192,10 @@ String syntax:
 Using the string or object syntax is useful for handling actions in a custom way, rather than baking in the implementation details to your machine:
 
 ```js
-const nextState = machine.transition(/* ... */);
+const nextState = machine.transition();
 
 nextState.actions.forEach((action) => {
   if (action.type === 'focus') {
-    // do focus
   }
 });
 ```
@@ -213,13 +224,8 @@ A `State` object, which represents the next state.
 **Example:**
 
 ```js
-// string state name and
 const yellowState = machine.transition('green', 'TIMER');
-// => { value: 'yellow', ... }
-
 const redState = machine.transition(yellowState, 'TIMER');
-// => { value: 'red', ... }
-
 const greenState = machine.transition(yellowState, { type: 'TIMER' });
 // => { value: 'green', ... }
 ```
@@ -249,9 +255,7 @@ Actions will also be executed by the interpreter.
 ```js
 import { createMachine, interpret } from '@xstate/fsm';
 
-const machine = createMachine({
-  /* ... */
-});
+const machine = createMachine({});
 
 const service = interpret(machine);
 
@@ -264,10 +268,8 @@ service.start();
 service.send('SOME_EVENT');
 service.send({ type: 'ANOTHER_EVENT' });
 
-// unsubscribes single subscription
 subscription.unsubscribe();
 
-// unsubscribes all subscriptions and stops interpretation
 service.stop();
 ```
 
@@ -411,23 +413,7 @@ lightService.subscribe((state) => {
 });
 
 lightService.start();
-// => logs {
-//   value: 'green',
-//   context: { redLights: 0 },
-//   actions: [],
-//   changed: undefined
-// }
-
 lightService.send('TIMER');
-// => logs {
-//   value: 'yellow',
-//   context: { redLights: 0 },
-//   actions: [
-//     { type: undefined, exec: () => console.log('Going to red!') }
-//   ],
-//   changed: true
-// }
-
 lightService.send('TIMER');
 // => logs {
 //   value: 'red',

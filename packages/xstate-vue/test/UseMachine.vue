@@ -11,7 +11,7 @@
 </template>
 
 <script lang="ts">
-import { PropType } from 'vue';
+import { defineComponent, PropType } from 'vue';
 import { useMachine } from '../src';
 import { Machine, assign, State } from 'xstate';
 import { invokePromise } from 'xstate/invoke';
@@ -46,7 +46,7 @@ const fetchMachine = Machine<typeof context, any>({
   }
 });
 
-export default {
+export default defineComponent({
   props: {
     persistedState: {
       type: Object as PropType<State<any>>
@@ -57,12 +57,12 @@ export default {
       new Promise((res) => setTimeout(() => res('some data'), 50));
 
     const { state, send, service } = useMachine(fetchMachine, {
-      behaviors: {
+      actors: {
         fetchData: invokePromise(onFetch)
       },
       state: persistedState
     });
     return { state, send, service };
   }
-};
+});
 </script>

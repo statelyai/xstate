@@ -8,6 +8,8 @@ Below is an incomplete collection of many resources for learning and applying XS
 Watch the official [State Machines in JavaScript with XState](https://frontendmasters.com/courses/xstate/) course by [@davidkpiano](https://twitter.com/davidkpiano) on Frontend Masters! In this course, you’ll learn the fundamentals of state machines and statecharts, from building your own without any libraries in pure JavaScript, up to using XState to take advantage of a wide variety of other features.
 
 The workshop code examples are [open-sourced and available on GitHub](https://github.com/davidkpiano/frontend-masters-xstate-workshop).
+
+There is also a follow-up course: [State Modeling with React and XState](https://frontendmasters.com/workshops/xstate-react/). Once you've gone through the first course, be sure to take this one too so you can learn how to apply state machines and statecharts to real-world apps and master advanced concepts such as spawning/invoking actors and model-based testing.
 :::
 
 **Other great courses and guides:**
@@ -16,7 +18,7 @@ The workshop code examples are [open-sourced and available on GitHub](https://gi
   - [GitHub - Course Notes](https://github.com/eggheadio-projects/introduction-to-state-machines-using-xstate-notes)
   - [GitHub - Workshop](https://github.com/kyleshevlin/intro-to-state-machines-and-xstate-workshop)
 - [Egghead - Construct Sturdy UIs with XState](https://egghead.io/courses/construct-sturdy-uis-with-xstate) by [Isaac Mann](https://twitter.com/MannIsaac)
-- [XState Guide](https://bradwoods.io/guides/xstate) by [Brad Woods](https://twitter.com/bradwoodsio)
+- [XState Guide](https://examples.bradwoods.io/xstate) by [Brad Woods](https://twitter.com/bradwoodsio)
 
 ## Podcasts
 
@@ -28,6 +30,8 @@ The workshop code examples are [open-sourced and available on GitHub](https://gi
 - [🎙 (ShopTalk Show) 327: Working with State Machines with Jon Bellah and David Khourshid](https://shoptalkshow.com/327-working-state-machines/)
 - [🎙 (Egghead.io Podcast) 11: Introduction To State Machines And XState With Kyle Shevlin](https://egghead.io/podcasts/introduction-to-state-machines-and-xstate-with-kyle-shevlin)
 - [🎙 (Syntax.FM) 206: State Machines, CSS and Animations with David K Piano](https://syntax.fm/show/206/state-machines-css-and-animations-with-david-k-piano)
+- [🎙 (Modern Web) S07E20: Building State Machines using XState with David Khourshid](https://modernweb.podbean.com/e/s07e20-modern-web-podcast-building-state-machines-using-xstate-with-david-khourshid/)
+  - [▶️ Video](https://www.youtube.com/watch?v=uLlQjp5u2KQ)
 
 ## Articles and Videos
 
@@ -167,7 +171,32 @@ The workshop code examples are [open-sourced and available on GitHub](https://gi
 - [▶️ Modeling a Voicemail Widget with XState](https://www.youtube.com/watch?v=D6LzWcV_-14) by [Constantin Druc](https://www.youtube.com/channel/UCsMdRMBnxIVO0K_YS0KHiMA)
 - [XState Brain Teaser #1 - Auth Flow](https://dev.to/mpocock1/xstate-brain-teaser-1-auth-flow-2jhl) by [Matt Pocock](https://twitter.com/mpocock1)
 - [▶️ Learning XState by refactoring an old project](https://fvsch.com/learning-xstate) by [Florens Verschelde](https://fvsch.com/)
+  - [Article](https://fvsch.com/learning-xstate)
 - [Creating State Machines in JavaScript with XState](https://nisimdor.medium.com/creating-state-machines-in-javascript-with-xstate-21e1599521be) by [Dor Nisim](https://nisimdor.medium.com/)
 - ["Just Use Props": An opinionated guide to React and XState](https://dev.to/mpocock1/just-use-props-an-opinionated-guide-to-react-and-xstate-fc9) by [Matt Pocock](https://dev.to/mpocock1)
 - [Usando XState y React para hacer peticiones HTTP (en español)](https://www.youtube.com/watch?v=Wo-rVyAsz-Q) by [GCD Coder](https://www.youtube.com/channel/UCwkisgTJdCx3mNZMaaHAaVA)
 - [Infinite Scrolling con Svelte, IntersectionObserver & XState (en español)](https://www.youtube.com/watch?v=GMXrwrG0cL4) by [GCD Coder](https://www.youtube.com/channel/UCwkisgTJdCx3mNZMaaHAaVA)
+- [▶️ Getting Started with XState in Vue 3](https://www.youtube.com/watch?v=g4YnmydXMP8) by [JacoboCode](https://www.youtube.com/channel/UCcE2YngHoargpdjIzkCNY2Q)
+- [▶️ Typing XState in Vue 3](https://www.youtube.com/watch?v=7tT45eRmyJE) by [JacoboCode](https://www.youtube.com/channel/UCcE2YngHoargpdjIzkCNY2Q)
+- [Infinite Scrolling with Svelte 3, XState and IntersectionObserver](https://dev.to/gcdcoder/infinite-scrolling-with-svelte-3-xstate-and-intersectionobserver-127j) by [Gustavo Castillo](https://dev.to/gcdcoder)
+- [Untangle complex flows in your React Native app with XState](https://medium.com/welld-tech/untangle-complex-flows-in-your-react-native-app-with-xstate-1b11d0b8a91f) by [Simone D'Avico](https://sdavico.medium.com/)
+- [Integrate XState with React Native and React Navigation](https://medium.com/welld-tech/integrate-xstate-with-react-native-and-react-navigation-21ead87391da) by [Simone D'Avico](https://sdavico.medium.com/)
+- [An Introduction to Finite State Machines: Simplifying React State Management with State Machines](https://soshace.com/an-introduction-to-finite-state-machines-simplifying-react-state-management-with-state-machines/) by [Bradley Kofi](https://soshace.com/author/bradstarart/)
+- [An Introduction to XState in TypeScript](https://medium.com/giant-machines/an-introduction-to-xstate-in-typescript-e71c7729ce88) by [Neeraj Khosla
+  ](https://medium.com/@n.khosla91)
+- [▶️ XState - Global state in React](https://www.youtube.com/watch?v=1kJcnFBrk2I) by [Matt Pocock](https://twitter.com/mpocock1)
+- [▶️ XState Introduction](https://www.youtube.com/watch?v=clu2bqjk3c0) on [For Those Who Code](https://www.youtube.com/channel/UCS3-MF_4ADqglU2OSly4vIw)
+- [Future of state management in React with XState](https://blog.jskoneczny.pl/post/future-of-state-management-in-react-with-xstate) by [Jakub Skoneczny](https://blog.jskoneczny.pl/)
+- [▶️ Custom Svelte Store: XState as Svelte store](https://www.youtube.com/watch?v=NIfQsc5XAzU) by [lihautan](https://www.youtube.com/channel/UCbmC3HP3FaAFdcZkui8YoMQ)
+- [▶️ Finite State Machine on Frontend](https://www.youtube.com/watch?v=gCT-lCYYhf4) by [Eugenia Zigisova](https://twitter.com/jevgeniazi)
+- [#1 Introduction to XState in React](https://blog.imbhargav5.com/1-introduction-to-xstate-in-react) by [Bhargav Ponnapalli](https://blog.imbhargav5.com/)
+- [▶️ Modelling application behaviour with the XState library (in React)](https://www.youtube.com/watch?v=paZ4ImyI1YQ) by [Marc Klefter](https://twitter.com/marcklefter)
+- [Rsvp to weddings with XState](https://dev.to/droopytersen/rsvp-to-weddings-with-xstate-55nl) by [Andrew Peterson](https://dev.to/droopytersen)
+- [▶️ XState and State Machines in Vue](https://tallpad.com/series/xstate-misc/episode/1)
+- [Github - XState with React and Angular in Nx Workspace](https://github.com/nartc/nx-state-machine-todos-mvc) by [Chau Tran](https://nartc.me)
+- [Boost your React application's performance by XState](https://dev.to/alirezavalizade/boost-your-react-application-s-performance-by-xstate-42p8) by [Alireza Valizade](https://dev.to/alirezavalizade)
+- [Getting Started with XState, React, and Typescript | Part 1](https://www.youtube.com/watch?v=po1YRAk7irY) by [Modus Create](https://www.youtube.com/channel/UCsKwL0-e2eHRNa6Ne99AESw)
+- [Frontend is Rocket Science – Managing state in any JavaScript Application](https://blog.oddeven.ch/blog/frontend-is-rocket-science-managing-state-in-any-javascript-application/) by [Aleksej Dix](https://twitter.com/aleksejdix)
+- [▶️ Use State Machines to Build a Queue for Custom Twitch Overlays — Learn With Jason](https://www.youtube.com/watch?v=UzA5Mvk587M) by [Jason Lengstorf](https://www.youtube.com/channel/UCnty0z0pNRDgnuoirYXnC5A)
+- [How to Use Finite State Machines in React](https://www.telerik.com/blogs/how-to-use-finite-state-machines-react) by [Leonardo Maldonado](https://www.telerik.com/blogs/author/leonardo-maldonado)
+- [▶️ Maquinas de estado finito y gráficas de estado en React ](https://www.youtube.com/watch?v=Rm6AMY6-Wqw) by José L Narajo

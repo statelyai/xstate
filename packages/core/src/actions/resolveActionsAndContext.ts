@@ -1,4 +1,9 @@
-import { EventObject, ForEachAction } from '..';
+import {
+  EventObject,
+  ForEachAction,
+  InvokeAction,
+  InvokeSourceDefinition
+} from '..';
 import { toArray, warn, isArray, isString, toSCXMLEvent } from '../utils';
 import { updateContext } from '../updateContext';
 import {
@@ -14,8 +19,7 @@ import {
   SpecialTargets,
   ChooseAction,
   StopActionObject,
-  AnyEventObject,
-  ActorRef
+  AnyEventObject
 } from '../types';
 import { State } from '../State';
 import {
@@ -27,7 +31,8 @@ import {
   resolveCancel,
   toActionObject,
   resolveStop,
-  assign
+  assign,
+  resolveInvoke
 } from '../actions';
 import { IS_PRODUCTION } from '../environment';
 import { MachineNode } from '../MachineNode';
@@ -37,8 +42,7 @@ export function resolveActionsAndContext<TContext, TEvent extends EventObject>(
   actions: Array<ActionObject<TContext, TEvent>>,
   machine: MachineNode<TContext, TEvent, any>,
   _event: SCXML.Event<TEvent>,
-  currentState: State<TContext, TEvent, any, any> | undefined,
-  service?: ActorRef<TEvent>
+  currentState: State<TContext, TEvent, any, any> | undefined
 ): {
   actions: typeof actions;
   raised: Array<RaiseActionObject<TEvent>>;
@@ -96,7 +100,7 @@ export function resolveActionsAndContext<TContext, TEvent extends EventObject>(
           break;
         case actionTypes.choose: {
           const chooseAction = actionObject as ChooseAction<TContext, TEvent>;
-          const chosenActions = chooseAction.guards.find((condition) => {
+          const matchedActions = chooseAction.guards.find((condition) => {
             const guard =
               condition.guard &&
               toGuardDefinition(
@@ -109,9 +113,9 @@ export function resolveActionsAndContext<TContext, TEvent extends EventObject>(
             );
           })?.actions;
 
-          if (chosenActions) {
+          if (matchedActions) {
             toActionObjects(
-              toArray(chosenActions),
+              toArray(matchedActions),
               machine.options.actions
             ).forEach(resolveAction);
           }
@@ -137,8 +141,7 @@ export function resolveActionsAndContext<TContext, TEvent extends EventObject>(
               context,
               _event,
               [actionObject as AssignAction<TContext, TEvent>],
-              currentState,
-              service
+              currentState
             );
             context = nextContext;
             resActions.push(actionObject, ...nextActions);
@@ -152,6 +155,23 @@ export function resolveActionsAndContext<TContext, TEvent extends EventObject>(
               } as any) // TODO: fix
             });
           }
+          break;
+        case actionTypes.invoke:
+          const invokeAction = resolveInvoke(
+            actionObject as InvokeAction,
+            context,
+            _event,
+            machine.options.actors
+          );
+          if (!IS_PRODUCTION && !invokeAction.ref) {
+            warn(
+              false,
+              `Actor type '${
+                (invokeAction.src as InvokeSourceDefinition).type
+              }' not found in machine '${machine.id}'.`
+            );
+          }
+          resActions.push(invokeAction);
           break;
         case actionTypes.stop:
           const stopAction = resolveStop(
@@ -176,8 +196,7 @@ export function resolveActionsAndContext<TContext, TEvent extends EventObject>(
                     [action.index]: index as any // TODO: fix
                   } as any) // TODO: fix
                 ],
-                currentState,
-                service
+                currentState
               );
 
               context = nextContext;

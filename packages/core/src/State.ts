@@ -33,7 +33,7 @@ export function isState<
 }
 export function bindActionToState<TC, TE extends EventObject>(
   action: ActionObject<TC, TE>,
-  state: State<TC, TE>
+  state: State<TC, TE, any, any>
 ): ActionObject<TC, TE> {
   const { exec } = action;
   const boundAction: ActionObject<TC, TE> = {
@@ -91,7 +91,7 @@ export class State<
    */
   public transitions: Array<TransitionDefinition<TContext, TEvent>>;
   /**
-   * An object mapping actor IDs to spawned actors/invoked behaviors.
+   * An object mapping actor names to spawned/invoked actors.
    */
   public children: Record<string, SpawnedActorRef<any>>;
   /**
@@ -100,9 +100,9 @@ export class State<
    * @param context
    */
   public static from<TC, TE extends EventObject = EventObject>(
-    stateValue: State<TC, TE> | StateValue,
+    stateValue: State<TC, TE, any, any> | StateValue,
     context?: TC | undefined
-  ): State<TC, TE> {
+  ): State<TC, TE, any, any> {
     if (stateValue instanceof State) {
       if (stateValue.context !== context) {
         return new State<TC, TE>({
@@ -143,7 +143,7 @@ export class State<
    */
   public static create<TC, TE extends EventObject = EventObject>(
     config: StateConfig<TC, TE>
-  ): State<TC, TE> {
+  ): State<TC, TE, any, any> {
     return new State(config);
   }
   /**
@@ -241,7 +241,11 @@ export class State<
   public matches<TSV extends TTypestate['value']>(
     parentStateValue: TSV
   ): this is State<
-    (TTypestate extends { value: TSV } ? TTypestate : never)['context'],
+    (TTypestate extends any
+      ? { value: TSV; context: any } extends TTypestate
+        ? TTypestate
+        : never
+      : never)['context'],
     TEvent,
     TStateSchema,
     TTypestate

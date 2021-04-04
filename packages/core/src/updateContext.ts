@@ -4,24 +4,18 @@ import {
   SCXML,
   AssignMeta,
   ActionObject,
-  InvokeActionObject,
-  ActionTypes,
-  Spawnable,
-  ActorRef,
-  ActorRefFrom
+  InvokeActionObject
 } from './types';
-import { SpawnedActorRef, State } from '.';
-import { ObservableActorRef } from './ObservableActorRef';
+import { State } from '.';
 import { isFunction, keys } from './utils';
-import { createBehaviorFrom, Behavior } from './behavior';
-import { registry } from './registry';
+
+import * as capturedState from './capturedState';
 
 export function updateContext<TContext, TEvent extends EventObject>(
   context: TContext,
   _event: SCXML.Event<TEvent>,
   assignActions: Array<AssignAction<TContext, TEvent>>,
-  state?: State<TContext, TEvent>,
-  service?: ActorRef<TEvent>
+  state?: State<TContext, TEvent>
 ): [TContext, Array<ActionObject<TContext, TEvent>>] {
   const capturedActions: InvokeActionObject[] = [];
 
@@ -35,38 +29,10 @@ export function updateContext<TContext, TEvent extends EventObject>(
     ? assignActions.reduce((acc, assignAction) => {
         const { assignment } = assignAction as AssignAction<TContext, TEvent>;
 
-        const spawner = <T extends Behavior<any, any>>(
-          behavior: T,
-          name: string
-        ): T extends Behavior<infer TE, infer TEmitted>
-          ? SpawnedActorRef<TE, TEmitted>
-          : never => {
-          const actorRef = new ObservableActorRef(behavior, name);
-
-          capturedActions.push({
-            type: ActionTypes.Invoke,
-            src: actorRef,
-            id: name
-          });
-
-          return actorRef as any; // TODO: fix
-        };
-
-        spawner.from = <T extends Spawnable>(
-          entity: T,
-          name: string = registry.bookId() // TODO: use more universal uniqueid
-        ): ActorRefFrom<T> => {
-          const behavior = createBehaviorFrom(entity as any, service); // TODO: fix
-
-          return (spawner(behavior, name) as unknown) as ActorRefFrom<T>; // TODO: fix
-        };
-
         const meta: AssignMeta<TContext, TEvent> = {
           state,
           action: assignAction,
-          _event,
-          self: service,
-          spawn: spawner
+          _event
         };
 
         let partialUpdate: Partial<TContext> = {};
@@ -80,6 +46,9 @@ export function updateContext<TContext, TEvent extends EventObject>(
               : propAssignment;
           }
         }
+
+        capturedActions.push(...capturedState.flushSpawns());
+
         return Object.assign({}, acc, partialUpdate);
       }, context)
     : context;

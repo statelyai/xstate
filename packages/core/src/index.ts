@@ -25,6 +25,15 @@ import { interpret, Interpreter, InterpreterStatus } from './interpreter';
 import { matchState } from './match';
 export { MachineNode } from './MachineNode';
 export { SimulatedClock } from './SimulatedClock';
+export {
+  spawn,
+  spawnFrom,
+  spawnMachine,
+  spawnPromise,
+  spawnObservable,
+  spawnCallback
+} from './Actor';
+export { createSchema } from './schema';
 
 const actions = {
   raise,

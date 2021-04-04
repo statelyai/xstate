@@ -5,7 +5,8 @@ import {
   interpret,
   assign,
   createMachine,
-  ActorRefFrom
+  ActorRefFrom,
+  spawnMachine
 } from 'xstate';
 import { useService, useMachine, useActor } from '../src';
 
@@ -41,9 +42,9 @@ describe('useService', () => {
       states: { working: {} },
       on: {
         CREATE: {
-          actions: assign((ctx, _, { spawn }) => ({
+          actions: assign((ctx) => ({
             ...ctx,
-            todos: [...ctx.todos, spawn.from(todoMachine)]
+            todos: [...ctx.todos, spawnMachine(todoMachine)]
           }))
         }
       }
@@ -158,7 +159,7 @@ describe('useMachine', () => {
       {
         actions: {
           spawnActor: assign({
-            actor: (_, __, { spawn }) => spawn.from(child)
+            actor: () => spawnMachine(child)
           })
         }
       }

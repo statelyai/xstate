@@ -9,7 +9,9 @@
   - [`useMachine(machine, options?)`](#usemachinemachine-options)
   - [`useService(service)`](#useserviceservice)
   - [`useActor(actor, getSnapshot)`](#useactoractor-getsnapshot)
-  - [`asEffect(action)`](#aseffectaction)
+  - [`useInterpret(machine, options?, observer?)`](#useinterpretmachine-options-observer)
+  - [`useSelector(actor, selector, compare?, getSnapshot?)`](#useselectoractor-selector-compare-getsnapshot)
+  - [`asEffect(action)`](#aseffect-action)
   - [`asLayoutEffect(action)`](#aslayouteffectaction)
   - [`useMachine(machine)` with `@xstate/fsm`](#usemachinemachine-with-xstatefsm)
 - [Configuring Machines](#configuring-machines)
@@ -103,7 +105,7 @@ A [React hook](https://reactjs.org/hooks) that interprets the given `machine` an
   );
   ```
 
-- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) OR one of the following Machine Config options: `guards`, `actions`, `activities`, `services`, `delays`, `immediate`, `context`, or `state`.
+- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `immediate`, `context`, `state`.
 
 **Returns** a tuple of `[state, send, service]`:
 
@@ -142,6 +144,112 @@ const [state, send] = useActor(customActor, (actor) => {
   // implementation-specific pseudocode example:
   return actor.getLastEmittedValue();
 });
+```
+
+### `useInterpret(machine, options?, observer?)`
+
+A React hook that returns the `service` created from the `machine` with the `options`, if specified. It also sets up a subscription to the `service` with the `observer`, if provided.
+
+_Since 1.3.0_
+
+**Arguments**
+
+- `machine` - An [XState machine](https://xstate.js.org/docs/guides/machines.html) or a function that lazily returns a machine.
+- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `immediate`, `context`, `state`.
+- `observer` (optional) - an observer or listener that listens to state updates:
+  - an observer (e.g., `{ next: (state) => {/* ... */} }`)
+  - or a listener (e.g., `(state) => {/* ... */}`)
+
+```js
+import { useInterpret } from '@xstate/react';
+import { someMachine } from '../path/to/someMachine';
+
+const App = () => {
+  const service = useInterpret(someMachine);
+
+  // ...
+};
+```
+
+With options + listener:
+
+```js
+// ...
+
+const App = () => {
+  const service = useInterpret(
+    someMachine,
+    {
+      actions: {
+        /* ... */
+      }
+    },
+    (state) => {
+      // subscribes to state changes
+      console.log(state);
+    }
+  );
+
+  // ...
+};
+```
+
+### `useSelector(actor, selector, compare?, getSnapshot?)`
+
+A React hook that returns the selected value from the snapshot of an `actor`, such as a service. This hook will only cause a rerender if the selected value changes, as determined by the optional `compare` function.
+
+_Since 1.3.0_
+
+**Arguments**
+
+- `actor` - a service or an actor-like object that contains `.send(...)` and `.subscribe(...)` methods.
+- `selector` - a function that takes in an actor's "current state" (snapshot) as an argument and returns the desired selected value.
+- `compare` (optional) - a function that determines if the current selected value is the same as the previous selected value.
+- `getSnapshot` (optional) - a function that should return the latest emitted value from the `actor`.
+  - Defaults to attempting to get the `actor.state`, or returning `undefined` if that does not exist. Will automatically pull the state from services.
+
+```js
+import { useSelector } from '@xstate/react';
+
+// tip: optimize selectors by defining them externally when possible
+const selectCount = (state) => state.context.count;
+
+const App = ({ service }) => {
+  const count = useSelector(service, selectCount);
+
+  // ...
+};
+```
+
+With `compare` function:
+
+```js
+// ...
+
+const selectUser = (state) => state.context.user;
+const compareUser = (prevUser, nextUser) => prevUser.id === nextUser.id;
+
+const App = ({ service }) => {
+  const user = useSelector(service, selectUser, compareUser);
+
+  // ...
+};
+```
+
+With `useInterpret(...)`:
+
+```js
+import { useInterpret, useSelector } from '@xstate/react';
+import { someMachine } from '../path/to/someMachine';
+
+const selectCount = (state) => state.context.count;
+
+const App = ({ service }) => {
+  const service = useInterpret(someMachine);
+  const count = useSelector(service, selectCount);
+
+  // ...
+};
 ```
 
 ### `asEffect(action)`
@@ -323,7 +431,7 @@ const Fetcher = ({ onResolve }) => {
     actions: {
       notifySuccess: (ctx) => onResolve(ctx.data)
     },
-    behaviors: {
+    actors: {
       fetchData: invokePromise((_, event) =>
         fetch(`some/api/${event.query}`).then((res) => res.json())
       )

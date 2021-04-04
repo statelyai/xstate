@@ -10,7 +10,10 @@ import {
   EventObject,
   StateValue,
   AnyEventObject,
-  createMachine
+  createMachine,
+  spawnPromise,
+  spawnMachine,
+  spawnObservable
 } from '../src';
 import { State } from '../src/State';
 import { log, actionTypes, raise, stop } from '../src/actions';
@@ -90,12 +93,13 @@ describe('interpreter', () => {
         states: {
           idle: {
             entry: assign({
-              actor: (_, __, { spawn }) => {
+              actor: () => {
                 entryCalled++;
-                return spawn.from(
-                  new Promise(() => {
-                    promiseSpawned++;
-                  })
+                return spawnPromise(
+                  () =>
+                    new Promise(() => {
+                      promiseSpawned++;
+                    })
                 );
               }
             })
@@ -518,7 +522,7 @@ describe('interpreter', () => {
         }
       },
       {
-        behaviors: {
+        actors: {
           myActivity: invokeActivity(() => {
             activityState = 'on';
             return () => (activityState = 'off');
@@ -565,7 +569,7 @@ describe('interpreter', () => {
           }
         },
         {
-          behaviors: {
+          actors: {
             myActivity: invokeActivity(() => {
               stopActivityState = 'on';
               return () => (stopActivityState = 'off');
@@ -606,7 +610,7 @@ describe('interpreter', () => {
           }
         },
         {
-          behaviors: {
+          actors: {
             blink: invokeActivity(() => {
               activityActive = true;
 
@@ -1096,7 +1100,7 @@ describe('interpreter', () => {
       const evenCounts: number[] = [];
       const oddCounts: number[] = [];
       const countService = interpret(
-        countMachine.withConfig({
+        countMachine.provide({
           actions: {
             evenAction: (ctx) => {
               evenCounts.push(ctx.count);
@@ -1418,6 +1422,19 @@ describe('interpreter', () => {
         done();
       }, 10);
     });
+
+    it('stopping a not-started interpreter should not crash', () => {
+      const service = interpret(
+        createMachine({
+          initial: 'a',
+          states: { a: {} }
+        })
+      );
+
+      expect(() => {
+        service.stop();
+      }).not.toThrow();
+    });
   });
 
   describe('off()', () => {
@@ -1643,7 +1660,7 @@ describe('interpreter', () => {
           }
         },
         {
-          behaviors: {
+          actors: {
             testService: invokeActivity(() => {
               // nothing
             })
@@ -1812,7 +1829,7 @@ describe('interpreter', () => {
         initial: 'idle',
         context: {},
         entry: assign({
-          firstNameRef: (_, __, { spawn }) => spawn.from(childMachine, 'child')
+          firstNameRef: () => spawnMachine(childMachine, 'child')
         }),
         states: {
           idle: {}
@@ -1840,17 +1857,20 @@ describe('interpreter', () => {
         initial: 'present',
         context: {},
         entry: assign({
-          machineRef: (_, __, { spawn }) =>
-            spawn.from(childMachine, 'machineChild'),
-          promiseRef: (_, __, { spawn }) =>
-            spawn.from(
-              new Promise(() => {
-                // ...
-              }),
+          machineRef: () => spawnMachine(childMachine, 'machineChild'),
+          promiseRef: () =>
+            spawnPromise(
+              () =>
+                new Promise(() => {
+                  // ...
+                }),
               'promiseChild'
             ),
-          observableRef: (_, __, { spawn }) =>
-            spawn.from(interval(1000), 'observableChild')
+          observableRef: () =>
+            spawnObservable(
+              () => interval(1000).pipe(map((i) => ({ type: 'INTERVAL', i }))),
+              'observableChild'
+            )
         }),
         states: {
           present: {

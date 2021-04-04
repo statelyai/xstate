@@ -12,7 +12,7 @@ import {
   InterpreterOptions,
   DoneEvent,
   Subscription,
-  MachineOptions,
+  MachineImplementations,
   ActionFunctionMap,
   SCXML,
   Observer,
@@ -43,7 +43,7 @@ import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
 import { MachineNode } from './MachineNode';
 import { devToolsAdapter } from './dev';
-import { createActorRefFromInvokeAction } from './invoke';
+import { CapturedState } from './capturedState';
 import { PayloadSender, SpawnedActorRef, StopActionObject } from '.';
 
 export type StateListener<
@@ -171,11 +171,22 @@ export class Interpreter<
   }
 
   public get initialState(): State<TContext, TEvent, TStateSchema, TTypestate> {
-    return (
-      this._initialState ||
-      ((this._initialState = this.machine.getInitialState(this.ref)),
-      this._initialState)
-    );
+    try {
+      CapturedState.current = {
+        actorRef: this.ref,
+        spawns: []
+      };
+      return (
+        this._initialState ||
+        ((this._initialState = this.machine.getInitialState()),
+        this._initialState)
+      );
+    } finally {
+      CapturedState.current = {
+        actorRef: undefined,
+        spawns: []
+      };
+    }
   }
 
   public get state(): State<TContext, TEvent, TStateSchema, TTypestate> {
@@ -190,7 +201,7 @@ export class Interpreter<
    */
   public execute(
     state: State<TContext, TEvent, TStateSchema, TTypestate>,
-    actionsConfig?: MachineOptions<TContext, TEvent>['actions']
+    actionsConfig?: MachineImplementations<TContext, TEvent>['actions']
   ): void {
     for (const action of state.actions) {
       this.exec(action, state, actionsConfig);
@@ -423,6 +434,11 @@ export class Interpreter<
     this.stopListeners.clear();
     this.doneListeners.clear();
 
+    if (!this.initialized) {
+      // Interpreter already stopped; do nothing
+      return this;
+    }
+
     this.state.configuration.forEach((stateNode) => {
       for (const action of stateNode.definition.exit) {
         this.exec(action, this.state);
@@ -446,6 +462,24 @@ export class Interpreter<
     registry.free(this.sessionId);
 
     return this;
+  }
+
+  private _transition(
+    state: State<TContext, TEvent>,
+    event: SCXML.Event<TEvent>
+  ) {
+    try {
+      CapturedState.current = {
+        actorRef: this.ref,
+        spawns: []
+      };
+      return this.machine.transition(state, event);
+    } finally {
+      CapturedState.current = {
+        actorRef: undefined,
+        spawns: []
+      };
+    }
   }
 
   /**
@@ -537,7 +571,7 @@ export class Interpreter<
 
         this.forward(_event);
 
-        nextState = this.machine.transition(nextState, _event, this.ref);
+        nextState = this._transition(nextState, _event);
 
         batchedActions.push(
           ...(nextState.actions.map((a) =>
@@ -612,9 +646,7 @@ export class Interpreter<
       this.handleErrorEvent(_event);
     }
 
-    const nextState = this.machine.transition(this.state, _event, this.ref);
-
-    return nextState;
+    return this._transition(this.state, _event);
   }
   private forward(event: SCXML.Event<TEvent>): void {
     for (const id of this.forwardTo) {
@@ -702,36 +734,40 @@ export class Interpreter<
         break;
 
       case ActionTypes.Invoke: {
-        const { id, autoForward } = action as InvokeActionObject;
-
+        const { id, autoForward, ref } = action as InvokeActionObject;
+        if (!ref) {
+          break;
+        }
+        // If the actor will be stopped right after it's started
+        // (such as in transient states) don't bother starting the actor.
+        if (
+          state.actions.find((otherAction) => {
+            return (
+              otherAction.type === actionTypes.stop && otherAction.actor === id
+            );
+          })
+        ) {
+          return;
+        }
         try {
-          const actorRef = createActorRefFromInvokeAction(
-            state,
-            action as InvokeActionObject,
-            this.machine,
-            this.ref
-          );
-
-          if (actorRef) {
-            if (autoForward) {
-              this.forwardTo.add(id);
-            }
-
-            this.children.set(id, actorRef);
-            this.state.children[id] = actorRef;
-
-            actorRef.subscribe({
-              error: () => {
-                // TODO: handle error
-                this.stop();
-              },
-              complete: () => {
-                /* ... */
-              }
-            });
-
-            actorRef.start?.();
+          if (autoForward) {
+            this.forwardTo.add(id);
           }
+
+          this.children.set(id, ref);
+          this.state.children[id] = ref;
+
+          ref.subscribe({
+            error: () => {
+              // TODO: handle error
+              this.stop();
+            },
+            complete: () => {
+              /* ... */
+            }
+          });
+
+          ref.start?.();
         } catch (err) {
           this.send(error(id, err));
           break;

@@ -156,7 +156,7 @@ describe('machine', () => {
 
   describe('machine.withConfig', () => {
     it('should override guards and actions', () => {
-      const differentMachine = configMachine.withConfig({
+      const differentMachine = configMachine.provide({
         actions: {
           entryAction: () => {
             throw new Error('new entry');
@@ -177,7 +177,7 @@ describe('machine', () => {
     });
 
     it('should not override context if not defined', () => {
-      const differentMachine = configMachine.withConfig({});
+      const differentMachine = configMachine.provide({});
 
       expect(differentMachine.initialState.context).toEqual(
         configMachine.context

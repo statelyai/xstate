@@ -181,7 +181,7 @@ describe('invoke', () => {
         }
       },
       {
-        behaviors: {
+        actors: {
           child: invokeMachine(childMachine)
         }
       }
@@ -248,7 +248,7 @@ describe('invoke', () => {
         }
       },
       {
-        behaviors: {
+        actors: {
           child: invokeMachine(childMachine)
         }
       }
@@ -608,15 +608,15 @@ describe('invoke', () => {
         }
       },
       {
-        behaviors: {
+        actors: {
           child: invokeMachine(childMachine)
         }
       }
     );
 
     interpret(
-      someParentMachine.withConfig({
-        behaviors: {
+      someParentMachine.provide({
+        actors: {
           child: invokeMachine(
             Machine({
               id: 'child',
@@ -1061,7 +1061,7 @@ describe('invoke', () => {
             }
           },
           {
-            behaviors: {
+            actors: {
               somePromise: invokePromise(() =>
                 createPromise((resolve) => resolve())
               )
@@ -1131,7 +1131,7 @@ describe('invoke', () => {
             }
           },
           {
-            behaviors: {
+            actors: {
               somePromise: invokePromise(() =>
                 createPromise((resolve) => resolve({ count: 1 }))
               )
@@ -1211,7 +1211,7 @@ describe('invoke', () => {
             }
           },
           {
-            behaviors: {
+            actors: {
               somePromise: invokePromise(() =>
                 createPromise((resolve) => resolve({ count: 1 }))
               )
@@ -1257,7 +1257,7 @@ describe('invoke', () => {
             }
           },
           {
-            behaviors: {
+            actors: {
               somePromise: invokePromise((ctx, e: BeginEvent) => {
                 return createPromise((resolve, reject) => {
                   ctx.foo && e.payload ? resolve() : reject();
@@ -1323,7 +1323,7 @@ describe('invoke', () => {
           }
         },
         {
-          behaviors: {
+          actors: {
             someCallback: invokeCallback(
               (ctx, e: BeginEvent) => (cb: (ev: CallbackEvent) => void) => {
                 if (ctx.foo && e.payload) {
@@ -1380,7 +1380,7 @@ describe('invoke', () => {
           }
         },
         {
-          behaviors: {
+          actors: {
             someCallback: invokeCallback(() => (cb) => {
               cb('CALLBACK');
             })
@@ -1421,7 +1421,7 @@ describe('invoke', () => {
           }
         },
         {
-          behaviors: {
+          actors: {
             someCallback: invokeCallback(() => (cb) => {
               cb('CALLBACK');
             })
@@ -1469,7 +1469,7 @@ describe('invoke', () => {
           }
         },
         {
-          behaviors: {
+          actors: {
             someCallback: invokeCallback(() => (cb) => {
               cb('CALLBACK');
             })
@@ -2183,11 +2183,11 @@ describe('invoke', () => {
       service.start();
     });
 
-    it('should not invoke a service if it gets stopped immediately by transitioning away in microstep', (done) => {
-      // Since an invocation will be canceled when the state machine leaves the
-      // invoking state, it does not make sense to start an invocation in a state
-      // that will be exited immediately
-      let serviceCalled = false;
+    it('should not invoke an actor if it gets stopped immediately by transitioning away in immediate microstep', () => {
+      // Since an actor will be canceled when the state machine leaves the invoking state
+      // it does not make sense to start an actor in a state that will be exited immediately
+      let actorStarted = false;
+
       const transientMachine = Machine({
         id: 'transient',
         initial: 'active',
@@ -2195,29 +2195,59 @@ describe('invoke', () => {
           active: {
             invoke: {
               id: 'doNotInvoke',
-              src: invokeCallback(() => async () => {
-                serviceCalled = true;
+              src: invokeCallback(() => () => {
+                actorStarted = true;
               })
             },
             always: 'inactive'
           },
-          inactive: {
-            after: { 10: 'complete' }
+          inactive: {}
+        }
+      });
+
+      const service = interpret(transientMachine);
+
+      service.start();
+
+      expect(actorStarted).toBe(false);
+    });
+
+    it('should not invoke an actor if it gets stopped immediately by transitioning away in subsequent microstep', () => {
+      // Since an actor will be canceled when the state machine leaves the invoking state
+      // it does not make sense to start an actor in a state that will be exited immediately
+      let actorStarted = false;
+
+      const transientMachine = Machine({
+        initial: 'withNonLeafInvoke',
+        states: {
+          withNonLeafInvoke: {
+            invoke: {
+              id: 'doNotInvoke',
+              src: invokeCallback(() => () => {
+                actorStarted = true;
+              })
+            },
+            initial: 'first',
+            states: {
+              first: {
+                always: 'second'
+              },
+              second: {
+                always: '#inactive'
+              }
+            }
           },
-          complete: {
-            type: 'final'
+          inactive: {
+            id: 'inactive'
           }
         }
       });
 
       const service = interpret(transientMachine);
 
-      service
-        .onDone(() => {
-          expect(serviceCalled).toBe(false);
-          done();
-        })
-        .start();
+      service.start();
+
+      expect(actorStarted).toBe(false);
     });
 
     it('should invoke a service if other service gets stopped in subsequent microstep (#1180)', (done) => {
@@ -2279,6 +2309,41 @@ describe('invoke', () => {
         .start();
 
       service.send('NEXT');
+    });
+
+    // TODO: make it work
+    it.skip('should invoke an actor when reentering invoking state within a single macrostep', () => {
+      let actorStartedCount = 0;
+
+      const transientMachine = Machine<{ counter: number }>({
+        initial: 'active',
+        context: { counter: 0 },
+        states: {
+          active: {
+            invoke: {
+              src: invokeCallback(() => () => {
+                actorStartedCount++;
+              })
+            },
+            always: [
+              {
+                guard: (ctx) => ctx.counter === 0,
+                target: 'inactive'
+              }
+            ]
+          },
+          inactive: {
+            entry: assign({ counter: (ctx) => ++ctx.counter }),
+            always: 'active'
+          }
+        }
+      });
+
+      const service = interpret(transientMachine);
+
+      service.start();
+
+      expect(actorStartedCount).toBe(1);
     });
   });
 
@@ -2387,7 +2452,7 @@ describe('invoke', () => {
         }
       },
       {
-        behaviors: {
+        actors: {
           search: invokePromise(async (_, __, meta) => {
             expect(meta.src.endpoint).toEqual('example.com');
 
@@ -2428,7 +2493,7 @@ describe('services option', () => {
         }
       },
       {
-        behaviors: {
+        actors: {
           stringService: invokePromise((ctx, _, { data }) => {
             expect(ctx).toEqual({ count: 42 });
 
