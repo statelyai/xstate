@@ -63,6 +63,12 @@ const lightMachine = Machine({
 
 The `'green'` and `'yellow'` states are **simple states** - they have no child states. In contrast, the `'red'` state is a **composite state** since it is composed of **substates** (the `pedestrianStates`).
 
+To start a service from a nested state:
+
+```js
+interpret(lightMachine).start({ red: 'wait' });
+```
+
 To transition from an initial state, use `machine.initialState`:
 
 ```js
