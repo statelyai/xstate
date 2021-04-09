@@ -137,4 +137,95 @@ describe('useSelector', () => {
 
     expect(nameEl.textContent).toEqual('DAVID');
   });
+
+  it('should catch actor changes', () => {
+    const machine = createMachine<{ count: number; other: number }>({
+      initial: 'active',
+      context: {
+        other: 0,
+        count: 0
+      },
+      states: {
+        active: {}
+      },
+      on: {
+        OTHER: {
+          actions: assign({ other: (ctx) => ctx.other + 1 })
+        },
+        INCREMENT: {
+          actions: assign({ count: (ctx) => ctx.count + 1 })
+        }
+      }
+    });
+
+    let rerenders = 0;
+
+    const App = () => {
+      const service1 = useInterpret(machine);
+      const service2 = useInterpret(machine);
+      const [service, setService] = React.useState(service1);
+
+      const count = useSelector(
+        service,
+        React.useCallback(
+          (state: typeof service['state']) => state.context.count,
+          []
+        )
+      );
+
+      rerenders++;
+
+      return (
+        <>
+          <div data-testid="count">{count}</div>
+          <button
+            data-testid="toggle-service"
+            onClick={() => {
+              setService((service) =>
+                service === service1 ? service2 : service1
+              );
+            }}
+          ></button>
+          <button
+            data-testid="other"
+            onClick={() => service.send('OTHER')}
+          ></button>
+          <button
+            data-testid="increment"
+            onClick={() => service.send('INCREMENT')}
+          ></button>
+        </>
+      );
+    };
+
+    const { getByTestId } = render(
+      <React.StrictMode>
+        <App />
+      </React.StrictMode>
+    );
+    const countButton = getByTestId('count');
+    const otherButton = getByTestId('other');
+    const incrementEl = getByTestId('increment');
+    const toggleServiceButton = getByTestId('toggle-service');
+
+    fireEvent.click(incrementEl);
+
+    rerenders = 0;
+
+    fireEvent.click(otherButton);
+    fireEvent.click(otherButton);
+    fireEvent.click(otherButton);
+    fireEvent.click(otherButton);
+
+    expect(rerenders).toEqual(0);
+
+    fireEvent.click(incrementEl);
+
+    expect(countButton.textContent).toBe('2');
+
+    fireEvent.click(toggleServiceButton);
+
+    expect(rerenders).not.toEqual(0);
+    expect(countButton.textContent).toBe('0');
+  });
 });

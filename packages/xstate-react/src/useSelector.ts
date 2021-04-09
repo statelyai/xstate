@@ -45,7 +45,7 @@ export function useSelector<
     });
 
     return () => sub.unsubscribe();
-  }, [selector, compare]);
+  }, [actor, selector, compare]);
 
   return selected;
 }
