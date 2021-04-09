@@ -138,7 +138,7 @@ describe('useSelector', () => {
     expect(nameEl.textContent).toEqual('DAVID');
   });
 
-  it('should catch actor changes', () => {
+  it('should recompute on actor changes ', () => {
     const machine = createMachine<{ count: number; other: number }>({
       initial: 'active',
       context: {
@@ -227,5 +227,55 @@ describe('useSelector', () => {
 
     expect(rerenders).not.toEqual(0);
     expect(countButton.textContent).toBe('0');
+  });
+
+  it('honors getSnapshot', () => {
+    const machine = createMachine<{ count: number; other: number }>({
+      initial: 'active',
+      context: {
+        other: 0,
+        count: 0
+      },
+      states: {
+        active: {}
+      },
+      on: {
+        OTHER: {
+          actions: assign({ other: (ctx) => ctx.other + 1 })
+        },
+        INCREMENT: {
+          actions: assign({ count: (ctx) => ctx.count + 1 })
+        }
+      }
+    });
+
+    const App = () => {
+      const service = useInterpret(machine);
+
+      const count = useSelector(
+        service,
+        (count: number) => count,
+        (a, b) => a === b,
+        // weird snapshot should still be executed
+        (service): number => {
+          const count = service.status
+            ? service.state.context.count
+            : service.machine.initialState.context.count;
+
+          return count + 1;
+        }
+      );
+
+      return <div data-testid="count">{count}</div>;
+    };
+
+    const { getByTestId } = render(
+      <React.StrictMode>
+        <App />
+      </React.StrictMode>
+    );
+
+    const countDiv = getByTestId('count');
+    expect(countDiv.textContent).toBe('1');
   });
 });

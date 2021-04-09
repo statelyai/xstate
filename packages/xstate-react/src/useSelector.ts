@@ -39,13 +39,13 @@ export function useSelector<
     const initialSelected = selector(getSnapshot(actor));
     updateSelectedIfChanged(initialSelected);
 
-    const sub = actor.subscribe((emitted) => {
-      const nextSelected = selector(emitted);
+    const sub = actor.subscribe(() => {
+      const nextSelected = selector(getSnapshot(actor));
       updateSelectedIfChanged(nextSelected);
     });
 
     return () => sub.unsubscribe();
-  }, [actor, selector, compare]);
+  }, [actor, getSnapshot, selector, compare]);
 
   return selected;
 }
