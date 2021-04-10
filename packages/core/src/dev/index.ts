@@ -1,4 +1,3 @@
-import { IS_PRODUCTION } from '../environment';
 import { AnyInterpreter, DevToolsAdapter } from '../types';
 
 interface DevInterface {
@@ -44,7 +43,7 @@ function getDevTools(): DevInterface | undefined {
 }
 
 export function registerService(service: AnyInterpreter) {
-  if (IS_PRODUCTION || typeof window === 'undefined') {
+  if (typeof window === 'undefined') {
     return;
   }
 
@@ -56,7 +55,7 @@ export function registerService(service: AnyInterpreter) {
 }
 
 export const devToolsAdapter: DevToolsAdapter = (service) => {
-  if (IS_PRODUCTION || typeof window === 'undefined') {
+  if (typeof window === 'undefined') {
     return;
   }
 
