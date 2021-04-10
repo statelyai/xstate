@@ -38,7 +38,7 @@
 
   const windowReceiver = createWindowReceiver(/* options? */);
 
-  windowReceiver.subscribe(event => {
+  windowReceiver.subscribe((event) => {
     // here, you will receive events like:
     // { type: "service.register", machine: ..., state: ..., sessionId: ... }
     console.log(event);

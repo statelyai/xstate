@@ -1240,7 +1240,7 @@ describe('choose', () => {
               actions: choose<Ctx, Events>([
                 {
                   cond: (_, event) => event.counter > 100,
-                  actions: assign<Ctx>({ answer: 42 })
+                  actions: assign<Ctx, Events>({ answer: 42 })
                 }
               ])
             }

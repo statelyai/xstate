@@ -77,7 +77,6 @@ follow a similar pattern to [Vue](./vue.md):
 This example is based on Ember Octane features (Ember 3.13+)
 :::
 
-
 ```handlebars
 <button type="button" {{on "click" (fn this.transition "TOGGLE")}}>
   {{if this.isInactive "Off" "On"}}
@@ -106,7 +105,7 @@ export default class ToggleButton extends Component {
     super(...arguments);
     this.toggleInterpreter = interpret(toggleMachine);
     this.toggleInterpreter
-      .onTransition(state => (this.current = state))
+      .onTransition((state) => (this.current = state))
       .start();
   }
 

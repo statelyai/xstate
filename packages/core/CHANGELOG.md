@@ -1,5 +1,178 @@
 # xstate
 
+## 4.17.1
+
+### Patch Changes
+
+- [`33302814`](https://github.com/davidkpiano/xstate/commit/33302814c38587d0044afd2ae61a4ff4779416c6) [#2041](https://github.com/davidkpiano/xstate/pull/2041) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with creatorless models not being correctly matched by `createMachine`'s overload responsible for using model-induced types.
+
+## 4.17.0
+
+### Minor Changes
+
+- [`7763db8d`](https://github.com/davidkpiano/xstate/commit/7763db8d3615321d03839b2bd31c9b118ddee50c) [#1977](https://github.com/davidkpiano/xstate/pull/1977) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `schema` property has been introduced to the machine config passed into `createMachine(machineConfig)`, which allows you to provide metadata for the following:
+
+  - Context
+  - Events
+  - Actions
+  - Guards
+  - Services
+
+  This metadata can be accessed as-is from `machine.schema`:
+
+  ```js
+  const machine = createMachine({
+    schema: {
+      // Example in JSON Schema (anything can be used)
+      context: {
+        type: 'object',
+        properties: {
+          foo: { type: 'string' },
+          bar: { type: 'number' },
+          baz: {
+            type: 'object',
+            properties: {
+              one: { type: 'string' }
+            }
+          }
+        }
+      },
+      events: {
+        FOO: { type: 'object' },
+        BAR: { type: 'object' }
+      }
+    }
+    // ...
+  });
+  ```
+
+  Additionally, the new `createSchema()` identity function allows any schema "metadata" to be represented by a specific type, which makes type inference easier without having to specify generic types:
+
+  ```ts
+  import { createSchema, createMachine } from 'xstate';
+
+  // Both `context` and `events` are inferred in the rest of the machine!
+  const machine = createMachine({
+    schema: {
+      context: createSchema<{ count: number }>(),
+      // No arguments necessary
+      events: createSchema<{ type: 'FOO' } | { type: 'BAR' }>()
+    }
+    // ...
+  });
+  ```
+
+* [`5febfe83`](https://github.com/davidkpiano/xstate/commit/5febfe83a7e5e866c0a4523ea4f86a966af7c50f) [#1955](https://github.com/davidkpiano/xstate/pull/1955) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Event creators can now be modeled inside of the 2nd argument of `createModel()`, and types for both `context` and `events` will be inferred properly in `createMachine()` when given the `typeof model` as the first generic parameter.
+
+  ```ts
+  import { createModel } from 'xstate/lib/model';
+
+  const userModel = createModel(
+    // initial context
+    {
+      name: 'David',
+      age: 30
+    },
+    // creators (just events for now)
+    {
+      events: {
+        updateName: (value: string) => ({ value }),
+        updateAge: (value: number) => ({ value }),
+        anotherEvent: () => ({}) // no payload
+      }
+    }
+  );
+
+  const machine = createMachine<typeof userModel>({
+    context: userModel.initialContext,
+    initial: 'active',
+    states: {
+      active: {
+        on: {
+          updateName: {
+            /* ... */
+          },
+          updateAge: {
+            /* ... */
+          }
+        }
+      }
+    }
+  });
+
+  const nextState = machine.transition(
+    undefined,
+    userModel.events.updateName('David')
+  );
+  ```
+
+## 4.16.2
+
+### Patch Changes
+
+- [`4194ffe8`](https://github.com/davidkpiano/xstate/commit/4194ffe84cfe7910e2c183701e36bc5cac5c9bcc) [#1710](https://github.com/davidkpiano/xstate/pull/1710) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Stopping an already stopped interpreter will no longer crash. See [#1697](https://github.com/davidkpiano/xstate/issues/1697) for details.
+
+## 4.16.1
+
+### Patch Changes
+
+- [`af6b7c70`](https://github.com/davidkpiano/xstate/commit/af6b7c70015db29d84f79dfd29ea0dc221b8f3e6) [#1865](https://github.com/davidkpiano/xstate/pull/1865) Thanks [@Andarist](https://github.com/Andarist)! - Improved `.matches(value)` inference for typestates containing union types as values.
+
+## 4.16.0
+
+### Minor Changes
+
+- [`d2e328f8`](https://github.com/davidkpiano/xstate/commit/d2e328f8efad7e8d3500d39976d1153a26e835a3) [#1439](https://github.com/davidkpiano/xstate/pull/1439) Thanks [@davidkpiano](https://github.com/davidkpiano)! - An opt-in `createModel()` helper has been introduced to make it easier to work with typed `context` and events.
+
+  - `createModel(initialContext)` creates a `model` object
+  - `model.initialContext` returns the `initialContext`
+  - `model.assign(assigner, event?)` creates an `assign` action that is properly scoped to the `event` in TypeScript
+
+  See https://github.com/davidkpiano/xstate/pull/1439 for more details.
+
+  ```js
+  import { createMachine } from 'xstate';
+  import { createModel } from 'xstate/lib/model'; // opt-in, not part of main build
+
+  interface UserContext {
+    name: string;
+    age: number;
+  }
+
+  type UserEvents =
+    | { type: 'updateName'; value: string }
+    | { type: 'updateAge'; value: number }
+
+  const userModel = createModel<UserContext, UserEvents>({
+    name: 'David',
+    age: 30
+  });
+
+  const assignName = userModel.assign({
+    name: (_, e) => e.value // correctly typed to `string`
+  }, 'updateName'); // restrict to 'updateName' event
+
+  const machine = createMachine<UserContext, UserEvents>({
+    context: userModel.context,
+    initial: 'active',
+    states: {
+      active: {
+        on: {
+          updateName: {
+            actions: assignName
+          }
+        }
+      }
+    }
+  });
+  ```
+
+## 4.15.4
+
+### Patch Changes
+
+- [`0cb8df9b`](https://github.com/davidkpiano/xstate/commit/0cb8df9b6c8cd01ada82afe967bf1015e24e75d9) [#1816](https://github.com/davidkpiano/xstate/pull/1816) Thanks [@Andarist](https://github.com/Andarist)! - `machine.resolveState(state)` calls should resolve to the correct value of `.done` property now.
+
 ## 4.15.3
 
 ### Patch Changes

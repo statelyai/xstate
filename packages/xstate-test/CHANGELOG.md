@@ -1,5 +1,11 @@
 # @xstate/test
 
+## 0.4.2
+
+### Patch Changes
+
+- [`4105d923`](https://github.com/davidkpiano/xstate/commit/4105d923dfddd9ac3ffad33295edea38b0215c89) [#1930](https://github.com/davidkpiano/xstate/pull/1930) Thanks [@jimwheaton](https://github.com/jimwheaton)! - Fixes issue where 'final' state node names were not shown in test plan description
+
 ## 0.4.1
 
 ### Patch Changes

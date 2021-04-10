@@ -883,7 +883,7 @@ The `invoke` property is synonymous to the SCXML `<invoke>` element:
     invoke: {
       src: 'someSource',
       id: 'someID',
-      autoForward: true, // currently for machines only!  
+      autoForward: true, // currently for machines only!
       onDone: 'success',
       onError: 'failure'
     }
