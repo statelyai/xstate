@@ -69,7 +69,7 @@ describe('fst', () => {
             break;
         }
 
-        return [[jugs.three, jugs.five], []];
+        return [[jugs.three, jugs.five]];
       },
       initialState: [0, 0],
       events: [

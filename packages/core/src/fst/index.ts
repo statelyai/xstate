@@ -9,7 +9,7 @@ export * from './reducer';
 export type FSTTransition<TState, TInput, TOutput> = (
   state: TState,
   input: TInput
-) => [TState, TOutput];
+) => [TState] | [TState, TOutput];
 
 export interface FST<TState, TInput, TOutput = any> {
   transition: FSTTransition<TState, TInput, TOutput>;

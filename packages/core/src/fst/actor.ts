@@ -14,7 +14,7 @@ export function fromActor<TState, TEvent extends EventObject, TOutput = any>(
       const [nextState, output] = fst.transition(currentState, event);
 
       currentState = nextState;
-      handleOutput?.(output);
+      output && handleOutput?.(output);
 
       observers.forEach((observer) => observer.next(nextState));
     },
