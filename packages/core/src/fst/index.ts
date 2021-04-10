@@ -18,8 +18,10 @@ export interface FST<TState, TInput, TOutput = any> {
   nextEvents?: (state: TState) => TInput[];
 }
 
-export type FSTFrom<
-  TMachine extends StateMachine<any, any, any>
-> = TMachine extends StateMachine<infer TContext, any, infer TEvent>
+export type FSTFrom<T> = T extends StateMachine<
+  infer TContext,
+  any,
+  infer TEvent
+>
   ? FST<State<TContext, TEvent>, TEvent, any[]>
   : never;
