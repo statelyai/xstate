@@ -2,9 +2,9 @@
 
 import type { State, StateMachine } from '..';
 
-export * from './actor';
-export * from './machine';
-export * from './reducer';
+export { fromActor } from './actor';
+export { fromMachine } from './machine';
+export { fromReducer } from './reducer';
 
 export type FSTTransition<TState, TInput, TOutput> = (
   state: TState,
