@@ -236,7 +236,6 @@ describe('machine', () => {
       });
 
       const changedBarMachine = fooBarMachine.withContext({
-        // @ts-expect-error
         bar: 42
       });
 

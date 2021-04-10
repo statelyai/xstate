@@ -99,13 +99,6 @@ export class State<
    * @param stateValue
    * @param context
    */
-  public static from<TE extends EventObject = EventObject>(
-    stateValue: State<never, TE, any, any> | StateValue
-  ): State<never, TE, any, any>;
-  public static from<TC, TE extends EventObject = EventObject>(
-    stateValue: State<TC, TE, any, any> | StateValue,
-    context: TC
-  ): State<TC, TE, any, any>;
   public static from<TC, TE extends EventObject = EventObject>(
     stateValue: State<TC, TE, any, any> | StateValue,
     context?: TC | undefined
