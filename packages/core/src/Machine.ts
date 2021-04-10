@@ -9,14 +9,6 @@ import { MachineNode } from './MachineNode';
 import { Model, ModelContextFrom, ModelEventsFrom } from './model';
 
 export function createMachine<
-  TContext extends never,
-  TEvent extends EventObject = AnyEventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
->(
-  config: MachineConfig<TContext, TEvent, any>,
-  options?: Partial<MachineImplementations<TContext, TEvent>>
-): MachineNode<TContext, TEvent, any, TTypestate>;
-export function createMachine<
   TModel extends Model<any, any, any>,
   TContext = ModelContextFrom<TModel>,
   TEvent extends EventObject = ModelEventsFrom<TModel>,
