@@ -1,5 +1,4 @@
 import {
-  Machine,
   interpret,
   assign,
   send,
@@ -16,7 +15,7 @@ interface CounterContext {
   maybe?: string;
 }
 
-const counterMachine = Machine<CounterContext>({
+const counterMachine = createMachine<CounterContext>({
   initial: 'counting',
   context: { count: 0, foo: 'bar' },
   states: {
@@ -262,7 +261,7 @@ describe('assign', () => {
 });
 
 describe('assign meta', () => {
-  const machine = Machine<{ count: number }>({
+  const machine = createMachine<{ count: number }>({
     id: 'assign',
     initial: 'start',
     context: { count: 0 },
@@ -343,7 +342,7 @@ describe('assign meta', () => {
       })
     }));
 
-    const childMachine = Machine({
+    const childMachine = createMachine({
       initial: 'bar',
       states: {
         bar: {}
@@ -355,7 +354,7 @@ describe('assign meta', () => {
       }
     });
 
-    const parentMachine = Machine<Ctx>({
+    const parentMachine = createMachine<Ctx>({
       initial: 'foo',
       context: {
         eventLog: []

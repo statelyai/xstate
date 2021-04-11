@@ -1,8 +1,8 @@
 import { raise, assign } from '../src/actions';
-import { Machine } from '../src';
+import { createMachine } from '../src';
 import { testMultiTransition } from './utils';
 
-const composerMachine = Machine({
+const composerMachine = createMachine({
   strict: true,
   initial: 'ReadOnly',
   states: {
@@ -188,7 +188,7 @@ const composerMachine = Machine({
   }
 });
 
-const wakMachine = Machine({
+const wakMachine = createMachine({
   id: 'wakMachine',
   type: 'parallel',
   strict: true,
@@ -232,7 +232,7 @@ const wakMachine = Machine({
   }
 });
 
-const wordMachine = Machine({
+const wordMachine = createMachine({
   id: 'word',
   type: 'parallel',
   states: {
@@ -289,7 +289,7 @@ const wordMachine = Machine({
   }
 });
 
-const flatParallelMachine = Machine({
+const flatParallelMachine = createMachine({
   type: 'parallel',
   states: {
     foo: {},
@@ -304,7 +304,7 @@ const flatParallelMachine = Machine({
   }
 });
 
-const raisingParallelMachine = Machine({
+const raisingParallelMachine = createMachine({
   strict: true,
   type: 'parallel',
   states: {
@@ -372,7 +372,7 @@ const raisingParallelMachine = Machine({
   }
 });
 
-const nestedParallelState = Machine({
+const nestedParallelState = createMachine({
   type: 'parallel',
   states: {
     OUTER1: {
@@ -455,7 +455,7 @@ const nestedParallelState = Machine({
   }
 });
 
-const deepFlatParallelMachine = Machine({
+const deepFlatParallelMachine = createMachine({
   type: 'parallel',
   states: {
     X: {},
@@ -635,7 +635,7 @@ describe('parallel states', () => {
 
   it('should handle simultaneous orthogonal transitions', () => {
     type Events = { type: 'CHANGE'; value: string } | { type: 'SAVE' };
-    const simultaneousMachine = Machine<{ value: string }, Events>({
+    const simultaneousMachine = createMachine<{ value: string }, Events>({
       id: 'yamlEditor',
       type: 'parallel',
       context: {
@@ -744,7 +744,7 @@ describe('parallel states', () => {
 
   // https://github.com/davidkpiano/xstate/issues/191
   describe('nested flat parallel states', () => {
-    const machine = Machine({
+    const machine = createMachine({
       initial: 'A',
       states: {
         A: {
@@ -799,7 +799,7 @@ describe('parallel states', () => {
     });
 
     it('should not overlap resolved state configuration in state resolution', () => {
-      const machine = Machine({
+      const machine = createMachine({
         id: 'pipeline',
         type: 'parallel',
         states: {
@@ -834,7 +834,7 @@ describe('parallel states', () => {
   describe('other', () => {
     // https://github.com/davidkpiano/xstate/issues/518
     it('regions should be able to transition to orthogonal regions', () => {
-      const testMachine = Machine({
+      const testMachine = createMachine({
         id: 'app',
         type: 'parallel',
         states: {
@@ -898,7 +898,7 @@ describe('parallel states', () => {
 
     // https://github.com/davidkpiano/xstate/issues/531
     it('should calculate the entry set for external transitions in parallel states', () => {
-      const testMachine = Machine<{ log: string[] }>({
+      const testMachine = createMachine<{ log: string[] }>({
         id: 'test',
         context: { log: [] },
         type: 'parallel',

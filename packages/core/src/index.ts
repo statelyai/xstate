@@ -2,7 +2,7 @@ import { matchesState } from './utils';
 import { mapState } from './mapState';
 import { StateNode } from './StateNode';
 import { State } from './State';
-import { Machine, createMachine } from './Machine';
+import { createMachine } from './Machine';
 import {
   raise,
   send,
@@ -54,7 +54,6 @@ const actions = {
 };
 
 export {
-  Machine,
   StateNode,
   State,
   matchesState,

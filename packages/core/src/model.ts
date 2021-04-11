@@ -32,11 +32,19 @@ export interface Model<
 
 export type ModelContextFrom<
   TModel extends Model<any, any, any>
-> = TModel extends Model<infer TContext, any, any> ? TContext : never;
+> = TModel extends never
+  ? any
+  : TModel extends Model<infer TContext, any, any>
+  ? TContext
+  : never;
 
 export type ModelEventsFrom<
   TModel extends Model<any, any, any>
-> = TModel extends Model<any, infer TEvent, any> ? TEvent : never;
+> = TModel extends never
+  ? any
+  : TModel extends Model<any, infer TEvent, any>
+  ? TEvent
+  : never;
 
 type EventCreator<
   Self extends AnyFunction,

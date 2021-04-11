@@ -1,5 +1,4 @@
 import {
-  Machine,
   interpret,
   assign,
   sendParent,
@@ -28,7 +27,7 @@ import { map, take } from 'rxjs/operators';
 
 const user = { name: 'David' };
 
-const fetchMachine = Machine<{ userId: string | undefined }>({
+const fetchMachine = createMachine<{ userId: string | undefined }>({
   id: 'fetch',
   context: {
     userId: undefined
@@ -54,7 +53,7 @@ const fetchMachine = Machine<{ userId: string | undefined }>({
   }
 });
 
-const fetcherMachine = Machine({
+const fetcherMachine = createMachine({
   id: 'fetcher',
   initial: 'idle',
   context: {
@@ -95,7 +94,7 @@ const fetcherMachine = Machine({
   }
 });
 
-const intervalMachine = Machine<{
+const intervalMachine = createMachine<{
   interval: number;
   count: number;
 }>({
@@ -143,7 +142,7 @@ const intervalMachine = Machine<{
 
 describe('invoke', () => {
   it('should start services (external machines)', (done) => {
-    const childMachine = Machine({
+    const childMachine = createMachine({
       id: 'child',
       initial: 'init',
       states: {
@@ -153,7 +152,7 @@ describe('invoke', () => {
       }
     });
 
-    const someParentMachine = Machine<{ count: number }>(
+    const someParentMachine = createMachine<{ count: number }>(
       {
         id: 'parent',
         context: { count: 0 },
@@ -207,7 +206,7 @@ describe('invoke', () => {
   });
 
   it('should forward events to services if autoForward: true', () => {
-    const childMachine = Machine({
+    const childMachine = createMachine({
       id: 'child',
       initial: 'init',
       states: {
@@ -221,7 +220,7 @@ describe('invoke', () => {
       }
     });
 
-    const someParentMachine = Machine<{ count: number }>(
+    const someParentMachine = createMachine<{ count: number }>(
       {
         id: 'parent',
         context: { count: 0 },
@@ -275,7 +274,7 @@ describe('invoke', () => {
   it('should forward events to services if autoForward: true before processing them', (done) => {
     const actual: string[] = [];
 
-    const childMachine = Machine<{ count: number }>({
+    const childMachine = createMachine<{ count: number }>({
       id: 'child',
       context: { count: 0 },
       initial: 'counting',
@@ -313,7 +312,7 @@ describe('invoke', () => {
       }
     });
 
-    const parentMachine = Machine<{ countedTo: number }>({
+    const parentMachine = createMachine<{ countedTo: number }>({
       id: 'parent',
       context: { countedTo: 0 },
       initial: 'idle',
@@ -376,7 +375,7 @@ describe('invoke', () => {
   it('should forward events to services if autoForward: true before processing them (when sending batches)', (done) => {
     const actual: string[] = [];
 
-    const childMachine = Machine<{ count: number }>({
+    const childMachine = createMachine<{ count: number }>({
       id: 'child',
       context: { count: 0 },
       initial: 'counting',
@@ -414,7 +413,7 @@ describe('invoke', () => {
       }
     });
 
-    const parentMachine = Machine<{ countedTo: number }>({
+    const parentMachine = createMachine<{ countedTo: number }>({
       id: 'parent',
       context: { countedTo: 0 },
       initial: 'idle',
@@ -492,7 +491,7 @@ describe('invoke', () => {
   });
 
   it('should start services (machine as invoke config)', (done) => {
-    const machineInvokeMachine = Machine<
+    const machineInvokeMachine = createMachine<
       void,
       { type: 'SUCCESS'; data: number }
     >({
@@ -501,7 +500,7 @@ describe('invoke', () => {
       states: {
         pending: {
           invoke: invokeMachine(
-            Machine({
+            createMachine({
               id: 'child',
               initial: 'sending',
               states: {
@@ -532,7 +531,7 @@ describe('invoke', () => {
   });
 
   it('should start deeply nested service (machine as invoke config)', (done) => {
-    const machineInvokeMachine = Machine<
+    const machineInvokeMachine = createMachine<
       void,
       { type: 'SUCCESS'; data: number }
     >({
@@ -544,7 +543,7 @@ describe('invoke', () => {
           states: {
             b: {
               invoke: invokeMachine(
-                Machine({
+                createMachine({
                   id: 'child',
                   initial: 'sending',
                   states: {
@@ -578,7 +577,7 @@ describe('invoke', () => {
   });
 
   it('should use the service overwritten by withConfig', (done) => {
-    const childMachine = Machine({
+    const childMachine = createMachine({
       id: 'child',
       initial: 'init',
       states: {
@@ -586,7 +585,7 @@ describe('invoke', () => {
       }
     });
 
-    const someParentMachine = Machine(
+    const someParentMachine = createMachine(
       {
         id: 'parent',
         context: { count: 0 },
@@ -618,7 +617,7 @@ describe('invoke', () => {
       someParentMachine.provide({
         actors: {
           child: invokeMachine(
-            Machine({
+            createMachine({
               id: 'child',
               initial: 'init',
               states: {
@@ -640,7 +639,7 @@ describe('invoke', () => {
   it('should not start services only once when using withContext', () => {
     let startCount = 0;
 
-    const startMachine = Machine({
+    const startMachine = createMachine({
       id: 'start',
       initial: 'active',
       context: { foo: true },
@@ -663,7 +662,7 @@ describe('invoke', () => {
   });
 
   describe('parent to child', () => {
-    const subMachine = Machine({
+    const subMachine = createMachine({
       id: 'child',
       initial: 'one',
       states: {
@@ -677,7 +676,7 @@ describe('invoke', () => {
     });
 
     it('should communicate with the child machine (invoke on machine)', (done) => {
-      const mainMachine = Machine({
+      const mainMachine = createMachine({
         id: 'parent',
         initial: 'one',
         invoke: {
@@ -707,7 +706,7 @@ describe('invoke', () => {
         machine: typeof subMachine;
       }
 
-      const mainMachine = Machine<MainMachineCtx>({
+      const mainMachine = createMachine<MainMachineCtx>({
         id: 'parent',
         initial: 'one',
         context: {
@@ -736,7 +735,7 @@ describe('invoke', () => {
     });
 
     it('should communicate with the child machine (invoke on state)', (done) => {
-      const mainMachine = Machine({
+      const mainMachine = createMachine({
         id: 'parent',
         initial: 'one',
         states: {
@@ -762,7 +761,7 @@ describe('invoke', () => {
     });
 
     it('should transition correctly if child invocation causes it to directly go to final state', (done) => {
-      const doneSubMachine = Machine({
+      const doneSubMachine = createMachine({
         id: 'child',
         initial: 'one',
         states: {
@@ -775,7 +774,7 @@ describe('invoke', () => {
         }
       });
 
-      const mainMachine = Machine({
+      const mainMachine = createMachine({
         id: 'parent',
         initial: 'one',
         states: {
@@ -808,7 +807,7 @@ describe('invoke', () => {
     });
 
     it('should work with invocations defined in orthogonal state nodes', (done) => {
-      const pongMachine = Machine({
+      const pongMachine = createMachine({
         id: 'pong',
         initial: 'active',
         states: {
@@ -819,7 +818,7 @@ describe('invoke', () => {
         }
       });
 
-      const pingMachine = Machine({
+      const pingMachine = createMachine({
         id: 'ping',
         type: 'parallel',
         states: {
@@ -882,7 +881,7 @@ describe('invoke', () => {
 
   promiseTypes.forEach(({ type, createPromise }) => {
     describe(`with promises (${type})`, () => {
-      const invokePromiseMachine = Machine({
+      const invokePromiseMachine = createMachine({
         id: 'invokePromise',
         initial: 'pending',
         context: {
@@ -935,7 +934,7 @@ describe('invoke', () => {
       });
 
       it('should be invoked with a promise factory and surface any unhandled errors', (done) => {
-        const promiseMachine = Machine({
+        const promiseMachine = createMachine({
           id: 'invokePromise',
           initial: 'pending',
           states: {
@@ -966,7 +965,7 @@ describe('invoke', () => {
       it('should be invoked with a promise factory and stop on unhandled onError target when on strict mode', (done) => {
         const doneSpy = jest.fn();
 
-        const promiseMachine = Machine({
+        const promiseMachine = createMachine({
           id: 'invokePromise',
           initial: 'pending',
           strict: true,
@@ -1002,7 +1001,7 @@ describe('invoke', () => {
       });
 
       it('should be invoked with a promise factory and resolve through onDone for compound state nodes', (done) => {
-        const promiseMachine = Machine({
+        const promiseMachine = createMachine({
           id: 'promise',
           initial: 'parent',
           states: {
@@ -1035,7 +1034,7 @@ describe('invoke', () => {
       });
 
       it('should be invoked with a promise service and resolve through onDone for compound state nodes', (done) => {
-        const promiseMachine = Machine(
+        const promiseMachine = createMachine(
           {
             id: 'promise',
             initial: 'parent',
@@ -1075,7 +1074,7 @@ describe('invoke', () => {
       });
 
       it('should assign the resolved data when invoked with a promise factory', (done) => {
-        const promiseMachine = Machine<{ count: number }>({
+        const promiseMachine = createMachine<{ count: number }>({
           id: 'promise',
           context: { count: 0 },
           initial: 'pending',
@@ -1110,7 +1109,7 @@ describe('invoke', () => {
       });
 
       it('should assign the resolved data when invoked with a promise service', (done) => {
-        const promiseMachine = Machine<{ count: number }>(
+        const promiseMachine = createMachine<{ count: number }>(
           {
             id: 'promise',
             context: { count: 0 },
@@ -1154,7 +1153,7 @@ describe('invoke', () => {
       it('should provide the resolved data when invoked with a promise factory', (done) => {
         let count = 0;
 
-        const promiseMachine = Machine({
+        const promiseMachine = createMachine({
           id: 'promise',
           context: { count: 0 },
           initial: 'pending',
@@ -1189,7 +1188,7 @@ describe('invoke', () => {
       it('should provide the resolved data when invoked with a promise service', (done) => {
         let count = 0;
 
-        const promiseMachine = Machine(
+        const promiseMachine = createMachine(
           {
             id: 'promise',
             initial: 'pending',
@@ -1232,7 +1231,7 @@ describe('invoke', () => {
           type: 'BEGIN';
           payload: boolean;
         }
-        const promiseMachine = Machine<{ foo: boolean }, BeginEvent>(
+        const promiseMachine = createMachine<{ foo: boolean }, BeginEvent>(
           {
             id: 'promise',
             initial: 'pending',
@@ -1288,7 +1287,7 @@ describe('invoke', () => {
         type: 'CALLBACK';
         data: number;
       }
-      const callbackMachine = Machine<
+      const callbackMachine = createMachine<
         {
           foo: boolean;
         },
@@ -1356,7 +1355,7 @@ describe('invoke', () => {
     });
 
     it('should transition correctly if callback function sends an event', () => {
-      const callbackMachine = Machine(
+      const callbackMachine = createMachine(
         {
           id: 'callback',
           initial: 'pending',
@@ -1400,7 +1399,7 @@ describe('invoke', () => {
     });
 
     it('should transition correctly if callback function invoked from start and sends an event', () => {
-      const callbackMachine = Machine(
+      const callbackMachine = createMachine(
         {
           id: 'callback',
           initial: 'idle',
@@ -1442,7 +1441,7 @@ describe('invoke', () => {
 
     // tslint:disable-next-line:max-line-length
     it('should transition correctly if transient transition happens before current state invokes callback function and sends an event', () => {
-      const callbackMachine = Machine(
+      const callbackMachine = createMachine(
         {
           id: 'callback',
           initial: 'pending',
@@ -1516,7 +1515,7 @@ describe('invoke', () => {
     });
 
     it('callback should be able to receive messages from parent', (done) => {
-      const pingPongMachine = Machine({
+      const pingPongMachine = createMachine({
         id: 'ping-pong',
         initial: 'active',
         states: {
@@ -1548,7 +1547,7 @@ describe('invoke', () => {
     });
 
     it('should call onError upon error (sync)', (done) => {
-      const errorMachine = Machine({
+      const errorMachine = createMachine({
         id: 'error',
         initial: 'safe',
         states: {
@@ -1577,7 +1576,7 @@ describe('invoke', () => {
     });
 
     it('should transition correctly upon error (sync)', () => {
-      const errorMachine = Machine({
+      const errorMachine = createMachine({
         id: 'error',
         initial: 'safe',
         states: {
@@ -1604,7 +1603,7 @@ describe('invoke', () => {
     });
 
     it('should call onError upon error (async)', (done) => {
-      const errorMachine = Machine({
+      const errorMachine = createMachine({
         id: 'asyncError',
         initial: 'safe',
         states: {
@@ -1636,7 +1635,7 @@ describe('invoke', () => {
     it('should call onDone when resolved (async)', (done) => {
       let state: any;
 
-      const asyncWithDoneMachine = Machine<{ result?: any }>({
+      const asyncWithDoneMachine = createMachine<{ result?: any }>({
         id: 'async',
         initial: 'fetch',
         context: { result: undefined },
@@ -1673,7 +1672,7 @@ describe('invoke', () => {
     it('should call onError only on the state which has invoked failed service', () => {
       let errorHandlersCalled = 0;
 
-      const errorMachine = Machine({
+      const errorMachine = createMachine({
         initial: 'start',
         states: {
           start: {
@@ -1739,7 +1738,7 @@ describe('invoke', () => {
     });
 
     it('should throw error if unhandled (sync)', () => {
-      const errorMachine = Machine({
+      const errorMachine = createMachine({
         id: 'asyncError',
         initial: 'safe',
         states: {
@@ -1761,7 +1760,7 @@ describe('invoke', () => {
     });
 
     describe('sub invoke race condition', () => {
-      const anotherChildMachine = Machine({
+      const anotherChildMachine = createMachine({
         id: 'child',
         initial: 'start',
         states: {
@@ -1774,7 +1773,7 @@ describe('invoke', () => {
         }
       });
 
-      const anotherParentMachine = Machine({
+      const anotherParentMachine = createMachine({
         id: 'parent',
         initial: 'begin',
         states: {
@@ -1828,7 +1827,7 @@ describe('invoke', () => {
         type: 'COUNT';
         value: number;
       }
-      const obsMachine = Machine<{ count: number | undefined }, Events>({
+      const obsMachine = createMachine<{ count: number | undefined }, Events>({
         id: 'obs',
         initial: 'counting',
         context: { count: undefined },
@@ -1873,7 +1872,7 @@ describe('invoke', () => {
         type: 'COUNT';
         value: number;
       }
-      const obsMachine = Machine<Ctx, Events>({
+      const obsMachine = createMachine<Ctx, Events>({
         id: 'obs',
         initial: 'counting',
         context: {
@@ -1927,7 +1926,7 @@ describe('invoke', () => {
         type: 'COUNT';
         value: number;
       }
-      const obsMachine = Machine<Ctx, Events>({
+      const obsMachine = createMachine<Ctx, Events>({
         id: 'obs',
         initial: 'counting',
         context: { count: undefined },
@@ -1972,7 +1971,7 @@ describe('invoke', () => {
   });
 
   describe('with machines', () => {
-    const pongMachine = Machine({
+    const pongMachine = createMachine({
       id: 'pong',
       initial: 'active',
       states: {
@@ -1988,7 +1987,7 @@ describe('invoke', () => {
     });
 
     // Parent machine
-    const pingMachine = Machine({
+    const pingMachine = createMachine({
       id: 'ping',
       initial: 'innerMachine',
       states: {
@@ -2023,7 +2022,7 @@ describe('invoke', () => {
     });
 
     it('should sync with child machine when sync: true option is provided', (done) => {
-      const childMachine = Machine({
+      const childMachine = createMachine({
         initial: 'working',
         context: { count: 42 },
         states: {
@@ -2031,7 +2030,7 @@ describe('invoke', () => {
         }
       });
 
-      const machine = Machine<undefined, UpdateObject>({
+      const machine = createMachine<undefined, UpdateObject>({
         initial: 'pending',
         states: {
           pending: {
@@ -2055,7 +2054,7 @@ describe('invoke', () => {
   });
 
   describe('multiple simultaneous services', () => {
-    const multiple = Machine<any>({
+    const multiple = createMachine<any>({
       id: 'machine',
       initial: 'one',
 
@@ -2114,7 +2113,7 @@ describe('invoke', () => {
       service.start();
     });
 
-    const parallel = Machine<any>({
+    const parallel = createMachine<any>({
       id: 'machine',
       initial: 'one',
 
@@ -2188,7 +2187,7 @@ describe('invoke', () => {
       // it does not make sense to start an actor in a state that will be exited immediately
       let actorStarted = false;
 
-      const transientMachine = Machine({
+      const transientMachine = createMachine({
         id: 'transient',
         initial: 'active',
         states: {
@@ -2217,7 +2216,7 @@ describe('invoke', () => {
       // it does not make sense to start an actor in a state that will be exited immediately
       let actorStarted = false;
 
-      const transientMachine = Machine({
+      const transientMachine = createMachine({
         initial: 'withNonLeafInvoke',
         states: {
           withNonLeafInvoke: {
@@ -2315,7 +2314,7 @@ describe('invoke', () => {
     it.skip('should invoke an actor when reentering invoking state within a single macrostep', () => {
       let actorStartedCount = 0;
 
-      const transientMachine = Machine<{ counter: number }>({
+      const transientMachine = createMachine<{ counter: number }>({
         initial: 'active',
         context: { counter: 0 },
         states: {
@@ -2349,7 +2348,7 @@ describe('invoke', () => {
 
   describe('error handling', () => {
     it('handles escalated errors', (done) => {
-      const child = Machine({
+      const child = createMachine({
         initial: 'die',
 
         states: {
@@ -2359,7 +2358,7 @@ describe('invoke', () => {
         }
       });
 
-      const parent = Machine({
+      const parent = createMachine({
         initial: 'one',
 
         states: {
@@ -2391,7 +2390,7 @@ describe('invoke', () => {
         id: number;
       }
 
-      const child = Machine<ChildContext>({
+      const child = createMachine<ChildContext>({
         initial: 'die',
         context: { id: 42 },
         states: {
@@ -2401,7 +2400,7 @@ describe('invoke', () => {
         }
       });
 
-      const parent = Machine({
+      const parent = createMachine({
         initial: 'one',
 
         states: {

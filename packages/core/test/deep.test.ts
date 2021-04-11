@@ -1,7 +1,7 @@
-import { Machine } from '../src/index';
+import { createMachine } from '../src/index';
 
 describe('deep transitions', () => {
-  const deepMachine = Machine({
+  const deepMachine = createMachine({
     key: 'deep',
     initial: 'A',
     on: {

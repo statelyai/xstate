@@ -1,8 +1,8 @@
-import { Machine } from '../../src/index';
+import { createMachine } from '../../src/index';
 import { testAll } from '../utils';
 
 describe('Example: CD Player', () => {
-  const machine = Machine({
+  const machine = createMachine({
     key: 'cd',
     initial: 'not_loaded',
     states: {

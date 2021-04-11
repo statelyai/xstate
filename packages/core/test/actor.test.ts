@@ -1,5 +1,4 @@
 import {
-  Machine,
   interpret,
   createMachine,
   ActorRef,
@@ -27,7 +26,7 @@ import { createMachineBehavior } from '../src/behavior';
 import { invokeMachine } from '../src/invoke';
 
 describe('spawning machines', () => {
-  const todoMachine = Machine({
+  const todoMachine = createMachine({
     id: 'todo',
     initial: 'incomplete',
     states: {
@@ -57,7 +56,7 @@ describe('spawning machines', () => {
         type: 'TODO_COMPLETED';
       };
 
-  const todosMachine = Machine<any, TodoEvent>({
+  const todosMachine = createMachine<typeof context, TodoEvent>({
     id: 'todos',
     context,
     initial: 'active',
@@ -96,7 +95,7 @@ describe('spawning machines', () => {
     | { type: 'PONG' }
     | { type: 'SUCCESS' };
 
-  const serverMachine = Machine<any, PingPongEvent>({
+  const serverMachine = createMachine<any, PingPongEvent>({
     id: 'server',
     initial: 'waitPing',
     states: {
@@ -118,7 +117,7 @@ describe('spawning machines', () => {
     server?: ActorRef<PingPongEvent>;
   }
 
-  const clientMachine = Machine<ClientContext, PingPongEvent>({
+  const clientMachine = createMachine<ClientContext, PingPongEvent>({
     id: 'client',
     initial: 'init',
     context: {
@@ -186,7 +185,7 @@ describe('spawning machines', () => {
 
 describe('spawning promises', () => {
   it('should be able to spawn a promise', (done) => {
-    const promiseMachine = Machine<any>({
+    const promiseMachine = createMachine<{ promiseRef?: ActorRef<any> }>({
       id: 'promise',
       initial: 'idle',
       context: {
@@ -279,7 +278,7 @@ describe('spawning observables', () => {
       value: number;
     }
 
-    const observableMachine = Machine<any, Events>({
+    const observableMachine = createMachine<any, Events>({
       id: 'observable',
       initial: 'idle',
       context: {
@@ -324,7 +323,7 @@ describe('spawning observables', () => {
 
 describe('communicating with spawned actors', () => {
   it('should treat an interpreter as an actor', (done) => {
-    const existingMachine = Machine({
+    const existingMachine = createMachine({
       initial: 'inactive',
       states: {
         inactive: {
@@ -338,7 +337,7 @@ describe('communicating with spawned actors', () => {
 
     const existingService = interpret(existingMachine).start();
 
-    const parentMachine = Machine<{
+    const parentMachine = createMachine<{
       existingRef?: ActorRef<any>;
     }>({
       initial: 'pending',
@@ -375,7 +374,7 @@ describe('communicating with spawned actors', () => {
   });
 
   it('should be able to communicate with arbitrary actors', (done) => {
-    const existingMachine = Machine({
+    const existingMachine = createMachine({
       initial: 'inactive',
       states: {
         inactive: {
@@ -389,7 +388,7 @@ describe('communicating with spawned actors', () => {
 
     const existingService = interpret(existingMachine).start();
 
-    const parentMachine = Machine<{ existingRef: ActorRef<any> }>({
+    const parentMachine = createMachine<{ existingRef: ActorRef<any> }>({
       initial: 'pending',
       context: {
         existingRef: fromService(existingService)
@@ -424,7 +423,10 @@ describe('actors', () => {
   it('should only spawn actors defined on initial state once', () => {
     let count = 0;
 
-    const startMachine = Machine<any>({
+    const startMachine = createMachine<{
+      items: number[];
+      refs: any[];
+    }>({
       id: 'start',
       initial: 'start',
       context: {
@@ -455,7 +457,7 @@ describe('actors', () => {
   });
 
   it('should spawn null actors if not used within a service', () => {
-    const nullActorMachine = Machine<{ ref?: ActorRef<any> }>({
+    const nullActorMachine = createMachine<{ ref?: ActorRef<any> }>({
       initial: 'foo',
       context: { ref: undefined },
       states: {
@@ -474,7 +476,7 @@ describe('actors', () => {
   });
 
   describe('autoForward option', () => {
-    const pongActorMachine = Machine({
+    const pongActorMachine = createMachine({
       id: 'server',
       initial: 'waitPing',
       states: {
@@ -495,7 +497,7 @@ describe('actors', () => {
     it('should not forward events to a spawned actor by default', () => {
       let pongCounter = 0;
 
-      const machine = Machine<any>({
+      const machine = createMachine<any>({
         id: 'client',
         context: { counter: 0, serverRef: undefined },
         initial: 'initial',
@@ -522,7 +524,7 @@ describe('actors', () => {
     it('should not forward events to a spawned actor when { autoForward: false }', () => {
       let pongCounter = 0;
 
-      const machine = Machine<{
+      const machine = createMachine<{
         counter: number;
         serverRef?: ActorRef<any>;
       }>({
@@ -556,7 +558,7 @@ describe('actors', () => {
   });
 
   describe('sync option', () => {
-    const childMachine = Machine({
+    const childMachine = createMachine({
       id: 'child',
       context: { value: 0 },
       initial: 'active',
@@ -570,7 +572,7 @@ describe('actors', () => {
     });
 
     it('should sync spawned actor state when { sync: true }', (done) => {
-      const machine = Machine<{
+      const machine = createMachine<{
         ref?: ActorRef<any>;
       }>({
         id: 'parent',
@@ -603,7 +605,7 @@ describe('actors', () => {
     });
 
     it('should not sync spawned actor state when { sync: false }', (done) => {
-      const machine = Machine<{
+      const machine = createMachine<{
         refNoSync?: ActorRef<any>;
       }>({
         id: 'parent',
@@ -640,7 +642,7 @@ describe('actors', () => {
     });
 
     it('should not sync spawned actor state (default)', (done) => {
-      const machine = Machine<{
+      const machine = createMachine<{
         refNoSyncDefault?: ActorRef<any>;
       }>({
         id: 'parent',
@@ -676,7 +678,7 @@ describe('actors', () => {
     });
 
     it('parent state should be changed if synced child actor update occurs', (done) => {
-      const syncChildMachine = Machine({
+      const syncChildMachine = createMachine({
         initial: 'active',
         states: {
           active: {
@@ -690,7 +692,7 @@ describe('actors', () => {
         ref?: ActorRefFrom<typeof syncChildMachine>;
       }
 
-      const syncMachine = Machine<SyncMachineContext>({
+      const syncMachine = createMachine<SyncMachineContext>({
         initial: 'same',
         context: {},
         states: {
@@ -725,7 +727,7 @@ describe('actors', () => {
       it(`parent state should NOT be changed regardless of unsynced child actor update (options: ${JSON.stringify(
         falseSyncOption
       )})`, (done) => {
-        const syncChildMachine = Machine({
+        const syncChildMachine = createMachine({
           initial: 'active',
           states: {
             active: {
@@ -739,7 +741,7 @@ describe('actors', () => {
           ref?: ActorRefFrom<typeof syncChildMachine>;
         }
 
-        const syncMachine = Machine<SyncMachineContext>({
+        const syncMachine = createMachine<SyncMachineContext>({
           initial: 'same',
           context: {},
           states: {
@@ -775,7 +777,7 @@ describe('actors', () => {
       it(`parent state should be changed if unsynced child actor manually sends update event (options: ${JSON.stringify(
         falseSyncOption
       )})`, (done) => {
-        const syncChildMachine = Machine({
+        const syncChildMachine = createMachine({
           initial: 'active',
           states: {
             active: {
@@ -791,7 +793,7 @@ describe('actors', () => {
           ref?: ActorRefFrom<typeof syncChildMachine>;
         }
 
-        const syncMachine = Machine<SyncMachineContext>({
+        const syncMachine = createMachine<SyncMachineContext>({
           initial: 'same',
           context: {},
           states: {
@@ -819,7 +821,7 @@ describe('actors', () => {
       it('should only spawn an actor in an initial state of a child that gets invoked in the initial state of a parent when the parent gets started', (done) => {
         let spawnCounter = 0;
 
-        const child = Machine({
+        const child = createMachine<any>({
           initial: 'bar',
           context: {},
           states: {
@@ -836,7 +838,7 @@ describe('actors', () => {
           }
         });
 
-        const parent = Machine({
+        const parent = createMachine({
           initial: 'foo',
           states: {
             foo: {

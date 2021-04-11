@@ -1,6 +1,5 @@
-// import { Machine, StateNode } from 'xstate';
 import { createAnalyzer } from '../src';
-import { Machine, interpret } from 'xstate';
+import { createMachine, interpret } from 'xstate';
 
 const pedestrianStates = {
   initial: 'walk',
@@ -26,7 +25,7 @@ const pedestrianStates = {
   }
 };
 
-const lightMachine = Machine({
+const lightMachine = createMachine({
   key: 'light',
   initial: 'green',
   states: {

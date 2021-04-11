@@ -1,4 +1,4 @@
-import { Machine } from '../src/Machine';
+import { createMachine } from '../src/Machine';
 
 describe('deterministic machine', () => {
   const pedestrianStates = {
@@ -20,7 +20,7 @@ describe('deterministic machine', () => {
     }
   };
 
-  const lightMachine = Machine({
+  const lightMachine = createMachine({
     key: 'light',
     initial: 'green',
     states: {
@@ -46,7 +46,7 @@ describe('deterministic machine', () => {
     }
   });
 
-  const testMachine = Machine({
+  const testMachine = createMachine({
     key: 'test',
     initial: 'a',
     states: {
@@ -66,7 +66,7 @@ describe('deterministic machine', () => {
     }
   });
 
-  const deepMachine = Machine({
+  const deepMachine = createMachine({
     key: 'deep',
     initial: 'a',
     states: {
@@ -205,7 +205,7 @@ describe('deterministic machine', () => {
 
   describe('machine.transition() with array `.on` configs', () => {
     it('should properly transition based on an event', () => {
-      const machine = Machine({
+      const machine = createMachine({
         initial: 'a',
         states: {
           a: {
@@ -219,7 +219,7 @@ describe('deterministic machine', () => {
   });
 
   describe('state key names', () => {
-    const machine = Machine({
+    const machine = createMachine({
       key: 'test',
       initial: 'test',
       states: {

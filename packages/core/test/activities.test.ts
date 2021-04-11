@@ -1,10 +1,10 @@
 import { stateIn } from '../src/guards';
-import { Machine, interpret } from '../src/index';
+import { interpret, createMachine } from '../src/index';
 import { invokeActivity } from '../src/invoke';
 
 // TODO: remove this file but before doing that ensure that things tested here are covered by other tests
 
-const lightMachine = Machine({
+const lightMachine = createMachine({
   key: 'light',
   initial: 'green',
   states: {
@@ -39,7 +39,7 @@ const lightMachine = Machine({
 
 describe('activities with guarded transitions', () => {
   it('should activate even if there are subsequent automatic, but blocked transitions', (done) => {
-    const machine = Machine<undefined, any>(
+    const machine = createMachine<undefined, any>(
       {
         initial: 'A',
         states: {
@@ -70,7 +70,7 @@ describe('activities with guarded transitions', () => {
 });
 
 describe('remembering activities', () => {
-  const machine = Machine({
+  const machine = createMachine({
     initial: 'A',
     states: {
       A: {
@@ -200,7 +200,7 @@ describe('activities', () => {
 });
 
 describe('transient activities', () => {
-  const machine = Machine({
+  const machine = createMachine({
     type: 'parallel',
     states: {
       A: {

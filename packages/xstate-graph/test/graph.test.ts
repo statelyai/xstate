@@ -1,4 +1,4 @@
-import { Machine, StateNode, createMachine, assign } from 'xstate';
+import { StateNode, createMachine, assign } from 'xstate';
 import {
   getStateNodes,
   getSimplePaths,
@@ -29,7 +29,7 @@ describe('@xstate/graph', () => {
     }
   };
 
-  const lightMachine = Machine({
+  const lightMachine = createMachine({
     key: 'light',
     initial: 'green',
     states: {
@@ -65,7 +65,7 @@ describe('@xstate/graph', () => {
   }
   type CondMachineEvents = { type: 'EVENT'; id: string } | { type: 'STATE' };
 
-  const condMachine = Machine<CondMachineCtx, CondMachineEvents>({
+  const condMachine = createMachine<CondMachineCtx, CondMachineEvents>({
     key: 'cond',
     initial: 'pending',
     context: {
@@ -95,7 +95,7 @@ describe('@xstate/graph', () => {
     }
   });
 
-  const parallelMachine = Machine({
+  const parallelMachine = createMachine({
     type: 'parallel',
     key: 'p',
     states: {
@@ -215,7 +215,7 @@ describe('@xstate/graph', () => {
       expect(paths).toMatchSnapshot('simple paths');
     });
 
-    const equivMachine = Machine({
+    const equivMachine = createMachine({
       initial: 'a',
       states: {
         a: { on: { FOO: 'b', BAR: 'b' } },
@@ -252,7 +252,7 @@ describe('@xstate/graph', () => {
         type: 'INC';
         value: number;
       }
-      const countMachine = Machine<Ctx, Events>({
+      const countMachine = createMachine<Ctx, Events>({
         id: 'count',
         initial: 'start',
         context: {
@@ -303,7 +303,7 @@ describe('@xstate/graph', () => {
       }
       type Events = { type: 'INC'; value: number } | { type: 'DEC' };
 
-      const counterMachine = Machine<Ctx, Events>({
+      const counterMachine = createMachine<Ctx, Events>({
         id: 'counter',
         initial: 'empty',
         context: {

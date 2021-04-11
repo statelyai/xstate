@@ -1,4 +1,4 @@
-import { Machine, assign, createMachine, interpret } from '../src/index';
+import { assign, createMachine, interpret } from '../src/index';
 import { raise } from '../src/actions';
 
 function noop(_x) {
@@ -6,25 +6,6 @@ function noop(_x) {
 }
 
 describe('StateSchema', () => {
-  interface LightStateSchema {
-    meta: {
-      interval: number;
-    };
-    states: {
-      green: {
-        meta: { name: string };
-      };
-      yellow: {};
-      red: {
-        states: {
-          walk: {};
-          wait: {};
-          stop: {};
-        };
-      };
-    };
-  }
-
   type LightEvent =
     | { type: 'TIMER' }
     | { type: 'POWER_OUTAGE' }
@@ -34,7 +15,7 @@ describe('StateSchema', () => {
     elapsed: number;
   }
 
-  const lightMachine = Machine<LightContext, LightEvent, LightStateSchema>({
+  const lightMachine = createMachine<LightContext, LightEvent>({
     key: 'light',
     initial: 'green',
     meta: { interval: 1000 },
@@ -95,19 +76,6 @@ describe('StateSchema', () => {
 });
 
 describe('Parallel StateSchema', () => {
-  interface ParallelStateSchema {
-    states: {
-      foo: {};
-      bar: {};
-      baz: {
-        states: {
-          one: {};
-          two: {};
-        };
-      };
-    };
-  }
-
   type ParallelEvent =
     | { type: 'TIMER' }
     | { type: 'POWER_OUTAGE' }
@@ -118,11 +86,7 @@ describe('Parallel StateSchema', () => {
     elapsed: number;
   }
 
-  const parallelMachine = Machine<
-    ParallelContext,
-    ParallelEvent,
-    ParallelStateSchema
-  >({
+  const parallelMachine = createMachine<ParallelContext, ParallelEvent>({
     type: 'parallel',
     states: {
       foo: {},
@@ -145,19 +109,6 @@ describe('Parallel StateSchema', () => {
 });
 
 describe('Nested parallel stateSchema', () => {
-  interface ParallelStateSchema {
-    states: {
-      foo: {};
-      bar: {};
-      baz: {
-        states: {
-          blockUpdates: {};
-          activeParallelNode: {};
-        };
-      };
-    };
-  }
-
   interface ParallelEvent {
     type: 'UPDATE.CONTEXT';
   }
@@ -166,11 +117,7 @@ describe('Nested parallel stateSchema', () => {
     lastDate: Date;
   }
 
-  const nestedParallelMachine = Machine<
-    ParallelContext,
-    ParallelEvent,
-    ParallelStateSchema
-  >({
+  const nestedParallelMachine = createMachine<ParallelContext, ParallelEvent>({
     initial: 'foo',
     states: {
       foo: {},
@@ -205,17 +152,6 @@ describe('Nested parallel stateSchema', () => {
 
 describe('Raise events', () => {
   it('should work with all the ways to raise events', () => {
-    interface GreetingStateSchema {
-      states: {
-        pending: {};
-        morning: {};
-        lunchTime: {};
-        afternoon: {};
-        evening: {};
-        night: {};
-      };
-    }
-
     type GreetingEvent =
       | { type: 'DECIDE'; aloha?: boolean }
       | { type: 'MORNING' }
@@ -231,11 +167,7 @@ describe('Raise events', () => {
 
     const greetingContext: GreetingContext = { hour: 10 };
 
-    const raiseGreetingMachine = Machine<
-      GreetingContext,
-      GreetingEvent,
-      GreetingStateSchema
-    >({
+    const raiseGreetingMachine = createMachine<GreetingContext, GreetingEvent>({
       key: 'greeting',
       context: greetingContext,
       initial: 'pending',

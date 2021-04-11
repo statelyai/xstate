@@ -2,7 +2,6 @@ import { useState } from 'react';
 import * as React from 'react';
 import { useService, useMachine } from '../src';
 import {
-  Machine,
   assign,
   interpret,
   Interpreter,
@@ -15,7 +14,7 @@ import { useActor } from '../src/useActor';
 import { invokeMachine } from 'xstate/invoke';
 
 describe('useService hook', () => {
-  const counterMachine = Machine<
+  const counterMachine = createMachine<
     { count: number },
     { type: 'INC' } | { type: 'SOMETHING' }
   >(
@@ -266,7 +265,7 @@ describe('useService hook', () => {
 
   it('should render the final state', () => {
     const service = interpret(
-      Machine<any, { type: 'NEXT' }>({
+      createMachine<any, { type: 'NEXT' }>({
         initial: 'first',
         states: {
           first: {

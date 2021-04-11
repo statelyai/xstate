@@ -1,5 +1,5 @@
 import {
-  Machine,
+  createMachine,
   State,
   interpret,
   MachineNode,
@@ -167,7 +167,7 @@ const pedestrianStates = {
   }
 };
 
-const lightMachine = Machine({
+const lightMachine = createMachine({
   key: 'light',
   initial: 'green',
   states: {
@@ -230,7 +230,7 @@ xdescribe('transition to SCXML', () => {
   });
 
   it('converts a full transition', () => {
-    const machine = Machine({
+    const machine = createMachine({
       initial: 'test',
       states: {
         test: {

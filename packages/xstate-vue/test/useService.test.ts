@@ -1,9 +1,9 @@
 import { render, fireEvent, waitFor } from '@testing-library/vue';
-import { Machine, assign, interpret } from 'xstate';
+import { createMachine, assign, interpret } from 'xstate';
 import UseService from './UseService.vue';
 
 describe('useService composable function', () => {
-  const counterMachine = Machine<{ count: number }>({
+  const counterMachine = createMachine<{ count: number }>({
     id: 'counter',
     initial: 'active',
     context: { count: 0 },

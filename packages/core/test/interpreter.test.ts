@@ -2,7 +2,6 @@ import { interpret, Interpreter } from '../src/interpreter';
 import { SimulatedClock } from '../src/SimulatedClock';
 import { machine as idMachine } from './fixtures/id';
 import {
-  Machine,
   actions,
   assign,
   send,
@@ -27,7 +26,7 @@ import {
   invokeActivity
 } from '../src/invoke';
 
-const lightMachine = Machine({
+const lightMachine = createMachine({
   id: 'light',
   initial: 'green',
   states: {
@@ -129,7 +128,7 @@ describe('interpreter', () => {
 
     // https://github.com/davidkpiano/xstate/issues/1174
     it('executes actions from a restored state', (done) => {
-      const lightMachine = Machine(
+      const lightMachine = createMachine(
         {
           id: 'light',
           initial: 'green',
@@ -170,7 +169,7 @@ describe('interpreter', () => {
 
       // saves state and recreate it
       const recreated = JSON.parse(JSON.stringify(nextState));
-      const previousState = State.create(recreated);
+      const previousState = State.create<never>(recreated);
       const resolvedState = lightMachine.resolveState(previousState);
 
       const service = interpret(lightMachine);
@@ -286,7 +285,7 @@ describe('interpreter', () => {
         | { type: 'ACTIVATE'; wait: number }
         | { type: 'FINISH' };
 
-      const delayExprMachine = Machine<
+      const delayExprMachine = createMachine<
         DelayExprMachineCtx,
         DelayExpMachineEvents
       >({
@@ -358,7 +357,7 @@ describe('interpreter', () => {
             type: 'FINISH';
           };
 
-      const delayExprMachine = Machine<
+      const delayExprMachine = createMachine<
         DelayExprMachineCtx,
         DelayExpMachineEvents
       >({
@@ -420,7 +419,7 @@ describe('interpreter', () => {
 
     it('can send an event after a delay (delayed transitions)', (done) => {
       const clock = new SimulatedClock();
-      const letterMachine = Machine(
+      const letterMachine = createMachine(
         {
           id: 'letter',
           context: {
@@ -507,7 +506,7 @@ describe('interpreter', () => {
   describe('activities', () => {
     let activityState = 'off';
 
-    const activityMachine = Machine(
+    const activityMachine = createMachine(
       {
         id: 'activity',
         initial: 'on',
@@ -554,7 +553,7 @@ describe('interpreter', () => {
     it('should stop activities upon stopping the service', () => {
       let stopActivityState: string;
 
-      const stopActivityMachine = Machine(
+      const stopActivityMachine = createMachine(
         {
           id: 'stopActivity',
           initial: 'on',
@@ -590,7 +589,7 @@ describe('interpreter', () => {
     it('should not restart activities from a compound state', (done) => {
       let activityActive = false;
 
-      const toggleMachine = Machine(
+      const toggleMachine = createMachine(
         {
           id: 'toggle',
           initial: 'inactive',
@@ -656,7 +655,7 @@ describe('interpreter', () => {
   });
 
   it('can cancel a delayed event using expression to resolve send id', (done) => {
-    const machine = Machine({
+    const machine = createMachine({
       initial: 'first',
       states: {
         first: {
@@ -733,7 +732,7 @@ describe('interpreter', () => {
   });
 
   it('should defer events sent to an uninitialized service', (done) => {
-    const deferMachine = Machine({
+    const deferMachine = createMachine({
       id: 'defer',
       initial: 'a',
       states: {
@@ -786,7 +785,7 @@ describe('interpreter', () => {
     };
 
     expect(() => {
-      interpret(Machine(invalidMachine)).start();
+      interpret(createMachine(invalidMachine)).start();
     }).toThrowErrorMatchingInlineSnapshot(
       `"Initial state node \\"create\\" not found on parent state node #fetchMachine"`
     );
@@ -813,7 +812,7 @@ describe('interpreter', () => {
   it('should be able to log (log action)', () => {
     const logs: any[] = [];
 
-    const logMachine = Machine<{ count: number }>({
+    const logMachine = createMachine<{ count: number }>({
       id: 'log',
       initial: 'x',
       context: { count: 0 },
@@ -849,7 +848,7 @@ describe('interpreter', () => {
       origin: meta._event.origin
     }));
 
-    const childMachine = Machine({
+    const childMachine = createMachine({
       initial: 'bar',
       states: {
         bar: {}
@@ -861,7 +860,7 @@ describe('interpreter', () => {
       }
     });
 
-    const parentMachine = Machine({
+    const parentMachine = createMachine({
       initial: 'foo',
       states: {
         foo: {
@@ -907,7 +906,7 @@ describe('interpreter', () => {
     const logs: any[] = [];
     const logAction = log((_ctx, _ev, meta) => meta._event.data.type);
 
-    const parentMachine = Machine({
+    const parentMachine = createMachine({
       initial: 'foo',
       states: {
         foo: {
@@ -943,7 +942,7 @@ describe('interpreter', () => {
       type: 'NEXT';
       password: string;
     }
-    const machine = Machine<Ctx, Events>({
+    const machine = createMachine<Ctx, Events>({
       id: 'sendexpr',
       initial: 'start',
       context: {
@@ -972,7 +971,7 @@ describe('interpreter', () => {
     });
 
     it('should be able to raise event using special target', () => {
-      const raiseMachine = Machine({
+      const raiseMachine = createMachine({
         initial: 'foo',
         states: {
           foo: {
@@ -1012,7 +1011,7 @@ describe('interpreter', () => {
       type: 'NEXT';
       password: string;
     }
-    const childMachine = Machine<Ctx>({
+    const childMachine = createMachine<Ctx>({
       id: 'child',
       initial: 'start',
       context: {
@@ -1065,7 +1064,7 @@ describe('interpreter', () => {
   });
 
   describe('send() batch events', () => {
-    const countMachine = Machine<{ count: number }>({
+    const countMachine = createMachine<{ count: number }>({
       id: 'count',
       initial: 'even',
       context: { count: 0 },
@@ -1081,7 +1080,7 @@ describe('interpreter', () => {
       }
     });
 
-    const countMachineNoActions = Machine<{ count: number }>({
+    const countMachineNoActions = createMachine<{ count: number }>({
       id: 'count',
       initial: 'even',
       context: { count: 0 },
@@ -1214,7 +1213,7 @@ describe('interpreter', () => {
   });
 
   describe('send()', () => {
-    const sendMachine = Machine({
+    const sendMachine = createMachine({
       id: 'send',
       initial: 'inactive',
       states: {
@@ -1258,7 +1257,7 @@ describe('interpreter', () => {
     });
 
     it('should receive and process all events sent simultaneously', (done) => {
-      const toggleMachine = Machine({
+      const toggleMachine = createMachine({
         id: 'toggle',
         initial: 'inactive',
         states: {
@@ -1292,7 +1291,7 @@ describe('interpreter', () => {
   });
 
   describe('start()', () => {
-    const startMachine = Machine({
+    const startMachine = createMachine({
       id: 'start',
       initial: 'foo',
       states: {
@@ -1364,7 +1363,7 @@ describe('interpreter', () => {
   describe('stop()', () => {
     it('should cancel delayed events', (done) => {
       let called = false;
-      const delayedMachine = Machine({
+      const delayedMachine = createMachine({
         id: 'delayed',
         initial: 'foo',
         states: {
@@ -1395,7 +1394,7 @@ describe('interpreter', () => {
     it('should not execute transitions after being stopped', (done) => {
       let called = false;
 
-      const testMachine = Machine({
+      const testMachine = createMachine({
         initial: 'waiting',
         states: {
           waiting: {
@@ -1439,7 +1438,7 @@ describe('interpreter', () => {
 
   describe('off()', () => {
     it('should remove transition listeners', () => {
-      const toggleMachine = Machine({
+      const toggleMachine = createMachine({
         id: 'toggle',
         initial: 'inactive',
         states: {
@@ -1479,7 +1478,7 @@ describe('interpreter', () => {
 
   describe('transient states', () => {
     it('should transition in correct order', () => {
-      const stateMachine = Machine({
+      const stateMachine = createMachine({
         id: 'transient',
         initial: 'idle',
         states: {
@@ -1504,7 +1503,7 @@ describe('interpreter', () => {
     });
 
     it('should transition in correct order when there is a condition', () => {
-      const stateMachine = Machine(
+      const stateMachine = createMachine(
         {
           id: 'transient',
           initial: 'idle',
@@ -1543,7 +1542,7 @@ describe('interpreter', () => {
 
   describe('observable', () => {
     const context = { count: 0 };
-    const intervalMachine = Machine<typeof context>({
+    const intervalMachine = createMachine<typeof context>({
       id: 'interval',
       context,
       initial: 'active',
@@ -1604,7 +1603,7 @@ describe('interpreter', () => {
 
     it('should be unsubscribable', (done) => {
       const countContext = { count: 0 };
-      const machine = Machine<typeof countContext>({
+      const machine = createMachine<typeof countContext>({
         context: countContext,
         initial: 'active',
         states: {
@@ -1648,7 +1647,7 @@ describe('interpreter', () => {
 
   describe('services', () => {
     it("doesn't crash cryptically on undefined return from the service creator", () => {
-      const machine = Machine(
+      const machine = createMachine(
         {
           initial: 'initial',
           states: {
@@ -1675,7 +1674,7 @@ describe('interpreter', () => {
 
   describe('children', () => {
     it('state.children should reference invoked child actors (machine)', (done) => {
-      const childMachine = Machine({
+      const childMachine = createMachine({
         initial: 'active',
         states: {
           active: {
@@ -1688,7 +1687,7 @@ describe('interpreter', () => {
         }
       });
 
-      const parentMachine = Machine({
+      const parentMachine = createMachine({
         initial: 'active',
         states: {
           active: {
@@ -1723,7 +1722,7 @@ describe('interpreter', () => {
     });
 
     it('state.children should reference invoked child actors (promise)', (done) => {
-      const parentMachine = Machine({
+      const parentMachine = createMachine({
         initial: 'active',
         states: {
           active: {
@@ -1777,7 +1776,7 @@ describe('interpreter', () => {
     it('state.children should reference invoked child actors (observable)', (done) => {
       const interval$ = interval(10);
 
-      const parentMachine = Machine({
+      const parentMachine = createMachine({
         initial: 'active',
         states: {
           active: {
@@ -1817,7 +1816,7 @@ describe('interpreter', () => {
     });
 
     it('state.children should reference spawned actors', (done) => {
-      const childMachine = Machine({
+      const childMachine = createMachine({
         initial: 'idle',
         states: {
           idle: {}
@@ -1845,7 +1844,7 @@ describe('interpreter', () => {
     });
 
     it('stopped spawned actors should be cleaned up in parent', (done) => {
-      const childMachine = Machine({
+      const childMachine = createMachine({
         initial: 'idle',
         states: {
           idle: {}

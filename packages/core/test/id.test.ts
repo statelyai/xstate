@@ -1,7 +1,7 @@
 import { testAll } from './utils';
-import { Machine } from '../src';
+import { createMachine } from '../src';
 
-const idMachine = Machine({
+const idMachine = createMachine({
   initial: 'A',
   states: {
     A: {
@@ -71,7 +71,7 @@ describe('State node IDs', () => {
   testAll(idMachine, expected);
 
   it('should work with ID + relative path', () => {
-    const brokenMachine = Machine({
+    const brokenMachine = createMachine({
       initial: 'foo',
       on: {
         ACTION: '#bar.qux.quux'
