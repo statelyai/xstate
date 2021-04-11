@@ -1,4 +1,4 @@
-import { Machine, interpret, createMachine } from '../src/index';
+import { interpret, createMachine } from '../src/index';
 import { State } from '../src/State';
 
 const pedestrianStates = {
@@ -18,15 +18,7 @@ const pedestrianStates = {
   }
 };
 
-interface LightStateSchema {
-  states: {
-    green: any;
-    yellow: any;
-    red: any;
-  };
-}
-
-const lightMachine = Machine<undefined, any, LightStateSchema>({
+const lightMachine = createMachine<undefined, any>({
   key: 'light',
   initial: 'green',
   states: {
@@ -53,7 +45,7 @@ const lightMachine = Machine<undefined, any, LightStateSchema>({
   }
 });
 
-const configMachine = Machine(
+const configMachine = createMachine(
   {
     id: 'config',
     initial: 'foo',
@@ -126,7 +118,7 @@ describe('machine', () => {
 
   describe('machine.config', () => {
     it('state node config should reference original machine config', () => {
-      const machine = Machine({
+      const machine = createMachine({
         initial: 'one',
         states: {
           one: {
@@ -263,8 +255,8 @@ describe('machine', () => {
     };
 
     it.skip('context from a function should be lazily evaluated', () => {
-      const testMachine1 = Machine(testMachineConfig);
-      const testMachine2 = Machine(testMachineConfig);
+      const testMachine1 = createMachine(testMachineConfig);
+      const testMachine2 = createMachine(testMachineConfig);
 
       expect(testMachine1.initialState.context).not.toBe(
         testMachine2.initialState.context
@@ -281,7 +273,7 @@ describe('machine', () => {
   });
 
   describe('machine.resolveState()', () => {
-    const resolveMachine = Machine({
+    const resolveMachine = createMachine({
       id: 'resolve',
       initial: 'foo',
       states: {
@@ -321,7 +313,7 @@ describe('machine', () => {
     });
 
     it('should resolve the state value', () => {
-      const tempState = State.from<any>('foo');
+      const tempState = State.from('foo');
 
       const resolvedState = resolveMachine.resolveState(tempState);
 
@@ -331,7 +323,7 @@ describe('machine', () => {
     });
 
     it('should resolve the state configuration (implicit via events)', () => {
-      const tempState = State.from<any>('foo');
+      const tempState = State.from('foo');
 
       const resolvedState = resolveMachine.resolveState(tempState);
 
@@ -350,7 +342,7 @@ describe('machine', () => {
           }
         }
       });
-      const tempState = State.from<any>('bar');
+      const tempState = State.from('bar');
 
       const resolvedState = machine.resolveState(tempState);
 
@@ -360,7 +352,7 @@ describe('machine', () => {
 
   describe('versioning', () => {
     it('should allow a version to be specified', () => {
-      const versionMachine = Machine({
+      const versionMachine = createMachine({
         id: 'version',
         version: '1.0.4',
         states: {}
@@ -372,7 +364,7 @@ describe('machine', () => {
 
   describe('id', () => {
     it('should represent the ID', () => {
-      const idMachine = Machine({
+      const idMachine = createMachine({
         id: 'some-id',
         initial: 'idle',
         states: { idle: {} }
@@ -382,7 +374,7 @@ describe('machine', () => {
     });
 
     it('should represent the ID (state node)', () => {
-      const idMachine = Machine({
+      const idMachine = createMachine({
         id: 'some-id',
         initial: 'idle',
         states: {
@@ -396,7 +388,7 @@ describe('machine', () => {
     });
 
     it('should use the key as the ID if no ID is provided', () => {
-      const noIDMachine = Machine({
+      const noIDMachine = createMachine({
         key: 'some-key',
         initial: 'idle',
         states: { idle: {} }
@@ -406,7 +398,7 @@ describe('machine', () => {
     });
 
     it('should use the key as the ID if no ID is provided (state node)', () => {
-      const noStateNodeIDMachine = Machine({
+      const noStateNodeIDMachine = createMachine({
         id: 'some-id',
         initial: 'idle',
         states: { idle: {} }

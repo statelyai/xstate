@@ -1,8 +1,8 @@
-import { Machine } from '../../src/index';
+import { createMachine } from '../../src/index';
 import { testMultiTransition } from '../utils';
 
 describe('Example 6.17', () => {
-  const machine = Machine({
+  const machine = createMachine({
     initial: 'X',
     states: {
       X: {
@@ -66,7 +66,7 @@ describe('Example 6.17', () => {
 });
 
 describe('Jump to ID', () => {
-  const machine = Machine({
+  const machine = createMachine({
     initial: 'X',
     states: {
       X: {

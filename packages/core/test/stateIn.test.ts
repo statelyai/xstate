@@ -1,7 +1,7 @@
-import { Machine } from '../src/index';
+import { createMachine } from '../src/index';
 import { stateIn } from '../src/guards';
 
-const machine = Machine({
+const machine = createMachine({
   type: 'parallel',
   states: {
     a: {
@@ -66,7 +66,7 @@ const machine = Machine({
   }
 });
 
-const lightMachine = Machine({
+const lightMachine = createMachine({
   id: 'light',
   initial: 'green',
   states: {

@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { useMachine, useService, useActor } from '../src';
 import {
-  Machine,
   assign,
   Interpreter,
   doneInvoke,
@@ -20,7 +19,7 @@ describe('useMachine hook', () => {
   const context = {
     data: undefined
   };
-  const fetchMachine = Machine<
+  const fetchMachine = createMachine<
     typeof context,
     { type: 'FETCH' } | DoneEventObject
   >({
@@ -154,7 +153,7 @@ describe('useMachine hook', () => {
   });
 
   it('should merge machine context with options.context', () => {
-    const testMachine = Machine<{ foo: string; test: boolean }>({
+    const testMachine = createMachine<{ foo: string; test: boolean }>({
       context: {
         foo: 'bar',
         test: false
@@ -182,7 +181,7 @@ describe('useMachine hook', () => {
   });
 
   it('should not spawn actors until service is started', async (done) => {
-    const spawnMachine = Machine<any>({
+    const spawnMachine = createMachine<any>({
       id: 'spawn',
       initial: 'start',
       context: { ref: undefined },
@@ -221,7 +220,7 @@ describe('useMachine hook', () => {
   });
 
   it('actions should not have stale data', async (done) => {
-    const toggleMachine = Machine<any, { type: 'TOGGLE' }>({
+    const toggleMachine = createMachine<any, { type: 'TOGGLE' }>({
       initial: 'inactive',
       states: {
         inactive: {
@@ -749,7 +748,7 @@ describe('useMachine (strict mode)', () => {
   });
 
   it('custom data should be available right away for the invoked actor', (done) => {
-    const childMachine = Machine({
+    const childMachine = createMachine({
       initial: 'intitial',
       context: {
         value: 100
@@ -759,7 +758,7 @@ describe('useMachine (strict mode)', () => {
       }
     });
 
-    const machine = Machine({
+    const machine = createMachine({
       initial: 'active',
       states: {
         active: {
@@ -795,7 +794,7 @@ describe('useMachine (strict mode)', () => {
   it('delayed transitions should work when initializing from a rehydrated state', () => {
     jest.useFakeTimers();
     try {
-      const testMachine = Machine<any, { type: 'START' }>({
+      const testMachine = createMachine<any, { type: 'START' }>({
         id: 'app',
         initial: 'idle',
         states: {

@@ -1,4 +1,4 @@
-import { createMachine, Machine } from '../src/index';
+import { createMachine } from '../src/index';
 
 describe('state meta data', () => {
   const pedestrianStates = {
@@ -28,7 +28,7 @@ describe('state meta data', () => {
     }
   };
 
-  const lightMachine = Machine({
+  const lightMachine = createMachine({
     key: 'light',
     initial: 'green',
     states: {

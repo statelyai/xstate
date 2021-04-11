@@ -1,7 +1,8 @@
-import { Machine, interpret } from '../src';
-import { after, actionTypes } from '../src/actions';
+import { createMachine, interpret } from '../src';
+import { after, cancel, send, actionTypes } from '../src/actions';
+import { toSCXMLEvent } from '../src/utils';
 
-const lightMachine = Machine({
+const lightMachine = createMachine({
   id: 'light',
   initial: 'green',
   context: {
@@ -71,7 +72,7 @@ describe('delayed transitions', () => {
   });
 
   it('should be able to transition with delay from nested initial state', (done) => {
-    const machine = Machine({
+    const machine = createMachine({
       initial: 'nested',
       states: {
         nested: {
@@ -100,7 +101,7 @@ describe('delayed transitions', () => {
 
   it('parent state should enter child state without re-entering self (relative target)', (done) => {
     const actual: string[] = [];
-    const machine = Machine({
+    const machine = createMachine({
       initial: 'one',
       states: {
         one: {
@@ -137,7 +138,7 @@ describe('delayed transitions', () => {
   it('should defer a single send event for a delayed transition with multiple conditions (#886)', () => {
     type Events = { type: 'FOO' };
 
-    const machine = Machine<{}, Events>({
+    const machine = createMachine<{}, Events>({
       initial: 'X',
       states: {
         X: {
@@ -168,7 +169,7 @@ describe('delayed transitions', () => {
     type Events =
       | { type: 'ACTIVATE'; delay: number }
       | { type: 'NOEXPR'; delay: number };
-    const delayExprMachine = Machine<{ delay: number }, Events>(
+    const delayExprMachine = createMachine<{ delay: number }, Events>(
       {
         id: 'delayExpr',
         initial: 'inactive',

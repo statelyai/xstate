@@ -1,6 +1,6 @@
-import { Machine } from '../src/index';
+import { createMachine } from '../src/index';
 
-const machine = Machine({
+const machine = createMachine({
   type: 'parallel',
   states: {
     A: {

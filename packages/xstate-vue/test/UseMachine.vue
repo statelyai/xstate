@@ -13,13 +13,13 @@
 <script lang="ts">
 import { defineComponent, PropType } from 'vue';
 import { useMachine } from '../src';
-import { Machine, assign, State } from 'xstate';
+import { createMachine, assign, State } from 'xstate';
 import { invokePromise } from 'xstate/invoke';
 
 const context = {
   data: undefined
 };
-const fetchMachine = Machine<typeof context, any>({
+const fetchMachine = createMachine<typeof context, any>({
   id: 'fetch',
   initial: 'idle',
   context,

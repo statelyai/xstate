@@ -1,6 +1,6 @@
-import { Machine } from '../../src';
+import { createMachine } from '../../src';
 
-const omniMachine = Machine({
+const omniMachine = createMachine({
   id: 'omni',
   initial: 'compound',
   context: {

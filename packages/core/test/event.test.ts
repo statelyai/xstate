@@ -1,10 +1,10 @@
-import { Machine, sendParent, interpret, assign } from '../src';
+import { createMachine, sendParent, interpret, assign } from '../src';
 import { respond, send } from '../src/actions';
 import { invokeCallback, invokeMachine } from '../src/invoke';
 
 describe('SCXML events', () => {
   it('should have the origin (id) from the sending machine service', (done) => {
-    const childMachine = Machine({
+    const childMachine = createMachine({
       initial: 'active',
       states: {
         active: {
@@ -13,7 +13,7 @@ describe('SCXML events', () => {
       }
     });
 
-    const parentMachine = Machine({
+    const parentMachine = createMachine({
       initial: 'active',
       states: {
         active: {
@@ -42,7 +42,7 @@ describe('SCXML events', () => {
   });
 
   it('should have the origin (id) from the sending callback service', () => {
-    const machine = Machine<{ childOrigin?: string }>({
+    const machine = createMachine<{ childOrigin?: string }>({
       initial: 'active',
       context: {},
       states: {
@@ -72,7 +72,7 @@ describe('SCXML events', () => {
   });
 
   it('respond() should be able to respond to sender', (done) => {
-    const authServerMachine = Machine({
+    const authServerMachine = createMachine({
       initial: 'waitingForCode',
       states: {
         waitingForCode: {
@@ -87,7 +87,7 @@ describe('SCXML events', () => {
       }
     });
 
-    const authClientMachine = Machine({
+    const authClientMachine = createMachine({
       initial: 'idle',
       states: {
         idle: {
@@ -129,7 +129,7 @@ interface ChangePassword {
   password: string;
 }
 
-const authMachine = Machine<SignInContext, ChangePassword>(
+const authMachine = createMachine<SignInContext, ChangePassword>(
   {
     context: { email: '', password: '' },
     initial: 'passwordField',

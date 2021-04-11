@@ -1,8 +1,8 @@
-import { Machine } from '../src';
+import { createMachine } from '../src';
 
 describe('definition', () => {
   it('should provide invoke definitions', () => {
-    const invokeMachine = Machine({
+    const invokeMachine = createMachine({
       id: 'invoke',
       invoke: [{ src: 'foo' }, { src: 'bar' }],
       initial: 'idle',

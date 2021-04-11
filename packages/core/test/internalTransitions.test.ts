@@ -1,6 +1,6 @@
-import { Machine, interpret, assign } from '../src/index';
+import { createMachine, interpret, assign } from '../src/index';
 
-const wordMachine = Machine({
+const wordMachine = createMachine({
   key: 'word',
   type: 'parallel',
   states: {
@@ -34,7 +34,7 @@ const wordMachine = Machine({
   }
 });
 
-const topLevelMachine = Machine({
+const topLevelMachine = createMachine({
   initial: 'Hidden',
   on: {
     CLICKED_CLOSE: '.Hidden',
@@ -142,7 +142,7 @@ describe('internal transitions', () => {
   });
 
   it('should reenter proper descendants of a source state of an internal transition', () => {
-    const machine = Machine<{
+    const machine = createMachine<{
       sourceStateEntries: number;
       directDescendantEntries: number;
       deepDescendantEntries: number;
@@ -195,7 +195,7 @@ describe('internal transitions', () => {
   });
 
   it('should exit proper descendants of a source state of an internal transition', () => {
-    const machine = Machine<{
+    const machine = createMachine<{
       sourceStateExits: number;
       directDescendantExits: number;
       deepDescendantExits: number;
