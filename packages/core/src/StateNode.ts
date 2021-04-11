@@ -1499,6 +1499,9 @@ class StateNode<
         : {
             [this.initial]: this.states[this.initial].initialStateValue
           }) as StateValue;
+    } else {
+      // The finite state value of a machine without child states is just an empty object
+      initialStateValue = {};
     }
 
     this.__cache.initialStateValue = initialStateValue;
