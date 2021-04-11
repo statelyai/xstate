@@ -78,7 +78,7 @@ Click the _EVENTS_ tab and send an event like `{ "type": "SEARCH", "query": "som
 
 <iframe src="https://xstate.js.org/viz/?gist=09af23963bfa1767ce3900f2ae730029&embed=1&tab=events"></iframe>
 
-If the `cond` guard returns `false`, then the transition will not be selected, and no transition will take place from that state node.
+If the `cond` guard returns `false`, then the transition will not be selected, and no transition will take place from that state node. If a substate guard prevents a transition from being selected, the `event` will be propagated up the hierarchy for handling. A guard can therefore be used to conditionally override ancestral state transitions.
 
 Example of usage with `context`:
 
