@@ -1,6 +1,5 @@
 import { createMachine, interpret } from '../src';
-import { after, cancel, send, actionTypes } from '../src/actions';
-import { toSCXMLEvent } from '../src/utils';
+import { after, actionTypes } from '../src/actions';
 
 const lightMachine = createMachine({
   id: 'light',
