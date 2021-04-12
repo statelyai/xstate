@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 const spawnCommand = require('spawn-command');
 
 // spawn build first so dist files are ready by the time we start test script
@@ -11,7 +13,7 @@ spawnCommand('npm run build', {
 
   const build = spawnCommand('npm run build -- -w');
 
-  const test = spawnCommand('npm test -- --watch --runInBand', {
+  const test = spawnCommand('npm test -- --watch', {
     stdio: 'inherit'
   });
 
