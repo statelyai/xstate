@@ -13,7 +13,7 @@
     "postinstall": "manypkg check",
     "clean:packages": "yarn workspaces run clean",
     "build": "tsc -b ./tsconfig.monorepo.json",
-    "test": "jest",
+    "test": "jest --maxWorkers=50%",
     "test:core": "npm test --prefix packages/core",
     "dev": "node ./scripts/dev.js",
     "ci": "npm run build && npm run test",
