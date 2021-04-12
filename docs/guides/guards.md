@@ -78,7 +78,7 @@ Click the _EVENTS_ tab and send an event like `{ "type": "SEARCH", "query": "som
 
 <iframe src="https://xstate.js.org/viz/?gist=09af23963bfa1767ce3900f2ae730029&embed=1&tab=events"></iframe>
 
-If the `cond` guard returns `false`, then the transition will not be selected, and no transition will take place from that state node.
+If the `cond` guard returns `false`, then the transition will not be selected, and no transition will take place from that state node. If all transitions in a child state have guards that evaluate to `false` and prevent them from being selected, the `event` will be propagated up to the parent state and handled there. 
 
 Example of usage with `context`:
 
