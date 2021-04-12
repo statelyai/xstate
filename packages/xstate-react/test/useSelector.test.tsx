@@ -1,5 +1,11 @@
 import * as React from 'react';
-import { assign, createMachine, interpret, Interpreter } from 'xstate';
+import {
+  AnyEventObject,
+  assign,
+  createMachine,
+  interpret,
+  Interpreter
+} from 'xstate';
 import { act, render, cleanup, fireEvent } from '@testing-library/react';
 import { useInterpret, useSelector } from '../src';
 
@@ -224,7 +230,8 @@ describe('useSelector', () => {
   });
 
   describe('deep behavior assertions', () => {
-    const machine = createMachine<{ count: number; other: number }>({
+    type Context = { count: number; other: number };
+    const machine = createMachine<Context>({
       initial: 'active',
       context: {
         other: 0,
@@ -242,13 +249,34 @@ describe('useSelector', () => {
         }
       }
     });
-    let service: any;
+    let service: Interpreter<
+      Context,
+      any,
+      AnyEventObject,
+      { value: any; context: Context }
+    >;
     let returned: number[] = [];
     beforeEach(() => {
       returned = [];
     });
 
-    test('executing an action results in a single rerender with the proper value', () => {
+    test('events that do not change our selected value do not result in a rerender', () => {
+      function App() {
+        service = useInterpret(machine);
+        returned.push(useSelector(service, (state) => state.context.count));
+        return null;
+      }
+
+      render(<App />);
+      expect(returned).toEqual([0]);
+
+      act(() => {
+        service.send({ type: 'OTHER' });
+      });
+      expect(returned).toEqual([0]);
+    });
+
+    test('events that change our selected value result in a single rerender', () => {
       function App() {
         service = useInterpret(machine);
         returned.push(
@@ -261,11 +289,6 @@ describe('useSelector', () => {
       }
 
       render(<App />);
-      expect(returned).toEqual([0]);
-
-      act(() => {
-        service.send({ type: 'OTHER' });
-      });
       expect(returned).toEqual([0]);
 
       act(() => {
@@ -290,7 +313,11 @@ describe('useSelector', () => {
       expect(returned).toEqual([0]);
 
       rerender(<App offset={2} />);
-      expect(returned).toEqual([0, 2, 2]);
+      expect(returned).toEqual([
+        0,
+        2, // new value is immediately recalculated and returned
+        2 //  a rerender is executed because of useEffect()
+      ]);
     });
 
     test('changing the actor results in a rerender', () => {
@@ -319,7 +346,12 @@ describe('useSelector', () => {
 
       service = interpret(machine);
       rerender(<App use="two" />);
-      expect(returned).toEqual([0, 1, 0, 0]);
+      expect(returned).toEqual([
+        0,
+        1,
+        0, // new value is immediately recalculated and returned
+        0 //  a rerender is executed because of useEffect()
+      ]);
     });
 
     test('changing the comparator results in a rerender', () => {
@@ -344,11 +376,16 @@ describe('useSelector', () => {
       expect(returned).toEqual([0, 1]);
 
       rerender(<App epsilon={2} />);
-      expect(returned).toEqual([0, 1, 1]);
+      expect(returned).toEqual([
+        0,
+        1,
+        1 // rerender because of rerender()
+      ]);
 
       act(() => {
         service.send({ type: 'INCREMENT' });
       });
+      // no rerender, because now compare(1,2) === true
       expect(returned).toEqual([0, 1, 1]);
     });
   });
