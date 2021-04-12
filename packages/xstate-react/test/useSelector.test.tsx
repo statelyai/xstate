@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { assign, createMachine } from 'xstate';
-import { render, cleanup, fireEvent } from '@testing-library/react';
+import { assign, createMachine, interpret, Interpreter } from 'xstate';
+import { act, render, cleanup, fireEvent } from '@testing-library/react';
 import { useInterpret, useSelector } from '../src';
 
 afterEach(cleanup);
@@ -165,13 +165,7 @@ describe('useSelector', () => {
       const service2 = useInterpret(machine);
       const [service, setService] = React.useState(service1);
 
-      const count = useSelector(
-        service,
-        React.useCallback(
-          (state: typeof service['state']) => state.context.count,
-          []
-        )
-      );
+      const count = useSelector(service, (state) => state.context.count);
 
       rerenders++;
 
@@ -229,7 +223,7 @@ describe('useSelector', () => {
     expect(countButton.textContent).toBe('0');
   });
 
-  it('honors getSnapshot', () => {
+  describe('deep behavior assertions', () => {
     const machine = createMachine<{ count: number; other: number }>({
       initial: 'active',
       context: {
@@ -248,34 +242,114 @@ describe('useSelector', () => {
         }
       }
     });
+    let service: any;
+    let returned: number[] = [];
+    beforeEach(() => {
+      returned = [];
+    });
 
-    const App = () => {
-      const service = useInterpret(machine);
+    test('executing an action results in a single rerender with the proper value', () => {
+      function App() {
+        service = useInterpret(machine);
+        returned.push(
+          useSelector(
+            service,
+            React.useCallback((state) => state.context.count, [])
+          )
+        );
+        return null;
+      }
 
-      const count = useSelector(
-        service,
-        (count: number) => count,
-        (a, b) => a === b,
-        // weird snapshot should still be executed
-        (service): number => {
-          const count = service.status
-            ? service.state.context.count
-            : service.machine.initialState.context.count;
+      render(<App />);
+      expect(returned).toEqual([0]);
 
-          return count + 1;
-        }
-      );
+      act(() => {
+        service.send({ type: 'OTHER' });
+      });
+      expect(returned).toEqual([0]);
 
-      return <div data-testid="count">{count}</div>;
-    };
+      act(() => {
+        service.send({ type: 'INCREMENT' });
+      });
+      expect(returned).toEqual([0, 1]);
+    });
 
-    const { getByTestId } = render(
-      <React.StrictMode>
-        <App />
-      </React.StrictMode>
-    );
+    test('changing the selector results in a rerender', () => {
+      function App({ offset = 0 }) {
+        service = useInterpret(machine);
+        returned.push(
+          useSelector(
+            service,
+            React.useCallback((state) => state.context.count + offset, [offset])
+          )
+        );
+        return null;
+      }
 
-    const countDiv = getByTestId('count');
-    expect(countDiv.textContent).toBe('1');
+      const { rerender } = render(<App />);
+      expect(returned).toEqual([0]);
+
+      rerender(<App offset={2} />);
+      expect(returned).toEqual([0, 2, 2]);
+    });
+
+    test('changing the actor results in a rerender', () => {
+      let service: Interpreter<any, any, any, any>;
+      function App({ use = 'one' }) {
+        let one = useInterpret(machine);
+        let two = useInterpret(machine);
+        service = use === 'one' ? one : two;
+
+        returned.push(
+          useSelector(
+            service,
+            React.useCallback((state) => state.context.count, [])
+          )
+        );
+        return null;
+      }
+
+      const { rerender } = render(<App use="one" />);
+      expect(returned).toEqual([0]);
+
+      act(() => {
+        service.send({ type: 'INCREMENT' });
+      });
+      expect(returned).toEqual([0, 1]);
+
+      service = interpret(machine);
+      rerender(<App use="two" />);
+      expect(returned).toEqual([0, 1, 0, 0]);
+    });
+
+    test('changing the comparator results in a rerender', () => {
+      function App({ epsilon = 0.1 }) {
+        service = useInterpret(machine);
+        returned.push(
+          useSelector(
+            service,
+            React.useCallback((state) => state.context.count, []),
+            React.useCallback((a, b) => Math.abs(a - b) < epsilon, [epsilon])
+          )
+        );
+        return null;
+      }
+
+      const { rerender } = render(<App />);
+      expect(returned).toEqual([0]);
+
+      act(() => {
+        service.send({ type: 'INCREMENT' });
+      });
+      expect(returned).toEqual([0, 1]);
+
+      rerender(<App epsilon={2} />);
+      expect(returned).toEqual([0, 1, 1]);
+
+      act(() => {
+        service.send({ type: 'INCREMENT' });
+      });
+      expect(returned).toEqual([0, 1, 1]);
+    });
   });
 });
