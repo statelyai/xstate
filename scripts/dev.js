@@ -11,7 +11,7 @@ spawnCommand('npm run build', {
 
   const build = spawnCommand('npm run build -- -w');
 
-  const test = spawnCommand('npm test -- --watch', {
+  const test = spawnCommand('npm test -- --watch --runInBand', {
     stdio: 'inherit'
   });
 
