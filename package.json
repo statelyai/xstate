@@ -15,7 +15,7 @@
     "build": "tsc -b ./tsconfig.monorepo.json",
     "test": "jest --maxWorkers=50%",
     "test:core": "npm test -- packages/core",
-    "dev": "node scripts/dev.js",
+    "dev": "node ./scripts/dev.js",
     "ci": "npm run build && npm run test",
     "typedoc": "cd ./packages/core && typedoc --excludePrivate --mode file --out ./api --target es6 --moduleResolution node ./src",
     "typedoc:publish": "npm run typedoc && gh-pages --dist ./packages/core/api --dest ./api",
