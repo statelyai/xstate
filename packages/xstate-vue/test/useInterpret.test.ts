@@ -40,8 +40,6 @@ describe('useInterpret composable function', () => {
           interpretService.initialState.context
         );
         done();
-
-        return {};
       },
       template: 'foo'
     });
