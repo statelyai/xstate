@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { createMachine } from 'xstate';
+import { createMachine, interpret } from 'xstate';
 import { render, cleanup, fireEvent } from '@testing-library/react';
 import { useInterpret } from '../src';
 
@@ -110,5 +110,29 @@ describe('useInterpret', () => {
     rerender(<App value={42} />);
 
     expect(actual).toEqual([1, 42]);
+  });
+
+  it('should behave the same as `interpret` when initial context is not defined', (done) => {
+    const machine = createMachine({
+      initial: 'foo',
+      states: {
+        foo: {}
+      }
+    });
+
+    const interpretService = interpret(machine);
+
+    const App = () => {
+      const useInterpretService = useInterpret(machine);
+
+      expect(useInterpretService.initialState.context).toEqual(
+        interpretService.initialState.context
+      );
+      done();
+
+      return null;
+    };
+
+    render(<App />);
   });
 });
