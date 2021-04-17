@@ -1,9 +1,22 @@
 import { useEffect, useRef } from 'react';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 import { EventObject, State, Interpreter } from 'xstate';
-import { ReactActionObject, ReactEffectType } from './types';
+import { ReactActionObject, ReactEffectType, ActionStateTuple } from './types';
 import { partition } from './utils';
-import { ActionStateTuple, executeEffect } from './useMachine';
+
+export function executeEffect<TContext, TEvent extends EventObject>(
+  action: ReactActionObject<TContext, TEvent>,
+  state: State<TContext, TEvent, any, any>
+): void {
+  const { exec } = action;
+  const originalExec = exec!(state.context, state._event.data, {
+    action,
+    state,
+    _event: state._event
+  });
+
+  originalExec();
+}
 
 export function useReactEffectActions<TContext, TEvent extends EventObject>(
   service: Interpreter<TContext, any, TEvent, any>
