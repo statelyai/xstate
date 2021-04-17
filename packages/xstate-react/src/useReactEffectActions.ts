@@ -4,7 +4,7 @@ import { EventObject, State, Interpreter } from 'xstate';
 import { ReactActionObject, ReactEffectType, ActionStateTuple } from './types';
 import { partition } from './utils';
 
-export function executeEffect<TContext, TEvent extends EventObject>(
+function executeEffect<TContext, TEvent extends EventObject>(
   action: ReactActionObject<TContext, TEvent>,
   state: State<TContext, TEvent, any, any>
 ): void {
