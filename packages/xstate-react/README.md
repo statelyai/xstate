@@ -302,7 +302,7 @@ Ensures that the `action` is executed as an effect in `useLayoutEffect`, rather 
 
 A [React hook](https://reactjs.org/hooks) that interprets the given finite state `machine` from [`@xstate/fsm`] and starts a service that runs for the lifetime of the component.
 
-This special `useMachine` hook is imported from `@xstate/react/lib/fsm`
+This special `useMachine` hook is imported from `@xstate/react/fsm`
 
 **Arguments**
 
@@ -319,7 +319,7 @@ This special `useMachine` hook is imported from `@xstate/react/lib/fsm`
 
 ```js
 import { useEffect } from 'react';
-import { useMachine } from `@xstate/react/lib/fsm`;
+import { useMachine } from `@xstate/react/fsm`;
 import { createMachine } from '@xstate/fsm';
 
 const context = {
