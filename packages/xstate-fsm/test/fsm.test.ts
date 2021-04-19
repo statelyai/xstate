@@ -10,8 +10,7 @@ describe('@xstate/fsm', () => {
   type LightEvent =
     | { type: 'TIMER' }
     | { type: 'INC' }
-    | { type: 'EMERGENCY'; value: number }
-    | { type: 'TARGET_INVALID' };
+    | { type: 'EMERGENCY'; value: number };
 
   type LightState =
     | {
@@ -26,8 +25,6 @@ describe('@xstate/fsm', () => {
         value: 'red';
         context: LightContext & { go: false };
       };
-
-  const invalidState = 'invalid';
 
   const lightConfig: StateMachine.Config<
     LightContext,
@@ -51,9 +48,6 @@ describe('@xstate/fsm', () => {
           TIMER: {
             target: 'yellow',
             actions: ['g-y 1', 'g-y 2']
-          },
-          TARGET_INVALID: {
-            target: invalidState
           }
         }
       },
@@ -147,10 +141,24 @@ describe('@xstate/fsm', () => {
   });
 
   it('should throw an error for undefined next state config', () => {
+    const invalidState = 'blue';
+    const testConfig = {
+      id: 'test',
+      initial: 'green',
+      states: {
+        green: {
+          on: {
+            TARGET_INVALID: invalidState
+          }
+        },
+        yellow: {}
+      }
+    };
+    const testMachine = createMachine(testConfig);
     expect(() => {
-      lightFSM.transition('green', 'TARGET_INVALID');
+      testMachine.transition('green', 'TARGET_INVALID');
     }).toThrow(
-      `State '${invalidState}' not found on machine ${lightConfig.id ?? ''}`
+      `State '${invalidState}' not found on machine ${testConfig.id ?? ''}`
     );
   });
 
