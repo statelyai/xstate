@@ -103,6 +103,7 @@ There is also a follow-up course: [State Modeling with React and XState](https:/
   - [Tweet with demo](https://twitter.com/nikpundik/status/1268936078737670145)
 - [Intro to XState - a true state management library for React](https://medium.com/@pavlo_lompas/intro-to-xstate-a-true-state-management-system-library-for-react-d8c0051c71e4) by [Pavlo Lompas](https://medium.com/@pavlo_lompas)
 - [Multistep form handling with Finite State Machines, Formik and TypeScript](https://thewidlarzgroup.com/multistep-form-xstate-formik/) by Daniel Grychtoł
+- [CodeSandbox - XState Login & Sign Up Forms](https://codesandbox.io/s/xstate-login-sign-up-forms-yzzoc) by [Jamie Mason](https://github.com/JamieMason)
 - [Introduction to XState](https://flaviocopes.com/xstate/) by [Flavio Copes](https://flaviocopes.com/)
 - [▶️ Autocomplete, XState, and anything in between](https://www.youtube.com/watch?v=7CP-OUcUq2Q) by [Krzysztof Żuraw](https://krzysztofzuraw.com)
 - [▶️ How to add an XState machine conf to a project](https://www.youtube.com/watch?v=A0bLzjQdZPU) by [Diego Perez](https://www.youtube.com/channel/UCxr-10LjbO-CTiPRcCLyRyg)
@@ -116,7 +117,7 @@ There is also a follow-up course: [State Modeling with React and XState](https:/
 - [Comparing state machines: XState vs. Robot](https://blog.logrocket.com/comparing-state-machines-xstate-vs-robot/) by [Samaila Bala](https://blog.logrocket.com/author/samailabala/)
 - [Hello XState Part 1: Learning state machines for frontend web development](https://dev.to/ekafyi/hello-xstate-learning-state-machines-for-frontend-web-development-5bin) by [Eka](https://dev.to/ekafyi)
   - [Hello XState Part 2: Exploring the XState Viz example](https://dev.to/ekafyi/hello-xstate-part-2-exploring-the-xstate-viz-example-1nc1)
-  - [Hello XState Part 3: Writing my first state machines (and washing my hands)](https://dev.to/ekafyi/hello-xstate-part-3-writing-my-first-state-machines-and-washing-my-hands-for-20-seconds-23p) -[CodeSandbox - XState Login & Sign Up Forms](https://codesandbox.io/s/xstate-login-sign-up-forms-yzzoc) by [Jamie Mason](https://codesandbox.io/u/JamieMason)
+  - [Hello XState Part 3: Writing my first state machines (and washing my hands)](https://dev.to/ekafyi/hello-xstate-part-3-writing-my-first-state-machines-and-washing-my-hands-for-20-seconds-23p)
 - [▶️ The Actor Model | XState part 1](https://www.youtube.com/watch?v=4CLdNeetVHw) by [@bisvarup](https://bisvarup.me/)
   - [CodeSandbox example](https://codesandbox.io/s/ancient-framework-bvw61?file=/src/App.js)
 - [Intro: XState and State Machines (React)](https://medium.com/@d_danailov/intro-sstate-and-state-machines-react-3b873a6a713d) by [Dimitar Danailov](https://medium.com/@d_danailov)
