@@ -36,8 +36,8 @@ describe('useInterpret composable function', () => {
       setup() {
         const useInterpretService = useInterpret(machine);
 
-        expect(useInterpretService.initialState.context).toEqual(
-          interpretService.initialState.context
+        expect(useInterpretService.machine.context).toEqual(
+          interpretService.machine.context
         );
         done();
       },
