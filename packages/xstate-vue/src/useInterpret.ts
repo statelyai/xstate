@@ -69,12 +69,12 @@ export function useInterpret<
 
   const machineWithConfig = machine.withConfig(
     machineConfig,
-    (machine.context || context
+    machine.context || context
       ? {
           ...machine.context,
           ...context
         }
-      : undefined) as TContext
+      : undefined
   );
 
   const service = interpret(machineWithConfig, interpreterOptions).start(
