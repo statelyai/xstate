@@ -19,7 +19,7 @@ type Context = {
 type Event =
   | { type: 'SHOW_DATE' }
   | { type: 'NEW_DATE'; date: Date }
-  | { type: 'UPDATE_DATE': date; Date }
+  | { type: 'UPDATE_DATE'; date: Date }
 
 const machine = createMachine<Context, Event>(
   context: {
