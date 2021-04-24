@@ -572,6 +572,8 @@ export interface StateNodeConfig<
    * The order this state node appears. Corresponds to the implicit SCXML document order.
    */
   order?: number;
+
+  tags?: string[];
 }
 
 export interface StateNodeDefinition<
@@ -1130,6 +1132,7 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
   children: Record<string, ActorRef<any>>;
   done?: boolean;
+  tags?: Set<string>;
 }
 
 export interface StateSchema<TC = any> {

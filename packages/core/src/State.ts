@@ -127,6 +127,7 @@ export class State<
    * An object mapping actor IDs to spawned actors/invoked services.
    */
   public children: Record<string, ActorRef<any>>;
+  public tags: Set<string>;
   /**
    * Creates a new State instance for the given `stateValue` and `context`.
    * @param stateValue
@@ -247,6 +248,7 @@ export class State<
     this.transitions = config.transitions;
     this.children = config.children;
     this.done = !!config.done;
+    this.tags = config.tags ?? new Set();
 
     Object.defineProperty(this, 'nextEvents', {
       get: () => {
