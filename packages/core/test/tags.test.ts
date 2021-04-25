@@ -51,4 +51,19 @@ describe('tags', () => {
     expect(machine.initialState.tags.has('stop')).toBeTruthy();
     expect(machine.initialState.tags.has('crosswalkLight')).toBeTruthy();
   });
+
+  it('stringifies to an array', () => {
+    const machine = createMachine({
+      initial: 'green',
+      states: {
+        green: {
+          tags: ['go', 'light']
+        }
+      }
+    });
+
+    const jsonState = machine.initialState.toJSON();
+
+    expect(jsonState.tags).toEqual(['go', 'light']);
+  });
 });

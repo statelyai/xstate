@@ -281,9 +281,9 @@ export class State<
   }
 
   public toJSON() {
-    const { configuration, transitions, ...jsonValues } = this;
+    const { configuration, transitions, tags, ...jsonValues } = this;
 
-    return jsonValues;
+    return { ...jsonValues, tags: Array.from(tags) };
   }
 
   /**
