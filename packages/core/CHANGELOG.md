@@ -1,5 +1,30 @@
 # xstate
 
+## 4.18.0
+
+### Minor Changes
+
+- [`d0939ec6`](https://github.com/davidkpiano/xstate/commit/d0939ec60161c34b053cecdaeb277606b5982375) [#2046](https://github.com/davidkpiano/xstate/pull/2046) Thanks [@SimeonC](https://github.com/SimeonC)! - Allow machines to communicate with the inspector even in production builds.
+
+* [`e37fffef`](https://github.com/davidkpiano/xstate/commit/e37fffefb742f45765945c02727edfbd5e2f9d47) [#2079](https://github.com/davidkpiano/xstate/pull/2079) Thanks [@davidkpiano](https://github.com/davidkpiano)! - There is now support for "combinatorial machines" (state machines that only have one state):
+
+  ```js
+  const testMachine = createMachine({
+    context: { value: 42 },
+    on: {
+      INC: {
+        actions: assign({ value: (ctx) => ctx.value + 1 })
+      }
+    }
+  });
+  ```
+
+  These machines omit the `initial` and `state` properties, as the entire machine is treated as a single state.
+
+### Patch Changes
+
+- [`6a9247d4`](https://github.com/davidkpiano/xstate/commit/6a9247d4d3a39e6c8c4724d3368a13fcdef10907) [#2102](https://github.com/davidkpiano/xstate/pull/2102) Thanks [@VanTanev](https://github.com/VanTanev)! - Provide a convenience type for getting the `Interpreter` type based on the `StateMachine` type by transferring all generic parameters onto it. It can be used like this: `InterpreterFrom<typeof machine>`
+
 ## 4.17.1
 
 ### Patch Changes

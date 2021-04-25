@@ -250,9 +250,9 @@ export type Receiver<TEvent extends EventObject> = (
   listener: (event: TEvent) => void
 ) => void;
 
-export type InvokeCallback = (
-  callback: Sender<any>,
-  onReceive: Receiver<EventObject>
+export type InvokeCallback<TEvent extends EventObject = AnyEventObject> = (
+  callback: Sender<TEvent>,
+  onReceive: Receiver<TEvent>
 ) => any;
 
 export type BehaviorCreator<TContext, TEvent extends EventObject> = (
@@ -1267,3 +1267,14 @@ export type ActorRefFrom<T extends Spawnable> = T extends MachineNode<
 export type DevToolsAdapter = (service: AnyInterpreter) => void;
 
 export type Lazy<T> = () => T;
+
+export type InterpreterFrom<
+  T extends MachineNode<any, any, any, any>
+> = T extends MachineNode<
+  infer TContext,
+  infer TStateSchema,
+  infer TEvent,
+  infer TTypestate
+>
+  ? Interpreter<TContext, TStateSchema, TEvent, TTypestate>
+  : never;

@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.3.2
+
+### Patch Changes
+
+- [`bb5e81ea`](https://github.com/davidkpiano/xstate/commit/bb5e81eaa1ecba1fd54a7677ce9eaee9bd695964) [#2050](https://github.com/davidkpiano/xstate/pull/2050) Thanks [@theKashey](https://github.com/theKashey)! - Added an explicit entrypoint for `@xstate/react/fsm` which you can use instead of `@xstate/react/lib/fsm`. This is the only specifier that will be supported in the future - the other one will be dropped in the next major version.
+
+  ```diff
+  -import { useMachine } from '@xstate/react/lib/fsm'
+  +import { useMachine } from '@xstate/react/fsm'
+  ```
+
 ## 1.3.1
 
 ### Patch Changes

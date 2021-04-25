@@ -243,7 +243,7 @@ describe('spawning callbacks', () => {
                 receive((event) => {
                   if (event.type === 'START') {
                     setTimeout(() => {
-                      cb('SEND_BACK');
+                      cb({ type: 'SEND_BACK' });
                     }, 10);
                   }
                 });
