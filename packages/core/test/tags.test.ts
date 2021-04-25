@@ -52,6 +52,19 @@ describe('tags', () => {
     expect(machine.initialState.tags.has('crosswalkLight')).toBeTruthy();
   });
 
+  it('tags can be single (not array)', () => {
+    const machine = createMachine({
+      initial: 'green',
+      states: {
+        green: {
+          tags: 'go'
+        }
+      }
+    });
+
+    expect(machine.initialState.tags.has('go')).toBeTruthy();
+  });
+
   it('stringifies to an array', () => {
     const machine = createMachine({
       initial: 'green',

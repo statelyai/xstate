@@ -573,7 +573,10 @@ export interface StateNodeConfig<
    */
   order?: number;
 
-  tags?: string[];
+  /**
+   * The tags for this state node, which are accumulated into the `state.tags` property.
+   */
+  tags?: SingleOrArray<string>;
 }
 
 export interface StateNodeDefinition<

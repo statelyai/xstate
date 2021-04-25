@@ -278,7 +278,7 @@ class StateNode<
   };
 
   private idMap: Record<string, StateNode<TContext, any, TEvent>> = {};
-  public tags?: string[];
+  public tags?: SingleOrArray<string>;
 
   constructor(
     /**
