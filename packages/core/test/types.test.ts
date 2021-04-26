@@ -139,6 +139,12 @@ describe('Parallel StateSchema', () => {
   it('should work with a parallel StateSchema defined', () => {
     expect(true).toBeTruthy();
   });
+
+  it('should infer correct state value', () => {
+    const service = interpret(parallelMachine);
+    const startedService = service.start();
+    expect(startedService.state.value.baz).toEqual('one');
+  });
 });
 
 describe('Nested parallel stateSchema', () => {
