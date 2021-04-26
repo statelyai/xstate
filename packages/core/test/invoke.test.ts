@@ -836,6 +836,50 @@ describe('invoke', () => {
         })
         .start();
     });
+
+    it('should not reinvoke root-level invocations', (done) => {
+      // https://github.com/davidkpiano/xstate/issues/2147
+
+      let invokeCount = 0;
+      let invokeDisposeCount = 0;
+      let actionsCount = 0;
+
+      const machine = createMachine({
+        invoke: {
+          src: () => () => {
+            invokeCount++;
+
+            return () => {
+              invokeDisposeCount++;
+            };
+          }
+        },
+        on: {
+          UPDATE: {
+            internal: true,
+            actions: () => {
+              actionsCount++;
+            }
+          }
+        }
+      });
+
+      const service = interpret(machine).start();
+      expect(invokeCount).toEqual(1);
+      expect(invokeDisposeCount).toEqual(0);
+      expect(actionsCount).toEqual(0);
+
+      service.send('UPDATE');
+      expect(invokeCount).toEqual(1);
+      expect(invokeDisposeCount).toEqual(0);
+      expect(actionsCount).toEqual(1);
+
+      service.send('UPDATE');
+      expect(invokeCount).toEqual(1);
+      expect(invokeDisposeCount).toEqual(0);
+      expect(actionsCount).toEqual(2);
+      done();
+    });
   });
 
   type PromiseExecutor = (

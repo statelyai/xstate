@@ -637,10 +637,11 @@ class StateNode<
    */
   public getStateNodes(
     state: StateValue | State<TContext, TEvent, any, TTypestate>
-  ): Array<StateNode<TContext, any, TEvent, any>> {
+  ): Array<StateNode<TContext, any, TEvent, TTypestate>> {
     if (!state) {
       return [];
     }
+
     const stateValue =
       state instanceof State
         ? state.value
@@ -651,13 +652,15 @@ class StateNode<
 
       return initialStateValue !== undefined
         ? this.getStateNodes({ [stateValue]: initialStateValue } as StateValue)
-        : [this.states[stateValue]];
+        : [this, this.states[stateValue]];
     }
 
     const subStateKeys = keys(stateValue);
     const subStateNodes: Array<
-      StateNode<TContext, any, TEvent>
+      StateNode<TContext, any, TEvent, TTypestate>
     > = subStateKeys.map((subStateKey) => this.getStateNode(subStateKey));
+
+    subStateNodes.push(this);
 
     return subStateNodes.concat(
       subStateKeys.reduce((allSubStateNodes, subStateKey) => {
