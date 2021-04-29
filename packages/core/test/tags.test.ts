@@ -20,8 +20,8 @@ describe('tags', () => {
       }
     });
 
-    expect(machine.initialState.tags.has('go')).toBeTruthy();
-    expect(machine.transition('yellow', 'TIMER').tags.has('go')).toBeFalsy();
+    expect(machine.initialState.hasTag('go')).toBeTruthy();
+    expect(machine.transition('yellow', 'TIMER').hasTag('go')).toBeFalsy();
   });
 
   it('supports tags in compound states', () => {
@@ -47,9 +47,9 @@ describe('tags', () => {
       }
     });
 
-    expect(machine.initialState.tags.has('go')).toBeFalsy();
-    expect(machine.initialState.tags.has('stop')).toBeTruthy();
-    expect(machine.initialState.tags.has('crosswalkLight')).toBeTruthy();
+    expect(machine.initialState.hasTag('go')).toBeFalsy();
+    expect(machine.initialState.hasTag('stop')).toBeTruthy();
+    expect(machine.initialState.hasTag('crosswalkLight')).toBeTruthy();
   });
 
   it('supports tags in parallel states', () => {
@@ -101,7 +101,7 @@ describe('tags', () => {
       }
     });
 
-    expect(machine.initialState.tags.has('go')).toBeTruthy();
+    expect(machine.initialState.hasTag('go')).toBeTruthy();
   });
 
   it('stringifies to an array', () => {

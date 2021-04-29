@@ -304,4 +304,12 @@ export class State<
   > & { value: TSV } {
     return matchesState(parentStateValue as StateValue, this.value);
   }
+
+  /**
+   * Whether the current state configuration has a state node with the specified `tag`.
+   * @param tag
+   */
+  public hasTag(tag: string): boolean {
+    return this.tags.has(tag);
+  }
 }
