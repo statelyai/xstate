@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.3
+
+### Patch Changes
+
+- [`27e7242c`](https://github.com/davidkpiano/xstate/commit/27e7242c24146de85cf618a658b400a3241fa7d7) [#2112](https://github.com/davidkpiano/xstate/pull/2112) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `executeEffect` function is no longer exported (was meant to be internal and is useless as a public function anyway). This also fixes a circular dependency issue.
+
 ## 1.3.2
 
 ### Patch Changes
