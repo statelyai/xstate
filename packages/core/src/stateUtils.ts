@@ -1769,6 +1769,11 @@ export function macrostep<
     maybeNextState.actions.unshift(...currentActions);
   }
 
+  // Add tags
+  maybeNextState.tags = new Set(
+    flatten(maybeNextState.configuration.map((sn) => sn.tags))
+  );
+
   return maybeNextState;
 }
 

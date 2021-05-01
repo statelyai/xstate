@@ -149,6 +149,8 @@ export class StateNode<
 
   public idMap: Record<string, StateNode<TContext, TEvent>> = {};
 
+  public tags: string[] = [];
+
   constructor(
     /**
      * The raw config used to create the machine.
@@ -221,6 +223,7 @@ export class StateNode<
       this.type === 'final'
         ? (this.config as FinalStateNodeConfig<TContext, TEvent>).data
         : undefined;
+    this.tags = toArray(config.tags);
   }
 
   /**
