@@ -1,5 +1,39 @@
 # xstate
 
+## 4.19.0
+
+### Minor Changes
+
+- [`4f2f626d`](https://github.com/davidkpiano/xstate/commit/4f2f626dc84f45bb18ded6dd9aad3b6f6a2190b1) [#2143](https://github.com/davidkpiano/xstate/pull/2143) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Tags can now be added to state node configs under the `.tags` property:
+
+  ```js
+  const machine = createMachine({
+    initial: 'green',
+    states: {
+      green: {
+        tags: 'go' // single tag
+      },
+      yellow: {
+        tags: 'go'
+      },
+      red: {
+        tags: ['stop', 'other'] // multiple tags
+      }
+    }
+  });
+  ```
+
+  You can query whether a state has a tag via `state.hasTag(tag)`:
+
+  ```js
+  const canGo = state.hasTag('go');
+  // => `true` if in 'green' or 'red' state
+  ```
+
+### Patch Changes
+
+- [`a61d01ce`](https://github.com/davidkpiano/xstate/commit/a61d01cefab5734adf9bfb167291f5b0ba712684) [#2125](https://github.com/davidkpiano/xstate/pull/2125) Thanks [@VanTanev](https://github.com/VanTanev)! - In callback invokes, the types of `callback` and `onReceive` are properly scoped to the machine TEvent.
+
 ## 4.18.0
 
 ### Minor Changes
@@ -13,7 +47,7 @@
     context: { value: 42 },
     on: {
       INC: {
-        actions: assign({ value: ctx => ctx.value + 1 })
+        actions: assign({ value: (ctx) => ctx.value + 1 })
       }
     }
   });
@@ -273,7 +307,7 @@
 
   ```js
   // ...
-  actions: stop(context => context.someActor);
+  actions: stop((context) => context.someActor);
   ```
 
 ### Patch Changes
@@ -511,10 +545,10 @@
   ```js
   entry: [
     choose([
-      { cond: ctx => ctx > 100, actions: raise('TOGGLE') },
+      { cond: (ctx) => ctx > 100, actions: raise('TOGGLE') },
       {
         cond: 'hasMagicBottle',
-        actions: [assign(ctx => ({ counter: ctx.counter + 1 }))]
+        actions: [assign((ctx) => ({ counter: ctx.counter + 1 }))]
       },
       { actions: ['fallbackAction'] }
     ])

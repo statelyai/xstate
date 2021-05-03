@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.3
+
+### Patch Changes
+
+- [`27e7242c`](https://github.com/davidkpiano/xstate/commit/27e7242c24146de85cf618a658b400a3241fa7d7) [#2112](https://github.com/davidkpiano/xstate/pull/2112) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `executeEffect` function is no longer exported (was meant to be internal and is useless as a public function anyway). This also fixes a circular dependency issue.
+
 ## 1.3.2
 
 ### Patch Changes
@@ -42,7 +48,7 @@
   import { useSelector } from '@xstate/react';
 
   const App = ({ someActor }) => {
-    const count = useSelector(someActor, state => state.context.count);
+    const count = useSelector(someActor, (state) => state.context.count);
 
     // ...
   };
@@ -163,7 +169,7 @@ All notable changes to this project will be documented in this file.
 - The `useActor` hook now takes a second argument: `getSnapshot` which is a function that should return the last emitted value:
 
   ```js
-  const [state, send] = useActor(someActor, actor => actor.current);
+  const [state, send] = useActor(someActor, (actor) => actor.current);
   ```
 
 ## [1.0.0-rc.6]
