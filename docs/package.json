@@ -18,6 +18,7 @@
     "@vuepress/plugin-google-analytics": "^1.8.2",
     "cpy-cli": "^3.1.1",
     "gh-pages": "^3.1.0",
+    "mermaid": "^8.9.3",
     "vuepress": "^1.8.2",
     "vuepress-plugin-export": "^0.2.0"
   }
