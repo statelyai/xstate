@@ -7,7 +7,7 @@ The concept of time and delays in statecharts is declarative - time is an event,
 Transitions can automatically take place after a delay. This is represented in a state definition in the `after` property, which maps millisecond delays to their transitions:
 
 ```js
-const lightDelayMachine = Machine({
+const lightDelayMachine = createMachine({
   id: 'lightDelay',
   initial: 'green',
   states: {
@@ -99,7 +99,7 @@ states: {
 Delayed transitions specified on the `after: { ... }` property can have dynamic delays, specified either by a string delay reference:
 
 ```js
-const lightDelayMachine = Machine(
+const lightDelayMachine = createMachine(
   {
     id: 'lightDelay',
     initial: 'green',
@@ -191,7 +191,7 @@ const sendTimerAfter1Second = send('TIMER', {
 
 const cancelTimer = cancel('oneSecondTimer'); // pass the ID of event to cancel
 
-const toggleMachine = Machine({
+const toggleMachine = createMachine({
   id: 'toggle',
   initial: 'inactive',
   states: {
@@ -214,7 +214,7 @@ const toggleMachine = Machine({
 The `delay` option can also be evaluated as a delay expression, which is a function that takes in the current `context` and `event` that triggered the `send()` action, and returns the resolved `delay` (in milliseconds):
 
 ```js
-const dynamicDelayMachine = Machine({
+const dynamicDelayMachine = createMachine({
   id: 'dynamicDelay',
   context: {
     initialDelay: 1000

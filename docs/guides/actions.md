@@ -33,7 +33,7 @@ There are three types of actions:
 These are represented in the StateNode definition:
 
 ```js {10-11,16-19,27-41}
-const triggerMachine = Machine(
+const triggerMachine = createMachine(
   {
     id: 'trigger',
     initial: 'inactive',
@@ -208,9 +208,9 @@ The `send(...)` function is an **action creator**; it is a pure function that on
 :::
 
 ```js
-import { Machine, send } from 'xstate';
+import { createMachine, send } from 'xstate';
 
-const lazyStubbornMachine = Machine({
+const lazyStubbornMachine = createMachine({
   id: 'stubborn',
   initial: 'inactive',
   states: {
@@ -257,7 +257,7 @@ const sendName = send((context, event) => ({
   name: context.user.name
 }));
 
-const machine = Machine({
+const machine = createMachine({
   // ...
   on: {
     TOGGLE: {
@@ -341,10 +341,10 @@ The `raise()` action creator queues an event to the statechart, in the internal 
 | `event`  | string or event object | The event to raise. |
 
 ```js
-import { Machine, actions } from 'xstate';
+import { createMachine, actions } from 'xstate';
 const { raise } = actions;
 
-const raiseActionDemo = Machine({
+const raiseActionDemo = createMachine({
   id: 'raisedmo',
   initial: 'entry',
   states: {
@@ -392,7 +392,7 @@ This uses [SCXML events](./events.md#scxml-events) internally to get the `origin
 This demonstrates some parent service (`authClientMachine`) sending a `'CODE'` event to the invoked `authServerMachine`, and the `authServerMachine` responding with a `'TOKEN'` event.
 
 ```js
-const authServerMachine = Machine({
+const authServerMachine = createMachine({
   initial: 'waitingForCode',
   states: {
     waitingForCode: {
@@ -405,7 +405,7 @@ const authServerMachine = Machine({
   }
 });
 
-const authClientMachine = Machine({
+const authClientMachine = createMachine({
   initial: 'idle',
   states: {
     idle: {
@@ -441,7 +441,7 @@ The `forwardTo()` action creator creates a [`send()` action](#send-action) that 
 **Example:**
 
 ```js
-import { Machine, forwardTo, interpret } from 'xstate';
+import { createMachine, forwardTo, interpret } from 'xstate';
 
 function alertService(_, receive) {
   receive((event) => {
@@ -451,7 +451,7 @@ function alertService(_, receive) {
   });
 }
 
-const parentMachine = Machine({
+const parentMachine = createMachine({
   id: 'parent',
   invoke: {
     id: 'alerter',
@@ -517,10 +517,10 @@ The `log()` action creator is a declarative way of logging anything related to t
 | `label?` | string             | A string to label the logged message                                                                            |
 
 ```js {9,14-17,28-34}
-import { Machine, actions } from 'xstate';
+import { createMachine, actions } from 'xstate';
 const { log } = actions;
 
-const loggingMachine = Machine({
+const loggingMachine = createMachine({
   id: 'logging',
   context: { count: 42 },
   initial: 'start',
@@ -688,7 +688,7 @@ A [self-transition](./transitions.md#self-transitions) is when a state transitio
 For example, this counter machine has one `'counting'` state with internal and external transitions:
 
 ```js {9-12}
-const counterMachine = Machine({
+const counterMachine = createMachine({
   id: 'counter',
   initial: 'counting',
   states: {

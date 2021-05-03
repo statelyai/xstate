@@ -56,9 +56,9 @@ By using the global variable `XStateVueFSM`
 
 <script>
 import { useMachine } from '@xstate/vue';
-import { Machine } from 'xstate';
+import { createMachine } from 'xstate';
 
-const toggleMachine = Machine({
+const toggleMachine = createMachine({
   id: 'toggle',
   initial: 'inactive',
   states: {
@@ -238,7 +238,7 @@ Example: the `'fetchData'` service and `'notifySuccess'` action are both configu
 import { assign, Machine } from 'xstate';
 import { useMachine } from '@xstate/vue';
 
-const fetchMachine = Machine({
+const fetchMachine = createMachine({
   id: 'fetch',
   initial: 'idle',
   context: {
