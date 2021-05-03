@@ -15,8 +15,8 @@ jobs:
 
     steps: 
       - name: Build docs
+        working-directory: docs
         run: |
-          cd docs
           yarn install
           yarn docs:build
 
