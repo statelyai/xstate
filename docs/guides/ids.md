@@ -5,7 +5,7 @@
 By default, a state node's `id` is its delimited full path. You can use this default `id` to specify a state node:
 
 ```js
-const lightMachine = Machine({
+const lightMachine = createMachine({
   id: 'light',
   initial: 'green',
   states: {
@@ -28,7 +28,7 @@ const lightMachine = Machine({
 Child state nodes can be targeted relative to their parent by specifying a dot (`'.'`) followed by their key:
 
 ```js {10-12}
-const optionsMachine = Machine({
+const optionsMachine = createMachine({
   id: 'options',
   initial: 'first',
   states: {
@@ -65,7 +65,7 @@ To specify an ID for a state node, provide a unique string identifier as its `id
 To target a state node by its ID, prepend the `'#'` symbol to its string ID, e.g., `TIMER: '#greenLight'`.
 
 ```js
-const lightMachine = Machine({
+const lightMachine = createMachine({
   id: 'light',
   initial: 'green',
   states: {
@@ -125,7 +125,7 @@ Then you cannot target the `'walking'` state via `'#redLight.walking'`, because 
 If you don't want to use strings for identifying states, [object getters](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/get) can be used to directly reference the target state:
 
 ```js
-const lightMachine = Machine({
+const lightMachine = createMachine({
   id: 'light',
   initial: 'green',
   states: {
@@ -188,7 +188,7 @@ IDs correspond to the definition of IDs in the SCXML spec:
 **Default, automatically generated ID:**
 
 ```js
-const lightMachine = Machine({
+const lightMachine = createMachine({
   id: 'light',
   initial: 'green',
   states: {

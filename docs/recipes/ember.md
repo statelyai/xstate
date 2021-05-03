@@ -6,10 +6,10 @@ You can also write a custom integration layer yourself if you want to.
 The machine used should always be decoupled from implementation details; e.g., it should never know that it is in Ember.js (or React, or Vue, etc.):
 
 ```js
-import { Machine } from 'xstate';
+import { createMachine } from 'xstate';
 
 // This machine is completely decoupled from Ember
-export const toggleMachine = Machine({
+export const toggleMachine = createMachine({
   id: 'toggle',
   context: {
     /* some data */

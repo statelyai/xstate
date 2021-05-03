@@ -51,9 +51,9 @@ By using the global variable `XStateReactFSM`
 
 ```js
 import { useMachine } from '@xstate/react';
-import { Machine } from 'xstate';
+import { createMachine } from 'xstate';
 
-const toggleMachine = Machine({
+const toggleMachine = createMachine({
   id: 'toggle',
   initial: 'inactive',
   states: {
@@ -383,7 +383,7 @@ Existing machines can be configured by passing the machine options as the 2nd ar
 Example: the `'fetchData'` service and `'notifySuccess'` action are both configurable:
 
 ```js
-const fetchMachine = Machine({
+const fetchMachine = createMachine({
   id: 'fetch',
   initial: 'idle',
   context: {

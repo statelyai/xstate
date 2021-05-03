@@ -33,11 +33,11 @@ npm install xstate
 ```
 
 ```js
-import { Machine, interpret } from 'xstate';
+import { createMachine, interpret } from 'xstate';
 
 // Stateless machine definition
 // machine.transition(...) is a pure function used by the interpreter.
-const toggleMachine = Machine({
+const toggleMachine = createMachine({
   id: 'toggle',
   initial: 'inactive',
   states: {
@@ -48,7 +48,7 @@ const toggleMachine = Machine({
 
 // Machine instance with internal state
 const toggleService = interpret(toggleMachine)
-  .onTransition(state => console.log(state.value))
+  .onTransition((state) => console.log(state.value))
   .start();
 // => 'inactive'
 
@@ -90,9 +90,9 @@ Read [📽 the slides](http://slides.com/davidkhourshid/finite-state-machines) (
 <img src="https://imgur.com/rqqmkJh.png" alt="Light Machine" width="300" />
 
 ```js
-import { Machine } from 'xstate';
+import { createMachine } from 'xstate';
 
-const lightMachine = Machine({
+const lightMachine = createMachine({
   id: 'light',
   initial: 'green',
   states: {
@@ -126,7 +126,7 @@ const nextState = lightMachine.transition(currentState, 'TIMER').value;
 <img src="https://imgur.com/GDZAeB9.png" alt="Hierarchical Light Machine" width="300" />
 
 ```js
-import { Machine } from 'xstate';
+import { createMachine } from 'xstate';
 
 const pedestrianStates = {
   initial: 'walk',
@@ -145,7 +145,7 @@ const pedestrianStates = {
   }
 };
 
-const lightMachine = Machine({
+const lightMachine = createMachine({
   id: 'light',
   initial: 'green',
   states: {
@@ -203,7 +203,7 @@ lightMachine.transition({ red: 'stop' }, 'TIMER').value;
 <img src="https://imgur.com/GKd4HwR.png" width="300" alt="Parallel state machine" />
 
 ```js
-const wordMachine = Machine({
+const wordMachine = createMachine({
   id: 'word',
   type: 'parallel',
   states: {
@@ -289,7 +289,7 @@ const nextState = wordMachine.transition(
 <img src="https://imgur.com/I4QsQsz.png" width="300" alt="Machine with history state" />
 
 ```js
-const paymentMachine = Machine({
+const paymentMachine = createMachine({
   id: 'payment',
   initial: 'method',
   states: {

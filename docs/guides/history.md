@@ -16,7 +16,7 @@ The configuration for a history state is the same as an atomic state node, with 
 Consider the following (contrived) statechart:
 
 ```js
-const fanMachine = Machine({
+const fanMachine = createMachine({
   id: 'fan',
   initial: 'fanOff',
   states: {
