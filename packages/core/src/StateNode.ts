@@ -1263,7 +1263,8 @@ class StateNode<
       configuration: resolvedConfiguration,
       transitions: stateTransition.transitions,
       children,
-      done: isDone
+      done: isDone,
+      tags: currentState?.tags
     });
 
     const didUpdateContext = currentContext !== updatedContext;
