@@ -91,6 +91,22 @@ describe('tags', () => {
     expect(state.tags).toEqual(new Set(['yes', 'no']));
   });
 
+  it('sets tags correctly after not selecting any transition', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          tags: 'myTag'
+        }
+      }
+    });
+
+    const state = machine.transition(machine.initialState, {
+      type: 'UNMATCHED'
+    });
+    expect(state.hasTag('myTag')).toBeTruthy();
+  });
+
   it('tags can be single (not array)', () => {
     const machine = createMachine({
       initial: 'green',
