@@ -20,9 +20,9 @@ The Reddit app we're creating can be modeled with two top-level states:
 - `'selected'` - a subreddit is selected
 
 ```js {6-9}
-import { Machine, assign } from 'xstate';
+import { createMachine, assign } from 'xstate';
 
-const redditMachine = Machine({
+const redditMachine = createMachine({
   id: 'reddit',
   initial: 'idle',
   states: {
@@ -37,7 +37,7 @@ We also need somewhere to store the selected `subreddit`, so let's put that in [
 ```js {6-8}
 // ...
 
-const redditMachine = Machine({
+const redditMachine = createMachine({
   id: 'reddit',
   initial: 'idle',
   context: {
@@ -65,7 +65,7 @@ This event will be handled at the top-level, so that whenever the `'SELECT'` eve
 - [assign](../guides/context.md#updating-context-with-assign) `event.name` to the `context.subreddit`
 
 ```js {10-17}
-const redditMachine = Machine({
+const redditMachine = createMachine({
   id: 'reddit',
   initial: 'idle',
   context: {
@@ -98,7 +98,7 @@ function invokeFetchSubreddit(context) {
     .then((json) => json.data.children.map((child) => child.data));
 }
 
-const redditMachine = Machine({
+const redditMachine = createMachine({
   /* ... */
   states: {
     idle: {},
@@ -130,7 +130,7 @@ When the `'selected'` state is entered, `invokeFetchSubreddit(...)` will be call
 This is where it's helpful to have [nested (hierarchical) states](../guides/hierarchical.md). We can make 3 child states that represent when the subreddit is `'loading'`, `'loaded'` or `'failed'` (pick names appropriate to your use-cases):
 
 ```js {8-17}
-const redditMachine = Machine({
+const redditMachine = createMachine({
   /* ... */
   states: {
     idle: {},
@@ -161,7 +161,7 @@ Notice how we moved the `invoke` config to the `'loading'` state. This is useful
 When the promise resolves, a special `'done.invoke.<invoke ID>'` event will be sent to the machine, containing the resolved data as `event.data`. For convenience, XState maps the `onDone` property within the `invoke` object to this special event. You can assign the resolved data to `context.posts`:
 
 ```js {18-20}
-const redditMachine = Machine({
+const redditMachine = createMachine({
   /* ... */
   context: {
     subreddit: null,
@@ -285,7 +285,7 @@ Consider two machines:
 
 ```js
 const createSubredditMachine = (subreddit) => {
-  return Machine({
+  return createMachine({
     id: 'subreddit',
     initial: 'loading',
     context: {
@@ -326,7 +326,7 @@ const createSubredditMachine = (subreddit) => {
 Notice how a lot of the logic in the original `redditMachine` was moved to the `subredditMachine`. That allows us to isolate logic to their specific domains and make the `redditMachine` more general, without being concerned with subreddit loading logic:
 
 ```js {9}
-const redditMachine = Machine({
+const redditMachine = createMachine({
   id: 'reddit',
   initial: 'idle',
   context: {
@@ -441,7 +441,7 @@ The `context` of the `redditMachine` needs to be modeled to:
 - keep track of which subreddit is currently visible
 
 ```js {4,5}
-const redditMachine = Machine({
+const redditMachine = createMachine({
   // ...
   context: {
     subreddits: {},
@@ -457,7 +457,7 @@ When a subreddit is selected, one of two things can happen:
 2. Otherwise, `spawn()` a new subreddit actor with subreddit machine behavior from `createSubredditMachine`, assign it as the current `context.subreddit`, and save it in the `context.subreddits` object.
 
 ```js
-const redditMachine = Machine({
+const redditMachine = createMachine({
   // ...
   context: {
     subreddits: {},

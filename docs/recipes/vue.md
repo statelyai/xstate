@@ -10,10 +10,10 @@ Vue follows a similar pattern to [React](./react.md):
 - Events are sent to the service via `service.send(event)`.
 
 ```js
-import { Machine } from 'xstate';
+import { createMachine } from 'xstate';
 
 // This machine is completely decoupled from Vue
-export const toggleMachine = Machine({
+export const toggleMachine = createMachine({
   id: 'toggle',
   context: {
     /* some data */

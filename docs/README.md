@@ -3,7 +3,7 @@
   <br />
   <img src="https://user-images.githubusercontent.com/1093738/101672561-06aa7480-3a24-11eb-89d1-787fa7112138.png" alt="XState" width="150"/>
   <br />
-    <sub><strong>JavaScript state machines and statecharts</strong></sub>
+    <sub><strong>State machines and statecharts for the modern web.</strong></sub>
   <br />
   <br />
   </a>

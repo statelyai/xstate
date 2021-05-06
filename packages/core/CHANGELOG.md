@@ -1,5 +1,11 @@
 # xstate
 
+## 4.19.1
+
+### Patch Changes
+
+- [`64ab1150`](https://github.com/davidkpiano/xstate/commit/64ab1150e0a383202f4af1d586b28e081009c929) [#2173](https://github.com/davidkpiano/xstate/pull/2173) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with tags not being set correctly after sending an event to a machine that didn't result in selecting any transitions.
+
 ## 4.19.0
 
 ### Minor Changes

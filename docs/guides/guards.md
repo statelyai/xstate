@@ -32,7 +32,7 @@ const searchValid = (context, event) => {
   return context.canSearch && event.query && event.query.length > 0;
 };
 
-const searchMachine = Machine(
+const searchMachine = createMachine(
   {
     id: 'search',
     initial: 'idle',
@@ -124,7 +124,7 @@ Guards can (and should) be serialized as a string or an object with the `{ type:
 Refactoring the above example:
 
 ```js {9-11,19-23}
-const searchMachine = Machine(
+const searchMachine = createMachine(
   {
     // ...
     states: {
@@ -156,7 +156,7 @@ const searchMachine = Machine(
 Sometimes, it is preferable to not only serialize state transitions in JSON, but guard logic as well. This is where serializing guards as objects is helpful, as objects may contain relevant data:
 
 ```js {9-13,21-30}
-const searchMachine = Machine(
+const searchMachine = createMachine(
   {
     // ...
     states: {
@@ -197,9 +197,9 @@ If you want to have a single event transition to different states in certain sit
 For example, you can model a door that listens for an `OPEN` event, goes to the `'opened'` state if you are an admin, or goes to the `'closed.error'` state if `alert`-ing is true, or goes to the `'closed.idle'` state otherwise.
 
 ```js {25-27}
-import { Machine, actions, interpret, assign } from 'xstate';
+import { createMachine, actions, interpret, assign } from 'xstate';
 
-const doorMachine = Machine(
+const doorMachine = createMachine(
   {
     id: 'door',
     initial: 'closed',
@@ -284,7 +284,7 @@ Do _not_ overuse guard conditions. If something can be represented discretely as
 The `in` property takes a state ID as an argument and returns `true` if and only if that state node is active in the current state. For example, we can add a guard to the traffic light machine:
 
 ```js {24}
-const lightMachine = Machine({
+const lightMachine = createMachine({
   id: 'light',
   initial: 'green',
   states: {
