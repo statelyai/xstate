@@ -9,9 +9,9 @@ npm install xstate --save
 Then, in your project, import `Machine`, which is a factory function that creates a state machine or statechart:
 
 ```js
-import { Machine } from 'xstate';
+import { createMachine } from 'xstate';
 
-const promiseMachine = Machine(/* ... */);
+const promiseMachine = createMachine(/* ... */);
 ```
 
 We'll pass the [machine configuration](./machines.md#configuration) inside of `Machine(...)`. Since this is a [hierarchical machine](./hierarchical.md), we need to provide the:
@@ -21,9 +21,9 @@ We'll pass the [machine configuration](./machines.md#configuration) inside of `M
 - `states` - to define each of the child states:
 
 ```js
-import { Machine } from 'xstate';
+import { createMachine } from 'xstate';
 
-const promiseMachine = Machine({
+const promiseMachine = createMachine({
   id: 'promise',
   initial: 'pending',
   states: {
@@ -37,9 +37,9 @@ const promiseMachine = Machine({
 Then, we need to add [transitions](./transitions.md) to the state nodes and mark the `resolved` and `rejected` state nodes as [final state nodes](./final.md) since the promise machine terminates running once it reaches those states:
 
 ```js
-import { Machine } from 'xstate';
+import { createMachine } from 'xstate';
 
-const promiseMachine = Machine({
+const promiseMachine = createMachine({
   id: 'promise',
   initial: 'pending',
   states: {
@@ -62,13 +62,13 @@ const promiseMachine = Machine({
 To [interpret](./interpretation.md) the machine and make it run, we need to add an interpreter. This creates a service:
 
 ```js
-import { Machine, interpret } from 'xstate';
+import { createMachine, interpret } from 'xstate';
 
-const promiseMachine = Machine({
+const promiseMachine = createMachine({
   /* ... */
 });
 
-const promiseService = interpret(promiseMachine).onTransition(state =>
+const promiseService = interpret(promiseMachine).onTransition((state) =>
   console.log(state.value)
 );
 

@@ -1,5 +1,70 @@
 # xstate
 
+## 4.19.1
+
+### Patch Changes
+
+- [`64ab1150`](https://github.com/davidkpiano/xstate/commit/64ab1150e0a383202f4af1d586b28e081009c929) [#2173](https://github.com/davidkpiano/xstate/pull/2173) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with tags not being set correctly after sending an event to a machine that didn't result in selecting any transitions.
+
+## 4.19.0
+
+### Minor Changes
+
+- [`4f2f626d`](https://github.com/davidkpiano/xstate/commit/4f2f626dc84f45bb18ded6dd9aad3b6f6a2190b1) [#2143](https://github.com/davidkpiano/xstate/pull/2143) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Tags can now be added to state node configs under the `.tags` property:
+
+  ```js
+  const machine = createMachine({
+    initial: 'green',
+    states: {
+      green: {
+        tags: 'go' // single tag
+      },
+      yellow: {
+        tags: 'go'
+      },
+      red: {
+        tags: ['stop', 'other'] // multiple tags
+      }
+    }
+  });
+  ```
+
+  You can query whether a state has a tag via `state.hasTag(tag)`:
+
+  ```js
+  const canGo = state.hasTag('go');
+  // => `true` if in 'green' or 'red' state
+  ```
+
+### Patch Changes
+
+- [`a61d01ce`](https://github.com/davidkpiano/xstate/commit/a61d01cefab5734adf9bfb167291f5b0ba712684) [#2125](https://github.com/davidkpiano/xstate/pull/2125) Thanks [@VanTanev](https://github.com/VanTanev)! - In callback invokes, the types of `callback` and `onReceive` are properly scoped to the machine TEvent.
+
+## 4.18.0
+
+### Minor Changes
+
+- [`d0939ec6`](https://github.com/davidkpiano/xstate/commit/d0939ec60161c34b053cecdaeb277606b5982375) [#2046](https://github.com/davidkpiano/xstate/pull/2046) Thanks [@SimeonC](https://github.com/SimeonC)! - Allow machines to communicate with the inspector even in production builds.
+
+* [`e37fffef`](https://github.com/davidkpiano/xstate/commit/e37fffefb742f45765945c02727edfbd5e2f9d47) [#2079](https://github.com/davidkpiano/xstate/pull/2079) Thanks [@davidkpiano](https://github.com/davidkpiano)! - There is now support for "combinatorial machines" (state machines that only have one state):
+
+  ```js
+  const testMachine = createMachine({
+    context: { value: 42 },
+    on: {
+      INC: {
+        actions: assign({ value: ctx => ctx.value + 1 })
+      }
+    }
+  });
+  ```
+
+  These machines omit the `initial` and `state` properties, as the entire machine is treated as a single state.
+
+### Patch Changes
+
+- [`6a9247d4`](https://github.com/davidkpiano/xstate/commit/6a9247d4d3a39e6c8c4724d3368a13fcdef10907) [#2102](https://github.com/davidkpiano/xstate/pull/2102) Thanks [@VanTanev](https://github.com/VanTanev)! - Provide a convenience type for getting the `Interpreter` type based on the `StateMachine` type by transferring all generic parameters onto it. It can be used like this: `InterpreterFrom<typeof machine>`
+
 ## 4.17.1
 
 ### Patch Changes

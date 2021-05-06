@@ -100,7 +100,7 @@ Ensure that your tsconfig file does not include `"keyofStringsOnly": true,`.
 The generic types for `MachineConfig<TContext, TSchema, TEvent>` are the same as those for `Machine<TContext, TSchema, TEvent>`. This is useful when you are defining a machine config object _outside_ of the `Machine(...)` function, and helps prevent [inference errors](https://github.com/davidkpiano/xstate/issues/310):
 
 ```ts
-import { MachineConfig } from 'xstate';
+import { createMachineConfig } from 'xstate';
 
 const myMachineConfig: MachineConfig<TContext, TSchema, TEvent> = {
   id: 'controller',
@@ -216,7 +216,7 @@ const userMachine = createMachine<UserContext, UserEvent, UserState>({
 
 const userService = interpret(userMachine);
 
-userService.subscribe(state => {
+userService.subscribe((state) => {
   if (state.matches('success')) {
     // from the UserState typestate, `user` will be defined
     state.context.user.name;

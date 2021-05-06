@@ -278,6 +278,7 @@ class StateNode<
   };
 
   private idMap: Record<string, StateNode<TContext, any, TEvent>> = {};
+  public tags: string[] = [];
 
   constructor(
     /**
@@ -433,6 +434,7 @@ class StateNode<
       .concat(this.invoke)
       .map((activity) => toActivityDefinition(activity));
     this.transition = this.transition.bind(this);
+    this.tags = toArray(this.config.tags);
 
     // TODO: this is the real fix for initialization once
     // state node getters are deprecated
@@ -1261,7 +1263,8 @@ class StateNode<
       configuration: resolvedConfiguration,
       transitions: stateTransition.transitions,
       children,
-      done: isDone
+      done: isDone,
+      tags: currentState?.tags
     });
 
     const didUpdateContext = currentContext !== updatedContext;
@@ -1321,6 +1324,10 @@ class StateNode<
 
     // Preserve original history after raised events
     maybeNextState.history = history;
+
+    maybeNextState.tags = new Set(
+      flatten(maybeNextState.configuration.map((sn) => sn.tags))
+    );
 
     return maybeNextState;
   }

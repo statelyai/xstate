@@ -5,7 +5,7 @@ A final state node indicates the completion of a part of the statechart, or the 
 This has many useful use-cases. To indicate that a state node is final, set its `type` property to `'final'`:
 
 ```js
-const lightMachine = Machine({
+const lightMachine = createMachine({
   id: 'light',
   initial: 'green',
   states: {
@@ -70,7 +70,7 @@ When every child state node in a parallel state node is _done_, the parent paral
 This is very useful in modeling parallel tasks. For example, suppose `user` and `items` represent two parallel tasks of the `cart` state:
 
 ```js
-const shoppingMachine = Machine({
+const shoppingMachine = createMachine({
   id: 'shopping',
   initial: 'cart',
   states: {

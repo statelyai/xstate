@@ -3,7 +3,7 @@
 A state is an abstract representation of a system (such as an application) at a specific point in time. As an application is interacted with, events cause it to change state. A finite state machine can be in only one of a finite number of states at any given time. The current state of a machine is represented by a `State` instance:
 
 ```js {13-18,21-26}
-const lightMachine = Machine({
+const lightMachine = createMachine({
   id: 'light',
   initial: 'green',
   states: {
@@ -126,7 +126,7 @@ console.log(unchangedState.changed);
 This specifies whether the `state` is a ["final state"](./final.md) - that is, a state that indicates that its machine has reached its final (terminal) state and can no longer transition to any other state.
 
 ```js
-const answeringMachine = Machine({
+const answeringMachine = createMachine({
   initial: 'unanswered',
   states: {
     unanswered: {
@@ -168,7 +168,7 @@ This is an object mapping spawned service/actor IDs to their instances. See [ðŸ“
 **Example:**
 
 ```js
-const machine = Machine({
+const machine = createMachine({
   // ...
   invoke: [
     { id: 'notifier', src: createNotifier },
@@ -233,7 +233,7 @@ This will also maintain and restore previous [history states](./history.md) and 
 Meta data, which is static data that describes relevant properties of any [state node](./statenodes.md), can be specified on the `.meta` property of the state node:
 
 ```js {17-19,22-24,30-32,35-37,40-42}
-const fetchMachine = Machine({
+const fetchMachine = createMachine({
   id: 'fetch',
   initial: 'idle',
   states: {
