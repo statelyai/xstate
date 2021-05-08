@@ -843,6 +843,7 @@ describe('invoke', () => {
       let invokeCount = 0;
       let invokeDisposeCount = 0;
       let actionsCount = 0;
+      let entryActionsCount = 0;
 
       const machine = createMachine({
         invoke: {
@@ -854,6 +855,7 @@ describe('invoke', () => {
             };
           }
         },
+        entry: () => entryActionsCount++,
         on: {
           UPDATE: {
             internal: true,
@@ -865,16 +867,19 @@ describe('invoke', () => {
       });
 
       const service = interpret(machine).start();
+      expect(entryActionsCount).toEqual(1);
       expect(invokeCount).toEqual(1);
       expect(invokeDisposeCount).toEqual(0);
       expect(actionsCount).toEqual(0);
 
       service.send('UPDATE');
+      expect(entryActionsCount).toEqual(1);
       expect(invokeCount).toEqual(1);
       expect(invokeDisposeCount).toEqual(0);
       expect(actionsCount).toEqual(1);
 
       service.send('UPDATE');
+      expect(entryActionsCount).toEqual(1);
       expect(invokeCount).toEqual(1);
       expect(invokeDisposeCount).toEqual(0);
       expect(actionsCount).toEqual(2);
