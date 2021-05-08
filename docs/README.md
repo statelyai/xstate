@@ -259,13 +259,13 @@ const lightMachine = createMachine({
 
 const currentState = 'yellow';
 
-const nextState = lightMachine.transition(currentState, { target: 'TIMER' })
+const nextState = lightMachine.transition(currentState, { type: 'TIMER' })
   .value;
 // => {
 //   red: 'walk'
 // }
 
-lightMachine.transition('red.walk', { target: 'PED_TIMER' }).value;
+lightMachine.transition('red.walk', { type: 'PED_TIMER' }).value;
 // => {
 //   red: 'wait'
 // }
@@ -304,10 +304,14 @@ const wordMachine = createMachine({
       initial: 'off',
       states: {
         on: {
-          on: { TOGGLE_BOLD: { target: 'off' } }
+          on: {
+            TOGGLE_BOLD: { target: 'off' }
+          }
         },
         off: {
-          on: { TOGGLE_BOLD: { target: 'on' } }
+          on: {
+            TOGGLE_BOLD: { target: 'on' }
+          }
         }
       }
     },
@@ -315,10 +319,14 @@ const wordMachine = createMachine({
       initial: 'off',
       states: {
         on: {
-          on: { TOGGLE_UNDERLINE: { target: 'off' } }
+          on: {
+            TOGGLE_UNDERLINE: { target: 'off' }
+          }
         },
         off: {
-          on: { TOGGLE_UNDERLINE: { target: 'on' } }
+          on: {
+            TOGGLE_UNDERLINE: { target: 'on' }
+          }
         }
       }
     },
