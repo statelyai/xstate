@@ -72,7 +72,7 @@ describe('fst', () => {
         return [[jugs.three, jugs.five]];
       },
       initialState: [0, 0],
-      events: [
+      nextEvents: () => [
         { type: 'FILL_3' },
         { type: 'FILL_5' },
         { type: 'EMPTY_3' },

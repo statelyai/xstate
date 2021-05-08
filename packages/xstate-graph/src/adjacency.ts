@@ -83,7 +83,7 @@ export function getAdjacencyMapFST<TState, TInput>(
   const adjacency: AdjacencyMapFST<TState, TInput> = {};
 
   function findAdjacencies(state: TState) {
-    const potentialEvents = fst.nextEvents?.(state) || fst.events;
+    const potentialEvents = fst.nextEvents?.(state) ?? [];
     const stateHash = stateSerializer(state as any);
 
     if (adjacency[stateHash]) {
