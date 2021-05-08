@@ -264,7 +264,7 @@ export type InvokeCreator<
 ) =>
   | PromiseLike<TFinalContext>
   | StateMachine<TFinalContext, any, any>
-  | Subscribable<any>
+  | Subscribable<EventObject>
   | InvokeCallback<TEvent>;
 
 export interface InvokeDefinition<TContext, TEvent extends EventObject>
