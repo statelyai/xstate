@@ -2,7 +2,7 @@
 
 In statecharts, "side-effects" can be grouped into two categories:
 
-**"Fire-and-forget" effects**, which execute a synchronous side-effect with no events sent back to the statechart, or _send an event synchronously_ back to the statechart:
+**"Fire-and-forget" effects**, which execute asynchronous side-effect with no events sent back to the statechart, or _send an event synchronously_ back to the statechart:
 
 - [Actions](./actions.md) - single, discrete effects
 - [Activities](./activities.md) - continuous effects that are disposed when the state they were started in is exited
