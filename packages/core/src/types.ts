@@ -230,9 +230,9 @@ export type Receiver<TEvent extends EventObject> = (
   listener: (event: TEvent) => void
 ) => void;
 
-export type InvokeCallback = (
-  callback: Sender<any>,
-  onReceive: Receiver<EventObject>
+export type InvokeCallback<TEvent extends EventObject = AnyEventObject> = (
+  callback: Sender<TEvent>,
+  onReceive: Receiver<TEvent>
 ) => any;
 
 export interface InvokeMeta {
@@ -255,7 +255,7 @@ export interface InvokeMeta {
  */
 export type InvokeCreator<
   TContext,
-  TEvent = AnyEventObject,
+  TEvent extends EventObject = AnyEventObject,
   TFinalContext = any
 > = (
   context: TContext,
@@ -264,8 +264,8 @@ export type InvokeCreator<
 ) =>
   | PromiseLike<TFinalContext>
   | StateMachine<TFinalContext, any, any>
-  | Subscribable<any>
-  | InvokeCallback;
+  | Subscribable<EventObject>
+  | InvokeCallback<TEvent>;
 
 export interface InvokeDefinition<TContext, TEvent extends EventObject>
   extends ActivityDefinition<TContext, TEvent> {
@@ -572,6 +572,11 @@ export interface StateNodeConfig<
    * The order this state node appears. Corresponds to the implicit SCXML document order.
    */
   order?: number;
+
+  /**
+   * The tags for this state node, which are accumulated into the `state.tags` property.
+   */
+  tags?: SingleOrArray<string>;
 }
 
 export interface StateNodeDefinition<
@@ -1130,6 +1135,7 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
   children: Record<string, ActorRef<any>>;
   done?: boolean;
+  tags?: Set<string>;
 }
 
 export interface StateSchema<TC = any> {
@@ -1285,3 +1291,14 @@ export type ActorRefFrom<
   : never;
 
 export type AnyInterpreter = Interpreter<any, any, any, any>;
+
+export type InterpreterFrom<
+  T extends StateMachine<any, any, any, any>
+> = T extends StateMachine<
+  infer TContext,
+  infer TStateSchema,
+  infer TEvent,
+  infer TTypestate
+>
+  ? Interpreter<TContext, TStateSchema, TEvent, TTypestate>
+  : never;

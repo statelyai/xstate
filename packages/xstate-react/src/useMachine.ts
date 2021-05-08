@@ -10,12 +10,7 @@ import {
   Typestate,
   ActionFunction
 } from 'xstate';
-import {
-  MaybeLazy,
-  ReactActionFunction,
-  ReactActionObject,
-  ReactEffectType
-} from './types';
+import { MaybeLazy, ReactActionFunction, ReactEffectType } from './types';
 import { useInterpret } from './useInterpret';
 
 function createReactActionFunction<TContext, TEvent extends EventObject>(
@@ -47,25 +42,6 @@ export function asLayoutEffect<TContext, TEvent extends EventObject>(
   exec: ActionFunction<TContext, TEvent>
 ): ReactActionFunction<TContext, TEvent> {
   return createReactActionFunction(exec, ReactEffectType.LayoutEffect);
-}
-
-export type ActionStateTuple<TContext, TEvent extends EventObject> = [
-  ReactActionObject<TContext, TEvent>,
-  State<TContext, TEvent, any, any>
-];
-
-export function executeEffect<TContext, TEvent extends EventObject>(
-  action: ReactActionObject<TContext, TEvent>,
-  state: State<TContext, TEvent, any, any>
-): void {
-  const { exec } = action;
-  const originalExec = exec!(state.context, state._event.data, {
-    action,
-    state,
-    _event: state._event
-  });
-
-  originalExec();
 }
 
 export interface UseMachineOptions<TContext, TEvent extends EventObject> {

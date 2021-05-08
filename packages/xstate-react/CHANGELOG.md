@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.3.3
+
+### Patch Changes
+
+- [`27e7242c`](https://github.com/davidkpiano/xstate/commit/27e7242c24146de85cf618a658b400a3241fa7d7) [#2112](https://github.com/davidkpiano/xstate/pull/2112) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `executeEffect` function is no longer exported (was meant to be internal and is useless as a public function anyway). This also fixes a circular dependency issue.
+
+## 1.3.2
+
+### Patch Changes
+
+- [`bb5e81ea`](https://github.com/davidkpiano/xstate/commit/bb5e81eaa1ecba1fd54a7677ce9eaee9bd695964) [#2050](https://github.com/davidkpiano/xstate/pull/2050) Thanks [@theKashey](https://github.com/theKashey)! - Added an explicit entrypoint for `@xstate/react/fsm` which you can use instead of `@xstate/react/lib/fsm`. This is the only specifier that will be supported in the future - the other one will be dropped in the next major version.
+
+  ```diff
+  -import { useMachine } from '@xstate/react/lib/fsm'
+  +import { useMachine } from '@xstate/react/fsm'
+  ```
+
 ## 1.3.1
 
 ### Patch Changes
@@ -31,7 +48,7 @@
   import { useSelector } from '@xstate/react';
 
   const App = ({ someActor }) => {
-    const count = useSelector(someActor, state => state.context.count);
+    const count = useSelector(someActor, (state) => state.context.count);
 
     // ...
   };
@@ -152,7 +169,7 @@ All notable changes to this project will be documented in this file.
 - The `useActor` hook now takes a second argument: `getSnapshot` which is a function that should return the last emitted value:
 
   ```js
-  const [state, send] = useActor(someActor, actor => actor.current);
+  const [state, send] = useActor(someActor, (actor) => actor.current);
   ```
 
 ## [1.0.0-rc.6]

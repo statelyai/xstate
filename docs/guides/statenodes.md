@@ -35,7 +35,7 @@ In XState, a **state node** specifies a state configuration. They are defined on
 The state determined from `machine.transition(state, event)` represents a combination of state nodes. For example, in the machine below, there's a `success` state node and an `items` substate node. The state value `{ success: 'items' }` represents the combination of those state nodes.
 
 ```js
-const fetchMachine = Machine({
+const fetchMachine = createMachine({
   id: 'fetch',
 
   // Initial state
@@ -96,7 +96,7 @@ There are five different kinds of state nodes:
 The state node type can be explicitly defined on the state node:
 
 ```js
-const machine = Machine({
+const machine = createMachine({
   id: 'fetch',
   initial: 'idle',
   states: {
@@ -177,7 +177,7 @@ A transient state node only specifies transitions for the [null event](./events.
 For example, this machine's initial transient state resolves to `'morning'`, `'afternoon'`, or `'evening'`, depending on what time it is (implementation details hidden):
 
 ```js
-const timeOfDayMachine = Machine({
+const timeOfDayMachine = createMachine({
   id: 'timeOfDay',
   initial: 'unknown',
   context: {
@@ -220,7 +220,7 @@ const timeOfDayService = interpret(timeOfDayMachine
 Meta data, which is static data that describes relevant properties of any [state node](./statenodes.md), can be specified on the `.meta` property of the state node:
 
 ```js {17-19,22-24,30-32,35-37,40-42}
-const fetchMachine = Machine({
+const fetchMachine = createMachine({
   id: 'fetch',
   initial: 'idle',
   states: {

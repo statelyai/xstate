@@ -3,7 +3,7 @@
 A sequence are a number of steps that happen in a specific order, and one at a time. This can be modeled with a state machine:
 
 ```js
-const stepMachine = Machine({
+const stepMachine = createMachine({
   id: 'step',
   initial: 'one',
   states: {
@@ -55,7 +55,7 @@ function getUserFriends(context) {
   );
 }
 
-const friendsMachine = Machine({
+const friendsMachine = createMachine({
   id: 'friends',
   context: { userId: 42, user: undefined, friends: undefined },
   initial: 'gettingUser',
