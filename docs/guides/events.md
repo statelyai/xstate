@@ -31,9 +31,9 @@ const keyDownEvent = {
 As explained in the [transitions guide](./transitions.md), a transition defines what the next state will be given the current state and the event, defined on its `on: { ... }` property. This can be observed by passing an event into the [transition method](./transitions.md#machine-transition-method):
 
 ```js
-import { Machine } from 'xstate';
+import { createMachine } from 'xstate';
 
-const lightMachine = Machine({
+const lightMachine = createMachine({
   /* ... */
 });
 
@@ -51,14 +51,14 @@ console.log(nextState.value);
 By specifying the event type on the `type` property, many native events, such as DOM events, are compatible and can be used directly with XState:
 
 ```js
-import { Machine, interpret } from 'xstate';
+import { createMachine, interpret } from 'xstate';
 
-const mouseMachine = Machine({
+const mouseMachine = createMachine({
   /* ... */
 });
 const mouseService = interpret(mouseMachine).start();
 
-window.addEventListener('mousemove', event => {
+window.addEventListener('mousemove', (event) => {
   // event can be sent directly to service
   mouseService.send(event);
 });
@@ -70,7 +70,7 @@ A null event is an event that has no type, and occurs immediately once a state i
 
 ```js
 // contrived example
-const skipMachine = Machine({
+const skipMachine = createMachine({
   id: 'skip',
   initial: 'one',
   states: {
@@ -103,7 +103,7 @@ There are many use cases for null events, especially when defining [transient tr
 const isAdult = ({ age }) => age >= 18;
 const isMinor = ({ age }) => age < 18;
 
-const ageMachine = Machine({
+const ageMachine = createMachine({
   id: 'age',
   context: { age: undefined }, // age unknown
   initial: 'unknown',

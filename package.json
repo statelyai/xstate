@@ -19,12 +19,6 @@
     "ci": "npm run build && npm run test",
     "typedoc": "cd ./packages/core && typedoc --excludePrivate --mode file --out ./api --target es6 --moduleResolution node ./src",
     "typedoc:publish": "npm run typedoc && gh-pages --dist ./packages/core/api --dest ./api",
-    "docs:readme": "cpy 'README.md' docs",
-    "docs:dev": "npm run docs:packages && cd docs && vuepress dev .",
-    "docs:pdf": "npm run docs:build && cd docs && vuepress export .",
-    "docs:packages": "cpy 'packages/*/README.md' docs --parents --rename=index.md && cpy 'packages/*/docs/*.md' docs --parents",
-    "docs:build": "npm run docs:readme && npm run docs:packages && cd docs && vuepress build .",
-    "docs:publish": "npm run docs:build && gh-pages --dist ./docs/.vuepress/dist --dest ./docs && npm run typedoc:publish",
     "changeset": "changeset",
     "prerelease": "npm run build && npm run test",
     "release": "changeset publish"
@@ -46,8 +40,6 @@
     "@types/jest": "^24.0.23",
     "@types/node": "^12.11.1",
     "@types/use-subscription": "^1.0.0",
-    "@vuepress/plugin-google-analytics": "^1.2.0",
-    "cpy-cli": "^2.0.0",
     "gh-pages": "^2.0.1",
     "husky": "^3.1.0",
     "jest": "^26.4.2",
@@ -57,7 +49,6 @@
     "lerna-alias": "3.0.3-0",
     "lint-staged": "^8.2.1",
     "markdown-it-codesandbox-embed": "^0.1.0",
-    "mermaid": "^8.2.3",
     "patch-package": "^6.2.2",
     "prettier": "^2.0.2",
     "spawn-command": "0.0.2-1",
@@ -65,8 +56,6 @@
     "tslint": "^5.11.0",
     "typedoc": "^0.17.4",
     "typescript": "^4.1.2",
-    "vuepress": "^1.2.0",
-    "vuepress-plugin-export": "^0.2.0",
     "webpack-dev-middleware": "^3.6.0"
   },
   "husky": {

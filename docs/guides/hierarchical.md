@@ -31,7 +31,7 @@ const pedestrianStates = {
   }
 };
 
-const lightMachine = Machine({
+const lightMachine = createMachine({
   key: 'light',
   initial: 'green',
   states: {
