@@ -1338,7 +1338,9 @@ class StateNode<
   /**
    * Returns the child state node from its relative `stateKey`, or throws.
    */
-  public getStateNode(stateKey: string): StateNode<TContext, any, TEvent> {
+  public getStateNode(
+    stateKey: string
+  ): StateNode<TContext, any, TEvent, TTypestate> {
     if (isStateId(stateKey)) {
       return this.machine.getStateNodeById(stateKey);
     }
