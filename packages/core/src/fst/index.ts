@@ -14,7 +14,6 @@ export type FSTTransition<TState, TInput, TOutput> = (
 export interface FST<TState, TInput, TOutput = any> {
   transition: FSTTransition<TState, TInput, TOutput>;
   initialState: TState;
-  events: TInput[];
   nextEvents?: (state: TState) => TInput[];
 }
 

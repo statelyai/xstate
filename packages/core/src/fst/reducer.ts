@@ -12,7 +12,6 @@ export function fromReducer<TState, TInput>(
       return [nextState, undefined];
     },
     initialState,
-    events: [],
     nextEvents
   };
 }

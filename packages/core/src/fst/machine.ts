@@ -11,7 +11,6 @@ export function fromMachine<TMachine extends StateMachine<any, any, any>>(
       return [nextState, []];
     }) as FSTFrom<TMachine>['transition'],
     initialState: machine.initialState,
-    events: [] as FSTFrom<TMachine>['events'],
     nextEvents
   } as FSTFrom<TMachine>;
 }
