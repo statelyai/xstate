@@ -671,7 +671,7 @@ class StateNode<
         );
 
         return allSubStateNodes.concat(subStateNode);
-      }, [] as Array<StateNode<TContext, any, TEvent>>)
+      }, [] as Array<StateNode<TContext, any, TEvent, TTypestate>>)
     );
   }
 
