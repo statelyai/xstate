@@ -45,8 +45,8 @@ const promiseMachine = createMachine({
   states: {
     pending: {
       on: {
-        RESOLVE: 'resolved',
-        REJECT: 'rejected'
+        RESOLVE: { target: 'resolved' },
+        REJECT: { target: 'rejected' }
       }
     },
     resolved: {
@@ -76,10 +76,10 @@ const promiseService = interpret(promiseMachine).onTransition((state) =>
 promiseService.start();
 // => 'pending'
 
-promiseService.send('RESOLVE');
+promiseService.send({ type: 'RESOLVE' });
 // => 'resolved'
 ```
 
-You can also copy/paste the `Machine(...)` code and [visualize it on XState Viz](https://xstate.js.org/viz):
+You can also copy/paste the `createMachine(...)` code and [visualize it on XState Viz](https://xstate.js.org/viz):
 
 <iframe src="https://xstate.js.org/viz/?gist=9e4476d6312ac1bb29938d6c5e7f8f84&embed=1"></iframe>

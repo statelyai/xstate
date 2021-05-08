@@ -16,12 +16,12 @@ const fileMachine = createMachine({
       states: {
         idle: {
           on: {
-            INIT_UPLOAD: 'pending'
+            INIT_UPLOAD: { target: 'pending' }
           }
         },
         pending: {
           on: {
-            UPLOAD_COMPLETE: 'success'
+            UPLOAD_COMPLETE: { target: 'success' }
           }
         },
         success: {}
@@ -32,12 +32,12 @@ const fileMachine = createMachine({
       states: {
         idle: {
           on: {
-            INIT_DOWNLOAD: 'pending'
+            INIT_DOWNLOAD: { target: 'pending' }
           }
         },
         pending: {
           on: {
-            DOWNLOAD_COMPLETE: 'success'
+            DOWNLOAD_COMPLETE: { target: 'success' }
           }
         },
         success: {}
@@ -64,7 +64,7 @@ console.log(
       upload: 'pending',
       download: 'idle'
     },
-    'UPLOAD_COMPLETE'
+    { type: 'UPLOAD_COMPLETE' }
   ).value
 );
 // => {
@@ -82,10 +82,14 @@ const lightMachine = createMachine({
   initial: 'green',
   states: {
     green: {
-      on: { TIMER: 'yellow' }
+      on: {
+        TIMER: { target: 'yellow' }
+      }
     },
     yellow: {
-      on: { TIMER: 'red' }
+      on: {
+        TIMER: { target: 'red' }
+      }
     },
 
     // nested parallel machine
@@ -96,10 +100,14 @@ const lightMachine = createMachine({
           initial: 'solid',
           states: {
             solid: {
-              on: { COUNTDOWN: 'flashing' }
+              on: {
+                COUNTDOWN: { target: 'flashing' }
+              }
             },
             flashing: {
-              on: { STOP_COUNTDOWN: 'solid' }
+              on: {
+                STOP_COUNTDOWN: { target: 'solid' }
+              }
             }
           }
         },
@@ -107,10 +115,14 @@ const lightMachine = createMachine({
           initial: 'walk',
           states: {
             walk: {
-              on: { COUNTDOWN: 'wait' }
+              on: {
+                COUNTDOWN: { target: 'wait' }
+              }
             },
             wait: {
-              on: { STOP_COUNTDOWN: 'stop' }
+              on: {
+                STOP_COUNTDOWN: { target: 'stop' }
+              }
             },
             stop: {
               type: 'final'
@@ -122,7 +134,7 @@ const lightMachine = createMachine({
   }
 });
 
-console.log(lightMachine.transition('yellow', 'TIMER').value);
+console.log(lightMachine.transition('yellow', { type: 'TIMER' }).value);
 // {
 //   red: {
 //     walkSign: 'solid',

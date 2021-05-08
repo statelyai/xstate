@@ -22,7 +22,7 @@ console.log(lightMachine.initialState);
 //   // ...
 // }
 
-console.log(lightMachine.transition('yellow', 'TIMER'));
+console.log(lightMachine.transition('yellow', { type: 'TIMER' }));
 // State {
 //   value: { red: 'walk' },
 //   actions: [],
@@ -110,12 +110,14 @@ const { initialState } = lightMachine;
 console.log(initialState.changed);
 // => undefined
 
-const nextState = lightMachine.transition(initialState, 'TIMER');
+const nextState = lightMachine.transition(initialState, { type: 'TIMER' });
 
 console.log(nextState.changed);
 // => true
 
-const unchangedState = lightMachine.transition(nextState, 'UNKNOWN_EVENT');
+const unchangedState = lightMachine.transition(nextState, {
+  type: 'UNKNOWN_EVENT'
+});
 
 console.log(unchangedState.changed);
 // => false
@@ -131,7 +133,7 @@ const answeringMachine = createMachine({
   states: {
     unanswered: {
       on: {
-        ANSWER: 'answered'
+        ANSWER: { target: 'answered' }
       }
     },
     answered: {
@@ -143,7 +145,9 @@ const answeringMachine = createMachine({
 const { initialState } = answeringMachine;
 initialState.done; // false
 
-const answeredState = answeringMachine.transition(initialState, 'ANSWER');
+const answeredState = answeringMachine.transition(initialState, {
+  type: 'ANSWER'
+});
 answeredState.done; // true
 ```
 
@@ -238,16 +242,16 @@ const fetchMachine = createMachine({
   initial: 'idle',
   states: {
     idle: {
-      on: { FETCH: 'loading' }
+      on: { FETCH: { target: 'loading' } }
     },
     loading: {
       after: {
         3000: 'failure.timeout'
       },
       on: {
-        RESOLVE: 'success',
-        REJECT: 'failure',
-        TIMEOUT: 'failure.timeout' // manual timeout
+        RESOLVE: { target: 'success' },
+        REJECT: { target: 'failure' },
+        TIMEOUT: { target: 'failure.timeout' } // manual timeout
       },
       meta: {
         message: 'Loading...'
@@ -288,7 +292,9 @@ The current state of the machine collects the `.meta` data of all of the state n
 For instance, if the above machine is in the `failure.timeout` state (which is represented by two state nodes with IDs `"failure"` and `"failure.timeout"`), the `.meta` property will combine all `.meta` values and look like this:
 
 ```js {4-11}
-const failureTimeoutState = fetchMachine.transition('loading', 'TIMEOUT');
+const failureTimeoutState = fetchMachine.transition('loading', {
+  type: 'TIMEOUT'
+});
 
 console.log(failureTimeoutState.meta);
 // => {
@@ -316,7 +322,9 @@ function mergeMeta(meta) {
   }, {});
 }
 
-const failureTimeoutState = fetchMachine.transition('loading', 'TIMEOUT');
+const failureTimeoutState = fetchMachine.transition('loading', {
+  type: 'TIMEOUT'
+});
 
 console.log(mergeMeta(failureTimeoutState.meta));
 // => {
