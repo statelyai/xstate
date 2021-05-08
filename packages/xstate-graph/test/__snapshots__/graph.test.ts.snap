@@ -784,36 +784,6 @@ Object {
             "type": "2",
           },
           "events": Array [],
-          "history": Object {
-            "_event": Object {
-              "$$type": "scxml",
-              "data": Object {
-                "type": "xstate.init",
-              },
-              "name": "xstate.init",
-              "type": "external",
-            },
-            "_sessionid": null,
-            "actions": Array [],
-            "activities": Object {},
-            "changed": undefined,
-            "children": Object {},
-            "context": undefined,
-            "done": false,
-            "event": Object {
-              "type": "xstate.init",
-            },
-            "events": Array [],
-            "historyValue": undefined,
-            "matches": [Function],
-            "meta": Object {},
-            "tags": Array [],
-            "toStrings": [Function],
-            "value": Object {
-              "a": "a1",
-              "b": "b1",
-            },
-          },
           "historyValue": Object {
             "current": Object {
               "a": "a2",
@@ -870,36 +840,6 @@ Object {
         "type": "2",
       },
       "events": Array [],
-      "history": Object {
-        "_event": Object {
-          "$$type": "scxml",
-          "data": Object {
-            "type": "xstate.init",
-          },
-          "name": "xstate.init",
-          "type": "external",
-        },
-        "_sessionid": null,
-        "actions": Array [],
-        "activities": Object {},
-        "changed": undefined,
-        "children": Object {},
-        "context": undefined,
-        "done": false,
-        "event": Object {
-          "type": "xstate.init",
-        },
-        "events": Array [],
-        "historyValue": undefined,
-        "matches": [Function],
-        "meta": Object {},
-        "tags": Array [],
-        "toStrings": [Function],
-        "value": Object {
-          "a": "a1",
-          "b": "b1",
-        },
-      },
       "historyValue": Object {
         "current": Object {
           "a": "a2",
@@ -5388,36 +5328,6 @@ Object {
             "type": "2",
           },
           "events": Array [],
-          "history": Object {
-            "_event": Object {
-              "$$type": "scxml",
-              "data": Object {
-                "type": "xstate.init",
-              },
-              "name": "xstate.init",
-              "type": "external",
-            },
-            "_sessionid": null,
-            "actions": Array [],
-            "activities": Object {},
-            "changed": undefined,
-            "children": Object {},
-            "context": undefined,
-            "done": false,
-            "event": Object {
-              "type": "xstate.init",
-            },
-            "events": Array [],
-            "historyValue": undefined,
-            "matches": [Function],
-            "meta": Object {},
-            "tags": Array [],
-            "toStrings": [Function],
-            "value": Object {
-              "a": "a1",
-              "b": "b1",
-            },
-          },
           "historyValue": Object {
             "current": Object {
               "a": "a2",
@@ -5474,36 +5384,6 @@ Object {
         "type": "2",
       },
       "events": Array [],
-      "history": Object {
-        "_event": Object {
-          "$$type": "scxml",
-          "data": Object {
-            "type": "xstate.init",
-          },
-          "name": "xstate.init",
-          "type": "external",
-        },
-        "_sessionid": null,
-        "actions": Array [],
-        "activities": Object {},
-        "changed": undefined,
-        "children": Object {},
-        "context": undefined,
-        "done": false,
-        "event": Object {
-          "type": "xstate.init",
-        },
-        "events": Array [],
-        "historyValue": undefined,
-        "matches": [Function],
-        "meta": Object {},
-        "tags": Array [],
-        "toStrings": [Function],
-        "value": Object {
-          "a": "a1",
-          "b": "b1",
-        },
-      },
       "historyValue": Object {
         "current": Object {
           "a": "a2",
@@ -5602,36 +5482,6 @@ Object {
                 "type": "2",
               },
               "events": Array [],
-              "history": Object {
-                "_event": Object {
-                  "$$type": "scxml",
-                  "data": Object {
-                    "type": "xstate.init",
-                  },
-                  "name": "xstate.init",
-                  "type": "external",
-                },
-                "_sessionid": null,
-                "actions": Array [],
-                "activities": Object {},
-                "changed": undefined,
-                "children": Object {},
-                "context": undefined,
-                "done": false,
-                "event": Object {
-                  "type": "xstate.init",
-                },
-                "events": Array [],
-                "historyValue": undefined,
-                "matches": [Function],
-                "meta": Object {},
-                "tags": Array [],
-                "toStrings": [Function],
-                "value": Object {
-                  "a": "a1",
-                  "b": "b1",
-                },
-              },
               "historyValue": Object {
                 "current": Object {
                   "a": "a2",
