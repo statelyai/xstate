@@ -130,4 +130,94 @@ describe('createModel', () => {
 
     expect(resetState.context).toEqual(userModel.initialContext);
   });
+
+  it('can model events', () => {
+    const userModel = createModel(
+      {
+        name: 'David',
+        age: 30
+      },
+      {
+        events: {
+          updateName: (value: string) => ({ value }),
+          updateAge: (value: number) => {
+            const payload = {
+              value
+            };
+            (payload as any).type = 'this should be overwritten';
+            return payload;
+          },
+          anotherEvent: () => ({})
+        }
+      }
+    );
+
+    // Example of an externally-defined assign action
+    const assignName = userModel.assign(
+      {
+        name: (_, event) => {
+          return event.value;
+        }
+      },
+      'updateName'
+    );
+
+    const machine = createMachine<typeof userModel>({
+      context: userModel.initialContext,
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            updateName: {
+              // pre-defined assign action
+              actions: assignName
+            },
+            updateAge: {
+              // inline assign action
+              actions: userModel.assign((_, e) => {
+                return {
+                  age: e.value
+                };
+              })
+            }
+          }
+        }
+      }
+    });
+
+    let updatedState = machine.transition(
+      undefined,
+      userModel.events.updateName('Anyone')
+    );
+
+    expect(updatedState.context.name).toEqual('Anyone');
+
+    updatedState = machine.transition(
+      updatedState,
+      userModel.events.updateAge(42)
+    );
+
+    expect(updatedState.context.age).toEqual(42);
+  });
+
+  it('should typecheck `createMachine` for model without creators', () => {
+    const toggleModel = createModel({ count: 0 });
+
+    const machine = createMachine<typeof toggleModel>({
+      id: 'machine',
+      initial: 'inactive',
+      // using context here is crucial to validate that it can be assigned to the inferred TContext
+      context: toggleModel.initialContext,
+      states: {
+        inactive: {
+          on: { TOGGLE: 'active' }
+        },
+        active: {
+          on: { TOGGLE: 'inactive' }
+        }
+      }
+    });
+
+    expect(machine.initialState.context.count).toBe(0);
+  });
 });

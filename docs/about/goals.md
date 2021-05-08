@@ -25,6 +25,6 @@ If you're deciding if you should use XState, [John Yanarella](https://github.com
 >
 > The front-end development world is the wild west, and it could stand to learn from what other engineering disciplines have known and employed for years.
 >
-> 3. It has **passed a critical threshold of maturity** as of version 4, particularly given the introduction of [the visualizer](https://statecharts.github.io/xstate-viz). And that's just the tip of the iceberg of where it could go next, as it (and [its community](https://spectrum.chat/statecharts)) introduces tooling that takes advantage of how a statechart can be visualized, analyzed, and tested.
+> 3. It has **passed a critical threshold of maturity** as of version 4, particularly given the introduction of [the visualizer](https://statecharts.github.io/xstate-viz). And that's just the tip of the iceberg of where it could go next, as it (and [its community](https://github.com/davidkpiano/xstate/discussions)) introduces tooling that takes advantage of how a statechart can be visualized, analyzed, and tested.
 >
 > 4. The **community** that is growing around it and the awareness it is bringing to finite state machines and statecharts. If you read back through this gitter history, there's a wealth of links to research papers, other FSM and Statechart implementations, etc. that have been collected by [Erik Mogensen](https://twitter.com/mogsie) over at [statecharts.github.io](https://statecharts.github.io).

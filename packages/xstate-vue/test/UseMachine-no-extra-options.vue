@@ -7,6 +7,7 @@
 <script lang="ts">
 import { useMachine } from '../src';
 import { Machine } from 'xstate';
+import { defineComponent } from 'vue';
 
 const toggleMachine = Machine({
   id: 'toggle',
@@ -21,10 +22,10 @@ const toggleMachine = Machine({
   }
 });
 
-export default {
+export default defineComponent({
   setup() {
     const { state, send } = useMachine(toggleMachine);
     return { state, send };
   }
-};
+});
 </script>

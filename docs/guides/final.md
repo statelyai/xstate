@@ -5,7 +5,7 @@ A final state node indicates the completion of a part of the statechart, or the 
 This has many useful use-cases. To indicate that a state node is final, set its `type` property to `'final'`:
 
 ```js
-const lightMachine = Machine({
+const lightMachine = createMachine({
   id: 'light',
   initial: 'green',
   states: {
@@ -70,7 +70,7 @@ When every child state node in a parallel state node is _done_, the parent paral
 This is very useful in modeling parallel tasks. For example, suppose `user` and `items` represent two parallel tasks of the `cart` state:
 
 ```js
-const shoppingMachine = Machine({
+const shoppingMachine = createMachine({
   id: 'shopping',
   initial: 'cart',
   states: {
@@ -130,6 +130,6 @@ Final states correspond to the SCXML spec: [https://www.w3.org/TR/scxml/#final](
 ## Notes
 
 - A final state node only indicates that its immediate parent is _done_. It does not affect the _done_ status of any higher parents, except with parallel state nodes, which are _done_ when all of its child compound state nodes are _done_.
-- A parallel state that reaches a final substate does not stop receiving events until all its siblings are done. The final substate can still be exited with an event. 
+- A parallel state that reaches a final substate does not stop receiving events until all its siblings are done. The final substate can still be exited with an event.
 - Final state nodes cannot have any children. They are atomic state nodes.
 - You can specify `entry` and `exit` actions on final state nodes.

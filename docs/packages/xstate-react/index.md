@@ -6,12 +6,14 @@
 - [Quick Start](#quick-start)
 - [Examples](#examples)
 - [API](#api)
-  - [`useMachine(machine, options?)`](#usemachinemachine-options)
-  - [`useService(service)`](#useserviceservice)
-  - [`useActor(actor, getSnapshot)`](#useactoractor-getsnapshot)
-  - [`asEffect(action)`](#aseffectaction)
-  - [`asLayoutEffect(action)`](#aslayouteffectaction)
-  - [`useMachine(machine)` with `@xstate/fsm`](#usemachinemachine-with-xstatefsm)
+  - [`useMachine(machine, options?)`](#usemachine-machine-options)
+  - [`useService(service)`](#useservice-service)
+  - [`useActor(actor, getSnapshot)`](#useactor-actor-getsnapshot)
+  - [`useInterpret(machine, options?, observer?)`](#useinterpret-machine-options-observer)
+  - [`useSelector(actor, selector, compare?, getSnapshot?)`](#useselector-actor-selector-compare-getsnapshot)
+  - [`asEffect(action)`](#aseffect-action)
+  - [`asLayoutEffect(action)`](#aslayouteffect-action)
+  - [`useMachine(machine)` with `@xstate/fsm`](#usemachine-machine-with-xstate-fsm)
 - [Configuring Machines](#configuring-machines)
 - [Matching States](#matching-states)
 - [Persisted and Rehydrated State](#persisted-and-rehydrated-state)
@@ -49,9 +51,9 @@ By using the global variable `XStateReactFSM`
 
 ```js
 import { useMachine } from '@xstate/react';
-import { Machine } from 'xstate';
+import { createMachine } from 'xstate';
 
-const toggleMachine = Machine({
+const toggleMachine = createMachine({
   id: 'toggle',
   initial: 'inactive',
   states: {
@@ -103,7 +105,7 @@ A [React hook](https://reactjs.org/hooks) that interprets the given `machine` an
   );
   ```
 
-- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) OR one of the following Machine Config options: `guards`, `actions`, `activities`, `services`, `delays`, `immediate`, `context`, or `state`.
+- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `immediate`, `context`, `state`.
 
 **Returns** a tuple of `[state, send, service]`:
 
@@ -142,6 +144,112 @@ const [state, send] = useActor(customActor, (actor) => {
   // implementation-specific pseudocode example:
   return actor.getLastEmittedValue();
 });
+```
+
+### `useInterpret(machine, options?, observer?)`
+
+A React hook that returns the `service` created from the `machine` with the `options`, if specified. It also sets up a subscription to the `service` with the `observer`, if provided.
+
+_Since 1.3.0_
+
+**Arguments**
+
+- `machine` - An [XState machine](https://xstate.js.org/docs/guides/machines.html) or a function that lazily returns a machine.
+- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `immediate`, `context`, `state`.
+- `observer` (optional) - an observer or listener that listens to state updates:
+  - an observer (e.g., `{ next: (state) => {/* ... */} }`)
+  - or a listener (e.g., `(state) => {/* ... */}`)
+
+```js
+import { useInterpret } from '@xstate/react';
+import { someMachine } from '../path/to/someMachine';
+
+const App = () => {
+  const service = useInterpret(someMachine);
+
+  // ...
+};
+```
+
+With options + listener:
+
+```js
+// ...
+
+const App = () => {
+  const service = useInterpret(
+    someMachine,
+    {
+      actions: {
+        /* ... */
+      }
+    },
+    (state) => {
+      // subscribes to state changes
+      console.log(state);
+    }
+  );
+
+  // ...
+};
+```
+
+### `useSelector(actor, selector, compare?, getSnapshot?)`
+
+A React hook that returns the selected value from the snapshot of an `actor`, such as a service. This hook will only cause a rerender if the selected value changes, as determined by the optional `compare` function.
+
+_Since 1.3.0_
+
+**Arguments**
+
+- `actor` - a service or an actor-like object that contains `.send(...)` and `.subscribe(...)` methods.
+- `selector` - a function that takes in an actor's "current state" (snapshot) as an argument and returns the desired selected value.
+- `compare` (optional) - a function that determines if the current selected value is the same as the previous selected value.
+- `getSnapshot` (optional) - a function that should return the latest emitted value from the `actor`.
+  - Defaults to attempting to get the `actor.state`, or returning `undefined` if that does not exist. Will automatically pull the state from services.
+
+```js
+import { useSelector } from '@xstate/react';
+
+// tip: optimize selectors by defining them externally when possible
+const selectCount = (state) => state.context.count;
+
+const App = ({ service }) => {
+  const count = useSelector(service, selectCount);
+
+  // ...
+};
+```
+
+With `compare` function:
+
+```js
+// ...
+
+const selectUser = (state) => state.context.user;
+const compareUser = (prevUser, nextUser) => prevUser.id === nextUser.id;
+
+const App = ({ service }) => {
+  const user = useSelector(service, selectUser, compareUser);
+
+  // ...
+};
+```
+
+With `useInterpret(...)`:
+
+```js
+import { useInterpret, useSelector } from '@xstate/react';
+import { someMachine } from '../path/to/someMachine';
+
+const selectCount = (state) => state.context.count;
+
+const App = ({ service }) => {
+  const service = useInterpret(someMachine);
+  const count = useSelector(service, selectCount);
+
+  // ...
+};
 ```
 
 ### `asEffect(action)`
@@ -194,7 +302,7 @@ Ensures that the `action` is executed as an effect in `useLayoutEffect`, rather 
 
 A [React hook](https://reactjs.org/hooks) that interprets the given finite state `machine` from [`@xstate/fsm`] and starts a service that runs for the lifetime of the component.
 
-This special `useMachine` hook is imported from `@xstate/react/lib/fsm`
+This special `useMachine` hook is imported from `@xstate/react/fsm`
 
 **Arguments**
 
@@ -211,7 +319,7 @@ This special `useMachine` hook is imported from `@xstate/react/lib/fsm`
 
 ```js
 import { useEffect } from 'react';
-import { useMachine } from `@xstate/react/lib/fsm`;
+import { useMachine } from `@xstate/react/fsm`;
 import { createMachine } from '@xstate/fsm';
 
 const context = {
@@ -275,7 +383,7 @@ Existing machines can be configured by passing the machine options as the 2nd ar
 Example: the `'fetchData'` service and `'notifySuccess'` action are both configurable:
 
 ```js
-const fetchMachine = Machine({
+const fetchMachine = createMachine({
   id: 'fetch',
   initial: 'idle',
   context: {

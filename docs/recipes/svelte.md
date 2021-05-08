@@ -79,4 +79,4 @@ The toggleService has a `.subscribe` function that is similar to Svelte stores, 
 </button>
 ```
 
-If you're not familiar with the '$' syntax, it basically just reads the value of a store.
+If you're not familiar with the '\$' syntax, it basically just reads the value of a store.

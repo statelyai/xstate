@@ -63,7 +63,9 @@ import {
   Typestate,
   TransitionDefinitionMap,
   DelayExpr,
-  InvokeSourceDefinition
+  InvokeSourceDefinition,
+  ActorRef,
+  MachineSchema
 } from './types';
 import { matchesState } from './utils';
 import { State, stateValuesEqual } from './State';
@@ -97,7 +99,6 @@ import {
 } from './stateUtils';
 import { createInvocableActor } from './Actor';
 import { toInvokeDefinition } from './invokeUtils';
-import { ActorRef } from '.';
 
 const NULL_EVENT = '';
 const STATE_IDENTIFIER = '#';
@@ -246,6 +247,8 @@ class StateNode<
 
   public options: MachineOptions<TContext, TEvent>;
 
+  public schema: MachineSchema<TContext, TEvent>;
+
   public __xstatenode: true = true;
 
   private __cache = {
@@ -275,6 +278,7 @@ class StateNode<
   };
 
   private idMap: Record<string, StateNode<TContext, any, TEvent>> = {};
+  public tags: string[] = [];
 
   constructor(
     /**
@@ -285,7 +289,7 @@ class StateNode<
     /**
      * The initial extended state
      */
-    public context?: Readonly<TContext>
+    public context: Readonly<TContext> = undefined as any // TODO: this is unsafe, but we're removing it in v5 anyway
   ) {
     this.options = Object.assign(createDefaultOptions<TContext>(), options);
     this.parent = this.options._parent;
@@ -310,6 +314,10 @@ class StateNode<
         : this.config.history
         ? 'history'
         : 'atomic');
+    this.schema = this.parent
+      ? this.machine.schema
+      : (this.config as MachineConfig<TContext, TStateSchema, TEvent>).schema ??
+        ({} as this['schema']);
 
     if (!IS_PRODUCTION) {
       warn(
@@ -426,6 +434,7 @@ class StateNode<
       .concat(this.invoke)
       .map((activity) => toActivityDefinition(activity));
     this.transition = this.transition.bind(this);
+    this.tags = toArray(this.config.tags);
 
     // TODO: this is the real fix for initialization once
     // state node getters are deprecated
@@ -1254,7 +1263,8 @@ class StateNode<
       configuration: resolvedConfiguration,
       transitions: stateTransition.transitions,
       children,
-      done: isDone
+      done: isDone,
+      tags: currentState?.tags
     });
 
     const didUpdateContext = currentContext !== updatedContext;
@@ -1314,6 +1324,10 @@ class StateNode<
 
     // Preserve original history after raised events
     maybeNextState.history = history;
+
+    maybeNextState.tags = new Set(
+      flatten(maybeNextState.configuration.map((sn) => sn.tags))
+    );
 
     return maybeNextState;
   }
@@ -1492,6 +1506,9 @@ class StateNode<
         : {
             [this.initial]: this.states[this.initial].initialStateValue
           }) as StateValue;
+    } else {
+      // The finite state value of a machine without child states is just an empty object
+      initialStateValue = {};
     }
 
     this.__cache.initialStateValue = initialStateValue;

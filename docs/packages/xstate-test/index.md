@@ -15,9 +15,9 @@ npm install xstate @xstate/test
 2. Create the machine that will be used to model the system under test (SUT):
 
 ```js
-import { Machine } from 'xstate';
+import { createMachine } from 'xstate';
 
-const toggleMachine = Machine({
+const toggleMachine = createMachine({
   id: 'toggle',
   initial: 'inactive',
   states: {
@@ -40,7 +40,7 @@ const toggleMachine = Machine({
 ```js
 // ...
 
-const toggleMachine = Machine({
+const toggleMachine = createMachine({
   id: 'toggle',
   initial: 'inactive',
   states: {
@@ -71,10 +71,10 @@ const toggleMachine = Machine({
 4. Create the model:
 
 ```js
-import { Machine } from 'xstate';
+import { createMachine } from 'xstate';
 import { createModel } from '@xstate/test';
 
-const toggleMachine = Machine(/* ... */);
+const toggleMachine = createMachine(/* ... */);
 
 const toggleModel = createModel(toggleMachine).withEvents({
   TOGGLE: {

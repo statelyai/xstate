@@ -22,12 +22,12 @@ An optional interpreter is provided that you can use to run your statecharts. Th
 - And more!
 
 ```js
-import { Machine, interpret } from 'xstate';
+import { createMachine, interpret } from 'xstate';
 
-const machine = Machine(/* machine config */);
+const machine = createMachine(/* machine config */);
 
 // Interpret the machine, and add a listener for whenever a transition occurs.
-const service = interpret(machine).onTransition(state => {
+const service = interpret(machine).onTransition((state) => {
   console.log(state.value);
 });
 
@@ -115,7 +115,7 @@ Listeners for state transitions are registered via the `.onTransition(...)` meth
 const service = interpret(machine);
 
 // Add a state listener, which is called whenever a state transition occurs.
-service.onTransition(state => {
+service.onTransition((state) => {
   console.log(state.value);
 });
 
@@ -127,7 +127,7 @@ service.start();
 If you only want the `.onTransition(...)` handler(s) to be called when the state changes (that is, when the `state.value` changes, the `state.context` changes, or there are new `state.actions`), use [`state.changed`](https://xstate.js.org/docs/guides/states.html#state-changed):
 
 ```js {2}
-service.onTransition(state => {
+service.onTransition((state) => {
   if (state.changed) {
     console.log(state.value);
   }
@@ -172,7 +172,7 @@ const service = interpret(machine, {
   execute: false // do not execute actions on state transitions
 });
 
-service.onTransition(state => {
+service.onTransition((state) => {
   // execute actions on next animation frame
   // instead of immediately
   requestAnimationFrame(() => service.execute(state));
@@ -198,7 +198,7 @@ The following options can be passed into the interpreter as the 2nd argument (`i
 You may use any interpreter (or create your own) to run your state machine/statechart. Here's an example minimal implementation that demonstrates how flexible interpretation can be (despite the amount of boilerplate):
 
 ```js
-const machine = Machine(/* machine config */);
+const machine = createMachine(/* machine config */);
 
 // Keep track of the current state, and start
 // with the initial state
@@ -215,13 +215,13 @@ function send(event) {
   // Get the side-effect actions to execute
   const { actions } = currentState;
 
-  actions.forEach(action => {
+  actions.forEach((action) => {
     // If the action is executable, execute it
     action.exec && action.exec();
   });
 
   // Notify the listeners
-  listeners.forEach(listener => listener(currentState));
+  listeners.forEach((listener) => listener(currentState));
 }
 
 function listen(listener) {
@@ -233,7 +233,7 @@ function unlisten(listener) {
 }
 
 // Now you can listen and send events to update state
-listen(state => {
+listen((state) => {
   console.log(state.value);
 });
 
@@ -247,7 +247,7 @@ send('SOME_EVENT');
 
 ```js
 const service = interpret(machine)
-  .onTransition(state => console.log(state))
+  .onTransition((state) => console.log(state))
   .onDone(() => console.log('done'))
   .start(); // returns started service
 ```

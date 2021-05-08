@@ -7,7 +7,7 @@ While _finite_ states are well-defined in finite state machines and statecharts,
 In XState, extended state is known as **context**. Below is an example of how `context` is used to simulate filling a glass of water:
 
 ```js
-import { Machine, assign } from 'xstate';
+import { createMachine, assign } from 'xstate';
 
 // Action to increment the context amount
 const addWater = assign({
@@ -19,7 +19,7 @@ function glassIsFull(context, event) {
   return context.amount >= 10;
 }
 
-const glassMachine = Machine(
+const glassMachine = createMachine(
   {
     id: 'glass',
     // the initial context (extended state) of the statechart
@@ -39,8 +39,8 @@ const glassMachine = Machine(
       filling: {
         // Transient transition
         always: {
-            target: 'full',
-            cond: 'glassIsFull'
+          target: 'full',
+          cond: 'glassIsFull'
         },
         on: {
           FILL: {
@@ -73,7 +73,7 @@ nextState.context;
 The initial context is specified on the `context` property of the `Machine`:
 
 ```js
-const counterMachine = Machine({
+const counterMachine = createMachine({
   id: 'counter',
   // initial context
   context: {
@@ -95,7 +95,7 @@ For dynamic `context` (that is, `context` whose initial value is retrieved or pr
 
 ```js
 const createCounterMachine = (count, time) => {
-  return Machine({
+  return createMachine({
     id: 'counter',
     // values provided from function arguments
     context: {
@@ -112,7 +112,7 @@ const counterMachine = createCounterMachine(42, Date.now());
 Or for existing machines, `machine.withContext(...)` should be used:
 
 ```js
-const counterMachine = Machine({
+const counterMachine = createMachine({
   /* ... */
 });
 
@@ -142,7 +142,7 @@ The `assign()` action is used to update the machine's `context`. It takes the co
 The "assigner" can be an object (recommended):
 
 ```js
-import { Machine, assign } from 'xstate';
+import { createMachine, assign } from 'xstate';
 // example: property assigner
 
 // ...
@@ -197,7 +197,7 @@ Custom actions are always executed with regard to the _next state_ in the transi
 For example, in this counter machine, the custom actions will not work as expected:
 
 ```js
-const counterMachine = Machine({
+const counterMachine = createMachine({
   id: 'counter',
   context: { count: 0 },
   initial: 'active',
@@ -229,7 +229,7 @@ This is because both `assign(...)` actions are batched in order and executed fir
 A good way to refactor this to get the desired result is modeling the `context` with explicit _previous_ values, if those are needed:
 
 ```js
-const counterMachine = Machine({
+const counterMachine = createMachine({
   id: 'counter',
   context: { count: 0, prevCount: undefined },
   initial: 'active',
@@ -282,7 +282,7 @@ The benefits of this are:
 - Just like with `actions`, it's best to represent `assign()` actions as strings or functions, and then reference them in the machine options:
 
 ```js {5}
-const countMachine = Machine({
+const countMachine = createMachine({
   initial: 'start',
   context: { count: 0 }
   states: {
@@ -304,7 +304,7 @@ Or as named functions (same result as above):
 const increment = assign({ count: context => context.count + 1 });
 const decrement = assign({ count: context => context.count - 1 });
 
-const countMachine = Machine({
+const countMachine = createMachine({
   initial: 'start',
   context: { count: 0 }
   states: {
@@ -408,7 +408,7 @@ on: {
 **Set initial context**
 
 ```js
-const machine = Machine({
+const machine = createMachine({
   // ...
   context: {
     count: 0,
@@ -421,8 +421,8 @@ const machine = Machine({
 **Set dynamic initial context**
 
 ```js
-const createMachine = (count, user) => {
-  return Machine({
+const createSomeMachine = (count, user) => {
+  return createMachine({
     // ...
     // Provided from arguments; your implementation may vary
     context: {
@@ -437,7 +437,7 @@ const createMachine = (count, user) => {
 **Set custom initial context**
 
 ```js
-const machine = Machine({
+const machine = createMachine({
   // ...
   // Provided from arguments; your implementation may vary
   context: {
@@ -458,7 +458,7 @@ const myMachine = machine.withContext({
 **Assign to context**
 
 ```js
-const machine = Machine({
+const machine = createMachine({
   // ...
   context: {
     count: 0,

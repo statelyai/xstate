@@ -7,7 +7,7 @@ A parallel state node is specified on the machine and/or any nested compound sta
 For example, the machine below allows the `upload` and `download` compound states to be simultaneously active. Imagine that this represents an application where you can download and upload files at the same time:
 
 ```js {3,5,21}
-const fileMachine = Machine({
+const fileMachine = createMachine({
   id: 'file',
   type: 'parallel',
   states: {
@@ -76,7 +76,7 @@ console.log(
 A compound state node can contain parallel state nodes. The configuration is the same for nested state nodes:
 
 ```js
-const lightMachine = Machine({
+const lightMachine = createMachine({
   // not a parallel machine
   id: 'light',
   initial: 'green',

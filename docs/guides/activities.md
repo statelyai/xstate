@@ -7,7 +7,7 @@ An activity is an action that occurs over time, and can be started and stopped. 
 For example, a toggle that "beeps" when active can be represented by a `'beeping'` activity:
 
 ```js
-const toggleMachine = Machine(
+const toggleMachine = createMachine(
   {
     id: 'toggle',
     initial: 'inactive',
@@ -42,7 +42,7 @@ In XState, activities are specified on the `activities` property of a state node
 To determine which activities are currently active, the `State` has an `activities` property, which is a mapping of activity names to `true` if the activity is started (active), and `false` if it is stopped.
 
 ```js
-const lightMachine = Machine({
+const lightMachine = createMachine({
   key: 'light',
   initial: 'green',
   states: {
@@ -185,7 +185,7 @@ The activity creator is always given two arguments:
 Then you would pass this into the machine options (second argument) under the `activities` property:
 
 ```js
-const toggleMachine = Machine(
+const toggleMachine = createMachine(
   {
     id: 'toggle',
     initial: 'inactive',
@@ -247,7 +247,7 @@ import { State, actions } from 'xstate';
 const restoredState = State.create(somePersistedStateJSON);
 
 // Select activities to be restarted
-Object.keys(restoredState.activities).forEach(activityKey => {
+Object.keys(restoredState.activities).forEach((activityKey) => {
   if (restoredState.activities[activityKey]) {
     // Filter activities, and then add the start() action to the restored state
     restoredState.actions.push(actions.start(activityKey));

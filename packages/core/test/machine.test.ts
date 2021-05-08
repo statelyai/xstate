@@ -1,4 +1,4 @@
-import { Machine, interpret, createMachine } from '../src/index';
+import { Machine, interpret, createMachine, assign } from '../src/index';
 import { State } from '../src/State';
 
 const pedestrianStates = {
@@ -377,6 +377,27 @@ describe('machine', () => {
       expect(noStateNodeIDMachine.getStateNode('idle').id).toEqual(
         'some-id.idle'
       );
+    });
+  });
+
+  describe('combinatorial machines', () => {
+    it('should support combinatorial machines (single-state)', () => {
+      const testMachine = createMachine<{ value: number }>({
+        context: { value: 42 },
+        on: {
+          INC: {
+            actions: assign({ value: (ctx) => ctx.value + 1 })
+          }
+        }
+      });
+
+      const state = testMachine.initialState;
+
+      expect(state.value).toEqual({});
+
+      const nextState = testMachine.transition(state, 'INC');
+
+      expect(nextState.context.value).toEqual(43);
     });
   });
 });

@@ -1,5 +1,188 @@
 # xstate
 
+## 4.19.1
+
+### Patch Changes
+
+- [`64ab1150`](https://github.com/davidkpiano/xstate/commit/64ab1150e0a383202f4af1d586b28e081009c929) [#2173](https://github.com/davidkpiano/xstate/pull/2173) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with tags not being set correctly after sending an event to a machine that didn't result in selecting any transitions.
+
+## 4.19.0
+
+### Minor Changes
+
+- [`4f2f626d`](https://github.com/davidkpiano/xstate/commit/4f2f626dc84f45bb18ded6dd9aad3b6f6a2190b1) [#2143](https://github.com/davidkpiano/xstate/pull/2143) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Tags can now be added to state node configs under the `.tags` property:
+
+  ```js
+  const machine = createMachine({
+    initial: 'green',
+    states: {
+      green: {
+        tags: 'go' // single tag
+      },
+      yellow: {
+        tags: 'go'
+      },
+      red: {
+        tags: ['stop', 'other'] // multiple tags
+      }
+    }
+  });
+  ```
+
+  You can query whether a state has a tag via `state.hasTag(tag)`:
+
+  ```js
+  const canGo = state.hasTag('go');
+  // => `true` if in 'green' or 'red' state
+  ```
+
+### Patch Changes
+
+- [`a61d01ce`](https://github.com/davidkpiano/xstate/commit/a61d01cefab5734adf9bfb167291f5b0ba712684) [#2125](https://github.com/davidkpiano/xstate/pull/2125) Thanks [@VanTanev](https://github.com/VanTanev)! - In callback invokes, the types of `callback` and `onReceive` are properly scoped to the machine TEvent.
+
+## 4.18.0
+
+### Minor Changes
+
+- [`d0939ec6`](https://github.com/davidkpiano/xstate/commit/d0939ec60161c34b053cecdaeb277606b5982375) [#2046](https://github.com/davidkpiano/xstate/pull/2046) Thanks [@SimeonC](https://github.com/SimeonC)! - Allow machines to communicate with the inspector even in production builds.
+
+* [`e37fffef`](https://github.com/davidkpiano/xstate/commit/e37fffefb742f45765945c02727edfbd5e2f9d47) [#2079](https://github.com/davidkpiano/xstate/pull/2079) Thanks [@davidkpiano](https://github.com/davidkpiano)! - There is now support for "combinatorial machines" (state machines that only have one state):
+
+  ```js
+  const testMachine = createMachine({
+    context: { value: 42 },
+    on: {
+      INC: {
+        actions: assign({ value: (ctx) => ctx.value + 1 })
+      }
+    }
+  });
+  ```
+
+  These machines omit the `initial` and `state` properties, as the entire machine is treated as a single state.
+
+### Patch Changes
+
+- [`6a9247d4`](https://github.com/davidkpiano/xstate/commit/6a9247d4d3a39e6c8c4724d3368a13fcdef10907) [#2102](https://github.com/davidkpiano/xstate/pull/2102) Thanks [@VanTanev](https://github.com/VanTanev)! - Provide a convenience type for getting the `Interpreter` type based on the `StateMachine` type by transferring all generic parameters onto it. It can be used like this: `InterpreterFrom<typeof machine>`
+
+## 4.17.1
+
+### Patch Changes
+
+- [`33302814`](https://github.com/davidkpiano/xstate/commit/33302814c38587d0044afd2ae61a4ff4779416c6) [#2041](https://github.com/davidkpiano/xstate/pull/2041) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with creatorless models not being correctly matched by `createMachine`'s overload responsible for using model-induced types.
+
+## 4.17.0
+
+### Minor Changes
+
+- [`7763db8d`](https://github.com/davidkpiano/xstate/commit/7763db8d3615321d03839b2bd31c9b118ddee50c) [#1977](https://github.com/davidkpiano/xstate/pull/1977) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `schema` property has been introduced to the machine config passed into `createMachine(machineConfig)`, which allows you to provide metadata for the following:
+
+  - Context
+  - Events
+  - Actions
+  - Guards
+  - Services
+
+  This metadata can be accessed as-is from `machine.schema`:
+
+  ```js
+  const machine = createMachine({
+    schema: {
+      // Example in JSON Schema (anything can be used)
+      context: {
+        type: 'object',
+        properties: {
+          foo: { type: 'string' },
+          bar: { type: 'number' },
+          baz: {
+            type: 'object',
+            properties: {
+              one: { type: 'string' }
+            }
+          }
+        }
+      },
+      events: {
+        FOO: { type: 'object' },
+        BAR: { type: 'object' }
+      }
+    }
+    // ...
+  });
+  ```
+
+  Additionally, the new `createSchema()` identity function allows any schema "metadata" to be represented by a specific type, which makes type inference easier without having to specify generic types:
+
+  ```ts
+  import { createSchema, createMachine } from 'xstate';
+
+  // Both `context` and `events` are inferred in the rest of the machine!
+  const machine = createMachine({
+    schema: {
+      context: createSchema<{ count: number }>(),
+      // No arguments necessary
+      events: createSchema<{ type: 'FOO' } | { type: 'BAR' }>()
+    }
+    // ...
+  });
+  ```
+
+* [`5febfe83`](https://github.com/davidkpiano/xstate/commit/5febfe83a7e5e866c0a4523ea4f86a966af7c50f) [#1955](https://github.com/davidkpiano/xstate/pull/1955) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Event creators can now be modeled inside of the 2nd argument of `createModel()`, and types for both `context` and `events` will be inferred properly in `createMachine()` when given the `typeof model` as the first generic parameter.
+
+  ```ts
+  import { createModel } from 'xstate/lib/model';
+
+  const userModel = createModel(
+    // initial context
+    {
+      name: 'David',
+      age: 30
+    },
+    // creators (just events for now)
+    {
+      events: {
+        updateName: (value: string) => ({ value }),
+        updateAge: (value: number) => ({ value }),
+        anotherEvent: () => ({}) // no payload
+      }
+    }
+  );
+
+  const machine = createMachine<typeof userModel>({
+    context: userModel.initialContext,
+    initial: 'active',
+    states: {
+      active: {
+        on: {
+          updateName: {
+            /* ... */
+          },
+          updateAge: {
+            /* ... */
+          }
+        }
+      }
+    }
+  });
+
+  const nextState = machine.transition(
+    undefined,
+    userModel.events.updateName('David')
+  );
+  ```
+
+## 4.16.2
+
+### Patch Changes
+
+- [`4194ffe8`](https://github.com/davidkpiano/xstate/commit/4194ffe84cfe7910e2c183701e36bc5cac5c9bcc) [#1710](https://github.com/davidkpiano/xstate/pull/1710) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Stopping an already stopped interpreter will no longer crash. See [#1697](https://github.com/davidkpiano/xstate/issues/1697) for details.
+
+## 4.16.1
+
+### Patch Changes
+
+- [`af6b7c70`](https://github.com/davidkpiano/xstate/commit/af6b7c70015db29d84f79dfd29ea0dc221b8f3e6) [#1865](https://github.com/davidkpiano/xstate/pull/1865) Thanks [@Andarist](https://github.com/Andarist)! - Improved `.matches(value)` inference for typestates containing union types as values.
+
 ## 4.16.0
 
 ### Minor Changes

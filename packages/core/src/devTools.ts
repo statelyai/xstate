@@ -1,5 +1,4 @@
 import { Interpreter } from '.';
-import { IS_PRODUCTION } from './environment';
 import { AnyInterpreter } from './types';
 
 type ServiceListener = (service: AnyInterpreter) => void;
@@ -40,7 +39,7 @@ function getDevTools(): XStateDevInterface | undefined {
 }
 
 export function registerService(service: AnyInterpreter) {
-  if (IS_PRODUCTION || !getGlobal()) {
+  if (!getGlobal()) {
     return;
   }
 

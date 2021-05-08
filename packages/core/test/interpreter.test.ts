@@ -1388,6 +1388,19 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         done();
       }, 10);
     });
+
+    it('stopping a not-started interpreter should not crash', () => {
+      const service = interpret(
+        createMachine({
+          initial: 'a',
+          states: { a: {} }
+        })
+      );
+
+      expect(() => {
+        service.stop();
+      }).not.toThrow();
+    });
   });
 
   describe('off()', () => {
@@ -1967,9 +1980,10 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
               NEXT: {
                 target: 'gone',
                 actions: [
-                  stop((ctx) => ctx.machineRef),
-                  stop((ctx) => ctx.promiseRef),
-                  stop((ctx) => ctx.observableRef)
+                  // TODO: type these correctly in TContext
+                  stop((ctx) => (ctx as any).machineRef),
+                  stop((ctx) => (ctx as any).promiseRef),
+                  stop((ctx) => (ctx as any).observableRef)
                 ]
               }
             }

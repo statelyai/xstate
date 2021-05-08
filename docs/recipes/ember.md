@@ -6,10 +6,10 @@ You can also write a custom integration layer yourself if you want to.
 The machine used should always be decoupled from implementation details; e.g., it should never know that it is in Ember.js (or React, or Vue, etc.):
 
 ```js
-import { Machine } from 'xstate';
+import { createMachine } from 'xstate';
 
 // This machine is completely decoupled from Ember
-export const toggleMachine = Machine({
+export const toggleMachine = createMachine({
   id: 'toggle',
   context: {
     /* some data */
@@ -77,7 +77,6 @@ follow a similar pattern to [Vue](./vue.md):
 This example is based on Ember Octane features (Ember 3.13+)
 :::
 
-
 ```handlebars
 <button type="button" {{on "click" (fn this.transition "TOGGLE")}}>
   {{if this.isInactive "Off" "On"}}
@@ -106,7 +105,7 @@ export default class ToggleButton extends Component {
     super(...arguments);
     this.toggleInterpreter = interpret(toggleMachine);
     this.toggleInterpreter
-      .onTransition(state => (this.current = state))
+      .onTransition((state) => (this.current = state))
       .start();
   }
 

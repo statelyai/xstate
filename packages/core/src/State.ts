@@ -127,6 +127,7 @@ export class State<
    * An object mapping actor IDs to spawned actors/invoked services.
    */
   public children: Record<string, ActorRef<any>>;
+  public tags: Set<string>;
   /**
    * Creates a new State instance for the given `stateValue` and `context`.
    * @param stateValue
@@ -247,6 +248,7 @@ export class State<
     this.transitions = config.transitions;
     this.children = config.children;
     this.done = !!config.done;
+    this.tags = config.tags ?? new Set();
 
     Object.defineProperty(this, 'nextEvents', {
       get: () => {
@@ -279,9 +281,9 @@ export class State<
   }
 
   public toJSON() {
-    const { configuration, transitions, ...jsonValues } = this;
+    const { configuration, transitions, tags, ...jsonValues } = this;
 
-    return jsonValues;
+    return { ...jsonValues, tags: Array.from(tags) };
   }
 
   /**
@@ -301,5 +303,13 @@ export class State<
     TTypestate
   > & { value: TSV } {
     return matchesState(parentStateValue as StateValue, this.value);
+  }
+
+  /**
+   * Whether the current state configuration has a state node with the specified `tag`.
+   * @param tag
+   */
+  public hasTag(tag: string): boolean {
+    return this.tags.has(tag);
   }
 }
