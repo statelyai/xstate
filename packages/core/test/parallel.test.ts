@@ -1,5 +1,5 @@
 import { raise, assign } from '../src/actions';
-import { Machine } from '../src';
+import { createMachine, interpret, Machine } from '../src';
 import { testMultiTransition } from './utils';
 
 const composerMachine = Machine({
@@ -921,5 +921,70 @@ describe('parallel states', () => {
 
       expect(run2.context.log.length).toBe(2);
     });
+  });
+
+  it('should raise a "done.state.*" event when all child states reach final state', (done) => {
+    const machine = createMachine({
+      id: 'test',
+      initial: 'p',
+      states: {
+        p: {
+          type: 'parallel',
+          states: {
+            a: {
+              initial: 'idle',
+              states: {
+                idle: {
+                  on: {
+                    FINISH: 'finished'
+                  }
+                },
+                finished: {
+                  type: 'final'
+                }
+              }
+            },
+            b: {
+              initial: 'idle',
+              states: {
+                idle: {
+                  on: {
+                    FINISH: 'finished'
+                  }
+                },
+                finished: {
+                  type: 'final'
+                }
+              }
+            },
+            c: {
+              initial: 'idle',
+              states: {
+                idle: {
+                  on: {
+                    FINISH: 'finished'
+                  }
+                },
+                finished: {
+                  type: 'final'
+                }
+              }
+            }
+          },
+          onDone: 'success'
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    const service = interpret(machine)
+      .onDone(() => {
+        done();
+      })
+      .start();
+
+    service.send('FINISH');
   });
 });
