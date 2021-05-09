@@ -29,7 +29,7 @@ interface LightContext {
   elapsed: number;
 }
 
-const lightMachine = Machine<LightContext, LightStateSchema, LightEvent>({
+const lightMachine = createMachine<LightContext, LightStateSchema, LightEvent>({
   key: 'light',
   initial: 'green',
   context: { elapsed: 0 },
@@ -80,7 +80,7 @@ const lightMachine = Machine<LightContext, LightStateSchema, LightEvent>({
 });
 ```
 
-Providing the context, state schema, and events as generic parameters for the `Machine()` function may seem tedious (and is completely optional), but gives many advantages:
+Providing the context, state schema, and events as generic parameters for the `createMachine()` function may seem tedious (and is completely optional), but gives many advantages:
 
 - The context type/interface (`TContext`) is passed on to action `exec` functions, guard `cond` functions, and more. It is also passed to deeply nested states.
 - The state schema type/interface (`TStateSchema`) ensures that only state keys defined on the schema are allowed in the actual config object. Nested state schemas are recursively passed down to their representative child states.
@@ -97,7 +97,7 @@ Ensure that your tsconfig file does not include `"keyofStringsOnly": true,`.
 
 ## Config Objects
 
-The generic types for `MachineConfig<TContext, TSchema, TEvent>` are the same as those for `Machine<TContext, TSchema, TEvent>`. This is useful when you are defining a machine config object _outside_ of the `Machine(...)` function, and helps prevent [inference errors](https://github.com/davidkpiano/xstate/issues/310):
+The generic types for `MachineConfig<TContext, TSchema, TEvent>` are the same as those for `createMachine<TContext, TSchema, TEvent>`. This is useful when you are defining a machine config object _outside_ of the `createMachine(...)` function, and helps prevent [inference errors](https://github.com/davidkpiano/xstate/issues/310):
 
 ```ts
 import { createMachineConfig } from 'xstate';

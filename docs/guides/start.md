@@ -6,7 +6,7 @@ Suppose we want to model a [Promise](https://developer.mozilla.org/en-US/docs/We
 npm install xstate --save
 ```
 
-Then, in your project, import `Machine`, which is a factory function that creates a state machine or statechart:
+Then, in your project, import `createMachine`, which is a factory function that creates a state machine or statechart:
 
 ```js
 import { createMachine } from 'xstate';
@@ -14,7 +14,7 @@ import { createMachine } from 'xstate';
 const promiseMachine = createMachine(/* ... */);
 ```
 
-We'll pass the [machine configuration](./machines.md#configuration) inside of `Machine(...)`. Since this is a [hierarchical machine](./hierarchical.md), we need to provide the:
+We'll pass the [machine configuration](./machines.md#configuration) inside of `createMachine(...)`. Since this is a [hierarchical machine](./hierarchical.md), we need to provide the:
 
 - `id` - to identify the machine and set the base string for its child state node IDs
 - `initial` - to specify the initial state node this machine should be in

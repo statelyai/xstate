@@ -9,7 +9,7 @@ A **state machine** is a finite set of [states](./statenodes.md) that can transi
 
 ## Configuration
 
-State machines and statecharts alike are defined using the `Machine()` factory function:
+State machines and statecharts alike are defined using the `createMachine()` factory function:
 
 ```js
 import { createMachine } from 'xstate';
@@ -48,7 +48,7 @@ The machine config is the same as the [state node config](./statenodes.md), with
 
 ## Options
 
-Implementations for [actions](./actions.md), [activities](./activities.md), [delays](./delays.md), [guards](./guards.md), and [services](./communication.md) can be referenced in the machine config as a string, and then specified as an object in the 2nd argument to `Machine()`:
+Implementations for [actions](./actions.md), [activities](./activities.md), [delays](./delays.md), [guards](./guards.md), and [services](./communication.md) can be referenced in the machine config as a string, and then specified as an object in the 2nd argument to `createMachine()`:
 
 ```js
 const lightMachine = createMachine(
