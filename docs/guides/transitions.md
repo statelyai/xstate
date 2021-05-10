@@ -35,7 +35,7 @@ const { initialState } = promiseMachine;
 console.log(initialState.value);
 // => 'pending'
 
-const nextState = promiseMachine.transition(initialState, 'RESOLVE');
+const nextState = promiseMachine.transition(initialState, { type: 'RESOLVE' });
 
 console.log(nextState.value);
 // => 'resolved'
@@ -82,7 +82,7 @@ An **enabled transition** is a transition that will be taken conditionally, base
 
 In a [hierarchical machine](./hierarchical.md), transitions are prioritized by how deep they are in the tree; deeper transitions are more specific and thus have higher priority. This works similar to how DOM events work: if you click a button, the click event handler directly on the button is more specific than a click event handler on the `window`.
 
-```js {9,19,20,24}
+```js {10,21-22,27}
 const wizardMachine = createMachine({
   id: 'wizard',
   initial: 'open',
@@ -91,7 +91,9 @@ const wizardMachine = createMachine({
       initial: 'step1',
       states: {
         step1: {
-          on: { NEXT: 'step2' }
+          on: {
+            NEXT: { target: 'step2' }
+          }
         },
         step2: {
           /* ... */
@@ -101,14 +103,18 @@ const wizardMachine = createMachine({
         }
       },
       on: {
-        NEXT: 'goodbye',
-        CLOSE: 'closed'
+        NEXT: { target: 'goodbye' },
+        CLOSE: { target: 'closed' }
       }
     },
     goodbye: {
-      on: { CLOSE: 'closed' }
+      on: {
+        CLOSE: { target: 'closed' }
+      }
     },
-    closed: { type: 'final' }
+    closed: {
+      type: 'final'
+    }
   }
 });
 
@@ -118,14 +124,14 @@ const { initialState } = wizardMachine;
 // the NEXT transition defined on 'open.step1'
 // supersedes the NEXT transition defined
 // on the parent 'open' state
-const nextStepState = wizardMachine.transition(initialState, 'NEXT');
+const nextStepState = wizardMachine.transition(initialState, { type: 'NEXT' });
 console.log(nextStepState.value);
 // => { open: 'step2' }
 
 // there is no CLOSE transition on 'open.step1'
 // so the event is passed up to the parent
 // 'open' state, where it is defined
-const closedState = wizardMachine.transition(initialState, 'CLOSE');
+const closedState = wizardMachine.transition(initialState, { type: 'CLOSE' });
 console.log(closedState.value);
 // => 'closed'
 ```
@@ -334,7 +340,7 @@ An eventless transition is a transition that is **always taken** when the machin
 
 Eventless transitions are defined on the `always` property of the state node:
 
-```js {13-16}
+```js {14-17}
 const gameMachine = createMachine(
   {
     id: 'game',
@@ -390,7 +396,7 @@ const gameService = interpret(gameMachine)
 // When 'AWARD_POINTS' is sent, a self-transition to 'PLAYING' occurs.
 // The transient transition to 'win' is taken because the 'didPlayerWin'
 // condition is satisfied.
-gameService.send('AWARD_POINTS');
+gameService.send({ type: 'AWARD_POINTS' });
 // => 'win'
 ```
 
@@ -545,10 +551,10 @@ const quietMachine = createMachine({
   }
 });
 
-quietMachine.transition(quietMachine.initialState, 'WHISPER');
+quietMachine.transition(quietMachine.initialState, { type: 'WHISPER' });
 // => State { value: 'idle' }
 
-quietMachine.transition(quietMachine.initialState, 'SOME_EVENT');
+quietMachine.transition(quietMachine.initialState, { type: 'SOME_EVENT' });
 // => State { value: 'disturbed' }
 ```
 
@@ -564,7 +570,7 @@ The event-target mappings defined on the `on: { ... }` property of state nodes i
         target: '#yellow',
         cond: context => context.timeElapsed > 5000
       },
-      POWER_OUTAGE: '#red.flashing'
+      POWER_OUTAGE: { target: '#red.flashing' }
     }
   },
   // ...

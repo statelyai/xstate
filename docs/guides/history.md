@@ -23,18 +23,22 @@ const fanMachine = createMachine({
     fanOff: {
       on: {
         // transitions to history state
-        POWER: 'fanOn.hist',
-        HIGH_POWER: 'fanOn.highPowerHist'
+        POWER: { target: 'fanOn.hist' },
+        HIGH_POWER: { target: 'fanOn.highPowerHist' }
       }
     },
     fanOn: {
       initial: 'first',
       states: {
         first: {
-          on: { SWITCH: 'second' }
+          on: {
+            SWITCH: { target: 'second' }
+          }
         },
         second: {
-          on: { SWITCH: 'third' }
+          on: {
+            SWITCH: { target: 'third' }
+          }
         },
         third: {},
 
@@ -51,7 +55,7 @@ const fanMachine = createMachine({
         }
       },
       on: {
-        POWER: 'fanOff'
+        POWER: { target: 'fanOff' }
       }
     }
   }
@@ -61,20 +65,22 @@ const fanMachine = createMachine({
 In the above machine, the transition from `'fanOff'` on the event `'POWER'` goes to the `'fanOn.hist'` state, which is defined as a shallow history state. This means that the machine should transition to the `'fanOn'` state and to whichever the previous substate of `'fanOn'` was. By default, `'fanOn'` will go to its initial state, `'first'`, if there is no history state.
 
 ```js
-const firstState = fanMachine.transition(fanMachine.initialState, 'POWER');
+const firstState = fanMachine.transition(fanMachine.initialState, {
+  type: 'POWER'
+});
 console.log(firstState.value);
 // transitions to the initial state of 'fanOn' since there is no history
 // => {
 //   fanOn: 'first'
 // }
 
-const secondState = fanMachine.transition(firstState, 'SWITCH');
+const secondState = fanMachine.transition(firstState, { type: 'SWITCH' });
 console.log(secondState.value);
 // => {
 //   fanOn: 'second'
 // }
 
-const thirdState = fanMachine.transition(secondState, 'POWER');
+const thirdState = fanMachine.transition(secondState, { type: 'POWER' });
 console.log(thirdState.value);
 // => 'fanOff'
 
@@ -84,7 +90,7 @@ console.log(thirdState.history);
 //   actions: []
 // }
 
-const fourthState = fanMachine.transition(thirdState, 'POWER');
+const fourthState = fanMachine.transition(thirdState, { type: 'POWER' });
 console.log(fourthState.value);
 // transitions to 'fanOn.second' from history
 // => {
@@ -95,7 +101,9 @@ console.log(fourthState.value);
 With a `target` specified, if no history exists for the state region the history state is defined in, it will go to the `target` state by default:
 
 ```js
-const firstState = fanMachine.transition(fanMachine.initialState, 'HIGH_POWER');
+const firstState = fanMachine.transition(fanMachine.initialState, {
+  type: 'HIGH_POWER'
+});
 console.log(firstState.value);
 // transitions to the target state of 'fanOn.third' since there is no history
 // => {

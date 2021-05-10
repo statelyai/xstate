@@ -58,8 +58,16 @@ const toggleMachine = createMachine({
   id: 'toggle',
   initial: 'inactive',
   states: {
-    inactive: { on: { TOGGLE: 'active' } },
-    active: { on: { TOGGLE: 'inactive' } }
+    inactive: {
+      on: {
+        TOGGLE: { target: 'active' }
+      }
+    },
+    active: {
+      on: {
+        TOGGLE: { target: 'inactive' }
+      }
+    }
   }
 });
 
@@ -69,10 +77,10 @@ const toggleService = interpret(toggleMachine)
   .start();
 // => 'inactive'
 
-toggleService.send('TOGGLE');
+toggleService.send({ type: 'TOGGLE' });
 // => 'active'
 
-toggleService.send('TOGGLE');
+toggleService.send({ type: 'TOGGLE' });
 // => 'inactive'
 ```
 
@@ -92,7 +100,7 @@ const fetchMachine = createMachine({
   states: {
     idle: {
       on: {
-        FETCH: 'loading'
+        FETCH: { target: 'loading' }
       }
     },
     loading: {
@@ -108,19 +116,21 @@ const fetchMachine = createMachine({
             dog: (_, event) => event.data
           })
         },
-        onError: 'rejected'
+        onError: {
+          target: 'rejected'
+        }
       },
       on: {
-        CANCEL: 'idle'
+        CANCEL: { target: 'idle' }
+      }
+    },
+    rejected: {
+      on: {
+        FETCH: { target: 'loading' }
       }
     },
     resolved: {
       type: 'final'
-    },
-    rejected: {
-      on: {
-        FETCH: 'loading'
-      }
     }
   }
 });
@@ -129,7 +139,7 @@ const dogService = interpret(fetchMachine)
   .onTransition((state) => console.log(state.value))
   .start();
 
-dogService.send('FETCH');
+dogService.send({ type: 'FETCH' });
 ```
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
@@ -176,17 +186,17 @@ const lightMachine = createMachine({
   states: {
     green: {
       on: {
-        TIMER: 'yellow'
+        TIMER: { target: 'yellow' }
       }
     },
     yellow: {
       on: {
-        TIMER: 'red'
+        TIMER: { target: 'red' }
       }
     },
     red: {
       on: {
-        TIMER: 'green'
+        TIMER: { target: 'green' }
       }
     }
   }
@@ -194,7 +204,8 @@ const lightMachine = createMachine({
 
 const currentState = 'green';
 
-const nextState = lightMachine.transition(currentState, 'TIMER').value;
+const nextState = lightMachine.transition(currentState, { type: 'TIMER' })
+  .value;
 
 // => 'yellow'
 ```
@@ -211,12 +222,12 @@ const pedestrianStates = {
   states: {
     walk: {
       on: {
-        PED_TIMER: 'wait'
+        PED_TIMER: { target: 'wait' }
       }
     },
     wait: {
       on: {
-        PED_TIMER: 'stop'
+        PED_TIMER: { target: 'stop' }
       }
     },
     stop: {}
@@ -229,17 +240,17 @@ const lightMachine = createMachine({
   states: {
     green: {
       on: {
-        TIMER: 'yellow'
+        TIMER: { target: 'yellow' }
       }
     },
     yellow: {
       on: {
-        TIMER: 'red'
+        TIMER: { target: 'red' }
       }
     },
     red: {
       on: {
-        TIMER: 'green'
+        TIMER: { target: 'green' }
       },
       ...pedestrianStates
     }
@@ -248,12 +259,13 @@ const lightMachine = createMachine({
 
 const currentState = 'yellow';
 
-const nextState = lightMachine.transition(currentState, 'TIMER').value;
+const nextState = lightMachine.transition(currentState, { type: 'TIMER' })
+  .value;
 // => {
 //   red: 'walk'
 // }
 
-lightMachine.transition('red.walk', 'PED_TIMER').value;
+lightMachine.transition('red.walk', { type: 'PED_TIMER' }).value;
 // => {
 //   red: 'wait'
 // }
@@ -263,15 +275,18 @@ lightMachine.transition('red.walk', 'PED_TIMER').value;
 
 ```js
 // ...
-const waitState = lightMachine.transition({ red: 'walk' }, 'PED_TIMER').value;
+const waitState = lightMachine.transition(
+  { red: 'walk' },
+  { type: 'PED_TIMER' }
+).value;
 
 // => { red: 'wait' }
 
-lightMachine.transition(waitState, 'PED_TIMER').value;
+lightMachine.transition(waitState, { type: 'PED_TIMER' }).value;
 
 // => { red: 'stop' }
 
-lightMachine.transition({ red: 'stop' }, 'TIMER').value;
+lightMachine.transition({ red: 'stop' }, { type: 'TIMER' }).value;
 
 // => 'green'
 ```
@@ -289,10 +304,14 @@ const wordMachine = createMachine({
       initial: 'off',
       states: {
         on: {
-          on: { TOGGLE_BOLD: 'off' }
+          on: {
+            TOGGLE_BOLD: { target: 'off' }
+          }
         },
         off: {
-          on: { TOGGLE_BOLD: 'on' }
+          on: {
+            TOGGLE_BOLD: { target: 'on' }
+          }
         }
       }
     },
@@ -300,10 +319,14 @@ const wordMachine = createMachine({
       initial: 'off',
       states: {
         on: {
-          on: { TOGGLE_UNDERLINE: 'off' }
+          on: {
+            TOGGLE_UNDERLINE: { target: 'off' }
+          }
         },
         off: {
-          on: { TOGGLE_UNDERLINE: 'on' }
+          on: {
+            TOGGLE_UNDERLINE: { target: 'on' }
+          }
         }
       }
     },
@@ -311,10 +334,14 @@ const wordMachine = createMachine({
       initial: 'off',
       states: {
         on: {
-          on: { TOGGLE_ITALICS: 'off' }
+          on: {
+            TOGGLE_ITALICS: { target: 'off' }
+          }
         },
         off: {
-          on: { TOGGLE_ITALICS: 'on' }
+          on: {
+            TOGGLE_ITALICS: { target: 'on' }
+          }
         }
       }
     },
@@ -322,20 +349,30 @@ const wordMachine = createMachine({
       initial: 'none',
       states: {
         none: {
-          on: { BULLETS: 'bullets', NUMBERS: 'numbers' }
+          on: {
+            BULLETS: { target: 'bullets' },
+            NUMBERS: { target: 'numbers' }
+          }
         },
         bullets: {
-          on: { NONE: 'none', NUMBERS: 'numbers' }
+          on: {
+            NONE: { target: 'none' },
+            NUMBERS: { target: 'numbers' }
+          }
         },
         numbers: {
-          on: { BULLETS: 'bullets', NONE: 'none' }
+          on: {
+            BULLETS: { target: 'bullets' },
+            NONE: { target: 'none' }
+          }
         }
       }
     }
   }
 });
 
-const boldState = wordMachine.transition('bold.off', 'TOGGLE_BOLD').value;
+const boldState = wordMachine.transition('bold.off', { type: 'TOGGLE_BOLD' })
+  .value;
 
 // {
 //   bold: 'on',
@@ -351,7 +388,7 @@ const nextState = wordMachine.transition(
     underline: 'on',
     list: 'bullets'
   },
-  'TOGGLE_ITALICS'
+  { type: 'TOGGLE_ITALICS' }
 ).value;
 
 // {
@@ -374,33 +411,49 @@ const paymentMachine = createMachine({
     method: {
       initial: 'cash',
       states: {
-        cash: { on: { SWITCH_CHECK: 'check' } },
-        check: { on: { SWITCH_CASH: 'cash' } },
+        cash: {
+          on: {
+            SWITCH_CHECK: { target: 'check' }
+          }
+        },
+        check: {
+          on: {
+            SWITCH_CASH: { target: 'cash' }
+          }
+        },
         hist: { type: 'history' }
       },
-      on: { NEXT: 'review' }
+      on: {
+        NEXT: { target: 'review' }
+      }
     },
     review: {
-      on: { PREVIOUS: 'method.hist' }
+      on: {
+        PREVIOUS: { target: 'method.hist' }
+      }
     }
   }
 });
 
-const checkState = paymentMachine.transition('method.cash', 'SWITCH_CHECK');
+const checkState = paymentMachine.transition('method.cash', {
+  type: 'SWITCH_CHECK'
+});
 
 // => State {
 //   value: { method: 'check' },
 //   history: State { ... }
 // }
 
-const reviewState = paymentMachine.transition(checkState, 'NEXT');
+const reviewState = paymentMachine.transition(checkState, { type: 'NEXT' });
 
 // => State {
 //   value: 'review',
 //   history: State { ... }
 // }
 
-const previousState = paymentMachine.transition(reviewState, 'PREVIOUS').value;
+const previousState = paymentMachine.transition(reviewState, {
+  type: 'PREVIOUS'
+}).value;
 
 // => { method: 'check' }
 ```

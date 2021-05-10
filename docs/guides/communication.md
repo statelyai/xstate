@@ -87,7 +87,7 @@ const userMachine = createMachine({
   states: {
     idle: {
       on: {
-        FETCH: 'loading'
+        FETCH: { target: 'loading' }
       }
     },
     loading: {
@@ -107,7 +107,7 @@ const userMachine = createMachine({
     success: {},
     failure: {
       on: {
-        RETRY: 'loading'
+        RETRY: { target: 'loading' }
       }
     }
   }
@@ -151,7 +151,9 @@ const searchMachine = createMachine({
   },
   states: {
     idle: {
-      on: { SEARCH: 'searching' }
+      on: {
+        SEARCH: { target: 'searching' }
+      }
     },
     searching: {
       invoke: {
@@ -238,9 +240,9 @@ const pingPongMachine = createMachine({
           });
         }
       },
-      entry: send('PING', { to: 'ponger' }),
+      entry: send({ type: 'PING' }, { to: 'ponger' }),
       on: {
-        PONG: 'done'
+        PONG: { target: 'done' }
       }
     },
     done: {
@@ -281,7 +283,7 @@ const intervalMachine = createMachine({
       },
       on: {
         COUNT: { actions: 'notifyCount' },
-        CANCEL: 'finished'
+        CANCEL: { target: 'finished' }
       }
     },
     finished: {
@@ -336,7 +338,7 @@ const minuteMachine = createMachine({
   states: {
     active: {
       after: {
-        60000: 'finished'
+        60000: { target: 'finished' }
       }
     },
     finished: { type: 'final' }
@@ -435,7 +437,7 @@ const secretMachine = createMachine({
   states: {
     wait: {
       after: {
-        1000: 'reveal'
+        1000: { target: 'reveal' }
       }
     },
     reveal: {
@@ -514,13 +516,10 @@ const pingMachine = createMachine({
         src: pongMachine
       },
       // Sends 'PING' event to child machine with ID 'pong'
-      entry: send('PING', { to: 'pong' }),
+      entry: send({ type: 'PING' }, { to: 'pong' }),
       on: {
         PONG: {
-          actions: send('PING', {
-            to: 'pong',
-            delay: 1000
-          })
+          actions: send({ type: 'PING' }, { to: 'pong', delay: 1000 })
         }
       }
     }
@@ -587,16 +586,18 @@ const authClientMachine = createMachine({
   initial: 'idle',
   states: {
     idle: {
-      on: { AUTH: 'authorizing' }
+      on: {
+        AUTH: { target: 'authorizing' }
+      }
     },
     authorizing: {
       invoke: {
         id: 'auth-server',
         src: authServerMachine
       },
-      entry: send('CODE', { to: 'auth-server' }),
+      entry: send({ type: 'CODE' }, { to: 'auth-server' }),
       on: {
-        TOKEN: 'authorized'
+        TOKEN: { target: 'authorized' }
       }
     },
     authorized: {

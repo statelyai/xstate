@@ -18,12 +18,12 @@ const pedestrianStates = {
   states: {
     walk: {
       on: {
-        PED_COUNTDOWN: 'wait'
+        PED_COUNTDOWN: { target: 'wait' }
       }
     },
     wait: {
       on: {
-        PED_COUNTDOWN: 'stop'
+        PED_COUNTDOWN: { target: 'stop' }
       }
     },
     stop: {},
@@ -37,24 +37,24 @@ const lightMachine = createMachine({
   states: {
     green: {
       on: {
-        TIMER: 'yellow'
+        TIMER: { target: 'yellow' }
       }
     },
     yellow: {
       on: {
-        TIMER: 'red'
+        TIMER: { target: 'red' }
       }
     },
     red: {
       on: {
-        TIMER: 'green'
+        TIMER: { target: 'green' }
       },
       ...pedestrianStates
     }
   },
   on: {
-    POWER_OUTAGE: '.red.blinking',
-    POWER_RESTORED: '.red'
+    POWER_OUTAGE: { target: '.red.blinking' },
+    POWER_RESTORED: { target: '.red' }
   }
 });
 ```
@@ -66,7 +66,9 @@ The `'green'` and `'yellow'` states are **simple states** - they have no child s
 To transition from an initial state, use `machine.initialState`:
 
 ```js
-console.log(lightMachine.transition(lightMachine.initialState, 'TIMER').value);
+console.log(
+  lightMachine.transition(lightMachine.initialState, { type: 'TIMER' }).value
+);
 // => 'yellow'
 ```
 
@@ -76,7 +78,7 @@ When a composite state is entered, its initial state is immediately entered as w
 - since `'red'` has an initial state of `'walk'`, the `{ red: 'walk' }` state is ultimately entered.
 
 ```js
-console.log(lightMachine.transition('yellow', 'TIMER').value);
+console.log(lightMachine.transition('yellow', { type: 'TIMER' }).value);
 // => {
 //   red: 'walk'
 // }
@@ -88,13 +90,13 @@ When a simple state does not handle an `event`, that `event` is propagated up to
 - the `'TIMER'` event is sent to the `'red'` parent state, which does handle it.
 
 ```js
-console.log(lightMachine.transition({ red: 'stop' }, 'TIMER').value);
+console.log(lightMachine.transition({ red: 'stop' }, { type: 'TIMER' }).value);
 // => 'green'
 ```
 
 If neither a state nor any of its ancestor (parent) states handle an event, no transition happens. In `strict` mode (specified in the [machine configuration](./machines.md#configuration)), this will throw an error.
 
 ```js
-console.log(lightMachine.transition('green', 'UNKNOWN').value);
+console.log(lightMachine.transition('green', { type: 'UNKNOWN' }).value);
 // => 'green'
 ```

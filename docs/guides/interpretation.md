@@ -35,7 +35,7 @@ const service = interpret(machine).onTransition((state) => {
 service.start();
 
 // Send events
-service.send('SOME_EVENT');
+service.send({ type: 'SOME_EVENT' });
 
 // Stop the service when you are no longer using it.
 service.stop();
@@ -48,22 +48,22 @@ Events are sent to a running service by calling `service.send(event)`. There are
 ```js {5,8,12}
 service.start();
 
+// As an object (preferred):
+service.send({ type: 'CLICK', x: 40, y: 21 });
+
 // As a string:
 // (same as service.send({ type: 'CLICK' }))
 service.send('CLICK');
-
-// As an object:
-service.send({ type: 'CLICK', x: 40, y: 21 });
 
 // As a string with an object payload:
 // (same as service.send({ type: 'CLICK', x: 40, y: 21 }))
 service.send('CLICK', { x: 40, y: 21 });
 ```
 
-- As a string (e.g., `.send('CLICK')`, which resolves to sending `{ type: 'CLICK' }`)
-  - The string represents the event type.
 - As an event object (e.g., `.send({ type: 'CLICK', x: 40, y: 21 })`)
   - The event object must have a `type: ...` string property.
+- As a string (e.g., `.send('CLICK')`, which resolves to sending `{ type: 'CLICK' }`)
+  - The string represents the event type.
 - As a string followed by an object payload (e.g., `.send('CLICK', { x: 40, y: 21 })`) <Badge text="4.5+"/>
   - The first string argument represents the event type.
   - The second argument must be an object without a `type: ...` property.

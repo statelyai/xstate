@@ -232,7 +232,7 @@ const doorMachine = createMachine(
       },
       opened: {
         on: {
-          CLOSE: 'closed'
+          CLOSE: { target: 'closed' }
         }
       }
     }
@@ -250,21 +250,21 @@ const doorService = interpret(doorMachine)
   .start();
 // => { closed: 'idle' }
 
-doorService.send('OPEN');
+doorService.send({ type: 'OPEN' });
 // => { closed: 'idle' }
 
-doorService.send('SET_ALARM');
+doorService.send({ type: 'SET_ALARM' });
 // => { closed: 'idle' }
 // (state does not change, but context changes)
 
-doorService.send('OPEN');
+doorService.send({ type: 'OPEN' });
 // => { closed: 'error' }
 
-doorService.send('SET_ADMIN');
+doorService.send({ type: 'SET_ADMIN' });
 // => { closed: 'error' }
 // (state does not change, but context changes)
 
-doorService.send('OPEN');
+doorService.send({ type: 'OPEN' });
 // => 'opened'
 // (since context.isAdmin === true)
 ```
@@ -288,8 +288,16 @@ const lightMachine = createMachine({
   id: 'light',
   initial: 'green',
   states: {
-    green: { on: { TIMER: 'yellow' } },
-    yellow: { on: { TIMER: 'red' } },
+    green: {
+      on: {
+        TIMER: { target: 'yellow' }
+      }
+    },
+    yellow: {
+      on: {
+        TIMER: { target: 'red' }
+      }
+    },
     red: {
       initial: 'walk',
       states: {

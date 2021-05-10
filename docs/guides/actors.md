@@ -141,9 +141,7 @@ const machine = createMachine({
         SOME_EVENT: {
           // Use a target expression to send an event
           // to the actor reference
-          actions: send('PING', {
-            to: (context) => context.someRef
-          })
+          actions: send({ type: 'PING' }, { to: (context) => context.someRef })
         }
       }
     }
@@ -164,7 +162,7 @@ const loginMachine = createMachine({
     idle: {
       on: {
         LOGIN: {
-          actions: send('SUBMIT', { to: 'form' })
+          actions: send({ type: 'SUBMIT' }, { to: 'form' })
         }
       }
     }
@@ -239,9 +237,7 @@ const machine = createMachine({
   // ...
   on: {
     'COUNTER.INC': {
-      actions: send('INC', {
-        to: (context) => context.counterRef
-      })
+      actions: send({ type: 'INC' }, { to: (context) => context.counterRef })
     }
   }
   // ...
@@ -311,11 +307,9 @@ const parentMachine = createMachine({
       }),
       on: {
         'LOCAL.WAKE': {
-          actions: send('WAKE', {
-            to: (context) => context.localOne
-          })
+          actions: send({ type: 'WAKE' }, { to: (context) => context.localOne })
         },
-        'REMOTE.ONLINE': 'connected'
+        'REMOTE.ONLINE': { target: 'connected' }
       }
     },
     connected: {}
@@ -326,7 +320,7 @@ const parentService = interpret(parentMachine)
   .onTransition((state) => console.log(state.value))
   .start();
 
-parentService.send('LOCAL.WAKE');
+parentService.send({ type: 'LOCAL.WAKE' });
 // => 'waiting'
 // ... after 1000ms
 // => 'connected'
@@ -487,9 +481,12 @@ service.onTransition((state) => {
 ```js
 // ...
 {
-  actions: send('SOME_EVENT', {
-    to: (context) => context.someRef
-  });
+  actions: send(
+    { type: 'SOME_EVENT' },
+    {
+      to: (context) => context.someRef
+    }
+  );
 }
 // ...
 ```
@@ -511,7 +508,7 @@ service.onTransition((state) => {
 ```js
 // ...
 {
-  actions: sendParent('ANOTHER_EVENT');
+  actions: sendParent({ type: 'ANOTHER_EVENT' });
 }
 // ...
 ```
