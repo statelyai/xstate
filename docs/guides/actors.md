@@ -64,10 +64,10 @@ Alternatively `spawn` accepts an options object as the second argument which may
 - `sync` - (optional) `true` if this machine should be automatically subscribed to the spawned child machine's state, the state will be stored as `.state` on the child machine ref
 
 ```js {13-14}
-import { Machine, spawn } from 'xstate';
+import { createMachine, spawn } from 'xstate';
 import { todoMachine } from './todoMachine';
 
-const todosMachine = Machine({
+const todosMachine = createMachine({
   // ...
   on: {
     'NEW_TODO.ADD': {
@@ -130,7 +130,7 @@ Different types of values can be spawned as actors.
 With the [`send()` action](./actions.md#send-action), events can be sent to actors via a [target expression](./actions.md#send-targets):
 
 ```js {13}
-const machine = Machine({
+const machine = createMachine({
   // ...
   states: {
     active: {
@@ -141,9 +141,7 @@ const machine = Machine({
         SOME_EVENT: {
           // Use a target expression to send an event
           // to the actor reference
-          actions: send('PING', {
-            to: (context) => context.someRef
-          })
+          actions: send({ type: 'PING' }, { to: (context) => context.someRef })
         }
       }
     }
@@ -155,7 +153,7 @@ const machine = Machine({
 If you provide an unique `name` argument to `spawn(...)`, you can reference it in the target expression:
 
 ```js
-const loginMachine = Machine({
+const loginMachine = createMachine({
   // ...
   entry: assign({
     formRef: () => spawn(formMachine, 'form')
@@ -164,7 +162,7 @@ const loginMachine = Machine({
     idle: {
       on: {
         LOGIN: {
-          actions: send('SUBMIT', { to: 'form' })
+          actions: send({ type: 'SUBMIT' }, { to: 'form' })
         }
       }
     }
@@ -221,7 +219,7 @@ const counterInterval = (callback, receive) => {
   return () => { clearInterval(intervalId); }
 }
 
-const machine = Machine({
+const machine = createMachine({
   // ...
   {
     actions: assign({
@@ -235,13 +233,11 @@ const machine = Machine({
 Events can then be sent to the actor:
 
 ```js {5-7}
-const machine = Machine({
+const machine = createMachine({
   // ...
   on: {
     'COUNTER.INC': {
-      actions: send('INC', {
-        to: (context) => context.counterRef
-      })
+      actions: send({ type: 'INC' }, { to: (context) => context.counterRef })
     }
   }
   // ...
@@ -259,7 +255,7 @@ import { map } from 'rxjs/operators';
 const createCounterObservable = (ms) => interval(ms)
   .pipe(map(count => ({ type: 'COUNT.UPDATE', count })))
 
-const machine = Machine({
+const machine = createMachine({
   context: { ms: 1000 },
   // ...
   {
@@ -279,7 +275,7 @@ const machine = Machine({
 Machines are the most effective way to use actors, since they offer the most capabilities. Spawning machines is just like [invoking machines](./communication.md#invoking-machines), where a `machine` is passed into `spawn(machine)`:
 
 ```js {13,26,30-32}
-const remoteMachine = Machine({
+const remoteMachine = createMachine({
   id: 'remote',
   initial: 'offline',
   states: {
@@ -298,7 +294,7 @@ const remoteMachine = Machine({
   }
 });
 
-const parentMachine = Machine({
+const parentMachine = createMachine({
   id: 'parent',
   initial: 'waiting',
   context: {
@@ -311,11 +307,9 @@ const parentMachine = Machine({
       }),
       on: {
         'LOCAL.WAKE': {
-          actions: send('WAKE', {
-            to: (context) => context.localOne
-          })
+          actions: send({ type: 'WAKE' }, { to: (context) => context.localOne })
         },
-        'REMOTE.ONLINE': 'connected'
+        'REMOTE.ONLINE': { target: 'connected' }
       }
     },
     connected: {}
@@ -326,7 +320,7 @@ const parentService = interpret(parentMachine)
   .onTransition((state) => console.log(state.value))
   .start();
 
-parentService.send('LOCAL.WAKE');
+parentService.send({ type: 'LOCAL.WAKE' });
 // => 'waiting'
 // ... after 1000ms
 // => 'connected'
@@ -372,9 +366,9 @@ By default, `sync` is set to `false`. Never read an actor's `.state` when `sync`
 For actors that are not synchronized with the parent, the actor can send an explicit event to its parent machine via `sendUpdate()`:
 
 ```js
-import { Machine, sendUpdate } from 'xstate';
+import { createMachine, sendUpdate } from 'xstate';
 
-const childMachine = Machine({
+const childMachine = createMachine({
   // ...
   on: {
     SOME_EVENT: {
@@ -450,7 +444,7 @@ import { spawn } from 'xstate';
     // From a machine
     machineRef: (context, event) =>
       spawn(
-        Machine({
+        createMachine({
           // ...
         })
       )
@@ -487,9 +481,12 @@ service.onTransition((state) => {
 ```js
 // ...
 {
-  actions: send('SOME_EVENT', {
-    to: (context) => context.someRef
-  });
+  actions: send(
+    { type: 'SOME_EVENT' },
+    {
+      to: (context) => context.someRef
+    }
+  );
 }
 // ...
 ```
@@ -511,7 +508,7 @@ service.onTransition((state) => {
 ```js
 // ...
 {
-  actions: sendParent('ANOTHER_EVENT');
+  actions: sendParent({ type: 'ANOTHER_EVENT' });
 }
 // ...
 ```

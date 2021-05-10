@@ -76,7 +76,7 @@ describe('Initial states', () => {
     expect(service.state.value).toEqual({ foo: 'deep' });
   });
 
-  it.only('should resolve multiple deep initial states', () => {
+  it('should resolve multiple deep initial states', () => {
     const machine = createMachine({
       initial: ['#foo_deep_id', '#bar_deep_id'],
       states: {

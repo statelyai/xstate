@@ -250,9 +250,9 @@ export type Receiver<TEvent extends EventObject> = (
   listener: (event: TEvent) => void
 ) => void;
 
-export type InvokeCallback = (
-  callback: Sender<any>,
-  onReceive: Receiver<EventObject>
+export type InvokeCallback<TEvent extends EventObject = AnyEventObject> = (
+  callback: Sender<TEvent>,
+  onReceive: Receiver<TEvent>
 ) => any;
 
 export type BehaviorCreator<TContext, TEvent extends EventObject> = (
@@ -559,6 +559,11 @@ export interface StateNodeConfig<
    * The order this state node appears. Corresponds to the implicit SCXML document order.
    */
   order?: number;
+
+  /**
+   * The tags for this state node, which are accumulated into the `state.tags` property.
+   */
+  tags?: SingleOrArray<string>;
 }
 
 export interface StateNodeDefinition<
@@ -1077,6 +1082,8 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   configuration: Array<StateNode<TContext, TEvent>>;
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
   children: Record<string, SpawnedActorRef<any>>;
+  done?: boolean;
+  tags?: Set<string>;
 }
 
 export interface StateSchema<TC = any> {
@@ -1276,3 +1283,14 @@ export type ActorRefFrom<T extends Spawnable> = T extends MachineNode<
 export type DevToolsAdapter = (service: AnyInterpreter) => void;
 
 export type Lazy<T> = () => T;
+
+export type InterpreterFrom<
+  T extends MachineNode<any, any, any, any>
+> = T extends MachineNode<
+  infer TContext,
+  infer TStateSchema,
+  infer TEvent,
+  infer TTypestate
+>
+  ? Interpreter<TContext, TStateSchema, TEvent, TTypestate>
+  : never;

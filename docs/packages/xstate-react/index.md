@@ -6,14 +6,14 @@
 - [Quick Start](#quick-start)
 - [Examples](#examples)
 - [API](#api)
-  - [`useMachine(machine, options?)`](#usemachinemachine-options)
-  - [`useService(service)`](#useserviceservice)
-  - [`useActor(actor, getSnapshot)`](#useactoractor-getsnapshot)
-  - [`useInterpret(machine, options?, observer?)`](#useinterpretmachine-options-observer)
-  - [`useSelector(actor, selector, compare?, getSnapshot?)`](#useselectoractor-selector-compare-getsnapshot)
+  - [`useMachine(machine, options?)`](#usemachine-machine-options)
+  - [`useService(service)`](#useservice-service)
+  - [`useActor(actor, getSnapshot)`](#useactor-actor-getsnapshot)
+  - [`useInterpret(machine, options?, observer?)`](#useinterpret-machine-options-observer)
+  - [`useSelector(actor, selector, compare?, getSnapshot?)`](#useselector-actor-selector-compare-getsnapshot)
   - [`asEffect(action)`](#aseffect-action)
-  - [`asLayoutEffect(action)`](#aslayouteffectaction)
-  - [`useMachine(machine)` with `@xstate/fsm`](#usemachinemachine-with-xstatefsm)
+  - [`asLayoutEffect(action)`](#aslayouteffect-action)
+  - [`useMachine(machine)` with `@xstate/fsm`](#usemachine-machine-with-xstate-fsm)
 - [Configuring Machines](#configuring-machines)
 - [Matching States](#matching-states)
 - [Persisted and Rehydrated State](#persisted-and-rehydrated-state)
@@ -51,9 +51,9 @@ By using the global variable `XStateReactFSM`
 
 ```js
 import { useMachine } from '@xstate/react';
-import { Machine } from 'xstate';
+import { createMachine } from 'xstate';
 
-const toggleMachine = Machine({
+const toggleMachine = createMachine({
   id: 'toggle',
   initial: 'inactive',
   states: {
@@ -386,7 +386,7 @@ Example: the `'fetchData'` service and `'notifySuccess'` action are both configu
 import { createMachine } from 'xstate';
 import { invokePromise } from 'xstate/invoke';
 
-const fetchMachine = Machine({
+const fetchMachine = createMachine({
   id: 'fetch',
   initial: 'idle',
   context: {

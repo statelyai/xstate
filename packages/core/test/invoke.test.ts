@@ -110,7 +110,7 @@ const intervalMachine = createMachine<{
         id: 'intervalService',
         src: invokeCallback((ctx) => (cb) => {
           const ivl = setInterval(() => {
-            cb('INC');
+            cb({ type: 'INC' });
           }, ctx.interval);
 
           return () => clearInterval(ivl);
@@ -849,6 +849,55 @@ describe('invoke', () => {
         })
         .start();
     });
+
+    it('should not reinvoke root-level invocations', (done) => {
+      // https://github.com/davidkpiano/xstate/issues/2147
+
+      let invokeCount = 0;
+      let invokeDisposeCount = 0;
+      let actionsCount = 0;
+      let entryActionsCount = 0;
+
+      const machine = createMachine({
+        invoke: {
+          src: invokeCallback(() => () => {
+            invokeCount++;
+
+            return () => {
+              invokeDisposeCount++;
+            };
+          })
+        },
+        entry: () => entryActionsCount++,
+        on: {
+          UPDATE: {
+            internal: true,
+            actions: () => {
+              actionsCount++;
+            }
+          }
+        }
+      });
+
+      const service = interpret(machine).start();
+      expect(entryActionsCount).toEqual(1);
+      expect(invokeCount).toEqual(1);
+      expect(invokeDisposeCount).toEqual(0);
+      expect(actionsCount).toEqual(0);
+
+      service.send('UPDATE');
+      expect(entryActionsCount).toEqual(1);
+      expect(invokeCount).toEqual(1);
+      expect(invokeDisposeCount).toEqual(0);
+      expect(actionsCount).toEqual(1);
+
+      service.send('UPDATE');
+      expect(entryActionsCount).toEqual(1);
+      expect(invokeCount).toEqual(1);
+      expect(invokeDisposeCount).toEqual(0);
+      expect(actionsCount).toEqual(2);
+      done();
+    });
   });
 
   type PromiseExecutor = (
@@ -1381,7 +1430,7 @@ describe('invoke', () => {
         {
           actors: {
             someCallback: invokeCallback(() => (cb) => {
-              cb('CALLBACK');
+              cb({ type: 'CALLBACK' });
             })
           }
         }
@@ -1422,7 +1471,7 @@ describe('invoke', () => {
         {
           actors: {
             someCallback: invokeCallback(() => (cb) => {
-              cb('CALLBACK');
+              cb({ type: 'CALLBACK' });
             })
           }
         }
@@ -1470,7 +1519,7 @@ describe('invoke', () => {
         {
           actors: {
             someCallback: invokeCallback(() => (cb) => {
-              cb('CALLBACK');
+              cb({ type: 'CALLBACK' });
             })
           }
         }
@@ -1525,7 +1574,7 @@ describe('invoke', () => {
               src: invokeCallback(() => (callback, onReceive) => {
                 onReceive((e) => {
                   if (e.type === 'PING') {
-                    callback('PONG');
+                    callback({ type: 'PONG' });
                   }
                 });
               })
@@ -2083,11 +2132,11 @@ describe('invoke', () => {
               invoke: [
                 {
                   id: 'child',
-                  src: invokeCallback(() => (cb) => cb('ONE'))
+                  src: invokeCallback(() => (cb) => cb({ type: 'ONE' }))
                 },
                 {
                   id: 'child2',
-                  src: invokeCallback(() => (cb) => cb('TWO'))
+                  src: invokeCallback(() => (cb) => cb({ type: 'TWO' }))
                 }
               ]
             }
@@ -2149,13 +2198,13 @@ describe('invoke', () => {
                 a: {
                   invoke: {
                     id: 'child',
-                    src: invokeCallback(() => (cb) => cb('ONE'))
+                    src: invokeCallback(() => (cb) => cb({ type: 'ONE' }))
                   }
                 },
                 b: {
                   invoke: {
                     id: 'child2',
-                    src: invokeCallback(() => (cb) => cb('TWO'))
+                    src: invokeCallback(() => (cb) => cb({ type: 'TWO' }))
                   }
                 }
               }
@@ -2211,6 +2260,7 @@ describe('invoke', () => {
       expect(actorStarted).toBe(false);
     });
 
+    // tslint:disable-next-line: max-line-length
     it('should not invoke an actor if it gets stopped immediately by transitioning away in subsequent microstep', () => {
       // Since an actor will be canceled when the state machine leaves the invoking state
       // it does not make sense to start an actor in a state that will be exited immediately

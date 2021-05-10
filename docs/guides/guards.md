@@ -32,7 +32,7 @@ const searchValid = (context, event) => {
   return context.canSearch && event.query && event.query.length > 0;
 };
 
-const searchMachine = Machine(
+const searchMachine = createMachine(
   {
     id: 'search',
     initial: 'idle',
@@ -78,7 +78,7 @@ Click the _EVENTS_ tab and send an event like `{ "type": "SEARCH", "query": "som
 
 <iframe src="https://xstate.js.org/viz/?gist=09af23963bfa1767ce3900f2ae730029&embed=1&tab=events"></iframe>
 
-If the `cond` guard returns `false`, then the transition will not be selected, and no transition will take place from that state node.
+If the `cond` guard returns `false`, then the transition will not be selected, and no transition will take place from that state node. If all transitions in a child state have guards that evaluate to `false` and prevent them from being selected, the `event` will be propagated up to the parent state and handled there.
 
 Example of usage with `context`:
 
@@ -124,7 +124,7 @@ Guards can (and should) be serialized as a string or an object with the `{ type:
 Refactoring the above example:
 
 ```js {9-11,19-23}
-const searchMachine = Machine(
+const searchMachine = createMachine(
   {
     // ...
     states: {
@@ -156,7 +156,7 @@ const searchMachine = Machine(
 Sometimes, it is preferable to not only serialize state transitions in JSON, but guard logic as well. This is where serializing guards as objects is helpful, as objects may contain relevant data:
 
 ```js {9-13,21-30}
-const searchMachine = Machine(
+const searchMachine = createMachine(
   {
     // ...
     states: {
@@ -197,9 +197,9 @@ If you want to have a single event transition to different states in certain sit
 For example, you can model a door that listens for an `OPEN` event, goes to the `'opened'` state if you are an admin, or goes to the `'closed.error'` state if `alert`-ing is true, or goes to the `'closed.idle'` state otherwise.
 
 ```js {25-27}
-import { Machine, actions, interpret, assign } from 'xstate';
+import { createMachine, actions, interpret, assign } from 'xstate';
 
-const doorMachine = Machine(
+const doorMachine = createMachine(
   {
     id: 'door',
     initial: 'closed',
@@ -232,7 +232,7 @@ const doorMachine = Machine(
       },
       opened: {
         on: {
-          CLOSE: 'closed'
+          CLOSE: { target: 'closed' }
         }
       }
     }
@@ -250,21 +250,21 @@ const doorService = interpret(doorMachine)
   .start();
 // => { closed: 'idle' }
 
-doorService.send('OPEN');
+doorService.send({ type: 'OPEN' });
 // => { closed: 'idle' }
 
-doorService.send('SET_ALARM');
+doorService.send({ type: 'SET_ALARM' });
 // => { closed: 'idle' }
 // (state does not change, but context changes)
 
-doorService.send('OPEN');
+doorService.send({ type: 'OPEN' });
 // => { closed: 'error' }
 
-doorService.send('SET_ADMIN');
+doorService.send({ type: 'SET_ADMIN' });
 // => { closed: 'error' }
 // (state does not change, but context changes)
 
-doorService.send('OPEN');
+doorService.send({ type: 'OPEN' });
 // => 'opened'
 // (since context.isAdmin === true)
 ```
@@ -284,12 +284,20 @@ Do _not_ overuse guard conditions. If something can be represented discretely as
 The `in` property takes a state ID as an argument and returns `true` if and only if that state node is active in the current state. For example, we can add a guard to the traffic light machine:
 
 ```js {24}
-const lightMachine = Machine({
+const lightMachine = createMachine({
   id: 'light',
   initial: 'green',
   states: {
-    green: { on: { TIMER: 'yellow' } },
-    yellow: { on: { TIMER: 'red' } },
+    green: {
+      on: {
+        TIMER: { target: 'yellow' }
+      }
+    },
+    yellow: {
+      on: {
+        TIMER: { target: 'red' }
+      }
+    },
     red: {
       initial: 'walk',
       states: {

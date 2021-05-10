@@ -9,7 +9,9 @@ A state machine contains state nodes (explained below) that collectively describ
     // state node
     idle: {
       on: {
-        FETCH: 'pending';
+        FETCH: {
+          target: 'pending';
+        }
       }
     }
   }
@@ -19,7 +21,7 @@ A state machine contains state nodes (explained below) that collectively describ
 And the overall **state**, which is the return value of the `machine.transition()` function or the callback value of `service.onTransition()`:
 
 ```js
-const nextState = fetchMachine.transition('pending', 'FULFILL');
+const nextState = fetchMachine.transition('pending', { type: 'FULFILL' });
 // State {
 //   value: { success: 'items' },
 //   actions: [],
@@ -35,7 +37,7 @@ In XState, a **state node** specifies a state configuration. They are defined on
 The state determined from `machine.transition(state, event)` represents a combination of state nodes. For example, in the machine below, there's a `success` state node and an `items` substate node. The state value `{ success: 'items' }` represents the combination of those state nodes.
 
 ```js
-const fetchMachine = Machine({
+const fetchMachine = createMachine({
   id: 'fetch',
 
   // Initial state
@@ -45,36 +47,36 @@ const fetchMachine = Machine({
   states: {
     idle: {
       on: {
-        FETCH: 'pending'
+        FETCH: { target: 'pending' }
       }
     },
     pending: {
       on: {
-        FULFILL: 'success',
-        REJECT: 'failure'
+        FULFILL: { target: 'success' },
+        REJECT: { target: 'failure' }
       }
     },
     success: {
       // Initial child state
-      initial: 'items',
+      initial: { target: 'items' },
 
       // Child states
       states: {
         items: {
           on: {
-            'ITEM.CLICK': 'item'
+            'ITEM.CLICK': { target: 'item' }
           }
         },
         item: {
           on: {
-            BACK: 'items'
+            BACK: { target: 'items' }
           }
         }
       }
     },
     failure: {
       on: {
-        RETRY: 'pending'
+        RETRY: { target: 'pending' }
       }
     }
   }
@@ -96,14 +98,14 @@ There are five different kinds of state nodes:
 The state node type can be explicitly defined on the state node:
 
 ```js
-const machine = Machine({
+const machine = createMachine({
   id: 'fetch',
   initial: 'idle',
   states: {
     idle: {
       type: 'atomic',
       on: {
-        FETCH: 'pending'
+        FETCH: { target: 'pending' }
       }
     },
     pending: {
@@ -115,7 +117,7 @@ const machine = Machine({
           states: {
             pending: {
               on: {
-                'FULFILL.resource1': 'success'
+                'FULFILL.resource1': { target: 'success' }
               }
             },
             success: {
@@ -129,7 +131,7 @@ const machine = Machine({
           states: {
             pending: {
               on: {
-                'FULFILL.resource2': 'success'
+                'FULFILL.resource2': { target: 'success' }
               }
             },
             success: {
@@ -146,12 +148,12 @@ const machine = Machine({
       states: {
         items: {
           on: {
-            'ITEM.CLICK': 'item'
+            'ITEM.CLICK': { target: 'item' }
           }
         },
         item: {
           on: {
-            BACK: 'items'
+            BACK: { target: 'items' }
           }
         },
         hist: {
@@ -172,12 +174,12 @@ Explicitly specifying the `type` as `'atomic'`, `'compound'`, `'parallel'`, `'hi
 
 A transient state node is a "pass-through" state node that immediately transitions to another state node; that is, a machine does not stay in a transient state. Transient state nodes are useful for determining which state the machine should really go to from a previous state based on conditions. They are most similar to [choice pseudostates](https://www.uml-diagrams.org/state-machine-diagrams.html#choice-pseudostate) in UML.
 
-A transient state node only specifies transitions for the [null event](./events.md#null-events) (that is, a [transient transition](./transitions.md#transient-transitions)), which is always immediately raised in that state.
+The best way to define a transient state node is as an eventless state, and an `awlays` transition. This is a transition were the first condition that evaluates to true is immediately taken.
 
 For example, this machine's initial transient state resolves to `'morning'`, `'afternoon'`, or `'evening'`, depending on what time it is (implementation details hidden):
 
-```js
-const timeOfDayMachine = Machine({
+```js{9-15}
+const timeOfDayMachine = createMachine({
   id: 'timeOfDay',
   initial: 'unknown',
   context: {
@@ -186,13 +188,11 @@ const timeOfDayMachine = Machine({
   states: {
     // Transient state
     unknown: {
-      on: {
-        '': [
-          { target: 'morning', cond: 'isBeforeNoon' },
-          { target: 'afternoon', cond: 'isBeforeSix' },
-          { target: 'evening' }
-        ]
-      }
+      always: [
+        { target: 'morning', cond: 'isBeforeNoon' },
+        { target: 'afternoon', cond: 'isBeforeSix' },
+        { target: 'evening' }
+      ]
     },
     morning: {},
     afternoon: {},
@@ -205,7 +205,7 @@ const timeOfDayMachine = Machine({
   }
 });
 
-const timeOfDayService = interpret(timeOfDayMachine
+const timeOfDayService = interpret(timeOfDayMachine)
   .withContext({ time: Date.now() }))
   .onTransition(state => console.log(state.value))
   .start();
@@ -219,22 +219,24 @@ const timeOfDayService = interpret(timeOfDayMachine
 
 Meta data, which is static data that describes relevant properties of any [state node](./statenodes.md), can be specified on the `.meta` property of the state node:
 
-```js {17-19,22-24,30-32,35-37,40-42}
-const fetchMachine = Machine({
+```js {19-21,24-26,32-34,37-39,42-44}
+const fetchMachine = createMachine({
   id: 'fetch',
   initial: 'idle',
   states: {
     idle: {
-      on: { FETCH: 'loading' }
+      on: {
+        FETCH: { target: 'loading' }
+      }
     },
     loading: {
       after: {
-        3000: 'failure.timeout'
+        3000: { target: 'failure.timeout' }
       },
       on: {
-        RESOLVE: 'success',
-        REJECT: 'failure',
-        TIMEOUT: 'failure.timeout' // manual timeout
+        RESOLVE: { target: 'success' },
+        REJECT: { target: 'failure' },
+        TIMEOUT: { target: 'failure.timeout' } // manual timeout
       },
       meta: {
         message: 'Loading...'

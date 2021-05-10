@@ -201,3 +201,7 @@ There is also a follow-up course: [State Modeling with React and XState](https:/
 - [▶️ Use State Machines to Build a Queue for Custom Twitch Overlays — Learn With Jason](https://www.youtube.com/watch?v=UzA5Mvk587M) by [Jason Lengstorf](https://www.youtube.com/channel/UCnty0z0pNRDgnuoirYXnC5A)
 - [How to Use Finite State Machines in React](https://www.telerik.com/blogs/how-to-use-finite-state-machines-react) by [Leonardo Maldonado](https://www.telerik.com/blogs/author/leonardo-maldonado)
 - [▶️ Maquinas de estado finito y gráficas de estado en React ](https://www.youtube.com/watch?v=Rm6AMY6-Wqw) by José L Narajo
+- [XState: Should this be an action, or a service?](https://dev.to/mpocock1/xstate-should-this-be-an-action-or-a-service-2cp0) by [Matt Pocock](https://twitter.com/mpocock1)
+- [State Machines: Should this be a state, or in context?](https://dev.to/mpocock1/state-machines-should-this-be-a-state-or-in-context-1d7e) by [Matt Pocock](https://twitter.com/mpocock1)
+- [XState: What's the difference between Machine and createMachine?](https://dev.to/mpocock1/xstate-what-s-the-difference-between-machine-and-createmachine-15h1) by [Matt Pocock](https://twitter.com/mpocock1)
+- [Use an XState Machine with React](https://dev.to/jbranchaud/use-an-xstate-machine-with-react-326i) by [Josh Branchaud](https://twitter.com/jbrancha)

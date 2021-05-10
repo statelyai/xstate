@@ -13,10 +13,10 @@ npm install xstate @xstate/graph
 2. Import the graph utilities. Example:
 
 ```js
-import { Machine } from 'xstate';
+import { createMachine } from 'xstate';
 import { getSimplePaths } from '@xstate/graph';
 
-const machine = Machine(/* ... */);
+const machine = createMachine(/* ... */);
 const paths = getSimplePaths(machine);
 ```
 
@@ -70,10 +70,10 @@ The overall object structure looks like this:
 **Example**
 
 ```js
-import { Machine } from 'xstate';
+import { createMachine } from 'xstate';
 import { getShortestPaths } from '@xstate/graph';
 
-const feedbackMachine = Machine({
+const feedbackMachine = createMachine({
   id: 'feedback',
   initial: 'question',
   states: {
@@ -195,10 +195,10 @@ The overall object structure looks like this:
 **Example**
 
 ```js
-import { Machine } from 'xstate';
+import { createMachine } from 'xstate';
 import { getSimplePaths } from '@xstate/graph';
 
-const feedbackMachine = Machine({
+const feedbackMachine = createMachine({
   id: 'feedback',
   initial: 'question',
   states: {
@@ -333,7 +333,7 @@ Options can be passed into `getShortestPaths` or `getSimplePaths` to customize h
 In the below example, the `INC` event is expanded to include two possible events, with `value: 1` and `value: 2` as the payload. It also ensures that the `state.context.count <= 5`; otherwise, this machine would be traversed infinitely.
 
 ```js
-const counterMachine = Machine({
+const counterMachine = createMachine({
   id: 'counter',
   initial: 'active',
   context: { count: 0 },

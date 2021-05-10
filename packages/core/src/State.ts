@@ -94,6 +94,7 @@ export class State<
    * An object mapping actor names to spawned/invoked actors.
    */
   public children: Record<string, SpawnedActorRef<any>>;
+  public tags: Set<string>;
   /**
    * Creates a new State instance for the given `stateValue` and `context`.
    * @param stateValue
@@ -196,6 +197,7 @@ export class State<
     this.configuration = config.configuration;
     this.transitions = config.transitions;
     this.children = config.children;
+    this.tags = config.tags ?? new Set();
 
     Object.defineProperty(this, 'nextEvents', {
       enumerable: false,
@@ -229,9 +231,9 @@ export class State<
   }
 
   public toJSON() {
-    const { configuration, transitions, ...jsonValues } = this;
+    const { configuration, transitions, tags, ...jsonValues } = this;
 
-    return jsonValues;
+    return { ...jsonValues, tags: Array.from(tags) };
   }
 
   /**
@@ -258,5 +260,13 @@ export class State<
    */
   public get done(): boolean {
     return isInFinalState(this.configuration);
+  }
+
+  /**
+   * Whether the current state configuration has a state node with the specified `tag`.
+   * @param tag
+   */
+  public hasTag(tag: string): boolean {
+    return this.tags.has(tag);
   }
 }

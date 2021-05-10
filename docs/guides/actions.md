@@ -12,14 +12,14 @@ All of the action creators documented here return **action objects**; it is a pu
 // 🚫 Do not do this!
 entry: () => {
   // 🚫 This will do nothing; send() is not an imperative function!
-  send('SOME_EVENT');
+  send({ type: 'SOME_EVENT' });
 };
 
-console.log(send('SOME_EVENT'));
-// => { type: 'xstate.send', event: { ... } }
+console.log(send({ type: 'SOME_EVENT' }));
+// => { type: 'xstate.send', event: { type: 'SOME_EVENT' } }
 
 // ✅ Do this instead
-entry: send('SOME_EVENT');
+entry: send({ type: 'SOME_EVENT' });
 ```
 
 :::
@@ -33,7 +33,7 @@ There are three types of actions:
 These are represented in the StateNode definition:
 
 ```js {10-11,16-19,27-41}
-const triggerMachine = Machine(
+const triggerMachine = createMachine(
   {
     id: 'trigger',
     initial: 'inactive',
@@ -53,7 +53,7 @@ const triggerMachine = Machine(
         // exit actions
         exit: ['notifyInactive', 'sendTelemetry'],
         on: {
-          STOP: 'inactive'
+          STOP: { target: 'inactive' }
         }
       }
     }
@@ -111,7 +111,7 @@ It depends! They mean different things:
   idle: {
     on: {
       LOAD: {
-        target: 'loading',
+        target: { target: 'loading' },
         // this action is executed only on this transition
         actions: 'fetchData'
     }
@@ -131,7 +131,7 @@ Action implementations can be quickly prototyped by specifying the action functi
 ```js {4}
 // ...
 TRIGGER: {
-  target: 'active',
+  target: { target: 'active' },
   actions: (context, event) => { console.log('activating...'); }
 }
 // ...
@@ -145,7 +145,7 @@ It is _not recommended_ to keep the machine config like this in production code,
 The `State` instance returned from `machine.transition(...)` has an `.actions` property, which is an array of action objects for the interpreter to execute:
 
 ```js {4-9}
-const activeState = triggerMachine.transition('inactive', 'TRIGGER');
+const activeState = triggerMachine.transition('inactive', { type: 'TRIGGER' });
 
 console.log(activeState.actions);
 // [
@@ -208,9 +208,9 @@ The `send(...)` function is an **action creator**; it is a pure function that on
 :::
 
 ```js
-import { Machine, send } from 'xstate';
+import { createMachine, send } from 'xstate';
 
-const lazyStubbornMachine = Machine({
+const lazyStubbornMachine = createMachine({
   id: 'stubborn',
   initial: 'inactive',
   states: {
@@ -225,13 +225,15 @@ const lazyStubbornMachine = Machine({
     },
     active: {
       on: {
-        TOGGLE: 'inactive'
+        TOGGLE: { target: 'inactive' }
       }
     }
   }
 });
 
-const nextState = lazyStubbornMachine.transition('inactive', 'TOGGLE');
+const nextState = lazyStubbornMachine.transition('inactive', {
+  type: 'TOGGLE'
+});
 
 nextState.value;
 // => 'active'
@@ -257,7 +259,7 @@ const sendName = send((context, event) => ({
   name: context.user.name
 }));
 
-const machine = Machine({
+const machine = createMachine({
   // ...
   on: {
     TOGGLE: {
@@ -281,7 +283,7 @@ invoke: {
 },
 // ...
 // Indicates to send { type: 'SOME_EVENT' } to the invoked service
-actions: send('SOME_EVENT', { to: 'some-service-id' })
+actions: send({ type: 'SOME_EVENT' }, { to: 'some-service-id' })
 ```
 
 The target in the `to` prop can also be a **target expression**, which is a function that takes in the current `context` and `event` that triggered the action, and returns either a string target or an [actor reference](./actors.md#spawning-actors):
@@ -301,7 +303,7 @@ entry: assign({
 
 // Send { type: 'SOME_EVENT' } to the actor ref via string target
 {
-  actions: send('SOME_EVENT', {
+  actions: send({ type: 'SOME_EVENT' }, {
     to: context => context.someActor.name
   })
 }
@@ -309,7 +311,7 @@ entry: assign({
 
 // Send { type: 'SOME_EVENT' } to the actor ref via ref target
 {
-  actions: send('SOME_EVENT', {
+  actions: send({ type: 'SOME_EVENT' }, {
     to: context => context.someActor.ref
   })
 }
@@ -319,7 +321,7 @@ entry: assign({
 Again, the `send(...)` function is an action creator and **will not imperatively send an event.** Instead, it returns an action object that describes where the event will be sent to:
 
 ```js
-console.log(send('SOME_EVENT', { to: 'child' }));
+console.log(send({ type: 'SOME_EVENT' }, { to: 'child' }));
 // logs:
 // {
 //   type: 'xstate.send',
@@ -341,10 +343,10 @@ The `raise()` action creator queues an event to the statechart, in the internal 
 | `event`  | string or event object | The event to raise. |
 
 ```js
-import { Machine, actions } from 'xstate';
+import { createMachine, actions } from 'xstate';
 const { raise } = actions;
 
-const raiseActionDemo = Machine({
+const raiseActionDemo = createMachine({
   id: 'raisedmo',
   initial: 'entry',
   states: {
@@ -362,12 +364,12 @@ const raiseActionDemo = Machine({
     },
     middle: {
       on: {
-        NEXT: 'last'
+        NEXT: { target: 'last' }
       }
     },
     last: {
       on: {
-        RESET: 'entry'
+        RESET: { target: 'entry' }
       }
     }
   }
@@ -392,24 +394,26 @@ This uses [SCXML events](./events.md#scxml-events) internally to get the `origin
 This demonstrates some parent service (`authClientMachine`) sending a `'CODE'` event to the invoked `authServerMachine`, and the `authServerMachine` responding with a `'TOKEN'` event.
 
 ```js
-const authServerMachine = Machine({
+const authServerMachine = createMachine({
   initial: 'waitingForCode',
   states: {
     waitingForCode: {
       on: {
         CODE: {
-          actions: respond('TOKEN', { delay: 10 })
+          actions: respond({ type: 'TOKEN' }, { delay: 10 })
         }
       }
     }
   }
 });
 
-const authClientMachine = Machine({
+const authClientMachine = createMachine({
   initial: 'idle',
   states: {
     idle: {
-      on: { AUTH: 'authorizing' }
+      on: {
+        AUTH: { target: 'authorizing' }
+      }
     },
     authorizing: {
       invoke: {
@@ -418,7 +422,7 @@ const authClientMachine = Machine({
       },
       entry: send('CODE', { to: 'auth-server' }),
       on: {
-        TOKEN: 'authorized'
+        TOKEN: { target: 'authorized' }
       }
     },
     authorized: {
@@ -441,7 +445,7 @@ The `forwardTo()` action creator creates a [`send()` action](#send-action) that 
 **Example:**
 
 ```js
-import { Machine, forwardTo, interpret } from 'xstate';
+import { createMachine, forwardTo, interpret } from 'xstate';
 
 function alertService(_, receive) {
   receive((event) => {
@@ -451,7 +455,7 @@ function alertService(_, receive) {
   });
 }
 
-const parentMachine = Machine({
+const parentMachine = createMachine({
   id: 'parent',
   invoke: {
     id: 'alerter',
@@ -464,7 +468,7 @@ const parentMachine = Machine({
 
 const parentService = interpret(parentMachine).start();
 
-parentService.send('ALERT', { message: 'hello world' });
+parentService.send({ type: 'ALERT' }, { message: 'hello world' });
 // => alerts "hello world"
 ```
 
@@ -517,10 +521,10 @@ The `log()` action creator is a declarative way of logging anything related to t
 | `label?` | string             | A string to label the logged message                                                                            |
 
 ```js {9,14-17,28-34}
-import { Machine, actions } from 'xstate';
+import { createMachine, actions } from 'xstate';
 const { log } = actions;
 
-const loggingMachine = Machine({
+const loggingMachine = createMachine({
   id: 'logging',
   context: { count: 42 },
   initial: 'start',
@@ -688,7 +692,7 @@ A [self-transition](./transitions.md#self-transitions) is when a state transitio
 For example, this counter machine has one `'counting'` state with internal and external transitions:
 
 ```js {9-12}
-const counterMachine = Machine({
+const counterMachine = createMachine({
   id: 'counter',
   initial: 'counting',
   states: {
@@ -706,16 +710,16 @@ const counterMachine = Machine({
 });
 
 // External transition (exit + transition actions + entry)
-const stateA = counterMachine.transition('counting', 'DEC');
+const stateA = counterMachine.transition('counting', { type: 'DEC' });
 stateA.actions;
 // ['exitCounting', 'decrement', 'enterCounting']
 
 // Internal transition (transition actions)
-const stateB = counterMachine.transition('counting', 'DO_NOTHING');
+const stateB = counterMachine.transition('counting', { type: 'DO_NOTHING' });
 stateB.actions;
 // ['logNothing']
 
-const stateC = counterMachine.transition('counting', 'INC');
+const stateC = counterMachine.transition('counting', { type: 'INC' });
 stateB.actions;
 // ['increment']
 ```

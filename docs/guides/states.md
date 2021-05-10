@@ -3,7 +3,7 @@
 A state is an abstract representation of a system (such as an application) at a specific point in time. As an application is interacted with, events cause it to change state. A finite state machine can be in only one of a finite number of states at any given time. The current state of a machine is represented by a `State` instance:
 
 ```js {13-18,21-26}
-const lightMachine = Machine({
+const lightMachine = createMachine({
   id: 'light',
   initial: 'green',
   states: {
@@ -22,7 +22,7 @@ console.log(lightMachine.initialState);
 //   // ...
 // }
 
-console.log(lightMachine.transition('yellow', 'TIMER'));
+console.log(lightMachine.transition('yellow', { type: 'TIMER' }));
 // State {
 //   value: { red: 'walk' },
 //   actions: [],
@@ -110,12 +110,14 @@ const { initialState } = lightMachine;
 console.log(initialState.changed);
 // => undefined
 
-const nextState = lightMachine.transition(initialState, 'TIMER');
+const nextState = lightMachine.transition(initialState, { type: 'TIMER' });
 
 console.log(nextState.changed);
 // => true
 
-const unchangedState = lightMachine.transition(nextState, 'UNKNOWN_EVENT');
+const unchangedState = lightMachine.transition(nextState, {
+  type: 'UNKNOWN_EVENT'
+});
 
 console.log(unchangedState.changed);
 // => false
@@ -126,12 +128,12 @@ console.log(unchangedState.changed);
 This specifies whether the `state` is a ["final state"](./final.md) - that is, a state that indicates that its machine has reached its final (terminal) state and can no longer transition to any other state.
 
 ```js
-const answeringMachine = Machine({
+const answeringMachine = createMachine({
   initial: 'unanswered',
   states: {
     unanswered: {
       on: {
-        ANSWER: 'answered'
+        ANSWER: { target: 'answered' }
       }
     },
     answered: {
@@ -143,7 +145,9 @@ const answeringMachine = Machine({
 const { initialState } = answeringMachine;
 initialState.done; // false
 
-const answeredState = answeringMachine.transition(initialState, 'ANSWER');
+const answeredState = answeringMachine.transition(initialState, {
+  type: 'ANSWER'
+});
 answeredState.done; // true
 ```
 
@@ -168,7 +172,7 @@ This is an object mapping spawned service/actor IDs to their instances. See [ðŸ“
 **Example:**
 
 ```js
-const machine = Machine({
+const machine = createMachine({
   // ...
   invoke: [
     { id: 'notifier', src: createNotifier },
@@ -233,21 +237,21 @@ This will also maintain and restore previous [history states](./history.md) and 
 Meta data, which is static data that describes relevant properties of any [state node](./statenodes.md), can be specified on the `.meta` property of the state node:
 
 ```js {17-19,22-24,30-32,35-37,40-42}
-const fetchMachine = Machine({
+const fetchMachine = createMachine({
   id: 'fetch',
   initial: 'idle',
   states: {
     idle: {
-      on: { FETCH: 'loading' }
+      on: { FETCH: { target: 'loading' } }
     },
     loading: {
       after: {
         3000: 'failure.timeout'
       },
       on: {
-        RESOLVE: 'success',
-        REJECT: 'failure',
-        TIMEOUT: 'failure.timeout' // manual timeout
+        RESOLVE: { target: 'success' },
+        REJECT: { target: 'failure' },
+        TIMEOUT: { target: 'failure.timeout' } // manual timeout
       },
       meta: {
         message: 'Loading...'
@@ -288,7 +292,9 @@ The current state of the machine collects the `.meta` data of all of the state n
 For instance, if the above machine is in the `failure.timeout` state (which is represented by two state nodes with IDs `"failure"` and `"failure.timeout"`), the `.meta` property will combine all `.meta` values and look like this:
 
 ```js {4-11}
-const failureTimeoutState = fetchMachine.transition('loading', 'TIMEOUT');
+const failureTimeoutState = fetchMachine.transition('loading', {
+  type: 'TIMEOUT'
+});
 
 console.log(failureTimeoutState.meta);
 // => {
@@ -316,7 +322,9 @@ function mergeMeta(meta) {
   }, {});
 }
 
-const failureTimeoutState = fetchMachine.transition('loading', 'TIMEOUT');
+const failureTimeoutState = fetchMachine.transition('loading', {
+  type: 'TIMEOUT'
+});
 
 console.log(mergeMeta(failureTimeoutState.meta));
 // => {

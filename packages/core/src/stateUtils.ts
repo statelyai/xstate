@@ -216,7 +216,7 @@ export function has<T>(iterable: Iterable<T>, item: T): boolean {
 export function nextEvents<TC, TE extends EventObject>(
   configuration: Array<StateNode<TC, TE>>
 ): Array<TE['type']> {
-  return flatten([...new Set(configuration.map((sn) => sn.ownEvents))]);
+  return [...new Set(flatten([...configuration.map((sn) => sn.ownEvents)]))];
 }
 
 export function isInFinalState<TC, TE extends EventObject>(
@@ -1591,6 +1591,11 @@ export function macrostep<
     // prioritize them in the action queue
     maybeNextState.actions.unshift(...currentActions);
   }
+
+  // Add tags
+  maybeNextState.tags = new Set(
+    flatten(maybeNextState.configuration.map((sn) => sn.tags))
+  );
 
   return maybeNextState;
 }
