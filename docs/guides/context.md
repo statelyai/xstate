@@ -62,7 +62,9 @@ const glassMachine = createMachine(
 The current context is referenced on the `State` as `state.context`:
 
 ```js
-const nextState = glassMachine.transition(glassMachine.initialState, 'FILL');
+const nextState = glassMachine.transition(glassMachine.initialState, {
+  type: 'FILL'
+});
 
 nextState.context;
 // => { amount: 1 }
@@ -217,7 +219,7 @@ const counterMachine = createMachine({
   }
 });
 
-interpret(counterMachine).send('INC_TWICE');
+interpret(counterMachine).send({ type: 'INC_TWICE' });
 // => "Before: 2"
 // => "After: 2"
 ```
@@ -252,7 +254,7 @@ const counterMachine = createMachine({
   }
 });
 
-interpret(counterMachine).send('INC_TWICE');
+interpret(counterMachine).send({ type: 'INC_TWICE' });
 // => "Before: 0"
 // => "After: 2"
 ```

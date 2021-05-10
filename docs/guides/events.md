@@ -6,7 +6,7 @@ An event is an object with a `type` property, signifying what type of event it i
 
 ```js
 const timerEvent = {
-  type: 'TIMER'
+  type: 'TIMER' // the convention is to use CONST_CASE for event names
 };
 ```
 
@@ -54,7 +54,16 @@ By specifying the event type on the `type` property, many native events, such as
 import { createMachine, interpret } from 'xstate';
 
 const mouseMachine = createMachine({
-  /* ... */
+  on: {
+    mousemove: {
+      actions: [
+        (context, event) => {
+          const { offsetX, offsetY } = event;
+          console.log({ offsetX, offsetY });
+        }
+      ]
+    }
+  }
 });
 const mouseService = interpret(mouseMachine).start();
 
@@ -65,6 +74,10 @@ window.addEventListener('mousemove', (event) => {
 ```
 
 ## Null Events
+
+::: warning
+The null event syntax `({ on: { '': ... } })` will be deprecated in version 5. The new [always](./transitions.md#eventless-always-transitions) syntax should be used instead.
+:::
 
 A null event is an event that has no type, and occurs immediately once a state is entered. In transitions, it is represented by an empty string (`''`):
 

@@ -14,19 +14,19 @@ const lightDelayMachine = createMachine({
     green: {
       after: {
         // after 1 second, transition to yellow
-        1000: 'yellow'
+        1000: { target: 'yellow' }
       }
     },
     yellow: {
       after: {
         // after 0.5 seconds, transition to red
-        500: 'red'
+        500: { target: 'red' }
       }
     },
     red: {
       after: {
         // after 2 seconds, transition to green
-        2000: 'green'
+        2000: { target: 'green' }
       }
     }
   }
@@ -72,7 +72,7 @@ states: {
   green: {
     after: {
       1000: { target: 'yellow', cond: 'trafficIsLight' },
-      2000: 'yellow' // always transition to 'yellow' after 2 seconds
+      2000: { target: 'yellow' } // always transition to 'yellow' after 2 seconds
     }
   }
 }
@@ -110,12 +110,12 @@ const lightDelayMachine = createMachine(
       green: {
         after: {
           // after 1 second, transition to yellow
-          LIGHT_DELAY: 'yellow'
+          LIGHT_DELAY: { target: 'yellow' }
         }
       },
       yellow: {
         after: {
-          YELLOW_LIGHT_DELAY: 'red'
+          YELLOW_LIGHT_DELAY: { target: 'red' }
         }
       }
       // ...
@@ -174,7 +174,7 @@ import { actions } from 'xstate';
 const { send } = actions;
 
 // action to send the 'TIMER' event after 1 second
-const sendTimerAfter1Second = send('TIMER', { delay: 1000 });
+const sendTimerAfter1Second = send({ type: 'TIMER' }, { delay: 1000 });
 ```
 
 You can also prevent those delayed events from being sent by cancelling them. This is done with the `cancel(...)` action creator:
@@ -184,7 +184,7 @@ import { actions } from 'xstate';
 const { send, cancel } = actions;
 
 // action to send the 'TIMER' event after 1 second
-const sendTimerAfter1Second = send('TIMER', {
+const sendTimerAfter1Second = send({ type: 'TIMER' }, {
   delay: 1000,
   id: 'oneSecondTimer' // give the event a unique ID
 });
@@ -198,7 +198,7 @@ const toggleMachine = createMachine({
     inactive: {
       entry: sendTimerAfter1Second,
       on: {
-        TIMER: 'active'
+        TIMER: { target: 'active' }
         CANCEL: { actions: cancelTimer }
       }
     },
@@ -223,16 +223,19 @@ const dynamicDelayMachine = createMachine({
   states: {
     idle: {
       on: {
-        ACTIVATE: 'pending'
+        ACTIVATE: { target: 'pending' }
       }
     },
     pending: {
-      entry: send('FINISH', {
-        // delay determined from custom event.wait property
-        delay: (context, event) => context.initialDelay + event.wait || 0
-      }),
+      entry: send(
+        { type: 'FINISH' },
+        {
+          // delay determined from custom event.wait property
+          delay: (context, event) => context.initialDelay + event.wait || 0
+        }
+      ),
       on: {
-        FINISH: 'finished'
+        FINISH: { target: 'finished' }
       }
     },
     finished: { type: 'final' }

@@ -140,6 +140,28 @@ describe('@xstate/fsm', () => {
     }).toThrow();
   });
 
+  it('should throw an error for undefined next state config', () => {
+    const invalidState = 'blue';
+    const testConfig = {
+      id: 'test',
+      initial: 'green',
+      states: {
+        green: {
+          on: {
+            TARGET_INVALID: invalidState
+          }
+        },
+        yellow: {}
+      }
+    };
+    const testMachine = createMachine(testConfig);
+    expect(() => {
+      testMachine.transition('green', 'TARGET_INVALID');
+    }).toThrow(
+      `State '${invalidState}' not found on machine ${testConfig.id ?? ''}`
+    );
+  });
+
   it('should work with guards', () => {
     const yellowState = lightFSM.transition('yellow', 'EMERGENCY');
     expect(yellowState.value).toEqual('yellow');

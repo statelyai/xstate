@@ -6,7 +6,7 @@
 - Promote an [Actor model](https://en.wikipedia.org/wiki/Actor_model) event-based architecture
 - Compatibility with all frameworks and platforms
 - Ability to completely serialize machine definitions to JSON (and SCXML)
-- Pure, functional `Machine(...)` API
+- Pure, functional `createMachine(...)` API
 - Zero dependencies
 
 ## Choosing XState

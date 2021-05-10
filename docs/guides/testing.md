@@ -16,7 +16,7 @@ import { lightMachine } from '../path/to/lightMachine';
 it('should reach "yellow" given "green" when the "TIMER" event occurs', () => {
   const expectedValue = 'yellow'; // the expected state value
 
-  const actualState = lightMachine.transition('green', 'TIMER');
+  const actualState = lightMachine.transition('green', { type: 'TIMER' });
 
   expect(actualState.matches(expectedValue)).toBeTruthy();
 });

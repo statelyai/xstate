@@ -159,14 +159,10 @@ export function createMachine<
       const eventObject = toEventObject<TEvent>(event);
       const stateConfig = fsmConfig.states[value];
 
-      if (!IS_PRODUCTION) {
-        if (!stateConfig) {
-          throw new Error(
-            `State '${value}' not found on machine${
-              fsmConfig.id ? ` '${fsmConfig.id}'` : ''
-            }.`
-          );
-        }
+      if (!IS_PRODUCTION && !stateConfig) {
+        throw new Error(
+          `State '${value}' not found on machine ${fsmConfig.id ?? ''}`
+        );
       }
 
       if (stateConfig.on) {
@@ -190,8 +186,18 @@ export function createMachine<
 
           const isTargetless = target === undefined;
 
-          if (!guard || guard(context, eventObject)) {
-            const nextStateConfig = fsmConfig.states[target ?? value];
+          const nextStateValue = target ?? value;
+          const nextStateConfig = fsmConfig.states[nextStateValue];
+
+          if (!IS_PRODUCTION && !nextStateConfig) {
+            throw new Error(
+              `State '${nextStateValue}' not found on machine ${
+                fsmConfig.id ?? ''
+              }`
+            );
+          }
+
+          if (guard?.(context, eventObject)) {
             const allActions = (isTargetless
               ? toArray(actions)
               : ([] as any[])
