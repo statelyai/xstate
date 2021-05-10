@@ -167,7 +167,7 @@ The `exec` function takes three arguments:
 | ------------ | ------------ | ----------------------------------------------------------- |
 | `context`    | TContext     | The current machine context                                 |
 | `event`      | event object | The event that caused the transition                        |
-| `actionMeta` | meta-object  | An object containing meta data about the action (see below) |
+| `actionMeta` | meta object  | An object containing meta data about the action (see below) |
 
 The `actionMeta` object includes the following properties:
 
@@ -627,7 +627,7 @@ This is analogous to the SCXML `<if>`, `<elseif>`, and `<else>` elements: [www.w
 
 ## Pure Action
 
-The `pure()` action creator is a pure function (hence the name) that returns the action object(s) to be executed based on the current state `context` and `event` that triggered the action. It allows you to define which actions to perform dynamically.
+The `pure()` action creator is a pure function (hence the name) that returns the action object(s) to be executed based on the current state `context` and `event` that triggered the action. It allows you to dynamically define which actions to execute.
 
 | Argument     | Type     | Description                                                                                                      |
 | ------------ | -------- | ---------------------------------------------------------------------------------------------------------------- |
