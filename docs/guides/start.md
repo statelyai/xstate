@@ -80,6 +80,6 @@ promiseService.send({ type: 'RESOLVE' });
 // => 'resolved'
 ```
 
-You can also copy/paste the `createMachine(...)` code and [visualize it on XState Viz](https://xstate.js.org/viz):
+You can also copy/paste the `createMachine(...)` code and [visualize it on XState Viz](https://xstate.js.org/viz)—note that you'll have to change `createMachine` to `Machine` since the Xstate visualizer uses an older version of Xstate (we're going to update it soon):
 
 <iframe src="https://xstate.js.org/viz/?gist=9e4476d6312ac1bb29938d6c5e7f8f84&embed=1"></iframe>
