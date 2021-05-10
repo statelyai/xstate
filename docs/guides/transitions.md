@@ -408,13 +408,13 @@ gameService.send({ type: 'AWARD_POINTS' });
 ::: warning
 
 It is possible to create infinite loops if eventless transitions are misused.
-Eventless transitions should be defined either with `target`, `cond` + `target`, `cond` + `actions`, or `cond` + `target` + `actions`. Target, if declared, should be different than the current state node. Eventless transitions with no `target` nor `cond` will cause an infinite loop. Transitions with `cond` and `actions` may run into an infinite loop if its `cond` guard keeps returning `true`.
+Eventless transitions should be defined either with `target`, `cond` + `target`, `cond` + `actions`, or `cond` + `target` + `actions`. Target, if declared, should be different from the current state node. Eventless transitions with no `target` nor `cond` will cause an infinite loop. Transitions with `cond` and `actions` may run into an infinite loop if its `cond` guard keeps returning `true`.
 
 :::
 
 ::: tip
 
-When eventless transitions are checked, their guards are evaluated repeatedly until all of them return false, or a transition with target is validated. Every time some guard evaluates to `true` during this process, its associated actions are going to be executed once. Thus it is possible that during a single microtask some transitions without targets are executed multiple times.
+When eventless transitions are checked, their guards are evaluated repeatedly until all of them return false, or a transition with target is validated. Every time some guard evaluates to `true` during this process, its associated actions are going to be executed once. Thus, it is possible that during a single microtask some transitions without targets are executed multiple times.
 This contrasts with common transitions, where always maximum one transition can be taken.
 
 :::

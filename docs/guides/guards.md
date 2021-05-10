@@ -192,7 +192,7 @@ const searchMachine = createMachine(
 
 ## Multiple Guards
 
-If you want to have a single event transition to different states in certain situations you can supply an array of conditional transitions. Each transition will be tested in order, and the first transition whose `cond` guard evaluates to `true` will be taken.
+If you want to have a single event transition to different states in certain situations, you can supply an array of conditional transitions. Each transition will be tested in order, and the first transition whose `cond` guard evaluates to `true` will be taken.
 
 For example, you can model a door that listens for an `OPEN` event, goes to the `'opened'` state if you are an admin, or goes to the `'closed.error'` state if `alert`-ing is true, or goes to the `'closed.idle'` state otherwise.
 

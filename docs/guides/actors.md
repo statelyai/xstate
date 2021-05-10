@@ -150,7 +150,7 @@ const machine = createMachine({
 ```
 
 ::: tip
-If you provide an unique `name` argument to `spawn(...)`, you can reference it in the target expression:
+If you provide a unique `name` argument to `spawn(...)`, you can reference it in the target expression:
 
 ```js
 const loginMachine = createMachine({
