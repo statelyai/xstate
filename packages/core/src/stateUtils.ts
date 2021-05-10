@@ -172,7 +172,7 @@ export function has<T>(iterable: Iterable<T>, item: T): boolean {
 export function nextEvents<TC, TE extends EventObject>(
   configuration: Array<StateNode<TC, any, TE>>
 ): Array<TE['type']> {
-  return flatten([...new Set(configuration.map((sn) => sn.ownEvents))]);
+  return [...new Set(flatten([...configuration.map((sn) => sn.ownEvents)]))];
 }
 
 export function isInFinalState<TC, TE extends EventObject>(
