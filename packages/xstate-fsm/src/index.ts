@@ -197,7 +197,7 @@ export function createMachine<
             );
           }
 
-          if (guard?.(context, eventObject)) {
+          if (!guard || guard?.(context, eventObject)) {
             const allActions = (isTargetless
               ? toArray(actions)
               : ([] as any[])

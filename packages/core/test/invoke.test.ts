@@ -860,13 +860,13 @@ describe('invoke', () => {
 
       const machine = createMachine({
         invoke: {
-          src: () => () => {
+          src: invokeCallback(() => () => {
             invokeCount++;
 
             return () => {
               invokeDisposeCount++;
             };
-          }
+          })
         },
         entry: () => entryActionsCount++,
         on: {
