@@ -75,10 +75,21 @@ const machine = createMachine<typeof userModel>({
           })
         },
         updateAge: {
-          /* ... */
+          actions: 'updateAge'
         }
       }
     }
+  }
+}, 
+{
+  actions: {
+    updateAge: userModel.assign(
+      { 
+        age: (_, event) => event.value // inferred
+      },
+      // infers the event type from userModel.events.updateAge
+      'updateAge'
+    )
   }
 });
 
