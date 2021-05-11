@@ -9,7 +9,7 @@ The `createModel(...)` function takes
 | Argument              | Type   | Description                                                |
 | --------------------- | ------ | ---------------------------------------------------------- |
 | `initialContext`      | object | The initial `context` value                                |
-| `creators` (optional) | object | An object containing various creators (currently `events`) |
+| `creators` (optional) | object | An object containing various event creators |
 
 The `creators` object includes the following properties:
 
