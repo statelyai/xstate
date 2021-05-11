@@ -44,6 +44,11 @@ const machine = createMachine({
 
 ## Modeling events
 
+Modeling machine events in a model gives two benefits:
+
+- events can be created by calling `model.events.eventName()`
+- provides type information to the machine definition, providing event-specific type safety for action definitions
+
 ```ts
 import { createModel } from 'xstate/lib/model';
 
