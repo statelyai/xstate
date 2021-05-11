@@ -21,6 +21,10 @@ The keys of the `creators.events` object are event types, and the values are fun
 
 ## Modeling context
 
+Since the model defines the machine's `context`, the model can be used within the machine definition to set its initial `context` with `model.initialContext` and to update the machine's `context` with `model.assign`.
+
+The `model.assign` function is typed to the shape of the model's `context`, making it a convenient and type-safe replacement for the `assign` action.
+
 ```js
 import { createModel } from 'xstate/lib/model';
 
