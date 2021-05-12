@@ -18,7 +18,7 @@
   },
   "scripts": {
     "preinstall": "node ./scripts/ensure-yarn.js",
-    "postinstall": "manypkg check && preconstruct dev",
+    "postinstall": "patch-package && manypkg check && preconstruct dev",
     "build": "preconstruct build",
     "fix": "manypkg fix",
     "typecheck": "tsc",
@@ -78,7 +78,7 @@
     "typedoc": "^0.17.4",
     "typescript": "^4.1.2",
     "vue": "^3.0.11",
-    "vue-jest": "^3.0.7",
+    "vue-jest": "5.0.0-alpha.7",
     "webpack-dev-middleware": "^3.6.0"
   },
   "husky": {
