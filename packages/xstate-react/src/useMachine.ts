@@ -61,17 +61,17 @@ export function useMachine<
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(
-  getMachine: MaybeLazy<MachineNode<TContext, TEvent, any, TTypestate>>,
+  getMachine: MaybeLazy<MachineNode<TContext, TEvent, TTypestate>>,
   options: Partial<InterpreterOptions> &
     Partial<UseMachineOptions<TContext, TEvent>> &
     Partial<MachineImplementations<TContext, TEvent>> = {}
 ): [
-  State<TContext, TEvent, any, TTypestate>,
-  InterpreterOf<MachineNode<TContext, TEvent, any, TTypestate>>['send'],
-  InterpreterOf<MachineNode<TContext, TEvent, any, TTypestate>>
+  State<TContext, TEvent, TTypestate>,
+  InterpreterOf<MachineNode<TContext, TEvent, TTypestate>>['send'],
+  InterpreterOf<MachineNode<TContext, TEvent, TTypestate>>
 ] {
   const listener = useCallback(
-    (nextState: State<TContext, TEvent, any, TTypestate>) => {
+    (nextState: State<TContext, TEvent, TTypestate>) => {
       // Only change the current state if:
       // - the incoming state is the "live" initial state (since it might have new actors)
       // - OR the incoming state actually changed.
@@ -94,7 +94,7 @@ export function useMachine<
     const { initialState } = service.machine;
     return (options.state
       ? State.create(options.state)
-      : initialState) as State<TContext, TEvent, any, TTypestate>;
+      : initialState) as State<TContext, TEvent, TTypestate>;
   });
 
   return [state, service.send, service];

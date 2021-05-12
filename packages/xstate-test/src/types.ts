@@ -140,5 +140,5 @@ export interface TestModelCoverage {
 }
 
 export interface CoverageOptions<TContext> {
-  filter?: (stateNode: StateNode<TContext, any, any>) => boolean;
+  filter?: (stateNode: StateNode<TContext, any>) => boolean;
 }

@@ -103,7 +103,7 @@ function actionsToSCXML(
   };
 }
 
-function stateNodeToSCXML(stateNode: StateNode<any, any, any>): XMLElement {
+function stateNodeToSCXML(stateNode: StateNode<any, any>): XMLElement {
   const childStates = Object.keys(stateNode.states).map((key) => {
     const childStateNode = stateNode.states[key];
 
