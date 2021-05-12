@@ -2,13 +2,21 @@
 
 In XState, you can model a machine's `context` and `events` externally by using `createModel(...)`. This provides a convenient way to strongly type `context` and `events`, as well as helpers for event creation, assignment and other implementation details in the future.
 
+Using `createModel(...)` is _completely optional_, and is meant to improve the developer experience. The main reasons for using it are:
+
+- Separating and organizing `context` and `events` in a strongly-typed way
+- Preventing typing issues with `assign(...)`
+- Specifying event creators for easier and safer event creation
+- Potentially sharing the model with other machines
+- Future developer experience improvements, such as specifying actions, guards, etc.
+
 ## `createModel(...)`
 
 The `createModel(...)` function takes
 
-| Argument              | Type   | Description                                                |
-| --------------------- | ------ | ---------------------------------------------------------- |
-| `initialContext`      | object | The initial `context` value                                |
+| Argument              | Type   | Description                                 |
+| --------------------- | ------ | ------------------------------------------- |
+| `initialContext`      | object | The initial `context` value                 |
 | `creators` (optional) | object | An object containing various event creators |
 
 The `creators` object includes the following properties:
@@ -46,8 +54,8 @@ const machine = createMachine({
 
 Modeling machine events in a model gives two benefits:
 
-- events can be created by calling `model.events.eventName()`
-- provides type information to the machine definition, providing event-specific type safety for action definitions
+- Events can be created by calling `model.events.eventName(...)`
+- Provides type information to the machine definition, providing event-specific type safety for action definitions
 
 ```ts
 import { createModel } from 'xstate/lib/model';
@@ -61,6 +69,70 @@ const userModel = createModel(
   {
     // Event creators
     events: {
+      updateName: (value) => ({ value }),
+      updateAge: (value) => ({ value }),
+      anotherEvent: () => ({}) // no payload
+    }
+  }
+);
+
+const machine = createMachine(
+  {
+    context: userModel.initialContext,
+    initial: 'active',
+    states: {
+      active: {
+        on: {
+          updateName: {
+            actions: userModel.assign({
+              name: (_, event) => event.value
+            })
+          },
+          updateAge: {
+            actions: 'updateAge'
+          }
+        }
+      }
+    }
+  },
+  {
+    actions: {
+      updateAge: userModel.assign({
+        age: (_, event) => event.value // inferred
+      })
+    }
+  }
+);
+
+// This sends the following event:
+// {
+//   type: 'updateName',
+//   value: 'David'
+// }
+const nextState = machine.transition(
+  undefined,
+  userModel.events.updateName('David')
+);
+```
+
+## TypeScript
+
+The `createModel(...)` function infers the following types:
+
+- `context` is inferred from the first argument in `createModel(initialContext, creators)`
+- `events` is inferred from `creators.events` in `createModel(initialContext, creators)
+
+```ts
+import { createModel } from 'xstate/lib/model';
+
+const userModel = createModel(
+  {
+    name: 'David', // inferred as `string`
+    age: 30, // inferred as `number`
+    friends: [] as string[] // explicit type
+  },
+  {
+    events: {
       updateName: (value: string) => ({ value }),
       updateAge: (value: number) => ({ value }),
       anotherEvent: () => ({}) // no payload
@@ -68,6 +140,22 @@ const userModel = createModel(
   }
 );
 
+// Context inferred as:
+// {
+//   name: string;
+//   age: number;
+//   friends: string[];
+// }
+
+// Events inferred as:
+// | { type: 'updateName'; value: string; }
+// | { type: 'updateAge'; value: number; }
+// | { type: 'anotherEvent'; }
+```
+
+Instead of specifying the type of `context` and `events` separately for machines, the `typeof` the model created by `createModel(...)` should be used:
+
+```ts {0}
 const machine = createMachine<typeof userModel>({
   context: userModel.initialContext,
   initial: 'active',
@@ -78,28 +166,40 @@ const machine = createMachine<typeof userModel>({
           actions: userModel.assign({
             name: (_, event) => event.value // inferred
           })
-        },
-        updateAge: {
-          actions: 'updateAge'
         }
       }
     }
   }
-}, 
-{
-  actions: {
-    updateAge: userModel.assign(
-      { 
-        age: (_, event) => event.value // inferred
-      },
-      // infers the event type from userModel.events.updateAge
-      'updateAge'
-    )
-  }
 });
+```
 
-const nextState = machine.transition(
-  undefined,
-  userModel.events.updateName('David')
+When an `assign()` action is referenced in `options.actions`, you can narrow the event type that the action accepts in the 2nd argument of `model.assign(assignments, eventType)`:
+
+```ts
+const machine = createMachine<typeof userModel>(
+  {
+    context: userModel.initialContext,
+    initial: 'active',
+    states: {
+      active: {
+        on: {
+          updateAge: {
+            actions: 'updateAge'
+          }
+        }
+      }
+    }
+  },
+  {
+    actions: {
+      updateAge: userModel.assign(
+        {
+          age: (_, event) => event.value // inferred
+        },
+        // infers the event type from userModel.events.updateAge
+        'updateAge'
+      )
+    }
+  }
 );
 ```
