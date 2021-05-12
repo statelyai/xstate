@@ -235,7 +235,7 @@ Example: the `'fetchData'` service and `'notifySuccess'` action are both configu
 </template>
 
 <script>
-import { assign, Machine } from 'xstate';
+import { assign, createMachine } from 'xstate';
 import { useMachine } from '@xstate/vue';
 
 const fetchMachine = createMachine({
