@@ -5,7 +5,6 @@ import {
   EventType,
   StateConfig,
   SCXML,
-  StateSchema,
   TransitionDefinition,
   Typestate,
   HistoryValue,
@@ -20,11 +19,8 @@ import { SpawnedActorRef } from '../dist/xstate.cjs';
 export function isState<
   TContext,
   TEvent extends EventObject,
-  TStateSchema extends StateSchema<TContext> = any,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
->(
-  state: object | string
-): state is State<TContext, TEvent, TStateSchema, TTypestate> {
+>(state: object | string): state is State<TContext, TEvent, TTypestate> {
   if (isString(state)) {
     return false;
   }
@@ -33,7 +29,7 @@ export function isState<
 }
 export function bindActionToState<TC, TE extends EventObject>(
   action: ActionObject<TC, TE>,
-  state: State<TC, TE, any, any>
+  state: State<TC, TE, any>
 ): ActionObject<TC, TE> {
   const { exec } = action;
   const boundAction: ActionObject<TC, TE> = {
@@ -55,12 +51,11 @@ export function bindActionToState<TC, TE extends EventObject>(
 export class State<
   TContext,
   TEvent extends EventObject = EventObject,
-  TStateSchema extends StateSchema<TContext> = any,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 > {
   public value: StateValue;
   public context: TContext;
-  public history?: State<TContext, TEvent, TStateSchema, TTypestate>;
+  public history?: State<TContext, TEvent, TTypestate>;
   public historyValue: HistoryValue<TContext, TEvent> = {};
   public actions: Array<ActionObject<TContext, TEvent>> = [];
   public meta: any = {};
@@ -101,9 +96,9 @@ export class State<
    * @param context
    */
   public static from<TC, TE extends EventObject = EventObject>(
-    stateValue: State<TC, TE, any, any> | StateValue,
+    stateValue: State<TC, TE, any> | StateValue,
     context?: TC | undefined
-  ): State<TC, TE, any, any> {
+  ): State<TC, TE, any> {
     if (stateValue instanceof State) {
       if (stateValue.context !== context) {
         return new State<TC, TE>({
@@ -144,7 +139,7 @@ export class State<
    */
   public static create<TC, TE extends EventObject = EventObject>(
     config: StateConfig<TC, TE>
-  ): State<TC, TE, any, any> {
+  ): State<TC, TE, any> {
     return new State(config);
   }
   /**
@@ -249,7 +244,6 @@ export class State<
         : never
       : never)['context'],
     TEvent,
-    TStateSchema,
     TTypestate
   > & { value: TSV } {
     return matchesState(parentStateValue as StateValue, this.value);

@@ -4,7 +4,6 @@ import {
   StateValue,
   MachineImplementations,
   EventObject,
-  StateSchema,
   MachineConfig,
   SCXML,
   Typestate,
@@ -63,9 +62,8 @@ function resolveContext<TContext>(
 export class MachineNode<
   TContext = any,
   TEvent extends EventObject = EventObject,
-  TStateSchema extends StateSchema = any,
   TTypestate extends Typestate<TContext> = any
-> extends StateNode<TContext, TEvent, TStateSchema> {
+> extends StateNode<TContext, TEvent> {
   public context: TContext;
   /**
    * The machine's own version.
@@ -90,7 +88,7 @@ export class MachineNode<
     /**
      * The raw config used to create the machine.
      */
-    public config: MachineConfig<TContext, TEvent, TStateSchema>,
+    public config: MachineConfig<TContext, TEvent>,
     options?: Partial<MachineImplementations<TContext, TEvent>>
   ) {
     super(config, {
@@ -155,7 +153,7 @@ export class MachineNode<
    */
   public provide(
     implementations: Partial<MachineImplementations<TContext, TEvent>>
-  ): MachineNode<TContext, TEvent, TStateSchema> {
+  ): MachineNode<TContext, TEvent> {
     const { actions, guards, actors, delays } = this.options;
 
     return new MachineNode(this.config, {
@@ -176,7 +174,7 @@ export class MachineNode<
    */
   public withContext(
     context: Partial<TContext>
-  ): MachineNode<TContext, TEvent, TStateSchema> {
+  ): MachineNode<TContext, TEvent> {
     return this.provide({
       context: resolveContext(this.context, context)
     });
@@ -210,7 +208,7 @@ export class MachineNode<
   public transition(
     state: StateValue | State<TContext, TEvent> = this.initialState,
     event: Event<TEvent> | SCXML.Event<TEvent>
-  ): State<TContext, TEvent, TStateSchema, TTypestate> {
+  ): State<TContext, TEvent, TTypestate> {
     const currentState = toState(state, this);
 
     return macrostep(currentState, event, this);
@@ -224,9 +222,9 @@ export class MachineNode<
    * @param event The received event
    */
   public microstep(
-    state: StateValue | State<TContext, TEvent> = this.initialState,
+    state: StateValue | State<TContext, TEvent, TTypestate> = this.initialState,
     event: Event<TEvent> | SCXML.Event<TEvent>
-  ): State<TContext, TEvent, TStateSchema, TTypestate> {
+  ): State<TContext, TEvent, TTypestate> {
     const resolvedState = toState(state, this);
     const _event = toSCXMLEvent(event);
 
@@ -252,13 +250,12 @@ export class MachineNode<
    * The initial State instance, which includes all actions to be executed from
    * entering the initial state.
    */
-  public get initialState(): State<TContext, TEvent, TStateSchema, TTypestate> {
+  public get initialState(): State<TContext, TEvent, TTypestate> {
     this._init();
     const nextState = resolveMicroTransition(this, [], undefined, undefined);
     return macrostep(nextState, null as any, this) as State<
       TContext,
       TEvent,
-      TStateSchema,
       TTypestate
     >;
   }
@@ -266,13 +263,12 @@ export class MachineNode<
   /**
    * Returns the initial `State` instance, with reference to `self` as an `ActorRef`.
    */
-  public getInitialState(): State<TContext, TEvent, TStateSchema, TTypestate> {
+  public getInitialState(): State<TContext, TEvent, TTypestate> {
     this._init();
     const nextState = resolveMicroTransition(this, [], undefined, undefined);
     return macrostep(nextState, null as any, this) as State<
       TContext,
       TEvent,
-      TStateSchema,
       TTypestate
     >;
   }

@@ -304,7 +304,7 @@ describe('useMachine hook', () => {
     });
 
     const ServiceApp: React.FC<{
-      service: Interpreter<TestContext, any, any, TestState>;
+      service: Interpreter<TestContext, any, TestState>;
     }> = ({ service }) => {
       const [state] = useService(service);
 

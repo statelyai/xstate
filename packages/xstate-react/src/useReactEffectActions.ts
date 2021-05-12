@@ -6,7 +6,7 @@ import { partition } from './utils';
 
 function executeEffect<TContext, TEvent extends EventObject>(
   action: ReactActionObject<TContext, TEvent>,
-  state: State<TContext, TEvent, any, any>
+  state: State<TContext, TEvent, any>
 ): void {
   const { exec } = action;
   const originalExec = exec!(state.context, state._event.data, {
@@ -19,17 +19,13 @@ function executeEffect<TContext, TEvent extends EventObject>(
 }
 
 export function useReactEffectActions<TContext, TEvent extends EventObject>(
-  service: Interpreter<TContext, TEvent, any, any>
+  service: Interpreter<TContext, TEvent, any>
 ) {
   const effectActionsRef = useRef<
-    Array<
-      [ReactActionObject<TContext, TEvent>, State<TContext, TEvent, any, any>]
-    >
+    Array<[ReactActionObject<TContext, TEvent>, State<TContext, TEvent, any>]>
   >([]);
   const layoutEffectActionsRef = useRef<
-    Array<
-      [ReactActionObject<TContext, TEvent>, State<TContext, TEvent, any, any>]
-    >
+    Array<[ReactActionObject<TContext, TEvent>, State<TContext, TEvent, any>]>
   >([]);
 
   useIsomorphicLayoutEffect(() => {
