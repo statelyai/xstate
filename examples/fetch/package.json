@@ -1,0 +1,10 @@
+{
+  "name": "@xstate/examples-fetch",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "David Khourshid",
+  "license": "MIT",
+  "dependencies": {
+    "xstate": "^4.19.1"
+  }
+}
