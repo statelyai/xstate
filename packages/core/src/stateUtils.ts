@@ -60,7 +60,7 @@ type AdjList<TC, TE extends EventObject> = Map<
   Array<StateNode<TC, TE>>
 >;
 
-export const isAtomicStateNode = (stateNode: StateNode<any, any, any>) =>
+export const isAtomicStateNode = (stateNode: StateNode<any, any>) =>
   stateNode.type === 'atomic' || stateNode.type === 'final';
 
 export function getChildren<TC, TE extends EventObject>(
@@ -1395,7 +1395,7 @@ export function microstep<TContext, TEvent extends EventObject>(
 }
 
 function selectEventlessTransitions<TContext, TEvent extends EventObject>(
-  state: State<TContext, TEvent, any, any>
+  state: State<TContext, TEvent, any>
 ): Transitions<TContext, TEvent> {
   const enabledTransitions: Set<
     TransitionDefinition<TContext, TEvent>
@@ -1441,7 +1441,7 @@ export function resolveMicroTransition<
   transitions: Transitions<TContext, TEvent>,
   currentState?: State<TContext, TEvent>,
   _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>
-): State<TContext, TEvent, any, TTypestate> {
+): State<TContext, TEvent, TTypestate> {
   // Transition will "apply" if:
   // - the state node is the initial state (there is no current state)
   // - OR there are transitions
@@ -1507,7 +1507,7 @@ export function resolveMicroTransition<
 
   const { context, actions: nonRaisedActions } = resolved;
 
-  const nextState = new State<TContext, TEvent, any, TTypestate>({
+  const nextState = new State<TContext, TEvent, TTypestate>({
     value: getStateValue(machine, resolved.configuration),
     context,
     _event,
@@ -1558,7 +1558,7 @@ export function macrostep<
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext>
 >(
-  state: State<TContext, TEvent, any, TTypestate>,
+  state: State<TContext, TEvent, TTypestate>,
   event: Event<TEvent> | SCXML.Event<TEvent> | null,
   machine: MachineNode<TContext, TEvent, any>
 ): typeof state {
@@ -1601,7 +1601,7 @@ export function macrostep<
 }
 
 function resolveHistoryValue<TContext, TEvent extends EventObject>(
-  currentState: State<TContext, TEvent, any, any> | undefined,
+  currentState: State<TContext, TEvent, any> | undefined,
   exitSet: Array<StateNode<TContext, TEvent>>
 ): HistoryValue<TContext, TEvent> {
   const historyValue: Record<

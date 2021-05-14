@@ -42,7 +42,7 @@ export function resolveActionsAndContext<TContext, TEvent extends EventObject>(
   actions: Array<ActionObject<TContext, TEvent>>,
   machine: MachineNode<TContext, TEvent, any>,
   _event: SCXML.Event<TEvent>,
-  currentState: State<TContext, TEvent, any, any> | undefined
+  currentState: State<TContext, TEvent, any> | undefined
 ): {
   actions: typeof actions;
   raised: Array<RaiseActionObject<TEvent>>;

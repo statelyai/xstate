@@ -14,25 +14,25 @@ export function createMachine<
   TEvent extends EventObject = ModelEventsFrom<TModel>,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(
-  config: MachineConfig<TContext, TEvent, any>,
+  config: MachineConfig<TContext, TEvent>,
   options?: Partial<MachineImplementations<TContext, TEvent>>
-): MachineNode<TContext, TEvent, any, TTypestate>;
+): MachineNode<TContext, TEvent, TTypestate>;
 export function createMachine<
   TContext,
   TEvent extends EventObject = AnyEventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(
-  config: MachineConfig<TContext, TEvent, any>,
+  config: MachineConfig<TContext, TEvent>,
   options?: Partial<MachineImplementations<TContext, TEvent>>
-): MachineNode<TContext, TEvent, any, TTypestate>;
+): MachineNode<TContext, TEvent, TTypestate>;
 export function createMachine<
   TContext,
   TEvent extends EventObject = AnyEventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(
-  definition: MachineConfig<TContext, TEvent, any>,
+  definition: MachineConfig<TContext, TEvent>,
   implementations?: Partial<MachineImplementations<TContext, TEvent>>
-): MachineNode<TContext, TEvent, any, TTypestate> {
+): MachineNode<TContext, TEvent, TTypestate> {
   return new MachineNode<TContext, TEvent, TTypestate>(
     definition,
     implementations

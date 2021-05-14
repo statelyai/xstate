@@ -30,7 +30,7 @@ export function useMachine<
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext>
 >(
-  machine: MachineNode<TContext, TEvent, any, TTypestate>,
+  machine: MachineNode<TContext, TEvent, TTypestate>,
   options: Partial<InterpreterOptions> &
     Partial<UseMachineOptions<TContext, TEvent>> &
     Partial<MachineImplementations<TContext, TEvent>> = {}

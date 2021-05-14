@@ -323,7 +323,7 @@ const countMachine = createMachine({
 
 ## TypeScript
 
-For proper type inference, add the context type as the first type parameter to `Machine<TContext, ...>`:
+For proper type inference, add the context type as the first type parameter to `createMachine<TContext, ...>`:
 
 ```ts
 interface CounterContext {
@@ -333,7 +333,7 @@ interface CounterContext {
   };
 }
 
-const machine = Machine<CounterContext>({
+const machine = createMachine<CounterContext>({
   // ...
   context: {
     count: 0,
@@ -351,21 +351,21 @@ const context = {
   user: { name: '' }
 };
 
-const machine = Machine<typeof context>({
+const machine = createMachine<typeof context>({
   // ...
   context
   // ...
 });
 ```
 
-In most cases, the types for `context` and `event` in `assign(...)` actions will be automatically inferred from the type parameters passed into `Machine<TContext, TEvent>`:
+In most cases, the types for `context` and `event` in `assign(...)` actions will be automatically inferred from the type parameters passed into `createMachine<TContext, TEvent>`:
 
 ```ts
 interface CounterContext {
   count: number;
 }
 
-const machine = Machine<CounterContext>({
+const machine = createMachine<CounterContext>({
   // ...
   context: {
     count: 0

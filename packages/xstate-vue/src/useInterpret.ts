@@ -37,14 +37,14 @@ export function useInterpret<
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(
-  getMachine: MaybeLazy<MachineNode<TContext, TEvent, any, TTypestate>>,
+  getMachine: MaybeLazy<MachineNode<TContext, TEvent, TTypestate>>,
   options: Partial<InterpreterOptions> &
     Partial<UseMachineOptions<TContext, TEvent>> &
     Partial<MachineImplementations<TContext, TEvent>> = {},
   observerOrListener?:
-    | Observer<State<TContext, TEvent, any, TTypestate>>
-    | ((value: State<TContext, TEvent, any, TTypestate>) => void)
-): Interpreter<TContext, TEvent, any, TTypestate> {
+    | Observer<State<TContext, TEvent, TTypestate>>
+    | ((value: State<TContext, TEvent, TTypestate>) => void)
+): Interpreter<TContext, TEvent, TTypestate> {
   const machine = typeof getMachine === 'function' ? getMachine() : getMachine;
 
   const {

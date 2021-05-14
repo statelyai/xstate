@@ -18,7 +18,6 @@ import {
   TransitionDefinition,
   DelayedTransitionDefinition,
   StateNodeConfig,
-  StateSchema,
   StatesDefinition,
   StateNodesConfig,
   FinalStateNodeConfig,
@@ -53,8 +52,7 @@ interface StateNodeOptions<TContext, TEvent extends EventObject> {
 
 export class StateNode<
   TContext = any,
-  TEvent extends EventObject = EventObject,
-  TStateSchema extends StateSchema = any
+  TEvent extends EventObject = EventObject
 > {
   /**
    * The relative key of the state node, which represents its location in the overall state value.
@@ -81,7 +79,7 @@ export class StateNode<
   /**
    * The child state nodes.
    */
-  public states: StateNodesConfig<TContext, TEvent, TStateSchema>;
+  public states: StateNodesConfig<TContext, TEvent>;
   /**
    * The type of history on this state node. Can be:
    *
@@ -108,7 +106,7 @@ export class StateNode<
   /**
    * The meta data associated with this state node, which will be returned in State instances.
    */
-  public meta?: TStateSchema extends { meta: infer D } ? D : any;
+  public meta?: any;
   /**
    * The data sent with the "done.state._id_" event if this is a final state node.
    */
@@ -155,7 +153,7 @@ export class StateNode<
     /**
      * The raw config used to create the machine.
      */
-    public config: StateNodeConfig<TContext, TEvent, TStateSchema>,
+    public config: StateNodeConfig<TContext, TEvent>,
     options: StateNodeOptions<TContext, TEvent>
   ) {
     const isMachine = !this.parent;
@@ -163,7 +161,7 @@ export class StateNode<
     this.key = this.config.key || options._key;
     this.machine = this.parent
       ? this.parent.machine
-      : ((this as unknown) as MachineNode<TContext, TEvent, TStateSchema>);
+      : ((this as unknown) as MachineNode<TContext, TEvent>);
     this.path = this.parent ? this.parent.path.concat(this.key) : [];
     this.id =
       this.config.id ||
@@ -195,7 +193,7 @@ export class StateNode<
             return stateNode;
           }
         )
-      : EMPTY_OBJECT) as StateNodesConfig<TContext, TEvent, TStateSchema>;
+      : EMPTY_OBJECT) as StateNodesConfig<TContext, TEvent>;
 
     if (this.type === 'compound' && !this.config.initial) {
       throw new Error(
@@ -229,7 +227,7 @@ export class StateNode<
   /**
    * The well-structured state node definition.
    */
-  public get definition(): StateNodeDefinition<TContext, TEvent, TStateSchema> {
+  public get definition(): StateNodeDefinition<TContext, TEvent> {
     return {
       id: this.id,
       key: this.key,
@@ -253,7 +251,7 @@ export class StateNode<
       history: this.history,
       states: mapValues(this.states, (state: StateNode<TContext, TEvent>) => {
         return state.definition;
-      }) as StatesDefinition<TContext, TEvent, TStateSchema>,
+      }) as StatesDefinition<TContext, TEvent>,
       on: this.on,
       transitions: this.transitions,
       entry: this.entry,
