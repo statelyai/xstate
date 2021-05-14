@@ -26,13 +26,14 @@ export interface Actor<
   deferred?: boolean;
 }
 
-export function createNullActor(id: string): Actor {
+export function createNullActor(id: string): SpawnedActorRef<any> {
   return {
     id,
     send: () => void 0,
     subscribe: () => ({
       unsubscribe: () => void 0
     }),
+    getSnapshot: () => undefined,
     toJSON: () => ({
       id
     })
@@ -50,7 +51,7 @@ export function createInvocableActor<TC, TE extends EventObject>(
   machine: StateMachine<TC, any, TE, any>,
   context: TC,
   _event: SCXML.Event<TE>
-): Actor {
+): SpawnedActorRef<any> {
   const invokeSrc = toInvokeSource(invokeDefinition.src);
   const serviceCreator = machine?.options.services?.[invokeSrc.type];
   const resolvedData = invokeDefinition.data
@@ -64,6 +65,7 @@ export function createInvocableActor<TC, TE extends EventObject>(
       )
     : createNullActor(invokeDefinition.id);
 
+  // @ts-ignore
   tempActor.meta = invokeDefinition;
 
   return tempActor;
@@ -73,12 +75,15 @@ export function createDeferredActor(
   entity: Spawnable,
   id: string,
   data?: any
-): Actor {
+): SpawnedActorRef<any, undefined> {
   const tempActor = createNullActor(id);
+
+  // @ts-ignore
   tempActor.deferred = true;
 
   if (isMachine(entity)) {
     // "mute" the existing service scope so potential spawned actors within the `.initialState` stay deferred here
+    // @ts-ignore
     tempActor.state = serviceScope.provide(
       undefined,
       () => (data ? entity.withContext(data) : entity).initialState
