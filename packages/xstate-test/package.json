@@ -48,14 +48,14 @@
   },
   "devDependencies": {
     "@types/jest-environment-puppeteer": "^4.0.0",
-    "jest": "^26.4.2",
+    "jest": "^26.6.3",
     "jest-environment-puppeteer": "^4.3.0",
     "jest-puppeteer": "^4.3.0",
     "lerna-alias": "3.0.3-0",
     "puppeteer": "^1.19.0",
     "strip-ansi": "^5.2.0",
-    "ts-jest": "^26.4.0",
-    "typescript": "^4.1.2",
+    "ts-jest": "^26.5.6",
+    "typescript": "^4.2.4",
     "xstate": "*"
   },
   "dependencies": {

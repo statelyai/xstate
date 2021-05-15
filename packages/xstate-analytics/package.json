@@ -38,10 +38,10 @@
     "xstate": "^4.7.0-rc"
   },
   "devDependencies": {
-    "jest": "^26.4.2",
+    "jest": "^26.6.3",
     "lerna-alias": "3.0.3-0",
-    "ts-jest": "^26.4.0",
-    "typescript": "^4.1.2",
+    "ts-jest": "^26.5.6",
+    "typescript": "^4.2.4",
     "xstate": "*"
   },
   "dependencies": {}
