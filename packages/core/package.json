@@ -52,7 +52,7 @@
     "@babel/core": "^7.10.5",
     "@scion-scxml/test-framework": "^2.0.15",
     "babel-plugin-annotate-pure-calls": "^0.4.0",
-    "jest": "^26.4.2",
+    "jest": "^26.6.3",
     "jsdom": "^14.0.0",
     "jsdom-global": "^3.0.2",
     "lerna-alias": "3.0.3-0",
@@ -64,9 +64,9 @@
     "rollup-plugin-typescript2": "^0.29.0",
     "rollup-plugin-uglify": "^6.0.2",
     "rxjs": "^6.5.1",
-    "ts-jest": "^26.4.0",
+    "ts-jest": "^26.5.6",
     "tslib": "^1.10.0",
-    "typescript": "^4.1.2",
+    "typescript": "^4.2.4",
     "xml-js": "^1.6.11"
   }
 }
