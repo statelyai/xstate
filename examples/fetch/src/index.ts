@@ -8,7 +8,31 @@ const fetchMachine = createMachine({
         FETCH: 'loading'
       }
     },
-    loading: {}
+    loading: {
+      invoke: {
+        id: 'dogFetch',
+        src: (context, event) =>
+          fetch('https://dog.ceo/api/breeds/image/random').then((response) =>
+            response.json()
+          ),
+        onDone: {
+          target: 'success'
+        },
+        onError: {
+          target: 'failure'
+        }
+      }
+    },
+    success: {
+      on: {
+        RETRY: 'loading'
+      }
+    },
+    failure: {
+      on: {
+        RETRY: 'loading'
+      }
+    }
   }
 });
 
