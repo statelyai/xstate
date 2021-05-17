@@ -21,10 +21,10 @@ JavaScript and TypeScript [finite state machines](https://en.wikipedia.org/wiki/
 ## Packages
 
 - 🤖 `xstate` - Core finite state machine and statecharts library + interpreter
-- [🔬 `@xstate/fsm`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-fsm) - Minimal finite state machine library
-- [📉 `@xstate/graph`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-graph) - Graph traversal utilities for XState
-- [⚛️ `@xstate/react`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-react) - React hooks and utilities for using XState in React applications
-- [✅ `@xstate/test`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-test) - Model-based testing utilities for XState
+- [🔬 `@xstate/fsm`](https://github.com/davidkpiano/xstate/tree/main/packages/xstate-fsm) - Minimal finite state machine library
+- [📉 `@xstate/graph`](https://github.com/davidkpiano/xstate/tree/main/packages/xstate-graph) - Graph traversal utilities for XState
+- [⚛️ `@xstate/react`](https://github.com/davidkpiano/xstate/tree/main/packages/xstate-react) - React hooks and utilities for using XState in React applications
+- [✅ `@xstate/test`](https://github.com/davidkpiano/xstate/tree/main/packages/xstate-test) - Model-based testing utilities for XState
 
 ## Super quick start
 

@@ -46,7 +46,7 @@
   "bugs": {
     "url": "https://github.com/davidkpiano/xstate/issues"
   },
-  "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/core#readme",
+  "homepage": "https://github.com/davidkpiano/xstate/tree/main/packages/core#readme",
   "devDependencies": {
     "@babel/cli": "^7.10.5",
     "@babel/core": "^7.10.5",
