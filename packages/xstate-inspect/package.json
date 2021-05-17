@@ -12,7 +12,7 @@
     "viz"
   ],
   "author": "David Khourshid <davidkpiano@gmail.com>",
-  "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-inspect#readme",
+  "homepage": "https://github.com/davidkpiano/xstate/tree/main/packages/xstate-inspect#readme",
   "license": "MIT",
   "main": "lib/index.js",
   "module": "es/index.js",

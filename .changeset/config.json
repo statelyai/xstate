@@ -7,7 +7,7 @@
   "commit": false,
   "linked": [],
   "access": "public",
-  "baseBranch": "master",
+  "baseBranch": "main",
   "ignore": [
     "@xstate/analytics",
     "@xstate/scxml",
