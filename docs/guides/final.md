@@ -10,10 +10,14 @@ const lightMachine = createMachine({
   initial: 'green',
   states: {
     green: {
-      on: { TIMER: 'yellow' }
+      on: {
+        TIMER: { target: 'yellow' }
+      }
     },
     yellow: {
-      on: { TIMER: 'red' }
+      on: {
+        TIMER: { target: 'red' }
+      }
     },
     red: {
       type: 'parallel',
@@ -22,10 +26,14 @@ const lightMachine = createMachine({
           initial: 'walk',
           states: {
             walk: {
-              on: { PED_WAIT: 'wait' }
+              on: {
+                PED_WAIT: { target: 'wait' }
+              }
             },
             wait: {
-              on: { PED_STOP: 'stop' }
+              on: {
+                PED_STOP: { target: 'stop' }
+              }
             },
             stop: {
               // 'stop' is a final state node for 'crosswalkNorth'
@@ -40,10 +48,14 @@ const lightMachine = createMachine({
           initial: 'walk',
           states: {
             walk: {
-              on: { PED_WAIT: 'wait' }
+              on: {
+                PED_WAIT: { target: 'wait' }
+              }
             },
             wait: {
-              on: { PED_STOP: 'stop' }
+              on: {
+                PED_STOP: { target: 'stop' }
+              }
             },
             stop: {
               type: 'final'
@@ -83,8 +95,8 @@ const shoppingMachine = createMachine({
             pending: {
               entry: 'getUser',
               on: {
-                RESOLVE_USER: 'success',
-                REJECT_USER: 'failure'
+                RESOLVE_USER: { target: 'success' },
+                REJECT_USER: { target: 'failure' }
               }
             },
             success: { type: 'final' },
@@ -97,8 +109,8 @@ const shoppingMachine = createMachine({
             pending: {
               entry: 'getItems',
               on: {
-                RESOLVE_ITEMS: 'success',
-                REJECT_ITEMS: 'failure'
+                RESOLVE_ITEMS: { target: 'success' },
+                REJECT_ITEMS: { target: 'failure' }
               }
             },
             success: { type: 'final' },

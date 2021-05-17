@@ -13,13 +13,17 @@ const toggleMachine = createMachine(
     initial: 'inactive',
     states: {
       inactive: {
-        on: { TOGGLE: 'active' }
+        on: {
+          TOGGLE: { target: 'active' }
+        }
       },
       active: {
         // The 'beeping' activity will take place as long as
         // the machine is in the 'active' state
         activities: ['beeping'],
-        on: { TOGGLE: 'inactive' }
+        on: {
+          TOGGLE: { target: 'inactive' }
+        }
       }
     }
   },
@@ -48,12 +52,12 @@ const lightMachine = createMachine({
   states: {
     green: {
       on: {
-        TIMER: 'yellow'
+        TIMER: { target: 'yellow' }
       }
     },
     yellow: {
       on: {
-        TIMER: 'red'
+        TIMER: { target: 'red' }
       }
     },
     red: {
@@ -62,16 +66,22 @@ const lightMachine = createMachine({
       // the 'light.red' state, and stopped upon exiting it.
       activities: ['activateCrosswalkLight'],
       on: {
-        TIMER: 'green'
+        TIMER: { target: 'green' }
       },
       states: {
-        walk: { on: { PED_WAIT: 'wait' } },
+        walk: {
+          on: {
+            PED_WAIT: { target: 'wait' }
+          }
+        },
         wait: {
           // the 'blinkCrosswalkLight' activity is started upon entering
           // the 'light.red.wait' state, and stopped upon exiting it
           // or its parent state.
           activities: ['blinkCrosswalkLight'],
-          on: { PED_STOP: 'stop' }
+          on: {
+            PED_STOP: { target: 'stop' }
+          }
         },
         stop: {}
       }
@@ -83,7 +93,7 @@ const lightMachine = createMachine({
 In the above machine configuration, the `'activateCrosswalkLight'` will start when the `'light.red'` state is entered. It will also execute a special `'xstate.start'` action, letting the [service](./interpretation.md) know that it should start the activity:
 
 ```js
-const redState = lightMachine.transition('yellow', 'TIMER');
+const redState = lightMachine.transition('yellow', { type: 'TIMER' });
 
 redState.activities;
 // => {
@@ -100,7 +110,7 @@ redState.actions;
 Transitioning within the same parent state will _not_ restart its activities, although it might start new activities:
 
 ```js
-const redWaitState = lightMachine.transition(redState, 'PED_WAIT');
+const redWaitState = lightMachine.transition(redState, { type: 'PED_WAIT' });
 
 redWaitState.activities;
 // => {
@@ -119,7 +129,9 @@ redWaitState.actions;
 Leaving a state will stop its activities:
 
 ```js
-const redStopState = lightMachine.transition(redWaitState, 'PED_STOP');
+const redStopState = lightMachine.transition(redWaitState, {
+  type: 'PED_STOP'
+});
 
 redStopState.activities;
 // The 'blinkCrosswalkLight' activity is stopped
@@ -138,7 +150,7 @@ redStopState.actions;
 And any stopped activities will be stopped only once:
 
 ```js
-const greenState = lightMachine.transition(redStopState, 'TIMER');
+const greenState = lightMachine.transition(redStopState, { type: 'TIMER' });
 
 green.activities;
 // No active activities
@@ -194,11 +206,15 @@ const toggleMachine = createMachine(
     },
     states: {
       inactive: {
-        on: { TOGGLE: 'active' }
+        on: {
+          TOGGLE: { target: 'active' }
+        }
       },
       active: {
         activities: ['beeping'],
-        on: { TOGGLE: 'inactive' }
+        on: {
+          TOGGLE: { target: 'inactive' }
+        }
       }
     }
   },
@@ -223,14 +239,14 @@ service.start();
 
 // nothing logged yet
 
-service.send('TOGGLE');
+service.send({ type: 'TOGGLE' });
 
 // => 'BEEP!'
 // => 'BEEP!'
 // => 'BEEP!'
 // ...
 
-service.send('TOGGLE');
+service.send({ type: 'TOGGLE' });
 
 // no more beeps!
 ```

@@ -35,13 +35,13 @@
   },
   "dependencies": {
     "xml-js": "^1.6.11",
-    "xstate": "^4.19.1"
+    "xstate": "^4.19.2"
   },
   "devDependencies": {
     "@scion-scxml/test-framework": "^2.0.15",
-    "jest": "^26.4.2",
+    "jest": "^26.6.3",
     "lerna-alias": "3.0.3-0",
-    "ts-jest": "^26.4.0",
-    "typescript": "^4.1.2"
+    "ts-jest": "^26.5.6",
+    "typescript": "^4.2.4"
   }
 }

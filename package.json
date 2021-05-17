@@ -4,6 +4,7 @@
   "description": "Finite State Machines and Statecharts for the Modern Web.",
   "workspaces": {
     "packages": [
+      "examples/*",
       "packages/*",
       "packages/xstate-viz/example"
     ]
@@ -42,7 +43,7 @@
     "@types/use-subscription": "^1.0.0",
     "gh-pages": "^2.0.1",
     "husky": "^3.1.0",
-    "jest": "^26.4.2",
+    "jest": "^26.6.3",
     "jest-watch-typeahead": "^0.6.1",
     "jsdom": "^14.0.0",
     "jsdom-global": "^3.0.2",
@@ -52,10 +53,10 @@
     "patch-package": "^6.2.2",
     "prettier": "^2.0.2",
     "spawn-command": "0.0.2-1",
-    "ts-jest": "^26.4.0",
+    "ts-jest": "^26.5.6",
     "tslint": "^5.11.0",
     "typedoc": "^0.17.4",
-    "typescript": "^4.1.2",
+    "typescript": "^4.2.4",
     "webpack-dev-middleware": "^3.6.0"
   },
   "husky": {

@@ -62,7 +62,9 @@ const glassMachine = createMachine(
 The current context is referenced on the `State` as `state.context`:
 
 ```js
-const nextState = glassMachine.transition(glassMachine.initialState, 'FILL');
+const nextState = glassMachine.transition(glassMachine.initialState, {
+  type: 'FILL'
+});
 
 nextState.context;
 // => { amount: 1 }
@@ -217,7 +219,7 @@ const counterMachine = createMachine({
   }
 });
 
-interpret(counterMachine).send('INC_TWICE');
+interpret(counterMachine).send({ type: 'INC_TWICE' });
 // => "Before: 2"
 // => "After: 2"
 ```
@@ -252,7 +254,7 @@ const counterMachine = createMachine({
   }
 });
 
-interpret(counterMachine).send('INC_TWICE');
+interpret(counterMachine).send({ type: 'INC_TWICE' });
 // => "Before: 0"
 // => "After: 2"
 ```
@@ -321,7 +323,7 @@ const countMachine = createMachine({
 
 ## TypeScript
 
-For proper type inference, add the context type as the first type parameter to `Machine<TContext, ...>`:
+For proper type inference, add the context type as the first type parameter to `createMachine<TContext, ...>`:
 
 ```ts
 interface CounterContext {
@@ -331,7 +333,7 @@ interface CounterContext {
   };
 }
 
-const machine = Machine<CounterContext>({
+const machine = createMachine<CounterContext>({
   // ...
   context: {
     count: 0,
@@ -349,21 +351,21 @@ const context = {
   user: { name: '' }
 };
 
-const machine = Machine<typeof context>({
+const machine = createMachine<typeof context>({
   // ...
   context
   // ...
 });
 ```
 
-In most cases, the types for `context` and `event` in `assign(...)` actions will be automatically inferred from the type parameters passed into `Machine<TContext, TEvent>`:
+In most cases, the types for `context` and `event` in `assign(...)` actions will be automatically inferred from the type parameters passed into `createMachine<TContext, TEvent>`:
 
 ```ts
 interface CounterContext {
   count: number;
 }
 
-const machine = Machine<CounterContext>({
+const machine = createMachine<CounterContext>({
   // ...
   context: {
     count: 0
