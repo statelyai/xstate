@@ -17,6 +17,10 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
+::: warning Vue 2 Notice:
+If you're using Vue 2.x, please see [the Vue recipe](../../recipes/vue.html) instead, or use the [`xstate-vue2` package](https://github.com/ChrisShank/xstate-vue2) if you want to use the Vue Composition API.
+:::
+
 ## Quick Start
 
 1. Install `xstate` and `@xstate/vue`:
@@ -82,8 +86,6 @@ export default {
 };
 </script>
 ```
-
-**Vue 2.x notice:** If you're using Vue 2.x, please see [the recipe](https://xstate.js.org/docs/recipes/vue.html) instead.
 
 ## API
 

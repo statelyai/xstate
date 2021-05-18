@@ -14,7 +14,7 @@
     "testing"
   ],
   "author": "David Khourshid <davidkpiano@gmail.com>",
-  "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-test#readme",
+  "homepage": "https://github.com/davidkpiano/xstate/tree/main/packages/xstate-test#readme",
   "license": "MIT",
   "main": "dist/test.cjs.js",
   "module": "dist/test.esm.js",

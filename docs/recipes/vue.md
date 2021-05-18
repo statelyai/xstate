@@ -1,5 +1,13 @@
 # Usage with Vue
 
+::: tip
+If you want to use the Vue Composition API, we recommend using the following packages:
+
+- [`@xstate/vue` package](../packages/xstate-vue) for Vue 3
+- [`xstate-vue2` package](https://github.com/ChrisShank/xstate-vue2) (3rd-party) for Vue 2
+
+:::
+
 Vue follows a similar pattern to [React](./react.md):
 
 - The machine can be defined externally;

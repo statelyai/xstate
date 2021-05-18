@@ -15,7 +15,7 @@
     "automata"
   ],
   "author": "David Khourshid <davidkpiano@gmail.com>",
-  "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-fsm#readme",
+  "homepage": "https://github.com/davidkpiano/xstate/tree/main/packages/xstate-fsm#readme",
   "license": "MIT",
   "main": "dist/fsm.cjs.js",
   "module": "dist/fsm.esm.js",

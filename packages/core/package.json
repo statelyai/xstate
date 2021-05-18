@@ -36,16 +36,14 @@
   "bugs": {
     "url": "https://github.com/davidkpiano/xstate/issues"
   },
-  "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/core#readme",
-  "dependencies": {
-    "xml-js": "^1.6.11"
-  },
+  "homepage": "https://github.com/davidkpiano/xstate/tree/main/packages/core#readme",
   "devDependencies": {
     "@scion-scxml/test-framework": "^2.0.15",
     "jsdom": "^14.0.0",
     "jsdom-global": "^3.0.2",
     "pkg-up": "^3.1.0",
-    "rxjs": "^6.6.3"
+    "rxjs": "^6.6.3",
+    "xml-js": "^1.6.11"
   },
   "preconstruct": {
     "umdName": "XState",

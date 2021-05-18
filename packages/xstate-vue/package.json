@@ -13,7 +13,7 @@
     "composable"
   ],
   "author": "David Khourshid <davidkpiano@gmail.com>",
-  "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-vue#readme",
+  "homepage": "https://github.com/davidkpiano/xstate/tree/main/packages/xstate-vue#readme",
   "license": "MIT",
   "main": "dist/vue.cjs.js",
   "module": "dist/vue.esm.js",

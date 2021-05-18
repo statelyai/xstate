@@ -10,7 +10,7 @@
     "statechart"
   ],
   "author": "David Khourshid <davidkpiano@gmail.com>",
-  "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-immer#readme",
+  "homepage": "https://github.com/davidkpiano/xstate/tree/main/packages/xstate-immer#readme",
   "license": "MIT",
   "main": "dist/immer.cjs.js",
   "module": "dist/immer.esm.js",

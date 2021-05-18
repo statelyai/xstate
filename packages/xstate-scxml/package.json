@@ -11,7 +11,7 @@
     "state machine"
   ],
   "author": "David Khourshid <davidkpiano@gmail.com>",
-  "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-scxml#readme",
+  "homepage": "https://github.com/davidkpiano/xstate/tree/main/packages/xstate-scxml#readme",
   "license": "MIT",
   "main": "dist/scxml.cjs.js",
   "module": "dist/scxml.esm.js",
