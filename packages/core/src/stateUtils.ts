@@ -861,7 +861,7 @@ export function transitionParallelNode<TContext, TEvent extends EventObject>(
 export function transitionNode<TContext, TEvent extends EventObject>(
   stateNode: StateNode<TContext, TEvent>,
   stateValue: StateValue,
-  state: State<TContext, TEvent>,
+  state: State<TContext, TEvent, any>,
   _event: SCXML.Event<TEvent>
 ): Transitions<TContext, TEvent> | undefined {
   // leaf node
@@ -1450,16 +1450,12 @@ function selectEventlessTransitions<TContext, TEvent extends EventObject>(
   );
 }
 
-export function resolveMicroTransition<
-  TContext,
-  TEvent extends EventObject,
-  TTypestate extends Typestate<TContext>
->(
+export function resolveMicroTransition<TContext, TEvent extends EventObject>(
   machine: MachineNode<TContext, TEvent>,
   transitions: Transitions<TContext, TEvent>,
-  currentState?: State<TContext, TEvent>,
+  currentState?: State<TContext, TEvent, any>,
   _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>
-): State<TContext, TEvent, TTypestate> {
+): State<TContext, TEvent, any> {
   // Transition will "apply" if:
   // - the state node is the initial state (there is no current state)
   // - OR there are transitions
@@ -1525,7 +1521,7 @@ export function resolveMicroTransition<
 
   const { context, actions: nonRaisedActions } = resolved;
 
-  const nextState = new State<TContext, TEvent, TTypestate>({
+  const nextState = new State<TContext, TEvent>({
     value: getStateValue(machine.root, resolved.configuration),
     context,
     _event,
@@ -1730,12 +1726,15 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
   };
 }
 
+type StateFromMachine<TMachine extends MachineNode> = TMachine['initialState'];
+
 export function macrostep<
-  TContext,
-  TEvent extends EventObject,
-  TMachine extends MachineNode<TContext, TEvent>
+  TMachine extends MachineNode,
+  TEvent extends EventObject = TMachine extends MachineNode<any, infer E>
+    ? E
+    : never
 >(
-  state: State<TContext, TEvent>,
+  state: StateFromMachine<TMachine>,
   event: Event<TEvent> | SCXML.Event<TEvent> | null,
   machine: TMachine
 ): typeof state {
