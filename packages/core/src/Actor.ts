@@ -79,7 +79,7 @@ export function fromMachine<TContext, TEvent extends EventObject>(
 }
 
 export function fromService<TContext, TEvent extends EventObject>(
-  service: Interpreter<TContext, TEvent>,
+  service: Interpreter<TContext, TEvent, any>,
   name: string = registry.bookId()
 ): SpawnedActorRef<TEvent> {
   return new ObservableActorRef(createServiceBehavior(service), name);

@@ -322,7 +322,7 @@ export class Interpreter<
    *
    * @param listener The listener
    */
-  public onStop(listener: Listener): Interpreter<TContext, TEvent, TTypestate> {
+  public onStop(listener: Listener): this {
     this.stopListeners.add(listener);
     return this;
   }
@@ -333,7 +333,7 @@ export class Interpreter<
    *
    * @param listener The error listener
    */
-  public onError(listener: ErrorListener): Interpreter<TContext, TEvent> {
+  public onError(listener: ErrorListener): this {
     this.errorListeners.add(listener);
     return this;
   }
