@@ -42,8 +42,7 @@ import {
   ChooseAction,
   StopActionObject,
   AnyEventObject,
-  InvokeSourceDefinition,
-  EventOfMachine
+  InvokeSourceDefinition
 } from './types';
 import { State } from './State';
 import {
@@ -1731,12 +1730,13 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
   };
 }
 
-export function macrostep<TMachine extends MachineNode<any, any>>(
-  state: TMachine['initialState'],
-  event:
-    | Event<EventOfMachine<TMachine>>
-    | SCXML.Event<EventOfMachine<TMachine>>
-    | null,
+export function macrostep<
+  TContext,
+  TEvent extends EventObject,
+  TMachine extends MachineNode<TContext, TEvent>
+>(
+  state: State<TContext, TEvent>,
+  event: Event<TEvent> | SCXML.Event<TEvent> | null,
   machine: TMachine
 ): typeof state {
   // Assume the state is at rest (no raised events)
@@ -1753,7 +1753,7 @@ export function macrostep<TMachine extends MachineNode<any, any>>(
 
     maybeNextState = machine.microstep(
       maybeNextState,
-      raisedEvent as SCXML.Event<EventOfMachine<TMachine>>
+      raisedEvent as SCXML.Event<TEvent>
     );
 
     _internalQueue.push(...maybeNextState._internalQueue);

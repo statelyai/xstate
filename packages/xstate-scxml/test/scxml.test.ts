@@ -108,7 +108,7 @@ describe('scxml', () => {
           delimiter: '$'
         });
 
-        await runTestToCompletion(machine, scxmlTest);
+        await runTestToCompletion(machine as any, scxmlTest); // TODO: fix
       }, 2000);
     });
   });

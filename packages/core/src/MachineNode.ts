@@ -17,19 +17,13 @@ import { IS_PRODUCTION } from './environment';
 import { STATE_DELIMITER } from './constants';
 import {
   getConfiguration,
-  getChildren,
   getAllStateNodes,
   resolveMicroTransition,
   macrostep,
   toState,
   isStateId
 } from './stateUtils';
-import {
-  getStateNodeById,
-  getStateNodes,
-  transitionNode,
-  resolveStateValue
-} from './stateUtils';
+import { getStateNodes, transitionNode, resolveStateValue } from './stateUtils';
 import { StateNode } from './StateNode';
 
 export const NULL_EVENT = '';

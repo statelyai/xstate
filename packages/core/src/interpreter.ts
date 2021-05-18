@@ -537,7 +537,7 @@ export class Interpreter<
         warn(
           false,
           `${events.length} event(s) were sent to uninitialized service "${
-            this.machine.id
+            this.machine.key
           }" and are deferred. Make sure .start()  is called for this service.\nEvents: ${JSON.stringify(
             events
           )}`
