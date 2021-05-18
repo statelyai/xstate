@@ -1,5 +1,7 @@
 # Calculator
+
 ## React
+
 - Uses React, @xstate/react and Xstate 4.x.
 - [GitHub repository](https://github.com/GiancarlosIO/xstate-react-calculator)
 
@@ -12,6 +14,7 @@
    ></iframe>
 
 ## Vue
+
 - Uses Vue 2.x, @xstate/vue and Xstate 4.x.
 - [GitHub repository](https://github.com/Glutnix/xstate-vue-calculator/tree/master/)
 - Based on [earlier work by Mukesh Soni](https://github.com/mukeshsoni/statechart-calculator) (React, Xstate 3.x)

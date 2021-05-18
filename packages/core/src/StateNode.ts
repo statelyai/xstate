@@ -278,6 +278,7 @@ class StateNode<
   };
 
   private idMap: Record<string, StateNode<TContext, any, TEvent>> = {};
+  public tags: string[] = [];
 
   constructor(
     /**
@@ -433,6 +434,7 @@ class StateNode<
       .concat(this.invoke)
       .map((activity) => toActivityDefinition(activity));
     this.transition = this.transition.bind(this);
+    this.tags = toArray(this.config.tags);
 
     // TODO: this is the real fix for initialization once
     // state node getters are deprecated
@@ -637,10 +639,11 @@ class StateNode<
    */
   public getStateNodes(
     state: StateValue | State<TContext, TEvent, any, TTypestate>
-  ): Array<StateNode<TContext, any, TEvent, any>> {
+  ): Array<StateNode<TContext, any, TEvent, TTypestate>> {
     if (!state) {
       return [];
     }
+
     const stateValue =
       state instanceof State
         ? state.value
@@ -651,13 +654,15 @@ class StateNode<
 
       return initialStateValue !== undefined
         ? this.getStateNodes({ [stateValue]: initialStateValue } as StateValue)
-        : [this.states[stateValue]];
+        : [this, this.states[stateValue]];
     }
 
     const subStateKeys = keys(stateValue);
     const subStateNodes: Array<
-      StateNode<TContext, any, TEvent>
+      StateNode<TContext, any, TEvent, TTypestate>
     > = subStateKeys.map((subStateKey) => this.getStateNode(subStateKey));
+
+    subStateNodes.push(this);
 
     return subStateNodes.concat(
       subStateKeys.reduce((allSubStateNodes, subStateKey) => {
@@ -666,7 +671,7 @@ class StateNode<
         );
 
         return allSubStateNodes.concat(subStateNode);
-      }, [] as Array<StateNode<TContext, any, TEvent>>)
+      }, [] as Array<StateNode<TContext, any, TEvent, TTypestate>>)
     );
   }
 
@@ -1261,7 +1266,8 @@ class StateNode<
       configuration: resolvedConfiguration,
       transitions: stateTransition.transitions,
       children,
-      done: isDone
+      done: isDone,
+      tags: currentState?.tags
     });
 
     const didUpdateContext = currentContext !== updatedContext;
@@ -1322,13 +1328,19 @@ class StateNode<
     // Preserve original history after raised events
     maybeNextState.history = history;
 
+    maybeNextState.tags = new Set(
+      flatten(maybeNextState.configuration.map((sn) => sn.tags))
+    );
+
     return maybeNextState;
   }
 
   /**
    * Returns the child state node from its relative `stateKey`, or throws.
    */
-  public getStateNode(stateKey: string): StateNode<TContext, any, TEvent> {
+  public getStateNode(
+    stateKey: string
+  ): StateNode<TContext, any, TEvent, TTypestate> {
     if (isStateId(stateKey)) {
       return this.machine.getStateNodeById(stateKey);
     }

@@ -5,15 +5,19 @@ A final state node indicates the completion of a part of the statechart, or the 
 This has many useful use-cases. To indicate that a state node is final, set its `type` property to `'final'`:
 
 ```js
-const lightMachine = Machine({
+const lightMachine = createMachine({
   id: 'light',
   initial: 'green',
   states: {
     green: {
-      on: { TIMER: 'yellow' }
+      on: {
+        TIMER: { target: 'yellow' }
+      }
     },
     yellow: {
-      on: { TIMER: 'red' }
+      on: {
+        TIMER: { target: 'red' }
+      }
     },
     red: {
       type: 'parallel',
@@ -22,10 +26,14 @@ const lightMachine = Machine({
           initial: 'walk',
           states: {
             walk: {
-              on: { PED_WAIT: 'wait' }
+              on: {
+                PED_WAIT: { target: 'wait' }
+              }
             },
             wait: {
-              on: { PED_STOP: 'stop' }
+              on: {
+                PED_STOP: { target: 'stop' }
+              }
             },
             stop: {
               // 'stop' is a final state node for 'crosswalkNorth'
@@ -40,10 +48,14 @@ const lightMachine = Machine({
           initial: 'walk',
           states: {
             walk: {
-              on: { PED_WAIT: 'wait' }
+              on: {
+                PED_WAIT: { target: 'wait' }
+              }
             },
             wait: {
-              on: { PED_STOP: 'stop' }
+              on: {
+                PED_STOP: { target: 'stop' }
+              }
             },
             stop: {
               type: 'final'
@@ -70,7 +82,7 @@ When every child state node in a parallel state node is _done_, the parent paral
 This is very useful in modeling parallel tasks. For example, suppose `user` and `items` represent two parallel tasks of the `cart` state:
 
 ```js
-const shoppingMachine = Machine({
+const shoppingMachine = createMachine({
   id: 'shopping',
   initial: 'cart',
   states: {
@@ -83,8 +95,8 @@ const shoppingMachine = Machine({
             pending: {
               entry: 'getUser',
               on: {
-                RESOLVE_USER: 'success',
-                REJECT_USER: 'failure'
+                RESOLVE_USER: { target: 'success' },
+                REJECT_USER: { target: 'failure' }
               }
             },
             success: { type: 'final' },
@@ -97,8 +109,8 @@ const shoppingMachine = Machine({
             pending: {
               entry: 'getItems',
               on: {
-                RESOLVE_ITEMS: 'success',
-                REJECT_ITEMS: 'failure'
+                RESOLVE_ITEMS: { target: 'success' },
+                REJECT_ITEMS: { target: 'failure' }
               }
             },
             success: { type: 'final' },

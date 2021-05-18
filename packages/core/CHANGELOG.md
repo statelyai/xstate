@@ -1,5 +1,57 @@
 # xstate
 
+## 4.19.2
+
+### Patch Changes
+
+- [`18789aa9`](https://github.com/davidkpiano/xstate/commit/18789aa94669e48b71e2ae22e524d9bbe9dbfc63) [#2107](https://github.com/davidkpiano/xstate/pull/2107) Thanks [@woutermont](https://github.com/woutermont)! - This update restricts invoked `Subscribable`s to `EventObject`s,
+  so that type inference can be done on which `Subscribable`s are
+  allowed to be invoked. Existing `MachineConfig`s that invoke
+  `Subscribable<any>`s that are not `Subscribable<EventObject>`s
+  should be updated accordingly.
+
+* [`38dcec1d`](https://github.com/davidkpiano/xstate/commit/38dcec1dad60c62cf8c47c88736651483276ff87) [#2149](https://github.com/davidkpiano/xstate/pull/2149) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Invocations and entry actions for _combinatorial_ machines (machines with only a single root state) now behave predictably and will not re-execute upon targetless transitions.
+
+## 4.19.1
+
+### Patch Changes
+
+- [`64ab1150`](https://github.com/davidkpiano/xstate/commit/64ab1150e0a383202f4af1d586b28e081009c929) [#2173](https://github.com/davidkpiano/xstate/pull/2173) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with tags not being set correctly after sending an event to a machine that didn't result in selecting any transitions.
+
+## 4.19.0
+
+### Minor Changes
+
+- [`4f2f626d`](https://github.com/davidkpiano/xstate/commit/4f2f626dc84f45bb18ded6dd9aad3b6f6a2190b1) [#2143](https://github.com/davidkpiano/xstate/pull/2143) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Tags can now be added to state node configs under the `.tags` property:
+
+  ```js
+  const machine = createMachine({
+    initial: 'green',
+    states: {
+      green: {
+        tags: 'go' // single tag
+      },
+      yellow: {
+        tags: 'go'
+      },
+      red: {
+        tags: ['stop', 'other'] // multiple tags
+      }
+    }
+  });
+  ```
+
+  You can query whether a state has a tag via `state.hasTag(tag)`:
+
+  ```js
+  const canGo = state.hasTag('go');
+  // => `true` if in 'green' or 'red' state
+  ```
+
+### Patch Changes
+
+- [`a61d01ce`](https://github.com/davidkpiano/xstate/commit/a61d01cefab5734adf9bfb167291f5b0ba712684) [#2125](https://github.com/davidkpiano/xstate/pull/2125) Thanks [@VanTanev](https://github.com/VanTanev)! - In callback invokes, the types of `callback` and `onReceive` are properly scoped to the machine TEvent.
+
 ## 4.18.0
 
 ### Minor Changes

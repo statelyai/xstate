@@ -7,19 +7,23 @@ An activity is an action that occurs over time, and can be started and stopped. 
 For example, a toggle that "beeps" when active can be represented by a `'beeping'` activity:
 
 ```js
-const toggleMachine = Machine(
+const toggleMachine = createMachine(
   {
     id: 'toggle',
     initial: 'inactive',
     states: {
       inactive: {
-        on: { TOGGLE: 'active' }
+        on: {
+          TOGGLE: { target: 'active' }
+        }
       },
       active: {
         // The 'beeping' activity will take place as long as
         // the machine is in the 'active' state
         activities: ['beeping'],
-        on: { TOGGLE: 'inactive' }
+        on: {
+          TOGGLE: { target: 'inactive' }
+        }
       }
     }
   },
@@ -42,18 +46,18 @@ In XState, activities are specified on the `activities` property of a state node
 To determine which activities are currently active, the `State` has an `activities` property, which is a mapping of activity names to `true` if the activity is started (active), and `false` if it is stopped.
 
 ```js
-const lightMachine = Machine({
+const lightMachine = createMachine({
   key: 'light',
   initial: 'green',
   states: {
     green: {
       on: {
-        TIMER: 'yellow'
+        TIMER: { target: 'yellow' }
       }
     },
     yellow: {
       on: {
-        TIMER: 'red'
+        TIMER: { target: 'red' }
       }
     },
     red: {
@@ -62,16 +66,22 @@ const lightMachine = Machine({
       // the 'light.red' state, and stopped upon exiting it.
       activities: ['activateCrosswalkLight'],
       on: {
-        TIMER: 'green'
+        TIMER: { target: 'green' }
       },
       states: {
-        walk: { on: { PED_WAIT: 'wait' } },
+        walk: {
+          on: {
+            PED_WAIT: { target: 'wait' }
+          }
+        },
         wait: {
           // the 'blinkCrosswalkLight' activity is started upon entering
           // the 'light.red.wait' state, and stopped upon exiting it
           // or its parent state.
           activities: ['blinkCrosswalkLight'],
-          on: { PED_STOP: 'stop' }
+          on: {
+            PED_STOP: { target: 'stop' }
+          }
         },
         stop: {}
       }
@@ -83,7 +93,7 @@ const lightMachine = Machine({
 In the above machine configuration, the `'activateCrosswalkLight'` will start when the `'light.red'` state is entered. It will also execute a special `'xstate.start'` action, letting the [service](./interpretation.md) know that it should start the activity:
 
 ```js
-const redState = lightMachine.transition('yellow', 'TIMER');
+const redState = lightMachine.transition('yellow', { type: 'TIMER' });
 
 redState.activities;
 // => {
@@ -100,7 +110,7 @@ redState.actions;
 Transitioning within the same parent state will _not_ restart its activities, although it might start new activities:
 
 ```js
-const redWaitState = lightMachine.transition(redState, 'PED_WAIT');
+const redWaitState = lightMachine.transition(redState, { type: 'PED_WAIT' });
 
 redWaitState.activities;
 // => {
@@ -119,7 +129,9 @@ redWaitState.actions;
 Leaving a state will stop its activities:
 
 ```js
-const redStopState = lightMachine.transition(redWaitState, 'PED_STOP');
+const redStopState = lightMachine.transition(redWaitState, {
+  type: 'PED_STOP'
+});
 
 redStopState.activities;
 // The 'blinkCrosswalkLight' activity is stopped
@@ -138,7 +150,7 @@ redStopState.actions;
 And any stopped activities will be stopped only once:
 
 ```js
-const greenState = lightMachine.transition(redStopState, 'TIMER');
+const greenState = lightMachine.transition(redStopState, { type: 'TIMER' });
 
 green.activities;
 // No active activities
@@ -185,7 +197,7 @@ The activity creator is always given two arguments:
 Then you would pass this into the machine options (second argument) under the `activities` property:
 
 ```js
-const toggleMachine = Machine(
+const toggleMachine = createMachine(
   {
     id: 'toggle',
     initial: 'inactive',
@@ -194,11 +206,15 @@ const toggleMachine = Machine(
     },
     states: {
       inactive: {
-        on: { TOGGLE: 'active' }
+        on: {
+          TOGGLE: { target: 'active' }
+        }
       },
       active: {
         activities: ['beeping'],
-        on: { TOGGLE: 'inactive' }
+        on: {
+          TOGGLE: { target: 'inactive' }
+        }
       }
     }
   },
@@ -223,14 +239,14 @@ service.start();
 
 // nothing logged yet
 
-service.send('TOGGLE');
+service.send({ type: 'TOGGLE' });
 
 // => 'BEEP!'
 // => 'BEEP!'
 // => 'BEEP!'
 // ...
 
-service.send('TOGGLE');
+service.send({ type: 'TOGGLE' });
 
 // no more beeps!
 ```
@@ -247,7 +263,7 @@ import { State, actions } from 'xstate';
 const restoredState = State.create(somePersistedStateJSON);
 
 // Select activities to be restarted
-Object.keys(restoredState.activities).forEach(activityKey => {
+Object.keys(restoredState.activities).forEach((activityKey) => {
   if (restoredState.activities[activityKey]) {
     // Filter activities, and then add the start() action to the restored state
     restoredState.actions.push(actions.start(activityKey));

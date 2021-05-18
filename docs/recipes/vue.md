@@ -1,5 +1,13 @@
 # Usage with Vue
 
+::: tip
+If you want to use the Vue Composition API, we recommend using the following packages:
+
+- [`@xstate/vue` package](../packages/xstate-vue) for Vue 3
+- [`xstate-vue2` package](https://github.com/ChrisShank/xstate-vue2) (3rd-party) for Vue 2
+
+:::
+
 Vue follows a similar pattern to [React](./react.md):
 
 - The machine can be defined externally;
@@ -10,10 +18,10 @@ Vue follows a similar pattern to [React](./react.md):
 - Events are sent to the service via `service.send(event)`.
 
 ```js
-import { Machine } from 'xstate';
+import { createMachine } from 'xstate';
 
 // This machine is completely decoupled from Vue
-export const toggleMachine = Machine({
+export const toggleMachine = createMachine({
   id: 'toggle',
   context: {
     /* some data */
@@ -47,7 +55,7 @@ export const toggleMachine = Machine({
     created() {
       // Start service on component creation
       this.toggleService
-        .onTransition(state => {
+        .onTransition((state) => {
           // Update the current state component data property with the next state
           this.current = state;
           // Update the context component data property with the updated context
