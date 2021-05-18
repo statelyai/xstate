@@ -4,9 +4,9 @@ import {
   interpret,
   MachineNode,
   SimulatedClock,
-  toMachine,
   getStateNodes
 } from 'xstate';
+import { toMachine } from 'xstate/src/scxml';
 import { xml2js } from 'xml-js';
 import { transitionToSCXML, toSCXML } from '../src';
 import * as fs from 'fs';
@@ -47,7 +47,7 @@ async function runTestToCompletion(
     }
     service.send(event.name);
 
-    const stateIds = getStateNodes(machine, nextState).map(
+    const stateIds = getStateNodes(machine.root, nextState).map(
       (stateNode) => stateNode.id
     );
 

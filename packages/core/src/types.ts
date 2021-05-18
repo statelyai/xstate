@@ -1207,3 +1207,7 @@ export type InterpreterFrom<
 > = T extends MachineNode<infer TContext, infer TEvent, infer TTypestate>
   ? Interpreter<TContext, TEvent, TTypestate>
   : never;
+
+export type EventOfMachine<
+  TMachine extends MachineNode<any, any>
+> = TMachine extends MachineNode<any, infer E> ? E : never;

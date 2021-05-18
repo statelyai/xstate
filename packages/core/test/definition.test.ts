@@ -11,6 +11,6 @@ describe('definition', () => {
       }
     });
 
-    expect(invokeMachine.definition.invoke.length).toBe(2);
+    expect(invokeMachine.root.definition.invoke.length).toBe(2);
   });
 });

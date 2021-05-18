@@ -370,7 +370,7 @@ describe('machine', () => {
         states: { idle: {} }
       });
 
-      expect(idMachine.id).toEqual('some-id');
+      expect(idMachine.key).toEqual('some-id');
     });
 
     it('should represent the ID (state node)', () => {
@@ -394,7 +394,7 @@ describe('machine', () => {
         states: { idle: {} }
       });
 
-      expect(noIDMachine.id).toEqual('some-key');
+      expect(noIDMachine.key).toEqual('some-key');
     });
 
     it('should use the key as the ID if no ID is provided (state node)', () => {

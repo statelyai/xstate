@@ -60,7 +60,10 @@ describe('document order', () => {
       ]);
     }
 
-    const allStateNodeOrders = dfs(machine).map((sn) => [sn.key, sn.order]);
+    const allStateNodeOrders = dfs(machine.root).map((sn) => [
+      sn.key,
+      sn.order
+    ]);
 
     expect(allStateNodeOrders).toEqual([
       ['order', 0],

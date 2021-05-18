@@ -48,6 +48,7 @@ const EMPTY_OBJECT = {};
 interface StateNodeOptions<TContext, TEvent extends EventObject> {
   _key: string;
   _parent?: StateNode<TContext, TEvent>;
+  _machine: MachineNode<TContext, TEvent>;
 }
 
 export class StateNode<
@@ -118,7 +119,8 @@ export class StateNode<
    */
   public order: number = -1;
 
-  protected __cache = {
+  // TODO: make private
+  public __cache = {
     events: undefined as Array<TEvent['type']> | undefined,
     initialState: undefined as State<TContext, TEvent> | undefined,
     on: undefined as TransitionDefinitionMap<TContext, TEvent> | undefined,
@@ -145,8 +147,6 @@ export class StateNode<
 
   private __initial?: InitialTransitionDefinition<TContext, TEvent>;
 
-  public idMap: Record<string, StateNode<TContext, TEvent>> = {};
-
   public tags: string[] = [];
 
   constructor(
@@ -159,9 +159,7 @@ export class StateNode<
     const isMachine = !this.parent;
     this.parent = options._parent;
     this.key = this.config.key || options._key;
-    this.machine = this.parent
-      ? this.parent.machine
-      : ((this as unknown) as MachineNode<TContext, TEvent>);
+    this.machine = options._machine;
     this.path = this.parent ? this.parent.path.concat(this.key) : [];
     this.id =
       this.config.id ||
@@ -178,17 +176,17 @@ export class StateNode<
         ? 'history'
         : 'atomic');
 
+    this.order = this.machine.idMap.size;
+    this.machine.idMap.set(this.id, this);
+
     this.states = (this.config.states
       ? mapValues(
           this.config.states,
           (stateConfig: StateNodeConfig<TContext, TEvent>, key) => {
             const stateNode = new StateNode(stateConfig, {
               _parent: this,
-              _key: key as string
-            });
-            Object.assign(this.idMap, {
-              [stateNode.id]: stateNode,
-              ...stateNode.idMap
+              _key: key as string,
+              _machine: this.machine
             });
             return stateNode;
           }

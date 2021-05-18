@@ -142,7 +142,7 @@ export class Interpreter<
 
     const { clock, logger, parent, id } = resolvedOptions;
 
-    const resolvedId = id !== undefined ? id : machine.id;
+    const resolvedId = id !== undefined ? id : machine.key;
 
     this.id = resolvedId;
     this.logger = logger;
@@ -219,13 +219,13 @@ export class Interpreter<
       listener(state, state.event);
     }
 
-    const isDone = isInFinalState(state.configuration || [], this.machine);
+    const isDone = isInFinalState(state.configuration || [], this.machine.root);
 
     if (this.state.configuration && isDone) {
       // get final child state node
       const finalChildStateNode = state.configuration.find(
         (stateNode) =>
-          stateNode.type === 'final' && stateNode.parent === this.machine
+          stateNode.type === 'final' && stateNode.parent === this.machine.root
       );
 
       const doneData =
@@ -494,7 +494,7 @@ export class Interpreter<
         warn(
           false,
           `Event "${_event.name}" was sent to stopped service "${
-            this.machine.id
+            this.machine.key
           }". This service has already reached its final state, and will not transition.\nEvent: ${JSON.stringify(
             _event.data
           )}`
@@ -509,7 +509,7 @@ export class Interpreter<
     ) {
       throw new Error(
         `Event "${_event.name}" was sent to uninitialized service "${
-          this.machine.id
+          this.machine.key
           // tslint:disable-next-line:max-line-length
         }". Make sure .start() is called for this service, or set { deferEvents: true } in the service options.\nEvent: ${JSON.stringify(
           _event.data
@@ -546,7 +546,7 @@ export class Interpreter<
     } else if (this.status !== InterpreterStatus.Running) {
       throw new Error(
         // tslint:disable-next-line:max-line-length
-        `${events.length} event(s) were sent to uninitialized service "${this.machine.id}". Make sure .start() is called for this service, or set { deferEvents: true } in the service options.`
+        `${events.length} event(s) were sent to uninitialized service "${this.machine.key}". Make sure .start() is called for this service, or set { deferEvents: true } in the service options.`
       );
     }
 

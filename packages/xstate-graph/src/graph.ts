@@ -342,7 +342,12 @@ export function getSimplePathsAsArray<
   return keys(result).map((key) => result[key]);
 }
 
-export function toDirectedGraph(stateNode: StateNode): DirectedGraphNode {
+export function toDirectedGraph(
+  machineNode: MachineNode | StateNode
+): DirectedGraphNode {
+  const stateNode =
+    machineNode instanceof StateNode ? machineNode : machineNode.root;
+
   const edges: DirectedGraphEdge[] = flatten(
     stateNode.transitions.map((t, transitionIndex) => {
       const targets = t.target ? t.target : [stateNode];
