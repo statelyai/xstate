@@ -203,7 +203,7 @@ export class Interpreter<
   }
 
   private update(
-    state: State<TContext, TEvent, TTypestate>,
+    state: State<TContext, TEvent, any>,
     _event: SCXML.Event<TEvent>
   ): void {
     // Attach session ID to state
@@ -453,7 +453,7 @@ export class Interpreter<
   }
 
   private _transition(
-    state: State<TContext, TEvent>,
+    state: State<TContext, TEvent, any>,
     event: SCXML.Event<TEvent>
   ) {
     try {

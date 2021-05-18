@@ -169,7 +169,7 @@ export class MachineNode<
    *
    * @param state The state to resolve
    */
-  public resolveState(state: State<TContext, TEvent>): State<TContext, TEvent> {
+  public resolveState(state: State<TContext, TEvent, any>): typeof state {
     const configuration = Array.from(
       getConfiguration(getStateNodes(this.root, state.value))
     );

@@ -21,7 +21,6 @@ import {
   DelayedTransitionDefinition,
   NullEvent,
   SingleOrArray,
-  Typestate,
   DelayExpr,
   SCXML,
   Transitions,
