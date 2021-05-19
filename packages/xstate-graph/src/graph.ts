@@ -346,7 +346,7 @@ export function toDirectedGraph(
   machineNode: MachineNode | StateNode
 ): DirectedGraphNode {
   const stateNode =
-    machineNode instanceof StateNode ? machineNode : machineNode.root;
+    machineNode instanceof StateNode ? machineNode : machineNode.root; // TODO: accept only machines
 
   const edges: DirectedGraphEdge[] = flatten(
     stateNode.transitions.map((t, transitionIndex) => {
