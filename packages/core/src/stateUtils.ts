@@ -1821,7 +1821,7 @@ export function resolveStateValue<TContext, TEvent extends EventObject>(
 export function toState<TMachine extends MachineNode<any, any, any>>(
   state: StateValue | TMachine['initialState'],
   machine: TMachine
-): TMachine['initialState'] {
+): StateFromMachine<TMachine> {
   if (state instanceof State) {
     return state;
   } else {
