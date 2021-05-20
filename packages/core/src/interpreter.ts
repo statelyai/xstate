@@ -113,7 +113,8 @@ export class Interpreter<
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
-> implements Actor<State<TContext, TEvent, TStateSchema, TTypestate>, TEvent> {
+> implements
+    SpawnedActorRef<TEvent, State<TContext, TEvent, TStateSchema, TTypestate>> {
   /**
    * The default interpreter options:
    *
@@ -1012,10 +1013,12 @@ export class Interpreter<
     id: string
   ): SpawnedActorRef<never, T> {
     let canceled = false;
+    let resolvedData: T | undefined = undefined;
 
     promise.then(
       (response) => {
         if (!canceled) {
+          resolvedData = response;
           this.removeChild(id);
           this.send(
             toSCXMLEvent(doneInvoke(id, response) as any, { origin: id })
@@ -1081,7 +1084,8 @@ export class Interpreter<
       },
       toJSON() {
         return { id };
-      }
+      },
+      getSnapshot: () => resolvedData
     };
 
     this.children.set(id, actor);
@@ -1095,8 +1099,10 @@ export class Interpreter<
     let canceled = false;
     const receivers = new Set<(e: EventObject) => void>();
     const listeners = new Set<(e: EventObject) => void>();
+    let emitted: TEvent | undefined = undefined;
 
     const receive = (e: TEvent) => {
+      emitted = e;
       listeners.forEach((listener) => listener(e));
       if (canceled) {
         return;
@@ -1140,7 +1146,8 @@ export class Interpreter<
       },
       toJSON() {
         return { id };
-      }
+      },
+      getSnapshot: () => emitted
     };
 
     this.children.set(id, actor);
@@ -1151,8 +1158,11 @@ export class Interpreter<
     source: Subscribable<T>,
     id: string
   ): SpawnedActorRef<any, T> {
+    let emitted: T | undefined = undefined;
+
     const subscription = source.subscribe(
       (value) => {
+        emitted = value;
         this.send(toSCXMLEvent(value, { origin: id }));
       },
       (err) => {
@@ -1172,6 +1182,7 @@ export class Interpreter<
         return source.subscribe(next, handleError, complete);
       },
       stop: () => subscription.unsubscribe(),
+      getSnapshot: () => emitted,
       toJSON() {
         return { id };
       }
@@ -1215,6 +1226,7 @@ export class Interpreter<
         return { unsubscribe: () => void 0 };
       },
       stop: dispose || undefined,
+      getSnapshot: () => undefined,
       toJSON() {
         return { id };
       }
@@ -1267,6 +1279,10 @@ export class Interpreter<
   public [symbolObservable]() {
     return this;
   }
+
+  public getSnapshot() {
+    return this._state!;
+  }
 }
 
 const resolveSpawnOptions = (nameOrOptions?: string | SpawnOptions) => {
@@ -1305,6 +1321,7 @@ export function spawn(
         }") outside of a service. This will have no effect.`
       );
     }
+
     if (service) {
       return service.spawn(entity, resolvedOptions.name, resolvedOptions);
     } else {

@@ -222,11 +222,13 @@ export function createWindowReceiver(
     targetWindow = window.self === window.top ? window.opener : window.parent
   } = options || {};
   const observers = new Set<Observer<ParsedReceiverEvent>>();
+  let latestEvent: ParsedReceiverEvent;
 
   const handler = (event: MessageEvent) => {
     const { data } = event;
     if (isReceiverEvent(data)) {
-      observers.forEach((listener) => listener.next(parseReceiverEvent(data)));
+      latestEvent = parseReceiverEvent(data);
+      observers.forEach((listener) => listener.next(latestEvent));
     }
   };
 
@@ -256,6 +258,9 @@ export function createWindowReceiver(
       observers.clear();
 
       ownWindow.removeEventListener('message', handler);
+    },
+    getSnapshot() {
+      return latestEvent;
     }
   };
 
@@ -272,6 +277,7 @@ export function createWebSocketReceiver(
   const { protocol = 'ws' } = options;
   const ws = new WebSocket(`${protocol}://${options.server}`);
   const observers = new Set<Observer<ParsedReceiverEvent>>();
+  let latestEvent: ParsedReceiverEvent;
 
   const actorRef: InspectReceiver = {
     id: 'xstate.webSocketReceiver',
@@ -288,6 +294,9 @@ export function createWebSocketReceiver(
           observers.delete(observer);
         }
       };
+    },
+    getSnapshot() {
+      return latestEvent;
     }
   };
 
@@ -305,9 +314,10 @@ export function createWebSocketReceiver(
     try {
       const eventObject = JSON.parse(event.data);
 
-      if (isReceiverEvent(eventObject)) {
+      if (isReceiverEvent(latestEvent)) {
+        latestEvent = parseReceiverEvent(eventObject);
         observers.forEach((observer) => {
-          observer.next(parseReceiverEvent(eventObject));
+          observer.next(latestEvent);
         });
       }
     } catch (e) {
