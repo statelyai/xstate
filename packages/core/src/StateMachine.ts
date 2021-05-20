@@ -54,7 +54,7 @@ function resolveContext<TContext>(
   };
 }
 
-export class MachineNode<
+export class StateMachine<
   TContext = any,
   TEvent extends EventObject = EventObject,
   TTypestate extends Typestate<TContext> = any
@@ -135,10 +135,10 @@ export class MachineNode<
    */
   public provide(
     implementations: Partial<MachineImplementations<TContext, TEvent>>
-  ): MachineNode<TContext, TEvent> {
+  ): StateMachine<TContext, TEvent> {
     const { actions, guards, actors, delays } = this.options;
 
-    return new MachineNode(this.config, {
+    return new StateMachine(this.config, {
       actions: { ...actions, ...implementations.actions },
       guards: { ...guards, ...implementations.guards },
       actors: { ...actors, ...implementations.actors },
@@ -156,7 +156,7 @@ export class MachineNode<
    */
   public withContext(
     context: Partial<TContext>
-  ): MachineNode<TContext, TEvent> {
+  ): StateMachine<TContext, TEvent> {
     return this.provide({
       context: resolveContext(this.context, context)
     });

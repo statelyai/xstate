@@ -67,7 +67,7 @@ import {
 import { IS_PRODUCTION } from './environment';
 import { STATE_IDENTIFIER, NULL_EVENT, WILDCARD } from './constants';
 import { isSpawnedActorRef } from './Actor';
-import { MachineNode } from './MachineNode';
+import { StateMachine } from './StateMachine';
 import { evaluateGuard, toGuardDefinition } from './guards';
 
 type Configuration<TC, TE extends EventObject> = Iterable<StateNode<TC, TE>>;
@@ -1316,7 +1316,7 @@ export function microstep<TContext, TEvent extends EventObject>(
   transitions: Array<TransitionDefinition<TContext, TEvent>>,
   currentState: State<TContext, TEvent> | undefined,
   mutConfiguration: Set<StateNode<TContext, TEvent>>,
-  machine: MachineNode<TContext, TEvent>,
+  machine: StateMachine<TContext, TEvent>,
   _event: SCXML.Event<TEvent>
 ): {
   actions: Array<ActionObject<TContext, TEvent>>;
@@ -1428,7 +1428,7 @@ function selectEventlessTransitions<TContext, TEvent extends EventObject>(
 }
 
 export function resolveMicroTransition<TContext, TEvent extends EventObject>(
-  machine: MachineNode<TContext, TEvent>,
+  machine: StateMachine<TContext, TEvent>,
   transitions: Transitions<TContext, TEvent>,
   currentState?: State<TContext, TEvent, any>,
   _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>
@@ -1546,7 +1546,7 @@ export function resolveMicroTransition<TContext, TEvent extends EventObject>(
 
 function resolveActionsAndContext<TContext, TEvent extends EventObject>(
   actions: Array<ActionObject<TContext, TEvent>>,
-  machine: MachineNode<TContext, TEvent, any>,
+  machine: StateMachine<TContext, TEvent, any>,
   _event: SCXML.Event<TEvent>,
   currentState: State<TContext, TEvent, any> | undefined
 ): {
@@ -1703,11 +1703,11 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
   };
 }
 
-type StateFromMachine<TMachine extends MachineNode> = TMachine['initialState'];
+type StateFromMachine<TMachine extends StateMachine> = TMachine['initialState'];
 
 export function macrostep<
-  TMachine extends MachineNode,
-  TEvent extends EventObject = TMachine extends MachineNode<any, infer E>
+  TMachine extends StateMachine,
+  TEvent extends EventObject = TMachine extends StateMachine<any, infer E>
     ? E
     : never
 >(
@@ -1796,7 +1796,7 @@ export function resolveStateValue<TContext, TEvent extends EventObject>(
   return getStateValue(rootNode, [...configuration]);
 }
 
-export function toState<TMachine extends MachineNode<any, any, any>>(
+export function toState<TMachine extends StateMachine<any, any, any>>(
   state: StateValue | TMachine['initialState'],
   machine: TMachine
 ): StateFromMachine<TMachine> {

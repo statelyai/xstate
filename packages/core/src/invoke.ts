@@ -9,7 +9,7 @@ import {
 
 import { isFunction, mapContext } from './utils';
 import { AnyEventObject } from './types';
-import { MachineNode } from './MachineNode';
+import { StateMachine } from './StateMachine';
 import {
   createMachineBehavior,
   createDeferredBehavior,
@@ -23,7 +23,7 @@ export const DEFAULT_SPAWN_OPTIONS = { sync: false };
 export function invokeMachine<
   TContext,
   TEvent extends EventObject,
-  TMachine extends MachineNode<any, any, any>
+  TMachine extends StateMachine<any, any, any>
 >(
   machine:
     | TMachine

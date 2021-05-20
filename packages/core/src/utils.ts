@@ -20,7 +20,7 @@ import { STATE_DELIMITER, TARGETLESS_KEY } from './constants';
 import { IS_PRODUCTION } from './environment';
 import { StateNode } from './StateNode';
 import { InvokeConfig, SCXMLErrorEvent } from '.';
-import { MachineNode } from './MachineNode';
+import { StateMachine } from './StateMachine';
 import { Behavior } from './behavior';
 import { errorExecution, errorPlatform } from './actionTypes';
 
@@ -328,7 +328,9 @@ export const symbolObservable = (() =>
   (typeof Symbol === 'function' && (Symbol as any).observable) ||
   '@@observable')();
 
-export function isMachineNode(value: any): value is MachineNode<any, any, any> {
+export function isMachineNode(
+  value: any
+): value is StateMachine<any, any, any> {
   try {
     return '__xstatenode' in value && value.parent === undefined;
   } catch (e) {

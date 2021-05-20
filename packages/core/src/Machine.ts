@@ -5,7 +5,7 @@ import {
   AnyEventObject,
   Typestate
 } from './types';
-import { MachineNode } from './MachineNode';
+import { StateMachine } from './StateMachine';
 import { Model, ModelContextFrom, ModelEventsFrom } from './model';
 
 export function createMachine<
@@ -16,7 +16,7 @@ export function createMachine<
 >(
   config: MachineConfig<TContext, TEvent>,
   options?: Partial<MachineImplementations<TContext, TEvent>>
-): MachineNode<TContext, TEvent, TTypestate>;
+): StateMachine<TContext, TEvent, TTypestate>;
 export function createMachine<
   TContext,
   TEvent extends EventObject = AnyEventObject,
@@ -24,7 +24,7 @@ export function createMachine<
 >(
   config: MachineConfig<TContext, TEvent>,
   options?: Partial<MachineImplementations<TContext, TEvent>>
-): MachineNode<TContext, TEvent, TTypestate>;
+): StateMachine<TContext, TEvent, TTypestate>;
 export function createMachine<
   TContext,
   TEvent extends EventObject = AnyEventObject,
@@ -32,8 +32,8 @@ export function createMachine<
 >(
   definition: MachineConfig<TContext, TEvent>,
   implementations?: Partial<MachineImplementations<TContext, TEvent>>
-): MachineNode<TContext, TEvent, TTypestate> {
-  return new MachineNode<TContext, TEvent, TTypestate>(
+): StateMachine<TContext, TEvent, TTypestate> {
+  return new StateMachine<TContext, TEvent, TTypestate>(
     definition,
     implementations
   );

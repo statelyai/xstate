@@ -40,7 +40,7 @@ import {
   getCandidates
 } from './stateUtils';
 import { evaluateGuard } from './guards';
-import { MachineNode } from './MachineNode';
+import { StateMachine } from './StateMachine';
 import { STATE_DELIMITER } from './constants';
 
 const EMPTY_OBJECT = {};
@@ -48,7 +48,7 @@ const EMPTY_OBJECT = {};
 interface StateNodeOptions<TContext, TEvent extends EventObject> {
   _key: string;
   _parent?: StateNode<TContext, TEvent>;
-  _machine: MachineNode<TContext, TEvent>;
+  _machine: StateMachine<TContext, TEvent>;
 }
 
 export class StateNode<
@@ -103,7 +103,7 @@ export class StateNode<
   /**
    * The root machine node.
    */
-  public machine: MachineNode<TContext, TEvent>;
+  public machine: StateMachine<TContext, TEvent>;
   /**
    * The meta data associated with this state node, which will be returned in State instances.
    */

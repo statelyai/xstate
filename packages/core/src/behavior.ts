@@ -20,7 +20,7 @@ import {
   isFunction
 } from './utils';
 import { doneInvoke, error, actionTypes } from './actions';
-import { MachineNode } from './MachineNode';
+import { StateMachine } from './StateMachine';
 import { interpret, Interpreter } from './interpreter';
 import { State } from './State';
 import { CapturedState } from './capturedState';
@@ -244,13 +244,15 @@ export function createObservableBehavior<
 }
 
 export function createMachineBehavior<TContext, TEvent extends EventObject>(
-  machine: MachineNode<TContext, TEvent> | Lazy<MachineNode<TContext, TEvent>>,
+  machine:
+    | StateMachine<TContext, TEvent>
+    | Lazy<StateMachine<TContext, TEvent>>,
   options?: Partial<InterpreterOptions>
 ): Behavior<TEvent, State<TContext, TEvent>> {
   const parent = CapturedState.current?.actorRef;
   let service: Interpreter<TContext, TEvent> | undefined;
   let subscription: Subscription;
-  let resolvedMachine: MachineNode<TContext, TEvent>;
+  let resolvedMachine: StateMachine<TContext, TEvent>;
 
   const behavior: Behavior<TEvent, State<TContext, TEvent>> = {
     receiveSignal: (actorContext, signal) => {
@@ -337,7 +339,7 @@ export function createBehaviorFrom<
   TEvent extends EventObject,
   TEmitted extends State<any, any>
 >(
-  entity: MachineNode<TEmitted['context'], any, TEmitted['event']>
+  entity: StateMachine<TEmitted['context'], any, TEmitted['event']>
 ): Behavior<TEvent, TEmitted>;
 export function createBehaviorFrom<TEvent extends EventObject>(
   entity: InvokeCallback

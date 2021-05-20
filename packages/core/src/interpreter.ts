@@ -40,7 +40,7 @@ import { Scheduler } from './scheduler';
 import { isActorRef, fromService } from './Actor';
 import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
-import { MachineNode } from './MachineNode';
+import { StateMachine } from './StateMachine';
 import { devToolsAdapter } from './dev';
 import { CapturedState } from './capturedState';
 import { PayloadSender, SpawnedActorRef, StopActionObject } from '.';
@@ -132,7 +132,7 @@ export class Interpreter<
    * @param options Interpreter options
    */
   constructor(
-    public machine: MachineNode<TContext, TEvent, TTypestate>,
+    public machine: StateMachine<TContext, TEvent, TTypestate>,
     options?: Partial<InterpreterOptions>
   ) {
     const resolvedOptions: InterpreterOptions = {
@@ -845,7 +845,7 @@ export function interpret<
   TEvent extends EventObject = EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(
-  machine: MachineNode<TContext, TEvent, TTypestate>,
+  machine: StateMachine<TContext, TEvent, TTypestate>,
   options?: Partial<InterpreterOptions>
 ) {
   const interpreter = new Interpreter<TContext, TEvent, TTypestate>(
