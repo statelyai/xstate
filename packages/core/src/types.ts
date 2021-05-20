@@ -1275,10 +1275,13 @@ export interface ActorRef<TEvent extends EventObject, TEmitted = any>
   send: Sender<TEvent>;
 }
 
-export interface SpawnedActorRef<TEvent extends EventObject, TEmitted = any>
-  extends ActorRef<TEvent, TEmitted> {
+export interface SpawnedActorRef<
+  TEvent extends EventObject,
+  TEmitted = any,
+  TSnapshot = TEmitted | undefined
+> extends ActorRef<TEvent, TEmitted> {
   id: string;
-  getSnapshot: () => TEmitted | undefined;
+  getSnapshot: () => TSnapshot;
   stop?: () => void;
   toJSON?: () => any;
 }
@@ -1286,7 +1289,11 @@ export interface SpawnedActorRef<TEvent extends EventObject, TEmitted = any>
 export type ActorRefFrom<
   T extends StateMachine<any, any, any> | Promise<any>
 > = T extends StateMachine<infer TContext, any, infer TEvent, infer TTypestate>
-  ? SpawnedActorRef<TEvent, State<TContext, TEvent, any, TTypestate>> & {
+  ? SpawnedActorRef<
+      TEvent,
+      State<TContext, TEvent, any, TTypestate>,
+      State<TContext, TEvent, any, TTypestate>
+    > & {
       state: State<TContext, TEvent, any, TTypestate>;
     }
   : T extends Promise<infer U>
