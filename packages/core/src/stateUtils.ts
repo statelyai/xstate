@@ -669,7 +669,7 @@ export function getStateNode<TContext, TEvent extends EventObject>(
   stateKey: string
 ): StateNode<TContext, TEvent> {
   if (isStateId(stateKey)) {
-    return getStateNodeById(stateNode, stateKey);
+    return stateNode.machine.getStateNodeById(stateKey);
   }
   if (!stateNode.states) {
     throw new Error(
@@ -684,29 +684,7 @@ export function getStateNode<TContext, TEvent extends EventObject>(
   }
   return result;
 }
-/**
- * Returns the state node with the given `stateId`, or throws.
- *
- * @param stateId The state ID. The prefix "#" is removed.
- */
-export function getStateNodeById<TContext, TEvent extends EventObject>(
-  fromStateNode: StateNode<TContext, TEvent>,
-  stateId: string
-): StateNode<TContext, TEvent> {
-  const resolvedStateId = isStateId(stateId)
-    ? stateId.slice(STATE_IDENTIFIER.length)
-    : stateId;
-  if (resolvedStateId === fromStateNode.id) {
-    return fromStateNode;
-  }
-  const stateNode = fromStateNode.machine.idMap.get(resolvedStateId);
-  if (!stateNode) {
-    throw new Error(
-      `Child state node '#${resolvedStateId}' does not exist on machine '${fromStateNode.id}'`
-    );
-  }
-  return stateNode;
-}
+
 /**
  * Returns the relative state node from the given `statePath`, or throws.
  *
@@ -718,7 +696,7 @@ function getStateNodeByPath<TContext, TEvent extends EventObject>(
 ): StateNode<TContext, TEvent> {
   if (typeof statePath === 'string' && isStateId(statePath)) {
     try {
-      return getStateNodeById(stateNode, statePath.slice(1));
+      return stateNode.machine.getStateNodeById(statePath);
     } catch (e) {
       // try individual paths
       // throw e;
