@@ -1294,6 +1294,9 @@ export type ActorRefFrom<
       State<TContext, TEvent, any, TTypestate>,
       State<TContext, TEvent, any, TTypestate>
     > & {
+      /**
+       * @deprecated
+       */
       state: State<TContext, TEvent, any, TTypestate>;
     }
   : T extends Promise<infer U>
