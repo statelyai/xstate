@@ -174,7 +174,7 @@ Explicitly specifying the `type` as `'atomic'`, `'compound'`, `'parallel'`, `'hi
 
 A transient state node is a "pass-through" state node that immediately transitions to another state node; that is, a machine does not stay in a transient state. Transient state nodes are useful for determining which state the machine should really go to from a previous state based on conditions. They are most similar to [choice pseudostates](https://www.uml-diagrams.org/state-machine-diagrams.html#choice-pseudostate) in UML.
 
-The best way to define a transient state node is as an eventless state, and an `awlays` transition. This is a transition were the first condition that evaluates to true is immediately taken.
+The best way to define a transient state node is as an eventless state, and an `always` transition. This is a transition were the first condition that evaluates to true is immediately taken.
 
 For example, this machine's initial transient state resolves to `'morning'`, `'afternoon'`, or `'evening'`, depending on what time it is (implementation details hidden):
 
