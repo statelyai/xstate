@@ -192,7 +192,7 @@ const wordMachine = createMachine({
     LEFT_CLICK: '.left',
     RIGHT_CLICK: { target: '.right' }, // same as '.right'
     CENTER_CLICK: { target: '.center', internal: true }, // same as '.center'
-    JUSTIFY_CLICK: { target: 'justify', internal: true } // same as '.justify'
+    JUSTIFY_CLICK: { target: '.justify', internal: true } // same as '.justify'
   }
 });
 ```
