@@ -33,7 +33,7 @@
     "@types/styled-components": "^4.4.0",
     "react": "^16.12.0",
     "react-dom": "^16.12.0",
-    "tslib": "^1.10.0",
+    "tslib": "^2.2.0",
     "typescript": "^4.2.4"
   },
   "dependencies": {
