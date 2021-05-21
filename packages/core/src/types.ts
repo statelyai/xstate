@@ -1278,7 +1278,7 @@ export interface ActorRef<TEvent extends EventObject, TEmitted = any>
 export interface SpawnedActorRef<TEvent extends EventObject, TEmitted = any>
   extends ActorRef<TEvent, TEmitted> {
   id: string;
-  getSnapshot: () => TEmitted;
+  getSnapshot: () => TEmitted | undefined;
   stop?: () => void;
   toJSON?: () => any;
 }
