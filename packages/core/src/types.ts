@@ -1186,6 +1186,7 @@ export interface SpawnedActorRef<TEvent extends EventObject, TEmitted = any>
   extends ActorRef<TEvent, TEmitted> {
   name: string;
   start?: () => void;
+  getSnapshot: () => TEmitted | undefined;
   stop?: () => void;
   toJSON?: () => any;
 }
@@ -1196,6 +1197,8 @@ export type ActorRefFrom<T extends Spawnable> = T extends StateMachine<
   infer TTypestate
 >
   ? SpawnedActorRef<TEvent, State<TContext, TEvent, TTypestate>>
+  : T extends Promise<infer U>
+  ? SpawnedActorRef<never, U>
   : ActorRef<any, any>; // TODO: expand
 
 export type DevToolsAdapter = (service: AnyInterpreter) => void;
