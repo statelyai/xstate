@@ -822,7 +822,6 @@ export class Interpreter<
       resolvedDevToolsAdapter(this);
     }
   }
-
   public toJSON() {
     return {
       id: this.id
@@ -831,6 +830,10 @@ export class Interpreter<
 
   public [symbolObservable]() {
     return this;
+  }
+
+  public getSnapshot() {
+    return this._state!;
   }
 }
 
