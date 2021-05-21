@@ -1,6 +1,6 @@
 import { render, fireEvent } from '@testing-library/vue';
-import UseSelector from './useSelector.vue';
-import useSelectorCustomFn from './useSelectorCustomFn.vue';
+import UseSelector from './UseSelector.vue';
+import useSelectorCustomFn from './UseSelectorCustomFn.vue';
 
 describe('useSelector', () => {
   it('only rerenders for selected values', async () => {
