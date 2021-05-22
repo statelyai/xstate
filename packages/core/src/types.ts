@@ -1287,6 +1287,9 @@ export type ActorRefFrom<
   T extends StateMachine<any, any, any> | Promise<any>
 > = T extends StateMachine<infer TContext, any, infer TEvent, infer TTypestate>
   ? SpawnedActorRef<TEvent, State<TContext, TEvent, any, TTypestate>> & {
+      /**
+       * @deprecated
+       */
       state: State<TContext, TEvent, any, TTypestate>;
     }
   : T extends Promise<infer U>
