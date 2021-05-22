@@ -1,16 +1,16 @@
 import { StateMachine } from '..';
-import { FSTFrom } from './index';
+import { StateTransducerFrom } from './index';
 
 export function fromMachine<TMachine extends StateMachine<any, any, any>>(
   machine: TMachine,
-  nextEvents?: FSTFrom<TMachine>['nextEvents']
-): FSTFrom<TMachine> {
+  nextEvents?: StateTransducerFrom<TMachine>['nextEvents']
+): StateTransducerFrom<TMachine> {
   return {
     transition: ((state, input) => {
       const nextState = machine.transition(state, input);
       return [nextState, []];
-    }) as FSTFrom<TMachine>['transition'],
+    }) as StateTransducerFrom<TMachine>['transition'],
     initialState: machine.initialState,
     nextEvents
-  } as FSTFrom<TMachine>;
+  } as StateTransducerFrom<TMachine>;
 }

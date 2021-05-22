@@ -2,7 +2,7 @@
 
 import type { State, StateMachine } from '..';
 
-export { fromActor } from './actor';
+export { toActor as fromActor } from './actor';
 export { fromMachine } from './machine';
 export { fromReducer } from './reducer';
 
@@ -17,7 +17,7 @@ export interface FST<TState, TInput, TOutput = any> {
   nextEvents?: (state: TState) => TInput[];
 }
 
-export type FSTFrom<T> = T extends StateMachine<
+export type StateTransducerFrom<T> = T extends StateMachine<
   infer TContext,
   any,
   infer TEvent

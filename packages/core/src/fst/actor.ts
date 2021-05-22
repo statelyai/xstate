@@ -1,15 +1,16 @@
 import { FST } from '.';
-import { ActorRef, EventObject, Observer } from '..';
+import { EventObject, Observer, SpawnedActorRef } from '..';
 import { toObserver } from '../utils';
 
-export function fromActor<TState, TEvent extends EventObject, TOutput = any>(
+export function toActor<TState, TEvent extends EventObject, TOutput = any>(
   fst: FST<TState, TEvent, TOutput>,
   handleOutput?: (output: TOutput) => void
-): ActorRef<TEvent, TState> {
+): SpawnedActorRef<TEvent, TState> {
   let currentState = fst.initialState;
   const observers = new Set<Observer<TState>>();
 
-  const actor: ActorRef<TEvent, TState> = {
+  const actor: SpawnedActorRef<TEvent, TState> = {
+    id: '',
     send: (event: TEvent) => {
       const [nextState, output] = fst.transition(currentState, event);
 
@@ -29,7 +30,8 @@ export function fromActor<TState, TEvent extends EventObject, TOutput = any>(
           observers.delete(observer);
         }
       };
-    }
+    },
+    getSnapshot: () => currentState
   };
 
   return actor;
