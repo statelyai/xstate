@@ -13,7 +13,7 @@
     "store"
   ],
   "author": "David Khourshid <davidkpiano@gmail.com>",
-  "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-svelte#readme",
+  "homepage": "https://github.com/davidkpiano/xstate/tree/main/packages/xstate-svelte#readme",
   "license": "MIT",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",

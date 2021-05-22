@@ -1,6 +1,6 @@
 # Fetch example
 
-[Open in CodeSandbox](https://githubbox.com/davidkpiano/xstate/tree/master/examples/fetch)
+[Open in CodeSandbox](https://githubbox.com/davidkpiano/xstate/tree/main/examples/fetch)
 
 ## Run this example locally
 

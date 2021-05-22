@@ -12,7 +12,7 @@
     "analytics"
   ],
   "author": "David Khourshid <davidkpiano@gmail.com>",
-  "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-analytics#readme",
+  "homepage": "https://github.com/davidkpiano/xstate/tree/main/packages/xstate-analytics#readme",
   "license": "MIT",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
