@@ -23,7 +23,7 @@ import {
 } from './actions';
 import { interpret, Interpreter, InterpreterStatus } from './interpreter';
 import { matchState } from './match';
-export { MachineNode } from './MachineNode';
+export { StateMachine as MachineNode } from './StateMachine';
 export { SimulatedClock } from './SimulatedClock';
 export {
   spawn,

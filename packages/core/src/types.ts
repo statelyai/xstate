@@ -1,7 +1,7 @@
 import { StateNode } from './StateNode';
 import { State } from './State';
 import { Clock, Interpreter } from './interpreter';
-import { MachineNode } from './MachineNode';
+import { StateMachine } from './StateMachine';
 import { Behavior } from './behavior';
 
 export type EventType = string;
@@ -627,9 +627,9 @@ export type HistoryValue<TContext, TEvent extends EventObject> = Record<
   Array<StateNode<TContext, TEvent>>
 >;
 
-export type StateFrom<TMachine extends MachineNode<any, any, any>> = ReturnType<
-  TMachine['transition']
->;
+export type StateFrom<
+  TMachine extends StateMachine<any, any, any>
+> = ReturnType<TMachine['transition']>;
 
 export type Transitions<TContext, TEvent extends EventObject> = Array<
   TransitionDefinition<TContext, TEvent>
@@ -1059,8 +1059,8 @@ export type AnyInterpreter = Interpreter<any, any, any>;
  * @typeParam TM - the machine to infer the interpreter's types from
  */
 export type InterpreterOf<
-  TM extends MachineNode<any, any, any>
-> = TM extends MachineNode<infer TContext, infer TEvent, infer TTypestate>
+  TM extends StateMachine<any, any, any>
+> = TM extends StateMachine<infer TContext, infer TEvent, infer TTypestate>
   ? Interpreter<TContext, TEvent, TTypestate>
   : never;
 
@@ -1129,7 +1129,7 @@ export declare namespace SCXML {
 }
 
 export type Spawnable =
-  | MachineNode<any, any, any>
+  | StateMachine<any, any, any>
   | PromiseLike<any>
   | InvokeCallback
   | Subscribable<any>;
@@ -1191,7 +1191,7 @@ export interface SpawnedActorRef<TEvent extends EventObject, TEmitted = any>
   toJSON?: () => any;
 }
 
-export type ActorRefFrom<T extends Spawnable> = T extends MachineNode<
+export type ActorRefFrom<T extends Spawnable> = T extends StateMachine<
   infer TContext,
   infer TEvent,
   infer TTypestate
@@ -1206,7 +1206,11 @@ export type DevToolsAdapter = (service: AnyInterpreter) => void;
 export type Lazy<T> = () => T;
 
 export type InterpreterFrom<
-  T extends MachineNode<any, any, any>
-> = T extends MachineNode<infer TContext, infer TEvent, infer TTypestate>
+  T extends StateMachine<any, any, any>
+> = T extends StateMachine<infer TContext, infer TEvent, infer TTypestate>
   ? Interpreter<TContext, TEvent, TTypestate>
   : never;
+
+export type EventOfMachine<
+  TMachine extends StateMachine<any, any>
+> = TMachine extends StateMachine<any, infer E> ? E : never;

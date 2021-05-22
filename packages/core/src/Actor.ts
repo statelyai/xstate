@@ -8,7 +8,7 @@ import {
   SpawnedActorRef,
   Lazy
 } from './types';
-import { MachineNode } from './MachineNode';
+import { StateMachine } from './StateMachine';
 import { State } from './State';
 import { Interpreter } from './interpreter';
 import {
@@ -71,7 +71,7 @@ export function fromCallback<TEvent extends EventObject>(
 }
 
 export function fromMachine<TContext, TEvent extends EventObject>(
-  machine: MachineNode<TContext, TEvent>,
+  machine: StateMachine<TContext, TEvent>,
   name: string,
   options?: Partial<InterpreterOptions>
 ): ActorRef<TEvent> {
@@ -79,7 +79,7 @@ export function fromMachine<TContext, TEvent extends EventObject>(
 }
 
 export function fromService<TContext, TEvent extends EventObject>(
-  service: Interpreter<TContext, TEvent>,
+  service: Interpreter<TContext, TEvent, any>,
   name: string = registry.bookId()
 ): SpawnedActorRef<TEvent> {
   return new ObservableActorRef(createServiceBehavior(service), name);
@@ -109,7 +109,7 @@ export function spawnObservable<T extends EventObject>(
 }
 
 export function spawnMachine(
-  machine: MachineNode<any, any, any>,
+  machine: StateMachine<any, any, any>,
   name?: string
 ) {
   return spawn(createMachineBehavior(machine), name);
@@ -134,7 +134,7 @@ export function spawnFrom<
   TEvent extends EventObject,
   TEmitted extends State<any, any>
 >(
-  entity: MachineNode<TEmitted['context'], any, TEmitted['event']>,
+  entity: StateMachine<TEmitted['context'], any, TEmitted['event']>,
   name?: string
 ): ObservableActorRef<TEvent, TEmitted>;
 export function spawnFrom<TEvent extends EventObject>(

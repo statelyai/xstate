@@ -147,17 +147,25 @@ export class State<
    * @param stateValue
    * @param context
    */
+  public static inert<TState extends State<any, any, any>>(
+    state: TState,
+    context: any
+  ): TState;
   public static inert<TC, TE extends EventObject = EventObject>(
-    stateValue: State<TC, TE> | StateValue,
+    stateValue: StateValue,
     context: TC
-  ): State<TC, TE> {
+  ): State<TC, TE>;
+  public static inert(
+    stateValue: State<any, any> | StateValue,
+    context: any
+  ): State<any, any> {
     if (stateValue instanceof State) {
       if (!stateValue.actions.length) {
-        return stateValue as State<TC, TE>;
+        return stateValue;
       }
-      const _event = initEvent as SCXML.Event<TE>;
+      const _event = initEvent as SCXML.Event<any>;
 
-      return new State<TC, TE>({
+      return new State<any>({
         value: stateValue.value,
         context,
         _event,
@@ -169,7 +177,7 @@ export class State<
       });
     }
 
-    return State.from<TC, TE>(stateValue, context);
+    return State.from(stateValue, context);
   }
 
   /**

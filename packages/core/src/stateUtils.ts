@@ -21,7 +21,6 @@ import {
   DelayedTransitionDefinition,
   NullEvent,
   SingleOrArray,
-  Typestate,
   DelayExpr,
   SCXML,
   Transitions,
@@ -68,7 +67,7 @@ import {
 import { IS_PRODUCTION } from './environment';
 import { STATE_IDENTIFIER, NULL_EVENT, WILDCARD } from './constants';
 import { isSpawnedActorRef } from './Actor';
-import { MachineNode } from './MachineNode';
+import { StateMachine } from './StateMachine';
 import { evaluateGuard, toGuardDefinition } from './guards';
 
 type Configuration<TC, TE extends EventObject> = Iterable<StateNode<TC, TE>>;
@@ -239,7 +238,7 @@ export function nextEvents<TC, TE extends EventObject>(
 
 export function isInFinalState<TC, TE extends EventObject>(
   configuration: Array<StateNode<TC, TE>>,
-  stateNode: StateNode<TC, TE> = configuration[0].machine
+  stateNode: StateNode<TC, TE> = configuration[0].machine.root
 ): boolean {
   if (stateNode.type === 'compound') {
     return getChildren(stateNode).some(
@@ -670,7 +669,7 @@ export function getStateNode<TContext, TEvent extends EventObject>(
   stateKey: string
 ): StateNode<TContext, TEvent> {
   if (isStateId(stateKey)) {
-    return getStateNodeById(stateNode.machine, stateKey);
+    return stateNode.machine.getStateNodeById(stateKey);
   }
   if (!stateNode.states) {
     throw new Error(
@@ -685,29 +684,7 @@ export function getStateNode<TContext, TEvent extends EventObject>(
   }
   return result;
 }
-/**
- * Returns the state node with the given `stateId`, or throws.
- *
- * @param stateId The state ID. The prefix "#" is removed.
- */
-export function getStateNodeById<TContext, TEvent extends EventObject>(
-  fromStateNode: StateNode<TContext, TEvent>,
-  stateId: string
-): StateNode<TContext, TEvent> {
-  const resolvedStateId = isStateId(stateId)
-    ? stateId.slice(STATE_IDENTIFIER.length)
-    : stateId;
-  if (resolvedStateId === fromStateNode.id) {
-    return fromStateNode;
-  }
-  const stateNode = fromStateNode.machine.idMap[resolvedStateId];
-  if (!stateNode) {
-    throw new Error(
-      `Child state node '#${resolvedStateId}' does not exist on machine '${fromStateNode.id}'`
-    );
-  }
-  return stateNode;
-}
+
 /**
  * Returns the relative state node from the given `statePath`, or throws.
  *
@@ -719,7 +696,7 @@ function getStateNodeByPath<TContext, TEvent extends EventObject>(
 ): StateNode<TContext, TEvent> {
   if (typeof statePath === 'string' && isStateId(statePath)) {
     try {
-      return getStateNodeById(stateNode, statePath.slice(1));
+      return stateNode.machine.getStateNodeById(statePath);
     } catch (e) {
       // try individual paths
       // throw e;
@@ -861,7 +838,7 @@ export function transitionParallelNode<TContext, TEvent extends EventObject>(
 export function transitionNode<TContext, TEvent extends EventObject>(
   stateNode: StateNode<TContext, TEvent>,
   stateValue: StateValue,
-  state: State<TContext, TEvent>,
+  state: State<TContext, TEvent, any>,
   _event: SCXML.Event<TEvent>
 ): Transitions<TContext, TEvent> | undefined {
   // leaf node
@@ -1339,7 +1316,7 @@ export function microstep<TContext, TEvent extends EventObject>(
   transitions: Array<TransitionDefinition<TContext, TEvent>>,
   currentState: State<TContext, TEvent> | undefined,
   mutConfiguration: Set<StateNode<TContext, TEvent>>,
-  machine: MachineNode<TContext, TEvent>,
+  machine: StateMachine<TContext, TEvent>,
   _event: SCXML.Event<TEvent>
 ): {
   actions: Array<ActionObject<TContext, TEvent>>;
@@ -1450,23 +1427,19 @@ function selectEventlessTransitions<TContext, TEvent extends EventObject>(
   );
 }
 
-export function resolveMicroTransition<
-  TContext,
-  TEvent extends EventObject,
-  TTypestate extends Typestate<TContext>
->(
-  machine: MachineNode<TContext, TEvent>,
+export function resolveMicroTransition<TContext, TEvent extends EventObject>(
+  machine: StateMachine<TContext, TEvent>,
   transitions: Transitions<TContext, TEvent>,
-  currentState?: State<TContext, TEvent>,
+  currentState?: State<TContext, TEvent, any>,
   _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>
-): State<TContext, TEvent, TTypestate> {
+): State<TContext, TEvent, any> {
   // Transition will "apply" if:
   // - the state node is the initial state (there is no current state)
   // - OR there are transitions
   const willTransition = !currentState || transitions.length > 0;
 
   const prevConfig = getConfiguration(
-    currentState ? currentState.configuration : [machine]
+    currentState ? currentState.configuration : [machine.root]
   );
 
   const resolved = microstep(
@@ -1475,7 +1448,7 @@ export function resolveMicroTransition<
       : [
           {
             target: [...prevConfig].filter(isAtomicStateNode),
-            source: machine,
+            source: machine.root,
             actions: [],
             eventType: null as any,
             toJSON: null as any // TODO: fix
@@ -1525,8 +1498,8 @@ export function resolveMicroTransition<
 
   const { context, actions: nonRaisedActions } = resolved;
 
-  const nextState = new State<TContext, TEvent, TTypestate>({
-    value: getStateValue(machine, resolved.configuration),
+  const nextState = new State<TContext, TEvent>({
+    value: getStateValue(machine.root, resolved.configuration),
     context,
     _event,
     // Persist _sessionid between states
@@ -1573,7 +1546,7 @@ export function resolveMicroTransition<
 
 function resolveActionsAndContext<TContext, TEvent extends EventObject>(
   actions: Array<ActionObject<TContext, TEvent>>,
-  machine: MachineNode<TContext, TEvent, any>,
+  machine: StateMachine<TContext, TEvent, any>,
   _event: SCXML.Event<TEvent>,
   currentState: State<TContext, TEvent, any> | undefined
 ): {
@@ -1605,7 +1578,7 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
             actionObject as SendAction<TContext, TEvent, AnyEventObject>,
             context,
             _event,
-            machine.machine.options.delays
+            machine.options.delays
           );
           if (!IS_PRODUCTION) {
             // warn after resolving as we can create better contextual message here
@@ -1613,7 +1586,7 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
               !isString(actionObject.delay) ||
                 typeof sendAction.delay === 'number',
               // tslint:disable-next-line:max-line-length
-              `No delay reference for delay expression '${actionObject.delay}' was found on machine '${machine.machine.id}'`
+              `No delay reference for delay expression '${actionObject.delay}' was found on machine '${machine.key}'`
             );
           }
           if (sendAction.to === SpecialTargets.Internal) {
@@ -1701,7 +1674,7 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
               false,
               `Actor type '${
                 (invokeAction.src as InvokeSourceDefinition).type
-              }' not found in machine '${machine.id}'.`
+              }' not found in machine '${machine.key}'.`
             );
           }
           resActions.push(invokeAction);
@@ -1716,7 +1689,7 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
           break;
         default:
           resActions.push(
-            toActionObject(actionObject, machine.machine.options.actions)
+            toActionObject(actionObject, machine.options.actions)
           );
           break;
       }
@@ -1730,14 +1703,17 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
   };
 }
 
+type StateFromMachine<TMachine extends StateMachine> = TMachine['initialState'];
+
 export function macrostep<
-  TContext,
-  TEvent extends EventObject,
-  TTypestate extends Typestate<TContext>
+  TMachine extends StateMachine,
+  TEvent extends EventObject = TMachine extends StateMachine<any, infer E>
+    ? E
+    : never
 >(
-  state: State<TContext, TEvent, TTypestate>,
+  state: StateFromMachine<TMachine>,
   event: Event<TEvent> | SCXML.Event<TEvent> | null,
-  machine: MachineNode<TContext, TEvent, any>
+  machine: TMachine
 ): typeof state {
   // Assume the state is at rest (no raised events)
   // Determine the next state based on the next microstep
@@ -1816,24 +1792,22 @@ export function resolveStateValue<TContext, TEvent extends EventObject>(
   rootNode: StateNode<TContext, TEvent>,
   stateValue: StateValue
 ): StateValue {
-  const configuration = getConfiguration(
-    getStateNodes(rootNode.machine, stateValue)
-  );
+  const configuration = getConfiguration(getStateNodes(rootNode, stateValue));
   return getStateValue(rootNode, [...configuration]);
 }
 
-export function toState<TContext, TEvent extends EventObject>(
-  state: StateValue | State<TContext, TEvent>,
-  machine: MachineNode<TContext, TEvent>
-): State<TContext, TEvent> {
+export function toState<TMachine extends StateMachine<any, any, any>>(
+  state: StateValue | TMachine['initialState'],
+  machine: TMachine
+): StateFromMachine<TMachine> {
   if (state instanceof State) {
     return state;
   } else {
-    const resolvedStateValue = resolveStateValue(machine, state);
+    const resolvedStateValue = resolveStateValue(machine.root, state);
     const resolvedContext = machine.context!;
 
     return machine.resolveState(
-      State.from<TContext, TEvent>(resolvedStateValue, resolvedContext)
+      State.from(resolvedStateValue, resolvedContext)
     );
   }
 }

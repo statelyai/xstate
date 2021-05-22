@@ -40,7 +40,7 @@ import { Scheduler } from './scheduler';
 import { isActorRef, fromService } from './Actor';
 import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
-import { MachineNode } from './MachineNode';
+import { StateMachine } from './StateMachine';
 import { devToolsAdapter } from './dev';
 import { CapturedState } from './capturedState';
 import { PayloadSender, SpawnedActorRef, StopActionObject } from '.';
@@ -132,7 +132,7 @@ export class Interpreter<
    * @param options Interpreter options
    */
   constructor(
-    public machine: MachineNode<TContext, TEvent, TTypestate>,
+    public machine: StateMachine<TContext, TEvent, TTypestate>,
     options?: Partial<InterpreterOptions>
   ) {
     const resolvedOptions: InterpreterOptions = {
@@ -142,7 +142,7 @@ export class Interpreter<
 
     const { clock, logger, parent, id } = resolvedOptions;
 
-    const resolvedId = id !== undefined ? id : machine.id;
+    const resolvedId = id !== undefined ? id : machine.key;
 
     this.id = resolvedId;
     this.logger = logger;
@@ -203,7 +203,7 @@ export class Interpreter<
   }
 
   private update(
-    state: State<TContext, TEvent, TTypestate>,
+    state: State<TContext, TEvent, any>,
     _event: SCXML.Event<TEvent>
   ): void {
     // Attach session ID to state
@@ -219,13 +219,13 @@ export class Interpreter<
       listener(state, state.event);
     }
 
-    const isDone = isInFinalState(state.configuration || [], this.machine);
+    const isDone = isInFinalState(state.configuration || [], this.machine.root);
 
     if (this.state.configuration && isDone) {
       // get final child state node
       const finalChildStateNode = state.configuration.find(
         (stateNode) =>
-          stateNode.type === 'final' && stateNode.parent === this.machine
+          stateNode.type === 'final' && stateNode.parent === this.machine.root
       );
 
       const doneData =
@@ -322,7 +322,7 @@ export class Interpreter<
    *
    * @param listener The listener
    */
-  public onStop(listener: Listener): Interpreter<TContext, TEvent, TTypestate> {
+  public onStop(listener: Listener): this {
     this.stopListeners.add(listener);
     return this;
   }
@@ -333,7 +333,7 @@ export class Interpreter<
    *
    * @param listener The error listener
    */
-  public onError(listener: ErrorListener): Interpreter<TContext, TEvent> {
+  public onError(listener: ErrorListener): this {
     this.errorListeners.add(listener);
     return this;
   }
@@ -453,7 +453,7 @@ export class Interpreter<
   }
 
   private _transition(
-    state: State<TContext, TEvent>,
+    state: State<TContext, TEvent, any>,
     event: SCXML.Event<TEvent>
   ) {
     try {
@@ -494,7 +494,7 @@ export class Interpreter<
         warn(
           false,
           `Event "${_event.name}" was sent to stopped service "${
-            this.machine.id
+            this.machine.key
           }". This service has already reached its final state, and will not transition.\nEvent: ${JSON.stringify(
             _event.data
           )}`
@@ -509,7 +509,7 @@ export class Interpreter<
     ) {
       throw new Error(
         `Event "${_event.name}" was sent to uninitialized service "${
-          this.machine.id
+          this.machine.key
           // tslint:disable-next-line:max-line-length
         }". Make sure .start() is called for this service, or set { deferEvents: true } in the service options.\nEvent: ${JSON.stringify(
           _event.data
@@ -537,7 +537,7 @@ export class Interpreter<
         warn(
           false,
           `${events.length} event(s) were sent to uninitialized service "${
-            this.machine.id
+            this.machine.key
           }" and are deferred. Make sure .start()  is called for this service.\nEvents: ${JSON.stringify(
             events
           )}`
@@ -546,7 +546,7 @@ export class Interpreter<
     } else if (this.status !== InterpreterStatus.Running) {
       throw new Error(
         // tslint:disable-next-line:max-line-length
-        `${events.length} event(s) were sent to uninitialized service "${this.machine.id}". Make sure .start() is called for this service, or set { deferEvents: true } in the service options.`
+        `${events.length} event(s) were sent to uninitialized service "${this.machine.key}". Make sure .start() is called for this service, or set { deferEvents: true } in the service options.`
       );
     }
 
@@ -848,7 +848,7 @@ export function interpret<
   TEvent extends EventObject = EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(
-  machine: MachineNode<TContext, TEvent, TTypestate>,
+  machine: StateMachine<TContext, TEvent, TTypestate>,
   options?: Partial<InterpreterOptions>
 ) {
   const interpreter = new Interpreter<TContext, TEvent, TTypestate>(

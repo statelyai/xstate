@@ -63,7 +63,7 @@ describe('resolve()', () => {
     const unresolvedStateValue = { p1: { s1: { p2: 's4' }, s2: { p4: 's8' } } };
 
     const resolvedStateValue = resolveStateValue(
-      flatParallelMachine,
+      flatParallelMachine.root,
       unresolvedStateValue
     );
     expect(resolvedStateValue).toEqual({

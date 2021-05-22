@@ -85,7 +85,7 @@ export const ServiceViz: React.FC<{
   return (
     <StateContext.Provider value={state}>
       <pre>{JSON.stringify(state, null, 2)}</pre>
-      <StateNodeViz stateNode={service.machine} />
+      <StateNodeViz stateNode={service.machine.root} />
     </StateContext.Provider>
   );
 };
