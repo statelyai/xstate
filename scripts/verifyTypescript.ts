@@ -16,6 +16,27 @@ const HEADER = `
 import { interpret, createMachine, assign } from 'xstate';
 `;
 
+const USER_MODEL = `
+import { createModel } from 'xstate/lib/model';
+
+const userModel = createModel(
+  // Initial context
+  {
+    name: 'David',
+    age: 30
+  },
+  {
+    // Event creators
+    events: {
+      updateName: (name: string) => ({ name }),
+      updateAge: (age: number) => ({ age }),
+      anotherEvent: () => ({}) // no payload
+    }
+  }
+);
+
+`;
+
 main();
 
 function main() {
@@ -92,7 +113,14 @@ function verifyVirtualFiles(virtualFiles: VirtualFiles): void {
         if (file) {
           let code = file.code;
           if (code.indexOf('import ') === -1) {
-            code = HEADER + code;
+            if (
+              name.indexOf('models.md') > 0 &&
+              code.indexOf('createModel') < 0
+            ) {
+              code = HEADER + USER_MODEL + code;
+            } else {
+              code = HEADER + code;
+            }
           }
 
           return ts.createSourceFile(name, code, ts.ScriptTarget.Latest);

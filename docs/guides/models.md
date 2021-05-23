@@ -99,7 +99,7 @@ const machine = createMachine<typeof userModel>(
   {
     actions: {
       assignAge: userModel.assign((_, event) => {
-        // the event cannot be inferred automatically, so we check manually
+        // the event cannot be inferred automatically here, so we check it manually
         if (event.type !== 'updateAge') {
           return {};
         }
@@ -138,8 +138,8 @@ const userModel = createModel(
   },
   {
     events: {
-      updateName: (value: string) => ({ value }),
-      updateAge: (value: number) => ({ value }),
+      updateName: (name: string) => ({ name }),
+      updateAge: (age: number) => ({ age }),
       anotherEvent: () => ({}) // no payload
     }
   }
@@ -153,8 +153,8 @@ const userModel = createModel(
 // }
 
 // Events inferred as:
-// | { type: 'updateName'; value: string; }
-// | { type: 'updateAge'; value: number; }
+// | { type: 'updateName'; name: string; }
+// | { type: 'updateAge'; age: number; }
 // | { type: 'anotherEvent'; }
 ```
 
@@ -169,7 +169,7 @@ const machine = createMachine<typeof userModel>({
       on: {
         updateName: {
           actions: userModel.assign({
-            name: (_, event) => event.value // inferred
+            name: (_, event) => event.name // inferred
           })
         }
       }
@@ -200,7 +200,7 @@ const machine = createMachine<typeof userModel>(
       assignAge: userModel.assign(
         {
           // The `event.type` here is restricted to "updateAge"
-          age: (_, event) => event.value // inferred as `number`
+          age: (_, event) => event.age // inferred as `number`
         },
         'updateAge' // Restricts the `event` allowed by the "assignAge" action
       )
