@@ -16,6 +16,8 @@ JavaScript and TypeScript [finite state machines](https://en.wikipedia.org/wiki/
 
 📖 [Read the documentation](https://xstate.js.org/docs)
 
+💙 [Explore the catalogue](https://xstate-catalogue.com/)
+
 📑 Adheres to the [SCXML specification](https://www.w3.org/TR/scxml/)
 
 💬 Chat on the [Stately Discord Community](https://discord.gg/KCtSX7Cdjh)
