@@ -15,6 +15,7 @@ interface LightContext {
 }
 
 const lightMachine = createMachine<LightContext, LightEvent>({
+  id: 'light',
   initial: 'green',
   context: { elapsed: 0 },
   states: {
