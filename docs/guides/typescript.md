@@ -3,21 +3,6 @@
 As XState is written in [TypeScript](https://www.typescriptlang.org/), strongly typing your statecharts is useful and encouraged. Consider this light machine example:
 
 ```typescript
-// The hierarchical (recursive) schema for the states
-interface LightStateSchema {
-  states: {
-    green: {};
-    yellow: {};
-    red: {
-      states: {
-        walk: {};
-        wait: {};
-        stop: {};
-      };
-    };
-  };
-}
-
 // The events that the machine handles
 type LightEvent =
   | { type: 'TIMER' }
@@ -29,8 +14,7 @@ interface LightContext {
   elapsed: number;
 }
 
-const lightMachine = createMachine<LightContext, LightStateSchema, LightEvent>({
-  key: 'light',
+const lightMachine = createMachine<LightContext, LightEvent>({
   initial: 'green',
   context: { elapsed: 0 },
   states: {
@@ -80,10 +64,9 @@ const lightMachine = createMachine<LightContext, LightStateSchema, LightEvent>({
 });
 ```
 
-Providing the context, state schema, and events as generic parameters for the `createMachine()` function may seem tedious (and is completely optional), but gives many advantages:
+Providing the context and events as generic parameters for the `createMachine()` function may seem tedious (and is completely optional), but gives many advantages:
 
 - The context type/interface (`TContext`) is passed on to action `exec` functions, guard `cond` functions, and more. It is also passed to deeply nested states.
-- The state schema type/interface (`TStateSchema`) ensures that only state keys defined on the schema are allowed in the actual config object. Nested state schemas are recursively passed down to their representative child states.
 - The event type (`TEvent`) ensures that only specified events (and built-in XState-specific ones) are used in transition configs. The provided event object shapes are also passed on to action `exec` functions, guard `cond` functions, and more. This can prevent unnecessary `event.somePayload === undefined` checks.
 
 Note if you are seeing this error:
