@@ -362,7 +362,7 @@ type UserState =
 
 const userMachine = createMachine<UserContext, UserEvent, UserState>({
   /* ... */
-});
+} as any);
 
 const userService = interpret(userMachine);
 

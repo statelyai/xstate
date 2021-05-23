@@ -370,18 +370,15 @@ const machine = createMachine<CounterContext>({
   context: {
     count: 0
   },
-  // ...
-  {
-    on: {
-      INCREMENT: {
-        // Inferred automatically in most cases
-        actions: assign({
-          count: (context) => {
-            // context: { count: number }
-            return context.count + 1;
-          }
-        })
-      }
+  on: {
+    INCREMENT: {
+      // Inferred automatically in most cases
+      actions: assign({
+        count: (context) => {
+          // context: { count: number }
+          return context.count + 1;
+        }
+      })
     }
   }
 });

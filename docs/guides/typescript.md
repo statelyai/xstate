@@ -163,6 +163,7 @@ userService.subscribe((state) => {
 Compound states should have all parent state values explicitly modelled to avoid type errors when testing substates.
 
 ```typescript
+interface Context {}
 type State =
   /* ... */
   | {
@@ -179,6 +180,7 @@ type State =
 Where two states have identical context types, their declarations can be merged by using a type union for the value.
 
 ```typescript
+interface Context {}
 type State =
   /* ... */
   {
@@ -194,6 +196,11 @@ Machine config objects can be typed. This is useful when defining a machine conf
 
 ```ts
 import { MachineConfig } from 'xstate';
+
+interface TContext {
+  /* context */
+}
+type TEvent = { type: 'EVENT_1' } | { type: 'EVENT_2' };
 
 type myStateSchema = {
   states: {
@@ -227,19 +234,32 @@ type UserEvents = {
   value: string;
 };
 
-const service = interpret(stateMachine);
+const machine = createMachine<void, UserEvents>({
+  /* machine definition */
+});
+
+const service = interpret(machine);
 
 // This will compile
 service.send({ type: 'TEST', value: 'testvalue' });
 
 // This will have a compile error on the `value` type
+// @ts-expect-error
 service.send({ type: 'TEST', value: 1 });
 ```
 
 If you use the following pattern, you'll lose type safety, so both of these will compile:
 
 ```ts
-service.send('TEST', { value: 'testvalue' });
+type UserEvents = {
+  type: 'TEST';
+  value: string;
+};
+
+let service = interpret(createMachine<void, UserEvents>({}));
 
 service.send('TEST', { value: 1 });
+
+// compiles, even though it's an error
+service.send('TEST', { value: 'testvalue' });
 ```

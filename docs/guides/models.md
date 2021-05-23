@@ -58,6 +58,7 @@ Modeling machine events in a model gives two benefits:
 - Provides type information to the machine definition, providing event-specific type safety for action definitions
 
 ```ts
+import { createMachine } from 'xstate';
 import { createModel } from 'xstate/lib/model';
 
 const userModel = createModel(
@@ -69,14 +70,14 @@ const userModel = createModel(
   {
     // Event creators
     events: {
-      updateName: (value) => ({ value }),
-      updateAge: (value) => ({ value }),
+      updateName: (name: string) => ({ name }),
+      updateAge: (age: number) => ({ age }),
       anotherEvent: () => ({}) // no payload
     }
   }
 );
 
-const machine = createMachine(
+const machine = createMachine<typeof userModel>(
   {
     context: userModel.initialContext,
     initial: 'active',
@@ -85,7 +86,7 @@ const machine = createMachine(
         on: {
           updateName: {
             actions: userModel.assign({
-              name: (_, event) => event.value
+              name: (_, event) => event.name
             })
           },
           updateAge: {
@@ -97,8 +98,12 @@ const machine = createMachine(
   },
   {
     actions: {
-      assignAge: userModel.assign({
-        age: (_, event) => event.value // inferred
+      assignAge: userModel.assign((_, event) => {
+        // the event cannot be inferred automatically, so we check manually
+        if (event.type !== 'updateAge') {
+          return {};
+        }
+        return { age: event.age };
       })
     }
   }

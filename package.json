@@ -22,7 +22,7 @@
     "typedoc:publish": "npm run typedoc && gh-pages --dist ./packages/core/api --dest ./api",
     "changeset": "changeset",
     "prerelease": "npm run build && npm run test",
-    "verifyTypescriptExamples": "find docs -iname '*.md' -not -path '*/node_modules/*' -not -path '*/.vuepress/*'  -exec scripts/verifyTypescript {} \\;",
+    "verifyTypescriptExamples": "find packages docs -iname '*.md' -not -path '*/node_modules/*' -not -path '*/.vuepress/*' -not -iname 'CHANGELOG.md' -exec scripts/verifyTypescript {} \\;",
     "release": "changeset publish"
   },
   "repository": {

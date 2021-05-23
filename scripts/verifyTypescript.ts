@@ -1,10 +1,16 @@
 import fs from 'fs';
-import path from 'path';
 import ts from 'typescript';
 
 const VERBOSE = !!process.env.VERBOSE;
 
 const TYPESCRIPT_BLOCK = /```(typescript|ts).*\n(?<code>(.|\n[^```])*)/;
+
+const MODULE_RESOLVES = {
+  'xstate/lib/model': 'packages/core/src/model.ts',
+  xstate: 'packages/core/src',
+  '@xstate/inspect': 'packages/xstate-inspect/src',
+  '@xstate/immer': 'packages/xstate-immer/src'
+};
 
 const HEADER = `
 import { interpret, createMachine, assign } from 'xstate';
@@ -57,10 +63,6 @@ function processFile(file: string): void {
 
 function verifyVirtualFiles(virtualFiles: VirtualFiles): void {
   let defaultCompilerHost = ts.createCompilerHost({});
-  const MODULE_RESOLVES = {
-    xstate: 'packages/core/src',
-    '@xstate/inspect': 'packages/xstate-inspect/src'
-  };
 
   function fileExists(fileName: string): boolean {
     return ts.sys.fileExists(fileName);
@@ -72,7 +74,18 @@ function verifyVirtualFiles(virtualFiles: VirtualFiles): void {
 
   let program = ts.createProgram(
     Object.keys(virtualFiles),
-    {},
+    {
+      allowSyntheticDefaultImports: true,
+      composite: true,
+      declaration: true,
+      declarationMap: true,
+      noUnusedParameters: true,
+      strictNullChecks: true,
+      downlevelIteration: true,
+      experimentalDecorators: true,
+      skipLibCheck: true,
+      strictPropertyInitialization: true
+    },
     {
       getSourceFile(name, languageVersion) {
         let file = virtualFiles[name];
@@ -112,7 +125,7 @@ function verifyVirtualFiles(virtualFiles: VirtualFiles): void {
             let resolve = MODULE_RESOLVES[moduleName];
             if (resolve) {
               resolvedModules.push({
-                resolvedFileName: path.join('packages/core/src')
+                resolvedFileName: resolve
               });
             } else {
               console.warn(`Cannot resolve ${moduleName}`);
@@ -141,7 +154,10 @@ function verifyVirtualFiles(virtualFiles: VirtualFiles): void {
         '\n'
       );
       console.log(
-        `${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}`
+        (VERBOSE ? '    ' : '') +
+          `${diagnostic.file.fileName} (${line + 1},${
+            character + 1
+          }): ${message}`
       );
     } else {
       console.log(
