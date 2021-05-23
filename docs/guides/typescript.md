@@ -79,62 +79,6 @@ Type error: Type 'string | number' does not satisfy the constraint 'string'.
 
 Ensure that your tsconfig file does not include `"keyofStringsOnly": true`.
 
-## Config Objects
-
-Machine config objects can be typed. This is useful when defining a machine config object _outside_ of the `createMachine(...)` function, and helps prevent [inference errors](https://github.com/davidkpiano/xstate/issues/310). The first and third generic parameters for `MachineConfig<TContext, TSchema, TEvent>` are the same as the first and second parameters for `createMachine<TContext, TEvent, TTypeState>` respectively. The second generic parameter 'TSchema' accepts an object type with a single key 'states' which lists the possible states of machines accepting the configuration:
-
-```ts
-import { MachineConfig } from 'xstate';
-
-type myStateSchema = {
-  states: {
-    stopped: {};
-    started: {};
-  };
-};
-
-const myMachineConfig: MachineConfig<TContext, myStateSchema, TEvent> = {
-  id: 'controller',
-  initial: 'stopped',
-  states: {
-    stopped: {
-      /* ... */
-    },
-    started: {
-      /* ... */
-    }
-  }
-  // ...
-};
-```
-
-## Actions
-
-The `send` action on the interpreted machine `interpret(stateMachine)` isn't always type safe. To get typechecking for this function signature, use the following pattern:
-
-```ts
-type UserEvents = {
-  type: 'TEST';
-  value: string;
-};
-
-const service = interpret(stateMachine);
-
-// This will compile
-service.send({ type: 'TEST', value: 'testvalue' });
-
-// This will have a compile error on the `value` type
-service.send({ type: 'TEST', value: 1 });
-```
-
-If you use the following pattern, you'll lose type safety, so both of these will compile:
-
-```ts
-service.send('TEST', { value: 'testvalue' });
-
-service.send('TEST', { value: 1 });
-```
-
 ## Typestates <Badge text="4.7+" />
 
 Typestates are a concept that narrow down the shape of the overall state `context` based on the state `value`. This can be helpful in preventing impossible states and narrowing down what the `context` should be in a given state, without having to write excessive assertions.
@@ -242,4 +186,60 @@ type State =
     context: Context;
   };
 /* ... */
+```
+
+## Config Objects
+
+Machine config objects can be typed. This is useful when defining a machine config object _outside_ of the `createMachine(...)` function, and helps prevent [inference errors](https://github.com/davidkpiano/xstate/issues/310). The first and third generic parameters for `MachineConfig<TContext, TSchema, TEvent>` are the same as the first and second parameters for `createMachine<TContext, TEvent, TTypeState>` respectively. The second generic parameter 'TSchema' accepts an object type with a single key 'states' which lists the possible states of machines accepting the configuration:
+
+```ts
+import { MachineConfig } from 'xstate';
+
+type myStateSchema = {
+  states: {
+    stopped: {};
+    started: {};
+  };
+};
+
+const myMachineConfig: MachineConfig<TContext, myStateSchema, TEvent> = {
+  id: 'controller',
+  initial: 'stopped',
+  states: {
+    stopped: {
+      /* ... */
+    },
+    started: {
+      /* ... */
+    }
+  }
+  // ...
+};
+```
+
+## Actions
+
+The `send` action on the interpreted machine `interpret(stateMachine)` isn't always type safe. To get typechecking for this function signature, use the following pattern:
+
+```ts
+type UserEvents = {
+  type: 'TEST';
+  value: string;
+};
+
+const service = interpret(stateMachine);
+
+// This will compile
+service.send({ type: 'TEST', value: 'testvalue' });
+
+// This will have a compile error on the `value` type
+service.send({ type: 'TEST', value: 1 });
+```
+
+If you use the following pattern, you'll lose type safety, so both of these will compile:
+
+```ts
+service.send('TEST', { value: 'testvalue' });
+
+service.send('TEST', { value: 1 });
 ```
