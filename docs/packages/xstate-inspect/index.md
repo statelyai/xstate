@@ -89,7 +89,7 @@ You can implement your own inspector by creating a **receiver**. A **receiver** 
 
 - `"service.register"`
 
-  ```ts
+  ```js
   {
     type: 'service.register';
     machine: StateMachine<any, any, any>;
@@ -103,7 +103,7 @@ You can implement your own inspector by creating a **receiver**. A **receiver** 
 
 - `"service.stop"`
 
-  ```ts
+  ```js
   {
     type: 'service.stop';
     sessionId: string;
@@ -112,7 +112,7 @@ You can implement your own inspector by creating a **receiver**. A **receiver** 
 
 - `"service.state"`
 
-  ```ts
+  ```js
   {
     type: 'service.state';
     state: State<any, any>;
@@ -122,7 +122,7 @@ You can implement your own inspector by creating a **receiver**. A **receiver** 
 
 - `"service.event"`
 
-  ```ts
+  ```js
   {
     type: 'service.event';
     event: SCXML.Event<any>;
