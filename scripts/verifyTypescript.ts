@@ -3,17 +3,10 @@ import ts from 'typescript';
 
 const VERBOSE = !!process.env.VERBOSE;
 
-const TYPESCRIPT_BLOCK = /```(typescript|ts).*\n(?<code>(.|\n[^```])*)/;
-
-const MODULE_RESOLVES = {
-  'xstate/lib/model': 'packages/core/src/model.ts',
-  xstate: 'packages/core/src',
-  '@xstate/inspect': 'packages/xstate-inspect/src',
-  '@xstate/immer': 'packages/xstate-immer/src'
-};
+const TYPESCRIPT_BLOCK = /```(typescript|ts).*\n(?<code>(.|\n)*?)```/;
 
 const HEADER = `
-import { interpret, createMachine, assign } from 'xstate';
+import { interpret, createMachine, assign, StateMachine, State, SCXML } from 'xstate';
 `;
 
 const USER_MODEL = `
@@ -34,17 +27,22 @@ const userModel = createModel(
     }
   }
 );
-
 `;
+
+const BAIL_EXPRESSIONS = [
+  '@xstate/inspect' // xstate-inspect import breaks because of non-browser context?kjj
+];
 
 main();
 
 function main() {
   let files = getFiles();
+  VERBOSE && console.log(`Verifying Files:\n${files.join('\n')}`);
 
   for (let file of files) {
     processFile(file);
   }
+  console.log('Done.');
 }
 type VirtualFiles = Record<
   string,
@@ -68,10 +66,14 @@ function processFile(file: string): void {
   }
   VERBOSE && console.log(`Verifying ${file}...`);
 
-  // { [filename + example line number] : code }
   let virtualFiles: VirtualFiles = {};
   for (let block of matches) {
     let code = block.match(TYPESCRIPT_BLOCK).groups.code;
+
+    if (BAIL_EXPRESSIONS.some((expr) => code.indexOf(expr) != -1)) {
+      continue;
+    }
+
     let lineNumber = contents.substring(0, contents.indexOf(block)).split('\n')
       .length;
 
@@ -105,9 +107,11 @@ function verifyVirtualFiles(virtualFiles: VirtualFiles): void {
       downlevelIteration: true,
       experimentalDecorators: true,
       skipLibCheck: true,
-      strictPropertyInitialization: true
+      strictPropertyInitialization: true,
+      lib: ['lib.esnext.d.ts', 'lib.dom.d.ts']
     },
     {
+      ...defaultCompilerHost,
       getSourceFile(name, languageVersion) {
         let file = virtualFiles[name];
         if (file) {
@@ -129,8 +133,6 @@ function verifyVirtualFiles(virtualFiles: VirtualFiles): void {
         return defaultCompilerHost.getSourceFile(name, languageVersion);
       },
       writeFile: () => {},
-      getDefaultLibFileName: () =>
-        'node_modules/typescript/lib/lib.esnext.d.ts',
       useCaseSensitiveFileNames: () => false,
       getCanonicalFileName: (filename) => filename,
       getCurrentDirectory: () => '',
@@ -150,14 +152,7 @@ function verifyVirtualFiles(virtualFiles: VirtualFiles): void {
           if (result.resolvedModule) {
             resolvedModules.push(result.resolvedModule);
           } else {
-            let resolve = MODULE_RESOLVES[moduleName];
-            if (resolve) {
-              resolvedModules.push({
-                resolvedFileName: resolve
-              });
-            } else {
-              console.warn(`Cannot resolve ${moduleName}`);
-            }
+            console.warn(`Cannot resolve ${moduleName}`);
           }
         }
         return resolvedModules;
@@ -183,7 +178,7 @@ function verifyVirtualFiles(virtualFiles: VirtualFiles): void {
       );
       console.log(
         (VERBOSE ? '    ' : '') +
-          `${diagnostic.file.fileName} (${line + 1},${
+          `${diagnostic.file.fileName} (${line - 1},${
             character + 1
           }): ${message}`
       );

@@ -164,7 +164,7 @@ Compound states should have all parent state values explicitly modelled to avoid
 
 ```typescript
 interface Context {}
-type State =
+type TypeState =
   /* ... */
   | {
       value: 'parent';
@@ -181,7 +181,7 @@ Where two states have identical context types, their declarations can be merged 
 
 ```typescript
 interface Context {}
-type State =
+type TypeState =
   /* ... */
   {
     value: 'parent' | { parent: 'child' };
@@ -197,19 +197,16 @@ Machine config objects can be typed. This is useful when defining a machine conf
 ```ts
 import { MachineConfig } from 'xstate';
 
-interface TContext {
-  /* context */
-}
 type TEvent = { type: 'EVENT_1' } | { type: 'EVENT_2' };
 
-type myStateSchema = {
+type MyStateSchema = {
   states: {
     stopped: {};
     started: {};
   };
 };
 
-const myMachineConfig: MachineConfig<TContext, myStateSchema, TEvent> = {
+const myMachineConfig: MachineConfig<void, MyStateSchema, TEvent> = {
   id: 'controller',
   initial: 'stopped',
   states: {

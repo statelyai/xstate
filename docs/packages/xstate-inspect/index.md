@@ -34,7 +34,7 @@ inspect({
 
 3. Add `{ devTools: true }` to any interpreted machines you want to visualize:
 
-```js
+```ts
 import { interpret } from 'xstate';
 import { inspect } from '@xstate/inspect';
 // ...
@@ -89,8 +89,8 @@ You can implement your own inspector by creating a **receiver**. A **receiver** 
 
 - `"service.register"`
 
-  ```js
-  {
+  ```ts
+  type ServiceRegisterEvent = {
     type: 'service.register';
     machine: StateMachine<any, any, any>;
     state: State<any, any>;
@@ -98,41 +98,41 @@ You can implement your own inspector by creating a **receiver**. A **receiver** 
     sessionId: string;
     parent?: string;
     source?: string;
-  }
+  };
   ```
 
 - `"service.stop"`
 
-  ```js
-  {
+  ```ts
+  type ServiceStopEvent = {
     type: 'service.stop';
     sessionId: string;
-  }
+  };
   ```
 
 - `"service.state"`
 
-  ```js
-  {
+  ```ts
+  type ServiceStateEvent = {
     type: 'service.state';
     state: State<any, any>;
     sessionId: string;
-  }
+  };
   ```
 
 - `"service.event"`
 
-  ```js
-  {
+  ```ts
+  type ServiceEvent = {
     type: 'service.event';
     event: SCXML.Event<any>;
-    sessionId: string
+    sessionId: string;
   };
   ```
 
 To listen to events from an inspected source, create a receiver with the appropriate `create*Receiver(...)` function; for example:
 
-```js
+```ts
 import { createWindowReceiver } from '@xstate/inspect';
 
 const windowReceiver = createWindowReceiver(/* options? */);
