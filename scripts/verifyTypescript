@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-
-node -r esbuild-register scripts/verifyTypescript.ts "$@"

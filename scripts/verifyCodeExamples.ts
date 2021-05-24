@@ -1,15 +1,26 @@
+/**
+ * Given a list of markdown files, verify the code examples inside them with the TS compiler
+ */
+
 import fs from 'fs';
 import ts from 'typescript';
 
+// print verbose info
 const VERBOSE = !!process.env.VERBOSE;
 
-const TYPESCRIPT_BLOCK = /```(typescript|ts).*\n(?<code>(.|\n)*?)```/;
+// verify JS as well as TS
+const ENABLE_JS = !!process.env.ENABLE_JS;
+
+const TYPESCRIPT_BLOCK = /```(?<lang>(typescript|ts|javascript|js)).*\n(?<code>(.|\n)*?)```/;
 
 /**
  * HEADER to be added to code examples that do not contain an import statement, as many depend on these variables being defined
  */
-const HEADER = `
+const HEADER_TS = `
 import { interpret, createMachine, assign, StateMachine, State, SCXML } from 'xstate';
+`;
+const HEADER_JS = `
+import { interpret, createMachine, assign } from 'xstate';
 `;
 
 const USER_MODEL = `
@@ -61,6 +72,7 @@ type VirtualFiles = Record<
   {
     code: string;
     lineNumber: number;
+    lang: 'ts' | 'js';
     headersOffset?: number;
   }
 >;
@@ -81,7 +93,11 @@ function processFile(file: string): void {
 
   let virtualFiles: VirtualFiles = {};
   for (let block of matches) {
-    let code = block.match(TYPESCRIPT_BLOCK).groups.code;
+    let { code, lang } = block.match(TYPESCRIPT_BLOCK).groups;
+    lang = lang === 'typescript' ? 'ts' : lang === 'javascript' ? 'js' : lang;
+    if (lang === 'js' && !ENABLE_JS) {
+      continue;
+    }
 
     if (BAIL_EXPRESSIONS.some((expr) => code.indexOf(expr) != -1)) {
       continue;
@@ -91,7 +107,11 @@ function processFile(file: string): void {
       .length;
 
     let virtualFilename = `${file}:${lineNumber}.ts`;
-    virtualFiles[virtualFilename] = { code, lineNumber };
+    virtualFiles[virtualFilename] = {
+      code,
+      lineNumber,
+      lang: lang as 'ts' | 'js'
+    };
   }
 
   verifyVirtualFiles(virtualFiles);
@@ -132,9 +152,10 @@ function verifyVirtualFiles(virtualFiles: VirtualFiles): void {
       getSourceFile(name, languageVersion) {
         let file = virtualFiles[name];
         if (file) {
-          let code = file.code;
+          let { code, lang } = file;
           // if the code DOES NOT contain an import statement
           if (code.indexOf('import ') === -1) {
+            let HEADER = lang === 'ts' ? HEADER_TS : HEADER_JS;
             if (
               name.indexOf('models.md') > 0 &&
               code.indexOf('createModel') < 0
