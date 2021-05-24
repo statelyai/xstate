@@ -42,7 +42,6 @@
     "@types/jest": "^24.0.23",
     "@types/node": "^12.11.1",
     "@types/use-subscription": "^1.0.0",
-    "esbuild": "^0.12.1",
     "esbuild-register": "^2.5.0",
     "gh-pages": "^2.0.1",
     "husky": "^3.1.0",

@@ -34,7 +34,7 @@ inspect({
 
 3. Add `{ devTools: true }` to any interpreted machines you want to visualize:
 
-```ts
+```js
 import { interpret } from 'xstate';
 import { inspect } from '@xstate/inspect';
 // ...
@@ -132,7 +132,7 @@ You can implement your own inspector by creating a **receiver**. A **receiver** 
 
 To listen to events from an inspected source, create a receiver with the appropriate `create*Receiver(...)` function; for example:
 
-```ts
+```js
 import { createWindowReceiver } from '@xstate/inspect';
 
 const windowReceiver = createWindowReceiver(/* options? */);
