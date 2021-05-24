@@ -364,6 +364,7 @@ In most cases, the types for `context` and `event` in `assign(...)` actions will
 interface CounterContext {
   count: number;
 }
+type CounterEvent = { type: 'INCREMENT' } | { type: 'RESET' };
 
 const machine = createMachine<CounterContext>({
   // ...
@@ -384,22 +385,29 @@ const machine = createMachine<CounterContext>({
 });
 ```
 
-However, TypeScript inference isn't perfect, so the responsible thing to do is to add the context and event as generics into `assign<Context, Event>(...)`:
+However, TypeScript inference isn't perfect, so the responsible thing to do is to add the context and event as generics into `assign<Context, Event>(...)`. This is especially necessary for assigns that do not use the context parameter:
 
-```ts {3}
-// ...
-on: {
-  INCREMENT: {
-    // Generics guarantee proper inference
-    actions: assign<CounterContext, CounterEvent>({
-      count: (context) => {
-        // context: { count: number }
-        return context.count + 1;
-      }
-    });
-  }
+```ts {13}
+interface CounterContext {
+  count: number;
 }
-// ...
+type CounterEvent = { type: 'INCREMENT' } | { type: 'RESET' };
+
+const machine = createMachine<CounterContext>({
+  context: {
+    count: 0
+  },
+  on: {
+    RESET: {
+      // Generics guarantee proper inference
+      actions: assign<CounterContext, CounterEvent>({
+        count: () => {
+          return 0;
+        }
+      })
+    }
+  }
+});
 ```
 
 ## Quick Reference

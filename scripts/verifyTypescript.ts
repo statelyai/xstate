@@ -5,6 +5,9 @@ const VERBOSE = !!process.env.VERBOSE;
 
 const TYPESCRIPT_BLOCK = /```(typescript|ts).*\n(?<code>(.|\n)*?)```/;
 
+/**
+ * HEADER to be added to code examples that do not contain an import statement, as many depend on these variables being defined
+ */
 const HEADER = `
 import { interpret, createMachine, assign, StateMachine, State, SCXML } from 'xstate';
 `;
@@ -29,9 +32,13 @@ const userModel = createModel(
 );
 `;
 
+/**
+ * List of expressions that when found in a code example cause the verifier to bail out
+ */
 const BAIL_EXPRESSIONS = [
-  '@xstate/inspect' // xstate-inspect import breaks because of non-browser context?kjj
+  '@xstate/inspect' // xstate-inspect import breaks TS for reasons I do not understand
 ];
+let errorCount = 0;
 
 main();
 
@@ -42,13 +49,19 @@ function main() {
   for (let file of files) {
     processFile(file);
   }
-  console.log('Done.');
+  if (errorCount) {
+    console.error(`Found ${errorCount} issues`);
+    process.exit(1);
+  } else {
+    console.log('Done.');
+  }
 }
 type VirtualFiles = Record<
   string,
   {
     code: string;
     lineNumber: number;
+    headersOffset?: number;
   }
 >;
 
@@ -112,17 +125,28 @@ function verifyVirtualFiles(virtualFiles: VirtualFiles): void {
     },
     {
       ...defaultCompilerHost,
+      /**
+       * Where the magic happens - if we get a request for a file that in our list of virtual files,
+       * we will return its code. Otherwise, we'll fallback to the defaultCompilerHost.getSourceFile()
+       */
       getSourceFile(name, languageVersion) {
         let file = virtualFiles[name];
         if (file) {
           let code = file.code;
+          // if the code DOES NOT contain an import statement
           if (code.indexOf('import ') === -1) {
             if (
               name.indexOf('models.md') > 0 &&
               code.indexOf('createModel') < 0
             ) {
+              // SPECIAL CASE for "models.md"
+              // models.md has a lot of examples that depend on a previously defined `userModel` variable.
+              // We prepend a definition of that variable to examples that do not contain a `createModel()` invokation.
               code = HEADER + USER_MODEL + code;
+              file.headersOffset = (HEADER + USER_MODEL).split('\n').length - 1;
             } else {
+              // prepend our HEADER with the usual imports
+              file.headersOffset = HEADER.split('\n').length - 1;
               code = HEADER + code;
             }
           }
@@ -166,19 +190,21 @@ function verifyVirtualFiles(virtualFiles: VirtualFiles): void {
     .concat(emitResult.diagnostics);
 
   for (let diagnostic of allDiagnostics) {
+    errorCount++;
     if (diagnostic.file) {
       let { line, character } = ts.getLineAndCharacterOfPosition(
         diagnostic.file,
         diagnostic.start!
       );
-      line = line + virtualFiles[diagnostic.file.fileName].lineNumber;
+      let virtualFile = virtualFiles[diagnostic.file.fileName];
+      line = line + virtualFile.lineNumber - (virtualFile.headersOffset || 0);
       let message = ts.flattenDiagnosticMessageText(
         diagnostic.messageText,
         '\n'
       );
       console.log(
         (VERBOSE ? '    ' : '') +
-          `${diagnostic.file.fileName} (${line - 1},${
+          `${diagnostic.file.fileName} (${line + 1},${
             character + 1
           }): ${message}`
       );

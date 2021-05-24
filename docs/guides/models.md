@@ -33,8 +33,9 @@ Since the model defines the machine's `context`, the model can be used within th
 
 The `model.assign` function is typed to the shape of the model's `context`, making it a convenient and type-safe replacement for the `assign` action.
 
-```js
+```ts
 import { createModel } from 'xstate/lib/model';
+import { createMachine } from 'xstate';
 
 const userModel = createModel({
   name: 'Someone',
@@ -43,7 +44,7 @@ const userModel = createModel({
 
 // ...
 
-const machine = createMachine({
+const machine = createMachine<typeof userModel>({
   context: userModel.initialContext,
   // ...
   entry: userModel.assign({ name: '' })
