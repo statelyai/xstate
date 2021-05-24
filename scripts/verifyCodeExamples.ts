@@ -9,23 +9,28 @@ import ts from 'typescript';
 const VERBOSE = !!process.env.VERBOSE;
 
 // verify JS as well as TS
-const ENABLE_JS = !!process.env.ENABLE_JS;
+const VERIFY_JS = !!process.env.VERIFY_JS;
 
-const TYPESCRIPT_BLOCK = /```(?<lang>(typescript|ts|javascript|js)).*\n(?<code>(.|\n)*?)```/;
+const TYPESCRIPT_BLOCK = /```(?<lang>(typescript|ts|javascript|js))\b.*\n(?<code>(.|\n)*?)```/;
 
 /**
  * HEADER to be added to code examples that do not contain an import statement, as many depend on these variables being defined
  */
 const HEADER_TS = `
-import { interpret, createMachine, assign, StateMachine, State, SCXML } from 'xstate';
+import { interpret, createMachine, assign, spawn, actions, StateMachine, State, SCXML } from 'xstate';
+import React from 'react';
+import { useMachine, useActor, useSelector, useInterpret } from '@xstate/react';
+import { createModel } from 'xstate/lib/model';
 `;
 const HEADER_JS = `
-import { interpret, createMachine, assign } from 'xstate';
+import { interpret, createMachine, assign, spawn, actions } from 'xstate';
+import { useMachine, useActor, useSelector, useInterpret } from '@xstate/react';
+import React from 'react';
+import { useEffect } from 'react';
+import { createModel } from 'xstate/lib/model';
 `;
 
 const USER_MODEL = `
-import { createModel } from 'xstate/lib/model';
-
 const userModel = createModel(
   // Initial context
   {
@@ -47,7 +52,20 @@ const userModel = createModel(
  * List of expressions that when found in a code example cause the verifier to bail out
  */
 const BAIL_EXPRESSIONS = [
-  '@xstate/inspect' // xstate-inspect import breaks TS for reasons I do not understand
+  // these imports breaks TS for reasons I do not understand
+  '@xstate/inspect',
+  '@xstate/vue',
+  '@xstate/test',
+
+  // non-existant import in examples
+  '../path/to',
+  './todoMachine',
+
+  // imports that don't exist
+  '@rollup/plugin-replace',
+  '@stencil/core',
+  '@ember/object',
+  " from 'https://"
 ];
 let errorCount = 0;
 
@@ -95,7 +113,7 @@ function processFile(file: string): void {
   for (let block of matches) {
     let { code, lang } = block.match(TYPESCRIPT_BLOCK).groups;
     lang = lang === 'typescript' ? 'ts' : lang === 'javascript' ? 'js' : lang;
-    if (lang === 'js' && !ENABLE_JS) {
+    if (lang === 'js' && !VERIFY_JS) {
       continue;
     }
 
@@ -106,7 +124,7 @@ function processFile(file: string): void {
     let lineNumber = contents.substring(0, contents.indexOf(block)).split('\n')
       .length;
 
-    let virtualFilename = `${file}:${lineNumber}.ts`;
+    let virtualFilename = `${file}:${lineNumber}.tsx`;
     virtualFiles[virtualFilename] = {
       code,
       lineNumber,
@@ -141,7 +159,8 @@ function verifyVirtualFiles(virtualFiles: VirtualFiles): void {
       experimentalDecorators: true,
       skipLibCheck: true,
       strictPropertyInitialization: true,
-      lib: ['lib.esnext.d.ts', 'lib.dom.d.ts']
+      lib: ['lib.esnext.d.ts', 'lib.dom.d.ts'],
+      jsx: ts.JsxEmit.React
     },
     {
       ...defaultCompilerHost,
