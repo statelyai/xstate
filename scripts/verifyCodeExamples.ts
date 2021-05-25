@@ -160,7 +160,7 @@ function verifyVirtualFiles(virtualFiles: VirtualFiles): void {
       skipLibCheck: true,
       strictPropertyInitialization: true,
       lib: ['lib.esnext.d.ts', 'lib.dom.d.ts'],
-      jsx: ts.JsxEmit.React
+      jsx: ts.JsxEmit.ReactJSX
     },
     {
       ...defaultCompilerHost,
