@@ -482,7 +482,7 @@ class StateNode<
    */
   public withContext(
     context: TContext
-  ): StateNode<TContext, TStateSchema, TEvent> {
+  ): StateNode<TContext, TStateSchema, TEvent, TTypestate> {
     return new StateNode(this.config, this.options, context);
   }
 

@@ -727,6 +727,15 @@ export interface StateMachine<
 > extends StateNode<TContext, TStateSchema, TEvent, TTypestate> {
   id: string;
   states: StateNode<TContext, TStateSchema, TEvent>['states'];
+
+  withConfig(
+    options: Partial<MachineOptions<TContext, TEvent>>,
+    context?: TContext
+  ): StateMachine<TContext, TStateSchema, TEvent, TTypestate>;
+
+  withContext(
+    context: TContext
+  ): StateMachine<TContext, TStateSchema, TEvent, TTypestate>;
 }
 
 export type StateFrom<
