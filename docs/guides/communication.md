@@ -11,7 +11,7 @@ You can invoke:
 - [Promises](#invoking-promises), which will take the `onDone` transition on `resolve`, or the `onError` transition on `reject`
 - [Callbacks](#invoking-callbacks), which can send events to and receive events from the parent machine
 - [Observables](#invoking-observables), which can send events to the parent machine, as well as a signal when it is completed
-- [Machines](#invoking-machines), which can also send/receive events and also notify the parent machine when it reaches its [final state](./final.md)
+- [Machines](#invoking-machines), which can send/receive events and also notify the parent machine when it reaches its [final state](./final.md)
 
 ## The `invoke` Property
 
