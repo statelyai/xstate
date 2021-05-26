@@ -319,7 +319,7 @@ const lightMachine = createMachine({
 When an `in`-state guard is present with other `cond` guards in the same transition, _all_ guards must evaluate to `true` for the transition to be taken.
 
 ::: tip
-Using "`in`-state" guards is usually a sign that the machine can be refactored in a way that makes their usage unnecessary. Prefer avoiding "`in`-state" guards when possible.
+Using `in` state guards is usually a sign that the machine can be refactored in a way that makes their usage unnecessary. Avoid `in` state guards when possible.
 :::
 
 ## SCXML
