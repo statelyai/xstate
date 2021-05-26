@@ -130,6 +130,18 @@ export function useInterpret<
     Object.assign(service.machine.options.services, services);
   }, [services]);
 
+  useIsomorphicLayoutEffect(() => {
+    Object.assign(service.machine.options.guards, guards);
+  }, [guards]);
+
+  useIsomorphicLayoutEffect(() => {
+    Object.assign(service.machine.options.delays, delays);
+  }, [delays]);
+
+  useIsomorphicLayoutEffect(() => {
+    Object.assign(service.machine.options.activities, activities);
+  }, [activities]);
+
   useReactEffectActions(service);
 
   return service;
