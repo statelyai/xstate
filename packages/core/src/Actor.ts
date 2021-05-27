@@ -169,11 +169,19 @@ export class Actor<TEvent extends EventObject, TEmitted> {
     this.current = behavior.initial;
   }
   public start() {
-    this.behavior = this.behavior.receiveSignal(this.context, startSignal);
+    this.current = this.behavior.receive(
+      this.current,
+      startSignal,
+      this.context
+    );
     return this;
   }
   public stop() {
-    this.behavior = this.behavior.receiveSignal(this.context, stopSignal);
+    this.current = this.behavior.receive(
+      this.current,
+      stopSignal,
+      this.context
+    );
   }
   public subscribe(observer) {
     return this.behavior.subscribe?.(observer) || nullSubscription;
@@ -185,7 +193,7 @@ export class Actor<TEvent extends EventObject, TEmitted> {
     }
   }
   public receiveSignal(signal: LifecycleSignal) {
-    this.behavior = this.behavior.receiveSignal(this.context, signal);
+    this.current = this.behavior.receive(this.current, signal, this.context);
     return this;
   }
   private flush() {
@@ -193,7 +201,7 @@ export class Actor<TEvent extends EventObject, TEmitted> {
     while (this.mailbox.length) {
       const event = this.mailbox.shift()!;
 
-      this.behavior = this.behavior.receive(this.context, event);
+      this.current = this.behavior.receive(this.current, event, this.context);
     }
     this.processingStatus = ProcessingStatus.NotProcessing;
   }
