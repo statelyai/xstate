@@ -186,6 +186,10 @@ When interpreting statecharts, the order of actions should not necessarily matte
 2. transition `actions` - all actions defined on the chosen transition
 3. `entry` actions - all the entry actions of the entered state node(s), from the parent state down
 
+::: warning
+In XState version 4.x, `assign` actions have priority and are executed before any other actions. This behavior will be fixed in version 5, as the `assign` actions will be called in order.
+:::
+
 ## Send Action
 
 The `send(event)` action creator creates a special "send" action object that tells a service (i.e., [interpreted machine](./interpretation.md)) to send that event to itself. It queues an event to the running service, in the external event queue. This means the event is sent on the next "step" of the interpreter.
