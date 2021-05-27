@@ -5,8 +5,9 @@ import {
   createMachine,
   sendParent,
   assign,
+  spawnMachine,
   ActorRefFrom,
-  spawnMachine
+  SpawnedActorRef
 } from 'xstate';
 import { render, fireEvent, act } from '@testing-library/react';
 import { useActor } from '../src/useActor';
@@ -256,6 +257,35 @@ describe('useActor', () => {
 
     const Test = () => {
       const [state] = useActor(simpleActor, (a) => a.latestValue);
+
+      return <div data-testid="state">{state}</div>;
+    };
+
+    const { getByTestId } = render(<Test />);
+
+    const div = getByTestId('state');
+
+    expect(div.textContent).toEqual('42');
+  });
+
+  it('should provide value from `actor.getSnapshot()`', () => {
+    const simpleActor: SpawnedActorRef<any, number> = {
+      name: 'test',
+      send: () => {
+        /* ... */
+      },
+      getSnapshot: () => 42,
+      subscribe: () => {
+        return {
+          unsubscribe: () => {
+            /* ... */
+          }
+        };
+      }
+    };
+
+    const Test = () => {
+      const [state] = useActor(simpleActor);
 
       return <div data-testid="state">{state}</div>;
     };

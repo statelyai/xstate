@@ -12,6 +12,10 @@ The workshop code examples are [open-sourced and available on GitHub](https://gi
 There is also a follow-up course: [State Modeling with React and XState](https://frontendmasters.com/workshops/xstate-react/). Once you've gone through the first course, be sure to take this one too so you can learn how to apply state machines and statecharts to real-world apps and master advanced concepts such as spawning/invoking actors and model-based testing.
 :::
 
+:::tip Catalogue
+Explore a collection of professionally-designed state machines and statecharts in the [XState Catalogue](https://xstate-catalogue.com/). You can copy-paste these machines directly into your projects, as well as visualize them directly in the catalogue.
+:::
+
 **Other great courses and guides:**
 
 - [Egghead - Introduction to State Machines Using XState](https://egghead.io/courses/introduction-to-state-machines-using-xstate) by [Kyle Shevlin](https://twitter.com/kyleshevlin)
