@@ -4,9 +4,9 @@ import {
   interpret,
   MachineNode,
   SimulatedClock,
-  toMachine,
   getStateNodes
 } from 'xstate';
+import { toMachine } from '../src/scxml';
 import { xml2js } from 'xml-js';
 import { transitionToSCXML, toSCXML } from '../src';
 import * as fs from 'fs';

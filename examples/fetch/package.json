@@ -1,6 +1,7 @@
 {
   "name": "@xstate/examples-fetch",
   "version": "1.0.0",
+  "private": true,
   "main": "index.html",
   "author": "David Khourshid",
   "license": "MIT",

@@ -42,4 +42,7 @@ export class ObservableActorRef<TEvent extends EventObject, TEmitted>
       current: this.current
     };
   }
+  public getSnapshot() {
+    return this.current;
+  }
 }

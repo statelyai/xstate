@@ -1,6 +1,6 @@
 {
   "name": "xstate",
-  "version": "4.19.1",
+  "version": "4.19.2",
   "description": "Finite State Machines and Statecharts for the Modern Web.",
   "main": "dist/xstate.cjs.js",
   "module": "dist/xstate.esm.js",
@@ -36,10 +36,7 @@
   "bugs": {
     "url": "https://github.com/davidkpiano/xstate/issues"
   },
-  "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/core#readme",
-  "dependencies": {
-    "xml-js": "^1.6.11"
-  },
+  "homepage": "https://github.com/davidkpiano/xstate/tree/main/packages/core#readme",
   "devDependencies": {
     "@scion-scxml/test-framework": "^2.0.15",
     "jsdom": "^14.0.0",
