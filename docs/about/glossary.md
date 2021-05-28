@@ -1,5 +1,7 @@
 # Glossary
 
+Adapted from [The World of Statecharts (Glossary)](https://statecharts.dev/glossary/).
+
 ## Action
 
 An action is an [effect](../guides/effects.md) that is executed as a reaction to a state transition. Actions are fire-and-forget; that is, they are executed without needing to wait for a response.
