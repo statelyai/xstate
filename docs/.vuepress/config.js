@@ -34,7 +34,8 @@ module.exports = {
           '/about/goals',
           '/about/showcase',
           '/about/resources',
-          '/about/tutorials'
+          '/about/tutorials',
+          '/about/glossary'
         ]
       },
       {
