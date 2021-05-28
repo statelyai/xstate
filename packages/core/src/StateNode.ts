@@ -41,7 +41,6 @@ import {
 } from './stateUtils';
 import { evaluateGuard } from './guards';
 import { StateMachine } from './StateMachine';
-import { STATE_DELIMITER } from './constants';
 
 const EMPTY_OBJECT = {};
 
@@ -156,18 +155,13 @@ export class StateNode<
     public config: StateNodeConfig<TContext, TEvent>,
     options: StateNodeOptions<TContext, TEvent>
   ) {
-    const isMachine = !this.parent;
     this.parent = options._parent;
     this.key = this.config.key || options._key;
     this.machine = options._machine;
     this.path = this.parent ? this.parent.path.concat(this.key) : [];
     this.id =
       this.config.id ||
-      [this.machine.key, ...this.path].join(
-        isMachine
-          ? this.config.delimiter || STATE_DELIMITER
-          : this.machine.delimiter
-      );
+      [this.machine.key, ...this.path].join(this.machine.delimiter);
     this.type =
       this.config.type ||
       (this.config.states && keys(this.config.states).length

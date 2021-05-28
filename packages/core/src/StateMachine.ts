@@ -96,10 +96,6 @@ export class StateMachine<
     options?: Partial<MachineImplementations<TContext, TEvent>>
   ) {
     this.key = config.key || config.id || '(machine)';
-    this.root = new StateNode(config, {
-      _key: this.key,
-      _machine: this
-    });
     this.options = Object.assign(
       createDefaultOptions(config.context!),
       options
@@ -113,6 +109,12 @@ export class StateMachine<
     this.schema = this.config.schema ?? (({} as any) as this['schema']);
     this.strict = !!this.config.strict;
     this.transition = this.transition.bind(this);
+
+    this.root = new StateNode(config, {
+      _key: this.key,
+      _machine: this
+    });
+
     this.states = this.root.states; // TOOD: remove!
     this.events = this.root.events;
   }
