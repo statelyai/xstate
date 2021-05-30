@@ -21,12 +21,12 @@ export class ObservableActorRef<TEvent extends EventObject, TEmitted>
   }
   public start() {
     this.deferred = false;
-    this.actor.receiveSignal(startSignal);
+    this.actor.receive(startSignal);
 
     return this;
   }
   public stop() {
-    this.actor.receiveSignal(stopSignal);
+    this.actor.receive(stopSignal);
 
     return this;
   }

@@ -154,7 +154,7 @@ export class Actor<TEvent extends EventObject, TEmitted> {
   public current: TEmitted;
   private context: ActorContext;
   private behavior: Behavior<TEvent, TEmitted>;
-  private mailbox: TEvent[] = [];
+  private mailbox: Array<TEvent | LifecycleSignal> = [];
   private processingStatus: ProcessingStatus = ProcessingStatus.NotProcessing;
   public name: string;
 
@@ -186,15 +186,11 @@ export class Actor<TEvent extends EventObject, TEmitted> {
   public subscribe(observer) {
     return this.behavior.subscribe?.(observer) || nullSubscription;
   }
-  public receive(event) {
+  public receive(event: TEvent | LifecycleSignal) {
     this.mailbox.push(event);
     if (this.processingStatus === ProcessingStatus.NotProcessing) {
       this.flush();
     }
-  }
-  public receiveSignal(signal: LifecycleSignal) {
-    this.current = this.behavior.receive(this.current, signal, this.context);
-    return this;
   }
   private flush() {
     this.processingStatus = ProcessingStatus.Processing;
