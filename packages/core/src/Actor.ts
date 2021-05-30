@@ -13,16 +13,16 @@ import { State } from './State';
 import { Interpreter } from './interpreter';
 import {
   Behavior,
-  startSignal,
   ActorContext,
-  stopSignal,
   createServiceBehavior,
   createMachineBehavior,
   createDeferredBehavior,
   createPromiseBehavior,
   createObservableBehavior,
   createBehaviorFrom,
-  LifecycleSignal
+  LifecycleSignal,
+  startSignal,
+  stopSignal
 } from './behavior';
 import { registry } from './registry';
 import * as capturedState from './capturedState';

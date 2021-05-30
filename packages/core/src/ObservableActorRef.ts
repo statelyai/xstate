@@ -1,5 +1,5 @@
 import { EventObject, ActorRef } from './types';
-import { Behavior, startSignal, ActorContext, stopSignal } from './behavior';
+import { Behavior, ActorContext, startSignal, stopSignal } from './behavior';
 import { Actor } from './Actor';
 
 export class ObservableActorRef<TEvent extends EventObject, TEmitted>

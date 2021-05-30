@@ -30,10 +30,20 @@ export interface ActorContext {
   name: string;
 }
 
-export const startSignal = Symbol.for('xstate.invoke');
-export const stopSignal = Symbol.for('xstate.stop');
+export const startSignalType = Symbol.for('xstate.invoke');
+export const stopSignalType = Symbol.for('xstate.stop');
+export const startSignal: StartSignal = { type: startSignalType };
+export const stopSignal: StopSignal = { type: stopSignalType };
 
-export type LifecycleSignal = typeof startSignal | typeof stopSignal;
+export interface StartSignal {
+  type: typeof startSignalType;
+}
+
+export interface StopSignal {
+  type: typeof stopSignalType;
+}
+
+export type LifecycleSignal = StartSignal | StopSignal;
 
 /**
  * An object that expresses the behavior of an actor in reaction to received events,
@@ -53,8 +63,10 @@ export interface Behavior<TEvent extends EventObject, TEmitted = any> {
   subscribe?: (observer: Observer<TEmitted>) => Subscription | undefined;
 }
 
-function isSignal(signal: any): signal is LifecycleSignal {
-  return [startSignal, stopSignal].includes(signal);
+function isSignal(
+  event: EventObject | LifecycleSignal
+): event is LifecycleSignal {
+  return typeof event.type === 'symbol';
 }
 
 export function createDeferredBehavior<TEvent extends EventObject>(
@@ -67,54 +79,56 @@ export function createDeferredBehavior<TEvent extends EventObject>(
 
   const behavior: Behavior<TEvent, undefined> = {
     receive: (_, event, actorContext) => {
-      if (isSignal(event)) {
-        if (event === startSignal) {
-          const sender: Sender<TEvent> = (e) => {
-            if (canceled) {
-              return;
+      if (event.type === startSignalType) {
+        const sender: Sender<TEvent> = (e) => {
+          if (canceled) {
+            return;
+          }
+
+          parent?.send(toSCXMLEvent(e, { origin: actorContext.self }));
+        };
+
+        const receiver: Receiver<TEvent> = (newListener) => {
+          receivers.add(newListener);
+        };
+
+        const callbackEntity = lazyEntity();
+        dispose = callbackEntity(sender, receiver);
+
+        if (isPromiseLike(dispose)) {
+          dispose.then(
+            (resolved) => {
+              parent?.send(
+                toSCXMLEvent(doneInvoke(actorContext.name, resolved) as any, {
+                  origin: actorContext.self
+                })
+              );
+              canceled = true;
+            },
+            (errorData) => {
+              const errorEvent = error(actorContext.name, errorData);
+              parent?.send(
+                toSCXMLEvent(errorEvent, { origin: actorContext.self })
+              );
+              canceled = true;
             }
-
-            parent?.send(toSCXMLEvent(e, { origin: actorContext.self }));
-          };
-
-          const receiver: Receiver<TEvent> = (newListener) => {
-            receivers.add(newListener);
-          };
-
-          const callbackEntity = lazyEntity();
-          dispose = callbackEntity(sender, receiver);
-
-          if (isPromiseLike(dispose)) {
-            dispose.then(
-              (resolved) => {
-                parent?.send(
-                  toSCXMLEvent(doneInvoke(actorContext.name, resolved) as any, {
-                    origin: actorContext.self
-                  })
-                );
-                canceled = true;
-              },
-              (errorData) => {
-                const errorEvent = error(actorContext.name, errorData);
-                parent?.send(
-                  toSCXMLEvent(errorEvent, { origin: actorContext.self })
-                );
-                canceled = true;
-              }
-            );
-          }
+          );
         }
+        return undefined;
+      } else if (event.type === stopSignalType) {
+        canceled = true;
 
-        if (event === stopSignal) {
-          canceled = true;
-
-          if (isFunction(dispose)) {
-            dispose();
-          }
+        if (isFunction(dispose)) {
+          dispose();
         }
-
         return undefined;
       }
+
+      if (isSignal(event)) {
+        // TODO: unrecognized signal
+        return undefined;
+      }
+
       const plainEvent = isSCXMLEvent(event) ? event.data : event;
       receivers.forEach((receiver) => receiver(plainEvent));
 
@@ -135,53 +149,47 @@ export function createPromiseBehavior<T, TEvent extends EventObject>(
 
   const behavior: Behavior<TEvent, T | undefined> = {
     receive: (_, event, actorContext) => {
-      if (isSignal(event)) {
-        switch (event) {
-          case startSignal:
-            const resolvedPromise = Promise.resolve(lazyPromise());
+      switch (event.type) {
+        case startSignalType:
+          const resolvedPromise = Promise.resolve(lazyPromise());
 
-            resolvedPromise.then(
-              (response) => {
-                if (!canceled) {
-                  parent?.send(
-                    toSCXMLEvent(
-                      doneInvoke(actorContext.name, response) as any,
-                      {
-                        origin: actorContext.self
-                      }
-                    )
-                  );
+          resolvedPromise.then(
+            (response) => {
+              if (!canceled) {
+                parent?.send(
+                  toSCXMLEvent(doneInvoke(actorContext.name, response) as any, {
+                    origin: actorContext.self
+                  })
+                );
 
-                  observers.forEach((observer) => {
-                    observer.next?.(response);
-                    observer.complete?.();
-                  });
-                }
-              },
-              (errorData) => {
-                if (!canceled) {
-                  const errorEvent = error(actorContext.name, errorData);
-
-                  parent?.send(
-                    toSCXMLEvent(errorEvent, { origin: actorContext.self })
-                  );
-
-                  observers.forEach((observer) => {
-                    observer.error?.(errorData);
-                  });
-                }
+                observers.forEach((observer) => {
+                  observer.next?.(response);
+                  observer.complete?.();
+                });
               }
-            );
-            return undefined;
-          case stopSignal:
-            canceled = true;
-            observers.clear();
-            return undefined;
-          default:
-            return undefined;
-        }
+            },
+            (errorData) => {
+              if (!canceled) {
+                const errorEvent = error(actorContext.name, errorData);
+
+                parent?.send(
+                  toSCXMLEvent(errorEvent, { origin: actorContext.self })
+                );
+
+                observers.forEach((observer) => {
+                  observer.error?.(errorData);
+                });
+              }
+            }
+          );
+          return undefined;
+        case stopSignalType:
+          canceled = true;
+          observers.clear();
+          return undefined;
+        default:
+          return undefined;
       }
-      return undefined;
     },
     subscribe: (observer) => {
       observers.add(observer);
@@ -208,34 +216,32 @@ export function createObservableBehavior<
 
   const behavior: Behavior<TEvent, T | undefined> = {
     receive: (_, event, actorContext) => {
-      if (isSignal(event)) {
-        if (event === startSignal) {
-          observable = lazyObservable();
-          subscription = observable.subscribe(
-            (value) => {
-              parent?.send(toSCXMLEvent(value, { origin: actorContext.self }));
-            },
-            (err) => {
-              parent?.send(
-                toSCXMLEvent(error(actorContext.name, err) as any, {
-                  origin: actorContext.self
-                })
-              );
-            },
-            () => {
-              parent?.send(
-                toSCXMLEvent(doneInvoke(actorContext.name) as any, {
-                  origin: actorContext.self
-                })
-              );
-            }
-          );
-        } else if (event === stopSignal) {
-          subscription && subscription.unsubscribe();
-        }
-
-        return undefined;
+      if (event.type === startSignalType) {
+        observable = lazyObservable();
+        subscription = observable.subscribe(
+          (value) => {
+            parent?.send(toSCXMLEvent(value, { origin: actorContext.self }));
+          },
+          (err) => {
+            parent?.send(
+              toSCXMLEvent(error(actorContext.name, err) as any, {
+                origin: actorContext.self
+              })
+            );
+          },
+          () => {
+            parent?.send(
+              toSCXMLEvent(doneInvoke(actorContext.name) as any, {
+                origin: actorContext.self
+              })
+            );
+          }
+        );
+      } else if (event.type === stopSignalType) {
+        subscription && subscription.unsubscribe();
       }
+
+      return undefined;
     },
     subscribe: (observer) => {
       return observable?.subscribe(observer);
@@ -259,43 +265,50 @@ export function createMachineBehavior<TContext, TEvent extends EventObject>(
 
   const behavior: Behavior<TEvent, State<TContext, TEvent>> = {
     receive: (state, event, actorContext) => {
-      if (isSignal(event)) {
-        resolvedMachine = isFunction(machine) ? machine() : machine;
+      resolvedMachine = isFunction(machine) ? machine() : machine;
 
-        if (event === startSignal) {
-          service = interpret(resolvedMachine, {
-            ...options,
-            parent,
-            id: actorContext.name
-          });
-          service.onDone((doneEvent) => {
+      if (event.type === startSignalType) {
+        service = interpret(resolvedMachine, {
+          ...options,
+          parent,
+          id: actorContext.name
+        });
+        service.onDone((doneEvent) => {
+          parent?.send(
+            toSCXMLEvent(doneEvent, {
+              origin: actorContext.self
+            })
+          );
+        });
+
+        if (options?.sync) {
+          subscription = service.subscribe((state) => {
             parent?.send(
-              toSCXMLEvent(doneEvent, {
-                origin: actorContext.self
-              })
+              toSCXMLEvent(
+                {
+                  type: actionTypes.update,
+                  state
+                },
+                { origin: actorContext.self }
+              )
             );
           });
-
-          if (options?.sync) {
-            subscription = service.subscribe((state) => {
-              parent?.send(
-                toSCXMLEvent(
-                  {
-                    type: actionTypes.update,
-                    state
-                  },
-                  { origin: actorContext.self }
-                )
-              );
-            });
-          }
-          service.start();
-        } else if (event === stopSignal) {
-          service?.stop();
-          subscription && subscription.unsubscribe(); // TODO: might not be necessary
         }
+        service.start();
         return state;
       }
+
+      if (event.type === stopSignalType) {
+        service?.stop();
+        subscription && subscription.unsubscribe(); // TODO: might not be necessary
+        return state;
+      }
+
+      if (isSignal(event)) {
+        // TODO: unrecognized signal
+        return state;
+      }
+
       service?.send(event);
       return state;
     },
