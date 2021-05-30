@@ -43,10 +43,10 @@ export type LifecycleSignal = typeof startSignal | typeof stopSignal;
  * @template TEmitted The emitted value
  */
 
-export interface Behavior<T extends EventObject, TEmitted = any> {
+export interface Behavior<TEvent extends EventObject, TEmitted = any> {
   receive: (
     state: TEmitted,
-    message: T | LifecycleSignal,
+    message: TEvent | LifecycleSignal,
     ctx: ActorContext
   ) => TEmitted;
   initial: TEmitted;

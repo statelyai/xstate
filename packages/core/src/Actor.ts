@@ -40,8 +40,8 @@ export function isSpawnedActorRef(item: any): item is SpawnedActorRef<any> {
   return isActorRef(item) && 'name' in item;
 }
 
-export function fromObservable<T extends EventObject>(
-  observable: Subscribable<T>,
+export function fromObservable<TEvent extends EventObject>(
+  observable: Subscribable<TEvent>,
   name: string
 ): ActorRef<never> {
   return new ObservableActorRef(
