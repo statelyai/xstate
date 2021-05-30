@@ -177,6 +177,7 @@ export class Actor<TEvent extends EventObject, TEmitted> {
     return this;
   }
   public stop() {
+    this.mailbox.length = 0; // TODO: test this behavior
     this.current = this.behavior.receive(
       this.current,
       stopSignal,
