@@ -4,7 +4,7 @@ import { Actor } from './Actor';
 
 export class ObservableActorRef<TEvent extends EventObject, TEmitted>
   implements ActorRef<TEvent, TEmitted> {
-  public current: TEmitted;
+  private current: TEmitted;
   public deferred = true;
   private context: ActorContext;
   private actor: Actor<TEvent, TEmitted>;

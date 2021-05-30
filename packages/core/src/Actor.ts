@@ -142,7 +142,7 @@ export function spawnFrom<TEvent extends EventObject>(
   name?: string
 ): ObservableActorRef<TEvent, undefined>;
 export function spawnFrom(entity: any): ObservableActorRef<any, any> {
-  return spawn(createBehaviorFrom(entity));
+  return spawn(createBehaviorFrom(entity)) as ObservableActorRef<any, any>; // TODO: fix
 }
 
 enum ProcessingStatus {
