@@ -4,7 +4,6 @@
   "description": "Finite State Machines and Statecharts for the Modern Web.",
   "workspaces": {
     "packages": [
-      "examples/*",
       "packages/*",
       "packages/xstate-viz/example"
     ]
