@@ -1,5 +1,42 @@
 # xstate
 
+## 4.20.0
+
+### Minor Changes
+
+- [`28059b9f`](https://github.com/davidkpiano/xstate/commit/28059b9f09926d683d80b7d816f5b703c0667a9f) [#2197](https://github.com/davidkpiano/xstate/pull/2197) Thanks [@davidkpiano](https://github.com/davidkpiano)! - All spawned and invoked actors now have a `.getSnapshot()` method, which allows you to retrieve the latest value emitted from that actor. That value may be `undefined` if no value has been emitted yet.
+
+  ```js
+  const machine = createMachine({
+    context: {
+      promiseRef: null
+    },
+    initial: 'pending',
+    states: {
+      pending: {
+        entry: assign({
+          promiseRef: () => spawn(fetch(/* ... */), 'some-promise')
+        })
+      }
+    }
+  });
+
+  const service = interpret(machine)
+    .onTransition(state => {
+      // Read promise value synchronously
+      const resolvedValue = state.context.promiseRef?.getSnapshot();
+      // => undefined (if promise not resolved yet)
+      // => { ... } (resolved data)
+    })
+    .start();
+
+  // ...
+  ```
+
+### Patch Changes
+
+- [`4ef03465`](https://github.com/davidkpiano/xstate/commit/4ef03465869e27dc878ec600661c9253d90f74f0) [#2240](https://github.com/davidkpiano/xstate/pull/2240) Thanks [@VanTanev](https://github.com/VanTanev)! - Preserve StateMachine type when .withConfig() and .withContext() modifiers are used on a machine.
+
 ## 4.19.2
 
 ### Patch Changes

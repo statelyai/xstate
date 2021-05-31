@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.4
+
+### Patch Changes
+
+- [`aa3c2991`](https://github.com/davidkpiano/xstate/commit/aa3c29916b7382fbcf1a3efb183ca1e8eb625480) [#2223](https://github.com/davidkpiano/xstate/pull/2223) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Support for actor refs with the `.getSnapshot()` method (added for spawned actors in XState version 4.19) is now supported in the `useActor(...)` hook.
+
 ## 1.3.3
 
 ### Patch Changes
@@ -48,7 +54,7 @@
   import { useSelector } from '@xstate/react';
 
   const App = ({ someActor }) => {
-    const count = useSelector(someActor, (state) => state.context.count);
+    const count = useSelector(someActor, state => state.context.count);
 
     // ...
   };
@@ -169,7 +175,7 @@ All notable changes to this project will be documented in this file.
 - The `useActor` hook now takes a second argument: `getSnapshot` which is a function that should return the last emitted value:
 
   ```js
-  const [state, send] = useActor(someActor, (actor) => actor.current);
+  const [state, send] = useActor(someActor, actor => actor.current);
   ```
 
 ## [1.0.0-rc.6]
