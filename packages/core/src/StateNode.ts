@@ -65,7 +65,8 @@ import {
   DelayExpr,
   InvokeSourceDefinition,
   ActorRef,
-  MachineSchema
+  MachineSchema,
+  MachineConfigWithSchema
 } from './types';
 import { matchesState } from './utils';
 import { State, stateValuesEqual } from './State';
@@ -247,7 +248,7 @@ class StateNode<
 
   public options: MachineOptions<TContext, TEvent>;
 
-  public schema: MachineSchema<TContext, TEvent>;
+  public schema: MachineSchema<TContext>;
 
   public __xstatenode: true = true;
 
@@ -316,7 +317,7 @@ class StateNode<
         : 'atomic');
     this.schema = this.parent
       ? this.machine.schema
-      : (this.config as MachineConfig<TContext, TStateSchema, TEvent>).schema ??
+      : (this.config as MachineConfigWithSchema<any>).schema ??
         ({} as this['schema']);
 
     if (!IS_PRODUCTION) {
