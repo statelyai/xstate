@@ -438,12 +438,16 @@ describe('actors', () => {
   });
 
   it('should spawn null actors if not used within a service', () => {
-    const nullActorMachine = Machine<{ ref?: ActorRef<any> }>({
+    interface TestContext {
+      ref?: ActorRef<any>;
+    }
+
+    const nullActorMachine = Machine<TestContext>({
       initial: 'foo',
       context: { ref: undefined },
       states: {
         foo: {
-          entry: assign({
+          entry: assign<TestContext>({
             ref: () => spawn(Promise.resolve(42))
           })
         }
@@ -572,11 +576,13 @@ describe('actors', () => {
       }
     });
 
-    const parentMachine = Machine<{
-      ref: any;
-      refNoSync: any;
-      refNoSyncDefault: any;
-    }>({
+    interface TestContext {
+      ref?: ActorRefFrom<typeof childMachine>;
+      refNoSync?: ActorRefFrom<typeof childMachine>;
+      refNoSyncDefault?: ActorRefFrom<typeof childMachine>;
+    }
+
+    const parentMachine = Machine<TestContext>({
       id: 'parent',
       context: {
         ref: undefined,
@@ -586,7 +592,7 @@ describe('actors', () => {
       initial: 'foo',
       states: {
         foo: {
-          entry: assign({
+          entry: assign<TestContext>({
             ref: () => spawn(childMachine, { sync: true }),
             refNoSync: () => spawn(childMachine, { sync: false }),
             refNoSyncDefault: () => spawn(childMachine)
@@ -603,7 +609,7 @@ describe('actors', () => {
         const service = interpret(parentMachine, {
           id: 'a-service'
         }).onTransition((s) => {
-          if (s.context.ref.state.context.value === 42) {
+          if (s.context.ref?.getSnapshot()?.context.value === 42) {
             res();
           }
         });
@@ -616,14 +622,16 @@ describe('actors', () => {
         const service = interpret(parentMachine, {
           id: 'b-service'
         }).onTransition((s) => {
-          if (s.context.refNoSync.state.context.value === 42) {
+          if (s.context.refNoSync?.getSnapshot()?.context.value === 42) {
             rej(new Error('value change caused transition'));
           }
         });
         service.start();
 
         setTimeout(() => {
-          expect(service.state.context.refNoSync.state.context.value).toBe(42);
+          expect(
+            service.state.context.refNoSync?.getSnapshot()?.context.value
+          ).toBe(42);
           res();
         }, 30);
       });
@@ -634,7 +642,7 @@ describe('actors', () => {
         const service = interpret(parentMachine, {
           id: 'c-service'
         }).onTransition((s) => {
-          if (s.context.refNoSyncDefault.state.context.value === 42) {
+          if (s.context.refNoSyncDefault?.getSnapshot()?.context.value === 42) {
             rej(new Error('value change caused transition'));
           }
         });
@@ -642,7 +650,7 @@ describe('actors', () => {
 
         setTimeout(() => {
           expect(
-            service.state.context.refNoSyncDefault.state.context.value
+            service.state.context.refNoSyncDefault?.getSnapshot()?.context.value
           ).toBe(42);
           res();
         }, 30);
@@ -678,10 +686,7 @@ describe('actors', () => {
 
       interpret(syncMachine)
         .onTransition((state) => {
-          if (
-            state.context.ref &&
-            state.context.ref.state.matches('inactive')
-          ) {
+          if (state.context.ref?.getSnapshot()?.matches('inactive')) {
             expect(state.changed).toBe(true);
             done();
           }
@@ -714,7 +719,7 @@ describe('actors', () => {
           context: {},
           states: {
             same: {
-              entry: assign({
+              entry: assign<SyncMachineContext>({
                 ref: () => spawn(syncChildMachine, falseSyncOption)
               })
             }
@@ -725,7 +730,7 @@ describe('actors', () => {
           .onTransition((state) => {
             if (
               state.context.ref &&
-              state.context.ref.state.matches('inactive')
+              state.context.ref.getSnapshot()?.matches('inactive')
             ) {
               expect(state.changed).toBe(false);
             }
@@ -733,9 +738,9 @@ describe('actors', () => {
           .start();
 
         setTimeout(() => {
-          expect(service.state.context.ref!.state.matches('inactive')).toBe(
-            true
-          );
+          expect(
+            service.state.context.ref?.getSnapshot()?.matches('inactive')
+          ).toBe(true);
           done();
         }, 20);
       });
@@ -764,7 +769,7 @@ describe('actors', () => {
           context: {},
           states: {
             same: {
-              entry: assign({
+              entry: assign<SyncMachineContext>({
                 ref: () => spawn(syncChildMachine, falseSyncOption)
               })
             }
@@ -773,10 +778,7 @@ describe('actors', () => {
 
         interpret(syncMachine)
           .onTransition((state) => {
-            if (
-              state.context.ref &&
-              state.context.ref.state.matches('inactive')
-            ) {
+            if (state.context.ref?.getSnapshot()?.matches('inactive')) {
               expect(state.changed).toBe(true);
               done();
             }
@@ -787,12 +789,16 @@ describe('actors', () => {
       it('should only spawn an actor in an initial state of a child that gets invoked in the initial state of a parent when the parent gets started', () => {
         let spawnCounter = 0;
 
-        const child = Machine({
+        interface TestContext {
+          promise?: ActorRefFrom<Promise<string>>;
+        }
+
+        const child = Machine<TestContext>({
           initial: 'bar',
           context: {},
           states: {
             bar: {
-              entry: assign({
+              entry: assign<TestContext>({
                 promise: () => {
                   return spawn(() => {
                     spawnCounter++;

@@ -1,6 +1,6 @@
 # Actions
 
-Actions are fire-and-forget ["side effects"](./effects.md). For a machine to be useful in a real-world application, side effects need to occur to make things happen in the real world, such as rendering to a screen.
+Actions are fire-and-forget [effects](./effects.md). For a machine to be useful in a real-world application, effects need to occur to make things happen in the real world, such as rendering to a screen.
 
 Actions are _not_ immediately triggered. Instead, [the `State` object](./states.md) returned from `machine.transition(...)` will declaratively provide an array of `.actions` that an interpreter can then execute.
 
@@ -185,6 +185,10 @@ When interpreting statecharts, the order of actions should not necessarily matte
 1. `exit` actions - all the exit actions of the exited state node(s), from the atomic state node up
 2. transition `actions` - all actions defined on the chosen transition
 3. `entry` actions - all the entry actions of the entered state node(s), from the parent state down
+
+::: warning
+In XState version 4.x, `assign` actions have priority and are executed before any other actions. This behavior will be fixed in version 5, as the `assign` actions will be called in order.
+:::
 
 ## Send Action
 

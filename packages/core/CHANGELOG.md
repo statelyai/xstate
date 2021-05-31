@@ -1,5 +1,17 @@
 # xstate
 
+## 4.19.2
+
+### Patch Changes
+
+- [`18789aa9`](https://github.com/davidkpiano/xstate/commit/18789aa94669e48b71e2ae22e524d9bbe9dbfc63) [#2107](https://github.com/davidkpiano/xstate/pull/2107) Thanks [@woutermont](https://github.com/woutermont)! - This update restricts invoked `Subscribable`s to `EventObject`s,
+  so that type inference can be done on which `Subscribable`s are
+  allowed to be invoked. Existing `MachineConfig`s that invoke
+  `Subscribable<any>`s that are not `Subscribable<EventObject>`s
+  should be updated accordingly.
+
+* [`38dcec1d`](https://github.com/davidkpiano/xstate/commit/38dcec1dad60c62cf8c47c88736651483276ff87) [#2149](https://github.com/davidkpiano/xstate/pull/2149) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Invocations and entry actions for _combinatorial_ machines (machines with only a single root state) now behave predictably and will not re-execute upon targetless transitions.
+
 ## 4.19.1
 
 ### Patch Changes
@@ -53,7 +65,7 @@
     context: { value: 42 },
     on: {
       INC: {
-        actions: assign({ value: ctx => ctx.value + 1 })
+        actions: assign({ value: (ctx) => ctx.value + 1 })
       }
     }
   });
@@ -313,7 +325,7 @@
 
   ```js
   // ...
-  actions: stop(context => context.someActor);
+  actions: stop((context) => context.someActor);
   ```
 
 ### Patch Changes
@@ -551,10 +563,10 @@
   ```js
   entry: [
     choose([
-      { cond: ctx => ctx > 100, actions: raise('TOGGLE') },
+      { cond: (ctx) => ctx > 100, actions: raise('TOGGLE') },
       {
         cond: 'hasMagicBottle',
-        actions: [assign(ctx => ({ counter: ctx.counter + 1 }))]
+        actions: [assign((ctx) => ({ counter: ctx.counter + 1 }))]
       },
       { actions: ['fallbackAction'] }
     ])
