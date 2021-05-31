@@ -673,7 +673,11 @@ export interface MachineOptions<TContext, TEvent extends EventObject> {
 export interface MachineConfig<
   TContext,
   TStateSchema extends StateSchema,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TActions extends ActionObject<TContext, TEvent> = ActionObject<
+    TContext,
+    TEvent
+  >
 > extends StateNodeConfig<TContext, TStateSchema, TEvent> {
   /**
    * The initial context (extended state)
@@ -684,6 +688,7 @@ export interface MachineConfig<
    */
   version?: string;
   schema?: MachineSchema<TContext, TEvent>;
+  entry?: SingleOrArray<TActions>;
 }
 
 export interface MachineSchema<TContext, TEvent extends EventObject> {
@@ -723,7 +728,11 @@ export interface StateMachine<
   TContext,
   TStateSchema extends StateSchema,
   TEvent extends EventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext },
+  TActions extends ActionObject<TContext, TEvent> = ActionObject<
+    TContext,
+    TEvent
+  >
 > extends StateNode<TContext, TStateSchema, TEvent, TTypestate> {
   id: string;
   states: StateNode<TContext, TStateSchema, TEvent>['states'];

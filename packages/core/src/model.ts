@@ -1,3 +1,4 @@
+import { ActionObject } from '.';
 import { assign } from './actions';
 import type {
   AssignAction,
@@ -17,6 +18,7 @@ type Prop<T, K> = K extends keyof T ? T[K] : never;
 export interface Model<
   TContext,
   TEvent extends EventObject,
+  TActions extends ActionObject<TContext, TEvent>,
   TModelCreators = void
 > {
   initialContext: TContext;
@@ -27,16 +29,21 @@ export interface Model<
     eventType?: TEventType
   ) => AssignAction<TContext, ExtractEvent<TEvent, TEventType>>;
   events: Prop<TModelCreators, 'events'>;
+  actions: Prop<TModelCreators, 'actions'>;
   reset: () => AssignAction<TContext, any>;
 }
 
 export type ModelContextFrom<
-  TModel extends Model<any, any, any>
-> = TModel extends Model<infer TContext, any, any> ? TContext : never;
+  TModel extends Model<any, any, any, any>
+> = TModel extends Model<infer TContext, any, any, any> ? TContext : never;
 
 export type ModelEventsFrom<
-  TModel extends Model<any, any, any>
-> = TModel extends Model<any, infer TEvent, any> ? TEvent : never;
+  TModel extends Model<any, any, any, any> | undefined
+> = TModel extends Model<any, infer TEvent, any, any> ? TEvent : EventObject;
+
+export type ModelActionsFrom<
+  TModel extends Model<any, any, any, any>
+> = TModel extends Model<any, any, infer TActions, any> ? TActions : never;
 
 type EventCreator<
   Self extends AnyFunction,
@@ -56,7 +63,8 @@ type EventCreators<Self> = {
 };
 
 type ModelCreators<Self> = {
-  events: EventCreators<Prop<Self, 'events'>>;
+  events?: EventCreators<Prop<Self, 'events'>>;
+  actions?: EventCreators<Prop<Self, 'actions'>>;
 };
 
 type FinalEventCreators<Self> = {
@@ -68,18 +76,19 @@ type FinalEventCreators<Self> = {
 };
 
 type FinalModelCreators<Self> = {
-  events: FinalEventCreators<Prop<Self, 'events'>>;
+  events?: FinalEventCreators<Prop<Self, 'events'>>;
+  actions?: FinalEventCreators<Prop<Self, 'actions'>>;
 };
 
-type EventFromEventCreators<EventCreators> = {
-  [K in keyof EventCreators]: EventCreators[K] extends AnyFunction
-    ? ReturnType<EventCreators[K]>
+type EventFromEventCreators<TEventCreators> = {
+  [K in keyof TEventCreators]: TEventCreators[K] extends AnyFunction
+    ? ReturnType<TEventCreators[K]>
     : never;
-}[keyof EventCreators];
+}[keyof TEventCreators];
 
 export function createModel<TContext, TEvent extends EventObject>(
   initialContext: TContext
-): Model<TContext, TEvent, void>;
+): Model<TContext, TEvent, any, void>;
 export function createModel<
   TContext,
   TModelCreators extends ModelCreators<TModelCreators>,
@@ -89,16 +98,27 @@ export function createModel<
   creators: TModelCreators
 ): Model<
   TContext,
-  Cast<
-    EventFromEventCreators<Prop<TFinalModelCreators, 'events'>>,
-    EventObject
-  >,
+  Prop<TFinalModelCreators, 'events'> extends never
+    ? EventObject
+    : Cast<
+        EventFromEventCreators<Prop<TFinalModelCreators, 'events'>>,
+        EventObject
+      >,
+  Prop<TFinalModelCreators, 'actions'> extends never
+    ? ActionObject<TContext, any>
+    : Cast<
+        EventFromEventCreators<Prop<TFinalModelCreators, 'actions'>>,
+        ActionObject<TContext, any>
+      >,
   TFinalModelCreators
 >;
-export function createModel(initialContext: object, creators?): unknown {
+export function createModel(
+  initialContext: object,
+  creators?: ModelCreators<any>
+): unknown {
   const eventCreators = creators?.events;
 
-  const model: Model<any, any, any> = {
+  const model: Model<any, any, any, any> = {
     initialContext,
     assign,
     events: (eventCreators
@@ -107,6 +127,7 @@ export function createModel(initialContext: object, creators?): unknown {
           type: eventType
         }))
       : undefined) as any,
+    actions: null as any,
     reset: () => assign(initialContext)
   };
 

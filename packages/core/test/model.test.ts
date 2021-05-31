@@ -1,5 +1,5 @@
 import { createMachine } from '../src';
-import { createModel } from '../src/model';
+import { createModel, ModelEventsFrom } from '../src/model';
 
 describe('createModel', () => {
   it('model.assign updates context and is typed correctly', () => {
@@ -170,7 +170,7 @@ describe('createModel', () => {
           on: {
             updateName: {
               // pre-defined assign action
-              actions: assignName
+              actions: [assignName]
             },
             updateAge: {
               // inline assign action
@@ -198,6 +198,31 @@ describe('createModel', () => {
     );
 
     expect(updatedState.context.age).toEqual(42);
+  });
+
+  it('can model actions', () => {
+    const userModel = createModel(
+      {
+        name: 'David',
+        age: 30
+      },
+      {
+        actions: {
+          greet: (message: string) => ({ message })
+        }
+      }
+    );
+
+    createMachine<typeof userModel>({
+      context: userModel.initialContext,
+      initial: 'active',
+      entry: { type: 'greet', message: 'hello' },
+      states: {
+        active: {
+          entry: [userModel.actions.greet('hello')]
+        }
+      }
+    });
   });
 
   it('should typecheck `createMachine` for model without creators', () => {
