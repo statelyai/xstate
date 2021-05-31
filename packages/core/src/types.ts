@@ -683,16 +683,41 @@ export interface MachineConfig<
    * The machine's own version.
    */
   version?: string;
-  schema?: MachineSchema<TContext, TEvent>;
 }
 
-export interface MachineSchema<TContext, TEvent extends EventObject> {
+export type MachineConfigWithSchema<TSchema extends MachineSchema<any>> = {
+  schema: TSchema;
+} & MachineConfig<
+  TSchema['context'],
+  any,
+  EventFromEventSchemaMap<TSchema['events']>
+>;
+
+export type EventFromEventSchemaMap<
+  T extends EventSchemaMap | undefined
+> = T extends undefined
+  ? EventObject
+  : {
+      [K in keyof T]: K extends string ? T[K] & { type: K } : never;
+    }[keyof T];
+
+export type EventSchemaMap = {
+  [K in string]: Omit<AnyEventObject, 'type'>;
+};
+
+export interface MachineSchema<TContext> {
   context?: TContext;
-  events?: TEvent;
+  events?: EventSchemaMap;
   actions?: { type: string; [key: string]: any };
   guards?: { type: string; [key: string]: any };
   services?: { type: string; [key: string]: any };
 }
+
+export type MachineOptionsFromMachineSchema<
+  TMachineSchema extends MachineSchema<any>
+> = TMachineSchema extends { context: infer TContext }
+  ? MachineOptions<TContext, EventFromEventSchemaMap<TMachineSchema['events']>>
+  : never;
 
 export interface StandardMachineConfig<
   TContext,

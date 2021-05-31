@@ -53,7 +53,10 @@ describe('schema', () => {
             }
           }
         }),
-        events: createSchema<{ type: 'FOO' } | { type: 'BAR' }>()
+        events: {
+          FOO: {},
+          BAR: createSchema<{ value: number }>()
+        }
       },
       context: { foo: '', bar: 0, baz: { one: '' } },
       initial: 'active',
@@ -66,7 +69,10 @@ describe('schema', () => {
 
     noop(m.context.foo);
     noop(m.context.baz.one);
-    m.transition('active', 'BAR');
+    m.transition('active', { type: 'BAR', value: 31 });
+
+    // @ts-expect-error
+    m.transition('active', { type: 'BAR', value: 'a string' });
 
     // @ts-expect-error
     noop(m.context.something);
