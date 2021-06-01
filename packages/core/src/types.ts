@@ -729,7 +729,7 @@ export interface StateMachine<
   TStateSchema extends StateSchema,
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext },
-  TActions extends ActionObject<TContext, TEvent> = ActionObject<
+  _TActions extends ActionObject<TContext, TEvent> = ActionObject<
     TContext,
     TEvent
   >

@@ -1,5 +1,5 @@
 import { createMachine } from '../src';
-import { createModel, ModelEventsFrom } from '../src/model';
+import { createModel } from '../src/model';
 
 describe('createModel', () => {
   it('model.assign updates context and is typed correctly', () => {
