@@ -1303,7 +1303,12 @@ export type SpawnedActorRef<
 export type ActorRefFrom<
   T extends StateMachine<any, any, any> | Promise<any>
 > = T extends StateMachine<infer TContext, any, infer TEvent, infer TTypestate>
-  ? ActorRef<TEvent, State<TContext, TEvent, any, TTypestate>>
+  ? ActorRef<TEvent, State<TContext, TEvent, any, TTypestate>> & {
+      /**
+       * @deprecated Use `.getSnapshot()` instead.
+       */
+      state: State<TContext, TEvent, any, TTypestate>;
+    }
   : T extends Promise<infer U>
   ? ActorRef<never, U>
   : never;
