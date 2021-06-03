@@ -1279,30 +1279,38 @@ export type ExtractEvent<
   TEventType extends TEvent['type']
 > = TEvent extends { type: TEventType } ? TEvent : never;
 
+export interface BaseActorRef<TEvent extends EventObject, TEmitted = any> {
+  send: Sender<TEvent>;
+  id?: string;
+  getSnapshot?: () => TEmitted | undefined;
+  stop?: () => void;
+  toJSON?: () => any;
+  subscribe?: Subscribable<TEmitted>['subscribe'];
+}
+
 export interface ActorRef<TEvent extends EventObject, TEmitted = any>
   extends Subscribable<TEmitted> {
   send: Sender<TEvent>;
-}
-
-export interface SpawnedActorRef<TEvent extends EventObject, TEmitted = any>
-  extends ActorRef<TEvent, TEmitted> {
   id: string;
   getSnapshot: () => TEmitted | undefined;
   stop?: () => void;
   toJSON?: () => any;
 }
 
+/**
+ * @deprecated Use `ActorRef` instead.
+ */
+export type SpawnedActorRef<
+  TEvent extends EventObject,
+  TEmitted = any
+> = ActorRef<TEvent, TEmitted>;
+
 export type ActorRefFrom<
   T extends StateMachine<any, any, any> | Promise<any>
 > = T extends StateMachine<infer TContext, any, infer TEvent, infer TTypestate>
-  ? SpawnedActorRef<TEvent, State<TContext, TEvent, any, TTypestate>> & {
-      /**
-       * @deprecated
-       */
-      state: State<TContext, TEvent, any, TTypestate>;
-    }
+  ? ActorRef<TEvent, State<TContext, TEvent, any, TTypestate>>
   : T extends Promise<infer U>
-  ? SpawnedActorRef<never, U>
+  ? ActorRef<never, U>
   : never;
 
 export type AnyInterpreter = Interpreter<any, any, any, any>;
