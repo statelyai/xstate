@@ -108,10 +108,7 @@ export function isSpawnedActor(item: any): item is ActorRef<any> {
 export function toActorRef<
   TEvent extends EventObject,
   TEmitted = any,
-  TActorRefLike extends BaseActorRef<TEvent, TEmitted> = BaseActorRef<
-    TEvent,
-    TEmitted
-  >
+  TActorRefLike extends BaseActorRef<TEvent> = BaseActorRef<TEvent>
 >(
   actorRefLike: TActorRefLike
 ): TActorRefLike & ActorRef<TEvent, TEmitted> & { [key: string]: any } {
