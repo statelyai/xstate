@@ -119,7 +119,7 @@ A [React hook](https://reactjs.org/hooks) that subscribes to state changes from 
 
 **Arguments**
 
-- `service` - An [XState service](https://xstate.js.org/docs/guides/interpretation.html).
+- `service` - A started [XState service](https://xstate.js.org/docs/guides/interpretation.html).
 
 **Returns** a tuple of `[state, send]`:
 
