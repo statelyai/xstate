@@ -126,6 +126,16 @@ A [React hook](https://reactjs.org/hooks) that subscribes to state changes from 
 - `state` - Represents the current state of the service as an XState `State` object.
 - `send` - A function that sends events to the running service.
 
+```ts
+const someService = interpret(someMachine).start(); // Make sure to start the service!
+
+const SomeComponent = () => {
+  const [state, send] = useService(someService);
+
+  // ...
+};
+```
+
 ### `useActor(actor, getSnapshot)`
 
 A [React hook](https://reactjs.org/hooks) that subscribes to emitted changes from an existing [actor](https://xstate.js.org/docs/guides/actors.html).
