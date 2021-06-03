@@ -207,7 +207,6 @@ describe('createModel', () => {
         age: 30
       },
       {
-        // events: {},
         actions: {
           greet: (message: string) => ({ message })
         }
@@ -218,6 +217,7 @@ describe('createModel', () => {
       context: userModel.initialContext,
       initial: 'active',
       entry: { type: 'greet', message: 'hello' },
+      exit: { type: 'greet', message: 'goodbye' },
       states: {
         active: {
           entry: [userModel.actions.greet('hello')]

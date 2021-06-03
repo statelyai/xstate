@@ -77,6 +77,18 @@ export type Action<TContext, TEvent extends EventObject> =
   | ActionObject<TContext, TEvent>
   | ActionFunction<TContext, TEvent>;
 
+export type BaseAction<
+  TContext,
+  TEvent extends EventObject,
+  TAction extends BaseActionObject
+> = TAction['type'] | TAction | ActionFunction<TContext, TEvent>;
+
+export type BaseActions<
+  TContext,
+  TEvent extends EventObject,
+  TAction extends BaseActionObject
+> = SingleOrArray<BaseAction<TContext, TEvent, TAction>>;
+
 export type Actions<TContext, TEvent extends EventObject> = SingleOrArray<
   Action<TContext, TEvent>
 >;
@@ -342,12 +354,14 @@ export type StateNodesConfig<
 export type StatesConfig<
   TContext,
   TStateSchema extends StateSchema,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TActions extends BaseActionObject
 > = {
   [K in keyof TStateSchema['states']]: StateNodeConfig<
     TContext,
     TStateSchema['states'][K],
-    TEvent
+    TEvent,
+    TActions
   >;
 };
 
@@ -454,7 +468,8 @@ export interface InvokeConfig<TContext, TEvent extends EventObject> {
 export interface StateNodeConfig<
   TContext,
   TStateSchema extends StateSchema,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TActions extends BaseActionObject = BaseActionObject
 > {
   /**
    * The relative key of the state node, which represents its location in the overall state value.
@@ -494,7 +509,7 @@ export interface StateNodeConfig<
   /**
    * The mapping of state node keys to their state node configurations (recursive).
    */
-  states?: StatesConfig<TContext, TStateSchema, TEvent> | undefined;
+  states?: StatesConfig<TContext, TStateSchema, TEvent, TActions> | undefined;
   /**
    * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
    */
@@ -514,7 +529,7 @@ export interface StateNodeConfig<
   /**
    * The action(s) to be executed upon entering the state node.
    */
-  entry?: Actions<TContext, TEvent>;
+  entry?: BaseActions<TContext, TEvent, TActions>;
   /**
    * The action(s) to be executed upon exiting the state node.
    *
@@ -524,7 +539,7 @@ export interface StateNodeConfig<
   /**
    * The action(s) to be executed upon exiting the state node.
    */
-  exit?: Actions<TContext, TEvent>;
+  exit?: BaseActions<TContext, TEvent, TActions>;
   /**
    * The potential transition(s) to be taken upon reaching a final child state node.
    *
@@ -679,7 +694,7 @@ export interface MachineConfig<
   TStateSchema extends StateSchema,
   TEvent extends EventObject,
   TActions extends BaseActionObject = BaseActionObject
-> extends StateNodeConfig<TContext, TStateSchema, TEvent> {
+> extends StateNodeConfig<TContext, TStateSchema, TEvent, TActions> {
   /**
    * The initial context (extended state)
    */
