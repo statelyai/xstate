@@ -20,20 +20,24 @@ export interface AnyEventObject extends EventObject {
   [key: string]: any;
 }
 
-/**
- * The full definition of an action, with a string `type` and an
- * `exec` implementation function.
- */
-export interface ActionObject<TContext, TEvent extends EventObject> {
+export interface BaseActionObject {
   /**
    * The type of action that is executed.
    */
   type: string;
+  [other: string]: any;
+}
+
+/**
+ * The full definition of an action, with a string `type` and an
+ * `exec` implementation function.
+ */
+export interface ActionObject<TContext, TEvent extends EventObject>
+  extends BaseActionObject {
   /**
    * The implementation for executing the action.
    */
   exec?: ActionFunction<TContext, TEvent>;
-  [other: string]: any;
 }
 
 export type DefaultContext = Record<string, any> | undefined;
@@ -674,10 +678,7 @@ export interface MachineConfig<
   TContext,
   TStateSchema extends StateSchema,
   TEvent extends EventObject,
-  TActions extends ActionObject<TContext, TEvent> = ActionObject<
-    TContext,
-    TEvent
-  >
+  TActions extends BaseActionObject = BaseActionObject
 > extends StateNodeConfig<TContext, TStateSchema, TEvent> {
   /**
    * The initial context (extended state)
@@ -690,6 +691,18 @@ export interface MachineConfig<
   schema?: MachineSchema<TContext, TEvent>;
   entry?: SingleOrArray<TActions>;
 }
+
+export type MachineConfigWithContext<
+  TContext,
+  TStateSchema extends StateSchema,
+  TEvent extends EventObject,
+  TActions extends BaseActionObject = BaseActionObject
+> = MachineConfig<TContext, TStateSchema, TEvent, TActions> & {
+  /**
+   * The initial context (extended state)
+   */
+  context: TContext | (() => TContext);
+};
 
 export interface MachineSchema<TContext, TEvent extends EventObject> {
   context?: TContext;

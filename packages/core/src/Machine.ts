@@ -6,7 +6,8 @@ import {
   StateSchema,
   EventObject,
   AnyEventObject,
-  Typestate
+  Typestate,
+  BaseActionObject
 } from './types';
 import { StateNode } from './StateNode';
 import {
@@ -15,6 +16,7 @@ import {
   ModelContextFrom,
   ModelEventsFrom
 } from './model';
+import { MachineConfigWithContext } from '.';
 
 export function Machine<
   TContext = any,
@@ -58,9 +60,10 @@ export function createMachine<
   TModel extends Model<any, any, any, any>,
   TContext = ModelContextFrom<TModel>,
   TEvent extends EventObject = ModelEventsFrom<TModel>,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext },
+  TActions extends BaseActionObject = ModelActionsFrom<TModel>
 >(
-  config: MachineConfig<TContext, any, TEvent, ModelActionsFrom<TModel>>,
+  config: MachineConfigWithContext<TContext, any, TEvent, TActions>,
   options?: Partial<MachineOptions<TContext, TEvent>>
 ): StateMachine<TContext, any, TEvent, TTypestate>;
 export function createMachine<

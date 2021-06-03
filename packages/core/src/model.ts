@@ -19,7 +19,7 @@ export interface Model<
   TContext,
   TEvent extends EventObject,
   _TActions extends ActionObject<TContext, TEvent>,
-  TModelCreators = void
+  TModelCreators extends FinalModelCreators<any>
 > {
   initialContext: TContext;
   assign: <TEventType extends TEvent['type'] = TEvent['type']>(
@@ -76,23 +76,25 @@ type FinalEventCreators<Self> = {
 };
 
 type FinalModelCreators<Self> = {
-  events?: FinalEventCreators<Prop<Self, 'events'>>;
-  actions?: FinalEventCreators<Prop<Self, 'actions'>>;
+  events: FinalEventCreators<Prop<Self, 'events'>>;
+  actions: FinalEventCreators<Prop<Self, 'actions'>>;
 };
 
-type EventFromEventCreators<TEventCreators> = {
-  [K in keyof TEventCreators]: TEventCreators[K] extends AnyFunction
-    ? ReturnType<TEventCreators[K]>
-    : never;
-}[keyof TEventCreators];
+type EventFromEventCreators<TEventCreators> = keyof TEventCreators extends never
+  ? EventObject
+  : {
+      [K in keyof TEventCreators]: TEventCreators[K] extends AnyFunction
+        ? ReturnType<TEventCreators[K]>
+        : never;
+    }[keyof TEventCreators];
 
 export function createModel<TContext, TEvent extends EventObject>(
   initialContext: TContext
-): Model<TContext, TEvent, any, void>;
+): Model<TContext, TEvent, any, any>;
 export function createModel<
   TContext,
   TModelCreators extends ModelCreators<TModelCreators>,
-  TFinalModelCreators = FinalModelCreators<TModelCreators>
+  TFinalModelCreators extends FinalModelCreators<TModelCreators> = FinalModelCreators<TModelCreators>
 >(
   initialContext: TContext,
   creators: TModelCreators
@@ -117,6 +119,7 @@ export function createModel(
   creators?: ModelCreators<any>
 ): unknown {
   const eventCreators = creators?.events;
+  const actionCreators = creators?.actions;
 
   const model: Model<any, any, any, any> = {
     initialContext,
@@ -127,7 +130,12 @@ export function createModel(
           type: eventType
         }))
       : undefined) as any,
-    actions: null as any,
+    actions: actionCreators
+      ? mapValues(actionCreators, (fn, eventType) => (...args: any[]) => ({
+          ...fn(...args),
+          type: eventType
+        }))
+      : undefined,
     reset: () => assign(initialContext)
   };
 

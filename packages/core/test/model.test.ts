@@ -207,6 +207,7 @@ describe('createModel', () => {
         age: 30
       },
       {
+        // events: {},
         actions: {
           greet: (message: string) => ({ message })
         }
