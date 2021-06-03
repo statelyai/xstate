@@ -110,7 +110,7 @@ A [Vue composition function](https://v3.vuejs.org/guide/composition-api-introduc
 
 **Arguments**
 
-- `service` - An [XState service](https://xstate.js.org/docs/guides/communication.html).
+- `service` - A started [XState service](https://xstate.js.org/docs/guides/communication.html).
 
 **Returns** `{state, send}`:
 
