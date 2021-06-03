@@ -1279,8 +1279,9 @@ export type ExtractEvent<
   TEventType extends TEvent['type']
 > = TEvent extends { type: TEventType } ? TEvent : never;
 
-export interface BaseActorRef<TEvent extends EventObject> {
+export interface BaseActorRef<TEvent extends EventObject, TEmitted = any> {
   send: Sender<TEvent>;
+  subscribe?: Subscribable<TEmitted>['subscribe'];
 }
 
 export interface ActorRef<TEvent extends EventObject, TEmitted = any>
