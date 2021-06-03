@@ -16,7 +16,6 @@ import {
   ModelContextFrom,
   ModelEventsFrom
 } from './model';
-import { MachineConfigWithContext } from '.';
 
 export function Machine<
   TContext = any,
@@ -63,7 +62,7 @@ export function createMachine<
   TTypestate extends Typestate<TContext> = { value: any; context: TContext },
   TActions extends BaseActionObject = ModelActionsFrom<TModel>
 >(
-  config: MachineConfigWithContext<TContext, any, TEvent, TActions>,
+  config: MachineConfig<TContext, any, TEvent, TActions>,
   options?: Partial<MachineOptions<TContext, TEvent>>
 ): StateMachine<TContext, any, TEvent, TTypestate>;
 export function createMachine<

@@ -692,18 +692,6 @@ export interface MachineConfig<
   entry?: SingleOrArray<TActions>;
 }
 
-export type MachineConfigWithContext<
-  TContext,
-  TStateSchema extends StateSchema,
-  TEvent extends EventObject,
-  TActions extends BaseActionObject = BaseActionObject
-> = MachineConfig<TContext, TStateSchema, TEvent, TActions> & {
-  /**
-   * The initial context (extended state)
-   */
-  context: TContext | (() => TContext);
-};
-
 export interface MachineSchema<TContext, TEvent extends EventObject> {
   context?: TContext;
   events?: TEvent;
