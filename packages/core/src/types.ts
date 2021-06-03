@@ -355,7 +355,7 @@ export type StatesConfig<
   TContext,
   TStateSchema extends StateSchema,
   TEvent extends EventObject,
-  TActions extends BaseActionObject
+  TActions extends BaseActionObject = BaseActionObject
 > = {
   [K in keyof TStateSchema['states']]: StateNodeConfig<
     TContext,
