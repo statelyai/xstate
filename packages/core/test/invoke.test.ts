@@ -2064,7 +2064,6 @@ describe('invoke', () => {
         },
         initial: 0
       };
-      countBehavior;
 
       const countMachine = createMachine({
         invoke: {
@@ -2088,6 +2087,43 @@ describe('invoke', () => {
 
       countService.send('INC');
       countService.send('INC');
+    });
+
+    it('behaviors should have reference to the parent', (done) => {
+      const pongBehavior: Behavior<EventObject, undefined> = {
+        receive: (_, event, { parent }) => {
+          if (event.type === 'PING') {
+            parent?.send({ type: 'PONG' });
+          }
+
+          return undefined;
+        },
+        initial: undefined
+      };
+
+      const pingMachine = createMachine({
+        initial: 'waiting',
+        states: {
+          waiting: {
+            entry: send('PING', { to: 'ponger' }),
+            invoke: {
+              id: 'ponger',
+              src: () => pongBehavior
+            },
+            on: {
+              PONG: 'success'
+            }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      });
+
+      const pingService = interpret(pingMachine).onDone(() => {
+        done();
+      });
+      pingService.start();
     });
   });
 

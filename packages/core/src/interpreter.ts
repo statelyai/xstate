@@ -1025,7 +1025,7 @@ export class Interpreter<
       id,
       send: (event) => {
         const eventObject = toEventObject(event);
-        state = behavior.receive(state, eventObject);
+        state = behavior.receive(state, eventObject, { parent: this });
       },
       getSnapshot: () => state,
       subscribe: (next, handleError?, complete?) => {

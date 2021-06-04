@@ -1320,7 +1320,11 @@ export type InterpreterFrom<
   ? Interpreter<TContext, TStateSchema, TEvent, TTypestate>
   : never;
 
+export interface ActorContext {
+  parent?: SpawnedActorRef<any, any>;
+}
+
 export interface Behavior<TEvent extends EventObject, TEmitted = any> {
-  receive: (state: TEmitted, event: TEvent) => TEmitted;
+  receive: (state: TEmitted, event: TEvent, actorCtx: ActorContext) => TEmitted;
   initial: TEmitted;
 }
