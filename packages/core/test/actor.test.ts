@@ -1,4 +1,11 @@
-import { Machine, spawn, interpret, ActorRef, ActorRefFrom } from '../src';
+import {
+  Machine,
+  spawn,
+  interpret,
+  ActorRef,
+  ActorRefFrom,
+  SpawnedActorRef
+} from '../src';
 import {
   assign,
   send,
@@ -26,7 +33,7 @@ describe('spawning machines', () => {
   });
 
   const context = {
-    todoRefs: {} as Record<string, ActorRef<any>>
+    todoRefs: {} as Record<string, SpawnedActorRef<any>>
   };
 
   type TodoEvent =

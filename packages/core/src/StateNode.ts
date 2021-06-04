@@ -64,7 +64,6 @@ import {
   TransitionDefinitionMap,
   DelayExpr,
   InvokeSourceDefinition,
-  ActorRef,
   MachineSchema
 } from './types';
 import { matchesState } from './utils';
@@ -99,6 +98,7 @@ import {
 } from './stateUtils';
 import { createInvocableActor } from './Actor';
 import { toInvokeDefinition } from './invokeUtils';
+import { SpawnedActorRef } from '.';
 
 const NULL_EVENT = '';
 const STATE_IDENTIFIER = '#';
@@ -1216,7 +1216,7 @@ class StateNode<
       },
       currentState
         ? { ...currentState.children }
-        : ({} as Record<string, ActorRef<any>>)
+        : ({} as Record<string, SpawnedActorRef<any>>)
     );
 
     const resolvedConfiguration = resolvedStateValue

@@ -265,7 +265,8 @@ export type InvokeCreator<
   | PromiseLike<TFinalContext>
   | StateMachine<TFinalContext, any, any>
   | Subscribable<EventObject>
-  | InvokeCallback<TEvent>;
+  | InvokeCallback<TEvent>
+  | Behavior<any>;
 
 export interface InvokeDefinition<TContext, TEvent extends EventObject>
   extends ActivityDefinition<TContext, TEvent> {
@@ -1142,7 +1143,7 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   events?: TEvent[];
   configuration: Array<StateNode<TContext, any, TEvent>>;
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
-  children: Record<string, ActorRef<any>>;
+  children: Record<string, SpawnedActorRef<any>>;
   done?: boolean;
   tags?: Set<string>;
 }
@@ -1270,9 +1271,10 @@ export interface Subscribable<T> {
 
 export type Spawnable =
   | StateMachine<any, any, any>
-  | Promise<any>
+  | PromiseLike<any>
   | InvokeCallback
-  | Subscribable<any>;
+  | Subscribable<any>
+  | Behavior<any>;
 
 export type ExtractEvent<
   TEvent extends EventObject,
@@ -1317,3 +1319,8 @@ export type InterpreterFrom<
 >
   ? Interpreter<TContext, TStateSchema, TEvent, TTypestate>
   : never;
+
+export interface Behavior<TEvent extends EventObject, TEmitted = any> {
+  receive: (state: TEmitted, event: TEvent) => TEmitted;
+  initial: TEmitted;
+}

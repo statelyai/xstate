@@ -6,13 +6,15 @@ import {
   send,
   EventObject,
   StateValue,
-  createMachine
+  createMachine,
+  Behavior
 } from '../src';
 import {
   actionTypes,
   done as _done,
   doneInvoke,
   escalate,
+  forwardTo,
   raise
 } from '../src/actions';
 import { interval } from 'rxjs';
@@ -2047,6 +2049,45 @@ describe('invoke', () => {
           done();
         })
         .start();
+    });
+  });
+
+  describe('with behaviors', () => {
+    it('should work with a behavior', (done) => {
+      const countBehavior: Behavior<EventObject, number> = {
+        receive: (count, event) => {
+          if (event.type === 'INC') {
+            return count + 1;
+          } else {
+            return count - 1;
+          }
+        },
+        initial: 0
+      };
+      countBehavior;
+
+      const countMachine = createMachine({
+        invoke: {
+          id: 'count',
+          src: () => countBehavior
+        },
+        on: {
+          INC: {
+            actions: forwardTo('count')
+          }
+        }
+      });
+
+      const countService = interpret(countMachine)
+        .onTransition((state) => {
+          if (state.children['count']?.getSnapshot() === 2) {
+            done();
+          }
+        })
+        .start();
+
+      countService.send('INC');
+      countService.send('INC');
     });
   });
 

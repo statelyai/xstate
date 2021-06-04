@@ -51,7 +51,8 @@ import {
   symbolObservable,
   toInvokeSource,
   toObserver,
-  isActor
+  isActor,
+  isBehavior
 } from './utils';
 import { Scheduler } from './scheduler';
 import { Actor, isSpawnedActor, createDeferredActor } from './Actor';
@@ -62,6 +63,7 @@ import * as serviceScope from './serviceScope';
 import {
   ActorRef,
   ActorRefFrom,
+  Behavior,
   SpawnedActorRef,
   StopActionObject,
   Subscription
@@ -865,31 +867,33 @@ export class Interpreter<
             ? mapContext(data, context, _event)
             : undefined;
 
-          const source = isFunction(serviceCreator)
+          if (typeof serviceCreator === 'string') {
+            // TODO: warn
+            return;
+          }
+
+          let source: Spawnable = isFunction(serviceCreator)
             ? serviceCreator(context, _event.data, {
                 data: resolvedData,
                 src: invokeSource
               })
             : serviceCreator;
 
-          if (isPromiseLike(source)) {
-            this.spawnPromise(Promise.resolve(source), id);
-          } else if (isFunction(source)) {
-            this.spawnCallback(source, id);
-          } else if (isObservable<TEvent>(source)) {
-            this.spawnObservable(source, id);
-          } else if (isMachine(source)) {
-            // TODO: try/catch here
-            this.spawnMachine(
-              resolvedData ? source.withContext(resolvedData) : source,
-              {
-                id,
-                autoForward
-              }
-            );
-          } else {
-            // service is string
+          if (!source) {
+            // TODO: warn?
+            return;
           }
+
+          let options: SpawnOptions | undefined;
+
+          if (isMachine(source)) {
+            source = resolvedData ? source.withContext(resolvedData) : source;
+            options = {
+              autoForward
+            };
+          }
+
+          this.spawn(source, id, options);
         } else {
           this.spawnActivity(activity);
         }
@@ -947,7 +951,9 @@ export class Interpreter<
     name: string,
     options?: SpawnOptions
   ): SpawnedActorRef<any> {
-    if (isPromiseLike(entity)) {
+    if (isBehavior(entity)) {
+      return this.spawnBehavior(entity, name);
+    } else if (isPromiseLike(entity)) {
       return this.spawnPromise(Promise.resolve(entity), name);
     } else if (isFunction(entity)) {
       return this.spawnCallback(entity as InvokeCallback, name);
@@ -1008,12 +1014,43 @@ export class Interpreter<
 
     return actor;
   }
+  private spawnBehavior<TActorEvent extends EventObject, TEmitted>(
+    behavior: Behavior<TActorEvent, TEmitted>,
+    id: string
+  ): SpawnedActorRef<TActorEvent, TEmitted> {
+    let state = behavior.initial;
+    const observers = new Set<Observer<TEmitted>>();
+
+    const actor: SpawnedActorRef<TActorEvent, TEmitted> = {
+      id,
+      send: (event) => {
+        const eventObject = toEventObject(event);
+        state = behavior.receive(state, eventObject);
+      },
+      getSnapshot: () => state,
+      subscribe: (next, handleError?, complete?) => {
+        const observer = toObserver(next, handleError, complete);
+        observers.add(observer);
+        observer.next(state);
+
+        return {
+          unsubscribe: () => {
+            observers.delete(observer);
+          }
+        };
+      }
+    };
+
+    this.children.set(id, actor);
+
+    return actor;
+  }
   private spawnPromise<T>(
     promise: Promise<T>,
     id: string
   ): SpawnedActorRef<never, T> {
     let canceled = false;
-    let resolvedData: T | undefined = undefined;
+    let resolvedData: T | undefined;
 
     promise.then(
       (response) => {
@@ -1099,7 +1136,7 @@ export class Interpreter<
     let canceled = false;
     const receivers = new Set<(e: EventObject) => void>();
     const listeners = new Set<(e: EventObject) => void>();
-    let emitted: TEvent | undefined = undefined;
+    let emitted: TEvent | undefined;
 
     const receive = (e: TEvent) => {
       emitted = e;
@@ -1158,7 +1195,7 @@ export class Interpreter<
     source: Subscribable<T>,
     id: string
   ): SpawnedActorRef<any, T> {
-    let emitted: T | undefined = undefined;
+    let emitted: T | undefined;
 
     const subscription = source.subscribe(
       (value) => {
