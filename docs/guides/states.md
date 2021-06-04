@@ -189,6 +189,34 @@ const service = invoke(machine)
   .start();
 ```
 
+### `state.hasTag(tag)` <Badge text="4.19+" />
+
+This method determines whether the current state configuration has a state node with the given tag.
+
+```js {5,8,11}
+const machine = createMachine({
+  initial: 'green',
+  states: {
+    green: {
+      tags: 'go' // single tag
+    },
+    yellow: {
+      tags: 'go'
+    },
+    red: {
+      tags: ['stop', 'other'] // multiple tags
+    }
+  }
+});
+```
+
+For instance, if the above machine is in the `green` or `yellow` state, instead of matching the state directly using `state.matches('green') || state.matches('yellow')`, is it possible to use `state.hasTag('go')`:
+
+```js
+const canGo = state.hasTag('go');
+// => `true` if in 'green' or 'yellow' state
+```
+
 ## Persisting State
 
 As mentioned, a `State` object can be persisted by serializing it to a string JSON format:
