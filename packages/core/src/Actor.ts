@@ -145,7 +145,7 @@ export class Actor<TEvent extends EventObject, TEmitted> {
   public current: TEmitted;
   private context: ActorContext;
   private behavior: Behavior<TEvent, TEmitted>;
-  private mailbox: Array<TEvent | LifecycleSignal> = [];
+  private mailbox: Array<TEvent> = [];
   private processingStatus: ProcessingStatus = ProcessingStatus.NotProcessing;
   public name: string;
 
