@@ -12,7 +12,7 @@ export const createReduxDevTools = (
     if ((window as any).__REDUX_DEVTOOLS_EXTENSION__) {
       const devTools = (window as any).__REDUX_DEVTOOLS_EXTENSION__.connect(
         {
-          name: service.id,
+          name: service.name,
           autoPause: true,
           stateSanitizer: (state: State<any, any>): object => {
             return {

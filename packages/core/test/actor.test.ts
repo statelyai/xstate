@@ -18,7 +18,6 @@ import {
   sendUpdate,
   respond
 } from '../src/actions';
-import { fromService } from '../src/Actor';
 import { interval } from 'rxjs';
 import { map } from 'rxjs/operators';
 import * as actionTypes from '../src/actionTypes';
@@ -391,7 +390,7 @@ describe('communicating with spawned actors', () => {
     const parentMachine = createMachine<{ existingRef: ActorRef<any> }>({
       initial: 'pending',
       context: {
-        existingRef: fromService(existingService)
+        existingRef: existingService
       },
       states: {
         pending: {

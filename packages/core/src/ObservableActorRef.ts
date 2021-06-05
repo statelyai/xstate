@@ -1,10 +1,10 @@
 import { EventObject, ActorRef } from './types';
-import { Behavior, startSignal, ActorContext, stopSignal } from './behavior';
+import { Behavior, ActorContext, startSignal, stopSignal } from './behavior';
 import { Actor } from './Actor';
 
 export class ObservableActorRef<TEvent extends EventObject, TEmitted>
   implements ActorRef<TEvent, TEmitted> {
-  public current: TEmitted;
+  private current: TEmitted;
   public deferred = true;
   private context: ActorContext;
   private actor: Actor<TEvent, TEmitted>;
@@ -21,12 +21,12 @@ export class ObservableActorRef<TEvent extends EventObject, TEmitted>
   }
   public start() {
     this.deferred = false;
-    this.actor.receiveSignal(startSignal);
+    this.actor.receive(startSignal);
 
     return this;
   }
   public stop() {
-    this.actor.receiveSignal(stopSignal);
+    this.actor.receive(stopSignal);
 
     return this;
   }

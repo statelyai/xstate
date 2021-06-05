@@ -37,7 +37,7 @@ import {
   toEventObject
 } from './utils';
 import { Scheduler } from './scheduler';
-import { isActorRef, fromService } from './Actor';
+import { isActorRef } from './Actor';
 import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
 import { StateMachine } from './StateMachine';
@@ -99,6 +99,7 @@ export class Interpreter<
   public clock: Clock;
   public options: Readonly<InterpreterOptions>;
 
+  public id: string;
   private scheduler: Scheduler = new Scheduler();
   private delayedEventsMap: Record<string, number> = {};
   private listeners: Set<
@@ -115,7 +116,7 @@ export class Interpreter<
 
   // Actor Ref
   public parent?: ActorRef<any>;
-  public id: string;
+  public name: string;
   public ref: SpawnedActorRef<TEvent>;
 
   /**
@@ -144,7 +145,7 @@ export class Interpreter<
 
     const resolvedId = id !== undefined ? id : machine.key;
 
-    this.id = resolvedId;
+    this.name = this.id = resolvedId;
     this.logger = logger;
     this.clock = clock;
     this.parent = parent;
@@ -155,7 +156,7 @@ export class Interpreter<
       deferEvents: this.options.deferEvents
     });
 
-    this.ref = fromService(this, resolvedId);
+    this.ref = this;
 
     this.sessionId = this.ref.name;
   }
@@ -235,7 +236,7 @@ export class Interpreter<
 
       for (const listener of this.doneListeners) {
         listener(
-          toSCXMLEvent(doneInvoke(this.id, doneData), { invokeid: this.id })
+          toSCXMLEvent(doneInvoke(this.name, doneData), { invokeid: this.name })
         );
       }
       this.stop();
@@ -590,7 +591,7 @@ export class Interpreter<
     if (!target) {
       if (!isParent) {
         const executionError = new Error(
-          `Unable to send event to child '${to}' from service '${this.id}'.`
+          `Unable to send event to child '${to}' from service '${this.name}'.`
         );
         this.send(
           toSCXMLEvent<TEvent>(actionTypes.errorExecution, {
@@ -603,7 +604,7 @@ export class Interpreter<
       if (!IS_PRODUCTION) {
         warn(
           false,
-          `Service '${this.id}' has no parent: unable to send event ${event.type}`
+          `Service '${this.name}' has no parent: unable to send event ${event.type}`
         );
       }
       return;
@@ -611,7 +612,8 @@ export class Interpreter<
 
     target.send({
       ...event,
-      name: event.name === actionTypes.error ? `${error(this.id)}` : event.name,
+      name:
+        event.name === actionTypes.error ? `${error(this.name)}` : event.name,
       origin: this
     });
   }
@@ -642,7 +644,7 @@ export class Interpreter<
 
       if (!child) {
         throw new Error(
-          `Unable to forward event '${event.name}' from interpreter '${this.id}' to nonexistant child '${id}'.`
+          `Unable to forward event '${event.name}' from interpreter '${this.name}' to nonexistant child '${id}'.`
         );
       }
 
@@ -824,7 +826,7 @@ export class Interpreter<
   }
   public toJSON() {
     return {
-      id: this.id
+      id: this.name
     };
   }
 

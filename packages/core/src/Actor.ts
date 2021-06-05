@@ -10,19 +10,17 @@ import {
 } from './types';
 import { StateMachine } from './StateMachine';
 import { State } from './State';
-import { Interpreter } from './interpreter';
 import {
   Behavior,
-  startSignal,
   ActorContext,
-  stopSignal,
-  createServiceBehavior,
   createMachineBehavior,
   createDeferredBehavior,
   createPromiseBehavior,
   createObservableBehavior,
   createBehaviorFrom,
-  LifecycleSignal
+  LifecycleSignal,
+  startSignal,
+  stopSignal
 } from './behavior';
 import { registry } from './registry';
 import * as capturedState from './capturedState';
@@ -40,8 +38,8 @@ export function isSpawnedActorRef(item: any): item is SpawnedActorRef<any> {
   return isActorRef(item) && 'name' in item;
 }
 
-export function fromObservable<T extends EventObject>(
-  observable: Subscribable<T>,
+export function fromObservable<TEvent extends EventObject>(
+  observable: Subscribable<TEvent>,
   name: string
 ): ActorRef<never> {
   return new ObservableActorRef(
@@ -76,13 +74,6 @@ export function fromMachine<TContext, TEvent extends EventObject>(
   options?: Partial<InterpreterOptions>
 ): ActorRef<TEvent> {
   return new ObservableActorRef(createMachineBehavior(machine, options), name);
-}
-
-export function fromService<TContext, TEvent extends EventObject>(
-  service: Interpreter<TContext, TEvent, any>,
-  name: string = registry.bookId()
-): SpawnedActorRef<TEvent> {
-  return new ObservableActorRef(createServiceBehavior(service), name);
 }
 
 export function spawn<TReceived extends EventObject, TEmitted>(
@@ -142,7 +133,7 @@ export function spawnFrom<TEvent extends EventObject>(
   name?: string
 ): ObservableActorRef<TEvent, undefined>;
 export function spawnFrom(entity: any): ObservableActorRef<any, any> {
-  return spawn(createBehaviorFrom(entity));
+  return spawn(createBehaviorFrom(entity)) as ObservableActorRef<any, any>; // TODO: fix
 }
 
 enum ProcessingStatus {
@@ -154,7 +145,7 @@ export class Actor<TEvent extends EventObject, TEmitted> {
   public current: TEmitted;
   private context: ActorContext;
   private behavior: Behavior<TEvent, TEmitted>;
-  private mailbox: TEvent[] = [];
+  private mailbox: Array<TEvent | LifecycleSignal> = [];
   private processingStatus: ProcessingStatus = ProcessingStatus.NotProcessing;
   public name: string;
 
@@ -169,31 +160,36 @@ export class Actor<TEvent extends EventObject, TEmitted> {
     this.current = behavior.initial;
   }
   public start() {
-    this.behavior = this.behavior.receiveSignal(this.context, startSignal);
+    this.current = this.behavior.receive(
+      this.current,
+      startSignal,
+      this.context
+    );
     return this;
   }
   public stop() {
-    this.behavior = this.behavior.receiveSignal(this.context, stopSignal);
+    this.mailbox.length = 0; // TODO: test this behavior
+    this.current = this.behavior.receive(
+      this.current,
+      stopSignal,
+      this.context
+    );
   }
   public subscribe(observer) {
     return this.behavior.subscribe?.(observer) || nullSubscription;
   }
-  public receive(event) {
+  public receive(event: TEvent | LifecycleSignal) {
     this.mailbox.push(event);
     if (this.processingStatus === ProcessingStatus.NotProcessing) {
       this.flush();
     }
-  }
-  public receiveSignal(signal: LifecycleSignal) {
-    this.behavior = this.behavior.receiveSignal(this.context, signal);
-    return this;
   }
   private flush() {
     this.processingStatus = ProcessingStatus.Processing;
     while (this.mailbox.length) {
       const event = this.mailbox.shift()!;
 
-      this.behavior = this.behavior.receive(this.context, event);
+      this.current = this.behavior.receive(this.current, event, this.context);
     }
     this.processingStatus = ProcessingStatus.NotProcessing;
   }

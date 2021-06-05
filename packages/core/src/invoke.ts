@@ -65,29 +65,32 @@ export function invokePromise<T>(
   };
 }
 
-export function invokeActivity<TC, TE extends EventObject>(
-  activityCreator: (ctx: TC, event: TE) => any
-): BehaviorCreator<TC, TE> {
-  const callbackCreator = (ctx: TC, event: TE) => () => {
+export function invokeActivity<TContext, TEvent extends EventObject>(
+  activityCreator: (ctx: TContext, event: TEvent) => any
+): BehaviorCreator<TContext, TEvent> {
+  const callbackCreator = (ctx: TContext, event: TEvent) => () => {
     return activityCreator(ctx, event);
   };
 
-  return invokeCallback<TC, TE>(callbackCreator);
+  return invokeCallback<TContext, TEvent>(callbackCreator);
 }
 
-export function invokeCallback<TC, TE extends EventObject = AnyEventObject>(
-  callbackCreator: (ctx: TC, e: TE) => InvokeCallback
-): BehaviorCreator<TC, TE> {
-  return (ctx, event): Behavior<SCXML.Event<TE>, undefined> => {
+export function invokeCallback<
+  TContext,
+  TEvent extends EventObject = AnyEventObject
+>(
+  callbackCreator: (ctx: TContext, e: TEvent) => InvokeCallback
+): BehaviorCreator<TContext, TEvent> {
+  return (ctx, event): Behavior<SCXML.Event<TEvent>, undefined> => {
     const lazyCallback = () => callbackCreator(ctx, event);
-    return createDeferredBehavior<SCXML.Event<TE>>(lazyCallback);
+    return createDeferredBehavior<SCXML.Event<TEvent>>(lazyCallback);
   };
 }
 
-export function invokeObservable<T extends EventObject = AnyEventObject>(
-  source: (ctx: any, event: any) => Subscribable<T>
+export function invokeObservable<TEvent extends EventObject = AnyEventObject>(
+  source: (ctx: any, event: any) => Subscribable<TEvent>
 ): BehaviorCreator<any, any> {
-  return (ctx, e): Behavior<never, T | undefined> => {
+  return (ctx, e): Behavior<never, TEvent | undefined> => {
     const resolvedSource = isFunction(source) ? source(ctx, e) : source;
     return createObservableBehavior(() => resolvedSource);
   };

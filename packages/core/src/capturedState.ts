@@ -1,16 +1,15 @@
-import { InvokeActionObject } from '../dist/xstate.cjs';
-import { ObservableActorRef } from './ObservableActorRef';
-import { ActionTypes, ActorRef } from './types';
+import { SpawnedActorRef } from '.';
+import { ActionTypes, InvokeActionObject } from './types';
 
 export const CapturedState = {
   current: {
-    actorRef: undefined as ActorRef<any> | undefined,
+    actorRef: undefined as SpawnedActorRef<any, any> | undefined,
     spawns: [] as InvokeActionObject[]
   }
 };
 
 export function captureSpawn(
-  actorRef: ObservableActorRef<any, any>,
+  actorRef: SpawnedActorRef<any, any>,
   name: string
 ) {
   CapturedState.current.spawns.push({

@@ -388,23 +388,31 @@ describe('assign meta', () => {
     service.send('PING_CHILD');
     service.send('PING_CHILD');
 
-    expect(state.context).toEqual({
-      eventLog: [
-        { event: 'PING_CHILD', origin: undefined },
-        {
-          event: 'PONG',
-          origin: expect.objectContaining({
-            id: expect.stringMatching(/.+/)
-          })
-        },
-        { event: 'PING_CHILD', origin: undefined },
-        {
-          event: 'PONG',
-          origin: expect.objectContaining({
-            id: expect.stringMatching(/.+/)
-          })
-        }
-      ]
-    });
+    expect(state.context).toMatchInlineSnapshot(`
+      Object {
+        "eventLog": Array [
+          Object {
+            "event": "PING_CHILD",
+            "origin": undefined,
+          },
+          Object {
+            "event": "PONG",
+            "origin": Object {
+              "id": "child",
+            },
+          },
+          Object {
+            "event": "PING_CHILD",
+            "origin": undefined,
+          },
+          Object {
+            "event": "PONG",
+            "origin": Object {
+              "id": "child",
+            },
+          },
+        ],
+      }
+    `);
   });
 });
