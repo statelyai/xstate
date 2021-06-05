@@ -325,26 +325,6 @@ export function createMachineBehavior<TContext, TEvent extends EventObject>(
   return behavior;
 }
 
-export function createServiceBehavior<TContext, TEvent extends EventObject>(
-  service: Interpreter<TContext, TEvent>
-): Behavior<TEvent, State<TContext, TEvent>> {
-  const behavior: Behavior<TEvent, State<TContext, TEvent>> = {
-    receive: (state, event, actorContext) => {
-      if (isSignal(event)) {
-        return state;
-      }
-      service.send(toSCXMLEvent(event, { origin: actorContext.self }));
-      return state;
-    },
-    subscribe: (observer) => {
-      return service.subscribe(observer);
-    },
-    initial: service.state
-  };
-
-  return behavior;
-}
-
 export function createBehaviorFrom<TEvent extends EventObject, TEmitted>(
   entity: PromiseLike<TEmitted>
 ): Behavior<TEvent, TEmitted>;

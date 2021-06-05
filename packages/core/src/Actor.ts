@@ -10,11 +10,9 @@ import {
 } from './types';
 import { StateMachine } from './StateMachine';
 import { State } from './State';
-import { Interpreter } from './interpreter';
 import {
   Behavior,
   ActorContext,
-  createServiceBehavior,
   createMachineBehavior,
   createDeferredBehavior,
   createPromiseBehavior,
@@ -76,13 +74,6 @@ export function fromMachine<TContext, TEvent extends EventObject>(
   options?: Partial<InterpreterOptions>
 ): ActorRef<TEvent> {
   return new ObservableActorRef(createMachineBehavior(machine, options), name);
-}
-
-export function fromService<TContext, TEvent extends EventObject>(
-  service: Interpreter<TContext, TEvent, any>,
-  name: string = registry.bookId()
-): SpawnedActorRef<TEvent> {
-  return new ObservableActorRef(createServiceBehavior(service), name);
 }
 
 export function spawn<TReceived extends EventObject, TEmitted>(

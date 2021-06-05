@@ -888,18 +888,30 @@ describe('interpreter', () => {
     service.send('PING_CHILD');
 
     expect(logs.length).toBe(4);
-    expect(logs).toEqual([
-      { event: 'PING_CHILD', origin: undefined },
-      {
-        event: 'PONG',
-        origin: expect.objectContaining({ id: expect.stringMatching(/.*/) })
-      },
-      { event: 'PING_CHILD', origin: undefined },
-      {
-        event: 'PONG',
-        origin: expect.objectContaining({ id: expect.stringMatching(/.*/) })
-      }
-    ]);
+    expect(logs).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "event": "PING_CHILD",
+          "origin": undefined,
+        },
+        Object {
+          "event": "PONG",
+          "origin": Object {
+            "id": "child",
+          },
+        },
+        Object {
+          "event": "PING_CHILD",
+          "origin": undefined,
+        },
+        Object {
+          "event": "PONG",
+          "origin": Object {
+            "id": "child",
+          },
+        },
+      ]
+    `);
   });
 
   it('should receive correct _event (log action)', () => {
