@@ -99,6 +99,7 @@ export class Interpreter<
   public clock: Clock;
   public options: Readonly<InterpreterOptions>;
 
+  public id: string;
   private scheduler: Scheduler = new Scheduler();
   private delayedEventsMap: Record<string, number> = {};
   private listeners: Set<
@@ -144,7 +145,7 @@ export class Interpreter<
 
     const resolvedId = id !== undefined ? id : machine.key;
 
-    this.name = resolvedId;
+    this.name = this.id = resolvedId;
     this.logger = logger;
     this.clock = clock;
     this.parent = parent;
