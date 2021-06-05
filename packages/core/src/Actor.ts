@@ -109,9 +109,7 @@ export function toActorRef<
   TEvent extends EventObject,
   TEmitted = any,
   TActorRefLike extends BaseActorRef<TEvent> = BaseActorRef<TEvent>
->(
-  actorRefLike: TActorRefLike
-): TActorRefLike & ActorRef<TEvent, TEmitted> & { [key: string]: any } {
+>(actorRefLike: TActorRefLike): ActorRef<TEvent, TEmitted> {
   return {
     subscribe: () => ({ unsubscribe: () => void 0 }),
     id: 'anonymous',
