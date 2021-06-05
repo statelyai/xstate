@@ -1225,13 +1225,6 @@ class StateNode<
       ? currentState.configuration
       : [];
 
-    const meta = resolvedConfiguration.reduce((acc, stateNode) => {
-      if (stateNode.meta !== undefined) {
-        acc[stateNode.id] = stateNode.meta;
-      }
-      return acc;
-    }, {} as Record<string, string>);
-
     const isDone = isInFinalState(resolvedConfiguration, this);
 
     const nextState = new State<TContext, TEvent, TStateSchema, TTypestate>({
@@ -1257,11 +1250,6 @@ class StateNode<
         : currentState
         ? currentState.activities
         : {},
-      meta: resolvedStateValue
-        ? meta
-        : currentState
-        ? currentState.meta
-        : undefined,
       events: [],
       configuration: resolvedConfiguration,
       transitions: stateTransition.transitions,

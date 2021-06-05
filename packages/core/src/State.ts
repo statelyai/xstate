@@ -16,7 +16,7 @@ import {
 import { EMPTY_ACTIVITY_MAP } from './constants';
 import { matchesState, keys, isString } from './utils';
 import { StateNode } from './StateNode';
-import { nextEvents } from './stateUtils';
+import { getMeta, nextEvents } from './stateUtils';
 import { initEvent } from './actions';
 
 export function stateValuesEqual(
@@ -240,7 +240,7 @@ export class State<
     this.history = config.history as this;
     this.actions = config.actions || [];
     this.activities = config.activities || EMPTY_ACTIVITY_MAP;
-    this.meta = config.meta || {};
+    this.meta = getMeta(config.configuration);
     this.events = config.events || [];
     this.matches = this.matches.bind(this);
     this.toStrings = this.toStrings.bind(this);
