@@ -80,8 +80,6 @@ export const ServiceViz: React.FC<{
 }> = ({ service }) => {
   const [state] = useService(service);
 
-  console.log(state);
-
   return (
     <StateContext.Provider value={state}>
       <pre>{JSON.stringify(state, null, 2)}</pre>
@@ -93,7 +91,7 @@ export const ServiceViz: React.FC<{
 export const ExtViz: React.FC = () => {
   const divRef = useRef(document.createElement('div'));
   const windowRef = useRef<Window | null>(null);
-  console.log((window as any).__xstate__.services);
+
   const [[serviceSet], setServiceSet] = useState([
     (window as any).__xstate__.services as Set<Interpreter<any, any>>,
   ]);
@@ -111,7 +109,6 @@ export const ExtViz: React.FC = () => {
 
   useEffect(() => {
     (window as any).__xstate__.onRegister(() => {
-      console.log('well yeah');
       setServiceSet([(window as any).__xstate__.services]);
     });
   }, []);
@@ -121,11 +118,9 @@ export const ExtViz: React.FC = () => {
       {Array.from(serviceSet).map((s) => {
         const serv = s as Interpreter<any, any>;
 
-        console.log(serv.id);
-
         return (
           <>
-            <ServiceViz key={serv.id} service={serv} />
+            <ServiceViz key={serv.name} service={serv} />
           </>
         );
       })}
