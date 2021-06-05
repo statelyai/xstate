@@ -178,7 +178,7 @@ export class Actor<TEvent extends EventObject, TEmitted> {
   public subscribe(observer) {
     return this.behavior.subscribe?.(observer) || nullSubscription;
   }
-  public receive(event: TEvent | LifecycleSignal) {
+  public receive(event: TEvent) {
     this.mailbox.push(event);
     if (this.processingStatus === ProcessingStatus.NotProcessing) {
       this.flush();
