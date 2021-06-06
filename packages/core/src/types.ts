@@ -466,6 +466,8 @@ export interface StateNodeConfig<
    */
   parallel?: boolean | undefined;
   /**
+   * Docs: {@link https://xstate.js.org/docs/guides/statenodes.html#state-node-types State Nodes Types}.
+   *
    * The type of this state node:
    *
    *  - `'atomic'` - no child state nodes
@@ -476,28 +478,38 @@ export interface StateNodeConfig<
    */
   type?: 'atomic' | 'compound' | 'parallel' | 'final' | 'history';
   /**
+   * Docs: {@link https://xstate.js.org/docs/guides/context.html#initial-context Initial Context}.
+   *
    * The initial context (extended state) of the machine.
    *
    * Can be an object or a function that returns an object.
    */
   context?: TContext | (() => TContext);
   /**
+   * Docs: {@link https://xstate.js.org/docs/guides/history.html#history History}.
+   *
    * Indicates whether the state node is a history state node, and what
    * type of history:
    * shallow, deep, true (shallow), false (none), undefined (none)
    */
   history?: 'shallow' | 'deep' | boolean | undefined;
   /**
+   * Docs: {@link https://xstate.js.org/docs/guides/states.html#states States}.
+   *
    * The mapping of state node keys to their state node configurations (recursive).
    */
   states?: StatesConfig<TContext, TStateSchema, TEvent> | undefined;
   /**
+   * Docs: {@link https://xstate.js.org/docs/guides/communication.html#the-invoke-property The `invoke` poperty}.
+   *
    * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
    */
   invoke?: SingleOrArray<
     InvokeConfig<TContext, TEvent> | StateMachine<any, any, any>
   >;
   /**
+   * Docs: {@link https://xstate.js.org/docs/guides/transitions.html#selecting-enabled-transitions Selecting Enabled Transitions}.
+   *
    * The mapping of event types to their potential transition(s).
    */
   on?: TransitionsConfig<TContext, TEvent>;
@@ -508,6 +520,8 @@ export interface StateNodeConfig<
    */
   onEntry?: Actions<TContext, TEvent>; // TODO: deprecate
   /**
+   * Docs: {@link https://xstate.js.org/docs/guides/actions.html#actions Entry Actions}.
+   *
    * The action(s) to be executed upon entering the state node.
    */
   entry?: Actions<TContext, TEvent>;
@@ -518,6 +532,8 @@ export interface StateNodeConfig<
    */
   onExit?: Actions<TContext, TEvent>; // TODO: deprecate
   /**
+   * Docs: {@link https://xstate.js.org/docs/guides/actions.html#actions Exit Actions}.
+   *
    * The action(s) to be executed upon exiting the state node.
    */
   exit?: Actions<TContext, TEvent>;
@@ -528,12 +544,16 @@ export interface StateNodeConfig<
    */
   onDone?: string | SingleOrArray<TransitionConfig<TContext, DoneEventObject>>;
   /**
+   * Docs: {@link https://xstate.js.org/docs/guides/delays.html#delayed-transitions Delayed Transitions}.
+   *
    * The mapping (or array) of delays (in milliseconds) to their potential transition(s).
    * The delayed transitions are taken after the specified delay in an interpreter.
    */
   after?: DelayedTransitions<TContext, TEvent>;
 
   /**
+   * Docs: {@link https://xstate.js.org/docs/guides/transitions.html#eventless-always-transitions Eventless ("Always") Transitions}.
+   *
    * An eventless transition that is always taken when this state node is active.
    * Equivalent to a transition specified as an empty `''`' string in the `on` property.
    */
@@ -549,6 +569,8 @@ export interface StateNodeConfig<
   parent?: StateNode<TContext, any, TEvent>;
   strict?: boolean | undefined;
   /**
+   * Docs: {@link https://xstate.js.org/docs/guides/states.html#state-meta-data State Meta Data}.
+   *
    * The meta data associated with this state node, which will be returned in State instances.
    */
   meta?: TStateSchema extends { meta: infer D } ? D : any;
