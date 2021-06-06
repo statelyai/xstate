@@ -287,6 +287,8 @@ export class State<
   }
 
   /**
+   * Docs: {@link https://xstate.js.org/docs/guides/states.html#state-matches-parentstatevalue matches}
+   *
    * Whether the current state value is a subset of the given parent state value.
    * @param parentStateValue
    */
@@ -306,6 +308,8 @@ export class State<
   }
 
   /**
+   * Docs: {@link https://xstate.js.org/docs/guides/states.html#state-hastag-tag hasTag}.
+   *
    * Whether the current state configuration has a state node with the specified `tag`.
    * @param tag
    */

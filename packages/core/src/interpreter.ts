@@ -1297,6 +1297,12 @@ const resolveSpawnOptions = (nameOrOptions?: string | SpawnOptions) => {
   };
 };
 
+/**
+ * Docs: {@link https://xstate.js.org/docs/guides/actors.html#spawning-actors Spawn}.
+ * API: {@link https://xstate.js.org/api/globals.html#spawn spawn}.
+ *
+ * Creates an actor reference.
+ */
 export function spawn<TC, TE extends EventObject>(
   entity: StateMachine<TC, any, TE>,
   nameOrOptions?: string | SpawnOptions
@@ -1331,6 +1337,9 @@ export function spawn(
 }
 
 /**
+ * Docs: {@link https://xstate.js.org/docs/guides/interpretation.html#interpreter Interpreter}
+ * API: {@link https://xstate.js.org/api/globals.html#interpret interpret}
+ *
  * Creates a new Interpreter instance for the given machine with the provided options, if any.
  *
  * @param machine The machine to interpret

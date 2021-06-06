@@ -11,6 +11,15 @@ import {
 import { StateNode } from './StateNode';
 import { Model, ModelContextFrom, ModelEventsFrom } from './model';
 
+/**
+ * Docs: {@link https://xstate.js.org/docs/guides/machines.html#configuration Machines}.
+ * API: {@link https://xstate.js.org/api/globals.html#machine Machine}.
+ *
+ * Recommendation: Prefer `createMachine`.
+ *
+ * Creates a new finite state machine from the config.
+ *
+ */
 export function Machine<
   TContext = any,
   TEvent extends EventObject = AnyEventObject
@@ -49,6 +58,15 @@ export function Machine<
   ) as StateMachine<TContext, TStateSchema, TEvent>;
 }
 
+/**
+ * Docs: {@link https://xstate.js.org/docs/guides/machines.html#configuration Machines}.
+ * API: {@link https://xstate.js.org/api/globals.html#createmachine createMachine}.
+ *
+ * Creates a new finite state machine from the config.
+ *
+ * @param config The config object for creating the machine.
+ * @param options The optional options object.
+ */
 export function createMachine<
   TModel extends Model<any, any, any>,
   TContext = ModelContextFrom<TModel>,

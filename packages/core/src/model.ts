@@ -77,6 +77,10 @@ type EventFromEventCreators<EventCreators> = {
     : never;
 }[keyof EventCreators];
 
+/**
+ * - Docs: {@link https://xstate.js.org/docs/guides/models.html#createmodel createModel}
+ * - API: {@link https://xstate.js.org/api/globals.html#createmodel createModel}
+ */
 export function createModel<TContext, TEvent extends EventObject>(
   initialContext: TContext
 ): Model<TContext, TEvent, void>;
