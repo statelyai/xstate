@@ -307,7 +307,9 @@ export class Interpreter<
       this.stop();
     }
   }
-  /*
+  /**
+   * Docs: {@link https://xstate.js.org/docs/guides/interpretation.html#transitions}.
+   *
    * Adds a listener that is notified whenever a state transition happens. The listener is called with
    * the next state and the event object that caused the state transition.
    *
@@ -446,6 +448,8 @@ export class Interpreter<
    */
   public init = this.start;
   /**
+   * Docs: {@link https://xstate.js.org/docs/guides/interpretation.html#starting-and-stopping Starting and Stopping}.
+   *
    * Starts the interpreter from the given state, or the initial state.
    * @param initialState The state to start the statechart from
    */
@@ -485,6 +489,8 @@ export class Interpreter<
     return this;
   }
   /**
+   * Docs: {@link https://xstate.js.org/docs/guides/interpretation.html#starting-and-stopping Starting and Stopping}.
+   *
    * Stops the interpreter and unsubscribe all listeners.
    *
    * This will also notify the `onStop` listeners.
@@ -536,6 +542,8 @@ export class Interpreter<
     return this;
   }
   /**
+   * Docs: {@link https://xstate.js.org/docs/guides/interpretation.html#sending-events Sending Events}.
+   *
    * Sends an event to the running interpreter to trigger a transition.
    *
    * An array of events (batched) can be sent as well, which will send all

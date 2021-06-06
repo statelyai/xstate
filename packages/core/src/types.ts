@@ -156,9 +156,21 @@ export type TransitionTargets<TContext> = Array<
 >;
 
 export interface TransitionConfig<TContext, TEvent extends EventObject> {
+  /**
+   * Docs: {@link https://xstate.js.org/docs/guides/guards.html#guarded-transitions Guarded Transitions}.
+   */
   cond?: Condition<TContext, TEvent>;
+  /**
+   * Docs: {@link https://xstate.js.org/docs/guides/actions.html#actions Actions}.
+   */
   actions?: Actions<TContext, TEvent>;
+  /**
+   * Docs: {@link https://xstate.js.org/docs/guides/guards.html#in-state-guards "In State" Guards}.
+   */
   in?: StateValue;
+  /**
+   * Docs: {@link https://xstate.js.org/docs/guides/transitions.html#internal-transitions Internal Transitions}.
+   */
   internal?: boolean;
   target?: TransitionTarget<TContext, TEvent>;
   meta?: Record<string, any>;
@@ -698,6 +710,8 @@ export interface MachineConfig<
   TEvent extends EventObject
 > extends StateNodeConfig<TContext, TStateSchema, TEvent> {
   /**
+   * Docs: {@link https://xstate.js.org/docs/guides/context.html#initial-context Initial Context}.
+   *
    * The initial context (extended state)
    */
   context?: TContext | (() => TContext);

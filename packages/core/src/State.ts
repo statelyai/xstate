@@ -87,6 +87,9 @@ export class State<
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 > {
   public value: StateValue;
+  /**
+   * Docs: {@link https://xstate.js.org/docs/guides/context.html#context Context}.
+   */
   public context: TContext;
   public historyValue?: HistoryValue | undefined;
   public history?: State<TContext, TEvent, TStateSchema, TTypestate>;
