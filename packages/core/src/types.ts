@@ -196,7 +196,7 @@ export interface ActivityDefinition<TContext, TEvent extends EventObject>
   type: string;
 }
 
-export type Sender<TEvent extends EventObject> = (event: TEvent) => void;
+export type Sender<TEvent extends EventObject> = (event: Event<TEvent>) => void;
 
 type ExcludeType<A> = { [K in Exclude<keyof A, 'type'>]: A[K] };
 
