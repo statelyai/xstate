@@ -53,7 +53,7 @@ export function useMachine<
   const service = useConstant(() =>
     interpret(
       createMachine(
-        stateMachine.config,
+        stateMachine.config as any, // TODO: fix
         options ? options : (stateMachine as any)._options
       )
     ).start()
@@ -74,7 +74,7 @@ export function useMachine<
     };
   }, []);
 
-  return [state, service.send, service];
+  return [state, service.send, service] as any; // TODO: fix
 }
 
 export function useService<
@@ -109,5 +109,5 @@ export function useService<
 
   const state = useSubscription(subscription);
 
-  return [state, service.send, service];
+  return [state, service.send, service] as any; // TODO: fix
 }
