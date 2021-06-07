@@ -39,7 +39,6 @@ import {
   ActorRef,
   Expr,
   StopAction,
-  SpawnedActorRef,
   BehaviorCreator,
   ActorMap,
   InvokeActionObject
@@ -262,7 +261,7 @@ export function resolveInvoke<TContext, TEvent extends EventObject>(
   if (isActorRef(src)) {
     return {
       ...action,
-      ref: src as SpawnedActorRef<any>
+      ref: src
     };
   }
 

@@ -6,13 +6,13 @@ import {
   sendParent,
   assign,
   spawnMachine,
-  ActorRefFrom,
-  SpawnedActorRef
+  ActorRefFrom
 } from 'xstate';
 import { render, fireEvent, act } from '@testing-library/react';
 import { useActor } from '../src/useActor';
 import { invokeMachine } from 'xstate/invoke';
-import { ActorRef } from '../src/types';
+
+import { toActorRef } from 'xstate/actor';
 
 describe('useActor', () => {
   it('initial invoked actor should be immediately available', (done) => {
@@ -241,7 +241,7 @@ describe('useActor', () => {
   });
 
   it('actor should provide snapshot value immediately', () => {
-    const simpleActor: ActorRef<any, number> & { latestValue: number } = {
+    const simpleActor = toActorRef({
       send: () => {
         /* ... */
       },
@@ -253,7 +253,7 @@ describe('useActor', () => {
           }
         };
       }
-    };
+    });
 
     const Test = () => {
       const [state] = useActor(simpleActor, (a) => a.latestValue);
@@ -269,7 +269,7 @@ describe('useActor', () => {
   });
 
   it('should provide value from `actor.getSnapshot()`', () => {
-    const simpleActor: SpawnedActorRef<any, number> = {
+    const simpleActor = toActorRef({
       name: 'test',
       send: () => {
         /* ... */
@@ -282,7 +282,7 @@ describe('useActor', () => {
           }
         };
       }
-    };
+    });
 
     const Test = () => {
       const [state] = useActor(simpleActor);
@@ -298,21 +298,20 @@ describe('useActor', () => {
   });
 
   it('should update snapshot value when actor changes', () => {
-    const createSimpleActor = (
-      value: number
-    ): ActorRef<any, number> & { latestValue: number } => ({
-      send: () => {
-        /* ... */
-      },
-      latestValue: value,
-      subscribe: () => {
-        return {
-          unsubscribe: () => {
-            /* ... */
-          }
-        };
-      }
-    });
+    const createSimpleActor = (value: number) =>
+      toActorRef({
+        send: () => {
+          /* ... */
+        },
+        latestValue: value,
+        subscribe: () => {
+          return {
+            unsubscribe: () => {
+              /* ... */
+            }
+          };
+        }
+      });
 
     const Test = () => {
       const [actor, setActor] = useState(createSimpleActor(42));
@@ -350,16 +349,16 @@ describe('useActor', () => {
     const noop = () => {
       /* ... */
     };
-    const firstActor: ActorRef<any> = {
+    const firstActor = toActorRef({
       send: noop,
       subscribe: fakeSubscribe
-    };
-    const lastActor: ActorRef<any> = {
+    });
+    const lastActor = toActorRef({
       send: () => {
         done();
       },
       subscribe: fakeSubscribe
-    };
+    });
 
     const Test = () => {
       const [actor, setActor] = useState(firstActor);

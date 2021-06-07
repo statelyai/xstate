@@ -1836,3 +1836,12 @@ export function stateValuesEqual(
     aKeys.every((key) => stateValuesEqual(a[key], b[key]))
   );
 }
+
+export function getMeta(configuration: StateNode[] = []): Record<string, any> {
+  return configuration.reduce((acc, stateNode) => {
+    if (stateNode.meta !== undefined) {
+      acc[stateNode.id] = stateNode.meta;
+    }
+    return acc;
+  }, {} as Record<string, any>);
+}

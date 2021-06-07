@@ -11,6 +11,7 @@
   },
   "files": [
     "dist",
+    "actor",
     "actions",
     "invoke",
     "behavior",
@@ -49,6 +50,7 @@
     "umdName": "XState",
     "entrypoints": [
       ".",
+      "actor",
       "actions",
       "invoke",
       "behavior",

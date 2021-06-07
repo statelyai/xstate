@@ -8,13 +8,13 @@ import {
   TransitionDefinition,
   Typestate,
   HistoryValue,
-  NullEvent
+  NullEvent,
+  ActorRef
 } from './types';
 import { matchesState, keys, isString } from './utils';
 import { StateNode } from './StateNode';
-import { isInFinalState, nextEvents } from './stateUtils';
+import { isInFinalState, nextEvents, getMeta } from './stateUtils';
 import { initEvent } from './actions';
-import { SpawnedActorRef } from '../dist/xstate.cjs';
 
 export function isState<
   TContext,
@@ -88,7 +88,7 @@ export class State<
   /**
    * An object mapping actor names to spawned/invoked actors.
    */
-  public children: Record<string, SpawnedActorRef<any>>;
+  public children: Record<string, ActorRef<any>>;
   public tags: Set<string>;
   /**
    * Creates a new State instance for the given `stateValue` and `context`.
@@ -194,7 +194,7 @@ export class State<
     this.history = config.history as this;
     this.historyValue = config.historyValue || {};
     this.actions = config.actions || [];
-    this.meta = config.meta || {};
+    this.meta = getMeta(config.configuration);
     this.matches = this.matches.bind(this);
     this.toStrings = this.toStrings.bind(this);
     this.configuration = config.configuration;

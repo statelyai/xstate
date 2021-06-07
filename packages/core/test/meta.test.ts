@@ -1,4 +1,4 @@
-import { createMachine } from '../src/index';
+import { createMachine, interpret } from '../src/index';
 
 describe('state meta data', () => {
   const pedestrianStates = {
@@ -97,6 +97,36 @@ describe('state meta data', () => {
         walkData: 'walk data'
       }
     });
+  });
+
+  // https://github.com/davidkpiano/xstate/issues/1105
+  it('services started from a persisted state should calculate meta data', (done) => {
+    const machine = createMachine({
+      id: 'test',
+      initial: 'first',
+      states: {
+        first: {
+          meta: {
+            name: 'first state'
+          }
+        },
+        second: {
+          meta: {
+            name: 'second state'
+          }
+        }
+      }
+    });
+
+    const service = interpret(machine).onTransition((state) => {
+      expect(state.meta).toEqual({
+        'test.second': {
+          name: 'second state'
+        }
+      });
+      done();
+    });
+    service.start('second');
   });
 });
 

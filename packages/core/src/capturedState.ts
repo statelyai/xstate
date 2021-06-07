@@ -1,17 +1,13 @@
-import { SpawnedActorRef } from '.';
-import { ActionTypes, InvokeActionObject } from './types';
+import { ActionTypes, InvokeActionObject, ActorRef } from './types';
 
 export const CapturedState = {
   current: {
-    actorRef: undefined as SpawnedActorRef<any, any> | undefined,
+    actorRef: undefined as ActorRef<any, any> | undefined,
     spawns: [] as InvokeActionObject[]
   }
 };
 
-export function captureSpawn(
-  actorRef: SpawnedActorRef<any, any>,
-  name: string
-) {
+export function captureSpawn(actorRef: ActorRef<any, any>, name: string) {
   CapturedState.current.spawns.push({
     type: ActionTypes.Invoke,
     src: actorRef,

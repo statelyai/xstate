@@ -5,8 +5,8 @@ import {
   InvokeCallback,
   InterpreterOptions,
   ActorRef,
-  SpawnedActorRef,
-  Lazy
+  Lazy,
+  BaseActorRef
 } from './types';
 import { StateMachine } from './StateMachine';
 import { State } from './State';
@@ -34,7 +34,7 @@ export function isActorRef(item: any): item is ActorRef<any> {
   return !!item && typeof item === 'object' && typeof item.send === 'function';
 }
 
-export function isSpawnedActorRef(item: any): item is SpawnedActorRef<any> {
+export function isSpawnedActorRef(item: any): item is ActorRef<any> {
   return isActorRef(item) && 'name' in item;
 }
 
@@ -195,6 +195,19 @@ export class Actor<TEvent extends EventObject, TEmitted> {
   }
 }
 
-export function isSpawnedActor(item: any): item is SpawnedActorRef<any> {
+export function isSpawnedActor(item: any): item is ActorRef<any> {
   return isActorRef(item) && 'id' in item;
+}
+
+export function toActorRef<
+  TEvent extends EventObject,
+  TEmitted = any,
+  TActorRefLike extends BaseActorRef<TEvent> = BaseActorRef<TEvent>
+>(actorRefLike: TActorRefLike): ActorRef<TEvent, TEmitted> & TActorRefLike {
+  return {
+    subscribe: () => ({ unsubscribe: () => void 0 }),
+    name: 'anonymous',
+    getSnapshot: () => undefined,
+    ...actorRefLike
+  };
 }

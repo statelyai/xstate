@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 import { Sender } from './types';
-import { ActorRef, EventObject, SpawnedActorRef } from 'xstate';
+import { ActorRef, EventObject } from 'xstate';
 import useConstant from './useConstant';
 
 export function isActorWithState<T extends ActorRef<any>>(
@@ -20,16 +20,12 @@ type EventOfActorRef<
   TActor extends ActorRef<any, any>
 > = TActor extends ActorRef<infer TEvent, any> ? TEvent : never;
 
-type EmittedFromActorRef<
-  TActor extends ActorRef<any, any>
-> = TActor extends ActorRef<any, infer TEmitted> ? TEmitted : never;
-
 const noop = () => {
   /* ... */
 };
 
 function defaultGetSnapshot<TEmitted>(
-  actorRef: ActorRef<any, TEmitted> | SpawnedActorRef<any, TEmitted>
+  actorRef: ActorRef<any, TEmitted>
 ): TEmitted | undefined {
   return isActorWithState(actorRef)
     ? actorRef.state
@@ -38,10 +34,10 @@ function defaultGetSnapshot<TEmitted>(
     : undefined;
 }
 
-export function useActor<TActor extends ActorRef<any, any>>(
+export function useActor<TActor extends ActorRef<any, any>, TEmitted = any>(
   actorRef: TActor,
-  getSnapshot?: (actor: TActor) => EmittedFromActorRef<TActor>
-): [EmittedFromActorRef<TActor>, Sender<EventOfActorRef<TActor>>];
+  getSnapshot?: (actor: TActor) => TEmitted
+): [TEmitted, Sender<EventOfActorRef<TActor>>];
 export function useActor<TEvent extends EventObject, TEmitted>(
   actorRef: ActorRef<TEvent, TEmitted>,
   getSnapshot?: (actor: ActorRef<TEvent, TEmitted>) => TEmitted

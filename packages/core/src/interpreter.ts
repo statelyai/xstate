@@ -43,7 +43,7 @@ import { registry } from './registry';
 import { StateMachine } from './StateMachine';
 import { devToolsAdapter } from './dev';
 import { CapturedState } from './capturedState';
-import { PayloadSender, SpawnedActorRef, StopActionObject } from '.';
+import { PayloadSender, StopActionObject } from '.';
 
 export type StateListener<
   TContext,
@@ -117,13 +117,13 @@ export class Interpreter<
   // Actor Ref
   public parent?: ActorRef<any>;
   public name: string;
-  public ref: SpawnedActorRef<TEvent>;
+  public ref: ActorRef<TEvent>;
 
   /**
    * The globally unique process ID for this invocation.
    */
   public sessionId: string;
-  public children: Map<string | number, SpawnedActorRef<any>> = new Map();
+  public children: Map<string | number, ActorRef<any>> = new Map();
   private forwardTo: Set<string> = new Set();
 
   /**
@@ -771,7 +771,7 @@ export class Interpreter<
           typeof actor === 'string' ? this.children.get(actor) : actor;
 
         if (actorRef) {
-          this.stopChild((actorRef as SpawnedActorRef<any>).name); // TODO: fix
+          this.stopChild(actorRef.name);
         }
         break;
       }

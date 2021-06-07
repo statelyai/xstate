@@ -7,7 +7,8 @@ import {
   State,
   createMachine,
   send,
-  spawnPromise
+  spawnPromise,
+  ActorRefFrom
 } from 'xstate';
 import { render, fireEvent, waitForElement, act } from '@testing-library/react';
 import { useState } from 'react';
@@ -775,7 +776,9 @@ describe('useMachine (strict mode)', () => {
 
     const Test = () => {
       const [state] = useMachine(machine);
-      const [childState] = useActor(state.children.test);
+      const [childState] = useActor(
+        state.children.test as ActorRefFrom<typeof childMachine> // TODO: introduce typing for this in machine schema
+      );
 
       expect(childState.context.value).toBe(42);
 

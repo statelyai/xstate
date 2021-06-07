@@ -55,7 +55,7 @@ export type Spawner = <T extends Behavior<any, any>>(
   behavior: T,
   name?: string
 ) => T extends Behavior<infer TActorEvent, infer TActorEmitted>
-  ? SpawnedActorRef<TActorEvent, TActorEmitted>
+  ? ActorRef<TActorEvent, TActorEmitted>
   : never;
 
 export interface AssignMeta<TContext, TEvent extends EventObject> {
@@ -715,7 +715,7 @@ export interface InvokeAction {
 }
 
 export interface InvokeActionObject extends InvokeAction {
-  ref?: SpawnedActorRef<any>;
+  ref?: ActorRef<any>;
 }
 
 export interface StopAction<TC, TE extends EventObject> {
@@ -1013,7 +1013,7 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   meta?: any;
   configuration: Array<StateNode<TContext, TEvent>>;
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
-  children: Record<string, SpawnedActorRef<any>>;
+  children: Record<string, ActorRef<any>>;
   done?: boolean;
   tags?: Set<string>;
 }
@@ -1097,7 +1097,7 @@ export declare namespace SCXML {
      * a response back to the originating entity via the Event I/O Processor specified in 'origintype'.
      * For internal and platform events, the Processor must leave this field blank.
      */
-    origin?: SpawnedActorRef<any>;
+    origin?: ActorRef<any>;
     /**
      * This is equivalent to the 'type' field on the <send> element.
      * For external events, the SCXML Processor should set this field to a value which,
@@ -1170,9 +1170,8 @@ export type ExtractEvent<
   TEventType extends TEvent['type']
 > = TEvent extends { type: TEventType } ? TEvent : never;
 
-export interface ActorRef<TEvent extends EventObject, TEmitted = any>
-  extends Subscribable<TEmitted> {
-  send: Sender<TEvent>;
+export interface BaseActorRef<TEvent extends EventObject> {
+  send: (event: TEvent) => void;
 }
 
 export interface ActorLike<TCurrent, TEvent extends EventObject>
@@ -1182,9 +1181,10 @@ export interface ActorLike<TCurrent, TEvent extends EventObject>
 
 export type Sender<TEvent extends EventObject> = (event: TEvent) => void;
 
-export interface SpawnedActorRef<TEvent extends EventObject, TEmitted = any>
-  extends ActorRef<TEvent, TEmitted> {
+export interface ActorRef<TEvent extends EventObject, TEmitted = any>
+  extends Subscribable<TEmitted> {
   name: string;
+  send: (event: TEvent) => void;
   start?: () => void;
   getSnapshot: () => TEmitted | undefined;
   stop?: () => void;
@@ -1196,9 +1196,9 @@ export type ActorRefFrom<T extends Spawnable> = T extends StateMachine<
   infer TEvent,
   infer TTypestate
 >
-  ? SpawnedActorRef<TEvent, State<TContext, TEvent, TTypestate>>
+  ? ActorRef<TEvent, State<TContext, TEvent, TTypestate>>
   : T extends Promise<infer U>
-  ? SpawnedActorRef<never, U>
+  ? ActorRef<never, U>
   : ActorRef<any, any>; // TODO: expand
 
 export type DevToolsAdapter = (service: AnyInterpreter) => void;
