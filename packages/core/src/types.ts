@@ -81,7 +81,12 @@ export type BaseAction<
   TContext,
   TEvent extends EventObject,
   TAction extends BaseActionObject
-> = TAction['type'] | TAction | ActionFunction<TContext, TEvent>;
+> =
+  | TAction['type']
+  | TAction
+  | SendAction<TContext, TEvent, any>
+  | AssignAction<TContext, TEvent>
+  | ActionFunction<TContext, TEvent>;
 
 export type BaseActions<
   TContext,
