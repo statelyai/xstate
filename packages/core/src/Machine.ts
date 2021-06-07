@@ -17,7 +17,7 @@ import { Model, ModelContextFrom, ModelEventsFrom } from './model';
  *
  * Recommendation: Prefer `createMachine`.
  *
- * Creates a new finite state machine from the config.
+ * Creates a new finite-state machine (statechart) from the config.
  *
  */
 export function Machine<
@@ -65,7 +65,7 @@ export function Machine<
  * Creates a new finite state machine from the config.
  *
  * @param config The config object for creating the machine.
- * @param options The optional options object.
+ * @param options The implementation details for actions, guards, services, and delays.
  */
 export function createMachine<
   TModel extends Model<any, any, any>,
