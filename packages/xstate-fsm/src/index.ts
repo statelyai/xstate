@@ -112,27 +112,12 @@ function handleActions<
   return [nonAssignActions, nextContext, assigned];
 }
 
-export type Foo<TConfig extends StateMachine.Config<any, any>> = TConfig & {
-  states: {
-    [key in keyof TConfig['states']]: {
-      on?: {
-        [E in keyof TConfig['states']['on']]?: any;
-      };
-    };
-  };
-};
-
 export function createMachine<
   TContext extends object,
   TEvent extends EventObject = EventObject,
-  TState extends Typestate<TContext> = { value: any; context: TContext },
-  TConfig extends StateMachine.Config<
-    TContext,
-    TEvent,
-    TState
-  > = StateMachine.Config<TContext, TEvent, TState>
+  TState extends Typestate<TContext> = { value: any; context: TContext }
 >(
-  fsmConfig: Foo<TConfig>,
+  fsmConfig: StateMachine.Config<TContext, TEvent, TState>,
   options: {
     actions?: StateMachine.ActionMap<TContext, TEvent>;
   } = {}
