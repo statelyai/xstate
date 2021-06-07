@@ -196,7 +196,7 @@ export interface ActivityDefinition<TContext, TEvent extends EventObject>
   type: string;
 }
 
-export type Sender<TEvent extends EventObject> = (event: Event<TEvent>) => void;
+export type Sender<TEvent extends EventObject> = (event: TEvent) => void;
 
 type ExcludeType<A> = { [K in Exclude<keyof A, 'type'>]: A[K] };
 
@@ -1280,12 +1280,12 @@ export type ExtractEvent<
 > = TEvent extends { type: TEventType } ? TEvent : never;
 
 export interface BaseActorRef<TEvent extends EventObject> {
-  send: Sender<TEvent>;
+  send: (event: TEvent) => void;
 }
 
 export interface ActorRef<TEvent extends EventObject, TEmitted = any>
   extends Subscribable<TEmitted> {
-  send: Sender<TEvent>;
+  send: Sender<TEvent>; // TODO: this should just be TEvent
   id: string;
   getSnapshot: () => TEmitted | undefined;
   stop?: () => void;
