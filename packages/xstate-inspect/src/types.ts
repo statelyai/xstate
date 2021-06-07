@@ -1,11 +1,4 @@
-import type {
-  ActorRef,
-  Interpreter,
-  SCXML,
-  SpawnedActorRef,
-  State,
-  StateMachine
-} from 'xstate';
+import type { ActorRef, Interpreter, SCXML, State, StateMachine } from 'xstate';
 import { XStateDevInterface } from 'xstate/lib/devTools';
 import { InspectMachineEvent } from './inspectMachine';
 
@@ -72,10 +65,7 @@ export type ParsedReceiverEvent =
     }
   | { type: 'service.event'; event: SCXML.Event<any>; sessionId: string };
 
-export type InspectReceiver = SpawnedActorRef<
-  ReceiverCommand,
-  ParsedReceiverEvent
->;
+export type InspectReceiver = ActorRef<ReceiverCommand, ParsedReceiverEvent>;
 
 export interface WindowReceiverOptions {
   window: Window;

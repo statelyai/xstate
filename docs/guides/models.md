@@ -120,7 +120,7 @@ const nextState = machine.transition(
 The `createModel(...)` function infers the following types:
 
 - `context` is inferred from the first argument in `createModel(initialContext, creators)`
-- `events` is inferred from `creators.events` in `createModel(initialContext, creators)
+- `events` is inferred from `creators.events` in `createModel(initialContext, creators)`
 
 ```ts
 import { createModel } from 'xstate/lib/model';

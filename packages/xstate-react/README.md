@@ -319,7 +319,7 @@ This special `useMachine` hook is imported from `@xstate/react/fsm`
 
 ```js
 import { useEffect } from 'react';
-import { useMachine } from `@xstate/react/fsm`;
+import { useMachine } from '@xstate/react/fsm';
 import { createMachine } from '@xstate/fsm';
 
 const context = {
