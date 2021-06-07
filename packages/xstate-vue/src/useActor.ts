@@ -35,7 +35,11 @@ export function useActor(
     | ActorRef<EventObject, unknown>
     | Ref<ActorRef<EventObject, unknown>>,
   getSnapshot: (actor: ActorRef<EventObject, unknown>) => unknown = (a) =>
-    isActorWithState(a) ? a.state : undefined
+    isActorWithState(a)
+      ? a.state
+      : 'getSnapshot' in a
+      ? a.getSnapshot()
+      : undefined
 ): {
   state: Ref<unknown>;
   send: Sender<EventObject>;

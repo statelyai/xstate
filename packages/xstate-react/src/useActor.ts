@@ -31,11 +31,7 @@ const noop = () => {
 function defaultGetSnapshot<TEmitted>(
   actorRef: ActorRef<any, TEmitted>
 ): TEmitted | undefined {
-  return isActorWithState(actorRef)
-    ? actorRef.state
-    : 'getSnapshot' in actorRef
-    ? actorRef.getSnapshot()
-    : undefined;
+  return 'getSnapshot' in actorRef ? actorRef.getSnapshot() : undefined;
 }
 
 export function useActor<TActor extends ActorRef<any, any>>(

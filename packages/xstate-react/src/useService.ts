@@ -18,13 +18,7 @@ export function useService<
 >(
   service: Interpreter<TContext, any, TEvent, TTypestate>
 ): [State<TContext, TEvent, any, TTypestate>, PayloadSender<TEvent>] {
-  if (process.env.NODE_ENV !== 'production' && !('machine' in service)) {
-    throw new Error(
-      `Attempted to use an actor-like object instead of a service in the useService() hook. Please use the useActor() hook instead.`
-    );
-  }
-
-  const [state] = useActor(service, getServiceSnapshot);
+  const [state] = useActor(service);
 
   return [state, service.send];
 }

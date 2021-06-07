@@ -137,7 +137,7 @@ describe('useService hook', () => {
     expect(countEl.textContent).toBe('1');
   });
 
-  it('should throw if provided an actor instead of a service', (done) => {
+  it.skip('should throw if provided an actor instead of a service', (done) => {
     const Test = () => {
       expect(() => {
         useService({
