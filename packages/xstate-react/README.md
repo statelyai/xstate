@@ -319,7 +319,7 @@ This special `useMachine` hook is imported from `@xstate/react/fsm`
 
 ```js
 import { useEffect } from 'react';
-import { useMachine } from `@xstate/react/fsm`;
+import { useMachine } from '@xstate/react/fsm';
 import { createMachine } from '@xstate/fsm';
 
 const context = {
@@ -348,11 +348,13 @@ const fetchMachine = createMachine({
   }
 });
 
-const Fetcher = ({ onFetch = () => new Promise(res => res('some data')) }) => {
+const Fetcher = ({
+  onFetch = () => new Promise((res) => res('some data'))
+}) => {
   const [state, send] = useMachine(fetchMachine, {
     actions: {
       load: () => {
-        onFetch().then(res => {
+        onFetch().then((res) => {
           send({ type: 'RESOLVE', data: res });
         });
       }
@@ -361,7 +363,7 @@ const Fetcher = ({ onFetch = () => new Promise(res => res('some data')) }) => {
 
   switch (state.value) {
     case 'idle':
-      return <button onClick={_ => send('FETCH')}>Fetch</button>;
+      return <button onClick={(_) => send('FETCH')}>Fetch</button>;
     case 'loading':
       return <div>Loading...</div>;
     case 'success':

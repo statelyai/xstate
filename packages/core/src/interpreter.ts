@@ -55,7 +55,12 @@ import {
   isBehavior
 } from './utils';
 import { Scheduler } from './scheduler';
-import { Actor, isSpawnedActor, createDeferredActor } from './Actor';
+import {
+  Actor,
+  isSpawnedActor,
+  createDeferredActor,
+  toActorRef
+} from './Actor';
 import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
 import { getGlobal, registerService } from './devTools';
@@ -64,7 +69,6 @@ import {
   ActorRef,
   ActorRefFrom,
   Behavior,
-  SpawnedActorRef,
   StopActionObject,
   Subscription
 } from '.';
@@ -116,7 +120,7 @@ export class Interpreter<
   TEvent extends EventObject = EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 > implements
-    SpawnedActorRef<TEvent, State<TContext, TEvent, TStateSchema, TTypestate>> {
+    ActorRef<TEvent, State<TContext, TEvent, TStateSchema, TTypestate>> {
   /**
    * The default interpreter options:
    *
@@ -173,7 +177,7 @@ export class Interpreter<
    * The globally unique process ID for this invocation.
    */
   public sessionId: string;
-  public children: Map<string | number, SpawnedActorRef<any>> = new Map();
+  public children: Map<string | number, ActorRef<any>> = new Map();
   private forwardTo: Set<string> = new Set();
 
   // Dev Tools
@@ -950,7 +954,7 @@ export class Interpreter<
     entity: Spawnable,
     name: string,
     options?: SpawnOptions
-  ): SpawnedActorRef<any> {
+  ): ActorRef<any> {
     if (isBehavior(entity)) {
       return this.spawnBehavior(entity, name);
     } else if (isPromiseLike(entity)) {
@@ -976,7 +980,7 @@ export class Interpreter<
   >(
     machine: StateMachine<TChildContext, TChildStateSchema, TChildEvent>,
     options: { id?: string; autoForward?: boolean; sync?: boolean } = {}
-  ): SpawnedActorRef<TChildEvent, State<TChildContext, TChildEvent>> {
+  ): ActorRef<TChildEvent, State<TChildContext, TChildEvent>> {
     const childService = new Interpreter(machine, {
       ...this.options, // inherit options from this interpreter
       parent: this,
@@ -1017,13 +1021,13 @@ export class Interpreter<
   private spawnBehavior<TActorEvent extends EventObject, TEmitted>(
     behavior: Behavior<TActorEvent, TEmitted>,
     id: string
-  ): SpawnedActorRef<TActorEvent, TEmitted> {
+  ): ActorRef<TActorEvent, TEmitted> {
     let state = behavior.initial;
     const observers = new Set<Observer<TEmitted>>();
 
-    const actor: SpawnedActorRef<TActorEvent, TEmitted> = {
+    const actor = toActorRef({
       id,
-      send: (event) => {
+      send: (event: TActorEvent) => {
         const eventObject = toEventObject(event);
         state = behavior.receive(state, eventObject, { parent: this });
       },
@@ -1039,16 +1043,13 @@ export class Interpreter<
           }
         };
       }
-    };
+    });
 
     this.children.set(id, actor);
 
     return actor;
   }
-  private spawnPromise<T>(
-    promise: Promise<T>,
-    id: string
-  ): SpawnedActorRef<never, T> {
+  private spawnPromise<T>(promise: Promise<T>, id: string): ActorRef<never, T> {
     let canceled = false;
     let resolvedData: T | undefined;
 
@@ -1086,7 +1087,7 @@ export class Interpreter<
       }
     );
 
-    const actor: SpawnedActorRef<never, T> = {
+    const actor: ActorRef<never, T> = {
       id,
       send: () => void 0,
       subscribe: (next, handleError?, complete?) => {
@@ -1129,10 +1130,7 @@ export class Interpreter<
 
     return actor;
   }
-  private spawnCallback(
-    callback: InvokeCallback,
-    id: string
-  ): SpawnedActorRef<any> {
+  private spawnCallback(callback: InvokeCallback, id: string): ActorRef<any> {
     let canceled = false;
     const receivers = new Set<(e: EventObject) => void>();
     const listeners = new Set<(e: EventObject) => void>();
@@ -1194,7 +1192,7 @@ export class Interpreter<
   private spawnObservable<T extends TEvent>(
     source: Subscribable<T>,
     id: string
-  ): SpawnedActorRef<any, T> {
+  ): ActorRef<any, T> {
     let emitted: T | undefined;
 
     const subscription = source.subscribe(
@@ -1212,7 +1210,7 @@ export class Interpreter<
       }
     );
 
-    const actor: SpawnedActorRef<any, T> = {
+    const actor: ActorRef<any, T> = {
       id,
       send: () => void 0,
       subscribe: (next, handleError?, complete?) => {
@@ -1229,7 +1227,7 @@ export class Interpreter<
 
     return actor;
   }
-  private spawnActor<T extends SpawnedActorRef<any>>(actor: T): T {
+  private spawnActor<T extends ActorRef<any>>(actor: T): T {
     this.children.set(actor.id, actor);
 
     return actor;
@@ -1341,11 +1339,11 @@ export function spawn<TC, TE extends EventObject>(
 export function spawn(
   entity: Spawnable,
   nameOrOptions?: string | SpawnOptions
-): SpawnedActorRef<any>;
+): ActorRef<any>;
 export function spawn(
   entity: Spawnable,
   nameOrOptions?: string | SpawnOptions
-): SpawnedActorRef<any> {
+): ActorRef<any> {
   const resolvedOptions = resolveSpawnOptions(nameOrOptions);
 
   return serviceScope.consume((service) => {
