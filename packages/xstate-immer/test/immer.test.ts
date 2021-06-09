@@ -1,6 +1,7 @@
 import { createMachine, interpret } from 'xstate';
-import { assign, createUpdater, ImmerUpdateEvent, produceAssign } from '../src';
-import { createModel } from 'xstate/lib/model';
+import { assign, createUpdater, ImmerUpdateEvent } from '../src';
+import { createModel } from '../src/model';
+import { createModel as xStateCreate } from 'xstate/lib/model';
 
 describe('@xstate/immer', () => {
   describe('assign', () => {
@@ -219,6 +220,7 @@ describe('@xstate/immer', () => {
       const model = createModel({
         count: 0
       });
+
       const countMachine = createMachine<typeof model>({
         id: 'count',
         context: model.initialContext,
@@ -227,7 +229,23 @@ describe('@xstate/immer', () => {
           active: {
             on: {
               INC: {
-                actions: model.assign(produceAssign((ctx) => ctx.count++))
+                actions: model.assign((ctx) => ctx.count++)
+              }
+            }
+          }
+        }
+      });
+
+      const xmodel = xStateCreate({ count: 0 });
+      const xcountMachine = createMachine<typeof xmodel>({
+        id: 'count',
+        context: model.initialContext,
+        initial: 'active',
+        states: {
+          active: {
+            on: {
+              INC: {
+                actions: xmodel.assign((ctx) => ({ count: ctx.count + 1 }))
               }
             }
           }
@@ -264,7 +282,7 @@ describe('@xstate/immer', () => {
         },
         {
           actions: {
-            increment: model.assign(produceAssign((ctx) => ctx.count++))
+            increment: model.assign((ctx) => ctx.count++)
           }
         }
       );
@@ -301,9 +319,7 @@ describe('@xstate/immer', () => {
         },
         {
           actions: {
-            pushBaz: model.assign(
-              produceAssign((ctx) => ctx.foo.bar.baz.push(0))
-            )
+            pushBaz: model.assign((ctx) => ctx.foo.bar.baz.push(0))
           }
         }
       );
