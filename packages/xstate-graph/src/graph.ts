@@ -1,7 +1,7 @@
 import {
   StateNode,
   State,
-  DefaultContext,
+  MachineContext,
   Event,
   EventObject,
   AnyEventObject,
@@ -100,7 +100,7 @@ function getValueAdjMapOptions<TContext, TEvent extends EventObject>(
 }
 
 export function getAdjacencyMap<
-  TContext = DefaultContext,
+  TContext = MachineContext,
   TEvent extends EventObject = AnyEventObject
 >(
   node: MachineNode<TContext, TEvent>,
@@ -170,7 +170,7 @@ export function getAdjacencyMap<
 }
 
 export function getShortestPaths<
-  TContext = DefaultContext,
+  TContext = MachineContext,
   TEvent extends EventObject = EventObject
 >(
   machine: MachineNode<TContext, TEvent>,
@@ -259,7 +259,7 @@ export function getShortestPaths<
 }
 
 export function getSimplePaths<
-  TContext = DefaultContext,
+  TContext = MachineContext,
   TEvent extends EventObject = EventObject
 >(
   machine: MachineNode<TContext, TEvent>,
@@ -332,7 +332,7 @@ export function getSimplePaths<
 }
 
 export function getSimplePathsAsArray<
-  TContext = DefaultContext,
+  TContext = MachineContext,
   TEvent extends EventObject = EventObject
 >(
   machine: MachineNode<TContext, TEvent>,

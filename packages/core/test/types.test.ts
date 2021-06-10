@@ -1,5 +1,6 @@
 import { assign, createMachine, interpret } from '../src/index';
 import { raise } from '../src/actions';
+import { createModel } from '../src/model';
 
 function noop(_x) {
   return;
@@ -295,5 +296,19 @@ describe('Typestates', () => {
       ? startedService.state.context
       : { result: none, error: 'oops' };
     expect(failed).toEqual({ result: none, error: 'oops' });
+  });
+});
+
+describe('types', () => {
+  it('defined context in createMachine() should be an object', () => {
+    createMachine({
+      // @ts-expect-error
+      context: 'string'
+    });
+  });
+
+  it('defined context passed to createModel() should be an object', () => {
+    // @ts-expect-error
+    createModel('string');
   });
 });

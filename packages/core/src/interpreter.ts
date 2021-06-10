@@ -2,7 +2,6 @@ import {
   Event,
   EventObject,
   CancelActionObject,
-  DefaultContext,
   ActionObject,
   SpecialTargets,
   ActionTypes,
@@ -846,7 +845,7 @@ export class Interpreter<
  * @param options Interpreter options
  */
 export function interpret<
-  TContext = DefaultContext,
+  TContext,
   TEvent extends EventObject = EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(

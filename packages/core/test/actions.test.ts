@@ -1003,7 +1003,7 @@ describe('purely defined actions', () => {
 
 describe('forwardTo()', () => {
   it('should forward an event to a service', (done) => {
-    const child = createMachine<void, { type: 'EVENT'; value: number }>({
+    const child = createMachine<undefined, { type: 'EVENT'; value: number }>({
       id: 'child',
       initial: 'active',
       states: {
@@ -1048,7 +1048,7 @@ describe('forwardTo()', () => {
   });
 
   it('should forward an event to a service (dynamic)', (done) => {
-    const child = createMachine<void, { type: 'EVENT'; value: number }>({
+    const child = createMachine<undefined, { type: 'EVENT'; value: number }>({
       id: 'child',
       initial: 'active',
       states: {
