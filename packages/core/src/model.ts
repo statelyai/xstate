@@ -8,11 +8,11 @@ import type {
 } from './types';
 import { mapValues } from './utils';
 
-type AnyFunction = (...args: any[]) => any;
+export type AnyFunction = (...args: any[]) => any;
 
-type Cast<A1 extends any, A2 extends any> = A1 extends A2 ? A1 : A2;
-type Compute<A extends any> = { [K in keyof A]: A[K] } & unknown;
-type Prop<T, K> = K extends keyof T ? T[K] : never;
+export type Cast<A1 extends any, A2 extends any> = A1 extends A2 ? A1 : A2;
+export type Compute<A extends any> = { [K in keyof A]: A[K] } & unknown;
+export type Prop<T, K> = K extends keyof T ? T[K] : never;
 
 export interface Model<
   TContext,
@@ -55,11 +55,11 @@ type EventCreators<Self> = {
     : 'An event creator must be a function';
 };
 
-type ModelCreators<Self> = {
+export type ModelCreators<Self> = {
   events: EventCreators<Prop<Self, 'events'>>;
 };
 
-type FinalEventCreators<Self> = {
+export type FinalEventCreators<Self> = {
   [K in keyof Self]: Self[K] extends AnyFunction
     ? (
         ...args: Parameters<Self[K]>
@@ -67,11 +67,11 @@ type FinalEventCreators<Self> = {
     : never;
 };
 
-type FinalModelCreators<Self> = {
+export type FinalModelCreators<Self> = {
   events: FinalEventCreators<Prop<Self, 'events'>>;
 };
 
-type EventFromEventCreators<EventCreators> = {
+export type EventFromEventCreators<EventCreators> = {
   [K in keyof EventCreators]: EventCreators[K] extends AnyFunction
     ? ReturnType<EventCreators[K]>
     : never;
