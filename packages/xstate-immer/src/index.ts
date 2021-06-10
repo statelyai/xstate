@@ -27,23 +27,7 @@ function immerAssign<TContext, TEvent extends EventObject = EventObject>(
   });
 }
 
-function produceAssign<TContext, TEvent extends EventObject>(
-  recipe: ImmerAssigner<TContext, TEvent>
-): Assigner<TContext, TEvent> {
-  return (
-    context: TContext,
-    event: TEvent,
-    meta: AssignMeta<TContext, TEvent>
-  ) => {
-    const newState = produce(
-      context,
-      (draft) => void recipe(draft, event, meta)
-    );
-    return newState;
-  };
-}
-
-export { immerAssign as assign, produceAssign };
+export { immerAssign as assign };
 
 export interface ImmerUpdateEvent<
   TType extends string = string,
