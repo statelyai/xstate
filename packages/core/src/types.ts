@@ -1290,6 +1290,7 @@ export interface ActorRef<TEvent extends EventObject, TEmitted = any>
   send: Sender<TEvent>; // TODO: this should just be TEvent
   id: string;
   getSnapshot: () => TEmitted | undefined;
+  start?: () => void;
   stop?: () => void;
   toJSON?: () => any;
 }
@@ -1329,10 +1330,21 @@ export type InterpreterFrom<
   : never;
 
 export interface ActorContext {
-  parent?: SpawnedActorRef<any, any>;
+  parent?: ActorRef<any, any>;
+  self: ActorRef<any, any>;
 }
 
+export type LifecycleSignal =
+  | {
+      type: 'xstate.start';
+    }
+  | { type: 'xstate.stop' };
+
 export interface Behavior<TEvent extends EventObject, TEmitted = any> {
-  receive: (state: TEmitted, event: TEvent, actorCtx: ActorContext) => TEmitted;
+  receive: (
+    state: TEmitted,
+    event: TEvent | LifecycleSignal,
+    actorCtx: ActorContext
+  ) => TEmitted;
   initial: TEmitted;
 }

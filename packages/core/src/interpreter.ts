@@ -1029,7 +1029,10 @@ export class Interpreter<
       id,
       send: (event: TActorEvent) => {
         const eventObject = toEventObject(event);
-        state = behavior.receive(state, eventObject, { parent: this });
+        state = behavior.receive(state, eventObject, {
+          parent: this,
+          self: actor
+        });
       },
       getSnapshot: () => state,
       subscribe: (next, handleError?, complete?) => {

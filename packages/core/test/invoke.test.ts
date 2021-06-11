@@ -9,6 +9,7 @@ import {
   createMachine,
   Behavior
 } from '../src';
+import { fromReducer } from '../src/behavior';
 import {
   actionTypes,
   done as _done,
@@ -2124,6 +2125,41 @@ describe('invoke', () => {
         done();
       });
       pingService.start();
+    });
+  });
+
+  describe('with reducers', () => {
+    it('should work with a reducer', (done) => {
+      const countReducer = (count: number, event: { type: 'INC' }): number => {
+        if (event.type === 'INC') {
+          return count + 1;
+        } else {
+          return count - 1;
+        }
+      };
+
+      const countMachine = createMachine({
+        invoke: {
+          id: 'count',
+          src: () => fromReducer(countReducer, 0)
+        },
+        on: {
+          INC: {
+            actions: forwardTo('count')
+          }
+        }
+      });
+
+      const countService = interpret(countMachine)
+        .onTransition((state) => {
+          if (state.children['count']?.getSnapshot() === 2) {
+            done();
+          }
+        })
+        .start();
+
+      countService.send('INC');
+      countService.send('INC');
     });
   });
 
