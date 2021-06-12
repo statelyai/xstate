@@ -38,7 +38,7 @@ export interface ActionObject<TContext, TEvent extends EventObject> {
   [other: string]: any;
 }
 
-export type MachineContext = object | undefined;
+export type MachineContext = object;
 
 /**
  * The specified string event types or the specified event objects.

@@ -427,6 +427,7 @@ async function runTestToCompletion(
 describe('scxml', () => {
   const onlyTests: string[] = [
     // e.g., 'test399.txml'
+    // 'test286.txml'
   ];
   const testGroupKeys = Object.keys(testGroups);
 
