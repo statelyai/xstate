@@ -55,12 +55,7 @@ import {
   isBehavior
 } from './utils';
 import { Scheduler } from './scheduler';
-import {
-  Actor,
-  isSpawnedActor,
-  createDeferredActor,
-  toActorRef
-} from './Actor';
+import { Actor, isSpawnedActor, createDeferredActor } from './Actor';
 import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
 import { getGlobal, registerService } from './devTools';
@@ -72,6 +67,7 @@ import {
   StopActionObject,
   Subscription
 } from '.';
+import { spawnBehavior } from './behavior';
 
 export type StateListener<
   TContext,
@@ -1022,35 +1018,11 @@ export class Interpreter<
     behavior: Behavior<TActorEvent, TEmitted>,
     id: string
   ): ActorRef<TActorEvent, TEmitted> {
-    let state = behavior.initial;
-    const observers = new Set<Observer<TEmitted>>();
+    const actorRef = spawnBehavior(behavior, { id, parent: this });
 
-    const actor = toActorRef({
-      id,
-      send: (event: TActorEvent) => {
-        const eventObject = toEventObject(event);
-        state = behavior.receive(state, eventObject, {
-          parent: this,
-          self: actor
-        });
-      },
-      getSnapshot: () => state,
-      subscribe: (next, handleError?, complete?) => {
-        const observer = toObserver(next, handleError, complete);
-        observers.add(observer);
-        observer.next(state);
+    this.children.set(id, actorRef);
 
-        return {
-          unsubscribe: () => {
-            observers.delete(observer);
-          }
-        };
-      }
-    });
-
-    this.children.set(id, actor);
-
-    return actor;
+    return actorRef;
   }
   private spawnPromise<T>(promise: Promise<T>, id: string): ActorRef<never, T> {
     let canceled = false;
