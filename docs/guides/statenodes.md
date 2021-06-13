@@ -205,8 +205,7 @@ const timeOfDayMachine = createMachine({
   }
 });
 
-const timeOfDayService = interpret(timeOfDayMachine)
-  .withContext({ time: Date.now() }))
+const timeOfDayService = interpret(timeOfDayMachine.withContext({ time: Date.now() }))
   .onTransition(state => console.log(state.value))
   .start();
 
