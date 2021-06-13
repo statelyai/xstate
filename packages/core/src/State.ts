@@ -104,7 +104,7 @@ export class State<
     TEvent extends EventObject = EventObject
   >(
     stateValue: State<TContext, TEvent, any> | StateValue,
-    context?: TContext | undefined
+    context: TContext = {} as TContext
   ): State<TContext, TEvent, any> {
     if (stateValue instanceof State) {
       if (stateValue.context !== context) {
