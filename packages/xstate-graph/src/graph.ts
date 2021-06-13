@@ -66,7 +66,7 @@ export function serializeState<TContext extends MachineContext>(
   state: State<TContext, any>
 ): string {
   const { value, context } = state;
-  return context === undefined
+  return context === undefined || Object.keys(context).length === 0
     ? JSON.stringify(value)
     : JSON.stringify(value) + ' | ' + JSON.stringify(context);
 }
