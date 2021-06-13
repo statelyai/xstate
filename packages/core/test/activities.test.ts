@@ -39,7 +39,7 @@ const lightMachine = createMachine({
 
 describe('activities with guarded transitions', () => {
   it('should activate even if there are subsequent automatic, but blocked transitions', (done) => {
-    const machine = createMachine<undefined, any>(
+    const machine = createMachine(
       {
         initial: 'A',
         states: {

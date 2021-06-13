@@ -6,7 +6,8 @@ import {
   InterpreterOptions,
   ActorRef,
   Lazy,
-  BaseActorRef
+  BaseActorRef,
+  MachineContext
 } from './types';
 import { StateMachine } from './StateMachine';
 import { State } from './State';
@@ -68,7 +69,10 @@ export function fromCallback<TEvent extends EventObject>(
   );
 }
 
-export function fromMachine<TContext, TEvent extends EventObject>(
+export function fromMachine<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   machine: StateMachine<TContext, TEvent>,
   name: string,
   options?: Partial<InterpreterOptions>

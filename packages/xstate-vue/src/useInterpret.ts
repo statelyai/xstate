@@ -11,6 +11,7 @@ import {
 } from 'xstate';
 import { UseMachineOptions, MaybeLazy } from './types';
 import { onBeforeUnmount, onMounted } from 'vue';
+import { MachineContext } from '../../core/src';
 
 // copied from core/src/utils.ts
 // it avoids a breaking change between this package and XState which is its peer dep
@@ -33,7 +34,7 @@ function toObserver<T>(
 }
 
 export function useInterpret<
-  TContext,
+  TContext extends MachineContext,
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(

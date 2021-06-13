@@ -8,7 +8,7 @@ import {
   ChooseConditon
 } from './types';
 import { createMachine } from './index';
-import { mapValues, keys, isString, flatten } from './utils';
+import { mapValues, isString, flatten } from './utils';
 import * as actions from './actions';
 import { invokeMachine } from './invoke';
 import { StateMachine } from './StateMachine';
@@ -104,24 +104,21 @@ const evaluateExecutableContent = <
   meta: SCXMLEventMeta<TEvent>,
   body: string
 ) => {
-  const datamodel = context
-    ? keys(context)
-        .map((key) => `const ${key} = context['${key}'];`)
-        .join('\n')
-    : '';
-
-  const scope = ['const _sessionid = "NOT_IMPLEMENTED";', datamodel]
+  const scope = ['const _sessionid = "NOT_IMPLEMENTED";']
     .filter(Boolean)
     .join('\n');
 
   const args = ['context', '_event'];
 
   const fnBody = `
-    ${scope}
-    ${body}
+${scope}
+with (context) {
+  ${body}
+}
   `;
 
   const fn = new Function(...args, fnBody);
+
   return fn(context, meta._event);
 };
 
@@ -147,9 +144,10 @@ function mapAction<
     case 'assign': {
       return actions.assign<TContext, TEvent>((context, e, meta) => {
         const fnBody = `
-            return {'${element.attributes!.location}': ${
-          element.attributes!.expr
-        }};
+
+${element.attributes!.location};
+
+return {'${element.attributes!.location}': ${element.attributes!.expr}};
           `;
 
         return evaluateExecutableContent(context, e, meta, fnBody);
@@ -161,7 +159,7 @@ function mapAction<
       }
       return actions.cancel((context, e, meta) => {
         const fnBody = `
-            return ${element.attributes!.sendidexpr};
+return ${element.attributes!.sendidexpr};
           `;
 
         return evaluateExecutableContent(context, e, meta, fnBody);
@@ -188,9 +186,7 @@ function mapAction<
       } else {
         convertedEvent = (context, _ev, meta) => {
           const fnBody = `
-              return { type: ${event ? `"${event}"` : eventexpr}, ${
-            params ? params : ''
-          } }
+return { type: ${event ? `"${event}"` : eventexpr}, ${params ? params : ''} }
             `;
 
           return evaluateExecutableContent(context, _ev, meta, fnBody);
@@ -202,7 +198,7 @@ function mapAction<
       } else if (element.attributes!.delayexpr) {
         convertedDelay = (context, _ev, meta) => {
           const fnBody = `
-              return (${delayToMs})(${element.attributes!.delayexpr});
+return (${delayToMs})(${element.attributes!.delayexpr});
             `;
 
           return evaluateExecutableContent(context, _ev, meta, fnBody);
@@ -221,7 +217,7 @@ function mapAction<
       return actions.log<TContext, TEvent>(
         (context, e, meta) => {
           const fnBody = `
-              return ${element.attributes!.expr};
+return ${element.attributes!.expr};
             `;
 
           return evaluateExecutableContent(context, e, meta, fnBody);

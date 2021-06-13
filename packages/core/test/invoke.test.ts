@@ -492,7 +492,7 @@ describe('invoke', () => {
 
   it('should start services (machine as invoke config)', (done) => {
     const machineInvokeMachine = createMachine<
-      void,
+      any,
       { type: 'SUCCESS'; data: number }
     >({
       id: 'machine-invoke',
@@ -532,7 +532,7 @@ describe('invoke', () => {
 
   it('should start deeply nested service (machine as invoke config)', (done) => {
     const machineInvokeMachine = createMachine<
-      void,
+      any,
       { type: 'SUCCESS'; data: number }
     >({
       id: 'parent',
@@ -2079,7 +2079,7 @@ describe('invoke', () => {
         }
       });
 
-      const machine = createMachine<undefined, UpdateObject>({
+      const machine = createMachine<any, UpdateObject>({
         initial: 'pending',
         states: {
           pending: {

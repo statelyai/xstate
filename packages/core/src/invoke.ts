@@ -4,7 +4,8 @@ import {
   Subscribable,
   BehaviorCreator,
   SCXML,
-  InvokeMeta
+  InvokeMeta,
+  MachineContext
 } from './types';
 
 import { isFunction, mapContext } from './utils';
@@ -21,7 +22,7 @@ import {
 export const DEFAULT_SPAWN_OPTIONS = { sync: false };
 
 export function invokeMachine<
-  TContext,
+  TContext extends MachineContext,
   TEvent extends EventObject,
   TMachine extends StateMachine<any, any, any>
 >(
@@ -65,7 +66,10 @@ export function invokePromise<T>(
   };
 }
 
-export function invokeActivity<TContext, TEvent extends EventObject>(
+export function invokeActivity<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   activityCreator: (ctx: TContext, event: TEvent) => any
 ): BehaviorCreator<TContext, TEvent> {
   const callbackCreator = (ctx: TContext, event: TEvent) => () => {
@@ -76,7 +80,7 @@ export function invokeActivity<TContext, TEvent extends EventObject>(
 }
 
 export function invokeCallback<
-  TContext,
+  TContext extends MachineContext,
   TEvent extends EventObject = AnyEventObject
 >(
   callbackCreator: (ctx: TContext, e: TEvent) => InvokeCallback

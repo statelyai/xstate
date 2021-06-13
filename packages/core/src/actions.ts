@@ -41,7 +41,8 @@ import {
   StopAction,
   BehaviorCreator,
   ActorMap,
-  InvokeActionObject
+  InvokeActionObject,
+  MachineContext
 } from './types';
 import * as actionTypes from './actionTypes';
 import {
@@ -58,7 +59,10 @@ export { actionTypes };
 
 export const initEvent = toSCXMLEvent({ type: actionTypes.init });
 
-export function getActionFunction<TContext, TEvent extends EventObject>(
+export function getActionFunction<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   actionType: ActionType,
   actionFunctionMap?: ActionFunctionMap<TContext, TEvent>
 ):
@@ -70,7 +74,10 @@ export function getActionFunction<TContext, TEvent extends EventObject>(
     : undefined;
 }
 
-export function toActionObject<TContext, TEvent extends EventObject>(
+export function toActionObject<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   action: Action<TContext, TEvent>,
   actionFunctionMap?: ActionFunctionMap<TContext, TEvent>
 ): ActionObject<TContext, TEvent> {
@@ -123,7 +130,10 @@ export function toActionObject<TContext, TEvent extends EventObject>(
   return actionObject;
 }
 
-export const toActionObjects = <TContext, TEvent extends EventObject>(
+export const toActionObjects = <
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   action?: SingleOrArray<Action<TContext, TEvent>> | undefined,
   actionFunctionMap?: ActionFunctionMap<TContext, TEvent>
 ): Array<ActionObject<TContext, TEvent>> => {
@@ -144,7 +154,10 @@ export const toActionObjects = <TContext, TEvent extends EventObject>(
  *
  * @param eventType The event to raise.
  */
-export function raise<TContext, TEvent extends EventObject>(
+export function raise<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   event: Event<TEvent>
 ): RaiseAction<TEvent> | SendAction<TContext, AnyEventObject, TEvent> {
   if (!isString(event)) {
@@ -176,7 +189,7 @@ export function resolveRaise<TEvent extends EventObject>(
  *  - `to` - The target of this event (by default, the machine the event was sent from).
  */
 export function send<
-  TContext,
+  TContext extends MachineContext,
   TEvent extends EventObject,
   TSentEvent extends EventObject = AnyEventObject
 >(
@@ -198,7 +211,7 @@ export function send<
 }
 
 export function resolveSend<
-  TContext,
+  TContext extends MachineContext,
   TEvent extends EventObject,
   TSentEvent extends EventObject
 >(
@@ -250,7 +263,10 @@ export function resolveSend<
   };
 }
 
-export function resolveInvoke<TContext, TEvent extends EventObject>(
+export function resolveInvoke<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   action: InvokeAction,
   ctx: TContext,
   _event: SCXML.Event<TEvent>,
@@ -292,7 +308,7 @@ export function resolveInvoke<TContext, TEvent extends EventObject>(
  * @param options Options to pass into the send event.
  */
 export function sendParent<
-  TContext,
+  TContext extends MachineContext,
   TEvent extends EventObject,
   TSentEvent extends EventObject = AnyEventObject
 >(
@@ -308,11 +324,10 @@ export function sendParent<
 /**
  * Sends an update event to this machine's parent.
  */
-export function sendUpdate<TContext, TEvent extends EventObject>(): SendAction<
-  TContext,
-  TEvent,
-  { type: ActionTypes.Update }
-> {
+export function sendUpdate<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(): SendAction<TContext, TEvent, { type: ActionTypes.Update }> {
   return sendParent<TContext, TEvent, { type: ActionTypes.Update }>(
     actionTypes.update
   );
@@ -325,7 +340,7 @@ export function sendUpdate<TContext, TEvent extends EventObject>(): SendAction<
  * @param options Options to pass into the send event
  */
 export function respond<
-  TContext,
+  TContext extends MachineContext,
   TEvent extends EventObject,
   TSentEvent extends EventObject = AnyEventObject
 >(
@@ -356,7 +371,10 @@ const defaultLogExpr = <TContext, TEvent extends EventObject>(
  *  - `event` - the event that caused this action to be executed.
  * @param label The label to give to the logged expression.
  */
-export function log<TContext, TEvent extends EventObject>(
+export function log<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   expr: string | LogExpr<TContext, TEvent> = defaultLogExpr,
   label?: string
 ): LogAction<TContext, TEvent> {
@@ -367,7 +385,10 @@ export function log<TContext, TEvent extends EventObject>(
   };
 }
 
-export const resolveLog = <TContext, TEvent extends EventObject>(
+export const resolveLog = <
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   action: LogAction<TContext, TEvent>,
   ctx: TContext,
   _event: SCXML.Event<TEvent>
@@ -388,7 +409,10 @@ export const resolveLog = <TContext, TEvent extends EventObject>(
  *
  * @param sendId The `id` of the `send(...)` action to cancel.
  */
-export const cancel = <TContext, TEvent extends EventObject>(
+export const cancel = <
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   sendId: string | ExprWithMeta<TContext, TEvent, string>
 ): CancelAction<TContext, TEvent> => {
   return {
@@ -397,7 +421,10 @@ export const cancel = <TContext, TEvent extends EventObject>(
   };
 };
 
-export const resolveCancel = <TContext, TEvent extends EventObject>(
+export const resolveCancel = <
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   action: CancelAction<TContext, TEvent>,
   ctx: TContext,
   _event: SCXML.Event<TEvent>
@@ -414,9 +441,10 @@ export const resolveCancel = <TContext, TEvent extends EventObject>(
   return action as CancelActionObject<TContext, TEvent>;
 };
 
-export function invoke<TContext, TEvent extends EventObject>(
-  invokeDef: InvokeDefinition<TContext, TEvent>
-): InvokeAction {
+export function invoke<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(invokeDef: InvokeDefinition<TContext, TEvent>): InvokeAction {
   return {
     type: ActionTypes.Invoke,
     src: invokeDef.src,
@@ -432,7 +460,10 @@ export function invoke<TContext, TEvent extends EventObject>(
  *
  * @param actorRef The activity to stop.
  */
-export function stop<TContext, TEvent extends EventObject>(
+export function stop<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   actorRef: string | Expr<TContext, TEvent, ActorRef<any>>
 ): StopAction<TContext, TEvent> {
   const activity = isFunction(actorRef) ? actorRef : actorRef;
@@ -443,7 +474,10 @@ export function stop<TContext, TEvent extends EventObject>(
   };
 }
 
-export function resolveStop<TContext, TEvent extends EventObject>(
+export function resolveStop<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   action: StopAction<TContext, TEvent>,
   context: TContext,
   _event: SCXML.Event<TEvent>
@@ -465,7 +499,10 @@ export function resolveStop<TContext, TEvent extends EventObject>(
  *
  * @param assignment An object that represents the partial context to update.
  */
-export const assign = <TContext, TEvent extends EventObject = EventObject>(
+export const assign = <
+  TContext extends MachineContext,
+  TEvent extends EventObject = EventObject
+>(
   assignment: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent>
 ): AssignAction<TContext, TEvent> => {
   return {
@@ -474,9 +511,10 @@ export const assign = <TContext, TEvent extends EventObject = EventObject>(
   };
 };
 
-export function isActionObject<TContext, TEvent extends EventObject>(
-  action: Action<TContext, TEvent>
-): action is ActionObject<TContext, TEvent> {
+export function isActionObject<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(action: Action<TContext, TEvent>): action is ActionObject<TContext, TEvent> {
   return typeof action === 'object' && 'type' in action;
 }
 
@@ -541,7 +579,10 @@ export function error(id: string, data?: any): ErrorPlatformEvent & string {
   return eventObject as ErrorPlatformEvent & string;
 }
 
-export function pure<TContext, TEvent extends EventObject>(
+export function pure<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   getActions: (
     context: TContext,
     event: TEvent
@@ -559,7 +600,10 @@ export function pure<TContext, TEvent extends EventObject>(
  * @param target The target service to forward the event to.
  * @param options Options to pass into the send action creator.
  */
-export function forwardTo<TContext, TEvent extends EventObject>(
+export function forwardTo<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   target: Required<SendActionOptions<TContext, TEvent>>['to'],
   options?: SendActionOptions<TContext, TEvent>
 ): SendAction<TContext, TEvent, AnyEventObject> {
@@ -577,7 +621,7 @@ export function forwardTo<TContext, TEvent extends EventObject>(
  * @param options Options to pass into the send action creator.
  */
 export function escalate<
-  TContext,
+  TContext extends MachineContext,
   TEvent extends EventObject,
   TErrorData = any
 >(
@@ -600,7 +644,10 @@ export function escalate<
   );
 }
 
-export function choose<TContext, TEvent extends EventObject>(
+export function choose<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   guards: Array<ChooseConditon<TContext, TEvent>>
 ): ChooseAction<TContext, TEvent> {
   return {

@@ -4,14 +4,18 @@ import {
   SCXML,
   AssignMeta,
   ActionObject,
-  InvokeActionObject
+  InvokeActionObject,
+  MachineContext
 } from './types';
 import { State } from '.';
 import { isFunction, keys } from './utils';
 
 import * as capturedState from './capturedState';
 
-export function updateContext<TContext, TEvent extends EventObject>(
+export function updateContext<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   context: TContext,
   _event: SCXML.Event<TEvent>,
   assignActions: Array<AssignAction<TContext, TEvent>>,

@@ -9,7 +9,8 @@ import {
   Typestate,
   HistoryValue,
   NullEvent,
-  ActorRef
+  ActorRef,
+  MachineContext
 } from './types';
 import { matchesState, keys, isString } from './utils';
 import { StateNode } from './StateNode';
@@ -17,7 +18,7 @@ import { isInFinalState, nextEvents, getMeta } from './stateUtils';
 import { initEvent } from './actions';
 
 export function isState<
-  TContext,
+  TContext extends MachineContext,
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(state: object | string): state is State<TContext, TEvent, TTypestate> {
@@ -27,17 +28,20 @@ export function isState<
 
   return 'value' in state && 'history' in state;
 }
-export function bindActionToState<TC, TE extends EventObject>(
-  action: ActionObject<TC, TE>,
-  state: State<TC, TE, any>
-): ActionObject<TC, TE> {
+export function bindActionToState<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
+  action: ActionObject<TContext, TEvent>,
+  state: State<TContext, TEvent, any>
+): ActionObject<TContext, TEvent> {
   const { exec } = action;
-  const boundAction: ActionObject<TC, TE> = {
+  const boundAction: ActionObject<TContext, TEvent> = {
     ...action,
     exec:
       exec !== undefined
         ? () =>
-            exec(state.context, state.event as TE, {
+            exec(state.context, state.event as TEvent, {
               action,
               state,
               _event: state._event
@@ -49,7 +53,7 @@ export function bindActionToState<TC, TE extends EventObject>(
 }
 
 export class State<
-  TContext,
+  TContext extends MachineContext,
   TEvent extends EventObject = EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 > {
@@ -95,15 +99,18 @@ export class State<
    * @param stateValue
    * @param context
    */
-  public static from<TC, TE extends EventObject = EventObject>(
-    stateValue: State<TC, TE, any> | StateValue,
-    context?: TC | undefined
-  ): State<TC, TE, any> {
+  public static from<
+    TContext extends MachineContext,
+    TEvent extends EventObject = EventObject
+  >(
+    stateValue: State<TContext, TEvent, any> | StateValue,
+    context: TContext = {} as TContext
+  ): State<TContext, TEvent, any> {
     if (stateValue instanceof State) {
       if (stateValue.context !== context) {
-        return new State<TC, TE>({
+        return new State<TContext, TEvent>({
           value: stateValue.value,
-          context: context as TC,
+          context: context as TContext,
           _event: stateValue._event,
           _sessionid: null,
           history: stateValue.history,
@@ -118,11 +125,11 @@ export class State<
       return stateValue;
     }
 
-    const _event = initEvent as SCXML.Event<TE>;
+    const _event = initEvent as SCXML.Event<TEvent>;
 
-    return new State<TC, TE>({
+    return new State<TContext, TEvent>({
       value: stateValue,
-      context: context as TC,
+      context: context as TContext,
       _event,
       _sessionid: null,
       history: undefined,
@@ -137,9 +144,10 @@ export class State<
    * Creates a new State instance for the given `config`.
    * @param config The state config
    */
-  public static create<TC, TE extends EventObject = EventObject>(
-    config: StateConfig<TC, TE>
-  ): State<TC, TE, any> {
+  public static create<
+    TContext extends MachineContext,
+    TEvent extends EventObject = EventObject
+  >(config: StateConfig<TContext, TEvent>): State<TContext, TEvent, any> {
     return new State(config);
   }
   /**
@@ -151,10 +159,10 @@ export class State<
     state: TState,
     context: any
   ): TState;
-  public static inert<TC, TE extends EventObject = EventObject>(
-    stateValue: StateValue,
-    context: TC
-  ): State<TC, TE>;
+  public static inert<
+    TContext extends MachineContext,
+    TEvent extends EventObject = EventObject
+  >(stateValue: StateValue, context: TContext): State<TContext, TEvent>;
   public static inert(
     stateValue: State<any, any> | StateValue,
     context: any

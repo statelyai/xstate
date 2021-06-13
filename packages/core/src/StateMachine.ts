@@ -9,7 +9,8 @@ import {
   Typestate,
   Transitions,
   MachineSchema,
-  StateNodeDefinition
+  StateNodeDefinition,
+  MachineContext
 } from './types';
 import { State } from './State';
 
@@ -30,7 +31,7 @@ export const NULL_EVENT = '';
 export const STATE_IDENTIFIER = '#';
 export const WILDCARD = '*';
 
-const createDefaultOptions = <TContext>(
+const createDefaultOptions = <TContext extends MachineContext>(
   context: TContext
 ): MachineImplementations<TContext, any> => ({
   actions: {},
@@ -44,10 +45,6 @@ function resolveContext<TContext>(
   context: TContext,
   partialContext?: Partial<TContext>
 ): TContext {
-  if (context === undefined) {
-    return context;
-  }
-
   return {
     ...context,
     ...partialContext
@@ -55,7 +52,7 @@ function resolveContext<TContext>(
 }
 
 export class StateMachine<
-  TContext = any,
+  TContext extends MachineContext = any,
   TEvent extends EventObject = EventObject,
   TTypestate extends Typestate<TContext> = any
 > {
@@ -100,10 +97,7 @@ export class StateMachine<
       createDefaultOptions(config.context!),
       options
     );
-    this.context = resolveContext<TContext>(
-      config.context as TContext,
-      this.options.context
-    );
+    this.context = resolveContext(config.context, options?.context) as TContext;
     this.delimiter = this.config.delimiter || STATE_DELIMITER;
     this.version = this.config.version;
     this.schema = this.config.schema ?? (({} as any) as this['schema']);

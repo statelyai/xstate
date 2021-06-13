@@ -41,7 +41,8 @@ import {
   ChooseAction,
   StopActionObject,
   AnyEventObject,
-  InvokeSourceDefinition
+  InvokeSourceDefinition,
+  MachineContext
 } from './types';
 import { State } from './State';
 import {
@@ -70,23 +71,30 @@ import { isSpawnedActorRef } from './Actor';
 import { StateMachine } from './StateMachine';
 import { evaluateGuard, toGuardDefinition } from './guards';
 
-type Configuration<TC, TE extends EventObject> = Iterable<StateNode<TC, TE>>;
+type Configuration<
+  TContext extends MachineContext,
+  TE extends EventObject
+> = Iterable<StateNode<TContext, TE>>;
 
-type AdjList<TC, TE extends EventObject> = Map<
-  StateNode<TC, TE>,
-  Array<StateNode<TC, TE>>
+type AdjList<TContext extends MachineContext, TE extends EventObject> = Map<
+  StateNode<TContext, TE>,
+  Array<StateNode<TContext, TE>>
 >;
 
 export const isAtomicStateNode = (stateNode: StateNode<any, any>) =>
   stateNode.type === 'atomic' || stateNode.type === 'final';
 
-export function getChildren<TC, TE extends EventObject>(
-  stateNode: StateNode<TC, TE>
-): Array<StateNode<TC, TE>> {
+export function getChildren<
+  TContext extends MachineContext,
+  TE extends EventObject
+>(stateNode: StateNode<TContext, TE>): Array<StateNode<TContext, TE>> {
   return keys(stateNode.states).map((key) => stateNode.states[key]);
 }
 
-export function getProperAncestors<TContext, TEvent extends EventObject>(
+export function getProperAncestors<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   stateNode: StateNode<TContext, TEvent>,
   toStateNode: StateNode<TContext, TEvent> | null
 ): Array<typeof stateNode> {
@@ -102,9 +110,10 @@ export function getProperAncestors<TContext, TEvent extends EventObject>(
   return ancestors;
 }
 
-export function getAllStateNodes<TC, TE extends EventObject>(
-  stateNode: StateNode<TC, TE>
-): Array<StateNode<TC, TE>> {
+export function getAllStateNodes<
+  TContext extends MachineContext,
+  TE extends EventObject
+>(stateNode: StateNode<TContext, TE>): Array<StateNode<TContext, TE>> {
   const stateNodes = [stateNode];
 
   if (isAtomicStateNode(stateNode)) {
@@ -116,9 +125,12 @@ export function getAllStateNodes<TC, TE extends EventObject>(
   );
 }
 
-export function getConfiguration<TC, TE extends EventObject>(
-  stateNodes: Iterable<StateNode<TC, TE>>
-): Iterable<StateNode<TC, TE>> {
+export function getConfiguration<
+  TContext extends MachineContext,
+  TE extends EventObject
+>(
+  stateNodes: Iterable<StateNode<TContext, TE>>
+): Iterable<StateNode<TContext, TE>> {
   const configuration = new Set(stateNodes);
   const mutConfiguration = new Set(stateNodes);
 
@@ -159,9 +171,12 @@ export function getConfiguration<TC, TE extends EventObject>(
   return mutConfiguration;
 }
 
-function getValueFromAdj<TC, TE extends EventObject>(
-  baseNode: StateNode<TC, TE>,
-  adjList: AdjList<TC, TE>
+function getValueFromAdj<
+  TContext extends MachineContext,
+  TE extends EventObject
+>(
+  baseNode: StateNode<TContext, TE>,
+  adjList: AdjList<TContext, TE>
 ): StateValue {
   const childStateNodes = adjList.get(baseNode);
 
@@ -188,10 +203,11 @@ function getValueFromAdj<TC, TE extends EventObject>(
   return stateValue;
 }
 
-export function getAdjList<TC, TE extends EventObject>(
-  configuration: Configuration<TC, TE>
-): AdjList<TC, TE> {
-  const adjList: AdjList<TC, TE> = new Map();
+export function getAdjList<
+  TContext extends MachineContext,
+  TE extends EventObject
+>(configuration: Configuration<TContext, TE>): AdjList<TContext, TE> {
+  const adjList: AdjList<TContext, TE> = new Map();
 
   for (const s of configuration) {
     if (!adjList.has(s)) {
@@ -210,9 +226,12 @@ export function getAdjList<TC, TE extends EventObject>(
   return adjList;
 }
 
-export function getStateValue<TC, TE extends EventObject>(
-  rootNode: StateNode<TC, TE>,
-  configuration: Configuration<TC, TE>
+export function getStateValue<
+  TContext extends MachineContext,
+  TE extends EventObject
+>(
+  rootNode: StateNode<TContext, TE>,
+  configuration: Configuration<TContext, TE>
 ): StateValue {
   const config = getConfiguration(configuration);
   return getValueFromAdj(rootNode, getAdjList(config));
@@ -230,15 +249,19 @@ export function has<T>(iterable: Iterable<T>, item: T): boolean {
   return false; // TODO: fix
 }
 
-export function nextEvents<TC, TE extends EventObject>(
-  configuration: Array<StateNode<TC, TE>>
-): Array<TE['type']> {
+export function nextEvents<
+  TContext extends MachineContext,
+  TE extends EventObject
+>(configuration: Array<StateNode<TContext, TE>>): Array<TE['type']> {
   return [...new Set(flatten([...configuration.map((sn) => sn.ownEvents)]))];
 }
 
-export function isInFinalState<TC, TE extends EventObject>(
-  configuration: Array<StateNode<TC, TE>>,
-  stateNode: StateNode<TC, TE> = configuration[0].machine.root
+export function isInFinalState<
+  TContext extends MachineContext,
+  TE extends EventObject
+>(
+  configuration: Array<StateNode<TContext, TE>>,
+  stateNode: StateNode<TContext, TE> = configuration[0].machine.root
 ): boolean {
   if (stateNode.type === 'compound') {
     return getChildren(stateNode).some(
@@ -332,7 +355,10 @@ export function getCandidates<TEvent extends EventObject>(
 /**
  * All delayed transitions from the config.
  */
-export function getDelayedTransitions<TContext, TEvent extends EventObject>(
+export function getDelayedTransitions<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   stateNode: StateNode<TContext, TEvent>
 ): Array<DelayedTransitionDefinition<TContext, TEvent>> {
   const afterConfig = stateNode.config.after;
@@ -378,7 +404,10 @@ export function getDelayedTransitions<TContext, TEvent extends EventObject>(
   });
 }
 
-export function formatTransition<TContext, TEvent extends EventObject>(
+export function formatTransition<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   stateNode: StateNode<TContext, TEvent>,
   transitionConfig: TransitionConfig<TContext, TEvent> & {
     event: TEvent['type'] | NullEvent['type'] | '*';
@@ -433,7 +462,10 @@ export function formatTransition<TContext, TEvent extends EventObject>(
 
   return transition;
 }
-export function formatTransitions<TContext, TEvent extends EventObject>(
+export function formatTransitions<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   stateNode: StateNode<TContext, TEvent>
 ): Array<TransitionDefinition<TContext, TEvent>> {
   let onConfig: Array<
@@ -522,7 +554,10 @@ export function formatTransitions<TContext, TEvent extends EventObject>(
   return formattedTransitions;
 }
 
-export function formatInitialTransition<TContext, TEvent extends EventObject>(
+export function formatInitialTransition<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   stateNode: StateNode<TContext, TEvent>,
   _target: SingleOrArray<string> | InitialTransitionConfig<TContext, TEvent>
 ): InitialTransitionDefinition<TContext, TEvent> {
@@ -582,7 +617,10 @@ export function formatInitialTransition<TContext, TEvent extends EventObject>(
   }) as InitialTransitionDefinition<TContext, TEvent>;
 }
 
-export function resolveTarget<TContext, TEvent extends EventObject>(
+export function resolveTarget<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   stateNode: StateNode<TContext, TEvent>,
   _target: Array<string | StateNode<TContext, TEvent>> | undefined
 ): Array<StateNode<TContext, TEvent>> | undefined {
@@ -619,7 +657,10 @@ export function resolveTarget<TContext, TEvent extends EventObject>(
   });
 }
 
-function resolveHistoryTarget<TContext, TEvent extends EventObject>(
+function resolveHistoryTarget<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   stateNode: StateNode<TContext, TEvent> & { type: 'history' }
 ): Array<StateNode<TContext, TEvent>> {
   const normalizedTarget = normalizeTarget<TContext, TEvent>(stateNode.target);
@@ -631,15 +672,19 @@ function resolveHistoryTarget<TContext, TEvent extends EventObject>(
   );
 }
 
-function isHistoryNode<TContext, TEvent extends EventObject>(
+function isHistoryNode<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   stateNode: StateNode<TContext, TEvent>
 ): stateNode is StateNode<TContext, TEvent> & { type: 'history' } {
   return stateNode.type === 'history';
 }
 
-export function getInitialStateNodes<TContext, TEvent extends EventObject>(
-  stateNode: StateNode<TContext, TEvent>
-): Array<StateNode<TContext, TEvent>> {
+export function getInitialStateNodes<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(stateNode: StateNode<TContext, TEvent>): Array<StateNode<TContext, TEvent>> {
   const transitions = [
     {
       target: [stateNode],
@@ -664,7 +709,10 @@ export function getInitialStateNodes<TContext, TEvent extends EventObject>(
 /**
  * Returns the child state node from its relative `stateKey`, or throws.
  */
-export function getStateNode<TContext, TEvent extends EventObject>(
+export function getStateNode<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   stateNode: StateNode<TContext, TEvent>,
   stateKey: string
 ): StateNode<TContext, TEvent> {
@@ -690,7 +738,10 @@ export function getStateNode<TContext, TEvent extends EventObject>(
  *
  * @param statePath The string or string array relative path to the state node.
  */
-function getStateNodeByPath<TContext, TEvent extends EventObject>(
+function getStateNodeByPath<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   stateNode: StateNode<TContext, TEvent>,
   statePath: string | string[]
 ): StateNode<TContext, TEvent> {
@@ -722,7 +773,10 @@ function getStateNodeByPath<TContext, TEvent extends EventObject>(
  *
  * @param state The state value or State instance
  */
-export function getStateNodes<TContext, TEvent extends EventObject>(
+export function getStateNodes<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   stateNode: StateNode<TContext, TEvent>,
   state: StateValue | State<TContext, TEvent>
 ): Array<StateNode<TContext, TEvent>> {
@@ -758,7 +812,10 @@ export function getStateNodes<TContext, TEvent extends EventObject>(
   );
 }
 
-export function transitionLeafNode<TContext, TEvent extends EventObject>(
+export function transitionLeafNode<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   stateNode: StateNode<TContext, TEvent>,
   stateValue: string,
   state: State<TContext, TEvent>,
@@ -774,7 +831,10 @@ export function transitionLeafNode<TContext, TEvent extends EventObject>(
   return next;
 }
 
-export function transitionCompoundNode<TContext, TEvent extends EventObject>(
+export function transitionCompoundNode<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   stateNode: StateNode<TContext, TEvent>,
   stateValue: StateValueMap,
   state: State<TContext, TEvent>,
@@ -796,7 +856,10 @@ export function transitionCompoundNode<TContext, TEvent extends EventObject>(
 
   return next;
 }
-export function transitionParallelNode<TContext, TEvent extends EventObject>(
+export function transitionParallelNode<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   stateNode: StateNode<TContext, TEvent>,
   stateValue: StateValueMap,
   state: State<TContext, TEvent>,
@@ -835,7 +898,10 @@ export function transitionParallelNode<TContext, TEvent extends EventObject>(
   return enabledTransitions;
 }
 
-export function transitionNode<TContext, TEvent extends EventObject>(
+export function transitionNode<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   stateNode: StateNode<TContext, TEvent>,
   stateValue: StateValue,
   state: State<TContext, TEvent, any>,
@@ -855,15 +921,16 @@ export function transitionNode<TContext, TEvent extends EventObject>(
   return transitionParallelNode(stateNode, stateValue, state, _event);
 }
 
-function getHistoryNodes<TContext, TEvent extends EventObject>(
-  stateNode: StateNode<TContext, TEvent>
-): Array<StateNode<TContext, TEvent>> {
+function getHistoryNodes<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(stateNode: StateNode<TContext, TEvent>): Array<StateNode<TContext, TEvent>> {
   return getChildren(stateNode).filter((sn) => {
     return sn.type === 'history';
   });
 }
 
-function isDescendant<TC, TE extends EventObject>(
+function isDescendant<TC extends MachineContext, TE extends EventObject>(
   childStateNode: StateNode<TC, TE>,
   parentStateNode: StateNode<TC, TE>
 ): boolean {
@@ -875,9 +942,10 @@ function isDescendant<TC, TE extends EventObject>(
   return marker.parent === parentStateNode;
 }
 
-function getPathFromRootToNode<TC, TE extends EventObject>(
-  stateNode: StateNode<TC, TE>
-): Array<StateNode<TC, TE>> {
+function getPathFromRootToNode<
+  TC extends MachineContext,
+  TE extends EventObject
+>(stateNode: StateNode<TC, TE>): Array<StateNode<TC, TE>> {
   const path: Array<StateNode<TC, TE>> = [];
   let marker = stateNode.parent;
 
@@ -907,7 +975,7 @@ function hasIntersection<T>(s1: Iterable<T>, s2: Iterable<T>): boolean {
 }
 
 export function removeConflictingTransitions<
-  TContext,
+  TContext extends MachineContext,
   TEvent extends EventObject
 >(
   enabledTransitions: Array<TransitionDefinition<TContext, TEvent>>,
@@ -947,7 +1015,7 @@ export function removeConflictingTransitions<
   return Array.from(filteredTransitions);
 }
 
-function findLCCA<TContext, TEvent extends EventObject>(
+function findLCCA<TContext extends MachineContext, TEvent extends EventObject>(
   stateNodes: Array<StateNode<TContext, TEvent>>
 ): StateNode<TContext, TEvent> {
   const [head] = stateNodes;
@@ -966,7 +1034,10 @@ function findLCCA<TContext, TEvent extends EventObject>(
   return current[current.length - 1];
 }
 
-function getEffectiveTargetStates<TC, TE extends EventObject>(
+function getEffectiveTargetStates<
+  TC extends MachineContext,
+  TE extends EventObject
+>(
   transition: TransitionDefinition<TC, TE>,
   state: State<TC, TE>
 ): Array<StateNode<TC, TE>> {
@@ -998,7 +1069,10 @@ function getEffectiveTargetStates<TC, TE extends EventObject>(
   return [...targets];
 }
 
-function getTransitionDomain<TContext, TEvent extends EventObject>(
+function getTransitionDomain<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   transition: TransitionDefinition<TContext, TEvent>,
   state: State<TContext, TEvent>
 ): StateNode<TContext, TEvent> | null {
@@ -1023,7 +1097,10 @@ function getTransitionDomain<TContext, TEvent extends EventObject>(
   return lcca;
 }
 
-function exitStates<TContext, TEvent extends EventObject>(
+function exitStates<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   transitions: Array<TransitionDefinition<TContext, TEvent>>,
   mutConfiguration: Set<StateNode<TContext, TEvent>>,
   state: State<TContext, TEvent>
@@ -1052,7 +1129,10 @@ function exitStates<TContext, TEvent extends EventObject>(
   };
 }
 
-export function enterStates<TContext, TEvent extends EventObject>(
+export function enterStates<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   transitions: Array<TransitionDefinition<TContext, TEvent>>,
   mutConfiguration: Set<StateNode<TContext, TEvent>>,
   state: State<TContext, TEvent>
@@ -1133,7 +1213,10 @@ export function enterStates<TContext, TEvent extends EventObject>(
   };
 }
 
-function computeExitSet<TContext, TEvent extends EventObject>(
+function computeExitSet<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   transitions: Array<TransitionDefinition<TContext, TEvent>>,
   configuration: Set<StateNode<TContext, TEvent>>,
   state: State<TContext, TEvent>
@@ -1155,7 +1238,10 @@ function computeExitSet<TContext, TEvent extends EventObject>(
   return [...statesToExit];
 }
 
-function computeEntrySet<TContext, TEvent extends EventObject>(
+function computeEntrySet<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   transitions: Array<TransitionDefinition<TContext, TEvent>>,
   state: State<TContext, TEvent>,
   mutStatesToEnter: Set<StateNode<TContext, TEvent>>,
@@ -1184,7 +1270,10 @@ function computeEntrySet<TContext, TEvent extends EventObject>(
   }
 }
 
-function addDescendantStatesToEnter<TContext, TEvent extends EventObject>(
+function addDescendantStatesToEnter<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   stateNode: StateNode<TContext, TEvent>,
   state: State<TContext, TEvent>,
   mutStatesToEnter: Set<typeof stateNode>,
@@ -1279,7 +1368,10 @@ function addDescendantStatesToEnter<TContext, TEvent extends EventObject>(
   }
 }
 
-function addAncestorStatesToEnter<TContext, TEvent extends EventObject>(
+function addAncestorStatesToEnter<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   stateNode: StateNode<TContext, TEvent>,
   toStateNode: StateNode<TContext, TEvent> | null,
   state: State<TContext, TEvent>,
@@ -1312,7 +1404,10 @@ function addAncestorStatesToEnter<TContext, TEvent extends EventObject>(
  * @param currentState
  * @param mutConfiguration
  */
-export function microstep<TContext, TEvent extends EventObject>(
+export function microstep<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   transitions: Array<TransitionDefinition<TContext, TEvent>>,
   currentState: State<TContext, TEvent> | undefined,
   mutConfiguration: Set<StateNode<TContext, TEvent>>,
@@ -1389,9 +1484,10 @@ export function microstep<TContext, TEvent extends EventObject>(
   };
 }
 
-function selectEventlessTransitions<TContext, TEvent extends EventObject>(
-  state: State<TContext, TEvent, any>
-): Transitions<TContext, TEvent> {
+function selectEventlessTransitions<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(state: State<TContext, TEvent, any>): Transitions<TContext, TEvent> {
   const enabledTransitions: Set<
     TransitionDefinition<TContext, TEvent>
   > = new Set();
@@ -1427,7 +1523,10 @@ function selectEventlessTransitions<TContext, TEvent extends EventObject>(
   );
 }
 
-export function resolveMicroTransition<TContext, TEvent extends EventObject>(
+export function resolveMicroTransition<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   machine: StateMachine<TContext, TEvent>,
   transitions: Transitions<TContext, TEvent>,
   currentState?: State<TContext, TEvent, any>,
@@ -1544,7 +1643,10 @@ export function resolveMicroTransition<TContext, TEvent extends EventObject>(
   return nextState;
 }
 
-function resolveActionsAndContext<TContext, TEvent extends EventObject>(
+function resolveActionsAndContext<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   actions: Array<ActionObject<TContext, TEvent>>,
   machine: StateMachine<TContext, TEvent, any>,
   _event: SCXML.Event<TEvent>,
@@ -1753,7 +1855,10 @@ export function macrostep<
   return maybeNextState;
 }
 
-function resolveHistoryValue<TContext, TEvent extends EventObject>(
+function resolveHistoryValue<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   currentState: State<TContext, TEvent, any> | undefined,
   exitSet: Array<StateNode<TContext, TEvent>>
 ): HistoryValue<TContext, TEvent> {
@@ -1788,10 +1893,10 @@ function resolveHistoryValue<TContext, TEvent extends EventObject>(
  *
  * @param stateValue The partial state value to resolve.
  */
-export function resolveStateValue<TContext, TEvent extends EventObject>(
-  rootNode: StateNode<TContext, TEvent>,
-  stateValue: StateValue
-): StateValue {
+export function resolveStateValue<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(rootNode: StateNode<TContext, TEvent>, stateValue: StateValue): StateValue {
   const configuration = getConfiguration(getStateNodes(rootNode, stateValue));
   return getStateValue(rootNode, [...configuration]);
 }

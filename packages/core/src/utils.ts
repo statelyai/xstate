@@ -14,7 +14,8 @@ import {
   SingleOrArray,
   BehaviorCreator,
   InvokeSourceDefinition,
-  Observer
+  Observer,
+  MachineContext
 } from './types';
 import { STATE_DELIMITER, TARGETLESS_KEY } from './constants';
 import { IS_PRODUCTION } from './environment';
@@ -236,7 +237,10 @@ export function toArray<T>(value: T[] | T | undefined): T[] {
   return toArrayStrict(value);
 }
 
-export function mapContext<TContext, TEvent extends EventObject>(
+export function mapContext<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   mapper: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>,
   context: TContext,
   _event: SCXML.Event<TEvent>
@@ -389,7 +393,10 @@ export function toSCXMLEvent<TEvent extends EventObject>(
   };
 }
 
-export function toTransitionConfigArray<TContext, TEvent extends EventObject>(
+export function toTransitionConfigArray<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   event: TEvent['type'] | NullEvent['type'] | '*',
   configLike: SingleOrArray<
     | TransitionConfig<TContext, TEvent>
@@ -419,7 +426,10 @@ export function toTransitionConfigArray<TContext, TEvent extends EventObject>(
   return transitions;
 }
 
-export function normalizeTarget<TContext, TEvent extends EventObject>(
+export function normalizeTarget<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   target: SingleOrArray<string | StateNode<TContext, TEvent>> | undefined
 ): Array<string | StateNode<TContext, TEvent>> | undefined {
   if (target === undefined || target === TARGETLESS_KEY) {
@@ -455,7 +465,10 @@ export function reportUnhandledExceptionOnInvocation(
   }
 }
 
-export function toInvokeConfig<TContext, TEvent extends EventObject>(
+export function toInvokeConfig<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   invocable:
     | InvokeConfig<TContext, TEvent>
     | string

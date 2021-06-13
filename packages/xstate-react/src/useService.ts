@@ -1,4 +1,10 @@
-import { EventObject, State, Interpreter, Typestate } from 'xstate';
+import {
+  EventObject,
+  State,
+  Interpreter,
+  Typestate,
+  MachineContext
+} from 'xstate';
 import { useActor } from './useActor';
 import { PayloadSender } from './types';
 
@@ -12,7 +18,7 @@ export function getServiceSnapshot<TService extends Interpreter<any, any, any>>(
 }
 
 export function useService<
-  TContext,
+  TContext extends MachineContext,
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(

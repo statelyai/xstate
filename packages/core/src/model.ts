@@ -4,7 +4,8 @@ import type {
   Assigner,
   PropertyAssigner,
   ExtractEvent,
-  EventObject
+  EventObject,
+  MachineContext
 } from './types';
 import { mapValues } from './utils';
 
@@ -15,7 +16,7 @@ type Compute<A extends any> = { [K in keyof A]: A[K] } & unknown;
 type Prop<T, K> = K extends keyof T ? T[K] : never;
 
 export interface Model<
-  TContext,
+  TContext extends MachineContext,
   TEvent extends EventObject,
   TModelCreators = void
 > {
@@ -85,11 +86,12 @@ type EventFromEventCreators<EventCreators> = {
     : never;
 }[keyof EventCreators];
 
-export function createModel<TContext, TEvent extends EventObject>(
-  initialContext: TContext
-): Model<TContext, TEvent, void>;
 export function createModel<
-  TContext,
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(initialContext: TContext): Model<TContext, TEvent, void>;
+export function createModel<
+  TContext extends MachineContext,
   TModelCreators extends ModelCreators<TModelCreators>,
   TFinalModelCreators = FinalModelCreators<TModelCreators>
 >(

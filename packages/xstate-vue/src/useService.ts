@@ -3,7 +3,8 @@ import {
   State,
   Interpreter,
   Typestate,
-  PayloadSender
+  PayloadSender,
+  MachineContext
 } from 'xstate';
 
 import { Ref, isRef } from 'vue';
@@ -20,7 +21,7 @@ export function getServiceSnapshot<TService extends Interpreter<any, any, any>>(
 }
 
 export function useService<
-  TContext,
+  TContext extends MachineContext,
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(

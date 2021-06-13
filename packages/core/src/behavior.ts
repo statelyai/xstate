@@ -9,7 +9,8 @@ import {
   Lazy,
   Sender,
   Receiver,
-  ActorRef
+  ActorRef,
+  MachineContext
 } from './types';
 import {
   toSCXMLEvent,
@@ -252,7 +253,10 @@ export function createObservableBehavior<
   return behavior;
 }
 
-export function createMachineBehavior<TContext, TEvent extends EventObject>(
+export function createMachineBehavior<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   machine:
     | StateMachine<TContext, TEvent>
     | Lazy<StateMachine<TContext, TEvent>>,

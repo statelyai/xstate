@@ -1,7 +1,7 @@
 import {
   StateNode,
   State,
-  DefaultContext,
+  MachineContext,
   Event,
   EventObject,
   AnyEventObject,
@@ -62,9 +62,11 @@ export function getChildren(stateNode: StateNode): StateNode[] {
   return children;
 }
 
-export function serializeState<TContext>(state: State<TContext, any>): string {
+export function serializeState<TContext extends MachineContext>(
+  state: State<TContext, any>
+): string {
   const { value, context } = state;
-  return context === undefined
+  return Object.keys(context).length === 0
     ? JSON.stringify(value)
     : JSON.stringify(value) + ' | ' + JSON.stringify(context);
 }
@@ -88,7 +90,10 @@ const defaultValueAdjMapOptions: Required<ValueAdjMapOptions<any, any>> = {
   eventSerializer: serializeEvent
 };
 
-function getValueAdjMapOptions<TContext, TEvent extends EventObject>(
+function getValueAdjMapOptions<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   options?: ValueAdjMapOptions<TContext, TEvent>
 ): Required<ValueAdjMapOptions<TContext, TEvent>> {
   return {
@@ -100,7 +105,7 @@ function getValueAdjMapOptions<TContext, TEvent extends EventObject>(
 }
 
 export function getAdjacencyMap<
-  TContext = DefaultContext,
+  TContext extends MachineContext,
   TEvent extends EventObject = AnyEventObject
 >(
   node: MachineNode<TContext, TEvent>,
@@ -170,7 +175,7 @@ export function getAdjacencyMap<
 }
 
 export function getShortestPaths<
-  TContext = DefaultContext,
+  TContext extends MachineContext,
   TEvent extends EventObject = EventObject
 >(
   machine: MachineNode<TContext, TEvent>,
@@ -259,7 +264,7 @@ export function getShortestPaths<
 }
 
 export function getSimplePaths<
-  TContext = DefaultContext,
+  TContext extends MachineContext,
   TEvent extends EventObject = EventObject
 >(
   machine: MachineNode<TContext, TEvent>,
@@ -332,7 +337,7 @@ export function getSimplePaths<
 }
 
 export function getSimplePathsAsArray<
-  TContext = DefaultContext,
+  TContext extends MachineContext,
   TEvent extends EventObject = EventObject
 >(
   machine: MachineNode<TContext, TEvent>,

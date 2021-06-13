@@ -18,7 +18,7 @@ const pedestrianStates = {
   }
 };
 
-const lightMachine = createMachine<undefined, any>({
+const lightMachine = createMachine({
   key: 'light',
   initial: 'green',
   states: {
@@ -202,6 +202,12 @@ describe('machine', () => {
         });
       }).toThrow();
     });
+
+    it('machines defined without context should have a default empty object for context', () => {
+      const machine = createMachine({});
+
+      expect(machine.initialState.context).toEqual({});
+    });
   });
 
   describe('machine.withContext', () => {
@@ -227,7 +233,7 @@ describe('machine', () => {
       });
     });
 
-    it('should not override undefined context', () => {
+    it('should override undefined context', () => {
       const fooBarMachine = createMachine({
         initial: 'active',
         states: {
@@ -239,7 +245,7 @@ describe('machine', () => {
         bar: 42
       });
 
-      expect(changedBarMachine.initialState.context).toBeUndefined();
+      expect(changedBarMachine.initialState.context).toEqual({ bar: 42 });
     });
   });
 
