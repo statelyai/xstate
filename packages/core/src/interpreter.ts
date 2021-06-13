@@ -28,7 +28,12 @@ import {
   Spawnable,
   Typestate,
   AnyEventObject,
-  AnyInterpreter
+  AnyInterpreter,
+  ActorRef,
+  ActorRefFrom,
+  Behavior,
+  StopActionObject,
+  Subscription
 } from './types';
 import { State, bindActionToState, isState } from './State';
 import * as actionTypes from './actionTypes';
@@ -60,13 +65,6 @@ import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
 import { getGlobal, registerService } from './devTools';
 import * as serviceScope from './serviceScope';
-import {
-  ActorRef,
-  ActorRefFrom,
-  Behavior,
-  StopActionObject,
-  Subscription
-} from '.';
 import { spawnBehavior } from './behavior';
 
 export type StateListener<
