@@ -55,7 +55,7 @@ interface StateNodeOptions<
 }
 
 export class StateNode<
-  TContext extends MachineContext = {},
+  TContext extends MachineContext = MachineContext,
   TEvent extends EventObject = EventObject
 > {
   /**
