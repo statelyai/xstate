@@ -11,6 +11,12 @@ export function getServiceSnapshot<
     : service.machine.initialState;
 }
 
+/**
+ * @deprecated Use `useActor` instead.
+ *
+ * @param service The interpreted machine
+ * @returns A tuple of the current `state` of the service and the service's `send(event)` method
+ */
 export function useService<
   TContext,
   TEvent extends EventObject,
