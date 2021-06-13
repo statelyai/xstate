@@ -402,33 +402,32 @@ describe('useActor', () => {
     // it will always refer to the latest actor.
   });
 
-  const counterMachine = createMachine<
-    { count: number },
-    { type: 'INC' } | { type: 'SOMETHING' }
-  >(
-    {
-      id: 'counter',
-      initial: 'active',
-      context: { count: 0 },
-      states: {
-        active: {
-          on: {
-            INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) },
-            SOMETHING: { actions: 'doSomething' }
+  it('should also work with services', () => {
+    const counterMachine = createMachine<
+      { count: number },
+      { type: 'INC' } | { type: 'SOMETHING' }
+    >(
+      {
+        id: 'counter',
+        initial: 'active',
+        context: { count: 0 },
+        states: {
+          active: {
+            on: {
+              INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) },
+              SOMETHING: { actions: 'doSomething' }
+            }
+          }
+        }
+      },
+      {
+        actions: {
+          doSomething: () => {
+            /* do nothing */
           }
         }
       }
-    },
-    {
-      actions: {
-        doSomething: () => {
-          /* do nothing */
-        }
-      }
-    }
-  );
-
-  it('should also work with services', () => {
+    );
     const counterService = interpret(counterMachine).start();
 
     const Counter = () => {
