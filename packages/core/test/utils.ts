@@ -1,8 +1,9 @@
 import { State } from '../src/index';
 import { matchesState } from '../src';
 import { StateMachine } from '../src/StateMachine';
+import { MachineContext } from '../src/types';
 
-export function testMultiTransition<TContext>(
+export function testMultiTransition<TContext extends MachineContext>(
   machine: StateMachine<TContext>,
   fromState: string,
   eventTypes: string

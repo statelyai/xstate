@@ -8,12 +8,16 @@ import {
   StateConfig,
   Typestate,
   ActionFunction,
-  InterpreterOf
+  InterpreterOf,
+  MachineContext
 } from 'xstate';
 import { MaybeLazy, ReactActionFunction, ReactEffectType } from './types';
 import { useInterpret } from './useInterpret';
 
-function createReactActionFunction<TContext, TEvent extends EventObject>(
+function createReactActionFunction<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   exec: ActionFunction<TContext, TEvent>,
   tag: ReactEffectType
 ): ReactActionFunction<TContext, TEvent> {
@@ -32,19 +36,28 @@ function createReactActionFunction<TContext, TEvent extends EventObject>(
   return effectExec as ReactActionFunction<TContext, TEvent>;
 }
 
-export function asEffect<TContext, TEvent extends EventObject>(
+export function asEffect<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   exec: ActionFunction<TContext, TEvent>
 ): ReactActionFunction<TContext, TEvent> {
   return createReactActionFunction(exec, ReactEffectType.Effect);
 }
 
-export function asLayoutEffect<TContext, TEvent extends EventObject>(
+export function asLayoutEffect<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   exec: ActionFunction<TContext, TEvent>
 ): ReactActionFunction<TContext, TEvent> {
   return createReactActionFunction(exec, ReactEffectType.LayoutEffect);
 }
 
-export interface UseMachineOptions<TContext, TEvent extends EventObject> {
+export interface UseMachineOptions<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+> {
   /**
    * If provided, will be merged with machine's `context`.
    */
@@ -57,7 +70,7 @@ export interface UseMachineOptions<TContext, TEvent extends EventObject> {
 }
 
 export function useMachine<
-  TContext,
+  TContext extends MachineContext,
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(

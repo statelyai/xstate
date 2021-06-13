@@ -31,7 +31,7 @@ export const NULL_EVENT = '';
 export const STATE_IDENTIFIER = '#';
 export const WILDCARD = '*';
 
-const createDefaultOptions = <TContext>(
+const createDefaultOptions = <TContext extends MachineContext>(
   context: TContext
 ): MachineImplementations<TContext, any> => ({
   actions: {},

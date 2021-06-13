@@ -16,7 +16,7 @@ type Compute<A extends any> = { [K in keyof A]: A[K] } & unknown;
 type Prop<T, K> = K extends keyof T ? T[K] : never;
 
 export interface Model<
-  TContext,
+  TContext extends MachineContext,
   TEvent extends EventObject,
   TModelCreators = void
 > {

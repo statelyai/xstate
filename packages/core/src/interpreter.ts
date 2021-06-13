@@ -42,10 +42,10 @@ import { registry } from './registry';
 import { StateMachine } from './StateMachine';
 import { devToolsAdapter } from './dev';
 import { CapturedState } from './capturedState';
-import { PayloadSender, StopActionObject } from '.';
+import { MachineContext, PayloadSender, StopActionObject } from '.';
 
 export type StateListener<
-  TContext,
+  TContext extends MachineContext,
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 > = (state: State<TContext, TEvent, TTypestate>, event: TEvent) => void;
@@ -83,7 +83,7 @@ const defaultOptions: InterpreterOptions = ((global) => ({
 }))(typeof window === 'undefined' ? global : window);
 
 export class Interpreter<
-  TContext,
+  TContext extends MachineContext,
   TEvent extends EventObject = EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 > {
@@ -845,7 +845,7 @@ export class Interpreter<
  * @param options Interpreter options
  */
 export function interpret<
-  TContext,
+  TContext extends MachineContext,
   TEvent extends EventObject = EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(

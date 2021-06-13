@@ -11,6 +11,7 @@ import {
   Typestate,
   Observer
 } from 'xstate';
+import { MachineContext } from '../../core/src';
 import { MaybeLazy } from './types';
 import useConstant from './useConstant';
 import { UseMachineOptions } from './useMachine';
@@ -37,7 +38,7 @@ function toObserver<T>(
 }
 
 export function useInterpret<
-  TContext,
+  TContext extends MachineContext,
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(

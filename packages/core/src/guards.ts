@@ -6,15 +6,17 @@ import {
   GuardDefinition,
   GuardMeta,
   SCXML,
-  GuardPredicate
+  GuardPredicate,
+  MachineContext
 } from './types';
 import { isStateId } from './stateUtils';
 import { isFunction, isString } from './utils';
 import { State } from './State';
 
-export function stateIn<TContext, TEvent extends EventObject>(
-  stateValue: StateValue
-): GuardDefinition<TContext, TEvent> {
+export function stateIn<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(stateValue: StateValue): GuardDefinition<TContext, TEvent> {
   return {
     type: 'xstate.guard:in',
     params: { stateValue },
@@ -28,7 +30,10 @@ export function stateIn<TContext, TEvent extends EventObject>(
   };
 }
 
-export function not<TContext, TEvent extends EventObject>(
+export function not<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   guard: GuardConfig<TContext, TEvent>
 ): BooleanGuardDefinition<TContext, TEvent> {
   return {
@@ -46,7 +51,10 @@ export function not<TContext, TEvent extends EventObject>(
   };
 }
 
-export function and<TContext, TEvent extends EventObject>(
+export function and<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   guards: Array<GuardConfig<TContext, TEvent>>
 ): BooleanGuardDefinition<TContext, TEvent> {
   return {
@@ -61,7 +69,7 @@ export function and<TContext, TEvent extends EventObject>(
   };
 }
 
-export function or<TContext, TEvent extends EventObject>(
+export function or<TContext extends MachineContext, TEvent extends EventObject>(
   guards: Array<GuardConfig<TContext, TEvent>>
 ): BooleanGuardDefinition<TContext, TEvent> {
   return {
@@ -76,7 +84,10 @@ export function or<TContext, TEvent extends EventObject>(
   };
 }
 
-export function evaluateGuard<TContext, TEvent extends EventObject>(
+export function evaluateGuard<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   guard: GuardDefinition<TContext, TEvent>,
   context: TContext,
   _event: SCXML.Event<TEvent>,
@@ -98,7 +109,10 @@ export function evaluateGuard<TContext, TEvent extends EventObject>(
   return predicate(context, _event.data, guardMeta);
 }
 
-export function toGuardDefinition<TContext, TEvent extends EventObject>(
+export function toGuardDefinition<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
   guardConfig: GuardConfig<TContext, TEvent>,
   getPredicate?: (guardType: string) => GuardPredicate<TContext, TEvent>
 ): GuardDefinition<TContext, TEvent> {

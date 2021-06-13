@@ -28,7 +28,8 @@ import {
   NullEvent,
   SCXML,
   TransitionDefinitionMap,
-  InitialTransitionDefinition
+  InitialTransitionDefinition,
+  MachineContext
 } from './types';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
@@ -44,14 +45,17 @@ import { StateMachine } from './StateMachine';
 
 const EMPTY_OBJECT = {};
 
-interface StateNodeOptions<TContext, TEvent extends EventObject> {
+interface StateNodeOptions<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+> {
   _key: string;
   _parent?: StateNode<TContext, TEvent>;
   _machine: StateMachine<TContext, TEvent>;
 }
 
 export class StateNode<
-  TContext = any,
+  TContext extends MachineContext = {},
   TEvent extends EventObject = EventObject
 > {
   /**

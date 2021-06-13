@@ -395,7 +395,7 @@ describe('events', () => {
       | { type: 'CLOSE' }
       | { type: 'ESC' }
       | { type: 'SUBMIT'; value: string };
-    const feedbackMachine = createMachine<undefined, Events>({
+    const feedbackMachine = createMachine<any, Events>({
       id: 'feedback',
       initial: 'question',
       states: {

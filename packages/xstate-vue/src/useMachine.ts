@@ -6,7 +6,8 @@ import {
   Interpreter,
   InterpreterOptions,
   MachineImplementations,
-  Typestate
+  Typestate,
+  MachineContext
 } from 'xstate';
 
 import { UseMachineOptions, MaybeLazy } from './types';
@@ -14,7 +15,7 @@ import { UseMachineOptions, MaybeLazy } from './types';
 import { useInterpret } from './useInterpret';
 
 export function useMachine<
-  TContext,
+  TContext extends MachineContext,
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(

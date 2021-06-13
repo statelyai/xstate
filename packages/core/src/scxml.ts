@@ -8,7 +8,7 @@ import {
   ChooseConditon
 } from './types';
 import { createMachine } from './index';
-import { mapValues, keys, isString, flatten } from './utils';
+import { mapValues, isString, flatten } from './utils';
 import * as actions from './actions';
 import { invokeMachine } from './invoke';
 import { StateMachine } from './StateMachine';
