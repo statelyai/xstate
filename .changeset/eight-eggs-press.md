@@ -32,4 +32,6 @@ const Modal = (props) => {
 };
 ```
 
-This change brings guards, delays and activities into line with actions and services.
+This change brings guards and delays into line with actions and services.
+
+⚠️ **NOTE:** Whenever possible, use data from within `context` rather than external data in your guards and delays.
