@@ -334,7 +334,7 @@ describe('State', () => {
     it('should create an inert instance of the given State', () => {
       const { initialState } = machine;
 
-      expect(State.inert(initialState, undefined).actions).toEqual([]);
+      expect(State.inert(initialState).actions).toEqual([]);
     });
 
     it('should create an inert instance of the given stateValue and context', () => {
@@ -348,9 +348,7 @@ describe('State', () => {
     it('should preserve the given State if there are no actions', () => {
       const naturallyInertState = State.from('foo');
 
-      expect(State.inert(naturallyInertState, undefined)).toEqual(
-        naturallyInertState
-      );
+      expect(State.inert(naturallyInertState)).toEqual(naturallyInertState);
     });
   });
 

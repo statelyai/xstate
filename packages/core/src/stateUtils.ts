@@ -1560,7 +1560,7 @@ export function resolveMicroTransition<
   );
 
   if (currentState && !willTransition) {
-    const inertState = State.inert(currentState, currentState.context);
+    const inertState = State.inert(currentState);
     inertState.event = _event.data;
     inertState._event = _event;
     inertState.changed = _event.name === actionTypes.update;

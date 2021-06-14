@@ -110,7 +110,7 @@ export class State<
       if (stateValue.context !== context) {
         return new State<TContext, TEvent>({
           value: stateValue.value,
-          context: context as TContext,
+          context,
           _event: stateValue._event,
           _sessionid: null,
           history: stateValue.history,
@@ -129,7 +129,7 @@ export class State<
 
     return new State<TContext, TEvent>({
       value: stateValue,
-      context: context as TContext,
+      context,
       _event,
       _sessionid: null,
       history: undefined,
@@ -156,8 +156,7 @@ export class State<
    * @param context
    */
   public static inert<TState extends State<any, any, any>>(
-    state: TState,
-    context: any
+    state: TState
   ): TState;
   public static inert<
     TContext extends MachineContext,
@@ -165,7 +164,7 @@ export class State<
   >(stateValue: StateValue, context: TContext): State<TContext, TEvent>;
   public static inert(
     stateValue: State<any, any> | StateValue,
-    context: any
+    context?: MachineContext
   ): State<any, any> {
     if (stateValue instanceof State) {
       if (!stateValue.actions.length) {
@@ -175,7 +174,7 @@ export class State<
 
       return new State<any>({
         value: stateValue.value,
-        context,
+        context: stateValue.context,
         _event,
         _sessionid: null,
         history: stateValue.history,
