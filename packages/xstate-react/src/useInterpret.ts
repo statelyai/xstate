@@ -119,28 +119,18 @@ export function useInterpret<
     };
   }, []);
 
-  // Make sure actions and services are kept updated when they change.
+  // Make sure options are kept updated when they change.
   // This mutation assignment is safe because the service instance is only used
   // in one place -- this hook's caller.
   useIsomorphicLayoutEffect(() => {
-    Object.assign(service.machine.options.actions, actions);
-  }, [actions]);
-
-  useIsomorphicLayoutEffect(() => {
-    Object.assign(service.machine.options.services, services);
-  }, [services]);
-
-  useIsomorphicLayoutEffect(() => {
-    Object.assign(service.machine.options.guards, guards);
-  }, [guards]);
-
-  useIsomorphicLayoutEffect(() => {
-    Object.assign(service.machine.options.delays, delays);
-  }, [delays]);
-
-  useIsomorphicLayoutEffect(() => {
-    Object.assign(service.machine.options.activities, activities);
-  }, [activities]);
+    Object.assign(service.machine.options, {
+      actions,
+      guards,
+      activities,
+      services,
+      delays
+    });
+  }, [actions, guards, activities, services, delays]);
 
   useReactEffectActions(service);
 
