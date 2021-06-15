@@ -19,12 +19,12 @@ const TYPESCRIPT_BLOCK = /```(?<lang>(typescript|ts|javascript|js))\b.*\n(?<code
 const HEADER_TS = `
 import { interpret, createMachine, assign, spawn, actions, StateMachine, State, SCXML } from 'xstate';
 import React from 'react';
-import { useMachine, useActor, useSelector, useInterpret } from '@xstate/react';
+import { useMachine, useActor, useSelector, useInterpret, useService } from '@xstate/react';
 import { createModel } from 'xstate/lib/model';
 `;
 const HEADER_JS = `
 import { interpret, createMachine, assign, spawn, actions } from 'xstate';
-import { useMachine, useActor, useSelector, useInterpret } from '@xstate/react';
+import { useMachine, useActor, useSelector, useInterpret, useService } from '@xstate/react';
 import React from 'react';
 import { useEffect } from 'react';
 import { createModel } from 'xstate/lib/model';
