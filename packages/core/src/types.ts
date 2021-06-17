@@ -1329,9 +1329,9 @@ export type InterpreterFrom<
   ? Interpreter<TContext, TStateSchema, TEvent, TTypestate>
   : never;
 
-export interface ActorContext {
+export interface ActorContext<TEvent extends EventObject, TEmitted> {
   parent?: ActorRef<any, any>;
-  self: ActorRef<any, any>;
+  self: ActorRef<TEvent, TEmitted>;
 }
 
 export type LifecycleSignal =
@@ -1344,7 +1344,7 @@ export interface Behavior<TEvent extends EventObject, TEmitted = any> {
   receive: (
     state: TEmitted,
     event: TEvent | LifecycleSignal,
-    actorCtx: ActorContext
+    actorCtx: ActorContext<TEvent, TEmitted>
   ) => TEmitted;
   initial: TEmitted;
 }
