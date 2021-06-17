@@ -209,3 +209,4 @@ Explore a collection of professionally-designed state machines and statecharts i
 - [State Machines: Should this be a state, or in context?](https://dev.to/mpocock1/state-machines-should-this-be-a-state-or-in-context-1d7e) by [Matt Pocock](https://twitter.com/mpocock1)
 - [XState: What's the difference between Machine and createMachine?](https://dev.to/mpocock1/xstate-what-s-the-difference-between-machine-and-createmachine-15h1) by [Matt Pocock](https://twitter.com/mpocock1)
 - [Use an XState Machine with React](https://dev.to/jbranchaud/use-an-xstate-machine-with-react-326i) by [Josh Branchaud](https://twitter.com/jbrancha)
+- [▶️ DevTrends: XState](https://devtrends.io/videos/xstate/) by [Anthony Gore](https://twitter.com/anthonygore)
