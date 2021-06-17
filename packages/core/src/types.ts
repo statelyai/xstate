@@ -1341,10 +1341,10 @@ export type LifecycleSignal =
   | { type: 'xstate.stop' };
 
 export interface Behavior<TEvent extends EventObject, TEmitted = any> {
-  receive: (
+  transition: (
     state: TEmitted,
     event: TEvent | LifecycleSignal,
     actorCtx: ActorContext<TEvent, TEmitted>
   ) => TEmitted;
-  initial: TEmitted;
+  initialState: TEmitted;
 }

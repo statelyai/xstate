@@ -2056,14 +2056,14 @@ describe('invoke', () => {
   describe('with behaviors', () => {
     it('should work with a behavior', (done) => {
       const countBehavior: Behavior<EventObject, number> = {
-        receive: (count, event) => {
+        transition: (count, event) => {
           if (event.type === 'INC') {
             return count + 1;
           } else {
             return count - 1;
           }
         },
-        initial: 0
+        initialState: 0
       };
 
       const countMachine = createMachine({
@@ -2092,14 +2092,14 @@ describe('invoke', () => {
 
     it('behaviors should have reference to the parent', (done) => {
       const pongBehavior: Behavior<EventObject, undefined> = {
-        receive: (_, event, { parent }) => {
+        transition: (_, event, { parent }) => {
           if (event.type === 'PING') {
             parent?.send({ type: 'PONG' });
           }
 
           return undefined;
         },
-        initial: undefined
+        initialState: undefined
       };
 
       const pingMachine = createMachine({

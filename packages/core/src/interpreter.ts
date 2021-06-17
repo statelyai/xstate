@@ -949,9 +949,7 @@ export class Interpreter<
     name: string,
     options?: SpawnOptions
   ): ActorRef<any> {
-    if (isBehavior(entity)) {
-      return this.spawnBehavior(entity, name);
-    } else if (isPromiseLike(entity)) {
+    if (isPromiseLike(entity)) {
       return this.spawnPromise(Promise.resolve(entity), name);
     } else if (isFunction(entity)) {
       return this.spawnCallback(entity as InvokeCallback, name);
@@ -961,6 +959,8 @@ export class Interpreter<
       return this.spawnObservable(entity, name);
     } else if (isMachine(entity)) {
       return this.spawnMachine(entity, { ...options, id: name });
+    } else if (isBehavior(entity)) {
+      return this.spawnBehavior(entity, name);
     } else {
       throw new Error(
         `Unable to spawn entity "${name}" of type "${typeof entity}".`

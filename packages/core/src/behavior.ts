@@ -5,17 +5,17 @@ import { toEventObject, toObserver } from './utils';
 /**
  * Returns an actor behavior from a reducer and its initial state.
  *
- * @param reducer The pure reducer that returns the next state given the current state and event.
+ * @param transition The pure reducer that returns the next state given the current state and event.
  * @param initialState The initial state of the reducer.
  * @returns An actor behavior
  */
 export function fromReducer<TState, TEvent extends EventObject>(
-  reducer: (state: TState, event: TEvent) => TState,
+  transition: (state: TState, event: TEvent) => TState,
   initialState: TState
 ): Behavior<TEvent, TState> {
   return {
-    receive: reducer,
-    initial: initialState
+    transition,
+    initialState
   };
 }
 
@@ -28,14 +28,14 @@ export function spawnBehavior<TActorEvent extends EventObject, TEmitted>(
   behavior: Behavior<TActorEvent, TEmitted>,
   options: SpawnBehaviorOptions = {}
 ): ActorRef<TActorEvent, TEmitted> {
-  let state = behavior.initial;
+  let state = behavior.initialState;
   const observers = new Set<Observer<TEmitted>>();
 
   const actor = toActorRef({
     id: options.id,
     send: (event: TActorEvent) => {
       const eventObject = toEventObject(event);
-      state = behavior.receive(state, eventObject, {
+      state = behavior.transition(state, eventObject, {
         parent: options.parent,
         self: actor
       });

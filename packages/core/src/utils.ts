@@ -350,7 +350,12 @@ export function isPromiseLike(value: any): value is PromiseLike<any> {
 }
 
 export function isBehavior(value: any): value is Behavior<any, any> {
-  return value !== null && typeof value === 'object' && 'receive' in value;
+  return (
+    value !== null &&
+    typeof value === 'object' &&
+    'transition' in value &&
+    typeof value.transition === 'function'
+  );
 }
 
 export function partition<T, A extends T, B extends T>(
