@@ -83,10 +83,10 @@ export function createDeferredActor(
 
   if (isMachine(entity)) {
     // "mute" the existing service scope so potential spawned actors within the `.initialState` stay deferred here
-    const initialState = serviceScope.provide(
+    const initialState = ((tempActor as any).state = serviceScope.provide(
       undefined,
       () => (data ? entity.withContext(data) : entity).initialState
-    );
+    ));
     tempActor.getSnapshot = () => initialState;
   }
 
