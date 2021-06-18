@@ -64,7 +64,8 @@ import {
   TransitionDefinitionMap,
   DelayExpr,
   InvokeSourceDefinition,
-  MachineSchema
+  MachineSchema,
+  ActorRef
 } from './types';
 import { matchesState } from './utils';
 import { State, stateValuesEqual } from './State';
