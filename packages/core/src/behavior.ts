@@ -24,16 +24,16 @@ interface SpawnBehaviorOptions {
   parent?: ActorRef<any>;
 }
 
-export function spawnBehavior<TActorEvent extends EventObject, TEmitted>(
-  behavior: Behavior<TActorEvent, TEmitted>,
+export function spawnBehavior<TEvent extends EventObject, TEmitted>(
+  behavior: Behavior<TEvent, TEmitted>,
   options: SpawnBehaviorOptions = {}
-): ActorRef<TActorEvent, TEmitted> {
+): ActorRef<TEvent, TEmitted> {
   let state = behavior.initialState;
   const observers = new Set<Observer<TEmitted>>();
 
   const actor = toActorRef({
     id: options.id,
-    send: (event: TActorEvent) => {
+    send: (event: TEvent) => {
       const eventObject = toEventObject(event);
       state = behavior.transition(state, eventObject, {
         parent: options.parent,
