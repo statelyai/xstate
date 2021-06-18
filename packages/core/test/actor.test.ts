@@ -1,4 +1,13 @@
-import { Machine, spawn, interpret, ActorRef, ActorRefFrom } from '../src';
+import {
+  Machine,
+  spawn,
+  interpret,
+  ActorRef,
+  ActorRefFrom,
+  Behavior,
+  createMachine,
+  EventObject
+} from '../src';
 import {
   assign,
   send,
@@ -6,7 +15,8 @@ import {
   raise,
   doneInvoke,
   sendUpdate,
-  respond
+  respond,
+  forwardTo
 } from '../src/actions';
 import { interval } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -825,6 +835,93 @@ describe('actors', () => {
         interpret(parent).start();
         expect(spawnCounter).toBe(1);
       });
+    });
+  });
+
+  describe('with behaviors', () => {
+    it('should work with a behavior', (done) => {
+      const countBehavior: Behavior<EventObject, number> = {
+        transition: (count, event) => {
+          if (event.type === 'INC') {
+            return count + 1;
+          } else {
+            return count - 1;
+          }
+        },
+        initialState: 0
+      };
+
+      const countMachine = createMachine<{
+        count: ActorRefFrom<typeof countBehavior> | undefined;
+      }>({
+        context: {
+          count: undefined
+        },
+        entry: assign({
+          count: () => spawn(countBehavior)
+        }),
+        on: {
+          INC: {
+            actions: forwardTo((ctx) => ctx.count!)
+          }
+        }
+      });
+
+      const countService = interpret(countMachine)
+        .onTransition((state) => {
+          if (state.context.count?.getSnapshot() === 2) {
+            done();
+          }
+        })
+        .start();
+
+      countService.send('INC');
+      countService.send('INC');
+    });
+
+    it('behaviors should have reference to the parent', (done) => {
+      const pongBehavior: Behavior<EventObject, undefined> = {
+        transition: (_, event, { parent }) => {
+          if (event.type === 'PING') {
+            parent?.send({ type: 'PONG' });
+          }
+
+          return undefined;
+        },
+        initialState: undefined
+      };
+
+      const pingMachine = createMachine<{
+        ponger: ActorRefFrom<typeof pongBehavior> | undefined;
+      }>({
+        initial: 'waiting',
+        context: {
+          ponger: undefined
+        },
+        entry: assign({
+          ponger: () => spawn(pongBehavior)
+        }),
+        states: {
+          waiting: {
+            entry: send('PING', { to: (ctx) => ctx.ponger! }),
+            invoke: {
+              id: 'ponger',
+              src: () => pongBehavior
+            },
+            on: {
+              PONG: 'success'
+            }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      });
+
+      const pingService = interpret(pingMachine).onDone(() => {
+        done();
+      });
+      pingService.start();
     });
   });
 });

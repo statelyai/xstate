@@ -1304,7 +1304,7 @@ export type SpawnedActorRef<
 > = ActorRef<TEvent, TEmitted>;
 
 export type ActorRefFrom<
-  T extends StateMachine<any, any, any> | Promise<any>
+  T extends StateMachine<any, any, any> | Promise<any> | Behavior<any>
 > = T extends StateMachine<infer TContext, any, infer TEvent, infer TTypestate>
   ? ActorRef<TEvent, State<TContext, TEvent, any, TTypestate>> & {
       /**
@@ -1314,6 +1314,8 @@ export type ActorRefFrom<
     }
   : T extends Promise<infer U>
   ? ActorRef<never, U>
+  : T extends Behavior<infer TEvent, infer TEmitted>
+  ? ActorRef<TEvent, TEmitted>
   : never;
 
 export type AnyInterpreter = Interpreter<any, any, any, any>;
