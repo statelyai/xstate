@@ -1,6 +1,6 @@
 import { ActorRef, Behavior, EventObject, Observer } from '.';
 import { toActorRef } from './Actor';
-import { toEventObject, toObserver } from './utils';
+import { toObserver } from './utils';
 
 /**
  * Returns an actor behavior from a reducer and its initial state.
@@ -34,8 +34,7 @@ export function spawnBehavior<TEvent extends EventObject, TEmitted>(
   const actor = toActorRef({
     id: options.id,
     send: (event: TEvent) => {
-      const eventObject = toEventObject(event);
-      state = behavior.transition(state, eventObject, {
+      state = behavior.transition(state, event, {
         parent: options.parent,
         self: actor
       });
