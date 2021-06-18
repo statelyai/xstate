@@ -6,10 +6,11 @@ import {
   assign,
   spawn,
   ActorRef,
-  ActorRefFrom
+  ActorRefFrom,
+  interpret
 } from 'xstate';
 import { toActorRef } from 'xstate/lib/Actor';
-import { render, cleanup, fireEvent } from '@testing-library/react';
+import { render, cleanup, fireEvent, act } from '@testing-library/react';
 import { useActor } from '../src/useActor';
 import { useState } from 'react';
 
@@ -399,5 +400,63 @@ describe('useActor', () => {
     // The effect will call the closed-in `send`, which originally
     // was the reference to the first actor. Now that `send` is stable,
     // it will always refer to the latest actor.
+  });
+
+  it('should also work with services', () => {
+    const counterMachine = createMachine<
+      { count: number },
+      { type: 'INC' } | { type: 'SOMETHING' }
+    >(
+      {
+        id: 'counter',
+        initial: 'active',
+        context: { count: 0 },
+        states: {
+          active: {
+            on: {
+              INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) },
+              SOMETHING: { actions: 'doSomething' }
+            }
+          }
+        }
+      },
+      {
+        actions: {
+          doSomething: () => {
+            /* do nothing */
+          }
+        }
+      }
+    );
+    const counterService = interpret(counterMachine).start();
+
+    const Counter = () => {
+      const [state] = useActor(counterService);
+
+      return <div data-testid="count">{state.context.count}</div>;
+    };
+
+    const { getAllByTestId } = render(
+      <>
+        <Counter />
+        <Counter />
+      </>
+    );
+
+    const countEls = getAllByTestId('count');
+
+    expect(countEls.length).toBe(2);
+
+    countEls.forEach((countEl) => {
+      expect(countEl.textContent).toBe('0');
+    });
+
+    act(() => {
+      counterService.send({ type: 'INC' });
+    });
+
+    countEls.forEach((countEl) => {
+      expect(countEl.textContent).toBe('1');
+    });
   });
 });
