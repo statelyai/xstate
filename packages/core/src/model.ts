@@ -156,9 +156,9 @@ export function createModel(
         }))
       : undefined) as any,
     actions: actionCreators
-      ? mapValues(actionCreators, (fn, eventType) => (...args: any[]) => ({
+      ? mapValues(actionCreators, (fn, actionType) => (...args: any[]) => ({
           ...fn(...args),
-          type: eventType
+          type: actionType
         }))
       : undefined,
     reset: () => assign(initialContext)
