@@ -224,6 +224,18 @@ describe('createModel', () => {
         }
       }
     });
+
+    // @ts-expect-error
+    createMachine<typeof userModel>({
+      context: userModel.initialContext,
+      entry: { type: 'greet' } // missing message
+    });
+
+    // @ts-expect-error
+    createMachine<typeof userModel>({
+      context: userModel.initialContext,
+      entry: { type: 'fake' } // wrong message
+    });
   });
 
   it('should typecheck `createMachine` for model without creators', () => {
