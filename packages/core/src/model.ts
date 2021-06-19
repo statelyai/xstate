@@ -62,11 +62,6 @@ type EventCreators<Self> = {
     : 'An event creator must be a function';
 };
 
-type ModelCreators<Self> = {
-  events?: EventCreators<Prop<Self, 'events'>>;
-  actions?: EventCreators<Prop<Self, 'actions'>>;
-};
-
 type FinalEventCreators<Self> = {
   [K in keyof Self]: Self[K] extends AnyFunction
     ? (
@@ -75,9 +70,39 @@ type FinalEventCreators<Self> = {
     : never;
 };
 
+type ActionCreator<
+  Self extends AnyFunction,
+  Return = ReturnType<Self>
+> = Return extends object
+  ? Return extends {
+      type: any;
+    }
+    ? "An action creator can't return an object with a type property"
+    : Self
+  : 'An action creator must return an object';
+
+type ActionCreators<Self> = {
+  [K in keyof Self]: Self[K] extends AnyFunction
+    ? ActionCreator<Self[K]>
+    : 'An action creator must be a function';
+};
+
+type FinalActionCreators<Self> = {
+  [K in keyof Self]: Self[K] extends AnyFunction
+    ? (
+        ...args: Parameters<Self[K]>
+      ) => Compute<ReturnType<Self[K]> & { type: K }>
+    : never;
+};
+
+type ModelCreators<Self> = {
+  events?: EventCreators<Prop<Self, 'events'>>;
+  actions?: ActionCreators<Prop<Self, 'actions'>>;
+};
+
 type FinalModelCreators<Self> = {
   events: FinalEventCreators<Prop<Self, 'events'>>;
-  actions: FinalEventCreators<Prop<Self, 'actions'>>;
+  actions: FinalActionCreators<Prop<Self, 'actions'>>;
 };
 
 type EventFromEventCreators<TEventCreators> = keyof TEventCreators extends never
