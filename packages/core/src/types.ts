@@ -1290,7 +1290,6 @@ export interface ActorRef<TEvent extends EventObject, TEmitted = any>
   send: Sender<TEvent>; // TODO: this should just be TEvent
   id: string;
   getSnapshot: () => TEmitted | undefined;
-  start?: () => void;
   stop?: () => void;
   toJSON?: () => any;
 }
