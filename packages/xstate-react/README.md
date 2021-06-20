@@ -115,6 +115,12 @@ A [React hook](https://reactjs.org/hooks) that interprets the given `machine` an
 
 ### `useService(service)`
 
+::: warning Deprecated
+
+In the next major version, `useService(service)` will be replaced with `useActor(service)`. Prefer using the `useActor(service)` hook for services instead, since services are also actors.
+
+:::
+
 A [React hook](https://reactjs.org/hooks) that subscribes to state changes from an existing [service](https://xstate.js.org/docs/guides/interpretation.html).
 
 **Arguments**
@@ -126,7 +132,7 @@ A [React hook](https://reactjs.org/hooks) that subscribes to state changes from 
 - `state` - Represents the current state of the service as an XState `State` object.
 - `send` - A function that sends events to the running service.
 
-### `useActor(actor, getSnapshot)`
+### `useActor(actor, getSnapshot?)`
 
 A [React hook](https://reactjs.org/hooks) that subscribes to emitted changes from an existing [actor](https://xstate.js.org/docs/guides/actors.html).
 

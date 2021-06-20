@@ -31,10 +31,10 @@ const noop = () => {
 function defaultGetSnapshot<TEmitted>(
   actorRef: ActorRef<any, TEmitted>
 ): TEmitted | undefined {
-  return isActorWithState(actorRef)
-    ? actorRef.state
-    : 'getSnapshot' in actorRef
+  return 'getSnapshot' in actorRef
     ? actorRef.getSnapshot()
+    : isActorWithState(actorRef)
+    ? actorRef.state
     : undefined;
 }
 
