@@ -834,6 +834,9 @@ export class Interpreter<
   }
 
   public getSnapshot() {
+    if (this.status === InterpreterStatus.NotStarted) {
+      return this.initialState;
+    }
     return this._state!;
   }
 }
