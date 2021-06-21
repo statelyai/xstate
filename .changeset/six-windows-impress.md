@@ -2,4 +2,4 @@
 'xstate': patch
 ---
 
-Patch environment check for use in web-dev-server
+The global `process` variable is now checked for existence before trying to read the `NODE_ENV` environment variable.
