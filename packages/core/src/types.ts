@@ -230,10 +230,13 @@ export type Receiver<TEvent extends EventObject> = (
   listener: (event: TEvent) => void
 ) => void;
 
-export type InvokeCallback<TEvent extends EventObject = AnyEventObject> = (
+export type InvokeCallback<
+  TEvent extends EventObject = AnyEventObject,
+  TReceivedEvent extends EventObject = AnyEventObject
+> = (
   callback: Sender<TEvent>,
-  onReceive: Receiver<TEvent>
-) => any;
+  onReceive: Receiver<TReceivedEvent>
+) => (() => void) | Promise<any> | void;
 
 export interface InvokeMeta {
   data: any;
