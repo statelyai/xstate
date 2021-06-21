@@ -231,11 +231,11 @@ export type Receiver<TEvent extends EventObject> = (
 ) => void;
 
 export type InvokeCallback<
-  TEvent extends EventObject = AnyEventObject,
-  TReceivedEvent extends EventObject = AnyEventObject
+  TSentEvent extends EventObject = AnyEventObject,
+  TEvent extends EventObject = AnyEventObject
 > = (
-  callback: Sender<TEvent>,
-  onReceive: Receiver<TReceivedEvent>
+  callback: Sender<TSentEvent>,
+  onReceive: Receiver<TEvent>
 ) => (() => void) | Promise<any> | void;
 
 export interface InvokeMeta {
