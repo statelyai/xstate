@@ -21,8 +21,7 @@
     "typedoc:publish": "npm run typedoc && gh-pages --dist ./packages/core/api --dest ./api",
     "changeset": "changeset",
     "prerelease": "npm run build && npm run test",
-    "release": "changeset publish",
-    "generate": "plop --plopfile scripts/plop/plopfile.js"
+    "release": "changeset publish"
   },
   "repository": {
     "type": "git",
@@ -51,7 +50,6 @@
     "lint-staged": "^8.2.1",
     "markdown-it-codesandbox-embed": "^0.1.0",
     "patch-package": "^6.2.2",
-    "plop": "^2.7.4",
     "prettier": "^2.0.2",
     "spawn-command": "0.0.2-1",
     "ts-jest": "^26.5.6",
