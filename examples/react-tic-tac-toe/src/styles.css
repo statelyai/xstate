@@ -1,0 +1,37 @@
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+#root {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.board {
+  display: grid;
+  height: 50vmin;
+  width: 50vmin;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  grid-column-gap: 0.25rem;
+  grid-row-gap: 0.25rem;
+  background: #ddd;
+}
+
+.tile {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 10vmin;
+  background: white;
+}
+
+.tile:before {
+  content: attr(data-player);
+}

@@ -19,12 +19,9 @@ module.exports = function (plop) {
 
     const dir = path.resolve(examplesDir, toDashCase(answers.name));
     try {
-      execSync(
-        `yarn --cwd ${path.resolve(examplesDir, toDashCase(answers.name))}`,
-        {
-          stdio: 'inherit'
-        }
-      );
+      execSync(`yarn --cwd ${dir}`, {
+        stdio: 'inherit'
+      });
     } catch (e) {
       console.log(e);
       throw 'Could not install dependencies';
