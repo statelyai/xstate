@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { ActorRef, Behavior, EventObject } from 'xstate';
-import { spawnBehavior } from 'xstate/src/behavior';
+import { spawnBehavior } from 'xstate/src/behaviors';
 
 /**
  * React hook that spawns an `ActorRef` with the specified `behavior`.
