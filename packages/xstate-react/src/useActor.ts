@@ -16,10 +16,6 @@ function isDeferredActor<T extends ActorRef<any>>(
   return 'deferred' in actorRef;
 }
 
-type EventOfActorRef<
-  TActor extends ActorRef<any, any>
-> = TActor extends ActorRef<infer TEvent, any> ? TEvent : never;
-
 type EmittedFromActorRef<
   TActor extends ActorRef<any, any>
 > = TActor extends ActorRef<any, infer TEmitted> ? TEmitted : never;
@@ -41,7 +37,7 @@ function defaultGetSnapshot<TEmitted>(
 export function useActor<TActor extends ActorRef<any, any>>(
   actorRef: TActor,
   getSnapshot?: (actor: TActor) => EmittedFromActorRef<TActor>
-): [EmittedFromActorRef<TActor>, Sender<EventOfActorRef<TActor>>];
+): [EmittedFromActorRef<TActor>, TActor['send']];
 export function useActor<TEvent extends EventObject, TEmitted>(
   actorRef: ActorRef<TEvent, TEmitted>,
   getSnapshot?: (actor: ActorRef<TEvent, TEmitted>) => TEmitted
