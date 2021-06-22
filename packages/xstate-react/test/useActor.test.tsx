@@ -7,9 +7,10 @@ import {
   spawn,
   ActorRef,
   ActorRefFrom,
-  SpawnedActorRef
+  interpret
 } from 'xstate';
-import { render, cleanup, fireEvent } from '@testing-library/react';
+import { toActorRef } from 'xstate/lib/Actor';
+import { render, cleanup, fireEvent, act } from '@testing-library/react';
 import { useActor } from '../src/useActor';
 import { useState } from 'react';
 
@@ -242,7 +243,7 @@ describe('useActor', () => {
   });
 
   it('actor should provide snapshot value immediately', () => {
-    const simpleActor: ActorRef<any, number> & { latestValue: number } = {
+    const simpleActor = toActorRef({
       send: () => {
         /* ... */
       },
@@ -254,6 +255,8 @@ describe('useActor', () => {
           }
         };
       }
+    }) as ActorRef<any, number> & {
+      latestValue: number;
     };
 
     const Test = () => {
@@ -270,7 +273,7 @@ describe('useActor', () => {
   });
 
   it('should provide value from `actor.getSnapshot()`', () => {
-    const simpleActor: SpawnedActorRef<any, number> = {
+    const simpleActor = toActorRef({
       id: 'test',
       send: () => {
         /* ... */
@@ -283,7 +286,7 @@ describe('useActor', () => {
           }
         };
       }
-    };
+    });
 
     const Test = () => {
       const [state] = useActor(simpleActor);
@@ -299,21 +302,20 @@ describe('useActor', () => {
   });
 
   it('should update snapshot value when actor changes', () => {
-    const createSimpleActor = (
-      value: number
-    ): ActorRef<any, number> & { latestValue: number } => ({
-      send: () => {
-        /* ... */
-      },
-      latestValue: value,
-      subscribe: () => {
-        return {
-          unsubscribe: () => {
-            /* ... */
-          }
-        };
-      }
-    });
+    const createSimpleActor = (value: number) =>
+      toActorRef({
+        send: () => {
+          /* ... */
+        },
+        latestValue: value,
+        subscribe: () => {
+          return {
+            unsubscribe: () => {
+              /* ... */
+            }
+          };
+        }
+      }) as ActorRef<any> & { latestValue: number };
 
     const Test = () => {
       const [actor, setActor] = useState(createSimpleActor(42));
@@ -352,16 +354,16 @@ describe('useActor', () => {
     const noop = () => {
       /* ... */
     };
-    const firstActor: ActorRef<any> = {
+    const firstActor = toActorRef({
       send: noop,
       subscribe: fakeSubscribe
-    };
-    const lastActor: ActorRef<any> = {
+    });
+    const lastActor = toActorRef({
       send: () => {
         done();
       },
       subscribe: fakeSubscribe
-    };
+    });
 
     const Test = () => {
       const [actor, setActor] = useState(firstActor);
@@ -398,5 +400,63 @@ describe('useActor', () => {
     // The effect will call the closed-in `send`, which originally
     // was the reference to the first actor. Now that `send` is stable,
     // it will always refer to the latest actor.
+  });
+
+  it('should also work with services', () => {
+    const counterMachine = createMachine<
+      { count: number },
+      { type: 'INC' } | { type: 'SOMETHING' }
+    >(
+      {
+        id: 'counter',
+        initial: 'active',
+        context: { count: 0 },
+        states: {
+          active: {
+            on: {
+              INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) },
+              SOMETHING: { actions: 'doSomething' }
+            }
+          }
+        }
+      },
+      {
+        actions: {
+          doSomething: () => {
+            /* do nothing */
+          }
+        }
+      }
+    );
+    const counterService = interpret(counterMachine).start();
+
+    const Counter = () => {
+      const [state] = useActor(counterService);
+
+      return <div data-testid="count">{state.context.count}</div>;
+    };
+
+    const { getAllByTestId } = render(
+      <>
+        <Counter />
+        <Counter />
+      </>
+    );
+
+    const countEls = getAllByTestId('count');
+
+    expect(countEls.length).toBe(2);
+
+    countEls.forEach((countEl) => {
+      expect(countEl.textContent).toBe('0');
+    });
+
+    act(() => {
+      counterService.send({ type: 'INC' });
+    });
+
+    countEls.forEach((countEl) => {
+      expect(countEl.textContent).toBe('1');
+    });
   });
 });

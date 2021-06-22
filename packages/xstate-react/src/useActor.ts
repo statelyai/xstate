@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 import { Sender } from './types';
-import { ActorRef, EventObject, SpawnedActorRef } from 'xstate';
+import { ActorRef, EventObject } from 'xstate';
 import useConstant from './useConstant';
 
 export function isActorWithState<T extends ActorRef<any>>(
@@ -29,12 +29,12 @@ const noop = () => {
 };
 
 function defaultGetSnapshot<TEmitted>(
-  actorRef: ActorRef<any, TEmitted> | SpawnedActorRef<any, TEmitted>
+  actorRef: ActorRef<any, TEmitted>
 ): TEmitted | undefined {
-  return isActorWithState(actorRef)
-    ? actorRef.state
-    : 'getSnapshot' in actorRef
+  return 'getSnapshot' in actorRef
     ? actorRef.getSnapshot()
+    : isActorWithState(actorRef)
+    ? actorRef.state
     : undefined;
 }
 
