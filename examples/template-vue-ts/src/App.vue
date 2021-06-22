@@ -18,7 +18,7 @@ import { defineComponent } from 'vue'
 import { assign, createMachine } from 'xstate';
 import { useMachine } from '@xstate/vue';
 
-const toggleMachine = createMachine({
+const toggleMachine = createMachine<{ count: number }>({
   id: "toggle",
   initial: "inactive",
   context: {
