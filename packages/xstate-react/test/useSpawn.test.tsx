@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useActor } from '../src';
 import { render, cleanup, fireEvent } from '@testing-library/react';
 import { useSpawn } from '../src/useSpawn';
-import { fromReducer } from 'xstate/src/behavior';
+import { fromReducer } from 'xstate/src/behaviors';
 
 afterEach(cleanup);
 
