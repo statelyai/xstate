@@ -65,7 +65,7 @@ import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
 import { getGlobal, registerService } from './devTools';
 import * as serviceScope from './serviceScope';
-import { spawnBehavior } from './behavior';
+import { spawnBehavior } from './behaviors';
 
 export type StateListener<
   TContext,

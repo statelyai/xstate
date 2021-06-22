@@ -9,7 +9,7 @@ import {
   createMachine,
   Behavior
 } from '../src';
-import { fromReducer } from '../src/behavior';
+import { fromReducer } from '../src/behaviors';
 import {
   actionTypes,
   done as _done,
