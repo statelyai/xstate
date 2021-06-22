@@ -1,43 +1,44 @@
-import React, { useState } from 'react';
-import logo from './logo.svg';
+import React from 'react';
 import './App.css';
+import { createMachine, assign } from 'xstate';
+import { useMachine } from '@xstate/react';
+
+interface ToggleContext {
+  count: number;
+}
+
+const toggleMachine = createMachine<ToggleContext>({
+  id: 'toggle',
+  initial: 'inactive',
+  context: {
+    count: 0
+  },
+  states: {
+    inactive: {
+      on: { TOGGLE: 'active' }
+    },
+    active: {
+      entry: assign({ count: (ctx) => ctx.count + 1 }),
+      on: { TOGGLE: 'inactive' }
+    }
+  }
+});
 
 function App() {
-  const [count, setCount] = useState(0);
+  const [state, send] = useMachine(toggleMachine);
+  const active = state.matches('active');
+  const { count } = state.context;
 
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>Hello Vite + React!</p>
-        <p>
-          <button type="button" onClick={() => setCount((count) => count + 1)}>
-            count is: {count}
-          </button>
-        </p>
-        <p>
-          Edit <code>App.tsx</code> and save to test HMR updates.
-        </p>
-        <p>
-          <a
-            className="App-link"
-            href="https://reactjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Learn React
-          </a>
-          {' | '}
-          <a
-            className="App-link"
-            href="https://vitejs.dev/guide/features.html"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Vite Docs
-          </a>
-        </p>
-      </header>
+    <div className="app">
+      <h1>XState React Template</h1>
+      <h2>Fork this template!</h2>
+      <button onClick={() => send('TOGGLE')}>
+        Click me ({active ? '✅' : '❌'})
+      </button>{' '}
+      <code>
+        Toggled <strong>{count}</strong> times
+      </code>
     </div>
   );
 }
