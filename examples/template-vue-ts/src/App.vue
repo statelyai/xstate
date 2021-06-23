@@ -15,26 +15,8 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue'
-import { assign, createMachine } from 'xstate';
 import { useMachine } from '@xstate/vue';
-
-const toggleMachine = createMachine<{ count: number }>({
-  id: "toggle",
-  initial: "inactive",
-  context: {
-    count: 0,
-  },
-  states: {
-    inactive: {
-      on: { TOGGLE: "active" },
-    },
-    active: {
-      entry: assign({ count: (ctx) => ctx.count + 1 }),
-      on: { TOGGLE: "inactive" },
-    },
-  },
-});
-
+import { toggleMachine } from "./toggle.machine";
 
 export default defineComponent({
   name: 'App',

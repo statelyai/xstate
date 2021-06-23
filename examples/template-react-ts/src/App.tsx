@@ -1,28 +1,7 @@
 import React from 'react';
 import './App.css';
-import { createMachine, assign } from 'xstate';
 import { useMachine } from '@xstate/react';
-
-interface ToggleContext {
-  count: number;
-}
-
-const toggleMachine = createMachine<ToggleContext>({
-  id: 'toggle',
-  initial: 'inactive',
-  context: {
-    count: 0
-  },
-  states: {
-    inactive: {
-      on: { TOGGLE: 'active' }
-    },
-    active: {
-      entry: assign({ count: (ctx) => ctx.count + 1 }),
-      on: { TOGGLE: 'inactive' }
-    }
-  }
-});
+import { toggleMachine } from './toggle.machine';
 
 function App() {
   const [state, send] = useMachine(toggleMachine);
