@@ -1,4 +1,5 @@
-import { createMachine, interpret } from 'xstate';
+import { interpret } from 'xstate';
+import { toggleMachine } from './toggle.machine';
 import './style.css';
 
 const app = document.querySelector('#app');
@@ -9,27 +10,10 @@ app.innerHTML = `
   <button id="toggle">Toggle</button>
 `;
 
-// Edit your machine(s) here
-const machine = createMachine({
-  id: 'machine',
-  initial: 'inactive',
-  context: {
-    count: 0
-  },
-  states: {
-    inactive: {
-      on: { TOGGLE: 'active' }
-    },
-    active: {
-      on: { TOGGLE: 'inactive' }
-    }
-  }
-});
-
 const button = document.querySelector('#toggle');
 
 // Edit your service(s) here
-const service = interpret(machine).onTransition((state) => {
+const service = interpret(toggleMachine).onTransition((state) => {
   console.log(state.value);
   button.dataset.state = state.value;
 });
