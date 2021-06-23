@@ -1333,6 +1333,7 @@ export type InterpreterFrom<
 export interface ActorContext<TEvent extends EventObject, TEmitted> {
   parent?: ActorRef<any, any>;
   self: ActorRef<TEvent, TEmitted>;
+  id: string;
 }
 
 export type LifecycleSignal =
@@ -1348,4 +1349,5 @@ export interface Behavior<TEvent extends EventObject, TEmitted = any> {
     actorCtx: ActorContext<TEvent, TEmitted>
   ) => TEmitted;
   initialState: TEmitted;
+  start?: (actorCtx: ActorContext<TEvent, TEmitted>) => TEmitted;
 }

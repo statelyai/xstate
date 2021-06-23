@@ -20,6 +20,7 @@ import {
 } from '../src/actions';
 import { interval } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { fromPromise } from '../src/behaviors';
 
 describe('spawning machines', () => {
   const todoMachine = Machine({
@@ -839,7 +840,7 @@ describe('actors', () => {
   });
 
   describe('with behaviors', () => {
-    it('should work with a behavior', (done) => {
+    it('should work with a reducer behavior', (done) => {
       const countBehavior: Behavior<EventObject, number> = {
         transition: (count, event) => {
           if (event.type === 'INC') {
@@ -877,6 +878,45 @@ describe('actors', () => {
 
       countService.send('INC');
       countService.send('INC');
+    });
+
+    it('should work with a promise behavior', (done) => {
+      const promiseBehavior = fromPromise(
+        () =>
+          new Promise<number>((res) => {
+            setTimeout(res(42));
+          })
+      );
+
+      const countMachine = createMachine<{
+        count: ActorRefFrom<typeof promiseBehavior> | undefined;
+      }>({
+        context: {
+          count: undefined
+        },
+        entry: assign({
+          count: () => spawn(promiseBehavior, 'test')
+        }),
+        initial: 'pending',
+        states: {
+          pending: {
+            on: {
+              'done.invoke.test': {
+                target: 'success',
+                cond: (_, e) => e.data === 42
+              }
+            }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      });
+
+      const countService = interpret(countMachine).onDone(() => {
+        done();
+      });
+      countService.start();
     });
 
     it('behaviors should have reference to the parent', (done) => {

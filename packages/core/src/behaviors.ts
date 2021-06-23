@@ -1,4 +1,5 @@
 import { ActorRef, Behavior, EventObject, Observer } from '.';
+import { doneInvoke } from './actions';
 import { toActorRef } from './Actor';
 import { toObserver } from './utils';
 
@@ -19,6 +20,30 @@ export function fromReducer<TState, TEvent extends EventObject>(
   };
 }
 
+export function fromPromise<T>(
+  promiseFn: () => Promise<T>
+): Behavior<{ type: 'resolve'; data: T }, T | undefined> {
+  return {
+    transition: (state, event, { parent, id }) => {
+      switch (event.type) {
+        case 'resolve':
+          parent?.send(doneInvoke(id, event.data));
+          return event.data;
+        default:
+          return state;
+      }
+    },
+    initialState: undefined,
+    start: ({ self }) => {
+      promiseFn().then((data) => {
+        self.send({ type: 'resolve', data });
+      });
+
+      return undefined;
+    }
+  };
+}
+
 interface SpawnBehaviorOptions {
   id?: string;
   parent?: ActorRef<any>;
@@ -34,10 +59,7 @@ export function spawnBehavior<TEvent extends EventObject, TEmitted>(
   const actor = toActorRef({
     id: options.id,
     send: (event: TEvent) => {
-      state = behavior.transition(state, event, {
-        parent: options.parent,
-        self: actor
-      });
+      state = behavior.transition(state, event, actorCtx);
       observers.forEach((observer) => observer.next(state));
     },
     getSnapshot: () => state,
@@ -53,6 +75,14 @@ export function spawnBehavior<TEvent extends EventObject, TEmitted>(
       };
     }
   });
+
+  const actorCtx = {
+    parent: options.parent,
+    self: actor,
+    id: options.id || 'anonymous'
+  };
+
+  state = behavior.start?.(actorCtx) ?? state;
 
   return actor;
 }

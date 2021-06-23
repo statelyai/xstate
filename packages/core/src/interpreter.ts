@@ -1308,6 +1308,10 @@ const resolveSpawnOptions = (nameOrOptions?: string | SpawnOptions) => {
   };
 };
 
+export function spawn<T extends Behavior<any, any>>(
+  entity: T,
+  nameOrOptions?: string | SpawnOptions
+): ActorRefFrom<T>;
 export function spawn<TC, TE extends EventObject>(
   entity: StateMachine<TC, any, TE>,
   nameOrOptions?: string | SpawnOptions
