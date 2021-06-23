@@ -258,7 +258,7 @@ export interface InvokeMeta {
  */
 export type InvokeCreator<
   TContext,
-  TEvent extends EventObject = AnyEventObject,
+  TEvent extends EventObject,
   TFinalContext = any
 > = (
   context: TContext,
