@@ -231,8 +231,8 @@ export type Receiver<TEvent extends EventObject> = (
 ) => void;
 
 export type InvokeCallback<
-  TSentEvent extends EventObject = AnyEventObject,
-  TEvent extends EventObject = AnyEventObject
+  TEvent extends EventObject = AnyEventObject,
+  TSentEvent extends EventObject = AnyEventObject
 > = (
   callback: Sender<TSentEvent>,
   onReceive: Receiver<TEvent>
@@ -268,7 +268,7 @@ export type InvokeCreator<
   | PromiseLike<TFinalContext>
   | StateMachine<TFinalContext, any, any>
   | Subscribable<EventObject>
-  | InvokeCallback<TEvent>;
+  | InvokeCallback<any, TEvent>;
 
 export interface InvokeDefinition<TContext, TEvent extends EventObject>
   extends ActivityDefinition<TContext, TEvent> {
