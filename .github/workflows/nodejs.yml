@@ -27,4 +27,4 @@ jobs:
         run: yarn build
 
       - name: Test
-        run: yarn test
+        run: yarn test --silent
