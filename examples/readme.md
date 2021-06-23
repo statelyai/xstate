@@ -1,3 +1,10 @@
 # Contributing an example
 
-TODO
+1. Copy any of the template directories to this directory:
+
+   - [template-ts](./template-ts)
+   - [template-react-ts](./template-react-ts)
+   - [template-vue-ts](./template-vue-ts)
+
+2. Give it a good name (and don't forget to change the `"name"` in `package.json`)
+3. Make a PR!
