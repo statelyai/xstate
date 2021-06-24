@@ -30,8 +30,13 @@ export default function App() {
   return (
     <div className="game">
       <h1>Tic-Tac-Toe</h1>
-      <h2>{state.matches('winner') && `Winner: ${state.context.winner}`}</h2>
-      <button onClick={() => send('RESET')}>Reset</button>
+      {state.matches('gameOver') && (
+        <div>
+          {state.hasTag('winner') && <h2>Winner: {state.context.winner}</h2>}
+          {state.hasTag('draw') && <h2>Draw</h2>}
+          <button onClick={() => send('RESET')}>Reset</button>
+        </div>
+      )}
       <div className="board">
         {range(0, 9).map((index) => {
           return (

@@ -72,8 +72,8 @@ export const ticTacToeMachine = createMachine<typeof model>(
     states: {
       playing: {
         always: [
-          { target: 'winner', cond: 'checkWin' },
-          { target: 'draw', cond: 'checkDraw' }
+          { target: 'gameOver.winner', cond: 'checkWin' },
+          { target: 'gameOver.draw', cond: 'checkDraw' }
         ],
         on: {
           PLAY: [
@@ -82,19 +82,26 @@ export const ticTacToeMachine = createMachine<typeof model>(
               cond: 'isValidMove',
               actions: 'updateBoard'
             }
-          ],
-          RESET: undefined // don't allow resetting while playing
+          ]
         }
       },
-      winner: {
-        entry: 'setWinner'
-      },
-      draw: {}
-    },
-    on: {
-      RESET: {
-        target: 'playing',
-        actions: 'resetGame'
+      gameOver: {
+        initial: 'winner',
+        states: {
+          winner: {
+            tags: 'winner',
+            entry: 'setWinner'
+          },
+          draw: {
+            tags: 'draw'
+          }
+        },
+        on: {
+          RESET: {
+            target: 'playing',
+            actions: 'resetGame'
+          }
+        }
       }
     }
   },
