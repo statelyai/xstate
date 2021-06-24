@@ -431,9 +431,20 @@ describe('useActor', () => {
     const counterService = interpret(counterMachine).start();
 
     const Counter = () => {
-      const [state] = useActor(counterService);
+      const [state, send] = useActor(counterService);
 
-      return <div data-testid="count">{state.context.count}</div>;
+      return (
+        <div
+          data-testid="count"
+          onClick={() => {
+            send('INC');
+            // @ts-expect-error
+            send('FAKE');
+          }}
+        >
+          {state.context.count}
+        </div>
+      );
     };
 
     const { getAllByTestId } = render(
