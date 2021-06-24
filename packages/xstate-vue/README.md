@@ -2,6 +2,10 @@
 
 [[toc]]
 
+::: warning Vue 2 Notice:
+If you're using Vue 2.x, please see [the Vue recipe](../../recipes/vue.html) instead, or use the [`xstate-vue2` package](https://github.com/ChrisShank/xstate-vue2) if you want to use the Vue Composition API.
+:::
+
 ## Quick Start
 
 1. Install `xstate` and `@xstate/vue`:
@@ -67,8 +71,6 @@ export default {
 };
 </script>
 ```
-
-**Vue 2.x notice:** If you're using Vue 2.x, please see [the recipe](https://xstate.js.org/docs/recipes/vue.html) instead.
 
 ## API
 
@@ -173,6 +175,71 @@ export default {
 };
 ```
 
+### `useSelector(actor, selector, compare?, getSnapshot?)`
+
+A [Vue composition function](https://v3.vuejs.org/guide/composition-api-introduction.html) that returns the selected value from the snapshot of an `actor`, such as a service. This hook will only cause a rerender if the selected value changes, as determined by the optional `compare` function.
+
+_Since 0.6.0_
+
+**Arguments**
+
+- `actor` - a service or an actor-like object that contains `.send(...)` and `.subscribe(...)` methods.
+- `selector` - a function that takes in an actor's "current state" (snapshot) as an argument and returns the desired selected value.
+- `compare` (optional) - a function that determines if the current selected value is the same as the previous selected value.
+- `getSnapshot` (optional) - a function that should return the latest emitted value from the `actor`.
+  - Defaults to attempting to get the `actor.state`, or returning `undefined` if that does not exist. Will automatically pull the state from services.
+
+```js
+import { useSelector } from '@xstate/vue';
+
+const selectCount = (state) => state.context.count;
+
+export default {
+  props: ['service'],
+  setup(props) {
+    const count = useSelector(props.service, selectCount);
+    // ...
+    return { count };
+  }
+};
+```
+
+With `compare` function:
+
+```js
+import { useSelector } from '@xstate/vue';
+
+const selectUser = (state) => state.context.user;
+const compareUser = (prevUser, nextUser) => prevUser.id === nextUser.id;
+
+export default {
+  props: ['service'],
+  setup(props) {
+    const user = useSelector(props.service, selectUser, compareUser);
+    // ...
+    return { user };
+  }
+};
+```
+
+With `useInterpret(...)`:
+
+```js
+import { useInterpret, useSelector } from '@xstate/vue';
+import { someMachine } from '../path/to/someMachine';
+
+const selectCount = (state) => state.context.count;
+
+export default {
+  setup() {
+    const service = useInterpret(someMachine);
+    const count = useSelector(service, selectCount);
+    // ...
+    return { count, service };
+  }
+};
+```
+
 ### `useMachine(machine)` with `@xstate/fsm`
 
 A [Vue composition function](https://v3.vuejs.org/guide/composition-api-introduction.html) that interprets the given finite state `machine` from [`@xstate/fsm`] and starts a service that runs for the lifetime of the component.
@@ -220,7 +287,7 @@ Example: the `'fetchData'` service and `'notifySuccess'` action are both configu
 </template>
 
 <script>
-import { assign, Machine } from 'xstate';
+import { assign, createMachine } from 'xstate';
 import { useMachine } from '@xstate/vue';
 
 const fetchMachine = createMachine({
