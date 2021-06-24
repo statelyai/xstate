@@ -1,21 +1,6 @@
 # @xstate/vue
 
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Quick Start](#quick-start)
-- [API](#api)
-  - [`useMachine(machine, options?)`](#usemachinemachine-options)
-  - [`useService(service)`](#useserviceservice)
-  - [`useActor(actor, getSnapshot)`](#useactoractor-getsnapshot)
-  - [`useInterpret(machine, options?, observer?)`](#useinterpretmachine-options-observer)
-  - [`useMachine(machine)` with `@xstate/fsm`](#usemachinemachine-with-xstatefsm)
-- [Configuring Machines](#configuring-machines)
-- [Matching States](#matching-states)
-- [Persisted and Rehydrated State](#persisted-and-rehydrated-state)
-- [Migration from 0.4.0](#migration-from-040)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+[[toc]]
 
 ## Quick Start
 

@@ -1,28 +1,6 @@
 # @xstate/react
 
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Quick Start](#quick-start)
-- [Examples](#examples)
-- [API](#api)
-  - [`useMachine(machine, options?)`](#usemachinemachine-options)
-  - [`useService(service)`](#useserviceservice)
-  - [`useActor(actor, getSnapshot)`](#useactoractor-getsnapshot)
-  - [`useInterpret(machine, options?, observer?)`](#useinterpretmachine-options-observer)
-  - [`useSelector(actor, selector, compare?, getSnapshot?)`](#useselectoractor-selector-compare-getsnapshot)
-  - [`asEffect(action)`](#aseffectaction)
-  - [`asLayoutEffect(action)`](#aslayouteffectaction)
-  - [`useMachine(machine)` with `@xstate/fsm`](#usemachinemachine-with-xstatefsm)
-- [Configuring Machines](#configuring-machines)
-- [Matching States](#matching-states)
-- [Persisted and Rehydrated State](#persisted-and-rehydrated-state)
-- [Services](#services)
-- [Migration from 0.x](#migration-from-0x)
-- [FAQs](#faqs)
-- [Resources](#resources)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+[[toc]]
 
 ## Quick Start
 
@@ -116,28 +94,24 @@ A [React hook](https://reactjs.org/hooks) that interprets the given `machine` an
 
 ### `useService(service)`
 
+::: warning Deprecated
+
+In the next major version, `useService(service)` will be replaced with `useActor(service)`. Prefer using the `useActor(service)` hook for services instead, since services are also actors.
+
+:::
+
 A [React hook](https://reactjs.org/hooks) that subscribes to state changes from an existing [service](https://xstate.js.org/docs/guides/interpretation.html).
 
 **Arguments**
 
-- `service` - A started [XState service](https://xstate.js.org/docs/guides/interpretation.html).
+- `service` - An [XState service](https://xstate.js.org/docs/guides/interpretation.html).
 
 **Returns** a tuple of `[state, send]`:
 
 - `state` - Represents the current state of the service as an XState `State` object.
 - `send` - A function that sends events to the running service.
 
-```ts
-const someService = interpret(someMachine).start(); // Make sure to start the service!
-
-const SomeComponent = () => {
-  const [state, send] = useService(someService);
-
-  // ...
-};
-```
-
-### `useActor(actor, getSnapshot)`
+### `useActor(actor, getSnapshot?)`
 
 A [React hook](https://reactjs.org/hooks) that subscribes to emitted changes from an existing [actor](https://xstate.js.org/docs/guides/actors.html).
 
@@ -581,21 +555,6 @@ useEffect(() => {
   -const [state, send] = useService(someActor);
   +const [state, send] = useActor(someActor);
   ```
-
-## FAQs
-
-Frequently asked questions about `@xstate/react`:
-
-<details>
-<summary>
-What is the difference between `useMachine`, `useService`, and `useInterpret`?
-</summary>
-
-- The `useMachine(...)` hook creates a **new service instance** of the `machine` specified in `useMachine(machine)`. If you use the `useMachine(...)` hook with the same machine in separate components, the services created by each will be different and unrelated.
-- The `useInterpret(...)` hook also creates a **new service instance**, just like `useMachine(...)`, but only returns the service. This is useful when you only want a reference to the service (e.g., to pass to other components or as a provided value in React context) without rerendering the component whenever the state changes.
-- The `useService(...)` hook uses an **existing service instance** and does not create a new one. You would use this hook to share a service instance with multiple components.
-
-</details>
 
 ## Resources
 
