@@ -6,19 +6,20 @@
 - [Quick Start](#quick-start)
 - [Examples](#examples)
 - [API](#api)
-  - [`useMachine(machine, options?)`](#usemachine-machine-options)
-  - [`useService(service)`](#useservice-service)
-  - [`useActor(actor, getSnapshot)`](#useactor-actor-getsnapshot)
-  - [`useInterpret(machine, options?, observer?)`](#useinterpret-machine-options-observer)
-  - [`useSelector(actor, selector, compare?, getSnapshot?)`](#useselector-actor-selector-compare-getsnapshot)
-  - [`asEffect(action)`](#aseffect-action)
-  - [`asLayoutEffect(action)`](#aslayouteffect-action)
-  - [`useMachine(machine)` with `@xstate/fsm`](#usemachine-machine-with-xstate-fsm)
+  - [`useMachine(machine, options?)`](#usemachinemachine-options)
+  - [`useService(service)`](#useserviceservice)
+  - [`useActor(actor, getSnapshot)`](#useactoractor-getsnapshot)
+  - [`useInterpret(machine, options?, observer?)`](#useinterpretmachine-options-observer)
+  - [`useSelector(actor, selector, compare?, getSnapshot?)`](#useselectoractor-selector-compare-getsnapshot)
+  - [`asEffect(action)`](#aseffectaction)
+  - [`asLayoutEffect(action)`](#aslayouteffectaction)
+  - [`useMachine(machine)` with `@xstate/fsm`](#usemachinemachine-with-xstatefsm)
 - [Configuring Machines](#configuring-machines)
 - [Matching States](#matching-states)
 - [Persisted and Rehydrated State](#persisted-and-rehydrated-state)
 - [Services](#services)
 - [Migration from 0.x](#migration-from-0x)
+- [FAQs](#faqs)
 - [Resources](#resources)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -358,11 +359,13 @@ const fetchMachine = createMachine({
   }
 });
 
-const Fetcher = ({ onFetch = () => new Promise(res => res('some data')) }) => {
+const Fetcher = ({
+  onFetch = () => new Promise((res) => res('some data'))
+}) => {
   const [state, send] = useMachine(fetchMachine, {
     actions: {
       load: () => {
-        onFetch().then(res => {
+        onFetch().then((res) => {
           send({ type: 'RESOLVE', data: res });
         });
       }
@@ -371,7 +374,7 @@ const Fetcher = ({ onFetch = () => new Promise(res => res('some data')) }) => {
 
   switch (state.value) {
     case 'idle':
-      return <button onClick={_ => send('FETCH')}>Fetch</button>;
+      return <button onClick={(_) => send('FETCH')}>Fetch</button>;
     case 'loading':
       return <div>Loading...</div>;
     case 'success':
@@ -578,6 +581,21 @@ useEffect(() => {
   -const [state, send] = useService(someActor);
   +const [state, send] = useActor(someActor);
   ```
+
+## FAQs
+
+Frequently asked questions about `@xstate/react`:
+
+<details>
+<summary>
+What is the difference between `useMachine`, `useService`, and `useInterpret`?
+</summary>
+
+- The `useMachine(...)` hook creates a **new service instance** of the `machine` specified in `useMachine(machine)`. If you use the `useMachine(...)` hook with the same machine in separate components, the services created by each will be different and unrelated.
+- The `useInterpret(...)` hook also creates a **new service instance**, just like `useMachine(...)`, but only returns the service. This is useful when you only want a reference to the service (e.g., to pass to other components or as a provided value in React context) without rerendering the component whenever the state changes.
+- The `useService(...)` hook uses an **existing service instance** and does not create a new one. You would use this hook to share a service instance with multiple components.
+
+</details>
 
 ## Resources
 
