@@ -15,5 +15,6 @@
     "jsx": "react",
     "lib": ["es6", "dom"],
     "strictPropertyInitialization": true
-  }
+  },
+  "exclude": ["examples"]
 }
