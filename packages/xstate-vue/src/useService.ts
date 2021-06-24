@@ -10,15 +10,6 @@ import { Ref, isRef } from 'vue';
 
 import { useActor } from './useActor';
 
-export function getServiceSnapshot<
-  TService extends Interpreter<any, any, any, any>
->(service: TService): TService['state'] {
-  // TODO: remove compat lines in a new major, replace literal number with InterpreterStatus then as well
-  return ('status' in service ? service.status : (service as any)._status) !== 0
-    ? service.state
-    : service.machine.initialState;
-}
-
 /**
  * @deprecated Use `useActor` instead.
  *

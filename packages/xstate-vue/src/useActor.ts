@@ -15,7 +15,7 @@ const noop = () => {
   /* ... */
 };
 
-function defaultGetSnapshot<TEmitted>(
+export function defaultGetSnapshot<TEmitted>(
   actorRef: ActorRef<any, TEmitted>
 ): TEmitted | undefined {
   return 'getSnapshot' in actorRef
