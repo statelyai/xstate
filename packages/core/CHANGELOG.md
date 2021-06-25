@@ -1,5 +1,89 @@
 # xstate
 
+## 4.20.1
+
+### Patch Changes
+
+- [`99bc5fb9`](https://github.com/davidkpiano/xstate/commit/99bc5fb9d1d7be35f4c767dcbbf5287755b306d0) [#2275](https://github.com/davidkpiano/xstate/pull/2275) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `SpawnedActorRef` TypeScript interface has been deprecated in favor of a unified `ActorRef` interface, which contains the following:
+
+  ```ts
+  interface ActorRef<TEvent extends EventObject, TEmitted = any>
+    extends Subscribable<TEmitted> {
+    send: (event: TEvent) => void;
+    id: string;
+    subscribe(observer: Observer<T>): Subscription;
+    subscribe(
+      next: (value: T) => void,
+      error?: (error: any) => void,
+      complete?: () => void
+    ): Subscription;
+    getSnapshot: () => TEmitted | undefined;
+  }
+  ```
+
+  For simpler actor-ref-like objects, the `BaseActorRef<TEvent>` interface has been introduced.
+
+  ```ts
+  interface BaseActorRef<TEvent extends EventObject> {
+    send: (event: TEvent) => void;
+  }
+  ```
+
+* [`38e6a5e9`](https://github.com/davidkpiano/xstate/commit/38e6a5e98a1dd54b4f2ef96942180ec0add88f2b) [#2334](https://github.com/davidkpiano/xstate/pull/2334) Thanks [@davidkpiano](https://github.com/davidkpiano)! - When using a model type in `createMachine<typeof someModel>(...)`, TypeScript will no longer compile machines that are missing the `context` property in the machine configuration:
+
+  ```ts
+  const machine = createMachine<typeof someModel>({
+    // missing context - will give a TS error!
+    // context: someModel.initialContext,
+    initial: 'somewhere',
+    states: {
+      somewhere: {}
+    }
+  });
+  ```
+
+- [`5f790ba5`](https://github.com/davidkpiano/xstate/commit/5f790ba5478cb733a59e3b0603e8976c11bcdd04) [#2320](https://github.com/davidkpiano/xstate/pull/2320) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The typing for `InvokeCallback` have been improved for better event constraints when using the `sendBack` parameter of invoked callbacks:
+
+  ```ts
+  invoke: () => (sendBack, receive) => {
+    // Will now be constrained to events that the parent machine can receive
+    sendBack({ type: 'SOME_EVENT' });
+  };
+  ```
+
+* [`2de3ec3e`](https://github.com/davidkpiano/xstate/commit/2de3ec3e994e0deb5a142aeac15e1eddeb18d1e1) [#2272](https://github.com/davidkpiano/xstate/pull/2272) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `state.meta` value is now calculated directly from `state.configuration`. This is most useful when starting a service from a persisted state:
+
+  ```ts
+    const machine = createMachine({
+      id: 'test',
+      initial: 'first',
+      states: {
+        first: {
+          meta: {
+            name: 'first state'
+          }
+        },
+        second: {
+          meta: {
+            name: 'second state'
+          }
+        }
+      }
+    });
+
+    const service = interpret(machine);
+
+    service.start('second'); // `meta` will be computed
+
+    // the state will have
+    // meta: {
+    //   'test.second': {
+    //     name: 'second state'
+    //   }
+    // }
+  });
+  ```
+
 ## 4.20.0
 
 ### Minor Changes
@@ -102,7 +186,7 @@
     context: { value: 42 },
     on: {
       INC: {
-        actions: assign({ value: (ctx) => ctx.value + 1 })
+        actions: assign({ value: ctx => ctx.value + 1 })
       }
     }
   });
@@ -362,7 +446,7 @@
 
   ```js
   // ...
-  actions: stop((context) => context.someActor);
+  actions: stop(context => context.someActor);
   ```
 
 ### Patch Changes
@@ -600,10 +684,10 @@
   ```js
   entry: [
     choose([
-      { cond: (ctx) => ctx > 100, actions: raise('TOGGLE') },
+      { cond: ctx => ctx > 100, actions: raise('TOGGLE') },
       {
         cond: 'hasMagicBottle',
-        actions: [assign((ctx) => ({ counter: ctx.counter + 1 }))]
+        actions: [assign(ctx => ({ counter: ctx.counter + 1 }))]
       },
       { actions: ['fallbackAction'] }
     ])
