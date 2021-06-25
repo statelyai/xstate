@@ -258,4 +258,19 @@ describe('createModel', () => {
 
     expect(machine.initialState.context.count).toBe(0);
   });
+
+  it('should not compile if missing context', () => {
+    const toggleModel = createModel({ count: 0 });
+
+    // @ts-expect-error
+    const m = createMachine<typeof toggleModel>({
+      id: 'machine',
+      initial: 'inactive',
+      // missing context:
+      // context: toggleModel.initialContext,
+      states: {
+        inactive: {}
+      }
+    });
+  });
 });

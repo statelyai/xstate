@@ -210,3 +210,7 @@ Explore a collection of professionally-designed state machines and statecharts i
 - [XState: What's the difference between Machine and createMachine?](https://dev.to/mpocock1/xstate-what-s-the-difference-between-machine-and-createmachine-15h1) by [Matt Pocock](https://twitter.com/mpocock1)
 - [Use an XState Machine with React](https://dev.to/jbranchaud/use-an-xstate-machine-with-react-326i) by [Josh Branchaud](https://twitter.com/jbrancha)
 - [▶️ DevTrends: XState](https://devtrends.io/videos/xstate/) by [Anthony Gore](https://twitter.com/anthonygore)
+- [XState: Street Lights with Pedestrian Crossing using Vue.js](https://codesandbox.io/s/stoic-thompson-ktzrl?file=/src/App.vue) by [Kevin Warrington](https://github.com/dubbs)
+- [▶️ Front-end state management with XState](https://www.youtube.com/watch?v=Slb6M_rIn0M) by [Amy Pellegrini](https://twitter.com/amyvpellegrini)
+- [▶️ Splitting the view and the brains in JS — state machines with XState (in French)](https://www.youtube.com/watch?v=yRB57CDvQuY) by [Aurelien Meunier](https://www.linkedin.com/in/aumeunier)
+- [Using XState with Deno](https://gustavosantos.dev/a/using-xstate-with-deno) by [Bruno Quaresma](https://twitter.com/bruno__quaresma)
