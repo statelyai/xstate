@@ -1,4 +1,13 @@
 import { createMachine } from '../src';
+import {
+  cancel,
+  choose,
+  log,
+  send,
+  sendParent,
+  sendUpdate,
+  stop
+} from '../src/actions';
 import { createModel } from '../src/model';
 
 describe('createModel', () => {
@@ -235,6 +244,37 @@ describe('createModel', () => {
       context: userModel.initialContext,
       // @ts-expect-error
       entry: { type: 'fake' } // wrong message
+    });
+  });
+
+  it('works with built-in actions', () => {
+    const userModel = createModel(
+      {},
+      {
+        events: {
+          SAMPLE: () => ({})
+        },
+        actions: {
+          custom: () => ({})
+        }
+      }
+    );
+
+    createMachine<typeof userModel>({
+      context: userModel.initialContext,
+      exit: [
+        userModel.actions.custom(),
+        // raise('SAMPLE'),
+        send('SAMPLE'),
+        sendParent('SOMETHING'),
+        sendUpdate(),
+        // respond('SOMETHING'),
+        log('something'),
+        cancel('something'),
+        stop('something'),
+        userModel.assign({}),
+        choose([])
+      ]
     });
   });
 

@@ -84,8 +84,13 @@ export type BaseAction<
 > =
   | TAction['type']
   | TAction
+  | RaiseAction<any>
   | SendAction<TContext, TEvent, any>
   | AssignAction<TContext, TEvent>
+  | LogAction<TContext, TEvent>
+  | CancelAction
+  | StopAction<TContext, TEvent>
+  | ChooseAction<TContext, TEvent>
   | ActionFunction<TContext, TEvent>;
 
 export type BaseActions<
