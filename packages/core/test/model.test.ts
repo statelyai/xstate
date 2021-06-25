@@ -225,15 +225,15 @@ describe('createModel', () => {
       }
     });
 
-    // @ts-expect-error
     createMachine<typeof userModel>({
       context: userModel.initialContext,
+      // @ts-expect-error
       entry: { type: 'greet' } // missing message
     });
 
-    // @ts-expect-error
     createMachine<typeof userModel>({
       context: userModel.initialContext,
+      // @ts-expect-error
       entry: { type: 'fake' } // wrong message
     });
   });
