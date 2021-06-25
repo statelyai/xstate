@@ -1,4 +1,10 @@
-import { Machine, createMachine, interpret } from '../src/index';
+import {
+  Machine,
+  createMachine,
+  interpret,
+  spawn,
+  ActorRef
+} from '../src/index';
 import { assign, raise } from '../src/actions';
 
 const greetingContext = { hour: 10 };
@@ -669,5 +675,52 @@ describe('transient states (eventless transitions)', () => {
 
     const service = interpret(machine);
     expect(() => service.start()).not.toThrow();
+  });
+
+  it('should be taken even in absence of other transitions', (done) => {
+    const machine = createMachine<{
+      ref?: ActorRef<any>;
+    }>({
+      initial: 'a',
+      context: {
+        ref: undefined
+      },
+      states: {
+        a: {
+          entry: assign<any>({
+            ref: () =>
+              spawn(
+                createMachine({
+                  initial: 'waiting',
+                  states: {
+                    waiting: { after: { 100: 'done' } },
+                    // This will send the parent a "done.invoke.*" event,
+                    // which is not handled by the parent.
+                    done: { type: 'final' }
+                  }
+                })
+              )
+          }),
+          // There will be no enabled transitions for the "done.invoke.*" event
+          // but there will be transient transitions.
+          always: {
+            target: 'b',
+            cond: (ctx: any, _e) => {
+              // This will be reached when the ref is done and emits a "done.invoke.*"
+              // event to the parent
+              return ctx.ref.getSnapshot().matches('done');
+            }
+          }
+        },
+        b: {
+          type: 'final'
+        }
+      }
+    });
+    const service = interpret(machine).onDone(() => {
+      done();
+    });
+
+    service.start();
   });
 });
