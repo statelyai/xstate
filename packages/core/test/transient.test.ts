@@ -1,10 +1,4 @@
-import {
-  Machine,
-  createMachine,
-  interpret,
-  spawn,
-  ActorRef
-} from '../src/index';
+import { Machine, createMachine, interpret } from '../src/index';
 import { assign, raise } from '../src/actions';
 
 const greetingContext = { hour: 10 };
