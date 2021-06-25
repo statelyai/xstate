@@ -15,7 +15,7 @@ export function createMachine<
   TEvent extends EventObject = ModelEventsFrom<TModel>,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(
-  config: MachineConfig<TContext, TEvent>,
+  config: MachineConfig<TContext, TEvent> & { context: TContext },
   options?: Partial<MachineImplementations<TContext, TEvent>>
 ): StateMachine<TContext, TEvent, TTypestate>;
 export function createMachine<
@@ -23,7 +23,9 @@ export function createMachine<
   TEvent extends EventObject = AnyEventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(
-  config: MachineConfig<TContext, TEvent>,
+  config: TContext extends Model<any, any, any>
+    ? never
+    : MachineConfig<TContext, TEvent>,
   options?: Partial<MachineImplementations<TContext, TEvent>>
 ): StateMachine<TContext, TEvent, TTypestate>;
 export function createMachine<
