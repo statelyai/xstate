@@ -1286,7 +1286,7 @@ class StateNode<
     // if the event is a NULL_EVENT), then stop to prevent an infinite loop.
     //
     // Otherwise, if there are no enabled nor transient transitions, we are done.
-    if (!resolvedStateValue && (!isTransient || _event.name === NULL_EVENT)) {
+    if (!willTransition && (!isTransient || _event.name === NULL_EVENT)) {
       return nextState;
     }
 
