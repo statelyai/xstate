@@ -1268,19 +1268,31 @@ class StateNode<
       delete history.history;
     }
 
-    if (!resolvedStateValue) {
+    // There are transient transitions if the machine is not in a final state
+    // and if some of the state nodes have transient ("always") transitions.
+    const isTransient =
+      !isDone &&
+      (this._transient ||
+        configuration.some((stateNode) => {
+          return stateNode._transient;
+        }));
+
+    // If there are no enabled transitions, check if there are transient transitions.
+    // If there are transient transitions, continue checking for more transitions
+    // because an transient transition should be triggered even if there are no
+    // enabled transitions.
+    //
+    // If we're already working on an transient transition (by checking
+    // if the event is a NULL_EVENT), then stop to prevent an infinite loop.
+    //
+    // Otherwise, if there are no enabled nor transient transitions, we are done.
+    if (!willTransition && (!isTransient || _event.name === NULL_EVENT)) {
       return nextState;
     }
 
     let maybeNextState = nextState;
 
     if (!isDone) {
-      const isTransient =
-        this._transient ||
-        configuration.some((stateNode) => {
-          return stateNode._transient;
-        });
-
       if (isTransient) {
         maybeNextState = this.resolveRaisedTransition(
           maybeNextState,

@@ -670,4 +670,61 @@ describe('transient states (eventless transitions)', () => {
     const service = interpret(machine);
     expect(() => service.start()).not.toThrow();
   });
+
+  it('should be taken even in absence of other transitions', () => {
+    let shouldMatch = false;
+
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          always: {
+            target: 'b',
+            // TODO: in v5 remove `shouldMatch` and replace this guard with:
+            // cond: (ctx, ev) => ev.type === 'WHATEVER'
+            cond: () => shouldMatch
+          }
+        },
+        b: {}
+      }
+    });
+    const service = interpret(machine).start();
+
+    shouldMatch = true;
+    service.send({ type: 'WHATEVER' });
+
+    expect(service.state.value).toBe('b');
+  });
+
+  it('should select subsequent transient transitions even in absence of other transitions', () => {
+    let shouldMatch = false;
+
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          always: {
+            target: 'b',
+            // TODO: in v5 remove `shouldMatch` and replace this guard with:
+            // cond: (ctx, ev) => ev.type === 'WHATEVER'
+            cond: () => shouldMatch
+          }
+        },
+        b: {
+          always: {
+            target: 'c',
+            cond: () => true
+          }
+        },
+        c: {}
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    shouldMatch = true;
+    service.send({ type: 'WHATEVER' });
+
+    expect(service.state.value).toBe('c');
+  });
 });
