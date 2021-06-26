@@ -262,6 +262,19 @@ describe('createModel', () => {
 
     createMachine<typeof userModel>({
       context: userModel.initialContext,
+      entry: [
+        userModel.actions.custom(),
+        // raise('SAMPLE'),
+        send('SAMPLE'),
+        sendParent('SOMETHING'),
+        sendUpdate(),
+        // respond('SOMETHING'),
+        log('something'),
+        cancel('something'),
+        stop('something'),
+        userModel.assign({}),
+        choose([])
+      ],
       exit: [
         userModel.actions.custom(),
         // raise('SAMPLE'),
@@ -274,7 +287,55 @@ describe('createModel', () => {
         stop('something'),
         userModel.assign({}),
         choose([])
-      ]
+      ],
+      on: {
+        SAMPLE: {
+          actions: [
+            userModel.actions.custom(),
+            // raise('SAMPLE'),
+            send('SAMPLE'),
+            sendParent('SOMETHING'),
+            sendUpdate(),
+            // respond('SOMETHING'),
+            log('something'),
+            cancel('something'),
+            stop('something'),
+            userModel.assign({}),
+            choose([])
+          ]
+        }
+      },
+      initial: 'someState',
+      states: {
+        someState: {
+          entry: [
+            userModel.actions.custom(),
+            // raise('SAMPLE'),
+            send('SAMPLE'),
+            sendParent('SOMETHING'),
+            sendUpdate(),
+            // respond('SOMETHING'),
+            log('something'),
+            cancel('something'),
+            stop('something'),
+            userModel.assign({}),
+            choose([])
+          ],
+          exit: [
+            userModel.actions.custom(),
+            // raise('SAMPLE'),
+            send('SAMPLE'),
+            sendParent('SOMETHING'),
+            sendUpdate(),
+            // respond('SOMETHING'),
+            log('something'),
+            cancel('something'),
+            stop('something'),
+            userModel.assign({}),
+            choose([])
+          ]
+        }
+      }
     });
   });
 
