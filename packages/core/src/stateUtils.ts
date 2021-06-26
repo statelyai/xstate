@@ -1535,7 +1535,11 @@ export function resolveMicroTransition<
   // Transition will "apply" if:
   // - the state node is the initial state (there is no current state)
   // - OR there are transitions
-  const willTransition = !currentState || transitions.length > 0;
+  // - OR there are eventless transitions (if there are no transitions)
+  const willTransition =
+    !currentState ||
+    transitions.length > 0 ||
+    selectEventlessTransitions(currentState).length > 0;
 
   const prevConfig = getConfiguration(
     currentState ? currentState.configuration : [machine.root]
