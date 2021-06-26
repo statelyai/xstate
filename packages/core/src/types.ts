@@ -717,7 +717,6 @@ export interface MachineConfig<
    */
   version?: string;
   schema?: MachineSchema<TContext, TEvent>;
-  entry?: SingleOrArray<TActions>;
 }
 
 export interface MachineSchema<TContext, TEvent extends EventObject> {
