@@ -1,4 +1,4 @@
-import { createMachine, assign, spawn, ActorRef } from 'xstate';
+import { createMachine, spawn, ActorRef } from 'xstate';
 // @ts-expect-error
 import uuid from 'uuid-v4';
 import { createTodoMachine } from './todoItem.machine';
@@ -19,11 +19,25 @@ interface Todo {
   ref: ActorRef<any>;
 }
 
-const todosModel = createModel({
-  todo: '',
-  todos: [] as Todo[],
-  filter: 'all'
-});
+const todosModel = createModel(
+  {
+    todo: '',
+    todos: [] as Todo[],
+    filter: 'all'
+  },
+  {
+    events: {
+      'NEWTODO.CHANGE': (value: string) => ({ value }),
+      'NEWTODO.COMMIT': (value: any) => ({ value }),
+      'TODO.COMMIT': (todo: Todo) => ({ todo }),
+      'TODO.DELETE': (id: string) => ({ id }),
+      SHOW: (filter: string) => ({ filter }),
+      'MARK.completed': () => ({}),
+      'MARK.active': () => ({}),
+      CLEAR_COMPLETED: () => ({})
+    }
+  }
+);
 
 export const todosMachine = createMachine<typeof todosModel>({
   id: 'todos',
@@ -54,7 +68,8 @@ export const todosMachine = createMachine<typeof todosModel>({
       actions: [
         todosModel.assign({
           todo: '', // clear todo
-          todos: (context, event) => {
+          todos: (context, event: { value: string }) => {
+            console.log('value', event.value);
             const newTodo = createTodo(event.value.trim());
             return context.todos.concat({
               ...newTodo,

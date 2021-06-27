@@ -1,4 +1,27 @@
-import { createMachine, assign, sendParent } from 'xstate';
+import { createMachine, sendParent } from 'xstate';
+import { createModel } from 'xstate/lib/model';
+
+const todoModel = createModel(
+  {
+    id: '',
+    title: '',
+    prevTitle: '',
+    completed: false
+  },
+  {
+    events: {
+      TOGGLE_COMPLETE: () => ({}),
+      DELETE: () => ({}),
+      SET_COMPLETED: () => ({}),
+      SET_ACTIVE: () => ({}),
+      EDIT: () => ({}),
+      CHANGE: (value: string) => ({ value }),
+      COMMIT: () => ({}),
+      BLUR: () => ({}),
+      CANCEL: () => ({})
+    }
+  }
+);
 
 export const createTodoMachine = ({
   id,
@@ -8,8 +31,8 @@ export const createTodoMachine = ({
   id: string;
   title: string;
   completed: boolean;
-}) =>
-  createMachine(
+}) => {
+  return createMachine<typeof todoModel>(
     {
       id: 'todo',
       initial: 'reading',
@@ -22,7 +45,7 @@ export const createTodoMachine = ({
       on: {
         TOGGLE_COMPLETE: {
           actions: [
-            assign({ completed: true }),
+            todoModel.assign({ completed: true }),
             sendParent((context) => ({ type: 'TODO.COMMIT', todo: context }))
           ]
         },
@@ -32,16 +55,18 @@ export const createTodoMachine = ({
         reading: {
           on: {
             SET_COMPLETED: {
-              actions: [assign({ completed: true }), 'commit']
+              actions: [todoModel.assign({ completed: true }), 'commit']
             },
             TOGGLE_COMPLETE: {
               actions: [
-                assign({ completed: (context) => !context.completed }),
+                todoModel.assign({
+                  completed: (context) => !context.completed
+                }),
                 'commit'
               ]
             },
             SET_ACTIVE: {
-              actions: [assign({ completed: false }), 'commit']
+              actions: [todoModel.assign({ completed: false }), 'commit']
             },
             EDIT: {
               target: 'editing',
@@ -50,10 +75,10 @@ export const createTodoMachine = ({
           }
         },
         editing: {
-          entry: assign({ prevTitle: (context) => context.title }),
+          entry: todoModel.assign({ prevTitle: (context) => context.title }),
           on: {
             CHANGE: {
-              actions: assign({
+              actions: todoModel.assign({
                 title: (_, event) => event.value
               })
             },
@@ -77,12 +102,14 @@ export const createTodoMachine = ({
             },
             CANCEL: {
               target: 'reading',
-              actions: assign({ title: (context) => context.prevTitle })
+              actions: todoModel.assign({
+                title: (context) => context.prevTitle
+              })
             }
           }
         },
         deleted: {
-          onEntry: sendParent((context) => ({
+          entry: sendParent((context) => ({
             type: 'TODO.DELETE',
             id: context.id
           }))
@@ -99,3 +126,4 @@ export const createTodoMachine = ({
       }
     }
   );
+};
