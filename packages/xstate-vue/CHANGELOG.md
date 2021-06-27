@@ -1,5 +1,27 @@
 # @xstate/vue
 
+## 0.6.0
+
+### Minor Changes
+
+- [`724baae7`](https://github.com/davidkpiano/xstate/commit/724baae76409a3dc6a5b03c47769918d600f478f) [#2230](https://github.com/davidkpiano/xstate/pull/2230) Thanks [@santicros](https://github.com/santicros)! - Added new composable `useSelector(actor, selector)`, which subscribes to actor and returns the selected state derived from selector(snapshot):
+
+  ```js
+  import { useSelector } from '@xstate/vue';
+
+  export default {
+    props: ['someActor'],
+    setup(props) {
+      const count = useSelector(
+        props.someActor,
+        (state) => state.context.count
+      );
+      // ...
+      return { count };
+    }
+  };
+  ```
+
 ## 0.5.0
 
 ### Minor Changes
@@ -28,7 +50,7 @@
   export default defineComponent({
     setup() {
       const state = ref();
-      const service = useInterpret(machine, {}, nextState => {
+      const service = useInterpret(machine, {}, (nextState) => {
         state.value = nextState.value;
       });
       return { service, state };

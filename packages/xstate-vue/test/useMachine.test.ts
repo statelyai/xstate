@@ -1,13 +1,13 @@
 import { render, fireEvent, waitFor } from '@testing-library/vue';
 import UseMachine from './UseMachine.vue';
 import UseMachineNoExtraOptions from './UseMachine-no-extra-options.vue';
-import { Machine, assign, doneInvoke } from 'xstate';
+import { createMachine, assign, doneInvoke } from 'xstate';
 
 describe('useMachine composition function', () => {
   const context = {
     data: undefined
   };
-  const fetchMachine = Machine<typeof context>({
+  const fetchMachine = createMachine<typeof context>({
     id: 'fetch',
     initial: 'idle',
     context,

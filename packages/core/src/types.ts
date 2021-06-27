@@ -230,10 +230,13 @@ export type Receiver<TEvent extends EventObject> = (
   listener: (event: TEvent) => void
 ) => void;
 
-export type InvokeCallback<TEvent extends EventObject = AnyEventObject> = (
-  callback: Sender<TEvent>,
+export type InvokeCallback<
+  TEvent extends EventObject = AnyEventObject,
+  TSentEvent extends EventObject = AnyEventObject
+> = (
+  callback: Sender<TSentEvent>,
   onReceive: Receiver<TEvent>
-) => any;
+) => (() => void) | Promise<any> | void;
 
 export interface InvokeMeta {
   data: any;
@@ -255,7 +258,7 @@ export interface InvokeMeta {
  */
 export type InvokeCreator<
   TContext,
-  TEvent extends EventObject = AnyEventObject,
+  TEvent extends EventObject,
   TFinalContext = any
 > = (
   context: TContext,
@@ -265,7 +268,7 @@ export type InvokeCreator<
   | PromiseLike<TFinalContext>
   | StateMachine<TFinalContext, any, any>
   | Subscribable<EventObject>
-  | InvokeCallback<TEvent>
+  | InvokeCallback<any, TEvent>
   | Behavior<any>;
 
 export interface InvokeDefinition<TContext, TEvent extends EventObject>
