@@ -5,10 +5,10 @@ specifiers:
   '@vue/compiler-sfc': ^3.1.2
   '@xstate/inspect': ^0.4.1
   '@xstate/vue': ^0.6.0
+  nanoid: ^3.1.23
   todomvc-app-css: ^2.4.1
   todomvc-common: ^1.0.5
   typescript: ^4.3.4
-  uuid-v4: ^0.1.0
   vite: ^2.3.8
   vue: ^3.0.5
   vue-tsc: ^0.2.0
@@ -17,9 +17,9 @@ specifiers:
 dependencies:
   '@xstate/inspect': 0.4.1
   '@xstate/vue': 0.6.0_vue@3.1.1+xstate@4.20.1
+  nanoid: 3.1.23
   todomvc-app-css: 2.4.1
   todomvc-common: 1.0.5
-  uuid-v4: 0.1.0
   vue: 3.1.1
   xstate: 4.20.1
 
@@ -1431,7 +1431,6 @@ packages:
     resolution: {integrity: sha512-FiB0kzdP0FFVGDKlRLEQ1BgDzU87dy5NnzjeW9YZNt+/c3+q82EQDUwniSAUxp/F0gFNI1ZhKU1FqYsMuqZVnw==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
-    dev: true
 
   /normalize-package-data/2.5.0:
     resolution: {integrity: sha512-/5CMN3T0R4XTj4DcGaexo+roZSdSFW/0AOOTROrjxzCG1wrWXEsGbRKevjlIL+ZDE4sZlJr5ED4YW0yqmkK+eA==}
@@ -2283,10 +2282,6 @@ packages:
   /util-deprecate/1.0.2:
     resolution: {integrity: sha1-RQ1Nyfpw3nMnYvvS1KKJgUGaDM8=}
     dev: true
-
-  /uuid-v4/0.1.0:
-    resolution: {integrity: sha1-YtezEEBvbOz+oVKMafHo4LzsWjo=}
-    dev: false
 
   /validate-npm-package-license/3.0.4:
     resolution: {integrity: sha512-DpKm2Ui/xN7/HQKCtpZxoRWBhZ9Z0kqtygG8XCgNQ8ZlDnxuQmWhj566j8fN4Cu3/JmbhsDo7fcAJq4s9h27Ew==}

@@ -1,12 +1,11 @@
 import { createMachine, spawn, ActorRef } from 'xstate';
-// @ts-expect-error
-import uuid from 'uuid-v4';
+import { nanoid } from 'nanoid';
 import { createTodoMachine } from './todoItem.machine';
 import { createModel } from 'xstate/lib/model';
 
 const createTodo = (title: string) => {
   return {
-    id: uuid() as string,
+    id: nanoid(),
     title,
     completed: false
   };

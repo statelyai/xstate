@@ -35,9 +35,9 @@
       <footer class="footer" v-show="todos.length">
         <span class="todo-count">
           <strong>
-            {{ numActiveTodos }} item{{ numActiveTodos === 1 ? '' : 's' }} left
-            left</strong
-          >
+            {{ numActiveTodos }} item{{ numActiveTodos === 1 ? '' : 's' }}
+            left
+          </strong>
         </span>
         <ul class="filters">
           <li>
