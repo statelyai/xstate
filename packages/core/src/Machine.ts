@@ -11,6 +11,9 @@ import {
 import { StateNode } from './StateNode';
 import { Model, ModelContextFrom, ModelEventsFrom } from './model';
 
+/**
+ * @deprecated Use `createMachine(...)` instead.
+ */
 export function Machine<
   TContext = any,
   TEvent extends EventObject = AnyEventObject
