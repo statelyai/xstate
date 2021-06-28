@@ -110,7 +110,7 @@ A transition is a description of which target [state(s)](#state) and [actions](#
 
 ## Visual formalism
 
-A visual formalism is an exact language (like a programming language) that primarily uses visual symbols (states, transitions, etc.) instead of only code or text. State machines and statecharts are visual formalisms.
+A visual formalism is an exact language (like a programming language) that primarily uses visual symbols (states, transitions, etc.) instead of only code or text. State diagrams and statecharts are visual formalisms.
 
 > Visual formalisms are diagrammatic and intuitive, yet mathematically rigorous languages.
 >
