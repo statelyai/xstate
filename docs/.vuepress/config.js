@@ -10,6 +10,7 @@ module.exports = {
     lastUpdated: 'Last Updated',
     repo: 'davidkpiano/xstate',
     docsDir: 'docs',
+    docsBranch: 'main',
     editLinks: true,
     logo: '/logo.svg',
     algolia: {
@@ -33,7 +34,8 @@ module.exports = {
           '/about/goals',
           '/about/showcase',
           '/about/resources',
-          '/about/tutorials'
+          '/about/tutorials',
+          '/about/glossary'
         ]
       },
       {

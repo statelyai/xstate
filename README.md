@@ -16,6 +16,8 @@ JavaScript and TypeScript [finite state machines](https://en.wikipedia.org/wiki/
 
 📖 [Read the documentation](https://xstate.js.org/docs)
 
+💙 [Explore our catalogue of examples](https://xstate-catalogue.com/)
+
 📑 Adheres to the [SCXML specification](https://www.w3.org/TR/scxml/)
 
 💬 Chat on the [Stately Discord Community](https://discord.gg/KCtSX7Cdjh)
@@ -23,13 +25,13 @@ JavaScript and TypeScript [finite state machines](https://en.wikipedia.org/wiki/
 ## Packages
 
 - 🤖 `xstate` - Core finite state machine and statecharts library + interpreter
-- [🔬 `@xstate/fsm`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-fsm) - Minimal finite state machine library
-- [📉 `@xstate/graph`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-graph) - Graph traversal utilities for XState
-- [⚛️ `@xstate/react`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-react) - React hooks and utilities for using XState in React applications
-- [💚 `@xstate/vue`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-vue) - Vue composition functions and utilities for using XState in Vue applications
-- [🎷 `@xstate/svelte`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-svelte) - Svelte utilities for using XState in Svelte applications
-- [✅ `@xstate/test`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-test) - Model-Based-Testing utilities (using XState) for testing any software
-- [🔍 `@xstate/inspect`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-inspect) - Inspection utilities for XState
+- [🔬 `@xstate/fsm`](https://github.com/davidkpiano/xstate/tree/main/packages/xstate-fsm) - Minimal finite state machine library
+- [📉 `@xstate/graph`](https://github.com/davidkpiano/xstate/tree/main/packages/xstate-graph) - Graph traversal utilities for XState
+- [⚛️ `@xstate/react`](https://github.com/davidkpiano/xstate/tree/main/packages/xstate-react) - React hooks and utilities for using XState in React applications
+- [💚 `@xstate/vue`](https://github.com/davidkpiano/xstate/tree/main/packages/xstate-vue) - Vue composition functions and utilities for using XState in Vue applications
+- [🎷 `@xstate/svelte`](https://github.com/davidkpiano/xstate/tree/main/packages/xstate-svelte) - Svelte utilities for using XState in Svelte applications
+- [✅ `@xstate/test`](https://github.com/davidkpiano/xstate/tree/main/packages/xstate-test) - Model-Based-Testing utilities (using XState) for testing any software
+- [🔍 `@xstate/inspect`](https://github.com/davidkpiano/xstate/tree/main/packages/xstate-inspect) - Inspection utilities for XState
 
 ## Templates
 
@@ -404,10 +406,3 @@ const previousState = paymentMachine.transition(reviewState, 'PREVIOUS').value;
 
 // => { method: 'check' }
 ```
-
-## Sponsors
-
-Huge thanks to the following companies for sponsoring `xstate`. You can sponsor further `xstate` development [on OpenCollective](https://opencollective.com/xstate).
-
-<a href="https://tipe.io" title="Tipe.io"><img src="https://cdn.tipe.io/tipe/tipe-logo.svg?w=240" style="background:#613DEF" /></a>
-<a href="https://webflow.com" title="Webflow"><img src="https://uploads-ssl.webflow.com/583347ca8f6c7ee058111b3b/5b03bde0971fdd75d75b5591_webflow.png" height="100" /></a>

@@ -119,12 +119,22 @@ A [React hook](https://reactjs.org/hooks) that subscribes to state changes from 
 
 **Arguments**
 
-- `service` - An [XState service](https://xstate.js.org/docs/guides/interpretation.html).
+- `service` - A started [XState service](https://xstate.js.org/docs/guides/interpretation.html).
 
 **Returns** a tuple of `[state, send]`:
 
 - `state` - Represents the current state of the service as an XState `State` object.
 - `send` - A function that sends events to the running service.
+
+```ts
+const someService = interpret(someMachine).start(); // Make sure to start the service!
+
+const SomeComponent = () => {
+  const [state, send] = useService(someService);
+
+  // ...
+};
+```
 
 ### `useActor(actor, getSnapshot)`
 
@@ -319,7 +329,7 @@ This special `useMachine` hook is imported from `@xstate/react/fsm`
 
 ```js
 import { useEffect } from 'react';
-import { useMachine } from `@xstate/react/fsm`;
+import { useMachine } from '@xstate/react/fsm';
 import { createMachine } from '@xstate/fsm';
 
 const context = {

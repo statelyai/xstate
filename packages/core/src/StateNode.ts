@@ -482,7 +482,7 @@ class StateNode<
    */
   public withContext(
     context: TContext
-  ): StateNode<TContext, TStateSchema, TEvent> {
+  ): StateNode<TContext, TStateSchema, TEvent, TTypestate> {
     return new StateNode(this.config, this.options, context);
   }
 
@@ -1225,13 +1225,6 @@ class StateNode<
       ? currentState.configuration
       : [];
 
-    const meta = resolvedConfiguration.reduce((acc, stateNode) => {
-      if (stateNode.meta !== undefined) {
-        acc[stateNode.id] = stateNode.meta;
-      }
-      return acc;
-    }, {} as Record<string, string>);
-
     const isDone = isInFinalState(resolvedConfiguration, this);
 
     const nextState = new State<TContext, TEvent, TStateSchema, TTypestate>({
@@ -1257,11 +1250,6 @@ class StateNode<
         : currentState
         ? currentState.activities
         : {},
-      meta: resolvedStateValue
-        ? meta
-        : currentState
-        ? currentState.meta
-        : undefined,
       events: [],
       configuration: resolvedConfiguration,
       transitions: stateTransition.transitions,
@@ -1280,19 +1268,31 @@ class StateNode<
       delete history.history;
     }
 
-    if (!resolvedStateValue) {
+    // There are transient transitions if the machine is not in a final state
+    // and if some of the state nodes have transient ("always") transitions.
+    const isTransient =
+      !isDone &&
+      (this._transient ||
+        configuration.some((stateNode) => {
+          return stateNode._transient;
+        }));
+
+    // If there are no enabled transitions, check if there are transient transitions.
+    // If there are transient transitions, continue checking for more transitions
+    // because an transient transition should be triggered even if there are no
+    // enabled transitions.
+    //
+    // If we're already working on an transient transition (by checking
+    // if the event is a NULL_EVENT), then stop to prevent an infinite loop.
+    //
+    // Otherwise, if there are no enabled nor transient transitions, we are done.
+    if (!willTransition && (!isTransient || _event.name === NULL_EVENT)) {
       return nextState;
     }
 
     let maybeNextState = nextState;
 
     if (!isDone) {
-      const isTransient =
-        this._transient ||
-        configuration.some((stateNode) => {
-          return stateNode._transient;
-        });
-
       if (isTransient) {
         maybeNextState = this.resolveRaisedTransition(
           maybeNextState,

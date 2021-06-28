@@ -230,10 +230,13 @@ export type Receiver<TEvent extends EventObject> = (
   listener: (event: TEvent) => void
 ) => void;
 
-export type InvokeCallback<TEvent extends EventObject = AnyEventObject> = (
-  callback: Sender<TEvent>,
+export type InvokeCallback<
+  TEvent extends EventObject = AnyEventObject,
+  TSentEvent extends EventObject = AnyEventObject
+> = (
+  callback: Sender<TSentEvent>,
   onReceive: Receiver<TEvent>
-) => any;
+) => (() => void) | Promise<any> | void;
 
 export interface InvokeMeta {
   data: any;
@@ -255,7 +258,7 @@ export interface InvokeMeta {
  */
 export type InvokeCreator<
   TContext,
-  TEvent extends EventObject = AnyEventObject,
+  TEvent extends EventObject,
   TFinalContext = any
 > = (
   context: TContext,
@@ -265,7 +268,7 @@ export type InvokeCreator<
   | PromiseLike<TFinalContext>
   | StateMachine<TFinalContext, any, any>
   | Subscribable<EventObject>
-  | InvokeCallback<TEvent>;
+  | InvokeCallback<any, TEvent>;
 
 export interface InvokeDefinition<TContext, TEvent extends EventObject>
   extends ActivityDefinition<TContext, TEvent> {
@@ -727,6 +730,15 @@ export interface StateMachine<
 > extends StateNode<TContext, TStateSchema, TEvent, TTypestate> {
   id: string;
   states: StateNode<TContext, TStateSchema, TEvent>['states'];
+
+  withConfig(
+    options: Partial<MachineOptions<TContext, TEvent>>,
+    context?: TContext
+  ): StateMachine<TContext, TStateSchema, TEvent, TTypestate>;
+
+  withContext(
+    context: TContext
+  ): StateMachine<TContext, TStateSchema, TEvent, TTypestate>;
 }
 
 export type StateFrom<
@@ -1270,24 +1282,38 @@ export type ExtractEvent<
   TEventType extends TEvent['type']
 > = TEvent extends { type: TEventType } ? TEvent : never;
 
-export interface ActorRef<TEvent extends EventObject, TEmitted = any>
-  extends Subscribable<TEmitted> {
-  send: Sender<TEvent>;
+export interface BaseActorRef<TEvent extends EventObject> {
+  send: (event: TEvent) => void;
 }
 
-export interface SpawnedActorRef<TEvent extends EventObject, TEmitted = any>
-  extends ActorRef<TEvent, TEmitted> {
+export interface ActorRef<TEvent extends EventObject, TEmitted = any>
+  extends Subscribable<TEmitted> {
+  send: Sender<TEvent>; // TODO: this should just be TEvent
   id: string;
+  getSnapshot: () => TEmitted | undefined;
   stop?: () => void;
   toJSON?: () => any;
 }
 
+/**
+ * @deprecated Use `ActorRef` instead.
+ */
+export type SpawnedActorRef<
+  TEvent extends EventObject,
+  TEmitted = any
+> = ActorRef<TEvent, TEmitted>;
+
 export type ActorRefFrom<
-  T extends StateMachine<any, any, any>
+  T extends StateMachine<any, any, any> | Promise<any>
 > = T extends StateMachine<infer TContext, any, infer TEvent, infer TTypestate>
-  ? SpawnedActorRef<TEvent, State<TContext, TEvent, any, TTypestate>> & {
+  ? ActorRef<TEvent, State<TContext, TEvent, any, TTypestate>> & {
+      /**
+       * @deprecated Use `.getSnapshot()` instead.
+       */
       state: State<TContext, TEvent, any, TTypestate>;
     }
+  : T extends Promise<infer U>
+  ? ActorRef<never, U>
   : never;
 
 export type AnyInterpreter = Interpreter<any, any, any, any>;

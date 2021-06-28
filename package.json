@@ -4,7 +4,6 @@
   "description": "Finite State Machines and Statecharts for the Modern Web.",
   "workspaces": {
     "packages": [
-      "examples/*",
       "packages/*",
       "packages/xstate-viz/example"
     ]
@@ -54,10 +53,14 @@
     "prettier": "^2.0.2",
     "spawn-command": "0.0.2-1",
     "ts-jest": "^26.5.6",
+    "tslib": "^2.2.0",
     "tslint": "^5.11.0",
     "typedoc": "^0.17.4",
-    "typescript": "^4.2.4",
+    "typescript": "^4.3.2",
     "webpack-dev-middleware": "^3.6.0"
+  },
+  "resolutions": {
+    "**/tslib": "^2.2.0"
   },
   "husky": {
     "hooks": {
@@ -65,7 +68,7 @@
     }
   },
   "lint-staged": {
-    "*.{ts,tsx,js,json,md}": [
+    "*.{ts,tsx,js,jsx,json,md,mdx}": [
       "prettier --write",
       "git add"
     ]

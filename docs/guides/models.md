@@ -89,7 +89,7 @@ const machine = createMachine(
             })
           },
           updateAge: {
-            actions: 'updateAge'
+            actions: 'assignAge'
           }
         }
       }
@@ -97,7 +97,7 @@ const machine = createMachine(
   },
   {
     actions: {
-      updateAge: userModel.assign({
+      assignAge: userModel.assign({
         age: (_, event) => event.value // inferred
       })
     }
@@ -120,7 +120,7 @@ const nextState = machine.transition(
 The `createModel(...)` function infers the following types:
 
 - `context` is inferred from the first argument in `createModel(initialContext, creators)`
-- `events` is inferred from `creators.events` in `createModel(initialContext, creators)
+- `events` is inferred from `creators.events` in `createModel(initialContext, creators)`
 
 ```ts
 import { createModel } from 'xstate/lib/model';
@@ -184,7 +184,7 @@ const machine = createMachine<typeof userModel>(
       active: {
         on: {
           updateAge: {
-            actions: 'updateAge'
+            actions: 'assignAge'
           }
         }
       }
@@ -192,12 +192,12 @@ const machine = createMachine<typeof userModel>(
   },
   {
     actions: {
-      updateAge: userModel.assign(
+      assignAge: userModel.assign(
         {
-          age: (_, event) => event.value // inferred
+          // The `event.type` here is restricted to "updateAge"
+          age: (_, event) => event.value // inferred as `number`
         },
-        // infers the event type from userModel.events.updateAge
-        'updateAge'
+        'updateAge' // Restricts the `event` allowed by the "assignAge" action
       )
     }
   }

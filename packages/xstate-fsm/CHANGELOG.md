@@ -1,5 +1,11 @@
 # @xstate/fsm
 
+## 1.6.1
+
+### Patch Changes
+
+- [`0db3de7c`](https://github.com/davidkpiano/xstate/commit/0db3de7c5b84cb3eecb0cf1deabcc3bc54172505) [#2055](https://github.com/davidkpiano/xstate/pull/2055) Thanks [@f-elix](https://github.com/f-elix)! - Added a more helpful error, in the development build, for a situation where the next state (the target of a transition) doesn't exist in the config.
+
 ## 1.6.0
 
 ### Minor Changes

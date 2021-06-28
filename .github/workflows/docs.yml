@@ -3,7 +3,7 @@ name: Docs
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   build:
@@ -13,7 +13,7 @@ jobs:
       matrix:
         node-version: [14.x]
 
-    steps: 
+    steps:
       - uses: actions/checkout@v2
 
       - name: Build docs
@@ -25,6 +25,6 @@ jobs:
       - name: Publish docs
         uses: JamesIves/github-pages-deploy-action@4.1.0
         with:
-            branch: gh-pages
-            folder: docs/.vuepress/dist
-            target-folder: docs
+          branch: gh-pages
+          folder: docs/.vuepress/dist
+          target-folder: docs

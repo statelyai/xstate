@@ -12,6 +12,10 @@ The workshop code examples are [open-sourced and available on GitHub](https://gi
 There is also a follow-up course: [State Modeling with React and XState](https://frontendmasters.com/workshops/xstate-react/). Once you've gone through the first course, be sure to take this one too so you can learn how to apply state machines and statecharts to real-world apps and master advanced concepts such as spawning/invoking actors and model-based testing.
 :::
 
+:::tip Catalogue
+Explore a collection of professionally-designed state machines and statecharts in the [XState Catalogue](https://xstate-catalogue.com/). You can copy-paste these machines directly into your projects, as well as visualize them directly in the catalogue.
+:::
+
 **Other great courses and guides:**
 
 - [Egghead - Introduction to State Machines Using XState](https://egghead.io/courses/introduction-to-state-machines-using-xstate) by [Kyle Shevlin](https://twitter.com/kyleshevlin)
@@ -205,3 +209,8 @@ There is also a follow-up course: [State Modeling with React and XState](https:/
 - [State Machines: Should this be a state, or in context?](https://dev.to/mpocock1/state-machines-should-this-be-a-state-or-in-context-1d7e) by [Matt Pocock](https://twitter.com/mpocock1)
 - [XState: What's the difference between Machine and createMachine?](https://dev.to/mpocock1/xstate-what-s-the-difference-between-machine-and-createmachine-15h1) by [Matt Pocock](https://twitter.com/mpocock1)
 - [Use an XState Machine with React](https://dev.to/jbranchaud/use-an-xstate-machine-with-react-326i) by [Josh Branchaud](https://twitter.com/jbrancha)
+- [▶️ DevTrends: XState](https://devtrends.io/videos/xstate/) by [Anthony Gore](https://twitter.com/anthonygore)
+- [XState: Street Lights with Pedestrian Crossing using Vue.js](https://codesandbox.io/s/stoic-thompson-ktzrl?file=/src/App.vue) by [Kevin Warrington](https://github.com/dubbs)
+- [▶️ Front-end state management with XState](https://www.youtube.com/watch?v=Slb6M_rIn0M) by [Amy Pellegrini](https://twitter.com/amyvpellegrini)
+- [▶️ Splitting the view and the brains in JS — state machines with XState (in French)](https://www.youtube.com/watch?v=yRB57CDvQuY) by [Aurelien Meunier](https://www.linkedin.com/in/aumeunier)
+- [Using XState with Deno](https://gustavosantos.dev/a/using-xstate-with-deno) by [Bruno Quaresma](https://twitter.com/bruno__quaresma)

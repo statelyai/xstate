@@ -1,6 +1,6 @@
 {
   "name": "@xstate/vue",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "XState tools for Vue",
   "keywords": [
     "state",
@@ -13,7 +13,7 @@
     "composable"
   ],
   "author": "David Khourshid <davidkpiano@gmail.com>",
-  "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-vue#readme",
+  "homepage": "https://github.com/davidkpiano/xstate/tree/main/packages/xstate-vue#readme",
   "license": "MIT",
   "main": "lib/index.js",
   "module": "es/index.js",
@@ -68,7 +68,7 @@
     "rollup-plugin-terser": "^5.1.2",
     "rollup-plugin-typescript2": "^0.29.0",
     "ts-jest": "^26.5.6",
-    "typescript": "^4.2.4",
+    "typescript": "^4.3.2",
     "vue": "^3.0.7",
     "vue-jest": "5.0.0-alpha.7",
     "xstate": "*"
