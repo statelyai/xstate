@@ -64,7 +64,7 @@ export function createMachine<
   config: MachineConfig<TContext, any, TEvent, TActions> & {
     context: TContext;
   },
-  options?: Partial<MachineOptions<TContext, TEvent>>
+  options?: Partial<MachineOptions<TContext, TEvent, TActions>>
 ): StateMachine<TContext, any, TEvent, TTypestate>;
 export function createMachine<
   TContext,

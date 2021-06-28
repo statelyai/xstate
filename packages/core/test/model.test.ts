@@ -248,7 +248,7 @@ describe('createModel', () => {
   });
 
   it('works with built-in actions', () => {
-    const userModel = createModel(
+    const model = createModel(
       {},
       {
         events: {
@@ -260,10 +260,10 @@ describe('createModel', () => {
       }
     );
 
-    createMachine<typeof userModel>({
-      context: userModel.initialContext,
+    createMachine<typeof model>({
+      context: model.initialContext,
       entry: [
-        userModel.actions.custom(),
+        model.actions.custom(),
         // raise('SAMPLE'),
         send('SAMPLE'),
         sendParent('SOMETHING'),
@@ -272,11 +272,11 @@ describe('createModel', () => {
         log('something'),
         cancel('something'),
         stop('something'),
-        userModel.assign({}),
+        model.assign({}),
         choose([])
       ],
       exit: [
-        userModel.actions.custom(),
+        model.actions.custom(),
         // raise('SAMPLE'),
         send('SAMPLE'),
         sendParent('SOMETHING'),
@@ -285,13 +285,13 @@ describe('createModel', () => {
         log('something'),
         cancel('something'),
         stop('something'),
-        userModel.assign({}),
+        model.assign({}),
         choose([])
       ],
       on: {
         SAMPLE: {
           actions: [
-            userModel.actions.custom(),
+            model.actions.custom(),
             // raise('SAMPLE'),
             send('SAMPLE'),
             sendParent('SOMETHING'),
@@ -300,7 +300,7 @@ describe('createModel', () => {
             log('something'),
             cancel('something'),
             stop('something'),
-            userModel.assign({}),
+            model.assign({}),
             choose([])
           ]
         }
@@ -309,7 +309,7 @@ describe('createModel', () => {
       states: {
         someState: {
           entry: [
-            userModel.actions.custom(),
+            model.actions.custom(),
             // raise('SAMPLE'),
             send('SAMPLE'),
             sendParent('SOMETHING'),
@@ -318,11 +318,11 @@ describe('createModel', () => {
             log('something'),
             cancel('something'),
             stop('something'),
-            userModel.assign({}),
+            model.assign({}),
             choose([])
           ],
           exit: [
-            userModel.actions.custom(),
+            model.actions.custom(),
             // raise('SAMPLE'),
             send('SAMPLE'),
             sendParent('SOMETHING'),
@@ -331,12 +331,42 @@ describe('createModel', () => {
             log('something'),
             cancel('something'),
             stop('something'),
-            userModel.assign({}),
+            model.assign({}),
             choose([])
           ]
         }
       }
     });
+  });
+
+  it('should strongly type action implementations', () => {
+    const model = createModel(
+      {},
+      {
+        events: {
+          SAMPLE: () => ({})
+        },
+        actions: {
+          custom: (param: string) => ({ param })
+        }
+      }
+    );
+
+    createMachine<typeof model>(
+      {
+        context: {}
+      },
+      {
+        actions: {
+          custom: (_ctx, _e, { action }) => {
+            action.param.toUpperCase();
+
+            // @ts-expect-error
+            action.param.whatever();
+          }
+        }
+      }
+    );
   });
 
   it('should typecheck `createMachine` for model without creators', () => {

@@ -49,9 +49,12 @@ export type EventData = Record<string, any> & { type?: never };
  */
 export type Event<TEvent extends EventObject> = TEvent['type'] | TEvent;
 
-export interface ActionMeta<TContext, TEvent extends EventObject>
-  extends StateMeta<TContext, TEvent> {
-  action: ActionObject<TContext, TEvent>;
+export interface ActionMeta<
+  TContext,
+  TEvent extends EventObject,
+  TAction extends ActionObject<TContext, TEvent>
+> extends StateMeta<TContext, TEvent> {
+  action: TAction;
   _event: SCXML.Event<TEvent>;
 }
 
@@ -61,10 +64,17 @@ export interface AssignMeta<TContext, TEvent extends EventObject> {
   _event: SCXML.Event<TEvent>;
 }
 
-export type ActionFunction<TContext, TEvent extends EventObject> = (
+export type ActionFunction<
+  TContext,
+  TEvent extends EventObject,
+  TAction extends ActionObject<TContext, TEvent> = ActionObject<
+    TContext,
+    TEvent
+  >
+> = (
   context: TContext,
   event: TEvent,
-  meta: ActionMeta<TContext, TEvent>
+  meta: ActionMeta<TContext, TEvent, TAction>
 ) => void;
 
 export interface ChooseConditon<TContext, TEvent extends EventObject> {
@@ -668,10 +678,19 @@ export type SimpleOrStateNodeConfig<
   | AtomicStateNodeConfig<TContext, TEvent>
   | StateNodeConfig<TContext, TStateSchema, TEvent>;
 
-export type ActionFunctionMap<TContext, TEvent extends EventObject> = Record<
-  string,
-  ActionObject<TContext, TEvent> | ActionFunction<TContext, TEvent>
->;
+export type ActionFunctionMap<
+  TContext,
+  TEvent extends EventObject,
+  TActions extends ActionObject<TContext, TEvent>
+> = {
+  [K in TActions['type']]?:
+    | ActionObject<TContext, TEvent>
+    | ActionFunction<
+        TContext,
+        TEvent,
+        TActions extends { type: K } ? TActions : never
+      >;
+};
 
 export type DelayFunctionMap<TContext, TEvent extends EventObject> = Record<
   string,
@@ -687,9 +706,16 @@ export type DelayConfig<TContext, TEvent extends EventObject> =
   | number
   | DelayExpr<TContext, TEvent>;
 
-export interface MachineOptions<TContext, TEvent extends EventObject> {
+export interface MachineOptions<
+  TContext,
+  TEvent extends EventObject,
+  TActions extends ActionObject<TContext, TEvent> = ActionObject<
+    TContext,
+    TEvent
+  >
+> {
   guards: Record<string, ConditionPredicate<TContext, TEvent>>;
-  actions: ActionFunctionMap<TContext, TEvent>;
+  actions: ActionFunctionMap<TContext, TEvent, TActions>;
   activities: Record<string, ActivityConfig<TContext, TEvent>>;
   services: Record<string, ServiceConfig<TContext, TEvent>>;
   delays: DelayFunctionMap<TContext, TEvent>;
