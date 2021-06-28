@@ -31,12 +31,13 @@
 </template>
 
 <script setup lang="ts">
+import { ActorRef } from 'xstate/lib/types';
 import { useActor } from '@xstate/vue';
 import { defineProps, computed, watch, ref, nextTick } from 'vue';
 
-const props = defineProps({
-  todoRef: { type: Object, required: true }
-});
+const props = defineProps<{
+  todoRef: ActorRef<any>;
+}>();
 
 const { state, send } = useActor(props.todoRef);
 const inputRef = ref(null);
@@ -54,6 +55,5 @@ watch(
 );
 
 const title = computed(() => state.value.context.title);
-const id = computed(() => state.value.context.id);
 const completed = computed(() => state.value.context.completed);
 </script>

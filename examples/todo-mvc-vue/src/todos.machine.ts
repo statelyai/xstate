@@ -28,7 +28,7 @@ const todosModel = createModel(
   {
     events: {
       'NEWTODO.CHANGE': (value: string) => ({ value }),
-      'NEWTODO.COMMIT': (value: any) => ({ value }),
+      'NEWTODO.COMMIT': (value: string) => ({ value }),
       'TODO.COMMIT': (todo: Todo) => ({ todo }),
       'TODO.DELETE': (id: string) => ({ id }),
       SHOW: (filter: string) => ({ filter }),
@@ -68,7 +68,7 @@ export const todosMachine = createMachine<typeof todosModel>({
       actions: [
         todosModel.assign({
           todo: '', // clear todo
-          todos: (context, event: { value: string }) => {
+          todos: (context, event) => {
             console.log('value', event.value);
             const newTodo = createTodo(event.value.trim());
             return context.todos.concat({
@@ -79,7 +79,7 @@ export const todosMachine = createMachine<typeof todosModel>({
         }),
         'persist'
       ],
-      cond: (_, event) => event.value.trim().length
+      cond: (_, event) => !!event.value.trim().length
     },
     'TODO.COMMIT': {
       actions: [
