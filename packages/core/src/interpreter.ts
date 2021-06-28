@@ -1268,6 +1268,12 @@ export class Interpreter<
     return this;
   }
 
+  public [Symbol.observable](): Subscribable<
+    State<TContext, TEvent, TStateSchema, TTypestate>
+  > {
+    return this;
+  }
+
   public getSnapshot() {
     if (this.status === InterpreterStatus.NotStarted) {
       return this.initialState;
