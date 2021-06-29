@@ -66,6 +66,12 @@ An internal event is an event that is raised by the state machine itself. Intern
 
 In SCXML, an internal transition is a transition that transitions to a descendant target state without exiting the source state. This is the default transition behavior. See [selecting transitions (SCXML)](https://www.w3.org/TR/scxml/#SelectingTransitions) for details.
 
+## Mathematical model of computation
+
+A mathematical model of computation is a way of describing how things are computed (given an input, what is the output?) based on a mathematical function. With state machines and statecharts, the pertinent function is the _state-transition function_ (see [Finite state machine: Mathematical model (Wikipedia)](https://en.wikipedia.org/wiki/Finite-state_machine#Mathematical_model))
+
+See [Model of computation (Wikipedia)](https://en.wikipedia.org/wiki/Model_of_computation) and [Mathematical model (Wikipedia)](https://en.wikipedia.org/wiki/Mathematical_model) for more information.
+
 ## Orthogonal state
 
 See [parallel state](#parallel-state).
@@ -101,3 +107,11 @@ A transient state is a state that only has [eventless transitions](#eventless-tr
 ## Transition
 
 A transition is a description of which target [state(s)](#state) and [actions](#action) a state machine will immediately be in when a specific [event](#event) is taken in the transition's source state.
+
+## Visual formalism
+
+A visual formalism is an exact language (like a programming language) that primarily uses visual symbols (states, transitions, etc.) instead of only code or text. State diagrams and statecharts are visual formalisms.
+
+> Visual formalisms are diagrammatic and intuitive, yet mathematically rigorous languages.
+>
+> – https://link.springer.com/referenceworkentry/10.1007%2F978-0-387-39940-9_444
