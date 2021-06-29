@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
 import { ActorRef, Behavior, EventObject } from 'xstate';
 import { spawnBehavior } from 'xstate/src/behaviors';
+import useConstant from './useConstant';
 
 /**
  * React hook that spawns an `ActorRef` with the specified `behavior`.
@@ -12,9 +12,9 @@ import { spawnBehavior } from 'xstate/src/behaviors';
 export function useSpawn<TState, TEvent extends EventObject>(
   behavior: Behavior<TEvent, TState>
 ): ActorRef<TEvent, TState> {
-  const actorRef = useMemo(() => {
+  const actorRef = useConstant(() => {
     return spawnBehavior(behavior);
-  }, [behavior]);
+  });
 
   return actorRef;
 }
