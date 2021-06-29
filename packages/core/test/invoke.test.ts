@@ -7,7 +7,8 @@ import {
   EventObject,
   StateValue,
   createMachine,
-  Behavior
+  Behavior,
+  ActorContext
 } from '../src';
 import { fromReducer } from '../src/behaviors';
 import {
@@ -2159,6 +2160,48 @@ describe('invoke', () => {
         .start();
 
       countService.send('INC');
+      countService.send('INC');
+    });
+
+    it('should schedule events in a FIFO queue', (done) => {
+      type CountEvents = { type: 'INC' } | { type: 'DOUBLE' };
+
+      const countReducer = (
+        count: number,
+        event: { type: 'INC' } | { type: 'DOUBLE' },
+        { self }: ActorContext<CountEvents, any>
+      ): number => {
+        if (event.type === 'INC') {
+          self.send({ type: 'DOUBLE' });
+          return count + 1;
+        }
+        if (event.type === 'DOUBLE') {
+          return count * 2;
+        }
+
+        return count;
+      };
+
+      const countMachine = createMachine({
+        invoke: {
+          id: 'count',
+          src: () => fromReducer(countReducer, 0)
+        },
+        on: {
+          INC: {
+            actions: forwardTo('count')
+          }
+        }
+      });
+
+      const countService = interpret(countMachine)
+        .onTransition((state) => {
+          if (state.children['count']?.getSnapshot() === 2) {
+            done();
+          }
+        })
+        .start();
+
       countService.send('INC');
     });
   });

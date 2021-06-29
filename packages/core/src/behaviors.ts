@@ -1,4 +1,4 @@
-import { ActorRef, Behavior, EventObject, Observer } from '.';
+import { ActorContext, ActorRef, Behavior, EventObject, Observer } from '.';
 import { doneInvoke } from './actions';
 import { toActorRef } from './Actor';
 import { toObserver } from './utils';
@@ -11,7 +11,11 @@ import { toObserver } from './utils';
  * @returns An actor behavior
  */
 export function fromReducer<TState, TEvent extends EventObject>(
-  transition: (state: TState, event: TEvent) => TState,
+  transition: (
+    state: TState,
+    event: TEvent,
+    actorContext: ActorContext<TEvent, TState>
+  ) => TState,
   initialState: TState
 ): Behavior<TEvent, TState> {
   return {
@@ -55,12 +59,31 @@ export function spawnBehavior<TEvent extends EventObject, TEmitted>(
 ): ActorRef<TEvent, TEmitted> {
   let state = behavior.initialState;
   const observers = new Set<Observer<TEmitted>>();
+  const mailbox: TEvent[] = [];
+  let flushing = false;
+
+  const enqueue = (event: TEvent): void => {
+    mailbox.push(event);
+    flush();
+  };
+
+  const flush = () => {
+    if (flushing) {
+      return;
+    }
+    flushing = true;
+    while (mailbox.length > 0) {
+      const event = mailbox.shift()!;
+      state = behavior.transition(state, event, actorCtx);
+      observers.forEach((observer) => observer.next(state));
+    }
+    flushing = false;
+  };
 
   const actor = toActorRef({
     id: options.id,
     send: (event: TEvent) => {
-      state = behavior.transition(state, event, actorCtx);
-      observers.forEach((observer) => observer.next(state));
+      enqueue(event);
     },
     getSnapshot: () => state,
     subscribe: (next, handleError?, complete?) => {
