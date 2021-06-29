@@ -33,7 +33,7 @@ export interface Model<
   events: Prop<TModelCreators, 'events'>;
   reset: () => AssignAction<TContext, any>;
   createMachine: (
-    config: MachineConfig<TContext, any, TEvent> & { context: TContext },
+    config: MachineConfig<TContext, any, TEvent>,
     implementations?: Partial<MachineOptions<TContext, TEvent>>
   ) => StateMachine<TContext, any, TEvent, any>;
 }
@@ -116,7 +116,12 @@ export function createModel(initialContext: object, creators?): unknown {
         }))
       : undefined) as any,
     reset: () => assign(initialContext),
-    createMachine
+    createMachine: (config, implementations) => {
+      return createMachine(
+        'context' in config ? config : { ...config, context: initialContext },
+        implementations
+      );
+    }
   };
 
   return model;
