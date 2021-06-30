@@ -1,8 +1,8 @@
 import { onMounted, onBeforeUnmount, shallowRef } from 'vue';
 import { ActorRef, Subscribable } from 'xstate';
+import { defaultGetSnapshot } from './useActor';
 
 const defaultCompare = (a, b) => a === b;
-const defaultGetSnapshot = (a: ActorRef<any, any>) => a.getSnapshot();
 
 export function useSelector<
   TActor extends ActorRef<any, any>,
