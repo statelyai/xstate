@@ -101,7 +101,7 @@ export function spawnBehavior<TEvent extends EventObject, TEmitted>(
     id: options.id || 'anonymous'
   };
 
-  state = behavior.start?.(actorCtx) ?? state;
+  state = behavior.start ? behavior.start(actorCtx) : state;
 
   return actor;
 }
