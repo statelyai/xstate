@@ -37,15 +37,10 @@ export function Machine<
   options?: Partial<MachineOptions<TContext, TEvent>>,
   initialContext: TContext | (() => TContext) | undefined = config.context
 ): StateMachine<TContext, TStateSchema, TEvent> {
-  const resolvedInitialContext =
-    typeof initialContext === 'function'
-      ? (initialContext as () => TContext)()
-      : initialContext;
-
   return new StateNode<TContext, TStateSchema, TEvent>(
     config,
     options,
-    resolvedInitialContext
+    initialContext
   ) as StateMachine<TContext, TStateSchema, TEvent>;
 }
 
@@ -78,14 +73,8 @@ export function createMachine<
   config: MachineConfig<TContext, any, TEvent>,
   options?: Partial<MachineOptions<TContext, TEvent>>
 ): StateMachine<TContext, any, TEvent, TTypestate> {
-  const resolvedInitialContext =
-    typeof config.context === 'function'
-      ? (config.context as () => TContext)()
-      : config.context;
-
   return new StateNode<TContext, any, TEvent, TTypestate>(
     config,
-    options,
-    resolvedInitialContext
+    options
   ) as StateMachine<TContext, any, TEvent, TTypestate>;
 }
