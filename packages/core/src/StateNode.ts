@@ -289,7 +289,9 @@ class StateNode<
     /**
      * The initial extended state
      */
-    public context: Readonly<TContext> = undefined as any // TODO: this is unsafe, but we're removing it in v5 anyway
+    private _context:
+      | Readonly<TContext>
+      | (() => Readonly<TContext>) = config.context as any // TODO: this is unsafe, but we're removing it in v5 anyway
   ) {
     this.options = Object.assign(createDefaultOptions<TContext>(), options);
     this.parent = this.options._parent;
@@ -458,7 +460,7 @@ class StateNode<
    */
   public withConfig(
     options: Partial<MachineOptions<TContext, TEvent>>,
-    context: TContext | undefined = this.context
+    context?: TContext
   ): StateNode<TContext, TStateSchema, TEvent, TTypestate> {
     const { actions, activities, guards, services, delays } = this.options;
 
@@ -471,7 +473,7 @@ class StateNode<
         services: { ...services, ...options.services },
         delays: { ...delays, ...options.delays }
       },
-      context
+      context ?? this.context
     );
   }
 
@@ -486,6 +488,10 @@ class StateNode<
     return new StateNode(this.config, this.options, context);
   }
 
+  public get context(): TContext {
+    return isFunction(this._context) ? this._context() : this._context;
+  }
+
   /**
    * The well-structured state node definition.
    */
@@ -494,7 +500,7 @@ class StateNode<
       id: this.id,
       key: this.key,
       version: this.version,
-      context: this.context!,
+      context: this.context,
       type: this.type,
       initial: this.initial,
       history: this.history,
@@ -1072,7 +1078,7 @@ class StateNode<
       const resolvedStateValue = isString(state)
         ? this.resolve(pathToStateValue(this.getResolvedPath(state)))
         : this.resolve(state);
-      const resolvedContext = context ? context : this.machine.context!;
+      const resolvedContext = context ?? this.machine.context;
 
       currentState = this.resolveState(
         State.from<TContext, TEvent>(resolvedStateValue, resolvedContext)
@@ -1138,7 +1144,7 @@ class StateNode<
     stateTransition: StateTransition<TContext, TEvent>,
     currentState?: State<TContext, TEvent, any, any>,
     _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>,
-    context: TContext = this.machine.context!
+    context: TContext = this.machine.context
   ): State<TContext, TEvent, TStateSchema, TTypestate> {
     const { configuration } = stateTransition;
     // Transition will "apply" if:
