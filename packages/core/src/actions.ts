@@ -164,6 +164,9 @@ export function raise<TEvent extends EventObject>(
 ): RaiseAction<TEvent> | SendAction<any, AnyEventObject, TEvent>;
 export function raise<TContext, TEvent extends EventObject>(
   event: Event<TEvent>
+): RaiseAction<TEvent> | SendAction<TContext, AnyEventObject, TEvent>;
+export function raise<TContext, TEvent extends EventObject>(
+  event: Event<TEvent>
 ): RaiseAction<TEvent> | SendAction<TContext, AnyEventObject, TEvent> {
   if (!isString(event)) {
     return send(event, { to: SpecialTargets.Internal });
