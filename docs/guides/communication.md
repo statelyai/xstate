@@ -423,7 +423,9 @@ data: (context, event) => ({
 })
 ```
 
-Note: any default context defined on the machine is replaced when invoked in this fashion
+::: warning
+The `data` _replaces_ the default `context` defined on the machine; it is not merged. This behavior will change in the next major version.
+:::
 
 ### Done Data
 
