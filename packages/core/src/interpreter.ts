@@ -107,7 +107,7 @@ declare global {
   }
 }
 
-export class Interpreter<
+class PrivateInterpreter<
   // tslint:disable-next-line:max-classes-per-file
   TContext,
   TStateSchema extends StateSchema = any,
@@ -164,7 +164,7 @@ export class Interpreter<
   public status: InterpreterStatus = InterpreterStatus.NotStarted;
 
   // Actor
-  public parent?: Interpreter<any>;
+  public parent?: PrivateInterpreter<any>;
   public id: string;
 
   /**
@@ -185,10 +185,10 @@ export class Interpreter<
    */
   constructor(
     public machine: StateMachine<TContext, TStateSchema, TEvent, TTypestate>,
-    options: Partial<InterpreterOptions> = Interpreter.defaultOptions
+    options: Partial<InterpreterOptions> = PrivateInterpreter.defaultOptions
   ) {
     const resolvedOptions: InterpreterOptions = {
-      ...Interpreter.defaultOptions,
+      ...PrivateInterpreter.defaultOptions,
       ...options
     };
 
@@ -214,7 +214,7 @@ export class Interpreter<
       return this._initialState;
     }
 
-    return serviceScope.provide(this, () => {
+    return serviceScope.provide(this as any, () => {
       this._initialState = this.machine.initialState;
       return this._initialState;
     });
@@ -382,7 +382,7 @@ export class Interpreter<
    */
   public onEvent(
     listener: EventListener
-  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
+  ): PrivateInterpreter<TContext, TStateSchema, TEvent, TTypestate> {
     this.eventListeners.add(listener);
     return this;
   }
@@ -392,7 +392,7 @@ export class Interpreter<
    */
   public onSend(
     listener: EventListener
-  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
+  ): PrivateInterpreter<TContext, TStateSchema, TEvent, TTypestate> {
     this.sendListeners.add(listener);
     return this;
   }
@@ -402,7 +402,7 @@ export class Interpreter<
    */
   public onChange(
     listener: ContextListener<TContext>
-  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
+  ): PrivateInterpreter<TContext, TStateSchema, TEvent, TTypestate> {
     this.contextListeners.add(listener);
     return this;
   }
@@ -412,7 +412,7 @@ export class Interpreter<
    */
   public onStop(
     listener: Listener
-  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
+  ): PrivateInterpreter<TContext, TStateSchema, TEvent, TTypestate> {
     this.stopListeners.add(listener);
     return this;
   }
@@ -422,7 +422,7 @@ export class Interpreter<
    */
   public onDone(
     listener: EventListener<DoneEvent>
-  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
+  ): PrivateInterpreter<TContext, TStateSchema, TEvent, TTypestate> {
     this.doneListeners.add(listener);
     return this;
   }
@@ -432,7 +432,7 @@ export class Interpreter<
    */
   public off(
     listener: (...args: any[]) => void
-  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
+  ): PrivateInterpreter<TContext, TStateSchema, TEvent, TTypestate> {
     this.listeners.delete(listener);
     this.eventListeners.delete(listener);
     this.sendListeners.delete(listener);
@@ -456,7 +456,7 @@ export class Interpreter<
   ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
     if (this.status === InterpreterStatus.Running) {
       // Do not restart the service if it is already started
-      return this;
+      return this as any;
     }
 
     registry.register(this.sessionId, this as Actor);
@@ -466,7 +466,7 @@ export class Interpreter<
     const resolvedState =
       initialState === undefined
         ? this.initialState
-        : serviceScope.provide(this, () => {
+        : serviceScope.provide(this as any, () => {
             return isState<TContext, TEvent, TStateSchema, TTypestate>(
               initialState
             )
@@ -482,14 +482,19 @@ export class Interpreter<
     this.scheduler.initialize(() => {
       this.update(resolvedState, initEvent as SCXML.Event<TEvent>);
     });
-    return this;
+    return this as any;
   }
   /**
    * Stops the interpreter and unsubscribe all listeners.
    *
    * This will also notify the `onStop` listeners.
    */
-  public stop(): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
+  public stop(): PrivateInterpreter<
+    TContext,
+    TStateSchema,
+    TEvent,
+    TTypestate
+  > {
     for (const listener of this.listeners) {
       this.listeners.delete(listener);
     }
@@ -629,7 +634,7 @@ export class Interpreter<
 
         this.forward(_event);
 
-        nextState = serviceScope.provide(this, () => {
+        nextState = serviceScope.provide(this as any, () => {
           return this.machine.transition(nextState, _event);
         });
 
@@ -724,7 +729,7 @@ export class Interpreter<
       throw (_event.data as any).data;
     }
 
-    const nextState = serviceScope.provide(this, () => {
+    const nextState = serviceScope.provide(this as any, () => {
       return this.machine.transition(this.state, _event);
     });
 
@@ -971,9 +976,9 @@ export class Interpreter<
     machine: StateMachine<TChildContext, TChildStateSchema, TChildEvent>,
     options: { id?: string; autoForward?: boolean; sync?: boolean } = {}
   ): ActorRef<TChildEvent, State<TChildContext, TChildEvent>> {
-    const childService = new Interpreter(machine, {
+    const childService = new PrivateInterpreter(machine, {
       ...this.options, // inherit options from this interpreter
-      parent: this,
+      parent: this as any,
       id: options.id || machine.id
     });
 
@@ -1261,7 +1266,7 @@ export class Interpreter<
       }
 
       // add XState-specific dev tooling hook
-      registerService(this);
+      registerService(this as any);
     }
   }
   public toJSON() {
@@ -1271,12 +1276,6 @@ export class Interpreter<
   }
 
   public [symbolObservable](): Subscribable<
-    State<TContext, TEvent, TStateSchema, TTypestate>
-  > {
-    return this;
-  }
-
-  public [Symbol.observable](): Subscribable<
     State<TContext, TEvent, TStateSchema, TTypestate>
   > {
     return this;
@@ -1349,13 +1348,24 @@ export function interpret<
 >(
   machine: StateMachine<TContext, TStateSchema, TEvent, TTypestate>,
   options?: Partial<InterpreterOptions>
-) {
-  const interpreter = new Interpreter<
+): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
+  const interpreter = new PrivateInterpreter<
     TContext,
     TStateSchema,
     TEvent,
     TTypestate
   >(machine, options);
 
-  return interpreter;
+  return interpreter as any;
+}
+
+export declare class Interpreter<
+  TContext,
+  TStateSchema extends StateSchema = any,
+  TEvent extends EventObject = EventObject,
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+> extends PrivateInterpreter<TContext, TStateSchema, TEvent, TTypestate> {
+  [Symbol.observable](): Subscribable<
+    State<TContext, TEvent, TStateSchema, TTypestate>
+  >;
 }
