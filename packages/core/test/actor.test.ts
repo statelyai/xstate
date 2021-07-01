@@ -953,13 +953,9 @@ describe('actors', () => {
         }
       });
 
-      const countService = interpret(countMachine)
-        .onTransition((s) => {
-          console.log(s._event);
-        })
-        .onDone(() => {
-          done();
-        });
+      const countService = interpret(countMachine).onDone(() => {
+        done();
+      });
       countService.start();
     });
 
