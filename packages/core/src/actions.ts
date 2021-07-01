@@ -159,6 +159,9 @@ export function toActivityDefinition<TContext, TEvent extends EventObject>(
  *
  * @param eventType The event to raise.
  */
+export function raise<TEvent extends EventObject>(
+  event: Event<TEvent>
+): RaiseAction<TEvent> | SendAction<any, AnyEventObject, TEvent>;
 export function raise<TContext, TEvent extends EventObject>(
   event: Event<TEvent>
 ): RaiseAction<TEvent> | SendAction<TContext, AnyEventObject, TEvent> {
