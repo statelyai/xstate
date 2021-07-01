@@ -62,11 +62,6 @@ export function spawnBehavior<TEvent extends EventObject, TEmitted>(
   const mailbox: TEvent[] = [];
   let flushing = false;
 
-  const enqueue = (event: TEvent): void => {
-    mailbox.push(event);
-    flush();
-  };
-
   const flush = () => {
     if (flushing) {
       return;
@@ -83,7 +78,8 @@ export function spawnBehavior<TEvent extends EventObject, TEmitted>(
   const actor = toActorRef({
     id: options.id,
     send: (event: TEvent) => {
-      enqueue(event);
+      mailbox.push(event);
+      flush();
     },
     getSnapshot: () => state,
     subscribe: (next, handleError?, complete?) => {
