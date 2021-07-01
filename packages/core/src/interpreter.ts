@@ -326,12 +326,12 @@ export class Interpreter<
     return this;
   }
   public subscribe(
-    observer: Observer<State<TContext, TEvent, any, TTypestate>>
-  ): Subscription;
-  public subscribe(
     nextListener?: (state: State<TContext, TEvent, any, TTypestate>) => void,
     errorListener?: (error: any) => void,
     completeListener?: () => void
+  ): Subscription;
+  public subscribe(
+    observer: Observer<State<TContext, TEvent, any, TTypestate>>
   ): Subscription;
   public subscribe(
     nextListenerOrObserver?:
