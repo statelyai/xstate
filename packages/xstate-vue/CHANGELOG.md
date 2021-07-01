@@ -1,5 +1,13 @@
 # @xstate/vue
 
+## 0.7.0
+
+### Minor Changes
+
+- [`742a0bfa`](https://github.com/davidkpiano/xstate/commit/742a0bfa970c94957bf21904fc84b8031369e316) [#2335](https://github.com/davidkpiano/xstate/pull/2335) Thanks [@santicros](https://github.com/santicros)! - The `send` type returned in the object from `useActor(someService)` was an incorrect `never` type; this has been fixed.
+
+  Also adds deprecation notice to `useService`.
+
 ## 0.6.0
 
 ### Minor Changes
