@@ -1337,6 +1337,7 @@ export interface ActorContext<TEvent extends EventObject, TEmitted> {
   parent?: ActorRef<any, any>;
   self: ActorRef<TEvent, TEmitted>;
   id: string;
+  observers: Set<Observer<TEmitted>>;
 }
 
 export type LifecycleSignal =

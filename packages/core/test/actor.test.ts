@@ -16,7 +16,8 @@ import {
   doneInvoke,
   sendUpdate,
   respond,
-  forwardTo
+  forwardTo,
+  error
 } from '../src/actions';
 import { interval } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -880,7 +881,7 @@ describe('actors', () => {
       countService.send('INC');
     });
 
-    it('should work with a promise behavior', (done) => {
+    it('should work with a promise behavior (fulfill)', (done) => {
       const promiseBehavior = fromPromise(
         () =>
           new Promise<number>((res) => {
@@ -916,6 +917,49 @@ describe('actors', () => {
       const countService = interpret(countMachine).onDone(() => {
         done();
       });
+      countService.start();
+    });
+
+    it('should work with a promise behavior (reject)', (done) => {
+      const errorMessage = 'An error occurred';
+      const promiseBehavior = fromPromise(
+        () =>
+          new Promise<number>((_, rej) => {
+            setTimeout(rej(errorMessage), 1000);
+          })
+      );
+
+      const countMachine = createMachine<{
+        count: ActorRefFrom<typeof promiseBehavior>;
+      }>({
+        context: () => ({
+          count: spawn(promiseBehavior, 'test')
+        }),
+        initial: 'pending',
+        states: {
+          pending: {
+            on: {
+              [error('test')]: {
+                target: 'success',
+                cond: (_, e) => {
+                  return e.data === errorMessage;
+                }
+              }
+            }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      });
+
+      const countService = interpret(countMachine)
+        .onTransition((s) => {
+          console.log(s._event);
+        })
+        .onDone(() => {
+          done();
+        });
       countService.start();
     });
 

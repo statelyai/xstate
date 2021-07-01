@@ -1,5 +1,5 @@
 import { ActorContext, ActorRef, Behavior, EventObject, Observer } from '.';
-import { doneInvoke } from './actions';
+import { doneInvoke, error } from './actions';
 import { toActorRef } from './Actor';
 import { toObserver } from './utils';
 
@@ -24,24 +24,39 @@ export function fromReducer<TState, TEvent extends EventObject>(
   };
 }
 
+type PromiseEvents<T> =
+  | { type: 'fulfill'; data: T }
+  | { type: 'reject'; error: unknown };
+
 export function fromPromise<T>(
   promiseFn: () => Promise<T>
-): Behavior<{ type: 'resolve'; data: T }, T | undefined> {
+): Behavior<PromiseEvents<T>, T | undefined> {
   return {
-    transition: (state, event, { parent, id }) => {
+    transition: (state, event, { parent, id, observers }) => {
       switch (event.type) {
-        case 'resolve':
+        case 'fulfill':
           parent?.send(doneInvoke(id, event.data));
           return event.data;
+        case 'reject':
+          parent?.send(error(id, event.error));
+          observers.forEach((observer) => {
+            observer.error(event.error);
+          });
+          return undefined;
         default:
           return state;
       }
     },
     initialState: undefined,
     start: ({ self }) => {
-      promiseFn().then((data) => {
-        self.send({ type: 'resolve', data });
-      });
+      promiseFn().then(
+        (data) => {
+          self.send({ type: 'fulfill', data });
+        },
+        (reason) => {
+          self.send({ type: 'reject', error: reason });
+        }
+      );
 
       return undefined;
     }
@@ -98,7 +113,8 @@ export function spawnBehavior<TEvent extends EventObject, TEmitted>(
   const actorCtx = {
     parent: options.parent,
     self: actor,
-    id: options.id || 'anonymous'
+    id: options.id || 'anonymous',
+    observers
   };
 
   state = behavior.start ? behavior.start(actorCtx) : state;
