@@ -16,5 +16,6 @@
     "lib": ["es6", "dom"],
     "strictPropertyInitialization": true,
     "noErrorTruncation": true
-  }
+  },
+  "exclude": ["examples"]
 }

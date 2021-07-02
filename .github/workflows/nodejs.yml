@@ -27,7 +27,7 @@ jobs:
         run: yarn typecheck
 
       - name: Test
-        run: yarn test
+        run: yarn test --silent
 
       - name: Build
         run: yarn build

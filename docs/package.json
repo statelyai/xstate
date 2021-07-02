@@ -7,7 +7,7 @@
   "author": "David Khourshid",
   "license": "MIT",
   "scripts": {
-    "docs:dev": "vuepress dev .",
+    "docs:dev": "yarn docs:packages && vuepress dev .",
     "docs:readme": "cpy ../README.md .",
     "docs:packages": "cpy '../packages/*/README.md' docs --parents --rename=index.md && cpy '../packages/*/docs/*.md' docs --parents",
     "docs:build": "npm run docs:readme && npm run docs:packages && vuepress build .",

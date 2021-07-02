@@ -4,7 +4,6 @@
   "description": "Finite State Machines and Statecharts for the Modern Web.",
   "workspaces": {
     "packages": [
-      "examples/*",
       "packages/*",
       "packages/xstate-viz/example"
     ]
@@ -92,7 +91,7 @@
     }
   },
   "lint-staged": {
-    "*.{ts,tsx,js,json,md}": [
+    "*.{ts,tsx,js,jsx,json,md,mdx}": [
       "prettier --write",
       "git add"
     ]

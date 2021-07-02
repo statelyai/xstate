@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.4.0
+
+### Minor Changes
+
+- [`849ec56c`](https://github.com/davidkpiano/xstate/commit/849ec56c2a9db34e65a30af94e68a7a7a50b4158) [#2286](https://github.com/davidkpiano/xstate/pull/2286) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `useService(...)` hook will be deprecated, since services are also actors. In future versions, the `useActor(...)` hook should be used instead:
+
+  ```diff
+  -const [state, send] = useService(service);
+  +const [state, send] = useActor(service);
+  ```
+
+### Patch Changes
+
+- [`ea3aaffb`](https://github.com/davidkpiano/xstate/commit/ea3aaffb906b34a42bb2736c7b91d54ffe9ed882) [#2326](https://github.com/davidkpiano/xstate/pull/2326) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `send` type returned in the tuple from `useActor(someService)` was an incorrect `never` type; this has been fixed.
+
 ## 1.3.4
 
 ### Patch Changes
@@ -54,7 +69,7 @@
   import { useSelector } from '@xstate/react';
 
   const App = ({ someActor }) => {
-    const count = useSelector(someActor, state => state.context.count);
+    const count = useSelector(someActor, (state) => state.context.count);
 
     // ...
   };
@@ -175,7 +190,7 @@ All notable changes to this project will be documented in this file.
 - The `useActor` hook now takes a second argument: `getSnapshot` which is a function that should return the last emitted value:
 
   ```js
-  const [state, send] = useActor(someActor, actor => actor.current);
+  const [state, send] = useActor(someActor, (actor) => actor.current);
   ```
 
 ## [1.0.0-rc.6]

@@ -36,15 +36,12 @@ describe('transient states (eventless transitions)', () => {
         on: { UPDATE_BUTTON_CLICKED: 'E' }
       },
       E: {
-        on: {
-          // eventless transition
-          '': [
-            { target: 'D', guard: ({ data }) => !data }, // no data returned
-            { target: 'B', guard: ({ status }) => status === 'Y' },
-            { target: 'C', guard: ({ status }) => status === 'X' },
-            { target: 'F' } // default, or just the string 'F'
-          ]
-        }
+        always: [
+          { target: 'D', guard: ({ data }) => !data }, // no data returned
+          { target: 'B', guard: ({ status }) => status === 'Y' },
+          { target: 'C', guard: ({ status }) => status === 'X' },
+          { target: 'F' } // default, or just the string 'F'
+        ]
       },
       D: {},
       B: {},
@@ -53,7 +50,7 @@ describe('transient states (eventless transitions)', () => {
     }
   });
 
-  it('should choose the first candidate target that matches the cond (D)', () => {
+  it('should choose the first candidate target that matches the guard (D)', () => {
     const nextState = updateMachine.transition(
       State.from<any>('G', {
         data: false
@@ -63,7 +60,7 @@ describe('transient states (eventless transitions)', () => {
     expect(nextState.value).toEqual('D');
   });
 
-  it('should choose the first candidate target that matches the cond (B)', () => {
+  it('should choose the first candidate target that matches the guard (B)', () => {
     const nextState = updateMachine.transition(
       State.from<any>('G', {
         data: true,
@@ -74,7 +71,7 @@ describe('transient states (eventless transitions)', () => {
     expect(nextState.value).toEqual('B');
   });
 
-  it('should choose the first candidate target that matches the cond (C)', () => {
+  it('should choose the first candidate target that matches the guard (C)', () => {
     const nextState = updateMachine.transition(
       State.from('G', {
         data: true,
@@ -85,7 +82,7 @@ describe('transient states (eventless transitions)', () => {
     expect(nextState.value).toEqual('C');
   });
 
-  it('should choose the final candidate without a cond if none others match', () => {
+  it('should choose the final candidate without a guard if none others match', () => {
     const nextState = updateMachine.transition(
       State.from('G', {
         data: true,
@@ -683,5 +680,62 @@ describe('transient states (eventless transitions)', () => {
 
     const service = interpret(machine);
     expect(() => service.start()).not.toThrow();
+  });
+
+  it('should be taken even in absence of other transitions', () => {
+    let shouldMatch = false;
+
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          always: {
+            target: 'b',
+            // TODO: in v5 remove `shouldMatch` and replace this guard with:
+            // guard: (ctx, ev) => ev.type === 'WHATEVER'
+            guard: () => shouldMatch
+          }
+        },
+        b: {}
+      }
+    });
+    const service = interpret(machine).start();
+
+    shouldMatch = true;
+    service.send({ type: 'WHATEVER' });
+
+    expect(service.state.value).toBe('b');
+  });
+
+  it('should select subsequent transient transitions even in absence of other transitions', () => {
+    let shouldMatch = false;
+
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          always: {
+            target: 'b',
+            // TODO: in v5 remove `shouldMatch` and replace this guard with:
+            // guard: (ctx, ev) => ev.type === 'WHATEVER'
+            guard: () => shouldMatch
+          }
+        },
+        b: {
+          always: {
+            target: 'c',
+            guard: () => true
+          }
+        },
+        c: {}
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    shouldMatch = true;
+    service.send({ type: 'WHATEVER' });
+
+    expect(service.state.value).toBe('c');
   });
 });

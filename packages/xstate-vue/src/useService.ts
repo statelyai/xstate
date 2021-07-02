@@ -11,15 +11,12 @@ import { Ref, isRef } from 'vue';
 
 import { useActor } from './useActor';
 
-export function getServiceSnapshot<TService extends Interpreter<any, any, any>>(
-  service: TService
-): TService['state'] {
-  // TODO: remove compat lines in a new major, replace literal number with InterpreterStatus then as well
-  return ('status' in service ? service.status : (service as any)._status) !== 0
-    ? service.state
-    : service.machine.initialState;
-}
-
+/**
+ * @deprecated Use `useActor` instead.
+ *
+ * @param service The interpreted machine
+ * @returns A tuple of the current `state` of the service and the service's `send(event)` method
+ */
 export function useService<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -41,6 +38,7 @@ export function useService<
     );
   }
 
-  const { state, send } = useActor(service, getServiceSnapshot);
-  return { state, send: (send as any) as PayloadSender<TEvent> };
+  const { state, send } = useActor(service);
+
+  return { state, send };
 }

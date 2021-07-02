@@ -16,9 +16,9 @@ function isDeferredActor<T extends ActorRef<any>>(
   return 'deferred' in actorRef;
 }
 
-type EventOfActorRef<
+type EmittedFromActorRef<
   TActor extends ActorRef<any, any>
-> = TActor extends ActorRef<infer TEvent, any> ? TEvent : never;
+> = TActor extends ActorRef<any, infer TEmitted> ? TEmitted : never;
 
 const noop = () => {
   /* ... */
@@ -36,8 +36,8 @@ function defaultGetSnapshot<TEmitted>(
 
 export function useActor<TActor extends ActorRef<any, any>, TEmitted = any>(
   actorRef: TActor,
-  getSnapshot?: (actor: TActor) => TEmitted
-): [TEmitted, Sender<EventOfActorRef<TActor>>];
+  getSnapshot?: (actor: TActor) => EmittedFromActorRef<TActor>
+): [EmittedFromActorRef<TActor>, TActor['send']];
 export function useActor<TEvent extends EventObject, TEmitted>(
   actorRef: ActorRef<TEvent, TEmitted>,
   getSnapshot?: (actor: ActorRef<TEvent, TEmitted>) => TEmitted

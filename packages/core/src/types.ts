@@ -278,10 +278,13 @@ export type Receiver<TEvent extends EventObject> = (
   listener: (event: TEvent) => void
 ) => void;
 
-export type InvokeCallback<TEvent extends EventObject = AnyEventObject> = (
-  callback: Sender<TEvent>,
+export type InvokeCallback<
+  TEvent extends EventObject = AnyEventObject,
+  TSentEvent extends EventObject = AnyEventObject
+> = (
+  callback: Sender<TSentEvent>,
   onReceive: Receiver<TEvent>
-) => any;
+) => (() => void) | Promise<any> | void;
 
 export type BehaviorCreator<
   TContext extends MachineContext,

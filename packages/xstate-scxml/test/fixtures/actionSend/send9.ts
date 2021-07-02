@@ -1,6 +1,6 @@
 import { createMachine, actions } from 'xstate';
 
-export default createMachine<never>({
+export default createMachine({
   initial: 'a',
   states: {
     a: {
