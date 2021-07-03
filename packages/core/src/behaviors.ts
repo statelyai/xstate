@@ -28,26 +28,46 @@ type PromiseEvents<T> =
   | { type: 'fulfill'; data: T }
   | { type: 'reject'; error: unknown };
 
+interface PromiseState<T> {
+  data: T | undefined;
+  error: any | undefined;
+  status: 'pending' | 'fulfilled' | 'rejected';
+}
+
 export function fromPromise<T>(
   promiseFn: () => Promise<T>
-): Behavior<PromiseEvents<T>, T | undefined> {
+): Behavior<PromiseEvents<T>, PromiseState<T>> {
+  const initialState: PromiseState<T> = {
+    error: undefined,
+    data: undefined,
+    status: 'pending'
+  };
+
   return {
     transition: (state, event, { parent, id, observers }) => {
       switch (event.type) {
         case 'fulfill':
           parent?.send(doneInvoke(id, event.data));
-          return event.data;
+          return {
+            error: undefined,
+            data: event.data,
+            status: 'fulfilled'
+          };
         case 'reject':
           parent?.send(error(id, event.error));
           observers.forEach((observer) => {
             observer.error(event.error);
           });
-          return undefined;
+          return {
+            error: event.error,
+            data: undefined,
+            status: 'rejected'
+          };
         default:
           return state;
       }
     },
-    initialState: undefined,
+    initialState,
     start: ({ self }) => {
       promiseFn().then(
         (data) => {
@@ -58,7 +78,7 @@ export function fromPromise<T>(
         }
       );
 
-      return undefined;
+      return initialState;
     }
   };
 }
