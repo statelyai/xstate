@@ -423,6 +423,10 @@ data: (context, event) => ({
 })
 ```
 
+::: warning
+The `data` _replaces_ the default `context` defined on the machine; it is not merged. This behavior will change in the next major version.
+:::
+
 ### Done Data
 
 When a child machine reaches its top-level [final state](./final.md), it can send data in the "done" event (e.g., `{ type: 'done.invoke.someId', data: ... }`). This "done data" is specified on the final state's `data` property:

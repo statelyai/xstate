@@ -1,5 +1,11 @@
 # xstate
 
+## 4.20.2
+
+### Patch Changes
+
+- [`1ef29e83`](https://github.com/davidkpiano/xstate/commit/1ef29e83e14331083279d50fd3a8907eb63793eb) [#2343](https://github.com/davidkpiano/xstate/pull/2343) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Eventless ("always") transitions will no longer be ignored if an event is sent to a machine in a state that does not have any enabled transitions for that event.
+
 ## 4.20.1
 
 ### Patch Changes

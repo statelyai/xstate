@@ -57,7 +57,7 @@ describe('spawning machines', () => {
 
   const todosMachine = createMachine<typeof context, TodoEvent>({
     id: 'todos',
-    context,
+    context: context,
     initial: 'active',
     states: {
       active: {
@@ -858,5 +858,30 @@ describe('actors', () => {
           .start();
       });
     });
+  });
+
+  it('should be able to spawn actors in (lazy) initial context', (done) => {
+    const machine = createMachine<{ ref: ActorRef<any> }>({
+      context: () => ({
+        ref: spawnCallback((sendBack) => {
+          sendBack({ type: 'TEST' });
+        })
+      }),
+      initial: 'waiting',
+      states: {
+        waiting: {
+          on: { TEST: 'success' }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    interpret(machine)
+      .onDone(() => {
+        done();
+      })
+      .start();
   });
 });
