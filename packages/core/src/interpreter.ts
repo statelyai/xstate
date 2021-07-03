@@ -170,11 +170,13 @@ export class Interpreter<
         actorRef: this.ref,
         spawns: []
       };
-      return (
+      const initialState =
         this._initialState ||
         ((this._initialState = this.machine.getInitialState()),
-        this._initialState)
-      );
+        this._initialState);
+
+      initialState.actions.push(...CapturedState.current.spawns);
+      return initialState;
     } finally {
       CapturedState.current = {
         actorRef: undefined,

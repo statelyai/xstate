@@ -1,4 +1,4 @@
-import { isBuiltInEvent, toSCXMLEvent } from './utils';
+import { isBuiltInEvent, isFunction, toSCXMLEvent } from './utils';
 import {
   Event,
   StateValue,
@@ -26,6 +26,7 @@ import {
 } from './stateUtils';
 import { getStateNodes, transitionNode, resolveStateValue } from './stateUtils';
 import { StateNode } from './StateNode';
+import { CapturedState } from './capturedState';
 
 export const NULL_EVENT = '';
 export const STATE_IDENTIFIER = '#';
@@ -56,7 +57,10 @@ export class StateMachine<
   TEvent extends EventObject = EventObject,
   TTypestate extends Typestate<TContext> = any
 > {
-  public context: TContext;
+  private _context: () => TContext;
+  public get context(): TContext {
+    return resolveContext(this._context(), this.options.context);
+  }
   /**
    * The machine's own version.
    */
@@ -97,7 +101,10 @@ export class StateMachine<
       createDefaultOptions(config.context!),
       options
     );
-    this.context = resolveContext(config.context, options?.context) as TContext;
+    this._context = isFunction(config.context)
+      ? config.context
+      : () => config.context as TContext;
+    // this.context = resolveContext(config.context, options?.context);
     this.delimiter = this.config.delimiter || STATE_DELIMITER;
     this.version = this.config.version;
     this.schema = this.config.schema ?? (({} as any) as this['schema']);
@@ -139,7 +146,7 @@ export class StateMachine<
       guards: { ...guards, ...implementations.guards },
       actors: { ...actors, ...implementations.actors },
       delays: { ...delays, ...implementations.delays },
-      context: resolveContext(this.context, implementations.context)
+      context: implementations.context
     });
   }
 
@@ -154,7 +161,7 @@ export class StateMachine<
     context: Partial<TContext>
   ): StateMachine<TContext, TEvent> {
     return this.provide({
-      context: resolveContext(this.context, context)
+      context
     });
   }
 

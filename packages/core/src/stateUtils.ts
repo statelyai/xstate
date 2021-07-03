@@ -1913,7 +1913,7 @@ export function toState<TMachine extends StateMachine<any, any, any>>(
     return state;
   } else {
     const resolvedStateValue = resolveStateValue(machine.root, state);
-    const resolvedContext = machine.context!;
+    const resolvedContext = machine.context;
 
     return machine.resolveState(
       State.from(resolvedStateValue, resolvedContext)

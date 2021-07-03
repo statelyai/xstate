@@ -702,7 +702,7 @@ export interface MachineConfig<
   /**
    * The initial context (extended state)
    */
-  context?: TContext;
+  context?: TContext | (() => TContext);
   /**
    * The machine's own version.
    */
