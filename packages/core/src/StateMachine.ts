@@ -26,7 +26,6 @@ import {
 } from './stateUtils';
 import { getStateNodes, transitionNode, resolveStateValue } from './stateUtils';
 import { StateNode } from './StateNode';
-import { CapturedState } from './capturedState';
 
 export const NULL_EVENT = '';
 export const STATE_IDENTIFIER = '#';
