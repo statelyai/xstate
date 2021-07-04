@@ -1,11 +1,15 @@
+import { MachineImplementations } from '.';
 import { assign } from './actions';
+import { createMachine } from './Machine';
+import { StateMachine } from './StateMachine';
 import type {
   AssignAction,
   Assigner,
   PropertyAssigner,
   ExtractEvent,
   EventObject,
-  MachineContext
+  MachineContext,
+  MachineConfig
 } from './types';
 import { mapValues } from './utils';
 
@@ -29,6 +33,10 @@ export interface Model<
   ) => AssignAction<TContext, ExtractEvent<TEvent, TEventType>>;
   events: Prop<TModelCreators, 'events'>;
   reset: () => AssignAction<TContext, any>;
+  createMachine: (
+    config: MachineConfig<TContext, TEvent>,
+    implementations?: Partial<MachineImplementations<TContext, TEvent>>
+  ) => StateMachine<TContext, TEvent, any>;
 }
 
 export type ModelContextFrom<
@@ -117,7 +125,13 @@ export function createModel(initialContext: object, creators?): unknown {
           type: eventType
         }))
       : undefined) as any,
-    reset: () => assign(initialContext)
+    reset: () => assign(initialContext),
+    createMachine: (config, implementations) => {
+      return createMachine(
+        'context' in config ? config : { ...config, context: initialContext },
+        implementations
+      );
+    }
   };
 
   return model;

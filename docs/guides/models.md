@@ -43,7 +43,7 @@ const userModel = createModel({
 
 // ...
 
-const machine = createMachine({
+const machine = userModel.createMachine({
   context: userModel.initialContext,
   // ...
   entry: userModel.assign({ name: '' })
@@ -76,7 +76,7 @@ const userModel = createModel(
   }
 );
 
-const machine = createMachine(
+const machine = userModel.createMachine(
   {
     context: userModel.initialContext,
     initial: 'active',
@@ -153,10 +153,10 @@ const userModel = createModel(
 // | { type: 'anotherEvent'; }
 ```
 
-Instead of specifying the type of `context` and `events` separately for machines, the `typeof` the model created by `createModel(...)` should be used:
+Instead of specifying the type of `context` and `events` explicitly as type parameters in `createMachine(...)`, the `model.createMachine(...)` method should be used:
 
 ```ts {0}
-const machine = createMachine<typeof userModel>({
+const machine = userModel.createMachine({
   context: userModel.initialContext,
   initial: 'active',
   states: {
@@ -176,7 +176,7 @@ const machine = createMachine<typeof userModel>({
 When an `assign()` action is referenced in `options.actions`, you can narrow the event type that the action accepts in the 2nd argument of `model.assign(assignments, eventType)`:
 
 ```ts
-const machine = createMachine<typeof userModel>(
+const machine = userModel.createMachine(
   {
     context: userModel.initialContext,
     initial: 'active',
