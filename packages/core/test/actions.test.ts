@@ -680,9 +680,9 @@ describe('actions config', () => {
     );
 
     expect(nextState.actions).toEqual([
-      { type: 'definedAction', exec: definedAction },
-      { type: 'definedAction', exec: definedAction },
-      { type: 'undefinedAction', exec: undefined }
+      expect.objectContaining({ type: 'definedAction' }),
+      expect.objectContaining({ type: 'definedAction' }),
+      expect.objectContaining({ type: 'undefinedAction' })
     ]);
   });
 
@@ -698,7 +698,7 @@ describe('actions config', () => {
     const state = simpleMachine.transition('a', 'EVENT');
 
     expect(state.actions).toEqual([
-      { type: 'definedAction', exec: definedAction }
+      expect.objectContaining({ type: 'definedAction' })
     ]);
 
     expect(state.context).toEqual({ count: 10 });
@@ -1505,4 +1505,49 @@ it('should call transition actions in document order for states at different lev
   service.send({ type: 'FOO' });
 
   expect(actual).toEqual(['a1', 'b']);
+});
+
+describe('assign action order', () => {
+  it('should preserve action order when .preserveActionOrder = true', () => {
+    const captured: number[] = [];
+
+    const machine = createMachine<{ count: number }>({
+      context: { count: 0 },
+      entry: [
+        (ctx) => captured.push(ctx.count), // 0
+        assign({ count: (ctx) => ctx.count + 1 }),
+        (ctx) => captured.push(ctx.count), // 1
+        assign({ count: (ctx) => ctx.count + 1 }),
+        (ctx) => captured.push(ctx.count) // 2
+      ],
+      preserveActionOrder: true
+    });
+
+    interpret(machine).start();
+
+    expect(captured).toEqual([0, 1, 2]);
+  });
+
+  it.each([undefined, false])(
+    'should prioritize assign actions when .preserveActionOrder = %i',
+    (preserveActionOrder) => {
+      const captured: number[] = [];
+
+      const machine = createMachine<{ count: number }>({
+        context: { count: 0 },
+        entry: [
+          (ctx) => captured.push(ctx.count),
+          assign({ count: (ctx) => ctx.count + 1 }),
+          (ctx) => captured.push(ctx.count),
+          assign({ count: (ctx) => ctx.count + 1 }),
+          (ctx) => captured.push(ctx.count)
+        ],
+        preserveActionOrder
+      });
+
+      interpret(machine).start();
+
+      expect(captured).toEqual([2, 2, 2]);
+    }
+  );
 });

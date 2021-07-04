@@ -1185,7 +1185,8 @@ class StateNode<
       currentState,
       currentContext,
       _event,
-      actions
+      actions,
+      this.machine.config.preserveActionOrder
     );
 
     const [raisedEvents, nonRaisedActions] = partition(

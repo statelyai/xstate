@@ -580,6 +580,13 @@ export interface StateNodeConfig<
    * The tags for this state node, which are accumulated into the `state.tags` property.
    */
   tags?: SingleOrArray<string>;
+  /**
+   * Whether actions should be called in order.
+   * When `false` (default), `assign(...)` actions are prioritized before other actions.
+   *
+   * @default false
+   */
+  preserveActionOrder?: boolean;
 }
 
 export interface StateNodeDefinition<
