@@ -2,6 +2,8 @@
 
 [:rocket: Quick Reference](#quick-reference)
 
+[[toc]]
+
 The [Actor model](https://en.wikipedia.org/wiki/Actor_model) is a mathematical model of message-based computation that simplifies how multiple "entities" (or "actors") communicate with each other. Actors communicate by sending messages (events) to each other. An actor's local state is private, unless it wishes to share it with another actor, by sending it as an event.
 
 When an actor receives an event, three things can happen:
