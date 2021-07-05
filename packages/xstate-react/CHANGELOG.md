@@ -69,7 +69,7 @@
   import { useSelector } from '@xstate/react';
 
   const App = ({ someActor }) => {
-    const count = useSelector(someActor, state => state.context.count);
+    const count = useSelector(someActor, (state) => state.context.count);
 
     // ...
   };
@@ -190,7 +190,7 @@ All notable changes to this project will be documented in this file.
 - The `useActor` hook now takes a second argument: `getSnapshot` which is a function that should return the last emitted value:
 
   ```js
-  const [state, send] = useActor(someActor, actor => actor.current);
+  const [state, send] = useActor(someActor, (actor) => actor.current);
   ```
 
 ## [1.0.0-rc.6]

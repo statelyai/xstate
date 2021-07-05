@@ -111,8 +111,8 @@ The `recipe` is similar to the function that you would pass to [Immer's `produce
 
 **Arguments for `assign`:**
 
-| Argument | Type     | Description                                                                                                             |
-| -------- | -------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Argument | Type     | Description                                                                                                         |
+| -------- | -------- | ------------------------------------------------------------------------------------------------------------------- |
 | `recipe` | function | A function where "mutations" to `context` are made. See the [Immer docs](https://immerjs.github.io/immer/produce/). |
 
 **Arguments for `recipe`:**
