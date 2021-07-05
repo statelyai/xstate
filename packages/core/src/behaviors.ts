@@ -28,11 +28,22 @@ type PromiseEvents<T> =
   | { type: 'fulfill'; data: T }
   | { type: 'reject'; error: unknown };
 
-interface PromiseState<T> {
-  data: T | undefined;
-  error: any | undefined;
-  status: 'pending' | 'fulfilled' | 'rejected';
-}
+type PromiseState<T> =
+  | {
+      status: 'pending';
+      data: undefined;
+      error: undefined;
+    }
+  | {
+      status: 'fulfilled';
+      data: T;
+      error: undefined;
+    }
+  | {
+      status: 'rejected';
+      data: undefined;
+      error: any;
+    };
 
 export function fromPromise<T>(
   promiseFn: () => Promise<T>

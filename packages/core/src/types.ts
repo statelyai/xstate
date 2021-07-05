@@ -1340,16 +1340,10 @@ export interface ActorContext<TEvent extends EventObject, TEmitted> {
   observers: Set<Observer<TEmitted>>;
 }
 
-export type LifecycleSignal =
-  | {
-      type: 'xstate.start';
-    }
-  | { type: 'xstate.stop' };
-
 export interface Behavior<TEvent extends EventObject, TEmitted = any> {
   transition: (
     state: TEmitted,
-    event: TEvent | LifecycleSignal,
+    event: TEvent,
     actorCtx: ActorContext<TEvent, TEmitted>
   ) => TEmitted;
   initialState: TEmitted;
