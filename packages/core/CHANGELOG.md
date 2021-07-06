@@ -1,20 +1,5 @@
 # xstate
 
-## 4.21.0
-
-### Minor Changes
-
-- [`f9bcea2c`](https://github.com/davidkpiano/xstate/commit/f9bcea2ce909ac59fcb165b352a7b51a8b29a56d) [#2366](https://github.com/davidkpiano/xstate/pull/2366) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Actors can now be spawned directly in the initial `machine.context` using lazy initialization, avoiding the need for intermediate states and unsafe typings for immediately spawned actors:
-
-  ```ts
-  const machine = createMachine<{ ref: ActorRef<SomeEvent> }>({
-    context: () => ({
-      ref: spawn(anotherMachine, 'some-id') // spawn immediately!
-    })
-    // ...
-  });
-  ```
-
 ## 4.20.2
 
 ### Patch Changes
