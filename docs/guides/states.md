@@ -260,6 +260,9 @@ const service = interpret(myMachine).start(resolvedState);
 
 This will also maintain and restore previous [history states](./history.md) and ensures that `.events` and `.nextEvents` represent the correct values.
 
+::: warning
+Persisting spawned [Actors](./actors.md) isn't yet supported in XState. Until then, you'll need to manually re-spawn actors of your persisted machine.
+
 ## State Meta Data
 
 Meta data, which is static data that describes relevant properties of any [state node](./statenodes.md), can be specified on the `.meta` property of the state node:
