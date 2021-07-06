@@ -153,6 +153,8 @@ const userModel = createModel(
 // | { type: 'anotherEvent'; }
 ```
 
+### Creating a machine from a model
+
 Instead of specifying the type of `context` and `events` explicitly as type parameters in `createMachine(...)`, the `model.createMachine(...)` method should be used:
 
 ```ts {0}
@@ -172,6 +174,8 @@ const machine = userModel.createMachine({
   }
 });
 ```
+
+### Narrowing assign event types
 
 When an `assign()` action is referenced in `options.actions`, you can narrow the event type that the action accepts in the 2nd argument of `model.assign(assignments, eventType)`:
 
@@ -202,4 +206,29 @@ const machine = userModel.createMachine(
     }
   }
 );
+```
+
+### Extracting types from model
+
+_Since 4.22.1_
+
+You can extract `context` and `event` types from a model using the `ContextFrom<T>` and `EventsFrom<T>` types:
+
+```ts {1,15-16}
+import { ContextFrom, EventsFrom } from 'xstate';
+import { createModel } from 'xstate/lib/model';
+
+const someModel = createModel(
+  {
+    /* ... */
+  },
+  {
+    events: {
+      /* ... */
+    }
+  }
+);
+
+type SomeContext = ContextFrom<typeof someModel>;
+type SomeEvents = EventsFrom<typeof someModel>;
 ```

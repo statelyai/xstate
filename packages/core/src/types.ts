@@ -1358,4 +1358,17 @@ export type EventsFrom<T> = EventObject &
     ? TEvents1
     : T extends State<any, infer TEvents2, any, any>
     ? TEvents2
+    : T extends Interpreter<any, any, infer TEvents3, any>
+    ? TEvents3
+    : never);
+
+export type ContextFrom<T> = object &
+  (T extends StateMachine<infer TContext0, any, any, any>
+    ? TContext0
+    : T extends Model<infer TContext1, any, any>
+    ? TContext1
+    : T extends State<infer TContext2, any, any, any>
+    ? TContext2
+    : T extends Interpreter<infer TContext3, any, any, any>
+    ? TContext3
     : never);
