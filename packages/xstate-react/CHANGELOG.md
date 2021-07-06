@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.5.1
+
+### Patch Changes
+
+- [`453acacb`](https://github.com/statelyai/xstate/commit/453acacbec364531a2851f183c3ab446d7db0e84) [#2389](https://github.com/statelyai/xstate/pull/2389) Thanks [@davidkpiano](https://github.com/davidkpiano)! - An internal issue where the `spawnBehavior` import for the `useSpawn(...)` hook was broken internally has been fixed.
+
 ## 1.5.0
 
 ### Minor Changes
