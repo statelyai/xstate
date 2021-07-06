@@ -1,6 +1,7 @@
 import { StateNode } from './StateNode';
 import { State } from './State';
 import { Interpreter, Clock } from './interpreter';
+import { Model } from './model.types';
 
 export type EventType = string;
 export type ActionType = string;
@@ -1349,3 +1350,12 @@ export interface Behavior<TEvent extends EventObject, TEmitted = any> {
   initialState: TEmitted;
   start?: (actorCtx: ActorContext<TEvent, TEmitted>) => TEmitted;
 }
+
+export type EventsFrom<T> = EventObject &
+  (T extends StateMachine<any, any, infer TEvents0, any>
+    ? TEvents0
+    : T extends Model<any, infer TEvents1, any>
+    ? TEvents1
+    : T extends State<any, infer TEvents2, any, any>
+    ? TEvents2
+    : never);
