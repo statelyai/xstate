@@ -1,5 +1,51 @@
 # xstate
 
+## 4.22.0
+
+### Minor Changes
+
+- [`1b32aa0d`](https://github.com/statelyai/xstate/commit/1b32aa0d3a0eca11ffcb7ec9d710eb8828107aa0) [#2356](https://github.com/statelyai/xstate/pull/2356) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The model created from `createModel(...)` now provides a `.createMachine(...)` method that does not require passing any generic type parameters:
+
+  ```diff
+  const model = createModel(/* ... */);
+
+  -const machine = createMachine<typeof model>(/* ... */);
+  +const machine = model.createMachine(/* ... */);
+  ```
+
+* [`432b60f7`](https://github.com/statelyai/xstate/commit/432b60f7bcbcee9510e0d86311abbfd75b1a674e) [#2280](https://github.com/statelyai/xstate/pull/2280) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Actors can now be invoked/spawned from reducers using the `fromReducer(...)` behavior creator:
+
+  ```ts
+  import { fromReducer } from 'xstate/lib/behaviors';
+
+  type CountEvent = { type: 'INC' } | { type: 'DEC' };
+
+  const countReducer = (count: number, event: CountEvent): number => {
+    if (event.type === 'INC') {
+      return count + 1;
+    } else if (event.type === 'DEC') {
+      return count - 1;
+    }
+
+    return count;
+  };
+
+  const countMachine = createMachine({
+    invoke: {
+      id: 'count',
+      src: () => fromReducer(countReducer, 0)
+    },
+    on: {
+      INC: {
+        actions: forwardTo('count')
+      },
+      DEC: {
+        actions: forwardTo('count')
+      }
+    }
+  });
+  ```
+
 ## 4.21.0
 
 ### Minor Changes
@@ -127,7 +173,7 @@
   });
 
   const service = interpret(machine)
-    .onTransition((state) => {
+    .onTransition(state => {
       // Read promise value synchronously
       const resolvedValue = state.context.promiseRef?.getSnapshot();
       // => undefined (if promise not resolved yet)
@@ -207,7 +253,7 @@
     context: { value: 42 },
     on: {
       INC: {
-        actions: assign({ value: (ctx) => ctx.value + 1 })
+        actions: assign({ value: ctx => ctx.value + 1 })
       }
     }
   });
@@ -467,7 +513,7 @@
 
   ```js
   // ...
-  actions: stop((context) => context.someActor);
+  actions: stop(context => context.someActor);
   ```
 
 ### Patch Changes
@@ -705,10 +751,10 @@
   ```js
   entry: [
     choose([
-      { cond: (ctx) => ctx > 100, actions: raise('TOGGLE') },
+      { cond: ctx => ctx > 100, actions: raise('TOGGLE') },
       {
         cond: 'hasMagicBottle',
-        actions: [assign((ctx) => ({ counter: ctx.counter + 1 }))]
+        actions: [assign(ctx => ({ counter: ctx.counter + 1 }))]
       },
       { actions: ['fallbackAction'] }
     ])
