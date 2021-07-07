@@ -14,8 +14,8 @@
   "author": "David Khourshid <davidkpiano@gmail.com>",
   "homepage": "https://github.com/davidkpiano/xstate/tree/main/packages/xstate-inspect#readme",
   "license": "MIT",
-  "main": "dist/inspect.cjs.js",
-  "module": "dist/inspect.esm.js",
+  "main": "dist/xstate-inspect.cjs.js",
+  "module": "dist/xstate-inspect.esm.js",
   "sideEffects": false,
   "files": [
     "dist"

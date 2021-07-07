@@ -67,7 +67,7 @@ import {
 } from './actions';
 import { IS_PRODUCTION } from './environment';
 import { STATE_IDENTIFIER, NULL_EVENT, WILDCARD } from './constants';
-import { isSpawnedActorRef } from './Actor';
+import { isSpawnedActorRef } from './actor';
 import { StateMachine } from './StateMachine';
 import { evaluateGuard, toGuardDefinition } from './guards';
 
