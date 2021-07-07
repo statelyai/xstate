@@ -1,5 +1,66 @@
 # xstate
 
+## 4.22.0
+
+### Minor Changes
+
+- [`1b32aa0d`](https://github.com/statelyai/xstate/commit/1b32aa0d3a0eca11ffcb7ec9d710eb8828107aa0) [#2356](https://github.com/statelyai/xstate/pull/2356) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The model created from `createModel(...)` now provides a `.createMachine(...)` method that does not require passing any generic type parameters:
+
+  ```diff
+  const model = createModel(/* ... */);
+
+  -const machine = createMachine<typeof model>(/* ... */);
+  +const machine = model.createMachine(/* ... */);
+  ```
+
+* [`432b60f7`](https://github.com/statelyai/xstate/commit/432b60f7bcbcee9510e0d86311abbfd75b1a674e) [#2280](https://github.com/statelyai/xstate/pull/2280) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Actors can now be invoked/spawned from reducers using the `fromReducer(...)` behavior creator:
+
+  ```ts
+  import { fromReducer } from 'xstate/lib/behaviors';
+
+  type CountEvent = { type: 'INC' } | { type: 'DEC' };
+
+  const countReducer = (count: number, event: CountEvent): number => {
+    if (event.type === 'INC') {
+      return count + 1;
+    } else if (event.type === 'DEC') {
+      return count - 1;
+    }
+
+    return count;
+  };
+
+  const countMachine = createMachine({
+    invoke: {
+      id: 'count',
+      src: () => fromReducer(countReducer, 0)
+    },
+    on: {
+      INC: {
+        actions: forwardTo('count')
+      },
+      DEC: {
+        actions: forwardTo('count')
+      }
+    }
+  });
+  ```
+
+## 4.21.0
+
+### Minor Changes
+
+- [`f9bcea2c`](https://github.com/davidkpiano/xstate/commit/f9bcea2ce909ac59fcb165b352a7b51a8b29a56d) [#2366](https://github.com/davidkpiano/xstate/pull/2366) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Actors can now be spawned directly in the initial `machine.context` using lazy initialization, avoiding the need for intermediate states and unsafe typings for immediately spawned actors:
+
+  ```ts
+  const machine = createMachine<{ ref: ActorRef<SomeEvent> }>({
+    context: () => ({
+      ref: spawn(anotherMachine, 'some-id') // spawn immediately!
+    })
+    // ...
+  });
+  ```
+
 ## 4.20.2
 
 ### Patch Changes

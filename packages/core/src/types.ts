@@ -268,7 +268,8 @@ export type InvokeCreator<
   | PromiseLike<TFinalContext>
   | StateMachine<TFinalContext, any, any>
   | Subscribable<EventObject>
-  | InvokeCallback<any, TEvent>;
+  | InvokeCallback<any, TEvent>
+  | Behavior<any>;
 
 export interface InvokeDefinition<TContext, TEvent extends EventObject>
   extends ActivityDefinition<TContext, TEvent> {
@@ -1280,9 +1281,10 @@ export interface Subscribable<T> {
 
 export type Spawnable =
   | StateMachine<any, any, any>
-  | Promise<any>
+  | PromiseLike<any>
   | InvokeCallback
-  | Subscribable<any>;
+  | Subscribable<any>
+  | Behavior<any>;
 
 export type ExtractEvent<
   TEvent extends EventObject,
@@ -1311,7 +1313,7 @@ export type SpawnedActorRef<
 > = ActorRef<TEvent, TEmitted>;
 
 export type ActorRefFrom<
-  T extends StateMachine<any, any, any> | Promise<any>
+  T extends StateMachine<any, any, any> | Promise<any> | Behavior<any>
 > = T extends StateMachine<infer TContext, any, infer TEvent, infer TTypestate>
   ? ActorRef<TEvent, State<TContext, TEvent, any, TTypestate>> & {
       /**
@@ -1321,6 +1323,8 @@ export type ActorRefFrom<
     }
   : T extends Promise<infer U>
   ? ActorRef<never, U>
+  : T extends Behavior<infer TEvent, infer TEmitted>
+  ? ActorRef<TEvent, TEmitted>
   : never;
 
 export type AnyInterpreter = Interpreter<any, any, any, any>;
@@ -1335,3 +1339,20 @@ export type InterpreterFrom<
 >
   ? Interpreter<TContext, TStateSchema, TEvent, TTypestate>
   : never;
+
+export interface ActorContext<TEvent extends EventObject, TEmitted> {
+  parent?: ActorRef<any, any>;
+  self: ActorRef<TEvent, TEmitted>;
+  id: string;
+  observers: Set<Observer<TEmitted>>;
+}
+
+export interface Behavior<TEvent extends EventObject, TEmitted = any> {
+  transition: (
+    state: TEmitted,
+    event: TEvent,
+    actorCtx: ActorContext<TEvent, TEmitted>
+  ) => TEmitted;
+  initialState: TEmitted;
+  start?: (actorCtx: ActorContext<TEvent, TEmitted>) => TEmitted;
+}
