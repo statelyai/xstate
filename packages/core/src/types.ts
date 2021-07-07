@@ -2,7 +2,7 @@ import { StateNode } from './StateNode';
 import { State } from './State';
 import { Clock, Interpreter } from './interpreter';
 import { StateMachine } from './StateMachine';
-import { Behavior } from './behavior';
+import { LifecycleSignal } from './behaviors';
 
 export type EventType = string;
 export type ActionType = string;
@@ -1295,11 +1295,13 @@ export declare namespace SCXML {
   }
 }
 
+// TODO: should only take in behaviors
 export type Spawnable =
   | StateMachine<any, any, any>
   | PromiseLike<any>
   | InvokeCallback
-  | Subscribable<any>;
+  | Subscribable<any>
+  | Behavior<any, any>;
 
 // Taken from RxJS
 export type Observer<T> =
@@ -1366,6 +1368,8 @@ export type ActorRefFrom<T extends Spawnable> = T extends StateMachine<
   ? ActorRef<TEvent, State<TContext, TEvent, TTypestate>>
   : T extends Promise<infer U>
   ? ActorRef<never, U>
+  : T extends Behavior<infer TEvent1, infer TEmitted1>
+  ? ActorRef<TEvent1, TEmitted1>
   : ActorRef<any, any>; // TODO: expand
 
 export type DevToolsAdapter = (service: AnyInterpreter) => void;
@@ -1381,3 +1385,21 @@ export type InterpreterFrom<
 export type EventOfMachine<
   TMachine extends StateMachine<any, any>
 > = TMachine extends StateMachine<any, infer E> ? E : never;
+
+export interface ActorContext<TEvent extends EventObject, TEmitted> {
+  parent?: ActorRef<any, any>;
+  self: ActorRef<TEvent, TEmitted>;
+  name: string;
+  observers: Set<Observer<TEmitted>>;
+}
+
+export interface Behavior<TEvent extends EventObject, TEmitted = any> {
+  transition: (
+    state: TEmitted,
+    message: TEvent | LifecycleSignal,
+    ctx: ActorContext<TEvent, TEmitted>
+  ) => TEmitted;
+  initialState: TEmitted;
+  start?: (actorCtx: ActorContext<TEvent, TEmitted>) => TEmitted;
+  subscribe?: (observer: Observer<TEmitted>) => Subscription | undefined;
+}

@@ -729,6 +729,7 @@ export class Interpreter<
         if (!ref) {
           break;
         }
+        (ref as any).parent = this; // TODO: fix
         // If the actor will be stopped right after it's started
         // (such as in transient states) don't bother starting the actor.
         if (

@@ -8,7 +8,7 @@ on:
 
 jobs:
   release:
-    if: github.repository == 'davidkpiano/xstate'
+    if: github.repository == 'statelyai/xstate'
 
     timeout-minutes: 20
 

@@ -1,12 +1,13 @@
-import { EventObject, ActorRef } from './types';
-import { Behavior, ActorContext, startSignal, stopSignal } from './behavior';
+import { EventObject, ActorRef, Behavior } from './types';
+import { ActorContext, startSignal, stopSignal } from './behaviors';
 import { Actor } from './Actor';
+import { CapturedState } from './capturedState';
 
 export class ObservableActorRef<TEvent extends EventObject, TEmitted>
   implements ActorRef<TEvent, TEmitted> {
   private current: TEmitted;
   public deferred = true;
-  private context: ActorContext;
+  private context: ActorContext<TEvent, TEmitted>;
   private actor: Actor<TEvent, TEmitted>;
   public name: string;
 
@@ -14,7 +15,9 @@ export class ObservableActorRef<TEvent extends EventObject, TEmitted>
     this.name = name;
     this.context = {
       self: this,
-      name: this.name
+      name: this.name,
+      observers: new Set(),
+      parent: CapturedState.current?.actorRef
     };
     this.actor = new Actor(behavior, name, this.context);
     this.current = this.actor.current;
@@ -43,6 +46,6 @@ export class ObservableActorRef<TEvent extends EventObject, TEmitted>
     };
   }
   public getSnapshot() {
-    return this.current;
+    return this.actor.current;
   }
 }

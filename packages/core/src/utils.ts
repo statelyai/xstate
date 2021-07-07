@@ -15,14 +15,14 @@ import {
   BehaviorCreator,
   InvokeSourceDefinition,
   Observer,
-  MachineContext
+  MachineContext,
+  Behavior
 } from './types';
 import { STATE_DELIMITER, TARGETLESS_KEY } from './constants';
 import { IS_PRODUCTION } from './environment';
 import { StateNode } from './StateNode';
 import { InvokeConfig, SCXMLErrorEvent } from '.';
 import { StateMachine } from './StateMachine';
-import { Behavior } from './behavior';
 import { errorExecution, errorPlatform } from './actionTypes';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {

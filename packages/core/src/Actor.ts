@@ -7,12 +7,12 @@ import {
   ActorRef,
   Lazy,
   BaseActorRef,
-  MachineContext
+  MachineContext,
+  Behavior
 } from './types';
 import { StateMachine } from './StateMachine';
 import { State } from './State';
 import {
-  Behavior,
   ActorContext,
   createMachineBehavior,
   createDeferredBehavior,
@@ -22,7 +22,7 @@ import {
   LifecycleSignal,
   startSignal,
   stopSignal
-} from './behavior';
+} from './behaviors';
 import { registry } from './registry';
 import * as capturedState from './capturedState';
 import { ObservableActorRef } from './ObservableActorRef';
@@ -147,7 +147,7 @@ enum ProcessingStatus {
 
 export class Actor<TEvent extends EventObject, TEmitted> {
   public current: TEmitted;
-  private context: ActorContext;
+  private context: ActorContext<TEvent, TEmitted>;
   private behavior: Behavior<TEvent, TEmitted>;
   private mailbox: Array<TEvent | LifecycleSignal> = [];
   private processingStatus: ProcessingStatus = ProcessingStatus.NotProcessing;
@@ -156,15 +156,15 @@ export class Actor<TEvent extends EventObject, TEmitted> {
   constructor(
     behavior: Behavior<TEvent, TEmitted>,
     name: string,
-    actorContext: ActorContext
+    actorContext: ActorContext<TEvent, TEmitted>
   ) {
     this.behavior = behavior;
     this.name = name;
     this.context = actorContext;
-    this.current = behavior.initial;
+    this.current = behavior.initialState;
   }
   public start() {
-    this.current = this.behavior.receive(
+    this.current = this.behavior.transition(
       this.current,
       startSignal,
       this.context
@@ -173,7 +173,7 @@ export class Actor<TEvent extends EventObject, TEmitted> {
   }
   public stop() {
     this.mailbox.length = 0; // TODO: test this behavior
-    this.current = this.behavior.receive(
+    this.current = this.behavior.transition(
       this.current,
       stopSignal,
       this.context
@@ -193,7 +193,11 @@ export class Actor<TEvent extends EventObject, TEmitted> {
     while (this.mailbox.length) {
       const event = this.mailbox.shift()!;
 
-      this.current = this.behavior.receive(this.current, event, this.context);
+      this.current = this.behavior.transition(
+        this.current,
+        event,
+        this.context
+      );
     }
     this.processingStatus = ProcessingStatus.NotProcessing;
   }

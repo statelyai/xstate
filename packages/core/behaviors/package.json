@@ -2,6 +2,6 @@
   "main": "dist/xstate.cjs.js",
   "module": "dist/xstate.esm.js",
   "preconstruct": {
-    "source": "../src/behavior"
+    "source": "../src/behaviors"
   }
 }

@@ -5,7 +5,8 @@ import {
   BehaviorCreator,
   SCXML,
   InvokeMeta,
-  MachineContext
+  MachineContext,
+  Behavior
 } from './types';
 
 import { isFunction, mapContext } from './utils';
@@ -14,10 +15,9 @@ import { StateMachine } from './StateMachine';
 import {
   createMachineBehavior,
   createDeferredBehavior,
-  Behavior,
   createObservableBehavior,
   createPromiseBehavior
-} from './behavior';
+} from './behaviors';
 
 export const DEFAULT_SPAWN_OPTIONS = { sync: false };
 
