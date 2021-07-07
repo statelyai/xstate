@@ -954,7 +954,7 @@ export class Interpreter<
     } else if (isFunction(entity)) {
       return this.spawnCallback(entity as InvokeCallback, name);
     } else if (isSpawnedActor(entity)) {
-      return this.spawnActor(entity);
+      return this.spawnActor(entity, name);
     } else if (isObservable<TEvent>(entity)) {
       return this.spawnObservable(entity, name);
     } else if (isMachine(entity)) {
@@ -1200,8 +1200,8 @@ export class Interpreter<
 
     return actor;
   }
-  private spawnActor<T extends ActorRef<any>>(actor: T): T {
-    this.children.set(actor.id, actor);
+  private spawnActor<T extends ActorRef<any>>(actor: T, name: string): T {
+    this.children.set(name, actor);
 
     return actor;
   }
