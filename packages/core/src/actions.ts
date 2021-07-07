@@ -660,7 +660,8 @@ export function resolveActions<TContext, TEvent extends EventObject>(
               currentState,
               updatedContext,
               _event,
-              toActionObjects(toArray(matchedActions), machine.options.actions)
+              toActionObjects(toArray(matchedActions), machine.options.actions),
+              preserveActionOrder
             );
             updatedContext = resolvedContextFromChoose;
             preservedContexts?.push(updatedContext);
@@ -679,7 +680,8 @@ export function resolveActions<TContext, TEvent extends EventObject>(
               currentState,
               updatedContext,
               _event,
-              toActionObjects(toArray(matchedActions), machine.options.actions)
+              toActionObjects(toArray(matchedActions), machine.options.actions),
+              preserveActionOrder
             );
             updatedContext = resolvedContext;
             preservedContexts?.push(updatedContext);

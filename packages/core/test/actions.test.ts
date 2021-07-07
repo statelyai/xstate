@@ -1528,6 +1528,34 @@ describe('assign action order', () => {
     expect(captured).toEqual([0, 1, 2]);
   });
 
+  it('should deeply preserve action order when .preserveActionOrder = true', () => {
+    const captured: number[] = [];
+
+    interface CountCtx {
+      count: number;
+    }
+
+    const machine = createMachine<CountCtx>({
+      context: { count: 0 },
+      entry: [
+        (ctx) => captured.push(ctx.count), // 0
+        pure(() => {
+          return [
+            assign<CountCtx>({ count: (ctx) => ctx.count + 1 }),
+            { type: 'capture', exec: (ctx) => captured.push(ctx.count) }, // 1
+            assign<CountCtx>({ count: (ctx) => ctx.count + 1 })
+          ];
+        }),
+        (ctx) => captured.push(ctx.count) // 2
+      ],
+      preserveActionOrder: true
+    });
+
+    interpret(machine).start();
+
+    expect(captured).toEqual([0, 1, 2]);
+  });
+
   it.each([undefined, false])(
     'should prioritize assign actions when .preserveActionOrder = %i',
     (preserveActionOrder) => {
