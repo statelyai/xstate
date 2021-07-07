@@ -1,5 +1,65 @@
 # @xstate/vue
 
+## 0.8.0
+
+### Minor Changes
+
+- [`b0801662`](https://github.com/statelyai/xstate/commit/b0801662de5df0217c6105650603a1f697b830c8) [#2392](https://github.com/statelyai/xstate/pull/2392) Thanks [@santicros](https://github.com/santicros)! - Just like `useInterpret(...)`, other types of actors can now be spawned from _behaviors_ using `useSpawn(...)`:
+
+  ```vue
+  <template>
+    <div>
+      Count: {{ count }}
+      <button @click="send({ type: 'INC' })">Increment</button>
+      <button @click="send({ type: 'DEC' })">Decrement</button>
+    </div>
+  </template>
+
+  <script>
+  import { fromReducer } from 'xstate/lib/behaviors';
+  import { useActor, useSpawn } from '@xstate/vue';
+
+  type CountEvent = { type: 'INC' } | { type: 'DEC' };
+
+  const countBehavior = fromReducer(
+    (count: number, event: CountEvent): number => {
+      if (event.type === 'INC') {
+        return count + 1;
+      } else if (event.type === 'DEC') {
+        return count - 1;
+      }
+
+      return count;
+    },
+    0 // initial state
+  );
+
+  const countMachine = createMachine({
+    invoke: {
+      id: 'count',
+      src: () => fromReducer(countReducer, 0)
+    },
+    on: {
+      INC: {
+        actions: forwardTo('count')
+      },
+      DEC: {
+        actions: forwardTo('count')
+      }
+    }
+  });
+
+  export default {
+    setup() {
+      const countActorRef = useSpawn(countBehavior);
+      const { state: count, send } = useActor(countActorRef);
+
+      return { count, send };
+    }
+  };
+  </script>
+  ```
+
 ## 0.7.0
 
 ### Minor Changes
@@ -20,10 +80,7 @@
   export default {
     props: ['someActor'],
     setup(props) {
-      const count = useSelector(
-        props.someActor,
-        (state) => state.context.count
-      );
+      const count = useSelector(props.someActor, state => state.context.count);
       // ...
       return { count };
     }
@@ -58,7 +115,7 @@
   export default defineComponent({
     setup() {
       const state = ref();
-      const service = useInterpret(machine, {}, (nextState) => {
+      const service = useInterpret(machine, {}, nextState => {
         state.value = nextState.value;
       });
       return { service, state };
