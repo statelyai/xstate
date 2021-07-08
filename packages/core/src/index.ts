@@ -32,7 +32,7 @@ export {
   spawnPromise,
   spawnObservable,
   spawnCallback
-} from './Actor';
+} from './actor';
 export { createSchema } from './schema';
 
 const actions = {

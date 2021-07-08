@@ -53,7 +53,7 @@ import {
   toSCXMLEvent,
   isArray
 } from './utils';
-import { isActorRef } from './Actor';
+import { isActorRef } from './actor';
 import { ObservableActorRef } from './ObservableActorRef';
 export { actionTypes };
 

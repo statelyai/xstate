@@ -1,7 +1,4 @@
 {
-  "main": "dist/xstate.cjs.js",
-  "module": "dist/xstate.esm.js",
-  "preconstruct": {
-    "source": "../src/actions"
-  }
+  "main": "dist/xstate-actions.cjs.js",
+  "module": "dist/xstate-actions.esm.js"
 }

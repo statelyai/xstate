@@ -36,7 +36,7 @@ import {
   toEventObject
 } from './utils';
 import { Scheduler } from './scheduler';
-import { isActorRef } from './Actor';
+import { isActorRef } from './actor';
 import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
 import { StateMachine } from './StateMachine';

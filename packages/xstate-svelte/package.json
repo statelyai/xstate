@@ -15,11 +15,12 @@
   "author": "David Khourshid <davidkpiano@gmail.com>",
   "homepage": "https://github.com/davidkpiano/xstate/tree/main/packages/xstate-svelte#readme",
   "license": "MIT",
-  "main": "dist/svelte.cjs.js",
-  "module": "dist/svelte.esm.js",
+  "main": "dist/xstate-svelte.cjs.js",
+  "module": "dist/xstate-svelte.esm.js",
   "sideEffects": false,
   "files": [
-    "dist"
+    "dist",
+    "fsm"
   ],
   "repository": {
     "type": "git",
@@ -55,7 +56,8 @@
   },
   "preconstruct": {
     "entrypoints": [
-      "."
+      "./index.ts",
+      "./fsm.ts"
     ]
   }
 }

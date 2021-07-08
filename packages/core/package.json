@@ -49,13 +49,13 @@
   "preconstruct": {
     "umdName": "XState",
     "entrypoints": [
-      ".",
-      "actor",
-      "actions",
-      "invoke",
-      "behaviors",
-      "guards",
-      "dev"
+      "./index.ts",
+      "./actor.ts",
+      "./actions.ts",
+      "./invoke.ts",
+      "./behaviors.ts",
+      "./guards.ts",
+      "./dev/index.ts"
     ]
   }
 }

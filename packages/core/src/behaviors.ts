@@ -26,7 +26,7 @@ import { StateMachine } from './StateMachine';
 import { interpret, Interpreter } from './interpreter';
 import { State } from './State';
 import { CapturedState } from './capturedState';
-import { toActorRef } from './Actor';
+import { toActorRef } from './actor';
 import { toObserver } from './utils';
 import { SCXML } from '../dist/xstate.cjs';
 

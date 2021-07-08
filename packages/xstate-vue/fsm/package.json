@@ -1,7 +1,4 @@
 {
-  "main": "dist/vue.cjs.js",
-  "module": "dist/vue.esm.js",
-  "preconstruct": {
-    "source": "../src/fsm"
-  }
+  "main": "dist/xstate-vue-fsm.cjs.js",
+  "module": "dist/xstate-vue-fsm.esm.js"
 }
