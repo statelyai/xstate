@@ -28,6 +28,7 @@ import { State } from './State';
 import { CapturedState } from './capturedState';
 import { toActorRef } from './Actor';
 import { toObserver } from './utils';
+import { SCXML } from '../dist/xstate.cjs';
 
 /**
  * Returns an actor behavior from a reducer and its initial state.
@@ -176,7 +177,8 @@ export function spawnBehavior<TEvent extends EventObject, TEmitted>(
     parent: options.parent,
     self: actor,
     name: options.id || 'anonymous',
-    observers
+    observers,
+    _event: null as any
   };
 
   state = behavior.start ? behavior.start(actorCtx) : state;
@@ -189,6 +191,7 @@ export interface ActorContext<TEvent extends EventObject, TEmitted> {
   self: ActorRef<TEvent, TEmitted>;
   name: string;
   observers: Set<Observer<TEmitted>>;
+  _event: SCXML.Event<TEvent>;
 }
 
 export const startSignalType = Symbol.for('xstate.invoke');
@@ -463,7 +466,7 @@ export function createMachineBehavior<
         return state;
       }
 
-      service?.send(event);
+      service?.send(actorContext._event);
       return state;
     },
     subscribe: (observer) => {

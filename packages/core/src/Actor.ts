@@ -26,6 +26,7 @@ import {
 import { registry } from './registry';
 import * as capturedState from './capturedState';
 import { ObservableActorRef } from './ObservableActorRef';
+import { toSCXMLEvent } from './utils';
 
 const nullSubscription = {
   unsubscribe: () => void 0
@@ -192,10 +193,12 @@ export class Actor<TEvent extends EventObject, TEmitted> {
     this.processingStatus = ProcessingStatus.Processing;
     while (this.mailbox.length) {
       const event = this.mailbox.shift()!;
+      // @ts-ignore
+      this.context._event = toSCXMLEvent(event);
 
       this.current = this.behavior.transition(
         this.current,
-        event,
+        this.context._event.data as TEvent,
         this.context
       );
     }
