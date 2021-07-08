@@ -401,6 +401,8 @@ describe('communicating with spawned actors', () => {
       states: {
         pending: {
           entry: assign({
+            // TODO: fix (spawn existing service)
+            // @ts-ignore
             existingRef: () => spawn(existingService, 'existing')
           }),
           on: {
@@ -1032,7 +1034,7 @@ describe('actors', () => {
     it('behaviors should have reference to the parent', (done) => {
       const pongBehavior: Behavior<EventObject, undefined> = {
         transition: (_, event, { parent }) => {
-          if (event.data?.type === 'PING') {
+          if (event.type === 'PING') {
             parent?.send({ type: 'PONG' });
           }
 

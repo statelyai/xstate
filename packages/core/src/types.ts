@@ -1391,6 +1391,7 @@ export interface ActorContext<TEvent extends EventObject, TEmitted> {
   self: ActorRef<TEvent, TEmitted>;
   name: string;
   observers: Set<Observer<TEmitted>>;
+  _event: SCXML.Event<TEvent>;
 }
 
 export interface Behavior<TEvent extends EventObject, TEmitted = any> {

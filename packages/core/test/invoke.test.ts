@@ -2027,9 +2027,9 @@ describe('invoke', () => {
     it('should work with a behavior', (done) => {
       const countBehavior: Behavior<EventObject, number> = {
         transition: (count, event) => {
-          if (event.data?.type === 'INC') {
+          if (event.type === 'INC') {
             return count + 1;
-          } else if (event.data?.type === 'DEC') {
+          } else if (event.type === 'DEC') {
             return count - 1;
           }
           return count;
@@ -2064,7 +2064,7 @@ describe('invoke', () => {
     it('behaviors should have reference to the parent', (done) => {
       const pongBehavior: Behavior<EventObject, undefined> = {
         transition: (_, event, { parent }) => {
-          if (event.data?.type === 'PING') {
+          if (event.type === 'PING') {
             parent?.send({ type: 'PONG' });
           }
 
