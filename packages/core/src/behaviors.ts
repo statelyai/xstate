@@ -46,7 +46,9 @@ export function fromReducer<TState, TEvent extends EventObject>(
 ): Behavior<TEvent, TState> {
   return {
     transition: (state, event, actorCtx) => {
+      // @ts-ignore TODO
       const resolvedEvent = isSCXMLEvent(event) ? event.data : event;
+      // @ts-ignore TODO
       return transition(state, resolvedEvent, actorCtx);
     },
     initialState
@@ -84,19 +86,19 @@ export function fromPromise<T>(
   };
 
   return {
-    transition: (state, event, { parent, id, observers }) => {
+    transition: (state, event, { parent, name, observers }) => {
       switch (event.type) {
         case 'fulfill':
-          parent?.send(doneInvoke(id, event.data));
+          parent?.send(doneInvoke(name, event.data));
           return {
             error: undefined,
             data: event.data,
             status: 'fulfilled'
           };
         case 'reject':
-          parent?.send(error(id, event.error));
+          parent?.send(error(name, event.error));
           observers.forEach((observer) => {
-            observer.error(event.error);
+            observer.error?.(event.error);
           });
           return {
             error: event.error,
@@ -145,7 +147,7 @@ export function spawnBehavior<TEvent extends EventObject, TEmitted>(
     while (mailbox.length > 0) {
       const event = mailbox.shift()!;
       state = behavior.transition(state, event, actorCtx);
-      observers.forEach((observer) => observer.next(state));
+      observers.forEach((observer) => observer.next?.(state));
     }
     flushing = false;
   };
@@ -160,7 +162,7 @@ export function spawnBehavior<TEvent extends EventObject, TEmitted>(
     subscribe: (next, handleError?, complete?) => {
       const observer = toObserver(next, handleError, complete);
       observers.add(observer);
-      observer.next(state);
+      observer.next?.(state);
 
       return {
         unsubscribe: () => {
@@ -170,10 +172,10 @@ export function spawnBehavior<TEvent extends EventObject, TEmitted>(
     }
   });
 
-  const actorCtx = {
+  const actorCtx: ActorContext<TEvent, TEmitted> = {
     parent: options.parent,
     self: actor,
-    id: options.id || 'anonymous',
+    name: options.id || 'anonymous',
     observers
   };
 

@@ -27,8 +27,6 @@ import { map } from 'rxjs/operators';
 import * as actionTypes from '../src/actionTypes';
 import { createMachineBehavior, fromReducer } from '../src/behaviors';
 import { invokeMachine } from '../src/invoke';
-import { fromPromise } from '../src/behaviors';
-import { CapturedState } from '../src/capturedState';
 
 describe('spawning machines', () => {
   const todoMachine = createMachine({
