@@ -1,9 +1,5 @@
 ---
-'xstate': minor
-'@xstate/fsm': minor
-'@xstate/inspect': minor
-'@xstate/react': minor
-'@xstate/vue': minor
+'xstate': patch
 ---
 
-add typings for interop observables (in core, affects dep versions in other packages)
+Add type for `Symbol.observable` to the `Interpreter` to improve the compatibility with RxJS.
