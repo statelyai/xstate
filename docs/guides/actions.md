@@ -111,7 +111,7 @@ It depends! They mean different things:
   idle: {
     on: {
       LOAD: {
-        target: { target: 'loading' },
+        target: 'loading',
         // this action is executed only on this transition
         actions: 'fetchData'
     }
@@ -131,7 +131,7 @@ Action implementations can be quickly prototyped by specifying the action functi
 ```js {4}
 // ...
 TRIGGER: {
-  target: { target: 'active' },
+  target: 'active',
   actions: (context, event) => { console.log('activating...'); }
 }
 // ...
