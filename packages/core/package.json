@@ -29,7 +29,7 @@
   "scripts": {
     "clean": "rm -rf lib es dist tsconfig.tsbuildinfo",
     "test": "jest",
-    "build": "tsc && rollup -c && npm run annotate:es",
+    "build": "tsc && rollup -c && npm run annotate:es && node scripts/dts-uncomment.js",
     "annotate:es": "babel es --out-dir es --no-babelrc --plugins annotate-pure-calls",
     "preversion": "npm run test",
     "version": "npm run build",
@@ -52,6 +52,8 @@
     "@babel/core": "^7.10.5",
     "@scion-scxml/test-framework": "^2.0.15",
     "babel-plugin-annotate-pure-calls": "^0.4.0",
+    "fs-extra": "^10.0.0",
+    "globby": "^11.0.4",
     "jest": "^26.6.3",
     "jsdom": "^14.0.0",
     "jsdom-global": "^3.0.2",

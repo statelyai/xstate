@@ -1295,12 +1295,7 @@ export class Interpreter<
   > {
     return this;
   }
-
-  public [Symbol.observable](): Subscribable<
-    State<TContext, TEvent, TStateSchema, TTypestate>
-  > {
-    return this;
-  }
+  /** @dts-uncomment: [Symbol.observable](): import("./types").Subscribable<State<TContext, TEvent, TStateSchema, TTypestate>>; */
 
   public getSnapshot() {
     if (this.status === InterpreterStatus.NotStarted) {
