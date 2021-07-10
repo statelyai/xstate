@@ -1295,7 +1295,14 @@ export class Interpreter<
   > {
     return this;
   }
-  /** @dts-uncomment: [Symbol.observable](): import("./types").Subscribable<State<TContext, TEvent, TStateSchema, TTypestate>>; */
+
+  // this gets stripped by Babel to avoid having "undefined" property in environments without this non-standard Symbol
+  // it has to be here to be included in the generated .d.ts
+  public [Symbol.observable](): Subscribable<
+    State<TContext, TEvent, TStateSchema, TTypestate>
+  > {
+    return this;
+  }
 
   public getSnapshot() {
     if (this.status === InterpreterStatus.NotStarted) {
