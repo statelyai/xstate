@@ -1598,7 +1598,7 @@ describe('interpreter', () => {
       const intervalService = interpret(intervalMachine).start();
 
       expect(() => {
-        const state$ = from(intervalService as any);
+        const state$ = from(intervalService);
 
         state$.subscribe(
           () => {

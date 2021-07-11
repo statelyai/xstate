@@ -82,6 +82,12 @@ const defaultOptions: InterpreterOptions = ((global) => ({
   devTools: false
 }))(typeof window === 'undefined' ? global : window);
 
+declare global {
+  interface SymbolConstructor {
+    readonly observable: symbol;
+  }
+}
+
 export class Interpreter<
   TContext extends MachineContext,
   TEvent extends EventObject = EventObject,
@@ -263,12 +269,12 @@ export class Interpreter<
   }
 
   public subscribe(
-    observer: Observer<State<TContext, TEvent, TTypestate>>
-  ): Subscription;
-  public subscribe(
     nextListener?: (state: State<TContext, TEvent, TTypestate>) => void,
     errorListener?: (error: any) => void,
     completeListener?: () => void
+  ): Subscription;
+  public subscribe(
+    observer: Observer<State<TContext, TEvent, TTypestate>>
   ): Subscription;
   public subscribe(
     nextListenerOrObserver?:
@@ -832,7 +838,17 @@ export class Interpreter<
     };
   }
 
-  public [symbolObservable]() {
+  public [symbolObservable](): Subscribable<
+    State<TContext, TEvent, TStateSchema, TTypestate>
+  > {
+    return this;
+  }
+
+  // this gets stripped by Babel to avoid having "undefined" property in environments without this non-standard Symbol
+  // it has to be here to be included in the generated .d.ts
+  public [Symbol.observable](): Subscribable<
+    State<TContext, TEvent, TStateSchema, TTypestate>
+  > {
     return this;
   }
 
