@@ -107,6 +107,12 @@ export enum InterpreterStatus {
   Stopped
 }
 
+declare global {
+  interface SymbolConstructor {
+    readonly observable: symbol;
+  }
+}
+
 export class Interpreter<
   // tslint:disable-next-line:max-classes-per-file
   TContext,
@@ -326,12 +332,12 @@ export class Interpreter<
     return this;
   }
   public subscribe(
-    observer: Observer<State<TContext, TEvent, any, TTypestate>>
-  ): Subscription;
-  public subscribe(
     nextListener?: (state: State<TContext, TEvent, any, TTypestate>) => void,
     errorListener?: (error: any) => void,
     completeListener?: () => void
+  ): Subscription;
+  public subscribe(
+    observer: Observer<State<TContext, TEvent, any, TTypestate>>
   ): Subscription;
   public subscribe(
     nextListenerOrObserver?:
@@ -1284,7 +1290,15 @@ export class Interpreter<
     };
   }
 
-  public [symbolObservable]() {
+  public [symbolObservable](): Subscribable<
+    State<TContext, TEvent, TStateSchema, TTypestate>
+  > {
+    return this;
+  }
+
+  public [Symbol.observable](): Subscribable<
+    State<TContext, TEvent, TStateSchema, TTypestate>
+  > {
     return this;
   }
 

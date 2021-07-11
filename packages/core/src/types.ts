@@ -1271,12 +1271,12 @@ export interface Subscription {
 }
 
 export interface Subscribable<T> {
-  subscribe(observer: Observer<T>): Subscription;
   subscribe(
     next: (value: T) => void,
     error?: (error: any) => void,
     complete?: () => void
   ): Subscription;
+  subscribe(observer: Observer<T>): Subscription;
 }
 
 export type Spawnable =
