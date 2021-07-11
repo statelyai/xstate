@@ -372,6 +372,55 @@ describe('communicating with spawned actors', () => {
     parentService.start();
   });
 
+  it('should be able to name existing actors', (done) => {
+    const existingMachine = Machine({
+      initial: 'inactive',
+      states: {
+        inactive: {
+          on: { ACTIVATE: 'active' }
+        },
+        active: {
+          entry: respond('EXISTING.DONE')
+        }
+      }
+    });
+
+    const existingService = interpret(existingMachine).start();
+
+    const parentMachine = createMachine<{
+      existingRef: ActorRef<any> | undefined;
+    }>({
+      initial: 'pending',
+      context: {
+        existingRef: undefined
+      },
+      states: {
+        pending: {
+          entry: assign({
+            existingRef: () => spawn(existingService, 'existing')
+          }),
+          on: {
+            'EXISTING.DONE': 'success'
+          },
+          after: {
+            100: {
+              actions: send('ACTIVATE', { to: 'existing' })
+            }
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    const parentService = interpret(parentMachine).onDone(() => {
+      done();
+    });
+
+    parentService.start();
+  });
+
   it('should be able to communicate with arbitrary actors if sessionId is known', (done) => {
     const existingMachine = Machine({
       initial: 'inactive',

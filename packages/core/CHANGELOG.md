@@ -46,10 +46,6 @@
   });
   ```
 
-## 4.21.0
-
-### Minor Changes
-
 - [`f9bcea2c`](https://github.com/davidkpiano/xstate/commit/f9bcea2ce909ac59fcb165b352a7b51a8b29a56d) [#2366](https://github.com/davidkpiano/xstate/pull/2366) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Actors can now be spawned directly in the initial `machine.context` using lazy initialization, avoiding the need for intermediate states and unsafe typings for immediately spawned actors:
 
   ```ts
@@ -173,7 +169,7 @@
   });
 
   const service = interpret(machine)
-    .onTransition(state => {
+    .onTransition((state) => {
       // Read promise value synchronously
       const resolvedValue = state.context.promiseRef?.getSnapshot();
       // => undefined (if promise not resolved yet)
@@ -253,7 +249,7 @@
     context: { value: 42 },
     on: {
       INC: {
-        actions: assign({ value: ctx => ctx.value + 1 })
+        actions: assign({ value: (ctx) => ctx.value + 1 })
       }
     }
   });
@@ -513,7 +509,7 @@
 
   ```js
   // ...
-  actions: stop(context => context.someActor);
+  actions: stop((context) => context.someActor);
   ```
 
 ### Patch Changes
@@ -751,10 +747,10 @@
   ```js
   entry: [
     choose([
-      { cond: ctx => ctx > 100, actions: raise('TOGGLE') },
+      { cond: (ctx) => ctx > 100, actions: raise('TOGGLE') },
       {
         cond: 'hasMagicBottle',
-        actions: [assign(ctx => ({ counter: ctx.counter + 1 }))]
+        actions: [assign((ctx) => ({ counter: ctx.counter + 1 }))]
       },
       { actions: ['fallbackAction'] }
     ])

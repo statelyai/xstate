@@ -107,6 +107,12 @@ export enum InterpreterStatus {
   Stopped
 }
 
+declare global {
+  interface SymbolConstructor {
+    readonly observable: symbol;
+  }
+}
+
 export class Interpreter<
   // tslint:disable-next-line:max-classes-per-file
   TContext,
@@ -326,12 +332,12 @@ export class Interpreter<
     return this;
   }
   public subscribe(
-    observer: Observer<State<TContext, TEvent, any, TTypestate>>
-  ): Subscription;
-  public subscribe(
     nextListener?: (state: State<TContext, TEvent, any, TTypestate>) => void,
     errorListener?: (error: any) => void,
     completeListener?: () => void
+  ): Subscription;
+  public subscribe(
+    observer: Observer<State<TContext, TEvent, any, TTypestate>>
   ): Subscription;
   public subscribe(
     nextListenerOrObserver?:
@@ -954,7 +960,7 @@ export class Interpreter<
     } else if (isFunction(entity)) {
       return this.spawnCallback(entity as InvokeCallback, name);
     } else if (isSpawnedActor(entity)) {
-      return this.spawnActor(entity);
+      return this.spawnActor(entity, name);
     } else if (isObservable<TEvent>(entity)) {
       return this.spawnObservable(entity, name);
     } else if (isMachine(entity)) {
@@ -1200,8 +1206,8 @@ export class Interpreter<
 
     return actor;
   }
-  private spawnActor<T extends ActorRef<any>>(actor: T): T {
-    this.children.set(actor.id, actor);
+  private spawnActor<T extends ActorRef<any>>(actor: T, name: string): T {
+    this.children.set(name, actor);
 
     return actor;
   }
@@ -1284,7 +1290,15 @@ export class Interpreter<
     };
   }
 
-  public [symbolObservable]() {
+  public [symbolObservable](): Subscribable<
+    State<TContext, TEvent, TStateSchema, TTypestate>
+  > {
+    return this;
+  }
+
+  public [Symbol.observable](): Subscribable<
+    State<TContext, TEvent, TStateSchema, TTypestate>
+  > {
     return this;
   }
 
