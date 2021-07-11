@@ -1317,8 +1317,8 @@ export type ActorRefFrom<
     }
   : T extends Promise<infer U>
   ? ActorRef<never, U>
-  : T extends Behavior<infer TEvent, infer TEmitted>
-  ? ActorRef<TEvent, TEmitted>
+  : T extends Behavior<infer TEvent1, infer TEmitted>
+  ? ActorRef<TEvent1, TEmitted>
   : never;
 
 export type AnyInterpreter = Interpreter<any, any, any, any>;
@@ -1362,13 +1362,17 @@ export type EventsFrom<T> = EventObject &
     ? TEvents3
     : never);
 
-export type ContextFrom<T> = object &
-  (T extends StateMachine<infer TContext0, any, any, any>
-    ? TContext0
-    : T extends Model<infer TContext1, any, any>
-    ? TContext1
-    : T extends State<infer TContext2, any, any, any>
-    ? TContext2
-    : T extends Interpreter<infer TContext3, any, any, any>
-    ? TContext3
-    : never);
+export type ContextFrom<T> = T extends StateMachine<
+  infer TContext0,
+  any,
+  any,
+  any
+>
+  ? TContext0
+  : T extends Model<infer TContext1, any, any>
+  ? TContext1
+  : T extends State<infer TContext2, any, any, any>
+  ? TContext2
+  : T extends Interpreter<infer TContext3, any, any, any>
+  ? TContext3
+  : never;
