@@ -155,7 +155,7 @@ const userModel = createModel(
 
 ### Creating a machine from a model
 
-Instead of specifying the type of `context` and `events` explicitly as type parameters in `createMachine(...)`, the `model.createMachine(...)` method should be used:
+Instead of specifying the type of `context` and `event` explicitly as type parameters in `createMachine<TContext, TEvent>(...)`, the `model.createMachine(...)` method should be used:
 
 ```ts {0}
 const machine = userModel.createMachine({
@@ -212,10 +212,10 @@ const machine = userModel.createMachine(
 
 _Since 4.22.1_
 
-You can extract `context` and `event` types from a model using the `ContextFrom<T>` and `EventsFrom<T>` types:
+You can extract `context` and `event` types from a model using the `ContextFrom<T>` and `EventFrom<T>` types:
 
 ```ts {1,15-16}
-import { ContextFrom, EventsFrom } from 'xstate';
+import { ContextFrom, EventFrom } from 'xstate';
 import { createModel } from 'xstate/lib/model';
 
 const someModel = createModel(
@@ -230,5 +230,5 @@ const someModel = createModel(
 );
 
 type SomeContext = ContextFrom<typeof someModel>;
-type SomeEvents = EventsFrom<typeof someModel>;
+type SomeEvent = EventFrom<typeof someModel>;
 ```
