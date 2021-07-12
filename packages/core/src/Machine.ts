@@ -6,10 +6,11 @@ import {
   StateSchema,
   EventObject,
   AnyEventObject,
-  Typestate
+  Typestate,
+  EventFrom
 } from './types';
 import { StateNode } from './StateNode';
-import { Model, ModelContextFrom, ModelEventsFrom } from './model';
+import { Model, ModelContextFrom } from './model.types';
 
 /**
  * @deprecated Use `createMachine(...)` instead.
@@ -50,7 +51,7 @@ export function Machine<
 export function createMachine<
   TModel extends Model<any, any, any>,
   TContext = ModelContextFrom<TModel>,
-  TEvent extends EventObject = ModelEventsFrom<TModel>,
+  TEvent extends EventObject = EventFrom<TModel>,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(
   config: MachineConfig<TContext, any, TEvent> & { context: TContext },

@@ -1,6 +1,7 @@
 import { StateNode } from './StateNode';
 import { State } from './State';
 import { Interpreter, Clock } from './interpreter';
+import { Model } from './model.types';
 
 export type EventType = string;
 export type ActionType = string;
@@ -1323,8 +1324,8 @@ export type ActorRefFrom<
     }
   : T extends Promise<infer U>
   ? ActorRef<never, U>
-  : T extends Behavior<infer TEvent, infer TEmitted>
-  ? ActorRef<TEvent, TEmitted>
+  : T extends Behavior<infer TEvent1, infer TEmitted>
+  ? ActorRef<TEvent1, TEmitted>
   : never;
 
 export type AnyInterpreter = Interpreter<any, any, any, any>;
@@ -1356,3 +1357,28 @@ export interface Behavior<TEvent extends EventObject, TEmitted = any> {
   initialState: TEmitted;
   start?: (actorCtx: ActorContext<TEvent, TEmitted>) => TEmitted;
 }
+
+export type EventFrom<T> = T extends StateMachine<any, any, infer TEvent, any>
+  ? TEvent
+  : T extends Model<any, infer TEvent, any>
+  ? TEvent
+  : T extends State<any, infer TEvent, any, any>
+  ? TEvent
+  : T extends Interpreter<any, any, infer TEvent, any>
+  ? TEvent
+  : never;
+
+export type ContextFrom<T> = T extends StateMachine<
+  infer TContext,
+  any,
+  any,
+  any
+>
+  ? TContext
+  : T extends Model<infer TContext, any, any>
+  ? TContext
+  : T extends State<infer TContext, any, any, any>
+  ? TContext
+  : T extends Interpreter<infer TContext, any, any, any>
+  ? TContext
+  : never;
