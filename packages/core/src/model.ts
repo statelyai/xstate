@@ -44,7 +44,6 @@ export function createModel(initialContext: object, creators?): unknown {
     reset: () => assign(initialContext),
     createMachine: (config, implementations) => {
       return createMachine(
-        // @ts-ignore
         'context' in config ? config : { ...config, context: initialContext },
         implementations
       );
