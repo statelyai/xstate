@@ -75,4 +75,3 @@ export {
 };
 
 export * from './types';
-export { spawnBehavior as __spawnBehavior } from './behaviors';
