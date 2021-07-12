@@ -1351,14 +1351,14 @@ export interface Behavior<TEvent extends EventObject, TEmitted = any> {
   start?: (actorCtx: ActorContext<TEvent, TEmitted>) => TEmitted;
 }
 
-export type EventsFrom<T> = T extends StateMachine<any, any, infer TEvents, any>
-  ? TEvents
-  : T extends Model<any, infer TEvents, any>
-  ? TEvents
-  : T extends State<any, infer TEvents, any, any>
-  ? TEvents
-  : T extends Interpreter<any, any, infer TEvents, any>
-  ? TEvents
+export type EventFrom<T> = T extends StateMachine<any, any, infer TEvent, any>
+  ? TEvent
+  : T extends Model<any, infer TEvent, any>
+  ? TEvent
+  : T extends State<any, infer TEvent, any, any>
+  ? TEvent
+  : T extends Interpreter<any, any, infer TEvent, any>
+  ? TEvent
   : never;
 
 export type ContextFrom<T> = T extends StateMachine<
