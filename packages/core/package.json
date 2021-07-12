@@ -29,8 +29,7 @@
   "scripts": {
     "clean": "rm -rf lib es dist tsconfig.tsbuildinfo",
     "test": "jest",
-    "build": "tsc && rollup -c && npm run annotate:es",
-    "annotate:es": "babel es --out-dir es --no-babelrc --plugins annotate-pure-calls",
+    "build": "rollup -c",
     "preversion": "npm run test",
     "version": "npm run build",
     "postversion": "git push --follow-tags",
@@ -50,6 +49,7 @@
   "devDependencies": {
     "@babel/cli": "^7.10.5",
     "@babel/core": "^7.10.5",
+    "@rollup/plugin-babel": "^5.3.0",
     "@scion-scxml/test-framework": "^2.0.15",
     "babel-plugin-annotate-pure-calls": "^0.4.0",
     "jest": "^26.6.3",
