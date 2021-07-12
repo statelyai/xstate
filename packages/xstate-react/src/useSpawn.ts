@@ -1,6 +1,10 @@
 import { ActorRef, Behavior, EventObject } from 'xstate';
-import { spawnBehavior } from 'xstate/lib/behaviors';
+import * as XState from 'xstate';
 import useConstant from './useConstant';
+
+if (process.env.NODE_ENV === 'development' && !('__spawnBehavior' in XState)) {
+  throw new Error('`useSpawn` requires at least xstate@4.22.1');
+}
 
 /**
  * React hook that spawns an `ActorRef` with the specified `behavior`.
@@ -13,7 +17,7 @@ export function useSpawn<TState, TEvent extends EventObject>(
   behavior: Behavior<TEvent, TState>
 ): ActorRef<TEvent, TState> {
   const actorRef = useConstant(() => {
-    return spawnBehavior(behavior);
+    return XState.__spawnBehavior(behavior);
   });
 
   return actorRef;
