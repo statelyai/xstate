@@ -171,8 +171,7 @@ describe('createModel', () => {
       'updateName'
     );
 
-    const machine = createMachine<typeof userModel>({
-      context: userModel.initialContext,
+    const machine = userModel.createMachine({
       initial: 'active',
       states: {
         active: {
@@ -372,11 +371,9 @@ describe('createModel', () => {
   it('should typecheck `createMachine` for model without creators', () => {
     const toggleModel = createModel({ count: 0 });
 
-    const machine = createMachine<typeof toggleModel>({
+    toggleModel.createMachine({
       id: 'machine',
       initial: 'inactive',
-      // using context here is crucial to validate that it can be assigned to the inferred TContext
-      context: toggleModel.initialContext,
       states: {
         inactive: {
           on: { TOGGLE: 'active' }
@@ -386,11 +383,17 @@ describe('createModel', () => {
         }
       }
     });
+  });
+
+  it('model.createMachine(...) should provide the initial context', () => {
+    const toggleModel = createModel({ count: 0 });
+
+    const machine = toggleModel.createMachine({});
 
     expect(machine.initialState.context.count).toBe(0);
   });
 
-  it('should not compile if missing context', () => {
+  it('should not compile if missing context with plain createMachine(...)', () => {
     const toggleModel = createModel({ count: 0 });
 
     // @ts-expect-error

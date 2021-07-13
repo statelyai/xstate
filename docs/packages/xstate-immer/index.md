@@ -11,7 +11,7 @@
   </a>
 </p>
 
-This package contains utilities for using [Immer](https://immerjs.github.io/immer/) with [XState](https://github.com/davidkpiano/xstate).
+This package contains utilities for using [Immer](https://immerjs.github.io/immer/docs/introduction) with [XState](https://github.com/davidkpiano/xstate).
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
@@ -107,13 +107,13 @@ toggleService.send(levelUpdater.update(-100));
 
 Returns an XState event object that will update the machine's `context` to reflect the changes ("mutations") to `context` made in the `recipe` function.
 
-The `recipe` is similar to the function that you would pass to [Immer's `produce(val, recipe)` function](https://immerjs.github.io/immer/produce/), with the addition that you get the same arguments as a normal XState assigner passed to `assign(assigner)` (`context`, `event`, `meta`).
+The `recipe` is similar to the function that you would pass to [Immer's `produce(val, recipe)` function](https://immerjs.github.io/immer/docs/produce)), with the addition that you get the same arguments as a normal XState assigner passed to `assign(assigner)` (`context`, `event`, `meta`).
 
 **Arguments for `assign`:**
 
 | Argument | Type     | Description                                                                                                             |
 | -------- | -------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `recipe` | function | A function where "mutations" to `context` are made. See the [Immer docs](https://immerjs.github.io/immer/produce/). |
+| `recipe` | function | A function where "mutations" to `context` are made. See the [Immer docs](https://immerjs.github.io/immer/docs/produce). |
 
 **Arguments for `recipe`:**
 

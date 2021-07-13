@@ -6,13 +6,17 @@ import {
   send,
   EventObject,
   StateValue,
-  createMachine
+  createMachine,
+  Behavior,
+  ActorContext
 } from '../src';
+import { fromReducer } from '../src/behaviors';
 import {
   actionTypes,
   done as _done,
   doneInvoke,
   escalate,
+  forwardTo,
   raise
 } from '../src/actions';
 import { interval } from 'rxjs';
@@ -2047,6 +2051,158 @@ describe('invoke', () => {
           done();
         })
         .start();
+    });
+  });
+
+  describe('with behaviors', () => {
+    it('should work with a behavior', (done) => {
+      const countBehavior: Behavior<EventObject, number> = {
+        transition: (count, event) => {
+          if (event.type === 'INC') {
+            return count + 1;
+          } else {
+            return count - 1;
+          }
+        },
+        initialState: 0
+      };
+
+      const countMachine = createMachine({
+        invoke: {
+          id: 'count',
+          src: () => countBehavior
+        },
+        on: {
+          INC: {
+            actions: forwardTo('count')
+          }
+        }
+      });
+
+      const countService = interpret(countMachine)
+        .onTransition((state) => {
+          if (state.children['count']?.getSnapshot() === 2) {
+            done();
+          }
+        })
+        .start();
+
+      countService.send('INC');
+      countService.send('INC');
+    });
+
+    it('behaviors should have reference to the parent', (done) => {
+      const pongBehavior: Behavior<EventObject, undefined> = {
+        transition: (_, event, { parent }) => {
+          if (event.type === 'PING') {
+            parent?.send({ type: 'PONG' });
+          }
+
+          return undefined;
+        },
+        initialState: undefined
+      };
+
+      const pingMachine = createMachine({
+        initial: 'waiting',
+        states: {
+          waiting: {
+            entry: send('PING', { to: 'ponger' }),
+            invoke: {
+              id: 'ponger',
+              src: () => pongBehavior
+            },
+            on: {
+              PONG: 'success'
+            }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      });
+
+      const pingService = interpret(pingMachine).onDone(() => {
+        done();
+      });
+      pingService.start();
+    });
+  });
+
+  describe('with reducers', () => {
+    it('should work with a reducer', (done) => {
+      const countReducer = (count: number, event: { type: 'INC' }): number => {
+        if (event.type === 'INC') {
+          return count + 1;
+        } else {
+          return count - 1;
+        }
+      };
+
+      const countMachine = createMachine({
+        invoke: {
+          id: 'count',
+          src: () => fromReducer(countReducer, 0)
+        },
+        on: {
+          INC: {
+            actions: forwardTo('count')
+          }
+        }
+      });
+
+      const countService = interpret(countMachine)
+        .onTransition((state) => {
+          if (state.children['count']?.getSnapshot() === 2) {
+            done();
+          }
+        })
+        .start();
+
+      countService.send('INC');
+      countService.send('INC');
+    });
+
+    it('should schedule events in a FIFO queue', (done) => {
+      type CountEvents = { type: 'INC' } | { type: 'DOUBLE' };
+
+      const countReducer = (
+        count: number,
+        event: { type: 'INC' } | { type: 'DOUBLE' },
+        { self }: ActorContext<CountEvents, any>
+      ): number => {
+        if (event.type === 'INC') {
+          self.send({ type: 'DOUBLE' });
+          return count + 1;
+        }
+        if (event.type === 'DOUBLE') {
+          return count * 2;
+        }
+
+        return count;
+      };
+
+      const countMachine = createMachine({
+        invoke: {
+          id: 'count',
+          src: () => fromReducer(countReducer, 0)
+        },
+        on: {
+          INC: {
+            actions: forwardTo('count')
+          }
+        }
+      });
+
+      const countService = interpret(countMachine)
+        .onTransition((state) => {
+          if (state.children['count']?.getSnapshot() === 2) {
+            done();
+          }
+        })
+        .start();
+
+      countService.send('INC');
     });
   });
 

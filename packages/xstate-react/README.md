@@ -1,27 +1,6 @@
 # @xstate/react
 
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Quick Start](#quick-start)
-- [Examples](#examples)
-- [API](#api)
-  - [`useMachine(machine, options?)`](#usemachinemachine-options)
-  - [`useService(service)`](#useserviceservice)
-  - [`useActor(actor, getSnapshot)`](#useactoractor-getsnapshot)
-  - [`useInterpret(machine, options?, observer?)`](#useinterpretmachine-options-observer)
-  - [`useSelector(actor, selector, compare?, getSnapshot?)`](#useselectoractor-selector-compare-getsnapshot)
-  - [`asEffect(action)`](#aseffectaction)
-  - [`asLayoutEffect(action)`](#aslayouteffectaction)
-  - [`useMachine(machine)` with `@xstate/fsm`](#usemachinemachine-with-xstatefsm)
-- [Configuring Machines](#configuring-machines)
-- [Matching States](#matching-states)
-- [Persisted and Rehydrated State](#persisted-and-rehydrated-state)
-- [Services](#services)
-- [Migration from 0.x](#migration-from-0x)
-- [Resources](#resources)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+[[toc]]
 
 ## Quick Start
 
