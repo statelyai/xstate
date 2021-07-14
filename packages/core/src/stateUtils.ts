@@ -1663,144 +1663,157 @@ function resolveActionsAndContext<
   let context: TContext = currentState ? currentState.context : machine.context;
   const resolvedActions: Array<ActionObject<TContext, TEvent>> = [];
   const raiseActions: Array<RaiseActionObject<TEvent>> = [];
+  const preservedContexts: [TContext, ...TContext[]] = [context];
+  const actionObjects = toActionObjects(actions, machine.options.actions);
 
-  toActionObjects(actions, machine.options.actions).forEach(
-    function resolveAction(actionObject) {
-      switch (actionObject.type) {
-        case actionTypes.raise:
-          raiseActions.push(resolveRaise(actionObject as RaiseAction<TEvent>));
-          break;
-        case actionTypes.cancel:
-          resolvedActions.push(
-            resolveCancel(
-              actionObject as CancelAction<TContext, TEvent>,
-              context,
-              _event
-            )
-          );
-          break;
-        case actionTypes.send:
-          const sendAction = resolveSend(
-            actionObject as SendAction<TContext, TEvent, AnyEventObject>,
-            context,
-            _event,
-            machine.options.delays
-          );
-          if (!IS_PRODUCTION) {
-            // warn after resolving as we can create better contextual message here
-            warn(
-              !isString(actionObject.delay) ||
-                typeof sendAction.delay === 'number',
-              // tslint:disable-next-line:max-line-length
-              `No delay reference for delay expression '${actionObject.delay}' was found on machine '${machine.key}'`
-            );
-          }
-          if (sendAction.to === SpecialTargets.Internal) {
-            raiseActions.push(sendAction as RaiseActionObject<any>);
-          } else {
-            resolvedActions.push(sendAction);
-          }
-          break;
-        case actionTypes.log:
-          resolvedActions.push(
-            resolveLog(
-              actionObject as LogAction<TContext, TEvent>,
-              context,
-              _event
-            )
-          );
-          break;
-        case actionTypes.choose: {
-          const chooseAction = actionObject as ChooseAction<TContext, TEvent>;
-          const matchedActions = chooseAction.guards.find((condition) => {
-            const guard =
-              condition.guard &&
-              toGuardDefinition(
-                condition.guard,
-                (guardType) => machine.options.guards[guardType]
-              );
-            return (
-              !guard ||
-              evaluateGuard(guard, context, _event, currentState as any)
-            );
-          })?.actions;
-
-          if (matchedActions) {
-            toActionObjects(
-              toArray(matchedActions),
-              machine.options.actions
-            ).forEach(resolveAction);
-          }
-          break;
-        }
-
-        case actionTypes.pure:
-          const matchedActions = (actionObject as PureAction<
-            TContext,
-            TEvent
-          >).get(context, _event.data);
-
-          if (matchedActions) {
-            toActionObjects(
-              toArray(matchedActions),
-              machine.options.actions
-            ).forEach(resolveAction);
-          }
-          break;
-        case actionTypes.assign:
-          try {
-            const [nextContext, nextActions] = updateContext(
-              context,
-              _event,
-              [actionObject as AssignAction<TContext, TEvent>],
-              currentState
-            );
-            context = nextContext;
-            resolvedActions.push(actionObject, ...nextActions);
-          } catch (err) {
-            // Raise error.execution events for failed assign actions
-            raiseActions.push({
-              type: actionTypes.raise,
-              _event: toSCXMLEvent({
-                type: actionTypes.errorExecution,
-                error: err
-              } as any) // TODO: fix
-            });
-          }
-          break;
-        case actionTypes.invoke:
-          const invokeAction = resolveInvoke(
-            actionObject as InvokeAction,
-            context,
-            _event,
-            machine.options.actors
-          );
-          if (!IS_PRODUCTION && !invokeAction.ref) {
-            warn(
-              false,
-              `Actor type '${
-                (invokeAction.src as InvokeSourceDefinition).type
-              }' not found in machine '${machine.key}'.`
-            );
-          }
-          resolvedActions.push(invokeAction);
-          break;
-        case actionTypes.stop:
-          const stopAction = resolveStop(
-            actionObject as StopActionObject,
+  function resolveAction(actionObject) {
+    switch (actionObject.type) {
+      case actionTypes.raise:
+        raiseActions.push(resolveRaise(actionObject as RaiseAction<TEvent>));
+        break;
+      case actionTypes.cancel:
+        resolvedActions.push(
+          resolveCancel(
+            actionObject as CancelAction<TContext, TEvent>,
             context,
             _event
+          )
+        );
+        break;
+      case actionTypes.send:
+        const sendAction = resolveSend(
+          actionObject as SendAction<TContext, TEvent, AnyEventObject>,
+          context,
+          _event,
+          machine.options.delays
+        );
+        if (!IS_PRODUCTION) {
+          // warn after resolving as we can create better contextual message here
+          warn(
+            !isString(actionObject.delay) ||
+              typeof sendAction.delay === 'number',
+            // tslint:disable-next-line:max-line-length
+            `No delay reference for delay expression '${actionObject.delay}' was found on machine '${machine.key}'`
           );
-          resolvedActions.push(stopAction);
-          break;
-        default:
-          resolvedActions.push(
-            toActionObject(actionObject, machine.options.actions)
+        }
+        if (sendAction.to === SpecialTargets.Internal) {
+          raiseActions.push(sendAction as RaiseActionObject<any>);
+        } else {
+          resolvedActions.push(sendAction);
+        }
+        break;
+      case actionTypes.log:
+        resolvedActions.push(
+          resolveLog(
+            actionObject as LogAction<TContext, TEvent>,
+            context,
+            _event
+          )
+        );
+        break;
+      case actionTypes.choose: {
+        const chooseAction = actionObject as ChooseAction<TContext, TEvent>;
+        const matchedActions = chooseAction.guards.find((condition) => {
+          const guard =
+            condition.guard &&
+            toGuardDefinition(
+              condition.guard,
+              (guardType) => machine.options.guards[guardType]
+            );
+          return (
+            !guard || evaluateGuard(guard, context, _event, currentState as any)
           );
-          break;
+        })?.actions;
+
+        if (matchedActions) {
+          toActionObjects(
+            toArray(matchedActions),
+            machine.options.actions
+          ).forEach(resolveAction);
+        }
+        break;
       }
+
+      case actionTypes.pure:
+        const matchedActions = (actionObject as PureAction<
+          TContext,
+          TEvent
+        >).get(context, _event.data);
+
+        if (matchedActions) {
+          toActionObjects(
+            toArray(matchedActions),
+            machine.options.actions
+          ).forEach(resolveAction);
+        }
+        break;
+      case actionTypes.assign:
+        try {
+          const [nextContext, nextActions] = updateContext(
+            context,
+            _event,
+            [actionObject as AssignAction<TContext, TEvent>],
+            currentState
+          );
+          context = nextContext;
+          preservedContexts.push(nextContext);
+          resolvedActions.push(actionObject, ...nextActions);
+        } catch (err) {
+          // Raise error.execution events for failed assign actions
+          raiseActions.push({
+            type: actionTypes.raise,
+            _event: toSCXMLEvent({
+              type: actionTypes.errorExecution,
+              error: err
+            } as any) // TODO: fix
+          });
+        }
+        break;
+      case actionTypes.invoke:
+        const invokeAction = resolveInvoke(
+          actionObject as InvokeAction,
+          context,
+          _event,
+          machine.options.actors
+        );
+        if (!IS_PRODUCTION && !invokeAction.ref) {
+          warn(
+            false,
+            `Actor type '${
+              (invokeAction.src as InvokeSourceDefinition).type
+            }' not found in machine '${machine.key}'.`
+          );
+        }
+        resolvedActions.push(invokeAction);
+        break;
+      case actionTypes.stop:
+        const stopAction = resolveStop(
+          actionObject as StopActionObject,
+          context,
+          _event
+        );
+        resolvedActions.push(stopAction);
+        break;
+      default:
+        const resolvedActionObject = toActionObject(
+          actionObject,
+          machine.options.actions
+        );
+        const { exec } = resolvedActionObject;
+        if (exec) {
+          const contextIndex = preservedContexts.length - 1;
+          resolvedActionObject.exec = (_ctx, ...args) => {
+            exec(preservedContexts[contextIndex], ...args);
+          };
+        }
+        resolvedActions.push(resolvedActionObject);
+        break;
     }
-  );
+  }
+
+  for (const actionObject of actionObjects) {
+    resolveAction(actionObject);
+  }
 
   return {
     actions: resolvedActions,

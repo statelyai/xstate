@@ -795,9 +795,8 @@ describe('actions config', () => {
     const state = machine.transition('a', 'EVENT');
 
     expect(state.actions).toEqual([
-      expect.objectContaining({ type: 'definedAction' })
-      // { type: 'definedAction', exec: definedAction },
-      // assign({ count: 10 })
+      expect.objectContaining({ type: 'definedAction' }),
+      assign({ count: 10 })
     ]);
 
     expect(state.context).toEqual({ count: 10 });
@@ -1660,27 +1659,4 @@ describe('assign action order', () => {
 
     expect(captured).toEqual([0, 1, 2]);
   });
-
-  it.each([undefined, false])(
-    'should prioritize assign actions when .preserveActionOrder = %i',
-    (preserveActionOrder) => {
-      const captured: number[] = [];
-
-      const machine = createMachine<{ count: number }>({
-        context: { count: 0 },
-        entry: [
-          (ctx) => captured.push(ctx.count),
-          assign({ count: (ctx) => ctx.count + 1 }),
-          (ctx) => captured.push(ctx.count),
-          assign({ count: (ctx) => ctx.count + 1 }),
-          (ctx) => captured.push(ctx.count)
-        ],
-        preserveActionOrder
-      });
-
-      interpret(machine).start();
-
-      expect(captured).toEqual([2, 2, 2]);
-    }
-  );
 });
