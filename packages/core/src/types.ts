@@ -3,6 +3,8 @@ import { State } from './State';
 import { Clock, Interpreter } from './interpreter';
 import { StateMachine } from './StateMachine';
 import { LifecycleSignal } from './behaviors';
+import { MachineNode } from '.';
+import { Model } from './model.types';
 
 export type EventType = string;
 export type ActionType = string;
@@ -600,6 +602,13 @@ export interface StateNodeConfig<
    * The tags for this state node, which are accumulated into the `state.tags` property.
    */
   tags?: SingleOrArray<string>;
+  /**
+   * Whether actions should be called in order.
+   * When `false` (default), `assign(...)` actions are prioritized before other actions.
+   *
+   * @default false
+   */
+  preserveActionOrder?: boolean;
 }
 
 export interface StateNodeDefinition<
@@ -1368,9 +1377,9 @@ export type ActorRefFrom<T extends Spawnable> = T extends StateMachine<
   ? ActorRef<TEvent, State<TContext, TEvent, TTypestate>>
   : T extends Promise<infer U>
   ? ActorRef<never, U>
-  : T extends Behavior<infer TEvent1, infer TEmitted1>
-  ? ActorRef<TEvent1, TEmitted1>
-  : ActorRef<any, any>; // TODO: expand
+  : T extends Behavior<infer TEvent1, infer TEmitted>
+  ? ActorRef<TEvent1, TEmitted>
+  : never;
 
 export type DevToolsAdapter = (service: AnyInterpreter) => void;
 
@@ -1404,3 +1413,23 @@ export interface Behavior<TEvent extends EventObject, TEmitted = any> {
   start?: (actorCtx: ActorContext<TEvent, TEmitted>) => TEmitted;
   subscribe?: (observer: Observer<TEmitted>) => Subscription | undefined;
 }
+
+export type EventFrom<T> = T extends MachineNode<any, infer TEvent, any>
+  ? TEvent
+  : T extends Model<any, infer TEvent, any>
+  ? TEvent
+  : T extends State<any, infer TEvent, any>
+  ? TEvent
+  : T extends Interpreter<any, infer TEvent, any>
+  ? TEvent
+  : never;
+
+export type ContextFrom<T> = T extends StateMachine<infer TContext, any, any>
+  ? TContext
+  : T extends Model<infer TContext, any, any>
+  ? TContext
+  : T extends State<infer TContext, any, any>
+  ? TContext
+  : T extends Interpreter<infer TContext, any, any>
+  ? TContext
+  : never;

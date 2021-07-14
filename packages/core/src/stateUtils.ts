@@ -1661,17 +1661,17 @@ function resolveActionsAndContext<
   context: TContext;
 } {
   let context: TContext = currentState ? currentState.context : machine.context;
-  const resActions: Array<ActionObject<TContext, TEvent>> = [];
-  const raisedActions: Array<RaiseActionObject<TEvent>> = [];
+  const resolvedActions: Array<ActionObject<TContext, TEvent>> = [];
+  const raiseActions: Array<RaiseActionObject<TEvent>> = [];
 
   toActionObjects(actions, machine.options.actions).forEach(
     function resolveAction(actionObject) {
       switch (actionObject.type) {
         case actionTypes.raise:
-          raisedActions.push(resolveRaise(actionObject as RaiseAction<TEvent>));
+          raiseActions.push(resolveRaise(actionObject as RaiseAction<TEvent>));
           break;
         case actionTypes.cancel:
-          resActions.push(
+          resolvedActions.push(
             resolveCancel(
               actionObject as CancelAction<TContext, TEvent>,
               context,
@@ -1696,13 +1696,13 @@ function resolveActionsAndContext<
             );
           }
           if (sendAction.to === SpecialTargets.Internal) {
-            raisedActions.push(sendAction as RaiseActionObject<any>);
+            raiseActions.push(sendAction as RaiseActionObject<any>);
           } else {
-            resActions.push(sendAction);
+            resolvedActions.push(sendAction);
           }
           break;
         case actionTypes.log:
-          resActions.push(
+          resolvedActions.push(
             resolveLog(
               actionObject as LogAction<TContext, TEvent>,
               context,
@@ -1756,10 +1756,10 @@ function resolveActionsAndContext<
               currentState
             );
             context = nextContext;
-            resActions.push(actionObject, ...nextActions);
+            resolvedActions.push(actionObject, ...nextActions);
           } catch (err) {
             // Raise error.execution events for failed assign actions
-            raisedActions.push({
+            raiseActions.push({
               type: actionTypes.raise,
               _event: toSCXMLEvent({
                 type: actionTypes.errorExecution,
@@ -1783,7 +1783,7 @@ function resolveActionsAndContext<
               }' not found in machine '${machine.key}'.`
             );
           }
-          resActions.push(invokeAction);
+          resolvedActions.push(invokeAction);
           break;
         case actionTypes.stop:
           const stopAction = resolveStop(
@@ -1791,10 +1791,10 @@ function resolveActionsAndContext<
             context,
             _event
           );
-          resActions.push(stopAction);
+          resolvedActions.push(stopAction);
           break;
         default:
-          resActions.push(
+          resolvedActions.push(
             toActionObject(actionObject, machine.options.actions)
           );
           break;
@@ -1803,8 +1803,8 @@ function resolveActionsAndContext<
   );
 
   return {
-    actions: resActions,
-    raised: raisedActions,
+    actions: resolvedActions,
+    raised: raiseActions,
     context
   };
 }

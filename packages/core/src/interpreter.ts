@@ -42,7 +42,12 @@ import { registry } from './registry';
 import { StateMachine } from './StateMachine';
 import { devToolsAdapter } from './dev';
 import { CapturedState } from './capturedState';
-import { MachineContext, PayloadSender, StopActionObject } from '.';
+import {
+  MachineContext,
+  PayloadSender,
+  StopActionObject,
+  Subscribable
+} from '.';
 
 export type StateListener<
   TContext extends MachineContext,
@@ -839,7 +844,7 @@ export class Interpreter<
   }
 
   public [symbolObservable](): Subscribable<
-    State<TContext, TEvent, TStateSchema, TTypestate>
+    State<TContext, TEvent, TTypestate>
   > {
     return this;
   }
@@ -847,7 +852,7 @@ export class Interpreter<
   // this gets stripped by Babel to avoid having "undefined" property in environments without this non-standard Symbol
   // it has to be here to be included in the generated .d.ts
   public [Symbol.observable](): Subscribable<
-    State<TContext, TEvent, TStateSchema, TTypestate>
+    State<TContext, TEvent, TTypestate>
   > {
     return this;
   }
