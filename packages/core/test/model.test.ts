@@ -404,6 +404,37 @@ describe('createModel', () => {
     );
   });
 
+  it('should disallow string actions for non-simple actions', () => {
+    const model = createModel(
+      {},
+      {
+        events: {
+          SAMPLE: () => ({})
+        },
+        actions: {
+          simple: () => ({}),
+          custom: (param: string) => ({ param })
+        }
+      }
+    );
+
+    model.createMachine({
+      entry: ['simple', { type: 'custom', param: 'something' }],
+
+      // @ts-expect-error
+      exit: ['custom'],
+      initial: 'test',
+      states: {
+        test: {
+          entry: ['simple', { type: 'custom', param: 'something' }],
+
+          // @ts-expect-error
+          exit: ['custom']
+        }
+      }
+    });
+  });
+
   it('should typecheck `createMachine` for model without creators', () => {
     const toggleModel = createModel({ count: 0 });
 

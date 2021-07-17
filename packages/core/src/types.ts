@@ -91,12 +91,18 @@ export type Action<TContext, TEvent extends EventObject> =
   | ActionObject<TContext, TEvent>
   | ActionFunction<TContext, TEvent>;
 
+type SimpleActionsFrom<T extends BaseActionObject> = T extends {
+  [K in keyof Omit<T, 'type'>]: never;
+}
+  ? T
+  : never;
+
 export type BaseAction<
   TContext,
   TEvent extends EventObject,
   TAction extends BaseActionObject
 > =
-  | TAction['type']
+  | SimpleActionsFrom<TAction>['type']
   | TAction
   | RaiseAction<any>
   | SendAction<TContext, TEvent, any>
