@@ -19,7 +19,7 @@ export type Prop<T, K> = K extends keyof T ? T[K] : never;
 export interface Model<
   TContext,
   TEvent extends EventObject,
-  _TActions extends ActionObject<TContext, TEvent>,
+  TActions extends ActionObject<TContext, TEvent>,
   TModelCreators extends FinalModelCreators<any>
 > {
   initialContext: TContext;
@@ -34,7 +34,7 @@ export interface Model<
   reset: () => AssignAction<TContext, any>;
   createMachine: (
     config: MachineConfig<TContext, any, TEvent>,
-    implementations?: Partial<MachineOptions<TContext, TEvent>>
+    implementations?: Partial<MachineOptions<TContext, TEvent, TActions>>
   ) => StateMachine<TContext, any, TEvent, any>;
 }
 
@@ -100,15 +100,15 @@ export type FinalActionCreators<Self> = {
     : never;
 };
 
-export type ModelCreators<Self> = {
+export interface ModelCreators<Self> {
   events?: EventCreators<Prop<Self, 'events'>>;
   actions?: ActionCreators<Prop<Self, 'actions'>>;
-};
+}
 
-export type FinalModelCreators<Self> = {
+export interface FinalModelCreators<Self> {
   events: FinalEventCreators<Prop<Self, 'events'>>;
   actions: FinalActionCreators<Prop<Self, 'actions'>>;
-};
+}
 
 export type EventFromEventCreators<
   TEventCreators

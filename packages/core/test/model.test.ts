@@ -362,6 +362,42 @@ describe('createModel', () => {
 
             // @ts-expect-error
             action.param.whatever();
+
+            // @ts-expect-error
+            action.unknown;
+          }
+        }
+      }
+    );
+  });
+
+  it('should strongly type action implementations with model.createMachine(...)', () => {
+    const model = createModel(
+      {},
+      {
+        events: {
+          SAMPLE: () => ({})
+        },
+        actions: {
+          custom: (param: string) => ({ param })
+        }
+      }
+    );
+
+    model.createMachine(
+      {
+        context: {}
+      },
+      {
+        actions: {
+          custom: (_ctx, _e, { action }) => {
+            action.param.toUpperCase();
+
+            // @ts-expect-error
+            action.param.whatever();
+
+            // @ts-expect-error
+            action.unknown;
           }
         }
       }
