@@ -91,9 +91,17 @@ export type Action<TContext, TEvent extends EventObject> =
   | ActionObject<TContext, TEvent>
   | ActionFunction<TContext, TEvent>;
 
-type SimpleActionsFrom<T extends BaseActionObject> = T extends {
-  [K in keyof Omit<T, 'type'>]: never;
-}
+/**
+ * Extracts action objects that have no extra properties.
+ */
+type SimpleActionsFrom<T extends BaseActionObject> = ActionObject<
+  any,
+  any
+> extends T
+  ? T // If actions are unspecified, all action types are allowed (unsafe)
+  : T extends {
+      [K in keyof Omit<T, 'type'>]: never;
+    }
   ? T
   : never;
 
