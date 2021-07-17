@@ -203,6 +203,10 @@ const machine = userModel.createMachine({
 });
 ```
 
+::: warning
+Assign actions with narrowed event types _cannot_ be placed inside the `actions: {...}` property of machine options in `createMachine(configuration, options)`. This is because actions in `options.actions` should be assumed to potentially receive _any_ event, even if the machine configuration suggests otherwise.
+:::
+
 ### Extracting types from model
 
 _Since 4.22.1_
