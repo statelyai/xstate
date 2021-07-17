@@ -627,107 +627,144 @@ export function resolveActions<TContext, TEvent extends EventObject>(
   currentState: State<TContext, TEvent> | undefined,
   currentContext: TContext,
   _event: SCXML.Event<TEvent>,
-  actions: Array<ActionObject<TContext, TEvent>>
+  actions: Array<ActionObject<TContext, TEvent>>,
+  preserveActionOrder: boolean = false
 ): [Array<ActionObject<TContext, TEvent>>, TContext] {
-  const [assignActions, otherActions] = partition(
-    actions,
-    (action): action is AssignAction<TContext, TEvent> =>
-      action.type === actionTypes.assign
-  );
+  const [assignActions, otherActions] = preserveActionOrder
+    ? [[], actions]
+    : partition(
+        actions,
+        (action): action is AssignAction<TContext, TEvent> =>
+          action.type === actionTypes.assign
+      );
 
   let updatedContext = assignActions.length
     ? updateContext(currentContext, _event, assignActions, currentState)
     : currentContext;
 
+  const preservedContexts: TContext[] | undefined = preserveActionOrder
+    ? [currentContext]
+    : undefined;
+
   const resolvedActions = flatten(
-    otherActions.map((actionObject) => {
-      switch (actionObject.type) {
-        case actionTypes.raise:
-          return resolveRaise(actionObject as RaiseAction<TEvent>);
-        case actionTypes.send:
-          const sendAction = resolveSend(
-            actionObject as SendAction<TContext, TEvent, AnyEventObject>,
-            updatedContext,
-            _event,
-            machine.options.delays
-          ) as ActionObject<TContext, TEvent>; // TODO: fix ActionTypes.Init
+    otherActions
+      .map((actionObject) => {
+        switch (actionObject.type) {
+          case actionTypes.raise:
+            return resolveRaise(actionObject as RaiseAction<TEvent>);
+          case actionTypes.send:
+            const sendAction = resolveSend(
+              actionObject as SendAction<TContext, TEvent, AnyEventObject>,
+              updatedContext,
+              _event,
+              machine.options.delays
+            ) as ActionObject<TContext, TEvent>; // TODO: fix ActionTypes.Init
 
-          if (!IS_PRODUCTION) {
-            // warn after resolving as we can create better contextual message here
-            warn(
-              !isString(actionObject.delay) ||
-                typeof sendAction.delay === 'number',
-              // tslint:disable-next-line:max-line-length
-              `No delay reference for delay expression '${actionObject.delay}' was found on machine '${machine.id}'`
+            if (!IS_PRODUCTION) {
+              // warn after resolving as we can create better contextual message here
+              warn(
+                !isString(actionObject.delay) ||
+                  typeof sendAction.delay === 'number',
+                // tslint:disable-next-line:max-line-length
+                `No delay reference for delay expression '${actionObject.delay}' was found on machine '${machine.id}'`
+              );
+            }
+
+            return sendAction;
+          case actionTypes.log:
+            return resolveLog(
+              actionObject as LogAction<TContext, TEvent>,
+              updatedContext,
+              _event
+            );
+          case actionTypes.choose: {
+            const chooseAction = actionObject as ChooseAction<TContext, TEvent>;
+            const matchedActions = chooseAction.conds.find((condition) => {
+              const guard = toGuard(condition.cond, machine.options.guards);
+              return (
+                !guard ||
+                evaluateGuard(
+                  machine,
+                  guard,
+                  updatedContext,
+                  _event,
+                  currentState as any
+                )
+              );
+            })?.actions;
+
+            if (!matchedActions) {
+              return [];
+            }
+
+            const [
+              resolvedActionsFromChoose,
+              resolvedContextFromChoose
+            ] = resolveActions(
+              machine,
+              currentState,
+              updatedContext,
+              _event,
+              toActionObjects(toArray(matchedActions), machine.options.actions),
+              preserveActionOrder
+            );
+            updatedContext = resolvedContextFromChoose;
+            preservedContexts?.push(updatedContext);
+            return resolvedActionsFromChoose;
+          }
+          case actionTypes.pure: {
+            const matchedActions = (actionObject as PureAction<
+              TContext,
+              TEvent
+            >).get(updatedContext, _event.data);
+            if (!matchedActions) {
+              return [];
+            }
+            const [resolvedActionsFromPure, resolvedContext] = resolveActions(
+              machine,
+              currentState,
+              updatedContext,
+              _event,
+              toActionObjects(toArray(matchedActions), machine.options.actions),
+              preserveActionOrder
+            );
+            updatedContext = resolvedContext;
+            preservedContexts?.push(updatedContext);
+            return resolvedActionsFromPure;
+          }
+          case actionTypes.stop: {
+            return resolveStop(
+              actionObject as StopAction<TContext, TEvent>,
+              updatedContext,
+              _event
             );
           }
-
-          return sendAction;
-        case actionTypes.log:
-          return resolveLog(
-            actionObject as LogAction<TContext, TEvent>,
-            updatedContext,
-            _event
-          );
-        case actionTypes.choose: {
-          const chooseAction = actionObject as ChooseAction<TContext, TEvent>;
-          const matchedActions = chooseAction.conds.find((condition) => {
-            const guard = toGuard(condition.cond, machine.options.guards);
-            return (
-              !guard ||
-              evaluateGuard(
-                machine,
-                guard,
-                updatedContext,
-                _event,
-                currentState as any
-              )
+          case actionTypes.assign: {
+            updatedContext = updateContext(
+              updatedContext,
+              _event,
+              [actionObject as AssignAction<TContext, TEvent>],
+              currentState
             );
-          })?.actions;
-
-          if (!matchedActions) {
-            return [];
+            preservedContexts?.push(updatedContext);
+            break;
           }
-
-          const resolved = resolveActions(
-            machine,
-            currentState,
-            updatedContext,
-            _event,
-            toActionObjects(toArray(matchedActions), machine.options.actions)
-          );
-          updatedContext = resolved[1];
-          return resolved[0];
+          default:
+            const resolvedActionObject = toActionObject(
+              actionObject,
+              machine.options.actions
+            );
+            const { exec } = resolvedActionObject;
+            if (exec && preservedContexts) {
+              const contextIndex = preservedContexts.length - 1;
+              resolvedActionObject.exec = (_ctx, ...args) => {
+                exec?.(preservedContexts[contextIndex], ...args);
+              };
+            }
+            return resolvedActionObject;
         }
-        case actionTypes.pure: {
-          const matchedActions = (actionObject as PureAction<
-            TContext,
-            TEvent
-          >).get(updatedContext, _event.data);
-          if (!matchedActions) {
-            return [];
-          }
-          const resolved = resolveActions(
-            machine,
-            currentState,
-            updatedContext,
-            _event,
-            toActionObjects(toArray(matchedActions), machine.options.actions)
-          );
-          updatedContext = resolved[1];
-          return resolved[0];
-        }
-        case actionTypes.stop: {
-          return resolveStop(
-            actionObject as StopAction<TContext, TEvent>,
-            updatedContext,
-            _event
-          );
-        }
-        default:
-          return toActionObject(actionObject, machine.options.actions);
-      }
-    })
+      })
+      .filter((a): a is ActionObject<TContext, TEvent> => !!a)
   );
   return [resolvedActions, updatedContext];
 }

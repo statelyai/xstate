@@ -1,6 +1,6 @@
 {
   "name": "xstate",
-  "version": "4.20.0",
+  "version": "4.23.0",
   "description": "Finite State Machines and Statecharts for the Modern Web.",
   "main": "lib/index.js",
   "module": "es/index.js",
@@ -29,8 +29,7 @@
   "scripts": {
     "clean": "rm -rf lib es dist tsconfig.tsbuildinfo",
     "test": "jest",
-    "build": "tsc && rollup -c && npm run annotate:es",
-    "annotate:es": "babel es --out-dir es --no-babelrc --plugins annotate-pure-calls",
+    "build": "rollup -c",
     "preversion": "npm run test",
     "version": "npm run build",
     "postversion": "git push --follow-tags",
@@ -50,6 +49,7 @@
   "devDependencies": {
     "@babel/cli": "^7.10.5",
     "@babel/core": "^7.10.5",
+    "@rollup/plugin-babel": "^5.3.0",
     "@scion-scxml/test-framework": "^2.0.15",
     "babel-plugin-annotate-pure-calls": "^0.4.0",
     "jest": "^26.6.3",
@@ -61,9 +61,9 @@
     "rollup-plugin-filesize": "^6.2.1",
     "rollup-plugin-replace": "^2.2.0",
     "rollup-plugin-terser": "^5.1.2",
-    "rollup-plugin-typescript2": "^0.29.0",
+    "rollup-plugin-typescript2": "^0.30.0",
     "rollup-plugin-uglify": "^6.0.2",
-    "rxjs": "^6.5.1",
+    "rxjs": "^7.1.0",
     "ts-jest": "^26.5.6",
     "tslib": "^2.2.0",
     "typescript": "^4.3.2",

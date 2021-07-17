@@ -197,17 +197,17 @@ describe('machine', () => {
   });
 
   describe('machine function context', () => {
-    const testMachineConfig = {
-      initial: 'active',
-      context: () => ({
-        foo: { bar: 'baz' }
-      }),
-      states: {
-        active: {}
-      }
-    };
-
     it('context from a function should be lazily evaluated', () => {
+      const testMachineConfig = {
+        initial: 'active',
+        context: () => ({
+          foo: { bar: 'baz' }
+        }),
+        states: {
+          active: {}
+        }
+      };
+
       const testMachine1 = Machine(testMachineConfig);
       const testMachine2 = Machine(testMachineConfig);
 

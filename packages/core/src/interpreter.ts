@@ -28,7 +28,12 @@ import {
   Spawnable,
   Typestate,
   AnyEventObject,
-  AnyInterpreter
+  AnyInterpreter,
+  ActorRef,
+  ActorRefFrom,
+  Behavior,
+  StopActionObject,
+  Subscription
 } from './types';
 import { State, bindActionToState, isState } from './State';
 import * as actionTypes from './actionTypes';
@@ -51,7 +56,8 @@ import {
   symbolObservable,
   toInvokeSource,
   toObserver,
-  isActor
+  isActor,
+  isBehavior
 } from './utils';
 import { Scheduler } from './scheduler';
 import { Actor, isSpawnedActor, createDeferredActor } from './Actor';
@@ -59,13 +65,7 @@ import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
 import { getGlobal, registerService } from './devTools';
 import * as serviceScope from './serviceScope';
-import {
-  ActorRef,
-  ActorRefFrom,
-  SpawnedActorRef,
-  StopActionObject,
-  Subscription
-} from '.';
+import { spawnBehavior } from './behaviors';
 
 export type StateListener<
   TContext,
@@ -107,6 +107,12 @@ export enum InterpreterStatus {
   Stopped
 }
 
+declare global {
+  interface SymbolConstructor {
+    readonly observable: symbol;
+  }
+}
+
 export class Interpreter<
   // tslint:disable-next-line:max-classes-per-file
   TContext,
@@ -114,7 +120,7 @@ export class Interpreter<
   TEvent extends EventObject = EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 > implements
-    SpawnedActorRef<TEvent, State<TContext, TEvent, TStateSchema, TTypestate>> {
+    ActorRef<TEvent, State<TContext, TEvent, TStateSchema, TTypestate>> {
   /**
    * The default interpreter options:
    *
@@ -171,7 +177,7 @@ export class Interpreter<
    * The globally unique process ID for this invocation.
    */
   public sessionId: string;
-  public children: Map<string | number, SpawnedActorRef<any>> = new Map();
+  public children: Map<string | number, ActorRef<any>> = new Map();
   private forwardTo: Set<string> = new Set();
 
   // Dev Tools
@@ -328,12 +334,12 @@ export class Interpreter<
     return this;
   }
   public subscribe(
-    observer: Observer<State<TContext, TEvent, any, TTypestate>>
-  ): Subscription;
-  public subscribe(
     nextListener?: (state: State<TContext, TEvent, any, TTypestate>) => void,
     errorListener?: (error: any) => void,
     completeListener?: () => void
+  ): Subscription;
+  public subscribe(
+    observer: Observer<State<TContext, TEvent, any, TTypestate>>
   ): Subscription;
   public subscribe(
     nextListenerOrObserver?:
@@ -873,31 +879,33 @@ export class Interpreter<
             ? mapContext(data, context, _event)
             : undefined;
 
-          const source = isFunction(serviceCreator)
+          if (typeof serviceCreator === 'string') {
+            // TODO: warn
+            return;
+          }
+
+          let source: Spawnable = isFunction(serviceCreator)
             ? serviceCreator(context, _event.data, {
                 data: resolvedData,
                 src: invokeSource
               })
             : serviceCreator;
 
-          if (isPromiseLike(source)) {
-            this.spawnPromise(Promise.resolve(source), id);
-          } else if (isFunction(source)) {
-            this.spawnCallback(source, id);
-          } else if (isObservable<TEvent>(source)) {
-            this.spawnObservable(source, id);
-          } else if (isMachine(source)) {
-            // TODO: try/catch here
-            this.spawnMachine(
-              resolvedData ? source.withContext(resolvedData) : source,
-              {
-                id,
-                autoForward
-              }
-            );
-          } else {
-            // service is string
+          if (!source) {
+            // TODO: warn?
+            return;
           }
+
+          let options: SpawnOptions | undefined;
+
+          if (isMachine(source)) {
+            source = resolvedData ? source.withContext(resolvedData) : source;
+            options = {
+              autoForward
+            };
+          }
+
+          this.spawn(source, id, options);
         } else {
           this.spawnActivity(activity);
         }
@@ -954,17 +962,19 @@ export class Interpreter<
     entity: Spawnable,
     name: string,
     options?: SpawnOptions
-  ): SpawnedActorRef<any> {
+  ): ActorRef<any> {
     if (isPromiseLike(entity)) {
       return this.spawnPromise(Promise.resolve(entity), name);
     } else if (isFunction(entity)) {
       return this.spawnCallback(entity as InvokeCallback, name);
     } else if (isSpawnedActor(entity)) {
-      return this.spawnActor(entity);
+      return this.spawnActor(entity, name);
     } else if (isObservable<TEvent>(entity)) {
       return this.spawnObservable(entity, name);
     } else if (isMachine(entity)) {
       return this.spawnMachine(entity, { ...options, id: name });
+    } else if (isBehavior(entity)) {
+      return this.spawnBehavior(entity, name);
     } else {
       throw new Error(
         `Unable to spawn entity "${name}" of type "${typeof entity}".`
@@ -978,7 +988,7 @@ export class Interpreter<
   >(
     machine: StateMachine<TChildContext, TChildStateSchema, TChildEvent>,
     options: { id?: string; autoForward?: boolean; sync?: boolean } = {}
-  ): SpawnedActorRef<TChildEvent, State<TChildContext, TChildEvent>> {
+  ): ActorRef<TChildEvent, State<TChildContext, TChildEvent>> {
     const childService = new Interpreter(machine, {
       ...this.options, // inherit options from this interpreter
       parent: this,
@@ -1016,12 +1026,19 @@ export class Interpreter<
 
     return actor;
   }
-  private spawnPromise<T>(
-    promise: Promise<T>,
+  private spawnBehavior<TActorEvent extends EventObject, TEmitted>(
+    behavior: Behavior<TActorEvent, TEmitted>,
     id: string
-  ): SpawnedActorRef<never, T> {
+  ): ActorRef<TActorEvent, TEmitted> {
+    const actorRef = spawnBehavior(behavior, { id, parent: this });
+
+    this.children.set(id, actorRef);
+
+    return actorRef;
+  }
+  private spawnPromise<T>(promise: Promise<T>, id: string): ActorRef<never, T> {
     let canceled = false;
-    let resolvedData: T | undefined = undefined;
+    let resolvedData: T | undefined;
 
     promise.then(
       (response) => {
@@ -1057,7 +1074,7 @@ export class Interpreter<
       }
     );
 
-    const actor: SpawnedActorRef<never, T> = {
+    const actor: ActorRef<never, T> = {
       id,
       send: () => void 0,
       subscribe: (next, handleError?, complete?) => {
@@ -1100,14 +1117,11 @@ export class Interpreter<
 
     return actor;
   }
-  private spawnCallback(
-    callback: InvokeCallback,
-    id: string
-  ): SpawnedActorRef<any> {
+  private spawnCallback(callback: InvokeCallback, id: string): ActorRef<any> {
     let canceled = false;
     const receivers = new Set<(e: EventObject) => void>();
     const listeners = new Set<(e: EventObject) => void>();
-    let emitted: TEvent | undefined = undefined;
+    let emitted: TEvent | undefined;
 
     const receive = (e: TEvent) => {
       emitted = e;
@@ -1165,8 +1179,8 @@ export class Interpreter<
   private spawnObservable<T extends TEvent>(
     source: Subscribable<T>,
     id: string
-  ): SpawnedActorRef<any, T> {
-    let emitted: T | undefined = undefined;
+  ): ActorRef<any, T> {
+    let emitted: T | undefined;
 
     const subscription = source.subscribe(
       (value) => {
@@ -1183,7 +1197,7 @@ export class Interpreter<
       }
     );
 
-    const actor: SpawnedActorRef<any, T> = {
+    const actor: ActorRef<any, T> = {
       id,
       send: () => void 0,
       subscribe: (next, handleError?, complete?) => {
@@ -1200,8 +1214,8 @@ export class Interpreter<
 
     return actor;
   }
-  private spawnActor<T extends SpawnedActorRef<any>>(actor: T): T {
-    this.children.set(actor.id, actor);
+  private spawnActor<T extends ActorRef<any>>(actor: T, name: string): T {
+    this.children.set(name, actor);
 
     return actor;
   }
@@ -1284,11 +1298,24 @@ export class Interpreter<
     };
   }
 
-  public [symbolObservable]() {
+  public [symbolObservable](): Subscribable<
+    State<TContext, TEvent, TStateSchema, TTypestate>
+  > {
+    return this;
+  }
+
+  // this gets stripped by Babel to avoid having "undefined" property in environments without this non-standard Symbol
+  // it has to be here to be included in the generated .d.ts
+  public [Symbol.observable](): Subscribable<
+    State<TContext, TEvent, TStateSchema, TTypestate>
+  > {
     return this;
   }
 
   public getSnapshot() {
+    if (this.status === InterpreterStatus.NotStarted) {
+      return this.initialState;
+    }
     return this._state!;
   }
 }
@@ -1311,6 +1338,11 @@ const resolveSpawnOptions = (nameOrOptions?: string | SpawnOptions) => {
  *
  * Creates an actor reference.
  */
+
+export function spawn<T extends Behavior<any, any>>(
+  entity: T,
+  nameOrOptions?: string | SpawnOptions
+): ActorRefFrom<T>;
 export function spawn<TC, TE extends EventObject>(
   entity: StateMachine<TC, any, TE>,
   nameOrOptions?: string | SpawnOptions
@@ -1318,11 +1350,11 @@ export function spawn<TC, TE extends EventObject>(
 export function spawn(
   entity: Spawnable,
   nameOrOptions?: string | SpawnOptions
-): SpawnedActorRef<any>;
+): ActorRef<any>;
 export function spawn(
   entity: Spawnable,
   nameOrOptions?: string | SpawnOptions
-): SpawnedActorRef<any> {
+): ActorRef<any> {
   const resolvedOptions = resolveSpawnOptions(nameOrOptions);
 
   return serviceScope.consume((service) => {

@@ -20,6 +20,9 @@
       "path": "./packages/xstate-react"
     },
     {
+      "path": "./packages/xstate-vue"
+    },
+    {
       "path": "./packages/xstate-scxml"
     }
   ]

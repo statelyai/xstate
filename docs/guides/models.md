@@ -43,7 +43,7 @@ const userModel = createModel({
 
 // ...
 
-const machine = createMachine({
+const machine = userModel.createMachine({
   context: userModel.initialContext,
   // ...
   entry: userModel.assign({ name: '' })
@@ -76,7 +76,7 @@ const userModel = createModel(
   }
 );
 
-const machine = createMachine(
+const machine = userModel.createMachine(
   {
     context: userModel.initialContext,
     initial: 'active',
@@ -153,10 +153,12 @@ const userModel = createModel(
 // | { type: 'anotherEvent'; }
 ```
 
-Instead of specifying the type of `context` and `events` separately for machines, the `typeof` the model created by `createModel(...)` should be used:
+### Creating a machine from a model
+
+Instead of specifying the type of `context` and `event` explicitly as type parameters in `createMachine<TContext, TEvent>(...)`, the `model.createMachine(...)` method should be used:
 
 ```ts {0}
-const machine = createMachine<typeof userModel>({
+const machine = userModel.createMachine({
   context: userModel.initialContext,
   initial: 'active',
   states: {
@@ -173,10 +175,12 @@ const machine = createMachine<typeof userModel>({
 });
 ```
 
+### Narrowing assign event types
+
 When an `assign()` action is referenced in `options.actions`, you can narrow the event type that the action accepts in the 2nd argument of `model.assign(assignments, eventType)`:
 
 ```ts
-const machine = createMachine<typeof userModel>(
+const machine = userModel.createMachine(
   {
     context: userModel.initialContext,
     initial: 'active',
@@ -202,4 +206,29 @@ const machine = createMachine<typeof userModel>(
     }
   }
 );
+```
+
+### Extracting types from model
+
+_Since 4.22.1_
+
+You can extract `context` and `event` types from a model using the `ContextFrom<T>` and `EventFrom<T>` types:
+
+```ts {1,15-16}
+import { ContextFrom, EventFrom } from 'xstate';
+import { createModel } from 'xstate/lib/model';
+
+const someModel = createModel(
+  {
+    /* ... */
+  },
+  {
+    events: {
+      /* ... */
+    }
+  }
+);
+
+type SomeContext = ContextFrom<typeof someModel>;
+type SomeEvent = EventFrom<typeof someModel>;
 ```

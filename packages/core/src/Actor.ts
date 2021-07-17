@@ -9,7 +9,7 @@ import {
 } from './types';
 import { isMachine, mapContext, toInvokeSource } from './utils';
 import * as serviceScope from './serviceScope';
-import { ActorRef, SpawnedActorRef } from '.';
+import { ActorRef, BaseActorRef } from '.';
 
 export interface Actor<
   TContext = any,
@@ -26,7 +26,7 @@ export interface Actor<
   deferred?: boolean;
 }
 
-export function createNullActor(id: string): SpawnedActorRef<any> {
+export function createNullActor(id: string): ActorRef<any> {
   return {
     id,
     send: () => void 0,
@@ -51,7 +51,7 @@ export function createInvocableActor<TC, TE extends EventObject>(
   machine: StateMachine<TC, any, TE, any>,
   context: TC,
   _event: SCXML.Event<TE>
-): SpawnedActorRef<any> {
+): ActorRef<any> {
   const invokeSrc = toInvokeSource(invokeDefinition.src);
   const serviceCreator = machine?.options.services?.[invokeSrc.type];
   const resolvedData = invokeDefinition.data
@@ -75,7 +75,7 @@ export function createDeferredActor(
   entity: Spawnable,
   id: string,
   data?: any
-): SpawnedActorRef<any, undefined> {
+): ActorRef<any, undefined> {
   const tempActor = createNullActor(id);
 
   // @ts-ignore
@@ -83,11 +83,11 @@ export function createDeferredActor(
 
   if (isMachine(entity)) {
     // "mute" the existing service scope so potential spawned actors within the `.initialState` stay deferred here
-    // @ts-ignore
-    tempActor.state = serviceScope.provide(
+    const initialState = ((tempActor as any).state = serviceScope.provide(
       undefined,
       () => (data ? entity.withContext(data) : entity).initialState
-    );
+    ));
+    tempActor.getSnapshot = () => initialState;
   }
 
   return tempActor;
@@ -101,6 +101,19 @@ export function isActor(item: any): item is ActorRef<any> {
   }
 }
 
-export function isSpawnedActor(item: any): item is SpawnedActorRef<any> {
+export function isSpawnedActor(item: any): item is ActorRef<any> {
   return isActor(item) && 'id' in item;
+}
+
+export function toActorRef<
+  TEvent extends EventObject,
+  TEmitted = any,
+  TActorRefLike extends BaseActorRef<TEvent> = BaseActorRef<TEvent>
+>(actorRefLike: TActorRefLike): ActorRef<TEvent, TEmitted> {
+  return {
+    subscribe: () => ({ unsubscribe: () => void 0 }),
+    id: 'anonymous',
+    getSnapshot: () => undefined,
+    ...actorRefLike
+  };
 }

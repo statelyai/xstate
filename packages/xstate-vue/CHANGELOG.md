@@ -1,5 +1,95 @@
 # @xstate/vue
 
+## 0.8.0
+
+### Minor Changes
+
+- [`b0801662`](https://github.com/statelyai/xstate/commit/b0801662de5df0217c6105650603a1f697b830c8) [#2392](https://github.com/statelyai/xstate/pull/2392) Thanks [@santicros](https://github.com/santicros)! - Just like `useInterpret(...)`, other types of actors can now be spawned from _behaviors_ using `useSpawn(...)`:
+
+  ```vue
+  <template>
+    <div>
+      Count: {{ count }}
+      <button @click="send({ type: 'INC' })">Increment</button>
+      <button @click="send({ type: 'DEC' })">Decrement</button>
+    </div>
+  </template>
+
+  <script>
+  import { fromReducer } from 'xstate/lib/behaviors';
+  import { useActor, useSpawn } from '@xstate/vue';
+
+  type CountEvent = { type: 'INC' } | { type: 'DEC' };
+
+  const countBehavior = fromReducer(
+    (count: number, event: CountEvent): number => {
+      if (event.type === 'INC') {
+        return count + 1;
+      } else if (event.type === 'DEC') {
+        return count - 1;
+      }
+
+      return count;
+    },
+    0 // initial state
+  );
+
+  const countMachine = createMachine({
+    invoke: {
+      id: 'count',
+      src: () => fromReducer(countReducer, 0)
+    },
+    on: {
+      INC: {
+        actions: forwardTo('count')
+      },
+      DEC: {
+        actions: forwardTo('count')
+      }
+    }
+  });
+
+  export default {
+    setup() {
+      const countActorRef = useSpawn(countBehavior);
+      const { state: count, send } = useActor(countActorRef);
+
+      return { count, send };
+    }
+  };
+  </script>
+  ```
+
+## 0.7.0
+
+### Minor Changes
+
+- [`742a0bfa`](https://github.com/davidkpiano/xstate/commit/742a0bfa970c94957bf21904fc84b8031369e316) [#2335](https://github.com/davidkpiano/xstate/pull/2335) Thanks [@santicros](https://github.com/santicros)! - The `send` type returned in the object from `useActor(someService)` was an incorrect `never` type; this has been fixed.
+
+  Also adds deprecation notice to `useService`.
+
+## 0.6.0
+
+### Minor Changes
+
+- [`724baae7`](https://github.com/davidkpiano/xstate/commit/724baae76409a3dc6a5b03c47769918d600f478f) [#2230](https://github.com/davidkpiano/xstate/pull/2230) Thanks [@santicros](https://github.com/santicros)! - Added new composable `useSelector(actor, selector)`, which subscribes to actor and returns the selected state derived from selector(snapshot):
+
+  ```js
+  import { useSelector } from '@xstate/vue';
+
+  export default {
+    props: ['someActor'],
+    setup(props) {
+      const count = useSelector(
+        props.someActor,
+        (state) => state.context.count
+      );
+      // ...
+      return { count };
+    }
+  };
+  ```
+
 ## 0.5.0
 
 ### Minor Changes
@@ -28,7 +118,7 @@
   export default defineComponent({
     setup() {
       const state = ref();
-      const service = useInterpret(machine, {}, nextState => {
+      const service = useInterpret(machine, {}, (nextState) => {
         state.value = nextState.value;
       });
       return { service, state };

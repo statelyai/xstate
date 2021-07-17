@@ -1,5 +1,210 @@
 # xstate
 
+## 4.23.0
+
+### Minor Changes
+
+- [`7dc7ceb8`](https://github.com/statelyai/xstate/commit/7dc7ceb8707569b48ceb35069125763a701a0a58) [#2379](https://github.com/statelyai/xstate/pull/2379) Thanks [@davidkpiano](https://github.com/davidkpiano)! - There is a new `.preserveActionOrder` (default: `false`) setting in the machine configuration that preserves the order of actions when set to `true`. Normally, actions are executed in order _except_ for `assign(...)` actions, which are prioritized and executed first. When `.preserveActionOrder` is set to `true`, `assign(...)` actions will _not_ be prioritized, and will instead run in order. As a result, actions will capture the **intermediate `context` values** instead of the resulting `context` value from all `assign(...)` actions.
+
+  ```ts
+  // With `.preserveActionOrder: true`
+  const machine = createMachine({
+    context: { count: 0 },
+    entry: [
+      (ctx) => console.log(ctx.count), // 0
+      assign({ count: (ctx) => ctx.count + 1 }),
+      (ctx) => console.log(ctx.count), // 1
+      assign({ count: (ctx) => ctx.count + 1 }),
+      (ctx) => console.log(ctx.count) // 2
+    ],
+    preserveActionOrder: true
+  });
+
+  // With `.preserveActionOrder: false` (default)
+  const machine = createMachine({
+    context: { count: 0 },
+    entry: [
+      (ctx) => console.log(ctx.count), // 2
+      assign({ count: (ctx) => ctx.count + 1 }),
+      (ctx) => console.log(ctx.count), // 2
+      assign({ count: (ctx) => ctx.count + 1 }),
+      (ctx) => console.log(ctx.count) // 2
+    ]
+    // preserveActionOrder: false
+  });
+  ```
+
+### Patch Changes
+
+- [`4e305372`](https://github.com/statelyai/xstate/commit/4e30537266eb082ccd85f050c9372358247b4167) [#2361](https://github.com/statelyai/xstate/pull/2361) Thanks [@woutermont](https://github.com/woutermont)! - Add type for `Symbol.observable` to the `Interpreter` to improve the compatibility with RxJS.
+
+* [`1def6cf6`](https://github.com/statelyai/xstate/commit/1def6cf6109867a87b4323ee83d20a9ee0c49d7b) [#2374](https://github.com/statelyai/xstate/pull/2374) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Existing actors can now be identified in `spawn(...)` calls by providing an `id`. This allows them to be referenced by string:
+
+  ```ts
+  const machine = createMachine({
+    context: () => ({
+      someRef: spawn(someExistingRef, 'something')
+    }),
+    on: {
+      SOME_EVENT: {
+        actions: send('AN_EVENT', { to: 'something' })
+      }
+    }
+  });
+  ```
+
+- [`da6861e3`](https://github.com/statelyai/xstate/commit/da6861e34a2b28bf6eeaa7c04a2d4cf9a90f93f1) [#2391](https://github.com/statelyai/xstate/pull/2391) Thanks [@davidkpiano](https://github.com/davidkpiano)! - There are two new helper types for extracting `context` and `event` types:
+
+  - `ContextFrom<T>` which extracts the `context` from any type that uses context
+  - `EventFrom<T>` which extracts the `event` type (which extends `EventObject`) from any type which uses events
+
+## 4.22.0
+
+### Minor Changes
+
+- [`1b32aa0d`](https://github.com/statelyai/xstate/commit/1b32aa0d3a0eca11ffcb7ec9d710eb8828107aa0) [#2356](https://github.com/statelyai/xstate/pull/2356) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The model created from `createModel(...)` now provides a `.createMachine(...)` method that does not require passing any generic type parameters:
+
+  ```diff
+  const model = createModel(/* ... */);
+
+  -const machine = createMachine<typeof model>(/* ... */);
+  +const machine = model.createMachine(/* ... */);
+  ```
+
+* [`432b60f7`](https://github.com/statelyai/xstate/commit/432b60f7bcbcee9510e0d86311abbfd75b1a674e) [#2280](https://github.com/statelyai/xstate/pull/2280) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Actors can now be invoked/spawned from reducers using the `fromReducer(...)` behavior creator:
+
+  ```ts
+  import { fromReducer } from 'xstate/lib/behaviors';
+
+  type CountEvent = { type: 'INC' } | { type: 'DEC' };
+
+  const countReducer = (count: number, event: CountEvent): number => {
+    if (event.type === 'INC') {
+      return count + 1;
+    } else if (event.type === 'DEC') {
+      return count - 1;
+    }
+
+    return count;
+  };
+
+  const countMachine = createMachine({
+    invoke: {
+      id: 'count',
+      src: () => fromReducer(countReducer, 0)
+    },
+    on: {
+      INC: {
+        actions: forwardTo('count')
+      },
+      DEC: {
+        actions: forwardTo('count')
+      }
+    }
+  });
+  ```
+
+- [`f9bcea2c`](https://github.com/davidkpiano/xstate/commit/f9bcea2ce909ac59fcb165b352a7b51a8b29a56d) [#2366](https://github.com/davidkpiano/xstate/pull/2366) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Actors can now be spawned directly in the initial `machine.context` using lazy initialization, avoiding the need for intermediate states and unsafe typings for immediately spawned actors:
+
+  ```ts
+  const machine = createMachine<{ ref: ActorRef<SomeEvent> }>({
+    context: () => ({
+      ref: spawn(anotherMachine, 'some-id') // spawn immediately!
+    })
+    // ...
+  });
+  ```
+
+## 4.20.2
+
+### Patch Changes
+
+- [`1ef29e83`](https://github.com/davidkpiano/xstate/commit/1ef29e83e14331083279d50fd3a8907eb63793eb) [#2343](https://github.com/davidkpiano/xstate/pull/2343) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Eventless ("always") transitions will no longer be ignored if an event is sent to a machine in a state that does not have any enabled transitions for that event.
+
+## 4.20.1
+
+### Patch Changes
+
+- [`99bc5fb9`](https://github.com/davidkpiano/xstate/commit/99bc5fb9d1d7be35f4c767dcbbf5287755b306d0) [#2275](https://github.com/davidkpiano/xstate/pull/2275) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `SpawnedActorRef` TypeScript interface has been deprecated in favor of a unified `ActorRef` interface, which contains the following:
+
+  ```ts
+  interface ActorRef<TEvent extends EventObject, TEmitted = any>
+    extends Subscribable<TEmitted> {
+    send: (event: TEvent) => void;
+    id: string;
+    subscribe(observer: Observer<T>): Subscription;
+    subscribe(
+      next: (value: T) => void,
+      error?: (error: any) => void,
+      complete?: () => void
+    ): Subscription;
+    getSnapshot: () => TEmitted | undefined;
+  }
+  ```
+
+  For simpler actor-ref-like objects, the `BaseActorRef<TEvent>` interface has been introduced.
+
+  ```ts
+  interface BaseActorRef<TEvent extends EventObject> {
+    send: (event: TEvent) => void;
+  }
+  ```
+
+* [`38e6a5e9`](https://github.com/davidkpiano/xstate/commit/38e6a5e98a1dd54b4f2ef96942180ec0add88f2b) [#2334](https://github.com/davidkpiano/xstate/pull/2334) Thanks [@davidkpiano](https://github.com/davidkpiano)! - When using a model type in `createMachine<typeof someModel>(...)`, TypeScript will no longer compile machines that are missing the `context` property in the machine configuration:
+
+  ```ts
+  const machine = createMachine<typeof someModel>({
+    // missing context - will give a TS error!
+    // context: someModel.initialContext,
+    initial: 'somewhere',
+    states: {
+      somewhere: {}
+    }
+  });
+  ```
+
+- [`5f790ba5`](https://github.com/davidkpiano/xstate/commit/5f790ba5478cb733a59e3b0603e8976c11bcdd04) [#2320](https://github.com/davidkpiano/xstate/pull/2320) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The typing for `InvokeCallback` have been improved for better event constraints when using the `sendBack` parameter of invoked callbacks:
+
+  ```ts
+  invoke: () => (sendBack, receive) => {
+    // Will now be constrained to events that the parent machine can receive
+    sendBack({ type: 'SOME_EVENT' });
+  };
+  ```
+
+* [`2de3ec3e`](https://github.com/davidkpiano/xstate/commit/2de3ec3e994e0deb5a142aeac15e1eddeb18d1e1) [#2272](https://github.com/davidkpiano/xstate/pull/2272) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `state.meta` value is now calculated directly from `state.configuration`. This is most useful when starting a service from a persisted state:
+
+  ```ts
+    const machine = createMachine({
+      id: 'test',
+      initial: 'first',
+      states: {
+        first: {
+          meta: {
+            name: 'first state'
+          }
+        },
+        second: {
+          meta: {
+            name: 'second state'
+          }
+        }
+      }
+    });
+
+    const service = interpret(machine);
+
+    service.start('second'); // `meta` will be computed
+
+    // the state will have
+    // meta: {
+    //   'test.second': {
+    //     name: 'second state'
+    //   }
+    // }
+  });
+  ```
+
 ## 4.20.0
 
 ### Minor Changes
@@ -22,7 +227,7 @@
   });
 
   const service = interpret(machine)
-    .onTransition(state => {
+    .onTransition((state) => {
       // Read promise value synchronously
       const resolvedValue = state.context.promiseRef?.getSnapshot();
       // => undefined (if promise not resolved yet)
@@ -102,7 +307,7 @@
     context: { value: 42 },
     on: {
       INC: {
-        actions: assign({ value: ctx => ctx.value + 1 })
+        actions: assign({ value: (ctx) => ctx.value + 1 })
       }
     }
   });
@@ -362,7 +567,7 @@
 
   ```js
   // ...
-  actions: stop(context => context.someActor);
+  actions: stop((context) => context.someActor);
   ```
 
 ### Patch Changes
@@ -600,10 +805,10 @@
   ```js
   entry: [
     choose([
-      { cond: ctx => ctx > 100, actions: raise('TOGGLE') },
+      { cond: (ctx) => ctx > 100, actions: raise('TOGGLE') },
       {
         cond: 'hasMagicBottle',
-        actions: [assign(ctx => ({ counter: ctx.counter + 1 }))]
+        actions: [assign((ctx) => ({ counter: ctx.counter + 1 }))]
       },
       { actions: ['fallbackAction'] }
     ])

@@ -186,6 +186,7 @@ Explore a collection of professionally-designed state machines and statecharts i
 - [Infinite Scrolling with Svelte 3, XState and IntersectionObserver](https://dev.to/gcdcoder/infinite-scrolling-with-svelte-3-xstate-and-intersectionobserver-127j) by [Gustavo Castillo](https://dev.to/gcdcoder)
 - [Untangle complex flows in your React Native app with XState](https://medium.com/welld-tech/untangle-complex-flows-in-your-react-native-app-with-xstate-1b11d0b8a91f) by [Simone D'Avico](https://sdavico.medium.com/)
 - [Integrate XState with React Native and React Navigation](https://medium.com/welld-tech/integrate-xstate-with-react-native-and-react-navigation-21ead87391da) by [Simone D'Avico](https://sdavico.medium.com/)
+- [Testing XState machines in your React Native app](https://medium.com/welld-tech/testing-xstate-machines-in-your-react-native-app-236fb01bf5b8) by [Simone D'Avico](https://sdavico.medium.com/)
 - [An Introduction to Finite State Machines: Simplifying React State Management with State Machines](https://soshace.com/an-introduction-to-finite-state-machines-simplifying-react-state-management-with-state-machines/) by [Bradley Kofi](https://soshace.com/author/bradstarart/)
 - [An Introduction to XState in TypeScript](https://medium.com/giant-machines/an-introduction-to-xstate-in-typescript-e71c7729ce88) by [Neeraj Khosla
   ](https://medium.com/@n.khosla91)
@@ -209,3 +210,8 @@ Explore a collection of professionally-designed state machines and statecharts i
 - [State Machines: Should this be a state, or in context?](https://dev.to/mpocock1/state-machines-should-this-be-a-state-or-in-context-1d7e) by [Matt Pocock](https://twitter.com/mpocock1)
 - [XState: What's the difference between Machine and createMachine?](https://dev.to/mpocock1/xstate-what-s-the-difference-between-machine-and-createmachine-15h1) by [Matt Pocock](https://twitter.com/mpocock1)
 - [Use an XState Machine with React](https://dev.to/jbranchaud/use-an-xstate-machine-with-react-326i) by [Josh Branchaud](https://twitter.com/jbrancha)
+- [▶️ DevTrends: XState](https://devtrends.io/videos/xstate/) by [Anthony Gore](https://twitter.com/anthonygore)
+- [XState: Street Lights with Pedestrian Crossing using Vue.js](https://codesandbox.io/s/stoic-thompson-ktzrl?file=/src/App.vue) by [Kevin Warrington](https://github.com/dubbs)
+- [▶️ Front-end state management with XState](https://www.youtube.com/watch?v=Slb6M_rIn0M) by [Amy Pellegrini](https://twitter.com/amyvpellegrini)
+- [▶️ Splitting the view and the brains in JS — state machines with XState (in French)](https://www.youtube.com/watch?v=yRB57CDvQuY) by [Aurelien Meunier](https://www.linkedin.com/in/aumeunier)
+- [Using XState with Deno](https://gustavosantos.dev/a/using-xstate-with-deno) by [Bruno Quaresma](https://twitter.com/bruno__quaresma)
