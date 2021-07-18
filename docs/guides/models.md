@@ -180,33 +180,32 @@ const machine = userModel.createMachine({
 When an `assign()` action is referenced in `options.actions`, you can narrow the event type that the action accepts in the 2nd argument of `model.assign(assignments, eventType)`:
 
 ```ts
-const machine = userModel.createMachine(
+const assignAge = userModel.assign(
   {
-    context: userModel.initialContext,
-    initial: 'active',
-    states: {
-      active: {
-        on: {
-          updateAge: {
-            actions: 'assignAge'
-          }
+    // The `event.type` here is restricted to "updateAge"
+    age: (_, event) => event.value // inferred as `number`
+  },
+  'updateAge' // Restricts the `event` allowed by the "assignAge" action
+);
+
+const machine = userModel.createMachine({
+  context: userModel.initialContext,
+  initial: 'active',
+  states: {
+    active: {
+      on: {
+        updateAge: {
+          actions: assignAge
         }
       }
     }
-  },
-  {
-    actions: {
-      assignAge: userModel.assign(
-        {
-          // The `event.type` here is restricted to "updateAge"
-          age: (_, event) => event.value // inferred as `number`
-        },
-        'updateAge' // Restricts the `event` allowed by the "assignAge" action
-      )
-    }
   }
-);
+});
 ```
+
+::: warning
+Assign actions with narrowed event types _cannot_ be placed inside the `actions: {...}` property of machine options in `createMachine(configuration, options)`. This is because actions in `options.actions` should be assumed to potentially receive _any_ event, even if the machine configuration suggests otherwise.
+:::
 
 ### Extracting types from model
 
