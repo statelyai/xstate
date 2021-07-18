@@ -349,7 +349,7 @@ describe('useMachine hook', () => {
   it('should capture all actions', (done) => {
     let count = 0;
 
-    const machine = createMachine<any, { type: 'EVENT' }>({
+    const machine = createMachine({
       initial: 'active',
       states: {
         active: {
