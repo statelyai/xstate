@@ -19,6 +19,12 @@ import { StateNode } from './StateNode';
 import { getMeta, nextEvents } from './stateUtils';
 import { initEvent } from './actions';
 
+type Equals<A1 extends any, A2 extends any> = (<A>() => A extends A2
+  ? 1
+  : 0) extends <A>() => A extends A1 ? 1 : 0
+  ? 1
+  : 0;
+
 export function stateValuesEqual(
   a: StateValue | undefined,
   b: StateValue | undefined
@@ -293,11 +299,13 @@ export class State<
   public matches<TSV extends TTypestate['value']>(
     parentStateValue: TSV
   ): this is State<
-    (TTypestate extends any
-      ? { value: TSV; context: any } extends TTypestate
-        ? TTypestate
-        : never
-      : never)['context'],
+    Equals<TTypestate, any> extends 1
+      ? TContext
+      : (TTypestate extends any
+          ? { value: TSV; context: any } extends TTypestate
+            ? TTypestate
+            : never
+          : never)['context'],
     TEvent,
     TStateSchema,
     TTypestate
