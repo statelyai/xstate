@@ -106,11 +106,6 @@ const myMachineConfig: MachineConfig<TContext, any, TEvent> = {
 The `send` action on the interpreted machine `interpret(stateMachine)` isn't always type safe. To get typechecking for this function signature, use the following pattern:
 
 ```ts
-type UserEvents = {
-  type: 'TEST';
-  value: string;
-};
-
 const service = interpret(stateMachine);
 
 // This will compile
