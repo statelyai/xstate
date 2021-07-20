@@ -2,7 +2,7 @@
 'xstate': patch
 ---
 
-Fixed an issue with states coming from `model.createMachine` resulting in contexts of type `any` after type refinements such as here:
+Fixed an issue where, when using `model.createMachine`, state context was incorrectly inferred as `any` after refinement with `.matches(...)`, e.g.
 
 ```ts
 // `state.context` became `any` erroneously
