@@ -64,8 +64,8 @@ import {
   TransitionDefinitionMap,
   DelayExpr,
   InvokeSourceDefinition,
-  ActorRef,
-  MachineSchema
+  MachineSchema,
+  ActorRef
 } from './types';
 import { matchesState } from './utils';
 import { State, stateValuesEqual } from './State';
@@ -1185,7 +1185,8 @@ class StateNode<
       currentState,
       currentContext,
       _event,
-      actions
+      actions,
+      this.machine.config.preserveActionOrder
     );
 
     const [raisedEvents, nonRaisedActions] = partition(

@@ -1,5 +1,65 @@
 # Changelog
 
+## 1.5.1
+
+### Patch Changes
+
+- [`453acacb`](https://github.com/statelyai/xstate/commit/453acacbec364531a2851f183c3ab446d7db0e84) [#2389](https://github.com/statelyai/xstate/pull/2389) Thanks [@davidkpiano](https://github.com/davidkpiano)! - An internal issue where the `spawnBehavior` import for the `useSpawn(...)` hook was broken internally has been fixed.
+
+## 1.5.0
+
+### Minor Changes
+
+- [`432b60f7`](https://github.com/statelyai/xstate/commit/432b60f7bcbcee9510e0d86311abbfd75b1a674e) [#2280](https://github.com/statelyai/xstate/pull/2280) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Just like `useInvoke(...)`, other types of actors can now be spawned from _behaviors_ using `useSpawn(...)`:
+
+  ```tsx
+  import { fromReducer } from 'xstate/lib/behaviors';
+  import { useActor, useSpawn } from '@xstate/react';
+
+  type CountEvent = { type: 'INC' } | { type: 'DEC' };
+
+  const countBehavior = fromReducer(
+    (count: number, event: CountEvent): number => {
+      if (event.type === 'INC') {
+        return count + 1;
+      } else if (event.type === 'DEC') {
+        return count - 1;
+      }
+
+      return count;
+    },
+    0 // initial state
+  );
+
+  const countMachine = createMachine({
+    invoke: {
+      id: 'count',
+      src: () => fromReducer(countReducer, 0)
+    },
+    on: {
+      INC: {
+        actions: forwardTo('count')
+      },
+      DEC: {
+        actions: forwardTo('count')
+      }
+    }
+  });
+
+  const Component = () => {
+    const countActorRef = useSpawn(countBehavior);
+    const [count, send] = useActor(countActorRef);
+
+    return (
+      <div>
+        Count: {count}
+        <button onClick={() => send({ type: 'INC' })}>Increment</button>
+        <button onClick={() => send({ type: 'DEC' })}>Decrement</button>
+      </div>
+    );
+  };
+  ```
+
 ## 1.4.0
 
 ### Minor Changes
@@ -69,7 +129,7 @@
   import { useSelector } from '@xstate/react';
 
   const App = ({ someActor }) => {
-    const count = useSelector(someActor, state => state.context.count);
+    const count = useSelector(someActor, (state) => state.context.count);
 
     // ...
   };
@@ -190,7 +250,7 @@ All notable changes to this project will be documented in this file.
 - The `useActor` hook now takes a second argument: `getSnapshot` which is a function that should return the last emitted value:
 
   ```js
-  const [state, send] = useActor(someActor, actor => actor.current);
+  const [state, send] = useActor(someActor, (actor) => actor.current);
   ```
 
 ## [1.0.0-rc.6]
