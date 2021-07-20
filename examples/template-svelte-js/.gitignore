@@ -1,4 +1,4 @@
 node_modules
 /public/build/
-
+/public/service-worker.js
 .DS_Store
