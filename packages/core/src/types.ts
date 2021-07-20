@@ -1,6 +1,7 @@
 import { StateNode } from './StateNode';
 import { State } from './State';
 import { Interpreter, Clock } from './interpreter';
+import { Model } from './model.types';
 
 export type EventType = string;
 export type ActionType = string;
@@ -268,7 +269,8 @@ export type InvokeCreator<
   | PromiseLike<TFinalContext>
   | StateMachine<TFinalContext, any, any>
   | Subscribable<EventObject>
-  | InvokeCallback<any, TEvent>;
+  | InvokeCallback<any, TEvent>
+  | Behavior<any>;
 
 export interface InvokeDefinition<TContext, TEvent extends EventObject>
   extends ActivityDefinition<TContext, TEvent> {
@@ -580,6 +582,13 @@ export interface StateNodeConfig<
    * The tags for this state node, which are accumulated into the `state.tags` property.
    */
   tags?: SingleOrArray<string>;
+  /**
+   * Whether actions should be called in order.
+   * When `false` (default), `assign(...)` actions are prioritized before other actions.
+   *
+   * @default false
+   */
+  preserveActionOrder?: boolean;
 }
 
 export interface StateNodeDefinition<
@@ -1263,19 +1272,20 @@ export interface Subscription {
 }
 
 export interface Subscribable<T> {
-  subscribe(observer: Observer<T>): Subscription;
   subscribe(
     next: (value: T) => void,
     error?: (error: any) => void,
     complete?: () => void
   ): Subscription;
+  subscribe(observer: Observer<T>): Subscription;
 }
 
 export type Spawnable =
   | StateMachine<any, any, any>
-  | Promise<any>
+  | PromiseLike<any>
   | InvokeCallback
-  | Subscribable<any>;
+  | Subscribable<any>
+  | Behavior<any>;
 
 export type ExtractEvent<
   TEvent extends EventObject,
@@ -1304,7 +1314,7 @@ export type SpawnedActorRef<
 > = ActorRef<TEvent, TEmitted>;
 
 export type ActorRefFrom<
-  T extends StateMachine<any, any, any> | Promise<any>
+  T extends StateMachine<any, any, any> | Promise<any> | Behavior<any>
 > = T extends StateMachine<infer TContext, any, infer TEvent, infer TTypestate>
   ? ActorRef<TEvent, State<TContext, TEvent, any, TTypestate>> & {
       /**
@@ -1314,6 +1324,8 @@ export type ActorRefFrom<
     }
   : T extends Promise<infer U>
   ? ActorRef<never, U>
+  : T extends Behavior<infer TEvent1, infer TEmitted>
+  ? ActorRef<TEvent1, TEmitted>
   : never;
 
 export type AnyInterpreter = Interpreter<any, any, any, any>;
@@ -1327,4 +1339,46 @@ export type InterpreterFrom<
   infer TTypestate
 >
   ? Interpreter<TContext, TStateSchema, TEvent, TTypestate>
+  : never;
+
+export interface ActorContext<TEvent extends EventObject, TEmitted> {
+  parent?: ActorRef<any, any>;
+  self: ActorRef<TEvent, TEmitted>;
+  id: string;
+  observers: Set<Observer<TEmitted>>;
+}
+
+export interface Behavior<TEvent extends EventObject, TEmitted = any> {
+  transition: (
+    state: TEmitted,
+    event: TEvent,
+    actorCtx: ActorContext<TEvent, TEmitted>
+  ) => TEmitted;
+  initialState: TEmitted;
+  start?: (actorCtx: ActorContext<TEvent, TEmitted>) => TEmitted;
+}
+
+export type EventFrom<T> = T extends StateMachine<any, any, infer TEvent, any>
+  ? TEvent
+  : T extends Model<any, infer TEvent, any>
+  ? TEvent
+  : T extends State<any, infer TEvent, any, any>
+  ? TEvent
+  : T extends Interpreter<any, any, infer TEvent, any>
+  ? TEvent
+  : never;
+
+export type ContextFrom<T> = T extends StateMachine<
+  infer TContext,
+  any,
+  any,
+  any
+>
+  ? TContext
+  : T extends Model<infer TContext, any, any>
+  ? TContext
+  : T extends State<infer TContext, any, any, any>
+  ? TContext
+  : T extends Interpreter<infer TContext, any, any, any>
+  ? TContext
   : never;

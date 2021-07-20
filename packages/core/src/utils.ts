@@ -23,7 +23,9 @@ import {
   Guard,
   GuardPredicate,
   GuardMeta,
-  InvokeSourceDefinition
+  InvokeSourceDefinition,
+  Observer,
+  Behavior
 } from './types';
 import {
   STATE_DELIMITER,
@@ -32,7 +34,7 @@ import {
 } from './constants';
 import { IS_PRODUCTION } from './environment';
 import { StateNode } from './StateNode';
-import { Observer, State } from '.';
+import { State } from './State';
 import { Actor } from './Actor';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
@@ -345,6 +347,15 @@ export function isPromiseLike(value: any): value is PromiseLike<any> {
     return true;
   }
   return false;
+}
+
+export function isBehavior(value: any): value is Behavior<any, any> {
+  return (
+    value !== null &&
+    typeof value === 'object' &&
+    'transition' in value &&
+    typeof value.transition === 'function'
+  );
 }
 
 export function partition<T, A extends T, B extends T>(

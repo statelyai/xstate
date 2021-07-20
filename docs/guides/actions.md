@@ -103,7 +103,7 @@ It depends! They mean different things:
 // ...
 ```
 
-- A transition actions mean "execute this action **only on this transition**". Use transition actions when the action is dependent on the event and the state node that it is currently in.
+- A transition action means "execute this action **only on this transition**". Use transition actions when the action is dependent on the event and the state node that it is currently in.
 
 ```js
 // ...
@@ -111,7 +111,7 @@ It depends! They mean different things:
   idle: {
     on: {
       LOAD: {
-        target: { target: 'loading' },
+        target: 'loading',
         // this action is executed only on this transition
         actions: 'fetchData'
     }
@@ -131,7 +131,7 @@ Action implementations can be quickly prototyped by specifying the action functi
 ```js {4}
 // ...
 TRIGGER: {
-  target: { target: 'active' },
+  target: 'active',
   actions: (context, event) => { console.log('activating...'); }
 }
 // ...

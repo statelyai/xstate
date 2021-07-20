@@ -2,6 +2,8 @@
 
 [:rocket: Quick Reference](#quick-reference)
 
+[[toc]]
+
 The [Actor model](https://en.wikipedia.org/wiki/Actor_model) is a mathematical model of message-based computation that simplifies how multiple "entities" (or "actors") communicate with each other. Actors communicate by sending messages (events) to each other. An actor's local state is private, unless it wishes to share it with another actor, by sending it as an event.
 
 When an actor receives an event, three things can happen:
@@ -15,12 +17,10 @@ State machines and statecharts work very well with the actor model, as they are 
 - The next `value` and `context` (an actor's local state)
 - The next `actions` to be executed (potentially newly spawned actors or messages sent to other actors)
 
-> Think of actors like dynamic services in XState.
+Actors can be _spawned_ or [_invoked_](./communication.md). Spawned actors have two major differences from invoked actors:
 
-Actors can be considered a dynamic variant of [invoked services](./communication.md) (same internal implementation!) with two important differences:
-
-- They can be _spawned_ at any time (as an action)
-- They can be _stopped_ at any time (as an action)
+- They can be _spawned_ at any time (via `spawn(...)` instead of an `assign(...)` action)
+- They can be _stopped_ at any time (via a `stop(...)` action)
 
 ## Actor API
 
@@ -28,6 +28,7 @@ An actor (as implemented in XState) has an interface of:
 
 - An `id` property, which uniquely identifies the actor in the local system
 - A `.send(...)` method, which is used to send events to this actor
+- A `.getSnapshot()` method, which synchronously returns the actor's last emitted value.
 
 They may have optional methods:
 
@@ -171,6 +172,22 @@ const loginMachine = createMachine({
 ```
 
 :::
+
+## Stopping Actors
+
+Actors are stopped using the `stop(...)` action creator:
+
+```js
+const someMachine = createMachine({
+  // ...
+  entry: [
+    // Stopping an actor by reference
+    stop((context) => context.someActorRef),
+    // Stopping an actor by ID
+    stop('some-actor')
+  ]
+});
+```
 
 ## Spawning Promises
 
@@ -453,7 +470,7 @@ import { spawn } from 'xstate';
 // ...
 ```
 
-**Sync state** with an actor: <Badge text="4.6.1+"/>
+**Sync state** with an actor:
 
 ```js
 // ...
@@ -465,13 +482,13 @@ import { spawn } from 'xstate';
 // ...
 ```
 
-**Reading synced state** from an actor: <Badge text="4.6.1+"/>
+**Getting a snapshot** from an actor: <Badge text="4.20.0+"/>
 
 ```js
 service.onTransition((state) => {
   const { someRef } = state.context;
 
-  someRef.state;
+  someRef.getSnapshot();
   // => State { ... }
 });
 ```

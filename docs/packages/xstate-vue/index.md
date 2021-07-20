@@ -1,22 +1,10 @@
 # @xstate/vue
 
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+[[toc]]
 
-- [Quick Start](#quick-start)
-- [API](#api)
-  - [`useMachine(machine, options?)`](#usemachinemachine-options)
-  - [`useService(service)`](#useserviceservice)
-  - [`useActor(actor, getSnapshot)`](#useactoractor-getsnapshot)
-  - [`useInterpret(machine, options?, observer?)`](#useinterpretmachine-options-observer)
-  - [`useSelector(actor, selector, compare?, getSnapshot?)`](#useselectoractor-selector-compare-getsnapshot)
-  - [`useMachine(machine)` with `@xstate/fsm`](#usemachinemachine-with-xstatefsm)
-- [Configuring Machines](#configuring-machines)
-- [Matching States](#matching-states)
-- [Persisted and Rehydrated State](#persisted-and-rehydrated-state)
-- [Migration from 0.4.0](#migration-from-040)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+::: warning Vue 2 Notice:
+If you're using Vue 2.x, please see [the Vue recipe](../../recipes/vue.html) instead, or use the [`xstate-vue2` package](https://github.com/ChrisShank/xstate-vue2) if you want to use the Vue Composition API.
+:::
 
 ## Quick Start
 
@@ -83,8 +71,6 @@ export default {
 };
 </script>
 ```
-
-**Vue 2.x notice:** If you're using Vue 2.x, please see [the recipe](https://xstate.js.org/docs/recipes/vue.html) instead.
 
 ## API
 
