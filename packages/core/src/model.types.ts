@@ -32,7 +32,7 @@ export interface Model<
   createMachine: (
     config: MachineConfig<TContext, any, TEvent>,
     implementations?: Partial<MachineOptions<TContext, TEvent>>
-  ) => StateMachine<TContext, any, TEvent, any>;
+  ) => StateMachine<TContext, any, TEvent>;
 }
 
 export type ModelContextFrom<
