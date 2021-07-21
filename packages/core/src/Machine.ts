@@ -7,11 +7,11 @@ import {
   EventObject,
   AnyEventObject,
   Typestate,
-  EventFrom
+  EventFrom,
+  BaseActionObject
 } from './types';
 import { StateNode } from './StateNode';
 import { Model, ModelContextFrom, ModelActionsFrom } from './model.types';
-import { ActionObject } from '.';
 
 /**
  * @deprecated Use `createMachine(...)` instead.
@@ -54,7 +54,7 @@ export function createMachine<
   TContext = ModelContextFrom<TModel>,
   TEvent extends EventObject = EventFrom<TModel>,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext },
-  TAction extends ActionObject<TContext, TEvent> = ModelActionsFrom<TModel>
+  TAction extends BaseActionObject = ModelActionsFrom<TModel>
 >(
   config: MachineConfig<TContext, any, TEvent, TAction> & {
     context: TContext;

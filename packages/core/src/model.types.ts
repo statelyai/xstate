@@ -7,7 +7,7 @@ import {
   MachineConfig,
   MachineOptions,
   StateMachine,
-  ActionObject
+  BaseActionObject
 } from './types';
 
 export type AnyFunction = (...args: any[]) => any;
@@ -19,10 +19,7 @@ export type Prop<T, K> = K extends keyof T ? T[K] : never;
 export interface Model<
   TContext,
   TEvent extends EventObject,
-  TAction extends ActionObject<TContext, TEvent> = ActionObject<
-    TContext,
-    TEvent
-  >,
+  TAction extends BaseActionObject = BaseActionObject,
   TModelCreators = void
 > {
   initialContext: TContext;

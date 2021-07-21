@@ -1,7 +1,6 @@
-import { ActionObject } from '.';
 import { assign } from './actions';
 import { createMachine } from './Machine';
-import type { EventObject } from './types';
+import type { EventObject, BaseActionObject } from './types';
 import { mapValues } from './utils';
 import {
   Cast,
@@ -14,10 +13,7 @@ import {
 export function createModel<
   TContext,
   TEvent extends EventObject,
-  TAction extends ActionObject<TContext, TEvent> = ActionObject<
-    TContext,
-    TEvent
-  >
+  TAction extends BaseActionObject = BaseActionObject
 >(initialContext: TContext): Model<TContext, TEvent, TAction, void>;
 export function createModel<
   TContext,
@@ -35,10 +31,7 @@ export function createModel<
 ): Model<
   TContext,
   Cast<TComputedEvent, EventObject>,
-  Cast<
-    TComputedAction,
-    ActionObject<TContext, Cast<TComputedEvent, EventObject>>
-  >,
+  Cast<TComputedAction, BaseActionObject>,
   TFinalModelCreators
 >;
 export function createModel(
