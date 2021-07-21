@@ -478,15 +478,23 @@ describe('createModel', () => {
   it('should not allow using events if creators have not been configured', () => {
     const model = createModel({ count: 0 });
 
-    // @ts-expect-error
-    model.events.test();
+    // this is a type test for something that is not available at runtime so we suppress runtime error with try/catch
+    try {
+      // this should not end up being `any`
+      // @ts-expect-error
+      model.events.test();
+    } catch (err) {}
   });
 
   it('should not allow using actions if creators have not been configured', () => {
     const model = createModel({ count: 0 });
 
-    // @ts-expect-error
-    model.actions.test();
+    // this is a type test for something that is not available at runtime so we suppress runtime error with try/catch
+    try {
+      // this should not end up being `any`
+      // @ts-expect-error
+      model.actions.test();
+    } catch (err) {}
   });
 
   it('should allow for the action type to be explicitly given when creators have not been configured', () => {
