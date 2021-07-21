@@ -99,11 +99,7 @@ type SimpleActionsFrom<T extends BaseActionObject> = ActionObject<
   any
 > extends T
   ? T // If actions are unspecified, all action types are allowed (unsafe)
-  : T extends {
-      [K in keyof Omit<T, 'type'>]: never;
-    }
-  ? T
-  : never;
+  : ExtractSimple<T>;
 
 export type BaseAction<
   TContext,
@@ -258,9 +254,9 @@ type ExtractExtraParameters<A, T> = A extends { type: T }
   ? ExcludeType<A>
   : never;
 
-type ExtractSimple<A> = A extends any
-  ? {} extends ExcludeType<A>
-    ? A
+type ExtractSimple<T> = T extends any
+  ? Exclude<keyof T, 'type'> extends never
+    ? T
     : never
   : never;
 
