@@ -510,4 +510,21 @@ describe('createModel', () => {
       }
     });
   });
+
+  it('should keep the context type on the state after using `state.matches`', () => {
+    const model = createModel<{ count: number }, { type: 'INC' }>({ count: 0 });
+
+    const machine = model.createMachine({
+      context: model.initialContext,
+      states: {
+        a: {}
+      }
+    });
+
+    if (machine.initialState.matches('a')) {
+      machine.initialState.context.count;
+      // @ts-expect-error
+      machine.initialState.context.unknown;
+    }
+  });
 });
