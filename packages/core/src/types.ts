@@ -397,13 +397,13 @@ export type StatesConfig<
   TContext,
   TStateSchema extends StateSchema,
   TEvent extends EventObject,
-  TActions extends BaseActionObject = BaseActionObject
+  TAction extends BaseActionObject = BaseActionObject
 > = {
   [K in keyof TStateSchema['states']]: StateNodeConfig<
     TContext,
     TStateSchema['states'][K],
     TEvent,
-    TActions
+    TAction
   >;
 };
 
@@ -511,7 +511,7 @@ export interface StateNodeConfig<
   TContext,
   TStateSchema extends StateSchema,
   TEvent extends EventObject,
-  TActions extends BaseActionObject = BaseActionObject
+  TAction extends BaseActionObject = BaseActionObject
 > {
   /**
    * The relative key of the state node, which represents its location in the overall state value.
@@ -551,7 +551,7 @@ export interface StateNodeConfig<
   /**
    * The mapping of state node keys to their state node configurations (recursive).
    */
-  states?: StatesConfig<TContext, TStateSchema, TEvent, TActions> | undefined;
+  states?: StatesConfig<TContext, TStateSchema, TEvent, TAction> | undefined;
   /**
    * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
    */
@@ -571,7 +571,7 @@ export interface StateNodeConfig<
   /**
    * The action(s) to be executed upon entering the state node.
    */
-  entry?: BaseActions<TContext, TEvent, TActions>;
+  entry?: BaseActions<TContext, TEvent, TAction>;
   /**
    * The action(s) to be executed upon exiting the state node.
    *
@@ -581,7 +581,7 @@ export interface StateNodeConfig<
   /**
    * The action(s) to be executed upon exiting the state node.
    */
-  exit?: BaseActions<TContext, TEvent, TActions>;
+  exit?: BaseActions<TContext, TEvent, TAction>;
   /**
    * The potential transition(s) to be taken upon reaching a final child state node.
    *
@@ -707,17 +707,17 @@ export type SimpleOrStateNodeConfig<
 export type ActionFunctionMap<
   TContext,
   TEvent extends EventObject,
-  TActions extends ActionObject<TContext, TEvent> = ActionObject<
+  TAction extends ActionObject<TContext, TEvent> = ActionObject<
     TContext,
     TEvent
   >
 > = {
-  [K in TActions['type']]?:
+  [K in TAction['type']]?:
     | ActionObject<TContext, TEvent>
     | ActionFunction<
         TContext,
         TEvent,
-        TActions extends { type: K } ? TActions : never
+        TAction extends { type: K } ? TAction : never
       >;
 };
 
@@ -738,13 +738,13 @@ export type DelayConfig<TContext, TEvent extends EventObject> =
 export interface MachineOptions<
   TContext,
   TEvent extends EventObject,
-  TActions extends ActionObject<TContext, TEvent> = ActionObject<
+  TAction extends ActionObject<TContext, TEvent> = ActionObject<
     TContext,
     TEvent
   >
 > {
   guards: Record<string, ConditionPredicate<TContext, TEvent>>;
-  actions: ActionFunctionMap<TContext, TEvent, TActions>;
+  actions: ActionFunctionMap<TContext, TEvent, TAction>;
   activities: Record<string, ActivityConfig<TContext, TEvent>>;
   services: Record<string, ServiceConfig<TContext, TEvent>>;
   delays: DelayFunctionMap<TContext, TEvent>;
@@ -761,8 +761,8 @@ export interface MachineConfig<
   TContext,
   TStateSchema extends StateSchema,
   TEvent extends EventObject,
-  TActions extends BaseActionObject = ActionObject<TContext, TEvent>
-> extends StateNodeConfig<TContext, TStateSchema, TEvent, TActions> {
+  TAction extends BaseActionObject = ActionObject<TContext, TEvent>
+> extends StateNodeConfig<TContext, TStateSchema, TEvent, TAction> {
   /**
    * The initial context (extended state)
    */
@@ -812,7 +812,7 @@ export interface StateMachine<
   TStateSchema extends StateSchema,
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext },
-  _TActions extends ActionObject<TContext, TEvent> = ActionObject<
+  _TAction extends ActionObject<TContext, TEvent> = ActionObject<
     TContext,
     TEvent
   >

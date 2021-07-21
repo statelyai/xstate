@@ -14,11 +14,11 @@ import {
 export function createModel<
   TContext,
   TEvent extends EventObject,
-  TActions extends ActionObject<TContext, TEvent> = ActionObject<
+  TAction extends ActionObject<TContext, TEvent> = ActionObject<
     TContext,
     TEvent
   >
->(initialContext: TContext): Model<TContext, TEvent, TActions, void>;
+>(initialContext: TContext): Model<TContext, TEvent, TAction, void>;
 export function createModel<
   TContext,
   TModelCreators extends ModelCreators<TModelCreators>,
