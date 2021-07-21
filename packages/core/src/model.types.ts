@@ -19,7 +19,10 @@ export type Prop<T, K> = K extends keyof T ? T[K] : never;
 export interface Model<
   TContext,
   TEvent extends EventObject,
-  TAction extends ActionObject<TContext, TEvent>,
+  TAction extends ActionObject<TContext, TEvent> = ActionObject<
+    TContext,
+    TEvent
+  >,
   TModelCreators = void
 > {
   initialContext: TContext;
