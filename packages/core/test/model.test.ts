@@ -474,4 +474,18 @@ describe('createModel', () => {
       }
     });
   });
+
+  it('should not allow using events if creators have not been configured', () => {
+    const model = createModel({ count: 0 });
+
+    // @ts-expect-error
+    model.events.test();
+  });
+
+  it('should not allow using actions if creators have not been configured', () => {
+    const model = createModel({ count: 0 });
+
+    // @ts-expect-error
+    model.actions.test();
+  });
 });

@@ -14,7 +14,7 @@ import {
 
 export function createModel<TContext, TEvent extends EventObject>(
   initialContext: TContext
-): Model<TContext, TEvent, any, any>;
+): Model<TContext, TEvent, void, void>;
 export function createModel<
   TContext,
   TModelCreators extends ModelCreators<TModelCreators>,
