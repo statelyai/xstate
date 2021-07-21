@@ -20,7 +20,7 @@ export interface Model<
   TContext,
   TEvent extends EventObject,
   TActions extends ActionObject<TContext, TEvent>,
-  TModelCreators extends FinalModelCreators<any>
+  TModelCreators = void
 > {
   initialContext: TContext;
   assign: <TEventType extends TEvent['type'] = TEvent['type']>(
@@ -110,12 +110,8 @@ export interface FinalModelCreators<Self> {
   actions: FinalActionCreators<Prop<Self, 'actions'>>;
 }
 
-export type EventFromEventCreators<
-  TEventCreators
-> = keyof TEventCreators extends never
-  ? EventObject
-  : {
-      [K in keyof TEventCreators]: TEventCreators[K] extends AnyFunction
-        ? ReturnType<TEventCreators[K]>
-        : never;
-    }[keyof TEventCreators];
+export type UnionFromCreatorsReturnTypes<TCreators> = {
+  [K in keyof TCreators]: TCreators[K] extends AnyFunction
+    ? ReturnType<TCreators[K]>
+    : never;
+}[keyof TCreators];

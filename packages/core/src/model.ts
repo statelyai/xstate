@@ -5,37 +5,40 @@ import type { EventObject } from './types';
 import { mapValues } from './utils';
 import {
   Cast,
-  EventFromEventCreators,
+  UnionFromCreatorsReturnTypes,
   FinalModelCreators,
   Model,
-  ModelCreators,
-  Prop
+  ModelCreators
 } from './model.types';
 
-export function createModel<TContext, TEvent extends EventObject>(
-  initialContext: TContext
-): Model<TContext, TEvent, void, void>;
+export function createModel<
+  TContext,
+  TEvent extends EventObject,
+  TActions extends ActionObject<TContext, TEvent> = ActionObject<
+    TContext,
+    TEvent
+  >
+>(initialContext: TContext): Model<TContext, TEvent, TActions, void>;
 export function createModel<
   TContext,
   TModelCreators extends ModelCreators<TModelCreators>,
-  TFinalModelCreators extends FinalModelCreators<TModelCreators> = FinalModelCreators<TModelCreators>
+  TFinalModelCreators = FinalModelCreators<TModelCreators>,
+  TComputedEvent = 'events' extends keyof TFinalModelCreators
+    ? UnionFromCreatorsReturnTypes<TFinalModelCreators['events']>
+    : never,
+  TComputedAction = 'actions' extends keyof TFinalModelCreators
+    ? UnionFromCreatorsReturnTypes<TFinalModelCreators['actions']>
+    : never
 >(
   initialContext: TContext,
   creators: TModelCreators
 ): Model<
   TContext,
-  Prop<TFinalModelCreators, 'events'> extends never
-    ? EventObject
-    : Cast<
-        EventFromEventCreators<Prop<TFinalModelCreators, 'events'>>,
-        EventObject
-      >,
-  Prop<TFinalModelCreators, 'actions'> extends never
-    ? ActionObject<TContext, any>
-    : Cast<
-        EventFromEventCreators<Prop<TFinalModelCreators, 'actions'>>,
-        ActionObject<TContext, any>
-      >,
+  Cast<TComputedEvent, EventObject>,
+  Cast<
+    TComputedAction,
+    ActionObject<TContext, Cast<TComputedEvent, EventObject>>
+  >,
   TFinalModelCreators
 >;
 export function createModel(
@@ -63,7 +66,6 @@ export function createModel(
     reset: () => assign(initialContext),
     createMachine: (config, implementations) => {
       return createMachine(
-        // @ts-ignore TODO
         'context' in config ? config : { ...config, context: initialContext },
         implementations
       );

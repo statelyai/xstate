@@ -488,4 +488,26 @@ describe('createModel', () => {
     // @ts-expect-error
     model.actions.test();
   });
+
+  it('should allow for the action type to be explicitly given when creators have not been configured', () => {
+    const model = createModel<
+      { count: number },
+      { type: 'EV' },
+      { type: 'fooAction' }
+    >({ count: 0 });
+
+    createMachine<typeof model>({
+      context: model.initialContext,
+      initial: 'a',
+      states: {
+        a: {
+          entry: 'fooAction'
+        },
+        b: {
+          // @ts-expect-error
+          entry: 'barAction'
+        }
+      }
+    });
+  });
 });
