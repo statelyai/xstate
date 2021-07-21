@@ -1,5 +1,59 @@
 # @xstate/fsm
 
+## 1.6.1
+
+### Patch Changes
+
+- [`0db3de7c`](https://github.com/davidkpiano/xstate/commit/0db3de7c5b84cb3eecb0cf1deabcc3bc54172505) [#2055](https://github.com/davidkpiano/xstate/pull/2055) Thanks [@f-elix](https://github.com/f-elix)! - Added a more helpful error, in the development build, for a situation where the next state (the target of a transition) doesn't exist in the config.
+
+## 1.6.0
+
+### Minor Changes
+
+- [`b990d527`](https://github.com/davidkpiano/xstate/commit/b990d527b760ca6c3ed105a3af7dfcff8bc5b481) [#1911](https://github.com/davidkpiano/xstate/pull/1911) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Transitions with `undefined` targets will no longer exit and re-enter the state, which means that `exit` and `entry` actions will not be executed:
+
+  ```js
+  // ...
+  someState: {
+    entry: [/* ... */],
+    exit: [/* ... */],
+    on: {
+      SOME_EVENT: {
+        // undefined target - will not exit/re-enter
+        actions: [/* ... */]
+      }
+    }
+  }
+  // ...
+  ```
+
+## 1.5.2
+
+### Patch Changes
+
+- [`8b670653`](https://github.com/davidkpiano/xstate/commit/8b6706538ae6e5ac275b68cc4686801458bddaf8) [#1661](https://github.com/davidkpiano/xstate/pull/1661) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with initial `assign` actions not being resolved and thus context not being updated by them.
+
+## 1.5.1
+
+### Patch Changes
+
+- [`0f07c84d`](https://github.com/davidkpiano/xstate/commit/0f07c84daba6ca4913f5311b4e99b67cf489baba) [#1388](https://github.com/davidkpiano/xstate/pull/1388) Thanks [@hudecsamuel](https://github.com/hudecsamuel)! - `State['value']` is now correctly typed to `TState['value']`. It's important in situations when typestates are used as it now correctly is limited to values of those typestates and not widened to just `string`.
+
+## 1.5.0
+
+### Minor Changes
+
+- [`ccefca92`](https://github.com/davidkpiano/xstate/commit/ccefca92a1261cf8d9a1e356557af4c8d5fbaffb) [#1267](https://github.com/davidkpiano/xstate/pull/1267) Thanks [@nlopin](https://github.com/nlopin)! - You can now rehydrate the state of a service by calling `start` with `initialState` argument:
+
+  ```js
+  interpret(someMachine).start('active');
+
+  interpret(anotherMachine).start({
+    value: 'active',
+    context: { count: 42 }
+  });
+  ```
+
 ## 1.4.0
 
 ### Minor Changes

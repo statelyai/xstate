@@ -6,16 +6,17 @@
   "license": "MIT",
   "scripts": {
     "start": "parcel index.html",
-    "build": "parcel build index.html"
+    "build": "parcel build index.html",
+    "clean": "rm -rf dist lib tsconfig.tsbuildinfo"
   },
   "dependencies": {
-    "@xstate/react": "^1.0.0-rc.0",
+    "@xstate/react": "^1.5.1",
     "react-app-polyfill": "^1.0.0"
   },
   "devDependencies": {
     "@types/react": "^16.9.11",
     "@types/react-dom": "^16.9.4",
     "parcel": "^1.12.3",
-    "typescript": "^3.9.7"
+    "typescript": "^4.3.2"
   }
 }

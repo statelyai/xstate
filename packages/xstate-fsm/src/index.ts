@@ -76,6 +76,42 @@ function createUnchangedState<
   };
 }
 
+function handleActions<
+  TContext extends object,
+  TEvent extends EventObject = EventObject
+>(
+  actions: Array<StateMachine.ActionObject<TContext, TEvent>>,
+  context: TContext,
+  eventObject: TEvent
+): [Array<StateMachine.ActionObject<TContext, TEvent>>, TContext, boolean] {
+  let nextContext = context;
+  let assigned = false;
+
+  const nonAssignActions = actions.filter((action) => {
+    if (action.type === ASSIGN_ACTION) {
+      assigned = true;
+      let tmpContext = Object.assign({}, nextContext);
+
+      if (typeof action.assignment === 'function') {
+        tmpContext = action.assignment(nextContext, eventObject);
+      } else {
+        Object.keys(action.assignment).forEach((key) => {
+          tmpContext[key] =
+            typeof action.assignment[key] === 'function'
+              ? action.assignment[key](nextContext, eventObject)
+              : action.assignment[key];
+        });
+      }
+
+      nextContext = tmpContext;
+      return false;
+    }
+    return true;
+  });
+
+  return [nonAssignActions, nextContext, assigned];
+}
+
 export function createMachine<
   TContext extends object,
   TEvent extends EventObject = EventObject,
@@ -95,90 +131,93 @@ export function createMachine<
     });
   }
 
+  const [initialActions, initialContext] = handleActions(
+    toArray(fsmConfig.states[fsmConfig.initial].entry).map((action) =>
+      toActionObject(action, options.actions)
+    ),
+    fsmConfig.context!,
+    INIT_EVENT as TEvent
+  );
+
   const machine = {
     config: fsmConfig,
     _options: options,
     initialState: {
       value: fsmConfig.initial,
-      actions: toArray(
-        fsmConfig.states[fsmConfig.initial].entry
-      ).map((action) => toActionObject(action, options.actions)),
-      context: fsmConfig.context!,
+      actions: initialActions,
+      context: initialContext,
       matches: createMatcher(fsmConfig.initial)
     },
     transition: (
       state: string | StateMachine.State<TContext, TEvent, TState>,
-      event: string | (Record<string, any> & { type: string })
+      event: TEvent | TEvent['type']
     ): StateMachine.State<TContext, TEvent, TState> => {
       const { value, context } =
         typeof state === 'string'
           ? { value: state, context: fsmConfig.context! }
           : state;
-      const eventObject = toEventObject(event);
+      const eventObject = toEventObject<TEvent>(event);
       const stateConfig = fsmConfig.states[value];
 
-      if (!IS_PRODUCTION) {
-        if (!stateConfig) {
-          throw new Error(
-            `State '${value}' not found on machine${
-              fsmConfig.id ? ` '${fsmConfig.id}'` : ''
-            }.`
-          );
-        }
+      if (!IS_PRODUCTION && !stateConfig) {
+        throw new Error(
+          `State '${value}' not found on machine ${fsmConfig.id ?? ''}`
+        );
       }
 
       if (stateConfig.on) {
-        const transitions = toArray(stateConfig.on[eventObject.type]);
+        const transitions: Array<
+          StateMachine.Transition<TContext, TEvent>
+        > = toArray(stateConfig.on[eventObject.type]);
 
         for (const transition of transitions) {
           if (transition === undefined) {
             return createUnchangedState(value, context);
           }
 
-          const { target = value, actions = [], cond = () => true } =
+          const { target, actions = [], cond = () => true } =
             typeof transition === 'string'
               ? { target: transition }
               : transition;
 
-          let nextContext = context;
+          const isTargetless = target === undefined;
+
+          const nextStateValue = target ?? value;
+          const nextStateConfig = fsmConfig.states[nextStateValue];
+
+          if (!IS_PRODUCTION && !nextStateConfig) {
+            throw new Error(
+              `State '${nextStateValue}' not found on machine ${
+                fsmConfig.id ?? ''
+              }`
+            );
+          }
 
           if (cond(context, eventObject)) {
-            const nextStateConfig = fsmConfig.states[target];
-            let assigned = false;
-            const allActions = ([] as any[])
-              .concat(stateConfig.exit, actions, nextStateConfig.entry)
-              .filter((a) => a)
-              .map<StateMachine.ActionObject<TContext, TEvent>>((action) =>
-                toActionObject(action, (machine as any)._options.actions)
-              )
-              .filter((action) => {
-                if (action.type === ASSIGN_ACTION) {
-                  assigned = true;
-                  let tmpContext = Object.assign({}, nextContext);
+            const allActions = (isTargetless
+              ? toArray(actions)
+              : ([] as any[])
+                  .concat(stateConfig.exit, actions, nextStateConfig.entry)
+                  .filter((a) => a)
+            ).map<StateMachine.ActionObject<TContext, TEvent>>((action) =>
+              toActionObject(action, (machine as any)._options.actions)
+            );
 
-                  if (typeof action.assignment === 'function') {
-                    tmpContext = action.assignment(nextContext, eventObject);
-                  } else {
-                    Object.keys(action.assignment).forEach((key) => {
-                      tmpContext[key] =
-                        typeof action.assignment[key] === 'function'
-                          ? action.assignment[key](nextContext, eventObject)
-                          : action.assignment[key];
-                    });
-                  }
+            const [nonAssignActions, nextContext, assigned] = handleActions(
+              allActions,
+              context,
+              eventObject
+            );
 
-                  nextContext = tmpContext;
-                  return false;
-                }
-                return true;
-              });
+            const resolvedTarget = target ?? value;
 
             return {
-              value: target,
+              value: resolvedTarget,
               context: nextContext,
-              actions: allActions,
-              changed: target !== value || allActions.length > 0 || assigned,
-              matches: createMatcher(target)
+              actions: nonAssignActions,
+              changed:
+                target !== value || nonAssignActions.length > 0 || assigned,
+              matches: createMatcher(resolvedTarget)
             };
           }
         }

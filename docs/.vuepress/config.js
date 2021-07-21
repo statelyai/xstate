@@ -10,6 +10,7 @@ module.exports = {
     lastUpdated: 'Last Updated',
     repo: 'davidkpiano/xstate',
     docsDir: 'docs',
+    docsBranch: 'main',
     editLinks: true,
     logo: '/logo.svg',
     algolia: {
@@ -19,8 +20,11 @@ module.exports = {
     nav: [
       { text: 'API', link: 'https://xstate.js.org/api' },
       { text: 'Visualizer', link: 'https://xstate.js.org/viz' },
-      { text: 'Chat', link: 'https://gitter.im/statecharts/statecharts' },
-      { text: 'Community', link: 'https://spectrum.chat/statecharts' }
+      { text: 'Discord', link: 'https://discord.gg/xtWgFTgvNV' },
+      {
+        text: 'Community',
+        link: 'https://github.com/davidkpiano/xstate/discussions'
+      }
     ],
     sidebar: [
       {
@@ -29,7 +33,9 @@ module.exports = {
           '/about/concepts',
           '/about/goals',
           '/about/showcase',
-          '/about/tutorials'
+          '/about/resources',
+          '/about/tutorials',
+          '/about/glossary'
         ]
       },
       {
@@ -48,6 +54,7 @@ module.exports = {
           '/guides/actions',
           '/guides/guards',
           '/guides/context',
+          '/guides/models',
           '/guides/activities',
           '/guides/communication',
           '/guides/actors',
@@ -56,6 +63,7 @@ module.exports = {
           '/guides/history',
           '/guides/ids',
           '/guides/interpretation',
+          '/guides/testing',
           '/guides/typescript'
         ]
       },
@@ -80,7 +88,9 @@ module.exports = {
           '/recipes/react',
           '/recipes/vue',
           '/recipes/rxjs',
-          '/recipes/ember'
+          '/recipes/ember',
+          '/recipes/stencil',
+          '/recipes/svelte'
         ]
       },
       {
@@ -91,7 +101,9 @@ module.exports = {
           'packages/xstate-graph/',
           'packages/xstate-fsm/',
           'packages/xstate-test/',
-          'packages/xstate-immer/'
+          'packages/xstate-immer/',
+          'packages/xstate-inspect/',
+          'packages/xstate-svelte/'
         ]
       },
       {

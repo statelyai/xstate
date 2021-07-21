@@ -23,8 +23,14 @@ import {
   choose,
   pure
 } from './actions';
-import { interpret, Interpreter, spawn } from './interpreter';
+import {
+  interpret,
+  Interpreter,
+  spawn,
+  InterpreterStatus
+} from './interpreter';
 import { matchState } from './match';
+import { createSchema } from './schema';
 
 const actions = {
   raise,
@@ -60,10 +66,12 @@ export {
   forwardTo,
   interpret,
   Interpreter,
+  InterpreterStatus,
   matchState,
   spawn,
   doneInvoke,
-  createMachine
+  createMachine,
+  createSchema
 };
 
 export * from './types';

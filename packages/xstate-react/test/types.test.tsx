@@ -4,11 +4,11 @@ import {
   Machine,
   interpret,
   assign,
-  Interpreter,
   spawn,
-  createMachine
+  createMachine,
+  ActorRefFrom
 } from 'xstate';
-import { useService, useMachine } from '../src';
+import { useService, useMachine, useActor } from '../src';
 
 describe('useService', () => {
   it('should accept spawned machine', () => {
@@ -16,7 +16,7 @@ describe('useService', () => {
       completed: boolean;
     }
     interface TodosCtx {
-      todos: Array<Interpreter<TodoCtx>>;
+      todos: Array<ActorRefFrom<typeof todoMachine>>;
     }
 
     const todoMachine = Machine<TodoCtx>({
@@ -55,7 +55,7 @@ describe('useService', () => {
     const Todo = ({ index }: { index: number }) => {
       const [current] = useService(service);
       const todoRef = current.context.todos[index];
-      const [todoCurrent] = useService(todoRef);
+      const [todoCurrent] = useActor(todoRef);
       return <>{todoCurrent.context.completed}</>;
     };
 
@@ -127,5 +127,77 @@ describe('useMachine', () => {
     };
 
     render(<YesNo />);
+  });
+
+  // Example from: https://github.com/davidkpiano/xstate/discussions/1534
+  it('spawned actors should be typed correctly', () => {
+    const child = createMachine<{ bar: number }, { type: 'FOO'; data: number }>(
+      {
+        id: 'myActor',
+        context: {
+          bar: 1
+        },
+        initial: 'ready',
+        states: {
+          ready: {}
+        }
+      }
+    );
+
+    const m = createMachine<{ actor: ActorRefFrom<typeof child> | null }>(
+      {
+        initial: 'ready',
+        context: {
+          actor: null
+        },
+        states: {
+          ready: {
+            entry: 'spawnActor'
+          }
+        }
+      },
+      {
+        actions: {
+          spawnActor: assign({
+            actor: () => spawn(child)
+          })
+        }
+      }
+    );
+
+    interface Props {
+      myActor: ActorRefFrom<typeof child>;
+    }
+
+    function Element({ myActor }: Props) {
+      const [current, send] = useActor(myActor);
+      const bar: number = current.context.bar;
+
+      // @ts-expect-error
+      send({ type: 'WHATEVER' });
+
+      return (
+        <>
+          {bar}
+          <div onClick={() => send({ type: 'FOO', data: 1 })}>click</div>
+        </>
+      );
+    }
+
+    function App() {
+      const [current] = useMachine(m);
+
+      if (!current.context.actor) {
+        return null;
+      }
+
+      return <Element myActor={current.context.actor} />;
+    }
+
+    const noop = (_val: any) => {
+      /* ... */
+    };
+
+    noop(App);
   });
 });

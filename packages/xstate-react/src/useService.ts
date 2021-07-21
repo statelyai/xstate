@@ -1,31 +1,36 @@
-import { useMemo } from 'react';
-import { EventObject, State, Interpreter, Typestate, Sender } from 'xstate';
+import { EventObject, State, Interpreter, Typestate } from 'xstate';
 import { useActor } from './useActor';
-import { ActorRef } from './types';
+import { PayloadSender } from './types';
 
-export function fromService<TContext, TEvent extends EventObject>(
-  service: Interpreter<TContext, any, TEvent>
-): ActorRef<TEvent, State<TContext, TEvent>> {
-  const { machine } = service;
-  return {
-    send: service.send.bind(service),
-    subscribe: service.subscribe.bind(service),
-    stop: service.stop,
-    current: service.initialized ? service.state : machine.initialState,
-    name: service.sessionId
-  };
+export function getServiceSnapshot<
+  TService extends Interpreter<any, any, any, any>
+>(service: TService): TService['state'] {
+  // TODO: remove compat lines in a new major, replace literal number with InterpreterStatus then as well
+  return ('status' in service ? service.status : (service as any)._status) !== 0
+    ? service.state
+    : service.machine.initialState;
 }
 
+/**
+ * @deprecated Use `useActor` instead.
+ *
+ * @param service The interpreted machine
+ * @returns A tuple of the current `state` of the service and the service's `send(event)` method
+ */
 export function useService<
   TContext,
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(
   service: Interpreter<TContext, any, TEvent, TTypestate>
-): [State<TContext, TEvent, any, TTypestate>, Sender<TEvent>] {
-  const serviceActor = useMemo(() => fromService(service), [service]);
+): [State<TContext, TEvent, any, TTypestate>, PayloadSender<TEvent>] {
+  if (process.env.NODE_ENV !== 'production' && !('machine' in service)) {
+    throw new Error(
+      `Attempted to use an actor-like object instead of a service in the useService() hook. Please use the useActor() hook instead.`
+    );
+  }
 
-  return useActor<TEvent, State<TContext, TEvent, any, TTypestate>>(
-    serviceActor
-  );
+  const [state] = useActor(service);
+
+  return [state, service.send];
 }

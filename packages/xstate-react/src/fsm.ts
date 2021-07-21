@@ -36,8 +36,8 @@ export function useMachine<
   }
 ): [
   StateMachine.State<TContext, TEvent, TState>,
-  StateMachine.Service<TContext, TEvent>['send'],
-  StateMachine.Service<TContext, TEvent>
+  StateMachine.Service<TContext, TEvent, TState>['send'],
+  StateMachine.Service<TContext, TEvent, TState>
 ] {
   if (process.env.NODE_ENV !== 'production') {
     const [initialMachine] = useState(stateMachine);
@@ -88,11 +88,9 @@ export function useService<
   StateMachine.Service<TContext, TEvent, TState>['send'],
   StateMachine.Service<TContext, TEvent, TState>
 ] {
-  const subscription: Subscription<StateMachine.State<
-    TContext,
-    TEvent,
-    TState
-  >> = useMemo(() => {
+  const subscription: Subscription<
+    StateMachine.State<TContext, TEvent, TState>
+  > = useMemo(() => {
     let currentState = getServiceState(service);
 
     return {

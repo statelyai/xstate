@@ -23,7 +23,9 @@ import {
   Guard,
   GuardPredicate,
   GuardMeta,
-  InvokeSourceDefinition
+  InvokeSourceDefinition,
+  Observer,
+  Behavior
 } from './types';
 import {
   STATE_DELIMITER,
@@ -32,7 +34,7 @@ import {
 } from './constants';
 import { IS_PRODUCTION } from './environment';
 import { StateNode } from './StateNode';
-import { State } from '.';
+import { State } from './State';
 import { Actor } from './Actor';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
@@ -162,16 +164,11 @@ export function pathToStateValue(statePath: string[]): StateValue {
   return value;
 }
 
-export function mapValues<T, P>(
-  collection: { [key: string]: T },
-  iteratee: (
-    item: T,
-    key: string,
-    collection: { [key: string]: T },
-    i: number
-  ) => P
-): { [key: string]: P } {
-  const result: { [key: string]: P } = {};
+export function mapValues<T, P, O extends { [key: string]: T }>(
+  collection: O,
+  iteratee: (item: O[keyof O], key: keyof O, collection: O, i: number) => P
+): { [key in keyof O]: P } {
+  const result: Partial<{ [key in keyof O]: P }> = {};
 
   const collectionKeys = keys(collection);
   for (let i = 0; i < collectionKeys.length; i++) {
@@ -179,7 +176,7 @@ export function mapValues<T, P>(
     result[key] = iteratee(collection[key], key, collection, i);
   }
 
-  return result;
+  return result as { [key in keyof O]: P };
 }
 
 export function mapFilterValues<T, P>(
@@ -350,6 +347,15 @@ export function isPromiseLike(value: any): value is PromiseLike<any> {
     return true;
   }
   return false;
+}
+
+export function isBehavior(value: any): value is Behavior<any, any> {
+  return (
+    value !== null &&
+    typeof value === 'object' &&
+    'transition' in value &&
+    typeof value.transition === 'function'
+  );
 }
 
 export function partition<T, A extends T, B extends T>(
@@ -525,7 +531,8 @@ export function isObservable<T>(value: any): value is Subscribable<T> {
 }
 
 export const symbolObservable = (() =>
-  (typeof Symbol === 'function' && Symbol.observable) || '@@observable')();
+  (typeof Symbol === 'function' && (Symbol as any).observable) ||
+  '@@observable')();
 
 export function isMachine(value: any): value is StateMachine<any, any, any> {
   try {
@@ -646,7 +653,7 @@ export function reportUnhandledExceptionOnInvocation(
 }
 
 export function evaluateGuard<TContext, TEvent extends EventObject>(
-  machine: StateNode<TContext, any, TEvent>,
+  machine: StateNode<TContext, any, TEvent, any>,
   guard: Guard<TContext, TEvent>,
   context: TContext,
   _event: SCXML.Event<TEvent>,
@@ -687,4 +694,22 @@ export function toInvokeSource(
   }
 
   return src;
+}
+
+export function toObserver<T>(
+  nextHandler: Observer<T> | ((value: T) => void),
+  errorHandler?: (error: any) => void,
+  completionHandler?: () => void
+): Observer<T> {
+  if (typeof nextHandler === 'object') {
+    return nextHandler;
+  }
+
+  const noop = () => void 0;
+
+  return {
+    next: nextHandler,
+    error: errorHandler || noop,
+    complete: completionHandler || noop
+  };
 }

@@ -355,7 +355,7 @@ function getDescription<T, TContext>(state: State<TContext, any>): string {
     state.context === undefined ? '' : `(${JSON.stringify(state.context)})`;
 
   const stateStrings = state.configuration
-    .filter((sn) => sn.type === 'atomic')
+    .filter((sn) => sn.type === 'atomic' || sn.type === 'final')
     .map(({ id }) => {
       const meta = state.meta[id] as TestMeta<T, TContext>;
       if (!meta) {

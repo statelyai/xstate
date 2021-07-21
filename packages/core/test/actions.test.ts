@@ -680,9 +680,9 @@ describe('actions config', () => {
     );
 
     expect(nextState.actions).toEqual([
-      { type: 'definedAction', exec: definedAction },
-      { type: 'definedAction', exec: definedAction },
-      { type: 'undefinedAction', exec: undefined }
+      expect.objectContaining({ type: 'definedAction' }),
+      expect.objectContaining({ type: 'definedAction' }),
+      expect.objectContaining({ type: 'undefinedAction' })
     ]);
   });
 
@@ -698,7 +698,7 @@ describe('actions config', () => {
     const state = simpleMachine.transition('a', 'EVENT');
 
     expect(state.actions).toEqual([
-      { type: 'definedAction', exec: definedAction }
+      expect.objectContaining({ type: 'definedAction' })
     ]);
 
     expect(state.context).toEqual({ count: 10 });
@@ -1240,7 +1240,7 @@ describe('choose', () => {
               actions: choose<Ctx, Events>([
                 {
                   cond: (_, event) => event.counter > 100,
-                  actions: assign<Ctx>({ answer: 42 })
+                  actions: assign<Ctx, Events>({ answer: 42 })
                 }
               ])
             }
@@ -1353,6 +1353,74 @@ describe('choose', () => {
 
     expect(service.state.context).toEqual({ answer: 42 });
   });
+
+  // https://github.com/davidkpiano/xstate/issues/1109
+  it('exit actions should be called when invoked machine reaches final state', (done) => {
+    let exitCalled = false;
+    let childExitCalled = false;
+    const childMachine = Machine({
+      exit: () => {
+        exitCalled = true;
+      },
+      initial: 'a',
+      states: {
+        a: {
+          type: 'final',
+          exit: () => {
+            childExitCalled = true;
+          }
+        }
+      }
+    });
+
+    const parentMachine = Machine({
+      initial: 'active',
+      states: {
+        active: {
+          invoke: {
+            src: childMachine,
+            onDone: 'finished'
+          }
+        },
+        finished: {
+          type: 'final'
+        }
+      }
+    });
+
+    interpret(parentMachine)
+      .onDone(() => {
+        expect(exitCalled).toBeTruthy();
+        expect(childExitCalled).toBeTruthy();
+        done();
+      })
+      .start();
+  });
+
+  it('exit actions should be called when stopping a machine', () => {
+    let exitCalled = false;
+    let childExitCalled = false;
+
+    const machine = Machine({
+      exit: () => {
+        exitCalled = true;
+      },
+      initial: 'a',
+      states: {
+        a: {
+          exit: () => {
+            childExitCalled = true;
+          }
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+    service.stop();
+
+    expect(exitCalled).toBeTruthy();
+    expect(childExitCalled).toBeTruthy();
+  });
 });
 
 describe('sendParent', () => {
@@ -1376,4 +1444,138 @@ describe('sendParent', () => {
 
     expect(child).toBeTruthy();
   });
+});
+
+it('should call transition actions in document order for same-level parallel regions', () => {
+  const actual: string[] = [];
+
+  const machine = createMachine({
+    type: 'parallel',
+    states: {
+      a: {
+        on: {
+          FOO: {
+            actions: () => actual.push('a')
+          }
+        }
+      },
+      b: {
+        on: {
+          FOO: {
+            actions: () => actual.push('b')
+          }
+        }
+      }
+    }
+  });
+  const service = interpret(machine).start();
+  service.send({ type: 'FOO' });
+
+  expect(actual).toEqual(['a', 'b']);
+});
+
+it('should call transition actions in document order for states at different levels of parallel regions', () => {
+  const actual: string[] = [];
+
+  const machine = createMachine({
+    type: 'parallel',
+    states: {
+      a: {
+        initial: 'a1',
+        states: {
+          a1: {
+            on: {
+              FOO: {
+                actions: () => actual.push('a1')
+              }
+            }
+          }
+        }
+      },
+      b: {
+        on: {
+          FOO: {
+            actions: () => actual.push('b')
+          }
+        }
+      }
+    }
+  });
+  const service = interpret(machine).start();
+  service.send({ type: 'FOO' });
+
+  expect(actual).toEqual(['a1', 'b']);
+});
+
+describe('assign action order', () => {
+  it('should preserve action order when .preserveActionOrder = true', () => {
+    const captured: number[] = [];
+
+    const machine = createMachine<{ count: number }>({
+      context: { count: 0 },
+      entry: [
+        (ctx) => captured.push(ctx.count), // 0
+        assign({ count: (ctx) => ctx.count + 1 }),
+        (ctx) => captured.push(ctx.count), // 1
+        assign({ count: (ctx) => ctx.count + 1 }),
+        (ctx) => captured.push(ctx.count) // 2
+      ],
+      preserveActionOrder: true
+    });
+
+    interpret(machine).start();
+
+    expect(captured).toEqual([0, 1, 2]);
+  });
+
+  it('should deeply preserve action order when .preserveActionOrder = true', () => {
+    const captured: number[] = [];
+
+    interface CountCtx {
+      count: number;
+    }
+
+    const machine = createMachine<CountCtx>({
+      context: { count: 0 },
+      entry: [
+        (ctx) => captured.push(ctx.count), // 0
+        pure(() => {
+          return [
+            assign<CountCtx>({ count: (ctx) => ctx.count + 1 }),
+            { type: 'capture', exec: (ctx) => captured.push(ctx.count) }, // 1
+            assign<CountCtx>({ count: (ctx) => ctx.count + 1 })
+          ];
+        }),
+        (ctx) => captured.push(ctx.count) // 2
+      ],
+      preserveActionOrder: true
+    });
+
+    interpret(machine).start();
+
+    expect(captured).toEqual([0, 1, 2]);
+  });
+
+  it.each([undefined, false])(
+    'should prioritize assign actions when .preserveActionOrder = %i',
+    (preserveActionOrder) => {
+      const captured: number[] = [];
+
+      const machine = createMachine<{ count: number }>({
+        context: { count: 0 },
+        entry: [
+          (ctx) => captured.push(ctx.count),
+          assign({ count: (ctx) => ctx.count + 1 }),
+          (ctx) => captured.push(ctx.count),
+          assign({ count: (ctx) => ctx.count + 1 }),
+          (ctx) => captured.push(ctx.count)
+        ],
+        preserveActionOrder
+      });
+
+      interpret(machine).start();
+
+      expect(captured).toEqual([2, 2, 2]);
+    }
+  );
 });

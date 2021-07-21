@@ -1,6 +1,6 @@
 {
   "name": "@xstate/immer",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "XState with Immer",
   "keywords": [
     "immer",
@@ -10,7 +10,7 @@
     "statechart"
   ],
   "author": "David Khourshid <davidkpiano@gmail.com>",
-  "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-immer#readme",
+  "homepage": "https://github.com/davidkpiano/xstate/tree/main/packages/xstate-immer#readme",
   "license": "MIT",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -37,13 +37,13 @@
   },
   "dependencies": {},
   "peerDependencies": {
-    "immer": "^6.0.3",
+    "immer": "^8.0.1",
     "xstate": "^4.9.1"
   },
   "devDependencies": {
-    "immer": "^6.0.3",
+    "immer": "^8.0.1",
     "lerna-alias": "3.0.3-0",
-    "typescript": "^3.9.7",
+    "typescript": "^4.3.2",
     "xstate": "*"
   }
 }

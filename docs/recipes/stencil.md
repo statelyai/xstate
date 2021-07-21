@@ -52,7 +52,7 @@ export class Toggle {
     this._service.start();
   }
 
-  componentDidUnload() {
+  disconnectedCallback() {
     this._service.stop();
   }
 

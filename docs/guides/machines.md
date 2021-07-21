@@ -9,12 +9,12 @@ A **state machine** is a finite set of [states](./statenodes.md) that can transi
 
 ## Configuration
 
-State machines and statecharts alike are defined using the `Machine()` factory function:
+State machines and statecharts alike are defined using the `createMachine()` factory function:
 
 ```js
-import { Machine } from 'xstate';
+import { createMachine } from 'xstate';
 
-const lightMachine = Machine({
+const lightMachine = createMachine({
   // Machine identifier
   id: 'light',
 
@@ -48,10 +48,10 @@ The machine config is the same as the [state node config](./statenodes.md), with
 
 ## Options
 
-Implementations for [actions](./actions.md), [activities](./activities.md), [guards](./guards.md), and [services](./communication.md) can be referenced in the machine config as a string, and then specified as an object in the 2nd argument to `Machine()`:
+Implementations for [actions](./actions.md), [activities](./activities.md), [delays](./delays.md), [guards](./guards.md), and [services](./communication.md) can be referenced in the machine config as a string, and then specified as an object in the 2nd argument to `createMachine()`:
 
 ```js
-const lightMachine = Machine(
+const lightMachine = createMachine(
   {
     id: 'light',
     initial: 'green',
@@ -72,6 +72,9 @@ const lightMachine = Machine(
     activities: {
       /* ... */
     },
+    delays: {
+      /* ... */
+    },
     guards: {
       /* ... */
     },
@@ -82,10 +85,11 @@ const lightMachine = Machine(
 );
 ```
 
-This object has 4 optional properties:
+This object has 5 optional properties:
 
 - `actions` - the mapping of action names to their implementation
 - `activities` - the mapping of activity names to their implementation
+- `delays` - the mapping of delay names to their implementation
 - `guards` - the mapping of transition guard (`cond`) names to their implementation
 - `services` - the mapping of invoked service (`src`) names to their implementation
 

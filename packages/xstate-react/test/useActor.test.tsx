@@ -1,8 +1,18 @@
 import * as React from 'react';
 import { useMachine } from '../src';
-import { createMachine, sendParent, Actor, assign, spawn } from 'xstate';
-import { render, cleanup } from '@testing-library/react';
+import {
+  createMachine,
+  sendParent,
+  assign,
+  spawn,
+  ActorRef,
+  ActorRefFrom,
+  interpret
+} from 'xstate';
+import { toActorRef } from 'xstate/lib/Actor';
+import { render, cleanup, fireEvent, act } from '@testing-library/react';
 import { useActor } from '../src/useActor';
+import { useState } from 'react';
 
 afterEach(cleanup);
 
@@ -26,7 +36,9 @@ describe('useActor', () => {
       }
     });
 
-    const ChildTest: React.FC<{ actor: Actor<any> }> = ({ actor }) => {
+    const ChildTest: React.FC<{ actor: ActorRefFrom<typeof childMachine> }> = ({
+      actor
+    }) => {
       const [state] = useActor(actor);
 
       expect(state.value).toEqual('active');
@@ -39,7 +51,11 @@ describe('useActor', () => {
     const Test = () => {
       const [state] = useMachine(machine);
 
-      return <ChildTest actor={state.children.child} />;
+      return (
+        <ChildTest
+          actor={state.children.child as ActorRefFrom<typeof childMachine>}
+        />
+      );
     };
 
     render(
@@ -75,7 +91,9 @@ describe('useActor', () => {
       }
     });
 
-    const ChildTest: React.FC<{ actor: Actor<any> }> = ({ actor }) => {
+    const ChildTest: React.FC<{ actor: ActorRefFrom<typeof childMachine> }> = ({
+      actor
+    }) => {
       const [state, send] = useActor(actor);
 
       expect(state.value).toEqual('active');
@@ -94,7 +112,11 @@ describe('useActor', () => {
         done();
       }
 
-      return <ChildTest actor={state.children.child} />;
+      return (
+        <ChildTest
+          actor={state.children.child as ActorRefFrom<typeof childMachine>}
+        />
+      );
     };
 
     render(
@@ -112,7 +134,12 @@ describe('useActor', () => {
         active: {}
       }
     });
-    const machine = createMachine<{ actorRef: any }>({
+
+    interface Ctx {
+      actorRef?: ActorRefFrom<typeof childMachine>;
+    }
+
+    const machine = createMachine<Ctx>({
       initial: 'active',
       context: {
         actorRef: undefined
@@ -126,7 +153,9 @@ describe('useActor', () => {
       }
     });
 
-    const ChildTest: React.FC<{ actor: Actor<any> }> = ({ actor }) => {
+    const ChildTest: React.FC<{ actor: ActorRefFrom<typeof childMachine> }> = ({
+      actor
+    }) => {
       const [state] = useActor(actor);
 
       expect(state.value).toEqual('active');
@@ -138,8 +167,9 @@ describe('useActor', () => {
 
     const Test = () => {
       const [state] = useMachine(machine);
+      const { actorRef } = state.context;
 
-      return <ChildTest actor={state.context.actorRef} />;
+      return <ChildTest actor={actorRef!} />;
     };
 
     render(
@@ -161,7 +191,9 @@ describe('useActor', () => {
         }
       }
     });
-    const machine = createMachine<{ actorRef: any }>({
+    const machine = createMachine<{
+      actorRef?: ActorRefFrom<typeof childMachine>;
+    }>({
       initial: 'active',
       context: {
         actorRef: undefined
@@ -177,7 +209,9 @@ describe('useActor', () => {
       }
     });
 
-    const ChildTest: React.FC<{ actor: Actor<any> }> = ({ actor }) => {
+    const ChildTest: React.FC<{ actor: ActorRefFrom<typeof childMachine> }> = ({
+      actor
+    }) => {
       const [state, send] = useActor(actor);
 
       expect(state.value).toEqual('active');
@@ -196,7 +230,9 @@ describe('useActor', () => {
         done();
       }
 
-      return <ChildTest actor={state.context.actorRef} />;
+      const { actorRef } = state.context;
+
+      return <ChildTest actor={actorRef!} />;
     };
 
     render(
@@ -204,5 +240,234 @@ describe('useActor', () => {
         <Test />
       </React.StrictMode>
     );
+  });
+
+  it('actor should provide snapshot value immediately', () => {
+    const simpleActor = toActorRef({
+      send: () => {
+        /* ... */
+      },
+      latestValue: 42,
+      subscribe: () => {
+        return {
+          unsubscribe: () => {
+            /* ... */
+          }
+        };
+      }
+    }) as ActorRef<any, number> & {
+      latestValue: number;
+    };
+
+    const Test = () => {
+      const [state] = useActor(simpleActor, (a) => a.latestValue);
+
+      return <div data-testid="state">{state}</div>;
+    };
+
+    const { getByTestId } = render(<Test />);
+
+    const div = getByTestId('state');
+
+    expect(div.textContent).toEqual('42');
+  });
+
+  it('should provide value from `actor.getSnapshot()`', () => {
+    const simpleActor = toActorRef({
+      id: 'test',
+      send: () => {
+        /* ... */
+      },
+      getSnapshot: () => 42,
+      subscribe: () => {
+        return {
+          unsubscribe: () => {
+            /* ... */
+          }
+        };
+      }
+    });
+
+    const Test = () => {
+      const [state] = useActor(simpleActor);
+
+      return <div data-testid="state">{state}</div>;
+    };
+
+    const { getByTestId } = render(<Test />);
+
+    const div = getByTestId('state');
+
+    expect(div.textContent).toEqual('42');
+  });
+
+  it('should update snapshot value when actor changes', () => {
+    const createSimpleActor = (value: number) =>
+      toActorRef({
+        send: () => {
+          /* ... */
+        },
+        latestValue: value,
+        subscribe: () => {
+          return {
+            unsubscribe: () => {
+              /* ... */
+            }
+          };
+        }
+      }) as ActorRef<any> & { latestValue: number };
+
+    const Test = () => {
+      const [actor, setActor] = useState(createSimpleActor(42));
+      const [state] = useActor(actor, (a) => a.latestValue);
+
+      return (
+        <>
+          <div data-testid="state">{state}</div>
+          <button
+            data-testid="button"
+            onClick={() => setActor(createSimpleActor(100))}
+          ></button>
+        </>
+      );
+    };
+
+    const { getByTestId } = render(<Test />);
+
+    const div = getByTestId('state');
+    const button = getByTestId('button');
+
+    expect(div.textContent).toEqual('42');
+    fireEvent.click(button);
+    expect(div.textContent).toEqual('100');
+  });
+
+  it('send() should be stable', (done) => {
+    jest.useFakeTimers();
+    const fakeSubscribe = () => {
+      return {
+        unsubscribe: () => {
+          /* ... */
+        }
+      };
+    };
+    const noop = () => {
+      /* ... */
+    };
+    const firstActor = toActorRef({
+      send: noop,
+      subscribe: fakeSubscribe
+    });
+    const lastActor = toActorRef({
+      send: () => {
+        done();
+      },
+      subscribe: fakeSubscribe
+    });
+
+    const Test = () => {
+      const [actor, setActor] = useState(firstActor);
+      const [, send] = useActor(actor);
+
+      React.useEffect(() => {
+        setTimeout(() => {
+          // The `send` here is closed-in
+          send({ type: 'anything' });
+        }, 10);
+      }, []); // Intentionally omit `send` from dependency array
+
+      return (
+        <>
+          <button
+            data-testid="button"
+            onClick={() => setActor(lastActor)}
+          ></button>
+        </>
+      );
+    };
+
+    const { getByTestId } = render(<Test />);
+
+    // At this point, `send` refers to the first (noop) actor
+
+    const button = getByTestId('button');
+    fireEvent.click(button);
+
+    // At this point, `send` refers to the last actor
+
+    jest.advanceTimersByTime(20);
+
+    // The effect will call the closed-in `send`, which originally
+    // was the reference to the first actor. Now that `send` is stable,
+    // it will always refer to the latest actor.
+  });
+
+  it('should also work with services', () => {
+    const counterMachine = createMachine<
+      { count: number },
+      { type: 'INC' } | { type: 'SOMETHING' }
+    >(
+      {
+        id: 'counter',
+        initial: 'active',
+        context: { count: 0 },
+        states: {
+          active: {
+            on: {
+              INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) },
+              SOMETHING: { actions: 'doSomething' }
+            }
+          }
+        }
+      },
+      {
+        actions: {
+          doSomething: () => {
+            /* do nothing */
+          }
+        }
+      }
+    );
+    const counterService = interpret(counterMachine).start();
+
+    const Counter = () => {
+      const [state, send] = useActor(counterService);
+
+      return (
+        <div
+          data-testid="count"
+          onClick={() => {
+            send('INC');
+            // @ts-expect-error
+            send('FAKE');
+          }}
+        >
+          {state.context.count}
+        </div>
+      );
+    };
+
+    const { getAllByTestId } = render(
+      <>
+        <Counter />
+        <Counter />
+      </>
+    );
+
+    const countEls = getAllByTestId('count');
+
+    expect(countEls.length).toBe(2);
+
+    countEls.forEach((countEl) => {
+      expect(countEl.textContent).toBe('0');
+    });
+
+    act(() => {
+      counterService.send({ type: 'INC' });
+    });
+
+    countEls.forEach((countEl) => {
+      expect(countEl.textContent).toBe('1');
+    });
   });
 });

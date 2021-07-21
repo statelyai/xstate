@@ -127,7 +127,6 @@ describe('deep transitions', () => {
     });
 
     it('should exit substate when machine handles event (MACHINE_EVENT)', () => {
-      // console.log(deepMachine.initialState.value);
       const actual = deepMachine
         .transition(deepMachine.initialState, 'MACHINE_EVENT')
         .actions.map((a) => `${a}`);

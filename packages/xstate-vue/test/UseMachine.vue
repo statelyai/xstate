@@ -11,15 +11,14 @@
 </template>
 
 <script lang="ts">
-import { PropType } from 'vue';
+import { defineComponent, PropType } from 'vue';
 import { useMachine } from '../src';
-import { Machine, assign, State } from 'xstate';
-import { watch } from '@vue/composition-api';
+import { createMachine, assign, State } from 'xstate';
 
 const context = {
   data: undefined
 };
-const fetchMachine = Machine<typeof context, any>({
+const fetchMachine = createMachine<typeof context, any>({
   id: 'fetch',
   initial: 'idle',
   context,
@@ -45,7 +44,7 @@ const fetchMachine = Machine<typeof context, any>({
   }
 });
 
-export default {
+export default defineComponent({
   props: {
     persistedState: {
       type: Object as PropType<State<any>>
@@ -63,5 +62,5 @@ export default {
     });
     return { state, send, service };
   }
-};
+});
 </script>

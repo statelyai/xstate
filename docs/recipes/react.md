@@ -3,10 +3,10 @@
 The most straightforward way of using XState with React is through local component state. The machine used should always be decoupled from implementation details; e.g., it should never know that it is in React (or Vue, or Angular, etc.):
 
 ```js
-import { Machine } from 'xstate';
+import { createMachine } from 'xstate';
 
 // This machine is completely decoupled from React
-export const toggleMachine = Machine({
+export const toggleMachine = createMachine({
   id: 'toggle',
   initial: 'inactive',
   states: {
@@ -22,7 +22,7 @@ export const toggleMachine = Machine({
 
 ## Hooks
 
-Using [React hooks](https://reactjs.org/hooks) makes it easier to use state machines with function components. You can either use the official [`@xstate/react`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-react) package, a community solution like [`use-machine` by Carlos Galarza](https://github.com/carloslfu/use-machine/), or implement your own hook to interpret and use XState machines:
+Using [React hooks](https://reactjs.org/hooks) makes it easier to use state machines with function components. You can either use the official [`@xstate/react`](https://github.com/davidkpiano/xstate/tree/main/packages/xstate-react) package, a community solution like [`use-machine` by Carlos Galarza](https://github.com/carloslfu/use-machine/), or implement your own hook to interpret and use XState machines:
 
 ```js
 // import { useMachine } from '../path/to/useMachine';
@@ -50,7 +50,7 @@ function Toggle() {
 
 ```jsx
 import React from 'react';
-import { Machine, interpret } from 'xstate';
+import { createMachine, interpret } from 'xstate';
 import { toggleMachine } from '../path/to/toggleMachine';
 
 class Toggle extends React.Component {
@@ -58,7 +58,7 @@ class Toggle extends React.Component {
     current: toggleMachine.initialState
   };
 
-  service = interpret(toggleMachine).onTransition(current =>
+  service = interpret(toggleMachine).onTransition((current) =>
     this.setState({ current })
   );
 

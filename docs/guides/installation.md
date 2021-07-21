@@ -12,11 +12,11 @@ yarn add xstate@latest --save
 
 ## Exports
 
-The important exports are as follows:
+The common exports are as follows:
 
 ```js {2-9}
 import {
-  Machine,
+  createMachine,
   State,
   actions,
   assign,
@@ -42,9 +42,9 @@ You can include XState directly from the [unpkg CDN](https://unpkg.com/xstate@4/
 The variable `XState` will be available globally, which will give you access to the top-level exports.
 
 ```js
-const { Machine, actions, interpret } = XState; // global variable: window.XState
+const { createMachine, actions, interpret } = XState; // global variable: window.XState
 
-const lightMachine = Machine({
+const lightMachine = createMachine({
   // ...
 });
 

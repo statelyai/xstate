@@ -3,21 +3,6 @@
 As XState is written in [TypeScript](https://www.typescriptlang.org/), strongly typing your statecharts is useful and encouraged. Consider this light machine example:
 
 ```typescript
-// The hierarchical (recursive) schema for the states
-interface LightStateSchema {
-  states: {
-    green: {};
-    yellow: {};
-    red: {
-      states: {
-        walk: {};
-        wait: {};
-        stop: {};
-      };
-    };
-  };
-}
-
 // The events that the machine handles
 type LightEvent =
   | { type: 'TIMER' }
@@ -29,33 +14,33 @@ interface LightContext {
   elapsed: number;
 }
 
-const lightMachine = Machine<LightContext, LightStateSchema, LightEvent>({
+const lightMachine = createMachine<LightContext, LightEvent>({
   key: 'light',
   initial: 'green',
   context: { elapsed: 0 },
   states: {
     green: {
       on: {
-        TIMER: 'yellow',
-        POWER_OUTAGE: 'red'
+        TIMER: { target: 'yellow' },
+        POWER_OUTAGE: { target: 'red' }
       }
     },
     yellow: {
       on: {
-        TIMER: 'red',
-        POWER_OUTAGE: 'red'
+        TIMER: { target: 'red' },
+        POWER_OUTAGE: { target: 'red' }
       }
     },
     red: {
       on: {
-        TIMER: 'green',
-        POWER_OUTAGE: 'red'
+        TIMER: { target: 'green' },
+        POWER_OUTAGE: { target: 'red' }
       },
       initial: 'walk',
       states: {
         walk: {
           on: {
-            PED_COUNTDOWN: 'wait'
+            PED_COUNTDOWN: { target: 'wait' }
           }
         },
         wait: {
@@ -69,9 +54,9 @@ const lightMachine = Machine<LightContext, LightStateSchema, LightEvent>({
           }
         },
         stop: {
-          on: {
-            // Transient transition
-            '': { target: '#light.green' }
+          // Transient transition
+          always: {
+            target: '#light.green'
           }
         }
       }
@@ -80,10 +65,9 @@ const lightMachine = Machine<LightContext, LightStateSchema, LightEvent>({
 });
 ```
 
-Providing the context, state schema, and events as generic parameters for the `Machine()` function may seem tedious (and is completely optional), but gives many advantages:
+Providing the context and events as generic parameters for the `createMachine()` function may seem tedious (and is completely optional), but gives many advantages:
 
 - The context type/interface (`TContext`) is passed on to action `exec` functions, guard `cond` functions, and more. It is also passed to deeply nested states.
-- The state schema type/interface (`TStateSchema`) ensures that only state keys defined on the schema are allowed in the actual config object. Nested state schemas are recursively passed down to their representative child states.
 - The event type (`TEvent`) ensures that only specified events (and built-in XState-specific ones) are used in transition configs. The provided event object shapes are also passed on to action `exec` functions, guard `cond` functions, and more. This can prevent unnecessary `event.somePayload === undefined` checks.
 
 Note if you are seeing this error:
@@ -97,12 +81,12 @@ Ensure that your tsconfig file does not include `"keyofStringsOnly": true,`.
 
 ## Config Objects
 
-The generic types for `MachineConfig<TContext, TSchema, TEvent>` are the same as those for `Machine<TContext, TSchema, TEvent>`. This is useful when you are defining a machine config object _outside_ of the `Machine(...)` function, and helps prevent [inference errors](https://github.com/davidkpiano/xstate/issues/310):
+The generic types for `MachineConfig<TContext, any, TEvent>` are the same as those for `createMachine<TContext, TEvent>`. This is useful when you are defining a machine config object _outside_ of the `createMachine(...)` function, and helps prevent [inference errors](https://github.com/davidkpiano/xstate/issues/310):
 
 ```ts
 import { MachineConfig } from 'xstate';
 
-const myMachineConfig: MachineConfig<TContext, TSchema, TEvent> = {
+const myMachineConfig: MachineConfig<TContext, any, TEvent> = {
   id: 'controller',
   initial: 'stopped',
   states: {
@@ -122,11 +106,6 @@ const myMachineConfig: MachineConfig<TContext, TSchema, TEvent> = {
 The `send` action on the interpreted machine `interpret(stateMachine)` isn't always type safe. To get typechecking for this function signature, use the following pattern:
 
 ```ts
-type UserEvents = {
-  type: 'TEST';
-  value: string;
-};
-
 const service = interpret(stateMachine);
 
 // This will compile
@@ -216,7 +195,7 @@ const userMachine = createMachine<UserContext, UserEvent, UserState>({
 
 const userService = interpret(userMachine);
 
-userService.subscribe(state => {
+userService.subscribe((state) => {
   if (state.matches('success')) {
     // from the UserState typestate, `user` will be defined
     state.context.user.name;

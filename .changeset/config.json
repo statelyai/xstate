@@ -7,10 +7,9 @@
   "commit": false,
   "linked": [],
   "access": "public",
-  "baseBranch": "master",
+  "baseBranch": "main",
   "ignore": [
     "@xstate/analytics",
-    "@xstate/react",
     "@xstate/scxml",
     "@xstate/viz",
     "@xstate/viz-example"

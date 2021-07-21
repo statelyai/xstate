@@ -1,6 +1,6 @@
 name: Node CI
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
   build:
@@ -10,7 +10,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [12.x]
+        node-version: [14.x]
 
     steps:
       - uses: actions/checkout@v2
@@ -27,4 +27,4 @@ jobs:
         run: yarn build
 
       - name: Test
-        run: yarn test
+        run: yarn test --silent

@@ -3,17 +3,27 @@
 XState integrates great with Svelte, and especially [Svelte stores!](https://svelte.dev/docs#svelte_store)
 
 The only gotcha is that you'll need this extra package.
+
 ```js
 npm install @rollup/plugin-replace --save-dev
 ```
-Then add this to the plugins array in rollup.config.js.
+
+Import the new package in rollup.config.js
+
 ```js
-replace({ 
-    'process.env.NODE_ENV': process.env.NODE_ENV
-})
+import replace from '@rollup/plugin-replace';
+```
+
+Then add this to the plugins array in rollup.config.js.
+
+```js
+replace({
+  'process.env.NODE_ENV': process.env.NODE_ENV
+});
 ```
 
 ### machine.js
+
 ```js
 import { createMachine } from 'xstate';
 
@@ -33,13 +43,14 @@ export const toggleMachine = createMachine({
 ```
 
 ### App.svelte - Standard usage
+
 ```html
 <script>
     import {interpret} from 'xstate';
     import {toggleMachine} from './machine';
-    
+
     let current;
-    
+
     const toggleService = interpret(toggleMachine)
         .onTransition((state) => {
             current = state;
@@ -52,12 +63,14 @@ export const toggleMachine = createMachine({
 ```
 
 ### App.svelte - Store usage
+
 The toggleService has a `.subscribe` function that is similar to Svelte stores, so it can be used as a readable store.
+
 ```html
 <script>
     import {interpret} from 'xstate';
     import {toggleMachine} from './machine';
-        
+
     const toggleService = interpret(toggleMachine).start();
 </script>
 
@@ -65,4 +78,5 @@ The toggleService has a `.subscribe` function that is similar to Svelte stores, 
     {$toggleService.matches('inactive') ? 'Off' : 'On'}
 </button>
 ```
-If you're not familiar with the '$' syntax, it basically just reads the value of a store.
+
+If you're not familiar with the '\$' syntax, it basically just reads the value of a store.

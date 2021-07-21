@@ -1,5 +1,11 @@
 # @xstate/immer
 
+## 0.2.0
+
+### Minor Changes
+
+- [`63a270a0`](https://github.com/davidkpiano/xstate/commit/63a270a0dc2337e88ca607d4e6bc5c85fb8b6618) [#1908](https://github.com/davidkpiano/xstate/pull/1908) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Peer dependency range on [`immer`](https://immerjs.github.io/immer/docs/introduction) changed to `^8.0.1`.
+
 ## 0.1.0
 
 ### Minor Changes

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useMachine } from '../src/fsm';
-import { createMachine, assign, interpret } from '@xstate/fsm';
+import { createMachine, assign, interpret, StateMachine } from '@xstate/fsm';
 import {
   render,
   fireEvent,
@@ -267,5 +267,59 @@ describe('useMachine hook for fsm', () => {
     const service = interpret(machine).start();
     service.send('EV');
     expect(flag).toBe(true);
+  });
+
+  // Example from: https://github.com/davidkpiano/xstate/discussions/1944
+  it('fsm useMachine service should be typed correctly', () => {
+    interface Context {
+      count?: number;
+    }
+
+    type Event = { type: 'READY' };
+
+    type State =
+      | {
+          value: 'idle';
+          context: Context & {
+            count: undefined;
+          };
+        }
+      | {
+          value: 'ready';
+          context: Context & {
+            count: number;
+          };
+        };
+
+    type Service = StateMachine.Service<Context, Event, State>;
+
+    const machine = createMachine<Context, Event, State>({
+      id: 'machine',
+      initial: 'idle',
+      context: {
+        count: undefined
+      },
+      states: {
+        idle: {},
+        ready: {}
+      }
+    });
+
+    const useCustomService = (service: Service) =>
+      React.useEffect(() => {}, [service]);
+
+    function App() {
+      const [, , service] = useMachine(machine);
+
+      useCustomService(service);
+
+      return null;
+    }
+
+    const noop = (_val: any) => {
+      /* ... */
+    };
+
+    noop(App);
   });
 });

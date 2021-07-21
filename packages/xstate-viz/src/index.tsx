@@ -4,12 +4,12 @@ import React, {
   useContext,
   useRef,
   useState,
+  useEffect
 } from 'react';
 import ReactDOM from 'react-dom';
 import { StateMachine, Interpreter, StateNode, State } from 'xstate';
 import { useService } from '@xstate/react';
 import styled from 'styled-components';
-import { useEffect } from 'react';
 
 export function getChildren(machine: StateNode): StateNode[] {
   if (!machine.states) return [];

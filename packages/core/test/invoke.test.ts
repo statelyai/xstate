@@ -6,13 +6,17 @@ import {
   send,
   EventObject,
   StateValue,
-  createMachine
+  createMachine,
+  Behavior,
+  ActorContext
 } from '../src';
+import { fromReducer } from '../src/behaviors';
 import {
   actionTypes,
   done as _done,
   doneInvoke,
   escalate,
+  forwardTo,
   raise
 } from '../src/actions';
 import { interval } from 'rxjs';
@@ -836,6 +840,55 @@ describe('invoke', () => {
         })
         .start();
     });
+
+    it('should not reinvoke root-level invocations', (done) => {
+      // https://github.com/davidkpiano/xstate/issues/2147
+
+      let invokeCount = 0;
+      let invokeDisposeCount = 0;
+      let actionsCount = 0;
+      let entryActionsCount = 0;
+
+      const machine = createMachine({
+        invoke: {
+          src: () => () => {
+            invokeCount++;
+
+            return () => {
+              invokeDisposeCount++;
+            };
+          }
+        },
+        entry: () => entryActionsCount++,
+        on: {
+          UPDATE: {
+            internal: true,
+            actions: () => {
+              actionsCount++;
+            }
+          }
+        }
+      });
+
+      const service = interpret(machine).start();
+      expect(entryActionsCount).toEqual(1);
+      expect(invokeCount).toEqual(1);
+      expect(invokeDisposeCount).toEqual(0);
+      expect(actionsCount).toEqual(0);
+
+      service.send('UPDATE');
+      expect(entryActionsCount).toEqual(1);
+      expect(invokeCount).toEqual(1);
+      expect(invokeDisposeCount).toEqual(0);
+      expect(actionsCount).toEqual(1);
+
+      service.send('UPDATE');
+      expect(entryActionsCount).toEqual(1);
+      expect(invokeCount).toEqual(1);
+      expect(invokeDisposeCount).toEqual(0);
+      expect(actionsCount).toEqual(2);
+      done();
+    });
   });
 
   type PromiseExecutor = (
@@ -952,6 +1005,7 @@ describe('invoke', () => {
         }, 10);
       });
 
+      // tslint:disable-next-line:max-line-length
       it('should be invoked with a promise factory and stop on unhandled onError target when on strict mode', (done) => {
         const doneSpy = jest.fn();
 
@@ -1297,10 +1351,8 @@ describe('invoke', () => {
         },
         {
           services: {
-            someCallback: (ctx, e: BeginEvent) => (
-              cb: (ev: CallbackEvent) => void
-            ) => {
-              if (ctx.foo && e.payload) {
+            someCallback: (ctx, e) => (cb: (ev: CallbackEvent) => void) => {
+              if (ctx.foo && 'payload' in e) {
                 cb({
                   type: 'CALLBACK',
                   data: 40
@@ -2002,6 +2054,158 @@ describe('invoke', () => {
     });
   });
 
+  describe('with behaviors', () => {
+    it('should work with a behavior', (done) => {
+      const countBehavior: Behavior<EventObject, number> = {
+        transition: (count, event) => {
+          if (event.type === 'INC') {
+            return count + 1;
+          } else {
+            return count - 1;
+          }
+        },
+        initialState: 0
+      };
+
+      const countMachine = createMachine({
+        invoke: {
+          id: 'count',
+          src: () => countBehavior
+        },
+        on: {
+          INC: {
+            actions: forwardTo('count')
+          }
+        }
+      });
+
+      const countService = interpret(countMachine)
+        .onTransition((state) => {
+          if (state.children['count']?.getSnapshot() === 2) {
+            done();
+          }
+        })
+        .start();
+
+      countService.send('INC');
+      countService.send('INC');
+    });
+
+    it('behaviors should have reference to the parent', (done) => {
+      const pongBehavior: Behavior<EventObject, undefined> = {
+        transition: (_, event, { parent }) => {
+          if (event.type === 'PING') {
+            parent?.send({ type: 'PONG' });
+          }
+
+          return undefined;
+        },
+        initialState: undefined
+      };
+
+      const pingMachine = createMachine({
+        initial: 'waiting',
+        states: {
+          waiting: {
+            entry: send('PING', { to: 'ponger' }),
+            invoke: {
+              id: 'ponger',
+              src: () => pongBehavior
+            },
+            on: {
+              PONG: 'success'
+            }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      });
+
+      const pingService = interpret(pingMachine).onDone(() => {
+        done();
+      });
+      pingService.start();
+    });
+  });
+
+  describe('with reducers', () => {
+    it('should work with a reducer', (done) => {
+      const countReducer = (count: number, event: { type: 'INC' }): number => {
+        if (event.type === 'INC') {
+          return count + 1;
+        } else {
+          return count - 1;
+        }
+      };
+
+      const countMachine = createMachine({
+        invoke: {
+          id: 'count',
+          src: () => fromReducer(countReducer, 0)
+        },
+        on: {
+          INC: {
+            actions: forwardTo('count')
+          }
+        }
+      });
+
+      const countService = interpret(countMachine)
+        .onTransition((state) => {
+          if (state.children['count']?.getSnapshot() === 2) {
+            done();
+          }
+        })
+        .start();
+
+      countService.send('INC');
+      countService.send('INC');
+    });
+
+    it('should schedule events in a FIFO queue', (done) => {
+      type CountEvents = { type: 'INC' } | { type: 'DOUBLE' };
+
+      const countReducer = (
+        count: number,
+        event: { type: 'INC' } | { type: 'DOUBLE' },
+        { self }: ActorContext<CountEvents, any>
+      ): number => {
+        if (event.type === 'INC') {
+          self.send({ type: 'DOUBLE' });
+          return count + 1;
+        }
+        if (event.type === 'DOUBLE') {
+          return count * 2;
+        }
+
+        return count;
+      };
+
+      const countMachine = createMachine({
+        invoke: {
+          id: 'count',
+          src: () => fromReducer(countReducer, 0)
+        },
+        on: {
+          INC: {
+            actions: forwardTo('count')
+          }
+        }
+      });
+
+      const countService = interpret(countMachine)
+        .onTransition((state) => {
+          if (state.children['count']?.getSnapshot() === 2) {
+            done();
+          }
+        })
+        .start();
+
+      countService.send('INC');
+    });
+  });
+
   describe('nested invoked machine', () => {
     const pongMachine = Machine({
       id: 'pong',
@@ -2232,7 +2436,9 @@ describe('invoke', () => {
                   active: {
                     invoke: {
                       id: 'active',
-                      src: () => () => {}
+                      src: () => () => {
+                        /* ... */
+                      }
                     },
                     on: {
                       NEXT: {
@@ -2427,7 +2633,7 @@ describe('services option', () => {
 
             expect(data).toEqual({ newCount: 84, staticVal: 'hello' });
 
-            return new Promise((res) => {
+            return new Promise<void>((res) => {
               res();
             });
           }

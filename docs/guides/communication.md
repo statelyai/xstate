@@ -23,7 +23,7 @@ An invocation is defined in a state node's configuration with the `invoke` prope
   - a function that returns a "callback handler"
   - a function that returns an observable
   - a string, which refers to any of the 4 listed options defined in this machine's `options.services`
-  - <Badge text="4.12"> an invoke source object, which contains the source string in `{ type: src }`, as well as any other metadata.
+  - an invoke source object <Badge text="4.12" />, which contains the source string in `{ type: src }`, as well as any other metadata.
 - `id` - the unique identifier for the invoked service
 - `onDone` - (optional) the [transition](./transitions.md) to be taken when:
   - the child machine reaches its [final state](./final.md), or
@@ -31,7 +31,7 @@ An invocation is defined in a state node's configuration with the `invoke` prope
   - the invoked observable completes
 - `onError` - (optional) the transition to be taken when the invoked service encounters an execution error.
 - `autoForward` - (optional) `true` if all events sent to this machine should also be sent (or _forwarded_) to the invoked child (`false` by default)
-  - ⚠️ Avoid setting `autoForward` to `true`, as blindly forwarding all events may lead to unexpected behavior and/or infinite loops. Always prefer to explicitly send events, and/or use the `forward(...)` action creator to directly forward an event to an invoked child.
+  - ⚠️ Avoid setting `autoForward` to `true`, as blindly forwarding all events may lead to unexpected behavior and/or infinite loops. Always prefer to explicitly send events, and/or use the `forward(...)` action creator to directly forward an event to an invoked child. (works currently for machines only! ⚠️)
 - `data` - (optional, used only when invoking machines) an object that maps properties of the child machine's [context](./context.md) to a function that returns the corresponding value from the parent machine's `context`.
 
 ::: warning
@@ -76,7 +76,7 @@ If the state where the invoked promise is active is exited before the promise se
 const fetchUser = (userId) =>
   fetch(`url/to/user/${userId}`).then((response) => response.json());
 
-const userMachine = Machine({
+const userMachine = createMachine({
   id: 'user',
   initial: 'idle',
   context: {
@@ -87,7 +87,7 @@ const userMachine = Machine({
   states: {
     idle: {
       on: {
-        FETCH: 'loading'
+        FETCH: { target: 'loading' }
       }
     },
     loading: {
@@ -107,7 +107,7 @@ const userMachine = Machine({
     success: {},
     failure: {
       on: {
-        RETRY: 'loading'
+        RETRY: { target: 'loading' }
       }
     }
   }
@@ -128,7 +128,7 @@ The resolved data is placed into a `'done.invoke.<id>'` event, under the `data` 
 
 ### Promise Rejection
 
-If a Promise rejects, the `onError` transition will be taken with a `{ type: 'error.execution' }` event. The error data is available on the event's `data` property:
+If a Promise rejects, the `onError` transition will be taken with a `{ type: 'error.platform' }` event. The error data is available on the event's `data` property:
 
 ```js
 const search = (context, event) => new Promise((resolve, reject) => {
@@ -142,7 +142,7 @@ const search = (context, event) => new Promise((resolve, reject) => {
 });
 
 // ...
-const searchMachine = Machine({
+const searchMachine = createMachine({
   id: 'search',
   initial: 'idle',
   context: {
@@ -151,7 +151,9 @@ const searchMachine = Machine({
   },
   states: {
     idle: {
-      on: { SEARCH: 'searching' }
+      on: {
+        SEARCH: { target: 'searching' }
+      }
     },
     searching: {
       invoke: {
@@ -162,7 +164,7 @@ const searchMachine = Machine({
           actions: assign({
             errorMessage: (context, event) => {
               // event is:
-              // { type: 'error.execution', data: 'No query specified' }
+              // { type: 'error.platform', data: 'No query specified' }
               return event.data;
             }
           })
@@ -221,7 +223,7 @@ Invoked callback handlers are also given a second argument, `onReceive`, which r
 For example, the parent machine sends the child `'ponger'` service a `'PING'` event. The child service can listen for that event using `onReceive(listener)`, and send a `'PONG'` event back to the parent in response:
 
 ```js
-const pingPongMachine = Machine({
+const pingPongMachine = createMachine({
   id: 'pinger',
   initial: 'active',
   states: {
@@ -238,9 +240,9 @@ const pingPongMachine = Machine({
           });
         }
       },
-      entry: send('PING', { to: 'ponger' }),
+      entry: send({ type: 'PING' }, { to: 'ponger' }),
       on: {
-        PONG: 'done'
+        PONG: { target: 'done' }
       }
     },
     done: {
@@ -261,11 +263,11 @@ interpret(pingPongMachine)
 Observables can be invoked, which is expected to send events (strings or objects) to the parent machine, yet not receive events (uni-directional). An observable invocation is a function that takes `context` and `event` as arguments and returns an observable stream of events. The observable is unsubscribed when the state where it is invoked is exited.
 
 ```js
-import { Machine, interpret } from 'xstate';
+import { createMachine, interpret } from 'xstate';
 import { interval } from 'rxjs';
 import { map, take } from 'rxjs/operators';
 
-const intervalMachine = Machine({
+const intervalMachine = createMachine({
   id: 'interval',
   initial: 'counting',
   context: { myInterval: 1000 },
@@ -281,7 +283,7 @@ const intervalMachine = Machine({
       },
       on: {
         COUNT: { actions: 'notifyCount' },
-        CANCEL: 'finished'
+        CANCEL: { target: 'finished' }
       }
     },
     finished: {
@@ -301,7 +303,7 @@ import { fromEvent } from 'rxjs';
 
 const mouseMove$ = fromEvent(document.body, 'mousemove');
 
-const mouseMachine = Machine({
+const mouseMachine = createMachine({
   id: 'mouse',
   // ...
   invoke: {
@@ -327,23 +329,23 @@ Machines communicate hierarchically, and invoked machines can communicate:
 If the state where the machine is invoked is exited, the machine is stopped.
 
 ```js
-import { Machine, interpret, send, sendParent } from 'xstate';
+import { createMachine, interpret, send, sendParent } from 'xstate';
 
 // Invoked child machine
-const minuteMachine = Machine({
+const minuteMachine = createMachine({
   id: 'timer',
   initial: 'active',
   states: {
     active: {
       after: {
-        60000: 'finished'
+        60000: { target: 'finished' }
       }
     },
     finished: { type: 'final' }
   }
 });
 
-const parentMachine = Machine({
+const parentMachine = createMachine({
   id: 'parent',
   initial: 'pending',
   states: {
@@ -374,7 +376,7 @@ const service = interpret(parentMachine)
 Child machines can be invoked with `context` that is derived from the parent machine's `context` with the `data` property. For example, the `parentMachine` below will invoke a new `timerMachine` service with initial context of `{ duration: 3000 }`:
 
 ```js
-const timerMachine = Machine({
+const timerMachine = createMachine({
   id: 'timer',
   context: {
     duration: 1000 // default duration
@@ -382,7 +384,7 @@ const timerMachine = Machine({
   /* ... */
 });
 
-const parentMachine = Machine({
+const parentMachine = createMachine({
   id: 'parent',
   initial: 'active',
   context: {
@@ -421,12 +423,16 @@ data: (context, event) => ({
 })
 ```
 
+::: warning
+The `data` _replaces_ the default `context` defined on the machine; it is not merged. This behavior will change in the next major version.
+:::
+
 ### Done Data
 
-When a child machine reaches its top-level [final state](./final.md), it can send data in the "done" event (e.g., `{ type: 'done.invoke.someId', data: ... })`). This "done data" is specified on the final state's `data` property:
+When a child machine reaches its top-level [final state](./final.md), it can send data in the "done" event (e.g., `{ type: 'done.invoke.someId', data: ... }`). This "done data" is specified on the final state's `data` property:
 
 ```js
-const secretMachine = Machine({
+const secretMachine = createMachine({
   id: 'secret',
   initial: 'wait',
   context: {
@@ -435,7 +441,7 @@ const secretMachine = Machine({
   states: {
     wait: {
       after: {
-        1000: 'reveal'
+        1000: { target: 'reveal' }
       }
     },
     reveal: {
@@ -447,7 +453,7 @@ const secretMachine = Machine({
   }
 });
 
-const parentMachine = Machine({
+const parentMachine = createMachine({
   id: 'parent',
   initial: 'pending',
   context: {
@@ -501,10 +507,10 @@ describing what is to be sent, e.g., `{ type: 'xstate.send', event: ... }`. An
 Here is an example of two machines, `pingMachine` and `pongMachine`, communicating with each other:
 
 ```js
-import { Machine, interpret, send, sendParent } from 'xstate';
+import { createMachine, interpret, send, sendParent } from 'xstate';
 
 // Parent machine
-const pingMachine = Machine({
+const pingMachine = createMachine({
   id: 'ping',
   initial: 'active',
   states: {
@@ -514,13 +520,10 @@ const pingMachine = Machine({
         src: pongMachine
       },
       // Sends 'PING' event to child machine with ID 'pong'
-      entry: send('PING', { to: 'pong' }),
+      entry: send({ type: 'PING' }, { to: 'pong' }),
       on: {
         PONG: {
-          actions: send('PING', {
-            to: 'pong',
-            delay: 1000
-          })
+          actions: send({ type: 'PING' }, { to: 'pong', delay: 1000 })
         }
       }
     }
@@ -528,7 +531,7 @@ const pingMachine = Machine({
 });
 
 // Invoked child machine
-const pongMachine = Machine({
+const pongMachine = createMachine({
   id: 'pong',
   initial: 'active',
   states: {
@@ -564,11 +567,11 @@ An invoked service (or [spawned actor](./actors.md)) can _respond_ to another se
 For example, the `'client'` machine below sends the `'CODE'` event to the invoked `'auth-server'` service, which then responds with a `'TOKEN'` event after 1 second.
 
 ```js
-import { Machine, send, actions } from 'xstate';
+import { createMachine, send, actions } from 'xstate';
 
 const { respond } = actions;
 
-const authServerMachine = Machine({
+const authServerMachine = createMachine({
   id: 'server',
   initial: 'waitingForCode',
   states: {
@@ -582,21 +585,23 @@ const authServerMachine = Machine({
   }
 });
 
-const authClientMachine = Machine({
+const authClientMachine = createMachine({
   id: 'client',
   initial: 'idle',
   states: {
     idle: {
-      on: { AUTH: 'authorizing' }
+      on: {
+        AUTH: { target: 'authorizing' }
+      }
     },
     authorizing: {
       invoke: {
         id: 'auth-server',
         src: authServerMachine
       },
-      entry: send('CODE', { to: 'auth-server' }),
+      entry: send({ type: 'CODE' }, { to: 'auth-server' }),
       on: {
-        TOKEN: 'authorized'
+        TOKEN: { target: 'authorized' }
       }
     },
     authorized: {
@@ -631,7 +636,7 @@ The invocation sources (services) can be configured similar to how actions, guar
 ```js
 const fetchUser = // (same as the above example)
 
-const userMachine = Machine({
+const userMachine = createMachine({
   id: 'user',
   // ...
   states: {
@@ -651,7 +656,7 @@ const userMachine = Machine({
 });
 ```
 
-<Badge text="4.12" /> The invoke `src` can also be specified as an object that describes the invoke source with its `type` and other related metadata. This can be read from the `services` option in the `meta.src` argument:
+The invoke `src` can also be specified as an object <Badge text="4.12" /> that describes the invoke source with its `type` and other related metadata. This can be read from the `services` option in the `meta.src` argument:
 
 ```js
 const machine = createMachine(
@@ -725,7 +730,7 @@ describe('userMachine', () => {
 Services (and [actors](./actors.md), which are spawned services) can be referenced directly on the [state object](./states.md) from the `.children` property. The `state.children` object is a mapping of service IDs (keys) to those service instances (values):
 
 ```js
-const machine = Machine({
+const machine = createMachine({
   // ...
   invoke: [
     { id: 'notifier', src: createNotifier },
@@ -749,7 +754,7 @@ When JSON serialized, the `state.children` object is a mapping of service IDs (k
 **The `invoke` property**
 
 ```js
-const machine = Machine({
+const machine = createMachine({
   // ...
   states: {
     someState: {
@@ -764,7 +769,7 @@ const machine = Machine({
           // - an observable
         },
         id: 'some-id',
-        // (optional) forward machine events to invoked service
+        // (optional) forward machine events to invoked service (currently for machines only!)
         autoForward: true,
         // (optional) the transition when the invoked promise/observable/machine is done
         onDone: { target: /* ... */ },
@@ -854,7 +859,7 @@ on: {
 **Invoking Machines**
 
 ```js
-const someMachine = Machine({ /* ... */ });
+const someMachine = createMachine({ /* ... */ });
 
 // ...
 {
@@ -883,7 +888,7 @@ The `invoke` property is synonymous to the SCXML `<invoke>` element:
     invoke: {
       src: 'someSource',
       id: 'someID',
-      autoForward: true,
+      autoForward: true, // currently for machines only!
       onDone: 'success',
       onError: 'failure'
     }
@@ -896,7 +901,7 @@ The `invoke` property is synonymous to the SCXML `<invoke>` element:
 <state id="loading">
   <invoke id="someID" src="someSource" autoforward />
   <transition event="done.invoke.someID" target="success" />
-  <transition event="error.execution" cond="_event.src === 'someID'" target="failure" />
+  <transition event="error.platform" cond="_event.src === 'someID'" target="failure" />
 </state>
 ```
 

@@ -76,6 +76,43 @@ describe('@xstate/fsm', () => {
     expect(initialState.value).toEqual('green');
     expect(initialState.actions).toEqual([{ type: 'enterGreen' }]);
   });
+  it('should have initial context updated by initial assign actions', () => {
+    const { initialState } = createMachine({
+      initial: 'init',
+      context: {
+        count: 0
+      },
+      states: {
+        init: {
+          entry: assign({
+            count: () => 1
+          })
+        }
+      }
+    });
+
+    expect(initialState.context).toEqual({ count: 1 });
+  });
+  it('should have initial actions computed without assign actions', () => {
+    const { initialState } = createMachine({
+      initial: 'init',
+      context: {
+        count: 0
+      },
+      states: {
+        init: {
+          entry: [
+            { type: 'foo' },
+            assign({
+              count: () => 1
+            })
+          ]
+        }
+      }
+    });
+
+    expect(initialState.actions).toEqual([{ type: 'foo' }]);
+  });
   it('should transition correctly', () => {
     const nextState = lightFSM.transition('green', 'TIMER');
     expect(nextState.value).toEqual('yellow');
@@ -101,6 +138,28 @@ describe('@xstate/fsm', () => {
     expect(() => {
       lightFSM.transition('unknown', 'TIMER');
     }).toThrow();
+  });
+
+  it('should throw an error for undefined next state config', () => {
+    const invalidState = 'blue';
+    const testConfig = {
+      id: 'test',
+      initial: 'green',
+      states: {
+        green: {
+          on: {
+            TARGET_INVALID: invalidState
+          }
+        },
+        yellow: {}
+      }
+    };
+    const testMachine = createMachine(testConfig);
+    expect(() => {
+      testMachine.transition('green', 'TARGET_INVALID');
+    }).toThrow(
+      `State '${invalidState}' not found on machine ${testConfig.id ?? ''}`
+    );
   });
 
   it('should work with guards', () => {
@@ -376,5 +435,31 @@ describe('interpreter', () => {
     });
 
     service.send('CHANGE');
+  });
+
+  it('should not re-execute exit/entry actions for transitions with undefined targets', () => {
+    const machine = createMachine({
+      initial: 'test',
+      states: {
+        test: {
+          entry: ['entry'],
+          exit: ['exit'],
+          on: {
+            EVENT: {
+              // undefined target
+              actions: ['action']
+            }
+          }
+        }
+      }
+    });
+
+    const { initialState } = machine;
+
+    expect(initialState.actions.map((a) => a.type)).toEqual(['entry']);
+
+    const nextState = machine.transition(initialState, 'EVENT');
+
+    expect(nextState.actions.map((a) => a.type)).toEqual(['action']);
   });
 });
