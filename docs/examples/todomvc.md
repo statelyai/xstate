@@ -1,6 +1,6 @@
 # TodoMVC Examples
 
-All demos share the same machines.
+Both demos share the same machines.
 
 ## TodoMVC with React
 
@@ -10,15 +10,6 @@ All demos share the same machines.
   - `todoMachine` controls each individual todo item.
 
 <iframe src="https://codesandbox.io/embed/33wr94qv1" style="width:100%; height:500px; border:0; border-radius: 4px; overflow:hidden;" sandbox="allow-modals allow-forms allow-popups allow-scripts allow-same-origin"></iframe>
-
-## TodoMVC with Svelte
-
-- Uses Svelte with the [store contract](https://svelte.dev/docs#Store_contract)
-- Two machines:
-  - `todosMachine` controls the overall Todos application
-  - `todoMachine` controls each individual todo item.
-
-<iframe src="https://codesandbox.io/embed/github/statelyai/xstate/tree/main/examples/todo-mvc-svelte" style="width:100%; height:500px; border:0; border-radius: 4px; overflow:hidden;" sandbox="allow-modals allow-forms allow-popups allow-scripts allow-same-origin"></iframe>
 
 ## TodoMVC with Vue
 
