@@ -99,7 +99,7 @@ type SimpleActionsFrom<T extends BaseActionObject> = ActionObject<
   any
 > extends T
   ? T // If actions are unspecified, all action types are allowed (unsafe)
-  : ExtractSimple<T>;
+  : ExtractWithSimpleSupport<T>;
 
 export type BaseAction<
   TContext,
@@ -254,8 +254,8 @@ type ExtractExtraParameters<A, T> = A extends { type: T }
   ? ExcludeType<A>
   : never;
 
-type ExtractSimple<T> = T extends any
-  ? Exclude<keyof T, 'type'> extends never
+type ExtractWithSimpleSupport<T extends { type: string }> = T extends any
+  ? { type: T['type'] } extends T
     ? T
     : never
   : never;
@@ -266,7 +266,7 @@ export interface PayloadSender<TEvent extends EventObject> {
   /**
    * Send an event object or just the event type, if the event has no other payload
    */
-  (event: TEvent | ExtractSimple<TEvent>['type']): void;
+  (event: TEvent | ExtractWithSimpleSupport<TEvent>['type']): void;
   /**
    * Send an event type and its payload
    */
