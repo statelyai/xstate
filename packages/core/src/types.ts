@@ -8,7 +8,7 @@ export type ActionType = string;
 export type MetaObject = Record<string, any>;
 
 /**
- * The full definition of an event, with a string `type`.
+ * The full definition of an event, with a string `type`
  */
 export interface EventObject {
   /**
@@ -16,6 +16,12 @@ export interface EventObject {
    */
   type: string;
 }
+
+export interface GlobalEvents {}
+
+export type ToEventObject<T> = keyof T extends never
+  ? EventObject
+  : { [K in keyof T]: { type: K } & T[K] }[keyof T];
 
 export interface AnyEventObject extends EventObject {
   [key: string]: any;

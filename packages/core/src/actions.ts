@@ -55,7 +55,7 @@ import {
 import { State } from './State';
 import { StateNode } from './StateNode';
 import { IS_PRODUCTION } from './environment';
-import { StopAction, StopActionObject } from '.';
+import { GlobalEvents, StopAction, StopActionObject, ToEventObject } from '.';
 
 export { actionTypes };
 
@@ -267,7 +267,7 @@ export function resolveSend<
 export function sendParent<
   TContext,
   TEvent extends EventObject,
-  TSentEvent extends EventObject = AnyEventObject
+  TSentEvent extends ToEventObject<GlobalEvents> = AnyEventObject
 >(
   event: Event<TSentEvent> | SendExpr<TContext, TEvent, TSentEvent>,
   options?: SendActionOptions<TContext, TEvent>
@@ -559,7 +559,7 @@ export function escalate<
         data: isFunction(errorData)
           ? errorData(context, event, meta)
           : errorData
-      };
+      } as never;
     },
     {
       ...options,
