@@ -1556,6 +1556,32 @@ describe('assign action order', () => {
     expect(captured).toEqual([0, 1, 2]);
   });
 
+  it('should capture correct context values on subsequent transitions', () => {
+    let captured: any[] = [];
+
+    const machine = createMachine<{ counter: number }>({
+      context: {
+        counter: 0
+      },
+      on: {
+        EV: {
+          actions: [
+            assign({ counter: (ctx) => ctx.counter + 1 }),
+            (ctx) => captured.push(ctx.counter)
+          ]
+        }
+      },
+      preserveActionOrder: true
+    });
+
+    const service = interpret(machine).start();
+
+    service.send('EV');
+    service.send('EV');
+
+    expect(captured).toEqual([1, 2]);
+  });
+
   it.each([undefined, false])(
     'should prioritize assign actions when .preserveActionOrder = %i',
     (preserveActionOrder) => {
