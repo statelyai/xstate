@@ -12,7 +12,18 @@ import {
 
 export type AnyFunction = (...args: any[]) => any;
 
-export type Cast<A1 extends any, A2 extends any> = A1 extends A2 ? A1 : A2;
+// https://github.com/microsoft/TypeScript/issues/23182#issuecomment-379091887
+export type IsNever<T> = [T] extends [never] ? true : false;
+
+/**
+ * Casts T to TCastType if T is assignable to TCastType.
+ * When `never` extends `TCastType`, `TCastType` will be chosen to prevent `never`.
+ */
+export type Cast<T extends any, TCastType extends any> = IsNever<T> extends true
+  ? TCastType
+  : T extends TCastType
+  ? T
+  : TCastType;
 export type Compute<A extends any> = { [K in keyof A]: A[K] } & unknown;
 export type Prop<T, K> = K extends keyof T ? T[K] : never;
 
