@@ -224,7 +224,7 @@ describe('useMachine hook', () => {
     done();
   });
 
-  it('actions should not have stale data', async (done) => {
+  it('custom actions should not have stale data', async (done) => {
     const toggleMachine = Machine<any, { type: 'TOGGLE' }>({
       initial: 'inactive',
       states: {
@@ -276,6 +276,49 @@ describe('useMachine hook', () => {
     fireEvent.click(extButton);
 
     fireEvent.click(button);
+  });
+
+  it('builtin actions should not have stale data', async () => {
+    const m = createMachine<{ count: number }>({
+      context: {
+        count: 0
+      },
+      on: {
+        RESET_COUNTER: {
+          actions: 'resetCounter'
+        }
+      }
+    });
+
+    const App = ({ prop }: { prop: number }) => {
+      const [state, send] = useMachine(m, {
+        actions: {
+          resetCounter: assign({
+            count: () => prop
+          })
+        }
+      });
+      return (
+        <>
+          <span>{state.context.count}</span>
+          <button type="button" onClick={() => send('RESET_COUNTER')}>
+            {'Reset'}
+          </button>
+        </>
+      );
+    };
+
+    const { findByText, findByRole, rerender } = render(<App prop={100} />);
+
+    expect(await findByText('0')).toBeTruthy();
+
+    const button = await findByRole('button');
+    fireEvent.click(button);
+    expect(await findByText('100')).toBeTruthy();
+
+    rerender(<App prop={42} />);
+    fireEvent.click(button);
+    expect(await findByText('42')).toBeTruthy();
   });
 
   it('should compile with typed matches (createMachine)', () => {
