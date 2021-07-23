@@ -44,7 +44,7 @@
             <a
               href="#/"
               :class="{
-                selected: state.matches('all')
+                selected: filter === 'all'
               }"
               >All</a
             >
@@ -53,7 +53,7 @@
             <a
               href="#/active"
               :class="{
-                selected: state.matches('active')
+                selected: filter === 'active'
               }"
               >Active</a
             >
@@ -62,7 +62,7 @@
             <a
               href="#/completed"
               :class="{
-                selected: state.matches('completed')
+                selected: filter === 'completed'
               }"
               >Completed</a
             >
