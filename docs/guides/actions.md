@@ -103,7 +103,7 @@ It depends! They mean different things:
 // ...
 ```
 
-- A transition actions mean "execute this action **only on this transition**". Use transition actions when the action is dependent on the event and the state node that it is currently in.
+- A transition action means "execute this action **only on this transition**". Use transition actions when the action is dependent on the event and the state node that it is currently in.
 
 ```js
 // ...

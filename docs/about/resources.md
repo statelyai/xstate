@@ -215,3 +215,4 @@ Explore a collection of professionally-designed state machines and statecharts i
 - [▶️ Front-end state management with XState](https://www.youtube.com/watch?v=Slb6M_rIn0M) by [Amy Pellegrini](https://twitter.com/amyvpellegrini)
 - [▶️ Splitting the view and the brains in JS — state machines with XState (in French)](https://www.youtube.com/watch?v=yRB57CDvQuY) by [Aurelien Meunier](https://www.linkedin.com/in/aumeunier)
 - [Using XState with Deno](https://gustavosantos.dev/a/using-xstate-with-deno) by [Bruno Quaresma](https://twitter.com/bruno__quaresma)
+- [How to model application flows in React with finite state machines and XState](https://engineering.kablamo.com.au/posts/2021/finite-state-machines-and-xstate) by [Andrew McDowell](https://twitter.com/madole)
