@@ -5,6 +5,7 @@ const createFieldModel = <T>(initialValue: T) =>
   createModel(
     {
       initialValue,
+      previousValue: initialValue,
       value: initialValue
     },
     {
@@ -12,13 +13,39 @@ const createFieldModel = <T>(initialValue: T) =>
         touch: (touched: boolean) => ({ touched }),
         focus: () => ({}),
         blur: () => ({}),
-        change: (value: T) => ({ value })
+        change: (value: T) => ({ value }),
+        commit: () => ({}),
+        cancel: () => ({}),
+        reset: () => ({})
       }
     }
   );
 
-const createFieldMachine = <T>(initialValue: T) =>
-  createFieldModel(initialValue).createMachine({});
+const createFieldMachine = <T>(initialValue: T) => {
+  const fieldModel = createFieldModel(initialValue);
+  return fieldModel.createMachine({
+    on: {
+      change: {
+        actions: fieldModel.assign({
+          value: (_, e) => e.value
+        })
+      },
+      commit: {
+        actions: fieldModel.assign({
+          previousValue: (ctx) => ctx.value
+        })
+      },
+      cancel: {
+        actions: fieldModel.assign({
+          value: (ctx) => ctx.previousValue
+        })
+      },
+      reset: {
+        actions: fieldModel.reset()
+      }
+    }
+  });
+};
 
 const friendModel = createModel(
   {
@@ -30,7 +57,8 @@ const friendModel = createModel(
       SET_NAME: (value: string) => ({ value }),
       SET_EMAIL: (value: string) => ({ value }),
       SAVE: () => ({}),
-      EDIT: () => ({})
+      EDIT: () => ({}),
+      CANCEL: () => ({})
     }
   }
 );
@@ -58,6 +86,9 @@ export const friendMachine = friendModel.createMachine({
         },
         SAVE: {
           target: 'saving'
+        },
+        CANCEL: {
+          target: 'reading'
         }
       }
     },

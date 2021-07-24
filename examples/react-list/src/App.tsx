@@ -21,7 +21,14 @@ const Friend: React.FC<{ friendRef: ActorRefFrom<typeof friendMachine> }> = ({
     >
       <td>
         <strong>{name}</strong>
-        <form hidden={!state.hasTag('form')}>
+        <form
+          hidden={!state.hasTag('form')}
+          onSubmit={(e) => {
+            e.preventDefault();
+
+            send('SAVE');
+          }}
+        >
           <label htmlFor="friend.name">
             <div>Name</div>
             <input
@@ -43,8 +50,9 @@ const Friend: React.FC<{ friendRef: ActorRefFrom<typeof friendMachine> }> = ({
               }}
             />
           </label>
-          <button onClick={() => send('SAVE')} type="button">
-            Save
+          <button>Save</button>
+          <button onClick={() => send('CANCEL')} type="button">
+            Cancel
           </button>
         </form>
       </td>
