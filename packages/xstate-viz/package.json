@@ -34,7 +34,7 @@
     "react": "^16.12.0",
     "react-dom": "^16.12.0",
     "tslib": "^2.2.0",
-    "typescript": "^4.3.2"
+    "typescript": "^4.3.5"
   },
   "dependencies": {
     "immer": "^8.0.1",
