@@ -34,11 +34,18 @@ describe('delayed transitions', () => {
 
     expect(nextState.value).toEqual('yellow');
     expect(nextState.actions).toEqual([
-      cancel(after(1000, 'light.green')),
-      {
-        ...send(after(1000, 'light.yellow'), { delay: 1000 }),
-        _event: toSCXMLEvent(after(1000, 'light.yellow'))
-      }
+      expect.objectContaining({
+        sendId: 'xstate.after(1000)#light.green',
+        type: 'xstate.cancel'
+      }),
+      expect.objectContaining({
+        delay: 1000,
+        event: {
+          type: 'xstate.after(1000)#light.yellow'
+        },
+        id: 'xstate.after(1000)#light.yellow',
+        type: 'xstate.send'
+      })
     ]);
   });
 

@@ -17,7 +17,6 @@ import {
   ActionTypes,
   SpecialTargets,
   RaiseAction,
-  RaiseActionObject,
   DoneEvent,
   ErrorPlatformEvent,
   DoneEventObject,
@@ -26,7 +25,6 @@ import {
   PureAction,
   LogExpr,
   LogAction,
-  LogActionObject,
   DelayFunctionMap,
   SCXML,
   ExprWithMeta,
@@ -165,16 +163,11 @@ export function raise<
   }
   return {
     type: actionTypes.raise,
-    event
-  };
-}
-
-export function resolveRaise<TEvent extends EventObject>(
-  action: RaiseAction<TEvent>
-): RaiseActionObject<TEvent> {
-  return {
-    type: actionTypes.raise,
-    _event: toSCXMLEvent(action.event)
+    event,
+    resolve: () => ({
+      type: actionTypes.raise,
+      _event: toSCXMLEvent(event)
+    })
   };
 }
 
@@ -381,26 +374,15 @@ export function log<
   return {
     type: actionTypes.log,
     label,
-    expr
+    expr,
+    resolve: (ctx: TContext, _event: SCXML.Event<TEvent>) => ({
+      type: actionTypes.log,
+      label,
+      expr,
+      value: isString(expr) ? expr : expr(ctx, _event.data, { _event })
+    })
   };
 }
-
-export const resolveLog = <
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  action: LogAction<TContext, TEvent>,
-  ctx: TContext,
-  _event: SCXML.Event<TEvent>
-): LogActionObject<TContext, TEvent> => ({
-  // TODO: remove .expr from resulting object
-  ...action,
-  value: isString(action.expr)
-    ? action.expr
-    : action.expr(ctx, _event.data, {
-        _event
-      })
-});
 
 /**
  * Cancels an in-flight `send(...)` action. A canceled sent action will not
@@ -415,30 +397,27 @@ export const cancel = <
 >(
   sendId: string | ExprWithMeta<TContext, TEvent, string>
 ): CancelAction<TContext, TEvent> => {
-  return {
+  const action = {
     type: actionTypes.cancel,
-    sendId
+    sendId,
+    resolve: (ctx: TContext, _event: SCXML.Event<TEvent>) => {
+      if (typeof sendId === 'function') {
+        return {
+          type: actionTypes.cancel,
+          sendId: sendId(ctx, _event.data, {
+            _event
+          })
+        };
+      }
+
+      return {
+        type: actionTypes.cancel,
+        sendId
+      } as CancelActionObject<TContext, TEvent>;
+    }
   };
-};
 
-export const resolveCancel = <
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  action: CancelAction<TContext, TEvent>,
-  ctx: TContext,
-  _event: SCXML.Event<TEvent>
-): CancelActionObject<TContext, TEvent> => {
-  if (typeof action.sendId === 'function') {
-    return {
-      ...action,
-      sendId: action.sendId(ctx, _event.data, {
-        _event
-      })
-    };
-  }
-
-  return action as CancelActionObject<TContext, TEvent>;
+  return action;
 };
 
 export function invoke<

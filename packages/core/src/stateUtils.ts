@@ -27,10 +27,7 @@ import {
   ActionObject,
   StateValueMap,
   AssignAction,
-  RaiseAction,
-  CancelAction,
   SendAction,
-  LogAction,
   PureAction,
   RaiseActionObject,
   SpecialTargets,
@@ -56,9 +53,7 @@ import {
   stop,
   initEvent,
   actionTypes,
-  resolveRaise,
   resolveSend,
-  resolveLog,
   resolveCancel,
   toActionObject,
   invoke,
@@ -1670,16 +1665,10 @@ function resolveActionsAndContext<
   function resolveAction(actionObject: ActionObject<TContext, TEvent>) {
     switch (actionObject.type) {
       case actionTypes.raise:
-        raiseActions.push(resolveRaise(actionObject as RaiseAction<TEvent>));
+        raiseActions.push(actionObject.resolve());
         break;
       case actionTypes.cancel:
-        resolvedActions.push(
-          resolveCancel(
-            actionObject as CancelAction<TContext, TEvent>,
-            context,
-            _event
-          )
-        );
+        resolvedActions.push(actionObject.resolve(context, _event));
         break;
       case actionTypes.send:
         const sendAction = resolveSend(
@@ -1704,13 +1693,7 @@ function resolveActionsAndContext<
         }
         break;
       case actionTypes.log:
-        resolvedActions.push(
-          resolveLog(
-            actionObject as LogAction<TContext, TEvent>,
-            context,
-            _event
-          )
-        );
+        resolvedActions.push(actionObject.resolve(context, _event));
         break;
       case actionTypes.choose: {
         const chooseAction = actionObject as ChooseAction<TContext, TEvent>;
