@@ -28,29 +28,6 @@ export function isState<
 
   return 'value' in state && 'history' in state;
 }
-export function bindActionToState<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  action: ActionObject<TContext, TEvent>,
-  state: State<TContext, TEvent, any>
-): ActionObject<TContext, TEvent> {
-  const { exec } = action;
-  const boundAction: ActionObject<TContext, TEvent> = {
-    ...action,
-    exec:
-      exec !== undefined
-        ? () =>
-            exec(state.context, state.event as TEvent, {
-              action,
-              state,
-              _event: state._event
-            })
-        : undefined
-  };
-
-  return boundAction;
-}
 
 export class State<
   TContext extends MachineContext,

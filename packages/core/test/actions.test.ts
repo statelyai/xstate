@@ -828,16 +828,8 @@ describe('actions config', () => {
     const { initialState } = anonMachine;
 
     initialState.actions.forEach((action) => {
-      if (action.exec) {
-        action.exec(
-          initialState.context,
-          { type: 'any' },
-          {
-            action,
-            state: initialState,
-            _event: initialState._event
-          }
-        );
+      if (action.execute) {
+        action.execute(initialState);
       }
     });
 
@@ -848,16 +840,8 @@ describe('actions config', () => {
     expect(inactiveState.actions.length).toBe(2);
 
     inactiveState.actions.forEach((action) => {
-      if (action.exec) {
-        action.exec(
-          inactiveState.context,
-          { type: 'EVENT' },
-          {
-            action,
-            state: initialState,
-            _event: initialState._event
-          }
-        );
+      if (action.execute) {
+        action.execute(inactiveState);
       }
     });
 
@@ -958,11 +942,14 @@ describe('purely defined actions', () => {
     });
 
     expect(nextState.actions).toEqual([
-      {
+      expect.objectContaining({
         type: 'SINGLE_EVENT',
-        length: 3,
-        id: 3
-      }
+        params: {
+          type: 'SINGLE_EVENT',
+          length: 3,
+          id: 3
+        }
+      })
     ]);
   });
 
@@ -982,21 +969,18 @@ describe('purely defined actions', () => {
     );
 
     expect(nextState.actions).toEqual([
-      {
+      expect.objectContaining({
         type: 'EVENT',
-        item: { id: 1 },
-        index: 0
-      },
-      {
+        params: { type: 'EVENT', item: { id: 1 }, index: 0 }
+      }),
+      expect.objectContaining({
         type: 'EVENT',
-        item: { id: 2 },
-        index: 1
-      },
-      {
+        params: { type: 'EVENT', item: { id: 2 }, index: 1 }
+      }),
+      expect.objectContaining({
         type: 'EVENT',
-        item: { id: 3 },
-        index: 2
-      }
+        params: { type: 'EVENT', item: { id: 3 }, index: 2 }
+      })
     ]);
   });
 });
@@ -1612,7 +1596,7 @@ it('should call transition actions in document order for states at different lev
 });
 
 describe('assign action order', () => {
-  it('should preserve action order when .preserveActionOrder = true', () => {
+  it('should preserve action order', () => {
     const captured: number[] = [];
 
     const machine = createMachine<{ count: number }>({
@@ -1623,8 +1607,7 @@ describe('assign action order', () => {
         (ctx) => captured.push(ctx.count), // 1
         assign({ count: (ctx) => ctx.count + 1 }),
         (ctx) => captured.push(ctx.count) // 2
-      ],
-      preserveActionOrder: true
+      ]
     });
 
     interpret(machine).start();
@@ -1632,7 +1615,7 @@ describe('assign action order', () => {
     expect(captured).toEqual([0, 1, 2]);
   });
 
-  it('should deeply preserve action order when .preserveActionOrder = true', () => {
+  it('should deeply preserve action order', () => {
     const captured: number[] = [];
 
     interface CountCtx {
@@ -1651,8 +1634,7 @@ describe('assign action order', () => {
           ];
         }),
         (ctx) => captured.push(ctx.count) // 2
-      ],
-      preserveActionOrder: true
+      ]
     });
 
     interpret(machine).start();

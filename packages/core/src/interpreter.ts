@@ -48,6 +48,7 @@ import {
   StopActionObject,
   Subscribable
 } from '.';
+import { ResolvedAction } from '../actions/resolvedAction';
 
 export type StateListener<
   TContext extends MachineContext,
@@ -574,11 +575,7 @@ export class Interpreter<
 
         nextState = this._transition(nextState, _event);
 
-        batchedActions.push(
-          ...(nextState.actions.map((a) =>
-            bindActionToState(a, nextState)
-          ) as Array<ActionObject<TContext, TEvent>>)
-        );
+        batchedActions.push(...nextState.actions);
 
         batchChanged = batchChanged || !!nextState.changed;
       }
@@ -684,7 +681,12 @@ export class Interpreter<
     actionFunctionMap: ActionFunctionMap<TContext, TEvent> = this.machine
       .options.actions
   ): void {
-    const { context, _event } = state;
+    const { _event } = state;
+
+    if (action instanceof ResolvedAction) {
+      return action.execute(state);
+    }
+
     const actionOrExec =
       action.exec || getActionFunction(action.type, actionFunctionMap);
     const exec = isFunction(actionOrExec)
@@ -695,7 +697,7 @@ export class Interpreter<
 
     if (exec) {
       try {
-        return exec(context, _event.data, {
+        return exec(state.context, _event.data, {
           action,
           state: this.state,
           _event

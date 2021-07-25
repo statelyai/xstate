@@ -90,14 +90,14 @@ describe('final states', () => {
     });
 
     expect(stopState.actions).toEqual([
-      { type: 'stopCrosswalk1', exec: undefined }
+      expect.objectContaining({ type: 'stopCrosswalk1' })
     ]);
 
     const stopState2 = finalMachine.transition(stopState, 'PED_STOP');
 
     expect(stopState2.actions).toEqual([
-      { type: 'stopCrosswalk2', exec: undefined },
-      { type: 'prepareGreenLight', exec: undefined }
+      expect.objectContaining({ type: 'stopCrosswalk2' }),
+      expect.objectContaining({ type: 'prepareGreenLight' })
     ]);
 
     const greenState = finalMachine.transition(stopState, 'TIMER');

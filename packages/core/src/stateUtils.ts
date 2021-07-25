@@ -70,6 +70,7 @@ import { STATE_IDENTIFIER, NULL_EVENT, WILDCARD } from './constants';
 import { isSpawnedActorRef } from './actor';
 import { StateMachine } from './StateMachine';
 import { evaluateGuard, toGuardDefinition } from './guards';
+import { ResolvedAction } from '../actions/resolvedAction';
 
 type Configuration<
   TContext extends MachineContext,
@@ -1666,7 +1667,7 @@ function resolveActionsAndContext<
   const preservedContexts: [TContext, ...TContext[]] = [context];
   const actionObjects = toActionObjects(actions, machine.options.actions);
 
-  function resolveAction(actionObject) {
+  function resolveAction(actionObject: ActionObject<TContext, TEvent>) {
     switch (actionObject.type) {
       case actionTypes.raise:
         raiseActions.push(resolveRaise(actionObject as RaiseAction<TEvent>));
@@ -1799,14 +1800,14 @@ function resolveActionsAndContext<
           actionObject,
           machine.options.actions
         );
-        const { exec } = resolvedActionObject;
-        if (exec) {
-          const contextIndex = preservedContexts.length - 1;
-          resolvedActionObject.exec = (_ctx, ...args) => {
-            exec(preservedContexts[contextIndex], ...args);
-          };
-        }
-        resolvedActions.push(resolvedActionObject);
+        const contextIndex = preservedContexts.length - 1;
+        const actionExec = new ResolvedAction(
+          resolvedActionObject,
+          preservedContexts[contextIndex],
+          resolvedActionObject.exec!
+        );
+
+        resolvedActions.push(actionExec);
         break;
     }
   }
