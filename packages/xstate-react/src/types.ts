@@ -78,17 +78,14 @@ export enum ReactEffectType {
   LayoutEffect = 2
 }
 
-export interface ReactActionFunction<
+export type ReactActionFunction<
   TContext extends MachineContext,
   TEvent extends EventObject
-> {
-  (
-    context: TContext,
-    event: TEvent,
-    meta: ActionMeta<TContext, TEvent>
-  ): () => void;
-  __effect: ReactEffectType;
-}
+> = (
+  context: TContext,
+  event: TEvent,
+  meta: ActionMeta<TContext, TEvent>
+) => () => void;
 
 export interface ReactActionObject<
   TContext extends MachineContext,

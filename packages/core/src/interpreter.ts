@@ -20,7 +20,7 @@ import {
   ActorRef,
   SCXMLErrorEvent
 } from './types';
-import { State, bindActionToState, isState } from './State';
+import { State, isState } from './State';
 import * as actionTypes from './actionTypes';
 import { doneInvoke, error, getActionFunction, initEvent } from './actions';
 import { IS_PRODUCTION } from './environment';

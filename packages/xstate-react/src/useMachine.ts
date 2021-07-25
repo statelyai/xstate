@@ -11,7 +11,12 @@ import {
   InterpreterOf,
   MachineContext
 } from 'xstate';
-import { MaybeLazy, ReactActionObject, ReactEffectType } from './types';
+import {
+  MaybeLazy,
+  ReactActionFunction,
+  ReactActionObject,
+  ReactEffectType
+} from './types';
 import { useInterpret } from './useInterpret';
 
 function createReactAction<
@@ -21,15 +26,16 @@ function createReactAction<
   exec: ActionFunction<TContext, TEvent> | undefined,
   tag: ReactEffectType
 ): ReactActionObject<TContext, TEvent> {
+  const reactExec: ReactActionFunction<TContext, TEvent> = (...args) => {
+    // don't execute; just return
+    return () => {
+      return exec?.(...args);
+    };
+  };
   return {
     type: 'whatever',
     __effect: tag,
-    exec: (...args) => {
-      // don't execute; just return
-      return () => {
-        return exec?.(...args);
-      };
-    }
+    exec: reactExec
   };
 }
 
