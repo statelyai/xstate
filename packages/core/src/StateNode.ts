@@ -206,11 +206,11 @@ export class StateNode<
       this.config.history === true ? 'shallow' : this.config.history || false;
 
     this.entry = toArray(this.config.entry).map((action) =>
-      toActionObject(action)
+      toActionObject(action, this.machine.options.actions)
     );
 
     this.exit = toArray(this.config.exit).map((action) =>
-      toActionObject(action)
+      toActionObject(action, this.machine.options.actions)
     );
     this.meta = this.config.meta;
     this.doneData =

@@ -95,6 +95,7 @@ export interface ReactActionObject<
   TEvent extends EventObject
 > extends ActionObject<TContext, TEvent> {
   exec: ReactActionFunction<TContext, TEvent>;
+  __effect: ReactEffectType;
 }
 
 export interface UseMachineOptions<
