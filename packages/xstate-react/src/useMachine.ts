@@ -33,7 +33,7 @@ function createReactAction<
     };
   };
   return {
-    type: 'whatever',
+    type: 'xstate/react.action',
     __effect: tag,
     exec: reactExec
   };
