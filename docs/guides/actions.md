@@ -305,18 +305,10 @@ entry: assign({
 }),
 // ...
 
-// Send { type: 'SOME_EVENT' } to the actor ref via string target
+// Send { type: 'SOME_EVENT' } to the actor ref
 {
   actions: send({ type: 'SOME_EVENT' }, {
-    to: context => context.someActor.name
-  })
-}
-// ...
-
-// Send { type: 'SOME_EVENT' } to the actor ref via ref target
-{
-  actions: send({ type: 'SOME_EVENT' }, {
-    to: context => context.someActor.ref
+    to: context => context.someActor
   })
 }
 ```
