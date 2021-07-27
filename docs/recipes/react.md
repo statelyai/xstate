@@ -61,7 +61,7 @@ export const GlobalStateProvider = (props) => {
 
 Using `useInterpret` returns a service, which is a static reference to the running machine which can be subscribed to. This value never changes, so we don't need to worry about wasted re-renders.
 
-### Utilising context
+### Utilizing context
 
 Further down the tree, you can subscribe to the service like this:
 
