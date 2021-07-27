@@ -97,7 +97,7 @@ const loggedInSelector = (state) => {
 
 export const SomeComponent = (props) => {
   const globalServices = useContext(GlobalStateContext);
-  const isLoggedIn = useSelector(globalServices.authService, selector);
+  const isLoggedIn = useSelector(globalServices.authService, loggedInSelector);
 
   return isLoggedIn ? 'Logged In' : 'Logged Out';
 };
