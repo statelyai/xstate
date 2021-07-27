@@ -206,7 +206,7 @@ type State =
 
 ## Troubleshooting
 
-There are some known limitations with XState and Typescript. We love Typesript, and we're _constantly_ pressing ahead to make it better.
+There are some known limitations with XState and Typescript. We love Typescript, and we're _constantly_ pressing ahead to make it a better experience in XState.
 
 Here are some known issues, all of which can be worked around:
 
