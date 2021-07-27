@@ -5,6 +5,7 @@
    - [template-js](./template-js)
    - [template-ts](./template-ts)
    - [template-react-ts](./template-react-ts)
+   - [template-svelte-js](./template-svelte-js)
    - [template-svelte-ts](./template-svelte-ts)
    - [template-vue-ts](./template-vue-ts)
 
