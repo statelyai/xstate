@@ -295,30 +295,20 @@ The target in the `to` prop can also be a **target expression**, which is a func
 ```js
 entry: assign({
   someActor: () => {
-    const name = 'some-actor-name';
-
-    return {
-      name,
-      ref: spawn(someMachine, name);
-    }
+    return spawn(someMachine, 'some-actor-name');
   }
 }),
-// ...
+  // ...
 
-// Send { type: 'SOME_EVENT' } to the actor ref via string target
-{
-  actions: send({ type: 'SOME_EVENT' }, {
-    to: context => context.someActor.name
-  })
-}
-// ...
-
-// Send { type: 'SOME_EVENT' } to the actor ref via ref target
-{
-  actions: send({ type: 'SOME_EVENT' }, {
-    to: context => context.someActor.ref
-  })
-}
+  // Send { type: 'SOME_EVENT' } to the actor ref
+  {
+    actions: send(
+      { type: 'SOME_EVENT' },
+      {
+        to: (context) => context.someActor
+      }
+    )
+  };
 ```
 
 ::: warning
