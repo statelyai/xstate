@@ -2,7 +2,7 @@
 
 XState can be used with React to:
 
-- Co-ordinate local state
+- Coordinate local state
 - Manage global state performantly
 - Consume data from other hooks
 
