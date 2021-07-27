@@ -28,7 +28,7 @@ An actor (as implemented in XState) has an interface of:
 
 - An `id` property, which uniquely identifies the actor in the local system
 - A `.send(...)` method, which is used to send events to this actor
-- A `.getSnapshot()` method, which synchronously returns the actor's last emitted value.
+- A `.getSnapshot()` method, which synchronously returns the actor's last _emitted value_.
 
 They may have optional methods:
 
@@ -41,6 +41,17 @@ All the existing invoked service patterns fit this interface:
 - [Invoked callbacks](./communication.md#invoking-callbacks) are actors that can send events to the parent (first `callback` argument), receive events (second `onReceive` argument), and act on them
 - [Invoked machines](./communication.md#invoking-machines) are actors that can send events to the parent (`sendParent(...)` action) or other actors it has references to (`send(...)` action), receive events, act on them (state transitions and actions), spawn new actors (`spawn(...)` function), and stop actors.
 - [Invoked observables](./communication.md#invoking-observables) are actors whose emitted values represent events to be sent back to the parent.
+
+::: tip What is an emitted value?
+
+An actor's **emitted value** is the value that subscribers receive in the actor's `.subscribe(...)` method.
+
+- For services, the current state is emitted.
+- For promises, the resolved value (or `undefined` if unfulfilled) is emitted.
+- For observables, the latest emitted value is emitted.
+- For callbacks, nothing is emitted.
+
+:::
 
 ## Spawning Actors
 
