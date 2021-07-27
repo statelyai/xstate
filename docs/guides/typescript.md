@@ -233,7 +233,7 @@ createMachine<Context, Event>(
   },
   {
     actions: {
-      flag: (context, event) => {
+      consoleLogData: (context, event) => {
         // This will error at .flag
         console.log(event.flag);
       }
