@@ -4,7 +4,7 @@ XState can be used with React to:
 
 - Co-ordinate local state
 - Manage global state performantly
-- Consume the data from other hooks
+- Consume data from other hooks
 
 At [Stately](https://stately.ai), we love this combo. It's our go-to stack for creating internal applications.
 
@@ -125,6 +125,85 @@ export const SomeComponent = (props) => {
 ```
 
 Note that you don't need to call `useActor` for this, it's available right on the context.
+
+## Other hooks
+
+XState's `useMachine` and `useInterpret` hooks can be used alongside others. Two patterns are most common:
+
+### Named actions/services/guards
+
+Let's imagine that when you navigate to a certain state, you want to leave the page and go somewhere else, via `react-router` or `next`. For now, we'll declare that action as a 'named' action - where we name it now and declare it later.
+
+```js
+import { createMachine } from 'xstate';
+
+export const machine = createMachine({
+  initial: 'toggledOff',
+  states: {
+    toggledOff: {
+      on: {
+        TOGGLE: 'toggledOn'
+      }
+    },
+    toggledOn: {
+      entry: ['goToOtherPage']
+    }
+  }
+});
+```
+
+Inside your component, you can now _implement_ the named action. I've added `useHistory` from `react-router` as an example, but you can imagine this working with any hook or prop-based router.
+
+```js
+import { machine } from './machine';
+import { useMachine } from '@xstate/react';
+import { useHistory } from 'react-router';
+
+const Component = () => {
+  const history = useHistory();
+
+  const [state, send] = useMachine(machine, {
+    actions: {
+      goToOtherPage: () => {
+        history.push('/other-page');
+      }
+    }
+  });
+
+  return null;
+};
+```
+
+This also works for services, guards, and delays.
+
+> If you use this technique, any references you use inside `goToOtherPage` will be kept up to date each render. That means you don't need to worry about stale references.
+
+### Syncing data with useEffect
+
+Sometimes, you want to outsource some functionality to another hook. This is especially common with data fetching hooks such as [`react-query`](https://react-query.tanstack.com/) and [`swr`](https://swr.vercel.app/). You don't want to have to re-build all your data fetching functionality in XState.
+
+The best way to manage this is via `useEffect`.
+
+```js
+const Component = () => {
+  const { data, error } = useSWR('/api/user', fetcher);
+
+  const [state, send] = useMachine(machine);
+
+  useEffect(() => {
+    send({
+      type: 'DATA_CHANGED',
+      data,
+      error
+    });
+  }, [data, error, send]);
+};
+```
+
+This will send a `DATA_CHANGED` event whenever the result from `useSWR` changes, allowing you to react to it just like any other event. You could, for instance:
+
+- Move into an `errored` state when the data returns an error
+- Save the data to context
 
 ## Class components
 
