@@ -8,7 +8,7 @@ XState can be used with React to:
 
 At [Stately](https://stately.ai), we love this combo. It's our go-to stack for creating internal applications.
 
-To ask for help, check out the `#react-help` channel on [Discord](https://discord.com/invite/xstate).
+To ask for help, check out the [`#react-help` channel in our Discord community](https://discord.gg/vedXj62MfQ).
 
 ## Local state
 
