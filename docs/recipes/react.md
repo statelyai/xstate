@@ -91,7 +91,7 @@ import React, { useContext } from 'react';
 import { GlobalStateContext } from './globalState';
 import { useSelector } from '@xstate/react';
 
-const selector = (state) => {
+const loggedInSelector = (state) => {
   return state.matches('loggedIn');
 };
 
