@@ -3,6 +3,7 @@
   import { toggleMachine } from './toggle.machine.js';
 
   const { state, send } = useMachine(toggleMachine);
+
   $: active = $state.matches('active');
   $: ({ count } = $state.context);
 </script>
@@ -28,11 +29,9 @@
     margin: 0 auto;
     color: #2c3e50;
   }
-
   button {
-    margin-right: 0.5em;
+    margin-right: 0.5rem;
   }
-
   code {
     font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
       monospace;
