@@ -454,7 +454,3 @@ Type 'number' is not assignable to type 'string'. TS2344
 ```
 
 Ensure that your tsconfig file does not include `"keyofStringsOnly": true,`.
-
-```
-
-```
