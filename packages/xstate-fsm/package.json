@@ -1,6 +1,6 @@
 {
   "name": "@xstate/fsm",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "description": "XState for finite state machines",
   "keywords": [
     "state",
@@ -17,13 +17,12 @@
   "author": "David Khourshid <davidkpiano@gmail.com>",
   "homepage": "https://github.com/davidkpiano/xstate/tree/main/packages/xstate-fsm#readme",
   "license": "MIT",
-  "main": "dist/xstate.fsm.js",
+  "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "module": "es/index.js",
   "sideEffects": false,
   "files": [
-    "dist/**/*.js",
-    "dist/**/*.d.ts",
+    "dist",
     "lib/**/*.js",
     "lib/**/*.d.ts",
     "es/**/*.js",
@@ -34,7 +33,7 @@
     "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
   },
   "scripts": {
-    "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
+    "clean": "rm -rf lib es dist tsconfig.tsbuildinfo",
     "build": "rollup -c",
     "test": "jest",
     "prepublish": "npm run build"
