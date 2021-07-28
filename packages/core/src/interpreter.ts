@@ -43,6 +43,7 @@ import { StateMachine } from './StateMachine';
 import { devToolsAdapter } from './dev';
 import { CapturedState } from './capturedState';
 import {
+  ActionFunction,
   MachineContext,
   PayloadSender,
   StopActionObject,
@@ -205,14 +206,10 @@ export class Interpreter<
    * Executes the actions of the given state, with that state's `context` and `event`.
    *
    * @param state The state whose actions will be executed
-   * @param actionsConfig The action implementations to use
    */
-  public execute(
-    state: State<TContext, TEvent, TTypestate>,
-    actionsConfig?: MachineImplementations<TContext, TEvent>['actions']
-  ): void {
+  public execute(state: State<TContext, TEvent, TTypestate>): void {
     for (const action of state.actions) {
-      this.exec(action, state, actionsConfig);
+      this.exec(action, state);
     }
   }
 
@@ -675,11 +672,98 @@ export class Interpreter<
     this.clock.clearTimeout(this.delayedEventsMap[sendId]);
     delete this.delayedEventsMap[sendId];
   }
+  private getActionFunction(
+    actionType: string
+  ): ActionObject<TContext, TEvent> | ActionFunction<TContext, TEvent> {
+    return (
+      this.machine.options.actions[actionType] ??
+      ({
+        [actionTypes.send]: (ctx, e, { action }) => {
+          const sendAction = action as SendActionObject<TContext, TEvent>;
+
+          if (typeof sendAction.delay === 'number') {
+            this.defer(sendAction);
+            return;
+          } else {
+            if (sendAction.to) {
+              this.sendTo(sendAction._event, sendAction.to);
+            } else {
+              this.send(
+                (sendAction as SendActionObject<TContext, TEvent, TEvent>)
+                  ._event
+              );
+            }
+          }
+        },
+        [actionTypes.cancel]: (ctx, e, { action }) => {
+          this.cancel((action as CancelActionObject<TContext, TEvent>).sendId);
+        },
+        [actionTypes.invoke]: (ctx, e, { action, state }) => {
+          const { id, autoForward, ref } = action as InvokeActionObject;
+          if (!ref) {
+            return;
+          }
+          (ref as any).parent = this; // TODO: fix
+          // If the actor will be stopped right after it's started
+          // (such as in transient states) don't bother starting the actor.
+          if (
+            state.actions.find((otherAction) => {
+              return (
+                otherAction.type === actionTypes.stop &&
+                otherAction.actor === id
+              );
+            })
+          ) {
+            return;
+          }
+          try {
+            if (autoForward) {
+              this.forwardTo.add(id);
+            }
+
+            this.children.set(id, ref);
+            this.state.children[id] = ref;
+
+            ref.subscribe({
+              error: () => {
+                // TODO: handle error
+                this.stop();
+              },
+              complete: () => {
+                /* ... */
+              }
+            });
+
+            ref.start?.();
+          } catch (err) {
+            this.send(error(id, err));
+            return;
+          }
+        },
+        [actionTypes.stop]: (ctx, e, { action }) => {
+          const { actor } = action as StopActionObject;
+          const actorRef =
+            typeof actor === 'string' ? this.children.get(actor) : actor;
+
+          if (actorRef) {
+            this.stopChild(actorRef.name);
+          }
+        },
+        [actionTypes.log]: (ctx, e, { action }) => {
+          const { label, value } = action;
+
+          if (label) {
+            this.logger(label, value);
+          } else {
+            this.logger(value);
+          }
+        }
+      } as ActionFunctionMap<TContext, TEvent>)[actionType]
+    );
+  }
   private exec(
     action: InvokeActionObject | ActionObject<TContext, TEvent>,
-    state: State<TContext, TEvent, TTypestate>,
-    actionFunctionMap: ActionFunctionMap<TContext, TEvent> = this.machine
-      .options.actions
+    state: State<TContext, TEvent, TTypestate>
   ): void {
     const { _event } = state;
 
@@ -700,7 +784,7 @@ export class Interpreter<
       throw new Error('no');
     }
 
-    const actionOrExec = getActionFunction(action.type, actionFunctionMap);
+    const actionOrExec = this.getActionFunction(action.type);
     const exec = isFunction(actionOrExec)
       ? actionOrExec
       : actionOrExec
@@ -726,102 +810,8 @@ export class Interpreter<
       }
     }
 
-    switch (action.type) {
-      case actionTypes.send:
-        const sendAction = action as SendActionObject<TContext, TEvent>;
-
-        if (typeof sendAction.delay === 'number') {
-          this.defer(sendAction);
-          return;
-        } else {
-          if (sendAction.to) {
-            this.sendTo(sendAction._event, sendAction.to);
-          } else {
-            this.send(
-              (sendAction as SendActionObject<TContext, TEvent, TEvent>)._event
-            );
-          }
-        }
-        break;
-
-      case actionTypes.cancel:
-        this.cancel((action as CancelActionObject<TContext, TEvent>).sendId);
-
-        break;
-
-      case ActionTypes.Invoke: {
-        const { id, autoForward, ref } = action as InvokeActionObject;
-        if (!ref) {
-          break;
-        }
-        (ref as any).parent = this; // TODO: fix
-        // If the actor will be stopped right after it's started
-        // (such as in transient states) don't bother starting the actor.
-        if (
-          state.actions.find((otherAction) => {
-            return (
-              otherAction.type === actionTypes.stop && otherAction.actor === id
-            );
-          })
-        ) {
-          return;
-        }
-        try {
-          if (autoForward) {
-            this.forwardTo.add(id);
-          }
-
-          this.children.set(id, ref);
-          this.state.children[id] = ref;
-
-          ref.subscribe({
-            error: () => {
-              // TODO: handle error
-              this.stop();
-            },
-            complete: () => {
-              /* ... */
-            }
-          });
-
-          ref.start?.();
-        } catch (err) {
-          this.send(error(id, err));
-          break;
-        }
-
-        break;
-      }
-      case actionTypes.stop: {
-        const { actor } = action as StopActionObject;
-        const actorRef =
-          typeof actor === 'string' ? this.children.get(actor) : actor;
-
-        if (actorRef) {
-          this.stopChild(actorRef.name);
-        }
-        break;
-      }
-
-      case actionTypes.log:
-        const { label, value } = action;
-
-        if (label) {
-          this.logger(label, value);
-        } else {
-          this.logger(value);
-        }
-        break;
-      case actionTypes.assign:
-        break;
-      default:
-        if (!IS_PRODUCTION) {
-          warn(
-            false,
-            `No implementation found for action type '${action.type}'`
-          );
-        }
-        break;
+    if (!IS_PRODUCTION && !action.type?.startsWith('xstate.')) {
+      warn(false, `No implementation found for action type '${action.type}'`);
     }
 
     return undefined;
