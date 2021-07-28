@@ -33,7 +33,7 @@ function Toggle() {
 
 Our recommended approach for managing global state with XState and React is to use [React Context](https://reactjs.org/docs/context.html).
 
-> There are have two versions of 'context': XState's [context](../guides/context.md) and React's context. It's a little confusing!
+> There are two versions of 'context': XState's [context](../guides/context.md) and React's context. It's a little confusing!
 
 ### Context Provider
 
