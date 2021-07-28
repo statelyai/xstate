@@ -684,11 +684,23 @@ export class Interpreter<
     const { _event } = state;
 
     if (action instanceof ResolvedAction) {
-      return action.execute(state);
+      try {
+        return action.execute(state);
+      } catch (err) {
+        this.parent?.send({
+          type: 'xstate.error',
+          data: err
+        });
+
+        throw err;
+      }
     }
 
-    const actionOrExec =
-      action.exec || getActionFunction(action.type, actionFunctionMap);
+    if (action.exec) {
+      throw new Error('no');
+    }
+
+    const actionOrExec = getActionFunction(action.type, actionFunctionMap);
     const exec = isFunction(actionOrExec)
       ? actionOrExec
       : actionOrExec

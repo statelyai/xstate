@@ -1779,18 +1779,23 @@ function resolveActionsAndContext<
         resolvedActions.push(stopAction);
         break;
       default:
-        const resolvedActionObject = toActionObject(
-          actionObject,
-          machine.options.actions
-        );
         const contextIndex = preservedContexts.length - 1;
-        const actionExec = new ResolvedAction(
-          resolvedActionObject,
-          preservedContexts[contextIndex],
-          resolvedActionObject.exec!
-        );
+        if (actionObject instanceof ResolvedAction) {
+          actionObject.setContext(preservedContexts[contextIndex]);
+          resolvedActions.push(actionObject);
+        } else {
+          const resolvedActionObject = toActionObject(
+            actionObject,
+            machine.options.actions
+          );
+          const actionExec = new ResolvedAction(
+            resolvedActionObject,
+            resolvedActionObject.exec!
+          );
+          actionExec.setContext(preservedContexts[contextIndex]);
 
-        resolvedActions.push(actionExec);
+          resolvedActions.push(actionExec);
+        }
         break;
     }
   }

@@ -53,6 +53,7 @@ import {
 } from './utils';
 import { isActorRef } from './actor';
 import { ObservableActorRef } from './ObservableActorRef';
+import { ResolvedAction } from '../actions/resolvedAction';
 export { actionTypes };
 
 export const initEvent = toSCXMLEvent({ type: actionTypes.init });
@@ -94,11 +95,12 @@ export function toActionObject<
       actionObject = { type: action, exec: undefined };
     }
   } else if (isFunction(action)) {
-    actionObject = {
-      // Convert action to string if unnamed
-      type: action.name || action.toString(),
-      exec: action
-    };
+    actionObject = new ResolvedAction(
+      {
+        type: action.name ?? 'xstate:expr'
+      },
+      action
+    );
   } else {
     const exec = getActionFunction(action.type, actionFunctionMap);
     if (isFunction(exec)) {
