@@ -221,7 +221,7 @@ describe('createModel', () => {
       }
     );
 
-    createMachine<typeof userModel>({
+    userModel.createMachine({
       context: userModel.initialContext,
       initial: 'active',
       entry: { type: 'greet', message: 'hello' },
@@ -233,13 +233,13 @@ describe('createModel', () => {
       }
     });
 
-    createMachine<typeof userModel>({
+    userModel.createMachine({
       context: userModel.initialContext,
       // @ts-expect-error
       entry: { type: 'greet' } // missing message
     });
 
-    createMachine<typeof userModel>({
+    userModel.createMachine({
       context: userModel.initialContext,
       // @ts-expect-error
       entry: { type: 'fake' } // wrong message

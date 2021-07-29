@@ -7,8 +7,7 @@ import {
   UnionFromCreatorsReturnTypes,
   FinalModelCreators,
   Model,
-  ModelCreators,
-  CastIfNever
+  ModelCreators
 } from './model.types';
 
 export function createModel<
@@ -31,8 +30,8 @@ export function createModel<
   creators: TModelCreators
 ): Model<
   TContext,
-  CastIfNever<Cast<TComputedEvent, EventObject>, EventObject>,
-  CastIfNever<Cast<TComputedAction, BaseActionObject>, BaseActionObject>,
+  Cast<TComputedEvent, EventObject>,
+  Cast<TComputedAction, BaseActionObject>,
   TFinalModelCreators
 >;
 export function createModel(
