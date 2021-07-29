@@ -295,7 +295,7 @@ This special `useMachine` hook is imported from `@xstate/react/fsm`
 **Example**
 
 ```js
-import React from 'react';
+import { useEffect } from 'react';
 import { useMachine } from '@xstate/react/fsm';
 import { createMachine } from '@xstate/fsm';
 

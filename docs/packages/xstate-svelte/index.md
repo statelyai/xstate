@@ -91,7 +91,7 @@ This special `useMachine` hook is imported from `@xstate/svelte/lib/fsm`
 
 ```svelte
 <script>
-  import { useMachine } from '@xstate/svelte/lib/fsm.js';
+  import { useMachine } from '@xstate/svelte/lib/fsm';
   import { createMachine, assign } from '@xstate/fsm';
 
   const fetchMachine = createMachine({
