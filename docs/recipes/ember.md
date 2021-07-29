@@ -61,6 +61,86 @@ export default class ToggleComponent extends Component {
 }
 ```
 
+## ember-statechart-component
+
+Using [ember-statechart-component](https://github.com/NullVoxPopuli/ember-statechart-component), you can
+define an XState statechart in place of a component class. This also offers a deeper integration with Ember, 
+in that actions and guards have a way to get access to the outer ember context via `getService`.
+
+ember-statechart-component provides the most isolation from the framework, while still encouraging managing
+most of your state within the statechart's context itself, rather than accidentally leaking state between your
+component and your statechart, and trying to keep things in-sync.
+
+For example, an `<AuthenticatedToggle />` component may look like:
+
+```js
+// app/components/authenticated-toggle.js
+import { getService } from 'ember-statechart-component';
+import { createMachine } from 'xstate';
+
+export default createMachine({
+  initial: 'inactive',
+  states: {
+    inactive: {
+      on: {
+        TOGGLE: [
+          {
+            target: 'active',
+            cond: 'isAuthenticated',
+          },
+          { actions: ['notify'] },
+        ],
+      },
+    },
+    active: { on: { TOGGLE: 'inactive' } },
+  },
+}, {
+  actions: {
+    notify: (ctx) => {
+      getService(ctx, 'toasts').notify('You must be logged in');
+    },
+  },
+  guards: {
+    isAuthenticated: (ctx) => getService(ctx, 'session').isAuthenticated,
+  },
+});
+```
+and used:
+```hbs
+<AuthenticatedToggle as |state send|>
+  {{state.value}}
+
+  <button {{on 'click' (fn send 'TOGGLE')}}>
+    Toggle
+  </button>
+</AuthenticatedToggle>
+```
+
+Additionally, with Ember 3.25+, you can import statecharts from other locations and invoke them directly:
+
+```js
+import Component from '@glimmer/component';
+import { createMachine } from 'xstate';
+import SomeMachine from '...somewhere...';
+
+export default class extends Component {
+  MyLocalMachine = SomeMachine;
+  CustomMachine = createMachine(...);
+}
+```
+```hbs
+<this.MyLocalMachine as |state send|>
+</this.MyLocalMachine>
+
+<this.CustomMachine as |state send|>
+
+</this.CustomMachine>
+```
+It is recommended to also have [ember-could-get-used-to-this](https://github.com/pzuraq/ember-could-get-used-to-this/)
+installed so that you can use `state.matches` and other xstate-provided APIs from the template (at least until the 
+[Default Helper Manager](https://github.com/emberjs/rfcs/pull/756) RFC lands and is implemented.)
+
+
 ## Custom integration
 
 To integrate XState into your Ember.js codebase without using an addon you can
