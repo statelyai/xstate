@@ -102,7 +102,7 @@ A `Typestate` is an interface consisting of two properties:
 - `value` - the state value of the typestate (compound states should be referenced using object syntax; e.g., `{ idle: 'error' }` instead of `"idle.error"`)
 - `context` - the narrowed context of the typestate when the state matches the given `value`
 
-The typestates of a machine are specified as the 3rd generic type in `createMachine<TContext, TEvent, TState>`.
+The typestates of a machine are specified as the 3rd generic type in `createMachine<TContext, TEvent, TTypestate>`.
 
 **Example:**
 
@@ -123,7 +123,7 @@ type UserEvent =
   | { type: 'RESOLVE'; user: User }
   | { type: 'REJECT'; error: string };
 
-type UserState =
+type UserTypeState =
   | {
       value: 'idle';
       context: UserContext & {
@@ -144,7 +144,7 @@ type UserState =
       context: UserContext & { user: undefined; error: string };
     };
 
-const userMachine = createMachine<UserContext, UserEvent, UserState>({
+const userMachine = createMachine<UserContext, UserEvent, UserTypestate>({
   id: 'user',
   initial: 'idle',
   states: {
