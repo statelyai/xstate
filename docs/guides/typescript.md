@@ -123,7 +123,7 @@ type UserEvent =
   | { type: 'RESOLVE'; user: User }
   | { type: 'REJECT'; error: string };
 
-type UserTypeState =
+type UserTypestate =
   | {
       value: 'idle';
       context: UserContext & {
