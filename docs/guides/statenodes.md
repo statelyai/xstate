@@ -30,7 +30,7 @@ const nextState = fetchMachine.transition('pending', { type: 'FULFILL' });
 // }
 ```
 
-## State nodes
+## What Are State Nodes?
 
 In XState, a **state node** specifies a state configuration. They are defined on the machine's `states` property. Likewise, sub-state nodes are hierarchically defined on the `states` property of a state node.
 
@@ -274,3 +274,37 @@ The current state of the machine collects the `.meta` data of all of the state n
 - The values are the state node `.meta` values
 
 See [state meta data](./states.md#state-meta-data) for usage and more information.
+
+## Tags
+
+State nodes can have **tags**, which are string terms that help describe the state node. Tags are metadata that can be useful in categorizing different state nodes. For example, you can signify which state nodes represent states in which data is being loaded by using a `"loading"` tag, and determine if a state contains those tagged state nodes with `state.hasTag(tag)`:
+
+```js {10,14}
+const machine = createMachine({
+  initial: 'idle',
+  states: {
+    idle: {
+      on: {
+        FETCH: 'loadingUser'
+      }
+    },
+    loadingUser: {
+      tags: ['loading']
+      // ...
+    },
+    loadingFriends: {
+      tags: ['loading']
+      // ...
+    },
+    editing: {
+      // ...
+    }
+  }
+});
+
+machine.initialState.hasTag('loading');
+// => false
+
+machine.transition(machine.initialState, 'FETCH').hasTag('loading');
+// => true
+```
