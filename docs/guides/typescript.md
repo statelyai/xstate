@@ -65,19 +65,11 @@ const lightMachine = createMachine<LightContext, LightEvent>({
 });
 ```
 
-Providing the context and events as generic parameters for the `createMachine()` function may seem tedious (and is completely optional), but gives many advantages:
+Providing the context and events as generic parameters for the `createMachine()` function gives many advantages:
 
-- The context type/interface (`TContext`) is passed on to action `exec` functions, guard `cond` functions, and more. It is also passed to deeply nested states.
-- The event type (`TEvent`) ensures that only specified events (and built-in XState-specific ones) are used in transition configs. The provided event object shapes are also passed on to action `exec` functions, guard `cond` functions, and more. This can prevent unnecessary `event.somePayload === undefined` checks.
-
-Note if you are seeing this error:
-
-```
-Type error: Type 'string | number' does not satisfy the constraint 'string'.
-  Type 'number' is not assignable to type 'string'.  TS2344
-```
-
-Ensure that your tsconfig file does not include `"keyofStringsOnly": true,`.
+- The context type/interface (`TContext`) is passed on to actions, guards, services and more. It is also passed to deeply nested states.
+- The event type (`TEvent`) ensures that only specified events (and built-in XState-specific ones) are used in transition configs. The provided event object shapes are also passed on to actions, guards, and services.
+- Events which you send to the machine will be strongly typed, offering you much more confidence in the payload shapes you'll be receiving.
 
 ## Config Objects
 
@@ -99,33 +91,6 @@ const myMachineConfig: MachineConfig<TContext, any, TEvent> = {
   }
   // ...
 };
-```
-
-## Actions
-
-The `send` action on the interpreted machine `interpret(stateMachine)` isn't always type safe. To get typechecking for this function signature, use the following pattern:
-
-```ts
-type UserEvents = {
-  type: 'TEST';
-  value: string;
-};
-
-const service = interpret(stateMachine);
-
-// This will compile
-service.send({ type: 'TEST', value: 'testvalue' });
-
-// This will have a compile error on the `value` type
-service.send({ type: 'TEST', value: 1 });
-```
-
-If you use the following pattern, you'll lose type safety, so both of these will compile:
-
-```ts
-service.send('TEST', { value: 'testvalue' });
-
-service.send('TEST', { value: 1 });
 ```
 
 ## Typestates <Badge text="4.7+" />
@@ -238,3 +203,254 @@ type State =
 ```
 
 :::
+
+## Troubleshooting
+
+There are some known limitations with XState and TypeScript. We love TypeScript, and we're _constantly_ pressing ahead to make it a better experience in XState.
+
+Here are some known issues, all of which can be worked around:
+
+### Events in machine options
+
+When you use `createMachine`, you can pass in implementations to named actions/services/guards in your config. For instance:
+
+```ts
+interface Context {}
+
+type Event =
+  | { type: 'EVENT_WITH_FLAG'; flag: boolean }
+  | {
+      type: 'EVENT_WITHOUT_FLAG';
+    };
+
+createMachine<Context, Event>(
+  {
+    on: {
+      EVENT_WITH_FLAG: {
+        actions: 'consoleLogData'
+      }
+    }
+  },
+  {
+    actions: {
+      consoleLogData: (context, event) => {
+        // This will error at .flag
+        console.log(event.flag);
+      }
+    }
+  }
+);
+```
+
+The reason this errors is because inside the `consoleLogData` function, we don't know which event caused it to fire. The cleanest way to manage this is to assert the event type yourself.
+
+```ts
+createMachine<Context, Event>(machine, {
+  actions: {
+    consoleLogData: (context, event) => {
+      if (event.type !== 'EVENT_WITH_FLAG') return
+      // No more error at .flag!
+      console.log(event.flag);
+    };
+  }
+})
+```
+
+It's also sometimes possible to move the implementation inline.
+
+```ts
+createMachine<Context, Event>({
+  on: {
+    EVENT_WITH_FLAG: {
+      actions: (context, event) => {
+        // No more error, because we know which event
+        // is responsible for calling this action
+        console.log(event.flag);
+      }
+    }
+  }
+});
+```
+
+This approach doesn't work for all cases. The action loses its name, so it becomes less nice to look at in the visualiser. It also means if the action is duplicated in several places you'll need to copy-paste it to all the places it's needed.
+
+### Event types in entry actions
+
+Event types in inline entry actions are not currently typed to the event that led to them. Consider this example:
+
+```ts
+interface Context {}
+
+type Event =
+  | { type: 'EVENT_WITH_FLAG'; flag: boolean }
+  | {
+      type: 'EVENT_WITHOUT_FLAG';
+    };
+
+createMachine<Context, Event>({
+  initial: 'state1',
+  states: {
+    state1: {
+      on: {
+        EVENT_WITH_FLAG: {
+          target: 'state2'
+        }
+      }
+    },
+    state2: {
+      entry: [
+        (context, event) => {
+          // This will error at .flag
+          console.log(event.flag);
+        }
+      ]
+    }
+  }
+});
+```
+
+Here, we don't know what event led to the `entry` action on `state2`. The only way to fix this is to do a similar trick to above:
+
+```ts
+entry: [
+  (context, event) => {
+    if (event.type !== 'EVENT_WITH_FLAG') return;
+    // No more error at .flag!
+    console.log(event.flag);
+  }
+];
+```
+
+### `onDone`/`onError` events in machine options
+
+The result of promise-based services is quite hard to type safely in XState. For instance, a machine like this:
+
+```ts
+interface Data {
+  flag: boolean;
+}
+
+interface Context {}
+
+type Event = {
+  // Added here in order to bring out the TS errors
+  type: 'UNUSED_EVENT';
+};
+
+createMachine<Context, Event>(
+  {
+    invoke: {
+      src: async () => {
+        const data: Data = {
+          flag: true
+        };
+        return data;
+      },
+      onDone: {
+        actions: 'consoleLogData'
+      },
+      onError: {
+        actions: 'consoleLogError'
+      }
+    }
+  },
+  {
+    actions: {
+      consoleLogData: (context, event) => {
+        // Error on this line - data does not exist!
+        console.log(event.data.flag);
+      },
+      consoleLogError: (context, event) => {
+        // Error on this line - data does not exist!
+        console.log(event.data);
+      }
+    }
+  }
+);
+```
+
+Frustratingly, the best way to fix this is to cast the `event` to `any` and reassign it based on what we know it to be:
+
+```ts
+import { DoneInvokeEvent, ErrorPlatformEvent } from 'xstate'
+
+actions: {
+  consoleLogData: (context, _event: any) => {
+    const event: DoneInvokeEvent<Data> = _event;
+    console.log(event.data.flag);
+  },
+  consoleLogError: (context, _event: any) => {
+    const event: ErrorPlatformEvent = _event;
+    // Event.data is usually of type `Error`
+    console.log(event.data.message);
+  }
+}
+```
+
+### Assign action behaving strangely
+
+When run in `strict: true` mode, assign actions can sometimes behave very strangely.
+
+```ts
+interface Context {
+  something: boolean;
+}
+
+createMachine<Context>({
+  context: {
+    something: true
+  },
+  entry: [
+    // Type 'AssignAction<{ something: false; }, AnyEventObject>' is not assignable to type 'string'.
+    assign(() => {
+      return {
+        something: false
+      };
+    }),
+    // Type 'AssignAction<{ something: false; }, AnyEventObject>' is not assignable to type 'string'.
+    assign({
+      something: false
+    }),
+    // Type 'AssignAction<{ something: false; }, AnyEventObject>' is not assignable to type 'string'.
+    assign({
+      something: () => false
+    })
+  ]
+});
+```
+
+It might appear that nothing you try works - all syntaxes are buggy. The fix is very strange, but works consistently. Add an unused `context` argument to the first argument of your assigner function.
+
+```ts
+entry: [
+  // No more error!
+  assign((context) => {
+    return {
+      something: false,
+    };
+  }),
+  // No more error!
+  assign({
+    something: (context) => false,
+  }),
+  // Unfortunately this technique doesn't work for this syntax
+  // assign({
+  //   something: false
+  // }),
+],
+```
+
+This is a nasty bug to fix and involves moving our codebase to strict mode, but we're planning to do it in V5.
+
+### `keyofStringsOnly`
+
+If you are seeing this error:
+
+```
+
+Type error: Type 'string | number' does not satisfy the constraint 'string'.
+Type 'number' is not assignable to type 'string'. TS2344
+
+```
+
+Ensure that your tsconfig file does not include `"keyofStringsOnly": true,`.
