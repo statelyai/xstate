@@ -660,15 +660,16 @@ export class Interpreter<
     }
   }
   private defer(sendAction: SendActionObject<TContext, TEvent>): void {
-    this.delayedEventsMap[sendAction.id] = this.clock.setTimeout(() => {
-      if (sendAction.to) {
-        this.sendTo(sendAction._event, sendAction.to);
+    this.delayedEventsMap[sendAction.params.id] = this.clock.setTimeout(() => {
+      if (sendAction.params.to) {
+        this.sendTo(sendAction.params._event, sendAction.params.to);
       } else {
         this.send(
-          (sendAction as SendActionObject<TContext, TEvent, TEvent>)._event
+          (sendAction as SendActionObject<TContext, TEvent, TEvent>).params
+            ._event
         );
       }
-    }, sendAction.delay as number);
+    }, sendAction.params.delay as number);
   }
   private cancel(sendId: string | number): void {
     this.clock.clearTimeout(this.delayedEventsMap[sendId]);
@@ -683,16 +684,16 @@ export class Interpreter<
         [actionTypes.send]: (ctx, e, { action }) => {
           const sendAction = action as SendActionObject<TContext, TEvent>;
 
-          if (typeof sendAction.delay === 'number') {
+          if (typeof sendAction.params.delay === 'number') {
             this.defer(sendAction);
             return;
           } else {
-            if (sendAction.to) {
-              this.sendTo(sendAction._event, sendAction.to);
+            if (sendAction.params.to) {
+              this.sendTo(sendAction.params._event, sendAction.params.to);
             } else {
               this.send(
                 (sendAction as SendActionObject<TContext, TEvent, TEvent>)
-                  ._event
+                  .params._event
               );
             }
           }

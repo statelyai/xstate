@@ -10,6 +10,8 @@ import {
 import { createMachine } from './index';
 import { mapValues, isString, flatten } from './utils';
 import * as actions from './actions';
+import * as send from './actions/send';
+import * as cancel from './actions/cancel';
 import * as log from './actions/log';
 import { invokeMachine } from './invoke';
 import { StateMachine } from './StateMachine';
@@ -156,9 +158,9 @@ return {'${element.attributes!.location}': ${element.attributes!.expr}};
     }
     case 'cancel':
       if ('sendid' in element.attributes!) {
-        return actions.cancel(element.attributes!.sendid! as string);
+        return cancel.cancel(element.attributes!.sendid! as string);
       }
-      return actions.cancel((context, e, meta) => {
+      return cancel.cancel((context, e, meta) => {
         const fnBody = `
 return ${element.attributes!.sendidexpr};
           `;
@@ -206,7 +208,7 @@ return (${delayToMs})(${element.attributes!.delayexpr});
         };
       }
 
-      return actions.send<TContext, TEvent>(convertedEvent, {
+      return send.send<TContext, TEvent>(convertedEvent, {
         delay: convertedDelay,
         to: target as string | undefined,
         id: id as string | undefined

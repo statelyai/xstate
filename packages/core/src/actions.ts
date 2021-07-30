@@ -14,15 +14,11 @@ import {
   ActionFunctionMap,
   ActionTypes,
   SpecialTargets,
-  RaiseAction,
   DoneEvent,
   ErrorPlatformEvent,
   DoneEventObject,
   SendExpr,
-  SendActionObject,
   PureAction,
-  DelayFunctionMap,
-  SCXML,
   ExprWithMeta,
   ChooseConditon,
   ChooseAction,
@@ -30,16 +26,10 @@ import {
   MachineContext
 } from './types';
 import * as actionTypes from './actionTypes';
-import {
-  getEventType,
-  isFunction,
-  isString,
-  toEventObject,
-  toSCXMLEvent,
-  isArray
-} from './utils';
+import { isFunction, isString, toSCXMLEvent, isArray } from './utils';
 import { ResolvedAction } from '../actions/resolvedAction';
-import { DynamicAction } from '../actions/DynamicAction';
+import { RaiseActionObject } from '.';
+import { send } from './actions/send';
 export { actionTypes };
 
 export const initEvent = toSCXMLEvent({ type: actionTypes.init });
@@ -143,104 +133,17 @@ export const toActionObjects = <
 export function raise<
   TContext extends MachineContext,
   TEvent extends EventObject
->(
-  event: Event<TEvent>
-): RaiseAction<TEvent> | SendAction<TContext, AnyEventObject, TEvent> {
+>(event: Event<TEvent>) {
   if (!isString(event)) {
     return send(event, { to: SpecialTargets.Internal });
   }
+
   return {
     type: actionTypes.raise,
-    event,
-    resolve: () => ({
-      type: actionTypes.raise,
+    params: {
+      event,
       _event: toSCXMLEvent(event)
-    })
-  };
-}
-
-/**
- * Sends an event. This returns an action that will be read by an interpreter to
- * send the event in the next step, after the current step is finished executing.
- *
- * @param event The event to send.
- * @param options Options to pass into the send event:
- *  - `id` - The unique send event identifier (used with `cancel()`).
- *  - `delay` - The number of milliseconds to delay the sending of the event.
- *  - `to` - The target of this event (by default, the machine the event was sent from).
- */
-export function send<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TSentEvent extends EventObject = AnyEventObject
->(
-  event: Event<TSentEvent> | SendExpr<TContext, TEvent, TSentEvent>,
-  options?: SendActionOptions<TContext, TEvent>
-): SendAction<TContext, TEvent, TSentEvent> {
-  return {
-    to: options ? options.to : undefined,
-    type: actionTypes.send,
-    event: isFunction(event) ? event : toEventObject<TSentEvent>(event),
-    delay: options ? options.delay : undefined,
-    id:
-      options && options.id !== undefined
-        ? options.id
-        : isFunction(event)
-        ? event.name
-        : (getEventType<TSentEvent>(event) as string)
-  };
-}
-
-export function resolveSend<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TSentEvent extends EventObject
->(
-  action: SendAction<TContext, TEvent, TSentEvent>,
-  ctx: TContext,
-  _event: SCXML.Event<TEvent>,
-  delaysMap?: DelayFunctionMap<TContext, TEvent>
-): SendActionObject<TContext, TEvent, TSentEvent> {
-  const meta = {
-    _event
-  };
-
-  // TODO: helper function for resolving Expr
-  const resolvedEvent = toSCXMLEvent(
-    isFunction(action.event)
-      ? action.event(ctx, _event.data, meta)
-      : action.event
-  );
-
-  let resolvedDelay: number | undefined;
-  if (isString(action.delay)) {
-    const configDelay = delaysMap && delaysMap[action.delay];
-    resolvedDelay = isFunction(configDelay)
-      ? configDelay(ctx, _event.data, meta)
-      : configDelay;
-  } else {
-    resolvedDelay = isFunction(action.delay)
-      ? action.delay(ctx, _event.data, meta)
-      : action.delay;
-  }
-
-  let resolvedTarget = isFunction(action.to)
-    ? action.to(ctx, _event.data, meta)
-    : action.to;
-  resolvedTarget =
-    isString(resolvedTarget) &&
-    resolvedTarget !== SpecialTargets.Parent &&
-    resolvedTarget !== SpecialTargets.Internal &&
-    resolvedTarget.startsWith('#_')
-      ? resolvedTarget.slice(2)
-      : resolvedTarget;
-
-  return {
-    ...action,
-    to: resolvedTarget,
-    _event: resolvedEvent,
-    event: resolvedEvent.data,
-    delay: resolvedDelay
+    }
   };
 }
 
@@ -257,7 +160,7 @@ export function sendParent<
 >(
   event: Event<TSentEvent> | SendExpr<TContext, TEvent, TSentEvent>,
   options?: SendActionOptions<TContext, TEvent>
-): SendAction<TContext, TEvent, TSentEvent> {
+) {
   return send<TContext, TEvent, TSentEvent>(event, {
     ...options,
     to: SpecialTargets.Parent
@@ -270,7 +173,7 @@ export function sendParent<
 export function sendUpdate<
   TContext extends MachineContext,
   TEvent extends EventObject
->(): SendAction<TContext, TEvent, { type: ActionTypes.Update }> {
+>() {
   return sendParent<TContext, TEvent, { type: ActionTypes.Update }>(
     actionTypes.update
   );
@@ -297,49 +200,6 @@ export function respond<
     }
   });
 }
-
-export const defaultLogExpr = <TContext, TEvent extends EventObject>(
-  context: TContext,
-  event: TEvent
-) => ({
-  context,
-  event
-});
-
-/**
- * Cancels an in-flight `send(...)` action. A canceled sent action will not
- * be executed, nor will its event be sent, unless it has already been sent
- * (e.g., if `cancel(...)` is called after the `send(...)` action's `delay`).
- *
- * @param sendId The `id` of the `send(...)` action to cancel.
- */
-export const cancel = <
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  sendId: string | ExprWithMeta<TContext, TEvent, string>
-) => {
-  const cancelAction = new DynamicAction(actionTypes.cancel, {
-    sendId
-  });
-
-  cancelAction.resolve = function (ctx: TContext, _event: SCXML.Event<TEvent>) {
-    const sendId = isFunction(this.params.sendId)
-      ? this.params.sendId(ctx, _event.data, {
-          _event
-        })
-      : this.params.sendId;
-
-    return {
-      type: actionTypes.cancel,
-      params: {
-        sendId
-      }
-    };
-  };
-
-  return cancelAction;
-};
 
 /**
  * Updates the current context of the machine.
@@ -453,7 +313,7 @@ export function forwardTo<
 >(
   target: Required<SendActionOptions<TContext, TEvent>>['to'],
   options?: SendActionOptions<TContext, TEvent>
-): SendAction<TContext, TEvent, AnyEventObject> {
+) {
   return send<TContext, TEvent>((_, event) => event, {
     ...options,
     to: target
@@ -474,7 +334,7 @@ export function escalate<
 >(
   errorData: TErrorData | ExprWithMeta<TContext, TEvent, TErrorData>,
   options?: SendActionOptions<TContext, TEvent>
-): SendAction<TContext, TEvent, AnyEventObject> {
+) {
   return sendParent<TContext, TEvent>(
     (context, event, meta) => {
       return {

@@ -798,14 +798,11 @@ export enum ActionTypes {
   Choose = 'xstate.choose'
 }
 
-export interface RaiseAction<TEvent extends EventObject> {
-  type: ActionTypes.Raise;
-  event: TEvent['type'];
-}
-
 export interface RaiseActionObject<TEvent extends EventObject> {
   type: ActionTypes.Raise;
-  _event: SCXML.Event<TEvent>;
+  params: {
+    _event: SCXML.Event<TEvent>;
+  };
 }
 
 export interface DoneInvokeEvent<TData> extends EventObject {
@@ -926,12 +923,15 @@ export interface SendActionObject<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TSentEvent extends EventObject = AnyEventObject
-> extends SendAction<TContext, TEvent, TSentEvent> {
-  to: string | ActorRef<TSentEvent> | undefined;
-  _event: SCXML.Event<TSentEvent>;
-  event: TSentEvent;
-  delay?: number;
-  id: string | number;
+> extends BaseActionObject {
+  type: 'xstate.send';
+  params: {
+    to: string | ActorRef<TSentEvent> | undefined;
+    _event: SCXML.Event<TSentEvent>;
+    event: TSentEvent;
+    delay?: number;
+    id: string | number;
+  };
 }
 
 export type Expr<

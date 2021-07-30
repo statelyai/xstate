@@ -7,7 +7,14 @@ import {
 import { log as logActionType } from '../actionTypes';
 import { isString } from '../utils';
 import { DynamicAction } from '../../actions/DynamicAction';
-import { defaultLogExpr } from '../actions';
+
+const defaultLogExpr = <TContext, TEvent extends EventObject>(
+  context: TContext,
+  event: TEvent
+) => ({
+  context,
+  event
+});
 
 /**
  *

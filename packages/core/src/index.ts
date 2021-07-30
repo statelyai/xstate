@@ -5,10 +5,8 @@ import { State } from './State';
 import { createMachine } from './Machine';
 import {
   raise,
-  send,
   sendParent,
   sendUpdate,
-  cancel,
   assign,
   after,
   done,
@@ -19,6 +17,8 @@ import {
   choose,
   pure
 } from './actions';
+import { send } from './actions/send';
+import { cancel } from './actions/cancel';
 import { stop } from './actions/stop';
 import { log } from './actions/log';
 import { interpret, Interpreter, InterpreterStatus } from './interpreter';

@@ -1,5 +1,7 @@
 import { createMachine, interpret } from '../src';
-import { after, cancel, send, actionTypes } from '../src/actions';
+import { after, actionTypes } from '../src/actions';
+import { send } from '../src/actions/send';
+import { cancel } from '../src/actions/cancel';
 import { toSCXMLEvent } from '../src/utils';
 
 const lightMachine = createMachine({
@@ -42,20 +44,22 @@ describe('delayed transitions', () => {
           "type": "xstate.cancel",
         },
         Object {
-          "_event": Object {
-            "$$type": "scxml",
-            "data": Object {
+          "params": Object {
+            "_event": Object {
+              "$$type": "scxml",
+              "data": Object {
+                "type": "xstate.after(1000)#light.yellow",
+              },
+              "name": "xstate.after(1000)#light.yellow",
+              "type": "external",
+            },
+            "delay": 1000,
+            "event": Object {
               "type": "xstate.after(1000)#light.yellow",
             },
-            "name": "xstate.after(1000)#light.yellow",
-            "type": "external",
+            "id": "xstate.after(1000)#light.yellow",
+            "to": undefined,
           },
-          "delay": 1000,
-          "event": Object {
-            "type": "xstate.after(1000)#light.yellow",
-          },
-          "id": "xstate.after(1000)#light.yellow",
-          "to": undefined,
           "type": "xstate.send",
         },
       ]
@@ -224,7 +228,7 @@ describe('delayed transitions', () => {
 
       expect(sendActions.length).toBe(1);
 
-      expect(sendActions[0].delay).toEqual(1000);
+      expect(sendActions[0].params.delay).toEqual(1000);
     });
 
     it('should evaluate the expression (string) to determine the delay', () => {
@@ -240,7 +244,7 @@ describe('delayed transitions', () => {
 
       expect(sendActions.length).toBe(1);
 
-      expect(sendActions[0].delay).toEqual(1000 + 500);
+      expect(sendActions[0].params.delay).toEqual(1000 + 500);
     });
 
     it('should set delay to undefined if expression not found', () => {
@@ -256,7 +260,7 @@ describe('delayed transitions', () => {
 
       expect(sendActions.length).toBe(1);
 
-      expect(sendActions[0].delay).toEqual(undefined);
+      expect(sendActions[0].params.delay).toEqual(undefined);
     });
   });
 });

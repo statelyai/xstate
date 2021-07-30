@@ -1,10 +1,4 @@
-import {
-  EventObject,
-  StateNode,
-  StateValue,
-  InvokeAction,
-  DynamicLogAction
-} from '.';
+import { EventObject, StateNode, StateValue } from '.';
 import {
   keys,
   flatten,
@@ -44,13 +38,10 @@ import {
   ChooseAction,
   StopActionObject,
   AnyEventObject,
-  InvokeSourceDefinition,
   MachineContext
 } from './types';
 import { State } from './State';
 import {
-  send,
-  cancel,
   after,
   done,
   doneInvoke,
@@ -58,9 +49,10 @@ import {
   toActionObjects,
   initEvent,
   actionTypes,
-  resolveSend,
   toActionObject
 } from './actions';
+import { send } from './actions/send';
+import { cancel } from './actions/cancel';
 import { invoke } from './actions/invoke';
 import { stop } from './actions/stop';
 import { IS_PRODUCTION } from './environment';
@@ -1473,7 +1465,7 @@ export function microstep<
   } = resolveActionsAndContext(actions, machine, _event, currentState);
 
   internalQueue.push(...res.internalQueue);
-  internalQueue.push(...raised.map((a) => a._event));
+  internalQueue.push(...raised.map((a) => a.params._event));
 
   return {
     actions: resolvedActions,
@@ -1668,34 +1660,24 @@ function resolveActionsAndContext<
 
   function resolveAction(actionObject: ActionObject<TContext, TEvent>) {
     if (actionObject instanceof DynamicAction) {
-      resolvedActions.push(actionObject.resolve(context, _event, { machine }));
+      const resolvedActionObject = actionObject.resolve(context, _event, {
+        machine
+      });
+
+      if (
+        resolvedActionObject.type === actionTypes.raise ||
+        (resolvedActionObject.type === actionTypes.send &&
+          resolvedActionObject.params.to === SpecialTargets.Internal)
+      ) {
+        raiseActions.push(resolvedActionObject);
+      } else {
+        resolvedActions.push(resolvedActionObject);
+      }
       return;
     }
     switch (actionObject.type) {
       case actionTypes.raise:
-        raiseActions.push(actionObject.resolve());
-        break;
-      case actionTypes.send:
-        const sendAction = resolveSend(
-          actionObject as SendAction<TContext, TEvent, AnyEventObject>,
-          context,
-          _event,
-          machine.options.delays
-        );
-        if (!IS_PRODUCTION) {
-          // warn after resolving as we can create better contextual message here
-          warn(
-            !isString(actionObject.delay) ||
-              typeof sendAction.delay === 'number',
-            // tslint:disable-next-line:max-line-length
-            `No delay reference for delay expression '${actionObject.delay}' was found on machine '${machine.key}'`
-          );
-        }
-        if (sendAction.to === SpecialTargets.Internal) {
-          raiseActions.push(sendAction as RaiseActionObject<any>);
-        } else {
-          resolvedActions.push(sendAction);
-        }
+        raiseActions.push(actionObject as RaiseActionObject<TEvent>);
         break;
       case actionTypes.choose: {
         const chooseAction = actionObject as ChooseAction<TContext, TEvent>;
@@ -1748,10 +1730,12 @@ function resolveActionsAndContext<
           // Raise error.execution events for failed assign actions
           raiseActions.push({
             type: actionTypes.raise,
-            _event: toSCXMLEvent({
-              type: actionTypes.errorExecution,
-              error: err
-            } as any) // TODO: fix
+            params: {
+              _event: toSCXMLEvent({
+                type: actionTypes.errorExecution,
+                error: err
+              } as any) // TODO: fix
+            }
           });
         }
         break;

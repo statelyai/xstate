@@ -13,7 +13,6 @@ import {
 } from '../src';
 import {
   assign,
-  send,
   sendParent,
   raise,
   doneInvoke,
@@ -22,6 +21,7 @@ import {
   forwardTo,
   error
 } from '../src/actions';
+import { send } from '../src/actions/send';
 import { interval } from 'rxjs';
 import { map } from 'rxjs/operators';
 import * as actionTypes from '../src/actionTypes';
