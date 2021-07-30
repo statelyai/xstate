@@ -9,5 +9,5 @@
 ## Run this example locally
 
 1. `pnpm install`
-1. `pnpm run dev`
-1. Open http://localhost:3000
+2. `pnpm run dev`
+3. Open http://localhost:3000
