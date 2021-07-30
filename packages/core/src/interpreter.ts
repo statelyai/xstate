@@ -51,6 +51,7 @@ import {
   Subscribable
 } from '.';
 import { ResolvedAction } from '../actions/resolvedAction';
+import { InvokeSourceDefinition } from '../dist/declarations/src/types';
 
 export type StateListener<
   TContext extends MachineContext,
@@ -697,11 +698,23 @@ export class Interpreter<
           }
         },
         [actionTypes.cancel]: (ctx, e, { action }) => {
-          this.cancel((action as CancelActionObject<TContext, TEvent>).sendId);
+          this.cancel((action as CancelActionObject).params.sendId);
         },
         [actionTypes.invoke]: (ctx, e, { action, state }) => {
-          const { id, autoForward, ref } = action as InvokeActionObject;
+          const {
+            id,
+            autoForward,
+            ref
+          } = (action as InvokeActionObject).params;
           if (!ref) {
+            if (!IS_PRODUCTION) {
+              warn(
+                false,
+                `Actor type '${
+                  (action.params.src as InvokeSourceDefinition).type
+                }' not found in machine '${this.machine.key}'.`
+              );
+            }
             return;
           }
           (ref as any).parent = this; // TODO: fix
@@ -781,16 +794,8 @@ export class Interpreter<
       }
     }
 
-    if (action.exec) {
-      throw new Error('no');
-    }
-
     const actionOrExec = this.getActionFunction(action.type);
-    const exec = isFunction(actionOrExec)
-      ? actionOrExec
-      : actionOrExec
-      ? actionOrExec.exec
-      : action.exec;
+    const exec = isFunction(actionOrExec) ? actionOrExec : undefined;
 
     if (exec) {
       try {

@@ -33,20 +33,33 @@ describe('delayed transitions', () => {
     );
 
     expect(nextState.value).toEqual('yellow');
-    expect(nextState.actions).toEqual([
-      expect.objectContaining({
-        sendId: 'xstate.after(1000)#light.green',
-        type: 'xstate.cancel'
-      }),
-      expect.objectContaining({
-        delay: 1000,
-        event: {
-          type: 'xstate.after(1000)#light.yellow'
+    expect(nextState.actions).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "params": Object {
+            "sendId": "xstate.after(1000)#light.green",
+          },
+          "type": "xstate.cancel",
         },
-        id: 'xstate.after(1000)#light.yellow',
-        type: 'xstate.send'
-      })
-    ]);
+        Object {
+          "_event": Object {
+            "$$type": "scxml",
+            "data": Object {
+              "type": "xstate.after(1000)#light.yellow",
+            },
+            "name": "xstate.after(1000)#light.yellow",
+            "type": "external",
+          },
+          "delay": 1000,
+          "event": Object {
+            "type": "xstate.after(1000)#light.yellow",
+          },
+          "id": "xstate.after(1000)#light.yellow",
+          "to": undefined,
+          "type": "xstate.send",
+        },
+      ]
+    `);
   });
 
   it('should format transitions properly', () => {

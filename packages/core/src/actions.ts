@@ -5,8 +5,6 @@ import {
   SingleOrArray,
   SendAction,
   SendActionOptions,
-  CancelAction,
-  CancelActionObject,
   ActionObject,
   ActionType,
   Assigner,
@@ -24,23 +22,20 @@ import {
   SendActionObject,
   PureAction,
   LogExpr,
-  DynamicLogAction,
   DelayFunctionMap,
   SCXML,
   ExprWithMeta,
   ChooseConditon,
   ChooseAction,
   InvokeDefinition,
-  InvokeAction,
   StopActionObject,
   AnyEventObject,
   ActorRef,
   Expr,
   StopAction,
   BehaviorCreator,
-  ActorMap,
-  InvokeActionObject,
-  MachineContext
+  MachineContext,
+  LogActionObject
 } from './types';
 import * as actionTypes from './actionTypes';
 import {
@@ -54,6 +49,7 @@ import {
 import { isActorRef } from './actor';
 import { ObservableActorRef } from './ObservableActorRef';
 import { ResolvedAction } from '../actions/resolvedAction';
+import { DynamicAction } from '../actions/DynamicAction';
 export { actionTypes };
 
 export const initEvent = toSCXMLEvent({ type: actionTypes.init });
@@ -258,44 +254,6 @@ export function resolveSend<
   };
 }
 
-export function resolveInvoke<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  action: InvokeAction,
-  ctx: TContext,
-  _event: SCXML.Event<TEvent>,
-  actorMap: ActorMap<TContext, TEvent>
-): InvokeActionObject {
-  const { id, data, src } = action;
-
-  if (isActorRef(src)) {
-    return {
-      ...action,
-      ref: src
-    };
-  }
-
-  const behaviorCreator: BehaviorCreator<TContext, TEvent> | undefined =
-    actorMap[src.type];
-
-  if (!behaviorCreator) {
-    return action;
-  }
-
-  const behavior = behaviorCreator(ctx, _event.data, {
-    id,
-    data,
-    src,
-    _event
-  });
-
-  return {
-    ...action,
-    ref: new ObservableActorRef(behavior, id)
-  };
-}
-
 /**
  * Sends an event to this machine's parent.
  *
@@ -372,21 +330,23 @@ export function log<
 >(
   expr: string | LogExpr<TContext, TEvent> = defaultLogExpr,
   label?: string
-): DynamicLogAction<TContext, TEvent> {
-  return {
-    type: actionTypes.log,
-    params: {
-      label,
-      expr
-    },
-    resolve: (ctx: TContext, _event: SCXML.Event<TEvent>) => ({
+): DynamicAction<TContext, TEvent, LogActionObject> {
+  const logAction = new DynamicAction<TContext, TEvent, LogActionObject>(
+    actionTypes.log,
+    { label, expr }
+  );
+
+  logAction.resolve = function (ctx, _event) {
+    return {
       type: actionTypes.log,
       params: {
         label,
         value: isString(expr) ? expr : expr(ctx, _event.data, { _event })
       }
-    })
+    };
   };
+
+  return logAction;
 }
 
 /**
@@ -401,42 +361,80 @@ export const cancel = <
   TEvent extends EventObject
 >(
   sendId: string | ExprWithMeta<TContext, TEvent, string>
-): CancelAction<TContext, TEvent> => {
-  const action = {
-    type: actionTypes.cancel,
-    sendId,
-    resolve: (ctx: TContext, _event: SCXML.Event<TEvent>) => {
-      if (typeof sendId === 'function') {
-        return {
-          type: actionTypes.cancel,
-          sendId: sendId(ctx, _event.data, {
-            _event
-          })
-        };
-      }
+) => {
+  const cancelAction = new DynamicAction(actionTypes.cancel, {
+    sendId
+  });
 
-      return {
-        type: actionTypes.cancel,
+  cancelAction.resolve = function (ctx: TContext, _event: SCXML.Event<TEvent>) {
+    const sendId = isFunction(this.params.sendId)
+      ? this.params.sendId(ctx, _event.data, {
+          _event
+        })
+      : this.params.sendId;
+
+    return {
+      type: actionTypes.cancel,
+      params: {
         sendId
-      } as CancelActionObject<TContext, TEvent>;
-    }
+      }
+    };
   };
 
-  return action;
+  return cancelAction;
 };
 
 export function invoke<
   TContext extends MachineContext,
   TEvent extends EventObject
->(invokeDef: InvokeDefinition<TContext, TEvent>): InvokeAction {
-  return {
-    type: ActionTypes.Invoke,
-    src: invokeDef.src,
-    id: invokeDef.id,
-    autoForward: invokeDef.autoForward,
-    data: invokeDef.data,
-    exec: undefined
+>(invokeDef: InvokeDefinition<TContext, TEvent>) {
+  const invokeAction = new DynamicAction<TContext, TEvent, any>(
+    actionTypes.invoke,
+    {
+      src: invokeDef.src,
+      id: invokeDef.id,
+      autoForward: invokeDef.autoForward,
+      data: invokeDef.data
+    }
+  );
+  invokeAction.resolve = function (context, _event, { machine }) {
+    const { id, data, src } = this.params;
+    if (isActorRef(src)) {
+      return {
+        type: this.type,
+        params: {
+          ...this.params,
+          ref: src
+        }
+      };
+    }
+
+    const behaviorCreator: BehaviorCreator<TContext, TEvent> | undefined =
+      machine.options.actors[src.type];
+
+    if (!behaviorCreator) {
+      return {
+        type: this.type,
+        params: this.params
+      };
+    }
+
+    const behavior = behaviorCreator(context, _event.data, {
+      id,
+      data,
+      src,
+      _event
+    });
+
+    return {
+      type: this.type,
+      params: {
+        ...this.params,
+        ref: new ObservableActorRef(behavior, id)
+      }
+    };
   };
+  return invokeAction;
 }
 
 /**

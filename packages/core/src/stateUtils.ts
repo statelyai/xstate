@@ -62,7 +62,6 @@ import {
   resolveSend,
   toActionObject,
   invoke,
-  resolveInvoke,
   resolveStop
 } from './actions';
 import { IS_PRODUCTION } from './environment';
@@ -71,6 +70,7 @@ import { isSpawnedActorRef } from './actor';
 import { StateMachine } from './StateMachine';
 import { evaluateGuard, toGuardDefinition } from './guards';
 import { ResolvedAction } from '../actions/resolvedAction';
+import { DynamicAction } from '../actions/DynamicAction';
 
 type Configuration<
   TContext extends MachineContext,
@@ -1668,12 +1668,13 @@ function resolveActionsAndContext<
   const actionObjects = toActionObjects(actions, machine.options.actions);
 
   function resolveAction(actionObject: ActionObject<TContext, TEvent>) {
+    if (actionObject instanceof DynamicAction) {
+      resolvedActions.push(actionObject.resolve(context, _event, { machine }));
+      return;
+    }
     switch (actionObject.type) {
       case actionTypes.raise:
         raiseActions.push(actionObject.resolve());
-        break;
-      case actionTypes.cancel:
-        resolvedActions.push(actionObject.resolve(context, _event));
         break;
       case actionTypes.send:
         const sendAction = resolveSend(
@@ -1696,14 +1697,6 @@ function resolveActionsAndContext<
         } else {
           resolvedActions.push(sendAction);
         }
-        break;
-      case actionTypes.log:
-        resolvedActions.push(
-          (actionObject as DynamicLogAction<TContext, TEvent>).resolve(
-            context,
-            _event
-          )
-        );
         break;
       case actionTypes.choose: {
         const chooseAction = actionObject as ChooseAction<TContext, TEvent>;
@@ -1762,23 +1755,6 @@ function resolveActionsAndContext<
             } as any) // TODO: fix
           });
         }
-        break;
-      case actionTypes.invoke:
-        const invokeAction = resolveInvoke(
-          actionObject as InvokeAction,
-          context,
-          _event,
-          machine.options.actors
-        );
-        if (!IS_PRODUCTION && !invokeAction.ref) {
-          warn(
-            false,
-            `Actor type '${
-              (invokeAction.src as InvokeSourceDefinition).type
-            }' not found in machine '${machine.key}'.`
-          );
-        }
-        resolvedActions.push(invokeAction);
         break;
       case actionTypes.stop:
         const stopAction = resolveStop(

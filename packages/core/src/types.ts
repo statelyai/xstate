@@ -55,7 +55,13 @@ export interface BaseDynamicActionObject<
 > {
   type: `xstate.${string}`;
   params: Record<string, any>;
-  resolve: (context: TContext, _event: SCXML.Event<TEvent>) => TAction;
+  resolve: (
+    context: TContext,
+    _event: SCXML.Event<TEvent>,
+    extra: {
+      machine: MachineNode<TContext, TEvent>;
+    }
+  ) => TAction;
 }
 
 export type MachineContext = object;
@@ -849,8 +855,16 @@ export interface InvokeAction {
   exec?: undefined;
 }
 
-export interface InvokeActionObject extends InvokeAction {
-  ref?: ActorRef<any>;
+export interface InvokeActionObject extends BaseActionObject {
+  type: ActionTypes.Invoke;
+  params: {
+    src: InvokeSourceDefinition | ActorRef<any>;
+    id: string;
+    autoForward?: boolean;
+    data?: any;
+    exec?: undefined;
+    ref?: ActorRef<any>;
+  };
 }
 
 export interface StopAction<TC extends MachineContext, TE extends EventObject> {
@@ -960,11 +974,11 @@ export interface CancelAction<
   sendId: string | ExprWithMeta<TContext, TEvent, string>;
 }
 
-export interface CancelActionObject<
-  TContext extends MachineContext,
-  TEvent extends EventObject
-> extends CancelAction<TContext, TEvent> {
-  sendId: string;
+export interface CancelActionObject extends BaseActionObject {
+  type: ActionTypes.Cancel;
+  params: {
+    sendId: string;
+  };
 }
 
 export type Assigner<

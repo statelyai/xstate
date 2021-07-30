@@ -31,7 +31,7 @@ export class ResolvedAction<TContext extends object, TEvent extends EventObject>
     this.type = actionObject.type;
     this.params = actionObject;
   }
-  public execute(state: State<TContext, TEvent>) {
+  public execute(state: State<TContext, TEvent, any>) {
     const context = this.context ?? state.context;
 
     return this._exec?.(context, state.event, {
