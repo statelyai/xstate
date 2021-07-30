@@ -5,7 +5,8 @@ import {
   interpret,
   spawnMachine
 } from '../src/index';
-import { pure, sendParent, log, choose } from '../src/actions';
+import { pure, sendParent, choose } from '../src/actions';
+import { log } from '../src/actions/log';
 import { invokeMachine } from '../src/invoke';
 import { ActorRef } from '../src';
 

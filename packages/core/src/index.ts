@@ -8,9 +8,7 @@ import {
   send,
   sendParent,
   sendUpdate,
-  log,
   cancel,
-  stop,
   assign,
   after,
   done,
@@ -21,6 +19,8 @@ import {
   choose,
   pure
 } from './actions';
+import { stop } from './actions/stop';
+import { log } from './actions/log';
 import { interpret, Interpreter, InterpreterStatus } from './interpreter';
 import { matchState } from './match';
 export { StateMachine as MachineNode } from './StateMachine';

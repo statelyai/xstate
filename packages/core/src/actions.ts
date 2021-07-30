@@ -21,21 +21,13 @@ import {
   SendExpr,
   SendActionObject,
   PureAction,
-  LogExpr,
   DelayFunctionMap,
   SCXML,
   ExprWithMeta,
   ChooseConditon,
   ChooseAction,
-  InvokeDefinition,
-  StopActionObject,
   AnyEventObject,
-  ActorRef,
-  Expr,
-  StopAction,
-  BehaviorCreator,
-  MachineContext,
-  LogActionObject
+  MachineContext
 } from './types';
 import * as actionTypes from './actionTypes';
 import {
@@ -46,8 +38,6 @@ import {
   toSCXMLEvent,
   isArray
 } from './utils';
-import { isActorRef } from './actor';
-import { ObservableActorRef } from './ObservableActorRef';
 import { ResolvedAction } from '../actions/resolvedAction';
 import { DynamicAction } from '../actions/DynamicAction';
 export { actionTypes };
@@ -308,46 +298,13 @@ export function respond<
   });
 }
 
-const defaultLogExpr = <TContext, TEvent extends EventObject>(
+export const defaultLogExpr = <TContext, TEvent extends EventObject>(
   context: TContext,
   event: TEvent
 ) => ({
   context,
   event
 });
-
-/**
- *
- * @param expr The expression function to evaluate which will be logged.
- *  Takes in 2 arguments:
- *  - `ctx` - the current state context
- *  - `event` - the event that caused this action to be executed.
- * @param label The label to give to the logged expression.
- */
-export function log<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  expr: string | LogExpr<TContext, TEvent> = defaultLogExpr,
-  label?: string
-): DynamicAction<TContext, TEvent, LogActionObject> {
-  const logAction = new DynamicAction<TContext, TEvent, LogActionObject>(
-    actionTypes.log,
-    { label, expr }
-  );
-
-  logAction.resolve = function (ctx, _event) {
-    return {
-      type: actionTypes.log,
-      params: {
-        label,
-        value: isString(expr) ? expr : expr(ctx, _event.data, { _event })
-      }
-    };
-  };
-
-  return logAction;
-}
 
 /**
  * Cancels an in-flight `send(...)` action. A canceled sent action will not
@@ -383,98 +340,6 @@ export const cancel = <
 
   return cancelAction;
 };
-
-export function invoke<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(invokeDef: InvokeDefinition<TContext, TEvent>) {
-  const invokeAction = new DynamicAction<TContext, TEvent, any>(
-    actionTypes.invoke,
-    {
-      src: invokeDef.src,
-      id: invokeDef.id,
-      autoForward: invokeDef.autoForward,
-      data: invokeDef.data
-    }
-  );
-  invokeAction.resolve = function (context, _event, { machine }) {
-    const { id, data, src } = this.params;
-    if (isActorRef(src)) {
-      return {
-        type: this.type,
-        params: {
-          ...this.params,
-          ref: src
-        }
-      };
-    }
-
-    const behaviorCreator: BehaviorCreator<TContext, TEvent> | undefined =
-      machine.options.actors[src.type];
-
-    if (!behaviorCreator) {
-      return {
-        type: this.type,
-        params: this.params
-      };
-    }
-
-    const behavior = behaviorCreator(context, _event.data, {
-      id,
-      data,
-      src,
-      _event
-    });
-
-    return {
-      type: this.type,
-      params: {
-        ...this.params,
-        ref: new ObservableActorRef(behavior, id)
-      }
-    };
-  };
-  return invokeAction;
-}
-
-/**
- * Stops an actor.
- *
- * @param actorRef The activity to stop.
- */
-export function stop<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  actorRef: string | Expr<TContext, TEvent, ActorRef<any>>
-): StopAction<TContext, TEvent> {
-  const activity = isFunction(actorRef) ? actorRef : actorRef;
-
-  return {
-    type: ActionTypes.Stop,
-    actor: activity
-  };
-}
-
-export function resolveStop<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  action: StopAction<TContext, TEvent>,
-  context: TContext,
-  _event: SCXML.Event<TEvent>
-): StopActionObject {
-  const actorRefOrString = isFunction(action.actor)
-    ? action.actor(context, _event.data)
-    : action.actor;
-
-  const actionObject = {
-    type: ActionTypes.Stop as const,
-    actor: actorRefOrString
-  };
-
-  return actionObject;
-}
 
 /**
  * Updates the current context of the machine.

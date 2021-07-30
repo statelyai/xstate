@@ -724,7 +724,7 @@ export class Interpreter<
             state.actions.find((otherAction) => {
               return (
                 otherAction.type === actionTypes.stop &&
-                otherAction.actor === id
+                (otherAction as StopActionObject).params.actor === id
               );
             })
           ) {
@@ -755,7 +755,7 @@ export class Interpreter<
           }
         },
         [actionTypes.stop]: (ctx, e, { action }) => {
-          const { actor } = action as StopActionObject;
+          const { actor } = (action as StopActionObject).params;
           const actorRef =
             typeof actor === 'string' ? this.children.get(actor) : actor;
 

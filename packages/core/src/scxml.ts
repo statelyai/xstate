@@ -10,6 +10,7 @@ import {
 import { createMachine } from './index';
 import { mapValues, isString, flatten } from './utils';
 import * as actions from './actions';
+import * as log from './actions/log';
 import { invokeMachine } from './invoke';
 import { StateMachine } from './StateMachine';
 import { not, stateIn } from './guards';
@@ -214,7 +215,7 @@ return (${delayToMs})(${element.attributes!.delayexpr});
     case 'log': {
       const label = element.attributes!.label;
 
-      return actions.log<TContext, TEvent>(
+      return log.log<TContext, TEvent>(
         (context, e, meta) => {
           const fnBody = `
 return ${element.attributes!.expr};

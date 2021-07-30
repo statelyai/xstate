@@ -56,14 +56,13 @@ import {
   doneInvoke,
   error,
   toActionObjects,
-  stop,
   initEvent,
   actionTypes,
   resolveSend,
-  toActionObject,
-  invoke,
-  resolveStop
+  toActionObject
 } from './actions';
+import { invoke } from './actions/invoke';
+import { stop } from './actions/stop';
 import { IS_PRODUCTION } from './environment';
 import { STATE_IDENTIFIER, NULL_EVENT, WILDCARD } from './constants';
 import { isSpawnedActorRef } from './actor';
@@ -1576,7 +1575,7 @@ export function resolveMicroTransition<
 
   for (const action of resolved.actions) {
     if (action.type === actionTypes.stop) {
-      const { actor: ref } = action as StopActionObject;
+      const { actor: ref } = (action as StopActionObject).params;
       if (isSpawnedActorRef(ref)) {
         delete children[ref.name];
       } else {
@@ -1755,14 +1754,6 @@ function resolveActionsAndContext<
             } as any) // TODO: fix
           });
         }
-        break;
-      case actionTypes.stop:
-        const stopAction = resolveStop(
-          actionObject as StopActionObject,
-          context,
-          _event
-        );
-        resolvedActions.push(stopAction);
         break;
       default:
         const contextIndex = preservedContexts.length - 1;

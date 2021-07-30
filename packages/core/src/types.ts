@@ -873,7 +873,9 @@ export interface StopAction<TC extends MachineContext, TE extends EventObject> {
 }
 export interface StopActionObject {
   type: ActionTypes.Stop;
-  actor: string | ActorRef<any>;
+  params: {
+    actor: string | ActorRef<any>;
+  };
 }
 
 export type DelayExpr<

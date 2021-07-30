@@ -15,7 +15,9 @@ import {
   spawnObservable
 } from '../src';
 import { State } from '../src/State';
-import { log, actionTypes, raise, stop } from '../src/actions';
+import { actionTypes, raise } from '../src/actions';
+import { stop } from '../src/actions/stop';
+import { log } from '../src/actions/log';
 import { isObservable } from '../src/utils';
 import { interval, from } from 'rxjs';
 import { map } from 'rxjs/operators';
