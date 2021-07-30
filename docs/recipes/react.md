@@ -120,9 +120,8 @@ export const SomeComponent = (props) => {
   // Get `send()` method from a service
   const { send } = globalServices.authService;
 
-  return <>
-      {isLoggedIn ? 'Logged In' : 'Logged Out'}
-      <button onClick={() => send('TOGGLE')}>Toggle</button>
+   return <>
+      {isLoggedIn && <button type="button" onClick={() => send('LOG_OUT')}>Logout</button>}
    </>;
 };
 ```
