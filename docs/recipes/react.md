@@ -1,31 +1,20 @@
 # Usage with React
 
-The most straightforward way of using XState with React is through local component state. The machine used should always be decoupled from implementation details; e.g., it should never know that it is in React (or Vue, or Angular, etc.):
+XState can be used with React to:
+
+- Coordinate local state
+- Manage global state performantly
+- Consume data from other hooks
+
+At [Stately](https://stately.ai), we love this combo. It's our go-to stack for creating internal applications.
+
+To ask for help, check out the [`#react-help` channel in our Discord community](https://discord.gg/vedXj62MfQ).
+
+## Local state
+
+Using [React hooks](https://reactjs.org/hooks) are the easiest way to use state machines in your components. You can use the official [`@xstate/react`](https://github.com/davidkpiano/xstate/tree/main/packages/xstate-react) to give you useful hooks out of the box, such as `useMachine`.
 
 ```js
-import { createMachine } from 'xstate';
-
-// This machine is completely decoupled from React
-export const toggleMachine = createMachine({
-  id: 'toggle',
-  initial: 'inactive',
-  states: {
-    inactive: {
-      on: { TOGGLE: 'active' }
-    },
-    active: {
-      on: { TOGGLE: 'inactive' }
-    }
-  }
-});
-```
-
-## Hooks
-
-Using [React hooks](https://reactjs.org/hooks) makes it easier to use state machines with function components. You can either use the official [`@xstate/react`](https://github.com/davidkpiano/xstate/tree/main/packages/xstate-react) package, a community solution like [`use-machine` by Carlos Galarza](https://github.com/carloslfu/use-machine/), or implement your own hook to interpret and use XState machines:
-
-```js
-// import { useMachine } from '../path/to/useMachine';
 import { useMachine } from '@xstate/react';
 import { toggleMachine } from '../path/to/toggleMachine';
 
@@ -40,7 +29,185 @@ function Toggle() {
 }
 ```
 
+## Global State/React Context
+
+Our recommended approach for managing global state with XState and React is to use [React Context](https://reactjs.org/docs/context.html).
+
+> There are two versions of 'context': XState's [context](../guides/context.md) and React's context. It's a little confusing!
+
+### Context Provider
+
+React context can be a tricky tool to work with - if you pass in values which change too often, it can result in re-renders all the way down the tree. That means we need to pass in values which change as little as possible.
+
+Luckily, XState gives us a first-class way to do that: `useInterpret`.
+
+```js
+import React, { createContext } from 'react';
+import { useInterpret } from '@xstate/react';
+import { authMachine } from './authMachine';
+
+export const GlobalStateContext = createContext({});
+
+export const GlobalStateProvider = (props) => {
+  const authService = useInterpret(authMachine);
+
+  return (
+    <GlobalStateContext.Provider value={{ authService }}>
+      {props.children}
+    </GlobalStateContext.Provider>
+  );
+};
+```
+
+Using `useInterpret` returns a service, which is a static reference to the running machine which can be subscribed to. This value never changes, so we don't need to worry about wasted re-renders.
+
+### Utilizing context
+
+Further down the tree, you can subscribe to the service like this:
+
+```js
+import React, { useContext } from 'react';
+import { GlobalStateContext } from './globalState';
+import { useActor } from '@xstate/react';
+
+export const SomeComponent = (props) => {
+  const globalServices = useContext(GlobalStateContext);
+  const [state] = useActor(globalServices.authService);
+
+  return state.matches('loggedIn') ? 'Logged In' : 'Logged Out';
+};
+```
+
+The `useActor` hook listens for whenever the service changes, and updates the state value.
+
+### Improving Performance
+
+There's an issue with the implementation above - this will update the component for any change to the service. Tools like [Redux](https://redux.js.org) use [`selectors`](https://redux.js.org/usage/deriving-data-selectors) for deriving state. Selectors are functions which restrict which parts of the state can result in components re-rendering.
+
+Fortunately, XState exposes the `useSelector` hook.
+
+```js
+import React, { useContext } from 'react';
+import { GlobalStateContext } from './globalState';
+import { useSelector } from '@xstate/react';
+
+const loggedInSelector = (state) => {
+  return state.matches('loggedIn');
+};
+
+export const SomeComponent = (props) => {
+  const globalServices = useContext(GlobalStateContext);
+  const isLoggedIn = useSelector(globalServices.authService, loggedInSelector);
+
+  return isLoggedIn ? 'Logged In' : 'Logged Out';
+};
+```
+
+This component will only re-render when `state.matches('loggedIn')` returns a different value. This is our recommended approach over `useActor` for when you want to optimise performance.
+
+### Dispatching events
+
+For dispatching events to the global store, you can call a service's `send` function directly.
+
+```js
+import React, { useContext } from 'react';
+import { GlobalStateContext } from './globalState';
+
+export const SomeComponent = (props) => {
+  const globalServices = useContext(GlobalStateContext);
+
+  return (
+    <button onClick={() => globalServices.authService.send('LOG_OUT')}>
+      Log Out
+    </button>
+  );
+};
+```
+
+Note that you don't need to call `useActor` for this, it's available right on the context.
+
+## Other hooks
+
+XState's `useMachine` and `useInterpret` hooks can be used alongside others. Two patterns are most common:
+
+### Named actions/services/guards
+
+Let's imagine that when you navigate to a certain state, you want to leave the page and go somewhere else, via `react-router` or `next`. For now, we'll declare that action as a 'named' action - where we name it now and declare it later.
+
+```js
+import { createMachine } from 'xstate';
+
+export const machine = createMachine({
+  initial: 'toggledOff',
+  states: {
+    toggledOff: {
+      on: {
+        TOGGLE: 'toggledOn'
+      }
+    },
+    toggledOn: {
+      entry: ['goToOtherPage']
+    }
+  }
+});
+```
+
+Inside your component, you can now _implement_ the named action. I've added `useHistory` from `react-router` as an example, but you can imagine this working with any hook or prop-based router.
+
+```js
+import { machine } from './machine';
+import { useMachine } from '@xstate/react';
+import { useHistory } from 'react-router';
+
+const Component = () => {
+  const history = useHistory();
+
+  const [state, send] = useMachine(machine, {
+    actions: {
+      goToOtherPage: () => {
+        history.push('/other-page');
+      }
+    }
+  });
+
+  return null;
+};
+```
+
+This also works for services, guards, and delays.
+
+> If you use this technique, any references you use inside `goToOtherPage` will be kept up to date each render. That means you don't need to worry about stale references.
+
+### Syncing data with useEffect
+
+Sometimes, you want to outsource some functionality to another hook. This is especially common with data fetching hooks such as [`react-query`](https://react-query.tanstack.com/) and [`swr`](https://swr.vercel.app/). You don't want to have to re-build all your data fetching functionality in XState.
+
+The best way to manage this is via `useEffect`.
+
+```js
+const Component = () => {
+  const { data, error } = useSWR('/api/user', fetcher);
+
+  const [state, send] = useMachine(machine);
+
+  useEffect(() => {
+    send({
+      type: 'DATA_CHANGED',
+      data,
+      error
+    });
+  }, [data, error, send]);
+};
+```
+
+This will send a `DATA_CHANGED` event whenever the result from `useSWR` changes, allowing you to react to it just like any other event. You could, for instance:
+
+- Move into an `errored` state when the data returns an error
+- Save the data to context
+
 ## Class components
+
+If you're using class components, here's an example implementation that doesn't rely on hooks.
 
 - The `machine` is [interpreted](../guides/interpretation.md) and its `service` instance is placed on the component instance.
 - For local state, `this.state.current` will hold the current machine state. You can use a property name other than `.current`.
