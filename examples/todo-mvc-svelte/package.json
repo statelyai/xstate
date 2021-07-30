@@ -1,36 +1,28 @@
 {
-  "name": "xstate-todo-mvc-svelte",
   "version": "0.0.0",
+  "type": "module",
   "scripts": {
-    "build": "rollup -c",
-    "dev": "rollup -c -w",
-    "start": "sirv public --no-clear",
+    "dev": "vite",
+    "build": "vite build",
+    "serve": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^1.0.0-next.15",
+    "@tsconfig/svelte": "^2.0.1",
+    "svelte": "^3.41.0",
+    "svelte-check": "^2.2.3",
+    "svelte-preprocess": "^4.7.4",
+    "tslib": "^2.3.0",
+    "typescript": "^4.3.5",
+    "vite": "^2.4.4"
   },
   "dependencies": {
     "@xstate/inspect": "^0.4.1",
     "@xstate/svelte": "^0.1.0",
     "nanoid": "^3.1.23",
-    "sirv-cli": "^1.0.12",
     "todomvc-app-css": "^2.4.1",
     "todomvc-common": "^1.0.5",
-    "xstate": "^4.23.0"
-  },
-  "devDependencies": {
-    "@rollup/plugin-commonjs": "^19.0.1",
-    "@rollup/plugin-node-resolve": "^13.0.2",
-    "@rollup/plugin-replace": "^3.0.0",
-    "@rollup/plugin-typescript": "^8.2.3",
-    "@tsconfig/svelte": "^2.0.1",
-    "rollup": "^2.53.3",
-    "rollup-plugin-css-only": "^3.1.0",
-    "rollup-plugin-livereload": "^2.0.5",
-    "rollup-plugin-svelte": "^7.1.0",
-    "rollup-plugin-terser": "^7.0.2",
-    "svelte": "^3.40.0",
-    "svelte-check": "^2.2.3",
-    "svelte-preprocess": "^4.7.4",
-    "tslib": "^2.3.0",
-    "typescript": "^4.3.5"
+    "xstate": "^4.23.1"
   }
 }
