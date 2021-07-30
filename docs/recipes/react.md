@@ -117,7 +117,8 @@ const loggedInSelector = (state) => {
 export const SomeComponent = (props) => {
   const globalServices = useContext(GlobalStateContext);
   const isLoggedIn = useSelector(globalServices.authService, loggedInSelector);
-  const send = globalServices.authService.send;
+  // Get `send()` method from a service
+  const { send } = globalServices.authService;
 
   return <>
       {isLoggedIn ? 'Logged In' : 'Logged Out'}
