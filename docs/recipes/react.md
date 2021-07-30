@@ -103,6 +103,29 @@ export const SomeComponent = (props) => {
 };
 ```
 
+If you need to send an event in the component that consumes a service, you can use the `service.send(...)` method directly:
+
+```js
+import React, { useContext } from 'react';
+import { GlobalStateContext } from './globalState';
+import { useSelector } from '@xstate/react';
+
+const loggedInSelector = (state) => {
+  return state.matches('loggedIn');
+};
+
+export const SomeComponent = (props) => {
+  const globalServices = useContext(GlobalStateContext);
+  const isLoggedIn = useSelector(globalServices.authService, loggedInSelector);
+  // Get `send()` method from a service
+  const { send } = globalServices.authService;
+
+   return <>
+      {isLoggedIn && <button type="button" onClick={() => send('LOG_OUT')}>Logout</button>}
+   </>;
+};
+```
+
 This component will only re-render when `state.matches('loggedIn')` returns a different value. This is our recommended approach over `useActor` for when you want to optimise performance.
 
 ### Dispatching events
