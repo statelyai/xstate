@@ -24,7 +24,7 @@ import {
   SendActionObject,
   PureAction,
   LogExpr,
-  LogAction,
+  DynamicLogAction,
   DelayFunctionMap,
   SCXML,
   ExprWithMeta,
@@ -372,16 +372,19 @@ export function log<
 >(
   expr: string | LogExpr<TContext, TEvent> = defaultLogExpr,
   label?: string
-): LogAction<TContext, TEvent> {
+): DynamicLogAction<TContext, TEvent> {
   return {
     type: actionTypes.log,
-    label,
-    expr,
+    params: {
+      label,
+      expr
+    },
     resolve: (ctx: TContext, _event: SCXML.Event<TEvent>) => ({
       type: actionTypes.log,
-      label,
-      expr,
-      value: isString(expr) ? expr : expr(ctx, _event.data, { _event })
+      params: {
+        label,
+        value: isString(expr) ? expr : expr(ctx, _event.data, { _event })
+      }
     })
   };
 }

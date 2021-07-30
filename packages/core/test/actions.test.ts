@@ -1104,10 +1104,11 @@ describe('log()', () => {
   it('should log a string', () => {
     expect(logMachine.initialState.actions[0]).toMatchInlineSnapshot(`
       Object {
-        "expr": "some string",
-        "label": "string label",
+        "params": Object {
+          "label": "string label",
+          "value": "some string",
+        },
         "type": "xstate.log",
-        "value": "some string",
       }
     `);
   });
@@ -1116,10 +1117,11 @@ describe('log()', () => {
     const nextState = logMachine.transition(logMachine.initialState, 'EXPR');
     expect(nextState.actions[0]).toMatchInlineSnapshot(`
       Object {
-        "expr": [Function],
-        "label": "expr label",
+        "params": Object {
+          "label": "expr label",
+          "value": "expr 42",
+        },
         "type": "xstate.log",
-        "value": "expr 42",
       }
     `);
   });

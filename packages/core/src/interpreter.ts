@@ -44,6 +44,7 @@ import { devToolsAdapter } from './dev';
 import { CapturedState } from './capturedState';
 import {
   ActionFunction,
+  LogActionObject,
   MachineContext,
   PayloadSender,
   StopActionObject,
@@ -750,7 +751,7 @@ export class Interpreter<
           }
         },
         [actionTypes.log]: (ctx, e, { action }) => {
-          const { label, value } = action;
+          const { label, value } = (action as LogActionObject).params;
 
           if (label) {
             this.logger(label, value);

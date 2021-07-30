@@ -1,4 +1,10 @@
-import { EventObject, StateNode, StateValue, InvokeAction } from '.';
+import {
+  EventObject,
+  StateNode,
+  StateValue,
+  InvokeAction,
+  DynamicLogAction
+} from '.';
 import {
   keys,
   flatten,
@@ -54,7 +60,6 @@ import {
   initEvent,
   actionTypes,
   resolveSend,
-  resolveCancel,
   toActionObject,
   invoke,
   resolveInvoke,
@@ -1693,7 +1698,12 @@ function resolveActionsAndContext<
         }
         break;
       case actionTypes.log:
-        resolvedActions.push(actionObject.resolve(context, _event));
+        resolvedActions.push(
+          (actionObject as DynamicLogAction<TContext, TEvent>).resolve(
+            context,
+            _event
+          )
+        );
         break;
       case actionTypes.choose: {
         const chooseAction = actionObject as ChooseAction<TContext, TEvent>;

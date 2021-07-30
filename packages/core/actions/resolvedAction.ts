@@ -1,7 +1,13 @@
-import { ActionFunction, ActionObject, EventObject, State } from '../src';
+import type { State } from '../src/State';
+import {
+  ActionFunction,
+  ActionObject,
+  EventObject,
+  MachineContext
+} from '../src/types';
 
 export interface ResolvedActionObject<
-  TContext extends object,
+  TContext extends MachineContext,
   TEvent extends EventObject
 > {
   type: string;

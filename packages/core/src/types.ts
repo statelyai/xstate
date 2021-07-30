@@ -43,6 +43,21 @@ export interface ActionObject<
   [other: string]: any;
 }
 
+export interface BaseActionObject {
+  type: string;
+  params: Record<string, any>;
+}
+
+export interface BaseDynamicActionObject<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TAction extends BaseActionObject
+> {
+  type: `xstate.${string}`;
+  params: Record<string, any>;
+  resolve: (context: TContext, _event: SCXML.Event<TEvent>) => TAction;
+}
+
 export type MachineContext = object;
 
 /**
@@ -97,7 +112,8 @@ export type Action<
 > =
   | ActionType
   | ActionObject<TContext, TEvent>
-  | ActionFunction<TContext, TEvent>;
+  | ActionFunction<TContext, TEvent>
+  | BaseDynamicActionObject<TContext, TEvent, any>; // TODO: fix last param
 
 export type Actions<
   TContext extends MachineContext,
@@ -856,19 +872,23 @@ export type LogExpr<
   TEvent extends EventObject
 > = ExprWithMeta<TContext, TEvent, any>;
 
-export interface LogAction<
+export interface DynamicLogAction<
   TContext extends MachineContext,
   TEvent extends EventObject
-> extends ActionObject<TContext, TEvent> {
-  label: string | undefined;
-  expr: string | LogExpr<TContext, TEvent>;
+> extends BaseDynamicActionObject<TContext, TEvent, LogActionObject> {
+  type: ActionTypes.Log;
+  params: {
+    label: string | undefined;
+    expr: string | LogExpr<TContext, TEvent>;
+  };
 }
 
-export interface LogActionObject<
-  TContext extends MachineContext,
-  TEvent extends EventObject
-> extends LogAction<TContext, TEvent> {
-  value: any;
+export interface LogActionObject extends BaseActionObject {
+  type: ActionTypes.Log;
+  params: {
+    label: string | undefined;
+    value: any;
+  };
 }
 
 export interface SendAction<
