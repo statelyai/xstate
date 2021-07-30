@@ -3,7 +3,6 @@ import {
   Event,
   EventObject,
   SingleOrArray,
-  SendAction,
   SendActionOptions,
   ActionObject,
   ActionType,
@@ -28,8 +27,14 @@ import {
 import * as actionTypes from './actionTypes';
 import { isFunction, isString, toSCXMLEvent, isArray } from './utils';
 import { ResolvedAction } from '../actions/resolvedAction';
-import { RaiseActionObject } from '.';
 import { send } from './actions/send';
+export {
+  sendUpdate,
+  sendParent,
+  respond,
+  forwardTo,
+  escalate
+} from './actions/send';
 export { actionTypes };
 
 export const initEvent = toSCXMLEvent({ type: actionTypes.init });
@@ -148,60 +153,6 @@ export function raise<
 }
 
 /**
- * Sends an event to this machine's parent.
- *
- * @param event The event to send to the parent machine.
- * @param options Options to pass into the send event.
- */
-export function sendParent<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TSentEvent extends EventObject = AnyEventObject
->(
-  event: Event<TSentEvent> | SendExpr<TContext, TEvent, TSentEvent>,
-  options?: SendActionOptions<TContext, TEvent>
-) {
-  return send<TContext, TEvent, TSentEvent>(event, {
-    ...options,
-    to: SpecialTargets.Parent
-  });
-}
-
-/**
- * Sends an update event to this machine's parent.
- */
-export function sendUpdate<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->() {
-  return sendParent<TContext, TEvent, { type: ActionTypes.Update }>(
-    actionTypes.update
-  );
-}
-
-/**
- * Sends an event back to the sender of the original event.
- *
- * @param event The event to send back to the sender
- * @param options Options to pass into the send event
- */
-export function respond<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TSentEvent extends EventObject = AnyEventObject
->(
-  event: Event<TEvent> | SendExpr<TContext, TEvent, TSentEvent>,
-  options?: SendActionOptions<TContext, TEvent>
-) {
-  return send<TContext, TEvent>(event, {
-    ...options,
-    to: (_, __, { _event }) => {
-      return _event.origin!; // TODO: handle when _event.origin is undefined
-    }
-  });
-}
-
-/**
  * Updates the current context of the machine.
  *
  * @param assignment An object that represents the partial context to update.
@@ -299,56 +250,6 @@ export function pure<
     type: ActionTypes.Pure,
     get: getActions
   };
-}
-
-/**
- * Forwards (sends) an event to a specified service.
- *
- * @param target The target service to forward the event to.
- * @param options Options to pass into the send action creator.
- */
-export function forwardTo<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  target: Required<SendActionOptions<TContext, TEvent>>['to'],
-  options?: SendActionOptions<TContext, TEvent>
-) {
-  return send<TContext, TEvent>((_, event) => event, {
-    ...options,
-    to: target
-  });
-}
-
-/**
- * Escalates an error by sending it as an event to this machine's parent.
- *
- * @param errorData The error data to send, or the expression function that
- * takes in the `context`, `event`, and `meta`, and returns the error data to send.
- * @param options Options to pass into the send action creator.
- */
-export function escalate<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TErrorData = any
->(
-  errorData: TErrorData | ExprWithMeta<TContext, TEvent, TErrorData>,
-  options?: SendActionOptions<TContext, TEvent>
-) {
-  return sendParent<TContext, TEvent>(
-    (context, event, meta) => {
-      return {
-        type: actionTypes.error,
-        data: isFunction(errorData)
-          ? errorData(context, event, meta)
-          : errorData
-      };
-    },
-    {
-      ...options,
-      to: SpecialTargets.Parent
-    }
-  );
 }
 
 export function choose<
