@@ -103,6 +103,29 @@ export const SomeComponent = (props) => {
 };
 ```
 
+If you need to use `send` in the same component to transition use `globalServices`
+
+```js
+import React, { useContext } from 'react';
+import { GlobalStateContext } from './globalState';
+import { useSelector } from '@xstate/react';
+
+const loggedInSelector = (state) => {
+  return state.matches('loggedIn');
+};
+
+export const SomeComponent = (props) => {
+  const globalServices = useContext(GlobalStateContext);
+  const isLoggedIn = useSelector(globalServices.authService, loggedInSelector);
+  const send = globalServices.authService.send;
+
+  return <>
+      {isLoggedIn ? 'Logged In' : 'Logged Out'}
+      <button onClick={() => send('TOGGLE')}>Toggle</button>
+   </>;
+};
+```
+
 This component will only re-render when `state.matches('loggedIn')` returns a different value. This is our recommended approach over `useActor` for when you want to optimise performance.
 
 ### Dispatching events
