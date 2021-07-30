@@ -103,7 +103,7 @@ export const SomeComponent = (props) => {
 };
 ```
 
-If you need to use `send` in the same component to transition use `globalServices`
+If you need to send an event in the component that consumes a service, you can use the `service.send(...)` method directly:
 
 ```js
 import React, { useContext } from 'react';
