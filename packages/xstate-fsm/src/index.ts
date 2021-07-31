@@ -15,11 +15,14 @@ function toArray<T>(item: T | T[] | undefined): T[] {
   return item === undefined ? [] : ([] as T[]).concat(item);
 }
 
-export function assign<TC extends object, TE extends EventObject = EventObject>(
-  assignment:
-    | StateMachine.Assigner<TC, TE>
-    | StateMachine.PropertyAssigner<TC, TE>
-): StateMachine.AssignActionObject<TC, TE> {
+export function assign<
+  TContext extends object,
+  TEvent extends EventObject = EventObject,
+  TAssignment extends StateMachine.Assignment<
+    TContext,
+    TEvent
+  > = StateMachine.Assignment<TContext, TEvent>
+>(assignment: TAssignment): StateMachine.AssignActionObject<TContext, TEvent> {
   return {
     type: ASSIGN_ACTION,
     assignment

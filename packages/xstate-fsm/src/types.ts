@@ -5,6 +5,7 @@ export enum InterpreterStatus {
 }
 
 export type SingleOrArray<T> = T[] | T;
+
 export interface EventObject {
   type: string;
 }
@@ -29,6 +30,7 @@ export namespace StateMachine {
   > {
     type: string;
     exec?: ActionFunction<TContext, TEvent>;
+
     [key: string]: any;
   }
 
@@ -44,7 +46,7 @@ export namespace StateMachine {
     TEvent extends EventObject
   > extends ActionObject<TContext, TEvent> {
     type: AssignAction;
-    assignment: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent>;
+    assignment: Assignment<TContext, TEvent>;
   }
 
   export type Transition<TContext extends object, TEvent extends EventObject> =
@@ -54,6 +56,7 @@ export namespace StateMachine {
         actions?: SingleOrArray<Action<TContext, TEvent>>;
         cond?: (context: TContext, event: TEvent) => boolean;
       };
+
   export interface State<
     TContext extends object,
     TEvent extends EventObject,
@@ -140,6 +143,10 @@ export namespace StateMachine {
       | ((context: TContext, event: TEvent) => TContext[K])
       | TContext[K];
   };
+
+  export type Assignment<TContext extends object, TEvent extends EventObject> =
+    | Assigner<TContext, TEvent>
+    | PropertyAssigner<TContext, TEvent>;
 }
 
 export interface Typestate<TContext extends object> {

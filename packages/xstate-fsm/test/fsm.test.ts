@@ -41,7 +41,7 @@ describe('@xstate/fsm', () => {
           'exitGreen',
           assign({ count: (ctx) => ctx.count + 1 }),
           assign({ count: (ctx) => ctx.count + 1 }),
-          assign<LightContext>({ foo: 'static' }),
+          assign({ foo: 'static' }),
           assign({ foo: (ctx) => ctx.foo + '++' })
         ],
         on: {
@@ -52,7 +52,7 @@ describe('@xstate/fsm', () => {
         }
       },
       yellow: {
-        entry: assign<LightContext>({ go: false }),
+        entry: assign({ go: false }),
         on: {
           INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) },
           EMERGENCY: {
