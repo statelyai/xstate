@@ -1,5 +1,3 @@
-import { SCXML } from '../dist/xstate.cjs';
-import { MachineNode } from '../src';
 import {
   BaseActionObject,
   BaseDynamicActionObject,
@@ -14,13 +12,11 @@ export class DynamicAction<
 > implements BaseDynamicActionObject<TContext, TEvent, TAction> {
   constructor(
     public type: `xstate.${string}`,
-    public params: Record<string, any>
+    public params: Record<string, any>,
+    public resolve: BaseDynamicActionObject<
+      TContext,
+      TEvent,
+      TAction
+    >['resolve']
   ) {}
-  public resolve(
-    context: TContext,
-    _event: SCXML.Event<TEvent>,
-    extra: { machine: MachineNode<TContext, TEvent> }
-  ): TAction {
-    return null as any;
-  }
 }

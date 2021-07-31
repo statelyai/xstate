@@ -62,6 +62,7 @@ describe('action creators', () => {
       });
 
       const resolvedAction = action.resolve(
+        action,
         { delay: 100 },
         toSCXMLEvent({ type: 'EVENT', value: 50 } as {
           type: 'EVENT';

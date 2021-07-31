@@ -871,7 +871,7 @@ describe('action meta', () => {
           entryAction: (_, __, meta) => {
             expect(meta.state.value).toEqual('foo');
             expect(meta.action.type).toEqual('entryAction');
-            expect(meta.action.value).toEqual('something');
+            expect(meta.action.params.value).toEqual('something');
             done();
           }
         }

@@ -56,6 +56,7 @@ export interface BaseDynamicActionObject<
   type: `xstate.${string}`;
   params: Record<string, any>;
   resolve: (
+    dynamicAction: BaseDynamicActionObject<TContext, TEvent, TAction>,
     context: TContext,
     _event: SCXML.Event<TEvent>,
     extra: {
@@ -1057,7 +1058,9 @@ export interface ChooseAction<
   TEvent extends EventObject
 > extends ActionObject<TContext, TEvent> {
   type: ActionTypes.Choose;
-  guards: Array<ChooseConditon<TContext, TEvent>>;
+  params: {
+    guards: Array<ChooseConditon<TContext, TEvent>>;
+  };
 }
 
 export interface TransitionDefinition<

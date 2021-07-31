@@ -2,6 +2,7 @@ import { EventObject, SCXML, ExprWithMeta, MachineContext } from '../types';
 import { cancel as cancelActionType } from '../actionTypes';
 import { isFunction } from '../utils';
 import { DynamicAction } from '../../actions/DynamicAction';
+import { CancelActionObject } from '..';
 
 /**
  * Cancels an in-flight `send(...)` action. A canceled sent action will not
@@ -17,24 +18,26 @@ export const cancel = <
 >(
   sendId: string | ExprWithMeta<TContext, TEvent, string>
 ) => {
-  const cancelAction = new DynamicAction(cancelActionType, {
-    sendId
-  });
+  const cancelAction = new DynamicAction<TContext, TEvent, CancelActionObject>(
+    cancelActionType,
+    {
+      sendId
+    },
+    (action, ctx, _event) => {
+      const resolvedSendId = isFunction(action.params.sendId)
+        ? action.params.sendId(ctx, _event.data, {
+            _event
+          })
+        : action.params.sendId;
 
-  cancelAction.resolve = function (ctx: TContext, _event: SCXML.Event<TEvent>) {
-    const sendId = isFunction(this.params.sendId)
-      ? this.params.sendId(ctx, _event.data, {
-          _event
-        })
-      : this.params.sendId;
-
-    return {
-      type: this.type,
-      params: {
-        sendId
-      }
-    };
-  };
+      return {
+        type: action.type,
+        params: {
+          sendId: resolvedSendId
+        }
+      } as CancelActionObject;
+    }
+  );
 
   return cancelAction;
 };

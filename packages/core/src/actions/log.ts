@@ -34,18 +34,17 @@ export function log<
 ): DynamicAction<TContext, TEvent, LogActionObject> {
   const logAction = new DynamicAction<TContext, TEvent, LogActionObject>(
     logActionType,
-    { label, expr }
+    { label, expr },
+    (action, ctx, _event) => {
+      return {
+        type: action.type,
+        params: {
+          label,
+          value: isString(expr) ? expr : expr(ctx, _event.data, { _event })
+        }
+      } as LogActionObject;
+    }
   );
-
-  logAction.resolve = function (ctx, _event) {
-    return {
-      type: this.type,
-      params: {
-        label,
-        value: isString(expr) ? expr : expr(ctx, _event.data, { _event })
-      }
-    };
-  };
 
   return logAction;
 }

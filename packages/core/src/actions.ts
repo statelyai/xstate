@@ -24,6 +24,7 @@ import * as actionTypes from './actionTypes';
 import { isFunction, isString, toSCXMLEvent, isArray } from './utils';
 import { ExecutableAction } from '../actions/ExecutableAction';
 import { send } from './actions/send';
+import { BaseActionObject } from '.';
 export {
   sendUpdate,
   sendParent,
@@ -56,20 +57,17 @@ export function toActionObject<
 >(
   action: Action<TContext, TEvent>,
   actionFunctionMap?: ActionFunctionMap<TContext, TEvent>
-): ActionObject<TContext, TEvent> {
-  let actionObject: ActionObject<TContext, TEvent>;
+): BaseActionObject {
+  let actionObject: BaseActionObject;
 
   if (isString(action) || typeof action === 'number') {
     const exec = getActionFunction(action, actionFunctionMap);
     if (isFunction(exec)) {
-      actionObject = {
-        type: action,
-        exec
-      };
+      actionObject = new ExecutableAction({ type: action }, exec);
     } else if (exec) {
       actionObject = exec;
     } else {
-      actionObject = { type: action, exec: undefined };
+      actionObject = new ExecutableAction({ type: action });
     }
   } else if (isFunction(action)) {
     actionObject = new ExecutableAction(
@@ -81,10 +79,7 @@ export function toActionObject<
   } else {
     const exec = getActionFunction(action.type, actionFunctionMap);
     if (isFunction(exec)) {
-      actionObject = {
-        ...action,
-        exec
-      };
+      actionObject = new ExecutableAction(action, exec);
     } else if (exec) {
       const actionType = exec.type || action.type;
 
@@ -256,6 +251,6 @@ export function choose<
 ): ChooseAction<TContext, TEvent> {
   return {
     type: ActionTypes.Choose,
-    guards
+    params: { guards }
   };
 }

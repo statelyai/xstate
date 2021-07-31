@@ -3,7 +3,6 @@ import {
   ActionObject,
   TransitionDefinition,
   StateNode,
-  ActionType,
   MachineNode,
   flatten
 } from 'xstate';

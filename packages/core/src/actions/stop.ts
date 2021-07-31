@@ -8,6 +8,7 @@ import {
 import { stop as stopActionType } from '../actionTypes';
 import { isFunction } from '../utils';
 import { DynamicAction } from '../../actions/DynamicAction';
+import { StopActionObject } from '..';
 
 /**
  * Stops an actor.
@@ -21,22 +22,22 @@ export function stop<
 >(actorRef: string | Expr<TContext, TEvent, ActorRef<any>>) {
   const actor = isFunction(actorRef) ? actorRef : actorRef;
 
-  const stopAction = new DynamicAction(stopActionType, {
-    actor
-  });
+  const stopAction = new DynamicAction<TContext, TEvent, StopActionObject>(
+    stopActionType,
+    {
+      actor
+    },
+    (action, context, _event) => {
+      const actorRefOrString = isFunction(action.params.actor)
+        ? action.params.actor(context, _event.data)
+        : action.params.actor;
 
-  stopAction.resolve = function (context, _event) {
-    const actorRefOrString = isFunction(this.params.actor)
-      ? this.params.actor(context, _event.data)
-      : this.params.actor;
-
-    const actionObject = {
-      type: this.type,
-      params: { actor: actorRefOrString }
-    };
-
-    return actionObject;
-  };
+      return {
+        type: action.type,
+        params: { actor: actorRefOrString }
+      } as StopActionObject;
+    }
+  );
 
   return stopAction;
 }

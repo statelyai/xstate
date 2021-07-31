@@ -1666,9 +1666,14 @@ function resolveActionsAndContext<
 
   function resolveAction(actionObject: ActionObject<TContext, TEvent>) {
     if (actionObject instanceof DynamicAction) {
-      const resolvedActionObject = actionObject.resolve(context, _event, {
-        machine
-      });
+      const resolvedActionObject = actionObject.resolve(
+        actionObject,
+        context,
+        _event,
+        {
+          machine
+        }
+      );
 
       if (
         resolvedActionObject.type === actionTypes.raise ||
@@ -1687,7 +1692,7 @@ function resolveActionsAndContext<
         break;
       case actionTypes.choose: {
         const chooseAction = actionObject as ChooseAction<TContext, TEvent>;
-        const matchedActions = chooseAction.guards.find((condition) => {
+        const matchedActions = chooseAction.params.guards.find((condition) => {
           const guard =
             condition.guard &&
             toGuardDefinition(

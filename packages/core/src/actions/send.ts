@@ -16,7 +16,12 @@ import {
   toSCXMLEvent
 } from '../utils';
 import { DynamicAction } from '../../actions/DynamicAction';
-import { ActionTypes, ExprWithMeta, SendActionObject } from '..';
+import {
+  ActionTypes,
+  BaseActionObject,
+  ExprWithMeta,
+  SendActionObject
+} from '..';
 import { actionTypes } from '../actions';
 
 /**
@@ -38,70 +43,71 @@ export function send<
   event: Event<TSentEvent> | SendExpr<TContext, TEvent, TSentEvent>,
   options?: SendActionOptions<TContext, TEvent>
 ) {
-  console.log(event);
   const sendAction = new DynamicAction<
     TContext,
     TEvent,
     SendActionObject<TContext, TEvent>
-  >(sendActionType, {
-    to: options ? options.to : undefined,
-    event: isFunction(event) ? event : toEventObject<TSentEvent>(event),
-    delay: options ? options.delay : undefined,
-    id:
-      options && options.id !== undefined
-        ? options.id
-        : isFunction(event)
-        ? event.name
-        : (getEventType<TSentEvent>(event) as string)
-  });
+  >(
+    sendActionType,
+    {
+      to: options ? options.to : undefined,
+      event: isFunction(event) ? event : toEventObject<TSentEvent>(event),
+      delay: options ? options.delay : undefined,
+      id:
+        options && options.id !== undefined
+          ? options.id
+          : isFunction(event)
+          ? event.name
+          : (getEventType<TSentEvent>(event) as string)
+    },
+    (action, ctx, _event, { machine }) => {
+      const meta = {
+        _event
+      };
+      const delaysMap = machine.options.delays;
 
-  sendAction.resolve = function (ctx, _event, { machine }) {
-    const meta = {
-      _event
-    };
-    const delaysMap = machine.options.delays;
+      // TODO: helper function for resolving Expr
+      const resolvedEvent = toSCXMLEvent(
+        isFunction(action.params.event)
+          ? action.params.event(ctx, _event.data, meta)
+          : action.params.event
+      );
 
-    // TODO: helper function for resolving Expr
-    const resolvedEvent = toSCXMLEvent(
-      isFunction(this.params.event)
-        ? this.params.event(ctx, _event.data, meta)
-        : this.params.event
-    );
-
-    let resolvedDelay: number | undefined;
-    if (isString(this.params.delay)) {
-      const configDelay = delaysMap && delaysMap[this.params.delay];
-      resolvedDelay = isFunction(configDelay)
-        ? configDelay(ctx, _event.data, meta)
-        : configDelay;
-    } else {
-      resolvedDelay = isFunction(this.params.delay)
-        ? this.params.delay(ctx, _event.data, meta)
-        : this.params.delay;
-    }
-
-    let resolvedTarget = isFunction(this.params.to)
-      ? this.params.to(ctx, _event.data, meta)
-      : this.params.to;
-    resolvedTarget =
-      isString(resolvedTarget) &&
-      resolvedTarget !== SpecialTargets.Parent &&
-      resolvedTarget !== SpecialTargets.Internal &&
-      resolvedTarget.startsWith('#_')
-        ? resolvedTarget.slice(2)
-        : resolvedTarget;
-
-    return {
-      type: this.type,
-      params: {
-        ...this.params,
-        to: resolvedTarget,
-        _event: resolvedEvent,
-        event: resolvedEvent.data,
-        delay: resolvedDelay
+      let resolvedDelay: number | undefined;
+      if (isString(action.params.delay)) {
+        const configDelay = delaysMap && delaysMap[action.params.delay];
+        resolvedDelay = isFunction(configDelay)
+          ? configDelay(ctx, _event.data, meta)
+          : configDelay;
+      } else {
+        resolvedDelay = isFunction(action.params.delay)
+          ? action.params.delay(ctx, _event.data, meta)
+          : action.params.delay;
       }
-    };
-  };
+
+      let resolvedTarget = isFunction(action.params.to)
+        ? action.params.to(ctx, _event.data, meta)
+        : action.params.to;
+      resolvedTarget =
+        isString(resolvedTarget) &&
+        resolvedTarget !== SpecialTargets.Parent &&
+        resolvedTarget !== SpecialTargets.Internal &&
+        resolvedTarget.startsWith('#_')
+          ? resolvedTarget.slice(2)
+          : resolvedTarget;
+
+      return {
+        type: action.type,
+        params: {
+          ...action.params,
+          to: resolvedTarget,
+          _event: resolvedEvent,
+          event: resolvedEvent.data,
+          delay: resolvedDelay
+        }
+      } as SendActionObject<TContext, TEvent>;
+    }
+  );
 
   return sendAction;
 }
