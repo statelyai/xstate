@@ -18,7 +18,7 @@ export function createModel<
 export function createModel<
   TContext extends MachineContext,
   TEvent extends EventObject
->(initialContext: TContext): Model<TContext, TEvent, void>;
+>(initialContext: TContext): Model<TContext, TEvent, never>;
 export function createModel<
   TContext extends MachineContext,
   TModelCreators extends ModelCreators<TModelCreators>,

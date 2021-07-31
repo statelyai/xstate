@@ -608,7 +608,7 @@ export class Interpreter<
         this.send(
           toSCXMLEvent<TEvent>(actionTypes.errorExecution, {
             data: executionError as any // TODO: refine
-          })
+          }) as any // TODO: fix
         );
       }
 

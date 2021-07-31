@@ -259,7 +259,7 @@ describe('createModel', () => {
       }
     );
 
-    createMachine<typeof model>({
+    model.createMachine({
       context: model.initialContext,
       entry: [
         model.actions.custom(),
@@ -351,7 +351,7 @@ describe('createModel', () => {
       }
     );
 
-    createMachine<typeof model>(
+    model.createMachine(
       {
         context: {}
       },
@@ -504,7 +504,7 @@ describe('createModel', () => {
       { type: 'fooAction' }
     >({ count: 0 });
 
-    createMachine<typeof model>({
+    model.createMachine({
       context: model.initialContext,
       initial: 'a',
       states: {
@@ -523,7 +523,7 @@ describe('createModel', () => {
     const model = createModel<{ count: number }, { type: 'INC' }>({ count: 0 });
 
     const machine = model.createMachine({
-      context: model.initialContext,
+      initial: 'a',
       states: {
         a: {}
       }

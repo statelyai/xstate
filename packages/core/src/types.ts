@@ -313,7 +313,12 @@ export interface PayloadSender<TEvent extends EventObject> {
   /**
    * Send an event object or just the event type, if the event has no other payload
    */
-  (event: TEvent | ExtractWithSimpleSupport<TEvent>['type']): void;
+  (
+    event:
+      | SCXML.Event<TEvent>
+      | TEvent
+      | ExtractWithSimpleSupport<TEvent>['type']
+  ): void;
   /**
    * Send an event type and its payload
    */
