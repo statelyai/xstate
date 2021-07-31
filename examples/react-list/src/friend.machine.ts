@@ -1,61 +1,14 @@
 import { assign } from 'xstate';
 import { createModel } from 'xstate/lib/model';
 
-const createFieldModel = <T>(initialValue: T) =>
-  createModel(
-    {
-      initialValue,
-      previousValue: initialValue,
-      value: initialValue
-    },
-    {
-      events: {
-        touch: (touched: boolean) => ({ touched }),
-        focus: () => ({}),
-        blur: () => ({}),
-        change: (value: T) => ({ value }),
-        commit: () => ({}),
-        cancel: () => ({}),
-        reset: () => ({})
-      }
-    }
-  );
-
-const createFieldMachine = <T>(initialValue: T) => {
-  const fieldModel = createFieldModel(initialValue);
-  return fieldModel.createMachine({
-    on: {
-      change: {
-        actions: fieldModel.assign({
-          value: (_, e) => e.value
-        })
-      },
-      commit: {
-        actions: fieldModel.assign({
-          previousValue: (ctx) => ctx.value
-        })
-      },
-      cancel: {
-        actions: fieldModel.assign({
-          value: (ctx) => ctx.previousValue
-        })
-      },
-      reset: {
-        actions: fieldModel.reset()
-      }
-    }
-  });
-};
-
 const friendModel = createModel(
   {
-    name: '',
-    email: ''
+    prevName: '',
+    name: ''
   },
   {
     events: {
       SET_NAME: (value: string) => ({ value }),
-      SET_EMAIL: (value: string) => ({ value }),
       SAVE: () => ({}),
       EDIT: () => ({}),
       CANCEL: () => ({})
@@ -65,12 +18,13 @@ const friendModel = createModel(
 
 export const friendMachine = friendModel.createMachine({
   context: {
-    name: '',
-    email: ''
+    prevName: '',
+    name: ''
   },
   initial: 'reading',
   states: {
     reading: {
+      tags: 'read',
       on: {
         EDIT: 'editing'
       }
@@ -81,23 +35,26 @@ export const friendMachine = friendModel.createMachine({
         SET_NAME: {
           actions: assign({ name: (_, e) => e.value })
         },
-        SET_EMAIL: {
-          actions: assign({ email: (_, e) => e.value })
-        },
         SAVE: {
           target: 'saving'
-        },
-        CANCEL: {
-          target: 'reading'
         }
       }
     },
     saving: {
-      tags: 'form',
+      tags: ['form', 'saving'],
       entry: (ctx) => console.log(ctx),
       after: {
-        1000: 'reading'
+        1000: {
+          target: 'reading',
+          actions: assign({ prevName: (ctx) => ctx.name })
+        }
       }
+    }
+  },
+  on: {
+    CANCEL: {
+      actions: assign({ name: (ctx) => ctx.prevName }),
+      target: '.reading'
     }
   }
 });
