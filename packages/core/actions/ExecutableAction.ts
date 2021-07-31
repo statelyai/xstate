@@ -19,8 +19,10 @@ export interface ResolvedActionObject<
   execute: (state: State<TContext, TEvent>) => any;
 }
 
-export class ResolvedAction<TContext extends object, TEvent extends EventObject>
-  implements ResolvedActionObject<TContext, TEvent> {
+export class ExecutableAction<
+  TContext extends object,
+  TEvent extends EventObject
+> implements ResolvedActionObject<TContext, TEvent> {
   public type: string;
   public params: Record<string, any>;
   public context: TContext | undefined = undefined;

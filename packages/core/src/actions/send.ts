@@ -38,6 +38,7 @@ export function send<
   event: Event<TSentEvent> | SendExpr<TContext, TEvent, TSentEvent>,
   options?: SendActionOptions<TContext, TEvent>
 ) {
+  console.log(event);
   const sendAction = new DynamicAction<
     TContext,
     TEvent,

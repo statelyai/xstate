@@ -3,7 +3,6 @@ import {
   Event,
   EventObject,
   SingleOrArray,
-  SendActionOptions,
   ActionObject,
   ActionType,
   Assigner,
@@ -16,17 +15,14 @@ import {
   DoneEvent,
   ErrorPlatformEvent,
   DoneEventObject,
-  SendExpr,
   PureAction,
-  ExprWithMeta,
   ChooseConditon,
   ChooseAction,
-  AnyEventObject,
   MachineContext
 } from './types';
 import * as actionTypes from './actionTypes';
 import { isFunction, isString, toSCXMLEvent, isArray } from './utils';
-import { ResolvedAction } from '../actions/resolvedAction';
+import { ExecutableAction } from '../actions/ExecutableAction';
 import { send } from './actions/send';
 export {
   sendUpdate,
@@ -76,7 +72,7 @@ export function toActionObject<
       actionObject = { type: action, exec: undefined };
     }
   } else if (isFunction(action)) {
-    actionObject = new ResolvedAction(
+    actionObject = new ExecutableAction(
       {
         type: action.name ?? 'xstate:expr'
       },

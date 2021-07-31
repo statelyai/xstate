@@ -1,4 +1,4 @@
-import { EventObject, StateNode, StateValue } from '.';
+import { EventObject, InvokeActionObject, StateNode, StateValue } from '.';
 import {
   keys,
   flatten,
@@ -60,7 +60,7 @@ import { STATE_IDENTIFIER, NULL_EVENT, WILDCARD } from './constants';
 import { isSpawnedActorRef } from './actor';
 import { StateMachine } from './StateMachine';
 import { evaluateGuard, toGuardDefinition } from './guards';
-import { ResolvedAction } from '../actions/resolvedAction';
+import { ExecutableAction } from '../actions/ExecutableAction';
 import { DynamicAction } from '../actions/DynamicAction';
 
 type Configuration<
@@ -1631,8 +1631,14 @@ export function resolveMicroTransition<
   }
 
   nextState.actions.forEach((action) => {
-    if (action.type === actionTypes.invoke && action.ref) {
-      children[action.ref.name] = action.ref;
+    if (
+      action.type === actionTypes.invoke &&
+      (action as InvokeActionObject).params.ref
+    ) {
+      const ref = (action as InvokeActionObject).params.ref;
+      if (ref) {
+        children[ref.name] = ref;
+      }
     }
   });
 
@@ -1741,7 +1747,7 @@ function resolveActionsAndContext<
         break;
       default:
         const contextIndex = preservedContexts.length - 1;
-        if (actionObject instanceof ResolvedAction) {
+        if (actionObject instanceof ExecutableAction) {
           actionObject.setContext(preservedContexts[contextIndex]);
           resolvedActions.push(actionObject);
         } else {
@@ -1749,7 +1755,7 @@ function resolveActionsAndContext<
             actionObject,
             machine.options.actions
           );
-          const actionExec = new ResolvedAction(
+          const actionExec = new ExecutableAction(
             resolvedActionObject,
             resolvedActionObject.exec!
           );

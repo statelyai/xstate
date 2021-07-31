@@ -24,13 +24,13 @@ export function functionToExpr(fn: Function): string {
 }
 
 function actionToSCXML(action: ActionObject<any, any>): XMLElement {
-  const { type, ...attributes } = action;
+  const { type, params: attributes } = action;
 
   const actionTypeMap: Record<ActionType, string> = {
     'xstate.raise': 'raise'
   };
 
-  const name = actionTypeMap[action.type];
+  const name = actionTypeMap[type];
 
   if (name) {
     return {

@@ -50,7 +50,7 @@ import {
   StopActionObject,
   Subscribable
 } from '.';
-import { ResolvedAction } from '../actions/resolvedAction';
+import { ExecutableAction } from '../actions/ExecutableAction';
 import { InvokeSourceDefinition } from '../dist/declarations/src/types';
 
 export type StateListener<
@@ -782,7 +782,7 @@ export class Interpreter<
   ): void {
     const { _event } = state;
 
-    if (action instanceof ResolvedAction) {
+    if (action instanceof ExecutableAction) {
       try {
         return action.execute(state);
       } catch (err) {
