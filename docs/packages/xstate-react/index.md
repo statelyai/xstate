@@ -1,5 +1,7 @@
 # @xstate/react
 
+`@xstate/react` is a library of official XState bindings for React. If you're using React with XState, you'll need this library.
+
 [[toc]]
 
 ## Quick Start
@@ -9,22 +11,6 @@
 ```bash
 npm i xstate @xstate/react
 ```
-
-**Via CDN**
-
-```html
-<script src="https://unpkg.com/@xstate/react/dist/xstate-react.umd.min.js"></script>
-```
-
-By using the global variable `XStateReact`
-
-or
-
-```html
-<script src="https://unpkg.com/@xstate/react/dist/xstate-react-fsm.umd.min.js"></script>
-```
-
-By using the global variable `XStateReactFSM`
 
 2. Import the `useMachine` hook:
 
@@ -58,11 +44,17 @@ export const Toggler = () => {
 };
 ```
 
+::: tip Usage Guide
+
+Check out out [usage guide](../../recipes/react.md) to learn more about common patterns when using XState & React together.
+
+:::
+
 ## Examples
 
 - [XState + React TodoMVC (CodeSandbox)](https://codesandbox.io/s/xstate-todomvc-33wr94qv1)
 
-## API
+## API Reference
 
 ### `useMachine(machine, options?)`
 
@@ -547,6 +539,22 @@ useEffect(() => {
   return subscription.unsubscribe;
 }, [service]); // note: service should never change
 ```
+
+## Importing from CDN
+
+```html
+<script src="https://unpkg.com/@xstate/react/dist/xstate-react.umd.min.js"></script>
+```
+
+By using the global variable `XStateReact`
+
+or
+
+```html
+<script src="https://unpkg.com/@xstate/react/dist/xstate-react-fsm.umd.min.js"></script>
+```
+
+By using the global variable `XStateReactFSM`
 
 ## Migration from 0.x
 
