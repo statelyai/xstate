@@ -28,19 +28,26 @@ export interface AnyEventObject extends EventObject {
  * The full definition of an action, with a string `type` and an
  * `exec` implementation function.
  */
-export interface ActionObject<
-  TContext extends MachineContext,
-  TEvent extends EventObject
-> {
+export interface BaseActionObject {
   /**
    * The type of action that is executed.
    */
   type: string;
+  [other: string]: any;
+}
+
+/**
+ * The full definition of an action, with a string `type` and an
+ * `exec` implementation function.
+ */
+export interface ActionObject<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+> extends BaseActionObject {
   /**
    * The implementation for executing the action.
    */
   exec?: ActionFunction<TContext, TEvent>;
-  [other: string]: any;
 }
 
 export type MachineContext = object;
@@ -52,9 +59,13 @@ export type Event<TEvent extends EventObject> = TEvent['type'] | TEvent;
 
 export interface ActionMeta<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TAction extends ActionObject<TContext, TEvent> = ActionObject<
+    TContext,
+    TEvent
+  >
 > extends StateMeta<TContext, TEvent> {
-  action: ActionObject<TContext, TEvent>;
+  action: TAction;
   _event: SCXML.Event<TEvent>;
 }
 
@@ -76,11 +87,15 @@ export interface AssignMeta<
 
 export type ActionFunction<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TAction extends ActionObject<TContext, TEvent> = ActionObject<
+    TContext,
+    TEvent
+  >
 > = (
   context: TContext,
   event: TEvent,
-  meta: ActionMeta<TContext, TEvent>
+  meta: ActionMeta<TContext, TEvent, TAction>
 ) => void;
 
 export interface ChooseConditon<
@@ -98,6 +113,38 @@ export type Action<
   | ActionType
   | ActionObject<TContext, TEvent>
   | ActionFunction<TContext, TEvent>;
+
+/**
+ * Extracts action objects that have no extra properties.
+ */
+type SimpleActionsFrom<T extends BaseActionObject> = ActionObject<
+  any,
+  any
+> extends T
+  ? T // If actions are unspecified, all action types are allowed (unsafe)
+  : ExtractWithSimpleSupport<T>;
+
+export type BaseAction<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TAction extends BaseActionObject
+> =
+  | SimpleActionsFrom<TAction>['type']
+  | TAction
+  | RaiseAction<any>
+  | SendAction<TContext, TEvent, any>
+  | AssignAction<TContext, TEvent>
+  | LogAction<TContext, TEvent>
+  | CancelAction<TContext, TEvent>
+  | StopAction<TContext, TEvent>
+  | ChooseAction<TContext, TEvent>
+  | ActionFunction<TContext, TEvent>;
+
+export type BaseActions<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TAction extends BaseActionObject
+> = SingleOrArray<BaseAction<TContext, TEvent, TAction>>;
 
 export type Actions<
   TContext extends MachineContext,
@@ -254,9 +301,9 @@ type ExtractExtraParameters<A, T> = A extends { type: T }
   ? ExcludeType<A>
   : never;
 
-type ExtractSimple<A> = A extends any
-  ? {} extends ExcludeType<A>
-    ? A
+type ExtractWithSimpleSupport<T extends { type: string }> = T extends any
+  ? { type: T['type'] } extends T
+    ? T
     : never
   : never;
 
@@ -266,7 +313,7 @@ export interface PayloadSender<TEvent extends EventObject> {
   /**
    * Send an event object or just the event type, if the event has no other payload
    */
-  (event: TEvent | SCXML.Event<TEvent> | ExtractSimple<TEvent>['type']): void;
+  (event: TEvent | ExtractWithSimpleSupport<TEvent>['type']): void;
   /**
    * Send an event type and its payload
    */
@@ -389,9 +436,10 @@ export type StateNodesConfig<
 
 export type StatesConfig<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TAction extends BaseActionObject = BaseActionObject
 > = {
-  [K in string]: StateNodeConfig<TContext, TEvent>;
+  [K in string]: StateNodeConfig<TContext, TEvent, TAction>;
 };
 
 export type StatesDefinition<
@@ -493,7 +541,8 @@ export interface InvokeConfig<
 
 export interface StateNodeConfig<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TAction extends BaseActionObject = BaseActionObject
 > {
   /**
    * The relative key of the state node, which represents its location in the overall state value.
@@ -532,7 +581,7 @@ export interface StateNodeConfig<
   /**
    * The mapping of state node keys to their state node configurations (recursive).
    */
-  states?: StatesConfig<TContext, TEvent> | undefined;
+  states?: StatesConfig<TContext, TEvent, TAction> | undefined;
   /**
    * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
    */
@@ -546,11 +595,11 @@ export interface StateNodeConfig<
   /**
    * The action(s) to be executed upon entering the state node.
    */
-  entry?: Actions<TContext, TEvent>;
+  entry?: BaseActions<TContext, TEvent, TAction>;
   /**
    * The action(s) to be executed upon exiting the state node.
    */
-  exit?: Actions<TContext, TEvent>;
+  exit?: BaseActions<TContext, TEvent, TAction>;
   /**
    * The potential transition(s) to be taken upon reaching a final child state node.
    *
@@ -672,11 +721,20 @@ export type SimpleOrStateNodeConfig<
 
 export type ActionFunctionMap<
   TContext extends MachineContext,
-  TEvent extends EventObject
-> = Record<
-  string,
-  ActionObject<TContext, TEvent> | ActionFunction<TContext, TEvent>
->;
+  TEvent extends EventObject,
+  TAction extends ActionObject<TContext, TEvent> = ActionObject<
+    TContext,
+    TEvent
+  >
+> = {
+  [K in TAction['type']]?:
+    | ActionObject<TContext, TEvent>
+    | ActionFunction<
+        TContext,
+        TEvent,
+        TAction extends { type: K } ? TAction : never
+      >;
+};
 
 export type DelayFunctionMap<
   TContext extends MachineContext,
@@ -695,10 +753,14 @@ export type ActorMap<
 
 export interface MachineImplementations<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TAction extends ActionObject<TContext, TEvent> = ActionObject<
+    TContext,
+    TEvent
+  >
 > {
   guards: Record<string, GuardPredicate<TContext, TEvent>>;
-  actions: ActionFunctionMap<TContext, TEvent>;
+  actions: ActionFunctionMap<TContext, TEvent, TAction>;
   actors: ActorMap<TContext, TEvent>;
   delays: DelayFunctionMap<TContext, TEvent>;
   context: Partial<TContext>;
@@ -706,8 +768,9 @@ export interface MachineImplementations<
 
 export interface MachineConfig<
   TContext extends MachineContext,
-  TEvent extends EventObject
-> extends StateNodeConfig<TContext, TEvent> {
+  TEvent extends EventObject,
+  TAction extends BaseActionObject = ActionObject<TContext, TEvent>
+> extends StateNodeConfig<TContext, TEvent, TAction> {
   /**
    * The initial context (extended state)
    */
@@ -1416,7 +1479,7 @@ export interface Behavior<TEvent extends EventObject, TEmitted = any> {
 
 export type EventFrom<T> = T extends MachineNode<any, infer TEvent, any>
   ? TEvent
-  : T extends Model<any, infer TEvent, any>
+  : T extends Model<any, infer TEvent, any, any>
   ? TEvent
   : T extends State<any, infer TEvent, any>
   ? TEvent
@@ -1426,7 +1489,7 @@ export type EventFrom<T> = T extends MachineNode<any, infer TEvent, any>
 
 export type ContextFrom<T> = T extends StateMachine<infer TContext, any, any>
   ? TContext
-  : T extends Model<infer TContext, any, any>
+  : T extends Model<infer TContext, any, any, any>
   ? TContext
   : T extends State<infer TContext, any, any>
   ? TContext
