@@ -39,7 +39,7 @@ export interface Model<
     assigner:
       | Assigner<TContext, DoneInvokeEvent<any>>
       | PropertyAssigner<TContext, DoneInvokeEvent<any>>,
-    eventType: `done.invoke` | `done.invoke.${string}`
+    eventType: 'done.invoke'
   ): AssignAction<TContext, DoneInvokeEvent<any>>;
   events: Prop<TModelCreators, 'events'>;
   actions: Prop<TModelCreators, 'actions'>;
