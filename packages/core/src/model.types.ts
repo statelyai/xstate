@@ -8,7 +8,8 @@ import {
   MachineConfig,
   MachineImplementations,
   BaseActionObject,
-  MachineContext
+  MachineContext,
+  Typestate
 } from './types';
 
 export type AnyFunction = (...args: any[]) => any;
@@ -41,7 +42,7 @@ export interface Model<
   createMachine: (
     config: MachineConfig<TContext, TEvent, TAction>,
     implementations?: Partial<MachineImplementations<TContext, TEvent, TAction>>
-  ) => MachineNode<TContext, TEvent, any>;
+  ) => MachineNode<TContext, TEvent, Typestate<TContext>>;
 }
 
 export type ModelContextFrom<
