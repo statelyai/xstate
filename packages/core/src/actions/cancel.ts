@@ -12,12 +12,12 @@ import { CancelActionObject } from '..';
  * @param sendId The `id` of the `send(...)` action to cancel.
  */
 
-export const cancel = <
+export function cancel<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
   sendId: string | ExprWithMeta<TContext, TEvent, string>
-) => {
+): DynamicAction<TContext, TEvent, CancelActionObject> {
   const cancelAction = new DynamicAction<TContext, TEvent, CancelActionObject>(
     cancelActionType,
     {
@@ -40,4 +40,4 @@ export const cancel = <
   );
 
   return cancelAction;
-};
+}

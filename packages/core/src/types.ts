@@ -36,20 +36,6 @@ export interface BaseActionObject {
   [other: string]: any;
 }
 
-/**
- * The full definition of an action, with a string `type` and an
- * `exec` implementation function.
- */
-export interface ActionObject<
-  TContext extends MachineContext,
-  TEvent extends EventObject
-> extends BaseActionObject {
-  /**
-   * The implementation for executing the action.
-   */
-  exec?: ActionFunction<TContext, TEvent>;
-}
-
 export interface BaseActionObject {
   type: string;
   params: Record<string, any>;
@@ -82,10 +68,7 @@ export type Event<TEvent extends EventObject> = TEvent['type'] | TEvent;
 export interface ActionMeta<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TAction extends ActionObject<TContext, TEvent> = ActionObject<
-    TContext,
-    TEvent
-  >
+  TAction extends BaseActionObject = BaseActionObject
 > extends StateMeta<TContext, TEvent> {
   action: TAction;
   _event: SCXML.Event<TEvent>;
@@ -110,10 +93,7 @@ export interface AssignMeta<
 export type ActionFunction<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TAction extends ActionObject<TContext, TEvent> = ActionObject<
-    TContext,
-    TEvent
-  >
+  TAction extends BaseActionObject = BaseActionObject
 > = (
   context: TContext,
   event: TEvent,
@@ -133,17 +113,14 @@ export type Action<
   TEvent extends EventObject
 > =
   | ActionType
-  | ActionObject<TContext, TEvent>
+  | BaseActionObject
   | ActionFunction<TContext, TEvent>
   | BaseDynamicActionObject<TContext, TEvent, any>; // TODO: fix last param
 
 /**
  * Extracts action objects that have no extra properties.
  */
-type SimpleActionsFrom<T extends BaseActionObject> = ActionObject<
-  any,
-  any
-> extends T
+type SimpleActionsFrom<T extends BaseActionObject> = BaseActionObject extends T
   ? T // If actions are unspecified, all action types are allowed (unsafe)
   : ExtractWithSimpleSupport<T>;
 
@@ -154,11 +131,11 @@ export type BaseAction<
 > =
   | SimpleActionsFrom<TAction>['type']
   | TAction
-  | RaiseAction<any>
-  | SendAction<TContext, TEvent, any>
+  | RaiseActionObject<TEvent>
+  | SendActionObject
   | AssignAction<TContext, TEvent>
-  | LogAction<TContext, TEvent>
-  | CancelAction<TContext, TEvent>
+  | LogActionObject
+  | CancelActionObject
   | StopAction<TContext, TEvent>
   | ChooseAction<TContext, TEvent>
   | ActionFunction<TContext, TEvent>;
@@ -702,8 +679,8 @@ export interface StateNodeDefinition<
   states: StatesDefinition<TContext, TEvent>;
   on: TransitionDefinitionMap<TContext, TEvent>;
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
-  entry: Array<ActionObject<TContext, TEvent>>;
-  exit: Array<ActionObject<TContext, TEvent>>;
+  entry: BaseActionObject[];
+  exit: BaseActionObject[];
   meta: any;
   order: number;
   data?: FinalStateNodeConfig<TContext, TEvent>['data'];
@@ -750,13 +727,10 @@ export type SimpleOrStateNodeConfig<
 export type ActionFunctionMap<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TAction extends ActionObject<TContext, TEvent> = ActionObject<
-    TContext,
-    TEvent
-  >
+  TAction extends BaseActionObject = BaseActionObject
 > = {
   [K in TAction['type']]?:
-    | ActionObject<TContext, TEvent>
+    | (TAction & { type: K })
     | ActionFunction<
         TContext,
         TEvent,
@@ -782,10 +756,7 @@ export type ActorMap<
 export interface MachineImplementations<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TAction extends ActionObject<TContext, TEvent> = ActionObject<
-    TContext,
-    TEvent
-  >
+  TAction extends BaseActionObject = BaseActionObject
 > {
   guards: Record<string, GuardPredicate<TContext, TEvent>>;
   actions: ActionFunctionMap<TContext, TEvent, TAction>;
@@ -797,7 +768,7 @@ export interface MachineImplementations<
 export interface MachineConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TAction extends BaseActionObject = ActionObject<TContext, TEvent>
+  TAction extends BaseActionObject = BaseActionObject
 > extends StateNodeConfig<TContext, TEvent, TAction> {
   /**
    * The initial context (extended state)
@@ -973,24 +944,7 @@ export interface LogActionObject extends BaseActionObject {
   };
 }
 
-export interface SendAction<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TSentEvent extends EventObject
-> extends ActionObject<TContext, TEvent> {
-  to:
-    | string
-    | ActorRef<any>
-    | ExprWithMeta<TContext, TEvent, string | ActorRef<any> | undefined>
-    | undefined;
-  event: TSentEvent | SendExpr<TContext, TEvent, TSentEvent>;
-  delay?: number | string | DelayExpr<TContext, TEvent>;
-  id: string | number;
-}
-
 export interface SendActionObject<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
   TSentEvent extends EventObject = AnyEventObject
 > extends BaseActionObject {
   type: 'xstate.send';
@@ -1036,13 +990,6 @@ export interface SendActionOptions<
     | string
     | ExprWithMeta<TContext, TEvent, string | ActorRef<any> | undefined>
     | undefined;
-}
-
-export interface CancelAction<
-  TContext extends MachineContext,
-  TEvent extends EventObject
-> extends ActionObject<TContext, TEvent> {
-  sendId: string | ExprWithMeta<TContext, TEvent, string>;
 }
 
 export interface CancelActionObject extends BaseActionObject {
@@ -1094,10 +1041,7 @@ export type PropertyMapper<
     | TParams[K];
 };
 
-export interface AnyAssignAction<
-  TContext extends MachineContext,
-  TEvent extends EventObject
-> extends ActionObject<TContext, TEvent> {
+export interface AnyAssignAction extends BaseActionObject {
   type: ActionTypes.Assign;
   assignment: any;
 }
@@ -1105,26 +1049,32 @@ export interface AnyAssignAction<
 export interface AssignAction<
   TContext extends MachineContext,
   TEvent extends EventObject
-> extends ActionObject<TContext, TEvent> {
+> extends BaseActionObject {
   type: ActionTypes.Assign;
   assignment: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent>;
+}
+
+export interface AssignActionObject<TContext extends MachineContext>
+  extends BaseActionObject {
+  type: ActionTypes.Assign;
+  params: Partial<TContext>;
 }
 
 export interface PureAction<
   TContext extends MachineContext,
   TEvent extends EventObject
-> extends ActionObject<TContext, TEvent> {
+> extends BaseActionObject {
   type: ActionTypes.Pure;
   get: (
     context: TContext,
     event: TEvent
-  ) => SingleOrArray<ActionObject<TContext, TEvent>> | undefined;
+  ) => SingleOrArray<BaseActionObject> | undefined;
 }
 
 export interface ChooseAction<
   TContext extends MachineContext,
   TEvent extends EventObject
-> extends ActionObject<TContext, TEvent> {
+> extends BaseActionObject {
   type: ActionTypes.Choose;
   params: {
     guards: Array<ChooseConditon<TContext, TEvent>>;
@@ -1137,13 +1087,13 @@ export interface TransitionDefinition<
 > extends TransitionConfig<TContext, TEvent> {
   target: Array<StateNode<TContext, TEvent>> | undefined;
   source: StateNode<TContext, TEvent>;
-  actions: Array<ActionObject<TContext, TEvent>>;
+  actions: BaseActionObject[];
   guard?: GuardDefinition<TContext, TEvent>;
   eventType: TEvent['type'] | NullEvent['type'] | '*';
   toJSON: () => {
     target: string[] | undefined;
     source: string;
-    actions: Array<ActionObject<TContext, TEvent>>;
+    actions: BaseActionObject[];
     guard?: GuardDefinition<TContext, TEvent>;
     eventType: TEvent['type'] | NullEvent['type'] | '*';
     meta?: Record<string, any>;
@@ -1292,7 +1242,7 @@ export interface StateConfig<
   _sessionid: string | null;
   history?: State<TContext, TEvent>;
   historyValue?: HistoryValue<TContext, TEvent>;
-  actions?: Array<ActionObject<TContext, TEvent>>;
+  actions?: BaseActionObject[];
   meta?: any;
   configuration: Array<StateNode<TContext, TEvent>>;
   transitions: Array<TransitionDefinition<TContext, TEvent>>;

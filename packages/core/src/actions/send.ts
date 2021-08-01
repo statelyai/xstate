@@ -42,12 +42,8 @@ export function send<
 >(
   event: Event<TSentEvent> | SendExpr<TContext, TEvent, TSentEvent>,
   options?: SendActionOptions<TContext, TEvent>
-) {
-  const sendAction = new DynamicAction<
-    TContext,
-    TEvent,
-    SendActionObject<TContext, TEvent>
-  >(
+): DynamicAction<TContext, TEvent, SendActionObject<AnyEventObject>> {
+  const sendAction = new DynamicAction<TContext, TEvent, SendActionObject>(
     sendActionType,
     {
       to: options ? options.to : undefined,
@@ -105,7 +101,7 @@ export function send<
           event: resolvedEvent.data,
           delay: resolvedDelay
         }
-      } as SendActionObject<TContext, TEvent>;
+      } as SendActionObject<TEvent>;
     }
   );
 

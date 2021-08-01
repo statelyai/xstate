@@ -3,9 +3,9 @@ import {
   cancel,
   choose,
   log,
-  send,
   sendParent,
   sendUpdate,
+  send,
   stop
 } from '../src/actions';
 import { createModel } from '../src/model';

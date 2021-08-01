@@ -26,12 +26,16 @@ import { ExecutableAction } from '../actions/ExecutableAction';
 import { send } from './actions/send';
 import { BaseActionObject } from '.';
 export {
+  send,
   sendUpdate,
   sendParent,
   respond,
   forwardTo,
   escalate
 } from './actions/send';
+export { stop } from './actions/stop';
+export { log } from './actions/log';
+export { cancel } from './actions/cancel';
 export { actionTypes };
 
 export const initEvent = toSCXMLEvent({ type: actionTypes.init });

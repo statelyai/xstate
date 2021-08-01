@@ -2,7 +2,6 @@ import {
   Event,
   EventObject,
   CancelActionObject,
-  ActionObject,
   SpecialTargets,
   ActionTypes,
   SendActionObject,
@@ -44,6 +43,7 @@ import { devToolsAdapter } from './dev';
 import { CapturedState } from './capturedState';
 import {
   ActionFunction,
+  BaseActionObject,
   LogActionObject,
   MachineContext,
   PayloadSender,
@@ -566,7 +566,7 @@ export class Interpreter<
     this.scheduler.schedule(() => {
       let nextState = this.state;
       let batchChanged = false;
-      const batchedActions: Array<ActionObject<TContext, TEvent>> = [];
+      const batchedActions: BaseActionObject[] = [];
       for (const event of events) {
         const _event = toSCXMLEvent(event);
 
@@ -659,15 +659,12 @@ export class Interpreter<
       child.send(event);
     }
   }
-  private defer(sendAction: SendActionObject<TContext, TEvent>): void {
+  private defer(sendAction: SendActionObject): void {
     this.delayedEventsMap[sendAction.params.id] = this.clock.setTimeout(() => {
       if (sendAction.params.to) {
         this.sendTo(sendAction.params._event, sendAction.params.to);
       } else {
-        this.send(
-          (sendAction as SendActionObject<TContext, TEvent, TEvent>).params
-            ._event
-        );
+        this.send(sendAction.params._event as SCXML.Event<TEvent>);
       }
     }, sendAction.params.delay as number);
   }
@@ -682,7 +679,7 @@ export class Interpreter<
       this.machine.options.actions[actionType] ??
       ({
         [actionTypes.send]: (ctx, e, { action }) => {
-          const sendAction = action as SendActionObject<TContext, TEvent>;
+          const sendAction = action as SendActionObject;
 
           if (typeof sendAction.params.delay === 'number') {
             this.defer(sendAction);
@@ -691,10 +688,7 @@ export class Interpreter<
             if (sendAction.params.to) {
               this.sendTo(sendAction.params._event, sendAction.params.to);
             } else {
-              this.send(
-                (sendAction as SendActionObject<TContext, TEvent, TEvent>)
-                  .params._event
-              );
+              this.send(sendAction.params._event as SCXML.Event<TEvent>);
             }
           }
         },
