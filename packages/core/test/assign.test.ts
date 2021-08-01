@@ -291,7 +291,7 @@ describe('assign meta', () => {
           NEXT_ASSIGNER: {
             target: 'two',
             actions: assign((_, __, { action }) => ({
-              count: action.assignment ? 5 : -1
+              count: action.params.assignment ? 5 : -1
             }))
           }
         }

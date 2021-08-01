@@ -54,6 +54,7 @@ export interface BaseDynamicActionObject<
     _event: SCXML.Event<TEvent>,
     extra: {
       machine: MachineNode<TContext, TEvent>;
+      state: State<TContext, TEvent>;
     }
   ) => TAction;
 }
@@ -1057,7 +1058,10 @@ export interface AssignAction<
 export interface AssignActionObject<TContext extends MachineContext>
   extends BaseActionObject {
   type: ActionTypes.Assign;
-  params: Partial<TContext>;
+  params: {
+    context: TContext;
+    actions: BaseActionObject[];
+  };
 }
 
 export interface PureAction<

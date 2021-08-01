@@ -1671,7 +1671,7 @@ function resolveActionsAndContext<
           actionObject,
           context,
           _event,
-          { machine }
+          { machine, state: currentState! }
         ).params.actions;
 
         if (matchedActions) {
@@ -1680,13 +1680,23 @@ function resolveActionsAndContext<
             machine.options.actions
           ).forEach(resolveAction);
         }
+      } else if (actionObject.type === actionTypes.assign) {
+        const a = actionObject.resolve(actionObject, context, _event, {
+          machine,
+          state: currentState!
+        });
+
+        context = a.params.context;
+        preservedContexts.push(a.params.context);
+        resolvedActions.push(a, ...a.params.actions);
       } else {
         const resolvedActionObject = actionObject.resolve(
           actionObject,
           context,
           _event,
           {
-            machine
+            machine,
+            state: currentState!
           }
         );
 

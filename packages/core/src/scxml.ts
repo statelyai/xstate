@@ -10,6 +10,7 @@ import {
 import { createMachine } from './index';
 import { mapValues, isString, flatten } from './utils';
 import * as actions from './actions';
+import * as assign from './actions/assign';
 import * as send from './actions/send';
 import * as cancel from './actions/cancel';
 import * as log from './actions/log';
@@ -145,7 +146,7 @@ function mapAction<
       );
     }
     case 'assign': {
-      return actions.assign<TContext, TEvent>((context, e, meta) => {
+      return assign.assign<TContext, TEvent>((context, e, meta) => {
         const fnBody = `
 
 ${element.attributes!.location};

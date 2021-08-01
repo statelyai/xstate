@@ -7,7 +7,6 @@ import {
   raise,
   sendParent,
   sendUpdate,
-  assign,
   after,
   done,
   respond,
@@ -16,6 +15,7 @@ import {
   escalate,
   choose
 } from './actions';
+import { assign } from './actions/assign';
 import { pure } from './actions/pure';
 import { send } from './actions/send';
 import { cancel } from './actions/cancel';

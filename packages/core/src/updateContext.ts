@@ -7,10 +7,11 @@ import {
   InvokeActionObject,
   MachineContext
 } from './types';
-import { State } from '.';
+import { AssignActionObject, State } from '.';
 import { isFunction, keys } from './utils';
 
 import * as capturedState from './capturedState';
+import { DynamicAction } from '../actions/DynamicAction';
 
 export function updateContext<
   TContext extends MachineContext,
@@ -18,7 +19,9 @@ export function updateContext<
 >(
   context: TContext,
   _event: SCXML.Event<TEvent>,
-  assignActions: Array<AssignAction<TContext, TEvent>>,
+  assignActions: Array<
+    DynamicAction<TContext, TEvent, AssignActionObject<TContext>>
+  >,
   state?: State<TContext, TEvent>
 ): [TContext, Array<ActionObject<TContext, TEvent>>] {
   const capturedActions: InvokeActionObject[] = [];
@@ -31,7 +34,7 @@ export function updateContext<
 
   const updatedContext = context
     ? assignActions.reduce((acc, assignAction) => {
-        const { assignment } = assignAction as AssignAction<TContext, TEvent>;
+        const { assignment } = assignAction.params;
 
         const meta: AssignMeta<TContext, TEvent> = {
           state,

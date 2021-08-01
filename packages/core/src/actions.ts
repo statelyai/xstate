@@ -5,8 +5,6 @@ import {
   SingleOrArray,
   ActionObject,
   ActionType,
-  Assigner,
-  PropertyAssigner,
   AssignAction,
   ActionFunction,
   ActionFunctionMap,
@@ -88,11 +86,13 @@ export function toActionObject<
     } else if (exec) {
       const actionType = exec.type;
 
-      actionObject = {
-        ...exec,
-        ...action,
-        type: actionType
-      } as ActionObject<TContext, TEvent>;
+      actionObject = exec;
+
+      // actionObject = {
+      //   ...exec,
+      //   ...action,
+      //   type: actionType
+      // } as ActionObject<TContext, TEvent>;
     } else {
       actionObject = action as ActionObject<TContext, TEvent>;
     }
@@ -147,23 +147,6 @@ export function raise<
     }
   };
 }
-
-/**
- * Updates the current context of the machine.
- *
- * @param assignment An object that represents the partial context to update.
- */
-export const assign = <
-  TContext extends MachineContext,
-  TEvent extends EventObject = EventObject
->(
-  assignment: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent>
-): AssignAction<TContext, TEvent> => {
-  return {
-    type: actionTypes.assign,
-    assignment
-  };
-};
 
 export function isActionObject<
   TContext extends MachineContext,

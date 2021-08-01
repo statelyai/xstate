@@ -12,7 +12,6 @@ import {
   Behavior
 } from '../src';
 import {
-  assign,
   sendParent,
   raise,
   doneInvoke,
@@ -21,6 +20,7 @@ import {
   forwardTo,
   error
 } from '../src/actions';
+import { assign } from '../src/actions/assign';
 import { send } from '../src/actions/send';
 import { interval } from 'rxjs';
 import { map } from 'rxjs/operators';
