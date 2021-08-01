@@ -1686,6 +1686,11 @@ function resolveActionsAndContext<
           state: currentState!
         });
 
+        if (a.type === actionTypes.raise) {
+          raiseActions.push(a);
+          return;
+        }
+
         context = a.params.context;
         preservedContexts.push(a.params.context);
         resolvedActions.push(a, ...a.params.actions);

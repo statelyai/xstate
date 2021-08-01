@@ -7,6 +7,7 @@ import {
 import * as actionTypes from '../actionTypes';
 import { DynamicAction } from '../../actions/DynamicAction';
 import { updateContext } from '../updateContext';
+import { toSCXMLEvent } from '../utils';
 
 /**
  * Updates the current context of the machine.
@@ -23,7 +24,7 @@ export function assign<
     {
       assignment
     },
-    (action, context, _event, { machine, state }) => {
+    (action, context, _event, { state }) => {
       try {
         const [nextContext, nextActions] = updateContext(
           context,
@@ -40,19 +41,17 @@ export function assign<
           }
         };
       } catch (err) {
-        throw err;
         // Raise error.execution events for failed assign actions
-        // raiseActions.push({
-        //   type: actionTypes.raise,
-        //   params: {
-        //     _event: toSCXMLEvent({
-        //       type: actionTypes.errorExecution,
-        //       error: err
-        //     } as any) // TODO: fix
-        //   }
-        // });
+        return {
+          type: actionTypes.raise,
+          params: {
+            _event: toSCXMLEvent({
+              type: actionTypes.errorExecution,
+              error: err
+            } as any) // TODO: fix
+          }
+        };
       }
-      return null as any;
     }
   );
   // return {
