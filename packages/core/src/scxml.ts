@@ -1,7 +1,6 @@
 import { xml2js, Element as XMLElement } from 'xml-js';
 import {
   EventObject,
-  ActionObject,
   SCXMLEventMeta,
   SendExpr,
   DelayExpr,
@@ -17,6 +16,7 @@ import * as log from './actions/log';
 import { invokeMachine } from './invoke';
 import { StateMachine } from './StateMachine';
 import { not, stateIn } from './guards';
+import { BaseActionObject } from '../dist/xstate.cjs';
 
 function getAttribute(
   element: XMLElement,
@@ -138,7 +138,7 @@ function createGuard<
 function mapAction<
   TContext extends object,
   TEvent extends EventObject = EventObject
->(element: XMLElement): ActionObject<TContext, TEvent> {
+>(element: XMLElement): BaseActionObject {
   switch (element.name) {
     case 'raise': {
       return actions.raise<TContext, TEvent>(
@@ -270,11 +270,8 @@ return ${element.attributes!.expr};
   }
 }
 
-function mapActions<
-  TContext extends object,
-  TEvent extends EventObject = EventObject
->(elements: XMLElement[]): Array<ActionObject<TContext, TEvent>> {
-  const mapped: Array<ActionObject<TContext, TEvent>> = [];
+function mapActions(elements: XMLElement[]): BaseActionObject[] {
+  const mapped: BaseActionObject[] = [];
 
   for (const element of elements) {
     if (element.type === 'comment') {

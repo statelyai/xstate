@@ -796,10 +796,32 @@ describe('actions config', () => {
     );
     const state = machine.transition('a', 'EVENT');
 
-    expect(state.actions).toEqual([
-      expect.objectContaining({ type: 'definedAction' }),
-      assign({ count: 10 })
-    ]);
+    expect(state.actions).toMatchInlineSnapshot(`
+      Array [
+        ExecutableAction {
+          "_exec": [Function],
+          "actionObject": Object {
+            "type": "definedAction",
+          },
+          "context": Object {
+            "count": 0,
+          },
+          "params": Object {
+            "type": "definedAction",
+          },
+          "type": "definedAction",
+        },
+        Object {
+          "params": Object {
+            "actions": Array [],
+            "context": Object {
+              "count": 10,
+            },
+          },
+          "type": "xstate.assign",
+        },
+      ]
+    `);
 
     expect(state.context).toEqual({ count: 10 });
   });
