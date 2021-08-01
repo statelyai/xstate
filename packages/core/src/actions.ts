@@ -15,7 +15,6 @@ import {
   DoneEvent,
   ErrorPlatformEvent,
   DoneEventObject,
-  PureAction,
   ChooseConditon,
   ChooseAction,
   MachineContext
@@ -25,6 +24,7 @@ import { isFunction, isString, toSCXMLEvent, isArray } from './utils';
 import { ExecutableAction } from '../actions/ExecutableAction';
 import { send } from './actions/send';
 import { BaseActionObject } from '.';
+import { DynamicAction } from '../actions/DynamicAction';
 export {
   send,
   sendUpdate,
@@ -46,10 +46,7 @@ export function getActionFunction<
 >(
   actionType: ActionType,
   actionFunctionMap?: ActionFunctionMap<TContext, TEvent>
-):
-  | ActionObject<TContext, TEvent>
-  | ActionFunction<TContext, TEvent>
-  | undefined {
+): BaseActionObject | ActionFunction<TContext, TEvent> | undefined {
   return actionFunctionMap
     ? actionFunctionMap[actionType] || undefined
     : undefined;
@@ -62,6 +59,10 @@ export function toActionObject<
   action: Action<TContext, TEvent>,
   actionFunctionMap?: ActionFunctionMap<TContext, TEvent>
 ): BaseActionObject {
+  if (action instanceof DynamicAction) {
+    return action;
+  }
+
   let actionObject: BaseActionObject;
 
   if (isString(action) || typeof action === 'number') {
@@ -85,7 +86,7 @@ export function toActionObject<
     if (isFunction(exec)) {
       actionObject = new ExecutableAction(action, exec);
     } else if (exec) {
-      const actionType = exec.type || action.type;
+      const actionType = exec.type;
 
       actionObject = {
         ...exec,
