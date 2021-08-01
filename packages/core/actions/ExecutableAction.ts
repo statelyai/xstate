@@ -1,7 +1,7 @@
 import type { State } from '../src/State';
 import {
   ActionFunction,
-  ActionObject,
+  BaseActionObject,
   EventObject,
   MachineContext
 } from '../src/types';
@@ -27,7 +27,7 @@ export class ExecutableAction<
   public params: Record<string, any>;
   public context: TContext | undefined = undefined;
   constructor(
-    public actionObject: ActionObject<TContext, TEvent>,
+    public actionObject: BaseActionObject,
     private _exec?: ActionFunction<TContext, TEvent>
   ) {
     this.type = actionObject.type;

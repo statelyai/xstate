@@ -5,6 +5,7 @@ import { StateMachine } from './StateMachine';
 import { LifecycleSignal } from './behaviors';
 import { MachineNode } from '.';
 import { Model } from './model.types';
+import { DynamicAction } from '../actions/DynamicAction';
 
 export type EventType = string;
 export type ActionType = string;
@@ -101,7 +102,7 @@ export type ActionFunction<
   meta: ActionMeta<TContext, TEvent, TAction>
 ) => void;
 
-export interface ChooseConditon<
+export interface ChooseCondition<
   TContext extends MachineContext,
   TEvent extends EventObject
 > {
@@ -125,11 +126,26 @@ type SimpleActionsFrom<T extends BaseActionObject> = BaseActionObject extends T
   ? T // If actions are unspecified, all action types are allowed (unsafe)
   : ExtractWithSimpleSupport<T>;
 
+export interface DAction<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+> {
+  type: string;
+  params: any;
+  resolve: (
+    action: BaseActionObject,
+    ctx: TContext,
+    _e: SCXML.Event<TEvent>,
+    meta: any
+  ) => BaseActionObject;
+}
+
 export type BaseAction<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TAction extends BaseActionObject
 > =
+  | DAction<TContext, TEvent>
   | SimpleActionsFrom<TAction>['type']
   | TAction
   | RaiseActionObject<TEvent>
@@ -1088,7 +1104,7 @@ export interface ChooseAction<
 > extends BaseActionObject {
   type: ActionTypes.Choose;
   params: {
-    guards: Array<ChooseConditon<TContext, TEvent>>;
+    guards: Array<ChooseCondition<TContext, TEvent>>;
   };
 }
 

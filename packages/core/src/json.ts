@@ -1,4 +1,4 @@
-import { StateNode, ActionObject, GuardObject, InvokeDefinition } from './';
+import { StateNode, GuardObject, InvokeDefinition, BaseActionObject } from './';
 import { mapValues, isFunction } from './utils';
 
 interface JSONFunction {
@@ -19,7 +19,7 @@ function getStateNodeId(stateNode: StateNode): string {
 interface TransitionConfig {
   target: string[];
   source: string;
-  actions: Array<ActionObject<any, any>>;
+  actions: Array<BaseActionObject>;
   guard: GuardObject<any, any> | undefined;
   eventType: string;
 }
@@ -29,8 +29,8 @@ interface StateNodeConfig {
   id: string;
   key: string;
   initial?: string;
-  entry: Array<ActionObject<any, any>>;
-  exit: Array<ActionObject<any, any>>;
+  entry: Array<BaseActionObject>;
+  exit: Array<BaseActionObject>;
   on: {
     [key: string]: TransitionConfig[];
   };

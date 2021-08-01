@@ -1,4 +1,10 @@
-import { EventObject, InvokeActionObject, StateNode, StateValue } from '.';
+import {
+  BaseActionObject,
+  EventObject,
+  InvokeActionObject,
+  StateNode,
+  StateValue
+} from '.';
 import {
   keys,
   flatten,
@@ -14,7 +20,6 @@ import {
   mapContext,
   toSCXMLEvent
 } from './utils';
-import { updateContext } from './updateContext';
 import {
   TransitionConfig,
   TransitionDefinition,
@@ -24,11 +29,7 @@ import {
   DelayExpr,
   SCXML,
   Transitions,
-  ActionObject,
   StateValueMap,
-  AssignAction,
-  SendAction,
-  PureAction,
   RaiseActionObject,
   SpecialTargets,
   HistoryValue,
@@ -37,7 +38,6 @@ import {
   Event,
   ChooseAction,
   StopActionObject,
-  AnyEventObject,
   MachineContext
 } from './types';
 import { State } from './State';
@@ -1098,7 +1098,7 @@ function exitStates<
   state: State<TContext, TEvent>
 ) {
   const statesToExit = computeExitSet(transitions, mutConfiguration, state);
-  const actions: Array<ActionObject<TContext, TEvent>> = [];
+  const actions: Array<BaseActionObject> = [];
 
   statesToExit.forEach((stateNode) => {
     actions.push(...stateNode.invoke.map((def) => stop(def.id)));
@@ -1132,7 +1132,7 @@ export function enterStates<
   const statesToInvoke: typeof mutConfiguration = new Set();
   const internalQueue: Array<SCXML.Event<TEvent>> = [];
 
-  const actions: Array<ActionObject<TContext, TEvent>> = [];
+  const actions: Array<BaseActionObject> = [];
   const mutStatesToEnter = new Set<StateNode<TContext, TEvent>>();
   const mutStatesForDefaultEntry = new Set<StateNode<TContext, TEvent>>();
 
@@ -1406,13 +1406,13 @@ export function microstep<
   machine: StateMachine<TContext, TEvent>,
   _event: SCXML.Event<TEvent>
 ): {
-  actions: Array<ActionObject<TContext, TEvent>>;
+  actions: Array<BaseActionObject>;
   configuration: typeof mutConfiguration;
   historyValue: HistoryValue<TContext, TEvent>;
   internalQueue: Array<SCXML.Event<TEvent>>;
   context: TContext;
 } {
-  const actions: Array<ActionObject<TContext, TEvent>> = [];
+  const actions: Array<BaseActionObject> = [];
 
   const filteredTransitions = removeConflictingTransitions(
     transitions,
@@ -1649,7 +1649,7 @@ function resolveActionsAndContext<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  actions: Array<ActionObject<TContext, TEvent>>,
+  actions: Array<BaseActionObject>,
   machine: StateMachine<TContext, TEvent, any>,
   _event: SCXML.Event<TEvent>,
   currentState: State<TContext, TEvent, any> | undefined
@@ -1659,14 +1659,17 @@ function resolveActionsAndContext<
   context: TContext;
 } {
   let context: TContext = currentState ? currentState.context : machine.context;
-  const resolvedActions: Array<ActionObject<TContext, TEvent>> = [];
+  const resolvedActions: Array<BaseActionObject> = [];
   const raiseActions: Array<RaiseActionObject<TEvent>> = [];
   const preservedContexts: [TContext, ...TContext[]] = [context];
   const actionObjects = toActionObjects(actions, machine.options.actions);
 
-  function resolveAction(actionObject: ActionObject<TContext, TEvent>) {
+  function resolveAction(actionObject: BaseActionObject) {
     if (actionObject instanceof DynamicAction) {
-      if (actionObject.type === actionTypes.pure) {
+      if (
+        actionObject.type === actionTypes.pure ||
+        actionObject.type === actionTypes.choose
+      ) {
         const matchedActions = actionObject.resolve(
           actionObject,
           context,
@@ -1743,30 +1746,6 @@ function resolveActionsAndContext<
         }
         break;
       }
-      case actionTypes.assign:
-        try {
-          const [nextContext, nextActions] = updateContext(
-            context,
-            _event,
-            [actionObject as AssignAction<TContext, TEvent>],
-            currentState
-          );
-          context = nextContext;
-          preservedContexts.push(nextContext);
-          resolvedActions.push(actionObject, ...nextActions);
-        } catch (err) {
-          // Raise error.execution events for failed assign actions
-          raiseActions.push({
-            type: actionTypes.raise,
-            params: {
-              _event: toSCXMLEvent({
-                type: actionTypes.errorExecution,
-                error: err
-              } as any) // TODO: fix
-            }
-          });
-        }
-        break;
       default:
         const contextIndex = preservedContexts.length - 1;
         if (actionObject instanceof ExecutableAction) {

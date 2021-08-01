@@ -674,7 +674,7 @@ export class Interpreter<
   }
   private getActionFunction(
     actionType: string
-  ): ActionObject<TContext, TEvent> | ActionFunction<TContext, TEvent> {
+  ): BaseActionObject | ActionFunction<TContext, TEvent> | undefined {
     return (
       this.machine.options.actions[actionType] ??
       ({
@@ -771,7 +771,7 @@ export class Interpreter<
     );
   }
   private exec(
-    action: InvokeActionObject | ActionObject<TContext, TEvent>,
+    action: InvokeActionObject | BaseActionObject,
     state: State<TContext, TEvent, TTypestate>
   ): void {
     const { _event } = state;

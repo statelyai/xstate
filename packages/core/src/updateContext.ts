@@ -1,9 +1,7 @@
 import {
   EventObject,
-  AssignAction,
   SCXML,
   AssignMeta,
-  ActionObject,
   InvokeActionObject,
   MachineContext
 } from './types';

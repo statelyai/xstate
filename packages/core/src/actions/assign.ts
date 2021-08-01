@@ -2,7 +2,8 @@ import {
   EventObject,
   Assigner,
   PropertyAssigner,
-  MachineContext
+  MachineContext,
+  DAction
 } from '../types';
 import * as actionTypes from '../actionTypes';
 import { DynamicAction } from '../../actions/DynamicAction';
@@ -18,7 +19,9 @@ import { toSCXMLEvent } from '../utils';
 export function assign<
   TContext extends MachineContext,
   TEvent extends EventObject = EventObject
->(assignment: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent>) {
+>(
+  assignment: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent>
+): DAction<TContext, TEvent> {
   return new DynamicAction(
     actionTypes.assign,
     {

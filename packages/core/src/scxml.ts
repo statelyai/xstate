@@ -4,7 +4,7 @@ import {
   SCXMLEventMeta,
   SendExpr,
   DelayExpr,
-  ChooseConditon
+  ChooseCondition
 } from './types';
 import { createMachine } from './index';
 import { mapValues, isString, flatten } from './utils';
@@ -230,9 +230,9 @@ return ${element.attributes!.expr};
       );
     }
     case 'if': {
-      const conds: Array<ChooseConditon<TContext, TEvent>> = [];
+      const conds: Array<ChooseCondition<TContext, TEvent>> = [];
 
-      let current: ChooseConditon<TContext, TEvent> = {
+      let current: ChooseCondition<TContext, TEvent> = {
         guard: createGuard(element.attributes!.cond as string),
         actions: []
       };

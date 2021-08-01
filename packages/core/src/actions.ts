@@ -3,9 +3,7 @@ import {
   Event,
   EventObject,
   SingleOrArray,
-  ActionObject,
   ActionType,
-  AssignAction,
   ActionFunction,
   ActionFunctionMap,
   ActionTypes,
@@ -13,7 +11,7 @@ import {
   DoneEvent,
   ErrorPlatformEvent,
   DoneEventObject,
-  ChooseConditon,
+  ChooseCondition,
   ChooseAction,
   MachineContext
 } from './types';
@@ -21,8 +19,9 @@ import * as actionTypes from './actionTypes';
 import { isFunction, isString, toSCXMLEvent, isArray } from './utils';
 import { ExecutableAction } from '../actions/ExecutableAction';
 import { send } from './actions/send';
-import { BaseActionObject } from '.';
+import { BaseActionObject, DAction } from '.';
 import { DynamicAction } from '../actions/DynamicAction';
+import { evaluateGuard, toGuardDefinition } from './guards';
 export {
   send,
   sendUpdate,
@@ -66,16 +65,17 @@ export function toActionObject<
   if (isString(action) || typeof action === 'number') {
     const exec = getActionFunction(action, actionFunctionMap);
     if (isFunction(exec)) {
-      actionObject = new ExecutableAction({ type: action }, exec);
+      actionObject = new ExecutableAction({ type: action, params: {} }, exec);
     } else if (exec) {
       actionObject = exec;
     } else {
-      actionObject = new ExecutableAction({ type: action });
+      actionObject = new ExecutableAction({ type: action, params: {} });
     }
   } else if (isFunction(action)) {
     actionObject = new ExecutableAction(
       {
-        type: action.name ?? 'xstate:expr'
+        type: action.name ?? 'xstate:expr',
+        params: {}
       },
       action
     );
@@ -84,17 +84,9 @@ export function toActionObject<
     if (isFunction(exec)) {
       actionObject = new ExecutableAction(action, exec);
     } else if (exec) {
-      const actionType = exec.type;
-
       actionObject = exec;
-
-      // actionObject = {
-      //   ...exec,
-      //   ...action,
-      //   type: actionType
-      // } as ActionObject<TContext, TEvent>;
     } else {
-      actionObject = action as ActionObject<TContext, TEvent>;
+      actionObject = action;
     }
   }
 
@@ -113,7 +105,7 @@ export const toActionObjects = <
 >(
   action?: SingleOrArray<Action<TContext, TEvent>> | undefined,
   actionFunctionMap?: ActionFunctionMap<TContext, TEvent>
-): Array<ActionObject<TContext, TEvent>> => {
+): BaseActionObject[] => {
   if (!action) {
     return [];
   }
@@ -151,7 +143,7 @@ export function raise<
 export function isActionObject<
   TContext extends MachineContext,
   TEvent extends EventObject
->(action: Action<TContext, TEvent>): action is ActionObject<TContext, TEvent> {
+>(action: Action<TContext, TEvent>): action is BaseActionObject {
   return typeof action === 'object' && 'type' in action;
 }
 
@@ -219,11 +211,38 @@ export function error(id: string, data?: any): ErrorPlatformEvent & string {
 export function choose<
   TContext extends MachineContext,
   TEvent extends EventObject
->(
-  guards: Array<ChooseConditon<TContext, TEvent>>
-): ChooseAction<TContext, TEvent> {
-  return {
-    type: ActionTypes.Choose,
-    params: { guards }
-  };
+>(guards: Array<ChooseCondition<TContext, TEvent>>): DAction<TContext, TEvent> {
+  return new DynamicAction<
+    TContext,
+    TEvent,
+    {
+      type: ActionTypes.Choose;
+      params: {
+        actions: BaseActionObject[];
+      };
+    }
+  >(
+    actionTypes.choose,
+    {
+      guards
+    },
+    (action, context, _event, { machine, state }) => {
+      const matchedActions = action.params.guards.find((condition) => {
+        const guard =
+          condition.guard &&
+          toGuardDefinition(
+            condition.guard,
+            (guardType) => machine.options.guards[guardType]
+          );
+        return !guard || evaluateGuard(guard, context, _event, state);
+      })?.actions;
+
+      return {
+        type: actionTypes.choose,
+        params: {
+          actions: matchedActions
+        }
+      };
+    }
+  );
 }
