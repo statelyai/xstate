@@ -1666,23 +1666,39 @@ function resolveActionsAndContext<
 
   function resolveAction(actionObject: ActionObject<TContext, TEvent>) {
     if (actionObject instanceof DynamicAction) {
-      const resolvedActionObject = actionObject.resolve(
-        actionObject,
-        context,
-        _event,
-        {
-          machine
-        }
-      );
+      if (actionObject.type === actionTypes.pure) {
+        const matchedActions = actionObject.resolve(
+          actionObject,
+          context,
+          _event,
+          { machine }
+        ).params.actions;
 
-      if (
-        resolvedActionObject.type === actionTypes.raise ||
-        (resolvedActionObject.type === actionTypes.send &&
-          resolvedActionObject.params.to === SpecialTargets.Internal)
-      ) {
-        raiseActions.push(resolvedActionObject);
+        if (matchedActions) {
+          toActionObjects(
+            toArray(matchedActions),
+            machine.options.actions
+          ).forEach(resolveAction);
+        }
       } else {
-        resolvedActions.push(resolvedActionObject);
+        const resolvedActionObject = actionObject.resolve(
+          actionObject,
+          context,
+          _event,
+          {
+            machine
+          }
+        );
+
+        if (
+          resolvedActionObject.type === actionTypes.raise ||
+          (resolvedActionObject.type === actionTypes.send &&
+            resolvedActionObject.params.to === SpecialTargets.Internal)
+        ) {
+          raiseActions.push(resolvedActionObject);
+        } else {
+          resolvedActions.push(resolvedActionObject);
+        }
       }
       return;
     }
@@ -1712,20 +1728,6 @@ function resolveActionsAndContext<
         }
         break;
       }
-
-      case actionTypes.pure:
-        const matchedActions = (actionObject as PureAction<
-          TContext,
-          TEvent
-        >).get(context, _event.data);
-
-        if (matchedActions) {
-          toActionObjects(
-            toArray(matchedActions),
-            machine.options.actions
-          ).forEach(resolveAction);
-        }
-        break;
       case actionTypes.assign:
         try {
           const [nextContext, nextActions] = updateContext(

@@ -232,21 +232,6 @@ export function error(id: string, data?: any): ErrorPlatformEvent & string {
   return eventObject as ErrorPlatformEvent & string;
 }
 
-export function pure<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  getActions: (
-    context: TContext,
-    event: TEvent
-  ) => SingleOrArray<ActionObject<TContext, TEvent>> | undefined
-): PureAction<TContext, TEvent> {
-  return {
-    type: ActionTypes.Pure,
-    get: getActions
-  };
-}
-
 export function choose<
   TContext extends MachineContext,
   TEvent extends EventObject

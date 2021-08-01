@@ -14,9 +14,9 @@ import {
   doneInvoke,
   forwardTo,
   escalate,
-  choose,
-  pure
+  choose
 } from './actions';
+import { pure } from './actions/pure';
 import { send } from './actions/send';
 import { cancel } from './actions/cancel';
 import { stop } from './actions/stop';

@@ -1071,6 +1071,13 @@ export interface PureAction<
   ) => SingleOrArray<BaseActionObject> | undefined;
 }
 
+export interface PureActionObject extends BaseActionObject {
+  type: ActionTypes.Pure;
+  params: {
+    actions: BaseActionObject[];
+  };
+}
+
 export interface ChooseAction<
   TContext extends MachineContext,
   TEvent extends EventObject
