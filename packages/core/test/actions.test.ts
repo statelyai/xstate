@@ -894,7 +894,7 @@ describe('action meta', () => {
           entryAction: (_, __, meta) => {
             expect(meta.state.value).toEqual('foo');
             expect(meta.action.type).toEqual('entryAction');
-            expect(meta.action.params.value).toEqual('something');
+            expect(meta.action.params?.value).toEqual('something');
             done();
           }
         }
@@ -1389,7 +1389,7 @@ describe('choose', () => {
               entry: choose([
                 {
                   guard: (_, __, { state }) => state.matches('bar'),
-                  actions: assign<Ctx>({ answer: 42 })
+                  actions: assign({ answer: 42 })
                 }
               ])
             }

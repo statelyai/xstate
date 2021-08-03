@@ -53,7 +53,7 @@ export function toActionObject<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  action: Action<TContext, TEvent>,
+  action: BaseActionObject,
   actionFunctionMap?: ActionFunctionMap<TContext, TEvent>
 ): BaseActionObject {
   if (action instanceof DynamicAction) {

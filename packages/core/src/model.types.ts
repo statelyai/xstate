@@ -1,10 +1,10 @@
-import { MachineNode } from '.';
+import { DAction, MachineNode } from '.';
 import {
   EventObject,
   Assigner,
   ExtractEvent,
   PropertyAssigner,
-  AssignAction,
+  DynamicAssignAction,
   MachineConfig,
   MachineImplementations,
   BaseActionObject,
@@ -35,10 +35,10 @@ export interface Model<
       | Assigner<TContext, ExtractEvent<TEvent, TEventType>>
       | PropertyAssigner<TContext, ExtractEvent<TEvent, TEventType>>,
     eventType?: TEventType
-  ) => AssignAction<TContext, ExtractEvent<TEvent, TEventType>>;
+  ) => DAction<TContext, ExtractEvent<TEvent, TEventType>>;
   events: Prop<TModelCreators, 'events'>;
   actions: Prop<TModelCreators, 'actions'>;
-  reset: () => AssignAction<TContext, any>;
+  reset: () => DynamicAssignAction<TContext, any>;
   createMachine: (
     config: MachineConfig<TContext, TEvent, TAction>,
     implementations?: Partial<MachineImplementations<TContext, TEvent, TAction>>

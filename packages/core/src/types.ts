@@ -25,21 +25,14 @@ export interface AnyEventObject extends EventObject {
   [key: string]: any;
 }
 
-/**
- * The full definition of an action, with a string `type` and an
- * `exec` implementation function.
- */
-export interface BaseActionObject {
-  /**
-   * The type of action that is executed.
-   */
+export interface PlainActionObject {
   type: string;
-  [other: string]: any;
+  [key: string]: any;
 }
 
 export interface BaseActionObject {
   type: string;
-  params: Record<string, any>;
+  params?: Record<string, any>;
 }
 
 export interface BaseDynamicActionObject<
@@ -88,7 +81,7 @@ export interface AssignMeta<
   TEvent extends EventObject
 > {
   state?: State<TContext, TEvent>;
-  action: AssignAction<TContext, TEvent>;
+  action: DynamicAssignAction<TContext, TEvent>;
   _event: SCXML.Event<TEvent>;
 }
 
@@ -148,19 +141,12 @@ export type BaseAction<
   | DAction<TContext, TEvent>
   | SimpleActionsFrom<TAction>['type']
   | TAction
-  | RaiseActionObject<TEvent>
-  | SendActionObject
-  | AssignAction<TContext, TEvent>
-  | LogActionObject
-  | CancelActionObject
-  | StopAction<TContext, TEvent>
-  | ChooseAction<TContext, TEvent>
   | ActionFunction<TContext, TEvent>;
 
 export type BaseActions<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TAction extends BaseActionObject
+  TAction extends PlainActionObject
 > = SingleOrArray<BaseAction<TContext, TEvent, TAction>>;
 
 export type Actions<
@@ -564,7 +550,7 @@ export interface InvokeConfig<
 export interface StateNodeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TAction extends BaseActionObject = BaseActionObject
+  TAction extends PlainActionObject = PlainActionObject
 > {
   /**
    * The relative key of the state node, which represents its location in the overall state value.
@@ -785,7 +771,7 @@ export interface MachineImplementations<
 export interface MachineConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TAction extends BaseActionObject = BaseActionObject
+  TAction extends PlainActionObject = PlainActionObject
 > extends StateNodeConfig<TContext, TEvent, TAction> {
   /**
    * The initial context (extended state)
@@ -1063,12 +1049,14 @@ export interface AnyAssignAction extends BaseActionObject {
   assignment: any;
 }
 
-export interface AssignAction<
+export interface DynamicAssignAction<
   TContext extends MachineContext,
   TEvent extends EventObject
 > extends BaseActionObject {
   type: ActionTypes.Assign;
-  assignment: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent>;
+  params: {
+    assignment: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent>;
+  };
 }
 
 export interface AssignActionObject<TContext extends MachineContext>

@@ -1353,12 +1353,12 @@ Object {
                 ExecutableAction {
                   "_exec": undefined,
                   "actionObject": Object {
-                    "exec": undefined,
+                    "params": Object {},
                     "type": "startCountdown",
                   },
                   "context": Object {},
                   "params": Object {
-                    "exec": undefined,
+                    "params": Object {},
                     "type": "startCountdown",
                   },
                   "type": "startCountdown",
@@ -1578,12 +1578,12 @@ Object {
             ExecutableAction {
               "_exec": undefined,
               "actionObject": Object {
-                "exec": undefined,
+                "params": Object {},
                 "type": "startCountdown",
               },
               "context": Object {},
               "params": Object {
-                "exec": undefined,
+                "params": Object {},
                 "type": "startCountdown",
               },
               "type": "startCountdown",
@@ -1622,12 +1622,12 @@ Object {
         ExecutableAction {
           "_exec": undefined,
           "actionObject": Object {
-            "exec": undefined,
+            "params": Object {},
             "type": "startCountdown",
           },
           "context": Object {},
           "params": Object {
-            "exec": undefined,
+            "params": Object {},
             "type": "startCountdown",
           },
           "type": "startCountdown",
@@ -2247,12 +2247,12 @@ Object {
                 ExecutableAction {
                   "_exec": undefined,
                   "actionObject": Object {
-                    "exec": undefined,
+                    "params": Object {},
                     "type": "startCountdown",
                   },
                   "context": Object {},
                   "params": Object {
-                    "exec": undefined,
+                    "params": Object {},
                     "type": "startCountdown",
                   },
                   "type": "startCountdown",
@@ -2308,12 +2308,12 @@ Object {
               ExecutableAction {
                 "_exec": undefined,
                 "actionObject": Object {
-                  "exec": undefined,
+                  "params": Object {},
                   "type": "startCountdown",
                 },
                 "context": Object {},
                 "params": Object {
-                  "exec": undefined,
+                  "params": Object {},
                   "type": "startCountdown",
                 },
                 "type": "startCountdown",
@@ -2485,12 +2485,12 @@ Object {
                 ExecutableAction {
                   "_exec": undefined,
                   "actionObject": Object {
-                    "exec": undefined,
+                    "params": Object {},
                     "type": "startCountdown",
                   },
                   "context": Object {},
                   "params": Object {
-                    "exec": undefined,
+                    "params": Object {},
                     "type": "startCountdown",
                   },
                   "type": "startCountdown",
@@ -3030,12 +3030,12 @@ Object {
                 ExecutableAction {
                   "_exec": undefined,
                   "actionObject": Object {
-                    "exec": undefined,
+                    "params": Object {},
                     "type": "startCountdown",
                   },
                   "context": Object {},
                   "params": Object {
-                    "exec": undefined,
+                    "params": Object {},
                     "type": "startCountdown",
                   },
                   "type": "startCountdown",
@@ -3255,12 +3255,12 @@ Object {
             ExecutableAction {
               "_exec": undefined,
               "actionObject": Object {
-                "exec": undefined,
+                "params": Object {},
                 "type": "startCountdown",
               },
               "context": Object {},
               "params": Object {
-                "exec": undefined,
+                "params": Object {},
                 "type": "startCountdown",
               },
               "type": "startCountdown",
@@ -3299,12 +3299,12 @@ Object {
         ExecutableAction {
           "_exec": undefined,
           "actionObject": Object {
-            "exec": undefined,
+            "params": Object {},
             "type": "startCountdown",
           },
           "context": Object {},
           "params": Object {
-            "exec": undefined,
+            "params": Object {},
             "type": "startCountdown",
           },
           "type": "startCountdown",
@@ -4259,8 +4259,11 @@ Object {
               "_sessionid": null,
               "actions": Array [
                 Object {
-                  "assignment": Object {
-                    "count": [Function],
+                  "params": Object {
+                    "actions": Array [],
+                    "context": Object {
+                      "count": 1,
+                    },
                   },
                   "type": "xstate.assign",
                 },
@@ -4301,8 +4304,11 @@ Object {
               "_sessionid": null,
               "actions": Array [
                 Object {
-                  "assignment": Object {
-                    "count": [Function],
+                  "params": Object {
+                    "actions": Array [],
+                    "context": Object {
+                      "count": 2,
+                    },
                   },
                   "type": "xstate.assign",
                 },
@@ -4339,8 +4345,11 @@ Object {
           "_sessionid": null,
           "actions": Array [
             Object {
-              "assignment": Object {
-                "count": [Function],
+              "params": Object {
+                "actions": Array [],
+                "context": Object {
+                  "count": 3,
+                },
               },
               "type": "xstate.assign",
             },
@@ -4368,8 +4377,11 @@ Object {
             "_sessionid": null,
             "actions": Array [
               Object {
-                "assignment": Object {
-                  "count": [Function],
+                "params": Object {
+                  "actions": Array [],
+                  "context": Object {
+                    "count": 3,
+                  },
                 },
                 "type": "xstate.assign",
               },
@@ -4414,8 +4426,11 @@ Object {
       "_sessionid": null,
       "actions": Array [
         Object {
-          "assignment": Object {
-            "count": [Function],
+          "params": Object {
+            "actions": Array [],
+            "context": Object {
+              "count": 3,
+            },
           },
           "type": "xstate.assign",
         },
@@ -4443,8 +4458,11 @@ Object {
         "_sessionid": null,
         "actions": Array [
           Object {
-            "assignment": Object {
-              "count": [Function],
+            "params": Object {
+              "actions": Array [],
+              "context": Object {
+                "count": 3,
+              },
             },
             "type": "xstate.assign",
           },
@@ -4590,8 +4608,11 @@ Object {
           "_sessionid": null,
           "actions": Array [
             Object {
-              "assignment": Object {
-                "count": [Function],
+              "params": Object {
+                "actions": Array [],
+                "context": Object {
+                  "count": 1,
+                },
               },
               "type": "xstate.assign",
             },
@@ -4629,8 +4650,11 @@ Object {
       "_sessionid": null,
       "actions": Array [
         Object {
-          "assignment": Object {
-            "count": [Function],
+          "params": Object {
+            "actions": Array [],
+            "context": Object {
+              "count": 1,
+            },
           },
           "type": "xstate.assign",
         },
@@ -4709,8 +4733,11 @@ Object {
               "_sessionid": null,
               "actions": Array [
                 Object {
-                  "assignment": Object {
-                    "count": [Function],
+                  "params": Object {
+                    "actions": Array [],
+                    "context": Object {
+                      "count": 1,
+                    },
                   },
                   "type": "xstate.assign",
                 },
@@ -4747,8 +4774,11 @@ Object {
           "_sessionid": null,
           "actions": Array [
             Object {
-              "assignment": Object {
-                "count": [Function],
+              "params": Object {
+                "actions": Array [],
+                "context": Object {
+                  "count": 2,
+                },
               },
               "type": "xstate.assign",
             },
@@ -4786,8 +4816,11 @@ Object {
       "_sessionid": null,
       "actions": Array [
         Object {
-          "assignment": Object {
-            "count": [Function],
+          "params": Object {
+            "actions": Array [],
+            "context": Object {
+              "count": 2,
+            },
           },
           "type": "xstate.assign",
         },
@@ -5407,12 +5440,12 @@ Array [
                 ExecutableAction {
                   "_exec": undefined,
                   "actionObject": Object {
-                    "exec": undefined,
+                    "params": Object {},
                     "type": "startCountdown",
                   },
                   "context": Object {},
                   "params": Object {
-                    "exec": undefined,
+                    "params": Object {},
                     "type": "startCountdown",
                   },
                   "type": "startCountdown",
@@ -5468,12 +5501,12 @@ Array [
               ExecutableAction {
                 "_exec": undefined,
                 "actionObject": Object {
-                  "exec": undefined,
+                  "params": Object {},
                   "type": "startCountdown",
                 },
                 "context": Object {},
                 "params": Object {
-                  "exec": undefined,
+                  "params": Object {},
                   "type": "startCountdown",
                 },
                 "type": "startCountdown",
@@ -5645,12 +5678,12 @@ Array [
                 ExecutableAction {
                   "_exec": undefined,
                   "actionObject": Object {
-                    "exec": undefined,
+                    "params": Object {},
                     "type": "startCountdown",
                   },
                   "context": Object {},
                   "params": Object {
-                    "exec": undefined,
+                    "params": Object {},
                     "type": "startCountdown",
                   },
                   "type": "startCountdown",
@@ -6187,12 +6220,12 @@ Array [
             ExecutableAction {
               "_exec": undefined,
               "actionObject": Object {
-                "exec": undefined,
+                "params": Object {},
                 "type": "startCountdown",
               },
               "context": Object {},
               "params": Object {
-                "exec": undefined,
+                "params": Object {},
                 "type": "startCountdown",
               },
               "type": "startCountdown",
@@ -6231,12 +6264,12 @@ Array [
         ExecutableAction {
           "_exec": undefined,
           "actionObject": Object {
-            "exec": undefined,
+            "params": Object {},
             "type": "startCountdown",
           },
           "context": Object {},
           "params": Object {
-            "exec": undefined,
+            "params": Object {},
             "type": "startCountdown",
           },
           "type": "startCountdown",
@@ -6400,12 +6433,12 @@ Array [
                 ExecutableAction {
                   "_exec": undefined,
                   "actionObject": Object {
-                    "exec": undefined,
+                    "params": Object {},
                     "type": "startCountdown",
                   },
                   "context": Object {},
                   "params": Object {
-                    "exec": undefined,
+                    "params": Object {},
                     "type": "startCountdown",
                   },
                   "type": "startCountdown",
