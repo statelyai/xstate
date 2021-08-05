@@ -168,6 +168,10 @@ export function inspect(
     };
 
     service.subscribe((state) => {
+      // filter out synchronous notification from within `.start()` call when the `service.state` has not yet been assigned
+      if (state === undefined) {
+        return;
+      }
       inspectService.send({
         type: 'service.state',
         state: stringify(state),
