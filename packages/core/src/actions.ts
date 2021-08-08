@@ -91,12 +91,6 @@ export function toActionObject<
     }
   }
 
-  Object.defineProperty(actionObject, 'toString', {
-    value: () => actionObject.type,
-    enumerable: false,
-    configurable: true
-  });
-
   return actionObject;
 }
 
