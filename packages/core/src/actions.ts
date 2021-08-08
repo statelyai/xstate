@@ -12,7 +12,6 @@ import {
   ErrorPlatformEvent,
   DoneEventObject,
   ChooseCondition,
-  ChooseAction,
   MachineContext
 } from './types';
 import * as actionTypes from './actionTypes';
@@ -95,8 +94,6 @@ export function toActionObject<
     // action is action object
     return action;
   }
-
-  return actionObject;
 }
 
 export const toActionObjects = <
