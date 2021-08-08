@@ -49,6 +49,20 @@ export function getActionFunction<
     : undefined;
 }
 
+export function resolveActionObject(
+  actionObject: BaseActionObject,
+  actionFunctionMap: ActionFunctionMap<any, any>
+): BaseActionObject {
+  const exec = getActionFunction(actionObject.type, actionFunctionMap);
+  if (isFunction(exec)) {
+    return new ExecutableAction(actionObject, exec);
+  } else if (exec) {
+    return exec;
+  } else {
+    return actionObject;
+  }
+}
+
 export function toActionObject<
   TContext extends MachineContext,
   TEvent extends EventObject
@@ -60,19 +74,17 @@ export function toActionObject<
     return action;
   }
 
-  let actionObject: BaseActionObject;
-
   if (isString(action) || typeof action === 'number') {
     const exec = getActionFunction(action, actionFunctionMap);
     if (isFunction(exec)) {
-      actionObject = new ExecutableAction({ type: action, params: {} }, exec);
+      return new ExecutableAction({ type: action, params: {} }, exec);
     } else if (exec) {
-      actionObject = exec;
+      return exec;
     } else {
-      actionObject = new ExecutableAction({ type: action, params: {} });
+      return new ExecutableAction({ type: action, params: {} });
     }
   } else if (isFunction(action)) {
-    actionObject = new ExecutableAction(
+    return new ExecutableAction(
       {
         type: action.name ?? 'xstate:expr',
         params: {}
@@ -81,14 +93,7 @@ export function toActionObject<
     );
   } else {
     // action is action object
-    const exec = getActionFunction(action.type, actionFunctionMap);
-    if (isFunction(exec)) {
-      actionObject = new ExecutableAction(action, exec);
-    } else if (exec) {
-      actionObject = exec;
-    } else {
-      actionObject = action;
-    }
+    return action;
   }
 
   return actionObject;

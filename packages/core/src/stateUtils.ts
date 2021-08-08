@@ -49,7 +49,8 @@ import {
   toActionObjects,
   initEvent,
   actionTypes,
-  toActionObject
+  toActionObject,
+  resolveActionObject
 } from './actions';
 import { send } from './actions/send';
 import { cancel } from './actions/cancel';
@@ -1662,16 +1663,20 @@ function resolveActionsAndContext<
   const resolvedActions: BaseActionObject[] = [];
   const raiseActions: Array<RaiseActionObject<TEvent>> = [];
   const preservedContexts: [TContext, ...TContext[]] = [context];
-  const actionObjects = toActionObjects(actions, machine.options.actions);
 
   function resolveAction(actionObject: BaseActionObject) {
-    if (actionObject instanceof DynamicAction) {
+    const executableActionObject = resolveActionObject(
+      actionObject,
+      machine.options.actions
+    );
+
+    if (executableActionObject instanceof DynamicAction) {
       if (
-        actionObject.type === actionTypes.pure ||
-        actionObject.type === actionTypes.choose
+        executableActionObject.type === actionTypes.pure ||
+        executableActionObject.type === actionTypes.choose
       ) {
-        const matchedActions = actionObject.resolve(
-          actionObject,
+        const matchedActions = executableActionObject.resolve(
+          executableActionObject,
           context,
           _event,
           { machine, state: currentState! }
@@ -1683,23 +1688,31 @@ function resolveActionsAndContext<
             machine.options.actions
           ).forEach(resolveAction);
         }
-      } else if (actionObject.type === actionTypes.assign) {
-        const a = actionObject.resolve(actionObject, context, _event, {
-          machine,
-          state: currentState!
-        });
+      } else if (executableActionObject.type === actionTypes.assign) {
+        const resolvedActionObject = executableActionObject.resolve(
+          executableActionObject,
+          context,
+          _event,
+          {
+            machine,
+            state: currentState!
+          }
+        );
 
-        if (a.type === actionTypes.raise) {
-          raiseActions.push(a);
+        if (resolvedActionObject.type === actionTypes.raise) {
+          raiseActions.push(resolvedActionObject);
           return;
         }
 
-        context = a.params.context;
-        preservedContexts.push(a.params.context);
-        resolvedActions.push(a, ...a.params.actions);
+        context = resolvedActionObject.params.context;
+        preservedContexts.push(resolvedActionObject.params.context);
+        resolvedActions.push(
+          resolvedActionObject,
+          ...resolvedActionObject.params.actions
+        );
       } else {
-        const resolvedActionObject = actionObject.resolve(
-          actionObject,
+        const resolvedActionObject = executableActionObject.resolve(
+          executableActionObject,
           context,
           _event,
           {
@@ -1720,12 +1733,15 @@ function resolveActionsAndContext<
       }
       return;
     }
-    switch (actionObject.type) {
+    switch (executableActionObject.type) {
       case actionTypes.raise:
-        raiseActions.push(actionObject as RaiseActionObject<TEvent>);
+        raiseActions.push(executableActionObject as RaiseActionObject<TEvent>);
         break;
       case actionTypes.choose: {
-        const chooseAction = actionObject as ChooseAction<TContext, TEvent>;
+        const chooseAction = executableActionObject as ChooseAction<
+          TContext,
+          TEvent
+        >;
         const matchedActions = chooseAction.params.guards.find((condition) => {
           const guard =
             condition.guard &&
@@ -1748,12 +1764,12 @@ function resolveActionsAndContext<
       }
       default:
         const contextIndex = preservedContexts.length - 1;
-        if (actionObject instanceof ExecutableAction) {
-          actionObject.setContext(preservedContexts[contextIndex]);
-          resolvedActions.push(actionObject);
+        if (executableActionObject instanceof ExecutableAction) {
+          executableActionObject.setContext(preservedContexts[contextIndex]);
+          resolvedActions.push(executableActionObject);
         } else {
           const resolvedActionObject = toActionObject(
-            actionObject,
+            executableActionObject,
             machine.options.actions
           );
 
@@ -1766,7 +1782,7 @@ function resolveActionsAndContext<
     }
   }
 
-  for (const actionObject of actionObjects) {
+  for (const actionObject of actions) {
     resolveAction(actionObject);
   }
 
