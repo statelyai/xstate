@@ -5,7 +5,6 @@ import { StateMachine } from './StateMachine';
 import { LifecycleSignal } from './behaviors';
 import { MachineNode } from '.';
 import { Model } from './model.types';
-import { DynamicAction } from '../actions/DynamicAction';
 
 export type EventType = string;
 export type ActionType = string;
@@ -22,11 +21,6 @@ export interface EventObject {
 }
 
 export interface AnyEventObject extends EventObject {
-  [key: string]: any;
-}
-
-export interface PlainActionObject {
-  type: string;
   [key: string]: any;
 }
 
@@ -121,7 +115,8 @@ type SimpleActionsFrom<T extends BaseActionObject> = BaseActionObject extends T
 
 export interface DAction<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TResolvedActionObject extends BaseActionObject = BaseActionObject
 > {
   type: string;
   params: any;
@@ -130,7 +125,7 @@ export interface DAction<
     ctx: TContext,
     _e: SCXML.Event<TEvent>,
     meta: any
-  ) => BaseActionObject;
+  ) => TResolvedActionObject;
 }
 
 export type BaseAction<
@@ -146,7 +141,7 @@ export type BaseAction<
 export type BaseActions<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TAction extends PlainActionObject
+  TAction extends BaseActionObject
 > = SingleOrArray<BaseAction<TContext, TEvent, TAction>>;
 
 export type Actions<
@@ -550,7 +545,7 @@ export interface InvokeConfig<
 export interface StateNodeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TAction extends PlainActionObject = PlainActionObject
+  TAction extends BaseActionObject = BaseActionObject
 > {
   /**
    * The relative key of the state node, which represents its location in the overall state value.
@@ -771,7 +766,7 @@ export interface MachineImplementations<
 export interface MachineConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TAction extends PlainActionObject = PlainActionObject
+  TAction extends BaseActionObject = BaseActionObject
 > extends StateNodeConfig<TContext, TEvent, TAction> {
   /**
    * The initial context (extended state)
