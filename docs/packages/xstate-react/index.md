@@ -90,6 +90,15 @@ A [React hook](https://reactjs.org/hooks) that interprets the given `machine` an
 
 In the next major version, `useService(service)` will be replaced with `useActor(service)`. Prefer using the `useActor(service)` hook for services instead, since services are also actors.
 
+Also, keep in mind that only a single argument (the event object) can be sent to `send(eventObject)` from `useActor(...)`. When migrating to `useActor(...)`, refactor `send(...)` calls to use only a single event object:
+
+```diff
+const [state, send] = useActor(service);
+
+-send('CLICK', { x: 0, y: 3 });
++send({ type: 'CLICK', x: 0, y: 3 });
+```
+
 :::
 
 A [React hook](https://reactjs.org/hooks) that subscribes to state changes from an existing [service](https://xstate.js.org/docs/guides/interpretation.html).
