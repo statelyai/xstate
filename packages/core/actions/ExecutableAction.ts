@@ -31,7 +31,7 @@ export class ExecutableAction<
     private _exec?: ActionFunction<TContext, TEvent>
   ) {
     this.type = actionObject.type;
-    this.params = actionObject;
+    this.params = actionObject.params ?? {};
   }
   public execute(state: State<TContext, TEvent, any>) {
     const context = this.context ?? state.context;
@@ -44,5 +44,8 @@ export class ExecutableAction<
   }
   public setContext(context: TContext) {
     this.context = context;
+  }
+  public setExec(exec: ActionFunction<TContext, TEvent>) {
+    this._exec = exec;
   }
 }

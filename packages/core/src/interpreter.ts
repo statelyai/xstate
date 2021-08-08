@@ -706,7 +706,8 @@ export class Interpreter<
               warn(
                 false,
                 `Actor type '${
-                  (action.params.src as InvokeSourceDefinition).type
+                  ((action as InvokeActionObject).params
+                    .src as InvokeSourceDefinition).type
                 }' not found in machine '${this.machine.key}'.`
               );
             }

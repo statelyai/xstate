@@ -9,19 +9,28 @@ import * as actionTypes from '../actionTypes';
 import { DynamicAction } from '../../actions/DynamicAction';
 import { updateContext } from '../updateContext';
 import { toSCXMLEvent } from '../utils';
+import { AssignActionObject, RaiseActionObject } from '..';
+
+export type DynamicAssignAction<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+> = DAction<
+  TContext,
+  TEvent,
+  AssignActionObject<TContext> | RaiseActionObject<TEvent>
+>;
 
 /**
  * Updates the current context of the machine.
  *
  * @param assignment An object that represents the partial context to update.
  */
-
 export function assign<
   TContext extends MachineContext,
   TEvent extends EventObject = EventObject
 >(
   assignment: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent>
-): DAction<TContext, TEvent> {
+): DynamicAssignAction<TContext, TEvent> {
   return new DynamicAction(
     actionTypes.assign,
     {
@@ -42,7 +51,7 @@ export function assign<
             context: nextContext,
             actions: nextActions
           }
-        };
+        } as AssignActionObject<TContext>;
       } catch (err) {
         // Raise error.execution events for failed assign actions
         return {
@@ -53,7 +62,7 @@ export function assign<
               error: err
             } as any) // TODO: fix
           }
-        };
+        } as RaiseActionObject<TEvent>;
       }
     }
   );

@@ -35,7 +35,7 @@ export interface Model<
       | Assigner<TContext, ExtractEvent<TEvent, TEventType>>
       | PropertyAssigner<TContext, ExtractEvent<TEvent, TEventType>>,
     eventType?: TEventType
-  ) => DAction<TContext, ExtractEvent<TEvent, TEventType>>;
+  ) => DynamicAssignAction<TContext, ExtractEvent<TEvent, TEventType>>;
   events: Prop<TModelCreators, 'events'>;
   actions: Prop<TModelCreators, 'actions'>;
   reset: () => DynamicAssignAction<TContext, any>;

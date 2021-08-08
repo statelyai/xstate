@@ -1649,7 +1649,7 @@ function resolveActionsAndContext<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  actions: Array<BaseActionObject>,
+  actions: BaseActionObject[],
   machine: StateMachine<TContext, TEvent, any>,
   _event: SCXML.Event<TEvent>,
   currentState: State<TContext, TEvent, any> | undefined
@@ -1659,7 +1659,7 @@ function resolveActionsAndContext<
   context: TContext;
 } {
   let context: TContext = currentState ? currentState.context : machine.context;
-  const resolvedActions: Array<BaseActionObject> = [];
+  const resolvedActions: BaseActionObject[] = [];
   const raiseActions: Array<RaiseActionObject<TEvent>> = [];
   const preservedContexts: [TContext, ...TContext[]] = [context];
   const actionObjects = toActionObjects(actions, machine.options.actions);
@@ -1756,10 +1756,8 @@ function resolveActionsAndContext<
             actionObject,
             machine.options.actions
           );
-          const actionExec = new ExecutableAction(
-            resolvedActionObject,
-            resolvedActionObject.exec!
-          );
+
+          const actionExec = new ExecutableAction(resolvedActionObject);
           actionExec.setContext(preservedContexts[contextIndex]);
 
           resolvedActions.push(actionExec);

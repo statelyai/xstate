@@ -53,7 +53,7 @@ export function toActionObject<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  action: BaseActionObject,
+  action: BaseActionObject | ActionFunction<TContext, TEvent> | string,
   actionFunctionMap?: ActionFunctionMap<TContext, TEvent>
 ): BaseActionObject {
   if (action instanceof DynamicAction) {
@@ -80,6 +80,7 @@ export function toActionObject<
       action
     );
   } else {
+    // action is action object
     const exec = getActionFunction(action.type, actionFunctionMap);
     if (isFunction(exec)) {
       actionObject = new ExecutableAction(action, exec);
