@@ -57,7 +57,7 @@ export function useActor(
 
     if (process.env.NODE_ENV !== 'production' && args.length > 1) {
       console.warn(
-        `Unexpected argument: ${JSON.stringify(
+        `Unexpected payload: ${JSON.stringify(
           (args as any)[1]
         )}. Only a single event object can be sent to actor send() functions.`
       );
