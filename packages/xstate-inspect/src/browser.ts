@@ -1,4 +1,5 @@
 import {
+  ActorRef,
   Interpreter,
   interpret,
   EventObject,
@@ -7,7 +8,7 @@ import {
 } from 'xstate';
 import { XStateDevInterface } from 'xstate/lib/devTools';
 import { toSCXMLEvent, toEventObject, toObserver } from 'xstate/lib/utils';
-import { createInspectMachine } from './inspectMachine';
+import { createInspectMachine, InspectMachineEvent } from './inspectMachine';
 import type {
   Inspector,
   InspectorOptions,
@@ -70,13 +71,30 @@ const defaultInspectorOptions: InspectorOptions = {
   }
 };
 
+const getFinalUrl = (url: string) => {
+  const urlObj = new URL(url);
+  if (!urlObj.searchParams.has('inspect')) {
+    urlObj.searchParams.set('inspect', '1');
+  }
+  return urlObj;
+};
+
+const getFinalOptions = (options?: Partial<InspectorOptions>) => {
+  const withDefaults = { ...defaultInspectorOptions, ...options };
+  return {
+    ...withDefaults,
+    url: getFinalUrl(withDefaults.url),
+    iframe: getLazy(withDefaults.iframe),
+    devTools: getLazy(withDefaults.devTools)
+  };
+};
+
 export function inspect(
   options?: Partial<InspectorOptions>
 ): Inspector | undefined {
-  const { iframe, url, devTools } = { ...defaultInspectorOptions, ...options };
-  const resolvedIframe = getLazy(iframe);
+  const { iframe, url, devTools } = getFinalOptions(options);
 
-  if (resolvedIframe === null) {
+  if (iframe === null) {
     console.warn(
       'No suitable <iframe> found to embed the inspector. Please pass an <iframe> element to `inspect(iframe)` or create an <iframe data-xstate></iframe> element.'
     );
@@ -84,8 +102,7 @@ export function inspect(
     return undefined;
   }
 
-  const resolvedDevTools = getLazy(devTools);
-  const inspectMachine = createInspectMachine(resolvedDevTools);
+  const inspectMachine = createInspectMachine(devTools);
   const inspectService = interpret(inspectMachine).start();
   const listeners = new Set<Observer<any>>();
 
@@ -94,30 +111,32 @@ export function inspect(
   });
 
   let targetWindow: Window | null | undefined;
-  let client: any;
+  let client: Pick<ActorRef<any>, 'send'>;
 
-  const messageHandler = (event) => {
+  const messageHandler = (event: MessageEvent<unknown>) => {
     if (
       typeof event.data === 'object' &&
       event.data !== null &&
       'type' in event.data
     ) {
-      if (resolvedIframe && !targetWindow) {
-        targetWindow = resolvedIframe.contentWindow;
+      if (iframe && !targetWindow) {
+        targetWindow = iframe.contentWindow;
       }
 
       if (!client) {
         client = {
           send: (e: any) => {
-            targetWindow!.postMessage(e, url);
+            targetWindow!.postMessage(e, url.origin);
           }
         };
       }
 
-      inspectService.send({
-        ...event.data,
+      const inspectEvent = {
+        ...(event.data as InspectMachineEvent),
         client
-      });
+      };
+
+      inspectService.send(inspectEvent);
     }
   };
 
@@ -127,11 +146,7 @@ export function inspect(
     inspectService.send({ type: 'unload' });
   });
 
-  if (resolvedIframe === false) {
-    targetWindow = window.open(url, 'xstateinspector');
-  }
-
-  resolvedDevTools.onRegister((service) => {
+  devTools.onRegister((service) => {
     inspectService.send({
       type: 'service.register',
       machine: stringify(service.machine),
@@ -187,12 +202,14 @@ export function inspect(
     });
   });
 
-  if (resolvedIframe) {
-    resolvedIframe.addEventListener('load', () => {
-      targetWindow = resolvedIframe.contentWindow!;
+  if (iframe) {
+    iframe.addEventListener('load', () => {
+      targetWindow = iframe.contentWindow!;
     });
 
-    resolvedIframe.setAttribute('src', url);
+    iframe.setAttribute('src', String(url));
+  } else {
+    targetWindow = window.open(String(url), 'xstateinspector');
   }
 
   return {
