@@ -28,12 +28,15 @@ export interface Model<
   TModelCreators = void
 > {
   initialContext: TContext;
-  assign: <TEventType extends TEvent['type'] = TEvent['type']>(
+  assign(
+    assigner: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent>
+  ): AssignAction<TContext, TEvent>;
+  assign<TEventType extends TEvent['type']>(
     assigner:
       | Assigner<TContext, ExtractEvent<TEvent, TEventType>>
       | PropertyAssigner<TContext, ExtractEvent<TEvent, TEventType>>,
     eventType?: TEventType
-  ) => AssignAction<TContext, ExtractEvent<TEvent, TEventType>>;
+  ): AssignAction<TContext, ExtractEvent<TEvent, TEventType>>;
   events: Prop<TModelCreators, 'events'>;
   actions: Prop<TModelCreators, 'actions'>;
   reset: () => AssignAction<TContext, any>;
