@@ -90,7 +90,7 @@ A [React hook](https://reactjs.org/hooks) that interprets the given `machine` an
 
 In the next major version, `useService(service)` will be replaced with `useActor(service)`. Prefer using the `useActor(service)` hook for services instead, since services are also actors.
 
-Also, keep in mind that only a single argument (the event object) can be sent to `send(eventObject)` from `useActor(...)`. When migrating to `useActor(...)`, refactor `send(...)` calls to use only a single event object:
+Also, keep in mind that only a single argument (the event object) can be sent to `send(eventObject)` from `useActor(...)`. When migrating to `useActor(...)`, refactor `send(...)` calls to use only a single argument (event object or event type string):
 
 ```diff
 const [state, send] = useActor(service);
