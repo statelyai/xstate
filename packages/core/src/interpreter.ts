@@ -15,7 +15,8 @@ import {
   InvokeActionObject,
   AnyEventObject,
   ActorRef,
-  SCXMLErrorEvent
+  SCXMLErrorEvent,
+  InvokeSourceDefinition
 } from './types';
 import { State, isState } from './State';
 import * as actionTypes from './actionTypes';
@@ -49,7 +50,6 @@ import {
   Subscribable
 } from '.';
 import { ExecutableAction } from '../actions/ExecutableAction';
-import { InvokeSourceDefinition } from '../dist/declarations/src/types';
 
 export type StateListener<
   TContext extends MachineContext,
