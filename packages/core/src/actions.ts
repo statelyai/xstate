@@ -32,6 +32,7 @@ export {
 export { stop } from './actions/stop';
 export { log } from './actions/log';
 export { cancel } from './actions/cancel';
+export { assign } from './actions/assign';
 export { actionTypes };
 
 export const initEvent = toSCXMLEvent({ type: actionTypes.init });
@@ -120,10 +121,7 @@ export const toActionObjects = <
  *
  * @param eventType The event to raise.
  */
-export function raise<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(event: Event<TEvent>) {
+export function raise<TEvent extends EventObject>(event: Event<TEvent>) {
   if (!isString(event)) {
     return send(event, { to: SpecialTargets.Internal });
   }

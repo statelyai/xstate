@@ -1,10 +1,10 @@
 import {
   EventObject,
-  ActionObject,
-  AssignAction,
+  BaseActionObject,
   assign as xstateAssign,
   AssignMeta,
-  MachineContext
+  MachineContext,
+  DynamicAssignAction
 } from 'xstate';
 import { produce, Draft } from 'immer';
 
@@ -20,15 +20,15 @@ export type ImmerAssigner<
 export interface ImmerAssignAction<
   TContext extends MachineContext,
   TEvent extends EventObject
-> extends ActionObject<TContext, TEvent> {
+> extends BaseActionObject {
   assignment: ImmerAssigner<TContext, TEvent>;
 }
 
 function immerAssign<
   TContext extends MachineContext,
   TEvent extends EventObject = EventObject
->(recipe: ImmerAssigner<TContext, TEvent>): AssignAction<TContext, TEvent> {
-  return xstateAssign((context, event, meta) => {
+>(recipe: ImmerAssigner<TContext, TEvent>) {
+  return xstateAssign<TContext, TEvent>((context, event, meta) => {
     return produce(context, (draft) => void recipe(draft, event, meta));
   });
 }
@@ -48,7 +48,7 @@ export interface ImmerUpdater<
   TEvent extends ImmerUpdateEvent
 > {
   update: (input: TEvent['input']) => TEvent;
-  action: AssignAction<TContext, TEvent>;
+  action: DynamicAssignAction<TContext, TEvent>;
   type: TEvent['type'];
 }
 

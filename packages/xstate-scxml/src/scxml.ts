@@ -1,12 +1,12 @@
 import { xml2js, Element as XMLElement } from 'xml-js';
 import {
   EventObject,
-  ActionObject,
   SCXMLEventMeta,
   SendExpr,
   DelayExpr,
-  ChooseConditon,
-  createMachine
+  ChooseCondition,
+  createMachine,
+  BaseActionObject
 } from 'xstate';
 import { mapValues, keys, isString, flatten } from 'xstate/src/utils';
 import * as actions from 'xstate/actions';
@@ -137,12 +137,10 @@ function createGuard<
 function mapAction<
   TContext extends object,
   TEvent extends EventObject = EventObject
->(element: XMLElement): ActionObject<TContext, TEvent> {
+>(element: XMLElement): BaseActionObject {
   switch (element.name) {
     case 'raise': {
-      return actions.raise<TContext, TEvent>(
-        element.attributes!.event! as string
-      );
+      return actions.raise<TEvent>(element.attributes!.event! as string);
     }
     case 'assign': {
       return actions.assign<TContext, TEvent>((context, e, meta) => {
@@ -230,9 +228,9 @@ function mapAction<
       );
     }
     case 'if': {
-      const conds: Array<ChooseConditon<TContext, TEvent>> = [];
+      const conds: Array<ChooseCondition<TContext, TEvent>> = [];
 
-      let current: ChooseConditon<TContext, TEvent> = {
+      let current: ChooseCondition<TContext, TEvent> = {
         guard: createGuard(element.attributes!.cond as string),
         actions: []
       };
@@ -270,11 +268,8 @@ function mapAction<
   }
 }
 
-function mapActions<
-  TContext extends object,
-  TEvent extends EventObject = EventObject
->(elements: XMLElement[]): Array<ActionObject<TContext, TEvent>> {
-  const mapped: Array<ActionObject<TContext, TEvent>> = [];
+function mapActions(elements: XMLElement[]): BaseActionObject[] {
+  const mapped: BaseActionObject[] = [];
 
   for (const element of elements) {
     if (element.type === 'comment') {

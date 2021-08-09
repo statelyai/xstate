@@ -3,13 +3,11 @@ import {
   EventObject,
   CancelActionObject,
   SpecialTargets,
-  ActionTypes,
   SendActionObject,
   StateValue,
   InterpreterOptions,
   DoneEvent,
   Subscription,
-  MachineImplementations,
   ActionFunctionMap,
   SCXML,
   Observer,
@@ -21,7 +19,7 @@ import {
 } from './types';
 import { State, isState } from './State';
 import * as actionTypes from './actionTypes';
-import { doneInvoke, error, getActionFunction, initEvent } from './actions';
+import { doneInvoke, error, initEvent } from './actions';
 import { IS_PRODUCTION } from './environment';
 import {
   mapContext,
@@ -678,7 +676,7 @@ export class Interpreter<
     return (
       this.machine.options.actions[actionType] ??
       ({
-        [actionTypes.send]: (ctx, e, { action }) => {
+        [actionTypes.send]: (_ctx, _e, { action }) => {
           const sendAction = action as SendActionObject;
 
           if (typeof sendAction.params.delay === 'number') {
@@ -692,10 +690,10 @@ export class Interpreter<
             }
           }
         },
-        [actionTypes.cancel]: (ctx, e, { action }) => {
+        [actionTypes.cancel]: (_ctx, _e, { action }) => {
           this.cancel((action as CancelActionObject).params.sendId);
         },
-        [actionTypes.invoke]: (ctx, e, { action, state }) => {
+        [actionTypes.invoke]: (_ctx, _e, { action, state }) => {
           const {
             id,
             autoForward,
@@ -750,7 +748,7 @@ export class Interpreter<
             return;
           }
         },
-        [actionTypes.stop]: (ctx, e, { action }) => {
+        [actionTypes.stop]: (_ctx, _e, { action }) => {
           const { actor } = (action as StopActionObject).params;
           const actorRef =
             typeof actor === 'string' ? this.children.get(actor) : actor;
@@ -759,7 +757,7 @@ export class Interpreter<
             this.stopChild(actorRef.name);
           }
         },
-        [actionTypes.log]: (ctx, e, { action }) => {
+        [actionTypes.log]: (_ctx, _e, { action }) => {
           const { label, value } = (action as LogActionObject).params;
 
           if (label) {

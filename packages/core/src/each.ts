@@ -22,10 +22,7 @@ export function each<
   index: keyof TContext,
   actions: SingleOrArray<BaseActionObject>
 ): BaseActionObject;
-export function each<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
+export function each<TContext extends MachineContext>(
   collection: keyof TContext,
   item: keyof TContext,
   indexOrActions: keyof TContext | SingleOrArray<BaseActionObject>,

@@ -40,7 +40,7 @@ export function useReactEffectActions<
       if (currentState.actions.length) {
         const reactEffectActions = currentState.actions.filter(
           (action): action is ReactActionObject<TContext, TEvent> => {
-            return 'params' in action && '__effect' in action.params;
+            return !!(action.params && '__effect' in action.params);
           }
         );
 

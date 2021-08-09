@@ -835,8 +835,8 @@ describe('actions config', () => {
     const { initialState } = anonMachine;
 
     initialState.actions.forEach((action) => {
-      if (action.execute) {
-        action.execute(initialState);
+      if ('execute' in action) {
+        (action as any).execute(initialState);
       }
     });
 
@@ -847,8 +847,8 @@ describe('actions config', () => {
     expect(inactiveState.actions.length).toBe(2);
 
     inactiveState.actions.forEach((action) => {
-      if (action.execute) {
-        action.execute(inactiveState);
+      if ('execute' in action) {
+        (action as any).execute(inactiveState);
       }
     });
 

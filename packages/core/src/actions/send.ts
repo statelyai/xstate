@@ -16,12 +16,7 @@ import {
   toSCXMLEvent
 } from '../utils';
 import { DynamicAction } from '../../actions/DynamicAction';
-import {
-  ActionTypes,
-  BaseActionObject,
-  ExprWithMeta,
-  SendActionObject
-} from '..';
+import { ActionTypes, ExprWithMeta, SendActionObject } from '..';
 import { actionTypes } from '../actions';
 
 /**

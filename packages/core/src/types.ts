@@ -5,6 +5,7 @@ import { StateMachine } from './StateMachine';
 import { LifecycleSignal } from './behaviors';
 import { MachineNode } from '.';
 import { Model } from './model.types';
+import { DynamicAction } from '../actions/DynamicAction';
 
 export type EventType = string;
 export type ActionType = string;
@@ -728,6 +729,7 @@ export type ActionFunctionMap<
   TAction extends BaseActionObject = BaseActionObject
 > = {
   [K in TAction['type']]?:
+    | DynamicAction<TContext, TEvent, TAction>
     | (TAction & { type: K })
     | ActionFunction<
         TContext,
@@ -1044,15 +1046,28 @@ export interface AnyAssignAction extends BaseActionObject {
   assignment: any;
 }
 
-export interface DynamicAssignAction<
+// export interface DynamicAssignAction<
+//   TContext extends MachineContext,
+//   TEvent extends EventObject
+// > extends BaseDynamicActionObject<
+//     TContext,
+//     TEvent,
+//     AssignActionObject<TContext>
+//   > {
+//   type: ActionTypes.Assign;
+//   params: {
+//     assignment: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent>;
+//   };
+// }
+
+export type DynamicAssignAction<
   TContext extends MachineContext,
   TEvent extends EventObject
-> extends BaseActionObject {
-  type: ActionTypes.Assign;
-  params: {
-    assignment: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent>;
-  };
-}
+> = DAction<
+  TContext,
+  TEvent,
+  AssignActionObject<TContext> | RaiseActionObject<TEvent>
+>;
 
 export interface AssignActionObject<TContext extends MachineContext>
   extends BaseActionObject {

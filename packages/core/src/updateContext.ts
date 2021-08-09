@@ -3,13 +3,13 @@ import {
   SCXML,
   AssignMeta,
   InvokeActionObject,
-  MachineContext
+  MachineContext,
+  DynamicAssignAction
 } from './types';
-import { AssignActionObject, State } from '.';
+import { BaseActionObject, State } from '.';
 import { isFunction, keys } from './utils';
 
 import * as capturedState from './capturedState';
-import { DynamicAction } from '../actions/DynamicAction';
 
 export function updateContext<
   TContext extends MachineContext,
@@ -17,11 +17,9 @@ export function updateContext<
 >(
   context: TContext,
   _event: SCXML.Event<TEvent>,
-  assignActions: Array<
-    DynamicAction<TContext, TEvent, AssignActionObject<TContext>>
-  >,
+  assignActions: Array<DynamicAssignAction<TContext, TEvent>>,
   state?: State<TContext, TEvent>
-): [TContext, Array<ActionObject<TContext, TEvent>>] {
+): [TContext, BaseActionObject[]] {
   const capturedActions: InvokeActionObject[] = [];
 
   if (!context) {

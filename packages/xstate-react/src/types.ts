@@ -1,10 +1,10 @@
 import {
   ActionMeta,
-  ActionObject,
   EventObject,
   MachineContext,
   State,
-  StateConfig
+  StateConfig,
+  BaseActionObject
 } from 'xstate';
 
 export type Sender<TEvent extends EventObject> = (event: TEvent) => void;
@@ -90,9 +90,11 @@ export type ReactActionFunction<
 export interface ReactActionObject<
   TContext extends MachineContext,
   TEvent extends EventObject
-> extends ActionObject<TContext, TEvent> {
-  exec: ReactActionFunction<TContext, TEvent>;
-  __effect: ReactEffectType;
+> extends BaseActionObject {
+  params: {
+    __effect: ReactEffectType;
+    exec: ReactActionFunction<TContext, TEvent>;
+  };
 }
 
 export interface UseMachineOptions<

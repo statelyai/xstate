@@ -1,15 +1,15 @@
-import { DAction, MachineNode } from '.';
+import { MachineNode } from '.';
 import {
   EventObject,
   Assigner,
   ExtractEvent,
   PropertyAssigner,
-  DynamicAssignAction,
   MachineConfig,
   MachineImplementations,
   BaseActionObject,
   MachineContext,
-  Typestate
+  Typestate,
+  DynamicAssignAction
 } from './types';
 
 export type AnyFunction = (...args: any[]) => any;

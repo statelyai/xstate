@@ -641,10 +641,10 @@ describe('useMachine hook', () => {
       {
         actions: {
           setup: assign({
-            stuff: (context) => [...context.stuff, 4]
+            stuff: (ctx) => [...ctx.stuff, 4]
           }),
           increase: assign({
-            counter: (context) => ++context.counter
+            counter: (ctx) => ++ctx.counter
           })
         }
       }

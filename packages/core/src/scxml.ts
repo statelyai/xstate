@@ -141,9 +141,7 @@ function mapAction<
 >(element: XMLElement): BaseActionObject {
   switch (element.name) {
     case 'raise': {
-      return actions.raise<TContext, TEvent>(
-        element.attributes!.event! as string
-      );
+      return actions.raise<TEvent>(element.attributes!.event! as string);
     }
     case 'assign': {
       return assign.assign<TContext, TEvent>((context, e, meta) => {

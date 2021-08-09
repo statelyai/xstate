@@ -34,8 +34,7 @@ function createReactAction<
   };
   return {
     type: 'xstate/react.action',
-    __effect: tag,
-    exec: reactExec
+    params: { __effect: tag, exec: reactExec }
   };
 }
 

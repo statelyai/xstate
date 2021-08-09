@@ -1,10 +1,4 @@
-import {
-  EventObject,
-  ActionTypes,
-  ActorRef,
-  Expr,
-  MachineContext
-} from '../types';
+import { EventObject, ActorRef, Expr, MachineContext } from '../types';
 import { stop as stopActionType } from '../actionTypes';
 import { isFunction } from '../utils';
 import { DynamicAction } from '../../actions/DynamicAction';

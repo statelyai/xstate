@@ -1,7 +1,6 @@
 import {
   StateValue,
   EventObject,
-  ActionObject,
   EventType,
   StateConfig,
   SCXML,
@@ -16,6 +15,7 @@ import { matchesState, keys, isString } from './utils';
 import { StateNode } from './StateNode';
 import { isInFinalState, nextEvents, getMeta } from './stateUtils';
 import { initEvent } from './actions';
+import { BaseActionObject } from './types';
 
 export function isState<
   TContext extends MachineContext,
@@ -38,7 +38,7 @@ export class State<
   public context: TContext;
   public history?: State<TContext, TEvent, TTypestate>;
   public historyValue: HistoryValue<TContext, TEvent> = {};
-  public actions: Array<ActionObject<TContext, TEvent>> = [];
+  public actions: BaseActionObject[] = [];
   public meta: any = {};
   public event: TEvent;
   public _internalQueue: Array<SCXML.Event<TEvent> | NullEvent> = [];

@@ -1,4 +1,4 @@
-import { EventObject, SCXML, ExprWithMeta, MachineContext } from '../types';
+import { EventObject, ExprWithMeta, MachineContext } from '../types';
 import { cancel as cancelActionType } from '../actionTypes';
 import { isFunction } from '../utils';
 import { DynamicAction } from '../../actions/DynamicAction';

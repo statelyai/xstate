@@ -22,7 +22,6 @@ import {
   StateNodesConfig,
   FinalStateNodeConfig,
   InvokeDefinition,
-  ActionObject,
   Mapper,
   PropertyMapper,
   NullEvent,
@@ -42,6 +41,7 @@ import {
 } from './stateUtils';
 import { evaluateGuard } from './guards';
 import { StateMachine } from './StateMachine';
+import { BaseActionObject } from '.';
 
 const EMPTY_OBJECT = {};
 
@@ -94,11 +94,11 @@ export class StateNode<
   /**
    * The action(s) to be executed upon entering the state node.
    */
-  public entry: Array<ActionObject<TContext, TEvent>>;
+  public entry: BaseActionObject[];
   /**
    * The action(s) to be executed upon exiting the state node.
    */
-  public exit: Array<ActionObject<TContext, TEvent>>;
+  public exit: BaseActionObject[];
   /**
    * The parent state node.
    */
@@ -375,7 +375,7 @@ export class StateNode<
     _event: SCXML.Event<TEvent>
   ): Transitions<TContext, TEvent> | undefined {
     const eventName = _event.name;
-    const actions: Array<ActionObject<TContext, TEvent>> = [];
+    const actions: BaseActionObject[] = [];
 
     let selectedTransition: TransitionDefinition<TContext, TEvent> | undefined;
 

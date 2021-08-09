@@ -3,22 +3,14 @@ import {
   Assigner,
   PropertyAssigner,
   MachineContext,
-  DAction
+  AssignActionObject,
+  DynamicAssignAction,
+  RaiseActionObject
 } from '../types';
 import * as actionTypes from '../actionTypes';
 import { DynamicAction } from '../../actions/DynamicAction';
 import { updateContext } from '../updateContext';
 import { toSCXMLEvent } from '../utils';
-import { AssignActionObject, RaiseActionObject } from '..';
-
-export type DynamicAssignAction<
-  TContext extends MachineContext,
-  TEvent extends EventObject
-> = DAction<
-  TContext,
-  TEvent,
-  AssignActionObject<TContext> | RaiseActionObject<TEvent>
->;
 
 /**
  * Updates the current context of the machine.
@@ -31,7 +23,11 @@ export function assign<
 >(
   assignment: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent>
 ): DynamicAssignAction<TContext, TEvent> {
-  return new DynamicAction(
+  return new DynamicAction<
+    TContext,
+    TEvent,
+    AssignActionObject<TContext> | RaiseActionObject<TEvent>
+  >(
     actionTypes.assign,
     {
       assignment

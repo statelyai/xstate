@@ -1,5 +1,4 @@
-import { createMachine } from '../dist/xstate.cjs';
-import * as actions from '../src/actions';
+import { createMachine } from '../src';
 import * as send from '../src/actions/send';
 import { toSCXMLEvent } from '../src/utils';
 
@@ -68,7 +67,7 @@ describe('action creators', () => {
           type: 'EVENT';
           value: number;
         }),
-        { machine: createMachine({}) }
+        { machine: createMachine({}), state: null as any }
       );
 
       expect(resolvedAction.params.delay).toEqual(150);
