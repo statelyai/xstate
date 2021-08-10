@@ -1054,12 +1054,39 @@ describe('actors', () => {
     });
   });
 
-  it('should be able to spawn actors in (lazy) initial context', (done) => {
+  it('should be able to spawn callback actors in (lazy) initial context', (done) => {
     const machine = createMachine<{ ref: ActorRef<any> }>({
       context: () => ({
         ref: spawn((sendBack) => {
           sendBack('TEST');
         })
+      }),
+      initial: 'waiting',
+      states: {
+        waiting: {
+          on: { TEST: 'success' }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    interpret(machine)
+      .onDone(() => {
+        done();
+      })
+      .start();
+  });
+
+  it('should be able to spawn machines in (lazy) initial context', (done) => {
+    const childMachine = createMachine({
+      entry: sendParent('TEST')
+    });
+
+    const machine = createMachine<{ ref: ActorRef<any> }>({
+      context: () => ({
+        ref: spawn(childMachine)
       }),
       initial: 'waiting',
       states: {
