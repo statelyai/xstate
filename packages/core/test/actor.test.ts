@@ -7,8 +7,7 @@ import {
   ActorRefFrom,
   Behavior,
   createMachine,
-  EventObject,
-  actions
+  EventObject
 } from '../src';
 import {
   assign,
