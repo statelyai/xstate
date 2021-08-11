@@ -1,3 +1,4 @@
+// @ts-nocheck
 import {
   Machine,
   spawn,
@@ -6,7 +7,8 @@ import {
   ActorRefFrom,
   Behavior,
   createMachine,
-  EventObject
+  EventObject,
+  actions
 } from '../src';
 import {
   assign,
@@ -1104,5 +1106,76 @@ describe('actors', () => {
         done();
       })
       .start();
+  });
+
+  // https://github.com/statelyai/xstate/issues/2507
+  it('should not attempt to clean up children before stopping', () => {
+    const grandChildMachine = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          always: [
+            {
+              target: 'stopped'
+            }
+          ]
+        },
+        stopped: {
+          type: 'final'
+        }
+      }
+    });
+    const childMachine = createMachine<any>(
+      {
+        initial: 'idle',
+        context: {
+          child: null
+        },
+        states: {
+          idle: {
+            entry: ['setup']
+          }
+        }
+      },
+      {
+        actions: {
+          setup: assign({
+            child: () => spawn(grandChildMachine)
+          })
+        }
+      }
+    );
+
+    const parentMachine = createMachine(
+      {
+        initial: 'idle',
+        context: {
+          child: null
+        },
+        states: {
+          idle: {
+            on: {
+              SETUP: {
+                actions: ['setup']
+              }
+            }
+          }
+        }
+      },
+      {
+        actions: {
+          setup: assign({
+            child: () => spawn(childMachine)
+          })
+        }
+      }
+    );
+
+    const service = interpret(parentMachine);
+    service.start();
+
+    expect(() => {
+      service.send('SETUP');
+    }).not.toThrow();
   });
 });

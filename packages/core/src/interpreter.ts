@@ -1011,8 +1011,12 @@ export class Interpreter<
 
     childService
       .onDone((doneEvent) => {
-        this.removeChild(childService.id);
-        this.send(toSCXMLEvent(doneEvent as any, { origin: childService.id }));
+        this.scheduler.schedule(() => {
+          this.removeChild(childService.id);
+          this.send(
+            toSCXMLEvent(doneEvent as any, { origin: childService.id })
+          );
+        });
       })
       .start();
 
