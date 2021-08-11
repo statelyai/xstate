@@ -116,13 +116,6 @@ export function toActionObject<TContext, TEvent extends EventObject>(
       actionObject = action as ActionObject<TContext, TEvent>;
     }
   }
-
-  Object.defineProperty(actionObject, 'toString', {
-    value: () => actionObject.type,
-    enumerable: false,
-    configurable: true
-  });
-
   return actionObject;
 }
 
