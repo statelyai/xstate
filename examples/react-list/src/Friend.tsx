@@ -21,8 +21,8 @@ export const Friend: React.FC<{
         <form
           className="friendForm"
           hidden={!state.hasTag('form')}
-          onSubmit={(e) => {
-            e.preventDefault();
+          onSubmit={(event) => {
+            event.preventDefault();
 
             send('SAVE');
           }}
@@ -33,8 +33,8 @@ export const Friend: React.FC<{
               type="text"
               id="friend.name"
               value={state.context.name}
-              onChange={(e) => {
-                send({ type: 'SET_NAME', value: e.target.value });
+              onChange={(event) => {
+                send({ type: 'SET_NAME', value: event.target.value });
               }}
             />
           </label>

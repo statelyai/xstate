@@ -17,10 +17,6 @@ const friendModel = createModel(
 );
 
 export const friendMachine = friendModel.createMachine({
-  context: {
-    prevName: '',
-    name: ''
-  },
   initial: 'reading',
   states: {
     reading: {
@@ -33,7 +29,7 @@ export const friendMachine = friendModel.createMachine({
       tags: 'form',
       on: {
         SET_NAME: {
-          actions: assign({ name: (_, e) => e.value })
+          actions: assign({ name: (_, event) => event.value })
         },
         SAVE: {
           target: 'saving'
@@ -42,18 +38,18 @@ export const friendMachine = friendModel.createMachine({
     },
     saving: {
       tags: ['form', 'saving'],
-      entry: (ctx) => console.log(ctx),
       after: {
+        // Simulate network request
         1000: {
           target: 'reading',
-          actions: assign({ prevName: (ctx) => ctx.name })
+          actions: assign({ prevName: (context) => context.name })
         }
       }
     }
   },
   on: {
     CANCEL: {
-      actions: assign({ name: (ctx) => ctx.prevName }),
+      actions: assign({ name: (context) => context.prevName }),
       target: '.reading'
     }
   }

@@ -21,36 +21,37 @@ const friendsModel = createModel(
 );
 
 export const friendsMachine = friendsModel.createMachine({
-  id: 'toggle',
+  id: 'friends',
   on: {
     'NEW_FRIEND.CHANGE': {
       actions: friendsModel.assign({
-        newFriendName: (_, e) => e.name
+        newFriendName: (_, event) => event.name
       })
     },
     'FRIENDS.ADD': {
-      cond: (_, e) => e.name.trim().length > 0,
+      cond: (_, event) => event.name.trim().length > 0,
       actions: friendsModel.assign({
-        newFriendName: '',
-        friends: (ctx, e) =>
-          ctx.friends.concat(
+        friends: (context) =>
+          context.friends.concat(
             spawn(
               friendMachine.withContext({
-                name: e.name,
-                prevName: e.name
-              })
+                name: context.newFriendName,
+                prevName: context.newFriendName
+              }),
+              `friend-${context.friends.length}`
             )
-          )
+          ),
+        newFriendName: ''
       })
     },
     'FRIEND.REMOVE': {
       actions: [
         // Stop the friend actor to unsubscribe
-        actions.stop((ctx, e) => ctx.friends[e.index]),
+        actions.stop((context, event) => context.friends[event.index]),
         // Remove the friend from the list by index
         friendsModel.assign({
-          friends: (ctx, e) =>
-            ctx.friends.filter((_, index) => index !== e.index)
+          friends: (context, event) =>
+            context.friends.filter((_, index) => index !== event.index)
         })
       ]
     }

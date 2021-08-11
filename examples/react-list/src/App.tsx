@@ -7,8 +7,6 @@ import { Friend } from './Friend';
 function App() {
   const [state, send] = useMachine(friendsMachine);
 
-  console.log(state);
-
   return (
     <div className="app">
       <h2>Friends</h2>
@@ -27,8 +25,8 @@ function App() {
       </table>
       <form
         className="newFriend"
-        onSubmit={(e) => {
-          e.preventDefault();
+        onSubmit={(event) => {
+          event.preventDefault();
           send({
             type: 'FRIENDS.ADD',
             name: state.context.newFriendName
@@ -37,8 +35,8 @@ function App() {
       >
         <input
           value={state.context.newFriendName}
-          onChange={(e) =>
-            send({ type: 'NEW_FRIEND.CHANGE', name: e.target.value })
+          onChange={(event) =>
+            send({ type: 'NEW_FRIEND.CHANGE', name: event.target.value })
           }
           placeholder="New friend"
         />
