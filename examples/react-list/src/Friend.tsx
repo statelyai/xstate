@@ -5,7 +5,8 @@ import { ActorRefFrom } from 'xstate';
 
 export const Friend: React.FC<{
   friendRef: ActorRefFrom<typeof friendMachine>;
-}> = ({ friendRef }) => {
+  onRemove: () => void;
+}> = ({ friendRef, onRemove }) => {
   const [state, send] = useActor(friendRef);
   const { name } = state.context;
 
@@ -15,7 +16,7 @@ export const Friend: React.FC<{
         opacity: state.matches('saving') ? 0.5 : 1
       }}
     >
-      <td>
+      <td width="100%">
         <strong>{name}</strong>
         <form
           className="friendForm"
@@ -26,7 +27,7 @@ export const Friend: React.FC<{
             send('SAVE');
           }}
         >
-          <label htmlFor="friend.name">
+          <label className="field" htmlFor="friend.name">
             <div className="label">Name</div>
             <input
               type="text"
@@ -39,30 +40,32 @@ export const Friend: React.FC<{
           </label>
         </form>
       </td>
-      <td className="actions">
-        {state.hasTag('form') && (
-          <>
-            <button
-              disabled={state.hasTag('saving')}
-              onClick={() => {
-                send('SAVE');
-              }}
-            >
-              Save
-            </button>
-            <button onClick={() => send('CANCEL')} type="button">
-              Cancel
-            </button>
-          </>
-        )}
-        {state.hasTag('read') && (
-          <>
-            <button onClick={() => send('EDIT')}>Edit</button>
-            <button className="remove" onClick={() => send('REMOVE')}>
-              Remove
-            </button>
-          </>
-        )}
+      <td className="actionsCell">
+        <div className="actions">
+          {state.hasTag('form') && (
+            <>
+              <button
+                disabled={state.hasTag('saving')}
+                onClick={() => {
+                  send('SAVE');
+                }}
+              >
+                Save
+              </button>
+              <button onClick={() => send('CANCEL')} type="button">
+                Cancel
+              </button>
+            </>
+          )}
+          {state.hasTag('read') && (
+            <>
+              <button onClick={() => send('EDIT')}>Edit</button>
+              <button className="remove" onClick={onRemove}>
+                Remove
+              </button>
+            </>
+          )}
+        </div>
       </td>
     </tr>
   );

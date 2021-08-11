@@ -19,7 +19,10 @@ body,
 
 .friendsTable {
   border-collapse: collapse;
+  min-width: 20rem;
+  width: 50vw;
 }
+
 .friendsTable td {
   padding: 0.5rem;
 }
@@ -61,4 +64,28 @@ button {
   font-size: 85%;
   margin-bottom: 0.25rem;
   display: block;
+}
+
+form.newFriend {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border: 1px solid lightgray;
+  margin-top: 0.5rem;
+}
+
+form.newFriend > input {
+  flex-grow: 1;
+}
+
+.actionsCell {
+  vertical-align: top;
+}
+
+.field {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
+  align-items: center;
 }

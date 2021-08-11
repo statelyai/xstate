@@ -7,37 +7,43 @@ import { Friend } from './Friend';
 function App() {
   const [state, send] = useMachine(friendsMachine);
 
+  console.log(state);
+
   return (
     <div className="app">
       <h2>Friends</h2>
       <table className="friendsTable">
         <tbody>
-          {state.context.friends.map((friend) => {
-            return <Friend key={friend.id} friendRef={friend}></Friend>;
-          })}
-          <tr>
-            <td colSpan={2} className="actions">
-              <input
-                value={state.context.newFriendName}
-                onChange={(e) =>
-                  send({ type: 'NEW_FRIEND.CHANGE', name: e.target.value })
-                }
-                placeholder="New friend"
+          {state.context.friends.map((friend, index) => {
+            return (
+              <Friend
+                key={friend.id}
+                friendRef={friend}
+                onRemove={() => send({ type: 'FRIEND.REMOVE', index })}
               />
-              <button
-                onClick={() => {
-                  send({
-                    type: 'FRIENDS.ADD',
-                    name: state.context.newFriendName
-                  });
-                }}
-              >
-                Add friend
-              </button>
-            </td>
-          </tr>
+            );
+          })}
         </tbody>
       </table>
+      <form
+        className="newFriend"
+        onSubmit={(e) => {
+          e.preventDefault();
+          send({
+            type: 'FRIENDS.ADD',
+            name: state.context.newFriendName
+          });
+        }}
+      >
+        <input
+          value={state.context.newFriendName}
+          onChange={(e) =>
+            send({ type: 'NEW_FRIEND.CHANGE', name: e.target.value })
+          }
+          placeholder="New friend"
+        />
+        <button>Add friend</button>
+      </form>
     </div>
   );
 }
