@@ -1107,8 +1107,8 @@ describe('actors', () => {
   });
 
   // https://github.com/statelyai/xstate/issues/2507
-  it('should not attempt to clean up children before stopping', () => {
-    const grandChildMachine = createMachine({
+  it('should not crash on sync child completion before stopping', () => {
+    const childMachine = createMachine({
       initial: 'idle',
       states: {
         idle: {
@@ -1123,42 +1123,15 @@ describe('actors', () => {
         }
       }
     });
-    const childMachine = createMachine<any>(
-      {
-        initial: 'idle',
-        context: {
-          child: null
-        },
-        states: {
-          idle: {
-            entry: ['setup']
-          }
-        }
-      },
-      {
-        actions: {
-          setup: assign({
-            child: () => spawn(grandChildMachine)
-          })
-        }
-      }
-    );
 
-    const parentMachine = createMachine(
+    const parentMachine = createMachine<{
+      child: ActorRefFrom<typeof childMachine> | null;
+    }>(
       {
-        initial: 'idle',
         context: {
           child: null
         },
-        states: {
-          idle: {
-            on: {
-              SETUP: {
-                actions: ['setup']
-              }
-            }
-          }
-        }
+        entry: 'setup'
       },
       {
         actions: {
@@ -1168,12 +1141,9 @@ describe('actors', () => {
         }
       }
     );
-
     const service = interpret(parentMachine);
-    service.start();
-
     expect(() => {
-      service.send('SETUP');
+      service.start();
     }).not.toThrow();
   });
 });
