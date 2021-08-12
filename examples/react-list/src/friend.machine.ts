@@ -42,7 +42,7 @@ export const friendMachine = friendModel.createMachine({
         // Simulate network request
         1000: {
           target: 'reading',
-          actions: assign({ prevName: (context) => context.name })
+          actions: friendModel.assign({ prevName: (context) => context.name })
         }
       }
     }
