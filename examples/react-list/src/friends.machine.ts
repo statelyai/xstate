@@ -2,9 +2,6 @@ import { spawn, ActorRefFrom, actions } from 'xstate';
 import { createModel } from 'xstate/lib/model';
 import { friendMachine } from './friend.machine';
 
-export interface ToggleContext {
-  count: number;
-}
 
 const friendsModel = createModel(
   {
