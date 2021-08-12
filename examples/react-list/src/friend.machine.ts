@@ -49,7 +49,7 @@ export const friendMachine = friendModel.createMachine({
   },
   on: {
     CANCEL: {
-      actions: assign({ name: (context) => context.prevName }),
+      actions: friendModel.assign({ name: (context) => context.prevName }),
       target: '.reading'
     }
   }
