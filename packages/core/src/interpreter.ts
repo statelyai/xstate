@@ -932,10 +932,11 @@ export class Interpreter<
   }
 
   private removeChild(childId: string): void {
-    this.children.delete(childId);
-    this.forwardTo.delete(childId);
-
-    delete this.state.children[childId];
+    this.scheduler.schedule(() => {
+      this.children.delete(childId);
+      this.forwardTo.delete(childId);
+      delete this.state.children[childId];
+    });
   }
 
   private stopChild(childId: string): void {
@@ -1011,12 +1012,8 @@ export class Interpreter<
 
     childService
       .onDone((doneEvent) => {
-        this.scheduler.schedule(() => {
-          this.removeChild(childService.id);
-          this.send(
-            toSCXMLEvent(doneEvent as any, { origin: childService.id })
-          );
-        });
+        this.send(toSCXMLEvent(doneEvent as any, { origin: childService.id }));
+        this.removeChild(childService.id);
       })
       .start();
 

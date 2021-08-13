@@ -1149,7 +1149,7 @@ describe('actors', () => {
 
   it('should not crash on immediate spawned promise completion', () => {
     const parentMachine = createMachine<{
-      child: ActorRef<any> | null;
+      child: ActorRef<never, any> | null;
     }>({
       context: {
         child: null
@@ -1164,14 +1164,14 @@ describe('actors', () => {
     }).not.toThrow();
   });
 
-it('should not crash on immediate spawned observable completion', () => {
+  it('should not crash on immediate spawned observable completion', () => {
     const createEmptyObservable = (): any => ({
       subscribe(_next, _error, complete) {
         complete();
       }
     });
     const parentMachine = createMachine<{
-      child: ActorRef<any> | null;
+      child: ActorRef<never, any> | null;
     }>({
       context: {
         child: null
