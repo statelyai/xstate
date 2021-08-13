@@ -19,7 +19,7 @@ import {
   forwardTo,
   error
 } from '../src/actions';
-import { interval } from 'rxjs';
+import { interval, EMPTY } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { fromPromise } from '../src/behaviors';
 
@@ -1141,6 +1141,40 @@ describe('actors', () => {
         }
       }
     );
+    const service = interpret(parentMachine);
+    expect(() => {
+      service.start();
+    }).not.toThrow();
+  });
+
+  it('should not crash on immediate spawned promise completion', () => {
+    const parentMachine = createMachine<{
+      child: ActorRef<any> | null;
+    }>({
+      context: {
+        child: null
+      },
+      entry: assign({
+        child: () => spawn(new Promise((res) => res(null)))
+      })
+    });
+    const service = interpret(parentMachine);
+    expect(() => {
+      service.start();
+    }).not.toThrow();
+  });
+
+  it('should not crash on immediate spawned observable completion', () => {
+    const parentMachine = createMachine<{
+      child: ActorRef<any> | null;
+    }>({
+      context: {
+        child: null
+      },
+      entry: assign({
+        child: () => spawn(EMPTY)
+      })
+    });
     const service = interpret(parentMachine);
     expect(() => {
       service.start();
