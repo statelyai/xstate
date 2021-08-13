@@ -462,7 +462,7 @@ const parentMachine = createMachine({
 
 const parentService = interpret(parentMachine).start();
 
-parentService.send({ type: 'ALERT' }, { message: 'hello world' });
+parentService.send({ type: 'ALERT', message: 'hello world' });
 // => alerts "hello world"
 ```
 
