@@ -1155,7 +1155,7 @@ describe('actors', () => {
         child: null
       },
       entry: assign({
-        child: () => spawn(new Promise((res) => res(null)))
+        child: () => spawn({ then: (fn) => fn(null) } as any)
       })
     });
     const service = interpret(parentMachine);
