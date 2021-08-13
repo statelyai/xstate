@@ -1164,7 +1164,12 @@ describe('actors', () => {
     }).not.toThrow();
   });
 
-  it('should not crash on immediate spawned observable completion', () => {
+it('should not crash on immediate spawned observable completion', () => {
+    const createEmptyObservable = (): any => ({
+      subscribe(_next, _error, complete) {
+        complete();
+      }
+    });
     const parentMachine = createMachine<{
       child: ActorRef<any> | null;
     }>({
@@ -1172,12 +1177,39 @@ describe('actors', () => {
         child: null
       },
       entry: assign({
-        child: () => spawn(EMPTY)
+        child: () => spawn(createEmptyObservable())
       })
     });
     const service = interpret(parentMachine);
     expect(() => {
       service.start();
     }).not.toThrow();
+  });
+
+  it('should receive done event from an immediately completed observable when self-initializing', () => {
+    const parentMachine = createMachine<{
+      child: ActorRef<any> | null;
+    }>({
+      context: {
+        child: null
+      },
+      entry: assign({
+        child: () => spawn(EMPTY, 'myactor')
+      }),
+      initial: 'init',
+      states: {
+        init: {
+          on: {
+            'done.invoke.myactor': 'done'
+          }
+        },
+        done: {}
+      }
+    });
+    const service = interpret(parentMachine);
+
+    service.start();
+
+    expect(service.state.value).toBe('done');
   });
 });
