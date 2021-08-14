@@ -135,13 +135,5 @@ export const welcomeMachine = createMachine({
       },
       exit: stop('errorActor')
     }
-    // error: {
-    //     on: {
-    //         retry: {
-    //             target: (context, event) => event.targetState
-    //         }
-    //     },
-    //     exit: stop('errorActor')
-    // }
   }
 });
