@@ -140,13 +140,6 @@ export const machine = createMachine({
             ]
           }
         }
-        // error: {
-        //     on: {
-        //         retry: {
-        //             target: (context, event) => context.targetState
-        //         }
-        //     }
-        // }
       }
     },
 
