@@ -1,5 +1,5 @@
 const dftPreorderRecursive = (service, level = 0) => {
-  if (service?.children && service?.onTransition) {
+  if (service?.onTransition && service?.children) {
     level++;
     service.onTransition((state) => {
       console.log('-'.repeat(level), service.id, state);

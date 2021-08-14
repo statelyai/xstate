@@ -1,4 +1,4 @@
-import { assign, createMachine, spawn, actions } from 'xstate';
+import { actions, assign, createMachine, spawn } from 'xstate';
 const { stop } = actions;
 
 import { welcomeMachine } from '../welcome/machine.js';

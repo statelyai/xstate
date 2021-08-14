@@ -65,7 +65,8 @@ export const welcomeMachine = createMachine({
       on: {
         loadCelebs: 'loadingCelebs',
         selectCategory: {
-          cond: (context, event) => context.celebs.length > 0 && context.lookup,
+          cond: (context, event) =>
+            context.celebs.length > 0 && context?.lookup,
           target: 'loadingRounds',
           actions: assign({
             selectedCategory: (context, event) => event.category
