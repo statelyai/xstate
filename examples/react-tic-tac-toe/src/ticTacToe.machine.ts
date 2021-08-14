@@ -1,4 +1,3 @@
-import { createMachine } from 'xstate';
 import {
   createModel,
   ModelContextFrom,
@@ -65,7 +64,7 @@ function checkDraw(ctx: ModelContextFrom<typeof model>) {
   return ctx.moves === 9;
 }
 
-export const ticTacToeMachine = createMachine<typeof model>(
+export const ticTacToeMachine = model.createMachine(
   {
     initial: 'playing',
     context: model.initialContext,

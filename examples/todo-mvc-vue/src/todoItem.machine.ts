@@ -32,7 +32,7 @@ export const createTodoMachine = ({
   title: string;
   completed: boolean;
 }) => {
-  return createMachine<typeof todoModel>(
+  return todoModel.createMachine(
     {
       id: 'todo',
       initial: 'reading',

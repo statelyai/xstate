@@ -38,7 +38,7 @@ const todosModel = createModel(
   }
 );
 
-export const todosMachine = createMachine<typeof todosModel>({
+export const todosMachine = todosModel.createMachine({
   id: 'todos',
   context: todosModel.initialContext,
   initial: 'loading',
