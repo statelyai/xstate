@@ -12,10 +12,7 @@ export const overMachine = (results) =>
       idle: {
         on: {
           restart: {
-            actions: sendParent((context, event) => ({
-              type: 'restart',
-              results: context.results
-            }))
+            actions: sendParent({ type: 'restart' })
           }
         }
       }
