@@ -64,15 +64,16 @@ export function createMachine<
 export function createMachine<
   TContext,
   TEvent extends EventObject = AnyEventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext },
+  TAction extends BaseActionObject = BaseActionObject
 >(
   // Ensure that only the first overload matches models, and prevent
   // accidental inference of the model as the `TContext` (which leads to cryptic errors)
   config: TContext extends Model<any, any, any, any>
     ? never
-    : MachineConfig<TContext, any, TEvent>,
-  options?: Partial<MachineOptions<TContext, TEvent>>
-): StateMachine<TContext, any, TEvent, TTypestate>;
+    : MachineConfig<TContext, any, TEvent, TAction>,
+  options?: Partial<MachineOptions<TContext, TEvent, TAction>>
+): StateMachine<TContext, any, TEvent, TTypestate, TAction>;
 export function createMachine<
   TContext,
   TEvent extends EventObject = AnyEventObject,

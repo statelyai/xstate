@@ -199,29 +199,41 @@ export type TransitionTargets<TContext> = Array<
   string | StateNode<TContext, any>
 >;
 
-export interface TransitionConfig<TContext, TEvent extends EventObject> {
+export interface TransitionConfig<
+  TContext,
+  TEvent extends EventObject,
+  TAction extends BaseActionObject
+> {
   cond?: Condition<TContext, TEvent>;
-  actions?: BaseActions<TContext, TEvent, BaseActionObject>; // TODO
+  actions?: BaseActions<TContext, TEvent, TAction>; // TODO
   in?: StateValue;
   internal?: boolean;
   target?: TransitionTarget<TContext, TEvent>;
   meta?: Record<string, any>;
 }
 
-export interface TargetTransitionConfig<TContext, TEvent extends EventObject>
-  extends TransitionConfig<TContext, TEvent> {
+export interface TargetTransitionConfig<
+  TContext,
+  TEvent extends EventObject,
+  TAction extends BaseActionObject
+> extends TransitionConfig<TContext, TEvent, TAction> {
   target: TransitionTarget<TContext, TEvent>; // TODO: just make this non-optional
 }
 
 export type ConditionalTransitionConfig<
   TContext,
-  TEvent extends EventObject = EventObject
-> = Array<TransitionConfig<TContext, TEvent>>;
+  TEvent extends EventObject = EventObject,
+  TAction extends BaseActionObject = BaseActionObject
+> = Array<TransitionConfig<TContext, TEvent, TAction>>;
 
-export type Transition<TContext, TEvent extends EventObject = EventObject> =
+export type Transition<
+  TContext,
+  TEvent extends EventObject = EventObject,
+  TAction extends BaseActionObject = BaseActionObject
+> =
   | string
-  | TransitionConfig<TContext, TEvent>
-  | ConditionalTransitionConfig<TContext, TEvent>;
+  | TransitionConfig<TContext, TEvent, TAction>
+  | ConditionalTransitionConfig<TContext, TEvent, TAction>;
 
 export type DisposeActivityFunction = () => void;
 
@@ -350,13 +362,17 @@ export interface Delay {
   delay: number;
 }
 
-export type DelayedTransitions<TContext, TEvent extends EventObject> =
+export type DelayedTransitions<
+  TContext,
+  TEvent extends EventObject,
+  TAction extends BaseActionObject
+> =
   | Record<
       string | number,
-      string | SingleOrArray<TransitionConfig<TContext, TEvent>>
+      string | SingleOrArray<TransitionConfig<TContext, TEvent, TAction>>
     >
   | Array<
-      TransitionConfig<TContext, TEvent> & {
+      TransitionConfig<TContext, TEvent, TAction> & {
         delay: number | string | Expr<TContext, TEvent, number>;
       }
     >;
@@ -416,41 +432,60 @@ export type TransitionConfigTarget<TContext, TEvent extends EventObject> =
 
 export type TransitionConfigOrTarget<
   TContext,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TAction extends BaseActionObject
 > = SingleOrArray<
-  TransitionConfigTarget<TContext, TEvent> | TransitionConfig<TContext, TEvent>
+  | TransitionConfigTarget<TContext, TEvent>
+  | TransitionConfig<TContext, TEvent, TAction>
 >;
 
-export type TransitionsConfigMap<TContext, TEvent extends EventObject> = {
+export type TransitionsConfigMap<
+  TContext,
+  TEvent extends EventObject,
+  TAction extends BaseActionObject
+> = {
   [K in TEvent['type']]?: TransitionConfigOrTarget<
     TContext,
-    TEvent extends { type: K } ? TEvent : never
+    TEvent extends { type: K } ? TEvent : never,
+    TAction
   >;
 } & {
-  ''?: TransitionConfigOrTarget<TContext, TEvent>;
+  ''?: TransitionConfigOrTarget<TContext, TEvent, TAction>;
 } & {
-  '*'?: TransitionConfigOrTarget<TContext, TEvent>;
+  '*'?: TransitionConfigOrTarget<TContext, TEvent, TAction>;
 };
 
-type TransitionsConfigArray<TContext, TEvent extends EventObject> = Array<
+type TransitionsConfigArray<
+  TContext,
+  TEvent extends EventObject,
+  TAction extends BaseActionObject
+> = Array<
   // distribute the union
   | (TEvent extends EventObject
-      ? TransitionConfig<TContext, TEvent> & { event: TEvent['type'] }
+      ? TransitionConfig<TContext, TEvent, TAction> & { event: TEvent['type'] }
       : never)
-  | (TransitionConfig<TContext, TEvent> & { event: '' })
-  | (TransitionConfig<TContext, TEvent> & { event: '*' })
+  | (TransitionConfig<TContext, TEvent, TAction> & { event: '' })
+  | (TransitionConfig<TContext, TEvent, TAction> & { event: '*' })
 >;
 
-export type TransitionsConfig<TContext, TEvent extends EventObject> =
-  | TransitionsConfigMap<TContext, TEvent>
-  | TransitionsConfigArray<TContext, TEvent>;
+export type TransitionsConfig<
+  TContext,
+  TEvent extends EventObject,
+  TAction extends BaseActionObject
+> =
+  | TransitionsConfigMap<TContext, TEvent, TAction>
+  | TransitionsConfigArray<TContext, TEvent, TAction>;
 
 export interface InvokeSourceDefinition {
   [key: string]: any;
   type: string;
 }
 
-export interface InvokeConfig<TContext, TEvent extends EventObject> {
+export interface InvokeConfig<
+  TContext,
+  TEvent extends EventObject,
+  TAction extends BaseActionObject
+> {
   /**
    * The unique identifier for the invoked machine. If not specified, this
    * will be the machine's own `id`, or the URL (from `src`).
@@ -488,13 +523,13 @@ export interface InvokeConfig<TContext, TEvent extends EventObject> {
    */
   onDone?:
     | string
-    | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
+    | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>, TAction>>;
   /**
    * The transition to take upon the invoked child machine sending an error event.
    */
   onError?:
     | string
-    | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
+    | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>, TAction>>;
 }
 
 export interface StateNodeConfig<
@@ -540,12 +575,12 @@ export interface StateNodeConfig<
    * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
    */
   invoke?: SingleOrArray<
-    InvokeConfig<TContext, TEvent> | StateMachine<any, any, any>
+    InvokeConfig<TContext, TEvent, TAction> | StateMachine<any, any, any>
   >;
   /**
    * The mapping of event types to their potential transition(s).
    */
-  on?: TransitionsConfig<TContext, TEvent>;
+  on?: TransitionsConfig<TContext, TEvent, TAction>;
   /**
    * The action(s) to be executed upon entering the state node.
    *
@@ -571,18 +606,20 @@ export interface StateNodeConfig<
    *
    * This is equivalent to defining a `[done(id)]` transition on this state node's `on` property.
    */
-  onDone?: string | SingleOrArray<TransitionConfig<TContext, DoneEventObject>>;
+  onDone?:
+    | string
+    | SingleOrArray<TransitionConfig<TContext, DoneEventObject, TAction>>;
   /**
    * The mapping (or array) of delays (in milliseconds) to their potential transition(s).
    * The delayed transitions are taken after the specified delay in an interpreter.
    */
-  after?: DelayedTransitions<TContext, TEvent>;
+  after?: DelayedTransitions<TContext, TEvent, TAction>;
 
   /**
    * An eventless transition that is always taken when this state node is active.
    * Equivalent to a transition specified as an empty `''`' string in the `on` property.
    */
-  always?: TransitionConfigOrTarget<TContext, TEvent>;
+  always?: TransitionConfigOrTarget<TContext, TEvent, TAction>;
   /**
    * The activities to be started upon entering the state node,
    * and stopped upon exiting the state node.
@@ -755,13 +792,17 @@ export interface MachineConfig<
    * The machine's own version.
    */
   version?: string;
-  schema?: MachineSchema<TContext, TEvent>;
+  schema?: MachineSchema<TContext, TEvent, TAction>;
 }
 
-export interface MachineSchema<TContext, TEvent extends EventObject> {
+export interface MachineSchema<
+  TContext,
+  TEvent extends EventObject,
+  TAction extends BaseActionObject
+> {
   context?: TContext;
   events?: TEvent;
-  actions?: { type: string; [key: string]: any };
+  actions?: TAction;
   guards?: { type: string; [key: string]: any };
   services?: { type: string; [key: string]: any };
 }
@@ -1115,7 +1156,7 @@ export type ChooseAction<
 };
 
 export interface TransitionDefinition<TContext, TEvent extends EventObject>
-  extends TransitionConfig<TContext, TEvent> {
+  extends TransitionConfig<TContext, TEvent, BaseActionObject> {
   target: Array<StateNode<TContext, any, TEvent>> | undefined;
   source: StateNode<TContext, any, TEvent>;
   actions: Array<ActionObject<TContext, TEvent>>;

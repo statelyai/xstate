@@ -66,7 +66,8 @@ import {
   InvokeSourceDefinition,
   MachineSchema,
   ActorRef,
-  StateMachine
+  StateMachine,
+  BaseActionObject
 } from './types';
 import { matchesState } from './utils';
 import { State, stateValuesEqual } from './State';
@@ -120,7 +121,7 @@ const validateArrayifiedTransitions = <TContext>(
   stateNode: StateNode<any, any, any, any>,
   event: string,
   transitions: Array<
-    TransitionConfig<TContext, EventObject> & {
+    TransitionConfig<TContext, EventObject, BaseActionObject> & {
       event: string;
     }
   >
@@ -248,7 +249,7 @@ class StateNode<
 
   public options: MachineOptions<TContext, TEvent>;
 
-  public schema: MachineSchema<TContext, TEvent>;
+  public schema: MachineSchema<TContext, TEvent, BaseActionObject>;
 
   public __xstatenode: true = true;
 
@@ -1842,7 +1843,7 @@ class StateNode<
   }
 
   private formatTransition(
-    transitionConfig: TransitionConfig<TContext, TEvent> & {
+    transitionConfig: TransitionConfig<TContext, TEvent, BaseActionObject> & {
       event: TEvent['type'] | NullEvent['type'] | '*';
     }
   ): TransitionDefinition<TContext, TEvent> {
@@ -1880,7 +1881,7 @@ class StateNode<
   }
   private formatTransitions(): Array<TransitionDefinition<TContext, TEvent>> {
     let onConfig: Array<
-      TransitionConfig<TContext, EventObject> & {
+      TransitionConfig<TContext, EventObject, BaseActionObject> & {
         event: string;
       }
     >;
@@ -1918,7 +1919,7 @@ class StateNode<
             toTransitionConfigArray(
               WILDCARD,
               wildcardConfigs as SingleOrArray<
-                TransitionConfig<TContext, EventObject> & {
+                TransitionConfig<TContext, EventObject, BaseActionObject> & {
                   event: '*';
                 }
               >
@@ -1970,7 +1971,11 @@ class StateNode<
     const formattedTransitions = flatten(
       [...doneConfig, ...invokeConfig, ...onConfig, ...eventlessConfig].map(
         (
-          transitionConfig: TransitionConfig<TContext, TEvent> & {
+          transitionConfig: TransitionConfig<
+            TContext,
+            TEvent,
+            BaseActionObject
+          > & {
             event: TEvent['type'] | NullEvent['type'] | '*';
           }
         ) =>

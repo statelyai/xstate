@@ -3,7 +3,8 @@ import {
   EventObject,
   InvokeConfig,
   InvokeDefinition,
-  InvokeSourceDefinition
+  InvokeSourceDefinition,
+  BaseActionObject
 } from './types';
 
 export function toInvokeSource(
@@ -19,7 +20,7 @@ export function toInvokeSource(
 }
 
 export function toInvokeDefinition<TContext, TEvent extends EventObject>(
-  invokeConfig: InvokeConfig<TContext, TEvent> & {
+  invokeConfig: InvokeConfig<TContext, TEvent, BaseActionObject> & {
     src: string | InvokeSourceDefinition;
     id: string;
   }

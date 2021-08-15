@@ -96,4 +96,22 @@ describe('schema', () => {
 
     expect(m.schema).toEqual(schema);
   });
+
+  it('should infer action types', () => {
+    createMachine({
+      schema: {
+        actions: createSchema<
+          { type: 'greet'; message: string } | { type: 'sayHello' }
+        >()
+      },
+      entry: [
+        { type: 'greet', message: 'hello' },
+        { type: 'sayHello' },
+        // @ts-expect-error
+        { type: 'greet' },
+        // @ts-expect-error
+        { type: 'fake' }
+      ]
+    });
+  });
 });
