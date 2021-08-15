@@ -61,20 +61,20 @@
         </div>
       </div>
     {/key}
+
+    {#if $state.matches('game.result')}
+      <img
+        in:fly={{ duration: 200, x: 100 }}
+        out:sendFade={{ key: currentResult }}
+        class="giant-result"
+        alt="{currentResult} answer"
+        src="/icons/{currentResult}.svg"
+      />
+    {/if}
   {:else if $state.matches('game.over')}
     <Over />
   {/if}
 </div>
-
-{#if $state.matches('game.result')}
-  <img
-    in:fly={{ duration: 200, x: 100 }}
-    out:sendFade={{ key: currentResult }}
-    class="giant-result"
-    alt="{currentResult} answer"
-    src="/icons/{currentResult}.svg"
-  />
-{/if}
 
 <div
   class="results"
