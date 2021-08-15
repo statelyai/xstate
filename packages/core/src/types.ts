@@ -108,13 +108,7 @@ export type BaseAction<
 > =
   | SimpleActionsFrom<TAction>['type']
   | TAction
-  | RaiseAction<any>
-  | SendAction<TContext, TEvent, any>
-  | AssignAction<TContext, TEvent>
-  | LogAction<TContext, TEvent>
-  | CancelAction
-  | StopAction<TContext, TEvent>
-  | ChooseAction<TContext, TEvent>
+  | BuiltInActionObject<TContext, TEvent>
   | ActionFunction<TContext, TEvent>;
 
 export type BaseActions<
@@ -207,7 +201,7 @@ export type TransitionTargets<TContext> = Array<
 
 export interface TransitionConfig<TContext, TEvent extends EventObject> {
   cond?: Condition<TContext, TEvent>;
-  actions?: Actions<TContext, TEvent>;
+  actions?: BaseActions<TContext, TEvent, BaseActionObject>; // TODO
   in?: StateValue;
   internal?: boolean;
   target?: TransitionTarget<TContext, TEvent>;
@@ -886,10 +880,20 @@ export enum ActionTypes {
   Choose = 'xstate.choose'
 }
 
-export interface RaiseAction<TEvent extends EventObject> {
+// Used as a "phantom type" for built-in actions
+export interface BuiltInActionObject<TContext, TEvent extends EventObject> {
+  type: string;
+  __context: TContext;
+  __event: TEvent;
+}
+
+export type RaiseAction<TEvent extends EventObject> = BuiltInActionObject<
+  any,
+  TEvent
+> & {
   type: ActionTypes.Raise;
   event: TEvent['type'];
-}
+};
 
 export interface RaiseActionObject<TEvent extends EventObject> {
   type: ActionTypes.Raise;
@@ -950,22 +954,26 @@ export type LogExpr<TContext, TEvent extends EventObject> = ExprWithMeta<
   any
 >;
 
-export interface LogAction<TContext, TEvent extends EventObject>
-  extends ActionObject<TContext, TEvent> {
+export type LogAction<
+  TContext,
+  TEvent extends EventObject
+> = BuiltInActionObject<TContext, TEvent> & {
+  type: ActionTypes.Log;
   label: string | undefined;
   expr: string | LogExpr<TContext, TEvent>;
-}
+};
 
 export interface LogActionObject<TContext, TEvent extends EventObject>
   extends LogAction<TContext, TEvent> {
   value: any;
 }
 
-export interface SendAction<
+export type SendAction<
   TContext,
   TEvent extends EventObject,
   TSentEvent extends EventObject
-> extends ActionObject<TContext, TEvent> {
+> = BuiltInActionObject<TContext, TEvent> & {
+  type: ActionTypes.Send;
   to:
     | string
     | number
@@ -975,7 +983,7 @@ export interface SendAction<
   event: TSentEvent | SendExpr<TContext, TEvent, TSentEvent>;
   delay?: number | string | DelayExpr<TContext, TEvent>;
   id: string | number;
-}
+};
 
 export interface SendActionObject<
   TContext,
@@ -989,14 +997,16 @@ export interface SendActionObject<
   id: string | number;
 }
 
-export interface StopAction<TContext, TEvent extends EventObject>
-  extends ActionObject<TContext, TEvent> {
+export type StopAction<
+  TContext,
+  TEvent extends EventObject
+> = BuiltInActionObject<TContext, TEvent> & {
   type: ActionTypes.Stop;
   activity:
     | string
     | { id: string }
     | Expr<TContext, TEvent, string | { id: string }>;
-}
+};
 
 export interface StopActionObject {
   type: ActionTypes.Stop;
@@ -1031,9 +1041,10 @@ export interface SendActionOptions<TContext, TEvent extends EventObject> {
   to?: string | ExprWithMeta<TContext, TEvent, string | number | ActorRef<any>>;
 }
 
-export interface CancelAction extends ActionObject<any, any> {
+export type CancelAction = BuiltInActionObject<any, any> & {
+  type: ActionTypes.Cancel;
   sendId: string | number;
-}
+};
 
 export type Assigner<TContext, TEvent extends EventObject> = (
   context: TContext,
@@ -1076,26 +1087,32 @@ export interface AnyAssignAction<TContext, TEvent extends EventObject>
   assignment: any;
 }
 
-export interface AssignAction<TContext, TEvent extends EventObject>
-  extends ActionObject<TContext, TEvent> {
+export type AssignAction<
+  TContext,
+  TEvent extends EventObject
+> = BuiltInActionObject<TContext, TEvent> & {
   type: ActionTypes.Assign;
   assignment: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent>;
-}
+};
 
-export interface PureAction<TContext, TEvent extends EventObject>
-  extends ActionObject<TContext, TEvent> {
+export type PureAction<
+  TContext,
+  TEvent extends EventObject
+> = BuiltInActionObject<TContext, TEvent> & {
   type: ActionTypes.Pure;
   get: (
     context: TContext,
     event: TEvent
   ) => SingleOrArray<ActionObject<TContext, TEvent>> | undefined;
-}
+};
 
-export interface ChooseAction<TContext, TEvent extends EventObject>
-  extends ActionObject<TContext, TEvent> {
+export type ChooseAction<
+  TContext,
+  TEvent extends EventObject
+> = BuiltInActionObject<TContext, TEvent> & {
   type: ActionTypes.Choose;
   conds: Array<ChooseConditon<TContext, TEvent>>;
-}
+};
 
 export interface TransitionDefinition<TContext, TEvent extends EventObject>
   extends TransitionConfig<TContext, TEvent> {

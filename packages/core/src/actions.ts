@@ -34,7 +34,10 @@ import {
   ChooseConditon,
   ChooseAction,
   AnyEventObject,
-  Expr
+  Expr,
+  BaseAction,
+  StopAction,
+  StopActionObject
 } from './types';
 import * as actionTypes from './actionTypes';
 import {
@@ -55,7 +58,6 @@ import {
 import { State } from './State';
 import { StateNode } from './StateNode';
 import { IS_PRODUCTION } from './environment';
-import { StopAction, StopActionObject } from '.';
 
 export { actionTypes };
 
@@ -119,8 +121,10 @@ export function toActionObject<TContext, TEvent extends EventObject>(
   return actionObject;
 }
 
+type TODO = any;
+
 export const toActionObjects = <TContext, TEvent extends EventObject>(
-  action?: SingleOrArray<Action<TContext, TEvent>> | undefined,
+  action?: SingleOrArray<BaseAction<TContext, TEvent, TODO>> | undefined,
   actionFunctionMap?: ActionFunctionMap<TContext, TEvent>
 ): Array<ActionObject<TContext, TEvent>> => {
   if (!action) {
@@ -161,7 +165,7 @@ export function raise<TContext, TEvent extends EventObject>(
   return {
     type: actionTypes.raise,
     event
-  };
+  } as RaiseAction<TEvent>;
 }
 
 export function resolveRaise<TEvent extends EventObject>(
@@ -202,7 +206,7 @@ export function send<
         : isFunction(event)
         ? event.name
         : (getEventType<TSentEvent>(event) as string)
-  };
+  } as SendAction<TContext, TEvent, TSentEvent>;
 }
 
 export function resolveSend<
@@ -330,22 +334,23 @@ export function log<TContext, TEvent extends EventObject>(
     type: actionTypes.log,
     label,
     expr
-  };
+  } as LogAction<TContext, TEvent>;
 }
 
-export const resolveLog = <TContext, TEvent extends EventObject>(
+export function resolveLog<TContext, TEvent extends EventObject>(
   action: LogAction<TContext, TEvent>,
   ctx: TContext,
   _event: SCXML.Event<TEvent>
-): LogActionObject<TContext, TEvent> => ({
-  // TODO: remove .expr from resulting object
-  ...action,
-  value: isString(action.expr)
-    ? action.expr
-    : action.expr(ctx, _event.data, {
-        _event
-      })
-});
+): LogActionObject<TContext, TEvent> {
+  return {
+    ...action,
+    value: isString(action.expr)
+      ? action.expr
+      : action.expr(ctx, _event.data, {
+          _event
+        })
+  };
+}
 
 /**
  * Cancels an in-flight `send(...)` action. A canceled sent action will not
@@ -354,12 +359,12 @@ export const resolveLog = <TContext, TEvent extends EventObject>(
  *
  * @param sendId The `id` of the `send(...)` action to cancel.
  */
-export const cancel = (sendId: string | number): CancelAction => {
+export function cancel(sendId: string | number): CancelAction {
   return {
     type: actionTypes.cancel,
     sendId
-  };
-};
+  } as CancelAction;
+}
 
 /**
  * Starts an activity.
@@ -395,9 +400,8 @@ export function stop<TContext, TEvent extends EventObject>(
 
   return {
     type: ActionTypes.Stop,
-    activity,
-    exec: undefined
-  };
+    activity
+  } as StopAction<TContext, TEvent>;
 }
 
 export function resolveStop<TContext, TEvent extends EventObject>(
@@ -432,7 +436,7 @@ export const assign = <TContext, TEvent extends EventObject = EventObject>(
   return {
     type: actionTypes.assign,
     assignment
-  };
+  } as AssignAction<TContext, TEvent>;
 };
 
 export function isActionObject<TContext, TEvent extends EventObject>(
@@ -511,7 +515,7 @@ export function pure<TContext, TEvent extends EventObject>(
   return {
     type: ActionTypes.Pure,
     get: getActions
-  };
+  } as PureAction<TContext, TEvent>;
 }
 
 /**
@@ -567,7 +571,7 @@ export function choose<TContext, TEvent extends EventObject>(
   return {
     type: ActionTypes.Choose,
     conds
-  };
+  } as ChooseAction<TContext, TEvent>;
 }
 
 export function resolveActions<TContext, TEvent extends EventObject>(

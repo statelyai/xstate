@@ -23,7 +23,7 @@ const lightMachine = Machine({
   initial: 'green',
   states: {
     green: {
-      onEntry: [actions.send('TIMER', { delay: 10 })],
+      entry: [actions.send('TIMER', { delay: 10 })],
       on: {
         TIMER: 'yellow',
         KEEP_GOING: {
@@ -34,7 +34,7 @@ const lightMachine = Machine({
       }
     },
     yellow: {
-      onEntry: [actions.send('TIMER', { delay: 10 })],
+      entry: [actions.send('TIMER', { delay: 10 })],
       on: {
         TIMER: 'red'
       }
@@ -294,7 +294,7 @@ describe('interpreter', () => {
             }
           },
           pending: {
-            onEntry: send('FINISH', {
+            entry: send('FINISH', {
               delay: (ctx, e) =>
                 ctx.initialDelay +
                 ('wait' in e
@@ -366,7 +366,7 @@ describe('interpreter', () => {
             }
           },
           pending: {
-            onEntry: send('FINISH', {
+            entry: send('FINISH', {
               delay: (ctx, _, { _event }) =>
                 ctx.initialDelay +
                 (_event.data as Extract<
@@ -434,7 +434,7 @@ describe('interpreter', () => {
               }
             },
             c: {
-              onEntry: send(
+              entry: send(
                 { type: 'FIRE_DELAY', value: 200 },
                 { delay: 20 }
               ) as EventObject,
@@ -973,7 +973,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       },
       states: {
         start: {
-          onEntry: sendParent((ctx) => ({
+          entry: sendParent((ctx) => ({
             type: 'NEXT',
             password: ctx.password
           }))
@@ -1454,7 +1454,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
           states: {
             active: {
               type: 'final',
-              onEntry: () => {
+              entry: () => {
                 effect = true;
               }
             }
@@ -1478,7 +1478,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
           states: {
             active: {
               type: 'final',
-              onEntry: () => {
+              entry: () => {
                 effect = true;
               }
             }
@@ -1505,7 +1505,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
           states: {
             active: {
               type: 'final',
-              onEntry: (ctx) => {
+              entry: (ctx) => {
                 effect = ctx.value;
               }
             }
@@ -1538,7 +1538,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
           states: {
             active: {
               type: 'final',
-              onEntry: 'doEffect'
+              entry: 'doEffect'
             }
           }
         });
