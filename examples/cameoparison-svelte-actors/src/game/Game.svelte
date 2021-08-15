@@ -8,13 +8,8 @@
   export let actor = null;
   const { send } = actor;
 
-  $: ({
-    rounds,
-    currentRoundIndex,
-    results,
-    currentResult,
-    overActor
-  } = $actor.context);
+  $: ({ rounds, currentRoundIndex, results, currentResult, overActor } =
+    $actor.context);
 
   $: [a, b] = rounds[currentRoundIndex];
 
@@ -68,20 +63,20 @@
         </div>
       </div>
     {/key}
+
+    {#if $actor.matches('result')}
+      <img
+        in:fly={{ duration: 200, x: 100 }}
+        out:sendFade={{ key: currentResult }}
+        class="giant-result"
+        alt="{currentResult} answer"
+        src="/icons/{currentResult}.svg"
+      />
+    {/if}
   {:else if $actor.matches('over')}
     <Over actor={overActor} />
   {/if}
 </div>
-
-{#if $actor.matches('result')}
-  <img
-    in:fly={{ duration: 200, x: 100 }}
-    out:sendFade={{ key: currentResult }}
-    class="giant-result"
-    alt="{currentResult} answer"
-    src="/icons/{currentResult}.svg"
-  />
-{/if}
 
 <div
   class="results"
