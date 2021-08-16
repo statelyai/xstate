@@ -1,8 +1,5 @@
-import {
-  createModel,
-  ModelContextFrom,
-  ModelEventsFrom
-} from 'xstate/lib/model';
+import { createModel } from 'xstate/lib/model';
+import { ContextFrom, EventFrom } from 'xstate';
 
 type Player = 'x' | 'o';
 
@@ -22,13 +19,13 @@ const model = createModel(
 );
 
 const isValidMove = (
-  ctx: ModelContextFrom<typeof model>,
-  e: ModelEventsFrom<typeof model> & { type: 'PLAY' }
+  ctx: ContextFrom<typeof model>,
+  e: EventFrom<typeof model> & { type: 'PLAY' }
 ) => {
   return ctx.board[e.value] === null;
 };
 
-function checkWin(ctx: ModelContextFrom<typeof model>) {
+function checkWin(ctx: ContextFrom<typeof model>) {
   const { board } = ctx;
   const winningLines = [
     [0, 1, 2],
@@ -58,9 +55,11 @@ function checkWin(ctx: ModelContextFrom<typeof model>) {
       return true;
     }
   }
+
+  return false;
 }
 
-function checkDraw(ctx: ModelContextFrom<typeof model>) {
+function checkDraw(ctx: ContextFrom<typeof model>) {
   return ctx.moves === 9;
 }
 
@@ -119,7 +118,7 @@ export const ticTacToeMachine = model.createMachine(
         'PLAY'
       ),
       resetGame: model.reset(),
-      setWinner: model.assign({
+      setWinner: model.assign<'PLAY' | 'RESET'>({
         winner: (ctx) => (ctx.player === 'x' ? 'o' : 'x')
       })
     },

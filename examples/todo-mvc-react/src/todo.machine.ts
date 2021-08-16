@@ -1,4 +1,4 @@
-import { createMachine, sendParent, EventFrom } from 'xstate';
+import { sendParent, EventFrom } from 'xstate';
 import { createModel } from 'xstate/lib/model';
 
 const todoModel = createModel(
