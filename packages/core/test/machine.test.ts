@@ -194,6 +194,27 @@ describe('machine', () => {
         foo: 'different'
       });
     });
+
+    it('should allow for lazy context (second argument)', () => {
+      const machine = createMachine({
+        context: { foo: { prop: 'bar' } },
+        initial: 'a',
+        states: {
+          a: {}
+        }
+      });
+      const copiedMachine = machine.withConfig({}, () => ({
+        foo: { prop: 'baz' }
+      }));
+      expect(copiedMachine.initialState.context).toEqual({
+        foo: { prop: 'baz' }
+      });
+
+      const a = interpret(copiedMachine).start();
+      const b = interpret(copiedMachine).start();
+
+      expect(a.state.context.foo).not.toBe(b.state.context.foo);
+    });
   });
 
   describe('machine function context', () => {

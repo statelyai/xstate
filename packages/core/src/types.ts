@@ -812,7 +812,7 @@ export interface StateMachine<
 
   withConfig(
     options: Partial<MachineOptions<TContext, TEvent>>,
-    context?: TContext
+    context?: TContext | (() => TContext)
   ): StateMachine<TContext, TStateSchema, TEvent, TTypestate>;
 
   withContext(
