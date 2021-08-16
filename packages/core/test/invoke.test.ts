@@ -2600,6 +2600,20 @@ describe('invoke', () => {
       .onDone(() => done())
       .start();
   });
+
+  it('should accept and provide meta data', () => {
+    const machine = createMachine({
+      invoke: {
+        id: 'test',
+        src: 'someSource',
+        meta: {
+          provider: '3rd-party'
+        }
+      }
+    });
+
+    expect(machine.invoke[0].meta).toEqual({ provider: '3rd-party' });
+  });
 });
 
 describe('services option', () => {

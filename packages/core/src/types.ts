@@ -211,7 +211,7 @@ export interface TransitionConfig<TContext, TEvent extends EventObject> {
   in?: StateValue;
   internal?: boolean;
   target?: TransitionTarget<TContext, TEvent>;
-  meta?: Record<string, any>;
+  meta?: MetaObject;
 }
 
 export interface TargetTransitionConfig<TContext, TEvent extends EventObject>
@@ -346,6 +346,10 @@ export interface InvokeDefinition<TContext, TEvent extends EventObject>
    * Data should be mapped to match the child machine's context shape.
    */
   data?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
+  /**
+   * Meta data about the invocation
+   */
+  meta?: MetaObject;
 }
 
 export interface Delay {
@@ -501,6 +505,10 @@ export interface InvokeConfig<TContext, TEvent extends EventObject> {
   onError?:
     | string
     | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
+  /**
+   * Meta data about the invocation
+   */
+  meta?: Record<string, any>;
 }
 
 export interface StateNodeConfig<
