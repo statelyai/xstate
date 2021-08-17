@@ -6,6 +6,9 @@ module.exports = {
   markdown: {
     toc: { includeLevel: [2, 3] }
   },
+  head: [
+    ['script', { src: 'https://plausible.io/js/plausible.js', defer: 'defer' }]
+  ],
   themeConfig: {
     lastUpdated: 'Last Updated',
     repo: 'davidkpiano/xstate',
@@ -122,7 +125,6 @@ module.exports = {
     ]
   },
   plugins: [
-    ['@vuepress/google-analytics', { ga: 'UA-129726387-1' }],
     'vuepress-plugin-export'
   ]
 };
