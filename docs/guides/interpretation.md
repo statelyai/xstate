@@ -217,7 +217,7 @@ function send(event) {
 
   actions.forEach((action) => {
     // If the action is executable, execute it
-    action.exec && action.exec();
+    typeof action.exec === 'function' && action.exec();
   });
 
   // Notify the listeners
