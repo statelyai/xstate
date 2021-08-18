@@ -1,4 +1,4 @@
-import { createMachine, spawn, ActorRef } from 'xstate';
+import { spawn, ActorRef } from 'xstate';
 import { createModel } from 'xstate/lib/model';
 import { createTodoMachine } from './todo.machine';
 
