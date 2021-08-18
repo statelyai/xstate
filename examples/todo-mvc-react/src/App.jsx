@@ -6,7 +6,7 @@ function App() {
     <>
       <Todos />
 
-      <footer class="info">
+      <footer className="info">
         <p>Double-click to edit a todo</p>
         <p>
           Template by <a href="http://sindresorhus.com">Sindre Sorhus</a>

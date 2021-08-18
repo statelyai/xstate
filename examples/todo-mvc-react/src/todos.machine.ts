@@ -1,5 +1,5 @@
 import { createModel } from 'xstate/lib/model';
-import { createMachine, spawn, ActorRef, EventFrom } from 'xstate';
+import { spawn, ActorRef, EventFrom } from 'xstate';
 import { createTodoMachine } from './todo.machine';
 
 import { nanoid } from 'nanoid';
@@ -43,7 +43,7 @@ type TodosEvents = EventFrom<typeof todosModel>[keyof EventFrom<
   typeof todosModel
 >];
 
-export const todosMachine = createMachine<typeof todosModel>({
+export const todosMachine = todosModel.createMachine({
   id: 'todos',
   context: todosModel.initialContext,
   initial: 'loading',

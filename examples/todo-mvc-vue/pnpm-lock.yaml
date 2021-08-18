@@ -12,16 +12,16 @@ specifiers:
   vite: ^2.3.8
   vue: ^3.0.5
   vue-tsc: ^0.2.0
-  xstate: ^4.20.1
+  xstate: ^4.23.1
 
 dependencies:
   '@xstate/inspect': 0.4.1
-  '@xstate/vue': 0.6.0_vue@3.1.1+xstate@4.20.1
+  '@xstate/vue': 0.6.0_vue@3.1.1+xstate@4.23.1
   nanoid: 3.1.23
   todomvc-app-css: 2.4.1
   todomvc-common: 1.0.5
   vue: 3.1.1
-  xstate: 4.20.1
+  xstate: 4.23.1
 
 devDependencies:
   '@vitejs/plugin-vue': 1.2.3_@vue+compiler-sfc@3.1.2
@@ -358,7 +358,7 @@ packages:
       fast-safe-stringify: 2.0.7
     dev: false
 
-  /@xstate/vue/0.6.0_vue@3.1.1+xstate@4.20.1:
+  /@xstate/vue/0.6.0_vue@3.1.1+xstate@4.23.1:
     resolution: {integrity: sha512-4Z7gamAHE1qd47OuCMYdgIRF6PH8ZA4M9fhYu28C/OnU9Ffu+df8gG5Nplww8f3ICTqVV4UsbcfQGWOFPOMa+A==}
     peerDependencies:
       '@xstate/fsm': ^1.0.0
@@ -371,7 +371,7 @@ packages:
         optional: true
     dependencies:
       vue: 3.1.1
-      xstate: 4.20.1
+      xstate: 4.23.1
     dev: false
 
   /acorn/7.4.1:
@@ -2585,8 +2585,8 @@ packages:
     engines: {node: '>=4'}
     dev: true
 
-  /xstate/4.20.1:
-    resolution: {integrity: sha512-oLqFEYKUG3Y4t3Pg5tb7ZXz2kZcrRA1inrEVfzDVf1JoBb+KGpKlNaLzxF5bE7swo0xcc8H+B/gdPb1feyO1gg==}
+  /xstate/4.23.1:
+    resolution: {integrity: sha512-8ZoCe8d6wDSPfkep+GBgi+fKAdMyXcaizoNf5FKceEhlso4+9n1TeK6oviaDsXZ3Z5O8xKkJOxXPNuD4cA9LCw==}
     dev: false
 
   /xtend/4.0.2:
