@@ -1386,7 +1386,10 @@ export type SpawnedActorRef<
 export type ActorRefFrom<
   T extends StateMachine<any, any, any> | Promise<any> | Behavior<any>
 > = T extends StateMachine<infer TContext, any, infer TEvent, infer TTypestate>
-  ? ActorRef<TEvent, State<TContext, TEvent, any, TTypestate>> & {
+  ? _NonNullableObjectFnReturnType<
+      ActorRef<TEvent, State<TContext, TEvent, any, TTypestate>>,
+      'getSnapshot'
+    > & {
       /**
        * @deprecated Use `.getSnapshot()` instead.
        */
@@ -1460,3 +1463,16 @@ export type ContextFrom<T> = T extends StateMachine<
   : T extends Interpreter<infer TContext, any, any, any>
   ? TContext
   : never;
+
+type _NonNullableObjectFnReturnType<
+  T extends object,
+  K extends keyof T
+> = T extends object
+  ? {
+      [P in keyof T]-?: P extends K ? _NonNullableFnReturnType<T[P]> : T[P];
+    }
+  : T;
+
+type _NonNullableFnReturnType<T> = T extends (...args: infer Args) => infer R
+  ? (...args: Args) => NonNullable<R>
+  : T;

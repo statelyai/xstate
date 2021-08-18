@@ -1339,7 +1339,7 @@ export function spawn(
 export function spawn(
   entity: Spawnable,
   nameOrOptions?: string | SpawnOptions
-): ActorRef<any> {
+): any {
   const resolvedOptions = resolveSpawnOptions(nameOrOptions);
 
   return serviceScope.consume((service) => {

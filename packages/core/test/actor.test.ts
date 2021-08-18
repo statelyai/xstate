@@ -112,7 +112,7 @@ describe('spawning machines', () => {
   });
 
   interface ClientContext {
-    server?: ActorRef<PingPongEvent>;
+    server?: ActorRefFrom<typeof serverMachine>;
   }
 
   const clientMachine = Machine<ClientContext, PingPongEvent>({
@@ -570,7 +570,10 @@ describe('actors', () => {
     it('should not forward events to a spawned actor when { autoForward: false }', () => {
       let pongCounter = 0;
 
-      const machine = Machine<{ counter: number; serverRef?: ActorRef<any> }>({
+      const machine = Machine<{
+        counter: number;
+        serverRef?: ActorRefFrom<typeof pongActorMachine>;
+      }>({
         id: 'client',
         context: { counter: 0, serverRef: undefined },
         initial: 'initial',
@@ -670,7 +673,7 @@ describe('actors', () => {
         const service = interpret(parentMachine, {
           id: 'a-service'
         }).onTransition((s) => {
-          if (s.context.ref?.getSnapshot()?.context.value === 42) {
+          if (s.context.ref?.getSnapshot().context.value === 42) {
             res();
           }
         });
@@ -683,7 +686,7 @@ describe('actors', () => {
         const service = interpret(parentMachine, {
           id: 'b-service'
         }).onTransition((s) => {
-          if (s.context.refNoSync?.getSnapshot()?.context.value === 42) {
+          if (s.context.refNoSync?.getSnapshot().context.value === 42) {
             rej(new Error('value change caused transition'));
           }
         });
@@ -691,7 +694,7 @@ describe('actors', () => {
 
         setTimeout(() => {
           expect(
-            service.state.context.refNoSync?.getSnapshot()?.context.value
+            service.state.context.refNoSync?.getSnapshot().context.value
           ).toBe(42);
           res();
         }, 30);
@@ -703,7 +706,7 @@ describe('actors', () => {
         const service = interpret(parentMachine, {
           id: 'c-service'
         }).onTransition((s) => {
-          if (s.context.refNoSyncDefault?.getSnapshot()?.context.value === 42) {
+          if (s.context.refNoSyncDefault?.getSnapshot().context.value === 42) {
             rej(new Error('value change caused transition'));
           }
         });
@@ -711,7 +714,7 @@ describe('actors', () => {
 
         setTimeout(() => {
           expect(
-            service.state.context.refNoSyncDefault?.getSnapshot()?.context.value
+            service.state.context.refNoSyncDefault?.getSnapshot().context.value
           ).toBe(42);
           res();
         }, 30);
@@ -747,7 +750,7 @@ describe('actors', () => {
 
       interpret(syncMachine)
         .onTransition((state) => {
-          if (state.context.ref?.getSnapshot()?.matches('inactive')) {
+          if (state.context.ref?.getSnapshot().matches('inactive')) {
             expect(state.changed).toBe(true);
             done();
           }
@@ -791,7 +794,7 @@ describe('actors', () => {
           .onTransition((state) => {
             if (
               state.context.ref &&
-              state.context.ref.getSnapshot()?.matches('inactive')
+              state.context.ref.getSnapshot().matches('inactive')
             ) {
               expect(state.changed).toBe(false);
             }
@@ -800,7 +803,7 @@ describe('actors', () => {
 
         setTimeout(() => {
           expect(
-            service.state.context.ref?.getSnapshot()?.matches('inactive')
+            service.state.context.ref?.getSnapshot().matches('inactive')
           ).toBe(true);
           done();
         }, 20);
@@ -839,7 +842,7 @@ describe('actors', () => {
 
         interpret(syncMachine)
           .onTransition((state) => {
-            if (state.context.ref?.getSnapshot()?.matches('inactive')) {
+            if (state.context.ref?.getSnapshot().matches('inactive')) {
               expect(state.changed).toBe(true);
               done();
             }
@@ -1084,7 +1087,7 @@ describe('actors', () => {
       entry: sendParent('TEST')
     });
 
-    const machine = createMachine<{ ref: ActorRef<any> }>({
+    const machine = createMachine<{ ref: ActorRefFrom<typeof childMachine> }>({
       context: () => ({
         ref: spawn(childMachine)
       }),
