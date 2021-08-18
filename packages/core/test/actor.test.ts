@@ -1107,7 +1107,7 @@ describe('actors', () => {
   });
 
   // https://github.com/statelyai/xstate/issues/2507
-  it('should not crash on sync child completion during self-initialization', () => {
+  it('should not crash on child machine sync completion during self-initialization', () => {
     const childMachine = createMachine({
       initial: 'idle',
       states: {
