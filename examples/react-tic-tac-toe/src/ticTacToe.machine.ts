@@ -19,14 +19,18 @@ const model = createModel(
 );
 
 const isValidMove = (
-  ctx: ContextFrom<typeof model>,
-  e: EventFrom<typeof model> & { type: 'PLAY' }
+  context: ContextFrom<typeof model>,
+  event: EventFrom<typeof model>
 ) => {
-  return ctx.board[e.value] === null;
+  if (event.type !== 'PLAY') {
+    return false;
+  }
+
+  return context.board[event.value] === null;
 };
 
-function checkWin(ctx: ContextFrom<typeof model>) {
-  const { board } = ctx;
+function checkWin(context: ContextFrom<typeof model>) {
+  const { board } = context;
   const winningLines = [
     [0, 1, 2],
     [3, 4, 5],
@@ -59,8 +63,8 @@ function checkWin(ctx: ContextFrom<typeof model>) {
   return false;
 }
 
-function checkDraw(ctx: ContextFrom<typeof model>) {
-  return ctx.moves === 9;
+function checkDraw(context: ContextFrom<typeof model>) {
+  return context.moves === 9;
 }
 
 export const ticTacToeMachine = model.createMachine(
@@ -105,21 +109,22 @@ export const ticTacToeMachine = model.createMachine(
   },
   {
     actions: {
+      // @ts-ignore (will be fixed in next minor version)
       updateBoard: model.assign(
         {
-          board: (ctx, e) => {
-            const updatedBoard = [...ctx.board];
-            updatedBoard[e.value] = ctx.player;
+          board: (context, event) => {
+            const updatedBoard = [...context.board];
+            updatedBoard[event.value] = context.player;
             return updatedBoard;
           },
-          moves: (ctx) => ctx.moves + 1,
-          player: (ctx) => (ctx.player === 'x' ? 'o' : 'x')
+          moves: (context) => context.moves + 1,
+          player: (context) => (context.player === 'x' ? 'o' : 'x')
         },
         'PLAY'
       ),
       resetGame: model.reset(),
       setWinner: model.assign<'PLAY' | 'RESET'>({
-        winner: (ctx) => (ctx.player === 'x' ? 'o' : 'x')
+        winner: (context) => (context.player === 'x' ? 'o' : 'x')
       })
     },
     guards: {
