@@ -1147,7 +1147,7 @@ describe('actors', () => {
     }).not.toThrow();
   });
 
-  it('should not crash on immediate spawned promise completion', () => {
+  it('should not crash on immediate spawned promise-like completion', () => {
     const parentMachine = createMachine<{
       child: ActorRef<never, any> | null;
     }>({
