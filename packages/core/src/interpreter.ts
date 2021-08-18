@@ -1013,8 +1013,8 @@ export class Interpreter<
 
     childService
       .onDone((doneEvent) => {
-        this.send(toSCXMLEvent(doneEvent as any, { origin: childService.id }));
         this.removeChild(childService.id);
+        this.send(toSCXMLEvent(doneEvent as any, { origin: childService.id }));
       })
       .start();
 
