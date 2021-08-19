@@ -828,9 +828,14 @@ export interface StateMachine<
   ): StateMachine<TContext, TStateSchema, TEvent, TTypestate>;
 }
 
-export type StateFrom<
-  TMachine extends StateMachine<any, any, any>
-> = ReturnType<TMachine['transition']>;
+export type StateFrom<T> = T extends StateMachine<any, any, any>
+  ? ReturnType<T['transition']>
+  : T extends Interpreter<any, any, any, any>
+  ? ReturnType<T['nextState']>
+  : // infer state if given ActorRefFrom<Machine>
+  T extends ActorRef<any, any> & { state: infer S }
+  ? S
+  : never;
 
 export interface ActionMap<TContext, TEvent extends EventObject> {
   onEntry: Array<Action<TContext, TEvent>>;
