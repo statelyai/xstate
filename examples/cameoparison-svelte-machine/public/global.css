@@ -47,6 +47,12 @@ button:not(:disabled):hover {
   background-color: var(--do-something-lighter);
 }
 
+#app {
+  position: relative;
+  height: 100%;
+  width: 100%;
+}
+
 @media (min-width: 480px) {
   body {
     font-size: 16px;
