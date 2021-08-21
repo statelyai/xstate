@@ -786,12 +786,15 @@ export interface MachineOptions<
    */
   _key?: string;
 }
+
+type NoInfer<T> = [T][T extends any ? 0 : never];
+
 export interface MachineConfig<
   TContext,
   TStateSchema extends StateSchema,
   TEvent extends EventObject,
   TAction extends BaseActionObject = ActionObject<TContext, TEvent>
-> extends StateNodeConfig<TContext, TStateSchema, TEvent, TAction> {
+> extends StateNodeConfig<TContext, TStateSchema, TEvent, NoInfer<TAction>> {
   /**
    * The initial context (extended state)
    */
