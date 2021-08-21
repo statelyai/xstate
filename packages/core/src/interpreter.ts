@@ -935,7 +935,9 @@ export class Interpreter<
     this.children.delete(childId);
     this.forwardTo.delete(childId);
 
-    delete this.state.children[childId];
+    // this.state might not exist at the time this is called,
+    // such as when a child is added then removed while initializing the state
+    delete this.state?.children[childId];
   }
 
   private stopChild(childId: string): void {
