@@ -3,7 +3,6 @@
   import Feedback from './Feedback.svelte';
   import Error from '../screens/Error.svelte';
 
-  import { onMount } from 'svelte';
   import { fly, crossfade } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
 
@@ -16,10 +15,6 @@
   const [sendFade, receiveFade] = crossfade({
     easing: cubicOut,
     duration: 300
-  });
-
-  onMount(() => {
-    service.send('LOAD_ROUNDS');
   });
 </script>
 

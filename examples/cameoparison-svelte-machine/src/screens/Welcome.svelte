@@ -34,8 +34,7 @@
 <div class="categories">
   {#each categories as category}
     <button
-      disabled={$service.matches('welcome.loadingCelebs') ||
-        $service.matches('welcome.failure')}
+      disabled={!$service.matches('welcome.categories')}
       class:loading={$service.matches('welcome.loadingCelebs')}
       on:click={() => service.send({ type: 'SELECT_CATEGORY', category })}
     >

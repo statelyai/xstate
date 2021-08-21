@@ -9,7 +9,6 @@
   import { service } from './service.js';
 
   onMount(() => {
-    service.send('LOAD_CELEBS');
     loadImage('/icons/right.svg');
     loadImage('/icons/wrong.svg');
   });
