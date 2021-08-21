@@ -29,7 +29,7 @@ export const friendMachine = friendModel.createMachine({
       tags: 'form',
       on: {
         SET_NAME: {
-          actions: assign({ name: (_, event) => event.value })
+          actions: friendModel.assign({ name: (_, event) => event.value })
         },
         SAVE: {
           target: 'saving'
