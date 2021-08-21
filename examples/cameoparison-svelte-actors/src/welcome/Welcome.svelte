@@ -36,7 +36,7 @@
 <div class="categories">
   {#each categories as category}
     <button
-      disabled={$actor.matches('loadingCelebs') || $actor.matches('failure')}
+      disabled={!$actor.matches('categories')}
       class:loading={$actor.matches('loadingCelebs')}
       on:click={() => actor.send({ type: 'SELECT_CATEGORY', category })}
     >

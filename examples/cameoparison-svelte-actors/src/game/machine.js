@@ -38,13 +38,8 @@ export const gameMachine = ({ celebs, lookup, category }) =>
       errorActor: undefined
     },
 
-    initial: 'idle',
+    initial: 'loadingRounds',
     states: {
-      idle: {
-        on: {
-          LOAD_ROUNDS: 'loadingRounds'
-        }
-      },
       loadingRounds: {
         invoke: {
           src: (context, event) =>

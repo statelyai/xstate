@@ -3,8 +3,6 @@
   import Feedback from '../feedback/Feedback.svelte';
   import Error from '../error/Error.svelte';
 
-  import { onMount } from 'svelte';
-
   import { fly, crossfade } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
 
@@ -18,10 +16,6 @@
   const [sendFade, receiveFade] = crossfade({
     easing: cubicOut,
     duration: 300
-  });
-
-  onMount(() => {
-    actor.send('LOAD_ROUNDS');
   });
 </script>
 

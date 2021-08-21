@@ -39,27 +39,19 @@ export const welcomeMachine = createMachine({
   initial: 'idle',
   states: {
     idle: {
-      on: {
-        LOAD_CELEBS: 'loadingCelebs',
-        SELECT_CATEGORY: {
-          cond: (context, event) =>
-            context.celebs.length > 0 && context?.lookup,
-          actions: sendParent((context, event) => ({
-            type: 'PLAY',
-            data: {
-              celebs: context.celebs,
-              lookup: context.lookup,
-              category: event.category
-            }
-          }))
-        }
-      }
+      always: [
+        {
+          cond: (context, event) => context.celebs.length === 0,
+          target: 'loadingCelebs'
+        },
+        { target: 'categories' }
+      ]
     },
     loadingCelebs: {
       invoke: {
         src: (context, event) => loadCelebs(),
         onDone: {
-          target: 'idle',
+          target: 'categories',
           actions: assign({
             celebs: (context, event) => event.data.celebs,
             lookup: (context, event) => event.data.lookup
@@ -73,7 +65,20 @@ export const welcomeMachine = createMachine({
         }
       }
     },
-
+    categories: {
+      on: {
+        SELECT_CATEGORY: {
+          actions: sendParent((context, event) => ({
+            type: 'PLAY',
+            data: {
+              celebs: context.celebs,
+              lookup: context.lookup,
+              category: event.category
+            }
+          }))
+        }
+      }
+    },
     failure: {
       on: {
         RETRY: 'loadingCelebs'

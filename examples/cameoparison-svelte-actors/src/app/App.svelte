@@ -17,7 +17,6 @@
   $: ({ welcomeActor, gameActor } = $service.context);
 
   onMount(() => {
-    welcomeActor.send('LOAD_CELEBS');
     loadImage('/icons/right.svg');
     loadImage('/icons/wrong.svg');
   });
