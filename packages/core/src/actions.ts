@@ -160,7 +160,11 @@ export function raise<TContext, TEvent extends EventObject>(
   event: Event<TEvent>
 ): RaiseAction<TEvent> | SendAction<TContext, AnyEventObject, TEvent> {
   if (!isString(event)) {
-    return send(event, { to: SpecialTargets.Internal });
+    return send(event, { to: SpecialTargets.Internal }) as SendAction<
+      TContext,
+      TEvent,
+      TEvent
+    >;
   }
   return {
     type: actionTypes.raise,

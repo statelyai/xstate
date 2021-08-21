@@ -937,7 +937,7 @@ export interface BuiltInActionObject<TContext, TEvent extends EventObject> {
 }
 
 export interface RaiseAction<TEvent extends EventObject>
-  extends BuiltInActionObject<any, TEvent> {
+  extends BuiltInActionObject<unknown, TEvent> {
   type: ActionTypes.Raise;
   event: TEvent['type'];
 }
