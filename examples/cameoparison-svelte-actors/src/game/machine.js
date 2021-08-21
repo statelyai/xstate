@@ -57,12 +57,12 @@ export const gameMachine = ({ celebs, lookup, category }) =>
               )
             ),
           onDone: {
-            target: 'loadingCelebDetails',
+            target: 'loadingRound',
             actions: assign({ rounds: (context, event) => event.data })
           }
         }
       },
-      loadingCelebDetails: {
+      loadingRound: {
         invoke: {
           src: (context, event) =>
             context.rounds[context.currentRoundIndex].then((round) => round),
@@ -111,7 +111,7 @@ export const gameMachine = ({ celebs, lookup, category }) =>
             {
               cond: (context, event) =>
                 context.currentRoundIndex < ROUNDS_PER_GAME - 1,
-              target: 'loadingCelebDetails',
+              target: 'loadingRound',
               actions: assign({
                 currentRoundIndex: (context, event) =>
                   context.currentRoundIndex + 1
@@ -127,19 +127,21 @@ export const gameMachine = ({ celebs, lookup, category }) =>
           ]
         }
       },
+
       feedback: {
         on: {
           RESTART: {
             actions: sendParent('GREET')
           }
         },
-        exit: stop('feedbackActor')
+        exit: [stop('feedbackActor'), assign({ feedbackActor: undefined })]
       },
+
       failure: {
         on: {
           RETRY: 'loadingRounds'
         },
-        exit: stop('errorActor')
+        exit: [stop('errorActor'), assign({ errorActor: undefined })]
       }
     }
   });

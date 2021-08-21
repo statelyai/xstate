@@ -7,14 +7,9 @@ export const feedbackMachine = (results) =>
       results: results
     },
 
-    initial: 'idle',
-    states: {
-      idle: {
-        on: {
-          RESTART: {
-            actions: sendParent('RESTART')
-          }
-        }
+    on: {
+      RESTART: {
+        actions: sendParent('RESTART')
       }
     }
   });

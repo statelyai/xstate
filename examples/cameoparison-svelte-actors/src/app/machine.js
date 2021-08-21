@@ -11,10 +11,6 @@ export const machine = createMachine({
     gameActor: undefined
   },
 
-  entry: assign({
-    welcomeActor: (context, event) => spawn(welcomeMachine, 'welcomeActor')
-  }),
-
   initial: 'welcome',
   states: {
     welcome: {
@@ -32,7 +28,13 @@ export const machine = createMachine({
       on: {
         GREET: 'welcome'
       },
-      exit: stop('gameActor')
+      exit: [stop('gameActor'), assign({ gameActor: undefined })]
     }
-  }
+  },
+
+  entry: assign({
+    welcomeActor: (context, event) => spawn(welcomeMachine, 'welcomeActor')
+  }),
+
+  exit: [stop('welcomeActor'), assign({ welcomeActor: undefined })]
 });

@@ -1,8 +1,7 @@
 <script>
   import Error from '../error/Error.svelte';
 
-  export let actor = null;
-  const { send } = actor;
+  export let actor;
 
   $: ({ errorActor } = $actor.context);
 
@@ -17,34 +16,34 @@
   ];
 </script>
 
-{#if !$actor.matches('failure')}
-  <header>
-    <h1>CameoP<span class="logo">a</span>rison</h1>
-    <p>
-      On <a href="https://cameo.com">cameo.com</a>, you can buy personalised
-      video clips from everyone from Lindsay Lohan to Ice T.
-    </p>
-    <p>But who commands the highest price?</p>
-  </header>
-
-  <p>Pick a category to play a game:</p>
-
-  <div class="categories">
-    {#each categories as category}
-      <button
-        disabled={$actor.matches('loadingCelebs')}
-        class:loading={$actor.matches('loadingCelebs')}
-        on:click={() => send({ type: 'SELECT_CATEGORY', category })}
-      >
-        {category.label}
-      </button>
-    {/each}
-  </div>
-{:else if $actor.matches('failure')}
+{#if $actor.matches('failure')}
   <div class="error-container">
     <Error actor={errorActor} />
   </div>
 {/if}
+
+<header>
+  <h1>CameoP<span class="logo">a</span>rison</h1>
+  <p>
+    On <a href="https://cameo.com">cameo.com</a>, you can buy personalised video
+    clips from everyone from Lindsay Lohan to Ice T.
+  </p>
+  <p>But who commands the highest price?</p>
+</header>
+
+<p>Pick a category to play a game:</p>
+
+<div class="categories">
+  {#each categories as category}
+    <button
+      disabled={$actor.matches('loadingCelebs') || $actor.matches('failure')}
+      class:loading={$actor.matches('loadingCelebs')}
+      on:click={() => actor.send({ type: 'SELECT_CATEGORY', category })}
+    >
+      {category.label}
+    </button>
+  {/each}
+</div>
 
 <style>
   h1 {
@@ -82,7 +81,7 @@
   }
   button[disabled] {
     cursor: default;
-    background-color: #888;
+    background-color: #666;
     color: #444;
   }
   .loading {

@@ -1,10 +1,9 @@
 <script>
-  export let actor = null;
-  const { send } = actor;
+  export let actor;
 </script>
 
 <p class="error">Server or network error</p>
-<button on:click={() => send('RETRY')}>Try again</button>
+<button on:click={() => actor.send('RETRY')}>Try again</button>
 
 <style>
   .error {

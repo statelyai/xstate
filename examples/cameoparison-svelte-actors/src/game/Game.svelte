@@ -8,8 +8,7 @@
   import { fly, crossfade } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
 
-  export let actor = null;
-  const { send } = actor;
+  export let actor;
 
   $: ({ currentRound, results, currentResult, feedbackActor, errorActor } =
     $actor.context);
@@ -22,7 +21,7 @@
   });
 
   onMount(() => {
-    send('LOAD_ROUNDS');
+    actor.send('LOAD_ROUNDS');
   });
 </script>
 
@@ -47,14 +46,14 @@
           celeb={a}
           showprice={$actor.matches('answer')}
           winner={a.price >= b.price}
-          on:select={() => send({ type: 'ATTEMPT', a, b, sign: 1 })}
+          on:select={() => actor.send({ type: 'ATTEMPT', a, b, sign: 1 })}
         />
       </div>
 
       <div>
         <button
           class="same"
-          on:click={() => send({ type: 'ATTEMPT', a, b, sign: 0 })}
+          on:click={() => actor.send({ type: 'ATTEMPT', a, b, sign: 0 })}
           >same price</button
         >
       </div>
@@ -64,7 +63,7 @@
           celeb={b}
           showprice={$actor.matches('answer')}
           winner={b.price >= a.price}
-          on:select={() => send({ type: 'ATTEMPT', a, b, sign: -1 })}
+          on:select={() => actor.send({ type: 'ATTEMPT', a, b, sign: -1 })}
         />
       </div>
     </div>
