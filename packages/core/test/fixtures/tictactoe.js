@@ -2,11 +2,11 @@ const { Machine, actions } = require('../../lib');
 const { interpret } = require('../../lib/interpreter');
 const { getValueAdjacencyMap } = require('../../lib/graph');
 
-const isValidMoveFor = (player) => (xs, e) => {
+const isValidMoveFor = player => (xs, e) => {
   return e.player === player && xs.board[e.value] === null;
 };
 
-const checkWin = (player) => (xs, e) => {
+const checkWin = player => (xs, e) => {
   const { board } = xs;
   const winningLines = [
     [0, 1, 2],
@@ -20,7 +20,7 @@ const checkWin = (player) => (xs, e) => {
   ];
 
   for (let line of winningLines) {
-    const playerWon = line.every((index) => {
+    const playerWon = line.every(index => {
       return board[index] === player;
     });
 
@@ -57,7 +57,7 @@ const ticTacToeMachine = Machine(
                     newBoard[e.value] = e.player;
                     return newBoard;
                   },
-                  moves: (xs) => xs.moves + 1
+                  moves: xs => xs.moves + 1
                 }),
                 checkWin
               ]
@@ -89,7 +89,7 @@ const ticTacToeMachine = Machine(
                     newBoard[e.value] = e.player;
                     return newBoard;
                   },
-                  moves: (xs) => xs.moves + 1
+                  moves: xs => xs.moves + 1
                 })
               ]
             },
@@ -116,7 +116,7 @@ const ticTacToeMachine = Machine(
   }
 );
 
-const service = interpret(ticTacToeMachine, (e) => {
+const service = interpret(ticTacToeMachine, e => {
   // console.log(e.value);
   // console.log(e.ext);
   // console.log('\n');
@@ -150,29 +150,25 @@ const valueAdjacencyMap = getValueAdjacencyMap(ticTacToeMachine, {
 });
 
 Object.keys(valueAdjacencyMap)
-  .filter((key) => {
+  .filter(key => {
     const adjacencies = valueAdjacencyMap[key];
 
     return key.includes('winner o');
   })
-  .map((key) => {
+  .map(key => {
     const [state, ext] = key.split(' | ');
     const extValue = JSON.parse(ext);
 
     return extValue;
   })
-  .filter((ext) => ext.moves === 5)
+  .filter(ext => ext.moves === 5)
   .map(({ board }) => {
-    const b = board.map((cell) => (cell === null ? '_' : cell));
-    return [
-      [b[0], b[1], [b[2]]],
-      [b[3], b[4], [b[5]]],
-      [b[6], b[7], [b[8]]]
-    ]
-      .map((a) => a.join(''))
+    const b = board.map(cell => (cell === null ? '_' : cell));
+    return [[b[0], b[1], [b[2]]], [b[3], b[4], [b[5]]], [b[6], b[7], [b[8]]]]
+      .map(a => a.join(''))
       .join('\n');
   })
-  .forEach((a) => console.log(a + '\n'));
+  .forEach(a => console.log(a + '\n'));
 // .map(key => valueAdjacencyMap[key]);
 
 // interpreter.init();

@@ -124,5 +124,7 @@ module.exports = {
       }
     ]
   },
-  plugins: ['vuepress-plugin-export']
+  plugins: [
+    'vuepress-plugin-export'
+  ]
 };
