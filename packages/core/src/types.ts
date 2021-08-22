@@ -1382,6 +1382,13 @@ export interface ActorRef<TEvent extends EventObject, TEmitted = any>
   send: Sender<TEvent>; // TODO: this should just be TEvent
   id: string;
   getSnapshot: () => TEmitted | undefined;
+  /**
+   * Meta data containing all the data necessary to restore the actor ref
+   */
+  meta?: {
+    src: InvokeSourceDefinition;
+    snapshot: TEmitted;
+  };
   stop?: () => void;
   toJSON?: () => any;
 }
