@@ -1238,6 +1238,7 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   children: Record<string, ActorRef<any>>;
   done?: boolean;
   tags?: Set<string>;
+  machine?: StateMachine<TContext, any, TEvent, any>;
 }
 
 export interface StateSchema<TC = any> {

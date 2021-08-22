@@ -1265,7 +1265,8 @@ class StateNode<
       transitions: stateTransition.transitions,
       children,
       done: isDone,
-      tags: currentState?.tags
+      tags: currentState?.tags,
+      machine: this
     });
 
     const didUpdateContext = currentContext !== updatedContext;

@@ -1,4 +1,10 @@
-import { Machine, State, StateFrom, interpret } from '../src/index';
+import {
+  Machine,
+  State,
+  StateFrom,
+  interpret,
+  createMachine
+} from '../src/index';
 import { initEvent, assign } from '../src/actions';
 import { toSCXMLEvent } from '../src/utils';
 
@@ -572,6 +578,35 @@ describe('State', () => {
 
     it('should show that a machine has reached its final state', () => {
       expect(machine.transition(undefined, 'TO_FINAL').done).toBeTruthy();
+    });
+  });
+
+  describe('.can', () => {
+    it('should determine if an event will cause a transition', () => {
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              NO_CHANGE: 'a',
+              ACTION: { actions: 'someAction' },
+              CHANGE: 'b'
+            }
+          },
+          b: {}
+        }
+      });
+
+      expect(machine.initialState.can({ type: 'UNKNOWN' })).toEqual(false);
+      expect(machine.initialState.can({ type: 'NO_CHANGE' })).toEqual(false);
+      expect(machine.initialState.can({ type: 'ACTION' })).toEqual(true);
+      expect(machine.initialState.can({ type: 'CHANGE' })).toEqual(true);
+    });
+
+    it('should return undefined for states created without a machine', () => {
+      const state = State.from('test');
+
+      expect(state.can({ type: 'ANY_EVENT' })).toEqual(undefined);
     });
   });
 });

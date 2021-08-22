@@ -11,7 +11,8 @@ import {
   StateSchema,
   TransitionDefinition,
   Typestate,
-  ActorRef
+  ActorRef,
+  StateMachine
 } from './types';
 import { EMPTY_ACTIVITY_MAP } from './constants';
 import { matchesState, keys, isString } from './utils';
@@ -128,6 +129,7 @@ export class State<
    */
   public children: Record<string, ActorRef<any>>;
   public tags: Set<string>;
+  private machine: StateMachine<TContext, any, TEvent, any> | undefined;
   /**
    * Creates a new State instance for the given `stateValue` and `context`.
    * @param stateValue
@@ -251,6 +253,7 @@ export class State<
     this.tags =
       (Array.isArray(config.tags) ? new Set(config.tags) : config.tags) ??
       new Set();
+    this.machine = config.machine;
 
     Object.defineProperty(this, 'nextEvents', {
       get: () => {
@@ -283,7 +286,7 @@ export class State<
   }
 
   public toJSON() {
-    const { configuration, transitions, tags, ...jsonValues } = this;
+    const { configuration, transitions, tags, machine, ...jsonValues } = this;
 
     return { ...jsonValues, tags: Array.from(tags) };
   }
@@ -313,5 +316,21 @@ export class State<
    */
   public hasTag(tag: string): boolean {
     return this.tags.has(tag);
+  }
+
+  /**
+   * Determines whether sending the `event` will cause a transition.
+   *
+   * If this state was created outside of a machine (e.g., with `State.from(...)`), `undefined` will be returned.
+   *
+   * @param event The event to test
+   * @returns Whether the event will cause a transition
+   */
+  public can(event: TEvent): boolean | undefined {
+    if (!this.machine) {
+      return undefined;
+    }
+
+    return this.machine.transition(this, event).changed;
   }
 }
