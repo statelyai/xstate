@@ -36,17 +36,8 @@ export const welcomeMachine = createMachine({
     errorActor: undefined
   },
 
-  initial: 'idle',
+  initial: 'loadingCelebs',
   states: {
-    idle: {
-      always: [
-        {
-          cond: (context, event) => context.celebs.length === 0,
-          target: 'loadingCelebs'
-        },
-        { target: 'categories' }
-      ]
-    },
     loadingCelebs: {
       invoke: {
         src: (context, event) => loadCelebs(),
