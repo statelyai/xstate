@@ -590,6 +590,10 @@ describe('State', () => {
             on: {
               NO_CHANGE: 'a',
               ACTION: { actions: 'someAction' },
+              ACTION_WITH_COND: {
+                actions: 'someAction',
+                cond: (_: any, e: any) => e.cond
+              },
               CHANGE: 'b'
             }
           },
@@ -598,15 +602,30 @@ describe('State', () => {
       });
 
       expect(machine.initialState.can({ type: 'UNKNOWN' })).toEqual(false);
+      expect(machine.initialState.can('UNKNOWN')).toEqual(false);
+
       expect(machine.initialState.can({ type: 'NO_CHANGE' })).toEqual(false);
+      expect(machine.initialState.can('NO_CHANGE')).toEqual(false);
+
       expect(machine.initialState.can({ type: 'ACTION' })).toEqual(true);
+      expect(machine.initialState.can('ACTION')).toEqual(true);
+
       expect(machine.initialState.can({ type: 'CHANGE' })).toEqual(true);
+      expect(machine.initialState.can('CHANGE')).toEqual(true);
+
+      expect(
+        machine.initialState.can({ type: 'ACTION_WITH_COND', cond: true })
+      ).toEqual(true);
+      expect(
+        machine.initialState.can({ type: 'ACTION_WITH_COND', cond: false })
+      ).toEqual(false);
+      expect(machine.initialState.can('ACTION_WITH_COND')).toEqual(false);
     });
 
-    it('should return undefined for states created without a machine', () => {
+    it('should return false for states created without a machine', () => {
       const state = State.from('test');
 
-      expect(state.can({ type: 'ANY_EVENT' })).toEqual(undefined);
+      expect(state.can({ type: 'ANY_EVENT' })).toEqual(false);
     });
   });
 });

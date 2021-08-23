@@ -129,7 +129,9 @@ export class State<
    */
   public children: Record<string, ActorRef<any>>;
   public tags: Set<string>;
-  private machine: StateMachine<TContext, any, TEvent, any> | undefined;
+  protected machine:
+    | StateMachine<TContext, any, TEvent, TTypestate>
+    | undefined;
   /**
    * Creates a new State instance for the given `stateValue` and `context`.
    * @param stateValue
@@ -321,16 +323,16 @@ export class State<
   /**
    * Determines whether sending the `event` will cause a transition.
    *
-   * If this state was created outside of a machine (e.g., with `State.from(...)`), `undefined` will be returned.
+   * If this state was created outside of a machine (e.g., with `State.from(...)`), `false` will be returned.
    *
    * @param event The event to test
    * @returns Whether the event will cause a transition
    */
-  public can(event: TEvent): boolean | undefined {
+  public can(event: TEvent | TEvent['type']): boolean {
     if (!this.machine) {
-      return undefined;
+      return false;
     }
 
-    return this.machine.transition(this, event).changed;
+    return !!this.machine.transition(this, event).changed;
   }
 }
