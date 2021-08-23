@@ -126,10 +126,13 @@ export const gameMachine = ({ celebs, lookup, category }) =>
       feedback: {
         on: {
           RESTART: {
-            actions: sendParent('GREET')
+            actions: [
+              stop('feedbackActor'),
+              assign({ feedbackActor: undefined }),
+              sendParent('GREET')
+            ]
           }
-        },
-        exit: [stop('feedbackActor'), assign({ feedbackActor: undefined })]
+        }
       },
 
       failure: {

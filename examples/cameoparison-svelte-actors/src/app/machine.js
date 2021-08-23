@@ -36,5 +36,8 @@ export const machine = createMachine({
     welcomeActor: (context, event) => spawn(welcomeMachine, 'welcomeActor')
   }),
 
-  exit: [stop('welcomeActor'), assign({ welcomeActor: undefined })]
+
+  exit: [stop('welcomeActor'), assign({ welcomeActor: undefined })],
+
+  preserveActionOrder: true
 });
