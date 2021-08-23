@@ -322,9 +322,6 @@ export class State<
 
   /**
    * Determines whether sending the `event` will cause a transition.
-   *
-   * If this state was created outside of a machine (e.g., with `State.from(...)`), `undefined` will be returned.
-   *
    * @param event The event to test
    * @returns Whether the event will cause a transition
    */
