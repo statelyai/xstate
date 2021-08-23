@@ -1,13 +1,12 @@
 import { xml2js, Element as XMLElement } from 'xml-js';
 import {
   EventObject,
-  ActionObject,
   SCXMLEventMeta,
   SendExpr,
   DelayExpr,
-  ChooseConditon
+  ChooseCondition
 } from './types';
-import { StateNode, Machine } from './index';
+import { StateNode, Machine, BaseOrBuiltInActionObject } from './index';
 import { mapValues, keys, isString } from './utils';
 import * as actions from './actions';
 
@@ -134,12 +133,10 @@ function createCond<
 function mapAction<
   TContext extends object,
   TEvent extends EventObject = EventObject
->(element: XMLElement): ActionObject<TContext, TEvent> {
+>(element: XMLElement): BaseOrBuiltInActionObject<TContext, TEvent> {
   switch (element.name) {
     case 'raise': {
-      return actions.raise<TContext, TEvent>(
-        element.attributes!.event! as string
-      );
+      return actions.raise(element.attributes!.event! as string) as any; // TODO
     }
     case 'assign': {
       return actions.assign<TContext, TEvent>((context, e, meta) => {
@@ -215,9 +212,9 @@ function mapAction<
       );
     }
     case 'if': {
-      const conds: ChooseConditon<TContext, TEvent>[] = [];
+      const conds: ChooseCondition<TContext, TEvent>[] = [];
 
-      let current: ChooseConditon<TContext, TEvent> = {
+      let current: ChooseCondition<TContext, TEvent> = {
         cond: createCond(element.attributes!.cond as string),
         actions: []
       };
@@ -258,8 +255,8 @@ function mapAction<
 function mapActions<
   TContext extends object,
   TEvent extends EventObject = EventObject
->(elements: XMLElement[]): Array<ActionObject<TContext, TEvent>> {
-  const mapped: Array<ActionObject<TContext, TEvent>> = [];
+>(elements: XMLElement[]): Array<BaseOrBuiltInActionObject<TContext, TEvent>> {
+  const mapped: Array<BaseOrBuiltInActionObject<TContext, TEvent>> = [];
 
   for (const element of elements) {
     if (element.type === 'comment') {

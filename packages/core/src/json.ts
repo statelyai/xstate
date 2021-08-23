@@ -1,4 +1,9 @@
-import { StateNode, ActionObject, Guard, InvokeDefinition } from './';
+import {
+  StateNode,
+  Guard,
+  InvokeDefinition,
+  BaseOrBuiltInActionObject
+} from './';
 import { mapValues, isFunction } from './utils';
 
 interface JSONFunction {
@@ -19,7 +24,7 @@ function getStateNodeId(stateNode: StateNode): string {
 interface TransitionConfig {
   target: string[];
   source: string;
-  actions: Array<ActionObject<any, any>>;
+  actions: Array<BaseOrBuiltInActionObject<any, any>>;
   cond: Guard<any, any> | undefined;
   eventType: string;
 }
@@ -29,8 +34,8 @@ interface StateNodeConfig {
   id: string;
   key: string;
   initial?: string;
-  entry: Array<ActionObject<any, any>>;
-  exit: Array<ActionObject<any, any>>;
+  entry: Array<BaseOrBuiltInActionObject<any, any>>;
+  exit: Array<BaseOrBuiltInActionObject<any, any>>;
   on: {
     [key: string]: TransitionConfig[];
   };
@@ -40,7 +45,7 @@ interface StateNodeConfig {
 
 // derive config from machine
 export function machineToJSON(stateNode: StateNode): StateNodeConfig {
-  const config = {
+  const config: StateNodeConfig = {
     type: stateNode.type,
     initial:
       stateNode.initial === undefined ? undefined : String(stateNode.initial),

@@ -27,7 +27,14 @@ export interface BaseActionObject {
    */
   type: string;
   [other: string]: any;
+
+  __context?: never;
+  __event?: never;
 }
+
+export type BaseOrBuiltInActionObject<TContext, TEvent extends EventObject> =
+  | BaseActionObject
+  | BuiltInActionObject<TContext, TEvent>;
 
 /**
  * The full definition of an action, with a string `type` and an
@@ -81,11 +88,14 @@ export type ActionFunction<
   meta: ActionMeta<TContext, TEvent, TAction>
 ) => void;
 
-export interface ChooseConditon<TContext, TEvent extends EventObject> {
+export interface ChooseCondition<TContext, TEvent extends EventObject> {
   cond?: Condition<TContext, TEvent>;
-  actions: Actions<TContext, TEvent>;
+  actions: BaseActions<TContext, TEvent, BaseActionObject>;
 }
 
+/**
+ * @deprecated
+ */
 export type Action<TContext, TEvent extends EventObject> =
   | ActionType
   | ActionObject<TContext, TEvent>
@@ -107,8 +117,8 @@ export type BaseAction<
   TAction extends BaseActionObject
 > =
   | SimpleActionsFrom<TAction>['type']
-  | TAction
   | BuiltInActionObject<TContext, TEvent>
+  | TAction
   | ActionFunction<TContext, TEvent>;
 
 export type BaseActions<
@@ -117,6 +127,9 @@ export type BaseActions<
   TAction extends BaseActionObject
 > = SingleOrArray<BaseAction<TContext, TEvent, TAction>>;
 
+/**
+ * @deprecated
+ */
 export type Actions<TContext, TEvent extends EventObject> = SingleOrArray<
   Action<TContext, TEvent>
 >;
@@ -586,7 +599,7 @@ export interface StateNodeConfig<
    *
    * @deprecated Use `entry` instead.
    */
-  onEntry?: Actions<TContext, TEvent>; // TODO: deprecate
+  onEntry?: BaseActions<TContext, TEvent, TAction>;
   /**
    * The action(s) to be executed upon entering the state node.
    */
@@ -596,7 +609,7 @@ export interface StateNodeConfig<
    *
    * @deprecated Use `exit` instead.
    */
-  onExit?: Actions<TContext, TEvent>; // TODO: deprecate
+  onExit?: BaseActions<TContext, TEvent, TAction>;
   /**
    * The action(s) to be executed upon exiting the state node.
    */
@@ -685,8 +698,8 @@ export interface StateNodeDefinition<
   states: StatesDefinition<TContext, TStateSchema, TEvent>;
   on: TransitionDefinitionMap<TContext, TEvent>;
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
-  entry: Array<ActionObject<TContext, TEvent>>;
-  exit: Array<ActionObject<TContext, TEvent>>;
+  entry: Array<BaseOrBuiltInActionObject<TContext, TEvent>>;
+  exit: Array<BaseOrBuiltInActionObject<TContext, TEvent>>;
   /**
    * @deprecated
    */
@@ -733,13 +746,10 @@ export type SimpleOrStateNodeConfig<
 export type ActionFunctionMap<
   TContext,
   TEvent extends EventObject,
-  TAction extends ActionObject<TContext, TEvent> = ActionObject<
-    TContext,
-    TEvent
-  >
+  TAction extends BaseActionObject = BaseActionObject
 > = {
   [K in TAction['type']]?:
-    | ActionObject<TContext, TEvent>
+    | BaseOrBuiltInActionObject<TContext, TEvent>
     | ActionFunction<
         TContext,
         TEvent,
@@ -939,8 +949,10 @@ export interface BuiltInActionObject<TContext, TEvent extends EventObject> {
   __event: TEvent;
 }
 
+//  const { type } =  assign()
+
 export interface RaiseAction<TEvent extends EventObject>
-  extends BuiltInActionObject<unknown, TEvent> {
+  extends BuiltInActionObject<any, TEvent> {
   type: ActionTypes.Raise;
   event: TEvent['type'];
 }
@@ -1133,11 +1145,13 @@ export interface AnyAssignAction<TContext, TEvent extends EventObject>
   assignment: any;
 }
 
-export interface AssignAction<TContext, TEvent extends EventObject>
-  extends BuiltInActionObject<TContext, TEvent> {
+export type AssignAction<
+  TContext,
+  TEvent extends EventObject
+> = BuiltInActionObject<TContext, TEvent> & {
   type: ActionTypes.Assign;
   assignment: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent>;
-}
+};
 
 export interface PureAction<TContext, TEvent extends EventObject>
   extends BuiltInActionObject<TContext, TEvent> {
@@ -1151,20 +1165,20 @@ export interface PureAction<TContext, TEvent extends EventObject>
 export interface ChooseAction<TContext, TEvent extends EventObject>
   extends BuiltInActionObject<TContext, TEvent> {
   type: ActionTypes.Choose;
-  conds: Array<ChooseConditon<TContext, TEvent>>;
+  conds: Array<ChooseCondition<TContext, TEvent>>;
 }
 
 export interface TransitionDefinition<TContext, TEvent extends EventObject>
   extends TransitionConfig<TContext, TEvent, BaseActionObject> {
   target: Array<StateNode<TContext, any, TEvent>> | undefined;
   source: StateNode<TContext, any, TEvent>;
-  actions: Array<ActionObject<TContext, TEvent>>;
+  actions: Array<BaseOrBuiltInActionObject<TContext, TEvent>>;
   cond?: Guard<TContext, TEvent>;
   eventType: TEvent['type'] | NullEvent['type'] | '*';
   toJSON: () => {
     target: string[] | undefined;
     source: string;
-    actions: Array<ActionObject<TContext, TEvent>>;
+    actions: Array<BaseOrBuiltInActionObject<TContext, TEvent>>;
     cond?: Guard<TContext, TEvent>;
     eventType: TEvent['type'] | NullEvent['type'] | '*';
     meta?: Record<string, any>;

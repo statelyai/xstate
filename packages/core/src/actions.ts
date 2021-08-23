@@ -31,7 +31,7 @@ import {
   DelayFunctionMap,
   SCXML,
   ExprWithMeta,
-  ChooseConditon,
+  ChooseCondition,
   ChooseAction,
   AnyEventObject,
   Expr,
@@ -58,6 +58,11 @@ import {
 import { State } from './State';
 import { StateNode } from './StateNode';
 import { IS_PRODUCTION } from './environment';
+import {
+  BaseActionObject,
+  BaseOrBuiltInActionObject,
+  BuiltInActionObject
+} from '.';
 
 export { actionTypes };
 
@@ -67,7 +72,7 @@ export function getActionFunction<TContext, TEvent extends EventObject>(
   actionType: ActionType,
   actionFunctionMap?: ActionFunctionMap<TContext, TEvent>
 ):
-  | ActionObject<TContext, TEvent>
+  | BaseOrBuiltInActionObject<TContext, TEvent>
   | ActionFunction<TContext, TEvent>
   | undefined {
   return actionFunctionMap
@@ -76,10 +81,13 @@ export function getActionFunction<TContext, TEvent extends EventObject>(
 }
 
 export function toActionObject<TContext, TEvent extends EventObject>(
-  action: Action<TContext, TEvent>,
+  action:
+    | BaseOrBuiltInActionObject<TContext, TEvent>
+    | ActionFunction<TContext, TEvent>
+    | string,
   actionFunctionMap?: ActionFunctionMap<TContext, TEvent>
-): ActionObject<TContext, TEvent> {
-  let actionObject: ActionObject<TContext, TEvent>;
+): BaseOrBuiltInActionObject<TContext, TEvent> {
+  let actionObject: BaseOrBuiltInActionObject<TContext, TEvent>;
 
   if (isString(action) || typeof action === 'number') {
     const exec = getActionFunction(action, actionFunctionMap);
@@ -126,7 +134,7 @@ type TODO = any;
 export const toActionObjects = <TContext, TEvent extends EventObject>(
   action?: SingleOrArray<BaseAction<TContext, TEvent, TODO>> | undefined,
   actionFunctionMap?: ActionFunctionMap<TContext, TEvent>
-): Array<ActionObject<TContext, TEvent>> => {
+): Array<BaseOrBuiltInActionObject<TContext, TEvent>> => {
   if (!action) {
     return [];
   }
@@ -141,7 +149,7 @@ export const toActionObjects = <TContext, TEvent extends EventObject>(
 export function toActivityDefinition<TContext, TEvent extends EventObject>(
   action: string | ActivityDefinition<TContext, TEvent>
 ): ActivityDefinition<TContext, TEvent> {
-  const actionObject = toActionObject(action);
+  const actionObject = toActionObject(action) as BaseActionObject;
 
   return {
     id: isString(action) ? action : actionObject.id,
@@ -514,7 +522,7 @@ export function pure<TContext, TEvent extends EventObject>(
   getActions: (
     context: TContext,
     event: TEvent
-  ) => SingleOrArray<ActionObject<TContext, TEvent>> | undefined
+  ) => SingleOrArray<BaseAction<TContext, TEvent, BaseActionObject>> | undefined
 ): PureAction<TContext, TEvent> {
   return {
     type: ActionTypes.Pure,
@@ -570,7 +578,7 @@ export function escalate<
 }
 
 export function choose<TContext, TEvent extends EventObject>(
-  conds: Array<ChooseConditon<TContext, TEvent>>
+  conds: Array<ChooseCondition<TContext, TEvent>>
 ): ChooseAction<TContext, TEvent> {
   return {
     type: ActionTypes.Choose,
@@ -583,9 +591,9 @@ export function resolveActions<TContext, TEvent extends EventObject>(
   currentState: State<TContext, TEvent> | undefined,
   currentContext: TContext,
   _event: SCXML.Event<TEvent>,
-  actions: Array<ActionObject<TContext, TEvent>>,
+  actions: Array<BaseActionObject | BuiltInActionObject<TContext, TEvent>>,
   preserveActionOrder: boolean = false
-): [Array<ActionObject<TContext, TEvent>>, TContext] {
+): [Array<BaseOrBuiltInActionObject<TContext, TEvent>>, TContext] {
   const [assignActions, otherActions] = preserveActionOrder
     ? [[], actions]
     : partition(
@@ -614,15 +622,18 @@ export function resolveActions<TContext, TEvent extends EventObject>(
               updatedContext,
               _event,
               machine.options.delays
-            ) as ActionObject<TContext, TEvent>; // TODO: fix ActionTypes.Init
+            ); // TODO: fix ActionTypes.Init
 
             if (!IS_PRODUCTION) {
               // warn after resolving as we can create better contextual message here
               warn(
-                !isString(actionObject.delay) ||
-                  typeof sendAction.delay === 'number',
+                !isString(
+                  (actionObject as SendActionObject<TContext, TEvent>).delay
+                ) || typeof sendAction.delay === 'number',
                 // tslint:disable-next-line:max-line-length
-                `No delay reference for delay expression '${actionObject.delay}' was found on machine '${machine.id}'`
+                `No delay reference for delay expression '${
+                  (actionObject as SendActionObject<TContext, TEvent>).delay
+                }' was found on machine '${machine.id}'`
               );
             }
 
@@ -664,7 +675,7 @@ export function resolveActions<TContext, TEvent extends EventObject>(
               toActionObjects(toArray(matchedActions), machine.options.actions),
               preserveActionOrder
             );
-            updatedContext = resolvedContextFromChoose;
+            updatedContext = resolvedContextFromChoose!;
             preservedContexts?.push(updatedContext);
             return resolvedActionsFromChoose;
           }
@@ -684,7 +695,7 @@ export function resolveActions<TContext, TEvent extends EventObject>(
               toActionObjects(toArray(matchedActions), machine.options.actions),
               preserveActionOrder
             );
-            updatedContext = resolvedContext;
+            updatedContext = resolvedContext!;
             preservedContexts?.push(updatedContext);
             return resolvedActionsFromPure;
           }
@@ -709,7 +720,7 @@ export function resolveActions<TContext, TEvent extends EventObject>(
             const resolvedActionObject = toActionObject(
               actionObject,
               machine.options.actions
-            );
+            ) as ActionObject<TContext, TEvent> | BaseActionObject;
             const { exec } = resolvedActionObject;
             if (exec && preservedContexts) {
               const contextIndex = preservedContexts.length - 1;

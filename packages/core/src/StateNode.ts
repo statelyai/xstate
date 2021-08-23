@@ -101,6 +101,7 @@ import {
 } from './stateUtils';
 import { createInvocableActor } from './Actor';
 import { toInvokeDefinition } from './invokeUtils';
+import { BaseOrBuiltInActionObject, StopActionObject } from '.';
 
 const NULL_EVENT = '';
 const STATE_IDENTIFIER = '#';
@@ -205,11 +206,11 @@ class StateNode<
   /**
    * The action(s) to be executed upon entering the state node.
    */
-  public onEntry: Array<ActionObject<TContext, TEvent>>; // TODO: deprecate (entry)
+  public onEntry: Array<BaseOrBuiltInActionObject<TContext, TEvent>>; // TODO: deprecate (entry)
   /**
    * The action(s) to be executed upon exiting the state node.
    */
-  public onExit: Array<ActionObject<TContext, TEvent>>; // TODO: deprecate (exit)
+  public onExit: Array<BaseOrBuiltInActionObject<TContext, TEvent>>; // TODO: deprecate (exit)
   /**
    * The activities to be started upon entering the state node,
    * and stopped upon exiting the state node.
@@ -959,7 +960,7 @@ class StateNode<
     currentContext: TContext,
     _event: SCXML.Event<TEvent>,
     prevState?: State<TContext>
-  ): Array<ActionObject<TContext, TEvent>> {
+  ): Array<BaseOrBuiltInActionObject<TContext, TEvent>> {
     const prevConfig = getConfiguration(
       [],
       prevState ? this.getStateNodes(prevState.value) : [this]
@@ -1040,7 +1041,9 @@ class StateNode<
             ...stateNode.onEntry
           ];
         })
-      ).concat(doneEvents.map(raise) as Array<ActionObject<TContext, TEvent>>),
+      ).concat(
+        doneEvents.map(raise) as any // TODO
+      ),
       flatten(
         Array.from(exitStates).map((stateNode) => [
           ...stateNode.onExit,
@@ -1174,12 +1177,14 @@ class StateNode<
       currentState
     );
     const activities = currentState ? { ...currentState.activities } : {};
-    for (const action of actions) {
+    for (let action of actions) {
       if (action.type === actionTypes.start) {
+        action = action as ActivityActionObject<TContext, TEvent>;
         activities[
           action.activity!.id || action.activity!.type
         ] = action as ActivityDefinition<TContext, TEvent>;
       } else if (action.type === actionTypes.stop) {
+        action = action as StopActionObject;
         activities[action.activity!.id || action.activity!.type] = false;
       }
     }
@@ -1860,7 +1865,7 @@ class StateNode<
 
     const target = this.resolveTarget(normalizedTarget);
 
-    const transition = {
+    const transition: TransitionDefinition<TContext, TEvent> = {
       ...transitionConfig,
       actions: toActionObjects(toArray(transitionConfig.actions)),
       cond: toGuard(transitionConfig.cond, guards),

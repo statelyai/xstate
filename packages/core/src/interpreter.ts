@@ -66,6 +66,7 @@ import { registry } from './registry';
 import { getGlobal, registerService } from './devTools';
 import * as serviceScope from './serviceScope';
 import { spawnBehavior } from './behaviors';
+import { BaseOrBuiltInActionObject, LogActionObject } from '.';
 
 export type StateListener<
   TContext,
@@ -765,19 +766,19 @@ export class Interpreter<
     delete this.delayedEventsMap[sendId];
   }
   private exec(
-    action: ActionObject<TContext, TEvent>,
+    action: BaseOrBuiltInActionObject<TContext, TEvent>,
     state: State<TContext, TEvent, TStateSchema, TTypestate>,
     actionFunctionMap: ActionFunctionMap<TContext, TEvent> = this.machine
       .options.actions
   ): void {
     const { context, _event } = state;
     const actionOrExec =
-      action.exec || getActionFunction(action.type, actionFunctionMap);
+      (action as any).exec || getActionFunction(action.type, actionFunctionMap);
     const exec = isFunction(actionOrExec)
       ? actionOrExec
       : actionOrExec
-      ? actionOrExec.exec
-      : action.exec;
+      ? (actionOrExec as any).exec
+      : (action as any).exec;
 
     if (exec) {
       try {
@@ -800,7 +801,10 @@ export class Interpreter<
 
     switch (action.type) {
       case actionTypes.send:
-        const sendAction = action as SendActionObject<TContext, TEvent>;
+        const sendAction = (action as unknown) as SendActionObject<
+          TContext,
+          TEvent
+        >;
 
         if (typeof sendAction.delay === 'number') {
           this.defer(sendAction);
@@ -910,7 +914,10 @@ export class Interpreter<
       }
 
       case actionTypes.log:
-        const { label, value } = action;
+        const { label, value } = (action as unknown) as LogActionObject<
+          TContext,
+          TEvent
+        >;
 
         if (label) {
           this.logger(label, value);

@@ -2,7 +2,6 @@ import {
   Event,
   StateValue,
   ActionType,
-  Action,
   EventObject,
   PropertyMapper,
   Mapper,
@@ -85,7 +84,7 @@ export function getEventType<TEvent extends EventObject = EventObject>(
     );
   }
 }
-export function getActionType(action: Action<any, any>): ActionType {
+export function getActionType(action: string | BaseActionObject): ActionType {
   try {
     return isString(action) || typeof action === 'number'
       ? `${action}`

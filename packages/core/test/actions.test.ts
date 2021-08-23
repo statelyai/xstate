@@ -1048,9 +1048,7 @@ describe('choose', () => {
       initial: 'foo',
       states: {
         foo: {
-          entry: choose([
-            { cond: () => true, actions: assign<Ctx>({ answer: 42 }) }
-          ])
+          entry: choose([{ cond: () => true, actions: assign({ answer: 42 }) }])
         }
       }
     });
