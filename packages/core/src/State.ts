@@ -12,13 +12,15 @@ import {
   TransitionDefinition,
   Typestate,
   ActorRef,
-  StateMachine
+  StateMachine,
+  SimpleEventsOf
 } from './types';
 import { EMPTY_ACTIVITY_MAP } from './constants';
-import { matchesState, keys, isString } from './utils';
+import { matchesState, keys, isString, warn } from './utils';
 import { StateNode } from './StateNode';
 import { getMeta, nextEvents } from './stateUtils';
 import { initEvent } from './actions';
+import { IS_PRODUCTION } from './environment';
 
 export function stateValuesEqual(
   a: StateValue | undefined,
@@ -326,11 +328,14 @@ export class State<
    * @param event The event to test
    * @returns Whether the event will cause a transition
    */
-  public can(event: TEvent): boolean | undefined {
-    if (!this.machine) {
-      return undefined;
+  public can(event: TEvent | SimpleEventsOf<TEvent>['type']): boolean {
+    if (IS_PRODUCTION) {
+      warn(
+        !!this.machine,
+        `state.can(...) used outside of a machine-created State object; this will always return false.`
+      );
     }
 
-    return this.machine.transition(this, event).changed;
+    return !!this.machine?.transition(this, event).changed;
   }
 }

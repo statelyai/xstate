@@ -94,19 +94,26 @@ export type Action<TContext, TEvent extends EventObject> =
 /**
  * Extracts action objects that have no extra properties.
  */
-type SimpleActionsFrom<T extends BaseActionObject> = ActionObject<
+type SimpleActionsOf<T extends BaseActionObject> = ActionObject<
   any,
   any
 > extends T
   ? T // If actions are unspecified, all action types are allowed (unsafe)
   : ExtractWithSimpleSupport<T>;
 
+/**
+ * Events that do not require payload
+ */
+export type SimpleEventsOf<
+  TEvent extends EventObject
+> = ExtractWithSimpleSupport<TEvent>;
+
 export type BaseAction<
   TContext,
   TEvent extends EventObject,
   TAction extends BaseActionObject
 > =
-  | SimpleActionsFrom<TAction>['type']
+  | SimpleActionsOf<TAction>['type']
   | TAction
   | RaiseAction<any>
   | SendAction<TContext, TEvent, any>

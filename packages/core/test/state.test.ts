@@ -597,16 +597,20 @@ describe('State', () => {
         }
       });
 
+      expect(machine.initialState.can('UNKNOWN')).toEqual(false);
+      expect(machine.initialState.can('NO_CHANGE')).toEqual(false);
+      expect(machine.initialState.can('ACTION')).toEqual(true);
+      expect(machine.initialState.can('CHANGE')).toEqual(true);
       expect(machine.initialState.can({ type: 'UNKNOWN' })).toEqual(false);
       expect(machine.initialState.can({ type: 'NO_CHANGE' })).toEqual(false);
       expect(machine.initialState.can({ type: 'ACTION' })).toEqual(true);
       expect(machine.initialState.can({ type: 'CHANGE' })).toEqual(true);
     });
 
-    it('should return undefined for states created without a machine', () => {
+    it('should warn and return false for states created without a machine', () => {
       const state = State.from('test');
 
-      expect(state.can({ type: 'ANY_EVENT' })).toEqual(undefined);
+      expect(state.can({ type: 'ANY_EVENT' })).toEqual(false);
     });
   });
 });
