@@ -935,8 +935,8 @@ export enum ActionTypes {
 // Used as a "phantom type" for built-in actions
 export interface BuiltInActionObject<TContext, TEvent extends EventObject> {
   type: string;
-  __context: TContext;
-  __event: TEvent;
+  __context?: TContext;
+  __event?: TEvent;
 }
 
 export interface RaiseAction<TEvent extends EventObject>

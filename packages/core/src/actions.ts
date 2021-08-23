@@ -160,16 +160,14 @@ export function raise<TContext, TEvent extends EventObject>(
   event: Event<TEvent>
 ): RaiseAction<TEvent> | SendAction<TContext, AnyEventObject, TEvent> {
   if (!isString(event)) {
-    return send(event, { to: SpecialTargets.Internal }) as SendAction<
-      TContext,
-      TEvent,
-      TEvent
-    >;
+    return send<TContext, AnyEventObject, TEvent>(event, {
+      to: SpecialTargets.Internal
+    });
   }
   return {
     type: actionTypes.raise,
     event
-  } as RaiseAction<TEvent>;
+  };
 }
 
 export function resolveRaise<TEvent extends EventObject>(
@@ -210,7 +208,7 @@ export function send<
         : isFunction(event)
         ? event.name
         : (getEventType<TSentEvent>(event) as string)
-  } as SendAction<TContext, TEvent, TSentEvent>;
+  };
 }
 
 export function resolveSend<
@@ -338,7 +336,7 @@ export function log<TContext, TEvent extends EventObject>(
     type: actionTypes.log,
     label,
     expr
-  } as LogAction<TContext, TEvent>;
+  };
 }
 
 export function resolveLog<TContext, TEvent extends EventObject>(
@@ -367,7 +365,7 @@ export function cancel(sendId: string | number): CancelAction {
   return {
     type: actionTypes.cancel,
     sendId
-  } as CancelAction;
+  };
 }
 
 /**
@@ -405,7 +403,7 @@ export function stop<TContext, TEvent extends EventObject>(
   return {
     type: ActionTypes.Stop,
     activity
-  } as StopAction<TContext, TEvent>;
+  };
 }
 
 export function resolveStop<TContext, TEvent extends EventObject>(
@@ -440,7 +438,7 @@ export const assign = <TContext, TEvent extends EventObject = EventObject>(
   return {
     type: actionTypes.assign,
     assignment
-  } as AssignAction<TContext, TEvent>;
+  };
 };
 
 export function isActionObject<TContext, TEvent extends EventObject>(
@@ -519,7 +517,7 @@ export function pure<TContext, TEvent extends EventObject>(
   return {
     type: ActionTypes.Pure,
     get: getActions
-  } as PureAction<TContext, TEvent>;
+  };
 }
 
 /**
@@ -575,7 +573,7 @@ export function choose<TContext, TEvent extends EventObject>(
   return {
     type: ActionTypes.Choose,
     conds
-  } as ChooseAction<TContext, TEvent>;
+  };
 }
 
 export function resolveActions<TContext, TEvent extends EventObject>(
