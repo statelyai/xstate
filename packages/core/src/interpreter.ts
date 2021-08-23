@@ -370,6 +370,7 @@ export class Interpreter<
     }
 
     if (resolvedCompleteListener) {
+      this.stopListeners.add(resolvedCompleteListener);
       this.onDone(resolvedCompleteListener);
     }
 
