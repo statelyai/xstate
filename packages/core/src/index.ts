@@ -74,4 +74,6 @@ export {
   createSchema
 };
 
+export { createModel } from './model';
+
 export * from './types';
