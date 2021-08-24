@@ -828,9 +828,11 @@ export interface StateMachine<
   ): StateMachine<TContext, TStateSchema, TEvent, TTypestate>;
 }
 
-export type StateFrom<
-  TMachine extends StateMachine<any, any, any>
-> = ReturnType<TMachine['transition']>;
+export type StateFrom<T> = T extends StateMachine<any, any, any>
+  ? ReturnType<T['transition']>
+  : T extends (...args: any[]) => StateMachine<any, any, any>
+  ? ReturnType<ReturnType<T>['transition']>
+  : never;
 
 export interface ActionMap<TContext, TEvent extends EventObject> {
   onEntry: Array<Action<TContext, TEvent>>;
