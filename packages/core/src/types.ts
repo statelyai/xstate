@@ -3,6 +3,9 @@ import { State } from './State';
 import { Interpreter, Clock } from './interpreter';
 import { Model } from './model.types';
 
+type AnyFunction = (...args: any[]) => any;
+type Resolve<T> = T extends AnyFunction ? ReturnType<T> : T;
+
 export type EventType = string;
 export type ActionType = string;
 export type MetaObject = Record<string, any>;
@@ -828,14 +831,10 @@ export interface StateMachine<
   ): StateMachine<TContext, TStateSchema, TEvent, TTypestate>;
 }
 
-export type StateFrom<
-  T extends
-    | StateMachine<any, any, any, any>
-    | ((...args: any[]) => StateMachine<any, any, any, any>)
-> = T extends StateMachine<any, any, any>
-  ? ReturnType<T['transition']>
-  : T extends (...args: any[]) => StateMachine<any, any, any>
-  ? ReturnType<ReturnType<T>['transition']>
+export type StateFrom<T> = Resolve<T> extends infer R
+  ? R extends StateMachine<any, any, any>
+    ? ReturnType<R['transition']>
+    : never
   : never;
 
 export interface ActionMap<TContext, TEvent extends EventObject> {
@@ -1411,47 +1410,27 @@ export type ActorRefWithDeprecatedState<
   state: State<TContext, TEvent, any, TTypestate>;
 };
 
-export type ActorRefFrom<T> = T extends StateMachine<
-  infer TContext,
-  any,
-  infer TEvent,
-  infer TTypestate
->
-  ? ActorRefWithDeprecatedState<TContext, TEvent, TTypestate>
-  : T extends (
-      ...args: any[]
-    ) => StateMachine<infer TContext, any, infer TEvent, infer TTypestate>
-  ? ActorRefWithDeprecatedState<TContext, TEvent, TTypestate>
-  : T extends Promise<infer U>
-  ? ActorRef<never, U>
-  : T extends Behavior<infer TEvent1, infer TEmitted>
-  ? ActorRef<TEvent1, TEmitted>
-  : T extends (...args: any[]) => Behavior<infer TEvent1, infer TEmitted>
-  ? ActorRef<TEvent1, TEmitted>
+export type ActorRefFrom<T> = Resolve<T> extends infer R
+  ? R extends StateMachine<infer TContext, any, infer TEvent, infer TTypestate>
+    ? ActorRefWithDeprecatedState<TContext, TEvent, TTypestate>
+    : T extends Promise<infer U>
+    ? ActorRef<never, U>
+    : T extends Behavior<infer TEvent1, infer TEmitted>
+    ? ActorRef<TEvent1, TEmitted>
+    : never
   : never;
 
 export type AnyInterpreter = Interpreter<any, any, any, any>;
 
-export type InterpreterFrom<
-  T extends
-    | StateMachine<any, any, any, any>
-    | ((...args: any[]) => StateMachine<any, any, any, any>)
-> = T extends StateMachine<
-  infer TContext,
-  infer TStateSchema,
-  infer TEvent,
-  infer TTypestate
->
-  ? Interpreter<TContext, TStateSchema, TEvent, TTypestate>
-  : T extends (
-      ...args: any[]
-    ) => StateMachine<
+export type InterpreterFrom<T> = Resolve<T> extends infer R
+  ? R extends StateMachine<
       infer TContext,
       infer TStateSchema,
       infer TEvent,
       infer TTypestate
     >
-  ? Interpreter<TContext, TStateSchema, TEvent, TTypestate>
+    ? Interpreter<TContext, TStateSchema, TEvent, TTypestate>
+    : never
   : never;
 
 export interface ActorContext<TEvent extends EventObject, TEmitted> {
@@ -1471,57 +1450,36 @@ export interface Behavior<TEvent extends EventObject, TEmitted = any> {
   start?: (actorCtx: ActorContext<TEvent, TEmitted>) => TEmitted;
 }
 
-export type EmittedFrom<T> = T extends ActorRef<any, infer TEmitted>
-  ? TEmitted
-  : T extends (...args: any[]) => ActorRef<any, infer TEmitted>
-  ? TEmitted
-  : T extends Behavior<any, infer TEmitted>
-  ? TEmitted
-  : T extends (...args: any[]) => Behavior<any, infer TEmitted>
-  ? TEmitted
-  : T extends ActorContext<any, infer TEmitted>
-  ? TEmitted
-  : T extends (...args: any[]) => ActorContext<any, infer TEmitted>
-  ? TEmitted
+export type EmittedFrom<T> = Resolve<T> extends infer R
+  ? R extends ActorRef<any, infer TEmitted>
+    ? TEmitted
+    : R extends Behavior<any, infer TEmitted>
+    ? TEmitted
+    : R extends ActorContext<any, infer TEmitted>
+    ? TEmitted
+    : never
   : never;
 
-export type EventFrom<T> = T extends StateMachine<any, any, infer TEvent, any>
-  ? TEvent
-  : T extends (...args: any[]) => StateMachine<any, any, infer TEvent, any>
-  ? TEvent
-  : T extends Model<any, infer TEvent, any, any>
-  ? TEvent
-  : T extends (...args: any[]) => Model<any, infer TEvent, any, any>
-  ? TEvent
-  : T extends State<any, infer TEvent, any, any>
-  ? TEvent
-  : T extends (...args: any[]) => State<any, infer TEvent, any, any>
-  ? TEvent
-  : T extends Interpreter<any, any, infer TEvent, any>
-  ? TEvent
-  : T extends (...args: any[]) => Interpreter<any, infer TEvent, any, any>
-  ? TEvent
+export type EventFrom<T> = Resolve<T> extends infer R
+  ? R extends StateMachine<any, any, infer TEvent, any>
+    ? TEvent
+    : R extends Model<any, infer TEvent, any, any>
+    ? TEvent
+    : R extends State<any, infer TEvent, any, any>
+    ? TEvent
+    : R extends Interpreter<any, any, infer TEvent, any>
+    ? TEvent
+    : never
   : never;
 
-export type ContextFrom<T> = T extends StateMachine<
-  infer TContext,
-  any,
-  any,
-  any
->
-  ? TContext
-  : T extends (...args: any[]) => StateMachine<infer TContext, any, any, any>
-  ? TContext
-  : T extends Model<infer TContext, any, any, any>
-  ? TContext
-  : T extends (...args: any[]) => Model<infer TContext, any, any, any>
-  ? TContext
-  : T extends State<infer TContext, any, any, any>
-  ? TContext
-  : T extends (...args: any[]) => State<infer TContext, any, any, any>
-  ? TContext
-  : T extends Interpreter<infer TContext, any, any, any>
-  ? TContext
-  : T extends (...args: any[]) => Interpreter<infer TContext, any, any, any>
-  ? TContext
+export type ContextFrom<T> = Resolve<T> extends infer R
+  ? R extends StateMachine<infer TContext, any, any, any>
+    ? TContext
+    : R extends Model<infer TContext, any, any, any>
+    ? TContext
+    : R extends State<infer TContext, any, any, any>
+    ? TContext
+    : R extends Interpreter<infer TContext, any, any, any>
+    ? TContext
+    : never
   : never;
