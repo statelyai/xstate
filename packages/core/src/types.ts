@@ -2,7 +2,6 @@ import { StateNode } from './StateNode';
 import { State } from './State';
 import { Interpreter, Clock } from './interpreter';
 import { Model } from './model.types';
-import { createMachine } from './Machine';
 
 export type EventType = string;
 export type ActionType = string;
