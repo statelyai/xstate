@@ -1,4 +1,4 @@
-import { Interpreter } from '.';
+import { Interpreter } from './interpreter';
 import { AnyInterpreter } from './types';
 
 type ServiceListener = (service: AnyInterpreter) => void;

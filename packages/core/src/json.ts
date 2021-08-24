@@ -1,4 +1,5 @@
-import { StateNode, ActionObject, Guard, InvokeDefinition } from './';
+import { StateNode } from './StateNode';
+import { ActionObject, Guard, InvokeDefinition } from './types';
 import { mapValues, isFunction } from './utils';
 
 interface JSONFunction {

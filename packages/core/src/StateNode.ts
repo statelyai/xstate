@@ -143,7 +143,7 @@ const validateArrayifiedTransitions = <TContext>(
   );
 };
 
-class StateNode<
+export class StateNode<
   TContext = any,
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = EventObject,
@@ -1987,5 +1987,3 @@ class StateNode<
     return formattedTransitions;
   }
 }
-
-export { StateNode };

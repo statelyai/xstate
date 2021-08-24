@@ -7,7 +7,8 @@ import {
   DelayExpr,
   ChooseConditon
 } from './types';
-import { StateNode, Machine } from './index';
+import { StateNode } from './StateNode';
+import { Machine } from './Machine';
 import { mapValues, keys, isString } from './utils';
 import * as actions from './actions';
 

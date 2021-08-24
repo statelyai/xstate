@@ -7,9 +7,9 @@ import {
   Spawnable,
   SCXML
 } from './types';
-import { isMachine, mapContext, toInvokeSource } from './utils';
+import { isActor, isMachine, mapContext, toInvokeSource } from './utils';
 import * as serviceScope from './serviceScope';
-import { ActorRef, BaseActorRef } from '.';
+import { ActorRef, BaseActorRef } from './types';
 
 export interface Actor<
   TContext = any,
@@ -91,14 +91,6 @@ export function createDeferredActor(
   }
 
   return tempActor;
-}
-
-export function isActor(item: any): item is ActorRef<any> {
-  try {
-    return typeof item.send === 'function';
-  } catch (e) {
-    return false;
-  }
 }
 
 export function isSpawnedActor(item: any): item is ActorRef<any> {

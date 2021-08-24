@@ -1,4 +1,5 @@
-import { EventObject, StateNode, StateValue } from '.';
+import { StateNode } from './StateNode';
+import { EventObject, StateValue } from './types';
 import { keys, flatten } from './utils';
 
 type Configuration<TC, TE extends EventObject> = Iterable<

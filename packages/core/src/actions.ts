@@ -55,7 +55,7 @@ import {
 import { State } from './State';
 import { StateNode } from './StateNode';
 import { IS_PRODUCTION } from './environment';
-import { StopAction, StopActionObject } from '.';
+import { StopAction, StopActionObject } from './types';
 
 export { actionTypes };
 
@@ -716,3 +716,22 @@ export function resolveActions<TContext, TEvent extends EventObject>(
   );
   return [resolvedActions, updatedContext];
 }
+
+export const actions = {
+  raise,
+  send,
+  sendParent,
+  sendUpdate,
+  log,
+  cancel,
+  start,
+  stop,
+  assign,
+  after,
+  done,
+  respond,
+  forwardTo,
+  escalate,
+  choose,
+  pure
+};
