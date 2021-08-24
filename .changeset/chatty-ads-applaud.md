@@ -16,3 +16,11 @@ type Event = EventsFrom<typeof makeMachine>;
 ```
 
 This also works for models, behaviours, and other actor types.
+
+The previous method for doing this was a good bit uglier:
+
+```ts
+const makeMachine = () => createMachine({});
+
+type Interpreter = InterpreterFrom<ReturnType<typeof machine>>;
+```
