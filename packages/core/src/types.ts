@@ -828,7 +828,11 @@ export interface StateMachine<
   ): StateMachine<TContext, TStateSchema, TEvent, TTypestate>;
 }
 
-export type StateFrom<T> = T extends StateMachine<any, any, any>
+export type StateFrom<
+  T extends
+    | StateMachine<any, any, any, any>
+    | ((...args: any[]) => StateMachine<any, any, any, any>)
+> = T extends StateMachine<any, any, any>
   ? ReturnType<T['transition']>
   : T extends (...args: any[]) => StateMachine<any, any, any>
   ? ReturnType<ReturnType<T>['transition']>
@@ -1428,7 +1432,11 @@ export type ActorRefFrom<T> = T extends StateMachine<
 
 export type AnyInterpreter = Interpreter<any, any, any, any>;
 
-export type InterpreterFrom<T> = T extends StateMachine<
+export type InterpreterFrom<
+  T extends
+    | StateMachine<any, any, any, any>
+    | ((...args: any[]) => StateMachine<any, any, any, any>)
+> = T extends StateMachine<
   infer TContext,
   infer TStateSchema,
   infer TEvent,
