@@ -496,7 +496,7 @@ describe('interpreter', () => {
     });
   });
 
-  describe('activities', () => {
+  describe('activities (deprecated)', () => {
     let activityState = 'off';
 
     const activityMachine = Machine(

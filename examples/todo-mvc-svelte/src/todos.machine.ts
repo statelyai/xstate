@@ -1,4 +1,4 @@
-import { createMachine, spawn, ActorRef } from 'xstate';
+import { spawn, ActorRef } from 'xstate';
 import { createModel } from 'xstate/lib/model';
 import { createTodoMachine } from './todo.machine';
 
@@ -39,7 +39,7 @@ const todosModel = createModel(
   }
 );
 
-export const todosMachine = createMachine<typeof todosModel>({
+export const todosMachine = todosModel.createMachine({
   id: 'todos',
   context: todosModel.initialContext,
   initial: 'loading',

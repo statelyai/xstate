@@ -1,4 +1,4 @@
-import { createMachine, sendParent, EventFrom } from 'xstate';
+import { sendParent, EventFrom } from 'xstate';
 import { createModel } from 'xstate/lib/model';
 
 const todoModel = createModel(
@@ -36,7 +36,7 @@ export const createTodoMachine = ({
   title: string;
   completed: boolean;
 }) => {
-  return createMachine<typeof todoModel>(
+  return todoModel.createMachine(
     {
       id: 'todo',
       initial: 'reading',

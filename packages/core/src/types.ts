@@ -592,6 +592,8 @@ export interface StateNodeConfig<
   /**
    * The activities to be started upon entering the state node,
    * and stopped upon exiting the state node.
+   *
+   * @deprecated Use `invoke` instead.
    */
   activities?: SingleOrArray<Activity<TContext, TEvent>>;
   /**
@@ -654,6 +656,9 @@ export interface StateNodeDefinition<
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
   entry: Array<ActionObject<TContext, TEvent>>;
   exit: Array<ActionObject<TContext, TEvent>>;
+  /**
+   * @deprecated
+   */
   activities: Array<ActivityDefinition<TContext, TEvent>>;
   meta: any;
   order: number;
@@ -735,6 +740,9 @@ export interface MachineOptions<
 > {
   guards: Record<string, ConditionPredicate<TContext, TEvent>>;
   actions: ActionFunctionMap<TContext, TEvent, TAction>;
+  /**
+   * @deprecated Use `services` instead.
+   */
   activities: Record<string, ActivityConfig<TContext, TEvent>>;
   services: Record<string, ServiceConfig<TContext, TEvent>>;
   delays: DelayFunctionMap<TContext, TEvent>;
@@ -1219,6 +1227,9 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   historyValue?: HistoryValue | undefined;
   history?: State<TContext, TEvent>;
   actions?: Array<ActionObject<TContext, TEvent>>;
+  /**
+   * @deprecated
+   */
   activities?: ActivityMap;
   meta?: any;
   events?: TEvent[];

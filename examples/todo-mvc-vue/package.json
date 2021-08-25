@@ -12,7 +12,7 @@
     "todomvc-app-css": "^2.4.1",
     "todomvc-common": "^1.0.5",
     "vue": "^3.0.5",
-    "xstate": "^4.20.1"
+    "xstate": "^4.23.1"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^1.2.3",
