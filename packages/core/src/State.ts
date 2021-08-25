@@ -131,7 +131,6 @@ export class State<
    */
   public children: Record<string, ActorRef<any>>;
   public tags: Set<string>;
-  private machine: StateMachine<TContext, any, TEvent, any> | undefined;
   public machine: StateMachine<TContext, any, TEvent, TTypestate> | undefined;
   /**
    * Creates a new State instance for the given `stateValue` and `context`.
