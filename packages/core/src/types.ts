@@ -1436,7 +1436,12 @@ export interface Behavior<TEvent extends EventObject, TEmitted = any> {
     actorCtx: ActorContext<TEvent, TEmitted>
   ) => TEmitted;
   initialState: TEmitted;
-  start?: (actorCtx: ActorContext<TEvent, TEmitted>) => TEmitted;
+  start?: (
+    actorCtx: ActorContext<TEvent, TEmitted>
+  ) => {
+    state: TEmitted;
+    stop?: () => void;
+  };
 }
 
 export type EmittedFrom<T> = T extends ActorRef<any, infer TEmitted>

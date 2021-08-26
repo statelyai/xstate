@@ -89,7 +89,7 @@ export function fromPromise<T>(
         }
       );
 
-      return initialState;
+      return { state: initialState };
     }
   };
 }
@@ -104,6 +104,7 @@ export function spawnBehavior<TEvent extends EventObject, TEmitted>(
   options: SpawnBehaviorOptions = {}
 ): ActorRef<TEvent, TEmitted> {
   let state = behavior.initialState;
+  let stop: (() => void) | undefined;
   const observers = new Set<Observer<TEmitted>>();
   const mailbox: TEvent[] = [];
   let flushing = false;
@@ -138,7 +139,8 @@ export function spawnBehavior<TEvent extends EventObject, TEmitted>(
           observers.delete(observer);
         }
       };
-    }
+    },
+    stop: () => stop?.()
   });
 
   const actorCtx = {
@@ -148,7 +150,9 @@ export function spawnBehavior<TEvent extends EventObject, TEmitted>(
     observers
   };
 
-  state = behavior.start ? behavior.start(actorCtx) : state;
+  if (behavior.start) {
+    ({ state, stop } = behavior.start(actorCtx));
+  }
 
   return actor;
 }
