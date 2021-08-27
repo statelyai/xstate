@@ -824,7 +824,7 @@ export interface StateMachine<
   ): StateMachine<TContext, TStateSchema, TEvent, TTypestate>;
 
   withContext(
-    context: TContext
+    context: TContext | (() => TContext)
   ): StateMachine<TContext, TStateSchema, TEvent, TTypestate>;
 }
 
