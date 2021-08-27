@@ -133,12 +133,12 @@ If a Promise rejects, the `onError` transition will be taken with a `{ type: 'er
 ```js
 const search = (context, event) => new Promise((resolve, reject) => {
   if (!event.query.length) {
-    return reject('No query specified');
+    reject('No query specified');
     // or:
     // throw new Error('No query specified');
   }
 
-  return getSearchResults(event.query);
+  resolve(getSearchResults(event.query));
 });
 
 // ...
