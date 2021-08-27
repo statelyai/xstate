@@ -146,7 +146,7 @@ describe('machine', () => {
     });
   });
 
-  describe('machine.withConfig', () => {
+  describe('machine.provide', () => {
     it('should override guards and actions', () => {
       const differentMachine = configMachine.provide({
         actions: {
@@ -207,6 +207,14 @@ describe('machine', () => {
       const machine = createMachine({});
 
       expect(machine.initialState.context).toEqual({});
+    });
+
+    it('should compose context provided using multiple subsequent `provide` calls', () => {
+      const machine1 = createMachine<any>({ context: { a: 1 } });
+      const machine2 = machine1.provide({ context: { b: 2 } });
+      const machine3 = machine2.provide({ context: { c: 3 } });
+
+      expect(machine3.initialState.context).toEqual({ a: 1, b: 2, c: 3 });
     });
   });
 
