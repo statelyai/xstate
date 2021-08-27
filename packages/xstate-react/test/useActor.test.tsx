@@ -470,4 +470,56 @@ describe('useActor', () => {
       expect(countEl.textContent).toBe('1');
     });
   });
+
+  it('should work with initially deferred actors spawned in lazy context', () => {
+    const childMachine = createMachine({
+      initial: 'one',
+      states: {
+        one: {
+          on: { NEXT: 'two' }
+        },
+        two: {}
+      }
+    });
+
+    const machine = createMachine<{ ref: ActorRef<any> }>({
+      context: () => ({
+        ref: spawn(childMachine)
+      }),
+      initial: 'waiting',
+      states: {
+        waiting: {
+          on: { TEST: 'success' }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    const App = () => {
+      const [state] = useMachine(machine);
+      const [childState, childSend] = useActor(state.context.ref);
+
+      return (
+        <>
+          <div data-testid="child-state">{childState.value}</div>
+          <button
+            data-testid="child-send"
+            onClick={() => childSend('NEXT')}
+          ></button>
+        </>
+      );
+    };
+
+    const { getByTestId } = render(<App />);
+
+    const elState = getByTestId('child-state');
+    const elSend = getByTestId('child-send');
+
+    expect(elState.textContent).toEqual('one');
+    fireEvent.click(elSend);
+
+    expect(elState.textContent).toEqual('two');
+  });
 });
