@@ -67,10 +67,10 @@ export function useInterpret<
     delays
   };
 
-  const machineWithConfig = machine.withConfig(machineConfig, {
+  const machineWithConfig = machine.withConfig(machineConfig, () => ({
     ...machine.context,
     ...context
-  } as TContext);
+  }));
 
   const service = interpret(machineWithConfig, interpreterOptions).start(
     rehydratedState ? (State.create(rehydratedState) as any) : undefined

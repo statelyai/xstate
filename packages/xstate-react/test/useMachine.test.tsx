@@ -540,6 +540,27 @@ describe('useMachine hook', () => {
     );
     done();
   });
+
+  it('should successfully spawn actors from the lazily declared context', () => {
+    let childSpawned = false;
+
+    const machine = createMachine({
+      context: () => ({
+        ref: spawn(() => {
+          childSpawned = true;
+        })
+      })
+    });
+
+    const App = () => {
+      useMachine(machine);
+      return null;
+    };
+
+    render(<App />);
+
+    expect(childSpawned).toBe(true);
+  });
 });
 
 describe('useMachine (strict mode)', () => {
