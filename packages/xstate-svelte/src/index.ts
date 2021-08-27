@@ -55,10 +55,10 @@ export function useMachine<
     delays
   };
 
-  const resolvedMachine = machine.withConfig(machineConfig, {
+  const resolvedMachine = machine.withConfig(machineConfig, () => ({
     ...machine.context,
     ...context
-  } as TContext);
+  }));
 
   const service = interpret(resolvedMachine, interpreterOptions).start(
     rehydratedState ? new State(rehydratedState) : undefined

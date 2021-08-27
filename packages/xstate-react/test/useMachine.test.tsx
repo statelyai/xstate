@@ -544,7 +544,7 @@ describe('useMachine hook', () => {
   it('should successfully spawn actors from the lazily declared context', () => {
     let childSpawned = false;
 
-    const machine = createMachine({
+    createMachine({
       context: () => ({
         ref: spawn(() => {
           childSpawned = true;
