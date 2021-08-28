@@ -89,7 +89,7 @@ export function fromPromise<T>(
         }
       );
 
-      return { state: initialState };
+      return initialState;
     }
   };
 }
@@ -104,13 +104,13 @@ export function spawnBehavior<TEvent extends EventObject, TEmitted>(
   options: SpawnBehaviorOptions = {}
 ): ActorRef<TEvent, TEmitted> {
   let state = behavior.initialState;
-  let stop: (() => void) | undefined;
   const observers = new Set<Observer<TEmitted>>();
   const mailbox: TEvent[] = [];
   let flushing = false;
+  let done = false;
 
   const flush = () => {
-    if (flushing) {
+    if (flushing || done) {
       return;
     }
     flushing = true;
@@ -140,7 +140,11 @@ export function spawnBehavior<TEvent extends EventObject, TEmitted>(
         }
       };
     },
-    stop: () => stop?.()
+    stop: () => {
+      state = behavior.stop ? behavior.stop(actorCtx) : state;
+      observers.clear();
+      done = true;
+    }
   });
 
   const actorCtx = {
@@ -150,9 +154,7 @@ export function spawnBehavior<TEvent extends EventObject, TEmitted>(
     observers
   };
 
-  if (behavior.start) {
-    ({ state, stop } = behavior.start(actorCtx));
-  }
+  state = behavior.start ? behavior.start(actorCtx) : state;
 
   return actor;
 }

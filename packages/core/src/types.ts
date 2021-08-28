@@ -1423,10 +1423,10 @@ export type InterpreterFrom<
   : never;
 
 export interface ActorContext<TEvent extends EventObject, TEmitted> {
-  parent?: ActorRef<any, any>;
-  self: ActorRef<TEvent, TEmitted>;
   id: string;
+  self: ActorRef<TEvent, TEmitted>;
   observers: Set<Observer<TEmitted>>;
+  parent?: ActorRef<any, any>;
 }
 
 export interface Behavior<TEvent extends EventObject, TEmitted = any> {
@@ -1436,12 +1436,8 @@ export interface Behavior<TEvent extends EventObject, TEmitted = any> {
     actorCtx: ActorContext<TEvent, TEmitted>
   ) => TEmitted;
   initialState: TEmitted;
-  start?: (
-    actorCtx: ActorContext<TEvent, TEmitted>
-  ) => {
-    state: TEmitted;
-    stop?: () => void;
-  };
+  start?: (actorCtx: ActorContext<TEvent, TEmitted>) => TEmitted;
+  stop?: (actorCtx: ActorContext<TEvent, TEmitted>) => TEmitted;
 }
 
 export type EmittedFrom<T> = T extends ActorRef<any, infer TEmitted>
