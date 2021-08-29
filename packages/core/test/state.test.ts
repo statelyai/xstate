@@ -784,7 +784,7 @@ describe('State', () => {
       expect(spawned).toBe(false);
     });
 
-    it('should warn and return false for states created without a machine', () => {
+    it('should return false for states created without a machine', () => {
       const state = State.from('test');
 
       expect(state.can({ type: 'ANY_EVENT' })).toEqual(false);
