@@ -137,6 +137,8 @@ TRIGGER: {
 // ...
 ```
 
+Refactoring inline action implementations in the `actions` property of the machine options makes it easier to debug, serialize, test, and accurately visualize actions.
+
 :::
 
 ## Declarative Actions

@@ -108,6 +108,8 @@ SEARCH: {
 // ...
 ```
 
+Refactoring inline guard implementations in the `guards` property of the machine options makes it easier to debug, serialize, test, and accurately visualize guards.
+
 :::
 
 ## Serializing Guards
