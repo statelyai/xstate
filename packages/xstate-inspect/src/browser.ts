@@ -61,7 +61,7 @@ export function createDevTools(): XStateDevInterface {
 }
 
 const defaultInspectorOptions: InspectorOptions = {
-  url: 'https://statecharts.io/inspect',
+  url: 'https://stately.ai/viz',
   iframe: () =>
     document.querySelector<HTMLIFrameElement>('iframe[data-xstate]'),
   devTools: () => {
