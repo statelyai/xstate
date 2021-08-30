@@ -42,6 +42,8 @@ import { inspect } from '@xstate/inspect';
 const service = interpret(someMachine, { devTools: true });
 ```
 
+**NB:** There is a new visualizer in beta at the URL `https://stately.ai/viz`. You can try this by manually pointing the inspector to this URL or by installing a beta release via `npm i @xstate/inspect@beta`.
+
 ## Inspect Options
 
 ```js
