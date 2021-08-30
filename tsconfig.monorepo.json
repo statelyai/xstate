@@ -27,6 +27,9 @@
     },
     {
       "path": "./packages/xstate-parser"
+    },
+    {
+      "path": "./packages/xstate-cli"
     }
   ]
 }

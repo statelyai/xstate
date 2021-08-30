@@ -1,6 +1,7 @@
 import * as t from '@babel/types';
 import { MaybeArrayOfActions } from './actions';
 import { Cond } from './conds';
+import { BooleanLiteral } from './scalars';
 import { StringLiteralNode } from './types';
 import {
   createParser,
@@ -26,7 +27,8 @@ const TransitionTargetLiteral = createParser({
 const TransitionObject = objectTypeWithKnownKeys({
   target: TransitionTargetLiteral,
   actions: MaybeArrayOfActions,
-  cond: Cond
+  cond: Cond,
+  internal: BooleanLiteral
 });
 
 const TransitionConfigOrTargetLiteral = unionType([

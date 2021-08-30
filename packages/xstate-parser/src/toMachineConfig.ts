@@ -167,6 +167,10 @@ export const getTransitions = (
       toPush.actions = getActionConfig(transition.actions);
     }
 
+    if (transition.internal) {
+      toPush.internal = transition.internal.value;
+    }
+
     transitions.push(toPush);
   });
 
