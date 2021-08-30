@@ -1,5 +1,23 @@
 # @xstate/vue
 
+## 0.8.1
+
+### Patch Changes
+
+- [`fe3e859f`](https://github.com/statelyai/xstate/commit/fe3e859f5c53813307bacad915bebc8d1f3a982c) [#2522](https://github.com/statelyai/xstate/pull/2522) Thanks [@farskid](https://github.com/farskid)! - author: @farskid
+  author: @Andarist
+
+  Fixed an issue with actors not being spawned correctly by `useMachine` and `useInterpret` when they were defined a lazily evaluated context, like for example here:
+
+  ```js
+  createMachine({
+    // lazy context
+    context: () => ({
+      ref: spawn(() => {})
+    })
+  });
+  ```
+
 ## 0.8.0
 
 ### Minor Changes
@@ -80,10 +98,7 @@
   export default {
     props: ['someActor'],
     setup(props) {
-      const count = useSelector(
-        props.someActor,
-        (state) => state.context.count
-      );
+      const count = useSelector(props.someActor, state => state.context.count);
       // ...
       return { count };
     }
@@ -118,7 +133,7 @@
   export default defineComponent({
     setup() {
       const state = ref();
-      const service = useInterpret(machine, {}, (nextState) => {
+      const service = useInterpret(machine, {}, nextState => {
         state.value = nextState.value;
       });
       return { service, state };
