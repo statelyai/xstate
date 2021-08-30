@@ -1,0 +1,4 @@
+node_modules
+lib/__tests__
+.github
+examples
