@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.1
+
+### Patch Changes
+
+- [#2587](https://github.com/statelyai/xstate/pull/2587) [`5aaa8445c`](https://github.com/statelyai/xstate/commit/5aaa8445c0041c6e9c47285c18e8b71cb2d805a7) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with implementations provided outside of React being wiped out and unusable.
+
 ## 1.6.0
 
 ### Minor Changes
@@ -9,7 +15,7 @@
   Previously, guards could not reference external props, because they would not be updated when the props changed. For instance:
 
   ```tsx
-  const Modal = (props) => {
+  const Modal = props => {
     useMachine(modalMachine, {
       guards: {
         isModalOpen: () => props.isOpen
@@ -23,7 +29,7 @@
   This is not true of actions/services. This will work as expected:
 
   ```tsx
-  const Modal = (props) => {
+  const Modal = props => {
     useMachine(modalMachine, {
       actions: {
         consoleLogModalOpen: () => {
@@ -180,7 +186,7 @@
   import { useSelector } from '@xstate/react';
 
   const App = ({ someActor }) => {
-    const count = useSelector(someActor, (state) => state.context.count);
+    const count = useSelector(someActor, state => state.context.count);
 
     // ...
   };
@@ -301,7 +307,7 @@ All notable changes to this project will be documented in this file.
 - The `useActor` hook now takes a second argument: `getSnapshot` which is a function that should return the last emitted value:
 
   ```js
-  const [state, send] = useActor(someActor, (actor) => actor.current);
+  const [state, send] = useActor(someActor, actor => actor.current);
   ```
 
 ## [1.0.0-rc.6]
