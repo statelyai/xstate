@@ -210,7 +210,7 @@ const machine = createMachine({
 });
 ```
 
-For instance, if the above machine is in the `green` or `yellow` state, instead of matching the state directly using `state.matches('green') || state.matches('yellow')`, is it possible to use `state.hasTag('go')`:
+For instance, if the above machine is in the `green` or `yellow` state, instead of matching the state directly using `state.matches('green') || state.matches('yellow')`, it is possible to use `state.hasTag('go')`:
 
 ```js
 const canGo = state.hasTag('go');

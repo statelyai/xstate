@@ -286,7 +286,7 @@ describe('createModel', () => {
       }
     );
 
-    createMachine<typeof model>({
+    model.createMachine({
       context: model.initialContext,
       entry: [
         model.actions.custom(),
@@ -378,7 +378,7 @@ describe('createModel', () => {
       }
     );
 
-    createMachine<typeof model>(
+    model.createMachine(
       {
         context: {}
       },
@@ -491,7 +491,7 @@ describe('createModel', () => {
     const toggleModel = createModel({ count: 0 });
 
     // @ts-expect-error
-    const m = createMachine<typeof toggleModel>({
+    createMachine<typeof toggleModel>({
       id: 'machine',
       initial: 'inactive',
       // missing context:
@@ -531,7 +531,7 @@ describe('createModel', () => {
       { type: 'fooAction' }
     >({ count: 0 });
 
-    createMachine<typeof model>({
+    model.createMachine({
       context: model.initialContext,
       initial: 'a',
       states: {

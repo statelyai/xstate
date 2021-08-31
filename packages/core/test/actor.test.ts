@@ -19,7 +19,7 @@ import {
   forwardTo,
   error
 } from '../src/actions';
-import { interval } from 'rxjs';
+import { interval, EMPTY } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { fromPromise } from '../src/behaviors';
 
@@ -1104,5 +1104,112 @@ describe('actors', () => {
         done();
       })
       .start();
+  });
+
+  // https://github.com/statelyai/xstate/issues/2507
+  it('should not crash on child machine sync completion during self-initialization', () => {
+    const childMachine = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          always: [
+            {
+              target: 'stopped'
+            }
+          ]
+        },
+        stopped: {
+          type: 'final'
+        }
+      }
+    });
+
+    const parentMachine = createMachine<{
+      child: ActorRefFrom<typeof childMachine> | null;
+    }>(
+      {
+        context: {
+          child: null
+        },
+        entry: 'setup'
+      },
+      {
+        actions: {
+          setup: assign({
+            child: () => spawn(childMachine)
+          })
+        }
+      }
+    );
+    const service = interpret(parentMachine);
+    expect(() => {
+      service.start();
+    }).not.toThrow();
+  });
+
+  it('should not crash on child promise-like sync completion during self-initialization', () => {
+    const parentMachine = createMachine<{
+      child: ActorRef<never, any> | null;
+    }>({
+      context: {
+        child: null
+      },
+      entry: assign({
+        child: () => spawn({ then: (fn) => fn(null) } as any)
+      })
+    });
+    const service = interpret(parentMachine);
+    expect(() => {
+      service.start();
+    }).not.toThrow();
+  });
+
+  it('should not crash on child observable sync completion during self-initialization', () => {
+    const createEmptyObservable = (): any => ({
+      subscribe(_next, _error, complete) {
+        complete();
+      }
+    });
+    const parentMachine = createMachine<{
+      child: ActorRef<never, any> | null;
+    }>({
+      context: {
+        child: null
+      },
+      entry: assign({
+        child: () => spawn(createEmptyObservable())
+      })
+    });
+    const service = interpret(parentMachine);
+    expect(() => {
+      service.start();
+    }).not.toThrow();
+  });
+
+  it('should receive done event from an immediately completed observable when self-initializing', () => {
+    const parentMachine = createMachine<{
+      child: ActorRef<any> | null;
+    }>({
+      context: {
+        child: null
+      },
+      entry: assign({
+        child: () => spawn(EMPTY, 'myactor')
+      }),
+      initial: 'init',
+      states: {
+        init: {
+          on: {
+            'done.invoke.myactor': 'done'
+          }
+        },
+        done: {}
+      }
+    });
+    const service = interpret(parentMachine);
+
+    service.start();
+
+    expect(service.state.value).toBe('done');
   });
 });
