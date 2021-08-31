@@ -21,7 +21,6 @@ import {
   NullEvent,
   SingleOrArray,
   Guard,
-  GuardPredicate,
   GuardMeta,
   InvokeSourceDefinition,
   Observer,
@@ -668,7 +667,7 @@ export function evaluateGuard<TContext, TEvent extends EventObject>(
 
   // TODO: do not hardcode!
   if (guard.type === DEFAULT_GUARD_TYPE) {
-    return (guard as GuardPredicate<TContext, TEvent>).predicate(
+    return (guards?.[guard.name] || guard.predicate)(
       context,
       _event.data,
       guardMeta

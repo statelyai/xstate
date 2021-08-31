@@ -21,7 +21,10 @@ import { useState } from 'react';
 import { asEffect, asLayoutEffect } from '../src/useMachine';
 import { DoneEventObject } from 'xstate';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  jest.useRealTimers();
+});
 
 describe('useMachine hook', () => {
   const context = {
@@ -560,6 +563,212 @@ describe('useMachine hook', () => {
     render(<App />);
 
     expect(childSpawned).toBe(true);
+  });
+
+  it('should be able to use an action provided outside of React', () => {
+    let actionCalled = false;
+
+    const machine = createMachine(
+      {
+        on: {
+          EV: {
+            actions: 'foo'
+          }
+        }
+      },
+      {
+        actions: {
+          foo: () => (actionCalled = true)
+        }
+      }
+    );
+
+    const App = () => {
+      const [_state, send] = useMachine(machine);
+      React.useEffect(() => {
+        send({ type: 'EV' });
+      }, []);
+      return null;
+    };
+
+    render(<App />);
+
+    expect(actionCalled).toBe(true);
+  });
+
+  it('should be able to use a guard provided outside of React', () => {
+    let guardCalled = false;
+
+    const machine = createMachine(
+      {
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              EV: {
+                cond: 'isAwesome',
+                target: 'b'
+              }
+            }
+          },
+          b: {}
+        }
+      },
+      {
+        guards: {
+          isAwesome: () => {
+            guardCalled = true;
+            return true;
+          }
+        }
+      }
+    );
+
+    const App = () => {
+      const [_state, send] = useMachine(machine);
+      React.useEffect(() => {
+        send({ type: 'EV' });
+      }, []);
+      return null;
+    };
+
+    render(<App />);
+
+    expect(guardCalled).toBe(true);
+  });
+
+  it('should be able to use a service provided outside of React', () => {
+    let serviceCalled = false;
+
+    const machine = createMachine(
+      {
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              EV: 'b'
+            }
+          },
+          b: {
+            invoke: {
+              src: 'foo'
+            }
+          }
+        }
+      },
+      {
+        services: {
+          foo: () => {
+            serviceCalled = true;
+            return Promise.resolve();
+          }
+        }
+      }
+    );
+
+    const App = () => {
+      const [_state, send] = useMachine(machine);
+      React.useEffect(() => {
+        send({ type: 'EV' });
+      }, []);
+      return null;
+    };
+
+    render(<App />);
+
+    expect(serviceCalled).toBe(true);
+  });
+
+  it('should be able to use a delay provided outside of React', () => {
+    jest.useFakeTimers();
+
+    const machine = createMachine(
+      {
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              EV: 'b'
+            }
+          },
+          b: {
+            after: {
+              myDelay: 'c'
+            }
+          },
+          c: {}
+        }
+      },
+      {
+        delays: {
+          myDelay: () => {
+            return 300;
+          }
+        }
+      }
+    );
+
+    const App = () => {
+      const [state, send] = useMachine(machine);
+      return (
+        <>
+          <div data-testid="result">{state.value}</div>
+          <button onClick={() => send({ type: 'EV' })} />
+        </>
+      );
+    };
+
+    const { getByRole, getByTestId } = render(<App />);
+
+    const btn = getByRole('button');
+    fireEvent.click(btn);
+
+    expect(getByTestId('result').textContent).toBe('b');
+
+    act(() => jest.advanceTimersByTime(310));
+
+    expect(getByTestId('result').textContent).toBe('c');
+  });
+
+  it('should not use stale data in a guard', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EV: {
+              cond: 'isAwesome',
+              target: 'b'
+            }
+          }
+        },
+        b: {}
+      }
+    });
+
+    const App = ({ isAwesome }) => {
+      const [state, send] = useMachine(machine, {
+        guards: {
+          isAwesome: () => isAwesome
+        }
+      });
+      return (
+        <>
+          <div data-testid="result">{state.value}</div>
+          <button onClick={() => send({ type: 'EV' })} />
+        </>
+      );
+    };
+
+    const { rerender, getByRole, getByTestId } = render(
+      <App isAwesome={false} />
+    );
+    rerender(<App isAwesome={true} />);
+
+    const btn = getByRole('button');
+    fireEvent.click(btn);
+
+    expect(getByTestId('result').textContent).toBe('b');
   });
 });
 
