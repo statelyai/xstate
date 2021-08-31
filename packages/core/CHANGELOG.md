@@ -49,10 +49,7 @@
 
 * [`5b70c2ff`](https://github.com/statelyai/xstate/commit/5b70c2ff21cc5d8c6cf1c13b6eb7bb12611a9835) [#2508](https://github.com/statelyai/xstate/pull/2508) Thanks [@davidkpiano](https://github.com/davidkpiano)! - A race condition occurred when a child service is immediately stopped and the parent service tried to remove it from its undefined state (during its own initialization). This has been fixed, and the race condition no longer occurs. See [this issue](https://github.com/statelyai/xstate/issues/2507) for details.
 
-- [`5a9500d1`](https://github.com/statelyai/xstate/commit/5a9500d1cde9bf2300a85bc81529da83f2d08361) [#2522](https://github.com/statelyai/xstate/pull/2522) Thanks [@farskid](https://github.com/farskid)! - author: @farskid
-  author: @Andarist
-
-  Adjusted TS type definitions of the `withContext` and `withConfig` methods so that they accept "lazy context" now.
+- [`5a9500d1`](https://github.com/statelyai/xstate/commit/5a9500d1cde9bf2300a85bc81529da83f2d08361) [#2522](https://github.com/statelyai/xstate/pull/2522) Thanks [@farskid](https://github.com/farskid), [@Andarist](https://github.com/Andarist)! - Adjusted TS type definitions of the `withContext` and `withConfig` methods so that they accept "lazy context" now.
 
   Example:
 
@@ -90,11 +87,11 @@
   const machine = createMachine({
     context: { count: 0 },
     entry: [
-      ctx => console.log(ctx.count), // 0
-      assign({ count: ctx => ctx.count + 1 }),
-      ctx => console.log(ctx.count), // 1
-      assign({ count: ctx => ctx.count + 1 }),
-      ctx => console.log(ctx.count) // 2
+      (ctx) => console.log(ctx.count), // 0
+      assign({ count: (ctx) => ctx.count + 1 }),
+      (ctx) => console.log(ctx.count), // 1
+      assign({ count: (ctx) => ctx.count + 1 }),
+      (ctx) => console.log(ctx.count) // 2
     ],
     preserveActionOrder: true
   });
@@ -103,11 +100,11 @@
   const machine = createMachine({
     context: { count: 0 },
     entry: [
-      ctx => console.log(ctx.count), // 2
-      assign({ count: ctx => ctx.count + 1 }),
-      ctx => console.log(ctx.count), // 2
-      assign({ count: ctx => ctx.count + 1 }),
-      ctx => console.log(ctx.count) // 2
+      (ctx) => console.log(ctx.count), // 2
+      assign({ count: (ctx) => ctx.count + 1 }),
+      (ctx) => console.log(ctx.count), // 2
+      assign({ count: (ctx) => ctx.count + 1 }),
+      (ctx) => console.log(ctx.count) // 2
     ]
     // preserveActionOrder: false
   });
@@ -306,7 +303,7 @@
   });
 
   const service = interpret(machine)
-    .onTransition(state => {
+    .onTransition((state) => {
       // Read promise value synchronously
       const resolvedValue = state.context.promiseRef?.getSnapshot();
       // => undefined (if promise not resolved yet)
@@ -386,7 +383,7 @@
     context: { value: 42 },
     on: {
       INC: {
-        actions: assign({ value: ctx => ctx.value + 1 })
+        actions: assign({ value: (ctx) => ctx.value + 1 })
       }
     }
   });
@@ -646,7 +643,7 @@
 
   ```js
   // ...
-  actions: stop(context => context.someActor);
+  actions: stop((context) => context.someActor);
   ```
 
 ### Patch Changes
@@ -884,10 +881,10 @@
   ```js
   entry: [
     choose([
-      { cond: ctx => ctx > 100, actions: raise('TOGGLE') },
+      { cond: (ctx) => ctx > 100, actions: raise('TOGGLE') },
       {
         cond: 'hasMagicBottle',
-        actions: [assign(ctx => ({ counter: ctx.counter + 1 }))]
+        actions: [assign((ctx) => ({ counter: ctx.counter + 1 }))]
       },
       { actions: ['fallbackAction'] }
     ])
