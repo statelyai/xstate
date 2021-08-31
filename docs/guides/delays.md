@@ -198,7 +198,7 @@ const toggleMachine = createMachine({
     inactive: {
       entry: sendTimerAfter1Second,
       on: {
-        TIMER: { target: 'active' }
+        TIMER: { target: 'active' },
         CANCEL: { actions: cancelTimer }
       }
     },
