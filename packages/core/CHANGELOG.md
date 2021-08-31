@@ -1,5 +1,11 @@
 # xstate
 
+## 4.23.3
+
+### Patch Changes
+
+- [#2587](https://github.com/statelyai/xstate/pull/2587) [`5aaa8445c`](https://github.com/statelyai/xstate/commit/5aaa8445c0041c6e9c47285c18e8b71cb2d805a7) Thanks [@Andarist](https://github.com/Andarist)! - Allow for guards to be always resolved from the implementations object. This allows a guard implementation to be updated in the running service by `@xstate/react`.
+
 ## 4.23.2
 
 ### Patch Changes
@@ -87,11 +93,11 @@
   const machine = createMachine({
     context: { count: 0 },
     entry: [
-      (ctx) => console.log(ctx.count), // 0
-      assign({ count: (ctx) => ctx.count + 1 }),
-      (ctx) => console.log(ctx.count), // 1
-      assign({ count: (ctx) => ctx.count + 1 }),
-      (ctx) => console.log(ctx.count) // 2
+      ctx => console.log(ctx.count), // 0
+      assign({ count: ctx => ctx.count + 1 }),
+      ctx => console.log(ctx.count), // 1
+      assign({ count: ctx => ctx.count + 1 }),
+      ctx => console.log(ctx.count) // 2
     ],
     preserveActionOrder: true
   });
@@ -100,11 +106,11 @@
   const machine = createMachine({
     context: { count: 0 },
     entry: [
-      (ctx) => console.log(ctx.count), // 2
-      assign({ count: (ctx) => ctx.count + 1 }),
-      (ctx) => console.log(ctx.count), // 2
-      assign({ count: (ctx) => ctx.count + 1 }),
-      (ctx) => console.log(ctx.count) // 2
+      ctx => console.log(ctx.count), // 2
+      assign({ count: ctx => ctx.count + 1 }),
+      ctx => console.log(ctx.count), // 2
+      assign({ count: ctx => ctx.count + 1 }),
+      ctx => console.log(ctx.count) // 2
     ]
     // preserveActionOrder: false
   });
@@ -303,7 +309,7 @@
   });
 
   const service = interpret(machine)
-    .onTransition((state) => {
+    .onTransition(state => {
       // Read promise value synchronously
       const resolvedValue = state.context.promiseRef?.getSnapshot();
       // => undefined (if promise not resolved yet)
@@ -383,7 +389,7 @@
     context: { value: 42 },
     on: {
       INC: {
-        actions: assign({ value: (ctx) => ctx.value + 1 })
+        actions: assign({ value: ctx => ctx.value + 1 })
       }
     }
   });
@@ -643,7 +649,7 @@
 
   ```js
   // ...
-  actions: stop((context) => context.someActor);
+  actions: stop(context => context.someActor);
   ```
 
 ### Patch Changes
@@ -881,10 +887,10 @@
   ```js
   entry: [
     choose([
-      { cond: (ctx) => ctx > 100, actions: raise('TOGGLE') },
+      { cond: ctx => ctx > 100, actions: raise('TOGGLE') },
       {
         cond: 'hasMagicBottle',
-        actions: [assign((ctx) => ({ counter: ctx.counter + 1 }))]
+        actions: [assign(ctx => ({ counter: ctx.counter + 1 }))]
       },
       { actions: ['fallbackAction'] }
     ])
