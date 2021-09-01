@@ -71,19 +71,11 @@ const defaultInspectorOptions: InspectorOptions = {
   }
 };
 
-const getFinalUrl = (url: string) => {
-  const urlObj = new URL(url);
-  if (!urlObj.searchParams.has('inspect')) {
-    urlObj.searchParams.set('inspect', '1');
-  }
-  return urlObj;
-};
-
 const getFinalOptions = (options?: Partial<InspectorOptions>) => {
   const withDefaults = { ...defaultInspectorOptions, ...options };
   return {
     ...withDefaults,
-    url: getFinalUrl(withDefaults.url),
+    url: new URL(withDefaults.url),
     iframe: getLazy(withDefaults.iframe),
     devTools: getLazy(withDefaults.devTools)
   };

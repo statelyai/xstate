@@ -465,7 +465,7 @@ class StateNode<
    */
   public withConfig(
     options: Partial<MachineOptions<TContext, TEvent>>,
-    context?: TContext
+    context?: TContext | (() => TContext)
   ): StateNode<TContext, TStateSchema, TEvent, TTypestate> {
     const { actions, activities, guards, services, delays } = this.options;
 
@@ -488,7 +488,7 @@ class StateNode<
    * @param context Custom context (will override predefined context, not recursive)
    */
   public withContext(
-    context: TContext
+    context: TContext | (() => TContext)
   ): StateNode<TContext, TStateSchema, TEvent, TTypestate> {
     return new StateNode(this.config, this.options, context);
   }

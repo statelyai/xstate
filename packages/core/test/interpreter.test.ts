@@ -78,7 +78,7 @@ describe('interpreter', () => {
       let entryCalled = 0;
       let promiseSpawned = 0;
 
-      const machine = createMachine<any>({
+      const machine = createMachine<any, any, any>({
         initial: 'idle',
         context: {
           actor: undefined
@@ -1931,7 +1931,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         }
       });
 
-      const formMachine = createMachine<any>({
+      const formMachine = createMachine<any, any, any>({
         id: 'form',
         initial: 'idle',
         context: {},
