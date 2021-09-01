@@ -143,15 +143,18 @@ dogService.send('FETCH');
 - [Hierarchical (Nested) State Machines](#hierarchical-nested-state-machines)
 - [Parallel State Machines](#parallel-state-machines)
 - [History States](#history-states)
-- [Sponsors](#sponsors)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Visualizer
 
-**[Visualize, simulate, and share your statecharts in XState Viz!](https://xstate.js.org/viz)**
+**[Visualize, simulate, inspect, and share your statecharts in Stately Viz](https:/stately.ai/viz)**
 
-<a href="https://xstate.js.org/viz" title="xstate visualizer"><img src="https://i.imgur.com/3pEB0B3.png" alt="xstate visualizer" width="300" /></a>
+<a href="https://stately.ai/viz" title="Stately Viz">
+  <img src="https://user-images.githubusercontent.com/1093738/131729181-5db835fc-77e7-4740-b03f-46bd0093baa1.png" alt="Stately Viz" width="400" />
+</a>
+
+**[stately.ai/viz](https://stately.ai/viz)**
 
 ## Why?
 
@@ -167,7 +170,13 @@ Read [📽 the slides](http://slides.com/davidkhourshid/finite-state-machines) (
 
 ## Finite State Machines
 
-<img src="https://imgur.com/rqqmkJh.png" alt="Light Machine" width="300" />
+<a href="https://stately.ai/viz/2ac5915f-789a-493f-86d3-a8ec079773f4" title="Finite states">
+  <img src="https://user-images.githubusercontent.com/1093738/131727631-916d28a7-1a40-45ed-8636-c0c0fc1c3889.gif" alt="Finite states" width="400" />
+  <br />
+  <small>Open in Stately Viz</small>
+</a>
+<br />
+
 
 ```js
 import { createMachine } from 'xstate';
@@ -203,7 +212,13 @@ const nextState = lightMachine.transition(currentState, 'TIMER').value;
 
 ## Hierarchical (Nested) State Machines
 
-<img src="https://imgur.com/GDZAeB9.png" alt="Hierarchical Light Machine" width="300" />
+<a href="https://stately.ai/viz/d3aeda4f-7f8e-44df-bdf9-dd3cdafb3312" title="Hierarchical states">
+  <img src="https://user-images.githubusercontent.com/1093738/131727794-86b63c76-5ee0-4d73-b84c-6992a1f0814e.gif" alt="Hierarchical states" width="400" />
+  <br />
+  <small>Open in Stately Viz</small>
+</a>
+<br />
+
 
 ```js
 import { createMachine } from 'xstate';
@@ -280,7 +295,13 @@ lightMachine.transition({ red: 'stop' }, 'TIMER').value;
 
 ## Parallel State Machines
 
-<img src="https://imgur.com/GKd4HwR.png" width="300" alt="Parallel state machine" />
+<a href="https://stately.ai/viz/9eb9c189-254d-4c87-827a-fab0c2f71508" title="Parallel states">
+  <img src="https://user-images.githubusercontent.com/1093738/131727915-23da4b4b-5e7e-46ea-9c56-5093e37e60e6.gif" alt="Parallel states" width="400" />
+  <br />
+  <small>Open in Stately Viz</small>
+</a>
+<br />
+
 
 ```js
 const wordMachine = createMachine({
@@ -366,7 +387,13 @@ const nextState = wordMachine.transition(
 
 ## History States
 
-<img src="https://imgur.com/I4QsQsz.png" width="300" alt="Machine with history state" />
+<a href="https://stately.ai/viz/33fd92e1-f9e6-49e6-bdeb-cef9e60195ec" title="History states">
+  <img src="https://user-images.githubusercontent.com/1093738/131728111-819cc824-9881-4ecf-948a-00c1162cd9e9.gif" alt="History state" width="400" />
+  <br />
+  <small>Open in Stately Viz</small>
+</a>
+<br />
+
 
 ```js
 const paymentMachine = createMachine({
