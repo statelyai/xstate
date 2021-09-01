@@ -789,5 +789,24 @@ describe('State', () => {
 
       expect(state.can({ type: 'ANY_EVENT' })).toEqual(false);
     });
+
+    it('should allow errors to propagate', () => {
+      const machine = createMachine({
+        context: {},
+        on: {
+          DO_SOMETHING_BAD: {
+            actions: assign(() => {
+              throw new Error('expected error');
+            })
+          }
+        }
+      });
+
+      expect(() => {
+        const { initialState } = machine;
+
+        initialState.can('DO_SOMETHING_BAD');
+      }).toThrowError(/expected error/);
+    });
   });
 });
