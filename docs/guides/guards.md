@@ -108,7 +108,8 @@ SEARCH: {
 // ...
 ```
 
-It is _not recommended_ to keep the machine config like this in production code, as this makes it difficult to debug, serialize, test, and accurately visualize actions. Always prefer refactoring inline guard implementations in the `guards` property of the machine options, like the previous example.
+Refactoring inline guard implementations in the `guards` property of the machine options makes it easier to debug, serialize, test, and accurately visualize guards.
+
 :::
 
 ## Serializing Guards
