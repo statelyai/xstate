@@ -544,7 +544,7 @@ describe('createModel', () => {
       }
     );
 
-    const val = (null as unknown) as ContextFrom<typeof model>;
+    const val = ({} as unknown) as ContextFrom<typeof model>;
 
     // expect no type error here
     // with previous ContextFrom behavior, this will not compile
@@ -564,7 +564,7 @@ describe('createModel', () => {
       }
     );
 
-    const val = (null as unknown) as EventFrom<typeof model>;
+    const val = ({} as unknown) as EventFrom<typeof model>;
 
     // expect no type error here
     // with previous ContextFrom behavior, this will not compile
