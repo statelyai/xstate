@@ -46,6 +46,7 @@ module.exports = {
         children: [
           '/guides/start',
           '/guides/installation',
+          '/guides/introduction-to-state-machines-and-statecharts/',
           '/guides/machines',
           '/guides/states',
           '/guides/statenodes',
