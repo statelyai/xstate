@@ -22,7 +22,7 @@ module.exports = {
     },
     nav: [
       { text: 'API', link: 'https://xstate.js.org/api' },
-      { text: 'Visualizer', link: 'https://xstate.js.org/viz' },
+      { text: 'Visualizer', link: 'https://stately.ai/viz' },
       { text: 'Discord', link: 'https://discord.gg/xtWgFTgvNV' },
       {
         text: 'Community',
