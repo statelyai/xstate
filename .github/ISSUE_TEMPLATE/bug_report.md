@@ -23,7 +23,7 @@ assignees: ''
 - ⚛︎ [CodeSandbox template (React)](https://codesandbox.io/s/xstate-react-template-3t2tg)
 - ⚛︎ [CodeSandbox template (React + TypeScript)](https://codesandbox.io/s/xstate-react-typescript-template-wjdvn)
 - 💚 [CodeSandbox template (Vue + Composition API)](https://codesandbox.io/s/xstate-vue-template-composition-api-1n23l)
-- [Stately Visualizer](https://stately.ai/viz/)
+- [XState Visualizer](https://stately.ai/viz/)
 
 **Additional context**
 <!-- Add any other context about the problem here (e.g., XState version) -->

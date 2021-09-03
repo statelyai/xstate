@@ -157,9 +157,9 @@ dogService.send({ type: 'FETCH' });
 
 ## Visualizer
 
-**[Visualize, simulate, and share your statecharts in Stately Viz!](https://stately.ai/viz)**
+**[Visualize, simulate, and share your statecharts in XState Viz!](https://stately.ai/viz)**
 
-<a href="https://stately.ai/viz"><img src="https://i.imgur.com/3pEB0B3.png" alt="Stately Visualizer" width="300" /></a>
+<a href="https://stately.ai/viz"><img src="https://i.imgur.com/3pEB0B3.png" alt="XState Visualizer" width="300" /></a>
 
 ## Why?
 

@@ -69,7 +69,7 @@ toggleService.send('TOGGLE');
 
 ## Visualizer
 
-**[Visualize, simulate, and share your statecharts in Stately Viz!](https://stately.ai/viz)**
+**[Visualize, simulate, and share your statecharts in XState Viz!](https://stately.ai/viz)**
 
 <a href="https://stately.ai/viz" title="xstate visualizer"><img src="https://i.imgur.com/3pEB0B3.png" alt="xstate visualizer" width="300" /></a>
 
