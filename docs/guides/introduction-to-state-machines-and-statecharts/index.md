@@ -20,7 +20,8 @@ This guide covers the basics of statecharts in a beginner-friendly way, includin
 
 The *states* are represented by rounded rectangle boxes. To draw a statechart for the process of a dog, there are two states that would first come to mind:
 
-[Awake | Asleep]
+<!-- no alt because the image is already described in the surrounding text -->
+![](./asleep-awake.svg)
 
 A dog is always **asleep** or **awake**. The dog can’t be asleep and awake at the same time, and it’s impossible for the dog to be neither asleep nor awake. There’s only these two states, a precisely limited, *finite* number of states.
 
@@ -28,7 +29,8 @@ A dog is always **asleep** or **awake**. The dog can’t be asleep and awake at 
 
 How the dog goes between **asleep** and **awake** is through *transitions*, which are symbolised by an arrow pointing from one state to the next state in the process’s sequence.
 
-[awake, falls asleep, asleep, wakes up]
+<!-- no alt because the image is already described in the surrounding text -->
+![](./transitions-events.svg)
 
 A transition is caused by an *event* that results in the change of state. Transitions are labelled with their events.
 
@@ -42,9 +44,10 @@ Any process that has states will have an *initial state*, the default state the 
 
 The initial state is represented by a filled circle with an arrow pointing from the circle to the initial state.
 
-Using a statechart to describe the process of walking the dog, the initial state would be **waiting** to walk.
+<!-- no alt because the image is already described in the surrounding text -->
+![](./initial-state.svg)
 
-[walk initial state]
+Using a statechart to describe the process of walking the dog, the initial state would be **waiting** to walk.
 
 ## Final state
 
@@ -52,7 +55,7 @@ Most processes with states will have a *final state*, the last state when the pr
 
 In the dog walking statechart, the final state would be **walk complete**.
 
-[walk final state]
+![Dog walking statechart showing waiting state transitioning through the leave home event to the on a walk state, then transitioning through the arrive home event to the final state of walk complete.](./final-state.svg)
 
 ## Compound states
 
@@ -60,7 +63,8 @@ A compound state is a state that can contain more states, also known as child st
 
 A compound state is symbolised by a labelled rounded rectangle box that acts as a container for its child states.
 
-[compound state diagram]
+<!-- no alt because the image is already described in the surrounding text -->
+![](./compound-state.svg)
 
 A compound state should also specify which child state is the initial state. In the **on a walk** compound state, the initial state is **walking**.
 
@@ -76,7 +80,8 @@ A parallel state is a compound state where all of its child states, also known a
 
 Inside the **on a walk** compound state, there could be two regions. One region contains the dog’s activity child states of **walking**, **running** and **stopping to sniff good smells**, and the other region containing the dog’s tail states of **wagging** and **not wagging**. The dog can walk and wag its tail, run and wag its tail or stop and sniff while wagging its tail, it can also do any of these activities without wagging its tail.
 
-[compound state with regions]
+<!-- no alt because the image is already described in the surrounding text -->
+![](./parallel-states.svg)
 
 Both regions should also specify which child state is the initial state. In our **tail** region, the initial state is **wagging**.
 
@@ -88,7 +93,8 @@ A helpful way to describe a self-transition is “doing something, not going som
 
 In a **dog begging** process, there would be a **begging** state with a **gets treat** event. And for the dogs who love their food, no matter how many times you go through the **gets treat** event, the dog returns to its **begging** state.
 
-[begging self-transition]
+<!-- no alt because the image is already described in the surrounding text -->
+![](./self-transition.svg)
 
 ## Planning statecharts
 
@@ -110,11 +116,9 @@ Then list the *states* that exist as a result of those events:
 
 Once there’s some events and states, there’s the beginnings of a statechart.
 
-[basic login statechart]
+![Login statechart showing an initial logged out state transitioning through a log in event to a logged in state, then transitioning through a log out event back to the logged out state.](./basic-login.svg)
 
 Don’t forget the *initial state*. In this case, the **logged out** state is the initial state, as any new user would come to the process logged out.
-
-[login statechart with initial state]
 
 ## Delayed transitions
 
@@ -122,7 +126,8 @@ Some login and logout processes will log out an inactive user after a fixed leng
 
 The **active** and **idle** states only happen when the user is logged in, so these become child states inside the **logged in** compound state.
 
-[login statechart with child states]
+<!-- no alt because the image is already described in the surrounding text -->
+![](./login-compound-state.svg)
 
 The initial state inside the **logged in** compound state is **active**, as it happens as a direct result of the **log in** event, and logging in is a sign of user activity.
 
@@ -130,7 +135,8 @@ A *delayed transition* is a type of transition which happens after being in a st
 
 In the login statechart, a delayed transition of **100000** milliseconds, or 1 minute, follows the **active** state to determine whether the user is **idle**. If there is an **activity** event before the transition reaches one minute, the process returns to the **active** state.
 
-[login statechart with delayed transitions]
+<!-- no alt because the image is already described in the surrounding text -->
+![](./delayed-transition.svg)
 
 A delayed transition of **30000** milliseconds, or 3 minutes, follows the **idle** state to transition to the **auto logged out** state if the user remains idle.
 
@@ -144,4 +150,5 @@ An *action* can be fired upon entering or exiting a state, or on a transition. A
 
 In the login statechart, there’s an *entry* action on the **idle** state to warn the user that they may be logged out.
 
-[login statechart with entry action]
+<!-- no alt because the image is already described in the surrounding text -->
+![](./entry-action.svg)
