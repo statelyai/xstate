@@ -121,6 +121,12 @@ module.exports = {
           '/examples/calculator',
           '/examples/covid-tracker'
         ]
+      },
+      {
+        title: 'Useful links',
+        children: [
+          ['https://stately.ai/privacy', 'Privacy Policy'],
+        ]
       }
     ]
   },
