@@ -121,6 +121,13 @@ module.exports = {
           '/examples/calculator',
           '/examples/covid-tracker'
         ]
+      },
+      {
+        title: 'Useful links',
+        children: [
+          ['https://github.com/statelyai/xstate/blob/main/CODE_OF_CONDUCT.md', 'Code of Conduct'],
+          ['https://stately.ai/privacy', 'Privacy Policy'],
+        ]
       }
     ]
   },
