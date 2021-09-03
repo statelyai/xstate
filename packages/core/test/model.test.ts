@@ -567,7 +567,7 @@ describe('createModel', () => {
     const val = ({} as unknown) as EventFrom<typeof model>;
 
     // expect no type error here
-    // with previous ContextFrom behavior, this will not compile
+    // with previous EventFrom behavior, this will not compile
     val.type;
 
     // @ts-expect-error (sanity check)
