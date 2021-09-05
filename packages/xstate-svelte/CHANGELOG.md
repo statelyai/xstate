@@ -1,5 +1,20 @@
 # @xstate/svelte
 
+## 0.2.0
+
+### Minor Changes
+
+- [#2614](https://github.com/statelyai/xstate/pull/2614) [`0f77ec36d`](https://github.com/statelyai/xstate/commit/0f77ec36d55515beac3e1a51eb2d32bf17b94cde) Thanks [@DavKato](https://github.com/DavKato)! - Added new useSelector(actor, selector), which subscribes to actor and returns a svelte store that represents the selected state derived from selector(snapshot):
+
+  ```svelte
+  <script>
+    // It won't be updated unless the selected value changed.
+    const value = useSelector(service, (state) => state.context.value);
+  </script>
+
+  <p>{$value}</p>
+  ```
+
 ## 0.1.1
 
 ### Patch Changes
