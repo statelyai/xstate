@@ -14,7 +14,7 @@
 
 JavaScript and TypeScript [finite state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and [statecharts](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf) for the modern web.
 
-📖 [Read the documentation](https://xstate.js.org/docs)
+New to state machines and statecharts? [Read our introduction](/guides/introduction-to-state-machines-and-statecharts/).
 
 📑 Adheres to the [SCXML specification](https://www.w3.org/TR/scxml/)
 
@@ -157,9 +157,9 @@ dogService.send({ type: 'FETCH' });
 
 ## Visualizer
 
-**[Visualize, simulate, and share your statecharts in XState Viz!](https://xstate.js.org/viz)**
+**[Visualize, simulate, and share your statecharts in XState Viz!](https://stately.ai/viz)**
 
-<a href="https://xstate.js.org/viz" title="xstate visualizer"><img src="https://i.imgur.com/3pEB0B3.png" alt="xstate visualizer" width="300" /></a>
+<a href="https://stately.ai/viz"><img src="https://i.imgur.com/3pEB0B3.png" alt="XState Visualizer" width="300" /></a>
 
 ## Why?
 

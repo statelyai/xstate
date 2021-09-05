@@ -148,10 +148,10 @@ dogService.send('FETCH');
 
 ## Visualizer
 
-**[Visualize, simulate, inspect, and share your statecharts in Stately Viz](https:/stately.ai/viz)**
+**[Visualize, simulate, inspect, and share your statecharts in XState Viz](https:/stately.ai/viz)**
 
-<a href="https://stately.ai/viz" title="Stately Viz">
-  <img src="https://user-images.githubusercontent.com/1093738/131729181-5db835fc-77e7-4740-b03f-46bd0093baa1.png" alt="Stately Viz" width="400" />
+<a href="https://stately.ai/viz" title="XState Viz">
+  <img src="https://user-images.githubusercontent.com/1093738/131729181-5db835fc-77e7-4740-b03f-46bd0093baa1.png" alt="XState Viz" width="400" />
 </a>
 
 **[stately.ai/viz](https://stately.ai/viz)**
