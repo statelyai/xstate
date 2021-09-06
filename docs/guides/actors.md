@@ -38,7 +38,7 @@ They may have optional methods:
 All the existing invoked service patterns fit this interface:
 
 - [Invoked promises](./communication.md#invoking-promises) are actors that ignore any received events and send at most one event back to the parent
-- [Invoked callbacks](./communication.md#invoking-callbacks) are actors that can send events to the parent (first `callback` argument), receive events (second `onReceive` argument), and act on them
+- [Invoked functions](./communication.md#invoking-functions) are actors that can send events to the parent (first `sendback` argument), receive events (second `onReceive` argument), and act on them
 - [Invoked machines](./communication.md#invoking-machines) are actors that can send events to the parent (`sendParent(...)` action) or other actors it has references to (`send(...)` action), receive events, act on them (state transitions and actions), spawn new actors (`spawn(...)` function), and stop actors.
 - [Invoked observables](./communication.md#invoking-observables) are actors whose emitted values represent events to be sent back to the parent.
 
@@ -49,7 +49,7 @@ An actor's **emitted value** is the value that subscribers receive in the actor'
 - For services, the current state is emitted.
 - For promises, the resolved value (or `undefined` if unfulfilled) is emitted.
 - For observables, the latest emitted value is emitted.
-- For callbacks, nothing is emitted.
+- For functions, nothing is emitted.
 
 :::
 
@@ -65,7 +65,7 @@ The `spawn(...)` function creates an **actor reference** by providing 1 or 2 arg
 - `entity` - the (reactive) value or machine that represents the behavior of the actor. Possible types for `entity`:
   - [Machine](./communication.md#invoking-machines)
   - [Promise](./communication.md#invoking-promises)
-  - [Callback](./communication.md#invoking-callbacks)
+  - [Functions](./communication.md#invoking-functions)
   - [Observable](./communication.md#invoking-observables)
 - `name` (optional) - a string uniquely identifying the actor. This should be unique for all spawned actors and invoked services.
 
@@ -225,16 +225,16 @@ const fetchData = (query) => {
 It is not recommended to spawn promise actors, as [invoking promises](./communication.md#invoking-promises) is a better pattern for this, since they are dependent on state (self-cancelling) and have more predictable behavior.
 :::
 
-## Spawning Callbacks
+## Spawning Functions
 
-Just like [invoking callbacks](./communication.md#invoking-callbacks), callbacks can be spawned as actors. This example models a counter-interval actor that increments its own count every second, but can also react to `{ type: 'INC' }` events.
+Just like [invoking functions](./communication.md#invoking-functions), functions can be spawned as actors. This example models a counter-interval actor that increments its own count every second, but can also react to `{ type: 'INC' }` events.
 
 ```js {22}
-const counterInterval = (callback, receive) => {
+const counterInterval = (sendBack, receive) => {
   let count = 0;
 
   const intervalId = setInterval(() => {
-    callback({ type: 'COUNT.UPDATE', count });
+    sendBack({ type: 'COUNT.UPDATE', count });
     count++;
   }, 1000);
 
@@ -449,11 +449,11 @@ import { spawn } from 'xstate';
         'my-promise'
       ),
 
-    // From a callback
+    // From a function
     callbackRef: (context, event) =>
-      spawn((callback, receive) => {
+      spawn((sendBack, receive) => {
         // send to parent
-        callback('SOME_EVENT');
+        sendBack('SOME_EVENT');
 
         // receive from parent
         receive((event) => {

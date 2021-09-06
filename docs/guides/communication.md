@@ -9,7 +9,7 @@ For machines to communicate with each other, the parent machine **invokes** a ch
 You can invoke:
 
 - [Promises](#invoking-promises), which will take the `onDone` transition on `resolve`, or the `onError` transition on `reject`
-- [Callbacks](#invoking-callbacks), which can send events to and receive events from the parent machine
+- [Functions](#invoking-functions), which can send events to and receive events from the parent machine
 - [Observables](#invoking-observables), which can send events to the parent machine, as well as a signal when it is completed
 - [Machines](#invoking-machines), which can also send/receive events, and also notify the parent machine when it reaches its [final state](./final.md)
 
@@ -20,8 +20,8 @@ An invocation is defined in a state node's configuration with the `invoke` prope
 - `src` - the source of the service to invoke, which can be:
   - a machine
   - a function that returns a `Promise`
-  - a function that returns a "callback handler"
-  - a function that returns an observable
+  - a function that returns a `function`
+  - a function that returns an `observable`
   - a string, which refers to any of the 4 listed options defined in this machine's `options.services`
   - an invoke source object <Badge text="4.12" />, which contains the source string in `{ type: src }`, as well as any other metadata.
 - `id` - the unique identifier for the invoked service
@@ -187,23 +187,23 @@ If the `onError` transition is missing and the Promise is rejected, the error wi
 
 :::
 
-## Invoking Callbacks
+## Invoking Functions
 
-Streams of events sent to the parent machine can be modeled via a callback handler, which is a function that takes in two arguments:
+Streams of events sent to the parent machine can be modeled via a plain old function, which takes in two arguments:
 
-- `callback` - called with the event to be sent
+- `sendBack` - callback to send events
 - `onReceive` - called with a listener that [listens to events from the parent](#listening-to-parent-events)
 
-The (optional) return value should be a function that performs cleanup (i.e., unsubscribing, preventing memory leaks, etc.) on the invoked service when the current state is exited. Callbacks **cannot** use `async/await` syntax because it automatically wraps the return value in a `Promise`.
+The (optional) return value should be a function that performs cleanup (i.e., unsubscribing, preventing memory leaks, etc.) on the invoked service when the current state is exited. **Warning** Invoked functions that use the `async/await` syntax automatically wrap their return value in a `Promise`.
 
 ```js
 // ...
 counting: {
   invoke: {
     id: 'incInterval',
-    src: (context, event) => (callback, onReceive) => {
+    src: (context, event) => (sendBack, onReceive) => {
       // This will send the 'INC' event to the parent every second
-      const id = setInterval(() => callback('INC'), 1000);
+      const id = setInterval(() => sendBack('INC'), 1000);
 
       // Perform cleanup
       return () => clearInterval(id);
@@ -218,7 +218,7 @@ counting: {
 
 ### Listening to Parent Events
 
-Invoked callback handlers are also given a second argument, `onReceive`, which registers listeners for events sent to the callback handler from the parent. This allows for parent-child communication between the parent machine and the invoked callback service.
+Invoked functions are also given a second argument, `onReceive`, which registers listeners for events sent to the function from the parent. This allows for parent-child communication between the parent machine and the invoked function service.
 
 For example, the parent machine sends the child `'ponger'` service a `'PING'` event. The child service can listen for that event using `onReceive(listener)`, and send a `'PONG'` event back to the parent in response:
 
@@ -230,12 +230,12 @@ const pingPongMachine = createMachine({
     active: {
       invoke: {
         id: 'ponger',
-        src: (context, event) => (callback, onReceive) => {
+        src: (context, event) => (sendBack, onReceive) => {
           // Whenever parent sends 'PING',
           // send parent 'PONG' event
           onReceive((e) => {
             if (e.type === 'PING') {
-              callback('PONG');
+              sendBack('PONG');
             }
           });
         }
@@ -765,7 +765,7 @@ const machine = createMachine({
         // - a function that returns...
         src: (context, event) => {
           // - a promise
-          // - a callback handler
+          // - a function
           // - an observable
         },
         id: 'some-id',
@@ -808,14 +808,14 @@ const getDataFromAPI = () => fetch(/* ... */)
 // ...
 ```
 
-**Invoking Callbacks**
+**Invoking Functions**
 
 ```js
 // ...
 {
-  invoke: (context, event) => (callback, onReceive) => {
+  invoke: (context, event) => (sendBack, onReceive) => {
     // Send event back to parent
-    callback({ type: 'SOME_EVENT' });
+    sendBack({ type: 'SOME_EVENT' });
 
     // Receive events from parent
     onReceive(event => {
@@ -824,7 +824,7 @@ const getDataFromAPI = () => fetch(/* ... */)
       }
     });
   },
-  // Error from callback
+  // Error from function
   onError: {
     target: 'failure',
     // Error data is on event.data property
