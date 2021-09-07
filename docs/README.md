@@ -296,6 +296,8 @@ lightMachine.transition({ red: 'stop' }, { type: 'TIMER' }).value;
 <img src="https://imgur.com/GKd4HwR.png" width="300" alt="Parallel state machine" />
 
 ```js
+import { createMachine } from 'xstate';
+
 const wordMachine = createMachine({
   id: 'word',
   type: 'parallel',
@@ -404,6 +406,8 @@ const nextState = wordMachine.transition(
 <img src="https://imgur.com/I4QsQsz.png" width="300" alt="Machine with history state" />
 
 ```js
+import { createMachine } from 'xstate';
+
 const paymentMachine = createMachine({
   id: 'payment',
   initial: 'method',
