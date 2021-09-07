@@ -133,12 +133,12 @@ The initial state inside the **logged in** compound state is **active**, as it h
 
 A *delayed transition* is a type of transition which happens after being in a state for a specified length of time. The delayed transition is labelled with “after” and a fixed duration to indicate how much time should pass before transitioning to the next indicated state.
 
-In the login statechart, a delayed transition of **100000** milliseconds, or 1 minute, follows the **active** state to determine whether the user is **idle**. If there is an **activity** event before the transition reaches one minute, the process returns to the **active** state.
+In the login statechart, a delayed transition of **60000** milliseconds, or 1 minute, follows the **active** state to determine whether the user is **idle**. If there is an **activity** event before the transition reaches one minute, the process returns to the **active** state.
 
 <!-- no alt because the image is already described in the surrounding text -->
 ![](./delayed-transition.svg)
 
-A delayed transition of **30000** milliseconds, or 3 minutes, follows the **idle** state to transition to the **auto logged out** state if the user remains idle.
+A delayed transition of **180000** milliseconds, or 3 minutes, follows the **idle** state to transition to the **auto logged out** state if the user remains idle.
 
 ## Actions
 
