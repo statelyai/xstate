@@ -83,7 +83,7 @@ Inside the **on a walk** compound state, there could be two regions. One region 
 <!-- no alt because the image is already described in the surrounding text -->
 ![](./parallel-states.svg)
 
-Both regions should also specify which child state is the initial state. In our **tail** region, the initial state is **wagging**.
+Both regions should also specify which child state is the initial state. In our **tail** region, the initial state is **not wagging**.
 
 ### Self-transition
 
