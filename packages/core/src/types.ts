@@ -3,6 +3,9 @@ import { State } from './State';
 import { Interpreter, Clock } from './interpreter';
 import { Model } from './model.types';
 
+type AnyFunction = (...args: any[]) => any;
+type ReturnTypeOrValue<T> = T extends AnyFunction ? ReturnType<T> : T;
+
 export type EventType = string;
 export type ActionType = string;
 export type MetaObject = Record<string, any>;
@@ -1479,57 +1482,36 @@ export interface Behavior<TEvent extends EventObject, TEmitted = any> {
   start?: (actorCtx: ActorContext<TEvent, TEmitted>) => TEmitted;
 }
 
-export type EmittedFrom<T> = T extends ActorRef<any, infer TEmitted>
-  ? TEmitted
-  : T extends (...args: any[]) => ActorRef<any, infer TEmitted>
-  ? TEmitted
-  : T extends Behavior<any, infer TEmitted>
-  ? TEmitted
-  : T extends (...args: any[]) => Behavior<any, infer TEmitted>
-  ? TEmitted
-  : T extends ActorContext<any, infer TEmitted>
-  ? TEmitted
-  : T extends (...args: any[]) => ActorContext<any, infer TEmitted>
-  ? TEmitted
+export type EmittedFrom<T> = ReturnTypeOrValue<T> extends infer R
+  ? R extends ActorRef<infer _, infer TEmitted>
+    ? TEmitted
+    : R extends Behavior<infer _, infer TEmitted>
+    ? TEmitted
+    : R extends ActorContext<infer _, infer TEmitted>
+    ? TEmitted
+    : never
   : never;
 
-export type EventFrom<T> = T extends StateMachine<any, any, infer TEvent, any>
-  ? TEvent
-  : T extends (...args: any[]) => StateMachine<any, any, infer TEvent, any>
-  ? TEvent
-  : T extends Model<any, infer TEvent, any, any>
-  ? TEvent
-  : T extends (...args: any[]) => Model<any, infer TEvent, any, any>
-  ? TEvent
-  : T extends State<any, infer TEvent, any, any>
-  ? TEvent
-  : T extends (...args: any[]) => State<any, infer TEvent, any, any>
-  ? TEvent
-  : T extends Interpreter<any, any, infer TEvent, any>
-  ? TEvent
-  : T extends (...args: any[]) => Interpreter<any, infer TEvent, any, any>
-  ? TEvent
+export type EventFrom<T> = ReturnTypeOrValue<T> extends infer R
+  ? R extends StateMachine<infer _, infer __, infer TEvent, infer ____>
+    ? TEvent
+    : R extends Model<infer _, infer TEvent, infer ___, infer ____>
+    ? TEvent
+    : R extends State<infer _, infer TEvent, infer ___, infer ____>
+    ? TEvent
+    : R extends Interpreter<infer _, infer __, infer TEvent, infer ____>
+    ? TEvent
+    : never
   : never;
 
-export type ContextFrom<T> = T extends StateMachine<
-  infer TContext,
-  any,
-  any,
-  any
->
-  ? TContext
-  : T extends (...args: any[]) => StateMachine<infer TContext, any, any, any>
-  ? TContext
-  : T extends Model<infer TContext, any, any, any>
-  ? TContext
-  : T extends (...args: any[]) => Model<infer TContext, any, any, any>
-  ? TContext
-  : T extends State<infer TContext, any, any, any>
-  ? TContext
-  : T extends (...args: any[]) => State<infer TContext, any, any, any>
-  ? TContext
-  : T extends Interpreter<infer TContext, any, any, any>
-  ? TContext
-  : T extends (...args: any[]) => Interpreter<infer TContext, any, any, any>
-  ? TContext
+export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
+  ? R extends StateMachine<infer TContext, infer _, infer __, infer ___>
+    ? TContext
+    : R extends Model<infer TContext, infer _, infer __, infer ___>
+    ? TContext
+    : R extends State<infer TContext, infer _, infer __, infer ___>
+    ? TContext
+    : R extends Interpreter<infer TContext, infer _, infer __, infer ___>
+    ? TContext
+    : never
   : never;

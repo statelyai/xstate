@@ -146,3 +146,8 @@ export interface Typestate<TContext extends object> {
   value: string;
   context: TContext;
 }
+
+export type ExtractEvent<
+  TEvent extends EventObject,
+  TEventType extends TEvent['type']
+> = TEvent extends { type: TEventType } ? TEvent : never;

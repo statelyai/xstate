@@ -1,4 +1,4 @@
-import { createMachine } from '../src';
+import { ContextFrom, createMachine, EventFrom } from '../src';
 import {
   cancel,
   choose,
@@ -534,5 +534,43 @@ describe('createModel', () => {
       // @ts-expect-error
       machine.initialState.context.unknown;
     }
+  });
+
+  it('ContextFrom accepts a model type', () => {
+    const model = createModel(
+      { count: 3 },
+      {
+        events: {}
+      }
+    );
+
+    const val = ({} as unknown) as ContextFrom<typeof model>;
+
+    // expect no type error here
+    // with previous ContextFrom behavior, this will not compile
+    val.count;
+
+    // @ts-expect-error (sanity check)
+    val.unknown;
+  });
+
+  it('EventFrom accepts a model type', () => {
+    const model = createModel(
+      { count: 3 },
+      {
+        events: {
+          INC: () => ({})
+        }
+      }
+    );
+
+    const val = ({} as unknown) as EventFrom<typeof model>;
+
+    // expect no type error here
+    // with previous EventFrom behavior, this will not compile
+    val.type;
+
+    // @ts-expect-error (sanity check)
+    val.count;
   });
 });

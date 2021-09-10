@@ -1,5 +1,15 @@
 # xstate
 
+## 4.23.4
+
+### Patch Changes
+
+- [#2606](https://github.com/statelyai/xstate/pull/2606) [`01e5d7984`](https://github.com/statelyai/xstate/commit/01e5d7984a5441a6980eacdb06d42c2a9398bdff) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The following utility types were previously returning `never` in some unexpected cases, and are now working as expected:
+
+  - `ContextFrom<T>`
+  - `EventFrom<T>`
+  - `EmittedFrom<T>`
+
 ## 4.23.3
 
 ### Patch Changes
