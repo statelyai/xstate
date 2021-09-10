@@ -436,7 +436,14 @@ describe('createModel', () => {
   });
 
   it('should typecheck `createMachine` for model without creators', () => {
-    const toggleModel = createModel({ count: 0 });
+    const toggleModel = createModel(
+      { count: 0 },
+      {
+        events: {
+          TOGGLE: () => ({})
+        }
+      }
+    );
 
     toggleModel.createMachine({
       id: 'machine',
@@ -515,6 +522,24 @@ describe('createModel', () => {
           // @ts-expect-error
           entry: 'barAction'
         }
+      }
+    });
+  });
+
+  it('should allow any action if actions are not specified', () => {
+    const model = createModel(
+      {},
+      {
+        events: {}
+      }
+    );
+
+    model.createMachine({
+      entry: 'someAction',
+      exit: { type: 'someObjectAction' },
+      on: {
+        // @ts-expect-error
+        UNEXPECTED_EVENT: {}
       }
     });
   });
