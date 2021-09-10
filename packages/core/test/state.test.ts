@@ -615,6 +615,41 @@ describe('State', () => {
       expect(machine.initialState.can({ type: 'NEXT' })).toBe(true);
     });
 
+    it('should return true for an event object that results in a new action', () => {
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              NEXT: {
+                actions: 'newAction'
+              }
+            }
+          }
+        }
+      });
+
+      expect(machine.initialState.can({ type: 'NEXT' })).toBe(true);
+    });
+
+    it('should return true for an event object that results in a context change', () => {
+      const machine = createMachine({
+        initial: 'a',
+        context: { count: 0 },
+        states: {
+          a: {
+            on: {
+              NEXT: {
+                actions: assign({ count: 1 })
+              }
+            }
+          }
+        }
+      });
+
+      expect(machine.initialState.can({ type: 'NEXT' })).toBe(true);
+    });
+
     it('should return false for an external self-transition without actions', () => {
       const machine = createMachine({
         initial: 'a',
