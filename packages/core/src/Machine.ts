@@ -12,6 +12,7 @@ import {
 } from './types';
 import { StateNode } from './StateNode';
 import { Model, ModelContextFrom, ModelActionsFrom } from './model.types';
+import { GeneratedMachineDefinitions } from '.';
 
 /**
  * @deprecated Use `createMachine(...)` instead.
@@ -73,6 +74,16 @@ export function createMachine<
     : MachineConfig<TContext, any, TEvent>,
   options?: Partial<MachineOptions<TContext, TEvent>>
 ): StateMachine<TContext, any, TEvent, TTypestate>;
+
+export function createMachine<
+  Id extends keyof GeneratedMachineDefinitions<TContext, TEvent>,
+  TContext,
+  TEvent extends EventObject
+>(
+  config: GeneratedMachineDefinitions<TContext, TEvent>[Id]['config'],
+  options?: GeneratedMachineDefinitions<TContext, TEvent>[Id]['options']
+): GeneratedMachineDefinitions<TContext, TEvent>[Id]['machine'];
+
 export function createMachine<
   TContext,
   TEvent extends EventObject = AnyEventObject,

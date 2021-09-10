@@ -1525,3 +1525,8 @@ export type ContextFrom<T> = T extends StateMachine<
   : T extends (...args: any[]) => Interpreter<infer TContext, any, any, any>
   ? TContext
   : never;
+
+export interface GeneratedMachineDefinitions<
+  TContext,
+  TEvent extends EventObject
+> {}
