@@ -6,6 +6,9 @@ module.exports = {
   markdown: {
     toc: { includeLevel: [2, 3] }
   },
+  head: [
+    ['script', { src: 'https://plausible.io/js/plausible.js', defer: 'defer' }]
+  ],
   themeConfig: {
     lastUpdated: 'Last Updated',
     repo: 'davidkpiano/xstate',
@@ -19,7 +22,7 @@ module.exports = {
     },
     nav: [
       { text: 'API', link: 'https://xstate.js.org/api' },
-      { text: 'Visualizer', link: 'https://xstate.js.org/viz' },
+      { text: 'Visualizer', link: 'https://stately.ai/viz' },
       { text: 'Discord', link: 'https://discord.gg/xtWgFTgvNV' },
       {
         text: 'Community',
@@ -43,6 +46,7 @@ module.exports = {
         children: [
           '/guides/start',
           '/guides/installation',
+          '/guides/introduction-to-state-machines-and-statecharts/',
           '/guides/machines',
           '/guides/states',
           '/guides/statenodes',
@@ -118,11 +122,18 @@ module.exports = {
           '/examples/calculator',
           '/examples/covid-tracker'
         ]
+      },
+      {
+        title: 'Useful links',
+        children: [
+          [
+            'https://github.com/statelyai/xstate/blob/main/CODE_OF_CONDUCT.md',
+            'Code of Conduct'
+          ],
+          ['https://stately.ai/privacy', 'Privacy Policy']
+        ]
       }
     ]
   },
-  plugins: [
-    ['@vuepress/google-analytics', { ga: 'UA-129726387-1' }],
-    'vuepress-plugin-export'
-  ]
+  plugins: ['vuepress-plugin-export']
 };

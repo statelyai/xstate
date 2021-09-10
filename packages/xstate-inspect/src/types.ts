@@ -12,7 +12,7 @@ export interface InspectorOptions {
   devTools: MaybeLazy<XStateDevInterface>;
 }
 
-export interface Inspector extends ActorRef<InspectMachineEvent> {
+export interface Inspector extends ActorRef<InspectMachineEvent, any> {
   /**
    * Disconnects the inspector.
    */

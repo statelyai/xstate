@@ -1,6 +1,6 @@
 {
   "name": "xstate",
-  "version": "4.23.1",
+  "version": "4.23.4",
   "description": "Finite State Machines and Statecharts for the Modern Web.",
   "main": "dist/xstate.cjs.js",
   "module": "dist/xstate.esm.js",
@@ -16,7 +16,8 @@
     "invoke",
     "behaviors",
     "guards",
-    "dev"
+    "dev",
+    "model"
   ],
   "keywords": [
     "statechart",
@@ -55,7 +56,8 @@
       "./invoke.ts",
       "./behaviors.ts",
       "./guards.ts",
-      "./dev/index.ts"
+      "./dev/index.ts",
+      "./model.ts"
     ]
   }
 }

@@ -246,7 +246,7 @@ If you're using class components, here's an example implementation that doesn't 
 
 ```jsx
 import React from 'react';
-import { createMachine, interpret } from 'xstate';
+import { interpret } from 'xstate';
 import { toggleMachine } from '../path/to/toggleMachine';
 
 class Toggle extends React.Component {

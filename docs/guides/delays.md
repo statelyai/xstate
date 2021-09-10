@@ -184,10 +184,13 @@ import { actions } from 'xstate';
 const { send, cancel } = actions;
 
 // action to send the 'TIMER' event after 1 second
-const sendTimerAfter1Second = send({ type: 'TIMER' }, {
-  delay: 1000,
-  id: 'oneSecondTimer' // give the event a unique ID
-});
+const sendTimerAfter1Second = send(
+  { type: 'TIMER' },
+  {
+    delay: 1000,
+    id: 'oneSecondTimer' // give the event a unique ID
+  }
+);
 
 const cancelTimer = cancel('oneSecondTimer'); // pass the ID of event to cancel
 
@@ -198,7 +201,7 @@ const toggleMachine = createMachine({
     inactive: {
       entry: sendTimerAfter1Second,
       on: {
-        TIMER: { target: 'active' }
+        TIMER: { target: 'active' },
         CANCEL: { actions: cancelTimer }
       }
     },

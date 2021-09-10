@@ -184,7 +184,9 @@ export class State<
     this.configuration = config.configuration;
     this.transitions = config.transitions;
     this.children = config.children;
-    this.tags = config.tags ?? new Set();
+    this.tags =
+      (Array.isArray(config.tags) ? new Set(config.tags) : config.tags) ??
+      new Set();
 
     Object.defineProperty(this, 'nextEvents', {
       enumerable: false,

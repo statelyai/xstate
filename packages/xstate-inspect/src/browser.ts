@@ -1,7 +1,13 @@
-import { interpret, EventObject, Observer, AnyInterpreter } from 'xstate';
+import {
+  interpret,
+  EventObject,
+  Observer,
+  AnyInterpreter,
+  ActorRef
+} from 'xstate';
 import { XStateDevInterface } from 'xstate/dev';
 import { toSCXMLEvent, toEventObject, toObserver } from 'xstate/src/utils';
-import { createInspectMachine } from './inspectMachine';
+import { createInspectMachine, InspectMachineEvent } from './inspectMachine';
 import type {
   Inspector,
   InspectorOptions,
@@ -64,13 +70,22 @@ const defaultInspectorOptions: InspectorOptions = {
   }
 };
 
+const getFinalOptions = (options?: Partial<InspectorOptions>) => {
+  const withDefaults = { ...defaultInspectorOptions, ...options };
+  return {
+    ...withDefaults,
+    url: new URL(withDefaults.url),
+    iframe: getLazy(withDefaults.iframe),
+    devTools: getLazy(withDefaults.devTools)
+  };
+};
+
 export function inspect(
   options?: Partial<InspectorOptions>
 ): Inspector | undefined {
-  const { iframe, url, devTools } = { ...defaultInspectorOptions, ...options };
-  const resolvedIframe = getLazy(iframe);
+  const { iframe, url, devTools } = getFinalOptions(options);
 
-  if (resolvedIframe === null) {
+  if (iframe === null) {
     console.warn(
       'No suitable <iframe> found to embed the inspector. Please pass an <iframe> element to `inspect(iframe)` or create an <iframe data-xstate></iframe> element.'
     );
@@ -78,8 +93,7 @@ export function inspect(
     return undefined;
   }
 
-  const resolvedDevTools = getLazy(devTools);
-  const inspectMachine = createInspectMachine(resolvedDevTools);
+  const inspectMachine = createInspectMachine(devTools);
   const inspectService = interpret(inspectMachine).start();
   const listeners = new Set<Observer<any>>();
 
@@ -88,30 +102,32 @@ export function inspect(
   });
 
   let targetWindow: Window | null | undefined;
-  let client: any;
+  let client: Pick<ActorRef<any>, 'send'>;
 
-  const messageHandler = (event) => {
+  const messageHandler = (event: MessageEvent<unknown>) => {
     if (
       typeof event.data === 'object' &&
       event.data !== null &&
       'type' in event.data
     ) {
-      if (resolvedIframe && !targetWindow) {
-        targetWindow = resolvedIframe.contentWindow;
+      if (iframe && !targetWindow) {
+        targetWindow = iframe.contentWindow;
       }
 
       if (!client) {
         client = {
           send: (e: any) => {
-            targetWindow!.postMessage(e, url);
+            targetWindow!.postMessage(e, url.origin);
           }
         };
       }
 
-      inspectService.send({
-        ...event.data,
+      const inspectEvent = {
+        ...(event.data as InspectMachineEvent),
         client
-      });
+      };
+
+      inspectService.send(inspectEvent);
     }
   };
 
@@ -121,11 +137,7 @@ export function inspect(
     inspectService.send({ type: 'unload' });
   });
 
-  if (resolvedIframe === false) {
-    targetWindow = window.open(url, 'xstateinspector');
-  }
-
-  resolvedDevTools.onRegister((service) => {
+  devTools.onRegister((service) => {
     inspectService.send({
       type: 'service.register',
       machine: stringify(service.machine),
@@ -159,6 +171,10 @@ export function inspect(
     };
 
     service.subscribe((state) => {
+      // filter out synchronous notification from within `.start()` call when the `service.state` has not yet been assigned
+      if (state === undefined) {
+        return;
+      }
       inspectService.send({
         type: 'service.state',
         state: stringify(state),
@@ -174,12 +190,14 @@ export function inspect(
     });
   });
 
-  if (resolvedIframe) {
-    resolvedIframe.addEventListener('load', () => {
-      targetWindow = resolvedIframe.contentWindow!;
+  if (iframe) {
+    iframe.addEventListener('load', () => {
+      targetWindow = iframe.contentWindow!;
     });
 
-    resolvedIframe.setAttribute('src', url);
+    iframe.setAttribute('src', String(url));
+  } else {
+    targetWindow = window.open(String(url), 'xstateinspector');
   }
 
   return {
@@ -190,6 +208,7 @@ export function inspect(
       const observer = toObserver(next, onError, onComplete);
 
       listeners.add(observer);
+      observer.next?.(inspectService.state);
 
       return {
         unsubscribe: () => {

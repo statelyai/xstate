@@ -8,7 +8,7 @@ export type InspectMachineEvent =
   | { type: 'unload' }
   | { type: 'disconnect' }
   | { type: 'xstate.event'; event: string; service: string }
-  | { type: 'xstate.inspecting'; client: ActorRef<any> };
+  | { type: 'xstate.inspecting'; client: Pick<ActorRef<any>, 'send'> };
 
 export function createInspectMachine(
   devTools: XStateDevInterface = globalThis.__xstate__
@@ -23,7 +23,7 @@ export function createInspectMachine(
 
   return createMachine<
     {
-      client?: ActorRef<any>;
+      client?: Pick<ActorRef<any>, 'send'>;
     },
     InspectMachineEvent
   >({

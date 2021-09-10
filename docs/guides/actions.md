@@ -137,7 +137,8 @@ TRIGGER: {
 // ...
 ```
 
-It is _not recommended_ to keep the machine config like this in production code, as this makes it difficult to debug, serialize, test, and accurately visualize actions. Always prefer refactoring inline action implementations in the `actions` property of the machine options, like the previous example.
+Refactoring inline action implementations in the `actions` property of the machine options makes it easier to debug, serialize, test, and accurately visualize actions.
+
 :::
 
 ## Declarative Actions
@@ -462,7 +463,7 @@ const parentMachine = createMachine({
 
 const parentService = interpret(parentMachine).start();
 
-parentService.send({ type: 'ALERT' }, { message: 'hello world' });
+parentService.send({ type: 'ALERT', message: 'hello world' });
 // => alerts "hello world"
 ```
 

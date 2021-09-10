@@ -10,11 +10,22 @@ import {
   spawnPromise,
   ActorRefFrom
 } from 'xstate';
-import { render, fireEvent, waitForElement, act } from '@testing-library/react';
+import {
+  render,
+  fireEvent,
+  waitForElement,
+  act,
+  cleanup
+} from '@testing-library/react';
 import { useState } from 'react';
 import { invokePromise, invokeCallback, invokeMachine } from 'xstate/invoke';
 import { asEffect, asLayoutEffect } from '../src/useMachine';
 import { DoneEventObject } from 'xstate';
+
+afterEach(() => {
+  cleanup();
+  jest.useRealTimers();
+});
 
 describe('useMachine hook', () => {
   const context = {
@@ -850,3 +861,5 @@ describe('useMachine (strict mode)', () => {
     }
   });
 });
+
+// TODO: compare with v4 main (add missing tests)

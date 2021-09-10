@@ -47,10 +47,11 @@ export function inspect(options: ServerInspectorOptions): Inspector {
   const inspectService = interpret(
     createInspectMachine(globalThis.__xstate__)
   ).start();
-  let client: ActorRef<any>;
+  let client: ActorRef<any, undefined>;
 
   server.on('connection', function connection(wss) {
     client = toActorRef({
+      id: '@@xstate/ws-client',
       send: (event: any) => {
         server.clients.forEach((ws) => {
           if (ws.readyState === ws.OPEN) {
@@ -60,7 +61,8 @@ export function inspect(options: ServerInspectorOptions): Inspector {
       },
       subscribe: () => {
         return { unsubscribe: () => void 0 };
-      }
+      },
+      getSnapshot: () => undefined
     });
 
     wss.on('message', function incoming(message) {
@@ -132,8 +134,7 @@ export function inspect(options: ServerInspectorOptions): Inspector {
   });
 
   const inspector: Inspector = {
-    name: 'inspector',
-    getSnapshot: () => undefined,
+    name: '@@xstate/inspector',
     send: (event) => {
       inspectService.send(event);
     },
@@ -145,7 +146,8 @@ export function inspect(options: ServerInspectorOptions): Inspector {
     disconnect: () => {
       server.close();
       inspectService.stop();
-    }
+    },
+    getSnapshot: () => undefined
   };
 
   server.on('close', () => {

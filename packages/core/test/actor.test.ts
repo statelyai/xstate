@@ -22,10 +22,15 @@ import {
 } from '../src/actions';
 import { assign } from '../src/actions/assign';
 import { send } from '../src/actions/send';
-import { interval } from 'rxjs';
+import { EMPTY, interval } from 'rxjs';
 import { map } from 'rxjs/operators';
 import * as actionTypes from '../src/actionTypes';
-import { createMachineBehavior, fromReducer } from '../src/behaviors';
+import {
+  createMachineBehavior,
+  createObservableBehavior,
+  createPromiseBehavior,
+  fromReducer
+} from '../src/behaviors';
 import { invokeMachine } from '../src/invoke';
 
 describe('spawning machines', () => {
@@ -61,7 +66,7 @@ describe('spawning machines', () => {
 
   const todosMachine = createMachine<typeof context, TodoEvent>({
     id: 'todos',
-    context: context,
+    context,
     initial: 'active',
     states: {
       active: {
@@ -1077,7 +1082,7 @@ describe('actors', () => {
     });
   });
 
-  it('should be able to spawn actors in (lazy) initial context', (done) => {
+  it('should be able to spawn callback actors in (lazy) initial context', (done) => {
     const machine = createMachine<{ ref: ActorRef<any> }>({
       context: () => ({
         ref: spawnCallback((sendBack) => {
@@ -1100,5 +1105,146 @@ describe('actors', () => {
         done();
       })
       .start();
+  });
+
+  it('should be able to spawn machines in (lazy) initial context', (done) => {
+    const childMachine = createMachine({
+      entry: sendParent('TEST')
+    });
+
+    const machine = createMachine<{ ref: ActorRef<any> }>({
+      context: () => ({
+        ref: spawn(createMachineBehavior(childMachine))
+      }),
+      initial: 'waiting',
+      states: {
+        waiting: {
+          on: { TEST: 'success' }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    interpret(machine)
+      .onDone(() => {
+        done();
+      })
+      .start();
+  });
+
+  // https://github.com/statelyai/xstate/issues/2507
+  it('should not crash on child machine sync completion during self-initialization', () => {
+    const childMachine = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          always: [
+            {
+              target: 'stopped'
+            }
+          ]
+        },
+        stopped: {
+          type: 'final'
+        }
+      }
+    });
+
+    const parentMachine = createMachine<{
+      child: ActorRefFrom<typeof childMachine> | null;
+    }>(
+      {
+        context: {
+          child: null
+        },
+        entry: 'setup'
+      },
+      {
+        actions: {
+          setup: assign({
+            child: () => spawn(createMachineBehavior(childMachine))
+          })
+        }
+      }
+    );
+    const service = interpret(parentMachine);
+    expect(() => {
+      service.start();
+    }).not.toThrow();
+  });
+
+  it('should not crash on child promise-like sync completion during self-initialization', () => {
+    const parentMachine = createMachine<{
+      child: ActorRef<never, any> | null;
+    }>({
+      context: {
+        child: null
+      },
+      entry: assign({
+        child: () =>
+          spawn(
+            createPromiseBehavior(() => ({ then: (fn) => fn(null) } as any))
+          )
+      })
+    });
+    const service = interpret(parentMachine);
+    expect(() => {
+      service.start();
+    }).not.toThrow();
+  });
+
+  it('should not crash on child observable sync completion during self-initialization', () => {
+    const createEmptyObservable = (): any => ({
+      subscribe(_next, _error, complete) {
+        complete();
+      }
+    });
+    const parentMachine = createMachine<{
+      child: ActorRef<never, any> | null;
+    }>({
+      context: {
+        child: null
+      },
+      entry: assign({
+        child: () => spawn(createObservableBehavior(createEmptyObservable))
+      })
+    });
+    const service = interpret(parentMachine);
+    expect(() => {
+      service.start();
+    }).not.toThrow();
+  });
+
+  it('should receive done event from an immediately completed observable when self-initializing', () => {
+    const parentMachine = createMachine<{
+      child: ActorRef<any> | null;
+    }>({
+      context: {
+        child: null
+      },
+      entry: assign({
+        child: () =>
+          spawn(
+            createObservableBehavior(() => EMPTY),
+            'myactor'
+          )
+      }),
+      initial: 'init',
+      states: {
+        init: {
+          on: {
+            'done.invoke.myactor': 'done'
+          }
+        },
+        done: {}
+      }
+    });
+    const service = interpret(parentMachine);
+
+    service.start();
+
+    expect(service.state.value).toBe('done');
   });
 });

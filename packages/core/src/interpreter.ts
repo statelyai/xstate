@@ -815,6 +815,9 @@ export class Interpreter<
     }
 
     return undefined;
+    // this.state might not exist at the time this is called,
+    // such as when a child is added then removed while initializing the state
+    // delete this.state?.children[childId]; // MERGE
   }
 
   private stopChild(childId: string): void {
