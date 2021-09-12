@@ -77,4 +77,53 @@ describe('@xstate/inspect', () => {
 
     expect(() => devTools.register(service)).not.toThrow();
   });
+
+  it('should accept a serializer', (done) => {
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {}
+      }
+    });
+
+    const devTools = createDevTools();
+
+    inspect({
+      iframe: false,
+      devTools,
+      serialize: (_key, value) => {
+        if (value instanceof Map) {
+          return 'map';
+        }
+
+        return value;
+      }
+    })?.subscribe((state) => {
+      if (
+        state.event.type === 'service.event' &&
+        JSON.parse(state.event.event).name === 'TEST'
+      ) {
+        expect(JSON.parse(state.event.event).data).toEqual({
+          type: 'TEST',
+          serialized: 'map',
+          deep: {
+            serialized: 'map'
+          }
+        });
+        done();
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    devTools.register(service);
+
+    service.send({
+      type: 'TEST',
+      serialized: new Map(), // test value to serialize
+      deep: {
+        serialized: new Map()
+      }
+    });
+  });
 });

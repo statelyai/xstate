@@ -6,11 +6,14 @@ export function getLazy<T>(value: MaybeLazy<T>): T {
   return typeof value === 'function' ? (value as () => T)() : value;
 }
 
-export function stringify(value: any): string {
+export function stringify(
+  value: any,
+  replacer?: (key: string, value: any) => any
+): string {
   try {
-    return JSON.stringify(value);
+    return JSON.stringify(value, replacer);
   } catch (e) {
-    return safeStringify(value);
+    return safeStringify(value, replacer);
   }
 }
 

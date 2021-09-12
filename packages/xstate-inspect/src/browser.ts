@@ -68,7 +68,8 @@ const defaultInspectorOptions: InspectorOptions = {
     const devTools = createDevTools();
     globalThis.__xstate__ = devTools;
     return devTools;
-  }
+  },
+  serialize: undefined
 };
 
 const getFinalOptions = (options?: Partial<InspectorOptions>) => {
@@ -138,11 +139,14 @@ export function inspect(
     inspectService.send({ type: 'unload' });
   });
 
+  const stringifyWithSerializer = (value: any) =>
+    stringify(value, options?.serialize);
+
   devTools.onRegister((service) => {
     inspectService.send({
       type: 'service.register',
-      machine: stringify(service.machine),
-      state: stringify(service.state || service.initialState),
+      machine: stringifyWithSerializer(service.machine),
+      state: stringifyWithSerializer(service.state || service.initialState),
       sessionId: service.sessionId,
       id: service.id,
       parent: service.parent?.sessionId
@@ -150,7 +154,9 @@ export function inspect(
 
     inspectService.send({
       type: 'service.event',
-      event: stringify((service.state || service.initialState)._event),
+      event: stringifyWithSerializer(
+        (service.state || service.initialState)._event
+      ),
       sessionId: service.sessionId
     });
 
@@ -165,7 +171,7 @@ export function inspect(
     ) {
       inspectService.send({
         type: 'service.event',
-        event: stringify(
+        event: stringifyWithSerializer(
           toSCXMLEvent(toEventObject(event as EventObject, payload))
         ),
         sessionId: service.sessionId
@@ -181,7 +187,7 @@ export function inspect(
       }
       inspectService.send({
         type: 'service.state',
-        state: stringify(state),
+        state: stringifyWithSerializer(state),
         sessionId: service.sessionId
       });
     });
@@ -296,7 +302,7 @@ export function createWebSocketReceiver(
   const actorRef: InspectReceiver = {
     id: 'xstate.webSocketReceiver',
     send(event) {
-      ws.send(JSON.stringify(event));
+      ws.send(stringify(event, options.serialize));
     },
     subscribe(next, onError?, onComplete?) {
       const observer = toObserver(next, onError, onComplete);
