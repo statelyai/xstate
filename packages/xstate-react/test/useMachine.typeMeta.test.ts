@@ -1,6 +1,5 @@
 import { createMachine } from 'xstate';
-import { AnyFunction } from '../../core/src/model.types';
-import { useInterpret } from '../src';
+import { useMachine } from '../src';
 
 const doNotExecute = (_func: () => void) => {};
 
@@ -17,7 +16,7 @@ type Event =
       type: 'EVENT_3';
     };
 
-describe('useInterpret Type Meta', () => {
+describe('useMachine Type Meta', () => {
   describe('optionsRequired', () => {
     describe('If specified as 1', () => {
       it('Should error if options are not passed in', () => {
@@ -31,7 +30,7 @@ describe('useInterpret Type Meta', () => {
           });
 
           // @ts-expect-error
-          useInterpret(machine);
+          useMachine(machine);
         });
       });
     });
@@ -46,7 +45,7 @@ describe('useInterpret Type Meta', () => {
             types: {} as Meta
           });
 
-          useInterpret(machine);
+          useMachine(machine);
         });
       });
     });
@@ -85,7 +84,7 @@ describe('useInterpret Type Meta', () => {
              * Test if each of services, actions, guards
              * and delays are each required
              */
-            useInterpret(
+            useMachine(
               machine,
               // @ts-expect-error
               {
@@ -94,7 +93,7 @@ describe('useInterpret Type Meta', () => {
                 guards: {} as any
               }
             );
-            useInterpret(
+            useMachine(
               machine,
               // @ts-expect-error
               {
@@ -103,7 +102,7 @@ describe('useInterpret Type Meta', () => {
                 delays: {} as any
               }
             );
-            useInterpret(
+            useMachine(
               machine,
               // @ts-expect-error
               {
@@ -112,7 +111,7 @@ describe('useInterpret Type Meta', () => {
                 guards: {} as any
               }
             );
-            useInterpret(
+            useMachine(
               machine,
               // @ts-expect-error
               {
@@ -126,7 +125,7 @@ describe('useInterpret Type Meta', () => {
              * Test if each element within each category
              * is type checked
              */
-            useInterpret(machine, {
+            useMachine(machine, {
               // @ts-expect-error
               services: {},
               // @ts-expect-error

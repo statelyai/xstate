@@ -12,7 +12,7 @@ import {
 } from './types';
 import { StateNode } from './StateNode';
 import { Model, ModelContextFrom, ModelActionsFrom } from './model.types';
-import { TypegenMachineOptions, TypegenMeta } from '.';
+import { MaybeTypegenMachineOptions, TypegenMeta } from '.';
 
 /**
  * @deprecated Use `createMachine(...)` instead.
@@ -72,7 +72,7 @@ export function createMachine<
   config: TContext extends Model<any, any, any, any>
     ? never
     : MachineConfig<TContext, any, TEvent> & { types: TMeta },
-  options?: Partial<TypegenMachineOptions<TContext, TEvent, TMeta>>
+  options?: Partial<MaybeTypegenMachineOptions<TContext, TEvent, TMeta>>
 ): StateMachine<TContext, any, TEvent, any, any, TMeta>;
 export function createMachine<
   TContext,
