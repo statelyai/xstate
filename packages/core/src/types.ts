@@ -1654,18 +1654,26 @@ export interface TypegenMeta {
 export type MaybeTypegenMachineOptions<
   TContext,
   TEvent extends EventObject,
-  TMeta extends TypegenMeta
+  TMeta extends TypegenMeta,
+  TAction extends ActionObject<TContext, TEvent> = ActionObject<
+    TContext,
+    TEvent
+  >
 > = TMeta extends IsTypegenActive
   ? TypegenMachineOptions<TContext, TEvent, TMeta>
-  : Partial<MachineOptions<TContext, TEvent>>;
+  : Partial<MachineOptions<TContext, TEvent, TAction>>;
 
 export type MaybeRequiredTypegenMachineOptions<
   TContext,
   TEvent extends EventObject,
-  TMeta extends TypegenMeta
+  TMeta extends TypegenMeta,
+  TAction extends ActionObject<TContext, TEvent> = ActionObject<
+    TContext,
+    TEvent
+  >
 > = TMeta extends IsTypegenActive
   ? RequiredTypegenMachineOptions<TContext, TEvent, TMeta>
-  : Partial<MachineOptions<TContext, TEvent>>;
+  : Partial<MachineOptions<TContext, TEvent, TAction>>;
 
 export interface DefaultTypegenMeta {}
 

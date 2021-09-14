@@ -41,9 +41,9 @@ export interface Model<
     <TMeta extends DefaultTypegenMeta>(
       config: MachineConfig<TContext, any, TEvent, TAction> & { types?: TMeta },
       implementations?: Partial<
-        MaybeTypegenMachineOptions<TContext, TEvent, TMeta>
+        MaybeTypegenMachineOptions<TContext, TEvent, TMeta, TAction>
       >
-    ): StateMachine<TContext, any, TEvent, any, any, TMeta>;
+    ): StateMachine<TContext, any, TEvent, any, TAction, TMeta>;
   };
 }
 
