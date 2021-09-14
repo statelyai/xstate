@@ -1,5 +1,4 @@
 import { createMachine } from 'xstate';
-import { AnyFunction } from '../../core/src/model.types';
 import { useInterpret } from '../src';
 
 const doNotExecute = (_func: () => void) => {};
