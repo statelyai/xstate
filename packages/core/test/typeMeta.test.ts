@@ -32,7 +32,7 @@ describe('Type Meta', () => {
           },
           {
             services: {
-              myService: async (context, event) => {
+              myService: async (_context, event) => {
                 // @ts-expect-error
                 event.type === 'EVENT_2';
               }
@@ -81,7 +81,7 @@ describe('Type Meta', () => {
           },
           {
             actions: {
-              myAction: (context, event) => {
+              myAction: (_context, event) => {
                 // @ts-expect-error
                 event.type === 'EVENT_2';
               }
@@ -129,7 +129,7 @@ describe('Type Meta', () => {
           },
           {
             guards: {
-              myGuard: (context, event) => {
+              myGuard: (_context, event) => {
                 // @ts-expect-error
                 event.type === 'EVENT_2';
                 return true;
@@ -181,7 +181,7 @@ describe('Type Meta', () => {
           },
           {
             delays: {
-              myGuard: (context, event) => {
+              myGuard: (_context, event) => {
                 // @ts-expect-error
                 event.type === 'EVENT_2';
                 return 1;
