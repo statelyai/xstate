@@ -21,6 +21,7 @@ import { StateNode } from './StateNode';
 import { getMeta, nextEvents } from './stateUtils';
 import { initEvent } from './actions';
 import { IS_PRODUCTION } from './environment';
+import { DefaultTypegenMeta, IsTypegenActive, TypegenMeta } from '.';
 
 export function stateValuesEqual(
   a: StateValue | undefined,
@@ -87,7 +88,8 @@ export class State<
   TContext,
   TEvent extends EventObject = EventObject,
   TStateSchema extends StateSchema<TContext> = any,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext },
+  TMeta extends TypegenMeta = DefaultTypegenMeta
 > {
   public value: StateValue;
   public context: TContext;
@@ -298,7 +300,9 @@ export class State<
    * @param parentStateValue
    */
   public matches<TSV extends TTypestate['value']>(
-    parentStateValue: TSV
+    parentStateValue: TMeta extends IsTypegenActive
+      ? TMeta['matchesStates']
+      : TSV
   ): this is State<
     (TTypestate extends any
       ? { value: TSV; context: any } extends TTypestate
@@ -307,7 +311,8 @@ export class State<
       : never)['context'],
     TEvent,
     TStateSchema,
-    TTypestate
+    TTypestate,
+    TMeta
   > & { value: TSV } {
     return matchesState(parentStateValue as StateValue, this.value);
   }
@@ -316,7 +321,9 @@ export class State<
    * Whether the current state configuration has a state node with the specified `tag`.
    * @param tag
    */
-  public hasTag(tag: string): boolean {
+  public hasTag(
+    tag: TMeta extends IsTypegenActive ? TMeta['tags'] : string
+  ): boolean {
     return this.tags.has(tag);
   }
 

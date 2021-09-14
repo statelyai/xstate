@@ -66,6 +66,7 @@ import { registry } from './registry';
 import { getGlobal, registerService } from './devTools';
 import * as serviceScope from './serviceScope';
 import { spawnBehavior } from './behaviors';
+import { DefaultTypegenMeta, TypegenMeta } from '.';
 
 export type StateListener<
   TContext,
@@ -118,7 +119,8 @@ export class Interpreter<
   TContext,
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = EventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext },
+  TMeta extends TypegenMeta = DefaultTypegenMeta
 > implements
     ActorRef<TEvent, State<TContext, TEvent, TStateSchema, TTypestate>> {
   /**
@@ -215,7 +217,13 @@ export class Interpreter<
 
     this.sessionId = registry.bookId();
   }
-  public get initialState(): State<TContext, TEvent, TStateSchema, TTypestate> {
+  public get initialState(): State<
+    TContext,
+    TEvent,
+    TStateSchema,
+    TTypestate,
+    TMeta
+  > {
     if (this._initialState) {
       return this._initialState;
     }
@@ -225,7 +233,7 @@ export class Interpreter<
       return this._initialState;
     });
   }
-  public get state(): State<TContext, TEvent, TStateSchema, TTypestate> {
+  public get state(): State<TContext, TEvent, TStateSchema, TTypestate, TMeta> {
     if (!IS_PRODUCTION) {
       warn(
         this.status !== InterpreterStatus.NotStarted,
@@ -332,7 +340,9 @@ export class Interpreter<
     return this;
   }
   public subscribe(
-    nextListener?: (state: State<TContext, TEvent, any, TTypestate>) => void,
+    nextListener?: (
+      state: State<TContext, TEvent, any, TTypestate, TMeta>
+    ) => void,
     errorListener?: (error: any) => void,
     completeListener?: () => void
   ): Subscription;
@@ -341,8 +351,8 @@ export class Interpreter<
   ): Subscription;
   public subscribe(
     nextListenerOrObserver?:
-      | ((state: State<TContext, TEvent, any, TTypestate>) => void)
-      | Observer<State<TContext, TEvent, any, TTypestate>>,
+      | ((state: State<TContext, TEvent, any, TTypestate, TMeta>) => void)
+      | Observer<State<TContext, TEvent, any, TTypestate, TMeta>>,
     _?: (error: any) => void, // TODO: error listener
     completeListener?: () => void
   ): Subscription {
@@ -350,7 +360,9 @@ export class Interpreter<
       return { unsubscribe: () => void 0 };
     }
 
-    let listener: (state: State<TContext, TEvent, any, TTypestate>) => void;
+    let listener: (
+      state: State<TContext, TEvent, any, TTypestate, TMeta>
+    ) => void;
     let resolvedCompleteListener = completeListener;
 
     if (typeof nextListenerOrObserver === 'function') {
@@ -457,7 +469,7 @@ export class Interpreter<
    */
   public start(
     initialState?:
-      | State<TContext, TEvent, TStateSchema, TTypestate>
+      | State<TContext, TEvent, TStateSchema, TTypestate, TMeta>
       | StateValue
   ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
     if (this.status === InterpreterStatus.Running) {
@@ -553,7 +565,7 @@ export class Interpreter<
   public send = (
     event: SingleOrArray<Event<TEvent>> | SCXML.Event<TEvent>,
     payload?: EventData
-  ): State<TContext, TEvent, TStateSchema, TTypestate> => {
+  ): State<TContext, TEvent, TStateSchema, TTypestate, TMeta> => {
     if (isArray(event)) {
       this.batch(event);
       return this.state;
@@ -718,7 +730,7 @@ export class Interpreter<
    */
   public nextState(
     event: Event<TEvent> | SCXML.Event<TEvent>
-  ): State<TContext, TEvent, TStateSchema, TTypestate> {
+  ): State<TContext, TEvent, TStateSchema, TTypestate, TMeta> {
     const _event = toSCXMLEvent(event);
 
     if (
@@ -766,7 +778,7 @@ export class Interpreter<
   }
   private exec(
     action: ActionObject<TContext, TEvent>,
-    state: State<TContext, TEvent, TStateSchema, TTypestate>,
+    state: State<TContext, TEvent, TStateSchema, TTypestate, TMeta>,
     actionFunctionMap: ActionFunctionMap<TContext, TEvent> = this.machine
       .options.actions
   ): void {
@@ -1373,16 +1385,18 @@ export function interpret<
   TContext = DefaultContext,
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = EventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext },
+  TMeta extends DefaultTypegenMeta = TypegenMeta
 >(
-  machine: StateMachine<TContext, TStateSchema, TEvent, TTypestate>,
+  machine: StateMachine<TContext, TStateSchema, TEvent, TTypestate, any, TMeta>,
   options?: Partial<InterpreterOptions>
 ) {
   const interpreter = new Interpreter<
     TContext,
     TStateSchema,
     TEvent,
-    TTypestate
+    TTypestate,
+    TMeta
   >(machine, options);
 
   return interpreter;

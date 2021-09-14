@@ -100,6 +100,7 @@ import {
 } from './stateUtils';
 import { createInvocableActor } from './Actor';
 import { toInvokeDefinition } from './invokeUtils';
+import { DefaultTypegenMeta, TypegenMeta } from '.';
 
 const NULL_EVENT = '';
 const STATE_IDENTIFIER = '#';
@@ -147,7 +148,8 @@ class StateNode<
   TContext = any,
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = EventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext },
+  TMeta extends TypegenMeta = DefaultTypegenMeta
 > {
   /**
    * The relative key of the state node, which represents its location in the overall state value.
@@ -647,8 +649,8 @@ class StateNode<
    * @param state The state value or State instance
    */
   public getStateNodes(
-    state: StateValue | State<TContext, TEvent, any, TTypestate>
-  ): Array<StateNode<TContext, any, TEvent, TTypestate>> {
+    state: StateValue | State<TContext, TEvent, any, TTypestate, TMeta>
+  ): Array<StateNode<TContext, any, TEvent, TTypestate, TMeta>> {
     if (!state) {
       return [];
     }
@@ -703,8 +705,8 @@ class StateNode<
    * @param state The state to resolve
    */
   public resolveState(
-    state: State<TContext, TEvent, any, any>
-  ): State<TContext, TEvent, TStateSchema, TTypestate> {
+    state: State<TContext, TEvent, any, any, TMeta>
+  ): State<TContext, TEvent, TStateSchema, TTypestate, TMeta> {
     const configuration = Array.from(
       getConfiguration([], this.getStateNodes(state.value))
     );
@@ -1064,11 +1066,11 @@ class StateNode<
    * @param context The current context (extended state) of the current state
    */
   public transition(
-    state: StateValue | State<TContext, TEvent, any, TTypestate> = this
+    state: StateValue | State<TContext, TEvent, any, TTypestate, TMeta> = this
       .initialState,
     event: Event<TEvent> | SCXML.Event<TEvent>,
     context?: TContext
-  ): State<TContext, TEvent, TStateSchema, TTypestate> {
+  ): State<TContext, TEvent, TStateSchema, TTypestate, TMeta> {
     const _event = toSCXMLEvent(event);
     let currentState: State<TContext, TEvent, any, TTypestate>;
 
@@ -1148,7 +1150,7 @@ class StateNode<
     currentState?: State<TContext, TEvent, any, any>,
     _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>,
     context: TContext = this.machine.context
-  ): State<TContext, TEvent, TStateSchema, TTypestate> {
+  ): State<TContext, TEvent, TStateSchema, TTypestate, TMeta> {
     const { configuration } = stateTransition;
     // Transition will "apply" if:
     // - this is the initial state (there is no current state)
@@ -1237,7 +1239,13 @@ class StateNode<
 
     const isDone = isInFinalState(resolvedConfiguration, this);
 
-    const nextState = new State<TContext, TEvent, TStateSchema, TTypestate>({
+    const nextState = new State<
+      TContext,
+      TEvent,
+      TStateSchema,
+      TTypestate,
+      TMeta
+    >({
       value: resolvedStateValue || currentState!.value,
       context: updatedContext,
       _event,
@@ -1535,7 +1543,7 @@ class StateNode<
   public getInitialState(
     stateValue: StateValue,
     context?: TContext
-  ): State<TContext, TEvent, TStateSchema, TTypestate> {
+  ): State<TContext, TEvent, TStateSchema, TTypestate, TMeta> {
     const configuration = this.getStateNodes(stateValue);
 
     return this.resolveTransition(
@@ -1557,7 +1565,13 @@ class StateNode<
    * The initial State instance, which includes all actions to be executed from
    * entering the initial state.
    */
-  public get initialState(): State<TContext, TEvent, TStateSchema, TTypestate> {
+  public get initialState(): State<
+    TContext,
+    TEvent,
+    TStateSchema,
+    TTypestate,
+    TMeta
+  > {
     this._init(); // TODO: this should be in the constructor (see note in constructor)
     const { initialStateValue } = this;
 

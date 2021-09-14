@@ -1,13 +1,13 @@
+import { DefaultTypegenMeta, MaybeTypegenMachineOptions } from '.';
 import {
-  EventObject,
-  Assigner,
-  ExtractEvent,
-  PropertyAssigner,
   AssignAction,
+  Assigner,
+  BaseActionObject,
+  EventObject,
+  ExtractEvent,
   MachineConfig,
-  MachineOptions,
-  StateMachine,
-  BaseActionObject
+  PropertyAssigner,
+  StateMachine
 } from './types';
 
 export type AnyFunction = (...args: any[]) => any;
@@ -37,10 +37,14 @@ export interface Model<
   events: Prop<TModelCreators, 'events'>;
   actions: Prop<TModelCreators, 'actions'>;
   reset: () => AssignAction<TContext, any>;
-  createMachine: (
-    config: MachineConfig<TContext, any, TEvent, TAction>,
-    implementations?: Partial<MachineOptions<TContext, TEvent, TAction>>
-  ) => StateMachine<TContext, any, TEvent>;
+  createMachine: {
+    <TMeta extends DefaultTypegenMeta>(
+      config: MachineConfig<TContext, any, TEvent, TAction> & { types?: TMeta },
+      implementations?: Partial<
+        MaybeTypegenMachineOptions<TContext, TEvent, TMeta>
+      >
+    ): StateMachine<TContext, any, TEvent, any, any, TMeta>;
+  };
 }
 
 export type ModelContextFrom<

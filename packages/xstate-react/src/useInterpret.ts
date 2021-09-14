@@ -7,9 +7,12 @@ import {
   State,
   Interpreter,
   InterpreterOptions,
-  MachineOptions,
   Typestate,
-  Observer
+  Observer,
+  TypegenMeta,
+  MaybeRequiredTypegenMachineOptions,
+  DefaultTypegenMeta,
+  OptionsAreRequired
 } from 'xstate';
 import { MaybeLazy } from './types';
 import useConstant from './useConstant';
@@ -39,16 +42,37 @@ function toObserver<T>(
 export function useInterpret<
   TContext,
   TEvent extends EventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext },
+  TMeta extends TypegenMeta = DefaultTypegenMeta
 >(
-  getMachine: MaybeLazy<StateMachine<TContext, any, TEvent, TTypestate>>,
-  options: Partial<InterpreterOptions> &
-    Partial<UseMachineOptions<TContext, TEvent>> &
-    Partial<MachineOptions<TContext, TEvent>> = {},
-  observerOrListener?:
-    | Observer<State<TContext, TEvent, any, TTypestate>>
-    | ((value: State<TContext, TEvent, any, TTypestate>) => void)
-): Interpreter<TContext, any, TEvent, TTypestate> {
+  ...[
+    getMachine,
+    options = {},
+    observerOrListener
+  ]: TMeta extends OptionsAreRequired
+    ? [
+        getMachine: MaybeLazy<
+          StateMachine<TContext, any, TEvent, TTypestate, any, TMeta>
+        >,
+        options: Partial<InterpreterOptions> &
+          Partial<UseMachineOptions<TContext, TEvent>> &
+          MaybeRequiredTypegenMachineOptions<TContext, TEvent, TMeta>,
+        observerOrListener?:
+          | Observer<State<TContext, TEvent, any, TTypestate, TMeta>>
+          | ((value: State<TContext, TEvent, any, TTypestate, TMeta>) => void)
+      ]
+    : [
+        getMachine: MaybeLazy<
+          StateMachine<TContext, any, TEvent, TTypestate, any, TMeta>
+        >,
+        options?: Partial<InterpreterOptions> &
+          Partial<UseMachineOptions<TContext, TEvent>> &
+          MaybeRequiredTypegenMachineOptions<TContext, TEvent, TMeta>,
+        observerOrListener?:
+          | Observer<State<TContext, TEvent, any, TTypestate, TMeta>>
+          | ((value: State<TContext, TEvent, any, TTypestate, TMeta>) => void)
+      ]
+): Interpreter<TContext, any, TEvent, TTypestate, TMeta> {
   const machine = useConstant(() => {
     return typeof getMachine === 'function' ? getMachine() : getMachine;
   });

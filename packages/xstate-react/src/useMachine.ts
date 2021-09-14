@@ -1,14 +1,17 @@
 import { useCallback, useState } from 'react';
 import {
+  ActionFunction,
+  DefaultTypegenMeta,
   EventObject,
-  StateMachine,
-  State,
   Interpreter,
   InterpreterOptions,
-  MachineOptions,
+  MaybeRequiredTypegenMachineOptions,
+  OptionsAreRequired,
+  State,
   StateConfig,
-  Typestate,
-  ActionFunction
+  StateMachine,
+  TypegenMeta,
+  Typestate
 } from 'xstate';
 import { MaybeLazy, ReactActionFunction, ReactEffectType } from './types';
 import { useInterpret } from './useInterpret';
@@ -59,16 +62,30 @@ export interface UseMachineOptions<TContext, TEvent extends EventObject> {
 export function useMachine<
   TContext,
   TEvent extends EventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext },
+  TMeta extends TypegenMeta = DefaultTypegenMeta
 >(
-  getMachine: MaybeLazy<StateMachine<TContext, any, TEvent, TTypestate>>,
-  options: Partial<InterpreterOptions> &
-    Partial<UseMachineOptions<TContext, TEvent>> &
-    Partial<MachineOptions<TContext, TEvent>> = {}
+  ...[getMachine, options = {}]: TMeta extends OptionsAreRequired
+    ? [
+        getMachine: MaybeLazy<
+          StateMachine<TContext, any, TEvent, TTypestate, any, TMeta>
+        >,
+        options: Partial<InterpreterOptions> &
+          Partial<UseMachineOptions<TContext, TEvent>> &
+          MaybeRequiredTypegenMachineOptions<TContext, TEvent, TMeta>
+      ]
+    : [
+        getMachine: MaybeLazy<
+          StateMachine<TContext, any, TEvent, TTypestate, any, TMeta>
+        >,
+        options?: Partial<InterpreterOptions> &
+          Partial<UseMachineOptions<TContext, TEvent>> &
+          MaybeRequiredTypegenMachineOptions<TContext, TEvent, TMeta>
+      ]
 ): [
-  State<TContext, TEvent, any, TTypestate>,
-  Interpreter<TContext, any, TEvent, TTypestate>['send'],
-  Interpreter<TContext, any, TEvent, TTypestate>
+  State<TContext, TEvent, any, TTypestate, TMeta>,
+  Interpreter<TContext, any, TEvent, TTypestate, TMeta>['send'],
+  Interpreter<TContext, any, TEvent, TTypestate, TMeta>
 ] {
   const listener = useCallback(
     (nextState: State<TContext, TEvent, any, TTypestate>) => {

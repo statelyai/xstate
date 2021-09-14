@@ -12,6 +12,7 @@ import {
 } from './types';
 import { StateNode } from './StateNode';
 import { Model, ModelContextFrom, ModelActionsFrom } from './model.types';
+import { TypegenMachineOptions, TypegenMeta } from '.';
 
 /**
  * @deprecated Use `createMachine(...)` instead.
@@ -61,6 +62,18 @@ export function createMachine<
   },
   options?: Partial<MachineOptions<TContext, TEvent, TAction>>
 ): StateMachine<TContext, any, TEvent, TTypestate>;
+export function createMachine<
+  TContext,
+  TEvent extends EventObject,
+  TMeta extends TypegenMeta
+>(
+  // Ensure that only the first overload matches models, and prevent
+  // accidental inference of the model as the `TContext` (which leads to cryptic errors)
+  config: TContext extends Model<any, any, any, any>
+    ? never
+    : MachineConfig<TContext, any, TEvent> & { types: TMeta },
+  options?: Partial<TypegenMachineOptions<TContext, TEvent, TMeta>>
+): StateMachine<TContext, any, TEvent, any, any, TMeta>;
 export function createMachine<
   TContext,
   TEvent extends EventObject = AnyEventObject,

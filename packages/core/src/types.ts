@@ -740,6 +740,119 @@ export type DelayConfig<TContext, TEvent extends EventObject> =
   | number
   | DelayExpr<TContext, TEvent>;
 
+export type RequiredTypegenMachineOptions<
+  TContext,
+  TEvent extends EventObject,
+  TMeta extends TypegenMeta
+> = Required<
+  Pick<
+    TypegenMachineOptions<TContext, TEvent, TMeta, 1>,
+    GetRequiredTypegenOptionKeys<TMeta>
+  >
+>;
+
+export type GetRequiredTypegenOptionKeys<TMeta extends TypegenMeta> =
+  | (TMeta['requiredActions'] extends string ? 'actions' : never)
+  | (TMeta['requiredGuards'] extends string ? 'guards' : never)
+  | (TMeta['requiredDelays'] extends string ? 'delays' : never)
+  | (TMeta['requiredServices'] extends string ? 'services' : never);
+
+export type TypegenMachineOptionsActions<
+  TContext,
+  TEvent extends EventObject,
+  TMeta extends TypegenMeta
+> = {
+  [K in keyof TMeta['eventsCausingActions']]?: Action<
+    TContext,
+    Extract<TEvent, { type: TMeta['eventsCausingActions'][K] }>
+  >;
+};
+
+export type TypegenMachineOptionsGuards<
+  TContext,
+  TEvent extends EventObject,
+  TMeta extends TypegenMeta
+> = {
+  [K in keyof TMeta['eventsCausingGuards']]?: Condition<
+    TContext,
+    Extract<TEvent, { type: TMeta['eventsCausingGuards'][K] }>
+  >;
+};
+
+export type TypegenMachineOptionsServices<
+  TContext,
+  TEvent extends EventObject,
+  TMeta extends TypegenMeta
+> = {
+  [K in keyof TMeta['eventsCausingServices']]?: InvokeCreator<
+    TContext,
+    Extract<TEvent, { type: TMeta['eventsCausingServices'][K] }>
+  >;
+};
+
+export type TypegenMachineOptionsDelays<
+  TContext,
+  TEvent extends EventObject,
+  TMeta extends TypegenMeta
+> = {
+  [K in keyof TMeta['allDelays']]?: DelayConfig<
+    TContext,
+    Extract<TEvent, { type: TMeta['allDelays'][K] }>
+  >;
+};
+
+export interface TypegenMachineOptions<
+  TContext,
+  TEvent extends EventObject,
+  TMeta extends TypegenMeta,
+  TRequired extends 0 | 1 = 0
+> {
+  actions: TRequired extends 1
+    ? {
+        // @ts-ignore
+        [K in TMeta['requiredActions']]: Pick<
+          TypegenMachineOptionsActions<TContext, TEvent, TMeta>,
+          // @ts-ignore
+          K
+        >[K];
+      } &
+        TypegenMachineOptionsActions<TContext, TEvent, TMeta>
+    : TypegenMachineOptionsActions<TContext, TEvent, TMeta>;
+  guards: TRequired extends 1
+    ? {
+        // @ts-ignore
+        [K in TMeta['requiredGuards']]: Pick<
+          TypegenMachineOptionsGuards<TContext, TEvent, TMeta>,
+          // @ts-ignore
+          K
+        >[K];
+      } &
+        TypegenMachineOptionsGuards<TContext, TEvent, TMeta>
+    : TypegenMachineOptionsGuards<TContext, TEvent, TMeta>;
+  services: TRequired extends 1
+    ? {
+        // @ts-ignore
+        [K in TMeta['requiredServices']]: Pick<
+          TypegenMachineOptionsServices<TContext, TEvent, TMeta>,
+          // @ts-ignore
+          K
+        >[K];
+      } &
+        TypegenMachineOptionsServices<TContext, TEvent, TMeta>
+    : TypegenMachineOptionsServices<TContext, TEvent, TMeta>;
+  delays: TRequired extends 1
+    ? {
+        // @ts-ignore
+        [K in TMeta['requiredDelays']]: Pick<
+          TypegenMachineOptionsDelays<TContext, TEvent, TMeta>,
+          // @ts-ignore
+          K
+        >[K];
+      } &
+        TypegenMachineOptionsDelays<TContext, TEvent, TMeta>
+    : TypegenMachineOptionsDelays<TContext, TEvent, TMeta>;
+}
+
 export interface MachineOptions<
   TContext,
   TEvent extends EventObject,
@@ -823,19 +936,26 @@ export interface StateMachine<
   _TAction extends ActionObject<TContext, TEvent> = ActionObject<
     TContext,
     TEvent
-  >
-> extends StateNode<TContext, TStateSchema, TEvent, TTypestate> {
+  >,
+  TMeta extends TypegenMeta = DefaultTypegenMeta
+> extends StateNode<TContext, TStateSchema, TEvent, TTypestate, TMeta> {
   id: string;
-  states: StateNode<TContext, TStateSchema, TEvent>['states'];
+  states: StateNode<
+    TContext,
+    TStateSchema,
+    TEvent,
+    TTypestate,
+    TMeta
+  >['states'];
 
   withConfig(
-    options: Partial<MachineOptions<TContext, TEvent>>,
+    options: MaybeTypegenMachineOptions<TContext, TEvent, TMeta>,
     context?: TContext | (() => TContext)
-  ): StateMachine<TContext, TStateSchema, TEvent, TTypestate>;
+  ): StateMachine<TContext, TStateSchema, TEvent, TTypestate, any, TMeta>;
 
   withContext(
     context: TContext | (() => TContext)
-  ): StateMachine<TContext, TStateSchema, TEvent, TTypestate>;
+  ): StateMachine<TContext, TStateSchema, TEvent, TTypestate, any, TMeta>;
 }
 
 export type StateFrom<
@@ -1515,3 +1635,44 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
     ? TContext
     : never
   : never;
+
+export interface TypegenMeta {
+  __generated?: 1;
+  optionsRequired?: 0 | 1;
+  eventsCausingServices?: Record<string, string>;
+  eventsCausingGuards?: Record<string, string>;
+  eventsCausingActions?: Record<string, string>;
+  allDelays?: Record<string, boolean>;
+  requiredActions?: string;
+  requiredGuards?: string;
+  requiredServices?: string;
+  requiredDelays?: string;
+  matchesStates?: string;
+  tags?: string;
+}
+
+export type MaybeTypegenMachineOptions<
+  TContext,
+  TEvent extends EventObject,
+  TMeta extends TypegenMeta
+> = TMeta extends IsTypegenActive
+  ? TypegenMachineOptions<TContext, TEvent, TMeta>
+  : Partial<MachineOptions<TContext, TEvent>>;
+
+export type MaybeRequiredTypegenMachineOptions<
+  TContext,
+  TEvent extends EventObject,
+  TMeta extends TypegenMeta
+> = TMeta extends IsTypegenActive
+  ? RequiredTypegenMachineOptions<TContext, TEvent, TMeta>
+  : Partial<MachineOptions<TContext, TEvent>>;
+
+export interface DefaultTypegenMeta {}
+
+export interface IsTypegenActive {
+  __generated: 1;
+}
+
+export interface OptionsAreRequired {
+  optionsRequired: 1;
+}
