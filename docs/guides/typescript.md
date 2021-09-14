@@ -248,7 +248,7 @@ The reason this errors is because inside the `consoleLogData` function, we don't
 createMachine<Context, Event>(machine, {
   actions: {
     consoleLogData: (context, event) => {
-      if (event.type !== 'EVENT_WITH_FLAG') return
+      if (event.type !== 'EVENT_WITH_FLAG') return {}
       // No more error at .flag!
       console.log(event.flag);
     };
