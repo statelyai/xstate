@@ -50,7 +50,7 @@ export function Machine<
 
 export function createMachine<
   TContext,
-  TEvent extends EventObject,
+  TEvent extends EventObject = AnyEventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext },
   TMeta extends TypegenMeta = DefaultTypegenMeta
 >(
