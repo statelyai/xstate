@@ -22,11 +22,9 @@ export function createModel<
   TComputedEvent = 'events' extends keyof TFinalModelCreators
     ? UnionFromCreatorsReturnTypes<TFinalModelCreators['events']>
     : never,
-  TComputedAction = 'actions' extends keyof TModelCreators
-    ? 'actions' extends keyof TFinalModelCreators
-      ? UnionFromCreatorsReturnTypes<TFinalModelCreators['actions']>
-      : any
-    : any
+  TComputedAction = 'actions' extends keyof TFinalModelCreators
+    ? UnionFromCreatorsReturnTypes<TFinalModelCreators['actions']>
+    : BaseActionObject
 >(
   initialContext: TContext,
   creators: TModelCreators
