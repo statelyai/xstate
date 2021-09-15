@@ -25,7 +25,7 @@ describe('useInterpret Type Meta', () => {
             __generated: 1;
             optionsRequired: 1;
           }
-          const machine = createMachine<Context, Event, Meta>({
+          const machine = createMachine<Context, Event, any, Meta>({
             types: {} as Meta
           });
 
@@ -41,7 +41,7 @@ describe('useInterpret Type Meta', () => {
             __generated: 1;
             optionsRequired: 0;
           }
-          const machine = createMachine<Context, Event, Meta>({
+          const machine = createMachine<Context, Event, any, Meta>({
             types: {} as Meta
           });
 
@@ -76,7 +76,7 @@ describe('useInterpret Type Meta', () => {
               };
               requiredDelays: 'a';
             }
-            const machine = createMachine<Context, Event, Meta>({
+            const machine = createMachine<Context, Event, any, Meta>({
               types: {} as Meta
             });
 

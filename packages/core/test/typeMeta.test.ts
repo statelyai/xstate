@@ -26,7 +26,7 @@ describe('Type Meta', () => {
           };
         }
 
-        createMachine<Context, Event, Meta>(
+        createMachine<Context, Event, any, Meta>(
           {
             types: {} as Meta
           },
@@ -50,7 +50,7 @@ describe('Type Meta', () => {
           };
         }
 
-        createMachine<Context, Event, Meta>(
+        createMachine<Context, Event, any, Meta>(
           {
             types: {} as Meta
           },
@@ -75,7 +75,7 @@ describe('Type Meta', () => {
           };
         }
 
-        createMachine<Context, Event, Meta>(
+        createMachine<Context, Event, any, Meta>(
           {
             types: {} as Meta
           },
@@ -99,7 +99,7 @@ describe('Type Meta', () => {
           };
         }
 
-        createMachine<Context, Event, Meta>(
+        createMachine<Context, Event, any, Meta>(
           {
             types: {} as Meta
           },
@@ -123,7 +123,7 @@ describe('Type Meta', () => {
           };
         }
 
-        createMachine<Context, Event, Meta>(
+        createMachine<Context, Event, any, Meta>(
           {
             types: {} as Meta
           },
@@ -148,7 +148,7 @@ describe('Type Meta', () => {
           };
         }
 
-        createMachine<Context, Event, Meta>(
+        createMachine<Context, Event, any, Meta>(
           {
             types: {} as Meta
           },
@@ -175,7 +175,7 @@ describe('Type Meta', () => {
           };
         }
 
-        createMachine<Context, Event, Meta>(
+        createMachine<Context, Event, any, Meta>(
           {
             types: {} as Meta
           },
@@ -200,7 +200,7 @@ describe('Type Meta', () => {
           };
         }
 
-        createMachine<Context, Event, Meta>(
+        createMachine<Context, Event, any, Meta>(
           {
             types: {} as Meta
           },
@@ -225,7 +225,7 @@ describe('Type Meta', () => {
           matchesStates: 'a' | 'b' | 'c';
         }
 
-        const machine = createMachine<Context, Event, Meta>({
+        const machine = createMachine<Context, Event, any, Meta>({
           types: {} as Meta
         });
 
@@ -243,7 +243,7 @@ describe('Type Meta', () => {
           tags: 'a' | 'b' | 'c';
         }
 
-        const machine = createMachine<Context, Event, Meta>({
+        const machine = createMachine<Context, Event, any, Meta>({
           types: {} as Meta
         });
 
