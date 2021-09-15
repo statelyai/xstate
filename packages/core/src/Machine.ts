@@ -53,7 +53,7 @@ export function createMachine<
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(
   config: TContext extends Model<any, any, any, any>
-    ? 'Passing typeof model to the first generic of createMachine is no longer supported - use model.createMachine instead'
+    ? 'Model type no longer supported as generic type. Please use `model.createMachine(...)` instead.'
     : MachineConfig<TContext, any, TEvent>,
   options?: Partial<MachineOptions<TContext, TEvent>>
 ): StateMachine<TContext, any, TEvent, TTypestate>;
