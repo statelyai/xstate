@@ -1,17 +1,15 @@
-import {
-  StateMachine,
-  MachineOptions,
-  DefaultContext,
-  MachineConfig,
-  StateSchema,
-  EventObject,
-  AnyEventObject,
-  Typestate,
-  EventFrom,
-  BaseActionObject
-} from './types';
+import { Model } from './model.types';
 import { StateNode } from './StateNode';
-import { Model, ModelContextFrom, ModelActionsFrom } from './model.types';
+import {
+  AnyEventObject,
+  DefaultContext,
+  EventObject,
+  MachineConfig,
+  MachineOptions,
+  StateMachine,
+  StateSchema,
+  Typestate
+} from './types';
 
 /**
  * @deprecated Use `createMachine(...)` instead.
@@ -50,18 +48,6 @@ export function Machine<
 }
 
 export function createMachine<
-  TModel extends Model<any, any, any, any>,
-  TContext = ModelContextFrom<TModel>,
-  TEvent extends EventObject = EventFrom<TModel>,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext },
-  TAction extends BaseActionObject = ModelActionsFrom<TModel>
->(
-  config: MachineConfig<TContext, any, TEvent, TAction> & {
-    context: TContext;
-  },
-  options?: Partial<MachineOptions<TContext, TEvent, TAction>>
-): StateMachine<TContext, any, TEvent, TTypestate>;
-export function createMachine<
   TContext,
   TEvent extends EventObject = AnyEventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
@@ -69,7 +55,7 @@ export function createMachine<
   // Ensure that only the first overload matches models, and prevent
   // accidental inference of the model as the `TContext` (which leads to cryptic errors)
   config: TContext extends Model<any, any, any, any>
-    ? never
+    ? 'Passing typeof model to the first generic of createMachine is no longer supported - use model.createMachine instead'
     : MachineConfig<TContext, any, TEvent>,
   options?: Partial<MachineOptions<TContext, TEvent>>
 ): StateMachine<TContext, any, TEvent, TTypestate>;
