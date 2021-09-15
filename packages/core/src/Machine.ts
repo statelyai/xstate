@@ -52,8 +52,6 @@ export function createMachine<
   TEvent extends EventObject = AnyEventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(
-  // Ensure that only the first overload matches models, and prevent
-  // accidental inference of the model as the `TContext` (which leads to cryptic errors)
   config: TContext extends Model<any, any, any, any>
     ? 'Passing typeof model to the first generic of createMachine is no longer supported - use model.createMachine instead'
     : MachineConfig<TContext, any, TEvent>,
