@@ -304,9 +304,7 @@ export class State<
       ? TMeta['matchesStates']
       : TSV
   ): this is State<
-    (TMeta extends TypegenIsActive
-      ? never
-      : TTypestate extends any
+    (TTypestate extends any
       ? { value: TSV; context: any } extends TTypestate
         ? TTypestate
         : never
