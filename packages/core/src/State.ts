@@ -21,7 +21,7 @@ import { StateNode } from './StateNode';
 import { getMeta, nextEvents } from './stateUtils';
 import { initEvent } from './actions';
 import { IS_PRODUCTION } from './environment';
-import { DefaultTypegenMeta, IsTypegenActive, TypegenMeta } from '.';
+import { DefaultTypegenMeta, TypegenIsActive, TypegenMeta } from '.';
 
 export function stateValuesEqual(
   a: StateValue | undefined,
@@ -300,7 +300,7 @@ export class State<
    * @param parentStateValue
    */
   public matches<TSV extends TTypestate['value']>(
-    parentStateValue: TMeta extends IsTypegenActive
+    parentStateValue: TMeta extends TypegenIsActive
       ? TMeta['matchesStates']
       : TSV
   ): this is State<
@@ -322,7 +322,7 @@ export class State<
    * @param tag
    */
   public hasTag(
-    tag: TMeta extends IsTypegenActive ? TMeta['tags'] : string
+    tag: TMeta extends TypegenIsActive ? TMeta['tags'] : string
   ): boolean {
     return this.tags.has(tag);
   }

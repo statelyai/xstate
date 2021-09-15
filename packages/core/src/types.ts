@@ -1659,7 +1659,7 @@ export type MaybeTypegenMachineOptions<
     TContext,
     TEvent
   >
-> = TMeta extends IsTypegenActive
+> = TMeta extends TypegenIsActive
   ? TypegenMachineOptions<TContext, TEvent, TMeta>
   : Partial<MachineOptions<TContext, TEvent, TAction>>;
 
@@ -1671,13 +1671,13 @@ export type MaybeRequiredTypegenMachineOptions<
     TContext,
     TEvent
   >
-> = TMeta extends IsTypegenActive
+> = TMeta extends TypegenIsActive
   ? RequiredTypegenMachineOptions<TContext, TEvent, TMeta>
   : Partial<MachineOptions<TContext, TEvent, TAction>>;
 
 export interface DefaultTypegenMeta {}
 
-export interface IsTypegenActive {
+export interface TypegenIsActive {
   __generated: 1;
 }
 
