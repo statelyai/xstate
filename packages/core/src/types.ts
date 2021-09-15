@@ -1277,6 +1277,7 @@ export interface StateConfig<
   children: Record<string, ActorRef<any>>;
   done?: boolean;
   tags?: Set<string>;
+  machine?: MachineNode<TContext, TEvent, any>;
 }
 
 export interface InterpreterOptions {
@@ -1533,6 +1534,13 @@ export type EventFrom<T> = ReturnTypeOrValue<T> extends infer R
     ? TEvent
     : never
   : never;
+
+/**
+ * Events that do not require payload
+ */
+export type SimpleEventsOf<
+  TEvent extends EventObject
+> = ExtractWithSimpleSupport<TEvent>;
 
 export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends MachineNode<infer TContext, infer __, infer ___>

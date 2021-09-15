@@ -1840,6 +1840,8 @@ export function macrostep<
     flatten(maybeNextState.configuration.map((sn) => sn.tags))
   );
 
+  maybeNextState.machine = machine;
+
   return maybeNextState;
 }
 

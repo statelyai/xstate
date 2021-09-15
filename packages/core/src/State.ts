@@ -11,11 +11,13 @@ import {
   ActorRef,
   MachineContext
 } from './types';
-import { matchesState, keys, isString } from './utils';
+import { matchesState, keys, isString, warn } from './utils';
 import { StateNode } from './StateNode';
 import { isInFinalState, nextEvents, getMeta } from './stateUtils';
 import { initEvent } from './actions';
 import { BaseActionObject } from './types';
+import { MachineNode, SimpleEventsOf } from '../dist/xstate.cjs';
+import { IS_PRODUCTION } from './environment';
 
 export function isState<
   TContext extends MachineContext,
@@ -71,6 +73,7 @@ export class State<
    */
   public children: Record<string, ActorRef<any>>;
   public tags: Set<string>;
+  public machine: MachineNode<TContext, TEvent, TTypestate> | undefined;
   /**
    * Creates a new State instance for the given `stateValue` and `context`.
    * @param stateValue
@@ -187,6 +190,7 @@ export class State<
     this.tags =
       (Array.isArray(config.tags) ? new Set(config.tags) : config.tags) ??
       new Set();
+    this.machine = config.machine;
 
     Object.defineProperty(this, 'nextEvents', {
       enumerable: false,
@@ -220,7 +224,7 @@ export class State<
   }
 
   public toJSON() {
-    const { configuration, transitions, tags, ...jsonValues } = this;
+    const { configuration, transitions, tags, machine, ...jsonValues } = this;
 
     return { ...jsonValues, tags: Array.from(tags) };
   }
@@ -256,5 +260,21 @@ export class State<
    */
   public hasTag(tag: string): boolean {
     return this.tags.has(tag);
+  }
+
+  /**
+   * Determines whether sending the `event` will cause a transition.
+   * @param event The event to test
+   * @returns Whether the event will cause a transition
+   */
+  public can(event: TEvent | SimpleEventsOf<TEvent>['type']): boolean {
+    if (IS_PRODUCTION) {
+      warn(
+        !!this.machine,
+        `state.can(...) used outside of a machine-created State object; this will always return false.`
+      );
+    }
+
+    return !!this.machine?.transition(this, event).changed;
   }
 }
