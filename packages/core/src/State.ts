@@ -21,7 +21,7 @@ import { StateNode } from './StateNode';
 import { getMeta, nextEvents } from './stateUtils';
 import { initEvent } from './actions';
 import { IS_PRODUCTION } from './environment';
-import { DefaultTypegenMeta, TypegenIsActive, TypegenMeta } from '.';
+import { DefaultTypegenMeta, TypegenIsActive, TypegenMeta } from './types';
 
 export function stateValuesEqual(
   a: StateValue | undefined,
