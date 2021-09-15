@@ -22,7 +22,8 @@ interface Meta {
   };
 }
 
-const machine = createMachine({
+const machine = model.createMachine({
+  types: {} as typeof Meta,
   invoke: {
     src: 'myService'
   }
