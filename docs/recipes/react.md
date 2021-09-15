@@ -84,16 +84,17 @@ The `useActor` hook listens for whenever the service changes, and updates the st
 
 There's an issue with the implementation above - this will update the component for any change to the service. Tools like [Redux](https://redux.js.org) use [`selectors`](https://redux.js.org/usage/deriving-data-selectors) for deriving state. Selectors are functions which restrict which parts of the state can result in components re-rendering.
 
-Fortunately, XState exposes the `useSelector` hook.
+Fortunately, XState exposes the `useSelector` hook, and the `createSelector` helper.
 
 ```js
 import React, { useContext } from 'react';
 import { GlobalStateContext } from './globalState';
-import { useSelector } from '@xstate/react';
+import { authMachine } from './authMachine';
+import { useSelector, createSelector } from '@xstate/react';
 
-const loggedInSelector = (state) => {
+const loggedInSelector = createSelector(authMachine, (state) => {
   return state.matches('loggedIn');
-};
+});
 
 export const SomeComponent = (props) => {
   const globalServices = useContext(GlobalStateContext);
@@ -120,9 +121,15 @@ export const SomeComponent = (props) => {
   // Get `send()` method from a service
   const { send } = globalServices.authService;
 
-   return <>
-      {isLoggedIn && <button type="button" onClick={() => send('LOG_OUT')}>Logout</button>}
-   </>;
+  return (
+    <>
+      {isLoggedIn && (
+        <button type="button" onClick={() => send('LOG_OUT')}>
+          Logout
+        </button>
+      )}
+    </>
+  );
 };
 ```
 
