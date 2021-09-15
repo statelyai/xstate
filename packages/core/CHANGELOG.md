@@ -1,5 +1,73 @@
 # xstate
 
+## 4.24.1
+
+### Patch Changes
+
+- [#2649](https://github.com/statelyai/xstate/pull/2649) [`ad611007a`](https://github.com/statelyai/xstate/commit/ad611007a9111e8aefe9d22049ac99072588db9f) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with functions used as inline actions not always receiving the correct arguments when used with `preserveActionOrder`.
+
+## 4.24.0
+
+### Minor Changes
+
+- [#2546](https://github.com/statelyai/xstate/pull/2546) [`a4cfce18c`](https://github.com/statelyai/xstate/commit/a4cfce18c0c179faef15adf25a75b08903064e28) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now know if an event will cause a state change by using the new `state.can(event)` method, which will return `true` if an interpreted machine will "change" the state when sent the `event`, or `false` otherwise:
+
+  ```js
+  const machine = createMachine({
+    initial: 'inactive',
+    states: {
+      inactive: {
+        on: {
+          TOGGLE: 'active'
+        }
+      },
+      active: {
+        on: {
+          DO_SOMETHING: { actions: ['something'] }
+        }
+      }
+    }
+  });
+
+  const state = machine.initialState;
+
+  state.can('TOGGLE'); // true
+  state.can('DO_SOMETHING'); // false
+
+  // Also takes in full event objects:
+  state.can({
+    type: 'DO_SOMETHING',
+    data: 42
+  }); // false
+  ```
+
+  A state is considered "changed" if any of the following are true:
+
+  - its `state.value` changes
+  - there are new `state.actions` to be executed
+  - its `state.context` changes
+
+  See [`state.changed` (documentation)](https://xstate.js.org/docs/guides/states.html#state-changed) for more details.
+
+### Patch Changes
+
+- [#2632](https://github.com/statelyai/xstate/pull/2632) [`f8cf5dfe0`](https://github.com/statelyai/xstate/commit/f8cf5dfe0bf20c8545208ed7b1ade619933004f9) Thanks [@davidkpiano](https://github.com/davidkpiano)! - A regression was fixed where actions were being typed as `never` if events were specified in `createModel(...)` but not actions:
+
+  ```ts
+  const model = createModel(
+    {},
+    {
+      events: {}
+    }
+  );
+
+  model.createMachine({
+    // These actions will cause TS to not compile
+    entry: 'someAction',
+    exit: { type: 'someObjectAction' }
+  });
+  ```
+
 ## 4.23.4
 
 ### Patch Changes
@@ -103,11 +171,11 @@
   const machine = createMachine({
     context: { count: 0 },
     entry: [
-      ctx => console.log(ctx.count), // 0
-      assign({ count: ctx => ctx.count + 1 }),
-      ctx => console.log(ctx.count), // 1
-      assign({ count: ctx => ctx.count + 1 }),
-      ctx => console.log(ctx.count) // 2
+      (ctx) => console.log(ctx.count), // 0
+      assign({ count: (ctx) => ctx.count + 1 }),
+      (ctx) => console.log(ctx.count), // 1
+      assign({ count: (ctx) => ctx.count + 1 }),
+      (ctx) => console.log(ctx.count) // 2
     ],
     preserveActionOrder: true
   });
@@ -116,11 +184,11 @@
   const machine = createMachine({
     context: { count: 0 },
     entry: [
-      ctx => console.log(ctx.count), // 2
-      assign({ count: ctx => ctx.count + 1 }),
-      ctx => console.log(ctx.count), // 2
-      assign({ count: ctx => ctx.count + 1 }),
-      ctx => console.log(ctx.count) // 2
+      (ctx) => console.log(ctx.count), // 2
+      assign({ count: (ctx) => ctx.count + 1 }),
+      (ctx) => console.log(ctx.count), // 2
+      assign({ count: (ctx) => ctx.count + 1 }),
+      (ctx) => console.log(ctx.count) // 2
     ]
     // preserveActionOrder: false
   });
@@ -319,7 +387,7 @@
   });
 
   const service = interpret(machine)
-    .onTransition(state => {
+    .onTransition((state) => {
       // Read promise value synchronously
       const resolvedValue = state.context.promiseRef?.getSnapshot();
       // => undefined (if promise not resolved yet)
@@ -399,7 +467,7 @@
     context: { value: 42 },
     on: {
       INC: {
-        actions: assign({ value: ctx => ctx.value + 1 })
+        actions: assign({ value: (ctx) => ctx.value + 1 })
       }
     }
   });
@@ -659,7 +727,7 @@
 
   ```js
   // ...
-  actions: stop(context => context.someActor);
+  actions: stop((context) => context.someActor);
   ```
 
 ### Patch Changes
@@ -897,10 +965,10 @@
   ```js
   entry: [
     choose([
-      { cond: ctx => ctx > 100, actions: raise('TOGGLE') },
+      { cond: (ctx) => ctx > 100, actions: raise('TOGGLE') },
       {
         cond: 'hasMagicBottle',
-        actions: [assign(ctx => ({ counter: ctx.counter + 1 }))]
+        actions: [assign((ctx) => ({ counter: ctx.counter + 1 }))]
       },
       { actions: ['fallbackAction'] }
     ])

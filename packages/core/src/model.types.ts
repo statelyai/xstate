@@ -43,7 +43,14 @@ export interface Model<
       implementations?: Partial<
         MaybeTypegenMachineOptions<TContext, TEvent, TMeta, TAction>
       >
-    ): StateMachine<TContext, any, TEvent, any, TAction, TMeta>;
+    ): StateMachine<
+      TContext,
+      any,
+      TEvent,
+      { value: any; context: TContext },
+      TAction,
+      TMeta
+    >;
   };
 }
 

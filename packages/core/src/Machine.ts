@@ -1,18 +1,16 @@
-import {
-  StateMachine,
-  MachineOptions,
-  DefaultContext,
-  MachineConfig,
-  StateSchema,
-  EventObject,
-  AnyEventObject,
-  Typestate,
-  EventFrom,
-  BaseActionObject
-} from './types';
+import { DefaultTypegenMeta, MaybeTypegenMachineOptions, TypegenMeta } from '.';
+import { Model } from './model.types';
 import { StateNode } from './StateNode';
-import { Model, ModelContextFrom, ModelActionsFrom } from './model.types';
-import { MaybeTypegenMachineOptions, TypegenMeta } from '.';
+import {
+  AnyEventObject,
+  DefaultContext,
+  EventObject,
+  MachineConfig,
+  MachineOptions,
+  StateMachine,
+  StateSchema,
+  Typestate
+} from './types';
 
 /**
  * @deprecated Use `createMachine(...)` instead.
@@ -51,51 +49,28 @@ export function Machine<
 }
 
 export function createMachine<
-  TModel extends Model<any, any, any, any>,
-  TContext = ModelContextFrom<TModel>,
-  TEvent extends EventObject = EventFrom<TModel>,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext },
-  TAction extends BaseActionObject = ModelActionsFrom<TModel>
->(
-  config: MachineConfig<TContext, any, TEvent, TAction> & {
-    context: TContext;
-  },
-  options?: Partial<MachineOptions<TContext, TEvent, TAction>>
-): StateMachine<TContext, any, TEvent, TTypestate>;
-export function createMachine<
   TContext,
   TEvent extends EventObject,
-  TMeta extends TypegenMeta
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext },
+  TMeta extends TypegenMeta = DefaultTypegenMeta
 >(
-  // Ensure that only the first overload matches models, and prevent
-  // accidental inference of the model as the `TContext` (which leads to cryptic errors)
   config: TContext extends Model<any, any, any, any>
-    ? never
-    : MachineConfig<TContext, any, TEvent> & { types: TMeta },
+    ? 'Model type no longer supported as generic type. Please use `model.createMachine(...)` instead.'
+    : MachineConfig<TContext, any, TEvent> & { types?: TMeta },
   options?: Partial<MaybeTypegenMachineOptions<TContext, TEvent, TMeta>>
 ): StateMachine<TContext, any, TEvent, any, any, TMeta>;
+
 export function createMachine<
   TContext,
   TEvent extends EventObject = AnyEventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
->(
-  // Ensure that only the first overload matches models, and prevent
-  // accidental inference of the model as the `TContext` (which leads to cryptic errors)
-  config: TContext extends Model<any, any, any, any>
-    ? never
-    : MachineConfig<TContext, any, TEvent>,
-  options?: Partial<MachineOptions<TContext, TEvent>>
-): StateMachine<TContext, any, TEvent, TTypestate>;
-export function createMachine<
-  TContext,
-  TEvent extends EventObject = AnyEventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext },
+  TMeta extends TypegenMeta = DefaultTypegenMeta
 >(
   config: MachineConfig<TContext, any, TEvent>,
-  options?: Partial<MachineOptions<TContext, TEvent>>
-): StateMachine<TContext, any, TEvent, TTypestate> {
+  options?: Partial<MaybeTypegenMachineOptions<TContext, TEvent, TMeta>>
+): StateMachine<TContext, any, TEvent, TTypestate, any, TMeta> {
   return new StateNode<TContext, any, TEvent, TTypestate>(
     config,
     options
-  ) as StateMachine<TContext, any, TEvent, TTypestate>;
+  ) as StateMachine<TContext, any, TEvent, TTypestate, any, TMeta>;
 }
