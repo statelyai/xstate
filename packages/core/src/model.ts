@@ -7,7 +7,9 @@ import {
   UnionFromCreatorsReturnTypes,
   FinalModelCreators,
   Model,
-  ModelCreators
+  ModelCreators,
+  Prop,
+  IsNever
 } from './model.types';
 
 export function createModel<
@@ -19,19 +21,21 @@ export function createModel<
   TContext,
   TModelCreators extends ModelCreators<TModelCreators>,
   TFinalModelCreators = FinalModelCreators<TModelCreators>,
-  TComputedEvent = 'events' extends keyof TFinalModelCreators
-    ? UnionFromCreatorsReturnTypes<TFinalModelCreators['events']>
-    : never,
-  TComputedAction = 'actions' extends keyof TFinalModelCreators
-    ? UnionFromCreatorsReturnTypes<TFinalModelCreators['actions']>
-    : BaseActionObject
+  TComputedEvent = UnionFromCreatorsReturnTypes<
+    Prop<TFinalModelCreators, 'events'>
+  >,
+  TComputedAction = UnionFromCreatorsReturnTypes<
+    Prop<TFinalModelCreators, 'actions'>
+  >
 >(
   initialContext: TContext,
   creators: TModelCreators
 ): Model<
   TContext,
   Cast<TComputedEvent, EventObject>,
-  Cast<TComputedAction, BaseActionObject>,
+  IsNever<TComputedAction> extends true
+    ? BaseActionObject
+    : Cast<TComputedAction, BaseActionObject>,
   TFinalModelCreators
 >;
 export function createModel(
