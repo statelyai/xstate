@@ -299,7 +299,7 @@ export class State<
    * Whether the current state value is a subset of the given parent state value.
    * @param parentStateValue
    */
-  public matches<TSV extends TTypestate['value'] = never>(
+  public matches<TSV extends TTypestate['value']>(
     parentStateValue: TMeta extends TypegenIsActive
       ? TMeta['matchesStates']
       : TSV
