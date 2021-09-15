@@ -1,5 +1,6 @@
 import { ContextFrom, createMachine, EventFrom } from '../src';
 import {
+  assign,
   cancel,
   choose,
   log,
@@ -526,6 +527,31 @@ describe('createModel', () => {
         // @ts-expect-error
         UNEXPECTED_EVENT: {}
       }
+    });
+  });
+
+  it('should infer context correctly when actions are not specified', () => {
+    const model = createModel(
+      { foo: 100 },
+      {
+        events: {
+          BAR: () => ({})
+        }
+      }
+    );
+
+    model.createMachine({
+      entry: (ctx) => {
+        // @ts-expect-error assert indirectly that `ctx` is not `any` or `unknown`
+        ctx.other;
+      },
+      exit: assign({
+        foo: (ctx) => {
+          // @ts-expect-error assert indirectly that `ctx` is not `any` or `unknown`
+          ctx.other;
+          return ctx.foo;
+        }
+      })
     });
   });
 
