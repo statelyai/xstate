@@ -8,5 +8,5 @@ import { StateFrom, StateMachine } from 'xstate';
  */
 export const createSelector = <TMachine extends StateMachine<any, any, any>, T>(
   _machine: TMachine,
-  selector: (state: StateFrom<TMachine>) => T
+  selector: (state: TMachine['initialState']) => T
 ) => selector;
