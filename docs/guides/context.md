@@ -219,7 +219,7 @@ const counterMachine = createMachine({
   }
 });
 
-interpret(counterMachine).send({ type: 'INC_TWICE' });
+interpret(counterMachine).start().send({ type: 'INC_TWICE' });
 // => "Before: 2"
 // => "After: 2"
 ```
@@ -254,7 +254,7 @@ const counterMachine = createMachine({
   }
 });
 
-interpret(counterMachine).send({ type: 'INC_TWICE' });
+interpret(counterMachine).start().send({ type: 'INC_TWICE' });
 // => "Before: 0"
 // => "After: 2"
 ```

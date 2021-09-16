@@ -1,5 +1,152 @@
 # xstate
 
+## 4.24.1
+
+### Patch Changes
+
+- [#2649](https://github.com/statelyai/xstate/pull/2649) [`ad611007a`](https://github.com/statelyai/xstate/commit/ad611007a9111e8aefe9d22049ac99072588db9f) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with functions used as inline actions not always receiving the correct arguments when used with `preserveActionOrder`.
+
+## 4.24.0
+
+### Minor Changes
+
+- [#2546](https://github.com/statelyai/xstate/pull/2546) [`a4cfce18c`](https://github.com/statelyai/xstate/commit/a4cfce18c0c179faef15adf25a75b08903064e28) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now know if an event will cause a state change by using the new `state.can(event)` method, which will return `true` if an interpreted machine will "change" the state when sent the `event`, or `false` otherwise:
+
+  ```js
+  const machine = createMachine({
+    initial: 'inactive',
+    states: {
+      inactive: {
+        on: {
+          TOGGLE: 'active'
+        }
+      },
+      active: {
+        on: {
+          DO_SOMETHING: { actions: ['something'] }
+        }
+      }
+    }
+  });
+
+  const state = machine.initialState;
+
+  state.can('TOGGLE'); // true
+  state.can('DO_SOMETHING'); // false
+
+  // Also takes in full event objects:
+  state.can({
+    type: 'DO_SOMETHING',
+    data: 42
+  }); // false
+  ```
+
+  A state is considered "changed" if any of the following are true:
+
+  - its `state.value` changes
+  - there are new `state.actions` to be executed
+  - its `state.context` changes
+
+  See [`state.changed` (documentation)](https://xstate.js.org/docs/guides/states.html#state-changed) for more details.
+
+### Patch Changes
+
+- [#2632](https://github.com/statelyai/xstate/pull/2632) [`f8cf5dfe0`](https://github.com/statelyai/xstate/commit/f8cf5dfe0bf20c8545208ed7b1ade619933004f9) Thanks [@davidkpiano](https://github.com/davidkpiano)! - A regression was fixed where actions were being typed as `never` if events were specified in `createModel(...)` but not actions:
+
+  ```ts
+  const model = createModel(
+    {},
+    {
+      events: {}
+    }
+  );
+
+  model.createMachine({
+    // These actions will cause TS to not compile
+    entry: 'someAction',
+    exit: { type: 'someObjectAction' }
+  });
+  ```
+
+## 4.23.4
+
+### Patch Changes
+
+- [#2606](https://github.com/statelyai/xstate/pull/2606) [`01e5d7984`](https://github.com/statelyai/xstate/commit/01e5d7984a5441a6980eacdb06d42c2a9398bdff) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The following utility types were previously returning `never` in some unexpected cases, and are now working as expected:
+
+  - `ContextFrom<T>`
+  - `EventFrom<T>`
+  - `EmittedFrom<T>`
+
+## 4.23.3
+
+### Patch Changes
+
+- [#2587](https://github.com/statelyai/xstate/pull/2587) [`5aaa8445c`](https://github.com/statelyai/xstate/commit/5aaa8445c0041c6e9c47285c18e8b71cb2d805a7) Thanks [@Andarist](https://github.com/Andarist)! - Allow for guards to be always resolved from the implementations object. This allows a guard implementation to be updated in the running service by `@xstate/react`.
+
+## 4.23.2
+
+### Patch Changes
+
+- [`6c3f15c9`](https://github.com/statelyai/xstate/commit/6c3f15c967c816d5d9d235466e1cb1d030deb4a8) [#2551](https://github.com/statelyai/xstate/pull/2551) Thanks [@mattpocock](https://github.com/mattpocock)! - Widened the \*From utility types to allow extracting from factory functions.
+
+  This allows for:
+
+  ```ts
+  const makeMachine = () => createMachine({});
+
+  type Interpreter = InterpreterFrom<typeof makeMachine>;
+  type Actor = ActorRefFrom<typeof makeMachine>;
+  type Context = ContextFrom<typeof makeMachine>;
+  type Event = EventsFrom<typeof makeMachine>;
+  ```
+
+  This also works for models, behaviours, and other actor types.
+
+  The previous method for doing this was a good bit more verbose:
+
+  ```ts
+  const makeMachine = () => createMachine({});
+
+  type Interpreter = InterpreterFrom<ReturnType<typeof machine>>;
+  ```
+
+* [`413a4578`](https://github.com/statelyai/xstate/commit/413a4578cded21beffff822d1485a3725457b768) [#2491](https://github.com/statelyai/xstate/pull/2491) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The custom `.toString()` method on action objects is now removed which improves performance in larger applications (see [#2488](https://github.com/statelyai/xstate/discussions/2488) for more context).
+
+- [`5e1223cd`](https://github.com/statelyai/xstate/commit/5e1223cd58485045b192677753946df2c00eddf7) [#2422](https://github.com/statelyai/xstate/pull/2422) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `context` property has been removed from `StateNodeConfig`, as it has never been allowed, nor has it ever done anything. The previous typing was unsafe and allowed `context` to be specified on nested state nodes:
+
+  ```ts
+  createMachine({
+    context: {
+      /* ... */
+    }, // ✅ This is allowed
+    initial: 'inner',
+    states: {
+      inner: {
+        context: {
+          /* ... */
+        } // ❌ This will no longer compile
+      }
+    }
+  });
+  ```
+
+* [`5b70c2ff`](https://github.com/statelyai/xstate/commit/5b70c2ff21cc5d8c6cf1c13b6eb7bb12611a9835) [#2508](https://github.com/statelyai/xstate/pull/2508) Thanks [@davidkpiano](https://github.com/davidkpiano)! - A race condition occurred when a child service is immediately stopped and the parent service tried to remove it from its undefined state (during its own initialization). This has been fixed, and the race condition no longer occurs. See [this issue](https://github.com/statelyai/xstate/issues/2507) for details.
+
+- [`5a9500d1`](https://github.com/statelyai/xstate/commit/5a9500d1cde9bf2300a85bc81529da83f2d08361) [#2522](https://github.com/statelyai/xstate/pull/2522) Thanks [@farskid](https://github.com/farskid), [@Andarist](https://github.com/Andarist)! - Adjusted TS type definitions of the `withContext` and `withConfig` methods so that they accept "lazy context" now.
+
+  Example:
+
+  ```js
+  const copy = machine.withContext(() => ({
+    ref: spawn(() => {})
+  }));
+  ```
+
+* [`84f9fcae`](https://github.com/statelyai/xstate/commit/84f9fcae7d2b7f99800cc3bf18097ed45c48f0f5) [#2540](https://github.com/statelyai/xstate/pull/2540) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with `state.hasTag('someTag')` crashing when the `state` was rehydrated.
+
+- [`c17dd376`](https://github.com/statelyai/xstate/commit/c17dd37621a2ba46967926d550c70a35bba7024c) [#2496](https://github.com/statelyai/xstate/pull/2496) Thanks [@VanTanev](https://github.com/VanTanev)! - Add utility type `EmittedFrom<T>` that extracts `Emitted` type from any type which can emit data
+
 ## 4.23.1
 
 ### Patch Changes

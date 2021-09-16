@@ -1,5 +1,6 @@
-import { createMachine } from '../src';
+import { ContextFrom, createMachine, EventFrom } from '../src';
 import {
+  assign,
   cancel,
   choose,
   log,
@@ -436,7 +437,14 @@ describe('createModel', () => {
   });
 
   it('should typecheck `createMachine` for model without creators', () => {
-    const toggleModel = createModel({ count: 0 });
+    const toggleModel = createModel(
+      { count: 0 },
+      {
+        events: {
+          TOGGLE: () => ({})
+        }
+      }
+    );
 
     toggleModel.createMachine({
       id: 'machine',
@@ -458,21 +466,6 @@ describe('createModel', () => {
     const machine = toggleModel.createMachine({});
 
     expect(machine.initialState.context.count).toBe(0);
-  });
-
-  it('should not compile if missing context with plain createMachine(...)', () => {
-    const toggleModel = createModel({ count: 0 });
-
-    // @ts-expect-error
-    const m = toggleModel.createMachine({
-      id: 'machine',
-      initial: 'inactive',
-      // missing context:
-      // context: toggleModel.initialContext,
-      states: {
-        inactive: {}
-      }
-    });
   });
 
   it('should not allow using events if creators have not been configured', () => {
@@ -519,6 +512,49 @@ describe('createModel', () => {
     });
   });
 
+  it('should allow any action if actions are not specified', () => {
+    const model = createModel(
+      {},
+      {
+        events: {}
+      }
+    );
+
+    model.createMachine({
+      entry: 'someAction',
+      exit: { type: 'someObjectAction' },
+      on: {
+        // @ts-expect-error
+        UNEXPECTED_EVENT: {}
+      }
+    });
+  });
+
+  it('should infer context correctly when actions are not specified', () => {
+    const model = createModel(
+      { foo: 100 },
+      {
+        events: {
+          BAR: () => ({})
+        }
+      }
+    );
+
+    model.createMachine({
+      entry: (ctx) => {
+        // @ts-expect-error assert indirectly that `ctx` is not `any` or `unknown`
+        ctx.other;
+      },
+      exit: assign({
+        foo: (ctx) => {
+          // @ts-expect-error assert indirectly that `ctx` is not `any` or `unknown`
+          ctx.other;
+          return ctx.foo;
+        }
+      })
+    });
+  });
+
   it('should keep the context type on the state after using `state.matches`', () => {
     const model = createModel<{ count: number }, { type: 'INC' }>({ count: 0 });
 
@@ -534,5 +570,43 @@ describe('createModel', () => {
       // @ts-expect-error
       machine.initialState.context.unknown;
     }
+  });
+
+  it('ContextFrom accepts a model type', () => {
+    const model = createModel(
+      { count: 3 },
+      {
+        events: {}
+      }
+    );
+
+    const val = ({} as unknown) as ContextFrom<typeof model>;
+
+    // expect no type error here
+    // with previous ContextFrom behavior, this will not compile
+    val.count;
+
+    // @ts-expect-error (sanity check)
+    val.unknown;
+  });
+
+  it('EventFrom accepts a model type', () => {
+    const model = createModel(
+      { count: 3 },
+      {
+        events: {
+          INC: () => ({})
+        }
+      }
+    );
+
+    const val = ({} as unknown) as EventFrom<typeof model>;
+
+    // expect no type error here
+    // with previous EventFrom behavior, this will not compile
+    val.type;
+
+    // @ts-expect-error (sanity check)
+    val.count;
   });
 });

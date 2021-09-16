@@ -19,7 +19,7 @@ State machines and statecharts work very well with the actor model, as they are 
 
 Actors can be _spawned_ or [_invoked_](./communication.md). Spawned actors have two major differences from invoked actors:
 
-- They can be _spawned_ at any time (via `spawn(...)` instead of an `assign(...)` action)
+- They can be _spawned_ at any time (via `spawn(...)` inside of an `assign(...)` action)
 - They can be _stopped_ at any time (via a `stop(...)` action)
 
 ## Actor API

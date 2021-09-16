@@ -208,6 +208,33 @@ describe('machine', () => {
 
       expect(machine.initialState.context).toEqual({});
     });
+
+    it('should allow for lazy context to be used with `withConfig`', () => {
+      const machine = createMachine({
+        context: { foo: { prop: 'bar' } }
+      });
+      const copiedMachine = machine.withConfig({}, () => ({
+        foo: { prop: 'baz' }
+      }));
+      expect(copiedMachine.initialState.context).toEqual({
+        foo: { prop: 'baz' }
+      });
+    });
+
+    it('should lazily create context for all interpreter instances created from the same machine template created by `withConfig`', () => {
+      const machine = createMachine({
+        context: { foo: { prop: 'bar' } }
+      });
+
+      const copiedMachine = machine.withConfig({}, () => ({
+        foo: { prop: 'baz' }
+      }));
+
+      const a = interpret(copiedMachine).start();
+      const b = interpret(copiedMachine).start();
+
+      expect(a.state.context.foo).not.toBe(b.state.context.foo);
+    });
   });
 
   describe('machine.withContext', () => {

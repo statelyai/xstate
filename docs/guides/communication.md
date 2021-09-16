@@ -138,7 +138,7 @@ const search = (context, event) => new Promise((resolve, reject) => {
     // throw new Error('No query specified');
   }
 
-  return getSearchResults(event.query);
+  return resolve(getSearchResults(event.query));
 });
 
 // ...

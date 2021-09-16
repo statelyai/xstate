@@ -6,6 +6,9 @@ import { LifecycleSignal } from './behaviors';
 import { MachineNode } from '.';
 import { Model } from './model.types';
 
+type AnyFunction = (...args: any[]) => any;
+type ReturnTypeOrValue<T> = T extends AnyFunction ? ReturnType<T> : T;
+
 export type EventType = string;
 export type ActionType = string;
 export type MetaObject = Record<string, any>;
@@ -117,19 +120,26 @@ export type Action<
 /**
  * Extracts action objects that have no extra properties.
  */
-type SimpleActionsFrom<T extends BaseActionObject> = ActionObject<
+type SimpleActionsOf<T extends BaseActionObject> = ActionObject<
   any,
   any
 > extends T
   ? T // If actions are unspecified, all action types are allowed (unsafe)
   : ExtractWithSimpleSupport<T>;
 
+/**
+ * Events that do not require payload
+ */
+export type SimpleEventsOf<
+  TEvent extends EventObject
+> = ExtractWithSimpleSupport<TEvent>;
+
 export type BaseAction<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TAction extends BaseActionObject
 > =
-  | SimpleActionsFrom<TAction>['type']
+  | SimpleActionsOf<TAction>['type']
   | TAction
   | RaiseAction<any>
   | SendAction<TContext, TEvent, any>
@@ -572,12 +582,6 @@ export interface StateNodeConfig<
    */
   type?: 'atomic' | 'compound' | 'parallel' | 'final' | 'history';
   /**
-   * The initial context (extended state) of the machine.
-   *
-   * Can be an object or a function that returns an object.
-   */
-  context?: TContext | (() => TContext);
-  /**
    * Indicates whether the state node is a history state node, and what
    * type of history:
    * shallow, deep, true (shallow), false (none), undefined (none)
@@ -814,8 +818,14 @@ export type HistoryValue<
 > = Record<string, Array<StateNode<TContext, TEvent>>>;
 
 export type StateFrom<
-  TMachine extends StateMachine<any, any, any>
-> = ReturnType<TMachine['transition']>;
+  T extends
+    | MachineNode<any, any, any>
+    | ((...args: any[]) => MachineNode<any, any, any>)
+> = T extends StateMachine<any, any, any>
+  ? ReturnType<T['transition']>
+  : T extends (...args: any[]) => StateMachine<any, any, any>
+  ? ReturnType<ReturnType<T>['transition']>
+  : never;
 
 export type Transitions<
   TContext extends MachineContext,
@@ -1260,6 +1270,7 @@ export interface StateConfig<
   children: Record<string, ActorRef<any>>;
   done?: boolean;
   tags?: Set<string>;
+  machine?: StateMachine<TContext, TEvent, any>;
 }
 
 export interface InterpreterOptions {
@@ -1437,15 +1448,40 @@ export interface ActorRef<TEvent extends EventObject, TEmitted = any>
   toJSON?: () => any;
 }
 
-export type ActorRefFrom<T extends Spawnable> = T extends StateMachine<
+/**
+ * @deprecated Use `ActorRef` instead.
+ */
+export type SpawnedActorRef<
+  TEvent extends EventObject,
+  TEmitted = any
+> = ActorRef<TEvent, TEmitted>;
+
+export type ActorRefWithDeprecatedState<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TTypestate extends Typestate<TContext>
+> = ActorRef<TEvent, State<TContext, TEvent, TTypestate>> & {
+  /**
+   * @deprecated Use `.getSnapshot()` instead.
+   */
+  state: State<TContext, TEvent, TTypestate>;
+};
+
+export type ActorRefFrom<T> = T extends StateMachine<
   infer TContext,
   infer TEvent,
   infer TTypestate
 >
-  ? ActorRef<TEvent, State<TContext, TEvent, TTypestate>>
+  ? ActorRefWithDeprecatedState<TContext, TEvent, TTypestate>
+  : T extends (
+      ...args: any[]
+    ) => StateMachine<infer TContext, infer TEvent, infer TTypestate>
+  ? ActorRefWithDeprecatedState<TContext, TEvent, TTypestate>
   : T extends Promise<infer U>
   ? ActorRef<never, U>
   : T extends Behavior<infer TEvent1, infer TEmitted>
+  ? ActorRef<TEvent1, TEmitted>
+  : T extends (...args: any[]) => Behavior<infer TEvent1, infer TEmitted>
   ? ActorRef<TEvent1, TEmitted>
   : never;
 
@@ -1454,8 +1490,14 @@ export type DevToolsAdapter = (service: AnyInterpreter) => void;
 export type Lazy<T> = () => T;
 
 export type InterpreterFrom<
-  T extends StateMachine<any, any, any>
+  T extends
+    | StateMachine<any, any, any>
+    | ((...args: any[]) => StateMachine<any, any, any>)
 > = T extends StateMachine<infer TContext, infer TEvent, infer TTypestate>
+  ? Interpreter<TContext, TEvent, TTypestate>
+  : T extends (
+      ...args: any[]
+    ) => StateMachine<infer TContext, infer TEvent, infer TTypestate>
   ? Interpreter<TContext, TEvent, TTypestate>
   : never;
 
@@ -1482,22 +1524,36 @@ export interface Behavior<TEvent extends EventObject, TEmitted = any> {
   subscribe?: (observer: Observer<TEmitted>) => Subscription | undefined;
 }
 
-export type EventFrom<T> = T extends MachineNode<any, infer TEvent, any>
-  ? TEvent
-  : T extends Model<any, infer TEvent, any, any>
-  ? TEvent
-  : T extends State<any, infer TEvent, any>
-  ? TEvent
-  : T extends Interpreter<any, infer TEvent, any>
-  ? TEvent
+export type EmittedFrom<T> = ReturnTypeOrValue<T> extends infer R
+  ? R extends ActorRef<infer _, infer TEmitted>
+    ? TEmitted
+    : R extends Behavior<infer _, infer TEmitted>
+    ? TEmitted
+    : R extends ActorContext<infer _, infer TEmitted>
+    ? TEmitted
+    : never
   : never;
 
-export type ContextFrom<T> = T extends StateMachine<infer TContext, any, any>
-  ? TContext
-  : T extends Model<infer TContext, any, any, any>
-  ? TContext
-  : T extends State<infer TContext, any, any>
-  ? TContext
-  : T extends Interpreter<infer TContext, any, any>
-  ? TContext
+export type EventFrom<T> = ReturnTypeOrValue<T> extends infer R
+  ? R extends StateMachine<infer _, infer TEvent, infer ____>
+    ? TEvent
+    : R extends Model<infer _, infer TEvent, infer __>
+    ? TEvent
+    : R extends State<infer _, infer TEvent, infer __>
+    ? TEvent
+    : R extends Interpreter<infer _, infer TEvent, infer __>
+    ? TEvent
+    : never
+  : never;
+
+export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
+  ? R extends StateMachine<infer TContext, infer _, infer __>
+    ? TContext
+    : R extends Model<infer TContext, infer _, infer __>
+    ? TContext
+    : R extends State<infer TContext, infer _, infer __>
+    ? TContext
+    : R extends Interpreter<infer TContext, infer _, infer __>
+    ? TContext
+    : never
   : never;

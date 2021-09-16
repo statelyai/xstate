@@ -1,5 +1,11 @@
 # @xstate/fsm
 
+## 1.6.2
+
+### Patch Changes
+
+- [#2601](https://github.com/statelyai/xstate/pull/2601) [`b76351be7`](https://github.com/statelyai/xstate/commit/b76351be73910a733f56059579aad1faea6bd822) Thanks [@VanTanev](https://github.com/VanTanev)! - Add `ExtractEvent<Event, EventType>` to @xstate/fsm
+
 ## 1.6.1
 
 ### Patch Changes

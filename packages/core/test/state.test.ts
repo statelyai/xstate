@@ -1,6 +1,13 @@
-import { createMachine, State, StateFrom, interpret } from '../src/index';
+import {
+  createMachine,
+  State,
+  StateFrom,
+  interpret,
+  spawn
+} from '../src/index';
 import { initEvent, assign } from '../src/actions';
 import { toSCXMLEvent } from '../src/utils';
+import { createBehaviorFrom } from '../src/behaviors';
 
 type Events =
   | { type: 'BAR_EVENT' }
@@ -566,6 +573,271 @@ describe('State', () => {
 
     it('should show that a machine has reached its final state', () => {
       expect(machine.transition(undefined, 'TO_FINAL').done).toBeTruthy();
+    });
+  });
+
+  describe('.can', () => {
+    it('should return true for a simple event that results in a transition to a different state', () => {
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              NEXT: 'b'
+            }
+          },
+          b: {}
+        }
+      });
+
+      expect(machine.initialState.can('NEXT')).toBe(true);
+    });
+
+    it('should return true for an event object that results in a transition to a different state', () => {
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              NEXT: 'b'
+            }
+          },
+          b: {}
+        }
+      });
+
+      expect(machine.initialState.can({ type: 'NEXT' })).toBe(true);
+    });
+
+    it('should return true for an event object that results in a new action', () => {
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              NEXT: {
+                actions: 'newAction'
+              }
+            }
+          }
+        }
+      });
+
+      expect(machine.initialState.can({ type: 'NEXT' })).toBe(true);
+    });
+
+    it('should return true for an event object that results in a context change', () => {
+      const machine = createMachine({
+        initial: 'a',
+        context: { count: 0 },
+        states: {
+          a: {
+            on: {
+              NEXT: {
+                actions: assign({ count: 1 })
+              }
+            }
+          }
+        }
+      });
+
+      expect(machine.initialState.can({ type: 'NEXT' })).toBe(true);
+    });
+
+    it('should return false for an external self-transition without actions', () => {
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              EV: 'a'
+            }
+          }
+        }
+      });
+
+      expect(machine.initialState.can({ type: 'EV' })).toBe(false);
+    });
+
+    it('should return true for an external self-transition with reentry action', () => {
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            entry: () => {},
+            on: {
+              EV: 'a'
+            }
+          }
+        }
+      });
+
+      expect(machine.initialState.can({ type: 'EV' })).toBe(true);
+    });
+
+    it('should return true for an external self-transition with transition action', () => {
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              EV: {
+                target: 'a',
+                actions: () => {}
+              }
+            }
+          }
+        }
+      });
+
+      expect(machine.initialState.can({ type: 'EV' })).toBe(true);
+    });
+
+    it('should return true for a targetless transition with actions', () => {
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              EV: {
+                actions: () => {}
+              }
+            }
+          }
+        }
+      });
+
+      expect(machine.initialState.can({ type: 'EV' })).toBe(true);
+    });
+
+    it('should return false for a forbidden transition', () => {
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              EV: undefined
+            }
+          }
+        }
+      });
+
+      expect(machine.initialState.can({ type: 'EV' })).toBe(false);
+    });
+
+    it('should return false for an unknown event', () => {
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              NEXT: 'b'
+            }
+          },
+          b: {}
+        }
+      });
+
+      expect(machine.initialState.can({ type: 'UNKNOWN' })).toBe(false);
+    });
+
+    it('should return true when a guarded transition allows the transition', () => {
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              CHECK: {
+                target: 'b',
+                guard: () => true
+              }
+            }
+          },
+          b: {}
+        }
+      });
+
+      expect(
+        machine.initialState.can({
+          type: 'CHECK'
+        })
+      ).toBe(true);
+    });
+
+    it('should return false when a guarded transition disallows the transition', () => {
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              CHECK: {
+                target: 'b',
+                guard: () => false
+              }
+            }
+          },
+          b: {}
+        }
+      });
+
+      expect(
+        machine.initialState.can({
+          type: 'CHECK'
+        })
+      ).toBe(false);
+    });
+
+    it('should not spawn actors when determining if an event is accepted', () => {
+      let spawned = false;
+      const machine = createMachine({
+        context: {},
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              SPAWN: {
+                actions: assign(() => ({
+                  ref: spawn(
+                    createBehaviorFrom(() => {
+                      spawned = true;
+                    })
+                  )
+                }))
+              }
+            }
+          },
+          b: {}
+        }
+      });
+
+      const service = interpret(machine).start();
+      service.state.can('SPAWN');
+      expect(spawned).toBe(false);
+    });
+
+    it('should return false for states created without a machine', () => {
+      const state = State.from('test');
+
+      expect(state.can({ type: 'ANY_EVENT' })).toEqual(false);
+    });
+
+    it('should allow errors to propagate', () => {
+      const machine = createMachine({
+        context: {},
+        on: {
+          DO_SOMETHING_BAD: {
+            actions: assign(() => {
+              throw new Error('expected error');
+            })
+          }
+        }
+      });
+
+      expect(() => {
+        const { initialState } = machine;
+
+        initialState.can('DO_SOMETHING_BAD');
+      }).toThrowError(/expected error/);
     });
   });
 });

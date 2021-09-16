@@ -1,5 +1,62 @@
 # Changelog
 
+## 1.6.1
+
+### Patch Changes
+
+- [#2587](https://github.com/statelyai/xstate/pull/2587) [`5aaa8445c`](https://github.com/statelyai/xstate/commit/5aaa8445c0041c6e9c47285c18e8b71cb2d805a7) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with implementations provided outside of React being wiped out and unusable.
+
+## 1.6.0
+
+### Minor Changes
+
+- [`4b4872ca`](https://github.com/statelyai/xstate/commit/4b4872cafd63f825f3918c6eb6fa84642d45e3e0) [#2241](https://github.com/statelyai/xstate/pull/2241) Thanks [@mattpocock](https://github.com/mattpocock)! - Changed the behaviour of guards, delays and activities when declared as options in `useMachine`/`useInterpret`.
+
+  Previously, guards could not reference external props, because they would not be updated when the props changed. For instance:
+
+  ```tsx
+  const Modal = (props) => {
+    useMachine(modalMachine, {
+      guards: {
+        isModalOpen: () => props.isOpen
+      }
+    });
+  };
+  ```
+
+  When the component is created, `props.isOpen` would be checked and evaluated to the initial value. But if the guard is evaluated at any other time, it will not respond to the props' changed value.
+
+  This is not true of actions/services. This will work as expected:
+
+  ```tsx
+  const Modal = (props) => {
+    useMachine(modalMachine, {
+      actions: {
+        consoleLogModalOpen: () => {
+          console.log(props.isOpen);
+        }
+      }
+    });
+  };
+  ```
+
+  This change brings guards and delays into line with actions and services.
+
+  ⚠️ **NOTE:** Whenever possible, use data from within `context` rather than external data in your guards and delays.
+
+### Patch Changes
+
+- [`fe3e859f`](https://github.com/statelyai/xstate/commit/fe3e859f5c53813307bacad915bebc8d1f3a982c) [#2522](https://github.com/statelyai/xstate/pull/2522) Thanks [@farskid](https://github.com/farskid), [@Andarist](https://github.com/Andarist)! - Fixed an issue with actors not being spawned correctly by `useMachine` and `useInterpret` when they were defined a lazily evaluated context, like for example here:
+
+  ```js
+  createMachine({
+    // lazy context
+    context: () => ({
+      ref: spawn(() => {})
+    })
+  });
+  ```
+
 ## 1.5.1
 
 ### Patch Changes
