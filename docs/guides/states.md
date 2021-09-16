@@ -42,7 +42,7 @@ A `State` object instance is JSON-serializable and has the following properties:
 - `activities` - a mapping of [activities](./activities.md) to `true` if the activity started, or `false` if stopped.
 - `history` - the previous `State` instance
 - `meta` - any static meta data defined on the `meta` property of the [state node](./statenodes.md)
-- `done` - whether the state indicates a final state <Badge text="4.7.1" />
+- `done` - whether the state indicates a final state
 
 It contains other properties such as `historyValue`, `events`, `tree`, and others that are generally not relevant and are used internally.
 
