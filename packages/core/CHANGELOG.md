@@ -1,5 +1,11 @@
 # xstate
 
+## 4.24.1
+
+### Patch Changes
+
+- [#2649](https://github.com/statelyai/xstate/pull/2649) [`ad611007a`](https://github.com/statelyai/xstate/commit/ad611007a9111e8aefe9d22049ac99072588db9f) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with functions used as inline actions not always receiving the correct arguments when used with `preserveActionOrder`.
+
 ## 4.24.0
 
 ### Minor Changes

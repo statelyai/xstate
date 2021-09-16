@@ -6,12 +6,12 @@ import {
   DelayExpr,
   ChooseCondition,
   createMachine,
-  BaseActionObject
+  BaseActionObject,
+  MachineNode
 } from 'xstate';
 import { mapValues, keys, isString, flatten } from 'xstate/src/utils';
 import * as actions from 'xstate/actions';
 import { invokeMachine } from 'xstate/invoke';
-import { StateMachine } from 'xstate/src/StateMachine';
 import { not, stateIn } from 'xstate/guards';
 
 function getAttribute(
@@ -479,7 +479,7 @@ export interface ScxmlToMachineOptions {
 function scxmlToMachine(
   scxmlJson: XMLElement,
   options: ScxmlToMachineOptions
-): StateMachine {
+): MachineNode {
   const machineElement = scxmlJson.elements!.find(
     (element) => element.name === 'scxml'
   ) as XMLElement;
@@ -520,7 +520,7 @@ function scxmlToMachine(
 export function toMachine(
   xml: string,
   options: ScxmlToMachineOptions
-): StateMachine {
+): MachineNode {
   const json = xml2js(xml) as XMLElement;
   return scxmlToMachine(json, options);
 }

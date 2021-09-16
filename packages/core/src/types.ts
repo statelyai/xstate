@@ -1,11 +1,11 @@
-import { StateNode } from './StateNode';
-import { State } from './State';
-import { Clock, Interpreter } from './interpreter';
-import { StateMachine } from './StateMachine';
-import { LifecycleSignal } from './behaviors';
-import { MachineNode } from '.';
-import { Model } from './model.types';
-import { DynamicAction } from '../actions/DynamicAction';
+import type { StateNode } from './StateNode';
+import type { State } from './State';
+import type { Clock, Interpreter } from './interpreter';
+import type { StateMachine } from './StateMachine';
+import type { LifecycleSignal } from './behaviors';
+import type { MachineNode } from '.';
+import type { Model } from './model.types';
+import type { DynamicAction } from '../actions/DynamicAction';
 
 type AnyFunction = (...args: any[]) => any;
 type ReturnTypeOrValue<T> = T extends AnyFunction ? ReturnType<T> : T;
@@ -1526,7 +1526,7 @@ export type EmittedFrom<T> = ReturnTypeOrValue<T> extends infer R
 export type EventFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends MachineNode<infer _, infer TEvent, infer ___>
     ? TEvent
-    : R extends Model<infer _, infer TEvent, infer ___, infer ____>
+    : R extends Model<infer _, infer TEvent, infer __, infer ___>
     ? TEvent
     : R extends State<infer _, infer TEvent, infer ___>
     ? TEvent

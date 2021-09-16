@@ -580,7 +580,7 @@ describe('invoke', () => {
       .start();
   });
 
-  it('should use the service overwritten by withConfig', (done) => {
+  it('should use the service overwritten by .provide(...)', (done) => {
     const childMachine = createMachine({
       id: 'child',
       initial: 'init',

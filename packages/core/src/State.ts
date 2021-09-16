@@ -1,4 +1,4 @@
-import {
+import type {
   StateValue,
   EventObject,
   EventType,
@@ -9,15 +9,16 @@ import {
   HistoryValue,
   NullEvent,
   ActorRef,
-  MachineContext
+  MachineContext,
+  SimpleEventsOf,
+  BaseActionObject
 } from './types';
 import { matchesState, keys, isString, warn } from './utils';
-import { StateNode } from './StateNode';
+import type { StateNode } from './StateNode';
 import { isInFinalState, nextEvents, getMeta } from './stateUtils';
 import { initEvent } from './actions';
-import { BaseActionObject } from './types';
-import { MachineNode, SimpleEventsOf } from '../dist/xstate.cjs';
 import { IS_PRODUCTION } from './environment';
+import type { MachineNode } from '.';
 
 export function isState<
   TContext extends MachineContext,

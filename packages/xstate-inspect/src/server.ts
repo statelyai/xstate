@@ -1,7 +1,6 @@
 import * as WebSocket from 'ws';
 import { ActorRef, EventObject, interpret, Interpreter } from 'xstate';
 import { toEventObject, toSCXMLEvent } from 'xstate/src/utils';
-import { toActorRef } from 'xstate/actor';
 
 import { createInspectMachine } from './inspectMachine';
 import { Inspector } from './types';
@@ -50,8 +49,8 @@ export function inspect(options: ServerInspectorOptions): Inspector {
   let client: ActorRef<any, undefined>;
 
   server.on('connection', function connection(wss) {
-    client = toActorRef({
-      id: '@@xstate/ws-client',
+    client = {
+      name: '@@xstate/ws-client',
       send: (event: any) => {
         server.clients.forEach((ws) => {
           if (ws.readyState === ws.OPEN) {
@@ -63,7 +62,7 @@ export function inspect(options: ServerInspectorOptions): Inspector {
         return { unsubscribe: () => void 0 };
       },
       getSnapshot: () => undefined
-    });
+    };
 
     wss.on('message', function incoming(message) {
       if (typeof message !== 'string') {

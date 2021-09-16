@@ -53,7 +53,7 @@ export function useMachine<
     delays
   };
 
-  const resolvedMachine = machine.provide({ ...machineConfig, context });
+  const resolvedMachine = machine.provide(machineConfig);
 
   const service = interpret(resolvedMachine, interpreterOptions).start(
     rehydratedState ? new State(rehydratedState) : undefined

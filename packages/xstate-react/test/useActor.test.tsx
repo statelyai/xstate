@@ -13,7 +13,6 @@ import {
 import { render, fireEvent, act } from '@testing-library/react';
 import { useActor } from '../src/useActor';
 import { invokeMachine } from 'xstate/invoke';
-
 import { spawn, toActorRef } from 'xstate/actor';
 import { createMachineBehavior } from 'xstate/behaviors';
 

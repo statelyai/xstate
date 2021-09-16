@@ -1,5 +1,5 @@
 import { isBuiltInEvent, isFunction, toSCXMLEvent } from './utils';
-import {
+import type {
   Event,
   StateValue,
   MachineImplementations,

@@ -27,7 +27,7 @@ type Events =
   | { type: 'TO_TWO_MAYBE' }
   | { type: 'TO_FINAL' };
 
-const machine = createMachine<any, Events>({
+const exampleMachine = createMachine<any, Events>({
   initial: 'one',
   states: {
     one: {
@@ -113,39 +113,60 @@ const machine = createMachine<any, Events>({
 describe('State', () => {
   describe('.changed', () => {
     it('should indicate that it is not changed if initial state', () => {
-      expect(machine.initialState.changed).not.toBeDefined();
+      expect(exampleMachine.initialState.changed).not.toBeDefined();
     });
 
     it('states from external transitions with entry actions should be changed', () => {
-      const changedState = machine.transition(machine.initialState, 'EXTERNAL');
+      const changedState = exampleMachine.transition(
+        exampleMachine.initialState,
+        'EXTERNAL'
+      );
       expect(changedState.changed).toBe(true);
     });
 
     it('states from internal transitions with no actions should be unchanged', () => {
-      const changedState = machine.transition(machine.initialState, 'EXTERNAL');
-      const unchangedState = machine.transition(changedState, 'INERT');
+      const changedState = exampleMachine.transition(
+        exampleMachine.initialState,
+        'EXTERNAL'
+      );
+      const unchangedState = exampleMachine.transition(changedState, 'INERT');
       expect(unchangedState.changed).toBe(false);
     });
 
     it('states from internal transitions with actions should be changed', () => {
-      const changedState = machine.transition(machine.initialState, 'INTERNAL');
+      const changedState = exampleMachine.transition(
+        exampleMachine.initialState,
+        'INTERNAL'
+      );
       expect(changedState.changed).toBe(true);
     });
 
     it('normal state transitions should be changed (initial state)', () => {
-      const changedState = machine.transition(machine.initialState, 'TO_TWO');
+      const changedState = exampleMachine.transition(
+        exampleMachine.initialState,
+        'TO_TWO'
+      );
       expect(changedState.changed).toBe(true);
     });
 
     it('normal state transitions should be changed', () => {
-      const twoState = machine.transition(machine.initialState, 'TO_TWO');
-      const changedState = machine.transition(twoState, 'FOO_EVENT');
+      const twoState = exampleMachine.transition(
+        exampleMachine.initialState,
+        'TO_TWO'
+      );
+      const changedState = exampleMachine.transition(twoState, 'FOO_EVENT');
       expect(changedState.changed).toBe(true);
     });
 
     it('normal state transitions with unknown event should be unchanged', () => {
-      const twoState = machine.transition(machine.initialState, 'TO_TWO');
-      const changedState = machine.transition(twoState, 'UNKNOWN_EVENT' as any);
+      const twoState = exampleMachine.transition(
+        exampleMachine.initialState,
+        'TO_TWO'
+      );
+      const changedState = exampleMachine.transition(
+        twoState,
+        'UNKNOWN_EVENT' as any
+      );
       expect(changedState.changed).toBe(false);
     });
 
@@ -261,7 +282,7 @@ describe('State', () => {
 
   describe('.nextEvents', () => {
     it('returns the next possible events for the current state', () => {
-      expect(machine.initialState.nextEvents.sort()).toEqual(
+      expect(exampleMachine.initialState.nextEvents.sort()).toEqual(
         [
           'EXTERNAL',
           'INTERNAL',
@@ -274,17 +295,24 @@ describe('State', () => {
       );
 
       expect(
-        machine.transition(machine.initialState, 'TO_TWO').nextEvents.sort()
+        exampleMachine
+          .transition(exampleMachine.initialState, 'TO_TWO')
+          .nextEvents.sort()
       ).toEqual(['DEEP_EVENT', 'FOO_EVENT', 'MACHINE_EVENT']);
 
       expect(
-        machine.transition(machine.initialState, 'TO_THREE').nextEvents.sort()
+        exampleMachine
+          .transition(exampleMachine.initialState, 'TO_THREE')
+          .nextEvents.sort()
       ).toEqual(['MACHINE_EVENT', 'P31', 'P32', 'THREE_EVENT']);
     });
 
     it('returns events when transitioned from StateValue', () => {
-      const A = machine.transition(machine.initialState, 'TO_THREE');
-      const B = machine.transition(A.value, 'TO_THREE');
+      const A = exampleMachine.transition(
+        exampleMachine.initialState,
+        'TO_THREE'
+      );
+      const B = exampleMachine.transition(A.value, 'TO_THREE');
 
       expect(B.nextEvents.sort()).toEqual([
         'MACHINE_EVENT',
@@ -311,42 +339,44 @@ describe('State', () => {
 
   describe('State.create()', () => {
     it('should be able to create a state from a JSON config', () => {
-      const { initialState } = machine;
+      const { initialState } = exampleMachine;
       const jsonInitialState = JSON.parse(JSON.stringify(initialState));
 
       const stateFromConfig = State.create(jsonInitialState) as StateFrom<
-        typeof machine
+        typeof exampleMachine
       >;
 
-      expect(machine.transition(stateFromConfig, 'TO_TWO').value).toEqual({
+      expect(
+        exampleMachine.transition(stateFromConfig, 'TO_TWO').value
+      ).toEqual({
         two: { deep: 'foo' }
       });
     });
 
     it('should preserve state.nextEvents using machine.resolveState', () => {
-      const { initialState } = machine;
+      const { initialState } = exampleMachine;
       const { nextEvents } = initialState;
       const jsonInitialState = JSON.parse(JSON.stringify(initialState));
 
       const stateFromConfig = State.create(jsonInitialState) as StateFrom<
-        typeof machine
+        typeof exampleMachine
       >;
 
-      expect(machine.resolveState(stateFromConfig).nextEvents.sort()).toEqual(
-        nextEvents.sort()
-      );
+      expect(
+        exampleMachine.resolveState(stateFromConfig).nextEvents.sort()
+      ).toEqual(nextEvents.sort());
     });
   });
 
   describe('State.inert()', () => {
     it('should create an inert instance of the given State', () => {
-      const { initialState } = machine;
+      const { initialState } = exampleMachine;
 
       expect(State.inert(initialState).actions).toEqual([]);
     });
 
     it('should create an inert instance of the given stateValue and context', () => {
-      const { initialState } = machine;
+      const { initialState } = exampleMachine;
       const inertState = State.inert(initialState.value, { foo: 'bar' });
 
       expect(inertState.actions).toEqual([]);
@@ -362,17 +392,17 @@ describe('State', () => {
 
   describe('.event', () => {
     it('the .event prop should be the event (string) that caused the transition', () => {
-      const { initialState } = machine;
+      const { initialState } = exampleMachine;
 
-      const nextState = machine.transition(initialState, 'TO_TWO');
+      const nextState = exampleMachine.transition(initialState, 'TO_TWO');
 
       expect(nextState.event).toEqual({ type: 'TO_TWO' });
     });
 
     it('the .event prop should be the event (object) that caused the transition', () => {
-      const { initialState } = machine;
+      const { initialState } = exampleMachine;
 
-      const nextState = machine.transition(initialState, {
+      const nextState = exampleMachine.transition(initialState, {
         type: 'TO_TWO',
         foo: 'bar'
       });
@@ -381,7 +411,7 @@ describe('State', () => {
     });
 
     it('the ._event prop should be the initial event for the initial state', () => {
-      const { initialState } = machine;
+      const { initialState } = exampleMachine;
 
       expect(initialState._event).toEqual(initEvent);
     });
@@ -389,17 +419,17 @@ describe('State', () => {
 
   describe('._event', () => {
     it('the ._event prop should be the SCXML event (string) that caused the transition', () => {
-      const { initialState } = machine;
+      const { initialState } = exampleMachine;
 
-      const nextState = machine.transition(initialState, 'TO_TWO');
+      const nextState = exampleMachine.transition(initialState, 'TO_TWO');
 
       expect(nextState._event).toEqual(toSCXMLEvent('TO_TWO'));
     });
 
     it('the ._event prop should be the SCXML event (object) that caused the transition', () => {
-      const { initialState } = machine;
+      const { initialState } = exampleMachine;
 
-      const nextState = machine.transition(initialState, {
+      const nextState = exampleMachine.transition(initialState, {
         type: 'TO_TWO',
         foo: 'bar'
       });
@@ -410,15 +440,15 @@ describe('State', () => {
     });
 
     it('the ._event prop should be the initial SCXML event for the initial state', () => {
-      const { initialState } = machine;
+      const { initialState } = exampleMachine;
 
       expect(initialState._event).toEqual(toSCXMLEvent(initEvent));
     });
 
     it('the ._event prop should be the SCXML event (SCXML metadata) that caused the transition', () => {
-      const { initialState } = machine;
+      const { initialState } = exampleMachine;
 
-      const nextState = machine.transition(
+      const nextState = exampleMachine.transition(
         initialState,
         toSCXMLEvent(
           {
@@ -509,7 +539,7 @@ describe('State', () => {
   });
 
   describe('.transitions', () => {
-    const { initialState } = machine;
+    const { initialState } = exampleMachine;
 
     it('should have no transitions for the initial state', () => {
       expect(initialState.transitions).toHaveLength(0);
@@ -517,13 +547,13 @@ describe('State', () => {
 
     it('should have transitions for the sent event', () => {
       expect(
-        machine.transition(initialState, 'TO_TWO').transitions
+        exampleMachine.transition(initialState, 'TO_TWO').transitions
       ).toContainEqual(expect.objectContaining({ eventType: 'TO_TWO' }));
     });
 
     it('should have condition in the transition', () => {
       expect(
-        machine.transition(initialState, 'TO_TWO_MAYBE').transitions
+        exampleMachine.transition(initialState, 'TO_TWO_MAYBE').transitions
       ).toContainEqual(
         expect.objectContaining({
           eventType: 'TO_TWO_MAYBE',
@@ -535,7 +565,7 @@ describe('State', () => {
 
   describe('State.prototype.matches', () => {
     it('should keep reference to state instance after destructuring', () => {
-      const { initialState } = machine;
+      const { initialState } = exampleMachine;
       const { matches } = initialState;
 
       expect(matches('one')).toBe(true);
@@ -544,13 +574,13 @@ describe('State', () => {
 
   describe('State.prototype.toStrings', () => {
     it('should return all state paths as strings', () => {
-      const twoState = machine.transition('one', 'TO_TWO');
+      const twoState = exampleMachine.transition('one', 'TO_TWO');
 
       expect(twoState.toStrings()).toEqual(['two', 'two.deep', 'two.deep.foo']);
     });
 
     it('should respect `delimiter` option for deeply nested states', () => {
-      const twoState = machine.transition('one', 'TO_TWO');
+      const twoState = exampleMachine.transition('one', 'TO_TWO');
 
       expect(twoState.toStrings(undefined, ':')).toEqual([
         'two',
@@ -560,7 +590,7 @@ describe('State', () => {
     });
 
     it('should keep reference to state instance after destructuring', () => {
-      const { initialState } = machine;
+      const { initialState } = exampleMachine;
       const { toStrings } = initialState;
 
       expect(toStrings()).toEqual(['one']);
@@ -569,11 +599,13 @@ describe('State', () => {
 
   describe('.done', () => {
     it('should show that a machine has not reached its final state', () => {
-      expect(machine.initialState.done).toBeFalsy();
+      expect(exampleMachine.initialState.done).toBeFalsy();
     });
 
     it('should show that a machine has reached its final state', () => {
-      expect(machine.transition(undefined, 'TO_FINAL').done).toBeTruthy();
+      expect(
+        exampleMachine.transition(undefined, 'TO_FINAL').done
+      ).toBeTruthy();
     });
   });
 

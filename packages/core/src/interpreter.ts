@@ -37,10 +37,10 @@ import { Scheduler } from './scheduler';
 import { isActorRef } from './actor';
 import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
-import { StateMachine } from './StateMachine';
+import type { StateMachine } from './StateMachine';
 import { devToolsAdapter } from './dev';
 import { CapturedState } from './capturedState';
-import {
+import type {
   ActionFunction,
   BaseActionObject,
   LogActionObject,
@@ -48,7 +48,7 @@ import {
   PayloadSender,
   StopActionObject,
   Subscribable
-} from '.';
+} from './types';
 import { ExecutableAction } from '../actions/ExecutableAction';
 
 export type StateListener<
@@ -815,9 +815,6 @@ export class Interpreter<
     }
 
     return undefined;
-    // this.state might not exist at the time this is called,
-    // such as when a child is added then removed while initializing the state
-    // delete this.state?.children[childId]; // MERGE
   }
 
   private stopChild(childId: string): void {
