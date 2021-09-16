@@ -12,13 +12,14 @@ import {
   ErrorPlatformEvent,
   DoneEventObject,
   ChooseCondition,
-  MachineContext
+  MachineContext,
+  BaseActionObject,
+  DAction
 } from './types';
 import * as actionTypes from './actionTypes';
 import { isFunction, isString, toSCXMLEvent, isArray } from './utils';
 import { ExecutableAction } from '../actions/ExecutableAction';
 import { send } from './actions/send';
-import { BaseActionObject, DAction } from '.';
 import { DynamicAction } from '../actions/DynamicAction';
 import { evaluateGuard, toGuardDefinition } from './guards';
 export {

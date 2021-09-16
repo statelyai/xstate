@@ -171,7 +171,7 @@ describe('interpreter', () => {
 
       // saves state and recreate it
       const recreated = JSON.parse(JSON.stringify(nextState));
-      const previousState = State.create<never>(recreated);
+      const previousState = State.create(recreated);
       const resolvedState = lightMachine.resolveState(previousState);
 
       const service = interpret(lightMachine);
