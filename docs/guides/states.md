@@ -189,7 +189,9 @@ const service = invoke(machine)
   .start();
 ```
 
-### `state.hasTag(tag)` <Badge text="4.19+" />
+### `state.hasTag(tag)`
+
+_Since 4.19.0_
 
 This method determines whether the current state configuration has a state node with the given tag.
 
@@ -216,6 +218,52 @@ For instance, if the above machine is in the `green` or `yellow` state, instead 
 const canGo = state.hasTag('go');
 // => `true` if in 'green' or 'yellow' state
 ```
+
+### `state.can(event)`
+
+_Since 4.25.0_
+
+This method determines whether an `event` will cause a state change if sent to the interpreted machine. It will return `true` if the state will change due to the `event` being sent; otherwise `false`:
+
+```js
+const machine = createMachine({
+  initial: 'inactive',
+  states: {
+    inactive: {
+      on: {
+        TOGGLE: 'active'
+      }
+    },
+    active: {
+      on: {
+        DO_SOMETHING: { actions: ['something'] }
+      }
+    }
+  }
+});
+
+const inactiveState = machine.initialState;
+
+inactiveState.can('TOGGLE'); // true
+inactiveState.can('DO_SOMETHING'); // false
+
+// Also takes in full event objects:
+inactiveState.can({
+  type: 'DO_SOMETHING',
+  data: 42
+}); // false
+
+const activeState = machine.transition(inactiveState, 'TOGGLE');
+
+activeState.can('TOGGLE'); // false
+activeState.can('DO_SOMETHING'); // true, since an action will be executed
+```
+
+A state is considered "changed" if [`state.changed`](#state-changed) is `true`; i.e., if any of the following are true:
+
+- its `state.value` changes
+- there are new `state.actions` to be executed
+- its `state.context` changes.
 
 ## Persisting State
 

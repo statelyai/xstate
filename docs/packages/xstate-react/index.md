@@ -1,7 +1,5 @@
 # @xstate/react
 
-`@xstate/react` is a library of official XState bindings for React. If you're using React with XState, you'll need this library.
-
 [[toc]]
 
 ## Quick Start
@@ -11,6 +9,22 @@
 ```bash
 npm i xstate @xstate/react
 ```
+
+**Via CDN**
+
+```html
+<script src="https://unpkg.com/@xstate/react/dist/xstate-react.umd.min.js"></script>
+```
+
+By using the global variable `XStateReact`
+
+or
+
+```html
+<script src="https://unpkg.com/@xstate/react/dist/xstate-react-fsm.umd.min.js"></script>
+```
+
+By using the global variable `XStateReactFSM`
 
 2. Import the `useMachine` hook:
 
@@ -44,17 +58,11 @@ export const Toggler = () => {
 };
 ```
 
-::: tip Usage Guide
-
-Check out out [usage guide](../../recipes/react.md) to learn more about common patterns when using XState & React together.
-
-:::
-
 ## Examples
 
 - [XState + React TodoMVC (CodeSandbox)](https://codesandbox.io/s/xstate-todomvc-33wr94qv1)
 
-## API Reference
+## API
 
 ### `useMachine(machine, options?)`
 
@@ -90,11 +98,10 @@ A [React hook](https://reactjs.org/hooks) that interprets the given `machine` an
 
 In the next major version, `useService(service)` will be replaced with `useActor(service)`. Prefer using the `useActor(service)` hook for services instead, since services are also actors.
 
-Also, keep in mind that only a single argument (the event object) can be sent to `send(eventObject)` from `useActor(...)`. When migrating to `useActor(...)`, refactor `send(...)` calls to use only a single argument (event object or event type string):
+Also, keep in mind that only a single argument (the event object) can be sent to `send(eventObject)` from `useActor(...)`. When migrating to `useActor(...)`, refactor `send(...)` calls to use only a single event object:
 
 ```diff
 const [state, send] = useActor(service);
-
 -send('CLICK', { x: 0, y: 3 });
 +send({ type: 'CLICK', x: 0, y: 3 });
 ```
@@ -544,22 +551,6 @@ useEffect(() => {
   return subscription.unsubscribe;
 }, [service]); // note: service should never change
 ```
-
-## Importing from CDN
-
-```html
-<script src="https://unpkg.com/@xstate/react/dist/xstate-react.umd.min.js"></script>
-```
-
-By using the global variable `XStateReact`
-
-or
-
-```html
-<script src="https://unpkg.com/@xstate/react/dist/xstate-react-fsm.umd.min.js"></script>
-```
-
-By using the global variable `XStateReactFSM`
 
 ## Migration from 0.x
 
