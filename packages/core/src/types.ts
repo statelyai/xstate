@@ -744,11 +744,9 @@ export type RequiredTypegenMachineOptions<
   TContext,
   TEvent extends EventObject,
   TMeta extends TypegenMeta
-> = Required<
-  Pick<
-    TypegenMachineOptions<TContext, TEvent, TMeta, 1>,
-    GetRequiredTypegenOptionKeys<TMeta>
-  >
+> = Pick<
+  TypegenMachineOptions<TContext, TEvent, TMeta, 1>,
+  GetRequiredTypegenOptionKeys<TMeta>
 >;
 
 export type GetRequiredTypegenOptionKeys<TMeta extends TypegenMeta> =
