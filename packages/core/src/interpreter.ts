@@ -190,6 +190,8 @@ export class Interpreter<
 
       initialState.actions.push(...CapturedState.current.spawns);
       return initialState;
+    } catch (e) {
+      throw e;
     } finally {
       CapturedState.current = {
         actorRef: undefined,

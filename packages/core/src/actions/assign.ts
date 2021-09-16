@@ -33,37 +33,20 @@ export function assign<
       assignment
     },
     (action, context, _event, { state }) => {
-      try {
-        const [nextContext, nextActions] = updateContext(
-          context,
-          _event,
-          [action],
-          state
-        );
+      const [nextContext, nextActions] = updateContext(
+        context,
+        _event,
+        [action],
+        state
+      );
 
-        return {
-          type: action.type,
-          params: {
-            context: nextContext,
-            actions: nextActions
-          }
-        } as AssignActionObject<TContext>;
-      } catch (err) {
-        // Raise error.execution events for failed assign actions
-        return {
-          type: actionTypes.raise,
-          params: {
-            _event: toSCXMLEvent({
-              type: actionTypes.errorExecution,
-              error: err
-            } as any) // TODO: fix
-          }
-        } as RaiseActionObject<TEvent>;
-      }
+      return {
+        type: action.type,
+        params: {
+          context: nextContext,
+          actions: nextActions
+        }
+      } as AssignActionObject<TContext>;
     }
   );
-  // return {
-  //   type: actionTypes.assign,
-  //   assignment
-  // };
 }

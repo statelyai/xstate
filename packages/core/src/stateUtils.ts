@@ -1,11 +1,4 @@
 import {
-  BaseActionObject,
-  EventObject,
-  InvokeActionObject,
-  StateNode,
-  StateValue
-} from '.';
-import {
   keys,
   flatten,
   toStatePath,
@@ -21,6 +14,10 @@ import {
   toSCXMLEvent
 } from './utils';
 import {
+  BaseActionObject,
+  EventObject,
+  InvokeActionObject,
+  StateValue,
   TransitionConfig,
   TransitionDefinition,
   DelayedTransitionDefinition,
@@ -59,10 +56,11 @@ import { stop } from './actions/stop';
 import { IS_PRODUCTION } from './environment';
 import { STATE_IDENTIFIER, NULL_EVENT, WILDCARD } from './constants';
 import { isSpawnedActorRef } from './actor';
-import { StateMachine } from './StateMachine';
+import type { StateMachine } from './StateMachine';
 import { evaluateGuard, toGuardDefinition } from './guards';
 import { ExecutableAction } from '../actions/ExecutableAction';
 import { DynamicAction } from '../actions/DynamicAction';
+import type { StateNode } from './StateNode';
 
 type Configuration<
   TContext extends MachineContext,
@@ -1099,7 +1097,7 @@ function exitStates<
   state: State<TContext, TEvent>
 ) {
   const statesToExit = computeExitSet(transitions, mutConfiguration, state);
-  const actions: Array<BaseActionObject> = [];
+  const actions: BaseActionObject[] = [];
 
   statesToExit.forEach((stateNode) => {
     actions.push(...stateNode.invoke.map((def) => stop(def.id)));
@@ -1133,7 +1131,7 @@ export function enterStates<
   const statesToInvoke: typeof mutConfiguration = new Set();
   const internalQueue: Array<SCXML.Event<TEvent>> = [];
 
-  const actions: Array<BaseActionObject> = [];
+  const actions: BaseActionObject[] = [];
   const mutStatesToEnter = new Set<StateNode<TContext, TEvent>>();
   const mutStatesForDefaultEntry = new Set<StateNode<TContext, TEvent>>();
 
@@ -1407,13 +1405,13 @@ export function microstep<
   machine: StateMachine<TContext, TEvent>,
   _event: SCXML.Event<TEvent>
 ): {
-  actions: Array<BaseActionObject>;
+  actions: BaseActionObject[];
   configuration: typeof mutConfiguration;
   historyValue: HistoryValue<TContext, TEvent>;
   internalQueue: Array<SCXML.Event<TEvent>>;
   context: TContext;
 } {
-  const actions: Array<BaseActionObject> = [];
+  const actions: BaseActionObject[] = [];
 
   const filteredTransitions = removeConflictingTransitions(
     transitions,
@@ -1459,22 +1457,36 @@ export function microstep<
 
   actions.push(...res.actions);
 
-  const {
-    actions: resolvedActions,
-    raised,
-    context
-  } = resolveActionsAndContext(actions, machine, _event, currentState);
+  try {
+    const {
+      actions: resolvedActions,
+      raised,
+      context
+    } = resolveActionsAndContext(actions, machine, _event, currentState);
 
-  internalQueue.push(...res.internalQueue);
-  internalQueue.push(...raised.map((a) => a.params._event));
+    internalQueue.push(...res.internalQueue);
+    internalQueue.push(...raised.map((a) => a.params._event));
 
-  return {
-    actions: resolvedActions,
-    configuration: mutConfiguration,
-    historyValue,
-    internalQueue,
-    context
-  };
+    return {
+      actions: resolvedActions,
+      configuration: mutConfiguration,
+      historyValue,
+      internalQueue,
+      context
+    };
+  } catch (e) {
+    if (machine.config.scxml) {
+      return {
+        actions: [],
+        configuration: mutConfiguration,
+        historyValue,
+        internalQueue: [toSCXMLEvent({ type: 'error.execution' } as TEvent)],
+        context: machine.context
+      };
+    } else {
+      throw e;
+    }
+  }
 }
 
 function selectEventlessTransitions<
