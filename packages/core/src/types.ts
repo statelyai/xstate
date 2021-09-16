@@ -807,8 +807,7 @@ export interface TypegenMachineOptions<
 > {
   actions: TRequired extends 1
     ? {
-        // @ts-ignore
-        [K in TMeta['requiredActions']]: Pick<
+        [K in NonNullable<TMeta['requiredActions']>]: Pick<
           TypegenMachineOptionsActions<TContext, TEvent, TMeta>,
           // @ts-ignore
           K
@@ -818,8 +817,7 @@ export interface TypegenMachineOptions<
     : TypegenMachineOptionsActions<TContext, TEvent, TMeta>;
   guards: TRequired extends 1
     ? {
-        // @ts-ignore
-        [K in TMeta['requiredGuards']]: Pick<
+        [K in NonNullable<TMeta['requiredGuards']>]: Pick<
           TypegenMachineOptionsGuards<TContext, TEvent, TMeta>,
           // @ts-ignore
           K
@@ -829,8 +827,7 @@ export interface TypegenMachineOptions<
     : TypegenMachineOptionsGuards<TContext, TEvent, TMeta>;
   services: TRequired extends 1
     ? {
-        // @ts-ignore
-        [K in TMeta['requiredServices']]: Pick<
+        [K in NonNullable<TMeta['requiredServices']>]: Pick<
           TypegenMachineOptionsServices<TContext, TEvent, TMeta>,
           // @ts-ignore
           K
@@ -840,8 +837,7 @@ export interface TypegenMachineOptions<
     : TypegenMachineOptionsServices<TContext, TEvent, TMeta>;
   delays: TRequired extends 1
     ? {
-        // @ts-ignore
-        [K in TMeta['requiredDelays']]: Pick<
+        [K in NonNullable<TMeta['requiredDelays']>]: Pick<
           TypegenMachineOptionsDelays<TContext, TEvent, TMeta>,
           // @ts-ignore
           K
