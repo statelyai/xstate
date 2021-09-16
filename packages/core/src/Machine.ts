@@ -1,4 +1,9 @@
-import { DefaultTypegenMeta, MaybeTypegenMachineOptions, TypegenMeta } from '.';
+import {
+  ActionObject,
+  DefaultTypegenMeta,
+  MaybeTypegenMachineOptions,
+  TypegenMeta
+} from '.';
 import { Model } from './model.types';
 import { StateNode } from './StateNode';
 import {
@@ -56,7 +61,13 @@ export function createMachine<
 >(
   config: TContext extends Model<any, any, any, any>
     ? 'Model type no longer supported as generic type. Please use `model.createMachine(...)` instead.'
-    : MachineConfig<TContext, any, TEvent> & { types?: TMeta },
+    : MachineConfig<
+        TContext,
+        any,
+        TEvent,
+        ActionObject<TContext, TEvent>,
+        TMeta
+      >,
   options?: Partial<MaybeTypegenMachineOptions<TContext, TEvent, TMeta>>
 ): StateMachine<TContext, any, TEvent, any, any, TMeta>;
 
@@ -66,7 +77,13 @@ export function createMachine<
   TTypestate extends Typestate<TContext> = { value: any; context: TContext },
   TMeta extends TypegenMeta = DefaultTypegenMeta
 >(
-  config: MachineConfig<TContext, any, TEvent>,
+  config: MachineConfig<
+    TContext,
+    any,
+    TEvent,
+    ActionObject<TContext, TEvent>,
+    TMeta
+  >,
   options?: Partial<MaybeTypegenMachineOptions<TContext, TEvent, TMeta>>
 ): StateMachine<TContext, any, TEvent, TTypestate, any, TMeta> {
   return new StateNode<TContext, any, TEvent, TTypestate>(

@@ -1,4 +1,5 @@
 import { createMachine } from '../src/Machine';
+import { createModel } from '../src/model';
 
 const doNotExecute = (_func: () => void) => {};
 
@@ -16,6 +17,41 @@ type Event =
     };
 
 describe('Type Meta', () => {
+  describe('createModel', () => {
+    it('Should work with model.createMachine', () => {
+      const model = createModel(
+        {},
+        {
+          events: {
+            EVENT_1: () => ({}),
+            EVENT_2: () => ({}),
+            EVENT_3: () => ({})
+          }
+        }
+      );
+
+      interface Meta {
+        __generated: 1;
+        eventsCausingServices: {
+          myService: 'EVENT_1';
+        };
+      }
+
+      model.createMachine(
+        {
+          types: {} as Meta
+        },
+        {
+          services: {
+            myService: async (_context, event) => {
+              // @ts-expect-error
+              event.type === 'EVENT_2';
+            }
+          }
+        }
+      );
+    });
+  });
   describe('eventsCausingServices', () => {
     it('Should track which events are causing which services', () => {
       doNotExecute(() => {

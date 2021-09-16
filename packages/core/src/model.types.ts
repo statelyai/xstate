@@ -39,7 +39,7 @@ export interface Model<
   reset: () => AssignAction<TContext, any>;
   createMachine: {
     <TMeta extends DefaultTypegenMeta>(
-      config: MachineConfig<TContext, any, TEvent, TAction> & { types?: TMeta },
+      config: MachineConfig<TContext, any, TEvent, TAction, TMeta>,
       implementations?: Partial<
         MaybeTypegenMachineOptions<TContext, TEvent, TMeta, TAction>
       >

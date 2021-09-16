@@ -882,7 +882,8 @@ export interface MachineConfig<
   TContext,
   TStateSchema extends StateSchema,
   TEvent extends EventObject,
-  TAction extends BaseActionObject = ActionObject<TContext, TEvent>
+  TAction extends BaseActionObject = ActionObject<TContext, TEvent>,
+  TMeta extends TypegenMeta = DefaultTypegenMeta
 > extends StateNodeConfig<TContext, TStateSchema, TEvent, TAction> {
   /**
    * The initial context (extended state)
@@ -893,6 +894,7 @@ export interface MachineConfig<
    */
   version?: string;
   schema?: MachineSchema<TContext, TEvent>;
+  types?: TMeta;
 }
 
 export interface MachineSchema<TContext, TEvent extends EventObject> {
