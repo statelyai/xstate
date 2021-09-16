@@ -12,20 +12,25 @@ import {
   Behavior
 } from '../src';
 import {
-  assign,
-  send,
   sendParent,
   raise,
   doneInvoke,
   sendUpdate,
   respond,
   forwardTo,
-  error
+  error,
+  assign,
+  send
 } from '../src/actions';
-import { interval, EMPTY } from 'rxjs';
+import { EMPTY, interval } from 'rxjs';
 import { map } from 'rxjs/operators';
 import * as actionTypes from '../src/actionTypes';
-import { createMachineBehavior, fromReducer } from '../src/behaviors';
+import {
+  createMachineBehavior,
+  createObservableBehavior,
+  createPromiseBehavior,
+  fromReducer
+} from '../src/behaviors';
 import { invokeMachine } from '../src/invoke';
 
 describe('spawning machines', () => {
@@ -61,7 +66,7 @@ describe('spawning machines', () => {
 
   const todosMachine = createMachine<typeof context, TodoEvent>({
     id: 'todos',
-    context: context,
+    context,
     initial: 'active',
     states: {
       active: {
@@ -1109,7 +1114,7 @@ describe('actors', () => {
 
     const machine = createMachine<{ ref: ActorRef<any> }>({
       context: () => ({
-        ref: spawn(childMachine)
+        ref: spawn(createMachineBehavior(childMachine))
       }),
       initial: 'waiting',
       states: {
@@ -1159,7 +1164,7 @@ describe('actors', () => {
       {
         actions: {
           setup: assign({
-            child: () => spawn(childMachine)
+            child: () => spawn(createMachineBehavior(childMachine))
           })
         }
       }
@@ -1178,7 +1183,10 @@ describe('actors', () => {
         child: null
       },
       entry: assign({
-        child: () => spawn({ then: (fn) => fn(null) } as any)
+        child: () =>
+          spawn(
+            createPromiseBehavior(() => ({ then: (fn) => fn(null) } as any))
+          )
       })
     });
     const service = interpret(parentMachine);
@@ -1200,7 +1208,7 @@ describe('actors', () => {
         child: null
       },
       entry: assign({
-        child: () => spawn(createEmptyObservable())
+        child: () => spawn(createObservableBehavior(createEmptyObservable))
       })
     });
     const service = interpret(parentMachine);
@@ -1217,7 +1225,11 @@ describe('actors', () => {
         child: null
       },
       entry: assign({
-        child: () => spawn(EMPTY, 'myactor')
+        child: () =>
+          spawn(
+            createObservableBehavior(() => EMPTY),
+            'myactor'
+          )
       }),
       initial: 'init',
       states: {

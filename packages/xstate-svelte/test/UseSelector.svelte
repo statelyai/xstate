@@ -1,6 +1,6 @@
 <script lang="ts">
   import { interpret } from 'xstate';
-  import { createModel } from 'xstate/lib/model';
+  import { createModel } from 'xstate/model';
   import { useSelector } from '../src';
 
   const model = createModel(

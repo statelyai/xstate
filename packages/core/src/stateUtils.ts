@@ -1795,15 +1795,18 @@ function resolveActionsAndContext<
         resolvedActions.push(stopAction);
         break;
       default:
-        const resolvedActionObject = toActionObject(
+        let resolvedActionObject = toActionObject(
           actionObject,
           machine.options.actions
         );
         const { exec } = resolvedActionObject;
         if (exec) {
           const contextIndex = preservedContexts.length - 1;
-          resolvedActionObject.exec = (_ctx, ...args) => {
-            exec(preservedContexts[contextIndex], ...args);
+          resolvedActionObject = {
+            ...resolvedActionObject,
+            exec: (_ctx, ...args) => {
+              exec(preservedContexts[contextIndex], ...args);
+            }
           };
         }
         resolvedActions.push(resolvedActionObject);
@@ -1868,6 +1871,8 @@ export function macrostep<
   maybeNextState.tags = new Set(
     flatten(maybeNextState.configuration.map((sn) => sn.tags))
   );
+
+  maybeNextState.machine = machine;
 
   return maybeNextState;
 }

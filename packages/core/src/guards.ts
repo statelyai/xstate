@@ -1,4 +1,4 @@
-import {
+import type {
   EventObject,
   StateValue,
   BooleanGuardDefinition,
@@ -11,7 +11,7 @@ import {
 } from './types';
 import { isStateId } from './stateUtils';
 import { isFunction, isString } from './utils';
-import { State } from './State';
+import type { State } from './State';
 
 export function stateIn<
   TContext extends MachineContext,

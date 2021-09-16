@@ -208,7 +208,7 @@ export function inspect(
       const observer = toObserver(next, onError, onComplete);
 
       listeners.add(observer);
-      observer.next(inspectService.state);
+      observer.next?.(inspectService.state);
 
       return {
         unsubscribe: () => {

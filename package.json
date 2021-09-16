@@ -47,7 +47,7 @@
     "@babel/preset-env": "^7.8.4",
     "@babel/preset-react": "^7.8.3",
     "@babel/preset-typescript": "^7.8.3",
-    "@changesets/changelog-github": "^0.4.6",
+    "@changesets/changelog-github": "^0.4.1",
     "@changesets/cli": "^2.9.1",
     "@manypkg/cli": "^0.16.1",
     "@preconstruct/cli": "^2.1.0",

@@ -1,7 +1,6 @@
 import * as WebSocket from 'ws';
 import { ActorRef, EventObject, interpret, Interpreter } from 'xstate';
 import { toEventObject, toSCXMLEvent } from 'xstate/src/utils';
-import { toActorRef } from 'xstate/actor';
 
 import { createInspectMachine } from './inspectMachine';
 import { Inspector } from './types';

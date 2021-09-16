@@ -1,4 +1,4 @@
-import {
+import type {
   StateValue,
   EventObject,
   ActionObject,
@@ -10,14 +10,15 @@ import {
   HistoryValue,
   NullEvent,
   ActorRef,
-  MachineContext
+  MachineContext,
+  SimpleEventsOf
 } from './types';
-import { EMPTY_ACTIVITY_MAP } from './constants';
 import { matchesState, keys, isString, warn } from './utils';
-import { StateNode } from './StateNode';
+import type { StateNode } from './StateNode';
 import { isInFinalState, nextEvents, getMeta } from './stateUtils';
 import { initEvent } from './actions';
 import { IS_PRODUCTION } from './environment';
+import type { MachineNode } from '.';
 
 export function isState<
   TContext extends MachineContext,
@@ -96,7 +97,7 @@ export class State<
    */
   public children: Record<string, ActorRef<any>>;
   public tags: Set<string>;
-  public machine: StateMachine<TContext, any, TEvent, TTypestate> | undefined;
+  public machine: MachineNode<TContext, TEvent, TTypestate> | undefined;
   /**
    * Creates a new State instance for the given `stateValue` and `context`.
    * @param stateValue

@@ -6,12 +6,12 @@ import {
   SendExpr,
   DelayExpr,
   ChooseConditon,
-  createMachine
+  createMachine,
+  StateMachine
 } from 'xstate';
 import { mapValues, keys, isString, flatten } from 'xstate/src/utils';
 import * as actions from 'xstate/actions';
 import { invokeMachine } from 'xstate/invoke';
-import { StateMachine } from 'xstate/src/StateMachine';
 import { not, stateIn } from 'xstate/guards';
 
 function getAttribute(

@@ -7,13 +7,16 @@ import {
   assign,
   spawnMachine,
   ActorRefFrom,
-  interpret
+  interpret,
+  ActorRef,
+  spawn
 } from 'xstate';
 import { render, fireEvent, act } from '@testing-library/react';
 import { useActor } from '../src/useActor';
 import { invokeMachine } from 'xstate/invoke';
 
 import { toActorRef } from 'xstate/actor';
+import { createMachineBehavior } from 'xstate/behaviors';
 
 describe('useActor', () => {
   it('initial invoked actor should be immediately available', (done) => {
@@ -478,7 +481,7 @@ describe('useActor', () => {
 
     const machine = createMachine<{ ref: ActorRef<any> }>({
       context: () => ({
-        ref: spawn(childMachine)
+        ref: spawn(createMachineBehavior(childMachine))
       }),
       initial: 'waiting',
       states: {

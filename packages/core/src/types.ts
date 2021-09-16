@@ -1,10 +1,10 @@
-import { StateNode } from './StateNode';
-import { State } from './State';
-import { Clock, Interpreter } from './interpreter';
-import { StateMachine } from './StateMachine';
-import { LifecycleSignal } from './behaviors';
-import { MachineNode } from '.';
-import { Model } from './model.types';
+import type { StateNode } from './StateNode';
+import type { State } from './State';
+import type { Clock, Interpreter } from './interpreter';
+import type { StateMachine } from './StateMachine';
+import type { LifecycleSignal } from './behaviors';
+import type { MachineNode } from '.';
+import type { Model } from './model.types';
 
 type AnyFunction = (...args: any[]) => any;
 type ReturnTypeOrValue<T> = T extends AnyFunction ? ReturnType<T> : T;
@@ -772,7 +772,7 @@ export interface MachineImplementations<
   actions: ActionFunctionMap<TContext, TEvent, TAction>;
   actors: ActorMap<TContext, TEvent>;
   delays: DelayFunctionMap<TContext, TEvent>;
-  context: Partial<TContext>;
+  context: MaybeLazy<Partial<TContext>>;
 }
 
 export interface MachineConfig<
@@ -1456,27 +1456,16 @@ export type SpawnedActorRef<
   TEmitted = any
 > = ActorRef<TEvent, TEmitted>;
 
-export type ActorRefWithDeprecatedState<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TTypestate extends Typestate<TContext>
-> = ActorRef<TEvent, State<TContext, TEvent, TTypestate>> & {
-  /**
-   * @deprecated Use `.getSnapshot()` instead.
-   */
-  state: State<TContext, TEvent, TTypestate>;
-};
-
 export type ActorRefFrom<T> = T extends StateMachine<
   infer TContext,
   infer TEvent,
   infer TTypestate
 >
-  ? ActorRefWithDeprecatedState<TContext, TEvent, TTypestate>
+  ? ActorRef<TEvent, State<TContext, TEvent, TTypestate>>
   : T extends (
       ...args: any[]
     ) => StateMachine<infer TContext, infer TEvent, infer TTypestate>
-  ? ActorRefWithDeprecatedState<TContext, TEvent, TTypestate>
+  ? ActorRef<TEvent, State<TContext, TEvent, TTypestate>>
   : T extends Promise<infer U>
   ? ActorRef<never, U>
   : T extends Behavior<infer TEvent1, infer TEmitted>
@@ -1537,7 +1526,7 @@ export type EmittedFrom<T> = ReturnTypeOrValue<T> extends infer R
 export type EventFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<infer _, infer TEvent, infer ____>
     ? TEvent
-    : R extends Model<infer _, infer TEvent, infer __>
+    : R extends Model<infer _, infer TEvent, infer __, infer ___>
     ? TEvent
     : R extends State<infer _, infer TEvent, infer __>
     ? TEvent
@@ -1549,11 +1538,15 @@ export type EventFrom<T> = ReturnTypeOrValue<T> extends infer R
 export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<infer TContext, infer _, infer __>
     ? TContext
-    : R extends Model<infer TContext, infer _, infer __>
+    : R extends Model<infer TContext, infer _, infer __, infer ___>
     ? TContext
     : R extends State<infer TContext, infer _, infer __>
     ? TContext
     : R extends Interpreter<infer TContext, infer _, infer __>
     ? TContext
     : never
-  : never;
+  : 'here';
+
+export type MaybeLazy<T> = T | (() => T);
+
+export type { StateMachine } from './StateMachine';

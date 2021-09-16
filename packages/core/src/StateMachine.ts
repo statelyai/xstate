@@ -1,5 +1,5 @@
 import { isBuiltInEvent, isFunction, toSCXMLEvent } from './utils';
-import {
+import type {
   Event,
   StateValue,
   MachineImplementations,
@@ -10,7 +10,8 @@ import {
   Transitions,
   MachineSchema,
   StateNodeDefinition,
-  MachineContext
+  MachineContext,
+  MaybeLazy
 } from './types';
 import { State } from './State';
 
@@ -43,8 +44,12 @@ const createDefaultOptions = <TContext extends MachineContext>(
 
 function resolveContext<TContext>(
   context: TContext,
-  partialContext?: Partial<TContext>
+  partialContext?: MaybeLazy<Partial<TContext>>
 ): TContext {
+  if (isFunction(partialContext)) {
+    return { ...context, ...partialContext() };
+  }
+
   return {
     ...context,
     ...partialContext

@@ -15,14 +15,13 @@ import {
   render,
   fireEvent,
   waitForElement,
-  act,
   cleanup
 } from '@testing-library/react';
 import { useState } from 'react';
 import { invokePromise, invokeCallback, invokeMachine } from 'xstate/invoke';
 import { asEffect, asLayoutEffect } from '../src/useMachine';
 import { DoneEventObject } from 'xstate';
-import { createBehaviorFrom } from '../../core/src/behaviors';
+import { createBehaviorFrom } from 'xstate/behaviors';
 
 afterEach(() => {
   cleanup();
@@ -805,7 +804,7 @@ describe('useMachine hook', () => {
       },
       {
         actors: {
-          foo: createBehaviorFrom(() => {
+          foo: invokePromise(() => {
             serviceCalled = true;
             return Promise.resolve();
           })
@@ -872,7 +871,7 @@ describe('useMachine hook', () => {
 
     expect(getByTestId('result').textContent).toBe('b');
 
-    act(() => jest.advanceTimersByTime(310));
+    jest.advanceTimersByTime(310);
 
     expect(getByTestId('result').textContent).toBe('c');
   });
@@ -1082,9 +1081,8 @@ describe('useMachine (strict mode)', () => {
       const button = getByTestId('button');
 
       fireEvent.click(button);
-      act(() => {
-        jest.advanceTimersByTime(110);
-      });
+
+      jest.advanceTimersByTime(110);
 
       expect(currentState.matches('idle')).toBe(true);
     } finally {
