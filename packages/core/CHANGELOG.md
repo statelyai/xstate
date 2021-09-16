@@ -1,5 +1,51 @@
 # xstate
 
+## 4.25.0
+
+### Minor Changes
+
+- [#2657](https://github.com/statelyai/xstate/pull/2657) [`72155c1b7`](https://github.com/statelyai/xstate/commit/72155c1b7887b94f2d8f7cb73a1af17a591cc74c) Thanks [@mattpocock](https://github.com/mattpocock)! - Removed the ability to pass a model as a generic to `createMachine`, in favour of `model.createMachine`. This lets us cut an overload from the definition of `createMachine`, meaning errors become more targeted and less cryptic.
+
+  This means that this approach is no longer supported:
+
+  ```ts
+  const model = createModel({});
+
+  const machine = createMachine<typeof model>();
+  ```
+
+  If you're using this approach, you should use `model.createMachine` instead:
+
+  ```ts
+  const model = createModel({});
+
+  const machine = model.createMachine();
+  ```
+
+### Patch Changes
+
+- [#2659](https://github.com/statelyai/xstate/pull/2659) [`7bfeb930d`](https://github.com/statelyai/xstate/commit/7bfeb930d65eb4443c300a2d28aeef3664fcafea) Thanks [@Andarist](https://github.com/Andarist)! - Fixed a regression in the inline actions type inference in models without explicit action creators.
+
+  ```js
+  const model = createModel(
+    { foo: 100 },
+    {
+      events: {
+        BAR: () => ({})
+      }
+    }
+  );
+
+  model.createMachine({
+    // `ctx` was of type `any`
+    entry: ctx => {},
+    exit: assign({
+      // `ctx` was of type `unknown`
+      foo: ctx => 42
+    })
+  });
+  ```
+
 ## 4.24.1
 
 ### Patch Changes
