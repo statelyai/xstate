@@ -784,7 +784,18 @@ export type TypegenMachineOptionsServices<
 > = {
   [K in keyof TMeta['eventsCausingServices']]?: InvokeCreator<
     TContext,
-    Extract<TEvent, { type: TMeta['eventsCausingServices'][K] }>
+    Extract<TEvent, { type: TMeta['eventsCausingServices'][K] }>,
+    Extract<
+      TEvent,
+      {
+        // @ts-ignore
+        type: `done.invoke.${K}`;
+      }
+    > extends {
+      data: infer TData;
+    }
+      ? TData
+      : any
   >;
 };
 
