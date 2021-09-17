@@ -1,4 +1,5 @@
 import { Machine, interpret, createMachine, assign } from '../src/index';
+import { createModel } from '../src/model';
 import { State } from '../src/State';
 
 const pedestrianStates = {
@@ -439,5 +440,16 @@ describe('StateNode', () => {
       'POWER_OUTAGE',
       'FORBIDDEN_EVENT'
     ]);
+  });
+});
+
+describe('Typings', () => {
+  it('Should not allow model to be passed as a generic', () => {
+    const model = createModel({});
+
+    createMachine<typeof model>(
+      // @ts-expect-error
+      {}
+    );
   });
 });

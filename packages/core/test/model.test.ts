@@ -1,4 +1,10 @@
-import { ContextFrom, createMachine, EventFrom } from '../src';
+import {
+  ActorRefFrom,
+  ContextFrom,
+  createMachine,
+  EventFrom,
+  interpret
+} from '../src';
 import {
   assign,
   cancel,
@@ -553,6 +559,24 @@ describe('createModel', () => {
         }
       })
     });
+  });
+
+  it('Should correctly infer context with ActorRefFrom', () => {
+    () => {
+      const model = createModel<{ count: number }, { type: 'INC' }>({
+        count: 0
+      });
+
+      const machine = model.createMachine({
+        context: model.initialContext,
+        states: {
+          a: {}
+        }
+      });
+
+      // This would error if it didn't match
+      const service: ActorRefFrom<typeof machine> = interpret(machine);
+    };
   });
 
   it('should keep the context type on the state after using `state.matches`', () => {
