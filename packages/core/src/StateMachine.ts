@@ -11,7 +11,8 @@ import type {
   MachineSchema,
   StateNodeDefinition,
   MachineContext,
-  MaybeLazy
+  MaybeLazy,
+  StateConfig
 } from './types';
 import { State } from './State';
 
@@ -180,7 +181,7 @@ export class StateMachine<
     const configuration = Array.from(
       getConfiguration(getStateNodes(this.root, state.value))
     );
-    return new State({
+    return this.createState({
       ...state,
       value: resolveStateValue(this.root, state.value),
       configuration
@@ -282,5 +283,14 @@ export class StateMachine<
 
   public toJSON() {
     return this.definition;
+  }
+
+  public createState(
+    stateConfig: State<TContext, TEvent> | StateConfig<TContext, TEvent>
+  ): State<TContext, TEvent> {
+    const state =
+      stateConfig instanceof State ? stateConfig : new State(stateConfig);
+    state.machine = this;
+    return state;
   }
 }

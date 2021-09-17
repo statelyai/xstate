@@ -1,4 +1,3 @@
-import { EventObject, StateNode, StateValue, InvokeAction } from '.';
 import {
   keys,
   flatten,
@@ -42,9 +41,13 @@ import {
   StopActionObject,
   AnyEventObject,
   InvokeSourceDefinition,
-  MachineContext
+  MachineContext,
+  EventObject,
+  StateValue,
+  InvokeAction
 } from './types';
 import { State } from './State';
+import type { StateNode } from './StateNode';
 import {
   send,
   cancel,
@@ -68,7 +71,7 @@ import {
 import { IS_PRODUCTION } from './environment';
 import { STATE_IDENTIFIER, NULL_EVENT, WILDCARD } from './constants';
 import { isSpawnedActorRef } from './actor';
-import { StateMachine } from './StateMachine';
+import type { StateMachine } from './StateMachine';
 import { evaluateGuard, toGuardDefinition } from './guards';
 
 type Configuration<
@@ -1487,7 +1490,10 @@ export function microstep<
 function selectEventlessTransitions<
   TContext extends MachineContext,
   TEvent extends EventObject
->(state: State<TContext, TEvent, any>): Transitions<TContext, TEvent> {
+>(
+  state: State<TContext, TEvent, any>,
+  machine: StateMachine<TContext, TEvent>
+): Transitions<TContext, TEvent> {
   const enabledTransitions: Set<
     TransitionDefinition<TContext, TEvent>
   > = new Set();
@@ -1506,7 +1512,8 @@ function selectEventlessTransitions<
               t.guard,
               state.context,
               toSCXMLEvent(NULL_EVENT as Event<TEvent>),
-              state
+              state,
+              machine
             ))
         ) {
           enabledTransitions.add(t);
@@ -1539,7 +1546,7 @@ export function resolveMicroTransition<
   const willTransition =
     !currentState ||
     transitions.length > 0 ||
-    selectEventlessTransitions(currentState).length > 0;
+    selectEventlessTransitions(currentState, machine).length > 0;
 
   const prevConfig = getConfiguration(
     currentState ? currentState.configuration : [machine.root]
@@ -1601,7 +1608,7 @@ export function resolveMicroTransition<
 
   const { context, actions: nonRaisedActions } = resolved;
 
-  const nextState = new State<TContext, TEvent>({
+  const nextState = machine.createState({
     value: getStateValue(machine.root, resolved.configuration),
     context,
     _event,
@@ -1624,7 +1631,7 @@ export function resolveMicroTransition<
       context !== currentContext;
   nextState._internalQueue = resolved.internalQueue;
 
-  const isTransient = selectEventlessTransitions(nextState).length;
+  const isTransient = selectEventlessTransitions(nextState, machine).length;
 
   if (isTransient) {
     nextState._internalQueue.unshift({
@@ -1721,7 +1728,8 @@ function resolveActionsAndContext<
               (guardType) => machine.options.guards[guardType]
             );
           return (
-            !guard || evaluateGuard(guard, context, _event, currentState as any)
+            !guard ||
+            evaluateGuard(guard, context, _event, currentState as any, machine)
           );
         })?.actions;
 
