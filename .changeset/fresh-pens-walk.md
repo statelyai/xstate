@@ -15,7 +15,7 @@ const machine = createMachine({
   }
 });
 
-const getIsToggedOn = createSelector(machine, (state) =>
+const getIsToggledOn = createSelector(machine, (state) =>
   state.matches('toggledOn')
 );
 
