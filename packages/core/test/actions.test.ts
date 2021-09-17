@@ -6,7 +6,14 @@ import {
   interpret,
   spawn
 } from '../src/index';
-import { pure, sendParent, log, choose } from '../src/actions';
+import {
+  pure,
+  sendParent,
+  log,
+  choose,
+  when,
+  actionTypes
+} from '../src/actions';
 
 describe('entry/exit actions', () => {
   const pedestrianStates = {
@@ -1420,6 +1427,20 @@ describe('choose', () => {
 
     expect(exitCalled).toBeTruthy();
     expect(childExitCalled).toBeTruthy();
+  });
+});
+
+describe('when', () => {
+  it('should return a choose action with a single branch', () => {
+    const cond = 'checkCondition';
+    const actions = ['doThing', 'doOtherThing'];
+
+    const chooseAction = when(cond, actions);
+
+    expect(chooseAction).toEqual({
+      type: actionTypes.choose,
+      conds: [{ cond, actions }]
+    });
   });
 });
 
