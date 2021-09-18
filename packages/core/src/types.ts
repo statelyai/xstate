@@ -36,7 +36,7 @@ export interface BaseActionObject {
 export interface BaseDynamicActionObject<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TAction extends BaseActionObject
+  TAction extends BaseActionObject = BaseActionObject
 > {
   type: `xstate.${string}`;
   params: Record<string, any>;
@@ -117,27 +117,12 @@ type SimpleActionsFrom<T extends BaseActionObject> = BaseActionObject extends T
   ? T // If actions are unspecified, all action types are allowed (unsafe)
   : ExtractWithSimpleSupport<T>;
 
-export interface DAction<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TResolvedActionObject extends BaseActionObject = BaseActionObject
-> {
-  type: string;
-  params: any;
-  resolve: (
-    action: BaseActionObject,
-    ctx: TContext,
-    _e: SCXML.Event<TEvent>,
-    meta: any
-  ) => TResolvedActionObject;
-}
-
 export type BaseAction<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TAction extends BaseActionObject
 > =
-  | DAction<TContext, TEvent>
+  | BaseDynamicActionObject<TContext, TEvent>
   | SimpleActionsFrom<TAction>['type']
   | TAction
   | ActionFunction<TContext, TEvent>;
@@ -1067,7 +1052,7 @@ export interface AnyAssignAction extends BaseActionObject {
 export type DynamicAssignAction<
   TContext extends MachineContext,
   TEvent extends EventObject
-> = DAction<
+> = BaseDynamicActionObject<
   TContext,
   TEvent,
   AssignActionObject<TContext> | RaiseActionObject<TEvent>

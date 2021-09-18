@@ -13,8 +13,7 @@ import {
   DoneEventObject,
   ChooseCondition,
   MachineContext,
-  BaseActionObject,
-  DAction
+  BaseActionObject
 } from './types';
 import * as actionTypes from './actionTypes';
 import { isFunction, isString, toSCXMLEvent, isArray } from './utils';
@@ -22,6 +21,7 @@ import { ExecutableAction } from '../actions/ExecutableAction';
 import { send } from './actions/send';
 import { DynamicAction } from '../actions/DynamicAction';
 import { evaluateGuard, toGuardDefinition } from './guards';
+import { BaseDynamicActionObject } from '.';
 export {
   send,
   sendUpdate,
@@ -207,7 +207,9 @@ export function error(id: string, data?: any): ErrorPlatformEvent & string {
 export function choose<
   TContext extends MachineContext,
   TEvent extends EventObject
->(guards: Array<ChooseCondition<TContext, TEvent>>): DAction<TContext, TEvent> {
+>(
+  guards: Array<ChooseCondition<TContext, TEvent>>
+): BaseDynamicActionObject<TContext, TEvent> {
   return new DynamicAction<
     TContext,
     TEvent,
@@ -219,9 +221,7 @@ export function choose<
     }
   >(
     actionTypes.choose,
-    {
-      guards
-    },
+    { guards },
     (action, context, _event, { machine, state }) => {
       const matchedActions = action.params.guards.find((condition) => {
         const guard =
@@ -230,7 +230,9 @@ export function choose<
             condition.guard,
             (guardType) => machine.options.guards[guardType]
           );
-        return !guard || evaluateGuard(guard, context, _event, state);
+        return (
+          !guard || evaluateGuard(guard, context, _event, state, state.machine!)
+        );
       })?.actions;
 
       return {

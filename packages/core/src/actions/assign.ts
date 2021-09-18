@@ -10,7 +10,6 @@ import type {
 import * as actionTypes from '../actionTypes';
 import { DynamicAction } from '../../actions/DynamicAction';
 import { updateContext } from '../updateContext';
-import { toSCXMLEvent } from '../utils';
 
 /**
  * Updates the current context of the machine.
