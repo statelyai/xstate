@@ -47,7 +47,7 @@ export function not<
         ctx,
         meta._event,
         meta.state,
-        meta.state.machine as any // TODO
+        meta.state.machine!
       );
     }
   };
@@ -70,7 +70,7 @@ export function and<
           ctx,
           meta._event,
           meta.state,
-          meta.state.machine as any // TODO
+          meta.state.machine!
         );
       });
     }
@@ -91,7 +91,7 @@ export function or<TContext extends MachineContext, TEvent extends EventObject>(
           ctx,
           meta._event,
           meta.state,
-          meta.state.machine as any // TODO
+          meta.state.machine!
         );
       });
     }
@@ -115,7 +115,7 @@ export function evaluateGuard<
     evaluate: evaluateGuard
   };
 
-  const predicate = machine.options?.guards?.[guard.type] ?? guard.predicate;
+  const predicate = machine?.options?.guards?.[guard.type] ?? guard.predicate;
 
   if (!predicate) {
     throw new Error(`Guard '${guard.type}' is not implemented.'.`);

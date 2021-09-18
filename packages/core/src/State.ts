@@ -70,6 +70,7 @@ export class State<
   public _internalQueue: Array<SCXML.Event<TEvent> | NullEvent> = [];
   public _event: SCXML.Event<TEvent>;
   public _sessionid: string | null;
+  public _initial: boolean = false;
   /**
    * Indicates whether the state has changed from the previous state. A state is considered "changed" if:
    *
