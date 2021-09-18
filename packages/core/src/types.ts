@@ -122,9 +122,10 @@ export type BaseAction<
   TEvent extends EventObject,
   TAction extends BaseActionObject
 > =
+  | ChooseAction<TContext, TEvent>
   | BaseDynamicActionObject<TContext, TEvent>
   | SimpleActionsFrom<TAction>['type']
-  | TAction
+  | Exclude<TAction, BaseDynamicActionObject<TContext, TEvent>>
   | ActionFunction<TContext, TEvent>;
 
 export type BaseActions<

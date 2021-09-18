@@ -1682,3 +1682,49 @@ describe('assign action order', () => {
     expect(captured).toEqual([1, 2]);
   });
 });
+
+describe('types', () => {
+  it('assign actions should be inferred correctly', () => {
+    createMachine<{ count: number; text: string }>({
+      context: {
+        count: 0,
+        text: 'hello'
+      },
+      entry: [
+        assign({ count: 31 }),
+        // @ts-expect-error
+        assign({ count: 'string' }),
+
+        assign({ count: () => 31 }),
+        // @ts-expect-error
+        assign({ count: () => 'string' }),
+
+        assign(() => ({ count: 31 })),
+        // @ts-expect-error
+        assign(() => ({ count: 'string' }))
+      ]
+    });
+  });
+
+  it('choose actions should be inferred correctly', () => {
+    createMachine<{ count: number; text: string }>({
+      context: {
+        count: 0,
+        text: 'hello'
+      },
+      entry: [
+        choose([{ actions: assign({ count: 1 }) }]),
+        // @ts-expect-error
+        choose([{ actions: assign({ count: '1' }) }]),
+
+        choose([{ actions: assign({ count: () => 1 }) }]),
+        // @ts-expect-error
+        choose([{ actions: assign({ count: () => '1' }) }]),
+
+        choose([{ actions: assign(() => ({ count: 1 })) }]),
+        // @ts-expect-error
+        choose([{ actions: assign(() => ({ count: '1' })) }])
+      ]
+    });
+  });
+});
