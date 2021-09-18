@@ -7,6 +7,7 @@ import {
   spawn
 } from '../src/index';
 import { pure, sendParent, log, choose } from '../src/actions';
+import { capture } from '../capture';
 
 describe('entry/exit actions', () => {
   const pedestrianStates = {
@@ -1604,4 +1605,17 @@ describe('assign action order', () => {
       expect(captured).toEqual([2, 2, 2]);
     }
   );
+});
+
+describe('capture', () => {
+  const machine = createMachine({
+    context: { count: 0 },
+    entry: capture((x) => {
+      for (let i = 0; i < 5; i++) {
+        x.send(`TEST_${i}`);
+      }
+    })
+  });
+
+  expect(machine.initialState.actions).toHaveLength(5);
 });
