@@ -196,7 +196,8 @@ export type GuardEvaluator<
   guard: GuardDefinition<TContext, TEvent>,
   context: TContext,
   _event: SCXML.Event<TEvent>,
-  state: State<TContext, TEvent>
+  state: State<TContext, TEvent>,
+  machine: StateMachine<TContext, TEvent>
 ) => boolean;
 
 export interface GuardMeta<

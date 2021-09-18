@@ -1492,7 +1492,10 @@ export function microstep<
 function selectEventlessTransitions<
   TContext extends MachineContext,
   TEvent extends EventObject
->(state: State<TContext, TEvent, any>): Transitions<TContext, TEvent> {
+>(
+  state: State<TContext, TEvent, any>,
+  machine: StateMachine<TContext, TEvent>
+): Transitions<TContext, TEvent> {
   const enabledTransitions: Set<
     TransitionDefinition<TContext, TEvent>
   > = new Set();
@@ -1511,7 +1514,8 @@ function selectEventlessTransitions<
               t.guard,
               state.context,
               toSCXMLEvent(NULL_EVENT as Event<TEvent>),
-              state
+              state,
+              machine
             ))
         ) {
           enabledTransitions.add(t);
@@ -1534,7 +1538,7 @@ export function resolveMicroTransition<
 >(
   machine: StateMachine<TContext, TEvent>,
   transitions: Transitions<TContext, TEvent>,
-  currentState?: State<TContext, TEvent, any>,
+  currentState: State<TContext, TEvent, any>,
   _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>
 ): State<TContext, TEvent, any> {
   // Transition will "apply" if:
@@ -1542,16 +1546,16 @@ export function resolveMicroTransition<
   // - OR there are transitions
   // - OR there are eventless transitions (if there are no transitions)
   const willTransition =
-    !currentState ||
+    currentState._initial ||
     transitions.length > 0 ||
-    selectEventlessTransitions(currentState).length > 0;
+    selectEventlessTransitions(currentState, machine).length > 0;
 
   const prevConfig = getConfiguration(
-    currentState ? currentState.configuration : [machine.root]
+    !currentState._initial ? currentState.configuration : [machine.root]
   );
 
   const resolved = microstep(
-    currentState
+    !currentState._initial
       ? transitions
       : [
           {
@@ -1562,13 +1566,13 @@ export function resolveMicroTransition<
             toJSON: null as any // TODO: fix
           }
         ],
-    currentState,
+    currentState._initial ? undefined : currentState,
     new Set(prevConfig),
     machine,
     _event
   );
 
-  if (currentState && !willTransition) {
+  if (!currentState._initial && !willTransition) {
     const inertState = State.inert(currentState);
     inertState.event = _event.data;
     inertState._event = _event;
@@ -1576,7 +1580,7 @@ export function resolveMicroTransition<
     return inertState as any;
   }
 
-  const children = currentState ? { ...currentState.children } : {};
+  const children = !currentState._initial ? { ...currentState.children } : {};
 
   for (const action of resolved.actions) {
     if (action.type === actionTypes.stop) {
@@ -1591,7 +1595,7 @@ export function resolveMicroTransition<
 
   const resolvedConfiguration = willTransition
     ? Array.from(resolved.configuration)
-    : currentState
+    : !currentState._initial
     ? currentState.configuration
     : [];
 
@@ -1602,17 +1606,19 @@ export function resolveMicroTransition<
     return acc;
   }, {} as Record<string, string>);
 
-  const currentContext = currentState ? currentState.context : machine.context;
+  const currentContext = !currentState._initial
+    ? currentState.context
+    : machine.context;
 
   const { context, actions: nonRaisedActions } = resolved;
 
-  const nextState = new State<TContext, TEvent>({
+  const nextState = machine.createState({
     value: getStateValue(machine.root, resolved.configuration),
     context,
     _event,
     // Persist _sessionid between states
-    _sessionid: currentState ? currentState._sessionid : null,
-    history: currentState,
+    _sessionid: !currentState._initial ? currentState._sessionid : null,
+    history: currentState._initial ? undefined : currentState,
     actions: nonRaisedActions,
     meta,
     configuration: resolvedConfiguration,
@@ -1621,7 +1627,7 @@ export function resolveMicroTransition<
     historyValue: resolved.historyValue
   });
 
-  nextState.changed = !currentState
+  nextState.changed = currentState._initial
     ? undefined
     : !stateValuesEqual(nextState.value, currentState.value) ||
       _event.name === actionTypes.update ||
@@ -1629,7 +1635,7 @@ export function resolveMicroTransition<
       context !== currentContext;
   nextState._internalQueue = resolved.internalQueue;
 
-  const isTransient = selectEventlessTransitions(nextState).length;
+  const isTransient = selectEventlessTransitions(nextState, machine).length;
 
   if (isTransient) {
     nextState._internalQueue.unshift({
@@ -1762,7 +1768,8 @@ function resolveActionsAndContext<
               (guardType) => machine.options.guards[guardType]
             );
           return (
-            !guard || evaluateGuard(guard, context, _event, currentState as any)
+            !guard ||
+            evaluateGuard(guard, context, _event, currentState as any, machine)
           );
         })?.actions;
 

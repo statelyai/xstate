@@ -12,6 +12,7 @@ import type {
 import { isStateId } from './stateUtils';
 import { isFunction, isString } from './utils';
 import type { State } from './State';
+import type { StateMachine } from './StateMachine';
 
 export function stateIn<
   TContext extends MachineContext,
@@ -45,7 +46,8 @@ export function not<
         meta.guard.children![0],
         ctx,
         meta._event,
-        meta.state
+        meta.state,
+        meta.state.machine!
       );
     }
   };
@@ -63,7 +65,13 @@ export function and<
     children: guards.map((guard) => toGuardDefinition(guard)),
     predicate: (ctx, _, meta) => {
       return meta.guard.children!.every((childGuard) => {
-        return meta.evaluate(childGuard, ctx, meta._event, meta.state);
+        return meta.evaluate(
+          childGuard,
+          ctx,
+          meta._event,
+          meta.state,
+          meta.state.machine!
+        );
       });
     }
   };
@@ -78,7 +86,13 @@ export function or<TContext extends MachineContext, TEvent extends EventObject>(
     children: guards.map((guard) => toGuardDefinition(guard)),
     predicate: (ctx, _, meta) => {
       return meta.guard.children!.some((childGuard) => {
-        return meta.evaluate(childGuard, ctx, meta._event, meta.state);
+        return meta.evaluate(
+          childGuard,
+          ctx,
+          meta._event,
+          meta.state,
+          meta.state.machine!
+        );
       });
     }
   };
@@ -91,7 +105,8 @@ export function evaluateGuard<
   guard: GuardDefinition<TContext, TEvent>,
   context: TContext,
   _event: SCXML.Event<TEvent>,
-  state: State<TContext, TEvent>
+  state: State<TContext, TEvent>,
+  machine: StateMachine<TContext, TEvent>
 ): boolean {
   const guardMeta: GuardMeta<TContext, TEvent> = {
     state,
@@ -100,7 +115,7 @@ export function evaluateGuard<
     evaluate: evaluateGuard
   };
 
-  const predicate = guard.predicate;
+  const predicate = machine?.options?.guards?.[guard.type] ?? guard.predicate;
 
   if (!predicate) {
     throw new Error(`Guard '${guard.type}' is not implemented.'.`);

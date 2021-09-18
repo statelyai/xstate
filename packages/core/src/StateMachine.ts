@@ -11,7 +11,8 @@ import type {
   MachineSchema,
   StateNodeDefinition,
   MachineContext,
-  MaybeLazy
+  MaybeLazy,
+  StateConfig
 } from './types';
 import { State } from './State';
 
@@ -23,7 +24,8 @@ import {
   resolveMicroTransition,
   macrostep,
   toState,
-  isStateId
+  isStateId,
+  getStateValue
 } from './stateUtils';
 import { getStateNodes, transitionNode, resolveStateValue } from './stateUtils';
 import { StateNode } from './StateNode';
@@ -180,7 +182,7 @@ export class StateMachine<
     const configuration = Array.from(
       getConfiguration(getStateNodes(this.root, state.value))
     );
-    return new State({
+    return this.createState({
       ...state,
       value: resolveStateValue(this.root, state.value),
       configuration
@@ -239,13 +241,26 @@ export class StateMachine<
     return resolveMicroTransition(this, transitions, resolvedState, _event);
   }
 
+  public get first(): State<TContext, TEvent, TTypestate> {
+    const pseudoinitial = this.resolveState(
+      State.from(
+        getStateValue(this.root, getConfiguration([this.root])),
+        this.context
+      )
+    );
+    pseudoinitial._initial = true;
+
+    return pseudoinitial;
+  }
+
   /**
    * The initial State instance, which includes all actions to be executed from
    * entering the initial state.
    */
   public get initialState(): State<TContext, TEvent, TTypestate> {
     this._init();
-    const nextState = resolveMicroTransition(this, [], undefined, undefined);
+
+    const nextState = resolveMicroTransition(this, [], this.first, undefined);
     return macrostep(nextState, null as any, this);
   }
 
@@ -254,7 +269,8 @@ export class StateMachine<
    */
   public getInitialState(): State<TContext, TEvent, TTypestate> {
     this._init();
-    const nextState = resolveMicroTransition(this, [], undefined, undefined);
+
+    const nextState = resolveMicroTransition(this, [], this.first, undefined);
     return macrostep(nextState, null as any, this) as State<
       TContext,
       TEvent,
@@ -282,5 +298,14 @@ export class StateMachine<
 
   public toJSON() {
     return this.definition;
+  }
+
+  public createState(
+    stateConfig: State<TContext, TEvent> | StateConfig<TContext, TEvent>
+  ): State<TContext, TEvent> {
+    const state =
+      stateConfig instanceof State ? stateConfig : new State(stateConfig);
+    state.machine = this;
+    return state;
   }
 }

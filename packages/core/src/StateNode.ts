@@ -9,7 +9,7 @@ import {
   toInvokeSource,
   isFunction
 } from './utils';
-import {
+import type {
   Event,
   Transitions,
   EventObject,
@@ -28,9 +28,10 @@ import {
   SCXML,
   TransitionDefinitionMap,
   InitialTransitionDefinition,
-  MachineContext
+  MachineContext,
+  BaseActionObject
 } from './types';
-import { State } from './State';
+import type { State } from './State';
 import * as actionTypes from './actionTypes';
 import { toActionObject } from './actions';
 import { formatInitialTransition } from './stateUtils';
@@ -40,8 +41,7 @@ import {
   getCandidates
 } from './stateUtils';
 import { evaluateGuard } from './guards';
-import { StateMachine } from './StateMachine';
-import { BaseActionObject } from '.';
+import type { StateMachine } from './StateMachine';
 
 const EMPTY_OBJECT = {};
 
@@ -125,7 +125,6 @@ export class StateNode<
   // TODO: make private
   public __cache = {
     events: undefined as Array<TEvent['type']> | undefined,
-    initialState: undefined as State<TContext, TEvent> | undefined,
     on: undefined as TransitionDefinitionMap<TContext, TEvent> | undefined,
     transitions: undefined as
       | Array<TransitionDefinition<TContext, TEvent>>
@@ -400,7 +399,8 @@ export class StateNode<
             guard,
             resolvedContext,
             _event,
-            state
+            state,
+            this.machine
           );
       } catch (err) {
         throw new Error(

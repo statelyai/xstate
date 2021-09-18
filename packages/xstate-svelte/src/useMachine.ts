@@ -3,7 +3,6 @@ import {
   interpret,
   EventObject,
   MachineNode,
-  State,
   InterpreterOptions,
   MachineImplementations,
   StateConfig,
@@ -56,7 +55,7 @@ export function useMachine<
   const resolvedMachine = machine.provide(machineConfig);
 
   const service = interpret(resolvedMachine, interpreterOptions).start(
-    rehydratedState ? new State(rehydratedState) : undefined
+    rehydratedState ? machine.createState(rehydratedState) : undefined
   );
 
   const state = readable(service.state, (set) => {
