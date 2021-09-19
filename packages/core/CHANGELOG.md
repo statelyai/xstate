@@ -1,5 +1,119 @@
 # xstate
 
+## 4.25.0
+
+### Minor Changes
+
+- [#2657](https://github.com/statelyai/xstate/pull/2657) [`72155c1b7`](https://github.com/statelyai/xstate/commit/72155c1b7887b94f2d8f7cb73a1af17a591cc74c) Thanks [@mattpocock](https://github.com/mattpocock)! - Removed the ability to pass a model as a generic to `createMachine`, in favour of `model.createMachine`. This lets us cut an overload from the definition of `createMachine`, meaning errors become more targeted and less cryptic.
+
+  This means that this approach is no longer supported:
+
+  ```ts
+  const model = createModel({});
+
+  const machine = createMachine<typeof model>();
+  ```
+
+  If you're using this approach, you should use `model.createMachine` instead:
+
+  ```ts
+  const model = createModel({});
+
+  const machine = model.createMachine();
+  ```
+
+### Patch Changes
+
+- [#2659](https://github.com/statelyai/xstate/pull/2659) [`7bfeb930d`](https://github.com/statelyai/xstate/commit/7bfeb930d65eb4443c300a2d28aeef3664fcafea) Thanks [@Andarist](https://github.com/Andarist)! - Fixed a regression in the inline actions type inference in models without explicit action creators.
+
+  ```js
+  const model = createModel(
+    { foo: 100 },
+    {
+      events: {
+        BAR: () => ({})
+      }
+    }
+  );
+
+  model.createMachine({
+    // `ctx` was of type `any`
+    entry: ctx => {},
+    exit: assign({
+      // `ctx` was of type `unknown`
+      foo: ctx => 42
+    })
+  });
+  ```
+
+## 4.24.1
+
+### Patch Changes
+
+- [#2649](https://github.com/statelyai/xstate/pull/2649) [`ad611007a`](https://github.com/statelyai/xstate/commit/ad611007a9111e8aefe9d22049ac99072588db9f) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with functions used as inline actions not always receiving the correct arguments when used with `preserveActionOrder`.
+
+## 4.24.0
+
+### Minor Changes
+
+- [#2546](https://github.com/statelyai/xstate/pull/2546) [`a4cfce18c`](https://github.com/statelyai/xstate/commit/a4cfce18c0c179faef15adf25a75b08903064e28) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now know if an event will cause a state change by using the new `state.can(event)` method, which will return `true` if an interpreted machine will "change" the state when sent the `event`, or `false` otherwise:
+
+  ```js
+  const machine = createMachine({
+    initial: 'inactive',
+    states: {
+      inactive: {
+        on: {
+          TOGGLE: 'active'
+        }
+      },
+      active: {
+        on: {
+          DO_SOMETHING: { actions: ['something'] }
+        }
+      }
+    }
+  });
+
+  const state = machine.initialState;
+
+  state.can('TOGGLE'); // true
+  state.can('DO_SOMETHING'); // false
+
+  // Also takes in full event objects:
+  state.can({
+    type: 'DO_SOMETHING',
+    data: 42
+  }); // false
+  ```
+
+  A state is considered "changed" if any of the following are true:
+
+  - its `state.value` changes
+  - there are new `state.actions` to be executed
+  - its `state.context` changes
+
+  See [`state.changed` (documentation)](https://xstate.js.org/docs/guides/states.html#state-changed) for more details.
+
+### Patch Changes
+
+- [#2632](https://github.com/statelyai/xstate/pull/2632) [`f8cf5dfe0`](https://github.com/statelyai/xstate/commit/f8cf5dfe0bf20c8545208ed7b1ade619933004f9) Thanks [@davidkpiano](https://github.com/davidkpiano)! - A regression was fixed where actions were being typed as `never` if events were specified in `createModel(...)` but not actions:
+
+  ```ts
+  const model = createModel(
+    {},
+    {
+      events: {}
+    }
+  );
+
+  model.createMachine({
+    // These actions will cause TS to not compile
+    entry: 'someAction',
+    exit: { type: 'someObjectAction' }
+  });
+  ```
+
 ## 4.23.4
 
 ### Patch Changes

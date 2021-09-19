@@ -698,15 +698,18 @@ export function resolveActions<TContext, TEvent extends EventObject>(
             break;
           }
           default:
-            const resolvedActionObject = toActionObject(
+            let resolvedActionObject = toActionObject(
               actionObject,
               machine.options.actions
             );
             const { exec } = resolvedActionObject;
             if (exec && preservedContexts) {
               const contextIndex = preservedContexts.length - 1;
-              resolvedActionObject.exec = (_ctx, ...args) => {
-                exec?.(preservedContexts[contextIndex], ...args);
+              resolvedActionObject = {
+                ...resolvedActionObject,
+                exec: (_ctx, ...args) => {
+                  exec(preservedContexts[contextIndex], ...args);
+                }
               };
             }
             return resolvedActionObject;

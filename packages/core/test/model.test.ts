@@ -1,5 +1,6 @@
 import { ContextFrom, createMachine, EventFrom } from '../src';
 import {
+  assign,
   cancel,
   choose,
   log,
@@ -436,7 +437,14 @@ describe('createModel', () => {
   });
 
   it('should typecheck `createMachine` for model without creators', () => {
-    const toggleModel = createModel({ count: 0 });
+    const toggleModel = createModel(
+      { count: 0 },
+      {
+        events: {
+          TOGGLE: () => ({})
+        }
+      }
+    );
 
     toggleModel.createMachine({
       id: 'machine',
@@ -458,21 +466,6 @@ describe('createModel', () => {
     const machine = toggleModel.createMachine({});
 
     expect(machine.initialState.context.count).toBe(0);
-  });
-
-  it('should not compile if missing context with plain createMachine(...)', () => {
-    const toggleModel = createModel({ count: 0 });
-
-    // @ts-expect-error
-    createMachine<typeof toggleModel>({
-      id: 'machine',
-      initial: 'inactive',
-      // missing context:
-      // context: toggleModel.initialContext,
-      states: {
-        inactive: {}
-      }
-    });
   });
 
   it('should not allow using events if creators have not been configured', () => {
@@ -516,6 +509,49 @@ describe('createModel', () => {
           entry: 'barAction'
         }
       }
+    });
+  });
+
+  it('should allow any action if actions are not specified', () => {
+    const model = createModel(
+      {},
+      {
+        events: {}
+      }
+    );
+
+    model.createMachine({
+      entry: 'someAction',
+      exit: { type: 'someObjectAction' },
+      on: {
+        // @ts-expect-error
+        UNEXPECTED_EVENT: {}
+      }
+    });
+  });
+
+  it('should infer context correctly when actions are not specified', () => {
+    const model = createModel(
+      { foo: 100 },
+      {
+        events: {
+          BAR: () => ({})
+        }
+      }
+    );
+
+    model.createMachine({
+      entry: (ctx) => {
+        // @ts-expect-error assert indirectly that `ctx` is not `any` or `unknown`
+        ctx.other;
+      },
+      exit: assign({
+        foo: (ctx) => {
+          // @ts-expect-error assert indirectly that `ctx` is not `any` or `unknown`
+          ctx.other;
+          return ctx.foo;
+        }
+      })
     });
   });
 
