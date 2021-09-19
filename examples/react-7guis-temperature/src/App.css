@@ -34,10 +34,22 @@ button {
   font-weight: bold;
 }
 
+label {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  align-items: center;
+  font-weight: bold;
+  font-size: 1.5rem;
+}
+
 input {
-  background: #babdcb;
+  background: #f5f9fd;
   border: 2px solid #dce0ea;
   padding: 1rem;
+  border-radius: 0.25rem;
+  font-weight: bold;
+  font-size: 1rem;
 }
 
 output {
