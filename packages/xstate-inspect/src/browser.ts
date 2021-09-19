@@ -145,6 +145,7 @@ export function inspect(
   devTools.onRegister((service) => {
     inspectService.send({
       type: 'service.register',
+      // TODO: determine how only parts of the machine can go through serializer
       machine: stringifyWithSerializer(service.machine),
       state: stringifyWithSerializer(service.state || service.initialState),
       sessionId: service.sessionId,
@@ -181,7 +182,8 @@ export function inspect(
     };
 
     service.subscribe((state) => {
-      // filter out synchronous notification from within `.start()` call when the `service.state` has not yet been assigned
+      // filter out synchronous notification from within `.start()` call
+      // when the `service.state` has not yet been assigned
       if (state === undefined) {
         return;
       }
