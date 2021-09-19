@@ -9,10 +9,10 @@ export type ServiceListener = (service: Interpreter<any>) => void;
 export type Replacer = (key: string, value: any) => any;
 
 export interface InspectorOptions {
-  url: string;
-  iframe: MaybeLazy<HTMLIFrameElement | null | false>;
-  devTools: MaybeLazy<XStateDevInterface>;
-  serialize: Replacer | undefined;
+  url?: string;
+  iframe?: MaybeLazy<HTMLIFrameElement | null | false>;
+  devTools?: MaybeLazy<XStateDevInterface>;
+  serialize?: Replacer | undefined;
 }
 
 export interface Inspector extends ActorRef<InspectMachineEvent, any> {

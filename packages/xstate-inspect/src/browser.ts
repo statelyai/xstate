@@ -60,7 +60,7 @@ export function createDevTools(): XStateDevInterface {
   };
 }
 
-const defaultInspectorOptions: InspectorOptions = {
+const defaultInspectorOptions = {
   url: 'https://statecharts.io/inspect',
   iframe: () =>
     document.querySelector<HTMLIFrameElement>('iframe[data-xstate]'),
