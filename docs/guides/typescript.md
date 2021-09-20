@@ -258,7 +258,7 @@ A future update to our VSCode extension may make this easier, but if it's possib
 
 #### The generated files
 
-We recommend you commit the generated files (`filename.demo.typegen`) to the repository. We currently don't have a way to generate the files en masse on a CI, for instance via a CLI. This is our next job.
+We recommend you commit the generated files (`filename.typegen.ts`) to the repository. We currently don't have a way to generate the files en masse on a CI, for instance via a CLI. This is our next job.
 
 If you want to remove the generated file, just remove the `types` attribute from your machine and it'll stop being generated.
 
