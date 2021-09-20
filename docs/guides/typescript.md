@@ -71,6 +71,199 @@ Providing the context and events as generic parameters for the `createMachine()`
 - The event type (`TEvent`) ensures that only specified events (and built-in XState-specific ones) are used in transition configs. The provided event object shapes are also passed on to actions, guards, and services.
 - Events which you send to the machine will be strongly typed, offering you much more confidence in the payload shapes you'll be receiving.
 
+## The VSCode Extension <Badge text="4.26+" />
+
+Using our [VSCode extension](https://marketplace.visualstudio.com/items?itemName=mattpocock.xstate-vscode), you can automatically generate intelligent typings for XState.
+
+Here's how you can get started:
+
+1. Download and install the [VSCode extension](https://marketplace.visualstudio.com/items?itemName=mattpocock.xstate-vscode).
+2. Open a new file and create a typed model using `createModel`. [Want more info on models?](./models.md). For instance:
+
+```ts
+const model = createModel(
+  {
+    value: ''
+  },
+  {
+    events: {
+      FOO: (value: string) => ({ value }),
+      BAR: () => ({})
+    }
+  }
+);
+```
+
+3. Create a machine from the model:
+
+```ts
+const machine = model.createMachine({
+  initial: 'a',
+  states: {
+    a: {
+      on: {
+        FOO: {
+          actions: 'consoleLogValue',
+          target: 'b'
+        }
+      }
+    },
+    b: {
+      entry: 'consoleLogValueAgain'
+    }
+  }
+});
+```
+
+4. Finally, add a 'types' attribute to the machine and save the file:
+
+```ts
+const machine = model.createMachine({
+  types: {},
+  initial: 'a',
+  states: {
+    a: {
+      on: {
+        FOO: {
+          actions: 'consoleLogValue',
+          target: 'b'
+        }
+      }
+    },
+    b: {
+      entry: 'consoleLogValueAgain'
+    }
+  }
+});
+```
+
+5. The extension should automatically add an imported type to the machine:
+
+```ts
+const machine = model.createMachine({
+  types: {} as import('./filename.typegen').Typegen[0],
+  initial: 'a',
+  states: {
+    a: {
+      on: {
+        FOO: {
+          actions: 'consoleLogValue',
+          target: 'b'
+        }
+      }
+    },
+    b: {
+      entry: 'consoleLogValueAgain'
+    }
+  }
+});
+```
+
+6. Add a second parameter into the `createMachine` call - this is where you implement the actions, services, guards and delays for the machine.
+
+```ts
+const machine = model.createMachine(
+  {
+    // Config here
+  },
+  {
+    actions: {
+      consoleLogValue: (context, event) => {
+        // Wow! event is typed to { type: 'FOO' }
+        console.log(event.value);
+      },
+      consoleLogValueAgain: (context, event) => {
+        // Wow! event is typed to { type: 'FOO' }
+        console.log(event.value);
+      }
+    }
+  }
+);
+```
+
+You'll notice that the events in the options are _strongly typed to the events that cause the action to be triggered_. This is true for actions, guards, services and delays.
+
+You'll also notice that `state.matches`, `tags` and other parts of the machine are now type-safe.
+
+### How to get the most out of the VSCode extension
+
+#### Use named actions/guards/services
+
+Our recommendation with this approach is to mostly use named actions/guards/services, not inline ones.
+
+This is optimal:
+
+```ts
+createMachine(
+  {
+    entry: ['sayHello']
+  },
+  {
+    actions: {
+      sayHello: () => {
+        console.log('Hello!');
+      }
+    }
+  }
+);
+```
+
+This is useful, but less optimal:
+
+```ts
+createMachine({
+  entry: [
+    () => {
+      console.log('Hello!');
+    }
+  ]
+});
+```
+
+Named actions/services/guards allow for:
+
+- Better visualisation, because the names appear in the statechart
+- Easier-to-understand code
+- Overrides in `useMachine`, or `machine.withConfig`
+
+#### Use createModel
+
+The example above uses `createModel`. If you don't use `createModel`, you can still get the Typescript goodness:
+
+```ts
+interface Context {
+  value: string;
+}
+
+type Event =
+  | {
+      type: 'FOO';
+    }
+  | {
+      type: 'BAR';
+    };
+
+const machine = createMachine<
+  Context,
+  Event,
+  any,
+  // When using this method, you need to pass (and maintain) the generic manually
+  import('./filename.typegen').Typegen[0]
+>({
+  types: {} as import('./filename.typegen').Typegen[0]
+});
+```
+
+A future update to our VSCode extension may make this easier, but if it's possible for you to use `createModel`, we recommend you do so.
+
+#### The generated files
+
+We recommend you commit the generated files (`filename.demo.typegen`) to the repository. We currently don't have a way to generate the files en masse on a CI, for instance via a CLI. This is our next job.
+
+::: warning
+The VSCode extension is still experimental, but will become our recommended Typescript approach in the future. Please try it out!
+:::
+
 ## Config Objects
 
 The generic types for `MachineConfig<TContext, any, TEvent>` are the same as those for `createMachine<TContext, TEvent>`. This is useful when you are defining a machine config object _outside_ of the `createMachine(...)` function, and helps prevent [inference errors](https://github.com/davidkpiano/xstate/issues/310):
