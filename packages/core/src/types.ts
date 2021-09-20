@@ -222,6 +222,7 @@ export interface TransitionConfig<TContext, TEvent extends EventObject> {
   internal?: boolean;
   target?: TransitionTarget<TContext, TEvent>;
   meta?: Record<string, any>;
+  description?: string;
 }
 
 export interface TargetTransitionConfig<TContext, TEvent extends EventObject>
@@ -647,6 +648,10 @@ export interface StateNodeConfig<
    * @default false
    */
   preserveActionOrder?: boolean;
+  /**
+   * A description of the state node, rendered in Markdown
+   */
+  description?: string;
 }
 
 export interface StateNodeDefinition<
@@ -674,6 +679,7 @@ export interface StateNodeDefinition<
   order: number;
   data?: FinalStateNodeConfig<TContext, TEvent>['data'];
   invoke: Array<InvokeDefinition<TContext, TEvent>>;
+  description?: string;
 }
 
 export type AnyStateNodeDefinition = StateNodeDefinition<any, any, any>;
