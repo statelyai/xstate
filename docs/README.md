@@ -16,6 +16,8 @@ JavaScript and TypeScript [finite state machines](https://en.wikipedia.org/wiki/
 
 New to state machines and statecharts? [Read our introduction](/guides/introduction-to-state-machines-and-statecharts/).
 
+[Download our VSCode extension](https://marketplace.visualstudio.com/items?itemName=mattpocock.xstate-vscode).
+
 📑 Adheres to the [SCXML specification](https://www.w3.org/TR/scxml/)
 
 💬 Chat on the [Stately Discord Community](https://discord.gg/KCtSX7Cdjh)
