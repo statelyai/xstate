@@ -649,7 +649,7 @@ export interface StateNodeConfig<
    */
   preserveActionOrder?: boolean;
   /**
-   * A description of the state node, rendered in Markdown
+   * A text description of the state node
    */
   description?: string;
 }
