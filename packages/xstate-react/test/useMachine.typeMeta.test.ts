@@ -1,4 +1,4 @@
-import { createMachine } from 'xstate';
+import { createMachine, TypegenMeta } from 'xstate';
 import { useMachine } from '../src';
 
 const doNotExecute = (_func: () => void) => {};
@@ -21,9 +21,13 @@ describe('useMachine Type Meta', () => {
     describe('If specified as 1', () => {
       it('Should error if options are not passed in', () => {
         doNotExecute(() => {
-          interface Meta {
-            __generated: 1;
-            optionsRequired: 1;
+          interface Meta extends TypegenMeta {
+            missingImplementations: {
+              actions: 'foo';
+              delays: never;
+              guards: never;
+              services: never;
+            };
           }
           const machine = createMachine<Context, Event, any, Meta>({
             types: {} as Meta
@@ -37,9 +41,13 @@ describe('useMachine Type Meta', () => {
     describe('If specified as 0', () => {
       it('Should NOT error if options are no passed in', () => {
         doNotExecute(() => {
-          interface Meta {
-            __generated: 1;
-            optionsRequired: 0;
+          interface Meta extends TypegenMeta {
+            missingImplementations: {
+              actions: never;
+              delays: never;
+              guards: never;
+              services: never;
+            };
           }
           const machine = createMachine<Context, Event, any, Meta>({
             types: {} as Meta
@@ -56,25 +64,25 @@ describe('useMachine Type Meta', () => {
       it('Should ensure you pass all of them', () => {
         doNotExecute(() => {
           doNotExecute(() => {
-            interface Meta {
-              __generated: 1;
-              optionsRequired: 1;
+            interface Meta extends TypegenMeta {
+              missingImplementations: {
+                actions: 'a';
+                delays: 'a';
+                guards: 'a';
+                services: 'a';
+              };
               eventsCausingServices: {
                 a: 'A';
               };
-              requiredServices: 'a';
               eventsCausingGuards: {
                 a: 'A';
               };
-              requiredGuards: 'a';
               eventsCausingActions: {
                 a: 'A';
               };
-              requiredActions: 'a';
-              allDelays: {
-                a: true;
+              eventsCausingDelays: {
+                a: 'A';
               };
-              requiredDelays: 'a';
             }
             const machine = createMachine<Context, Event, any, Meta>({
               types: {} as Meta

@@ -1542,7 +1542,7 @@ describe('assign action order', () => {
         pure(() => {
           return [
             assign<CountCtx>({ count: (ctx) => ctx.count + 1 }),
-            { type: 'capture', exec: (ctx) => captured.push(ctx.count) }, // 1
+            { type: 'capture', exec: (ctx: any) => captured.push(ctx.count) }, // 1
             assign<CountCtx>({ count: (ctx) => ctx.count + 1 })
           ];
         }),

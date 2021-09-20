@@ -652,7 +652,7 @@ export function reportUnhandledExceptionOnInvocation(
 }
 
 export function evaluateGuard<TContext, TEvent extends EventObject>(
-  machine: StateNode<TContext, any, TEvent, any>,
+  machine: StateNode<TContext, any, TEvent, any, any>,
   guard: Guard<TContext, TEvent>,
   context: TContext,
   _event: SCXML.Event<TEvent>,
@@ -674,7 +674,7 @@ export function evaluateGuard<TContext, TEvent extends EventObject>(
     );
   }
 
-  const condFn = guards[guard.type];
+  const condFn = guards?.[guard.type];
 
   if (!condFn) {
     throw new Error(

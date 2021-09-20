@@ -3,8 +3,8 @@ import {
   State,
   Interpreter,
   Typestate,
-  TypegenMeta,
-  DefaultTypegenMeta
+  TypegenConstraint,
+  TypegenDisabled
 } from 'xstate';
 import { useActor } from './useActor';
 import { PayloadSender } from './types';
@@ -28,10 +28,13 @@ export function useService<
   TContext,
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext },
-  TMeta extends TypegenMeta = DefaultTypegenMeta
+  TTypesMeta extends TypegenConstraint = TypegenDisabled
 >(
-  service: Interpreter<TContext, any, TEvent, TTypestate, TMeta>
-): [State<TContext, TEvent, any, TTypestate, TMeta>, PayloadSender<TEvent>] {
+  service: Interpreter<TContext, any, TEvent, TTypestate, TTypesMeta>
+): [
+  State<TContext, TEvent, any, TTypestate, TTypesMeta>,
+  PayloadSender<TEvent>
+] {
   if (process.env.NODE_ENV !== 'production' && !('machine' in service)) {
     throw new Error(
       `Attempted to use an actor-like object instead of a service in the useService() hook. Please use the useActor() hook instead.`

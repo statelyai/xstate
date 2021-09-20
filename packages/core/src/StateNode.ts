@@ -100,7 +100,8 @@ import {
 } from './stateUtils';
 import { createInvocableActor } from './Actor';
 import { toInvokeDefinition } from './invokeUtils';
-import { DefaultTypegenMeta, TypegenMeta } from '.';
+import { MaybeTypegenMachineOptions, TypegenDisabled } from './typegenTypes';
+import { BaseActionObject } from '.';
 
 const NULL_EVENT = '';
 const STATE_IDENTIFIER = '#';
@@ -118,7 +119,7 @@ const createDefaultOptions = <TContext>(): MachineOptions<TContext, any> => ({
 });
 
 const validateArrayifiedTransitions = <TContext>(
-  stateNode: StateNode<any, any, any, any>,
+  stateNode: StateNode<any, any, any, any, any>,
   event: string,
   transitions: Array<
     TransitionConfig<TContext, EventObject> & {
@@ -149,7 +150,7 @@ class StateNode<
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext },
-  TMeta extends TypegenMeta = DefaultTypegenMeta
+  TResolvedTypesMeta = TypegenDisabled
 > {
   /**
    * The relative key of the state node, which represents its location in the overall state value.
@@ -280,7 +281,10 @@ class StateNode<
       | undefined
   };
 
-  private idMap: Record<string, StateNode<TContext, any, TEvent>> = {};
+  private idMap: Record<
+    string,
+    StateNode<TContext, any, TEvent, any, any>
+  > = {};
   public tags: string[] = [];
 
   constructor(
@@ -288,7 +292,7 @@ class StateNode<
      * The raw config used to create the machine.
      */
     public config: StateNodeConfig<TContext, TStateSchema, TEvent>,
-    options?: Partial<MachineOptions<TContext, TEvent>>,
+    options?: MachineOptions<TContext, TEvent>,
     /**
      * The initial extended state
      */
@@ -302,7 +306,7 @@ class StateNode<
     this.parent = this.options._parent;
     this.key =
       this.config.key || this.options._key || this.config.id || '(machine)';
-    this.machine = this.parent ? this.parent.machine : this;
+    this.machine = this.parent ? this.parent.machine : (this as any);
     this.path = this.parent ? this.parent.path.concat(this.key) : [];
     this.delimiter =
       this.config.delimiter ||
@@ -359,7 +363,7 @@ class StateNode<
     // Document order
     let order = 0;
 
-    function dfs(stateNode: StateNode<TContext, any, TEvent, any>): void {
+    function dfs(stateNode: StateNode<TContext, any, TEvent, any, any>): void {
       stateNode.order = order++;
 
       for (const child of getChildren(stateNode)) {
@@ -464,16 +468,22 @@ class StateNode<
    * @param context Custom context (will override predefined context)
    */
   public withConfig(
-    options: Partial<MachineOptions<TContext, TEvent>>,
+    options: MaybeTypegenMachineOptions<
+      TContext,
+      TEvent,
+      BaseActionObject,
+      TResolvedTypesMeta,
+      true
+    >,
     context?: TContext | (() => TContext)
-  ): StateNode<TContext, TStateSchema, TEvent, TTypestate> {
+  ): StateNode<TContext, TStateSchema, TEvent, TTypestate, TResolvedTypesMeta> {
     const { actions, activities, guards, services, delays } = this.options;
 
     return new StateNode(
       this.config,
       {
         actions: { ...actions, ...options.actions },
-        activities: { ...activities, ...options.activities },
+        activities: { ...activities, ...(options as any).activities },
         guards: { ...guards, ...options.guards },
         services: { ...services, ...options.services },
         delays: { ...delays, ...options.delays }
@@ -649,8 +659,10 @@ class StateNode<
    * @param state The state value or State instance
    */
   public getStateNodes(
-    state: StateValue | State<TContext, TEvent, any, TTypestate, TMeta>
-  ): Array<StateNode<TContext, any, TEvent, TTypestate, TMeta>> {
+    state:
+      | StateValue
+      | State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta>
+  ): Array<StateNode<TContext, any, TEvent, TTypestate, TResolvedTypesMeta>> {
     if (!state) {
       return [];
     }
@@ -670,7 +682,7 @@ class StateNode<
 
     const subStateKeys = keys(stateValue);
     const subStateNodes: Array<
-      StateNode<TContext, any, TEvent, TTypestate>
+      StateNode<TContext, any, TEvent, TTypestate, any>
     > = subStateKeys.map((subStateKey) => this.getStateNode(subStateKey));
 
     subStateNodes.push(this);
@@ -682,7 +694,7 @@ class StateNode<
         );
 
         return allSubStateNodes.concat(subStateNode);
-      }, [] as Array<StateNode<TContext, any, TEvent, TTypestate>>)
+      }, [] as Array<StateNode<TContext, any, TEvent, TTypestate, TResolvedTypesMeta>>)
     );
   }
 
@@ -705,8 +717,8 @@ class StateNode<
    * @param state The state to resolve
    */
   public resolveState(
-    state: State<TContext, TEvent, any, any, TMeta>
-  ): State<TContext, TEvent, TStateSchema, TTypestate, TMeta> {
+    state: State<TContext, TEvent, any, any, TResolvedTypesMeta>
+  ): State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta> {
     const configuration = Array.from(
       getConfiguration([], this.getStateNodes(state.value))
     );
@@ -808,7 +820,7 @@ class StateNode<
   }
   private _transition(
     stateValue: StateValue,
-    state: State<TContext, TEvent, any, any>,
+    state: State<TContext, TEvent, any, any, any>,
     _event: SCXML.Event<TEvent>
   ): StateTransition<TContext, TEvent> | undefined {
     // leaf node
@@ -914,13 +926,13 @@ class StateNode<
   }
 
   private nodesFromChild(
-    childStateNode: StateNode<TContext, any, TEvent, any>
-  ): Array<StateNode<TContext, any, TEvent, any>> {
+    childStateNode: StateNode<TContext, any, TEvent, any, any>
+  ): Array<StateNode<TContext, any, TEvent, any, any>> {
     if (childStateNode.escapes(this)) {
       return [];
     }
 
-    const nodes: Array<StateNode<TContext, any, TEvent, any>> = [];
+    const nodes: Array<StateNode<TContext, any, TEvent, any, any>> = [];
     let marker:
       | StateNode<TContext, any, TEvent, any>
       | undefined = childStateNode;
@@ -938,7 +950,9 @@ class StateNode<
    * Whether the given state node "escapes" this state node. If the `stateNode` is equal to or the parent of
    * this state node, it does not escape.
    */
-  private escapes(stateNode: StateNode<TContext, any, TEvent, any>): boolean {
+  private escapes(
+    stateNode: StateNode<TContext, any, TEvent, any, any>
+  ): boolean {
     if (this === stateNode) {
       return false;
     }
@@ -959,7 +973,7 @@ class StateNode<
     transition: StateTransition<TContext, TEvent>,
     currentContext: TContext,
     _event: SCXML.Event<TEvent>,
-    prevState?: State<TContext>
+    prevState?: State<TContext, any, any, any, any>
   ): Array<ActionObject<TContext, TEvent>> {
     const prevConfig = getConfiguration(
       [],
@@ -1066,13 +1080,21 @@ class StateNode<
    * @param context The current context (extended state) of the current state
    */
   public transition(
-    state: StateValue | State<TContext, TEvent, any, TTypestate, TMeta> = this
+    state:
+      | StateValue
+      | State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta> = this
       .initialState,
     event: Event<TEvent> | SCXML.Event<TEvent>,
     context?: TContext
-  ): State<TContext, TEvent, TStateSchema, TTypestate, TMeta> {
+  ): State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta> {
     const _event = toSCXMLEvent(event);
-    let currentState: State<TContext, TEvent, any, TTypestate>;
+    let currentState: State<
+      TContext,
+      TEvent,
+      any,
+      TTypestate,
+      TResolvedTypesMeta
+    >;
 
     if (state instanceof State) {
       currentState =
@@ -1129,10 +1151,16 @@ class StateNode<
   }
 
   private resolveRaisedTransition(
-    state: State<TContext, TEvent, TStateSchema, TTypestate>,
+    state: State<
+      TContext,
+      TEvent,
+      TStateSchema,
+      TTypestate,
+      TResolvedTypesMeta
+    >,
     _event: SCXML.Event<TEvent> | NullEvent,
     originalEvent: SCXML.Event<TEvent>
-  ): State<TContext, TEvent, TStateSchema, TTypestate> {
+  ): State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta> {
     const currentActions = state.actions;
 
     state = this.transition(state, _event as SCXML.Event<TEvent>);
@@ -1147,10 +1175,10 @@ class StateNode<
 
   private resolveTransition(
     stateTransition: StateTransition<TContext, TEvent>,
-    currentState?: State<TContext, TEvent, any, any>,
+    currentState?: State<TContext, TEvent, any, any, any>,
     _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>,
     context: TContext = this.machine.context
-  ): State<TContext, TEvent, TStateSchema, TTypestate, TMeta> {
+  ): State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta> {
     const { configuration } = stateTransition;
     // Transition will "apply" if:
     // - this is the initial state (there is no current state)
@@ -1244,7 +1272,7 @@ class StateNode<
       TEvent,
       TStateSchema,
       TTypestate,
-      TMeta
+      TResolvedTypesMeta
     >({
       value: resolvedStateValue || currentState!.value,
       context: updatedContext,
@@ -1274,7 +1302,7 @@ class StateNode<
       children,
       done: isDone,
       tags: currentState?.tags,
-      machine: this
+      machine: this as any
     });
 
     const didUpdateContext = currentContext !== updatedContext;
@@ -1359,9 +1387,9 @@ class StateNode<
    */
   public getStateNode(
     stateKey: string
-  ): StateNode<TContext, any, TEvent, TTypestate> {
+  ): StateNode<TContext, any, TEvent, TTypestate, TResolvedTypesMeta> {
     if (isStateId(stateKey)) {
-      return this.machine.getStateNodeById(stateKey);
+      return this.machine.getStateNodeById(stateKey) as any;
     }
 
     if (!this.states) {
@@ -1387,7 +1415,7 @@ class StateNode<
    */
   public getStateNodeById(
     stateId: string
-  ): StateNode<TContext, any, TEvent, any> {
+  ): StateNode<TContext, any, TEvent, any, TResolvedTypesMeta> {
     const resolvedStateId = isStateId(stateId)
       ? stateId.slice(STATE_IDENTIFIER.length)
       : stateId;
@@ -1414,7 +1442,7 @@ class StateNode<
    */
   public getStateNodeByPath(
     statePath: string | string[]
-  ): StateNode<TContext, any, TEvent, any> {
+  ): StateNode<TContext, any, TEvent, any, any> {
     if (typeof statePath === 'string' && isStateId(statePath)) {
       try {
         return this.getStateNodeById(statePath.slice(1));
@@ -1425,7 +1453,7 @@ class StateNode<
     }
 
     const arrayStatePath = toStatePath(statePath, this.delimiter).slice();
-    let currentStateNode: StateNode<TContext, any, TEvent, any> = this;
+    let currentStateNode: StateNode<TContext, any, TEvent, any, any> = this;
     while (arrayStatePath.length) {
       const key = arrayStatePath.shift()!;
 
@@ -1543,7 +1571,7 @@ class StateNode<
   public getInitialState(
     stateValue: StateValue,
     context?: TContext
-  ): State<TContext, TEvent, TStateSchema, TTypestate, TMeta> {
+  ): State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta> {
     const configuration = this.getStateNodes(stateValue);
 
     return this.resolveTransition(
@@ -1570,7 +1598,7 @@ class StateNode<
     TEvent,
     TStateSchema,
     TTypestate,
-    TMeta
+    TResolvedTypesMeta
   > {
     this._init(); // TODO: this should be in the constructor (see note in constructor)
     const { initialStateValue } = this;
@@ -1629,7 +1657,9 @@ class StateNode<
         : relativeStateId.initialStateNodes
       : [relativeStateId];
   }
-  public get initialStateNodes(): Array<StateNode<TContext, any, TEvent, any>> {
+  public get initialStateNodes(): Array<
+    StateNode<TContext, any, TEvent, any, any>
+  > {
     if (isLeafNode(this)) {
       return [this];
     }
@@ -1657,7 +1687,7 @@ class StateNode<
    */
   public getFromRelativePath(
     relativePath: string[]
-  ): Array<StateNode<TContext, any, TEvent, any>> {
+  ): Array<StateNode<TContext, any, TEvent, any, any>> {
     if (!relativePath.length) {
       return [this];
     }
@@ -1724,7 +1754,7 @@ class StateNode<
    */
   private resolveHistory(
     historyValue?: HistoryValue
-  ): Array<StateNode<TContext, any, TEvent, any>> {
+  ): Array<StateNode<TContext, any, TEvent, any, any>> {
     if (this.type !== 'history') {
       return [this];
     }

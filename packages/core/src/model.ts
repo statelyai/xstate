@@ -1,9 +1,8 @@
 import { assign } from './actions';
 import { createMachine } from './Machine';
-import type { EventObject, BaseActionObject } from './types';
+import type { Cast, EventObject, BaseActionObject } from './types';
 import { mapValues } from './utils';
 import {
-  Cast,
   UnionFromCreatorsReturnTypes,
   FinalModelCreators,
   Model,

@@ -1,17 +1,18 @@
 import { useCallback, useState } from 'react';
 import {
   ActionFunction,
-  DefaultTypegenMeta,
   EventObject,
   Interpreter,
   InterpreterOptions,
-  MaybeRequiredTypegenMachineOptions,
-  OptionsAreRequired,
+  MaybeTypegenMachineOptions,
   State,
   StateConfig,
   StateMachine,
-  TypegenMeta,
-  Typestate
+  Typestate,
+  AreAllImplementationsAssumedToBeProvided,
+  TypegenConstraint,
+  TypegenDisabled,
+  BaseActionObject
 } from 'xstate';
 import { MaybeLazy, ReactActionFunction, ReactEffectType } from './types';
 import { useInterpret } from './useInterpret';
@@ -63,29 +64,57 @@ export function useMachine<
   TContext,
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext },
-  TMeta extends TypegenMeta = DefaultTypegenMeta
+  TResolvedTypesMeta extends TypegenConstraint = TypegenDisabled
 >(
-  ...[getMachine, options = {}]: TMeta extends OptionsAreRequired
+  ...[
+    getMachine,
+    options = {}
+  ]: AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
     ? [
         getMachine: MaybeLazy<
-          StateMachine<TContext, any, TEvent, TTypestate, any, TMeta>
+          StateMachine<
+            TContext,
+            any,
+            TEvent,
+            TTypestate,
+            any,
+            TResolvedTypesMeta
+          >
         >,
         options: Partial<InterpreterOptions> &
           Partial<UseMachineOptions<TContext, TEvent>> &
-          MaybeRequiredTypegenMachineOptions<TContext, TEvent, TMeta>
+          MaybeTypegenMachineOptions<
+            TContext,
+            TEvent,
+            BaseActionObject,
+            TResolvedTypesMeta,
+            true
+          >
       ]
     : [
         getMachine: MaybeLazy<
-          StateMachine<TContext, any, TEvent, TTypestate, any, TMeta>
+          StateMachine<
+            TContext,
+            any,
+            TEvent,
+            TTypestate,
+            any,
+            TResolvedTypesMeta
+          >
         >,
         options?: Partial<InterpreterOptions> &
           Partial<UseMachineOptions<TContext, TEvent>> &
-          MaybeRequiredTypegenMachineOptions<TContext, TEvent, TMeta>
+          MaybeTypegenMachineOptions<
+            TContext,
+            TEvent,
+            BaseActionObject,
+            TResolvedTypesMeta
+          >
       ]
 ): [
-  State<TContext, TEvent, any, TTypestate, TMeta>,
-  Interpreter<TContext, any, TEvent, TTypestate, TMeta>['send'],
-  Interpreter<TContext, any, TEvent, TTypestate, TMeta>
+  State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta>,
+  Interpreter<TContext, any, TEvent, TTypestate, TResolvedTypesMeta>['send'],
+  Interpreter<TContext, any, TEvent, TTypestate, TResolvedTypesMeta>
 ] {
   const listener = useCallback(
     (nextState: State<TContext, TEvent, any, TTypestate>) => {
@@ -105,7 +134,7 @@ export function useMachine<
     []
   );
 
-  const service = useInterpret(getMachine, options, listener);
+  const service = useInterpret(getMachine as any, options as any, listener);
 
   const [state, setState] = useState(() => {
     const { initialState } = service.machine;
@@ -114,5 +143,5 @@ export function useMachine<
       : initialState) as State<TContext, TEvent, any, TTypestate>;
   });
 
-  return [state, service.send, service];
+  return [state, service.send, service] as any;
 }

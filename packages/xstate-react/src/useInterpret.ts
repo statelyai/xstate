@@ -9,10 +9,11 @@ import {
   InterpreterOptions,
   Typestate,
   Observer,
-  TypegenMeta,
-  MaybeRequiredTypegenMachineOptions,
-  DefaultTypegenMeta,
-  OptionsAreRequired
+  TypegenConstraint,
+  TypegenDisabled,
+  AreAllImplementationsAssumedToBeProvided,
+  MaybeTypegenMachineOptions,
+  BaseActionObject
 } from 'xstate';
 import { MaybeLazy } from './types';
 import useConstant from './useConstant';
@@ -43,36 +44,81 @@ export function useInterpret<
   TContext,
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext },
-  TMeta extends TypegenMeta = DefaultTypegenMeta
+  TResolvedTypesMeta extends TypegenConstraint = TypegenDisabled
 >(
   ...[
     getMachine,
     options = {},
     observerOrListener
-  ]: TMeta extends OptionsAreRequired
+  ]: AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
     ? [
         getMachine: MaybeLazy<
-          StateMachine<TContext, any, TEvent, TTypestate, any, TMeta>
+          StateMachine<
+            TContext,
+            any,
+            TEvent,
+            TTypestate,
+            any,
+            TResolvedTypesMeta
+          >
         >,
         options: Partial<InterpreterOptions> &
           Partial<UseMachineOptions<TContext, TEvent>> &
-          MaybeRequiredTypegenMachineOptions<TContext, TEvent, TMeta>,
+          MaybeTypegenMachineOptions<
+            TContext,
+            TEvent,
+            BaseActionObject,
+            TResolvedTypesMeta,
+            true
+          >,
         observerOrListener?:
-          | Observer<State<TContext, TEvent, any, TTypestate, TMeta>>
-          | ((value: State<TContext, TEvent, any, TTypestate, TMeta>) => void)
+          | Observer<
+              State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta>
+            >
+          | ((
+              value: State<
+                TContext,
+                TEvent,
+                any,
+                TTypestate,
+                TResolvedTypesMeta
+              >
+            ) => void)
       ]
     : [
         getMachine: MaybeLazy<
-          StateMachine<TContext, any, TEvent, TTypestate, any, TMeta>
+          StateMachine<
+            TContext,
+            any,
+            TEvent,
+            TTypestate,
+            any,
+            TResolvedTypesMeta
+          >
         >,
         options?: Partial<InterpreterOptions> &
           Partial<UseMachineOptions<TContext, TEvent>> &
-          MaybeRequiredTypegenMachineOptions<TContext, TEvent, TMeta>,
+          MaybeTypegenMachineOptions<
+            TContext,
+            TEvent,
+            BaseActionObject,
+            TResolvedTypesMeta
+          >,
         observerOrListener?:
-          | Observer<State<TContext, TEvent, any, TTypestate, TMeta>>
-          | ((value: State<TContext, TEvent, any, TTypestate, TMeta>) => void)
+          | Observer<
+              State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta>
+            >
+          | ((
+              value: State<
+                TContext,
+                TEvent,
+                any,
+                TTypestate,
+                TResolvedTypesMeta
+              >
+            ) => void)
       ]
-): Interpreter<TContext, any, TEvent, TTypestate, TMeta> {
+): Interpreter<TContext, any, TEvent, TTypestate, TResolvedTypesMeta> {
   const machine = useConstant(() => {
     return typeof getMachine === 'function' ? getMachine() : getMachine;
   });
@@ -111,12 +157,12 @@ export function useInterpret<
       services,
       delays
     };
-    const machineWithConfig = machine.withConfig(machineConfig, () => ({
+    const machineWithConfig = machine.withConfig(machineConfig as any, () => ({
       ...machine.context,
       ...context
     }));
 
-    return interpret(machineWithConfig, {
+    return interpret(machineWithConfig as any, {
       deferEvents: true,
       ...interpreterOptions
     });
@@ -125,7 +171,7 @@ export function useInterpret<
   useIsomorphicLayoutEffect(() => {
     let sub;
     if (observerOrListener) {
-      sub = service.subscribe(toObserver(observerOrListener));
+      sub = service.subscribe(toObserver(observerOrListener) as any);
     }
 
     return () => {
@@ -156,5 +202,5 @@ export function useInterpret<
 
   useReactEffectActions(service);
 
-  return service;
+  return service as any;
 }

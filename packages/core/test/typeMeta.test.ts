@@ -1,11 +1,16 @@
+import { interpret } from '../src';
 import { createMachine } from '../src/Machine';
 import { createModel } from '../src/model';
+import { TypegenMeta } from '../src/typegenTypes';
+
+// TODO: configure from the top if required stuff should be, well, required
+// atm createMachine will expect all  missingImplementations to be provided
 
 const doNotExecute = (_func: () => void) => {};
 
 interface Context {}
 
-type Event =
+type MyEvent =
   | {
       type: 'EVENT_1';
     }
@@ -18,7 +23,7 @@ type Event =
 
 describe('Type Meta', () => {
   describe('createModel', () => {
-    it('Should work with model.createMachine', () => {
+    it('should work with model.createMachine', () => {
       const model = createModel(
         {},
         {
@@ -30,8 +35,13 @@ describe('Type Meta', () => {
         }
       );
 
-      interface Meta {
-        __generated: 1;
+      interface Meta extends TypegenMeta {
+        missingImplementations: {
+          actions: never;
+          delays: never;
+          guards: never;
+          services: never;
+        };
         eventsCausingServices: {
           myService: 'EVENT_1';
         };
@@ -46,6 +56,7 @@ describe('Type Meta', () => {
             myService: async (_context, event) => {
               // @ts-expect-error
               event.type === 'EVENT_2';
+              event.type === 'EVENT_1';
             }
           }
         }
@@ -53,16 +64,21 @@ describe('Type Meta', () => {
     });
   });
   describe('eventsCausingServices', () => {
-    it('Should track which events are causing which services', () => {
+    it('should track which events are causing which services', () => {
       doNotExecute(() => {
-        interface Meta {
-          __generated: 1;
+        interface Meta extends TypegenMeta {
+          missingImplementations: {
+            actions: never;
+            delays: never;
+            guards: never;
+            services: never;
+          };
           eventsCausingServices: {
             myService: 'EVENT_1';
           };
         }
 
-        createMachine<Context, Event, any, Meta>(
+        createMachine<Context, MyEvent, any, Meta>(
           {
             types: {} as Meta
           },
@@ -77,16 +93,21 @@ describe('Type Meta', () => {
         );
       });
     });
-    it('Should not allow unknown service names', () => {
+    it('should not allow unknown service names', () => {
       doNotExecute(() => {
-        interface Meta {
-          __generated: 1;
+        interface Meta extends TypegenMeta {
+          missingImplementations: {
+            actions: never;
+            delays: never;
+            guards: never;
+            services: never;
+          };
           eventsCausingServices: {
             myService: 'EVENT_1';
           };
         }
 
-        createMachine<Context, Event, any, Meta>(
+        createMachine<Context, MyEvent, any, Meta>(
           {
             types: {} as Meta
           },
@@ -99,19 +120,57 @@ describe('Type Meta', () => {
         );
       });
     });
+    it('should not require missing service within createMachine call', () => {
+      doNotExecute(() => {
+        interface Meta extends TypegenMeta {
+          missingImplementations: {
+            actions: never;
+            delays: never;
+            guards: never;
+            services: 'foo';
+          };
+          eventsCausingServices: {
+            myService: 'EVENT_1';
+          };
+        }
+
+        createMachine<Context, MyEvent, any, Meta>({
+          types: {} as Meta
+        });
+        createMachine<Context, MyEvent, any, Meta>(
+          {
+            types: {} as Meta
+          },
+          {}
+        );
+        createMachine<Context, MyEvent, any, Meta>(
+          {
+            types: {} as Meta
+          },
+          {
+            services: {}
+          }
+        );
+      });
+    });
   });
 
   describe('eventsCausingActions', () => {
-    it('Should track which events are causing which actions', () => {
+    it('should track which events are causing which actions', () => {
       doNotExecute(() => {
-        interface Meta {
-          __generated: 1;
+        interface Meta extends TypegenMeta {
+          missingImplementations: {
+            actions: never;
+            delays: never;
+            guards: never;
+            services: never;
+          };
           eventsCausingActions: {
             myAction: 'EVENT_1';
           };
         }
 
-        createMachine<Context, Event, any, Meta>(
+        createMachine<Context, MyEvent, any, Meta>(
           {
             types: {} as Meta
           },
@@ -126,16 +185,21 @@ describe('Type Meta', () => {
         );
       });
     });
-    it('Should not allow unknown action names', () => {
+    it('should not allow unknown action names', () => {
       doNotExecute(() => {
-        interface Meta {
-          __generated: 1;
+        interface Meta extends TypegenMeta {
+          missingImplementations: {
+            actions: never;
+            delays: never;
+            guards: never;
+            services: never;
+          };
           eventsCausingActions: {
             myAction: 'EVENT_1';
           };
         }
 
-        createMachine<Context, Event, any, Meta>(
+        createMachine<Context, MyEvent, any, Meta>(
           {
             types: {} as Meta
           },
@@ -150,16 +214,21 @@ describe('Type Meta', () => {
     });
   });
   describe('eventsCausingGuards', () => {
-    it('Should track which events are causing which guards', () => {
+    it('should track which events are causing which guards', () => {
       doNotExecute(() => {
-        interface Meta {
-          __generated: 1;
+        interface Meta extends TypegenMeta {
+          missingImplementations: {
+            actions: never;
+            delays: never;
+            guards: never;
+            services: never;
+          };
           eventsCausingGuards: {
             myGuard: 'EVENT_1';
           };
         }
 
-        createMachine<Context, Event, any, Meta>(
+        createMachine<Context, MyEvent, any, Meta>(
           {
             types: {} as Meta
           },
@@ -175,16 +244,21 @@ describe('Type Meta', () => {
         );
       });
     });
-    it('Should not allow unknown guard names', () => {
+    it('should not allow unknown guard names', () => {
       doNotExecute(() => {
-        interface Meta {
-          __generated: 1;
+        interface Meta extends TypegenMeta {
+          missingImplementations: {
+            actions: never;
+            delays: never;
+            guards: never;
+            services: never;
+          };
           eventsCausingGuards: {
             myAction: 'EVENT_1';
           };
         }
 
-        createMachine<Context, Event, any, Meta>(
+        createMachine<Context, MyEvent, any, Meta>(
           {
             types: {} as Meta
           },
@@ -202,22 +276,27 @@ describe('Type Meta', () => {
   });
 
   describe('allDelays', () => {
-    it('Should track which delays are used in the definition', () => {
+    it('should track which delays are used in the definition', () => {
       doNotExecute(() => {
-        interface Meta {
-          __generated: 1;
-          allDelays: {
-            myGuard: true;
+        interface Meta extends TypegenMeta {
+          missingImplementations: {
+            actions: never;
+            delays: never;
+            guards: never;
+            services: never;
+          };
+          eventsCausingDelays: {
+            myDelay: 'EVENT_1';
           };
         }
 
-        createMachine<Context, Event, any, Meta>(
+        createMachine<Context, MyEvent, any, Meta>(
           {
             types: {} as Meta
           },
           {
             delays: {
-              myGuard: (_context, event) => {
+              myDelay: (_context, event) => {
                 // @ts-expect-error
                 event.type === 'EVENT_2';
                 return 1;
@@ -227,16 +306,21 @@ describe('Type Meta', () => {
         );
       });
     });
-    it('Should not allow unknown delay names', () => {
+    it('should not allow unknown delay names', () => {
       doNotExecute(() => {
-        interface Meta {
-          __generated: 1;
-          allDelays: {
-            myAction: true;
+        interface Meta extends TypegenMeta {
+          missingImplementations: {
+            actions: never;
+            delays: never;
+            guards: never;
+            services: never;
+          };
+          eventsCausingDelays: {
+            myDelay: 'EVENT_1';
           };
         }
 
-        createMachine<Context, Event, any, Meta>(
+        createMachine<Context, MyEvent, any, Meta>(
           {
             types: {} as Meta
           },
@@ -254,14 +338,19 @@ describe('Type Meta', () => {
   });
 
   describe('stateMatches', () => {
-    it('Should allow for specifying matchesStates', () => {
+    it('should allow for specifying matchesStates', () => {
       doNotExecute(() => {
-        interface Meta {
-          __generated: 1;
+        interface Meta extends TypegenMeta {
+          missingImplementations: {
+            actions: never;
+            delays: never;
+            guards: never;
+            services: never;
+          };
           matchesStates: 'a' | 'b' | 'c';
         }
 
-        const machine = createMachine<Context, Event, any, Meta>({
+        const machine = createMachine<Context, MyEvent, any, Meta>({
           types: {} as Meta
         });
 
@@ -272,20 +361,107 @@ describe('Type Meta', () => {
   });
 
   describe('tags', () => {
-    it('Should allow for specifying tags', () => {
+    it('should allow for specifying tags', () => {
       doNotExecute(() => {
-        interface Meta {
-          __generated: 1;
+        interface Meta extends TypegenMeta {
+          missingImplementations: {
+            actions: never;
+            delays: never;
+            guards: never;
+            services: never;
+          };
           tags: 'a' | 'b' | 'c';
         }
 
-        const machine = createMachine<Context, Event, any, Meta>({
+        const machine = createMachine<Context, MyEvent, any, Meta>({
           types: {} as Meta
         });
 
         // @ts-expect-error
         machine.initialState.hasTag('d');
       });
+    });
+  });
+
+  describe('withConfig', () => {
+    it('should only require missing implementation type', () => {
+      interface Meta extends TypegenMeta {
+        missingImplementations: {
+          actions: never;
+          delays: never;
+          guards: never;
+          services: never;
+        };
+        optionsRequired?: 1;
+        requiredActions: 'foo';
+      }
+
+      const machine = createMachine<Context, MyEvent, any, Meta>({
+        types: {} as Meta
+      });
+
+      machine.withConfig({
+        actions: {
+          foo: () => {}
+        }
+      });
+    });
+
+    it('should compose missing implementation requirements', () => {
+      interface Meta extends TypegenMeta {
+        missingImplementations: {
+          actions: never;
+          delays: never;
+          guards: never;
+          services: never;
+        };
+        requiredActions: 'foo';
+      }
+
+      const m = createMachine({
+        types: {} as Meta
+      });
+
+      // @ts-expect-error
+      useMachine(m);
+
+      const mWithFoo = m.withConfig({
+        actions: {
+          foo: () => {}
+        }
+      });
+
+      // @ts-expect-error
+      useMachine(mWithFoo);
+
+      const mWithFooAndBar = mWithFoo.withConfig({
+        actions: {
+          bar: () => {}
+        }
+      });
+
+      // much wow, composed and it works!
+      useMachine(mWithFooAndBar);
+    });
+  });
+
+  describe('interpret', () => {
+    it('should not allow to create service out of machine with missing implementations', () => {
+      interface Meta extends TypegenMeta {
+        missingImplementations: {
+          actions: 'foo';
+          delays: never;
+          guards: never;
+          services: never;
+        };
+      }
+
+      const m = createMachine({
+        types: {} as Meta
+      });
+
+      // @ts-expect-error
+      interpret(m).start();
     });
   });
 });

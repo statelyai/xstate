@@ -1,25 +1,22 @@
-import { DefaultTypegenMeta, MaybeTypegenMachineOptions } from '.';
 import {
+  AnyFunction,
   AssignAction,
   Assigner,
   BaseActionObject,
+  Compute,
   EventObject,
   ExtractEvent,
   MachineConfig,
+  Prop,
   PropertyAssigner,
   StateMachine
 } from './types';
-
-export type AnyFunction = (...args: any[]) => any;
-
-// https://github.com/microsoft/TypeScript/issues/23182#issuecomment-379091887
-export type IsNever<T> = [T] extends [never] ? true : false;
-
-export type Cast<T extends any, TCastType extends any> = T extends TCastType
-  ? T
-  : TCastType;
-export type Compute<A extends any> = { [K in keyof A]: A[K] } & unknown;
-export type Prop<T, K> = K extends keyof T ? T[K] : never;
+import {
+  MaybeTypegenMachineOptions,
+  ResolveTypegenMeta,
+  TypegenConstraint,
+  TypegenDisabled
+} from './typegenTypes';
 
 export interface Model<
   TContext,
@@ -38,10 +35,16 @@ export interface Model<
   actions: Prop<TModelCreators, 'actions'>;
   reset: () => AssignAction<TContext, any>;
   createMachine: {
-    <TMeta extends DefaultTypegenMeta>(
-      config: MachineConfig<TContext, any, TEvent, TAction, TMeta>,
-      implementations?: Partial<
-        MaybeTypegenMachineOptions<TContext, TEvent, TMeta, TAction>
+    <
+      TTypesMeta extends TypegenConstraint = TypegenDisabled,
+      TResolvedTypesMeta = ResolveTypegenMeta<TTypesMeta, TEvent, TAction>
+    >(
+      config: MachineConfig<TContext, any, TEvent, TAction, TTypesMeta>,
+      implementations?: MaybeTypegenMachineOptions<
+        TContext,
+        TEvent,
+        TAction,
+        TResolvedTypesMeta
       >
     ): StateMachine<
       TContext,
@@ -49,7 +52,7 @@ export interface Model<
       TEvent,
       { value: any; context: TContext },
       TAction,
-      TMeta
+      TResolvedTypesMeta
     >;
   };
 }
