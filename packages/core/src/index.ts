@@ -1,4 +1,5 @@
 import { matchesState } from './utils';
+import { createSelector } from './createSelector';
 import { mapState } from './mapState';
 import { StateNode } from './StateNode';
 import { State } from './State';
@@ -71,7 +72,8 @@ export {
   spawn,
   doneInvoke,
   createMachine,
-  createSchema
+  createSchema,
+  createSelector
 };
 
 export * from './types';
