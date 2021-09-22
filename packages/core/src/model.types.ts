@@ -35,16 +35,13 @@ export interface Model<
   actions: Prop<TModelCreators, 'actions'>;
   reset: () => AssignAction<TContext, any>;
   createMachine: {
-    <
-      TTypesMeta extends TypegenConstraint = TypegenDisabled,
-      TResolvedTypesMeta = ResolveTypegenMeta<TTypesMeta, TEvent, TAction>
-    >(
+    <TTypesMeta extends TypegenConstraint = TypegenDisabled>(
       config: MachineConfig<TContext, any, TEvent, TAction, TTypesMeta>,
       implementations?: MaybeTypegenMachineOptions<
         TContext,
         TEvent,
         TAction,
-        TResolvedTypesMeta
+        ResolveTypegenMeta<TTypesMeta, TEvent, TAction>
       >
     ): StateMachine<
       TContext,
@@ -52,7 +49,7 @@ export interface Model<
       TEvent,
       { value: any; context: TContext },
       TAction,
-      TResolvedTypesMeta
+      ResolveTypegenMeta<TTypesMeta, TEvent, TAction>
     >;
   };
 }

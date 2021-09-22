@@ -39,7 +39,7 @@ export interface ResolvedTypegenMeta extends TypegenMeta {
   indexedEvents: Record<string, EventObject>;
 }
 
-export type TypegenConstraint = TypegenMeta | TypegenDisabled;
+export type TypegenConstraint = TypegenEnabled | TypegenDisabled;
 
 // if combined union of all missing implementation types is never then everything has been provided
 export type AreAllImplementationsAssumedToBeProvided<
