@@ -90,7 +90,8 @@ Fortunately, XState exposes the `useSelector` hook, and the `createSelector` hel
 import React, { useContext } from 'react';
 import { GlobalStateContext } from './globalState';
 import { authMachine } from './authMachine';
-import { useSelector, createSelector } from '@xstate/react';
+import { useSelector } from '@xstate/react';
+import { createSelector } from 'xstate';
 
 const loggedInSelector = createSelector(authMachine, (state) => {
   return state.matches('loggedIn');
