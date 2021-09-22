@@ -1,12 +1,12 @@
 ---
-'@xstate/react': minor
+'xstate': minor
 ---
 
-Added a `createSelector`, which can be used for creating type-safe selectors for machines. For instance:
+Added a `createSelector`, which can be used for creating type-safe selectors for machines. For instance, when used with React:
 
 ```ts
-import { createMachine } from 'xstate';
-import { useInterpret, useSelector, createSelector } from '@xstate/react';
+import { createMachine, createSelector } from 'xstate';
+import { useInterpret, useSelector } from '@xstate/react';
 
 const machine = createMachine({
   initial: 'toggledOn',
