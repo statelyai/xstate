@@ -371,7 +371,7 @@ To do this, set `{ sync: true }` as an option to `spawn(...)`:
 // ...
 ```
 
-This will automatically subscribe the machine to the spawned child machine's state, which is kept update and can be access via `getSnapshot()`:
+This will automatically subscribe the machine to the spawned child machine's state, which is kept updated and can be accessed via `getSnapshot()`:
 
 
 ```js
