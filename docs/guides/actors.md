@@ -386,7 +386,6 @@ someService.onTransition((state) => {
 });
 ```
 
-Prior to version 4.20.0 this was kept updated in `ref.state`:
 
 ```js
 someService.onTransition((state) => {
