@@ -54,6 +54,12 @@ export interface UseMachineOptions<TContext, TEvent extends EventObject> {
    * start at this state instead of its `initialState`.
    */
   state?: StateConfig<TContext, TEvent>;
+
+  /**
+   * If provided, will be synced with the machine's `context`
+   * every time it changes
+   */
+  syncToContext?: Partial<TContext>;
 }
 
 export function useMachine<

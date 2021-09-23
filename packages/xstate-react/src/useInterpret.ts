@@ -9,7 +9,8 @@ import {
   InterpreterOptions,
   MachineOptions,
   Typestate,
-  Observer
+  Observer,
+  assign
 } from 'xstate';
 import { MaybeLazy } from './types';
 import useConstant from './useConstant';
@@ -50,7 +51,20 @@ export function useInterpret<
     | ((value: State<TContext, TEvent, any, TTypestate>) => void)
 ): Interpreter<TContext, any, TEvent, TTypestate> {
   const machine = useConstant(() => {
-    return typeof getMachine === 'function' ? getMachine() : getMachine;
+    const machineToReturn =
+      typeof getMachine === 'function' ? getMachine() : getMachine;
+
+    if (!machineToReturn.config.on) {
+      (machineToReturn as any).config.on = {};
+    }
+
+    (machineToReturn.config as any).on['xstate.update.syncToContext'] = {
+      actions: assign((_context, event: any) => {
+        return event.props;
+      })
+    };
+
+    return machineToReturn;
   });
 
   if (
@@ -89,7 +103,8 @@ export function useInterpret<
     };
     const machineWithConfig = machine.withConfig(machineConfig, () => ({
       ...machine.context,
-      ...context
+      ...context,
+      ...options.syncToContext
     }));
 
     return interpret(machineWithConfig, {
@@ -129,6 +144,15 @@ export function useInterpret<
     Object.assign(service.machine.options.services, services);
     Object.assign(service.machine.options.delays, delays);
   }, [actions, guards, activities, services, delays]);
+
+  useIsomorphicLayoutEffect(() => {
+    if (options.syncToContext) {
+      service.send({
+        type: 'xstate.update.syncToContext',
+        props: options.syncToContext
+      } as any);
+    }
+  }, [options.syncToContext]);
 
   useReactEffectActions(service);
 

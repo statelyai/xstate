@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { createMachine } from 'xstate';
 import { render, cleanup, fireEvent } from '@testing-library/react';
-import { useInterpret } from '../src';
+import { useInterpret, useSelector } from '../src';
 
 afterEach(cleanup);
 
@@ -110,5 +110,62 @@ describe('useInterpret', () => {
     rerender(<App value={42} />);
 
     expect(actual).toEqual([1, 42]);
+  });
+
+  describe('syncToContext', () => {
+    it('Should initialise the context as the synced context', (done) => {
+      const machine = createMachine({
+        context: {
+          id: ''
+        }
+      });
+
+      const App = (props) => {
+        const service = useInterpret(machine, {
+          syncToContext: {
+            id: props.id
+          }
+        });
+
+        React.useEffect(() => {
+          expect(service.state.context.id).toEqual(props.id);
+          done();
+        }, [service, props.id]);
+
+        return null;
+      };
+
+      render(<App id="id" />);
+    });
+
+    it('Should react to updates to its synced context', () => {
+      const machine = createMachine({
+        context: {
+          id: ''
+        }
+      });
+
+      const getId = (state) => state.context.id;
+
+      const App = (props) => {
+        const service = useInterpret(machine, {
+          syncToContext: {
+            id: props.id
+          }
+        });
+
+        const id = useSelector(service, getId);
+
+        return <div data-testid="result">{id}</div>;
+      };
+
+      const screen = render(<App id="id" />);
+
+      expect(screen.getByTestId('result').innerHTML).toEqual('id');
+
+      screen.rerender(<App id="id2" />);
+
+      expect(screen.getByTestId('result').innerHTML).toEqual('id2');
+    });
   });
 });
