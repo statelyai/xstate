@@ -453,6 +453,74 @@ const Fetcher = ({ onResolve }) => {
 };
 ```
 
+### A note on external values
+
+When the machine options or context need to read from an external value, it's important that they can read the latest value in case it's changed! Therefore, using `withConfig` and `withContext` on the passed machine might end up being a recipe for bug. Instead, you can use one of the two approaches below:
+
+#### Pass a callback to `useInterpret` and `useMachine`
+
+```ts
+const machine = createMachine({
+  initial: 'foo',
+  context: {},
+  states: {
+    foo: {
+      on: {
+        CHECK: {
+          target: 'bar',
+          cond: 'hasOverflown'
+        }
+      }
+    },
+    bar: {}
+  }
+});
+
+const Component = () => {
+  const [id, setId] = useState(1);
+  // Passing a callback to `useMachine` makes sure the value of `id` is always up to date with the useState above
+  const [state, send] = useMachine(() =>
+    machine.withContext({ id: 1 }).withConfig({
+      guards: {
+        hasOverflown: () => id > 1
+      }
+    })
+  );
+};
+```
+
+#### Pass machine options and context override as the second argument
+
+```ts
+const machine = createMachine({
+  initial: 'foo',
+  context: {},
+  states: {
+    foo: {
+      on: {
+        CHECK: {
+          target: 'bar',
+          cond: 'hasOverflown'
+        }
+      }
+    },
+    bar: {}
+  }
+});
+
+const Component = () => {
+  const [id, setId] = useState(1);
+  const [state, send] = useMachine(machine, {
+    guards: {
+      hasOverflown: () => id > 1
+    },
+    context: {
+      id: 1
+    }
+  });
+};
+```
+
 ## Matching States
 
 When using [hierarchical](https://xstate.js.org/docs/guides/hierarchical.html) and [parallel](https://xstate.js.org/docs/guides/parallel.html) machines, the state values will be objects, not strings. In this case, it is best to use [`state.matches(...)`](https://xstate.js.org/docs/guides/states.html#state-methods-and-getters).
