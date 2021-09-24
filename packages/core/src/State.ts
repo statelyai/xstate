@@ -22,7 +22,7 @@ import { getMeta, nextEvents } from './stateUtils';
 import { initEvent } from './actions';
 import { IS_PRODUCTION } from './environment';
 import { TypegenDisabled, TypegenEnabled } from './typegenTypes';
-import { BaseActionObject } from '.';
+import { BaseActionObject } from './types';
 
 export function stateValuesEqual(
   a: StateValue | undefined,
