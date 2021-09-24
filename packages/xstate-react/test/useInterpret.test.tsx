@@ -3,7 +3,12 @@ import { createMachine } from 'xstate';
 import { render, cleanup, fireEvent } from '@testing-library/react';
 import { useInterpret, useMachine } from '../src';
 
-afterEach(cleanup);
+const originalConsoleWarn = console.warn;
+
+afterEach(() => {
+  cleanup();
+  console.warn = originalConsoleWarn;
+});
 
 describe('useInterpret', () => {
   it('observer should be called with initial state', (done) => {
@@ -112,7 +117,7 @@ describe('useInterpret', () => {
     expect(actual).toEqual([1, 42]);
   });
 
-  it('should warn when machine reference is updated during the hook lifecycle', async () => {
+  it('should warn when machine reference is updated during the hook lifecycle', () => {
     console.warn = jest.fn();
     const machine = createMachine({
       initial: 'foo',
@@ -153,9 +158,9 @@ describe('useInterpret', () => {
       );
     };
 
-    const { findByRole } = render(<App />);
+    const { getByRole } = render(<App />);
 
-    (await findByRole('button')).click();
+    getByRole('button').click();
 
     expect(console.warn).toHaveBeenCalledTimes(1);
   });
