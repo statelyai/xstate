@@ -2,6 +2,9 @@
 '@xstate/react': patch
 ---
 
+author: @farskid
+author: @Andarist 
+
 Fixed a regression with a development-only warning not being shown when a machine reference is updated during the hook lifecycle. This usually happens when machine options are dependent on external values and they're passed via `withConfig`.
 
 ```js
