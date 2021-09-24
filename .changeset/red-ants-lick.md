@@ -16,7 +16,7 @@ const model = createModel({}, {
 });
 
 interface Meta {
-  __generated: 1;
+  '@@xstate/typegen': true;
   eventsCausingServices: {
     myService: 'FOO';
   };
