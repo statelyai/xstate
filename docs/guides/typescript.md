@@ -256,6 +256,34 @@ const machine = createMachine<
 
 A future update to our VSCode extension may make this easier, but if it's possible for you to use `createModel`, we recommend you do so.
 
+#### Typing onDone/onError functions
+
+You can use the generated types to specify the result of `onDone` and `onError` events. You can specify them like this:
+
+```ts
+// In createModel
+const model = createModel(
+  {},
+  {
+    events: {
+      'done.invoke.serviceName': (data: {}) => ({ data }),
+      'error.platform.serviceName': (data: Error) => ({ data })
+    }
+  }
+);
+
+// When using generics
+type Event =
+  | {
+      type: 'done.invoke.serviceName';
+      data: {};
+    }
+  | {
+      type: 'error.platform.serviceName';
+      data: Error;
+    };
+```
+
 #### The generated files
 
 We recommend you commit the generated files (`filename.typegen.ts`) to the repository. We currently don't have a way to generate the files en masse on a CI, for instance via a CLI. This is our next job.
