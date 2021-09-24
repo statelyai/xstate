@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { createMachine } from 'xstate';
 import { render, cleanup, fireEvent } from '@testing-library/react';
-import { useInterpret } from '../src';
+import { useInterpret, useMachine } from '../src';
 
 afterEach(cleanup);
 
@@ -110,5 +110,53 @@ describe('useInterpret', () => {
     rerender(<App value={42} />);
 
     expect(actual).toEqual([1, 42]);
+  });
+
+  it('should warn when machine reference is updated during the hook lifecycle', async () => {
+    console.warn = jest.fn();
+    const machine = createMachine({
+      initial: 'foo',
+      context: { id: 1 },
+      states: {
+        foo: {
+          on: {
+            CHECK: {
+              target: 'bar',
+              cond: 'hasOverflown'
+            }
+          }
+        },
+        bar: {}
+      }
+    });
+    const App = () => {
+      const [id, setId] = React.useState(1);
+      const [, send] = useMachine(
+        machine.withConfig({
+          guards: {
+            hasOverflown: () => id > 1
+          }
+        })
+      );
+
+      return (
+        <>
+          <button
+            onClick={() => {
+              setId(2);
+              send('CHECK');
+            }}
+          >
+            update id
+          </button>
+        </>
+      );
+    };
+
+    const { findByRole } = render(<App />);
+
+    (await findByRole('button')).click();
+
+    expect(console.warn).toHaveBeenCalledTimes(1);
   });
 });
