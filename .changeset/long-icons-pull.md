@@ -32,5 +32,5 @@ const [current, send] = useMachine(
 
 // later when id updates
 setId(2);
-// Now the reference to `machine.withConfig` from above is updated but in the guard, the id value is still stale (id=1).
+// Now the reference passed to `useMachine` (the result of `machine.withConfig`) is updated but the interpreted machine stays the same. So the guard is still the previous one that got passed to the `useMachine` initially, and it closes over the stale `id`.
 ```
