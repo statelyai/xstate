@@ -89,10 +89,15 @@ export interface ChooseConditon<TContext, TEvent extends EventObject> {
   actions: Actions<TContext, TEvent>;
 }
 
-export type Action<TContext, TEvent extends EventObject> =
+export type Action<
+  TContext,
+  TEvent extends EventObject,
+  TSpecificEvent extends TEvent = TEvent
+> =
   | ActionType
+  | ActionObject<TContext, TSpecificEvent>
   | ActionObject<TContext, TEvent>
-  | ActionFunction<TContext, TEvent>;
+  | ActionFunction<TContext, TSpecificEvent>;
 
 /**
  * Extracts action objects that have no extra properties.
@@ -133,9 +138,11 @@ export type BaseActions<
   TAction extends BaseActionObject
 > = SingleOrArray<BaseAction<TContext, TEvent, TAction>>;
 
-export type Actions<TContext, TEvent extends EventObject> = SingleOrArray<
-  Action<TContext, TEvent>
->;
+export type Actions<
+  TContext,
+  TEvent extends EventObject,
+  TSpecificEvent extends TEvent = TEvent
+> = SingleOrArray<Action<TContext, TEvent, TSpecificEvent>>;
 
 export type StateKey = string | State<any>;
 
@@ -201,10 +208,14 @@ export interface GuardMeta<TContext, TEvent extends EventObject>
   cond: Guard<TContext, TEvent>;
 }
 
-export type Condition<TContext, TEvent extends EventObject> =
+export type Condition<
+  TContext,
+  TEvent extends EventObject,
+  TSpecificEvent extends TEvent = TEvent
+> =
   | string
-  | ConditionPredicate<TContext, TEvent>
-  | Guard<TContext, TEvent>;
+  | ConditionPredicate<TContext, TSpecificEvent>
+  | Guard<TContext, TSpecificEvent>;
 
 export type TransitionTarget<
   TContext,
@@ -215,9 +226,25 @@ export type TransitionTargets<TContext> = Array<
   string | StateNode<TContext, any>
 >;
 
-export interface TransitionConfig<TContext, TEvent extends EventObject> {
-  cond?: Condition<TContext, TEvent>;
-  actions?: Actions<TContext, TEvent>;
+export type InferNarrowest<T> = T extends any
+  ? T extends (...args: any[]) => void
+    ? T
+    : T extends object
+    ? InferNarrowestObject<T>
+    : T
+  : never;
+export type InferNarrowestObject<T> = {
+  readonly [K in keyof T]: InferNarrowest<T[K]>;
+};
+export type NoInfer<T> = [T][T extends any ? 0 : never];
+
+export interface TransitionConfig<
+  TContext,
+  TEvent extends EventObject,
+  TSpecificEvent extends TEvent = TEvent
+> {
+  cond?: Condition<TContext, TEvent, TSpecificEvent>;
+  actions?: Actions<TContext, TEvent, TSpecificEvent>;
   in?: StateValue;
   internal?: boolean;
   target?: TransitionTarget<TContext, TEvent>;
@@ -426,27 +453,29 @@ export type StatesDefinition<
   >;
 };
 
-export type TransitionConfigTarget<TContext, TEvent extends EventObject> =
+export type TransitionConfigTarget =
   | string
   | undefined
-  | StateNode<TContext, any, TEvent>;
+  | StateNode<any, any, any>;
 
 export type TransitionConfigOrTarget<
   TContext,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TSpecificEvent extends TEvent
 > = SingleOrArray<
-  TransitionConfigTarget<TContext, TEvent> | TransitionConfig<TContext, TEvent>
+  TransitionConfigTarget | TransitionConfig<TContext, TEvent, TSpecificEvent>
 >;
 
 export type TransitionsConfigMap<TContext, TEvent extends EventObject> = {
   [K in TEvent['type']]?: TransitionConfigOrTarget<
     TContext,
+    TEvent,
     TEvent extends { type: K } ? TEvent : never
   >;
 } & {
-  ''?: TransitionConfigOrTarget<TContext, TEvent>;
+  ''?: TransitionConfigOrTarget<TContext, TEvent, TEvent>;
 } & {
-  '*'?: TransitionConfigOrTarget<TContext, TEvent>;
+  '*'?: TransitionConfigOrTarget<TContext, TEvent, TEvent>;
 };
 
 type TransitionsConfigArray<TContext, TEvent extends EventObject> = Array<
@@ -599,7 +628,7 @@ export interface StateNodeConfig<
    * An eventless transition that is always taken when this state node is active.
    * Equivalent to a transition specified as an empty `''`' string in the `on` property.
    */
-  always?: TransitionConfigOrTarget<TContext, TEvent>;
+  always?: TransitionConfigOrTarget<TContext, TEvent, TEvent>;
   /**
    * The activities to be started upon entering the state node,
    * and stopped upon exiting the state node.

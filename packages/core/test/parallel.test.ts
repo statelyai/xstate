@@ -635,7 +635,7 @@ describe('parallel states', () => {
 
   xit('should handle simultaneous orthogonal transitions', () => {
     type Events = { type: 'CHANGE'; value: string } | { type: 'SAVE' };
-    const simultaneousMachine = Machine<{ value: string }, Events>({
+    const simultaneousMachine = createMachine<{ value: string }, Events>({
       id: 'yamlEditor',
       type: 'parallel',
       context: {

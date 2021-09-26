@@ -72,6 +72,60 @@ describe('createModel', () => {
     expect(updatedState.context.name).toEqual('Anyone');
   });
 
+  it('model.assign should work as externally-defined action that does not restrict events', () => {
+    type UserEvent =
+      | {
+          type: 'updateName';
+          value: string;
+        }
+      | { type: 'updateAge'; value: number }
+      | { type: 'anotherEvent' };
+
+    interface UserContext {
+      name: string;
+      age: number;
+    }
+
+    const userModel = createModel<UserContext, UserEvent>({
+      name: 'David',
+      age: 30
+    });
+
+    userModel.assign({
+      name: (_, event) => {
+        // Incompatible because event.value can be string | number | undefined
+        // @ts-expect-error
+        return event.value;
+      }
+    });
+
+    const assignName = userModel.assign({
+      name: ({ name }, event) => {
+        if (event.type !== 'updateName') {
+          return name;
+        }
+
+        return event.value;
+      }
+    });
+
+    const machine = createMachine<UserContext, UserEvent>({
+      context: userModel.initialContext,
+      on: {
+        updateName: {
+          actions: assignName
+        }
+      }
+    });
+
+    const updatedState = machine.transition(undefined, {
+      type: 'updateName',
+      value: 'Anyone'
+    });
+
+    expect(updatedState.context.name).toEqual('Anyone');
+  });
+
   it('model.reset resets the context to its initial value', () => {
     type UserEvent =
       | {

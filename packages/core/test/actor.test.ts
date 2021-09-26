@@ -54,9 +54,9 @@ describe('spawning machines', () => {
         type: 'TODO_COMPLETED';
       };
 
-  const todosMachine = Machine<any, TodoEvent>({
+  const todosMachine = createMachine<any, TodoEvent>({
     id: 'todos',
-    context: context,
+    context,
     initial: 'active',
     states: {
       active: {

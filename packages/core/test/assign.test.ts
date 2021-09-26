@@ -398,3 +398,45 @@ describe('assign meta', () => {
     });
   });
 });
+
+describe('assign types', () => {
+  it('transitions can accept assign actions that take any machine event', () => {
+    type SampleEvent = { type: 'INC'; value: number } | { type: 'GREET' };
+
+    const generalAssign = assign<any, SampleEvent>({
+      count: (_, e) => (e.type === 'INC' ? e.value : 0)
+    });
+
+    const incompatibleAssign = assign<any, { type: 'NOPE' }>({
+      count: 10
+    });
+
+    const machine = createMachine<{ count: number }, SampleEvent>({
+      initial: 'active',
+      context: {
+        count: 0
+      },
+      states: {
+        inactive: {
+          on: {
+            // @ts-expect-error
+            INC: {
+              actions: incompatibleAssign
+            }
+          }
+        },
+        active: {
+          on: {
+            INC: {
+              actions: generalAssign
+            }
+          }
+        }
+      }
+    });
+
+    const nextState = machine.transition(undefined, { type: 'INC', value: 30 });
+
+    expect(nextState.context.count).toEqual(30);
+  });
+});
