@@ -141,7 +141,7 @@ const [state, send] = useActor(customActor, (actor) => {
 
 ### `useInterpret(machine, options?, observer?)`
 
-A React hook that returns the `service` created from the `machine` with the `options`, if specified. It also sets up a subscription to the `service` with the `observer`, if provided. It starts the service and runs it for the lifetime of the component. Similar to using `useMachhine`, but with an observer.
+A React hook that returns the `service` created from the `machine` with the `options`, if specified. It also sets up a subscription to the `service` with the `observer`, if provided. It starts the service and runs it for the lifetime of the component. Similar to using `useMachine`, but with an observer.
 
 _Since 1.3.0_
 
