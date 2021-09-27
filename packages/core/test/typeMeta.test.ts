@@ -406,43 +406,6 @@ describe('Type Meta', () => {
         }
       });
     });
-
-    it('should compose missing implementation requirements', () => {
-      interface Meta extends TypegenMeta {
-        missingImplementations: {
-          actions: never;
-          delays: never;
-          guards: never;
-          services: never;
-        };
-        requiredActions: 'foo';
-      }
-
-      const m = createMachine({
-        types: {} as Meta
-      });
-
-      // @ts-expect-error
-      useMachine(m);
-
-      const mWithFoo = m.withConfig({
-        actions: {
-          foo: () => {}
-        }
-      });
-
-      // @ts-expect-error
-      useMachine(mWithFoo);
-
-      const mWithFooAndBar = mWithFoo.withConfig({
-        actions: {
-          bar: () => {}
-        }
-      });
-
-      // much wow, composed and it works!
-      useMachine(mWithFooAndBar);
-    });
   });
 
   describe('interpret', () => {
