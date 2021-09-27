@@ -2601,17 +2601,36 @@ describe('invoke', () => {
       .start();
   });
 
-  it('should show meta data', () => {
-    const machine = createMachine({
-      invoke: {
-        src: 'someSource',
-        meta: {
-          url: 'stately.ai'
+  describe('meta data', () => {
+    it('should show meta data', () => {
+      const machine = createMachine({
+        invoke: {
+          src: 'someSource',
+          meta: {
+            url: 'stately.ai'
+          }
         }
-      }
+      });
+
+      expect(machine.invoke[0].meta).toEqual({ url: 'stately.ai' });
     });
 
-    expect(machine.invoke[0].meta).toEqual({ url: 'stately.ai' });
+    it('meta data should be available in the invoke source function', () => {
+      expect.assertions(1);
+      const machine = createMachine({
+        invoke: {
+          src: (_ctx, _e, { meta }) => {
+            expect(meta).toEqual({ url: 'stately.ai' });
+            return Promise.resolve();
+          },
+          meta: {
+            url: 'stately.ai'
+          }
+        }
+      });
+
+      interpret(machine).start();
+    });
   });
 });
 

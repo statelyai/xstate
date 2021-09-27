@@ -302,6 +302,7 @@ export type InvokeCallback<
 export interface InvokeMeta {
   data: any;
   src: InvokeSourceDefinition;
+  meta?: MetaObject;
 }
 
 /**

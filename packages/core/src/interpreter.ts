@@ -879,7 +879,8 @@ export class Interpreter<
           let source: Spawnable = isFunction(serviceCreator)
             ? serviceCreator(context, _event.data, {
                 data: resolvedData,
-                src: invokeSource
+                src: invokeSource,
+                meta: activity.meta
               })
             : serviceCreator;
 
