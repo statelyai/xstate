@@ -1,5 +1,5 @@
 import { EventObject, State, StateNode } from 'xstate';
-export interface TesTTypesMeta<T, TContext> {
+export interface TestMeta<T, TContext> {
   test?: (testContext: T, state: State<TContext, any>) => Promise<void> | void;
   description?: string | ((state: State<TContext, any>) => string);
   skip?: boolean;

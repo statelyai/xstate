@@ -1081,7 +1081,7 @@ export type Expr<TContext, TEvent extends EventObject, T> = (
 export type ExprWithMeta<TContext, TEvent extends EventObject, T> = (
   context: TContext,
   event: TEvent,
-  meta: SCXMLEvenTTypesMeta<TEvent>
+  meta: SCXMLEventMeta<TEvent>
 ) => T;
 
 export type SendExpr<
@@ -1260,7 +1260,7 @@ export interface ValueAdjacencyMap<TContext, TEvent extends EventObject> {
   [stateId: string]: Record<string, State<TContext, TEvent>>;
 }
 
-export interface SCXMLEvenTTypesMeta<TEvent extends EventObject> {
+export interface SCXMLEventMeta<TEvent extends EventObject> {
   _event: SCXML.Event<TEvent>;
 }
 

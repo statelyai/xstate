@@ -1447,10 +1447,17 @@ export function interpret<
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext },
-  TTypesMeta = TypegenDisabled
+  TResolvedTypesMeta = TypegenDisabled
 >(
-  machine: AreAllImplementationsAssumedToBeProvided<TTypesMeta> extends true
-    ? StateMachine<TContext, TStateSchema, TEvent, TTypestate, any, TTypesMeta>
+  machine: AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends true
+    ? StateMachine<
+        TContext,
+        TStateSchema,
+        TEvent,
+        TTypestate,
+        any,
+        TResolvedTypesMeta
+      >
     : 'Some implementations missing',
   options?: Partial<InterpreterOptions>
 ) {
@@ -1459,7 +1466,7 @@ export function interpret<
     TStateSchema,
     TEvent,
     TTypestate,
-    TTypesMeta
+    TResolvedTypesMeta
   >(machine as any, options);
 
   return interpreter;

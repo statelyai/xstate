@@ -134,7 +134,7 @@ export function useMachine<
     []
   );
 
-  const service = useInterpret(getMachine as any, options as any, listener);
+  const service = useInterpret(getMachine as any, options, listener);
 
   const [state, setState] = useState(() => {
     const { initialState } = service.machine;

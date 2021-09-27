@@ -14,7 +14,7 @@ import {
   StatePredicate,
   TestPathResult,
   TestSegmentResult,
-  TesTTypesMeta,
+  TestMeta,
   EventExecutor,
   CoverageOptions
 } from './types';
@@ -269,10 +269,7 @@ export class TestModel<TTestContext, TContext> {
     testContext: TTestContext
   ) {
     for (const id of Object.keys(state.meta)) {
-      const stateNodeMeta = state.meta[id] as TesTTypesMeta<
-        TTestContext,
-        TContext
-      >;
+      const stateNodeMeta = state.meta[id] as TestMeta<TTestContext, TContext>;
       if (typeof stateNodeMeta.test === 'function' && !stateNodeMeta.skip) {
         this.coverage.stateNodes.set(
           id,
@@ -360,7 +357,7 @@ function getDescription<T, TContext>(state: State<TContext, any>): string {
   const stateStrings = state.configuration
     .filter((sn) => sn.type === 'atomic' || sn.type === 'final')
     .map(({ id }) => {
-      const meta = state.meta[id] as TesTTypesMeta<T, TContext>;
+      const meta = state.meta[id] as TestMeta<T, TContext>;
       if (!meta) {
         return `"#${id}"`;
       }

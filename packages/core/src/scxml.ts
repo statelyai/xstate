@@ -2,7 +2,7 @@ import { xml2js, Element as XMLElement } from 'xml-js';
 import {
   EventObject,
   ActionObject,
-  SCXMLEvenTTypesMeta,
+  SCXMLEventMeta,
   SendExpr,
   DelayExpr,
   ChooseConditon
@@ -98,7 +98,7 @@ const evaluateExecutableContent = <
 >(
   context: TContext,
   _ev: TEvent,
-  meta: SCXMLEvenTTypesMeta<TEvent>,
+  meta: SCXMLEventMeta<TEvent>,
   body: string
 ) => {
   const datamodel = context
