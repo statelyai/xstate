@@ -2600,6 +2600,19 @@ describe('invoke', () => {
       .onDone(() => done())
       .start();
   });
+
+  it('should show meta data', () => {
+    const machine = createMachine({
+      invoke: {
+        src: 'someSource',
+        meta: {
+          url: 'stately.ai'
+        }
+      }
+    });
+
+    expect(machine.invoke[0].meta).toEqual({ url: 'stately.ai' });
+  });
 });
 
 describe('services option', () => {
