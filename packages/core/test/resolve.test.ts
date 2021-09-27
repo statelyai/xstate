@@ -57,7 +57,7 @@ const flatParallelMachine = Machine({
   }
 });
 
-describe.skip('machine.resolve()', () => {
+describe('machine.resolve()', () => {
   it('should resolve parallel states with flat child states', () => {
     const unresolvedStateValue = { p1: { s1: { p2: 's4' }, s2: { p4: 's8' } } };
 
