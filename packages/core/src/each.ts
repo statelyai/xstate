@@ -1,4 +1,4 @@
-import { EventObject, SingleOrArray, ActionObject } from '.';
+import { EventObject, SingleOrArray, ActionObject } from './types';
 
 export function each<TContext, TEvent extends EventObject>(
   collection: keyof TContext,

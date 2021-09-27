@@ -34,7 +34,9 @@ import {
   ChooseConditon,
   ChooseAction,
   AnyEventObject,
-  Expr
+  Expr,
+  StopAction,
+  StopActionObject
 } from './types';
 import * as actionTypes from './actionTypes';
 import {
@@ -55,7 +57,6 @@ import {
 import { State } from './State';
 import { StateNode } from './StateNode';
 import { IS_PRODUCTION } from './environment';
-import { StopAction, StopActionObject } from '.';
 
 export { actionTypes };
 

@@ -66,7 +66,8 @@ import {
   InvokeSourceDefinition,
   MachineSchema,
   ActorRef,
-  StateMachine
+  StateMachine,
+  BaseActionObject
 } from './types';
 import { matchesState } from './utils';
 import { State, stateValuesEqual } from './State';
@@ -101,7 +102,6 @@ import {
 import { createInvocableActor } from './Actor';
 import { toInvokeDefinition } from './invokeUtils';
 import { MaybeTypegenMachineOptions, TypegenDisabled } from './typegenTypes';
-import { BaseActionObject } from '.';
 
 const NULL_EVENT = '';
 const STATE_IDENTIFIER = '#';

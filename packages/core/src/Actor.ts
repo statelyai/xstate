@@ -5,11 +5,12 @@ import {
   AnyEventObject,
   StateMachine,
   Spawnable,
-  SCXML
+  SCXML,
+  ActorRef,
+  BaseActorRef
 } from './types';
 import { isMachine, mapContext, toInvokeSource } from './utils';
 import * as serviceScope from './serviceScope';
-import { ActorRef, BaseActorRef } from '.';
 
 export interface Actor<
   TContext = any,
