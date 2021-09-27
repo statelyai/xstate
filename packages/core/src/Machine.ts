@@ -109,7 +109,7 @@ export function createMachine<
 > {
   return new StateNode<TContext, any, TEvent, TTypestate>(
     config,
-    options as any
+    options
   ) as StateMachine<
     TContext,
     any,
