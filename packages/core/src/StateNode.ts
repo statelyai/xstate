@@ -941,7 +941,7 @@ class StateNode<
       | StateNode<TContext, any, TEvent, any>
       | undefined = childStateNode;
 
-    while (marker && marker !== this) {
+    while (marker && marker !== (this as any)) {
       nodes.push(marker);
       marker = marker.parent;
     }
