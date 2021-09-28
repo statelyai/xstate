@@ -10,7 +10,10 @@ const machine = createMachine({
   invoke: {
     src: (ctx, e) => findUser(ctx.userId),
     meta: {
-      api: 'User Finder 2000'
+      summary: 'Finds user',
+      updatedAt: '2021-09-...',
+      version: '4.12.2',
+      // other descriptive meta properties
     }
   }
 });
