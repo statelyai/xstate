@@ -10,6 +10,7 @@ import {
   IndexByType,
   IsNever,
   MachineOptions,
+  Prop,
   Values
 } from './types';
 
@@ -43,13 +44,13 @@ export type TypegenConstraint = TypegenEnabled | TypegenDisabled;
 
 // if combined union of all missing implementation types is never then everything has been provided
 export type AreAllImplementationsAssumedToBeProvided<
-  TResolvedTypesMeta
+  TResolvedTypesMeta,
+  TMissingImplementations = Prop<TResolvedTypesMeta, 'missingImplementations'>
 > = TResolvedTypesMeta extends TypegenEnabled
   ? IsNever<
       Values<
         {
-          // @ts-ignore
-          [K in keyof TResolvedTypesMeta['missingImplementations']]: TResolvedTypesMeta['missingImplementations'][K];
+          [K in keyof TMissingImplementations]: TMissingImplementations[K];
         }
       >
     > extends true
@@ -82,70 +83,55 @@ export type ResolveTypegenMeta<
 export type TypegenMachineOptionsActions<
   TContext,
   TResolvedTypesMeta,
-  // @ts-ignore
-  TEventsCausingActions = TResolvedTypesMeta['eventsCausingActions'],
-  // @ts-ignore
-  TIndexedEvents = TResolvedTypesMeta['indexedEvents'],
-  // @ts-ignore
-  TIndexedActions = TResolvedTypesMeta['indexedActions']
+  TEventsCausingActions = Prop<TResolvedTypesMeta, 'eventsCausingActions'>,
+  TIndexedEvents = Prop<TResolvedTypesMeta, 'indexedEvents'>,
+  TIndexedActions = Prop<TResolvedTypesMeta, 'indexedActions'>
 > = {
   [K in keyof TEventsCausingActions]?:
     | ActionObject<
         TContext,
-        // @ts-ignore
-        TIndexedEvents[TEventsCausingActions[K]]
+        Cast<Prop<TIndexedEvents, TEventsCausingActions[K]>, EventObject>
       >
     | ActionFunction<
         TContext,
-        // @ts-ignore
-        TIndexedEvents[TEventsCausingActions[K]],
-        // @ts-ignore
-        TIndexedActions[K]
+        Cast<Prop<TIndexedEvents, TEventsCausingActions[K]>, EventObject>,
+        Cast<Prop<TIndexedActions, K>, BaseActionObject>
       >;
 };
 
 export type TypegenMachineOptionsDelays<
   TContext,
   TResolvedTypesMeta,
-  // @ts-ignore
-  TEventsCausingDelays = TResolvedTypesMeta['eventsCausingDelays'],
-  // @ts-ignore
-  TIndexedEvents = TResolvedTypesMeta['indexedEvents']
+  TEventsCausingDelays = Prop<TResolvedTypesMeta, 'eventsCausingDelays'>,
+  TIndexedEvents = Prop<TResolvedTypesMeta, 'indexedEvents'>
 > = {
   [K in keyof TEventsCausingDelays]?: DelayConfig<
     TContext,
-    // @ts-ignore
-    TIndexedEvents[TEventsCausingDelays[K]]
+    Cast<Prop<TIndexedEvents, TEventsCausingDelays[K]>, EventObject>
   >;
 };
 
 export type TypegenMachineOptionsGuards<
   TContext,
   TResolvedTypesMeta,
-  // @ts-ignore
-  TEventsCausingGuards = TResolvedTypesMeta['eventsCausingGuards'],
-  // @ts-ignore
-  TIndexedEvents = TResolvedTypesMeta['indexedEvents']
+  TEventsCausingGuards = Prop<TResolvedTypesMeta, 'eventsCausingGuards'>,
+  TIndexedEvents = Prop<TResolvedTypesMeta, 'indexedEvents'>
 > = {
   [K in keyof TEventsCausingGuards]?: ConditionPredicate<
     TContext,
-    // @ts-ignore
-    TIndexedEvents[TEventsCausingGuards[K]]
+    Cast<Prop<TIndexedEvents, TEventsCausingGuards[K]>, EventObject>
   >;
 };
 
 export type TypegenMachineOptionsServices<
   TContext,
   TResolvedTypesMeta,
-  // @ts-ignore
-  TEventsCausingServices = TResolvedTypesMeta['eventsCausingServices'],
-  // @ts-ignore
-  TIndexedEvents = TResolvedTypesMeta['indexedEvents']
+  TEventsCausingServices = Prop<TResolvedTypesMeta, 'eventsCausingServices'>,
+  TIndexedEvents = Prop<TResolvedTypesMeta, 'indexedEvents'>
 > = {
   [K in keyof TEventsCausingServices]?: InvokeCreator<
     TContext,
-    // @ts-ignore
-    TIndexedEvents[TEventsCausingServices[K]]
+    Cast<Prop<TIndexedEvents, TEventsCausingServices[K]>, EventObject>
   >;
 };
 
@@ -153,14 +139,15 @@ type MakeKeysRequired<T extends string> = { [K in T]: unknown };
 
 type MaybeMakeMissingImplementationsRequired<
   TImplementationType,
-  TMissingImplementations,
+  TMissingImplementationsForType,
   TRequireMissingImplementations
 > = TRequireMissingImplementations extends true
-  ? IsNever<TMissingImplementations> extends true
+  ? IsNever<TMissingImplementationsForType> extends true
     ? {}
     : {
-        [K in Cast<TImplementationType, string>]: MakeKeysRequired<// @ts-ignore
-        TMissingImplementations>;
+        [K in Cast<TImplementationType, string>]: MakeKeysRequired<
+          Cast<TMissingImplementationsForType, string>
+        >;
       }
   : {};
 
@@ -168,11 +155,10 @@ type GenerateActionsConfigPart<
   TContext,
   TResolvedTypesMeta,
   TRequireMissingImplementations,
-  // @ts-ignore
-  TMissingActions = TResolvedTypesMeta['missingImplementations']['actions']
+  TMissingImplementations
 > = MaybeMakeMissingImplementationsRequired<
   'actions',
-  TMissingActions,
+  Prop<TMissingImplementations, 'actions'>,
   TRequireMissingImplementations
 > & {
   actions?: TypegenMachineOptionsActions<TContext, TResolvedTypesMeta>;
@@ -182,11 +168,10 @@ type GenerateDelaysConfigPart<
   TContext,
   TResolvedTypesMeta,
   TRequireMissingImplementations,
-  // @ts-ignore
-  TMissingDelays = TResolvedTypesMeta['missingImplementations']['delays']
+  TMissingImplementations
 > = MaybeMakeMissingImplementationsRequired<
   'delays',
-  TMissingDelays,
+  Prop<TMissingImplementations, 'delays'>,
   TRequireMissingImplementations
 > & {
   delays?: TypegenMachineOptionsDelays<TContext, TResolvedTypesMeta>;
@@ -196,11 +181,10 @@ type GenerateGuardsConfigPart<
   TContext,
   TResolvedTypesMeta,
   TRequireMissingImplementations,
-  // @ts-ignore
-  TMissingGuards = TResolvedTypesMeta['missingImplementations']['guards']
+  TMissingImplementations
 > = MaybeMakeMissingImplementationsRequired<
   'guards',
-  TMissingGuards,
+  Prop<TMissingImplementations, 'guards'>,
   TRequireMissingImplementations
 > & {
   guards?: TypegenMachineOptionsGuards<TContext, TResolvedTypesMeta>;
@@ -210,11 +194,10 @@ type GenerateServicesConfigPart<
   TContext,
   TResolvedTypesMeta,
   TRequireMissingImplementations,
-  // @ts-ignore
-  TMissingServices = TResolvedTypesMeta['missingImplementations']['services']
+  TMissingImplementations
 > = MaybeMakeMissingImplementationsRequired<
   'services',
-  TMissingServices,
+  Prop<TMissingImplementations, 'services'>,
   TRequireMissingImplementations
 > & {
   services?: TypegenMachineOptionsServices<TContext, TResolvedTypesMeta>;
@@ -223,26 +206,31 @@ type GenerateServicesConfigPart<
 export type TypegenMachineOptions<
   TContext,
   TResolvedTypesMeta,
-  TRequireMissingImplementations
+  TRequireMissingImplementations,
+  TMissingImplementations = Prop<TResolvedTypesMeta, 'missingImplementations'>
 > = GenerateActionsConfigPart<
   TContext,
   TResolvedTypesMeta,
-  TRequireMissingImplementations
+  TRequireMissingImplementations,
+  TMissingImplementations
 > &
   GenerateDelaysConfigPart<
     TContext,
     TResolvedTypesMeta,
-    TRequireMissingImplementations
+    TRequireMissingImplementations,
+    TMissingImplementations
   > &
   GenerateGuardsConfigPart<
     TContext,
     TResolvedTypesMeta,
-    TRequireMissingImplementations
+    TRequireMissingImplementations,
+    TMissingImplementations
   > &
   GenerateServicesConfigPart<
     TContext,
     TResolvedTypesMeta,
-    TRequireMissingImplementations
+    TRequireMissingImplementations,
+    TMissingImplementations
   >;
 
 export type MaybeTypegenMachineOptions<

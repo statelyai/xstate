@@ -22,7 +22,7 @@ import { getMeta, nextEvents } from './stateUtils';
 import { initEvent } from './actions';
 import { IS_PRODUCTION } from './environment';
 import { TypegenDisabled, TypegenEnabled } from './typegenTypes';
-import { BaseActionObject } from './types';
+import { BaseActionObject, Prop } from './types';
 
 export function stateValuesEqual(
   a: StateValue | undefined,
@@ -324,8 +324,7 @@ export class State<
    */
   public matches<TSV extends TTypestate['value']>(
     parentStateValue: TResolvedTypesMeta extends TypegenEnabled
-      ? // @ts-ignore
-        TResolvedTypesMeta['matchesStates']
+      ? Prop<TResolvedTypesMeta, 'matchesStates'>
       : TSV
   ): this is State<
     (TTypestate extends any
@@ -347,8 +346,7 @@ export class State<
    */
   public hasTag(
     tag: TResolvedTypesMeta extends TypegenEnabled
-      ? // @ts-ignore
-        TResolvedTypesMeta['tags']
+      ? Prop<TResolvedTypesMeta, 'tags'>
       : string
   ): boolean {
     return this.tags.has(tag as string);

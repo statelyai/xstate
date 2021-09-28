@@ -459,7 +459,7 @@ describe('typegen types', () => {
       }
     });
 
-    // @ts-ignore
+    // @ts-expect-error
     interpret(machine);
   });
 
