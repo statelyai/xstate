@@ -76,7 +76,7 @@ export type ResolveTypegenMeta<
 > = TTypesMeta extends TypegenEnabled
   ? TTypesMeta & {
       indexedActions: IndexByType<TAction>;
-      indexedEvents: IndexByType<TEvent>;
+      indexedEvents: IndexByType<TEvent | { type: 'xstate.init' }>;
     }
   : TypegenDisabled;
 

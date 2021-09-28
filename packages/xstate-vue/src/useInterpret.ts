@@ -79,7 +79,7 @@ export function useInterpret<
   let sub;
   onMounted(() => {
     if (observerOrListener) {
-      sub = service.subscribe(toObserver(observerOrListener));
+      sub = service.subscribe(toObserver(observerOrListener as any));
     }
   });
 
@@ -88,5 +88,5 @@ export function useInterpret<
     sub?.unsubscribe();
   });
 
-  return service;
+  return service as any;
 }

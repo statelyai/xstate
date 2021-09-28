@@ -594,4 +594,28 @@ describe('typegen types', () => {
       }
     );
   });
+
+  it('should include init event in the provided parameter type if necessary', () => {
+    interface TypesMeta extends TypegenMeta {
+      eventsCausingActions: {
+        myAction: 'xstate.init';
+      };
+    }
+
+    createMachine(
+      {
+        types: {} as TypesMeta,
+        schema: {
+          events: {} as { type: 'FOO' } | { type: 'BAR' }
+        }
+      },
+      {
+        actions: {
+          myAction: (_ctx, event) => {
+            event.type === 'xstate.init';
+          }
+        }
+      }
+    );
+  });
 });
