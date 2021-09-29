@@ -124,15 +124,17 @@ module.exports = {
         ]
       },
       {
-        title: 'Useful links',
+        title: 'News and Useful Links',
         children: [
-          ['https://github.com/statelyai/xstate/blob/main/CODE_OF_CONDUCT.md', 'Code of Conduct'],
-          ['https://stately.ai/privacy', 'Privacy Policy'],
+          '/updates/',
+          [
+            'https://github.com/statelyai/xstate/blob/main/CODE_OF_CONDUCT.md',
+            'Code of Conduct'
+          ],
+          ['https://stately.ai/privacy', 'Privacy Policy']
         ]
       }
     ]
   },
-  plugins: [
-    'vuepress-plugin-export'
-  ]
+  plugins: ['vuepress-plugin-export']
 };
