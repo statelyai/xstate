@@ -1,5 +1,7 @@
 # @xstate/react
 
+The [@xstate/react package](https://github.com/statelyai/xstate/tree/main/packages/xstate-react) contains utilities for using [XState](https://github.com/statelyai/xstate) with [React](https://github.com/facebook/react/).
+
 [[toc]]
 
 ## Quick Start

@@ -1,6 +1,6 @@
 # @xstate/graph
 
-This package contains graph algorithms and utilities for XState machines.
+The [@xstate/graph package](https://github.com/statelyai/xstate/tree/main/packages/xstate-graph) contains graph algorithms and utilities for XState machines.
 
 ## Quick Start
 
