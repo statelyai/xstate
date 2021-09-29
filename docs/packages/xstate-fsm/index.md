@@ -11,7 +11,7 @@
   </a>
 </p>
 
-This package contains a minimal, 1kb implementation of [XState](https://github.com/statelyai/xstate) for **finite state machines**.
+The [@xstate/fsm package](https://github.com/statelyai/xstate/tree/main/packages/xstate-fsm) contains a minimal, 1kb implementation of [XState](https://github.com/statelyai/xstate) for **finite state machines**.
 
 ## Features
 
