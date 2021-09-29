@@ -2,7 +2,10 @@
 
 Inspection tools for XState.
 
-[Read the full documentation in the @xstate/inspect section in the XState docs](https://xstate.js.org/docs/packages/xstate-inspect/).
+- [Read the full documentation in the XState docs](https://xstate.js.org/docs/packages/xstate-inspect/).
+- [Read our contribution guidelines](https://github.com/statelyai/xstate/blob/main/CONTRIBUTING.md).
+
+## Templates
 
 - [XState (Vanilla)](https://codesandbox.io/s/xstate-ts-viz-template-qzdvv)
 - [XState + TypeScript](https://codesandbox.io/s/xstate-ts-viz-template-qzdvv)

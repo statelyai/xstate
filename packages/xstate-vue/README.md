@@ -1,6 +1,7 @@
 # @xstate/vue
 
-[Read the full documentation in the @xstate/vue section in the XState docs](https://xstate.js.org/docs/packages/xstate-vue/).
+- [Read the full documentation in the XState docs](https://xstate.js.org/docs/packages/xstate-vue/).
+- [Read our contribution guidelines](https://github.com/statelyai/xstate/blob/main/CONTRIBUTING.md).
 
 ::: warning Vue 2 Notice:
 If you're using Vue 2.x, please see [the Vue recipe](../../recipes/vue.html) instead, or use the [`xstate-vue2` package](https://github.com/ChrisShank/xstate-vue2) if you want to use the Vue Composition API.

@@ -1,6 +1,7 @@
 # @xstate/react
 
-[Read the full documentation in the @xstate/react section in the XState docs](https://xstate.js.org/docs/packages/xstate-react/).
+- [Read the full documentation in the XState docs](https://xstate.js.org/docs/packages/xstate-react/).
+- [Read our contribution guidelines](https://github.com/statelyai/xstate/blob/main/CONTRIBUTING.md).
 
 ## Quick Start
 

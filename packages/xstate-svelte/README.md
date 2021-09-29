@@ -1,6 +1,7 @@
 # @xstate/svelte
 
-[Read the full documentation in the @xstate/svelte section in the XState docs](https://xstate.js.org/docs/packages/xstate-svelte/).
+- [Read the full documentation in the XState docs](https://xstate.js.org/docs/packages/xstate-svelte/).
+- [Read our contribution guidelines](https://github.com/statelyai/xstate/blob/main/CONTRIBUTING.md).
 
 ## Quick Start
 

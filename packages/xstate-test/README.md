@@ -2,7 +2,8 @@
 
 This package contains utilities for facilitating [model-based testing](https://en.wikipedia.org/wiki/Model-based_testing) for any software.
 
-[Read the full documentation in the @xstate/test section in the XState docs](https://xstate.js.org/docs/packages/xstate-test/).
+- [Read the full documentation in the XState docs](https://xstate.js.org/docs/packages/xstate-test/).
+- [Read our contribution guidelines](https://github.com/statelyai/xstate/blob/main/CONTRIBUTING.md).
 
 ## Talk
 
