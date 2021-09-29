@@ -1,5 +1,7 @@
 # @xstate/vue
 
+This package contains utilities for using [XState](https://github.com/statelyai/xstate) with [Vue](https://github.com/vuejs/vue).
+
 - [Read the full documentation in the XState docs](https://xstate.js.org/docs/packages/xstate-vue/).
 - [Read our contribution guidelines](https://github.com/statelyai/xstate/blob/main/CONTRIBUTING.md).
 

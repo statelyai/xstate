@@ -11,14 +11,14 @@
   </a>
 </p>
 
-This package contains a minimal, 1kb implementation of [XState](https://github.com/davidkpiano/xstate) for **finite state machines**.
+This package contains a minimal, 1kb implementation of [XState](https://github.com/statelyai/xstate) for **finite state machines**.
 
 - [Read the full documentation in the XState docs](https://xstate.js.org/docs/packages/xstate-fsm/).
 - [Read our contribution guidelines](https://github.com/statelyai/xstate/blob/main/CONTRIBUTING.md).
 
 ## Features
 
-|                             | **@xstate/fsm** | [XState](https://github.com/davidkpiano/xstate) |
+|                             | **@xstate/fsm** | [XState](https://github.com/statelyai/xstate) |
 | --------------------------- | :-------------: | :---------------------------------------------: |
 | Finite states               |       ✅        |                       ✅                        |
 | Initial state               |       ✅        |                       ✅                        |
@@ -49,7 +49,7 @@ This package contains a minimal, 1kb implementation of [XState](https://github.c
 - Transition actions
 - `state.changed`
 
-If you want to use statechart features such as nested states, parallel states, history states, activities, invoked services, delayed transitions, transient transitions, etc. please use [`XState`](https://github.com/davidkpiano/xstate).
+If you want to use statechart features such as nested states, parallel states, history states, activities, invoked services, delayed transitions, transient transitions, etc. please use [`XState`](https://github.com/statelyai/xstate).
 
 ## Super quick start
 

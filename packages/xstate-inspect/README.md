@@ -1,6 +1,6 @@
-# `@xstate/inspect`
+# @xstate/inspect
 
-Inspection tools for XState.
+This package contains inspection tools for XState.
 
 - [Read the full documentation in the XState docs](https://xstate.js.org/docs/packages/xstate-inspect/).
 - [Read our contribution guidelines](https://github.com/statelyai/xstate/blob/main/CONTRIBUTING.md).

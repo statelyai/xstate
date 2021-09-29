@@ -1,5 +1,7 @@
 # @xstate/react
 
+This package contains utilities for using [XState](https://github.com/statelyai/xstate) with [React](https://github.com/facebook/react/).
+
 - [Read the full documentation in the XState docs](https://xstate.js.org/docs/packages/xstate-react/).
 - [Read our contribution guidelines](https://github.com/statelyai/xstate/blob/main/CONTRIBUTING.md).
 
