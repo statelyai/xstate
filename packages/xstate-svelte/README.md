@@ -1,5 +1,7 @@
 # @xstate/svelte
 
+[Read the full documentation in the @xstate/svelte section in the XState docs](https://xstate.js.org/docs/packages/xstate-svelte/).
+
 ## Quick Start
 
 1. Install `xstate` and `@xstate/svelte`:

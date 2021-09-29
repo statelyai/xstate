@@ -2,6 +2,8 @@
 
 This package contains graph algorithms and utilities for XState machines.
 
+[Read the full documentation in the @xstate/graph section in the XState docs](https://xstate.js.org/docs/packages/xstate-graph/).
+
 ## Quick Start
 
 1. Install `xstate` and `@xstate/graph`:

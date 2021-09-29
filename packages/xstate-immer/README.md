@@ -13,6 +13,8 @@
 
 This package contains utilities for using [Immer](https://immerjs.github.io/immer/docs/introduction) with [XState](https://github.com/davidkpiano/xstate).
 
+[Read the full documentation in the @xstate/immer section in the XState docs](https://xstate.js.org/docs/packages/xstate-immer/).
+
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 

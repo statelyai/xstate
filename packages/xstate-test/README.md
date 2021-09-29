@@ -2,6 +2,8 @@
 
 This package contains utilities for facilitating [model-based testing](https://en.wikipedia.org/wiki/Model-based_testing) for any software.
 
+[Read the full documentation in the @xstate/test section in the XState docs](https://xstate.js.org/docs/packages/xstate-test/).
+
 - **Talk**: [Write Fewer Tests! From Automation to Autogeneration](https://slides.com/davidkhourshid/mbt) at React Rally 2019 ([🎥 Video](https://www.youtube.com/watch?v=tpNmPKjPSFQ))
 
 ## Quick Start

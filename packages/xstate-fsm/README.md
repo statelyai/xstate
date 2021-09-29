@@ -13,6 +13,8 @@
 
 This package contains a minimal, 1kb implementation of [XState](https://github.com/davidkpiano/xstate) for **finite state machines**.
 
+[Read the full documentation in the @xstate/fsm section in the XState docs](https://xstate.js.org/docs/packages/xstate-fsm/).
+
 ## Features
 
 |                             | **@xstate/fsm** | [XState](https://github.com/davidkpiano/xstate) |

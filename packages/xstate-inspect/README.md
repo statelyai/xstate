@@ -2,6 +2,8 @@
 
 Inspection tools for XState.
 
+[Read the full documentation in the @xstate/inspect section in the XState docs](https://xstate.js.org/docs/packages/xstate-inspect/).
+
 - [XState (Vanilla)](https://codesandbox.io/s/xstate-ts-viz-template-qzdvv)
 - [XState + TypeScript](https://codesandbox.io/s/xstate-ts-viz-template-qzdvv)
 - [XState + Vue](https://codesandbox.io/s/xstate-vue-viz-template-r5wd7)

@@ -1,5 +1,7 @@
 # @xstate/vue
 
+[Read the full documentation in the @xstate/vue section in the XState docs](https://xstate.js.org/docs/packages/xstate-vue/).
+
 [[toc]]
 
 ::: warning Vue 2 Notice:

@@ -1,5 +1,7 @@
 # @xstate/react
 
+[Read the full documentation in the @xstate/react section in the XState docs](https://xstate.js.org/docs/packages/xstate-react/).
+
 [[toc]]
 
 ## Quick Start
