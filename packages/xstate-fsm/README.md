@@ -51,7 +51,7 @@ This package contains a minimal, 1kb implementation of [XState](https://github.c
 
 If you want to use statechart features such as nested states, parallel states, history states, activities, invoked services, delayed transitions, transient transitions, etc. please use [`XState`](https://github.com/statelyai/xstate).
 
-## Super quick start
+## Quick start
 
 ### Installation
 

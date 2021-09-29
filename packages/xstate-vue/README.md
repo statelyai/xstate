@@ -9,7 +9,7 @@ This package contains utilities for using [XState](https://github.com/statelyai/
 
 If you're using Vue 2.x, please see [the Vue recipe](../../recipes/vue.html) instead, or use the [`xstate-vue2` package](https://github.com/ChrisShank/xstate-vue2) if you want to use the Vue Composition API.
 
-## Quick Start
+## Quick start
 
 1. Install `xstate` and `@xstate/vue`:
 

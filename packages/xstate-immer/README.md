@@ -16,7 +16,7 @@ This package contains utilities for using [Immer](https://immerjs.github.io/imme
 - [Read the full documentation in the XState docs](https://xstate.js.org/docs/packages/xstate-immer/).
 - [Read our contribution guidelines](https://github.com/statelyai/xstate/blob/main/CONTRIBUTING.md).
 
-## Quick Start
+## Quick start
 
 Included in `@xstate/immer`:
 

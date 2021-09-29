@@ -14,7 +14,7 @@ This package contains inspection tools for XState.
 
 ![Inspector running from CodeSandbox](/assets/inspector.png)
 
-[See CodeSandbox example here](https://codesandbox.io/s/xstate-vue-minute-timer-viz-1txmk)
+[Check out the XState + Vue Minute Timer + Viz example on CodeSandbox](https://codesandbox.io/s/xstate-vue-minute-timer-viz-1txmk)
 
 ## Installation
 
