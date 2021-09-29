@@ -26,7 +26,7 @@ module.exports = {
       { text: 'Discord', link: 'https://discord.gg/xtWgFTgvNV' },
       {
         text: 'Community',
-        link: 'https://github.com/davidkpiano/xstate/discussions'
+        link: 'https://github.com/statelyai/xstate/discussions'
       }
     ],
     sidebar: [

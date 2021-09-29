@@ -3,7 +3,7 @@
   "private": true,
   "description": "Documentation for XState",
   "main": "index.js",
-  "repository": "https://github.com/davidkpiano/xstate",
+  "repository": "https://github.com/statelyai/xstate",
   "author": "David Khourshid",
   "license": "MIT",
   "scripts": {
