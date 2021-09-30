@@ -185,10 +185,10 @@ Returns an array of testing plans based on the simple paths from the test model'
 
 ### `testModel.getPlanFromEvents(events, options)`
 
-| Argument         | Type               | Description                                                                         |
-| ---------------- | ------------------ | ----------------------------------------------------------------------------------- |
-| `events`         | EventObject[]      | The sequence of events to create the plan                                           |
-| `options.target` | { target: string } | An object with a `target` property that should match the target state of the events |
+| Argument  | Type               | Description                                                                         |
+| --------- | ------------------ | ----------------------------------------------------------------------------------- |
+| `events`  | EventObject[]      | The sequence of events to create the plan                                           |
+| `options` | { target: string } | An object with a `target` property that should match the target state of the events |
 
 Returns an array with a single testing plan with a single path generated from the `events`.
 
