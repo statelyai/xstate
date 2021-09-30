@@ -302,10 +302,10 @@ Returns a path object with the following keys:
   - `state` - the [`State`](https://xstate.js.org/docs/guides/states.html) of the segment
   - `event` - the event object that transitions the `machine` from the state to the next state in the path
 
+```js
 import { createMachine } from 'xstate';
 import { getSimplePaths } from '@xstate/graph';
 
-```js
 const feedbackMachine = createMachine({
   id: 'feedback',
   initial: 'question',
