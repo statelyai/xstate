@@ -334,14 +334,16 @@ export function getSimplePathsAsArray<
   TContext = DefaultContext,
   TEvent extends EventObject = EventObject
 >(
-  machine: StateNode<TContext, any, TEvent>,
+  machine: StateMachine<TContext, any, TEvent>,
   options?: ValueAdjMapOptions<TContext, TEvent>
 ): Array<StatePaths<TContext, TEvent>> {
   const result = getSimplePaths(machine, options);
   return keys(result).map((key) => result[key]);
 }
 
-export function toDirectedGraph(stateNode: StateNode): DirectedGraphNode {
+export function toDirectedGraph(
+  stateNode: StateMachine<any, any, any>
+): DirectedGraphNode {
   const edges: DirectedGraphEdge[] = flatten(
     stateNode.transitions.map((t, transitionIndex) => {
       const targets = t.target ? t.target : [stateNode];
