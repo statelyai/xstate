@@ -1,4 +1,5 @@
 import {
+  getPathFromEvents,
   getShortestPaths,
   getSimplePaths,
   getStateNodes,
@@ -100,6 +101,28 @@ export class TestModel<TTestContext, TContext> {
         ? (plan) => stateValue(plan.state)
         : (plan) => plan.state.matches(stateValue);
     return testPlans.filter(predicate);
+  }
+
+  public getPlanFromEvents(
+    events: Array<EventObject>,
+    { target }: { target: StateValue }
+  ) {
+    const path = getPathFromEvents<TContext>(this.machine, events);
+
+    if (!path.state.matches(target)) {
+      throw new Error(
+        `The last state ${JSON.stringify(
+          (path.state as any).value
+        )} does not match the target: ${JSON.stringify(target)}`
+      );
+    }
+
+    return this.getTestPlans({
+      [JSON.stringify(path.state.value)]: {
+        state: path.state,
+        paths: [path]
+      }
+    });
   }
 
   public getSimplePathPlans(

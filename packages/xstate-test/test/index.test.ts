@@ -186,6 +186,43 @@ describe('testing a model (simplePathsTo)', () => {
     });
 });
 
+describe('testing a model (getPlanFromEvents)', () => {
+  dieHardModel
+    .getPlanFromEvents(
+      [
+        { type: 'FILL_5' },
+        { type: 'POUR_5_TO_3' },
+        { type: 'EMPTY_3' },
+        { type: 'POUR_5_TO_3' },
+        { type: 'FILL_5' },
+        { type: 'POUR_5_TO_3' }
+      ],
+      {
+        target: 'success'
+      }
+    )
+    .forEach((plan) => {
+      describe(`reaches state ${JSON.stringify(
+        plan.state.value
+      )} (${JSON.stringify(plan.state.context)})`, () => {
+        plan.paths.forEach((path) => {
+          it(path.description, () => {
+            const testJugs = new Jugs();
+            return path.test({ jugs: testJugs });
+          });
+        });
+      });
+    });
+
+  it('should throw if the target does not match the last entered state', () => {
+    expect(() => {
+      dieHardModel.getPlanFromEvents([{ type: 'FILL_5' }], {
+        target: 'success'
+      });
+    }).toThrow();
+  });
+});
+
 describe('path.test()', () => {
   const plans = dieHardModel.getSimplePathPlansTo((state) => {
     return state.matches('success') && state.context.three === 0;

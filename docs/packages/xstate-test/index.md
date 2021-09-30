@@ -183,6 +183,17 @@ Returns an array of testing plans based on the simple paths from the test model'
 | -------- | -------- | -------------------------------------------------------------------------------------------------------------- |
 | `filter` | function | Takes in the `state` and returns `true` if the state should be traversed, or `false` if traversal should stop. |
 
+### `testModel.getPlanFromEvents(events, options)`
+
+| Argument         | Type               | Description                                                                         |
+| ---------------- | ------------------ | ----------------------------------------------------------------------------------- |
+| `events`         | EventObject[]      | The sequence of events to create the plan                                           |
+| `options.target` | { target: string } | An object with a `target` property that should match the target state of the events |
+
+Returns an array with a single testing plan with a single path generated from the `events`.
+
+Throws an error if the last entered state does not match the `options.target`.
+
 ### `testModel.testCoverage(options?)`
 
 Tests that all state nodes were covered (traversed) in the exected tests.
