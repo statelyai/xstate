@@ -288,6 +288,81 @@ console.log(simplePaths);
 // };
 ```
 
+### `getPathFromEvents(machine, events)`
+
+**Arguments**
+
+- `machine` - the [`Machine`](https://xstate.js.org/docs/guides/machines.html) to traverse
+- `events` - the sequence of events to generate a path from
+
+Returns a path object with the following keys:
+
+- `state` - the target [`State`](https://xstate.js.org/docs/guides/states.html)
+- `segments` - an array of objects with the following shape:
+  - `state` - the [`State`](https://xstate.js.org/docs/guides/states.html) of the segment
+  - `event` - the event object that transitions the `machine` from the state to the next state in the path
+
+import { createMachine } from 'xstate';
+import { getSimplePaths } from '@xstate/graph';
+
+```js
+const feedbackMachine = createMachine({
+  id: 'feedback',
+  initial: 'question',
+  states: {
+    question: {
+      on: {
+        CLICK_GOOD: 'thanks',
+        CLICK_BAD: 'form',
+        CLOSE: 'closed',
+        ESC: 'closed'
+      }
+    },
+    form: {
+      on: {
+        SUBMIT: 'thanks',
+        CLOSE: 'closed',
+        ESC: 'closed'
+      }
+    },
+    thanks: {
+      on: {
+        CLOSE: 'closed',
+        ESC: 'closed'
+      }
+    },
+    closed: {
+      type: 'final'
+    }
+  }
+});
+
+const path = getPathFromEvents(feedbackMachine, [
+  { type: 'CLICK_GOOD' },
+  { type: 'SUBMIT' },
+  { type: 'CLOSE },
+]);
+
+console.log(path);
+// => {
+//   state: { value: 'closed' },
+//   segments: [
+//     {
+//       state: { value: 'question' },
+//       event: { type: 'CLICK_GOOD' },
+//     },
+//     {
+//       state: { value: 'form' },
+//       event: { type: 'SUBMIT' },
+//     },
+//     {
+//       state: { value: 'thanks' },
+//       event: { type: 'CLOSE' },
+//     },
+//   ],
+// }
+```
+
 ### `toDirectedGraph(machine)`
 
 Converts a `machine` to a directed graph structure.
