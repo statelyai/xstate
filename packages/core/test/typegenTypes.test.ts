@@ -595,10 +595,10 @@ describe('typegen types', () => {
     );
   });
 
-  it('should include init event in the provided parameter type if necessary', () => {
+  it('Should parse @@xstate/internal-event as an XStateInternalEventType and correctly infer events', () => {
     interface TypesMeta extends TypegenMeta {
       eventsCausingActions: {
-        myAction: 'xstate.init';
+        myAction: '@@xstate/internal-event' | 'FOO';
       };
     }
 
@@ -606,13 +606,32 @@ describe('typegen types', () => {
       {
         types: {} as TypesMeta,
         schema: {
-          events: {} as { type: 'FOO' } | { type: 'BAR' }
+          events: {} as { type: 'FOO'; value: string } | { type: 'BAR' }
         }
       },
       {
         actions: {
           myAction: (_ctx, event) => {
-            event.type === 'xstate.init';
+            switch (event.type) {
+              /**
+               * This should error because BAR is never expected
+               * here
+               */
+              // @ts-expect-error
+              case 'BAR': {
+              }
+              /**
+               * Unsure what should happen here when choosing
+               * an event name that does not exist - an error?
+               */
+              // @ts-expect-error
+              case 'awdawdawd': {
+              }
+              case 'FOO': {
+                // event.value should be properly inferred
+                event.value;
+              }
+            }
           }
         }
       }

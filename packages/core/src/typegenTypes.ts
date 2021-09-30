@@ -69,6 +69,8 @@ export type MarkAllImplementationsAsProvided<
   };
 };
 
+export type XStateInternalEventType = string & Symbol;
+
 export type ResolveTypegenMeta<
   TTypesMeta extends TypegenConstraint,
   TEvent extends EventObject,
@@ -76,7 +78,9 @@ export type ResolveTypegenMeta<
 > = TTypesMeta extends TypegenEnabled
   ? TTypesMeta & {
       indexedActions: IndexByType<TAction>;
-      indexedEvents: IndexByType<TEvent | { type: 'xstate.init' }>;
+      indexedEvents: IndexByType<TEvent> & {
+        '@@xstate/internal-event': { type: XStateInternalEventType };
+      };
     }
   : TypegenDisabled;
 
