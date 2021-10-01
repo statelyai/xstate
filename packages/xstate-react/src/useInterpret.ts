@@ -62,8 +62,8 @@ export function useInterpret<
             TResolvedTypesMeta
           >
         >,
-        options: Partial<InterpreterOptions> &
-          Partial<UseMachineOptions<TContext, TEvent>> &
+        options: InterpreterOptions &
+          UseMachineOptions<TContext, TEvent> &
           MaybeTypegenMachineOptions<
             TContext,
             TEvent,
@@ -96,8 +96,8 @@ export function useInterpret<
             TResolvedTypesMeta
           >
         >,
-        options?: Partial<InterpreterOptions> &
-          Partial<UseMachineOptions<TContext, TEvent>> &
+        options?: InterpreterOptions &
+          UseMachineOptions<TContext, TEvent> &
           MaybeTypegenMachineOptions<
             TContext,
             TEvent,
@@ -141,12 +141,14 @@ export function useInterpret<
     context,
     guards,
     actions,
-    activities,
     services,
     delays,
     state: rehydratedState,
     ...interpreterOptions
   } = options;
+
+  // it's not defined in `TypegenMachineOptions` so we can't just unpack this property here freely
+  const { activities } = options as any;
 
   const service = useConstant(() => {
     const machineConfig = {

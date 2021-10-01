@@ -18,6 +18,13 @@
   "main": "lib/index.js",
   "module": "es/index.js",
   "types": "lib/index.d.ts",
+  "typesVersions": {
+    "<4.0": {
+      "lib/index.d.ts": [
+        "index.v3.d.ts"
+      ]
+    }
+  },
   "sideEffects": false,
   "directories": {
     "lib": "lib",
@@ -47,7 +54,7 @@
   "peerDependencies": {
     "@xstate/fsm": "^1.0.0",
     "react": "^16.8.0 || ^17.0.0",
-    "xstate": "^4.11.0"
+    "xstate": "^4.26.0"
   },
   "peerDependenciesMeta": {
     "@xstate/fsm": {

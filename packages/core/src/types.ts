@@ -1315,9 +1315,9 @@ export interface InterpreterOptions {
   /**
    * Whether state actions should be executed immediately upon transition. Defaults to `true`.
    */
-  execute: boolean;
-  clock: Clock;
-  logger: (...args: any[]) => void;
+  execute?: boolean;
+  clock?: Clock;
+  logger?: (...args: any[]) => void;
   parent?: AnyInterpreter;
   /**
    * If `true`, defers processing of sent events until the service
@@ -1326,7 +1326,7 @@ export interface InterpreterOptions {
    *
    * Default: `true`
    */
-  deferEvents: boolean;
+  deferEvents?: boolean;
   /**
    * The custom `id` for referencing this service.
    */
@@ -1336,8 +1336,7 @@ export interface InterpreterOptions {
    *
    * Default: `false`
    */
-  devTools: boolean | object; // TODO: add enhancer options
-  [option: string]: any;
+  devTools?: boolean | object; // TODO: add enhancer options
 }
 
 export namespace SCXML {

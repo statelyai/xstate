@@ -81,8 +81,8 @@ export function useMachine<
             TResolvedTypesMeta
           >
         >,
-        options: Partial<InterpreterOptions> &
-          Partial<UseMachineOptions<TContext, TEvent>> &
+        options: InterpreterOptions &
+          UseMachineOptions<TContext, TEvent> &
           MaybeTypegenMachineOptions<
             TContext,
             TEvent,
@@ -102,8 +102,8 @@ export function useMachine<
             TResolvedTypesMeta
           >
         >,
-        options?: Partial<InterpreterOptions> &
-          Partial<UseMachineOptions<TContext, TEvent>> &
+        options?: InterpreterOptions &
+          UseMachineOptions<TContext, TEvent> &
           MaybeTypegenMachineOptions<
             TContext,
             TEvent,

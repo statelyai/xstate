@@ -136,7 +136,7 @@ export class Interpreter<
    * - `clock` uses the global `setTimeout` and `clearTimeout` functions
    * - `logger` uses the global `console.log()` method
    */
-  public static defaultOptions: InterpreterOptions = ((global) => ({
+  public static defaultOptions = ((global) => ({
     execute: true,
     deferEvents: true,
     clock: {
@@ -225,9 +225,9 @@ export class Interpreter<
       any,
       TResolvedTypesMeta
     >,
-    options: Partial<InterpreterOptions> = Interpreter.defaultOptions
+    options: InterpreterOptions = Interpreter.defaultOptions
   ) {
-    const resolvedOptions: InterpreterOptions = {
+    const resolvedOptions = {
       ...Interpreter.defaultOptions,
       ...options
     };
@@ -1459,7 +1459,7 @@ export function interpret<
         TResolvedTypesMeta
       >
     : 'Some implementations missing',
-  options?: Partial<InterpreterOptions>
+  options?: InterpreterOptions
 ) {
   const interpreter = new Interpreter<
     TContext,
