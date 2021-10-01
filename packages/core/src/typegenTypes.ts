@@ -70,6 +70,13 @@ export type MarkAllImplementationsAsProvided<
   };
 };
 
+// we don't even have to do that much here, technically, because `T & unknown` is equivalent to `T`
+// however, this doesn't display nicely in IDE tooltips, so let's fix this
+type MergeWithInternalEvents<TIndexedEvents, TInternalEvents> = TIndexedEvents &
+  // alternatively we could consider using key remapping in mapped types for this in the future
+  // in theory it would be a single iteration rather than two
+  Pick<TInternalEvents, Exclude<keyof TInternalEvents, keyof TIndexedEvents>>;
+
 export type ResolveTypegenMeta<
   TTypesMeta extends TypegenConstraint,
   TEvent extends EventObject,
@@ -77,7 +84,10 @@ export type ResolveTypegenMeta<
 > = TTypesMeta extends TypegenEnabled
   ? TTypesMeta & {
       indexedActions: IndexByType<TAction>;
-      indexedEvents: IndexByType<TEvent> & Prop<TTypesMeta, 'internalEvents'>;
+      indexedEvents: MergeWithInternalEvents<
+        IndexByType<TEvent>,
+        Prop<TTypesMeta, 'internalEvents'>
+      >;
     }
   : TypegenDisabled;
 
