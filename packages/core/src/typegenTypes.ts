@@ -138,11 +138,13 @@ export type TypegenMachineOptionsServices<
   TContext,
   TResolvedTypesMeta,
   TEventsCausingServices = Prop<TResolvedTypesMeta, 'eventsCausingServices'>,
-  TIndexedEvents = Prop<TResolvedTypesMeta, 'indexedEvents'>
+  TIndexedEvents = Prop<TResolvedTypesMeta, 'indexedEvents'>,
+  TServiceMap = Prop<TResolvedTypesMeta, 'serviceMap'>
 > = {
   [K in keyof TEventsCausingServices]?: InvokeCreator<
     TContext,
-    Cast<Prop<TIndexedEvents, TEventsCausingServices[K]>, EventObject>
+    Cast<Prop<TIndexedEvents, TEventsCausingServices[K]>, EventObject>,
+    Prop<Prop<TIndexedEvents, Prop<TServiceMap, K>>, 'data'>
   >;
 };
 

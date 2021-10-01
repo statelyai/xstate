@@ -698,4 +698,73 @@ describe('typegen types', () => {
       }
     );
   });
+
+  it('should allow a promise service returning the explicitly declared data', () => {
+    interface TypesMeta extends TypegenMeta {
+      eventsCausingServices: {
+        myService: 'FOO';
+      };
+      internalEvents: {
+        'done.invoke.myService': {
+          type: 'done.invoke.myService';
+          data: unknown;
+          __tip: 'Declare the type.';
+        };
+      };
+      serviceMap: {
+        myService: 'done.invoke.myService';
+      };
+    }
+
+    createMachine(
+      {
+        types: {} as TypesMeta,
+        schema: {
+          events: {} as
+            | { type: 'FOO' }
+            | { type: 'done.invoke.myService'; data: string }
+        }
+      },
+      {
+        services: {
+          myService: (_ctx) => Promise.resolve('foo')
+        }
+      }
+    );
+  });
+
+  it('should not allow a promise service returning a different type than the explicitly declared one', () => {
+    interface TypesMeta extends TypegenMeta {
+      eventsCausingServices: {
+        myService: 'FOO';
+      };
+      internalEvents: {
+        'done.invoke.myService': {
+          type: 'done.invoke.myService';
+          data: unknown;
+          __tip: 'Declare the type.';
+        };
+      };
+      serviceMap: {
+        myService: 'done.invoke.myService';
+      };
+    }
+
+    createMachine(
+      {
+        types: {} as TypesMeta,
+        schema: {
+          events: {} as
+            | { type: 'FOO' }
+            | { type: 'done.invoke.myService'; data: string }
+        }
+      },
+      {
+        services: {
+          // @ts-expect-error
+          myService: (_ctx) => Promise.resolve(42)
+        }
+      }
+    );
+  });
 });
