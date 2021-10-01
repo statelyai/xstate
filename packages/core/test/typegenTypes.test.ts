@@ -600,6 +600,9 @@ describe('typegen types', () => {
       eventsCausingActions: {
         myAction: 'xstate.init';
       };
+      internalEvents: {
+        'xstate.init': { type: 'xstate.init' };
+      };
     }
 
     createMachine(
@@ -613,6 +616,83 @@ describe('typegen types', () => {
         actions: {
           myAction: (_ctx, event) => {
             event.type === 'xstate.init';
+          }
+        }
+      }
+    );
+  });
+
+  it('should include generated dynamic internal event in the provided parameter if an explicit one is not provided', () => {
+    interface TypesMeta extends TypegenMeta {
+      eventsCausingActions: {
+        myAction: 'done.invoke.myService' | 'FOO';
+      };
+      internalEvents: {
+        'done.invoke.myService': {
+          type: 'done.invoke.myService';
+          data: unknown;
+          __tip: 'Declare the type.';
+        };
+      };
+    }
+
+    createMachine(
+      {
+        types: {} as TypesMeta,
+        schema: {
+          events: {} as { type: 'FOO' } | { type: 'BAR' }
+        }
+      },
+      {
+        actions: {
+          myAction: (_ctx, event) => {
+            if (event.type === 'FOO') {
+              return;
+            }
+            event.type === 'done.invoke.myService';
+            event.data;
+            // indirectly check that it's not any
+            // @ts-expect-error
+            ((_accept: string) => {})(event.data);
+          }
+        }
+      }
+    );
+  });
+
+  it('should use an explicitly provided event type for a dynamic internal event over the generated one', () => {
+    interface TypesMeta extends TypegenMeta {
+      eventsCausingActions: {
+        myAction: 'done.invoke.myService' | 'FOO';
+      };
+      internalEvents: {
+        'done.invoke.myService': {
+          type: 'done.invoke.myService';
+          data: unknown;
+          __tip: 'Declare the type.';
+        };
+      };
+    }
+
+    createMachine(
+      {
+        types: {} as TypesMeta,
+        schema: {
+          events: {} as
+            | { type: 'FOO' }
+            | { type: 'BAR' }
+            | { type: 'done.invoke.myService'; data: string }
+        }
+      },
+      {
+        actions: {
+          myAction: (_ctx, event) => {
+            if (event.type === 'FOO') {
+              return;
+            }
+            event.type === 'done.invoke.myService';
+            event.data;
+            ((_accept: string) => {})(event.data);
           }
         }
       }

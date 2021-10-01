@@ -29,6 +29,7 @@ export interface TypegenMeta extends TypegenEnabled {
     guards: string;
     services: string;
   };
+  internalEvents: {};
   eventsCausingActions: Record<string, string>;
   eventsCausingDelays: Record<string, string>;
   eventsCausingGuards: Record<string, string>;
@@ -76,7 +77,7 @@ export type ResolveTypegenMeta<
 > = TTypesMeta extends TypegenEnabled
   ? TTypesMeta & {
       indexedActions: IndexByType<TAction>;
-      indexedEvents: IndexByType<TEvent | { type: 'xstate.init' }>;
+      indexedEvents: IndexByType<TEvent> & Prop<TTypesMeta, 'internalEvents'>;
     }
   : TypegenDisabled;
 
