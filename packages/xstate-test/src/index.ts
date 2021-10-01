@@ -117,12 +117,14 @@ export class TestModel<TTestContext, TContext> {
       );
     }
 
-    return this.getTestPlans({
+    const plans = this.getTestPlans({
       [JSON.stringify(path.state.value)]: {
         state: path.state,
         paths: [path]
       }
     });
+
+    return plans[0];
   }
 
   public getSimplePathPlans(
