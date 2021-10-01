@@ -1,4 +1,4 @@
-import { interpret } from '../src';
+import { assign, interpret } from '../src';
 import { createMachine } from '../src/Machine';
 import { createModel } from '../src/model';
 import { TypegenMeta } from '../src/typegenTypes';
@@ -832,6 +832,31 @@ describe('typegen types', () => {
         services: {
           // @ts-expect-error
           myService: (_ctx) => createMachine<{ foo: number }>({})
+        }
+      }
+    );
+  });
+
+  it('Should infer assign to be the correct event', () => {
+    interface TypesMeta extends TypegenMeta {
+      eventsCausingActions: {
+        actionName: 'BAR';
+      };
+    }
+
+    createMachine(
+      {
+        types: {} as TypesMeta,
+        schema: {
+          events: {} as { type: 'FOO' } | { type: 'BAR'; value: string }
+        }
+      },
+      {
+        actions: {
+          actionName: assign((context, event) => {
+            ((_accept: 'BAR') => {})(event.type);
+            return {};
+          })
         }
       }
     );
