@@ -106,7 +106,7 @@ export class TestModel<TTestContext, TContext> {
   public getPlanFromEvents(
     events: Array<EventObject>,
     { target }: { target: StateValue }
-  ) {
+  ): TestPlan<TTestContext, TContext> {
     const path = getPathFromEvents<TContext>(this.machine, events);
 
     if (!path.state.matches(target)) {
