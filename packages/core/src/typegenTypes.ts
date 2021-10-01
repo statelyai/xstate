@@ -30,6 +30,7 @@ export interface TypegenMeta extends TypegenEnabled {
     services: string;
   };
   internalEvents: {};
+  invokeSrcNameMap: Record<string, string>;
   eventsCausingActions: Record<string, string>;
   eventsCausingDelays: Record<string, string>;
   eventsCausingGuards: Record<string, string>;
@@ -139,12 +140,12 @@ export type TypegenMachineOptionsServices<
   TResolvedTypesMeta,
   TEventsCausingServices = Prop<TResolvedTypesMeta, 'eventsCausingServices'>,
   TIndexedEvents = Prop<TResolvedTypesMeta, 'indexedEvents'>,
-  TServiceMap = Prop<TResolvedTypesMeta, 'serviceMap'>
+  TInvokeSrcNameMap = Prop<TResolvedTypesMeta, 'invokeSrcNameMap'>
 > = {
   [K in keyof TEventsCausingServices]?: InvokeCreator<
     TContext,
     Cast<Prop<TIndexedEvents, TEventsCausingServices[K]>, EventObject>,
-    Prop<Prop<TIndexedEvents, Prop<TServiceMap, K>>, 'data'>
+    Prop<Prop<TIndexedEvents, Prop<TInvokeSrcNameMap, K>>, 'data'>
   >;
 };
 

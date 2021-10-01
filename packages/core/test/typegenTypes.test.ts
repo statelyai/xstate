@@ -711,7 +711,7 @@ describe('typegen types', () => {
           __tip: 'Declare the type.';
         };
       };
-      serviceMap: {
+      invokeSrcNameMap: {
         myService: 'done.invoke.myService';
       };
     }
@@ -745,7 +745,7 @@ describe('typegen types', () => {
           __tip: 'Declare the type.';
         };
       };
-      serviceMap: {
+      invokeSrcNameMap: {
         myService: 'done.invoke.myService';
       };
     }
@@ -780,7 +780,7 @@ describe('typegen types', () => {
           __tip: 'Declare the type.';
         };
       };
-      serviceMap: {
+      invokeSrcNameMap: {
         myService: 'done.invoke.myService';
       };
     }
@@ -814,7 +814,7 @@ describe('typegen types', () => {
           __tip: 'Declare the type.';
         };
       };
-      serviceMap: {
+      invokeSrcNameMap: {
         myService: 'done.invoke.myService';
       };
     }
