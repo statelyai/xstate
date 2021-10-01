@@ -699,7 +699,7 @@ describe('typegen types', () => {
     );
   });
 
-  it('should allow a promise service returning the explicitly declared data', () => {
+  it('should allow a promise service returning the explicitly declared data in the given done.invoke', () => {
     interface TypesMeta extends TypegenMeta {
       eventsCausingServices: {
         myService: 'FOO';
@@ -733,7 +733,7 @@ describe('typegen types', () => {
     );
   });
 
-  it('should not allow a promise service returning a different type than the explicitly declared one', () => {
+  it('should not allow a promise service returning a different type than the explicitly declared one in the given done.invoke', () => {
     interface TypesMeta extends TypegenMeta {
       eventsCausingServices: {
         myService: 'FOO';
@@ -763,6 +763,75 @@ describe('typegen types', () => {
         services: {
           // @ts-expect-error
           myService: (_ctx) => Promise.resolve(42)
+        }
+      }
+    );
+  });
+
+  it('should allow a machine service returning the explicitly declared data in the given done.invoke', () => {
+    interface TypesMeta extends TypegenMeta {
+      eventsCausingServices: {
+        myService: 'FOO';
+      };
+      internalEvents: {
+        'done.invoke.myService': {
+          type: 'done.invoke.myService';
+          data: unknown;
+          __tip: 'Declare the type.';
+        };
+      };
+      serviceMap: {
+        myService: 'done.invoke.myService';
+      };
+    }
+
+    createMachine(
+      {
+        types: {} as TypesMeta,
+        schema: {
+          events: {} as
+            | { type: 'FOO' }
+            | { type: 'done.invoke.myService'; data: { foo: string } }
+        }
+      },
+      {
+        services: {
+          myService: (_ctx) => createMachine<{ foo: string }>({})
+        }
+      }
+    );
+  });
+
+  it('should not allow a machine service returning a different type than the explicitly declared one in the given done.invoke', () => {
+    interface TypesMeta extends TypegenMeta {
+      eventsCausingServices: {
+        myService: 'FOO';
+      };
+      internalEvents: {
+        'done.invoke.myService': {
+          type: 'done.invoke.myService';
+          data: unknown;
+          __tip: 'Declare the type.';
+        };
+      };
+      serviceMap: {
+        myService: 'done.invoke.myService';
+      };
+    }
+
+    createMachine(
+      {
+        types: {} as TypesMeta,
+        schema: {
+          events: {} as
+            | { type: 'FOO' }
+            | { type: 'done.invoke.myService'; data: { foo: string } }
+        }
+      },
+      {
+        services: {
+          // @ts-expect-error
+          myService: (_ctx) => createMachine<{ foo: number }>({})
         }
       }
     );
