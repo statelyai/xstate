@@ -31,13 +31,14 @@ export function invokeMachine<
     | ((ctx: TContext, event: TEvent, meta: InvokeMeta) => TMachine),
   options: { sync?: boolean } = {}
 ): BehaviorCreator<TContext, TEvent> {
-  return (ctx, event, { data, src, _event }) => {
+  return (ctx, event, { data, src, _event, meta }) => {
     const resolvedContext = data ? mapContext(data, ctx, _event) : undefined;
     const machineOrDeferredMachine = isFunction(machine)
       ? () => {
           const resolvedMachine = machine(ctx, event, {
             data: resolvedContext,
-            src
+            src,
+            meta
           });
           return resolvedContext
             ? resolvedMachine.withContext(resolvedContext)
@@ -58,10 +59,11 @@ export function invokePromise<T>(
     meta: InvokeMeta
   ) => PromiseLike<T>
 ): BehaviorCreator<any, AnyEventObject> {
-  return (ctx, e, { data, src, _event }) => {
+  return (ctx, e, { data, src, _event, meta }) => {
     const resolvedData = data ? mapContext(data, ctx, _event) : undefined;
 
-    const lazyPromise = () => getPromise(ctx, e, { data: resolvedData, src });
+    const lazyPromise = () =>
+      getPromise(ctx, e, { data: resolvedData, src, meta });
     return createPromiseBehavior(lazyPromise);
   };
 }

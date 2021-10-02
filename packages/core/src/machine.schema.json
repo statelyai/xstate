@@ -5,14 +5,12 @@
     "actionObject": {
       "type": "object",
       "properties": {
-        "type": { "type": "string" },
-        "exec": {
-          "oneOf": [
-            { "type": "string" },
-            { "$ref": "#/definitions/functionObject" }
-          ]
+        "type": {
+          "type": "string",
+          "definition": "The action type"
         }
       },
+      "additionalProperties": true,
       "required": ["type"]
     },
     "baseStateNode": {
@@ -30,6 +28,10 @@
         },
         "order": {
           "$ref": "#/definitions/order"
+        },
+        "description": {
+          "type": "string",
+          "description": "The description of the state node, in Markdown"
         }
       },
       "required": ["id", "key", "type"]
@@ -252,6 +254,33 @@
         }
       }
     },
+    "transitionObject": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/actionObject"
+          }
+        },
+        "cond": {
+          "type": "object"
+        },
+        "eventType": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "target": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": ["actions", "eventType", "source", "target"]
+    },
     "invokeObject": {
       "type": "object",
       "properties": {
@@ -318,7 +347,10 @@
       "$ref": "#/definitions/transitionsObject"
     },
     "transitions": {
-      "type": "array"
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/transitionObject"
+      }
     },
     "entry": {
       "type": "array"

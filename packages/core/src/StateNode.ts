@@ -122,6 +122,8 @@ export class StateNode<
    */
   public order: number = -1;
 
+  public description?: string;
+
   // TODO: make private
   public __cache = {
     events: undefined as Array<TEvent['type']> | undefined,
@@ -172,6 +174,7 @@ export class StateNode<
         : this.config.history
         ? 'history'
         : 'atomic');
+    this.description = this.config.description;
 
     this.order = this.machine.idMap.size;
     this.machine.idMap.set(this.id, this);
@@ -254,7 +257,8 @@ export class StateNode<
       meta: this.meta,
       order: this.order || -1,
       data: this.doneData,
-      invoke: this.invoke
+      invoke: this.invoke,
+      description: this.description
     };
   }
 

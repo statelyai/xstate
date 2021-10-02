@@ -1,7 +1,14 @@
 import * as React from 'react';
 import { createMachine } from 'xstate';
-import { render, fireEvent } from '@testing-library/react';
-import { useInterpret } from '../src';
+import { render, cleanup, fireEvent } from '@testing-library/react';
+import { useInterpret, useMachine } from '../src';
+
+const originalConsoleWarn = console.warn;
+
+afterEach(() => {
+  cleanup();
+  console.warn = originalConsoleWarn;
+});
 
 describe('useInterpret', () => {
   it('observer should be called with initial state', (done) => {
@@ -108,5 +115,57 @@ describe('useInterpret', () => {
     rerender(<App value={42} />);
 
     expect(actual).toEqual([1, 42]);
+  });
+
+  it('should warn when machine reference is updated during the hook lifecycle', () => {
+    console.warn = jest.fn();
+    const machine = createMachine({
+      initial: 'foo',
+      context: { id: 1 },
+      states: {
+        foo: {
+          on: {
+            CHECK: {
+              target: 'bar',
+              guard: 'hasOverflown'
+            }
+          }
+        },
+        bar: {}
+      }
+    });
+    const App = () => {
+      const [id, setId] = React.useState(1);
+      const [, send] = useMachine(
+        machine.provide({
+          guards: {
+            hasOverflown: () => id > 1
+          }
+        })
+      );
+
+      return (
+        <>
+          <button
+            onClick={() => {
+              setId(2);
+              send('CHECK');
+            }}
+          >
+            update id
+          </button>
+        </>
+      );
+    };
+
+    const { getByRole } = render(<App />);
+
+    getByRole('button').click();
+
+    expect(console.warn).toHaveBeenCalledTimes(1);
+    expect((console.warn as jest.Mock).mock.calls[0][0]).toMatchInlineSnapshot(`
+      "Machine given to \`useMachine\` has changed between renders. This is not supported and might lead to unexpected results.
+      Please make sure that you pass the same Machine as argument each time."
+    `);
   });
 });

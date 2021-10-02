@@ -1,6 +1,7 @@
 import { StateNode, createMachine, assign } from 'xstate';
 import {
   getStateNodes,
+  getPathFromEvents,
   getSimplePaths,
   getShortestPaths,
   toDirectedGraph
@@ -292,6 +293,28 @@ describe('@xstate/graph', () => {
 
       expect(Array.isArray(pathsArray)).toBeTruthy();
       expect(pathsArray).toMatchSnapshot('simple paths array');
+    });
+  });
+
+  describe('getPathFromEvents()', () => {
+    it('should return a path to the last entered state by the event sequence', () => {
+      const path = getPathFromEvents(lightMachine, [
+        { type: 'TIMER' },
+        { type: 'TIMER' },
+        { type: 'TIMER' },
+        { type: 'POWER_OUTAGE' }
+      ]);
+
+      expect(path).toMatchSnapshot('path from events');
+    });
+
+    it('should throw when an invalid event sequence is provided', () => {
+      expect(() =>
+        getPathFromEvents(lightMachine, [
+          { type: 'TIMER' },
+          { type: 'INVALID_EVENT' }
+        ])
+      ).toThrow();
     });
   });
 

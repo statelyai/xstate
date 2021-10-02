@@ -1,5 +1,7 @@
 # @xstate/vue
 
+The [@xstate/vue package](https://github.com/statelyai/xstate/tree/main/packages/xstate-vue) contains utilities for using [XState](https://github.com/statelyai/xstate) with [Vue](https://github.com/vuejs/vue).
+
 [[toc]]
 
 ::: warning Vue 2 Notice:

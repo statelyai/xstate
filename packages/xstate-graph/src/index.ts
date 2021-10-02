@@ -1,5 +1,6 @@
 import {
   getStateNodes,
+  getPathFromEvents,
   getSimplePaths,
   getShortestPaths,
   serializeEvent,
@@ -9,6 +10,7 @@ import {
 
 export {
   getStateNodes,
+  getPathFromEvents,
   getSimplePaths,
   getShortestPaths,
   serializeEvent,

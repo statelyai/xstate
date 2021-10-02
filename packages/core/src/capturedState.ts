@@ -12,7 +12,8 @@ export function captureSpawn(actorRef: ActorRef<any, any>, name: string) {
     type: ActionTypes.Invoke,
     src: actorRef,
     ref: actorRef,
-    id: name
+    id: name,
+    meta: undefined
   });
 
   return actorRef;

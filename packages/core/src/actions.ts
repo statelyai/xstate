@@ -265,7 +265,7 @@ export function resolveInvoke<
   _event: SCXML.Event<TEvent>,
   actorMap: ActorMap<TContext, TEvent>
 ): InvokeActionObject {
-  const { id, data, src } = action;
+  const { id, data, src, meta } = action;
 
   if (isActorRef(src)) {
     return {
@@ -285,7 +285,8 @@ export function resolveInvoke<
     id,
     data,
     src,
-    _event
+    _event,
+    meta
   });
 
   return {
@@ -444,7 +445,8 @@ export function invoke<
     id: invokeDef.id,
     autoForward: invokeDef.autoForward,
     data: invokeDef.data,
-    exec: undefined
+    exec: undefined,
+    meta: invokeDef.meta
   };
 }
 
