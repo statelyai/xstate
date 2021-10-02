@@ -230,9 +230,7 @@ export function choose<
             condition.guard,
             (guardType) => machine.options.guards[guardType]
           );
-        return (
-          !guard || evaluateGuard(guard, context, _event, state, state.machine!)
-        );
+        return !guard || evaluateGuard(guard, context, _event, state, machine);
       })?.actions;
 
       return {

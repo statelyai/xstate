@@ -13,7 +13,8 @@ export function captureSpawn(actorRef: ActorRef<any, any>, name: string) {
     params: {
       src: actorRef,
       ref: actorRef,
-      id: name
+      id: name,
+      meta: undefined
     }
   });
 

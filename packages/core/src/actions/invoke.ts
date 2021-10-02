@@ -16,14 +16,9 @@ export function invoke<
 >(invokeDef: InvokeDefinition<TContext, TEvent>) {
   const invokeAction = new DynamicAction<TContext, TEvent, InvokeActionObject>(
     invokeActionType,
-    {
-      src: invokeDef.src,
-      id: invokeDef.id,
-      autoForward: invokeDef.autoForward,
-      data: invokeDef.data
-    },
+    invokeDef,
     (action, context, _event, { machine }) => {
-      const { id, data, src } = action.params;
+      const { id, data, src, meta } = action.params;
       if (isActorRef(src)) {
         return {
           type: action.type,
@@ -48,7 +43,8 @@ export function invoke<
         id,
         data,
         src,
-        _event
+        _event,
+        meta
       });
 
       return {
@@ -57,7 +53,8 @@ export function invoke<
           ...action.params,
           id: action.params.id,
           src: action.params.src,
-          ref: new ObservableActorRef(behavior, id)
+          ref: new ObservableActorRef(behavior, id),
+          meta
         }
       } as InvokeActionObject;
     }

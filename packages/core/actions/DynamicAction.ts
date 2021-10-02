@@ -12,7 +12,7 @@ export class DynamicAction<
 > implements BaseDynamicActionObject<TContext, TEvent, TAction> {
   constructor(
     public type: `xstate.${string}`,
-    public params: Record<string, any>,
+    public params: TAction['params'],
     public resolve: BaseDynamicActionObject<
       TContext,
       TEvent,

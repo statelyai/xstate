@@ -36,10 +36,11 @@ export interface BaseActionObject {
 export interface BaseDynamicActionObject<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TAction extends BaseActionObject = BaseActionObject
+  TAction extends BaseActionObject = BaseActionObject,
+  TDynamicParams extends Record<string, any> | undefined = TAction['params']
 > {
   type: `xstate.${string}`;
-  params: Record<string, any>;
+  params: TDynamicParams;
   resolve: (
     dynamicAction: BaseDynamicActionObject<TContext, TEvent, TAction>,
     context: TContext,
@@ -254,6 +255,7 @@ export interface TransitionConfig<
   internal?: boolean;
   target?: TransitionTarget<TContext, TEvent>;
   meta?: Record<string, any>;
+  description?: string;
 }
 
 export interface TargetTransitionConfig<
@@ -340,12 +342,14 @@ export type BehaviorCreator<
     data?: any;
     src: InvokeSourceDefinition;
     _event: SCXML.Event<TEvent>;
+    meta: MetaObject | undefined;
   }
 ) => Behavior<any, any>;
 
 export interface InvokeMeta {
   data: any;
   src: InvokeSourceDefinition;
+  meta: MetaObject | undefined;
 }
 
 export interface InvokeDefinition<
@@ -387,6 +391,7 @@ export interface InvokeDefinition<
     InvokeDefinition<TContext, TEvent>,
     'onDone' | 'onError' | 'toJSON'
   >;
+  meta: MetaObject | undefined;
 }
 
 export interface Delay {
@@ -531,6 +536,10 @@ export interface InvokeConfig<
   onError?:
     | string
     | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
+  /**
+   * Meta data related to this invocation
+   */
+  meta?: MetaObject;
 }
 
 export interface StateNodeConfig<
@@ -646,6 +655,10 @@ export interface StateNodeConfig<
    * @default false
    */
   preserveActionOrder?: boolean;
+  /**
+   * A text description of the state node
+   */
+  description?: string;
 }
 
 export interface StateNodeDefinition<
@@ -668,6 +681,7 @@ export interface StateNodeDefinition<
   order: number;
   data?: FinalStateNodeConfig<TContext, TEvent>['data'];
   invoke: Array<InvokeDefinition<TContext, TEvent>>;
+  description?: string;
 }
 
 export type AnyStateNodeDefinition = StateNodeDefinition<any, any>;
@@ -880,6 +894,7 @@ export interface InvokeAction {
   autoForward?: boolean;
   data?: any;
   exec?: undefined;
+  meta: MetaObject | undefined;
 }
 
 export interface InvokeActionObject extends BaseActionObject {
@@ -891,6 +906,7 @@ export interface InvokeActionObject extends BaseActionObject {
     data?: any;
     exec?: undefined;
     ref?: ActorRef<any>;
+    meta: MetaObject | undefined;
   };
 }
 
@@ -918,12 +934,16 @@ export type LogExpr<
 export interface DynamicLogAction<
   TContext extends MachineContext,
   TEvent extends EventObject
-> extends BaseDynamicActionObject<TContext, TEvent, LogActionObject> {
+> extends BaseDynamicActionObject<
+    TContext,
+    TEvent,
+    LogActionObject,
+    {
+      label: string | undefined;
+      expr: string | LogExpr<TContext, TEvent>;
+    }
+  > {
   type: ActionTypes.Log;
-  params: {
-    label: string | undefined;
-    expr: string | LogExpr<TContext, TEvent>;
-  };
 }
 
 export interface LogActionObject extends BaseActionObject {
