@@ -2,7 +2,7 @@ import { matchesState } from './utils';
 import { mapState } from './mapState';
 import { StateNode } from './StateNode';
 import { State } from './State';
-import { createMachine, createMachine } from './Machine';
+import { createMachine } from './Machine';
 import { Actor } from './Actor';
 import {
   raise,
