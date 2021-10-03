@@ -880,7 +880,9 @@ export class Interpreter<
             ? serviceCreator(context, _event.data, {
                 data: resolvedData,
                 src: invokeSource,
-                meta: activity.meta
+                meta: activity.meta,
+                state: this.state,
+                _event
               })
             : serviceCreator;
 
