@@ -629,16 +629,10 @@ describe('actions config', () => {
   interface Context {
     count: number;
   }
-  interface State {
-    states: {
-      a: {};
-      b: {};
-    };
-  }
 
   // tslint:disable-next-line:no-empty
   const definedAction = () => {};
-  const simpleMachine = Machine<Context, State, EventType>(
+  const simpleMachine = Machine<Context, EventType>(
     {
       initial: 'a',
       context: {
@@ -1431,7 +1425,7 @@ describe('sendParent', () => {
       type: 'CHILD';
     }
 
-    const child = Machine<ChildContext, any, ChildEvent>({
+    const child = Machine<ChildContext, ChildEvent>({
       id: 'child',
       initial: 'start',
       states: {
@@ -1557,7 +1551,7 @@ describe('assign action order', () => {
   });
 
   it('should capture correct context values on subsequent transitions', () => {
-    let captured: number[] = [];
+    const captured: number[] = [];
 
     const machine = createMachine<{ counter: number }>({
       context: {
