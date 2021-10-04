@@ -794,7 +794,7 @@ export interface MachineConfig<
    */
   version?: string;
   schema?: MachineSchema<TContext, TEvent>;
-  tsTypes?: TTypesMeta;
+  tsTypes?: TTypesMeta | true;
 }
 
 export interface MachineSchema<TContext, TEvent extends EventObject> {

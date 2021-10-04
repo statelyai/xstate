@@ -862,4 +862,17 @@ describe('typegen types', () => {
       }
     );
   });
+
+  it('should allow for `tsTypes: true` to allow for explicit typegen opt-in', () => {
+    interface TypesMeta extends TypegenMeta {}
+
+    createMachine<
+      unknown,
+      { type: 'FOO' } | { type: 'BAR'; value: string },
+      any,
+      TypesMeta
+    >({
+      tsTypes: true
+    });
+  });
 });
