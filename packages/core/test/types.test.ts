@@ -201,86 +201,27 @@ describe('Nested parallel stateSchema', () => {
 });
 
 describe('Raise events', () => {
-  it('should work with all the ways to raise events', () => {
-    interface GreetingStateSchema {
-      states: {
-        pending: {};
-        morning: {};
-        lunchTime: {};
-        afternoon: {};
-        evening: {};
-        night: {};
-      };
-    }
+  type Event =
+    | { type: 'RAISE' }
+    | { type: 'STRING' }
+    | { type: 'OBJECT' }
+    | { type: 'EXPRESSION' }
+    | { type: 'EXPRESSION_OPTIONS' };
 
-    type GreetingEvent =
-      | { type: 'DECIDE'; aloha?: boolean }
-      | { type: 'MORNING' }
-      | { type: 'LUNCH_TIME' }
-      | { type: 'AFTERNOON' }
-      | { type: 'EVENING' }
-      | { type: 'NIGHT' }
-      | { type: 'ALOHA' };
-
-    interface GreetingContext {
-      hour: number;
-    }
-
-    const greetingContext: GreetingContext = { hour: 10 };
-
-    const raiseGreetingMachine = Machine<
-      GreetingContext,
-      GreetingStateSchema,
-      GreetingEvent
-    >({
-      key: 'greeting',
-      context: greetingContext,
-      initial: 'pending',
-      states: {
-        pending: {
-          on: {
-            DECIDE: [
-              {
-                actions: raise({
-                  type: 'ALOHA'
-                }) as any /* TODO: FIX */,
-                cond: (_ctx, ev) => !!ev.aloha
-              },
-              {
-                actions: raise({
-                  type: 'MORNING'
-                }) as any /* TODO: FIX */,
-                cond: (ctx) => ctx.hour < 12
-              },
-              {
-                actions: raise({
-                  type: 'AFTERNOON'
-                }) as any /* TODO: FIX */,
-                cond: (ctx) => ctx.hour < 18
-              },
-              {
-                actions: raise({ type: 'EVENING' }) as any /* TODO: FIX */,
-                cond: (ctx) => ctx.hour < 22
-              }
-            ]
-          }
-        },
-        morning: {},
-        lunchTime: {},
-        afternoon: {},
-        evening: {},
-        night: {}
-      },
-      on: {
-        MORNING: '.morning',
-        LUNCH_TIME: '.lunchTime',
-        AFTERNOON: '.afternoon',
-        EVENING: '.evening',
-        NIGHT: '.night'
+  const machine = createMachine<{}, Event>({
+    on: {
+      STRING: { actions: raise('RAISE') },
+      OBJECT: { actions: raise({ type: 'RAISE' }) },
+      EXPRESSION: { actions: raise(() => ({ type: 'RAISE' })) },
+      EXPRESSION_OPTIONS: {
+        actions: raise(() => ({ type: 'RAISE' }), { delay: 1000 })
       }
-    });
+    }
+  });
 
-    noop(raiseGreetingMachine);
+  noop(machine);
+
+  it('should work with all the ways to raise events', () => {
     expect(true).toBeTruthy();
   });
 });

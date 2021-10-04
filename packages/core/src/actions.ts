@@ -152,11 +152,16 @@ export function toActivityDefinition<TContext, TEvent extends EventObject>(
  *
  * @param eventType The event to raise.
  */
-export function raise<TContext, TEvent extends EventObject>(
-  event: Event<TEvent>
-): RaiseAction<TEvent> | SendAction<TContext, AnyEventObject, TEvent> {
+export function raise<
+  TContext,
+  TEvent extends EventObject,
+  TSentEvent extends EventObject = AnyEventObject
+>(
+  event: Event<TSentEvent> | SendExpr<TContext, TEvent, TSentEvent>,
+  options?: Omit<SendActionOptions<TContext, TEvent>, 'to'>
+): RaiseAction<TEvent> | SendAction<TContext, TEvent, TSentEvent> {
   if (!isString(event)) {
-    return send(event, { to: SpecialTargets.Internal });
+    return send(event, { ...options, to: SpecialTargets.Internal });
   }
   return {
     type: actionTypes.raise,
