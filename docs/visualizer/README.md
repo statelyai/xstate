@@ -47,7 +47,30 @@ Embed mode can be used anywhere you can use iframes.
 
 ### Custom themes for the code editor
 
-[Tango step-by-step example? Video?]
+In the Visualizer’s settings you can choose from thirteen color themes for the code editor, including the default **XState Viz** theme.
+
+<ul class="gallery">
+  <li><img alt="Visualizer code editor with XState Viz theme." src="./theme-xstate-viz.png"/><strong>XState Viz</strong></li>
+  <li><img alt="Visualizer code editor with Night Owl theme." src="./theme-night-owl.png"/><strong>Night Owl</strong></li>
+  <li><img alt="Visualizer code editor with All Hallows Eve theme." src="./theme-all-hallows-eve.png"/><strong>All Hallows Eve</strong></li>
+  <li><img alt="Visualizer code editor with Amy theme." src="./theme-amy.png"/><strong>Amy</strong></li>
+  <li><img alt="Visualizer code editor with Blackboard theme." src="./theme-blackboard.png"/><strong>Blackboard</strong></li>
+  <li><img alt="Visualizer code editor with Cobalt theme." src="./theme-cobalt.png"/><strong>Cobalt</strong></li>
+  <li><img alt="Visualizer code editor with Merbivore Soft theme." src="./theme-merbivore-soft.png"/><strong>Merbivore Soft</strong></li>
+  <li><img alt="Visualizer code editor with Monokai theme." src="./theme-monokai.png"/><strong>Monokai</strong></li>
+  <li><img alt="Visualizer code editor with Tomorrow Night theme." src="./theme-tomorrow-night.png"/><strong>Tomorrow Night</strong></li>
+  <li><img alt="Visualizer code editor with Poimandres theme." src="./theme-poimandres.png"/><strong>Poimandres</strong></li>
+  <li><img alt="Visualizer code editor with Garden of Atlantis theme." src="./theme-garden-of-atlantis.png"/><strong>Garden of Atlantis</strong></li>
+  <li><img alt="Visualizer code editor with Martian Night theme." src="./theme-martian-night.png"/><strong>Martian Night</strong></li>
+  <li><img alt="Visualizer code editor with Atom One Dark theme." src="./theme-atom-one-dark.png"/><strong>Atom One Dark</strong></li>
+</ul>
+
+#### How to change the code editor’s color theme
+
+1. Go to Settings using the button in the top menubar.
+2. Scroll down to the **Editor Theme** section.
+3. Choose your preferred theme from the dropdown menu.
+4. Go back to the Code view using the **Code** button in the top menubar.
 
 ### Zoom and pan to get an overview of your statechart
 
