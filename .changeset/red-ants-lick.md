@@ -7,41 +7,12 @@ author: @mattpocock
 
 Added the ability to tighten TS declarations of machine with generated metadata. This opens several exciting doors to being able to use typegen seamlessly with XState to provide an amazing typing experience.
 
-The basics work like this:
+With the [VSCode extension](https://marketplace.visualstudio.com/items?itemName=mattpocock.xstate-vscode), you can specify a new attribute called `tsTypes: true` in your machine definition:
 
 ```ts
-const model = createModel(
-  {},
-  {
-    events: {
-      FOO: () => ({}),
-      BAR: () => ({})
-    }
-  }
-);
-
-interface Meta {
-  '@@xstate/typegen': true;
-  eventsCausingServices: {
-    myService: 'FOO';
-  };
-}
-
-const machine = model.createMachine(
-  {
-    types: {} as typeof Meta,
-    invoke: {
-      src: 'myService'
-    }
-  },
-  {
-    services: {
-      myService: async (context, event) => {
-        // event is typed to be { type: 'FOO' }
-      }
-    }
-  }
-);
+const machine = createMachine({
+  tsTypes: true,
+})
 ```
 
-This works for guards, actions, delays - and also influences `state.matches` and `state.hasTag`.
+The extension will automatically add some extra generics to `createMachine`, which allow for type-safe access to nearly all of XState's API's.
