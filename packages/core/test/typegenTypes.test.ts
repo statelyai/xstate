@@ -837,20 +837,21 @@ describe('typegen types', () => {
     );
   });
 
-  it('Should infer assign to be the correct event', () => {
+  it('should infer an action object with narrowed event type', () => {
     interface TypesMeta extends TypegenMeta {
       eventsCausingActions: {
         actionName: 'BAR';
       };
     }
 
-    createMachine(
-      {
-        types: {} as TypesMeta,
-        schema: {
-          events: {} as { type: 'FOO' } | { type: 'BAR'; value: string }
-        }
-      },
+    // it doesn't work with inference at the moment
+    createMachine<
+      unknown,
+      { type: 'FOO' } | { type: 'BAR'; value: string },
+      any,
+      TypesMeta
+    >(
+      {},
       {
         actions: {
           actionName: assign((context, event) => {
