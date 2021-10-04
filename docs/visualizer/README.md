@@ -5,7 +5,7 @@ styleGuideVersion: 0
 
 # Visualizer
 
-The [XState Visualizer](https://stately.ai/viz) is a tool for creating statecharts to manage the state of your applications.
+The [XState Visualizer](https://stately.ai/viz) is a tool for creating and inspecting statecharts to visualize the state of your applications.
 
 As a visual tool, the Visualizer helps developers get an overview of their application logic, as well as making it easy to share and with designers, project managers and the rest of the team.
 
