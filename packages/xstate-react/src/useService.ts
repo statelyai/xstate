@@ -1,13 +1,13 @@
 import {
   EventObject,
-  State,
   Interpreter,
-  Typestate,
+  PayloadSender,
+  State,
   TypegenConstraint,
-  TypegenDisabled
+  TypegenDisabled,
+  Typestate
 } from 'xstate';
 import { useActor } from './useActor';
-import { PayloadSender } from './types';
 
 export function getServiceSnapshot<
   TService extends Interpreter<any, any, any, any>

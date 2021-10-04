@@ -15,7 +15,7 @@ describe('useMachine', () => {
     }
 
     const machine = createMachine({
-      types: {} as TypesMeta
+      tsTypes: {} as TypesMeta
     });
 
     function App() {
@@ -40,7 +40,7 @@ describe('useMachine', () => {
     }
 
     const machine = createMachine({
-      types: {} as TypesMeta,
+      tsTypes: {} as TypesMeta,
       schema: {
         events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
@@ -70,7 +70,7 @@ describe('useMachine', () => {
     }
 
     const machine = createMachine({
-      types: {} as TypesMeta,
+      tsTypes: {} as TypesMeta,
       schema: {
         events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
@@ -117,7 +117,7 @@ describe('useMachine', () => {
 
     const machine = createMachine(
       {
-        types: {} as TypesMeta,
+        tsTypes: {} as TypesMeta,
         schema: {
           events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
         }
@@ -157,7 +157,7 @@ describe('useInterpret', () => {
     }
 
     const machine = createMachine({
-      types: {} as TypesMeta
+      tsTypes: {} as TypesMeta
     });
 
     function App() {
@@ -182,7 +182,7 @@ describe('useInterpret', () => {
     }
 
     const machine = createMachine({
-      types: {} as TypesMeta,
+      tsTypes: {} as TypesMeta,
       schema: {
         events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
@@ -212,7 +212,7 @@ describe('useInterpret', () => {
     }
 
     const machine = createMachine({
-      types: {} as TypesMeta,
+      tsTypes: {} as TypesMeta,
       schema: {
         events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
@@ -259,7 +259,7 @@ describe('useInterpret', () => {
 
     const machine = createMachine(
       {
-        types: {} as TypesMeta,
+        tsTypes: {} as TypesMeta,
         schema: {
           events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
         }

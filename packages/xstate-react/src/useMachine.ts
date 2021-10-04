@@ -1,6 +1,8 @@
 import { useCallback, useState } from 'react';
 import {
   ActionFunction,
+  AreAllImplementationsAssumedToBeProvided,
+  BaseActionObject,
   EventObject,
   Interpreter,
   InterpreterOptions,
@@ -8,11 +10,9 @@ import {
   State,
   StateConfig,
   StateMachine,
-  Typestate,
-  AreAllImplementationsAssumedToBeProvided,
   TypegenConstraint,
   TypegenDisabled,
-  BaseActionObject
+  Typestate
 } from 'xstate';
 import { MaybeLazy, ReactActionFunction, ReactEffectType } from './types';
 import { useInterpret } from './useInterpret';

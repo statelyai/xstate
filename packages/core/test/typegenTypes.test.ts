@@ -854,7 +854,7 @@ describe('typegen types', () => {
       {},
       {
         actions: {
-          actionName: assign((context, event) => {
+          actionName: assign((_context, event) => {
             ((_accept: 'BAR') => {})(event.type);
             return {};
           })

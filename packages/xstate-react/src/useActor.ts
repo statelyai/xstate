@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
-import { Sender } from './types';
-import { ActorRef, EventObject } from 'xstate';
+import { ActorRef, EventObject, Sender } from 'xstate';
 import useConstant from './useConstant';
 
 export function isActorWithState<T extends ActorRef<any>>(
