@@ -5,7 +5,8 @@ import {
   interpret,
   spawnMachine
 } from '../src/index';
-import { sendParent, choose } from '../src/actions';
+import { sendParent } from '../src/actions';
+import { choose } from '../src/actions/choose';
 import { pure } from '../src/actions/pure';
 import { log } from '../src/actions/log';
 import { invokeMachine } from '../src/invoke';

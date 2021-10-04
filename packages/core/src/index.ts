@@ -12,9 +12,9 @@ import {
   respond,
   doneInvoke,
   forwardTo,
-  escalate,
-  choose
+  escalate
 } from './actions';
+import { choose } from './actions/choose';
 import { assign } from './actions/assign';
 import { pure } from './actions/pure';
 import { send } from './actions/send';

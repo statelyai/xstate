@@ -36,13 +36,18 @@ export interface BaseActionObject {
 export interface BaseDynamicActionObject<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TAction extends BaseActionObject = BaseActionObject,
-  TDynamicParams extends Record<string, any> | undefined = TAction['params']
+  TAction extends BaseActionObject,
+  TDynamicParams extends Record<string, any>
 > {
   type: `xstate.${string}`;
   params: TDynamicParams;
   resolve: (
-    dynamicAction: BaseDynamicActionObject<TContext, TEvent, TAction>,
+    dynamicAction: BaseDynamicActionObject<
+      TContext,
+      TEvent,
+      TAction,
+      TDynamicParams
+    >,
     context: TContext,
     _event: SCXML.Event<TEvent>,
     extra: {
@@ -109,7 +114,7 @@ export type Action<
   | ActionType
   | BaseActionObject
   | ActionFunction<TContext, TEvent>
-  | BaseDynamicActionObject<TContext, TEvent, any>; // TODO: fix last param
+  | BaseDynamicActionObject<TContext, TEvent, any, any>; // TODO: fix last param
 
 /**
  * Extracts action objects that have no extra properties.
@@ -124,9 +129,9 @@ export type BaseAction<
   TAction extends BaseActionObject
 > =
   | ChooseAction<TContext, TEvent>
-  | BaseDynamicActionObject<TContext, TEvent>
+  | BaseDynamicActionObject<TContext, TEvent, TAction, any>
   | SimpleActionsFrom<TAction>['type']
-  | Exclude<TAction, BaseDynamicActionObject<TContext, TEvent>>
+  | Exclude<TAction, BaseDynamicActionObject<TContext, TEvent, TAction, any>>
   | ActionFunction<TContext, TEvent>;
 
 export type BaseActions<
@@ -727,7 +732,7 @@ export type ActionFunctionMap<
   TAction extends BaseActionObject = BaseActionObject
 > = {
   [K in TAction['type']]?:
-    | DynamicAction<TContext, TEvent, TAction>
+    | DynamicAction<TContext, TEvent, TAction, any>
     | (TAction & { type: K })
     | ActionFunction<
         TContext,
@@ -897,6 +902,14 @@ export interface InvokeAction {
   meta: MetaObject | undefined;
 }
 
+export interface DynamicInvokeActionObject<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+> {
+  type: ActionTypes.Invoke;
+  params: InvokeDefinition<TContext, TEvent>;
+}
+
 export interface InvokeActionObject extends BaseActionObject {
   type: ActionTypes.Invoke;
   params: {
@@ -910,10 +923,16 @@ export interface InvokeActionObject extends BaseActionObject {
   };
 }
 
-export interface StopAction<TC extends MachineContext, TE extends EventObject> {
+export interface DynamicStopActionObject<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+> {
   type: ActionTypes.Stop;
-  actor: string | ActorRef<any> | Expr<TC, TE, ActorRef<any>>;
+  params: {
+    actor: string | Expr<TContext, TEvent, ActorRef<any>>;
+  };
 }
+
 export interface StopActionObject {
   type: ActionTypes.Stop;
   params: {
@@ -1002,6 +1021,16 @@ export interface SendActionOptions<
     | undefined;
 }
 
+export interface DynamicCancelActionObject<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+> {
+  type: ActionTypes.Cancel;
+  params: {
+    sendId: string | ExprWithMeta<TContext, TEvent, string>;
+  };
+}
+
 export interface CancelActionObject extends BaseActionObject {
   type: ActionTypes.Cancel;
   params: {
@@ -1076,7 +1105,10 @@ export type DynamicAssignAction<
 > = BaseDynamicActionObject<
   TContext,
   TEvent,
-  AssignActionObject<TContext> | RaiseActionObject<TEvent>
+  AssignActionObject<TContext> | RaiseActionObject<TEvent>,
+  {
+    assignment: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent>;
+  }
 >;
 
 export interface AssignActionObject<TContext extends MachineContext>
@@ -1088,15 +1120,17 @@ export interface AssignActionObject<TContext extends MachineContext>
   };
 }
 
-export interface PureAction<
+export interface DynamicPureActionObject<
   TContext extends MachineContext,
   TEvent extends EventObject
-> extends BaseActionObject {
+> {
   type: ActionTypes.Pure;
-  get: (
-    context: TContext,
-    event: TEvent
-  ) => SingleOrArray<BaseActionObject> | undefined;
+  params: {
+    get: (
+      context: TContext,
+      event: TEvent
+    ) => SingleOrArray<BaseActionObject> | undefined;
+  };
 }
 
 export interface PureActionObject extends BaseActionObject {
@@ -1113,6 +1147,13 @@ export interface ChooseAction<
   type: ActionTypes.Choose;
   params: {
     guards: Array<ChooseCondition<TContext, TEvent>>;
+  };
+}
+
+export interface StaticChooseAction extends BaseActionObject {
+  type: ActionTypes.Choose;
+  params: {
+    actions: BaseActionObject[];
   };
 }
 

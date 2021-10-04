@@ -2,7 +2,7 @@ import { EventObject, ExprWithMeta, MachineContext } from '../types';
 import { cancel as cancelActionType } from '../actionTypes';
 import { isFunction } from '../utils';
 import { DynamicAction } from '../../actions/DynamicAction';
-import { CancelActionObject } from '..';
+import { CancelActionObject, DynamicCancelActionObject } from '..';
 
 /**
  * Cancels an in-flight `send(...)` action. A canceled sent action will not
@@ -17,8 +17,13 @@ export function cancel<
   TEvent extends EventObject
 >(
   sendId: string | ExprWithMeta<TContext, TEvent, string>
-): DynamicAction<TContext, TEvent, CancelActionObject> {
-  const cancelAction = new DynamicAction<TContext, TEvent, CancelActionObject>(
+): DynamicAction<
+  TContext,
+  TEvent,
+  CancelActionObject,
+  DynamicCancelActionObject<TContext, TEvent>['params']
+> {
+  return new DynamicAction(
     cancelActionType,
     {
       sendId
@@ -38,6 +43,4 @@ export function cancel<
       } as CancelActionObject;
     }
   );
-
-  return cancelAction;
 }

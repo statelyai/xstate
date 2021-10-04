@@ -4,8 +4,7 @@ import type {
   PropertyAssigner,
   MachineContext,
   AssignActionObject,
-  DynamicAssignAction,
-  RaiseActionObject
+  DynamicAssignAction
 } from '../types';
 import * as actionTypes from '../actionTypes';
 import { DynamicAction } from '../../actions/DynamicAction';
@@ -18,14 +17,20 @@ import { updateContext } from '../updateContext';
  */
 export function assign<
   TContext extends MachineContext,
-  TEvent extends EventObject = EventObject
->(
-  assignment: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent>
-): DynamicAssignAction<TContext, TEvent> {
+  TEvent extends EventObject = EventObject,
+  TAssignment extends
+    | Assigner<TContext, TEvent>
+    | PropertyAssigner<TContext, TEvent> =
+    | Assigner<TContext, TEvent>
+    | PropertyAssigner<TContext, TEvent>
+>(assignment: TAssignment): DynamicAssignAction<TContext, TEvent> {
   return new DynamicAction<
     TContext,
     TEvent,
-    AssignActionObject<TContext> | RaiseActionObject<TEvent>
+    AssignActionObject<TContext>,
+    {
+      assignment: TAssignment;
+    }
   >(
     actionTypes.assign,
     {

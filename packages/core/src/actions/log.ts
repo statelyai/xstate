@@ -7,6 +7,7 @@ import {
 import { log as logActionType } from '../actionTypes';
 import { isString } from '../utils';
 import { DynamicAction } from '../../actions/DynamicAction';
+import { DynamicLogAction } from '..';
 
 const defaultLogExpr = <TContext, TEvent extends EventObject>(
   context: TContext,
@@ -31,8 +32,13 @@ export function log<
 >(
   expr: string | LogExpr<TContext, TEvent> = defaultLogExpr,
   label?: string
-): DynamicAction<TContext, TEvent, LogActionObject> {
-  const logAction = new DynamicAction<TContext, TEvent, LogActionObject>(
+): DynamicAction<
+  TContext,
+  TEvent,
+  LogActionObject,
+  DynamicLogAction<TContext, TEvent>['params']
+> {
+  return new DynamicAction(
     logActionType,
     { label, expr },
     (action, ctx, _event) => {
@@ -45,6 +51,4 @@ export function log<
       } as LogActionObject;
     }
   );
-
-  return logAction;
 }

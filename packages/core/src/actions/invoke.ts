@@ -8,13 +8,20 @@ import { invoke as invokeActionType } from '../actionTypes';
 import { isActorRef } from '../actor';
 import { ObservableActorRef } from '../ObservableActorRef';
 import { DynamicAction } from '../../actions/DynamicAction';
-import { InvokeActionObject } from '..';
+import { DynamicInvokeActionObject, InvokeActionObject } from '..';
 
 export function invoke<
   TContext extends MachineContext,
   TEvent extends EventObject
->(invokeDef: InvokeDefinition<TContext, TEvent>) {
-  const invokeAction = new DynamicAction<TContext, TEvent, InvokeActionObject>(
+>(
+  invokeDef: InvokeDefinition<TContext, TEvent>
+): DynamicAction<
+  TContext,
+  TEvent,
+  InvokeActionObject,
+  DynamicInvokeActionObject<TContext, TEvent>['params']
+> {
+  return new DynamicAction(
     invokeActionType,
     invokeDef,
     (action, context, _event, { machine }) => {
@@ -59,6 +66,4 @@ export function invoke<
       } as InvokeActionObject;
     }
   );
-
-  return invokeAction;
 }

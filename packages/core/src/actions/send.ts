@@ -29,7 +29,6 @@ import { actionTypes } from '../actions';
  *  - `delay` - The number of milliseconds to delay the sending of the event.
  *  - `to` - The target of this event (by default, the machine the event was sent from).
  */
-
 export function send<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -37,8 +36,8 @@ export function send<
 >(
   event: Event<TSentEvent> | SendExpr<TContext, TEvent, TSentEvent>,
   options?: SendActionOptions<TContext, TEvent>
-): DynamicAction<TContext, TEvent, SendActionObject<AnyEventObject>> {
-  const sendAction = new DynamicAction<TContext, TEvent, SendActionObject>(
+): DynamicAction<TContext, TEvent, SendActionObject<AnyEventObject>, any> {
+  return new DynamicAction(
     sendActionType,
     {
       to: options ? options.to : undefined,
@@ -88,7 +87,7 @@ export function send<
           : resolvedTarget;
 
       return {
-        type: action.type,
+        type: actionTypes.send,
         params: {
           ...action.params,
           to: resolvedTarget,
@@ -96,11 +95,9 @@ export function send<
           event: resolvedEvent.data,
           delay: resolvedDelay
         }
-      } as SendActionObject<TEvent>;
+      };
     }
   );
-
-  return sendAction;
 }
 
 /**

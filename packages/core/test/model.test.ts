@@ -2,13 +2,13 @@ import { ContextFrom, createMachine, EventFrom } from '../src';
 import {
   assign,
   cancel,
-  choose,
   log,
   sendParent,
   sendUpdate,
   send,
   stop
 } from '../src/actions';
+import { choose } from '../src/actions/choose';
 import { createModel } from '../src/model';
 
 describe('createModel', () => {
