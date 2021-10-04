@@ -1686,7 +1686,10 @@ describe('assign action order', () => {
 
 describe('types', () => {
   it('assign actions should be inferred correctly', () => {
-    createMachine<{ count: number; text: string }>({
+    createMachine<
+      { count: number; text: string },
+      { type: 'inc'; value: number } | { type: 'say'; value: string }
+    >({
       context: {
         count: 0,
         text: 'hello'
@@ -1700,32 +1703,77 @@ describe('types', () => {
         // @ts-expect-error
         assign({ count: () => 'string' }),
 
+        assign({ count: (ctx) => ctx.count + 31 }),
+        // @ts-expect-error
+        assign({ count: (ctx) => ctx.text + 31 }),
+
         assign(() => ({ count: 31 })),
         // @ts-expect-error
-        assign(() => ({ count: 'string' }))
-      ]
+        assign(() => ({ count: 'string' })),
+
+        assign((ctx) => ({ count: ctx.count + 31 })),
+        // @ts-expect-error
+        assign((ctx) => ({ count: ctx.text + 31 }))
+      ],
+      on: {
+        say: {
+          actions: [
+            assign({ text: (_, e) => e.value }),
+            // @ts-expect-error
+            assign({ count: (_, e) => e.value }),
+
+            assign((_, e) => ({ text: e.value })),
+            // @ts-expect-error
+            assign((_, e) => ({ count: e.value }))
+          ]
+        }
+      }
     });
   });
 
   it('choose actions should be inferred correctly', () => {
-    createMachine<{ count: number; text: string }>({
+    createMachine<
+      { count: number; text: string },
+      { type: 'inc'; value: number } | { type: 'say'; value: string }
+    >({
       context: {
         count: 0,
         text: 'hello'
       },
       entry: [
-        choose([{ actions: assign({ count: 1 }) }]),
+        choose([{ actions: assign({ count: 31 }) }]),
         // @ts-expect-error
-        choose([{ actions: assign({ count: '1' }) }]),
+        choose([{ actions: assign({ count: 'string' }) }]),
 
-        choose([{ actions: assign({ count: () => 1 }) }]),
+        choose([{ actions: assign({ count: () => 31 }) }]),
         // @ts-expect-error
-        choose([{ actions: assign({ count: () => '1' }) }]),
+        choose([{ actions: assign({ count: () => 'string' }) }]),
 
-        choose([{ actions: assign(() => ({ count: 1 })) }]),
+        choose([{ actions: assign({ count: (ctx) => ctx.count + 31 }) }]),
         // @ts-expect-error
-        choose([{ actions: assign(() => ({ count: '1' })) }])
-      ]
+        choose([{ actions: assign({ count: (ctx) => ctx.text + 31 }) }]),
+
+        choose([{ actions: assign(() => ({ count: 31 })) }]),
+        // @ts-expect-error
+        choose([{ actions: assign(() => ({ count: 'string' })) }]),
+
+        choose([{ actions: assign((ctx) => ({ count: ctx.count + 31 })) }]),
+        // @ts-expect-error
+        choose([{ actions: assign((ctx) => ({ count: ctx.text + 31 })) }])
+      ],
+      on: {
+        say: {
+          actions: [
+            choose([{ actions: assign({ text: (_, e) => e.value }) }]),
+            // @ts-expect-error
+            choose([{ actions: assign({ count: (_, e) => e.value }) }]),
+
+            choose([{ actions: assign((_, e) => ({ text: e.value })) }]),
+            // @ts-expect-error
+            choose([{ actions: assign((_, e) => ({ count: e.value })) }])
+          ]
+        }
+      }
     });
   });
 });

@@ -13,13 +13,13 @@ import {
 } from '../src';
 import {
   sendParent,
-  raise,
   doneInvoke,
   sendUpdate,
   respond,
   forwardTo,
   error
 } from '../src/actions';
+import { raise } from '../src/actions/raise';
 import { assign } from '../src/actions/assign';
 import { send } from '../src/actions/send';
 import { EMPTY, interval } from 'rxjs';

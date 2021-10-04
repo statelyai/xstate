@@ -9,6 +9,7 @@ import {
 import { createMachine } from './index';
 import { mapValues, isString, flatten } from './utils';
 import * as actions from './actions';
+import * as raise from './actions/raise';
 import * as choose from './actions/choose';
 import * as assign from './actions/assign';
 import * as send from './actions/send';
@@ -142,7 +143,7 @@ function mapAction<
 >(element: XMLElement): BaseActionObject {
   switch (element.name) {
     case 'raise': {
-      return actions.raise<TEvent>(element.attributes!.event! as string);
+      return raise.raise<TEvent>(element.attributes!.event! as string);
     }
     case 'assign': {
       return assign.assign<TContext, TEvent>((context, e, meta) => {

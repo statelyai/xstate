@@ -15,7 +15,8 @@ import {
   spawnObservable
 } from '../src';
 import { State } from '../src/State';
-import { actionTypes, raise } from '../src/actions';
+import { actionTypes } from '../src/actions';
+import { raise } from '../src/actions/raise';
 import { stop } from '../src/actions/stop';
 import { log } from '../src/actions/log';
 import { isObservable } from '../src/utils';

@@ -36,7 +36,12 @@ export function send<
 >(
   event: Event<TSentEvent> | SendExpr<TContext, TEvent, TSentEvent>,
   options?: SendActionOptions<TContext, TEvent>
-): DynamicAction<TContext, TEvent, SendActionObject<AnyEventObject>, any> {
+): DynamicAction<
+  TContext,
+  TEvent,
+  SendActionObject<AnyEventObject>,
+  SendActionOptions<TContext, TEvent>
+> {
   return new DynamicAction(
     sendActionType,
     {

@@ -4,7 +4,6 @@ import { StateNode } from './StateNode';
 import { State } from './State';
 import { createMachine } from './Machine';
 import {
-  raise,
   sendParent,
   sendUpdate,
   after,
@@ -14,6 +13,7 @@ import {
   forwardTo,
   escalate
 } from './actions';
+import { raise } from './actions/raise';
 import { choose } from './actions/choose';
 import { assign } from './actions/assign';
 import { pure } from './actions/pure';

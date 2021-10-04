@@ -16,9 +16,9 @@ import {
   done as _done,
   doneInvoke,
   escalate,
-  forwardTo,
-  raise
+  forwardTo
 } from '../src/actions';
+import { raise } from '../src/actions/raise';
 import {
   invokeMachine,
   invokeCallback,

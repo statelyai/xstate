@@ -1,5 +1,5 @@
 import { createMachine } from '../src';
-import { raise } from '../src/actions';
+import { raise } from '../src/actions/raise';
 import { toSCXMLEvent } from '../src/utils';
 
 describe('machine.microstep()', () => {

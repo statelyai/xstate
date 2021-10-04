@@ -1,5 +1,5 @@
 import { createMachine, interpret, State } from '../src/index';
-import { raise } from '../src/actions';
+import { raise } from '../src/actions/raise';
 import { assign } from '../src/actions/assign';
 import { invokeMachine } from '../src/invoke';
 import { stateIn } from '../src/guards';
