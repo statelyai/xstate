@@ -81,6 +81,8 @@ Here's how you can get started:
 2. Open a new file and create a typed model using `createModel`. [Want more info on models?](./models.md). For instance:
 
 ```ts
+import { createModel } from 'xstate/lib/model';
+
 const model = createModel(
   {
     value: ''
@@ -115,11 +117,11 @@ const machine = model.createMachine({
 });
 ```
 
-4. Finally, add a 'types' attribute to the machine and save the file:
+4. Finally, add `tsTypes: true` to the machine and save the file:
 
 ```ts
 const machine = model.createMachine({
-  types: {},
+  tsTypes: true,
   initial: 'a',
   states: {
     a: {
@@ -137,11 +139,11 @@ const machine = model.createMachine({
 });
 ```
 
-5. The extension should automatically add an imported type to the machine:
+5. The extension should automatically add a generic to the machine:
 
 ```ts
-const machine = model.createMachine({
-  types: {} as import('./filename.typegen').Typegen[0],
+const machine = model.createMachine<import('./filename.typegen').Typegen[0]>({
+  tsTypes: true,
   initial: 'a',
   states: {
     a: {
@@ -162,7 +164,7 @@ const machine = model.createMachine({
 6. Add a second parameter into the `createMachine` call - this is where you implement the actions, services, guards and delays for the machine.
 
 ```ts
-const machine = model.createMachine(
+const machine = model.createMachine<import('./filename.typegen').Typegen[0]>(
   {
     // Config here
   },
@@ -226,36 +228,6 @@ Named actions/services/guards allow for:
 - Easier-to-understand code
 - Overrides in `useMachine`, or `machine.withConfig`
 
-#### Use createModel
-
-The example above uses `createModel`. If you don't use `createModel`, you can still get the Typescript goodness:
-
-```ts
-interface Context {
-  value: string;
-}
-
-type Event =
-  | {
-      type: 'FOO';
-    }
-  | {
-      type: 'BAR';
-    };
-
-const machine = createMachine<
-  Context,
-  Event,
-  any,
-  // When using this method, you need to pass (and maintain) the generic manually
-  import('./filename.typegen').Typegen[0]
->({
-  types: {} as import('./filename.typegen').Typegen[0]
-});
-```
-
-A future update to our VSCode extension may make this easier, but if it's possible for you to use `createModel`, we recommend you do so.
-
 #### Typing onDone/onError functions
 
 You can use the generated types to specify the result of `onDone` and `onError` events. You can specify them like this:
@@ -288,7 +260,7 @@ type Event =
 
 We recommend you commit the generated files (`filename.typegen.ts`) to the repository. We currently don't have a way to generate the files en masse on a CI, for instance via a CLI. This is our next job.
 
-If you want to remove the generated file, just remove the `types` attribute from your machine and it'll stop being generated.
+If you want to remove the generated file, just remove the `tsTypes` attribute from your machine and it'll stop being generated.
 
 ::: warning
 The VSCode extension is still experimental, but will become our recommended Typescript approach in the future. Please try it out!
