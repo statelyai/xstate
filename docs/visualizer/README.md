@@ -74,11 +74,39 @@ In the Visualizer’s settings you can choose from thirteen color themes for the
 
 ### Zoom and pan to get an overview of your statechart
 
-[gif/video with description?]
+<p>
+  <img alt="View controls panel featuring icons for zoom out, zoom in, fit to view, reset canvas, hand tool, and a button with reset label." src="./view-controls.png" style="max-width: 255px"/>
+</p>
+
+The view controls panel helps you navigate around your statechart.
+
+<ul class="icon-list">
+  <li><img alt="Zoom out icon." src="./zoom-out.png"/><strong>Zoom out</strong>. Zoom out of the canvas to view more of your statechart.</li>
+  <li><img alt="Zoom in icon." src="./zoom-in.png"/><strong>Zoom in</strong>. Zoom into the canvas to view details in your statechart.</li>
+  <li><img alt="Fit to view icon." src="./fit-to-view.png"/><strong>Fit to view</strong>. Fit your entire statechart into the available viewing space.</li>
+  <li><img alt="Reset canvas icon." src="./reset-canvas.png"/><strong>Reset canvas</strong>. Reset the statechart’s position to the top left of the viewing space at 100% zoom level.</li>
+  <li><img alt="Hand icon." src="./hand.png"/><strong>Hand tool</strong>. Select the hand tool to enter press and drag mode. Then press, hold and drag to move around the canvas. To exit press and drag mode, deselect the hand tool.</li>
+  <li><img alt="Reset button text." src="./reset.png"/><strong>Reset button</strong>. Reset the statechart’s sequence to its initial state.</li>
+</ul>
 
 ### Keyboard shortcuts and command palette
 
-[screenshot with description?]
+You can use keyboard shortcuts for common Visualizer commands. Find the list of **Keyboard shortcuts** in the Settings.
+
+<img alt="The keyboard shortcuts in the Visualizer settings." src="./keyboard-shortcuts.png" style="max-width: 560px"/>
+
+- <kbd>CMD</kbd> + <kbd>S</kbd> Saves or updates the code in Stately Registry.
+- <kbd>CMD</kbd> + <kbd>Enter</kbd> Visualizes the current editor code.
+- <kbd>CMD</kbd> + <kbd>K</kbd> Show the Command palette.
+- <kbd>Shift</kbd> + <kbd>?</kbd> Show the Command palette.
+
+#### Command palette
+
+Use the <kbd>CMD</kbd> + <kbd>K</kbd> or <kbd>Shift</kbd> + <kbd>?</kbd> keyboard shortcut to show the **command palette**. The command palette gives you quick access to common Visualizer commands.
+
+<img alt="The command palette showing commands for Saves or Updates the code in the Stately Registry and Visualizes the current editor code." src="./command-palette.png" style="max-width: 547px"/>
+
+The command palette will have more commands in the future.
 
 ### And more
 
