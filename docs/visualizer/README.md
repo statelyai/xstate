@@ -15,37 +15,49 @@ As a visual tool, the Visualizer helps developers get an overview of their appli
 - _Save_ your statecharts to the Stately Registry and share them with anybody.
 - _Share_ your statecharts in your team’s documentation with embedded mode and live-updating snapshot images.
 
-## Features
+---
 
 The Visualizer already has many features to help you make your code do more.
 
-### Write and visualize your code _instantly_
+## Write and visualize your code
+
+Write and visualize your code _instantly_
 
 [Tango step-by-step example? Video?]
 
-### Visualize your machines in action in Inspect mode
+## Visualize your machines in action
+
+Visualize your machines in action in Inspect mode
 
 [Tango step-by-step example? Video?]
 
-### Share your machines in your documentation, blogs and anywhere on the web with embed mode
+## Share your machines
+
+Share your machines in your documentation, blogs and anywhere on the web with embed mode
+
+### Embed mode
 
 [Tango step-by-step example? Video?]
 
 Embed mode can be used anywhere you can use iframes.
 
-### Share your machines everywhere with live-updating snapshot images
+### Live-updating snapshot images
+
+Share your machines everywhere with live-updating snapshot images
 
 [Tango step-by-step example? Video?]
 
-### Import existing machines from GitHub gists
+## Import existing machines
+
+Import existing machines from GitHub gists
 
 [screenshot/s with description?]
 
-### Useful error messages
+## Useful error messages
 
 [screenshot with description?]
 
-### Custom themes for the code editor
+## Custom code editor themes
 
 In the Visualizer’s settings you can choose from thirteen color themes for the code editor, including the default **XState Viz** theme.
 
@@ -65,14 +77,14 @@ In the Visualizer’s settings you can choose from thirteen color themes for the
   <li><img alt="Visualizer code editor with Atom One Dark theme." src="./theme-atom-one-dark.png"/><strong>Atom One Dark</strong></li>
 </ul>
 
-#### How to change the code editor’s color theme
+### How to change the code editor’s color theme
 
 1. Go to Settings using the button in the top menubar.
 2. Scroll down to the **Editor Theme** section.
 3. Choose your preferred theme from the dropdown menu.
 4. Go back to the Code view using the **Code** button in the top menubar.
 
-### Zoom and pan to get an overview of your statechart
+## View controls
 
 <p>
   <img alt="View controls panel featuring icons for zoom out, zoom in, fit to view, reset canvas, hand tool, and a button with reset label." src="./view-controls.png" style="max-width: 255px"/>
@@ -91,7 +103,7 @@ The view controls panel helps you navigate around your statechart.
   <li><img alt="Reset button text." src="./reset.png"/><strong>Reset button</strong>. Reset the statechart’s sequence to its initial state.</li>
 </ul>
 
-### Keyboard shortcuts and command palette
+## Keyboard shortcuts and command palette
 
 You can use keyboard shortcuts for common Visualizer commands. Find the list of **Keyboard shortcuts** in the Settings.
 
@@ -104,7 +116,7 @@ You can use keyboard shortcuts for common Visualizer commands. Find the list of 
 - <kbd>CMD</kbd> + <kbd>K</kbd> Show the Command palette.
 - <kbd>Shift</kbd> + <kbd>?</kbd> Show the Command palette.
 
-#### Command palette
+### Command palette
 
 Use the <kbd>CMD</kbd> + <kbd>K</kbd> or <kbd>Shift</kbd> + <kbd>?</kbd> keyboard shortcut to show the **command palette**. The command palette gives you quick access to common Visualizer commands.
 
@@ -112,7 +124,7 @@ Use the <kbd>CMD</kbd> + <kbd>K</kbd> or <kbd>Shift</kbd> + <kbd>?</kbd> keyboar
 
 The command palette will have more commands in the future.
 
-### And more
+## And more…
 
 - Sign in with GitHub
 - Auto-saves locally so you won’t lose your work
