@@ -21,7 +21,7 @@ import {
 } from '../src/actions';
 import { interval, EMPTY } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { fromPromise } from '../src/behaviors';
+import { fromPromise, spawnBehavior } from '../src/behaviors';
 
 describe('spawning machines', () => {
   const todoMachine = Machine({
@@ -461,6 +461,22 @@ describe('communicating with spawned actors', () => {
     });
 
     parentService.start();
+  });
+
+  it('should be possible to send event strings to spawned behavior', () => {
+    expect.assertions(1);
+
+    const actor = spawnBehavior({
+      initialState: null,
+      transition: (state, event: { type: 'test_event' }) => {
+        // event string should be translated to an event object when the behavior is called
+        expect(event).toStrictEqual({ type: 'test_event' });
+
+        return state;
+      }
+    });
+
+    actor.send('test_event');
   });
 });
 

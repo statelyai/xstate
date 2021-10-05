@@ -1,7 +1,7 @@
 import { ActorContext, ActorRef, Behavior, EventObject, Observer } from '.';
 import { doneInvoke, error } from './actions';
 import { toActorRef } from './Actor';
-import { toObserver } from './utils';
+import { toEventObject, toObserver } from './utils';
 
 /**
  * Returns an actor behavior from a reducer and its initial state.
@@ -103,6 +103,7 @@ export function spawnBehavior<TEvent extends EventObject, TEmitted>(
   behavior: Behavior<TEvent, TEmitted>,
   options: SpawnBehaviorOptions = {}
 ): ActorRef<TEvent, TEmitted> {
+  const id = options.id ?? 'anonymous';
   let state = behavior.initialState;
   const observers = new Set<Observer<TEmitted>>();
   const mailbox: TEvent[] = [];
@@ -121,10 +122,10 @@ export function spawnBehavior<TEvent extends EventObject, TEmitted>(
     flushing = false;
   };
 
-  const actor = toActorRef({
-    id: options.id,
-    send: (event: TEvent) => {
-      mailbox.push(event);
+  const actor = toActorRef<TEvent, TEmitted, ActorRef<TEvent, TEmitted>>({
+    id,
+    send: (event) => {
+      mailbox.push(toEventObject(event));
       flush();
     },
     getSnapshot: () => state,
@@ -142,9 +143,9 @@ export function spawnBehavior<TEvent extends EventObject, TEmitted>(
   });
 
   const actorCtx = {
+    id,
     parent: options.parent,
     self: actor,
-    id: options.id || 'anonymous',
     observers
   };
 
