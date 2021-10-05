@@ -114,7 +114,7 @@ The command palette will have more commands in the future.
 
 ### And more
 
-- Login with GitHub
+- Sign in with GitHub
 - Auto-saves locally so you won’t lose your work
 
 ## Upcoming features
