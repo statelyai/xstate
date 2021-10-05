@@ -80,7 +80,7 @@ In the Visualizer’s settings you can choose from thirteen color themes for the
 
 The view controls panel helps you navigate around your statechart.
 
-<div style="position: relative; padding-bottom: 74.79224376731301%; height: 0;"><iframe src="https://www.loom.com/embed/806824c22a97421694f0aa45a74b91e8" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
+<div style="position: relative; padding-bottom: 74.79224376731301%; height: 0; margin: 1rem 0;"><iframe src="https://www.loom.com/embed/806824c22a97421694f0aa45a74b91e8" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
 
 <ul class="icon-list">
   <li><img alt="Zoom out icon." src="./zoom-out.png"/><strong>Zoom out</strong>. Zoom out of the canvas to view more of your statechart.</li>
@@ -97,7 +97,7 @@ You can use keyboard shortcuts for common Visualizer commands. Find the list of 
 
 <img alt="The keyboard shortcuts in the Visualizer settings." src="./keyboard-shortcuts.png" style="max-width: 560px"/>
 
-<div style="position: relative; padding-bottom: 74.79224376731301%; height: 0;"><iframe src="https://www.loom.com/embed/fedfec4a3ad5471d9f72a4c611ea9ee8" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
+<div style="position: relative; padding-bottom: 74.79224376731301%; height: 0; margin: 1rem 0;"><iframe src="https://www.loom.com/embed/fedfec4a3ad5471d9f72a4c611ea9ee8" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
 
 - <kbd>CMD</kbd> + <kbd>S</kbd> Saves or updates the code in Stately Registry.
 - <kbd>CMD</kbd> + <kbd>Enter</kbd> Visualizes the current editor code.
