@@ -9,10 +9,16 @@ The [XState Visualizer](https://stately.ai/viz) is a tool for creating and inspe
 
 As a visual tool, the Visualizer helps developers get an overview of their application logic, as well as making it easy to share and with designers, project managers and the rest of the team.
 
-<iframe src="/viz/embed/7c0ec648-09d6-46fe-a912-fc0e46da5094?mode=full&panel=code&readOnly=1&showOriginalLink=1&controls=1&pan=1&zoom=1"
+<p>
+<iframe src="https://stately.ai/viz/embed/7c0ec648-09d6-46fe-a912-fc0e46da5094?mode=viz&controls=1&pan=1&zoom=1"
 allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"
 sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"
 ></iframe>
+<iframe src="https://stately.ai/viz/embed/7c0ec648-09d6-46fe-a912-fc0e46da5094?mode=panels&panel=code&readOnly=1&showOriginalLink=1"
+allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"
+sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"
+></iframe>
+</p>
 
 - _Write_ your application logic and immediately visualize it.
 - _Save_ your statecharts to the Stately Registry and share them with anybody.
@@ -80,7 +86,7 @@ Copy the code from the text area and paste it wherever you want to embed the mac
 The embedded machine below is [David’s example fetch machine](https://stately.ai/viz/7c0ec648-09d6-46fe-a912-fc0e46da5094) in full mode with an active state panel, no link to the Visualizer, and control buttons enabled with panning and zooming both enabled:
 
 <p>
-<iframe src="/viz/embed/7c0ec648-09d6-46fe-a912-fc0e46da5094?mode=full&panel=state&readOnly=1&showOriginalLink=0&controls=1&pan=1&zoom=1"
+<iframe src="https://stately.ai/viz/embed/7c0ec648-09d6-46fe-a912-fc0e46da5094?mode=full&panel=state&readOnly=1&showOriginalLink=0&controls=1&pan=1&zoom=1"
 allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"
 sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"
 ></iframe>
