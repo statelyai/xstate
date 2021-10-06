@@ -375,7 +375,6 @@ describe('useInterpret', () => {
     function App() {
       useInterpret(machine, {
         actions: {
-          // it's important to use `event` here somehow to make this a possible source of information for inference
           fooAction: assign((_context, _event) => {
             ((_accept: 'FOO') => {})(_event.type);
           })
