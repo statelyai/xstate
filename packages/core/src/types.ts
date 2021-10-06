@@ -1530,6 +1530,45 @@ export type InterpreterFrom<
   ? Interpreter<TContext, TStateSchema, TEvent, TTypestate, TResolvedTypesMeta>
   : never;
 
+export type MachineOptionsFrom<
+  T extends
+    | StateMachine<any, any, any, any>
+    | ((...args: any[]) => StateMachine<any, any, any, any>),
+  TRequireMissingImplementations extends boolean = false
+> = T extends StateMachine<
+  infer TContext,
+  any,
+  infer TEvent,
+  any,
+  any,
+  infer TResolvedTypesMeta
+>
+  ? MaybeTypegenMachineOptions<
+      TContext,
+      TEvent,
+      any,
+      TResolvedTypesMeta,
+      TRequireMissingImplementations
+    >
+  : T extends (
+      ...args: any[]
+    ) => StateMachine<
+      infer TContext,
+      any,
+      infer TEvent,
+      any,
+      any,
+      infer TResolvedTypesMeta
+    >
+  ? MaybeTypegenMachineOptions<
+      TContext,
+      TEvent,
+      any,
+      TResolvedTypesMeta,
+      TRequireMissingImplementations
+    >
+  : never;
+
 export interface ActorContext<TEvent extends EventObject, TEmitted> {
   parent?: ActorRef<any, any>;
   self: ActorRef<TEvent, TEmitted>;
