@@ -9,7 +9,10 @@ The [XState Visualizer](https://stately.ai/viz) is a tool for creating and inspe
 
 As a visual tool, the Visualizer helps developers get an overview of their application logic, as well as making it easy to share and with designers, project managers and the rest of the team.
 
-[Video introducing the viz basics]
+<iframe src="/viz/embed/7c0ec648-09d6-46fe-a912-fc0e46da5094?mode=full&panel=code&readOnly=1&showOriginalLink=1&controls=1&pan=1&zoom=1"
+allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"
+sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"
+></iframe>
 
 - _Write_ your application logic and immediately visualize it.
 - _Save_ your statecharts to the Stately Registry and share them with anybody.
@@ -25,9 +28,11 @@ Write and visualize your code _instantly_
 
 [Tango step-by-step example? Video?]
 
+- Use the
+
 ## Visualize your machines in action
 
-Visualize your machines in action in Inspect mode
+TODO: Visualize your machines in action in Inspect mode.
 
 [Tango step-by-step example? Video?]
 
@@ -41,14 +46,10 @@ There are multiple ways you can share your machines with your team and across th
 
 The share menu contains four options:
 
-1. **[Copy link](#copy-link)**. Copy the Visualizer URL for the machine.
+1. **Copy link**. Copy the Visualizer URL for the machine.
 2. **[Twitter](#twitter-link)**. Composes a tweet with a link to the machine.
 3. **[Copy Image URL](#live-updating-snapshot-images)**. Copies a URL for a snapshot image of the machine.
 4. **[Embed](#embed-mode)**. Creates an embeddable iframe containing the machine.
-
-### Copy link
-
-The Copy link option in the share menu copies the machine’s Visualizer URL to your clipboard.
 
 ### Twitter link
 
@@ -89,7 +90,7 @@ You can choose from a number of options for your embedded machine:
 
 #### Mode option
 
-The default mode is “viz”.
+The default mode is **viz**.
 
 - **viz**: Show only the Visualizer in the embedded iframe.
 - **panels**: Show only the **Code**, **State**, **Events** and **Actors** panels in the embedded iframe.
@@ -111,7 +112,15 @@ Import existing machines from GitHub gists
 
 ## Useful error messages
 
-[screenshot with description?]
+The Visualizer has descriptive error messages to help you understand and correct the issue when your code can’t be visualized.
+
+<p>
+  <img alt="Error message reading “',' expected.”." src="./syntax-error.png" style="max-width: 310px"/>
+  <img alt="Error message reading “Invalid transition definition for state node 'fetch.failure': Child state 'load' does not exist on 'fetch'”." src="./transition-error.png" style="max-width: 570px"/>
+  <img alt="Error message reading “Unable to evaluate guard 'notImplemented' in transition for event in state node '(machine)': ((intermediate value)(intermediate value)(intermediate value) || t.predicate is not a function”." src="./guard-error.png" style="max-width: 570px"/>
+</p>
+
+The error will fade away after 4 seconds. Refresh the page to view the error again.
 
 ## Custom code editor themes
 
