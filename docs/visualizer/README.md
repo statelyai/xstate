@@ -33,19 +33,75 @@ Visualize your machines in action in Inspect mode
 
 ## Share your machines
 
-Share your machines in your documentation, blogs and anywhere on the web with embed mode
+There are multiple ways you can share your machines with your team and across the web.
 
-### Embed mode
+<p>
+<img alt="Share dropdown menu with options to Copy link, Twitter, Copy image URL and Embed." src="./share-menu.png" style="max-width: 655px"/>
+</p>
 
-[Tango step-by-step example? Video?]
+The share menu contains four options:
 
-Embed mode can be used anywhere you can use iframes.
+1. **[Copy link](#copy-link)**. Copy the Visualizer URL for the machine.
+2. **[Twitter](#twitter-link)**. Composes a tweet with a link to the machine.
+3. **[Copy Image URL](#live-updating-snapshot-images)**. Copies a URL for a snapshot image of the machine.
+4. **[Embed](#embed-mode)**. Creates an embeddable iframe containing the machine.
+
+### Copy link
+
+The Copy link option in the share menu copies the machine’s Visualizer URL to your clipboard.
+
+### Twitter link
+
+The Twitter link option in the share menu composes a tweet with a link to the machine’s Visualizer URL.
+
+<p>
+<img alt="Composed tweet with the text “Check out the state machine I built in the @statelyai visualizer”, and a link to the machine." src="./tweet.png" style="max-width: 666px"/>
+</p>
 
 ### Live-updating snapshot images
 
-Share your machines everywhere with live-updating snapshot images
+The Copy Image URL option in the share menu copies the URL for the image of the machine to your clipboard. The image is a snapshot of the machine, and will update with any changes to your machine.
+
+The image below is a snapshot of [David’s example fetch machine](https://stately.ai/viz/7c0ec648-09d6-46fe-a912-fc0e46da5094).
+
+![Statechart for a fetch machine.](https://stately.ai/registry/machines/7c0ec648-09d6-46fe-a912-fc0e46da5094.png)
 
 [Tango step-by-step example? Video?]
+
+### Embed mode
+
+The Embed option in the share menu opens an options panel for an embeddable iframe of the machine.
+
+Copy the code from the text area and paste it wherever you want to embed the machine. The machine can be embedded anywhere you can use iframes.
+
+[Tango step-by-step example? Video?]
+
+The embedded machine below is [David’s example fetch machine](https://stately.ai/viz/7c0ec648-09d6-46fe-a912-fc0e46da5094) in full mode with an active state panel, no link to the Visualizer, and control buttons enabled with panning and zooming both enabled:
+
+<p>
+<iframe src="/viz/embed/7c0ec648-09d6-46fe-a912-fc0e46da5094?mode=full&panel=state&readOnly=1&showOriginalLink=0&controls=1&pan=1&zoom=1"
+allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"
+sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"
+></iframe>
+</p>
+
+You can choose from a number of options for your embedded machine:
+
+#### Mode option
+
+The default mode is “viz”.
+
+- **viz**: Show only the Visualizer in the embedded iframe.
+- **panels**: Show only the **Code**, **State**, **Events** and **Actors** panels in the embedded iframe.
+- **full**: Show both the Visualizer and the **Code**, **State**, **Events** and **Actors** panels in the embedded iframe.
+
+#### Show control buttons option
+
+In **viz** and **full** modes, there are further options to show the control buttons for the Visualizer. When **show control buttons** is selected, there are additional options to **Allow panning** and **Allow zooming**. If these options are not selected, the buttons will be visible but disabled.
+
+#### Panel options
+
+In **panels** and **full** modes, there are further options to select the **active panel**, make the Editor readonly, and show the original link to the Visualizer.
 
 ## Import existing machines
 
