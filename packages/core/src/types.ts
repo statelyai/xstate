@@ -886,11 +886,11 @@ export interface StateMachine<
 
 export type StateFrom<
   T extends
-    | StateMachine<any, any, any, any>
-    | ((...args: any[]) => StateMachine<any, any, any, any>)
-> = T extends StateMachine<any, any, any>
+    | StateMachine<any, any, any, any, any, any>
+    | ((...args: any[]) => StateMachine<any, any, any, any, any, any>)
+> = T extends StateMachine<any, any, any, any, any, any>
   ? ReturnType<T['transition']>
-  : T extends (...args: any[]) => StateMachine<any, any, any>
+  : T extends (...args: any[]) => StateMachine<any, any, any, any, any, any>
   ? ReturnType<ReturnType<T>['transition']>
   : never;
 
@@ -1459,12 +1459,16 @@ export type SpawnedActorRef<
 export type ActorRefWithDeprecatedState<
   TContext,
   TEvent extends EventObject,
-  TTypestate extends Typestate<TContext>
-> = ActorRef<TEvent, State<TContext, TEvent, any, TTypestate>> & {
+  TTypestate extends Typestate<TContext>,
+  TResolvedTypesMeta = TypegenDisabled
+> = ActorRef<
+  TEvent,
+  State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta>
+> & {
   /**
    * @deprecated Use `.getSnapshot()` instead.
    */
-  state: State<TContext, TEvent, any, TTypestate>;
+  state: State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta>;
 };
 
 export type ActorRefFrom<T> = T extends StateMachine<
@@ -1476,8 +1480,20 @@ export type ActorRefFrom<T> = T extends StateMachine<
   ? ActorRefWithDeprecatedState<TContext, TEvent, TTypestate>
   : T extends (
       ...args: any[]
-    ) => StateMachine<infer TContext, any, infer TEvent, infer TTypestate>
-  ? ActorRefWithDeprecatedState<TContext, TEvent, TTypestate>
+    ) => StateMachine<
+      infer TContext,
+      any,
+      infer TEvent,
+      infer TTypestate,
+      any,
+      infer TResolvedTypesMeta
+    >
+  ? ActorRefWithDeprecatedState<
+      TContext,
+      TEvent,
+      TTypestate,
+      TResolvedTypesMeta
+    >
   : T extends Promise<infer U>
   ? ActorRef<never, U>
   : T extends Behavior<infer TEvent1, infer TEmitted>
@@ -1496,18 +1512,22 @@ export type InterpreterFrom<
   infer TContext,
   infer TStateSchema,
   infer TEvent,
-  infer TTypestate
+  infer TTypestate,
+  any,
+  infer TResolvedTypesMeta
 >
-  ? Interpreter<TContext, TStateSchema, TEvent, TTypestate>
+  ? Interpreter<TContext, TStateSchema, TEvent, TTypestate, TResolvedTypesMeta>
   : T extends (
       ...args: any[]
     ) => StateMachine<
       infer TContext,
       infer TStateSchema,
       infer TEvent,
-      infer TTypestate
+      infer TTypestate,
+      any,
+      infer TResolvedTypesMeta
     >
-  ? Interpreter<TContext, TStateSchema, TEvent, TTypestate>
+  ? Interpreter<TContext, TStateSchema, TEvent, TTypestate, TResolvedTypesMeta>
   : never;
 
 export interface ActorContext<TEvent extends EventObject, TEmitted> {
