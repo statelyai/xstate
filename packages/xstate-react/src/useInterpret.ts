@@ -15,7 +15,7 @@ import {
   MaybeTypegenMachineOptions,
   BaseActionObject
 } from 'xstate';
-import { MaybeLazy } from './types';
+import { MaybeLazy, NoInfer } from './types';
 import useConstant from './useConstant';
 import { UseMachineOptions } from './useMachine';
 import { useReactEffectActions } from './useReactEffectActions';
@@ -66,7 +66,7 @@ export function useInterpret<
           UseMachineOptions<TContext, TEvent> &
           MaybeTypegenMachineOptions<
             TContext,
-            TEvent,
+            NoInfer<TEvent>,
             BaseActionObject,
             TResolvedTypesMeta,
             true
@@ -100,7 +100,7 @@ export function useInterpret<
           UseMachineOptions<TContext, TEvent> &
           MaybeTypegenMachineOptions<
             TContext,
-            TEvent,
+            NoInfer<TEvent>,
             BaseActionObject,
             TResolvedTypesMeta
           >,

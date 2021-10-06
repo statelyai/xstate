@@ -143,6 +143,39 @@ describe('useMachine', () => {
 
     render(<App />);
   });
+
+  it('should accept a machine that accepts a specific subset of events in one of the implementations', () => {
+    interface TypesMeta extends TypegenMeta {
+      missingImplementations: {
+        actions: never;
+        services: never;
+        guards: never;
+        delays: never;
+      };
+      eventsCausingActions: {
+        fooAction: 'FOO';
+      };
+    }
+
+    const machine = createMachine({
+      tsTypes: {} as TypesMeta,
+      schema: {
+        events: {} as { type: 'FOO' } | { type: 'BAR' }
+      }
+    });
+
+    function App() {
+      useMachine(machine, {
+        actions: {
+          // it's important to use `event` here somehow to make this a possible source of information for inference
+          fooAction: (_context, _event) => {}
+        }
+      });
+      return null;
+    }
+
+    render(<App />);
+  });
 });
 
 describe('useInterpret', () => {
@@ -278,6 +311,39 @@ describe('useInterpret', () => {
         },
         delays: {
           barDelay: () => 100
+        }
+      });
+      return null;
+    }
+
+    render(<App />);
+  });
+
+  it('should accept a machine that accepts a specific subset of events in one of the implementations', () => {
+    interface TypesMeta extends TypegenMeta {
+      missingImplementations: {
+        actions: never;
+        services: never;
+        guards: never;
+        delays: never;
+      };
+      eventsCausingActions: {
+        fooAction: 'FOO';
+      };
+    }
+
+    const machine = createMachine({
+      tsTypes: {} as TypesMeta,
+      schema: {
+        events: {} as { type: 'FOO' } | { type: 'BAR' }
+      }
+    });
+
+    function App() {
+      useInterpret(machine, {
+        actions: {
+          // it's important to use `event` here somehow to make this a possible source of information for inference
+          fooAction: (_context, _event) => {}
         }
       });
       return null;

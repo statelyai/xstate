@@ -8,6 +8,8 @@ import {
 
 export type MaybeLazy<T> = T | (() => T);
 
+export type NoInfer<T> = [T][T extends any ? 0 : any];
+
 export enum ReactEffectType {
   Effect = 1,
   LayoutEffect = 2

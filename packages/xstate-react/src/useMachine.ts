@@ -14,7 +14,12 @@ import {
   TypegenDisabled,
   Typestate
 } from 'xstate';
-import { MaybeLazy, ReactActionFunction, ReactEffectType } from './types';
+import {
+  MaybeLazy,
+  NoInfer,
+  ReactActionFunction,
+  ReactEffectType
+} from './types';
 import { useInterpret } from './useInterpret';
 
 function createReactActionFunction<TContext, TEvent extends EventObject>(
@@ -85,7 +90,7 @@ export function useMachine<
           UseMachineOptions<TContext, TEvent> &
           MaybeTypegenMachineOptions<
             TContext,
-            TEvent,
+            NoInfer<TEvent>,
             BaseActionObject,
             TResolvedTypesMeta,
             true
@@ -106,7 +111,7 @@ export function useMachine<
           UseMachineOptions<TContext, TEvent> &
           MaybeTypegenMachineOptions<
             TContext,
-            TEvent,
+            NoInfer<TEvent>,
             BaseActionObject,
             TResolvedTypesMeta
           >
