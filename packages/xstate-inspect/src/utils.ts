@@ -23,7 +23,8 @@ export function isReceiverEvent(event: any): event is ReceiverEvent {
     if (
       typeof event === 'object' &&
       'type' in event &&
-      (event.type as string).startsWith('service.')
+      ((event.type as string).startsWith('service.') ||
+        (event.type as string).startsWith('xstate.'))
     ) {
       return true;
     }
