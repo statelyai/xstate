@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { createMachine, TypegenMeta } from 'xstate';
+import { assign, createMachine, TypegenMeta } from 'xstate';
 import { render } from '@testing-library/react';
 import { useMachine, useInterpret } from '../src';
 
@@ -344,6 +344,41 @@ describe('useInterpret', () => {
         actions: {
           // it's important to use `event` here somehow to make this a possible source of information for inference
           fooAction: (_context, _event) => {}
+        }
+      });
+      return null;
+    }
+
+    render(<App />);
+  });
+
+  it('Should allow for inference inside an assign function passed into options', () => {
+    interface TypesMeta extends TypegenMeta {
+      missingImplementations: {
+        actions: never;
+        services: never;
+        guards: never;
+        delays: never;
+      };
+      eventsCausingActions: {
+        fooAction: 'FOO';
+      };
+    }
+
+    const machine = createMachine({
+      tsTypes: {} as TypesMeta,
+      schema: {
+        events: {} as { type: 'FOO' } | { type: 'BAR' }
+      }
+    });
+
+    function App() {
+      useInterpret(machine, {
+        actions: {
+          // it's important to use `event` here somehow to make this a possible source of information for inference
+          fooAction: assign((_context, _event) => {
+            ((_accept: 'FOO') => {})(_event.type);
+          })
         }
       });
       return null;
