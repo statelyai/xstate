@@ -866,7 +866,6 @@ describe('State', () => {
         }
       });
 
-      console.log(machine.initialState.context);
 
       expect(() => {
         const { initialState } = machine;
