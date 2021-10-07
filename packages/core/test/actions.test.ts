@@ -1777,3 +1777,9 @@ describe('types', () => {
     });
   });
 });
+
+describe('action meta', () => {
+  it.todo(
+    'base action objects should have meta.action as the same base action object'
+  );
+});
