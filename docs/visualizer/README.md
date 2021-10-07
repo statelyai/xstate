@@ -74,8 +74,6 @@ The image below is a snapshot of [David’s example fetch machine](https://state
 
 ![Statechart for a fetch machine.](https://stately.ai/registry/machines/7c0ec648-09d6-46fe-a912-fc0e46da5094.png)
 
-[Tango step-by-step example? Video?]
-
 ### Embed mode
 
 The Embed option in the share menu opens an options panel for an embeddable iframe of the machine.
@@ -117,11 +115,9 @@ Found a useful machine in [the Registry](https://stately.ai/registry)?
 
 You can fork the machine, using the **Fork** button, or <kbd>CMD</kbd> + <kbd>S</kbd>, and make it work for your own uses.
 
-## Import existing machines
+<!-- ## Import existing machines
 
-Import existing machines from GitHub gists
-
-[screenshot/s with description?]
+Import existing machines from GitHub gists -->
 
 ## Useful error messages
 
