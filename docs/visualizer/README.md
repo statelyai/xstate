@@ -32,15 +32,16 @@ The Visualizer already has many features to help you make your code do more.
 
 Write and visualize your code _instantly_
 
-[Tango step-by-step example? Video?]
+<div style="position: relative; padding-bottom: 74.68879668049793%; height: 0;"><iframe src="https://www.loom.com/embed/f614f08d1a77478c8377aa2686cef06e" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
 
-- Use the
+1. Use the code editor in the **Code** tab to write your machine code.
+2. Press **Visualize** to visualize your machine.
 
-## Visualize your machines in action
+<!-- ## Visualize your machines in action
 
 TODO: Visualize your machines in action in Inspect mode.
 
-[Tango step-by-step example? Video?]
+[Tango step-by-step example? Video?] -->
 
 ## Share your machines
 
@@ -81,7 +82,7 @@ The Embed option in the share menu opens an options panel for an embeddable ifra
 
 Copy the code from the text area and paste it wherever you want to embed the machine. The machine can be embedded anywhere you can use iframes.
 
-[Tango step-by-step example? Video?]
+<div style="position: relative; padding-bottom: 74.68879668049793%; height: 0;"><iframe src="https://www.loom.com/embed/82da5f9ce99444a9849cbdbb55942468" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
 
 The embedded machine below is [David’s example fetch machine](https://stately.ai/viz/7c0ec648-09d6-46fe-a912-fc0e46da5094) in full mode with an active state panel, no link to the Visualizer, and control buttons enabled with panning and zooming both enabled:
 
@@ -169,7 +170,7 @@ In the Visualizer’s settings you can choose from thirteen color themes for the
 
 The view controls panel helps you navigate around your statechart.
 
-<div style="position: relative; padding-bottom: 74.79224376731301%; height: 0; margin: 1rem 0;"><iframe src="https://www.loom.com/embed/806824c22a97421694f0aa45a74b91e8" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
+<div style="position: relative; padding-bottom: 74.79224376731301%; height: 0;"><iframe src="https://www.loom.com/embed/806824c22a97421694f0aa45a74b91e8" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
 
 <ul class="icon-list">
   <li><img alt="Zoom out icon." src="./zoom-out.png"/><strong>Zoom out</strong>. Zoom out of the canvas to view more of your statechart.</li>
@@ -184,9 +185,9 @@ The view controls panel helps you navigate around your statechart.
 
 You can use keyboard shortcuts for common Visualizer commands. Find the list of **Keyboard shortcuts** in the Settings.
 
-<img alt="The keyboard shortcuts in the Visualizer settings." src="./keyboard-shortcuts.png" style="max-width: 560px"/>
+<p><img alt="The keyboard shortcuts in the Visualizer settings." src="./keyboard-shortcuts.png" style="max-width: 560px"/></p>
 
-<div style="position: relative; padding-bottom: 74.79224376731301%; height: 0; margin: 1rem 0;"><iframe src="https://www.loom.com/embed/fedfec4a3ad5471d9f72a4c611ea9ee8" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
+<div style="position: relative; padding-bottom: 74.79224376731301%; height: 0;"><iframe src="https://www.loom.com/embed/fedfec4a3ad5471d9f72a4c611ea9ee8" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
 
 - <kbd>CMD</kbd> + <kbd>S</kbd> Saves or updates the code in Stately Registry.
 - <kbd>CMD</kbd> + <kbd>Enter</kbd> Visualizes the current editor code.
@@ -197,7 +198,7 @@ You can use keyboard shortcuts for common Visualizer commands. Find the list of 
 
 Use the <kbd>CMD</kbd> + <kbd>K</kbd> or <kbd>Shift</kbd> + <kbd>?</kbd> keyboard shortcut to show the **command palette**. The command palette gives you quick access to common Visualizer commands.
 
-<img alt="The command palette showing commands for Saves or Updates the code in the Stately Registry and Visualizes the current editor code." src="./command-palette.png" style="max-width: 547px"/>
+<p><img alt="The command palette showing commands for Saves or Updates the code in the Stately Registry and Visualizes the current editor code." src="./command-palette.png" style="max-width: 547px"/></p>
 
 The command palette will have more commands in the future.
 
