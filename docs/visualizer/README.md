@@ -110,6 +110,12 @@ In **viz** and **full** modes, there are further options to show the control but
 
 In **panels** and **full** modes, there are further options to select the **active panel**, make the Editor readonly, and show the original link to the Visualizer.
 
+## Fork existing machines
+
+Found a useful machine in [the Registry](https://stately.ai/registry)?
+
+You can fork the machine, using the **Fork** button, or <kbd>CMD</kbd> + <kbd>S</kbd>, and make it work for your own uses.
+
 ## Import existing machines
 
 Import existing machines from GitHub gists
