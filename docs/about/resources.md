@@ -140,8 +140,8 @@ Explore a collection of professionally-designed state machines and statecharts i
 ## Videos
 - [▶️ You're a Wizard Form, Harry (Infobip Shift)](https://www.youtube.com/watch?v=0bY9_DasGEg) by [Erik Rasmussen](https://github.com/erikras) on 2021-09-08
 - [▶️ Making Application Logic Visually Collaborative (Infobip Shift)](https://www.youtube.com/watch?v=ubFj_QfNCL8) by [David Khourshid](https://github.com/davidkpiano) on 2021-09-07 ![Stately member](/docs/stately.png)
-- [▶️ The Actor Model: a new mental model for React (React Finland)](https://www.youtube.com/watch?v=9k1ZHHJWt7k) by [Farzad Yousefzadeh](https://github.com/farskid) on 2020-01-24 ![Stately member](/docs/stately.png)
-- [▶️ Make legacy code delightful with statecharts (React Finland)](https://www.youtube.com/watch?v=zll9uDQOOq0) by [Matt Pocock](https://twitter.com/mpocock1) on 2021-02-04 ![Stately member](/docs/stately.png)
+- [▶️ The Actor Model: a new mental model for React (React Finland)](https://www.youtube.com/watch?v=9k1ZHHJWt7k) by [Farzad Yousefzadeh](https://github.com/farskid) on 2021-01-09 ![Stately member](/docs/stately.png)
+- [▶️ Make legacy code delightful with statecharts (React Finland)](https://www.youtube.com/watch?v=zll9uDQOOq0) by [Matt Pocock](https://twitter.com/mpocock1) on 2021-01-09 ![Stately member](/docs/stately.png)
 - [▶️ Introducing state machines and statecharts (React Finland)](https://www.youtube.com/watch?v=Y_lOg-rsqBM) by [Laura Kalbag](https://github.com/LauraKalbag) on 2021-01-09 ![Stately member](/docs/stately.png)
 - [▶️ The State of XState (React Finland)](https://www.youtube.com/watch?v=Q05jcu9N98g) on 2021-08-30 by [David Khourshid](https://github.com/davidkpiano) ![Stately member](/docs/stately.png)
 - [▶️ Splitting the view and the brains in JS — state machines with XState (in French)](https://www.youtube.com/watch?v=yRB57CDvQuY) by [Aurelien Meunier](https://www.linkedin.com/in/aumeunier) on 2021-06-22
@@ -204,7 +204,7 @@ Explore a collection of professionally-designed state machines and statecharts i
 - [▶️ XState and State Machines in Vue](https://tallpad.com/series/xstate-misc/episode/1)
 - [▶️ Standing on the Shoulders of Giants. Development with XState](https://www.youtube.com/watch?v=GuzcWkVrqLg) by Brad Woods on 2019-09-11
   - [Slides and more](https://www.atlassian.com/atlascamp/watch-sessions/2019/advanced-app-development/standing-on-the-shoulders-of-giants-development-with-xstate)
-- [▶️ Infinitely Better UIs with Finite Automata (React Rally)](https://www.youtube.com/watch?v=VU1NKX6Qkxc) by [David Khourshid](https://github.com/davidkpiano) ![Stately member](/docs/stately.png)
+- [▶️ Infinitely Better UIs with Finite Automata (React Rally)](https://www.youtube.com/watch?v=VU1NKX6Qkxc) by [David Khourshid](https://github.com/davidkpiano) on 2017-08-25 ![Stately member](/docs/stately.png)
 
 ## Repositories
 
