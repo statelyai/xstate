@@ -140,9 +140,9 @@ Explore a collection of professionally-designed state machines and statecharts i
 ## Videos
 - [▶️ You're a Wizard Form, Harry (Infobip Shift)](https://www.youtube.com/watch?v=0bY9_DasGEg) by [Erik Rasmussen](https://github.com/erikras) on 2021-09-08
 - [▶️ Making Application Logic Visually Collaborative (Infobip Shift)](https://www.youtube.com/watch?v=ubFj_QfNCL8) by [David Khourshid](https://github.com/davidkpiano) on 2021-09-07 ![Stately member](/docs/stately.png)
-- [▶️ The Actor Model: a new mental model for React (React Finland)](https://www.youtube.com/watch?v=9k1ZHHJWt7k) by [Farzad Yousefzadeh](https://github.com/farskid) on 2021-01-09 ![Stately member](/docs/stately.png)
-- [▶️ Make legacy code delightful with statecharts (React Finland)](https://www.youtube.com/watch?v=zll9uDQOOq0) by [Matt Pocock](https://twitter.com/mpocock1) on 2021-01-09 ![Stately member](/docs/stately.png)
-- [▶️ Introducing state machines and statecharts (React Finland)](https://www.youtube.com/watch?v=Y_lOg-rsqBM) by [Laura Kalbag](https://github.com/LauraKalbag) on 2021-01-09 ![Stately member](/docs/stately.png)
+- [▶️ The Actor Model: a new mental model for React (React Finland)](https://www.youtube.com/watch?v=9k1ZHHJWt7k) by [Farzad Yousefzadeh](https://github.com/farskid) on 2021-09-01 ![Stately member](/docs/stately.png)
+- [▶️ Make legacy code delightful with statecharts (React Finland)](https://www.youtube.com/watch?v=zll9uDQOOq0) by [Matt Pocock](https://twitter.com/mpocock1) on 2021-09-01 ![Stately member](/docs/stately.png)
+- [▶️ Introducing state machines and statecharts (React Finland)](https://www.youtube.com/watch?v=Y_lOg-rsqBM) by [Laura Kalbag](https://github.com/LauraKalbag) on 2021-09-01 ![Stately member](/docs/stately.png)
 - [▶️ The State of XState (React Finland)](https://www.youtube.com/watch?v=Q05jcu9N98g) on 2021-08-30 by [David Khourshid](https://github.com/davidkpiano) ![Stately member](/docs/stately.png)
 - [▶️ Splitting the view and the brains in JS — state machines with XState (in French)](https://www.youtube.com/watch?v=yRB57CDvQuY) by [Aurelien Meunier](https://www.linkedin.com/in/aumeunier) on 2021-06-22
 - [▶️ Front-end state management with XState](https://www.youtube.com/watch?v=Slb6M_rIn0M) by [Amy Pellegrini](https://twitter.com/amyvpellegrini) on 2021-06-09
