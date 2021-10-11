@@ -176,6 +176,43 @@ describe('useMachine', () => {
 
     render(<App />);
   });
+
+  it('should provide subset of the event type to action objects given in the `options` argument', () => {
+    interface TypesMeta extends TypegenMeta {
+      missingImplementations: {
+        actions: never;
+        services: never;
+        guards: never;
+        delays: never;
+      };
+      eventsCausingActions: {
+        fooAction: 'FOO';
+      };
+    }
+
+    const machine = createMachine({
+      tsTypes: {} as TypesMeta,
+      schema: {
+        events: {} as { type: 'FOO' } | { type: 'BAR' }
+      }
+    });
+
+    function App() {
+      // it doesn't work with inference at the moment
+      useMachine<typeof machine>(machine, {
+        actions: {
+          fooAction: assign((_context, _event) => {
+            ((_accept: 'FOO') => {})(_event.type);
+            // @ts-expect-error
+            ((_accept: "test that this isn't any") => {})(_event.type);
+          })
+        }
+      });
+      return null;
+    }
+
+    render(<App />);
+  });
 });
 
 describe('useInterpret', () => {
@@ -352,7 +389,7 @@ describe('useInterpret', () => {
     render(<App />);
   });
 
-  it('Should allow for inference inside an assign function passed into options', () => {
+  it('should provide subset of the event type to action objects given in the `options` argument', () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
         actions: never;
@@ -373,10 +410,13 @@ describe('useInterpret', () => {
     });
 
     function App() {
-      useInterpret(machine, {
+      // it doesn't work with inference at the moment
+      useInterpret<typeof machine>(machine, {
         actions: {
           fooAction: assign((_context, _event) => {
             ((_accept: 'FOO') => {})(_event.type);
+            // @ts-expect-error
+            ((_accept: "test that this isn't any") => {})(_event.type);
           })
         }
       });

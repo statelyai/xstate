@@ -2,20 +2,16 @@ import { useState } from 'react';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 import {
   interpret,
-  EventObject,
   StateMachine,
   State,
-  Interpreter,
+  InterpreterFrom,
   InterpreterOptions,
-  Typestate,
   Observer,
-  TypegenConstraint,
-  TypegenDisabled,
   AreAllImplementationsAssumedToBeProvided,
   MaybeTypegenMachineOptions,
   BaseActionObject
 } from 'xstate';
-import { MaybeLazy, NoInfer } from './types';
+import { MaybeLazy } from './types';
 import useConstant from './useConstant';
 import { UseMachineOptions } from './useMachine';
 import { useReactEffectActions } from './useReactEffectActions';
@@ -40,33 +36,21 @@ function toObserver<T>(
   };
 }
 
-export function useInterpret<
-  TContext,
-  TEvent extends EventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext },
-  TResolvedTypesMeta extends TypegenConstraint = TypegenDisabled
->(
-  ...[
-    getMachine,
-    options = {},
-    observerOrListener
-  ]: AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
+type RestParams<TMachine> = TMachine extends StateMachine<
+  infer TContext,
+  any,
+  infer TEvent,
+  infer TTypestate,
+  any,
+  infer TResolvedTypesMeta
+>
+  ? AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
     ? [
-        getMachine: MaybeLazy<
-          StateMachine<
-            TContext,
-            any,
-            TEvent,
-            TTypestate,
-            any,
-            TResolvedTypesMeta
-          >
-        >,
         options: InterpreterOptions &
           UseMachineOptions<TContext, TEvent> &
           MaybeTypegenMachineOptions<
             TContext,
-            NoInfer<TEvent>,
+            TEvent,
             BaseActionObject,
             TResolvedTypesMeta,
             true
@@ -86,21 +70,11 @@ export function useInterpret<
             ) => void)
       ]
     : [
-        getMachine: MaybeLazy<
-          StateMachine<
-            TContext,
-            any,
-            TEvent,
-            TTypestate,
-            any,
-            TResolvedTypesMeta
-          >
-        >,
         options?: InterpreterOptions &
           UseMachineOptions<TContext, TEvent> &
           MaybeTypegenMachineOptions<
             TContext,
-            NoInfer<TEvent>,
+            TEvent,
             BaseActionObject,
             TResolvedTypesMeta
           >,
@@ -118,7 +92,14 @@ export function useInterpret<
               >
             ) => void)
       ]
-): Interpreter<TContext, any, TEvent, TTypestate, TResolvedTypesMeta> {
+  : never;
+
+export function useInterpret<
+  TMachine extends StateMachine<any, any, any, any, any, any>
+>(
+  getMachine: MaybeLazy<TMachine>,
+  ...[options = {}, observerOrListener]: RestParams<TMachine>
+): InterpreterFrom<TMachine> {
   const machine = useConstant(() => {
     return typeof getMachine === 'function' ? getMachine() : getMachine;
   });

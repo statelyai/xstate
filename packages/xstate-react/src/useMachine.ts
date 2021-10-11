@@ -4,22 +4,15 @@ import {
   AreAllImplementationsAssumedToBeProvided,
   BaseActionObject,
   EventObject,
-  Interpreter,
+  InterpreterFrom,
   InterpreterOptions,
   MaybeTypegenMachineOptions,
   State,
   StateConfig,
-  StateMachine,
-  TypegenConstraint,
-  TypegenDisabled,
-  Typestate
+  StateFrom,
+  StateMachine
 } from 'xstate';
-import {
-  MaybeLazy,
-  NoInfer,
-  ReactActionFunction,
-  ReactEffectType
-} from './types';
+import { MaybeLazy, Prop, ReactActionFunction, ReactEffectType } from './types';
 import { useInterpret } from './useInterpret';
 
 function createReactActionFunction<TContext, TEvent extends EventObject>(
@@ -65,87 +58,70 @@ export interface UseMachineOptions<TContext, TEvent extends EventObject> {
   state?: StateConfig<TContext, TEvent>;
 }
 
-export function useMachine<
-  TContext,
-  TEvent extends EventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext },
-  TResolvedTypesMeta extends TypegenConstraint = TypegenDisabled
->(
-  ...[
-    getMachine,
-    options = {}
-  ]: AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
+type RestParams<TMachine> = TMachine extends StateMachine<
+  infer TContext,
+  any,
+  infer TEvent,
+  any,
+  any,
+  infer TResolvedTypesMeta
+>
+  ? AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
     ? [
-        getMachine: MaybeLazy<
-          StateMachine<
-            TContext,
-            any,
-            TEvent,
-            TTypestate,
-            any,
-            TResolvedTypesMeta
-          >
-        >,
         options: InterpreterOptions &
           UseMachineOptions<TContext, TEvent> &
           MaybeTypegenMachineOptions<
             TContext,
-            NoInfer<TEvent>,
+            TEvent,
             BaseActionObject,
             TResolvedTypesMeta,
             true
           >
       ]
     : [
-        getMachine: MaybeLazy<
-          StateMachine<
-            TContext,
-            any,
-            TEvent,
-            TTypestate,
-            any,
-            TResolvedTypesMeta
-          >
-        >,
         options?: InterpreterOptions &
           UseMachineOptions<TContext, TEvent> &
           MaybeTypegenMachineOptions<
             TContext,
-            NoInfer<TEvent>,
+            TEvent,
             BaseActionObject,
             TResolvedTypesMeta
           >
       ]
-): [
-  State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta>,
-  Interpreter<TContext, any, TEvent, TTypestate, TResolvedTypesMeta>['send'],
-  Interpreter<TContext, any, TEvent, TTypestate, TResolvedTypesMeta>
-] {
-  const listener = useCallback(
-    (nextState: State<TContext, TEvent, any, TTypestate>) => {
-      // Only change the current state if:
-      // - the incoming state is the "live" initial state (since it might have new actors)
-      // - OR the incoming state actually changed.
-      //
-      // The "live" initial state will have .changed === undefined.
-      const initialStateChanged =
-        nextState.changed === undefined &&
-        Object.keys(nextState.children).length;
+  : never;
 
-      if (nextState.changed || initialStateChanged) {
-        setState(nextState);
-      }
-    },
-    []
-  );
+type UseMachineReturn<
+  TMachine extends StateMachine<any, any, any, any, any, any>,
+  TInterpreter = InterpreterFrom<TMachine>
+> = [StateFrom<TMachine>, Prop<TInterpreter, 'send'>, TInterpreter];
 
-  const service = useInterpret(getMachine as any, options, listener);
+export function useMachine<
+  TMachine extends StateMachine<any, any, any, any, any, any>
+>(
+  getMachine: MaybeLazy<TMachine>,
+  ...[options = {}]: RestParams<TMachine>
+): UseMachineReturn<TMachine> {
+  const listener = useCallback((nextState: StateFrom<TMachine>) => {
+    // Only change the current state if:
+    // - the incoming state is the "live" initial state (since it might have new actors)
+    // - OR the incoming state actually changed.
+    //
+    // The "live" initial state will have .changed === undefined.
+    const initialStateChanged =
+      nextState.changed === undefined && Object.keys(nextState.children).length;
+
+    if (nextState.changed || initialStateChanged) {
+      setState(nextState);
+    }
+  }, []);
+
+  const service = useInterpret(getMachine as any, options as any, listener);
 
   const [state, setState] = useState(() => {
     const { initialState } = service.machine;
     return (options.state
       ? State.create(options.state)
-      : initialState) as State<TContext, TEvent, any, TTypestate>;
+      : initialState) as StateFrom<TMachine>;
   });
 
   return [state, service.send, service] as any;
