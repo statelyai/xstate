@@ -9,5 +9,5 @@ This aligns actors that are spawned from behavior with actors that are spawned f
 const actor = spawnBehavior(/* ... */);
 
 actor.send('test'); // Will be converted to an event object {type: "test"}
-actor.send({ ŧype: 'test' }); // Continuous to work as before
+actor.send({ type: 'test' }); // Continues to work as before
 ```
