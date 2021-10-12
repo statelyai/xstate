@@ -103,7 +103,7 @@ export function spawnBehavior<TEvent extends EventObject, TEmitted>(
   behavior: Behavior<TEvent, TEmitted>,
   options: SpawnBehaviorOptions = {}
 ): ActorRef<TEvent, TEmitted> {
-  const id = options.id ?? 'anonymous';
+  const id = options.id || 'anonymous';
   let state = behavior.initialState;
   const observers = new Set<Observer<TEmitted>>();
   const mailbox: TEvent[] = [];

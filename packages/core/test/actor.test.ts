@@ -469,7 +469,6 @@ describe('communicating with spawned actors', () => {
     const actor = spawnBehavior({
       initialState: null,
       transition: (state, event: { type: 'test_event' }) => {
-        // event string should be translated to an event object when the behavior is called
         expect(event).toStrictEqual({ type: 'test_event' });
 
         return state;

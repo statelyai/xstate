@@ -1403,7 +1403,7 @@ export type ExtractEvent<
 > = TEvent extends { type: TEventType } ? TEvent : never;
 
 export interface BaseActorRef<TEvent extends EventObject> {
-  send: Sender<TEvent>;
+  send: (event: TEvent) => void;
 }
 
 export interface ActorRef<TEvent extends EventObject, TEmitted = any>
