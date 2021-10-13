@@ -46,7 +46,7 @@ export function log<
         type: action.type,
         params: {
           label,
-          value: isString(expr) ? expr : expr(ctx, _event.data, { _event })
+          value: typeof expr === 'function' ? expr(ctx, _event.data, { _event }) : expr
         }
       } as LogActionObject;
     }
