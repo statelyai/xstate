@@ -57,8 +57,7 @@
       "./behaviors.ts",
       "./model.ts",
       "./guards.ts",
-      "./dev/index.ts",
-      "./model.ts"
+      "./dev/index.ts"
     ]
   }
 }
