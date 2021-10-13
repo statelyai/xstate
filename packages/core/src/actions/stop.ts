@@ -25,7 +25,7 @@ export function stop<
   StopActionObject,
   DynamicStopActionObject<TContext, TEvent>['params']
 > {
-  const actor = isFunction(actorRef) ? actorRef : actorRef;
+  const actor = actorRef;
 
   return new DynamicAction(
     stopActionType,
