@@ -45,7 +45,4 @@ export class ExecutableAction<
   public setContext(context: TContext) {
     this.context = context;
   }
-  public setExec(exec: ActionFunction<TContext, TEvent>) {
-    this._exec = exec;
-  }
 }
