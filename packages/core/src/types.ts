@@ -1085,19 +1085,6 @@ export interface AnyAssignAction extends BaseActionObject {
   assignment: any;
 }
 
-// export interface DynamicAssignAction<
-//   TContext extends MachineContext,
-//   TEvent extends EventObject
-// > extends BaseDynamicActionObject<
-//     TContext,
-//     TEvent,
-//     AssignActionObject<TContext>
-//   > {
-//   type: ActionTypes.Assign;
-//   params: {
-//     assignment: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent>;
-//   };
-// }
 
 export type DynamicAssignAction<
   TContext extends MachineContext,
