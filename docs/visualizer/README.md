@@ -10,7 +10,7 @@ The [XState Visualizer](https://stately.ai/viz) is a tool for creating and inspe
 As a visual tool, the Visualizer helps developers get an overview of their application logic, as well as making it easy to share and with designers, project managers and the rest of the team.
 
 <p>
-<iframe src="https://stately.ai/viz/embed/7c0ec648-09d6-46fe-a912-fc0e46da5094?mode=viz&controls=1&pan=1&zoom=1"
+<iframe src="https://stately.ai/viz/embed/7c0ec648-09d6-46fe-a912-fc0e46da5094?mode=viz&panel=code&readOnly=1&showOriginalLink=1&controls=0&pan=0&zoom=0"
 allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"
 sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"
 ></iframe>
@@ -113,7 +113,7 @@ In **panels** and **full** modes, there are further options to select the **acti
 
 Found a useful machine in [the Registry](https://stately.ai/registry)?
 
-You can fork the machine, using the **Fork** button, or <kbd>CMD</kbd> + <kbd>S</kbd>, and make it work for your own uses.
+You can fork the machine, using the **Fork** button, and make it work for your own uses.
 
 <!-- ## Import existing machines
 
@@ -129,7 +129,7 @@ The Visualizer has descriptive error messages to help you understand and correct
   <img alt="Error message reading “Unable to evaluate guard 'notImplemented' in transition for event in state node '(machine)': ((intermediate value)(intermediate value)(intermediate value) || t.predicate is not a function”." src="./guard-error.png" style="max-width: 570px"/>
 </p>
 
-The error will fade away after 4 seconds. Refresh the page to view the error again.
+The error will fade away after 4 seconds. Press **Visualize** to view the error again.
 
 ## Custom code editor themes
 
@@ -185,7 +185,7 @@ You can use keyboard shortcuts for common Visualizer commands. Find the list of 
 
 <div style="position: relative; padding-bottom: 74.79224376731301%; height: 0;"><iframe src="https://www.loom.com/embed/fedfec4a3ad5471d9f72a4c611ea9ee8" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
 
-- <kbd>CMD</kbd> + <kbd>S</kbd> Saves or updates the code in Stately Registry.
+- <kbd>CMD</kbd> + <kbd>S</kbd> Saves or updates the code in [Stately Registry](https://stately.ai/registry).
 - <kbd>CMD</kbd> + <kbd>Enter</kbd> Visualizes the current editor code.
 - <kbd>CMD</kbd> + <kbd>K</kbd> Show the Command palette.
 - <kbd>Shift</kbd> + <kbd>?</kbd> Show the Command palette.
