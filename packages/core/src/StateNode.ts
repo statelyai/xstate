@@ -523,7 +523,8 @@ class StateNode<
       order: this.order || -1,
       data: this.doneData,
       invoke: this.invoke,
-      description: this.description
+      description: this.description,
+      tags: this.tags
     };
   }
 
