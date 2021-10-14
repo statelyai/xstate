@@ -139,23 +139,9 @@ describe('useSelector', () => {
   });
 
   it('should work with selecting values from initially spawned actors', () => {
-    const spawnedMachine = createMachine<{ count: number }>({
-      id: 'spawned',
-      initial: 'inactive',
+    const childMachine = createMachine<{ count: number }>({
       context: {
         count: 0
-      },
-      states: {
-        inactive: {
-          on: {
-            TOGGLE: 'active'
-          }
-        },
-        active: {
-          on: {
-            TOGGLE: 'inactive'
-          }
-        }
       },
       on: {
         UPDATE_COUNT: {
@@ -166,23 +152,17 @@ describe('useSelector', () => {
       }
     });
 
-    const toggleMachine = createMachine({
-      id: 'toggle',
-      initial: 'idle',
-      states: {
-        idle: {
-          entry: assign({
-            childActor: () => {
-              return spawn(spawnedMachine, 'spawnedMachine');
-            }
-          })
-        }
-      }
+    const parentMachine = createMachine({
+      entry: assign({
+        childActor: () => spawn(childMachine)
+      })
     });
 
     const selector = (state) => state.context.count;
 
-    const ChildComponent = ({ actor }) => {
+    const App = () => {
+      const [state] = useMachine(parentMachine);
+      const actor = state.context.childActor;
       const count = useSelector(actor, selector);
 
       return (
@@ -195,12 +175,6 @@ describe('useSelector', () => {
           />
         </>
       );
-    };
-
-    const App = () => {
-      const [state] = useMachine(toggleMachine);
-
-      return <ChildComponent actor={state.context.childActor} />;
     };
 
     const { getByTestId } = render(<App />);
