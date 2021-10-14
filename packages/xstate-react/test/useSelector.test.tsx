@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { assign, createMachine, spawn } from 'xstate';
+import { toActorRef } from 'xstate/lib/Actor';
 import { render, cleanup, fireEvent } from '@testing-library/react';
 import { useInterpret, useMachine, useSelector } from '../src';
 
@@ -187,6 +188,46 @@ describe('useSelector', () => {
     expect(countEl.textContent).toEqual('1');
   });
 
+  // doesn't work because initially the actor is "deferred"
+  it.skip('should render custom snapshot of initially spawned custom actor', () => {
+    const createActor = (latestValue: string) => ({
+      ...toActorRef({
+        send: () => {},
+        subscribe: () => {
+          return { unsubscribe: () => {} };
+        }
+      }),
+      latestValue
+    });
+
+    const parentMachine = createMachine({
+      entry: assign({
+        childActor: () => spawn(createActor('foo'))
+      })
+    });
+
+    const identitySelector = (value: any) => value;
+    const getSnapshot = (actor: ReturnType<typeof createActor>) =>
+      actor.latestValue;
+
+    const App = () => {
+      const [state] = useMachine(parentMachine);
+      const actor = state.context.childActor;
+
+      const value = useSelector(
+        actor,
+        identitySelector,
+        undefined,
+        getSnapshot
+      );
+
+      return <>{value}</>;
+    };
+
+    const { container } = render(<App />);
+    expect(container.textContent).toEqual('foo');
+  });
+
   it('should rerender with a new value when the selector changes', () => {
     const childMachine = createMachine<{ count: number }>({
       context: {
@@ -274,5 +315,80 @@ describe('useSelector', () => {
     fireEvent.click(buttonEl);
 
     expect(valueEl.textContent).toEqual('second 1');
+  });
+
+  it("should render snapshot value when actor doesn't emit anything", () => {
+    const createActor = (latestValue: string) => ({
+      ...toActorRef({
+        send: () => {},
+        subscribe: () => {
+          return { unsubscribe: () => {} };
+        }
+      }),
+      latestValue
+    });
+
+    const parentMachine = createMachine({
+      entry: assign({
+        childActor: () => spawn(createActor('foo'))
+      })
+    });
+
+    const identitySelector = (value: any) => value;
+    const getSnapshot = (actor: ReturnType<typeof createActor>) =>
+      actor.latestValue;
+
+    const App = () => {
+      const [state] = useMachine(parentMachine);
+      const actor = state.context.childActor;
+
+      const value = useSelector(
+        actor,
+        identitySelector,
+        undefined,
+        getSnapshot
+      );
+
+      return <>{value}</>;
+    };
+
+    const { container } = render(<App />);
+    expect(container.textContent).toEqual('foo');
+  });
+
+  it('should render snapshot state when actor changes', () => {
+    const createActor = (latestValue: string) => ({
+      ...toActorRef({
+        send: () => {},
+        subscribe: () => {
+          return { unsubscribe: () => {} };
+        }
+      }),
+      latestValue
+    });
+
+    const actor1 = createActor('foo');
+    const actor2 = createActor('bar');
+
+    const identitySelector = (value: any) => value;
+    const getSnapshot = (actor: ReturnType<typeof createActor>) =>
+      actor.latestValue;
+
+    const App = ({ prop }: { prop: string }) => {
+      const value = useSelector(
+        prop === 'first' ? actor1 : actor2,
+        identitySelector,
+        undefined,
+        getSnapshot
+      );
+
+      return <>{value}</>;
+    };
+
+    const { container, rerender } = render(<App prop="first" />);
+    expect(container.textContent).toEqual('foo');
+
+    rerender(<App prop="second" />);
+    expect(container.textContent).toEqual('bar');
   });
 });
