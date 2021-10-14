@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useMemo } from 'react';
+import { useSubscription } from 'use-subscription';
 import { ActorRef, Interpreter, Subscribable } from 'xstate';
 import { isActorWithState } from './useActor';
 import { getServiceSnapshot } from './useService';
@@ -25,27 +26,28 @@ export function useSelector<
   compare: (a: T, b: T) => boolean = defaultCompare,
   getSnapshot: (a: TActor) => TEmitted = defaultGetSnapshot
 ) {
-  const [selected, setSelected] = useState(() => selector(getSnapshot(actor)));
-  const selectedRef = useRef<T>(selected);
+  const subscription = useMemo(() => {
+    let current = selector(getSnapshot(actor));
 
-  const updateSelectedIfChanged = (nextSelected: T) => {
-    if (!compare(selectedRef.current, nextSelected)) {
-      setSelected(nextSelected);
-      selectedRef.current = nextSelected;
-    }
-  };
+    return {
+      getCurrentValue: () => current,
+      subscribe: (callback) => {
+        const sub = actor.subscribe((emitted) => {
+          const next = selector(emitted);
+          if (!compare(current, next)) {
+            current = next;
+            callback();
+          }
+        });
+        return () => {
+          sub.unsubscribe();
+        };
+      }
+    };
+    // intentionally omit `getSnapshot` as it is only supposed to read the "initial" snapshot of an actor
+  }, [actor, selector, compare]);
 
-  useEffect(() => {
-    const sub = actor.subscribe((emitted) => {
-      updateSelectedIfChanged(selector(emitted));
-    });
-
-    return () => sub.unsubscribe();
-  }, [actor]);
-
-  useEffect(() => {
-    updateSelectedIfChanged(selectedRef.current);
-  }, [selector, compare]);
+  const selected = useSubscription(subscription);
 
   return selected;
 }
