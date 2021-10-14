@@ -411,7 +411,7 @@ describe('useInterpret', () => {
 
     function App() {
       // it doesn't work with inference at the moment
-      useInterpret<typeof machine>(machine, {
+      useInterpret(machine, {
         actions: {
           fooAction: assign((_context, _event) => {
             ((_accept: 'FOO') => {})(_event.type);

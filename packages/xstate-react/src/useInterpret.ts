@@ -36,63 +36,76 @@ function toObserver<T>(
   };
 }
 
-type RestParams<TMachine> = TMachine extends StateMachine<
-  infer TContext,
-  any,
-  infer TEvent,
-  infer TTypestate,
-  any,
-  infer TResolvedTypesMeta
->
-  ? AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
-    ? [
-        options: InterpreterOptions &
-          UseMachineOptions<TContext, TEvent> &
-          MaybeTypegenMachineOptions<
-            TContext,
-            TEvent,
-            BaseActionObject,
-            TResolvedTypesMeta,
-            true
-          >,
-        observerOrListener?:
-          | Observer<
-              State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta>
+type RestParams<
+  TMachine extends StateMachine<any, any, any, any, any, any>
+> = AreAllImplementationsAssumedToBeProvided<
+  NonNullable<TMachine['__TResolvedTypesMeta']>
+> extends false
+  ? [
+      options: InterpreterOptions &
+        UseMachineOptions<
+          NonNullable<TMachine['__TContext']>,
+          NonNullable<TMachine['__TEvent']>
+        > &
+        MaybeTypegenMachineOptions<
+          NonNullable<TMachine['__TContext']>,
+          NonNullable<TMachine['__TEvent']>,
+          BaseActionObject,
+          NonNullable<TMachine['__TResolvedTypesMeta']>,
+          true
+        >,
+      observerOrListener?:
+        | Observer<
+            State<
+              NonNullable<TMachine['__TContext']>,
+              NonNullable<TMachine['__TEvent']>,
+              any,
+              NonNullable<TMachine['__TTypestate']>,
+              NonNullable<TMachine['__TResolvedTypesMeta']>
             >
-          | ((
-              value: State<
-                TContext,
-                TEvent,
-                any,
-                TTypestate,
-                TResolvedTypesMeta
-              >
-            ) => void)
-      ]
-    : [
-        options?: InterpreterOptions &
-          UseMachineOptions<TContext, TEvent> &
-          MaybeTypegenMachineOptions<
-            TContext,
-            TEvent,
-            BaseActionObject,
-            TResolvedTypesMeta
-          >,
-        observerOrListener?:
-          | Observer<
-              State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta>
+          >
+        | ((
+            value: State<
+              NonNullable<TMachine['__TContext']>,
+              NonNullable<TMachine['__TEvent']>,
+              any,
+              NonNullable<TMachine['__TTypestate']>,
+              NonNullable<TMachine['__TResolvedTypesMeta']>
             >
-          | ((
-              value: State<
-                TContext,
-                TEvent,
-                any,
-                TTypestate,
-                TResolvedTypesMeta
-              >
-            ) => void)
-      ]
-  : never;
+          ) => void)
+    ]
+  : [
+      options?: InterpreterOptions &
+        UseMachineOptions<
+          NonNullable<TMachine['__TContext']>,
+          NonNullable<TMachine['__TEvent']>
+        > &
+        MaybeTypegenMachineOptions<
+          NonNullable<TMachine['__TContext']>,
+          NonNullable<TMachine['__TEvent']>,
+          BaseActionObject,
+          NonNullable<TMachine['__TResolvedTypesMeta']>
+        >,
+      observerOrListener?:
+        | Observer<
+            State<
+              NonNullable<TMachine['__TContext']>,
+              NonNullable<TMachine['__TEvent']>,
+              any,
+              NonNullable<TMachine['__TTypestate']>,
+              NonNullable<TMachine['__TResolvedTypesMeta']>
+            >
+          >
+        | ((
+            value: State<
+              NonNullable<TMachine['__TContext']>,
+              NonNullable<TMachine['__TEvent']>,
+              any,
+              NonNullable<TMachine['__TTypestate']>,
+              NonNullable<TMachine['__TResolvedTypesMeta']>
+            >
+          ) => void)
+    ];
 
 export function useInterpret<
   TMachine extends StateMachine<any, any, any, any, any, any>

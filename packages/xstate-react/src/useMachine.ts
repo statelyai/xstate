@@ -58,37 +58,38 @@ export interface UseMachineOptions<TContext, TEvent extends EventObject> {
   state?: StateConfig<TContext, TEvent>;
 }
 
-type RestParams<TMachine> = TMachine extends StateMachine<
-  infer TContext,
-  any,
-  infer TEvent,
-  any,
-  any,
-  infer TResolvedTypesMeta
->
-  ? AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
-    ? [
-        options: InterpreterOptions &
-          UseMachineOptions<TContext, TEvent> &
-          MaybeTypegenMachineOptions<
-            TContext,
-            TEvent,
-            BaseActionObject,
-            TResolvedTypesMeta,
-            true
-          >
-      ]
-    : [
-        options?: InterpreterOptions &
-          UseMachineOptions<TContext, TEvent> &
-          MaybeTypegenMachineOptions<
-            TContext,
-            TEvent,
-            BaseActionObject,
-            TResolvedTypesMeta
-          >
-      ]
-  : never;
+type RestParams<
+  TMachine extends StateMachine<any, any, any, any, any, any>
+> = AreAllImplementationsAssumedToBeProvided<
+  NonNullable<TMachine['__TResolvedTypesMeta']>
+> extends false
+  ? [
+      options: InterpreterOptions &
+        UseMachineOptions<
+          NonNullable<TMachine['__TContext']>,
+          NonNullable<TMachine['__TEvent']>
+        > &
+        MaybeTypegenMachineOptions<
+          NonNullable<TMachine['__TContext']>,
+          NonNullable<TMachine['__TEvent']>,
+          BaseActionObject,
+          NonNullable<TMachine['__TResolvedTypesMeta']>,
+          true
+        >
+    ]
+  : [
+      options?: InterpreterOptions &
+        UseMachineOptions<
+          NonNullable<TMachine['__TContext']>,
+          NonNullable<TMachine['__TEvent']>
+        > &
+        MaybeTypegenMachineOptions<
+          NonNullable<TMachine['__TContext']>,
+          NonNullable<TMachine['__TEvent']>,
+          BaseActionObject,
+          NonNullable<TMachine['__TResolvedTypesMeta']>
+        >
+    ];
 
 type UseMachineReturn<
   TMachine extends StateMachine<any, any, any, any, any, any>,
