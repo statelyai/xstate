@@ -212,4 +212,93 @@ describe('useSelector', () => {
     fireEvent.click(buttonEl);
     expect(countEl.textContent).toEqual('1');
   });
+
+  it('should rerender with a new value when the selector changes', () => {
+    const childMachine = createMachine<{ count: number }>({
+      context: {
+        count: 0
+      },
+      on: {
+        INC: {
+          actions: assign({
+            count: (ctx) => ctx.count + 1
+          })
+        }
+      }
+    });
+
+    const parentMachine = createMachine({
+      entry: assign({
+        childActor: () => spawn(childMachine)
+      })
+    });
+
+    const App = ({ prop }: { prop: string }) => {
+      const [state] = useMachine(parentMachine);
+      const actor = state.context.childActor;
+      const value = useSelector(
+        actor,
+        (state) => `${prop} ${state.context.count}`
+      );
+
+      return <div data-testid="value">{value}</div>;
+    };
+
+    const { container, rerender } = render(<App prop="first" />);
+
+    expect(container.textContent).toEqual('first 0');
+
+    rerender(<App prop="second" />);
+    expect(container.textContent).toEqual('second 0');
+  });
+
+  it('should use a fresh selector for subscription updates after selector change', () => {
+    const childMachine = createMachine<{ count: number }>({
+      context: {
+        count: 0
+      },
+      on: {
+        INC: {
+          actions: assign({
+            count: (ctx) => ctx.count + 1
+          })
+        }
+      }
+    });
+
+    const parentMachine = createMachine({
+      entry: assign({
+        childActor: () => spawn(childMachine)
+      })
+    });
+
+    const App = ({ prop }: { prop: string }) => {
+      const [state] = useMachine(parentMachine);
+      const actor = state.context.childActor;
+      const value = useSelector(
+        actor,
+        (state) => `${prop} ${state.context.count}`
+      );
+
+      return (
+        <>
+          <div data-testid="value">{value}</div>
+
+          <button onClick={() => actor.send({ type: 'INC' })} />
+        </>
+      );
+    };
+
+    const { getByTestId, getByRole, rerender } = render(<App prop="first" />);
+
+    const buttonEl = getByRole('button');
+    const valueEl = getByTestId('value');
+
+    expect(valueEl.textContent).toEqual('first 0');
+
+    rerender(<App prop="second" />);
+    fireEvent.click(buttonEl);
+
+    expect(valueEl.textContent).toEqual('second 1');
+  });
 });
