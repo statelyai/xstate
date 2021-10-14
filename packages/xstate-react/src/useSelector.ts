@@ -28,23 +28,23 @@ export function useSelector<
   const [selected, setSelected] = useState(() => selector(getSnapshot(actor)));
   const selectedRef = useRef<T>(selected);
 
+  const updateSelectedIfChanged = (nextSelected: T) => {
+    if (!compare(selectedRef.current, nextSelected)) {
+      setSelected(nextSelected);
+      selectedRef.current = nextSelected;
+    }
+  };
+
   useEffect(() => {
-    const updateSelectedIfChanged = (nextSelected: T) => {
-      if (!compare(selectedRef.current, nextSelected)) {
-        setSelected(nextSelected);
-        selectedRef.current = nextSelected;
-      }
-    };
-
-    const initialSelected = selector(getSnapshot(actor));
-    updateSelectedIfChanged(initialSelected);
-
     const sub = actor.subscribe((emitted) => {
-      const nextSelected = selector(emitted);
-      updateSelectedIfChanged(nextSelected);
+      updateSelectedIfChanged(selector(emitted));
     });
 
     return () => sub.unsubscribe();
+  }, [actor]);
+
+  useEffect(() => {
+    updateSelectedIfChanged(selectedRef.current);
   }, [selector, compare]);
 
   return selected;
