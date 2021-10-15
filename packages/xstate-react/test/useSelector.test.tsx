@@ -391,4 +391,43 @@ describe('useSelector', () => {
     rerender(<App prop="second" />);
     expect(container.textContent).toEqual('bar');
   });
+
+  it.only("should keep rendering a new selected value after selector change when the actor doesn't emit", async () => {
+    const actor = {
+      ...toActorRef({
+        send: () => {},
+        subscribe: () => {
+          return { unsubscribe: () => {} };
+        }
+      }),
+      value1: 'foo',
+      value2: 'bar'
+    };
+
+    const App = ({ selector }: { selector: any }) => {
+      const [, forceRerender] = React.useState(0);
+      const value = useSelector(actor, selector);
+
+      return (
+        <>
+          {value}
+          <button
+            type="button"
+            onClick={() => forceRerender((s) => s + 1)}
+          ></button>
+        </>
+      );
+    };
+
+    const { container, rerender, findByRole } = render(
+      <App selector={() => 'foo'} />
+    );
+    expect(container.textContent).toEqual('foo');
+
+    rerender(<App selector={() => 'bar'} />);
+    expect(container.textContent).toEqual('bar');
+
+    fireEvent.click(await findByRole('button'));
+    expect(container.textContent).toEqual('bar');
+  });
 });
