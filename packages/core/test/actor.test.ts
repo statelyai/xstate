@@ -477,6 +477,22 @@ describe('communicating with spawned actors', () => {
 
     actor.send('test_event');
   });
+
+  it('should produce a type error if a string is sent for an event with payload', () => {
+    const actor = spawnBehavior<
+      { type: 'test'; other: number } | { type: 'test2' },
+      null
+    >({
+      initialState: null,
+      transition: (state) => state
+    });
+
+    // Works because "test2" does not expect a payload
+    actor.send('test2');
+
+    // @ts-expect-error "test" expects a payload
+    actor.send('test');
+  });
 });
 
 describe('actors', () => {

@@ -259,6 +259,14 @@ export interface ActivityDefinition<TContext, TEvent extends EventObject>
 
 export type Sender<TEvent extends EventObject> = (event: Event<TEvent>) => void;
 
+/**
+ * Restrictive {@link Sender} that prevents the string shorthand from being
+ * usable when the event contains a payload.
+ */
+export type RestrictiveSender<TEvent extends EventObject> = (
+  event: TEvent | ExtractWithSimpleSupport<TEvent>['type']
+) => void;
+
 type ExcludeType<A> = { [K in Exclude<keyof A, 'type'>]: A[K] };
 
 type ExtractExtraParameters<A, T> = A extends { type: T }
@@ -1408,7 +1416,7 @@ export interface BaseActorRef<TEvent extends EventObject> {
 
 export interface ActorRef<TEvent extends EventObject, TEmitted = any>
   extends Subscribable<TEmitted> {
-  send: Sender<TEvent>; // TODO: this should just be TEvent
+  send: RestrictiveSender<TEvent>; // TODO: this should just be TEvent
   id: string;
   getSnapshot: () => TEmitted | undefined;
   stop?: () => void;
