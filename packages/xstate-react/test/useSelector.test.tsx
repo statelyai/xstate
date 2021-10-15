@@ -392,16 +392,14 @@ describe('useSelector', () => {
     expect(container.textContent).toEqual('bar');
   });
 
-  it.only("should keep rendering a new selected value after selector change when the actor doesn't emit", async () => {
+  it("should keep rendering a new selected value after selector change when the actor doesn't emit", async () => {
     const actor = {
       ...toActorRef({
         send: () => {},
         subscribe: () => {
           return { unsubscribe: () => {} };
         }
-      }),
-      value1: 'foo',
-      value2: 'bar'
+      })
     };
 
     const App = ({ selector }: { selector: any }) => {

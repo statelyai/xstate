@@ -32,12 +32,17 @@ export function useSelector<
   const subscription = useMemo(() => {
     let snapshot = getSnapshot(actor);
     let current = selector(snapshot);
+    let notifySubscriber: () => void;
 
     return {
       getSnapshot: () => snapshot,
       getCurrentValue: () => current,
-      setCurrentValue: (newCurrent: typeof current) => (current = newCurrent),
+      setCurrentValue: (newCurrent: typeof current) => {
+        current = newCurrent;
+        notifySubscriber?.();
+      },
       subscribe: (callback) => {
+        notifySubscriber = callback;
         const sub = actor.subscribe((emitted) => {
           snapshot = emitted;
 
