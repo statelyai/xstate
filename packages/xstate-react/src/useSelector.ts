@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { useSubscription } from 'use-subscription';
+import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 import { ActorRef, Interpreter, Subscribable } from 'xstate';
 import { isActorWithState } from './useActor';
 import { getServiceSnapshot } from './useService';
@@ -26,14 +27,21 @@ export function useSelector<
   compare: (a: T, b: T) => boolean = defaultCompare,
   getSnapshot: (a: TActor) => TEmitted = defaultGetSnapshot
 ) {
+  const latestSelectorRef = useRef(selector);
+
   const subscription = useMemo(() => {
-    let current = selector(getSnapshot(actor));
+    let snapshot = getSnapshot(actor);
+    let current = selector(snapshot);
 
     return {
+      getSnapshot: () => snapshot,
       getCurrentValue: () => current,
+      setCurrentValue: (newCurrent: typeof current) => (current = newCurrent),
       subscribe: (callback) => {
         const sub = actor.subscribe((emitted) => {
-          const next = selector(emitted);
+          snapshot = emitted;
+
+          const next = latestSelectorRef.current(emitted);
           if (!compare(current, next)) {
             current = next;
             callback();
@@ -44,10 +52,26 @@ export function useSelector<
         };
       }
     };
-    // intentionally omit `getSnapshot` as it is only supposed to read the "initial" snapshot of an actor
-  }, [actor, selector, compare]);
+    // intentionally omit `getSnapshot` and `compare`
+    // - `getSnapshot`: it is only supposed to read the "initial" snapshot of an actor
+    // - `compare`: is really supposed to be idempotent and the same throughout the lifetime of this hook (the same assumption is made in React Redux v7)
+  }, [actor]);
 
-  const selected = useSubscription(subscription);
+  let currentSelected = useSubscription(subscription);
 
-  return selected;
+  if (latestSelectorRef.current !== selector) {
+    let selected = selector(subscription.getSnapshot());
+    if (!compare(currentSelected, selected)) {
+      currentSelected = selected;
+    }
+  }
+
+  useIsomorphicLayoutEffect(() => {
+    latestSelectorRef.current = selector;
+    // required so we don't cause a rerender by setting state (this could create infinite rerendering loop with inline selectors)
+    // at the same time we need to update the value within the subscription so new emits can compare against what has been returned to the user as current value
+    subscription.setCurrentValue(currentSelected);
+  });
+
+  return currentSelected;
 }
