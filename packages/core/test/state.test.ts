@@ -840,4 +840,22 @@ describe('State', () => {
       }).toThrowError(/expected error/);
     });
   });
+
+  describe('.hasTag', () => {
+    it('should be able to check a tag after recreating a persisted state', () => {
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            tags: 'foo'
+          }
+        }
+      });
+
+      const persistedState = JSON.stringify(machine.initialState);
+      const restoredState = State.create(JSON.parse(persistedState));
+
+      expect(restoredState.hasTag('foo')).toBe(true);
+    });
+  });
 });

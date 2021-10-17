@@ -143,7 +143,11 @@ const [state, send] = useActor(customActor, (actor) => {
 
 ### `useInterpret(machine, options?, observer?)`
 
-A React hook that returns the `service` created from the `machine` with the `options`, if specified. It also sets up a subscription to the `service` with the `observer`, if provided.
+A React hook that returns the `service` created from the `machine` with the `options`, if specified. It starts the service and runs it for the lifetime of the component. This is similar to `useMachine`; however, `useInterpret` allows for a custom `observer` to subscribe to the `service`.
+
+The `useInterpret` is useful when you want fine-grained control, e.g. to add logging, or minimize re-renders. In contrast to `useMachine` that would flush each update from the machine to the React component, `useInterpret` instead returns a static reference (to just the interpreted machine) which will not rerender when its state changes.
+
+To use a piece of state from the service inside a render, use the `useSelector(...)` hook to subscribe to it.
 
 _Since 1.3.0_
 

@@ -15,7 +15,12 @@ import type {
 } from './types';
 import { matchesState, keys, isString, warn } from './utils';
 import type { StateNode } from './StateNode';
-import { isInFinalState, nextEvents, getMeta } from './stateUtils';
+import {
+  isInFinalState,
+  nextEvents,
+  getMeta,
+  getTagsFromConfiguration
+} from './stateUtils';
 import { initEvent } from './actions';
 import { IS_PRODUCTION } from './environment';
 import type { MachineNode } from '.';
@@ -212,9 +217,11 @@ export class State<
     this.configuration = config.configuration;
     this.transitions = config.transitions;
     this.children = config.children;
-    this.tags =
-      (Array.isArray(config.tags) ? new Set(config.tags) : config.tags) ??
-      new Set();
+    this.tags = config.configuration
+      ? getTagsFromConfiguration(config.configuration)
+      : config.tags
+      ? new Set(config.tags)
+      : new Set();
     this.machine = config.machine;
 
     Object.defineProperty(this, 'nextEvents', {

@@ -1982,3 +1982,9 @@ export function getMeta(configuration: StateNode[] = []): Record<string, any> {
     return acc;
   }, {} as Record<string, any>);
 }
+
+export function getTagsFromConfiguration(
+  configuration: Array<StateNode<any, any>>
+) {
+  return new Set(flatten(configuration.map((sn) => sn.tags)));
+}
