@@ -1,0 +1,10 @@
+{
+  "version": "0.0.0",
+  "scripts": {
+      "start": "node ./src/main.js"
+  },
+  "dependencies": {
+    "xstate": "^4.25.0",
+    "@xstate/inspect": "^0.5.0"
+  }
+}
