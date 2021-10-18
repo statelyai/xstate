@@ -373,7 +373,7 @@ export function toDirectedGraph(
   const graph = {
     id: stateNode.id,
     stateNode,
-    children: getChildren(stateNode).map((sn) => toDirectedGraph(sn)),
+    children: getChildren(stateNode).map((sn) => toDirectedGraph(sn as any)),
     edges,
     toJSON: () => {
       const { id, children, edges: graphEdges } = graph;

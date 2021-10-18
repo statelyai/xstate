@@ -78,6 +78,20 @@ type MergeWithInternalEvents<TIndexedEvents, TInternalEvents> = TIndexedEvents &
   // in theory it would be a single iteration rather than two
   Pick<TInternalEvents, Exclude<keyof TInternalEvents, keyof TIndexedEvents>>;
 
+// type AllowAllEvents<TEvent extends EventObject, TEventType = TEvent['type']> = {
+//   eventsCausingActions: Record<string, TEventType>;
+//   eventsCausingDelays: Record<string, TEventType>;
+//   eventsCausingGuards: Record<string, TEventType>;
+//   eventsCausingServices: Record<string, TEventType>;
+// };
+
+type AllowAllEvents = {
+  eventsCausingActions: Record<string, string>;
+  eventsCausingDelays: Record<string, string>;
+  eventsCausingGuards: Record<string, string>;
+  eventsCausingServices: Record<string, string>;
+};
+
 export type ResolveTypegenMeta<
   TTypesMeta extends TypegenConstraint,
   TEvent extends EventObject,
@@ -90,7 +104,11 @@ export type ResolveTypegenMeta<
         Prop<TTypesMeta, 'internalEvents'>
       >;
     }
-  : TypegenDisabled;
+  : MarkAllImplementationsAsProvided<TypegenDisabled> &
+      AllowAllEvents & {
+        indexedActions: Record<string, BaseActionObject>;
+        indexedEvents: Record<string, IndexByType<TEvent>>;
+      };
 
 export type TypegenMachineOptionsActions<
   TContext,

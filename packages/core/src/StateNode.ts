@@ -302,12 +302,13 @@ class StateNode<
       | Readonly<TContext>
       | (() => Readonly<TContext>) = ('context' in config
       ? (config as StateMachine<TContext, any, TEvent>).context
-      : undefined) as any // TODO: this is unsafe, but we're removing it in v5 anyway
+      : undefined) as any, // TODO: this is unsafe, but we're removing it in v5 anyway
+    _stateInfo?: { parent: StateNode<any, any, any, any, any>; key: string }
   ) {
     this.options = Object.assign(createDefaultOptions<TContext>(), options);
-    this.parent = this.options._parent;
+    this.parent = _stateInfo?.parent;
     this.key =
-      this.config.key || this.options._key || this.config.id || '(machine)';
+      this.config.key || _stateInfo?.key || this.config.id || '(machine)';
     this.machine = this.parent ? this.parent.machine : (this as any);
     this.path = this.parent ? this.parent.path.concat(this.key) : [];
     this.delimiter =
@@ -350,9 +351,9 @@ class StateNode<
       ? mapValues(
           this.config.states,
           (stateConfig: StateNodeConfig<TContext, any, TEvent>, key) => {
-            const stateNode = new StateNode(stateConfig, {
-              _parent: this,
-              _key: key as string
+            const stateNode = new StateNode(stateConfig, {}, undefined, {
+              parent: this,
+              key: key as string
             });
             Object.assign(this.idMap, {
               [stateNode.id]: stateNode,
@@ -1251,7 +1252,7 @@ class StateNode<
       (acc, action) => {
         acc[action.activity.id] = createInvocableActor(
           action.activity,
-          this.machine,
+          this.machine as any,
           updatedContext,
           _event
         );

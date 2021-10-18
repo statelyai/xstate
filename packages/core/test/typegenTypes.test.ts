@@ -851,7 +851,9 @@ describe('typegen types', () => {
       any,
       TypesMeta
     >(
-      {},
+      {
+        tsTypes: {} as TypesMeta
+      },
       {
         actions: {
           actionName: assign((_context, event) => {

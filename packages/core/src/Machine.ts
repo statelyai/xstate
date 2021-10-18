@@ -13,7 +13,6 @@ import {
   Typestate
 } from './types';
 import {
-  MaybeTypegenMachineOptions,
   TypegenConstraint,
   TypegenDisabled,
   ResolveTypegenMeta
@@ -65,7 +64,7 @@ export function createMachine<
   config: TContext extends Model<any, any, any, any>
     ? 'Model type no longer supported as generic type. Please use `model.createMachine(...)` instead.'
     : MachineConfig<TContext, any, TEvent, BaseActionObject, TTypesMeta>,
-  options?: MaybeTypegenMachineOptions<
+  options?: MachineOptions<
     TContext,
     TEvent,
     BaseActionObject,
@@ -93,12 +92,7 @@ export function createMachine<
     ActionObject<TContext, TEvent>,
     TTypesMeta
   >,
-  options?: MaybeTypegenMachineOptions<
-    TContext,
-    TEvent,
-    BaseActionObject,
-    TTypesMeta
-  >
+  options?: MachineOptions<TContext, TEvent, BaseActionObject, TTypesMeta>
 ): StateMachine<
   TContext,
   any,
@@ -109,7 +103,7 @@ export function createMachine<
 > {
   return new StateNode<TContext, any, TEvent, TTypestate>(
     config,
-    options
+    options as any
   ) as StateMachine<
     TContext,
     any,

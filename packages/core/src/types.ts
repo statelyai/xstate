@@ -756,28 +756,175 @@ export type DelayConfig<TContext, TEvent extends EventObject> =
   | number
   | DelayExpr<TContext, TEvent>;
 
-export interface MachineOptions<
+type MachineOptionsActions<
+  TContext,
+  TResolvedTypesMeta,
+  TEventsCausingActions = Prop<TResolvedTypesMeta, 'eventsCausingActions'>,
+  TIndexedEvents = Prop<TResolvedTypesMeta, 'indexedEvents'>,
+  TIndexedActions = Prop<TResolvedTypesMeta, 'indexedActions'>
+> = {
+  [K in keyof TEventsCausingActions]?:
+    | ActionObject<
+        TContext,
+        Cast<Prop<TIndexedEvents, TEventsCausingActions[K]>, EventObject>
+      >
+    | ActionFunction<
+        TContext,
+        Cast<Prop<TIndexedEvents, TEventsCausingActions[K]>, EventObject>,
+        Cast<Prop<TIndexedActions, K>, BaseActionObject>
+      >;
+};
+
+type MachineOptionsDelays<
+  TContext,
+  TResolvedTypesMeta,
+  TEventsCausingDelays = Prop<TResolvedTypesMeta, 'eventsCausingDelays'>,
+  TIndexedEvents = Prop<TResolvedTypesMeta, 'indexedEvents'>
+> = {
+  [K in keyof TEventsCausingDelays]?: DelayConfig<
+    TContext,
+    Cast<Prop<TIndexedEvents, TEventsCausingDelays[K]>, EventObject>
+  >;
+};
+
+type MachineOptionsGuards<
+  TContext,
+  TResolvedTypesMeta,
+  TEventsCausingGuards = Prop<TResolvedTypesMeta, 'eventsCausingGuards'>,
+  TIndexedEvents = Prop<TResolvedTypesMeta, 'indexedEvents'>
+> = {
+  [K in keyof TEventsCausingGuards]?: ConditionPredicate<
+    TContext,
+    Cast<Prop<TIndexedEvents, TEventsCausingGuards[K]>, EventObject>
+  >;
+};
+
+type MachineOptionsServices<
+  TContext,
+  TResolvedTypesMeta,
+  TEventsCausingServices = Prop<TResolvedTypesMeta, 'eventsCausingServices'>,
+  TIndexedEvents = Prop<TResolvedTypesMeta, 'indexedEvents'>,
+  TInvokeSrcNameMap = Prop<TResolvedTypesMeta, 'invokeSrcNameMap'>
+> = {
+  [K in keyof TEventsCausingServices]?: InvokeCreator<
+    TContext,
+    Cast<Prop<TIndexedEvents, TEventsCausingServices[K]>, EventObject>,
+    Prop<Prop<TIndexedEvents, Prop<TInvokeSrcNameMap, K>>, 'data'>
+  >;
+};
+
+type MakeKeysRequired<T extends string> = { [K in T]: unknown };
+
+type MaybeMakeMissingImplementationsRequired<
+  TImplementationType,
+  TMissingImplementationsForType,
+  TRequireMissingImplementations
+> = TRequireMissingImplementations extends true
+  ? IsNever<TMissingImplementationsForType> extends true
+    ? {}
+    : {
+        [K in Cast<TImplementationType, string>]: MakeKeysRequired<
+          Cast<TMissingImplementationsForType, string>
+        >;
+      }
+  : {};
+
+type GenerateActionsConfigPart<
+  TContext,
+  TResolvedTypesMeta,
+  TRequireMissingImplementations,
+  TMissingImplementations
+> = MaybeMakeMissingImplementationsRequired<
+  'actions',
+  Prop<TMissingImplementations, 'actions'>,
+  TRequireMissingImplementations
+> & {
+  actions?: MachineOptionsActions<TContext, TResolvedTypesMeta>;
+};
+
+type GenerateDelaysConfigPart<
+  TContext,
+  TResolvedTypesMeta,
+  TRequireMissingImplementations,
+  TMissingImplementations
+> = MaybeMakeMissingImplementationsRequired<
+  'delays',
+  Prop<TMissingImplementations, 'delays'>,
+  TRequireMissingImplementations
+> & {
+  delays?: MachineOptionsDelays<TContext, TResolvedTypesMeta>;
+};
+
+type GenerateGuardsConfigPart<
+  TContext,
+  TResolvedTypesMeta,
+  TRequireMissingImplementations,
+  TMissingImplementations
+> = MaybeMakeMissingImplementationsRequired<
+  'guards',
+  Prop<TMissingImplementations, 'guards'>,
+  TRequireMissingImplementations
+> & {
+  guards?: MachineOptionsGuards<TContext, TResolvedTypesMeta>;
+};
+
+type GenerateServicesConfigPart<
+  TContext,
+  TResolvedTypesMeta,
+  TRequireMissingImplementations,
+  TMissingImplementations
+> = MaybeMakeMissingImplementationsRequired<
+  'services',
+  Prop<TMissingImplementations, 'services'>,
+  TRequireMissingImplementations
+> & {
+  services?: MachineOptionsServices<TContext, TResolvedTypesMeta>;
+};
+
+export type MachineOptions<
   TContext,
   TEvent extends EventObject,
-  TAction extends BaseActionObject = BaseActionObject
-> {
-  guards?: Record<string, ConditionPredicate<TContext, TEvent>>;
-  actions?: ActionFunctionMap<TContext, TEvent, TAction>;
-  /**
-   * @deprecated Use `services` instead.
-   */
-  activities?: Record<string, ActivityConfig<TContext, TEvent>>;
-  services?: Record<string, ServiceConfig<TContext, TEvent>>;
-  delays?: DelayFunctionMap<TContext, TEvent>;
-  /**
-   * @private
-   */
-  _parent?: StateNode<TContext, any, TEvent, any, any>;
-  /**
-   * @private
-   */
-  _key?: string;
-}
+  _TAction extends BaseActionObject = BaseActionObject,
+  TResolvedTypesMeta = TypegenDisabled,
+  TRequireMissingImplementations extends boolean = false,
+  TMissingImplementations = Prop<TResolvedTypesMeta, 'missingImplementations'>
+> =
+  // {
+  //   actions?: ActionFunctionMap<TContext, TEvent, TAction>;
+  //   delays?: DelayFunctionMap<TContext, TEvent>;
+  //   guards?: Record<string, ConditionPredicate<TContext, TEvent>>;
+  //   services?: Record<string, ServiceConfig<TContext, TEvent>>;
+  // }
+
+  GenerateActionsConfigPart<
+    TContext,
+    TResolvedTypesMeta,
+    TRequireMissingImplementations,
+    TMissingImplementations
+  > &
+    GenerateDelaysConfigPart<
+      TContext,
+      TResolvedTypesMeta,
+      TRequireMissingImplementations,
+      TMissingImplementations
+    > &
+    GenerateGuardsConfigPart<
+      TContext,
+      TResolvedTypesMeta,
+      TRequireMissingImplementations,
+      TMissingImplementations
+    > &
+    GenerateServicesConfigPart<
+      TContext,
+      TResolvedTypesMeta,
+      TRequireMissingImplementations,
+      TMissingImplementations
+    > & {
+      /**
+       * @deprecated Use `services` instead.
+       */
+      activities?: Record<string, ActivityConfig<TContext, TEvent>>;
+    };
 export interface MachineConfig<
   TContext,
   TStateSchema extends StateSchema,
