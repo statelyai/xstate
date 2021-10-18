@@ -1,6 +1,6 @@
 # `@xstate/inspect`
 
-Inspection tools for XState.
+The [@xstate/inspect package](https://github.com/statelyai/xstate/tree/main/packages/xstate-inspect) contains inspection tools for XState.
 
 - [XState (Vanilla)](https://codesandbox.io/s/xstate-ts-viz-template-qzdvv)
 - [XState + TypeScript](https://codesandbox.io/s/xstate-ts-viz-template-qzdvv)

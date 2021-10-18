@@ -26,10 +26,14 @@ module.exports = {
       { text: 'Discord', link: 'https://discord.gg/xtWgFTgvNV' },
       {
         text: 'Community',
-        link: 'https://github.com/davidkpiano/xstate/discussions'
+        link: 'https://github.com/statelyai/xstate/discussions'
       }
     ],
     sidebar: [
+      {
+        title: 'What is XState?',
+        children: ['/visualizer/']
+      },
       {
         title: 'About',
         children: [

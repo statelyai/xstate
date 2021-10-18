@@ -302,6 +302,7 @@ export type InvokeCallback<
 export interface InvokeMeta {
   data: any;
   src: InvokeSourceDefinition;
+  meta?: MetaObject;
 }
 
 /**
@@ -357,6 +358,7 @@ export interface InvokeDefinition<TContext, TEvent extends EventObject>
    * Data should be mapped to match the child machine's context shape.
    */
   data?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
+  meta?: MetaObject;
 }
 
 export interface Delay {
@@ -512,6 +514,10 @@ export interface InvokeConfig<TContext, TEvent extends EventObject> {
   onError?:
     | string
     | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
+  /**
+   * Meta data related to this invocation
+   */
+  meta?: MetaObject;
 }
 
 export interface StateNodeConfig<
@@ -680,6 +686,7 @@ export interface StateNodeDefinition<
   data?: FinalStateNodeConfig<TContext, TEvent>['data'];
   invoke: Array<InvokeDefinition<TContext, TEvent>>;
   description?: string;
+  tags: string[];
 }
 
 export type AnyStateNodeDefinition = StateNodeDefinition<any, any, any>;
