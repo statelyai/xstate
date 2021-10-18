@@ -844,15 +844,12 @@ describe('typegen types', () => {
       };
     }
 
-    // it doesn't work with inference at the moment
-    createMachine<
-      unknown,
-      { type: 'FOO' } | { type: 'BAR'; value: string },
-      any,
-      TypesMeta
-    >(
+    createMachine(
       {
-        tsTypes: {} as TypesMeta
+        tsTypes: {} as TypesMeta,
+        schema: {
+          events: {} as { type: 'FOO' } | { type: 'BAR'; value: string }
+        }
       },
       {
         actions: {

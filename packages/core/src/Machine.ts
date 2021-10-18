@@ -58,8 +58,7 @@ export function createMachine<
   TContext,
   TEvent extends EventObject = AnyEventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext },
-  TTypesMeta extends TypegenConstraint = TypegenDisabled,
-  TResolvedTypesMeta = ResolveTypegenMeta<TTypesMeta, TEvent, BaseActionObject>
+  TTypesMeta extends TypegenConstraint = TypegenDisabled
 >(
   config: TContext extends Model<any, any, any, any>
     ? 'Model type no longer supported as generic type. Please use `model.createMachine(...)` instead.'
@@ -68,7 +67,7 @@ export function createMachine<
     TContext,
     TEvent,
     BaseActionObject,
-    TResolvedTypesMeta
+    ResolveTypegenMeta<TTypesMeta, TEvent, BaseActionObject>
   >
 ): StateMachine<
   TContext,
@@ -76,7 +75,7 @@ export function createMachine<
   TEvent,
   any,
   BaseActionObject,
-  TResolvedTypesMeta
+  ResolveTypegenMeta<TTypesMeta, TEvent, BaseActionObject>
 >;
 
 export function createMachine<
