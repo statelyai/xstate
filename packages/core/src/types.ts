@@ -1505,15 +1505,18 @@ export type EmittedFrom<T> = ReturnTypeOrValue<T> extends infer R
     : never
   : never;
 
-export type EventFrom<T> = ReturnTypeOrValue<T> extends infer R
+export type EventFrom<
+  T,
+  K extends EventFrom<T>['type'] = any
+> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<infer _, infer __, infer TEvent, infer ____>
-    ? TEvent
+    ? Extract<TEvent, { type: K }>
     : R extends Model<infer _, infer TEvent, infer ___, infer ____>
-    ? TEvent
+    ? Extract<TEvent, { type: K }>
     : R extends State<infer _, infer TEvent, infer ___, infer ____>
-    ? TEvent
+    ? Extract<TEvent, { type: K }>
     : R extends Interpreter<infer _, infer __, infer TEvent, infer ____>
-    ? TEvent
+    ? Extract<TEvent, { type: K }>
     : never
   : never;
 
