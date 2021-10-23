@@ -21,7 +21,7 @@ module.exports = {
       indexName: 'xstatejs'
     },
     nav: [
-      { text: 'API', link: 'https://xstate.js.org/api' },
+      { text: 'API', link: 'https://paka.dev/npm/xstate/' },
       { text: 'Visualizer', link: 'https://stately.ai/viz' },
       { text: 'Discord', link: 'https://discord.gg/xtWgFTgvNV' },
       {
