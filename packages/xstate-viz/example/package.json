@@ -10,7 +10,7 @@
     "clean": "rm -rf dist lib tsconfig.tsbuildinfo"
   },
   "dependencies": {
-    "@xstate/react": "^1.6.1",
+    "@xstate/react": "^1.6.2",
     "react-app-polyfill": "^1.0.0"
   },
   "devDependencies": {
