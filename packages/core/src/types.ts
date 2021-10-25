@@ -4,7 +4,6 @@ import { State } from './State';
 import { StateNode } from './StateNode';
 import {
   MarkAllImplementationsAsProvided,
-  MaybeTypegenMachineOptions,
   TypegenDisabled,
   ResolveTypegenMeta,
   TypegenConstraint
@@ -1016,13 +1015,7 @@ export interface StateMachine<
   >['states'];
 
   withConfig(
-    options: MaybeTypegenMachineOptions<
-      TContext,
-      TEvent,
-      TAction,
-      TResolvedTypesMeta,
-      true
-    >,
+    options: InternalMachineOptions<TContext, TEvent, TResolvedTypesMeta, true>,
     context?: TContext | (() => TContext)
   ): StateMachine<
     TContext,

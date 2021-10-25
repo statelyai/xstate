@@ -67,7 +67,8 @@ import {
   MachineSchema,
   ActorRef,
   StateMachine,
-  BaseActionObject
+  BaseActionObject,
+  InternalMachineOptions
 } from './types';
 import { matchesState } from './utils';
 import { State, stateValuesEqual } from './State';
@@ -102,7 +103,7 @@ import {
 } from './stateUtils';
 import { createInvocableActor } from './Actor';
 import { toInvokeDefinition } from './invokeUtils';
-import { MaybeTypegenMachineOptions, TypegenDisabled } from './typegenTypes';
+import { TypegenDisabled } from './typegenTypes';
 
 const NULL_EVENT = '';
 const STATE_IDENTIFIER = '#';
@@ -473,13 +474,7 @@ class StateNode<
    * @param context Custom context (will override predefined context)
    */
   public withConfig(
-    options: MaybeTypegenMachineOptions<
-      TContext,
-      TEvent,
-      BaseActionObject,
-      TResolvedTypesMeta,
-      true
-    >,
+    options: InternalMachineOptions<TContext, TEvent, TResolvedTypesMeta, true>,
     context?: TContext | (() => TContext)
   ): StateNode<TContext, TStateSchema, TEvent, TTypestate, TResolvedTypesMeta> {
     const { actions, activities, guards, services, delays } = this.options;
