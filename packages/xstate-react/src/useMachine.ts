@@ -2,11 +2,10 @@ import { useCallback, useState } from 'react';
 import {
   ActionFunction,
   AreAllImplementationsAssumedToBeProvided,
-  BaseActionObject,
   EventObject,
   InterpreterFrom,
   InterpreterOptions,
-  MaybeTypegenMachineOptions,
+  InternalMachineOptions,
   State,
   StateConfig,
   StateFrom,
@@ -61,33 +60,25 @@ export interface UseMachineOptions<TContext, TEvent extends EventObject> {
 type RestParams<
   TMachine extends StateMachine<any, any, any, any, any, any>
 > = AreAllImplementationsAssumedToBeProvided<
-  NonNullable<TMachine['__TResolvedTypesMeta']>
+  TMachine['__TResolvedTypesMeta']
 > extends false
   ? [
       options: InterpreterOptions &
-        UseMachineOptions<
-          NonNullable<TMachine['__TContext']>,
-          NonNullable<TMachine['__TEvent']>
-        > &
-        MaybeTypegenMachineOptions<
-          NonNullable<TMachine['__TContext']>,
-          NonNullable<TMachine['__TEvent']>,
-          BaseActionObject,
-          NonNullable<TMachine['__TResolvedTypesMeta']>,
+        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+        InternalMachineOptions<
+          TMachine['__TContext'],
+          TMachine['__TEvent'],
+          TMachine['__TResolvedTypesMeta'],
           true
         >
     ]
   : [
       options?: InterpreterOptions &
-        UseMachineOptions<
-          NonNullable<TMachine['__TContext']>,
-          NonNullable<TMachine['__TEvent']>
-        > &
-        MaybeTypegenMachineOptions<
-          NonNullable<TMachine['__TContext']>,
-          NonNullable<TMachine['__TEvent']>,
-          BaseActionObject,
-          NonNullable<TMachine['__TResolvedTypesMeta']>
+        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+        InternalMachineOptions<
+          TMachine['__TContext'],
+          TMachine['__TEvent'],
+          TMachine['__TResolvedTypesMeta']
         >
     ];
 
@@ -121,7 +112,7 @@ export function useMachine<
   const [state, setState] = useState(() => {
     const { initialState } = service.machine;
     return (options.state
-      ? State.create(options.state)
+      ? State.create(options.state as any)
       : initialState) as StateFrom<TMachine>;
   });
 

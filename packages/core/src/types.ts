@@ -1037,12 +1037,12 @@ export interface StateMachine<
     TResolvedTypesMeta
   >;
 
-  // __TContext?: TContext;
-  // __TStateSchema?: TStateSchema;
-  // __TEvent?: TEvent;
-  // __TTypestate?: TTypestate;
-  // __TAction?: TAction;
-  // __TResolvedTypesMeta?: TResolvedTypesMeta;
+  __TContext: TContext;
+  __TStateSchema: TStateSchema;
+  __TEvent: TEvent;
+  __TTypestate: TTypestate;
+  __TAction: TAction;
+  __TResolvedTypesMeta: TResolvedTypesMeta;
 }
 
 export type StateFrom<

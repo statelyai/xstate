@@ -199,7 +199,7 @@ describe('useMachine', () => {
 
     function App() {
       // it doesn't work with inference at the moment
-      useMachine<typeof machine>(machine, {
+      useMachine(machine, {
         actions: {
           fooAction: assign((_context, _event) => {
             ((_accept: 'FOO') => {})(_event.type);
