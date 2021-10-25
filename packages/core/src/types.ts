@@ -1,7 +1,7 @@
 import { StateNode } from './StateNode';
 import { State } from './State';
 import { Interpreter, Clock } from './interpreter';
-import { Model } from './model.types';
+import { IsNever, Model, Prop } from './model.types';
 
 type AnyFunction = (...args: any[]) => any;
 type ReturnTypeOrValue<T> = T extends AnyFunction ? ReturnType<T> : T;
@@ -1505,7 +1505,7 @@ export type EmittedFrom<T> = ReturnTypeOrValue<T> extends infer R
     : never
   : never;
 
-export type EventFrom<T> = ReturnTypeOrValue<T> extends infer R
+type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<infer _, infer __, infer TEvent, infer ____>
     ? TEvent
     : R extends Model<infer _, infer TEvent, infer ___, infer ____>
@@ -1516,6 +1516,12 @@ export type EventFrom<T> = ReturnTypeOrValue<T> extends infer R
     ? TEvent
     : never
   : never;
+
+export type EventFrom<
+  T,
+  K extends Prop<TEvent, 'type'> = never,
+  TEvent = ResolveEventType<T>
+> = IsNever<K> extends true ? TEvent : Extract<TEvent, { type: K }>;
 
 export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<infer TContext, infer _, infer __, infer ___>
