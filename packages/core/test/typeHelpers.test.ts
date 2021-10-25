@@ -16,18 +16,18 @@ describe('EventFrom', () => {
 
     type UserModelEvent = EventFrom<typeof userModel>;
 
-    const noop = (_event: UserModelEvent) => {};
+    const acceptUserModelEvent = (_event: UserModelEvent) => {};
 
-    noop({ type: 'updateName', value: 'test' });
-    noop({ type: 'updateAge', value: 12 });
-    noop({ type: 'anotherEvent' });
-    noop({
+    acceptUserModelEvent({ type: 'updateName', value: 'test' });
+    acceptUserModelEvent({ type: 'updateAge', value: 12 });
+    acceptUserModelEvent({ type: 'anotherEvent' });
+    acceptUserModelEvent({
       /* @ts-expect-error */
       type: 'eventThatDoesNotExist'
     });
   });
 
-  it('should narrow events down to the specified type(s)', () => {
+  it('should narrow events down to the specified types', () => {
     const userModel = createModel(
       {},
       {
@@ -39,19 +39,20 @@ describe('EventFrom', () => {
       }
     );
 
-    type UpdateNameEvent = EventFrom<typeof userModel, 'updateName'>;
+    type UserModelEventSubset = EventFrom<
+      typeof userModel,
+      'updateName' | 'updateAge'
+    >;
 
-    const noop = (_updateNameEvent: UpdateNameEvent) => {};
+    const acceptUserModelEventSubset = (
+      _userModelEventSubset: UserModelEventSubset
+    ) => {};
 
-    noop({ type: 'updateName', value: 'test' });
-
+    acceptUserModelEventSubset({ type: 'updateName', value: 'test' });
+    acceptUserModelEventSubset({ type: 'updateAge', value: 12 });
     /* @ts-expect-error */
-    noop({ type: 'updateAge', value: 12 });
-
+    acceptUserModelEventSubset({ type: 'anotherEvent' });
     /* @ts-expect-error */
-    noop({ type: 'anotherEvent' });
-
-    /* @ts-expect-error */
-    noop({ type: 'eventThatDoesNotExist' });
+    acceptUserModelEventSubset({ type: 'eventThatDoesNotExist' });
   });
 });
