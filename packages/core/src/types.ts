@@ -1044,12 +1044,12 @@ export interface StateMachine<
     TResolvedTypesMeta
   >;
 
-  __TContext?: TContext;
-  __TStateSchema?: TStateSchema;
-  __TEvent?: TEvent;
-  __TTypestate?: TTypestate;
-  __TAction?: TAction;
-  __TResolvedTypesMeta?: TResolvedTypesMeta;
+  // __TContext?: TContext;
+  // __TStateSchema?: TStateSchema;
+  // __TEvent?: TEvent;
+  // __TTypestate?: TTypestate;
+  // __TAction?: TAction;
+  // __TResolvedTypesMeta?: TResolvedTypesMeta;
 }
 
 export type StateFrom<
@@ -1703,7 +1703,7 @@ export type MachineOptionsFrom<
     | StateMachine<any, any, any, any>
     | ((...args: any[]) => StateMachine<any, any, any, any>),
   TRequireMissingImplementations extends boolean = false
-> = T extends StateMachine<
+> = ReturnTypeOrValue<T> extends StateMachine<
   infer TContext,
   any,
   infer TEvent,
@@ -1717,22 +1717,18 @@ export type MachineOptionsFrom<
       TResolvedTypesMeta,
       TRequireMissingImplementations
     >
-  : T extends (
-      ...args: any[]
-    ) => StateMachine<
-      infer TContext,
-      any,
-      infer TEvent,
-      any,
-      any,
-      infer TResolvedTypesMeta
-    >
-  ? InternalMachineOptions<
-      TContext,
-      TEvent,
-      TResolvedTypesMeta,
-      TRequireMissingImplementations
-    >
+  : never;
+
+// only meant to be used internally for debugging purposes
+export type __ResolvedTypesMetaFrom<T> = T extends StateMachine<
+  any,
+  any,
+  any,
+  any,
+  any,
+  infer TResolvedTypesMeta
+>
+  ? TResolvedTypesMeta
   : never;
 
 export interface ActorContext<TEvent extends EventObject, TEmitted> {

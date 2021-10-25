@@ -107,7 +107,7 @@ export type ResolveTypegenMeta<
   : MarkAllImplementationsAsProvided<TypegenDisabled> &
       AllowAllEvents & {
         indexedActions: Record<string, BaseActionObject>;
-        indexedEvents: Record<string, IndexByType<TEvent>>;
+        indexedEvents: Record<string, TEvent>;
       };
 
 export type TypegenMachineOptionsActions<
