@@ -9,10 +9,10 @@ import {
   MachineConfig,
   Prop,
   PropertyAssigner,
-  StateMachine
+  StateMachine,
+  InternalMachineOptions
 } from './types';
 import {
-  MaybeTypegenMachineOptions,
   ResolveTypegenMeta,
   TypegenConstraint,
   TypegenDisabled
@@ -37,10 +37,9 @@ export interface Model<
   createMachine: {
     <TTypesMeta extends TypegenConstraint = TypegenDisabled>(
       config: MachineConfig<TContext, any, TEvent, TAction, TTypesMeta>,
-      implementations?: MaybeTypegenMachineOptions<
+      implementations?: InternalMachineOptions<
         TContext,
         TEvent,
-        TAction,
         ResolveTypegenMeta<TTypesMeta, TEvent, TAction>
       >
     ): StateMachine<

@@ -8,6 +8,7 @@ import {
   EventObject,
   MachineConfig,
   MachineOptions,
+  InternalMachineOptions,
   StateMachine,
   StateSchema,
   Typestate
@@ -63,10 +64,9 @@ export function createMachine<
   config: TContext extends Model<any, any, any, any>
     ? 'Model type no longer supported as generic type. Please use `model.createMachine(...)` instead.'
     : MachineConfig<TContext, any, TEvent, BaseActionObject, TTypesMeta>,
-  options?: MachineOptions<
+  options?: InternalMachineOptions<
     TContext,
     TEvent,
-    BaseActionObject,
     ResolveTypegenMeta<TTypesMeta, TEvent, BaseActionObject>
   >
 ): StateMachine<

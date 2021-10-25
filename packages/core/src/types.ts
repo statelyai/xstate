@@ -892,7 +892,7 @@ type GenerateServicesConfigPart<
   services?: MachineOptionsServices<TContext, TResolvedTypesMeta>;
 };
 
-type InternalMachineOptions<
+export type InternalMachineOptions<
   TContext,
   TEvent extends EventObject,
   TResolvedTypesMeta,
