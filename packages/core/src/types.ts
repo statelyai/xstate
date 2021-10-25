@@ -5,7 +5,9 @@ import { StateNode } from './StateNode';
 import {
   MarkAllImplementationsAsProvided,
   MaybeTypegenMachineOptions,
-  TypegenDisabled
+  TypegenDisabled,
+  ResolveTypegenMeta,
+  TypegenConstraint
 } from './typegenTypes';
 
 export type AnyFunction = (...args: any[]) => any;
@@ -806,11 +808,13 @@ type MachineOptionsServices<
   TIndexedEvents = Prop<TResolvedTypesMeta, 'indexedEvents'>,
   TInvokeSrcNameMap = Prop<TResolvedTypesMeta, 'invokeSrcNameMap'>
 > = {
-  [K in keyof TEventsCausingServices]?: InvokeCreator<
-    TContext,
-    Cast<Prop<TIndexedEvents, TEventsCausingServices[K]>, EventObject>,
-    Prop<Prop<TIndexedEvents, Prop<TInvokeSrcNameMap, K>>, 'data'>
-  >;
+  [K in keyof TEventsCausingServices]?:
+    | StateMachine<any, any, any>
+    | InvokeCreator<
+        TContext,
+        Cast<Prop<TIndexedEvents, TEventsCausingServices[K]>, EventObject>,
+        Prop<Prop<TIndexedEvents, Prop<TInvokeSrcNameMap, K>>, 'data'>
+      >;
 };
 
 type MakeKeysRequired<T extends string> = { [K in T]: unknown };
@@ -881,50 +885,53 @@ type GenerateServicesConfigPart<
   services?: MachineOptionsServices<TContext, TResolvedTypesMeta>;
 };
 
-export type MachineOptions<
+type InternalMachineOptions<
   TContext,
   TEvent extends EventObject,
-  _TAction extends BaseActionObject = BaseActionObject,
-  TResolvedTypesMeta = TypegenDisabled,
+  TResolvedTypesMeta,
   TRequireMissingImplementations extends boolean = false,
   TMissingImplementations = Prop<TResolvedTypesMeta, 'missingImplementations'>
-> =
-  // {
-  //   actions?: ActionFunctionMap<TContext, TEvent, TAction>;
-  //   delays?: DelayFunctionMap<TContext, TEvent>;
-  //   guards?: Record<string, ConditionPredicate<TContext, TEvent>>;
-  //   services?: Record<string, ServiceConfig<TContext, TEvent>>;
-  // }
-
-  GenerateActionsConfigPart<
+> = GenerateActionsConfigPart<
+  TContext,
+  TResolvedTypesMeta,
+  TRequireMissingImplementations,
+  TMissingImplementations
+> &
+  GenerateDelaysConfigPart<
     TContext,
     TResolvedTypesMeta,
     TRequireMissingImplementations,
     TMissingImplementations
   > &
-    GenerateDelaysConfigPart<
-      TContext,
-      TResolvedTypesMeta,
-      TRequireMissingImplementations,
-      TMissingImplementations
-    > &
-    GenerateGuardsConfigPart<
-      TContext,
-      TResolvedTypesMeta,
-      TRequireMissingImplementations,
-      TMissingImplementations
-    > &
-    GenerateServicesConfigPart<
-      TContext,
-      TResolvedTypesMeta,
-      TRequireMissingImplementations,
-      TMissingImplementations
-    > & {
-      /**
-       * @deprecated Use `services` instead.
-       */
-      activities?: Record<string, ActivityConfig<TContext, TEvent>>;
-    };
+  GenerateGuardsConfigPart<
+    TContext,
+    TResolvedTypesMeta,
+    TRequireMissingImplementations,
+    TMissingImplementations
+  > &
+  GenerateServicesConfigPart<
+    TContext,
+    TResolvedTypesMeta,
+    TRequireMissingImplementations,
+    TMissingImplementations
+  > & {
+    /**
+     * @deprecated Use `services` instead.
+     */
+    activities?: Record<string, ActivityConfig<TContext, TEvent>>;
+  };
+
+export type MachineOptions<
+  TContext,
+  TEvent extends EventObject,
+  TAction extends BaseActionObject = BaseActionObject,
+  TTypesMeta extends TypegenConstraint = TypegenDisabled
+> = InternalMachineOptions<
+  TContext,
+  TEvent,
+  ResolveTypegenMeta<TTypesMeta, TEvent, TAction>
+>;
+
 export interface MachineConfig<
   TContext,
   TStateSchema extends StateSchema,

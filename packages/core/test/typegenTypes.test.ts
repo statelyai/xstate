@@ -874,4 +874,26 @@ describe('typegen types', () => {
       tsTypes: true
     });
   });
+
+  it('should accept a machine as a service', () => {
+    interface TypesMeta extends TypegenMeta {
+      eventsCausingServices: {
+        fooService: 'FOO';
+      };
+    }
+
+    createMachine(
+      {
+        tsTypes: {} as TypesMeta,
+        schema: {
+          events: {} as { type: 'FOO' } | { type: 'BAR'; value: string }
+        }
+      },
+      {
+        services: {
+          fooService: createMachine({})
+        }
+      }
+    );
+  });
 });
