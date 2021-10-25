@@ -11,31 +11,31 @@
   </a>
 </p>
 
-This package contains a minimal, 1kb implementation of [XState](https://github.com/davidkpiano/xstate) for **finite state machines**.
+The [@xstate/fsm package](https://github.com/statelyai/xstate/tree/main/packages/xstate-fsm) contains a minimal, 1kb implementation of [XState](https://github.com/statelyai/xstate) for **finite state machines**.
 
 ## Features
 
-|                             | **@xstate/fsm** | [XState](https://github.com/davidkpiano/xstate) |
-| --------------------------- | :-------------: | :---------------------------------------------: |
-| Finite states               |       ✅        |                       ✅                        |
-| Initial state               |       ✅        |                       ✅                        |
-| Transitions (object)        |       ✅        |                       ✅                        |
-| Transitions (string target) |       ✅        |                       ✅                        |
-| Delayed transitions         |       ❌        |                       ✅                        |
-| Eventless transitions       |       ❌        |                       ✅                        |
-| Nested states               |       ❌        |                       ✅                        |
-| Parallel states             |       ❌        |                       ✅                        |
-| History states              |       ❌        |                       ✅                        |
-| Final states                |       ❌        |                       ✅                        |
-| Context                     |       ✅        |                       ✅                        |
-| Entry actions               |       ✅        |                       ✅                        |
-| Exit actions                |       ✅        |                       ✅                        |
-| Transition actions          |       ✅        |                       ✅                        |
-| Parameterized actions       |       ❌        |                       ✅                        |
-| Transition guards           |       ✅        |                       ✅                        |
-| Parameterized guards        |       ❌        |                       ✅                        |
-| Spawned actors              |       ❌        |                       ✅                        |
-| Invoked actors              |       ❌        |                       ✅                        |
+|                             | **@xstate/fsm** | [XState](https://github.com/statelyai/xstate) |
+| --------------------------- | :-------------: | :-------------------------------------------: |
+| Finite states               |       ✅        |                      ✅                       |
+| Initial state               |       ✅        |                      ✅                       |
+| Transitions (object)        |       ✅        |                      ✅                       |
+| Transitions (string target) |       ✅        |                      ✅                       |
+| Delayed transitions         |       ❌        |                      ✅                       |
+| Eventless transitions       |       ❌        |                      ✅                       |
+| Nested states               |       ❌        |                      ✅                       |
+| Parallel states             |       ❌        |                      ✅                       |
+| History states              |       ❌        |                      ✅                       |
+| Final states                |       ❌        |                      ✅                       |
+| Context                     |       ✅        |                      ✅                       |
+| Entry actions               |       ✅        |                      ✅                       |
+| Exit actions                |       ✅        |                      ✅                       |
+| Transition actions          |       ✅        |                      ✅                       |
+| Parameterized actions       |       ❌        |                      ✅                       |
+| Transition guards           |       ✅        |                      ✅                       |
+| Parameterized guards        |       ❌        |                      ✅                       |
+| Spawned actors              |       ❌        |                      ✅                       |
+| Invoked actors              |       ❌        |                      ✅                       |
 
 - Finite states (non-nested)
 - Initial state
@@ -46,7 +46,7 @@ This package contains a minimal, 1kb implementation of [XState](https://github.c
 - Transition actions
 - `state.changed`
 
-If you want to use statechart features such as nested states, parallel states, history states, activities, invoked services, delayed transitions, transient transitions, etc. please use [`XState`](https://github.com/davidkpiano/xstate).
+If you want to use statechart features such as nested states, parallel states, history states, activities, invoked services, delayed transitions, transient transitions, etc. please use [`XState`](https://github.com/statelyai/xstate).
 
 ## Super quick start
 

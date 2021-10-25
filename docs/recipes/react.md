@@ -12,7 +12,7 @@ To ask for help, check out the [`#react-help` channel in our Discord community](
 
 ## Local state
 
-Using [React hooks](https://reactjs.org/hooks) are the easiest way to use state machines in your components. You can use the official [`@xstate/react`](https://github.com/davidkpiano/xstate/tree/main/packages/xstate-react) to give you useful hooks out of the box, such as `useMachine`.
+Using [React hooks](https://reactjs.org/hooks) are the easiest way to use state machines in your components. You can use the official [`@xstate/react`](https://github.com/statelyai/xstate/tree/main/packages/xstate-react) to give you useful hooks out of the box, such as `useMachine`.
 
 ```js
 import { useMachine } from '@xstate/react';
@@ -120,9 +120,15 @@ export const SomeComponent = (props) => {
   // Get `send()` method from a service
   const { send } = globalServices.authService;
 
-   return <>
-      {isLoggedIn && <button type="button" onClick={() => send('LOG_OUT')}>Logout</button>}
-   </>;
+  return (
+    <>
+      {isLoggedIn && (
+        <button type="button" onClick={() => send('LOG_OUT')}>
+          Logout
+        </button>
+      )}
+    </>
+  );
 };
 ```
 

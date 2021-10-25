@@ -5,7 +5,7 @@ import {
   SCXMLEventMeta,
   SendExpr,
   DelayExpr,
-  ChooseConditon
+  ChooseCondition
 } from './types';
 import { Machine, StateMachine } from './index';
 import { mapValues, keys, isString } from './utils';
@@ -215,9 +215,9 @@ function mapAction<
       );
     }
     case 'if': {
-      const conds: ChooseConditon<TContext, TEvent>[] = [];
+      const conds: ChooseCondition<TContext, TEvent>[] = [];
 
-      let current: ChooseConditon<TContext, TEvent> = {
+      let current: ChooseCondition<TContext, TEvent> = {
         cond: createCond(element.attributes!.cond as string),
         actions: []
       };

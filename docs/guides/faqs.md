@@ -1,6 +1,6 @@
 # Frequently Asked Questions
 
-Feel free to ask questions either on Stack Overflow or in the [GitHub issues](https://github.com/davidkpiano/xstate/issues). Questions from there will be added here over time.
+Feel free to ask questions either on Stack Overflow or in the [GitHub issues](https://github.com/statelyai/xstate/issues). Questions from there will be added here over time.
 
 <details>
   <summary>What is a finite-state machine?</summary>
