@@ -1704,10 +1704,9 @@ export type MachineOptionsFrom<
   any,
   infer TResolvedTypesMeta
 >
-  ? MaybeTypegenMachineOptions<
+  ? InternalMachineOptions<
       TContext,
       TEvent,
-      any,
       TResolvedTypesMeta,
       TRequireMissingImplementations
     >
@@ -1721,10 +1720,9 @@ export type MachineOptionsFrom<
       any,
       infer TResolvedTypesMeta
     >
-  ? MaybeTypegenMachineOptions<
+  ? InternalMachineOptions<
       TContext,
       TEvent,
-      any,
       TResolvedTypesMeta,
       TRequireMissingImplementations
     >
