@@ -1667,8 +1667,8 @@ export type AnyInterpreter = Interpreter<any, any, any, any, any>;
 
 export type InterpreterFrom<
   T extends
-    | StateMachine<any, any, any, any>
-    | ((...args: any[]) => StateMachine<any, any, any, any>)
+    | StateMachine<any, any, any, any, any, any>
+    | ((...args: any[]) => StateMachine<any, any, any, any, any, any>)
 > = T extends StateMachine<
   infer TContext,
   infer TStateSchema,

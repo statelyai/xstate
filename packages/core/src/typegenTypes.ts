@@ -107,7 +107,13 @@ export type ResolveTypegenMeta<
   : MarkAllImplementationsAsProvided<TypegenDisabled> &
       AllowAllEvents & {
         indexedActions: IndexByType<TAction>;
-        indexedEvents: Record<string, TEvent>;
+        indexedEvents: Record<string, TEvent> & {
+          __XSTATE_ALLOW_ANY_INVOKE_DATA_HACK__: { data: any };
+        };
+        invokeSrcNameMap: Record<
+          string,
+          '__XSTATE_ALLOW_ANY_INVOKE_DATA_HACK__'
+        >;
       };
 
 export type TypegenMachineOptionsActions<

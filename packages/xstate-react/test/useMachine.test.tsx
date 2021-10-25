@@ -8,7 +8,9 @@ import {
   doneInvoke,
   State,
   createMachine,
-  send
+  send,
+  InterpreterFrom,
+  StateFrom
 } from 'xstate';
 import {
   render,
@@ -312,7 +314,7 @@ describe('useMachine hook', () => {
     });
 
     const ServiceApp: React.FC<{
-      service: Interpreter<TestContext, any, any, TestState>;
+      service: InterpreterFrom<typeof machine>;
     }> = ({ service }) => {
       const [state] = useService(service);
 
@@ -746,7 +748,7 @@ describe('useMachine hook', () => {
       }
     });
 
-    const App = ({ isAwesome }) => {
+    const App = ({ isAwesome }: { isAwesome: boolean }) => {
       const [state, send] = useMachine(machine, {
         guards: {
           isAwesome: () => isAwesome
@@ -908,7 +910,7 @@ describe('useMachine (strict mode)', () => {
 
       const persistedState = JSON.stringify(testMachine.initialState);
 
-      let currentState;
+      let currentState: StateFrom<typeof testMachine>;
 
       const Test = () => {
         const [state, send] = useMachine(testMachine, {
@@ -935,7 +937,7 @@ describe('useMachine (strict mode)', () => {
         jest.advanceTimersByTime(110);
       });
 
-      expect(currentState.matches('idle')).toBe(true);
+      expect(currentState!.matches('idle')).toBe(true);
     } finally {
       jest.useRealTimers();
     }
