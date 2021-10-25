@@ -11,7 +11,6 @@ import {
   ActionTypes,
   InvokeDefinition,
   SendActionObject,
-  ServiceConfig,
   InvokeCallback,
   DisposeActivityFunction,
   StateValue,
@@ -21,7 +20,6 @@ import {
   Subscribable,
   DoneEvent,
   MachineOptions,
-  ActionFunctionMap,
   SCXML,
   EventData,
   Observer,
@@ -840,8 +838,7 @@ export class Interpreter<
       TTypestate,
       TResolvedTypesMeta
     >,
-    actionFunctionMap: ActionFunctionMap<TContext, TEvent> | undefined = this
-      .machine.options.actions
+    actionFunctionMap = this.machine.options.actions
   ): void {
     const { context, _event } = state;
     const actionOrExec =
@@ -854,7 +851,7 @@ export class Interpreter<
 
     if (exec) {
       try {
-        return exec(context, _event.data, {
+        return (exec as any)(context, _event.data, {
           action,
           state: this.state,
           _event
@@ -907,9 +904,7 @@ export class Interpreter<
         // Invoked services
         if (activity.type === ActionTypes.Invoke) {
           const invokeSource = toInvokeSource(activity.src);
-          const serviceCreator:
-            | ServiceConfig<TContext, TEvent>
-            | undefined = this.machine.options.services
+          const serviceCreator = this.machine.options.services
             ? this.machine.options.services[invokeSource.type]
             : undefined;
 
@@ -950,7 +945,7 @@ export class Interpreter<
           }
 
           let source: Spawnable = isFunction(serviceCreator)
-            ? serviceCreator(context, _event.data, {
+            ? (serviceCreator as any)(context, _event.data, {
                 data: resolvedData,
                 src: invokeSource,
                 meta: activity.meta

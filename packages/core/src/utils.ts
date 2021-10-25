@@ -682,7 +682,7 @@ export function evaluateGuard<TContext, TEvent extends EventObject>(
     );
   }
 
-  return condFn(context, _event.data, guardMeta);
+  return (condFn as any)(context, _event.data, guardMeta);
 }
 
 export function toInvokeSource(

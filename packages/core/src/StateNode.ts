@@ -67,7 +67,6 @@ import {
   MachineSchema,
   ActorRef,
   StateMachine,
-  BaseActionObject,
   InternalMachineOptions
 } from './types';
 import { matchesState } from './utils';
@@ -430,7 +429,7 @@ class StateNode<
         this.machine.options.services = {
           [invokeSrc]: invokeConfig.src as InvokeCreator<TContext, TEvent>,
           ...this.machine.options.services
-        };
+        } as any;
 
         return toInvokeDefinition({
           id: invokeSrc,
@@ -1069,7 +1068,7 @@ class StateNode<
 
     const actions = toActionObjects(
       exitActions.concat(transition.actions).concat(entryActions),
-      this.machine.options.actions
+      this.machine.options.actions as any
     ) as Array<ActionObject<TContext, TEvent>>;
 
     return actions;
@@ -1910,7 +1909,7 @@ class StateNode<
     const transition = {
       ...transitionConfig,
       actions: toActionObjects(toArray(transitionConfig.actions)),
-      cond: toGuard(transitionConfig.cond, guards),
+      cond: toGuard(transitionConfig.cond, guards as any),
       target,
       source: this as any,
       internal,

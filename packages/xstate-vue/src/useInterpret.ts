@@ -67,7 +67,7 @@ export function useInterpret<
     delays
   };
 
-  const machineWithConfig = machine.withConfig(machineConfig, () => ({
+  const machineWithConfig = machine.withConfig(machineConfig as any, () => ({
     ...machine.context,
     ...context
   }));
