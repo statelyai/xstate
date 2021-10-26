@@ -46,7 +46,13 @@ import React, { createContext } from 'react';
 import { useInterpret } from '@xstate/react';
 import { authMachine } from './authMachine';
 
-export const GlobalStateContext = createContext({});
+export type AuthService = InterpreterFrom<typeof authMachine>;
+
+export interface GlobalStateContextType {
+  authService: AuthService;
+}
+
+export const GlobalStateContext = createContext<GlobalStateContextType>({} as GlobalStateContextType);
 
 export const GlobalStateProvider = (props) => {
   const authService = useInterpret(authMachine);
