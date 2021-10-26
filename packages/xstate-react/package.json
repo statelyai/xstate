@@ -54,7 +54,7 @@
   "peerDependencies": {
     "@xstate/fsm": "^1.0.0",
     "react": "^16.8.0 || ^17.0.0",
-    "xstate": "^4.26.0"
+    "xstate": "^4.27.0"
   },
   "peerDependenciesMeta": {
     "@xstate/fsm": {
