@@ -92,11 +92,13 @@ export type ActionFunction<
   TContext,
   TEvent extends EventObject,
   TAction extends BaseActionObject = BaseActionObject
-> = (
-  context: TContext,
-  event: TEvent,
-  meta: ActionMeta<TContext, TEvent, TAction>
-) => void;
+> = {
+  bivarianceHack(
+    context: TContext,
+    event: TEvent,
+    meta: ActionMeta<TContext, TEvent, TAction>
+  ): void;
+}['bivarianceHack'];
 
 export interface ChooseCondition<TContext, TEvent extends EventObject> {
   cond?: Condition<TContext, TEvent>;

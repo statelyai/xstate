@@ -198,7 +198,6 @@ describe('useMachine', () => {
     });
 
     function App() {
-      // it doesn't work with inference at the moment
       useMachine(machine, {
         actions: {
           fooAction: assign((_context, _event) => {
@@ -410,7 +409,6 @@ describe('useInterpret', () => {
     });
 
     function App() {
-      // it doesn't work with inference at the moment
       useInterpret(machine, {
         actions: {
           fooAction: assign((_context, _event) => {

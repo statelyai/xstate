@@ -1,15 +1,14 @@
 import { useState } from 'react';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 import {
+  AreAllImplementationsAssumedToBeProvided,
+  InternalMachineOptions,
   interpret,
-  StateMachine,
-  State,
   InterpreterFrom,
   InterpreterOptions,
   Observer,
-  AreAllImplementationsAssumedToBeProvided,
-  MaybeTypegenMachineOptions,
-  BaseActionObject
+  State,
+  StateMachine
 } from 'xstate';
 import { MaybeLazy } from './types';
 import useConstant from './useConstant';
@@ -39,70 +38,62 @@ function toObserver<T>(
 type RestParams<
   TMachine extends StateMachine<any, any, any, any, any, any>
 > = AreAllImplementationsAssumedToBeProvided<
-  NonNullable<TMachine['__TResolvedTypesMeta']>
+  TMachine['__TResolvedTypesMeta']
 > extends false
   ? [
       options: InterpreterOptions &
-        UseMachineOptions<
-          NonNullable<TMachine['__TContext']>,
-          NonNullable<TMachine['__TEvent']>
-        > &
-        MaybeTypegenMachineOptions<
-          NonNullable<TMachine['__TContext']>,
-          NonNullable<TMachine['__TEvent']>,
-          BaseActionObject,
-          NonNullable<TMachine['__TResolvedTypesMeta']>,
+        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+        InternalMachineOptions<
+          TMachine['__TContext'],
+          TMachine['__TEvent'],
+          TMachine['__TResolvedTypesMeta'],
           true
         >,
       observerOrListener?:
         | Observer<
             State<
-              NonNullable<TMachine['__TContext']>,
-              NonNullable<TMachine['__TEvent']>,
+              TMachine['__TContext'],
+              TMachine['__TEvent'],
               any,
-              NonNullable<TMachine['__TTypestate']>,
-              NonNullable<TMachine['__TResolvedTypesMeta']>
+              TMachine['__TTypestate'],
+              TMachine['__TResolvedTypesMeta']
             >
           >
         | ((
             value: State<
-              NonNullable<TMachine['__TContext']>,
-              NonNullable<TMachine['__TEvent']>,
+              TMachine['__TContext'],
+              TMachine['__TEvent'],
               any,
-              NonNullable<TMachine['__TTypestate']>,
-              NonNullable<TMachine['__TResolvedTypesMeta']>
+              TMachine['__TTypestate'],
+              TMachine['__TResolvedTypesMeta']
             >
           ) => void)
     ]
   : [
       options?: InterpreterOptions &
-        UseMachineOptions<
-          NonNullable<TMachine['__TContext']>,
-          NonNullable<TMachine['__TEvent']>
-        > &
-        MaybeTypegenMachineOptions<
-          NonNullable<TMachine['__TContext']>,
-          NonNullable<TMachine['__TEvent']>,
-          BaseActionObject,
-          NonNullable<TMachine['__TResolvedTypesMeta']>
+        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+        InternalMachineOptions<
+          TMachine['__TContext'],
+          TMachine['__TEvent'],
+          TMachine['__TResolvedTypesMeta']
         >,
       observerOrListener?:
         | Observer<
             State<
-              NonNullable<TMachine['__TContext']>,
-              NonNullable<TMachine['__TEvent']>,
+              TMachine['__TContext'],
+              TMachine['__TEvent'],
               any,
-              NonNullable<TMachine['__TTypestate']>,
-              NonNullable<TMachine['__TResolvedTypesMeta']>
+              TMachine['__TTypestate'],
+              TMachine['__TResolvedTypesMeta']
             >
           >
         | ((
             value: State<
-              NonNullable<TMachine['__TContext']>,
-              NonNullable<TMachine['__TEvent']>,
+              TMachine['__TContext'],
+              TMachine['__TEvent'],
               any,
-              NonNullable<TMachine['__TTypestate']>,
-              NonNullable<TMachine['__TResolvedTypesMeta']>
+              TMachine['__TTypestate'],
+              TMachine['__TResolvedTypesMeta']
             >
           ) => void)
     ];
