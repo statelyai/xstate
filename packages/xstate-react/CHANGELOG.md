@@ -1,5 +1,44 @@
 # Changelog
 
+## 1.6.2
+
+### Patch Changes
+
+- [#2736](https://github.com/statelyai/xstate/pull/2736) [`2246ae051`](https://github.com/statelyai/xstate/commit/2246ae051663f261b4750d7adba57f008ec28f1d) Thanks [@Andarist](https://github.com/Andarist), [@davidkpiano](https://github.com/davidkpiano), [@VanTanev](https://github.com/VanTanev)! - The `useSelector(...)` hook now works as expected when the `actor` passed in changes. The hook will properly subscribe to the new `actor` and select the desired value. See [#2702](https://github.com/statelyai/xstate/issues/2702)
+
+* [#2685](https://github.com/statelyai/xstate/pull/2685) [`469268d39`](https://github.com/statelyai/xstate/commit/469268d39fbc23996599773adfc4ca824b48585f) Thanks [@farskid](https://github.com/farskid), [@Andarist](https://github.com/Andarist)! - Fixed a regression with a development-only warning not being shown when a machine reference is updated during the hook lifecycle. This usually happens when machine options are dependent on external values and they're passed via `withConfig`.
+
+  ```js
+  const machine = createMachine({
+    initial: 'foo',
+    context: { id: 1 },
+    states: {
+      foo: {
+        on: {
+          CHECK: {
+            target: 'bar',
+            cond: 'hasOverflown'
+          }
+        }
+      },
+      bar: {}
+    }
+  });
+
+  const [id, setId] = useState(1);
+  const [current, send] = useMachine(
+    machine.withConfig({
+      guards: {
+        hasOverflown: () => id > 1 // id is a reference to an outside value
+      }
+    })
+  );
+
+  // later when id updates
+  setId(2);
+  // Now the reference passed to `useMachine` (the result of `machine.withConfig`) is updated but the interpreted machine stays the same. So the guard is still the previous one that got passed to the `useMachine` initially, and it closes over the stale `id`.
+  ```
+
 ## 1.6.1
 
 ### Patch Changes
@@ -15,7 +54,7 @@
   Previously, guards could not reference external props, because they would not be updated when the props changed. For instance:
 
   ```tsx
-  const Modal = props => {
+  const Modal = (props) => {
     useMachine(modalMachine, {
       guards: {
         isModalOpen: () => props.isOpen
@@ -29,7 +68,7 @@
   This is not true of actions/services. This will work as expected:
 
   ```tsx
-  const Modal = props => {
+  const Modal = (props) => {
     useMachine(modalMachine, {
       actions: {
         consoleLogModalOpen: () => {
@@ -186,7 +225,7 @@
   import { useSelector } from '@xstate/react';
 
   const App = ({ someActor }) => {
-    const count = useSelector(someActor, state => state.context.count);
+    const count = useSelector(someActor, (state) => state.context.count);
 
     // ...
   };
@@ -307,7 +346,7 @@ All notable changes to this project will be documented in this file.
 - The `useActor` hook now takes a second argument: `getSnapshot` which is a function that should return the last emitted value:
 
   ```js
-  const [state, send] = useActor(someActor, actor => actor.current);
+  const [state, send] = useActor(someActor, (actor) => actor.current);
   ```
 
 ## [1.0.0-rc.6]
