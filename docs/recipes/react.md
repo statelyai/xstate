@@ -46,13 +46,7 @@ import React, { createContext } from 'react';
 import { useInterpret } from '@xstate/react';
 import { authMachine } from './authMachine';
 
-export type AuthService = InterpreterFrom<typeof authMachine>;
-
-export interface GlobalStateContextType {
-  authService: AuthService;
-}
-
-export const GlobalStateContext = createContext<GlobalStateContextType>({} as GlobalStateContextType);
+export const GlobalStateContext = createContext({});
 
 export const GlobalStateProvider = (props) => {
   const authService = useInterpret(authMachine);
@@ -66,6 +60,37 @@ export const GlobalStateProvider = (props) => {
 ```
 
 Using `useInterpret` returns a service, which is a static reference to the running machine which can be subscribed to. This value never changes, so we don't need to worry about wasted re-renders.
+
+#### Usage with typescript
+
+To have the strict typings with typescript for your service, you could use the generic `InterpreterFrom` from the `xstate`.
+
+```typescript
+import { createContext, FC } from 'react';
+import { useInterpret } from '@xstate/react';
+import { InterpreterFrom } from 'xstate';
+import { authMachine } from './authMachine';
+
+export type AuthService = InterpreterFrom<typeof authMachine>;
+
+export interface GlobalStateContextType {
+  authService: AuthService;
+}
+
+export const GlobalStateContext = createContext<GlobalStateContextType>(
+  {} as GlobalStateContextType
+);
+
+export const GlobalStateProvider: FC = (props) => {
+  const authService = useInterpret(authMachine);
+
+  return (
+    <GlobalStateContext.Provider value={{ authService }}>
+      {props.children}
+    </GlobalStateContext.Provider>
+  );
+};
+```
 
 ### Utilizing context
 
