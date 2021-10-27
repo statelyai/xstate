@@ -680,7 +680,7 @@ export interface StateNodeDefinition<
   /**
    * @deprecated
    */
-  activities: Array<ActivityDefinition<TContext, TEvent>>;
+  activities?: Array<ActivityDefinition<TContext, TEvent>>;
   meta: any;
   order: number;
   data?: FinalStateNodeConfig<TContext, TEvent>['data'];
