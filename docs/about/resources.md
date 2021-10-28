@@ -29,6 +29,7 @@ Explore a collection of professionally-designed state machines and statecharts i
 
 ## Podcasts
 
+- [Q&A on XState, Getting Comfortable with JavaScript, Managing WordPress Sites, and Background Images in CSS] (https://shoptalkshow.com/483/#t=01:18) on 2021-10-04
 - [🎙 (Modern Web) S07E20: Building State Machines using XState with David Khourshid](https://modernweb.podbean.com/e/s07e20-modern-web-podcast-building-state-machines-using-xstate-with-david-khourshid/) on 2021-01-20 ![Stately member](/docs/stately.png)
   - [▶️ Video](https://www.youtube.com/watch?v=uLlQjp5u2KQ)
 - [🎙 (React Podcast) 83: David Khourshid on XState, Statecharts, and the Future of Designer—Coder Collaboration](https://reactpodcast.com/episodes/83) on 2020-02-27 ![Stately member](/docs/stately.png)
@@ -42,6 +43,15 @@ Explore a collection of professionally-designed state machines and statecharts i
 
 ## Articles
 
+- [Using State Machines in Front-End Development] (https://blog.picnic.nl/using-state-machines-in-front-end-development-c875ea1d5322) by [Danielle Richter] 2021-10-27
+- [Quick post: Modeling a video player with xstate] (https://dev.to/matiasfha/quick-post-modeling-a-video-player-with-xstate-eko) by [Matías Hernández Arellano] on 2021-10-25
+- [Getting Started with XState, React and Typescript (Part 2)] (https://moduscreate.com/blog/getting-started-with-xstate-react-and-typescript-part-2/) by [Santiago Kent] on 2021-10-18
+- [Getting Started with XState, React and Typescript (Part 1)] (https://moduscreate.com/blog/getting-started-with-xstate-react-and-typescript-part-2/) by [Santiago Kent] on 2021-01-05
+- [Untangling your Logic using State Machines] (https://blog.robruizr.dev/untangling-your-logic-using-state-machines) by [Roberto Ruiz] on 21021-10-07
+- [The power of X-State] (https://dev.to/manoryanir/the-power-of-x-state-1npg) by [yanir manor] on 2102-10-04
+- [Building an acquisition Funnel in React with Xstate - Part 1] (https://dev.indooroutdoor.io/building-an-acquisition-funnel-in-react-with-xstate) by [Jb Rocher]
+- [XState - Expero Night] (https://slides.com/ivanbtrujillo/deck) by [Iván BTrujillo]
+- [Orchestrating Serverless from Serverless] (https://medium.com/@kjartanmuller/orchestrating-serverless-from-serverless-bcdb751ddd6c) by [Kjartan Rekdal Müller] on 2021-09-20
 - [How to model application flows in React with finite state machines and XState](https://engineering.kablamo.com.au/posts/2021/finite-state-machines-and-xstate) by [Andrew McDowell](https://twitter.com/madole) on 2021-07-23
 - [Testing XState machines in your React Native app](https://medium.com/welld-tech/testing-xstate-machines-in-your-react-native-app-236fb01bf5b8) by [Simone D'Avico](https://sdavico.medium.com/) on 2021-07-15
 - [Using XState with Deno](https://gustavosantos.dev/a/using-xstate-with-deno) by [Bruno Quaresma](https://twitter.com/bruno__quaresma) on 2021-06-24
@@ -139,6 +149,8 @@ Explore a collection of professionally-designed state machines and statecharts i
 
 ## Videos
 
+
+- [▶️ Design a polling state machine with XState] (https://www.youtube.com/watch?v=DMXAv8iTrcY) by [Josh Branchaud]
 - [▶️ You're a Wizard Form, Harry (Infobip Shift)](https://www.youtube.com/watch?v=0bY9_DasGEg) by [Erik Rasmussen](https://github.com/erikras) on 2021-09-08
 - [▶️ Making Application Logic Visually Collaborative (Infobip Shift)](https://www.youtube.com/watch?v=ubFj_QfNCL8) by [David Khourshid](https://github.com/davidkpiano) on 2021-09-07 ![Stately member](/docs/stately.png)
 - [▶️ The Actor Model: a new mental model for React (React Finland)](https://www.youtube.com/watch?v=9k1ZHHJWt7k) by [Farzad Yousefzadeh](https://github.com/farskid) on 2021-09-01 ![Stately member](/docs/stately.png)
@@ -209,6 +221,7 @@ Explore a collection of professionally-designed state machines and statecharts i
 
 ## Repositories
 
+- [Une UI dans tous ses états avec XState (A UI in all its states with XState)] (https://github.com/rbung/xstatePrez) by [Rodolphe Bung]
 - [XState: Street Lights with Pedestrian Crossing using Vue.js](https://codesandbox.io/s/stoic-thompson-ktzrl?file=/src/App.vue) by [Kevin Warrington](https://github.com/dubbs)
 - [CodeSandbox - XState Login & Sign Up Forms](https://codesandbox.io/s/xstate-login-sign-up-forms-yzzoc) by [Jamie Mason](https://github.com/JamieMason)
 - [Tic-Tac-Toe with Crank, XState, and TypeScript](https://github.com/mwarger/tic-tac-toe-crank-xstate-typescript) by [@warger](https://github.com/mwarger) on 2020-04-17
