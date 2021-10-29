@@ -29,7 +29,7 @@ Explore a collection of professionally-designed state machines and statecharts i
 
 ## Podcasts
 
-- [Q&A on XState, Getting Comfortable with JavaScript, Managing WordPress Sites, and Background Images in CSS] (https://shoptalkshow.com/483/#t=01:18) on 2021-10-04
+- [Q&A on XState, Getting Comfortable with JavaScript, Managing WordPress Sites, and Background Images in CSS](https://shoptalkshow.com/483/#t=01:18) on 2021-10-04
 - [🎙 (Modern Web) S07E20: Building State Machines using XState with David Khourshid](https://modernweb.podbean.com/e/s07e20-modern-web-podcast-building-state-machines-using-xstate-with-david-khourshid/) on 2021-01-20 ![Stately member](/docs/stately.png)
   - [▶️ Video](https://www.youtube.com/watch?v=uLlQjp5u2KQ)
 - [🎙 (React Podcast) 83: David Khourshid on XState, Statecharts, and the Future of Designer—Coder Collaboration](https://reactpodcast.com/episodes/83) on 2020-02-27 ![Stately member](/docs/stately.png)
