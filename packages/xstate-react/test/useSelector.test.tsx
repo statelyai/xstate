@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { assign, createMachine, spawn } from 'xstate';
+import { assign, createMachine, interpret, spawn } from 'xstate';
 import { toActorRef } from 'xstate/lib/Actor';
-import { render, cleanup, fireEvent } from '@testing-library/react';
+import { act, render, cleanup, fireEvent } from '@testing-library/react';
 import { useInterpret, useMachine, useSelector } from '../src';
 
 afterEach(cleanup);
@@ -427,5 +427,43 @@ describe('useSelector', () => {
 
     fireEvent.click(await findByRole('button'));
     expect(container.textContent).toEqual('bar');
+  });
+
+  it('should only rerender once when the selected value changes', () => {
+    const selector = (state: any) => state.context.foo;
+
+    const machine = createMachine<{ foo: number }, { type: 'INC' }>({
+      context: {
+        foo: 0
+      },
+      on: {
+        INC: {
+          actions: assign({
+            foo: (context) => ++context.foo
+          })
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    let renders = 0;
+
+    const App = () => {
+      ++renders;
+      useSelector(service, selector);
+
+      return null;
+    };
+
+    render(<App />);
+
+    // reset
+    renders = 0;
+    act(() => {
+      service.send({ type: 'INC' });
+    });
+
+    expect(renders).toBe(1);
   });
 });
