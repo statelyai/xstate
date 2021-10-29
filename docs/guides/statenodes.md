@@ -58,7 +58,7 @@ const fetchMachine = createMachine({
     },
     success: {
       // Initial child state
-      initial: { target: 'items' },
+      initial: 'items',
 
       // Child states
       states: {
