@@ -134,7 +134,16 @@ service.onTransition(state => {
 });
 ```
 
+::: 
+
+
+
+
+::: tip
+The `.onTransition()` callback will not run between eventless ("always") transitions or other microsteps. It only runs on macrosteps.
+Microsteps are the intermediate transitions between macrosteps.
 :::
+
 
 ## Starting and Stopping
 
