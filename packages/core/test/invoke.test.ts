@@ -2632,6 +2632,31 @@ describe('invoke', () => {
       interpret(machine).start();
     });
   });
+
+  it('invoke creator should provide reference to self (invokee)', (done) => {
+    const machine = createMachine({
+      invoke: {
+        src: (_ctx, _e, { self }) => () => {
+          self.send('FROM_INVOKED');
+        }
+      },
+      initial: 'pending',
+      states: {
+        pending: {
+          on: {
+            FROM_INVOKED: 'success'
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    interpret(machine)
+      .onDone(() => done())
+      .start();
+  });
 });
 
 describe('services option', () => {

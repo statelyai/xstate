@@ -299,9 +299,10 @@ export type InvokeCallback<
   onReceive: Receiver<TEvent>
 ) => (() => void) | Promise<any> | void;
 
-export interface InvokeMeta {
+export interface InvokeMeta<TSelfRef extends ActorRef<any, any>> {
   data: any;
   src: InvokeSourceDefinition;
+  self: TSelfRef;
   meta?: MetaObject;
 }
 
@@ -325,7 +326,7 @@ export type InvokeCreator<
 > = (
   context: TContext,
   event: TEvent,
-  meta: InvokeMeta
+  meta: InvokeMeta<ActorRef<TEvent, State<TContext, TEvent>>>
 ) =>
   | PromiseLike<TFinalContext>
   | StateMachine<TFinalContext, any, any>
