@@ -63,19 +63,24 @@ export function useSelector<
   }, [actor]);
 
   let currentSelected = useSubscription(subscription);
+  let currentChanged = false;
 
   if (latestSelectorRef.current !== selector) {
     let selected = selector(subscription.getSnapshot());
     if (!compare(currentSelected, selected)) {
+      currentChanged = true;
       currentSelected = selected;
     }
   }
 
   useIsomorphicLayoutEffect(() => {
     latestSelectorRef.current = selector;
-    // required so we don't cause a rerender by setting state (this could create infinite rerendering loop with inline selectors)
-    // at the same time we need to update the value within the subscription so new emits can compare against what has been returned to the user as current value
-    subscription.setCurrentValue(currentSelected);
+    // this condition should not be required, but setState bailouts are currently buggy: https://github.com/facebook/react/issues/22654
+    if (currentChanged) {
+      // required so we don't cause a rerender by setting state (this could create infinite rerendering loop with inline selectors)
+      // at the same time we need to update the value within the subscription so new emits can compare against what has been returned to the user as current value
+      subscription.setCurrentValue(currentSelected);
+    }
   });
 
   return currentSelected;

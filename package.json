@@ -17,8 +17,6 @@
     "test:core": "npm test --prefix packages/core",
     "dev": "node ./scripts/dev.js",
     "ci": "npm run build && npm run test",
-    "typedoc": "cd ./packages/core && typedoc --excludePrivate --mode file --out ./api --target es6 --moduleResolution node ./src",
-    "typedoc:publish": "npm run typedoc && gh-pages --dist ./packages/core/api --dest ./api",
     "changeset": "changeset",
     "prerelease": "npm run build && npm run test",
     "release": "changeset publish"
@@ -55,7 +53,6 @@
     "ts-jest": "^26.5.6",
     "tslib": "^2.2.0",
     "tslint": "^5.11.0",
-    "typedoc": "^0.17.4",
     "typescript": "^4.3.5",
     "webpack-dev-middleware": "^3.6.0"
   },

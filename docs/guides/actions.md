@@ -329,6 +329,8 @@ console.log(send({ type: 'SOME_EVENT' }, { to: 'child' }));
 
 :::
 
+To send from a child machine to a parent machine, use `sendParent(event)` (takes the same arguments as `send(...)`).
+
 ## Raise Action
 
 The `raise()` action creator queues an event to the statechart, in the internal event queue. This means the event is immediately sent on the current "step" of the interpreter.
