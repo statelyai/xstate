@@ -609,4 +609,46 @@ describe('createModel', () => {
     // @ts-expect-error (sanity check)
     val.count;
   });
+
+  it('EventFrom should preserve optional props of event payload', () => {
+    type IfEquals<T, U, Y = unknown, N = never> = (<G>() => G extends T
+      ? 1
+      : 2) extends <G>() => G extends U ? 1 : 2
+      ? Y
+      : N;
+
+    let exactType: <T, U>(
+      draft: T & IfEquals<T, U>,
+      expected: U & IfEquals<T, U>
+    ) => IfEquals<T, U>;
+
+    const model = createModel(
+      { count: 3 },
+      {
+        events: {
+          INC: () => ({}),
+          EVENT_WITH_OPTIONAL_PROP: (optionalArg?: string | undefined) => ({
+            optionalArg
+          })
+        }
+      }
+    );
+
+    // EventFrom completely ignored the optional type and thinks we're dealing with `optionalArg: string;`
+    type Events = EventFrom<typeof model>;
+
+    type ExpectedEventType =
+      | { type: 'INC' }
+      | { type: 'EVENT_WITH_OPTIONAL_PROP'; optionalArg?: string | undefined };
+
+    type AreEventsTheSame = IfEquals<
+      Events,
+      ExpectedEventType,
+      'same',
+      'different'
+    >;
+
+    // There should be no type error here
+    const typesShouldBeTheSame: AreEventsTheSame = 'same';
+  });
 });
