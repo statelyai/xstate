@@ -9,7 +9,8 @@ import {
   InterpreterOptions,
   MachineOptions,
   Typestate,
-  Observer
+  Observer,
+  ExtraGenerics
 } from 'xstate';
 import { MaybeLazy } from './types';
 import useConstant from './useConstant';
@@ -39,16 +40,19 @@ function toObserver<T>(
 export function useInterpret<
   TContext,
   TEvent extends EventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext },
+  TExtra extends ExtraGenerics = {}
 >(
-  getMachine: MaybeLazy<StateMachine<TContext, any, TEvent, TTypestate>>,
+  getMachine: MaybeLazy<
+    StateMachine<TContext, any, TEvent, TTypestate, TExtra>
+  >,
   options: Partial<InterpreterOptions> &
-    Partial<UseMachineOptions<TContext, TEvent>> &
-    Partial<MachineOptions<TContext, TEvent>> = {},
+    Partial<UseMachineOptions<TContext, TEvent, TExtra>> &
+    Partial<MachineOptions<TContext, TEvent, TExtra>> = {},
   observerOrListener?:
-    | Observer<State<TContext, TEvent, any, TTypestate>>
-    | ((value: State<TContext, TEvent, any, TTypestate>) => void)
-): Interpreter<TContext, any, TEvent, TTypestate> {
+    | Observer<State<TContext, TEvent, any, TTypestate, TExtra>>
+    | ((value: State<TContext, TEvent, any, TTypestate, TExtra>) => void)
+): Interpreter<TContext, any, TEvent, TTypestate, TExtra> {
   const machine = useConstant(() => {
     return typeof getMachine === 'function' ? getMachine() : getMachine;
   });
@@ -75,6 +79,7 @@ export function useInterpret<
     services,
     delays,
     state: rehydratedState,
+    input,
     ...interpreterOptions
   } = options;
 
@@ -85,7 +90,8 @@ export function useInterpret<
       actions,
       activities,
       services,
-      delays
+      delays,
+      input
     };
     const machineWithConfig = machine.withConfig(machineConfig, () => ({
       ...machine.context,
@@ -119,6 +125,12 @@ export function useInterpret<
     };
   }, []);
 
+  useIsomorphicLayoutEffect(() => {
+    if (input) {
+      service.input(input);
+    }
+  }, [...Object.keys(input || {}), ...Object.values(input || {})]);
+
   // Make sure options are kept updated when they change.
   // This mutation assignment is safe because the service instance is only used
   // in one place -- this hook's caller.
@@ -128,7 +140,8 @@ export function useInterpret<
     Object.assign(service.machine.options.activities, activities);
     Object.assign(service.machine.options.services, services);
     Object.assign(service.machine.options.delays, delays);
-  }, [actions, guards, activities, services, delays]);
+    Object.assign(service.machine.options.input, input);
+  }, [actions, guards, activities, services, delays, input]);
 
   useReactEffectActions(service);
 

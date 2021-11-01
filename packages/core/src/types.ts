@@ -876,7 +876,7 @@ export interface MachineOptions<
     TExtra
   >
 > {
-  input: Partial<TExtra['input']>;
+  input: TExtra['input'];
   guards: Record<string, ConditionPredicate<TContext, TEvent, TExtra>>;
   actions: ActionFunctionMap<TContext, TEvent, TExtra, TAction>;
   /**
@@ -1485,7 +1485,7 @@ export interface StateConfig<
   done?: boolean;
   tags?: Set<string>;
   machine?: StateMachine<TContext, any, TEvent, any>;
-  input: TExtra['input'];
+  input: NonNullable<TExtra['input']>;
 }
 
 export interface StateSchema<TC = any> {

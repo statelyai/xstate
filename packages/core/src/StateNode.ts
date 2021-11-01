@@ -1291,11 +1291,13 @@ class StateNode<
       ? currentState.configuration
       : [];
 
-    let updatedInput: TExtra['input'] =
-      currentState?.input || this.options.input;
+    const currentInput: NonNullable<TExtra['input']> =
+      currentState?.input || this.options.input!;
+
+    let updatedInput: NonNullable<TExtra['input']> | undefined = undefined;
 
     if (_event?.name === actionTypes.input) {
-      updatedInput = Object.assign(updatedInput, (_event.data as any).input);
+      updatedInput = Object.assign(currentInput, (_event.data as any).input);
     }
 
     const isDone = isInFinalState(resolvedConfiguration, this);
@@ -1336,12 +1338,15 @@ class StateNode<
       done: isDone,
       tags: currentState?.tags,
       machine: this,
-      input: updatedInput
+      input: updatedInput ?? currentInput
     });
 
     const didUpdateContext = currentContext !== updatedContext;
 
-    nextState.changed = _event.name === actionTypes.update || didUpdateContext;
+    nextState.changed =
+      _event.name === actionTypes.update ||
+      didUpdateContext ||
+      Boolean(updatedInput);
 
     // Dispose of penultimate histories to prevent memory leaks
     const { history } = nextState;

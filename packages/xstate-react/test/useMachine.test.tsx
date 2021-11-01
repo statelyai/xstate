@@ -1,25 +1,26 @@
-import * as React from 'react';
-import { useMachine, useService, useActor } from '../src';
 import {
-  Machine,
-  assign,
-  Interpreter,
-  spawn,
-  doneInvoke,
-  State,
-  createMachine,
-  send
-} from 'xstate';
-import {
-  render,
-  fireEvent,
+  act,
   cleanup,
-  waitForElement,
-  act
+  fireEvent,
+  render,
+  waitForElement
 } from '@testing-library/react';
+import * as React from 'react';
 import { useState } from 'react';
+import {
+  assign,
+  createMachine,
+  DoneEventObject,
+  doneInvoke,
+  Interpreter,
+  Machine,
+  send,
+  spawn,
+  State
+} from 'xstate';
+import { createModel } from 'xstate/lib/model';
+import { useActor, useMachine, useService } from '../src';
 import { asEffect, asLayoutEffect } from '../src/useMachine';
-import { DoneEventObject } from 'xstate';
 
 afterEach(() => {
   cleanup();
@@ -985,5 +986,120 @@ describe('useMachine (strict mode)', () => {
     const { container } = render(<App />);
 
     expect(container.textContent).toBe('2');
+  });
+});
+
+describe('input', () => {
+  it('Should provide the input on the state', async () => {
+    const model = createModel(
+      {},
+      {
+        input: {} as {
+          foo: string;
+        }
+      }
+    );
+
+    const machine = model.createMachine({}, {});
+
+    const App = () => {
+      const [state] = useMachine(machine, {
+        input: {
+          foo: 'bar'
+        }
+      });
+      return <>{state.input.foo}</>;
+    };
+
+    const { container } = render(<App />);
+
+    expect(container.textContent).toBe('bar');
+  });
+
+  it('Should keep the input up to date', () => {
+    const model = createModel(
+      {},
+      {
+        input: {} as {
+          foo: string;
+        }
+      }
+    );
+
+    const machine = model.createMachine({}, {});
+
+    const App = (props: { foo: string }) => {
+      const [state] = useMachine(machine, {
+        input: {
+          foo: props.foo
+        }
+      });
+      return <>{state.input.foo}</>;
+    };
+
+    const { container, rerender } = render(<App foo="1" />);
+
+    expect(container.textContent).toBe('1');
+
+    rerender(<App foo="2" />);
+
+    expect(container.textContent).toBe('2');
+  });
+
+  it('Should keep the input up to date in the machine options', (done) => {
+    const model = createModel(
+      {},
+      {
+        events: {
+          'xstate.input': () => ({})
+        },
+        input: {} as {
+          foo: string;
+        }
+      }
+    );
+
+    const machine = model.createMachine(
+      {
+        initial: 'a',
+        states: {
+          a: {
+            entry: [
+              (_, __, meta) => {
+                expect(meta.state.input.foo).toBe('1');
+              }
+            ],
+            always: {
+              cond: (_, __, meta) => {
+                return meta.state.input.foo === '2';
+              },
+              target: 'b'
+            }
+          },
+          b: {
+            entry: [
+              (_, __, meta) => {
+                expect(meta.state.input.foo).toBe('2');
+                done();
+              }
+            ]
+          }
+        }
+      },
+      {}
+    );
+
+    const App = (props: { foo: string }) => {
+      useMachine(machine, {
+        input: {
+          foo: props.foo
+        }
+      });
+      return null;
+    };
+
+    const { rerender } = render(<App foo="1" />);
+
+    rerender(<App foo="2" />);
   });
 });

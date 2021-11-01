@@ -107,7 +107,7 @@ export class State<
   public event: TEvent;
   public _event: SCXML.Event<TEvent>;
   public _sessionid: string | null;
-  public input: TExtra['input'] = {};
+  public input: NonNullable<TExtra['input']>;
   /**
    * Indicates whether the state has changed from the previous state. A state is considered "changed" if:
    *
@@ -192,7 +192,7 @@ export class State<
       configuration: [],
       transitions: [],
       children: {},
-      input: {}
+      input: {} as NonNullable<TExtra['input']>
     });
   }
   /**

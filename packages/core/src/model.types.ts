@@ -42,7 +42,13 @@ export interface Model<
   createMachine: (
     config: MachineConfig<TContext, any, TEvent, TExtra, TAction>,
     implementations?: Partial<MachineOptions<TContext, TEvent, TExtra, TAction>>
-  ) => StateMachine<TContext, any, TEvent>;
+  ) => StateMachine<
+    TContext,
+    any,
+    TEvent,
+    { value: any; context: TContext },
+    TExtra
+  >;
 }
 
 export type ModelContextFrom<
