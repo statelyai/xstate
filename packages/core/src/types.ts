@@ -39,7 +39,7 @@ export interface BaseActionObject {
 export interface ActionObject<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > extends BaseActionObject {
   /**
    * The implementation for executing the action.
@@ -73,7 +73,7 @@ export interface ActionMeta<
 export interface AssignMeta<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > {
   state?: State<TContext, TEvent>;
   action: AssignAction<TContext, TEvent, TExtra>;
@@ -83,7 +83,7 @@ export interface AssignMeta<
 export type ActionFunction<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics,
+  TExtra extends ExtraGenerics = {},
   TAction extends ActionObject<TContext, TEvent, TExtra> = ActionObject<
     TContext,
     TEvent,
@@ -98,7 +98,7 @@ export type ActionFunction<
 export interface ChooseCondition<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > {
   cond?: Condition<TContext, TEvent, TExtra>;
   actions: Actions<TContext, TEvent, TExtra>;
@@ -107,7 +107,7 @@ export interface ChooseCondition<
 export type Action<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > =
   | ActionType
   | ActionObject<TContext, TEvent, TExtra>
@@ -135,7 +135,7 @@ export type BaseAction<
   TContext,
   TEvent extends EventObject,
   TAction extends BaseActionObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > =
   | SimpleActionsOf<TAction>['type']
   | TAction
@@ -152,13 +152,13 @@ export type BaseActions<
   TContext,
   TEvent extends EventObject,
   TAction extends BaseActionObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > = SingleOrArray<BaseAction<TContext, TEvent, TAction, TExtra>>;
 
 export type Actions<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > = SingleOrArray<Action<TContext, TEvent, TExtra>>;
 
 export type StateKey = string | State<any>;
@@ -203,7 +203,7 @@ export interface HistoryValue {
 export type ConditionPredicate<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > = (
   context: TContext,
   event: TEvent,
@@ -215,7 +215,7 @@ export type DefaultGuardType = 'xstate.guard';
 export interface GuardPredicate<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > {
   type: DefaultGuardType;
   name: string | undefined;
@@ -225,7 +225,7 @@ export interface GuardPredicate<
 export type Guard<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > =
   | GuardPredicate<TContext, TEvent, TExtra>
   | (Record<string, any> & {
@@ -235,7 +235,7 @@ export type Guard<
 export interface GuardMeta<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > extends StateMeta<TContext, TEvent, TExtra> {
   cond: Guard<TContext, TEvent, TExtra>;
 }
@@ -243,7 +243,7 @@ export interface GuardMeta<
 export type Condition<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > =
   | string
   | ConditionPredicate<TContext, TEvent, TExtra>
@@ -261,7 +261,7 @@ export type TransitionTargets<TContext> = Array<
 export interface TransitionConfig<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > {
   cond?: Condition<TContext, TEvent, TExtra>;
   actions?: Actions<TContext, TEvent, TExtra>;
@@ -275,7 +275,7 @@ export interface TransitionConfig<
 export interface TargetTransitionConfig<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > extends TransitionConfig<TContext, TEvent, TExtra> {
   target: TransitionTarget<TContext, TEvent>; // TODO: just make this non-optional
 }
@@ -300,7 +300,7 @@ export type DisposeActivityFunction = () => void;
 export type ActivityConfig<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > = (
   ctx: TContext,
   activity: ActivityDefinition<TContext, TEvent, TExtra>
@@ -309,13 +309,13 @@ export type ActivityConfig<
 export type Activity<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > = string | ActivityDefinition<TContext, TEvent, TExtra>;
 
 export interface ActivityDefinition<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > extends ActionObject<TContext, TEvent, TExtra> {
   id: string;
   type: string;
@@ -400,7 +400,7 @@ export type InvokeCreator<
 export interface InvokeDefinition<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > extends ActivityDefinition<TContext, TEvent, TExtra> {
   /**
    * The source of the machine to be invoked, or the machine itself.
@@ -439,7 +439,7 @@ export interface Delay {
 export type DelayedTransitions<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > =
   | Record<
       string | number,
@@ -477,7 +477,7 @@ export type StatesConfig<
   TContext,
   TStateSchema extends StateSchema,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics,
+  TExtra extends ExtraGenerics = {},
   TAction extends BaseActionObject = BaseActionObject
 > = {
   [K in keyof TStateSchema['states']]: StateNodeConfig<
@@ -493,7 +493,7 @@ export type StatesDefinition<
   TContext,
   TStateSchema extends StateSchema,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > = {
   [K in keyof TStateSchema['states']]: StateNodeDefinition<
     TContext,
@@ -511,7 +511,7 @@ export type TransitionConfigTarget<TContext, TEvent extends EventObject> =
 export type TransitionConfigOrTarget<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > = SingleOrArray<
   | TransitionConfigTarget<TContext, TEvent>
   | TransitionConfig<TContext, TEvent, TExtra>
@@ -520,7 +520,7 @@ export type TransitionConfigOrTarget<
 export type TransitionsConfigMap<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > = {
   [K in TEvent['type']]?: TransitionConfigOrTarget<
     TContext,
@@ -536,7 +536,7 @@ export type TransitionsConfigMap<
 type TransitionsConfigArray<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > = Array<
   // distribute the union
   | (TEvent extends EventObject
@@ -549,7 +549,7 @@ type TransitionsConfigArray<
 export type TransitionsConfig<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > =
   | TransitionsConfigMap<TContext, TEvent, TExtra>
   | TransitionsConfigArray<TContext, TEvent, TExtra>;
@@ -562,7 +562,7 @@ export interface InvokeSourceDefinition {
 export interface InvokeConfig<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > {
   /**
    * The unique identifier for the invoked machine. If not specified, this
@@ -618,7 +618,7 @@ export interface StateNodeConfig<
   TContext,
   TStateSchema extends StateSchema,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics,
+  TExtra extends ExtraGenerics = {},
   TAction extends BaseActionObject = BaseActionObject
 > {
   /**
@@ -763,7 +763,7 @@ export interface StateNodeDefinition<
   TContext,
   TStateSchema extends StateSchema,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > {
   id: string;
   version: string | undefined;
@@ -793,7 +793,7 @@ export type AnyStateNodeDefinition = StateNodeDefinition<any, any, any, {}>;
 export interface AtomicStateNodeConfig<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > extends StateNodeConfig<TContext, StateSchema, TEvent, TExtra> {
   initial?: undefined;
   parallel?: false | undefined;
@@ -804,7 +804,7 @@ export interface AtomicStateNodeConfig<
 export interface HistoryStateNodeConfig<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > extends AtomicStateNodeConfig<TContext, TEvent, TExtra> {
   history: 'shallow' | 'deep' | true;
   target: StateValue | undefined;
@@ -813,7 +813,7 @@ export interface HistoryStateNodeConfig<
 export interface FinalStateNodeConfig<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > extends AtomicStateNodeConfig<TContext, TEvent, TExtra> {
   type: 'final';
   /**
@@ -827,7 +827,7 @@ export type SimpleOrStateNodeConfig<
   TContext,
   TStateSchema extends StateSchema,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > =
   | AtomicStateNodeConfig<TContext, TEvent, TExtra>
   | StateNodeConfig<TContext, TStateSchema, TEvent, TExtra>;
@@ -835,7 +835,7 @@ export type SimpleOrStateNodeConfig<
 export type ActionFunctionMap<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics,
+  TExtra extends ExtraGenerics = {},
   TAction extends ActionObject<TContext, TEvent, TExtra> = ActionObject<
     TContext,
     TEvent,
@@ -888,7 +888,7 @@ export interface MachineOptions<
   /**
    * @private
    */
-  _parent?: StateNode<TContext, any, TEvent, any>;
+  _parent?: StateNode<TContext, any, TEvent, any, TExtra>;
   /**
    * @private
    */
@@ -924,14 +924,14 @@ export interface StandardMachineConfig<
   TContext,
   TStateSchema extends StateSchema,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > extends StateNodeConfig<TContext, TStateSchema, TEvent, TExtra> {}
 
 export interface ParallelMachineConfig<
   TContext,
   TStateSchema extends StateSchema,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > extends StateNodeConfig<TContext, TStateSchema, TEvent, TExtra> {
   initial?: undefined;
   type?: 'parallel';
@@ -940,7 +940,7 @@ export interface ParallelMachineConfig<
 export interface EntryExitEffectMap<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > {
   entry: Array<ActionObject<TContext, TEvent, TExtra>>;
   exit: Array<ActionObject<TContext, TEvent, TExtra>>;
@@ -995,7 +995,7 @@ export type StateFrom<
 export interface ActionMap<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > {
   onEntry: Array<Action<TContext, TEvent, TExtra>>;
   actions: Array<Action<TContext, TEvent, TExtra>>;
@@ -1020,7 +1020,7 @@ export interface ActivityMap {
 export interface StateTransition<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > {
   transitions: Array<TransitionDefinition<TContext, TEvent, TExtra>>;
   configuration: Array<StateNode<TContext, any, TEvent, any>>;
@@ -1036,7 +1036,7 @@ export interface StateTransition<
 export interface TransitionData<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > {
   value: StateValue | undefined;
   actions: ActionMap<TContext, TEvent, TExtra>;
@@ -1063,7 +1063,8 @@ export enum ActionTypes {
   ErrorCustom = 'xstate.error',
   Update = 'xstate.update',
   Pure = 'xstate.pure',
-  Choose = 'xstate.choose'
+  Choose = 'xstate.choose',
+  Input = 'xstate.input'
 }
 
 export interface RaiseAction<TEvent extends EventObject> {
@@ -1109,7 +1110,7 @@ export interface NullEvent {
 export interface ActivityActionObject<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > extends ActionObject<TContext, TEvent, TExtra> {
   type: ActionTypes.Start | ActionTypes.Stop;
   activity: ActivityDefinition<TContext, TEvent, TExtra> | undefined;
@@ -1119,7 +1120,7 @@ export interface ActivityActionObject<
 export interface InvokeActionObject<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > extends ActivityActionObject<TContext, TEvent, TExtra> {
   activity: InvokeDefinition<TContext, TEvent, TExtra>;
 }
@@ -1139,7 +1140,7 @@ export type LogExpr<TContext, TEvent extends EventObject> = ExprWithMeta<
 export interface LogAction<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > extends ActionObject<TContext, TEvent, TExtra> {
   label: string | undefined;
   expr: string | LogExpr<TContext, TEvent>;
@@ -1148,7 +1149,7 @@ export interface LogAction<
 export interface LogActionObject<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > extends LogAction<TContext, TEvent, TExtra> {
   value: any;
 }
@@ -1157,7 +1158,7 @@ export interface SendAction<
   TContext,
   TEvent extends EventObject,
   TSentEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > extends ActionObject<TContext, TEvent, TExtra> {
   to:
     | string
@@ -1186,7 +1187,7 @@ export interface SendActionObject<
 export interface StopAction<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > extends ActionObject<TContext, TEvent, TExtra> {
   type: ActionTypes.Stop;
   activity:
@@ -1235,7 +1236,7 @@ export interface CancelAction extends ActionObject<any, any, any> {
 export type Assigner<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > = (
   context: TContext,
   event: TEvent,
@@ -1246,7 +1247,7 @@ export type PartialAssigner<
   TContext,
   TEvent extends EventObject,
   TKey extends keyof TContext,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > = (
   context: TContext,
   event: TEvent,
@@ -1256,7 +1257,7 @@ export type PartialAssigner<
 export type PropertyAssigner<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > = {
   [K in keyof TContext]?:
     | PartialAssigner<TContext, TEvent, K, TExtra>
@@ -1281,7 +1282,7 @@ export type PropertyMapper<
 export interface AnyAssignAction<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > extends ActionObject<TContext, TEvent, TExtra> {
   type: ActionTypes.Assign;
   assignment: any;
@@ -1290,7 +1291,7 @@ export interface AnyAssignAction<
 export interface AssignAction<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > extends ActionObject<TContext, TEvent, TExtra> {
   type: ActionTypes.Assign;
   assignment:
@@ -1298,10 +1299,19 @@ export interface AssignAction<
     | PropertyAssigner<TContext, TEvent, TExtra>;
 }
 
+export interface InputAction<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics = {}
+> extends ActionObject<TContext, TEvent, TExtra> {
+  type: ActionTypes.Input;
+  input: TExtra['input'];
+}
+
 export interface PureAction<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > extends ActionObject<TContext, TEvent, TExtra> {
   type: ActionTypes.Pure;
   get: (
@@ -1313,7 +1323,7 @@ export interface PureAction<
 export interface ChooseAction<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > extends ActionObject<TContext, TEvent, TExtra> {
   type: ActionTypes.Choose;
   conds: Array<ChooseCondition<TContext, TEvent, TExtra>>;
@@ -1322,7 +1332,7 @@ export interface ChooseAction<
 export interface TransitionDefinition<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > extends TransitionConfig<TContext, TEvent, TExtra> {
   target: Array<StateNode<TContext, any, TEvent>> | undefined;
   source: StateNode<TContext, any, TEvent>;
@@ -1342,7 +1352,7 @@ export interface TransitionDefinition<
 export type TransitionDefinitionMap<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > = {
   [K in TEvent['type'] | NullEvent['type'] | '*']: Array<
     TransitionDefinition<
@@ -1356,7 +1366,7 @@ export type TransitionDefinitionMap<
 export interface DelayedTransitionDefinition<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > extends TransitionDefinition<TContext, TEvent, TExtra> {
   delay: number | string | DelayExpr<TContext, TEvent>;
 }
@@ -1378,7 +1388,7 @@ export interface Edge<
 export interface NodesAndEdges<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > {
   nodes: StateNode[];
   edges: Array<Edge<TContext, TEvent, TExtra, TEvent['type']>>;
@@ -1433,7 +1443,7 @@ export interface SCXMLEventMeta<TEvent extends EventObject> {
 export interface StateMeta<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > {
   state: State<TContext, TEvent, any, any, TExtra>;
   _event: SCXML.Event<TEvent>;
@@ -1454,7 +1464,7 @@ export interface StateLike<TContext> {
 export interface StateConfig<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = {}
 > {
   value: StateValue;
   context: TContext;
@@ -1475,6 +1485,7 @@ export interface StateConfig<
   done?: boolean;
   tags?: Set<string>;
   machine?: StateMachine<TContext, any, TEvent, any>;
+  input: TExtra['input'];
 }
 
 export interface StateSchema<TC = any> {
@@ -1661,7 +1672,7 @@ export type ActorRefFrom<T> = T extends StateMachine<
   ? ActorRef<TEvent1, TEmitted>
   : never;
 
-export type AnyInterpreter = Interpreter<any, any, any, any>;
+export type AnyInterpreter = Interpreter<any, any, any, any, any>;
 
 export type InterpreterFrom<
   T extends

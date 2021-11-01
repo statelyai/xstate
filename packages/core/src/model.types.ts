@@ -38,7 +38,7 @@ export interface Model<
   actions: Prop<TModelCreators, 'actions'>;
   reset: () => AssignAction<TContext, any>;
   createMachine: (
-    config: MachineConfig<TContext, any, TEvent, TAction>,
+    config: MachineConfig<TContext, any, TEvent, {}, TAction>,
     implementations?: Partial<MachineOptions<TContext, TEvent, {}, TAction>>
   ) => StateMachine<TContext, any, TEvent>;
 }

@@ -168,7 +168,8 @@ export class State<
           events: [],
           configuration: [], // TODO: fix,
           transitions: [],
-          children: {}
+          children: {},
+          input: stateValue.input
         });
       }
 
@@ -190,7 +191,8 @@ export class State<
       events: [],
       configuration: [],
       transitions: [],
-      children: {}
+      children: {},
+      input: {}
     });
   }
   /**
@@ -227,7 +229,8 @@ export class State<
         activities: stateValue.activities,
         configuration: stateValue.configuration,
         transitions: [],
-        children: {}
+        children: {},
+        input: {}
       });
     }
 
@@ -268,6 +271,7 @@ export class State<
       (Array.isArray(config.tags) ? new Set(config.tags) : config.tags) ??
       new Set();
     this.machine = config.machine;
+    this.input = config.input;
 
     Object.defineProperty(this, 'nextEvents', {
       get: () => {

@@ -202,7 +202,13 @@ export class Interpreter<
    * @param options Interpreter options
    */
   constructor(
-    public machine: StateMachine<TContext, TStateSchema, TEvent, TTypestate>,
+    public machine: StateMachine<
+      TContext,
+      TStateSchema,
+      TEvent,
+      TTypestate,
+      TExtra
+    >,
     options: Partial<InterpreterOptions> = Interpreter.defaultOptions
   ) {
     const resolvedOptions: InterpreterOptions = {
@@ -577,9 +583,12 @@ export class Interpreter<
   public input(
     input: Partial<TExtra['input']>
   ): State<TContext, TEvent, TStateSchema, TTypestate, TExtra> {
-    // TODO - implement
+    this.send(({
+      type: actionTypes.input,
+      input
+    } as any) as SCXML.Event<TEvent>);
 
-    return this.state;
+    return this._state!;
   }
   /**
    * Sends an event to the running interpreter to trigger a transition.
@@ -1254,7 +1263,9 @@ export class Interpreter<
 
     return actor;
   }
-  private spawnActivity(activity: ActivityDefinition<TContext, TEvent>): void {
+  private spawnActivity(
+    activity: ActivityDefinition<TContext, TEvent, TExtra>
+  ): void {
     const implementation =
       this.machine.options && this.machine.options.activities
         ? this.machine.options.activities[activity.type]

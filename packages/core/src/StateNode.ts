@@ -120,7 +120,7 @@ const createDefaultOptions = <TContext>(): MachineOptions<TContext, any> => ({
 });
 
 const validateArrayifiedTransitions = <TContext>(
-  stateNode: StateNode<any, any, any, any>,
+  stateNode: StateNode<any, any, any, any, any>,
   event: string,
   transitions: Array<
     TransitionConfig<TContext, EventObject, {}> & {
@@ -222,11 +222,11 @@ class StateNode<
   /**
    * The parent state node.
    */
-  public parent?: StateNode<TContext, any, TEvent, any>;
+  public parent?: StateNode<TContext, any, TEvent, any, TExtra>;
   /**
    * The root machine node.
    */
-  public machine: StateNode<TContext, any, TEvent, TTypestate>;
+  public machine: StateNode<TContext, any, TEvent, TTypestate, TExtra>;
   /**
    * The meta data associated with this state node, which will be returned in State instances.
    */
@@ -289,7 +289,10 @@ class StateNode<
       | undefined
   };
 
-  private idMap: Record<string, StateNode<TContext, any, TEvent>> = {};
+  private idMap: Record<
+    string,
+    StateNode<TContext, any, TEvent, any, TExtra>
+  > = {};
   public tags: string[] = [];
 
   constructor(
@@ -484,12 +487,23 @@ class StateNode<
   public withConfig(
     options: Partial<MachineOptions<TContext, TEvent, TExtra>>,
     context?: TContext | (() => TContext)
-  ): StateNode<TContext, TStateSchema, TEvent, TTypestate> {
-    const { actions, activities, guards, services, delays } = this.options;
+  ): StateNode<TContext, TStateSchema, TEvent, TTypestate, TExtra> {
+    const {
+      actions,
+      activities,
+      guards,
+      services,
+      delays,
+      input
+    } = this.options;
 
     return new StateNode(
       this.config,
       {
+        input: {
+          ...input,
+          ...options.input
+        },
         actions: { ...actions, ...options.actions },
         activities: { ...activities, ...options.activities },
         guards: { ...guards, ...options.guards },
@@ -1187,7 +1201,7 @@ class StateNode<
 
   private resolveTransition(
     stateTransition: StateTransition<TContext, TEvent, TExtra>,
-    currentState?: State<TContext, TEvent, any, any>,
+    currentState?: State<TContext, TEvent, any, any, TExtra>,
     _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>,
     context: TContext = this.machine.context
   ): State<TContext, TEvent, TStateSchema, TTypestate, TExtra> {
@@ -1277,6 +1291,13 @@ class StateNode<
       ? currentState.configuration
       : [];
 
+    let updatedInput: TExtra['input'] =
+      currentState?.input || this.options.input;
+
+    if (_event?.name === actionTypes.input) {
+      updatedInput = Object.assign(updatedInput, (_event.data as any).input);
+    }
+
     const isDone = isInFinalState(resolvedConfiguration, this);
 
     const nextState = new State<
@@ -1314,7 +1335,8 @@ class StateNode<
       children,
       done: isDone,
       tags: currentState?.tags,
-      machine: this
+      machine: this,
+      input: updatedInput
     });
 
     const didUpdateContext = currentContext !== updatedContext;
@@ -1399,7 +1421,7 @@ class StateNode<
    */
   public getStateNode(
     stateKey: string
-  ): StateNode<TContext, any, TEvent, TTypestate> {
+  ): StateNode<TContext, any, TEvent, TTypestate, TExtra> {
     if (isStateId(stateKey)) {
       return this.machine.getStateNodeById(stateKey);
     }
@@ -1427,7 +1449,7 @@ class StateNode<
    */
   public getStateNodeById(
     stateId: string
-  ): StateNode<TContext, any, TEvent, any> {
+  ): StateNode<TContext, any, TEvent, any, TExtra> {
     const resolvedStateId = isStateId(stateId)
       ? stateId.slice(STATE_IDENTIFIER.length)
       : stateId;
@@ -1454,7 +1476,7 @@ class StateNode<
    */
   public getStateNodeByPath(
     statePath: string | string[]
-  ): StateNode<TContext, any, TEvent, any> {
+  ): StateNode<TContext, any, TEvent, any, TExtra> {
     if (typeof statePath === 'string' && isStateId(statePath)) {
       try {
         return this.getStateNodeById(statePath.slice(1));
@@ -1465,7 +1487,7 @@ class StateNode<
     }
 
     const arrayStatePath = toStatePath(statePath, this.delimiter).slice();
-    let currentStateNode: StateNode<TContext, any, TEvent, any> = this;
+    let currentStateNode: StateNode<TContext, any, TEvent, any, TExtra> = this;
     while (arrayStatePath.length) {
       const key = arrayStatePath.shift()!;
 

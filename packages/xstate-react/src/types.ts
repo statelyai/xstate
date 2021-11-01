@@ -2,6 +2,7 @@ import {
   ActionMeta,
   ActionObject,
   EventObject,
+  ExtraGenerics,
   State,
   StateConfig
 } from 'xstate';
@@ -77,11 +78,15 @@ export enum ReactEffectType {
   LayoutEffect = 2
 }
 
-export interface ReactActionFunction<TContext, TEvent extends EventObject> {
+export interface ReactActionFunction<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics = {}
+> {
   (
     context: TContext,
     event: TEvent,
-    meta: ActionMeta<TContext, TEvent>
+    meta: ActionMeta<TContext, TEvent, TExtra>
   ): () => void;
   __effect: ReactEffectType;
 }

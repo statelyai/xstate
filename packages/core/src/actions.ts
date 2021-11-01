@@ -55,7 +55,7 @@ import {
 import { State } from './State';
 import { StateNode } from './StateNode';
 import { IS_PRODUCTION } from './environment';
-import { StopAction, StopActionObject } from '.';
+import { ExtraGenerics, StopAction, StopActionObject } from '.';
 
 export { actionTypes };
 
@@ -570,19 +570,23 @@ export function choose<TContext, TEvent extends EventObject>(
   };
 }
 
-export function resolveActions<TContext, TEvent extends EventObject>(
-  machine: StateNode<TContext, any, TEvent, any>,
-  currentState: State<TContext, TEvent> | undefined,
+export function resolveActions<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+>(
+  machine: StateNode<TContext, any, TEvent, any, TExtra>,
+  currentState: State<TContext, TEvent, any, any, TExtra> | undefined,
   currentContext: TContext,
   _event: SCXML.Event<TEvent>,
-  actions: Array<ActionObject<TContext, TEvent>>,
+  actions: Array<ActionObject<TContext, TEvent, TExtra>>,
   preserveActionOrder: boolean = false
-): [Array<ActionObject<TContext, TEvent>>, TContext] {
+): [Array<ActionObject<TContext, TEvent, TExtra>>, TContext] {
   const [assignActions, otherActions] = preserveActionOrder
     ? [[], actions]
     : partition(
         actions,
-        (action): action is AssignAction<TContext, TEvent> =>
+        (action): action is AssignAction<TContext, TEvent, TExtra> =>
           action.type === actionTypes.assign
       );
 
@@ -602,11 +606,16 @@ export function resolveActions<TContext, TEvent extends EventObject>(
             return resolveRaise(actionObject as RaiseAction<TEvent>);
           case actionTypes.send:
             const sendAction = resolveSend(
-              actionObject as SendAction<TContext, TEvent, AnyEventObject>,
+              actionObject as SendAction<
+                TContext,
+                TEvent,
+                AnyEventObject,
+                TExtra
+              >,
               updatedContext,
               _event,
               machine.options.delays
-            ) as ActionObject<TContext, TEvent>; // TODO: fix ActionTypes.Init
+            ) as ActionObject<TContext, TEvent, TExtra>; // TODO: fix ActionTypes.Init
 
             if (!IS_PRODUCTION) {
               // warn after resolving as we can create better contextual message here
@@ -621,12 +630,16 @@ export function resolveActions<TContext, TEvent extends EventObject>(
             return sendAction;
           case actionTypes.log:
             return resolveLog(
-              actionObject as LogAction<TContext, TEvent>,
+              actionObject as LogAction<TContext, TEvent, TExtra>,
               updatedContext,
               _event
             );
           case actionTypes.choose: {
-            const chooseAction = actionObject as ChooseAction<TContext, TEvent>;
+            const chooseAction = actionObject as ChooseAction<
+              TContext,
+              TEvent,
+              TExtra
+            >;
             const matchedActions = chooseAction.conds.find((condition) => {
               const guard = toGuard(condition.cond, machine.options.guards);
               return (
@@ -663,7 +676,8 @@ export function resolveActions<TContext, TEvent extends EventObject>(
           case actionTypes.pure: {
             const matchedActions = (actionObject as PureAction<
               TContext,
-              TEvent
+              TEvent,
+              TExtra
             >).get(updatedContext, _event.data);
             if (!matchedActions) {
               return [];
@@ -682,7 +696,7 @@ export function resolveActions<TContext, TEvent extends EventObject>(
           }
           case actionTypes.stop: {
             return resolveStop(
-              actionObject as StopAction<TContext, TEvent>,
+              actionObject as StopAction<TContext, TEvent, TExtra>,
               updatedContext,
               _event
             );
@@ -691,7 +705,7 @@ export function resolveActions<TContext, TEvent extends EventObject>(
             updatedContext = updateContext(
               updatedContext,
               _event,
-              [actionObject as AssignAction<TContext, TEvent>],
+              [actionObject as AssignAction<TContext, TEvent, TExtra>],
               currentState
             );
             preservedContexts?.push(updatedContext);
@@ -715,7 +729,7 @@ export function resolveActions<TContext, TEvent extends EventObject>(
             return resolvedActionObject;
         }
       })
-      .filter((a): a is ActionObject<TContext, TEvent> => !!a)
+      .filter((a): a is ActionObject<TContext, TEvent, TExtra> => !!a)
   );
   return [resolvedActions, updatedContext];
 }
