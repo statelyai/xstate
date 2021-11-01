@@ -83,7 +83,7 @@ const model = createModel({}).withInput(
   }
 );
 
-const machine = createMachine(
+const machine = model.createMachine(
   {
     entry: [
       (context, event, meta) => {
