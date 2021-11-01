@@ -126,8 +126,6 @@ describe('input', () => {
     ).start();
   });
 
-  it.todo('Should only require a partial of the input to update them');
-
   describe('When users listen for the input on xstate.input', () => {
     it('Should already be updated by the time they receive it', (done) => {
       const machine = createMachine<
