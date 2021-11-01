@@ -26,7 +26,8 @@ export function createModel<
   >,
   TComputedAction = UnionFromCreatorsReturnTypes<
     Prop<TFinalModelCreators, 'actions'>
-  >
+  >,
+  TComputedInput = Prop<TFinalModelCreators, 'input'>
 >(
   initialContext: TContext,
   creators: TModelCreators
@@ -36,7 +37,10 @@ export function createModel<
   IsNever<TComputedAction> extends true
     ? BaseActionObject
     : Cast<TComputedAction, BaseActionObject>,
-  TFinalModelCreators
+  TFinalModelCreators,
+  {
+    input: TComputedInput;
+  }
 >;
 export function createModel(
   initialContext: object,

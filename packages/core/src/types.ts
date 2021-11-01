@@ -1726,7 +1726,7 @@ export type EmittedFrom<T> = ReturnTypeOrValue<T> extends infer R
 type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<infer _, infer __, infer TEvent, infer ____>
     ? TEvent
-    : R extends Model<infer _, infer TEvent, infer ___, infer ____>
+    : R extends Model<infer _, infer TEvent, infer ___, infer ____, infer _____>
     ? TEvent
     : R extends State<infer _, infer TEvent, infer ___, infer ____>
     ? TEvent
@@ -1744,7 +1744,7 @@ export type EventFrom<
 export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<infer TContext, infer _, infer __, infer ___>
     ? TContext
-    : R extends Model<infer TContext, infer _, infer __, infer ___>
+    : R extends Model<infer TContext, infer _, infer __, infer ___, infer ____>
     ? TContext
     : R extends State<infer TContext, infer _, infer __, infer ___>
     ? TContext

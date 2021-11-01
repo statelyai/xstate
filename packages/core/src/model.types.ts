@@ -1,3 +1,4 @@
+import { ExtraGenerics } from '.';
 import {
   EventObject,
   Assigner,
@@ -25,7 +26,8 @@ export interface Model<
   TContext,
   TEvent extends EventObject,
   TAction extends BaseActionObject = BaseActionObject,
-  TModelCreators = void
+  TModelCreators = void,
+  TExtra extends ExtraGenerics = {}
 > {
   initialContext: TContext;
   assign: <TEventType extends TEvent['type'] = TEvent['type']>(
@@ -38,8 +40,8 @@ export interface Model<
   actions: Prop<TModelCreators, 'actions'>;
   reset: () => AssignAction<TContext, any>;
   createMachine: (
-    config: MachineConfig<TContext, any, TEvent, {}, TAction>,
-    implementations?: Partial<MachineOptions<TContext, TEvent, {}, TAction>>
+    config: MachineConfig<TContext, any, TEvent, TExtra, TAction>,
+    implementations?: Partial<MachineOptions<TContext, TEvent, TExtra, TAction>>
   ) => StateMachine<TContext, any, TEvent>;
 }
 
@@ -108,11 +110,13 @@ export type FinalActionCreators<Self> = {
 export interface ModelCreators<Self> {
   events?: EventCreators<Prop<Self, 'events'>>;
   actions?: ActionCreators<Prop<Self, 'actions'>>;
+  input?: Prop<Self, 'input'>;
 }
 
 export interface FinalModelCreators<Self> {
   events: FinalEventCreators<Prop<Self, 'events'>>;
   actions: FinalActionCreators<Prop<Self, 'actions'>>;
+  input?: Prop<Self, 'input'>;
 }
 
 export type UnionFromCreatorsReturnTypes<TCreators> = {

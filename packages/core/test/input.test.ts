@@ -1,4 +1,5 @@
 import { AnyEventObject, createMachine, interpret } from '../src';
+import { createModel } from '../src/model';
 
 describe('input', () => {
   it('Should allow input to be passed in to the machine initially', (done) => {
@@ -124,23 +125,59 @@ describe('input', () => {
 
   it.todo('Should only require a partial of the input to update them');
 
-  it.todo(
-    `Should allow users to listen to the input using on: { 'xstate.input': {} }`
-  );
+  describe('When users listen for the input on xstate.input', () => {
+    it('Should already be updated by the time they receive it', (done) => {
+      const machine = createMachine<
+        {},
+        AnyEventObject,
+        {
+          input: {
+            foo: string;
+          };
+        }
+      >({
+        on: {
+          'xstate.input': {
+            actions: [
+              (_, __, meta) => {
+                expect(meta.state.input).toEqual({
+                  foo: 'bar'
+                });
+                done();
+              }
+            ]
+          }
+        }
+      });
 
-  it.todo('Should allow the input to be accessible on the state');
-});
+      const service = interpret(machine).start();
 
-describe('useMachine', () => {
-  // TODO - should it require a complete input, or a partial? I think the complete input
-  it.todo('Should allow for input to be passed');
-});
-
-describe('useInterpret', () => {
-  // TODO - should it require a complete input, or a partial? I think the complete input
-  it.todo('Should allow for input to be passed');
+      service.input({
+        foo: 'bar'
+      });
+    });
+  });
 });
 
 describe('createModel', () => {
-  it.todo('Should allow you to define the input type');
+  it('Should allow you to define the input type', () => {
+    const model = createModel(
+      {},
+      {
+        input: {} as {
+          foo: string;
+        }
+      }
+    );
+
+    model.createMachine(
+      {},
+      {
+        input: {
+          // @ts-expect-error
+          bar: ''
+        }
+      }
+    );
+  });
 });
