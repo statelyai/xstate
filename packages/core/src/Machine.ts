@@ -51,8 +51,8 @@ export function Machine<
 export function createMachine<
   TContext,
   TEvent extends EventObject = AnyEventObject,
-  TExtra extends ExtraGenerics = {},
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext },
+  TExtra extends ExtraGenerics = {}
 >(
   config: TContext extends Model<any, any, any, any>
     ? 'Model type no longer supported as generic type. Please use `model.createMachine(...)` instead.'
@@ -62,8 +62,8 @@ export function createMachine<
 export function createMachine<
   TContext,
   TEvent extends EventObject = AnyEventObject,
-  TExtra extends ExtraGenerics = {},
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext },
+  TExtra extends ExtraGenerics = {}
 >(
   config: MachineConfig<TContext, any, TEvent, TExtra>,
   options?: Partial<MachineOptions<TContext, TEvent, TExtra>>

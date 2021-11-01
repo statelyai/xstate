@@ -6,6 +6,7 @@ describe('input', () => {
     const machine = createMachine<
       {},
       AnyEventObject,
+      any,
       {
         input: {
           foo: string;
@@ -36,6 +37,7 @@ describe('input', () => {
     createMachine<
       {},
       AnyEventObject,
+      any,
       {
         input: {
           foo: string;
@@ -57,6 +59,7 @@ describe('input', () => {
     const machine = createMachine<
       {},
       AnyEventObject,
+      any,
       {
         input: {
           foo: string;
@@ -130,6 +133,7 @@ describe('input', () => {
       const machine = createMachine<
         {},
         AnyEventObject,
+        any,
         {
           input: {
             foo: string;
