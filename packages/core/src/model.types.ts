@@ -51,13 +51,7 @@ export interface Model<
   >;
   withInput: <TInput extends {}>(
     input: TInput
-  ) => Model<
-    TContext,
-    TEvent,
-    TAction,
-    TModelCreators,
-    Omit<TExtra, 'input'> & { input: TInput }
-  >;
+  ) => Model<TContext, TEvent, TAction, TModelCreators, { input: TInput }>;
 }
 
 export type ModelContextFrom<
