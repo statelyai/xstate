@@ -19,7 +19,7 @@ export function Machine<
   TContext = any,
   TEvent extends EventObject = AnyEventObject
 >(
-  config: MachineConfig<TContext, any, TEvent, {}>,
+  config: MachineConfig<TContext, any, TEvent>,
   options?: Partial<MachineOptions<TContext, TEvent>>,
   initialContext?: TContext
 ): StateMachine<TContext, any, TEvent>;
@@ -28,7 +28,7 @@ export function Machine<
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = AnyEventObject
 >(
-  config: MachineConfig<TContext, TStateSchema, TEvent, {}>,
+  config: MachineConfig<TContext, TStateSchema, TEvent>,
   options?: Partial<MachineOptions<TContext, TEvent>>,
   initialContext?: TContext
 ): StateMachine<TContext, TStateSchema, TEvent>;
@@ -37,7 +37,7 @@ export function Machine<
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = AnyEventObject
 >(
-  config: MachineConfig<TContext, TStateSchema, TEvent, {}>,
+  config: MachineConfig<TContext, TStateSchema, TEvent>,
   options?: Partial<MachineOptions<TContext, TEvent>>,
   initialContext: TContext | (() => TContext) | undefined = config.context
 ): StateMachine<TContext, TStateSchema, TEvent> {

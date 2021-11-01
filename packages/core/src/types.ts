@@ -898,7 +898,7 @@ export interface MachineConfig<
   TContext,
   TStateSchema extends StateSchema,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics,
+  TExtra extends ExtraGenerics = {},
   TAction extends BaseActionObject = ActionObject<TContext, TEvent, TExtra>
 > extends StateNodeConfig<TContext, TStateSchema, TEvent, TExtra, TAction> {
   /**

@@ -123,7 +123,7 @@ const validateArrayifiedTransitions = <TContext>(
   stateNode: StateNode<any, any, any, any, any>,
   event: string,
   transitions: Array<
-    TransitionConfig<TContext, EventObject, {}> & {
+    TransitionConfig<TContext, EventObject> & {
       event: string;
     }
   >

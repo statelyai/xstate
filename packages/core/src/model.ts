@@ -48,6 +48,7 @@ export function createModel(
 ): unknown {
   const eventCreators = creators?.events;
   const actionCreators = creators?.actions;
+  const input = creators?.input;
 
   const model: Model<any, any, any, any> = {
     initialContext,
@@ -68,7 +69,7 @@ export function createModel(
     createMachine: (config, implementations) => {
       return createMachine(
         'context' in config ? config : { ...config, context: initialContext },
-        implementations
+        { input, ...implementations }
       );
     }
   };
