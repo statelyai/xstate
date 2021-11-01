@@ -163,12 +163,9 @@ describe('input', () => {
 
 describe('createModel', () => {
   it('Should allow you to define the input type', () => {
-    const model = createModel(
-      {},
-      {
-        input: {} as {
-          foo: string;
-        }
+    const model = createModel({}).withInput(
+      {} as {
+        foo: string;
       }
     );
 

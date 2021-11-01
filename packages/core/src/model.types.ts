@@ -49,6 +49,15 @@ export interface Model<
     { value: any; context: TContext },
     TExtra
   >;
+  withInput: <TInput extends {}>(
+    input: TInput
+  ) => Model<
+    TContext,
+    TEvent,
+    TAction,
+    TModelCreators,
+    Omit<TExtra, 'input'> & { input: TInput }
+  >;
 }
 
 export type ModelContextFrom<
@@ -116,13 +125,11 @@ export type FinalActionCreators<Self> = {
 export interface ModelCreators<Self> {
   events?: EventCreators<Prop<Self, 'events'>>;
   actions?: ActionCreators<Prop<Self, 'actions'>>;
-  input?: Prop<Self, 'input'>;
 }
 
 export interface FinalModelCreators<Self> {
   events: FinalEventCreators<Prop<Self, 'events'>>;
   actions: FinalActionCreators<Prop<Self, 'actions'>>;
-  input?: Prop<Self, 'input'>;
 }
 
 export type UnionFromCreatorsReturnTypes<TCreators> = {

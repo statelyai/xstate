@@ -77,12 +77,9 @@ const machine = createMachine({
 Inputs can be made type-safe using `createModel`:
 
 ```ts
-const model = createModel(
-  {},
-  {
-    input: {} as {
-      lyric: string;
-    }
+const model = createModel({}).withInput(
+  {} as {
+    lyric: string;
   }
 );
 

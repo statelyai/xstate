@@ -37,10 +37,7 @@ export function createModel<
   IsNever<TComputedAction> extends true
     ? BaseActionObject
     : Cast<TComputedAction, BaseActionObject>,
-  TFinalModelCreators,
-  {
-    input: TComputedInput;
-  }
+  TFinalModelCreators
 >;
 export function createModel(
   initialContext: object,
@@ -48,7 +45,6 @@ export function createModel(
 ): unknown {
   const eventCreators = creators?.events;
   const actionCreators = creators?.actions;
-  const input = creators?.input;
 
   const model: Model<any, any, any, any> = {
     initialContext,
@@ -69,8 +65,23 @@ export function createModel(
     createMachine: (config, implementations) => {
       return createMachine(
         'context' in config ? config : { ...config, context: initialContext },
-        { input, ...implementations }
+        implementations
       );
+    },
+    withInput: (input) => {
+      const model = createModel(initialContext, creators as any);
+
+      return {
+        ...model,
+        createMachine: (config, implementations) => {
+          return createMachine(
+            'context' in config
+              ? config
+              : { ...config, context: initialContext },
+            { input, ...implementations }
+          );
+        }
+      };
     }
   };
 
