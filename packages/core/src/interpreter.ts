@@ -66,14 +66,16 @@ import { registry } from './registry';
 import { getGlobal, registerService } from './devTools';
 import * as serviceScope from './serviceScope';
 import { spawnBehavior } from './behaviors';
+import { ExtraGenerics } from '.';
 
 export type StateListener<
   TContext,
   TEvent extends EventObject,
   TStateSchema extends StateSchema<TContext> = any,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext },
+  TExtra extends ExtraGenerics = {}
 > = (
-  state: State<TContext, TEvent, TStateSchema, TTypestate>,
+  state: State<TContext, TEvent, TStateSchema, TTypestate, TExtra>,
   event: TEvent
 ) => void;
 
@@ -118,9 +120,13 @@ export class Interpreter<
   TContext,
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = EventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext },
+  TExtra extends ExtraGenerics = {}
 > implements
-    ActorRef<TEvent, State<TContext, TEvent, TStateSchema, TTypestate>> {
+    ActorRef<
+      TEvent,
+      State<TContext, TEvent, TStateSchema, TTypestate, TExtra>
+    > {
   /**
    * The default interpreter options:
    *
@@ -144,8 +150,14 @@ export class Interpreter<
   /**
    * The current state of the interpreted machine.
    */
-  private _state?: State<TContext, TEvent, TStateSchema, TTypestate>;
-  private _initialState?: State<TContext, TEvent, TStateSchema, TTypestate>;
+  private _state?: State<TContext, TEvent, TStateSchema, TTypestate, TExtra>;
+  private _initialState?: State<
+    TContext,
+    TEvent,
+    TStateSchema,
+    TTypestate,
+    TExtra
+  >;
   /**
    * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
    */
@@ -215,7 +227,13 @@ export class Interpreter<
 
     this.sessionId = registry.bookId();
   }
-  public get initialState(): State<TContext, TEvent, TStateSchema, TTypestate> {
+  public get initialState(): State<
+    TContext,
+    TEvent,
+    TStateSchema,
+    TTypestate,
+    TExtra
+  > {
     if (this._initialState) {
       return this._initialState;
     }
@@ -225,7 +243,13 @@ export class Interpreter<
       return this._initialState;
     });
   }
-  public get state(): State<TContext, TEvent, TStateSchema, TTypestate> {
+  public get state(): State<
+    TContext,
+    TEvent,
+    TStateSchema,
+    TTypestate,
+    TExtra
+  > {
     if (!IS_PRODUCTION) {
       warn(
         this.status !== InterpreterStatus.NotStarted,
@@ -243,7 +267,7 @@ export class Interpreter<
    * @param actionsConfig The action implementations to use
    */
   public execute(
-    state: State<TContext, TEvent, TStateSchema, TTypestate>,
+    state: State<TContext, TEvent, TStateSchema, TTypestate, TExtra>,
     actionsConfig?: MachineOptions<TContext, TEvent>['actions']
   ): void {
     for (const action of state.actions) {
@@ -252,7 +276,7 @@ export class Interpreter<
   }
 
   private update(
-    state: State<TContext, TEvent, TStateSchema, TTypestate>,
+    state: State<TContext, TEvent, TStateSchema, TTypestate, TExtra>,
     _event: SCXML.Event<TEvent>
   ): void {
     // Attach session ID to state
@@ -341,8 +365,8 @@ export class Interpreter<
   ): Subscription;
   public subscribe(
     nextListenerOrObserver?:
-      | ((state: State<TContext, TEvent, any, TTypestate>) => void)
-      | Observer<State<TContext, TEvent, any, TTypestate>>,
+      | ((state: State<TContext, TEvent, any, TTypestate, TExtra>) => void)
+      | Observer<State<TContext, TEvent, any, TTypestate, TExtra>>,
     _?: (error: any) => void, // TODO: error listener
     completeListener?: () => void
   ): Subscription {
@@ -350,7 +374,9 @@ export class Interpreter<
       return { unsubscribe: () => void 0 };
     }
 
-    let listener: (state: State<TContext, TEvent, any, TTypestate>) => void;
+    let listener: (
+      state: State<TContext, TEvent, any, TTypestate, TExtra>
+    ) => void;
     let resolvedCompleteListener = completeListener;
 
     if (typeof nextListenerOrObserver === 'function') {
@@ -388,7 +414,7 @@ export class Interpreter<
    */
   public onEvent(
     listener: EventListener
-  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
+  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate, TExtra> {
     this.eventListeners.add(listener);
     return this;
   }
@@ -398,7 +424,7 @@ export class Interpreter<
    */
   public onSend(
     listener: EventListener
-  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
+  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate, TExtra> {
     this.sendListeners.add(listener);
     return this;
   }
@@ -408,7 +434,7 @@ export class Interpreter<
    */
   public onChange(
     listener: ContextListener<TContext>
-  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
+  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate, TExtra> {
     this.contextListeners.add(listener);
     return this;
   }
@@ -418,7 +444,7 @@ export class Interpreter<
    */
   public onStop(
     listener: Listener
-  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
+  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate, TExtra> {
     this.stopListeners.add(listener);
     return this;
   }
@@ -428,7 +454,7 @@ export class Interpreter<
    */
   public onDone(
     listener: EventListener<DoneEvent>
-  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
+  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate, TExtra> {
     this.doneListeners.add(listener);
     return this;
   }
@@ -438,7 +464,7 @@ export class Interpreter<
    */
   public off(
     listener: (...args: any[]) => void
-  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
+  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate, TExtra> {
     this.listeners.delete(listener);
     this.eventListeners.delete(listener);
     this.sendListeners.delete(listener);
@@ -457,9 +483,9 @@ export class Interpreter<
    */
   public start(
     initialState?:
-      | State<TContext, TEvent, TStateSchema, TTypestate>
+      | State<TContext, TEvent, TStateSchema, TTypestate, TExtra>
       | StateValue
-  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
+  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate, TExtra> {
     if (this.status === InterpreterStatus.Running) {
       // Do not restart the service if it is already started
       return this;
@@ -473,7 +499,7 @@ export class Interpreter<
       initialState === undefined
         ? this.initialState
         : serviceScope.provide(this, () => {
-            return isState<TContext, TEvent, TStateSchema, TTypestate>(
+            return isState<TContext, TEvent, TStateSchema, TTypestate, TExtra>(
               initialState
             )
               ? this.machine.resolveState(initialState)
@@ -495,7 +521,13 @@ export class Interpreter<
    *
    * This will also notify the `onStop` listeners.
    */
-  public stop(): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
+  public stop(): Interpreter<
+    TContext,
+    TStateSchema,
+    TEvent,
+    TTypestate,
+    TExtra
+  > {
     for (const listener of this.listeners) {
       this.listeners.delete(listener);
     }
@@ -541,6 +573,14 @@ export class Interpreter<
 
     return this;
   }
+
+  public input(
+    input: Partial<TExtra['input']>
+  ): State<TContext, TEvent, TStateSchema, TTypestate, TExtra> {
+    // TODO - implement
+
+    return this.state;
+  }
   /**
    * Sends an event to the running interpreter to trigger a transition.
    *
@@ -553,7 +593,7 @@ export class Interpreter<
   public send = (
     event: SingleOrArray<Event<TEvent>> | SCXML.Event<TEvent>,
     payload?: EventData
-  ): State<TContext, TEvent, TStateSchema, TTypestate> => {
+  ): State<TContext, TEvent, TStateSchema, TTypestate, TExtra> => {
     if (isArray(event)) {
       this.batch(event);
       return this.state;
@@ -661,7 +701,7 @@ export class Interpreter<
    */
   public sender(
     event: Event<TEvent>
-  ): () => State<TContext, TEvent, TStateSchema, TTypestate> {
+  ): () => State<TContext, TEvent, TStateSchema, TTypestate, TExtra> {
     return this.send.bind(this, event);
   }
 
@@ -718,7 +758,7 @@ export class Interpreter<
    */
   public nextState(
     event: Event<TEvent> | SCXML.Event<TEvent>
-  ): State<TContext, TEvent, TStateSchema, TTypestate> {
+  ): State<TContext, TEvent, TStateSchema, TTypestate, TExtra> {
     const _event = toSCXMLEvent(event);
 
     if (
@@ -766,7 +806,7 @@ export class Interpreter<
   }
   private exec(
     action: ActionObject<TContext, TEvent>,
-    state: State<TContext, TEvent, TStateSchema, TTypestate>,
+    state: State<TContext, TEvent, TStateSchema, TTypestate, TExtra>,
     actionFunctionMap: ActionFunctionMap<TContext, TEvent> = this.machine
       .options.actions
   ): void {
@@ -1294,7 +1334,7 @@ export class Interpreter<
   }
 
   public [symbolObservable](): Subscribable<
-    State<TContext, TEvent, TStateSchema, TTypestate>
+    State<TContext, TEvent, TStateSchema, TTypestate, TExtra>
   > {
     return this;
   }
@@ -1302,7 +1342,7 @@ export class Interpreter<
   // this gets stripped by Babel to avoid having "undefined" property in environments without this non-standard Symbol
   // it has to be here to be included in the generated .d.ts
   public [Symbol.observable](): Subscribable<
-    State<TContext, TEvent, TStateSchema, TTypestate>
+    State<TContext, TEvent, TStateSchema, TTypestate, TExtra>
   > {
     return this;
   }
@@ -1374,16 +1414,18 @@ export function interpret<
   TContext = DefaultContext,
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = EventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext },
+  TExtra extends ExtraGenerics = {}
 >(
-  machine: StateMachine<TContext, TStateSchema, TEvent, TTypestate>,
+  machine: StateMachine<TContext, TStateSchema, TEvent, TTypestate, TExtra>,
   options?: Partial<InterpreterOptions>
 ) {
   const interpreter = new Interpreter<
     TContext,
     TStateSchema,
     TEvent,
-    TTypestate
+    TTypestate,
+    TExtra
   >(machine, options);
 
   return interpreter;

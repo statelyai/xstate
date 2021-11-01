@@ -36,12 +36,15 @@ export interface BaseActionObject {
  * The full definition of an action, with a string `type` and an
  * `exec` implementation function.
  */
-export interface ActionObject<TContext, TEvent extends EventObject>
-  extends BaseActionObject {
+export interface ActionObject<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> extends BaseActionObject {
   /**
    * The implementation for executing the action.
    */
-  exec?: ActionFunction<TContext, TEvent>;
+  exec?: ActionFunction<TContext, TEvent, TExtra>;
 }
 
 export type DefaultContext = Record<string, any> | undefined;
@@ -56,48 +59,65 @@ export type Event<TEvent extends EventObject> = TEvent['type'] | TEvent;
 export interface ActionMeta<
   TContext,
   TEvent extends EventObject,
-  TAction extends ActionObject<TContext, TEvent> = ActionObject<
+  TExtra extends ExtraGenerics,
+  TAction extends ActionObject<TContext, TEvent, TExtra> = ActionObject<
     TContext,
-    TEvent
+    TEvent,
+    TExtra
   >
-> extends StateMeta<TContext, TEvent> {
+> extends StateMeta<TContext, TEvent, TExtra> {
   action: TAction;
   _event: SCXML.Event<TEvent>;
 }
 
-export interface AssignMeta<TContext, TEvent extends EventObject> {
+export interface AssignMeta<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> {
   state?: State<TContext, TEvent>;
-  action: AssignAction<TContext, TEvent>;
+  action: AssignAction<TContext, TEvent, TExtra>;
   _event: SCXML.Event<TEvent>;
 }
 
 export type ActionFunction<
   TContext,
   TEvent extends EventObject,
-  TAction extends ActionObject<TContext, TEvent> = ActionObject<
+  TExtra extends ExtraGenerics,
+  TAction extends ActionObject<TContext, TEvent, TExtra> = ActionObject<
     TContext,
-    TEvent
+    TEvent,
+    TExtra
   >
 > = (
   context: TContext,
   event: TEvent,
-  meta: ActionMeta<TContext, TEvent, TAction>
+  meta: ActionMeta<TContext, TEvent, TExtra, TAction>
 ) => void;
 
-export interface ChooseCondition<TContext, TEvent extends EventObject> {
-  cond?: Condition<TContext, TEvent>;
-  actions: Actions<TContext, TEvent>;
+export interface ChooseCondition<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> {
+  cond?: Condition<TContext, TEvent, TExtra>;
+  actions: Actions<TContext, TEvent, TExtra>;
 }
 
-export type Action<TContext, TEvent extends EventObject> =
+export type Action<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> =
   | ActionType
-  | ActionObject<TContext, TEvent>
-  | ActionFunction<TContext, TEvent>;
+  | ActionObject<TContext, TEvent, TExtra>
+  | ActionFunction<TContext, TEvent, TExtra>;
 
 /**
  * Extracts action objects that have no extra properties.
  */
 type SimpleActionsOf<T extends BaseActionObject> = ActionObject<
+  any,
   any,
   any
 > extends T
@@ -114,28 +134,32 @@ export type SimpleEventsOf<
 export type BaseAction<
   TContext,
   TEvent extends EventObject,
-  TAction extends BaseActionObject
+  TAction extends BaseActionObject,
+  TExtra extends ExtraGenerics
 > =
   | SimpleActionsOf<TAction>['type']
   | TAction
   | RaiseAction<any>
-  | SendAction<TContext, TEvent, any>
-  | AssignAction<TContext, TEvent>
-  | LogAction<TContext, TEvent>
+  | SendAction<TContext, TEvent, any, TExtra>
+  | AssignAction<TContext, TEvent, TExtra>
+  | LogAction<TContext, TEvent, TExtra>
   | CancelAction
-  | StopAction<TContext, TEvent>
-  | ChooseAction<TContext, TEvent>
-  | ActionFunction<TContext, TEvent>;
+  | StopAction<TContext, TEvent, TExtra>
+  | ChooseAction<TContext, TEvent, TExtra>
+  | ActionFunction<TContext, TEvent, TExtra>;
 
 export type BaseActions<
   TContext,
   TEvent extends EventObject,
-  TAction extends BaseActionObject
-> = SingleOrArray<BaseAction<TContext, TEvent, TAction>>;
+  TAction extends BaseActionObject,
+  TExtra extends ExtraGenerics
+> = SingleOrArray<BaseAction<TContext, TEvent, TAction, TExtra>>;
 
-export type Actions<TContext, TEvent extends EventObject> = SingleOrArray<
-  Action<TContext, TEvent>
->;
+export type Actions<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> = SingleOrArray<Action<TContext, TEvent, TExtra>>;
 
 export type StateKey = string | State<any>;
 
@@ -176,35 +200,54 @@ export interface HistoryValue {
   current: StateValue | undefined;
 }
 
-export type ConditionPredicate<TContext, TEvent extends EventObject> = (
+export type ConditionPredicate<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> = (
   context: TContext,
   event: TEvent,
-  meta: GuardMeta<TContext, TEvent>
+  meta: GuardMeta<TContext, TEvent, TExtra>
 ) => boolean;
 
 export type DefaultGuardType = 'xstate.guard';
 
-export interface GuardPredicate<TContext, TEvent extends EventObject> {
+export interface GuardPredicate<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> {
   type: DefaultGuardType;
   name: string | undefined;
-  predicate: ConditionPredicate<TContext, TEvent>;
+  predicate: ConditionPredicate<TContext, TEvent, TExtra>;
 }
 
-export type Guard<TContext, TEvent extends EventObject> =
-  | GuardPredicate<TContext, TEvent>
+export type Guard<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> =
+  | GuardPredicate<TContext, TEvent, TExtra>
   | (Record<string, any> & {
       type: string;
     });
 
-export interface GuardMeta<TContext, TEvent extends EventObject>
-  extends StateMeta<TContext, TEvent> {
-  cond: Guard<TContext, TEvent>;
+export interface GuardMeta<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> extends StateMeta<TContext, TEvent, TExtra> {
+  cond: Guard<TContext, TEvent, TExtra>;
 }
 
-export type Condition<TContext, TEvent extends EventObject> =
+export type Condition<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> =
   | string
-  | ConditionPredicate<TContext, TEvent>
-  | Guard<TContext, TEvent>;
+  | ConditionPredicate<TContext, TEvent, TExtra>
+  | Guard<TContext, TEvent, TExtra>;
 
 export type TransitionTarget<
   TContext,
@@ -215,9 +258,13 @@ export type TransitionTargets<TContext> = Array<
   string | StateNode<TContext, any>
 >;
 
-export interface TransitionConfig<TContext, TEvent extends EventObject> {
-  cond?: Condition<TContext, TEvent>;
-  actions?: Actions<TContext, TEvent>;
+export interface TransitionConfig<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> {
+  cond?: Condition<TContext, TEvent, TExtra>;
+  actions?: Actions<TContext, TEvent, TExtra>;
   in?: StateValue;
   internal?: boolean;
   target?: TransitionTarget<TContext, TEvent>;
@@ -225,34 +272,51 @@ export interface TransitionConfig<TContext, TEvent extends EventObject> {
   description?: string;
 }
 
-export interface TargetTransitionConfig<TContext, TEvent extends EventObject>
-  extends TransitionConfig<TContext, TEvent> {
+export interface TargetTransitionConfig<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> extends TransitionConfig<TContext, TEvent, TExtra> {
   target: TransitionTarget<TContext, TEvent>; // TODO: just make this non-optional
 }
 
 export type ConditionalTransitionConfig<
   TContext,
-  TEvent extends EventObject = EventObject
-> = Array<TransitionConfig<TContext, TEvent>>;
+  TEvent extends EventObject = EventObject,
+  TExtra extends ExtraGenerics = {}
+> = Array<TransitionConfig<TContext, TEvent, TExtra>>;
 
-export type Transition<TContext, TEvent extends EventObject = EventObject> =
+export type Transition<
+  TContext,
+  TEvent extends EventObject = EventObject,
+  TExtra extends ExtraGenerics = {}
+> =
   | string
-  | TransitionConfig<TContext, TEvent>
-  | ConditionalTransitionConfig<TContext, TEvent>;
+  | TransitionConfig<TContext, TEvent, TExtra>
+  | ConditionalTransitionConfig<TContext, TEvent, TExtra>;
 
 export type DisposeActivityFunction = () => void;
 
-export type ActivityConfig<TContext, TEvent extends EventObject> = (
+export type ActivityConfig<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> = (
   ctx: TContext,
-  activity: ActivityDefinition<TContext, TEvent>
+  activity: ActivityDefinition<TContext, TEvent, TExtra>
 ) => DisposeActivityFunction | void;
 
-export type Activity<TContext, TEvent extends EventObject> =
-  | string
-  | ActivityDefinition<TContext, TEvent>;
+export type Activity<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> = string | ActivityDefinition<TContext, TEvent, TExtra>;
 
-export interface ActivityDefinition<TContext, TEvent extends EventObject>
-  extends ActionObject<TContext, TEvent> {
+export interface ActivityDefinition<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> extends ActionObject<TContext, TEvent, TExtra> {
   id: string;
   type: string;
 }
@@ -333,8 +397,11 @@ export type InvokeCreator<
   | InvokeCallback<any, TEvent>
   | Behavior<any>;
 
-export interface InvokeDefinition<TContext, TEvent extends EventObject>
-  extends ActivityDefinition<TContext, TEvent> {
+export interface InvokeDefinition<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> extends ActivityDefinition<TContext, TEvent, TExtra> {
   /**
    * The source of the machine to be invoked, or the machine itself.
    */
@@ -369,13 +436,17 @@ export interface Delay {
   delay: number;
 }
 
-export type DelayedTransitions<TContext, TEvent extends EventObject> =
+export type DelayedTransitions<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> =
   | Record<
       string | number,
-      string | SingleOrArray<TransitionConfig<TContext, TEvent>>
+      string | SingleOrArray<TransitionConfig<TContext, TEvent, TExtra>>
     >
   | Array<
-      TransitionConfig<TContext, TEvent> & {
+      TransitionConfig<TContext, TEvent, TExtra> & {
         delay: number | string | Expr<TContext, TEvent, number>;
       }
     >;
@@ -406,12 +477,14 @@ export type StatesConfig<
   TContext,
   TStateSchema extends StateSchema,
   TEvent extends EventObject,
+  TExtra extends ExtraGenerics,
   TAction extends BaseActionObject = BaseActionObject
 > = {
   [K in keyof TStateSchema['states']]: StateNodeConfig<
     TContext,
     TStateSchema['states'][K],
     TEvent,
+    TExtra,
     TAction
   >;
 };
@@ -419,12 +492,14 @@ export type StatesConfig<
 export type StatesDefinition<
   TContext,
   TStateSchema extends StateSchema,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
 > = {
   [K in keyof TStateSchema['states']]: StateNodeDefinition<
     TContext,
     TStateSchema['states'][K],
-    TEvent
+    TEvent,
+    TExtra
   >;
 };
 
@@ -435,41 +510,60 @@ export type TransitionConfigTarget<TContext, TEvent extends EventObject> =
 
 export type TransitionConfigOrTarget<
   TContext,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
 > = SingleOrArray<
-  TransitionConfigTarget<TContext, TEvent> | TransitionConfig<TContext, TEvent>
+  | TransitionConfigTarget<TContext, TEvent>
+  | TransitionConfig<TContext, TEvent, TExtra>
 >;
 
-export type TransitionsConfigMap<TContext, TEvent extends EventObject> = {
+export type TransitionsConfigMap<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> = {
   [K in TEvent['type']]?: TransitionConfigOrTarget<
     TContext,
-    TEvent extends { type: K } ? TEvent : never
+    TEvent extends { type: K } ? TEvent : never,
+    TExtra
   >;
 } & {
-  ''?: TransitionConfigOrTarget<TContext, TEvent>;
+  ''?: TransitionConfigOrTarget<TContext, TEvent, TExtra>;
 } & {
-  '*'?: TransitionConfigOrTarget<TContext, TEvent>;
+  '*'?: TransitionConfigOrTarget<TContext, TEvent, TExtra>;
 };
 
-type TransitionsConfigArray<TContext, TEvent extends EventObject> = Array<
+type TransitionsConfigArray<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> = Array<
   // distribute the union
   | (TEvent extends EventObject
-      ? TransitionConfig<TContext, TEvent> & { event: TEvent['type'] }
+      ? TransitionConfig<TContext, TEvent, TExtra> & { event: TEvent['type'] }
       : never)
-  | (TransitionConfig<TContext, TEvent> & { event: '' })
-  | (TransitionConfig<TContext, TEvent> & { event: '*' })
+  | (TransitionConfig<TContext, TEvent, TExtra> & { event: '' })
+  | (TransitionConfig<TContext, TEvent, TExtra> & { event: '*' })
 >;
 
-export type TransitionsConfig<TContext, TEvent extends EventObject> =
-  | TransitionsConfigMap<TContext, TEvent>
-  | TransitionsConfigArray<TContext, TEvent>;
+export type TransitionsConfig<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> =
+  | TransitionsConfigMap<TContext, TEvent, TExtra>
+  | TransitionsConfigArray<TContext, TEvent, TExtra>;
 
 export interface InvokeSourceDefinition {
   [key: string]: any;
   type: string;
 }
 
-export interface InvokeConfig<TContext, TEvent extends EventObject> {
+export interface InvokeConfig<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> {
   /**
    * The unique identifier for the invoked machine. If not specified, this
    * will be the machine's own `id`, or the URL (from `src`).
@@ -507,13 +601,13 @@ export interface InvokeConfig<TContext, TEvent extends EventObject> {
    */
   onDone?:
     | string
-    | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
+    | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>, TExtra>>;
   /**
    * The transition to take upon the invoked child machine sending an error event.
    */
   onError?:
     | string
-    | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
+    | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>, TExtra>>;
   /**
    * Meta data related to this invocation
    */
@@ -524,6 +618,7 @@ export interface StateNodeConfig<
   TContext,
   TStateSchema extends StateSchema,
   TEvent extends EventObject,
+  TExtra extends ExtraGenerics,
   TAction extends BaseActionObject = BaseActionObject
 > {
   /**
@@ -558,61 +653,65 @@ export interface StateNodeConfig<
   /**
    * The mapping of state node keys to their state node configurations (recursive).
    */
-  states?: StatesConfig<TContext, TStateSchema, TEvent, TAction> | undefined;
+  states?:
+    | StatesConfig<TContext, TStateSchema, TEvent, TExtra, TAction>
+    | undefined;
   /**
    * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
    */
   invoke?: SingleOrArray<
-    InvokeConfig<TContext, TEvent> | StateMachine<any, any, any>
+    InvokeConfig<TContext, TEvent, TExtra> | StateMachine<any, any, any>
   >;
   /**
    * The mapping of event types to their potential transition(s).
    */
-  on?: TransitionsConfig<TContext, TEvent>;
+  on?: TransitionsConfig<TContext, TEvent, TExtra>;
   /**
    * The action(s) to be executed upon entering the state node.
    *
    * @deprecated Use `entry` instead.
    */
-  onEntry?: Actions<TContext, TEvent>; // TODO: deprecate
+  onEntry?: Actions<TContext, TEvent, TExtra>; // TODO: deprecate
   /**
    * The action(s) to be executed upon entering the state node.
    */
-  entry?: BaseActions<TContext, TEvent, TAction>;
+  entry?: BaseActions<TContext, TEvent, TAction, TExtra>;
   /**
    * The action(s) to be executed upon exiting the state node.
    *
    * @deprecated Use `exit` instead.
    */
-  onExit?: Actions<TContext, TEvent>; // TODO: deprecate
+  onExit?: Actions<TContext, TEvent, TExtra>; // TODO: deprecate
   /**
    * The action(s) to be executed upon exiting the state node.
    */
-  exit?: BaseActions<TContext, TEvent, TAction>;
+  exit?: BaseActions<TContext, TEvent, TAction, TExtra>;
   /**
    * The potential transition(s) to be taken upon reaching a final child state node.
    *
    * This is equivalent to defining a `[done(id)]` transition on this state node's `on` property.
    */
-  onDone?: string | SingleOrArray<TransitionConfig<TContext, DoneEventObject>>;
+  onDone?:
+    | string
+    | SingleOrArray<TransitionConfig<TContext, DoneEventObject, TExtra>>;
   /**
    * The mapping (or array) of delays (in milliseconds) to their potential transition(s).
    * The delayed transitions are taken after the specified delay in an interpreter.
    */
-  after?: DelayedTransitions<TContext, TEvent>;
+  after?: DelayedTransitions<TContext, TEvent, TExtra>;
 
   /**
    * An eventless transition that is always taken when this state node is active.
    * Equivalent to a transition specified as an empty `''`' string in the `on` property.
    */
-  always?: TransitionConfigOrTarget<TContext, TEvent>;
+  always?: TransitionConfigOrTarget<TContext, TEvent, TExtra>;
   /**
    * The activities to be started upon entering the state node,
    * and stopped upon exiting the state node.
    *
    * @deprecated Use `invoke` instead.
    */
-  activities?: SingleOrArray<Activity<TContext, TEvent>>;
+  activities?: SingleOrArray<Activity<TContext, TEvent, TExtra>>;
   /**
    * @private
    */
@@ -663,49 +762,59 @@ export interface StateNodeConfig<
 export interface StateNodeDefinition<
   TContext,
   TStateSchema extends StateSchema,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
 > {
   id: string;
   version: string | undefined;
   key: string;
   context: TContext;
   type: 'atomic' | 'compound' | 'parallel' | 'final' | 'history';
-  initial: StateNodeConfig<TContext, TStateSchema, TEvent>['initial'];
+  initial: StateNodeConfig<TContext, TStateSchema, TEvent, TExtra>['initial'];
   history: boolean | 'shallow' | 'deep' | undefined;
-  states: StatesDefinition<TContext, TStateSchema, TEvent>;
-  on: TransitionDefinitionMap<TContext, TEvent>;
-  transitions: Array<TransitionDefinition<TContext, TEvent>>;
-  entry: Array<ActionObject<TContext, TEvent>>;
-  exit: Array<ActionObject<TContext, TEvent>>;
+  states: StatesDefinition<TContext, TStateSchema, TEvent, TExtra>;
+  on: TransitionDefinitionMap<TContext, TEvent, TExtra>;
+  transitions: Array<TransitionDefinition<TContext, TEvent, TExtra>>;
+  entry: Array<ActionObject<TContext, TEvent, TExtra>>;
+  exit: Array<ActionObject<TContext, TEvent, TExtra>>;
   /**
    * @deprecated
    */
-  activities?: Array<ActivityDefinition<TContext, TEvent>>;
+  activities?: Array<ActivityDefinition<TContext, TEvent, TExtra>>;
   meta: any;
   order: number;
-  data?: FinalStateNodeConfig<TContext, TEvent>['data'];
-  invoke: Array<InvokeDefinition<TContext, TEvent>>;
+  data?: FinalStateNodeConfig<TContext, TEvent, TExtra>['data'];
+  invoke: Array<InvokeDefinition<TContext, TEvent, TExtra>>;
   description?: string;
   tags: string[];
 }
 
-export type AnyStateNodeDefinition = StateNodeDefinition<any, any, any>;
-export interface AtomicStateNodeConfig<TContext, TEvent extends EventObject>
-  extends StateNodeConfig<TContext, StateSchema, TEvent> {
+export type AnyStateNodeDefinition = StateNodeDefinition<any, any, any, {}>;
+export interface AtomicStateNodeConfig<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> extends StateNodeConfig<TContext, StateSchema, TEvent, TExtra> {
   initial?: undefined;
   parallel?: false | undefined;
   states?: undefined;
   onDone?: undefined;
 }
 
-export interface HistoryStateNodeConfig<TContext, TEvent extends EventObject>
-  extends AtomicStateNodeConfig<TContext, TEvent> {
+export interface HistoryStateNodeConfig<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> extends AtomicStateNodeConfig<TContext, TEvent, TExtra> {
   history: 'shallow' | 'deep' | true;
   target: StateValue | undefined;
 }
 
-export interface FinalStateNodeConfig<TContext, TEvent extends EventObject>
-  extends AtomicStateNodeConfig<TContext, TEvent> {
+export interface FinalStateNodeConfig<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> extends AtomicStateNodeConfig<TContext, TEvent, TExtra> {
   type: 'final';
   /**
    * The data to be sent with the "done.state.<id>" event. The data can be
@@ -717,24 +826,28 @@ export interface FinalStateNodeConfig<TContext, TEvent extends EventObject>
 export type SimpleOrStateNodeConfig<
   TContext,
   TStateSchema extends StateSchema,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
 > =
-  | AtomicStateNodeConfig<TContext, TEvent>
-  | StateNodeConfig<TContext, TStateSchema, TEvent>;
+  | AtomicStateNodeConfig<TContext, TEvent, TExtra>
+  | StateNodeConfig<TContext, TStateSchema, TEvent, TExtra>;
 
 export type ActionFunctionMap<
   TContext,
   TEvent extends EventObject,
-  TAction extends ActionObject<TContext, TEvent> = ActionObject<
+  TExtra extends ExtraGenerics,
+  TAction extends ActionObject<TContext, TEvent, TExtra> = ActionObject<
     TContext,
-    TEvent
+    TEvent,
+    TExtra
   >
 > = {
   [K in TAction['type']]?:
-    | ActionObject<TContext, TEvent>
+    | ActionObject<TContext, TEvent, TExtra>
     | ActionFunction<
         TContext,
         TEvent,
+        TExtra,
         TAction extends { type: K } ? TAction : never
       >;
 };
@@ -756,17 +869,20 @@ export type DelayConfig<TContext, TEvent extends EventObject> =
 export interface MachineOptions<
   TContext,
   TEvent extends EventObject,
-  TAction extends ActionObject<TContext, TEvent> = ActionObject<
+  TExtra extends ExtraGenerics = {},
+  TAction extends ActionObject<TContext, TEvent, TExtra> = ActionObject<
     TContext,
-    TEvent
+    TEvent,
+    TExtra
   >
 > {
-  guards: Record<string, ConditionPredicate<TContext, TEvent>>;
-  actions: ActionFunctionMap<TContext, TEvent, TAction>;
+  input: Partial<TExtra['input']>;
+  guards: Record<string, ConditionPredicate<TContext, TEvent, TExtra>>;
+  actions: ActionFunctionMap<TContext, TEvent, TExtra, TAction>;
   /**
    * @deprecated Use `services` instead.
    */
-  activities: Record<string, ActivityConfig<TContext, TEvent>>;
+  activities: Record<string, ActivityConfig<TContext, TEvent, TExtra>>;
   services: Record<string, ServiceConfig<TContext, TEvent>>;
   delays: DelayFunctionMap<TContext, TEvent>;
   /**
@@ -782,8 +898,9 @@ export interface MachineConfig<
   TContext,
   TStateSchema extends StateSchema,
   TEvent extends EventObject,
-  TAction extends BaseActionObject = ActionObject<TContext, TEvent>
-> extends StateNodeConfig<TContext, TStateSchema, TEvent, TAction> {
+  TExtra extends ExtraGenerics,
+  TAction extends BaseActionObject = ActionObject<TContext, TEvent, TExtra>
+> extends StateNodeConfig<TContext, TStateSchema, TEvent, TExtra, TAction> {
   /**
    * The initial context (extended state)
    */
@@ -806,21 +923,27 @@ export interface MachineSchema<TContext, TEvent extends EventObject> {
 export interface StandardMachineConfig<
   TContext,
   TStateSchema extends StateSchema,
-  TEvent extends EventObject
-> extends StateNodeConfig<TContext, TStateSchema, TEvent> {}
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> extends StateNodeConfig<TContext, TStateSchema, TEvent, TExtra> {}
 
 export interface ParallelMachineConfig<
   TContext,
   TStateSchema extends StateSchema,
-  TEvent extends EventObject
-> extends StateNodeConfig<TContext, TStateSchema, TEvent> {
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> extends StateNodeConfig<TContext, TStateSchema, TEvent, TExtra> {
   initial?: undefined;
   type?: 'parallel';
 }
 
-export interface EntryExitEffectMap<TContext, TEvent extends EventObject> {
-  entry: Array<ActionObject<TContext, TEvent>>;
-  exit: Array<ActionObject<TContext, TEvent>>;
+export interface EntryExitEffectMap<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> {
+  entry: Array<ActionObject<TContext, TEvent, TExtra>>;
+  exit: Array<ActionObject<TContext, TEvent, TExtra>>;
 }
 
 export interface HistoryStateNode<TContext> extends StateNode<TContext> {
@@ -833,22 +956,30 @@ export interface StateMachine<
   TStateSchema extends StateSchema,
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext },
-  _TAction extends ActionObject<TContext, TEvent> = ActionObject<
+  TExtra extends ExtraGenerics = {},
+  _TAction extends ActionObject<TContext, TEvent, TExtra> = ActionObject<
     TContext,
-    TEvent
+    TEvent,
+    TExtra
   >
-> extends StateNode<TContext, TStateSchema, TEvent, TTypestate> {
+> extends StateNode<TContext, TStateSchema, TEvent, TTypestate, TExtra> {
   id: string;
-  states: StateNode<TContext, TStateSchema, TEvent>['states'];
+  states: StateNode<
+    TContext,
+    TStateSchema,
+    TEvent,
+    TTypestate,
+    TExtra
+  >['states'];
 
   withConfig(
-    options: Partial<MachineOptions<TContext, TEvent>>,
+    options: Partial<MachineOptions<TContext, TEvent, TExtra>>,
     context?: TContext | (() => TContext)
-  ): StateMachine<TContext, TStateSchema, TEvent, TTypestate>;
+  ): StateMachine<TContext, TStateSchema, TEvent, TTypestate, TExtra>;
 
   withContext(
     context: TContext | (() => TContext)
-  ): StateMachine<TContext, TStateSchema, TEvent, TTypestate>;
+  ): StateMachine<TContext, TStateSchema, TEvent, TTypestate, TExtra>;
 }
 
 export type StateFrom<
@@ -861,10 +992,14 @@ export type StateFrom<
   ? ReturnType<ReturnType<T>['transition']>
   : never;
 
-export interface ActionMap<TContext, TEvent extends EventObject> {
-  onEntry: Array<Action<TContext, TEvent>>;
-  actions: Array<Action<TContext, TEvent>>;
-  onExit: Array<Action<TContext, TEvent>>;
+export interface ActionMap<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> {
+  onEntry: Array<Action<TContext, TEvent, TExtra>>;
+  actions: Array<Action<TContext, TEvent, TExtra>>;
+  onExit: Array<Action<TContext, TEvent, TExtra>>;
 }
 
 export interface EntryExitStates<TContext> {
@@ -878,12 +1013,16 @@ export interface EntryExitStateArrays<TContext> {
 }
 
 export interface ActivityMap {
-  [activityKey: string]: ActivityDefinition<any, any> | false;
+  [activityKey: string]: ActivityDefinition<any, any, any> | false;
 }
 
 // tslint:disable-next-line:class-name
-export interface StateTransition<TContext, TEvent extends EventObject> {
-  transitions: Array<TransitionDefinition<TContext, TEvent>>;
+export interface StateTransition<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> {
+  transitions: Array<TransitionDefinition<TContext, TEvent, TExtra>>;
   configuration: Array<StateNode<TContext, any, TEvent, any>>;
   entrySet: Array<StateNode<TContext, any, TEvent, any>>;
   exitSet: Array<StateNode<TContext, any, TEvent, any>>;
@@ -891,12 +1030,16 @@ export interface StateTransition<TContext, TEvent extends EventObject> {
    * The source state that preceded the transition.
    */
   source: State<TContext, any, any, any> | undefined;
-  actions: Array<ActionObject<TContext, TEvent>>;
+  actions: Array<ActionObject<TContext, TEvent, TExtra>>;
 }
 
-export interface TransitionData<TContext, TEvent extends EventObject> {
+export interface TransitionData<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> {
   value: StateValue | undefined;
-  actions: ActionMap<TContext, TEvent>;
+  actions: ActionMap<TContext, TEvent, TExtra>;
   activities?: ActivityMap;
 }
 
@@ -963,16 +1106,22 @@ export interface NullEvent {
   type: ActionTypes.NullEvent;
 }
 
-export interface ActivityActionObject<TContext, TEvent extends EventObject>
-  extends ActionObject<TContext, TEvent> {
+export interface ActivityActionObject<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> extends ActionObject<TContext, TEvent, TExtra> {
   type: ActionTypes.Start | ActionTypes.Stop;
-  activity: ActivityDefinition<TContext, TEvent> | undefined;
-  exec: ActionFunction<TContext, TEvent> | undefined;
+  activity: ActivityDefinition<TContext, TEvent, TExtra> | undefined;
+  exec: ActionFunction<TContext, TEvent, TExtra> | undefined;
 }
 
-export interface InvokeActionObject<TContext, TEvent extends EventObject>
-  extends ActivityActionObject<TContext, TEvent> {
-  activity: InvokeDefinition<TContext, TEvent>;
+export interface InvokeActionObject<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> extends ActivityActionObject<TContext, TEvent, TExtra> {
+  activity: InvokeDefinition<TContext, TEvent, TExtra>;
 }
 
 export type DelayExpr<TContext, TEvent extends EventObject> = ExprWithMeta<
@@ -987,22 +1136,29 @@ export type LogExpr<TContext, TEvent extends EventObject> = ExprWithMeta<
   any
 >;
 
-export interface LogAction<TContext, TEvent extends EventObject>
-  extends ActionObject<TContext, TEvent> {
+export interface LogAction<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> extends ActionObject<TContext, TEvent, TExtra> {
   label: string | undefined;
   expr: string | LogExpr<TContext, TEvent>;
 }
 
-export interface LogActionObject<TContext, TEvent extends EventObject>
-  extends LogAction<TContext, TEvent> {
+export interface LogActionObject<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> extends LogAction<TContext, TEvent, TExtra> {
   value: any;
 }
 
 export interface SendAction<
   TContext,
   TEvent extends EventObject,
-  TSentEvent extends EventObject
-> extends ActionObject<TContext, TEvent> {
+  TSentEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> extends ActionObject<TContext, TEvent, TExtra> {
   to:
     | string
     | number
@@ -1017,8 +1173,9 @@ export interface SendAction<
 export interface SendActionObject<
   TContext,
   TEvent extends EventObject,
-  TSentEvent extends EventObject = AnyEventObject
-> extends SendAction<TContext, TEvent, TSentEvent> {
+  TSentEvent extends EventObject = AnyEventObject,
+  TExtra extends ExtraGenerics = {}
+> extends SendAction<TContext, TEvent, TSentEvent, TExtra> {
   to: string | number | ActorRef<any> | undefined;
   _event: SCXML.Event<TSentEvent>;
   event: TSentEvent;
@@ -1026,8 +1183,11 @@ export interface SendActionObject<
   id: string | number;
 }
 
-export interface StopAction<TContext, TEvent extends EventObject>
-  extends ActionObject<TContext, TEvent> {
+export interface StopAction<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> extends ActionObject<TContext, TEvent, TExtra> {
   type: ActionTypes.Stop;
   activity:
     | string
@@ -1068,28 +1228,39 @@ export interface SendActionOptions<TContext, TEvent extends EventObject> {
   to?: string | ExprWithMeta<TContext, TEvent, string | number | ActorRef<any>>;
 }
 
-export interface CancelAction extends ActionObject<any, any> {
+export interface CancelAction extends ActionObject<any, any, any> {
   sendId: string | number;
 }
 
-export type Assigner<TContext, TEvent extends EventObject> = (
+export type Assigner<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> = (
   context: TContext,
   event: TEvent,
-  meta: AssignMeta<TContext, TEvent>
+  meta: AssignMeta<TContext, TEvent, TExtra>
 ) => Partial<TContext>;
 
 export type PartialAssigner<
   TContext,
   TEvent extends EventObject,
-  TKey extends keyof TContext
+  TKey extends keyof TContext,
+  TExtra extends ExtraGenerics
 > = (
   context: TContext,
   event: TEvent,
-  meta: AssignMeta<TContext, TEvent>
+  meta: AssignMeta<TContext, TEvent, TExtra>
 ) => TContext[TKey];
 
-export type PropertyAssigner<TContext, TEvent extends EventObject> = {
-  [K in keyof TContext]?: PartialAssigner<TContext, TEvent, K> | TContext[K];
+export type PropertyAssigner<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> = {
+  [K in keyof TContext]?:
+    | PartialAssigner<TContext, TEvent, K, TExtra>
+    | TContext[K];
 };
 
 export type Mapper<TContext, TEvent extends EventObject, TParams extends {}> = (
@@ -1107,82 +1278,110 @@ export type PropertyMapper<
     | TParams[K];
 };
 
-export interface AnyAssignAction<TContext, TEvent extends EventObject>
-  extends ActionObject<TContext, TEvent> {
+export interface AnyAssignAction<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> extends ActionObject<TContext, TEvent, TExtra> {
   type: ActionTypes.Assign;
   assignment: any;
 }
 
-export interface AssignAction<TContext, TEvent extends EventObject>
-  extends ActionObject<TContext, TEvent> {
+export interface AssignAction<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> extends ActionObject<TContext, TEvent, TExtra> {
   type: ActionTypes.Assign;
-  assignment: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent>;
+  assignment:
+    | Assigner<TContext, TEvent, TExtra>
+    | PropertyAssigner<TContext, TEvent, TExtra>;
 }
 
-export interface PureAction<TContext, TEvent extends EventObject>
-  extends ActionObject<TContext, TEvent> {
+export interface PureAction<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> extends ActionObject<TContext, TEvent, TExtra> {
   type: ActionTypes.Pure;
   get: (
     context: TContext,
     event: TEvent
-  ) => SingleOrArray<ActionObject<TContext, TEvent>> | undefined;
+  ) => SingleOrArray<ActionObject<TContext, TEvent, TExtra>> | undefined;
 }
 
-export interface ChooseAction<TContext, TEvent extends EventObject>
-  extends ActionObject<TContext, TEvent> {
+export interface ChooseAction<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> extends ActionObject<TContext, TEvent, TExtra> {
   type: ActionTypes.Choose;
-  conds: Array<ChooseCondition<TContext, TEvent>>;
+  conds: Array<ChooseCondition<TContext, TEvent, TExtra>>;
 }
 
-export interface TransitionDefinition<TContext, TEvent extends EventObject>
-  extends TransitionConfig<TContext, TEvent> {
+export interface TransitionDefinition<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> extends TransitionConfig<TContext, TEvent, TExtra> {
   target: Array<StateNode<TContext, any, TEvent>> | undefined;
   source: StateNode<TContext, any, TEvent>;
-  actions: Array<ActionObject<TContext, TEvent>>;
-  cond?: Guard<TContext, TEvent>;
+  actions: Array<ActionObject<TContext, TEvent, TExtra>>;
+  cond?: Guard<TContext, TEvent, TExtra>;
   eventType: TEvent['type'] | NullEvent['type'] | '*';
   toJSON: () => {
     target: string[] | undefined;
     source: string;
-    actions: Array<ActionObject<TContext, TEvent>>;
-    cond?: Guard<TContext, TEvent>;
+    actions: Array<ActionObject<TContext, TEvent, TExtra>>;
+    cond?: Guard<TContext, TEvent, TExtra>;
     eventType: TEvent['type'] | NullEvent['type'] | '*';
     meta?: Record<string, any>;
   };
 }
 
-export type TransitionDefinitionMap<TContext, TEvent extends EventObject> = {
+export type TransitionDefinitionMap<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> = {
   [K in TEvent['type'] | NullEvent['type'] | '*']: Array<
     TransitionDefinition<
       TContext,
-      K extends TEvent['type'] ? Extract<TEvent, { type: K }> : EventObject
+      K extends TEvent['type'] ? Extract<TEvent, { type: K }> : EventObject,
+      TExtra
     >
   >;
 };
 
 export interface DelayedTransitionDefinition<
   TContext,
-  TEvent extends EventObject
-> extends TransitionDefinition<TContext, TEvent> {
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> extends TransitionDefinition<TContext, TEvent, TExtra> {
   delay: number | string | DelayExpr<TContext, TEvent>;
 }
 
 export interface Edge<
   TContext,
   TEvent extends EventObject,
+  TExtra extends ExtraGenerics,
   TEventType extends TEvent['type'] = string
 > {
   event: TEventType;
   source: StateNode<TContext, any, TEvent>;
   target: StateNode<TContext, any, TEvent>;
-  cond?: Condition<TContext, TEvent & { type: TEventType }>;
-  actions: Array<Action<TContext, TEvent>>;
+  cond?: Condition<TContext, TEvent & { type: TEventType }, TExtra>;
+  actions: Array<Action<TContext, TEvent, TExtra>>;
   meta?: MetaObject;
-  transition: TransitionDefinition<TContext, TEvent>;
+  transition: TransitionDefinition<TContext, TEvent, TExtra>;
 }
-export interface NodesAndEdges<TContext, TEvent extends EventObject> {
+export interface NodesAndEdges<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> {
   nodes: StateNode[];
-  edges: Array<Edge<TContext, TEvent, TEvent['type']>>;
+  edges: Array<Edge<TContext, TEvent, TExtra, TEvent['type']>>;
 }
 
 export interface Segment<TContext, TEvent extends EventObject> {
@@ -1231,8 +1430,12 @@ export interface SCXMLEventMeta<TEvent extends EventObject> {
   _event: SCXML.Event<TEvent>;
 }
 
-export interface StateMeta<TContext, TEvent extends EventObject> {
-  state: State<TContext, TEvent, any, any>;
+export interface StateMeta<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> {
+  state: State<TContext, TEvent, any, any, TExtra>;
   _event: SCXML.Event<TEvent>;
 }
 
@@ -1248,14 +1451,18 @@ export interface StateLike<TContext> {
   _event: SCXML.Event<EventObject>;
 }
 
-export interface StateConfig<TContext, TEvent extends EventObject> {
+export interface StateConfig<
+  TContext,
+  TEvent extends EventObject,
+  TExtra extends ExtraGenerics
+> {
   value: StateValue;
   context: TContext;
   _event: SCXML.Event<TEvent>;
   _sessionid: string | null;
   historyValue?: HistoryValue | undefined;
   history?: State<TContext, TEvent>;
-  actions?: Array<ActionObject<TContext, TEvent>>;
+  actions?: Array<ActionObject<TContext, TEvent, TExtra>>;
   /**
    * @deprecated
    */
@@ -1263,7 +1470,7 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   meta?: any;
   events?: TEvent[];
   configuration: Array<StateNode<TContext, any, TEvent>>;
-  transitions: Array<TransitionDefinition<TContext, TEvent>>;
+  transitions: Array<TransitionDefinition<TContext, TEvent, TExtra>>;
   children: Record<string, ActorRef<any>>;
   done?: boolean;
   tags?: Set<string>;
@@ -1534,3 +1741,7 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
     ? TContext
     : never
   : never;
+
+export interface ExtraGenerics {
+  input?: {};
+}

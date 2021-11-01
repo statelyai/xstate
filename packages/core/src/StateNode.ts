@@ -101,6 +101,7 @@ import {
 } from './stateUtils';
 import { createInvocableActor } from './Actor';
 import { toInvokeDefinition } from './invokeUtils';
+import { ExtraGenerics } from '.';
 
 const NULL_EVENT = '';
 const STATE_IDENTIFIER = '#';
@@ -110,6 +111,7 @@ const EMPTY_OBJECT = {};
 
 const isStateId = (str: string) => str[0] === STATE_IDENTIFIER;
 const createDefaultOptions = <TContext>(): MachineOptions<TContext, any> => ({
+  input: {},
   actions: {},
   guards: {},
   services: {},
@@ -121,7 +123,7 @@ const validateArrayifiedTransitions = <TContext>(
   stateNode: StateNode<any, any, any, any>,
   event: string,
   transitions: Array<
-    TransitionConfig<TContext, EventObject> & {
+    TransitionConfig<TContext, EventObject, {}> & {
       event: string;
     }
   >
@@ -148,7 +150,8 @@ class StateNode<
   TContext = any,
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = EventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext },
+  TExtra extends ExtraGenerics = {}
 > {
   /**
    * The relative key of the state node, which represents its location in the overall state value.
@@ -205,16 +208,16 @@ class StateNode<
   /**
    * The action(s) to be executed upon entering the state node.
    */
-  public onEntry: Array<ActionObject<TContext, TEvent>>; // TODO: deprecate (entry)
+  public onEntry: Array<ActionObject<TContext, TEvent, TExtra>>; // TODO: deprecate (entry)
   /**
    * The action(s) to be executed upon exiting the state node.
    */
-  public onExit: Array<ActionObject<TContext, TEvent>>; // TODO: deprecate (exit)
+  public onExit: Array<ActionObject<TContext, TEvent, TExtra>>; // TODO: deprecate (exit)
   /**
    * The activities to be started upon entering the state node,
    * and stopped upon exiting the state node.
    */
-  public activities: Array<ActivityDefinition<TContext, TEvent>>;
+  public activities: Array<ActivityDefinition<TContext, TEvent, TExtra>>;
   public strict: boolean;
   /**
    * The parent state node.
@@ -245,9 +248,9 @@ class StateNode<
   /**
    * The services invoked by this state node.
    */
-  public invoke: Array<InvokeDefinition<TContext, TEvent>>;
+  public invoke: Array<InvokeDefinition<TContext, TEvent, TExtra>>;
 
-  public options: MachineOptions<TContext, TEvent>;
+  public options: MachineOptions<TContext, TEvent, TExtra>;
 
   public schema: MachineSchema<TContext, TEvent>;
 
@@ -259,10 +262,14 @@ class StateNode<
     events: undefined as Array<TEvent['type']> | undefined,
     relativeValue: new Map() as Map<StateNode<TContext>, StateValue>,
     initialStateValue: undefined as StateValue | undefined,
-    initialState: undefined as State<TContext, TEvent> | undefined,
-    on: undefined as TransitionDefinitionMap<TContext, TEvent> | undefined,
+    initialState: undefined as
+      | State<TContext, TEvent, any, any, TExtra>
+      | undefined,
+    on: undefined as
+      | TransitionDefinitionMap<TContext, TEvent, TExtra>
+      | undefined,
     transitions: undefined as
-      | Array<TransitionDefinition<TContext, TEvent>>
+      | Array<TransitionDefinition<TContext, TEvent, TExtra>>
       | undefined,
     candidates: {} as {
       [K in TEvent['type'] | NullEvent['type'] | '*']:
@@ -271,13 +278,14 @@ class StateNode<
               TContext,
               K extends TEvent['type']
                 ? Extract<TEvent, { type: K }>
-                : EventObject
+                : EventObject,
+              TExtra
             >
           >
         | undefined;
     },
     delayedTransitions: undefined as
-      | Array<DelayedTransitionDefinition<TContext, TEvent>>
+      | Array<DelayedTransitionDefinition<TContext, TEvent, TExtra>>
       | undefined
   };
 
@@ -288,8 +296,8 @@ class StateNode<
     /**
      * The raw config used to create the machine.
      */
-    public config: StateNodeConfig<TContext, TStateSchema, TEvent>,
-    options?: Partial<MachineOptions<TContext, TEvent>>,
+    public config: StateNodeConfig<TContext, TStateSchema, TEvent, TExtra>,
+    options?: Partial<MachineOptions<TContext, TEvent, TExtra>>,
     /**
      * The initial extended state
      */
@@ -312,7 +320,8 @@ class StateNode<
       this.config.id || [this.machine.key, ...this.path].join(this.delimiter);
     this.version = this.parent
       ? this.parent.version
-      : (this.config as MachineConfig<TContext, TStateSchema, TEvent>).version;
+      : (this.config as MachineConfig<TContext, TStateSchema, TEvent, TExtra>)
+          .version;
     this.type =
       this.config.type ||
       (this.config.parallel
@@ -324,8 +333,8 @@ class StateNode<
         : 'atomic');
     this.schema = this.parent
       ? this.machine.schema
-      : (this.config as MachineConfig<TContext, TStateSchema, TEvent>).schema ??
-        ({} as this['schema']);
+      : (this.config as MachineConfig<TContext, TStateSchema, TEvent, TExtra>)
+          .schema ?? ({} as this['schema']);
     this.description = this.config.description;
 
     if (!IS_PRODUCTION) {
@@ -344,7 +353,10 @@ class StateNode<
     this.states = (this.config.states
       ? mapValues(
           this.config.states,
-          (stateConfig: StateNodeConfig<TContext, any, TEvent>, key) => {
+          (
+            stateConfig: StateNodeConfig<TContext, any, TEvent, TExtra>,
+            key
+          ) => {
             const stateNode = new StateNode(stateConfig, {
               _parent: this,
               _key: key as string
@@ -397,7 +409,7 @@ class StateNode<
     this.meta = this.config.meta;
     this.doneData =
       this.type === 'final'
-        ? (this.config as FinalStateNodeConfig<TContext, TEvent>).data
+        ? (this.config as FinalStateNodeConfig<TContext, TEvent, TExtra>).data
         : undefined;
     this.invoke = toArray(this.config.invoke).map((invokeConfig, i) => {
       if (isMachine(invokeConfig)) {
@@ -420,7 +432,11 @@ class StateNode<
       } else if (isMachine(invokeConfig.src) || isFunction(invokeConfig.src)) {
         const invokeSrc = `${this.id}:invocation[${i}]`; // TODO: util function
         this.machine.options.services = {
-          [invokeSrc]: invokeConfig.src as InvokeCreator<TContext, TEvent>,
+          [invokeSrc]: invokeConfig.src as InvokeCreator<
+            TContext,
+            TEvent,
+            TExtra
+          >,
           ...this.machine.options.services
         };
 
@@ -466,7 +482,7 @@ class StateNode<
    * @param context Custom context (will override predefined context)
    */
   public withConfig(
-    options: Partial<MachineOptions<TContext, TEvent>>,
+    options: Partial<MachineOptions<TContext, TEvent, TExtra>>,
     context?: TContext | (() => TContext)
   ): StateNode<TContext, TStateSchema, TEvent, TTypestate> {
     const { actions, activities, guards, services, delays } = this.options;
@@ -502,7 +518,12 @@ class StateNode<
   /**
    * The well-structured state node definition.
    */
-  public get definition(): StateNodeDefinition<TContext, TStateSchema, TEvent> {
+  public get definition(): StateNodeDefinition<
+    TContext,
+    TStateSchema,
+    TEvent,
+    TExtra
+  > {
     return {
       id: this.id,
       key: this.key,
@@ -514,7 +535,7 @@ class StateNode<
       states: mapValues(
         this.states,
         (state: StateNode<TContext, any, TEvent>) => state.definition
-      ) as StatesDefinition<TContext, TStateSchema, TEvent>,
+      ) as StatesDefinition<TContext, TStateSchema, TEvent, TExtra>,
       on: this.on,
       transitions: this.transitions,
       entry: this.onEntry,
@@ -536,7 +557,7 @@ class StateNode<
   /**
    * The mapping of events to transitions.
    */
-  public get on(): TransitionDefinitionMap<TContext, TEvent> {
+  public get on(): TransitionDefinitionMap<TContext, TEvent, TExtra> {
     if (this.__cache.on) {
       return this.__cache.on;
     }
@@ -547,10 +568,12 @@ class StateNode<
       map[transition.eventType] = map[transition.eventType] || [];
       map[transition.eventType].push(transition as any);
       return map;
-    }, {} as TransitionDefinitionMap<TContext, TEvent>));
+    }, {} as TransitionDefinitionMap<TContext, TEvent, TExtra>));
   }
 
-  public get after(): Array<DelayedTransitionDefinition<TContext, TEvent>> {
+  public get after(): Array<
+    DelayedTransitionDefinition<TContext, TEvent, TExtra>
+  > {
     return (
       this.__cache.delayedTransitions ||
       ((this.__cache.delayedTransitions = this.getDelayedTransitions()),
@@ -561,7 +584,9 @@ class StateNode<
   /**
    * All the transitions that can be taken from this state node.
    */
-  public get transitions(): Array<TransitionDefinition<TContext, TEvent>> {
+  public get transitions(): Array<
+    TransitionDefinition<TContext, TEvent, TExtra>
+  > {
     return (
       this.__cache.transitions ||
       ((this.__cache.transitions = this.formatTransitions()),
@@ -591,7 +616,7 @@ class StateNode<
    * All delayed transitions from the config.
    */
   private getDelayedTransitions(): Array<
-    DelayedTransitionDefinition<TContext, TEvent>
+    DelayedTransitionDefinition<TContext, TEvent, TExtra>
   > {
     const afterConfig = this.config.after;
 
@@ -653,7 +678,7 @@ class StateNode<
    * @param state The state value or State instance
    */
   public getStateNodes(
-    state: StateValue | State<TContext, TEvent, any, TTypestate>
+    state: StateValue | State<TContext, TEvent, any, TTypestate, TExtra>
   ): Array<StateNode<TContext, any, TEvent, TTypestate>> {
     if (!state) {
       return [];
@@ -709,8 +734,8 @@ class StateNode<
    * @param state The state to resolve
    */
   public resolveState(
-    state: State<TContext, TEvent, any, any>
-  ): State<TContext, TEvent, TStateSchema, TTypestate> {
+    state: State<TContext, TEvent, any, any, TExtra>
+  ): State<TContext, TEvent, TStateSchema, TTypestate, TExtra> {
     const configuration = Array.from(
       getConfiguration([], this.getStateNodes(state.value))
     );
@@ -725,9 +750,9 @@ class StateNode<
 
   private transitionLeafNode(
     stateValue: string,
-    state: State<TContext, TEvent>,
+    state: State<TContext, TEvent, any, any, TExtra>,
     _event: SCXML.Event<TEvent>
-  ): StateTransition<TContext, TEvent> | undefined {
+  ): StateTransition<TContext, TEvent, TExtra> | undefined {
     const stateNode = this.getStateNode(stateValue);
     const next = stateNode.next(state, _event);
 
@@ -739,9 +764,9 @@ class StateNode<
   }
   private transitionCompoundNode(
     stateValue: StateValueMap,
-    state: State<TContext, TEvent>,
+    state: State<TContext, TEvent, any, any, TExtra>,
     _event: SCXML.Event<TEvent>
-  ): StateTransition<TContext, TEvent> | undefined {
+  ): StateTransition<TContext, TEvent, TExtra> | undefined {
     const subStateKeys = keys(stateValue);
 
     const stateNode = this.getStateNode(subStateKeys[0]);
@@ -759,10 +784,13 @@ class StateNode<
   }
   private transitionParallelNode(
     stateValue: StateValueMap,
-    state: State<TContext, TEvent>,
+    state: State<TContext, TEvent, any, any, TExtra>,
     _event: SCXML.Event<TEvent>
-  ): StateTransition<TContext, TEvent> | undefined {
-    const transitionMap: Record<string, StateTransition<TContext, TEvent>> = {};
+  ): StateTransition<TContext, TEvent, TExtra> | undefined {
+    const transitionMap: Record<
+      string,
+      StateTransition<TContext, TEvent, TExtra>
+    > = {};
 
     for (const subStateKey of keys(stateValue)) {
       const subStateValue = stateValue[subStateKey];
@@ -813,9 +841,9 @@ class StateNode<
   }
   private _transition(
     stateValue: StateValue,
-    state: State<TContext, TEvent, any, any>,
+    state: State<TContext, TEvent, any, any, TExtra>,
     _event: SCXML.Event<TEvent>
-  ): StateTransition<TContext, TEvent> | undefined {
+  ): StateTransition<TContext, TEvent, TExtra> | undefined {
     // leaf node
     if (isString(stateValue)) {
       return this.transitionLeafNode(stateValue, state, _event);
@@ -830,14 +858,16 @@ class StateNode<
     return this.transitionParallelNode(stateValue, state, _event);
   }
   private next(
-    state: State<TContext, TEvent>,
+    state: State<TContext, TEvent, any, any, TExtra>,
     _event: SCXML.Event<TEvent>
-  ): StateTransition<TContext, TEvent> | undefined {
+  ): StateTransition<TContext, TEvent, TExtra> | undefined {
     const eventName = _event.name;
-    const actions: Array<ActionObject<TContext, TEvent>> = [];
+    const actions: Array<ActionObject<TContext, TEvent, TExtra>> = [];
 
     let nextStateNodes: Array<StateNode<TContext, any, TEvent>> = [];
-    let selectedTransition: TransitionDefinition<TContext, TEvent> | undefined;
+    let selectedTransition:
+      | TransitionDefinition<TContext, TEvent, TExtra>
+      | undefined;
 
     for (const candidate of this.getCandidates(eventName)) {
       const { cond, in: stateIn } = candidate;
@@ -961,11 +991,11 @@ class StateNode<
   }
 
   private getActions(
-    transition: StateTransition<TContext, TEvent>,
+    transition: StateTransition<TContext, TEvent, TExtra>,
     currentContext: TContext,
     _event: SCXML.Event<TEvent>,
     prevState?: State<TContext>
-  ): Array<ActionObject<TContext, TEvent>> {
+  ): Array<ActionObject<TContext, TEvent, TExtra>> {
     const prevConfig = getConfiguration(
       [],
       prevState ? this.getStateNodes(prevState.value) : [this]
@@ -1046,7 +1076,9 @@ class StateNode<
             ...stateNode.onEntry
           ];
         })
-      ).concat(doneEvents.map(raise) as Array<ActionObject<TContext, TEvent>>),
+      ).concat(
+        doneEvents.map(raise) as Array<ActionObject<TContext, TEvent, TExtra>>
+      ),
       flatten(
         Array.from(exitStates).map((stateNode) => [
           ...stateNode.onExit,
@@ -1058,7 +1090,7 @@ class StateNode<
     const actions = toActionObjects(
       exitActions.concat(transition.actions).concat(entryActions),
       this.machine.options.actions
-    ) as Array<ActionObject<TContext, TEvent>>;
+    ) as Array<ActionObject<TContext, TEvent, TExtra>>;
 
     return actions;
   }
@@ -1071,13 +1103,13 @@ class StateNode<
    * @param context The current context (extended state) of the current state
    */
   public transition(
-    state: StateValue | State<TContext, TEvent, any, TTypestate> = this
+    state: StateValue | State<TContext, TEvent, any, TTypestate, TExtra> = this
       .initialState,
     event: Event<TEvent> | SCXML.Event<TEvent>,
     context?: TContext
-  ): State<TContext, TEvent, TStateSchema, TTypestate> {
+  ): State<TContext, TEvent, TStateSchema, TTypestate, TExtra> {
     const _event = toSCXMLEvent(event);
-    let currentState: State<TContext, TEvent, any, TTypestate>;
+    let currentState: State<TContext, TEvent, any, TTypestate, TExtra>;
 
     if (state instanceof State) {
       currentState =
@@ -1091,7 +1123,10 @@ class StateNode<
       const resolvedContext = context ?? this.machine.context;
 
       currentState = this.resolveState(
-        State.from<TContext, TEvent>(resolvedStateValue, resolvedContext)
+        State.from<TContext, TEvent, TExtra>(
+          resolvedStateValue,
+          resolvedContext
+        )
       );
     }
 
@@ -1134,10 +1169,10 @@ class StateNode<
   }
 
   private resolveRaisedTransition(
-    state: State<TContext, TEvent, TStateSchema, TTypestate>,
+    state: State<TContext, TEvent, TStateSchema, TTypestate, TExtra>,
     _event: SCXML.Event<TEvent> | NullEvent,
     originalEvent: SCXML.Event<TEvent>
-  ): State<TContext, TEvent, TStateSchema, TTypestate> {
+  ): State<TContext, TEvent, TStateSchema, TTypestate, TExtra> {
     const currentActions = state.actions;
 
     state = this.transition(state, _event as SCXML.Event<TEvent>);
@@ -1151,11 +1186,11 @@ class StateNode<
   }
 
   private resolveTransition(
-    stateTransition: StateTransition<TContext, TEvent>,
+    stateTransition: StateTransition<TContext, TEvent, TExtra>,
     currentState?: State<TContext, TEvent, any, any>,
     _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>,
     context: TContext = this.machine.context
-  ): State<TContext, TEvent, TStateSchema, TTypestate> {
+  ): State<TContext, TEvent, TStateSchema, TTypestate, TExtra> {
     const { configuration } = stateTransition;
     // Transition will "apply" if:
     // - this is the initial state (there is no current state)
@@ -1184,7 +1219,7 @@ class StateNode<
       if (action.type === actionTypes.start) {
         activities[
           action.activity!.id || action.activity!.type
-        ] = action as ActivityDefinition<TContext, TEvent>;
+        ] = action as ActivityDefinition<TContext, TEvent, TExtra>;
       } else if (action.type === actionTypes.stop) {
         activities[action.activity!.id || action.activity!.type] = false;
       }
@@ -1208,17 +1243,17 @@ class StateNode<
         | SendActionObject<TContext, TEvent, TEvent> =>
         action.type === actionTypes.raise ||
         (action.type === actionTypes.send &&
-          (action as SendActionObject<TContext, TEvent>).to ===
+          (action as SendActionObject<TContext, TEvent, any, TExtra>).to ===
             SpecialTargets.Internal)
     );
 
     const invokeActions = resolvedActions.filter((action) => {
       return (
         action.type === actionTypes.start &&
-        (action as ActivityActionObject<TContext, TEvent>).activity?.type ===
-          actionTypes.invoke
+        (action as ActivityActionObject<TContext, TEvent, TExtra>).activity
+          ?.type === actionTypes.invoke
       );
-    }) as Array<InvokeActionObject<TContext, TEvent>>;
+    }) as Array<InvokeActionObject<TContext, TEvent, TExtra>>;
 
     const children = invokeActions.reduce(
       (acc, action) => {
@@ -1244,7 +1279,13 @@ class StateNode<
 
     const isDone = isInFinalState(resolvedConfiguration, this);
 
-    const nextState = new State<TContext, TEvent, TStateSchema, TTypestate>({
+    const nextState = new State<
+      TContext,
+      TEvent,
+      TStateSchema,
+      TTypestate,
+      TExtra
+    >({
       value: resolvedStateValue || currentState!.value,
       context: updatedContext,
       _event,
@@ -1542,7 +1583,7 @@ class StateNode<
   public getInitialState(
     stateValue: StateValue,
     context?: TContext
-  ): State<TContext, TEvent, TStateSchema, TTypestate> {
+  ): State<TContext, TEvent, TStateSchema, TTypestate, TExtra> {
     const configuration = this.getStateNodes(stateValue);
 
     return this.resolveTransition(
@@ -1564,7 +1605,13 @@ class StateNode<
    * The initial State instance, which includes all actions to be executed from
    * entering the initial state.
    */
-  public get initialState(): State<TContext, TEvent, TStateSchema, TTypestate> {
+  public get initialState(): State<
+    TContext,
+    TEvent,
+    TStateSchema,
+    TTypestate,
+    TExtra
+  > {
     this._init(); // TODO: this should be in the constructor (see note in constructor)
     const { initialStateValue } = this;
 
@@ -1586,7 +1633,8 @@ class StateNode<
     if (this.type === 'history') {
       const historyConfig = this.config as HistoryStateNodeConfig<
         TContext,
-        TEvent
+        TEvent,
+        TExtra
       >;
       if (isString(historyConfig.target)) {
         target = isStateId(historyConfig.target)
@@ -1850,10 +1898,10 @@ class StateNode<
   }
 
   private formatTransition(
-    transitionConfig: TransitionConfig<TContext, TEvent> & {
+    transitionConfig: TransitionConfig<TContext, TEvent, TExtra> & {
       event: TEvent['type'] | NullEvent['type'] | '*';
     }
-  ): TransitionDefinition<TContext, TEvent> {
+  ): TransitionDefinition<TContext, TEvent, TExtra> {
     const normalizedTarget = normalizeTarget(transitionConfig.target);
     const internal =
       'internal' in transitionConfig
@@ -1886,9 +1934,11 @@ class StateNode<
 
     return transition;
   }
-  private formatTransitions(): Array<TransitionDefinition<TContext, TEvent>> {
+  private formatTransitions(): Array<
+    TransitionDefinition<TContext, TEvent, TExtra>
+  > {
     let onConfig: Array<
-      TransitionConfig<TContext, EventObject> & {
+      TransitionConfig<TContext, EventObject, TExtra> & {
         event: string;
       }
     >;
@@ -1926,7 +1976,7 @@ class StateNode<
             toTransitionConfigArray(
               WILDCARD,
               wildcardConfigs as SingleOrArray<
-                TransitionConfig<TContext, EventObject> & {
+                TransitionConfig<TContext, EventObject, TExtra> & {
                   event: '*';
                 }
               >
@@ -1978,7 +2028,7 @@ class StateNode<
     const formattedTransitions = flatten(
       [...doneConfig, ...invokeConfig, ...onConfig, ...eventlessConfig].map(
         (
-          transitionConfig: TransitionConfig<TContext, TEvent> & {
+          transitionConfig: TransitionConfig<TContext, TEvent, TExtra> & {
             event: TEvent['type'] | NullEvent['type'] | '*';
           }
         ) =>
