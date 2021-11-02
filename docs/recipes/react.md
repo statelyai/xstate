@@ -61,16 +61,7 @@ export const GlobalStateProvider = (props) => {
 
 Using `useInterpret` returns a service, which is a static reference to the running machine which can be subscribed to. This value never changes, so we don't need to worry about wasted re-renders.
 
-#### Usage with typescript
-
-The return type from `useInterpret` could be created by the generic `InterpreterFrom` from the `xstate`.
-
-```typescript
-import { InterpreterFrom } from 'xstate';
-
-type AuthService = InterpreterFrom<typeof authMachine>;
-const authService: AuthService = useInterpret(authMachine);
-```
+> For Typescript, you can create the context as `createContext({} as InterpreterFrom<typeof authMachine>);` to ensure strong typings.
 
 ### Utilizing context
 
@@ -131,9 +122,15 @@ export const SomeComponent = (props) => {
   // Get `send()` method from a service
   const { send } = globalServices.authService;
 
-   return <>
-      {isLoggedIn && <button type="button" onClick={() => send('LOG_OUT')}>Logout</button>}
-   </>;
+  return (
+    <>
+      {isLoggedIn && (
+        <button type="button" onClick={() => send('LOG_OUT')}>
+          Logout
+        </button>
+      )}
+    </>
+  );
 };
 ```
 
