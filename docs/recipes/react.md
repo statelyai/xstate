@@ -63,33 +63,13 @@ Using `useInterpret` returns a service, which is a static reference to the runni
 
 #### Usage with typescript
 
-To have the strict typings with typescript for your service, you could use the generic `InterpreterFrom` from the `xstate`.
+The return type from `useInterpret` could be created by the generic `InterpreterFrom` from the `xstate`.
 
 ```typescript
-import { createContext, FC } from 'react';
-import { useInterpret } from '@xstate/react';
 import { InterpreterFrom } from 'xstate';
-import { authMachine } from './authMachine';
 
-export type AuthService = InterpreterFrom<typeof authMachine>;
-
-export interface GlobalStateContextType {
-  authService: AuthService;
-}
-
-export const GlobalStateContext = createContext<GlobalStateContextType>(
-  {} as GlobalStateContextType
-);
-
-export const GlobalStateProvider: FC = (props) => {
-  const authService = useInterpret(authMachine);
-
-  return (
-    <GlobalStateContext.Provider value={{ authService }}>
-      {props.children}
-    </GlobalStateContext.Provider>
-  );
-};
+type AuthService = InterpreterFrom<typeof authMachine>;
+const authService: AuthService = useInterpret(authMachine);
 ```
 
 ### Utilizing context
