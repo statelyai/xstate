@@ -1,18 +1,22 @@
-import { createContext, useContext } from 'react';
-import { InterpreterFrom, StateFrom, StateMachine } from 'xstate';
+import React, { createContext, useContext } from 'react';
+import {
+  InterpreterFrom,
+  MachineOptions,
+  StateFrom,
+  StateMachine
+} from 'xstate';
 import { useActor } from './useActor';
+import { useInterpret } from './useInterpret';
 import { useSelector } from './useSelector';
 
-export const createXStateContext = <
+export function createXStateContext<
   TMachine extends StateMachine<any, any, any, any>
->(
-  _machine: TMachine
-) => {
+>(machine: TMachine) {
   const context = createContext({} as InterpreterFrom<TMachine>);
 
-  const createSelector = <T>(selector: (state: StateFrom<TMachine>) => T) => {
+  function createSelector<T>(selector: (state: StateFrom<TMachine>) => T) {
     return selector;
-  };
+  }
 
   const useXStateContext = (): InterpreterFrom<TMachine> => {
     const contextValue = useContext(context);
@@ -32,15 +36,30 @@ export const createXStateContext = <
     return useActor(service);
   };
 
-  const useXStateSelector = <T>(
-    selector: (state: StateFrom<TMachine>) => T
-  ) => {
+  function useXStateSelector<T>(selector: (state: StateFrom<TMachine>) => T) {
     const service = useXStateContext();
 
     return useSelector(service, selector);
-  };
+  }
 
   return {
+    // TODO - bikeshed name
+    MachineProvider: (props: {
+      options?: TMachine extends StateMachine<
+        infer TContext,
+        infer _,
+        infer TEvent
+      >
+        ? Partial<MachineOptions<TContext, TEvent>>
+        : never;
+      children?: React.ReactNode;
+    }) => {
+      const service = useInterpret(machine, props.options) as any;
+
+      return (
+        <context.Provider value={service}>{props.children}</context.Provider>
+      );
+    },
     Provider: context.Provider,
     Consumer: context.Consumer,
     createSelector,
@@ -48,4 +67,4 @@ export const createXStateContext = <
     useActor: useXStateActor,
     useSelector: useXStateSelector
   };
-};
+}
