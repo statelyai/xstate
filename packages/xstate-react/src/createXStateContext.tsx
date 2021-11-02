@@ -11,8 +11,12 @@ import { useSelector } from './useSelector';
 
 export function createXStateContext<
   TMachine extends StateMachine<any, any, any, any>
->(machine: TMachine) {
+>(machine: TMachine, machineName?: string) {
   const context = createContext({} as InterpreterFrom<TMachine>);
+
+  const resolvedDisplayName = `${machineName || machine.id}Provider`;
+
+  context.displayName = resolvedDisplayName;
 
   function createSelector<T>(selector: (state: StateFrom<TMachine>) => T) {
     return selector;
@@ -23,7 +27,7 @@ export function createXStateContext<
 
     if (!contextValue) {
       throw new Error(
-        'You must use useXStateContext within its XState context provider'
+        `You must use useXStateContext within ${resolvedDisplayName}`
       );
     }
 
