@@ -58,23 +58,51 @@ export function createActorContext<
     return useSelector(service, selector);
   }
 
-  return {
-    Provider: (props: {
-      options?: TMachine extends StateMachine<
-        infer TContext,
-        infer _,
-        infer TEvent
-      >
-        ? Partial<MachineOptions<TContext, TEvent>>
-        : never;
-      children?: React.ReactNode;
-    }) => {
-      const service = useInterpret(machine, props.options) as any;
+  const Provider: React.FC<{
+    options?: TMachine extends StateMachine<
+      infer TContext,
+      infer _,
+      infer TEvent
+    >
+      ? Partial<MachineOptions<TContext, TEvent>>
+      : never;
+  }> = (props) => {
+    const service = useInterpret(machine, props.options) as any;
 
-      return (
-        <context.Provider value={service}>{props.children}</context.Provider>
-      );
-    },
+    return (
+      <context.Provider value={service}>{props.children}</context.Provider>
+    );
+  };
+
+  Provider.displayName = resolvedDisplayName;
+
+  return {
+    /**
+     * The root-level provider you should wrap
+     * your application with to gain access
+     * to the service.
+     *
+     * @example
+     *
+     * const { Provider } = createActorContext(machine);
+     *
+     * const App = () => {
+         return (
+           <Provider
+             options={{
+               actions: {
+                 sayHello: () => {
+                   console.log('Hello');
+                 }
+               }
+             }}
+           >
+             <MyComponent />
+           </Provider>
+         );
+       };
+     */
+    Provider,
     /**
      * The context created by React - useful
      * if you want to access `context.Provider`
@@ -84,6 +112,12 @@ export function createActorContext<
     /**
      * Creates a typed selector which can be
      * passed into useSelector
+     *
+     * @example
+     *
+     * const getIsToggledOn = toggleContext.createSelector(
+     *   state => state.matches('toggledOn')
+     * );
      */
     createSelector,
     /**
