@@ -9,9 +9,21 @@ import { useActor } from './useActor';
 import { useInterpret } from './useInterpret';
 import { useSelector } from './useSelector';
 
-export function createXStateContext<
+/**
+ * Provides a toolkit for using XState with global
+ * state in React.
+ */
+export function createActorContext<
   TMachine extends StateMachine<any, any, any, any>
->(machine: TMachine, machineName?: string) {
+>(
+  machine: TMachine,
+  /**
+   * An optional display name used for debugging,
+   * error messages and better presentation in
+   * React DevTools
+   */
+  machineName?: string
+) {
   const context = createContext({} as InterpreterFrom<TMachine>);
 
   const resolvedDisplayName = `${machineName || machine.id}Provider`;
@@ -47,8 +59,7 @@ export function createXStateContext<
   }
 
   return {
-    // TODO - bikeshed name
-    MachineProvider: (props: {
+    Provider: (props: {
       options?: TMachine extends StateMachine<
         infer TContext,
         infer _,
@@ -64,11 +75,46 @@ export function createXStateContext<
         <context.Provider value={service}>{props.children}</context.Provider>
       );
     },
-    Provider: context.Provider,
-    Consumer: context.Consumer,
+    /**
+     * The context created by React - useful
+     * if you want to access `context.Provider`
+     * or `context.Consumer`
+     */
+    context,
+    /**
+     * Creates a typed selector which can be
+     * passed into useSelector
+     */
     createSelector,
+    /**
+     * Returns the running service - useful if you
+     * want to send it events:
+     *
+     * @example
+     *
+     * const service = toggleContext.useContext();
+     * service.send('TOGGLE');
+     */
     useContext: useXStateContext,
+    /**
+     * Returns `[state, send]` in a tuple, like
+     * useActor
+     *
+     * @example
+     *
+     * const [state, send] = toggleContext.useActor();
+     */
     useActor: useXStateActor,
+    /**
+     * Allows for passing in a selector function to
+     * the running service.
+     *
+     * @example
+     *
+     * const isToggledOn = toggleContext.useSelector(
+     *   state => state.matches('toggledOn')
+     * );
+     */
     useSelector: useXStateSelector
   };
 }
