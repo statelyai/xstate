@@ -61,6 +61,8 @@ export const GlobalStateProvider = (props) => {
 
 Using `useInterpret` returns a service, which is a static reference to the running machine which can be subscribed to. This value never changes, so we don't need to worry about wasted re-renders.
 
+> For Typescript, you can create the context as `createContext({} as InterpreterFrom<typeof authMachine>);` to ensure strong typings.
+
 ### Utilizing context
 
 Further down the tree, you can subscribe to the service like this:
@@ -120,9 +122,15 @@ export const SomeComponent = (props) => {
   // Get `send()` method from a service
   const { send } = globalServices.authService;
 
-   return <>
-      {isLoggedIn && <button type="button" onClick={() => send('LOG_OUT')}>Logout</button>}
-   </>;
+  return (
+    <>
+      {isLoggedIn && (
+        <button type="button" onClick={() => send('LOG_OUT')}>
+          Logout
+        </button>
+      )}
+    </>
+  );
 };
 ```
 
