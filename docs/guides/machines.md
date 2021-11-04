@@ -1,54 +1,55 @@
-# Machines
+# Creating Machines
 
-A **state machine** is a finite set of [states](./statenodes.md) that can transition to each other deterministically due to events. A **statechart** is an extension of state machines; mainly, they can have:
+## createMachine
 
-- [Hierarchical](./hierarchical.md) (or nested) states
-- [Orthogonal](./parallel.md) (or parallel) states
-- [History](./history.md) states
-- And more, as described in [Statecharts: a Visual Formalism for Complex Systems](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf).
-
-## Configuration
-
-State machines and statecharts alike are defined using the `createMachine()` factory function:
+You can create a state machine with `createMachine`:
 
 ```js
 import { createMachine } from 'xstate';
 
 const lightMachine = createMachine({
-  // Machine identifier
-  id: 'light',
-
-  // Initial state
+  // The initial state of the machine
   initial: 'green',
 
-  // Local context for entire machine
-  context: {
-    elapsed: 0,
-    direction: 'east'
-  },
-
-  // State definitions
+  // The states the machine can be in
   states: {
     green: {
-      /* ... */
+      on: {
+        NEXT: {
+          target: 'yellow'
+        }
+      }
     },
     yellow: {
-      /* ... */
+      on: {
+        NEXT: {
+          target: 'red'
+        }
+      }
     },
-    red: {
-      /* ... */
-    }
+    red: {}
   }
 });
 ```
 
-The machine config is the same as the [state node config](./statenodes.md), with the addition of the context property:
+This will create a machine with this structure:
 
-- `context` - represents the local "extended state" for all of the machine's nested states. See [the docs for context](./context.md) for more details.
+<iframe src="https://stately.ai/viz/embed/bcea02db-db69-4c7d-a86c-78a500456195?mode=viz&panel=code&readOnly=1&showOriginalLink=1&controls=0&pan=0&zoom=0"
+allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"
+sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"
+></iframe>
 
-## Options
+Creating a machine in this way won't _do_ anything yet. It's just a blueprint for things the machine _can_ do.
 
-Implementations for [actions](./actions.md), [activities](./activities.md), [delays](./delays.md), [guards](./guards.md), and [services](./communication.md) can be referenced in the machine config as a string, and then specified as an object in the 2nd argument to `createMachine()`:
+To make the machine _do_ something, we'll need to [interpret](./interpreting-machines.md) it. But we'll get to that later.
+
+## Implementations
+
+The machine above is not terribly useful. It can transition from `green` to `yellow` to `red`, but it can't react to anything outside of itself.
+
+This is where [actions](./actions.md), [delays](./delays.md), [guards](./guards.md), and [services](./communication.md) come in. You can use these in XState to either react to outside stimulus, or
+
+Implementations for [actions](./actions.md), [delays](./delays.md), [guards](./guards.md), and [services](./communication.md) can be referenced in the machine config as a string, and then specified as an object in the 2nd argument to `createMachine()`:
 
 ```js
 const lightMachine = createMachine(

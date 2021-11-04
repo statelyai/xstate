@@ -48,9 +48,9 @@ module.exports = {
       {
         title: 'Guides',
         children: [
+          '/guides/introduction-to-state-machines-and-statecharts/',
           '/guides/start',
           '/guides/installation',
-          '/guides/introduction-to-state-machines-and-statecharts/',
           '/guides/machines',
           '/guides/states',
           '/guides/statenodes',
