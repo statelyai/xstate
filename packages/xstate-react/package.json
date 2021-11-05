@@ -1,6 +1,6 @@
 {
   "name": "@xstate/react",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "description": "XState tools for React",
   "keywords": [
     "state",
@@ -39,7 +39,7 @@
     "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
     "build": "tsc && tsc --outDir es --module es2015 && rollup -c",
     "test": "jest",
-    "prepublish": "npm run build && npm run test"
+    "prepublish": "npm run build"
   },
   "bugs": {
     "url": "https://github.com/davidkpiano/xstate/issues"

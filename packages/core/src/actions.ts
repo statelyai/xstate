@@ -31,7 +31,7 @@ import {
   DelayFunctionMap,
   SCXML,
   ExprWithMeta,
-  ChooseConditon,
+  ChooseCondition,
   ChooseAction,
   AnyEventObject,
   Expr
@@ -567,7 +567,7 @@ export function escalate<
 }
 
 export function choose<TContext, TEvent extends EventObject>(
-  conds: Array<ChooseConditon<TContext, TEvent>>
+  conds: Array<ChooseCondition<TContext, TEvent>>
 ): ChooseAction<TContext, TEvent> {
   return {
     type: ActionTypes.Choose,
