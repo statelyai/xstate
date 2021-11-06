@@ -1086,7 +1086,6 @@ export interface AnyAssignAction extends BaseActionObject {
   assignment: any;
 }
 
-
 export type DynamicAssignAction<
   TContext extends MachineContext,
   TEvent extends EventObject
