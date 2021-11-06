@@ -5,7 +5,7 @@ import {
   SCXMLEventMeta,
   SendExpr,
   DelayExpr,
-  ChooseConditon,
+  ChooseCondition,
   createMachine,
   StateMachine
 } from 'xstate';
@@ -230,9 +230,9 @@ function mapAction<
       );
     }
     case 'if': {
-      const conds: Array<ChooseConditon<TContext, TEvent>> = [];
+      const conds: Array<ChooseCondition<TContext, TEvent>> = [];
 
-      let current: ChooseConditon<TContext, TEvent> = {
+      let current: ChooseCondition<TContext, TEvent> = {
         guard: createGuard(element.attributes!.cond as string),
         actions: []
       };

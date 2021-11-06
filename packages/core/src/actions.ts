@@ -30,7 +30,7 @@ import {
   DelayFunctionMap,
   SCXML,
   ExprWithMeta,
-  ChooseConditon,
+  ChooseCondition,
   ChooseAction,
   InvokeDefinition,
   InvokeAction,
@@ -643,7 +643,7 @@ export function choose<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  guards: Array<ChooseConditon<TContext, TEvent>>
+  guards: Array<ChooseCondition<TContext, TEvent>>
 ): ChooseAction<TContext, TEvent> {
   return {
     type: ActionTypes.Choose,

@@ -101,7 +101,7 @@ export type ActionFunction<
   meta: ActionMeta<TContext, TEvent, TAction>
 ) => void;
 
-export interface ChooseConditon<
+export interface ChooseCondition<
   TContext extends MachineContext,
   TEvent extends EventObject
 > {
@@ -1115,7 +1115,7 @@ export interface ChooseAction<
   TEvent extends EventObject
 > extends ActionObject<TContext, TEvent> {
   type: ActionTypes.Choose;
-  guards: Array<ChooseConditon<TContext, TEvent>>;
+  guards: Array<ChooseCondition<TContext, TEvent>>;
 }
 
 export interface TransitionDefinition<
