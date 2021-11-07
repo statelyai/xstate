@@ -32,6 +32,11 @@ export interface BaseActionObject {
   params?: Record<string, any>;
 }
 
+export interface BuiltInActionObject {
+  type: `xstate.${string}`;
+  params: Record<string, any>;
+}
+
 export interface BaseDynamicActionObject<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -128,9 +133,14 @@ export type BaseAction<
   TAction extends BaseActionObject
 > =
   | ChooseAction<TContext, TEvent>
-  | BaseDynamicActionObject<TContext, TEvent, TAction, any>
+  | BaseDynamicActionObject<
+      TContext,
+      TEvent,
+      BuiltInActionObject | TAction,
+      any
+    >
+  | TAction
   | SimpleActionsFrom<TAction>['type']
-  | Exclude<TAction, BaseDynamicActionObject<TContext, TEvent, TAction, any>>
   | ActionFunction<TContext, TEvent>;
 
 export type BaseActions<
@@ -846,7 +856,8 @@ export enum ActionTypes {
   Choose = 'xstate.choose'
 }
 
-export interface RaiseActionObject<TEvent extends EventObject> {
+export interface RaiseActionObject<TEvent extends EventObject>
+  extends BuiltInActionObject {
   type: ActionTypes.Raise;
   params: {
     _event: SCXML.Event<TEvent>;
@@ -964,7 +975,7 @@ export interface DynamicLogAction<
   type: ActionTypes.Log;
 }
 
-export interface LogActionObject extends BaseActionObject {
+export interface LogActionObject extends BuiltInActionObject {
   type: ActionTypes.Log;
   params: {
     label: string | undefined;

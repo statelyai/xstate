@@ -1,7 +1,7 @@
-import { Event, EventObject, SpecialTargets } from '../types';
+import { Event, EventObject, RaiseActionObject } from '../types';
 import * as actionTypes from '../actionTypes';
-import { isString, toSCXMLEvent } from '../utils';
-import { send } from './send';
+import { toSCXMLEvent } from '../utils';
+import { DynamicAction } from '../../actions/DynamicAction';
 
 /**
  * Raises an event. This places the event in the internal event queue, so that
@@ -10,16 +10,24 @@ import { send } from './send';
  * @param eventType The event to raise.
  */
 
-export function raise<TEvent extends EventObject>(event: Event<TEvent>) {
-  if (!isString(event)) {
-    return send(event, { to: SpecialTargets.Internal });
-  }
-
-  return {
-    type: actionTypes.raise,
-    params: {
-      event,
-      _event: toSCXMLEvent(event)
+export function raise<TEvent extends EventObject>(
+  event: Event<TEvent>
+): DynamicAction<
+  any,
+  TEvent,
+  RaiseActionObject<TEvent>,
+  RaiseActionObject<TEvent>['params']
+> {
+  return new DynamicAction(
+    actionTypes.raise,
+    { _event: toSCXMLEvent(event) },
+    (action) => {
+      return {
+        type: actionTypes.raise,
+        params: {
+          _event: action.params._event
+        }
+      };
     }
-  };
+  );
 }
