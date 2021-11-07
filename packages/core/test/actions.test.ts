@@ -6,14 +6,7 @@ import {
   interpret,
   spawn
 } from '../src/index';
-import {
-  pure,
-  sendParent,
-  log,
-  choose,
-  when,
-  actionTypes
-} from '../src/actions';
+import { pure, sendParent, log, choose, when } from '../src/actions';
 
 describe('entry/exit actions', () => {
   const pedestrianStates = {
@@ -1431,16 +1424,72 @@ describe('choose', () => {
 });
 
 describe('when', () => {
-  it('should return a choose action with a single branch', () => {
-    const cond = 'checkCondition';
-    const actions = ['doThing', 'doOtherThing'];
+  it('should execute an action only if the condition is true', (done) => {
+    let oneExecuted = false;
+    let twoExecuted = false;
 
-    const chooseAction = when(cond, actions);
-
-    expect(chooseAction).toEqual({
-      type: actionTypes.choose,
-      conds: [{ cond, actions }]
+    const machine = createMachine<{ someCondition: boolean }>({
+      context: {
+        someCondition: true
+      },
+      entry: [
+        when(
+          (ctx) => ctx.someCondition,
+          () => {
+            oneExecuted = true;
+          }
+        ),
+        when(
+          (ctx) => !ctx.someCondition,
+          () => {
+            twoExecuted = true;
+          }
+        )
+      ]
     });
+
+    interpret(machine)
+      .onTransition(() => {
+        if (oneExecuted && !twoExecuted) {
+          done();
+        }
+      })
+      .start();
+  });
+
+  it('should work with named guards', (done) => {
+    let oneExecuted = false;
+    let twoExecuted = false;
+
+    const machine = createMachine<{ someCondition: boolean }>(
+      {
+        context: {
+          someCondition: true
+        },
+        entry: [
+          when('someCondTrue', () => {
+            oneExecuted = true;
+          }),
+          when('someCondFalse', () => {
+            twoExecuted = true;
+          })
+        ]
+      },
+      {
+        guards: {
+          someCondTrue: (ctx) => ctx.someCondition,
+          someCondFalse: (ctx) => !ctx.someCondition
+        }
+      }
+    );
+
+    interpret(machine)
+      .onTransition(() => {
+        if (oneExecuted && !twoExecuted) {
+          done();
+        }
+      })
+      .start();
   });
 });
 
