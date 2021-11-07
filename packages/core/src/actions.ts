@@ -76,7 +76,7 @@ export function toActionObject<
     } else if (exec) {
       return exec;
     } else {
-      return new ExecutableAction({ type: action, params: {} });
+      return { type: action, params: {} };
     }
   } else if (isFunction(action)) {
     return new ExecutableAction(
@@ -87,7 +87,7 @@ export function toActionObject<
       action
     );
   } else {
-    // action is action object
+    // action is already a BaseActionObject
     return action;
   }
 }
@@ -109,13 +109,6 @@ export const toActionObjects = <
     toActionObject(subAction, actionFunctionMap)
   );
 };
-
-export function isActionObject<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(action: Action<TContext, TEvent>): action is BaseActionObject {
-  return typeof action === 'object' && 'type' in action;
-}
 
 /**
  * Returns an event type that represents an implicit event that
