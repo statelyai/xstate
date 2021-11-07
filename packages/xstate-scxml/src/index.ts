@@ -3,7 +3,7 @@ import {
   BaseActionObject,
   TransitionDefinition,
   StateNode,
-  MachineNode,
+  StateMachine,
   flatten
 } from 'xstate';
 import { RaiseActionObject } from 'xstate';
@@ -153,7 +153,7 @@ function stateNodeToSCXML(stateNode: StateNode<any, any>): XMLElement {
   };
 }
 
-export function toSCXML(machine: MachineNode<any, any, any>): string {
+export function toSCXML(machine: StateMachine<any, any, any>): string {
   const { states, initial } = machine.root;
 
   const elements = Object.keys(states).map<XMLElement>((key) => {

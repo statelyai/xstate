@@ -1,4 +1,4 @@
-import { MachineNode } from '.';
+import type { StateMachine } from './StateMachine';
 import {
   EventObject,
   Assigner,
@@ -42,7 +42,7 @@ export interface Model<
   createMachine: (
     config: MachineConfig<TContext, TEvent, TAction>,
     implementations?: Partial<MachineImplementations<TContext, TEvent, TAction>>
-  ) => MachineNode<TContext, TEvent, Typestate<TContext>>;
+  ) => StateMachine<TContext, TEvent, Typestate<TContext>>;
 }
 
 export type ModelContextFrom<

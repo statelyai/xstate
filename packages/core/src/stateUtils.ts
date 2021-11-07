@@ -1951,7 +1951,9 @@ export function stateValuesEqual(
   );
 }
 
-export function getMeta(configuration: StateNode[] = []): Record<string, any> {
+export function getMeta(
+  configuration: Array<StateNode<any, any>> = []
+): Record<string, any> {
   return configuration.reduce((acc, stateNode) => {
     if (stateNode.meta !== undefined) {
       acc[stateNode.id] = stateNode.meta;

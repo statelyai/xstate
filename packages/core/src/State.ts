@@ -23,7 +23,7 @@ import {
 } from './stateUtils';
 import { initEvent } from './actions';
 import { IS_PRODUCTION } from './environment';
-import type { MachineNode } from '.';
+import type { StateMachine } from './StateMachine';
 
 export function isState<
   TContext extends MachineContext,
@@ -80,7 +80,7 @@ export class State<
    */
   public children: Record<string, ActorRef<any>>;
   public tags: Set<string>;
-  public machine: MachineNode<TContext, TEvent, TTypestate> | undefined;
+  public machine: StateMachine<TContext, TEvent, TTypestate> | undefined;
   /**
    * Creates a new State instance for the given `stateValue` and `context`.
    * @param stateValue

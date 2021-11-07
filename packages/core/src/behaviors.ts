@@ -17,7 +17,7 @@ import {
   toSCXMLEvent,
   isPromiseLike,
   isObservable,
-  isMachineNode,
+  isStateMachine,
   isSCXMLEvent,
   isFunction
 } from './utils';
@@ -506,7 +506,7 @@ export function createBehaviorFrom(entity: Spawnable): Behavior<any, any> {
     return createObservableBehavior(() => entity);
   }
 
-  if (isMachineNode(entity)) {
+  if (isStateMachine(entity)) {
     // @ts-ignore
     return createMachineBehavior(entity);
   }

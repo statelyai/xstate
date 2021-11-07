@@ -333,7 +333,7 @@ export const symbolObservable = (() =>
   (typeof Symbol === 'function' && (Symbol as any).observable) ||
   '@@observable')();
 
-export function isMachineNode(
+export function isStateMachine(
   value: any
 ): value is StateMachine<any, any, any> {
   try {
@@ -412,7 +412,7 @@ export function toTransitionConfigArray<
     if (
       typeof transitionLike === 'undefined' ||
       typeof transitionLike === 'string' ||
-      isMachineNode(transitionLike)
+      isStateMachine(transitionLike)
     ) {
       return { target: transitionLike, event };
     }

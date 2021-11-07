@@ -3,7 +3,6 @@ import type { State } from './State';
 import type { Clock, Interpreter } from './interpreter';
 import type { StateMachine } from './StateMachine';
 import type { LifecycleSignal } from './behaviors';
-import type { MachineNode } from '.';
 import type { Model } from './model.types';
 import type { DynamicAction } from '../actions/DynamicAction';
 
@@ -51,7 +50,7 @@ export interface BaseDynamicActionObject<
     context: TContext,
     _event: SCXML.Event<TEvent>,
     extra: {
-      machine: MachineNode<TContext, TEvent>;
+      machine: StateMachine<TContext, TEvent>;
       state: State<TContext, TEvent>;
     }
   ) => TAction;
@@ -813,8 +812,8 @@ export type HistoryValue<
 
 export type StateFrom<
   T extends
-    | MachineNode<any, any, any>
-    | ((...args: any[]) => MachineNode<any, any, any>)
+    | StateMachine<any, any, any>
+    | ((...args: any[]) => StateMachine<any, any, any>)
 > = T extends StateMachine<any, any, any>
   ? ReturnType<T['transition']>
   : T extends (...args: any[]) => StateMachine<any, any, any>
@@ -1312,7 +1311,7 @@ export interface StateConfig<
   children: Record<string, ActorRef<any>>;
   done?: boolean;
   tags?: Set<string>;
-  machine?: MachineNode<TContext, TEvent, any>;
+  machine?: StateMachine<TContext, TEvent, any>;
 }
 
 export interface InterpreterOptions {
@@ -1351,7 +1350,7 @@ export interface InterpreterOptions {
 export type AnyInterpreter = Interpreter<any, any, any>;
 
 /**
- * Represents the `Interpreter` type of a given `MachineNode`.
+ * Represents the `Interpreter` type of a given `StateMachine`.
  *
  * @typeParam TM - the machine to infer the interpreter's types from
  */
@@ -1515,19 +1514,19 @@ export type MaybeLazy<T> = T | Lazy<T>;
 
 export type InterpreterFrom<
   T extends
-    | MachineNode<any, any, any>
-    | ((...args: any[]) => MachineNode<any, any, any>)
-> = T extends MachineNode<infer TContext, infer TEvent, infer TTypestate>
+    | StateMachine<any, any, any>
+    | ((...args: any[]) => StateMachine<any, any, any>)
+> = T extends StateMachine<infer TContext, infer TEvent, infer TTypestate>
   ? Interpreter<TContext, TEvent, TTypestate>
   : T extends (
       ...args: any[]
-    ) => MachineNode<infer TContext, infer TEvent, infer TTypestate>
+    ) => StateMachine<infer TContext, infer TEvent, infer TTypestate>
   ? Interpreter<TContext, TEvent, TTypestate>
   : never;
 
 export type EventOfMachine<
-  TMachine extends MachineNode<any, any>
-> = TMachine extends MachineNode<any, infer E> ? E : never;
+  TMachine extends StateMachine<any, any>
+> = TMachine extends StateMachine<any, infer E> ? E : never;
 
 export interface ActorContext<TEvent extends EventObject, TEmitted> {
   parent?: ActorRef<any, any>;
@@ -1559,7 +1558,7 @@ export type EmittedFrom<T> = ReturnTypeOrValue<T> extends infer R
   : never;
 
 export type EventFrom<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends MachineNode<infer _, infer TEvent, infer ___>
+  ? R extends StateMachine<infer _, infer TEvent, infer ___>
     ? TEvent
     : R extends Model<infer _, infer TEvent, infer __, infer ___>
     ? TEvent
@@ -1578,7 +1577,7 @@ export type SimpleEventsOf<
 > = ExtractWithSimpleSupport<TEvent>;
 
 export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends MachineNode<infer TContext, infer __, infer ___>
+  ? R extends StateMachine<infer TContext, infer __, infer ___>
     ? TContext
     : R extends Model<infer TContext, infer _, infer __, infer ___>
     ? TContext

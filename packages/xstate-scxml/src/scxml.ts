@@ -7,7 +7,7 @@ import {
   ChooseCondition,
   createMachine,
   BaseActionObject,
-  MachineNode
+  StateMachine
 } from 'xstate';
 import { mapValues, keys, isString, flatten } from 'xstate/src/utils';
 import * as actions from 'xstate/actions';
@@ -479,7 +479,7 @@ export interface ScxmlToMachineOptions {
 function scxmlToMachine(
   scxmlJson: XMLElement,
   options: ScxmlToMachineOptions
-): MachineNode {
+): StateMachine {
   const machineElement = scxmlJson.elements!.find(
     (element) => element.name === 'scxml'
   ) as XMLElement;
@@ -520,7 +520,7 @@ function scxmlToMachine(
 export function toMachine(
   xml: string,
   options: ScxmlToMachineOptions
-): MachineNode {
+): StateMachine {
   const json = xml2js(xml) as XMLElement;
   return scxmlToMachine(json, options);
 }

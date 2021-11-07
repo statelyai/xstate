@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import {
   EventObject,
-  MachineNode,
+  StateMachine,
   State,
   InterpreterOptions,
   MachineImplementations,
@@ -72,14 +72,14 @@ export function useMachine<
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(
-  getMachine: MaybeLazy<MachineNode<TContext, TEvent, TTypestate>>,
+  getMachine: MaybeLazy<StateMachine<TContext, TEvent, TTypestate>>,
   options: Partial<InterpreterOptions> &
     Partial<UseMachineOptions<TContext, TEvent>> &
     Partial<MachineImplementations<TContext, TEvent>> = {}
 ): [
   State<TContext, TEvent, TTypestate>,
-  InterpreterOf<MachineNode<TContext, TEvent, TTypestate>>['send'],
-  InterpreterOf<MachineNode<TContext, TEvent, TTypestate>>
+  InterpreterOf<StateMachine<TContext, TEvent, TTypestate>>['send'],
+  InterpreterOf<StateMachine<TContext, TEvent, TTypestate>>
 ] {
   const listener = useCallback(
     (nextState: State<TContext, TEvent, TTypestate>) => {

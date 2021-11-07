@@ -2,7 +2,7 @@ import { readable } from 'svelte/store';
 import {
   interpret,
   EventObject,
-  MachineNode,
+  StateMachine,
   InterpreterOptions,
   MachineImplementations,
   StateConfig,
@@ -29,7 +29,7 @@ export function useMachine<
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext>
 >(
-  machine: MachineNode<TContext, TEvent, TTypestate>,
+  machine: StateMachine<TContext, TEvent, TTypestate>,
   options: Partial<InterpreterOptions> &
     Partial<UseMachineOptions<TContext, TEvent>> &
     Partial<MachineImplementations<TContext, TEvent>> = {}
