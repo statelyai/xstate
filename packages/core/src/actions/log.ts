@@ -5,7 +5,6 @@ import {
   LogActionObject
 } from '../types';
 import { log as logActionType } from '../actionTypes';
-import { isString } from '../utils';
 import { DynamicAction } from '../../actions/DynamicAction';
 import { DynamicLogAction } from '..';
 
@@ -46,7 +45,10 @@ export function log<
         type: action.type,
         params: {
           label,
-          value: typeof expr === 'function' ? expr(ctx, _event.data, { _event }) : expr
+          value:
+            typeof expr === 'function'
+              ? expr(ctx, _event.data, { _event })
+              : expr
         }
       } as LogActionObject;
     }

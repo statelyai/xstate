@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { assign, createMachine, interpret, spawn } from 'xstate';
+import { ActorRef, assign, createMachine, interpret, spawn } from 'xstate';
 import { act, render, fireEvent } from '@testing-library/react';
 import { useInterpret, useMachine, useSelector } from '../src';
 import { createMachineBehavior } from 'xstate/behaviors';
@@ -200,8 +200,8 @@ describe('useSelector', () => {
     });
 
     const parentMachine = createMachine({
-      entry: assign({
-        childActor: () => createActor('foo')
+      context: () => ({
+        childActor: createActor('foo')
       })
     });
 
@@ -242,8 +242,8 @@ describe('useSelector', () => {
     });
 
     const parentMachine = createMachine({
-      entry: assign({
-        childActor: () => spawn(createMachineBehavior(childMachine))
+      context: () => ({
+        childActor: spawn(createMachineBehavior(childMachine))
       })
     });
 
@@ -327,9 +327,11 @@ describe('useSelector', () => {
       latestValue
     });
 
-    const parentMachine = createMachine({
-      entry: assign({
-        childActor: () => createActor('foo')
+    const parentMachine = createMachine<{
+      childActor: ActorRef<never, string>;
+    }>({
+      context: () => ({
+        childActor: createActor('foo')
       })
     });
 

@@ -3,7 +3,11 @@ import * as actionTypes from '../actionTypes';
 import { toArray } from '../utils';
 import { DynamicAction } from '../../actions/DynamicAction';
 import { evaluateGuard, toGuardDefinition } from '../guards';
-import { BaseDynamicActionObject, ChooseAction, StaticChooseAction } from '..';
+import {
+  BaseDynamicActionObject,
+  ChooseAction,
+  ResolvedChooseAction
+} from '..';
 import { toActionObject } from '../actions';
 
 export function choose<
@@ -14,7 +18,7 @@ export function choose<
 ): BaseDynamicActionObject<
   TContext,
   TEvent,
-  StaticChooseAction,
+  ResolvedChooseAction,
   ChooseAction<TContext, TEvent>['params']
 > {
   return new DynamicAction(

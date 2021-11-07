@@ -733,7 +733,6 @@ export type ActionFunctionMap<
 > = {
   [K in TAction['type']]?:
     | DynamicAction<TContext, TEvent, TAction, any>
-    | (TAction & { type: K })
     | ActionFunction<
         TContext,
         TEvent,
@@ -1136,7 +1135,7 @@ export interface ChooseAction<
   };
 }
 
-export interface StaticChooseAction extends BaseActionObject {
+export interface ResolvedChooseAction extends BaseActionObject {
   type: ActionTypes.Choose;
   params: {
     actions: BaseActionObject[];

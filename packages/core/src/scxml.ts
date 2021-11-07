@@ -8,7 +8,6 @@ import {
 } from './types';
 import { createMachine } from './index';
 import { mapValues, isString, flatten } from './utils';
-import * as actions from './actions';
 import * as raise from './actions/raise';
 import * as choose from './actions/choose';
 import * as assign from './actions/assign';

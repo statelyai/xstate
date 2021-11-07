@@ -7,7 +7,7 @@ import React, {
   useEffect,
 } from 'react';
 import ReactDOM from 'react-dom';
-import { MachineNode, Interpreter, StateNode, State } from 'xstate';
+import { StateMachine, Interpreter, StateNode, State } from 'xstate';
 import { useService } from '@xstate/react';
 import styled from 'styled-components';
 
@@ -20,7 +20,7 @@ export function getChildren(machine: StateNode): StateNode[] {
 }
 
 export const MachineViz: React.FC<{
-  machine: MachineNode<any, any, any>;
+  machine: StateMachine<any, any, any>;
 }> = ({ machine }) => {
   return (
     <div>
