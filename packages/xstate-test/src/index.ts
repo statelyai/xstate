@@ -11,7 +11,8 @@ import {
   EventObject,
   State,
   StateValue,
-  MachineContext
+  MachineContext,
+  StateNode
 } from 'xstate';
 import slimChalk from './slimChalk';
 import {
@@ -342,7 +343,9 @@ export class TestModel<TTestContext, TContext extends MachineContext> {
     options?: CoverageOptions<TContext>
   ): { stateNodes: Record<string, number> } {
     const filter = options ? options.filter : undefined;
-    const stateNodes = getStateNodes(this.machine);
+    const stateNodes = (getStateNodes(this.machine) as unknown) as Array<
+      StateNode<TContext, any>
+    >;
     const filteredStateNodes = filter ? stateNodes.filter(filter) : stateNodes;
     const coverage = {
       stateNodes: filteredStateNodes.reduce((acc, stateNode) => {

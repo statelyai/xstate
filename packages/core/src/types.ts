@@ -8,6 +8,10 @@ import type { DynamicAction } from '../actions/DynamicAction';
 
 type AnyFunction = (...args: any[]) => any;
 type ReturnTypeOrValue<T> = T extends AnyFunction ? ReturnType<T> : T;
+export type Prop<T, K> = K extends keyof T ? T[K] : never;
+
+// https://github.com/microsoft/TypeScript/issues/23182#issuecomment-379091887
+export type IsNever<T> = [T] extends [never] ? true : false;
 
 export type EventType = string;
 export type ActionType = string;
@@ -1567,17 +1571,23 @@ export type EmittedFrom<T> = ReturnTypeOrValue<T> extends infer R
     : never
   : never;
 
-export type EventFrom<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends StateMachine<infer _, infer TEvent, infer ___>
+type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
+  ? R extends StateMachine<infer _, infer TEvent, infer __>
     ? TEvent
     : R extends Model<infer _, infer TEvent, infer __, infer ___>
     ? TEvent
-    : R extends State<infer _, infer TEvent, infer ___>
+    : R extends State<infer _, infer TEvent, infer __>
     ? TEvent
-    : R extends Interpreter<infer _, infer TEvent, infer ___>
+    : R extends Interpreter<infer _, infer TEvent, infer __>
     ? TEvent
     : never
   : never;
+
+export type EventFrom<
+  T,
+  K extends Prop<TEvent, 'type'> = never,
+  TEvent = ResolveEventType<T>
+> = IsNever<K> extends true ? TEvent : Extract<TEvent, { type: K }>;
 
 /**
  * Events that do not require payload

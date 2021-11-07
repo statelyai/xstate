@@ -28,6 +28,8 @@ export { stop } from './actions/stop';
 export { log } from './actions/log';
 export { cancel } from './actions/cancel';
 export { assign } from './actions/assign';
+export { raise } from './actions/raise';
+export { choose } from './actions/choose';
 export { actionTypes };
 
 export const initEvent = toSCXMLEvent({ type: actionTypes.init });

@@ -46,7 +46,9 @@ describe('EventFrom', () => {
 
     const acceptUserModelEventSubset = (
       _userModelEventSubset: UserModelEventSubset
-    ) => {};
+    ) => {
+      /* empty */
+    };
 
     acceptUserModelEventSubset({ type: 'updateName', value: 'test' });
     acceptUserModelEventSubset({ type: 'updateAge', value: 12 });

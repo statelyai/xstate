@@ -38,7 +38,9 @@ export function choose<
       return {
         type: actionTypes.choose,
         params: {
-          actions: toArray(matchedActions).map(toActionObject)
+          actions: toArray(matchedActions).map((chosenAction) =>
+            toActionObject(chosenAction)
+          )
         }
       };
     }
