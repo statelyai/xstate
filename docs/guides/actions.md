@@ -626,6 +626,23 @@ const maybeDoThese = choose([
 
 This is analogous to the SCXML `<if>`, `<elseif>`, and `<else>` elements: [www.w3.org/TR/scxml/#if](https://www.w3.org/TR/scxml/#if)
 
+## When Action
+
+The `when()` action creator is a wrapper around `choose()` to simplify single-branch conditions.
+
+| Argument  | Type               | Description                                            |
+| --------- | ------------------ | ------------------------------------------------------ |
+| `cond`    | string or function | the condition for executing the `actions`              |
+| `actions` | action object(s)   | the `actions` to execute when the given `cond` is true |
+
+**Returns:**
+
+A special `"xstate.choose"` action object.
+
+```js
+const maybeDoThis = when('someCondition', 'doThing');
+```
+
 ## Pure Action
 
 The `pure()` action creator is a pure function (hence the name) that returns the action object(s) to be executed based on the current state `context` and `event` that triggered the action. This allows you to dynamically define which actions should be executed.

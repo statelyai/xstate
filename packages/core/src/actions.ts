@@ -55,7 +55,7 @@ import {
 import { State } from './State';
 import { StateNode } from './StateNode';
 import { IS_PRODUCTION } from './environment';
-import { StopAction, StopActionObject } from '.';
+import { Actions, Condition, StopAction, StopActionObject } from '.';
 
 export { actionTypes };
 
@@ -568,6 +568,13 @@ export function choose<TContext, TEvent extends EventObject>(
     type: ActionTypes.Choose,
     conds
   };
+}
+
+export function when<TContext, TEvent extends EventObject>(
+  cond: Condition<TContext, TEvent>,
+  actions: Actions<TContext, TEvent>
+): ChooseAction<TContext, TEvent> {
+  return choose<TContext, TEvent>([{ cond, actions }]);
 }
 
 export function resolveActions<TContext, TEvent extends EventObject>(
