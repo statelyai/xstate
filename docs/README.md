@@ -14,9 +14,9 @@
 
 Handle complexity anywhere JavaScript runs using statecharts.
 
-- Create **robust applications**, both on the **frontend and backend**
-- **Visualize your app's logic** in our awesome **dev tools**
-- Integrates with Node, [React](./packages/xstate-react/index.md), [Vue](./packages/xstate-vue/index.md), [Svelte](./packages/xstate-svelte/index.md) - anywhere JavaScript runs
+- Create **robust applications**, both on the **frontend and backend**.
+- **Visualize your app's logic** in our awesome **developer tools**.
+- Integrate with Node, [React](./packages/xstate-react/index.md), [Vue](./packages/xstate-vue/index.md), [Svelte](./packages/xstate-svelte/index.md) - anywhere JavaScript runs.
 
 New to state machines and statecharts? [Read our introduction](/guides/introduction-to-state-machines-and-statecharts/).
 
