@@ -15,7 +15,7 @@
 Handle complexity anywhere JavaScript runs using statecharts.
 
 - Create **robust applications**, both on the **frontend and backend**
-- **Visualise your app's logic** in our awesome **dev tools**
+- **Visualize your app's logic** in our awesome **dev tools**
 - Integrates with Node, [React](./packages/xstate-react/index.md), [Vue](./packages/xstate-vue/index.md), [Svelte](./packages/xstate-svelte/index.md) - anywhere JavaScript runs
 
 New to state machines and statecharts? [Read our introduction](/guides/introduction-to-state-machines-and-statecharts/).
@@ -49,7 +49,7 @@ Get started by forking one of these templates on CodeSandbox:
 
 ### Visualizer
 
-Visualize, simulate, and share your statecharts in the **[Stately Visualizer](./visualizer/index.md)**
+Visualize, simulate, and share your statecharts in the **[XState Visualizer](./visualizer/index.md)**
 
 <a href="https://stately.ai/viz"><img src="./stately-viz.png" alt="XState Visualizer" /></a>
 
