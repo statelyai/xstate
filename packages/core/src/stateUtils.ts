@@ -1475,6 +1475,8 @@ export function microstep<
       context
     };
   } catch (e) {
+    // TODO: Refactor this once proper error handling is implemented.
+    // See https://github.com/statelyai/rfcs/pull/4
     if (machine.config.scxml) {
       return {
         actions: [],
