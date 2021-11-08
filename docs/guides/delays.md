@@ -1,6 +1,6 @@
 # Delayed Events and Transitions
 
-Delays and timeouts can be handled with statecharts. To learn more, see the section in our [introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#delayed-transitions).
+Delays and timeouts can be handled declaratively with statecharts. To learn more, see the section in our [introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#delayed-transitions).
 
 ## Delayed Transitions
 
