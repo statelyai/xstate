@@ -136,7 +136,6 @@ export type BaseAction<
   TEvent extends EventObject,
   TAction extends BaseActionObject
 > =
-  | ChooseAction<TContext, TEvent>
   | BaseDynamicActionObject<
       TContext,
       TEvent,
