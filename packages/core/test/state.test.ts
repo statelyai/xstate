@@ -88,7 +88,7 @@ const exampleMachine = createMachine<any, Events>({
             }
           }
         },
-        guard: {
+        guarded: {
           initial: 'p32',
           states: {
             p32: {
@@ -865,7 +865,6 @@ describe('State', () => {
           }
         }
       });
-
 
       expect(() => {
         const { initialState } = machine;
