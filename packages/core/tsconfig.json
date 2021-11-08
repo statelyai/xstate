@@ -5,6 +5,7 @@
     "outDir": "./lib",
     "rootDir": "./src",
     "skipLibCheck": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "noUnusedLocals": false
   }
 }
