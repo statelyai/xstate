@@ -373,7 +373,7 @@ const raiseActionDemo = createMachine({
 });
 ```
 
-Click on both `STEP` and `RAISE` events in the [visualizer](https://xstate.js.org/viz/?gist=fd763ff2c161b172f719891e2544d428) to see the difference.
+Click on both `STEP` and `RAISE` events in the [visualizer](https://stately.ai/viz/embed/?gist=fd763ff2c161b172f719891e2544d428) to see the difference.
 
 ## Respond Action <Badge text="4.7+" />
 
