@@ -11,7 +11,8 @@ import {
   IsNever,
   MachineOptions,
   Prop,
-  Values
+  Values,
+  IsAny
 } from './types';
 
 export interface TypegenDisabled {
@@ -48,7 +49,9 @@ export type TypegenConstraint = TypegenEnabled | TypegenDisabled;
 export type AreAllImplementationsAssumedToBeProvided<
   TResolvedTypesMeta,
   TMissingImplementations = Prop<TResolvedTypesMeta, 'missingImplementations'>
-> = TResolvedTypesMeta extends TypegenEnabled
+> = IsAny<TResolvedTypesMeta> extends true
+  ? true
+  : TResolvedTypesMeta extends TypegenEnabled
   ? IsNever<
       Values<
         {

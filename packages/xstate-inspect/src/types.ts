@@ -1,10 +1,16 @@
-import type { ActorRef, Interpreter, SCXML, State, StateMachine } from 'xstate';
+import type {
+  ActorRef,
+  SCXML,
+  State,
+  StateMachine,
+  AnyInterpreter
+} from 'xstate';
 import { XStateDevInterface } from 'xstate/lib/devTools';
 import { InspectMachineEvent } from './inspectMachine';
 
 export type MaybeLazy<T> = T | (() => T);
 
-export type ServiceListener = (service: Interpreter<any>) => void;
+export type ServiceListener = (service: AnyInterpreter) => void;
 
 export interface InspectorOptions {
   url: string;
@@ -50,7 +56,7 @@ export type ReceiverEvent =
 export type ParsedReceiverEvent =
   | {
       type: 'service.register';
-      machine: StateMachine<any, any, any>;
+      machine: StateMachine<any, any, any, any, any, any>;
       state: State<any, any>;
       id: string;
       sessionId: string;
@@ -60,7 +66,7 @@ export type ParsedReceiverEvent =
   | { type: 'service.stop'; sessionId: string }
   | {
       type: 'service.state';
-      state: State<any, any>;
+      state: State<any, any, any, any, any>;
       sessionId: string;
     }
   | { type: 'service.event'; event: SCXML.Event<any>; sessionId: string };

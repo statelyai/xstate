@@ -462,7 +462,7 @@ function scxmlToMachine(
 export function toMachine(
   xml: string,
   options: ScxmlToMachineOptions
-): StateMachine<any, any, any> {
+): StateMachine<any, any, any, any, any, any> {
   const json = xml2js(xml) as XMLElement;
   return scxmlToMachine(json, options);
 }

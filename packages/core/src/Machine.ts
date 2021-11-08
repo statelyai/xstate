@@ -1,7 +1,6 @@
 import { Model } from './model.types';
 import { StateNode } from './StateNode';
 import {
-  ActionObject,
   AnyEventObject,
   BaseActionObject,
   DefaultContext,
@@ -106,13 +105,7 @@ export function createMachine<
   TTypestate extends Typestate<TContext> = { value: any; context: TContext },
   TTypesMeta extends TypegenConstraint = TypegenDisabled
 >(
-  config: MachineConfig<
-    TContext,
-    any,
-    TEvent,
-    ActionObject<TContext, TEvent>,
-    TTypesMeta
-  >,
+  config: MachineConfig<TContext, any, TEvent, BaseActionObject, TTypesMeta>,
   options?: MachineOptions<TContext, TEvent, BaseActionObject, TTypesMeta>
 ): StateMachine<
   TContext,
@@ -122,5 +115,5 @@ export function createMachine<
   BaseActionObject,
   TTypesMeta
 > {
-  return new StateNode(config, options) as any;
+  return new StateNode(config, options as any) as any;
 }

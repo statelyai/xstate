@@ -26,6 +26,12 @@ export type Merge<M, N> = Omit<M, keyof N> & N;
 export type IndexByType<T extends { type: string }> = {
   [K in T['type']]: Extract<T, { type: K }>;
 };
+export type Equals<A1 extends any, A2 extends any> = (<A>() => A extends A2
+  ? true
+  : false) extends <A>() => A extends A1 ? true : false
+  ? true
+  : false;
+export type IsAny<T> = Equals<T, any>;
 
 export type EventType = string;
 export type ActionType = string;
@@ -1641,7 +1647,9 @@ export type ActorRefFrom<T> = T extends StateMachine<
   infer TContext,
   any,
   infer TEvent,
-  infer TTypestate
+  infer TTypestate,
+  any,
+  any
 >
   ? ActorRefWithDeprecatedState<TContext, TEvent, TTypestate>
   : T extends (
