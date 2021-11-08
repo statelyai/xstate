@@ -1,6 +1,8 @@
 # Events
 
-An event is what causes a state machine to [transition](./transitions.md) from its current [state](./states.md) to its next state. All state transitions in a state machine are due to these events; state cannot change unless some stimulus (the event) causes it to change.
+An event is what causes a state machine to [transition](./transitions.md) from its current [state](./states.md) to its next state. To learn more, see the section in our [introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#transitions-and-events).
+
+## API
 
 An event is an object with a `type` property, signifying what type of event it is:
 

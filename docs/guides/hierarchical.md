@@ -1,14 +1,8 @@
 # Hierarchical State Nodes
 
-Statecharts, by definition, are hierarchical - that is to say, they:
+In statecharts, states can be nested _within other states_. These are called **compound states**. To learn more, see the section in our [introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#compound-states).
 
-- enable refinement of state
-- can group similar transitions
-- allow isolation
-- encourage composability
-- and prevent state explosion, which frequently occurs in normal finite state machines.
-
-In XState, state and machine configuration share a common schema, which allows machines to be _substates_ and for states to be infinitely nested.
+## API
 
 Here's an example of a traffic light machine with nested states:
 
@@ -59,20 +53,13 @@ const lightMachine = createMachine({
 });
 ```
 
-<iframe src="https://xstate.js.org/viz/?gist=e8af8924afe9352bf7d1e06f06407061&embed=1"></iframe>
+<iframe src="https://stately.ai/viz/embed/?gist=e8af8924afe9352bf7d1e06f06407061&embed=1"></iframe>
 
-The `'green'` and `'yellow'` states are **simple states** - they have no child states. In contrast, the `'red'` state is a **composite state** since it is composed of **substates** (the `pedestrianStates`).
+The `'green'` and `'yellow'` states are **simple states** - they have no child states. In contrast, the `'red'` state is a **compound state** since it is composed of **substates** (the `pedestrianStates`).
 
-To transition from an initial state, use `machine.initialState`:
+## Initial states
 
-```js
-console.log(
-  lightMachine.transition(lightMachine.initialState, { type: 'TIMER' }).value
-);
-// => 'yellow'
-```
-
-When a composite state is entered, its initial state is immediately entered as well. In the following example:
+When a compound state is entered, its initial state is immediately entered as well. In the following example:
 
 - the `'red'` state is entered
 - since `'red'` has an initial state of `'walk'`, the `{ red: 'walk' }` state is ultimately entered.
@@ -83,6 +70,8 @@ console.log(lightMachine.transition('yellow', { type: 'TIMER' }).value);
 //   red: 'walk'
 // }
 ```
+
+## Events
 
 When a simple state does not handle an `event`, that `event` is propagated up to its parent state to be handled. In the following example:
 

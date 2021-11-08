@@ -1,6 +1,10 @@
 # Transitions
 
-A state transition defines what the **next state** is, given the **current state** and [**event**](./events.md). State transitions are defined on state nodes, in the `on` property:
+Transitions define how the machine reacts to [events](./events.md). To learn more, see the section in our [introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#transitions-and-events).
+
+## API
+
+State transitions are defined on state nodes, in the `on` property:
 
 ```js {11,14-16}
 import { createMachine } from 'xstate';

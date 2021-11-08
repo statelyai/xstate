@@ -1,8 +1,10 @@
 # Final States
 
-A final state node indicates the completion of a part of the statechart, or the entire statechart. Specifically, it indicates that its parent compound state node is "done". If the parent is the root statechart, then the entire statechart is "done" and any further execution is stopped.
+In statecharts, you can declare a state as a **final state**. This indicates that its parent state is "done". To learn more, see the section in our [introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#final-state).
 
-This has many useful use-cases. To indicate that a state node is final, set its `type` property to `'final'`:
+## API
+
+To indicate that a state node is final, set its `type` property to `'final'`:
 
 ```js
 const lightMachine = createMachine({
@@ -131,7 +133,7 @@ Only when all of the child states of `'cart'` (e.g., `'user'` and `'items'`) are
 
 ::: warning
 
-The `onDone` transition cannot be defined on the root node of the machine. This is because `onDone` is a transition on a `'done.state.*'` event, and when a machine reaches its final state, it can no longer accept any event.
+The `onDone` transition cannot be defined on the root node of the machine. This is because `onDone` is a transition on a `'done.state.*'` event, and when a machine reaches its final state, it can no longer accept any events.
 
 :::
 

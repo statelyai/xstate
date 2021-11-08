@@ -1,36 +1,16 @@
 # Actions
 
-Actions are fire-and-forget [effects](./effects.md). For a machine to be useful in a real-world application, effects need to occur to make things happen in the real world, such as rendering to a screen.
-
-Actions are _not_ immediately triggered. Instead, [the `State` object](./states.md) returned from `machine.transition(...)` will declaratively provide an array of `.actions` that an interpreter can then execute.
-
-::: danger
-
-All of the action creators documented here return **action objects**; it is a pure function that only returns an action object and does _not_ imperatively send an event. Do not imperatively call action creators; they will do nothing!
-
-```js
-// 🚫 Do not do this!
-entry: () => {
-  // 🚫 This will do nothing; send() is not an imperative function!
-  send({ type: 'SOME_EVENT' });
-};
-
-console.log(send({ type: 'SOME_EVENT' }));
-// => { type: 'xstate.send', event: { type: 'SOME_EVENT' } }
-
-// ✅ Do this instead
-entry: send({ type: 'SOME_EVENT' });
-```
-
-:::
-
-There are three types of actions:
+Actions are fire-and-forget [effects](./effects.md). You can declare them in three ways:
 
 - `entry` actions are executed upon entering a state
 - `exit` actions are executed upon exiting a state
-- transition actions are executed when a transition is taken.
+- transition actions are executed when a transition is taken
 
-These are represented in the StateNode definition:
+To learn more, see the section in our [introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#actions).
+
+## API
+
+Actions can be added like so:
 
 ```js {10-11,16-19,27-41}
 const triggerMachine = createMachine(
@@ -189,6 +169,26 @@ When interpreting statecharts, the order of actions should not necessarily matte
 
 ::: warning
 In XState version 4.x, `assign` actions have priority and are executed before any other actions. This behavior will be fixed in version 5, as the `assign` actions will be called in order.
+:::
+
+::: danger
+
+All of the action creators documented here return **action objects**; it is a pure function that only returns an action object and does _not_ imperatively send an event. Do not imperatively call action creators; they will do nothing!
+
+```js
+// 🚫 Do not do this!
+entry: () => {
+  // 🚫 This will do nothing; send() is not an imperative function!
+  send({ type: 'SOME_EVENT' });
+};
+
+console.log(send({ type: 'SOME_EVENT' }));
+// => { type: 'xstate.send', event: { type: 'SOME_EVENT' } }
+
+// ✅ Do this instead
+entry: send({ type: 'SOME_EVENT' });
+```
+
 :::
 
 ## Send Action

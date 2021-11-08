@@ -1,10 +1,10 @@
 # Delayed Events and Transitions
 
-The concept of time and delays in statecharts is declarative - time is an event, just like any other. XState abstracts this notion in two ways: delayed transitions and delayed events. Under the hood, both work the same way.
+Delays and timeouts can be handled with statecharts. To learn more, see the section in our [introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#delayed-transitions).
 
 ## Delayed Transitions
 
-Transitions can automatically take place after a delay. This is represented in a state definition in the `after` property, which maps millisecond delays to their transitions:
+Transitions can be taken automatically after a delay. This is represented in a state definition in the `after` property, which maps millisecond delays to their transitions:
 
 ```js
 const lightDelayMachine = createMachine({
@@ -184,10 +184,13 @@ import { actions } from 'xstate';
 const { send, cancel } = actions;
 
 // action to send the 'TIMER' event after 1 second
-const sendTimerAfter1Second = send({ type: 'TIMER' }, {
-  delay: 1000,
-  id: 'oneSecondTimer' // give the event a unique ID
-});
+const sendTimerAfter1Second = send(
+  { type: 'TIMER' },
+  {
+    delay: 1000,
+    id: 'oneSecondTimer' // give the event a unique ID
+  }
+);
 
 const cancelTimer = cancel('oneSecondTimer'); // pass the ID of event to cancel
 

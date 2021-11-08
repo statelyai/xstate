@@ -1,6 +1,10 @@
 # States
 
-A state is an abstract representation of a system (such as an application) at a specific point in time. As an application is interacted with, events cause it to change state. A finite state machine can be in only one of a finite number of states at any given time. The current state of a machine is represented by a `State` instance:
+A state is an abstract representation of a system (such as an application) at a specific point in time. To learn more, see the section in our [introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#states).
+
+## API
+
+The current state of a machine is represented by a `State` instance:
 
 ```js {13-18,21-26}
 const lightMachine = createMachine({
