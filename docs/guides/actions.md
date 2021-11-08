@@ -379,7 +379,7 @@ Click on both `STEP` and `RAISE` events in the [visualizer](https://xstate.js.or
 
 The `respond()` action creator creates a [`send()` action](#send-action) that is sent to the service that sent the event which triggered the response.
 
-This uses [SCXML events](./events.md#scxml-events) internally to get the `origin` from the event and set the `to` of the `send()` action to the `origin`.
+This uses [SCXML events](./scxml.md#events) internally to get the `origin` from the event and set the `to` of the `send()` action to the `origin`.
 
 | Argument   | Type                                     | Description                             |
 | ---------- | ---------------------------------------- | --------------------------------------- |
@@ -720,41 +720,3 @@ const stateC = counterMachine.transition('counting', { type: 'INC' });
 stateB.actions;
 // ['increment']
 ```
-
-## SCXML
-
-Executable actions in transitions are equivalent to the `<script>` element. The `entry` and `exit` properties are equivalent to the `<onentry>` and `<onexit>` elements, respectively.
-
-```js
-{
-  start: {
-    entry: 'showStartScreen',
-    exit: 'logScreenChange',
-    on: {
-      STOP: {
-        target: 'stop',
-        actions: ['logStop', 'stopEverything']
-      }
-    }
-  }
-}
-```
-
-```xml
-<state id="start">
-  <onentry>
-    <script>showStartScreen();</script>
-  </onentry>
-  <onexit>
-    <script>logScreenChange();</script>
-  </onexit>
-  <transition event="STOP" target="stop">
-    <script>logStop();</script>
-    <script>stopEverything();</script>
-  </transition>
-</state>
-```
-
-- [https://www.w3.org/TR/scxml/#script](https://www.w3.org/TR/scxml/#script) - the definition of the `<script>` element
-- [https://www.w3.org/TR/scxml/#onentry](https://www.w3.org/TR/scxml/#onentry) - the definition of the `<onentry>` element
-- [https://www.w3.org/TR/scxml/#onexit](https://www.w3.org/TR/scxml/#onexit) - the definition of the `<onexit>` element

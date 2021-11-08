@@ -105,7 +105,6 @@ const lightMachine = createMachine({
 **Notes:**
 
 - IDs are always recommended for the root state node.
-- IDs are useful for SCXML compatibility, and conversion to/from SCXML will make use of IDs extensively.
 - Make sure that all IDs are unique in order to prevent naming conflicts. This is naturally enforced by the automatically generated IDs.
 
 ::: warning
@@ -169,27 +168,6 @@ const lightMachine = createMachine({
 ::: warning
 The getter _must_ be a pure function that always returns the same value, which is a `StateNode` instance. Using getters to reference state nodes is completely optional, and useful if you want to avoid strings or have stricter typings. This getter will only be called once.
 :::
-
-## SCXML
-
-IDs correspond to the definition of IDs in the SCXML spec:
-
-```js
-{
-  green: {
-    id: 'lightGreen';
-  }
-}
-```
-
-```xml
-<state id="lightGreen">
-  <!-- ... -->
-</state>
-```
-
-- [https://www.w3.org/TR/scxml/#IDs](https://www.w3.org/TR/scxml/#IDs) - specification that all `id` attributes _must_ be unique
-- [https://www.w3.org/TR/scxml/#state](https://www.w3.org/TR/scxml/#state) - see the definition of the `id` attribute in `<state>`
 
 ## Quick Reference
 
