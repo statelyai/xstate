@@ -1,6 +1,12 @@
 # Concepts
 
-XState is a library for creating, interpreting, and executing finite state machines and statecharts, as well as managing invocations of those machines as actors. The following fundamental computer science concepts are important to know how to make the best use of XState, and in general for all your current and future software projects.
+XState is a library for working with finite state machines and statecharts. It's designed to work anywhere JavaScript runs. You can:
+
+1. **Create state machines and statecharts** (based on the SCXML spec)
+2. **Execute** statecharts in your code to express application flows or processes
+3. Use the **actor model** to communicate between your statecharts
+
+You can get an introduction to state machines and statecharts in our [no-code intro to Statecharts](../guides/introduction-to-state-machines-and-statecharts/index.md).
 
 ## Finite State Machines
 
