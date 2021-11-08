@@ -11,7 +11,7 @@ import {
 /**
  * Stops an actor.
  *
- * @param actorRef The activity to stop.
+ * @param actorRef The actor to stop.
  */
 
 export function stop<
