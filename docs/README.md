@@ -22,6 +22,13 @@ New to state machines and statecharts? [Read our introduction](/guides/introduct
 
 💬 Chat on the [Stately Discord Community](https://discord.gg/KCtSX7Cdjh)
 
+💙 [Explore our catalog of examples](https://xstate-catalogue.com/)
+
+<iframe src="https://stately.ai/viz/embed/fb18865e-15a0-4729-8958-49267f137a12?mode=viz&panel=code&readOnly=1&showOriginalLink=1&controls=0&pan=0&zoom=0"
+allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"
+sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"
+></iframe>
+
 ## Packages
 
 - 🤖 `xstate` - Core finite state machine and statecharts library + interpreter
