@@ -212,7 +212,7 @@ export class State<
    */
   public static create<TC, TE extends EventObject = EventObject>(
     config: StateConfig<TC, TE>
-  ): State<TC, TE> {
+  ): State<TC, TE, any, any, any> {
     return new State(config);
   }
   /**

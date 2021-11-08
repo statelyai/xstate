@@ -27,18 +27,40 @@ export function Machine<
   TEvent extends EventObject = AnyEventObject
 >(
   config: MachineConfig<TContext, any, TEvent>,
-  options?: MachineOptions<TContext, TEvent>,
+  options?: InternalMachineOptions<
+    TContext,
+    TEvent,
+    ResolveTypegenMeta<TypegenDisabled, TEvent, BaseActionObject>
+  >,
   initialContext?: TContext
-): StateMachine<TContext, any, TEvent>;
+): StateMachine<
+  TContext,
+  any,
+  TEvent,
+  any,
+  BaseActionObject,
+  ResolveTypegenMeta<TypegenDisabled, TEvent, BaseActionObject>
+>;
 export function Machine<
   TContext = DefaultContext,
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = AnyEventObject
 >(
   config: MachineConfig<TContext, TStateSchema, TEvent>,
-  options?: MachineOptions<TContext, TEvent>,
+  options?: InternalMachineOptions<
+    TContext,
+    TEvent,
+    ResolveTypegenMeta<TypegenDisabled, TEvent, BaseActionObject>
+  >,
   initialContext?: TContext
-): StateMachine<TContext, TStateSchema, TEvent>;
+): StateMachine<
+  TContext,
+  TStateSchema,
+  TEvent,
+  any,
+  BaseActionObject,
+  ResolveTypegenMeta<TypegenDisabled, TEvent, BaseActionObject>
+>;
 export function Machine<
   TContext = DefaultContext,
   TStateSchema extends StateSchema = any,
@@ -47,12 +69,12 @@ export function Machine<
   config: MachineConfig<TContext, TStateSchema, TEvent>,
   options?: MachineOptions<TContext, TEvent>,
   initialContext: TContext | (() => TContext) | undefined = config.context
-): StateMachine<TContext, TStateSchema, TEvent> {
+): any {
   return new StateNode<TContext, TStateSchema, TEvent>(
     config,
     options,
     initialContext
-  ) as StateMachine<TContext, TStateSchema, TEvent>;
+  ) as any;
 }
 
 export function createMachine<
@@ -100,15 +122,5 @@ export function createMachine<
   BaseActionObject,
   TTypesMeta
 > {
-  return new StateNode<TContext, any, TEvent, TTypestate>(
-    config,
-    options as any
-  ) as StateMachine<
-    TContext,
-    any,
-    TEvent,
-    TTypestate,
-    BaseActionObject,
-    TTypesMeta
-  >;
+  return new StateNode(config, options) as any;
 }

@@ -6,7 +6,8 @@ import {
   MarkAllImplementationsAsProvided,
   TypegenDisabled,
   ResolveTypegenMeta,
-  TypegenConstraint
+  TypegenConstraint,
+  AreAllImplementationsAssumedToBeProvided
 } from './typegenTypes';
 
 export type AnyFunction = (...args: any[]) => any;
@@ -344,7 +345,7 @@ export type InvokeCreator<
   meta: InvokeMeta
 ) =>
   | PromiseLike<TFinalContext>
-  | StateMachine<TFinalContext, any, any>
+  | StateMachine<TFinalContext, any, any, any, any, any>
   | Subscribable<EventObject>
   | InvokeCallback<any, TEvent>
   | Behavior<any>;
@@ -817,7 +818,7 @@ type MachineOptionsServices<
   TInvokeSrcNameMap = Prop<TResolvedTypesMeta, 'invokeSrcNameMap'>
 > = {
   [K in keyof TEventsCausingServices]?:
-    | StateMachine<any, any, any>
+    | StateMachine<any, any, any, any, any, any>
     | InvokeCreator<
         TContext,
         Cast<Prop<TIndexedEvents, TEventsCausingServices[K]>, EventObject>,
@@ -1025,7 +1026,9 @@ export interface StateMachine<
     TEvent,
     TTypestate,
     TAction,
-    MarkAllImplementationsAsProvided<TResolvedTypesMeta>
+    AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
+      ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
+      : TResolvedTypesMeta
   >;
 
   withContext(
@@ -1695,8 +1698,8 @@ export type InterpreterFrom<
 
 export type MachineOptionsFrom<
   T extends
-    | StateMachine<any, any, any, any>
-    | ((...args: any[]) => StateMachine<any, any, any, any>),
+    | StateMachine<any, any, any, any, any, any>
+    | ((...args: any[]) => StateMachine<any, any, any, any, any, any>),
   TRequireMissingImplementations extends boolean = false
 > = ReturnTypeOrValue<T> extends StateMachine<
   infer TContext,

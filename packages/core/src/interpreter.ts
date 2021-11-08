@@ -1400,9 +1400,9 @@ export function spawn<T extends Behavior<any, any>>(
   nameOrOptions?: string | SpawnOptions
 ): ActorRefFrom<T>;
 export function spawn<TC, TE extends EventObject>(
-  entity: StateMachine<TC, any, TE>,
+  entity: StateMachine<TC, any, TE, any, any, any>,
   nameOrOptions?: string | SpawnOptions
-): ActorRefFrom<StateMachine<TC, any, TE>>;
+): ActorRefFrom<StateMachine<TC, any, TE, any, any, any>>;
 export function spawn(
   entity: Spawnable,
   nameOrOptions?: string | SpawnOptions
