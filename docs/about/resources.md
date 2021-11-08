@@ -106,7 +106,7 @@ Explore a collection of professionally-designed state machines and statecharts i
   - [Playable demo](https://xstate-minesweeper.now.sh/)
 - [XState Chart Traffic Lights](https://github.com/howardmann/xstate/tree/master/traffic-light) by [@howardmann](https://github.com/howardmann) on 2020-04-16
   - [Demo link](http://xstatetrafficlight.surge.sh/)
-  - [XState visualization](https://stately.ai/viz/embed/?gist=1b9e1bcf75b1fed19190adc9f39b895e)
+  - [XState visualization](https://stately.ai/viz?gist=1b9e1bcf75b1fed19190adc9f39b895e)
 - [A simple calculator using React and XState (statecharts)](https://github.com/diegoperezm/react-xstate-calc) by [diegoperezm](https://github.com/diegoperezm) on 2020-04-15
 - [Modeling parallel states in XState](https://dev.to/jacobmparis/modelling-parallel-states-in-xstate-3pe0) by [Jacob Paris](https://dev.to/jacobmparis) on 2020-04-05
   - [XState Text Formatting Part 2](https://dev.to/jacobmparis/xstate-text-formatting-part-2-32ma)

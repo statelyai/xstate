@@ -76,7 +76,7 @@ const searchMachine = createMachine(
 
 Click the _EVENTS_ tab and send an event like `{ "type": "SEARCH", "query": "something" }` below:
 
-<iframe src="https://stately.ai/viz/embed/?gist=09af23963bfa1767ce3900f2ae730029&embed=1&tab=events"></iframe>
+<iframe src="https://stately.ai/viz/embed/?gist=09af23963bfa1767ce3900f2ae730029&tab=events"></iframe>
 
 If the `cond` guard returns `false`, then the transition will not be selected, and no transition will take place from that state node. If all transitions in a child state have guards that evaluate to `false` and prevent them from being selected, the `event` will be propagated up to the parent state and handled there.
 
@@ -270,7 +270,7 @@ doorService.send({ type: 'OPEN' });
 // (since context.isAdmin === true)
 ```
 
-<iframe src="https://stately.ai/viz/embed/?gist=8526f72c3041b38f7d7ba808c812df06&embed=1"></iframe>
+<iframe src="https://stately.ai/viz/embed/?gist=8526f72c3041b38f7d7ba808c812df06"></iframe>
 
 ::: warning
 The `cond` function must always be a **pure function** that only references the `context` and `event` arguments.
