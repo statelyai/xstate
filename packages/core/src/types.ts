@@ -265,10 +265,11 @@ export type TransitionTargets<TContext extends MachineContext> = Array<
 
 export interface TransitionConfig<
   TContext extends MachineContext,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TAction extends BaseActionObject = BaseActionObject
 > {
   guard?: GuardConfig<TContext, TEvent>;
-  actions?: Actions<TContext, TEvent>;
+  actions?: BaseActions<TContext, TEvent, TAction>;
   internal?: boolean;
   target?: TransitionTarget<TContext, TEvent>;
   meta?: Record<string, any>;
