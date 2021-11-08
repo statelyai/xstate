@@ -42,7 +42,7 @@ sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-ori
 
 ## Templates
 
-Get started by forking one of these templates on CodeSandbox:
+Get started by forking our templates on CodeSandbox:
 
 - [XState Template](https://codesandbox.io/s/xstate-example-template-m4ckv) - no framework
 - [XState + TypeScript Template](https://codesandbox.io/s/xstate-typescript-template-s9kz8) - no framework
@@ -52,17 +52,17 @@ Get started by forking one of these templates on CodeSandbox:
 - [XState + Vue 3 Template](https://codesandbox.io/s/xstate-vue-3-template-vrkk9)
 - [XState + Svelte Template](https://codesandbox.io/s/xstate-svelte-template-jflv1)
 
-## Dev Tools
+## Developer Tools
 
 ### Visualizer
 
-Visualize, simulate, and share your statecharts in the **[XState Visualizer](./visualizer/index.md)**
+Visualize, simulate, and share your statecharts using the **[XState Visualizer](./visualizer/index.md)**
 
 <a href="https://stately.ai/viz"><img src="./stately-viz.png" alt="XState Visualizer" /></a>
 
 ### VSCode Extension
 
-Get autocomplete, linting, refactors and visualization in your IDE with our [VSCode extension](https://marketplace.visualstudio.com/items?itemName=mattpocock.xstate-vscode)
+Get autocomplete, linting, refactors and visualization in your developer environment with our [VSCode extension](https://marketplace.visualstudio.com/items?itemName=mattpocock.xstate-vscode)
 
 <a href="https://marketplace.visualstudio.com/items?itemName=mattpocock.xstate-vscode"><img src="https://raw.githubusercontent.com/mattpocock/xstate-vscode/master/assets/visualization.png" alt="XState VSCode Extension" /></a>
 
