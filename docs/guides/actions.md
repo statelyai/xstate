@@ -1,12 +1,12 @@
 # Actions
 
-Actions are fire-and-forget [effects](./effects.md). You can declare them in three ways:
+Actions are fire-and-forget [effects](./effects.md). They can be declared in three ways:
 
 - `entry` actions are executed upon entering a state
 - `exit` actions are executed upon exiting a state
 - transition actions are executed when a transition is taken
 
-To learn more, see the section in our [introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#actions).
+To learn more, read about [actions in our introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#actions).
 
 ## API
 
@@ -65,7 +65,7 @@ const triggerMachine = createMachine(
 
 It depends! They mean different things:
 
-- An entry/exit actions means "execute this action **on any transition that enters/exits this state**". Use entry/exit actions when the action is only dependent on the state node that it's in, and not on previous/next state nodes or events.
+- An entry/exit action means “execute this action **on any transition that enters/exits this state**”. Use entry/exit actions when the action is only dependent on the state node that it’s in, and not on previous/next state nodes or events.
 
 ```js
 // ...
@@ -83,7 +83,7 @@ It depends! They mean different things:
 // ...
 ```
 
-- A transition action means "execute this action **only on this transition**". Use transition actions when the action is dependent on the event and the state node that it is currently in.
+- A transition action means “execute this action **only on this transition**”. Use transition actions when the action is dependent on the event and the state node that it is currently in.
 
 ```js
 // ...
