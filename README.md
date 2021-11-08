@@ -80,7 +80,7 @@ toggleService.send('TOGGLE');
 
 ## Promise example
 
-[📉 See the visualization on xstate.js.org/viz](https://stately.ai/viz/embed/?gist=bbcb4379b36edea0458f597e5eec2f91)
+[📉 See the visualization on stately.ai/viz](https://stately.ai/viz/embed/?gist=bbcb4379b36edea0458f597e5eec2f91)
 
 ```js
 import { createMachine, interpret, assign } from 'xstate';
