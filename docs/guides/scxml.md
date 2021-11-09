@@ -1,6 +1,6 @@
 # SCXML
 
-XState is compliant with the [SCXML specification](https://www.w3.org/TR/scxml/). Here's how various parts of our API relate to the spec.
+XState is compliant with the [SCXML (State Chart XML : State Machine Notation for Control Abstraction) specification](https://www.w3.org/TR/scxml/). This page contains details on where our API relates to the SCXML specification.
 
 ## Events
 
@@ -8,7 +8,7 @@ Events in SCXML contain information relevant to the source of the event, and hav
 
 SCXML events include:
 
-- `name` - a character string giving the name of the event. This is equivalent to the `.type` property of an XState event.
+- `name` - a character string giving the name of the event. `name` is equivalent to the `.type` property of an XState event.
 - `type` - the event type: `'platform'`, `'external'`, or `'internal'`.
   - `platform` events are raised by the platform itself, such as error events.
   - `internal` events are raised by `raise(...)` actions or by `send(...)` actions with `target: '_internal'`.
@@ -17,9 +17,9 @@ SCXML events include:
 - `origin` - a string that allows the receiver of this event to `send(...)` a response event back to the origin.
 - `origintype` - used with `origin`
 - `invokeid` - the invoke ID of the invocation that triggered the child service.
-- `data` - any data that the sending entity chose to include with this event. This is equivalent to an XState event object.
+- `data` - any data that the sending entity chose to include with this event. `data` is equivalent to an XState event object.
 
-The SCXML event form of all XState events is present in the `_event` property of action and guard meta objects (third argument):
+The SCXML event form of all XState events is present in the `_event` property of action and guard meta objects, as the third argument:
 
 ```js {4-5,9-10}
 // ...
@@ -75,7 +75,7 @@ The event-target mappings defined on the `on: { ... }` property of state nodes i
 
 ## Guards
 
-The `cond` property is equivalent to the `cond` attribute on the `<transition>` element:
+The `cond` property is equivalent to the `cond` attribute on the SCXML `<transition>` element:
 
 ```js
 {
@@ -92,7 +92,7 @@ The `cond` property is equivalent to the `cond` attribute on the `<transition>` 
 <transition event="e" cond="x == 1" target="foo" />
 ```
 
-Likewise, the `in` property is equivalent to the `In()` predicate:
+Similarly, the `in` property is equivalent to the `In()` predicate:
 
 ```js
 {
@@ -109,11 +109,11 @@ Likewise, the `in` property is equivalent to the `In()` predicate:
 <transition cond="In('closed')" target="cooking"/>
 ```
 
-- [https://www.w3.org/TR/scxml/#transition](https://www.w3.org/TR/scxml/#transition) - the definition of the `cond` attribute
-- [https://www.w3.org/TR/scxml/#ConditionalExpressions](https://www.w3.org/TR/scxml/#ConditionalExpressions) - conditional expressions and the requirement of supporting the `In()` predicate
-- [https://www.w3.org/TR/scxml/#SelectingTransitions](https://www.w3.org/TR/scxml/#SelectingTransitions) - how transitions are selected given an event
+- [SCXML definition of the `cond` attribute](https://www.w3.org/TR/scxml/#transition)
+- [SCXML conditional expressions and the requirement of supporting the `In()` predicate](https://www.w3.org/TR/scxml/#ConditionalExpressions)
+- [How transitions are selected given an event in SCXML](https://www.w3.org/TR/scxml/#SelectingTransitions)
 
-## State Id's
+## State IDs
 
 IDs correspond to the definition of IDs in the SCXML spec:
 
@@ -131,12 +131,12 @@ IDs correspond to the definition of IDs in the SCXML spec:
 </state>
 ```
 
-- [https://www.w3.org/TR/scxml/#IDs](https://www.w3.org/TR/scxml/#IDs) - specification that all `id` attributes _must_ be unique
-- [https://www.w3.org/TR/scxml/#state](https://www.w3.org/TR/scxml/#state) - see the definition of the `id` attribute in `<state>`
+- [SCXML specification that all `id` attributes _must_ be unique](https://www.w3.org/TR/scxml/#IDs)
+- [SCXML definition of the `id` attribute in `<state>`](https://www.w3.org/TR/scxml/#state)
 
 ## Actions
 
-Executable actions in transitions are equivalent to the `<script>` element. The `entry` and `exit` properties are equivalent to the `<onentry>` and `<onexit>` elements, respectively.
+Executable actions in transitions are equivalent to the SCXML `<script>` element. The `entry` and `exit` properties are equivalent to the `<onentry>` and `<onexit>` elements, respectively.
 
 ```js
 {
@@ -168,9 +168,9 @@ Executable actions in transitions are equivalent to the `<script>` element. The 
 </state>
 ```
 
-- [https://www.w3.org/TR/scxml/#script](https://www.w3.org/TR/scxml/#script) - the definition of the `<script>` element
-- [https://www.w3.org/TR/scxml/#onentry](https://www.w3.org/TR/scxml/#onentry) - the definition of the `<onentry>` element
-- [https://www.w3.org/TR/scxml/#onexit](https://www.w3.org/TR/scxml/#onexit) - the definition of the `<onexit>` element
+- [SCXML definition of the `<script>` element](https://www.w3.org/TR/scxml/#script)
+- [SCXML definition of the `<onentry>` element](https://www.w3.org/TR/scxml/#onentry)
+- [SCXML definition of the `<onexit>` element](https://www.w3.org/TR/scxml/#onexit)
 
 ## Invoke
 
@@ -200,4 +200,4 @@ The `invoke` property is synonymous to the SCXML `<invoke>` element:
 </state>
 ```
 
-- [https://www.w3.org/TR/scxml/#invoke](https://www.w3.org/TR/scxml/#invoke) - the definition of `<invoke>`
+- [SCXML definition of `<invoke>`](https://www.w3.org/TR/scxml/#invoke)
