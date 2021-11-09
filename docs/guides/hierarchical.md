@@ -1,10 +1,10 @@
-# Hierarchical State Nodes
+# Hierarchical state nodes
 
-In statecharts, states can be nested _within other states_. These are called **compound states**. To learn more, see the section in our [introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#compound-states).
+In statecharts, states can be nested _within other states_. These nested states are called **compound states**. To learn more, read the [compound states section in our introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#compound-states).
 
 ## API
 
-Here's an example of a traffic light machine with nested states:
+The following example is a traffic light machine with nested states:
 
 ```js
 const pedestrianStates = {
@@ -59,7 +59,7 @@ The `'green'` and `'yellow'` states are **simple states** - they have no child s
 
 ## Initial states
 
-When a compound state is entered, its initial state is immediately entered as well. In the following example:
+When a compound state is entered, its initial state is immediately entered as well. In the following traffic light machine example:
 
 - the `'red'` state is entered
 - since `'red'` has an initial state of `'walk'`, the `{ red: 'walk' }` state is ultimately entered.
@@ -73,10 +73,10 @@ console.log(lightMachine.transition('yellow', { type: 'TIMER' }).value);
 
 ## Events
 
-When a simple state does not handle an `event`, that `event` is propagated up to its parent state to be handled. In the following example:
+When a simple state does not handle an `event`, that `event` is propagated up to its parent state to be handled. In the following traffic light machine example:
 
 - the `{ red: 'stop' }` state does _not_ handle the `'TIMER'` event
-- the `'TIMER'` event is sent to the `'red'` parent state, which does handle it.
+- the `'TIMER'` event is sent to the `'red'` parent state, which handles the event.
 
 ```js
 console.log(lightMachine.transition({ red: 'stop' }, { type: 'TIMER' }).value);
