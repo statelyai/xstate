@@ -1,6 +1,6 @@
 # Events
 
-An event is what causes a state machine to [transition](./transitions.md) from its current [state](./states.md) to its next state. To learn more, see the section in our [introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#transitions-and-events).
+An event is what causes a state machine to [transition](./transitions.md) from its current [state](./states.md) to its next state. To learn more, read [the events section in our introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#transitions-and-events).
 
 ## API
 
@@ -12,7 +12,7 @@ const timerEvent = {
 };
 ```
 
-As shorthand, in XState, events that only have a `type` can be represented just by their string type:
+In XState, events that only have a `type` can be represented by just their string type, as a shorthand:
 
 ```js
 // equivalent to { type: 'TIMER' }
@@ -28,9 +28,9 @@ const keyDownEvent = {
 };
 ```
 
-## Sending Events
+## Sending events
 
-As explained in the [transitions guide](./transitions.md), a transition defines what the next state will be given the current state and the event, defined on its `on: { ... }` property. This can be observed by passing an event into the [transition method](./transitions.md#machine-transition-method):
+As explained in the [transitions guide](./transitions.md), a transition defines what the next state will be, given the current state and the event, defined on its `on: { ... }` property. This can be observed by passing an event into the [transition method](./transitions.md#machine-transition-method):
 
 ```js
 import { createMachine } from 'xstate';
@@ -50,7 +50,7 @@ console.log(nextState.value);
 // => 'red'
 ```
 
-By specifying the event type on the `type` property, many native events, such as DOM events, are compatible and can be used directly with XState:
+Many native events, such as DOM events, are compatible and can be used directly with XState, by specifying the event type on the `type` property:
 
 ```js
 import { createMachine, interpret } from 'xstate';
@@ -75,7 +75,7 @@ window.addEventListener('mousemove', (event) => {
 });
 ```
 
-## Null Events
+## Null events
 
 ::: warning
 The null event syntax `({ on: { '': ... } })` will be deprecated in version 5. The new [always](./transitions.md#eventless-always-transitions) syntax should be used instead.
