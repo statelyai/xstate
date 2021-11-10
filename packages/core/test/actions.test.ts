@@ -4,9 +4,10 @@ import {
   assign,
   forwardTo,
   interpret,
-  spawn
+  spawn,
+  ActorRefFrom
 } from '../src/index';
-import { pure, sendParent, log, choose } from '../src/actions';
+import { pure, sendParent, log, choose, sendTo } from '../src/actions';
 
 describe('entry/exit actions', () => {
   const pedestrianStates = {
@@ -1443,6 +1444,67 @@ describe('sendParent', () => {
     });
 
     expect(child).toBeTruthy();
+  });
+});
+
+describe('sendTo', () => {
+  it('should be able to send an event to an actor', (done) => {
+    const childMachine = createMachine<any, { type: 'EVENT' }>({
+      initial: 'waiting',
+      states: {
+        waiting: {
+          on: {
+            EVENT: {
+              actions: () => done()
+            }
+          }
+        }
+      }
+    });
+
+    const parentMachine = createMachine<{
+      child: ActorRefFrom<typeof childMachine>;
+    }>({
+      context: () => ({
+        child: spawn(childMachine)
+      }),
+      entry: sendTo((ctx) => ctx.child, { type: 'EVENT' })
+    });
+
+    interpret(parentMachine).start();
+  });
+
+  it('should be able to send an event from expression to an actor', (done) => {
+    const childMachine = createMachine<any, { type: 'EVENT'; count: number }>({
+      initial: 'waiting',
+      states: {
+        waiting: {
+          on: {
+            EVENT: {
+              cond: (_, e) => e.count === 42,
+              actions: () => done()
+            }
+          }
+        }
+      }
+    });
+
+    const parentMachine = createMachine<{
+      child: ActorRefFrom<typeof childMachine>;
+      count: number;
+    }>({
+      context: () => ({
+        child: spawn(childMachine),
+        count: 42
+      }),
+      entry: sendTo(
+        (ctx) => ctx.child,
+        // TODO: figure out how to avoid `as const`
+        (ctx) => ({ type: 'EVENT', count: ctx.count } as const)
+      )
+    });
+
+    interpret(parentMachine).start();
   });
 });
 

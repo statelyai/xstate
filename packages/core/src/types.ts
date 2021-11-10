@@ -1514,6 +1514,8 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
     ? TEvent
     : R extends Interpreter<infer _, infer __, infer TEvent, infer ____>
     ? TEvent
+    : R extends ActorRef<infer TEvent, infer _>
+    ? TEvent
     : never
   : never;
 
