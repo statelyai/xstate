@@ -80,7 +80,7 @@ toggleService.send('TOGGLE');
 
 ## Promise example
 
-[📉 See the visualization on xstate.js.org/viz](https://xstate.js.org/viz/?gist=bbcb4379b36edea0458f597e5eec2f91)
+[📉 See the visualization on stately.ai/viz](https://stately.ai/viz?gist=bbcb4379b36edea0458f597e5eec2f91)
 
 ```js
 import { createMachine, interpret, assign } from 'xstate';
@@ -148,7 +148,7 @@ dogService.send('FETCH');
 
 ## Visualizer
 
-**[Visualize, simulate, inspect, and share your statecharts in XState Viz](https:/stately.ai/viz)**
+**[Visualize, simulate, inspect, and share your statecharts in XState Viz](https://stately.ai/viz)**
 
 <a href="https://stately.ai/viz" title="XState Viz">
   <img src="https://user-images.githubusercontent.com/1093738/131729181-5db835fc-77e7-4740-b03f-46bd0093baa1.png" alt="XState Viz" width="400" />
@@ -176,7 +176,6 @@ Read [📽 the slides](http://slides.com/davidkhourshid/finite-state-machines) (
   <small>Open in Stately Viz</small>
 </a>
 <br />
-
 
 ```js
 import { createMachine } from 'xstate';
@@ -218,7 +217,6 @@ const nextState = lightMachine.transition(currentState, 'TIMER').value;
   <small>Open in Stately Viz</small>
 </a>
 <br />
-
 
 ```js
 import { createMachine } from 'xstate';
@@ -301,7 +299,6 @@ lightMachine.transition({ red: 'stop' }, 'TIMER').value;
   <small>Open in Stately Viz</small>
 </a>
 <br />
-
 
 ```js
 const wordMachine = createMachine({
@@ -393,7 +390,6 @@ const nextState = wordMachine.transition(
   <small>Open in Stately Viz</small>
 </a>
 <br />
-
 
 ```js
 const paymentMachine = createMachine({

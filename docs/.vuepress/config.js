@@ -21,15 +21,19 @@ module.exports = {
       indexName: 'xstatejs'
     },
     nav: [
-      { text: 'API', link: 'https://xstate.js.org/api' },
+      { text: 'API', link: 'https://paka.dev/npm/xstate/' },
       { text: 'Visualizer', link: 'https://stately.ai/viz' },
       { text: 'Discord', link: 'https://discord.gg/xtWgFTgvNV' },
       {
         text: 'Community',
-        link: 'https://github.com/davidkpiano/xstate/discussions'
+        link: 'https://github.com/statelyai/xstate/discussions'
       }
     ],
     sidebar: [
+      {
+        title: 'What is XState?',
+        children: ['/visualizer/']
+      },
       {
         title: 'About',
         children: [
@@ -126,13 +130,14 @@ module.exports = {
       {
         title: 'Useful links',
         children: [
-          ['https://github.com/statelyai/xstate/blob/main/CODE_OF_CONDUCT.md', 'Code of Conduct'],
-          ['https://stately.ai/privacy', 'Privacy Policy'],
+          [
+            'https://github.com/statelyai/xstate/blob/main/CODE_OF_CONDUCT.md',
+            'Code of Conduct'
+          ],
+          ['https://stately.ai/privacy', 'Privacy Policy']
         ]
       }
     ]
   },
-  plugins: [
-    'vuepress-plugin-export'
-  ]
+  plugins: ['vuepress-plugin-export']
 };

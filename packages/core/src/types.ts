@@ -1,7 +1,7 @@
 import { StateNode } from './StateNode';
 import { State } from './State';
 import { Interpreter, Clock } from './interpreter';
-import { Model } from './model.types';
+import { IsNever, Model, Prop } from './model.types';
 
 type AnyFunction = (...args: any[]) => any;
 type ReturnTypeOrValue<T> = T extends AnyFunction ? ReturnType<T> : T;
@@ -84,7 +84,7 @@ export type ActionFunction<
   meta: ActionMeta<TContext, TEvent, TAction>
 ) => void;
 
-export interface ChooseConditon<TContext, TEvent extends EventObject> {
+export interface ChooseCondition<TContext, TEvent extends EventObject> {
   cond?: Condition<TContext, TEvent>;
   actions: Actions<TContext, TEvent>;
 }
@@ -222,6 +222,7 @@ export interface TransitionConfig<TContext, TEvent extends EventObject> {
   internal?: boolean;
   target?: TransitionTarget<TContext, TEvent>;
   meta?: Record<string, any>;
+  description?: string;
 }
 
 export interface TargetTransitionConfig<TContext, TEvent extends EventObject>
@@ -301,6 +302,7 @@ export type InvokeCallback<
 export interface InvokeMeta {
   data: any;
   src: InvokeSourceDefinition;
+  meta?: MetaObject;
 }
 
 /**
@@ -356,6 +358,7 @@ export interface InvokeDefinition<TContext, TEvent extends EventObject>
    * Data should be mapped to match the child machine's context shape.
    */
   data?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
+  meta?: MetaObject;
 }
 
 export interface Delay {
@@ -511,6 +514,10 @@ export interface InvokeConfig<TContext, TEvent extends EventObject> {
   onError?:
     | string
     | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
+  /**
+   * Meta data related to this invocation
+   */
+  meta?: MetaObject;
 }
 
 export interface StateNodeConfig<
@@ -647,6 +654,10 @@ export interface StateNodeConfig<
    * @default false
    */
   preserveActionOrder?: boolean;
+  /**
+   * A text description of the state node
+   */
+  description?: string;
 }
 
 export interface StateNodeDefinition<
@@ -674,6 +685,8 @@ export interface StateNodeDefinition<
   order: number;
   data?: FinalStateNodeConfig<TContext, TEvent>['data'];
   invoke: Array<InvokeDefinition<TContext, TEvent>>;
+  description?: string;
+  tags: string[];
 }
 
 export type AnyStateNodeDefinition = StateNodeDefinition<any, any, any>;
@@ -1118,7 +1131,7 @@ export interface PureAction<TContext, TEvent extends EventObject>
 export interface ChooseAction<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {
   type: ActionTypes.Choose;
-  conds: Array<ChooseConditon<TContext, TEvent>>;
+  conds: Array<ChooseCondition<TContext, TEvent>>;
 }
 
 export interface TransitionDefinition<TContext, TEvent extends EventObject>
@@ -1492,7 +1505,7 @@ export type EmittedFrom<T> = ReturnTypeOrValue<T> extends infer R
     : never
   : never;
 
-export type EventFrom<T> = ReturnTypeOrValue<T> extends infer R
+type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<infer _, infer __, infer TEvent, infer ____>
     ? TEvent
     : R extends Model<infer _, infer TEvent, infer ___, infer ____>
@@ -1503,6 +1516,12 @@ export type EventFrom<T> = ReturnTypeOrValue<T> extends infer R
     ? TEvent
     : never
   : never;
+
+export type EventFrom<
+  T,
+  K extends Prop<TEvent, 'type'> = never,
+  TEvent = ResolveEventType<T>
+> = IsNever<K> extends true ? TEvent : Extract<TEvent, { type: K }>;
 
 export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<infer TContext, infer _, infer __, infer ___>

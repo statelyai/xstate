@@ -1,5 +1,11 @@
 # @xstate/inspect
 
+## 0.5.1
+
+### Patch Changes
+
+- [#2728](https://github.com/statelyai/xstate/pull/2728) [`8171b3e12`](https://github.com/statelyai/xstate/commit/8171b3e127a289199bbcedb5cec839e9da0a1bb2) Thanks [@jacksteamdev](https://github.com/jacksteamdev)! - Fix server inspector to handle WebSocket messages as Buffer
+
 ## 0.5.0
 
 ### Minor Changes
@@ -48,7 +54,7 @@
 
   const windowReceiver = createWindowReceiver(/* options? */);
 
-  windowReceiver.subscribe((event) => {
+  windowReceiver.subscribe(event => {
     // here, you will receive events like:
     // { type: "service.register", machine: ..., state: ..., sessionId: ... }
     console.log(event);

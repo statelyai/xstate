@@ -71,10 +71,16 @@ export function inspect(options: ServerInspectorOptions): Inspector {
     };
 
     wss.on('message', function incoming(message) {
-      if (typeof message !== 'string') {
+      let msg: string;
+      if (typeof message === 'string') {
+        msg = message;
+      } else if (message instanceof Buffer) {
+        msg = message.toString('utf8');
+      } else {
         return;
       }
-      const jsonMessage = JSON.parse(message);
+
+      const jsonMessage = JSON.parse(msg);
       inspectService.send({
         ...jsonMessage,
         client

@@ -1,5 +1,7 @@
 # @xstate/svelte
 
+The [@xstate/svelte package](https://github.com/statelyai/xstate/tree/main/packages/xstate-svelte) contains utilities for using [XState](https://github.com/statelyai/xstate) with [Svelte](https://github.com/sveltejs/svelte).
+
 ## Quick Start
 
 1. Install `xstate` and `@xstate/svelte`:

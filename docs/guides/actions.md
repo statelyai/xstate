@@ -329,6 +329,8 @@ console.log(send({ type: 'SOME_EVENT' }, { to: 'child' }));
 
 :::
 
+To send from a child machine to a parent machine, use `sendParent(event)` (takes the same arguments as `send(...)`).
+
 ## Raise Action
 
 The `raise()` action creator queues an event to the statechart, in the internal event queue. This means the event is immediately sent on the current "step" of the interpreter.
@@ -371,7 +373,7 @@ const raiseActionDemo = createMachine({
 });
 ```
 
-Click on both `STEP` and `RAISE` events in the [visualizer](https://xstate.js.org/viz/?gist=fd763ff2c161b172f719891e2544d428) to see the difference.
+Click on both `STEP` and `RAISE` events in the [visualizer](https://stately.ai/viz?gist=fd763ff2c161b172f719891e2544d428) to see the difference.
 
 ## Respond Action <Badge text="4.7+" />
 
