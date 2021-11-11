@@ -6,18 +6,17 @@ import {
   DelayExpr,
   ChooseCondition
 } from './types';
-import { createMachine } from './index';
+import { BaseActionObject, createMachine } from './index';
 import { mapValues, isString, flatten } from './utils';
-import * as raise from './actions/raise';
-import * as choose from './actions/choose';
-import * as assign from './actions/assign';
-import * as send from './actions/send';
-import * as cancel from './actions/cancel';
-import * as log from './actions/log';
+import { raise } from './actions/raise';
+import { choose } from './actions/choose';
+import { assign } from './actions/assign';
+import { send } from './actions/send';
+import { cancel } from './actions/cancel';
+import { log } from './actions/log';
 import { invokeMachine } from './invoke';
 import { StateMachine } from './StateMachine';
 import { not, stateIn } from './guards';
-import { BaseActionObject } from '../dist/xstate.cjs';
 
 function getAttribute(
   element: XMLElement,
@@ -142,10 +141,10 @@ function mapAction<
 >(element: XMLElement): BaseActionObject {
   switch (element.name) {
     case 'raise': {
-      return raise.raise<TEvent>(element.attributes!.event! as string);
+      return raise<TEvent>(element.attributes!.event! as string);
     }
     case 'assign': {
-      return assign.assign<TContext, TEvent>((context, e, meta) => {
+      return assign<TContext, TEvent>((context, e, meta) => {
         const fnBody = `
 
 ${element.attributes!.location};
@@ -158,9 +157,9 @@ return {'${element.attributes!.location}': ${element.attributes!.expr}};
     }
     case 'cancel':
       if ('sendid' in element.attributes!) {
-        return cancel.cancel(element.attributes!.sendid! as string);
+        return cancel(element.attributes!.sendid! as string);
       }
-      return cancel.cancel((context, e, meta) => {
+      return cancel((context, e, meta) => {
         const fnBody = `
 return ${element.attributes!.sendidexpr};
           `;
@@ -208,7 +207,7 @@ return (${delayToMs})(${element.attributes!.delayexpr});
         };
       }
 
-      return send.send<TContext, TEvent>(convertedEvent, {
+      return send<TContext, TEvent>(convertedEvent, {
         delay: convertedDelay,
         to: target as string | undefined,
         id: id as string | undefined
@@ -217,7 +216,7 @@ return (${delayToMs})(${element.attributes!.delayexpr});
     case 'log': {
       const label = element.attributes!.label;
 
-      return log.log<TContext, TEvent>(
+      return log<TContext, TEvent>(
         (context, e, meta) => {
           const fnBody = `
 return ${element.attributes!.expr};
@@ -260,7 +259,7 @@ return ${element.attributes!.expr};
       }
 
       conds.push(current);
-      return choose.choose(conds);
+      return choose(conds);
     }
     default:
       throw new Error(
