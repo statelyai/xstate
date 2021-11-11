@@ -190,8 +190,6 @@ export class Interpreter<
 
       initialState.actions.push(...CapturedState.current.spawns);
       return initialState;
-    } catch (e) {
-      throw e;
     } finally {
       CapturedState.current = {
         actorRef: undefined,
@@ -812,7 +810,7 @@ export class Interpreter<
       }
     }
 
-    if (!IS_PRODUCTION && !action.type?.startsWith('xstate.')) {
+    if (!IS_PRODUCTION) {
       warn(false, `No implementation found for action type '${action.type}'`);
     }
 
