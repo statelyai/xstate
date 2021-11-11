@@ -1138,5 +1138,3 @@ describe('useMachine (strict mode)', () => {
     expect(container.textContent).toBe('2');
   });
 });
-
-// TODO: compare with v4 main (add missing tests)
