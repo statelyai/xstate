@@ -825,13 +825,13 @@ describe('State', () => {
       expect(state.can({ type: 'ANY_EVENT' })).toEqual(false);
     });
 
-    it('should allow errors to propagate', () => {
+    it('should not execute assignments', () => {
       const machine = createMachine({
         context: {},
         on: {
           DO_SOMETHING_BAD: {
             actions: assign(() => {
-              throw new Error('expected error');
+              throw new Error('unexpected error');
             })
           }
         }
@@ -841,7 +841,7 @@ describe('State', () => {
         const { initialState } = machine;
 
         initialState.can('DO_SOMETHING_BAD');
-      }).toThrowError(/expected error/);
+      }).not.toThrowError();
     });
   });
 
