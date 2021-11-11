@@ -4,11 +4,15 @@ import type {
   PropertyAssigner,
   MachineContext,
   AssignActionObject,
-  DynamicAssignAction
+  DynamicAssignAction,
+  AssignMeta,
+  InvokeActionObject
 } from '../types';
 import * as actionTypes from '../actionTypes';
 import { DynamicAction } from '../../actions/DynamicAction';
-import { updateContext } from '../updateContext';
+import { isFunction, keys } from '../utils';
+
+import * as capturedState from '../capturedState';
 
 /**
  * Updates the current context of the machine.
@@ -36,19 +40,42 @@ export function assign<
     {
       assignment
     },
-    (action, context, _event, { state }) => {
-      const [nextContext, nextActions] = updateContext(
-        context,
-        _event,
-        [action],
-        state
-      );
+    (dynamicAction, context, _event, { state, action }) => {
+      const capturedActions: InvokeActionObject[] = [];
+
+      if (!context) {
+        throw new Error(
+          'Cannot assign to undefined `context`. Ensure that `context` is defined in the machine config.'
+        );
+      }
+
+      const meta: AssignMeta<TContext, TEvent> = {
+        state,
+        action,
+        _event
+      };
+
+      let partialUpdate: Partial<TContext> = {};
+      if (isFunction(assignment)) {
+        partialUpdate = assignment(context, _event.data, meta);
+      } else {
+        for (const key of keys(assignment)) {
+          const propAssignment = assignment[key];
+          partialUpdate[key as any] = isFunction(propAssignment)
+            ? propAssignment(context, _event.data, meta)
+            : propAssignment;
+        }
+      }
+
+      capturedActions.push(...capturedState.flushSpawns());
+
+      const updatedContext = Object.assign({}, context, partialUpdate);
 
       return {
-        type: action.type,
+        type: dynamicAction.type,
         params: {
-          context: nextContext,
-          actions: nextActions
+          context: updatedContext,
+          actions: capturedActions
         }
       } as AssignActionObject<TContext>;
     }

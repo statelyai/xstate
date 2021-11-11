@@ -86,7 +86,7 @@ const counterMachine = createMachine<CounterContext>({
         SET_MAYBE: [
           {
             actions: [
-              assign<CounterContext>({
+              assign({
                 maybe: 'defined'
               })
             ]
@@ -291,7 +291,7 @@ describe('assign meta', () => {
           NEXT_ASSIGNER: {
             target: 'two',
             actions: assign((_, __, { action }) => ({
-              count: action.params.assignment ? 5 : -1
+              count: action.params?.assignment ? 5 : -1
             }))
           }
         }
@@ -415,4 +415,36 @@ describe('assign meta', () => {
       }
     `);
   });
+
+  it(
+    'a parameterized action that resolves to assign() should be provided the original' +
+      'action in the action meta',
+    (done) => {
+      const machine = createMachine(
+        {
+          on: {
+            EVENT: {
+              actions: {
+                type: 'inc',
+                params: { value: 5 }
+              }
+            }
+          }
+        },
+        {
+          actions: {
+            inc: assign((_, __, { action }) => {
+              expect(action).toEqual({ type: 'inc', params: { value: 5 } });
+              done();
+              return _;
+            })
+          }
+        }
+      );
+
+      const service = interpret(machine).start();
+
+      service.send({ type: 'EVENT' });
+    }
+  );
 });

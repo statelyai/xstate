@@ -44,7 +44,7 @@ export interface BuiltInActionObject {
 export interface BaseDynamicActionObject<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TAction extends BaseActionObject,
+  TResolvedAction extends BaseActionObject,
   TDynamicParams extends Record<string, any>
 > {
   type: `xstate.${string}`;
@@ -53,7 +53,7 @@ export interface BaseDynamicActionObject<
     dynamicAction: BaseDynamicActionObject<
       TContext,
       TEvent,
-      TAction,
+      TResolvedAction,
       TDynamicParams
     >,
     context: TContext,
@@ -61,8 +61,12 @@ export interface BaseDynamicActionObject<
     extra: {
       machine: StateMachine<TContext, TEvent>;
       state: State<TContext, TEvent>;
+      /**
+       * The original action object
+       */
+      action: BaseActionObject;
     }
-  ) => TAction;
+  ) => TResolvedAction;
 }
 
 export type MachineContext = object;
@@ -93,7 +97,7 @@ export interface AssignMeta<
   TEvent extends EventObject
 > {
   state?: State<TContext, TEvent>;
-  action: DynamicAssignAction<TContext, TEvent>;
+  action: BaseActionObject;
   _event: SCXML.Event<TEvent>;
 }
 

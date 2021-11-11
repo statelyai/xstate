@@ -1699,7 +1699,7 @@ function resolveActionsAndContext<
           executableActionObject,
           context,
           _event,
-          { machine, state: currentState! }
+          { machine, state: currentState!, action: actionObject }
         ).params.actions;
 
         if (matchedActions) {
@@ -1715,7 +1715,8 @@ function resolveActionsAndContext<
           _event,
           {
             machine,
-            state: currentState!
+            state: currentState!,
+            action: actionObject
           }
         );
 
@@ -1737,7 +1738,8 @@ function resolveActionsAndContext<
           _event,
           {
             machine,
-            state: currentState!
+            state: currentState!,
+            action: actionObject
           }
         );
 
