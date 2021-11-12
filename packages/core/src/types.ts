@@ -1026,7 +1026,7 @@ export enum SpecialTargets {
   Internal = '#_internal'
 }
 
-export interface SendActionParams<
+export interface SendActionOptions<
   TContext extends MachineContext,
   TEvent extends EventObject
 > {
@@ -1036,6 +1036,14 @@ export interface SendActionParams<
     | string
     | ExprWithMeta<TContext, TEvent, string | ActorRef<any> | undefined>
     | undefined;
+}
+
+export interface SendActionParams<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TSentEvent extends EventObject = EventObject
+> extends SendActionOptions<TContext, TEvent> {
+  event: TSentEvent | SendExpr<TContext, TEvent, TSentEvent>;
 }
 
 export interface DynamicCancelActionObject<
