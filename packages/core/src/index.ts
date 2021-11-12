@@ -4,26 +4,26 @@ import { StateNode } from './StateNode';
 import { State } from './State';
 import { createMachine } from './Machine';
 import {
-  raise,
-  send,
   sendParent,
   sendUpdate,
-  log,
-  cancel,
-  stop,
-  assign,
   after,
   done,
   respond,
   doneInvoke,
   forwardTo,
-  escalate,
-  choose,
-  pure
+  escalate
 } from './actions';
+import { raise } from './actions/raise';
+import { choose } from './actions/choose';
+import { assign } from './actions/assign';
+import { pure } from './actions/pure';
+import { send } from './actions/send';
+import { cancel } from './actions/cancel';
+import { stop } from './actions/stop';
+import { log } from './actions/log';
 import { interpret, Interpreter, InterpreterStatus } from './interpreter';
 import { matchState } from './match';
-export { StateMachine as MachineNode } from './StateMachine';
+export { StateMachine } from './StateMachine';
 export { SimulatedClock } from './SimulatedClock';
 export {
   spawn,

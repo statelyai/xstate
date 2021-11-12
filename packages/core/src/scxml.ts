@@ -1,15 +1,19 @@
 import { xml2js, Element as XMLElement } from 'xml-js';
 import {
   EventObject,
-  ActionObject,
   SCXMLEventMeta,
   SendExpr,
   DelayExpr,
   ChooseCondition
 } from './types';
-import { createMachine } from './index';
+import { BaseActionObject, createMachine } from './index';
 import { mapValues, isString, flatten } from './utils';
-import * as actions from './actions';
+import { raise } from './actions/raise';
+import { choose } from './actions/choose';
+import { assign } from './actions/assign';
+import { send } from './actions/send';
+import { cancel } from './actions/cancel';
+import { log } from './actions/log';
 import { invokeMachine } from './invoke';
 import { StateMachine } from './StateMachine';
 import { not, stateIn } from './guards';
@@ -134,15 +138,13 @@ function createGuard<
 function mapAction<
   TContext extends object,
   TEvent extends EventObject = EventObject
->(element: XMLElement): ActionObject<TContext, TEvent> {
+>(element: XMLElement): BaseActionObject {
   switch (element.name) {
     case 'raise': {
-      return actions.raise<TContext, TEvent>(
-        element.attributes!.event! as string
-      );
+      return raise<TEvent>(element.attributes!.event! as string);
     }
     case 'assign': {
-      return actions.assign<TContext, TEvent>((context, e, meta) => {
+      return assign<TContext, TEvent>((context, e, meta) => {
         const fnBody = `
 
 ${element.attributes!.location};
@@ -155,9 +157,9 @@ return {'${element.attributes!.location}': ${element.attributes!.expr}};
     }
     case 'cancel':
       if ('sendid' in element.attributes!) {
-        return actions.cancel(element.attributes!.sendid! as string);
+        return cancel(element.attributes!.sendid! as string);
       }
-      return actions.cancel((context, e, meta) => {
+      return cancel((context, e, meta) => {
         const fnBody = `
 return ${element.attributes!.sendidexpr};
           `;
@@ -205,7 +207,7 @@ return (${delayToMs})(${element.attributes!.delayexpr});
         };
       }
 
-      return actions.send<TContext, TEvent>(convertedEvent, {
+      return send<TContext, TEvent>(convertedEvent, {
         delay: convertedDelay,
         to: target as string | undefined,
         id: id as string | undefined
@@ -214,7 +216,7 @@ return (${delayToMs})(${element.attributes!.delayexpr});
     case 'log': {
       const label = element.attributes!.label;
 
-      return actions.log<TContext, TEvent>(
+      return log<TContext, TEvent>(
         (context, e, meta) => {
           const fnBody = `
 return ${element.attributes!.expr};
@@ -257,7 +259,7 @@ return ${element.attributes!.expr};
       }
 
       conds.push(current);
-      return actions.choose(conds);
+      return choose(conds);
     }
     default:
       throw new Error(
@@ -266,11 +268,8 @@ return ${element.attributes!.expr};
   }
 }
 
-function mapActions<
-  TContext extends object,
-  TEvent extends EventObject = EventObject
->(elements: XMLElement[]): Array<ActionObject<TContext, TEvent>> {
-  const mapped: Array<ActionObject<TContext, TEvent>> = [];
+function mapActions(elements: XMLElement[]): BaseActionObject[] {
+  const mapped: BaseActionObject[] = [];
 
   for (const element of elements) {
     if (element.type === 'comment') {

@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import {
   EventObject,
-  MachineNode,
+  StateMachine,
   State,
   InterpreterOptions,
   MachineImplementations,
@@ -11,47 +11,45 @@ import {
   InterpreterOf,
   MachineContext
 } from 'xstate';
-import { MaybeLazy, ReactActionFunction, ReactEffectType } from './types';
+import {
+  MaybeLazy,
+  ReactActionFunction,
+  ReactActionObject,
+  ReactEffectType
+} from './types';
 import { useInterpret } from './useInterpret';
 
-function createReactActionFunction<
+function createReactAction<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  exec: ActionFunction<TContext, TEvent>,
+  exec: ActionFunction<TContext, TEvent> | undefined,
   tag: ReactEffectType
-): ReactActionFunction<TContext, TEvent> {
-  const effectExec: unknown = (...args: Parameters<typeof exec>) => {
+): ReactActionObject<TContext, TEvent> {
+  const reactExec: ReactActionFunction<TContext, TEvent> = (...args) => {
     // don't execute; just return
     return () => {
-      return exec(...args);
+      return exec?.(...args);
     };
   };
-
-  Object.defineProperties(effectExec, {
-    name: { value: `effect:${exec.name}` },
-    __effect: { value: tag }
-  });
-
-  return effectExec as ReactActionFunction<TContext, TEvent>;
+  return {
+    type: 'xstate/react.action',
+    params: { __effect: tag, exec: reactExec }
+  };
 }
 
 export function asEffect<
   TContext extends MachineContext,
   TEvent extends EventObject
->(
-  exec: ActionFunction<TContext, TEvent>
-): ReactActionFunction<TContext, TEvent> {
-  return createReactActionFunction(exec, ReactEffectType.Effect);
+>(exec: ActionFunction<TContext, TEvent>): ReactActionObject<TContext, TEvent> {
+  return createReactAction(exec, ReactEffectType.Effect);
 }
 
 export function asLayoutEffect<
   TContext extends MachineContext,
   TEvent extends EventObject
->(
-  exec: ActionFunction<TContext, TEvent>
-): ReactActionFunction<TContext, TEvent> {
-  return createReactActionFunction(exec, ReactEffectType.LayoutEffect);
+>(exec: ActionFunction<TContext, TEvent>): ReactActionObject<TContext, TEvent> {
+  return createReactAction(exec, ReactEffectType.LayoutEffect);
 }
 
 export interface UseMachineOptions<
@@ -74,14 +72,14 @@ export function useMachine<
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(
-  getMachine: MaybeLazy<MachineNode<TContext, TEvent, TTypestate>>,
+  getMachine: MaybeLazy<StateMachine<TContext, TEvent, TTypestate>>,
   options: Partial<InterpreterOptions> &
     Partial<UseMachineOptions<TContext, TEvent>> &
     Partial<MachineImplementations<TContext, TEvent>> = {}
 ): [
   State<TContext, TEvent, TTypestate>,
-  InterpreterOf<MachineNode<TContext, TEvent, TTypestate>>['send'],
-  InterpreterOf<MachineNode<TContext, TEvent, TTypestate>>
+  InterpreterOf<StateMachine<TContext, TEvent, TTypestate>>['send'],
+  InterpreterOf<StateMachine<TContext, TEvent, TTypestate>>
 ] {
   const listener = useCallback(
     (nextState: State<TContext, TEvent, TTypestate>) => {

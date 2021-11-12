@@ -1,4 +1,5 @@
-import { raise, assign } from '../src/actions';
+import { raise } from '../src/actions/raise';
+import { assign } from '../src/actions/assign';
 import { createMachine, interpret } from '../src';
 import { testMultiTransition } from './utils';
 

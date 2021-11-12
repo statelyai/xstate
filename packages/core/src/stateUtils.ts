@@ -13,8 +13,11 @@ import {
   mapContext,
   toSCXMLEvent
 } from './utils';
-import { updateContext } from './updateContext';
 import {
+  BaseActionObject,
+  EventObject,
+  InvokeActionObject,
+  StateValue,
   TransitionConfig,
   TransitionDefinition,
   DelayedTransitionDefinition,
@@ -23,14 +26,7 @@ import {
   DelayExpr,
   SCXML,
   Transitions,
-  ActionObject,
   StateValueMap,
-  AssignAction,
-  RaiseAction,
-  CancelAction,
-  SendAction,
-  LogAction,
-  PureAction,
   RaiseActionObject,
   SpecialTargets,
   HistoryValue,
@@ -39,40 +35,35 @@ import {
   Event,
   ChooseAction,
   StopActionObject,
-  AnyEventObject,
-  InvokeSourceDefinition,
-  MachineContext,
-  EventObject,
-  StateValue,
-  InvokeAction
+  MachineContext
 } from './types';
 import { State } from './State';
-import type { StateNode } from './StateNode';
 import {
-  send,
-  cancel,
   after,
   done,
   doneInvoke,
   error,
   toActionObjects,
-  stop,
   initEvent,
   actionTypes,
-  resolveRaise,
-  resolveSend,
-  resolveLog,
-  resolveCancel,
   toActionObject,
-  invoke,
-  resolveInvoke,
-  resolveStop
+  resolveActionObject
 } from './actions';
+import { send } from './actions/send';
+import { cancel } from './actions/cancel';
+import { invoke } from './actions/invoke';
+import { stop } from './actions/stop';
 import { IS_PRODUCTION } from './environment';
 import { STATE_IDENTIFIER, NULL_EVENT, WILDCARD } from './constants';
 import { isSpawnedActorRef } from './actor';
 import type { StateMachine } from './StateMachine';
 import { evaluateGuard, toGuardDefinition } from './guards';
+import {
+  ExecutableAction,
+  isExecutableAction
+} from '../actions/ExecutableAction';
+import type { StateNode } from './StateNode';
+import { isDynamicAction } from '../actions/dynamicAction';
 
 type Configuration<
   TContext extends MachineContext,
@@ -1109,7 +1100,7 @@ function exitStates<
   state: State<TContext, TEvent>
 ) {
   const statesToExit = computeExitSet(transitions, mutConfiguration, state);
-  const actions: Array<ActionObject<TContext, TEvent>> = [];
+  const actions: BaseActionObject[] = [];
 
   statesToExit.forEach((stateNode) => {
     actions.push(...stateNode.invoke.map((def) => stop(def.id)));
@@ -1143,7 +1134,7 @@ export function enterStates<
   const statesToInvoke: typeof mutConfiguration = new Set();
   const internalQueue: Array<SCXML.Event<TEvent>> = [];
 
-  const actions: Array<ActionObject<TContext, TEvent>> = [];
+  const actions: BaseActionObject[] = [];
   const mutStatesToEnter = new Set<StateNode<TContext, TEvent>>();
   const mutStatesForDefaultEntry = new Set<StateNode<TContext, TEvent>>();
 
@@ -1417,13 +1408,13 @@ export function microstep<
   machine: StateMachine<TContext, TEvent>,
   _event: SCXML.Event<TEvent>
 ): {
-  actions: Array<ActionObject<TContext, TEvent>>;
+  actions: BaseActionObject[];
   configuration: typeof mutConfiguration;
   historyValue: HistoryValue<TContext, TEvent>;
   internalQueue: Array<SCXML.Event<TEvent>>;
   context: TContext;
 } {
-  const actions: Array<ActionObject<TContext, TEvent>> = [];
+  const actions: BaseActionObject[] = [];
 
   const filteredTransitions = removeConflictingTransitions(
     transitions,
@@ -1469,22 +1460,38 @@ export function microstep<
 
   actions.push(...res.actions);
 
-  const {
-    actions: resolvedActions,
-    raised,
-    context
-  } = resolveActionsAndContext(actions, machine, _event, currentState);
+  try {
+    const {
+      actions: resolvedActions,
+      raised,
+      context
+    } = resolveActionsAndContext(actions, machine, _event, currentState);
 
-  internalQueue.push(...res.internalQueue);
-  internalQueue.push(...raised.map((a) => a._event));
+    internalQueue.push(...res.internalQueue);
+    internalQueue.push(...raised.map((a) => a.params._event));
 
-  return {
-    actions: resolvedActions,
-    configuration: mutConfiguration,
-    historyValue,
-    internalQueue,
-    context
-  };
+    return {
+      actions: resolvedActions,
+      configuration: mutConfiguration,
+      historyValue,
+      internalQueue,
+      context
+    };
+  } catch (e) {
+    // TODO: Refactor this once proper error handling is implemented.
+    // See https://github.com/statelyai/rfcs/pull/4
+    if (machine.config.scxml) {
+      return {
+        actions: [],
+        configuration: mutConfiguration,
+        historyValue,
+        internalQueue: [toSCXMLEvent({ type: 'error.execution' } as TEvent)],
+        context: machine.context
+      };
+    } else {
+      throw e;
+    }
+  }
 }
 
 function selectEventlessTransitions<
@@ -1582,7 +1589,7 @@ export function resolveMicroTransition<
 
   for (const action of resolved.actions) {
     if (action.type === actionTypes.stop) {
-      const { actor: ref } = action as StopActionObject;
+      const { actor: ref } = (action as StopActionObject).params;
       if (isSpawnedActorRef(ref)) {
         delete children[ref.name];
       } else {
@@ -1648,8 +1655,14 @@ export function resolveMicroTransition<
   }
 
   nextState.actions.forEach((action) => {
-    if (action.type === actionTypes.invoke && action.ref) {
-      children[action.ref.name] = action.ref;
+    if (
+      action.type === actionTypes.invoke &&
+      (action as InvokeActionObject).params.ref
+    ) {
+      const ref = (action as InvokeActionObject).params.ref;
+      if (ref) {
+        children[ref.name] = ref;
+      }
     }
   });
 
@@ -1660,7 +1673,7 @@ function resolveActionsAndContext<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  actions: Array<ActionObject<TContext, TEvent>>,
+  actions: BaseActionObject[],
   machine: StateMachine<TContext, TEvent, any>,
   _event: SCXML.Event<TEvent>,
   currentState: State<TContext, TEvent, any> | undefined
@@ -1670,59 +1683,95 @@ function resolveActionsAndContext<
   context: TContext;
 } {
   let context: TContext = currentState ? currentState.context : machine.context;
-  const resolvedActions: Array<ActionObject<TContext, TEvent>> = [];
+  const resolvedActions: BaseActionObject[] = [];
   const raiseActions: Array<RaiseActionObject<TEvent>> = [];
   const preservedContexts: [TContext, ...TContext[]] = [context];
-  const actionObjects = toActionObjects(actions, machine.options.actions);
 
-  function resolveAction(actionObject) {
-    switch (actionObject.type) {
-      case actionTypes.raise:
-        raiseActions.push(resolveRaise(actionObject as RaiseAction<TEvent>));
-        break;
-      case actionTypes.cancel:
-        resolvedActions.push(
-          resolveCancel(
-            actionObject as CancelAction<TContext, TEvent>,
-            context,
-            _event
-          )
-        );
-        break;
-      case actionTypes.send:
-        const sendAction = resolveSend(
-          actionObject as SendAction<TContext, TEvent, AnyEventObject>,
+  function resolveAction(actionObject: BaseActionObject) {
+    const executableActionObject = resolveActionObject(
+      actionObject,
+      machine.options.actions
+    );
+
+    if (isDynamicAction(executableActionObject)) {
+      if (
+        executableActionObject.type === actionTypes.pure ||
+        executableActionObject.type === actionTypes.choose
+      ) {
+        const matchedActions = executableActionObject.resolve(
+          executableActionObject,
           context,
           _event,
-          machine.options.delays
+          {
+            machine,
+            state: currentState!,
+            action: actionObject
+          }
+        ).params.actions;
+
+        if (matchedActions) {
+          toActionObjects(
+            toArray(matchedActions),
+            machine.options.actions
+          ).forEach(resolveAction);
+        }
+      } else if (executableActionObject.type === actionTypes.assign) {
+        const resolvedActionObject = executableActionObject.resolve(
+          executableActionObject,
+          context,
+          _event,
+          {
+            machine,
+            state: currentState!,
+            action: actionObject
+          }
         );
-        if (!IS_PRODUCTION) {
-          // warn after resolving as we can create better contextual message here
-          warn(
-            !isString(actionObject.delay) ||
-              typeof sendAction.delay === 'number',
-            // tslint:disable-next-line:max-line-length
-            `No delay reference for delay expression '${actionObject.delay}' was found on machine '${machine.key}'`
-          );
+
+        if (resolvedActionObject.type === actionTypes.raise) {
+          raiseActions.push(resolvedActionObject);
+          return;
         }
-        if (sendAction.to === SpecialTargets.Internal) {
-          raiseActions.push(sendAction as RaiseActionObject<any>);
-        } else {
-          resolvedActions.push(sendAction);
-        }
-        break;
-      case actionTypes.log:
+
+        context = resolvedActionObject.params.context;
+        preservedContexts.push(resolvedActionObject.params.context);
         resolvedActions.push(
-          resolveLog(
-            actionObject as LogAction<TContext, TEvent>,
-            context,
-            _event
-          )
+          resolvedActionObject,
+          ...resolvedActionObject.params.actions
         );
+      } else {
+        const resolvedActionObject = executableActionObject.resolve(
+          executableActionObject,
+          context,
+          _event,
+          {
+            machine,
+            state: currentState!,
+            action: actionObject
+          }
+        );
+
+        if (
+          resolvedActionObject.type === actionTypes.raise ||
+          (resolvedActionObject.type === actionTypes.send &&
+            resolvedActionObject.params.to === SpecialTargets.Internal)
+        ) {
+          raiseActions.push(resolvedActionObject);
+        } else {
+          resolvedActions.push(resolvedActionObject);
+        }
+      }
+      return;
+    }
+    switch (executableActionObject.type) {
+      case actionTypes.raise:
+        raiseActions.push(executableActionObject as RaiseActionObject<TEvent>);
         break;
       case actionTypes.choose: {
-        const chooseAction = actionObject as ChooseAction<TContext, TEvent>;
-        const matchedActions = chooseAction.guards.find((condition) => {
+        const chooseAction = executableActionObject as ChooseAction<
+          TContext,
+          TEvent
+        >;
+        const matchedActions = chooseAction.params.guards.find((condition) => {
           const guard =
             condition.guard &&
             toGuardDefinition(
@@ -1743,88 +1792,27 @@ function resolveActionsAndContext<
         }
         break;
       }
-
-      case actionTypes.pure:
-        const matchedActions = (actionObject as PureAction<
-          TContext,
-          TEvent
-        >).get(context, _event.data);
-
-        if (matchedActions) {
-          toActionObjects(
-            toArray(matchedActions),
-            machine.options.actions
-          ).forEach(resolveAction);
-        }
-        break;
-      case actionTypes.assign:
-        try {
-          const [nextContext, nextActions] = updateContext(
-            context,
-            _event,
-            [actionObject as AssignAction<TContext, TEvent>],
-            currentState
-          );
-          context = nextContext;
-          preservedContexts.push(nextContext);
-          resolvedActions.push(actionObject, ...nextActions);
-        } catch (err) {
-          // Raise error.execution events for failed assign actions
-          raiseActions.push({
-            type: actionTypes.raise,
-            _event: toSCXMLEvent({
-              type: actionTypes.errorExecution,
-              error: err
-            } as any) // TODO: fix
-          });
-        }
-        break;
-      case actionTypes.invoke:
-        const invokeAction = resolveInvoke(
-          actionObject as InvokeAction,
-          context,
-          _event,
-          machine.options.actors
-        );
-        if (!IS_PRODUCTION && !invokeAction.ref) {
-          warn(
-            false,
-            `Actor type '${
-              (invokeAction.src as InvokeSourceDefinition).type
-            }' not found in machine '${machine.key}'.`
-          );
-        }
-        resolvedActions.push(invokeAction);
-        break;
-      case actionTypes.stop:
-        const stopAction = resolveStop(
-          actionObject as StopActionObject,
-          context,
-          _event
-        );
-        resolvedActions.push(stopAction);
-        break;
       default:
-        let resolvedActionObject = toActionObject(
-          actionObject,
-          machine.options.actions
-        );
-        const { exec } = resolvedActionObject;
-        if (exec) {
-          const contextIndex = preservedContexts.length - 1;
-          resolvedActionObject = {
-            ...resolvedActionObject,
-            exec: (_ctx, ...args) => {
-              exec(preservedContexts[contextIndex], ...args);
-            }
-          };
+        const contextIndex = preservedContexts.length - 1;
+        if (isExecutableAction(executableActionObject)) {
+          executableActionObject.setContext(preservedContexts[contextIndex]);
+          resolvedActions.push(executableActionObject);
+        } else {
+          const resolvedActionObject = toActionObject(
+            executableActionObject,
+            machine.options.actions
+          );
+
+          const actionExec = new ExecutableAction(resolvedActionObject);
+          actionExec.setContext(preservedContexts[contextIndex]);
+
+          resolvedActions.push(actionExec);
         }
-        resolvedActions.push(resolvedActionObject);
         break;
     }
   }
 
-  for (const actionObject of actionObjects) {
+  for (const actionObject of actions) {
     resolveAction(actionObject);
   }
 
@@ -1974,7 +1962,9 @@ export function stateValuesEqual(
   );
 }
 
-export function getMeta(configuration: StateNode[] = []): Record<string, any> {
+export function getMeta(
+  configuration: Array<StateNode<any, any>> = []
+): Record<string, any> {
   return configuration.reduce((acc, stateNode) => {
     if (stateNode.meta !== undefined) {
       acc[stateNode.id] = stateNode.meta;

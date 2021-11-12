@@ -7,7 +7,7 @@ import {
   MachineImplementations,
   Typestate,
   Observer,
-  MachineNode
+  StateMachine
 } from 'xstate';
 import { UseMachineOptions, MaybeLazy } from './types';
 import { onBeforeUnmount, onMounted } from 'vue';
@@ -38,7 +38,7 @@ export function useInterpret<
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(
-  getMachine: MaybeLazy<MachineNode<TContext, TEvent, TTypestate>>,
+  getMachine: MaybeLazy<StateMachine<TContext, TEvent, TTypestate>>,
   options: Partial<InterpreterOptions> &
     Partial<UseMachineOptions<TContext, TEvent>> &
     Partial<MachineImplementations<TContext, TEvent>> = {},

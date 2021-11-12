@@ -1,5 +1,6 @@
 import { createMachine, sendParent, interpret, assign } from '../src';
-import { respond, send } from '../src/actions';
+import { respond } from '../src/actions';
+import { send } from '../src/actions/send';
 import { invokeCallback, invokeMachine } from '../src/invoke';
 
 describe('SCXML events', () => {

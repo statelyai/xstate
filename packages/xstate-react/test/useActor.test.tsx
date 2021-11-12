@@ -8,14 +8,12 @@ import {
   spawnMachine,
   ActorRefFrom,
   interpret,
-  ActorRef,
-  spawn
+  ActorRef
 } from 'xstate';
 import { render, fireEvent, act } from '@testing-library/react';
 import { useActor } from '../src/useActor';
 import { invokeMachine } from 'xstate/invoke';
-
-import { toActorRef } from 'xstate/actor';
+import { spawn, toActorRef } from 'xstate/actor';
 import { createMachineBehavior } from 'xstate/behaviors';
 
 describe('useActor', () => {

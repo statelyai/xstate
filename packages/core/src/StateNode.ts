@@ -22,14 +22,14 @@ import type {
   StateNodesConfig,
   FinalStateNodeConfig,
   InvokeDefinition,
-  ActionObject,
   Mapper,
   PropertyMapper,
   NullEvent,
   SCXML,
   TransitionDefinitionMap,
   InitialTransitionDefinition,
-  MachineContext
+  MachineContext,
+  BaseActionObject
 } from './types';
 import type { State } from './State';
 import * as actionTypes from './actionTypes';
@@ -94,11 +94,11 @@ export class StateNode<
   /**
    * The action(s) to be executed upon entering the state node.
    */
-  public entry: Array<ActionObject<TContext, TEvent>>;
+  public entry: BaseActionObject[];
   /**
    * The action(s) to be executed upon exiting the state node.
    */
-  public exit: Array<ActionObject<TContext, TEvent>>;
+  public exit: BaseActionObject[];
   /**
    * The parent state node.
    */
@@ -208,11 +208,11 @@ export class StateNode<
       this.config.history === true ? 'shallow' : this.config.history || false;
 
     this.entry = toArray(this.config.entry).map((action) =>
-      toActionObject(action)
+      toActionObject(action, this.machine.options.actions)
     );
 
     this.exit = toArray(this.config.exit).map((action) =>
-      toActionObject(action)
+      toActionObject(action, this.machine.options.actions)
     );
     this.meta = this.config.meta;
     this.doneData =
@@ -379,7 +379,7 @@ export class StateNode<
     _event: SCXML.Event<TEvent>
   ): Transitions<TContext, TEvent> | undefined {
     const eventName = _event.name;
-    const actions: Array<ActionObject<TContext, TEvent>> = [];
+    const actions: BaseActionObject[] = [];
 
     let selectedTransition: TransitionDefinition<TContext, TEvent> | undefined;
 

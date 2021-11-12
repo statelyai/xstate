@@ -485,9 +485,11 @@ describe('useMachine hook', () => {
       },
       {
         actions: {
+          // @ts-ignore TODO: determine if we should deprecate asEffect
           stringEffect: asEffect(() => {
             order.push('string effect');
           }),
+          // @ts-ignore TODO: determine if we should deprecate asLayoutEffect
           stringLayoutEffect: asLayoutEffect(() => {
             order.push('string layout effect');
           })

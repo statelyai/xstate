@@ -2,13 +2,15 @@ import { ContextFrom, createMachine, EventFrom } from '../src';
 import {
   assign,
   cancel,
-  choose,
   log,
-  send,
   sendParent,
   sendUpdate,
-  stop
+  send,
+  stop,
+  respond
 } from '../src/actions';
+import { choose } from '../src/actions/choose';
+import { raise } from '../src/actions/raise';
 import { createModel } from '../src/model';
 
 describe('createModel', () => {
@@ -264,11 +266,11 @@ describe('createModel', () => {
       context: model.initialContext,
       entry: [
         model.actions.custom(),
-        // raise('SAMPLE'),
+        raise('SAMPLE'),
         send('SAMPLE'),
         sendParent('SOMETHING'),
         sendUpdate(),
-        // respond('SOMETHING'),
+        respond('SOMETHING'),
         log('something'),
         cancel('something'),
         stop('something'),
@@ -277,11 +279,11 @@ describe('createModel', () => {
       ],
       exit: [
         model.actions.custom(),
-        // raise('SAMPLE'),
+        raise('SAMPLE'),
         send('SAMPLE'),
         sendParent('SOMETHING'),
         sendUpdate(),
-        // respond('SOMETHING'),
+        respond('SOMETHING'),
         log('something'),
         cancel('something'),
         stop('something'),
@@ -310,11 +312,11 @@ describe('createModel', () => {
         someState: {
           entry: [
             model.actions.custom(),
-            // raise('SAMPLE'),
+            raise('SAMPLE'),
             send('SAMPLE'),
             sendParent('SOMETHING'),
             sendUpdate(),
-            // respond('SOMETHING'),
+            respond('SOMETHING'),
             log('something'),
             cancel('something'),
             stop('something'),
@@ -323,11 +325,11 @@ describe('createModel', () => {
           ],
           exit: [
             model.actions.custom(),
-            // raise('SAMPLE'),
+            raise('SAMPLE'),
             send('SAMPLE'),
             sendParent('SOMETHING'),
             sendUpdate(),
-            // respond('SOMETHING'),
+            respond('SOMETHING'),
             log('something'),
             cancel('something'),
             stop('something'),

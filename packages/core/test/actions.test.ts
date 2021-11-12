@@ -5,7 +5,10 @@ import {
   interpret,
   spawnMachine
 } from '../src/index';
-import { pure, sendParent, log, choose } from '../src/actions';
+import { sendParent } from '../src/actions';
+import { choose } from '../src/actions/choose';
+import { pure } from '../src/actions/pure';
+import { log } from '../src/actions/log';
 import { invokeMachine } from '../src/invoke';
 import { ActorRef } from '../src';
 
@@ -794,10 +797,15 @@ describe('actions config', () => {
     );
     const state = machine.transition('a', 'EVENT');
 
-    expect(state.actions).toEqual([
-      expect.objectContaining({ type: 'definedAction' }),
-      assign({ count: 10 })
-    ]);
+    // expect(state.actions).toEqual([
+    //   expect.objectContaining({
+    //     type: 'definedAction'
+    //   }),
+    //   expect.objectContaining({
+    //     type: 'updateContext'
+    //   })
+    // ]);
+    // TODO: specify which actions other actions came from
 
     expect(state.context).toEqual({ count: 10 });
   });
@@ -828,16 +836,8 @@ describe('actions config', () => {
     const { initialState } = anonMachine;
 
     initialState.actions.forEach((action) => {
-      if (action.exec) {
-        action.exec(
-          initialState.context,
-          { type: 'any' },
-          {
-            action,
-            state: initialState,
-            _event: initialState._event
-          }
-        );
+      if ('execute' in action) {
+        (action as any).execute(initialState);
       }
     });
 
@@ -848,16 +848,8 @@ describe('actions config', () => {
     expect(inactiveState.actions.length).toBe(2);
 
     inactiveState.actions.forEach((action) => {
-      if (action.exec) {
-        action.exec(
-          inactiveState.context,
-          { type: 'EVENT' },
-          {
-            action,
-            state: initialState,
-            _event: initialState._event
-          }
-        );
+      if ('execute' in action) {
+        (action as any).execute(inactiveState);
       }
     });
 
@@ -876,7 +868,9 @@ describe('action meta', () => {
           foo: {
             entry: {
               type: 'entryAction',
-              value: 'something'
+              params: {
+                value: 'something'
+              }
             }
           }
         }
@@ -886,7 +880,7 @@ describe('action meta', () => {
           entryAction: (_, __, meta) => {
             expect(meta.state.value).toEqual('foo');
             expect(meta.action.type).toEqual('entryAction');
-            expect(meta.action.value).toEqual('something');
+            expect(meta.action.params?.value).toEqual('something');
             done();
           }
         }
@@ -920,8 +914,7 @@ describe('purely defined actions', () => {
               if (ctx.items.length > 0) {
                 return {
                   type: 'SINGLE_EVENT',
-                  length: ctx.items.length,
-                  id: e.id
+                  params: { length: ctx.items.length, id: e.id }
                 };
               }
             })
@@ -931,8 +924,7 @@ describe('purely defined actions', () => {
               if (ctx.items.length > 5) {
                 return {
                   type: 'SINGLE_EVENT',
-                  length: ctx.items.length,
-                  id: e.id
+                  params: { length: ctx.items.length, id: e.id }
                 };
               }
             })
@@ -941,8 +933,7 @@ describe('purely defined actions', () => {
             actions: pure<any, any>((ctx) =>
               ctx.items.map((item, index) => ({
                 type: 'EVENT',
-                item,
-                index
+                params: { item, index }
               }))
             )
           }
@@ -958,11 +949,13 @@ describe('purely defined actions', () => {
     });
 
     expect(nextState.actions).toEqual([
-      {
+      expect.objectContaining({
         type: 'SINGLE_EVENT',
-        length: 3,
-        id: 3
-      }
+        params: {
+          length: 3,
+          id: 3
+        }
+      })
     ]);
   });
 
@@ -982,21 +975,18 @@ describe('purely defined actions', () => {
     );
 
     expect(nextState.actions).toEqual([
-      {
+      expect.objectContaining({
         type: 'EVENT',
-        item: { id: 1 },
-        index: 0
-      },
-      {
+        params: { item: { id: 1 }, index: 0 }
+      }),
+      expect.objectContaining({
         type: 'EVENT',
-        item: { id: 2 },
-        index: 1
-      },
-      {
+        params: { item: { id: 2 }, index: 1 }
+      }),
+      expect.objectContaining({
         type: 'EVENT',
-        item: { id: 3 },
-        index: 2
-      }
+        params: { item: { id: 3 }, index: 2 }
+      })
     ]);
   });
 });
@@ -1120,10 +1110,11 @@ describe('log()', () => {
   it('should log a string', () => {
     expect(logMachine.initialState.actions[0]).toMatchInlineSnapshot(`
       Object {
-        "expr": "some string",
-        "label": "string label",
+        "params": Object {
+          "label": "string label",
+          "value": "some string",
+        },
         "type": "xstate.log",
-        "value": "some string",
       }
     `);
   });
@@ -1132,10 +1123,11 @@ describe('log()', () => {
     const nextState = logMachine.transition(logMachine.initialState, 'EXPR');
     expect(nextState.actions[0]).toMatchInlineSnapshot(`
       Object {
-        "expr": [Function],
-        "label": "expr label",
+        "params": Object {
+          "label": "expr label",
+          "value": "expr 42",
+        },
         "type": "xstate.log",
-        "value": "expr 42",
       }
     `);
   });
@@ -1379,7 +1371,7 @@ describe('choose', () => {
               entry: choose([
                 {
                   guard: (_, __, { state }) => state.matches('bar'),
-                  actions: assign<Ctx>({ answer: 42 })
+                  actions: assign({ answer: 42 })
                 }
               ])
             }
@@ -1612,7 +1604,7 @@ it('should call transition actions in document order for states at different lev
 });
 
 describe('assign action order', () => {
-  it('should preserve action order when .preserveActionOrder = true', () => {
+  it('should preserve action order', () => {
     const captured: number[] = [];
 
     const machine = createMachine<{ count: number }>({
@@ -1623,8 +1615,7 @@ describe('assign action order', () => {
         (ctx) => captured.push(ctx.count), // 1
         assign({ count: (ctx) => ctx.count + 1 }),
         (ctx) => captured.push(ctx.count) // 2
-      ],
-      preserveActionOrder: true
+      ]
     });
 
     interpret(machine).start();
@@ -1632,28 +1623,34 @@ describe('assign action order', () => {
     expect(captured).toEqual([0, 1, 2]);
   });
 
-  it('should deeply preserve action order when .preserveActionOrder = true', () => {
+  it('should deeply preserve action order', () => {
     const captured: number[] = [];
 
     interface CountCtx {
       count: number;
     }
 
-    const machine = createMachine<CountCtx>({
-      context: { count: 0 },
-      entry: [
-        (ctx) => captured.push(ctx.count), // 0
-        pure(() => {
-          return [
-            assign<CountCtx>({ count: (ctx) => ctx.count + 1 }),
-            { type: 'capture', exec: (ctx) => captured.push(ctx.count) }, // 1
-            assign<CountCtx>({ count: (ctx) => ctx.count + 1 })
-          ];
-        }),
-        (ctx) => captured.push(ctx.count) // 2
-      ],
-      preserveActionOrder: true
-    });
+    const machine = createMachine<CountCtx>(
+      {
+        context: { count: 0 },
+        entry: [
+          (ctx) => captured.push(ctx.count), // 0
+          pure(() => {
+            return [
+              assign<CountCtx>({ count: (ctx) => ctx.count + 1 }),
+              { type: 'capture' }, // 1
+              assign<CountCtx>({ count: (ctx) => ctx.count + 1 })
+            ];
+          }),
+          (ctx) => captured.push(ctx.count) // 2
+        ]
+      },
+      {
+        actions: {
+          capture: (ctx) => captured.push(ctx.count)
+        }
+      }
+    );
 
     interpret(machine).start();
 
@@ -1685,4 +1682,104 @@ describe('assign action order', () => {
 
     expect(captured).toEqual([1, 2]);
   });
+});
+
+describe('types', () => {
+  it('assign actions should be inferred correctly', () => {
+    createMachine<
+      { count: number; text: string },
+      { type: 'inc'; value: number } | { type: 'say'; value: string }
+    >({
+      context: {
+        count: 0,
+        text: 'hello'
+      },
+      entry: [
+        assign({ count: 31 }),
+        // @ts-expect-error
+        assign({ count: 'string' }),
+
+        assign({ count: () => 31 }),
+        // @ts-expect-error
+        assign({ count: () => 'string' }),
+
+        assign({ count: (ctx) => ctx.count + 31 }),
+        // @ts-expect-error
+        assign({ count: (ctx) => ctx.text + 31 }),
+
+        assign(() => ({ count: 31 })),
+        // @ts-expect-error
+        assign(() => ({ count: 'string' })),
+
+        assign((ctx) => ({ count: ctx.count + 31 })),
+        // @ts-expect-error
+        assign((ctx) => ({ count: ctx.text + 31 }))
+      ],
+      on: {
+        say: {
+          actions: [
+            assign({ text: (_, e) => e.value }),
+            // @ts-expect-error
+            assign({ count: (_, e) => e.value }),
+
+            assign((_, e) => ({ text: e.value })),
+            // @ts-expect-error
+            assign((_, e) => ({ count: e.value }))
+          ]
+        }
+      }
+    });
+  });
+
+  it('choose actions should be inferred correctly', () => {
+    createMachine<
+      { count: number; text: string },
+      { type: 'inc'; value: number } | { type: 'say'; value: string }
+    >({
+      context: {
+        count: 0,
+        text: 'hello'
+      },
+      entry: [
+        choose([{ actions: assign({ count: 31 }) }]),
+        // @ts-expect-error
+        choose([{ actions: assign({ count: 'string' }) }]),
+
+        choose([{ actions: assign({ count: () => 31 }) }]),
+        // @ts-expect-error
+        choose([{ actions: assign({ count: () => 'string' }) }]),
+
+        choose([{ actions: assign({ count: (ctx) => ctx.count + 31 }) }]),
+        // @ts-expect-error
+        choose([{ actions: assign({ count: (ctx) => ctx.text + 31 }) }]),
+
+        choose([{ actions: assign(() => ({ count: 31 })) }]),
+        // @ts-expect-error
+        choose([{ actions: assign(() => ({ count: 'string' })) }]),
+
+        choose([{ actions: assign((ctx) => ({ count: ctx.count + 31 })) }]),
+        // @ts-expect-error
+        choose([{ actions: assign((ctx) => ({ count: ctx.text + 31 })) }])
+      ],
+      on: {
+        say: {
+          actions: [
+            choose([{ actions: assign({ text: (_, e) => e.value }) }]),
+            // @ts-expect-error
+            choose([{ actions: assign({ count: (_, e) => e.value }) }]),
+
+            choose([{ actions: assign((_, e) => ({ text: e.value })) }]),
+            // @ts-expect-error
+            choose([{ actions: assign((_, e) => ({ count: e.value })) }])
+          ]
+        }
+      }
+    });
+  });
+});
+
+describe('action meta', () => {
+  it.todo(
+    'base action objects should have meta.action as the same base action object'
+  );
 });

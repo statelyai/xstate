@@ -1,15 +1,15 @@
-import { MachineNode } from '.';
+import type { StateMachine } from './StateMachine';
 import {
   EventObject,
   Assigner,
   ExtractEvent,
   PropertyAssigner,
-  AssignAction,
   MachineConfig,
   MachineImplementations,
   BaseActionObject,
   MachineContext,
-  Typestate
+  Typestate,
+  DynamicAssignAction
 } from './types';
 
 export type AnyFunction = (...args: any[]) => any;
@@ -35,14 +35,14 @@ export interface Model<
       | Assigner<TContext, ExtractEvent<TEvent, TEventType>>
       | PropertyAssigner<TContext, ExtractEvent<TEvent, TEventType>>,
     eventType?: TEventType
-  ) => AssignAction<TContext, ExtractEvent<TEvent, TEventType>>;
+  ) => DynamicAssignAction<TContext, ExtractEvent<TEvent, TEventType>>;
   events: Prop<TModelCreators, 'events'>;
   actions: Prop<TModelCreators, 'actions'>;
-  reset: () => AssignAction<TContext, any>;
+  reset: () => DynamicAssignAction<TContext, any>;
   createMachine: (
     config: MachineConfig<TContext, TEvent, TAction>,
     implementations?: Partial<MachineImplementations<TContext, TEvent, TAction>>
-  ) => MachineNode<TContext, TEvent, Typestate<TContext>>;
+  ) => StateMachine<TContext, TEvent, Typestate<TContext>>;
 }
 
 export type ModelContextFrom<

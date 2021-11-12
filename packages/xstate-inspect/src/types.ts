@@ -1,4 +1,4 @@
-import type { ActorRef, Interpreter, SCXML, State, MachineNode } from 'xstate';
+import type { ActorRef, Interpreter, SCXML, State, StateMachine } from 'xstate';
 import { XStateDevInterface } from 'xstate/dev';
 import { InspectMachineEvent } from './inspectMachine';
 
@@ -50,7 +50,7 @@ export type ReceiverEvent =
 export type ParsedReceiverEvent =
   | {
       type: 'service.register';
-      machine: MachineNode<any, any>;
+      machine: StateMachine<any, any>;
       state: State<any, any>;
       id: string;
       sessionId: string;

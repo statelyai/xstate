@@ -1,4 +1,4 @@
-import { assign } from './actions';
+import { assign } from './actions/assign';
 import { createMachine } from './Machine';
 import type { EventObject, MachineContext, BaseActionObject } from './types';
 import { mapValues } from './utils';

@@ -15,7 +15,10 @@ import {
   spawnObservable
 } from '../src';
 import { State } from '../src/State';
-import { log, actionTypes, raise, stop } from '../src/actions';
+import { actionTypes } from '../src/actions';
+import { raise } from '../src/actions/raise';
+import { stop } from '../src/actions/stop';
+import { log } from '../src/actions/log';
 import { isObservable } from '../src/utils';
 import { interval, from } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -169,7 +172,7 @@ describe('interpreter', () => {
 
       // saves state and recreate it
       const recreated = JSON.parse(JSON.stringify(nextState));
-      const previousState = State.create<never>(recreated);
+      const previousState = State.create(recreated);
       const resolvedState = lightMachine.resolveState(previousState);
 
       const service = interpret(lightMachine);

@@ -214,7 +214,9 @@ describe('machine', () => {
         context: { foo: { prop: 'bar' } }
       });
       const copiedMachine = machine.provide({
-        context: () => ({ foo: { prop: 'baz' } })
+        context: () => ({
+          foo: { prop: 'baz' }
+        })
       });
       expect(copiedMachine.initialState.context).toEqual({
         foo: { prop: 'baz' }
@@ -227,7 +229,9 @@ describe('machine', () => {
       });
 
       const copiedMachine = machine.provide({
-        context: () => ({ foo: { prop: 'baz' } })
+        context: () => ({
+          foo: { prop: 'baz' }
+        })
       });
 
       const a = interpret(copiedMachine).start();

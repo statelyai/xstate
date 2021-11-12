@@ -1,4 +1,4 @@
-import {
+import type {
   Event,
   StateValue,
   EventObject,
@@ -16,13 +16,14 @@ import {
   InvokeSourceDefinition,
   Observer,
   MachineContext,
-  Behavior
+  Behavior,
+  InvokeConfig,
+  SCXMLErrorEvent
 } from './types';
 import { STATE_DELIMITER, TARGETLESS_KEY } from './constants';
 import { IS_PRODUCTION } from './environment';
-import { StateNode } from './StateNode';
-import { InvokeConfig, SCXMLErrorEvent } from '.';
-import { StateMachine } from './StateMachine';
+import type { StateNode } from './StateNode';
+import type { StateMachine } from './StateMachine';
 import { errorExecution, errorPlatform } from './actionTypes';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
@@ -332,7 +333,7 @@ export const symbolObservable = (() =>
   (typeof Symbol === 'function' && (Symbol as any).observable) ||
   '@@observable')();
 
-export function isMachineNode(
+export function isStateMachine(
   value: any
 ): value is StateMachine<any, any, any> {
   try {
@@ -411,7 +412,7 @@ export function toTransitionConfigArray<
     if (
       typeof transitionLike === 'undefined' ||
       typeof transitionLike === 'string' ||
-      isMachineNode(transitionLike)
+      isStateMachine(transitionLike)
     ) {
       return { target: transitionLike, event };
     }

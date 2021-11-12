@@ -11,8 +11,11 @@ function executeEffect<
   action: ReactActionObject<TContext, TEvent>,
   state: State<TContext, TEvent, any>
 ): void {
-  const { exec } = action;
-  const originalExec = exec!(state.context, state._event.data, {
+  const { exec } = action.params;
+  if (!exec) {
+    return;
+  }
+  const originalExec = exec(state.context, state._event.data, {
     action,
     state,
     _event: state._event
@@ -37,17 +40,14 @@ export function useReactEffectActions<
       if (currentState.actions.length) {
         const reactEffectActions = currentState.actions.filter(
           (action): action is ReactActionObject<TContext, TEvent> => {
-            return (
-              typeof action.exec === 'function' &&
-              '__effect' in (action as ReactActionObject<TContext, TEvent>).exec
-            );
+            return !!(action.params && '__effect' in action.params);
           }
         );
 
         const [effectActions, layoutEffectActions] = partition(
           reactEffectActions,
           (action): action is ReactActionObject<TContext, TEvent> => {
-            return action.exec.__effect === ReactEffectType.Effect;
+            return action.params.__effect === ReactEffectType.Effect;
           }
         );
 

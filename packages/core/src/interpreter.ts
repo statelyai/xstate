@@ -2,15 +2,12 @@ import {
   Event,
   EventObject,
   CancelActionObject,
-  ActionObject,
   SpecialTargets,
-  ActionTypes,
   SendActionObject,
   StateValue,
   InterpreterOptions,
   DoneEvent,
   Subscription,
-  MachineImplementations,
   ActionFunctionMap,
   SCXML,
   Observer,
@@ -18,11 +15,12 @@ import {
   InvokeActionObject,
   AnyEventObject,
   ActorRef,
-  SCXMLErrorEvent
+  SCXMLErrorEvent,
+  InvokeSourceDefinition
 } from './types';
-import { State, bindActionToState, isState } from './State';
+import { State, isState } from './State';
 import * as actionTypes from './actionTypes';
-import { doneInvoke, error, getActionFunction, initEvent } from './actions';
+import { doneInvoke, error, initEvent } from './actions';
 import { IS_PRODUCTION } from './environment';
 import {
   mapContext,
@@ -39,15 +37,19 @@ import { Scheduler } from './scheduler';
 import { isActorRef } from './actor';
 import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
-import { StateMachine } from './StateMachine';
+import type { StateMachine } from './StateMachine';
 import { devToolsAdapter } from './dev';
 import { CapturedState } from './capturedState';
-import {
+import type {
+  ActionFunction,
+  BaseActionObject,
+  LogActionObject,
   MachineContext,
   PayloadSender,
   StopActionObject,
   Subscribable
-} from '.';
+} from './types';
+import { isExecutableAction } from '../actions/ExecutableAction';
 
 export type StateListener<
   TContext extends MachineContext,
@@ -204,14 +206,10 @@ export class Interpreter<
    * Executes the actions of the given state, with that state's `context` and `event`.
    *
    * @param state The state whose actions will be executed
-   * @param actionsConfig The action implementations to use
    */
-  public execute(
-    state: State<TContext, TEvent, TTypestate>,
-    actionsConfig?: MachineImplementations<TContext, TEvent>['actions']
-  ): void {
+  public execute(state: State<TContext, TEvent, TTypestate>): void {
     for (const action of state.actions) {
-      this.exec(action, state, actionsConfig);
+      this.exec(action, state);
     }
   }
 
@@ -566,7 +564,7 @@ export class Interpreter<
     this.scheduler.schedule(() => {
       let nextState = this.state;
       let batchChanged = false;
-      const batchedActions: Array<ActionObject<TContext, TEvent>> = [];
+      const batchedActions: BaseActionObject[] = [];
       for (const event of events) {
         const _event = toSCXMLEvent(event);
 
@@ -574,11 +572,7 @@ export class Interpreter<
 
         nextState = this._transition(nextState, _event);
 
-        batchedActions.push(
-          ...(nextState.actions.map((a) =>
-            bindActionToState(a, nextState)
-          ) as Array<ActionObject<TContext, TEvent>>)
-        );
+        batchedActions.push(...nextState.actions);
 
         batchChanged = batchChanged || !!nextState.changed;
       }
@@ -663,39 +657,143 @@ export class Interpreter<
       child.send(event);
     }
   }
-  private defer(sendAction: SendActionObject<TContext, TEvent>): void {
-    this.delayedEventsMap[sendAction.id] = this.clock.setTimeout(() => {
-      if (sendAction.to) {
-        this.sendTo(sendAction._event, sendAction.to);
+  private defer(sendAction: SendActionObject): void {
+    this.delayedEventsMap[sendAction.params.id] = this.clock.setTimeout(() => {
+      if (sendAction.params.to) {
+        this.sendTo(sendAction.params._event, sendAction.params.to);
       } else {
-        this.send(
-          (sendAction as SendActionObject<TContext, TEvent, TEvent>)._event
-        );
+        this.send(sendAction.params._event as SCXML.Event<TEvent>);
       }
-    }, sendAction.delay as number);
+    }, sendAction.params.delay as number);
   }
   private cancel(sendId: string | number): void {
     this.clock.clearTimeout(this.delayedEventsMap[sendId]);
     delete this.delayedEventsMap[sendId];
   }
+  private getActionFunction(
+    actionType: string
+  ): BaseActionObject | ActionFunction<TContext, TEvent> | undefined {
+    return (
+      this.machine.options.actions[actionType] ??
+      ({
+        [actionTypes.send]: (_ctx, _e, { action }) => {
+          const sendAction = action as SendActionObject;
+
+          if (typeof sendAction.params.delay === 'number') {
+            this.defer(sendAction);
+            return;
+          } else {
+            if (sendAction.params.to) {
+              this.sendTo(sendAction.params._event, sendAction.params.to);
+            } else {
+              this.send(sendAction.params._event as SCXML.Event<TEvent>);
+            }
+          }
+        },
+        [actionTypes.cancel]: (_ctx, _e, { action }) => {
+          this.cancel((action as CancelActionObject).params.sendId);
+        },
+        [actionTypes.invoke]: (_ctx, _e, { action, state }) => {
+          const {
+            id,
+            autoForward,
+            ref
+          } = (action as InvokeActionObject).params;
+          if (!ref) {
+            if (!IS_PRODUCTION) {
+              warn(
+                false,
+                `Actor type '${
+                  ((action as InvokeActionObject).params
+                    .src as InvokeSourceDefinition).type
+                }' not found in machine '${this.machine.key}'.`
+              );
+            }
+            return;
+          }
+          (ref as any).parent = this; // TODO: fix
+          // If the actor will be stopped right after it's started
+          // (such as in transient states) don't bother starting the actor.
+          if (
+            state.actions.find((otherAction) => {
+              return (
+                otherAction.type === actionTypes.stop &&
+                (otherAction as StopActionObject).params.actor === id
+              );
+            })
+          ) {
+            return;
+          }
+          try {
+            if (autoForward) {
+              this.forwardTo.add(id);
+            }
+
+            this.children.set(id, ref);
+            this.state.children[id] = ref;
+
+            ref.subscribe({
+              error: () => {
+                // TODO: handle error
+                this.stop();
+              },
+              complete: () => {
+                /* ... */
+              }
+            });
+
+            ref.start?.();
+          } catch (err) {
+            this.send(error(id, err));
+            return;
+          }
+        },
+        [actionTypes.stop]: (_ctx, _e, { action }) => {
+          const { actor } = (action as StopActionObject).params;
+          const actorRef =
+            typeof actor === 'string' ? this.children.get(actor) : actor;
+
+          if (actorRef) {
+            this.stopChild(actorRef.name);
+          }
+        },
+        [actionTypes.log]: (_ctx, _e, { action }) => {
+          const { label, value } = (action as LogActionObject).params;
+
+          if (label) {
+            this.logger(label, value);
+          } else {
+            this.logger(value);
+          }
+        }
+      } as ActionFunctionMap<TContext, TEvent>)[actionType]
+    );
+  }
   private exec(
-    action: InvokeActionObject | ActionObject<TContext, TEvent>,
-    state: State<TContext, TEvent, TTypestate>,
-    actionFunctionMap: ActionFunctionMap<TContext, TEvent> = this.machine
-      .options.actions
+    action: InvokeActionObject | BaseActionObject,
+    state: State<TContext, TEvent, TTypestate>
   ): void {
-    const { context, _event } = state;
-    const actionOrExec =
-      action.exec || getActionFunction(action.type, actionFunctionMap);
-    const exec = isFunction(actionOrExec)
-      ? actionOrExec
-      : actionOrExec
-      ? actionOrExec.exec
-      : action.exec;
+    const { _event } = state;
+
+    if (isExecutableAction(action)) {
+      try {
+        return action.execute(state);
+      } catch (err) {
+        this.parent?.send({
+          type: 'xstate.error',
+          data: err
+        });
+
+        throw err;
+      }
+    }
+
+    const actionOrExec = this.getActionFunction(action.type);
+    const exec = isFunction(actionOrExec) ? actionOrExec : undefined;
 
     if (exec) {
       try {
-        return exec(context, _event.data, {
+        return exec(state.context, _event.data, {
           action,
           state: this.state,
           _event
@@ -712,102 +810,8 @@ export class Interpreter<
       }
     }
 
-    switch (action.type) {
-      case actionTypes.send:
-        const sendAction = action as SendActionObject<TContext, TEvent>;
-
-        if (typeof sendAction.delay === 'number') {
-          this.defer(sendAction);
-          return;
-        } else {
-          if (sendAction.to) {
-            this.sendTo(sendAction._event, sendAction.to);
-          } else {
-            this.send(
-              (sendAction as SendActionObject<TContext, TEvent, TEvent>)._event
-            );
-          }
-        }
-        break;
-
-      case actionTypes.cancel:
-        this.cancel((action as CancelActionObject<TContext, TEvent>).sendId);
-
-        break;
-
-      case ActionTypes.Invoke: {
-        const { id, autoForward, ref } = action as InvokeActionObject;
-        if (!ref) {
-          break;
-        }
-        (ref as any).parent = this; // TODO: fix
-        // If the actor will be stopped right after it's started
-        // (such as in transient states) don't bother starting the actor.
-        if (
-          state.actions.find((otherAction) => {
-            return (
-              otherAction.type === actionTypes.stop && otherAction.actor === id
-            );
-          })
-        ) {
-          return;
-        }
-        try {
-          if (autoForward) {
-            this.forwardTo.add(id);
-          }
-
-          this.children.set(id, ref);
-          this.state.children[id] = ref;
-
-          ref.subscribe({
-            error: () => {
-              // TODO: handle error
-              this.stop();
-            },
-            complete: () => {
-              /* ... */
-            }
-          });
-
-          ref.start?.();
-        } catch (err) {
-          this.send(error(id, err));
-          break;
-        }
-
-        break;
-      }
-      case actionTypes.stop: {
-        const { actor } = action as StopActionObject;
-        const actorRef =
-          typeof actor === 'string' ? this.children.get(actor) : actor;
-
-        if (actorRef) {
-          this.stopChild(actorRef.name);
-        }
-        break;
-      }
-
-      case actionTypes.log:
-        const { label, value } = action;
-
-        if (label) {
-          this.logger(label, value);
-        } else {
-          this.logger(value);
-        }
-        break;
-      case actionTypes.assign:
-        break;
-      default:
-        if (!IS_PRODUCTION) {
-          warn(
-            false,
-            `No implementation found for action type '${action.type}'`
-          );
-        }
-        break;
+    if (!IS_PRODUCTION) {
+      warn(false, `No implementation found for action type '${action.type}'`);
     }
 
     return undefined;

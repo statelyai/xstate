@@ -10,10 +10,12 @@ export const CapturedState = {
 export function captureSpawn(actorRef: ActorRef<any, any>, name: string) {
   CapturedState.current.spawns.push({
     type: ActionTypes.Invoke,
-    src: actorRef,
-    ref: actorRef,
-    id: name,
-    meta: undefined
+    params: {
+      src: actorRef,
+      ref: actorRef,
+      id: name,
+      meta: undefined
+    }
   });
 
   return actorRef;

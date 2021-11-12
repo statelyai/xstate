@@ -140,7 +140,7 @@ export class StateMachine<
    * @param implementations Options (`actions`, `guards`, `actors`, `delays`, `context`)
    *  to recursively merge with the existing options.
    *
-   * @returns A new `MachineNode` instance with the provided implementations.
+   * @returns A new `StateMachine` instance with the provided implementations.
    */
   public provide(
     implementations: Partial<MachineImplementations<TContext, TEvent>>
@@ -302,9 +302,11 @@ export class StateMachine<
 
   public createState(
     stateConfig: State<TContext, TEvent> | StateConfig<TContext, TEvent>
-  ): State<TContext, TEvent> {
+  ): State<TContext, TEvent, TTypestate> {
     const state =
-      stateConfig instanceof State ? stateConfig : new State(stateConfig);
+      stateConfig instanceof State
+        ? stateConfig
+        : (new State(stateConfig) as State<TContext, TEvent, TTypestate>);
     state.machine = this;
     return state;
   }

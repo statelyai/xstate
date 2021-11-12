@@ -2,7 +2,7 @@ import {
   createMachine,
   State,
   interpret,
-  MachineNode,
+  StateMachine,
   SimulatedClock,
   getStateNodes
 } from 'xstate';
@@ -21,7 +21,7 @@ interface SCIONTest {
 }
 
 async function runTestToCompletion(
-  machine: MachineNode,
+  machine: StateMachine,
   test: SCIONTest
 ): Promise<void> {
   let done = false;

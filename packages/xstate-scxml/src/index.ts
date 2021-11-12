@@ -1,12 +1,12 @@
 import { js2xml, Element as XMLElement, Attributes } from 'xml-js';
 import {
-  ActionObject,
+  BaseActionObject,
   TransitionDefinition,
   StateNode,
-  ActionType,
-  MachineNode,
+  StateMachine,
   flatten
 } from 'xstate';
+import { RaiseActionObject } from 'xstate';
 
 function cleanAttributes(attributes: Attributes): Attributes {
   for (const key of Object.keys(attributes)) {
@@ -23,21 +23,19 @@ export function functionToExpr(fn: Function): string {
   return fn.toString();
 }
 
-function actionToSCXML(action: ActionObject<any, any>): XMLElement {
-  const { type, ...attributes } = action;
-
-  const actionTypeMap: Record<ActionType, string> = {
-    'xstate.raise': 'raise'
+function raiseActionToSCXML(raiseAction: RaiseActionObject<any>): XMLElement {
+  return {
+    type: 'element',
+    name: 'raise',
+    attributes: {
+      event: raiseAction.params._event.name
+    }
   };
+}
 
-  const name = actionTypeMap[action.type];
-
-  if (name) {
-    return {
-      type: 'element',
-      name,
-      attributes
-    };
+function actionToSCXML(action: BaseActionObject): XMLElement {
+  if (action.type === 'xstate.raise') {
+    return raiseActionToSCXML(action as RaiseActionObject<any>);
   }
 
   return {
@@ -92,7 +90,7 @@ function doneDataToSCXML(data: any): XMLElement {
 
 function actionsToSCXML(
   name: 'onentry' | 'onexit',
-  actions: Array<ActionObject<any, any>>
+  actions: Array<BaseActionObject>
 ): XMLElement {
   return {
     type: 'element',
@@ -155,7 +153,7 @@ function stateNodeToSCXML(stateNode: StateNode<any, any>): XMLElement {
   };
 }
 
-export function toSCXML(machine: MachineNode<any, any, any>): string {
+export function toSCXML(machine: StateMachine<any, any, any>): string {
   const { states, initial } = machine.root;
 
   const elements = Object.keys(states).map<XMLElement>((key) => {

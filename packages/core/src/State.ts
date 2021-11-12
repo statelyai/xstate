@@ -1,7 +1,6 @@
 import type {
   StateValue,
   EventObject,
-  ActionObject,
   EventType,
   StateConfig,
   SCXML,
@@ -11,7 +10,8 @@ import type {
   NullEvent,
   ActorRef,
   MachineContext,
-  SimpleEventsOf
+  SimpleEventsOf,
+  BaseActionObject
 } from './types';
 import { matchesState, keys, isString, warn } from './utils';
 import type { StateNode } from './StateNode';
@@ -23,7 +23,7 @@ import {
 } from './stateUtils';
 import { initEvent } from './actions';
 import { IS_PRODUCTION } from './environment';
-import type { MachineNode } from '.';
+import type { StateMachine } from './StateMachine';
 
 export function isState<
   TContext extends MachineContext,
@@ -36,29 +36,6 @@ export function isState<
 
   return 'value' in state && 'history' in state;
 }
-export function bindActionToState<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  action: ActionObject<TContext, TEvent>,
-  state: State<TContext, TEvent, any>
-): ActionObject<TContext, TEvent> {
-  const { exec } = action;
-  const boundAction: ActionObject<TContext, TEvent> = {
-    ...action,
-    exec:
-      exec !== undefined
-        ? () =>
-            exec(state.context, state.event as TEvent, {
-              action,
-              state,
-              _event: state._event
-            })
-        : undefined
-  };
-
-  return boundAction;
-}
 
 export class State<
   TContext extends MachineContext,
@@ -69,7 +46,7 @@ export class State<
   public context: TContext;
   public history?: State<TContext, TEvent, TTypestate>;
   public historyValue: HistoryValue<TContext, TEvent> = {};
-  public actions: Array<ActionObject<TContext, TEvent>> = [];
+  public actions: BaseActionObject[] = [];
   public meta: any = {};
   public event: TEvent;
   public _internalQueue: Array<SCXML.Event<TEvent> | NullEvent> = [];
@@ -103,7 +80,7 @@ export class State<
    */
   public children: Record<string, ActorRef<any>>;
   public tags: Set<string>;
-  public machine: MachineNode<TContext, TEvent, TTypestate> | undefined;
+  public machine: StateMachine<TContext, TEvent, TTypestate> | undefined;
   /**
    * Creates a new State instance for the given `stateValue` and `context`.
    * @param stateValue
