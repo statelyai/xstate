@@ -971,7 +971,7 @@ describe('actors', () => {
             spawnPromise(
               () =>
                 new Promise<number>((res) => {
-                  setTimeout(res(42));
+                  setTimeout(() => res(42));
                 }),
               'test'
             )
@@ -1007,7 +1007,7 @@ describe('actors', () => {
           count: spawnPromise(
             () =>
               new Promise<number>((_, rej) => {
-                setTimeout(rej(errorMessage), 1000);
+                setTimeout(() => rej(errorMessage), 1000);
               }),
             'test'
           )
@@ -1219,7 +1219,7 @@ describe('actors', () => {
 
   it('should receive done event from an immediately completed observable when self-initializing', () => {
     const parentMachine = createMachine<{
-      child: ActorRef<any> | null;
+      child: ActorRef<EventObject, unknown> | null;
     }>({
       context: {
         child: null
