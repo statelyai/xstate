@@ -1,7 +1,8 @@
 import { Event, EventObject, RaiseActionObject } from '../types';
 import * as actionTypes from '../actionTypes';
 import { toSCXMLEvent } from '../utils';
-import { DynamicAction } from '../../actions/DynamicAction';
+import { createDynamicAction } from '../../actions/dynamicAction';
+import { BaseDynamicActionObject } from '..';
 
 /**
  * Raises an event. This places the event in the internal event queue, so that
@@ -12,20 +13,20 @@ import { DynamicAction } from '../../actions/DynamicAction';
 
 export function raise<TEvent extends EventObject>(
   event: Event<TEvent>
-): DynamicAction<
+): BaseDynamicActionObject<
   any,
   TEvent,
   RaiseActionObject<TEvent>,
   RaiseActionObject<TEvent>['params']
 > {
-  return new DynamicAction(
+  return createDynamicAction(
     actionTypes.raise,
     { _event: toSCXMLEvent(event) },
-    (action) => {
+    ({ params }) => {
       return {
         type: actionTypes.raise,
         params: {
-          _event: action.params._event
+          _event: params._event
         }
       };
     }

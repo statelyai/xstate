@@ -1,8 +1,9 @@
 import { EventObject, SingleOrArray, MachineContext } from '../types';
 import { pure as pureActionType } from '../actionTypes';
-import { DynamicAction } from '../../actions/DynamicAction';
+import { createDynamicAction } from '../../actions/dynamicAction';
 import {
   BaseActionObject,
+  BaseDynamicActionObject,
   DynamicPureActionObject,
   PureActionObject
 } from '..';
@@ -16,22 +17,22 @@ export function pure<
     context: TContext,
     event: TEvent
   ) => SingleOrArray<BaseActionObject> | undefined
-): DynamicAction<
+): BaseDynamicActionObject<
   TContext,
   TEvent,
   PureActionObject,
   DynamicPureActionObject<TContext, TEvent>['params']
 > {
-  return new DynamicAction(
+  return createDynamicAction(
     pureActionType,
     {
       get: getActions
     },
-    (actions, ctx, _event) => {
+    ({ params }, ctx, _event) => {
       return {
         type: pureActionType,
         params: {
-          actions: toArray(actions.params.get(ctx, _event.data)) ?? []
+          actions: toArray(params.get(ctx, _event.data)) ?? []
         }
       };
     }

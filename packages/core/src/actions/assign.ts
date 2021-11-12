@@ -9,7 +9,7 @@ import type {
   InvokeActionObject
 } from '../types';
 import * as actionTypes from '../actionTypes';
-import { DynamicAction } from '../../actions/DynamicAction';
+import { createDynamicAction } from '../../actions/dynamicAction';
 import { isFunction, keys } from '../utils';
 
 import * as capturedState from '../capturedState';
@@ -28,7 +28,7 @@ export function assign<
     | Assigner<TContext, TEvent>
     | PropertyAssigner<TContext, TEvent>
 >(assignment: TAssignment): DynamicAssignAction<TContext, TEvent> {
-  return new DynamicAction<
+  return createDynamicAction<
     TContext,
     TEvent,
     AssignActionObject<TContext>,

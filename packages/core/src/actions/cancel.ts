@@ -1,8 +1,12 @@
 import { EventObject, ExprWithMeta, MachineContext } from '../types';
 import { cancel as cancelActionType } from '../actionTypes';
 import { isFunction } from '../utils';
-import { DynamicAction } from '../../actions/DynamicAction';
-import { CancelActionObject, DynamicCancelActionObject } from '..';
+import {
+  BaseDynamicActionObject,
+  CancelActionObject,
+  DynamicCancelActionObject
+} from '..';
+import { createDynamicAction } from '../../actions/dynamicAction';
 
 /**
  * Cancels an in-flight `send(...)` action. A canceled sent action will not
@@ -17,26 +21,26 @@ export function cancel<
   TEvent extends EventObject
 >(
   sendId: string | ExprWithMeta<TContext, TEvent, string>
-): DynamicAction<
+): BaseDynamicActionObject<
   TContext,
   TEvent,
   CancelActionObject,
   DynamicCancelActionObject<TContext, TEvent>['params']
 > {
-  return new DynamicAction(
+  return createDynamicAction(
     cancelActionType,
     {
       sendId
     },
-    (action, ctx, _event) => {
-      const resolvedSendId = isFunction(action.params.sendId)
-        ? action.params.sendId(ctx, _event.data, {
+    ({ params, type }, ctx, _event) => {
+      const resolvedSendId = isFunction(params.sendId)
+        ? params.sendId(ctx, _event.data, {
             _event
           })
-        : action.params.sendId;
+        : params.sendId;
 
       return {
-        type: action.type,
+        type,
         params: {
           sendId: resolvedSendId
         }

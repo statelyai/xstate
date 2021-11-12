@@ -1,7 +1,7 @@
 import {
   Event,
   EventObject,
-  SendActionOptions,
+  SendActionParams,
   SpecialTargets,
   SendExpr,
   AnyEventObject,
@@ -15,8 +15,13 @@ import {
   toEventObject,
   toSCXMLEvent
 } from '../utils';
-import { DynamicAction } from '../../actions/DynamicAction';
-import { ActionTypes, ExprWithMeta, SendActionObject } from '..';
+import { createDynamicAction } from '../../actions/dynamicAction';
+import {
+  ActionTypes,
+  BaseDynamicActionObject,
+  ExprWithMeta,
+  SendActionObject
+} from '..';
 import { actionTypes } from '../actions';
 
 /**
@@ -35,18 +40,24 @@ export function send<
   TSentEvent extends EventObject = AnyEventObject
 >(
   event: Event<TSentEvent> | SendExpr<TContext, TEvent, TSentEvent>,
-  options?: SendActionOptions<TContext, TEvent>
-): DynamicAction<
+  options?: SendActionParams<TContext, TEvent>
+): BaseDynamicActionObject<
   TContext,
   TEvent,
   SendActionObject<AnyEventObject>,
-  SendActionOptions<TContext, TEvent>
+  SendActionParams<TContext, TEvent>
 > {
-  return new DynamicAction(
+  const revent = isFunction(event) ? event : toEventObject<TSentEvent>(event);
+
+  return createDynamicAction<
+    TContext,
+    TEvent,
+    SendActionObject<AnyEventObject>,
+    SendActionParams<TContext, TEvent>
+  >(
     sendActionType,
     {
       to: options ? options.to : undefined,
-      event: isFunction(event) ? event : toEventObject<TSentEvent>(event),
       delay: options ? options.delay : undefined,
       id:
         options && options.id !== undefined
@@ -55,7 +66,7 @@ export function send<
           ? event.name
           : (getEventType<TSentEvent>(event) as string)
     },
-    (action, ctx, _event, { machine }) => {
+    ({ params }, ctx, _event, { machine }) => {
       const meta = {
         _event
       };
@@ -63,26 +74,24 @@ export function send<
 
       // TODO: helper function for resolving Expr
       const resolvedEvent = toSCXMLEvent(
-        isFunction(action.params.event)
-          ? action.params.event(ctx, _event.data, meta)
-          : action.params.event
+        isFunction(revent) ? revent(ctx, _event.data, meta) : revent
       );
 
       let resolvedDelay: number | undefined;
-      if (isString(action.params.delay)) {
-        const configDelay = delaysMap && delaysMap[action.params.delay];
+      if (isString(params.delay)) {
+        const configDelay = delaysMap && delaysMap[params.delay];
         resolvedDelay = isFunction(configDelay)
           ? configDelay(ctx, _event.data, meta)
           : configDelay;
       } else {
-        resolvedDelay = isFunction(action.params.delay)
-          ? action.params.delay(ctx, _event.data, meta)
-          : action.params.delay;
+        resolvedDelay = isFunction(params.delay)
+          ? params.delay(ctx, _event.data, meta)
+          : params.delay;
       }
 
-      let resolvedTarget = isFunction(action.params.to)
-        ? action.params.to(ctx, _event.data, meta)
-        : action.params.to;
+      let resolvedTarget = isFunction(params.to)
+        ? params.to(ctx, _event.data, meta)
+        : params.to;
       resolvedTarget =
         isString(resolvedTarget) &&
         resolvedTarget !== SpecialTargets.Parent &&
@@ -94,7 +103,8 @@ export function send<
       return {
         type: actionTypes.send,
         params: {
-          ...action.params,
+          id: '', // TODO: generate?
+          ...params,
           to: resolvedTarget,
           _event: resolvedEvent,
           event: resolvedEvent.data,
@@ -129,7 +139,7 @@ export function sendParent<
   TSentEvent extends EventObject = AnyEventObject
 >(
   event: Event<TSentEvent> | SendExpr<TContext, TEvent, TSentEvent>,
-  options?: SendActionOptions<TContext, TEvent>
+  options?: SendActionParams<TContext, TEvent>
 ) {
   return send<TContext, TEvent, TSentEvent>(event, {
     ...options,
@@ -149,7 +159,7 @@ export function respond<
   TSentEvent extends EventObject = AnyEventObject
 >(
   event: Event<TEvent> | SendExpr<TContext, TEvent, TSentEvent>,
-  options?: SendActionOptions<TContext, TEvent>
+  options?: SendActionParams<TContext, TEvent>
 ) {
   return send<TContext, TEvent>(event, {
     ...options,
@@ -169,8 +179,8 @@ export function forwardTo<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  target: Required<SendActionOptions<TContext, TEvent>>['to'],
-  options?: SendActionOptions<TContext, TEvent>
+  target: Required<SendActionParams<TContext, TEvent>>['to'],
+  options?: SendActionParams<TContext, TEvent>
 ) {
   return send<TContext, TEvent>((_, event) => event, {
     ...options,
@@ -191,7 +201,7 @@ export function escalate<
   TErrorData = any
 >(
   errorData: TErrorData | ExprWithMeta<TContext, TEvent, TErrorData>,
-  options?: SendActionOptions<TContext, TEvent>
+  options?: SendActionParams<TContext, TEvent>
 ) {
   return sendParent<TContext, TEvent>(
     (context, event, meta) => {

@@ -7,30 +7,34 @@ import {
 import { invoke as invokeActionType } from '../actionTypes';
 import { isActorRef } from '../actor';
 import { ObservableActorRef } from '../ObservableActorRef';
-import { DynamicAction } from '../../actions/DynamicAction';
-import { DynamicInvokeActionObject, InvokeActionObject } from '..';
+import { createDynamicAction } from '../../actions/dynamicAction';
+import {
+  BaseDynamicActionObject,
+  DynamicInvokeActionObject,
+  InvokeActionObject
+} from '..';
 
 export function invoke<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
   invokeDef: InvokeDefinition<TContext, TEvent>
-): DynamicAction<
+): BaseDynamicActionObject<
   TContext,
   TEvent,
   InvokeActionObject,
   DynamicInvokeActionObject<TContext, TEvent>['params']
 > {
-  return new DynamicAction(
+  return createDynamicAction(
     invokeActionType,
     invokeDef,
-    (action, context, _event, { machine }) => {
-      const { id, data, src, meta } = action.params;
+    ({ params, type }, context, _event, { machine }) => {
+      const { id, data, src, meta } = params;
       if (isActorRef(src)) {
         return {
-          type: action.type,
+          type: type,
           params: {
-            ...action.params,
+            ...params,
             ref: src
           }
         } as InvokeActionObject;
@@ -41,8 +45,8 @@ export function invoke<
 
       if (!behaviorCreator) {
         return {
-          type: action.type,
-          params: action.params
+          type: type,
+          params: params
         } as InvokeActionObject;
       }
 
@@ -55,11 +59,11 @@ export function invoke<
       });
 
       return {
-        type: action.type,
+        type: type,
         params: {
-          ...action.params,
-          id: action.params.id,
-          src: action.params.src,
+          ...params,
+          id: params.id,
+          src: params.src,
           ref: new ObservableActorRef(behavior, id),
           meta
         }

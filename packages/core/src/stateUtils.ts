@@ -62,8 +62,8 @@ import {
   ExecutableAction,
   isExecutableAction
 } from '../actions/ExecutableAction';
-import { DynamicAction } from '../actions/DynamicAction';
 import type { StateNode } from './StateNode';
+import { isDynamicAction } from '../actions/dynamicAction';
 
 type Configuration<
   TContext extends MachineContext,
@@ -1693,7 +1693,7 @@ function resolveActionsAndContext<
       machine.options.actions
     );
 
-    if (executableActionObject instanceof DynamicAction) {
+    if (isDynamicAction(executableActionObject)) {
       if (
         executableActionObject.type === actionTypes.pure ||
         executableActionObject.type === actionTypes.choose
@@ -1702,7 +1702,11 @@ function resolveActionsAndContext<
           executableActionObject,
           context,
           _event,
-          { machine, state: currentState!, action: actionObject }
+          {
+            machine,
+            state: currentState!,
+            action: actionObject
+          }
         ).params.actions;
 
         if (matchedActions) {

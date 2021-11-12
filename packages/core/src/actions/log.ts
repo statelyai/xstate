@@ -5,8 +5,8 @@ import {
   LogActionObject
 } from '../types';
 import { log as logActionType } from '../actionTypes';
-import { DynamicAction } from '../../actions/DynamicAction';
-import { DynamicLogAction } from '..';
+import { createDynamicAction } from '../../actions/dynamicAction';
+import { BaseDynamicActionObject, DynamicLogAction } from '..';
 
 const defaultLogExpr = <TContext, TEvent extends EventObject>(
   context: TContext,
@@ -31,18 +31,18 @@ export function log<
 >(
   expr: string | LogExpr<TContext, TEvent> = defaultLogExpr,
   label?: string
-): DynamicAction<
+): BaseDynamicActionObject<
   TContext,
   TEvent,
   LogActionObject,
   DynamicLogAction<TContext, TEvent>['params']
 > {
-  return new DynamicAction(
+  return createDynamicAction(
     logActionType,
     { label, expr },
-    (action, ctx, _event) => {
+    ({ type }, ctx, _event) => {
       return {
-        type: action.type,
+        type,
         params: {
           label,
           value:

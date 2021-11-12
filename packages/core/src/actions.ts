@@ -15,7 +15,7 @@ import {
 import * as actionTypes from './actionTypes';
 import { isFunction, isString, toSCXMLEvent, isArray } from './utils';
 import { ExecutableAction } from '../actions/ExecutableAction';
-import { DynamicAction } from '../actions/DynamicAction';
+import { isDynamicAction } from '../actions/dynamicAction';
 export {
   send,
   sendUpdate,
@@ -67,7 +67,7 @@ export function toActionObject<
   action: BaseActionObject | ActionFunction<TContext, TEvent> | string,
   actionFunctionMap?: ActionFunctionMap<TContext, TEvent>
 ): BaseActionObject {
-  if (action instanceof DynamicAction) {
+  if (isDynamicAction(action)) {
     return action;
   }
 

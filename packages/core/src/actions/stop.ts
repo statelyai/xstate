@@ -1,7 +1,7 @@
 import { EventObject, ActorRef, Expr, MachineContext } from '../types';
 import { stop as stopActionType } from '../actionTypes';
 import { isFunction } from '../utils';
-import { DynamicAction } from '../../actions/DynamicAction';
+import { createDynamicAction } from '../../actions/dynamicAction';
 import {
   BaseDynamicActionObject,
   DynamicStopActionObject,
@@ -27,18 +27,18 @@ export function stop<
 > {
   const actor = actorRef;
 
-  return new DynamicAction(
+  return createDynamicAction(
     stopActionType,
     {
       actor
     },
-    (action, context, _event) => {
-      const actorRefOrString = isFunction(action.params.actor)
-        ? action.params.actor(context, _event.data)
-        : action.params.actor;
+    ({ params, type }, context, _event) => {
+      const actorRefOrString = isFunction(params.actor)
+        ? params.actor(context, _event.data)
+        : params.actor;
 
       return {
-        type: action.type,
+        type,
         params: { actor: actorRefOrString }
       } as StopActionObject;
     }

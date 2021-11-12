@@ -4,7 +4,6 @@ import type { Clock, Interpreter } from './interpreter';
 import type { StateMachine } from './StateMachine';
 import type { LifecycleSignal } from './behaviors';
 import type { Model } from './model.types';
-import type { DynamicAction } from '../actions/DynamicAction';
 
 type AnyFunction = (...args: any[]) => any;
 type ReturnTypeOrValue<T> = T extends AnyFunction ? ReturnType<T> : T;
@@ -750,7 +749,7 @@ export type ActionFunctionMap<
   TAction extends BaseActionObject = BaseActionObject
 > = {
   [K in TAction['type']]?:
-    | DynamicAction<TContext, TEvent, TAction, any>
+    | BaseDynamicActionObject<TContext, TEvent, TAction, any>
     | ActionFunction<
         TContext,
         TEvent,
@@ -1027,7 +1026,7 @@ export enum SpecialTargets {
   Internal = '#_internal'
 }
 
-export interface SendActionOptions<
+export interface SendActionParams<
   TContext extends MachineContext,
   TEvent extends EventObject
 > {

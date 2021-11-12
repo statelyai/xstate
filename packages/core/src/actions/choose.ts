@@ -1,7 +1,7 @@
 import { EventObject, ChooseCondition, MachineContext } from '../types';
 import * as actionTypes from '../actionTypes';
 import { toArray } from '../utils';
-import { DynamicAction } from '../../actions/DynamicAction';
+import { createDynamicAction } from '../../actions/dynamicAction';
 import { evaluateGuard, toGuardDefinition } from '../guards';
 import {
   BaseDynamicActionObject,
@@ -21,11 +21,11 @@ export function choose<
   ResolvedChooseAction,
   ChooseAction<TContext, TEvent>['params']
 > {
-  return new DynamicAction(
+  return createDynamicAction(
     actionTypes.choose,
     { guards },
-    (action, context, _event, { machine, state }) => {
-      const matchedActions = action.params.guards.find((condition) => {
+    ({ params }, context, _event, { machine, state }) => {
+      const matchedActions = params.guards.find((condition) => {
         const guard =
           condition.guard &&
           toGuardDefinition(
