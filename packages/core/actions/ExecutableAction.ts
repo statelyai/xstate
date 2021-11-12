@@ -46,3 +46,9 @@ export class ExecutableAction<
     this.context = context;
   }
 }
+
+export function isExecutableAction(
+  action: BaseActionObject | ResolvedActionObject<any, any>
+): action is ExecutableAction<any, any> {
+  return 'execute' in action && typeof action.execute === 'function';
+}

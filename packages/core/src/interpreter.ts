@@ -49,7 +49,7 @@ import type {
   StopActionObject,
   Subscribable
 } from './types';
-import { ExecutableAction } from '../actions/ExecutableAction';
+import { isExecutableAction } from '../actions/ExecutableAction';
 
 export type StateListener<
   TContext extends MachineContext,
@@ -775,7 +775,7 @@ export class Interpreter<
   ): void {
     const { _event } = state;
 
-    if (action instanceof ExecutableAction) {
+    if (isExecutableAction(action)) {
       try {
         return action.execute(state);
       } catch (err) {

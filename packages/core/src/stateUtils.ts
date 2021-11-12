@@ -58,7 +58,10 @@ import { STATE_IDENTIFIER, NULL_EVENT, WILDCARD } from './constants';
 import { isSpawnedActorRef } from './actor';
 import type { StateMachine } from './StateMachine';
 import { evaluateGuard, toGuardDefinition } from './guards';
-import { ExecutableAction } from '../actions/ExecutableAction';
+import {
+  ExecutableAction,
+  isExecutableAction
+} from '../actions/ExecutableAction';
 import { DynamicAction } from '../actions/DynamicAction';
 import type { StateNode } from './StateNode';
 
@@ -1787,7 +1790,7 @@ function resolveActionsAndContext<
       }
       default:
         const contextIndex = preservedContexts.length - 1;
-        if (executableActionObject instanceof ExecutableAction) {
+        if (isExecutableAction(executableActionObject)) {
           executableActionObject.setContext(preservedContexts[contextIndex]);
           resolvedActions.push(executableActionObject);
         } else {
