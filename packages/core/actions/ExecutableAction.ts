@@ -19,6 +19,7 @@ export interface ResolvedActionObject<
   execute: (state: State<TContext, TEvent>) => any;
 }
 
+// TODO: refactor out of class
 export class ExecutableAction<
   TContext extends object,
   TEvent extends EventObject
