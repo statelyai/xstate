@@ -48,7 +48,7 @@ export function getActionFunction<
 
 export function resolveActionObject(
   actionObject: BaseActionObject,
-  actionFunctionMap: ActionFunctionMap<any, any>
+  actionFunctionMap?: ActionFunctionMap<any, any>
 ): BaseActionObject {
   const exec = getActionFunction(actionObject.type, actionFunctionMap);
   if (isFunction(exec)) {
@@ -72,14 +72,7 @@ export function toActionObject<
   }
 
   if (isString(action) || typeof action === 'number') {
-    const exec = getActionFunction(action, actionFunctionMap);
-    if (isFunction(exec)) {
-      return new ExecutableAction({ type: action, params: {} }, exec);
-    } else if (exec) {
-      return exec;
-    } else {
-      return { type: action, params: {} };
-    }
+    return resolveActionObject({ type: action, params: {} }, actionFunctionMap);
   } else if (isFunction(action)) {
     return new ExecutableAction(
       {
