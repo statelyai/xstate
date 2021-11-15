@@ -80,7 +80,7 @@ toggleService.send('TOGGLE');
 
 ## Promise example
 
-[📉 See the visualization on xstate.js.org/viz](https://xstate.js.org/viz/?gist=bbcb4379b36edea0458f597e5eec2f91)
+[📉 See the visualization on stately.ai/viz](https://stately.ai/viz?gist=bbcb4379b36edea0458f597e5eec2f91)
 
 ```js
 import { createMachine, interpret, assign } from 'xstate';
@@ -177,7 +177,6 @@ Read [📽 the slides](http://slides.com/davidkhourshid/finite-state-machines) (
 </a>
 <br />
 
-
 ```js
 import { createMachine } from 'xstate';
 
@@ -218,7 +217,6 @@ const nextState = lightMachine.transition(currentState, 'TIMER').value;
   <small>Open in Stately Viz</small>
 </a>
 <br />
-
 
 ```js
 import { createMachine } from 'xstate';
@@ -301,7 +299,6 @@ lightMachine.transition({ red: 'stop' }, 'TIMER').value;
   <small>Open in Stately Viz</small>
 </a>
 <br />
-
 
 ```js
 const wordMachine = createMachine({
@@ -393,7 +390,6 @@ const nextState = wordMachine.transition(
   <small>Open in Stately Viz</small>
 </a>
 <br />
-
 
 ```js
 const paymentMachine = createMachine({

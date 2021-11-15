@@ -72,7 +72,8 @@ module.exports = {
           '/guides/ids',
           '/guides/interpretation',
           '/guides/testing',
-          '/guides/typescript'
+          '/guides/typescript',
+          '/guides/scxml'
         ]
       },
       {
@@ -128,8 +129,9 @@ module.exports = {
         ]
       },
       {
-        title: 'Useful links',
+        title: 'News and Useful Links',
         children: [
+          '/updates/',
           [
             'https://github.com/statelyai/xstate/blob/main/CODE_OF_CONDUCT.md',
             'Code of Conduct'

@@ -135,10 +135,6 @@ The `onDone` transition cannot be defined on the root node of the machine. This 
 
 :::
 
-## SCXML
-
-Final states correspond to the SCXML spec: [https://www.w3.org/TR/scxml/#final](https://www.w3.org/TR/scxml/#final)
-
 ## Notes
 
 - A final state node only indicates that its immediate parent is _done_. It does not affect the _done_ status of any higher parents, except with parallel state nodes, which are _done_ when all of its child compound state nodes are _done_.
