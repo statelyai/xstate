@@ -62,6 +62,7 @@ module.exports = {
           '/guides/actions',
           '/guides/guards',
           '/guides/context',
+          '/guides/input',
           '/guides/models',
           '/guides/activities',
           '/guides/communication',

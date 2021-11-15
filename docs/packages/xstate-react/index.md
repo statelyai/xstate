@@ -86,7 +86,7 @@ A [React hook](https://reactjs.org/hooks) that interprets the given `machine` an
   );
   ```
 
-- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `immediate`, `context`, `state`.
+- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `immediate`, `context`, `state`, `input`.
 
 **Returns** a tuple of `[state, send, service]`:
 
@@ -154,7 +154,7 @@ _Since 1.3.0_
 **Arguments**
 
 - `machine` - An [XState machine](https://xstate.js.org/docs/guides/machines.html) or a function that lazily returns a machine.
-- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `immediate`, `context`, `state`.
+- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `immediate`, `context`, `state`, `input`.
 - `observer` (optional) - an observer or listener that listens to state updates:
   - an observer (e.g., `{ next: (state) => {/* ... */} }`)
   - or a listener (e.g., `(state) => {/* ... */}`)

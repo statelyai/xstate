@@ -209,32 +209,29 @@ This also works for services, guards, and delays.
 
 > If you use this technique, any references you use inside `goToOtherPage` will be kept up to date each render. That means you don't need to worry about stale references.
 
-### Syncing data with useEffect
+### Syncing data with input <Badge text="4.25+" />
 
 Sometimes, you want to outsource some functionality to another hook. This is especially common with data fetching hooks such as [`react-query`](https://react-query.tanstack.com/) and [`swr`](https://swr.vercel.app/). You don't want to have to re-build all your data fetching functionality in XState.
 
-The best way to manage this is via `useEffect`.
+The best way to manage this is via [`input`](../guides/input.md).
 
 ```js
 const Component = () => {
   const { data, error } = useSWR('/api/user', fetcher);
 
-  const [state, send] = useMachine(machine);
-
-  useEffect(() => {
-    send({
-      type: 'DATA_CHANGED',
+  const [state, send] = useMachine(machine, {
+    input: {
       data,
       error
-    });
-  }, [data, error, send]);
+    }
+  });
 };
 ```
 
-This will send a `DATA_CHANGED` event whenever the result from `useSWR` changes, allowing you to react to it just like any other event. You could, for instance:
+This will update the machine's [input](../guides/input.md) whenever the result from `useSWR` changes, allowing you to react to it just like any other event. You could, for instance:
 
 - Move into an `errored` state when the data returns an error
-- Save the data to context
+- Move into a `hasData` state when the data fetch is successful
 
 ## Class components
 
