@@ -636,24 +636,26 @@ The invocation sources (services) can be configured similar to how actions, guar
 ```js
 const fetchUser = // (same as the above example)
 
-const userMachine = createMachine({
-  id: 'user',
-  // ...
-  states: {
+const userMachine = createMachine(
+  {
+    id: 'user',
     // ...
-    loading: {
-      invoke: {
-        src: 'getUser',
-        // ...
-      }
-    },
-    // ...
-  }
-}, {
+    states: {
+      // ...
+      loading: {
+        invoke: {
+          src: 'getUser',
+          // ...
+        }
+      },
+      // ...
+    }
+  },
+  {
   services: {
     getUser: (context, event) => fetchUser(context.user.id)
   }
-});
+);
 ```
 
 The invoke `src` can also be specified as an object <Badge text="4.12" /> that describes the invoke source with its `type` and other related metadata. This can be read from the `services` option in the `meta.src` argument:
