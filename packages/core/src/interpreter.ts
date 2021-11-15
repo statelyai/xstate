@@ -66,6 +66,7 @@ import { registry } from './registry';
 import { getGlobal, registerService } from './devTools';
 import * as serviceScope from './serviceScope';
 import { spawnBehavior } from './behaviors';
+import { XStateError } from './errors';
 
 export type StateListener<
   TContext,
@@ -580,13 +581,16 @@ export class Interpreter<
       this.status !== InterpreterStatus.Running &&
       !this.options.deferEvents
     ) {
-      throw new Error(
+      throw new XStateError(
         `Event "${_event.name}" was sent to uninitialized service "${
           this.machine.id
           // tslint:disable-next-line:max-line-length
         }". Make sure .start() is called for this service, or set { deferEvents: true } in the service options.\nEvent: ${JSON.stringify(
           _event.data
-        )}`
+        )}`,
+        {
+          state: this.state
+        }
       );
     }
 
@@ -620,9 +624,12 @@ export class Interpreter<
         );
       }
     } else if (this.status !== InterpreterStatus.Running) {
-      throw new Error(
+      throw new XStateError(
         // tslint:disable-next-line:max-line-length
-        `${events.length} event(s) were sent to uninitialized service "${this.machine.id}". Make sure .start() is called for this service, or set { deferEvents: true } in the service options.`
+        `${events.length} event(s) were sent to uninitialized service "${this.machine.id}". Make sure .start() is called for this service, or set { deferEvents: true } in the service options.`,
+        {
+          state: this.state
+        }
       );
     }
 
@@ -681,8 +688,11 @@ export class Interpreter<
 
     if (!target) {
       if (!isParent) {
-        throw new Error(
-          `Unable to send event to child '${to}' from service '${this.id}'.`
+        throw new XStateError(
+          `Unable to send event to child '${to}' from service '${this.id}'.`,
+          {
+            state: this.state
+          }
         );
       }
 
@@ -741,8 +751,11 @@ export class Interpreter<
       const child = this.children.get(id);
 
       if (!child) {
-        throw new Error(
-          `Unable to forward event '${event}' from interpreter '${this.id}' to nonexistant child '${id}'.`
+        throw new XStateError(
+          `Unable to forward event '${event}' from interpreter '${this.id}' to nonexistant child '${id}'.`,
+          {
+            state: this.state
+          }
         );
       }
 
@@ -971,8 +984,11 @@ export class Interpreter<
     } else if (isBehavior(entity)) {
       return this.spawnBehavior(entity, name);
     } else {
-      throw new Error(
-        `Unable to spawn entity "${name}" of type "${typeof entity}".`
+      throw new XStateError(
+        `Unable to spawn entity "${name}" of type "${typeof entity}".`,
+        {
+          state: this.state
+        }
       );
     }
   }

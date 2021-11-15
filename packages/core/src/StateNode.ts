@@ -101,6 +101,7 @@ import {
 } from './stateUtils';
 import { createInvocableActor } from './Actor';
 import { toInvokeDefinition } from './invokeUtils';
+import { XStateError } from './errors';
 
 const NULL_EVENT = '';
 const STATE_IDENTIFIER = '#';
@@ -863,12 +864,16 @@ class StateNode<
           !cond ||
           evaluateGuard(this.machine, cond, resolvedContext, _event, state);
       } catch (err) {
-        throw new Error(
+        throw new XStateError(
           `Unable to evaluate guard '${
             cond!.name || cond!.type
           }' in transition for event '${eventName}' in state node '${
             this.id
-          }':\n${err.message}`
+          }':\n${err.message}`,
+          {
+            state,
+            stateNode: this
+          }
         );
       }
 
@@ -1096,13 +1101,23 @@ class StateNode<
     }
 
     if (!IS_PRODUCTION && _event.name === WILDCARD) {
-      throw new Error(`An event cannot have the wildcard type ('${WILDCARD}')`);
+      throw new XStateError(
+        `An event cannot have the wildcard type ('${WILDCARD}')`,
+        {
+          stateNode: this,
+          state: currentState
+        }
+      );
     }
 
     if (this.strict) {
       if (!this.events.includes(_event.name) && !isBuiltInEvent(_event.name)) {
-        throw new Error(
-          `Machine '${this.id}' does not accept event '${_event.name}'`
+        throw new XStateError(
+          `Machine '${this.id}' does not accept event '${_event.name}'`,
+          {
+            stateNode: this,
+            state: currentState
+          }
         );
       }
     }
@@ -1364,15 +1379,21 @@ class StateNode<
     }
 
     if (!this.states) {
-      throw new Error(
-        `Unable to retrieve child state '${stateKey}' from '${this.id}'; no child states exist.`
+      throw new XStateError(
+        `Unable to retrieve child state '${stateKey}' from '${this.id}'; no child states exist.`,
+        {
+          stateNode: this
+        }
       );
     }
 
     const result = this.states[stateKey];
     if (!result) {
-      throw new Error(
-        `Child state '${stateKey}' does not exist on '${this.id}'`
+      throw new XStateError(
+        `Child state '${stateKey}' does not exist on '${this.id}'`,
+        {
+          stateNode: this
+        }
       );
     }
 
@@ -1398,8 +1419,11 @@ class StateNode<
     const stateNode = this.machine.idMap[resolvedStateId];
 
     if (!stateNode) {
-      throw new Error(
-        `Child state node '#${resolvedStateId}' does not exist on machine '${this.id}'`
+      throw new XStateError(
+        `Child state node '#${resolvedStateId}' does not exist on machine '${this.id}'`,
+        {
+          stateNode: this
+        }
       );
     }
 
@@ -1496,7 +1520,12 @@ class StateNode<
       ];
 
       if (!stateNode) {
-        throw new Error(`Unable to find state node '${stateIdentifier}'`);
+        throw new XStateError(
+          `Unable to find state node '${stateIdentifier}'`,
+          {
+            stateNode: this
+          }
+        );
       }
 
       return stateNode.path;
@@ -1519,8 +1548,11 @@ class StateNode<
       );
     } else if (this.initial !== undefined) {
       if (!this.states[this.initial]) {
-        throw new Error(
-          `Initial state '${this.initial}' not found on '${this.key}'`
+        throw new XStateError(
+          `Initial state '${this.initial}' not found on '${this.key}'`,
+          {
+            stateNode: this
+          }
         );
       }
 
@@ -1569,8 +1601,11 @@ class StateNode<
     const { initialStateValue } = this;
 
     if (!initialStateValue) {
-      throw new Error(
-        `Cannot retrieve initial state from simple state '${this.id}'.`
+      throw new XStateError(
+        `Cannot retrieve initial state from simple state '${this.id}'.`,
+        {
+          stateNode: this
+        }
       );
     }
 
@@ -1658,8 +1693,11 @@ class StateNode<
     const [stateKey, ...childStatePath] = relativePath;
 
     if (!this.states) {
-      throw new Error(
-        `Cannot retrieve subPath '${stateKey}' from node with no states`
+      throw new XStateError(
+        `Cannot retrieve subPath '${stateKey}' from node with no states`,
+        {
+          stateNode: this
+        }
       );
     }
 
@@ -1670,8 +1708,11 @@ class StateNode<
     }
 
     if (!this.states[stateKey]) {
-      throw new Error(
-        `Child state '${stateKey}' does not exist on '${this.id}'`
+      throw new XStateError(
+        `Child state '${stateKey}' does not exist on '${this.id}'`,
+        {
+          stateNode: this
+        }
       );
     }
 
@@ -1839,8 +1880,11 @@ class StateNode<
           );
           return targetStateNode;
         } catch (err) {
-          throw new Error(
-            `Invalid transition definition for state node '${this.id}':\n${err.message}`
+          throw new XStateError(
+            `Invalid transition definition for state node '${this.id}':\n${err.message}`,
+            {
+              stateNode: this
+            }
           );
         }
       } else {
