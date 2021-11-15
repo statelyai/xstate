@@ -53,7 +53,7 @@ const lightMachine = createMachine({
 });
 ```
 
-<iframe src="https://stately.ai/viz/embed/?gist=e8af8924afe9352bf7d1e06f06407061&embed=1"></iframe>
+<iframe src="https://stately.ai/viz/embed/?gist=e8af8924afe9352bf7d1e06f06407061"></iframe>
 
 The `'green'` and `'yellow'` states are **simple states** - they have no child states. In contrast, the `'red'` state is a **compound state** since it is composed of **substates** (the `pedestrianStates`).
 

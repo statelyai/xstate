@@ -561,38 +561,3 @@ quietMachine.transition(quietMachine.initialState, { type: 'WHISPER' });
 quietMachine.transition(quietMachine.initialState, { type: 'SOME_EVENT' });
 // => State { value: 'disturbed' }
 ```
-
-## SCXML
-
-The event-target mappings defined on the `on: { ... }` property of state nodes is synonymous to the SCXML `<transition>` element:
-
-```js
-{
-  green: {
-    on: {
-      TIMER: {
-        target: '#yellow',
-        cond: context => context.timeElapsed > 5000
-      },
-      POWER_OUTAGE: { target: '#red.flashing' }
-    }
-  },
-  // ...
-}
-```
-
-```xml
-<state id="green">
-  <transition
-    event="TIMER"
-    target="yellow"
-    cond="timeElapsed > 5000"
-  />
-  <transition
-    event="POWER_OUTAGE"
-    target="red.flashing"
-  />
-</state>
-```
-
-- [https://www.w3.org/TR/scxml/#transition](https://www.w3.org/TR/scxml/#transition) - the definition of `<transition>`
