@@ -129,7 +129,7 @@ export function useInterpret<
     if (input) {
       service.input?.(input);
     }
-  }, [...Object.keys(input || {}), ...Object.values(input || {})]);
+  }, [...Object.values(input || {})]);
 
   // Make sure options are kept updated when they change.
   // This mutation assignment is safe because the service instance is only used
