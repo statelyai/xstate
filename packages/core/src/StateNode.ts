@@ -24,7 +24,6 @@ import type {
   InvokeDefinition,
   Mapper,
   PropertyMapper,
-  NullEvent,
   SCXML,
   TransitionDefinitionMap,
   InitialTransitionDefinition,
@@ -42,6 +41,7 @@ import {
 } from './stateUtils';
 import { evaluateGuard } from './guards';
 import type { StateMachine } from './StateMachine';
+import { memo } from './memo';
 
 const EMPTY_OBJECT = {};
 
@@ -124,34 +124,10 @@ export class StateNode<
 
   public description?: string;
 
-  // TODO: make private
-  public __cache = {
-    events: undefined as Array<TEvent['type']> | undefined,
-    on: undefined as TransitionDefinitionMap<TContext, TEvent> | undefined,
-    transitions: undefined as
-      | Array<TransitionDefinition<TContext, TEvent>>
-      | undefined,
-    candidates: {} as {
-      [K in TEvent['type'] | NullEvent['type'] | '*']:
-        | Array<
-            TransitionDefinition<
-              TContext,
-              K extends TEvent['type']
-                ? Extract<TEvent, { type: K }>
-                : EventObject
-            >
-          >
-        | undefined;
-    },
-    delayedTransitions: undefined as
-      | Array<DelayedTransitionDefinition<TContext, TEvent>>
-      | undefined,
-    invoke: undefined as Array<InvokeDefinition<TContext, TEvent>> | undefined
-  };
-
   private __initial?: InitialTransitionDefinition<TContext, TEvent>;
 
   public tags: string[] = [];
+  public transitions!: Array<TransitionDefinition<TContext, TEvent>>;
 
   constructor(
     /**
@@ -222,6 +198,14 @@ export class StateNode<
     this.tags = toArray(config.tags);
   }
 
+  public initialize() {
+    this.transitions = formatTransitions(this);
+
+    Object.keys(this.states).forEach((key) => {
+      this.states[key].initialize();
+    });
+  }
+
   /**
    * The well-structured state node definition.
    */
@@ -271,9 +255,8 @@ export class StateNode<
    * The behaviors invoked as actors by this state node.
    */
   public get invoke(): Array<InvokeDefinition<TContext, TEvent>> {
-    return (
-      this.__cache.invoke ||
-      (this.__cache.invoke = toArray(this.config.invoke).map((invocable, i) => {
+    return memo(this, 'invoke', () =>
+      toArray(this.config.invoke).map((invocable, i) => {
         const id = `${this.id}:invocation[${i}]`;
 
         const invokeConfig = toInvokeConfig(invocable, id);
@@ -312,7 +295,7 @@ export class StateNode<
             };
           }
         } as InvokeDefinition<TContext, TEvent>;
-      }))
+      })
     );
   }
 
@@ -320,46 +303,24 @@ export class StateNode<
    * The mapping of events to transitions.
    */
   public get on(): TransitionDefinitionMap<TContext, TEvent> {
-    if (this.__cache.on) {
-      return this.__cache.on;
-    }
+    return memo(this, 'on', () => {
+      const transitions = this.transitions;
 
-    const transitions = this.transitions;
-
-    return (this.__cache.on = transitions.reduce((map, transition) => {
-      map[transition.eventType] = map[transition.eventType] || [];
-      map[transition.eventType].push(transition as any);
-      return map;
-    }, {} as TransitionDefinitionMap<TContext, TEvent>));
+      return transitions.reduce((map, transition) => {
+        map[transition.eventType] = map[transition.eventType] || [];
+        map[transition.eventType].push(transition as any);
+        return map;
+      }, {} as TransitionDefinitionMap<TContext, TEvent>);
+    });
   }
 
   public get after(): Array<DelayedTransitionDefinition<TContext, TEvent>> {
-    return (
-      this.__cache.delayedTransitions ||
-      ((this.__cache.delayedTransitions = getDelayedTransitions(this)),
-      this.__cache.delayedTransitions)
-    );
-  }
-
-  /**
-   * All the transitions that can be taken from this state node.
-   */
-  public get transitions(): Array<TransitionDefinition<TContext, TEvent>> {
-    return (
-      this.__cache.transitions ||
-      ((this.__cache.transitions = formatTransitions(this)),
-      this.__cache.transitions)
-    );
+    return memo(this, 'delayedTransitions', () => getDelayedTransitions(this));
   }
 
   public get initial(): InitialTransitionDefinition<TContext, TEvent> {
-    return (
-      this.__initial ||
-      ((this.__initial = formatInitialTransition(
-        this,
-        this.config.initial || []
-      )),
-      this.__initial)
+    return memo(this, 'initial', () =>
+      formatInitialTransition(this, this.config.initial || [])
     );
   }
 
@@ -383,13 +344,16 @@ export class StateNode<
 
     let selectedTransition: TransitionDefinition<TContext, TEvent> | undefined;
 
-    const candidates: Array<TransitionDefinition<TContext, TEvent>> =
-      this.__cache.candidates[eventName] ||
-      (this.__cache.candidates[eventName] = getCandidates(
-        this,
-        eventName,
-        this.machine.config.scxml // Whether token matching should be used
-      ));
+    const candidates: Array<TransitionDefinition<TContext, TEvent>> = memo(
+      this,
+      `candidates-${eventName}`,
+      () =>
+        getCandidates(
+          this,
+          eventName,
+          this.machine.config.scxml // Whether token matching should be used
+        )
+    );
 
     for (const candidate of candidates) {
       const { guard } = candidate;
@@ -459,24 +423,23 @@ export class StateNode<
    * All the event types accepted by this state node and its descendants.
    */
   public get events(): Array<TEvent['type']> {
-    if (this.__cache.events) {
-      return this.__cache.events;
-    }
-    const { states } = this;
-    const events = new Set(this.ownEvents);
+    return memo(this, 'events', () => {
+      const { states } = this;
+      const events = new Set(this.ownEvents);
 
-    if (states) {
-      for (const stateId of keys(states)) {
-        const state = states[stateId];
-        if (state.states) {
-          for (const event of state.events) {
-            events.add(`${event}`);
+      if (states) {
+        for (const stateId of keys(states)) {
+          const state = states[stateId];
+          if (state.states) {
+            for (const event of state.events) {
+              events.add(`${event}`);
+            }
           }
         }
       }
-    }
 
-    return (this.__cache.events = Array.from(events));
+      return Array.from(events);
+    });
   }
 
   /**
