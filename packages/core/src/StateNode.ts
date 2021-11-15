@@ -124,8 +124,6 @@ export class StateNode<
 
   public description?: string;
 
-  private __initial?: InitialTransitionDefinition<TContext, TEvent>;
-
   public tags: string[] = [];
   public transitions!: Array<TransitionDefinition<TContext, TEvent>>;
 
