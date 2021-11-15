@@ -1,6 +1,10 @@
 # States
 
-A state is an abstract representation of a system (such as an application) at a specific point in time. As an application is interacted with, events cause it to change state. A finite state machine can be in only one of a finite number of states at any given time. The current state of a machine is represented by a `State` instance:
+A state is an abstract representation of a system (such as an application) at a specific point in time. To learn more, read the [section on states in our introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#states).
+
+## API
+
+The current state of a machine is represented by a `State` instance:
 
 ```js {13-18,21-26}
 const lightMachine = createMachine({
@@ -31,7 +35,7 @@ console.log(lightMachine.transition('yellow', { type: 'TIMER' }));
 // }
 ```
 
-## State Definition
+## State definition
 
 A `State` object instance is JSON-serializable and has the following properties:
 
@@ -44,15 +48,15 @@ A `State` object instance is JSON-serializable and has the following properties:
 - `meta` - any static meta data defined on the `meta` property of the [state node](./statenodes.md)
 - `done` - whether the state indicates a final state
 
-It contains other properties such as `historyValue`, `events`, `tree`, and others that are generally not relevant and are used internally.
+The `State` object also contains other properties such as `historyValue`, `events`, `tree` and others that are generally not relevant and are used internally.
 
-## State Methods and Properties
+## State methods and properties
 
-There are some helpful methods and properties that you can use for a better development experience:
+There are some helpful methods and properties you can use for a better development experience:
 
 ### `state.matches(parentStateValue)`
 
-This method determines whether the current `state.value` is a subset of the given `parentStateValue`; that is, if it "matches" the state value. For example, assuming the current `state.value` is `{ red: 'stop' }`:
+The `state.matches(parentStateValue)` method determines whether the current `state.value` is a subset of the given `parentStateValue`. The method determines if the parent state value “matches” the state value. For example, assuming the current `state.value` is `{ red: 'stop' }`:
 
 ```js
 console.log(state.value);
@@ -84,7 +88,7 @@ const isMatch = [{ customer: 'deposit' }, { customer: 'withdrawal' }].some(
 
 ### `state.nextEvents`
 
-This specifies the next events that will cause a transition from the current state:
+`state.nextEvents` specifies the next events that will cause a transition from the current state:
 
 ```js
 const { initialState } = lightMachine;
@@ -93,11 +97,11 @@ console.log(initialState.nextEvents);
 // => ['TIMER', 'EMERGENCY']
 ```
 
-This is useful in determining which next events can be taken, and representing these potential events in the UI (such as enabling/disabling certain buttons).
+`state.nextEvents` is useful in determining which next events can be taken, and representing these potential events in the UI such as enabling/disabling certain buttons.
 
 ### `state.changed`
 
-This specifies if this `state` has changed from the previous state. A state is considered "changed" if:
+`state.changed` specifies if this `state` has changed from the previous state. A state is considered “changed” if:
 
 - Its value is not equal to its previous value, or:
 - It has any new actions (side-effects) to execute.
@@ -125,7 +129,7 @@ console.log(unchangedState.changed);
 
 ### `state.done`
 
-This specifies whether the `state` is a ["final state"](./final.md) - that is, a state that indicates that its machine has reached its final (terminal) state and can no longer transition to any other state.
+`state.done` specifies whether the `state` is a [“final state”](./final.md) - a final state is a state that indicates that its machine has reached its final (terminal) state and can no longer transition to any other state.
 
 ```js
 const answeringMachine = createMachine({
@@ -153,7 +157,7 @@ answeredState.done; // true
 
 ### `state.toStrings()`
 
-This method returns an array of strings that represent _all_ of the state value paths. For example, assuming the current `state.value` is `{ red: 'stop' }`:
+The `state.toStrings()` method returns an array of strings that represent _all_ of the state value paths. For example, assuming the current `state.value` is `{ red: 'stop' }`:
 
 ```js
 console.log(state.value);
@@ -163,13 +167,13 @@ console.log(state.toStrings());
 // => ['red', 'red.stop']
 ```
 
-This is useful for representing the current state in string-based environments, such as in CSS classes or data-attributes.
+The `state.toStrings()` method is useful for representing the current state in string-based environments, such as in CSS classes or data-attributes.
 
 ### `state.children`
 
-This is an object mapping spawned service/actor IDs to their instances. See [📖 Referencing Services](./communication.md#referencing-services) for more details.
+`state.children` is an object mapping spawned service/actor IDs to their instances. See [📖 Referencing Services](./communication.md#referencing-services) for more details.
 
-**Example:**
+#### Example using `state.children`
 
 ```js
 const machine = createMachine({
@@ -193,7 +197,7 @@ const service = invoke(machine)
 
 _Since 4.19.0_
 
-This method determines whether the current state configuration has a state node with the given tag.
+The `state.hasTag(tag)` method determines whether the current state configuration has a state node with the given tag.
 
 ```js {5,8,11}
 const machine = createMachine({
@@ -223,7 +227,7 @@ const canGo = state.hasTag('go');
 
 _Since 4.25.0_
 
-This method determines whether an `event` will cause a state change if sent to the interpreted machine. It will return `true` if the state will change due to the `event` being sent; otherwise `false`:
+The `state.can(event)` method determines whether an `event` will cause a state change if sent to the interpreted machine. The method will return `true` if the state will change due to the `event` being sent; otherwise the method will return `false`:
 
 ```js
 const machine = createMachine({
@@ -259,13 +263,13 @@ activeState.can('TOGGLE'); // false
 activeState.can('DO_SOMETHING'); // true, since an action will be executed
 ```
 
-A state is considered "changed" if [`state.changed`](#state-changed) is `true`; i.e., if any of the following are true:
+A state is considered “changed” if [`state.changed`](#state-changed) is `true` and if any of the following are true:
 
 - its `state.value` changes
 - there are new `state.actions` to be executed
 - its `state.context` changes.
 
-## Persisting State
+## Persisting state
 
 As mentioned, a `State` object can be persisted by serializing it to a string JSON format:
 
@@ -312,7 +316,7 @@ This will also maintain and restore previous [history states](./history.md) and 
 Persisting spawned [actors](./actors.md) isn't yet supported in XState.
 :::
 
-## State Meta Data
+## State meta data
 
 Meta data, which is static data that describes relevant properties of any [state node](./statenodes.md), can be specified on the `.meta` property of the state node:
 
@@ -364,12 +368,12 @@ const fetchMachine = createMachine({
 });
 ```
 
-The current state of the machine collects the `.meta` data of all of the state nodes represented by the state value, and places them on an object where:
+The current state of the machine collects the `.meta` data of all of the state nodes, represented by the state value, and places them on an object where:
 
 - The keys are the [state node IDs](./ids.md)
 - The values are the state node `.meta` values
 
-For instance, if the above machine is in the `failure.timeout` state (which is represented by two state nodes with IDs `"failure"` and `"failure.timeout"`), the `.meta` property will combine all `.meta` values and look like this:
+For instance, if the above machine is in the `failure.timeout` state (which is represented by two state nodes with IDs `"failure"` and `"failure.timeout"`), the `.meta` property will combine all `.meta` values as follows:
 
 ```js {4-11}
 const failureTimeoutState = fetchMachine.transition('loading', {
@@ -387,8 +391,8 @@ console.log(failureTimeoutState.meta);
 // }
 ```
 
-::: tip TIP: Aggregating Meta Data
-It's up to you for what you want to do with this meta data. Ideally, it should contain JSON-serializable values _only_. You might want to merge/aggregate the meta data differently; for instance, this function discards the state node ID keys (if they are irrelevant) and merges the meta data:
+::: tip TIP: Aggregating meta data
+What you do with meta data is up to you. Ideally, meta data should contain JSON-serializable values _only_. Consider merging/aggregating the meta data differently. For example, the following function discards the state node ID keys (if they are irrelevant) and merges the meta data:
 
 ```js
 function mergeMeta(meta) {
@@ -417,6 +421,6 @@ console.log(mergeMeta(failureTimeoutState.meta));
 
 ## Notes
 
-- You should seldom (never) have to create a `State` instance manually. Treat `State` as a read-only object that comes from `machine.transition(...)` or `service.onTransition(...)` _only_.
-- To prevent memory leaks, `state.history` will not retain its history; that is, `state.history.history === undefined`. Otherwise, we're creating a huge linked list and reinventing blockchain, which I really don't care to do.
+- You should never have to create a `State` instance manually. Treat `State` as a read-only object that _only_ comes from `machine.transition(...)` or `service.onTransition(...)`.
+- `state.history` will not retain its history in order to prevent memory leaks. `state.history.history === undefined`. Otherwise, you end up creating a huge linked list and reinventing blockchain, which we don't care to do.
   - This behavior may be configurable in future versions.

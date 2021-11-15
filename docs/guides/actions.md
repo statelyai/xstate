@@ -1,36 +1,16 @@
 # Actions
 
-Actions are fire-and-forget [effects](./effects.md). For a machine to be useful in a real-world application, effects need to occur to make things happen in the real world, such as rendering to a screen.
-
-Actions are _not_ immediately triggered. Instead, [the `State` object](./states.md) returned from `machine.transition(...)` will declaratively provide an array of `.actions` that an interpreter can then execute.
-
-::: danger
-
-All of the action creators documented here return **action objects**; it is a pure function that only returns an action object and does _not_ imperatively send an event. Do not imperatively call action creators; they will do nothing!
-
-```js
-// 🚫 Do not do this!
-entry: () => {
-  // 🚫 This will do nothing; send() is not an imperative function!
-  send({ type: 'SOME_EVENT' });
-};
-
-console.log(send({ type: 'SOME_EVENT' }));
-// => { type: 'xstate.send', event: { type: 'SOME_EVENT' } }
-
-// ✅ Do this instead
-entry: send({ type: 'SOME_EVENT' });
-```
-
-:::
-
-There are three types of actions:
+Actions are fire-and-forget [effects](./effects.md). They can be declared in three ways:
 
 - `entry` actions are executed upon entering a state
 - `exit` actions are executed upon exiting a state
-- transition actions are executed when a transition is taken.
+- transition actions are executed when a transition is taken
 
-These are represented in the StateNode definition:
+To learn more, read about [actions in our introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#actions).
+
+## API
+
+Actions can be added like so:
 
 ```js {10-11,16-19,27-41}
 const triggerMachine = createMachine(
@@ -85,7 +65,7 @@ const triggerMachine = createMachine(
 
 It depends! They mean different things:
 
-- An entry/exit actions means "execute this action **on any transition that enters/exits this state**". Use entry/exit actions when the action is only dependent on the state node that it's in, and not on previous/next state nodes or events.
+- An entry/exit action means “execute this action **on any transition that enters/exits this state**”. Use entry/exit actions when the action is only dependent on the state node that it’s in, and not on previous/next state nodes or events.
 
 ```js
 // ...
@@ -103,7 +83,7 @@ It depends! They mean different things:
 // ...
 ```
 
-- A transition action means "execute this action **only on this transition**". Use transition actions when the action is dependent on the event and the state node that it is currently in.
+- A transition action means “execute this action **only on this transition**”. Use transition actions when the action is dependent on the event and the state node that it is currently in.
 
 ```js
 // ...
@@ -141,7 +121,7 @@ Refactoring inline action implementations in the `actions` property of the machi
 
 :::
 
-## Declarative Actions
+## Declarative actions
 
 The `State` instance returned from `machine.transition(...)` has an `.actions` property, which is an array of action objects for the interpreter to execute:
 
@@ -177,7 +157,7 @@ The `actionMeta` object includes the following properties:
 | `action` | action object | The original action object                   |
 | `state`  | State         | The resolved machine state, after transition |
 
-The interpreter will call the `exec` function with the `currentState.context`, the `event`, and the `state` that the machine transitioned to. This behavior can be customized. See [executing actions](./interpretation.md#executing-actions) for more details.
+The interpreter will call the `exec` function with the `currentState.context`, the `event`, and the `state` that the machine transitioned to. You can customize this behavior. Read [executing actions](./interpretation.md#executing-actions) for more details.
 
 ## Action order
 
@@ -191,9 +171,29 @@ When interpreting statecharts, the order of actions should not necessarily matte
 In XState version 4.x, `assign` actions have priority and are executed before any other actions. This behavior will be fixed in version 5, as the `assign` actions will be called in order.
 :::
 
-## Send Action
+::: danger
 
-The `send(event)` action creator creates a special "send" action object that tells a service (i.e., [interpreted machine](./interpretation.md)) to send that event to itself. It queues an event to the running service, in the external event queue. This means the event is sent on the next "step" of the interpreter.
+All action creators documented here return **action objects**; it is a pure function that only returns an action object and does _not_ imperatively send an event. Do not imperatively call action creators; they will do nothing!
+
+```js
+// 🚫 Do not do this!
+entry: () => {
+  // 🚫 This will do nothing; send() is not an imperative function!
+  send({ type: 'SOME_EVENT' });
+};
+
+console.log(send({ type: 'SOME_EVENT' }));
+// => { type: 'xstate.send', event: { type: 'SOME_EVENT' } }
+
+// ✅ Do this instead
+entry: send({ type: 'SOME_EVENT' });
+```
+
+:::
+
+## Send action
+
+The `send(event)` action creator creates a special “send” action object that tells a service (i.e., [interpreted machine](./interpretation.md)) to send that event to itself. It queues an event to the running service, in the external event queue, which means the event is sent on the next “step” of the interpreter.
 
 | Argument   | Type                                       | Description                                               |
 | ---------- | ------------------------------------------ | --------------------------------------------------------- |
@@ -202,11 +202,11 @@ The `send(event)` action creator creates a special "send" action object that tel
 
 The send `options` argument is an object containing:
 
-| Property | Type   | Description                                                                                   |
-| -------- | ------ | --------------------------------------------------------------------------------------------- |
-| `id?`    | string | The send ID (used for cancellation)                                                           |
-| `to?`    | string | The target of the event (defaults to self)                                                    |
-| `delay?` | number | The timeout (milliseconds) before sending the event, if it is not canceled before the timeout |
+| Property | Type   | Description                                                                                          |
+| -------- | ------ | ---------------------------------------------------------------------------------------------------- |
+| `id?`    | string | The send ID (used for cancellation)                                                                  |
+| `to?`    | string | The target of the event (defaults to self)                                                           |
+| `delay?` | number | The timeout (milliseconds) before sending the event, if the event is not canceled before the timeout |
 
 ::: warning
 The `send(...)` function is an **action creator**; it is a pure function that only returns an action object and does _not_ imperatively send an event.
@@ -275,7 +275,7 @@ const machine = createMachine({
 });
 ```
 
-### Send Targets
+### Send targets
 
 An event sent from a `send(...)` action creator can signify that it should be sent to specific targets, such as [invoked services](./communication.md) or [spawned actors](./actors.md). This is done by specifying the `{ to: ... }` property in the `send(...)` action:
 
@@ -331,9 +331,9 @@ console.log(send({ type: 'SOME_EVENT' }, { to: 'child' }));
 
 To send from a child machine to a parent machine, use `sendParent(event)` (takes the same arguments as `send(...)`).
 
-## Raise Action
+## Raise action
 
-The `raise()` action creator queues an event to the statechart, in the internal event queue. This means the event is immediately sent on the current "step" of the interpreter.
+The `raise()` action creator queues an event to the statechart, in the internal event queue. This means the event is sent immediately on the current “step” of the interpreter.
 
 | Argument | Type                   | Description         |
 | -------- | ---------------------- | ------------------- |
@@ -375,7 +375,7 @@ const raiseActionDemo = createMachine({
 
 Click on both `STEP` and `RAISE` events in the [visualizer](https://stately.ai/viz?gist=fd763ff2c161b172f719891e2544d428) to see the difference.
 
-## Respond Action <Badge text="4.7+" />
+## Respond action <Badge text="4.7+" />
 
 The `respond()` action creator creates a [`send()` action](#send-action) that is sent to the service that sent the event which triggered the response.
 
@@ -386,7 +386,7 @@ This uses [SCXML events](./scxml.md#events) internally to get the `origin` from 
 | `event`    | string, event object, or send expression | The event to send back to the sender    |
 | `options?` | send options object                      | Options to pass into the `send()` event |
 
-**Example:**
+### Example using respond action
 
 This demonstrates some parent service (`authClientMachine`) sending a `'CODE'` event to the invoked `authServerMachine`, and the `authServerMachine` responding with a `'TOKEN'` event.
 
@@ -431,7 +431,7 @@ const authClientMachine = createMachine({
 
 See [📖 Sending Responses](./actors.md#sending-responses) for more details.
 
-## Forward To Action <Badge text="4.7+" />
+## forwardTo action <Badge text="4.7+" />
 
 The `forwardTo()` action creator creates a [`send()` action](#send-action) that forwards the most recent event to the specified service via its ID.
 
@@ -439,7 +439,7 @@ The `forwardTo()` action creator creates a [`send()` action](#send-action) that 
 | -------- | --------------------------------------- | ---------------------------------------------------- |
 | `target` | string or function that returns service | The target service to send the most recent event to. |
 
-**Example:**
+### Example using forwardTo action
 
 ```js
 import { createMachine, forwardTo, interpret } from 'xstate';
@@ -469,7 +469,7 @@ parentService.send({ type: 'ALERT', message: 'hello world' });
 // => alerts "hello world"
 ```
 
-## Escalate Action <Badge text="4.7+" />
+## Escalate action <Badge text="4.7+" />
 
 The `escalate()` action creator escalates an error by sending it to the parent machine. This is sent as a special error event that is recognized by the machine.
 
@@ -477,7 +477,7 @@ The `escalate()` action creator escalates an error by sending it to the parent m
 | ----------- | ---- | ------------------------------------------------ |
 | `errorData` | any  | The error data to escalate (send) to the parent. |
 
-**Example:**
+### Example using escalate action
 
 ```js
 import { createMachine, actions } from 'xstate';
@@ -508,7 +508,7 @@ const parentMachine = createMachine({
 });
 ```
 
-## Log Action
+## Log action
 
 The `log()` action creator is a declarative way of logging anything related to the current state `context` and/or `event`. It takes two optional arguments:
 
@@ -559,7 +559,7 @@ endState.actions;
 
 Without any arguments, `log()` is an action that logs an object with `context` and `event` properties, containing the current context and triggering event, respectively.
 
-## Choose Action
+## Choose action
 
 The `choose()` action creator creates an action that specifies which actions should be executed based on some conditions.
 
@@ -626,7 +626,7 @@ const maybeDoThese = choose([
 
 This is analogous to the SCXML `<if>`, `<elseif>`, and `<else>` elements: [www.w3.org/TR/scxml/#if](https://www.w3.org/TR/scxml/#if)
 
-## Pure Action
+## Pure action
 
 The `pure()` action creator is a pure function (hence the name) that returns the action object(s) to be executed based on the current state `context` and `event` that triggered the action. This allows you to dynamically define which actions should be executed.
 
