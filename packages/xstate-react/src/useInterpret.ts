@@ -127,7 +127,7 @@ export function useInterpret<
 
   useIsomorphicLayoutEffect(() => {
     if (input) {
-      service.input(input);
+      service.input?.(input);
     }
   }, [...Object.keys(input || {}), ...Object.values(input || {})]);
 
