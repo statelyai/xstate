@@ -1865,7 +1865,11 @@ class StateNode<
         : true;
     const { guards } = this.machine.options;
 
-    const target = this.resolveTarget(normalizedTarget);
+    const target = this.resolveTarget(
+      normalizedTarget as
+        | (string | StateNode<TContext, any, TEvent>)[]
+        | undefined
+    );
 
     const transition = {
       ...transitionConfig,

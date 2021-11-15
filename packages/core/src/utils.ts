@@ -588,8 +588,7 @@ export function toSCXMLEvent<TEvent extends EventObject>(
 export function toTransitionConfigArray<TContext, TEvent extends EventObject>(
   event: TEvent['type'] | NullEvent['type'] | '*',
   configLike: SingleOrArray<
-    | TransitionConfig<TContext, TEvent>
-    | TransitionConfigTarget<TContext, TEvent>
+    TransitionConfig<TContext, TEvent> | TransitionConfigTarget
   >
 ): Array<
   TransitionConfig<TContext, TEvent> & {

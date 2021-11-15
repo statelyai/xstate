@@ -206,28 +206,23 @@ export type Condition<TContext, TEvent extends EventObject> =
   | ConditionPredicate<TContext, TEvent>
   | Guard<TContext, TEvent>;
 
-export type TransitionTarget<
-  TContext,
-  TEvent extends EventObject
-> = SingleOrArray<string | StateNode<TContext, any, TEvent>>;
+export type TransitionTarget = SingleOrArray<string>;
 
-export type TransitionTargets<TContext> = Array<
-  string | StateNode<TContext, any>
->;
+export type TransitionTargets = Array<string>;
 
 export interface TransitionConfig<TContext, TEvent extends EventObject> {
   cond?: Condition<TContext, TEvent>;
   actions?: Actions<TContext, TEvent>;
   in?: StateValue;
   internal?: boolean;
-  target?: TransitionTarget<TContext, TEvent>;
+  target?: TransitionTarget;
   meta?: Record<string, any>;
   description?: string;
 }
 
 export interface TargetTransitionConfig<TContext, TEvent extends EventObject>
   extends TransitionConfig<TContext, TEvent> {
-  target: TransitionTarget<TContext, TEvent>; // TODO: just make this non-optional
+  target: TransitionTarget; // TODO: just make this non-optional
 }
 
 export type ConditionalTransitionConfig<
@@ -428,17 +423,12 @@ export type StatesDefinition<
   >;
 };
 
-export type TransitionConfigTarget<TContext, TEvent extends EventObject> =
-  | string
-  | undefined
-  | StateNode<TContext, any, TEvent>;
+export type TransitionConfigTarget = string | undefined;
 
 export type TransitionConfigOrTarget<
   TContext,
   TEvent extends EventObject
-> = SingleOrArray<
-  TransitionConfigTarget<TContext, TEvent> | TransitionConfig<TContext, TEvent>
->;
+> = SingleOrArray<TransitionConfigTarget | TransitionConfig<TContext, TEvent>>;
 
 export type TransitionsConfigMap<TContext, TEvent extends EventObject> = {
   [K in TEvent['type']]?: TransitionConfigOrTarget<
@@ -1135,7 +1125,7 @@ export interface ChooseAction<TContext, TEvent extends EventObject>
 }
 
 export interface TransitionDefinition<TContext, TEvent extends EventObject>
-  extends TransitionConfig<TContext, TEvent> {
+  extends Omit<TransitionConfig<TContext, TEvent>, 'source' | 'target'> {
   target: Array<StateNode<TContext, any, TEvent>> | undefined;
   source: StateNode<TContext, any, TEvent>;
   actions: Array<ActionObject<TContext, TEvent>>;
