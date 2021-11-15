@@ -150,7 +150,7 @@ Explore a collection of professionally-designed state machines and statecharts i
 ## Videos
 
 
-- [▶️ Design a polling state machine with XState] (https://www.youtube.com/watch?v=DMXAv8iTrcY) by [Josh Branchaud]
+- [▶️ Design a polling state machine with XState](https://www.youtube.com/watch?v=DMXAv8iTrcY) by [Josh Branchaud]
 - [▶️ You're a Wizard Form, Harry (Infobip Shift)](https://www.youtube.com/watch?v=0bY9_DasGEg) by [Erik Rasmussen](https://github.com/erikras) on 2021-09-08
 - [▶️ Making Application Logic Visually Collaborative (Infobip Shift)](https://www.youtube.com/watch?v=ubFj_QfNCL8) by [David Khourshid](https://github.com/davidkpiano) on 2021-09-07 ![Stately member](/docs/stately.png)
 - [▶️ The Actor Model: a new mental model for React (React Finland)](https://www.youtube.com/watch?v=9k1ZHHJWt7k) by [Farzad Yousefzadeh](https://github.com/farskid) on 2021-09-01 ![Stately member](/docs/stately.png)
