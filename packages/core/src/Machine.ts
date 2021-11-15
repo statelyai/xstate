@@ -58,7 +58,7 @@ export function createMachine<
     ? 'Model type no longer supported as generic type. Please use `model.createMachine(...)` instead.'
     : MachineConfig<TContext, any, TEvent, TExtra>,
   options?: Partial<MachineOptions<TContext, TEvent, TExtra>>
-): StateMachine<TContext, any, TEvent, TTypestate>;
+): StateMachine<TContext, any, TEvent, TTypestate, TExtra>;
 export function createMachine<
   TContext,
   TEvent extends EventObject = AnyEventObject,
@@ -67,9 +67,9 @@ export function createMachine<
 >(
   config: MachineConfig<TContext, any, TEvent, TExtra>,
   options?: Partial<MachineOptions<TContext, TEvent, TExtra>>
-): StateMachine<TContext, any, TEvent, TTypestate> {
-  return new StateNode<TContext, any, TEvent, TTypestate>(
+): StateMachine<TContext, any, TEvent, TTypestate, TExtra> {
+  return new StateNode<TContext, any, TEvent, TTypestate, TExtra>(
     config,
     options
-  ) as StateMachine<TContext, any, TEvent, TTypestate>;
+  ) as StateMachine<TContext, any, TEvent, TTypestate, TExtra>;
 }

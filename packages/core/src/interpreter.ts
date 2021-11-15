@@ -580,15 +580,11 @@ export class Interpreter<
     return this;
   }
 
-  public input(
-    input: Partial<TExtra['input']>
-  ): State<TContext, TEvent, TStateSchema, TTypestate, TExtra> {
+  public input(input: Partial<TExtra['input']>): void {
     this.send(({
       type: actionTypes.input,
       input
     } as any) as SCXML.Event<TEvent>);
-
-    return this._state!;
   }
   /**
    * Sends an event to the running interpreter to trigger a transition.

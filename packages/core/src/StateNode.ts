@@ -1297,7 +1297,11 @@ class StateNode<
     let updatedInput: NonNullable<TExtra['input']> | undefined = undefined;
 
     if (_event?.name === actionTypes.input) {
-      updatedInput = Object.assign(currentInput, (_event.data as any).input);
+      updatedInput = Object.assign(
+        {},
+        currentInput,
+        (_event.data as any).input
+      );
     }
 
     const isDone = isInFinalState(resolvedConfiguration, this);

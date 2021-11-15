@@ -105,6 +105,40 @@ describe('input', () => {
     });
   });
 
+  it(`Should allow service.input to receive a partial`, () => {
+    const machine = createMachine<
+      {},
+      AnyEventObject,
+      any,
+      {
+        input: {
+          foo: string;
+          bar: string;
+        };
+      }
+    >(
+      {},
+      {
+        input: {
+          foo: 'foo',
+          bar: 'bar'
+        }
+      }
+    );
+
+    const service = interpret(machine).start();
+
+    service.input({
+      // Only a partial of what's above
+      foo: 'changed'
+    });
+
+    expect(service.state.input).toEqual({
+      foo: 'changed',
+      bar: 'bar'
+    });
+  });
+
   it('Should allow you to update the input with withConfig', (done) => {
     const machine = createMachine({
       entry: [
@@ -157,6 +191,36 @@ describe('input', () => {
       service.input({
         foo: 'bar'
       });
+    });
+  });
+
+  it('Should keep previous inputs stored in state.history', () => {
+    const machine = createMachine<
+      {},
+      AnyEventObject,
+      any,
+      {
+        input: {
+          foo: string;
+        };
+      }
+    >(
+      {},
+      {
+        input: {
+          foo: 'foo'
+        }
+      }
+    );
+
+    const service = interpret(machine).start();
+
+    service.input({
+      foo: 'changed'
+    });
+
+    expect(service.state.history?.input).toEqual({
+      foo: 'foo'
     });
   });
 });
