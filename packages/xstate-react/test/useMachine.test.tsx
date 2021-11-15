@@ -991,12 +991,9 @@ describe('useMachine (strict mode)', () => {
 
 describe('input', () => {
   it('Should provide the input on the state', async () => {
-    const model = createModel(
-      {},
-      {
-        input: {} as {
-          foo: string;
-        }
+    const model = createModel({}).withInput(
+      {} as {
+        foo: string;
       }
     );
 
@@ -1017,12 +1014,9 @@ describe('input', () => {
   });
 
   it('Should keep the input up to date', () => {
-    const model = createModel(
-      {},
-      {
-        input: {} as {
-          foo: string;
-        }
+    const model = createModel({}).withInput(
+      {} as {
+        foo: string;
       }
     );
 
@@ -1052,10 +1046,11 @@ describe('input', () => {
       {
         events: {
           'xstate.input': () => ({})
-        },
-        input: {} as {
-          foo: string;
         }
+      }
+    ).withInput(
+      {} as {
+        foo: string;
       }
     );
 
