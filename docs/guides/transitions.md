@@ -561,3 +561,26 @@ quietMachine.transition(quietMachine.initialState, { type: 'WHISPER' });
 quietMachine.transition(quietMachine.initialState, { type: 'SOME_EVENT' });
 // => State { value: 'disturbed' }
 ```
+
+## FAQ's
+
+### How do I do if/else logic on transitions?
+
+Sometimes, you'll want to say:
+
+- If _something_ is true, go to this state
+- If _something else_ is true, go to this state
+- Else, go to this state
+
+You can use [guarded transitions](./guards.md#guarded-transitions) to achieve this.
+
+### How do I transition to _any_ state?
+
+You can transition to _any_ state by giving that state a custom id, and using `target: '#customId'`. You can read the [full docs on custom IDs here](./ids.md#custom-ids).
+
+This allows you to transition from child states to siblings of parents, for example in the `CANCEL` and `done` events in this example:
+
+<iframe src="https://stately.ai/viz/embed/835aee58-1c36-41d3-bb02-b56ceb06072e?mode=viz&panel=code&readOnly=1&showOriginalLink=1&controls=0&pan=0&zoom=0"
+allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"
+sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"
+></iframe>
