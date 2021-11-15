@@ -4,7 +4,7 @@ export interface XStateErrorMeta {
   /**
    * The path the error occurred in
    */
-  state?: State<any, any>;
+  state?: State<any, any, any, any>;
   /**
    * If it occurred within a state node, log the state node
    */
