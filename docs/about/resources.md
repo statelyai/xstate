@@ -221,7 +221,7 @@ Explore a collection of professionally-designed state machines and statecharts i
 
 ## Repositories
 
-- [Une UI dans tous ses états avec XState (A UI in all its states with XState)] (https://github.com/rbung/xstatePrez) by [Rodolphe Bung]
+- [Une UI dans tous ses états avec XState (A UI in all its states with XState)](https://github.com/rbung/xstatePrez) by [Rodolphe Bung]
 - [XState: Street Lights with Pedestrian Crossing using Vue.js](https://codesandbox.io/s/stoic-thompson-ktzrl?file=/src/App.vue) by [Kevin Warrington](https://github.com/dubbs)
 - [CodeSandbox - XState Login & Sign Up Forms](https://codesandbox.io/s/xstate-login-sign-up-forms-yzzoc) by [Jamie Mason](https://github.com/JamieMason)
 - [Tic-Tac-Toe with Crank, XState, and TypeScript](https://github.com/mwarger/tic-tac-toe-crank-xstate-typescript) by [@warger](https://github.com/mwarger) on 2020-04-17
