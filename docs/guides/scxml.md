@@ -1,6 +1,6 @@
 # SCXML
 
-XState is compliant with the [SCXML (State Chart XML : State Machine Notation for Control Abstraction) specification](https://www.w3.org/TR/scxml/). This page contains details on where our API relates to the SCXML specification.
+XState is compatible with the [SCXML (State Chart XML: State Machine Notation for Control Abstraction) specification](https://www.w3.org/TR/scxml/). This page contains details on where our API relates to the SCXML specification.
 
 ## Events
 
