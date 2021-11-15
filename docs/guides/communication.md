@@ -878,33 +878,3 @@ const someMachine = createMachine({ /* ... */ });
 }
 // ...
 ```
-
-## SCXML
-
-The `invoke` property is synonymous to the SCXML `<invoke>` element:
-
-```js
-// XState
-{
-  loading: {
-    invoke: {
-      src: 'someSource',
-      id: 'someID',
-      autoForward: true, // currently for machines only!
-      onDone: 'success',
-      onError: 'failure'
-    }
-  }
-}
-```
-
-```xml
-<!-- SCXML -->
-<state id="loading">
-  <invoke id="someID" src="someSource" autoforward />
-  <transition event="done.invoke.someID" target="success" />
-  <transition event="error.platform" cond="_event.src === 'someID'" target="failure" />
-</state>
-```
-
-- [https://www.w3.org/TR/scxml/#invoke](https://www.w3.org/TR/scxml/#invoke) - the definition of `<invoke>`

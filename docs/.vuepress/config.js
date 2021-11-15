@@ -72,7 +72,8 @@ module.exports = {
           '/guides/ids',
           '/guides/interpretation',
           '/guides/testing',
-          '/guides/typescript'
+          '/guides/typescript',
+          '/guides/scxml'
         ]
       },
       {
