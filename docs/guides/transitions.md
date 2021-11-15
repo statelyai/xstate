@@ -576,7 +576,7 @@ You can use [guarded transitions](./guards.md#guarded-transitions) to achieve th
 
 ### How do I transition to _any_ state?
 
-You can transition to _any_ state by giving that state a custom id, and using `target: '#customId'`. You can read the [full docs on custom ids here](./ids.md#custom-ids).
+You can transition to _any_ state by giving that state a custom id, and using `target: '#customId'`. You can read the [full docs on custom IDs here](./ids.md#custom-ids).
 
 This allows you to transition from child states to siblings of parents, for example in the `CANCEL` and `done` events in this example:
 
