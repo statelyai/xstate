@@ -50,7 +50,10 @@ function toActionObject<TContext extends object, TEvent extends EventObject>(
     : action;
 }
 
-const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+const IS_PRODUCTION =
+  typeof process !== 'undefined'
+    ? process.env.NODE_ENV === 'production'
+    : false;
 
 function createMatcher(value: string) {
   return (stateValue) => value === stateValue;

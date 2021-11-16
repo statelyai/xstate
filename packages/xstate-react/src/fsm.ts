@@ -9,6 +9,11 @@ import {
 import { useSubscription, Subscription } from 'use-subscription';
 import useConstant from './useConstant';
 
+export const IS_PRODUCTION =
+  typeof process !== 'undefined'
+    ? process.env.NODE_ENV === 'production'
+    : false;
+
 const getServiceState = <
   TContext extends object,
   TEvent extends EventObject = EventObject,
@@ -39,7 +44,7 @@ export function useMachine<
   StateMachine.Service<TContext, TEvent, TState>['send'],
   StateMachine.Service<TContext, TEvent, TState>
 ] {
-  if (process.env.NODE_ENV !== 'production') {
+  if (!IS_PRODUCTION) {
     const [initialMachine] = useState(stateMachine);
 
     if (stateMachine !== initialMachine) {
