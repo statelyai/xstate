@@ -41,7 +41,7 @@ export interface ActionObject<TContext, TEvent extends EventObject>
   /**
    * The implementation for executing the action.
    */
-  exec?: ActionFunction<TContext, TEvent>;
+  exec?: ActionFunction<TContext, TEvent> | undefined;
 }
 
 export type DefaultContext = Record<string, any> | undefined;
@@ -220,7 +220,7 @@ export interface TransitionConfig<TContext, TEvent extends EventObject> {
   actions?: Actions<TContext, TEvent>;
   in?: StateValue;
   internal?: boolean;
-  target?: TransitionTarget<TContext, TEvent>;
+  target?: TransitionTarget<TContext, TEvent> | undefined;
   meta?: Record<string, any>;
   description?: string;
 }
@@ -594,7 +594,7 @@ export interface StateNodeConfig<
    *
    * This is equivalent to defining a `[done(id)]` transition on this state node's `on` property.
    */
-  onDone?: string | SingleOrArray<TransitionConfig<TContext, DoneEventObject>>;
+  onDone?: string | SingleOrArray<TransitionConfig<TContext, DoneEventObject>> | undefined;
   /**
    * The mapping (or array) of delays (in milliseconds) to their potential transition(s).
    * The delayed transitions are taken after the specified delay in an interpreter.
