@@ -284,7 +284,7 @@ try {
 }
 ```
 
-State can be restored using the static `State.create(...)` method and resolved using the public `machine.resolveState(...)` method:
+State can be restored using the static `State.create(...)` method:
 
 ```js
 import { State, interpret } from 'xstate';
@@ -296,18 +296,15 @@ const stateDefinition =
 
 // Use State.create() to restore state from a plain object
 const previousState = State.create(stateDefinition);
-
-// Use machine.resolveState() to resolve the state definition to a new State instance relative to the machine
-const resolvedState = myMachine.resolveState(previousState);
 ```
 
-You can then interpret the machine from this resolved state by passing the `State` into the `.start(...)` method of the interpreted service:
+You can then interpret the machine from this state by passing the `State` into the `.start(...)` method of the interpreted service:
 
 ```js
 // ...
 
 // This will start the service at the specified State
-const service = interpret(myMachine).start(resolvedState);
+const service = interpret(myMachine).start(previousState);
 ```
 
 This will also maintain and restore previous [history states](./history.md) and ensures that `.events` and `.nextEvents` represent the correct values.
