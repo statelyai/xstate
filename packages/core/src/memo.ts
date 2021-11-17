@@ -1,20 +1,9 @@
 import type { StateNode } from '.';
 
-const stateNodeMap = new WeakMap<StateNode, any>();
+const cache = new WeakMap<StateNode, any>();
 
-export function getMemo<T>(
-  stateNode: StateNode<any, any>,
-  key: string
-): T | undefined {
-  return stateNodeMap.get(stateNode)?.[key];
-}
-
-export function memo<T>(
-  stateNode: StateNode<any, any>,
-  key: string,
-  fn: () => T
-): T {
-  let memoizedData = stateNodeMap.get(stateNode);
+export function memo<T>(object: any, key: string, fn: () => T): T {
+  let memoizedData = cache.get(object);
 
   if (!memoizedData || !memoizedData[key]) {
     memoizedData = {
@@ -22,7 +11,7 @@ export function memo<T>(
       [key]: fn()
     };
 
-    stateNodeMap.set(stateNode, memoizedData);
+    cache.set(object, memoizedData);
   }
 
   return memoizedData[key];
