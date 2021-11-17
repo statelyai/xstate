@@ -196,11 +196,11 @@ export class StateNode<
     this.tags = toArray(config.tags);
   }
 
-  public initialize() {
+  public _initialize() {
     this.transitions = formatTransitions(this);
 
     Object.keys(this.states).forEach((key) => {
-      this.states[key].initialize();
+      this.states[key]._initialize();
     });
   }
 

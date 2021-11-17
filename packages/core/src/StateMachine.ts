@@ -121,7 +121,7 @@ export class StateMachine<
       _machine: this
     });
 
-    this.root.initialize();
+    this.root._initialize();
 
     this.states = this.root.states; // TODO: remove!
     this.events = this.root.events;
