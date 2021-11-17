@@ -58,6 +58,7 @@ module.exports = {
           '/guides/transitions',
           '/guides/hierarchical',
           '/guides/parallel',
+          '/guides/final',
           '/guides/effects',
           '/guides/actions',
           '/guides/guards',
@@ -67,12 +68,12 @@ module.exports = {
           '/guides/communication',
           '/guides/actors',
           '/guides/delays',
-          '/guides/final',
           '/guides/history',
           '/guides/ids',
           '/guides/interpretation',
           '/guides/testing',
-          '/guides/typescript'
+          '/guides/typescript',
+          '/guides/scxml'
         ]
       },
       {
