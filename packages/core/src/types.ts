@@ -695,7 +695,6 @@ export interface AtomicStateNodeConfig<TContext, TEvent extends EventObject>
   initial?: undefined;
   parallel?: false | undefined;
   states?: undefined;
-  onDone?: undefined;
 }
 
 export interface HistoryStateNodeConfig<TContext, TEvent extends EventObject>
@@ -967,7 +966,7 @@ export interface ActivityActionObject<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {
   type: ActionTypes.Start | ActionTypes.Stop;
   activity: ActivityDefinition<TContext, TEvent> | undefined;
-  exec: ActionFunction<TContext, TEvent> | undefined;
+  exec: ActionFunction<TContext, TEvent>;
 }
 
 export interface InvokeActionObject<TContext, TEvent extends EventObject>
@@ -1136,7 +1135,7 @@ export interface ChooseAction<TContext, TEvent extends EventObject>
 
 export interface TransitionDefinition<TContext, TEvent extends EventObject>
   extends TransitionConfig<TContext, TEvent> {
-  target: Array<StateNode<TContext, any, TEvent>> | undefined;
+  target: Array<StateNode<TContext, any, TEvent>>;
   source: StateNode<TContext, any, TEvent>;
   actions: Array<ActionObject<TContext, TEvent>>;
   cond?: Guard<TContext, TEvent>;
