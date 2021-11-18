@@ -38,11 +38,11 @@ const dieHardMachine = createMachine<DieHardContext>(
     context: { three: 0, five: 0 },
     states: {
       pending: {
+        always: {
+          target: 'success',
+          guard: 'weHave4Gallons'
+        },
         on: {
-          '': {
-            target: 'success',
-            guard: 'weHave4Gallons'
-          },
           POUR_3_TO_5: {
             actions: pour3to5
           },
@@ -380,9 +380,7 @@ describe('coverage', () => {
           }
         },
         passthrough: {
-          on: {
-            '': 'end'
-          }
+          always: 'end'
         },
         end: {
           type: 'final',

@@ -11,13 +11,11 @@ const greetingMachine = createMachine<typeof greetingContext>({
   context: greetingContext,
   states: {
     pending: {
-      on: {
-        '': [
-          { target: 'morning', guard: (ctx) => ctx.hour < 12 },
-          { target: 'afternoon', guard: (ctx) => ctx.hour < 18 },
-          { target: 'evening' }
-        ]
-      }
+      always: [
+        { target: 'morning', guard: (ctx) => ctx.hour < 12 },
+        { target: 'afternoon', guard: (ctx) => ctx.hour < 18 },
+        { target: 'evening' }
+      ]
     },
     morning: {},
     afternoon: {},
@@ -108,9 +106,7 @@ describe('transient states (eventless transitions)', () => {
           }
         },
         T: {
-          on: {
-            '': [{ target: 'B' }]
-          }
+          always: [{ target: 'B' }]
         },
         B: {
           entry: 'enter_B'
@@ -202,16 +198,12 @@ describe('transient states (eventless transitions)', () => {
               }
             },
             A2: {
-              on: {
-                '': 'A3'
-              }
+              always: 'A3'
             },
             A3: {
-              on: {
-                '': {
-                  target: 'A4',
-                  guard: stateIn({ B: 'B3' })
-                }
+              always: {
+                target: 'A4',
+                guard: stateIn({ B: 'B3' })
               }
             },
             A4: {}
@@ -227,19 +219,15 @@ describe('transient states (eventless transitions)', () => {
               }
             },
             B2: {
-              on: {
-                '': {
-                  target: 'B3',
-                  guard: stateIn({ A: 'A2' })
-                }
+              always: {
+                target: 'B3',
+                guard: stateIn({ A: 'A2' })
               }
             },
             B3: {
-              on: {
-                '': {
-                  target: 'B4',
-                  guard: stateIn({ A: 'A3' })
-                }
+              always: {
+                target: 'B4',
+                guard: stateIn({ A: 'A3' })
               }
             },
             B4: {}
@@ -328,11 +316,9 @@ describe('transient states (eventless transitions)', () => {
           initial: 'B1',
           states: {
             B1: {
-              on: {
-                '': {
-                  target: 'B2',
-                  guard: stateIn({ A: 'A2' })
-                }
+              always: {
+                target: 'B2',
+                guard: stateIn({ A: 'A2' })
               }
             },
             B2: {}
@@ -342,11 +328,9 @@ describe('transient states (eventless transitions)', () => {
           initial: 'C1',
           states: {
             C1: {
-              on: {
-                '': {
-                  target: 'C2',
-                  guard: stateIn({ A: 'A2' })
-                }
+              always: {
+                target: 'C2',
+                guard: stateIn({ A: 'A2' })
               }
             },
             C2: {}
@@ -581,16 +565,14 @@ describe('transient states (eventless transitions)', () => {
           type: 'final'
         }
       },
-      on: {
-        '': [
-          {
-            target: '.success',
-            guard: (ctx) => {
-              return ctx.count > 0;
-            }
+      always: [
+        {
+          target: '.success',
+          guard: (ctx) => {
+            return ctx.count > 0;
           }
-        ]
-      }
+        }
+      ]
     });
 
     const service = interpret(machine).onDone(() => {

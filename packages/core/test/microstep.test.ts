@@ -13,9 +13,7 @@ describe('machine.microstep()', () => {
           }
         },
         second: {
-          on: {
-            '': 'third'
-          }
+          always: 'third'
         },
         third: {}
       }
