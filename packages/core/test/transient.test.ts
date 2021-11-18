@@ -437,8 +437,8 @@ describe('transient states (eventless transitions)', () => {
         },
         b: {
           entry: raise('BAR'),
+          always: 'c',
           on: {
-            '': 'c',
             BAR: 'd'
           }
         },
@@ -738,5 +738,69 @@ describe('transient states (eventless transitions)', () => {
     service.send({ type: 'WHATEVER' });
 
     expect(service.state.value).toBe('c');
+  });
+
+  it('events that trigger eventless transitions should be preserved in guards', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EVENT: 'b'
+          }
+        },
+        b: {
+          always: 'c'
+        },
+        c: {
+          always: {
+            guard: (_, e) => {
+              expect(e.type).toEqual('EVENT');
+              return e.type === 'EVENT';
+            },
+            target: 'd'
+          }
+        },
+        d: { type: 'final' }
+      }
+    });
+
+    const nextState = machine.transition(undefined, 'EVENT');
+
+    expect(nextState.done).toBeTruthy();
+  });
+
+  it('events that trigger eventless transitions should be preserved in actions', () => {
+    expect.assertions(3);
+
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EVENT: 'b'
+          }
+        },
+        b: {
+          always: {
+            target: 'c',
+            actions: (_, event) => {
+              expect(event).toEqual({ type: 'EVENT', value: 42 });
+            }
+          },
+          exit: (_, event) => {
+            expect(event).toEqual({ type: 'EVENT', value: 42 });
+          }
+        },
+        c: {
+          entry: (_, event) => {
+            expect(event).toEqual({ type: 'EVENT', value: 42 });
+          }
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+    service.send({ type: 'EVENT', value: 42 });
   });
 });

@@ -107,9 +107,11 @@ describe('guard conditions', () => {
 
   it('should not transition if no condition is met', () => {
     const nextState = lightMachine.transition(
-      State.from('green', {
-        elapsed: 9000
-      }),
+      lightMachine.resolveState(
+        State.from('green', {
+          elapsed: 9000
+        })
+      ),
       'TIMER'
     );
     expect(nextState.value).toEqual('green');
@@ -118,9 +120,11 @@ describe('guard conditions', () => {
 
   it('should work with defined string transitions', () => {
     const nextState = lightMachine.transition(
-      State.from('yellow', {
-        elapsed: 150
-      }),
+      lightMachine.resolveState(
+        State.from('yellow', {
+          elapsed: 150
+        })
+      ),
       'TIMER'
     );
     expect(nextState.value).toEqual('red');
@@ -128,9 +132,11 @@ describe('guard conditions', () => {
 
   it('should work with guard objects', () => {
     const nextState = lightMachine.transition(
-      State.from('yellow', {
-        elapsed: 150
-      }),
+      lightMachine.resolveState(
+        State.from('yellow', {
+          elapsed: 150
+        })
+      ),
       'TIMER_COND_OBJ'
     );
     expect(nextState.value).toEqual('red');
@@ -138,9 +144,11 @@ describe('guard conditions', () => {
 
   it('should work with defined string transitions (condition not met)', () => {
     const nextState = lightMachine.transition(
-      State.from('yellow', {
-        elapsed: 10
-      }),
+      lightMachine.resolveState(
+        State.from('yellow', {
+          elapsed: 10
+        })
+      ),
       'TIMER'
     );
     expect(nextState.value).toEqual('yellow');

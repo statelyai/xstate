@@ -24,7 +24,6 @@ import type {
   InvokeDefinition,
   Mapper,
   PropertyMapper,
-  NullEvent,
   SCXML,
   TransitionDefinitionMap,
   InitialTransitionDefinition,
@@ -42,6 +41,7 @@ import {
 } from './stateUtils';
 import { evaluateGuard } from './guards';
 import type { StateMachine } from './StateMachine';
+import { NULL_EVENT } from './constants';
 
 const EMPTY_OBJECT = {};
 
@@ -132,7 +132,7 @@ export class StateNode<
       | Array<TransitionDefinition<TContext, TEvent>>
       | undefined,
     candidates: {} as {
-      [K in TEvent['type'] | NullEvent['type'] | '*']:
+      [K in TEvent['type'] | typeof NULL_EVENT | '*']:
         | Array<
             TransitionDefinition<
               TContext,

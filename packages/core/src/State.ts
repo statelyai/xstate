@@ -7,7 +7,6 @@ import type {
   TransitionDefinition,
   Typestate,
   HistoryValue,
-  NullEvent,
   ActorRef,
   MachineContext,
   SimpleEventsOf,
@@ -49,7 +48,7 @@ export class State<
   public actions: BaseActionObject[] = [];
   public meta: any = {};
   public event: TEvent;
-  public _internalQueue: Array<SCXML.Event<TEvent> | NullEvent> = [];
+  public _internalQueue: Array<SCXML.Event<TEvent>> = [];
   public _event: SCXML.Event<TEvent>;
   public _sessionid: string | null;
   public _initial: boolean = false;
