@@ -20,7 +20,6 @@ import { IS_PRODUCTION } from './environment';
 import { STATE_DELIMITER } from './constants';
 import {
   getConfiguration,
-  getAllStateNodes,
   resolveMicroTransition,
   macrostep,
   toState,
@@ -122,15 +121,10 @@ export class StateMachine<
       _machine: this
     });
 
-    this.states = this.root.states; // TOOD: remove!
-    this.events = this.root.events;
-  }
+    this.root._initialize();
 
-  public _init(): void {
-    if (this.root.__cache.transitions) {
-      return;
-    }
-    getAllStateNodes(this.root).forEach((stateNode) => stateNode.on);
+    this.states = this.root.states; // TODO: remove!
+    this.events = this.root.events;
   }
 
   /**
@@ -258,8 +252,6 @@ export class StateMachine<
    * entering the initial state.
    */
   public get initialState(): State<TContext, TEvent, TTypestate> {
-    this._init();
-
     const nextState = resolveMicroTransition(this, [], this.first, undefined);
     return macrostep(nextState, null as any, this);
   }
@@ -268,8 +260,6 @@ export class StateMachine<
    * Returns the initial `State` instance, with reference to `self` as an `ActorRef`.
    */
   public getInitialState(): State<TContext, TEvent, TTypestate> {
-    this._init();
-
     const nextState = resolveMicroTransition(this, [], this.first, undefined);
     return macrostep(nextState, null as any, this) as State<
       TContext,
