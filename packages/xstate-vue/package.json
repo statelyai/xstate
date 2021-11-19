@@ -38,7 +38,7 @@
     "clean": "rm -rf dist lib es tsconfig.tsbuildinfo",
     "build": "tsc && tsc --outDir es --module es2015 && rollup -c",
     "test": "jest",
-    "prepublish": "npm run build && npm run test"
+    "prepublish": "npm run build"
   },
   "bugs": {
     "url": "https://github.com/davidkpiano/xstate/issues"

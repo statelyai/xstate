@@ -371,7 +371,21 @@ To do this, set `{ sync: true }` as an option to `spawn(...)`:
 // ...
 ```
 
-This will automatically subscribe the machine to the spawned child machine's state, which is kept updated in `ref.state`:
+This will automatically subscribe the machine to the spawned child machine's state, which is kept updated and can be accessed via `getSnapshot()`:
+
+
+```js
+someService.onTransition((state) => {
+  const { someRef } = state.context;
+
+  console.log(someRef.getSnapshot());
+  // => State {
+  //   value: ...,
+  //   context: ...
+  // }
+});
+```
+
 
 ```js
 someService.onTransition((state) => {

@@ -76,7 +76,7 @@ const searchMachine = createMachine(
 
 Click the _EVENTS_ tab and send an event like `{ "type": "SEARCH", "query": "something" }` below:
 
-<iframe src="https://xstate.js.org/viz/?gist=09af23963bfa1767ce3900f2ae730029&embed=1&tab=events"></iframe>
+<iframe src="https://stately.ai/viz/embed/?gist=09af23963bfa1767ce3900f2ae730029&tab=events"></iframe>
 
 If the `cond` guard returns `false`, then the transition will not be selected, and no transition will take place from that state node. If all transitions in a child state have guards that evaluate to `false` and prevent them from being selected, the `event` will be propagated up to the parent state and handled there.
 
@@ -270,7 +270,7 @@ doorService.send({ type: 'OPEN' });
 // (since context.isAdmin === true)
 ```
 
-<iframe src="https://xstate.js.org/viz/?gist=8526f72c3041b38f7d7ba808c812df06&embed=1"></iframe>
+<iframe src="https://stately.ai/viz/embed/?gist=8526f72c3041b38f7d7ba808c812df06"></iframe>
 
 ::: warning
 The `cond` function must always be a **pure function** that only references the `context` and `event` arguments.
@@ -330,43 +330,3 @@ When an `in`-state guard is present with other `cond` guards in the same transit
 ::: tip
 Using "in state" guards is usually a sign that the machine can be refactored in a way that makes their usage unnecessary. Prefer avoiding "in state" guards when possible.
 :::
-
-## SCXML
-
-The `cond` property is equivalent to the `cond` attribute on the `<transition>` element:
-
-```js
-{
-  on: {
-    e: {
-      target: 'foo',
-      cond: context => context.x === 1
-    }
-  }
-}
-```
-
-```xml
-<transition event="e" cond="x == 1" target="foo" />
-```
-
-Likewise, the `in` property is equivalent to the `In()` predicate:
-
-```js
-{
-  on: {
-    e: {
-      target: 'cooking',
-      in: '#closed'
-    }
-  }
-}
-```
-
-```xml
-<transition cond="In('closed')" target="cooking"/>
-```
-
-- [https://www.w3.org/TR/scxml/#transition](https://www.w3.org/TR/scxml/#transition) - the definition of the `cond` attribute
-- [https://www.w3.org/TR/scxml/#ConditionalExpressions](https://www.w3.org/TR/scxml/#ConditionalExpressions) - conditional expressions and the requirement of supporting the `In()` predicate
-- [https://www.w3.org/TR/scxml/#SelectingTransitions](https://www.w3.org/TR/scxml/#SelectingTransitions) - how transitions are selected given an event

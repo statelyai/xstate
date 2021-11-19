@@ -336,7 +336,7 @@ export function createWebSocketReceiver(
     try {
       const eventObject = JSON.parse(event.data);
 
-      if (isReceiverEvent(latestEvent)) {
+      if (isReceiverEvent(eventObject)) {
         latestEvent = parseReceiverEvent(eventObject);
         observers.forEach((observer) => {
           observer.next(latestEvent);

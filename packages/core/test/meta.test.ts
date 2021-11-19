@@ -160,3 +160,32 @@ describe('transition meta data', () => {
     `);
   });
 });
+
+describe('state description', () => {
+  it('state node should have its description', () => {
+    const machine = createMachine({
+      initial: 'test',
+      states: {
+        test: {
+          description: 'This is a test'
+        }
+      }
+    });
+
+    expect(machine.states.test.description).toEqual('This is a test');
+  });
+});
+
+describe('transition description', () => {
+  it('state node should have its description', () => {
+    const machine = createMachine({
+      on: {
+        EVENT: {
+          description: 'This is a test'
+        }
+      }
+    });
+
+    expect(machine.on['EVENT'][0].description).toEqual('This is a test');
+  });
+});
