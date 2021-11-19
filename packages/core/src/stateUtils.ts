@@ -1828,12 +1828,12 @@ export function macrostep<
   let maybeNextState = nextState;
 
   while (!maybeNextState.done) {
-    const enabledTransitions = selectEventlessTransitions(
+    const eventlessTransitions = selectEventlessTransitions(
       maybeNextState,
       machine
     );
 
-    if (enabledTransitions.length === 0) {
+    if (eventlessTransitions.length === 0) {
       if (!_internalQueue.length) {
         break;
       } else {
@@ -1855,7 +1855,7 @@ export function macrostep<
       const currentActions = maybeNextState.actions;
       maybeNextState = resolveMicroTransition(
         machine,
-        enabledTransitions,
+        eventlessTransitions,
         maybeNextState,
         maybeNextState._event
       );
