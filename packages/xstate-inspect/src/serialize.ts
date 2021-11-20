@@ -2,47 +2,34 @@ import { State, StateMachine } from 'xstate';
 import { Replacer } from './types';
 import { stringify } from './utils';
 
-export function serializeState(state: State<any, any>, replacer: Replacer) {
-  const scxmlEvent = {
-    ...state._event,
-    data: replacer('data', state._event.data)
-  };
+export function selectivelyStringify<T extends object>(
+  value: T,
+  keys: Array<keyof T>,
+  replacer?: Replacer
+): string {
+  const selected: any = {};
 
-  return {
-    ...state.toJSON(),
-    context: replacer('context', state.context),
-    event: scxmlEvent.data,
-    _event: scxmlEvent
-  };
+  for (const key of keys) {
+    selected[key] = value[key];
+  }
+
+  const serialized = JSON.parse(stringify(selected, replacer));
+  return stringify({
+    ...value,
+    ...serialized
+  });
 }
 
 export function stringifyState(
   state: State<any, any>,
   replacer?: Replacer
 ): string {
-  if (!replacer) {
-    return stringify(state);
-  }
-
-  return stringify(serializeState(state, replacer));
-}
-
-function recursiveReplace(value: any, replacer?: Replacer): any {
-  const stringified = stringify(value, replacer);
-  if (stringified) {
-    return JSON.parse(stringified);
-  }
-  return undefined;
+  return selectivelyStringify(state, ['context', 'event', '_event'], replacer);
 }
 
 export function stringifyMachine(
   machine: StateMachine<any, any, any>,
   replacer?: Replacer
 ): string {
-  return stringify(machine, (key, value) => {
-    if (key === 'context' && typeof value === 'object') {
-      return recursiveReplace(value, replacer);
-    }
-    return value;
-  });
+  return selectivelyStringify(machine, ['context'], replacer);
 }
