@@ -470,24 +470,6 @@ describe('transient states (eventless transitions)', () => {
     expect(state.value).toBe('e');
   });
 
-  it('should select eventless transition for array `.on` config', () => {
-    const machine = createMachine({
-      initial: 'a',
-      states: {
-        a: {
-          on: { FOO: 'b' }
-        },
-        b: {
-          on: [{ event: '', target: 'pass' }]
-        },
-        pass: {}
-      }
-    });
-
-    const state = machine.transition('a', 'FOO');
-    expect(state.value).toBe('pass');
-  });
-
   it('should not select wildcard for eventless transition', () => {
     const machine = createMachine({
       initial: 'a',
@@ -514,10 +496,8 @@ describe('transient states (eventless transitions)', () => {
           on: { FOO: 'b' }
         },
         b: {
-          on: [
-            { event: '*', target: 'fail' },
-            { event: '', target: 'pass' }
-          ]
+          always: 'pass',
+          on: [{ event: '*', target: 'fail' }]
         },
         fail: {},
         pass: {}

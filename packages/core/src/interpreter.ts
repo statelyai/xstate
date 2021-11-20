@@ -765,6 +765,9 @@ export class Interpreter<
           } else {
             this.logger(value);
           }
+        },
+        [actionTypes.assign]: () => {
+          /* No-op to prevent no implementation warning */
         }
       } as ActionFunctionMap<TContext, TEvent>)[actionType]
     );

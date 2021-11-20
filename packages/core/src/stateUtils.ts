@@ -455,40 +455,41 @@ export function formatTransitions<
 >(
   stateNode: StateNode<TContext, TEvent>
 ): Array<TransitionDefinition<TContext, TEvent>> {
-  let onConfig: Array<
+  const transitionConfigs: Array<
     TransitionConfig<TContext, EventObject> & {
       event: string;
     }
-  >;
-  if (!stateNode.config.on) {
-    onConfig = [];
-  } else if (Array.isArray(stateNode.config.on)) {
-    onConfig = stateNode.config.on;
-  } else {
+  > = [];
+  if (Array.isArray(stateNode.config.on)) {
+    transitionConfigs.push(...stateNode.config.on);
+  } else if (stateNode.config.on) {
     const {
       [WILDCARD]: wildcardConfigs = [],
-      ...strictOnConfigs
+      ...namedTransitionConfigs
     } = stateNode.config.on;
-    onConfig = flatten(
-      keys(strictOnConfigs)
-        .map((key) => {
-          const arrayified = toTransitionConfigArray<TContext, EventObject>(
-            key,
-            strictOnConfigs![key as string]
-          );
-          // TODO: add dev-mode validation for unreachable transitions
-          return arrayified;
-        })
-        .concat(
-          toTransitionConfigArray(
-            WILDCARD,
-            wildcardConfigs as SingleOrArray<
-              TransitionConfig<TContext, EventObject> & {
-                event: '*';
-              }
-            >
-          )
-        )
+    keys(namedTransitionConfigs).forEach((eventType) => {
+      if (eventType === NULL_EVENT) {
+        throw new Error(
+          'Null events ("") cannot be specified as a transition key. Use `always: { ... }` instead.'
+        );
+      }
+      const eventTransitionConfigs = toTransitionConfigArray<
+        TContext,
+        EventObject
+      >(eventType, namedTransitionConfigs![eventType as string]);
+
+      transitionConfigs.push(...eventTransitionConfigs);
+      // TODO: add dev-mode validation for unreachable transitions
+    });
+    transitionConfigs.push(
+      ...toTransitionConfigArray(
+        WILDCARD,
+        wildcardConfigs as SingleOrArray<
+          TransitionConfig<TContext, EventObject> & {
+            event: '*';
+          }
+        >
+      )
     );
   }
   const doneConfig = stateNode.config.onDone
@@ -496,9 +497,6 @@ export function formatTransitions<
         String(done(stateNode.id)),
         stateNode.config.onDone
       )
-    : [];
-  const eventlessConfig = stateNode.config.always
-    ? toTransitionConfigArray(NULL_EVENT, stateNode.config.always)
     : [];
   const invokeConfig = flatten(
     stateNode.invoke.map((invokeDef) => {
@@ -524,7 +522,7 @@ export function formatTransitions<
   );
   const delayedTransitions = stateNode.after;
   const formattedTransitions = flatten(
-    [...doneConfig, ...invokeConfig, ...onConfig, ...eventlessConfig].map(
+    [...doneConfig, ...invokeConfig, ...transitionConfigs].map(
       (
         transitionConfig: TransitionConfig<TContext, TEvent> & {
           event: TEvent['type'] | '*';
@@ -1504,7 +1502,10 @@ function selectEventlessTransitions<
     loop: for (const s of [stateNode].concat(
       getProperAncestors(stateNode, null)
     )) {
-      for (const t of s.transitions) {
+      if (!s.always) {
+        continue;
+      }
+      for (const t of s.always) {
         if (
           t.eventType === NULL_EVENT &&
           (t.guard === undefined ||
