@@ -9,6 +9,7 @@ import {
 import { XStateDevInterface } from 'xstate/lib/devTools';
 import { toSCXMLEvent, toEventObject, toObserver } from 'xstate/lib/utils';
 import { createInspectMachine, InspectMachineEvent } from './inspectMachine';
+import { stringifyMachine, stringifyState } from './serialize';
 import type {
   Inspector,
   InspectorOptions,
@@ -82,9 +83,7 @@ const getFinalOptions = (options?: Partial<InspectorOptions>) => {
   };
 };
 
-export function inspect(
-  options?: Partial<InspectorOptions>
-): Inspector | undefined {
+export function inspect(options?: InspectorOptions): Inspector | undefined {
   const { iframe, url, devTools } = getFinalOptions(options);
 
   if (iframe === null) {
@@ -95,7 +94,7 @@ export function inspect(
     return undefined;
   }
 
-  const inspectMachine = createInspectMachine(devTools);
+  const inspectMachine = createInspectMachine(devTools, options ?? {});
   const inspectService = interpret(inspectMachine).start();
   const listeners = new Set<Observer<any>>();
 
@@ -143,11 +142,12 @@ export function inspect(
     stringify(value, options?.serialize);
 
   devTools.onRegister((service) => {
+    const state = service.state || service.initialState;
     inspectService.send({
       type: 'service.register',
       // TODO: determine how only parts of the machine can go through serializer
-      machine: stringifyWithSerializer(service.machine),
-      state: stringifyWithSerializer(service.state || service.initialState),
+      machine: stringifyMachine(service.machine, options?.serialize),
+      state: stringifyState(state, options?.serialize),
       sessionId: service.sessionId,
       id: service.id,
       parent: service.parent?.sessionId
@@ -155,9 +155,7 @@ export function inspect(
 
     inspectService.send({
       type: 'service.event',
-      event: stringifyWithSerializer(
-        (service.state || service.initialState)._event
-      ),
+      event: stringifyWithSerializer(state._event),
       sessionId: service.sessionId
     });
 
@@ -189,7 +187,7 @@ export function inspect(
       }
       inspectService.send({
         type: 'service.state',
-        state: stringifyWithSerializer(state),
+        state: stringifyState(state, options?.serialize),
         sessionId: service.sessionId
       });
     });

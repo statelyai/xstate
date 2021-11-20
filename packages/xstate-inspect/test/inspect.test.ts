@@ -78,9 +78,16 @@ describe('@xstate/inspect', () => {
     expect(() => devTools.register(service)).not.toThrow();
   });
 
-  it('should accept a serializer', (done) => {
+  it('should accept a serializer', () => {
+    expect.assertions(2);
     const machine = createMachine({
       initial: 'active',
+      context: {
+        map: new Map(),
+        deep: {
+          map: new Map()
+        }
+      },
       states: {
         active: {}
       }
@@ -99,6 +106,15 @@ describe('@xstate/inspect', () => {
         return value;
       }
     })?.subscribe((state) => {
+      if (state.event.type === 'service.register') {
+        expect(JSON.parse(state.event.machine).context).toEqual({
+          map: 'map',
+          deep: {
+            map: 'map'
+          }
+        });
+      }
+
       if (
         state.event.type === 'service.event' &&
         JSON.parse(state.event.event).name === 'TEST'
@@ -110,7 +126,6 @@ describe('@xstate/inspect', () => {
             serialized: 'map'
           }
         });
-        done();
       }
     });
 

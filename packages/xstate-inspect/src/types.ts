@@ -15,7 +15,8 @@ export interface InspectorOptions {
   serialize?: Replacer | undefined;
 }
 
-export interface Inspector extends ActorRef<InspectMachineEvent, any> {
+export interface Inspector
+  extends ActorRef<InspectMachineEvent, State<any, any, any>> {
   /**
    * Disconnects the inspector.
    */
