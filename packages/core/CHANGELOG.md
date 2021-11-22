@@ -1,5 +1,13 @@
 # xstate
 
+## 4.26.1
+
+### Patch Changes
+
+- [#2819](https://github.com/statelyai/xstate/pull/2819) [`0d51d33cd`](https://github.com/statelyai/xstate/commit/0d51d33cd6dc6ab876a5554788300282d03fa5d1) Thanks [@simonihmig](https://github.com/simonihmig)! - Support `globalThis` in `getGlobal()` for better compatibility
+
+* [#2830](https://github.com/statelyai/xstate/pull/2830) [`75627edaf`](https://github.com/statelyai/xstate/commit/75627edaf401be1b964f8210f98f40de307671c4) Thanks [@davidkpiano](https://github.com/davidkpiano)! - XState is now compatible with TypeScript version 4.5.
+
 ## 4.26.0
 
 ### Minor Changes
