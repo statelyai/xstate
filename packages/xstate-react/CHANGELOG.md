@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.3
+
+### Patch Changes
+
+- [#2767](https://github.com/statelyai/xstate/pull/2767) [`c1503b121`](https://github.com/statelyai/xstate/commit/c1503b1219d995ebf0f45de46036c5a1d7e6442f) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an over-rendering issue in the `useSelector`.
+
 ## 1.6.2
 
 ### Patch Changes
