@@ -145,7 +145,6 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
     const state = service.state || service.initialState;
     inspectService.send({
       type: 'service.register',
-      // TODO: determine how only parts of the machine can go through serializer
       machine: stringifyMachine(service.machine, options?.serialize),
       state: stringifyState(state, options?.serialize),
       sessionId: service.sessionId,
