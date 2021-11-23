@@ -186,6 +186,7 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
       }
       inspectService.send({
         type: 'service.state',
+        // TODO: investigate usage of structuredClone in browsers if available
         state: stringifyState(state, options?.serialize),
         sessionId: service.sessionId
       });
