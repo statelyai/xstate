@@ -179,7 +179,7 @@ const machine = model.createMachine(
 
 ## Quick Reference
 
-#### Declare it in the options object
+#### Declare input in the options object
 
 ```ts
 const machine = createMachine(
