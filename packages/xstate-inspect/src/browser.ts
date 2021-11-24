@@ -94,7 +94,7 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
     return undefined;
   }
 
-  const inspectMachine = createInspectMachine(devTools, options ?? {});
+  const inspectMachine = createInspectMachine(devTools, options);
   const inspectService = interpret(inspectMachine).start();
   const listeners = new Set<Observer<any>>();
 

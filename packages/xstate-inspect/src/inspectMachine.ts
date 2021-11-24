@@ -12,7 +12,7 @@ export type InspectMachineEvent =
 
 export function createInspectMachine(
   devTools: XStateDevInterface = globalThis.__xstate__,
-  options: { serialize?: Replacer | undefined }
+  options?: { serialize?: Replacer | undefined }
 ) {
   const serviceMap = new Map<string, Interpreter<any, any, any>>();
 
@@ -85,10 +85,10 @@ export function createInspectMachine(
             devTools.services.forEach((service) => {
               ctx.client?.send({
                 type: 'service.register',
-                machine: stringifyMachine(service.machine, options.serialize),
+                machine: stringifyMachine(service.machine, options?.serialize),
                 state: stringifyState(
                   service.state || service.initialState,
-                  options.serialize
+                  options?.serialize
                 ),
                 sessionId: service.sessionId
               });
