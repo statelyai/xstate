@@ -826,22 +826,25 @@ describe('State', () => {
     });
 
     it('should not execute assignments', () => {
+      let executed = false;
       const machine = createMachine({
         context: {},
         on: {
-          DO_SOMETHING_BAD: {
-            actions: assign(() => {
-              throw new Error('unexpected error');
+          EVENT: {
+            actions: assign((ctx) => {
+              // Side-effect just for testing
+              executed = true;
+              return ctx;
             })
           }
         }
       });
 
-      expect(() => {
-        const { initialState } = machine;
+      const { initialState } = machine;
 
-        initialState.can('DO_SOMETHING_BAD');
-      }).not.toThrowError();
+      initialState.can('EVENT');
+
+      expect(executed).toBeFalsy();
     });
   });
 
