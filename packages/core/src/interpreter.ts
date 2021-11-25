@@ -60,7 +60,12 @@ import {
   isBehavior
 } from './utils';
 import { Scheduler } from './scheduler';
-import { Actor, isSpawnedActor, createDeferredActor } from './Actor';
+import {
+  Actor,
+  isSpawnedActor,
+  createDeferredActor,
+  toActorRef
+} from './Actor';
 import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
 import { getGlobal, registerService } from './devTools';
@@ -881,7 +886,7 @@ export class Interpreter<
                 data: resolvedData,
                 src: invokeSource,
                 meta: activity.meta,
-                self: this
+                self: toActorRef(this)
               })
             : serviceCreator;
 

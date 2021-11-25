@@ -9,7 +9,7 @@ import {
 } from './types';
 import { isMachine, mapContext, toInvokeSource } from './utils';
 import * as serviceScope from './serviceScope';
-import { ActorRef, BaseActorRef } from '.';
+import type { ActorRef, BaseActorRef, Interpreter } from '.';
 
 export interface Actor<
   TContext = any,
@@ -105,11 +105,24 @@ export function isSpawnedActor(item: any): item is ActorRef<any> {
   return isActor(item) && 'id' in item;
 }
 
+function isService(actor: any): actor is Interpreter<any, any, any, any> {
+  return 'state' in actor && 'machine' in actor;
+}
+
 export function toActorRef<
   TEvent extends EventObject,
   TEmitted = any,
   TActorRefLike extends BaseActorRef<TEvent> = BaseActorRef<TEvent>
 >(actorRefLike: TActorRefLike): ActorRef<TEvent, TEmitted> {
+  if (isService(actorRefLike)) {
+    return {
+      subscribe: actorRefLike.subscribe.bind(actorRefLike),
+      id: actorRefLike.id,
+      send: actorRefLike.send,
+      getSnapshot: actorRefLike.getSnapshot as any
+    } as ActorRef<TEvent, TEmitted>;
+  }
+
   return {
     subscribe: () => ({ unsubscribe: () => void 0 }),
     id: 'anonymous',
