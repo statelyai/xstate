@@ -82,11 +82,11 @@ export interface StatePath<TContext, TEvent extends EventObject> {
    */
   state: State<TContext, TEvent>;
   /**
-   * The ordered array of state-event pairs (segments) which reach the ending `state`.
+   * The ordered array of state-event pairs (steps) which reach the ending `state`.
    */
-  segments: Segments<TContext, TEvent>;
+  steps: Segments<TContext, TEvent>;
   /**
-   * The combined weight of all segments in the path.
+   * The combined weight of all steps in the path.
    */
   weight: number;
 }

@@ -238,14 +238,14 @@ export function getShortestPaths<
         ? [
             {
               state,
-              segments: [],
+              steps: [],
               weight
             }
           ]
         : [
             {
               state,
-              segments: statePathMap[fromState].paths[0].segments.concat({
+              steps: statePathMap[fromState].paths[0].steps.concat({
                 state: stateMap.get(fromState)!,
                 event: deserializeEventString(fromEvent!) as TEvent
               }),
@@ -294,7 +294,7 @@ export function getSimplePaths<
       paths[toStateSerial].paths.push({
         state: fromState,
         weight: path.length,
-        segments: [...path]
+        steps: [...path]
       });
     } else {
       for (const subEvent of keys(adjacency[fromStateSerial])) {
@@ -403,7 +403,7 @@ export function getPathFromEvents<
   if (!machine.states) {
     return {
       state: machine.initialState,
-      segments: [],
+      steps: [],
       weight: 0
     };
   }
@@ -441,7 +441,7 @@ export function getPathFromEvents<
 
   return {
     state,
-    segments: path,
+    steps: path,
     weight: path.length
   };
 }

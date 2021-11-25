@@ -14,7 +14,7 @@ import {
   TestPlan,
   StatePredicate,
   TestPathResult,
-  TestSegmentResult,
+  TestStepResult,
   TestMeta,
   EventExecutor,
   CoverageOptions
@@ -150,12 +150,12 @@ export class TestModel<TTestContext, TContext> {
     return Object.keys(statePathsMap).map((key) => {
       const testPlan = statePathsMap[key];
       const paths = testPlan.paths.map((path) => {
-        const segments = path.segments.map((segment) => {
+        const steps = path.steps.map((step) => {
           return {
-            ...segment,
-            description: getDescription(segment.state),
-            test: (testContext) => this.testState(segment.state, testContext),
-            exec: (testContext) => this.executeEvent(segment.event, testContext)
+            ...step,
+            description: getDescription(step.state),
+            test: (testContext) => this.testState(step.state, testContext),
+            exec: (testContext) => this.executeEvent(step.event, testContext)
           };
         });
 
@@ -169,44 +169,44 @@ export class TestModel<TTestContext, TContext> {
           return `${type}${propertyString}`;
         }
 
-        const eventsString = path.segments
+        const eventsString = path.steps
           .map((s) => formatEvent(s.event))
           .join(' → ');
 
         return {
           ...path,
-          segments,
+          steps,
           description: `via ${eventsString}`,
           test: async (testContext) => {
             const testPathResult: TestPathResult = {
-              segments: [],
+              steps: [],
               state: {
                 error: null
               }
             };
 
             try {
-              for (const segment of segments) {
-                const testSegmentResult: TestSegmentResult = {
-                  segment,
+              for (const step of steps) {
+                const testStepResult: TestStepResult = {
+                  step,
                   state: { error: null },
                   event: { error: null }
                 };
 
-                testPathResult.segments.push(testSegmentResult);
+                testPathResult.steps.push(testStepResult);
 
                 try {
-                  await segment.test(testContext);
+                  await step.test(testContext);
                 } catch (err) {
-                  testSegmentResult.state.error = err;
+                  testStepResult.state.error = err;
 
                   throw err;
                 }
 
                 try {
-                  await segment.exec(testContext);
+                  await step.exec(testContext);
                 } catch (err) {
-                  testSegmentResult.event.error = err;
+                  testStepResult.event.error = err;
 
                   throw err;
                 }
@@ -228,16 +228,16 @@ export class TestModel<TTestContext, TContext> {
               let hasFailed = false;
               err.message +=
                 '\nPath:\n' +
-                testPathResult.segments
+                testPathResult.steps
                   .map((s) => {
                     const stateString = `${JSON.stringify(
-                      s.segment.state.value
+                      s.step.state.value
                     )} ${
-                      s.segment.state.context === undefined
+                      s.step.state.context === undefined
                         ? ''
-                        : JSON.stringify(s.segment.state.context)
+                        : JSON.stringify(s.step.state.context)
                     }`;
-                    const eventString = `${JSON.stringify(s.segment.event)}`;
+                    const eventString = `${JSON.stringify(s.step.event)}`;
 
                     const stateResult = `\tState: ${
                       hasFailed

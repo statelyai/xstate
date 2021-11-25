@@ -4,7 +4,7 @@ export interface TestMeta<T, TContext> {
   description?: string | ((state: State<TContext, any>) => string);
   skip?: boolean;
 }
-interface TestSegment<T> {
+interface TestStep<T> {
   state: State<any, any>;
   event: EventObject;
   description: string;
@@ -14,8 +14,8 @@ interface TestSegment<T> {
 interface TestStateResult {
   error: null | Error;
 }
-export interface TestSegmentResult {
-  segment: TestSegment<any>;
+export interface TestStepResult {
+  step: TestStep<any>;
   state: TestStateResult;
   event: {
     error: null | Error;
@@ -23,16 +23,16 @@ export interface TestSegmentResult {
 }
 export interface TestPath<T> {
   weight: number;
-  segments: Array<TestSegment<T>>;
+  steps: Array<TestStep<T>>;
   description: string;
   /**
-   * Tests and executes each segment in `segments` sequentially, and then
+   * Tests and executes each step in `steps` sequentially, and then
    * tests the postcondition that the `state` is reached.
    */
   test: (testContext: T) => Promise<TestPathResult>;
 }
 export interface TestPathResult {
-  segments: TestSegmentResult[];
+  steps: TestStepResult[];
   state: TestStateResult;
 }
 
