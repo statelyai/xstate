@@ -7,13 +7,7 @@ import {
   Spawnable,
   SCXML
 } from './types';
-import {
-  interopSymbols,
-  isMachine,
-  mapContext,
-  symbolObservable,
-  toInvokeSource
-} from './utils';
+import { interopSymbols, isMachine, mapContext, toInvokeSource } from './utils';
 import * as serviceScope from './serviceScope';
 import { ActorRef, BaseActorRef } from '.';
 
