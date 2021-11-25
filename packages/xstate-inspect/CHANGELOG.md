@@ -1,5 +1,11 @@
 # @xstate/inspect
 
+## 0.5.2
+
+### Patch Changes
+
+- [#2827](https://github.com/statelyai/xstate/pull/2827) [`49de77085`](https://github.com/statelyai/xstate/commit/49de770856965b0acec846c1ff5c29463335aab0) Thanks [@erlendfh](https://github.com/erlendfh)! - Fixed a bug in `createWebsocketReceiver` so that it works as expected with a WebSocket connection.
+
 ## 0.5.1
 
 ### Patch Changes

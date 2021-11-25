@@ -1,16 +1,19 @@
 import safeStringify from 'fast-safe-stringify';
 import { State, createMachine } from 'xstate';
-import { MaybeLazy, ParsedReceiverEvent, ReceiverEvent } from './types';
+import { ParsedReceiverEvent, ReceiverEvent } from './types';
 
-export function getLazy<T>(value: MaybeLazy<T>): T {
-  return typeof value === 'function' ? (value as () => T)() : value;
+export function getLazy<T>(value: T): T extends () => infer R ? R : T {
+  return typeof value === 'function' ? value() : value;
 }
 
-export function stringify(value: any): string {
+export function stringify(
+  value: any,
+  replacer?: (key: string, value: any) => any
+): string {
   try {
-    return JSON.stringify(value);
+    return JSON.stringify(value, replacer);
   } catch (e) {
-    return safeStringify(value);
+    return safeStringify(value, replacer);
   }
 }
 

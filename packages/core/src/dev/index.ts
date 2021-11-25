@@ -20,6 +20,9 @@ export interface XStateDevInterface {
 
 // From https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/globalThis
 export function getGlobal(): any {
+  if (typeof globalThis !== 'undefined') {
+    return globalThis;
+  }
   if (typeof self !== 'undefined') {
     return self;
   }
