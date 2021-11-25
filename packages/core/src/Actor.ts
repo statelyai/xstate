@@ -8,6 +8,7 @@ import {
   SCXML
 } from './types';
 import {
+  interopSymbols,
   isMachine,
   mapContext,
   symbolObservable,
@@ -42,12 +43,7 @@ export function createNullActor(id: string): ActorRef<any> {
     toJSON: () => ({
       id
     }),
-    [symbolObservable]: function () {
-      return this;
-    },
-    [Symbol.observable]: function () {
-      return this;
-    }
+    ...interopSymbols
   };
 }
 
@@ -125,12 +121,7 @@ export function toActorRef<
     subscribe: () => ({ unsubscribe: () => void 0 }),
     id: 'anonymous',
     getSnapshot: () => undefined,
-    [symbolObservable]: function () {
-      return this;
-    },
-    [Symbol.observable]: function () {
-      return this;
-    },
+    ...interopSymbols,
     ...actorRefLike
   };
 }

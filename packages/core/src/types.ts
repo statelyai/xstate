@@ -2,7 +2,6 @@ import { StateNode } from './StateNode';
 import { State } from './State';
 import { Interpreter, Clock } from './interpreter';
 import { IsNever, Model, Prop } from './model.types';
-import { symbolObservable } from './utils';
 
 declare global {
   interface SymbolConstructor {
@@ -1369,6 +1368,10 @@ export interface Subscription {
   unsubscribe(): void;
 }
 
+export interface InteropObservable<T> {
+  [Symbol.observable]: () => Subscribable<T>;
+}
+
 export interface Subscribable<T> {
   subscribe(
     next: (value: T) => void,
@@ -1376,18 +1379,13 @@ export interface Subscribable<T> {
     complete?: () => void
   ): Subscription;
   subscribe(observer: Observer<T>): Subscription;
-
-  [symbolObservable](): Subscribable<T>;
-
-  // this gets stripped by Babel to avoid having "undefined" property in environments without this non-standard Symbol
-  // it has to be here to be included in the generated .d.ts
-  [Symbol.observable](): Subscribable<T>;
 }
 
 export type Spawnable =
   | StateMachine<any, any, any>
   | PromiseLike<any>
   | InvokeCallback
+  | InteropObservable<any>
   | Subscribable<any>
   | Behavior<any>;
 
@@ -1401,18 +1399,13 @@ export interface BaseActorRef<TEvent extends EventObject> {
 }
 
 export interface ActorRef<TEvent extends EventObject, TEmitted = any>
-  extends Subscribable<TEmitted> {
+  extends Subscribable<TEmitted>,
+    InteropObservable<TEmitted> {
   send: Sender<TEvent>; // TODO: this should just be TEvent
   id: string;
   getSnapshot: () => TEmitted | undefined;
   stop?: () => void;
   toJSON?: () => any;
-
-  [symbolObservable](): Subscribable<TEmitted>;
-
-  // this gets stripped by Babel to avoid having "undefined" property in environments without this non-standard Symbol
-  // it has to be here to be included in the generated .d.ts
-  [Symbol.observable](): Subscribable<TEmitted>;
 }
 
 /**

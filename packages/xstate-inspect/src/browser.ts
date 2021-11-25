@@ -7,7 +7,12 @@ import {
   Observer
 } from 'xstate';
 import { XStateDevInterface } from 'xstate/lib/devTools';
-import { toSCXMLEvent, toEventObject, toObserver } from 'xstate/lib/utils';
+import {
+  toSCXMLEvent,
+  toEventObject,
+  toObserver,
+  interopSymbols
+} from 'xstate/lib/utils';
 import { createInspectMachine, InspectMachineEvent } from './inspectMachine';
 import type {
   Inspector,
@@ -275,7 +280,8 @@ export function createWindowReceiver(
     },
     getSnapshot() {
       return latestEvent;
-    }
+    },
+    ...interopSymbols
   };
 
   actorRef.send({
@@ -311,7 +317,8 @@ export function createWebSocketReceiver(
     },
     getSnapshot() {
       return latestEvent;
-    }
+    },
+    ...interopSymbols
   };
 
   ws.onopen = () => {

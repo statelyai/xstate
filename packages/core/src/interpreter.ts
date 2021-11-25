@@ -57,7 +57,8 @@ import {
   toInvokeSource,
   toObserver,
   isActor,
-  isBehavior
+  isBehavior,
+  interopSymbols
 } from './utils';
 import { Scheduler } from './scheduler';
 import { Actor, isSpawnedActor, createDeferredActor } from './Actor';
@@ -1106,16 +1107,7 @@ export class Interpreter<
         return { id };
       },
       getSnapshot: () => resolvedData,
-
-      [symbolObservable]: function () {
-        return this;
-      },
-
-      // this gets stripped by Babel to avoid having "undefined" property in environments without this non-standard Symbol
-      // it has to be here to be included in the generated .d.ts
-      [Symbol.observable]: function () {
-        return this;
-      }
+      ...interopSymbols
     };
 
     this.children.set(id, actor);
@@ -1175,12 +1167,7 @@ export class Interpreter<
         return { id };
       },
       getSnapshot: () => emitted,
-      [symbolObservable]: function () {
-        return this;
-      },
-      [Symbol.observable]: function () {
-        return this;
-      }
+      ...interopSymbols
     };
 
     this.children.set(id, actor);
@@ -1219,12 +1206,7 @@ export class Interpreter<
       toJSON() {
         return { id };
       },
-      [symbolObservable]: function () {
-        return this;
-      },
-      [Symbol.observable]: function () {
-        return this;
-      }
+      ...interopSymbols
     };
 
     this.children.set(id, actor);
@@ -1269,12 +1251,7 @@ export class Interpreter<
       toJSON() {
         return { id };
       },
-      [symbolObservable]: function () {
-        return this;
-      },
-      [Symbol.observable]: function () {
-        return this;
-      }
+      ...interopSymbols
     });
   }
 
