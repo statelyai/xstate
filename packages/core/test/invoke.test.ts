@@ -2633,7 +2633,7 @@ describe('invoke', () => {
     });
   });
 
-  it('invoke creator should provide reference to self (invokee)', (done) => {
+  it('invoke creator should provide reference to self', (done) => {
     const machine = createMachine({
       invoke: {
         src: (_ctx, _e, { self }) => () => {
