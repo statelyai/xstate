@@ -1105,7 +1105,17 @@ export class Interpreter<
       toJSON() {
         return { id };
       },
-      getSnapshot: () => resolvedData
+      getSnapshot: () => resolvedData,
+
+      [symbolObservable]: function () {
+        return this;
+      },
+
+      // this gets stripped by Babel to avoid having "undefined" property in environments without this non-standard Symbol
+      // it has to be here to be included in the generated .d.ts
+      [Symbol.observable]: function () {
+        return this;
+      }
     };
 
     this.children.set(id, actor);
@@ -1164,7 +1174,13 @@ export class Interpreter<
       toJSON() {
         return { id };
       },
-      getSnapshot: () => emitted
+      getSnapshot: () => emitted,
+      [symbolObservable]: function () {
+        return this;
+      },
+      [Symbol.observable]: function () {
+        return this;
+      }
     };
 
     this.children.set(id, actor);
@@ -1202,6 +1218,12 @@ export class Interpreter<
       getSnapshot: () => emitted,
       toJSON() {
         return { id };
+      },
+      [symbolObservable]: function () {
+        return this;
+      },
+      [Symbol.observable]: function () {
+        return this;
       }
     };
 
@@ -1246,6 +1268,12 @@ export class Interpreter<
       getSnapshot: () => undefined,
       toJSON() {
         return { id };
+      },
+      [symbolObservable]: function () {
+        return this;
+      },
+      [Symbol.observable]: function () {
+        return this;
       }
     });
   }

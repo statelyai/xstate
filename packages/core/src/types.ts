@@ -2,6 +2,13 @@ import { StateNode } from './StateNode';
 import { State } from './State';
 import { Interpreter, Clock } from './interpreter';
 import { IsNever, Model, Prop } from './model.types';
+import { symbolObservable } from './utils';
+
+declare global {
+  interface SymbolConstructor {
+    readonly observable: symbol;
+  }
+}
 
 type AnyFunction = (...args: any[]) => any;
 type ReturnTypeOrValue<T> = T extends AnyFunction ? ReturnType<T> : T;
@@ -1369,6 +1376,12 @@ export interface Subscribable<T> {
     complete?: () => void
   ): Subscription;
   subscribe(observer: Observer<T>): Subscription;
+
+  [symbolObservable](): Subscribable<T>;
+
+  // this gets stripped by Babel to avoid having "undefined" property in environments without this non-standard Symbol
+  // it has to be here to be included in the generated .d.ts
+  [Symbol.observable](): Subscribable<T>;
 }
 
 export type Spawnable =
@@ -1394,6 +1407,12 @@ export interface ActorRef<TEvent extends EventObject, TEmitted = any>
   getSnapshot: () => TEmitted | undefined;
   stop?: () => void;
   toJSON?: () => any;
+
+  [symbolObservable](): Subscribable<TEmitted>;
+
+  // this gets stripped by Babel to avoid having "undefined" property in environments without this non-standard Symbol
+  // it has to be here to be included in the generated .d.ts
+  [Symbol.observable](): Subscribable<TEmitted>;
 }
 
 /**

@@ -529,7 +529,7 @@ export function isObservable<T>(value: any): value is Subscribable<T> {
   }
 }
 
-export const symbolObservable = (() =>
+export const symbolObservable: unique symbol = (() =>
   (typeof Symbol === 'function' && (Symbol as any).observable) ||
   '@@observable')();
 
