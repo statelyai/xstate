@@ -842,7 +842,7 @@ describe('State', () => {
 
       const { initialState } = machine;
 
-      initialState.can('EVENT');
+      expect(initialState.can('EVENT')).toBeTruthy();
 
       expect(executed).toBeFalsy();
     });
