@@ -14,7 +14,7 @@ function App() {
         <input
           type="number"
           id="celsius"
-          value={tempC}
+          value={tempC ?? ''}
           onChange={(e) => {
             send({ type: 'CELSIUS', value: e.target.value });
           }}
@@ -27,7 +27,7 @@ function App() {
         <input
           type="number"
           id="fahrenheit"
-          value={tempF}
+          value={tempF ?? ''}
           onChange={(e) => {
             send({ type: 'FAHRENHEIT', value: e.target.value });
           }}
