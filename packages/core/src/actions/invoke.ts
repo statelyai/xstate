@@ -13,6 +13,7 @@ import {
   DynamicInvokeActionObject,
   InvokeActionObject
 } from '..';
+import { actionTypes } from '../actions';
 
 export function invoke<
   TContext extends MachineContext,
@@ -28,11 +29,12 @@ export function invoke<
   return createDynamicAction(
     invokeActionType,
     invokeDef,
-    ({ params, type }, context, _event, { machine }) => {
+    ({ params }, context, _event, { machine }) => {
+      const type = actionTypes.invoke;
       const { id, data, src, meta } = params;
       if (isActorRef(src)) {
         return {
-          type: type,
+          type,
           params: {
             ...params,
             ref: src
@@ -45,8 +47,8 @@ export function invoke<
 
       if (!behaviorCreator) {
         return {
-          type: type,
-          params: params
+          type,
+          params
         } as InvokeActionObject;
       }
 
@@ -59,7 +61,7 @@ export function invoke<
       });
 
       return {
-        type: type,
+        type,
         params: {
           ...params,
           id: params.id,

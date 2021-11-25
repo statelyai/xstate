@@ -40,7 +40,7 @@ export function assign<
     {
       assignment
     },
-    (dynamicAction, context, _event, { state, action }) => {
+    (_, context, _event, { state, action }) => {
       const capturedActions: InvokeActionObject[] = [];
 
       if (!context) {
@@ -72,7 +72,7 @@ export function assign<
       const updatedContext = Object.assign({}, context, partialUpdate);
 
       return {
-        type: dynamicAction.type,
+        type: actionTypes.assign,
         params: {
           context: updatedContext,
           actions: capturedActions
