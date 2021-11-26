@@ -1,6 +1,8 @@
 import { ActionTypes } from './types';
 
 // xstate-specific action types
+
+// TODO - clean up this list and add certain actions to EventTypes instead
 export const start = ActionTypes.Start;
 export const stop = ActionTypes.Stop;
 export const raise = ActionTypes.Raise;
@@ -19,4 +21,3 @@ export const error = ActionTypes.ErrorCustom;
 export const update = ActionTypes.Update;
 export const choose = ActionTypes.Choose;
 export const pure = ActionTypes.Pure;
-export const input = ActionTypes.Input;

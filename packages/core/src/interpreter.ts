@@ -66,7 +66,7 @@ import { registry } from './registry';
 import { getGlobal, registerService } from './devTools';
 import * as serviceScope from './serviceScope';
 import { spawnBehavior } from './behaviors';
-import { ExtraGenerics } from '.';
+import { EventTypes, ExtraGenerics } from '.';
 
 export type StateListener<
   TContext,
@@ -582,7 +582,7 @@ export class Interpreter<
 
   public input(input: Partial<TExtra['input']>): void {
     this.send(({
-      type: actionTypes.input,
+      type: EventTypes.Input,
       input
     } as any) as SCXML.Event<TEvent>);
   }

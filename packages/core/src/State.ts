@@ -271,7 +271,10 @@ export class State<
       (Array.isArray(config.tags) ? new Set(config.tags) : config.tags) ??
       new Set();
     this.machine = config.machine;
-    this.input = config.input;
+    this.input =
+      config.input ||
+      // Add a default in case there are mismatched XState versions
+      ({} as NonNullable<TExtra['input']>);
 
     Object.defineProperty(this, 'nextEvents', {
       get: () => {

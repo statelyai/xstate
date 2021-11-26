@@ -101,7 +101,7 @@ import {
 } from './stateUtils';
 import { createInvocableActor } from './Actor';
 import { toInvokeDefinition } from './invokeUtils';
-import { ExtraGenerics } from '.';
+import { EventTypes, ExtraGenerics } from '.';
 
 const NULL_EVENT = '';
 const STATE_IDENTIFIER = '#';
@@ -1296,7 +1296,7 @@ class StateNode<
 
     let updatedInput: NonNullable<TExtra['input']> | undefined = undefined;
 
-    if (_event?.name === actionTypes.input) {
+    if (_event?.name === EventTypes.Input) {
       updatedInput = Object.assign(
         {},
         currentInput,

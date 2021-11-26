@@ -1067,6 +1067,10 @@ export enum ActionTypes {
   Input = 'xstate.input'
 }
 
+export enum EventTypes {
+  Input = 'xstate.input'
+}
+
 export interface RaiseAction<TEvent extends EventObject> {
   type: ActionTypes.Raise;
   event: TEvent['type'];
