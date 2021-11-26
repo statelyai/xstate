@@ -1,4 +1,6 @@
-# Input <Badge text="4.25+" />
+# Input
+
+_Since version 4.27.0_
 
 [:rocket: Quick Reference](#quick-reference)
 
