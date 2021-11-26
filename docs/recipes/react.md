@@ -209,7 +209,9 @@ This also works for services, guards, and delays.
 
 > If you use this technique, any references you use inside `goToOtherPage` will be kept up to date each render. That means you don't need to worry about stale references.
 
-### Syncing data with input <Badge text="4.25+" />
+### Syncing data with input
+
+_Since version 4.27.0_
 
 Sometimes, you want to outsource some functionality to another hook. This is especially common with data fetching hooks such as [`react-query`](https://react-query.tanstack.com/) and [`swr`](https://swr.vercel.app/). You don't want to have to re-build all your data fetching functionality in XState.
 
