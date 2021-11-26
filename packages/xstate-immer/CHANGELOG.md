@@ -1,5 +1,11 @@
 # @xstate/immer
 
+## 0.3.0
+
+### Minor Changes
+
+- [#2750](https://github.com/statelyai/xstate/pull/2750) [`eaa69ac18`](https://github.com/statelyai/xstate/commit/eaa69ac189e13d688587ef0ef285d15ea68f3e9e) Thanks [@rflow](https://github.com/rflow)! - Update [`immer`](https://github.com/immerjs/immer) to 9.0.6 to resolve security issue
+
 ## 0.2.0
 
 ### Minor Changes

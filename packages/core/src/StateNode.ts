@@ -871,6 +871,12 @@ class StateNode<
     // orthogonal node
     return this.transitionParallelNode(stateValue, state, _event);
   }
+  public getTransitionData(
+    state: State<TContext, TEvent, any, any>,
+    event: Event<TEvent> | SCXML.Event<TEvent>
+  ) {
+    return this._transition(state.value, state, toSCXMLEvent(event));
+  }
   private next(
     state: State<TContext, TEvent, any, any, TExtra>,
     _event: SCXML.Event<TEvent>

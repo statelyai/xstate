@@ -353,6 +353,23 @@ export class State<
       );
     }
 
-    return !!this.machine?.transition(this, event).changed;
+    const transitionData = this.machine?.getTransitionData(this, event);
+
+    /**
+     * The state will change from this event if:
+     * - There are entry actions
+     * - There are exit actions
+     * - There are transitions in which either the target has changed or there are transition actions
+     */
+    return !transitionData
+      ? false
+      : transitionData.entrySet.some((sn) => sn.onEntry.length > 0) ||
+          transitionData.exitSet.some((sn) => sn.onExit.length > 0) ||
+          !!transitionData?.transitions.some((t) => {
+            return (
+              (t.target && t.target.length > 0 && t.target[0] !== t.source) ||
+              t.actions.length > 0
+            );
+          });
   }
 }

@@ -6,13 +6,17 @@ export type MaybeLazy<T> = T | (() => T);
 
 export type ServiceListener = (service: Interpreter<any>) => void;
 
+export type Replacer = (key: string, value: any) => any;
+
 export interface InspectorOptions {
-  url: string;
-  iframe: MaybeLazy<HTMLIFrameElement | null | false>;
-  devTools: MaybeLazy<XStateDevInterface>;
+  url?: string;
+  iframe?: MaybeLazy<HTMLIFrameElement | null | false>;
+  devTools?: MaybeLazy<XStateDevInterface>;
+  serialize?: Replacer | undefined;
 }
 
-export interface Inspector extends ActorRef<InspectMachineEvent, any> {
+export interface Inspector
+  extends ActorRef<InspectMachineEvent, State<any, any, any>> {
   /**
    * Disconnects the inspector.
    */
@@ -75,4 +79,5 @@ export interface WindowReceiverOptions {
 export interface WebSocketReceiverOptions {
   server: string;
   protocol?: 'ws' | 'wss';
+  serialize: Replacer | undefined;
 }
