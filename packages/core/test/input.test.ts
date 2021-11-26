@@ -33,7 +33,7 @@ describe('input', () => {
     interpret(machine).start();
   });
 
-  it('Should fail when you do pass a property that input does not accept', () => {
+  it('Should error in TS when you do pass a property that input does not accept', () => {
     createMachine<
       {},
       AnyEventObject,
@@ -105,7 +105,7 @@ describe('input', () => {
     });
   });
 
-  it(`Should allow service.input to receive a partial`, () => {
+  it(`Should NOT allow service.input to receive a partial`, () => {
     const machine = createMachine<
       {},
       AnyEventObject,
@@ -128,36 +128,54 @@ describe('input', () => {
 
     const service = interpret(machine).start();
 
-    service.input({
-      // Only a partial of what's above
-      foo: 'changed'
-    });
+    service.input(
+      // @ts-expect-error
+      {
+        // Only a partial of what's above
+        foo: 'changed'
+      }
+    );
 
     expect(service.state.input).toEqual({
-      foo: 'changed',
-      bar: 'bar'
+      foo: 'changed'
     });
   });
 
-  it('Should allow you to update the input with withConfig', (done) => {
-    const machine = createMachine({
-      entry: [
-        (_, __, meta) => {
-          expect(meta.state.input).toEqual({
+  describe('withConfig', () => {
+    it('Should allow you to update the input with withConfig', (done) => {
+      const machine = createMachine({
+        entry: [
+          (_, __, meta) => {
+            expect(meta.state.input).toEqual({
+              foo: 'foo'
+            });
+            done();
+          }
+        ]
+      });
+
+      interpret(
+        machine.withConfig({
+          input: {
             foo: 'foo'
-          });
-          done();
-        }
-      ]
+          }
+        })
+      ).start();
     });
 
-    interpret(
+    it('Should NOT allow a partial', () => {
+      const model = createModel({}).withInput(
+        {} as { foo: string; bar: string }
+      );
+      const machine = model.createMachine({});
+
       machine.withConfig({
+        // @ts-expect-error
         input: {
           foo: 'foo'
         }
-      })
-    ).start();
+      });
+    });
   });
 
   describe('When users listen for the input on xstate.input', () => {

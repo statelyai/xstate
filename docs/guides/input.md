@@ -70,10 +70,6 @@ You can change an input on a service that's running by calling `service.input()`
 ```ts
 const service = interpret(machine).start();
 
-/**
- * It doesn't have to be the whole input -
- * it can be a partial
- */
 service.input({
   foo: 'bar'
 });

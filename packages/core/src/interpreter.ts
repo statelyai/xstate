@@ -580,7 +580,7 @@ export class Interpreter<
     return this;
   }
 
-  public input(input: Partial<TExtra['input']>): void {
+  public input(input: TExtra['input']): void {
     this.send(({
       type: EventTypes.Input,
       input
