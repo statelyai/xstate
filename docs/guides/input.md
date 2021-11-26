@@ -2,7 +2,7 @@
 
 [:rocket: Quick Reference](#quick-reference)
 
-When you're building software, it's common to split your code up into small pieces. These might be functions in a node process, or components in a React app. These small pieces often need to declare **dependencies** - bits of information/code that they're not responsible for, but that they rely on to serve their purpose.
+When you're building software, it's common to split your code up into small pieces. These might be functions in a node process, or framework components. These small pieces often need to declare **dependencies** - bits of information/code that they're not responsible for, but that they rely on to serve their purpose.
 
 The best way to declare dependencies to an XState machine is called `input`. You can specify input like so:
 
