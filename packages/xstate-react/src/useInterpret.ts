@@ -140,8 +140,7 @@ export function useInterpret<
     Object.assign(service.machine.options.activities, activities);
     Object.assign(service.machine.options.services, services);
     Object.assign(service.machine.options.delays, delays);
-    Object.assign(service.machine.options.input, input);
-  }, [actions, guards, activities, services, delays, input]);
+  }, [actions, guards, activities, services, delays]);
 
   useReactEffectActions(service);
 
