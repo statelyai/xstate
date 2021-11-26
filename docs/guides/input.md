@@ -61,7 +61,7 @@ const machine = createMachine(
 );
 ```
 
-Unlike [context](./context.md), inputs cannot be assigned to from _inside_ the machine. If you do need to mutate the input locally, consider putting it in context instead.
+Unlike [context](./context.md), inputs cannot be assigned to from _inside_ the machine. If you do need to mutate the input locally, consider putting it in `context` instead.
 
 ### Inputs that change over time
 
