@@ -69,8 +69,6 @@ export function createModel(
       );
     },
     withInput: (input: any) => {
-      const model = createModel(initialContext, creators as any);
-
       return {
         ...model,
         createMachine: (config, implementations) => {
