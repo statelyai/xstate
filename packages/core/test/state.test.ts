@@ -846,6 +846,42 @@ describe('State', () => {
 
       expect(executed).toBeFalsy();
     });
+
+    it('should return true when non-first parallel region changes value', () => {
+      let executed = false;
+      const machine = createMachine({
+        type: 'parallel',
+        states: {
+          a: {
+            initial: 'a1',
+            states: {
+              a1: {
+                id: 'foo',
+                on: {
+                  // first region doesn't change value here
+                  EVENT: ['#foo', '#bar']
+                }
+              }
+            }
+          },
+          b: {
+            initial: 'b1',
+            states: {
+              b1: {},
+              b2: {
+                id: 'bar'
+              }
+            }
+          }
+        }
+      });
+
+      const { initialState } = machine;
+
+      expect(initialState.can('EVENT')).toBeTruthy();
+
+      expect(executed).toBeFalsy();
+    });
   });
 
   describe('.hasTag', () => {
