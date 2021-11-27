@@ -848,7 +848,6 @@ describe('State', () => {
     });
 
     it('should return true when non-first parallel region changes value', () => {
-      let executed = false;
       const machine = createMachine({
         type: 'parallel',
         states: {
@@ -878,9 +877,12 @@ describe('State', () => {
 
       const { initialState } = machine;
 
-      expect(initialState.can('EVENT')).toBeTruthy();
+      expect(machine.transition(undefined, { type: 'EVENT' }).value).toEqual({
+        a: 'a1',
+        b: 'b2'
+      });
 
-      expect(executed).toBeFalsy();
+      expect(initialState.can('EVENT')).toBeTruthy();
     });
   });
 
