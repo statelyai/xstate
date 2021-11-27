@@ -135,7 +135,6 @@ export class Interpreter<
    * The globally unique process ID for this invocation.
    */
   public sessionId: string;
-  public children: Map<string | number, ActorRef<any>> = new Map();
   private forwardTo: Set<string> = new Set();
 
   /**
@@ -445,7 +444,7 @@ export class Interpreter<
     });
 
     // Stop all children
-    this.children.forEach((child) => {
+    Object.values(this.state.children).forEach((child) => {
       if (isFunction(child.stop)) {
         child.stop();
       }
@@ -592,7 +591,7 @@ export class Interpreter<
       ? this.parent
       : isActorRef(to)
       ? to
-      : this.children.get(to);
+      : this.state.children[to];
 
     if (!target) {
       if (!isParent) {
@@ -646,7 +645,7 @@ export class Interpreter<
   }
   private forward(event: SCXML.Event<TEvent>): void {
     for (const id of this.forwardTo) {
-      const child = this.children.get(id);
+      const child = this.state.children[id];
 
       if (!child) {
         throw new Error(
@@ -729,7 +728,6 @@ export class Interpreter<
               this.forwardTo.add(id);
             }
 
-            this.children.set(id, ref);
             this.state.children[id] = ref;
 
             ref.subscribe({
@@ -751,7 +749,7 @@ export class Interpreter<
         [actionTypes.stop]: (_ctx, _e, { action }) => {
           const { actor } = (action as StopActionObject).params;
           const actorRef =
-            typeof actor === 'string' ? this.children.get(actor) : actor;
+            typeof actor === 'string' ? this.state.children[actor] : actor;
 
           if (actorRef) {
             this.stopChild(actorRef.name);
@@ -818,12 +816,11 @@ export class Interpreter<
   }
 
   private stopChild(childId: string): void {
-    const child = this.children.get(childId);
+    const child = this.state.children[childId];
     if (!child) {
       return;
     }
 
-    this.children.delete(childId);
     this.forwardTo.delete(childId);
     delete this.state.children[childId];
 
