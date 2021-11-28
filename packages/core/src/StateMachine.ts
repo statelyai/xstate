@@ -228,11 +228,16 @@ export class StateMachine<
       }
     }
 
-    const transitions: Transitions<TContext, TEvent> =
-      transitionNode(this.root, resolvedState.value, resolvedState, _event) ||
-      [];
+    const transitions = this.getTransitionData(resolvedState, _event);
 
     return resolveMicroTransition(this, transitions, resolvedState, _event);
+  }
+
+  public getTransitionData(
+    state: State<TContext, TEvent>,
+    _event: SCXML.Event<TEvent>
+  ): Transitions<TContext, TEvent> {
+    return transitionNode(this.root, state.value, state, _event) || [];
   }
 
   public get first(): State<TContext, TEvent, TTypestate> {
