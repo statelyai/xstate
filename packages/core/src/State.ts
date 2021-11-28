@@ -13,7 +13,7 @@ import type {
   SimpleEventsOf,
   BaseActionObject
 } from './types';
-import { matchesState, keys, isString, warn } from './utils';
+import { matchesState, keys, isString, warn, toSCXMLEvent } from './utils';
 import type { StateNode } from './StateNode';
 import {
   isInFinalState,
@@ -284,7 +284,10 @@ export class State<
       );
     }
 
-    const transitionData = this.machine?.getTransitionData(this, event);
+    const transitionData = this.machine?.getTransitionData(
+      this,
+      toSCXMLEvent(event)
+    );
 
     /**
      * The state will change from this event if:
@@ -292,15 +295,23 @@ export class State<
      * - There are exit actions
      * - There are transitions in which either the target has changed or there are transition actions
      */
-    return !transitionData
-      ? false
-      : transitionData.entrySet.some((sn) => sn.onEntry.length > 0) ||
-          transitionData.exitSet.some((sn) => sn.onExit.length > 0) ||
-          !!transitionData?.transitions.some((t) => {
-            return (
-              (t.target && t.target.length > 0 && t.target[0] !== t.source) ||
-              t.actions.length > 0
-            );
-          });
+
+    if (!transitionData?.length) {
+      return false;
+    }
+
+    for (const t of transitionData) {
+      if (t.actions.length > 0) {
+        return true;
+      }
+      if (t.target?.some((target) => !this.configuration.includes(target))) {
+        return true;
+      }
+      if (!t.internal && t.target?.some((target) => target.entry.length > 0)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 }
