@@ -160,6 +160,7 @@ export class Interpreter<
   private contextListeners: Set<ContextListener<TContext>> = new Set();
   private stopListeners: Set<Listener> = new Set();
   private doneListeners: Set<EventListener> = new Set();
+  private errorListeners: Set<EventListener> = new Set();
   private eventListeners: Set<EventListener> = new Set();
   private sendListeners: Set<EventListener> = new Set();
   private logger: (...args: any[]) => void;
@@ -313,6 +314,13 @@ export class Interpreter<
       this.stop();
     }
   }
+
+  private sendError(error: Error): void {
+    for (const listener of this.errorListeners) {
+      listener(doneInvoke(this.id, error));
+    }
+  }
+
   /*
    * Adds a listener that is notified whenever a state transition happens. The listener is called with
    * the next state and the event object that caused the state transition.
@@ -343,7 +351,7 @@ export class Interpreter<
     nextListenerOrObserver?:
       | ((state: State<TContext, TEvent, any, TTypestate>) => void)
       | Observer<State<TContext, TEvent, any, TTypestate>>,
-    _?: (error: any) => void, // TODO: error listener
+    errorListener?: (error: any) => void,
     completeListener?: () => void
   ): Subscription {
     if (!nextListenerOrObserver) {
@@ -352,6 +360,7 @@ export class Interpreter<
 
     let listener: (state: State<TContext, TEvent, any, TTypestate>) => void;
     let resolvedCompleteListener = completeListener;
+    let resolvedErrorListener = errorListener;
 
     if (typeof nextListenerOrObserver === 'function') {
       listener = nextListenerOrObserver;
@@ -373,11 +382,17 @@ export class Interpreter<
       this.onDone(resolvedCompleteListener);
     }
 
+    if (resolvedErrorListener) {
+      this.onError(resolvedErrorListener);
+    }
+
     return {
       unsubscribe: () => {
         listener && this.listeners.delete(listener);
         resolvedCompleteListener &&
           this.doneListeners.delete(resolvedCompleteListener);
+        resolvedErrorListener &&
+          this.errorListeners.delete(resolvedErrorListener);
       }
     };
   }
@@ -433,6 +448,16 @@ export class Interpreter<
     return this;
   }
   /**
+   * Adds a state listener that is notified when the statechart has reached an error.
+   * @param listener The state listener
+   */
+  public onError(
+    listener: EventListener<DoneEvent>
+  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
+    this.errorListeners.add(listener);
+    return this;
+  }
+  /**
    * Removes a listener.
    * @param listener The listener to remove
    */
@@ -444,6 +469,7 @@ export class Interpreter<
     this.sendListeners.delete(listener);
     this.stopListeners.delete(listener);
     this.doneListeners.delete(listener);
+    this.errorListeners.delete(listener);
     this.contextListeners.delete(listener);
     return this;
   }
@@ -509,6 +535,9 @@ export class Interpreter<
     }
     for (const listener of this.doneListeners) {
       this.doneListeners.delete(listener);
+    }
+    for (const listener of this.errorListeners) {
+      this.errorListeners.delete(listener);
     }
 
     if (!this.initialized) {
@@ -1056,6 +1085,9 @@ export class Interpreter<
             reportUnhandledExceptionOnInvocation(errorData, error, id);
             if (this.devTools) {
               this.devTools.send(errorEvent, this.state);
+            }
+            if (this.errorListeners.size) {
+              this.sendError(error);
             }
             if (this.machine.strict) {
               // it would be better to always stop the state machine if unhandled

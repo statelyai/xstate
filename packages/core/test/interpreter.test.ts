@@ -1689,6 +1689,49 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       );
     });
 
+    it('should be subscribable to errorListener', (done) => {
+      const failureMachine = Machine<typeof context>(
+        {
+          id: 'interval',
+          context,
+          initial: 'active',
+          states: {
+            active: {
+              after: {
+                10: {
+                  target: 'failure'
+                }
+              }
+            },
+            failure: {
+              invoke: {
+                src: 'failure'
+              }
+            }
+          }
+        },
+        {
+          services: {
+            failure: async () => {
+              throw new Error('error');
+            }
+          }
+        }
+      );
+
+      const intervalService = interpret(failureMachine).start();
+
+      expect(isObservable(intervalService)).toBeTruthy();
+
+      intervalService.subscribe(
+        () => {},
+        (error) => {
+          expect(error.data).toBeInstanceOf(Error);
+          done();
+        }
+      );
+    });
+
     it('should be interoperable with RxJS, etc. via Symbol.observable', (done) => {
       let count = 0;
       const intervalService = interpret(intervalMachine).start();
