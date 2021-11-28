@@ -1,6 +1,10 @@
 # Transitions
 
-A state transition defines what the **next state** is, given the **current state** and [**event**](./events.md). State transitions are defined on state nodes, in the `on` property:
+Transitions define how the machine reacts to [events](./events.md). To learn more, see the section in our [introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#transitions-and-events).
+
+## API
+
+State transitions are defined on state nodes, in the `on` property:
 
 ```js {11,14-16}
 import { createMachine } from 'xstate';
@@ -558,37 +562,25 @@ quietMachine.transition(quietMachine.initialState, { type: 'SOME_EVENT' });
 // => State { value: 'disturbed' }
 ```
 
-## SCXML
+## FAQ's
 
-The event-target mappings defined on the `on: { ... }` property of state nodes is synonymous to the SCXML `<transition>` element:
+### How do I do if/else logic on transitions?
 
-```js
-{
-  green: {
-    on: {
-      TIMER: {
-        target: '#yellow',
-        cond: context => context.timeElapsed > 5000
-      },
-      POWER_OUTAGE: { target: '#red.flashing' }
-    }
-  },
-  // ...
-}
-```
+Sometimes, you'll want to say:
 
-```xml
-<state id="green">
-  <transition
-    event="TIMER"
-    target="yellow"
-    cond="timeElapsed > 5000"
-  />
-  <transition
-    event="POWER_OUTAGE"
-    target="red.flashing"
-  />
-</state>
-```
+- If _something_ is true, go to this state
+- If _something else_ is true, go to this state
+- Else, go to this state
 
-- [https://www.w3.org/TR/scxml/#transition](https://www.w3.org/TR/scxml/#transition) - the definition of `<transition>`
+You can use [guarded transitions](./guards.md#guarded-transitions) to achieve this.
+
+### How do I transition to _any_ state?
+
+You can transition to _any_ state by giving that state a custom id, and using `target: '#customId'`. You can read the [full docs on custom IDs here](./ids.md#custom-ids).
+
+This allows you to transition from child states to siblings of parents, for example in the `CANCEL` and `done` events in this example:
+
+<iframe src="https://stately.ai/viz/embed/835aee58-1c36-41d3-bb02-b56ceb06072e?mode=viz&panel=code&readOnly=1&showOriginalLink=1&controls=0&pan=0&zoom=0"
+allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"
+sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"
+></iframe>

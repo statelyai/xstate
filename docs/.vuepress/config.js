@@ -58,6 +58,7 @@ module.exports = {
           '/guides/transitions',
           '/guides/hierarchical',
           '/guides/parallel',
+          '/guides/final',
           '/guides/effects',
           '/guides/actions',
           '/guides/guards',
@@ -67,12 +68,12 @@ module.exports = {
           '/guides/communication',
           '/guides/actors',
           '/guides/delays',
-          '/guides/final',
           '/guides/history',
           '/guides/ids',
           '/guides/interpretation',
           '/guides/testing',
-          '/guides/typescript'
+          '/guides/typescript',
+          '/guides/scxml'
         ]
       },
       {
@@ -128,8 +129,9 @@ module.exports = {
         ]
       },
       {
-        title: 'Useful links',
+        title: 'News and Useful Links',
         children: [
+          '/updates/',
           [
             'https://github.com/statelyai/xstate/blob/main/CODE_OF_CONDUCT.md',
             'Code of Conduct'
