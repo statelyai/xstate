@@ -315,9 +315,11 @@ export class Interpreter<
     }
   }
 
-  private sendError(error: Error): void {
-    for (const listener of this.errorListeners) {
-      listener(doneInvoke(this.id, error));
+  private sendError(errorEvent: Event<TEvent> | SCXML.Event<TEvent>): void {
+    if (this.errorListeners.size) {
+      for (const listener of this.errorListeners) {
+        listener(errorEvent as EventObject);
+      }
     }
   }
 
@@ -581,11 +583,16 @@ export class Interpreter<
    */
   public send = (
     event: SingleOrArray<Event<TEvent>> | SCXML.Event<TEvent>,
-    payload?: EventData
+    payload?: EventData,
+    sendError = false
   ): State<TContext, TEvent, TStateSchema, TTypestate> => {
     if (isArray(event)) {
       this.batch(event);
       return this.state;
+    }
+
+    if (sendError) {
+      this.sendError(event as any);
     }
 
     const _event = toSCXMLEvent(toEventObject(event as Event<TEvent>, payload));
@@ -817,10 +824,14 @@ export class Interpreter<
         });
       } catch (err) {
         if (this.parent) {
-          this.parent.send({
-            type: 'xstate.error',
-            data: err
-          } as EventObject);
+          this.parent.send(
+            {
+              type: 'xstate.error',
+              data: err
+            } as EventObject,
+            undefined,
+            true
+          );
         }
 
         throw err;
@@ -1084,11 +1095,11 @@ export class Interpreter<
           } catch (error) {
             reportUnhandledExceptionOnInvocation(errorData, error, id);
             if (this.devTools) {
-              this.devTools.send(errorEvent, this.state);
+              this.devTools.send(errorEvent, this.state, true);
             }
-            if (this.errorListeners.size) {
-              this.sendError(error);
-            }
+
+            this.sendError(errorEvent);
+
             if (this.machine.strict) {
               // it would be better to always stop the state machine if unhandled
               // exception/promise rejection happens but because we don't want to
@@ -1166,7 +1177,7 @@ export class Interpreter<
         receivers.add(newListener);
       });
     } catch (err) {
-      this.send(error(id, err) as any);
+      this.send(error(id, err) as any, undefined, true);
     }
 
     if (isPromiseLike(callbackStop)) {
@@ -1216,7 +1227,11 @@ export class Interpreter<
       },
       (err) => {
         this.removeChild(id);
-        this.send(toSCXMLEvent(error(id, err) as any, { origin: id }));
+        this.send(
+          toSCXMLEvent(error(id, err) as any, { origin: id }),
+          undefined,
+          true
+        );
       },
       () => {
         this.removeChild(id);
