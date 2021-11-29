@@ -9,7 +9,7 @@ import {
 import { toEventObject, toSCXMLEvent } from 'xstate/lib/utils';
 
 import { createInspectMachine } from './inspectMachine';
-import { Inspector } from './types';
+import { Inspector, Replacer } from './types';
 import { stringify } from './utils';
 
 const services = new Set<Interpreter<any>>();
@@ -44,13 +44,14 @@ function createDevTools() {
 
 interface ServerInspectorOptions {
   server: WebSocket.Server;
+  serialize?: Replacer | undefined;
 }
 
 export function inspect(options: ServerInspectorOptions): Inspector {
   const { server } = options;
   createDevTools();
   const inspectService = interpret(
-    createInspectMachine(globalThis.__xstate__)
+    createInspectMachine(globalThis.__xstate__, options)
   ).start();
   let client: ActorRef<any, undefined>;
 
