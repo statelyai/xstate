@@ -859,7 +859,7 @@ describe('State', () => {
                 id: 'foo',
                 on: {
                   // first region doesn't change value here
-                  EVENT: ['#foo', '#bar']
+                  EVENT: { target: ['#foo', '#bar'] }
                 }
               }
             }
