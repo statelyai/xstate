@@ -49,7 +49,7 @@ export interface Model<
     { value: any; context: TContext },
     TExtra
   >;
-  withInput: <TInput extends {}>(
+  withInput: <TInput extends Record<string, unknown>>(
     input: TInput
   ) => Model<
     TContext,
