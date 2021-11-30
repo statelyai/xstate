@@ -34,7 +34,8 @@ import {
   ChooseCondition,
   ChooseAction,
   AnyEventObject,
-  Expr
+  Expr,
+  Cast
 } from './types';
 import * as actionTypes from './actionTypes';
 import {
@@ -271,6 +272,10 @@ export function sendParent<
   });
 }
 
+type InferEvent<E extends EventObject> = {
+  [T in E['type']]: { type: T } & Extract<E, { type: T }>;
+}[E['type']];
+
 /**
  * Sends an event to an actor.
  *
@@ -282,11 +287,16 @@ export function sendParent<
 export function sendTo<
   TContext,
   TEvent extends EventObject,
-  TActor extends ActorRef<any, any>
+  TActor extends ActorRef<EventObject>
 >(
-  // actor: ExprWithMeta<TContext, TEvent, TActor>,
   actor: (ctx: TContext) => TActor,
-  event: EventFrom<TActor> | SendExpr<TContext, TEvent, EventFrom<TActor>>,
+  event:
+    | EventFrom<TActor>
+    | SendExpr<
+        TContext,
+        TEvent,
+        InferEvent<Cast<EventFrom<TActor>, EventObject>>
+      >,
   options?: SendActionOptions<TContext, TEvent>
 ): SendAction<TContext, TEvent, any> {
   return send<TContext, TEvent, any>(event, {

@@ -1499,8 +1499,7 @@ describe('sendTo', () => {
       }),
       entry: sendTo(
         (ctx) => ctx.child,
-        // TODO: figure out how to avoid `as const`
-        (ctx) => ({ type: 'EVENT' as const, count: ctx.count })
+        (ctx) => ({ type: 'EVENT', count: ctx.count })
       )
     });
 

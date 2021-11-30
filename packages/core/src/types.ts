@@ -6,6 +6,8 @@ import { IsNever, Model, Prop } from './model.types';
 type AnyFunction = (...args: any[]) => any;
 type ReturnTypeOrValue<T> = T extends AnyFunction ? ReturnType<T> : T;
 
+export type Cast<A, B> = A extends B ? A : B;
+
 export type EventType = string;
 export type ActionType = string;
 export type MetaObject = Record<string, any>;
