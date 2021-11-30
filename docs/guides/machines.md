@@ -1,11 +1,6 @@
 # Machines
 
-A **state machine** is a finite set of [states](./statenodes.md) that can transition to each other deterministically due to events. A **statechart** is an extension of state machines; mainly, they can have:
-
-- [Hierarchical](./hierarchical.md) (or nested) states
-- [Orthogonal](./parallel.md) (or parallel) states
-- [History](./history.md) states
-- And more, as described in [Statecharts: a Visual Formalism for Complex Systems](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf).
+A state machine is a finite set of states that can transition to each other deterministically due to events. To learn more, read our [introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md).
 
 ## Configuration
 

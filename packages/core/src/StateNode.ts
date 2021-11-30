@@ -96,7 +96,8 @@ import {
   getChildren,
   getAllStateNodes,
   isInFinalState,
-  isLeafNode
+  isLeafNode,
+  getTagsFromConfiguration
 } from './stateUtils';
 import { createInvocableActor } from './Actor';
 import { toInvokeDefinition } from './invokeUtils';
@@ -523,7 +524,8 @@ class StateNode<
       order: this.order || -1,
       data: this.doneData,
       invoke: this.invoke,
-      description: this.description
+      description: this.description,
+      tags: this.tags
     };
   }
 
@@ -716,7 +718,8 @@ class StateNode<
       ...state,
       value: this.resolve(state.value),
       configuration,
-      done: isInFinalState(configuration, this)
+      done: isInFinalState(configuration, this),
+      tags: getTagsFromConfiguration(configuration)
     });
   }
 
@@ -825,6 +828,12 @@ class StateNode<
 
     // orthogonal node
     return this.transitionParallelNode(stateValue, state, _event);
+  }
+  public getTransitionData(
+    state: State<TContext, TEvent, any, any>,
+    event: Event<TEvent> | SCXML.Event<TEvent>
+  ) {
+    return this._transition(state.value, state, toSCXMLEvent(event));
   }
   private next(
     state: State<TContext, TEvent>,
@@ -1343,8 +1352,8 @@ class StateNode<
     // Preserve original history after raised events
     maybeNextState.history = history;
 
-    maybeNextState.tags = new Set(
-      flatten(maybeNextState.configuration.map((sn) => sn.tags))
+    maybeNextState.tags = getTagsFromConfiguration(
+      maybeNextState.configuration
     );
 
     return maybeNextState;

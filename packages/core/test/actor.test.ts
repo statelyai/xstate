@@ -934,7 +934,7 @@ describe('actors', () => {
       const promiseBehavior = fromPromise(
         () =>
           new Promise<number>((res) => {
-            setTimeout(res(42));
+            setTimeout(() => res(42));
           })
       );
 
@@ -974,7 +974,7 @@ describe('actors', () => {
       const promiseBehavior = fromPromise(
         () =>
           new Promise<number>((_, rej) => {
-            setTimeout(rej(errorMessage), 1000);
+            setTimeout(() => rej(errorMessage), 1000);
           })
       );
 
@@ -1188,7 +1188,7 @@ describe('actors', () => {
 
   it('should receive done event from an immediately completed observable when self-initializing', () => {
     const parentMachine = createMachine<{
-      child: ActorRef<any> | null;
+      child: ActorRef<EventObject, unknown> | null;
     }>({
       context: {
         child: null

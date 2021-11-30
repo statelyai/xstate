@@ -1,5 +1,73 @@
 # xstate
 
+## 4.26.1
+
+### Patch Changes
+
+- [#2819](https://github.com/statelyai/xstate/pull/2819) [`0d51d33cd`](https://github.com/statelyai/xstate/commit/0d51d33cd6dc6ab876a5554788300282d03fa5d1) Thanks [@simonihmig](https://github.com/simonihmig)! - Support `globalThis` in `getGlobal()` for better compatibility
+
+* [#2828](https://github.com/statelyai/xstate/pull/2828) [`c0ef3e8`](https://github.com/statelyai/xstate/commit/c0ef3e882c688e6beefb196a3293ec71b65625e3) Thanks [@davidkpiano](https://github.com/davidkpiano)! - XState is now compatible with TypeScript version 4.5.
+
+## 4.26.0
+
+### Minor Changes
+
+- [#2672](https://github.com/statelyai/xstate/pull/2672) [`8e1d05d`](https://github.com/statelyai/xstate/commit/8e1d05dcafab0d1c8a63b07694b3f208850b0b4b) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `description` property is a new top-level property for state nodes and transitions, that lets you provide text descriptions:
+
+  ```ts
+  const machine = createMachine({
+    // ...
+    states: {
+      active: {
+        // ...
+        description: 'The task is in progress',
+        on: {
+          DEACTIVATE: {
+            // ...
+            description: 'Deactivates the task'
+          }
+        }
+      }
+    }
+  });
+  ```
+
+  Future Stately tooling will use the `description` to render automatically generated documentation, type hints, and enhancements to visual tools.
+
+* [#2743](https://github.com/statelyai/xstate/pull/2743) [`e268bf34a`](https://github.com/statelyai/xstate/commit/e268bf34a0dfe442ef7b43ecf8ab5c8d81ac69fb) Thanks [@janovekj](https://github.com/janovekj)! - Add optional type parameter to narrow type returned by `EventFrom`. You can use it like this:
+
+  ```ts
+  type UpdateNameEvent = EventFrom<typeof userModel>;
+  ```
+
+### Patch Changes
+
+- [#2738](https://github.com/statelyai/xstate/pull/2738) [`942fd90e0`](https://github.com/statelyai/xstate/commit/942fd90e0c7a942564dd9c2ffebb93d6c86698df) Thanks [@michelsciortino](https://github.com/michelsciortino)! - The `tags` property was missing from state's definitions. This is used when converting a state to a JSON string. Since this is how we serialize states within [`@xstate/inspect`](https://github.com/davidkpiano/xstate/tree/main/packages/xstate-inspect) this has caused inspected machines to miss the `tags` information.
+
+* [#2740](https://github.com/statelyai/xstate/pull/2740) [`707cb981f`](https://github.com/statelyai/xstate/commit/707cb981fdb8a5c75cacb7e9bfa5c7e5a1cc1c88) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with tags being missed on a service state after starting that service using a state value, like this:
+
+  ```js
+  const service = interpret(machine).start('active');
+  service.state.hasTag('foo'); // this should now return a correct result
+  ```
+
+- [#2691](https://github.com/statelyai/xstate/pull/2691) [`a72806035`](https://github.com/statelyai/xstate/commit/a728060353c9cb9bdb0cd37aacf793498a8750c8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Meta data can now be specified for `invoke` configs in the `invoke.meta` property:
+
+  ```js
+  const machine = createMachine({
+    // ...
+    invoke: {
+      src: (ctx, e) => findUser(ctx.userId),
+      meta: {
+        summary: 'Finds user',
+        updatedAt: '2021-09-...',
+        version: '4.12.2'
+        // other descriptive meta properties
+      }
+    }
+  });
+  ```
+
 ## 4.25.0
 
 ### Minor Changes
@@ -38,10 +106,10 @@
 
   model.createMachine({
     // `ctx` was of type `any`
-    entry: ctx => {},
+    entry: (ctx) => {},
     exit: assign({
       // `ctx` was of type `unknown`
-      foo: ctx => 42
+      foo: (ctx) => 42
     })
   });
   ```
@@ -217,11 +285,11 @@
   const machine = createMachine({
     context: { count: 0 },
     entry: [
-      ctx => console.log(ctx.count), // 0
-      assign({ count: ctx => ctx.count + 1 }),
-      ctx => console.log(ctx.count), // 1
-      assign({ count: ctx => ctx.count + 1 }),
-      ctx => console.log(ctx.count) // 2
+      (ctx) => console.log(ctx.count), // 0
+      assign({ count: (ctx) => ctx.count + 1 }),
+      (ctx) => console.log(ctx.count), // 1
+      assign({ count: (ctx) => ctx.count + 1 }),
+      (ctx) => console.log(ctx.count) // 2
     ],
     preserveActionOrder: true
   });
@@ -230,11 +298,11 @@
   const machine = createMachine({
     context: { count: 0 },
     entry: [
-      ctx => console.log(ctx.count), // 2
-      assign({ count: ctx => ctx.count + 1 }),
-      ctx => console.log(ctx.count), // 2
-      assign({ count: ctx => ctx.count + 1 }),
-      ctx => console.log(ctx.count) // 2
+      (ctx) => console.log(ctx.count), // 2
+      assign({ count: (ctx) => ctx.count + 1 }),
+      (ctx) => console.log(ctx.count), // 2
+      assign({ count: (ctx) => ctx.count + 1 }),
+      (ctx) => console.log(ctx.count) // 2
     ]
     // preserveActionOrder: false
   });
@@ -433,7 +501,7 @@
   });
 
   const service = interpret(machine)
-    .onTransition(state => {
+    .onTransition((state) => {
       // Read promise value synchronously
       const resolvedValue = state.context.promiseRef?.getSnapshot();
       // => undefined (if promise not resolved yet)
@@ -513,7 +581,7 @@
     context: { value: 42 },
     on: {
       INC: {
-        actions: assign({ value: ctx => ctx.value + 1 })
+        actions: assign({ value: (ctx) => ctx.value + 1 })
       }
     }
   });
@@ -773,7 +841,7 @@
 
   ```js
   // ...
-  actions: stop(context => context.someActor);
+  actions: stop((context) => context.someActor);
   ```
 
 ### Patch Changes
@@ -1011,10 +1079,10 @@
   ```js
   entry: [
     choose([
-      { cond: ctx => ctx > 100, actions: raise('TOGGLE') },
+      { cond: (ctx) => ctx > 100, actions: raise('TOGGLE') },
       {
         cond: 'hasMagicBottle',
-        actions: [assign(ctx => ({ counter: ctx.counter + 1 }))]
+        actions: [assign((ctx) => ({ counter: ctx.counter + 1 }))]
       },
       { actions: ['fallbackAction'] }
     ])

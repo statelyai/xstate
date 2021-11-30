@@ -636,24 +636,26 @@ The invocation sources (services) can be configured similar to how actions, guar
 ```js
 const fetchUser = // (same as the above example)
 
-const userMachine = createMachine({
-  id: 'user',
-  // ...
-  states: {
+const userMachine = createMachine(
+  {
+    id: 'user',
     // ...
-    loading: {
-      invoke: {
-        src: 'getUser',
-        // ...
-      }
-    },
-    // ...
-  }
-}, {
+    states: {
+      // ...
+      loading: {
+        invoke: {
+          src: 'getUser',
+          // ...
+        }
+      },
+      // ...
+    }
+  },
+  {
   services: {
     getUser: (context, event) => fetchUser(context.user.id)
   }
-});
+);
 ```
 
 The invoke `src` can also be specified as an object <Badge text="4.12" /> that describes the invoke source with its `type` and other related metadata. This can be read from the `services` option in the `meta.src` argument:
@@ -876,33 +878,3 @@ const someMachine = createMachine({ /* ... */ });
 }
 // ...
 ```
-
-## SCXML
-
-The `invoke` property is synonymous to the SCXML `<invoke>` element:
-
-```js
-// XState
-{
-  loading: {
-    invoke: {
-      src: 'someSource',
-      id: 'someID',
-      autoForward: true, // currently for machines only!
-      onDone: 'success',
-      onError: 'failure'
-    }
-  }
-}
-```
-
-```xml
-<!-- SCXML -->
-<state id="loading">
-  <invoke id="someID" src="someSource" autoforward />
-  <transition event="done.invoke.someID" target="success" />
-  <transition event="error.platform" cond="_event.src === 'someID'" target="failure" />
-</state>
-```
-
-- [https://www.w3.org/TR/scxml/#invoke](https://www.w3.org/TR/scxml/#invoke) - the definition of `<invoke>`

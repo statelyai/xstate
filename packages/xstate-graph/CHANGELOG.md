@@ -1,5 +1,11 @@
 # @xstate/graph
 
+## 1.4.0
+
+### Minor Changes
+
+- [#2703](https://github.com/statelyai/xstate/pull/2703) [`6a0ff73bf`](https://github.com/statelyai/xstate/commit/6a0ff73bf8817dc401ef9b45c71dd7875dbc9f20) Thanks [@Silverwolf90](https://github.com/Silverwolf90)! - Add getPathFromEvents to generate a path from a sequence of events.
+
 ## 1.3.0
 
 ### Minor Changes
@@ -29,7 +35,7 @@
 
   const shortestPaths = getShortestPaths(countMachine, {
     events: {
-      ADD: (state) => {
+      ADD: state => {
         // contrived example: if `context.count` is >= 10, increment by 10
         return state.context.count >= 10
           ? [{ type: 'ADD', value: 10 }]
