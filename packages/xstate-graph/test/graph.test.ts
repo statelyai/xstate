@@ -6,7 +6,11 @@ import {
   getShortestPaths,
   toDirectedGraph
 } from '../src/index';
-import { getSimplePathsAsArray, getAdjacencyMap } from '../src/graph';
+import {
+  getSimplePathsAsArray,
+  getAdjacencyMap,
+  depthFirstTraversal
+} from '../src/graph';
 import { assign } from 'xstate';
 
 describe('@xstate/graph', () => {
@@ -172,7 +176,7 @@ describe('@xstate/graph', () => {
       expect(
         getShortestPaths(lightMachine)[
           JSON.stringify(lightMachine.initialState.value)
-        ].paths[0].segments
+        ].paths[0].steps
       ).toHaveLength(0);
     });
 
@@ -235,12 +239,12 @@ describe('@xstate/graph', () => {
     it('should return a single empty path for the initial state', () => {
       expect(getSimplePaths(lightMachine)['"green"'].paths).toHaveLength(1);
       expect(
-        getSimplePaths(lightMachine)['"green"'].paths[0].segments
+        getSimplePaths(lightMachine)['"green"'].paths[0].steps
       ).toHaveLength(0);
       expect(getSimplePaths(equivMachine)['"a"'].paths).toHaveLength(1);
-      expect(
-        getSimplePaths(equivMachine)['"a"'].paths[0].segments
-      ).toHaveLength(0);
+      expect(getSimplePaths(equivMachine)['"a"'].paths[0].steps).toHaveLength(
+        0
+      );
     });
 
     it('should return value-based paths', () => {
@@ -431,4 +435,23 @@ describe('@xstate/graph', () => {
       expect(digraph).toMatchSnapshot();
     });
   });
+});
+
+it.only('hmm', () => {
+  const a = depthFirstTraversal(
+    (s, e) => {
+      if (e === 'a') {
+        return 1;
+      }
+      if (e === 'b' && s === 1) {
+        return 2;
+      }
+      return s;
+    },
+    0,
+    ['a', 'b'],
+    JSON.stringify
+  );
+
+  console.log(a);
 });

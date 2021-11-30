@@ -445,3 +445,33 @@ export function getPathFromEvents<
     weight: path.length
   };
 }
+
+export function depthFirstTraversal(
+  reducer: (state: any, event: any) => any,
+  initialState: any,
+  events: any[],
+  serializeState: (state: any) => string
+) {
+  const adj: any = {};
+
+  function util(state: any) {
+    const serializedState = serializeState(state);
+    if (adj[serializedState]) {
+      return;
+    }
+
+    adj[serializedState] = {};
+
+    for (const event of events) {
+      const nextState = reducer(state, event);
+      const serializedNextState = serializeState(nextState);
+      adj[serializedState][JSON.stringify(event)] = serializedNextState;
+
+      util(nextState);
+    }
+  }
+
+  util(initialState);
+
+  return adj;
+}
