@@ -26,8 +26,7 @@ export function createModel<
   >,
   TComputedAction = UnionFromCreatorsReturnTypes<
     Prop<TFinalModelCreators, 'actions'>
-  >,
-  TComputedInput = Prop<TFinalModelCreators, 'input'>
+  >
 >(
   initialContext: TContext,
   creators: TModelCreators
