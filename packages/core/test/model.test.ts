@@ -41,6 +41,11 @@ describe('createModel', () => {
       'updateName'
     );
 
+    // Action that can take any event
+    const clearName = userModel.assign({
+      name: ''
+    });
+
     const machine = createMachine<UserContext, UserEvent>({
       context: userModel.initialContext,
       initial: 'active',
@@ -58,6 +63,9 @@ describe('createModel', () => {
                   age: e.value
                 };
               })
+            },
+            anotherEvent: {
+              actions: clearName
             }
           }
         }
