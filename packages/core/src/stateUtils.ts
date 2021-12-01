@@ -1507,7 +1507,6 @@ function selectEventlessTransitions<
       }
       for (const t of s.always) {
         if (
-          t.eventType === NULL_EVENT &&
           (t.guard === undefined ||
             evaluateGuard<TContext, TEvent>(
               t.guard,
