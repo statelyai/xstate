@@ -765,9 +765,6 @@ export class Interpreter<
           } else {
             this.logger(value);
           }
-        },
-        [actionTypes.assign]: () => {
-          /* No-op to prevent no implementation warning */
         }
       } as ActionFunctionMap<TContext, TEvent>)[actionType]
     );
@@ -813,7 +810,7 @@ export class Interpreter<
       }
     }
 
-    if (!IS_PRODUCTION) {
+    if (!IS_PRODUCTION && !action.type?.startsWith('xstate.')) {
       warn(false, `No implementation found for action type '${action.type}'`);
     }
 
