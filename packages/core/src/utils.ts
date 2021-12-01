@@ -10,7 +10,6 @@ import type {
   StateLike,
   TransitionConfig,
   TransitionConfigTarget,
-  NullEvent,
   SingleOrArray,
   BehaviorCreator,
   InvokeSourceDefinition,
@@ -20,7 +19,7 @@ import type {
   InvokeConfig,
   SCXMLErrorEvent
 } from './types';
-import { STATE_DELIMITER, TARGETLESS_KEY } from './constants';
+import { STATE_DELIMITER, TARGETLESS_KEY, NULL_EVENT } from './constants';
 import { IS_PRODUCTION } from './environment';
 import type { StateNode } from './StateNode';
 import type { StateMachine } from './StateMachine';
@@ -398,14 +397,14 @@ export function toTransitionConfigArray<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  event: TEvent['type'] | NullEvent['type'] | '*',
+  event: TEvent['type'] | typeof NULL_EVENT | '*',
   configLike: SingleOrArray<
     | TransitionConfig<TContext, TEvent>
     | TransitionConfigTarget<TContext, TEvent>
   >
 ): Array<
   TransitionConfig<TContext, TEvent> & {
-    event: TEvent['type'] | NullEvent['type'] | '*';
+    event: TEvent['type'] | typeof NULL_EVENT | '*';
   }
 > {
   const transitions = toArrayStrict(configLike).map((transitionLike) => {
@@ -420,7 +419,7 @@ export function toTransitionConfigArray<
     return { ...transitionLike, event };
   }) as Array<
     TransitionConfig<TContext, TEvent> & {
-      event: TEvent['type'] | NullEvent['type'] | '*';
+      event: TEvent['type'] | typeof NULL_EVENT | '*';
     } // TODO: fix 'as' (remove)
   >;
 

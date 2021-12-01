@@ -103,7 +103,7 @@ describe('scxml', () => {
         await runTestToCompletion(originalMachine, scxmlTest);
       });
 
-      it(`${testGroupName}/${testName}`, async () => {
+      it.skip(`${testGroupName}/${testName}`, async () => {
         const machine = toMachine(scxmlDefinition, {
           delimiter: '$'
         });

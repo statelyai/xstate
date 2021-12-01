@@ -245,7 +245,7 @@ const testGroups = {
     // 'test354.txml', // conversion of namelist not implemented yet
     'test355.txml',
     'test364.txml',
-    // 'test372.txml', // microstep not implemented correctly for final states
+    'test372.txml',
     'test375.txml',
     // 'test376.txml', // executable blocks not implemented
     'test377.txml',

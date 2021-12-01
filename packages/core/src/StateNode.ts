@@ -7,7 +7,8 @@ import {
   isString,
   toInvokeConfig,
   toInvokeSource,
-  isFunction
+  isFunction,
+  toTransitionConfigArray
 } from './utils';
 import type {
   Event,
@@ -33,7 +34,7 @@ import type {
 import type { State } from './State';
 import * as actionTypes from './actionTypes';
 import { toActionObject } from './actions';
-import { formatInitialTransition } from './stateUtils';
+import { formatInitialTransition, formatTransition } from './stateUtils';
 import {
   getDelayedTransitions,
   formatTransitions,
@@ -42,6 +43,7 @@ import {
 import { evaluateGuard } from './guards';
 import type { StateMachine } from './StateMachine';
 import { memo } from './memo';
+import { NULL_EVENT } from './constants';
 
 const EMPTY_OBJECT = {};
 
@@ -126,6 +128,7 @@ export class StateNode<
 
   public tags: string[] = [];
   public transitions!: Array<TransitionDefinition<TContext, TEvent>>;
+  public always?: Array<TransitionDefinition<TContext, TEvent>>;
 
   constructor(
     /**
@@ -198,6 +201,12 @@ export class StateNode<
 
   public _initialize() {
     this.transitions = formatTransitions(this);
+    if (this.config.always) {
+      this.always = toTransitionConfigArray(
+        NULL_EVENT,
+        this.config.always
+      ).map((t) => formatTransition(this, t));
+    }
 
     Object.keys(this.states).forEach((key) => {
       this.states[key]._initialize();

@@ -17,9 +17,9 @@ export default createMachine({
       states: {
         b1: {
           id: 'b1',
+          always: 'b3',
           on: {
-            s: 'b2',
-            '': 'b3'
+            s: 'b2'
           }
         },
         b2: {
