@@ -875,14 +875,35 @@ describe('State', () => {
         }
       });
 
-      const { initialState } = machine;
+      expect(machine.initialState.can('EVENT')).toBeTruthy();
+    });
 
-      expect(machine.transition(undefined, { type: 'EVENT' }).value).toEqual({
-        a: 'a1',
-        b: 'b2'
+    it('should return true when transition targets a state that is already part of the current configuration but the final state value changes', () => {
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            id: 'foo',
+            initial: 'a1',
+            states: {
+              a1: {
+                on: {
+                  NEXT: 'a2'
+                }
+              },
+              a2: {
+                on: {
+                  NEXT: '#foo'
+                }
+              }
+            }
+          }
+        }
       });
 
-      expect(initialState.can('EVENT')).toBeTruthy();
+      const nextState = machine.transition(undefined, { type: 'NEXT' });
+
+      expect(nextState.can({ type: 'NEXT' })).toBeTruthy();
     });
   });
 
