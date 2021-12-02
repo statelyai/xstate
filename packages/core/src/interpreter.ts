@@ -592,7 +592,11 @@ export class Interpreter<
     }
 
     if (sendError) {
-      this.sendError(event as any);
+      if (this.parent) {
+        this.parent.sendError(event as any);
+      } else {
+        this.sendError(event as any);
+      }
     }
 
     const _event = toSCXMLEvent(toEventObject(event as Event<TEvent>, payload));
@@ -1102,7 +1106,7 @@ export class Interpreter<
                 undefined,
                 true
               );
-            } else {
+            } else if (!this.errorListeners.size) {
               reportUnhandledExceptionOnInvocation(errorData, error, id);
             }
             if (this.devTools) {

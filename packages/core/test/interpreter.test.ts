@@ -1732,7 +1732,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       );
     });
 
-    it('should be handle child errors with errorListener', (done) => {
+    it('should handle child errors with errorListener', (done) => {
       const failureMachine = Machine<typeof context>(
         {
           id: 'failure',
@@ -1775,6 +1775,74 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       });
 
       const intervalService = interpret(parentMachine).start();
+
+      expect(isObservable(intervalService)).toBeTruthy();
+
+      intervalService.subscribe(
+        () => {},
+        (error) => {
+          expect(error.data).toBeInstanceOf(Error);
+          done();
+        }
+      );
+    });
+
+    it('should handle grandchild errors with errorListener', (done) => {
+      const failureMachine = Machine<typeof context>(
+        {
+          id: 'failure',
+          context,
+          initial: 'active',
+          states: {
+            active: {
+              after: {
+                100: {
+                  target: 'failure'
+                }
+              }
+            },
+            failure: {
+              invoke: {
+                src: 'failure'
+              }
+            }
+          }
+        },
+        {
+          services: {
+            failure: async () => {
+              throw new Error('error');
+            }
+          }
+        }
+      );
+
+      const parentMachine = Machine({
+        initial: 'foo',
+        states: {
+          foo: {
+            invoke: {
+              id: 'child',
+              src: failureMachine
+            }
+          }
+        }
+      });
+
+      const grandparentMachine = Machine({
+        id: 'grandparent',
+        initial: 'bar',
+        states: {
+          bar: {
+            invoke: {
+              id: 'parent',
+              src: parentMachine
+            }
+          }
+        }
+      });
+
+      const intervalService = interpret(grandparentMachine).start();
 
       expect(isObservable(intervalService)).toBeTruthy();
 
