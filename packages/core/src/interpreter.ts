@@ -1101,7 +1101,7 @@ export class Interpreter<
               reportUnhandledExceptionOnInvocation(errorData, error, id);
             }
             if (this.devTools) {
-              this.devTools.send(errorEvent, this.state, true);
+              this.devTools.send(errorEvent, this.state);
             }
 
             this.sendError(errorEvent);
