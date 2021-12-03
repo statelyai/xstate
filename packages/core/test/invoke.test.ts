@@ -8,7 +8,8 @@ import {
   StateValue,
   createMachine,
   Behavior,
-  ActorContext
+  ActorContext,
+  SpecialTargets
 } from '../src';
 import { fromReducer } from '../src/behaviors';
 import {
@@ -888,6 +889,66 @@ describe('invoke', () => {
       expect(invokeDisposeCount).toEqual(0);
       expect(actionsCount).toEqual(2);
       done();
+    });
+
+    it.only('just some test', () => {
+      let invokeCount = 0;
+
+      const child = createMachine({
+        initial: 'idle',
+        states: {
+          idle: {
+            invoke: {
+              src: () => {
+                invokeCount++;
+                return (sendBack) => {
+                  sendBack({ type: 'STARTED' });
+                };
+              }
+            },
+            on: {
+              STARTED: 'active'
+            }
+          },
+          active: {
+            invoke: {
+              src: () => {
+                return (sendBack) => {
+                  sendBack({ type: 'STOPPED' });
+                };
+              }
+            },
+            on: {
+              STOPPED: {
+                target: 'idle',
+                actions: forwardTo(SpecialTargets.Parent)
+              }
+            }
+          }
+        }
+      });
+      const parent = createMachine({
+        initial: 'idle',
+        states: {
+          idle: {
+            on: {
+              START: 'active'
+            }
+          },
+          active: {
+            invoke: { src: child },
+            on: {
+              STOPPED: 'idle'
+            }
+          }
+        }
+      });
+
+      const service = interpret(parent).start();
+
+      service.send('START');
+
+      expect(invokeCount).toBe(1);
     });
   });
 
