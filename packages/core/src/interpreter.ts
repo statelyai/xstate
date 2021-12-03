@@ -583,15 +583,14 @@ export class Interpreter<
    */
   public send = (
     event: SingleOrArray<Event<TEvent>> | SCXML.Event<TEvent>,
-    payload?: EventData,
-    sendError = false
+    payload?: EventData
   ): State<TContext, TEvent, TStateSchema, TTypestate> => {
     if (isArray(event)) {
       this.batch(event);
       return this.state;
     }
 
-    if (sendError) {
+    if ((event as EventObject)?.type === 'xstate.error') {
       if (this.parent) {
         this.parent.sendError(event as any);
       } else {
@@ -828,14 +827,10 @@ export class Interpreter<
         });
       } catch (err) {
         if (this.parent) {
-          this.parent.send(
-            {
-              type: 'xstate.error',
-              data: err
-            } as EventObject,
-            undefined,
-            true
-          );
+          this.parent.send({
+            type: 'xstate.error',
+            data: err
+          } as EventObject);
         }
 
         throw err;
@@ -1098,14 +1093,10 @@ export class Interpreter<
             this.send(toSCXMLEvent(errorEvent as any, { origin: id }));
           } catch (error) {
             if (this.parent) {
-              this.parent.send(
-                {
-                  type: 'xstate.error',
-                  data: error
-                } as EventObject,
-                undefined,
-                true
-              );
+              this.parent.send({
+                type: 'xstate.error',
+                data: error
+              } as EventObject);
             } else if (!this.errorListeners.size) {
               reportUnhandledExceptionOnInvocation(errorData, error, id);
             }
@@ -1192,7 +1183,7 @@ export class Interpreter<
         receivers.add(newListener);
       });
     } catch (err) {
-      this.send(error(id, err) as any, undefined, true);
+      this.send(error(id, err) as any);
     }
 
     if (isPromiseLike(callbackStop)) {
@@ -1242,11 +1233,7 @@ export class Interpreter<
       },
       (err) => {
         this.removeChild(id);
-        this.send(
-          toSCXMLEvent(error(id, err) as any, { origin: id }),
-          undefined,
-          true
-        );
+        this.send(toSCXMLEvent(error(id, err) as any, { origin: id }));
       },
       () => {
         this.removeChild(id);
