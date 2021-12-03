@@ -18,8 +18,12 @@ import {
 import { createDynamicAction } from '../../actions/dynamicAction';
 import {
   ActionTypes,
+  ActorRef,
   BaseDynamicActionObject,
+  Cast,
+  EventFrom,
   ExprWithMeta,
+  InferEvent,
   SendActionObject,
   SendActionOptions
 } from '..';
@@ -223,4 +227,33 @@ export function escalate<
       to: SpecialTargets.Parent
     }
   );
+}
+
+/**
+ * Sends an event to an actor.
+ *
+ * @param actor The `ActorRef` to send the event to.
+ * @param event The event to send, or an expression that evaluates to the event to send
+ * @param options Send action options
+ * @returns An XState send action object
+ */
+export function sendTo<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  TActor extends ActorRef<EventObject>
+>(
+  actor: (ctx: TContext) => TActor,
+  event:
+    | EventFrom<TActor>
+    | SendExpr<
+        TContext,
+        TEvent,
+        InferEvent<Cast<EventFrom<TActor>, EventObject>>
+      >,
+  options?: SendActionOptions<TContext, TEvent>
+) {
+  return send<TContext, TEvent, any>(event, {
+    ...options,
+    to: actor
+  });
 }

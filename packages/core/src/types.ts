@@ -12,6 +12,8 @@ export type Prop<T, K> = K extends keyof T ? T[K] : never;
 // https://github.com/microsoft/TypeScript/issues/23182#issuecomment-379091887
 export type IsNever<T> = [T] extends [never] ? true : false;
 
+export type Cast<A, B> = A extends B ? A : B;
+
 export type EventType = string;
 export type ActionType = string;
 export type MetaObject = Record<string, any>;
@@ -1582,6 +1584,8 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
     ? TEvent
     : R extends Interpreter<infer _, infer TEvent, infer __>
     ? TEvent
+    : R extends ActorRef<infer TEvent, infer _>
+    ? TEvent
     : never
   : never;
 
@@ -1609,3 +1613,7 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
     ? TContext
     : never
   : never;
+
+export type InferEvent<E extends EventObject> = {
+  [T in E['type']]: { type: T } & Extract<E, { type: T }>;
+}[E['type']];

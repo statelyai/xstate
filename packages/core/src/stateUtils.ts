@@ -1507,14 +1507,14 @@ function selectEventlessTransitions<
       }
       for (const t of s.always) {
         if (
-          (t.guard === undefined ||
-            evaluateGuard<TContext, TEvent>(
-              t.guard,
-              state.context,
-              state._event,
-              state,
-              machine
-            ))
+          t.guard === undefined ||
+          evaluateGuard<TContext, TEvent>(
+            t.guard,
+            state.context,
+            state._event,
+            state,
+            machine
+          )
         ) {
           enabledTransitions.add(t);
           break loop;

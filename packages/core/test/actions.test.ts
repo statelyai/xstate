@@ -3,7 +3,9 @@ import {
   assign,
   forwardTo,
   interpret,
-  spawnMachine
+  spawnMachine,
+  ActorRefFrom,
+  spawn
 } from '../src/index';
 import { sendParent } from '../src/actions';
 import { choose } from '../src/actions/choose';
@@ -11,6 +13,8 @@ import { pure } from '../src/actions/pure';
 import { log } from '../src/actions/log';
 import { invokeMachine } from '../src/invoke';
 import { ActorRef } from '../src';
+import { sendTo } from '../src/actions/send';
+import { createMachineBehavior } from '../src/behaviors';
 
 describe('entry/exit actions', () => {
   const pedestrianStates = {
@@ -1539,6 +1543,66 @@ describe('sendParent', () => {
     });
 
     expect(child).toBeTruthy();
+  });
+});
+
+describe('sendTo', () => {
+  it('should be able to send an event to an actor', (done) => {
+    const childMachine = createMachine<any, { type: 'EVENT' }>({
+      initial: 'waiting',
+      states: {
+        waiting: {
+          on: {
+            EVENT: {
+              actions: () => done()
+            }
+          }
+        }
+      }
+    });
+
+    const parentMachine = createMachine<{
+      child: ActorRefFrom<typeof childMachine>;
+    }>({
+      context: () => ({
+        child: spawn(createMachineBehavior(childMachine))
+      }),
+      entry: sendTo((ctx) => ctx.child, { type: 'EVENT' })
+    });
+
+    interpret(parentMachine).start();
+  });
+
+  it('should be able to send an event from expression to an actor', (done) => {
+    const childMachine = createMachine<any, { type: 'EVENT'; count: number }>({
+      initial: 'waiting',
+      states: {
+        waiting: {
+          on: {
+            EVENT: {
+              guard: (_, e) => e.count === 42,
+              actions: () => done()
+            }
+          }
+        }
+      }
+    });
+
+    const parentMachine = createMachine<{
+      child: ActorRefFrom<typeof childMachine>;
+      count: number;
+    }>({
+      context: () => ({
+        child: spawn(createMachineBehavior(childMachine)),
+        count: 42
+      }),
+      entry: sendTo(
+        (ctx) => ctx.child,
+        (ctx) => ({ type: 'EVENT', count: ctx.count })
+      )
+    });
+
+    interpret(parentMachine).start();
   });
 });
 
