@@ -650,7 +650,7 @@ describe('State', () => {
       expect(machine.initialState.can({ type: 'NEXT' })).toBe(true);
     });
 
-    it('should return false for an external self-transition without actions', () => {
+    it('should return true for an external self-transition without actions', () => {
       const machine = createMachine({
         initial: 'a',
         states: {
@@ -662,7 +662,7 @@ describe('State', () => {
         }
       });
 
-      expect(machine.initialState.can({ type: 'EV' })).toBe(false);
+      expect(machine.initialState.can({ type: 'EV' })).toBe(true);
     });
 
     it('should return true for an external self-transition with reentry action', () => {
@@ -716,7 +716,7 @@ describe('State', () => {
       expect(machine.initialState.can({ type: 'EV' })).toBe(true);
     });
 
-    it('should return false for a forbidden transition', () => {
+    it('should return true for a defined transition without a target', () => {
       const machine = createMachine({
         initial: 'a',
         states: {
@@ -728,7 +728,7 @@ describe('State', () => {
         }
       });
 
-      expect(machine.initialState.can({ type: 'EV' })).toBe(false);
+      expect(machine.initialState.can({ type: 'EV' })).toBe(true);
     });
 
     it('should return false for an unknown event', () => {
