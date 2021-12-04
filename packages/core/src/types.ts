@@ -12,6 +12,8 @@ export type Prop<T, K> = K extends keyof T ? T[K] : never;
 // https://github.com/microsoft/TypeScript/issues/23182#issuecomment-379091887
 export type IsNever<T> = [T] extends [never] ? true : false;
 
+export type Cast<A, B> = A extends B ? A : B;
+
 export type EventType = string;
 export type ActionType = string;
 export type MetaObject = Record<string, any>;
@@ -490,8 +492,6 @@ export type TransitionsConfigMap<
     TEvent extends { type: K } ? TEvent : never
   >;
 } & {
-  ''?: TransitionConfigOrTarget<TContext, TEvent>;
-} & {
   '*'?: TransitionConfigOrTarget<TContext, TEvent>;
 };
 
@@ -503,7 +503,6 @@ type TransitionsConfigArray<
   | (TEvent extends EventObject
       ? TransitionConfig<TContext, TEvent> & { event: TEvent['type'] }
       : never)
-  | (TransitionConfig<TContext, TEvent> & { event: '' })
   | (TransitionConfig<TContext, TEvent> & { event: '*' })
 >;
 
@@ -632,7 +631,6 @@ export interface StateNodeConfig<
 
   /**
    * An eventless transition that is always taken when this state node is active.
-   * Equivalent to a transition specified as an empty `''`' string in the `on` property.
    */
   always?: TransitionConfigOrTarget<TContext, TEvent>;
   /**
@@ -846,7 +844,6 @@ export enum ActionTypes {
   Raise = 'xstate.raise',
   Send = 'xstate.send',
   Cancel = 'xstate.cancel',
-  NullEvent = '',
   Assign = 'xstate.assign',
   After = 'xstate.after',
   DoneState = 'done.state',
@@ -904,10 +901,6 @@ export interface UpdateObject extends EventObject {
 }
 
 export type DoneEvent = DoneEventObject & string;
-
-export interface NullEvent {
-  type: ActionTypes.NullEvent;
-}
 
 export interface InvokeAction {
   type: ActionTypes.Invoke;
@@ -1176,13 +1169,13 @@ export interface TransitionDefinition<
   source: StateNode<TContext, TEvent>;
   actions: BaseActionObject[];
   guard?: GuardDefinition<TContext, TEvent>;
-  eventType: TEvent['type'] | NullEvent['type'] | '*';
+  eventType: TEvent['type'] | '*';
   toJSON: () => {
     target: string[] | undefined;
     source: string;
     actions: BaseActionObject[];
     guard?: GuardDefinition<TContext, TEvent>;
-    eventType: TEvent['type'] | NullEvent['type'] | '*';
+    eventType: TEvent['type'] | '*';
     meta?: Record<string, any>;
   };
 }
@@ -1199,7 +1192,7 @@ export type TransitionDefinitionMap<
   TContext extends MachineContext,
   TEvent extends EventObject
 > = {
-  [K in TEvent['type'] | NullEvent['type'] | '*']: Array<
+  [K in TEvent['type'] | '*']: Array<
     TransitionDefinition<
       TContext,
       K extends TEvent['type'] ? Extract<TEvent, { type: K }> : EventObject
@@ -1591,6 +1584,8 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
     ? TEvent
     : R extends Interpreter<infer _, infer TEvent, infer __>
     ? TEvent
+    : R extends ActorRef<infer TEvent, infer _>
+    ? TEvent
     : never
   : never;
 
@@ -1618,3 +1613,7 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
     ? TContext
     : never
   : never;
+
+export type InferEvent<E extends EventObject> = {
+  [T in E['type']]: { type: T } & Extract<E, { type: T }>;
+}[E['type']];

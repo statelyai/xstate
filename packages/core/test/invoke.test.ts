@@ -8,7 +8,8 @@ import {
   UpdateObject,
   createMachine,
   ActorContext,
-  Behavior
+  Behavior,
+  SpecialTargets
 } from '../src';
 import { fromReducer } from '../src/behaviors';
 import {
@@ -901,6 +902,83 @@ describe('invoke', () => {
       expect(invokeDisposeCount).toEqual(0);
       expect(actionsCount).toEqual(2);
       done();
+    });
+
+    it('child should not invoke an actor when it transitions to an invoking state when it gets stopped by its parent', (done) => {
+      let invokeCount = 0;
+
+      const child = createMachine({
+        id: 'child',
+        initial: 'idle',
+        states: {
+          idle: {
+            invoke: {
+              src: invokeCallback(() => {
+                invokeCount++;
+
+                if (invokeCount > 1) {
+                  // prevent a potential infinite loop
+                  throw new Error('This should be impossible.');
+                }
+
+                return (sendBack) => {
+                  // it's important for this test to send the event back when the parent is *not* currently processing an event
+                  // this ensures that the parent can process the received event immediately and can stop the child immediately
+                  setTimeout(() => sendBack({ type: 'STARTED' }));
+                };
+              })
+            },
+            on: {
+              STARTED: 'active'
+            }
+          },
+          active: {
+            invoke: {
+              src: invokeCallback(() => {
+                return (sendBack) => {
+                  sendBack({ type: 'STOPPED' });
+                };
+              })
+            },
+            on: {
+              STOPPED: {
+                target: 'idle',
+                actions: forwardTo(SpecialTargets.Parent)
+              }
+            }
+          }
+        }
+      });
+      const parent = createMachine({
+        id: 'parent',
+        initial: 'idle',
+        states: {
+          idle: {
+            on: {
+              START: 'active'
+            }
+          },
+          active: {
+            // TODO: prevent this from being src: child in types
+            invoke: { src: invokeMachine(child) },
+            on: {
+              STOPPED: 'done'
+            }
+          },
+          done: {
+            type: 'final'
+          }
+        }
+      });
+
+      const service = interpret(parent)
+        .onDone(() => {
+          expect(invokeCount).toBe(1);
+          done();
+        })
+        .start();
+
+      service.send('START');
     });
   });
 

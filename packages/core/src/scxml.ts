@@ -17,6 +17,7 @@ import { log } from './actions/log';
 import { invokeMachine } from './invoke';
 import { StateMachine } from './StateMachine';
 import { not, stateIn } from './guards';
+import { NULL_EVENT } from './constants';
 
 function getAttribute(
   element: XMLElement,
@@ -359,55 +360,60 @@ function toConfig(
       initial = stateElements[0].attributes!.id;
     }
 
-    const on = flatten(
-      transitionElements.map((value) => {
-        const events = ((getAttribute(value, 'event') as string) || '').split(
-          /\s+/
-        );
+    const always: any[] = [];
+    const on: any[] = [];
 
-        return events.map((event) => {
-          const targets = getAttribute(value, 'target');
-          const internal = getAttribute(value, 'type') === 'internal';
+    transitionElements.map((value) => {
+      const events = ((getAttribute(value, 'event') as string) || '').split(
+        /\s+/
+      );
 
-          let guardObject = {};
+      return events.map((eventType) => {
+        const targets = getAttribute(value, 'target');
+        const internal = getAttribute(value, 'type') === 'internal';
 
-          if (value.attributes?.cond) {
-            const guard = value.attributes!.cond;
-            if ((guard as string).startsWith('In')) {
-              const inMatch = (guard as string).trim().match(/^In\('(.*)'\)/);
+        let guardObject = {};
 
-              if (inMatch) {
-                guardObject = {
-                  guard: stateIn(`#${inMatch[1]}`)
-                };
-              }
-            } else if ((guard as string).startsWith('!In')) {
-              const notInMatch = (guard as string)
-                .trim()
-                .match(/^!In\('(.*)'\)/);
+        if (value.attributes?.cond) {
+          const guard = value.attributes!.cond;
+          if ((guard as string).startsWith('In')) {
+            const inMatch = (guard as string).trim().match(/^In\('(.*)'\)/);
 
-              if (notInMatch) {
-                guardObject = {
-                  guard: not(stateIn(`#${notInMatch[1]}`))
-                };
-              }
-            } else {
+            if (inMatch) {
               guardObject = {
-                guard: createGuard(value.attributes!.cond as string)
+                guard: stateIn(`#${inMatch[1]}`)
               };
             }
-          }
+          } else if ((guard as string).startsWith('!In')) {
+            const notInMatch = (guard as string).trim().match(/^!In\('(.*)'\)/);
 
-          return {
-            event,
-            target: getTargets(targets),
-            ...(value.elements ? executableContent(value.elements) : undefined),
-            ...guardObject,
-            internal
-          };
-        });
-      })
-    );
+            if (notInMatch) {
+              guardObject = {
+                guard: not(stateIn(`#${notInMatch[1]}`))
+              };
+            }
+          } else {
+            guardObject = {
+              guard: createGuard(value.attributes!.cond as string)
+            };
+          }
+        }
+
+        const transitionConfig = {
+          event: eventType,
+          target: getTargets(targets),
+          ...(value.elements ? executableContent(value.elements) : undefined),
+          ...guardObject,
+          internal
+        };
+
+        if (eventType === NULL_EVENT) {
+          always.push(transitionConfig);
+        } else {
+          on.push(transitionConfig);
+        }
+      });
+    });
 
     const onEntry = onEntryElements
       ? flatten(
@@ -463,6 +469,7 @@ function toConfig(
           }
         : undefined),
       ...(transitionElements.length ? { on } : undefined),
+      ...(always.length ? { always } : undefined),
       ...(onEntry ? { entry: onEntry } : undefined),
       ...(onExit ? { exit: onExit } : undefined),
       ...(invoke.length ? { invoke } : undefined)

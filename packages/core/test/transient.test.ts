@@ -11,13 +11,11 @@ const greetingMachine = createMachine<typeof greetingContext>({
   context: greetingContext,
   states: {
     pending: {
-      on: {
-        '': [
-          { target: 'morning', guard: (ctx) => ctx.hour < 12 },
-          { target: 'afternoon', guard: (ctx) => ctx.hour < 18 },
-          { target: 'evening' }
-        ]
-      }
+      always: [
+        { target: 'morning', guard: (ctx) => ctx.hour < 12 },
+        { target: 'afternoon', guard: (ctx) => ctx.hour < 18 },
+        { target: 'evening' }
+      ]
     },
     morning: {},
     afternoon: {},
@@ -108,9 +106,7 @@ describe('transient states (eventless transitions)', () => {
           }
         },
         T: {
-          on: {
-            '': [{ target: 'B' }]
-          }
+          always: [{ target: 'B' }]
         },
         B: {
           entry: 'enter_B'
@@ -202,16 +198,12 @@ describe('transient states (eventless transitions)', () => {
               }
             },
             A2: {
-              on: {
-                '': 'A3'
-              }
+              always: 'A3'
             },
             A3: {
-              on: {
-                '': {
-                  target: 'A4',
-                  guard: stateIn({ B: 'B3' })
-                }
+              always: {
+                target: 'A4',
+                guard: stateIn({ B: 'B3' })
               }
             },
             A4: {}
@@ -227,19 +219,15 @@ describe('transient states (eventless transitions)', () => {
               }
             },
             B2: {
-              on: {
-                '': {
-                  target: 'B3',
-                  guard: stateIn({ A: 'A2' })
-                }
+              always: {
+                target: 'B3',
+                guard: stateIn({ A: 'A2' })
               }
             },
             B3: {
-              on: {
-                '': {
-                  target: 'B4',
-                  guard: stateIn({ A: 'A3' })
-                }
+              always: {
+                target: 'B4',
+                guard: stateIn({ A: 'A3' })
               }
             },
             B4: {}
@@ -328,11 +316,9 @@ describe('transient states (eventless transitions)', () => {
           initial: 'B1',
           states: {
             B1: {
-              on: {
-                '': {
-                  target: 'B2',
-                  guard: stateIn({ A: 'A2' })
-                }
+              always: {
+                target: 'B2',
+                guard: stateIn({ A: 'A2' })
               }
             },
             B2: {}
@@ -342,11 +328,9 @@ describe('transient states (eventless transitions)', () => {
           initial: 'C1',
           states: {
             C1: {
-              on: {
-                '': {
-                  target: 'C2',
-                  guard: stateIn({ A: 'A2' })
-                }
+              always: {
+                target: 'C2',
+                guard: stateIn({ A: 'A2' })
               }
             },
             C2: {}
@@ -437,8 +421,8 @@ describe('transient states (eventless transitions)', () => {
         },
         b: {
           entry: raise('BAR'),
+          always: 'c',
           on: {
-            '': 'c',
             BAR: 'd'
           }
         },
@@ -486,24 +470,6 @@ describe('transient states (eventless transitions)', () => {
     expect(state.value).toBe('e');
   });
 
-  it('should select eventless transition for array `.on` config', () => {
-    const machine = createMachine({
-      initial: 'a',
-      states: {
-        a: {
-          on: { FOO: 'b' }
-        },
-        b: {
-          on: [{ event: '', target: 'pass' }]
-        },
-        pass: {}
-      }
-    });
-
-    const state = machine.transition('a', 'FOO');
-    expect(state.value).toBe('pass');
-  });
-
   it('should not select wildcard for eventless transition', () => {
     const machine = createMachine({
       initial: 'a',
@@ -530,10 +496,8 @@ describe('transient states (eventless transitions)', () => {
           on: { FOO: 'b' }
         },
         b: {
-          on: [
-            { event: '*', target: 'fail' },
-            { event: '', target: 'pass' }
-          ]
+          always: 'pass',
+          on: [{ event: '*', target: 'fail' }]
         },
         fail: {},
         pass: {}
@@ -581,16 +545,14 @@ describe('transient states (eventless transitions)', () => {
           type: 'final'
         }
       },
-      on: {
-        '': [
-          {
-            target: '.success',
-            guard: (ctx) => {
-              return ctx.count > 0;
-            }
+      always: [
+        {
+          target: '.success',
+          guard: (ctx) => {
+            return ctx.count > 0;
           }
-        ]
-      }
+        }
+      ]
     });
 
     const service = interpret(machine).onDone(() => {
@@ -738,5 +700,69 @@ describe('transient states (eventless transitions)', () => {
     service.send({ type: 'WHATEVER' });
 
     expect(service.state.value).toBe('c');
+  });
+
+  it('events that trigger eventless transitions should be preserved in guards', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EVENT: 'b'
+          }
+        },
+        b: {
+          always: 'c'
+        },
+        c: {
+          always: {
+            guard: (_, e) => {
+              expect(e.type).toEqual('EVENT');
+              return e.type === 'EVENT';
+            },
+            target: 'd'
+          }
+        },
+        d: { type: 'final' }
+      }
+    });
+
+    const nextState = machine.transition(undefined, 'EVENT');
+
+    expect(nextState.done).toBeTruthy();
+  });
+
+  it('events that trigger eventless transitions should be preserved in actions', () => {
+    expect.assertions(3);
+
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EVENT: 'b'
+          }
+        },
+        b: {
+          always: {
+            target: 'c',
+            actions: (_, event) => {
+              expect(event).toEqual({ type: 'EVENT', value: 42 });
+            }
+          },
+          exit: (_, event) => {
+            expect(event).toEqual({ type: 'EVENT', value: 42 });
+          }
+        },
+        c: {
+          entry: (_, event) => {
+            expect(event).toEqual({ type: 'EVENT', value: 42 });
+          }
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+    service.send({ type: 'EVENT', value: 42 });
   });
 });

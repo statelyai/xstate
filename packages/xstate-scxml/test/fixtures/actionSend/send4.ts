@@ -9,14 +9,14 @@ const m = createMachine({
     },
     b: {
       entry: actions.raise('s'),
+      always: 'f1',
       on: {
-        '': 'f1',
         s: 'c'
       }
     },
     c: {
+      always: 'd',
       on: {
-        '': 'd',
         s: 'f2'
       }
     },

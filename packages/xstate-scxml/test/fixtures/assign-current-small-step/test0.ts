@@ -28,15 +28,13 @@ export default createMachine<any>({
       entry: assign({
         x: (ctx) => ctx.x * 2
       }),
-      on: {
-        '': [
-          {
-            target: 'c',
-            guard: (ctx) => ctx.x === 200
-          },
-          { target: 'f' }
-        ]
-      }
+      always: [
+        {
+          target: 'c',
+          guard: (ctx) => ctx.x === 200
+        },
+        { target: 'f' }
+      ]
     },
     c: {
       id: 'c'

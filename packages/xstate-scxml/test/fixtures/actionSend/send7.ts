@@ -16,9 +16,9 @@ export default createMachine<any>({
       initial: 'b1',
       states: {
         b1: {
+          always: 'b3',
           on: {
-            s: 'b2',
-            '': 'b3'
+            s: 'b2'
           }
         },
         b2: {

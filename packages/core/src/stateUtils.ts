@@ -21,7 +21,6 @@ import {
   TransitionConfig,
   TransitionDefinition,
   DelayedTransitionDefinition,
-  NullEvent,
   SingleOrArray,
   DelayExpr,
   SCXML,
@@ -273,24 +272,18 @@ export const isStateId = (str: string) => str[0] === STATE_IDENTIFIER;
 
 export function getCandidates<TEvent extends EventObject>(
   stateNode: StateNode<any, TEvent>,
-  receivedEventType: TEvent['type'] | NullEvent['type'],
+  receivedEventType: TEvent['type'],
   /**
    * If `true`, will use SCXML event partial token matching semantics
    * without the need for the ".*" suffix
    */
   partialMatch: boolean = false
 ): Array<TransitionDefinition<any, TEvent>> {
-  const transient = receivedEventType === NULL_EVENT;
   const candidates = stateNode.transitions.filter((transition) => {
     const { eventType } = transition;
     // First, check the trivial case: event names are exactly equal
     if (eventType === receivedEventType) {
       return true;
-    }
-
-    // Transient transitions can't match non-transient events
-    if (transient) {
-      return false;
     }
 
     // Then, check if transition is a wildcard transition,
@@ -402,7 +395,7 @@ export function formatTransition<
 >(
   stateNode: StateNode<TContext, TEvent>,
   transitionConfig: TransitionConfig<TContext, TEvent> & {
-    event: TEvent['type'] | NullEvent['type'] | '*';
+    event: TEvent['type'] | typeof NULL_EVENT | '*';
   }
 ): TransitionDefinition<TContext, TEvent> {
   const normalizedTarget = normalizeTarget(transitionConfig.target);
@@ -460,40 +453,41 @@ export function formatTransitions<
 >(
   stateNode: StateNode<TContext, TEvent>
 ): Array<TransitionDefinition<TContext, TEvent>> {
-  let onConfig: Array<
+  const transitionConfigs: Array<
     TransitionConfig<TContext, EventObject> & {
       event: string;
     }
-  >;
-  if (!stateNode.config.on) {
-    onConfig = [];
-  } else if (Array.isArray(stateNode.config.on)) {
-    onConfig = stateNode.config.on;
-  } else {
+  > = [];
+  if (Array.isArray(stateNode.config.on)) {
+    transitionConfigs.push(...stateNode.config.on);
+  } else if (stateNode.config.on) {
     const {
       [WILDCARD]: wildcardConfigs = [],
-      ...strictOnConfigs
+      ...namedTransitionConfigs
     } = stateNode.config.on;
-    onConfig = flatten(
-      keys(strictOnConfigs)
-        .map((key) => {
-          const arrayified = toTransitionConfigArray<TContext, EventObject>(
-            key,
-            strictOnConfigs![key as string]
-          );
-          // TODO: add dev-mode validation for unreachable transitions
-          return arrayified;
-        })
-        .concat(
-          toTransitionConfigArray(
-            WILDCARD,
-            wildcardConfigs as SingleOrArray<
-              TransitionConfig<TContext, EventObject> & {
-                event: '*';
-              }
-            >
-          )
-        )
+    keys(namedTransitionConfigs).forEach((eventType) => {
+      if (eventType === NULL_EVENT) {
+        throw new Error(
+          'Null events ("") cannot be specified as a transition key. Use `always: { ... }` instead.'
+        );
+      }
+      const eventTransitionConfigs = toTransitionConfigArray<
+        TContext,
+        EventObject
+      >(eventType, namedTransitionConfigs![eventType as string]);
+
+      transitionConfigs.push(...eventTransitionConfigs);
+      // TODO: add dev-mode validation for unreachable transitions
+    });
+    transitionConfigs.push(
+      ...toTransitionConfigArray(
+        WILDCARD,
+        wildcardConfigs as SingleOrArray<
+          TransitionConfig<TContext, EventObject> & {
+            event: '*';
+          }
+        >
+      )
     );
   }
   const doneConfig = stateNode.config.onDone
@@ -501,9 +495,6 @@ export function formatTransitions<
         String(done(stateNode.id)),
         stateNode.config.onDone
       )
-    : [];
-  const eventlessConfig = stateNode.config.always
-    ? toTransitionConfigArray('', stateNode.config.always)
     : [];
   const invokeConfig = flatten(
     stateNode.invoke.map((invokeDef) => {
@@ -529,10 +520,10 @@ export function formatTransitions<
   );
   const delayedTransitions = stateNode.after;
   const formattedTransitions = flatten(
-    [...doneConfig, ...invokeConfig, ...onConfig, ...eventlessConfig].map(
+    [...doneConfig, ...invokeConfig, ...transitionConfigs].map(
       (
         transitionConfig: TransitionConfig<TContext, TEvent> & {
-          event: TEvent['type'] | NullEvent['type'] | '*';
+          event: TEvent['type'] | '*';
         }
       ) =>
         toArray(transitionConfig).map((transition) =>
@@ -904,12 +895,12 @@ export function transitionNode<
     return transitionLeafNode(stateNode, stateValue, state, _event);
   }
 
-  // hierarchical node
+  // compound node
   if (keys(stateValue).length === 1) {
     return transitionCompoundNode(stateNode, stateValue, state, _event);
   }
 
-  // orthogonal node
+  // parallel node
   return transitionParallelNode(stateNode, stateValue, state, _event);
 }
 
@@ -1509,17 +1500,19 @@ function selectEventlessTransitions<
     loop: for (const s of [stateNode].concat(
       getProperAncestors(stateNode, null)
     )) {
-      for (const t of s.transitions) {
+      if (!s.always) {
+        continue;
+      }
+      for (const t of s.always) {
         if (
-          t.eventType === NULL_EVENT &&
-          (t.guard === undefined ||
-            evaluateGuard<TContext, TEvent>(
-              t.guard,
-              state.context,
-              toSCXMLEvent(NULL_EVENT as Event<TEvent>),
-              state,
-              machine
-            ))
+          t.guard === undefined ||
+          evaluateGuard<TContext, TEvent>(
+            t.guard,
+            state.context,
+            state._event,
+            state,
+            machine
+          )
         ) {
           enabledTransitions.add(t);
           break loop;
@@ -1626,14 +1619,6 @@ export function resolveMicroTransition<
       nextState.actions.length > 0 ||
       context !== currentContext;
   nextState._internalQueue = resolved.internalQueue;
-
-  const isTransient = selectEventlessTransitions(nextState, machine).length;
-
-  if (isTransient) {
-    nextState._internalQueue.unshift({
-      type: actionTypes.nullEvent
-    });
-  }
 
   // Dispose of penultimate histories to prevent memory leaks
   const { history } = nextState;
@@ -1829,27 +1814,41 @@ export function macrostep<
   const { _internalQueue } = nextState;
   let maybeNextState = nextState;
 
-  while (_internalQueue.length && !maybeNextState.done) {
-    const _previousEvent = maybeNextState._event;
-    const raisedEvent = _internalQueue.shift()!;
-    const currentActions = maybeNextState.actions;
-
-    maybeNextState = machine.microstep(
+  while (!maybeNextState.done) {
+    const eventlessTransitions = selectEventlessTransitions(
       maybeNextState,
-      raisedEvent as SCXML.Event<TEvent>
+      machine
     );
 
-    _internalQueue.push(...maybeNextState._internalQueue);
+    if (eventlessTransitions.length === 0) {
+      if (!_internalQueue.length) {
+        break;
+      } else {
+        const internalEvent = _internalQueue.shift()!;
+        const currentActions = maybeNextState.actions;
 
-    // Save original event to state
-    if (raisedEvent.type === NULL_EVENT) {
-      maybeNextState._event = _previousEvent;
-      maybeNextState.event = _previousEvent.data;
+        maybeNextState = machine.microstep(
+          maybeNextState,
+          internalEvent as SCXML.Event<TEvent>
+        );
+
+        _internalQueue.push(...maybeNextState._internalQueue);
+
+        // Since macrostep actions have not been executed yet,
+        // prioritize them in the action queue
+        maybeNextState.actions.unshift(...currentActions);
+      }
+    } else {
+      const currentActions = maybeNextState.actions;
+      maybeNextState = resolveMicroTransition(
+        machine,
+        eventlessTransitions,
+        maybeNextState,
+        maybeNextState._event
+      );
+      _internalQueue.push(...maybeNextState._internalQueue);
+      maybeNextState.actions.unshift(...currentActions);
     }
-
-    // Since macrostep actions have not been executed yet,
-    // prioritize them in the action queue
-    maybeNextState.actions.unshift(...currentActions);
   }
 
   // Add tags

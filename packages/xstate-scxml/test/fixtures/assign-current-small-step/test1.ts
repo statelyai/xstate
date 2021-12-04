@@ -17,26 +17,24 @@ export default createMachine<any>({
       }
     },
     b: {
-      on: {
-        '': [
-          {
-            target: 'b',
-            guard: (ctx) => {
-              return ctx.i < 10;
-            },
-            actions: [
-              assign({
-                i: (ctx) => ctx.i + 1
-              }),
-              log()
-            ]
+      always: [
+        {
+          target: 'b',
+          guard: (ctx) => {
+            return ctx.i < 10;
           },
-          {
-            target: '#c',
-            guard: (ctx) => ctx.i === 10
-          }
-        ]
-      }
+          actions: [
+            assign({
+              i: (ctx) => ctx.i + 1
+            }),
+            log()
+          ]
+        },
+        {
+          target: '#c',
+          guard: (ctx) => ctx.i === 10
+        }
+      ]
     },
     c: {
       id: 'c'

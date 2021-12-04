@@ -216,9 +216,7 @@ describe('transient activities', () => {
           AWAIT: {
             id: 'AWAIT',
             invoke: ['AWAIT'],
-            on: {
-              '': 'A2'
-            }
+            always: 'A2'
           },
           A2: {
             invoke: ['A2'],
