@@ -188,7 +188,8 @@ export class Interpreter<
         ((this._initialState = this.machine.getInitialState()),
         this._initialState);
 
-      initialState.actions.push(...CapturedState.current.spawns);
+      // Ensure that actors are spawned before initial actions
+      initialState.actions.unshift(...CapturedState.current.spawns);
       return initialState;
     } finally {
       CapturedState.current = {
@@ -222,7 +223,6 @@ export class Interpreter<
 
     // Update state
     this._state = state;
-
     // Execute actions
     this.execute(this.state);
 
