@@ -321,7 +321,7 @@ export class State<
   }
 
   /**
-   * Determines whether sending the `event` will cause a transition
+   * Determines whether sending the `event` will cause a non-forbidden transition
    * to be selected, even if the transitions have no actions nor
    * change the state value.
    *
@@ -338,6 +338,12 @@ export class State<
 
     const transitionData = this.machine?.getTransitionData(this, event);
 
-    return !!transitionData?.transitions.length;
+    return (
+      !!transitionData?.transitions.length &&
+      // Check that at least one transition is not forbidden
+      transitionData.transitions.some(
+        (t) => t.target !== undefined || t.actions.length
+      )
+    );
   }
 }

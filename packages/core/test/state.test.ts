@@ -716,7 +716,7 @@ describe('State', () => {
       expect(machine.initialState.can({ type: 'EV' })).toBe(true);
     });
 
-    it('should return true for a defined transition without a target', () => {
+    it('should return false for a forbidden transition', () => {
       const machine = createMachine({
         initial: 'a',
         states: {
@@ -728,7 +728,7 @@ describe('State', () => {
         }
       });
 
-      expect(machine.initialState.can({ type: 'EV' })).toBe(true);
+      expect(machine.initialState.can({ type: 'EV' })).toBe(false);
     });
 
     it('should return false for an unknown event', () => {
