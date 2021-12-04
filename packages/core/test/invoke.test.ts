@@ -959,7 +959,8 @@ describe('invoke', () => {
             }
           },
           active: {
-            invoke: { src: child },
+            // TODO: prevent this from being src: child in types
+            invoke: { src: invokeMachine(child) },
             on: {
               STOPPED: 'done'
             }
