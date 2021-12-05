@@ -821,6 +821,9 @@ export class Interpreter<
 
         break;
       case actionTypes.start: {
+        if (this.status !== InterpreterStatus.Running) {
+          return;
+        }
         const activity = (action as ActivityActionObject<TContext, TEvent>)
           .activity as InvokeDefinition<TContext, TEvent>;
 
