@@ -9,7 +9,7 @@ import {
 import {
   getSimplePathsAsArray,
   getAdjacencyMap,
-  depthFirstTraversal
+  depthSimplePaths
 } from '../src/graph';
 import { assign } from 'xstate';
 
@@ -438,7 +438,7 @@ describe('@xstate/graph', () => {
 });
 
 it.only('hmm', () => {
-  const a = depthFirstTraversal(
+  const a = depthSimplePaths(
     (s, e) => {
       if (e === 'a') {
         return 1;
@@ -446,12 +446,20 @@ it.only('hmm', () => {
       if (e === 'b' && s === 1) {
         return 2;
       }
+      if (e === 'reset') {
+        return 0;
+      }
       return s;
     },
-    0,
-    ['a', 'b'],
-    JSON.stringify
+    0 as number,
+    ['a', 'b', 'reset'],
+    {
+      serializeVertex: JSON.stringify,
+      visitCondition: (_, e, visitCtx) => {
+        return visitCtx.edges.has(JSON.stringify(e));
+      }
+    }
   );
 
-  console.log(a);
+  console.log(JSON.stringify(a, null, 2));
 });
