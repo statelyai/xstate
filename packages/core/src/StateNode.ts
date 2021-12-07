@@ -414,7 +414,7 @@ class StateNode<
         return toInvokeDefinition({
           ...invokeConfig,
 
-          id: invokeConfig.id || (invokeConfig.src as string),
+          id: invokeConfig.id || `${this.id}:invocation[${i}]`,
           src: invokeConfig.src as string
         });
       } else if (isMachine(invokeConfig.src) || isFunction(invokeConfig.src)) {
