@@ -30,7 +30,7 @@
   },
   "scripts": {
     "clean": "rm -rf dist lib es tsconfig.tsbuildinfo",
-    "test": "jest --passWithNoTests",
+    "test": "jest",
     "build": "rollup -c",
     "prepublish": "npm run build"
   },
