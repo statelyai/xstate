@@ -108,12 +108,6 @@ export enum InterpreterStatus {
   Stopped
 }
 
-declare global {
-  interface SymbolConstructor {
-    readonly observable: symbol;
-  }
-}
-
 export class Interpreter<
   // tslint:disable-next-line:max-classes-per-file
   TContext,
