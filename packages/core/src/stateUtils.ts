@@ -33,7 +33,6 @@ import {
   InitialTransitionDefinition,
   Event,
   ChooseAction,
-  StopActionObject,
   MachineContext
 } from './types';
 import { State } from './State';
@@ -54,7 +53,6 @@ import { invoke } from './actions/invoke';
 import { stop } from './actions/stop';
 import { IS_PRODUCTION } from './environment';
 import { STATE_IDENTIFIER, NULL_EVENT, WILDCARD } from './constants';
-import { isSpawnedActorRef } from './actor';
 import type { StateMachine } from './StateMachine';
 import { evaluateGuard, toGuardDefinition } from './guards';
 import {
@@ -1579,17 +1577,6 @@ export function resolveMicroTransition<
   }
 
   const children = !currentState._initial ? { ...currentState.children } : {};
-
-  for (const action of resolved.actions) {
-    if (action.type === actionTypes.stop) {
-      const { actor: ref } = (action as StopActionObject).params;
-      if (isSpawnedActorRef(ref)) {
-        delete children[ref.name];
-      } else {
-        delete children[ref as string];
-      }
-    }
-  }
 
   const resolvedConfiguration = willTransition
     ? Array.from(resolved.configuration)
