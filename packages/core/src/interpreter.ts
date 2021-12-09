@@ -477,24 +477,6 @@ export class Interpreter<
     return this;
   }
 
-  private _transition(
-    state: State<TContext, TEvent, any>,
-    event: SCXML.Event<TEvent>
-  ) {
-    try {
-      CapturedState.current = {
-        actorRef: this.ref,
-        spawns: []
-      };
-      return this.machine.transition(state, event);
-    } finally {
-      CapturedState.current = {
-        actorRef: undefined,
-        spawns: []
-      };
-    }
-  }
-
   /**
    * Sends an event to the running interpreter to trigger a transition.
    *
@@ -603,7 +585,18 @@ export class Interpreter<
       this.handleErrorEvent(_event);
     }
 
-    return this._transition(this.state, _event);
+    try {
+      CapturedState.current = {
+        actorRef: this.ref,
+        spawns: []
+      };
+      return this.machine.transition(this.state, event);
+    } finally {
+      CapturedState.current = {
+        actorRef: undefined,
+        spawns: []
+      };
+    }
   }
   private forward(event: SCXML.Event<TEvent>): void {
     for (const id of this.forwardTo) {
