@@ -42,7 +42,7 @@ describe('SCXML events', () => {
       .start();
   });
 
-  it('should have the origin (id) from the sending callback service', () => {
+  it('should have the origin (id) from the sending callback service', (done) => {
     const machine = createMachine<{ childOrigin?: string }>({
       initial: 'active',
       context: {},
@@ -56,7 +56,9 @@ describe('SCXML events', () => {
             EVENT: {
               target: 'success',
               actions: assign({
-                childOrigin: (_, __, { _event }) => _event.origin?.name
+                childOrigin: (_, __, { _event }) => {
+                  return _event.origin?.name;
+                }
               })
             }
           }
@@ -67,9 +69,14 @@ describe('SCXML events', () => {
       }
     });
 
-    const service = interpret(machine).start();
-
-    expect(service.state.context.childOrigin).toBe('callback_child');
+    interpret(machine)
+      .onTransition((state) => {
+        if (state.done) {
+          expect(state.context.childOrigin).toEqual('callback_child');
+          done();
+        }
+      })
+      .start();
   });
 
   it('respond() should be able to respond to sender', (done) => {

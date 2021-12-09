@@ -171,17 +171,6 @@ describe('spawning machines', () => {
     service.send({ type: 'SET_COMPLETE', id: 42 });
   });
 
-  it('should invoke actors (when sending batch)', (done) => {
-    const service = interpret(todosMachine)
-      .onDone(() => {
-        done();
-      })
-      .start();
-
-    service.batch([{ type: 'ADD', id: 42 }]);
-    service.send({ type: 'SET_COMPLETE', id: 42 });
-  });
-
   it('should allow bidirectional communication between parent/child actors', (done) => {
     interpret(clientMachine)
       .onDone(() => {
