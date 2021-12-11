@@ -1690,7 +1690,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
     });
 
     it('should be subscribable to errorListener', (done) => {
-      const failureMachine = Machine<typeof context>(
+      const failureMachine = createMachine<typeof context>(
         {
           id: 'interval',
           context,
@@ -1726,6 +1726,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       intervalService.subscribe(
         () => {},
         (error) => {
+          expect(error.type).toBe('xstate.error');
           expect(error.data).toBeInstanceOf(Error);
           done();
         }
@@ -1733,7 +1734,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
     });
 
     it('should handle child errors with errorListener', (done) => {
-      const failureMachine = Machine<typeof context>(
+      const failureMachine = createMachine<typeof context>(
         {
           id: 'failure',
           context,
@@ -1781,6 +1782,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       intervalService.subscribe(
         () => {},
         (error) => {
+          expect(error.type).toBe('xstate.error');
           expect(error.data).toBeInstanceOf(Error);
           done();
         }
@@ -1849,6 +1851,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       intervalService.subscribe(
         () => {},
         (error) => {
+          expect(error.type).toBe('xstate.error');
           expect(error.data).toBeInstanceOf(Error);
           done();
         }
