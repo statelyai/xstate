@@ -590,7 +590,7 @@ export class Interpreter<
       return this.state;
     }
 
-    if ((event as EventObject)?.type === 'xstate.error') {
+    if (((event as EventObject)?.type || '').includes('error')) {
       if (this.parent) {
         this.parent.sendError(event as any);
       } else {
