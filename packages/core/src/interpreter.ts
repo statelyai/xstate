@@ -423,6 +423,7 @@ export class Interpreter<
     while (this.mailbox.length) {
       const event = this.mailbox.shift()!;
 
+      // TODO: handle errors
       this.forward(event);
 
       const nextState = this.nextState(event);
