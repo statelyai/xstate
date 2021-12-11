@@ -1757,9 +1757,9 @@ describe('interpreter', () => {
 
       const service = interpret(parentMachine)
         .onDone(() => {
-          expect(service.children.get('machineChild')).toBeUndefined();
-          expect(service.children.get('promiseChild')).toBeUndefined();
-          expect(service.children.get('observableChild')).toBeUndefined();
+          expect(service.state.children.machineChild).toBeUndefined();
+          expect(service.state.children.promiseChild).toBeUndefined();
+          expect(service.state.children.observableChild).toBeUndefined();
           done();
         })
         .start();
