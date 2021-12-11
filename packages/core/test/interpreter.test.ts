@@ -1726,7 +1726,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       intervalService.subscribe(
         () => {},
         (error) => {
-          expect(error.type).toBe('xstate.error');
+          expect(error.type).toBe('error.platform.failure');
           expect(error.data).toBeInstanceOf(Error);
           done();
         }
@@ -1763,7 +1763,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         }
       );
 
-      const parentMachine = Machine({
+      const parentMachine = createMachine({
         initial: 'foo',
         states: {
           foo: {
@@ -1790,7 +1790,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
     });
 
     it('should handle grandchild errors with errorListener', (done) => {
-      const failureMachine = Machine<typeof context>(
+      const failureMachine = createMachine<typeof context>(
         {
           id: 'failure',
           context,
@@ -1819,7 +1819,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         }
       );
 
-      const parentMachine = Machine({
+      const parentMachine = createMachine({
         initial: 'foo',
         states: {
           foo: {
@@ -1831,7 +1831,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         }
       });
 
-      const grandparentMachine = Machine({
+      const grandparentMachine = createMachine({
         id: 'grandparent',
         initial: 'bar',
         states: {
