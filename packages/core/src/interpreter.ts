@@ -110,7 +110,6 @@ export class Interpreter<
   public options: Readonly<InterpreterOptions>;
 
   public id: string;
-  // private scheduler: Scheduler = new Scheduler();
   private mailbox: Array<SCXML.Event<TEvent>> = [];
   private mailboxStatus: 'deferred' | 'idle' | 'processing' = 'deferred';
   private delayedEventsMap: Record<string, number> = {};
