@@ -321,7 +321,10 @@ export class State<
   }
 
   /**
-   * Determines whether sending the `event` will cause a transition.
+   * Determines whether sending the `event` will cause a non-forbidden transition
+   * to be selected, even if the transitions have no actions nor
+   * change the state value.
+   *
    * @param event The event to test
    * @returns Whether the event will cause a transition
    */
@@ -335,21 +338,12 @@ export class State<
 
     const transitionData = this.machine?.getTransitionData(this, event);
 
-    /**
-     * The state will change from this event if:
-     * - There are entry actions
-     * - There are exit actions
-     * - There are transitions in which either the target has changed or there are transition actions
-     */
-    return !transitionData
-      ? false
-      : transitionData.entrySet.some((sn) => sn.onEntry.length > 0) ||
-          transitionData.exitSet.some((sn) => sn.onExit.length > 0) ||
-          !!transitionData?.transitions.some((t) => {
-            return (
-              (t.target && t.target.length > 0 && t.target[0] !== t.source) ||
-              t.actions.length > 0
-            );
-          });
+    return (
+      !!transitionData?.transitions.length &&
+      // Check that at least one transition is not forbidden
+      transitionData.transitions.some(
+        (t) => t.target !== undefined || t.actions.length
+      )
+    );
   }
 }
