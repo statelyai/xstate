@@ -1,4 +1,4 @@
-import { isBuiltInEvent, isFunction, toSCXMLEvent } from './utils';
+import { isFunction, toSCXMLEvent } from './utils';
 import type {
   Event,
   StateValue,
@@ -72,7 +72,6 @@ export class StateMachine<
   public version?: string;
 
   public parent = undefined;
-  public strict: boolean;
 
   /**
    * The string delimiter for serializing the path to a string. The default is "."
@@ -113,7 +112,6 @@ export class StateMachine<
     this.delimiter = this.config.delimiter || STATE_DELIMITER;
     this.version = this.config.version;
     this.schema = this.config.schema ?? (({} as any) as this['schema']);
-    this.strict = !!this.config.strict;
     this.transition = this.transition.bind(this);
 
     this.root = new StateNode(config, {
@@ -215,17 +213,6 @@ export class StateMachine<
 
     if (!IS_PRODUCTION && _event.name === WILDCARD) {
       throw new Error(`An event cannot have the wildcard type ('${WILDCARD}')`);
-    }
-
-    if (this.strict) {
-      if (
-        !this.root.events.includes(_event.name) &&
-        !isBuiltInEvent(_event.name)
-      ) {
-        throw new Error(
-          `Machine '${this.key}' does not accept event '${_event.name}'`
-        );
-      }
     }
 
     const transitions = this.getTransitionData(resolvedState, _event);

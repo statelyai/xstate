@@ -1099,7 +1099,6 @@ describe('invoke', () => {
         const promiseMachine = createMachine({
           id: 'invokePromise',
           initial: 'pending',
-          strict: true,
           states: {
             pending: {
               invoke: {
