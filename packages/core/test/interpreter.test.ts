@@ -1689,175 +1689,6 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       );
     });
 
-    it('should be subscribable to errorListener', (done) => {
-      const failureMachine = createMachine<typeof context>(
-        {
-          id: 'interval',
-          context,
-          initial: 'active',
-          states: {
-            active: {
-              after: {
-                10: {
-                  target: 'failure'
-                }
-              }
-            },
-            failure: {
-              invoke: {
-                src: 'failure'
-              }
-            }
-          }
-        },
-        {
-          services: {
-            failure: async () => {
-              throw new Error('error');
-            }
-          }
-        }
-      );
-
-      const intervalService = interpret(failureMachine).start();
-
-      expect(isObservable(intervalService)).toBeTruthy();
-
-      intervalService.subscribe(
-        () => {},
-        (error) => {
-          expect(error.type).toBe('error.platform.failure');
-          expect(error.data).toBeInstanceOf(Error);
-          done();
-        }
-      );
-    });
-
-    it('should handle child errors with errorListener', (done) => {
-      const failureMachine = createMachine<typeof context>(
-        {
-          id: 'failure',
-          context,
-          initial: 'active',
-          states: {
-            active: {
-              after: {
-                100: {
-                  target: 'failure'
-                }
-              }
-            },
-            failure: {
-              invoke: {
-                src: 'failure'
-              }
-            }
-          }
-        },
-        {
-          services: {
-            failure: async () => {
-              throw new Error('error');
-            }
-          }
-        }
-      );
-
-      const parentMachine = createMachine({
-        initial: 'foo',
-        states: {
-          foo: {
-            invoke: {
-              id: 'child',
-              src: failureMachine
-            }
-          }
-        }
-      });
-
-      const intervalService = interpret(parentMachine).start();
-
-      expect(isObservable(intervalService)).toBeTruthy();
-
-      intervalService.subscribe(
-        () => {},
-        (error) => {
-          expect(error.type).toBe('xstate.error');
-          expect(error.data).toBeInstanceOf(Error);
-          done();
-        }
-      );
-    });
-
-    it('should handle grandchild errors with errorListener', (done) => {
-      const failureMachine = createMachine<typeof context>(
-        {
-          id: 'failure',
-          context,
-          initial: 'active',
-          states: {
-            active: {
-              after: {
-                100: {
-                  target: 'failure'
-                }
-              }
-            },
-            failure: {
-              invoke: {
-                src: 'failure'
-              }
-            }
-          }
-        },
-        {
-          services: {
-            failure: async () => {
-              throw new Error('error');
-            }
-          }
-        }
-      );
-
-      const parentMachine = createMachine({
-        initial: 'foo',
-        states: {
-          foo: {
-            invoke: {
-              id: 'child',
-              src: failureMachine
-            }
-          }
-        }
-      });
-
-      const grandparentMachine = createMachine({
-        id: 'grandparent',
-        initial: 'bar',
-        states: {
-          bar: {
-            invoke: {
-              id: 'parent',
-              src: parentMachine
-            }
-          }
-        }
-      });
-
-      const intervalService = interpret(grandparentMachine).start();
-
-      expect(isObservable(intervalService)).toBeTruthy();
-
-      intervalService.subscribe(
-        () => {},
-        (error) => {
-          expect(error.type).toBe('xstate.error');
-          expect(error.data).toBeInstanceOf(Error);
-          done();
-        }
-      );
-    });
-
     it('should be interoperable with RxJS, etc. via Symbol.observable', (done) => {
       let count = 0;
       const intervalService = interpret(intervalMachine).start();
@@ -1919,6 +1750,175 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       service.send('INC');
       service.send('INC');
       service.send('INC');
+    });
+
+    describe('when errorListener is provided', () => {
+      it('should handle errors', (done) => {
+        const failureMachine = createMachine<typeof context>(
+          {
+            id: 'interval',
+            context,
+            initial: 'active',
+            states: {
+              active: {
+                after: {
+                  10: {
+                    target: 'failure'
+                  }
+                }
+              },
+              failure: {
+                invoke: {
+                  src: 'failure'
+                }
+              }
+            }
+          },
+          {
+            services: {
+              failure: async () => {
+                throw new Error('error');
+              }
+            }
+          }
+        );
+
+        const intervalService = interpret(failureMachine).start();
+
+        intervalService.subscribe(
+          () => {},
+          (error) => {
+            expect(error.type).toBe('error.platform.failure');
+            expect(error.data).toBeInstanceOf(Error);
+            intervalService.stop();
+            done();
+          }
+        );
+      });
+
+      it('should handle child errors', (done) => {
+        const childMachine = createMachine<typeof context>(
+          {
+            id: 'child',
+            context,
+            initial: 'active',
+            states: {
+              active: {
+                after: {
+                  100: {
+                    target: 'failure'
+                  }
+                }
+              },
+              failure: {
+                invoke: {
+                  src: 'failure'
+                }
+              }
+            }
+          },
+          {
+            services: {
+              failure: async () => {
+                throw new Error('error');
+              }
+            }
+          }
+        );
+
+        const parentMachine = createMachine({
+          initial: 'foo',
+          states: {
+            foo: {
+              invoke: {
+                id: 'child',
+                src: childMachine
+              }
+            }
+          }
+        });
+
+        const intervalService = interpret(parentMachine).start();
+
+        intervalService.subscribe(
+          () => {},
+          (error) => {
+            expect(error.type).toBe('error.platform.failure');
+            expect(error.data).toBeInstanceOf(Error);
+            intervalService.stop();
+            done();
+          }
+        );
+      });
+
+      it('should handle grandchild errors', (done) => {
+        const childMachine = createMachine<typeof context>(
+          {
+            id: 'child',
+            context,
+            initial: 'active',
+            states: {
+              active: {
+                after: {
+                  100: {
+                    target: 'failure'
+                  }
+                }
+              },
+              failure: {
+                invoke: {
+                  src: 'failure'
+                }
+              }
+            }
+          },
+          {
+            services: {
+              failure: async () => {
+                throw new Error('error');
+              }
+            }
+          }
+        );
+
+        const parentMachine = createMachine({
+          id: 'parent',
+          initial: 'foo',
+          states: {
+            foo: {
+              invoke: {
+                id: 'child',
+                src: childMachine
+              }
+            }
+          }
+        });
+
+        const grandparentMachine = createMachine({
+          id: 'grandparent',
+          initial: 'bar',
+          states: {
+            bar: {
+              invoke: {
+                id: 'parent',
+                src: parentMachine
+              }
+            }
+          }
+        });
+
+        const intervalService = interpret(grandparentMachine).start();
+
+        intervalService.subscribe(
+          () => {},
+          (error) => {
+            expect(error.type).toBe('error.platform.failure');
+            expect(error.data).toBeInstanceOf(Error);
+            intervalService.stop();
+            done();
+          }
+        );
+      });
     });
   });
 

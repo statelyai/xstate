@@ -1093,10 +1093,7 @@ export class Interpreter<
             this.send(toSCXMLEvent(errorEvent as any, { origin: id }));
           } catch (error) {
             if (this.parent) {
-              this.parent.send({
-                type: 'xstate.error',
-                data: error
-              } as EventObject);
+              this.parent.send(errorEvent);
             } else if (!this.errorListeners.size) {
               reportUnhandledExceptionOnInvocation(errorData, error, id);
             }
