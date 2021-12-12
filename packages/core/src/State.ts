@@ -271,7 +271,10 @@ export class State<
   }
 
   /**
-   * Determines whether sending the `event` will cause a transition.
+   * Determines whether sending the `event` will cause a non-forbidden transition
+   * to be selected, even if the transitions have no actions nor
+   * change the state value.
+   *
    * @param event The event to test
    * @returns Whether the event will cause a transition
    */
@@ -288,29 +291,10 @@ export class State<
       toSCXMLEvent(event)
     );
 
-    /**
-     * The state will change from this event if:
-     * - There are entry actions
-     * - There are exit actions
-     * - There are transitions in which either the target has changed or there are transition actions
-     */
-
-    if (!transitionData?.length) {
-      return false;
-    }
-
-    for (const t of transitionData) {
-      if (t.actions.length > 0) {
-        return true;
-      }
-      if (t.target?.some((target) => !this.configuration.includes(target))) {
-        return true;
-      }
-      if (!t.internal && t.target?.some((target) => target.entry.length > 0)) {
-        return true;
-      }
-    }
-
-    return false;
+    return (
+      !!transitionData?.length &&
+      // Check that at least one transition is not forbidden
+      transitionData.some((t) => t.target !== undefined || t.actions.length)
+    );
   }
 }
