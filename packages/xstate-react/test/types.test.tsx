@@ -73,11 +73,11 @@ describe('useMachine', () => {
     type: 'YES';
   }
 
-  type YesNoTypestate =
-    | { value: 'no'; context: { value: undefined } }
-    | { value: 'yes'; context: { value: number } };
+  // type YesNoTypestate =
+  //   | { value: 'no'; context: { value: undefined } }
+  //   | { value: 'yes'; context: { value: number } };
 
-  const yesNoMachine = createMachine<YesNoContext, YesNoEvent, YesNoTypestate>({
+  const yesNoMachine = createMachine<YesNoContext, YesNoEvent>({
     context: {
       value: undefined
     },
@@ -92,26 +92,6 @@ describe('useMachine', () => {
         type: 'final'
       }
     }
-  });
-
-  it('should preserve typestate information.', () => {
-    const YesNo = () => {
-      const [state] = useMachine(yesNoMachine);
-
-      if (state.matches('no')) {
-        const undefinedValue: undefined = state.context.value;
-
-        return <span>{undefinedValue ? 'Yes' : 'No'}</span>;
-      } else if (state.matches('yes')) {
-        const numericValue: number = state.context.value;
-
-        return <span>{numericValue ? 'Yes' : 'No'}</span>;
-      }
-
-      return <span>No</span>;
-    };
-
-    render(<YesNo />);
   });
 
   it('state should not become never after checking state with matches', () => {

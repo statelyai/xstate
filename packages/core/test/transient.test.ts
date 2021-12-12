@@ -529,7 +529,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should work with transient transition on root', (done) => {
-    const machine = createMachine<any, any, any>({
+    const machine = createMachine<any, any>({
       id: 'machine',
       initial: 'first',
       context: { count: 0 },
@@ -565,7 +565,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should work with transient transition on root (with `always`)', (done) => {
-    const machine = createMachine<any, any, any>({
+    const machine = createMachine<any, any>({
       id: 'machine',
       initial: 'first',
       context: { count: 0 },

@@ -292,17 +292,17 @@ describe('useMachine hook', () => {
       user?: { name: string };
     }
 
-    type TestState =
-      | {
-          value: 'loading';
-          context: { count: number; user: undefined };
-        }
-      | {
-          value: 'loaded';
-          context: { user: { name: string } };
-        };
+    // type TestState =
+    //   | {
+    //       value: 'loading';
+    //       context: { count: number; user: undefined };
+    //     }
+    //   | {
+    //       value: 'loaded';
+    //       context: { user: { name: string } };
+    //     };
 
-    const machine = createMachine<TestContext, any, TestState>({
+    const machine = createMachine<TestContext, any>({
       initial: 'loading',
       states: {
         loading: {
@@ -317,12 +317,12 @@ describe('useMachine hook', () => {
     });
 
     const ServiceApp: React.FC<{
-      service: Interpreter<TestContext, any, TestState>;
+      service: Interpreter<TestContext, any>;
     }> = ({ service }) => {
       const [state] = useService(service);
 
       if (state.matches('loaded')) {
-        const name = state.context.user.name;
+        const name = state.context.user!.name;
 
         // never called - it's okay if the name is undefined
         expect(name).toBeTruthy();
@@ -338,7 +338,7 @@ describe('useMachine hook', () => {
       const [state, , service] = useMachine(machine);
 
       if (state.matches('loaded')) {
-        const name = state.context.user.name;
+        const name = state.context.user!.name;
 
         // never called - it's okay if the name is undefined
         expect(name).toBeTruthy();

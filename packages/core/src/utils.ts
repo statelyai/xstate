@@ -332,9 +332,7 @@ export const symbolObservable = (() =>
   (typeof Symbol === 'function' && (Symbol as any).observable) ||
   '@@observable')();
 
-export function isStateMachine(
-  value: any
-): value is StateMachine<any, any, any> {
+export function isStateMachine(value: any): value is StateMachine<any, any> {
   try {
     return '__xstatenode' in value && value.parent === undefined;
   } catch (e) {

@@ -24,7 +24,7 @@ export const DEFAULT_SPAWN_OPTIONS = { sync: false };
 export function invokeMachine<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TMachine extends StateMachine<any, any, any>
+  TMachine extends StateMachine<any, any>
 >(
   machine:
     | TMachine

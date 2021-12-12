@@ -826,11 +826,11 @@ export type HistoryValue<
 
 export type StateFrom<
   T extends
-    | StateMachine<any, any, any>
-    | ((...args: any[]) => StateMachine<any, any, any>)
-> = T extends StateMachine<any, any, any>
+    | StateMachine<any, any>
+    | ((...args: any[]) => StateMachine<any, any>)
+> = T extends StateMachine<any, any>
   ? ReturnType<T['transition']>
-  : T extends (...args: any[]) => StateMachine<any, any, any>
+  : T extends (...args: any[]) => StateMachine<any, any>
   ? ReturnType<ReturnType<T>['transition']>
   : never;
 
@@ -1296,13 +1296,8 @@ export interface StateMeta<
   TContext extends MachineContext,
   TEvent extends EventObject
 > {
-  state: State<TContext, TEvent, any>;
+  state: State<TContext, TEvent>;
   _event: SCXML.Event<TEvent>;
-}
-
-export interface Typestate<TContext extends MachineContext> {
-  value: StateValue;
-  context: TContext;
 }
 
 export interface StateLike<TContext extends MachineContext> {
@@ -1329,7 +1324,7 @@ export interface StateConfig<
   children: Record<string, ActorRef<any>>;
   done?: boolean;
   tags?: Set<string>;
-  machine?: StateMachine<TContext, TEvent, any>;
+  machine?: StateMachine<TContext, TEvent>;
 }
 
 export interface InterpreterOptions {
@@ -1365,7 +1360,7 @@ export interface InterpreterOptions {
   execute?: boolean;
 }
 
-export type AnyInterpreter = Interpreter<any, any, any>;
+export type AnyInterpreter = Interpreter<any, any>;
 
 /**
  * Represents the `Interpreter` type of a given `StateMachine`.
@@ -1373,9 +1368,9 @@ export type AnyInterpreter = Interpreter<any, any, any>;
  * @typeParam TM - the machine to infer the interpreter's types from
  */
 export type InterpreterOf<
-  TM extends StateMachine<any, any, any>
-> = TM extends StateMachine<infer TContext, infer TEvent, infer TTypestate>
-  ? Interpreter<TContext, TEvent, TTypestate>
+  TM extends StateMachine<any, any>
+> = TM extends StateMachine<infer TContext, infer TEvent>
+  ? Interpreter<TContext, TEvent>
   : never;
 
 export declare namespace SCXML {
@@ -1444,7 +1439,7 @@ export declare namespace SCXML {
 
 // TODO: should only take in behaviors
 export type Spawnable =
-  | StateMachine<any, any, any>
+  | StateMachine<any, any>
   | PromiseLike<any>
   | InvokeCallback
   | Subscribable<any>
@@ -1509,14 +1504,11 @@ export interface ActorRef<TEvent extends EventObject, TEmitted = any>
 
 export type ActorRefFrom<T extends Spawnable> = T extends StateMachine<
   infer TContext,
-  infer TEvent,
-  infer TTypestate
+  infer TEvent
 >
-  ? ActorRef<TEvent, State<TContext, TEvent, TTypestate>>
-  : T extends (
-      ...args: any[]
-    ) => StateMachine<infer TContext, infer TEvent, infer TTypestate>
-  ? ActorRef<TEvent, State<TContext, TEvent, TTypestate>>
+  ? ActorRef<TEvent, State<TContext, TEvent>>
+  : T extends (...args: any[]) => StateMachine<infer TContext, infer TEvent>
+  ? ActorRef<TEvent, State<TContext, TEvent>>
   : T extends Promise<infer U>
   ? ActorRef<never, U>
   : T extends Behavior<infer TEvent1, infer TEmitted>
@@ -1532,14 +1524,12 @@ export type MaybeLazy<T> = T | Lazy<T>;
 
 export type InterpreterFrom<
   T extends
-    | StateMachine<any, any, any>
-    | ((...args: any[]) => StateMachine<any, any, any>)
-> = T extends StateMachine<infer TContext, infer TEvent, infer TTypestate>
-  ? Interpreter<TContext, TEvent, TTypestate>
-  : T extends (
-      ...args: any[]
-    ) => StateMachine<infer TContext, infer TEvent, infer TTypestate>
-  ? Interpreter<TContext, TEvent, TTypestate>
+    | StateMachine<any, any>
+    | ((...args: any[]) => StateMachine<any, any>)
+> = T extends StateMachine<infer TContext, infer TEvent>
+  ? Interpreter<TContext, TEvent>
+  : T extends (...args: any[]) => StateMachine<infer TContext, infer TEvent>
+  ? Interpreter<TContext, TEvent>
   : never;
 
 export type EventOfMachine<
@@ -1576,13 +1566,13 @@ export type EmittedFrom<T> = ReturnTypeOrValue<T> extends infer R
   : never;
 
 type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends StateMachine<infer _, infer TEvent, infer __>
+  ? R extends StateMachine<infer _, infer TEvent>
     ? TEvent
     : R extends Model<infer _, infer TEvent, infer __, infer ___>
     ? TEvent
-    : R extends State<infer _, infer TEvent, infer __>
+    : R extends State<infer _, infer TEvent>
     ? TEvent
-    : R extends Interpreter<infer _, infer TEvent, infer __>
+    : R extends Interpreter<infer _, infer TEvent>
     ? TEvent
     : R extends ActorRef<infer TEvent, infer _>
     ? TEvent
@@ -1603,13 +1593,13 @@ export type SimpleEventsOf<
 > = ExtractWithSimpleSupport<TEvent>;
 
 export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends StateMachine<infer TContext, infer __, infer ___>
+  ? R extends StateMachine<infer TContext, infer __>
     ? TContext
     : R extends Model<infer TContext, infer _, infer __, infer ___>
     ? TContext
-    : R extends State<infer TContext, infer __, infer ___>
+    : R extends State<infer TContext, infer __>
     ? TContext
-    : R extends Interpreter<infer TContext, infer __, infer ___>
+    : R extends Interpreter<infer TContext, infer __>
     ? TContext
     : never
   : never;

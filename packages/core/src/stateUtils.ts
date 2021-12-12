@@ -887,7 +887,7 @@ export function transitionNode<
 >(
   stateNode: StateNode<TContext, TEvent>,
   stateValue: StateValue,
-  state: State<TContext, TEvent, any>,
+  state: State<TContext, TEvent>,
   _event: SCXML.Event<TEvent>
 ): Transitions<TContext, TEvent> | undefined {
   // leaf node
@@ -1487,7 +1487,7 @@ function selectEventlessTransitions<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  state: State<TContext, TEvent, any>,
+  state: State<TContext, TEvent>,
   machine: StateMachine<TContext, TEvent>
 ): Transitions<TContext, TEvent> {
   const enabledTransitions: Set<
@@ -1534,9 +1534,9 @@ export function resolveMicroTransition<
 >(
   machine: StateMachine<TContext, TEvent>,
   transitions: Transitions<TContext, TEvent>,
-  currentState: State<TContext, TEvent, any>,
+  currentState: State<TContext, TEvent>,
   _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>
-): State<TContext, TEvent, any> {
+): State<TContext, TEvent> {
   // Transition will "apply" if:
   // - the state node is the initial state (there is no current state)
   // - OR there are transitions
@@ -1646,9 +1646,9 @@ function resolveActionsAndContext<
   TEvent extends EventObject
 >(
   actions: BaseActionObject[],
-  machine: StateMachine<TContext, TEvent, any>,
+  machine: StateMachine<TContext, TEvent>,
   _event: SCXML.Event<TEvent>,
-  currentState: State<TContext, TEvent, any> | undefined
+  currentState: State<TContext, TEvent> | undefined
 ): {
   actions: typeof actions;
   raised: Array<RaiseActionObject<TEvent>>;
@@ -1865,7 +1865,7 @@ function resolveHistoryValue<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  currentState: State<TContext, TEvent, any> | undefined,
+  currentState: State<TContext, TEvent> | undefined,
   exitSet: Array<StateNode<TContext, TEvent>>
 ): HistoryValue<TContext, TEvent> {
   const historyValue: Record<
@@ -1907,7 +1907,7 @@ export function resolveStateValue<
   return getStateValue(rootNode, [...configuration]);
 }
 
-export function toState<TMachine extends StateMachine<any, any, any>>(
+export function toState<TMachine extends StateMachine<any, any>>(
   state: StateValue | TMachine['initialState'],
   machine: TMachine
 ): StateFromMachine<TMachine> {
