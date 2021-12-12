@@ -48,6 +48,7 @@ import type {
   Subscribable
 } from './types';
 import { isExecutableAction } from '../actions/ExecutableAction';
+import { Mailbox } from './Mailbox';
 
 export type StateListener<
   TContext extends MachineContext,
@@ -110,8 +111,7 @@ export class Interpreter<
   public options: Readonly<InterpreterOptions>;
 
   public id: string;
-  private mailbox: Array<SCXML.Event<TEvent>> = [];
-  private mailboxStatus: 'deferred' | 'idle' | 'processing' = 'deferred';
+  private mailbox: Mailbox<SCXML.Event<TEvent>> = new Mailbox();
   private delayedEventsMap: Record<string, number> = {};
   private listeners: Set<
     StateListener<TContext, TEvent, TTypestate>
@@ -418,18 +418,19 @@ export class Interpreter<
   }
 
   private flush() {
-    this.mailboxStatus = 'processing';
-    while (this.mailbox.length) {
-      const event = this.mailbox.shift()!;
-
+    this.mailbox.status = 'processing';
+    let event = this.mailbox.dequeue();
+    while (event) {
       // TODO: handle errors
       this.forward(event);
 
       const nextState = this.nextState(event);
 
       this.update(nextState);
+
+      event = this.mailbox.dequeue();
     }
-    this.mailboxStatus = 'idle';
+    this.mailbox.status = 'idle';
   }
 
   /**
@@ -469,7 +470,7 @@ export class Interpreter<
       this.clock.clearTimeout(this.delayedEventsMap[key]);
     }
 
-    this.mailbox.length = 0;
+    this.mailbox.clear();
     this.status = InterpreterStatus.Stopped;
     registry.free(this.sessionId);
 
@@ -518,9 +519,9 @@ export class Interpreter<
       );
     }
 
-    this.mailbox.push(_event);
+    this.mailbox.enqueue(_event);
 
-    if (this.mailboxStatus === 'idle') {
+    if (this.mailbox.status === 'idle') {
       this.flush();
     }
   };

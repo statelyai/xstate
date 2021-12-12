@@ -240,16 +240,16 @@ export class StateMachine<
     return transitionNode(this.root, state.value, state, _event) || [];
   }
 
-  public get first(): State<TContext, TEvent, TTypestate> {
-    const pseudoinitial = this.resolveState(
+  private get preInitialState(): State<TContext, TEvent, TTypestate> {
+    const preInitial = this.resolveState(
       State.from(
         getStateValue(this.root, getConfiguration([this.root])),
         this.context
       )
     );
-    pseudoinitial._initial = true;
+    preInitial._initial = true;
 
-    return pseudoinitial;
+    return preInitial;
   }
 
   /**
@@ -257,7 +257,12 @@ export class StateMachine<
    * entering the initial state.
    */
   public get initialState(): State<TContext, TEvent, TTypestate> {
-    const nextState = resolveMicroTransition(this, [], this.first, undefined);
+    const nextState = resolveMicroTransition(
+      this,
+      [],
+      this.preInitialState,
+      undefined
+    );
     return macrostep(nextState, null as any, this);
   }
 
@@ -265,7 +270,12 @@ export class StateMachine<
    * Returns the initial `State` instance, with reference to `self` as an `ActorRef`.
    */
   public getInitialState(): State<TContext, TEvent, TTypestate> {
-    const nextState = resolveMicroTransition(this, [], this.first, undefined);
+    const nextState = resolveMicroTransition(
+      this,
+      [],
+      this.preInitialState,
+      undefined
+    );
     return macrostep(nextState, null as any, this) as State<
       TContext,
       TEvent,
