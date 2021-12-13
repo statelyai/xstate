@@ -21,15 +21,19 @@ module.exports = {
       indexName: 'xstatejs'
     },
     nav: [
-      { text: 'API', link: 'https://xstate.js.org/api' },
+      { text: 'API', link: 'https://paka.dev/npm/xstate/' },
       { text: 'Visualizer', link: 'https://stately.ai/viz' },
       { text: 'Discord', link: 'https://discord.gg/xtWgFTgvNV' },
       {
         text: 'Community',
-        link: 'https://github.com/davidkpiano/xstate/discussions'
+        link: 'https://github.com/statelyai/xstate/discussions'
       }
     ],
     sidebar: [
+      {
+        title: 'What is XState?',
+        children: ['/visualizer/']
+      },
       {
         title: 'About',
         children: [
@@ -54,6 +58,7 @@ module.exports = {
           '/guides/transitions',
           '/guides/hierarchical',
           '/guides/parallel',
+          '/guides/final',
           '/guides/effects',
           '/guides/actions',
           '/guides/guards',
@@ -63,12 +68,12 @@ module.exports = {
           '/guides/communication',
           '/guides/actors',
           '/guides/delays',
-          '/guides/final',
           '/guides/history',
           '/guides/ids',
           '/guides/interpretation',
           '/guides/testing',
-          '/guides/typescript'
+          '/guides/typescript',
+          '/guides/scxml'
         ]
       },
       {
@@ -124,15 +129,17 @@ module.exports = {
         ]
       },
       {
-        title: 'Useful links',
+        title: 'News and Useful Links',
         children: [
-          ['https://github.com/statelyai/xstate/blob/main/CODE_OF_CONDUCT.md', 'Code of Conduct'],
-          ['https://stately.ai/privacy', 'Privacy Policy'],
+          '/updates/',
+          [
+            'https://github.com/statelyai/xstate/blob/main/CODE_OF_CONDUCT.md',
+            'Code of Conduct'
+          ],
+          ['https://stately.ai/privacy', 'Privacy Policy']
         ]
       }
     ]
   },
-  plugins: [
-    'vuepress-plugin-export'
-  ]
+  plugins: ['vuepress-plugin-export']
 };

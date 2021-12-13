@@ -488,6 +488,7 @@ export class Interpreter<
         const actorData = resolvedState.children[key];
 
         if (actorData.meta) {
+          console.log('METASRC', actorData.meta.src);
           this.invoke(
             {
               src: actorData.meta.src,
@@ -840,6 +841,9 @@ export class Interpreter<
 
         break;
       case actionTypes.start: {
+        if (this.status !== InterpreterStatus.Running) {
+          return;
+        }
         const activity = (action as ActivityActionObject<TContext, TEvent>)
           .activity as InvokeDefinition<TContext, TEvent>;
 
@@ -934,7 +938,8 @@ export class Interpreter<
     let source: Spawnable = isFunction(serviceCreator)
       ? serviceCreator(context, _event.data, {
           data: resolvedData,
-          src: invokeSource
+          src: invokeSource,
+          meta: activity.meta
         })
       : serviceCreator;
 
@@ -1344,9 +1349,9 @@ export class Interpreter<
 
   public getSnapshot() {
     if (this.status === InterpreterStatus.NotStarted) {
-      return this.initialState;
+      return this.initialState.snapshot;
     }
-    return this._state;
+    return this._state?.snapshot;
   }
 }
 

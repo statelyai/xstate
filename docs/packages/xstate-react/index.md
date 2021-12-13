@@ -1,6 +1,6 @@
 # @xstate/react
 
-`@xstate/react` is a library of official XState bindings for React. If you're using React with XState, you'll need this library.
+The [@xstate/react package](https://github.com/statelyai/xstate/tree/main/packages/xstate-react) contains utilities for using [XState](https://github.com/statelyai/xstate) with [React](https://github.com/facebook/react/).
 
 [[toc]]
 
@@ -11,6 +11,22 @@
 ```bash
 npm i xstate @xstate/react
 ```
+
+**Via CDN**
+
+```html
+<script src="https://unpkg.com/@xstate/react/dist/xstate-react.umd.min.js"></script>
+```
+
+By using the global variable `XStateReact`
+
+or
+
+```html
+<script src="https://unpkg.com/@xstate/react/dist/xstate-react-fsm.umd.min.js"></script>
+```
+
+By using the global variable `XStateReactFSM`
 
 2. Import the `useMachine` hook:
 
@@ -44,17 +60,11 @@ export const Toggler = () => {
 };
 ```
 
-::: tip Usage Guide
-
-Check out out [usage guide](../../recipes/react.md) to learn more about common patterns when using XState & React together.
-
-:::
-
 ## Examples
 
 - [XState + React TodoMVC (CodeSandbox)](https://codesandbox.io/s/xstate-todomvc-33wr94qv1)
 
-## API Reference
+## API
 
 ### `useMachine(machine, options?)`
 
@@ -90,11 +100,10 @@ A [React hook](https://reactjs.org/hooks) that interprets the given `machine` an
 
 In the next major version, `useService(service)` will be replaced with `useActor(service)`. Prefer using the `useActor(service)` hook for services instead, since services are also actors.
 
-Also, keep in mind that only a single argument (the event object) can be sent to `send(eventObject)` from `useActor(...)`. When migrating to `useActor(...)`, refactor `send(...)` calls to use only a single argument (event object or event type string):
+Also, keep in mind that only a single argument (the event object) can be sent to `send(eventObject)` from `useActor(...)`. When migrating to `useActor(...)`, refactor `send(...)` calls to use only a single event object:
 
 ```diff
 const [state, send] = useActor(service);
-
 -send('CLICK', { x: 0, y: 3 });
 +send({ type: 'CLICK', x: 0, y: 3 });
 ```
@@ -134,7 +143,11 @@ const [state, send] = useActor(customActor, (actor) => {
 
 ### `useInterpret(machine, options?, observer?)`
 
-A React hook that returns the `service` created from the `machine` with the `options`, if specified. It also sets up a subscription to the `service` with the `observer`, if provided.
+A React hook that returns the `service` created from the `machine` with the `options`, if specified. It starts the service and runs it for the lifetime of the component. This is similar to `useMachine`; however, `useInterpret` allows for a custom `observer` to subscribe to the `service`.
+
+The `useInterpret` is useful when you want fine-grained control, e.g. to add logging, or minimize re-renders. In contrast to `useMachine` that would flush each update from the machine to the React component, `useInterpret` instead returns a static reference (to just the interpreted machine) which will not rerender when its state changes.
+
+To use a piece of state from the service inside a render, use the `useSelector(...)` hook to subscribe to it.
 
 _Since 1.3.0_
 
@@ -544,22 +557,6 @@ useEffect(() => {
   return subscription.unsubscribe;
 }, [service]); // note: service should never change
 ```
-
-## Importing from CDN
-
-```html
-<script src="https://unpkg.com/@xstate/react/dist/xstate-react.umd.min.js"></script>
-```
-
-By using the global variable `XStateReact`
-
-or
-
-```html
-<script src="https://unpkg.com/@xstate/react/dist/xstate-react-fsm.umd.min.js"></script>
-```
-
-By using the global variable `XStateReactFSM`
 
 ## Migration from 0.x
 

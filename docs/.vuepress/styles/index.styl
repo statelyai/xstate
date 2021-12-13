@@ -51,3 +51,46 @@ details {
   color: white;
   padding: 1rem;
 }
+
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-column-gap: 1rem;
+  padding: 0;
+}
+
+.gallery li {
+  list-style-type: none;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.theme-default-content:not(.custom) .gallery img {
+  display: block;
+  max-width: 100%;
+  width: auto;
+}
+
+.icon-list {
+  padding: 0;
+}
+
+.icon-list li {
+  clear: left;
+  list-style-type: none;
+  margin-bottom: 0.5rem;
+  padding-left: 2.5rem; /* make space for image, indent text */
+}
+
+.theme-default-content:not(.custom) .icon-list img {
+  display: block;
+  float: left;
+  margin-right: 0.5rem;
+  margin-left: -2.5rem; /* pull image into margin */
+  max-height: 28px; /* height of the screenshots */
+  max-width: 100%;
+  width: auto;
+}
+img[alt="Stately member"] {
+  width: 1rem;
+}
