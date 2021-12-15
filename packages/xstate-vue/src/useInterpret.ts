@@ -5,7 +5,6 @@ import {
   Interpreter,
   InterpreterOptions,
   MachineImplementations,
-  Typestate,
   Observer,
   StateMachine
 } from 'xstate';
@@ -35,17 +34,16 @@ function toObserver<T>(
 
 export function useInterpret<
   TContext extends MachineContext,
-  TEvent extends EventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TEvent extends EventObject
 >(
-  getMachine: MaybeLazy<StateMachine<TContext, TEvent, TTypestate>>,
+  getMachine: MaybeLazy<StateMachine<TContext, TEvent>>,
   options: Partial<InterpreterOptions> &
     Partial<UseMachineOptions<TContext, TEvent>> &
     Partial<MachineImplementations<TContext, TEvent>> = {},
   observerOrListener?:
-    | Observer<State<TContext, TEvent, TTypestate>>
-    | ((value: State<TContext, TEvent, TTypestate>) => void)
-): Interpreter<TContext, TEvent, TTypestate> {
+    | Observer<State<TContext, TEvent>>
+    | ((value: State<TContext, TEvent>) => void)
+): Interpreter<TContext, TEvent> {
   const machine = typeof getMachine === 'function' ? getMachine() : getMachine;
 
   const {

@@ -8,7 +8,6 @@ import {
   MachineImplementations,
   BaseActionObject,
   MachineContext,
-  Typestate,
   DynamicAssignAction
 } from './types';
 
@@ -42,7 +41,7 @@ export interface Model<
   createMachine: (
     config: MachineConfig<TContext, TEvent, TAction>,
     implementations?: Partial<MachineImplementations<TContext, TEvent, TAction>>
-  ) => StateMachine<TContext, TEvent, Typestate<TContext>>;
+  ) => StateMachine<TContext, TEvent>;
 }
 
 export type ModelContextFrom<

@@ -104,10 +104,7 @@ export function spawnObservable<T extends EventObject>(
   return spawn(createObservableBehavior(lazyObservable), name);
 }
 
-export function spawnMachine(
-  machine: StateMachine<any, any, any>,
-  name?: string
-) {
+export function spawnMachine(machine: StateMachine<any, any>, name?: string) {
   return spawn(createMachineBehavior(machine), name);
 }
 
@@ -130,7 +127,7 @@ export function spawnFrom<
   TEvent extends EventObject,
   TEmitted extends State<any, any>
 >(
-  entity: StateMachine<TEmitted['context'], any, TEmitted['event']>,
+  entity: StateMachine<TEmitted['context'], TEmitted['event']>,
   name?: string
 ): ObservableActorRef<TEvent, TEmitted>;
 export function spawnFrom<TEvent extends EventObject>(

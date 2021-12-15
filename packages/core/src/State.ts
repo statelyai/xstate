@@ -5,7 +5,6 @@ import type {
   StateConfig,
   SCXML,
   TransitionDefinition,
-  Typestate,
   HistoryValue,
   ActorRef,
   MachineContext,
@@ -26,9 +25,8 @@ import type { StateMachine } from './StateMachine';
 
 export function isState<
   TContext extends MachineContext,
-  TEvent extends EventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
->(state: object | string): state is State<TContext, TEvent, TTypestate> {
+  TEvent extends EventObject
+>(state: object | string): state is State<TContext, TEvent> {
   if (isString(state)) {
     return false;
   }
@@ -38,12 +36,11 @@ export function isState<
 
 export class State<
   TContext extends MachineContext,
-  TEvent extends EventObject = EventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TEvent extends EventObject = EventObject
 > {
   public value: StateValue;
   public context: TContext;
-  public history?: State<TContext, TEvent, TTypestate>;
+  public history?: State<TContext, TEvent>;
   public historyValue: HistoryValue<TContext, TEvent> = {};
   public actions: BaseActionObject[] = [];
   public meta: any = {};
@@ -79,7 +76,7 @@ export class State<
    */
   public children: Record<string, ActorRef<any>>;
   public tags: Set<string>;
-  public machine: StateMachine<TContext, TEvent, TTypestate> | undefined;
+  public machine: StateMachine<TContext, TEvent> | undefined;
   /**
    * Creates a new State instance for the given `stateValue` and `context`.
    * @param stateValue
@@ -89,9 +86,9 @@ export class State<
     TContext extends MachineContext,
     TEvent extends EventObject = EventObject
   >(
-    stateValue: State<TContext, TEvent, any> | StateValue,
+    stateValue: State<TContext, TEvent> | StateValue,
     context: TContext = {} as TContext
-  ): State<TContext, TEvent, any> {
+  ): State<TContext, TEvent> {
     if (stateValue instanceof State) {
       if (stateValue.context !== context) {
         return new State<TContext, TEvent>({
@@ -133,7 +130,7 @@ export class State<
   public static create<
     TContext extends MachineContext,
     TEvent extends EventObject = EventObject
-  >(config: StateConfig<TContext, TEvent>): State<TContext, TEvent, any> {
+  >(config: StateConfig<TContext, TEvent>): State<TContext, TEvent> {
     return new State(config);
   }
   /**
@@ -141,9 +138,7 @@ export class State<
    * @param stateValue
    * @param context
    */
-  public static inert<TState extends State<any, any, any>>(
-    state: TState
-  ): TState;
+  public static inert<TState extends State<any, any>>(state: TState): TState;
   public static inert<
     TContext extends MachineContext,
     TEvent extends EventObject = EventObject
@@ -241,17 +236,9 @@ export class State<
    * Whether the current state value is a subset of the given parent state value.
    * @param parentStateValue
    */
-  public matches<TSV extends TTypestate['value']>(
+  public matches<TSV extends StateValue>(
     parentStateValue: TSV
-  ): this is State<
-    (TTypestate extends any
-      ? { value: TSV; context: any } extends TTypestate
-        ? TTypestate
-        : never
-      : never)['context'],
-    TEvent,
-    TTypestate
-  > & { value: TSV } {
+  ): this is State<TContext, TEvent> & { value: TSV } {
     return matchesState(parentStateValue as StateValue, this.value);
   }
 
@@ -271,7 +258,10 @@ export class State<
   }
 
   /**
-   * Determines whether sending the `event` will cause a transition.
+   * Determines whether sending the `event` will cause a non-forbidden transition
+   * to be selected, even if the transitions have no actions nor
+   * change the state value.
+   *
    * @param event The event to test
    * @returns Whether the event will cause a transition
    */
@@ -288,29 +278,10 @@ export class State<
       toSCXMLEvent(event)
     );
 
-    /**
-     * The state will change from this event if:
-     * - There are entry actions
-     * - There are exit actions
-     * - There are transitions in which either the target has changed or there are transition actions
-     */
-
-    if (!transitionData?.length) {
-      return false;
-    }
-
-    for (const t of transitionData) {
-      if (t.actions.length > 0) {
-        return true;
-      }
-      if (t.target?.some((target) => !this.configuration.includes(target))) {
-        return true;
-      }
-      if (!t.internal && t.target?.some((target) => target.entry.length > 0)) {
-        return true;
-      }
-    }
-
-    return false;
+    return (
+      !!transitionData?.length &&
+      // Check that at least one transition is not forbidden
+      transitionData.some((t) => t.target !== undefined || t.actions.length)
+    );
   }
 }

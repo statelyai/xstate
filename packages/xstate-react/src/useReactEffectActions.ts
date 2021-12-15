@@ -9,7 +9,7 @@ function executeEffect<
   TEvent extends EventObject
 >(
   action: ReactActionObject<TContext, TEvent>,
-  state: State<TContext, TEvent, any>
+  state: State<TContext, TEvent>
 ): void {
   const { exec } = action.params;
   if (!exec) {
@@ -27,12 +27,12 @@ function executeEffect<
 export function useReactEffectActions<
   TContext extends MachineContext,
   TEvent extends EventObject
->(service: Interpreter<TContext, TEvent, any>) {
+>(service: Interpreter<TContext, TEvent>) {
   const effectActionsRef = useRef<
-    Array<[ReactActionObject<TContext, TEvent>, State<TContext, TEvent, any>]>
+    Array<[ReactActionObject<TContext, TEvent>, State<TContext, TEvent>]>
   >([]);
   const layoutEffectActionsRef = useRef<
-    Array<[ReactActionObject<TContext, TEvent>, State<TContext, TEvent, any>]>
+    Array<[ReactActionObject<TContext, TEvent>, State<TContext, TEvent>]>
   >([]);
 
   useIsomorphicLayoutEffect(() => {
