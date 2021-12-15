@@ -292,16 +292,6 @@ describe('useMachine hook', () => {
       user?: { name: string };
     }
 
-    // type TestState =
-    //   | {
-    //       value: 'loading';
-    //       context: { count: number; user: undefined };
-    //     }
-    //   | {
-    //       value: 'loaded';
-    //       context: { user: { name: string } };
-    //     };
-
     const machine = createMachine<TestContext, any>({
       initial: 'loading',
       states: {
