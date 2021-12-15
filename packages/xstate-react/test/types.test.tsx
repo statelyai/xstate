@@ -73,10 +73,6 @@ describe('useMachine', () => {
     type: 'YES';
   }
 
-  // type YesNoTypestate =
-  //   | { value: 'no'; context: { value: undefined } }
-  //   | { value: 'yes'; context: { value: number } };
-
   const yesNoMachine = createMachine<YesNoContext, YesNoEvent>({
     context: {
       value: undefined
