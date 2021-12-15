@@ -492,7 +492,7 @@ export function createBehaviorFrom<
   TEvent extends EventObject,
   TEmitted extends State<any, any>
 >(
-  entity: StateMachine<TEmitted['context'], any, TEmitted['event']>
+  entity: StateMachine<TEmitted['context'], TEmitted['event']>
 ): Behavior<TEvent, TEmitted>;
 export function createBehaviorFrom<TEvent extends EventObject>(
   entity: InvokeCallback

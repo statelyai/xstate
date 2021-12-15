@@ -58,7 +58,7 @@ export class TestModel<TTestContext, TContext extends MachineContext> {
   };
 
   constructor(
-    public machine: StateMachine<TContext, any, any>,
+    public machine: StateMachine<TContext, any>,
     options?: Partial<TestModelOptions<TTestContext>>
   ) {
     this.options = {
@@ -467,7 +467,7 @@ function getEventSamples<T>(eventsOptions: TestModelOptions<T>['events']) {
  * to an event test config (e.g., `{exec: () => {...}, cases: [...]}`)
  */
 export function createModel<TestContext, TContext extends MachineContext = any>(
-  machine: StateMachine<TContext, any, any>,
+  machine: StateMachine<TContext, any>,
   options?: TestModelOptions<TestContext>
 ): TestModel<TestContext, TContext> {
   return new TestModel<TestContext, TContext>(machine, options);

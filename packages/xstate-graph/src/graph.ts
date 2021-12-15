@@ -37,7 +37,7 @@ const EMPTY_MAP = {};
  * @param stateNode State node to recursively get child state nodes from
  */
 export function getStateNodes(
-  stateNode: StateNode | StateMachine<any, any, any>
+  stateNode: StateNode | StateMachine<any, any>
 ): StateNode[] {
   const { states } = stateNode;
   const nodes = keys(states).reduce((accNodes: StateNode[], stateKey) => {

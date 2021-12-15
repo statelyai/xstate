@@ -16,7 +16,7 @@ export interface InspectorOptions {
 }
 
 export interface Inspector
-  extends ActorRef<InspectMachineEvent, State<any, any, any>> {
+  extends ActorRef<InspectMachineEvent, State<any, any>> {
   /**
    * Disconnects the inspector.
    */

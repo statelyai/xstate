@@ -1,14 +1,8 @@
-import {
-  EventObject,
-  State,
-  Interpreter,
-  Typestate,
-  MachineContext
-} from 'xstate';
+import { EventObject, State, Interpreter, MachineContext } from 'xstate';
 import { useActor } from './useActor';
 import { PayloadSender } from './types';
 
-export function getServiceSnapshot<TService extends Interpreter<any, any, any>>(
+export function getServiceSnapshot<TService extends Interpreter<any, any>>(
   service: TService
 ): TService['state'] {
   // TODO: remove compat lines in a new major, replace literal number with InterpreterStatus then as well
@@ -25,11 +19,10 @@ export function getServiceSnapshot<TService extends Interpreter<any, any, any>>(
  */
 export function useService<
   TContext extends MachineContext,
-  TEvent extends EventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TEvent extends EventObject
 >(
-  service: Interpreter<TContext, TEvent, TTypestate>
-): [State<TContext, TEvent, TTypestate>, PayloadSender<TEvent>] {
+  service: Interpreter<TContext, TEvent>
+): [State<TContext, TEvent>, PayloadSender<TEvent>] {
   if (process.env.NODE_ENV !== 'production' && !('machine' in service)) {
     throw new Error(
       `Attempted to use an actor-like object instead of a service in the useService() hook. Please use the useActor() hook instead.`
