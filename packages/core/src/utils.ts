@@ -495,7 +495,7 @@ export function isString(value: any): value is string {
 // }
 
 export function toGuard<TContext, TEvent extends EventObject>(
-  condition?: Condition<TContext, TEvent>,
+  condition?: SingleOrArray<Condition<TContext, TEvent>>,
   guardMap?: Record<string, ConditionPredicate<TContext, TEvent>>
 ): Guard<TContext, TEvent> | undefined {
   if (!condition) {
@@ -515,6 +515,16 @@ export function toGuard<TContext, TEvent extends EventObject>(
       type: DEFAULT_GUARD_TYPE,
       name: condition.name,
       predicate: condition
+    };
+  }
+
+  if (isArray(condition)) {
+    const guards = condition.map((c) => toGuard(c, guardMap));
+    return {
+      type: DEFAULT_GUARD_TYPE,
+      name: guards.map((g) => g?.name).join(' && '),
+      predicate: (ctx, e, meta) =>
+        guards.every((g) => g?.predicate(ctx, e, meta))
     };
   }
 

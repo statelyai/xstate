@@ -198,7 +198,7 @@ export type TransitionTargets<TContext> = Array<
 >;
 
 export interface TransitionConfig<TContext, TEvent extends EventObject> {
-  cond?: Condition<TContext, TEvent>;
+  cond?: SingleOrArray<Condition<TContext, TEvent>>;
   actions?: Actions<TContext, TEvent>;
   in?: StateValue;
   internal?: boolean;
@@ -576,7 +576,10 @@ export interface StateNodeConfig<
    *
    * This is equivalent to defining a `[done(id)]` transition on this state node's `on` property.
    */
-  onDone?: string | SingleOrArray<TransitionConfig<TContext, DoneEventObject>> | undefined;
+  onDone?:
+    | string
+    | SingleOrArray<TransitionConfig<TContext, DoneEventObject>>
+    | undefined;
   /**
    * The mapping (or array) of delays (in milliseconds) to their potential transition(s).
    * The delayed transitions are taken after the specified delay in an interpreter.

@@ -1,4 +1,4 @@
-import { Machine, interpret } from '../src';
+import { Machine, interpret, createMachine } from '../src';
 
 describe('guard conditions', () => {
   type LightMachineCtx = {
@@ -378,5 +378,76 @@ describe('guards - other', () => {
     service.send('EVENT');
 
     expect(service.state.value).toBe('c');
+  });
+});
+
+describe('guards array', () => {
+  it('array of guards can be used as AND guard (inline)', (done) => {
+    const machine = createMachine({
+      initial: 'a',
+      context: {
+        count: 42
+      },
+      states: {
+        a: {
+          on: {
+            EVENT: {
+              cond: [
+                (ctx) => ctx.count * 2 === 84,
+                (ctx) => ctx.count / 2 === 21
+              ],
+              target: 'b'
+            }
+          }
+        },
+        b: {
+          type: 'final'
+        }
+      }
+    });
+
+    interpret(machine)
+      .onDone(() => {
+        done();
+      })
+      .start()
+      .send('EVENT');
+  });
+
+  it('array of guards can be used as AND guard (serialized)', (done) => {
+    const machine = createMachine(
+      {
+        initial: 'a',
+        context: {
+          count: 42
+        },
+        states: {
+          a: {
+            on: {
+              EVENT: {
+                cond: ['double', 'halve'],
+                target: 'b'
+              }
+            }
+          },
+          b: {
+            type: 'final'
+          }
+        }
+      },
+      {
+        guards: {
+          double: (ctx) => ctx.count * 2 === 84,
+          halve: (ctx) => ctx.count / 2 === 21
+        }
+      }
+    );
+
+    interpret(machine)
+      .onDone(() => {
+        done();
+      })
+      .start()
+      .send('EVENT');
   });
 });
