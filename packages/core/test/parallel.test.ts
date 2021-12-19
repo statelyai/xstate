@@ -762,7 +762,7 @@ describe('parallel states', () => {
         }
       },
       on: {
-        'to-A': 'A'
+        'to-A': '.A'
       }
     });
 

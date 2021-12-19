@@ -734,7 +734,7 @@ describe('actions config', () => {
         b: {}
       },
       on: {
-        E: 'a'
+        E: '.a'
       }
     },
     {

@@ -43,7 +43,7 @@ const idMachine = createMachine({
           }
         },
         dot: {
-          id: 'B.dot'
+          id: '.dot'
         }
       }
     }

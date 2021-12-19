@@ -23,7 +23,8 @@ import {
   macrostep,
   toState,
   isStateId,
-  getStateValue
+  getStateValue,
+  getStateNodeByPath
 } from './stateUtils';
 import { getStateNodes, transitionNode, resolveStateValue } from './stateUtils';
 import { StateNode } from './StateNode';
@@ -268,9 +269,11 @@ export class StateMachine<
   }
 
   public getStateNodeById(stateId: string): StateNode<TContext, TEvent> {
-    const resolvedStateId = isStateId(stateId)
-      ? stateId.slice(STATE_IDENTIFIER.length)
-      : stateId;
+    const fullPath = stateId.split(this.delimiter);
+    const relativePath = fullPath.slice(1);
+    const resolvedStateId = isStateId(fullPath[0])
+      ? fullPath[0].slice(STATE_IDENTIFIER.length)
+      : fullPath[0];
 
     const stateNode = this.idMap.get(resolvedStateId);
     if (!stateNode) {
@@ -278,7 +281,7 @@ export class StateMachine<
         `Child state node '#${resolvedStateId}' does not exist on machine '${this.key}'`
       );
     }
-    return stateNode;
+    return getStateNodeByPath(stateNode, relativePath);
   }
 
   public get definition(): StateNodeDefinition<TContext, TEvent> {
