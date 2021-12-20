@@ -31,7 +31,7 @@ export function isState<
     return false;
   }
 
-  return 'value' in state && 'history' in state;
+  return 'value' in state && '_sessionid' in state;
 }
 
 export class State<
@@ -40,7 +40,6 @@ export class State<
 > {
   public value: StateValue;
   public context: TContext;
-  public history?: State<TContext, TEvent>;
   public historyValue: HistoryValue<TContext, TEvent> = {};
   public actions: BaseActionObject[] = [];
   public meta: any = {};
@@ -96,7 +95,6 @@ export class State<
           context,
           _event: stateValue._event,
           _sessionid: null,
-          history: stateValue.history,
           actions: [],
           meta: {},
           configuration: [], // TODO: fix,
@@ -158,7 +156,6 @@ export class State<
         context: stateValue.context,
         _event,
         _sessionid: null,
-        history: stateValue.history,
         configuration: stateValue.configuration,
         transitions: [],
         children: stateValue.children
@@ -179,7 +176,6 @@ export class State<
     this._event = config._event;
     this._sessionid = config._sessionid;
     this.event = this._event.data;
-    this.history = config.history as this;
     this.historyValue = config.historyValue || {};
     this.actions = config.actions || [];
     this.meta = getMeta(config.configuration);

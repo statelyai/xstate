@@ -352,9 +352,11 @@ interface SCIONTest {
 async function runW3TestToCompletion(machine: StateMachine): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     let nextState: State<any>;
+    let prevState: State<any>;
 
     interpret(machine)
       .onTransition((state) => {
+        prevState = nextState;
         nextState = state;
       })
       .onDone(() => {
@@ -366,7 +368,7 @@ async function runW3TestToCompletion(machine: StateMachine): Promise<void> {
             new Error(
               `Reached "fail" state with event ${JSON.stringify(
                 nextState.event
-              )} from state ${JSON.stringify(nextState.history?.value)}`
+              )} from state ${JSON.stringify(prevState?.value)}`
             )
           );
         }
@@ -386,13 +388,14 @@ async function runTestToCompletion(
 
   let done = false;
   let nextState: State<any> = machine.initialState;
+  let prevState: State<any>;
 
   const service = interpret(machine, {
     clock: new SimulatedClock()
   })
     .onTransition((state) => {
       // console.log(state._event, state.value);
-
+      prevState = nextState;
       nextState = state;
     })
     .onDone(() => {
@@ -400,7 +403,7 @@ async function runTestToCompletion(
         throw new Error(
           `Reached "fail" state with event ${JSON.stringify(
             nextState.event
-          )} from state ${JSON.stringify(nextState.history?.value)}`
+          )} from state ${JSON.stringify(prevState?.value)}`
         );
       }
       done = true;

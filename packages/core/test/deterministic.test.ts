@@ -93,10 +93,6 @@ describe('deterministic machine', () => {
     it('should return the initial state value', () => {
       expect(lightMachine.initialState.value).toEqual('green');
     });
-
-    it('should not have any history', () => {
-      expect(lightMachine.initialState.history).not.toBeDefined();
-    });
   });
 
   describe('machine.transition()', () => {
