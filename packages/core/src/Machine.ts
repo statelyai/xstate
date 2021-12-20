@@ -8,7 +8,8 @@ import {
   MachineOptions,
   StateMachine,
   StateSchema,
-  Typestate
+  Typestate,
+  ErrorEventObject
 } from './types';
 
 /**
@@ -47,6 +48,8 @@ export function Machine<
   ) as StateMachine<TContext, TStateSchema, TEvent>;
 }
 
+type AllEvents<TEvent extends EventObject> = TEvent | ErrorEventObject;
+
 export function createMachine<
   TContext,
   TEvent extends EventObject = AnyEventObject,
@@ -54,7 +57,7 @@ export function createMachine<
 >(
   config: TContext extends Model<any, any, any, any>
     ? 'Model type no longer supported as generic type. Please use `model.createMachine(...)` instead.'
-    : MachineConfig<TContext, any, TEvent>,
+    : MachineConfig<TContext, any, AllEvents<TEvent>>,
   options?: Partial<MachineOptions<TContext, TEvent>>
 ): StateMachine<TContext, any, TEvent, TTypestate>;
 export function createMachine<

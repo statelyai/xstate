@@ -22,6 +22,7 @@ import {
 import { interval, EMPTY } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { fromPromise } from '../src/behaviors';
+import { errorCommunication } from '../src/actionTypes';
 
 describe('spawning machines', () => {
   const todoMachine = Machine({
@@ -1211,5 +1212,33 @@ describe('actors', () => {
     service.start();
 
     expect(service.state.value).toBe('done');
+  });
+
+  it('should throw if communication error is unhandled', () => {
+    const machine = createMachine({
+      entry: sendParent('SOMETHING')
+    });
+
+    expect(() => {
+      interpret(machine).start();
+    }).toThrowError(/unable to send event to child/i);
+  });
+
+  it('communication errors can be handled', () => {
+    expect.assertions(2);
+    const machine = createMachine({
+      entry: sendParent('SOMETHING'),
+      on: {
+        [errorCommunication]: {
+          actions: (_, e) => {
+            expect(e.message).toMatch(/unable to send event to child/i);
+          }
+        }
+      }
+    });
+
+    expect(() => {
+      interpret(machine).start();
+    }).not.toThrowError();
   });
 });

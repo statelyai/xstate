@@ -37,7 +37,13 @@ import {
 } from './types';
 import { State, bindActionToState, isState } from './State';
 import * as actionTypes from './actionTypes';
-import { doneInvoke, error, getActionFunction, initEvent } from './actions';
+import {
+  communicationError,
+  doneInvoke,
+  error,
+  getActionFunction,
+  initEvent
+} from './actions';
 import { IS_PRODUCTION } from './environment';
 import {
   isPromiseLike,
@@ -66,6 +72,7 @@ import { registry } from './registry';
 import { getGlobal, registerService } from './devTools';
 import * as serviceScope from './serviceScope';
 import { spawnBehavior } from './behaviors';
+import { ErrorCommunicationEvent, ErrorPlatformEvent } from '.';
 
 export type StateListener<
   TContext,
@@ -681,8 +688,10 @@ export class Interpreter<
 
     if (!target) {
       if (!isParent) {
-        throw new Error(
-          `Unable to send event to child '${to}' from service '${this.id}'.`
+        this.send(
+          communicationError(
+            `Unable to send event to child '${to}' from service '${this.id}'.`
+          )
         );
       }
 
@@ -727,7 +736,14 @@ export class Interpreter<
         (nextEvent) => nextEvent.indexOf(actionTypes.errorPlatform) === 0
       )
     ) {
-      throw (_event.data as any).data;
+      throw new Error((_event.data as ErrorPlatformEvent).message);
+    }
+
+    if (
+      _event.name === actionTypes.errorCommunication &&
+      !this.state.can(actionTypes.errorCommunication)
+    ) {
+      throw new Error((_event.data as ErrorCommunicationEvent).message);
     }
 
     const nextState = serviceScope.provide(this, () => {

@@ -56,7 +56,13 @@ import {
 import { State } from './State';
 import { StateNode } from './StateNode';
 import { IS_PRODUCTION } from './environment';
-import { ActorRef, EventFrom, StopAction, StopActionObject } from '.';
+import {
+  ActorRef,
+  ErrorCommunicationEvent,
+  EventFrom,
+  StopAction,
+  StopActionObject
+} from '.';
 
 export { actionTypes };
 
@@ -527,13 +533,27 @@ export function doneInvoke(id: string, data?: any): DoneEvent {
   return eventObject as DoneEvent;
 }
 
-export function error(id: string, data?: any): ErrorPlatformEvent & string {
+export function error(
+  id: string,
+  message?: string
+): ErrorPlatformEvent & string {
   const type = `${ActionTypes.ErrorPlatform}.${id}`;
-  const eventObject = { type, data };
+  const eventObject = { type, message, data: message };
 
   eventObject.toString = () => type;
 
   return eventObject as ErrorPlatformEvent & string;
+}
+
+export function communicationError(
+  message?: string
+): ErrorCommunicationEvent & string {
+  const type = ActionTypes.ErrorCommunication;
+  const eventObject = { type, message, data: message };
+
+  eventObject.toString = () => type;
+
+  return eventObject as ErrorCommunicationEvent & string;
 }
 
 export function pure<TContext, TEvent extends EventObject>(

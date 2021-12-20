@@ -576,7 +576,10 @@ export interface StateNodeConfig<
    *
    * This is equivalent to defining a `[done(id)]` transition on this state node's `on` property.
    */
-  onDone?: string | SingleOrArray<TransitionConfig<TContext, DoneEventObject>> | undefined;
+  onDone?:
+    | string
+    | SingleOrArray<TransitionConfig<TContext, DoneEventObject>>
+    | undefined;
   /**
    * The mapping (or array) of delays (in milliseconds) to their potential transition(s).
    * The delayed transitions are taken after the specified delay in an interpreter.
@@ -919,14 +922,24 @@ export interface DoneInvokeEvent<TData> extends EventObject {
   data: TData;
 }
 
-export interface ErrorExecutionEvent extends EventObject {
-  src: string;
-  type: ActionTypes.ErrorExecution;
-  data: any;
+export interface ErrorEventObject extends EventObject {
+  /**
+   * @deprecated Use `.message` instead.
+   */
+  data?: any;
+  message?: string;
 }
 
-export interface ErrorPlatformEvent extends EventObject {
-  data: any;
+export interface ErrorExecutionEvent extends ErrorEventObject {
+  type: 'error.execution';
+}
+
+export interface ErrorPlatformEvent extends ErrorEventObject {
+  type: 'error.platform';
+}
+
+export interface ErrorCommunicationEvent extends ErrorEventObject {
+  type: 'error.communication';
 }
 
 export interface DoneEventObject extends EventObject {
