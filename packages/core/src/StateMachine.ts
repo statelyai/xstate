@@ -32,15 +32,17 @@ export const NULL_EVENT = '';
 export const STATE_IDENTIFIER = '#';
 export const WILDCARD = '*';
 
-const createDefaultOptions = <TContext extends MachineContext>(
+function createDefaultOptions<TContext extends MachineContext>(
   context: TContext
-): MachineImplementations<TContext, any> => ({
-  actions: {},
-  guards: {},
-  actors: {},
-  delays: {},
-  context
-});
+): MachineImplementations<TContext, any> {
+  return {
+    actions: {},
+    guards: {},
+    actors: {},
+    delays: {},
+    context
+  };
+}
 
 function resolveContext<TContext>(
   context: TContext,
