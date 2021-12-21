@@ -119,14 +119,14 @@ export function toActorRef<
       subscribe: actorRefLike.subscribe.bind(actorRefLike),
       id: actorRefLike.id,
       send: actorRefLike.send,
-      getSnapshot: actorRefLike.getSnapshot as any
+      getSnapshot: actorRefLike.getSnapshot.bind(actorRefLike)
     } as ActorRef<TEvent, TEmitted>;
   }
 
   return {
     subscribe: () => ({ unsubscribe: () => void 0 }),
     id: 'anonymous',
-    getSnapshot: () => undefined,
+    getSnapshot: () => undefined as any,
     ...actorRefLike
   };
 }

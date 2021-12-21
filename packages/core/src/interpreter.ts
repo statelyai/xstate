@@ -1047,7 +1047,10 @@ export class Interpreter<
 
     return actorRef;
   }
-  private spawnPromise<T>(promise: Promise<T>, id: string): ActorRef<never, T> {
+  private spawnPromise<T>(
+    promise: Promise<T>,
+    id: string
+  ): ActorRef<never, T | undefined> {
     let canceled = false;
     let resolvedData: T | undefined;
 
@@ -1085,7 +1088,7 @@ export class Interpreter<
       }
     );
 
-    const actor: ActorRef<never, T> = {
+    const actor: ActorRef<never, T | undefined> = {
       id,
       send: () => void 0,
       subscribe: (next, handleError?, complete?) => {
@@ -1190,7 +1193,7 @@ export class Interpreter<
   private spawnObservable<T extends TEvent>(
     source: Subscribable<T>,
     id: string
-  ): ActorRef<any, T> {
+  ): ActorRef<any, T | undefined> {
     let emitted: T | undefined;
 
     const subscription = source.subscribe(
@@ -1208,7 +1211,7 @@ export class Interpreter<
       }
     );
 
-    const actor: ActorRef<any, T> = {
+    const actor: ActorRef<any, T | undefined> = {
       id,
       send: () => void 0,
       subscribe: (next, handleError?, complete?) => {

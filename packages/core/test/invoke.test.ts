@@ -2737,6 +2737,23 @@ describe('invoke', () => {
       .onDone(() => done())
       .start();
   });
+
+  it('self reference should have snapshot available', (done) => {
+    const machine = createMachine<{ count: number }>({
+      context: { count: 42 },
+      invoke: {
+        src: (_ctx, _e, { self }) => () => {
+          // @ts-expect-error
+          self.getSnapshot().context.nonexistent;
+
+          expect(self.getSnapshot().context.count).toEqual(42);
+          done();
+        }
+      }
+    });
+
+    interpret(machine).start();
+  });
 });
 
 describe('services option', () => {
