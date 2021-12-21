@@ -2711,9 +2711,12 @@ describe('invoke', () => {
   });
 
   it('invoke creator should provide reference to self', (done) => {
-    const machine = createMachine({
+    const machine = createMachine<any, { type: 'FROM_INVOKED' }>({
       invoke: {
         src: (_ctx, _e, { self }) => () => {
+          // @ts-expect-error
+          self.send('WHATEVER');
+
           self.send('FROM_INVOKED');
         }
       },
