@@ -796,7 +796,8 @@ export class Interpreter<
         return exec(context, _event.data, {
           action,
           state: this.state,
-          _event
+          _event,
+          self: this.ref
         });
       } catch (err) {
         if (this.parent) {

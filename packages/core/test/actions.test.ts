@@ -738,7 +738,8 @@ describe('actions config', () => {
           {
             action,
             state: initialState,
-            _event: initialState._event
+            _event: initialState._event,
+            self: null as any // actor ref not available for externally executed actions
           }
         );
       }
@@ -758,7 +759,8 @@ describe('actions config', () => {
           {
             action,
             state: initialState,
-            _event: initialState._event
+            _event: initialState._event,
+            self: null as any // actor ref not available for externally executed actions
           }
         );
       }
@@ -797,6 +799,18 @@ describe('action meta', () => {
     );
 
     interpret(testMachine).start();
+  });
+
+  it('should provide a reference to self (actor ref)', (done) => {
+    const machine = createMachine<{ count: number }>({
+      context: { count: 42 },
+      entry: (_, __, { self }) => {
+        expect(self.getSnapshot().context).toEqual({ count: 42 });
+        done();
+      }
+    });
+
+    interpret(machine).start();
   });
 });
 

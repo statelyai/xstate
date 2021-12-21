@@ -65,6 +65,7 @@ export interface ActionMeta<
 > extends StateMeta<TContext, TEvent> {
   action: TAction;
   _event: SCXML.Event<TEvent>;
+  self: ActorRef<TEvent, State<TContext, TEvent>>;
 }
 
 export interface AssignMeta<TContext, TEvent extends EventObject> {
