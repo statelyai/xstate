@@ -188,6 +188,11 @@ export class Interpreter<
   // Dev Tools
   private devTools?: any;
 
+  private ref: ActorRef<
+    TEvent,
+    State<TContext, TEvent, TStateSchema, TTypestate>
+  >;
+
   /**
    * Creates a new Interpreter instance (i.e., service) for the given machine with the provided options, if any.
    *
@@ -219,6 +224,8 @@ export class Interpreter<
     });
 
     this.sessionId = registry.bookId();
+
+    this.ref = toActorRef(this);
   }
   public get initialState(): State<TContext, TEvent, TStateSchema, TTypestate> {
     if (this._initialState) {
@@ -889,7 +896,7 @@ export class Interpreter<
                 data: resolvedData,
                 src: invokeSource,
                 meta: activity.meta,
-                self: toActorRef(this)
+                self: this.ref
               })
             : serviceCreator;
 
