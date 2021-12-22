@@ -465,6 +465,7 @@ export function formatTransitions<
       [WILDCARD]: wildcardConfigs = [],
       ...namedTransitionConfigs
     } = stateNode.config.on;
+
     keys(namedTransitionConfigs).forEach((eventType) => {
       if (eventType === NULL_EVENT) {
         throw new Error(
@@ -479,6 +480,7 @@ export function formatTransitions<
       transitionConfigs.push(...eventTransitionConfigs);
       // TODO: add dev-mode validation for unreachable transitions
     });
+
     transitionConfigs.push(
       ...toTransitionConfigArray(
         WILDCARD,
@@ -518,9 +520,12 @@ export function formatTransitions<
       return settleTransitions;
     })
   );
+  const errorConfig = stateNode.config.onError
+    ? toTransitionConfigArray('error.*', stateNode.config.onError)
+    : [];
   const delayedTransitions = stateNode.after;
   const formattedTransitions = flatten(
-    [...doneConfig, ...invokeConfig, ...transitionConfigs].map(
+    [...errorConfig, ...doneConfig, ...invokeConfig, ...transitionConfigs].map(
       (
         transitionConfig: TransitionConfig<TContext, TEvent> & {
           event: TEvent['type'] | '*';

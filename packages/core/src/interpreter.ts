@@ -215,10 +215,16 @@ export class Interpreter<
     // Attach session ID to state
     state._sessionid = this.sessionId;
 
+    // Execute actions
+    try {
+      this.execute(state);
+    } catch (e) {
+      this.sendError('error.execution', e);
+      return;
+    }
+
     // Update state
     this._state = state;
-    // Execute actions
-    this.execute(this.state);
 
     for (const listener of this.listeners) {
       listener(state, state.event);
@@ -573,16 +579,21 @@ export class Interpreter<
     });
   }
 
+  private sendError(errorType: `error.${string}`, error: Error) {
+    this.send({ type: errorType, error } as any);
+  }
+
   private sendTo(
     event: SCXML.Event<AnyEventObject>,
-    to: string | ActorRef<any>
+    to: string | ActorRef<any>,
+    state: State<TContext, TEvent>
   ) {
     const isParent = this.parent && to === SpecialTargets.Parent;
     const target = isParent
       ? this.parent
       : isActorRef(to)
       ? to
-      : this.state.children[to];
+      : state.children[to];
 
     if (!target) {
       if (!isParent) {
@@ -627,7 +638,7 @@ export class Interpreter<
 
     if (
       isSCXMLErrorEvent(_event) &&
-      !this.state.nextEvents.some((nextEvent) => nextEvent === _event.name)
+      !this.state.nextEvents.some((nextEvent) => nextEvent.startsWith('error.'))
     ) {
       this.handleErrorEvent(_event);
     }
@@ -647,10 +658,13 @@ export class Interpreter<
       child.send(event);
     }
   }
-  private defer(sendAction: SendActionObject): void {
+  private defer(
+    sendAction: SendActionObject,
+    state: State<TContext, TEvent>
+  ): void {
     this.delayedEventsMap[sendAction.params.id] = this.clock.setTimeout(() => {
       if (sendAction.params.to) {
-        this.sendTo(sendAction.params._event, sendAction.params.to);
+        this.sendTo(sendAction.params._event, sendAction.params.to, state);
       } else {
         this.send(sendAction.params._event as SCXML.Event<TEvent>);
       }
@@ -666,15 +680,19 @@ export class Interpreter<
     return (
       this.machine.options.actions[actionType] ??
       ({
-        [actionTypes.send]: (_ctx, _e, { action }) => {
+        [actionTypes.send]: (_ctx, _e, { action, state }) => {
           const sendAction = action as SendActionObject;
 
           if (typeof sendAction.params.delay === 'number') {
-            this.defer(sendAction);
+            this.defer(sendAction, state);
             return;
           } else {
             if (sendAction.params.to) {
-              this.sendTo(sendAction.params._event, sendAction.params.to);
+              this.sendTo(
+                sendAction.params._event,
+                sendAction.params.to,
+                state
+              );
             } else {
               this.send(sendAction.params._event as SCXML.Event<TEvent>);
             }
@@ -719,7 +737,7 @@ export class Interpreter<
               this.forwardTo.add(id);
             }
 
-            this.state.children[id] = ref;
+            state.children[id] = ref;
 
             ref.subscribe({
               error: () => {
@@ -737,13 +755,13 @@ export class Interpreter<
             return;
           }
         },
-        [actionTypes.stop]: (_ctx, _e, { action }) => {
+        [actionTypes.stop]: (_ctx, _e, { action, state }) => {
           const { actor } = (action as StopActionObject).params;
           const actorRef =
-            typeof actor === 'string' ? this.state.children[actor] : actor;
+            typeof actor === 'string' ? state.children[actor] : actor;
 
           if (actorRef) {
-            this.stopChild(actorRef.name);
+            this.stopChild(actorRef.name, state);
           }
         },
         [actionTypes.log]: (_ctx, _e, { action }) => {
@@ -765,38 +783,18 @@ export class Interpreter<
     const { _event } = state;
 
     if (isExecutableAction(action)) {
-      try {
-        return action.execute(state);
-      } catch (err) {
-        this.parent?.send({
-          type: 'xstate.error',
-          data: err
-        });
-
-        throw err;
-      }
+      return action.execute(state);
     }
 
     const actionOrExec = this.getActionFunction(action.type);
     const exec = isFunction(actionOrExec) ? actionOrExec : undefined;
 
     if (exec) {
-      try {
-        return exec(state.context, _event.data, {
-          action,
-          state: this.state,
-          _event
-        });
-      } catch (err) {
-        if (this.parent) {
-          this.parent.send({
-            type: 'xstate.error',
-            data: err
-          } as EventObject);
-        }
-
-        throw err;
-      }
+      return exec(state.context, _event.data, {
+        action,
+        state,
+        _event
+      });
     }
 
     if (!IS_PRODUCTION && !action.type?.startsWith('xstate.')) {
@@ -806,14 +804,14 @@ export class Interpreter<
     return undefined;
   }
 
-  private stopChild(childId: string): void {
-    const child = this.state.children[childId];
+  private stopChild(childId: string, state: State<TContext, TEvent>): void {
+    const child = state.children[childId];
     if (!child) {
       return;
     }
 
     this.forwardTo.delete(childId);
-    delete this.state.children[childId];
+    delete state.children[childId];
 
     if (isFunction(child.stop)) {
       child.stop();

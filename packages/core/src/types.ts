@@ -32,6 +32,11 @@ export interface AnyEventObject extends EventObject {
   [key: string]: any;
 }
 
+export interface ErrorEventObject {
+  type: `error.${string}`;
+  message?: string;
+}
+
 export interface BaseActionObject {
   type: string;
   params?: Record<string, any>;
@@ -609,6 +614,8 @@ export interface StateNodeConfig<
    * The mapping of event types to their potential transition(s).
    */
   on?: TransitionsConfig<TContext, TEvent>;
+
+  onError?: TransitionConfigOrTarget<TContext, ErrorEventObject>;
   /**
    * The action(s) to be executed upon entering the state node.
    */
