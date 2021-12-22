@@ -1,18 +1,20 @@
 import { useEffect, useRef } from 'react';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
-import { EventObject, State, Interpreter } from 'xstate';
+import type { EventObject, State, Interpreter } from 'xstate';
 import { ReactActionObject, ReactEffectType, ActionStateTuple } from './types';
 import { partition } from './utils';
 
 function executeEffect<TContext, TEvent extends EventObject>(
   action: ReactActionObject<TContext, TEvent>,
-  state: State<TContext, TEvent, any, any>
+  state: State<TContext, TEvent, any, any>,
+  service: Interpreter<TContext, any, TEvent>
 ): void {
   const { exec } = action;
   const originalExec = exec!(state.context, state._event.data, {
     action,
     state,
-    _event: state._event
+    _event: state._event,
+    self: service.ref
   });
 
   originalExec();
@@ -80,7 +82,7 @@ export function useReactEffectActions<TContext, TEvent extends EventObject>(
         effectState
       ] = layoutEffectActionsRef.current.shift()!;
 
-      executeEffect(layoutEffectAction, effectState);
+      executeEffect(layoutEffectAction, effectState, service);
     }
   }); // https://github.com/davidkpiano/xstate/pull/1202#discussion_r429677773
 
@@ -88,7 +90,7 @@ export function useReactEffectActions<TContext, TEvent extends EventObject>(
     while (effectActionsRef.current.length) {
       const [effectAction, effectState] = effectActionsRef.current.shift()!;
 
-      executeEffect(effectAction, effectState);
+      executeEffect(effectAction, effectState, service);
     }
   });
 }

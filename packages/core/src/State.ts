@@ -21,6 +21,7 @@ import { StateNode } from './StateNode';
 import { getMeta, nextEvents } from './stateUtils';
 import { initEvent } from './actions';
 import { IS_PRODUCTION } from './environment';
+import type { Interpreter } from './interpreter';
 
 export function stateValuesEqual(
   a: StateValue | undefined,
@@ -64,7 +65,8 @@ export function isState<
 
 export function bindActionToState<TC, TE extends EventObject>(
   action: ActionObject<TC, TE>,
-  state: State<TC, TE, any, any>
+  state: State<TC, TE, any, any>,
+  service: Interpreter<TC, any, TE>
 ): ActionObject<TC, TE> {
   const { exec } = action;
   const boundAction: ActionObject<TC, TE> = {
@@ -75,7 +77,8 @@ export function bindActionToState<TC, TE extends EventObject>(
             exec(state.context, state.event as TE, {
               action,
               state,
-              _event: state._event
+              _event: state._event,
+              self: service.ref
             })
         : undefined
   };

@@ -188,7 +188,7 @@ export class Interpreter<
   // Dev Tools
   private devTools?: any;
 
-  private ref: ActorRef<
+  public ref: ActorRef<
     TEvent,
     State<TContext, TEvent, TStateSchema, TTypestate>
   >;
@@ -652,8 +652,8 @@ export class Interpreter<
         });
 
         batchedActions.push(
-          ...(nextState.actions.map((a) =>
-            bindActionToState(a, nextState)
+          ...(nextState.actions.map((action) =>
+            bindActionToState(action, nextState, this)
           ) as Array<ActionObject<TContext, TEvent>>)
         );
 
