@@ -81,18 +81,29 @@ describe('@xstate/analytics', () => {
         "count": 3,
         "transitions": Object {
           "": Object {
-            "{\\"type\\":\\"TIMER\\"}": Object {
-              "count": 2,
-              "currentWeight": 0.6666666666666666,
-              "relativeWeight": 0.6666666666666666,
-              "state": "{\\"value\\":\\"yellow\\",\\"context\\":{}}",
-              "weight": 0.6666666666666666,
-            },
             "{\\"type\\":\\"xstate.init\\"}": Object {
               "count": 1,
-              "currentWeight": 0.3333333333333333,
-              "relativeWeight": 0.3333333333333333,
+              "currentWeight": 1,
+              "relativeWeight": 1,
               "state": "{\\"value\\":\\"green\\",\\"context\\":{}}",
+              "weight": 0.3333333333333333,
+            },
+          },
+          "{\\"value\\":\\"green\\",\\"context\\":{}}": Object {
+            "{\\"type\\":\\"TIMER\\"}": Object {
+              "count": 1,
+              "currentWeight": 1,
+              "relativeWeight": 1,
+              "state": "{\\"value\\":\\"yellow\\",\\"context\\":{}}",
+              "weight": 0.3333333333333333,
+            },
+          },
+          "{\\"value\\":\\"yellow\\",\\"context\\":{}}": Object {
+            "{\\"type\\":\\"TIMER\\"}": Object {
+              "count": 1,
+              "currentWeight": 1,
+              "relativeWeight": 1,
+              "state": "{\\"value\\":{\\"red\\":\\"walk\\"},\\"context\\":{}}",
               "weight": 0.3333333333333333,
             },
           },
