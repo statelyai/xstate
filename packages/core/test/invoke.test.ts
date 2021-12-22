@@ -18,7 +18,8 @@ import {
   doneInvoke,
   escalate,
   forwardTo,
-  raise
+  raise,
+  respond
 } from '../src/actions';
 import { interval } from 'rxjs';
 import { map, take } from 'rxjs/operators';
@@ -2748,6 +2749,28 @@ describe('invoke', () => {
 
           expect(self.getSnapshot().context.count).toEqual(42);
           done();
+        }
+      }
+    });
+
+    interpret(machine).start();
+  });
+
+  it('parent should be able to respond to events sent using `self.send`', (done) => {
+    const machine = createMachine({
+      invoke: {
+        src: (_ctx, _e, { self }) => (_callback, onReceive) => {
+          self.send({ type: 'PING' });
+
+          onReceive((ev) => {
+            expect(ev.type).toBe('PONG');
+            done();
+          });
+        }
+      },
+      on: {
+        PING: {
+          actions: respond({ type: 'PONG' })
         }
       }
     });
