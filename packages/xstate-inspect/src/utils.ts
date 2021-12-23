@@ -40,8 +40,6 @@ export function isReceiverEvent(event: any): event is ReceiverEvent {
 export function parseState(stateJSON: string): State<any, any> {
   const state = State.create(JSON.parse(stateJSON));
 
-  delete state.history;
-
   return state;
 }
 

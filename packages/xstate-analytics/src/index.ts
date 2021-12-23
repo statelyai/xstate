@@ -57,13 +57,15 @@ export function createAnalyzer(
     transitions: {}
   };
 
+  let currentState: State<any, any> | undefined;
+
   return (state: State<any, any>) => {
     if (!resolvedOptions.filter(state)) {
       return;
     }
 
     const stateSerial = serializeState(state);
-    const prevState = state.history;
+    const prevState = currentState;
     const prevStateSerial = serializeState(prevState);
     const eventSerial = JSON.stringify(state.event);
 
@@ -105,5 +107,7 @@ export function createAnalyzer(
     transitionAnalysis.count++;
 
     callback(analysis);
+
+    currentState = state;
   };
 }

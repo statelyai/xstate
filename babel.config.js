@@ -17,6 +17,7 @@ const stripSymbolObservableMethodPlugin = ({ types: t }) => {
   };
 };
 
+// TODO: consider enabling loose mode
 module.exports = {
   presets: [
     [
@@ -33,10 +34,13 @@ module.exports = {
       }
     ],
     '@babel/preset-react',
-    '@babel/preset-typescript'
+    [
+      '@babel/preset-typescript',
+      { isTSX: true, allExtensions: true, disallowAmbiguousJSXLike: true }
+    ]
   ],
   plugins: [
     stripSymbolObservableMethodPlugin,
-    ['@babel/proposal-class-properties', { loose: true }]
+    '@babel/proposal-class-properties'
   ]
 };
