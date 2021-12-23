@@ -1609,7 +1609,6 @@ export function resolveMicroTransition<
     _event,
     // Persist _sessionid between states
     _sessionid: !currentState._initial ? currentState._sessionid : null,
-    history: currentState._initial ? undefined : currentState,
     actions: nonRaisedActions,
     meta,
     configuration: resolvedConfiguration,
@@ -1625,12 +1624,6 @@ export function resolveMicroTransition<
       nextState.actions.length > 0 ||
       context !== currentContext;
   nextState._internalQueue = resolved.internalQueue;
-
-  // Dispose of penultimate histories to prevent memory leaks
-  const { history } = nextState;
-  if (history) {
-    delete history.history;
-  }
 
   nextState.actions.forEach((action) => {
     if (

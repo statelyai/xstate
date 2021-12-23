@@ -1,5 +1,9 @@
-const { typescript } = require('svelte-preprocess');
+const { babel } = require('svelte-preprocess');
 
 module.exports = {
-  preprocess: [typescript()]
+  preprocess: [
+    babel({
+      rootMode: 'upward'
+    })
+  ]
 };

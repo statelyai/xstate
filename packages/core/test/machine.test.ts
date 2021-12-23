@@ -108,14 +108,6 @@ describe('machine', () => {
     });
   });
 
-  describe('machine.history', () => {
-    it('should not retain previous history', () => {
-      const next = lightMachine.transition(lightMachine.initialState, 'TIMER');
-      const following = lightMachine.transition(next, 'TIMER');
-      expect(following!.history!.history).not.toBeDefined();
-    });
-  });
-
   describe('machine.config', () => {
     it('state node config should reference original machine config', () => {
       const machine = createMachine({
