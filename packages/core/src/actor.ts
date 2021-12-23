@@ -85,7 +85,7 @@ export function spawn<TReceived extends EventObject, TEmitted>(
   behavior: Behavior<TReceived, TEmitted>,
   // TODO: use more universal uniqueid)
   name: string = registry.bookId()
-) {
+): ActorRef<TReceived, TEmitted> {
   const actorRef = new ObservableActorRef(behavior, name);
   return capturedState.captureSpawn(actorRef, name);
 }

@@ -6,7 +6,8 @@ import {
   State,
   createMachine
 } from '../src';
-import { invokeMachine } from '../src/invoke';
+import { createPromiseBehavior, fromPromise } from '../src/behaviors';
+import { invokeMachine, invokePromise } from '../src/invoke';
 import { ActorRef } from '../src/types';
 
 interface CounterContext {
@@ -447,4 +448,73 @@ describe('assign meta', () => {
       service.send({ type: 'EVENT' });
     }
   );
+
+  it('meta.spawn should spawn actors', (done) => {
+    const machine = createMachine({
+      context: {},
+      initial: 'pending',
+      states: {
+        pending: {
+          on: {
+            EVENT: {
+              actions: assign({
+                promise: (_, __, { spawn }) => {
+                  return spawn(
+                    createPromiseBehavior(() => Promise.resolve(42))
+                  );
+                }
+              })
+            },
+            'done.invoke.*': 'success'
+          }
+        },
+        success: { type: 'final' }
+      }
+    });
+
+    const service = interpret(machine).onDone(() => {
+      done();
+    });
+
+    service.start();
+    service.send('EVENT');
+  });
+
+  it('meta.spawn should spawn actors defined from the machine', (done) => {
+    const machine = createMachine(
+      {
+        context: {},
+        initial: 'pending',
+        states: {
+          pending: {
+            on: {
+              EVENT: {
+                actions: assign({
+                  promise: (_, __, { spawn }) => {
+                    return spawn('test');
+                  }
+                })
+              },
+              'done.invoke.*': 'success'
+            }
+          },
+          success: { type: 'final' }
+        }
+      },
+      {
+        actors: {
+          test: invokePromise(() => {
+            return Promise.resolve(42);
+          })
+        }
+      }
+    );
+
+    const service = interpret(machine).onDone(() => {
+      done();
+    });
+
+    service.start();
+    service.send('EVENT');
+  });
 });

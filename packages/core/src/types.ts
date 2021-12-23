@@ -72,6 +72,10 @@ export interface BaseDynamicActionObject<
 
 export type MachineContext = object;
 
+export interface MachineGenerics {
+  actors: Record<string, ActorRef<any, any>>;
+}
+
 /**
  * The specified string event types or the specified event objects.
  */
@@ -100,6 +104,11 @@ export interface AssignMeta<
   state?: State<TContext, TEvent>;
   action: BaseActionObject;
   _event: SCXML.Event<TEvent>;
+  spawn: <TReceived extends EventObject, TEmitted>(
+    behavior: Behavior<TReceived, TEmitted> | string,
+    // TODO: use more universal uniqueid)
+    name?: string
+  ) => ActorRef<TReceived, TEmitted>;
 }
 
 export type ActionFunction<

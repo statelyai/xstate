@@ -10,9 +10,10 @@ import type {
 } from '../types';
 import * as actionTypes from '../actionTypes';
 import { createDynamicAction } from '../../actions/dynamicAction';
-import { isFunction, keys } from '../utils';
+import { isFunction, isString, keys } from '../utils';
 
 import * as capturedState from '../capturedState';
+import { spawn } from '../actor';
 
 /**
  * Updates the current context of the machine.
@@ -40,7 +41,7 @@ export function assign<
     {
       assignment
     },
-    (_, context, _event, { state, action }) => {
+    (_, context, _event, { machine, state, action }) => {
       const capturedActions: InvokeActionObject[] = [];
 
       if (!context) {
@@ -52,7 +53,33 @@ export function assign<
       const meta: AssignMeta<TContext, TEvent> = {
         state,
         action,
-        _event
+        _event,
+        spawn: (behavior, name) => {
+          if (isString(behavior)) {
+            // console.log(
+            //   '>>>',
+            //   behavior,
+            //   name,
+            //   machine.options.actors[behavior]
+            // );
+            const b = machine.options.actors[behavior];
+
+            if (b) {
+              const br = b(context, _event.data, {
+                id: name || 'anon',
+                src: { type: behavior },
+                _event,
+                meta: undefined
+              });
+
+              return spawn(br);
+            }
+
+            throw new Error('does not exist');
+          } else {
+            return spawn(behavior, name);
+          }
+        }
       };
 
       let partialUpdate: Partial<TContext> = {};
