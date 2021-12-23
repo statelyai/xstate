@@ -5,19 +5,20 @@ import { ActorRef, Interpreter, Subscribable } from 'xstate';
 import { isActorWithState } from './useActor';
 import { getServiceSnapshot } from './useService';
 
-function isService(actor: any): actor is Interpreter<any, any, any> {
+function isService(actor: any): actor is Interpreter<any, any> {
   return 'state' in actor && 'machine' in actor;
 }
 
 const defaultCompare = (a, b) => a === b;
-const defaultGetSnapshot = <TActor extends ActorRef<any, any>>(a: TActor) =>
-  'getSnapshot' in a
+function defaultGetSnapshot<TActor extends ActorRef<any, any>>(a: TActor) {
+  return 'getSnapshot' in a
     ? a.getSnapshot()
     : isService(a)
     ? getServiceSnapshot(a)
     : isActorWithState(a)
     ? a.state
     : undefined;
+}
 
 export function useSelector<
   TActor extends ActorRef<any, any>,

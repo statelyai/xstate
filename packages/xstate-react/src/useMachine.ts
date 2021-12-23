@@ -6,7 +6,6 @@ import {
   InterpreterOptions,
   MachineImplementations,
   StateConfig,
-  Typestate,
   ActionFunction,
   InterpreterOf,
   MachineContext
@@ -69,35 +68,30 @@ export interface UseMachineOptions<
 
 export function useMachine<
   TContext extends MachineContext,
-  TEvent extends EventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TEvent extends EventObject
 >(
-  getMachine: MaybeLazy<StateMachine<TContext, TEvent, TTypestate>>,
+  getMachine: MaybeLazy<StateMachine<TContext, TEvent>>,
   options: Partial<InterpreterOptions> &
     Partial<UseMachineOptions<TContext, TEvent>> &
     Partial<MachineImplementations<TContext, TEvent>> = {}
 ): [
-  State<TContext, TEvent, TTypestate>,
-  InterpreterOf<StateMachine<TContext, TEvent, TTypestate>>['send'],
-  InterpreterOf<StateMachine<TContext, TEvent, TTypestate>>
+  State<TContext, TEvent>,
+  InterpreterOf<StateMachine<TContext, TEvent>>['send'],
+  InterpreterOf<StateMachine<TContext, TEvent>>
 ] {
-  const listener = useCallback(
-    (nextState: State<TContext, TEvent, TTypestate>) => {
-      // Only change the current state if:
-      // - the incoming state is the "live" initial state (since it might have new actors)
-      // - OR the incoming state actually changed.
-      //
-      // The "live" initial state will have .changed === undefined.
-      const initialStateChanged =
-        nextState.changed === undefined &&
-        Object.keys(nextState.children).length;
+  const listener = useCallback((nextState: State<TContext, TEvent>) => {
+    // Only change the current state if:
+    // - the incoming state is the "live" initial state (since it might have new actors)
+    // - OR the incoming state actually changed.
+    //
+    // The "live" initial state will have .changed === undefined.
+    const initialStateChanged =
+      nextState.changed === undefined && Object.keys(nextState.children).length;
 
-      if (nextState.changed || initialStateChanged) {
-        setState(nextState);
-      }
-    },
-    []
-  );
+    if (nextState.changed || initialStateChanged) {
+      setState(nextState);
+    }
+  }, []);
 
   const service = useInterpret(getMachine, options, listener);
 
@@ -105,7 +99,7 @@ export function useMachine<
     const { initialState } = service.machine;
     return (options.state
       ? State.create(options.state)
-      : initialState) as State<TContext, TEvent, TTypestate>;
+      : initialState) as State<TContext, TEvent>;
   });
 
   return [state, service.send, service];

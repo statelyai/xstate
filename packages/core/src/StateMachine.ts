@@ -6,7 +6,6 @@ import type {
   EventObject,
   MachineConfig,
   SCXML,
-  Typestate,
   Transitions,
   MachineSchema,
   StateNodeDefinition,
@@ -33,15 +32,17 @@ export const NULL_EVENT = '';
 export const STATE_IDENTIFIER = '#';
 export const WILDCARD = '*';
 
-const createDefaultOptions = <TContext extends MachineContext>(
+function createDefaultOptions<TContext extends MachineContext>(
   context: TContext
-): MachineImplementations<TContext, any> => ({
-  actions: {},
-  guards: {},
-  actors: {},
-  delays: {},
-  context
-});
+): MachineImplementations<TContext, any> {
+  return {
+    actions: {},
+    guards: {},
+    actors: {},
+    delays: {},
+    context
+  };
+}
 
 function resolveContext<TContext>(
   context: TContext,
@@ -59,8 +60,7 @@ function resolveContext<TContext>(
 
 export class StateMachine<
   TContext extends MachineContext = any,
-  TEvent extends EventObject = EventObject,
-  TTypestate extends Typestate<TContext> = any
+  TEvent extends EventObject = EventObject
 > {
   private _context: () => TContext;
   public get context(): TContext {
@@ -170,7 +170,7 @@ export class StateMachine<
    *
    * @param state The state to resolve
    */
-  public resolveState(state: State<TContext, TEvent, any>): typeof state {
+  public resolveState(state: State<TContext, TEvent>): typeof state {
     const configuration = Array.from(
       getConfiguration(getStateNodes(this.root, state.value))
     );
@@ -189,9 +189,9 @@ export class StateMachine<
    * @param event The received event
    */
   public transition(
-    state: StateValue | State<TContext, TEvent, TTypestate> = this.initialState,
+    state: StateValue | State<TContext, TEvent> = this.initialState,
     event: Event<TEvent> | SCXML.Event<TEvent>
-  ): State<TContext, TEvent, TTypestate> {
+  ): State<TContext, TEvent> {
     const currentState = toState(state, this);
 
     return macrostep(currentState, event, this);
@@ -205,9 +205,9 @@ export class StateMachine<
    * @param event The received event
    */
   public microstep(
-    state: StateValue | State<TContext, TEvent, TTypestate> = this.initialState,
+    state: StateValue | State<TContext, TEvent> = this.initialState,
     event: Event<TEvent> | SCXML.Event<TEvent>
-  ): State<TContext, TEvent, TTypestate> {
+  ): State<TContext, TEvent> {
     const resolvedState = toState(state, this);
     const _event = toSCXMLEvent(event);
 
@@ -227,7 +227,7 @@ export class StateMachine<
     return transitionNode(this.root, state.value, state, _event) || [];
   }
 
-  public get first(): State<TContext, TEvent, TTypestate> {
+  public get first(): State<TContext, TEvent> {
     const pseudoinitial = this.resolveState(
       State.from(
         getStateValue(this.root, getConfiguration([this.root])),
@@ -243,7 +243,7 @@ export class StateMachine<
    * The initial State instance, which includes all actions to be executed from
    * entering the initial state.
    */
-  public get initialState(): State<TContext, TEvent, TTypestate> {
+  public get initialState(): State<TContext, TEvent> {
     const nextState = resolveMicroTransition(this, [], this.first, undefined);
     return macrostep(nextState, null as any, this);
   }
@@ -251,13 +251,9 @@ export class StateMachine<
   /**
    * Returns the initial `State` instance, with reference to `self` as an `ActorRef`.
    */
-  public getInitialState(): State<TContext, TEvent, TTypestate> {
+  public getInitialState(): State<TContext, TEvent> {
     const nextState = resolveMicroTransition(this, [], this.first, undefined);
-    return macrostep(nextState, null as any, this) as State<
-      TContext,
-      TEvent,
-      TTypestate
-    >;
+    return macrostep(nextState, null as any, this) as State<TContext, TEvent>;
   }
 
   public getStateNodeById(stateId: string): StateNode<TContext, TEvent> {
@@ -284,11 +280,11 @@ export class StateMachine<
 
   public createState(
     stateConfig: State<TContext, TEvent> | StateConfig<TContext, TEvent>
-  ): State<TContext, TEvent, TTypestate> {
+  ): State<TContext, TEvent> {
     const state =
       stateConfig instanceof State
         ? stateConfig
-        : (new State(stateConfig) as State<TContext, TEvent, TTypestate>);
+        : (new State(stateConfig) as State<TContext, TEvent>);
     state.machine = this;
     return state;
   }

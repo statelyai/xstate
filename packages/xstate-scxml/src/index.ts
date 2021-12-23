@@ -153,7 +153,7 @@ function stateNodeToSCXML(stateNode: StateNode<any, any>): XMLElement {
   };
 }
 
-export function toSCXML(machine: StateMachine<any, any, any>): string {
+export function toSCXML(machine: StateMachine<any, any>): string {
   const { states, initial } = machine.root;
 
   const elements = Object.keys(states).map<XMLElement>((key) => {

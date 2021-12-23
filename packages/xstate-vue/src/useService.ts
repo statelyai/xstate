@@ -2,7 +2,6 @@ import {
   EventObject,
   State,
   Interpreter,
-  Typestate,
   PayloadSender,
   MachineContext
 } from 'xstate';
@@ -19,14 +18,11 @@ import { useActor } from './useActor';
  */
 export function useService<
   TContext extends MachineContext,
-  TEvent extends EventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TEvent extends EventObject
 >(
-  service:
-    | Interpreter<TContext, TEvent, TTypestate>
-    | Ref<Interpreter<TContext, TEvent, TTypestate>>
+  service: Interpreter<TContext, TEvent> | Ref<Interpreter<TContext, TEvent>>
 ): {
-  state: Ref<State<TContext, TEvent, TTypestate>>;
+  state: Ref<State<TContext, TEvent>>;
   send: PayloadSender<TEvent>;
 } {
   if (

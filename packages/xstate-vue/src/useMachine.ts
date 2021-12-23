@@ -6,7 +6,6 @@ import {
   Interpreter,
   InterpreterOptions,
   MachineImplementations,
-  Typestate,
   MachineContext
 } from 'xstate';
 
@@ -16,17 +15,16 @@ import { useInterpret } from './useInterpret';
 
 export function useMachine<
   TContext extends MachineContext,
-  TEvent extends EventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TEvent extends EventObject
 >(
-  getMachine: MaybeLazy<StateMachine<TContext, TEvent, TTypestate>>,
+  getMachine: MaybeLazy<StateMachine<TContext, TEvent>>,
   options: Partial<InterpreterOptions> &
     Partial<UseMachineOptions<TContext, TEvent>> &
     Partial<MachineImplementations<TContext, TEvent>> = {}
 ): {
-  state: Ref<State<TContext, TEvent, TTypestate>>;
-  send: Interpreter<TContext, TEvent, TTypestate>['send'];
-  service: Interpreter<TContext, TEvent, TTypestate>;
+  state: Ref<State<TContext, TEvent>>;
+  send: Interpreter<TContext, TEvent>['send'];
+  service: Interpreter<TContext, TEvent>;
 } {
   const service = useInterpret(getMachine, options, listener);
 
@@ -34,12 +32,11 @@ export function useMachine<
   const state = shallowRef(
     (options.state ? State.create(options.state) : initialState) as State<
       TContext,
-      TEvent,
-      TTypestate
+      TEvent
     >
   );
 
-  function listener(nextState: State<TContext, TEvent, TTypestate>) {
+  function listener(nextState: State<TContext, TEvent>) {
     // Only change the current state if:
     // - the incoming state is the "live" initial state (since it might have new actors)
     // - OR the incoming state actually changed.

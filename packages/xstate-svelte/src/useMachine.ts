@@ -5,8 +5,7 @@ import {
   StateMachine,
   InterpreterOptions,
   MachineImplementations,
-  StateConfig,
-  Typestate
+  StateConfig
 } from 'xstate';
 
 interface UseMachineOptions<
@@ -24,12 +23,8 @@ interface UseMachineOptions<
   state: StateConfig<TContext, TEvent>;
 }
 
-export function useMachine<
-  TContext extends object,
-  TEvent extends EventObject,
-  TTypestate extends Typestate<TContext>
->(
-  machine: StateMachine<TContext, TEvent, TTypestate>,
+export function useMachine<TContext extends object, TEvent extends EventObject>(
+  machine: StateMachine<TContext, TEvent>,
   options: Partial<InterpreterOptions> &
     Partial<UseMachineOptions<TContext, TEvent>> &
     Partial<MachineImplementations<TContext, TEvent>> = {}
