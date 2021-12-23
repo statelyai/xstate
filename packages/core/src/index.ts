@@ -1,4 +1,4 @@
-import { matchesState } from './utils';
+import { matchesState, assertEventType } from './utils';
 import { mapState } from './mapState';
 import { StateNode } from './StateNode';
 import { State } from './State';
