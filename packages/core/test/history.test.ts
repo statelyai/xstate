@@ -64,14 +64,6 @@ describe('history states', () => {
     });
   });
 
-  it('should dispose of previous histories', () => {
-    const onSecondState = historyMachine.transition('on', 'SWITCH');
-    const offState = historyMachine.transition(onSecondState, 'H_POWER');
-    const onState = historyMachine.transition(offState, 'H_POWER');
-    const nextState = historyMachine.transition(onState, 'H_POWER');
-    expect(nextState.history!.history).not.toBeDefined();
-  });
-
   it('should go to the most recently visited state by a transient transition', () => {
     const machine = createMachine({
       initial: 'idle',
@@ -361,7 +353,6 @@ describe('transient history', () => {
   it('should have history on transient transitions', () => {
     const nextState = transientMachine.transition('A', 'EVENT');
     expect(nextState.value).toEqual('C');
-    expect(nextState.history).toBeDefined();
   });
 });
 

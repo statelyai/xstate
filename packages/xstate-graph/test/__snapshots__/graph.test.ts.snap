@@ -26,7 +26,6 @@ Object {
         "event": Object {
           "type": "xstate.init",
         },
-        "history": undefined,
         "historyValue": Object {},
         "matches": [Function],
         "meta": Object {},
@@ -58,32 +57,6 @@ Object {
         "event": Object {
           "type": "TIMER",
         },
-        "history": Object {
-          "_event": Object {
-            "$$type": "scxml",
-            "data": Object {
-              "type": "xstate.init",
-            },
-            "name": "xstate.init",
-            "type": "external",
-          },
-          "_initial": false,
-          "_internalQueue": Array [],
-          "_sessionid": null,
-          "actions": Array [],
-          "changed": undefined,
-          "children": Object {},
-          "context": Object {},
-          "event": Object {
-            "type": "xstate.init",
-          },
-          "historyValue": Object {},
-          "matches": [Function],
-          "meta": Object {},
-          "tags": Array [],
-          "toStrings": [Function],
-          "value": "green",
-        },
         "historyValue": Object {},
         "matches": [Function],
         "meta": Object {},
@@ -114,32 +87,6 @@ Object {
         "context": Object {},
         "event": Object {
           "type": "TIMER",
-        },
-        "history": Object {
-          "_event": Object {
-            "$$type": "scxml",
-            "data": Object {
-              "type": "TIMER",
-            },
-            "name": "TIMER",
-            "type": "external",
-          },
-          "_initial": false,
-          "_internalQueue": Array [],
-          "_sessionid": null,
-          "actions": Array [],
-          "changed": true,
-          "children": Object {},
-          "context": Object {},
-          "event": Object {
-            "type": "TIMER",
-          },
-          "historyValue": Object {},
-          "matches": [Function],
-          "meta": Object {},
-          "tags": Array [],
-          "toStrings": [Function],
-          "value": "yellow",
         },
         "historyValue": Object {},
         "matches": [Function],
@@ -174,34 +121,6 @@ Object {
         "event": Object {
           "type": "TIMER",
         },
-        "history": Object {
-          "_event": Object {
-            "$$type": "scxml",
-            "data": Object {
-              "type": "TIMER",
-            },
-            "name": "TIMER",
-            "type": "external",
-          },
-          "_initial": false,
-          "_internalQueue": Array [],
-          "_sessionid": null,
-          "actions": Array [],
-          "changed": true,
-          "children": Object {},
-          "context": Object {},
-          "event": Object {
-            "type": "TIMER",
-          },
-          "historyValue": Object {},
-          "matches": [Function],
-          "meta": Object {},
-          "tags": Array [],
-          "toStrings": [Function],
-          "value": Object {
-            "red": "walk",
-          },
-        },
         "historyValue": Object {},
         "matches": [Function],
         "meta": Object {},
@@ -229,32 +148,6 @@ Object {
     "context": Object {},
     "event": Object {
       "type": "POWER_OUTAGE",
-    },
-    "history": Object {
-      "_event": Object {
-        "$$type": "scxml",
-        "data": Object {
-          "type": "xstate.init",
-        },
-        "name": "xstate.init",
-        "type": "external",
-      },
-      "_initial": false,
-      "_internalQueue": Array [],
-      "_sessionid": null,
-      "actions": Array [],
-      "changed": undefined,
-      "children": Object {},
-      "context": Object {},
-      "event": Object {
-        "type": "xstate.init",
-      },
-      "historyValue": Object {},
-      "matches": [Function],
-      "meta": Object {},
-      "tags": Array [],
-      "toStrings": [Function],
-      "value": "green",
     },
     "historyValue": Object {},
     "matches": [Function],
@@ -301,7 +194,6 @@ Object {
               "event": Object {
                 "type": "xstate.init",
               },
-              "history": undefined,
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -333,34 +225,6 @@ Object {
           "event": Object {
             "id": "whatever",
             "type": "EVENT",
-          },
-          "history": Object {
-            "_event": Object {
-              "$$type": "scxml",
-              "data": Object {
-                "type": "xstate.init",
-              },
-              "name": "xstate.init",
-              "type": "external",
-            },
-            "_initial": false,
-            "_internalQueue": Array [],
-            "_sessionid": null,
-            "actions": Array [],
-            "changed": undefined,
-            "children": Object {},
-            "context": Object {
-              "id": "foo",
-            },
-            "event": Object {
-              "type": "xstate.init",
-            },
-            "historyValue": Object {},
-            "matches": [Function],
-            "meta": Object {},
-            "tags": Array [],
-            "toStrings": [Function],
-            "value": "pending",
           },
           "historyValue": Object {},
           "matches": [Function],
@@ -394,34 +258,6 @@ Object {
       "event": Object {
         "id": "whatever",
         "type": "EVENT",
-      },
-      "history": Object {
-        "_event": Object {
-          "$$type": "scxml",
-          "data": Object {
-            "type": "xstate.init",
-          },
-          "name": "xstate.init",
-          "type": "external",
-        },
-        "_initial": false,
-        "_internalQueue": Array [],
-        "_sessionid": null,
-        "actions": Array [],
-        "changed": undefined,
-        "children": Object {},
-        "context": Object {
-          "id": "foo",
-        },
-        "event": Object {
-          "type": "xstate.init",
-        },
-        "historyValue": Object {},
-        "matches": [Function],
-        "meta": Object {},
-        "tags": Array [],
-        "toStrings": [Function],
-        "value": "pending",
       },
       "historyValue": Object {},
       "matches": [Function],
@@ -460,7 +296,6 @@ Object {
               "event": Object {
                 "type": "xstate.init",
               },
-              "history": undefined,
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -490,34 +325,6 @@ Object {
           },
           "event": Object {
             "type": "STATE",
-          },
-          "history": Object {
-            "_event": Object {
-              "$$type": "scxml",
-              "data": Object {
-                "type": "xstate.init",
-              },
-              "name": "xstate.init",
-              "type": "external",
-            },
-            "_initial": false,
-            "_internalQueue": Array [],
-            "_sessionid": null,
-            "actions": Array [],
-            "changed": undefined,
-            "children": Object {},
-            "context": Object {
-              "id": "foo",
-            },
-            "event": Object {
-              "type": "xstate.init",
-            },
-            "historyValue": Object {},
-            "matches": [Function],
-            "meta": Object {},
-            "tags": Array [],
-            "toStrings": [Function],
-            "value": "pending",
           },
           "historyValue": Object {},
           "matches": [Function],
@@ -549,34 +356,6 @@ Object {
       },
       "event": Object {
         "type": "STATE",
-      },
-      "history": Object {
-        "_event": Object {
-          "$$type": "scxml",
-          "data": Object {
-            "type": "xstate.init",
-          },
-          "name": "xstate.init",
-          "type": "external",
-        },
-        "_initial": false,
-        "_internalQueue": Array [],
-        "_sessionid": null,
-        "actions": Array [],
-        "changed": undefined,
-        "children": Object {},
-        "context": Object {
-          "id": "foo",
-        },
-        "event": Object {
-          "type": "xstate.init",
-        },
-        "historyValue": Object {},
-        "matches": [Function],
-        "meta": Object {},
-        "tags": Array [],
-        "toStrings": [Function],
-        "value": "pending",
       },
       "historyValue": Object {},
       "matches": [Function],
@@ -611,7 +390,6 @@ Object {
           "event": Object {
             "type": "xstate.init",
           },
-          "history": undefined,
           "historyValue": Object {},
           "matches": [Function],
           "meta": Object {},
@@ -643,7 +421,6 @@ Object {
       "event": Object {
         "type": "xstate.init",
       },
-      "history": undefined,
       "historyValue": Object {},
       "matches": [Function],
       "meta": Object {},
@@ -680,35 +457,6 @@ Object {
           "event": Object {
             "type": "1",
           },
-          "history": Object {
-            "_event": Object {
-              "$$type": "scxml",
-              "data": Object {
-                "type": "2",
-              },
-              "name": "2",
-              "type": "external",
-            },
-            "_initial": false,
-            "_internalQueue": Array [],
-            "_sessionid": null,
-            "actions": Array [],
-            "changed": true,
-            "children": Object {},
-            "context": Object {},
-            "event": Object {
-              "type": "2",
-            },
-            "historyValue": Object {},
-            "matches": [Function],
-            "meta": Object {},
-            "tags": Array [],
-            "toStrings": [Function],
-            "value": Object {
-              "a": "a2",
-              "b": "b2",
-            },
-          },
           "historyValue": Object {},
           "matches": [Function],
           "meta": Object {},
@@ -740,35 +488,6 @@ Object {
       "context": Object {},
       "event": Object {
         "type": "1",
-      },
-      "history": Object {
-        "_event": Object {
-          "$$type": "scxml",
-          "data": Object {
-            "type": "2",
-          },
-          "name": "2",
-          "type": "external",
-        },
-        "_initial": false,
-        "_internalQueue": Array [],
-        "_sessionid": null,
-        "actions": Array [],
-        "changed": true,
-        "children": Object {},
-        "context": Object {},
-        "event": Object {
-          "type": "2",
-        },
-        "historyValue": Object {},
-        "matches": [Function],
-        "meta": Object {},
-        "tags": Array [],
-        "toStrings": [Function],
-        "value": Object {
-          "a": "a2",
-          "b": "b2",
-        },
       },
       "historyValue": Object {},
       "matches": [Function],
@@ -807,35 +526,6 @@ Object {
               "context": Object {},
               "event": Object {
                 "type": "1",
-              },
-              "history": Object {
-                "_event": Object {
-                  "$$type": "scxml",
-                  "data": Object {
-                    "type": "2",
-                  },
-                  "name": "2",
-                  "type": "external",
-                },
-                "_initial": false,
-                "_internalQueue": Array [],
-                "_sessionid": null,
-                "actions": Array [],
-                "changed": true,
-                "children": Object {},
-                "context": Object {},
-                "event": Object {
-                  "type": "2",
-                },
-                "historyValue": Object {},
-                "matches": [Function],
-                "meta": Object {},
-                "tags": Array [],
-                "toStrings": [Function],
-                "value": Object {
-                  "a": "a2",
-                  "b": "b2",
-                },
               },
               "historyValue": Object {},
               "matches": [Function],
@@ -938,35 +628,6 @@ Object {
               "event": Object {
                 "type": "1",
               },
-              "history": Object {
-                "_event": Object {
-                  "$$type": "scxml",
-                  "data": Object {
-                    "type": "2",
-                  },
-                  "name": "2",
-                  "type": "external",
-                },
-                "_initial": false,
-                "_internalQueue": Array [],
-                "_sessionid": null,
-                "actions": Array [],
-                "changed": true,
-                "children": Object {},
-                "context": Object {},
-                "event": Object {
-                  "type": "2",
-                },
-                "historyValue": Object {},
-                "matches": [Function],
-                "meta": Object {},
-                "tags": Array [],
-                "toStrings": [Function],
-                "value": Object {
-                  "a": "a2",
-                  "b": "b2",
-                },
-              },
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -997,35 +658,6 @@ Object {
           "context": Object {},
           "event": Object {
             "type": "3",
-          },
-          "history": Object {
-            "_event": Object {
-              "$$type": "scxml",
-              "data": Object {
-                "type": "2",
-              },
-              "name": "2",
-              "type": "external",
-            },
-            "_initial": false,
-            "_internalQueue": Array [],
-            "_sessionid": null,
-            "actions": Array [],
-            "changed": true,
-            "children": Object {},
-            "context": Object {},
-            "event": Object {
-              "type": "2",
-            },
-            "historyValue": Object {},
-            "matches": [Function],
-            "meta": Object {},
-            "tags": Array [],
-            "toStrings": [Function],
-            "value": Object {
-              "a": "a2",
-              "b": "b2",
-            },
           },
           "historyValue": Object {},
           "matches": [Function],
@@ -1058,35 +690,6 @@ Object {
       "context": Object {},
       "event": Object {
         "type": "3",
-      },
-      "history": Object {
-        "_event": Object {
-          "$$type": "scxml",
-          "data": Object {
-            "type": "2",
-          },
-          "name": "2",
-          "type": "external",
-        },
-        "_initial": false,
-        "_internalQueue": Array [],
-        "_sessionid": null,
-        "actions": Array [],
-        "changed": true,
-        "children": Object {},
-        "context": Object {},
-        "event": Object {
-          "type": "2",
-        },
-        "historyValue": Object {},
-        "matches": [Function],
-        "meta": Object {},
-        "tags": Array [],
-        "toStrings": [Function],
-        "value": Object {
-          "a": "a2",
-          "b": "b2",
-        },
       },
       "historyValue": Object {},
       "matches": [Function],
@@ -1127,34 +730,6 @@ Object {
           "event": Object {
             "type": "TIMER",
           },
-          "history": Object {
-            "_event": Object {
-              "$$type": "scxml",
-              "data": Object {
-                "type": "PED_COUNTDOWN",
-              },
-              "name": "PED_COUNTDOWN",
-              "type": "external",
-            },
-            "_initial": false,
-            "_internalQueue": Array [],
-            "_sessionid": null,
-            "actions": Array [],
-            "changed": true,
-            "children": Object {},
-            "context": Object {},
-            "event": Object {
-              "type": "PED_COUNTDOWN",
-            },
-            "historyValue": Object {},
-            "matches": [Function],
-            "meta": Object {},
-            "tags": Array [],
-            "toStrings": [Function],
-            "value": Object {
-              "red": "stop",
-            },
-          },
           "historyValue": Object {},
           "matches": [Function],
           "meta": Object {},
@@ -1183,34 +758,6 @@ Object {
       "context": Object {},
       "event": Object {
         "type": "TIMER",
-      },
-      "history": Object {
-        "_event": Object {
-          "$$type": "scxml",
-          "data": Object {
-            "type": "PED_COUNTDOWN",
-          },
-          "name": "PED_COUNTDOWN",
-          "type": "external",
-        },
-        "_initial": false,
-        "_internalQueue": Array [],
-        "_sessionid": null,
-        "actions": Array [],
-        "changed": true,
-        "children": Object {},
-        "context": Object {},
-        "event": Object {
-          "type": "PED_COUNTDOWN",
-        },
-        "historyValue": Object {},
-        "matches": [Function],
-        "meta": Object {},
-        "tags": Array [],
-        "toStrings": [Function],
-        "value": Object {
-          "red": "stop",
-        },
       },
       "historyValue": Object {},
       "matches": [Function],
@@ -1246,34 +793,6 @@ Object {
               "context": Object {},
               "event": Object {
                 "type": "TIMER",
-              },
-              "history": Object {
-                "_event": Object {
-                  "$$type": "scxml",
-                  "data": Object {
-                    "type": "PED_COUNTDOWN",
-                  },
-                  "name": "PED_COUNTDOWN",
-                  "type": "external",
-                },
-                "_initial": false,
-                "_internalQueue": Array [],
-                "_sessionid": null,
-                "actions": Array [],
-                "changed": true,
-                "children": Object {},
-                "context": Object {},
-                "event": Object {
-                  "type": "PED_COUNTDOWN",
-                },
-                "historyValue": Object {},
-                "matches": [Function],
-                "meta": Object {},
-                "tags": Array [],
-                "toStrings": [Function],
-                "value": Object {
-                  "red": "stop",
-                },
               },
               "historyValue": Object {},
               "matches": [Function],
@@ -1367,34 +886,6 @@ Object {
               "event": Object {
                 "type": "TIMER",
               },
-              "history": Object {
-                "_event": Object {
-                  "$$type": "scxml",
-                  "data": Object {
-                    "type": "PED_COUNTDOWN",
-                  },
-                  "name": "PED_COUNTDOWN",
-                  "type": "external",
-                },
-                "_initial": false,
-                "_internalQueue": Array [],
-                "_sessionid": null,
-                "actions": Array [],
-                "changed": true,
-                "children": Object {},
-                "context": Object {},
-                "event": Object {
-                  "type": "PED_COUNTDOWN",
-                },
-                "historyValue": Object {},
-                "matches": [Function],
-                "meta": Object {},
-                "tags": Array [],
-                "toStrings": [Function],
-                "value": Object {
-                  "red": "stop",
-                },
-              },
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -1422,34 +913,6 @@ Object {
           "context": Object {},
           "event": Object {
             "type": "POWER_OUTAGE",
-          },
-          "history": Object {
-            "_event": Object {
-              "$$type": "scxml",
-              "data": Object {
-                "type": "PED_COUNTDOWN",
-              },
-              "name": "PED_COUNTDOWN",
-              "type": "external",
-            },
-            "_initial": false,
-            "_internalQueue": Array [],
-            "_sessionid": null,
-            "actions": Array [],
-            "changed": true,
-            "children": Object {},
-            "context": Object {},
-            "event": Object {
-              "type": "PED_COUNTDOWN",
-            },
-            "historyValue": Object {},
-            "matches": [Function],
-            "meta": Object {},
-            "tags": Array [],
-            "toStrings": [Function],
-            "value": Object {
-              "red": "stop",
-            },
           },
           "historyValue": Object {},
           "matches": [Function],
@@ -1481,34 +944,6 @@ Object {
       "context": Object {},
       "event": Object {
         "type": "POWER_OUTAGE",
-      },
-      "history": Object {
-        "_event": Object {
-          "$$type": "scxml",
-          "data": Object {
-            "type": "PED_COUNTDOWN",
-          },
-          "name": "PED_COUNTDOWN",
-          "type": "external",
-        },
-        "_initial": false,
-        "_internalQueue": Array [],
-        "_sessionid": null,
-        "actions": Array [],
-        "changed": true,
-        "children": Object {},
-        "context": Object {},
-        "event": Object {
-          "type": "PED_COUNTDOWN",
-        },
-        "historyValue": Object {},
-        "matches": [Function],
-        "meta": Object {},
-        "tags": Array [],
-        "toStrings": [Function],
-        "value": Object {
-          "red": "stop",
-        },
       },
       "historyValue": Object {},
       "matches": [Function],
@@ -1546,34 +981,6 @@ Object {
               "context": Object {},
               "event": Object {
                 "type": "TIMER",
-              },
-              "history": Object {
-                "_event": Object {
-                  "$$type": "scxml",
-                  "data": Object {
-                    "type": "PED_COUNTDOWN",
-                  },
-                  "name": "PED_COUNTDOWN",
-                  "type": "external",
-                },
-                "_initial": false,
-                "_internalQueue": Array [],
-                "_sessionid": null,
-                "actions": Array [],
-                "changed": true,
-                "children": Object {},
-                "context": Object {},
-                "event": Object {
-                  "type": "PED_COUNTDOWN",
-                },
-                "historyValue": Object {},
-                "matches": [Function],
-                "meta": Object {},
-                "tags": Array [],
-                "toStrings": [Function],
-                "value": Object {
-                  "red": "stop",
-                },
               },
               "historyValue": Object {},
               "matches": [Function],
@@ -1779,34 +1186,6 @@ Object {
               "event": Object {
                 "type": "TIMER",
               },
-              "history": Object {
-                "_event": Object {
-                  "$$type": "scxml",
-                  "data": Object {
-                    "type": "PED_COUNTDOWN",
-                  },
-                  "name": "PED_COUNTDOWN",
-                  "type": "external",
-                },
-                "_initial": false,
-                "_internalQueue": Array [],
-                "_sessionid": null,
-                "actions": Array [],
-                "changed": true,
-                "children": Object {},
-                "context": Object {},
-                "event": Object {
-                  "type": "PED_COUNTDOWN",
-                },
-                "historyValue": Object {},
-                "matches": [Function],
-                "meta": Object {},
-                "tags": Array [],
-                "toStrings": [Function],
-                "value": Object {
-                  "red": "stop",
-                },
-              },
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -1989,34 +1368,6 @@ Object {
               "event": Object {
                 "type": "TIMER",
               },
-              "history": Object {
-                "_event": Object {
-                  "$$type": "scxml",
-                  "data": Object {
-                    "type": "PED_COUNTDOWN",
-                  },
-                  "name": "PED_COUNTDOWN",
-                  "type": "external",
-                },
-                "_initial": false,
-                "_internalQueue": Array [],
-                "_sessionid": null,
-                "actions": Array [],
-                "changed": true,
-                "children": Object {},
-                "context": Object {},
-                "event": Object {
-                  "type": "PED_COUNTDOWN",
-                },
-                "historyValue": Object {},
-                "matches": [Function],
-                "meta": Object {},
-                "tags": Array [],
-                "toStrings": [Function],
-                "value": Object {
-                  "red": "stop",
-                },
-              },
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -2145,7 +1496,6 @@ Object {
           "event": Object {
             "type": "xstate.init",
           },
-          "history": undefined,
           "historyValue": Object {},
           "matches": [Function],
           "meta": Object {},
@@ -2175,7 +1525,6 @@ Object {
       "event": Object {
         "type": "xstate.init",
       },
-      "history": undefined,
       "historyValue": Object {},
       "matches": [Function],
       "meta": Object {},
@@ -2211,7 +1560,6 @@ Object {
               "event": Object {
                 "type": "xstate.init",
               },
-              "history": undefined,
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -2303,34 +1651,6 @@ Object {
               "context": Object {},
               "event": Object {
                 "type": "TIMER",
-              },
-              "history": Object {
-                "_event": Object {
-                  "$$type": "scxml",
-                  "data": Object {
-                    "type": "POWER_OUTAGE",
-                  },
-                  "name": "POWER_OUTAGE",
-                  "type": "external",
-                },
-                "_initial": false,
-                "_internalQueue": Array [],
-                "_sessionid": null,
-                "actions": Array [],
-                "changed": true,
-                "children": Object {},
-                "context": Object {},
-                "event": Object {
-                  "type": "POWER_OUTAGE",
-                },
-                "historyValue": Object {},
-                "matches": [Function],
-                "meta": Object {},
-                "tags": Array [],
-                "toStrings": [Function],
-                "value": Object {
-                  "red": "flashing",
-                },
               },
               "historyValue": Object {},
               "matches": [Function],
@@ -2459,34 +1779,6 @@ Object {
               "context": Object {},
               "event": Object {
                 "type": "TIMER",
-              },
-              "history": Object {
-                "_event": Object {
-                  "$$type": "scxml",
-                  "data": Object {
-                    "type": "POWER_OUTAGE",
-                  },
-                  "name": "POWER_OUTAGE",
-                  "type": "external",
-                },
-                "_initial": false,
-                "_internalQueue": Array [],
-                "_sessionid": null,
-                "actions": Array [],
-                "changed": true,
-                "children": Object {},
-                "context": Object {},
-                "event": Object {
-                  "type": "POWER_OUTAGE",
-                },
-                "historyValue": Object {},
-                "matches": [Function],
-                "meta": Object {},
-                "tags": Array [],
-                "toStrings": [Function],
-                "value": Object {
-                  "red": "flashing",
-                },
               },
               "historyValue": Object {},
               "matches": [Function],
@@ -2624,45 +1916,6 @@ Object {
           "event": Object {
             "type": "POWER_OUTAGE",
           },
-          "history": Object {
-            "_event": Object {
-              "$$type": "scxml",
-              "data": Object {
-                "type": "PED_COUNTDOWN",
-              },
-              "name": "PED_COUNTDOWN",
-              "type": "external",
-            },
-            "_initial": false,
-            "_internalQueue": Array [],
-            "_sessionid": null,
-            "actions": Array [
-              ExecutableAction {
-                "_exec": undefined,
-                "actionObject": Object {
-                  "params": Object {},
-                  "type": "startCountdown",
-                },
-                "context": Object {},
-                "params": Object {},
-                "type": "startCountdown",
-              },
-            ],
-            "changed": true,
-            "children": Object {},
-            "context": Object {},
-            "event": Object {
-              "type": "PED_COUNTDOWN",
-            },
-            "historyValue": Object {},
-            "matches": [Function],
-            "meta": Object {},
-            "tags": Array [],
-            "toStrings": [Function],
-            "value": Object {
-              "red": "wait",
-            },
-          },
           "historyValue": Object {},
           "matches": [Function],
           "meta": Object {},
@@ -2698,34 +1951,6 @@ Object {
               "context": Object {},
               "event": Object {
                 "type": "TIMER",
-              },
-              "history": Object {
-                "_event": Object {
-                  "$$type": "scxml",
-                  "data": Object {
-                    "type": "POWER_OUTAGE",
-                  },
-                  "name": "POWER_OUTAGE",
-                  "type": "external",
-                },
-                "_initial": false,
-                "_internalQueue": Array [],
-                "_sessionid": null,
-                "actions": Array [],
-                "changed": true,
-                "children": Object {},
-                "context": Object {},
-                "event": Object {
-                  "type": "POWER_OUTAGE",
-                },
-                "historyValue": Object {},
-                "matches": [Function],
-                "meta": Object {},
-                "tags": Array [],
-                "toStrings": [Function],
-                "value": Object {
-                  "red": "flashing",
-                },
               },
               "historyValue": Object {},
               "matches": [Function],
@@ -2896,34 +2121,6 @@ Object {
           "event": Object {
             "type": "POWER_OUTAGE",
           },
-          "history": Object {
-            "_event": Object {
-              "$$type": "scxml",
-              "data": Object {
-                "type": "PED_COUNTDOWN",
-              },
-              "name": "PED_COUNTDOWN",
-              "type": "external",
-            },
-            "_initial": false,
-            "_internalQueue": Array [],
-            "_sessionid": null,
-            "actions": Array [],
-            "changed": true,
-            "children": Object {},
-            "context": Object {},
-            "event": Object {
-              "type": "PED_COUNTDOWN",
-            },
-            "historyValue": Object {},
-            "matches": [Function],
-            "meta": Object {},
-            "tags": Array [],
-            "toStrings": [Function],
-            "value": Object {
-              "red": "stop",
-            },
-          },
           "historyValue": Object {},
           "matches": [Function],
           "meta": Object {},
@@ -2959,34 +2156,6 @@ Object {
               "context": Object {},
               "event": Object {
                 "type": "TIMER",
-              },
-              "history": Object {
-                "_event": Object {
-                  "$$type": "scxml",
-                  "data": Object {
-                    "type": "POWER_OUTAGE",
-                  },
-                  "name": "POWER_OUTAGE",
-                  "type": "external",
-                },
-                "_initial": false,
-                "_internalQueue": Array [],
-                "_sessionid": null,
-                "actions": Array [],
-                "changed": true,
-                "children": Object {},
-                "context": Object {},
-                "event": Object {
-                  "type": "POWER_OUTAGE",
-                },
-                "historyValue": Object {},
-                "matches": [Function],
-                "meta": Object {},
-                "tags": Array [],
-                "toStrings": [Function],
-                "value": Object {
-                  "red": "flashing",
-                },
               },
               "historyValue": Object {},
               "matches": [Function],
@@ -3047,32 +2216,6 @@ Object {
           "event": Object {
             "type": "POWER_OUTAGE",
           },
-          "history": Object {
-            "_event": Object {
-              "$$type": "scxml",
-              "data": Object {
-                "type": "TIMER",
-              },
-              "name": "TIMER",
-              "type": "external",
-            },
-            "_initial": false,
-            "_internalQueue": Array [],
-            "_sessionid": null,
-            "actions": Array [],
-            "changed": true,
-            "children": Object {},
-            "context": Object {},
-            "event": Object {
-              "type": "TIMER",
-            },
-            "historyValue": Object {},
-            "matches": [Function],
-            "meta": Object {},
-            "tags": Array [],
-            "toStrings": [Function],
-            "value": "yellow",
-          },
           "historyValue": Object {},
           "matches": [Function],
           "meta": Object {},
@@ -3109,34 +2252,6 @@ Object {
               "event": Object {
                 "type": "TIMER",
               },
-              "history": Object {
-                "_event": Object {
-                  "$$type": "scxml",
-                  "data": Object {
-                    "type": "PED_COUNTDOWN",
-                  },
-                  "name": "PED_COUNTDOWN",
-                  "type": "external",
-                },
-                "_initial": false,
-                "_internalQueue": Array [],
-                "_sessionid": null,
-                "actions": Array [],
-                "changed": true,
-                "children": Object {},
-                "context": Object {},
-                "event": Object {
-                  "type": "PED_COUNTDOWN",
-                },
-                "historyValue": Object {},
-                "matches": [Function],
-                "meta": Object {},
-                "tags": Array [],
-                "toStrings": [Function],
-                "value": Object {
-                  "red": "stop",
-                },
-              },
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -3164,32 +2279,6 @@ Object {
           "context": Object {},
           "event": Object {
             "type": "POWER_OUTAGE",
-          },
-          "history": Object {
-            "_event": Object {
-              "$$type": "scxml",
-              "data": Object {
-                "type": "xstate.init",
-              },
-              "name": "xstate.init",
-              "type": "external",
-            },
-            "_initial": false,
-            "_internalQueue": Array [],
-            "_sessionid": null,
-            "actions": Array [],
-            "changed": undefined,
-            "children": Object {},
-            "context": Object {},
-            "event": Object {
-              "type": "xstate.init",
-            },
-            "historyValue": Object {},
-            "matches": [Function],
-            "meta": Object {},
-            "tags": Array [],
-            "toStrings": [Function],
-            "value": "green",
           },
           "historyValue": Object {},
           "matches": [Function],
@@ -3258,34 +2347,6 @@ Object {
               "context": Object {},
               "event": Object {
                 "type": "TIMER",
-              },
-              "history": Object {
-                "_event": Object {
-                  "$$type": "scxml",
-                  "data": Object {
-                    "type": "POWER_OUTAGE",
-                  },
-                  "name": "POWER_OUTAGE",
-                  "type": "external",
-                },
-                "_initial": false,
-                "_internalQueue": Array [],
-                "_sessionid": null,
-                "actions": Array [],
-                "changed": true,
-                "children": Object {},
-                "context": Object {},
-                "event": Object {
-                  "type": "POWER_OUTAGE",
-                },
-                "historyValue": Object {},
-                "matches": [Function],
-                "meta": Object {},
-                "tags": Array [],
-                "toStrings": [Function],
-                "value": Object {
-                  "red": "flashing",
-                },
               },
               "historyValue": Object {},
               "matches": [Function],
@@ -3491,34 +2552,6 @@ Object {
               "event": Object {
                 "type": "TIMER",
               },
-              "history": Object {
-                "_event": Object {
-                  "$$type": "scxml",
-                  "data": Object {
-                    "type": "PED_COUNTDOWN",
-                  },
-                  "name": "PED_COUNTDOWN",
-                  "type": "external",
-                },
-                "_initial": false,
-                "_internalQueue": Array [],
-                "_sessionid": null,
-                "actions": Array [],
-                "changed": true,
-                "children": Object {},
-                "context": Object {},
-                "event": Object {
-                  "type": "PED_COUNTDOWN",
-                },
-                "historyValue": Object {},
-                "matches": [Function],
-                "meta": Object {},
-                "tags": Array [],
-                "toStrings": [Function],
-                "value": Object {
-                  "red": "stop",
-                },
-              },
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -3701,34 +2734,6 @@ Object {
               "event": Object {
                 "type": "TIMER",
               },
-              "history": Object {
-                "_event": Object {
-                  "$$type": "scxml",
-                  "data": Object {
-                    "type": "POWER_OUTAGE",
-                  },
-                  "name": "POWER_OUTAGE",
-                  "type": "external",
-                },
-                "_initial": false,
-                "_internalQueue": Array [],
-                "_sessionid": null,
-                "actions": Array [],
-                "changed": true,
-                "children": Object {},
-                "context": Object {},
-                "event": Object {
-                  "type": "POWER_OUTAGE",
-                },
-                "historyValue": Object {},
-                "matches": [Function],
-                "meta": Object {},
-                "tags": Array [],
-                "toStrings": [Function],
-                "value": Object {
-                  "red": "flashing",
-                },
-              },
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -3857,7 +2862,6 @@ Object {
           "event": Object {
             "type": "xstate.init",
           },
-          "history": undefined,
           "historyValue": Object {},
           "matches": [Function],
           "meta": Object {},
@@ -3890,7 +2894,6 @@ Object {
       "event": Object {
         "type": "xstate.init",
       },
-      "history": undefined,
       "historyValue": Object {},
       "matches": [Function],
       "meta": Object {},
@@ -3929,7 +2932,6 @@ Object {
               "event": Object {
                 "type": "xstate.init",
               },
-              "history": undefined,
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -4031,7 +3033,6 @@ Object {
               "event": Object {
                 "type": "xstate.init",
               },
-              "history": undefined,
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -4097,35 +3098,6 @@ Object {
           "event": Object {
             "type": "3",
           },
-          "history": Object {
-            "_event": Object {
-              "$$type": "scxml",
-              "data": Object {
-                "type": "2",
-              },
-              "name": "2",
-              "type": "external",
-            },
-            "_initial": false,
-            "_internalQueue": Array [],
-            "_sessionid": null,
-            "actions": Array [],
-            "changed": true,
-            "children": Object {},
-            "context": Object {},
-            "event": Object {
-              "type": "2",
-            },
-            "historyValue": Object {},
-            "matches": [Function],
-            "meta": Object {},
-            "tags": Array [],
-            "toStrings": [Function],
-            "value": Object {
-              "a": "a2",
-              "b": "b2",
-            },
-          },
           "historyValue": Object {},
           "matches": [Function],
           "meta": Object {},
@@ -4163,35 +3135,6 @@ Object {
               "event": Object {
                 "type": "1",
               },
-              "history": Object {
-                "_event": Object {
-                  "$$type": "scxml",
-                  "data": Object {
-                    "type": "2",
-                  },
-                  "name": "2",
-                  "type": "external",
-                },
-                "_initial": false,
-                "_internalQueue": Array [],
-                "_sessionid": null,
-                "actions": Array [],
-                "changed": true,
-                "children": Object {},
-                "context": Object {},
-                "event": Object {
-                  "type": "2",
-                },
-                "historyValue": Object {},
-                "matches": [Function],
-                "meta": Object {},
-                "tags": Array [],
-                "toStrings": [Function],
-                "value": Object {
-                  "a": "a2",
-                  "b": "b2",
-                },
-              },
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -4222,35 +3165,6 @@ Object {
           "context": Object {},
           "event": Object {
             "type": "3",
-          },
-          "history": Object {
-            "_event": Object {
-              "$$type": "scxml",
-              "data": Object {
-                "type": "xstate.init",
-              },
-              "name": "xstate.init",
-              "type": "external",
-            },
-            "_initial": false,
-            "_internalQueue": Array [],
-            "_sessionid": null,
-            "actions": Array [],
-            "changed": undefined,
-            "children": Object {},
-            "context": Object {},
-            "event": Object {
-              "type": "xstate.init",
-            },
-            "historyValue": Object {},
-            "matches": [Function],
-            "meta": Object {},
-            "tags": Array [],
-            "toStrings": [Function],
-            "value": Object {
-              "a": "a1",
-              "b": "b1",
-            },
           },
           "historyValue": Object {},
           "matches": [Function],
@@ -4283,35 +3197,6 @@ Object {
       "context": Object {},
       "event": Object {
         "type": "3",
-      },
-      "history": Object {
-        "_event": Object {
-          "$$type": "scxml",
-          "data": Object {
-            "type": "2",
-          },
-          "name": "2",
-          "type": "external",
-        },
-        "_initial": false,
-        "_internalQueue": Array [],
-        "_sessionid": null,
-        "actions": Array [],
-        "changed": true,
-        "children": Object {},
-        "context": Object {},
-        "event": Object {
-          "type": "2",
-        },
-        "historyValue": Object {},
-        "matches": [Function],
-        "meta": Object {},
-        "tags": Array [],
-        "toStrings": [Function],
-        "value": Object {
-          "a": "a2",
-          "b": "b2",
-        },
       },
       "historyValue": Object {},
       "matches": [Function],
@@ -4352,7 +3237,6 @@ Object {
           "event": Object {
             "type": "xstate.init",
           },
-          "history": undefined,
           "historyValue": Object {},
           "matches": [Function],
           "meta": Object {},
@@ -4382,7 +3266,6 @@ Object {
       "event": Object {
         "type": "xstate.init",
       },
-      "history": undefined,
       "historyValue": Object {},
       "matches": [Function],
       "meta": Object {},
@@ -4418,7 +3301,6 @@ Object {
               "event": Object {
                 "type": "xstate.init",
               },
-              "history": undefined,
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -4481,7 +3363,6 @@ Object {
               "event": Object {
                 "type": "xstate.init",
               },
-              "history": undefined,
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -4509,32 +3390,6 @@ Object {
           "context": Object {},
           "event": Object {
             "type": "BAR",
-          },
-          "history": Object {
-            "_event": Object {
-              "$$type": "scxml",
-              "data": Object {
-                "type": "xstate.init",
-              },
-              "name": "xstate.init",
-              "type": "external",
-            },
-            "_initial": false,
-            "_internalQueue": Array [],
-            "_sessionid": null,
-            "actions": Array [],
-            "changed": undefined,
-            "children": Object {},
-            "context": Object {},
-            "event": Object {
-              "type": "xstate.init",
-            },
-            "historyValue": Object {},
-            "matches": [Function],
-            "meta": Object {},
-            "tags": Array [],
-            "toStrings": [Function],
-            "value": "a",
           },
           "historyValue": Object {},
           "matches": [Function],
@@ -4608,7 +3463,6 @@ Object {
               "event": Object {
                 "type": "xstate.init",
               },
-              "history": undefined,
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -4743,46 +3597,6 @@ Object {
             "type": "INC",
             "value": 1,
           },
-          "history": Object {
-            "_event": Object {
-              "$$type": "scxml",
-              "data": Object {
-                "type": "INC",
-                "value": 1,
-              },
-              "name": "INC",
-              "type": "external",
-            },
-            "_initial": false,
-            "_internalQueue": Array [],
-            "_sessionid": null,
-            "actions": Array [
-              Object {
-                "params": Object {
-                  "actions": Array [],
-                  "context": Object {
-                    "count": 3,
-                  },
-                },
-                "type": "xstate.assign",
-              },
-            ],
-            "changed": true,
-            "children": Object {},
-            "context": Object {
-              "count": 3,
-            },
-            "event": Object {
-              "type": "INC",
-              "value": 1,
-            },
-            "historyValue": Object {},
-            "matches": [Function],
-            "meta": Object {},
-            "tags": Array [],
-            "toStrings": [Function],
-            "value": "start",
-          },
           "historyValue": Object {},
           "matches": [Function],
           "meta": Object {},
@@ -4826,46 +3640,6 @@ Object {
         "type": "INC",
         "value": 1,
       },
-      "history": Object {
-        "_event": Object {
-          "$$type": "scxml",
-          "data": Object {
-            "type": "INC",
-            "value": 1,
-          },
-          "name": "INC",
-          "type": "external",
-        },
-        "_initial": false,
-        "_internalQueue": Array [],
-        "_sessionid": null,
-        "actions": Array [
-          Object {
-            "params": Object {
-              "actions": Array [],
-              "context": Object {
-                "count": 3,
-              },
-            },
-            "type": "xstate.assign",
-          },
-        ],
-        "changed": true,
-        "children": Object {},
-        "context": Object {
-          "count": 3,
-        },
-        "event": Object {
-          "type": "INC",
-          "value": 1,
-        },
-        "historyValue": Object {},
-        "matches": [Function],
-        "meta": Object {},
-        "tags": Array [],
-        "toStrings": [Function],
-        "value": "start",
-      },
       "historyValue": Object {},
       "matches": [Function],
       "meta": Object {},
@@ -4899,7 +3673,6 @@ Object {
           "event": Object {
             "type": "xstate.init",
           },
-          "history": undefined,
           "historyValue": Object {},
           "matches": [Function],
           "meta": Object {},
@@ -4931,7 +3704,6 @@ Object {
       "event": Object {
         "type": "xstate.init",
       },
-      "history": undefined,
       "historyValue": Object {},
       "matches": [Function],
       "meta": Object {},
@@ -4970,7 +3742,6 @@ Object {
               "event": Object {
                 "type": "xstate.init",
               },
-              "history": undefined,
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -5094,7 +3865,6 @@ Object {
               "event": Object {
                 "type": "xstate.init",
               },
-              "history": undefined,
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -5262,7 +4032,6 @@ Array [
           "event": Object {
             "type": "xstate.init",
           },
-          "history": undefined,
           "historyValue": Object {},
           "matches": [Function],
           "meta": Object {},
@@ -5292,7 +4061,6 @@ Array [
       "event": Object {
         "type": "xstate.init",
       },
-      "history": undefined,
       "historyValue": Object {},
       "matches": [Function],
       "meta": Object {},
@@ -5328,7 +4096,6 @@ Array [
               "event": Object {
                 "type": "xstate.init",
               },
-              "history": undefined,
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -5420,34 +4187,6 @@ Array [
               "context": Object {},
               "event": Object {
                 "type": "TIMER",
-              },
-              "history": Object {
-                "_event": Object {
-                  "$$type": "scxml",
-                  "data": Object {
-                    "type": "POWER_OUTAGE",
-                  },
-                  "name": "POWER_OUTAGE",
-                  "type": "external",
-                },
-                "_initial": false,
-                "_internalQueue": Array [],
-                "_sessionid": null,
-                "actions": Array [],
-                "changed": true,
-                "children": Object {},
-                "context": Object {},
-                "event": Object {
-                  "type": "POWER_OUTAGE",
-                },
-                "historyValue": Object {},
-                "matches": [Function],
-                "meta": Object {},
-                "tags": Array [],
-                "toStrings": [Function],
-                "value": Object {
-                  "red": "flashing",
-                },
               },
               "historyValue": Object {},
               "matches": [Function],
@@ -5576,34 +4315,6 @@ Array [
               "event": Object {
                 "type": "TIMER",
               },
-              "history": Object {
-                "_event": Object {
-                  "$$type": "scxml",
-                  "data": Object {
-                    "type": "POWER_OUTAGE",
-                  },
-                  "name": "POWER_OUTAGE",
-                  "type": "external",
-                },
-                "_initial": false,
-                "_internalQueue": Array [],
-                "_sessionid": null,
-                "actions": Array [],
-                "changed": true,
-                "children": Object {},
-                "context": Object {},
-                "event": Object {
-                  "type": "POWER_OUTAGE",
-                },
-                "historyValue": Object {},
-                "matches": [Function],
-                "meta": Object {},
-                "tags": Array [],
-                "toStrings": [Function],
-                "value": Object {
-                  "red": "flashing",
-                },
-              },
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -5731,34 +4442,6 @@ Array [
               "context": Object {},
               "event": Object {
                 "type": "TIMER",
-              },
-              "history": Object {
-                "_event": Object {
-                  "$$type": "scxml",
-                  "data": Object {
-                    "type": "POWER_OUTAGE",
-                  },
-                  "name": "POWER_OUTAGE",
-                  "type": "external",
-                },
-                "_initial": false,
-                "_internalQueue": Array [],
-                "_sessionid": null,
-                "actions": Array [],
-                "changed": true,
-                "children": Object {},
-                "context": Object {},
-                "event": Object {
-                  "type": "POWER_OUTAGE",
-                },
-                "historyValue": Object {},
-                "matches": [Function],
-                "meta": Object {},
-                "tags": Array [],
-                "toStrings": [Function],
-                "value": Object {
-                  "red": "flashing",
-                },
               },
               "historyValue": Object {},
               "matches": [Function],
@@ -5896,45 +4579,6 @@ Array [
           "event": Object {
             "type": "POWER_OUTAGE",
           },
-          "history": Object {
-            "_event": Object {
-              "$$type": "scxml",
-              "data": Object {
-                "type": "PED_COUNTDOWN",
-              },
-              "name": "PED_COUNTDOWN",
-              "type": "external",
-            },
-            "_initial": false,
-            "_internalQueue": Array [],
-            "_sessionid": null,
-            "actions": Array [
-              ExecutableAction {
-                "_exec": undefined,
-                "actionObject": Object {
-                  "params": Object {},
-                  "type": "startCountdown",
-                },
-                "context": Object {},
-                "params": Object {},
-                "type": "startCountdown",
-              },
-            ],
-            "changed": true,
-            "children": Object {},
-            "context": Object {},
-            "event": Object {
-              "type": "PED_COUNTDOWN",
-            },
-            "historyValue": Object {},
-            "matches": [Function],
-            "meta": Object {},
-            "tags": Array [],
-            "toStrings": [Function],
-            "value": Object {
-              "red": "wait",
-            },
-          },
           "historyValue": Object {},
           "matches": [Function],
           "meta": Object {},
@@ -5970,34 +4614,6 @@ Array [
               "context": Object {},
               "event": Object {
                 "type": "TIMER",
-              },
-              "history": Object {
-                "_event": Object {
-                  "$$type": "scxml",
-                  "data": Object {
-                    "type": "POWER_OUTAGE",
-                  },
-                  "name": "POWER_OUTAGE",
-                  "type": "external",
-                },
-                "_initial": false,
-                "_internalQueue": Array [],
-                "_sessionid": null,
-                "actions": Array [],
-                "changed": true,
-                "children": Object {},
-                "context": Object {},
-                "event": Object {
-                  "type": "POWER_OUTAGE",
-                },
-                "historyValue": Object {},
-                "matches": [Function],
-                "meta": Object {},
-                "tags": Array [],
-                "toStrings": [Function],
-                "value": Object {
-                  "red": "flashing",
-                },
               },
               "historyValue": Object {},
               "matches": [Function],
@@ -6168,34 +4784,6 @@ Array [
           "event": Object {
             "type": "POWER_OUTAGE",
           },
-          "history": Object {
-            "_event": Object {
-              "$$type": "scxml",
-              "data": Object {
-                "type": "PED_COUNTDOWN",
-              },
-              "name": "PED_COUNTDOWN",
-              "type": "external",
-            },
-            "_initial": false,
-            "_internalQueue": Array [],
-            "_sessionid": null,
-            "actions": Array [],
-            "changed": true,
-            "children": Object {},
-            "context": Object {},
-            "event": Object {
-              "type": "PED_COUNTDOWN",
-            },
-            "historyValue": Object {},
-            "matches": [Function],
-            "meta": Object {},
-            "tags": Array [],
-            "toStrings": [Function],
-            "value": Object {
-              "red": "stop",
-            },
-          },
           "historyValue": Object {},
           "matches": [Function],
           "meta": Object {},
@@ -6231,34 +4819,6 @@ Array [
               "context": Object {},
               "event": Object {
                 "type": "TIMER",
-              },
-              "history": Object {
-                "_event": Object {
-                  "$$type": "scxml",
-                  "data": Object {
-                    "type": "POWER_OUTAGE",
-                  },
-                  "name": "POWER_OUTAGE",
-                  "type": "external",
-                },
-                "_initial": false,
-                "_internalQueue": Array [],
-                "_sessionid": null,
-                "actions": Array [],
-                "changed": true,
-                "children": Object {},
-                "context": Object {},
-                "event": Object {
-                  "type": "POWER_OUTAGE",
-                },
-                "historyValue": Object {},
-                "matches": [Function],
-                "meta": Object {},
-                "tags": Array [],
-                "toStrings": [Function],
-                "value": Object {
-                  "red": "flashing",
-                },
               },
               "historyValue": Object {},
               "matches": [Function],
@@ -6319,32 +4879,6 @@ Array [
           "event": Object {
             "type": "POWER_OUTAGE",
           },
-          "history": Object {
-            "_event": Object {
-              "$$type": "scxml",
-              "data": Object {
-                "type": "TIMER",
-              },
-              "name": "TIMER",
-              "type": "external",
-            },
-            "_initial": false,
-            "_internalQueue": Array [],
-            "_sessionid": null,
-            "actions": Array [],
-            "changed": true,
-            "children": Object {},
-            "context": Object {},
-            "event": Object {
-              "type": "TIMER",
-            },
-            "historyValue": Object {},
-            "matches": [Function],
-            "meta": Object {},
-            "tags": Array [],
-            "toStrings": [Function],
-            "value": "yellow",
-          },
           "historyValue": Object {},
           "matches": [Function],
           "meta": Object {},
@@ -6381,34 +4915,6 @@ Array [
               "event": Object {
                 "type": "TIMER",
               },
-              "history": Object {
-                "_event": Object {
-                  "$$type": "scxml",
-                  "data": Object {
-                    "type": "PED_COUNTDOWN",
-                  },
-                  "name": "PED_COUNTDOWN",
-                  "type": "external",
-                },
-                "_initial": false,
-                "_internalQueue": Array [],
-                "_sessionid": null,
-                "actions": Array [],
-                "changed": true,
-                "children": Object {},
-                "context": Object {},
-                "event": Object {
-                  "type": "PED_COUNTDOWN",
-                },
-                "historyValue": Object {},
-                "matches": [Function],
-                "meta": Object {},
-                "tags": Array [],
-                "toStrings": [Function],
-                "value": Object {
-                  "red": "stop",
-                },
-              },
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -6436,32 +4942,6 @@ Array [
           "context": Object {},
           "event": Object {
             "type": "POWER_OUTAGE",
-          },
-          "history": Object {
-            "_event": Object {
-              "$$type": "scxml",
-              "data": Object {
-                "type": "xstate.init",
-              },
-              "name": "xstate.init",
-              "type": "external",
-            },
-            "_initial": false,
-            "_internalQueue": Array [],
-            "_sessionid": null,
-            "actions": Array [],
-            "changed": undefined,
-            "children": Object {},
-            "context": Object {},
-            "event": Object {
-              "type": "xstate.init",
-            },
-            "historyValue": Object {},
-            "matches": [Function],
-            "meta": Object {},
-            "tags": Array [],
-            "toStrings": [Function],
-            "value": "green",
           },
           "historyValue": Object {},
           "matches": [Function],
@@ -6530,34 +5010,6 @@ Array [
               "context": Object {},
               "event": Object {
                 "type": "TIMER",
-              },
-              "history": Object {
-                "_event": Object {
-                  "$$type": "scxml",
-                  "data": Object {
-                    "type": "PED_COUNTDOWN",
-                  },
-                  "name": "PED_COUNTDOWN",
-                  "type": "external",
-                },
-                "_initial": false,
-                "_internalQueue": Array [],
-                "_sessionid": null,
-                "actions": Array [],
-                "changed": true,
-                "children": Object {},
-                "context": Object {},
-                "event": Object {
-                  "type": "PED_COUNTDOWN",
-                },
-                "historyValue": Object {},
-                "matches": [Function],
-                "meta": Object {},
-                "tags": Array [],
-                "toStrings": [Function],
-                "value": Object {
-                  "red": "stop",
-                },
               },
               "historyValue": Object {},
               "matches": [Function],
@@ -6740,34 +5192,6 @@ Array [
               "context": Object {},
               "event": Object {
                 "type": "TIMER",
-              },
-              "history": Object {
-                "_event": Object {
-                  "$$type": "scxml",
-                  "data": Object {
-                    "type": "POWER_OUTAGE",
-                  },
-                  "name": "POWER_OUTAGE",
-                  "type": "external",
-                },
-                "_initial": false,
-                "_internalQueue": Array [],
-                "_sessionid": null,
-                "actions": Array [],
-                "changed": true,
-                "children": Object {},
-                "context": Object {},
-                "event": Object {
-                  "type": "POWER_OUTAGE",
-                },
-                "historyValue": Object {},
-                "matches": [Function],
-                "meta": Object {},
-                "tags": Array [],
-                "toStrings": [Function],
-                "value": Object {
-                  "red": "flashing",
-                },
               },
               "historyValue": Object {},
               "matches": [Function],
