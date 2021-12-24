@@ -71,7 +71,8 @@ export {
   spawn,
   doneInvoke,
   createMachine,
-  createSchema
+  createSchema,
+  assertEventType
 };
 
 export * from './types';
