@@ -69,7 +69,7 @@ import {
   StateMachine
 } from './types';
 import { matchesState } from './utils';
-import { State, stateValuesEqual } from './State';
+import { isStateConfig, State, stateValuesEqual } from './State';
 import * as actionTypes from './actionTypes';
 import {
   start,
@@ -101,6 +101,7 @@ import {
 } from './stateUtils';
 import { createInvocableActor } from './Actor';
 import { toInvokeDefinition } from './invokeUtils';
+import { StateConfig } from '.';
 
 const NULL_EVENT = '';
 const STATE_IDENTIFIER = '#';
@@ -709,14 +710,25 @@ class StateNode<
    * @param state The state to resolve
    */
   public resolveState(
-    state: State<TContext, TEvent, any, any>
+    state: State<TContext, TEvent, any, any> | StateConfig<TContext, TEvent>
   ): State<TContext, TEvent, TStateSchema, TTypestate> {
+    const resolvedState =
+      state instanceof State
+        ? state
+        : isStateConfig(state)
+        ? State.create(state)
+        : undefined;
+
+    if (!resolvedState) {
+      throw new Error(`Cannot resolve state: invalid state object`);
+    }
+
     const configuration = Array.from(
-      getConfiguration([], this.getStateNodes(state.value))
+      getConfiguration([], this.getStateNodes(resolvedState.value))
     );
     return new State({
-      ...state,
-      value: this.resolve(state.value),
+      ...resolvedState,
+      value: this.resolve(resolvedState.value),
       configuration,
       done: isInFinalState(configuration, this),
       tags: getTagsFromConfiguration(configuration)

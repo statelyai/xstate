@@ -328,6 +328,26 @@ describe('machine', () => {
 
       expect(resolvedState.done).toBe(true);
     });
+
+    it('should resolve from a state config object', () => {
+      const machine = createMachine({
+        initial: 'foo',
+        states: {
+          foo: {
+            on: { NEXT: 'bar' }
+          },
+          bar: {
+            type: 'final'
+          }
+        }
+      });
+
+      const barState = machine.transition(undefined, 'NEXT');
+
+      const jsonBarState = JSON.parse(JSON.stringify(barState));
+
+      expect(machine.resolveState(jsonBarState).matches('bar')).toBeTruthy();
+    });
   });
 
   describe('versioning', () => {

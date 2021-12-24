@@ -35,7 +35,7 @@ import {
   StopActionObject,
   Subscription
 } from './types';
-import { State, bindActionToState, isState } from './State';
+import { State, bindActionToState, isStateConfig } from './State';
 import * as actionTypes from './actionTypes';
 import { doneInvoke, error, getActionFunction, initEvent } from './actions';
 import { IS_PRODUCTION } from './environment';
@@ -473,9 +473,7 @@ export class Interpreter<
       initialState === undefined
         ? this.initialState
         : serviceScope.provide(this, () => {
-            return isState<TContext, TEvent, TStateSchema, TTypestate>(
-              initialState
-            )
+            return isStateConfig<TContext, TEvent>(initialState)
               ? this.machine.resolveState(initialState)
               : this.machine.resolveState(
                   State.from(initialState, this.machine.context)
