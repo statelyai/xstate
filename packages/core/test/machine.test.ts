@@ -348,6 +348,42 @@ describe('machine', () => {
 
       expect(machine.resolveState(jsonBarState).matches('bar')).toBeTruthy();
     });
+
+    it('should resolve from a state config object (interpreter)', (done) => {
+      const machine = createMachine({
+        initial: 'foo',
+        states: {
+          foo: {
+            on: { NEXT: 'bar' }
+          },
+          bar: {
+            type: 'final'
+          }
+        }
+      });
+
+      let persistedState: string;
+
+      const service = interpret(machine)
+        .onTransition((state) => {
+          persistedState = JSON.stringify(state);
+
+          if (state.matches('bar')) {
+            testStateRestoration();
+          }
+        })
+        .start();
+
+      service.send('NEXT');
+
+      function testStateRestoration() {
+        const service2 = interpret(machine).onDone(() => {
+          done();
+        });
+
+        service2.start(JSON.parse(persistedState!));
+      }
+    });
   });
 
   describe('versioning', () => {

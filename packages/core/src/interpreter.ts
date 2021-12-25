@@ -66,6 +66,7 @@ import { registry } from './registry';
 import { getGlobal, registerService } from './devTools';
 import * as serviceScope from './serviceScope';
 import { spawnBehavior } from './behaviors';
+import { StateConfig } from '.';
 
 export type StateListener<
   TContext,
@@ -458,6 +459,7 @@ export class Interpreter<
   public start(
     initialState?:
       | State<TContext, TEvent, TStateSchema, TTypestate>
+      | StateConfig<TContext, TEvent>
       | StateValue
   ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
     if (this.status === InterpreterStatus.Running) {
