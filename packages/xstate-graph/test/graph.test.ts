@@ -454,10 +454,7 @@ it.only('hmm', () => {
     0 as number,
     ['a', 'b', 'reset'],
     {
-      serializeVertex: JSON.stringify,
-      visitCondition: (_, e, visitCtx) => {
-        return visitCtx.edges.has(JSON.stringify(e));
-      }
+      serializeVertex: (v, e) => JSON.stringify(v) + JSON.stringify(e)
     }
   );
 

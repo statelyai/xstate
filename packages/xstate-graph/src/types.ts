@@ -124,3 +124,8 @@ export interface ValueAdjMapOptions<TContext, TEvent extends EventObject> {
   stateSerializer?: (state: State<TContext, any>) => string;
   eventSerializer?: (event: TEvent) => string;
 }
+
+type Brand<T, Tag extends string> = T & { __tag: Tag };
+
+export type SerializedState = Brand<string, 'state'>;
+export type SerializedEvent = Brand<string, 'event'>;
