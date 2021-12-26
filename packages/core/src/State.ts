@@ -16,7 +16,7 @@ import {
   SimpleEventsOf
 } from './types';
 import { EMPTY_ACTIVITY_MAP } from './constants';
-import { matchesState, keys, isString, warn } from './utils';
+import { matchesState, keys, isString, warn, isFunction } from './utils';
 import { StateNode } from './StateNode';
 import { getMeta, nextEvents } from './stateUtils';
 import { initEvent } from './actions';
@@ -236,7 +236,38 @@ export class State<
    */
   constructor(config: StateConfig<TContext, TEvent>) {
     this.value = config.value;
-    this.context = config.context;
+
+    function compute(views): any {
+      if (!views) {
+        return views;
+      }
+      const computed = {};
+      const stack: Array<string | symbol> = [];
+      const viewProxy = new Proxy(views, {
+        get: (_, prop) => {
+          if (computed[prop]) {
+            return computed[prop];
+          }
+          const value = views[prop];
+          if (!isFunction(value)) {
+            return value;
+          }
+          if (stack.includes(prop)) {
+            throw new Error(
+              `Cyclic views: ${stack.join(' → ')} → ${prop.toString()}`
+            );
+          }
+          stack.push(prop);
+          computed[prop] = views[prop](viewProxy);
+          stack.pop();
+          return computed[prop];
+        }
+      });
+
+      return viewProxy;
+    }
+
+    this.context = compute(config.context);
     this._event = config._event;
     this._sessionid = config._sessionid;
     this.event = this._event.data;
