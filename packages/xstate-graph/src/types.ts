@@ -1,14 +1,4 @@
-import {
-  State,
-  EventObject,
-  StateValue,
-  StateNode,
-  TransitionDefinition
-} from 'xstate';
-
-export interface TransitionMap {
-  state: StateValue | undefined;
-}
+import { EventObject, StateNode, TransitionDefinition } from 'xstate';
 
 export type JSONSerializable<T extends object, U> = T & {
   toJSON: () => U;
@@ -55,58 +45,59 @@ export type DirectedGraphNode = JSONSerializable<
   }
 >;
 
-export interface AdjacencyMap<TContext, TEvent extends EventObject> {
+export interface AdjacencyMap<TState, TEvent extends EventObject> {
   [stateId: string]: Record<
     string,
     {
-      state: State<TContext, TEvent>;
+      state: TState;
       event: TEvent;
     }
   >;
 }
 
-export interface StatePaths<TContext, TEvent extends EventObject> {
+export interface StatePaths<TState, TEvent extends EventObject> {
   /**
    * The target state.
    */
-  state: State<TContext, TEvent>;
+  state: TState;
   /**
    * The paths that reach the target state.
    */
-  paths: Array<StatePath<TContext, TEvent>>;
+  paths: Array<StatePath<TState, TEvent>>;
 }
 
-export interface StatePath<TContext, TEvent extends EventObject> {
+export interface StatePath<TState, TEvent extends EventObject> {
   /**
    * The ending state of the path.
    */
-  state: State<TContext, TEvent>;
+  state: TState;
   /**
    * The ordered array of state-event pairs (steps) which reach the ending `state`.
    */
-  steps: Segments<TContext, TEvent>;
+  steps: Steps<TState, TEvent>;
   /**
    * The combined weight of all steps in the path.
    */
   weight: number;
 }
 
-export interface StatePathsMap<TContext, TEvent extends EventObject> {
-  [key: string]: StatePaths<TContext, TEvent>;
+export interface StatePathsMap<TState, TEvent extends EventObject> {
+  [key: string]: StatePaths<TState, TEvent>;
 }
-export interface Segment<TContext, TEvent extends EventObject> {
+
+export interface Step<TState, TEvent extends EventObject> {
   /**
    * The current state before taking the event.
    */
-  state: State<TContext, TEvent>;
+  state: TState;
   /**
    * The event to be taken from the specified state.
    */
   event: TEvent;
 }
 
-export type Segments<TContext, TEvent extends EventObject> = Array<
-  Segment<TContext, TEvent>
+export type Steps<TState, TEvent extends EventObject> = Array<
+  Step<TState, TEvent>
 >;
 
 export type ExtractEvent<
@@ -114,14 +105,14 @@ export type ExtractEvent<
   TType extends TEvent['type']
 > = TEvent extends { type: TType } ? TEvent : never;
 
-export interface ValueAdjMapOptions<TContext, TEvent extends EventObject> {
+export interface ValueAdjMapOptions<TState, TEvent extends EventObject> {
   events?: {
     [K in TEvent['type']]?:
       | Array<ExtractEvent<TEvent, K>>
-      | ((state: State<TContext, TEvent>) => Array<ExtractEvent<TEvent, K>>);
+      | ((state: TState) => Array<ExtractEvent<TEvent, K>>);
   };
-  filter?: (state: State<TContext, any>) => boolean;
-  stateSerializer?: (state: State<TContext, any>) => string;
+  filter?: (state: TState) => boolean;
+  stateSerializer?: (state: TState) => string;
   eventSerializer?: (event: TEvent) => string;
 }
 
