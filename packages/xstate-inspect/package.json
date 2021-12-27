@@ -38,15 +38,21 @@
     "url": "https://github.com/davidkpiano/xstate/issues"
   },
   "devDependencies": {
-    "@types/ws": "^7.2.6",
+    "@types/ws": "^8.2.2",
     "rollup": "^2.35.1",
     "rollup-plugin-typescript2": "^0.30.0",
     "typescript": "^4.5.2",
-    "ws": "^7.3.1",
+    "ws": "^8.4.0",
     "xstate": "*"
   },
   "peerDependencies": {
-    "ws": "^7.3.1"
+    "@types/ws": "^8.0.0",
+    "ws": "^8.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@types/ws": {
+      "optional": true
+    }
   },
   "dependencies": {
     "fast-safe-stringify": "^2.0.7"
