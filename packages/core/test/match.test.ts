@@ -3,7 +3,8 @@ import {
   matchState,
   matchesState,
   Machine,
-  createMachine
+  createMachine,
+  assign
 } from '../src';
 
 describe('matchState()', () => {
@@ -373,6 +374,69 @@ describe('matches() method', () => {
 
       // Make sure state isn't "never" - if it is, tests should fail to compile
       expect(state).toBeTruthy();
+    }
+  });
+
+  it('should compile with a typestate value that is a union', (done) => {
+    interface MachineContext {
+      countObject:
+        | {
+            count: number;
+          }
+        | undefined;
+    }
+
+    type MachineEvent = { type: 'TOGGLE' };
+
+    type MachineTypestate =
+      | {
+          value: 'active' | { other: 'one' };
+          context: MachineContext & { countObject: { count: number } };
+        }
+      | {
+          value: 'inactive';
+          context: MachineContext;
+        };
+
+    const machine = createMachine<
+      MachineContext,
+      MachineEvent,
+      MachineTypestate
+    >({
+      initial: 'active',
+      context: {
+        countObject: { count: 0 }
+      },
+      states: {
+        inactive: {
+          entry: assign({
+            countObject: undefined
+          }),
+          on: { TOGGLE: 'active' }
+        },
+        active: {
+          entry: assign({
+            countObject: (ctx) => ({
+              count: (ctx.countObject?.count ?? 0) + 1
+            })
+          }),
+          on: { TOGGLE: 'other' }
+        },
+        other: {
+          on: { TOGGLE: 'active' },
+          initial: 'one',
+          states: {
+            one: {}
+          }
+        }
+      }
+    });
+
+    const state = machine.initialState;
+
+    if (state.matches('active')) {
+      expect(state.context.countObject.count).toBe(1);
+      done();
     }
   });
 });

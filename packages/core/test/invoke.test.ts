@@ -6,13 +6,18 @@ import {
   send,
   EventObject,
   StateValue,
-  createMachine
+  createMachine,
+  Behavior,
+  ActorContext,
+  SpecialTargets
 } from '../src';
+import { fromReducer } from '../src/behaviors';
 import {
   actionTypes,
   done as _done,
   doneInvoke,
   escalate,
+  forwardTo,
   raise
 } from '../src/actions';
 import { interval } from 'rxjs';
@@ -836,6 +841,131 @@ describe('invoke', () => {
         })
         .start();
     });
+
+    it('should not reinvoke root-level invocations', (done) => {
+      // https://github.com/davidkpiano/xstate/issues/2147
+
+      let invokeCount = 0;
+      let invokeDisposeCount = 0;
+      let actionsCount = 0;
+      let entryActionsCount = 0;
+
+      const machine = createMachine({
+        invoke: {
+          src: () => () => {
+            invokeCount++;
+
+            return () => {
+              invokeDisposeCount++;
+            };
+          }
+        },
+        entry: () => entryActionsCount++,
+        on: {
+          UPDATE: {
+            internal: true,
+            actions: () => {
+              actionsCount++;
+            }
+          }
+        }
+      });
+
+      const service = interpret(machine).start();
+      expect(entryActionsCount).toEqual(1);
+      expect(invokeCount).toEqual(1);
+      expect(invokeDisposeCount).toEqual(0);
+      expect(actionsCount).toEqual(0);
+
+      service.send('UPDATE');
+      expect(entryActionsCount).toEqual(1);
+      expect(invokeCount).toEqual(1);
+      expect(invokeDisposeCount).toEqual(0);
+      expect(actionsCount).toEqual(1);
+
+      service.send('UPDATE');
+      expect(entryActionsCount).toEqual(1);
+      expect(invokeCount).toEqual(1);
+      expect(invokeDisposeCount).toEqual(0);
+      expect(actionsCount).toEqual(2);
+      done();
+    });
+
+    it('child should not invoke an actor when it transitions to an invoking state when it gets stopped by its parent', (done) => {
+      let invokeCount = 0;
+
+      const child = createMachine({
+        id: 'child',
+        initial: 'idle',
+        states: {
+          idle: {
+            invoke: {
+              src: () => {
+                invokeCount++;
+
+                if (invokeCount > 1) {
+                  // prevent a potential infinite loop
+                  throw new Error('This should be impossible.');
+                }
+
+                return (sendBack) => {
+                  // it's important for this test to send the event back when the parent is *not* currently processing an event
+                  // this ensures that the parent can process the received event immediately and can stop the child immediately
+                  setTimeout(() => sendBack({ type: 'STARTED' }));
+                };
+              }
+            },
+            on: {
+              STARTED: 'active'
+            }
+          },
+          active: {
+            invoke: {
+              src: () => {
+                return (sendBack) => {
+                  sendBack({ type: 'STOPPED' });
+                };
+              }
+            },
+            on: {
+              STOPPED: {
+                target: 'idle',
+                actions: forwardTo(SpecialTargets.Parent)
+              }
+            }
+          }
+        }
+      });
+      const parent = createMachine({
+        id: 'parent',
+        initial: 'idle',
+        states: {
+          idle: {
+            on: {
+              START: 'active'
+            }
+          },
+          active: {
+            invoke: { src: child },
+            on: {
+              STOPPED: 'done'
+            }
+          },
+          done: {
+            type: 'final'
+          }
+        }
+      });
+
+      const service = interpret(parent)
+        .onDone(() => {
+          expect(invokeCount).toBe(1);
+          done();
+        })
+        .start();
+
+      service.send('START');
+    });
   });
 
   type PromiseExecutor = (
@@ -1298,10 +1428,8 @@ describe('invoke', () => {
         },
         {
           services: {
-            someCallback: (ctx, e: BeginEvent) => (
-              cb: (ev: CallbackEvent) => void
-            ) => {
-              if (ctx.foo && e.payload) {
+            someCallback: (ctx, e) => (cb: (ev: CallbackEvent) => void) => {
+              if (ctx.foo && 'payload' in e) {
                 cb({
                   type: 'CALLBACK',
                   data: 40
@@ -2003,6 +2131,158 @@ describe('invoke', () => {
     });
   });
 
+  describe('with behaviors', () => {
+    it('should work with a behavior', (done) => {
+      const countBehavior: Behavior<EventObject, number> = {
+        transition: (count, event) => {
+          if (event.type === 'INC') {
+            return count + 1;
+          } else {
+            return count - 1;
+          }
+        },
+        initialState: 0
+      };
+
+      const countMachine = createMachine({
+        invoke: {
+          id: 'count',
+          src: () => countBehavior
+        },
+        on: {
+          INC: {
+            actions: forwardTo('count')
+          }
+        }
+      });
+
+      const countService = interpret(countMachine)
+        .onTransition((state) => {
+          if (state.children['count']?.getSnapshot() === 2) {
+            done();
+          }
+        })
+        .start();
+
+      countService.send('INC');
+      countService.send('INC');
+    });
+
+    it('behaviors should have reference to the parent', (done) => {
+      const pongBehavior: Behavior<EventObject, undefined> = {
+        transition: (_, event, { parent }) => {
+          if (event.type === 'PING') {
+            parent?.send({ type: 'PONG' });
+          }
+
+          return undefined;
+        },
+        initialState: undefined
+      };
+
+      const pingMachine = createMachine({
+        initial: 'waiting',
+        states: {
+          waiting: {
+            entry: send('PING', { to: 'ponger' }),
+            invoke: {
+              id: 'ponger',
+              src: () => pongBehavior
+            },
+            on: {
+              PONG: 'success'
+            }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      });
+
+      const pingService = interpret(pingMachine).onDone(() => {
+        done();
+      });
+      pingService.start();
+    });
+  });
+
+  describe('with reducers', () => {
+    it('should work with a reducer', (done) => {
+      const countReducer = (count: number, event: { type: 'INC' }): number => {
+        if (event.type === 'INC') {
+          return count + 1;
+        } else {
+          return count - 1;
+        }
+      };
+
+      const countMachine = createMachine({
+        invoke: {
+          id: 'count',
+          src: () => fromReducer(countReducer, 0)
+        },
+        on: {
+          INC: {
+            actions: forwardTo('count')
+          }
+        }
+      });
+
+      const countService = interpret(countMachine)
+        .onTransition((state) => {
+          if (state.children['count']?.getSnapshot() === 2) {
+            done();
+          }
+        })
+        .start();
+
+      countService.send('INC');
+      countService.send('INC');
+    });
+
+    it('should schedule events in a FIFO queue', (done) => {
+      type CountEvents = { type: 'INC' } | { type: 'DOUBLE' };
+
+      const countReducer = (
+        count: number,
+        event: { type: 'INC' } | { type: 'DOUBLE' },
+        { self }: ActorContext<CountEvents, any>
+      ): number => {
+        if (event.type === 'INC') {
+          self.send({ type: 'DOUBLE' });
+          return count + 1;
+        }
+        if (event.type === 'DOUBLE') {
+          return count * 2;
+        }
+
+        return count;
+      };
+
+      const countMachine = createMachine({
+        invoke: {
+          id: 'count',
+          src: () => fromReducer(countReducer, 0)
+        },
+        on: {
+          INC: {
+            actions: forwardTo('count')
+          }
+        }
+      });
+
+      const countService = interpret(countMachine)
+        .onTransition((state) => {
+          if (state.children['count']?.getSnapshot() === 2) {
+            done();
+          }
+        })
+        .start();
+
+      countService.send('INC');
+    });
+  });
+
   describe('nested invoked machine', () => {
     const pongMachine = Machine({
       id: 'pong',
@@ -2396,6 +2676,38 @@ describe('invoke', () => {
     interpret(machine)
       .onDone(() => done())
       .start();
+  });
+
+  describe('meta data', () => {
+    it('should show meta data', () => {
+      const machine = createMachine({
+        invoke: {
+          src: 'someSource',
+          meta: {
+            url: 'stately.ai'
+          }
+        }
+      });
+
+      expect(machine.invoke[0].meta).toEqual({ url: 'stately.ai' });
+    });
+
+    it('meta data should be available in the invoke source function', () => {
+      expect.assertions(1);
+      const machine = createMachine({
+        invoke: {
+          src: (_ctx, _e, { meta }) => {
+            expect(meta).toEqual({ url: 'stately.ai' });
+            return Promise.resolve();
+          },
+          meta: {
+            url: 'stately.ai'
+          }
+        }
+      });
+
+      interpret(machine).start();
+    });
   });
 });
 

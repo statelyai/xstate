@@ -1,5 +1,22 @@
 # @xstate/test
 
+## 0.5.0
+
+### Minor Changes
+
+- [#2703](https://github.com/statelyai/xstate/pull/2703) [`d928cbb1f`](https://github.com/statelyai/xstate/commit/d928cbb1fe93b0d34a399ab65c8b2b1eeb3ca83d) Thanks [@Silverwolf90](https://github.com/Silverwolf90)! - Add getPlanFromEvents to generate a test plan with a single path from an explicitly defined sequence of events.
+
+### Patch Changes
+
+- Updated dependencies [[`6a0ff73bf`](https://github.com/statelyai/xstate/commit/6a0ff73bf8817dc401ef9b45c71dd7875dbc9f20)]:
+  - @xstate/graph@1.4.0
+
+## 0.4.2
+
+### Patch Changes
+
+- [`4105d923`](https://github.com/davidkpiano/xstate/commit/4105d923dfddd9ac3ffad33295edea38b0215c89) [#1930](https://github.com/davidkpiano/xstate/pull/1930) Thanks [@jimwheaton](https://github.com/jimwheaton)! - Fixes issue where 'final' state node names were not shown in test plan description
+
 ## 0.4.1
 
 ### Patch Changes

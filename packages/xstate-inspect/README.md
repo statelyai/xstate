@@ -1,15 +1,20 @@
-# `@xstate/inspect`
+# @xstate/inspect
 
-Inspection tools for XState.
+This package contains inspection tools for XState.
+
+- [Read the full documentation in the XState docs](https://xstate.js.org/docs/packages/xstate-inspect/).
+- [Read our contribution guidelines](https://github.com/statelyai/xstate/blob/main/CONTRIBUTING.md).
+
+## Templates
 
 - [XState (Vanilla)](https://codesandbox.io/s/xstate-ts-viz-template-qzdvv)
 - [XState + TypeScript](https://codesandbox.io/s/xstate-ts-viz-template-qzdvv)
 - [XState + Vue](https://codesandbox.io/s/xstate-vue-viz-template-r5wd7)
 - [XState + React](https://codesandbox.io/s/xstate-react-viz-template-5wq3q)
 
-![Inspector running from CodeSandbox](https://buttondown.s3.us-west-2.amazonaws.com/images/4c8c0db4-b4d5-408f-8684-57e94ff46c86.png)
+![Inspector running from CodeSandbox](/assets/inspector.png)
 
-[See CodeSandbox example here](https://codesandbox.io/s/xstate-vue-minute-timer-viz-1txmk)
+[Check out the XState + Vue Minute Timer + Viz example on CodeSandbox](https://codesandbox.io/s/xstate-vue-minute-timer-viz-1txmk)
 
 ## Installation
 
@@ -41,58 +46,3 @@ import { inspect } from '@xstate/inspect';
 
 const service = interpret(someMachine, { devTools: true });
 ```
-
-## Inspect Options
-
-```js
-// defaults
-inspect({
-  iframe: () => document.querySelector('iframe[data-xstate]'),
-  url: 'https://statecharts.io/inspect'
-});
-
-// the above is the same as this:
-inspect();
-```
-
-**Arguments:** the `options` object passed to `inspect(options)` with the following optional properties:
-
-- `iframe` (function or iframe `Element` or `false`) - resolves to the `iframe` element to display the inspector in. If this is set to `iframe: false`, then a popup window will be used instead.
-
-  ⚠️ Note: you might need to allow popups to display the inspector in a popup window, as they might be blocked by the browser by default.
-
-  By default, the inspector will look for an `<iframe data-xstate>` element anywhere in the document. If you want to target a custom iframe, specify it eagerly or lazily:
-
-  ```js
-  // eager
-  inspect({
-    iframe: document.querySelector('iframe.some-xstate-iframe')
-  });
-  ```
-
-  ```js
-  // lazy
-  inspect({
-    iframe: () => document.querySelector('iframe.some-xstate-iframe')
-  });
-  ```
-
-- `url` (string) - the URL of the inspector to connect to. By default, the inspector is running on `http://statecharts.io/inspect`.
-
-**Returns:** an inspector object with the following properties:
-
-- `disconnect` (function) - a function that disconnects the inspector and cleans up any listeners.
-
-## FAQs
-
-- How do I run the inspector in a NextJS app?
-
-  Ensure that the inspector code only runs on the client, rather than the server:
-
-  ```js
-  if (typeof window !== 'undefined') {
-    inspect({
-      /* options */
-    });
-  }
-  ```

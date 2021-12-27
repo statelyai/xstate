@@ -2,6 +2,8 @@
 
 [:rocket: Quick Reference](#quick-reference)
 
+[[toc]]
+
 The [Actor model](https://en.wikipedia.org/wiki/Actor_model) is a mathematical model of message-based computation that simplifies how multiple "entities" (or "actors") communicate with each other. Actors communicate by sending messages (events) to each other. An actor's local state is private, unless it wishes to share it with another actor, by sending it as an event.
 
 When an actor receives an event, three things can happen:
@@ -15,12 +17,10 @@ State machines and statecharts work very well with the actor model, as they are 
 - The next `value` and `context` (an actor's local state)
 - The next `actions` to be executed (potentially newly spawned actors or messages sent to other actors)
 
-> Think of actors like dynamic services in XState.
+Actors can be _spawned_ or [_invoked_](./communication.md). Spawned actors have two major differences from invoked actors:
 
-Actors can be considered a dynamic variant of [invoked services](./communication.md) (same internal implementation!) with two important differences:
-
-- They can be _spawned_ at any time (as an action)
-- They can be _stopped_ at any time (as an action)
+- They can be _spawned_ at any time (via `spawn(...)` inside of an `assign(...)` action)
+- They can be _stopped_ at any time (via a `stop(...)` action)
 
 ## Actor API
 
@@ -28,6 +28,7 @@ An actor (as implemented in XState) has an interface of:
 
 - An `id` property, which uniquely identifies the actor in the local system
 - A `.send(...)` method, which is used to send events to this actor
+- A `.getSnapshot()` method, which synchronously returns the actor's last _emitted value_.
 
 They may have optional methods:
 
@@ -40,6 +41,17 @@ All the existing invoked service patterns fit this interface:
 - [Invoked callbacks](./communication.md#invoking-callbacks) are actors that can send events to the parent (first `callback` argument), receive events (second `onReceive` argument), and act on them
 - [Invoked machines](./communication.md#invoking-machines) are actors that can send events to the parent (`sendParent(...)` action) or other actors it has references to (`send(...)` action), receive events, act on them (state transitions and actions), spawn new actors (`spawn(...)` function), and stop actors.
 - [Invoked observables](./communication.md#invoking-observables) are actors whose emitted values represent events to be sent back to the parent.
+
+::: tip What is an emitted value?
+
+An actor's **emitted value** is the value that subscribers receive in the actor's `.subscribe(...)` method.
+
+- For services, the current state is emitted.
+- For promises, the resolved value (or `undefined` if unfulfilled) is emitted.
+- For observables, the latest emitted value is emitted.
+- For callbacks, nothing is emitted.
+
+:::
 
 ## Spawning Actors
 
@@ -64,10 +76,10 @@ Alternatively `spawn` accepts an options object as the second argument which may
 - `sync` - (optional) `true` if this machine should be automatically subscribed to the spawned child machine's state, the state will be stored as `.state` on the child machine ref
 
 ```js {13-14}
-import { Machine, spawn } from 'xstate';
+import { createMachine, spawn } from 'xstate';
 import { todoMachine } from './todoMachine';
 
-const todosMachine = Machine({
+const todosMachine = createMachine({
   // ...
   on: {
     'NEW_TODO.ADD': {
@@ -130,7 +142,7 @@ Different types of values can be spawned as actors.
 With the [`send()` action](./actions.md#send-action), events can be sent to actors via a [target expression](./actions.md#send-targets):
 
 ```js {13}
-const machine = Machine({
+const machine = createMachine({
   // ...
   states: {
     active: {
@@ -141,9 +153,7 @@ const machine = Machine({
         SOME_EVENT: {
           // Use a target expression to send an event
           // to the actor reference
-          actions: send('PING', {
-            to: (context) => context.someRef
-          })
+          actions: send({ type: 'PING' }, { to: (context) => context.someRef })
         }
       }
     }
@@ -155,7 +165,7 @@ const machine = Machine({
 If you provide an unique `name` argument to `spawn(...)`, you can reference it in the target expression:
 
 ```js
-const loginMachine = Machine({
+const loginMachine = createMachine({
   // ...
   entry: assign({
     formRef: () => spawn(formMachine, 'form')
@@ -164,7 +174,7 @@ const loginMachine = Machine({
     idle: {
       on: {
         LOGIN: {
-          actions: send('SUBMIT', { to: 'form' })
+          actions: send({ type: 'SUBMIT' }, { to: 'form' })
         }
       }
     }
@@ -173,6 +183,22 @@ const loginMachine = Machine({
 ```
 
 :::
+
+## Stopping Actors
+
+Actors are stopped using the `stop(...)` action creator:
+
+```js
+const someMachine = createMachine({
+  // ...
+  entry: [
+    // Stopping an actor by reference
+    stop((context) => context.someActorRef),
+    // Stopping an actor by ID
+    stop('some-actor')
+  ]
+});
+```
 
 ## Spawning Promises
 
@@ -221,7 +247,7 @@ const counterInterval = (callback, receive) => {
   return () => { clearInterval(intervalId); }
 }
 
-const machine = Machine({
+const machine = createMachine({
   // ...
   {
     actions: assign({
@@ -235,13 +261,11 @@ const machine = Machine({
 Events can then be sent to the actor:
 
 ```js {5-7}
-const machine = Machine({
+const machine = createMachine({
   // ...
   on: {
     'COUNTER.INC': {
-      actions: send('INC', {
-        to: (context) => context.counterRef
-      })
+      actions: send({ type: 'INC' }, { to: (context) => context.counterRef })
     }
   }
   // ...
@@ -259,7 +283,7 @@ import { map } from 'rxjs/operators';
 const createCounterObservable = (ms) => interval(ms)
   .pipe(map(count => ({ type: 'COUNT.UPDATE', count })))
 
-const machine = Machine({
+const machine = createMachine({
   context: { ms: 1000 },
   // ...
   {
@@ -279,7 +303,7 @@ const machine = Machine({
 Machines are the most effective way to use actors, since they offer the most capabilities. Spawning machines is just like [invoking machines](./communication.md#invoking-machines), where a `machine` is passed into `spawn(machine)`:
 
 ```js {13,26,30-32}
-const remoteMachine = Machine({
+const remoteMachine = createMachine({
   id: 'remote',
   initial: 'offline',
   states: {
@@ -298,7 +322,7 @@ const remoteMachine = Machine({
   }
 });
 
-const parentMachine = Machine({
+const parentMachine = createMachine({
   id: 'parent',
   initial: 'waiting',
   context: {
@@ -311,11 +335,9 @@ const parentMachine = Machine({
       }),
       on: {
         'LOCAL.WAKE': {
-          actions: send('WAKE', {
-            to: (context) => context.localOne
-          })
+          actions: send({ type: 'WAKE' }, { to: (context) => context.localOne })
         },
-        'REMOTE.ONLINE': 'connected'
+        'REMOTE.ONLINE': { target: 'connected' }
       }
     },
     connected: {}
@@ -326,7 +348,7 @@ const parentService = interpret(parentMachine)
   .onTransition((state) => console.log(state.value))
   .start();
 
-parentService.send('LOCAL.WAKE');
+parentService.send({ type: 'LOCAL.WAKE' });
 // => 'waiting'
 // ... after 1000ms
 // => 'connected'
@@ -349,7 +371,19 @@ To do this, set `{ sync: true }` as an option to `spawn(...)`:
 // ...
 ```
 
-This will automatically subscribe the machine to the spawned child machine's state, which is kept updated in `ref.state`:
+This will automatically subscribe the machine to the spawned child machine's state, which is kept updated and can be accessed via `getSnapshot()`:
+
+```js
+someService.onTransition((state) => {
+  const { someRef } = state.context;
+
+  console.log(someRef.getSnapshot());
+  // => State {
+  //   value: ...,
+  //   context: ...
+  // }
+});
+```
 
 ```js
 someService.onTransition((state) => {
@@ -372,9 +406,9 @@ By default, `sync` is set to `false`. Never read an actor's `.state` when `sync`
 For actors that are not synchronized with the parent, the actor can send an explicit event to its parent machine via `sendUpdate()`:
 
 ```js
-import { Machine, sendUpdate } from 'xstate';
+import { createMachine, sendUpdate } from 'xstate';
 
-const childMachine = Machine({
+const childMachine = createMachine({
   // ...
   on: {
     SOME_EVENT: {
@@ -450,7 +484,7 @@ import { spawn } from 'xstate';
     // From a machine
     machineRef: (context, event) =>
       spawn(
-        Machine({
+        createMachine({
           // ...
         })
       )
@@ -459,7 +493,7 @@ import { spawn } from 'xstate';
 // ...
 ```
 
-**Sync state** with an actor: <Badge text="4.6.1+"/>
+**Sync state** with an actor:
 
 ```js
 // ...
@@ -471,13 +505,13 @@ import { spawn } from 'xstate';
 // ...
 ```
 
-**Reading synced state** from an actor: <Badge text="4.6.1+"/>
+**Getting a snapshot** from an actor: <Badge text="4.20.0+"/>
 
 ```js
 service.onTransition((state) => {
   const { someRef } = state.context;
 
-  someRef.state;
+  someRef.getSnapshot();
   // => State { ... }
 });
 ```
@@ -487,9 +521,12 @@ service.onTransition((state) => {
 ```js
 // ...
 {
-  actions: send('SOME_EVENT', {
-    to: (context) => context.someRef
-  });
+  actions: send(
+    { type: 'SOME_EVENT' },
+    {
+      to: (context) => context.someRef
+    }
+  );
 }
 // ...
 ```
@@ -511,7 +548,7 @@ service.onTransition((state) => {
 ```js
 // ...
 {
-  actions: sendParent('ANOTHER_EVENT');
+  actions: sendParent({ type: 'ANOTHER_EVENT' });
 }
 // ...
 ```

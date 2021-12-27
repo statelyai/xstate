@@ -1,6 +1,6 @@
 # @xstate/test
 
-This package contains utilities for facilitating [model-based testing](https://en.wikipedia.org/wiki/Model-based_testing) for any software.
+The [@xstate/test package](https://github.com/statelyai/xstate/tree/main/packages/xstate-test) contains utilities for facilitating [model-based testing](https://en.wikipedia.org/wiki/Model-based_testing) for any software.
 
 - **Talk**: [Write Fewer Tests! From Automation to Autogeneration](https://slides.com/davidkhourshid/mbt) at React Rally 2019 ([🎥 Video](https://www.youtube.com/watch?v=tpNmPKjPSFQ))
 
@@ -15,9 +15,9 @@ npm install xstate @xstate/test
 2. Create the machine that will be used to model the system under test (SUT):
 
 ```js
-import { Machine } from 'xstate';
+import { createMachine } from 'xstate';
 
-const toggleMachine = Machine({
+const toggleMachine = createMachine({
   id: 'toggle',
   initial: 'inactive',
   states: {
@@ -40,7 +40,7 @@ const toggleMachine = Machine({
 ```js
 // ...
 
-const toggleMachine = Machine({
+const toggleMachine = createMachine({
   id: 'toggle',
   initial: 'inactive',
   states: {
@@ -71,10 +71,10 @@ const toggleMachine = Machine({
 4. Create the model:
 
 ```js
-import { Machine } from 'xstate';
+import { createMachine } from 'xstate';
 import { createModel } from '@xstate/test';
 
-const toggleMachine = Machine(/* ... */);
+const toggleMachine = createMachine(/* ... */);
 
 const toggleModel = createModel(toggleMachine).withEvents({
   TOGGLE: {
@@ -182,6 +182,17 @@ Returns an array of testing plans based on the simple paths from the test model'
 | Argument | Type     | Description                                                                                                    |
 | -------- | -------- | -------------------------------------------------------------------------------------------------------------- |
 | `filter` | function | Takes in the `state` and returns `true` if the state should be traversed, or `false` if traversal should stop. |
+
+### `testModel.getPlanFromEvents(events, options)`
+
+| Argument  | Type               | Description                                                                         |
+| --------- | ------------------ | ----------------------------------------------------------------------------------- |
+| `events`  | EventObject[]      | The sequence of events to create the plan                                           |
+| `options` | { target: string } | An object with a `target` property that should match the target state of the events |
+
+Returns an array with a single testing plan with a single path generated from the `events`.
+
+Throws an error if the last entered state does not match the `options.target`.
 
 ### `testModel.testCoverage(options?)`
 

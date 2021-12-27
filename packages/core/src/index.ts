@@ -30,6 +30,7 @@ import {
   InterpreterStatus
 } from './interpreter';
 import { matchState } from './match';
+import { createSchema } from './schema';
 
 const actions = {
   raise,
@@ -69,7 +70,8 @@ export {
   matchState,
   spawn,
   doneInvoke,
-  createMachine
+  createMachine,
+  createSchema
 };
 
 export * from './types';

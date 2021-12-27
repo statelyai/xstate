@@ -7,13 +7,8 @@
   "commit": false,
   "linked": [],
   "access": "public",
-  "baseBranch": "master",
-  "ignore": [
-    "@xstate/analytics",
-    "@xstate/scxml",
-    "@xstate/viz",
-    "@xstate/viz-example"
-  ],
+  "baseBranch": "main",
+  "ignore": ["@xstate/analytics", "@xstate/scxml"],
   "___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH": {
     "onlyUpdatePeerDependentsWhenOutOfRange": true
   }

@@ -1,5 +1,832 @@
 # xstate
 
+## 4.26.1
+
+### Patch Changes
+
+- [#2819](https://github.com/statelyai/xstate/pull/2819) [`0d51d33cd`](https://github.com/statelyai/xstate/commit/0d51d33cd6dc6ab876a5554788300282d03fa5d1) Thanks [@simonihmig](https://github.com/simonihmig)! - Support `globalThis` in `getGlobal()` for better compatibility
+
+* [#2828](https://github.com/statelyai/xstate/pull/2828) [`c0ef3e8`](https://github.com/statelyai/xstate/commit/c0ef3e882c688e6beefb196a3293ec71b65625e3) Thanks [@davidkpiano](https://github.com/davidkpiano)! - XState is now compatible with TypeScript version 4.5.
+
+## 4.26.0
+
+### Minor Changes
+
+- [#2672](https://github.com/statelyai/xstate/pull/2672) [`8e1d05d`](https://github.com/statelyai/xstate/commit/8e1d05dcafab0d1c8a63b07694b3f208850b0b4b) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `description` property is a new top-level property for state nodes and transitions, that lets you provide text descriptions:
+
+  ```ts
+  const machine = createMachine({
+    // ...
+    states: {
+      active: {
+        // ...
+        description: 'The task is in progress',
+        on: {
+          DEACTIVATE: {
+            // ...
+            description: 'Deactivates the task'
+          }
+        }
+      }
+    }
+  });
+  ```
+
+  Future Stately tooling will use the `description` to render automatically generated documentation, type hints, and enhancements to visual tools.
+
+* [#2743](https://github.com/statelyai/xstate/pull/2743) [`e268bf34a`](https://github.com/statelyai/xstate/commit/e268bf34a0dfe442ef7b43ecf8ab5c8d81ac69fb) Thanks [@janovekj](https://github.com/janovekj)! - Add optional type parameter to narrow type returned by `EventFrom`. You can use it like this:
+
+  ```ts
+  type UpdateNameEvent = EventFrom<typeof userModel>;
+  ```
+
+### Patch Changes
+
+- [#2738](https://github.com/statelyai/xstate/pull/2738) [`942fd90e0`](https://github.com/statelyai/xstate/commit/942fd90e0c7a942564dd9c2ffebb93d6c86698df) Thanks [@michelsciortino](https://github.com/michelsciortino)! - The `tags` property was missing from state's definitions. This is used when converting a state to a JSON string. Since this is how we serialize states within [`@xstate/inspect`](https://github.com/davidkpiano/xstate/tree/main/packages/xstate-inspect) this has caused inspected machines to miss the `tags` information.
+
+* [#2740](https://github.com/statelyai/xstate/pull/2740) [`707cb981f`](https://github.com/statelyai/xstate/commit/707cb981fdb8a5c75cacb7e9bfa5c7e5a1cc1c88) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with tags being missed on a service state after starting that service using a state value, like this:
+
+  ```js
+  const service = interpret(machine).start('active');
+  service.state.hasTag('foo'); // this should now return a correct result
+  ```
+
+- [#2691](https://github.com/statelyai/xstate/pull/2691) [`a72806035`](https://github.com/statelyai/xstate/commit/a728060353c9cb9bdb0cd37aacf793498a8750c8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Meta data can now be specified for `invoke` configs in the `invoke.meta` property:
+
+  ```js
+  const machine = createMachine({
+    // ...
+    invoke: {
+      src: (ctx, e) => findUser(ctx.userId),
+      meta: {
+        summary: 'Finds user',
+        updatedAt: '2021-09-...',
+        version: '4.12.2'
+        // other descriptive meta properties
+      }
+    }
+  });
+  ```
+
+## 4.25.0
+
+### Minor Changes
+
+- [#2657](https://github.com/statelyai/xstate/pull/2657) [`72155c1b7`](https://github.com/statelyai/xstate/commit/72155c1b7887b94f2d8f7cb73a1af17a591cc74c) Thanks [@mattpocock](https://github.com/mattpocock)! - Removed the ability to pass a model as a generic to `createMachine`, in favour of `model.createMachine`. This lets us cut an overload from the definition of `createMachine`, meaning errors become more targeted and less cryptic.
+
+  This means that this approach is no longer supported:
+
+  ```ts
+  const model = createModel({});
+
+  const machine = createMachine<typeof model>();
+  ```
+
+  If you're using this approach, you should use `model.createMachine` instead:
+
+  ```ts
+  const model = createModel({});
+
+  const machine = model.createMachine();
+  ```
+
+### Patch Changes
+
+- [#2659](https://github.com/statelyai/xstate/pull/2659) [`7bfeb930d`](https://github.com/statelyai/xstate/commit/7bfeb930d65eb4443c300a2d28aeef3664fcafea) Thanks [@Andarist](https://github.com/Andarist)! - Fixed a regression in the inline actions type inference in models without explicit action creators.
+
+  ```js
+  const model = createModel(
+    { foo: 100 },
+    {
+      events: {
+        BAR: () => ({})
+      }
+    }
+  );
+
+  model.createMachine({
+    // `ctx` was of type `any`
+    entry: (ctx) => {},
+    exit: assign({
+      // `ctx` was of type `unknown`
+      foo: (ctx) => 42
+    })
+  });
+  ```
+
+## 4.24.1
+
+### Patch Changes
+
+- [#2649](https://github.com/statelyai/xstate/pull/2649) [`ad611007a`](https://github.com/statelyai/xstate/commit/ad611007a9111e8aefe9d22049ac99072588db9f) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with functions used as inline actions not always receiving the correct arguments when used with `preserveActionOrder`.
+
+## 4.24.0
+
+### Minor Changes
+
+- [#2546](https://github.com/statelyai/xstate/pull/2546) [`a4cfce18c`](https://github.com/statelyai/xstate/commit/a4cfce18c0c179faef15adf25a75b08903064e28) Thanks [@davidkpiano](https://github.com/davidkpiano)! - You can now know if an event will cause a state change by using the new `state.can(event)` method, which will return `true` if an interpreted machine will "change" the state when sent the `event`, or `false` otherwise:
+
+  ```js
+  const machine = createMachine({
+    initial: 'inactive',
+    states: {
+      inactive: {
+        on: {
+          TOGGLE: 'active'
+        }
+      },
+      active: {
+        on: {
+          DO_SOMETHING: { actions: ['something'] }
+        }
+      }
+    }
+  });
+
+  const state = machine.initialState;
+
+  state.can('TOGGLE'); // true
+  state.can('DO_SOMETHING'); // false
+
+  // Also takes in full event objects:
+  state.can({
+    type: 'DO_SOMETHING',
+    data: 42
+  }); // false
+  ```
+
+  A state is considered "changed" if any of the following are true:
+
+  - its `state.value` changes
+  - there are new `state.actions` to be executed
+  - its `state.context` changes
+
+  See [`state.changed` (documentation)](https://xstate.js.org/docs/guides/states.html#state-changed) for more details.
+
+### Patch Changes
+
+- [#2632](https://github.com/statelyai/xstate/pull/2632) [`f8cf5dfe0`](https://github.com/statelyai/xstate/commit/f8cf5dfe0bf20c8545208ed7b1ade619933004f9) Thanks [@davidkpiano](https://github.com/davidkpiano)! - A regression was fixed where actions were being typed as `never` if events were specified in `createModel(...)` but not actions:
+
+  ```ts
+  const model = createModel(
+    {},
+    {
+      events: {}
+    }
+  );
+
+  model.createMachine({
+    // These actions will cause TS to not compile
+    entry: 'someAction',
+    exit: { type: 'someObjectAction' }
+  });
+  ```
+
+## 4.23.4
+
+### Patch Changes
+
+- [#2606](https://github.com/statelyai/xstate/pull/2606) [`01e5d7984`](https://github.com/statelyai/xstate/commit/01e5d7984a5441a6980eacdb06d42c2a9398bdff) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The following utility types were previously returning `never` in some unexpected cases, and are now working as expected:
+
+  - `ContextFrom<T>`
+  - `EventFrom<T>`
+  - `EmittedFrom<T>`
+
+## 4.23.3
+
+### Patch Changes
+
+- [#2587](https://github.com/statelyai/xstate/pull/2587) [`5aaa8445c`](https://github.com/statelyai/xstate/commit/5aaa8445c0041c6e9c47285c18e8b71cb2d805a7) Thanks [@Andarist](https://github.com/Andarist)! - Allow for guards to be always resolved from the implementations object. This allows a guard implementation to be updated in the running service by `@xstate/react`.
+
+## 4.23.2
+
+### Patch Changes
+
+- [`6c3f15c9`](https://github.com/statelyai/xstate/commit/6c3f15c967c816d5d9d235466e1cb1d030deb4a8) [#2551](https://github.com/statelyai/xstate/pull/2551) Thanks [@mattpocock](https://github.com/mattpocock)! - Widened the \*From utility types to allow extracting from factory functions.
+
+  This allows for:
+
+  ```ts
+  const makeMachine = () => createMachine({});
+
+  type Interpreter = InterpreterFrom<typeof makeMachine>;
+  type Actor = ActorRefFrom<typeof makeMachine>;
+  type Context = ContextFrom<typeof makeMachine>;
+  type Event = EventsFrom<typeof makeMachine>;
+  ```
+
+  This also works for models, behaviours, and other actor types.
+
+  The previous method for doing this was a good bit more verbose:
+
+  ```ts
+  const makeMachine = () => createMachine({});
+
+  type Interpreter = InterpreterFrom<ReturnType<typeof machine>>;
+  ```
+
+* [`413a4578`](https://github.com/statelyai/xstate/commit/413a4578cded21beffff822d1485a3725457b768) [#2491](https://github.com/statelyai/xstate/pull/2491) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The custom `.toString()` method on action objects is now removed which improves performance in larger applications (see [#2488](https://github.com/statelyai/xstate/discussions/2488) for more context).
+
+- [`5e1223cd`](https://github.com/statelyai/xstate/commit/5e1223cd58485045b192677753946df2c00eddf7) [#2422](https://github.com/statelyai/xstate/pull/2422) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `context` property has been removed from `StateNodeConfig`, as it has never been allowed, nor has it ever done anything. The previous typing was unsafe and allowed `context` to be specified on nested state nodes:
+
+  ```ts
+  createMachine({
+    context: {
+      /* ... */
+    }, // ✅ This is allowed
+    initial: 'inner',
+    states: {
+      inner: {
+        context: {
+          /* ... */
+        } // ❌ This will no longer compile
+      }
+    }
+  });
+  ```
+
+* [`5b70c2ff`](https://github.com/statelyai/xstate/commit/5b70c2ff21cc5d8c6cf1c13b6eb7bb12611a9835) [#2508](https://github.com/statelyai/xstate/pull/2508) Thanks [@davidkpiano](https://github.com/davidkpiano)! - A race condition occurred when a child service is immediately stopped and the parent service tried to remove it from its undefined state (during its own initialization). This has been fixed, and the race condition no longer occurs. See [this issue](https://github.com/statelyai/xstate/issues/2507) for details.
+
+- [`5a9500d1`](https://github.com/statelyai/xstate/commit/5a9500d1cde9bf2300a85bc81529da83f2d08361) [#2522](https://github.com/statelyai/xstate/pull/2522) Thanks [@farskid](https://github.com/farskid), [@Andarist](https://github.com/Andarist)! - Adjusted TS type definitions of the `withContext` and `withConfig` methods so that they accept "lazy context" now.
+
+  Example:
+
+  ```js
+  const copy = machine.withContext(() => ({
+    ref: spawn(() => {})
+  }));
+  ```
+
+* [`84f9fcae`](https://github.com/statelyai/xstate/commit/84f9fcae7d2b7f99800cc3bf18097ed45c48f0f5) [#2540](https://github.com/statelyai/xstate/pull/2540) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with `state.hasTag('someTag')` crashing when the `state` was rehydrated.
+
+- [`c17dd376`](https://github.com/statelyai/xstate/commit/c17dd37621a2ba46967926d550c70a35bba7024c) [#2496](https://github.com/statelyai/xstate/pull/2496) Thanks [@VanTanev](https://github.com/VanTanev)! - Add utility type `EmittedFrom<T>` that extracts `Emitted` type from any type which can emit data
+
+## 4.23.1
+
+### Patch Changes
+
+- [`141c91cf`](https://github.com/statelyai/xstate/commit/141c91cffd1d7c1ec2e82186834cb977b72fb4d4) [#2436](https://github.com/statelyai/xstate/pull/2436) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue where, when using `model.createMachine`, state's context was incorrectly inferred as `any` after refinement with `.matches(...)`, e.g.
+
+  ```ts
+  // `state.context` became `any` erroneously
+  if (state.matches('inactive')) {
+    console.log(state.context.count);
+  }
+  ```
+
+## 4.23.0
+
+### Minor Changes
+
+- [`7dc7ceb8`](https://github.com/statelyai/xstate/commit/7dc7ceb8707569b48ceb35069125763a701a0a58) [#2379](https://github.com/statelyai/xstate/pull/2379) Thanks [@davidkpiano](https://github.com/davidkpiano)! - There is a new `.preserveActionOrder` (default: `false`) setting in the machine configuration that preserves the order of actions when set to `true`. Normally, actions are executed in order _except_ for `assign(...)` actions, which are prioritized and executed first. When `.preserveActionOrder` is set to `true`, `assign(...)` actions will _not_ be prioritized, and will instead run in order. As a result, actions will capture the **intermediate `context` values** instead of the resulting `context` value from all `assign(...)` actions.
+
+  ```ts
+  // With `.preserveActionOrder: true`
+  const machine = createMachine({
+    context: { count: 0 },
+    entry: [
+      (ctx) => console.log(ctx.count), // 0
+      assign({ count: (ctx) => ctx.count + 1 }),
+      (ctx) => console.log(ctx.count), // 1
+      assign({ count: (ctx) => ctx.count + 1 }),
+      (ctx) => console.log(ctx.count) // 2
+    ],
+    preserveActionOrder: true
+  });
+
+  // With `.preserveActionOrder: false` (default)
+  const machine = createMachine({
+    context: { count: 0 },
+    entry: [
+      (ctx) => console.log(ctx.count), // 2
+      assign({ count: (ctx) => ctx.count + 1 }),
+      (ctx) => console.log(ctx.count), // 2
+      assign({ count: (ctx) => ctx.count + 1 }),
+      (ctx) => console.log(ctx.count) // 2
+    ]
+    // preserveActionOrder: false
+  });
+  ```
+
+### Patch Changes
+
+- [`4e305372`](https://github.com/statelyai/xstate/commit/4e30537266eb082ccd85f050c9372358247b4167) [#2361](https://github.com/statelyai/xstate/pull/2361) Thanks [@woutermont](https://github.com/woutermont)! - Add type for `Symbol.observable` to the `Interpreter` to improve the compatibility with RxJS.
+
+* [`1def6cf6`](https://github.com/statelyai/xstate/commit/1def6cf6109867a87b4323ee83d20a9ee0c49d7b) [#2374](https://github.com/statelyai/xstate/pull/2374) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Existing actors can now be identified in `spawn(...)` calls by providing an `id`. This allows them to be referenced by string:
+
+  ```ts
+  const machine = createMachine({
+    context: () => ({
+      someRef: spawn(someExistingRef, 'something')
+    }),
+    on: {
+      SOME_EVENT: {
+        actions: send('AN_EVENT', { to: 'something' })
+      }
+    }
+  });
+  ```
+
+- [`da6861e3`](https://github.com/statelyai/xstate/commit/da6861e34a2b28bf6eeaa7c04a2d4cf9a90f93f1) [#2391](https://github.com/statelyai/xstate/pull/2391) Thanks [@davidkpiano](https://github.com/davidkpiano)! - There are two new helper types for extracting `context` and `event` types:
+
+  - `ContextFrom<T>` which extracts the `context` from any type that uses context
+  - `EventFrom<T>` which extracts the `event` type (which extends `EventObject`) from any type which uses events
+
+## 4.22.0
+
+### Minor Changes
+
+- [`1b32aa0d`](https://github.com/statelyai/xstate/commit/1b32aa0d3a0eca11ffcb7ec9d710eb8828107aa0) [#2356](https://github.com/statelyai/xstate/pull/2356) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The model created from `createModel(...)` now provides a `.createMachine(...)` method that does not require passing any generic type parameters:
+
+  ```diff
+  const model = createModel(/* ... */);
+
+  -const machine = createMachine<typeof model>(/* ... */);
+  +const machine = model.createMachine(/* ... */);
+  ```
+
+* [`432b60f7`](https://github.com/statelyai/xstate/commit/432b60f7bcbcee9510e0d86311abbfd75b1a674e) [#2280](https://github.com/statelyai/xstate/pull/2280) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Actors can now be invoked/spawned from reducers using the `fromReducer(...)` behavior creator:
+
+  ```ts
+  import { fromReducer } from 'xstate/lib/behaviors';
+
+  type CountEvent = { type: 'INC' } | { type: 'DEC' };
+
+  const countReducer = (count: number, event: CountEvent): number => {
+    if (event.type === 'INC') {
+      return count + 1;
+    } else if (event.type === 'DEC') {
+      return count - 1;
+    }
+
+    return count;
+  };
+
+  const countMachine = createMachine({
+    invoke: {
+      id: 'count',
+      src: () => fromReducer(countReducer, 0)
+    },
+    on: {
+      INC: {
+        actions: forwardTo('count')
+      },
+      DEC: {
+        actions: forwardTo('count')
+      }
+    }
+  });
+  ```
+
+- [`f9bcea2c`](https://github.com/davidkpiano/xstate/commit/f9bcea2ce909ac59fcb165b352a7b51a8b29a56d) [#2366](https://github.com/davidkpiano/xstate/pull/2366) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Actors can now be spawned directly in the initial `machine.context` using lazy initialization, avoiding the need for intermediate states and unsafe typings for immediately spawned actors:
+
+  ```ts
+  const machine = createMachine<{ ref: ActorRef<SomeEvent> }>({
+    context: () => ({
+      ref: spawn(anotherMachine, 'some-id') // spawn immediately!
+    })
+    // ...
+  });
+  ```
+
+## 4.20.2
+
+### Patch Changes
+
+- [`1ef29e83`](https://github.com/davidkpiano/xstate/commit/1ef29e83e14331083279d50fd3a8907eb63793eb) [#2343](https://github.com/davidkpiano/xstate/pull/2343) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Eventless ("always") transitions will no longer be ignored if an event is sent to a machine in a state that does not have any enabled transitions for that event.
+
+## 4.20.1
+
+### Patch Changes
+
+- [`99bc5fb9`](https://github.com/davidkpiano/xstate/commit/99bc5fb9d1d7be35f4c767dcbbf5287755b306d0) [#2275](https://github.com/davidkpiano/xstate/pull/2275) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `SpawnedActorRef` TypeScript interface has been deprecated in favor of a unified `ActorRef` interface, which contains the following:
+
+  ```ts
+  interface ActorRef<TEvent extends EventObject, TEmitted = any>
+    extends Subscribable<TEmitted> {
+    send: (event: TEvent) => void;
+    id: string;
+    subscribe(observer: Observer<T>): Subscription;
+    subscribe(
+      next: (value: T) => void,
+      error?: (error: any) => void,
+      complete?: () => void
+    ): Subscription;
+    getSnapshot: () => TEmitted | undefined;
+  }
+  ```
+
+  For simpler actor-ref-like objects, the `BaseActorRef<TEvent>` interface has been introduced.
+
+  ```ts
+  interface BaseActorRef<TEvent extends EventObject> {
+    send: (event: TEvent) => void;
+  }
+  ```
+
+* [`38e6a5e9`](https://github.com/davidkpiano/xstate/commit/38e6a5e98a1dd54b4f2ef96942180ec0add88f2b) [#2334](https://github.com/davidkpiano/xstate/pull/2334) Thanks [@davidkpiano](https://github.com/davidkpiano)! - When using a model type in `createMachine<typeof someModel>(...)`, TypeScript will no longer compile machines that are missing the `context` property in the machine configuration:
+
+  ```ts
+  const machine = createMachine<typeof someModel>({
+    // missing context - will give a TS error!
+    // context: someModel.initialContext,
+    initial: 'somewhere',
+    states: {
+      somewhere: {}
+    }
+  });
+  ```
+
+- [`5f790ba5`](https://github.com/davidkpiano/xstate/commit/5f790ba5478cb733a59e3b0603e8976c11bcdd04) [#2320](https://github.com/davidkpiano/xstate/pull/2320) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The typing for `InvokeCallback` have been improved for better event constraints when using the `sendBack` parameter of invoked callbacks:
+
+  ```ts
+  invoke: () => (sendBack, receive) => {
+    // Will now be constrained to events that the parent machine can receive
+    sendBack({ type: 'SOME_EVENT' });
+  };
+  ```
+
+* [`2de3ec3e`](https://github.com/davidkpiano/xstate/commit/2de3ec3e994e0deb5a142aeac15e1eddeb18d1e1) [#2272](https://github.com/davidkpiano/xstate/pull/2272) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `state.meta` value is now calculated directly from `state.configuration`. This is most useful when starting a service from a persisted state:
+
+  ```ts
+    const machine = createMachine({
+      id: 'test',
+      initial: 'first',
+      states: {
+        first: {
+          meta: {
+            name: 'first state'
+          }
+        },
+        second: {
+          meta: {
+            name: 'second state'
+          }
+        }
+      }
+    });
+
+    const service = interpret(machine);
+
+    service.start('second'); // `meta` will be computed
+
+    // the state will have
+    // meta: {
+    //   'test.second': {
+    //     name: 'second state'
+    //   }
+    // }
+  });
+  ```
+
+## 4.20.0
+
+### Minor Changes
+
+- [`28059b9f`](https://github.com/davidkpiano/xstate/commit/28059b9f09926d683d80b7d816f5b703c0667a9f) [#2197](https://github.com/davidkpiano/xstate/pull/2197) Thanks [@davidkpiano](https://github.com/davidkpiano)! - All spawned and invoked actors now have a `.getSnapshot()` method, which allows you to retrieve the latest value emitted from that actor. That value may be `undefined` if no value has been emitted yet.
+
+  ```js
+  const machine = createMachine({
+    context: {
+      promiseRef: null
+    },
+    initial: 'pending',
+    states: {
+      pending: {
+        entry: assign({
+          promiseRef: () => spawn(fetch(/* ... */), 'some-promise')
+        })
+      }
+    }
+  });
+
+  const service = interpret(machine)
+    .onTransition((state) => {
+      // Read promise value synchronously
+      const resolvedValue = state.context.promiseRef?.getSnapshot();
+      // => undefined (if promise not resolved yet)
+      // => { ... } (resolved data)
+    })
+    .start();
+
+  // ...
+  ```
+
+### Patch Changes
+
+- [`4ef03465`](https://github.com/davidkpiano/xstate/commit/4ef03465869e27dc878ec600661c9253d90f74f0) [#2240](https://github.com/davidkpiano/xstate/pull/2240) Thanks [@VanTanev](https://github.com/VanTanev)! - Preserve StateMachine type when .withConfig() and .withContext() modifiers are used on a machine.
+
+## 4.19.2
+
+### Patch Changes
+
+- [`18789aa9`](https://github.com/davidkpiano/xstate/commit/18789aa94669e48b71e2ae22e524d9bbe9dbfc63) [#2107](https://github.com/davidkpiano/xstate/pull/2107) Thanks [@woutermont](https://github.com/woutermont)! - This update restricts invoked `Subscribable`s to `EventObject`s,
+  so that type inference can be done on which `Subscribable`s are
+  allowed to be invoked. Existing `MachineConfig`s that invoke
+  `Subscribable<any>`s that are not `Subscribable<EventObject>`s
+  should be updated accordingly.
+
+* [`38dcec1d`](https://github.com/davidkpiano/xstate/commit/38dcec1dad60c62cf8c47c88736651483276ff87) [#2149](https://github.com/davidkpiano/xstate/pull/2149) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Invocations and entry actions for _combinatorial_ machines (machines with only a single root state) now behave predictably and will not re-execute upon targetless transitions.
+
+## 4.19.1
+
+### Patch Changes
+
+- [`64ab1150`](https://github.com/davidkpiano/xstate/commit/64ab1150e0a383202f4af1d586b28e081009c929) [#2173](https://github.com/davidkpiano/xstate/pull/2173) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with tags not being set correctly after sending an event to a machine that didn't result in selecting any transitions.
+
+## 4.19.0
+
+### Minor Changes
+
+- [`4f2f626d`](https://github.com/davidkpiano/xstate/commit/4f2f626dc84f45bb18ded6dd9aad3b6f6a2190b1) [#2143](https://github.com/davidkpiano/xstate/pull/2143) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Tags can now be added to state node configs under the `.tags` property:
+
+  ```js
+  const machine = createMachine({
+    initial: 'green',
+    states: {
+      green: {
+        tags: 'go' // single tag
+      },
+      yellow: {
+        tags: 'go'
+      },
+      red: {
+        tags: ['stop', 'other'] // multiple tags
+      }
+    }
+  });
+  ```
+
+  You can query whether a state has a tag via `state.hasTag(tag)`:
+
+  ```js
+  const canGo = state.hasTag('go');
+  // => `true` if in 'green' or 'red' state
+  ```
+
+### Patch Changes
+
+- [`a61d01ce`](https://github.com/davidkpiano/xstate/commit/a61d01cefab5734adf9bfb167291f5b0ba712684) [#2125](https://github.com/davidkpiano/xstate/pull/2125) Thanks [@VanTanev](https://github.com/VanTanev)! - In callback invokes, the types of `callback` and `onReceive` are properly scoped to the machine TEvent.
+
+## 4.18.0
+
+### Minor Changes
+
+- [`d0939ec6`](https://github.com/davidkpiano/xstate/commit/d0939ec60161c34b053cecdaeb277606b5982375) [#2046](https://github.com/davidkpiano/xstate/pull/2046) Thanks [@SimeonC](https://github.com/SimeonC)! - Allow machines to communicate with the inspector even in production builds.
+
+* [`e37fffef`](https://github.com/davidkpiano/xstate/commit/e37fffefb742f45765945c02727edfbd5e2f9d47) [#2079](https://github.com/davidkpiano/xstate/pull/2079) Thanks [@davidkpiano](https://github.com/davidkpiano)! - There is now support for "combinatorial machines" (state machines that only have one state):
+
+  ```js
+  const testMachine = createMachine({
+    context: { value: 42 },
+    on: {
+      INC: {
+        actions: assign({ value: (ctx) => ctx.value + 1 })
+      }
+    }
+  });
+  ```
+
+  These machines omit the `initial` and `state` properties, as the entire machine is treated as a single state.
+
+### Patch Changes
+
+- [`6a9247d4`](https://github.com/davidkpiano/xstate/commit/6a9247d4d3a39e6c8c4724d3368a13fcdef10907) [#2102](https://github.com/davidkpiano/xstate/pull/2102) Thanks [@VanTanev](https://github.com/VanTanev)! - Provide a convenience type for getting the `Interpreter` type based on the `StateMachine` type by transferring all generic parameters onto it. It can be used like this: `InterpreterFrom<typeof machine>`
+
+## 4.17.1
+
+### Patch Changes
+
+- [`33302814`](https://github.com/davidkpiano/xstate/commit/33302814c38587d0044afd2ae61a4ff4779416c6) [#2041](https://github.com/davidkpiano/xstate/pull/2041) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with creatorless models not being correctly matched by `createMachine`'s overload responsible for using model-induced types.
+
+## 4.17.0
+
+### Minor Changes
+
+- [`7763db8d`](https://github.com/davidkpiano/xstate/commit/7763db8d3615321d03839b2bd31c9b118ddee50c) [#1977](https://github.com/davidkpiano/xstate/pull/1977) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `schema` property has been introduced to the machine config passed into `createMachine(machineConfig)`, which allows you to provide metadata for the following:
+
+  - Context
+  - Events
+  - Actions
+  - Guards
+  - Services
+
+  This metadata can be accessed as-is from `machine.schema`:
+
+  ```js
+  const machine = createMachine({
+    schema: {
+      // Example in JSON Schema (anything can be used)
+      context: {
+        type: 'object',
+        properties: {
+          foo: { type: 'string' },
+          bar: { type: 'number' },
+          baz: {
+            type: 'object',
+            properties: {
+              one: { type: 'string' }
+            }
+          }
+        }
+      },
+      events: {
+        FOO: { type: 'object' },
+        BAR: { type: 'object' }
+      }
+    }
+    // ...
+  });
+  ```
+
+  Additionally, the new `createSchema()` identity function allows any schema "metadata" to be represented by a specific type, which makes type inference easier without having to specify generic types:
+
+  ```ts
+  import { createSchema, createMachine } from 'xstate';
+
+  // Both `context` and `events` are inferred in the rest of the machine!
+  const machine = createMachine({
+    schema: {
+      context: createSchema<{ count: number }>(),
+      // No arguments necessary
+      events: createSchema<{ type: 'FOO' } | { type: 'BAR' }>()
+    }
+    // ...
+  });
+  ```
+
+* [`5febfe83`](https://github.com/davidkpiano/xstate/commit/5febfe83a7e5e866c0a4523ea4f86a966af7c50f) [#1955](https://github.com/davidkpiano/xstate/pull/1955) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Event creators can now be modeled inside of the 2nd argument of `createModel()`, and types for both `context` and `events` will be inferred properly in `createMachine()` when given the `typeof model` as the first generic parameter.
+
+  ```ts
+  import { createModel } from 'xstate/lib/model';
+
+  const userModel = createModel(
+    // initial context
+    {
+      name: 'David',
+      age: 30
+    },
+    // creators (just events for now)
+    {
+      events: {
+        updateName: (value: string) => ({ value }),
+        updateAge: (value: number) => ({ value }),
+        anotherEvent: () => ({}) // no payload
+      }
+    }
+  );
+
+  const machine = createMachine<typeof userModel>({
+    context: userModel.initialContext,
+    initial: 'active',
+    states: {
+      active: {
+        on: {
+          updateName: {
+            /* ... */
+          },
+          updateAge: {
+            /* ... */
+          }
+        }
+      }
+    }
+  });
+
+  const nextState = machine.transition(
+    undefined,
+    userModel.events.updateName('David')
+  );
+  ```
+
+## 4.16.2
+
+### Patch Changes
+
+- [`4194ffe8`](https://github.com/davidkpiano/xstate/commit/4194ffe84cfe7910e2c183701e36bc5cac5c9bcc) [#1710](https://github.com/davidkpiano/xstate/pull/1710) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Stopping an already stopped interpreter will no longer crash. See [#1697](https://github.com/davidkpiano/xstate/issues/1697) for details.
+
+## 4.16.1
+
+### Patch Changes
+
+- [`af6b7c70`](https://github.com/davidkpiano/xstate/commit/af6b7c70015db29d84f79dfd29ea0dc221b8f3e6) [#1865](https://github.com/davidkpiano/xstate/pull/1865) Thanks [@Andarist](https://github.com/Andarist)! - Improved `.matches(value)` inference for typestates containing union types as values.
+
+## 4.16.0
+
+### Minor Changes
+
+- [`d2e328f8`](https://github.com/davidkpiano/xstate/commit/d2e328f8efad7e8d3500d39976d1153a26e835a3) [#1439](https://github.com/davidkpiano/xstate/pull/1439) Thanks [@davidkpiano](https://github.com/davidkpiano)! - An opt-in `createModel()` helper has been introduced to make it easier to work with typed `context` and events.
+
+  - `createModel(initialContext)` creates a `model` object
+  - `model.initialContext` returns the `initialContext`
+  - `model.assign(assigner, event?)` creates an `assign` action that is properly scoped to the `event` in TypeScript
+
+  See https://github.com/davidkpiano/xstate/pull/1439 for more details.
+
+  ```js
+  import { createMachine } from 'xstate';
+  import { createModel } from 'xstate/lib/model'; // opt-in, not part of main build
+
+  interface UserContext {
+    name: string;
+    age: number;
+  }
+
+  type UserEvents =
+    | { type: 'updateName'; value: string }
+    | { type: 'updateAge'; value: number }
+
+  const userModel = createModel<UserContext, UserEvents>({
+    name: 'David',
+    age: 30
+  });
+
+  const assignName = userModel.assign({
+    name: (_, e) => e.value // correctly typed to `string`
+  }, 'updateName'); // restrict to 'updateName' event
+
+  const machine = createMachine<UserContext, UserEvents>({
+    context: userModel.context,
+    initial: 'active',
+    states: {
+      active: {
+        on: {
+          updateName: {
+            actions: assignName
+          }
+        }
+      }
+    }
+  });
+  ```
+
+## 4.15.4
+
+### Patch Changes
+
+- [`0cb8df9b`](https://github.com/davidkpiano/xstate/commit/0cb8df9b6c8cd01ada82afe967bf1015e24e75d9) [#1816](https://github.com/davidkpiano/xstate/pull/1816) Thanks [@Andarist](https://github.com/Andarist)! - `machine.resolveState(state)` calls should resolve to the correct value of `.done` property now.
+
+## 4.15.3
+
+### Patch Changes
+
+- [`63ba888e`](https://github.com/davidkpiano/xstate/commit/63ba888e19bd2b72f9aad2c9cd36cde297e0ffe5) [#1770](https://github.com/davidkpiano/xstate/pull/1770) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Instead of referencing `window` directly, XState now internally calls a `getGlobal()` function that will resolve to the proper `globalThis` value in all environments. This affects the dev tools code only.
+
+## 4.15.2
+
+### Patch Changes
+
+- [`497c543d`](https://github.com/davidkpiano/xstate/commit/497c543d2980ea1a277b30b340a7bcd3dd0b3cb6) [#1766](https://github.com/davidkpiano/xstate/pull/1766) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with events received from callback actors not having the appropriate `_event.origin` set.
+
+## 4.15.1
+
+### Patch Changes
+
+- [`8a8cfa32`](https://github.com/davidkpiano/xstate/commit/8a8cfa32d99aedf11f4af93ba56fa9ba68925c74) [#1704](https://github.com/davidkpiano/xstate/pull/1704) Thanks [@blimmer](https://github.com/blimmer)! - The default `clock` methods (`setTimeout` and `clearTimeout`) are now invoked properly with the global context preserved for those invocations which matter for some JS environments. More details can be found in the corresponding issue: [#1703](https://github.com/davidkpiano/xstate/issues/1703).
+
+## 4.15.0
+
+### Minor Changes
+
+- [`6596d0ba`](https://github.com/davidkpiano/xstate/commit/6596d0ba163341fc43d214b48115536cb4815b68) [#1622](https://github.com/davidkpiano/xstate/pull/1622) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Spawned/invoked actors and interpreters are now typed as extending `ActorRef` (e.g., `SpawnedActorRef`) rather than `Actor` or `Interpreter`. This unification of types should make it more straightforward to provide actor types:
+
+  ```diff
+  import {
+  - Actor
+  + ActorRef
+  } from 'xstate';
+
+  // ...
+
+  interface SomeContext {
+  - server?: Actor;
+  + server?: ActorRef<ServerEvent>;
+  }
+  ```
+
+  It's also easier to specify the type of a spawned/invoked machine with `ActorRefFrom`:
+
+  ```diff
+  import {
+    createMachine,
+  - Actor
+  + ActorRefFrom
+  } from 'xstate';
+
+  const serverMachine = createMachine<ServerContext, ServerEvent>({
+    // ...
+  });
+
+  interface SomeContext {
+  - server?: Actor; // difficult to type
+  + server?: ActorRefFrom<typeof serverMachine>;
+  }
+  ```
+
+### Patch Changes
+
+- [`75a91b07`](https://github.com/davidkpiano/xstate/commit/75a91b078a10a86f13edc9eec3ac1d6246607002) [#1692](https://github.com/davidkpiano/xstate/pull/1692) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with history state entering a wrong state if the most recent visit in its parent has been caused by a transient transition.
+
 ## 4.14.1
 
 ### Patch Changes
@@ -14,7 +841,7 @@
 
   ```js
   // ...
-  actions: stop(context => context.someActor);
+  actions: stop((context) => context.someActor);
   ```
 
 ### Patch Changes
@@ -252,10 +1079,10 @@
   ```js
   entry: [
     choose([
-      { cond: ctx => ctx > 100, actions: raise('TOGGLE') },
+      { cond: (ctx) => ctx > 100, actions: raise('TOGGLE') },
       {
         cond: 'hasMagicBottle',
-        actions: [assign(ctx => ({ counter: ctx.counter + 1 }))]
+        actions: [assign((ctx) => ({ counter: ctx.counter + 1 }))]
       },
       { actions: ['fallbackAction'] }
     ])

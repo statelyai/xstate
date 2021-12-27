@@ -5,7 +5,7 @@
 By default, a state node's `id` is its delimited full path. You can use this default `id` to specify a state node:
 
 ```js
-const lightMachine = Machine({
+const lightMachine = createMachine({
   id: 'light',
   initial: 'green',
   states: {
@@ -14,11 +14,19 @@ const lightMachine = Machine({
       on: {
         // You can target state nodes by their default ID.
         // This is the same as TIMER: 'yellow'
-        TIMER: '#light.yellow'
+        TIMER: { target: '#light.yellow' }
       }
     },
-    yellow: { on: { TIMER: 'red' } },
-    red: { on: { TIMER: 'green' } }
+    yellow: {
+      on: {
+        TIMER: { target: 'red' }
+      }
+    },
+    red: {
+      on: {
+        TIMER: { target: 'green' }
+      }
+    }
   }
 });
 ```
@@ -28,7 +36,7 @@ const lightMachine = Machine({
 Child state nodes can be targeted relative to their parent by specifying a dot (`'.'`) followed by their key:
 
 ```js {10-12}
-const optionsMachine = Machine({
+const optionsMachine = createMachine({
   id: 'options',
   initial: 'first',
   states: {
@@ -37,9 +45,9 @@ const optionsMachine = Machine({
     third: {}
   },
   on: {
-    SELECT_FIRST: '.first', // resolves to 'options.first'
-    SELECT_SECOND: '.second', // 'options.second'
-    SELECT_THIRD: '.third' // 'options.third'
+    SELECT_FIRST: { target: '.first' }, // resolves to 'options.first'
+    SELECT_SECOND: { target: '.second' }, // 'options.second'
+    SELECT_THIRD: { target: '.third' } // 'options.third'
   }
 });
 ```
@@ -50,7 +58,7 @@ By default, relative targets are [internal transitions](./transitions.md#interna
 // ...
 on: {
   SELECT_FIRST: {
-    target: '.first',
+    target: { target: '.first' },
     internal: false // external transition, will exit/reenter parent state node
   }
 }
@@ -65,7 +73,7 @@ To specify an ID for a state node, provide a unique string identifier as its `id
 To target a state node by its ID, prepend the `'#'` symbol to its string ID, e.g., `TIMER: '#greenLight'`.
 
 ```js
-const lightMachine = Machine({
+const lightMachine = createMachine({
   id: 'light',
   initial: 'green',
   states: {
@@ -74,20 +82,20 @@ const lightMachine = Machine({
       id: 'greenLight',
       on: {
         // target state node by its ID
-        TIMER: '#yellowLight'
+        TIMER: { target: '#yellowLight' }
       }
     },
     yellow: {
       id: 'yellowLight',
       on: {
-        TIMER: '#redLight'
+        TIMER: { target: '#redLight' }
       }
     },
     red: {
       id: 'redLight',
       on: {
         // relative targets will still work
-        TIMER: 'green'
+        TIMER: { target: 'green' }
       }
     }
   }
@@ -97,7 +105,6 @@ const lightMachine = Machine({
 **Notes:**
 
 - IDs are always recommended for the root state node.
-- IDs are useful for SCXML compatibility, and conversion to/from SCXML will make use of IDs extensively.
 - Make sure that all IDs are unique in order to prevent naming conflicts. This is naturally enforced by the automatically generated IDs.
 
 ::: warning
@@ -120,75 +127,12 @@ red: {
 Then you cannot target the `'walking'` state via `'#redLight.walking'`, because its ID is resolved to `'#light.red.walking'`. A target that starts with `'#'` will always refer to the _exact match_ for the `'#[state node ID]'`.
 :::
 
-## Avoiding strings
-
-If you don't want to use strings for identifying states, [object getters](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/get) can be used to directly reference the target state:
-
-```js
-const lightMachine = Machine({
-  id: 'light',
-  initial: 'green',
-  states: {
-    green: {
-      on: {
-        // Use a getter to directly reference the target state node:
-        get TIMER() {
-          return lightMachine.states.yellow;
-        }
-      }
-    },
-    yellow: {
-      on: {
-        get TIMER() {
-          return lightMachine.states.red;
-        }
-      }
-    },
-    red: {
-      on: {
-        TIMER: {
-          // Also works with target as a getter
-          get target() {
-            return lightMachine.states.green;
-          }
-        }
-      }
-    }
-  }
-});
-```
-
-::: warning
-The getter _must_ be a pure function that always returns the same value, which is a `StateNode` instance. Using getters to reference state nodes is completely optional, and useful if you want to avoid strings or have stricter typings. This getter will only be called once.
-:::
-
-## SCXML
-
-IDs correspond to the definition of IDs in the SCXML spec:
-
-```js
-{
-  green: {
-    id: 'lightGreen';
-  }
-}
-```
-
-```xml
-<state id="lightGreen">
-  <!-- ... -->
-</state>
-```
-
-- [https://www.w3.org/TR/scxml/#IDs](https://www.w3.org/TR/scxml/#IDs) - specification that all `id` attributes _must_ be unique
-- [https://www.w3.org/TR/scxml/#state](https://www.w3.org/TR/scxml/#state) - see the definition of the `id` attribute in `<state>`
-
 ## Quick Reference
 
 **Default, automatically generated ID:**
 
 ```js
-const lightMachine = Machine({
+const lightMachine = createMachine({
   id: 'light',
   initial: 'green',
   states: {
@@ -225,7 +169,7 @@ states: {
 ```js
 // ...
 on: {
-  EVENT: '#light.yellow', // target default ID
-  ANOTHER_EVENT: '#custom-id' // target custom ID
+  EVENT: { target: '#light.yellow' }, // target default ID
+  ANOTHER_EVENT: { target: '#custom-id' } // target custom ID
 }
 ```

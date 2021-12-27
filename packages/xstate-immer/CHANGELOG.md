@@ -1,5 +1,17 @@
 # @xstate/immer
 
+## 0.3.0
+
+### Minor Changes
+
+- [#2750](https://github.com/statelyai/xstate/pull/2750) [`eaa69ac18`](https://github.com/statelyai/xstate/commit/eaa69ac189e13d688587ef0ef285d15ea68f3e9e) Thanks [@rflow](https://github.com/rflow)! - Update [`immer`](https://github.com/immerjs/immer) to 9.0.6 to resolve security issue
+
+## 0.2.0
+
+### Minor Changes
+
+- [`63a270a0`](https://github.com/davidkpiano/xstate/commit/63a270a0dc2337e88ca607d4e6bc5c85fb8b6618) [#1908](https://github.com/davidkpiano/xstate/pull/1908) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Peer dependency range on [`immer`](https://immerjs.github.io/immer/docs/introduction) changed to `^8.0.1`.
+
 ## 0.1.0
 
 ### Minor Changes

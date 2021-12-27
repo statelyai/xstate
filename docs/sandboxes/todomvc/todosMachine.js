@@ -1,7 +1,7 @@
-import { Machine, assign } from 'xstate';
+import { createMachine, assign } from 'xstate';
 import uuid from 'uuid-v4';
 
-const createTodo = title => {
+const createTodo = (title) => {
   return {
     id: uuid(),
     title: title,
@@ -9,7 +9,7 @@ const createTodo = title => {
   };
 };
 
-export const todosMachine = Machine({
+export const todosMachine = createMachine({
   id: 'todos',
   context: {
     todo: '', // new todo
@@ -41,7 +41,7 @@ export const todosMachine = Machine({
       actions: [
         assign({
           todos: (ctx, e) =>
-            ctx.todos.map(todo => (todo.id === e.todo.id ? e.todo : todo))
+            ctx.todos.map((todo) => (todo.id === e.todo.id ? e.todo : todo))
         }),
         'persist'
       ]
@@ -49,7 +49,7 @@ export const todosMachine = Machine({
     'TODO.DELETE': {
       actions: assign({
         todos: (ctx, e) => {
-          return ctx.todos.filter(todo => todo.id !== e.id);
+          return ctx.todos.filter((todo) => todo.id !== e.id);
         }
       })
     },
@@ -58,17 +58,17 @@ export const todosMachine = Machine({
     'SHOW.completed': '.completed',
     'MARK.completed': {
       actions: assign({
-        todos: ctx => ctx.todos.map(todo => ({ ...todo, completed: true }))
+        todos: (ctx) => ctx.todos.map((todo) => ({ ...todo, completed: true }))
       })
     },
     'MARK.active': {
       actions: assign({
-        todos: ctx => ctx.todos.map(todo => ({ ...todo, completed: false }))
+        todos: (ctx) => ctx.todos.map((todo) => ({ ...todo, completed: false }))
       })
     },
     CLEAR_COMPLETED: {
       actions: assign({
-        todos: ctx => ctx.todos.filter(todo => !todo.completed)
+        todos: (ctx) => ctx.todos.filter((todo) => !todo.completed)
       })
     }
   }

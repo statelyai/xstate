@@ -140,6 +140,28 @@ describe('@xstate/fsm', () => {
     }).toThrow();
   });
 
+  it('should throw an error for undefined next state config', () => {
+    const invalidState = 'blue';
+    const testConfig = {
+      id: 'test',
+      initial: 'green',
+      states: {
+        green: {
+          on: {
+            TARGET_INVALID: invalidState
+          }
+        },
+        yellow: {}
+      }
+    };
+    const testMachine = createMachine(testConfig);
+    expect(() => {
+      testMachine.transition('green', 'TARGET_INVALID');
+    }).toThrow(
+      `State '${invalidState}' not found on machine ${testConfig.id ?? ''}`
+    );
+  });
+
   it('should work with guards', () => {
     const yellowState = lightFSM.transition('yellow', 'EMERGENCY');
     expect(yellowState.value).toEqual('yellow');
@@ -413,5 +435,31 @@ describe('interpreter', () => {
     });
 
     service.send('CHANGE');
+  });
+
+  it('should not re-execute exit/entry actions for transitions with undefined targets', () => {
+    const machine = createMachine({
+      initial: 'test',
+      states: {
+        test: {
+          entry: ['entry'],
+          exit: ['exit'],
+          on: {
+            EVENT: {
+              // undefined target
+              actions: ['action']
+            }
+          }
+        }
+      }
+    });
+
+    const { initialState } = machine;
+
+    expect(initialState.actions.map((a) => a.type)).toEqual(['entry']);
+
+    const nextState = machine.transition(initialState, 'EVENT');
+
+    expect(nextState.actions.map((a) => a.type)).toEqual(['action']);
   });
 });

@@ -10,7 +10,7 @@ type AdjList<TC, TE extends EventObject> = Map<
   Array<StateNode<TC, any, TE>>
 >;
 
-export const isLeafNode = (stateNode: StateNode<any, any, any>) =>
+export const isLeafNode = (stateNode: StateNode<any, any, any, any>) =>
   stateNode.type === 'atomic' || stateNode.type === 'final';
 
 export function getChildren<TC, TE extends EventObject>(
@@ -20,8 +20,8 @@ export function getChildren<TC, TE extends EventObject>(
 }
 
 export function getAllStateNodes<TC, TE extends EventObject>(
-  stateNode: StateNode<TC, any, TE>
-): Array<StateNode<TC, any, TE>> {
+  stateNode: StateNode<TC, any, TE, any>
+): Array<StateNode<TC, any, TE, any>> {
   const stateNodes = [stateNode];
 
   if (isLeafNode(stateNode)) {
@@ -34,9 +34,9 @@ export function getAllStateNodes<TC, TE extends EventObject>(
 }
 
 export function getConfiguration<TC, TE extends EventObject>(
-  prevStateNodes: Iterable<StateNode<TC, any, TE>>,
-  stateNodes: Iterable<StateNode<TC, any, TE>>
-): Iterable<StateNode<TC, any, TE>> {
+  prevStateNodes: Iterable<StateNode<TC, any, TE, any>>,
+  stateNodes: Iterable<StateNode<TC, any, TE, any>>
+): Iterable<StateNode<TC, any, TE, any>> {
   const prevConfiguration = new Set(prevStateNodes);
   const prevAdjList = getAdjList(prevConfiguration);
 
@@ -149,7 +149,7 @@ export function getAdjList<TC, TE extends EventObject>(
 }
 
 export function getValue<TC, TE extends EventObject>(
-  rootNode: StateNode<TC, any, TE>,
+  rootNode: StateNode<TC, any, TE, any>,
   configuration: Configuration<TC, TE>
 ): StateValue {
   const config = getConfiguration([rootNode], configuration);
@@ -172,12 +172,12 @@ export function has<T>(iterable: Iterable<T>, item: T): boolean {
 export function nextEvents<TC, TE extends EventObject>(
   configuration: Array<StateNode<TC, any, TE>>
 ): Array<TE['type']> {
-  return flatten([...new Set(configuration.map((sn) => sn.ownEvents))]);
+  return [...new Set(flatten([...configuration.map((sn) => sn.ownEvents)]))];
 }
 
 export function isInFinalState<TC, TE extends EventObject>(
-  configuration: Array<StateNode<TC, any, TE>>,
-  stateNode: StateNode<TC, any, TE>
+  configuration: Array<StateNode<TC, any, TE, any>>,
+  stateNode: StateNode<TC, any, TE, any>
 ): boolean {
   if (stateNode.type === 'compound') {
     return getChildren(stateNode).some(
@@ -191,4 +191,19 @@ export function isInFinalState<TC, TE extends EventObject>(
   }
 
   return false;
+}
+
+export function getMeta(configuration: StateNode[] = []): Record<string, any> {
+  return configuration.reduce((acc, stateNode) => {
+    if (stateNode.meta !== undefined) {
+      acc[stateNode.id] = stateNode.meta;
+    }
+    return acc;
+  }, {} as Record<string, any>);
+}
+
+export function getTagsFromConfiguration(
+  configuration: StateNode<any, any, any, any>[]
+) {
+  return new Set(flatten(configuration.map((sn) => sn.tags)));
 }

@@ -32,7 +32,7 @@ const searchValid = (context, event) => {
   return context.canSearch && event.query && event.query.length > 0;
 };
 
-const searchMachine = Machine(
+const searchMachine = createMachine(
   {
     id: 'search',
     initial: 'idle',
@@ -76,9 +76,9 @@ const searchMachine = Machine(
 
 Click the _EVENTS_ tab and send an event like `{ "type": "SEARCH", "query": "something" }` below:
 
-<iframe src="https://xstate.js.org/viz/?gist=09af23963bfa1767ce3900f2ae730029&embed=1&tab=events"></iframe>
+<iframe src="https://stately.ai/viz/embed/?gist=09af23963bfa1767ce3900f2ae730029&tab=events"></iframe>
 
-If the `cond` guard returns `false`, then the transition will not be selected, and no transition will take place from that state node.
+If the `cond` guard returns `false`, then the transition will not be selected, and no transition will take place from that state node. If all transitions in a child state have guards that evaluate to `false` and prevent them from being selected, the `event` will be propagated up to the parent state and handled there.
 
 Example of usage with `context`:
 
@@ -108,7 +108,8 @@ SEARCH: {
 // ...
 ```
 
-It is _not recommended_ to keep the machine config like this in production code, as this makes it difficult to debug, serialize, test, and accurately visualize actions. Always prefer refactoring inline guard implementations in the `guards` property of the machine options, like the previous example.
+Refactoring inline guard implementations in the `guards` property of the machine options makes it easier to debug, serialize, test, and accurately visualize guards.
+
 :::
 
 ## Serializing Guards
@@ -124,7 +125,7 @@ Guards can (and should) be serialized as a string or an object with the `{ type:
 Refactoring the above example:
 
 ```js {9-11,19-23}
-const searchMachine = Machine(
+const searchMachine = createMachine(
   {
     // ...
     states: {
@@ -156,7 +157,7 @@ const searchMachine = Machine(
 Sometimes, it is preferable to not only serialize state transitions in JSON, but guard logic as well. This is where serializing guards as objects is helpful, as objects may contain relevant data:
 
 ```js {9-13,21-30}
-const searchMachine = Machine(
+const searchMachine = createMachine(
   {
     // ...
     states: {
@@ -197,9 +198,9 @@ If you want to have a single event transition to different states in certain sit
 For example, you can model a door that listens for an `OPEN` event, goes to the `'opened'` state if you are an admin, or goes to the `'closed.error'` state if `alert`-ing is true, or goes to the `'closed.idle'` state otherwise.
 
 ```js {25-27}
-import { Machine, actions, interpret, assign } from 'xstate';
+import { createMachine, actions, interpret, assign } from 'xstate';
 
-const doorMachine = Machine(
+const doorMachine = createMachine(
   {
     id: 'door',
     initial: 'closed',
@@ -232,7 +233,7 @@ const doorMachine = Machine(
       },
       opened: {
         on: {
-          CLOSE: 'closed'
+          CLOSE: { target: 'closed' }
         }
       }
     }
@@ -250,26 +251,26 @@ const doorService = interpret(doorMachine)
   .start();
 // => { closed: 'idle' }
 
-doorService.send('OPEN');
+doorService.send({ type: 'OPEN' });
 // => { closed: 'idle' }
 
-doorService.send('SET_ALARM');
+doorService.send({ type: 'SET_ALARM' });
 // => { closed: 'idle' }
 // (state does not change, but context changes)
 
-doorService.send('OPEN');
+doorService.send({ type: 'OPEN' });
 // => { closed: 'error' }
 
-doorService.send('SET_ADMIN');
+doorService.send({ type: 'SET_ADMIN' });
 // => { closed: 'error' }
 // (state does not change, but context changes)
 
-doorService.send('OPEN');
+doorService.send({ type: 'OPEN' });
 // => 'opened'
 // (since context.isAdmin === true)
 ```
 
-<iframe src="https://xstate.js.org/viz/?gist=8526f72c3041b38f7d7ba808c812df06&embed=1"></iframe>
+<iframe src="https://stately.ai/viz/embed/?gist=8526f72c3041b38f7d7ba808c812df06"></iframe>
 
 ::: warning
 The `cond` function must always be a **pure function** that only references the `context` and `event` arguments.
@@ -284,12 +285,20 @@ Do _not_ overuse guard conditions. If something can be represented discretely as
 The `in` property takes a state ID as an argument and returns `true` if and only if that state node is active in the current state. For example, we can add a guard to the traffic light machine:
 
 ```js {24}
-const lightMachine = Machine({
+const lightMachine = createMachine({
   id: 'light',
   initial: 'green',
   states: {
-    green: { on: { TIMER: 'yellow' } },
-    yellow: { on: { TIMER: 'red' } },
+    green: {
+      on: {
+        TIMER: { target: 'yellow' }
+      }
+    },
+    yellow: {
+      on: {
+        TIMER: { target: 'red' }
+      }
+    },
     red: {
       initial: 'walk',
       states: {
@@ -321,43 +330,3 @@ When an `in`-state guard is present with other `cond` guards in the same transit
 ::: tip
 Using "in state" guards is usually a sign that the machine can be refactored in a way that makes their usage unnecessary. Prefer avoiding "in state" guards when possible.
 :::
-
-## SCXML
-
-The `cond` property is equivalent to the `cond` attribute on the `<transition>` element:
-
-```js
-{
-  on: {
-    e: {
-      target: 'foo',
-      cond: context => context.x === 1
-    }
-  }
-}
-```
-
-```xml
-<transition event="e" cond="x == 1" target="foo" />
-```
-
-Likewise, the `in` property is equivalent to the `In()` predicate:
-
-```js
-{
-  on: {
-    e: {
-      target: 'cooking',
-      in: '#closed'
-    }
-  }
-}
-```
-
-```xml
-<transition cond="In('closed')" target="cooking"/>
-```
-
-- [https://www.w3.org/TR/scxml/#transition](https://www.w3.org/TR/scxml/#transition) - the definition of the `cond` attribute
-- [https://www.w3.org/TR/scxml/#ConditionalExpressions](https://www.w3.org/TR/scxml/#ConditionalExpressions) - conditional expressions and the requirement of supporting the `In()` predicate
-- [https://www.w3.org/TR/scxml/#SelectingTransitions](https://www.w3.org/TR/scxml/#SelectingTransitions) - how transitions are selected given an event

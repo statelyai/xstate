@@ -1,5 +1,6 @@
 import { terser } from 'rollup-plugin-terser';
 import typescript from 'rollup-plugin-typescript2';
+import pkg from './package.json';
 
 function createTSCofig() {
   return typescript({
@@ -11,9 +12,18 @@ function createTSCofig() {
   });
 }
 
+const makeExternalPredicate = (externalArr) => {
+  if (externalArr.length === 0) {
+    return () => false;
+  }
+  const pattern = new RegExp(`^(${externalArr.join('|')})($|/)`);
+  return (id) => pattern.test(id);
+};
+
 function createUmdConfig({ input, output: file, name }) {
   return {
     input,
+    external: makeExternalPredicate(Object.keys(pkg.peerDependencies)),
     output: {
       file,
       format: 'umd',
@@ -21,7 +31,7 @@ function createUmdConfig({ input, output: file, name }) {
       globals: {
         xstate: 'XState',
         '@xstate/fsm': 'XStateFSM',
-        '@vue/composition-api': 'vueCompositionApi'
+        vue: 'Vue'
       }
     },
     plugins: [createTSCofig(), terser({ include: [/^.+\.min\.js$/] })]

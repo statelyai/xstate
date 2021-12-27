@@ -1,32 +1,32 @@
-# Delayed Events and Transitions
+# Delayed events and transitions
 
-The concept of time and delays in statecharts is declarative - time is an event, just like any other. XState abstracts this notion in two ways: delayed transitions and delayed events. Under the hood, both work the same way.
+Delays and timeouts can be handled declaratively with statecharts. To learn more, see the section in our [introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#delayed-transitions).
 
-## Delayed Transitions
+## Delayed transitions
 
-Transitions can automatically take place after a delay. This is represented in a state definition in the `after` property, which maps millisecond delays to their transitions:
+Transitions can be taken automatically after a delay. This is represented in a state definition in the `after` property, which maps millisecond delays to their transitions:
 
 ```js
-const lightDelayMachine = Machine({
+const lightDelayMachine = createMachine({
   id: 'lightDelay',
   initial: 'green',
   states: {
     green: {
       after: {
         // after 1 second, transition to yellow
-        1000: 'yellow'
+        1000: { target: 'yellow' }
       }
     },
     yellow: {
       after: {
         // after 0.5 seconds, transition to red
-        500: 'red'
+        500: { target: 'red' }
       }
     },
     red: {
       after: {
         // after 2 seconds, transition to green
-        2000: 'green'
+        2000: { target: 'green' }
       }
     }
   }
@@ -47,7 +47,7 @@ states: {
 // ...
 ```
 
-They can be also be conditional with regard to a single delay value:
+Delayed transitions can also be conditional with regard to a single delay value:
 
 ```js
 // ...
@@ -64,7 +64,7 @@ states: {
 // ...
 ```
 
-Or they can be conditional for multiple delays. The first selected delayed transition will be taken, which will prevent later transitions from being taken. In this example, if the `'trafficIsLight'` condition is `true`, then the later `2000: 'yellow'` transition will not be taken:
+Or delayed transitions can be conditional for multiple delays. The first selected delayed transition will be taken, which will prevent later transitions from being taken. In the following example, if the `'trafficIsLight'` condition is `true`, then the later `2000: 'yellow'` transition will not be taken:
 
 ```js
 // ...
@@ -72,7 +72,7 @@ states: {
   green: {
     after: {
       1000: { target: 'yellow', cond: 'trafficIsLight' },
-      2000: 'yellow' // always transition to 'yellow' after 2 seconds
+      2000: { target: 'yellow' } // always transition to 'yellow' after 2 seconds
     }
   }
 }
@@ -94,12 +94,12 @@ states: {
 // ...
 ```
 
-### Delay Expressions on Transitions <Badge text="4.4+" />
+### Delay expressions on transitions <Badge text="4.4+" />
 
 Delayed transitions specified on the `after: { ... }` property can have dynamic delays, specified either by a string delay reference:
 
 ```js
-const lightDelayMachine = Machine(
+const lightDelayMachine = createMachine(
   {
     id: 'lightDelay',
     initial: 'green',
@@ -110,12 +110,12 @@ const lightDelayMachine = Machine(
       green: {
         after: {
           // after 1 second, transition to yellow
-          LIGHT_DELAY: 'yellow'
+          LIGHT_DELAY: { target: 'yellow' }
         }
       },
       yellow: {
         after: {
-          YELLOW_LIGHT_DELAY: 'red'
+          YELLOW_LIGHT_DELAY: { target: 'red' }
         }
       }
       // ...
@@ -165,7 +165,7 @@ green: {
 // ...
 ```
 
-## Delayed Events
+## Delayed events
 
 If you just want to send an event after a delay, you can specify the `delay` as an option in the second argument of the `send(...)` action creator:
 
@@ -174,31 +174,34 @@ import { actions } from 'xstate';
 const { send } = actions;
 
 // action to send the 'TIMER' event after 1 second
-const sendTimerAfter1Second = send('TIMER', { delay: 1000 });
+const sendTimerAfter1Second = send({ type: 'TIMER' }, { delay: 1000 });
 ```
 
-You can also prevent those delayed events from being sent by cancelling them. This is done with the `cancel(...)` action creator:
+You can also prevent those delayed events from being sent by canceling them. This is done with the `cancel(...)` action creator:
 
 ```js
 import { actions } from 'xstate';
 const { send, cancel } = actions;
 
 // action to send the 'TIMER' event after 1 second
-const sendTimerAfter1Second = send('TIMER', {
-  delay: 1000,
-  id: 'oneSecondTimer' // give the event a unique ID
-});
+const sendTimerAfter1Second = send(
+  { type: 'TIMER' },
+  {
+    delay: 1000,
+    id: 'oneSecondTimer' // give the event a unique ID
+  }
+);
 
 const cancelTimer = cancel('oneSecondTimer'); // pass the ID of event to cancel
 
-const toggleMachine = Machine({
+const toggleMachine = createMachine({
   id: 'toggle',
   initial: 'inactive',
   states: {
     inactive: {
       entry: sendTimerAfter1Second,
       on: {
-        TIMER: 'active'
+        TIMER: { target: 'active' },
         CANCEL: { actions: cancelTimer }
       }
     },
@@ -214,7 +217,7 @@ const toggleMachine = Machine({
 The `delay` option can also be evaluated as a delay expression, which is a function that takes in the current `context` and `event` that triggered the `send()` action, and returns the resolved `delay` (in milliseconds):
 
 ```js
-const dynamicDelayMachine = Machine({
+const dynamicDelayMachine = createMachine({
   id: 'dynamicDelay',
   context: {
     initialDelay: 1000
@@ -223,16 +226,19 @@ const dynamicDelayMachine = Machine({
   states: {
     idle: {
       on: {
-        ACTIVATE: 'pending'
+        ACTIVATE: { target: 'pending' }
       }
     },
     pending: {
-      entry: send('FINISH', {
-        // delay determined from custom event.wait property
-        delay: (context, event) => context.initialDelay + event.wait || 0
-      }),
+      entry: send(
+        { type: 'FINISH' },
+        {
+          // delay determined from custom event.wait property
+          delay: (context, event) => context.initialDelay + event.wait || 0
+        }
+      ),
       on: {
-        FINISH: 'finished'
+        FINISH: { target: 'finished' }
       }
     },
     finished: { type: 'final' }
@@ -260,7 +266,7 @@ With the XState [interpreter](./interpretation.md), delayed actions will use the
 ```js
 import { interpret } from 'xstate';
 
-const service = interpret(lightDelayMachine).onTransition(state =>
+const service = interpret(lightDelayMachine).onTransition((state) =>
   console.log(state.value)
 );
 
@@ -281,7 +287,7 @@ import { SimulatedClock } from 'xstate/lib/SimulatedClock'; // >= 4.6.0
 
 const service = interpret(lightDelayMachine, {
   clock: new SimulatedClock()
-}).onTransition(state => console.log(state.value));
+}).onTransition((state) => console.log(state.value));
 
 service.start();
 // => 'green'
@@ -291,7 +297,7 @@ service.clock.increment(1000);
 // => 'yellow'
 ```
 
-You can create your own "clock" to provide to the interpreter. The clock interface is an object with two functions/methods:
+You can create your own “clock” to provide to the interpreter. The clock interface is an object with two functions/methods:
 
 - `setTimeout` - same arguments as `window.setTimeout(fn, timeout)`
 - `clearTimeout` - same arguments as `window.clearTimeout(id)`

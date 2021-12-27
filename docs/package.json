@@ -1,0 +1,24 @@
+{
+  "name": "xstate-docs",
+  "private": true,
+  "description": "Documentation for XState",
+  "main": "index.js",
+  "repository": "https://github.com/statelyai/xstate",
+  "author": "David Khourshid",
+  "license": "MIT",
+  "scripts": {
+    "docs:dev": "yarn vuepress dev .",
+    "docs:readme": "cpy ../README.md .",
+    "docs:build": "npm run docs:readme && vuepress build .",
+    "docs:pdf": "npm run docs:build && vuepress export .",
+    "docs:publish": "npm run docs:build && gh-pages --dist .vuepress/dist --dest ./docs"
+  },
+  "dependencies": {
+    "@vuepress/plugin-google-analytics": "^1.8.2",
+    "cpy-cli": "^3.1.1",
+    "gh-pages": "^3.1.0",
+    "mermaid": "^8.9.3",
+    "vuepress": "^1.8.2",
+    "vuepress-plugin-export": "^0.2.0"
+  }
+}

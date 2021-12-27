@@ -20,6 +20,12 @@
       "path": "./packages/xstate-react"
     },
     {
+      "path": "./packages/xstate-vue"
+    },
+    {
+      "path": "./packages/xstate-svelte"
+    },
+    {
       "path": "./packages/xstate-scxml"
     }
   ]

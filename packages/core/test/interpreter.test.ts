@@ -78,7 +78,7 @@ describe('interpreter', () => {
       let entryCalled = 0;
       let promiseSpawned = 0;
 
-      const machine = createMachine<any>({
+      const machine = createMachine<any, any, any>({
         initial: 'idle',
         context: {
           actor: undefined
@@ -163,10 +163,9 @@ describe('interpreter', () => {
       // saves state and recreate it
       const recreated = JSON.parse(JSON.stringify(nextState));
       const previousState = State.create(recreated);
-      const resolvedState = lightMachine.resolveState(previousState);
 
       const service = interpret(lightMachine);
-      service.start(resolvedState);
+      service.start(previousState);
     });
   });
 
@@ -496,7 +495,7 @@ describe('interpreter', () => {
     });
   });
 
-  describe('activities', () => {
+  describe('activities (deprecated)', () => {
     let activityState = 'off';
 
     const activityMachine = Machine(
@@ -1388,6 +1387,19 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         done();
       }, 10);
     });
+
+    it('stopping a not-started interpreter should not crash', () => {
+      const service = interpret(
+        createMachine({
+          initial: 'a',
+          states: { a: {} }
+        })
+      );
+
+      expect(() => {
+        service.stop();
+      }).not.toThrow();
+    });
   });
 
   describe('off()', () => {
@@ -1682,7 +1694,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       const intervalService = interpret(intervalMachine).start();
 
       expect(() => {
-        const state$ = from(intervalService as any);
+        const state$ = from(intervalService);
 
         state$.subscribe(
           () => {
@@ -1918,7 +1930,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         }
       });
 
-      const formMachine = createMachine<any>({
+      const formMachine = createMachine<any, any, any>({
         id: 'form',
         initial: 'idle',
         context: {},
@@ -1967,9 +1979,10 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
               NEXT: {
                 target: 'gone',
                 actions: [
-                  stop((ctx) => ctx.machineRef),
-                  stop((ctx) => ctx.promiseRef),
-                  stop((ctx) => ctx.observableRef)
+                  // TODO: type these correctly in TContext
+                  stop((ctx) => (ctx as any).machineRef),
+                  stop((ctx) => (ctx as any).promiseRef),
+                  stop((ctx) => (ctx as any).observableRef)
                 ]
               }
             }

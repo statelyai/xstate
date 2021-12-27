@@ -3,15 +3,15 @@
 The [interpreted machine](../guides/interpretation.md) (i.e., `service`) is subscribable.
 
 ```js
-import { Machine, interpret } from 'xstate';
+import { createMachine, interpret } from 'xstate';
 import { from } from 'rxjs';
 
-const machine = Machine(/* ... */);
+const machine = createMachine(/* ... */);
 const service = interpret(machine).start();
 
 const state$ = from(service);
 
-state$.subscribe(state => {
+state$.subscribe((state) => {
   // ...
 });
 ```

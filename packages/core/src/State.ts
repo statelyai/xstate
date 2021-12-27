@@ -10,14 +10,17 @@ import {
   SCXML,
   StateSchema,
   TransitionDefinition,
-  Typestate
+  Typestate,
+  ActorRef,
+  StateMachine,
+  SimpleEventsOf
 } from './types';
 import { EMPTY_ACTIVITY_MAP } from './constants';
-import { matchesState, keys, isString } from './utils';
+import { matchesState, keys, isString, warn } from './utils';
 import { StateNode } from './StateNode';
-import { nextEvents } from './stateUtils';
+import { getMeta, nextEvents } from './stateUtils';
 import { initEvent } from './actions';
-import { Actor } from './Actor';
+import { IS_PRODUCTION } from './environment';
 
 export function stateValuesEqual(
   a: StateValue | undefined,
@@ -61,7 +64,7 @@ export function isState<
 
 export function bindActionToState<TC, TE extends EventObject>(
   action: ActionObject<TC, TE>,
-  state: State<TC, TE>
+  state: State<TC, TE, any, any>
 ): ActionObject<TC, TE> {
   const { exec } = action;
   const boundAction: ActionObject<TC, TE> = {
@@ -113,7 +116,7 @@ export class State<
   /**
    * The enabled state nodes representative of the state value.
    */
-  public configuration: Array<StateNode<TContext, any, TEvent>>;
+  public configuration: Array<StateNode<TContext, any, TEvent, any>>;
   /**
    * The next events that will cause a transition from the current state.
    */
@@ -126,16 +129,18 @@ export class State<
   /**
    * An object mapping actor IDs to spawned actors/invoked services.
    */
-  public children: Record<string, Actor>;
+  public children: Record<string, ActorRef<any>>;
+  public tags: Set<string>;
+  public machine: StateMachine<TContext, any, TEvent, TTypestate> | undefined;
   /**
    * Creates a new State instance for the given `stateValue` and `context`.
    * @param stateValue
    * @param context
    */
   public static from<TC, TE extends EventObject = EventObject>(
-    stateValue: State<TC, TE> | StateValue,
+    stateValue: State<TC, TE, any, any> | StateValue,
     context?: TC | undefined
-  ): State<TC, TE> {
+  ): State<TC, TE, any, any> {
     if (stateValue instanceof State) {
       if (stateValue.context !== context) {
         return new State<TC, TE>({
@@ -239,7 +244,7 @@ export class State<
     this.history = config.history as this;
     this.actions = config.actions || [];
     this.activities = config.activities || EMPTY_ACTIVITY_MAP;
-    this.meta = config.meta || {};
+    this.meta = getMeta(config.configuration);
     this.events = config.events || [];
     this.matches = this.matches.bind(this);
     this.toStrings = this.toStrings.bind(this);
@@ -247,6 +252,10 @@ export class State<
     this.transitions = config.transitions;
     this.children = config.children;
     this.done = !!config.done;
+    this.tags =
+      (Array.isArray(config.tags) ? new Set(config.tags) : config.tags) ??
+      new Set();
+    this.machine = config.machine;
 
     Object.defineProperty(this, 'nextEvents', {
       get: () => {
@@ -279,9 +288,9 @@ export class State<
   }
 
   public toJSON() {
-    const { configuration, transitions, ...jsonValues } = this;
+    const { configuration, transitions, tags, machine, ...jsonValues } = this;
 
-    return jsonValues;
+    return { ...jsonValues, tags: Array.from(tags) };
   }
 
   /**
@@ -291,11 +300,50 @@ export class State<
   public matches<TSV extends TTypestate['value']>(
     parentStateValue: TSV
   ): this is State<
-    (TTypestate extends { value: TSV } ? TTypestate : never)['context'],
+    (TTypestate extends any
+      ? { value: TSV; context: any } extends TTypestate
+        ? TTypestate
+        : never
+      : never)['context'],
     TEvent,
     TStateSchema,
     TTypestate
   > & { value: TSV } {
     return matchesState(parentStateValue as StateValue, this.value);
+  }
+
+  /**
+   * Whether the current state configuration has a state node with the specified `tag`.
+   * @param tag
+   */
+  public hasTag(tag: string): boolean {
+    return this.tags.has(tag);
+  }
+
+  /**
+   * Determines whether sending the `event` will cause a non-forbidden transition
+   * to be selected, even if the transitions have no actions nor
+   * change the state value.
+   *
+   * @param event The event to test
+   * @returns Whether the event will cause a transition
+   */
+  public can(event: TEvent | SimpleEventsOf<TEvent>['type']): boolean {
+    if (IS_PRODUCTION) {
+      warn(
+        !!this.machine,
+        `state.can(...) used outside of a machine-created State object; this will always return false.`
+      );
+    }
+
+    const transitionData = this.machine?.getTransitionData(this, event);
+
+    return (
+      !!transitionData?.transitions.length &&
+      // Check that at least one transition is not forbidden
+      transitionData.transitions.some(
+        (t) => t.target !== undefined || t.actions.length
+      )
+    );
   }
 }

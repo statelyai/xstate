@@ -1,4 +1,10 @@
-import { EventObject } from 'xstate';
+import {
+  ActionMeta,
+  ActionObject,
+  EventObject,
+  State,
+  StateConfig
+} from 'xstate';
 
 export type Sender<TEvent extends EventObject> = (event: TEvent) => void;
 
@@ -24,25 +30,6 @@ export interface Subscribable<T> {
     error?: (error: any) => void,
     complete?: () => void
   ): Subscription;
-}
-
-export interface ActorRef<TEvent extends EventObject, TEmitted = any>
-  extends Subscribable<TEmitted> {
-  send: Sender<TEvent>;
-  stop: () => void;
-  /**
-   * The most recently emitted value.
-   */
-  current: TEmitted;
-  name: string;
-}
-
-// Compatibility with V4
-export interface ActorRefLike<TEvent extends EventObject, TEmitted = any>
-  extends Subscribable<TEmitted> {
-  send: Sender<TEvent>;
-  stop?: () => void;
-  [key: string]: any;
 }
 
 export type MaybeLazy<T> = T | (() => T);
@@ -76,3 +63,47 @@ export interface PayloadSender<TEvent extends EventObject> {
     payload: NeverIfEmpty<ExtractExtraParameters<TEvent, K>>
   ): void;
 }
+
+// TODO: use ActorRef from XState core instead.
+// Kept here because of breaking change/versioning concern:
+// https://github.com/davidkpiano/xstate/pull/1622#discussion_r528309213
+export interface ActorRef<TEvent extends EventObject, TEmitted = any>
+  extends Subscribable<TEmitted> {
+  send: Sender<TEvent>;
+}
+
+export enum ReactEffectType {
+  Effect = 1,
+  LayoutEffect = 2
+}
+
+export interface ReactActionFunction<TContext, TEvent extends EventObject> {
+  (
+    context: TContext,
+    event: TEvent,
+    meta: ActionMeta<TContext, TEvent>
+  ): () => void;
+  __effect: ReactEffectType;
+}
+
+export interface ReactActionObject<TContext, TEvent extends EventObject>
+  extends ActionObject<TContext, TEvent> {
+  exec: ReactActionFunction<TContext, TEvent>;
+}
+
+export interface UseMachineOptions<TContext, TEvent extends EventObject> {
+  /**
+   * If provided, will be merged with machine's `context`.
+   */
+  context?: Partial<TContext>;
+  /**
+   * The state to rehydrate the machine to. The machine will
+   * start at this state instead of its `initialState`.
+   */
+  state?: StateConfig<TContext, TEvent>;
+}
+
+export type ActionStateTuple<TContext, TEvent extends EventObject> = [
+  ReactActionObject<TContext, TEvent>,
+  State<TContext, TEvent>
+];

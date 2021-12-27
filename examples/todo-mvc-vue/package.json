@@ -1,0 +1,24 @@
+{
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "serve": "vite preview"
+  },
+  "dependencies": {
+    "@xstate/inspect": "^0.4.1",
+    "@xstate/vue": "^0.6.0",
+    "nanoid": "^3.1.23",
+    "todomvc-app-css": "^2.4.1",
+    "todomvc-common": "^1.0.5",
+    "vue": "^3.0.5",
+    "xstate": "^4.23.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^1.2.3",
+    "@vue/compiler-sfc": "^3.1.2",
+    "typescript": "^4.3.4",
+    "vite": "^2.3.8",
+    "vue-tsc": "^0.2.0"
+  }
+}

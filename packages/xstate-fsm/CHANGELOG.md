@@ -1,5 +1,38 @@
 # @xstate/fsm
 
+## 1.6.2
+
+### Patch Changes
+
+- [#2601](https://github.com/statelyai/xstate/pull/2601) [`b76351be7`](https://github.com/statelyai/xstate/commit/b76351be73910a733f56059579aad1faea6bd822) Thanks [@VanTanev](https://github.com/VanTanev)! - Add `ExtractEvent<Event, EventType>` to @xstate/fsm
+
+## 1.6.1
+
+### Patch Changes
+
+- [`0db3de7c`](https://github.com/davidkpiano/xstate/commit/0db3de7c5b84cb3eecb0cf1deabcc3bc54172505) [#2055](https://github.com/davidkpiano/xstate/pull/2055) Thanks [@f-elix](https://github.com/f-elix)! - Added a more helpful error, in the development build, for a situation where the next state (the target of a transition) doesn't exist in the config.
+
+## 1.6.0
+
+### Minor Changes
+
+- [`b990d527`](https://github.com/davidkpiano/xstate/commit/b990d527b760ca6c3ed105a3af7dfcff8bc5b481) [#1911](https://github.com/davidkpiano/xstate/pull/1911) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Transitions with `undefined` targets will no longer exit and re-enter the state, which means that `exit` and `entry` actions will not be executed:
+
+  ```js
+  // ...
+  someState: {
+    entry: [/* ... */],
+    exit: [/* ... */],
+    on: {
+      SOME_EVENT: {
+        // undefined target - will not exit/re-enter
+        actions: [/* ... */]
+      }
+    }
+  }
+  // ...
+  ```
+
 ## 1.5.2
 
 ### Patch Changes

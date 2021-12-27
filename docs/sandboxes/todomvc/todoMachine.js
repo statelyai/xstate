@@ -1,6 +1,6 @@
-import { Machine, assign } from 'xstate';
+import { createMachine, assign } from 'xstate';
 
-export const todoMachine = Machine({
+export const todoMachine = createMachine({
   id: 'todo',
   initial: 'reading',
   context: {
@@ -22,7 +22,7 @@ export const todoMachine = Machine({
         unknown: {
           on: {
             '': [
-              { target: 'completed', cond: ctx => ctx.completed },
+              { target: 'completed', cond: (ctx) => ctx.completed },
               { target: 'pending' }
             ]
           }
@@ -48,7 +48,7 @@ export const todoMachine = Machine({
       }
     },
     editing: {
-      onEntry: assign({ prevTitle: ctx => ctx.title }),
+      onEntry: assign({ prevTitle: (ctx) => ctx.title }),
       on: {
         CHANGE: {
           actions: assign({
@@ -59,7 +59,7 @@ export const todoMachine = Machine({
           {
             target: 'reading.hist',
             actions: 'notifyChanged',
-            cond: ctx => ctx.title.trim().length > 0
+            cond: (ctx) => ctx.title.trim().length > 0
           },
           { target: 'deleted' }
         ],
@@ -69,7 +69,7 @@ export const todoMachine = Machine({
         },
         CANCEL: {
           target: 'reading',
-          actions: assign({ title: ctx => ctx.prevTitle })
+          actions: assign({ title: (ctx) => ctx.prevTitle })
         }
       }
     },

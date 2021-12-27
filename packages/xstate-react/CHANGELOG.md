@@ -1,5 +1,302 @@
 # Changelog
 
+## 1.6.3
+
+### Patch Changes
+
+- [#2767](https://github.com/statelyai/xstate/pull/2767) [`c1503b121`](https://github.com/statelyai/xstate/commit/c1503b1219d995ebf0f45de46036c5a1d7e6442f) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an over-rendering issue in the `useSelector`.
+
+## 1.6.2
+
+### Patch Changes
+
+- [#2736](https://github.com/statelyai/xstate/pull/2736) [`2246ae051`](https://github.com/statelyai/xstate/commit/2246ae051663f261b4750d7adba57f008ec28f1d) Thanks [@Andarist](https://github.com/Andarist), [@davidkpiano](https://github.com/davidkpiano), [@VanTanev](https://github.com/VanTanev)! - The `useSelector(...)` hook now works as expected when the `actor` passed in changes. The hook will properly subscribe to the new `actor` and select the desired value. See [#2702](https://github.com/statelyai/xstate/issues/2702)
+
+* [#2685](https://github.com/statelyai/xstate/pull/2685) [`469268d39`](https://github.com/statelyai/xstate/commit/469268d39fbc23996599773adfc4ca824b48585f) Thanks [@farskid](https://github.com/farskid), [@Andarist](https://github.com/Andarist)! - Fixed a regression with a development-only warning not being shown when a machine reference is updated during the hook lifecycle. This usually happens when machine options are dependent on external values and they're passed via `withConfig`.
+
+  ```js
+  const machine = createMachine({
+    initial: 'foo',
+    context: { id: 1 },
+    states: {
+      foo: {
+        on: {
+          CHECK: {
+            target: 'bar',
+            cond: 'hasOverflown'
+          }
+        }
+      },
+      bar: {}
+    }
+  });
+
+  const [id, setId] = useState(1);
+  const [current, send] = useMachine(
+    machine.withConfig({
+      guards: {
+        hasOverflown: () => id > 1 // id is a reference to an outside value
+      }
+    })
+  );
+
+  // later when id updates
+  setId(2);
+  // Now the reference passed to `useMachine` (the result of `machine.withConfig`) is updated but the interpreted machine stays the same. So the guard is still the previous one that got passed to the `useMachine` initially, and it closes over the stale `id`.
+  ```
+
+## 1.6.1
+
+### Patch Changes
+
+- [#2587](https://github.com/statelyai/xstate/pull/2587) [`5aaa8445c`](https://github.com/statelyai/xstate/commit/5aaa8445c0041c6e9c47285c18e8b71cb2d805a7) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with implementations provided outside of React being wiped out and unusable.
+
+## 1.6.0
+
+### Minor Changes
+
+- [`4b4872ca`](https://github.com/statelyai/xstate/commit/4b4872cafd63f825f3918c6eb6fa84642d45e3e0) [#2241](https://github.com/statelyai/xstate/pull/2241) Thanks [@mattpocock](https://github.com/mattpocock)! - Changed the behaviour of guards, delays and activities when declared as options in `useMachine`/`useInterpret`.
+
+  Previously, guards could not reference external props, because they would not be updated when the props changed. For instance:
+
+  ```tsx
+  const Modal = (props) => {
+    useMachine(modalMachine, {
+      guards: {
+        isModalOpen: () => props.isOpen
+      }
+    });
+  };
+  ```
+
+  When the component is created, `props.isOpen` would be checked and evaluated to the initial value. But if the guard is evaluated at any other time, it will not respond to the props' changed value.
+
+  This is not true of actions/services. This will work as expected:
+
+  ```tsx
+  const Modal = (props) => {
+    useMachine(modalMachine, {
+      actions: {
+        consoleLogModalOpen: () => {
+          console.log(props.isOpen);
+        }
+      }
+    });
+  };
+  ```
+
+  This change brings guards and delays into line with actions and services.
+
+  ⚠️ **NOTE:** Whenever possible, use data from within `context` rather than external data in your guards and delays.
+
+### Patch Changes
+
+- [`fe3e859f`](https://github.com/statelyai/xstate/commit/fe3e859f5c53813307bacad915bebc8d1f3a982c) [#2522](https://github.com/statelyai/xstate/pull/2522) Thanks [@farskid](https://github.com/farskid), [@Andarist](https://github.com/Andarist)! - Fixed an issue with actors not being spawned correctly by `useMachine` and `useInterpret` when they were defined a lazily evaluated context, like for example here:
+
+  ```js
+  createMachine({
+    // lazy context
+    context: () => ({
+      ref: spawn(() => {})
+    })
+  });
+  ```
+
+## 1.5.1
+
+### Patch Changes
+
+- [`453acacb`](https://github.com/statelyai/xstate/commit/453acacbec364531a2851f183c3ab446d7db0e84) [#2389](https://github.com/statelyai/xstate/pull/2389) Thanks [@davidkpiano](https://github.com/davidkpiano)! - An internal issue where the `spawnBehavior` import for the `useSpawn(...)` hook was broken internally has been fixed.
+
+## 1.5.0
+
+### Minor Changes
+
+- [`432b60f7`](https://github.com/statelyai/xstate/commit/432b60f7bcbcee9510e0d86311abbfd75b1a674e) [#2280](https://github.com/statelyai/xstate/pull/2280) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Just like `useInvoke(...)`, other types of actors can now be spawned from _behaviors_ using `useSpawn(...)`:
+
+  ```tsx
+  import { fromReducer } from 'xstate/lib/behaviors';
+  import { useActor, useSpawn } from '@xstate/react';
+
+  type CountEvent = { type: 'INC' } | { type: 'DEC' };
+
+  const countBehavior = fromReducer(
+    (count: number, event: CountEvent): number => {
+      if (event.type === 'INC') {
+        return count + 1;
+      } else if (event.type === 'DEC') {
+        return count - 1;
+      }
+
+      return count;
+    },
+    0 // initial state
+  );
+
+  const countMachine = createMachine({
+    invoke: {
+      id: 'count',
+      src: () => fromReducer(countReducer, 0)
+    },
+    on: {
+      INC: {
+        actions: forwardTo('count')
+      },
+      DEC: {
+        actions: forwardTo('count')
+      }
+    }
+  });
+
+  const Component = () => {
+    const countActorRef = useSpawn(countBehavior);
+    const [count, send] = useActor(countActorRef);
+
+    return (
+      <div>
+        Count: {count}
+        <button onClick={() => send({ type: 'INC' })}>Increment</button>
+        <button onClick={() => send({ type: 'DEC' })}>Decrement</button>
+      </div>
+    );
+  };
+  ```
+
+## 1.4.0
+
+### Minor Changes
+
+- [`849ec56c`](https://github.com/davidkpiano/xstate/commit/849ec56c2a9db34e65a30af94e68a7a7a50b4158) [#2286](https://github.com/davidkpiano/xstate/pull/2286) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `useService(...)` hook will be deprecated, since services are also actors. In future versions, the `useActor(...)` hook should be used instead:
+
+  ```diff
+  -const [state, send] = useService(service);
+  +const [state, send] = useActor(service);
+  ```
+
+### Patch Changes
+
+- [`ea3aaffb`](https://github.com/davidkpiano/xstate/commit/ea3aaffb906b34a42bb2736c7b91d54ffe9ed882) [#2326](https://github.com/davidkpiano/xstate/pull/2326) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `send` type returned in the tuple from `useActor(someService)` was an incorrect `never` type; this has been fixed.
+
+## 1.3.4
+
+### Patch Changes
+
+- [`aa3c2991`](https://github.com/davidkpiano/xstate/commit/aa3c29916b7382fbcf1a3efb183ca1e8eb625480) [#2223](https://github.com/davidkpiano/xstate/pull/2223) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Support for actor refs with the `.getSnapshot()` method (added for spawned actors in XState version 4.19) is now supported in the `useActor(...)` hook.
+
+## 1.3.3
+
+### Patch Changes
+
+- [`27e7242c`](https://github.com/davidkpiano/xstate/commit/27e7242c24146de85cf618a658b400a3241fa7d7) [#2112](https://github.com/davidkpiano/xstate/pull/2112) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `executeEffect` function is no longer exported (was meant to be internal and is useless as a public function anyway). This also fixes a circular dependency issue.
+
+## 1.3.2
+
+### Patch Changes
+
+- [`bb5e81ea`](https://github.com/davidkpiano/xstate/commit/bb5e81eaa1ecba1fd54a7677ce9eaee9bd695964) [#2050](https://github.com/davidkpiano/xstate/pull/2050) Thanks [@theKashey](https://github.com/theKashey)! - Added an explicit entrypoint for `@xstate/react/fsm` which you can use instead of `@xstate/react/lib/fsm`. This is the only specifier that will be supported in the future - the other one will be dropped in the next major version.
+
+  ```diff
+  -import { useMachine } from '@xstate/react/lib/fsm'
+  +import { useMachine } from '@xstate/react/fsm'
+  ```
+
+## 1.3.1
+
+### Patch Changes
+
+- [`b076b253`](https://github.com/davidkpiano/xstate/commit/b076b25364224874f62e8065892be40dfbb28030) [#1947](https://github.com/davidkpiano/xstate/pull/1947) Thanks [@lukekarrys](https://github.com/lukekarrys)! - Fix typing of the service returned from the fsm useMachine hook by passing it Typestate
+
+* [`9b5dc784`](https://github.com/davidkpiano/xstate/commit/9b5dc7843c44f50bcca0ffccb843b3d50cef6ddc) [#1950](https://github.com/davidkpiano/xstate/pull/1950) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with `toObserver` being internally imported from `xstate/lib/utils` which has broken UMD build and the declared peer dep contract.
+
+## 1.3.0
+
+### Minor Changes
+
+- [`577ae023`](https://github.com/davidkpiano/xstate/commit/577ae02384926b49e876011c4393f212b49066f8) [#1915](https://github.com/davidkpiano/xstate/pull/1915) Thanks [@davidkpiano](https://github.com/davidkpiano)! - New hook: `useInterpret(machine)`, which is a low-level hook that interprets the `machine` and returns the `service`:
+
+  ```js
+  import { useInterpret } from '@xstate/react';
+  import { someMachine } from '../path/to/someMachine';
+
+  const App = () => {
+    const service = useInterpret(someMachine);
+
+    // ...
+  };
+  ```
+
+* [`577ae023`](https://github.com/davidkpiano/xstate/commit/577ae02384926b49e876011c4393f212b49066f8) [#1915](https://github.com/davidkpiano/xstate/pull/1915) Thanks [@davidkpiano](https://github.com/davidkpiano)! - New hook: `useSelector(actor, selector)`, which subscribes to `actor` and returns the selected state derived from `selector(snapshot)`:
+
+  ```js
+  import { useSelector } from '@xstate/react';
+
+  const App = ({ someActor }) => {
+    const count = useSelector(someActor, (state) => state.context.count);
+
+    // ...
+  };
+  ```
+
+## 1.2.2
+
+### Patch Changes
+
+- [`4b31cefb`](https://github.com/davidkpiano/xstate/commit/4b31cefb3d3497e5515314046639df7e27dbe9e8) [#1780](https://github.com/davidkpiano/xstate/pull/1780) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with some external packages not being bundled correctly into the UMD bundles.
+
+## 1.2.1
+
+### Patch Changes
+
+- [`a16a5f2f`](https://github.com/davidkpiano/xstate/commit/a16a5f2ff5ba9d4d7834ec3ca2d0adecf5d6a870) [#1756](https://github.com/davidkpiano/xstate/pull/1756) Thanks [@dimitardanailov](https://github.com/dimitardanailov)! - Fixed an issue with `process` references not being removed correctly from the UMD bundles.
+
+## 1.2.0
+
+### Minor Changes
+
+- [`dd98296e`](https://github.com/davidkpiano/xstate/commit/dd98296e9fcbae905da2395e67e876e28be7c774) [#1738](https://github.com/davidkpiano/xstate/pull/1738) Thanks [@dimitardanailov](https://github.com/dimitardanailov)! - Added UMD bundle.
+
+## 1.1.0
+
+### Minor Changes
+
+- [`89f9c27c`](https://github.com/davidkpiano/xstate/commit/89f9c27c453dc56bdfdf49c8ea1f0f87ff1f9b67) [#1622](https://github.com/davidkpiano/xstate/pull/1622) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Spawned/invoked actors and interpreters are now typed as extending `ActorRef` rather than `Actor` or `Interpreter`. This unification of types should make it more straightforward to provide actor types in React:
+
+  ```ts
+  import { ActorRef } from 'xstate';
+  import { useActor } from '@xstate/react';
+
+  const Child: React.FC<{ actorRef: ActorRef<SomeEvent, SomeEmitted> }> = ({
+    actorRef
+  }) => {
+    // `state` is typed as `SomeEmitted`
+    // `send` can be called with `SomeEvent` values
+    const [state, send] = useActor(actorRef);
+
+    // . ..
+  };
+  ```
+
+  It's also easier to specify the type of a spawned/invoked machine with `ActorRefFrom`:
+
+  ```ts
+  import { createMachine, ActorRefFrom } from 'xstate';
+  import { useActor } from '@xstate/react';
+
+  const someMachine = createMachine<SomeContext, SomeEvent>({
+    // ...
+  });
+
+  const Child: React.FC<{ someRef: ActorRefFrom<typeof someMachine> }> = ({
+    someRef
+  }) => {
+    // `state` is typed as `State<SomeContext, SomeEvent>`
+    // `send` can be called with `SomeEvent` values
+    const [state, send] = useActor(someRef);
+
+    // . ..
+  };
+  ```
+
 ## 1.0.3
 
 ### Patch Changes
@@ -55,7 +352,7 @@ All notable changes to this project will be documented in this file.
 - The `useActor` hook now takes a second argument: `getSnapshot` which is a function that should return the last emitted value:
 
   ```js
-  const [state, send] = useActor(someActor, actor => actor.current);
+  const [state, send] = useActor(someActor, (actor) => actor.current);
   ```
 
 ## [1.0.0-rc.6]

@@ -8,6 +8,7 @@ import {
   AnyEventObject
 } from 'xstate';
 import { flatten, keys } from 'xstate/lib/utils';
+import { StatePath } from '.';
 import {
   StatePathsMap,
   StatePaths,
@@ -176,7 +177,6 @@ export function getShortestPaths<
   options?: ValueAdjMapOptions<TContext, TEvent>
 ): StatePathsMap<TContext, TEvent> {
   if (!machine.states) {
-    // return EMPTY_MAP;
     return EMPTY_MAP;
   }
   const optionsWithDefaults = getValueAdjMapOptions(options);
@@ -381,4 +381,67 @@ export function toDirectedGraph(stateNode: StateNode): DirectedGraphNode {
   };
 
   return graph;
+}
+
+export function getPathFromEvents<
+  TContext = DefaultContext,
+  TEvent extends EventObject = EventObject
+>(
+  machine: StateMachine<TContext, any, TEvent>,
+  events: Array<TEvent>
+): StatePath<TContext, TEvent> {
+  const optionsWithDefaults = getValueAdjMapOptions<TContext, TEvent>({
+    events: events.reduce((events, event) => {
+      events[event.type] ??= [];
+      events[event.type].push(event);
+      return events;
+    }, {})
+  });
+
+  const { stateSerializer, eventSerializer } = optionsWithDefaults;
+
+  if (!machine.states) {
+    return {
+      state: machine.initialState,
+      segments: [],
+      weight: 0
+    };
+  }
+
+  const adjacency = getAdjacencyMap(machine, optionsWithDefaults);
+  const stateMap = new Map<string, State<TContext, TEvent>>();
+  const path: Segments<TContext, TEvent> = [];
+
+  const initialStateSerial = stateSerializer(machine.initialState);
+  stateMap.set(initialStateSerial, machine.initialState);
+
+  let stateSerial = initialStateSerial;
+  let state = machine.initialState;
+  for (const event of events) {
+    path.push({
+      state: stateMap.get(stateSerial)!,
+      event
+    });
+
+    const eventSerial = eventSerializer(event);
+    const nextSegment = adjacency[stateSerial][eventSerial];
+
+    if (!nextSegment) {
+      throw new Error(
+        `Invalid transition from ${stateSerial} with ${eventSerial}`
+      );
+    }
+
+    const nextStateSerial = stateSerializer(nextSegment.state);
+    stateMap.set(nextStateSerial, nextSegment.state);
+
+    stateSerial = nextStateSerial;
+    state = nextSegment.state;
+  }
+
+  return {
+    state,
+    segments: path,
+    weight: path.length
+  };
 }

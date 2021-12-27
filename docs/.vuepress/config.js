@@ -6,10 +6,14 @@ module.exports = {
   markdown: {
     toc: { includeLevel: [2, 3] }
   },
+  head: [
+    ['script', { src: 'https://plausible.io/js/plausible.js', defer: 'defer' }]
+  ],
   themeConfig: {
     lastUpdated: 'Last Updated',
     repo: 'davidkpiano/xstate',
     docsDir: 'docs',
+    docsBranch: 'main',
     editLinks: true,
     logo: '/logo.svg',
     algolia: {
@@ -17,15 +21,19 @@ module.exports = {
       indexName: 'xstatejs'
     },
     nav: [
-      { text: 'API', link: 'https://xstate.js.org/api' },
-      { text: 'Visualizer', link: 'https://xstate.js.org/viz' },
-      { text: 'Chat', link: 'https://gitter.im/statecharts/statecharts' },
+      { text: 'API', link: 'https://paka.dev/npm/xstate/' },
+      { text: 'Visualizer', link: 'https://stately.ai/viz' },
+      { text: 'Discord', link: 'https://discord.gg/xtWgFTgvNV' },
       {
         text: 'Community',
-        link: 'https://github.com/davidkpiano/xstate/discussions'
+        link: 'https://github.com/statelyai/xstate/discussions'
       }
     ],
     sidebar: [
+      {
+        title: 'What is XState?',
+        children: ['/visualizer/']
+      },
       {
         title: 'About',
         children: [
@@ -33,7 +41,8 @@ module.exports = {
           '/about/goals',
           '/about/showcase',
           '/about/resources',
-          '/about/tutorials'
+          '/about/tutorials',
+          '/about/glossary'
         ]
       },
       {
@@ -41,6 +50,7 @@ module.exports = {
         children: [
           '/guides/start',
           '/guides/installation',
+          '/guides/introduction-to-state-machines-and-statecharts/',
           '/guides/machines',
           '/guides/states',
           '/guides/statenodes',
@@ -48,20 +58,22 @@ module.exports = {
           '/guides/transitions',
           '/guides/hierarchical',
           '/guides/parallel',
+          '/guides/final',
           '/guides/effects',
           '/guides/actions',
           '/guides/guards',
           '/guides/context',
+          '/guides/models',
           '/guides/activities',
           '/guides/communication',
           '/guides/actors',
           '/guides/delays',
-          '/guides/final',
           '/guides/history',
           '/guides/ids',
           '/guides/interpretation',
           '/guides/testing',
-          '/guides/typescript'
+          '/guides/typescript',
+          '/guides/scxml'
         ]
       },
       {
@@ -99,7 +111,8 @@ module.exports = {
           'packages/xstate-fsm/',
           'packages/xstate-test/',
           'packages/xstate-immer/',
-          'packages/xstate-inspect/'
+          'packages/xstate-inspect/',
+          'packages/xstate-svelte/'
         ]
       },
       {
@@ -114,11 +127,19 @@ module.exports = {
           '/examples/calculator',
           '/examples/covid-tracker'
         ]
+      },
+      {
+        title: 'News and Useful Links',
+        children: [
+          '/updates/',
+          [
+            'https://github.com/statelyai/xstate/blob/main/CODE_OF_CONDUCT.md',
+            'Code of Conduct'
+          ],
+          ['https://stately.ai/privacy', 'Privacy Policy']
+        ]
       }
     ]
   },
-  plugins: [
-    ['@vuepress/google-analytics', { ga: 'UA-129726387-1' }],
-    'vuepress-plugin-export'
-  ]
+  plugins: ['vuepress-plugin-export']
 };

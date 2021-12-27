@@ -1,6 +1,6 @@
 # @xstate/graph
 
-This package contains graph algorithms and utilities for XState machines.
+The [@xstate/graph package](https://github.com/statelyai/xstate/tree/main/packages/xstate-graph) contains graph algorithms and utilities for XState machines.
 
 ## Quick Start
 
@@ -13,10 +13,10 @@ npm install xstate @xstate/graph
 2. Import the graph utilities. Example:
 
 ```js
-import { Machine } from 'xstate';
+import { createMachine } from 'xstate';
 import { getSimplePaths } from '@xstate/graph';
 
-const machine = Machine(/* ... */);
+const machine = createMachine(/* ... */);
 const paths = getSimplePaths(machine);
 ```
 
@@ -70,10 +70,10 @@ The overall object structure looks like this:
 **Example**
 
 ```js
-import { Machine } from 'xstate';
+import { createMachine } from 'xstate';
 import { getShortestPaths } from '@xstate/graph';
 
-const feedbackMachine = Machine({
+const feedbackMachine = createMachine({
   id: 'feedback',
   initial: 'question',
   states: {
@@ -195,10 +195,10 @@ The overall object structure looks like this:
 **Example**
 
 ```js
-import { Machine } from 'xstate';
+import { createMachine } from 'xstate';
 import { getSimplePaths } from '@xstate/graph';
 
-const feedbackMachine = Machine({
+const feedbackMachine = createMachine({
   id: 'feedback',
   initial: 'question',
   states: {
@@ -288,6 +288,81 @@ console.log(simplePaths);
 // };
 ```
 
+### `getPathFromEvents(machine, events)`
+
+**Arguments**
+
+- `machine` - the [`Machine`](https://xstate.js.org/docs/guides/machines.html) to traverse
+- `events` - the sequence of events to generate a path from
+
+Returns a path object with the following keys:
+
+- `state` - the target [`State`](https://xstate.js.org/docs/guides/states.html)
+- `segments` - an array of objects with the following shape:
+  - `state` - the [`State`](https://xstate.js.org/docs/guides/states.html) of the segment
+  - `event` - the event object that transitions the `machine` from the state to the next state in the path
+
+```js
+import { createMachine } from 'xstate';
+import { getSimplePaths } from '@xstate/graph';
+
+const feedbackMachine = createMachine({
+  id: 'feedback',
+  initial: 'question',
+  states: {
+    question: {
+      on: {
+        CLICK_GOOD: 'thanks',
+        CLICK_BAD: 'form',
+        CLOSE: 'closed',
+        ESC: 'closed'
+      }
+    },
+    form: {
+      on: {
+        SUBMIT: 'thanks',
+        CLOSE: 'closed',
+        ESC: 'closed'
+      }
+    },
+    thanks: {
+      on: {
+        CLOSE: 'closed',
+        ESC: 'closed'
+      }
+    },
+    closed: {
+      type: 'final'
+    }
+  }
+});
+
+const path = getPathFromEvents(feedbackMachine, [
+  { type: 'CLICK_GOOD' },
+  { type: 'SUBMIT' },
+  { type: 'CLOSE' }
+]);
+
+console.log(path);
+// => {
+//   state: { value: 'closed' },
+//   segments: [
+//     {
+//       state: { value: 'question' },
+//       event: { type: 'CLICK_GOOD' },
+//     },
+//     {
+//       state: { value: 'form' },
+//       event: { type: 'SUBMIT' },
+//     },
+//     {
+//       state: { value: 'thanks' },
+//       event: { type: 'CLOSE' },
+//     },
+//   ],
+// }
+```
+
 ### `toDirectedGraph(machine)`
 
 Converts a `machine` to a directed graph structure.
@@ -333,7 +408,7 @@ Options can be passed into `getShortestPaths` or `getSimplePaths` to customize h
 In the below example, the `INC` event is expanded to include two possible events, with `value: 1` and `value: 2` as the payload. It also ensures that the `state.context.count <= 5`; otherwise, this machine would be traversed infinitely.
 
 ```js
-const counterMachine = Machine({
+const counterMachine = createMachine({
   id: 'counter',
   initial: 'active',
   context: { count: 0 },

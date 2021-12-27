@@ -1,6 +1,6 @@
 {
   "name": "@xstate/test",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "XState test utilities",
   "keywords": [
     "state",
@@ -14,7 +14,7 @@
     "testing"
   ],
   "author": "David Khourshid <davidkpiano@gmail.com>",
-  "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-test#readme",
+  "homepage": "https://github.com/davidkpiano/xstate/tree/main/packages/xstate-test#readme",
   "license": "MIT",
   "main": "lib/index.js",
   "module": "es/index.js",
@@ -38,7 +38,7 @@
     "clean": "rm -rf dist lib es tsconfig.tsbuildinfo",
     "test": "jest --runInBand",
     "build": "tsc && tsc --outDir es --module es2015",
-    "prepublish": "npm run build && npm run test"
+    "prepublish": "npm run build"
   },
   "bugs": {
     "url": "https://github.com/davidkpiano/xstate/issues"
@@ -47,19 +47,15 @@
     "xstate": "^4.9.0"
   },
   "devDependencies": {
-    "@types/jest-environment-puppeteer": "^4.0.0",
-    "jest": "^26.4.2",
-    "jest-environment-puppeteer": "^4.3.0",
-    "jest-puppeteer": "^4.3.0",
+    "jest": "^26.6.3",
     "lerna-alias": "3.0.3-0",
-    "puppeteer": "^1.19.0",
     "strip-ansi": "^5.2.0",
-    "ts-jest": "^26.4.0",
-    "typescript": "^4.1.2",
+    "ts-jest": "^26.5.6",
+    "typescript": "^4.5.2",
     "xstate": "*"
   },
   "dependencies": {
-    "@xstate/graph": "^1.1.0",
+    "@xstate/graph": "^1.4.0",
     "chalk": "^2.4.2"
   }
 }

@@ -1,5 +1,59 @@
 # @xstate/graph
 
+## 1.4.0
+
+### Minor Changes
+
+- [#2703](https://github.com/statelyai/xstate/pull/2703) [`6a0ff73bf`](https://github.com/statelyai/xstate/commit/6a0ff73bf8817dc401ef9b45c71dd7875dbc9f20) Thanks [@Silverwolf90](https://github.com/Silverwolf90)! - Add getPathFromEvents to generate a path from a sequence of events.
+
+## 1.3.0
+
+### Minor Changes
+
+- [`111a7d13`](https://github.com/davidkpiano/xstate/commit/111a7d138db909e969629a3c237b952850c008ca) [#1663](https://github.com/davidkpiano/xstate/pull/1663) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Options passed into graph functions (e.g., `getShortestPaths(machine, options)`) can now resolve `.events` based on the `state`:
+
+  ```js
+  const countMachine = createMachine({
+    initial: 'active',
+    context: {
+      count: 0
+    },
+    states: {
+      active: {
+        on: {
+          ADD: {
+            actions: assign({
+              count: (context, event) => {
+                return context.count + event.value;
+              }
+            })
+          }
+        }
+      }
+    }
+  });
+
+  const shortestPaths = getShortestPaths(countMachine, {
+    events: {
+      ADD: (state) => {
+        // contrived example: if `context.count` is >= 10, increment by 10
+        return state.context.count >= 10
+          ? [{ type: 'ADD', value: 10 }]
+          : [{ type: 'ADD', value: 1 }];
+      }
+    }
+  });
+
+  // The keys to the shortest paths will look like:
+  // "active" | { count: 0 }
+  // "active" | { count: 1 }
+  // "active" | { count: 2 }
+  // ...
+  // "active" | { count: 10 }
+  // "active" | { count: 20 }
+  // "active" | { count: 30 }
+  ```
+
 ## 1.2.0
 
 ### Minor Changes

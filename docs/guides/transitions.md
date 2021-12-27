@@ -1,11 +1,15 @@
 # Transitions
 
-A state transition defines what the **next state** is, given the **current state** and [**event**](./events.md). State transitions are defined on state nodes, in the `on` property:
+Transitions define how the machine reacts to [events](./events.md). To learn more, see the section in our [introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#transitions-and-events).
+
+## API
+
+State transitions are defined on state nodes, in the `on` property:
 
 ```js {11,14-16}
-import { Machine } from 'xstate';
+import { createMachine } from 'xstate';
 
-const promiseMachine = Machine({
+const promiseMachine = createMachine({
   id: 'promise',
   initial: 'pending',
   states: {
@@ -35,7 +39,7 @@ const { initialState } = promiseMachine;
 console.log(initialState.value);
 // => 'pending'
 
-const nextState = promiseMachine.transition(initialState, 'RESOLVE');
+const nextState = promiseMachine.transition(initialState, { type: 'RESOLVE' });
 
 console.log(nextState.value);
 // => 'resolved'
@@ -59,7 +63,7 @@ As seen above, the `machine.transition(...)` method is a pure function that take
 It returns a new [`State` instance](./states.md#state-definition), which is the result of taking all the transitions enabled by the current state and event.
 
 ```js {8}
-const lightMachine = Machine({
+const lightMachine = createMachine({
   /* ... */
 });
 
@@ -82,8 +86,8 @@ An **enabled transition** is a transition that will be taken conditionally, base
 
 In a [hierarchical machine](./hierarchical.md), transitions are prioritized by how deep they are in the tree; deeper transitions are more specific and thus have higher priority. This works similar to how DOM events work: if you click a button, the click event handler directly on the button is more specific than a click event handler on the `window`.
 
-```js {9,19,20,24}
-const wizardMachine = Machine({
+```js {10,21-22,27}
+const wizardMachine = createMachine({
   id: 'wizard',
   initial: 'open',
   states: {
@@ -91,7 +95,9 @@ const wizardMachine = Machine({
       initial: 'step1',
       states: {
         step1: {
-          on: { NEXT: 'step2' }
+          on: {
+            NEXT: { target: 'step2' }
+          }
         },
         step2: {
           /* ... */
@@ -101,14 +107,18 @@ const wizardMachine = Machine({
         }
       },
       on: {
-        NEXT: 'goodbye',
-        CLOSE: 'closed'
+        NEXT: { target: 'goodbye' },
+        CLOSE: { target: 'closed' }
       }
     },
     goodbye: {
-      on: { CLOSE: 'closed' }
+      on: {
+        CLOSE: { target: 'closed' }
+      }
     },
-    closed: { type: 'final' }
+    closed: {
+      type: 'final'
+    }
   }
 });
 
@@ -118,14 +128,14 @@ const { initialState } = wizardMachine;
 // the NEXT transition defined on 'open.step1'
 // supersedes the NEXT transition defined
 // on the parent 'open' state
-const nextStepState = wizardMachine.transition(initialState, 'NEXT');
+const nextStepState = wizardMachine.transition(initialState, { type: 'NEXT' });
 console.log(nextStepState.value);
 // => { open: 'step2' }
 
 // there is no CLOSE transition on 'open.step1'
 // so the event is passed up to the parent
 // 'open' state, where it is defined
-const closedState = wizardMachine.transition(initialState, 'CLOSE');
+const closedState = wizardMachine.transition(initialState, { type: 'CLOSE' });
 console.log(closedState.value);
 // => 'closed'
 ```
@@ -170,9 +180,9 @@ See [actions on self-transitions](./actions.md#actions-on-self-transitions) for 
 An internal transition is one that does not exit its state node. Internal transitions are created by specifying a [relative target](./ids.md#relative-targets) (e.g., `'.left'`) or by explicitly setting `{ internal: true }` on the transition. For example, consider a machine that sets a paragraph of text to align `'left'`, `'right'`, `'center'`, or `'justify'`:
 
 ```js {14-17}
-import { Machine } from 'xstate';
+import { createMachine } from 'xstate';
 
-const wordMachine = Machine({
+const wordMachine = createMachine({
   id: 'word',
   initial: 'left',
   states: {
@@ -186,7 +196,7 @@ const wordMachine = Machine({
     LEFT_CLICK: '.left',
     RIGHT_CLICK: { target: '.right' }, // same as '.right'
     CENTER_CLICK: { target: '.center', internal: true }, // same as '.center'
-    JUSTIFY_CLICK: { target: 'justify', internal: true } // same as '.justify'
+    JUSTIFY_CLICK: { target: '.justify', internal: true } // same as '.justify'
   }
 });
 ```
@@ -196,7 +206,7 @@ The above machine will start in the `'left'` state, and based on what is clicked
 Transitions that have `{ target: undefined }` (or no `target`) are also internal transitions:
 
 ```js {11-13}
-const buttonMachine = Machine({
+const buttonMachine = createMachine({
   id: 'button',
   initial: 'inactive',
   states: {
@@ -263,7 +273,7 @@ The empty string syntax (`{ on: { '': ... } }`) will be deprecated in version 5.
 A transient transition is a transition that is enabled by a [null event](./events.md#null-events). In other words, it is a transition that is _immediately_ taken (i.e., without a triggering event) as long as any conditions are met:
 
 ```js {14-17}
-const gameMachine = Machine(
+const gameMachine = createMachine(
   {
     id: 'game',
     initial: 'playing',
@@ -334,8 +344,8 @@ An eventless transition is a transition that is **always taken** when the machin
 
 Eventless transitions are defined on the `always` property of the state node:
 
-```js {13-16}
-const gameMachine = Machine(
+```js {14-17}
+const gameMachine = createMachine(
   {
     id: 'game',
     initial: 'playing',
@@ -390,7 +400,7 @@ const gameService = interpret(gameMachine)
 // When 'AWARD_POINTS' is sent, a self-transition to 'PLAYING' occurs.
 // The transient transition to 'win' is taken because the 'didPlayerWin'
 // condition is satisfied.
-gameService.send('AWARD_POINTS');
+gameService.send({ type: 'AWARD_POINTS' });
 // => 'win'
 ```
 
@@ -433,7 +443,7 @@ on: {
 For example, we can model that telemetry can be logged for all events except when the user is entering personal information:
 
 ```js {15}
-const formMachine = Machine({
+const formMachine = createMachine({
   id: 'form',
   initial: 'firstPage',
   states: {
@@ -472,7 +482,7 @@ A transition based on a single event can have multiple target state nodes. This 
 Multiple targets are specified as an array in `target: [...]`, where each target in the array is a relative key or an ID to a state node, just like single targets.
 
 ```js {23}
-const settingsMachine = Machine({
+const settingsMachine = createMachine({
   id: 'settings',
   type: 'parallel',
   states: {
@@ -530,7 +540,7 @@ Wildcard descriptors do _not_ behave the same way as [transient transitions](#tr
 **Example:**
 
 ```js {7,8}
-const quietMachine = Machine({
+const quietMachine = createMachine({
   id: 'quiet',
   initial: 'idle',
   states: {
@@ -545,44 +555,32 @@ const quietMachine = Machine({
   }
 });
 
-quietMachine.transition(quietMachine.initialState, 'WHISPER');
+quietMachine.transition(quietMachine.initialState, { type: 'WHISPER' });
 // => State { value: 'idle' }
 
-quietMachine.transition(quietMachine.initialState, 'SOME_EVENT');
+quietMachine.transition(quietMachine.initialState, { type: 'SOME_EVENT' });
 // => State { value: 'disturbed' }
 ```
 
-## SCXML
+## FAQ's
 
-The event-target mappings defined on the `on: { ... }` property of state nodes is synonymous to the SCXML `<transition>` element:
+### How do I do if/else logic on transitions?
 
-```js
-{
-  green: {
-    on: {
-      TIMER: {
-        target: '#yellow',
-        cond: context => context.timeElapsed > 5000
-      },
-      POWER_OUTAGE: '#red.flashing'
-    }
-  },
-  // ...
-}
-```
+Sometimes, you'll want to say:
 
-```xml
-<state id="green">
-  <transition
-    event="TIMER"
-    target="yellow"
-    cond="timeElapsed > 5000"
-  />
-  <transition
-    event="POWER_OUTAGE"
-    target="red.flashing"
-  />
-</state>
-```
+- If _something_ is true, go to this state
+- If _something else_ is true, go to this state
+- Else, go to this state
 
-- [https://www.w3.org/TR/scxml/#transition](https://www.w3.org/TR/scxml/#transition) - the definition of `<transition>`
+You can use [guarded transitions](./guards.md#guarded-transitions) to achieve this.
+
+### How do I transition to _any_ state?
+
+You can transition to _any_ state by giving that state a custom id, and using `target: '#customId'`. You can read the [full docs on custom IDs here](./ids.md#custom-ids).
+
+This allows you to transition from child states to siblings of parents, for example in the `CANCEL` and `done` events in this example:
+
+<iframe src="https://stately.ai/viz/embed/835aee58-1c36-41d3-bb02-b56ceb06072e?mode=viz&panel=code&readOnly=1&showOriginalLink=1&controls=0&pan=0&zoom=0"
+allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"
+sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"
+></iframe>
