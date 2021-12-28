@@ -3,374 +3,28 @@
 exports[`@xstate/graph getPathFromEvents() should return a path to the last entered state by the event sequence: path from events 1`] = `
 Object {
   "state": Object {
-    "_event": Object {
-      "$$type": "scxml",
-      "data": Object {
-        "type": "POWER_OUTAGE",
-      },
-      "name": "POWER_OUTAGE",
-      "type": "external",
-    },
-    "_sessionid": null,
-    "actions": Array [],
-    "activities": Object {},
-    "changed": true,
-    "children": Object {},
-    "context": undefined,
-    "done": false,
-    "event": Object {
-      "type": "POWER_OUTAGE",
-    },
-    "events": Array [],
-    "history": Object {
-      "_event": Object {
-        "$$type": "scxml",
-        "data": Object {
-          "type": "xstate.init",
-        },
-        "name": "xstate.init",
-        "type": "external",
-      },
-      "_sessionid": null,
-      "actions": Array [],
-      "activities": Object {},
-      "changed": undefined,
-      "children": Object {},
-      "context": undefined,
-      "done": false,
-      "event": Object {
-        "type": "xstate.init",
-      },
-      "events": Array [],
-      "historyValue": undefined,
-      "matches": [Function],
-      "meta": Object {},
-      "tags": Array [],
-      "toStrings": [Function],
-      "value": "green",
-    },
-    "historyValue": Object {
-      "current": Object {
-        "red": "flashing",
-      },
-      "states": Object {
-        "green": undefined,
-        "red": Object {
-          "current": "flashing",
-          "states": Object {
-            "flashing": undefined,
-            "stop": undefined,
-            "wait": undefined,
-            "walk": undefined,
-          },
-        },
-        "yellow": undefined,
-      },
-    },
-    "matches": [Function],
-    "meta": Object {},
-    "tags": Array [],
-    "toStrings": [Function],
-    "value": Object {
-      "red": "flashing",
-    },
+    "red": "flashing",
   },
   "steps": Array [
     Object {
-      "event": Object {
-        "type": "TIMER",
-      },
-      "state": Object {
-        "_event": Object {
-          "$$type": "scxml",
-          "data": Object {
-            "type": "xstate.init",
-          },
-          "name": "xstate.init",
-          "type": "external",
-        },
-        "_sessionid": null,
-        "actions": Array [],
-        "activities": Object {},
-        "changed": undefined,
-        "children": Object {},
-        "context": undefined,
-        "done": false,
-        "event": Object {
-          "type": "xstate.init",
-        },
-        "events": Array [],
-        "history": undefined,
-        "historyValue": undefined,
-        "matches": [Function],
-        "meta": Object {},
-        "tags": Array [],
-        "toStrings": [Function],
-        "value": "green",
-      },
+      "state": "green",
+      "type": "TIMER",
     },
     Object {
-      "event": Object {
-        "type": "TIMER",
-      },
-      "state": Object {
-        "_event": Object {
-          "$$type": "scxml",
-          "data": Object {
-            "type": "TIMER",
-          },
-          "name": "TIMER",
-          "type": "external",
-        },
-        "_sessionid": null,
-        "actions": Array [],
-        "activities": Object {},
-        "changed": true,
-        "children": Object {},
-        "context": undefined,
-        "done": false,
-        "event": Object {
-          "type": "TIMER",
-        },
-        "events": Array [],
-        "history": Object {
-          "_event": Object {
-            "$$type": "scxml",
-            "data": Object {
-              "type": "xstate.init",
-            },
-            "name": "xstate.init",
-            "type": "external",
-          },
-          "_sessionid": null,
-          "actions": Array [],
-          "activities": Object {},
-          "changed": undefined,
-          "children": Object {},
-          "context": undefined,
-          "done": false,
-          "event": Object {
-            "type": "xstate.init",
-          },
-          "events": Array [],
-          "historyValue": undefined,
-          "matches": [Function],
-          "meta": Object {},
-          "tags": Array [],
-          "toStrings": [Function],
-          "value": "green",
-        },
-        "historyValue": Object {
-          "current": "yellow",
-          "states": Object {
-            "green": undefined,
-            "red": Object {
-              "current": "walk",
-              "states": Object {
-                "flashing": undefined,
-                "stop": undefined,
-                "wait": undefined,
-                "walk": undefined,
-              },
-            },
-            "yellow": undefined,
-          },
-        },
-        "matches": [Function],
-        "meta": Object {},
-        "tags": Array [],
-        "toStrings": [Function],
-        "value": "yellow",
-      },
+      "state": "yellow",
+      "type": "TIMER",
     },
     Object {
-      "event": Object {
-        "type": "TIMER",
-      },
       "state": Object {
-        "_event": Object {
-          "$$type": "scxml",
-          "data": Object {
-            "type": "TIMER",
-          },
-          "name": "TIMER",
-          "type": "external",
-        },
-        "_sessionid": null,
-        "actions": Array [],
-        "activities": Object {},
-        "changed": true,
-        "children": Object {},
-        "context": undefined,
-        "done": false,
-        "event": Object {
-          "type": "TIMER",
-        },
-        "events": Array [],
-        "history": Object {
-          "_event": Object {
-            "$$type": "scxml",
-            "data": Object {
-              "type": "TIMER",
-            },
-            "name": "TIMER",
-            "type": "external",
-          },
-          "_sessionid": null,
-          "actions": Array [],
-          "activities": Object {},
-          "changed": true,
-          "children": Object {},
-          "context": undefined,
-          "done": false,
-          "event": Object {
-            "type": "TIMER",
-          },
-          "events": Array [],
-          "historyValue": Object {
-            "current": "yellow",
-            "states": Object {
-              "green": undefined,
-              "red": Object {
-                "current": "walk",
-                "states": Object {
-                  "flashing": undefined,
-                  "stop": undefined,
-                  "wait": undefined,
-                  "walk": undefined,
-                },
-              },
-              "yellow": undefined,
-            },
-          },
-          "matches": [Function],
-          "meta": Object {},
-          "tags": Array [],
-          "toStrings": [Function],
-          "value": "yellow",
-        },
-        "historyValue": Object {
-          "current": Object {
-            "red": "walk",
-          },
-          "states": Object {
-            "green": undefined,
-            "red": Object {
-              "current": "walk",
-              "states": Object {
-                "flashing": undefined,
-                "stop": undefined,
-                "wait": undefined,
-                "walk": undefined,
-              },
-            },
-            "yellow": undefined,
-          },
-        },
-        "matches": [Function],
-        "meta": Object {},
-        "tags": Array [],
-        "toStrings": [Function],
-        "value": Object {
-          "red": "walk",
-        },
+        "red": "walk",
       },
+      "type": "TIMER",
     },
     Object {
-      "event": Object {
-        "type": "POWER_OUTAGE",
-      },
-      "state": Object {
-        "_event": Object {
-          "$$type": "scxml",
-          "data": Object {
-            "type": "TIMER",
-          },
-          "name": "TIMER",
-          "type": "external",
-        },
-        "_sessionid": null,
-        "actions": Array [],
-        "activities": Object {},
-        "changed": true,
-        "children": Object {},
-        "context": undefined,
-        "done": false,
-        "event": Object {
-          "type": "TIMER",
-        },
-        "events": Array [],
-        "history": Object {
-          "_event": Object {
-            "$$type": "scxml",
-            "data": Object {
-              "type": "TIMER",
-            },
-            "name": "TIMER",
-            "type": "external",
-          },
-          "_sessionid": null,
-          "actions": Array [],
-          "activities": Object {},
-          "changed": true,
-          "children": Object {},
-          "context": undefined,
-          "done": false,
-          "event": Object {
-            "type": "TIMER",
-          },
-          "events": Array [],
-          "historyValue": Object {
-            "current": Object {
-              "red": "walk",
-            },
-            "states": Object {
-              "green": undefined,
-              "red": Object {
-                "current": "walk",
-                "states": Object {
-                  "flashing": undefined,
-                  "stop": undefined,
-                  "wait": undefined,
-                  "walk": undefined,
-                },
-              },
-              "yellow": undefined,
-            },
-          },
-          "matches": [Function],
-          "meta": Object {},
-          "tags": Array [],
-          "toStrings": [Function],
-          "value": Object {
-            "red": "walk",
-          },
-        },
-        "historyValue": Object {
-          "current": "green",
-          "states": Object {
-            "green": undefined,
-            "red": Object {
-              "current": "walk",
-              "states": Object {
-                "flashing": undefined,
-                "stop": undefined,
-                "wait": undefined,
-                "walk": undefined,
-              },
-            },
-            "yellow": undefined,
-          },
-        },
-        "matches": [Function],
-        "meta": Object {},
-        "tags": Array [],
-        "toStrings": [Function],
-        "value": "green",
-      },
+      "state": "green",
+      "type": "POWER_OUTAGE",
     },
   ],
-  "weight": 4,
 }
 `;
 
@@ -3567,5 +3221,391 @@ Object {
   ],
   "edges": Array [],
   "id": "light",
+}
+`;
+
+exports[`shortest paths for reducers 1`] = `
+Object {
+  "0 | null": Array [
+    Object {
+      "state": 0,
+      "steps": Array [],
+    },
+  ],
+  "0 | {\\"type\\":\\"b\\"}": Array [
+    Object {
+      "state": 0,
+      "steps": Array [
+        Object {
+          "state": 0,
+          "type": "b",
+        },
+      ],
+    },
+  ],
+  "0 | {\\"type\\":\\"reset\\"}": Array [
+    Object {
+      "state": 0,
+      "steps": Array [
+        Object {
+          "state": 0,
+          "type": "reset",
+        },
+      ],
+    },
+  ],
+  "1 | {\\"type\\":\\"a\\"}": Array [
+    Object {
+      "state": 1,
+      "steps": Array [
+        Object {
+          "state": 0,
+          "type": "a",
+        },
+      ],
+    },
+  ],
+  "2 | {\\"type\\":\\"b\\"}": Array [
+    Object {
+      "state": 2,
+      "steps": Array [
+        Object {
+          "state": 0,
+          "type": "a",
+        },
+        Object {
+          "state": 1,
+          "type": "b",
+        },
+      ],
+    },
+  ],
+}
+`;
+
+exports[`simple paths for reducers 1`] = `
+Object {
+  "0 | null": Array [
+    Object {
+      "state": 0,
+      "steps": Array [],
+    },
+  ],
+  "0 | {\\"type\\":\\"b\\"}": Array [
+    Object {
+      "state": 0,
+      "steps": Array [
+        Object {
+          "state": 0,
+          "type": "a",
+        },
+        Object {
+          "state": 1,
+          "type": "b",
+        },
+        Object {
+          "state": 2,
+          "type": "reset",
+        },
+        Object {
+          "state": 0,
+          "type": "b",
+        },
+      ],
+    },
+    Object {
+      "state": 0,
+      "steps": Array [
+        Object {
+          "state": 0,
+          "type": "a",
+        },
+        Object {
+          "state": 1,
+          "type": "reset",
+        },
+        Object {
+          "state": 0,
+          "type": "b",
+        },
+      ],
+    },
+    Object {
+      "state": 0,
+      "steps": Array [
+        Object {
+          "state": 0,
+          "type": "b",
+        },
+      ],
+    },
+    Object {
+      "state": 0,
+      "steps": Array [
+        Object {
+          "state": 0,
+          "type": "reset",
+        },
+        Object {
+          "state": 0,
+          "type": "b",
+        },
+      ],
+    },
+  ],
+  "0 | {\\"type\\":\\"reset\\"}": Array [
+    Object {
+      "state": 0,
+      "steps": Array [
+        Object {
+          "state": 0,
+          "type": "a",
+        },
+        Object {
+          "state": 1,
+          "type": "b",
+        },
+        Object {
+          "state": 2,
+          "type": "reset",
+        },
+      ],
+    },
+    Object {
+      "state": 0,
+      "steps": Array [
+        Object {
+          "state": 0,
+          "type": "a",
+        },
+        Object {
+          "state": 1,
+          "type": "reset",
+        },
+      ],
+    },
+    Object {
+      "state": 0,
+      "steps": Array [
+        Object {
+          "state": 0,
+          "type": "b",
+        },
+        Object {
+          "state": 0,
+          "type": "a",
+        },
+        Object {
+          "state": 1,
+          "type": "b",
+        },
+        Object {
+          "state": 2,
+          "type": "reset",
+        },
+      ],
+    },
+    Object {
+      "state": 0,
+      "steps": Array [
+        Object {
+          "state": 0,
+          "type": "b",
+        },
+        Object {
+          "state": 0,
+          "type": "a",
+        },
+        Object {
+          "state": 1,
+          "type": "reset",
+        },
+      ],
+    },
+    Object {
+      "state": 0,
+      "steps": Array [
+        Object {
+          "state": 0,
+          "type": "b",
+        },
+        Object {
+          "state": 0,
+          "type": "reset",
+        },
+      ],
+    },
+    Object {
+      "state": 0,
+      "steps": Array [
+        Object {
+          "state": 0,
+          "type": "reset",
+        },
+      ],
+    },
+  ],
+  "1 | {\\"type\\":\\"a\\"}": Array [
+    Object {
+      "state": 1,
+      "steps": Array [
+        Object {
+          "state": 0,
+          "type": "a",
+        },
+      ],
+    },
+    Object {
+      "state": 1,
+      "steps": Array [
+        Object {
+          "state": 0,
+          "type": "b",
+        },
+        Object {
+          "state": 0,
+          "type": "a",
+        },
+      ],
+    },
+    Object {
+      "state": 1,
+      "steps": Array [
+        Object {
+          "state": 0,
+          "type": "b",
+        },
+        Object {
+          "state": 0,
+          "type": "reset",
+        },
+        Object {
+          "state": 0,
+          "type": "a",
+        },
+      ],
+    },
+    Object {
+      "state": 1,
+      "steps": Array [
+        Object {
+          "state": 0,
+          "type": "reset",
+        },
+        Object {
+          "state": 0,
+          "type": "a",
+        },
+      ],
+    },
+    Object {
+      "state": 1,
+      "steps": Array [
+        Object {
+          "state": 0,
+          "type": "reset",
+        },
+        Object {
+          "state": 0,
+          "type": "b",
+        },
+        Object {
+          "state": 0,
+          "type": "a",
+        },
+      ],
+    },
+  ],
+  "2 | {\\"type\\":\\"b\\"}": Array [
+    Object {
+      "state": 2,
+      "steps": Array [
+        Object {
+          "state": 0,
+          "type": "a",
+        },
+        Object {
+          "state": 1,
+          "type": "b",
+        },
+      ],
+    },
+    Object {
+      "state": 2,
+      "steps": Array [
+        Object {
+          "state": 0,
+          "type": "b",
+        },
+        Object {
+          "state": 0,
+          "type": "a",
+        },
+        Object {
+          "state": 1,
+          "type": "b",
+        },
+      ],
+    },
+    Object {
+      "state": 2,
+      "steps": Array [
+        Object {
+          "state": 0,
+          "type": "b",
+        },
+        Object {
+          "state": 0,
+          "type": "reset",
+        },
+        Object {
+          "state": 0,
+          "type": "a",
+        },
+        Object {
+          "state": 1,
+          "type": "b",
+        },
+      ],
+    },
+    Object {
+      "state": 2,
+      "steps": Array [
+        Object {
+          "state": 0,
+          "type": "reset",
+        },
+        Object {
+          "state": 0,
+          "type": "a",
+        },
+        Object {
+          "state": 1,
+          "type": "b",
+        },
+      ],
+    },
+    Object {
+      "state": 2,
+      "steps": Array [
+        Object {
+          "state": 0,
+          "type": "reset",
+        },
+        Object {
+          "state": 0,
+          "type": "b",
+        },
+        Object {
+          "state": 0,
+          "type": "a",
+        },
+        Object {
+          "state": 1,
+          "type": "b",
+        },
+      ],
+    },
+  ],
 }
 `;
