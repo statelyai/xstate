@@ -38,12 +38,15 @@ export interface BaseActionObject {
  * The full definition of an action, with a string `type` and an
  * `exec` implementation function.
  */
-export interface ActionObject<TContext, TEvent extends EventObject>
-  extends BaseActionObject {
+export interface ActionObject<
+  TContext,
+  TEvent extends EventObject,
+  TSpecificEvent extends TEvent = TEvent
+> extends BaseActionObject {
   /**
    * The implementation for executing the action.
    */
-  exec?: ActionFunction<TContext, TEvent> | undefined;
+  exec?: ActionFunction<TContext, TSpecificEvent> | undefined;
 }
 
 export type DefaultContext = Record<string, any> | undefined;
@@ -67,9 +70,13 @@ export interface ActionMeta<
   _event: SCXML.Event<TEvent>;
 }
 
-export interface AssignMeta<TContext, TEvent extends EventObject> {
+export interface AssignMeta<
+  TContext,
+  TEvent extends EventObject,
+  TSpecificEvent extends TEvent = TEvent
+> {
   state?: State<TContext, TEvent>;
-  action: AssignAction<TContext, TEvent>;
+  action: AssignAction<TContext, TEvent, TSpecificEvent>;
   _event: SCXML.Event<TEvent>;
 }
 
@@ -91,15 +98,27 @@ export interface ChooseCondition<TContext, TEvent extends EventObject> {
   actions: Actions<TContext, TEvent>;
 }
 
+export interface DynAction<
+  TContext,
+  TEvent extends EventObject,
+  TSpecificEvent extends TEvent = TEvent
+> {
+  type: string;
+  __?: [TContext, TEvent, TSpecificEvent];
+}
+
 export type Action<
   TContext,
   TEvent extends EventObject,
   TSpecificEvent extends TEvent = TEvent
 > =
   | ActionType
+  | DynAction<TContext, TEvent, TSpecificEvent>
+  // | ({ __?: never } & (
   | ActionObject<TContext, TSpecificEvent>
   | ActionObject<TContext, TEvent>
   | ActionFunction<TContext, TSpecificEvent>;
+// ));
 
 /**
  * Extracts action objects that have no extra properties.
@@ -127,7 +146,7 @@ export type BaseAction<
   | TAction
   | RaiseAction<any>
   | SendAction<TContext, TEvent, any>
-  | AssignAction<TContext, TEvent>
+  | AssignAction<TContext, TEvent, any>
   | LogAction<TContext, TEvent>
   | CancelAction
   | StopAction<TContext, TEvent>
@@ -605,7 +624,10 @@ export interface StateNodeConfig<
    *
    * This is equivalent to defining a `[done(id)]` transition on this state node's `on` property.
    */
-  onDone?: string | SingleOrArray<TransitionConfig<TContext, DoneEventObject>> | undefined;
+  onDone?:
+    | string
+    | SingleOrArray<TransitionConfig<TContext, DoneEventObject>>
+    | undefined;
   /**
    * The mapping (or array) of delays (in milliseconds) to their potential transition(s).
    * The delayed transitions are taken after the specified delay in an interpreter.
@@ -1013,7 +1035,7 @@ export interface SendAction<
   TContext,
   TEvent extends EventObject,
   TSentEvent extends EventObject
-> extends ActionObject<TContext, TEvent> {
+> extends DynAction<TContext, TEvent> {
   to:
     | string
     | number
@@ -1124,11 +1146,16 @@ export interface AnyAssignAction<TContext, TEvent extends EventObject>
   assignment: any;
 }
 
-export interface AssignAction<TContext, TEvent extends EventObject>
-  extends ActionObject<TContext, TEvent> {
+export type AssignAction<
+  TContext,
+  TEvent extends EventObject,
+  TSpecificEvent extends TEvent
+> = {
   type: ActionTypes.Assign;
-  assignment: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent>;
-}
+  assignment:
+    | Assigner<TContext, TSpecificEvent>
+    | PropertyAssigner<TContext, TSpecificEvent>;
+} & DynAction<TContext, TEvent, TSpecificEvent>;
 
 export interface PureAction<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {

@@ -30,18 +30,18 @@ export interface Model<
   initialContext: TContext;
   // Generic types are required for properly inferring
   // arguments when used as inline action
-  assign<TC extends TContext, TE extends TEvent>(
-    assigner: Assigner<TC, TE> | PropertyAssigner<TC, TE>
-  ): AssignAction<TC, TE>;
+  assign<TC extends TContext, TE extends TEvent, TSE extends TE>(
+    assigner: Assigner<TC, TSE> | PropertyAssigner<TC, TSE>
+  ): AssignAction<TC, TE, TSE>;
   assign<TEventType extends TEvent['type'] = TEvent['type']>(
     assigner:
       | Assigner<TContext, ExtractEvent<TEvent, TEventType>>
       | PropertyAssigner<TContext, ExtractEvent<TEvent, TEventType>>,
     eventType?: TEventType
-  ): AssignAction<TContext, ExtractEvent<TEvent, TEventType>>;
+  ): AssignAction<TContext, TEvent, ExtractEvent<TEvent, TEventType>>;
   events: Prop<TModelCreators, 'events'>;
   actions: Prop<TModelCreators, 'actions'>;
-  reset: () => AssignAction<TContext, any>;
+  reset: () => AssignAction<TContext, any, any>;
   createMachine: (
     config: MachineConfig<TContext, any, TEvent, TAction>,
     implementations?: Partial<MachineOptions<TContext, TEvent, TAction>>

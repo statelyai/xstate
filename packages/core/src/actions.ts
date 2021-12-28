@@ -460,14 +460,20 @@ export function resolveStop<TContext, TEvent extends EventObject>(
  *
  * @param assignment An object that represents the partial context to update.
  */
-export const assign = <TContext, TEvent extends EventObject = EventObject>(
-  assignment: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent>
-): AssignAction<TContext, TEvent> => {
+export function assign<
+  TContext,
+  TEvent extends EventObject = EventObject,
+  TSpecificEvent extends TEvent = TEvent
+>(
+  assignment:
+    | Assigner<TContext, TSpecificEvent>
+    | PropertyAssigner<TContext, TSpecificEvent>
+): AssignAction<TContext, TEvent, TSpecificEvent> {
   return {
     type: actionTypes.assign,
     assignment
   };
-};
+}
 
 export function isActionObject<TContext, TEvent extends EventObject>(
   action: Action<TContext, TEvent>
@@ -616,7 +622,7 @@ export function resolveActions<TContext, TEvent extends EventObject>(
     ? [[], actions]
     : partition(
         actions,
-        (action): action is AssignAction<TContext, TEvent> =>
+        (action): action is AssignAction<TContext, TEvent, any> =>
           action.type === actionTypes.assign
       );
 
@@ -725,7 +731,7 @@ export function resolveActions<TContext, TEvent extends EventObject>(
             updatedContext = updateContext(
               updatedContext,
               _event,
-              [actionObject as AssignAction<TContext, TEvent>],
+              [actionObject as AssignAction<TContext, TEvent, any>],
               currentState
             );
             preservedContexts?.push(updatedContext);
