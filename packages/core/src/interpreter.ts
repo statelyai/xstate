@@ -923,7 +923,7 @@ export class Interpreter<
         }
         break;
       default:
-        if (!IS_PRODUCTION) {
+        if (!IS_PRODUCTION && !action.type.startsWith('xstate.')) {
           warn(
             false,
             `No implementation found for action type '${action.type}'`
