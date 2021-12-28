@@ -673,21 +673,19 @@ class StateNode<
     }
 
     const subStateKeys = keys(stateValue);
-    const subStateNodes: Array<
-      StateNode<TContext, any, TEvent, TTypestate>
-    > = subStateKeys.map((subStateKey) => this.getStateNode(subStateKey));
+    const subStateNodes: Array<StateNode<TContext, any, TEvent, TTypestate>> = [
+      this
+    ];
 
-    subStateNodes.push(this);
-
-    return subStateNodes.concat(
-      subStateKeys.reduce((allSubStateNodes, subStateKey) => {
-        const subStateNode = this.getStateNode(subStateKey).getStateNodes(
-          stateValue[subStateKey]
-        );
-
-        return allSubStateNodes.concat(subStateNode);
-      }, [] as Array<StateNode<TContext, any, TEvent, TTypestate>>)
+    subStateNodes.push(
+      ...flatten(
+        subStateKeys.map((subStateKey) =>
+          this.getStateNode(subStateKey).getStateNodes(stateValue[subStateKey])
+        )
+      )
     );
+
+    return subStateNodes;
   }
 
   /**
@@ -989,13 +987,6 @@ class StateNode<
       if (!has(resolvedConfig, sn) || has(transition.exitSet, sn.parent)) {
         transition.exitSet.push(sn);
       }
-    }
-
-    if (!transition.source) {
-      transition.exitSet = [];
-
-      // Ensure that root StateNode (machine) is entered
-      transition.entrySet.push(this);
     }
 
     const doneEvents = flatten(
