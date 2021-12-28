@@ -345,10 +345,10 @@ export class Interpreter<
         listener(errorEvent.data.data);
       });
     } else {
+      this.stop();
       if (this.parent) {
-        this.parent?.send(errorEvent);
+        this.parent.send(errorEvent);
       } else {
-        this.stop();
         throw errorEvent.data.data;
       }
     }
