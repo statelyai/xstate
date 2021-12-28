@@ -2709,6 +2709,44 @@ describe('invoke', () => {
       interpret(machine).start();
     });
   });
+
+  it('invoke generated ID should be predictable based on the state node where it is defined', (done) => {
+    const machine = createMachine(
+      {
+        initial: 'a',
+        states: {
+          a: {
+            invoke: {
+              src: 'someSrc',
+              onDone: {
+                cond: (_, e) => {
+                  // invoke ID should not be 'someSrc'
+                  const expectedType = 'done.invoke.(machine).a:invocation[0]';
+                  expect(e.type).toEqual(expectedType);
+                  return e.type === expectedType;
+                },
+                target: 'b'
+              }
+            }
+          },
+          b: {
+            type: 'final'
+          }
+        }
+      },
+      {
+        services: {
+          someSrc: () => Promise.resolve()
+        }
+      }
+    );
+
+    interpret(machine)
+      .onDone(() => {
+        done();
+      })
+      .start();
+  });
 });
 
 describe('services option', () => {
