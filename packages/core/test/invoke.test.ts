@@ -2747,6 +2747,71 @@ describe('invoke', () => {
       })
       .start();
   });
+
+  // https://github.com/statelyai/xstate/issues/464
+  it('onDone should be scoped per state', (done) => {
+    const createSingleState = (): any => ({
+      initial: 'fetch',
+      states: {
+        fetch: {
+          invoke: {
+            src: 'fetchSmth',
+            onDone: {
+              target: 'done',
+              actions: 'notifySingleSuccess'
+            }
+          }
+        },
+        done: {
+          type: 'final'
+        }
+      }
+    });
+
+    const testMachine = createMachine(
+      {
+        id: 'test',
+        initial: 's',
+        states: {
+          s: {
+            type: 'parallel',
+            onDone: { target: 't', actions: 'notifyBothSuccesses' },
+            states: {
+              first: createSingleState(),
+              second: createSingleState()
+            }
+          },
+          t: {
+            type: 'final'
+          }
+        }
+      },
+      {
+        actions: {
+          notifySingleSuccess: (_, e) => console.log(e.type, 'single success'),
+          notifyBothSuccess: () => {
+            done();
+          }
+        },
+        services: {
+          fetchSmth: () => {
+            const ms = Math.floor(Math.random() * 1000);
+            return new Promise((resolve) =>
+              setTimeout(() => {
+                resolve(null);
+              }, ms)
+            );
+          }
+        }
+      }
+    );
+
+    interpret(testMachine)
+      .onDone(() => {
+        done();
+      })
+      .start();
+  });
 });
 
 describe('services option', () => {
