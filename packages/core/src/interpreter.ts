@@ -345,8 +345,12 @@ export class Interpreter<
         listener(errorEvent.data.data);
       });
     } else {
-      this.stop();
-      throw errorEvent.data.data;
+      if (this.parent) {
+        this.parent?.send(errorEvent);
+      } else {
+        this.stop();
+        throw errorEvent.data.data;
+      }
     }
   }
 
@@ -484,6 +488,13 @@ export class Interpreter<
     if (isArray(event)) {
       this.batch(event);
       return;
+    }
+
+    if (((event as EventObject)?.type || '').includes('error')) {
+      if (this.parent) {
+        this.parent.send(event);
+        return;
+      }
     }
 
     const eventObject = toEventObject(event, payload);

@@ -1657,6 +1657,184 @@ describe('interpreter', () => {
       service.send('INC');
       service.send('INC');
     });
+
+    describe('when errorListener is provided', () => {
+      it('should handle errors', (done) => {
+        const failureMachine = createMachine<typeof context>(
+          {
+            id: 'interval',
+            context,
+            initial: 'active',
+            states: {
+              active: {
+                after: {
+                  10: {
+                    target: 'failure'
+                  }
+                }
+              },
+              failure: {
+                invoke: {
+                  src: 'failure'
+                }
+              }
+            }
+          },
+          {
+            actors: {
+              failure: invokePromise(
+                () =>
+                  new Promise((_res, rej) => {
+                    rej(new Error('error'));
+                  })
+              )
+            }
+          }
+        );
+
+        const intervalService = interpret(failureMachine).start();
+
+        intervalService.subscribe(
+          () => {},
+          (error) => {
+            expect(error.message).toBe('error');
+            expect(error).toBeInstanceOf(Error);
+            intervalService.stop();
+            done();
+          }
+        );
+      });
+
+      it('should handle child errors', (done) => {
+        const childMachine = createMachine<typeof context>(
+          {
+            id: 'child',
+            context,
+            initial: 'active',
+            states: {
+              active: {
+                after: {
+                  100: {
+                    target: 'failure'
+                  }
+                }
+              },
+              failure: {
+                invoke: {
+                  src: 'failure'
+                }
+              }
+            }
+          },
+          {
+            actors: {
+              failure: invokePromise(
+                () =>
+                  new Promise((_res, rej) => {
+                    rej(new Error('error'));
+                  })
+              )
+            }
+          }
+        );
+
+        const parentMachine = createMachine({
+          initial: 'foo',
+          states: {
+            foo: {
+              invoke: {
+                id: 'child',
+                src: invokeMachine(childMachine)
+              }
+            }
+          }
+        });
+
+        const intervalService = interpret(parentMachine).start();
+
+        intervalService.subscribe(
+          () => {},
+          (error) => {
+            expect(error.message).toBe('error');
+            expect(error).toBeInstanceOf(Error);
+            intervalService.stop();
+            done();
+          }
+        );
+      });
+
+      it('should handle grandchild errors', (done) => {
+        const childMachine = createMachine<typeof context>(
+          {
+            id: 'child',
+            context,
+            initial: 'active',
+            states: {
+              active: {
+                after: {
+                  100: {
+                    target: 'failure'
+                  }
+                }
+              },
+              failure: {
+                invoke: {
+                  src: 'failure'
+                }
+              }
+            }
+          },
+          {
+            actors: {
+              failure: invokePromise(
+                () =>
+                  new Promise((_res, rej) => {
+                    rej(new Error('error'));
+                  })
+              )
+            }
+          }
+        );
+
+        const parentMachine = createMachine({
+          id: 'parent',
+          initial: 'foo',
+          states: {
+            foo: {
+              invoke: {
+                id: 'child',
+                src: invokeMachine(childMachine)
+              }
+            }
+          }
+        });
+
+        const grandparentMachine = createMachine({
+          id: 'grandparent',
+          initial: 'bar',
+          states: {
+            bar: {
+              invoke: {
+                id: 'parent',
+                src: invokeMachine(parentMachine)
+              }
+            }
+          }
+        });
+
+        const intervalService = interpret(grandparentMachine).start();
+
+        intervalService.subscribe(
+          () => {},
+          (error) => {
+            expect(error.message).toBe('error');
+            expect(error).toBeInstanceOf(Error);
+            intervalService.stop();
+            done();
+          }
+        );
+      });
+    });
   });
 
   describe('services', () => {
