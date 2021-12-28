@@ -346,11 +346,7 @@ export class Interpreter<
       });
     } else {
       this.stop();
-      if (this.parent) {
-        this.parent.send(errorEvent);
-      } else {
-        throw errorEvent.data.data;
-      }
+      throw errorEvent.data.data;
     }
   }
 
