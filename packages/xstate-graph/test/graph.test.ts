@@ -1,10 +1,11 @@
-import { Machine, StateNode, createMachine } from 'xstate';
+import { Machine, StateNode, createMachine, State, EventObject } from 'xstate';
 import {
   getStateNodes,
   getPathFromEvents,
   getSimplePaths,
   getShortestPaths,
-  toDirectedGraph
+  toDirectedGraph,
+  StatePathsMap
 } from '../src/index';
 import {
   getSimplePathsAsArray,
@@ -12,6 +13,21 @@ import {
   depthSimplePaths
 } from '../src/graph';
 import { assign } from 'xstate';
+import { mapValues } from 'xstate/lib/utils';
+
+function getPathsMapSnapshot(
+  pathsMap: StatePathsMap<State<any, any>, EventObject>
+): Record<string, any> {
+  return mapValues(pathsMap, (plan) => {
+    return plan.paths.map((path) => ({
+      state: path.state.value,
+      steps: path.steps.map((step) => ({
+        state: step.state.value,
+        type: step.event.type
+      }))
+    }));
+  });
+}
 
 describe('@xstate/graph', () => {
   const pedestrianStates = {
@@ -164,12 +180,14 @@ describe('@xstate/graph', () => {
     it('should return a mapping of shortest paths to all states', () => {
       const paths = getShortestPaths(lightMachine) as any;
 
-      expect(paths).toMatchSnapshot('shortest paths');
+      expect(getPathsMapSnapshot(paths)).toMatchSnapshot('shortest paths');
     });
 
     it('should return a mapping of shortest paths to all states (parallel)', () => {
       const paths = getShortestPaths(parallelMachine) as any;
-      expect(paths).toMatchSnapshot('shortest paths parallel');
+      expect(getPathsMapSnapshot(paths)).toMatchSnapshot(
+        'shortest paths parallel'
+      );
     });
 
     it('the initial state should have a zero-length path', () => {
@@ -207,18 +225,31 @@ describe('@xstate/graph', () => {
         }
       );
 
-      expect(paths).toMatchSnapshot('shortest paths conditional');
+      expect(getPathsMapSnapshot(paths)).toMatchSnapshot(
+        'shortest paths conditional'
+      );
     });
   });
 
   describe('getSimplePaths()', () => {
     it('should return a mapping of arrays of simple paths to all states', () => {
-      const paths = getSimplePaths(lightMachine) as any;
+      const paths = getSimplePaths(lightMachine);
 
-      expect(paths).toMatchSnapshot('simple paths');
+      expect(Object.keys(paths)).toMatchInlineSnapshot(`
+        Array [
+          "\\"green\\"",
+          "\\"yellow\\"",
+          "{\\"red\\":\\"walk\\"}",
+          "{\\"red\\":\\"flashing\\"}",
+          "{\\"red\\":\\"wait\\"}",
+          "{\\"red\\":\\"stop\\"}",
+        ]
+      `);
+
+      expect(getPathsMapSnapshot(paths)).toMatchSnapshot();
     });
 
-    const equivMachine = Machine({
+    const equivMachine = createMachine({
       initial: 'a',
       states: {
         a: { on: { FOO: 'b', BAR: 'b' } },
@@ -228,12 +259,16 @@ describe('@xstate/graph', () => {
 
     it('should return a mapping of simple paths to all states (parallel)', () => {
       const paths = getSimplePaths(parallelMachine);
-      expect(paths).toMatchSnapshot('simple paths parallel');
+      expect(getPathsMapSnapshot(paths)).toMatchSnapshot(
+        'simple paths parallel'
+      );
     });
 
     it('should return multiple paths for equivalent transitions', () => {
       const paths = getSimplePaths(equivMachine);
-      expect(paths).toMatchSnapshot('simple paths equal transitions');
+      expect(getPathsMapSnapshot(paths)).toMatchSnapshot(
+        'simple paths equal transitions'
+      );
     });
 
     it('should return a single empty path for the initial state', () => {
@@ -255,7 +290,7 @@ describe('@xstate/graph', () => {
         type: 'INC';
         value: number;
       }
-      const countMachine = Machine<Ctx, Events>({
+      const countMachine = createMachine<Ctx, Events>({
         id: 'count',
         initial: 'start',
         context: {
@@ -279,13 +314,13 @@ describe('@xstate/graph', () => {
         }
       });
 
-      const paths = getSimplePaths(countMachine, {
-        events: {
-          INC: [{ type: 'INC', value: 1 }]
-        }
-      });
+      const paths = getSimplePaths(countMachine as any, [
+        { type: 'INC', value: 1 }
+      ]);
 
-      expect(paths).toMatchSnapshot('simple paths context');
+      expect(getPathsMapSnapshot(paths)).toMatchSnapshot(
+        'simple paths context'
+      );
     });
   });
 
@@ -437,24 +472,24 @@ describe('@xstate/graph', () => {
   });
 });
 
-it.only('hmm', () => {
+it('hmm', () => {
   const a = depthSimplePaths(
     (s, e) => {
-      if (e === 'a') {
+      if (e.type === 'a') {
         return 1;
       }
-      if (e === 'b' && s === 1) {
+      if (e.type === 'b' && s === 1) {
         return 2;
       }
-      if (e === 'reset') {
+      if (e.type === 'reset') {
         return 0;
       }
       return s;
     },
     0 as number,
-    ['a', 'b', 'reset'],
+    [{ type: 'a' }, { type: 'b' }, { type: 'reset' }],
     {
-      serializeVertex: (v, e) => JSON.stringify(v) + JSON.stringify(e)
+      serializeState: (v, e) => (JSON.stringify(v) + JSON.stringify(e)) as any
     }
   );
 
