@@ -490,15 +490,15 @@ export class Interpreter<
       return;
     }
 
-    if (((event as EventObject)?.type || '').includes('error')) {
+    const eventObject = toEventObject(event, payload);
+    const _event = toSCXMLEvent(eventObject);
+
+    if (_event.name.startsWith('error')) {
       if (this.parent) {
-        this.parent.send(event);
+        this.parent.send(_event);
         return;
       }
     }
-
-    const eventObject = toEventObject(event, payload);
-    const _event = toSCXMLEvent(eventObject);
 
     if (this.status === InterpreterStatus.Stopped) {
       // do nothing
