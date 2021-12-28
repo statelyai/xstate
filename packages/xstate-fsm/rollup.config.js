@@ -1,35 +1,7 @@
 import typescript from 'rollup-plugin-typescript2';
-import babel from '@rollup/plugin-babel';
 import { terser } from 'rollup-plugin-terser';
 import rollupReplace from 'rollup-plugin-replace';
 import fileSize from 'rollup-plugin-filesize';
-
-const stripSymbolObservableMethodPlugin = ({ types: t }) => {
-  const isSymbolObservable = t.buildMatchMemberExpression('Symbol.observable');
-  return {
-    visitor: {
-      MemberExpression(path) {
-        if (!isSymbolObservable(path.node)) {
-          return;
-        }
-        // class Interpreter { [Symbol.observable]() {} }
-        if (path.parentPath.isClassMethod()) {
-          path.parentPath.remove();
-          return;
-        }
-        // Interpreter.prototype[Symbol.observable] = function() {}
-        if (
-          path.parentPath.isMemberExpression() &&
-          path.parentPath.get('property') === path &&
-          path.parentPath.parentPath.isAssignmentExpression()
-        ) {
-          path.parentPath.parentPath.remove();
-          return;
-        }
-      }
-    }
-  };
-};
 
 const createTsPlugin = ({ declaration = true, target } = {}) =>
   typescript({
@@ -42,24 +14,11 @@ const createTsPlugin = ({ declaration = true, target } = {}) =>
     }
   });
 
-const createBabelPlugin = () =>
-  babel({
-    babelrc: false,
-    configFile: false,
-    skipPreflightCheck: true,
-    babelHelpers: 'inline',
-    extensions: ['.ts', '.tsx', '.js'],
-    plugins: [
-      'babel-plugin-annotate-pure-calls',
-      stripSymbolObservableMethodPlugin
-    ]
-  });
-
 const createNpmConfig = ({ input, output }) => ({
   input,
   output,
   preserveModules: true,
-  plugins: [createTsPlugin(), createBabelPlugin()]
+  plugins: [createTsPlugin()]
 });
 
 const createUmdConfig = ({ input, output, target = undefined }) => ({
@@ -70,7 +29,6 @@ const createUmdConfig = ({ input, output, target = undefined }) => ({
       'process.env.NODE_ENV': JSON.stringify('production')
     }),
     createTsPlugin({ declaration: false, target }),
-    createBabelPlugin(),
     terser({
       toplevel: true
     }),
