@@ -517,7 +517,7 @@ export class Interpreter<
     }
 
     [...this.state.configuration]
-      .sort((a, b) => a.order - b.order)
+      .sort((a, b) => b.order - a.order)
       .forEach((stateNode) => {
         for (const action of stateNode.definition.exit) {
           this.exec(action, this.state);

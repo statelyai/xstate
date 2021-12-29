@@ -686,10 +686,10 @@ describe('entry/exit actions', () => {
       });
 
       interpret(machine).start().stop();
-      expect(actual).toEqual(['root', 'a', 'a1']);
+      expect(actual).toEqual(['a1', 'a', 'root']);
     });
 
-    it('should call exit actions in document order when the service gets stopped', () => {
+    it('should call exit actions in reversed document order when the service gets stopped', () => {
       const actual: string[] = [];
       const machine = createMachine({
         exit: () => actual.push('root'),
@@ -713,10 +713,10 @@ describe('entry/exit actions', () => {
       service.send({ type: 'EV' });
       service.stop();
 
-      expect(actual).toEqual(['root', 'a']);
+      expect(actual).toEqual(['a', 'root']);
     });
 
-    it('should call exit actions of parallel states in document order when the service gets stopped after earlier region transition', () => {
+    it('should call exit actions of parallel states in reversed document order when the service gets stopped after earlier region transition', () => {
       const actual: string[] = [];
       const machine = createMachine({
         exit: () => actual.push('root'),
@@ -755,10 +755,10 @@ describe('entry/exit actions', () => {
       service.send({ type: 'EV' });
       service.stop();
 
-      expect(actual).toEqual(['root', 'a', 'child_a', 'b', 'child_b']);
+      expect(actual).toEqual(['child_b', 'b', 'child_a', 'a', 'root']);
     });
 
-    it('should call exit actions of parallel states in document order when the service gets stopped after later region transition', () => {
+    it('should call exit actions of parallel states in reversed document order when the service gets stopped after later region transition', () => {
       const actual: string[] = [];
       const machine = createMachine({
         exit: () => actual.push('root'),
@@ -797,10 +797,10 @@ describe('entry/exit actions', () => {
       service.send({ type: 'EV' });
       service.stop();
 
-      expect(actual).toEqual(['root', 'a', 'child_a', 'b', 'child_b']);
+      expect(actual).toEqual(['child_b', 'b', 'child_a', 'a', 'root']);
     });
 
-    it('should call exit actions of parallel states in document order when the service gets stopped after multiple regions transition', () => {
+    it('should call exit actions of parallel states in reversed document order when the service gets stopped after multiple regions transition', () => {
       const actual: string[] = [];
       const machine = createMachine({
         exit: () => actual.push('root'),
@@ -845,7 +845,7 @@ describe('entry/exit actions', () => {
       service.send({ type: 'EV' });
       service.stop();
 
-      expect(actual).toEqual(['root', 'a', 'child_a', 'b', 'child_b']);
+      expect(actual).toEqual(['child_b', 'b', 'child_a', 'a', 'root']);
     });
   });
 });

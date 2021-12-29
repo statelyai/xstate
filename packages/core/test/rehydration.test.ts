@@ -37,7 +37,7 @@ describe('rehydration', () => {
 
       interpret(machine).start(restoredState).stop();
 
-      expect(actual).toEqual(['root', 'a']);
+      expect(actual).toEqual(['a', 'root']);
     });
   });
 
@@ -79,7 +79,7 @@ describe('rehydration', () => {
 
       interpret(machine).start('active').stop();
 
-      expect(actual).toEqual(['root', 'active']);
+      expect(actual).toEqual(['active', 'root']);
     });
   });
 });
