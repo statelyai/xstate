@@ -689,7 +689,7 @@ describe('entry/exit actions', () => {
       expect(actual).toEqual(['root', 'a', 'a1']);
     });
 
-    it('should call exit handlers in document order when the service gets stopped', () => {
+    it('should call exit actions in document order when the service gets stopped', () => {
       const actual: string[] = [];
       const machine = createMachine({
         exit: () => actual.push('root'),
@@ -709,11 +709,143 @@ describe('entry/exit actions', () => {
 
       const service = interpret(machine).start();
       // it's important to send an event here that results in a transition as that computes new `state.configuration`
-      // and that could impact the order in which exit handlers are called
+      // and that could impact the order in which exit actions are called
       service.send({ type: 'EV' });
       service.stop();
 
       expect(actual).toEqual(['root', 'a']);
+    });
+
+    it('should call exit actions of parallel states in document order when the service gets stopped after earlier region transition', () => {
+      const actual: string[] = [];
+      const machine = createMachine({
+        exit: () => actual.push('root'),
+        type: 'parallel',
+        states: {
+          a: {
+            exit: () => actual.push('a'),
+            initial: 'child_a',
+            states: {
+              child_a: {
+                exit: () => actual.push('child_a'),
+                on: {
+                  EV: {
+                    // just a noop action to ensure that a transition is selected when we send an event
+                    actions: () => {}
+                  }
+                }
+              }
+            }
+          },
+          b: {
+            exit: () => actual.push('b'),
+            initial: 'child_b',
+            states: {
+              child_b: {
+                exit: () => actual.push('child_b')
+              }
+            }
+          }
+        }
+      });
+
+      const service = interpret(machine).start();
+      // it's important to send an event here that results in a transition as that computes new `state.configuration`
+      // and that could impact the order in which exit actions are called
+      service.send({ type: 'EV' });
+      service.stop();
+
+      expect(actual).toEqual(['root', 'a', 'child_a', 'b', 'child_b']);
+    });
+
+    it('should call exit actions of parallel states in document order when the service gets stopped after later region transition', () => {
+      const actual: string[] = [];
+      const machine = createMachine({
+        exit: () => actual.push('root'),
+        type: 'parallel',
+        states: {
+          a: {
+            exit: () => actual.push('a'),
+            initial: 'child_a',
+            states: {
+              child_a: {
+                exit: () => actual.push('child_a')
+              }
+            }
+          },
+          b: {
+            exit: () => actual.push('b'),
+            initial: 'child_b',
+            states: {
+              child_b: {
+                exit: () => actual.push('child_b'),
+                on: {
+                  EV: {
+                    // just a noop action to ensure that a transition is selected when we send an event
+                    actions: () => {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const service = interpret(machine).start();
+      // it's important to send an event here that results in a transition as that computes new `state.configuration`
+      // and that could impact the order in which exit actions are called
+      service.send({ type: 'EV' });
+      service.stop();
+
+      expect(actual).toEqual(['root', 'a', 'child_a', 'b', 'child_b']);
+    });
+
+    it('should call exit actions of parallel states in document order when the service gets stopped after multiple regions transition', () => {
+      const actual: string[] = [];
+      const machine = createMachine({
+        exit: () => actual.push('root'),
+        type: 'parallel',
+        states: {
+          a: {
+            exit: () => actual.push('a'),
+            initial: 'child_a',
+            states: {
+              child_a: {
+                exit: () => actual.push('child_a'),
+                on: {
+                  EV: {
+                    // just a noop action to ensure that a transition is selected when we send an event
+                    actions: () => {}
+                  }
+                }
+              }
+            }
+          },
+          b: {
+            exit: () => actual.push('b'),
+            initial: 'child_b',
+            states: {
+              child_b: {
+                exit: () => actual.push('child_b'),
+                on: {
+                  EV: {
+                    // just a noop action to ensure that a transition is selected when we send an event
+                    actions: () => {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const service = interpret(machine).start();
+      // it's important to send an event here that results in a transition as that computes new `state.configuration`
+      // and that could impact the order in which exit actions are called
+      service.send({ type: 'EV' });
+      service.stop();
+
+      expect(actual).toEqual(['root', 'a', 'child_a', 'b', 'child_b']);
     });
   });
 });
