@@ -1,7 +1,6 @@
 import type {
   StateValue,
   EventObject,
-  EventType,
   StateConfig,
   SCXML,
   TransitionDefinition,
