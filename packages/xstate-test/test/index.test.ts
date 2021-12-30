@@ -380,9 +380,7 @@ describe('coverage', () => {
           }
         },
         passthrough: {
-          on: {
-            '': 'end'
-          }
+          always: 'end'
         },
         end: {
           type: 'final',
@@ -430,7 +428,7 @@ describe('events', () => {
       | { type: 'CLOSE' }
       | { type: 'ESC' }
       | { type: 'SUBMIT'; value: string };
-    const feedbackMachine = Machine<void, Events>({
+    const feedbackMachine = Machine<any, Events>({
       id: 'feedback',
       initial: 'question',
       states: {
@@ -571,7 +569,9 @@ describe('state limiting', () => {
       }
     });
 
-    const testModel = createModel(machine);
+    const testModel = createModel(machine).withEvents({
+      INC: () => {}
+    });
     const testPlans = testModel.getShortestPathPlans({
       filter: (state) => {
         return state.context.count < 5;
@@ -632,7 +632,10 @@ describe('plan description', () => {
     }
   });
 
-  const testModel = createModel(machine);
+  const testModel = createModel(machine).withEvents({
+    NEXT: { exec: () => {} },
+    DONE: { exec: () => {} }
+  });
   const testPlans = testModel.getShortestPathPlans();
 
   it('should give a description for every plan', () => {

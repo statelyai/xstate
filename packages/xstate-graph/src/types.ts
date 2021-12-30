@@ -116,6 +116,18 @@ export interface ValueAdjMapOptions<TState, TEvent extends EventObject> {
   eventSerializer?: (event: TEvent) => string;
 }
 
+export interface VisitedContext<TState, TEvent> {
+  vertices: Set<SerializedState>;
+  edges: Set<SerializedEvent>;
+  a?: TState | TEvent; // TODO: remove
+}
+
+export interface TraversalOptions<V, E> {
+  serializeState?: (vertex: V, edge: E | null) => SerializedState;
+  visitCondition?: (vertex: V, edge: E, vctx: VisitedContext<V, E>) => boolean;
+  filter?: (vertex: V, edge: E) => boolean;
+}
+
 type Brand<T, Tag extends string> = T & { __tag: Tag };
 
 export type SerializedState = Brand<string, 'state'>;

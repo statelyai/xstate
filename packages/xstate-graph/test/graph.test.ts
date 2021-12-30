@@ -534,3 +534,37 @@ it('shortest paths for reducers', () => {
 
   expect(getPathsMapSnapshot(a)).toMatchSnapshot();
 });
+
+describe('filtering', () => {
+  it('should not traverse past filtered states', () => {
+    const machine = createMachine<{ count: number }>({
+      initial: 'counting',
+      context: { count: 0 },
+      states: {
+        counting: {
+          on: {
+            INC: {
+              actions: assign({
+                count: (ctx) => ctx.count + 1
+              })
+            }
+          }
+        }
+      }
+    });
+
+    const sp = getShortestPaths(machine, [{ type: 'INC' }], {
+      filter: (s) => s.context.count < 5
+    });
+
+    expect(Object.keys(sp)).toMatchInlineSnapshot(`
+      Array [
+        "\\"counting\\" | {\\"count\\":0}",
+        "\\"counting\\" | {\\"count\\":1}",
+        "\\"counting\\" | {\\"count\\":2}",
+        "\\"counting\\" | {\\"count\\":3}",
+        "\\"counting\\" | {\\"count\\":4}",
+      ]
+    `);
+  });
+});

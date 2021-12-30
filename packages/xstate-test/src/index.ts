@@ -3,8 +3,9 @@ import {
   getShortestPaths,
   getSimplePaths,
   getStateNodes,
+  serializeState,
   StatePathsMap,
-  ValueAdjMapOptions
+  TraversalOptions
 } from '@xstate/graph';
 import { StateMachine, EventObject, State, StateValue } from 'xstate';
 import slimChalk from './slimChalk';
@@ -61,12 +62,16 @@ export class TestModel<TTestContext, TContext> {
   }
 
   public getShortestPathPlans(
-    options?: Partial<ValueAdjMapOptions<TContext, any>>
+    options?: TraversalOptions<State<TContext, any>, any>
   ): Array<TestPlan<TTestContext, TContext>> {
-    const shortestPaths = getShortestPaths(this.machine, {
-      ...options,
-      events: getEventSamples<TTestContext>(this.options.events)
-    }) as StatePathsMap<TContext, any>;
+    const shortestPaths = getShortestPaths(
+      this.machine,
+      getEventSamples<TTestContext>(this.options.events),
+      {
+        serializeState,
+        ...options
+      }
+    );
 
     return this.getTestPlans(shortestPaths);
   }
@@ -128,12 +133,16 @@ export class TestModel<TTestContext, TContext> {
   }
 
   public getSimplePathPlans(
-    options?: Partial<ValueAdjMapOptions<TContext, any>>
+    options?: Partial<TraversalOptions<State<TContext, any>, any>>
   ): Array<TestPlan<TTestContext, TContext>> {
-    const simplePaths = getSimplePaths(this.machine, {
-      ...options,
-      events: getEventSamples(this.options.events)
-    }) as StatePathsMap<TContext, any>;
+    const simplePaths = getSimplePaths(
+      this.machine,
+      getEventSamples(this.options.events),
+      {
+        serializeState,
+        ...options
+      }
+    );
 
     return this.getTestPlans(simplePaths);
   }
@@ -145,7 +154,7 @@ export class TestModel<TTestContext, TContext> {
   }
 
   public getTestPlans(
-    statePathsMap: StatePathsMap<TContext, any>
+    statePathsMap: StatePathsMap<State<TContext, any>, any>
   ): Array<TestPlan<TTestContext, TContext>> {
     return Object.keys(statePathsMap).map((key) => {
       const testPlan = statePathsMap[key];
@@ -403,20 +412,21 @@ function getDescription<T, TContext>(state: State<TContext, any>): string {
   );
 }
 
-function getEventSamples<T>(eventsOptions: TestModelOptions<T>['events']) {
-  const result = {};
+export function getEventSamples<T>(
+  eventsOptions: TestModelOptions<T>['events']
+) {
+  const result: T[] = [];
 
   Object.keys(eventsOptions).forEach((key) => {
     const eventConfig = eventsOptions[key];
     if (typeof eventConfig === 'function') {
-      return [
-        {
-          type: key
-        }
-      ];
+      result.push({
+        type: key
+      } as any);
+      return;
     }
 
-    result[key] = eventConfig.cases
+    const events = eventConfig.cases
       ? eventConfig.cases.map((sample) => ({
           type: key,
           ...sample
@@ -426,6 +436,8 @@ function getEventSamples<T>(eventsOptions: TestModelOptions<T>['events']) {
             type: key
           }
         ];
+
+    result.push(...(events as any[]));
   });
 
   return result;

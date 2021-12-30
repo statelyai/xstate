@@ -15,7 +15,9 @@ import {
   Steps,
   ValueAdjMapOptions,
   DirectedGraphEdge,
-  DirectedGraphNode
+  DirectedGraphNode,
+  TraversalOptions,
+  VisitedContext
 } from './types';
 
 export function toEventObject<TEvent extends EventObject>(
@@ -172,21 +174,23 @@ export function getAdjacencyMap<
   return adjacency;
 }
 
+const defaultMachineStateOptions: TraversalOptions<State<any, any>, any> = {
+  serializeState
+};
+
 export function getShortestPaths<
   TContext = DefaultContext,
   TEvent extends EventObject = EventObject
 >(
   machine: StateMachine<TContext, any, TEvent>,
   _events: TEvent[] = machine.events.map((type) => ({ type })) as TEvent[],
-  options: TraversalOptions<State<TContext, TEvent>, TEvent> = {
-    serializeState
-  }
+  options?: TraversalOptions<State<TContext, TEvent>, TEvent>
 ): StatePathsMap<State<TContext, TEvent>, TEvent> {
   return depthShortestPaths(
     (state, event) => machine.transition(state, event),
     machine.initialState,
     _events,
-    options
+    { ...defaultMachineStateOptions, ...options }
   );
 }
 
@@ -223,6 +227,9 @@ export function depthShortestPaths<TState, TEvent extends EventObject>(
   while (unvisited.size > 0) {
     for (const vertex of unvisited) {
       const [weight] = weightMap.get(vertex)!;
+      if (!adjacency[vertex]) {
+        console.log('not found', vertex);
+      }
       for (const event of keys(adjacency[vertex])) {
         const eventObject = JSON.parse(event);
         const nextState = adjacency[vertex][event];
@@ -281,15 +288,13 @@ export function getSimplePaths<
 >(
   machine: StateMachine<TContext, any, TEvent>,
   _events: TEvent[] = machine.events.map((type) => ({ type })) as TEvent[],
-  options: TraversalOptions<State<TContext, TEvent>, TEvent> = {
-    serializeState
-  }
+  options?: TraversalOptions<State<TContext, TEvent>, TEvent>
 ): StatePathsMap<State<TContext, TEvent>, TEvent> {
   return depthSimplePaths(
     (state, event) => machine.transition(state, event),
     machine.initialState,
     _events,
-    options
+    { ...defaultMachineStateOptions, ...options }
   );
 }
 
@@ -404,19 +409,13 @@ interface AdjMap<TState> {
   [key: SerializedState]: { [key: SerializedEvent]: TState };
 }
 
-interface TraversalOptions<V, E> {
-  serializeState?: (vertex: V, edge: E | null) => SerializedState;
-  visitCondition?: (vertex: V, edge: E, vctx: VisitedContext<V, E>) => boolean;
-  shortest?: boolean;
-}
-
 export function depthFirstTraversal<TState, TEvent>(
   reducer: (state: TState, event: TEvent) => TState,
   initialState: TState,
   events: TEvent[],
   options: TraversalOptions<TState, TEvent>
 ): AdjMap<TState> {
-  const { serializeState: serializeState } = resolveTraversalOptions(options);
+  const { serializeState } = resolveTraversalOptions(options);
   const adj: AdjMap<TState> = {};
 
   function util(state: TState, event: TEvent | null) {
@@ -429,9 +428,11 @@ export function depthFirstTraversal<TState, TEvent>(
 
     for (const subEvent of events) {
       const nextState = reducer(state, subEvent);
-      adj[serializedState][JSON.stringify(subEvent)] = nextState;
 
-      util(nextState, subEvent);
+      if (!options.filter || options.filter(nextState, subEvent)) {
+        adj[serializedState][JSON.stringify(subEvent)] = nextState;
+        util(nextState, subEvent);
+      }
     }
   }
 
@@ -440,23 +441,16 @@ export function depthFirstTraversal<TState, TEvent>(
   return adj;
 }
 
-interface VisitedContext<V, E> {
-  vertices: Set<string>;
-  edges: Set<string>;
-  a?: V | E; // TODO: remove
-}
-
 function resolveTraversalOptions<V, E>(
   depthOptions?: TraversalOptions<V, E>
 ): Required<TraversalOptions<V, E>> {
   const serializeState =
     depthOptions?.serializeState ?? ((state) => JSON.stringify(state) as any);
-  const shortest = !!depthOptions?.shortest;
   return {
-    shortest,
     serializeState,
+    filter: () => true,
     visitCondition: (state, event, vctx) => {
-      return shortest ? false : vctx.vertices.has(serializeState(state, event));
+      return vctx.vertices.has(serializeState(state, event));
     },
     ...depthOptions
   };
