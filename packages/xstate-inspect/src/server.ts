@@ -1,4 +1,4 @@
-import * as WebSocket from 'ws';
+import { WebSocketServer } from 'ws';
 import { ActorRef, EventObject, interpret, Interpreter } from 'xstate';
 import { toEventObject, toSCXMLEvent } from 'xstate/src/utils';
 
@@ -37,7 +37,7 @@ function createDevTools() {
 }
 
 interface ServerInspectorOptions {
-  server: WebSocket.Server;
+  server: WebSocketServer;
   serialize?: Replacer | undefined;
 }
 
@@ -47,35 +47,28 @@ export function inspect(options: ServerInspectorOptions): Inspector {
   const inspectService = interpret(
     createInspectMachine(globalThis.__xstate__, options)
   ).start();
-  let client: ActorRef<any, undefined>;
+  const client: ActorRef<any, undefined> = {
+    name: '@@xstate/ws-client',
+    send: (event: any) => {
+      server.clients.forEach((wsClient) => {
+        if (wsClient.readyState === wsClient.OPEN) {
+          wsClient.send(JSON.stringify(event));
+        }
+      });
+    },
+    subscribe: () => {
+      return { unsubscribe: () => void 0 };
+    },
+    getSnapshot: () => undefined
+  };
 
-  server.on('connection', function connection(wss) {
-    client = {
-      name: '@@xstate/ws-client',
-      send: (event: any) => {
-        server.clients.forEach((ws) => {
-          if (ws.readyState === ws.OPEN) {
-            ws.send(JSON.stringify(event));
-          }
-        });
-      },
-      subscribe: () => {
-        return { unsubscribe: () => void 0 };
-      },
-      getSnapshot: () => undefined
-    };
-
-    wss.on('message', function incoming(message) {
-      let msg: string;
-      if (typeof message === 'string') {
-        msg = message;
-      } else if (message instanceof Buffer) {
-        msg = message.toString('utf8');
-      } else {
+  server.on('connection', function connection(wsClient) {
+    wsClient.on('message', function incoming(data, isBinary) {
+      if (isBinary) {
         return;
       }
 
-      const jsonMessage = JSON.parse(msg);
+      const jsonMessage = JSON.parse(data.toString());
       inspectService.send({
         ...jsonMessage,
         client
@@ -158,6 +151,7 @@ export function inspect(options: ServerInspectorOptions): Inspector {
 
   server.on('close', () => {
     inspectService.stop();
+    server.clients.forEach((client) => client.terminate());
   });
 
   return inspector;
