@@ -36,7 +36,8 @@
   },
   "peerDependencies": {
     "@types/ws": "^8.0.0",
-    "ws": "^8.0.0"
+    "ws": "^8.0.0",
+    "xstate": "^4.11.0"
   },
   "peerDependenciesMeta": {
     "@types/ws": {
