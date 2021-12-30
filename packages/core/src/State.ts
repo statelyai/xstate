@@ -22,6 +22,7 @@ import {
 import { initEvent } from './actions';
 import { IS_PRODUCTION } from './environment';
 import type { StateMachine } from './StateMachine';
+import { memo } from './memo';
 
 export function isState<
   TContext extends MachineContext,
@@ -61,11 +62,7 @@ export class State<
    * The enabled state nodes representative of the state value.
    */
   public configuration: Array<StateNode<TContext, TEvent>>;
-  /**
-   * The next events that will cause a transition from the current state.
-   */
-  // @ts-ignore - getter for this gets configured in constructor so this property can stay non-enumerable
-  public nextEvents: EventType[];
+
   /**
    * The transition definitions that resulted in this state.
    */
@@ -190,13 +187,6 @@ export class State<
       ? new Set(config.tags)
       : new Set();
     this.machine = config.machine;
-
-    Object.defineProperty(this, 'nextEvents', {
-      enumerable: false,
-      get: () => {
-        return nextEvents(this.configuration);
-      }
-    });
   }
 
   /**
@@ -279,5 +269,12 @@ export class State<
       // Check that at least one transition is not forbidden
       transitionData.some((t) => t.target !== undefined || t.actions.length)
     );
+  }
+
+  /**
+   * The next events that will cause a transition from the current state.
+   */
+  public get nextEvents(): Array<TEvent['type']> {
+    return memo(this, 'nextEvents', () => nextEvents(this.configuration));
   }
 }
