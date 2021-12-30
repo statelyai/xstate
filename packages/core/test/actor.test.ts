@@ -19,7 +19,7 @@ import {
   forwardTo,
   error
 } from '../src/actions';
-import { interval, EMPTY } from 'rxjs';
+import { interval, EMPTY, from, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { fromPromise } from '../src/behaviors';
 
@@ -1211,5 +1211,26 @@ describe('actors', () => {
     service.start();
 
     expect(service.state.value).toBe('done');
+  });
+
+  it('should be interoperable with RxJS, etc. via Symbol.observable', (done) => {
+    const machine = createMachine<{
+      ref: ActorRef<any, number>;
+      notARef: number;
+    }>({
+      context: () => ({
+        ref: spawn(Promise.resolve(3)),
+        notARef: 3
+      })
+    });
+
+    const { context } = machine.initialState;
+
+    const expectType = <T>(_item: T) => void 0;
+
+    expectType<Observable<number>>(from(context.ref));
+
+    // @ts-expect-error
+    from(context.notARef);
   });
 });
