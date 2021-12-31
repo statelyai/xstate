@@ -2749,7 +2749,10 @@ describe('invoke', () => {
   });
 
   // https://github.com/statelyai/xstate/issues/464
-  it('onDone should be scoped per state', (done) => {
+  it('done.invoke events should only select onDone transition on the invoking state when invokee is referenced using a string', (done) => {
+    let counter = 0;
+    let invoked = false;
+
     const createSingleState = (): any => ({
       initial: 'fetch',
       states: {
@@ -2757,60 +2760,47 @@ describe('invoke', () => {
           invoke: {
             src: 'fetchSmth',
             onDone: {
-              target: 'done',
-              actions: 'notifySingleSuccess'
+              actions: 'handleSuccess'
             }
           }
-        },
-        done: {
-          type: 'final'
         }
       }
     });
 
     const testMachine = createMachine(
       {
-        id: 'test',
-        initial: 's',
+        type: 'parallel',
         states: {
-          s: {
-            type: 'parallel',
-            onDone: { target: 't', actions: 'notifyBothSuccesses' },
-            states: {
-              first: createSingleState(),
-              second: createSingleState()
-            }
-          },
-          t: {
-            type: 'final'
-          }
+          first: createSingleState(),
+          second: createSingleState()
         }
       },
       {
         actions: {
-          notifySingleSuccess: (_, e) => console.log(e.type, 'single success'),
-          notifyBothSuccess: () => {
-            done();
+          handleSuccess: () => {
+            ++counter;
           }
         },
         services: {
           fetchSmth: () => {
-            const ms = Math.floor(Math.random() * 1000);
-            return new Promise((resolve) =>
-              setTimeout(() => {
-                resolve(null);
-              }, ms)
-            );
+            if (invoked) {
+              // create a promise that won't ever resolve for the second invoking state
+              return new Promise(() => {});
+            }
+            invoked = true;
+            return Promise.resolve(42);
           }
         }
       }
     );
 
-    interpret(testMachine)
-      .onDone(() => {
-        done();
-      })
-      .start();
+    interpret(testMachine).start();
+
+    // check within a macrotask so all promise-induced microtasks have a chance to resolve first
+    setTimeout(() => {
+      expect(counter).toEqual(1);
+      done();
+    }, 0);
   });
 });
 
