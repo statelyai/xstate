@@ -7,7 +7,9 @@ import {
   MachineConfig,
   MachineOptions,
   StateMachine,
-  BaseActionObject
+  ActionObject,
+  DefaultExtraGenerics,
+  ExtraGenerics
 } from './types';
 
 export type AnyFunction = (...args: any[]) => any;
@@ -24,7 +26,7 @@ export type Prop<T, K> = K extends keyof T ? T[K] : never;
 export interface Model<
   TContext,
   TEvent extends EventObject,
-  TAction extends BaseActionObject = BaseActionObject,
+  TExtra extends ExtraGenerics = DefaultExtraGenerics<TContext, TEvent>,
   TModelCreators = void
 > {
   initialContext: TContext;
@@ -38,9 +40,27 @@ export interface Model<
   actions: Prop<TModelCreators, 'actions'>;
   reset: () => AssignAction<TContext, any>;
   createMachine: (
-    config: MachineConfig<TContext, any, TEvent, TAction>,
-    implementations?: Partial<MachineOptions<TContext, TEvent, TAction>>
-  ) => StateMachine<TContext, any, TEvent>;
+    config: MachineConfig<TContext, any, TEvent, TExtra>,
+    implementations?: Partial<MachineOptions<TContext, TEvent, TExtra>>
+  ) => StateMachine<
+    TContext,
+    any,
+    TEvent,
+    { value: any; context: TContext },
+    TExtra
+  >;
+  withActions: <T extends ActionObject<TContext, TEvent>>(
+    actions?: T
+  ) => Model<
+    TContext,
+    TEvent,
+    { actions: T; guards: TExtra['guards'] },
+    TModelCreators
+  >;
+  withGuards: <T extends { type: string }>(
+    guards?: T
+  ) => Model<TContext, TEvent, TExtra & { guards: T }, TModelCreators>;
+  schema: TExtra;
 }
 
 export type ModelContextFrom<

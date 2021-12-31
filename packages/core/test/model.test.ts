@@ -494,7 +494,7 @@ describe('createModel', () => {
     const model = createModel<
       { count: number },
       { type: 'EV' },
-      { type: 'fooAction' }
+      { actions: { type: 'fooAction' }; guards: any }
     >({ count: 0 });
 
     model.createMachine({

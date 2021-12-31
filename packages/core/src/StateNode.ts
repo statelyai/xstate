@@ -109,7 +109,11 @@ const WILDCARD = '*';
 const EMPTY_OBJECT = {};
 
 const isStateId = (str: string) => str[0] === STATE_IDENTIFIER;
-const createDefaultOptions = <TContext>(): MachineOptions<TContext, any> => ({
+const createDefaultOptions = <TContext>(): MachineOptions<
+  TContext,
+  any,
+  any
+> => ({
   actions: {},
   guards: {},
   services: {},
@@ -121,7 +125,7 @@ const validateArrayifiedTransitions = <TContext>(
   stateNode: StateNode<any, any, any, any>,
   event: string,
   transitions: Array<
-    TransitionConfig<TContext, EventObject> & {
+    TransitionConfig<TContext, EventObject, any> & {
       event: string;
     }
   >
@@ -247,7 +251,7 @@ class StateNode<
    */
   public invoke: Array<InvokeDefinition<TContext, TEvent>>;
 
-  public options: MachineOptions<TContext, TEvent>;
+  public options: MachineOptions<TContext, TEvent, any>;
 
   public schema: MachineSchema<TContext, TEvent>;
 
@@ -289,7 +293,7 @@ class StateNode<
      * The raw config used to create the machine.
      */
     public config: StateNodeConfig<TContext, TStateSchema, TEvent>,
-    options?: Partial<MachineOptions<TContext, TEvent>>,
+    options?: Partial<MachineOptions<TContext, TEvent, any>>,
     /**
      * The initial extended state
      */
@@ -466,7 +470,7 @@ class StateNode<
    * @param context Custom context (will override predefined context)
    */
   public withConfig(
-    options: Partial<MachineOptions<TContext, TEvent>>,
+    options: Partial<MachineOptions<TContext, TEvent, any>>,
     context?: TContext | (() => TContext)
   ): StateNode<TContext, TStateSchema, TEvent, TTypestate> {
     const { actions, activities, guards, services, delays } = this.options;
@@ -1847,7 +1851,7 @@ class StateNode<
   }
 
   private formatTransition(
-    transitionConfig: TransitionConfig<TContext, TEvent> & {
+    transitionConfig: TransitionConfig<TContext, TEvent, any> & {
       event: TEvent['type'] | NullEvent['type'] | '*';
     }
   ): TransitionDefinition<TContext, TEvent> {
@@ -1885,7 +1889,7 @@ class StateNode<
   }
   private formatTransitions(): Array<TransitionDefinition<TContext, TEvent>> {
     let onConfig: Array<
-      TransitionConfig<TContext, EventObject> & {
+      TransitionConfig<TContext, EventObject, any> & {
         event: string;
       }
     >;
@@ -1923,7 +1927,7 @@ class StateNode<
             toTransitionConfigArray(
               WILDCARD,
               wildcardConfigs as SingleOrArray<
-                TransitionConfig<TContext, EventObject> & {
+                TransitionConfig<TContext, EventObject, any> & {
                   event: '*';
                 }
               >
@@ -1975,7 +1979,7 @@ class StateNode<
     const formattedTransitions = flatten(
       [...doneConfig, ...invokeConfig, ...onConfig, ...eventlessConfig].map(
         (
-          transitionConfig: TransitionConfig<TContext, TEvent> & {
+          transitionConfig: TransitionConfig<TContext, TEvent, any> & {
             event: TEvent['type'] | NullEvent['type'] | '*';
           }
         ) =>

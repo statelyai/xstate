@@ -11,12 +11,13 @@ import {
   Prop,
   IsNever
 } from './model.types';
+import { DefaultExtraGenerics, ExtraGenerics } from '.';
 
 export function createModel<
   TContext,
   TEvent extends EventObject,
-  TAction extends BaseActionObject = BaseActionObject
->(initialContext: TContext): Model<TContext, TEvent, TAction, void>;
+  TExtra extends ExtraGenerics = DefaultExtraGenerics<TContext, TEvent>
+>(initialContext: TContext): Model<TContext, TEvent, TExtra, void>;
 export function createModel<
   TContext,
   TModelCreators extends ModelCreators<TModelCreators>,
@@ -33,9 +34,12 @@ export function createModel<
 ): Model<
   TContext,
   Cast<TComputedEvent, EventObject>,
-  IsNever<TComputedAction> extends true
-    ? BaseActionObject
-    : Cast<TComputedAction, BaseActionObject>,
+  {
+    actions: IsNever<TComputedAction> extends true
+      ? BaseActionObject
+      : Cast<TComputedAction, BaseActionObject>;
+    guards: { type: string };
+  },
   TFinalModelCreators
 >;
 export function createModel(
@@ -45,7 +49,7 @@ export function createModel(
   const eventCreators = creators?.events;
   const actionCreators = creators?.actions;
 
-  const model: Model<any, any, any, any> = {
+  const model = {
     initialContext,
     assign,
     events: (eventCreators
@@ -66,8 +70,39 @@ export function createModel(
         'context' in config ? config : { ...config, context: initialContext },
         implementations
       );
-    }
-  };
+    },
+    withActions: () => model,
+    withGuards: () => model
+  } as Model<any, any, any, any>;
 
   return model;
 }
+
+// const model = createModel({ foo: 'string' })
+//   .withActions<{ type: 'doThis'; greet: string } | { type: 'doThat' }>()
+//   .withGuards<{ type: 'isAllowed' } | { type: 'isNotAllowed' }>();
+
+// model.createMachine(
+//   {
+//     initial: 'foo',
+//     states: {
+//       foo: {
+//         on: {
+//           SOMETHING: {
+//             cond: 'isAllowed',
+//             actions: { type: 'doThis' }
+//           }
+//         }
+//       }
+//     },
+//     entry: { type: 'doThis', greet: 'test' }
+//   },
+//   {
+//     actions: {
+//       doThat: () => {}
+//     },
+//     guards: {
+//       isAllowed: () => true
+//     }
+//   }
+// );
