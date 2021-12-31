@@ -230,9 +230,6 @@ export function depthShortestPaths<TState, TEvent extends EventObject>(
   while (unvisited.size > 0) {
     for (const vertex of unvisited) {
       const [weight] = weightMap.get(vertex)!;
-      if (!adjacency[vertex]) {
-        console.log('not found', vertex);
-      }
       for (const event of keys(adjacency[vertex])) {
         const eventObject = JSON.parse(event);
         const nextState = adjacency[vertex][event];

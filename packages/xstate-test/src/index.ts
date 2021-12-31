@@ -5,6 +5,7 @@ import {
   getStateNodes,
   serializeState,
   StatePathsMap,
+  StatePlan,
   TraversalOptions
 } from '@xstate/graph';
 import { StateMachine, EventObject, State, StateValue } from 'xstate';
@@ -149,6 +150,24 @@ export class TestModel<TTestContext, TContext> {
     stateValue: StateValue | StatePredicate<TContext>
   ): Array<TestPlan<TTestContext, TContext>> {
     return this.filterPathsTo(stateValue, this.getSimplePathPlans());
+  }
+
+  public async testPlan(
+    plan: StatePlan<State<TContext, any>, any>,
+    testContext: TTestContext
+  ) {
+    for (const path of plan.paths) {
+      for (const step of path.steps) {
+        console.log('testing state', step.state.value);
+        await this.testState(step.state, testContext);
+        console.log('executing event', step.event);
+
+        await this.executeEvent(step.event, testContext);
+      }
+      console.log('testing state2', path.state.value);
+
+      await this.testState(path.state, testContext);
+    }
   }
 
   public getTestPlans(
@@ -465,7 +484,7 @@ export function getEventSamples<T>(
  * - `events`: an object mapping string event types (e.g., `SUBMIT`)
  * to an event test config (e.g., `{exec: () => {...}, cases: [...]}`)
  */
-export function createModel<TestContext, TContext = any>(
+export function createTestModel<TestContext, TContext = any>(
   machine: StateMachine<TContext, any, any>,
   options?: TestModelOptions<TestContext>
 ): TestModel<TestContext, TContext> {

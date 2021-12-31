@@ -55,7 +55,7 @@ export interface AdjacencyMap<TState, TEvent extends EventObject> {
   >;
 }
 
-export interface StatePaths<TState, TEvent extends EventObject> {
+export interface StatePlan<TState, TEvent extends EventObject> {
   /**
    * The target state.
    */
@@ -82,7 +82,7 @@ export interface StatePath<TState, TEvent extends EventObject> {
 }
 
 export interface StatePathsMap<TState, TEvent extends EventObject> {
-  [key: string]: StatePaths<TState, TEvent>;
+  [key: string]: StatePlan<TState, TEvent>;
 }
 
 export interface Step<TState, TEvent extends EventObject> {
