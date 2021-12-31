@@ -213,15 +213,18 @@ describe('@xstate/graph', () => {
         condMachine.withContext({
           id: 'foo'
         }),
-        [
-          {
-            type: 'EVENT',
-            id: 'whatever'
-          },
-          {
-            type: 'STATE'
-          }
-        ] as any[]
+        {
+          getEvents: () =>
+            [
+              {
+                type: 'EVENT',
+                id: 'whatever'
+              },
+              {
+                type: 'STATE'
+              }
+            ] as any[]
+        }
       );
 
       expect(getPathsMapSnapshot(paths)).toMatchSnapshot(
@@ -239,9 +242,9 @@ describe('@xstate/graph', () => {
           "\\"green\\"",
           "\\"yellow\\"",
           "{\\"red\\":\\"walk\\"}",
-          "{\\"red\\":\\"flashing\\"}",
           "{\\"red\\":\\"wait\\"}",
           "{\\"red\\":\\"stop\\"}",
+          "{\\"red\\":\\"flashing\\"}",
         ]
       `);
 
@@ -328,9 +331,9 @@ describe('@xstate/graph', () => {
         }
       });
 
-      const paths = getSimplePaths(countMachine as any, [
-        { type: 'INC', value: 1 }
-      ]);
+      const paths = getSimplePaths(countMachine as any, {
+        getEvents: () => [{ type: 'INC', value: 1 }]
+      });
 
       expect(Object.keys(paths)).toMatchInlineSnapshot(`
         Array [
@@ -500,8 +503,8 @@ it('simple paths for reducers', () => {
       return s;
     },
     0 as number,
-    [{ type: 'a' }, { type: 'b' }, { type: 'reset' }],
     {
+      getEvents: () => [{ type: 'a' }, { type: 'b' }, { type: 'reset' }],
       serializeState: (v, e) =>
         (JSON.stringify(v) + ' | ' + JSON.stringify(e)) as any
     }
@@ -525,8 +528,8 @@ it('shortest paths for reducers', () => {
       return s;
     },
     0 as number,
-    [{ type: 'a' }, { type: 'b' }, { type: 'reset' }],
     {
+      getEvents: () => [{ type: 'a' }, { type: 'b' }, { type: 'reset' }],
       serializeState: (v, e) =>
         (JSON.stringify(v) + ' | ' + JSON.stringify(e)) as any
     }
@@ -553,7 +556,8 @@ describe('filtering', () => {
       }
     });
 
-    const sp = getShortestPaths(machine, [{ type: 'INC' }], {
+    const sp = getShortestPaths(machine, {
+      getEvents: () => [{ type: 'INC' }],
       filter: (s) => s.context.count < 5
     });
 

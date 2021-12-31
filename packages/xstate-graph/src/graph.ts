@@ -175,7 +175,10 @@ export function getAdjacencyMap<
 }
 
 const defaultMachineStateOptions: TraversalOptions<State<any, any>, any> = {
-  serializeState
+  serializeState,
+  getEvents: (state) => {
+    return state.nextEvents.map((type) => ({ type }));
+  }
 };
 
 export function getShortestPaths<
@@ -183,21 +186,22 @@ export function getShortestPaths<
   TEvent extends EventObject = EventObject
 >(
   machine: StateMachine<TContext, any, TEvent>,
-  _events: TEvent[] = machine.events.map((type) => ({ type })) as TEvent[],
   options?: TraversalOptions<State<TContext, TEvent>, TEvent>
 ): StatePathsMap<State<TContext, TEvent>, TEvent> {
+  const resolvedOptions = resolveTraversalOptions(
+    options,
+    defaultMachineStateOptions
+  );
   return depthShortestPaths(
     (state, event) => machine.transition(state, event),
     machine.initialState,
-    _events,
-    { ...defaultMachineStateOptions, ...options }
+    resolvedOptions
   );
 }
 
 export function depthShortestPaths<TState, TEvent extends EventObject>(
   reducer: (state: TState, event: TEvent) => TState,
   initialState: TState,
-  events: TEvent[],
   options?: TraversalOptions<TState, TEvent>
 ): StatePathsMap<TState, TEvent> {
   const optionsWithDefaults = resolveTraversalOptions(options);
@@ -206,7 +210,6 @@ export function depthShortestPaths<TState, TEvent extends EventObject>(
   const adjacency = depthFirstTraversal(
     reducer,
     initialState,
-    events,
     optionsWithDefaults
   );
 
@@ -287,14 +290,17 @@ export function getSimplePaths<
   TEvent extends EventObject = EventObject
 >(
   machine: StateMachine<TContext, any, TEvent>,
-  _events: TEvent[] = machine.events.map((type) => ({ type })) as TEvent[],
   options?: TraversalOptions<State<TContext, TEvent>, TEvent>
 ): StatePathsMap<State<TContext, TEvent>, TEvent> {
+  const resolvedOptions = resolveTraversalOptions(
+    options,
+    defaultMachineStateOptions
+  );
+
   return depthSimplePaths(
     (state, event) => machine.transition(state, event),
     machine.initialState,
-    _events,
-    { ...defaultMachineStateOptions, ...options }
+    resolvedOptions
   );
 }
 
@@ -412,10 +418,9 @@ interface AdjMap<TState> {
 export function depthFirstTraversal<TState, TEvent>(
   reducer: (state: TState, event: TEvent) => TState,
   initialState: TState,
-  events: TEvent[],
   options: TraversalOptions<TState, TEvent>
 ): AdjMap<TState> {
-  const { serializeState } = resolveTraversalOptions(options);
+  const { serializeState, getEvents } = resolveTraversalOptions(options);
   const adj: AdjMap<TState> = {};
 
   function util(state: TState, event: TEvent | null) {
@@ -425,6 +430,8 @@ export function depthFirstTraversal<TState, TEvent>(
     }
 
     adj[serializedState] = {};
+
+    const events = getEvents(state);
 
     for (const subEvent of events) {
       const nextState = reducer(state, subEvent);
@@ -442,16 +449,21 @@ export function depthFirstTraversal<TState, TEvent>(
 }
 
 function resolveTraversalOptions<V, E>(
-  depthOptions?: TraversalOptions<V, E>
+  depthOptions?: TraversalOptions<V, E>,
+  defaultOptions?: TraversalOptions<V, E>
 ): Required<TraversalOptions<V, E>> {
   const serializeState =
-    depthOptions?.serializeState ?? ((state) => JSON.stringify(state) as any);
+    depthOptions?.serializeState ??
+    defaultOptions?.serializeState ??
+    ((state) => JSON.stringify(state) as any);
   return {
     serializeState,
     filter: () => true,
     visitCondition: (state, event, vctx) => {
       return vctx.vertices.has(serializeState(state, event));
     },
+    getEvents: () => [],
+    ...defaultOptions,
     ...depthOptions
   };
 }
@@ -459,17 +471,11 @@ function resolveTraversalOptions<V, E>(
 export function depthSimplePaths<TState, TEvent extends EventObject>(
   reducer: (state: TState, event: TEvent) => TState,
   initialState: TState,
-  events: TEvent[],
   options: TraversalOptions<TState, TEvent>
 ): StatePathsMap<TState, TEvent> {
   const resolvedOptions = resolveTraversalOptions(options);
   const { serializeState, visitCondition } = resolvedOptions;
-  const adjacency = depthFirstTraversal(
-    reducer,
-    initialState,
-    events,
-    resolvedOptions
-  );
+  const adjacency = depthFirstTraversal(reducer, initialState, resolvedOptions);
   const stateMap = new Map<string, TState>();
   // const visited = new Set();
   const visitCtx: VisitedContext<TState, TEvent> = {

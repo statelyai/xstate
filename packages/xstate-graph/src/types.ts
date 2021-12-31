@@ -122,10 +122,15 @@ export interface VisitedContext<TState, TEvent> {
   a?: TState | TEvent; // TODO: remove
 }
 
-export interface TraversalOptions<V, E> {
-  serializeState?: (vertex: V, edge: E | null) => SerializedState;
-  visitCondition?: (vertex: V, edge: E, vctx: VisitedContext<V, E>) => boolean;
-  filter?: (vertex: V, edge: E) => boolean;
+export interface TraversalOptions<TState, TEvent> {
+  serializeState?: (state: TState, event: TEvent | null) => SerializedState;
+  visitCondition?: (
+    state: TState,
+    event: TEvent,
+    vctx: VisitedContext<TState, TEvent>
+  ) => boolean;
+  filter?: (state: TState, event: TEvent) => boolean;
+  getEvents?: (state: TState) => TEvent[];
 }
 
 type Brand<T, Tag extends string> = T & { __tag: Tag };

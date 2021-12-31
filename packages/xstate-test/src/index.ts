@@ -64,14 +64,11 @@ export class TestModel<TTestContext, TContext> {
   public getShortestPathPlans(
     options?: TraversalOptions<State<TContext, any>, any>
   ): Array<TestPlan<TTestContext, TContext>> {
-    const shortestPaths = getShortestPaths(
-      this.machine,
-      getEventSamples<TTestContext>(this.options.events),
-      {
-        serializeState,
-        ...options
-      }
-    );
+    const shortestPaths = getShortestPaths(this.machine, {
+      serializeState,
+      getEvents: () => getEventSamples<TTestContext>(this.options.events),
+      ...options
+    });
 
     return this.getTestPlans(shortestPaths);
   }
@@ -137,9 +134,10 @@ export class TestModel<TTestContext, TContext> {
   ): Array<TestPlan<TTestContext, TContext>> {
     const simplePaths = getSimplePaths(
       this.machine,
-      getEventSamples(this.options.events),
+
       {
         serializeState,
+        getEvents: () => getEventSamples(this.options.events),
         ...options
       }
     );
