@@ -131,14 +131,6 @@ export function inspect(options: ServerInspectorOptions): Inspector {
         sessionId: service.sessionId
       });
     });
-
-    service.subscribe((state) => {
-      inspectService.send({
-        type: 'service.state',
-        state: JSON.stringify(state),
-        sessionId: service.sessionId
-      });
-    });
   });
 
   const inspector: Inspector = {

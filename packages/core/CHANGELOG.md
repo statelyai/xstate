@@ -1,5 +1,28 @@
 # xstate
 
+## 4.27.0
+
+### Minor Changes
+
+- [#2800](https://github.com/statelyai/xstate/pull/2800) [`759a90155`](https://github.com/statelyai/xstate/commit/759a9015512bbf532d7044afe6a889c04dc7edf6) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `sendTo(actorRef, event)` action creator has been introduced. It allows you to specify the recipient actor ref of an event first, so that the event can be strongly typed against the events allowed to be received by the actor ref:
+
+  ```ts
+  // ...
+  entry: sendTo(
+    (ctx) => ctx.someActorRef,
+    { type: 'EVENT_FOR_ACTOR' }
+  ),
+  // ...
+  ```
+
+### Patch Changes
+
+- [#2804](https://github.com/statelyai/xstate/pull/2804) [`f3caecf5a`](https://github.com/statelyai/xstate/commit/f3caecf5ad384cfe2a843c26333aaa46a77ece68) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `state.can(...)` method no longer unnecessarily executes `assign()` actions and instead determines if a given event will change the state by reading transition data before evaluating actions.
+
+* [#2856](https://github.com/statelyai/xstate/pull/2856) [`49c2e9094`](https://github.com/statelyai/xstate/commit/49c2e90945d369e2dfb2e4fc376b3f46714dce09) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with stopped children sometimes starting their own child actors. This could happen when the child was stopped synchronously (for example by its parent) when transitioning to an invoking state.
+
+- [#2895](https://github.com/statelyai/xstate/pull/2895) [`df5ffce14`](https://github.com/statelyai/xstate/commit/df5ffce14908d0aa8056a56001039dfd260be1a4) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with some exit handlers being executed more than once when stopping a machine.
+
 ## 4.26.1
 
 ### Patch Changes
