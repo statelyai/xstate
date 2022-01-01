@@ -119,9 +119,7 @@ export function getAllStateNodes<
 export function getConfiguration<
   TContext extends MachineContext,
   TE extends EventObject
->(
-  stateNodes: Iterable<StateNode<TContext, TE>>
-): Iterable<StateNode<TContext, TE>> {
+>(stateNodes: Iterable<StateNode<TContext, TE>>): Set<StateNode<TContext, TE>> {
   const configuration = new Set(stateNodes);
   const mutConfiguration = new Set(stateNodes);
 
