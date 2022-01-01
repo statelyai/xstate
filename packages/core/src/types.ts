@@ -1412,6 +1412,10 @@ export interface Subscription {
   unsubscribe(): void;
 }
 
+export interface InteropObservable<T> {
+  [Symbol.observable]: () => Subscribable<T>;
+}
+
 export interface Subscribable<T> {
   subscribe(
     next: (value: T) => void,
@@ -1425,6 +1429,7 @@ export type Spawnable =
   | StateMachine<any, any, any>
   | PromiseLike<any>
   | InvokeCallback
+  | InteropObservable<any>
   | Subscribable<any>
   | Behavior<any>;
 
@@ -1438,7 +1443,8 @@ export interface BaseActorRef<TEvent extends EventObject> {
 }
 
 export interface ActorRef<TEvent extends EventObject, TEmitted = any>
-  extends Subscribable<TEmitted> {
+  extends Subscribable<TEmitted>,
+    InteropObservable<TEmitted> {
   send: Sender<TEvent>; // TODO: this should just be TEvent
   id: string;
   getSnapshot: () => TEmitted | undefined;
