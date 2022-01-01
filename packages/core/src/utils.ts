@@ -35,6 +35,7 @@ import { IS_PRODUCTION } from './environment';
 import { StateNode } from './StateNode';
 import { State } from './State';
 import { Actor } from './Actor';
+import { GuardFunctionMap } from '.';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
   return Object.keys(value) as Array<keyof T & string>;
@@ -482,21 +483,9 @@ export function isString(value: any): value is string {
   return typeof value === 'string';
 }
 
-// export function memoizedGetter<T, TP extends { prototype: object }>(
-//   o: TP,
-//   property: string,
-//   getter: () => T
-// ): void {
-//   Object.defineProperty(o.prototype, property, {
-//     get: getter,
-//     enumerable: false,
-//     configurable: false
-//   });
-// }
-
 export function toGuard<TContext, TEvent extends EventObject>(
-  condition?: Condition<TContext, TEvent>,
-  guardMap?: Record<string, ConditionPredicate<TContext, TEvent>>
+  condition?: Condition<TContext, TEvent, any>,
+  guardMap?: GuardFunctionMap<TContext, TEvent>
 ): Guard<TContext, TEvent> | undefined {
   if (!condition) {
     return undefined;
@@ -598,11 +587,11 @@ export function toSCXMLEvent<TEvent extends EventObject>(
 export function toTransitionConfigArray<TContext, TEvent extends EventObject>(
   event: TEvent['type'] | NullEvent['type'] | '*',
   configLike: SingleOrArray<
-    | TransitionConfig<TContext, TEvent>
+    | TransitionConfig<TContext, TEvent, any>
     | TransitionConfigTarget<TContext, TEvent>
   >
 ): Array<
-  TransitionConfig<TContext, TEvent> & {
+  TransitionConfig<TContext, TEvent, any> & {
     event: TEvent['type'] | NullEvent['type'] | '*';
   }
 > {
@@ -617,7 +606,7 @@ export function toTransitionConfigArray<TContext, TEvent extends EventObject>(
 
     return { ...transitionLike, event };
   }) as Array<
-    TransitionConfig<TContext, TEvent> & {
+    TransitionConfig<TContext, TEvent, any> & {
       event: TEvent['type'] | NullEvent['type'] | '*';
     } // TODO: fix 'as' (remove)
   >;

@@ -34,6 +34,11 @@ export interface BaseActionObject {
   [other: string]: any;
 }
 
+export interface BaseGuardObject {
+  type: string;
+  [key: string]: any;
+}
+
 /**
  * The full definition of an action, with a string `type` and an
  * `exec` implementation function.
@@ -765,13 +770,7 @@ export type GuardFunctionMap<
   TEvent extends EventObject,
   TGuard extends { type: string } = { type: string }
 > = {
-  [K in TGuard['type']]?:
-    | ActionObject<TContext, TEvent>
-    | ActionFunction<
-        TContext,
-        TEvent,
-        TGuard extends { type: K } ? TGuard : never
-      >;
+  [K in TGuard['type']]?: ConditionPredicate<TContext, TEvent>;
 };
 
 export type DelayFunctionMap<TContext, TEvent extends EventObject> = Record<
@@ -1576,10 +1575,10 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
 export interface DefaultExtraGenerics<TContext, TEvent extends EventObject>
   extends ExtraGenerics {
   actions: ActionObject<TContext, TEvent>;
-  guards: { type: string };
+  guards: BaseGuardObject;
 }
 
 export interface ExtraGenerics {
   actions: BaseActionObject;
-  guards: { type: string };
+  guards: BaseGuardObject;
 }

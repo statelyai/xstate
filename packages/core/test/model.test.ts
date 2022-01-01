@@ -644,14 +644,14 @@ describe('createModel', () => {
       {
         guards: {
           isAllowed: () => {
-            /* ... */
+            return true;
           },
           isNotAllowed: () => {
-            /* ... */
+            return true;
           },
           // @ts-expect-error
           unspecified: () => {
-            /* ... */
+            return true;
           }
         }
       }
