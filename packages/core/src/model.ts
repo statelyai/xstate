@@ -77,32 +77,3 @@ export function createModel(
 
   return model;
 }
-
-// const model = createModel({ foo: 'string' })
-//   .withActions<{ type: 'doThis'; greet: string } | { type: 'doThat' }>()
-//   .withGuards<{ type: 'isAllowed' } | { type: 'isNotAllowed' }>();
-
-// model.createMachine(
-//   {
-//     initial: 'foo',
-//     states: {
-//       foo: {
-//         on: {
-//           SOMETHING: {
-//             cond: 'isAllowed',
-//             actions: { type: 'doThis' }
-//           }
-//         }
-//       }
-//     },
-//     entry: { type: 'doThis', greet: 'test' }
-//   },
-//   {
-//     actions: {
-//       doThat: () => {}
-//     },
-//     guards: {
-//       isAllowed: () => true
-//     }
-//   }
-// );

@@ -609,4 +609,52 @@ describe('createModel', () => {
     // @ts-expect-error (sanity check)
     val.count;
   });
+
+  it('model.withActions(...) should strongly type actions in machine options', () => {
+    const model = createModel({ foo: 'string' }).withActions<
+      { type: 'doThis'; greet: string } | { type: 'doThat' }
+    >();
+
+    model.createMachine(
+      {},
+      {
+        actions: {
+          doThis: () => {
+            /* ... */
+          },
+          doThat: () => {
+            /* ... */
+          },
+          // @ts-expect-error
+          unspecified: () => {
+            /* ... */
+          }
+        }
+      }
+    );
+  });
+
+  it('model.withGuards(...) should strongly type guards in machine options', () => {
+    const model = createModel({ foo: 'string' }).withGuards<
+      { type: 'isAllowed' } | { type: 'isNotAllowed' }
+    >();
+
+    model.createMachine(
+      {},
+      {
+        guards: {
+          isAllowed: () => {
+            /* ... */
+          },
+          isNotAllowed: () => {
+            /* ... */
+          },
+          // @ts-expect-error
+          unspecified: () => {
+            /* ... */
+          }
+        }
+      }
+    );
+  });
 });
