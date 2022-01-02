@@ -790,7 +790,7 @@ export type DelayConfig<TContext, TEvent extends EventObject> =
 export interface MachineOptions<
   TContext,
   TEvent extends EventObject,
-  TExtra extends ExtraGenerics
+  TExtra extends ExtraGenerics = DefaultExtraGenerics<TContext, TEvent>
 > {
   // guards: Record<string, ConditionPredicate<TContext, TEvent>>;
   guards: GuardFunctionMap<TContext, TEvent, TExtra['guards']>;
