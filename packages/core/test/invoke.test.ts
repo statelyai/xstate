@@ -2748,6 +2748,37 @@ describe('invoke', () => {
       .start();
   });
 
+  it.each([
+    'someSrc',
+    createMachine({ id: 'someId' }),
+    () => () => {
+      /* ... */
+    }
+  ])('something', (arg) => {
+    expect.assertions(1);
+    const machine = createMachine(
+      {
+        id: 'machine',
+        invoke: {
+          src: arg
+        }
+      },
+      {
+        services: {
+          someSrc: () => () => {
+            /* ... */
+          }
+        }
+      }
+    );
+
+    interpret(machine)
+      .onTransition((state) => {
+        expect(state.children['machine:invocation[0]']).toBeDefined();
+      })
+      .start();
+  });
+
   // https://github.com/statelyai/xstate/issues/464
   it('done.invoke events should only select onDone transition on the invoking state when invokee is referenced using a string', (done) => {
     let counter = 0;

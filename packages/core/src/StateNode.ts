@@ -24,7 +24,8 @@ import {
   mapContext,
   toTransitionConfigArray,
   normalizeTarget,
-  evaluateGuard
+  evaluateGuard,
+  createInvokeId
 } from './utils';
 import {
   Event,
@@ -400,40 +401,40 @@ class StateNode<
         ? (this.config as FinalStateNodeConfig<TContext, TEvent>).data
         : undefined;
     this.invoke = toArray(this.config.invoke).map((invokeConfig, i) => {
+      const invokeId = invokeConfig.id || createInvokeId(this.id, i);
       if (isMachine(invokeConfig)) {
         this.machine.options.services = {
-          [invokeConfig.id]: invokeConfig,
+          [invokeId]: invokeConfig,
           ...this.machine.options.services
         };
 
         return toInvokeDefinition({
-          src: invokeConfig.id,
-          id: invokeConfig.id
+          src: invokeId,
+          id: invokeId
         });
       } else if (isString(invokeConfig.src)) {
         return toInvokeDefinition({
           ...invokeConfig,
 
-          id: invokeConfig.id || `${this.id}:invocation[${i}]`,
+          id: invokeId,
           src: invokeConfig.src as string
         });
       } else if (isMachine(invokeConfig.src) || isFunction(invokeConfig.src)) {
-        const invokeSrc = `${this.id}:invocation[${i}]`; // TODO: util function
         this.machine.options.services = {
-          [invokeSrc]: invokeConfig.src as InvokeCreator<TContext, TEvent>,
+          [invokeId]: invokeConfig.src as InvokeCreator<TContext, TEvent>,
           ...this.machine.options.services
         };
 
         return toInvokeDefinition({
-          id: invokeSrc,
+          id: invokeId,
           ...invokeConfig,
-          src: invokeSrc
+          src: invokeId
         });
       } else {
         const invokeSource = invokeConfig.src as InvokeSourceDefinition;
 
         return toInvokeDefinition({
-          id: invokeSource.type,
+          id: invokeId,
           ...invokeConfig,
           src: invokeSource
         });
