@@ -60,7 +60,7 @@ const lightMachine = createMachine({
               }
             },
             stop: {
-            // 'stop' is a final state node for 'crosswalkEast'
+              // 'stop' is a final state node for 'crosswalkEast'
               type: 'final'
             }
           },
