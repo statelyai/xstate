@@ -12,7 +12,6 @@ import {
   Condition,
   Subscribable,
   StateMachine,
-  ConditionPredicate,
   SCXML,
   StateLike,
   EventData,
@@ -24,7 +23,8 @@ import {
   GuardMeta,
   InvokeSourceDefinition,
   Observer,
-  Behavior
+  Behavior,
+  GuardFunctionMap
 } from './types';
 import {
   STATE_DELIMITER,
@@ -35,7 +35,6 @@ import { IS_PRODUCTION } from './environment';
 import { StateNode } from './StateNode';
 import { State } from './State';
 import { Actor } from './Actor';
-import { GuardFunctionMap } from '.';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
   return Object.keys(value) as Array<keyof T & string>;
