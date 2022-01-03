@@ -55,7 +55,7 @@ export function createInspectMachine(
               service?.send(scxmlEventObject);
             }
           },
-          unload: {
+          'inspector.restart': {
             actions: (ctx) => {
               ctx.client!.send({ type: 'xstate.disconnect' });
             }

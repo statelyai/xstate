@@ -64,7 +64,7 @@ export type ParsedReceiverEvent =
       sessionId: string;
     }
   | { type: 'service.event'; event: SCXML.Event<any>; sessionId: string }
-  | { type: 'xstate.disconnect' };
+  | { type: 'xstate.disconnect' }
 
 export type InspectReceiver = ActorRef<ReceiverCommand, ParsedReceiverEvent>;
 

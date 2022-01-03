@@ -135,7 +135,7 @@ export function inspect(
   window.addEventListener('message', messageHandler);
 
   window.addEventListener('unload', () => {
-    inspectService.send({ type: 'unload' });
+    inspectService.send({ type: 'inspector.restart' });
   });
 
   devTools.onRegister((service) => {
