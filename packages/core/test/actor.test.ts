@@ -33,6 +33,8 @@ import {
 } from '../src/behaviors';
 import { invokeMachine } from '../src/invoke';
 
+jest.setTimeout(1000);
+
 describe('spawning machines', () => {
   const todoMachine = createMachine({
     id: 'todo',

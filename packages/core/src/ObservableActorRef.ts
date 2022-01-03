@@ -27,13 +27,12 @@ export class ObservableActorRef<TEvent extends EventObject, TEmitted>
   }
   public start() {
     this.deferred = false;
-    this.actor.receive(startSignal);
+    this.actor.start();
 
     return this;
   }
   public stop() {
-    this.actor.receive(stopSignal);
-
+    this.actor.stop();
     return this;
   }
   public subscribe(observer) {

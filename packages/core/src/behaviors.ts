@@ -28,7 +28,7 @@ import { State } from './State';
 import { CapturedState } from './capturedState';
 import { toActorRef } from './actor';
 import { toObserver } from './utils';
-import { SCXML } from '../dist/xstate.cjs';
+import { SCXML } from './types';
 
 /**
  * Returns an actor behavior from a reducer and its initial state.
@@ -191,7 +191,7 @@ export interface ActorContext<TEvent extends EventObject, TEmitted> {
   self: ActorRef<TEvent, TEmitted>;
   name: string;
   observers: Set<Observer<TEmitted>>;
-  _event: SCXML.Event<TEvent>;
+  _event: SCXML.Event<TEvent> | LifecycleSignal;
 }
 
 export const startSignalType = Symbol.for('xstate.invoke');

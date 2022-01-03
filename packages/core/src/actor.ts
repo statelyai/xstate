@@ -27,6 +27,7 @@ import { registry } from './registry';
 import * as capturedState from './capturedState';
 import { ObservableActorRef } from './ObservableActorRef';
 import { toSCXMLEvent } from './utils';
+import { Mailbox } from './Mailbox';
 
 const nullSubscription = {
   unsubscribe: () => void 0
@@ -138,17 +139,14 @@ export function spawnFrom(entity: any): ObservableActorRef<any, any> {
   return spawn(createBehaviorFrom(entity)) as ObservableActorRef<any, any>; // TODO: fix
 }
 
-enum ProcessingStatus {
-  NotProcessing,
-  Processing
-}
-
 export class Actor<TEvent extends EventObject, TEmitted> {
   public current: TEmitted;
   private context: ActorContext<TEvent, TEmitted>;
   private behavior: Behavior<TEvent, TEmitted>;
-  private mailbox: Array<TEvent | LifecycleSignal> = [];
-  private processingStatus: ProcessingStatus = ProcessingStatus.NotProcessing;
+  private mailbox: Mailbox<TEvent | LifecycleSignal> = new Mailbox(
+    this._process.bind(this)
+  );
+
   public name: string;
 
   constructor(
@@ -160,46 +158,36 @@ export class Actor<TEvent extends EventObject, TEmitted> {
     this.name = name;
     this.context = actorContext;
     this.current = behavior.initialState;
+    this.mailbox.enqueue(startSignal);
   }
   public start() {
-    this.current = this.behavior.transition(
-      this.current,
-      startSignal,
-      this.context
-    );
+    this.mailbox.start();
     return this;
   }
   public stop() {
-    this.mailbox.length = 0; // TODO: test this behavior
-    this.current = this.behavior.transition(
-      this.current,
-      stopSignal,
-      this.context
-    );
+    // TODO: test this behavior
+    this.mailbox.clear();
+    this.mailbox.enqueue(stopSignal);
   }
   public subscribe(observer) {
     return this.behavior.subscribe?.(observer) || nullSubscription;
   }
   public receive(event: TEvent | LifecycleSignal) {
-    this.mailbox.push(event);
-    if (this.processingStatus === ProcessingStatus.NotProcessing) {
-      this.flush();
-    }
+    this.mailbox.enqueue(event);
   }
-  private flush() {
-    this.processingStatus = ProcessingStatus.Processing;
-    while (this.mailbox.length) {
-      const event = this.mailbox.shift()!;
-      // @ts-ignore
-      this.context._event = toSCXMLEvent(event);
+  private _process(event: TEvent | LifecycleSignal) {
+    this.context._event =
+      typeof event.type !== 'string'
+        ? (event as LifecycleSignal)
+        : toSCXMLEvent(event as TEvent);
 
-      this.current = this.behavior.transition(
-        this.current,
-        this.context._event.data as TEvent,
-        this.context
-      );
-    }
-    this.processingStatus = ProcessingStatus.NotProcessing;
+    this.current = this.behavior.transition(
+      this.current,
+      typeof this.context._event.type !== 'string'
+        ? (this.context._event as LifecycleSignal)
+        : (this.context._event as SCXML.Event<TEvent>).data,
+      this.context
+    );
   }
 }
 
