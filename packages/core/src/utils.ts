@@ -12,7 +12,6 @@ import {
   Condition,
   Subscribable,
   StateMachine,
-  ConditionPredicate,
   SCXML,
   StateLike,
   EventData,
@@ -24,7 +23,8 @@ import {
   GuardMeta,
   InvokeSourceDefinition,
   Observer,
-  Behavior
+  Behavior,
+  GuardFunctionMap
 } from './types';
 import {
   STATE_DELIMITER,
@@ -410,7 +410,7 @@ export function updateHistoryValue(
 export function updateContext<TContext, TEvent extends EventObject>(
   context: TContext,
   _event: SCXML.Event<TEvent>,
-  assignActions: Array<AssignAction<TContext, TEvent>>,
+  assignActions: Array<AssignAction<TContext, TEvent, any>>,
   state?: State<TContext, TEvent>
 ): TContext {
   if (!IS_PRODUCTION) {
@@ -418,7 +418,11 @@ export function updateContext<TContext, TEvent extends EventObject>(
   }
   const updatedContext = context
     ? assignActions.reduce((acc, assignAction) => {
-        const { assignment } = assignAction as AssignAction<TContext, TEvent>;
+        const { assignment } = assignAction as AssignAction<
+          TContext,
+          TEvent,
+          any
+        >;
 
         const meta = {
           state,
@@ -482,21 +486,9 @@ export function isString(value: any): value is string {
   return typeof value === 'string';
 }
 
-// export function memoizedGetter<T, TP extends { prototype: object }>(
-//   o: TP,
-//   property: string,
-//   getter: () => T
-// ): void {
-//   Object.defineProperty(o.prototype, property, {
-//     get: getter,
-//     enumerable: false,
-//     configurable: false
-//   });
-// }
-
 export function toGuard<TContext, TEvent extends EventObject>(
-  condition?: Condition<TContext, TEvent>,
-  guardMap?: Record<string, ConditionPredicate<TContext, TEvent>>
+  condition?: Condition<TContext, TEvent, any>,
+  guardMap?: GuardFunctionMap<TContext, TEvent>
 ): Guard<TContext, TEvent> | undefined {
   if (!condition) {
     return undefined;
@@ -598,10 +590,10 @@ export function toSCXMLEvent<TEvent extends EventObject>(
 export function toTransitionConfigArray<TContext, TEvent extends EventObject>(
   event: TEvent['type'] | NullEvent['type'] | '*',
   configLike: SingleOrArray<
-    TransitionConfig<TContext, TEvent> | TransitionConfigTarget
+    TransitionConfig<TContext, TEvent, any> | TransitionConfigTarget
   >
 ): Array<
-  TransitionConfig<TContext, TEvent> & {
+  TransitionConfig<TContext, TEvent, any> & {
     event: TEvent['type'] | NullEvent['type'] | '*';
   }
 > {
@@ -616,7 +608,7 @@ export function toTransitionConfigArray<TContext, TEvent extends EventObject>(
 
     return { ...transitionLike, event };
   }) as Array<
-    TransitionConfig<TContext, TEvent> & {
+    TransitionConfig<TContext, TEvent, any> & {
       event: TEvent['type'] | NullEvent['type'] | '*';
     } // TODO: fix 'as' (remove)
   >;

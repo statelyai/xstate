@@ -548,7 +548,7 @@ describe('createModel', () => {
     const model = createModel<
       { count: number },
       { type: 'EV' },
-      { type: 'fooAction' }
+      { actions: { type: 'fooAction' }; guards: any }
     >({ count: 0 });
 
     model.createMachine({
@@ -662,5 +662,53 @@ describe('createModel', () => {
 
     // @ts-expect-error (sanity check)
     val.count;
+  });
+
+  it('model.withActions(...) should strongly type actions in machine options', () => {
+    const model = createModel({ foo: 'string' }).withActions<
+      { type: 'doThis'; greet: string } | { type: 'doThat' }
+    >();
+
+    model.createMachine(
+      {},
+      {
+        actions: {
+          doThis: () => {
+            /* ... */
+          },
+          doThat: () => {
+            /* ... */
+          },
+          // @ts-expect-error
+          unspecified: () => {
+            /* ... */
+          }
+        }
+      }
+    );
+  });
+
+  it('model.withGuards(...) should strongly type guards in machine options', () => {
+    const model = createModel({ foo: 'string' }).withGuards<
+      { type: 'isAllowed' } | { type: 'isNotAllowed' }
+    >();
+
+    model.createMachine(
+      {},
+      {
+        guards: {
+          isAllowed: () => {
+            return true;
+          },
+          isNotAllowed: () => {
+            return true;
+          },
+          // @ts-expect-error
+          unspecified: () => {
+            return true;
+          }
+        }
+      }
+    );
   });
 });

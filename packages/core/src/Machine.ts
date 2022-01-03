@@ -19,7 +19,7 @@ export function Machine<
   TEvent extends EventObject = AnyEventObject
 >(
   config: MachineConfig<TContext, any, TEvent>,
-  options?: Partial<MachineOptions<TContext, TEvent>>,
+  options?: Partial<MachineOptions<TContext, TEvent, any>>,
   initialContext?: TContext
 ): StateMachine<TContext, any, TEvent>;
 export function Machine<
@@ -28,7 +28,7 @@ export function Machine<
   TEvent extends EventObject = AnyEventObject
 >(
   config: MachineConfig<TContext, TStateSchema, TEvent>,
-  options?: Partial<MachineOptions<TContext, TEvent>>,
+  options?: Partial<MachineOptions<TContext, TEvent, any>>,
   initialContext?: TContext
 ): StateMachine<TContext, TStateSchema, TEvent>;
 export function Machine<
@@ -37,7 +37,7 @@ export function Machine<
   TEvent extends EventObject = AnyEventObject
 >(
   config: MachineConfig<TContext, TStateSchema, TEvent>,
-  options?: Partial<MachineOptions<TContext, TEvent>>,
+  options?: Partial<MachineOptions<TContext, TEvent, any>>,
   initialContext: TContext | (() => TContext) | undefined = config.context
 ): StateMachine<TContext, TStateSchema, TEvent> {
   return new StateNode<TContext, TStateSchema, TEvent>(
@@ -55,7 +55,7 @@ export function createMachine<
   config: TContext extends Model<any, any, any, any>
     ? 'Model type no longer supported as generic type. Please use `model.createMachine(...)` instead.'
     : MachineConfig<TContext, any, TEvent>,
-  options?: Partial<MachineOptions<TContext, TEvent>>
+  options?: Partial<MachineOptions<TContext, TEvent, any>>
 ): StateMachine<TContext, any, TEvent, TTypestate>;
 export function createMachine<
   TContext,
@@ -63,7 +63,7 @@ export function createMachine<
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(
   config: MachineConfig<TContext, any, TEvent>,
-  options?: Partial<MachineOptions<TContext, TEvent>>
+  options?: Partial<MachineOptions<TContext, TEvent, any>>
 ): StateMachine<TContext, any, TEvent, TTypestate> {
   return new StateNode<TContext, any, TEvent, TTypestate>(
     config,
