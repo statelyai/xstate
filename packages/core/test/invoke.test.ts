@@ -2748,27 +2748,40 @@ describe('invoke', () => {
       .start();
   });
 
-  it.each([
-    ['string', 'someSrc'],
+  it.only.each([
+    ['src with string reference', { src: 'someSrc' }],
     ['machine', createMachine({ id: 'someId' })],
     [
-      'callback actor',
-      () => () => {
-        /* ... */
+      'src containing a machine directly',
+      { src: createMachine({ id: 'someId' }) }
+    ],
+    [
+      'src containing a callback actor directly',
+      {
+        src: () => () => {
+          /* ... */
+        }
+      }
+    ],
+    [
+      'src containing a parametrized invokee with id parameter',
+      {
+        src: {
+          type: 'someSrc',
+          id: 'h4sh'
+        }
       }
     ]
   ])(
-    'invoke config of type `%s` should register unique and predictable child in state',
-    (_type, value) => {
+    'invoke config defined as %s should register unique and predictable child in state',
+    (_type, invokeConfig) => {
       const machine = createMachine(
         {
           id: 'machine',
           initial: 'a',
           states: {
             a: {
-              invoke: {
-                src: value
-              }
+              invoke: invokeConfig
             }
           }
         },
