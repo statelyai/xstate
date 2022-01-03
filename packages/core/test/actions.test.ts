@@ -1422,6 +1422,28 @@ describe('choose', () => {
     expect(exitCalled).toBeTruthy();
     expect(childExitCalled).toBeTruthy();
   });
+
+  it('should call each exit handler only once when the service gets stopped', () => {
+    const actual: string[] = [];
+    const machine = createMachine({
+      exit: () => actual.push('root'),
+      initial: 'a',
+      states: {
+        a: {
+          exit: () => actual.push('a'),
+          initial: 'a1',
+          states: {
+            a1: {
+              exit: () => actual.push('a1')
+            }
+          }
+        }
+      }
+    });
+
+    interpret(machine).start().stop();
+    expect(actual).toEqual(['root', 'a', 'a1']);
+  });
 });
 
 describe('sendParent', () => {
