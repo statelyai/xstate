@@ -448,12 +448,14 @@ export function createMachineBehavior<
         return state;
       }
 
-      if (isSignal(event)) {
+      const _event = actorContext._event;
+
+      if (isSignal(_event)) {
         // TODO: unrecognized signal
         return state;
       }
 
-      service?.send(actorContext._event);
+      service?.send(_event);
       return state;
     },
     subscribe: (observer) => {

@@ -1,5 +1,4 @@
 import { EventObject, ActorRef, Behavior, SCXML, ActorContext } from './types';
-import { startSignal, stopSignal } from './behaviors';
 import { Actor } from './actor';
 import { CapturedState } from './capturedState';
 import { symbolObservable, toSCXMLEvent } from './utils';
