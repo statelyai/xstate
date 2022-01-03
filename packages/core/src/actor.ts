@@ -8,12 +8,12 @@ import {
   Lazy,
   BaseActorRef,
   MachineContext,
-  Behavior
+  Behavior,
+  ActorContext
 } from './types';
 import { StateMachine } from './StateMachine';
 import { State } from './State';
 import {
-  ActorContext,
   createMachineBehavior,
   createDeferredBehavior,
   createPromiseBehavior,
@@ -26,7 +26,7 @@ import {
 import { registry } from './registry';
 import * as capturedState from './capturedState';
 import { ObservableActorRef } from './ObservableActorRef';
-import { toSCXMLEvent } from './utils';
+import { interopSymbols, toSCXMLEvent } from './utils';
 import { Mailbox } from './Mailbox';
 
 const nullSubscription = {
@@ -204,6 +204,7 @@ export function toActorRef<
     subscribe: () => ({ unsubscribe: () => void 0 }),
     name: 'anonymous',
     getSnapshot: () => undefined,
-    ...actorRefLike
+    ...actorRefLike,
+    ...interopSymbols
   };
 }

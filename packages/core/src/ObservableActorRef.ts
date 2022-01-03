@@ -1,9 +1,8 @@
-import { EventObject, ActorRef, Behavior } from './types';
-import { ActorContext, startSignal, stopSignal } from './behaviors';
+import { EventObject, ActorRef, Behavior, SCXML, ActorContext } from './types';
+import { startSignal, stopSignal } from './behaviors';
 import { Actor } from './actor';
 import { CapturedState } from './capturedState';
-import { toSCXMLEvent } from './utils';
-import { SCXML } from '.';
+import { symbolObservable, toSCXMLEvent } from './utils';
 
 export class ObservableActorRef<TEvent extends EventObject, TEmitted>
   implements ActorRef<TEvent, TEmitted> {
@@ -49,5 +48,13 @@ export class ObservableActorRef<TEvent extends EventObject, TEmitted>
   }
   public getSnapshot() {
     return this.actor.current;
+  }
+  public [symbolObservable]() {
+    return this;
+  }
+  // this gets stripped by Babel to avoid having "undefined" property in environments without this non-standard Symbol
+  // it has to be here to be included in the generated .d.ts
+  public [Symbol.observable]() {
+    return this;
   }
 }
