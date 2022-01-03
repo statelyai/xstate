@@ -448,7 +448,14 @@ describe('scxml', () => {
         });
 
         // console.dir(machine.config, { depth: null });
-        await runTestToCompletion(machine, scxmlTest);
+        try {
+          await runTestToCompletion(machine, scxmlTest);
+        } catch (e: any) {
+          if (e instanceof Error) {
+            e.message = `Failed test: ${scxmlSource}\n\n` + e.message;
+          }
+          throw e;
+        }
       });
     });
   });

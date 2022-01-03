@@ -1,3 +1,4 @@
+import { computed } from '../computed';
 import { Machine, interpret, createMachine, assign } from '../src/index';
 import { State } from '../src/State';
 
@@ -439,23 +440,5 @@ describe('StateNode', () => {
       'POWER_OUTAGE',
       'FORBIDDEN_EVENT'
     ]);
-  });
-});
-
-describe('computed values', () => {
-  it('yeah', () => {
-    const machine = createMachine({
-      context: {
-        firstName: 'First',
-        lastName: 'Last',
-        fullName: (ctx) => [ctx.firstName, ctx.lastName].join(' '),
-        nameLength: (ctx) => ctx.fullName.length
-      }
-    });
-
-    const { initialState } = machine;
-
-    expect(initialState.context.fullName).toEqual('First Last');
-    expect(initialState.context.nameLength).toEqual(10);
   });
 });

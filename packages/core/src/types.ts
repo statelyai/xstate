@@ -763,6 +763,21 @@ export interface MachineOptions<
    */
   _key?: string;
 }
+
+type ResolvedContext<TContextConfig extends {}> = {
+  [K in keyof TContextConfig]: TContextConfig[K] extends (
+    ...args: any
+  ) => infer R
+    ? R
+    : TContextConfig[K];
+};
+
+type UnresolvedContext<TContext extends {}> = {
+  [K in keyof TContext]:
+    | TContext[K]
+    | ((ctx: ResolvedContext<TContext>) => TContext[K]);
+};
+
 export interface MachineConfig<
   TContext,
   TStateSchema extends StateSchema,
@@ -772,7 +787,7 @@ export interface MachineConfig<
   /**
    * The initial context (extended state)
    */
-  context?: TContext | (() => TContext);
+  context?: UnresolvedContext<TContext> | (() => TContext);
   /**
    * The machine's own version.
    */
@@ -1076,6 +1091,26 @@ export type PartialAssigner<
 export type PropertyAssigner<TContext, TEvent extends EventObject> = {
   [K in keyof TContext]?: PartialAssigner<TContext, TEvent, K> | TContext[K];
 };
+
+export type Assignable<T> = Pick<T, WritableKey<T>> &
+  {
+    [K in Exclude<keyof T, WritableKey<T>>]?: never;
+  };
+
+type WritableKey<T> = {
+  [K in keyof T]: AreEqual<
+    { [_ in K]: T[K] },
+    { -readonly [_ in K]: T[K] }
+  > extends true
+    ? K
+    : never;
+}[keyof T];
+
+type AreEqual<A, B> = (<T>() => T extends B ? 1 : 0) extends <
+  T
+>() => T extends A ? 1 : 0
+  ? true
+  : false;
 
 export type Mapper<TContext, TEvent extends EventObject, TParams extends {}> = (
   context: TContext,
