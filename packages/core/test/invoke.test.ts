@@ -2748,7 +2748,7 @@ describe('invoke', () => {
       .start();
   });
 
-  it.only.each([
+  it.each([
     ['src with string reference', { src: 'someSrc' }],
     ['machine', createMachine({ id: 'someId' })],
     [

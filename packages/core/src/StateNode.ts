@@ -433,10 +433,9 @@ class StateNode<
         });
       } else {
         const invokeSource = invokeConfig.src as InvokeSourceDefinition;
-        const invokeId = invokeSource.id || createInvokeId(this.id, i);
 
         return toInvokeDefinition({
-          id: invokeId,
+          id: createInvokeId(this.id, i),
           ...invokeConfig,
           src: invokeSource
         });
