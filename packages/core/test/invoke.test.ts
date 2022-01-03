@@ -2749,35 +2749,56 @@ describe('invoke', () => {
   });
 
   it.each([
-    'someSrc',
-    createMachine({ id: 'someId' }),
-    () => () => {
-      /* ... */
-    }
-  ])('something', (arg) => {
-    expect.assertions(1);
-    const machine = createMachine(
+    ['src with string reference', { src: 'someSrc' }],
+    ['machine', createMachine({ id: 'someId' })],
+    [
+      'src containing a machine directly',
+      { src: createMachine({ id: 'someId' }) }
+    ],
+    [
+      'src containing a callback actor directly',
       {
-        id: 'machine',
-        invoke: {
-          src: arg
-        }
-      },
-      {
-        services: {
-          someSrc: () => () => {
-            /* ... */
-          }
+        src: () => () => {
+          /* ... */
         }
       }
-    );
+    ],
+    [
+      'src containing a parametrized invokee with id parameter',
+      {
+        src: {
+          type: 'someSrc',
+          id: 'h4sh'
+        }
+      }
+    ]
+  ])(
+    'invoke config defined as %s should register unique and predictable child in state',
+    (_type, invokeConfig) => {
+      const machine = createMachine(
+        {
+          id: 'machine',
+          initial: 'a',
+          states: {
+            a: {
+              invoke: invokeConfig
+            }
+          }
+        },
+        {
+          services: {
+            someSrc: () => () => {
+              /* ... */
+            }
+          }
+        }
+      );
 
-    interpret(machine)
-      .onTransition((state) => {
-        expect(state.children['machine:invocation[0]']).toBeDefined();
-      })
-      .start();
-  });
+      expect(
+        machine.initialState.children['machine.a:invocation[0]']
+      ).toBeDefined();
+    }
+  );
 
   // https://github.com/statelyai/xstate/issues/464
   it('done.invoke events should only select onDone transition on the invoking state when invokee is referenced using a string', (done) => {
@@ -2830,6 +2851,61 @@ describe('invoke', () => {
     // check within a macrotask so all promise-induced microtasks have a chance to resolve first
     setTimeout(() => {
       expect(counter).toEqual(1);
+      done();
+    }, 0);
+  });
+
+  it('done.invoke events should have unique names when invokee is a machine with an id property', (done) => {
+    const actual: string[] = [];
+
+    const childMachine = createMachine({
+      id: 'child',
+      initial: 'a',
+      states: {
+        a: {
+          invoke: {
+            src: () => Promise.resolve(42),
+            onDone: 'b'
+          }
+        },
+        b: {
+          type: 'final'
+        }
+      }
+    });
+
+    const createSingleState = (): any => ({
+      initial: 'fetch',
+      states: {
+        fetch: {
+          invoke: childMachine
+        }
+      }
+    });
+
+    const testMachine = createMachine({
+      type: 'parallel',
+      states: {
+        first: createSingleState(),
+        second: createSingleState()
+      },
+      on: {
+        '*': {
+          actions: (_ctx, ev) => {
+            actual.push(ev.type);
+          }
+        }
+      }
+    });
+
+    interpret(testMachine).start();
+
+    // check within a macrotask so all promise-induced microtasks have a chance to resolve first
+    setTimeout(() => {
+      expect(actual).toEqual([
+        'done.invoke.(machine).first.fetch:invocation[0]',
+        'done.invoke.(machine).second.fetch:invocation[0]'
+      ]);
       done();
     }, 0);
   });
