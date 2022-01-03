@@ -2841,6 +2841,61 @@ describe('invoke', () => {
       done();
     }, 0);
   });
+
+  it('done.invoke events should have unique names when invokee is a machine with an id property', (done) => {
+    const actual: string[] = [];
+
+    const childMachine = createMachine({
+      id: 'child',
+      initial: 'a',
+      states: {
+        a: {
+          invoke: {
+            src: () => Promise.resolve(42),
+            onDone: 'b'
+          }
+        },
+        b: {
+          type: 'final'
+        }
+      }
+    });
+
+    const createSingleState = (): any => ({
+      initial: 'fetch',
+      states: {
+        fetch: {
+          invoke: childMachine
+        }
+      }
+    });
+
+    const testMachine = createMachine({
+      type: 'parallel',
+      states: {
+        first: createSingleState(),
+        second: createSingleState()
+      },
+      on: {
+        '*': {
+          actions: (_ctx, ev) => {
+            actual.push(ev.type);
+          }
+        }
+      }
+    });
+
+    interpret(testMachine).start();
+
+    // check within a macrotask so all promise-induced microtasks have a chance to resolve first
+    setTimeout(() => {
+      expect(actual).toEqual([
+        'done.invoke.(machine).first.fetch:invocation[0]',
+        'done.invoke.(machine).second.fetch:invocation[0]'
+      ]);
+      done();
+    }, 0);
+  });
 });
 
 describe('services option', () => {
