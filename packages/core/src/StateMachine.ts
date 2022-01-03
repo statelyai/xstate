@@ -240,6 +240,9 @@ export class StateMachine<
     return transitionNode(this.root, state.value, state, _event) || [];
   }
 
+  /**
+   * The initial state _before_ evaluating any microsteps.
+   */
   private get preInitialState(): State<TContext, TEvent> {
     const preInitial = this.resolveState(
       State.from(
