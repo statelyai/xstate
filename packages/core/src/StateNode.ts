@@ -401,9 +401,8 @@ class StateNode<
         ? (this.config as FinalStateNodeConfig<TContext, TEvent>).data
         : undefined;
     this.invoke = toArray(this.config.invoke).map((invokeConfig, i) => {
-      const invokeId = invokeConfig.id || createInvokeId(this.id, i);
-
       if (isMachine(invokeConfig)) {
+        const invokeId = createInvokeId(this.id, i);
         this.machine.options.services = {
           [invokeId]: invokeConfig,
           ...this.machine.options.services
@@ -414,12 +413,14 @@ class StateNode<
           id: invokeId
         });
       } else if (isString(invokeConfig.src)) {
+        const invokeId = invokeConfig.id || createInvokeId(this.id, i);
         return toInvokeDefinition({
           ...invokeConfig,
           id: invokeId,
           src: invokeConfig.src as string
         });
       } else if (isMachine(invokeConfig.src) || isFunction(invokeConfig.src)) {
+        const invokeId = invokeConfig.id || createInvokeId(this.id, i);
         this.machine.options.services = {
           [invokeId]: invokeConfig.src as InvokeCreator<TContext, TEvent>,
           ...this.machine.options.services
@@ -432,6 +433,7 @@ class StateNode<
         });
       } else {
         const invokeSource = invokeConfig.src as InvokeSourceDefinition;
+        const invokeId = invokeSource.id || createInvokeId(this.id, i);
 
         return toInvokeDefinition({
           id: invokeId,
