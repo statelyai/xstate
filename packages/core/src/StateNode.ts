@@ -402,6 +402,7 @@ class StateNode<
         : undefined;
     this.invoke = toArray(this.config.invoke).map((invokeConfig, i) => {
       const invokeId = invokeConfig.id || createInvokeId(this.id, i);
+
       if (isMachine(invokeConfig)) {
         this.machine.options.services = {
           [invokeId]: invokeConfig,
@@ -415,7 +416,6 @@ class StateNode<
       } else if (isString(invokeConfig.src)) {
         return toInvokeDefinition({
           ...invokeConfig,
-
           id: invokeId,
           src: invokeConfig.src as string
         });

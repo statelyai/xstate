@@ -2749,35 +2749,43 @@ describe('invoke', () => {
   });
 
   it.each([
-    'someSrc',
-    createMachine({ id: 'someId' }),
-    () => () => {
-      /* ... */
-    }
-  ])('something', (arg) => {
-    expect.assertions(1);
-    const machine = createMachine(
-      {
-        id: 'machine',
-        invoke: {
-          src: arg
-        }
-      },
-      {
-        services: {
-          someSrc: () => () => {
-            /* ... */
+    ['string', 'someSrc'],
+    ['machine', createMachine({ id: 'someId' })],
+    [
+      'callback actor',
+      () => () => {
+        /* ... */
+      }
+    ]
+  ])(
+    'invoke config of type `%s` should register unique and predictable child in state',
+    (_type, value) => {
+      const machine = createMachine(
+        {
+          id: 'machine',
+          initial: 'a',
+          states: {
+            a: {
+              invoke: {
+                src: value
+              }
+            }
+          }
+        },
+        {
+          services: {
+            someSrc: () => () => {
+              /* ... */
+            }
           }
         }
-      }
-    );
+      );
 
-    interpret(machine)
-      .onTransition((state) => {
-        expect(state.children['machine:invocation[0]']).toBeDefined();
-      })
-      .start();
-  });
+      expect(
+        machine.initialState.children['machine.a:invocation[0]']
+      ).toBeDefined();
+    }
+  );
 
   // https://github.com/statelyai/xstate/issues/464
   it('done.invoke events should only select onDone transition on the invoking state when invokee is referenced using a string', (done) => {
