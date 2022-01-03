@@ -4,10 +4,6 @@ export class Mailbox<T> {
 
   public status: 'deferred' | 'idle' | 'processing' = 'deferred';
 
-  public get size(): number {
-    return this.events.length - this.index;
-  }
-
   public clear(): void {
     this.events.length = 0;
     this.index = 0;
