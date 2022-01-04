@@ -113,21 +113,21 @@ export interface DynAction<
   TSpecificEvent extends TEvent = TEvent
 > {
   type: string;
-  __?: [TContext, TEvent, TSpecificEvent];
+  __: [TContext, TEvent, TSpecificEvent];
 }
 
 export type Action<
   TContext,
   TEvent extends EventObject,
-  TSpecificEvent extends TEvent = TEvent
+  TSpecificEvent extends TEvent = TEvent,
+  TActions extends BaseActionObject = BaseActionObject
 > =
   | ActionType
   | DynAction<TContext, TEvent, TSpecificEvent>
-  // | ({ __?: never } & (
-  | ActionObject<TContext, TSpecificEvent>
-  | ActionObject<TContext, TEvent>
+  | TActions
+  // | ActionObject<TContext, TSpecificEvent>
+  // | ActionObject<TContext, TEvent
   | ActionFunction<TContext, TSpecificEvent>;
-// ));
 
 /**
  * Extracts action objects that have no extra properties.
@@ -171,8 +171,9 @@ export type BaseActions<
 export type Actions<
   TContext,
   TEvent extends EventObject,
-  TSpecificEvent extends TEvent = TEvent
-> = SingleOrArray<Action<TContext, TEvent, TSpecificEvent>>;
+  TSpecificEvent extends TEvent = TEvent,
+  TActions extends ActionObject<TContext, TEvent> = any
+> = SingleOrArray<Action<TContext, TEvent, TSpecificEvent, TActions>>;
 
 export type StateKey = string | State<any>;
 
@@ -254,10 +255,10 @@ export interface TransitionConfig<
   TContext,
   TEvent extends EventObject,
   TSpecificEvent extends TEvent = TEvent,
-  TExtra extends ExtraGenerics = any // TODO
+  TExtra extends ExtraGenerics = DefaultExtraGenerics<TContext, TEvent>
 > {
   cond?: Condition<TContext, TSpecificEvent, TExtra['guards']>;
-  actions?: Actions<TContext, TSpecificEvent>;
+  actions?: Actions<TContext, TEvent, TSpecificEvent, TExtra['actions']>;
   in?: StateValue;
   internal?: boolean;
   target?: TransitionTarget<TContext, TEvent> | undefined;
@@ -1069,7 +1070,7 @@ export type LogExpr<TContext, TEvent extends EventObject> = ExprWithMeta<
 >;
 
 export interface LogAction<TContext, TEvent extends EventObject>
-  extends ActionObject<TContext, TEvent> {
+  extends DynAction<TContext, TEvent> {
   label: string | undefined;
   expr: string | LogExpr<TContext, TEvent>;
 }
@@ -1108,7 +1109,7 @@ export interface SendActionObject<
 }
 
 export interface StopAction<TContext, TEvent extends EventObject>
-  extends ActionObject<TContext, TEvent> {
+  extends DynAction<TContext, TEvent> {
   type: ActionTypes.Stop;
   activity:
     | string
@@ -1149,7 +1150,7 @@ export interface SendActionOptions<TContext, TEvent extends EventObject> {
   to?: string | ExprWithMeta<TContext, TEvent, string | number | ActorRef<any>>;
 }
 
-export interface CancelAction extends ActionObject<any, any> {
+export interface CancelAction extends DynAction<any, any> {
   sendId: string | number;
 }
 
@@ -1194,16 +1195,16 @@ export interface AnyAssignAction<TContext, TEvent extends EventObject>
   assignment: any;
 }
 
-export type AssignAction<
+export interface AssignAction<
   TContext,
   TEvent extends EventObject,
   TSpecificEvent extends TEvent
-> = {
+> extends DynAction<TContext, TEvent, TSpecificEvent> {
   type: ActionTypes.Assign;
   assignment:
     | Assigner<TContext, TSpecificEvent>
     | PropertyAssigner<TContext, TSpecificEvent>;
-} & DynAction<TContext, TEvent, TSpecificEvent>;
+}
 
 export interface PureAction<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {
@@ -1215,7 +1216,7 @@ export interface PureAction<TContext, TEvent extends EventObject>
 }
 
 export interface ChooseAction<TContext, TEvent extends EventObject>
-  extends ActionObject<TContext, TEvent> {
+  extends DynAction<TContext, TEvent> {
   type: ActionTypes.Choose;
   conds: Array<ChooseCondition<TContext, TEvent>>;
 }
