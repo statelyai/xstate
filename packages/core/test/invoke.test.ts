@@ -2709,6 +2709,206 @@ describe('invoke', () => {
       interpret(machine).start();
     });
   });
+
+  it('invoke generated ID should be predictable based on the state node where it is defined', (done) => {
+    const machine = createMachine(
+      {
+        initial: 'a',
+        states: {
+          a: {
+            invoke: {
+              src: 'someSrc',
+              onDone: {
+                cond: (_, e) => {
+                  // invoke ID should not be 'someSrc'
+                  const expectedType = 'done.invoke.(machine).a:invocation[0]';
+                  expect(e.type).toEqual(expectedType);
+                  return e.type === expectedType;
+                },
+                target: 'b'
+              }
+            }
+          },
+          b: {
+            type: 'final'
+          }
+        }
+      },
+      {
+        services: {
+          someSrc: () => Promise.resolve()
+        }
+      }
+    );
+
+    interpret(machine)
+      .onDone(() => {
+        done();
+      })
+      .start();
+  });
+
+  it.each([
+    ['src with string reference', { src: 'someSrc' }],
+    ['machine', createMachine({ id: 'someId' })],
+    [
+      'src containing a machine directly',
+      { src: createMachine({ id: 'someId' }) }
+    ],
+    [
+      'src containing a callback actor directly',
+      {
+        src: () => () => {
+          /* ... */
+        }
+      }
+    ],
+    [
+      'src containing a parametrized invokee with id parameter',
+      {
+        src: {
+          type: 'someSrc',
+          id: 'h4sh'
+        }
+      }
+    ]
+  ])(
+    'invoke config defined as %s should register unique and predictable child in state',
+    (_type, invokeConfig) => {
+      const machine = createMachine(
+        {
+          id: 'machine',
+          initial: 'a',
+          states: {
+            a: {
+              invoke: invokeConfig
+            }
+          }
+        },
+        {
+          services: {
+            someSrc: () => () => {
+              /* ... */
+            }
+          }
+        }
+      );
+
+      expect(
+        machine.initialState.children['machine.a:invocation[0]']
+      ).toBeDefined();
+    }
+  );
+
+  // https://github.com/statelyai/xstate/issues/464
+  it('done.invoke events should only select onDone transition on the invoking state when invokee is referenced using a string', (done) => {
+    let counter = 0;
+    let invoked = false;
+
+    const createSingleState = (): any => ({
+      initial: 'fetch',
+      states: {
+        fetch: {
+          invoke: {
+            src: 'fetchSmth',
+            onDone: {
+              actions: 'handleSuccess'
+            }
+          }
+        }
+      }
+    });
+
+    const testMachine = createMachine(
+      {
+        type: 'parallel',
+        states: {
+          first: createSingleState(),
+          second: createSingleState()
+        }
+      },
+      {
+        actions: {
+          handleSuccess: () => {
+            ++counter;
+          }
+        },
+        services: {
+          fetchSmth: () => {
+            if (invoked) {
+              // create a promise that won't ever resolve for the second invoking state
+              return new Promise(() => {});
+            }
+            invoked = true;
+            return Promise.resolve(42);
+          }
+        }
+      }
+    );
+
+    interpret(testMachine).start();
+
+    // check within a macrotask so all promise-induced microtasks have a chance to resolve first
+    setTimeout(() => {
+      expect(counter).toEqual(1);
+      done();
+    }, 0);
+  });
+
+  it('done.invoke events should have unique names when invokee is a machine with an id property', (done) => {
+    const actual: string[] = [];
+
+    const childMachine = createMachine({
+      id: 'child',
+      initial: 'a',
+      states: {
+        a: {
+          invoke: {
+            src: () => Promise.resolve(42),
+            onDone: 'b'
+          }
+        },
+        b: {
+          type: 'final'
+        }
+      }
+    });
+
+    const createSingleState = (): any => ({
+      initial: 'fetch',
+      states: {
+        fetch: {
+          invoke: childMachine
+        }
+      }
+    });
+
+    const testMachine = createMachine({
+      type: 'parallel',
+      states: {
+        first: createSingleState(),
+        second: createSingleState()
+      },
+      on: {
+        '*': {
+          actions: (_ctx, ev) => {
+            actual.push(ev.type);
+          }
+        }
+      }
+    });
+
+    interpret(testMachine).start();
+
+    // check within a macrotask so all promise-induced microtasks have a chance to resolve first
+    setTimeout(() => {
+      expect(actual).toEqual([
+        'done.invoke.(machine).first.fetch:invocation[0]',
+        'done.invoke.(machine).second.fetch:invocation[0]'
+      ]);
+      done();
+    }, 0);
+  });
 });
 
 describe('services option', () => {
