@@ -710,3 +710,7 @@ export function toObserver<T>(
     complete: completionHandler || noop
   };
 }
+
+export function createInvokeId(stateNodeId: string, index: number): string {
+  return `${stateNodeId}:invocation[${index}]`;
+}
