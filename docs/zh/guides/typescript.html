@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>使用 TypeScript | XState 文档</title>
+    <meta name="generator" content="VuePress 1.8.2">
+    <script src="https://plausible.io/js/plausible.js" defer="defer"></script>
+    <meta name="description" content="XState 文档：现代 Web 的状态机和状态图">
+    
+    <link rel="preload" href="/docs/assets/css/0.styles.2b0aa556.css" as="style"><link rel="preload" href="/docs/assets/js/app.f9a8eb79.js" as="script"><link rel="preload" href="/docs/assets/js/3.2a139785.js" as="script"><link rel="preload" href="/docs/assets/js/9.47fde1b3.js" as="script"><link rel="preload" href="/docs/assets/js/120.70a3864e.js" as="script"><link rel="preload" href="/docs/assets/js/10.f0e23b4a.js" as="script"><link rel="prefetch" href="/docs/assets/js/100.d7c7203b.js"><link rel="prefetch" href="/docs/assets/js/101.e5651eb9.js"><link rel="prefetch" href="/docs/assets/js/102.98356cdf.js"><link rel="prefetch" href="/docs/assets/js/103.cc2de6ee.js"><link rel="prefetch" href="/docs/assets/js/104.062ebd1f.js"><link rel="prefetch" href="/docs/assets/js/105.b11a4457.js"><link rel="prefetch" href="/docs/assets/js/106.85c1fb84.js"><link rel="prefetch" href="/docs/assets/js/107.8ac2fd75.js"><link rel="prefetch" href="/docs/assets/js/108.45131a20.js"><link rel="prefetch" href="/docs/assets/js/109.bacd2f51.js"><link rel="prefetch" href="/docs/assets/js/11.6b22e883.js"><link rel="prefetch" href="/docs/assets/js/110.3ddbffbc.js"><link rel="prefetch" href="/docs/assets/js/111.77c587e4.js"><link rel="prefetch" href="/docs/assets/js/112.30e117f7.js"><link rel="prefetch" href="/docs/assets/js/113.2406b495.js"><link rel="prefetch" href="/docs/assets/js/114.e58f7d96.js"><link rel="prefetch" href="/docs/assets/js/115.c4cfd1e1.js"><link rel="prefetch" href="/docs/assets/js/116.5f73339a.js"><link rel="prefetch" href="/docs/assets/js/117.bb1e71da.js"><link rel="prefetch" href="/docs/assets/js/118.0e0898a6.js"><link rel="prefetch" href="/docs/assets/js/119.0a9af370.js"><link rel="prefetch" href="/docs/assets/js/12.fd10705f.js"><link rel="prefetch" href="/docs/assets/js/121.08e7b817.js"><link rel="prefetch" href="/docs/assets/js/122.46b6b399.js"><link rel="prefetch" href="/docs/assets/js/123.111f9392.js"><link rel="prefetch" href="/docs/assets/js/124.e12c9b62.js"><link rel="prefetch" href="/docs/assets/js/125.c5054fa6.js"><link rel="prefetch" href="/docs/assets/js/126.59b2ad35.js"><link rel="prefetch" href="/docs/assets/js/127.689b52db.js"><link rel="prefetch" href="/docs/assets/js/128.c1f5b473.js"><link rel="prefetch" href="/docs/assets/js/129.cb9849b2.js"><link rel="prefetch" href="/docs/assets/js/13.7fc80339.js"><link rel="prefetch" href="/docs/assets/js/130.ea7be021.js"><link rel="prefetch" href="/docs/assets/js/131.d31e6dce.js"><link rel="prefetch" href="/docs/assets/js/132.51196030.js"><link rel="prefetch" href="/docs/assets/js/133.6f39e702.js"><link rel="prefetch" href="/docs/assets/js/134.ae8dbf37.js"><link rel="prefetch" href="/docs/assets/js/135.210984aa.js"><link rel="prefetch" href="/docs/assets/js/136.a420cc06.js"><link rel="prefetch" href="/docs/assets/js/137.a75aeacb.js"><link rel="prefetch" href="/docs/assets/js/138.2df47954.js"><link rel="prefetch" href="/docs/assets/js/139.867d7002.js"><link rel="prefetch" href="/docs/assets/js/14.8ce1a4ab.js"><link rel="prefetch" href="/docs/assets/js/140.34c52f78.js"><link rel="prefetch" href="/docs/assets/js/141.08b34bbb.js"><link rel="prefetch" href="/docs/assets/js/142.fc4ba473.js"><link rel="prefetch" href="/docs/assets/js/143.d2ba7930.js"><link rel="prefetch" href="/docs/assets/js/144.cbf342b5.js"><link rel="prefetch" href="/docs/assets/js/145.4d4837d3.js"><link rel="prefetch" href="/docs/assets/js/146.743889fb.js"><link rel="prefetch" href="/docs/assets/js/147.feabdd9c.js"><link rel="prefetch" href="/docs/assets/js/148.d42e19a1.js"><link rel="prefetch" href="/docs/assets/js/149.17b1ef2e.js"><link rel="prefetch" href="/docs/assets/js/15.c1e77132.js"><link rel="prefetch" href="/docs/assets/js/150.a61a1af5.js"><link rel="prefetch" href="/docs/assets/js/16.59633be9.js"><link rel="prefetch" href="/docs/assets/js/17.94abfc2f.js"><link rel="prefetch" href="/docs/assets/js/18.6e379201.js"><link rel="prefetch" href="/docs/assets/js/19.52defd9d.js"><link rel="prefetch" href="/docs/assets/js/20.d96278bf.js"><link rel="prefetch" href="/docs/assets/js/21.91b66e09.js"><link rel="prefetch" href="/docs/assets/js/22.585892ca.js"><link rel="prefetch" href="/docs/assets/js/23.ccdd46d1.js"><link rel="prefetch" href="/docs/assets/js/24.02c48d8d.js"><link rel="prefetch" href="/docs/assets/js/25.4874f911.js"><link rel="prefetch" href="/docs/assets/js/26.10a5cef1.js"><link rel="prefetch" href="/docs/assets/js/27.68f412bc.js"><link rel="prefetch" href="/docs/assets/js/28.40348427.js"><link rel="prefetch" href="/docs/assets/js/29.3a695430.js"><link rel="prefetch" href="/docs/assets/js/30.1c1008af.js"><link rel="prefetch" href="/docs/assets/js/31.b87c4e17.js"><link rel="prefetch" href="/docs/assets/js/32.036c2a71.js"><link rel="prefetch" href="/docs/assets/js/33.87428c4c.js"><link rel="prefetch" href="/docs/assets/js/34.9fb52f7e.js"><link rel="prefetch" href="/docs/assets/js/35.671fc86b.js"><link rel="prefetch" href="/docs/assets/js/36.afbcda4c.js"><link rel="prefetch" href="/docs/assets/js/37.004aee44.js"><link rel="prefetch" href="/docs/assets/js/38.c9c0a307.js"><link rel="prefetch" href="/docs/assets/js/39.8316996b.js"><link rel="prefetch" href="/docs/assets/js/4.833869ae.js"><link rel="prefetch" href="/docs/assets/js/40.68778e57.js"><link rel="prefetch" href="/docs/assets/js/41.7515ed5a.js"><link rel="prefetch" href="/docs/assets/js/42.6b841429.js"><link rel="prefetch" href="/docs/assets/js/43.8891a7a7.js"><link rel="prefetch" href="/docs/assets/js/44.2837bc31.js"><link rel="prefetch" href="/docs/assets/js/45.5763291b.js"><link rel="prefetch" href="/docs/assets/js/46.e510f06c.js"><link rel="prefetch" href="/docs/assets/js/47.3d87549d.js"><link rel="prefetch" href="/docs/assets/js/48.8d28ebcb.js"><link rel="prefetch" href="/docs/assets/js/49.b3369b36.js"><link rel="prefetch" href="/docs/assets/js/5.ffe2259d.js"><link rel="prefetch" href="/docs/assets/js/50.b001c983.js"><link rel="prefetch" href="/docs/assets/js/51.5f42972d.js"><link rel="prefetch" href="/docs/assets/js/52.6cf25e6e.js"><link rel="prefetch" href="/docs/assets/js/53.1d0c50da.js"><link rel="prefetch" href="/docs/assets/js/54.af61eba7.js"><link rel="prefetch" href="/docs/assets/js/55.7a77adec.js"><link rel="prefetch" href="/docs/assets/js/56.15dfc3a7.js"><link rel="prefetch" href="/docs/assets/js/57.9000b49f.js"><link rel="prefetch" href="/docs/assets/js/58.caf4e304.js"><link rel="prefetch" href="/docs/assets/js/59.259f7814.js"><link rel="prefetch" href="/docs/assets/js/6.bafab845.js"><link rel="prefetch" href="/docs/assets/js/60.864c3240.js"><link rel="prefetch" href="/docs/assets/js/61.2cf7a697.js"><link rel="prefetch" href="/docs/assets/js/62.3b0dceb6.js"><link rel="prefetch" href="/docs/assets/js/63.04baf8e2.js"><link rel="prefetch" href="/docs/assets/js/64.3ac2c7f4.js"><link rel="prefetch" href="/docs/assets/js/65.f2f4f62d.js"><link rel="prefetch" href="/docs/assets/js/66.31d7d731.js"><link rel="prefetch" href="/docs/assets/js/67.7de8e5a8.js"><link rel="prefetch" href="/docs/assets/js/68.262d8b7b.js"><link rel="prefetch" href="/docs/assets/js/69.c0f72cbb.js"><link rel="prefetch" href="/docs/assets/js/7.3f30186f.js"><link rel="prefetch" href="/docs/assets/js/70.d0bd9e52.js"><link rel="prefetch" href="/docs/assets/js/71.0960f284.js"><link rel="prefetch" href="/docs/assets/js/72.15d435bc.js"><link rel="prefetch" href="/docs/assets/js/73.c314e153.js"><link rel="prefetch" href="/docs/assets/js/74.bb4168c8.js"><link rel="prefetch" href="/docs/assets/js/75.3543949e.js"><link rel="prefetch" href="/docs/assets/js/76.8b0d2020.js"><link rel="prefetch" href="/docs/assets/js/77.86f9cce8.js"><link rel="prefetch" href="/docs/assets/js/78.39e1119f.js"><link rel="prefetch" href="/docs/assets/js/79.ab27be36.js"><link rel="prefetch" href="/docs/assets/js/8.1b04bf18.js"><link rel="prefetch" href="/docs/assets/js/80.900bd3a7.js"><link rel="prefetch" href="/docs/assets/js/81.d2c445d1.js"><link rel="prefetch" href="/docs/assets/js/82.3ecee5a4.js"><link rel="prefetch" href="/docs/assets/js/83.5d39ebfd.js"><link rel="prefetch" href="/docs/assets/js/84.9fb610dd.js"><link rel="prefetch" href="/docs/assets/js/85.632fbe9a.js"><link rel="prefetch" href="/docs/assets/js/86.662c17b5.js"><link rel="prefetch" href="/docs/assets/js/87.3ed6c0f5.js"><link rel="prefetch" href="/docs/assets/js/88.2fc1f800.js"><link rel="prefetch" href="/docs/assets/js/89.2f40245c.js"><link rel="prefetch" href="/docs/assets/js/90.c968db95.js"><link rel="prefetch" href="/docs/assets/js/91.0e61d4df.js"><link rel="prefetch" href="/docs/assets/js/92.4db22cd6.js"><link rel="prefetch" href="/docs/assets/js/93.3b151b01.js"><link rel="prefetch" href="/docs/assets/js/94.3cabb730.js"><link rel="prefetch" href="/docs/assets/js/95.93e8e858.js"><link rel="prefetch" href="/docs/assets/js/96.92f2ebd1.js"><link rel="prefetch" href="/docs/assets/js/97.6d45a082.js"><link rel="prefetch" href="/docs/assets/js/98.57800ba3.js"><link rel="prefetch" href="/docs/assets/js/99.4ea676dd.js"><link rel="prefetch" href="/docs/assets/js/vendors~docsearch.6f0f340d.js">
+    <link rel="stylesheet" href="/docs/assets/css/0.styles.2b0aa556.css">
+  </head>
+  <body>
+    <div id="app" data-server-rendered="true"><div class="theme-container"><header class="navbar"><div class="sidebar-button"><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img" viewBox="0 0 448 512" class="icon"><path fill="currentColor" d="M436 124H12c-6.627 0-12-5.373-12-12V80c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12zm0 160H12c-6.627 0-12-5.373-12-12v-32c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12zm0 160H12c-6.627 0-12-5.373-12-12v-32c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12z"></path></svg></div> <a href="/docs/zh/" class="home-link router-link-active"><img src="/docs/logo.svg" alt="XState 文档" class="logo"> <span class="site-name can-hide">XState 文档</span></a> <div class="links"><form id="search-form" role="search" class="algolia-search-wrapper search-box"><input id="algolia-search-input" class="search-query"></form> <nav class="nav-links can-hide"><div class="nav-item"><a href="https://paka.dev/npm/xstate/" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  API
+  <span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a></div><div class="nav-item"><a href="https://stately.ai/viz" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  可视化工具
+  <span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a></div><div class="nav-item"><a href="https://discord.gg/xtWgFTgvNV" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Discord
+  <span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a></div><div class="nav-item"><a href="https://github.com/statelyai/xstate/discussions" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  社区
+  <span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a></div><div class="nav-item"><div class="dropdown-wrapper"><button type="button" aria-label="Select language" class="dropdown-title"><span class="title">选择语言</span> <span class="arrow down"></span></button> <button type="button" aria-label="Select language" class="mobile-dropdown-title"><span class="title">选择语言</span> <span class="arrow right"></span></button> <ul class="nav-dropdown" style="display:none;"><li class="dropdown-item"><!----> <a href="/docs/guides/typescript.html" class="nav-link">
+  English
+</a></li><li class="dropdown-item"><!----> <a href="/docs/zh/guides/typescript.html" aria-current="page" class="nav-link router-link-exact-active router-link-active">
+  简体中文
+</a></li></ul></div></div> <a href="https://github.com/davidkpiano/xstate" target="_blank" rel="noopener noreferrer" class="repo-link">
+    GitHub
+    <span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a></nav></div></header> <div class="sidebar-mask"></div> <aside class="sidebar"><nav class="nav-links"><div class="nav-item"><a href="https://paka.dev/npm/xstate/" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  API
+  <span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a></div><div class="nav-item"><a href="https://stately.ai/viz" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  可视化工具
+  <span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a></div><div class="nav-item"><a href="https://discord.gg/xtWgFTgvNV" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Discord
+  <span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a></div><div class="nav-item"><a href="https://github.com/statelyai/xstate/discussions" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  社区
+  <span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a></div><div class="nav-item"><div class="dropdown-wrapper"><button type="button" aria-label="Select language" class="dropdown-title"><span class="title">选择语言</span> <span class="arrow down"></span></button> <button type="button" aria-label="Select language" class="mobile-dropdown-title"><span class="title">选择语言</span> <span class="arrow right"></span></button> <ul class="nav-dropdown" style="display:none;"><li class="dropdown-item"><!----> <a href="/docs/guides/typescript.html" class="nav-link">
+  English
+</a></li><li class="dropdown-item"><!----> <a href="/docs/zh/guides/typescript.html" aria-current="page" class="nav-link router-link-exact-active router-link-active">
+  简体中文
+</a></li></ul></div></div> <a href="https://github.com/davidkpiano/xstate" target="_blank" rel="noopener noreferrer" class="repo-link">
+    GitHub
+    <span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a></nav>  <ul class="sidebar-links"><li><section class="sidebar-group collapsable depth-0"><p class="sidebar-heading"><span>什么是 XState?</span> <span class="arrow right"></span></p> <!----></section></li><li><section class="sidebar-group collapsable depth-0"><p class="sidebar-heading"><span>关于</span> <span class="arrow right"></span></p> <!----></section></li><li><section class="sidebar-group collapsable depth-0"><p class="sidebar-heading open"><span>向导</span> <span class="arrow down"></span></p> <ul class="sidebar-links sidebar-group-items"><li><a href="/docs/zh/guides/start.html" class="sidebar-link">入门</a></li><li><a href="/docs/zh/guides/installation.html" class="sidebar-link">安装</a></li><li><a href="/docs/zh/guides/introduction-to-state-machines-and-statecharts/" class="sidebar-link">状态机和状态图简介</a></li><li><a href="/docs/zh/guides/machines.html" class="sidebar-link">状态机 Machines</a></li><li><a href="/docs/zh/guides/states.html" class="sidebar-link">状态 State</a></li><li><a href="/docs/zh/guides/statenodes.html" class="sidebar-link">状态节点</a></li><li><a href="/docs/zh/guides/events.html" class="sidebar-link">事件 Event</a></li><li><a href="/docs/zh/guides/transitions.html" class="sidebar-link">转换 Transitions</a></li><li><a href="/docs/zh/guides/hierarchical.html" class="sidebar-link">分层状态节点 Hierarchical State Node</a></li><li><a href="/docs/zh/guides/parallel.html" class="sidebar-link">并行状态节点 Parallel State Node</a></li><li><a href="/docs/zh/guides/final.html" class="sidebar-link">最终状态</a></li><li><a href="/docs/zh/guides/effects.html" class="sidebar-link">作用 Effects</a></li><li><a href="/docs/zh/guides/actions.html" class="sidebar-link">动作 Actions</a></li><li><a href="/docs/zh/guides/guards.html" class="sidebar-link">守卫（Guarded）转换</a></li><li><a href="/docs/zh/guides/context.html" class="sidebar-link">上下文 Context</a></li><li><a href="/docs/zh/guides/models.html" class="sidebar-link">模型 Models</a></li><li><a href="/docs/zh/guides/activities.html" class="sidebar-link">活动 Activities</a></li><li><a href="/docs/zh/guides/communication.html" class="sidebar-link">调用 Services</a></li><li><a href="/docs/zh/guides/actors.html" class="sidebar-link">演员 Actors</a></li><li><a href="/docs/zh/guides/delays.html" class="sidebar-link">延迟事件 和 转换</a></li><li><a href="/docs/zh/guides/history.html" class="sidebar-link">历史 History</a></li><li><a href="/docs/zh/guides/ids.html" class="sidebar-link">标识 State 节点</a></li><li><a href="/docs/zh/guides/interpretation.html" class="sidebar-link">解释（Interpreting） 状态机</a></li><li><a href="/docs/zh/guides/testing.html" class="sidebar-link">测试状态机</a></li><li><a href="/docs/zh/guides/typescript.html" aria-current="page" class="active sidebar-link">使用 TypeScript</a><ul class="sidebar-sub-headers"><li class="sidebar-sub-header"><a href="/docs/zh/guides/typescript.html#使用-typescript" class="sidebar-link">使用 TypeScript</a></li><li class="sidebar-sub-header"><a href="/docs/zh/guides/typescript.html#配置对象" class="sidebar-link">配置对象</a></li><li class="sidebar-sub-header"><a href="/docs/zh/guides/typescript.html#类型状态" class="sidebar-link">类型状态</a></li><li class="sidebar-sub-header"><a href="/docs/zh/guides/typescript.html#故障排除" class="sidebar-link">故障排除</a></li></ul></li><li><a href="/docs/zh/guides/scxml.html" class="sidebar-link">SCXML</a></li></ul></section></li><li><section class="sidebar-group collapsable depth-0"><p class="sidebar-heading"><span>教程</span> <span class="arrow right"></span></p> <!----></section></li><li><section class="sidebar-group collapsable depth-0"><p class="sidebar-heading"><span>配方</span> <span class="arrow right"></span></p> <!----></section></li><li><section class="sidebar-group collapsable depth-0"><p class="sidebar-heading"><span>包</span> <span class="arrow right"></span></p> <!----></section></li><li><section class="sidebar-group collapsable depth-0"><p class="sidebar-heading"><span>模式</span> <span class="arrow right"></span></p> <!----></section></li><li><section class="sidebar-group collapsable depth-0"><p class="sidebar-heading"><span>示例</span> <span class="arrow right"></span></p> <!----></section></li><li><section class="sidebar-group collapsable depth-0"><p class="sidebar-heading"><span>新闻和有用地址</span> <span class="arrow right"></span></p> <!----></section></li></ul> </aside> <main class="page"> <div class="theme-default-content content__default"><h2 id="使用-typescript"><a href="#使用-typescript" class="header-anchor">#</a> 使用 TypeScript</h2> <p>由于 XState 是用 <a href="https://www.typescriptlang.org/" target="_blank" rel="noopener noreferrer">TypeScript<span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a> 编写的，也建议你在编写状态图的时候使用它。 下面是一个轻型状态机示例：</p> <div class="language-typescript extra-class"><pre class="language-typescript"><code><span class="token comment">// 状态机处理的事件</span>
+<span class="token keyword">type</span> <span class="token class-name">LightEvent</span> <span class="token operator">=</span>
+  <span class="token operator">|</span> <span class="token punctuation">{</span> <span class="token keyword">type</span><span class="token operator">:</span> <span class="token string">'TIMER'</span> <span class="token punctuation">}</span>
+  <span class="token operator">|</span> <span class="token punctuation">{</span> <span class="token keyword">type</span><span class="token operator">:</span> <span class="token string">'POWER_OUTAGE'</span> <span class="token punctuation">}</span>
+  <span class="token operator">|</span> <span class="token punctuation">{</span> <span class="token keyword">type</span><span class="token operator">:</span> <span class="token string">'PED_COUNTDOWN'</span><span class="token punctuation">;</span> duration<span class="token operator">:</span> <span class="token builtin">number</span> <span class="token punctuation">}</span><span class="token punctuation">;</span>
+
+<span class="token comment">// 状态机的上下文（扩展状态）</span>
+<span class="token keyword">interface</span> <span class="token class-name">LightContext</span> <span class="token punctuation">{</span>
+  elapsed<span class="token operator">:</span> <span class="token builtin">number</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">const</span> lightMachine <span class="token operator">=</span> <span class="token generic-function"><span class="token function">createMachine</span><span class="token generic class-name"><span class="token operator">&lt;</span>LightContext<span class="token punctuation">,</span> LightEvent<span class="token operator">&gt;</span></span></span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+  key<span class="token operator">:</span> <span class="token string">'light'</span><span class="token punctuation">,</span>
+  initial<span class="token operator">:</span> <span class="token string">'green'</span><span class="token punctuation">,</span>
+  context<span class="token operator">:</span> <span class="token punctuation">{</span> elapsed<span class="token operator">:</span> <span class="token number">0</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>
+  states<span class="token operator">:</span> <span class="token punctuation">{</span>
+    green<span class="token operator">:</span> <span class="token punctuation">{</span>
+      on<span class="token operator">:</span> <span class="token punctuation">{</span>
+        <span class="token constant">TIMER</span><span class="token operator">:</span> <span class="token punctuation">{</span> target<span class="token operator">:</span> <span class="token string">'yellow'</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>
+        <span class="token constant">POWER_OUTAGE</span><span class="token operator">:</span> <span class="token punctuation">{</span> target<span class="token operator">:</span> <span class="token string">'red'</span> <span class="token punctuation">}</span>
+      <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    yellow<span class="token operator">:</span> <span class="token punctuation">{</span>
+      on<span class="token operator">:</span> <span class="token punctuation">{</span>
+        <span class="token constant">TIMER</span><span class="token operator">:</span> <span class="token punctuation">{</span> target<span class="token operator">:</span> <span class="token string">'red'</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>
+        <span class="token constant">POWER_OUTAGE</span><span class="token operator">:</span> <span class="token punctuation">{</span> target<span class="token operator">:</span> <span class="token string">'red'</span> <span class="token punctuation">}</span>
+      <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    red<span class="token operator">:</span> <span class="token punctuation">{</span>
+      on<span class="token operator">:</span> <span class="token punctuation">{</span>
+        <span class="token constant">TIMER</span><span class="token operator">:</span> <span class="token punctuation">{</span> target<span class="token operator">:</span> <span class="token string">'green'</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>
+        <span class="token constant">POWER_OUTAGE</span><span class="token operator">:</span> <span class="token punctuation">{</span> target<span class="token operator">:</span> <span class="token string">'red'</span> <span class="token punctuation">}</span>
+      <span class="token punctuation">}</span><span class="token punctuation">,</span>
+      initial<span class="token operator">:</span> <span class="token string">'walk'</span><span class="token punctuation">,</span>
+      states<span class="token operator">:</span> <span class="token punctuation">{</span>
+        walk<span class="token operator">:</span> <span class="token punctuation">{</span>
+          on<span class="token operator">:</span> <span class="token punctuation">{</span>
+            <span class="token constant">PED_COUNTDOWN</span><span class="token operator">:</span> <span class="token punctuation">{</span> target<span class="token operator">:</span> <span class="token string">'wait'</span> <span class="token punctuation">}</span>
+          <span class="token punctuation">}</span>
+        <span class="token punctuation">}</span><span class="token punctuation">,</span>
+        wait<span class="token operator">:</span> <span class="token punctuation">{</span>
+          on<span class="token operator">:</span> <span class="token punctuation">{</span>
+            <span class="token constant">PED_COUNTDOWN</span><span class="token operator">:</span> <span class="token punctuation">{</span>
+              target<span class="token operator">:</span> <span class="token string">'stop'</span><span class="token punctuation">,</span>
+              <span class="token function-variable function">cond</span><span class="token operator">:</span> <span class="token punctuation">(</span>context<span class="token punctuation">,</span> event<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+                <span class="token keyword">return</span> event<span class="token punctuation">.</span>duration <span class="token operator">===</span> <span class="token number">0</span> <span class="token operator">&amp;&amp;</span> context<span class="token punctuation">.</span>elapsed <span class="token operator">&gt;</span> <span class="token number">0</span><span class="token punctuation">;</span>
+              <span class="token punctuation">}</span>
+            <span class="token punctuation">}</span>
+          <span class="token punctuation">}</span>
+        <span class="token punctuation">}</span><span class="token punctuation">,</span>
+        stop<span class="token operator">:</span> <span class="token punctuation">{</span>
+          <span class="token comment">// 瞬态过渡</span>
+          always<span class="token operator">:</span> <span class="token punctuation">{</span>
+            target<span class="token operator">:</span> <span class="token string">'#light.green'</span>
+          <span class="token punctuation">}</span>
+        <span class="token punctuation">}</span>
+      <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre></div><p>提供上下文和事件作为 <code>createMachine()</code> 函数的通用参数有很多优点：</p> <ul><li>上下文类型/接口（<code>TContext</code>）被传递给动作、守卫、服务等。 它也被传递到深度嵌套的状态。</li> <li>事件类型 (<code>TEvent</code>) 确保在转换配置中只使用指定的事件（和内置的 XState 特定事件）。 提供的事件对象形状也传递给动作、守卫和服务。</li> <li>你发送到状态机的事件将是强类型的，让你对接收的有效数据形态更有信心。</li></ul> <h2 id="配置对象"><a href="#配置对象" class="header-anchor">#</a> 配置对象</h2> <p><code>MachineConfig&lt;TContext, any, TEvent&gt;</code> 的通用类型与 <code>createMachine&lt;TContext, TEvent&gt;</code> 的通用类型相同。 当你定义 <code>createMachine(...)</code> 函数的状态机配置对象 <em>外</em> 时，这很有用，并有助于防止 <a href="https://github.com/statelyai/xstate/issues/310" target="_blank" rel="noopener noreferrer">推理错误<span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a>：</p> <div class="language-ts extra-class"><pre class="language-ts"><code><span class="token keyword">import</span> <span class="token punctuation">{</span> MachineConfig <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'xstate'</span><span class="token punctuation">;</span>
+
+<span class="token keyword">const</span> myMachineConfig<span class="token operator">:</span> MachineConfig<span class="token operator">&lt;</span>TContext<span class="token punctuation">,</span> <span class="token builtin">any</span><span class="token punctuation">,</span> TEvent<span class="token operator">&gt;</span> <span class="token operator">=</span> <span class="token punctuation">{</span>
+  id<span class="token operator">:</span> <span class="token string">'controller'</span><span class="token punctuation">,</span>
+  initial<span class="token operator">:</span> <span class="token string">'stopped'</span><span class="token punctuation">,</span>
+  states<span class="token operator">:</span> <span class="token punctuation">{</span>
+    stopped<span class="token operator">:</span> <span class="token punctuation">{</span>
+      <span class="token comment">/* ... */</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    started<span class="token operator">:</span> <span class="token punctuation">{</span>
+      <span class="token comment">/* ... */</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span>
+  <span class="token comment">// ...</span>
+<span class="token punctuation">}</span><span class="token punctuation">;</span>
+</code></pre></div><h2 id="类型状态"><a href="#类型状态" class="header-anchor">#</a> 类型状态 <span class="badge tip" style="vertical-align:top;" data-v-15b7b770>4.7+</span></h2> <p>类型状态是一个概念，它根据状态 <code>value</code> 缩小整体状态 <code>context</code> 的形状。 这有助于防止不可能的状态并缩小 <code>context</code> 在给定状态下的范围，而不必编写过多的断言。</p> <p><code>Typestate</code> 是一个由两个属性组成的接口：</p> <ul><li><code>value</code> - 类型状态的状态值（复合状态应该使用对象语法引用；例如，<code>{ idle: 'error' }</code> 而不是 <code>&quot;idle.error&quot;</code>）</li> <li><code>context</code> - 当状态与给定的 <code>value</code> 匹配时，类型状态的缩小上下文</li></ul> <p>状态机的类型状态在 <code>createMachine&lt;TContext, TEvent, TTypestate&gt;</code> 中被指定为第三个泛型类型。</p> <p><strong>示例:</strong></p> <div class="language-ts extra-class"><pre class="language-ts"><code><span class="token keyword">import</span> <span class="token punctuation">{</span> createMachine<span class="token punctuation">,</span> interpret <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'xstate'</span><span class="token punctuation">;</span>
+
+<span class="token keyword">interface</span> <span class="token class-name">User</span> <span class="token punctuation">{</span>
+  name<span class="token operator">:</span> <span class="token builtin">string</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">interface</span> <span class="token class-name">UserContext</span> <span class="token punctuation">{</span>
+  user<span class="token operator">?</span><span class="token operator">:</span> User<span class="token punctuation">;</span>
+  error<span class="token operator">?</span><span class="token operator">:</span> <span class="token builtin">string</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">type</span> <span class="token class-name">UserEvent</span> <span class="token operator">=</span>
+  <span class="token operator">|</span> <span class="token punctuation">{</span> <span class="token keyword">type</span><span class="token operator">:</span> <span class="token string">'FETCH'</span><span class="token punctuation">;</span> id<span class="token operator">:</span> <span class="token builtin">string</span> <span class="token punctuation">}</span>
+  <span class="token operator">|</span> <span class="token punctuation">{</span> <span class="token keyword">type</span><span class="token operator">:</span> <span class="token string">'RESOLVE'</span><span class="token punctuation">;</span> user<span class="token operator">:</span> User <span class="token punctuation">}</span>
+  <span class="token operator">|</span> <span class="token punctuation">{</span> <span class="token keyword">type</span><span class="token operator">:</span> <span class="token string">'REJECT'</span><span class="token punctuation">;</span> error<span class="token operator">:</span> <span class="token builtin">string</span> <span class="token punctuation">}</span><span class="token punctuation">;</span>
+
+<span class="token keyword">type</span> <span class="token class-name">UserTypestate</span> <span class="token operator">=</span>
+  <span class="token operator">|</span> <span class="token punctuation">{</span>
+      value<span class="token operator">:</span> <span class="token string">'idle'</span><span class="token punctuation">;</span>
+      context<span class="token operator">:</span> UserContext <span class="token operator">&amp;</span> <span class="token punctuation">{</span>
+        user<span class="token operator">:</span> <span class="token keyword">undefined</span><span class="token punctuation">;</span>
+        error<span class="token operator">:</span> <span class="token keyword">undefined</span><span class="token punctuation">;</span>
+      <span class="token punctuation">}</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+  <span class="token operator">|</span> <span class="token punctuation">{</span>
+      value<span class="token operator">:</span> <span class="token string">'loading'</span><span class="token punctuation">;</span>
+      context<span class="token operator">:</span> UserContext<span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+  <span class="token operator">|</span> <span class="token punctuation">{</span>
+      value<span class="token operator">:</span> <span class="token string">'success'</span><span class="token punctuation">;</span>
+      context<span class="token operator">:</span> UserContext <span class="token operator">&amp;</span> <span class="token punctuation">{</span> user<span class="token operator">:</span> User<span class="token punctuation">;</span> error<span class="token operator">:</span> <span class="token keyword">undefined</span> <span class="token punctuation">}</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+  <span class="token operator">|</span> <span class="token punctuation">{</span>
+      value<span class="token operator">:</span> <span class="token string">'failure'</span><span class="token punctuation">;</span>
+      context<span class="token operator">:</span> UserContext <span class="token operator">&amp;</span> <span class="token punctuation">{</span> user<span class="token operator">:</span> <span class="token keyword">undefined</span><span class="token punctuation">;</span> error<span class="token operator">:</span> <span class="token builtin">string</span> <span class="token punctuation">}</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span><span class="token punctuation">;</span>
+
+<span class="token keyword">const</span> userMachine <span class="token operator">=</span> <span class="token generic-function"><span class="token function">createMachine</span><span class="token generic class-name"><span class="token operator">&lt;</span>UserContext<span class="token punctuation">,</span> UserEvent<span class="token punctuation">,</span> UserTypestate<span class="token operator">&gt;</span></span></span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+  id<span class="token operator">:</span> <span class="token string">'user'</span><span class="token punctuation">,</span>
+  initial<span class="token operator">:</span> <span class="token string">'idle'</span><span class="token punctuation">,</span>
+  states<span class="token operator">:</span> <span class="token punctuation">{</span>
+    idle<span class="token operator">:</span> <span class="token punctuation">{</span>
+      <span class="token comment">/* ... */</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    loading<span class="token operator">:</span> <span class="token punctuation">{</span>
+      <span class="token comment">/* ... */</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    success<span class="token operator">:</span> <span class="token punctuation">{</span>
+      <span class="token comment">/* ... */</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    failure<span class="token operator">:</span> <span class="token punctuation">{</span>
+      <span class="token comment">/* ... */</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token keyword">const</span> userService <span class="token operator">=</span> <span class="token function">interpret</span><span class="token punctuation">(</span>userMachine<span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+userService<span class="token punctuation">.</span><span class="token function">subscribe</span><span class="token punctuation">(</span><span class="token punctuation">(</span>state<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+  <span class="token keyword">if</span> <span class="token punctuation">(</span>state<span class="token punctuation">.</span><span class="token function">matches</span><span class="token punctuation">(</span><span class="token string">'success'</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token comment">// 从 UserState 类型状态，将定义 `user`</span>
+    state<span class="token punctuation">.</span>context<span class="token punctuation">.</span>user<span class="token punctuation">.</span>name<span class="token punctuation">;</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre></div><div class="custom-block warning"><p class="custom-block-title">注意</p> <p>复合状态应该对所有父状态值进行显式建模，以避免在测试子状态时出现类型错误。</p> <div class="language-typescript extra-class"><pre class="language-typescript"><code><span class="token keyword">type</span> <span class="token class-name">State</span> <span class="token operator">=</span>
+  <span class="token comment">/* ... */</span>
+  <span class="token operator">|</span> <span class="token punctuation">{</span>
+      value<span class="token operator">:</span> <span class="token string">'parent'</span><span class="token punctuation">;</span>
+      context<span class="token operator">:</span> Context<span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+  <span class="token operator">|</span> <span class="token punctuation">{</span>
+      value<span class="token operator">:</span> <span class="token punctuation">{</span> parent<span class="token operator">:</span> <span class="token string">'child'</span> <span class="token punctuation">}</span><span class="token punctuation">;</span>
+      context<span class="token operator">:</span> Context<span class="token punctuation">;</span>
+    <span class="token punctuation">}</span><span class="token punctuation">;</span>
+<span class="token comment">/* ... */</span>
+</code></pre></div><p>如果两个状态具有相同的上下文类型，则可以通过对值使用类型联合来合并它们的声明。</p> <div class="language-typescript extra-class"><pre class="language-typescript"><code><span class="token keyword">type</span> <span class="token class-name">State</span> <span class="token operator">=</span>
+  <span class="token comment">/* ... */</span>
+  <span class="token punctuation">{</span>
+    value<span class="token operator">:</span> <span class="token string">'parent'</span> <span class="token operator">|</span> <span class="token punctuation">{</span> parent<span class="token operator">:</span> <span class="token string">'child'</span> <span class="token punctuation">}</span><span class="token punctuation">;</span>
+    context<span class="token operator">:</span> Context<span class="token punctuation">;</span>
+  <span class="token punctuation">}</span><span class="token punctuation">;</span>
+<span class="token comment">/* ... */</span>
+</code></pre></div></div> <h2 id="故障排除"><a href="#故障排除" class="header-anchor">#</a> 故障排除</h2> <p>XState 和 TypeScript 存在一些已知的限制。 我们喜欢 TypeScript，我们不断地努力使其在 XState 中获得更好的体验。</p> <p>以下是一些已知问题，所有这些问题都可以解决：</p> <h3 id="状态机选项中的事件"><a href="#状态机选项中的事件" class="header-anchor">#</a> 状态机选项中的事件</h3> <p>当你使用 <code>createMachine</code> 时，你可以将实现传递给配置中的命名 动作/服务/守卫。 例如：</p> <div class="language-ts extra-class"><pre class="language-ts"><code><span class="token keyword">interface</span> <span class="token class-name">Context</span> <span class="token punctuation">{</span><span class="token punctuation">}</span>
+
+<span class="token keyword">type</span> <span class="token class-name">Event</span> <span class="token operator">=</span>
+  <span class="token operator">|</span> <span class="token punctuation">{</span> <span class="token keyword">type</span><span class="token operator">:</span> <span class="token string">'EVENT_WITH_FLAG'</span><span class="token punctuation">;</span> flag<span class="token operator">:</span> <span class="token builtin">boolean</span> <span class="token punctuation">}</span>
+  <span class="token operator">|</span> <span class="token punctuation">{</span>
+      <span class="token keyword">type</span><span class="token operator">:</span> <span class="token string">'EVENT_WITHOUT_FLAG'</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span><span class="token punctuation">;</span>
+
+<span class="token generic-function"><span class="token function">createMachine</span><span class="token generic class-name"><span class="token operator">&lt;</span>Context<span class="token punctuation">,</span> Event<span class="token operator">&gt;</span></span></span><span class="token punctuation">(</span>
+  <span class="token punctuation">{</span>
+    on<span class="token operator">:</span> <span class="token punctuation">{</span>
+      <span class="token constant">EVENT_WITH_FLAG</span><span class="token operator">:</span> <span class="token punctuation">{</span>
+        actions<span class="token operator">:</span> <span class="token string">'consoleLogData'</span>
+      <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span><span class="token punctuation">,</span>
+  <span class="token punctuation">{</span>
+    actions<span class="token operator">:</span> <span class="token punctuation">{</span>
+      <span class="token function-variable function">consoleLogData</span><span class="token operator">:</span> <span class="token punctuation">(</span>context<span class="token punctuation">,</span> event<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+        <span class="token comment">// 这将在 .flag 处出错</span>
+        <span class="token builtin">console</span><span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>event<span class="token punctuation">.</span>flag<span class="token punctuation">)</span><span class="token punctuation">;</span>
+      <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre></div><p>这个错误的原因是因为在 <code>consoleLogData</code> 函数内部，我们不知道是哪个事件导致它被触发。 管理这个最简洁的方法是自己断言事件类型。</p> <div class="language-ts extra-class"><pre class="language-ts"><code><span class="token generic-function"><span class="token function">createMachine</span><span class="token generic class-name"><span class="token operator">&lt;</span>Context<span class="token punctuation">,</span> Event<span class="token operator">&gt;</span></span></span><span class="token punctuation">(</span>machine<span class="token punctuation">,</span> <span class="token punctuation">{</span>
+  actions<span class="token operator">:</span> <span class="token punctuation">{</span>
+    <span class="token function-variable function">consoleLogData</span><span class="token operator">:</span> <span class="token punctuation">(</span>context<span class="token punctuation">,</span> event<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+      <span class="token keyword">if</span> <span class="token punctuation">(</span>event<span class="token punctuation">.</span><span class="token keyword">type</span> <span class="token operator">!==</span> <span class="token string">'EVENT_WITH_FLAG'</span><span class="token punctuation">)</span> <span class="token keyword">return</span>
+      <span class="token comment">// .flag 不再有错误！</span>
+      <span class="token builtin">console</span><span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>event<span class="token punctuation">.</span>flag<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span><span class="token punctuation">;</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span>
+</code></pre></div><p>有时也可以内联动作实现。</p> <div class="language-ts extra-class"><pre class="language-ts"><code><span class="token generic-function"><span class="token function">createMachine</span><span class="token generic class-name"><span class="token operator">&lt;</span>Context<span class="token punctuation">,</span> Event<span class="token operator">&gt;</span></span></span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+  on<span class="token operator">:</span> <span class="token punctuation">{</span>
+    <span class="token constant">EVENT_WITH_FLAG</span><span class="token operator">:</span> <span class="token punctuation">{</span>
+      <span class="token function-variable function">actions</span><span class="token operator">:</span> <span class="token punctuation">(</span>context<span class="token punctuation">,</span> event<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+        <span class="token comment">// 不再出错，因为我们知道哪个事件负责调用这个动作</span>
+        <span class="token builtin">console</span><span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>event<span class="token punctuation">.</span>flag<span class="token punctuation">)</span><span class="token punctuation">;</span>
+      <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre></div><p>这种方法并不适用于所有情况。 动作失去了它的名字，所以在可视化器中看起来不太好。 这也意味着如果操作在多个位置重复，你需要将其复制粘贴到所有需要的位置。</p> <h3 id="进入动作中的事件类型"><a href="#进入动作中的事件类型" class="header-anchor">#</a> 进入动作中的事件类型</h3> <p>内联输入动作中的事件。 考虑这个例子：</p> <div class="language-ts extra-class"><pre class="language-ts"><code><span class="token keyword">interface</span> <span class="token class-name">Context</span> <span class="token punctuation">{</span><span class="token punctuation">}</span>
+
+<span class="token keyword">type</span> <span class="token class-name">Event</span> <span class="token operator">=</span>
+  <span class="token operator">|</span> <span class="token punctuation">{</span> <span class="token keyword">type</span><span class="token operator">:</span> <span class="token string">'EVENT_WITH_FLAG'</span><span class="token punctuation">;</span> flag<span class="token operator">:</span> <span class="token builtin">boolean</span> <span class="token punctuation">}</span>
+  <span class="token operator">|</span> <span class="token punctuation">{</span>
+      <span class="token keyword">type</span><span class="token operator">:</span> <span class="token string">'EVENT_WITHOUT_FLAG'</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span><span class="token punctuation">;</span>
+
+<span class="token generic-function"><span class="token function">createMachine</span><span class="token generic class-name"><span class="token operator">&lt;</span>Context<span class="token punctuation">,</span> Event<span class="token operator">&gt;</span></span></span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+  initial<span class="token operator">:</span> <span class="token string">'state1'</span><span class="token punctuation">,</span>
+  states<span class="token operator">:</span> <span class="token punctuation">{</span>
+    state1<span class="token operator">:</span> <span class="token punctuation">{</span>
+      on<span class="token operator">:</span> <span class="token punctuation">{</span>
+        <span class="token constant">EVENT_WITH_FLAG</span><span class="token operator">:</span> <span class="token punctuation">{</span>
+          target<span class="token operator">:</span> <span class="token string">'state2'</span>
+        <span class="token punctuation">}</span>
+      <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    state2<span class="token operator">:</span> <span class="token punctuation">{</span>
+      entry<span class="token operator">:</span> <span class="token punctuation">[</span>
+        <span class="token punctuation">(</span>context<span class="token punctuation">,</span> event<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+          <span class="token comment">// 这将在 .flag 处出错</span>
+          <span class="token builtin">console</span><span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>event<span class="token punctuation">.</span>flag<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token punctuation">}</span>
+      <span class="token punctuation">]</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre></div><p>在这里，我们不知道是什么事件导致了 <code>state2</code> 上的 <code>entry</code> 动作。 解决此问题的唯一方法是执行与上述类似的技巧：</p> <div class="language-ts extra-class"><pre class="language-ts"><code>entry<span class="token operator">:</span> <span class="token punctuation">[</span>
+  <span class="token punctuation">(</span>context<span class="token punctuation">,</span> event<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+    <span class="token keyword">if</span> <span class="token punctuation">(</span>event<span class="token punctuation">.</span><span class="token keyword">type</span> <span class="token operator">!==</span> <span class="token string">'EVENT_WITH_FLAG'</span><span class="token punctuation">)</span> <span class="token keyword">return</span><span class="token punctuation">;</span>
+    <span class="token comment">// .flag 不再有错误！</span>
+    <span class="token builtin">console</span><span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>event<span class="token punctuation">.</span>flag<span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">]</span><span class="token punctuation">;</span>
+</code></pre></div><h3 id="状态机选项中的-ondone-onerror-事件"><a href="#状态机选项中的-ondone-onerror-事件" class="header-anchor">#</a> 状态机选项中的 <code>onDone</code>/<code>onError</code> 事件</h3> <p>基于 Promise 的服务的结果很难在 XState 中安全地输入。 例如，这样的状态机：</p> <div class="language-ts extra-class"><pre class="language-ts"><code><span class="token keyword">interface</span> <span class="token class-name">Data</span> <span class="token punctuation">{</span>
+  flag<span class="token operator">:</span> <span class="token builtin">boolean</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">interface</span> <span class="token class-name">Context</span> <span class="token punctuation">{</span><span class="token punctuation">}</span>
+
+<span class="token keyword">type</span> <span class="token class-name">Event</span> <span class="token operator">=</span> <span class="token punctuation">{</span>
+  <span class="token comment">// 在此处添加以显示 TS 错误</span>
+  <span class="token keyword">type</span><span class="token operator">:</span> <span class="token string">'UNUSED_EVENT'</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">;</span>
+
+<span class="token generic-function"><span class="token function">createMachine</span><span class="token generic class-name"><span class="token operator">&lt;</span>Context<span class="token punctuation">,</span> Event<span class="token operator">&gt;</span></span></span><span class="token punctuation">(</span>
+  <span class="token punctuation">{</span>
+    invoke<span class="token operator">:</span> <span class="token punctuation">{</span>
+      <span class="token function-variable function">src</span><span class="token operator">:</span> <span class="token keyword">async</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+        <span class="token keyword">const</span> data<span class="token operator">:</span> Data <span class="token operator">=</span> <span class="token punctuation">{</span>
+          flag<span class="token operator">:</span> <span class="token boolean">true</span>
+        <span class="token punctuation">}</span><span class="token punctuation">;</span>
+        <span class="token keyword">return</span> data<span class="token punctuation">;</span>
+      <span class="token punctuation">}</span><span class="token punctuation">,</span>
+      onDone<span class="token operator">:</span> <span class="token punctuation">{</span>
+        actions<span class="token operator">:</span> <span class="token string">'consoleLogData'</span>
+      <span class="token punctuation">}</span><span class="token punctuation">,</span>
+      onError<span class="token operator">:</span> <span class="token punctuation">{</span>
+        actions<span class="token operator">:</span> <span class="token string">'consoleLogError'</span>
+      <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span><span class="token punctuation">,</span>
+  <span class="token punctuation">{</span>
+    actions<span class="token operator">:</span> <span class="token punctuation">{</span>
+      <span class="token function-variable function">consoleLogData</span><span class="token operator">:</span> <span class="token punctuation">(</span>context<span class="token punctuation">,</span> event<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+        <span class="token comment">// 此行出错 - 数据不存在！</span>
+        <span class="token builtin">console</span><span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>event<span class="token punctuation">.</span>data<span class="token punctuation">.</span>flag<span class="token punctuation">)</span><span class="token punctuation">;</span>
+      <span class="token punctuation">}</span><span class="token punctuation">,</span>
+      <span class="token function-variable function">consoleLogError</span><span class="token operator">:</span> <span class="token punctuation">(</span>context<span class="token punctuation">,</span> event<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+        <span class="token comment">// 此行出错 - 数据不存在！</span>
+        <span class="token builtin">console</span><span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>event<span class="token punctuation">.</span>data<span class="token punctuation">)</span><span class="token punctuation">;</span>
+      <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre></div><p>令人沮丧的是，解决此问题的最佳方法是将 <code>event</code> 转换为 <code>any</code> 并根据我们知道的内容重新分配它：</p> <div class="language-ts extra-class"><pre class="language-ts"><code><span class="token keyword">import</span> <span class="token punctuation">{</span> DoneInvokeEvent<span class="token punctuation">,</span> ErrorPlatformEvent <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'xstate'</span>
+
+actions<span class="token operator">:</span> <span class="token punctuation">{</span>
+  <span class="token function-variable function">consoleLogData</span><span class="token operator">:</span> <span class="token punctuation">(</span>context<span class="token punctuation">,</span> _event<span class="token operator">:</span> <span class="token builtin">any</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+    <span class="token keyword">const</span> event<span class="token operator">:</span> DoneInvokeEvent<span class="token operator">&lt;</span>Data<span class="token operator">&gt;</span> <span class="token operator">=</span> _event<span class="token punctuation">;</span>
+    <span class="token builtin">console</span><span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>event<span class="token punctuation">.</span>data<span class="token punctuation">.</span>flag<span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token punctuation">}</span><span class="token punctuation">,</span>
+  <span class="token function-variable function">consoleLogError</span><span class="token operator">:</span> <span class="token punctuation">(</span>context<span class="token punctuation">,</span> _event<span class="token operator">:</span> <span class="token builtin">any</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+    <span class="token keyword">const</span> event<span class="token operator">:</span> ErrorPlatformEvent <span class="token operator">=</span> _event<span class="token punctuation">;</span>
+    <span class="token comment">// Event.data 通常是 `Error` 类型</span>
+    <span class="token builtin">console</span><span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>event<span class="token punctuation">.</span>data<span class="token punctuation">.</span>message<span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+</code></pre></div><h3 id="分配行为异常"><a href="#分配行为异常" class="header-anchor">#</a> 分配行为异常</h3> <p>在 <code>strict: true</code> 模式下运行时，分配操作有时会表现得非常奇怪。</p> <div class="language-ts extra-class"><pre class="language-ts"><code><span class="token keyword">interface</span> <span class="token class-name">Context</span> <span class="token punctuation">{</span>
+  something<span class="token operator">:</span> <span class="token builtin">boolean</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+
+<span class="token generic-function"><span class="token function">createMachine</span><span class="token generic class-name"><span class="token operator">&lt;</span>Context<span class="token operator">&gt;</span></span></span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+  context<span class="token operator">:</span> <span class="token punctuation">{</span>
+    something<span class="token operator">:</span> <span class="token boolean">true</span>
+  <span class="token punctuation">}</span><span class="token punctuation">,</span>
+  entry<span class="token operator">:</span> <span class="token punctuation">[</span>
+    <span class="token comment">// 输入 'AssignAction&lt;{ something: false; }, AnyEventObject&gt;' 不可分配给类型 'string'。</span>
+    <span class="token function">assign</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+      <span class="token keyword">return</span> <span class="token punctuation">{</span>
+        something<span class="token operator">:</span> <span class="token boolean">false</span>
+      <span class="token punctuation">}</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+    <span class="token comment">// 输入 'AssignAction&lt;{ something: false; }, AnyEventObject&gt;' 不可分配给类型 'string'。</span>
+    <span class="token function">assign</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+      something<span class="token operator">:</span> <span class="token boolean">false</span>
+    <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+    <span class="token comment">// 输入 'AssignAction&lt;{ something: false; }, AnyEventObject&gt;' 不可分配给类型 'string'。</span>
+    <span class="token function">assign</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+      <span class="token function-variable function">something</span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token boolean">false</span>
+    <span class="token punctuation">}</span><span class="token punctuation">)</span>
+  <span class="token punctuation">]</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre></div><p>看起来你尝试的任何方法都不起作用，所有语法都有问题。 修复很奇怪，但始终如一。 将未使用的 <code>context</code> 参数添加到 assign 函数的第一个参数。</p> <div class="language-ts extra-class"><pre class="language-ts"><code>entry<span class="token operator">:</span> <span class="token punctuation">[</span>
+  <span class="token comment">// 没有更多的错误！</span>
+  <span class="token function">assign</span><span class="token punctuation">(</span><span class="token punctuation">(</span>context<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+    <span class="token keyword">return</span> <span class="token punctuation">{</span>
+      something<span class="token operator">:</span> <span class="token boolean">false</span><span class="token punctuation">,</span>
+    <span class="token punctuation">}</span><span class="token punctuation">;</span>
+  <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+  <span class="token comment">// 没有更多的错误！</span>
+  <span class="token function">assign</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+    <span class="token function-variable function">something</span><span class="token operator">:</span> <span class="token punctuation">(</span>context<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token boolean">false</span><span class="token punctuation">,</span>
+  <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+  <span class="token comment">// 不幸的是，此技术不适用于此语法</span>
+  <span class="token comment">// assign({</span>
+  <span class="token comment">//   something: false</span>
+  <span class="token comment">// }),</span>
+<span class="token punctuation">]</span><span class="token punctuation">,</span>
+</code></pre></div><p>这是一个需要修复的严重错误，涉及将我们的代码库移动到严格模式，但我们计划在 V5 中进行。</p> <h3 id="keyofstringsonly"><a href="#keyofstringsonly" class="header-anchor">#</a> <code>keyofStringsOnly</code></h3> <p>如果你看到此错误：</p> <div class="language- extra-class"><pre class="language-text"><code>
+输入错误：输入'string | number' 不满足约束 'string'。
+'number' 类型不能分配给 'string' 类型。 TS2344
+</code></pre></div><p>确保你的 tsconfig 文件不包含 <code>&quot;keyofStringsOnly&quot;: true,</code>。</p></div> <footer class="page-edit"><div class="edit-link"><a href="https://github.com/davidkpiano/xstate/edit/main/docs/zh/guides/typescript.md" target="_blank" rel="noopener noreferrer">在 GitHub 上编辑此页</a> <span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></div> <div class="last-updated"><span class="prefix">上次更新:</span> <span class="time">2022/1/6 下午5:07:51</span></div></footer> <div class="page-nav"><p class="inner"><span class="prev">
+      ←
+      <a href="/docs/zh/guides/testing.html" class="prev">
+        测试状态机
+      </a></span> <span class="next"><a href="/docs/zh/guides/scxml.html">
+        SCXML
+      </a>
+      →
+    </span></p></div> </main></div><div class="global-ui"></div></div>
+    <script src="/docs/assets/js/app.f9a8eb79.js" defer></script><script src="/docs/assets/js/3.2a139785.js" defer></script><script src="/docs/assets/js/9.47fde1b3.js" defer></script><script src="/docs/assets/js/120.70a3864e.js" defer></script><script src="/docs/assets/js/10.f0e23b4a.js" defer></script>
+  </body>
+</html>

@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>@xstate/graph | XState 文档</title>
+    <meta name="generator" content="VuePress 1.8.2">
+    <script src="https://plausible.io/js/plausible.js" defer="defer"></script>
+    <meta name="description" content="XState 文档：现代 Web 的状态机和状态图">
+    
+    <link rel="preload" href="/docs/assets/css/0.styles.2b0aa556.css" as="style"><link rel="preload" href="/docs/assets/js/app.f9a8eb79.js" as="script"><link rel="preload" href="/docs/assets/js/3.2a139785.js" as="script"><link rel="preload" href="/docs/assets/js/9.47fde1b3.js" as="script"><link rel="preload" href="/docs/assets/js/125.c5054fa6.js" as="script"><link rel="prefetch" href="/docs/assets/js/10.f0e23b4a.js"><link rel="prefetch" href="/docs/assets/js/100.d7c7203b.js"><link rel="prefetch" href="/docs/assets/js/101.e5651eb9.js"><link rel="prefetch" href="/docs/assets/js/102.98356cdf.js"><link rel="prefetch" href="/docs/assets/js/103.cc2de6ee.js"><link rel="prefetch" href="/docs/assets/js/104.062ebd1f.js"><link rel="prefetch" href="/docs/assets/js/105.b11a4457.js"><link rel="prefetch" href="/docs/assets/js/106.85c1fb84.js"><link rel="prefetch" href="/docs/assets/js/107.8ac2fd75.js"><link rel="prefetch" href="/docs/assets/js/108.45131a20.js"><link rel="prefetch" href="/docs/assets/js/109.bacd2f51.js"><link rel="prefetch" href="/docs/assets/js/11.6b22e883.js"><link rel="prefetch" href="/docs/assets/js/110.3ddbffbc.js"><link rel="prefetch" href="/docs/assets/js/111.77c587e4.js"><link rel="prefetch" href="/docs/assets/js/112.30e117f7.js"><link rel="prefetch" href="/docs/assets/js/113.2406b495.js"><link rel="prefetch" href="/docs/assets/js/114.e58f7d96.js"><link rel="prefetch" href="/docs/assets/js/115.c4cfd1e1.js"><link rel="prefetch" href="/docs/assets/js/116.5f73339a.js"><link rel="prefetch" href="/docs/assets/js/117.bb1e71da.js"><link rel="prefetch" href="/docs/assets/js/118.0e0898a6.js"><link rel="prefetch" href="/docs/assets/js/119.0a9af370.js"><link rel="prefetch" href="/docs/assets/js/12.fd10705f.js"><link rel="prefetch" href="/docs/assets/js/120.70a3864e.js"><link rel="prefetch" href="/docs/assets/js/121.08e7b817.js"><link rel="prefetch" href="/docs/assets/js/122.46b6b399.js"><link rel="prefetch" href="/docs/assets/js/123.111f9392.js"><link rel="prefetch" href="/docs/assets/js/124.e12c9b62.js"><link rel="prefetch" href="/docs/assets/js/126.59b2ad35.js"><link rel="prefetch" href="/docs/assets/js/127.689b52db.js"><link rel="prefetch" href="/docs/assets/js/128.c1f5b473.js"><link rel="prefetch" href="/docs/assets/js/129.cb9849b2.js"><link rel="prefetch" href="/docs/assets/js/13.7fc80339.js"><link rel="prefetch" href="/docs/assets/js/130.ea7be021.js"><link rel="prefetch" href="/docs/assets/js/131.d31e6dce.js"><link rel="prefetch" href="/docs/assets/js/132.51196030.js"><link rel="prefetch" href="/docs/assets/js/133.6f39e702.js"><link rel="prefetch" href="/docs/assets/js/134.ae8dbf37.js"><link rel="prefetch" href="/docs/assets/js/135.210984aa.js"><link rel="prefetch" href="/docs/assets/js/136.a420cc06.js"><link rel="prefetch" href="/docs/assets/js/137.a75aeacb.js"><link rel="prefetch" href="/docs/assets/js/138.2df47954.js"><link rel="prefetch" href="/docs/assets/js/139.867d7002.js"><link rel="prefetch" href="/docs/assets/js/14.8ce1a4ab.js"><link rel="prefetch" href="/docs/assets/js/140.34c52f78.js"><link rel="prefetch" href="/docs/assets/js/141.08b34bbb.js"><link rel="prefetch" href="/docs/assets/js/142.fc4ba473.js"><link rel="prefetch" href="/docs/assets/js/143.d2ba7930.js"><link rel="prefetch" href="/docs/assets/js/144.cbf342b5.js"><link rel="prefetch" href="/docs/assets/js/145.4d4837d3.js"><link rel="prefetch" href="/docs/assets/js/146.743889fb.js"><link rel="prefetch" href="/docs/assets/js/147.feabdd9c.js"><link rel="prefetch" href="/docs/assets/js/148.d42e19a1.js"><link rel="prefetch" href="/docs/assets/js/149.17b1ef2e.js"><link rel="prefetch" href="/docs/assets/js/15.c1e77132.js"><link rel="prefetch" href="/docs/assets/js/150.a61a1af5.js"><link rel="prefetch" href="/docs/assets/js/16.59633be9.js"><link rel="prefetch" href="/docs/assets/js/17.94abfc2f.js"><link rel="prefetch" href="/docs/assets/js/18.6e379201.js"><link rel="prefetch" href="/docs/assets/js/19.52defd9d.js"><link rel="prefetch" href="/docs/assets/js/20.d96278bf.js"><link rel="prefetch" href="/docs/assets/js/21.91b66e09.js"><link rel="prefetch" href="/docs/assets/js/22.585892ca.js"><link rel="prefetch" href="/docs/assets/js/23.ccdd46d1.js"><link rel="prefetch" href="/docs/assets/js/24.02c48d8d.js"><link rel="prefetch" href="/docs/assets/js/25.4874f911.js"><link rel="prefetch" href="/docs/assets/js/26.10a5cef1.js"><link rel="prefetch" href="/docs/assets/js/27.68f412bc.js"><link rel="prefetch" href="/docs/assets/js/28.40348427.js"><link rel="prefetch" href="/docs/assets/js/29.3a695430.js"><link rel="prefetch" href="/docs/assets/js/30.1c1008af.js"><link rel="prefetch" href="/docs/assets/js/31.b87c4e17.js"><link rel="prefetch" href="/docs/assets/js/32.036c2a71.js"><link rel="prefetch" href="/docs/assets/js/33.87428c4c.js"><link rel="prefetch" href="/docs/assets/js/34.9fb52f7e.js"><link rel="prefetch" href="/docs/assets/js/35.671fc86b.js"><link rel="prefetch" href="/docs/assets/js/36.afbcda4c.js"><link rel="prefetch" href="/docs/assets/js/37.004aee44.js"><link rel="prefetch" href="/docs/assets/js/38.c9c0a307.js"><link rel="prefetch" href="/docs/assets/js/39.8316996b.js"><link rel="prefetch" href="/docs/assets/js/4.833869ae.js"><link rel="prefetch" href="/docs/assets/js/40.68778e57.js"><link rel="prefetch" href="/docs/assets/js/41.7515ed5a.js"><link rel="prefetch" href="/docs/assets/js/42.6b841429.js"><link rel="prefetch" href="/docs/assets/js/43.8891a7a7.js"><link rel="prefetch" href="/docs/assets/js/44.2837bc31.js"><link rel="prefetch" href="/docs/assets/js/45.5763291b.js"><link rel="prefetch" href="/docs/assets/js/46.e510f06c.js"><link rel="prefetch" href="/docs/assets/js/47.3d87549d.js"><link rel="prefetch" href="/docs/assets/js/48.8d28ebcb.js"><link rel="prefetch" href="/docs/assets/js/49.b3369b36.js"><link rel="prefetch" href="/docs/assets/js/5.ffe2259d.js"><link rel="prefetch" href="/docs/assets/js/50.b001c983.js"><link rel="prefetch" href="/docs/assets/js/51.5f42972d.js"><link rel="prefetch" href="/docs/assets/js/52.6cf25e6e.js"><link rel="prefetch" href="/docs/assets/js/53.1d0c50da.js"><link rel="prefetch" href="/docs/assets/js/54.af61eba7.js"><link rel="prefetch" href="/docs/assets/js/55.7a77adec.js"><link rel="prefetch" href="/docs/assets/js/56.15dfc3a7.js"><link rel="prefetch" href="/docs/assets/js/57.9000b49f.js"><link rel="prefetch" href="/docs/assets/js/58.caf4e304.js"><link rel="prefetch" href="/docs/assets/js/59.259f7814.js"><link rel="prefetch" href="/docs/assets/js/6.bafab845.js"><link rel="prefetch" href="/docs/assets/js/60.864c3240.js"><link rel="prefetch" href="/docs/assets/js/61.2cf7a697.js"><link rel="prefetch" href="/docs/assets/js/62.3b0dceb6.js"><link rel="prefetch" href="/docs/assets/js/63.04baf8e2.js"><link rel="prefetch" href="/docs/assets/js/64.3ac2c7f4.js"><link rel="prefetch" href="/docs/assets/js/65.f2f4f62d.js"><link rel="prefetch" href="/docs/assets/js/66.31d7d731.js"><link rel="prefetch" href="/docs/assets/js/67.7de8e5a8.js"><link rel="prefetch" href="/docs/assets/js/68.262d8b7b.js"><link rel="prefetch" href="/docs/assets/js/69.c0f72cbb.js"><link rel="prefetch" href="/docs/assets/js/7.3f30186f.js"><link rel="prefetch" href="/docs/assets/js/70.d0bd9e52.js"><link rel="prefetch" href="/docs/assets/js/71.0960f284.js"><link rel="prefetch" href="/docs/assets/js/72.15d435bc.js"><link rel="prefetch" href="/docs/assets/js/73.c314e153.js"><link rel="prefetch" href="/docs/assets/js/74.bb4168c8.js"><link rel="prefetch" href="/docs/assets/js/75.3543949e.js"><link rel="prefetch" href="/docs/assets/js/76.8b0d2020.js"><link rel="prefetch" href="/docs/assets/js/77.86f9cce8.js"><link rel="prefetch" href="/docs/assets/js/78.39e1119f.js"><link rel="prefetch" href="/docs/assets/js/79.ab27be36.js"><link rel="prefetch" href="/docs/assets/js/8.1b04bf18.js"><link rel="prefetch" href="/docs/assets/js/80.900bd3a7.js"><link rel="prefetch" href="/docs/assets/js/81.d2c445d1.js"><link rel="prefetch" href="/docs/assets/js/82.3ecee5a4.js"><link rel="prefetch" href="/docs/assets/js/83.5d39ebfd.js"><link rel="prefetch" href="/docs/assets/js/84.9fb610dd.js"><link rel="prefetch" href="/docs/assets/js/85.632fbe9a.js"><link rel="prefetch" href="/docs/assets/js/86.662c17b5.js"><link rel="prefetch" href="/docs/assets/js/87.3ed6c0f5.js"><link rel="prefetch" href="/docs/assets/js/88.2fc1f800.js"><link rel="prefetch" href="/docs/assets/js/89.2f40245c.js"><link rel="prefetch" href="/docs/assets/js/90.c968db95.js"><link rel="prefetch" href="/docs/assets/js/91.0e61d4df.js"><link rel="prefetch" href="/docs/assets/js/92.4db22cd6.js"><link rel="prefetch" href="/docs/assets/js/93.3b151b01.js"><link rel="prefetch" href="/docs/assets/js/94.3cabb730.js"><link rel="prefetch" href="/docs/assets/js/95.93e8e858.js"><link rel="prefetch" href="/docs/assets/js/96.92f2ebd1.js"><link rel="prefetch" href="/docs/assets/js/97.6d45a082.js"><link rel="prefetch" href="/docs/assets/js/98.57800ba3.js"><link rel="prefetch" href="/docs/assets/js/99.4ea676dd.js"><link rel="prefetch" href="/docs/assets/js/vendors~docsearch.6f0f340d.js">
+    <link rel="stylesheet" href="/docs/assets/css/0.styles.2b0aa556.css">
+  </head>
+  <body>
+    <div id="app" data-server-rendered="true"><div class="theme-container"><header class="navbar"><div class="sidebar-button"><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img" viewBox="0 0 448 512" class="icon"><path fill="currentColor" d="M436 124H12c-6.627 0-12-5.373-12-12V80c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12zm0 160H12c-6.627 0-12-5.373-12-12v-32c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12zm0 160H12c-6.627 0-12-5.373-12-12v-32c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12z"></path></svg></div> <a href="/docs/zh/" class="home-link router-link-active"><img src="/docs/logo.svg" alt="XState 文档" class="logo"> <span class="site-name can-hide">XState 文档</span></a> <div class="links"><form id="search-form" role="search" class="algolia-search-wrapper search-box"><input id="algolia-search-input" class="search-query"></form> <nav class="nav-links can-hide"><div class="nav-item"><a href="https://paka.dev/npm/xstate/" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  API
+  <span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a></div><div class="nav-item"><a href="https://stately.ai/viz" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  可视化工具
+  <span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a></div><div class="nav-item"><a href="https://discord.gg/xtWgFTgvNV" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Discord
+  <span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a></div><div class="nav-item"><a href="https://github.com/statelyai/xstate/discussions" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  社区
+  <span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a></div><div class="nav-item"><div class="dropdown-wrapper"><button type="button" aria-label="Select language" class="dropdown-title"><span class="title">选择语言</span> <span class="arrow down"></span></button> <button type="button" aria-label="Select language" class="mobile-dropdown-title"><span class="title">选择语言</span> <span class="arrow right"></span></button> <ul class="nav-dropdown" style="display:none;"><li class="dropdown-item"><!----> <a href="/docs/packages/xstate-graph/" class="nav-link">
+  English
+</a></li><li class="dropdown-item"><!----> <a href="/docs/zh/packages/xstate-graph/" aria-current="page" class="nav-link router-link-exact-active router-link-active">
+  简体中文
+</a></li></ul></div></div> <a href="https://github.com/davidkpiano/xstate" target="_blank" rel="noopener noreferrer" class="repo-link">
+    GitHub
+    <span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a></nav></div></header> <div class="sidebar-mask"></div> <aside class="sidebar"><nav class="nav-links"><div class="nav-item"><a href="https://paka.dev/npm/xstate/" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  API
+  <span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a></div><div class="nav-item"><a href="https://stately.ai/viz" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  可视化工具
+  <span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a></div><div class="nav-item"><a href="https://discord.gg/xtWgFTgvNV" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Discord
+  <span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a></div><div class="nav-item"><a href="https://github.com/statelyai/xstate/discussions" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  社区
+  <span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a></div><div class="nav-item"><div class="dropdown-wrapper"><button type="button" aria-label="Select language" class="dropdown-title"><span class="title">选择语言</span> <span class="arrow down"></span></button> <button type="button" aria-label="Select language" class="mobile-dropdown-title"><span class="title">选择语言</span> <span class="arrow right"></span></button> <ul class="nav-dropdown" style="display:none;"><li class="dropdown-item"><!----> <a href="/docs/packages/xstate-graph/" class="nav-link">
+  English
+</a></li><li class="dropdown-item"><!----> <a href="/docs/zh/packages/xstate-graph/" aria-current="page" class="nav-link router-link-exact-active router-link-active">
+  简体中文
+</a></li></ul></div></div> <a href="https://github.com/davidkpiano/xstate" target="_blank" rel="noopener noreferrer" class="repo-link">
+    GitHub
+    <span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a></nav>  <ul class="sidebar-links"><li><section class="sidebar-group collapsable depth-0"><p class="sidebar-heading open"><span>什么是 XState?</span> <span class="arrow down"></span></p> <ul class="sidebar-links sidebar-group-items"><li><a href="/docs/zh/visualizer/" class="sidebar-link">可视化工具</a></li></ul></section></li><li><section class="sidebar-group collapsable depth-0"><p class="sidebar-heading"><span>关于</span> <span class="arrow right"></span></p> <!----></section></li><li><section class="sidebar-group collapsable depth-0"><p class="sidebar-heading"><span>向导</span> <span class="arrow right"></span></p> <!----></section></li><li><section class="sidebar-group collapsable depth-0"><p class="sidebar-heading"><span>教程</span> <span class="arrow right"></span></p> <!----></section></li><li><section class="sidebar-group collapsable depth-0"><p class="sidebar-heading"><span>配方</span> <span class="arrow right"></span></p> <!----></section></li><li><section class="sidebar-group collapsable depth-0"><p class="sidebar-heading"><span>包</span> <span class="arrow right"></span></p> <!----></section></li><li><section class="sidebar-group collapsable depth-0"><p class="sidebar-heading"><span>模式</span> <span class="arrow right"></span></p> <!----></section></li><li><section class="sidebar-group collapsable depth-0"><p class="sidebar-heading"><span>示例</span> <span class="arrow right"></span></p> <!----></section></li><li><section class="sidebar-group collapsable depth-0"><p class="sidebar-heading"><span>新闻和有用地址</span> <span class="arrow right"></span></p> <!----></section></li></ul> </aside> <main class="page"> <div class="theme-default-content content__default"><h1 id="xstate-graph"><a href="#xstate-graph" class="header-anchor">#</a> @xstate/graph</h1> <p><a href="https://github.com/statelyai/xstate/tree/main/packages/xstate-graph" target="_blank" rel="noopener noreferrer">@xstate/graph package<span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a> 包含用于 XState 状态机的图形算法和实用程序。</p> <h2 id="快速开始"><a href="#快速开始" class="header-anchor">#</a> 快速开始</h2> <ol><li>安装 <code>xstate</code> 和 <code>@xstate/graph</code>:</li></ol> <div class="language-bash extra-class"><pre class="language-bash"><code><span class="token function">npm</span> <span class="token function">install</span> xstate @xstate/graph
+</code></pre></div><ol start="2"><li>导入图相关方法。例如：</li></ol> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">import</span> <span class="token punctuation">{</span> createMachine <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'xstate'</span><span class="token punctuation">;</span>
+<span class="token keyword">import</span> <span class="token punctuation">{</span> getSimplePaths <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'@xstate/graph'</span><span class="token punctuation">;</span>
+
+<span class="token keyword">const</span> machine <span class="token operator">=</span> <span class="token function">createMachine</span><span class="token punctuation">(</span><span class="token comment">/* ... */</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword">const</span> paths <span class="token operator">=</span> <span class="token function">getSimplePaths</span><span class="token punctuation">(</span>machine<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre></div><h2 id="api"><a href="#api" class="header-anchor">#</a> API</h2> <h3 id="getshortestpaths-machine-options"><a href="#getshortestpaths-machine-options" class="header-anchor">#</a> <code>getShortestPaths(machine, options?)</code></h3> <p><strong>参数</strong></p> <ul><li><code>machine</code> - the <a href="https://xstate.js.org/docs/guides/machines.html" target="_blank" rel="noopener noreferrer"><code>Machine</code><span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a> to traverse</li> <li><code>options</code> (optional) - <a href="#options">options</a> that customize how the algorithm will traverse the machine</li></ul> <p>Returns the <a href="https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm" target="_blank" rel="noopener noreferrer">shortest paths (Dijkstra's algorithm)<span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a> of a <a href="https://xstate.js.org/docs/guides/machines.html" target="_blank" rel="noopener noreferrer">machine<span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a> from the initial state to every other state as a mapped object, where the:</p> <ul><li><strong>key</strong> is the stringified state</li> <li><strong>value</strong> is an object with the properties:
+<ul><li><code>state</code> - the target <a href="https://xstate.js.org/docs/guides/states.html" target="_blank" rel="noopener noreferrer"><code>State</code><span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a></li> <li><code>path</code> - the shortest path to get from the initial state to the target state</li></ul></li></ul> <p>The <code>path</code> is an array of segments, where each segment is an object with the properties:</p> <ul><li><code>state</code> - the <a href="https://xstate.js.org/docs/guides/states.html" target="_blank" rel="noopener noreferrer"><code>State</code><span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a> of the segment</li> <li><code>weight</code> - the total <a href="https://en.wikipedia.org/wiki/Graph_(discrete_mathematics)#Weighted_graph" target="_blank" rel="noopener noreferrer">weight<span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a> of the path
+<ul><li>Currently, each transition from one state to another has a weight of 1. This will be customizable in the future.</li></ul></li> <li><code>event</code> - the event object that transitions the <code>machine</code> from the state to the next state in the path</li></ul> <p>Every path starts with the initial state.</p> <p>The overall object structure looks like this:</p> <div class="language-json5 extra-class"><pre class="language-json5"><code><span class="token punctuation">{</span>
+  <span class="token property">&quot;&lt;SERIALIZED STATE&gt;&quot;</span><span class="token operator">:</span> <span class="token punctuation">{</span>
+    <span class="token property">&quot;state&quot;</span><span class="token operator">:</span> State <span class="token punctuation">{</span> ... <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    <span class="token property">&quot;path&quot;</span><span class="token operator">:</span> <span class="token punctuation">[</span>
+      <span class="token punctuation">{</span>
+        <span class="token property">&quot;state&quot;</span><span class="token operator">:</span> State <span class="token punctuation">{</span> ... <span class="token punctuation">}</span><span class="token punctuation">,</span>
+        <span class="token property">&quot;event&quot;</span><span class="token operator">:</span> <span class="token punctuation">{</span> <span class="token property">&quot;type&quot;</span><span class="token operator">:</span> <span class="token string">&quot;&lt;event.type&gt;&quot;</span><span class="token punctuation">,</span> <span class="token property">&quot;&lt;PROP&gt;&quot;</span><span class="token operator">:</span> <span class="token string">&quot;&lt;event.PROP&gt;&quot;</span> <span class="token punctuation">}</span>
+      <span class="token punctuation">}</span><span class="token punctuation">,</span>
+      <span class="token punctuation">{</span>
+        <span class="token property">&quot;state&quot;</span><span class="token operator">:</span> State <span class="token punctuation">{</span> ... <span class="token punctuation">}</span><span class="token punctuation">,</span>
+        <span class="token property">&quot;event&quot;</span><span class="token operator">:</span> <span class="token punctuation">{</span> <span class="token property">&quot;type&quot;</span><span class="token operator">:</span> <span class="token string">&quot;&lt;event.type&gt;&quot;</span><span class="token punctuation">,</span> <span class="token property">&quot;&lt;PROP&gt;&quot;</span><span class="token operator">:</span> <span class="token string">&quot;&lt;event.PROP&gt;&quot;</span> <span class="token punctuation">}</span>
+      <span class="token punctuation">}</span><span class="token punctuation">,</span>
+      ...
+    <span class="token punctuation">]</span>
+  <span class="token punctuation">}</span><span class="token punctuation">,</span>
+  ...
+<span class="token punctuation">}</span>
+</code></pre></div><p><strong>示例</strong></p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">import</span> <span class="token punctuation">{</span> createMachine <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'xstate'</span><span class="token punctuation">;</span>
+<span class="token keyword">import</span> <span class="token punctuation">{</span> getShortestPaths <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'@xstate/graph'</span><span class="token punctuation">;</span>
+
+<span class="token keyword">const</span> feedbackMachine <span class="token operator">=</span> <span class="token function">createMachine</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+  id<span class="token operator">:</span> <span class="token string">'feedback'</span><span class="token punctuation">,</span>
+  initial<span class="token operator">:</span> <span class="token string">'question'</span><span class="token punctuation">,</span>
+  states<span class="token operator">:</span> <span class="token punctuation">{</span>
+    question<span class="token operator">:</span> <span class="token punctuation">{</span>
+      on<span class="token operator">:</span> <span class="token punctuation">{</span>
+        <span class="token constant">CLICK_GOOD</span><span class="token operator">:</span> <span class="token string">'thanks'</span><span class="token punctuation">,</span>
+        <span class="token constant">CLICK_BAD</span><span class="token operator">:</span> <span class="token string">'form'</span><span class="token punctuation">,</span>
+        <span class="token constant">CLOSE</span><span class="token operator">:</span> <span class="token string">'closed'</span><span class="token punctuation">,</span>
+        <span class="token constant">ESC</span><span class="token operator">:</span> <span class="token string">'closed'</span>
+      <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    form<span class="token operator">:</span> <span class="token punctuation">{</span>
+      on<span class="token operator">:</span> <span class="token punctuation">{</span>
+        <span class="token constant">SUBMIT</span><span class="token operator">:</span> <span class="token string">'thanks'</span><span class="token punctuation">,</span>
+        <span class="token constant">CLOSE</span><span class="token operator">:</span> <span class="token string">'closed'</span><span class="token punctuation">,</span>
+        <span class="token constant">ESC</span><span class="token operator">:</span> <span class="token string">'closed'</span>
+      <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    thanks<span class="token operator">:</span> <span class="token punctuation">{</span>
+      on<span class="token operator">:</span> <span class="token punctuation">{</span>
+        <span class="token constant">CLOSE</span><span class="token operator">:</span> <span class="token string">'closed'</span><span class="token punctuation">,</span>
+        <span class="token constant">ESC</span><span class="token operator">:</span> <span class="token string">'closed'</span>
+      <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    closed<span class="token operator">:</span> <span class="token punctuation">{</span>
+      type<span class="token operator">:</span> <span class="token string">'final'</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token keyword">const</span> shortestPaths <span class="token operator">=</span> <span class="token function">getShortestPaths</span><span class="token punctuation">(</span>feedbackMachine<span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+console<span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>shortestPaths<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token comment">// =&gt; {</span>
+<span class="token comment">//   '&quot;question&quot;': {</span>
+<span class="token comment">//     state: State { value: 'question', context: undefined },</span>
+<span class="token comment">//     weight: 0,</span>
+<span class="token comment">//     path: []</span>
+<span class="token comment">//   },</span>
+<span class="token comment">//   '&quot;thanks&quot;': {</span>
+<span class="token comment">//     state: State { value: 'thanks', context: undefined },</span>
+<span class="token comment">//     weight: 1,</span>
+<span class="token comment">//     path: [</span>
+<span class="token comment">//       {</span>
+<span class="token comment">//         state: State { value: 'question', context: undefined },</span>
+<span class="token comment">//         event: { type: 'CLICK_GOOD' }</span>
+<span class="token comment">//       }</span>
+<span class="token comment">//     ]</span>
+<span class="token comment">//   },</span>
+<span class="token comment">//   '&quot;form&quot;': {</span>
+<span class="token comment">//     state: State { value: 'form', context: undefined },</span>
+<span class="token comment">//     weight: 1,</span>
+<span class="token comment">//     path: [</span>
+<span class="token comment">//       {</span>
+<span class="token comment">//         state: State { value: 'question', context: undefined },</span>
+<span class="token comment">//         event: { type: 'CLICK_BAD' }</span>
+<span class="token comment">//       }</span>
+<span class="token comment">//     ]</span>
+<span class="token comment">//   },</span>
+<span class="token comment">//   '&quot;closed&quot;': {</span>
+<span class="token comment">//     state: State { value: 'closed', context: undefined },</span>
+<span class="token comment">//     weight: 1,</span>
+<span class="token comment">//     path: [</span>
+<span class="token comment">//       {</span>
+<span class="token comment">//         state: State { value: 'question', context: undefined },</span>
+<span class="token comment">//         event: { type: 'CLOSE' }</span>
+<span class="token comment">//       }</span>
+<span class="token comment">//     ]</span>
+<span class="token comment">//   }</span>
+<span class="token comment">// };</span>
+</code></pre></div><h3 id="getsimplepaths-machine-options"><a href="#getsimplepaths-machine-options" class="header-anchor">#</a> <code>getSimplePaths(machine, options?)</code></h3> <p><strong>Arguments</strong></p> <ul><li><code>machine</code> - the <a href="https://xstate.js.org/docs/guides/machines.html" target="_blank" rel="noopener noreferrer"><code>Machine</code><span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a> to traverse</li> <li><code>options</code> (optional) - <a href="#options">options</a> that customize how the algorithm will traverse the machine</li></ul> <p>Returns the <a href="https://en.wikipedia.org/wiki/Path_(graph_theory)#Definitions" target="_blank" rel="noopener noreferrer">simple paths<span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a> of a <a href="https://xstate.js.org/docs/guides/machines.html" target="_blank" rel="noopener noreferrer">machine<span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a> as a mapped object, where the:</p> <ul><li><strong>key</strong> is the stringified state</li> <li><strong>value</strong> is an object with the properties:
+<ul><li><code>state</code> - the target <a href="https://xstate.js.org/docs/guides/states.html" target="_blank" rel="noopener noreferrer"><code>State</code><span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a></li> <li><code>paths</code> - the array of paths to get from the initial state to the target state</li></ul></li></ul> <p>Each <code>path</code> in <code>paths</code> is an array of segments, where each segment of the path is an object with the properties:</p> <ul><li><code>state</code> - the <a href="https://xstate.js.org/docs/guides/states.html" target="_blank" rel="noopener noreferrer"><code>State</code><span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a> of the segment</li> <li><code>event</code> - the event object that transitions the <code>machine</code> from the state to the next state in the path</li></ul> <p>Every path starts with the initial state.</p> <p>The overall object structure looks like this:</p> <div class="language-json5 extra-class"><pre class="language-json5"><code><span class="token punctuation">{</span>
+  <span class="token property">&quot;&lt;SERIALIZED STATE&gt;&quot;</span><span class="token operator">:</span> <span class="token punctuation">{</span>
+    <span class="token property">&quot;state&quot;</span><span class="token operator">:</span> State <span class="token punctuation">{</span> ... <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    <span class="token property">&quot;paths&quot;</span><span class="token operator">:</span> <span class="token punctuation">[</span>
+      <span class="token punctuation">[</span>
+        <span class="token punctuation">{</span>
+          <span class="token property">&quot;state&quot;</span><span class="token operator">:</span> State <span class="token punctuation">{</span> ... <span class="token punctuation">}</span><span class="token punctuation">,</span>
+          <span class="token property">&quot;event&quot;</span><span class="token operator">:</span> <span class="token punctuation">{</span> <span class="token property">&quot;type&quot;</span><span class="token operator">:</span> <span class="token string">&quot;&lt;event.type&gt;&quot;</span><span class="token punctuation">,</span> <span class="token property">&quot;&lt;PROP&gt;&quot;</span><span class="token operator">:</span> <span class="token string">&quot;&lt;event.PROP&gt;&quot;</span> <span class="token punctuation">}</span>
+        <span class="token punctuation">}</span><span class="token punctuation">,</span>
+        <span class="token punctuation">{</span>
+          <span class="token property">&quot;state&quot;</span><span class="token operator">:</span> State <span class="token punctuation">{</span> ... <span class="token punctuation">}</span><span class="token punctuation">,</span>
+          <span class="token property">&quot;event&quot;</span><span class="token operator">:</span> <span class="token punctuation">{</span> <span class="token property">&quot;type&quot;</span><span class="token operator">:</span> <span class="token string">&quot;&lt;event.type&gt;&quot;</span><span class="token punctuation">,</span> <span class="token property">&quot;&lt;PROP&gt;&quot;</span><span class="token operator">:</span> <span class="token string">&quot;&lt;event.PROP&gt;&quot;</span> <span class="token punctuation">}</span>
+        <span class="token punctuation">}</span><span class="token punctuation">,</span>
+        ...
+      <span class="token punctuation">]</span><span class="token punctuation">,</span>
+      ...
+    <span class="token punctuation">]</span>
+  <span class="token punctuation">}</span><span class="token punctuation">,</span>
+  ...
+<span class="token punctuation">}</span>
+</code></pre></div><p><strong>示例</strong></p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">import</span> <span class="token punctuation">{</span> createMachine <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'xstate'</span><span class="token punctuation">;</span>
+<span class="token keyword">import</span> <span class="token punctuation">{</span> getSimplePaths <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'@xstate/graph'</span><span class="token punctuation">;</span>
+
+<span class="token keyword">const</span> feedbackMachine <span class="token operator">=</span> <span class="token function">createMachine</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+  id<span class="token operator">:</span> <span class="token string">'feedback'</span><span class="token punctuation">,</span>
+  initial<span class="token operator">:</span> <span class="token string">'question'</span><span class="token punctuation">,</span>
+  states<span class="token operator">:</span> <span class="token punctuation">{</span>
+    question<span class="token operator">:</span> <span class="token punctuation">{</span>
+      on<span class="token operator">:</span> <span class="token punctuation">{</span>
+        <span class="token constant">CLICK_GOOD</span><span class="token operator">:</span> <span class="token string">'thanks'</span><span class="token punctuation">,</span>
+        <span class="token constant">CLICK_BAD</span><span class="token operator">:</span> <span class="token string">'form'</span><span class="token punctuation">,</span>
+        <span class="token constant">CLOSE</span><span class="token operator">:</span> <span class="token string">'closed'</span><span class="token punctuation">,</span>
+        <span class="token constant">ESC</span><span class="token operator">:</span> <span class="token string">'closed'</span>
+      <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    form<span class="token operator">:</span> <span class="token punctuation">{</span>
+      on<span class="token operator">:</span> <span class="token punctuation">{</span>
+        <span class="token constant">SUBMIT</span><span class="token operator">:</span> <span class="token string">'thanks'</span><span class="token punctuation">,</span>
+        <span class="token constant">CLOSE</span><span class="token operator">:</span> <span class="token string">'closed'</span><span class="token punctuation">,</span>
+        <span class="token constant">ESC</span><span class="token operator">:</span> <span class="token string">'closed'</span>
+      <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    thanks<span class="token operator">:</span> <span class="token punctuation">{</span>
+      on<span class="token operator">:</span> <span class="token punctuation">{</span>
+        <span class="token constant">CLOSE</span><span class="token operator">:</span> <span class="token string">'closed'</span><span class="token punctuation">,</span>
+        <span class="token constant">ESC</span><span class="token operator">:</span> <span class="token string">'closed'</span>
+      <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    closed<span class="token operator">:</span> <span class="token punctuation">{</span>
+      type<span class="token operator">:</span> <span class="token string">'final'</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token keyword">const</span> simplePaths <span class="token operator">=</span> <span class="token function">getSimplePaths</span><span class="token punctuation">(</span>feedbackMachine<span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+console<span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>simplePaths<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token comment">// =&gt; {</span>
+<span class="token comment">//   '&quot;question&quot;': {</span>
+<span class="token comment">//     state: { value: 'question', context: undefined },</span>
+<span class="token comment">//     paths: [[]]</span>
+<span class="token comment">//   },</span>
+<span class="token comment">//   '&quot;thanks&quot;': {</span>
+<span class="token comment">//     state: { value: 'thanks', context: undefined },</span>
+<span class="token comment">//     paths: [</span>
+<span class="token comment">//       [</span>
+<span class="token comment">//         {</span>
+<span class="token comment">//           state: { value: 'question', context: undefined },</span>
+<span class="token comment">//           event: { type: 'CLICK_GOOD' }</span>
+<span class="token comment">//         }</span>
+<span class="token comment">//       ],</span>
+<span class="token comment">//       [</span>
+<span class="token comment">//         {</span>
+<span class="token comment">//           state: { value: 'question', context: undefined },</span>
+<span class="token comment">//           event: { type: 'CLICK_BAD' }</span>
+<span class="token comment">//         },</span>
+<span class="token comment">//         {</span>
+<span class="token comment">//           state: { value: 'form', context: undefined },</span>
+<span class="token comment">//           event: { type: 'SUBMIT' }</span>
+<span class="token comment">//         }</span>
+<span class="token comment">//       ]</span>
+<span class="token comment">//     ]</span>
+<span class="token comment">//   },</span>
+<span class="token comment">//   '&quot;closed&quot;': {</span>
+<span class="token comment">//     state: { value: 'closed', context: undefined },</span>
+<span class="token comment">//     paths: [</span>
+<span class="token comment">//       [</span>
+<span class="token comment">//         {</span>
+<span class="token comment">//           state: { value: 'question', context: undefined },</span>
+<span class="token comment">//           event: { type: 'CLICK_GOOD' }</span>
+<span class="token comment">//         },</span>
+<span class="token comment">//         {</span>
+<span class="token comment">//           state: { value: 'thanks', context: undefined },</span>
+<span class="token comment">//           event: { type: 'CLOSE' }</span>
+<span class="token comment">//         }</span>
+<span class="token comment">//       ],</span>
+<span class="token comment">//       [</span>
+<span class="token comment">//         {</span>
+<span class="token comment">//           state: { value: 'question', context: undefined },</span>
+<span class="token comment">//           event: { type: 'CLICK_GOOD' }</span>
+<span class="token comment">//         },</span>
+<span class="token comment">//         {</span>
+<span class="token comment">//           state: { value: 'thanks', context: undefined },</span>
+<span class="token comment">//           event: { type: 'ESC' }</span>
+<span class="token comment">//         }</span>
+<span class="token comment">//       ],</span>
+<span class="token comment">//       ...</span>
+<span class="token comment">//     ]</span>
+<span class="token comment">//   },</span>
+<span class="token comment">//   ...</span>
+<span class="token comment">// };</span>
+</code></pre></div><h3 id="getpathfromevents-machine-events"><a href="#getpathfromevents-machine-events" class="header-anchor">#</a> <code>getPathFromEvents(machine, events)</code></h3> <p><strong>参数</strong></p> <ul><li><code>machine</code> - the <a href="https://xstate.js.org/docs/guides/machines.html" target="_blank" rel="noopener noreferrer"><code>Machine</code><span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a> to traverse</li> <li><code>events</code> - the sequence of events to generate a path from</li></ul> <p>Returns a path object with the following keys:</p> <ul><li><code>state</code> - the target <a href="https://xstate.js.org/docs/guides/states.html" target="_blank" rel="noopener noreferrer"><code>State</code><span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a></li> <li><code>segments</code> - an array of objects with the following shape:
+<ul><li><code>state</code> - the <a href="https://xstate.js.org/docs/guides/states.html" target="_blank" rel="noopener noreferrer"><code>State</code><span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a> of the segment</li> <li><code>event</code> - the event object that transitions the <code>machine</code> from the state to the next state in the path</li></ul></li></ul> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">import</span> <span class="token punctuation">{</span> createMachine <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'xstate'</span><span class="token punctuation">;</span>
+<span class="token keyword">import</span> <span class="token punctuation">{</span> getSimplePaths <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'@xstate/graph'</span><span class="token punctuation">;</span>
+
+<span class="token keyword">const</span> feedbackMachine <span class="token operator">=</span> <span class="token function">createMachine</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+  id<span class="token operator">:</span> <span class="token string">'feedback'</span><span class="token punctuation">,</span>
+  initial<span class="token operator">:</span> <span class="token string">'question'</span><span class="token punctuation">,</span>
+  states<span class="token operator">:</span> <span class="token punctuation">{</span>
+    question<span class="token operator">:</span> <span class="token punctuation">{</span>
+      on<span class="token operator">:</span> <span class="token punctuation">{</span>
+        <span class="token constant">CLICK_GOOD</span><span class="token operator">:</span> <span class="token string">'thanks'</span><span class="token punctuation">,</span>
+        <span class="token constant">CLICK_BAD</span><span class="token operator">:</span> <span class="token string">'form'</span><span class="token punctuation">,</span>
+        <span class="token constant">CLOSE</span><span class="token operator">:</span> <span class="token string">'closed'</span><span class="token punctuation">,</span>
+        <span class="token constant">ESC</span><span class="token operator">:</span> <span class="token string">'closed'</span>
+      <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    form<span class="token operator">:</span> <span class="token punctuation">{</span>
+      on<span class="token operator">:</span> <span class="token punctuation">{</span>
+        <span class="token constant">SUBMIT</span><span class="token operator">:</span> <span class="token string">'thanks'</span><span class="token punctuation">,</span>
+        <span class="token constant">CLOSE</span><span class="token operator">:</span> <span class="token string">'closed'</span><span class="token punctuation">,</span>
+        <span class="token constant">ESC</span><span class="token operator">:</span> <span class="token string">'closed'</span>
+      <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    thanks<span class="token operator">:</span> <span class="token punctuation">{</span>
+      on<span class="token operator">:</span> <span class="token punctuation">{</span>
+        <span class="token constant">CLOSE</span><span class="token operator">:</span> <span class="token string">'closed'</span><span class="token punctuation">,</span>
+        <span class="token constant">ESC</span><span class="token operator">:</span> <span class="token string">'closed'</span>
+      <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    closed<span class="token operator">:</span> <span class="token punctuation">{</span>
+      type<span class="token operator">:</span> <span class="token string">'final'</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token keyword">const</span> path <span class="token operator">=</span> <span class="token function">getPathFromEvents</span><span class="token punctuation">(</span>feedbackMachine<span class="token punctuation">,</span> <span class="token punctuation">[</span>
+  <span class="token punctuation">{</span> type<span class="token operator">:</span> <span class="token string">'CLICK_GOOD'</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>
+  <span class="token punctuation">{</span> type<span class="token operator">:</span> <span class="token string">'SUBMIT'</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>
+  <span class="token punctuation">{</span> type<span class="token operator">:</span> <span class="token string">'CLOSE'</span> <span class="token punctuation">}</span>
+<span class="token punctuation">]</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+console<span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>path<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token comment">// =&gt; {</span>
+<span class="token comment">//   state: { value: 'closed' },</span>
+<span class="token comment">//   segments: [</span>
+<span class="token comment">//     {</span>
+<span class="token comment">//       state: { value: 'question' },</span>
+<span class="token comment">//       event: { type: 'CLICK_GOOD' },</span>
+<span class="token comment">//     },</span>
+<span class="token comment">//     {</span>
+<span class="token comment">//       state: { value: 'form' },</span>
+<span class="token comment">//       event: { type: 'SUBMIT' },</span>
+<span class="token comment">//     },</span>
+<span class="token comment">//     {</span>
+<span class="token comment">//       state: { value: 'thanks' },</span>
+<span class="token comment">//       event: { type: 'CLOSE' },</span>
+<span class="token comment">//     },</span>
+<span class="token comment">//   ],</span>
+<span class="token comment">// }</span>
+</code></pre></div><h3 id="todirectedgraph-machine"><a href="#todirectedgraph-machine" class="header-anchor">#</a> <code>toDirectedGraph(machine)</code></h3> <p>Converts a <code>machine</code> to a directed graph structure.</p> <table><thead><tr><th>Argument</th> <th>Type</th> <th>Description</th></tr></thead> <tbody><tr><td><code>machine</code></td> <td>XState Machine created by <code>createMachine(...)</code></td> <td>The machine to convert to a directed graph structure</td></tr></tbody></table> <p><strong>示例</strong></p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">import</span> <span class="token punctuation">{</span> toDirectedGraph <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'@xstate/graph'</span><span class="token punctuation">;</span>
+
+<span class="token keyword">const</span> machine <span class="token operator">=</span> <span class="token function">createMachine</span><span class="token punctuation">(</span><span class="token punctuation">{</span><span class="token comment">/* ... */</span><span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token keyword">const</span> digraph <span class="token operator">=</span> <span class="token function">toDirectedGraph</span><span class="token punctuation">(</span>machine<span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token comment">// returns an object with this structure:</span>
+<span class="token punctuation">{</span>
+  id<span class="token operator">:</span> <span class="token string">'...'</span><span class="token punctuation">,</span>
+  stateNode<span class="token operator">:</span> <span class="token comment">/* StateNode */</span><span class="token punctuation">,</span>
+  children<span class="token operator">:</span> <span class="token punctuation">[</span>
+    <span class="token punctuation">{</span> id<span class="token operator">:</span> <span class="token string">'...'</span><span class="token punctuation">,</span> children<span class="token operator">:</span> <span class="token punctuation">[</span><span class="token comment">/* ... */</span><span class="token punctuation">]</span><span class="token punctuation">,</span> edges<span class="token operator">:</span> <span class="token punctuation">[</span><span class="token comment">/* ... */</span><span class="token punctuation">]</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    <span class="token punctuation">{</span> id<span class="token operator">:</span> <span class="token string">'...'</span><span class="token punctuation">,</span> <span class="token comment">/* ... */</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    <span class="token comment">// ...</span>
+  <span class="token punctuation">]</span><span class="token punctuation">,</span>
+  edges<span class="token operator">:</span> <span class="token punctuation">[</span>
+    <span class="token punctuation">{</span> source<span class="token operator">:</span> <span class="token comment">/* ... */</span><span class="token punctuation">,</span> target<span class="token operator">:</span> <span class="token comment">/* ... */</span><span class="token punctuation">,</span> transition<span class="token operator">:</span> <span class="token comment">/* ... */</span> <span class="token punctuation">}</span>
+    <span class="token comment">// ...</span>
+  <span class="token punctuation">]</span>
+<span class="token punctuation">}</span>
+</code></pre></div><h2 id="选项"><a href="#选项" class="header-anchor">#</a> 选项</h2> <p>Options can be passed into <code>getShortestPaths</code> or <code>getSimplePaths</code> to customize how the graph represented by the machine should be traversed:</p> <ul><li><code>events</code> - a mapping of event types to an array of event objects to be used for those events</li> <li><code>filter</code> - a function that determines whether a <code>state</code> should be traversed. If <code>false</code>, the traversal algorithm(s) will assume the state was &quot;seen&quot; and ignore traversing it.</li></ul> <p><strong>示例</strong></p> <p>In the below example, the <code>INC</code> event is expanded to include two possible events, with <code>value: 1</code> and <code>value: 2</code> as the payload. It also ensures that the <code>state.context.count &lt;= 5</code>; otherwise, this machine would be traversed infinitely.</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">const</span> counterMachine <span class="token operator">=</span> <span class="token function">createMachine</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+  id<span class="token operator">:</span> <span class="token string">'counter'</span><span class="token punctuation">,</span>
+  initial<span class="token operator">:</span> <span class="token string">'active'</span><span class="token punctuation">,</span>
+  context<span class="token operator">:</span> <span class="token punctuation">{</span> count<span class="token operator">:</span> <span class="token number">0</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>
+  states<span class="token operator">:</span> <span class="token punctuation">{</span>
+    active<span class="token operator">:</span> <span class="token punctuation">{</span>
+      on<span class="token operator">:</span> <span class="token punctuation">{</span>
+        <span class="token constant">INC</span><span class="token operator">:</span> <span class="token punctuation">{</span>
+          actions<span class="token operator">:</span> <span class="token function">assign</span><span class="token punctuation">(</span><span class="token punctuation">{</span> <span class="token function-variable function">count</span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token parameter">ctx<span class="token punctuation">,</span> e</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> ctx<span class="token punctuation">.</span>count <span class="token operator">+</span> e<span class="token punctuation">.</span>value <span class="token punctuation">}</span><span class="token punctuation">)</span>
+        <span class="token punctuation">}</span>
+      <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token keyword">const</span> shortestPaths <span class="token operator">=</span> <span class="token function">getShortestPaths</span><span class="token punctuation">(</span>counterMachine<span class="token punctuation">,</span> <span class="token punctuation">{</span>
+  events<span class="token operator">:</span> <span class="token punctuation">{</span>
+    <span class="token constant">INC</span><span class="token operator">:</span> <span class="token punctuation">[</span>
+      <span class="token punctuation">{</span> type<span class="token operator">:</span> <span class="token string">'INC'</span><span class="token punctuation">,</span> value<span class="token operator">:</span> <span class="token number">1</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>
+      <span class="token punctuation">{</span> type<span class="token operator">:</span> <span class="token string">'INC'</span><span class="token punctuation">,</span> value<span class="token operator">:</span> <span class="token number">2</span> <span class="token punctuation">}</span>
+    <span class="token punctuation">]</span>
+  <span class="token punctuation">}</span><span class="token punctuation">,</span>
+  <span class="token function-variable function">filter</span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token parameter">state</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> state<span class="token punctuation">.</span>context<span class="token punctuation">.</span>count <span class="token operator">&lt;=</span> <span class="token number">5</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+console<span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>shortestPaths<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token comment">// =&gt; {</span>
+<span class="token comment">//   '&quot;active&quot; | {&quot;count&quot;:0}': {</span>
+<span class="token comment">//     state: { value: 'active', context: { count: 0 } },</span>
+<span class="token comment">//     weight: 0,</span>
+<span class="token comment">//     path: []</span>
+<span class="token comment">//   },</span>
+<span class="token comment">//   '&quot;active&quot; | {&quot;count&quot;:1}': {</span>
+<span class="token comment">//     state: { value: 'active', context: { count: 1 } },</span>
+<span class="token comment">//     weight: 1,</span>
+<span class="token comment">//     path: [</span>
+<span class="token comment">//       {</span>
+<span class="token comment">//         state: { value: 'active', context: { count: 0 } },</span>
+<span class="token comment">//         event: { type: 'INC', value: 1 }</span>
+<span class="token comment">//       }</span>
+<span class="token comment">//     ]</span>
+<span class="token comment">//   },</span>
+<span class="token comment">//   '&quot;active&quot; | {&quot;count&quot;:2}': {</span>
+<span class="token comment">//     state: { value: 'active', context: { count: 2 } },</span>
+<span class="token comment">//     weight: 1,</span>
+<span class="token comment">//     path: [</span>
+<span class="token comment">//       {</span>
+<span class="token comment">//         state: { value: 'active', context: { count: 0 } },</span>
+<span class="token comment">//         event: { type: 'INC', value: 2 }</span>
+<span class="token comment">//       }</span>
+<span class="token comment">//     ]</span>
+<span class="token comment">//   },</span>
+<span class="token comment">//   '&quot;active&quot; | {&quot;count&quot;:3}': {</span>
+<span class="token comment">//     state: { value: 'active', context: { count: 3 } },</span>
+<span class="token comment">//     weight: 2,</span>
+<span class="token comment">//     path: [</span>
+<span class="token comment">//       {</span>
+<span class="token comment">//         state: { value: 'active', context: { count: 0 } },</span>
+<span class="token comment">//         event: { type: 'INC', value: 1 }</span>
+<span class="token comment">//       },</span>
+<span class="token comment">//       {</span>
+<span class="token comment">//         state: { value: 'active', context: { count: 1 } },</span>
+<span class="token comment">//         event: { type: 'INC', value: 2 }</span>
+<span class="token comment">//       }</span>
+<span class="token comment">//     ]</span>
+<span class="token comment">//   },</span>
+<span class="token comment">//   ...</span>
+<span class="token comment">// };</span>
+</code></pre></div></div> <footer class="page-edit"><div class="edit-link"><a href="https://github.com/davidkpiano/xstate/edit/main/docs/zh/packages/xstate-graph/index.md" target="_blank" rel="noopener noreferrer">在 GitHub 上编辑此页</a> <span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></div> <div class="last-updated"><span class="prefix">上次更新:</span> <span class="time">2022/1/6 下午5:07:51</span></div></footer> <!----> </main></div><div class="global-ui"></div></div>
+    <script src="/docs/assets/js/app.f9a8eb79.js" defer></script><script src="/docs/assets/js/3.2a139785.js" defer></script><script src="/docs/assets/js/9.47fde1b3.js" defer></script><script src="/docs/assets/js/125.c5054fa6.js" defer></script>
+  </body>
+</html>
