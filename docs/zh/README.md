@@ -175,7 +175,12 @@ dogService.send({ type: 'FETCH' });
 
 ## 有限状态机
 
-<img src="https://imgur.com/rqqmkJh.png" alt="Light Machine" width="300" />
+<a href="https://stately.ai/viz/2ac5915f-789a-493f-86d3-a8ec079773f4" title="Finite states">
+  <img src="https://user-images.githubusercontent.com/1093738/131727631-916d28a7-1a40-45ed-8636-c0c0fc1c3889.gif" alt="Finite states" width="400" />
+  <br />
+  <small>使用 Stately Viz 查看</small>
+</a>
+<br />
 
 ```js
 import { createMachine } from 'xstate';
