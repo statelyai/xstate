@@ -26,24 +26,24 @@
 - [🔬 `@xstate/fsm`](https://github.com/statelyai/xstate/tree/main/packages/xstate-fsm) - 最小有限状态机库
 - [📉 `@xstate/graph`](https://github.com/statelyai/xstate/tree/main/packages/xstate-graph) - XState 的图遍历实用工具包
 - [⚛️ `@xstate/react`](https://github.com/statelyai/xstate/tree/main/packages/xstate-react) - 在 React 应用中使用 XState 的 React Hooks 和实用工具包
-- [💚 `@xstate/vue`](https://github.com/statelyai/xstate/tree/main/packages/xstate-vue) - 用于在 Vue 应用中使用 XState 的 Vue 组合函数和实用工具包
-- [🎷 `@xstate/svelte`](https://github.com/statelyai/xstate/tree/main/packages/xstate-svelte) - 用于在 Svelte 应用中使用 XState 的 Svelte 实用工具包
+- [💚 `@xstate/vue`](https://github.com/statelyai/xstate/tree/main/packages/xstate-vue) - 在 Vue 应用中使用 XState 的 Vue 组合函数和实用工具包
+- [🎷 `@xstate/svelte`](https://github.com/statelyai/xstate/tree/main/packages/xstate-svelte) - 在 Svelte 应用中使用 XState 的 Svelte 实用工具包
 - [✅ `@xstate/test`](https://github.com/statelyai/xstate/tree/main/packages/xstate-test) - 基于模型测试的实用工具包（使用 XState）
 - [🔍 `@xstate/inspect`](https://github.com/statelyai/xstate/tree/main/packages/xstate-inspect) - XState 的检查实用工具包
 
 ## 模板
 
-首先在 CodeSandbox 上创建这些模板之一：
+在 CodeSandbox 上复刻这些模板来开始：
 
-- [XState Template](https://codesandbox.io/s/xstate-example-template-m4ckv) - 没有框架
-- [XState + TypeScript Template](https://codesandbox.io/s/xstate-typescript-template-s9kz8) - 没有框架
-- [XState + React Template](https://codesandbox.io/s/xstate-react-template-3t2tg)
-- [XState + React + TypeScript Template](https://codesandbox.io/s/xstate-react-typescript-template-wjdvn)
-- [XState + Vue Template](https://codesandbox.io/s/xstate-vue-template-composition-api-1n23l)
-- [XState + Vue 3 Template](https://codesandbox.io/s/xstate-vue-3-template-vrkk9)
-- [XState + Svelte Template](https://codesandbox.io/s/xstate-svelte-template-jflv1)
+- [XState 模板](https://codesandbox.io/s/xstate-example-template-m4ckv) - 没有框架
+- [XState + TypeScript 模板](https://codesandbox.io/s/xstate-typescript-template-s9kz8) - 没有框架
+- [XState + React 模板](https://codesandbox.io/s/xstate-react-template-3t2tg)
+- [XState + React + TypeScript 模板](https://codesandbox.io/s/xstate-react-typescript-template-wjdvn)
+- [XState + Vue 模板](https://codesandbox.io/s/xstate-vue-template-composition-api-1n23l)
+- [XState + Vue 3 模板](https://codesandbox.io/s/xstate-vue-3-template-vrkk9)
+- [XState + Svelte 模板](https://codesandbox.io/s/xstate-svelte-template-jflv1)
 
-## 超级快速上手
+## 超快速上手
 
 ```bash
 npm install xstate
@@ -86,7 +86,7 @@ toggleService.send({ type: 'TOGGLE' });
 
 ## Promise 示例
 
-[📉 在 stately.ai/viz](https://stately.ai/viz?gist=bbcb4379b36edea0458f597e5eec2f91) 上查看可视化
+[📉 通过 stately.ai/viz 进行可视化](https://stately.ai/viz?gist=bbcb4379b36edea0458f597e5eec2f91)
 
 ```js
 import { createMachine, interpret, assign } from 'xstate';
@@ -163,15 +163,15 @@ dogService.send({ type: 'FETCH' });
 
 ## 为什么?
 
-状态图是一种，用于对有状态的交互式系统，进行建模的方式。从单个组件到整个应用程序逻辑，这对于以声明方式描述应用的 _行为_ 非常有用。
+状态图用于对有状态的交互式系统进行建模。从单个组件到整个应用程序逻辑，都非常有助于以声明方式描述应用的 _行为_。
 
 阅读 [📽 幻灯片](http://slides.com/davidkhourshid/finite-state-machines) ([🎥 视频](https://www.youtube.com/watch?v=VU1NKX6Qkxc)) 或查看这些资源以了解有限状态机和状态图在 UI 中的重要性：
 
-- [状态图 - 一个复杂系统的可视化表现](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf) by David Harel
+- [状态图 - 复杂系统的视觉形式化](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf) by David Harel
 - [状态图的世界](https://statecharts.github.io/) by Erik Mogensen
 - [纯 UI](https://rauchg.com/2015/pure-ui) by Guillermo Rauch
 - [纯 UI 控制](https://medium.com/@asolove/pure-ui-control-ac8d1be97a8d) by Adam Solove
-- [Spectrum - 状态图社区](https://spectrum.chat/statecharts) (对于 XState 特定问题，请使用 [GitHub 讨论](https://github.com/statelyai/xstate/discussions))
+- [Spectrum - 状态图社区](https://spectrum.chat/statecharts) (对于 XState 的特定问题，请使用 [GitHub 讨论](https://github.com/statelyai/xstate/discussions))
 
 ## 有限状态机
 
@@ -464,7 +464,7 @@ const previousState = paymentMachine.transition(reviewState, {
 
 ## 赞助商
 
-非常感谢以下公司赞助 `xstate`。 你可以 [在 OpenCollective](https://opencollective.com/xstate) 上赞助来促进 `xstate` 开发。
+非常感谢以下公司赞助 `xstate`。 你可以通过[在 OpenCollective](https://opencollective.com/xstate) 上赞助来促进 `xstate` 开发。
 
 <a href="https://tipe.io" title="Tipe.io"><img src="https://cdn.tipe.io/tipe/tipe-logo.svg?w=240" style="background:#613DEF" /></a>
 <a href="https://webflow.com" title="Webflow"><img src="https://uploads-ssl.webflow.com/583347ca8f6c7ee058111b3b/5b03bde0971fdd75d75b5591_webflow.png" height="100" /></a>
