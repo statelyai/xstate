@@ -145,13 +145,13 @@ dogService.send({ type: 'FETCH' });
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-- [可视化工具](#visualizer)
-- [为什么?](#why)
-- [有限状态机](#finite-state-machines)
-- [分层（嵌套）状态机](#hierarchical-nested-state-machines)
-- [并行状态机](#parallel-state-machines)
-- [历史状态](#history-states)
-- [赞助商](#sponsors)
+- [可视化工具](#可视化工具)
+- [为什么?](#为什么?)
+- [有限状态机](#有限状态机)
+- [分层（嵌套）状态机](#分层（嵌套）状态机)
+- [并行状态机](#并行状态机)
+- [历史状态](#历史状态)
+- [赞助商](#赞助商)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
