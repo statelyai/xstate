@@ -6,4 +6,6 @@ The `sendTo(actorRef, event)` action creator introduced in `4.27.0`, which was n
 
 ```js
 import { actions } from 'xstate';
-actions.sendTo
+
+const { sendTo } = actions;
+```
