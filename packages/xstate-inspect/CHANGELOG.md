@@ -1,5 +1,11 @@
 # @xstate/inspect
 
+## 0.6.1
+
+### Patch Changes
+
+- [#2907](https://github.com/statelyai/xstate/pull/2907) [`3a8eb6574`](https://github.com/statelyai/xstate/commit/3a8eb6574db51c3d02c900561be87a48fd9a973c) Thanks [@rossng](https://github.com/rossng)! - Fix crash when sending circular state objects (#2373).
+
 ## 0.6.0
 
 ### Minor Changes
