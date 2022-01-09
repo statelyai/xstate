@@ -161,7 +161,7 @@ Note that you don't need to call `useActor` for this, it's available right on th
 In the above examples, in order for the component to have access to the global state it is required to wrap the component with the global state provider. 
 ```js
 import SomeComponent from './someComponent'
-import GlobalStateProvider from './GobalStateProvider'
+import GlobalStateProvider from './GlobalStateProvider'
 
 export const App(){
   return (
