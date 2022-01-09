@@ -45,6 +45,7 @@ describe('useMachine hook', () => {
       },
       loading: {
         invoke: {
+          id: 'fetchData',
           src: 'fetchData',
           onDone: {
             target: 'success',
@@ -62,7 +63,7 @@ describe('useMachine hook', () => {
   });
 
   const persistedFetchState = fetchMachine.transition('loading', {
-    type: 'done.invoke.fetch.loading:invocation[0]',
+    type: 'done.invoke.fetchData',
     data: 'persisted data'
   });
 
@@ -70,7 +71,10 @@ describe('useMachine hook', () => {
     onFetch: () => Promise<any>;
     persistedState?: State<any, any>;
   }> = ({
-    onFetch = () => new Promise((res) => res('some data')),
+    onFetch = () => {
+      console.log('fetching...');
+      return new Promise((res) => res('some data'));
+    },
     persistedState
   }) => {
     const [current, send] = useMachine(fetchMachine, {
@@ -79,6 +83,8 @@ describe('useMachine hook', () => {
       },
       state: persistedState
     });
+
+    console.log(current.value);
 
     switch (current.value) {
       case 'idle':

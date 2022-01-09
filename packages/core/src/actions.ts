@@ -18,6 +18,7 @@ import { ExecutableAction } from '../actions/ExecutableAction';
 import { isDynamicAction } from '../actions/dynamicAction';
 export {
   send,
+  sendTo,
   sendUpdate,
   sendParent,
   respond,

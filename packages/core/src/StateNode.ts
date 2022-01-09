@@ -353,7 +353,7 @@ export class StateNode<
 
     const candidates: Array<TransitionDefinition<TContext, TEvent>> = memo(
       this,
-      `candidates-${eventName}`,
+      `candidates-${eventName.toString()}`,
       () =>
         getCandidates(
           this,

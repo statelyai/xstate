@@ -5,6 +5,7 @@ import { State } from './State';
 import { createMachine } from './Machine';
 import {
   sendParent,
+  sendTo,
   sendUpdate,
   after,
   done,
@@ -39,6 +40,7 @@ const actions = {
   raise,
   send,
   sendParent,
+  sendTo,
   sendUpdate,
   log,
   cancel,
