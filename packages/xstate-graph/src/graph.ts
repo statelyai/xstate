@@ -129,7 +129,7 @@ export function getAdjacencyMap<
     adjacency[stateHash] = {};
 
     const potentialEvents = flatten<TEvent>(
-      nextEvents.map((nextEvent) => {
+      (nextEvents as string[]).map((nextEvent) => {
         const getNextEvents = events[nextEvent];
 
         if (!getNextEvents) {
