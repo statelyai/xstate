@@ -1,5 +1,74 @@
 # xstate
 
+## 4.28.0
+
+### Minor Changes
+
+- [#2835](https://github.com/statelyai/xstate/pull/2835) [`029f7b75a`](https://github.com/statelyai/xstate/commit/029f7b75a22a8186e5e3983dfd980c52369ef09f) Thanks [@woutermont](https://github.com/woutermont)! - Added interop observable symbols to `ActorRef` so that actor refs are compatible with libraries like RxJS.
+
+### Patch Changes
+
+- [#2864](https://github.com/statelyai/xstate/pull/2864) [`4252ee212`](https://github.com/statelyai/xstate/commit/4252ee212e59fd074707b933c101662d47938849) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Generated IDs for invocations that do not provide an `id` are now based on the state ID to avoid collisions:
+
+  ```js
+  createMachine({
+    id: 'test',
+    initial: 'p',
+    states: {
+      p: {
+        type: 'parallel',
+        states: {
+          // Before this change, both invoke IDs would be 'someSource',
+          // which is incorrect.
+          a: {
+            invoke: {
+              src: 'someSource'
+              // generated invoke ID: 'test.p.a:invocation[0]'
+            }
+          },
+          b: {
+            invoke: {
+              src: 'someSource'
+              // generated invoke ID: 'test.p.b:invocation[0]'
+            }
+          }
+        }
+      }
+    }
+  });
+  ```
+
+* [#2925](https://github.com/statelyai/xstate/pull/2925) [`239b4666a`](https://github.com/statelyai/xstate/commit/239b4666ac302d80c028fef47c6e8ab7e0ae2757) Thanks [@devanfarrell](https://github.com/devanfarrell)! - The `sendTo(actorRef, event)` action creator introduced in `4.27.0`, which was not accessible from the package exports, can now be used just like other actions:
+
+  ```js
+  import { actions } from 'xstate';
+
+  const { sendTo } = actions;
+  ```
+
+## 4.27.0
+
+### Minor Changes
+
+- [#2800](https://github.com/statelyai/xstate/pull/2800) [`759a90155`](https://github.com/statelyai/xstate/commit/759a9015512bbf532d7044afe6a889c04dc7edf6) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `sendTo(actorRef, event)` action creator has been introduced. It allows you to specify the recipient actor ref of an event first, so that the event can be strongly typed against the events allowed to be received by the actor ref:
+
+  ```ts
+  // ...
+  entry: sendTo(
+    (ctx) => ctx.someActorRef,
+    { type: 'EVENT_FOR_ACTOR' }
+  ),
+  // ...
+  ```
+
+### Patch Changes
+
+- [#2804](https://github.com/statelyai/xstate/pull/2804) [`f3caecf5a`](https://github.com/statelyai/xstate/commit/f3caecf5ad384cfe2a843c26333aaa46a77ece68) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `state.can(...)` method no longer unnecessarily executes `assign()` actions and instead determines if a given event will change the state by reading transition data before evaluating actions.
+
+* [#2856](https://github.com/statelyai/xstate/pull/2856) [`49c2e9094`](https://github.com/statelyai/xstate/commit/49c2e90945d369e2dfb2e4fc376b3f46714dce09) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with stopped children sometimes starting their own child actors. This could happen when the child was stopped synchronously (for example by its parent) when transitioning to an invoking state.
+
+- [#2895](https://github.com/statelyai/xstate/pull/2895) [`df5ffce14`](https://github.com/statelyai/xstate/commit/df5ffce14908d0aa8056a56001039dfd260be1a4) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with some exit handlers being executed more than once when stopping a machine.
+
 ## 4.26.1
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 import { WebSocketServer } from 'ws';
 import { ActorRef, EventObject, interpret, Interpreter } from 'xstate';
-import { toEventObject, toSCXMLEvent } from 'xstate/src/utils';
+import { interopSymbols, toEventObject, toSCXMLEvent } from 'xstate/src/utils';
 
 import { createInspectMachine } from './inspectMachine';
 import { Inspector, Replacer } from './types';
@@ -59,7 +59,8 @@ export function inspect(options: ServerInspectorOptions): Inspector {
     subscribe: () => {
       return { unsubscribe: () => void 0 };
     },
-    getSnapshot: () => undefined
+    getSnapshot: () => undefined,
+    ...interopSymbols
   };
 
   server.on('connection', function connection(wsClient) {
@@ -122,14 +123,6 @@ export function inspect(options: ServerInspectorOptions): Inspector {
         sessionId: service.sessionId
       });
     });
-
-    service.subscribe((state) => {
-      inspectService.send({
-        type: 'service.state',
-        state: JSON.stringify(state),
-        sessionId: service.sessionId
-      });
-    });
   });
 
   const inspector: Inspector = {
@@ -146,7 +139,8 @@ export function inspect(options: ServerInspectorOptions): Inspector {
       server.close();
       inspectService.stop();
     },
-    getSnapshot: () => undefined
+    getSnapshot: () => undefined,
+    ...interopSymbols
   };
 
   server.on('close', () => {
