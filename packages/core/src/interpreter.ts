@@ -108,7 +108,9 @@ export class Interpreter<
   public options: Readonly<InterpreterOptions>;
 
   public id: string;
-  private mailbox: Mailbox<SCXML.Event<TEvent>> = new Mailbox();
+  private mailbox: Mailbox<SCXML.Event<TEvent>> = new Mailbox(
+    this._process.bind(this)
+  );
   private delayedEventsMap: Record<string, number> = {};
   private listeners: Set<StateListener<TContext, TEvent>> = new Set();
   private stopListeners: Set<Listener> = new Set();
@@ -403,25 +405,18 @@ export class Interpreter<
       this.attachDevTools();
     }
 
-    this.flush();
+    this.mailbox.start();
 
     return this;
   }
 
-  private flush() {
-    this.mailbox.status = 'processing';
-    let event = this.mailbox.dequeue();
-    while (event) {
-      // TODO: handle errors
-      this.forward(event);
+  private _process(event: SCXML.Event<TEvent>) {
+    // TODO: handle errors
+    this.forward(event);
 
-      const nextState = this.nextState(event);
+    const nextState = this.nextState(event);
 
-      this.update(nextState);
-
-      event = this.mailbox.dequeue();
-    }
-    this.mailbox.status = 'idle';
+    this.update(nextState);
   }
 
   /**
@@ -511,10 +506,6 @@ export class Interpreter<
     }
 
     this.mailbox.enqueue(_event);
-
-    if (this.mailbox.status === 'idle') {
-      this.flush();
-    }
   };
 
   private sendTo(
