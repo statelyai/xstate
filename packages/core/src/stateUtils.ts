@@ -433,16 +433,6 @@ export function formatTransition<
     })
   };
 
-  Object.defineProperty(transition, 'toJSON', {
-    value: () => ({
-      ...transition,
-      target: transition.target
-        ? transition.target.map((t) => `#${t.id}`)
-        : undefined,
-      source: `#${stateNode.id}`
-    })
-  });
-
   return transition;
 }
 export function formatTransitions<

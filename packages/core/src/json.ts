@@ -94,26 +94,3 @@ export function parse(machineString: string): StateNodeConfig {
 
   return config;
 }
-
-export function jsonify<T extends Record<string, any>>(value: T): T {
-  Object.defineProperty(value, 'toJSON', {
-    value: () =>
-      mapValues(value, (subValue) => {
-        if (isFunction(subValue)) {
-          return stringifyFunction(subValue);
-        } else if (typeof subValue === 'object' && !Array.isArray(subValue)) {
-          // mostly for assignments
-          return mapValues(subValue, (subSubValue) => {
-            if (isFunction(subSubValue)) {
-              return stringifyFunction(subSubValue);
-            }
-            return subSubValue;
-          });
-        }
-
-        return subValue;
-      })
-  });
-
-  return value;
-}
