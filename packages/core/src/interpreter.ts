@@ -19,20 +19,18 @@ import {
 } from './types';
 import { State, isState } from './State';
 import * as actionTypes from './actionTypes';
-import { doneInvoke, error, initEvent } from './actions';
+import { doneInvoke, error } from './actions';
 import { IS_PRODUCTION } from './environment';
 import {
   mapContext,
   warn,
   keys,
-  isArray,
   isFunction,
   toSCXMLEvent,
   symbolObservable,
   isSCXMLErrorEvent,
   toEventObject
 } from './utils';
-import { Scheduler } from './scheduler';
 import { isActorRef } from './actor';
 import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
@@ -49,6 +47,7 @@ import type {
   Subscribable
 } from './types';
 import { isExecutableAction } from '../actions/ExecutableAction';
+import { Mailbox } from './Mailbox';
 
 export type StateListener<
   TContext extends MachineContext,
@@ -109,7 +108,9 @@ export class Interpreter<
   public options: Readonly<InterpreterOptions>;
 
   public id: string;
-  private scheduler: Scheduler = new Scheduler();
+  private mailbox: Mailbox<SCXML.Event<TEvent>> = new Mailbox(
+    this._process.bind(this)
+  );
   private delayedEventsMap: Record<string, number> = {};
   private listeners: Set<StateListener<TContext, TEvent>> = new Set();
   private stopListeners: Set<Listener> = new Set();
@@ -158,10 +159,6 @@ export class Interpreter<
 
     this.options = resolvedOptions;
 
-    this.scheduler = new Scheduler({
-      deferEvents: this.options.deferEvents
-    });
-
     this.ref = this;
 
     this.sessionId = this.ref.name;
@@ -208,10 +205,7 @@ export class Interpreter<
     }
   }
 
-  private update(
-    state: State<TContext, TEvent>,
-    _event: SCXML.Event<TEvent>
-  ): void {
+  private update(state: State<TContext, TEvent>): void {
     // Attach session ID to state
     state._sessionid = this.sessionId;
 
@@ -235,7 +229,11 @@ export class Interpreter<
 
       const doneData =
         finalChildStateNode && finalChildStateNode.doneData
-          ? mapContext(finalChildStateNode.doneData, state.context, _event)
+          ? mapContext(
+              finalChildStateNode.doneData,
+              state.context,
+              state._event
+            )
           : undefined;
 
       for (const listener of this.doneListeners) {
@@ -399,14 +397,26 @@ export class Interpreter<
             State.from(initialState, this.machine.context)
           );
 
-    this.scheduler.initialize(() => {
-      this.update(resolvedState, initEvent as SCXML.Event<TEvent>);
+    this._state = resolvedState;
 
-      if (this.options.devTools) {
-        this.attachDevTools();
-      }
-    });
+    this.update(resolvedState);
+
+    if (this.options.devTools) {
+      this.attachDevTools();
+    }
+
+    this.mailbox.start();
+
     return this;
+  }
+
+  private _process(event: SCXML.Event<TEvent>) {
+    // TODO: handle errors
+    this.forward(event);
+
+    const nextState = this.nextState(event);
+
+    this.update(nextState);
   }
 
   /**
@@ -446,29 +456,11 @@ export class Interpreter<
       this.clock.clearTimeout(this.delayedEventsMap[key]);
     }
 
-    this.scheduler.clear();
+    this.mailbox.clear();
     this.status = InterpreterStatus.Stopped;
     registry.free(this.sessionId);
 
     return this;
-  }
-
-  private _transition(
-    state: State<TContext, TEvent>,
-    event: SCXML.Event<TEvent>
-  ) {
-    try {
-      CapturedState.current = {
-        actorRef: this.ref,
-        spawns: []
-      };
-      return this.machine.transition(state, event);
-    } finally {
-      CapturedState.current = {
-        actorRef: undefined,
-        spawns: []
-      };
-    }
   }
 
   /**
@@ -481,11 +473,6 @@ export class Interpreter<
    * @param event The event(s) to send
    */
   public send: PayloadSender<TEvent> = (event, payload?): void => {
-    if (isArray(event)) {
-      this.batch(event);
-      return;
-    }
-
     const eventObject = toEventObject(event, payload);
     const _event = toSCXMLEvent(eventObject);
 
@@ -518,60 +505,8 @@ export class Interpreter<
       );
     }
 
-    this.scheduler.schedule(() => {
-      // Forward copy of event to child actors
-      this.forward(_event);
-
-      const nextState = this.nextState(_event);
-
-      this.update(nextState, _event);
-    });
+    this.mailbox.enqueue(_event);
   };
-
-  public batch(events: Array<TEvent | TEvent['type']>): void {
-    if (
-      this.status === InterpreterStatus.NotStarted &&
-      this.options.deferEvents
-    ) {
-      // tslint:disable-next-line:no-console
-      if (!IS_PRODUCTION) {
-        warn(
-          false,
-          `${events.length} event(s) were sent to uninitialized service "${
-            this.machine.key
-          }" and are deferred. Make sure .start()  is called for this service.\nEvents: ${JSON.stringify(
-            events
-          )}`
-        );
-      }
-    } else if (this.status !== InterpreterStatus.Running) {
-      throw new Error(
-        // tslint:disable-next-line:max-line-length
-        `${events.length} event(s) were sent to uninitialized service "${this.machine.key}". Make sure .start() is called for this service, or set { deferEvents: true } in the service options.`
-      );
-    }
-
-    this.scheduler.schedule(() => {
-      let nextState = this.state;
-      let batchChanged = false;
-      const batchedActions: BaseActionObject[] = [];
-      for (const event of events) {
-        const _event = toSCXMLEvent(event);
-
-        this.forward(_event);
-
-        nextState = this._transition(nextState, _event);
-
-        batchedActions.push(...nextState.actions);
-
-        batchChanged = batchChanged || !!nextState.changed;
-      }
-
-      nextState.changed = batchChanged;
-      nextState.actions = batchedActions;
-      this.update(nextState, toSCXMLEvent(events[events.length - 1]));
-    });
-  }
 
   private sendTo(
     event: SCXML.Event<AnyEventObject>,
@@ -632,7 +567,18 @@ export class Interpreter<
       this.handleErrorEvent(_event);
     }
 
-    return this._transition(this.state, _event);
+    try {
+      CapturedState.current = {
+        actorRef: this.ref,
+        spawns: []
+      };
+      return this.machine.transition(this.state, event);
+    } finally {
+      CapturedState.current = {
+        actorRef: undefined,
+        spawns: []
+      };
+    }
   }
   private forward(event: SCXML.Event<TEvent>): void {
     for (const id of this.forwardTo) {
