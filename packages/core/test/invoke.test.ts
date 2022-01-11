@@ -1770,8 +1770,6 @@ describe('invoke', () => {
     });
 
     it('should call onError only on the state which has invoked failed service', () => {
-      let errorHandlersCalled = 0;
-
       const errorMachine = Machine({
         initial: 'start',
         states: {
@@ -1784,44 +1782,48 @@ describe('invoke', () => {
             type: 'parallel',
             states: {
               first: {
-                invoke: {
-                  src: () => () => {
-                    throw new Error('test');
-                  },
-                  onError: {
-                    target: 'failed',
-                    cond: () => {
-                      errorHandlersCalled++;
-                      return false;
+                initial: 'waiting',
+                states: {
+                  waiting: {
+                    invoke: {
+                      src: () => () => {
+                        throw new Error('test');
+                      },
+                      onError: {
+                        target: 'failed'
+                      }
                     }
-                  }
+                  },
+                  failed: {}
                 }
               },
               second: {
-                invoke: {
-                  src: () => () => {
-                    // empty
-                  },
-                  onError: {
-                    target: 'failed',
-                    cond: () => {
-                      errorHandlersCalled++;
-                      return false;
+                initial: 'waiting',
+                states: {
+                  waiting: {
+                    invoke: {
+                      src: () => () => {
+                        // empty
+                      },
+                      onError: {
+                        target: 'failed'
+                      }
                     }
-                  }
+                  },
+                  failed: {}
                 }
-              },
-              failed: {
-                type: 'final'
               }
             }
           }
         }
       });
 
-      interpret(errorMachine).start().send('FETCH');
+      const service = interpret(errorMachine).start();
+      service.send('FETCH');
 
-      expect(errorHandlersCalled).toEqual(1);
+      expect(service.state.value).toEqual({
+        fetch: { first: 'failed', second: 'waiting' }
+      });
     });
 
     it('should be able to be stringified', () => {
@@ -2640,6 +2642,33 @@ describe('invoke', () => {
           done();
         })
         .start();
+    });
+
+    it('a wildcard transition should be able to receive an error event', (done) => {
+      const machine = createMachine({
+        initial: 'fetching',
+        states: {
+          fetching: {
+            invoke: {
+              src: () => Promise.reject(new Error('test err')),
+              onDone: {
+                target: 'complete'
+              }
+            },
+            on: {
+              '*': {
+                actions: () => {
+                  done();
+                }
+              }
+            }
+          },
+          complete: {
+            type: 'final'
+          }
+        }
+      });
+      interpret(machine).start();
     });
   });
 

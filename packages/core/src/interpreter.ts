@@ -718,9 +718,7 @@ export class Interpreter<
 
     if (
       _event.name.indexOf(actionTypes.errorPlatform) === 0 &&
-      !this.state.nextEvents.some(
-        (nextEvent) => nextEvent.indexOf(actionTypes.errorPlatform) === 0
-      )
+      !this.state.can(_event as any)
     ) {
       throw (_event.data as any).data;
     }
