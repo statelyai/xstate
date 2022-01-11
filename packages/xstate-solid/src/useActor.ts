@@ -40,6 +40,8 @@ export function defaultGetSnapshot<TEmitted>(
     : {};
 }
 
+const isSnapshotSymbol: unique symbol = Symbol('is-xstate-solid-snapshot');
+const snapshotKey = '_snapshot';
 /**
  * Returns an object that can be used in a store
  * Handles primitives or objects.
@@ -52,11 +54,11 @@ export const setSnapshotValue = (
     typeof actorRef === 'function' ? getSnapshot(actorRef()) : actorRef;
   return typeof defaultValue === 'object' && defaultValue
     ? defaultValue
-    : { _snapshot: defaultValue };
+    : { [snapshotKey]: defaultValue, [isSnapshotSymbol]: true };
 };
 
 export const getSnapshotValue = (state) =>
-  '_snapshot' in state ? state._snapshot : state;
+  snapshotKey in state && state[isSnapshotSymbol] ? state[snapshotKey] : state;
 
 type ActorReturn<T> = Accessor<T>;
 export function useActor<TActor extends ActorRef<any, any>>(
