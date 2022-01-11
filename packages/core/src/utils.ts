@@ -532,8 +532,18 @@ export function isObservable<T>(value: any): value is Subscribable<T> {
 }
 
 export const symbolObservable = (() =>
-  (typeof Symbol === 'function' && (Symbol as any).observable) ||
-  '@@observable')();
+  (typeof Symbol === 'function' && Symbol.observable) || '@@observable')();
+
+export const interopSymbols = {
+  [symbolObservable]: function () {
+    return this;
+  },
+  // this gets stripped by Babel to avoid having "undefined" property in environments without this non-standard Symbol
+  // it has to be here to be included in the generated .d.ts
+  [Symbol.observable]: function () {
+    return this;
+  }
+};
 
 export function isMachine(value: any): value is StateMachine<any, any, any> {
   try {
@@ -719,4 +729,8 @@ export function toObserver<T>(
     error: errorHandler || noop,
     complete: completionHandler || noop
   };
+}
+
+export function createInvokeId(stateNodeId: string, index: number): string {
+  return `${stateNodeId}:invocation[${index}]`;
 }

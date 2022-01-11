@@ -1,5 +1,25 @@
 # Activities
 
+::: warning Deprecated
+Activites are deprecated and will be removed in XState version 5. The recommended approach is to [invoke an actor](./actors.md) instead:
+
+```diff
+-activities: [(context, event) => {
+-  // do something
+-
+-  return () => {/* cleanup */}
+-}],
++invoke: {
++  src: (context, event) => (sendBack, receive) => {
++    // do something
++
++    return () => {/* cleanup */}
++  }
++}
+```
+
+:::
+
 An activity is an action that occurs over time, and can be started and stopped. According to Harel's original statecharts paper:
 
 > An activity always takes a nonzero amount of time, like beeping, displaying, or executing lengthy computations.

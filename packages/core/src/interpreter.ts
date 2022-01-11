@@ -59,7 +59,8 @@ import {
   toObserver,
   isActor,
   isBehavior,
-  isSCXMLErrorEvent
+  isSCXMLErrorEvent,
+  interopSymbols
 } from './utils';
 import { Scheduler } from './scheduler';
 import { Actor, isSpawnedActor, createDeferredActor } from './Actor';
@@ -108,12 +109,6 @@ export enum InterpreterStatus {
   NotStarted,
   Running,
   Stopped
-}
-
-declare global {
-  interface SymbolConstructor {
-    readonly observable: symbol;
-  }
 }
 
 export class Interpreter<
@@ -1164,7 +1159,8 @@ export class Interpreter<
       toJSON() {
         return { id };
       },
-      getSnapshot: () => resolvedData
+      getSnapshot: () => resolvedData,
+      ...interopSymbols
     };
 
     this.children.set(id, actor);
@@ -1223,7 +1219,8 @@ export class Interpreter<
       toJSON() {
         return { id };
       },
-      getSnapshot: () => emitted
+      getSnapshot: () => emitted,
+      ...interopSymbols
     };
 
     this.children.set(id, actor);
@@ -1261,7 +1258,8 @@ export class Interpreter<
       getSnapshot: () => emitted,
       toJSON() {
         return { id };
-      }
+      },
+      ...interopSymbols
     };
 
     this.children.set(id, actor);
@@ -1305,7 +1303,8 @@ export class Interpreter<
       getSnapshot: () => undefined,
       toJSON() {
         return { id };
-      }
+      },
+      ...interopSymbols
     });
   }
 

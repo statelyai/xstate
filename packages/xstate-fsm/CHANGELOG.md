@@ -1,5 +1,11 @@
 # @xstate/fsm
 
+## 1.6.3
+
+### Patch Changes
+
+- [#2474](https://github.com/davidkpiano/xstate/pull/2474) Thanks [@annaghi](https://github.com/annaghi)! - Use CommonJS files as `package.json#main` (instead of UMD files) as this plays better with native ESM loader in node (and by extension fixes compatibility issues with projects like [SvelteKit](https://kit.svelte.dev/)).
+
 ## 1.6.2
 
 ### Patch Changes

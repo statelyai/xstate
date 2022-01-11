@@ -1,5 +1,46 @@
 # @xstate/inspect
 
+## 0.6.1
+
+### Patch Changes
+
+- [#2907](https://github.com/statelyai/xstate/pull/2907) [`3a8eb6574`](https://github.com/statelyai/xstate/commit/3a8eb6574db51c3d02c900561be87a48fd9a973c) Thanks [@rossng](https://github.com/rossng)! - Fix crash when sending circular state objects (#2373).
+
+## 0.6.0
+
+### Minor Changes
+
+- [#2640](https://github.com/statelyai/xstate/pull/2640) [`c73dfd655`](https://github.com/statelyai/xstate/commit/c73dfd655525546e59f00d0be88b80ab71239427) Thanks [@davidkpiano](https://github.com/davidkpiano)! - A serializer can now be specified as an option for `inspect(...)` in the `.serialize` property. It should be a [replacer function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#the_replacer_parameter):
+
+  ```js
+  // ...
+
+  inspect({
+    // ...
+    serialize: (key, value) => {
+      if (value instanceof Map) {
+        return 'map';
+      }
+
+      return value;
+    }
+  });
+
+  // ...
+
+  // Will be inspected as:
+  // {
+  //   type: 'EVENT_WITH_MAP',
+  //   map: 'map'
+  // }
+  someService.send({
+    type: 'EVENT_WITH_MAP',
+    map: new Map()
+  });
+  ```
+
+* [#2894](https://github.com/statelyai/xstate/pull/2894) [`8435c5b84`](https://github.com/statelyai/xstate/commit/8435c5b841e318c5d35dfea65242246dfb4b34f8) Thanks [@Andarist](https://github.com/Andarist)! - The package has been upgraded to be compatible with `ws@8.x`. The WS server created server-side has to be of a compatible version now.
+
 ## 0.5.2
 
 ### Patch Changes
