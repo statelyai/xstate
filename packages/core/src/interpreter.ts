@@ -57,7 +57,8 @@ import {
   toInvokeSource,
   toObserver,
   isActor,
-  isBehavior
+  isBehavior,
+  interopSymbols
 } from './utils';
 import { Scheduler } from './scheduler';
 import {
@@ -110,12 +111,6 @@ export enum InterpreterStatus {
   NotStarted,
   Running,
   Stopped
-}
-
-declare global {
-  interface SymbolConstructor {
-    readonly observable: symbol;
-  }
 }
 
 export class Interpreter<
@@ -528,11 +523,13 @@ export class Interpreter<
       return this;
     }
 
-    this.state.configuration.forEach((stateNode) => {
-      for (const action of stateNode.definition.exit) {
-        this.exec(action, this.state);
-      }
-    });
+    [...this.state.configuration]
+      .sort((a, b) => b.order - a.order)
+      .forEach((stateNode) => {
+        for (const action of stateNode.definition.exit) {
+          this.exec(action, this.state);
+        }
+      });
 
     // Stop all children
     this.children.forEach((child) => {
@@ -1125,7 +1122,8 @@ export class Interpreter<
       toJSON() {
         return { id };
       },
-      getSnapshot: () => resolvedData
+      getSnapshot: () => resolvedData,
+      ...interopSymbols
     };
 
     this.children.set(id, actor);
@@ -1184,7 +1182,8 @@ export class Interpreter<
       toJSON() {
         return { id };
       },
-      getSnapshot: () => emitted
+      getSnapshot: () => emitted,
+      ...interopSymbols
     };
 
     this.children.set(id, actor);
@@ -1222,7 +1221,8 @@ export class Interpreter<
       getSnapshot: () => emitted,
       toJSON() {
         return { id };
-      }
+      },
+      ...interopSymbols
     };
 
     this.children.set(id, actor);
@@ -1266,7 +1266,8 @@ export class Interpreter<
       getSnapshot: () => undefined,
       toJSON() {
         return { id };
-      }
+      },
+      ...interopSymbols
     });
   }
 

@@ -7,7 +7,7 @@ import {
   Spawnable,
   SCXML
 } from './types';
-import { isMachine, mapContext, toInvokeSource } from './utils';
+import { interopSymbols, isMachine, mapContext, toInvokeSource } from './utils';
 import * as serviceScope from './serviceScope';
 import type { ActorRef, BaseActorRef, Interpreter } from '.';
 
@@ -36,7 +36,8 @@ export function createNullActor(id: string): ActorRef<any> {
     getSnapshot: () => undefined,
     toJSON: () => ({
       id
-    })
+    }),
+    ...interopSymbols
   };
 }
 
@@ -119,7 +120,8 @@ export function toActorRef<
       subscribe: actorRefLike.subscribe.bind(actorRefLike),
       id: actorRefLike.id,
       send: actorRefLike.send,
-      getSnapshot: actorRefLike.getSnapshot.bind(actorRefLike)
+      getSnapshot: actorRefLike.getSnapshot.bind(actorRefLike),
+      ...interopSymbols
     } as ActorRef<TEvent, TEmitted>;
   }
 
@@ -127,6 +129,7 @@ export function toActorRef<
     subscribe: () => ({ unsubscribe: () => void 0 }),
     id: 'anonymous',
     getSnapshot: () => undefined as any,
+    ...interopSymbols,
     ...actorRefLike
   };
 }

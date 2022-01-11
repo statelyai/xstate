@@ -1,4 +1,4 @@
-import * as WebSocket from 'ws';
+import WebSocket from 'ws';
 import { createMachine, interpret, send } from 'xstate';
 import { toSCXMLEvent } from 'xstate/lib/utils';
 import { inspect } from '@xstate/inspect/lib/server';
