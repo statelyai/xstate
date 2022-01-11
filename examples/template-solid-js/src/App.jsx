@@ -7,7 +7,7 @@ function App() {
 
   return (
     <div className="app">
-      <h1>XState React Template</h1>
+      <h1>XState SolidJS Template</h1>
       <h2>Fork this template!</h2>
       <button onClick={() => send('TOGGLE')}>
         Click me ({state.matches('active') ? '✅' : '❌'})
