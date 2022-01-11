@@ -5,6 +5,7 @@ import { createStore, reconcile } from 'solid-js/store';
 import type { Accessor } from 'solid-js';
 
 import { batch, createEffect, on, onCleanup } from 'solid-js';
+import { simpleClone } from './utils';
 
 const getServiceState = <
   TContext extends object,
@@ -113,5 +114,3 @@ export function useService<
     service()
   ];
 }
-
-const simpleClone = <T>(obj: T): T => JSON.parse(JSON.stringify(obj));

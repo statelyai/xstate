@@ -1,7 +1,19 @@
 import type { ActorRef, Subscribable } from 'xstate';
-import { defaultGetSnapshot } from './useActor';
+import {
+  defaultGetSnapshot,
+  getSnapshotValue,
+  setSnapshotValue
+} from './useActor';
 import type { Accessor } from 'solid-js';
-import { createEffect, createSignal, onCleanup, onMount } from 'solid-js';
+import {
+  createEffect,
+  createMemo,
+  createSignal,
+  on,
+  onCleanup
+} from 'solid-js';
+import { createStore } from 'solid-js/store';
+import { simpleClone, updateState } from './utils';
 
 const defaultCompare = (a, b) => a === b;
 
@@ -10,32 +22,43 @@ export function useSelector<
   T,
   TEmitted = TActor extends Subscribable<infer Emitted> ? Emitted : never
 >(
-  actor: TActor,
+  actor: Accessor<TActor>,
   selector: (emitted: TEmitted) => T,
   compare: (a: T, b: T) => boolean = defaultCompare,
   getSnapshot: (a: TActor) => TEmitted = defaultGetSnapshot
 ): Accessor<T> {
-  const [selected, setSelected] = createSignal(selector(getSnapshot(actor)));
+  const actorMemo = createMemo<TActor>(actor);
+  const getActorSnapshot = (snapshotActor: TActor): T =>
+    simpleClone(selector(getSnapshot(snapshotActor)));
+  const [state, setState] = createStore(
+    setSnapshotValue(actorMemo, getActorSnapshot)
+  );
+  const [selected, setSelected] = createSignal<T>(getSnapshotValue(state));
 
-  const updateSelectedIfChanged = (nextSelected: T) => {
-    if (!compare(selected(), nextSelected)) {
-      setSelected(() => nextSelected);
+  const update = (nextSelected: TEmitted) => {
+    if (!compare(getSnapshotValue(state), selector(nextSelected))) {
+      updateState(
+        setSnapshotValue(selector(nextSelected), getActorSnapshot),
+        setState
+      );
+      setSelected(getSnapshotValue(state));
     }
   };
-  createEffect(() => {
-    updateSelectedIfChanged(selector(getSnapshot(actor)));
-  });
-  let sub;
-  onMount(() => {
-    updateSelectedIfChanged(selector(getSnapshot(actor)));
-    sub = actor.subscribe((emitted) => {
-      updateSelectedIfChanged(selector(emitted));
-    });
-  });
 
-  onCleanup(() => {
-    sub?.unsubscribe();
-  });
+  createEffect(
+    on(
+      () => [actorMemo, getActorSnapshot(actorMemo())],
+      () => {
+        update(getSnapshot(actorMemo()));
+        const { unsubscribe } = actorMemo().subscribe((emitted) => {
+          update(emitted);
+        });
+        onCleanup(() => {
+          unsubscribe();
+        });
+      }
+    )
+  );
 
   return selected;
 }

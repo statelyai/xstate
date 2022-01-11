@@ -85,3 +85,5 @@ const setReconcileState = <
       Next<DeepReadonly<NextState>, Part<DeepReadonly<NextState>>>
     >
   );
+
+export const simpleClone = <T>(obj: T): T => JSON.parse(JSON.stringify(obj));

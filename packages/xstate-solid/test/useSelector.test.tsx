@@ -1,9 +1,9 @@
 /* @jsxImportSource solid-js */
-import { assign, createMachine, interpret, spawn } from 'xstate';
+import { ActorRefFrom, assign, createMachine, interpret, spawn } from 'xstate';
 import { toActorRef } from 'xstate/lib/Actor';
 import { render, cleanup, fireEvent, screen } from 'solid-testing-library';
-import { useInterpret, useMachine, useSelector } from '../src';
-import { createSignal } from 'solid-js';
+import { useActor, useInterpret, useMachine, useSelector } from '../src';
+import { Component, createSignal } from 'solid-js';
 
 afterEach(cleanup);
 
@@ -32,7 +32,10 @@ describe('useSelector', () => {
 
     const App = () => {
       const service = useInterpret(machine);
-      const count = useSelector(service, (state) => state.context.count);
+      const count = useSelector(
+        () => service,
+        (state) => state.context.count
+      );
 
       rerenders++;
 
@@ -88,7 +91,7 @@ describe('useSelector', () => {
     const App = () => {
       const service = useInterpret(machine);
       const name = useSelector(
-        service,
+        () => service,
         (state) => state.context.name,
         (a, b) => a.toUpperCase() === b.toUpperCase()
       );
@@ -154,7 +157,7 @@ describe('useSelector', () => {
     const App = () => {
       const [state] = useMachine(parentMachine);
       const actor = state.context.childActor;
-      const count = useSelector(actor, selector);
+      const count = useSelector(() => actor, selector);
 
       return (
         <div>
@@ -203,7 +206,7 @@ describe('useSelector', () => {
       const [state] = useMachine(parentMachine);
       const actor = state.context.childActor;
       const value = useSelector(
-        actor,
+        () => actor,
         (actorState) => `${prop()} ${actorState.context.count}`
       );
       return <div data-testid="value">{value()}</div>;
@@ -214,6 +217,160 @@ describe('useSelector', () => {
     expect(container.textContent).toEqual('first 0');
     setProp('second');
     expect(container.textContent).toEqual('second 0');
+  });
+
+  it('should update selector value when actor changes', () => {
+    const childMachine = (count: number) =>
+      createMachine<{ count: number }>({
+        initial: 'active',
+        context: {
+          count
+        },
+        states: {
+          active: {}
+        }
+      });
+
+    const machine = createMachine<{
+      actorRef?: ActorRefFrom<typeof childMachine>;
+    }>({
+      initial: 'active',
+      context: {
+        actorRef: undefined
+      },
+      states: {
+        active: {
+          entry: assign({
+            actorRef: () => spawn(childMachine(1))
+          }),
+          on: {
+            CHANGE: {
+              actions: [
+                assign({
+                  actorRef: () => spawn(childMachine(0))
+                })
+              ]
+            }
+          }
+        },
+        success: {}
+      }
+    });
+
+    const App = () => {
+      const [state, send] = useMachine(machine);
+      const count = useSelector(
+        () => state.context.actorRef,
+        (actorState) => actorState.context.count
+      );
+
+      return (
+        <div>
+          <div data-testid="count">{count}</div>
+          <button data-testid="change-actor" onclick={() => send('CHANGE')} />
+        </div>
+      );
+    };
+
+    render(() => <App />);
+
+    const div = screen.getByTestId('count');
+    const button = screen.getByTestId('change-actor');
+
+    expect(div.textContent).toEqual('1');
+    fireEvent.click(button);
+    expect(div.textContent).toEqual('0');
+  });
+
+  it('should only update when custom comparer returns false', () => {
+    const childMachine = createMachine<{
+      items: { count: number; wins: number };
+    }>({
+      initial: 'active',
+      context: {
+        items: {
+          count: 0,
+          wins: 0
+        }
+      },
+      states: {
+        active: {
+          on: {
+            INC: {
+              actions: assign({
+                items: (ctx) => ({ ...ctx.items, count: ctx.items.count + 1 })
+              })
+            },
+            WIN: {
+              actions: assign({
+                items: (ctx) => ({ ...ctx.items, wins: ctx.items.wins + 1 })
+              })
+            }
+          }
+        }
+      }
+    });
+
+    const machine = createMachine<{
+      actorRef?: ActorRefFrom<typeof childMachine>;
+    }>({
+      initial: 'active',
+      context: {
+        actorRef: undefined
+      },
+      states: {
+        active: {
+          entry: assign({
+            actorRef: () => spawn(childMachine)
+          })
+        },
+        success: {}
+      }
+    });
+
+    const Child: Component<{ actorRef: ActorRefFrom<typeof childMachine> }> = (
+      props
+    ) => {
+      const [, send] = useActor(() => props.actorRef);
+      const actorContext = useSelector(
+        () => props.actorRef,
+        (actorState) => actorState.context,
+        (a, b) => a.items.wins === b.items.wins
+      );
+
+      return (
+        <div>
+          <div data-testid="count">{actorContext().items.count}</div>
+          <div data-testid="wins">{actorContext().items.wins}</div>
+          <button data-testid="inc" onclick={() => send('INC')} />
+          <button data-testid="win" onclick={() => send('WIN')} />
+        </div>
+      );
+    };
+    const App = () => {
+      const [state] = useMachine(machine);
+
+      return <Child actorRef={state.context.actorRef} />;
+    };
+
+    render(() => <App />);
+
+    const countDiv = screen.getByTestId('count');
+    const winDiv = screen.getByTestId('wins');
+    const incrementButton = screen.getByTestId('inc');
+    const winsButton = screen.getByTestId('win');
+    fireEvent.click(incrementButton);
+    expect(countDiv.textContent).toEqual('0');
+    expect(winDiv.textContent).toEqual('0');
+    fireEvent.click(winsButton);
+    expect(countDiv.textContent).toEqual('1');
+    expect(winDiv.textContent).toEqual('1');
+    fireEvent.click(incrementButton);
+    fireEvent.click(incrementButton);
+    expect(countDiv.textContent).toEqual('1');
+    fireEvent.click(winsButton);
+    expect(countDiv.textContent).toEqual('3');
+    expect(winDiv.textContent).toEqual('2');
   });
 
   it('should use a fresh selector for subscription updates after selector change', () => {
@@ -241,7 +398,7 @@ describe('useSelector', () => {
       const [state] = useMachine(parentMachine);
       const actor = state.context.childActor;
       const value = useSelector(
-        actor,
+        () => actor,
         (actorState) => `${prop()} ${actorState.context.count}`
       );
       return (
@@ -297,7 +454,7 @@ describe('useSelector', () => {
       const actor = state.context.childActor;
 
       const value = useSelector(
-        actor,
+        () => actor,
         identitySelector,
         undefined,
         getSnapshot
@@ -332,7 +489,7 @@ describe('useSelector', () => {
 
     const App = () => {
       ++renders;
-      useSelector(service, selector);
+      useSelector(() => service, selector);
 
       return null;
     };

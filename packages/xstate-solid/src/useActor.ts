@@ -44,7 +44,7 @@ export function defaultGetSnapshot<TEmitted>(
  * Returns an object that can be used in a store
  * Handles primitives or objects.
  */
-const setSnapshotValue = (
+export const setSnapshotValue = (
   actorRef: Accessor<ActorRef<any, unknown>> | unknown,
   getSnapshot: (actor: ActorRef<any>) => unknown
 ) => {
@@ -55,7 +55,7 @@ const setSnapshotValue = (
     : { _snapshot: defaultValue };
 };
 
-const getSnapshotValue = (state) =>
+export const getSnapshotValue = (state) =>
   '_snapshot' in state ? state._snapshot : state;
 
 type ActorReturn<T> = Accessor<T>;

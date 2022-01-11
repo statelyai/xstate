@@ -166,7 +166,7 @@ A SolidJS hook that returns the selected value from the snapshot of an `actor`, 
 
 **Arguments**
 
-- `actor` - a service or an actor-like object that contains `.send(...)` and `.subscribe(...)` methods.
+- `actor` - a [SolidJS Signal](https://www.solidjs.com/docs/latest/api#createsignal) (or function) that return a service or an actor-like object that contains `.send(...)` and `.subscribe(...)` methods.
 - `selector` - a function that takes in an actor's "current state" (snapshot) as an argument and returns the desired selected value.
 - `compare` (optional) - a function that determines if the current selected value is the same as the previous selected value.
 - `getSnapshot` (optional) - a function that should return the latest emitted value from the `actor`.
@@ -183,7 +183,7 @@ import { useSelector } from '@xstate/solid';
 const selectCount = (state) => state.context.count;
 
 const App = ({ service }) => {
-  const count = useSelector(service, selectCount);
+  const count = useSelector(() => service, selectCount);
 
   count(); // the product of the selector
   // ...
@@ -199,7 +199,7 @@ const selectUser = (state) => state.context.user;
 const compareUser = (prevUser, nextUser) => prevUser.id === nextUser.id;
 
 const App = ({ service }) => {
-  const user = useSelector(service, selectUser, compareUser);
+  const user = useSelector(() => service, selectUser, compareUser);
 
   // ...
 };
@@ -215,7 +215,7 @@ const selectCount = (state) => state.context.count;
 
 const App = ({ service }) => {
   const service = useInterpret(someMachine);
-  const count = useSelector(service, selectCount);
+  const count = useSelector(() => service, selectCount);
 
   // ...
 };
