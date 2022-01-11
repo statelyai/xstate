@@ -24,7 +24,8 @@ import {
   GuardMeta,
   InvokeSourceDefinition,
   Observer,
-  Behavior
+  Behavior,
+  SCXMLErrorEvent
 } from './types';
 import {
   STATE_DELIMITER,
@@ -35,6 +36,7 @@ import { IS_PRODUCTION } from './environment';
 import { StateNode } from './StateNode';
 import { State } from './State';
 import { Actor } from './Actor';
+import { errorExecution, errorPlatform } from './actionTypes';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
   return Object.keys(value) as Array<keyof T & string>;
@@ -564,6 +566,12 @@ export function toEventObject<TEvent extends EventObject>(
   }
 
   return event;
+}
+
+export function isSCXMLErrorEvent(
+  event: SCXML.Event<any>
+): event is SCXMLErrorEvent {
+  return event.name === errorExecution || event.name.startsWith(errorPlatform);
 }
 
 export function toSCXMLEvent<TEvent extends EventObject>(

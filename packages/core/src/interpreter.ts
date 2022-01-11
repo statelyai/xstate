@@ -30,6 +30,7 @@ import {
   AnyEventObject,
   AnyInterpreter,
   ActorRef,
+  SCXMLErrorEvent,
   ActorRefFrom,
   Behavior,
   StopActionObject,
@@ -57,7 +58,8 @@ import {
   toInvokeSource,
   toObserver,
   isActor,
-  isBehavior
+  isBehavior,
+  isSCXMLErrorEvent
 } from './utils';
 import { Scheduler } from './scheduler';
 import { Actor, isSpawnedActor, createDeferredActor } from './Actor';
@@ -87,6 +89,7 @@ export type EventListener<TEvent extends EventObject = EventObject> = (
 ) => void;
 
 export type Listener = () => void;
+export type ErrorListener = (error: any) => void;
 
 export interface Clock {
   setTimeout(fn: (...args: any[]) => void, timeout: number): any;
@@ -315,14 +318,6 @@ export class Interpreter<
     }
   }
 
-  private sendError(errorEvent: Event<TEvent> | SCXML.Event<TEvent>): void {
-    if (this.errorListeners.size) {
-      for (const listener of this.errorListeners) {
-        listener(errorEvent as EventObject);
-      }
-    }
-  }
-
   /*
    * Adds a listener that is notified whenever a state transition happens. The listener is called with
    * the next state and the event object that caused the state transition.
@@ -362,7 +357,6 @@ export class Interpreter<
 
     let listener: (state: State<TContext, TEvent, any, TTypestate>) => void;
     let resolvedCompleteListener = completeListener;
-    let resolvedErrorListener = errorListener;
 
     if (typeof nextListenerOrObserver === 'function') {
       listener = nextListenerOrObserver;
@@ -384,8 +378,8 @@ export class Interpreter<
       this.onDone(resolvedCompleteListener);
     }
 
-    if (resolvedErrorListener) {
-      this.onError(resolvedErrorListener);
+    if (errorListener) {
+      this.onError(errorListener);
     }
 
     return {
@@ -393,8 +387,7 @@ export class Interpreter<
         listener && this.listeners.delete(listener);
         resolvedCompleteListener &&
           this.doneListeners.delete(resolvedCompleteListener);
-        resolvedErrorListener &&
-          this.errorListeners.delete(resolvedErrorListener);
+        errorListener && this.errorListeners.delete(errorListener);
       }
     };
   }
@@ -439,6 +432,29 @@ export class Interpreter<
     this.stopListeners.add(listener);
     return this;
   }
+
+  /**
+   * Adds an error listener that is notified with an `Error` whenever an
+   * error occurs during execution.
+   *
+   * @param listener The error listener
+   */
+  public onError(listener: ErrorListener): this {
+    this.errorListeners.add(listener);
+    return this;
+  }
+
+  private handleErrorEvent(errorEvent: SCXMLErrorEvent): void {
+    if (this.errorListeners.size > 0) {
+      this.errorListeners.forEach((listener) => {
+        listener(errorEvent.data);
+      });
+    } else {
+      this.stop();
+      throw errorEvent.data;
+    }
+  }
+
   /**
    * Adds a state listener that is notified when the statechart has reached its final state.
    * @param listener The state listener
@@ -447,16 +463,6 @@ export class Interpreter<
     listener: EventListener<DoneEvent>
   ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
     this.doneListeners.add(listener);
-    return this;
-  }
-  /**
-   * Adds a state listener that is notified when the statechart has reached an error.
-   * @param listener The state listener
-   */
-  public onError(
-    listener: EventListener<DoneEvent>
-  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
-    this.errorListeners.add(listener);
     return this;
   }
   /**
@@ -590,15 +596,14 @@ export class Interpreter<
       return this.state;
     }
 
-    if (((event as EventObject)?.type || '').includes('error')) {
+    const _event = toSCXMLEvent(toEventObject(event as Event<TEvent>, payload));
+
+    if (_event.name.startsWith('error')) {
       if (this.parent) {
-        this.parent.sendError(event as any);
-      } else {
-        this.sendError(event as any);
+        this.parent.send(_event);
+        return this._state!;
       }
     }
-
-    const _event = toSCXMLEvent(toEventObject(event as Event<TEvent>, payload));
 
     if (this.status === InterpreterStatus.Stopped) {
       // do nothing
@@ -759,6 +764,13 @@ export class Interpreter<
     event: Event<TEvent> | SCXML.Event<TEvent>
   ): State<TContext, TEvent, TStateSchema, TTypestate> {
     const _event = toSCXMLEvent(event);
+
+    if (
+      isSCXMLErrorEvent(_event) &&
+      !this.state.nextEvents.some((nextEvent) => nextEvent === _event.name)
+    ) {
+      this.handleErrorEvent(_event);
+    }
 
     if (
       _event.name.indexOf(actionTypes.errorPlatform) === 0 &&
@@ -1095,16 +1107,14 @@ export class Interpreter<
             // Send "error.platform.id" to this (parent).
             this.send(toSCXMLEvent(errorEvent as any, { origin: id }));
           } catch (error) {
-            if (this.parent) {
-              this.parent.send(errorEvent);
-            } else if (!this.errorListeners.size) {
+            if (!this.errorListeners.size && !this.parent) {
               reportUnhandledExceptionOnInvocation(errorData, error, id);
             }
             if (this.devTools) {
               this.devTools.send(errorEvent, this.state);
             }
 
-            this.sendError(errorEvent);
+            this.send(errorEvent, { origin: id });
 
             if (this.machine.strict) {
               // it would be better to always stop the state machine if unhandled
