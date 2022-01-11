@@ -445,8 +445,10 @@ export class Interpreter<
         listener(errorEvent.data);
       });
     } else {
-      this.stop();
-      throw errorEvent.data;
+      if (this.machine.strict) {
+        this.stop();
+        throw errorEvent.data;
+      }
     }
   }
 
@@ -1109,9 +1111,9 @@ export class Interpreter<
               this.devTools.send(errorEvent, this.state);
             }
 
-            this.send(errorEvent, { origin: id });
-
             if (this.machine.strict) {
+              this.send(errorEvent, { origin: id });
+
               // it would be better to always stop the state machine if unhandled
               // exception/promise rejection happens but because we don't want to
               // break existing code so enforce it on strict mode only especially so

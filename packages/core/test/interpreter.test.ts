@@ -1759,6 +1759,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
             id: 'interval',
             context,
             initial: 'active',
+            strict: true,
             states: {
               active: {
                 after: {
@@ -1788,7 +1789,9 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         intervalService.subscribe(
           () => {},
           (error) => {
-            expect(error.type).toBe('error.platform.failure');
+            expect(error.type).toBe(
+              'error.platform.interval.failure:invocation[0]'
+            );
             expect(error.data).toBeInstanceOf(Error);
             intervalService.stop();
             done();
@@ -1802,6 +1805,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
             id: 'child',
             context,
             initial: 'active',
+            strict: true,
             states: {
               active: {
                 after: {
@@ -1843,7 +1847,9 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         intervalService.subscribe(
           () => {},
           (error) => {
-            expect(error.type).toBe('error.platform.failure');
+            expect(error.type).toBe(
+              'error.platform.child.failure:invocation[0]'
+            );
             expect(error.data).toBeInstanceOf(Error);
             intervalService.stop();
             done();
@@ -1857,6 +1863,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
             id: 'child',
             context,
             initial: 'active',
+            strict: true,
             states: {
               active: {
                 after: {
@@ -1912,7 +1919,9 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         intervalService.subscribe(
           () => {},
           (error) => {
-            expect(error.type).toBe('error.platform.failure');
+            expect(error.type).toBe(
+              'error.platform.child.failure:invocation[0]'
+            );
             expect(error.data).toBeInstanceOf(Error);
             intervalService.stop();
             done();
