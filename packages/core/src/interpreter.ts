@@ -1112,7 +1112,7 @@ export class Interpreter<
             }
 
             if (this.machine.strict) {
-              this.send(errorEvent, { origin: id });
+              this.send(errorEvent, this.state);
 
               // it would be better to always stop the state machine if unhandled
               // exception/promise rejection happens but because we don't want to
