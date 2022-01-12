@@ -6,6 +6,7 @@ import type {
   SetStoreFunction
 } from 'solid-js/store';
 import { produce, reconcile } from 'solid-js/store';
+import rfdc from 'rfdc';
 
 // List of keys to produce instead of reconcile while merging state
 export const produceKeys: Array<keyof State<any>> = [
@@ -86,4 +87,5 @@ const setReconcileState = <
     >
   );
 
-export const simpleClone = <T>(obj: T): T => JSON.parse(JSON.stringify(obj));
+// TODO: Replace with structuredClone when more broadly available
+export const deepClone = rfdc({circles: true, proto: true});

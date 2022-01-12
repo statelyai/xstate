@@ -13,7 +13,7 @@ import {
   onCleanup
 } from 'solid-js';
 import { createStore } from 'solid-js/store';
-import { simpleClone, updateState } from './utils';
+import { deepClone, updateState } from './utils';
 
 const defaultCompare = (a, b) => a === b;
 
@@ -29,7 +29,7 @@ export function useSelector<
 ): Accessor<T> {
   const actorMemo = createMemo<TActor>(actor);
   const getActorSnapshot = (snapshotActor: TActor): T =>
-    simpleClone(selector(getSnapshot(snapshotActor)));
+    deepClone(selector(getSnapshot(snapshotActor)));
   const [state, setState] = createStore(
     setSnapshotValue(actorMemo, getActorSnapshot)
   );

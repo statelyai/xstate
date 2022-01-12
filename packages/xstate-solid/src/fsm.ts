@@ -5,7 +5,7 @@ import { createStore, reconcile } from 'solid-js/store';
 import type { Accessor } from 'solid-js';
 
 import { batch, createEffect, on, onCleanup } from 'solid-js';
-import { simpleClone } from './utils';
+import { deepClone } from './utils';
 
 const getServiceState = <
   TContext extends object,
@@ -93,14 +93,14 @@ export function useService<
 ] {
   // Clone object to avoid mutation of services using the same machine
   const [state, setState] = createStore(
-    simpleClone(getServiceState(service()))
+    deepClone(getServiceState(service()))
   );
 
   const send = (event: TEvent | TEvent['type']) => service().send(event);
 
   createEffect(
     on(service, () => {
-      setState(simpleClone(getServiceState(service())));
+      setState(deepClone(getServiceState(service())));
       const { unsubscribe } = service().subscribe((nextState) => {
         setState(reconcile(nextState));
       });
