@@ -1,19 +1,9 @@
 import type { ActorRef, Subscribable } from 'xstate';
-import {
-  defaultGetSnapshot,
-  getSnapshotValue,
-  setSnapshotValue
-} from './useActor';
+import { defaultGetSnapshot } from './useActor';
 import type { Accessor } from 'solid-js';
-import {
-  createEffect,
-  createMemo,
-  createSignal,
-  on,
-  onCleanup
-} from 'solid-js';
-import { createStore } from 'solid-js/store';
-import { deepClone, updateState } from './utils';
+import { createEffect, createMemo, on, onCleanup } from 'solid-js';
+import { deepClone } from './utils';
+import { createStoreSignal } from './createStoreSignal';
 
 const defaultCompare = (a, b) => a === b;
 
@@ -30,18 +20,14 @@ export function useSelector<
   const actorMemo = createMemo<TActor>(actor);
   const getActorSnapshot = (snapshotActor: TActor): T =>
     deepClone(selector(getSnapshot(snapshotActor)));
-  const [state, setState] = createStore(
-    setSnapshotValue(actorMemo, getActorSnapshot)
+  const [selected, update] = createStoreSignal<T, T>(
+    actorMemo,
+    getActorSnapshot
   );
-  const [selected, setSelected] = createSignal<T>(getSnapshotValue(state));
 
-  const update = (nextSelected: TEmitted) => {
-    if (!compare(getSnapshotValue(state), selector(nextSelected))) {
-      updateState(
-        setSnapshotValue(selector(nextSelected), getActorSnapshot),
-        setState
-      );
-      setSelected(getSnapshotValue(state));
+  const guardedUpdate = (nextSelected: TEmitted) => {
+    if (!compare(selected(), selector(nextSelected))) {
+      update(selector(nextSelected));
     }
   };
 
@@ -49,9 +35,9 @@ export function useSelector<
     on(
       () => [actorMemo, getActorSnapshot(actorMemo())],
       () => {
-        update(getSnapshot(actorMemo()));
+        guardedUpdate(getSnapshot(actorMemo()));
         const { unsubscribe } = actorMemo().subscribe((emitted) => {
-          update(emitted);
+          guardedUpdate(emitted);
         });
         onCleanup(() => {
           unsubscribe();

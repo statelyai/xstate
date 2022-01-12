@@ -1,14 +1,7 @@
 import type { ActorRef, EventObject, Sender } from 'xstate';
 import type { Accessor } from 'solid-js';
-import {
-  createEffect,
-  createMemo,
-  createSignal,
-  on,
-  onCleanup
-} from 'solid-js';
-import { createStore } from 'solid-js/store';
-import { updateState } from './utils';
+import { createEffect, createMemo, on, onCleanup } from 'solid-js';
+import { createStoreSignal } from './createStoreSignal';
 
 export function isActorWithState<T extends ActorRef<any>>(
   actorRef: T
@@ -40,26 +33,6 @@ export function defaultGetSnapshot<TEmitted>(
     : {};
 }
 
-const isSnapshotSymbol: unique symbol = Symbol('is-xstate-solid-snapshot');
-const snapshotKey = '_snapshot';
-/**
- * Returns an object that can be used in a store
- * Handles primitives or objects.
- */
-export const setSnapshotValue = (
-  actorRef: Accessor<ActorRef<any, unknown>> | unknown,
-  getSnapshot: (actor: ActorRef<any>) => unknown
-) => {
-  const defaultValue =
-    typeof actorRef === 'function' ? getSnapshot(actorRef()) : actorRef;
-  return typeof defaultValue === 'object' && defaultValue
-    ? defaultValue
-    : { [snapshotKey]: defaultValue, [isSnapshotSymbol]: true };
-};
-
-export const getSnapshotValue = (state) =>
-  snapshotKey in state && state[isSnapshotSymbol] ? state[snapshotKey] : state;
-
 type ActorReturn<T> = Accessor<T>;
 export function useActor<TActor extends ActorRef<any, any>>(
   actorRef: Accessor<TActor>,
@@ -77,10 +50,7 @@ export function useActor(
 ): [ActorReturn<unknown>, Sender<EventObject>] {
   const actorMemo = createMemo<ActorRef<EventObject, unknown>>(actorRef);
   const deferredEventsRef: EventObject[] = [];
-  const [state, setState] = createStore(
-    setSnapshotValue(actorMemo, getSnapshot)
-  );
-  const [snapshot, setSnapshot] = createSignal(getSnapshotValue(state));
+  const [snapshot, update] = createStoreSignal<unknown>(actorMemo, getSnapshot);
   const send: Sender<EventObject> = (event: EventObject) => {
     const currentActorRef = actorMemo();
     // If the previous actor is a deferred actor,
@@ -93,13 +63,9 @@ export function useActor(
     }
   };
 
-  const update = (value: Accessor<ActorRef<any, unknown>> | unknown) => {
-    updateState(setSnapshotValue(value, getSnapshot), setState);
-    setSnapshot(getSnapshotValue(state));
-  };
   createEffect(
     on(actorMemo, () => {
-      update(actorMemo);
+      update(getSnapshot(actorMemo()));
       const { unsubscribe } = actorMemo().subscribe({
         next: (emitted: unknown) => {
           update(emitted);
