@@ -2,9 +2,7 @@ import { useState } from 'react';
 import * as React from 'react';
 import { useService, useMachine } from '../src';
 import { Machine, assign, interpret, Interpreter, createMachine } from 'xstate';
-import { render, cleanup, fireEvent, act } from '@testing-library/react';
-
-afterEach(cleanup);
+import { render, fireEvent, act, screen } from '@testing-library/react';
 
 describe('useService hook', () => {
   const counterMachine = Machine<
@@ -42,14 +40,14 @@ describe('useService hook', () => {
       return <div data-testid="count">{state.context.count}</div>;
     };
 
-    const { getAllByTestId } = render(
+    render(
       <>
         <Counter />
         <Counter />
       </>
     );
 
-    const countEls = getAllByTestId('count');
+    const countEls = screen.getAllByTestId('count');
 
     expect(countEls.length).toBe(2);
 
@@ -94,11 +92,11 @@ describe('useService hook', () => {
       );
     };
 
-    const { getByTestId } = render(<CounterParent />);
+    render(<CounterParent />);
 
-    const changeServiceButton = getByTestId('change-service');
-    const incButton = getByTestId('inc');
-    const countEl = getByTestId('count');
+    const changeServiceButton = screen.getByTestId('change-service');
+    const incButton = screen.getByTestId('inc');
+    const countEl = screen.getByTestId('count');
 
     expect(countEl.textContent).toBe('0');
     fireEvent.click(incButton);
@@ -127,10 +125,10 @@ describe('useService hook', () => {
       );
     };
 
-    const { getByTestId } = render(<Counter />);
+    render(<Counter />);
 
-    const incButton = getByTestId('inc');
-    const countEl = getByTestId('count');
+    const incButton = screen.getByTestId('inc');
+    const countEl = screen.getByTestId('count');
 
     expect(countEl.textContent).toBe('0');
     fireEvent.click(incButton);
@@ -219,14 +217,14 @@ describe('useService hook', () => {
       );
     };
 
-    const { getByTestId } = render(
+    render(
       <React.StrictMode>
         <Test />
       </React.StrictMode>
     );
 
-    const button = getByTestId('button');
-    const value = getByTestId('value');
+    const button = screen.getByTestId('button');
+    const value = screen.getByTestId('value');
 
     fireEvent.click(button);
 

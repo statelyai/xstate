@@ -1,20 +1,18 @@
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import * as React from 'react';
-import { useMachine } from '../src';
+import { useState } from 'react';
 import {
-  createMachine,
-  sendParent,
-  assign,
-  spawn,
   ActorRef,
   ActorRefFrom,
-  interpret
+  assign,
+  createMachine,
+  interpret,
+  sendParent,
+  spawn
 } from 'xstate';
 import { toActorRef } from 'xstate/lib/Actor';
-import { render, cleanup, fireEvent, act } from '@testing-library/react';
+import { useMachine } from '../src';
 import { useActor } from '../src/useActor';
-import { useState } from 'react';
-
-afterEach(cleanup);
 
 describe('useActor', () => {
   it('initial invoked actor should be immediately available', (done) => {
@@ -179,7 +177,7 @@ describe('useActor', () => {
     );
   });
 
-  it('spawned actor should be able to receive (deferred) events that it replays when active', (done) => {
+  it.only('spawned actor should be able to receive (deferred) events that it replays when active', (done) => {
     const childMachine = createMachine({
       id: 'childMachine',
       initial: 'active',
@@ -265,9 +263,9 @@ describe('useActor', () => {
       return <div data-testid="state">{state}</div>;
     };
 
-    const { getByTestId } = render(<Test />);
+    render(<Test />);
 
-    const div = getByTestId('state');
+    const div = screen.getByTestId('state');
 
     expect(div.textContent).toEqual('42');
   });
@@ -294,9 +292,9 @@ describe('useActor', () => {
       return <div data-testid="state">{state}</div>;
     };
 
-    const { getByTestId } = render(<Test />);
+    render(<Test />);
 
-    const div = getByTestId('state');
+    const div = screen.getByTestId('state');
 
     expect(div.textContent).toEqual('42');
   });
@@ -332,10 +330,10 @@ describe('useActor', () => {
       );
     };
 
-    const { getByTestId } = render(<Test />);
+    render(<Test />);
 
-    const div = getByTestId('state');
-    const button = getByTestId('button');
+    const div = screen.getByTestId('state');
+    const button = screen.getByTestId('button');
 
     expect(div.textContent).toEqual('42');
     fireEvent.click(button);
@@ -386,11 +384,11 @@ describe('useActor', () => {
       );
     };
 
-    const { getByTestId } = render(<Test />);
+    render(<Test />);
 
     // At this point, `send` refers to the first (noop) actor
 
-    const button = getByTestId('button');
+    const button = screen.getByTestId('button');
     fireEvent.click(button);
 
     // At this point, `send` refers to the last actor
@@ -447,14 +445,14 @@ describe('useActor', () => {
       );
     };
 
-    const { getAllByTestId } = render(
+    render(
       <>
         <Counter />
         <Counter />
       </>
     );
 
-    const countEls = getAllByTestId('count');
+    const countEls = screen.getAllByTestId('count');
 
     expect(countEls.length).toBe(2);
 
@@ -512,10 +510,10 @@ describe('useActor', () => {
       );
     };
 
-    const { getByTestId } = render(<App />);
+    render(<App />);
 
-    const elState = getByTestId('child-state');
-    const elSend = getByTestId('child-send');
+    const elState = screen.getByTestId('child-state');
+    const elSend = screen.getByTestId('child-send');
 
     expect(elState.textContent).toEqual('one');
     fireEvent.click(elSend);

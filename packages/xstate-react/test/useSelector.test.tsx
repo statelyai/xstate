@@ -1,10 +1,8 @@
 import * as React from 'react';
 import { assign, createMachine, interpret, spawn } from 'xstate';
 import { toActorRef } from 'xstate/lib/Actor';
-import { act, render, cleanup, fireEvent } from '@testing-library/react';
+import { act, render, fireEvent, screen } from '@testing-library/react';
 import { useInterpret, useMachine, useSelector } from '../src';
-
-afterEach(cleanup);
 
 describe('useSelector', () => {
   it('only rerenders for selected values', () => {
@@ -50,14 +48,14 @@ describe('useSelector', () => {
       );
     };
 
-    const { getByTestId } = render(
+    render(
       <React.StrictMode>
         <App />
       </React.StrictMode>
     );
-    const countButton = getByTestId('count');
-    const otherButton = getByTestId('other');
-    const incrementEl = getByTestId('increment');
+    const countButton = screen.getByTestId('count');
+    const otherButton = screen.getByTestId('other');
+    const incrementEl = screen.getByTestId('increment');
 
     fireEvent.click(incrementEl);
 
@@ -114,14 +112,14 @@ describe('useSelector', () => {
       );
     };
 
-    const { getByTestId } = render(
+    render(
       <React.StrictMode>
         <App />
       </React.StrictMode>
     );
-    const nameEl = getByTestId('name');
-    const sendUpperButton = getByTestId('sendUpper');
-    const sendOtherButton = getByTestId('sendOther');
+    const nameEl = screen.getByTestId('name');
+    const sendUpperButton = screen.getByTestId('sendUpper');
+    const sendOtherButton = screen.getByTestId('sendOther');
 
     expect(nameEl.textContent).toEqual('david');
 
@@ -178,10 +176,10 @@ describe('useSelector', () => {
       );
     };
 
-    const { getByTestId } = render(<App />);
+    render(<App />);
 
-    const buttonEl = getByTestId('button');
-    const countEl = getByTestId('count');
+    const buttonEl = screen.getByTestId('button');
+    const countEl = screen.getByTestId('count');
 
     expect(countEl.textContent).toEqual('0');
     fireEvent.click(buttonEl);
@@ -304,10 +302,10 @@ describe('useSelector', () => {
       );
     };
 
-    const { getByTestId, getByRole, rerender } = render(<App prop="first" />);
+    const { rerender } = render(<App prop="first" />);
 
-    const buttonEl = getByRole('button');
-    const valueEl = getByTestId('value');
+    const buttonEl = screen.getByRole('button');
+    const valueEl = screen.getByTestId('value');
 
     expect(valueEl.textContent).toEqual('first 0');
 
@@ -417,15 +415,13 @@ describe('useSelector', () => {
       );
     };
 
-    const { container, rerender, findByRole } = render(
-      <App selector={() => 'foo'} />
-    );
+    const { container, rerender } = render(<App selector={() => 'foo'} />);
     expect(container.textContent).toEqual('foo');
 
     rerender(<App selector={() => 'bar'} />);
     expect(container.textContent).toEqual('bar');
 
-    fireEvent.click(await findByRole('button'));
+    fireEvent.click(await screen.findByRole('button'));
     expect(container.textContent).toEqual('bar');
   });
 

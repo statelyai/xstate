@@ -1,9 +1,7 @@
+import { fireEvent, render, screen } from '@testing-library/react';
 import * as React from 'react';
-import { useActor, useSpawn } from '../src';
-import { render, cleanup, fireEvent } from '@testing-library/react';
 import { fromReducer } from 'xstate/src/behaviors';
-
-afterEach(cleanup);
+import { useActor, useSpawn } from '../src';
 
 describe('useSpawn', () => {
   it('should be able to spawn an actor from a behavior', () => {
@@ -30,12 +28,12 @@ describe('useSpawn', () => {
       );
     };
 
-    const { getByTestId } = render(
+    render(
       <React.StrictMode>
         <Test />
       </React.StrictMode>
     );
-    const button = getByTestId('count');
+    const button = screen.getByTestId('count');
 
     expect(button.textContent).toEqual('0');
 

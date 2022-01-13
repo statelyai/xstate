@@ -1,14 +1,7 @@
 import * as React from 'react';
 import { useMachine } from '../src/fsm';
 import { createMachine, assign, interpret, StateMachine } from '@xstate/fsm';
-import {
-  render,
-  fireEvent,
-  cleanup,
-  waitForElement
-} from '@testing-library/react';
-
-afterEach(cleanup);
+import { render, fireEvent, screen } from '@testing-library/react';
 
 describe('useMachine hook for fsm', () => {
   const context = {
@@ -66,14 +59,12 @@ describe('useMachine hook for fsm', () => {
   };
 
   it('should work with the useMachine hook', async () => {
-    const { getByText, getByTestId } = render(
-      <Fetcher onFetch={() => new Promise((res) => res('fake data'))} />
-    );
-    const button = getByText('Fetch');
+    render(<Fetcher onFetch={() => new Promise((res) => res('fake data'))} />);
+    const button = screen.getByText('Fetch');
     fireEvent.click(button);
-    getByText('Loading...');
-    await waitForElement(() => getByText(/Success/));
-    const dataEl = getByTestId('data');
+    screen.getByText('Loading...');
+    await screen.findByText(/Success/);
+    const dataEl = screen.getByTestId('data');
     expect(dataEl.textContent).toBe('fake data');
   });
 
@@ -134,10 +125,10 @@ describe('useMachine hook for fsm', () => {
       );
     };
 
-    const { getByTestId } = render(<Toggle />);
+    render(<Toggle />);
 
-    const button = getByTestId('button');
-    const extButton = getByTestId('extbutton');
+    const button = screen.getByTestId('button');
+    const extButton = screen.getByTestId('extbutton');
     fireEvent.click(extButton);
 
     fireEvent.click(button);

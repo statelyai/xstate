@@ -1,28 +1,21 @@
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import * as React from 'react';
-import { useMachine, useService, useActor } from '../src';
-import {
-  Machine,
-  assign,
-  Interpreter,
-  spawn,
-  doneInvoke,
-  State,
-  createMachine,
-  send
-} from 'xstate';
-import {
-  render,
-  fireEvent,
-  cleanup,
-  waitForElement,
-  act
-} from '@testing-library/react';
 import { useState } from 'react';
+import {
+  assign,
+  createMachine,
+  DoneEventObject,
+  doneInvoke,
+  Interpreter,
+  Machine,
+  send,
+  spawn,
+  State
+} from 'xstate';
+import { useActor, useMachine, useService } from '../src';
 import { asEffect, asLayoutEffect } from '../src/useMachine';
-import { DoneEventObject } from 'xstate';
 
 afterEach(() => {
-  cleanup();
   jest.useRealTimers();
 });
 
@@ -96,27 +89,25 @@ describe('useMachine hook', () => {
   };
 
   it('should work with the useMachine hook', async () => {
-    const { getByText, getByTestId } = render(
-      <Fetcher onFetch={() => new Promise((res) => res('fake data'))} />
-    );
-    const button = getByText('Fetch');
+    render(<Fetcher onFetch={() => new Promise((res) => res('fake data'))} />);
+    const button = screen.getByText('Fetch');
     fireEvent.click(button);
-    getByText('Loading...');
-    await waitForElement(() => getByText(/Success/));
-    const dataEl = getByTestId('data');
+    screen.getByText('Loading...');
+    await screen.findByText(/Success/);
+    const dataEl = screen.getByTestId('data');
     expect(dataEl.textContent).toBe('fake data');
   });
 
   it('should work with the useMachine hook (rehydrated state)', async () => {
-    const { getByText, getByTestId } = render(
+    render(
       <Fetcher
         onFetch={() => new Promise((res) => res('fake data'))}
         persistedState={persistedFetchState}
       />
     );
 
-    await waitForElement(() => getByText(/Success/));
-    const dataEl = getByTestId('data');
+    await screen.findByText(/Success/);
+    const dataEl = screen.getByTestId('data');
     expect(dataEl.textContent).toBe('persisted data');
   });
 
@@ -124,15 +115,15 @@ describe('useMachine hook', () => {
     const persistedFetchStateConfig = JSON.parse(
       JSON.stringify(persistedFetchState)
     );
-    const { getByText, getByTestId } = render(
+    render(
       <Fetcher
         onFetch={() => new Promise((res) => res('fake data'))}
         persistedState={persistedFetchStateConfig}
       />
     );
 
-    await waitForElement(() => getByText(/Success/));
-    const dataEl = getByTestId('data');
+    await screen.findByText(/Success/);
+    const dataEl = screen.getByTestId('data');
     expect(dataEl.textContent).toBe('persisted data');
   });
 
@@ -223,8 +214,8 @@ describe('useMachine hook', () => {
       }
     };
 
-    const { getByTestId } = render(<Spawner />);
-    await waitForElement(() => getByTestId('success'));
+    render(<Spawner />);
+    await screen.findByTestId('success');
     done();
   });
 
@@ -273,10 +264,10 @@ describe('useMachine hook', () => {
       );
     };
 
-    const { getByTestId } = render(<Toggle />);
+    render(<Toggle />);
 
-    const button = getByTestId('button');
-    const extButton = getByTestId('extbutton');
+    const button = screen.getByTestId('button');
+    const extButton = screen.getByTestId('extbutton');
     fireEvent.click(extButton);
 
     fireEvent.click(button);
@@ -386,9 +377,9 @@ describe('useMachine hook', () => {
       return <div data-testid="count">{stateCount}</div>;
     };
 
-    const { getByTestId } = render(<App />);
+    render(<App />);
 
-    const countEl = getByTestId('count');
+    const countEl = screen.getByTestId('count');
 
     // Component should only rerender twice:
     // - 1 time for the initial state
@@ -719,16 +710,18 @@ describe('useMachine hook', () => {
       );
     };
 
-    const { getByRole, getByTestId } = render(<App />);
+    render(<App />);
 
-    const btn = getByRole('button');
+    const btn = screen.getByRole('button');
     fireEvent.click(btn);
 
-    expect(getByTestId('result').textContent).toBe('b');
+    expect(screen.getByTestId('result').textContent).toBe('b');
 
-    act(() => jest.advanceTimersByTime(310));
+    act(() => {
+      jest.advanceTimersByTime(310);
+    });
 
-    expect(getByTestId('result').textContent).toBe('c');
+    expect(screen.getByTestId('result').textContent).toBe('c');
   });
 
   it('should not use stale data in a guard', () => {
@@ -761,15 +754,13 @@ describe('useMachine hook', () => {
       );
     };
 
-    const { rerender, getByRole, getByTestId } = render(
-      <App isAwesome={false} />
-    );
+    const { rerender } = render(<App isAwesome={false} />);
     rerender(<App isAwesome={true} />);
 
-    const btn = getByRole('button');
+    const btn = screen.getByRole('button');
     fireEvent.click(btn);
 
-    expect(getByTestId('result').textContent).toBe('b');
+    expect(screen.getByTestId('result').textContent).toBe('b');
   });
 });
 
@@ -923,13 +914,13 @@ describe('useMachine (strict mode)', () => {
         );
       };
 
-      const { getByTestId } = render(
+      render(
         <React.StrictMode>
           <Test />
         </React.StrictMode>
       );
 
-      const button = getByTestId('button');
+      const button = screen.getByTestId('button');
 
       fireEvent.click(button);
       act(() => {

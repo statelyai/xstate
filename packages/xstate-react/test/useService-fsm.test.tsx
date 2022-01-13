@@ -2,9 +2,7 @@ import { useState } from 'react';
 import * as React from 'react';
 import { useService, useMachine } from '../src/fsm';
 import { createMachine, assign, interpret, StateMachine } from '@xstate/fsm';
-import { render, cleanup, fireEvent, act } from '@testing-library/react';
-
-afterEach(cleanup);
+import { render, fireEvent, act, screen } from '@testing-library/react';
 
 describe('useService hook for fsm', () => {
   const counterMachine = createMachine<{ count: number }>({
@@ -30,14 +28,14 @@ describe('useService hook for fsm', () => {
       return <div data-testid="count">{state.context.count}</div>;
     };
 
-    const { getAllByTestId } = render(
+    render(
       <>
         <Counter />
         <Counter />
       </>
     );
 
-    const countEls = getAllByTestId('count');
+    const countEls = screen.getAllByTestId('count');
 
     expect(countEls.length).toBe(2);
 
@@ -82,11 +80,11 @@ describe('useService hook for fsm', () => {
       );
     };
 
-    const { getByTestId } = render(<CounterParent />);
+    render(<CounterParent />);
 
-    const changeServiceButton = getByTestId('change-service');
-    const incButton = getByTestId('inc');
-    const countEl = getByTestId('count');
+    const changeServiceButton = screen.getByTestId('change-service');
+    const incButton = screen.getByTestId('inc');
+    const countEl = screen.getByTestId('count');
 
     expect(countEl.textContent).toBe('0');
     fireEvent.click(incButton);
@@ -115,10 +113,10 @@ describe('useService hook for fsm', () => {
       );
     };
 
-    const { getByTestId } = render(<Counter />);
+    render(<Counter />);
 
-    const incButton = getByTestId('inc');
-    const countEl = getByTestId('count');
+    const incButton = screen.getByTestId('inc');
+    const countEl = screen.getByTestId('count');
 
     expect(countEl.textContent).toBe('0');
     fireEvent.click(incButton);
