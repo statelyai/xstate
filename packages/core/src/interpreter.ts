@@ -140,6 +140,7 @@ export class Interpreter<
    * The current state of the interpreted machine.
    */
   private _state?: State<TContext, TEvent, TStateSchema, TTypestate>;
+  private _initialState?: State<TContext, TEvent, TStateSchema, TTypestate>;
   /**
    * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
    */
@@ -210,7 +211,14 @@ export class Interpreter<
     this.sessionId = registry.bookId();
   }
   public get initialState(): State<TContext, TEvent, TStateSchema, TTypestate> {
-    return serviceScope.provide(this, () => this.machine.initialState);
+    if (this._initialState) {
+      return this._initialState;
+    }
+
+    return serviceScope.provide(this, () => {
+      this._initialState = this.machine.initialState;
+      return this._initialState;
+    });
   }
   public get state(): State<TContext, TEvent, TStateSchema, TTypestate> {
     if (!IS_PRODUCTION) {
@@ -527,6 +535,7 @@ export class Interpreter<
     this.scheduler.clear();
     this.initialized = false;
     this.status = InterpreterStatus.Stopped;
+    this._initialState = undefined;
     registry.free(this.sessionId);
 
     return this;
