@@ -14,7 +14,6 @@ import {
 import { MaybeLazy } from './types';
 import useConstant from './useConstant';
 import { UseMachineOptions } from './useMachine';
-import { useReactEffectActions } from './useReactEffectActions';
 
 // copied from core/src/utils.ts
 // it avoids a breaking change between this package and XState which is its peer dep
@@ -36,7 +35,7 @@ function toObserver<T>(
   };
 }
 
-export function useInterpret<
+export function useIdleInterpreter<
   TContext,
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
@@ -44,10 +43,7 @@ export function useInterpret<
   getMachine: MaybeLazy<StateMachine<TContext, any, TEvent, TTypestate>>,
   options: Partial<InterpreterOptions> &
     Partial<UseMachineOptions<TContext, TEvent>> &
-    Partial<MachineOptions<TContext, TEvent>> = {},
-  observerOrListener?:
-    | Observer<State<TContext, TEvent, any, TTypestate>>
-    | ((value: State<TContext, TEvent, any, TTypestate>) => void)
+    Partial<MachineOptions<TContext, TEvent>>
 ): Interpreter<TContext, any, TEvent, TTypestate> {
   const machine = useConstant(() => {
     return typeof getMachine === 'function' ? getMachine() : getMachine;
@@ -98,6 +94,35 @@ export function useInterpret<
     });
   });
 
+  // Make sure options are kept updated when they change.
+  // This mutation assignment is safe because the service instance is only used
+  // in one place -- this hook's caller.
+  useIsomorphicLayoutEffect(() => {
+    Object.assign(service.machine.options.actions, actions);
+    Object.assign(service.machine.options.guards, guards);
+    Object.assign(service.machine.options.activities, activities);
+    Object.assign(service.machine.options.services, services);
+    Object.assign(service.machine.options.delays, delays);
+  }, [actions, guards, activities, services, delays]);
+
+  return service;
+}
+
+export function useInterpret<
+  TContext,
+  TEvent extends EventObject,
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+>(
+  getMachine: MaybeLazy<StateMachine<TContext, any, TEvent, TTypestate>>,
+  options: Partial<InterpreterOptions> &
+    Partial<UseMachineOptions<TContext, TEvent>> &
+    Partial<MachineOptions<TContext, TEvent>> = {},
+  observerOrListener?:
+    | Observer<State<TContext, TEvent, any, TTypestate>>
+    | ((value: State<TContext, TEvent, any, TTypestate>) => void)
+): Interpreter<TContext, any, TEvent, TTypestate> {
+  const service = useIdleInterpreter(getMachine, options);
+
   useIsomorphicLayoutEffect(() => {
     let sub;
     if (observerOrListener) {
@@ -110,6 +135,7 @@ export function useInterpret<
   }, [observerOrListener]);
 
   useIsomorphicLayoutEffect(() => {
+    const rehydratedState = options.state;
     service.start(
       rehydratedState ? (State.create(rehydratedState) as any) : undefined
     );
@@ -118,19 +144,6 @@ export function useInterpret<
       service.stop();
     };
   }, []);
-
-  // Make sure options are kept updated when they change.
-  // This mutation assignment is safe because the service instance is only used
-  // in one place -- this hook's caller.
-  useIsomorphicLayoutEffect(() => {
-    Object.assign(service.machine.options.actions, actions);
-    Object.assign(service.machine.options.guards, guards);
-    Object.assign(service.machine.options.activities, activities);
-    Object.assign(service.machine.options.services, services);
-    Object.assign(service.machine.options.delays, delays);
-  }, [actions, guards, activities, services, delays]);
-
-  useReactEffectActions(service);
 
   return service;
 }

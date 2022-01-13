@@ -1,10 +1,4 @@
-import {
-  ActionMeta,
-  ActionObject,
-  EventObject,
-  State,
-  StateConfig
-} from 'xstate';
+import { EventObject, StateConfig } from 'xstate';
 
 export type Sender<TEvent extends EventObject> = (event: TEvent) => void;
 
@@ -72,25 +66,6 @@ export interface ActorRef<TEvent extends EventObject, TEmitted = any>
   send: Sender<TEvent>;
 }
 
-export enum ReactEffectType {
-  Effect = 1,
-  LayoutEffect = 2
-}
-
-export interface ReactActionFunction<TContext, TEvent extends EventObject> {
-  (
-    context: TContext,
-    event: TEvent,
-    meta: ActionMeta<TContext, TEvent>
-  ): () => void;
-  __effect: ReactEffectType;
-}
-
-export interface ReactActionObject<TContext, TEvent extends EventObject>
-  extends ActionObject<TContext, TEvent> {
-  exec: ReactActionFunction<TContext, TEvent>;
-}
-
 export interface UseMachineOptions<TContext, TEvent extends EventObject> {
   /**
    * If provided, will be merged with machine's `context`.
@@ -102,8 +77,3 @@ export interface UseMachineOptions<TContext, TEvent extends EventObject> {
    */
   state?: StateConfig<TContext, TEvent>;
 }
-
-export type ActionStateTuple<TContext, TEvent extends EventObject> = [
-  ReactActionObject<TContext, TEvent>,
-  State<TContext, TEvent>
-];

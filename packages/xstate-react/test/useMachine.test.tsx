@@ -13,7 +13,6 @@ import {
   State
 } from 'xstate';
 import { useActor, useMachine, useService } from '../src';
-import { asEffect, asLayoutEffect } from '../src/useMachine';
 
 afterEach(() => {
   jest.useRealTimers();
@@ -341,209 +340,6 @@ describe('useMachine hook', () => {
     render(<App />);
   });
 
-  it('should capture all actions', (done) => {
-    let count = 0;
-
-    const machine = createMachine<any, { type: 'EVENT' }>({
-      initial: 'active',
-      states: {
-        active: {
-          on: {
-            EVENT: {
-              actions: asEffect(() => {
-                count++;
-              })
-            }
-          }
-        }
-      }
-    });
-
-    const App = () => {
-      const [stateCount, setStateCount] = useState(0);
-      const [state, send] = useMachine(machine);
-
-      React.useEffect(() => {
-        send('EVENT');
-        send('EVENT');
-        send('EVENT');
-        send('EVENT');
-      }, []);
-
-      React.useEffect(() => {
-        setStateCount((c) => c + 1);
-      }, [state]);
-
-      return <div data-testid="count">{stateCount}</div>;
-    };
-
-    render(<App />);
-
-    const countEl = screen.getByTestId('count');
-
-    // Component should only rerender twice:
-    // - 1 time for the initial state
-    // - and 1 time for the four (batched) events
-    expect(countEl.textContent).toEqual('2');
-    expect(count).toEqual(4);
-    done();
-  });
-
-  it('should capture initial actions', (done) => {
-    let count = 0;
-
-    const machine = createMachine({
-      initial: 'active',
-      states: {
-        active: {
-          entry: asEffect(() => {
-            count++;
-          })
-        }
-      }
-    });
-
-    const App = () => {
-      useMachine(machine);
-
-      return <div />;
-    };
-
-    render(<App />);
-
-    expect(count).toEqual(1);
-    done();
-  });
-
-  it('effects should happen after normal actions', (done) => {
-    const order: string[] = [];
-
-    const machine = createMachine({
-      initial: 'active',
-      states: {
-        active: {
-          entry: [
-            asEffect(() => {
-              order.push('effect');
-            }),
-            () => {
-              order.push('non-effect');
-            }
-          ]
-        }
-      }
-    });
-
-    const App = () => {
-      useMachine(machine);
-
-      return <div />;
-    };
-
-    render(<App />);
-
-    expect(order).toEqual(['non-effect', 'effect']);
-    done();
-  });
-
-  it('layout effects should happen after normal actions', (done) => {
-    const order: string[] = [];
-
-    const machine = createMachine(
-      {
-        initial: 'active',
-        states: {
-          active: {
-            entry: [
-              asEffect(() => {
-                order.push('effect');
-              }),
-              () => {
-                order.push('non-effect');
-              },
-              asLayoutEffect(() => {
-                order.push('layout effect');
-              }),
-              'stringEffect',
-              'stringLayoutEffect'
-            ]
-          }
-        }
-      },
-      {
-        actions: {
-          stringEffect: asEffect(() => {
-            order.push('string effect');
-          }),
-          stringLayoutEffect: asLayoutEffect(() => {
-            order.push('string layout effect');
-          })
-        }
-      }
-    );
-
-    const App = () => {
-      useMachine(machine);
-
-      return <div />;
-    };
-
-    render(<App />);
-
-    expect(order).toEqual([
-      'non-effect',
-      'layout effect',
-      'string layout effect',
-      'effect',
-      'string effect'
-    ]);
-    done();
-  });
-
-  it('initial effect actions should execute during the very first commit phase', () => {
-    let actual: Array<[string, number]> = [];
-    let commitPhaseCounter = 0;
-
-    const machine = createMachine({
-      initial: 'active',
-      states: {
-        active: {
-          entry: [
-            asLayoutEffect(() => {
-              actual.push(['layout', commitPhaseCounter]);
-            }),
-            asEffect(() => {
-              actual.push(['passive', commitPhaseCounter]);
-            })
-          ]
-        }
-      }
-    });
-
-    const App = () => {
-      React.useLayoutEffect(() => {
-        commitPhaseCounter++;
-      });
-      useMachine(machine);
-
-      return <div />;
-    };
-
-    render(
-      <React.StrictMode>
-        <App />
-      </React.StrictMode>
-    );
-
-    // TODO: with proper rehydration entry actions should probably not be recalled for the second time with strict effects
-    expect(actual).toEqual([
-      ['layout', 1],
-      ['passive', 1],
-      ['layout', 2],
-      ['passive', 2]
-    ]);
-  });
-
   it('should successfully spawn actors from the lazily declared context', () => {
     let childSpawned = false;
 
@@ -806,7 +602,9 @@ describe('useMachine (strict mode)', () => {
     expect(activatedCount).toEqual(2);
   });
 
-  it('child component should be able to send an event to a parent immediately in an effect', (done) => {
+  // TODO: we need to investigate if this test is working correctly cause atm even though it pass it comes with this warning:
+  // Warning: Event "FINISH" was sent to stopped service "(machine)". This service has already reached its final state, and will not transition.
+  it.skip('child component should be able to send an event to a parent immediately in an effect', (done) => {
     const machine = createMachine<any, { type: 'FINISH' }>({
       initial: 'active',
       states: {
