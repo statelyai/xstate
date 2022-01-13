@@ -81,10 +81,13 @@ export function useMachine<
     [service]
   );
 
-  const subscribe = useCallback((handleStoreChange) => {
-    const { unsubscribe } = service.subscribe(handleStoreChange);
-    return unsubscribe;
-  }, []);
+  const subscribe = useCallback(
+    (handleStoreChange) => {
+      const { unsubscribe } = service.subscribe(handleStoreChange);
+      return unsubscribe;
+    },
+    [service]
+  );
   const storeSnapshot = useSyncExternalStoreWithSelector(
     subscribe,
     getSnapshot,
