@@ -1,4 +1,14 @@
-import { EventObject, State, StateNode } from 'xstate';
+import { TraversalOptions } from '@xstate/graph';
+import {
+  EventObject,
+  MachineConfig,
+  State,
+  StateMachine,
+  StateNode,
+  StateNodeConfig,
+  TransitionConfig,
+  TransitionConfigOrTarget
+} from 'xstate';
 export interface TestMeta<T, TContext> {
   test?: (testContext: T, state: State<TContext, any>) => Promise<void> | void;
   description?: string | ((state: State<TContext, any>) => string);
@@ -40,11 +50,11 @@ export interface TestPathResult {
  * A collection of `paths` used to verify that the SUT reaches
  * the target `state`.
  */
-export interface TestPlan<TTestContext, TContext> {
+export interface TestPlan<TTestContext, TState> {
   /**
    * The target state.
    */
-  state: State<TContext, any>;
+  state: TState;
   /**
    * The paths that reach the target `state`.
    */
@@ -84,7 +94,7 @@ interface EventCase {
   [prop: string]: any;
 }
 
-export type StatePredicate<TContext> = (state: State<TContext, any>) => boolean;
+export type StatePredicate<TState> = (state: TState) => boolean;
 /**
  * Executes an effect using the `testContext` and `event`
  * that triggers the represented `event`.
@@ -128,11 +138,22 @@ export interface TestEventConfig<TTestContext> {
   cases?: EventCase[];
 }
 
-export interface TestEventsConfig<T> {
-  [eventType: string]: EventExecutor<T> | TestEventConfig<T>;
+export interface TestEventsConfig<TTestContext> {
+  [eventType: string]:
+    | EventExecutor<TTestContext>
+    | TestEventConfig<TTestContext>;
 }
-export interface TestModelOptions<T> {
-  events: TestEventsConfig<T>;
+
+export interface TestModelOptions<
+  TState,
+  TEvents extends EventObject,
+  TTestContext
+> extends TraversalOptions<TState, TEvents> {
+  testState: (state: TState, testContext: TTestContext) => void | Promise<void>;
+  execEvent: (
+    event: TEvents,
+    testContext: TTestContext
+  ) => void | Promise<void>;
 }
 export interface TestModelCoverage {
   stateNodes: Map<string, number>;
@@ -141,4 +162,49 @@ export interface TestModelCoverage {
 
 export interface CoverageOptions<TContext> {
   filter?: (stateNode: StateNode<TContext, any, any>) => boolean;
+}
+
+export interface TestTransitionConfig<
+  TContext,
+  TEvent extends EventObject,
+  TTestContext
+> extends TransitionConfig<TContext, TEvent> {
+  test?: (state: State<TContext, TEvent>, testContext: TTestContext) => void;
+}
+
+export type TestTransitionsConfigMap<
+  TContext,
+  TEvent extends EventObject,
+  TTestContext
+> = {
+  [K in TEvent['type']]?:
+    | TestTransitionConfig<
+        TContext,
+        TEvent extends { type: K } ? TEvent : never,
+        TTestContext
+      >
+    | string;
+} & {
+  ''?: TestTransitionConfig<TContext, TEvent, TTestContext> | string;
+} & {
+  '*'?: TestTransitionConfig<TContext, TEvent, TTestContext> | string;
+};
+
+export interface TestStateNodeConfig<
+  TContext,
+  TEvent extends EventObject,
+  TTestContext
+> extends StateNodeConfig<TContext, any, TEvent> {
+  test?: (state: State<TContext, TEvent>, testContext: TTestContext) => void;
+  on?: TestTransitionsConfigMap<TContext, TEvent, TTestContext>;
+}
+
+export interface TestMachineConfig<
+  TContext,
+  TEvent extends EventObject,
+  TTestContext
+> extends MachineConfig<TContext, any, TEvent> {
+  states?: {
+    [key: string]: TestStateNodeConfig<TContext, TEvent, TTestContext>;
+  };
 }

@@ -137,3 +137,8 @@ type Brand<T, Tag extends string> = T & { __tag: Tag };
 
 export type SerializedState = Brand<string, 'state'>;
 export type SerializedEvent = Brand<string, 'event'>;
+
+export interface SimpleBehavior<TState, TEvent> {
+  transition: (state: TState, event: TEvent) => TState;
+  initialState: TState;
+}
