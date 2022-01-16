@@ -30,6 +30,7 @@ import { State } from './State';
 import { CapturedState } from './capturedState';
 import { toActorRef } from './actor';
 import { toObserver } from './utils';
+import { Mailbox } from './Mailbox';
 
 /**
  * Returns an actor behavior from a reducer and its initial state.
@@ -138,27 +139,15 @@ export function spawnBehavior<TEvent extends EventObject, TEmitted>(
 ): ActorRef<TEvent, TEmitted> {
   let state = behavior.initialState;
   const observers = new Set<Observer<TEmitted>>();
-  const mailbox: TEvent[] = [];
-  let flushing = false;
-
-  const flush = () => {
-    if (flushing) {
-      return;
-    }
-    flushing = true;
-    while (mailbox.length > 0) {
-      const event = mailbox.shift()!;
-      state = behavior.transition(state, event, actorCtx);
-      observers.forEach((observer) => observer.next?.(state));
-    }
-    flushing = false;
-  };
+  const mailbox = new Mailbox<TEvent>((event) => {
+    state = behavior.transition(state, event, actorCtx);
+    observers.forEach((observer) => observer.next?.(state));
+  });
 
   const actor = toActorRef({
     id: options.id,
     send: (event: TEvent) => {
-      mailbox.push(event);
-      flush();
+      mailbox.enqueue(event);
     },
     getSnapshot: () => state,
     subscribe: (next, handleError?, complete?) => {
@@ -172,6 +161,12 @@ export function spawnBehavior<TEvent extends EventObject, TEmitted>(
         }
       };
     },
+    start() {
+      mailbox.start();
+    },
+    stop() {
+      mailbox.clear();
+    },
     ...interopSymbols
   });
 
@@ -182,8 +177,6 @@ export function spawnBehavior<TEvent extends EventObject, TEmitted>(
     observers,
     _event: null as any
   };
-
-  state = behavior.start ? behavior.start(actorCtx) : state;
 
   return actor;
 }
@@ -455,12 +448,14 @@ export function createMachineBehavior<
         return state;
       }
 
-      if (isSignal(event)) {
+      const _event = actorContext._event;
+
+      if (isSignal(_event)) {
         // TODO: unrecognized signal
         return state;
       }
 
-      service?.send(actorContext._event);
+      service?.send(_event);
       return state;
     },
     subscribe: (observer) => {

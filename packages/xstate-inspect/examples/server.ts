@@ -1,3 +1,4 @@
+// @ts-nocheck todo
 import WebSocket from 'ws';
 import { createMachine, interpret, send } from 'xstate';
 import { toSCXMLEvent } from 'xstate/src/utils';
