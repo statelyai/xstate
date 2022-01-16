@@ -1,41 +1,85 @@
 import { createMachine, interpret, State } from '../src';
 
 describe('rehydration', () => {
-  it('should be able to use `hasTag` after rehydrating persisted state', () => {
-    const machine = createMachine({
-      initial: 'a',
-      states: {
-        a: {
-          tags: 'foo'
+  describe('using persisted state', () => {
+    it('should be able to use `hasTag` immediately', () => {
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            tags: 'foo'
+          }
         }
-      }
+      });
+
+      const persistedState = JSON.stringify(machine.initialState);
+      const restoredState = State.create(JSON.parse(persistedState));
+
+      const service = interpret(machine).start(restoredState);
+
+      expect(service.state.hasTag('foo')).toBe(true);
     });
 
-    const persistedState = JSON.stringify(machine.initialState);
-    const restoredState = State.create(JSON.parse(persistedState));
+    it('should call exit actions when machine gets stopped immediately', () => {
+      const actual: string[] = [];
+      const machine = createMachine({
+        exit: () => actual.push('root'),
+        initial: 'a',
+        states: {
+          a: {
+            exit: () => actual.push('a')
+          }
+        }
+      });
 
-    const service = interpret(machine).start(restoredState);
+      const persistedState = JSON.stringify(machine.initialState);
+      const restoredState = State.create(JSON.parse(persistedState));
 
-    expect(service.state.hasTag('foo')).toBe(true);
+      interpret(machine).start(restoredState).stop();
+
+      expect(actual).toEqual(['a', 'root']);
+    });
   });
 
-  it('should be able to use `hasTag` after rehydrating state value', () => {
-    const machine = createMachine({
-      initial: 'inactive',
-      states: {
-        inactive: {
-          on: { NEXT: 'active' }
-        },
-        active: {
-          tags: 'foo'
+  describe('using state value', () => {
+    it('should be able to use `hasTag` immediately', () => {
+      const machine = createMachine({
+        initial: 'inactive',
+        states: {
+          inactive: {
+            on: { NEXT: 'active' }
+          },
+          active: {
+            tags: 'foo'
+          }
         }
-      }
+      });
+
+      const service = interpret(machine);
+
+      service.start('active');
+
+      expect(service.state.hasTag('foo')).toBe(true);
     });
 
-    const service = interpret(machine);
+    it('should call exit actions when machine gets stopped immediately', () => {
+      const actual: string[] = [];
+      const machine = createMachine({
+        exit: () => actual.push('root'),
+        initial: 'inactive',
+        states: {
+          inactive: {
+            on: { NEXT: 'active' }
+          },
+          active: {
+            exit: () => actual.push('active')
+          }
+        }
+      });
 
-    service.start('active');
+      interpret(machine).start('active').stop();
 
-    expect(service.state.hasTag('foo')).toBe(true);
+      expect(actual).toEqual(['active', 'root']);
+    });
   });
 });

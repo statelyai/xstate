@@ -1235,7 +1235,7 @@ class StateNode<
         : ({} as Record<string, ActorRef<any>>)
     );
 
-    const resolvedConfiguration = resolvedStateValue
+    const resolvedConfiguration = willTransition
       ? stateTransition.configuration
       : currentState
       ? currentState.configuration
