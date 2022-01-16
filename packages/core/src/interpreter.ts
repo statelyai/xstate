@@ -511,11 +511,13 @@ export class Interpreter<
       return this;
     }
 
-    this.state.configuration.forEach((stateNode) => {
-      for (const action of stateNode.definition.exit) {
-        this.exec(action, this.state);
-      }
-    });
+    [...this.state.configuration]
+      .sort((a, b) => b.order - a.order)
+      .forEach((stateNode) => {
+        for (const action of stateNode.definition.exit) {
+          this.exec(action, this.state);
+        }
+      });
 
     // Stop all children
     this.children.forEach((child) => {

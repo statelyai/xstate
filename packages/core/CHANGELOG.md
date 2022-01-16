@@ -1,5 +1,51 @@
 # xstate
 
+## 4.28.0
+
+### Minor Changes
+
+- [#2835](https://github.com/statelyai/xstate/pull/2835) [`029f7b75a`](https://github.com/statelyai/xstate/commit/029f7b75a22a8186e5e3983dfd980c52369ef09f) Thanks [@woutermont](https://github.com/woutermont)! - Added interop observable symbols to `ActorRef` so that actor refs are compatible with libraries like RxJS.
+
+### Patch Changes
+
+- [#2864](https://github.com/statelyai/xstate/pull/2864) [`4252ee212`](https://github.com/statelyai/xstate/commit/4252ee212e59fd074707b933c101662d47938849) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Generated IDs for invocations that do not provide an `id` are now based on the state ID to avoid collisions:
+
+  ```js
+  createMachine({
+    id: 'test',
+    initial: 'p',
+    states: {
+      p: {
+        type: 'parallel',
+        states: {
+          // Before this change, both invoke IDs would be 'someSource',
+          // which is incorrect.
+          a: {
+            invoke: {
+              src: 'someSource'
+              // generated invoke ID: 'test.p.a:invocation[0]'
+            }
+          },
+          b: {
+            invoke: {
+              src: 'someSource'
+              // generated invoke ID: 'test.p.b:invocation[0]'
+            }
+          }
+        }
+      }
+    }
+  });
+  ```
+
+* [#2925](https://github.com/statelyai/xstate/pull/2925) [`239b4666a`](https://github.com/statelyai/xstate/commit/239b4666ac302d80c028fef47c6e8ab7e0ae2757) Thanks [@devanfarrell](https://github.com/devanfarrell)! - The `sendTo(actorRef, event)` action creator introduced in `4.27.0`, which was not accessible from the package exports, can now be used just like other actions:
+
+  ```js
+  import { actions } from 'xstate';
+
+  const { sendTo } = actions;
+  ```
+
 ## 4.27.0
 
 ### Minor Changes
@@ -129,10 +175,10 @@
 
   model.createMachine({
     // `ctx` was of type `any`
-    entry: ctx => {},
+    entry: (ctx) => {},
     exit: assign({
       // `ctx` was of type `unknown`
-      foo: ctx => 42
+      foo: (ctx) => 42
     })
   });
   ```
@@ -308,11 +354,11 @@
   const machine = createMachine({
     context: { count: 0 },
     entry: [
-      ctx => console.log(ctx.count), // 0
-      assign({ count: ctx => ctx.count + 1 }),
-      ctx => console.log(ctx.count), // 1
-      assign({ count: ctx => ctx.count + 1 }),
-      ctx => console.log(ctx.count) // 2
+      (ctx) => console.log(ctx.count), // 0
+      assign({ count: (ctx) => ctx.count + 1 }),
+      (ctx) => console.log(ctx.count), // 1
+      assign({ count: (ctx) => ctx.count + 1 }),
+      (ctx) => console.log(ctx.count) // 2
     ],
     preserveActionOrder: true
   });
@@ -321,11 +367,11 @@
   const machine = createMachine({
     context: { count: 0 },
     entry: [
-      ctx => console.log(ctx.count), // 2
-      assign({ count: ctx => ctx.count + 1 }),
-      ctx => console.log(ctx.count), // 2
-      assign({ count: ctx => ctx.count + 1 }),
-      ctx => console.log(ctx.count) // 2
+      (ctx) => console.log(ctx.count), // 2
+      assign({ count: (ctx) => ctx.count + 1 }),
+      (ctx) => console.log(ctx.count), // 2
+      assign({ count: (ctx) => ctx.count + 1 }),
+      (ctx) => console.log(ctx.count) // 2
     ]
     // preserveActionOrder: false
   });
@@ -524,7 +570,7 @@
   });
 
   const service = interpret(machine)
-    .onTransition(state => {
+    .onTransition((state) => {
       // Read promise value synchronously
       const resolvedValue = state.context.promiseRef?.getSnapshot();
       // => undefined (if promise not resolved yet)
@@ -604,7 +650,7 @@
     context: { value: 42 },
     on: {
       INC: {
-        actions: assign({ value: ctx => ctx.value + 1 })
+        actions: assign({ value: (ctx) => ctx.value + 1 })
       }
     }
   });
@@ -864,7 +910,7 @@
 
   ```js
   // ...
-  actions: stop(context => context.someActor);
+  actions: stop((context) => context.someActor);
   ```
 
 ### Patch Changes
@@ -1102,10 +1148,10 @@
   ```js
   entry: [
     choose([
-      { cond: ctx => ctx > 100, actions: raise('TOGGLE') },
+      { cond: (ctx) => ctx > 100, actions: raise('TOGGLE') },
       {
         cond: 'hasMagicBottle',
-        actions: [assign(ctx => ({ counter: ctx.counter + 1 }))]
+        actions: [assign((ctx) => ({ counter: ctx.counter + 1 }))]
       },
       { actions: ['fallbackAction'] }
     ])
