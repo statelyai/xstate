@@ -107,7 +107,7 @@ export interface ChooseCondition<
   actions: Actions<TContext, TEvent>;
 }
 
-export interface DynAction<
+export interface DynamicAction<
   TContext,
   TEvent extends EventObject,
   TSpecificEvent extends TEvent = TEvent
@@ -122,11 +122,9 @@ export type Action<
   TSpecificEvent extends TEvent = TEvent,
   TActions extends BaseActionObject = BaseActionObject
 > =
-  | ActionType
-  | DynAction<TContext, TEvent, TSpecificEvent>
+  | SimpleActionsOf<TActions>['type']
+  | DynamicAction<TContext, TEvent, TSpecificEvent>
   | TActions
-  // | ActionObject<TContext, TSpecificEvent>
-  // | ActionObject<TContext, TEvent
   | ActionFunction<TContext, TSpecificEvent>;
 
 /**
@@ -145,28 +143,6 @@ type SimpleActionsOf<T extends BaseActionObject> = ActionObject<
 export type SimpleEventsOf<
   TEvent extends EventObject
 > = ExtractWithSimpleSupport<TEvent>;
-
-export type BaseAction<
-  TContext,
-  TEvent extends EventObject,
-  TAction extends BaseActionObject
-> =
-  | SimpleActionsOf<TAction>['type']
-  | TAction
-  | RaiseAction<any>
-  | SendAction<TContext, TEvent, any>
-  | AssignAction<TContext, TEvent, any>
-  | LogAction<TContext, TEvent>
-  | CancelAction
-  | StopAction<TContext, TEvent>
-  | ChooseAction<TContext, TEvent>
-  | ActionFunction<TContext, TEvent>;
-
-export type BaseActions<
-  TContext,
-  TEvent extends EventObject,
-  TAction extends BaseActionObject
-> = SingleOrArray<BaseAction<TContext, TEvent, TAction>>;
 
 export type Actions<
   TContext,
@@ -654,7 +630,7 @@ export interface StateNodeConfig<
   /**
    * The action(s) to be executed upon entering the state node.
    */
-  entry?: BaseActions<TContext, TEvent, TExtra['actions']>;
+  entry?: Actions<TContext, TEvent, TEvent, TExtra['actions']>;
   /**
    * The action(s) to be executed upon exiting the state node.
    *
@@ -664,7 +640,7 @@ export interface StateNodeConfig<
   /**
    * The action(s) to be executed upon exiting the state node.
    */
-  exit?: BaseActions<TContext, TEvent, TExtra['actions']>;
+  exit?: Actions<TContext, TEvent, TEvent, TExtra['actions']>;
   /**
    * The potential transition(s) to be taken upon reaching a final child state node.
    *
@@ -1070,7 +1046,7 @@ export type LogExpr<TContext, TEvent extends EventObject> = ExprWithMeta<
 >;
 
 export interface LogAction<TContext, TEvent extends EventObject>
-  extends DynAction<TContext, TEvent> {
+  extends DynamicAction<TContext, TEvent> {
   label: string | undefined;
   expr: string | LogExpr<TContext, TEvent>;
 }
@@ -1084,7 +1060,7 @@ export interface SendAction<
   TContext,
   TEvent extends EventObject,
   TSentEvent extends EventObject
-> extends DynAction<TContext, TEvent> {
+> extends DynamicAction<TContext, TEvent> {
   to:
     | string
     | number
@@ -1109,7 +1085,7 @@ export interface SendActionObject<
 }
 
 export interface StopAction<TContext, TEvent extends EventObject>
-  extends DynAction<TContext, TEvent> {
+  extends DynamicAction<TContext, TEvent> {
   type: ActionTypes.Stop;
   activity:
     | string
@@ -1150,7 +1126,7 @@ export interface SendActionOptions<TContext, TEvent extends EventObject> {
   to?: string | ExprWithMeta<TContext, TEvent, string | number | ActorRef<any>>;
 }
 
-export interface CancelAction extends DynAction<any, any> {
+export interface CancelAction extends DynamicAction<any, any> {
   sendId: string | number;
 }
 
@@ -1199,7 +1175,7 @@ export interface AssignAction<
   TContext,
   TEvent extends EventObject,
   TSpecificEvent extends TEvent
-> extends DynAction<TContext, TEvent, TSpecificEvent> {
+> extends DynamicAction<TContext, TEvent, TSpecificEvent> {
   type: ActionTypes.Assign;
   assignment:
     | Assigner<TContext, TSpecificEvent>
@@ -1216,7 +1192,7 @@ export interface PureAction<TContext, TEvent extends EventObject>
 }
 
 export interface ChooseAction<TContext, TEvent extends EventObject>
-  extends DynAction<TContext, TEvent> {
+  extends DynamicAction<TContext, TEvent> {
   type: ActionTypes.Choose;
   conds: Array<ChooseCondition<TContext, TEvent>>;
 }

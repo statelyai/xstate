@@ -79,7 +79,7 @@ describe('createModel', () => {
           value: string;
         }
       | { type: 'updateAge'; value: number }
-      | { type: 'anotherEvent' };
+      | { type: 'anotherEvent'; value?: undefined };
 
     interface UserContext {
       name: string;
@@ -92,9 +92,9 @@ describe('createModel', () => {
     });
 
     userModel.assign({
+      // @ts-expect-error
       name: (_, event) => {
         // Incompatible because event.value can be string | number | undefined
-        // @ts-expect-error
         return event.value;
       }
     });
@@ -109,8 +109,7 @@ describe('createModel', () => {
       }
     });
 
-    const machine = createMachine<UserContext, UserEvent>({
-      context: userModel.initialContext,
+    const machine = userModel.createMachine({
       on: {
         updateName: {
           actions: assignName
@@ -688,29 +687,29 @@ describe('createModel', () => {
     );
   });
 
-  it('model.withActions(...) should strongly type entry/exit actions', () => {
-    const model = createModel({ foo: 'string' }).withActions<
-      { type: 'doThis'; greet: string } | { type: 'doThat' }
-    >();
+  // it('model.withActions(...) should strongly type entry/exit actions', () => {
+  //   const model = createModel({ foo: 'string' }).withActions<
+  //     { type: 'doThis'; greet: string } | { type: 'doThat' }
+  //   >();
 
-    model.createMachine({
-      entry: [{ type: 'doThis', greet: 'hello' }, 'doThat'],
-      exit: [{ type: 'doThat' }],
-      on: {
-        EVENT: {
-          actions: [{ type: 'doThis', greet: 'hello' }, { type: 'doThat' }]
-        },
-        // @ts-expect-error
-        INVALID: {
-          actions: [{ type: 'doThis' }]
-        },
-        // @ts-expect-error
-        INVALID2: {
-          actions: [{ type: 'doSomethingElse' }]
-        }
-      }
-    });
-  });
+  //   model.createMachine({
+  //     entry: [{ type: 'doThis', greet: 'hello' }, 'doThat'],
+  //     exit: [{ type: 'doThat' }],
+  //     on: {
+  //       EVENT: {
+  //         actions: [{ type: 'doThis', greet: 'hello' }, { type: 'doThat' }]
+  //       },
+  //       // @ts-expect-error
+  //       INVALID: {
+  //         actions: [{ type: 'doThis' }]
+  //       },
+  //       // @ts-expect-error
+  //       INVALID2: {
+  //         actions: [{ type: 'doSomethingElse' }]
+  //       }
+  //     }
+  //   });
+  // });
 
   it('model.withGuards(...) should strongly type guards in machine options', () => {
     const model = createModel({ foo: 'string' }).withGuards<

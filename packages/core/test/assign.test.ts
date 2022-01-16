@@ -4,8 +4,7 @@ import {
   assign,
   send,
   sendParent,
-  createMachine,
-  ExtractEvent
+  createMachine
 } from '../src';
 
 interface CounterContext {
@@ -404,11 +403,7 @@ describe('assign types', () => {
   it('transitions can accept assign actions that take any machine event', () => {
     type SampleEvent = { type: 'INC'; value: number } | { type: 'GREET' };
 
-    const generalAssign = assign<
-      any,
-      SampleEvent,
-      ExtractEvent<SampleEvent, 'INC'>
-    >({
+    const generalAssign = assign<any, SampleEvent>({
       count: (_, e) => (e.type === 'INC' ? e.value : 0)
     });
 
