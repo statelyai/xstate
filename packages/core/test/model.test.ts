@@ -619,8 +619,8 @@ describe('createModel', () => {
       {},
       {
         actions: {
-          doThis: () => {
-            /* ... */
+          doThis: (_ctx, _e, { action }) => {
+            action.greet.toUpperCase();
           },
           doThat: () => {
             /* ... */
