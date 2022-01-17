@@ -424,7 +424,7 @@ describe('useInterpret', () => {
     render(<App />);
   });
 
-  it('Should handle multiple state.matches', () => {
+  it('Should handle multiple state.matches when passed TypegenMeta', () => {
     interface TypesMeta extends TypegenMeta {
       matchesStates: 'a' | 'b';
       missingImplementations: {
@@ -445,7 +445,7 @@ describe('useInterpret', () => {
         return <div>a</div>;
       }
 
-      // matches should be defined, but isn't
+      // matches should still be defined
       if (state.matches('b')) {
         return <div>b</div>;
       }
