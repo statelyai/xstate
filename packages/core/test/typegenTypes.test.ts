@@ -317,6 +317,23 @@ describe('typegen types', () => {
     machine.initialState.matches('a');
   });
 
+  it('should allow valid object `matches`', () => {
+    interface TypesMeta extends TypegenMeta {
+      matchesStates: 'a' | { a: 'b' } | { a: 'c' };
+    }
+
+    const machine = createMachine({
+      tsTypes: {} as TypesMeta,
+      context: { foo: 100 },
+      initial: 'a',
+      states: {
+        a: {}
+      }
+    });
+
+    machine.initialState.matches({ a: 'c' });
+  });
+
   it('should not allow invalid string `matches`', () => {
     interface TypesMeta extends TypegenMeta {
       matchesStates: 'a' | 'b' | 'c';
@@ -336,6 +353,24 @@ describe('typegen types', () => {
 
     // @ts-expect-error
     machine.initialState.matches('d');
+  });
+
+  it('should not allow invalid object `matches`', () => {
+    interface TypesMeta extends TypegenMeta {
+      matchesStates: 'a' | { a: 'b' } | { a: 'c' };
+    }
+
+    const machine = createMachine({
+      tsTypes: {} as TypesMeta,
+      context: { foo: 100 },
+      initial: 'a',
+      states: {
+        a: {}
+      }
+    });
+
+    // @ts-expect-error
+    machine.initialState.matches({ a: 'd' });
   });
 
   it('should allow a valid tag with `hasTag`', () => {
