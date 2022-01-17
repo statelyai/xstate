@@ -136,7 +136,7 @@ const dogService = interpret(fetchMachine)
 
 dogService.send('FETCH');
 ```
-  
+
 </details>
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
@@ -150,7 +150,7 @@ dogService.send('FETCH');
 - [History States](#history-states)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
-  
+
 ## Visualizer
 
 **[Visualize, simulate, inspect, and share your statecharts in XState Viz](https://stately.ai/viz)**
@@ -434,3 +434,23 @@ const previousState = paymentMachine.transition(reviewState, 'PREVIOUS').value;
 
 // => { method: 'check' }
 ```
+
+## SemVer Policy
+
+We understand the importance of the public contract and do not intend to release any breaking changes to the **runtime** API in a minor or patch release. We consider this with any changes we make to the XState libraries and aim to minimize their effects on existing users.
+
+### Breaking changes
+
+XState executes much of the user logic itself. Therefore, almost any change to its behavior might be considered a breaking change. We recognize this as a potential problem but believe that treating every change as a breaking change is not practical. We do our best to implement new features thoughtfully to enable our users to implement their logic in a better, safer way. 
+
+Any change _could_ affect how existing XState machines behave if those machines are using particular configurations. We do not introduce behavior changes on a whim and aim to avoid making changes that affect most existing machines. But we reserve the right to make _some_ behavior changes in minor releases. Our best judgment of the situation will always dictate such changes. Please always read our release notes before deciding to upgrade.
+
+### TypeScript changes
+
+We also reserve a similar right to adjust declared TypeScript definitions or drop support for older versions of TypeScript in a minor release. The TypeScript language itself evolves quickly and often introduces breaking changes in its minor releases. Our team is also continuously learning how to leverage TypeScript more effectively - and the types improve as a result. 
+
+For these reasons, it is impractical for our team to be bound by decisions taken when an older version of TypeScript was its latest version or when we didn’t know how to declare our types in a better way. We won’t introduce declaration changes often - but we are more likely to do so than with runtime changes.
+
+### Packages
+
+Most of the packages in the XState family declare a peer dependency on XState itself. We’ll be cautious about maintaining compatibility with already-released packages when releasing a new version of XState, **but** each release of packages depending on XState will always adjust the declared peer dependency range to include the latest version of XState. For example, you should always be able to update `xstate` without `@xstate/react`. But when you update `@xstate/react`, we highly recommend updating `xstate` too.
