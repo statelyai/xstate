@@ -355,7 +355,7 @@ describe('typegen types', () => {
     machine.initialState.matches('d');
   });
 
-  it('should allow invalid object `matches`', () => {
+  it('should not allow invalid object `matches`', () => {
     interface TypesMeta extends TypegenMeta {
       matchesStates: 'a' | { a: 'b' } | { a: 'c' };
     }
