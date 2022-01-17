@@ -22,19 +22,74 @@ export interface TypegenEnabled {
   '@@xstate/typegen': true;
 }
 export interface TypegenMeta extends TypegenEnabled {
-  matchesStates: string;
+  /**
+   * Allows you to specify all the results of state.matches
+   */
+  matchesStates: string | {};
+  /**
+   * Allows you to specify all tags used by the machine
+   */
   tags: string;
+  /**
+   * Allows you to specify all the missing implementations
+   * of the machine
+   */
   missingImplementations: {
     actions: string;
     delays: string;
     guards: string;
     services: string;
   };
+  /**
+   * A map for the internal events of the machine.
+   *
+   * key: 'done.invoke.myService'
+   * value: {
+   *   type: 'done.invoke.myService';
+   *   data: unknown;
+   *   __tip: 'Declare the type in event types!';
+   * }
+   */
   internalEvents: {};
+  /**
+   * Maps the name of the service to the event type
+   * of the done.invoke action
+   *
+   * key: 'invokeSrc'
+   * value: 'done.invoke.invokeName'
+   */
   invokeSrcNameMap: Record<string, string>;
+  /**
+   * Keeps track of which events lead to which
+   * actions.
+   *
+   * Key: 'EVENT_NAME'
+   * Value: 'actionName' | 'otherActionName'
+   */
   eventsCausingActions: Record<string, string>;
+  /**
+   * Keeps track of which events lead to which
+   * delays.
+   *
+   * Key: 'EVENT_NAME'
+   * Value: 'delayName' | 'otherDelayName'
+   */
   eventsCausingDelays: Record<string, string>;
+  /**
+   * Keeps track of which events lead to which
+   * guards.
+   *
+   * Key: 'EVENT_NAME'
+   * Value: 'guardName' | 'otherGuardName'
+   */
   eventsCausingGuards: Record<string, string>;
+  /**
+   * Keeps track of which events lead to which
+   * services.
+   *
+   * Key: 'EVENT_NAME'
+   * Value: 'serviceName' | 'otherServiceName'
+   */
   eventsCausingServices: Record<string, string>;
 }
 
