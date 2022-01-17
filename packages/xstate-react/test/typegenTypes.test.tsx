@@ -449,8 +449,22 @@ describe('useInterpret', () => {
       if (state.matches('b')) {
         return <div>b</div>;
       }
+    };
+  });
 
-      return null;
+  it('Should handle multiple state.matches when NOT passed TypegenMeta', () => {
+    const machine = createMachine({});
+
+    () => {
+      const [state] = useMachine(machine, {});
+      if (state.matches('a')) {
+        return <div>a</div>;
+      }
+
+      // matches should be defined, but isn't
+      if (state.matches('b')) {
+        return <div>b</div>;
+      }
     };
   });
 });

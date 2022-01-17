@@ -322,10 +322,12 @@ export class State<
    * Whether the current state value is a subset of the given parent state value.
    * @param parentStateValue
    */
-  public matches<TSV extends TTypestate['value']>(
-    parentStateValue: TResolvedTypesMeta extends TypegenEnabled
+  public matches<
+    TSV extends TResolvedTypesMeta extends TypegenEnabled
       ? Prop<TResolvedTypesMeta, 'matchesStates'>
-      : TSV
+      : TTypestate['value']
+  >(
+    parentStateValue: TSV
   ): this is State<
     (TTypestate extends any
       ? { value: TSV; context: any } extends TTypestate
