@@ -1129,7 +1129,12 @@ class StateNode<
 
     stateTransition.configuration = [...resolvedConfig];
 
-    return this.resolveTransition(stateTransition, currentState, _event);
+    return this.resolveTransition(
+      stateTransition,
+      currentState,
+      currentState.context,
+      _event
+    );
   }
 
   private resolveRaisedTransition(
@@ -1151,9 +1156,9 @@ class StateNode<
 
   private resolveTransition(
     stateTransition: StateTransition<TContext, TEvent>,
-    currentState?: State<TContext, TEvent, any, any>,
-    _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>,
-    context: TContext = this.machine.context
+    currentState: State<TContext, TEvent, any, any> | undefined,
+    context: TContext,
+    _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>
   ): State<TContext, TEvent, TStateSchema, TTypestate> {
     const { configuration } = stateTransition;
     // Transition will "apply" if:
@@ -1171,10 +1176,9 @@ class StateNode<
         ? (this.machine.historyValue(currentState.value) as HistoryValue)
         : undefined
       : undefined;
-    const currentContext = currentState ? currentState.context : context;
     const actions = this.getActions(
       stateTransition,
-      currentContext,
+      context,
       _event,
       currentState
     );
@@ -1192,7 +1196,7 @@ class StateNode<
     const [resolvedActions, updatedContext] = resolveActions(
       this,
       currentState,
-      currentContext,
+      context,
       _event,
       actions,
       this.machine.config.preserveActionOrder
@@ -1275,7 +1279,7 @@ class StateNode<
       machine: this
     });
 
-    const didUpdateContext = currentContext !== updatedContext;
+    const didUpdateContext = context !== updatedContext;
 
     nextState.changed = _event.name === actionTypes.update || didUpdateContext;
 
@@ -1554,8 +1558,8 @@ class StateNode<
         actions: []
       },
       undefined,
-      undefined,
-      context
+      context ?? this.machine.context,
+      undefined
     );
   }
 
