@@ -1,7 +1,7 @@
+import { render } from '@testing-library/react';
 import * as React from 'react';
 import { assign, createMachine, TypegenMeta } from 'xstate';
-import { render } from '@testing-library/react';
-import { useMachine, useInterpret } from '../src';
+import { useInterpret, useMachine } from '../src';
 
 describe('useMachine', () => {
   it('should allow to be used with a machine without any missing implementations', () => {
@@ -422,5 +422,49 @@ describe('useInterpret', () => {
     }
 
     render(<App />);
+  });
+
+  it('Should handle multiple state.matches when passed TypegenMeta', () => {
+    interface TypesMeta extends TypegenMeta {
+      matchesStates: 'a' | 'b';
+      missingImplementations: {
+        actions: never;
+        services: never;
+        guards: never;
+        delays: never;
+      };
+    }
+
+    const machine = createMachine({
+      tsTypes: {} as TypesMeta
+    });
+
+    () => {
+      const [state] = useMachine(machine, {});
+      if (state.matches('a')) {
+        return <div>a</div>;
+      }
+
+      // matches should still be defined
+      if (state.matches('b')) {
+        return <div>b</div>;
+      }
+    };
+  });
+
+  it('Should handle multiple state.matches when NOT passed TypegenMeta', () => {
+    const machine = createMachine({});
+
+    () => {
+      const [state] = useMachine(machine, {});
+      if (state.matches('a')) {
+        return <div>a</div>;
+      }
+
+      // matches should be defined, but isn't
+      if (state.matches('b')) {
+        return <div>b</div>;
+      }
+    };
   });
 });
