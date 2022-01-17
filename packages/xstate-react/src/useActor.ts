@@ -56,10 +56,15 @@ export function useActor(
     [actorRef]
   );
 
+  const boundGetSnapshot = useCallback(() => getSnapshot(actorRef), [
+    actorRef,
+    getSnapshot
+  ]);
+
   const storeSnapshot = useSyncExternalStore(
     subscribe,
-    useCallback(() => getSnapshot(actorRef), [actorRef, getSnapshot]),
-    undefined
+    boundGetSnapshot,
+    boundGetSnapshot
   );
 
   const send: Sender<EventObject> = useConstant(() => (...args) => {

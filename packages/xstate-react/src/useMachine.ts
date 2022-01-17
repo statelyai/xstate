@@ -91,7 +91,7 @@ export function useMachine<
   const storeSnapshot = useSyncExternalStoreWithSelector(
     subscribe,
     getSnapshot,
-    undefined,
+    getSnapshot,
     identity,
     isEqual
   );

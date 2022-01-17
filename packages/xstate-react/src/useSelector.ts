@@ -34,10 +34,15 @@ export function useSelector<
     [actor]
   );
 
+  const boundGetSnapshot = useCallback(() => getSnapshot(actor), [
+    actor,
+    getSnapshot
+  ]);
+
   const selectedSnapshot = useSyncExternalStoreWithSelector(
     subscribe,
-    useCallback(() => getSnapshot(actor), [actor, getSnapshot]),
-    undefined,
+    boundGetSnapshot,
+    boundGetSnapshot,
     selector,
     compare
   );
