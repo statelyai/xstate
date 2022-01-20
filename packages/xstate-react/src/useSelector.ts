@@ -25,7 +25,7 @@ export function useSelector<
   selector: (emitted: TEmitted) => T,
   compare: (a: T, b: T) => boolean = defaultCompare,
   getSnapshot: (a: TActor) => TEmitted = defaultGetSnapshot
-): TEmitted {
+): T {
   const subscribe = useCallback(
     (handleStoreChange) => {
       const { unsubscribe } = actor.subscribe(handleStoreChange);
