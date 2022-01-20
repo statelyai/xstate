@@ -948,7 +948,9 @@ describe('typegen types', () => {
         },
         {
           services: {
-            fooService: () => (send) => {
+            fooService: (context, event) => (send) => {
+              ((_accept: 'FOO') => {})(event.type);
+
               send('BAR');
             }
           }
