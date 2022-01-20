@@ -900,11 +900,12 @@ describe('typegen types', () => {
   it('should allow for `tsTypes: true` to allow for explicit typegen opt-in', () => {
     interface TypesMeta extends TypegenMeta {}
 
-    // To get around VS Code thinking it needs to make a typegen
-    // file for this
-    const m = createMachine;
-
-    m<unknown, { type: 'FOO' } | { type: 'BAR'; value: string }>({
+    createMachine<
+      unknown,
+      { type: 'FOO' } | { type: 'BAR'; value: string },
+      any,
+      TypesMeta
+    >({
       tsTypes: true
     });
   });
@@ -931,31 +932,32 @@ describe('typegen types', () => {
     );
   });
 
-  describe('Invoked callbacks', () => {
-    it('Should allow them to specify any event', () => {
-      interface TypesMeta extends TypegenMeta {
-        eventsCausingServices: {
-          fooService: 'FOO';
-        };
-      }
+  it('should be able to send all of the parent event types back to the parent from an invoked callback', () => {
+    interface TypesMeta extends TypegenMeta {
+      eventsCausingServices: {
+        fooService: 'FOO';
+      };
+    }
 
-      createMachine(
-        {
-          tsTypes: {} as TypesMeta,
-          schema: {
-            events: {} as { type: 'FOO' } | { type: 'BAR' }
-          }
-        },
-        {
-          services: {
-            fooService: (context, event) => (send) => {
-              ((_accept: 'FOO') => {})(event.type);
+    createMachine(
+      {
+        tsTypes: {} as TypesMeta,
+        schema: {
+          events: {} as { type: 'FOO' } | { type: 'BAR' }
+        }
+      },
+      {
+        services: {
+          fooService: (_context, event) => (send) => {
+            ((_accept: 'FOO') => {})(event.type);
 
-              send('BAR');
-            }
+            send({ type: 'BAR' });
+            send({ type: 'FOO' });
+            // @ts-expect-error
+            send({ type: 'BAZ' });
           }
         }
-      );
-    });
+      }
+    );
   });
 });
