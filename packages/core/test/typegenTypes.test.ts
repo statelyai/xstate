@@ -931,4 +931,33 @@ describe('typegen types', () => {
       }
     );
   });
+
+  it('should be able to send all of the parent event types back to the parent from an invoked callback', () => {
+    interface TypesMeta extends TypegenMeta {
+      eventsCausingServices: {
+        fooService: 'FOO';
+      };
+    }
+
+    createMachine(
+      {
+        tsTypes: {} as TypesMeta,
+        schema: {
+          events: {} as { type: 'FOO' } | { type: 'BAR' }
+        }
+      },
+      {
+        services: {
+          fooService: (_context, event) => (send) => {
+            ((_accept: 'FOO') => {})(event.type);
+
+            send({ type: 'BAR' });
+            send({ type: 'FOO' });
+            // @ts-expect-error
+            send({ type: 'BAZ' });
+          }
+        }
+      }
+    );
+  });
 });
