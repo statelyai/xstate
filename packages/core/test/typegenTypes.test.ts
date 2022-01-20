@@ -900,12 +900,11 @@ describe('typegen types', () => {
   it('should allow for `tsTypes: true` to allow for explicit typegen opt-in', () => {
     interface TypesMeta extends TypegenMeta {}
 
-    createMachine<
-      unknown,
-      { type: 'FOO' } | { type: 'BAR'; value: string },
-      any,
-      import('./typegenTypes.test.typegen').Typegen0
-    >({
+    // To get around VS Code thinking it needs to make a typegen
+    // file for this
+    const m = createMachine;
+
+    m<unknown, { type: 'FOO' } | { type: 'BAR'; value: string }>({
       tsTypes: true
     });
   });
