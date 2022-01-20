@@ -1,5 +1,15 @@
 # xstate
 
+## 4.28.1
+
+### Patch Changes
+
+- [#2943](https://github.com/statelyai/xstate/pull/2943) [`e9f3f07a1`](https://github.com/statelyai/xstate/commit/e9f3f07a1ee9fe97af7e8f532c5b3dd3c4f73cec) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an infinite loop when initially spawned actor (in an initial context) responded synchronously to its parent.
+
+* [#2953](https://github.com/statelyai/xstate/pull/2953) [`90fa97008`](https://github.com/statelyai/xstate/commit/90fa97008970283f17a3f2f6aa9b1b7071593e80) Thanks [@Andarist](https://github.com/Andarist)! - Bring back the global type declaration for the `Symbol.observable` to fix consuming projects that do not use `skipLibCheck`.
+
+- [#2903](https://github.com/statelyai/xstate/pull/2903) [`b6dde9075`](https://github.com/statelyai/xstate/commit/b6dde9075adb3bb3522b4b8f8eeb804d3221a527) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with exit actions being called in random order when stopping a machine. They should always be called in the reversed document order (the ones defined on children should be called before the ones defined on ancestors and the ones defined on states appearing later in the code should be called before the ones defined on their sibling states).
+
 ## 4.28.0
 
 ### Minor Changes
@@ -175,10 +185,10 @@
 
   model.createMachine({
     // `ctx` was of type `any`
-    entry: (ctx) => {},
+    entry: ctx => {},
     exit: assign({
       // `ctx` was of type `unknown`
-      foo: (ctx) => 42
+      foo: ctx => 42
     })
   });
   ```
@@ -354,11 +364,11 @@
   const machine = createMachine({
     context: { count: 0 },
     entry: [
-      (ctx) => console.log(ctx.count), // 0
-      assign({ count: (ctx) => ctx.count + 1 }),
-      (ctx) => console.log(ctx.count), // 1
-      assign({ count: (ctx) => ctx.count + 1 }),
-      (ctx) => console.log(ctx.count) // 2
+      ctx => console.log(ctx.count), // 0
+      assign({ count: ctx => ctx.count + 1 }),
+      ctx => console.log(ctx.count), // 1
+      assign({ count: ctx => ctx.count + 1 }),
+      ctx => console.log(ctx.count) // 2
     ],
     preserveActionOrder: true
   });
@@ -367,11 +377,11 @@
   const machine = createMachine({
     context: { count: 0 },
     entry: [
-      (ctx) => console.log(ctx.count), // 2
-      assign({ count: (ctx) => ctx.count + 1 }),
-      (ctx) => console.log(ctx.count), // 2
-      assign({ count: (ctx) => ctx.count + 1 }),
-      (ctx) => console.log(ctx.count) // 2
+      ctx => console.log(ctx.count), // 2
+      assign({ count: ctx => ctx.count + 1 }),
+      ctx => console.log(ctx.count), // 2
+      assign({ count: ctx => ctx.count + 1 }),
+      ctx => console.log(ctx.count) // 2
     ]
     // preserveActionOrder: false
   });
@@ -570,7 +580,7 @@
   });
 
   const service = interpret(machine)
-    .onTransition((state) => {
+    .onTransition(state => {
       // Read promise value synchronously
       const resolvedValue = state.context.promiseRef?.getSnapshot();
       // => undefined (if promise not resolved yet)
@@ -650,7 +660,7 @@
     context: { value: 42 },
     on: {
       INC: {
-        actions: assign({ value: (ctx) => ctx.value + 1 })
+        actions: assign({ value: ctx => ctx.value + 1 })
       }
     }
   });
@@ -910,7 +920,7 @@
 
   ```js
   // ...
-  actions: stop((context) => context.someActor);
+  actions: stop(context => context.someActor);
   ```
 
 ### Patch Changes
@@ -1148,10 +1158,10 @@
   ```js
   entry: [
     choose([
-      { cond: (ctx) => ctx > 100, actions: raise('TOGGLE') },
+      { cond: ctx => ctx > 100, actions: raise('TOGGLE') },
       {
         cond: 'hasMagicBottle',
-        actions: [assign((ctx) => ({ counter: ctx.counter + 1 }))]
+        actions: [assign(ctx => ({ counter: ctx.counter + 1 }))]
       },
       { actions: ['fallbackAction'] }
     ])
