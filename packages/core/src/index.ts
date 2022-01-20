@@ -77,3 +77,9 @@ export {
 };
 
 export * from './types';
+
+declare global {
+  interface SymbolConstructor {
+    readonly observable: symbol;
+  }
+}
