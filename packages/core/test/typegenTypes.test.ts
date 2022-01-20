@@ -904,7 +904,7 @@ describe('typegen types', () => {
       unknown,
       { type: 'FOO' } | { type: 'BAR'; value: string },
       any,
-      TypesMeta
+      import('./typegenTypes.test.typegen').Typegen0
     >({
       tsTypes: true
     });
@@ -930,5 +930,31 @@ describe('typegen types', () => {
         }
       }
     );
+  });
+
+  describe('Invoked callbacks', () => {
+    it('Should allow them to specify any event', () => {
+      interface TypesMeta extends TypegenMeta {
+        eventsCausingServices: {
+          fooService: 'FOO';
+        };
+      }
+
+      createMachine(
+        {
+          tsTypes: {} as TypesMeta,
+          schema: {
+            events: {} as { type: 'FOO' } | { type: 'BAR' }
+          }
+        },
+        {
+          services: {
+            fooService: () => (send) => {
+              send('BAR');
+            }
+          }
+        }
+      );
+    });
   });
 });
