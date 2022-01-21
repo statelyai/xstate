@@ -20,17 +20,18 @@ jobs:
           fetch-depth: 0
 
       - name: Use Node.js 14.x
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v2
         with:
-          version: 14.x
+          node-version: 14.x
 
       - name: Install Dependencies
         run: yarn
 
       - name: Create Release Pull Request or Publish to npm
-        uses: changesets/action@master
+        uses: changesets/action@v1
         with:
-          publish: yarn release
+          publish: yarn run release
+          version: yarn run version
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

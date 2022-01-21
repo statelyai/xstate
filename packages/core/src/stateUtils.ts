@@ -37,7 +37,7 @@ export function getAllStateNodes<TC, TE extends EventObject>(
 export function getConfiguration<TC, TE extends EventObject>(
   prevStateNodes: Iterable<StateNode<TC, any, TE, any, any>>,
   stateNodes: Iterable<StateNode<TC, any, TE, any, any>>
-): Iterable<StateNode<TC, any, TE, any, any>> {
+): Set<StateNode<TC, any, TE, any, any>> {
   const prevConfiguration = new Set(prevStateNodes);
   const prevAdjList = getAdjList(prevConfiguration);
 

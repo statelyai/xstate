@@ -16,9 +16,6 @@ type ReturnTypeOrValue<T> = T extends AnyFunction ? ReturnType<T> : T;
 // https://github.com/microsoft/TypeScript/issues/23182#issuecomment-379091887
 export type IsNever<T> = [T] extends [never] ? true : false;
 
-export type Cast<T extends any, TCastType extends any> = T extends TCastType
-  ? T
-  : TCastType;
 export type Compute<A extends any> = { [K in keyof A]: A[K] } & unknown;
 export type Prop<T, K> = K extends keyof T ? T[K] : never;
 export type Values<T> = T[keyof T];
@@ -32,6 +29,7 @@ export type Equals<A1 extends any, A2 extends any> = (<A>() => A extends A2
   ? true
   : false;
 export type IsAny<T> = Equals<T, any>;
+export type Cast<A, B> = A extends B ? A : B;
 
 export type EventType = string;
 export type ActionType = string;
@@ -68,7 +66,7 @@ export interface ActionObject<TContext, TEvent extends EventObject>
   /**
    * The implementation for executing the action.
    */
-  exec?: ActionFunction<TContext, TEvent>;
+  exec?: ActionFunction<TContext, TEvent> | undefined;
 }
 
 export type DefaultContext = Record<string, any> | undefined;
@@ -174,26 +172,6 @@ export interface StateValueMap {
  */
 export type StateValue = string | StateValueMap;
 
-type KeysWithStates<
-  TStates extends Record<string, StateSchema> | undefined
-> = TStates extends object
-  ? {
-      [K in keyof TStates]-?: TStates[K] extends { states: object } ? K : never;
-    }[keyof TStates]
-  : never;
-
-export type ExtractStateValue<
-  TSchema extends Required<Pick<StateSchema<any>, 'states'>>
-> =
-  | keyof TSchema['states']
-  | (KeysWithStates<TSchema['states']> extends never
-      ? never
-      : {
-          [K in KeysWithStates<TSchema['states']>]?: ExtractStateValue<
-            TSchema['states'][K]
-          >;
-        });
-
 export interface HistoryValue {
   states: Record<string, HistoryValue | undefined>;
   current: StateValue | undefined;
@@ -243,7 +221,7 @@ export interface TransitionConfig<TContext, TEvent extends EventObject> {
   actions?: Actions<TContext, TEvent>;
   in?: StateValue;
   internal?: boolean;
-  target?: TransitionTarget<TContext, TEvent>;
+  target?: TransitionTarget<TContext, TEvent> | undefined;
   meta?: Record<string, any>;
   description?: string;
 }
@@ -620,7 +598,10 @@ export interface StateNodeConfig<
    *
    * This is equivalent to defining a `[done(id)]` transition on this state node's `on` property.
    */
-  onDone?: string | SingleOrArray<TransitionConfig<TContext, DoneEventObject>>;
+  onDone?:
+    | string
+    | SingleOrArray<TransitionConfig<TContext, DoneEventObject>>
+    | undefined;
   /**
    * The mapping (or array) of delays (in milliseconds) to their potential transition(s).
    * The delayed transitions are taken after the specified delay in an interpreter.
@@ -1591,6 +1572,10 @@ export interface Subscription {
   unsubscribe(): void;
 }
 
+export interface InteropObservable<T> {
+  [Symbol.observable]: () => Subscribable<T>;
+}
+
 export interface Subscribable<T> {
   subscribe(
     next: (value: T) => void,
@@ -1604,6 +1589,7 @@ export type Spawnable =
   | StateMachine<any, any, any>
   | PromiseLike<any>
   | InvokeCallback
+  | InteropObservable<any>
   | Subscribable<any>
   | Behavior<any>;
 
@@ -1617,7 +1603,8 @@ export interface BaseActorRef<TEvent extends EventObject> {
 }
 
 export interface ActorRef<TEvent extends EventObject, TEmitted = any>
-  extends Subscribable<TEmitted> {
+  extends Subscribable<TEmitted>,
+    InteropObservable<TEmitted> {
   send: Sender<TEvent>; // TODO: this should just be TEvent
   id: string;
   getSnapshot: () => TEmitted | undefined;
@@ -1777,6 +1764,8 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
     : R extends State<infer _, infer TEvent, infer ___, infer ____>
     ? TEvent
     : R extends Interpreter<infer _, infer __, infer TEvent, infer ____>
+    ? TEvent
+    : R extends ActorRef<infer TEvent, infer _>
     ? TEvent
     : never
   : never;

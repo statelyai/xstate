@@ -55,7 +55,8 @@ import {
   toInvokeSource,
   toObserver,
   isActor,
-  isBehavior
+  isBehavior,
+  interopSymbols
 } from './utils';
 import { Scheduler } from './scheduler';
 import { Actor, isSpawnedActor, createDeferredActor } from './Actor';
@@ -108,12 +109,6 @@ export enum InterpreterStatus {
   NotStarted,
   Running,
   Stopped
-}
-
-declare global {
-  interface SymbolConstructor {
-    readonly observable: symbol;
-  }
 }
 
 export class Interpreter<
@@ -581,11 +576,13 @@ export class Interpreter<
       return this;
     }
 
-    this.state.configuration.forEach((stateNode) => {
-      for (const action of stateNode.definition.exit) {
-        this.exec(action, this.state);
-      }
-    });
+    [...this.state.configuration]
+      .sort((a, b) => b.order - a.order)
+      .forEach((stateNode) => {
+        for (const action of stateNode.definition.exit) {
+          this.exec(action, this.state);
+        }
+      });
 
     // Stop all children
     this.children.forEach((child) => {
@@ -891,6 +888,9 @@ export class Interpreter<
 
         break;
       case actionTypes.start: {
+        if (this.status !== InterpreterStatus.Running) {
+          return;
+        }
         const activity = (action as ActivityActionObject<TContext, TEvent>)
           .activity as InvokeDefinition<TContext, TEvent>;
 
@@ -1173,7 +1173,8 @@ export class Interpreter<
       toJSON() {
         return { id };
       },
-      getSnapshot: () => resolvedData
+      getSnapshot: () => resolvedData,
+      ...interopSymbols
     };
 
     this.children.set(id, actor);
@@ -1232,7 +1233,8 @@ export class Interpreter<
       toJSON() {
         return { id };
       },
-      getSnapshot: () => emitted
+      getSnapshot: () => emitted,
+      ...interopSymbols
     };
 
     this.children.set(id, actor);
@@ -1270,7 +1272,8 @@ export class Interpreter<
       getSnapshot: () => emitted,
       toJSON() {
         return { id };
-      }
+      },
+      ...interopSymbols
     };
 
     this.children.set(id, actor);
@@ -1314,7 +1317,8 @@ export class Interpreter<
       getSnapshot: () => undefined,
       toJSON() {
         return { id };
-      }
+      },
+      ...interopSymbols
     });
   }
 

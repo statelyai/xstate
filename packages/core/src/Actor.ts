@@ -9,7 +9,7 @@ import {
   ActorRef,
   BaseActorRef
 } from './types';
-import { isMachine, mapContext, toInvokeSource } from './utils';
+import { interopSymbols, isMachine, mapContext, toInvokeSource } from './utils';
 import * as serviceScope from './serviceScope';
 
 export interface Actor<
@@ -37,7 +37,8 @@ export function createNullActor(id: string): ActorRef<any> {
     getSnapshot: () => undefined,
     toJSON: () => ({
       id
-    })
+    }),
+    ...interopSymbols
   };
 }
 
@@ -115,6 +116,7 @@ export function toActorRef<
     subscribe: () => ({ unsubscribe: () => void 0 }),
     id: 'anonymous',
     getSnapshot: () => undefined,
+    ...interopSymbols,
     ...actorRefLike
   };
 }

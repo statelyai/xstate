@@ -45,6 +45,7 @@ describe('useMachine hook', () => {
       },
       loading: {
         invoke: {
+          id: 'fetchData',
           src: 'fetchData',
           onDone: {
             target: 'success',

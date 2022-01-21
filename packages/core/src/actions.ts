@@ -36,7 +36,10 @@ import {
   AnyEventObject,
   Expr,
   StopAction,
-  StopActionObject
+  StopActionObject,
+  Cast,
+  ActorRef,
+  EventFrom
 } from './types';
 import * as actionTypes from './actionTypes';
 import {
@@ -269,6 +272,39 @@ export function sendParent<
   return send<TContext, TEvent, TSentEvent>(event, {
     ...options,
     to: SpecialTargets.Parent
+  });
+}
+
+type InferEvent<E extends EventObject> = {
+  [T in E['type']]: { type: T } & Extract<E, { type: T }>;
+}[E['type']];
+
+/**
+ * Sends an event to an actor.
+ *
+ * @param actor The `ActorRef` to send the event to.
+ * @param event The event to send, or an expression that evaluates to the event to send
+ * @param options Send action options
+ * @returns An XState send action object
+ */
+export function sendTo<
+  TContext,
+  TEvent extends EventObject,
+  TActor extends ActorRef<EventObject>
+>(
+  actor: (ctx: TContext) => TActor,
+  event:
+    | EventFrom<TActor>
+    | SendExpr<
+        TContext,
+        TEvent,
+        InferEvent<Cast<EventFrom<TActor>, EventObject>>
+      >,
+  options?: SendActionOptions<TContext, TEvent>
+): SendAction<TContext, TEvent, any> {
+  return send<TContext, TEvent, any>(event, {
+    ...options,
+    to: actor
   });
 }
 
