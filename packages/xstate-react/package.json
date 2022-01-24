@@ -13,7 +13,7 @@
     "hook"
   ],
   "author": "David Khourshid <davidkpiano@gmail.com>",
-  "homepage": "https://github.com/davidkpiano/xstate/tree/main/packages/xstate-react#readme",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-react#readme",
   "license": "MIT",
   "main": "lib/index.js",
   "module": "es/index.js",
@@ -33,7 +33,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
   },
   "scripts": {
     "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
@@ -42,7 +42,7 @@
     "prepublish": "npm run build"
   },
   "bugs": {
-    "url": "https://github.com/davidkpiano/xstate/issues"
+    "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
     "@xstate/fsm": "^1.0.0",
