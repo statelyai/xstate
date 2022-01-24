@@ -12,7 +12,7 @@
     "analytics"
   ],
   "author": "David Khourshid <davidkpiano@gmail.com>",
-  "homepage": "https://github.com/davidkpiano/xstate/tree/main/packages/xstate-analytics#readme",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-analytics#readme",
   "license": "MIT",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -23,25 +23,25 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
   },
   "scripts": {
     "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
     "build": "tsc",
     "test": "jest",
-    "prepublish": "npm run build && npm run test"
+    "prepublish": "npm run build"
   },
   "bugs": {
-    "url": "https://github.com/davidkpiano/xstate/issues"
+    "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "xstate": "^4.7.0-rc"
+    "xstate": "^4.28.1"
   },
   "devDependencies": {
     "jest": "^26.6.3",
     "lerna-alias": "3.0.3-0",
     "ts-jest": "^26.5.6",
-    "typescript": "^4.3.5",
+    "typescript": "^4.5.2",
     "xstate": "*"
   },
   "dependencies": {}

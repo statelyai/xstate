@@ -31,10 +31,11 @@ import {
   DelayFunctionMap,
   SCXML,
   ExprWithMeta,
-  ChooseConditon,
+  ChooseCondition,
   ChooseAction,
   AnyEventObject,
-  Expr
+  Expr,
+  Cast
 } from './types';
 import * as actionTypes from './actionTypes';
 import {
@@ -55,7 +56,7 @@ import {
 import { State } from './State';
 import { StateNode } from './StateNode';
 import { IS_PRODUCTION } from './environment';
-import { Actions, Condition, StopAction, StopActionObject } from '.';
+import { ActorRef, EventFrom, StopAction, StopActionObject } from '.';
 
 export { actionTypes };
 
@@ -268,6 +269,39 @@ export function sendParent<
   return send<TContext, TEvent, TSentEvent>(event, {
     ...options,
     to: SpecialTargets.Parent
+  });
+}
+
+type InferEvent<E extends EventObject> = {
+  [T in E['type']]: { type: T } & Extract<E, { type: T }>;
+}[E['type']];
+
+/**
+ * Sends an event to an actor.
+ *
+ * @param actor The `ActorRef` to send the event to.
+ * @param event The event to send, or an expression that evaluates to the event to send
+ * @param options Send action options
+ * @returns An XState send action object
+ */
+export function sendTo<
+  TContext,
+  TEvent extends EventObject,
+  TActor extends ActorRef<EventObject>
+>(
+  actor: (ctx: TContext) => TActor,
+  event:
+    | EventFrom<TActor>
+    | SendExpr<
+        TContext,
+        TEvent,
+        InferEvent<Cast<EventFrom<TActor>, EventObject>>
+      >,
+  options?: SendActionOptions<TContext, TEvent>
+): SendAction<TContext, TEvent, any> {
+  return send<TContext, TEvent, any>(event, {
+    ...options,
+    to: actor
   });
 }
 
@@ -562,7 +596,7 @@ export function escalate<
 }
 
 export function choose<TContext, TEvent extends EventObject>(
-  conds: Array<ChooseConditon<TContext, TEvent>>
+  conds: Array<ChooseCondition<TContext, TEvent>>
 ): ChooseAction<TContext, TEvent> {
   return {
     type: ActionTypes.Choose,
