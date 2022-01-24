@@ -56,7 +56,14 @@ import {
 import { State } from './State';
 import { StateNode } from './StateNode';
 import { IS_PRODUCTION } from './environment';
-import { ActorRef, EventFrom, StopAction, StopActionObject } from '.';
+import {
+  Actions,
+  ActorRef,
+  Condition,
+  EventFrom,
+  StopAction,
+  StopActionObject
+} from '.';
 
 export { actionTypes };
 
