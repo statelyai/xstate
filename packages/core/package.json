@@ -34,14 +34,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/statelyai/xstate.git"
+    "url": "git+https://github.com/davidkpiano/xstate.git"
   },
   "author": "David Khourshid <davidkpiano@gmail.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/statelyai/xstate/issues"
+    "url": "https://github.com/davidkpiano/xstate/issues"
   },
-  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/core#readme",
+  "homepage": "https://github.com/davidkpiano/xstate/tree/main/packages/core#readme",
   "devDependencies": {
     "@babel/cli": "^7.10.5",
     "@babel/core": "^7.10.5",
