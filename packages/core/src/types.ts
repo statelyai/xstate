@@ -938,6 +938,7 @@ export interface MachineConfig<
   TStateSchema extends StateSchema,
   TEvent extends EventObject,
   TAction extends BaseActionObject = BaseActionObject,
+  TSchema extends MachineSchema<any, any> = MachineSchema<TContext, TEvent>,
   TTypesMeta = TypegenDisabled
 > extends StateNodeConfig<TContext, TStateSchema, TEvent, TAction> {
   /**
@@ -948,7 +949,7 @@ export interface MachineConfig<
    * The machine's own version.
    */
   version?: string;
-  schema?: MachineSchema<TContext, TEvent>;
+  schema?: TSchema;
   tsTypes?: TTypesMeta | true;
 }
 

@@ -25,9 +25,13 @@ export function useMachine<
 ): {
   state: Ref<State<TContext, TEvent, any, TTypestate>>;
   send: Interpreter<TContext, any, TEvent, TTypestate>['send'];
-  service: Interpreter<TContext, any, TEvent, TTypestate>;
+  service: Interpreter<TContext, any, TEvent, TTypestate, any>;
 } {
-  const service = useInterpret(getMachine, options, listener);
+  const service = useInterpret<TContext, TEvent, TTypestate>(
+    getMachine,
+    options,
+    listener
+  );
 
   const { initialState } = service.machine;
   const state = shallowRef(

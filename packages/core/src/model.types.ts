@@ -17,6 +17,7 @@ import {
   TypegenConstraint,
   TypegenDisabled
 } from './typegenTypes';
+import { MachineSchema } from '.';
 
 export interface Model<
   TContext,
@@ -36,7 +37,14 @@ export interface Model<
   reset: () => AssignAction<TContext, any>;
   createMachine: {
     <TTypesMeta extends TypegenConstraint = TypegenDisabled>(
-      config: MachineConfig<TContext, any, TEvent, TAction, TTypesMeta>,
+      config: MachineConfig<
+        TContext,
+        any,
+        TEvent,
+        TAction,
+        MachineSchema<TContext, TEvent>,
+        TTypesMeta
+      >,
       implementations?: InternalMachineOptions<
         TContext,
         TEvent,
