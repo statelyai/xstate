@@ -1,3 +1,5 @@
+import { Interpreter } from 'xstate';
+
 export function partition<T, A extends T, B extends T>(
   items: T[],
   predicate: (item: T) => item is A
@@ -13,4 +15,10 @@ export function partition<T, A extends T, B extends T>(
   }
 
   return [truthy, falsy];
+}
+
+export function getServiceSnapshot<
+  TService extends Interpreter<any, any, any, any>
+>(service: TService): TService['state'] {
+  return service.status !== 0 ? service.state : service.machine.initialState;
 }
