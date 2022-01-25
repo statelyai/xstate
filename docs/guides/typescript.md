@@ -3,18 +3,16 @@
 As XState is written in [TypeScript](https://www.typescriptlang.org/), strongly typing your statecharts is useful and encouraged. Consider this light machine example:
 
 ```typescript
-// The events that the machine handles
-type LightEvent =
-  | { type: 'TIMER' }
-  | { type: 'POWER_OUTAGE' }
-  | { type: 'PED_COUNTDOWN'; duration: number };
-
-// The context (extended state) of the machine
-interface LightContext {
-  elapsed: number;
-}
-
-const lightMachine = createMachine<LightContext, LightEvent>({
+const lightMachine = createMachine({
+  schema: {
+    // The context (extended state) of the machine
+    context: {} as { elapsed: number },
+    // The events this machine handles
+    events: {} as
+      | { type: 'TIMER' }
+      | { type: 'POWER_OUTAGE' }
+      | { type: 'PED_COUNTDOWN'; duration: number }
+  },
   key: 'light',
   initial: 'green',
   context: { elapsed: 0 },
@@ -65,41 +63,27 @@ const lightMachine = createMachine<LightContext, LightEvent>({
 });
 ```
 
-Providing the context and events as generic parameters for the `createMachine()` function gives many advantages:
+Providing the context and events to the `schema` attribute gives many advantages:
 
 - The context type/interface (`TContext`) is passed on to actions, guards, services and more. It is also passed to deeply nested states.
 - The event type (`TEvent`) ensures that only specified events (and built-in XState-specific ones) are used in transition configs. The provided event object shapes are also passed on to actions, guards, and services.
 - Events which you send to the machine will be strongly typed, offering you much more confidence in the payload shapes you'll be receiving.
 
-## The VSCode Extension <Badge text="4.26+" />
+## The VSCode Extension <Badge text="4.29+" />
 
 Using our [VSCode extension](https://marketplace.visualstudio.com/items?itemName=mattpocock.xstate-vscode), you can automatically generate intelligent typings for XState.
 
 Here's how you can get started:
 
 1. Download and install the [VSCode extension](https://marketplace.visualstudio.com/items?itemName=mattpocock.xstate-vscode).
-2. Open a new file and create a typed model using `createModel`. [Want more info on models?](./models.md). For instance:
+2. Open a new file and create a new machine, passing the schema attributes:
 
 ```ts
-import { createModel } from 'xstate/lib/model';
-
-const model = createModel(
-  {
-    value: ''
+const machine = createMachine({
+  schema: {
+    context: {} as { value: string },
+    events: {} as { type: 'FOO'; value: string } | { type: 'BAR' }
   },
-  {
-    events: {
-      FOO: (value: string) => ({ value }),
-      BAR: () => ({})
-    }
-  }
-);
-```
-
-3. Create a machine from the model:
-
-```ts
-const machine = model.createMachine({
   initial: 'a',
   states: {
     a: {
@@ -117,11 +101,15 @@ const machine = model.createMachine({
 });
 ```
 
-4. Finally, add `tsTypes: true` to the machine and save the file:
+3. Add `tsTypes: true` to the machine and save the file:
 
 ```ts
-const machine = model.createMachine({
+const machine = createMachine({
   tsTypes: true,
+  schema: {
+    context: {} as { value: string },
+    events: {} as { type: 'FOO'; value: string } | { type: 'BAR' }
+  },
   initial: 'a',
   states: {
     a: {
@@ -139,11 +127,15 @@ const machine = model.createMachine({
 });
 ```
 
-5. The extension should automatically add a generic to the machine:
+4. The extension should automatically add a generic to the machine:
 
 ```ts
-const machine = model.createMachine<import('./filename.typegen').Typegen[0]>({
-  tsTypes: true,
+const machine = createMachine({
+  tsTypes: {} as import('./filename.typegen').Typegen[0],
+  schema: {
+    context: {} as { value: string },
+    events: {} as { type: 'FOO'; value: string } | { type: 'BAR' }
+  },
   initial: 'a',
   states: {
     a: {
@@ -161,10 +153,10 @@ const machine = model.createMachine<import('./filename.typegen').Typegen[0]>({
 });
 ```
 
-6. Add a second parameter into the `createMachine` call - this is where you implement the actions, services, guards and delays for the machine.
+5. Add a second parameter into the `createMachine` call - this is where you implement the actions, services, guards and delays for the machine.
 
 ```ts
-const machine = model.createMachine<import('./filename.typegen').Typegen[0]>(
+const machine = createMachine(
   {
     // Config here
   },
@@ -230,41 +222,50 @@ Named actions/services/guards allow for:
 
 #### Typing onDone/onError functions
 
-You can use the generated types to specify the result of `onDone` and `onError` events. You can specify them like this:
+You can use the generated types to specify the result of `onDone` services, by using the `services` schema property:
 
 ```ts
-// In createModel
-const model = createModel(
-  {},
+createMachine(
   {
-    events: {
-      'done.invoke.serviceName': (data: {}) => ({ data }),
-      'error.platform.serviceName': (data: Error) => ({ data })
+    schema: {
+      services: {
+        myService: {} as {
+          // The data that gets returned from the service
+          data: { id: string };
+        }
+      }
+    },
+    invoke: {
+      src: 'myService',
+      onDone: {
+        actions: 'consoleLogId'
+      }
+    }
+  },
+  {
+    services: {
+      myService: async () => {
+        // This return type is now type-safe
+        return {
+          id: '1'
+        };
+      }
+    },
+    actions: {
+      consoleLogId: (context, event) => {
+        // This event type is now type-safe
+        console.log(event.data.id);
+      }
     }
   }
 );
-
-// When using generics
-type Event =
-  | {
-      type: 'done.invoke.serviceName';
-      data: {};
-    }
-  | {
-      type: 'error.platform.serviceName';
-      data: Error;
-    };
 ```
 
 #### The generated files
 
-We recommend you commit the generated files (`filename.typegen.ts`) to the repository. We currently don't have a way to generate the files en masse on a CI, for instance via a CLI. This is our next job.
+We recommend you commit the generated files (`filename.typegen.ts`) to the repository. We currently don't have a way to generate the files en masse on a CI, for instance via a CLI.
 
 If you want to remove the generated file, just remove the `tsTypes` attribute from your machine and it'll stop being generated.
-
-::: warning
-The VSCode extension is still experimental, but will become our recommended Typescript approach in the future. Please try it out!
-:::
 
 ## Config Objects
 
