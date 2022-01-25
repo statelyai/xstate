@@ -10,11 +10,14 @@ import {
   InternalMachineOptions,
   StateMachine,
   StateSchema,
-  Typestate,
-  MachineSchema,
-  ResolveTypeContainer
+  Typestate
 } from './types';
-import { TypegenConstraint, TypegenDisabled } from './typegenTypes';
+import {
+  TypegenConstraint,
+  TypegenDisabled,
+  ResolveTypegenMeta
+} from './typegenTypes';
+import { MachineSchema } from '.';
 
 /**
  * @deprecated Use `createMachine(...)` instead.
@@ -25,11 +28,9 @@ export function Machine<
 >(
   config: MachineConfig<TContext, any, TEvent>,
   options?: InternalMachineOptions<
-    ResolveTypeContainer<
-      TContext,
-      MachineSchema<TContext, TEvent>,
-      TypegenDisabled
-    >
+    TContext,
+    TEvent,
+    ResolveTypegenMeta<TypegenDisabled, TEvent, BaseActionObject>
   >,
   initialContext?: TContext
 ): StateMachine<
@@ -37,11 +38,8 @@ export function Machine<
   any,
   TEvent,
   any,
-  ResolveTypeContainer<
-    TContext,
-    MachineSchema<TContext, TEvent>,
-    TypegenDisabled
-  >
+  BaseActionObject,
+  ResolveTypegenMeta<TypegenDisabled, TEvent, BaseActionObject>
 >;
 export function Machine<
   TContext = DefaultContext,
@@ -50,11 +48,9 @@ export function Machine<
 >(
   config: MachineConfig<TContext, TStateSchema, TEvent>,
   options?: InternalMachineOptions<
-    ResolveTypeContainer<
-      TContext,
-      MachineSchema<TContext, TEvent>,
-      TypegenDisabled
-    >
+    TContext,
+    TEvent,
+    ResolveTypegenMeta<TypegenDisabled, TEvent, BaseActionObject>
   >,
   initialContext?: TContext
 ): StateMachine<
@@ -62,11 +58,8 @@ export function Machine<
   TStateSchema,
   TEvent,
   any,
-  ResolveTypeContainer<
-    TContext,
-    MachineSchema<TContext, TEvent>,
-    TypegenDisabled
-  >
+  BaseActionObject,
+  ResolveTypegenMeta<TypegenDisabled, TEvent, BaseActionObject>
 >;
 export function Machine<
   TContext = DefaultContext,
@@ -88,7 +81,6 @@ export function createMachine<
   TContext,
   TEvent extends EventObject = AnyEventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext },
-  TSchema extends MachineSchema<any, any> = MachineSchema<TContext, TEvent>,
   TTypesMeta extends TypegenConstraint = TypegenDisabled
 >(
   config: TContext extends Model<any, any, any, any>
@@ -98,25 +90,27 @@ export function createMachine<
         any,
         TEvent,
         BaseActionObject,
-        TSchema,
+        MachineSchema<TContext, TEvent>,
         TTypesMeta
       >,
   options?: InternalMachineOptions<
-    ResolveTypeContainer<TContext, TSchema, TTypesMeta>
+    TContext,
+    TEvent,
+    ResolveTypegenMeta<TTypesMeta, TEvent, BaseActionObject>
   >
 ): StateMachine<
   TContext,
   any,
   TEvent,
   any,
-  ResolveTypeContainer<TContext, TSchema, TTypesMeta>
+  BaseActionObject,
+  ResolveTypegenMeta<TTypesMeta, TEvent, BaseActionObject>
 >;
 
 export function createMachine<
   TContext,
   TEvent extends EventObject = AnyEventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext },
-  TSchema extends MachineSchema<any, any> = MachineSchema<TContext, TEvent>,
   TTypesMeta extends TypegenConstraint = TypegenDisabled
 >(
   config: MachineConfig<
@@ -124,7 +118,7 @@ export function createMachine<
     any,
     TEvent,
     BaseActionObject,
-    TSchema,
+    MachineSchema<TContext, TEvent>,
     TTypesMeta
   >,
   options?: MachineOptions<TContext, TEvent, BaseActionObject, TTypesMeta>
@@ -133,7 +127,8 @@ export function createMachine<
   any,
   TEvent,
   TTypestate,
-  ResolveTypeContainer<TContext, TSchema, TTypesMeta>
+  BaseActionObject,
+  TTypesMeta
 > {
   return new StateNode(config, options as any) as any;
 }

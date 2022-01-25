@@ -12,8 +12,12 @@ import {
   StateMachine,
   InternalMachineOptions
 } from './types';
-import { TypegenConstraint, TypegenDisabled } from './typegenTypes';
-import { MachineSchema, ResolveTypeContainer } from '.';
+import {
+  ResolveTypegenMeta,
+  TypegenConstraint,
+  TypegenDisabled
+} from './typegenTypes';
+import { MachineSchema } from '.';
 
 export interface Model<
   TContext,
@@ -42,22 +46,17 @@ export interface Model<
         TTypesMeta
       >,
       implementations?: InternalMachineOptions<
-        ResolveTypeContainer<
-          TContext,
-          MachineSchema<TContext, TEvent, TAction>,
-          TTypesMeta
-        >
+        TContext,
+        TEvent,
+        ResolveTypegenMeta<TTypesMeta, TEvent, TAction>
       >
     ): StateMachine<
       TContext,
       any,
       TEvent,
       { value: any; context: TContext },
-      ResolveTypeContainer<
-        TContext,
-        MachineSchema<TContext, TEvent, TAction>,
-        TTypesMeta
-      >
+      TAction,
+      ResolveTypegenMeta<TTypesMeta, TEvent, TAction>
     >;
   };
 }

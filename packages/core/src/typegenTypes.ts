@@ -1,13 +1,18 @@
 import {
+  ActionObject,
+  ActionFunction,
+  Cast,
+  ConditionPredicate,
   BaseActionObject,
+  DelayConfig,
   EventObject,
+  InvokeCreator,
   IndexByType,
   IsNever,
+  MachineOptions,
   Prop,
   Values,
-  IsAny,
-  ResolvedMachineSchema,
-  ResolvedTypeContainer
+  IsAny
 } from './types';
 
 export interface TypegenDisabled {
@@ -97,14 +102,11 @@ export type TypegenConstraint = TypegenEnabled | TypegenDisabled;
 
 // if combined union of all missing implementation types is never then everything has been provided
 export type AreAllImplementationsAssumedToBeProvided<
-  TResolvedTypes extends ResolvedTypeContainer,
-  TMissingImplementations = Prop<
-    TResolvedTypes['TResolvedTypesMeta'],
-    'missingImplementations'
-  >
-> = IsAny<TResolvedTypes['TResolvedTypesMeta']> extends true
+  TResolvedTypesMeta,
+  TMissingImplementations = Prop<TResolvedTypesMeta, 'missingImplementations'>
+> = IsAny<TResolvedTypesMeta> extends true
   ? true
-  : TResolvedTypes['TResolvedTypesMeta'] extends TypegenEnabled
+  : TResolvedTypesMeta extends TypegenEnabled
   ? IsNever<
       Values<
         {
@@ -134,6 +136,13 @@ type MergeWithInternalEvents<TIndexedEvents, TInternalEvents> = TIndexedEvents &
   // in theory it would be a single iteration rather than two
   Pick<TInternalEvents, Exclude<keyof TInternalEvents, keyof TIndexedEvents>>;
 
+// type AllowAllEvents<TEvent extends EventObject, TEventType = TEvent['type']> = {
+//   eventsCausingActions: Record<string, TEventType>;
+//   eventsCausingDelays: Record<string, TEventType>;
+//   eventsCausingGuards: Record<string, TEventType>;
+//   eventsCausingServices: Record<string, TEventType>;
+// };
+
 type AllowAllEvents = {
   eventsCausingActions: Record<string, string>;
   eventsCausingDelays: Record<string, string>;
@@ -142,26 +151,194 @@ type AllowAllEvents = {
 };
 
 export type ResolveTypegenMeta<
-  TResolvedMachineSchema extends ResolvedMachineSchema,
-  TTypesMeta extends TypegenConstraint
-> = TResolvedMachineSchema & {
-  TResolvedTypesMeta: TTypesMeta extends TypegenEnabled
-    ? TTypesMeta & {
-        indexedActions: IndexByType<TResolvedMachineSchema['TAction']>;
-        indexedEvents: MergeWithInternalEvents<
-          IndexByType<TResolvedMachineSchema['TEvent']>,
-          Prop<TTypesMeta, 'internalEvents'>
+  TTypesMeta extends TypegenConstraint,
+  TEvent extends EventObject,
+  TAction extends BaseActionObject
+> = TTypesMeta extends TypegenEnabled
+  ? TTypesMeta & {
+      indexedActions: IndexByType<TAction>;
+      indexedEvents: MergeWithInternalEvents<
+        IndexByType<TEvent>,
+        Prop<TTypesMeta, 'internalEvents'>
+      >;
+    }
+  : MarkAllImplementationsAsProvided<TypegenDisabled> &
+      AllowAllEvents & {
+        indexedActions: IndexByType<TAction>;
+        indexedEvents: Record<string, TEvent> & {
+          __XSTATE_ALLOW_ANY_INVOKE_DATA_HACK__: { data: any };
+        };
+        invokeSrcNameMap: Record<
+          string,
+          '__XSTATE_ALLOW_ANY_INVOKE_DATA_HACK__'
+        >;
+      };
+
+export type TypegenMachineOptionsActions<
+  TContext,
+  TResolvedTypesMeta,
+  TEventsCausingActions = Prop<TResolvedTypesMeta, 'eventsCausingActions'>,
+  TIndexedEvents = Prop<TResolvedTypesMeta, 'indexedEvents'>,
+  TIndexedActions = Prop<TResolvedTypesMeta, 'indexedActions'>
+> = {
+  [K in keyof TEventsCausingActions]?:
+    | ActionObject<
+        TContext,
+        Cast<Prop<TIndexedEvents, TEventsCausingActions[K]>, EventObject>
+      >
+    | ActionFunction<
+        TContext,
+        Cast<Prop<TIndexedEvents, TEventsCausingActions[K]>, EventObject>,
+        Cast<Prop<TIndexedActions, K>, BaseActionObject>
+      >;
+};
+
+export type TypegenMachineOptionsDelays<
+  TContext,
+  TResolvedTypesMeta,
+  TEventsCausingDelays = Prop<TResolvedTypesMeta, 'eventsCausingDelays'>,
+  TIndexedEvents = Prop<TResolvedTypesMeta, 'indexedEvents'>
+> = {
+  [K in keyof TEventsCausingDelays]?: DelayConfig<
+    TContext,
+    Cast<Prop<TIndexedEvents, TEventsCausingDelays[K]>, EventObject>
+  >;
+};
+
+export type TypegenMachineOptionsGuards<
+  TContext,
+  TResolvedTypesMeta,
+  TEventsCausingGuards = Prop<TResolvedTypesMeta, 'eventsCausingGuards'>,
+  TIndexedEvents = Prop<TResolvedTypesMeta, 'indexedEvents'>
+> = {
+  [K in keyof TEventsCausingGuards]?: ConditionPredicate<
+    TContext,
+    Cast<Prop<TIndexedEvents, TEventsCausingGuards[K]>, EventObject>
+  >;
+};
+
+export type TypegenMachineOptionsServices<
+  TContext,
+  TResolvedTypesMeta,
+  TEventsCausingServices = Prop<TResolvedTypesMeta, 'eventsCausingServices'>,
+  TIndexedEvents = Prop<TResolvedTypesMeta, 'indexedEvents'>,
+  TInvokeSrcNameMap = Prop<TResolvedTypesMeta, 'invokeSrcNameMap'>
+> = {
+  [K in keyof TEventsCausingServices]?: InvokeCreator<
+    TContext,
+    Cast<Prop<TIndexedEvents, TEventsCausingServices[K]>, EventObject>,
+    Prop<Prop<TIndexedEvents, Prop<TInvokeSrcNameMap, K>>, 'data'>
+  >;
+};
+
+type MakeKeysRequired<T extends string> = { [K in T]: unknown };
+
+type MaybeMakeMissingImplementationsRequired<
+  TImplementationType,
+  TMissingImplementationsForType,
+  TRequireMissingImplementations
+> = TRequireMissingImplementations extends true
+  ? IsNever<TMissingImplementationsForType> extends true
+    ? {}
+    : {
+        [K in Cast<TImplementationType, string>]: MakeKeysRequired<
+          Cast<TMissingImplementationsForType, string>
         >;
       }
-    : MarkAllImplementationsAsProvided<TypegenDisabled> &
-        AllowAllEvents & {
-          indexedActions: IndexByType<TResolvedMachineSchema['TAction']>;
-          indexedEvents: Record<string, TResolvedMachineSchema['TEvent']> & {
-            __XSTATE_ALLOW_ANY_INVOKE_DATA_HACK__: { data: any };
-          };
-          invokeSrcNameMap: Record<
-            string,
-            '__XSTATE_ALLOW_ANY_INVOKE_DATA_HACK__'
-          >;
-        };
+  : {};
+
+type GenerateActionsConfigPart<
+  TContext,
+  TResolvedTypesMeta,
+  TRequireMissingImplementations,
+  TMissingImplementations
+> = MaybeMakeMissingImplementationsRequired<
+  'actions',
+  Prop<TMissingImplementations, 'actions'>,
+  TRequireMissingImplementations
+> & {
+  actions?: TypegenMachineOptionsActions<TContext, TResolvedTypesMeta>;
 };
+
+type GenerateDelaysConfigPart<
+  TContext,
+  TResolvedTypesMeta,
+  TRequireMissingImplementations,
+  TMissingImplementations
+> = MaybeMakeMissingImplementationsRequired<
+  'delays',
+  Prop<TMissingImplementations, 'delays'>,
+  TRequireMissingImplementations
+> & {
+  delays?: TypegenMachineOptionsDelays<TContext, TResolvedTypesMeta>;
+};
+
+type GenerateGuardsConfigPart<
+  TContext,
+  TResolvedTypesMeta,
+  TRequireMissingImplementations,
+  TMissingImplementations
+> = MaybeMakeMissingImplementationsRequired<
+  'guards',
+  Prop<TMissingImplementations, 'guards'>,
+  TRequireMissingImplementations
+> & {
+  guards?: TypegenMachineOptionsGuards<TContext, TResolvedTypesMeta>;
+};
+
+type GenerateServicesConfigPart<
+  TContext,
+  TResolvedTypesMeta,
+  TRequireMissingImplementations,
+  TMissingImplementations
+> = MaybeMakeMissingImplementationsRequired<
+  'services',
+  Prop<TMissingImplementations, 'services'>,
+  TRequireMissingImplementations
+> & {
+  services?: TypegenMachineOptionsServices<TContext, TResolvedTypesMeta>;
+};
+
+export type TypegenMachineOptions<
+  TContext,
+  TResolvedTypesMeta,
+  TRequireMissingImplementations,
+  TMissingImplementations = Prop<TResolvedTypesMeta, 'missingImplementations'>
+> = GenerateActionsConfigPart<
+  TContext,
+  TResolvedTypesMeta,
+  TRequireMissingImplementations,
+  TMissingImplementations
+> &
+  GenerateDelaysConfigPart<
+    TContext,
+    TResolvedTypesMeta,
+    TRequireMissingImplementations,
+    TMissingImplementations
+  > &
+  GenerateGuardsConfigPart<
+    TContext,
+    TResolvedTypesMeta,
+    TRequireMissingImplementations,
+    TMissingImplementations
+  > &
+  GenerateServicesConfigPart<
+    TContext,
+    TResolvedTypesMeta,
+    TRequireMissingImplementations,
+    TMissingImplementations
+  >;
+
+export type MaybeTypegenMachineOptions<
+  TContext,
+  TEvent extends EventObject,
+  TAction extends BaseActionObject = BaseActionObject,
+  TResolvedTypesMeta = TypegenDisabled,
+  TRequireMissingImplementations extends boolean = false
+> = TResolvedTypesMeta extends TypegenEnabled
+  ? TypegenMachineOptions<
+      TContext,
+      TResolvedTypesMeta,
+      TRequireMissingImplementations
+    >
+  : MachineOptions<TContext, TEvent, TAction>;

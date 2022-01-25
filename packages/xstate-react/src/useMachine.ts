@@ -58,34 +58,37 @@ export interface UseMachineOptions<TContext, TEvent extends EventObject> {
 }
 
 type RestParams<
-  TMachine extends StateMachine<any, any, any, any, any>
+  TMachine extends StateMachine<any, any, any, any, any, any>
 > = AreAllImplementationsAssumedToBeProvided<
-  TMachine['__TResolvedTypes']
+  TMachine['__TResolvedTypesMeta']
 > extends false
   ? [
       options: InterpreterOptions &
-        UseMachineOptions<
-          TMachine['__TResolvedTypes']['TContext'],
-          TMachine['__TResolvedTypes']['TEvent']
-        > &
-        InternalMachineOptions<TMachine['__TResolvedTypes'], true>
+        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+        InternalMachineOptions<
+          TMachine['__TContext'],
+          TMachine['__TEvent'],
+          TMachine['__TResolvedTypesMeta'],
+          true
+        >
     ]
   : [
       options?: InterpreterOptions &
-        UseMachineOptions<
-          TMachine['__TResolvedTypes']['TContext'],
-          TMachine['__TResolvedTypes']['TEvent']
-        > &
-        InternalMachineOptions<TMachine['__TResolvedTypes']>
+        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+        InternalMachineOptions<
+          TMachine['__TContext'],
+          TMachine['__TEvent'],
+          TMachine['__TResolvedTypesMeta']
+        >
     ];
 
 type UseMachineReturn<
-  TMachine extends StateMachine<any, any, any, any, any>,
+  TMachine extends StateMachine<any, any, any, any, any, any>,
   TInterpreter = InterpreterFrom<TMachine>
 > = [StateFrom<TMachine>, Prop<TInterpreter, 'send'>, TInterpreter];
 
 export function useMachine<
-  TMachine extends StateMachine<any, any, any, any, any>
+  TMachine extends StateMachine<any, any, any, any, any, any>
 >(
   getMachine: MaybeLazy<TMachine>,
   ...[options = {}]: RestParams<TMachine>

@@ -194,9 +194,7 @@ export function isInFinalState<TC, TE extends EventObject>(
   return false;
 }
 
-export function getMeta(
-  configuration: StateNode<any, any, any>[] = []
-): Record<string, any> {
+export function getMeta(configuration: StateNode[] = []): Record<string, any> {
   return configuration.reduce((acc, stateNode) => {
     if (stateNode.meta !== undefined) {
       acc[stateNode.id] = stateNode.meta;
