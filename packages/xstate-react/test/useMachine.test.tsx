@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useMachine, useService, useActor } from '../src';
+import { useMachine, useActor } from '../src';
 import {
   Machine,
   assign,
@@ -69,7 +69,7 @@ describe('useMachine hook', () => {
 
   const Fetcher: React.FC<{
     onFetch: () => Promise<any>;
-    persistedState?: State<any, any>;
+    persistedState?: State<any, any, any, any, any>;
   }> = ({
     onFetch = () => new Promise((res) => res('some data')),
     persistedState
@@ -317,7 +317,7 @@ describe('useMachine hook', () => {
     const ServiceApp: React.FC<{
       service: InterpreterFrom<typeof machine>;
     }> = ({ service }) => {
-      const [state] = useService(service);
+      const [state] = useActor(service);
 
       if (state.matches('loaded')) {
         const name = state.context.user.name;

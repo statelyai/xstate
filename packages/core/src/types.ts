@@ -1656,6 +1656,7 @@ export type ActorRefFrom<T> = T extends StateMachine<
   infer TEvent,
   infer TTypestate,
   any,
+  any,
   any
 >
   ? ActorRefWithDeprecatedState<TContext, TEvent, TTypestate>
@@ -1666,6 +1667,7 @@ export type ActorRefFrom<T> = T extends StateMachine<
       any,
       infer TEvent,
       infer TTypestate,
+      any,
       any,
       infer TResolvedTypesMeta
     >
@@ -1695,6 +1697,7 @@ export type InterpreterFrom<
   infer TEvent,
   infer TTypestate,
   any,
+  any,
   infer TResolvedTypesMeta
 >
   ? Interpreter<TContext, TStateSchema, TEvent, TTypestate, TResolvedTypesMeta>
@@ -1705,6 +1708,7 @@ export type InterpreterFrom<
       infer TStateSchema,
       infer TEvent,
       infer TTypestate,
+      any,
       any,
       infer TResolvedTypesMeta
     >
