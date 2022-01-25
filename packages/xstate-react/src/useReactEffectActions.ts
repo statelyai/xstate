@@ -82,7 +82,7 @@ export function useReactEffectActions<TContext, TEvent extends EventObject>(
 
       executeEffect(layoutEffectAction, effectState);
     }
-  }); // https://github.com/davidkpiano/xstate/pull/1202#discussion_r429677773
+  }); // https://github.com/statelyai/xstate/pull/1202#discussion_r429677773
 
   useEffect(() => {
     while (effectActionsRef.current.length) {

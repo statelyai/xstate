@@ -1,26 +1,37 @@
 # @xstate/test
 
+## 0.5.0
+
+### Minor Changes
+
+- [#2703](https://github.com/statelyai/xstate/pull/2703) [`d928cbb1f`](https://github.com/statelyai/xstate/commit/d928cbb1fe93b0d34a399ab65c8b2b1eeb3ca83d) Thanks [@Silverwolf90](https://github.com/Silverwolf90)! - Add getPlanFromEvents to generate a test plan with a single path from an explicitly defined sequence of events.
+
+### Patch Changes
+
+- Updated dependencies [[`6a0ff73bf`](https://github.com/statelyai/xstate/commit/6a0ff73bf8817dc401ef9b45c71dd7875dbc9f20)]:
+  - @xstate/graph@1.4.0
+
 ## 0.4.2
 
 ### Patch Changes
 
-- [`4105d923`](https://github.com/davidkpiano/xstate/commit/4105d923dfddd9ac3ffad33295edea38b0215c89) [#1930](https://github.com/davidkpiano/xstate/pull/1930) Thanks [@jimwheaton](https://github.com/jimwheaton)! - Fixes issue where 'final' state node names were not shown in test plan description
+- [`4105d923`](https://github.com/statelyai/xstate/commit/4105d923dfddd9ac3ffad33295edea38b0215c89) [#1930](https://github.com/statelyai/xstate/pull/1930) Thanks [@jimwheaton](https://github.com/jimwheaton)! - Fixes issue where 'final' state node names were not shown in test plan description
 
 ## 0.4.1
 
 ### Patch Changes
 
-- [`ca8841a5`](https://github.com/davidkpiano/xstate/commit/ca8841a5da6560f2956b0dfa08eb05252ad1eca5) [#1273](https://github.com/davidkpiano/xstate/pull/1273) Thanks [@rpradal](https://github.com/rpradal)! - `TestPath` interface got exported to be publicly available.
+- [`ca8841a5`](https://github.com/statelyai/xstate/commit/ca8841a5da6560f2956b0dfa08eb05252ad1eca5) [#1273](https://github.com/statelyai/xstate/pull/1273) Thanks [@rpradal](https://github.com/rpradal)! - `TestPath` interface got exported to be publicly available.
 
 ## 0.4.0
 
 ### Minor Changes
 
-- [`137b0cd`](https://github.com/davidkpiano/xstate/commit/137b0cdf71054d67f0c5ba2c11021436ec3739ed) [#1033](https://github.com/davidkpiano/xstate/pull/1033) Thanks [@ZempTime](https://github.com/ZempTime)! - Added ESM build of the package which can be loaded through modern web bundlers (instead of default CommonJS files).
+- [`137b0cd`](https://github.com/statelyai/xstate/commit/137b0cdf71054d67f0c5ba2c11021436ec3739ed) [#1033](https://github.com/statelyai/xstate/pull/1033) Thanks [@ZempTime](https://github.com/ZempTime)! - Added ESM build of the package which can be loaded through modern web bundlers (instead of default CommonJS files).
 
 ### Patch Changes
 
-- Updated dependencies [[`f3ff150`](https://github.com/davidkpiano/xstate/commit/f3ff150f7c50f402704d25cdc053b76836e447e3), [`6c47b66`](https://github.com/davidkpiano/xstate/commit/6c47b66c3289ff161dc96d9b246873f55c9e18f2), [`1a129f0`](https://github.com/davidkpiano/xstate/commit/1a129f0f35995981c160d756a570df76396bfdbd), [`e88aa18`](https://github.com/davidkpiano/xstate/commit/e88aa18431629e1061b74dfd4a961b910e274e0b), [`88b17b2`](https://github.com/davidkpiano/xstate/commit/88b17b2476ff9a0fbe810df9d00db32c2241cd6e), [`137b0cd`](https://github.com/davidkpiano/xstate/commit/137b0cdf71054d67f0c5ba2c11021436ec3739ed), [`d5f622f`](https://github.com/davidkpiano/xstate/commit/d5f622f68f4065a2615b5a4a1caae6b508b4840e)]:
+- Updated dependencies [[`f3ff150`](https://github.com/statelyai/xstate/commit/f3ff150f7c50f402704d25cdc053b76836e447e3), [`6c47b66`](https://github.com/statelyai/xstate/commit/6c47b66c3289ff161dc96d9b246873f55c9e18f2), [`1a129f0`](https://github.com/statelyai/xstate/commit/1a129f0f35995981c160d756a570df76396bfdbd), [`e88aa18`](https://github.com/statelyai/xstate/commit/e88aa18431629e1061b74dfd4a961b910e274e0b), [`88b17b2`](https://github.com/statelyai/xstate/commit/88b17b2476ff9a0fbe810df9d00db32c2241cd6e), [`137b0cd`](https://github.com/statelyai/xstate/commit/137b0cdf71054d67f0c5ba2c11021436ec3739ed), [`d5f622f`](https://github.com/statelyai/xstate/commit/d5f622f68f4065a2615b5a4a1caae6b508b4840e)]:
   - xstate@4.9.0
   - @xstate/graph@1.1.0
 

@@ -498,6 +498,84 @@ describe('actors', () => {
       .start();
   });
 
+  it('should only spawn an actor in an initial state of a child that gets invoked in the initial state of a parent when the parent gets started', () => {
+    let spawnCounter = 0;
+
+    interface TestContext {
+      promise?: ActorRefFrom<Promise<string>>;
+    }
+
+    const child = Machine<TestContext>({
+      initial: 'bar',
+      context: {},
+      states: {
+        bar: {
+          entry: assign<TestContext>({
+            promise: () => {
+              return spawn(() => {
+                spawnCounter++;
+                return Promise.resolve('answer');
+              });
+            }
+          })
+        }
+      }
+    });
+
+    const parent = Machine({
+      initial: 'foo',
+      states: {
+        foo: {
+          invoke: {
+            src: child,
+            onDone: 'end'
+          }
+        },
+        end: { type: 'final' }
+      }
+    });
+    interpret(parent).start();
+    expect(spawnCounter).toBe(1);
+  });
+
+  // https://github.com/statelyai/xstate/issues/2565
+  it('should only spawn an initial actor once when it synchronously responds with an event', () => {
+    let spawnCalled = 0;
+    const anotherMachine = createMachine({
+      initial: 'hello',
+      states: {
+        hello: {
+          entry: sendParent('ping')
+        }
+      }
+    });
+
+    const testMachine = createMachine<{ ref: ActorRef<any> }>({
+      initial: 'testing',
+      context: () => {
+        spawnCalled++;
+        // throw in case of an infinite loop
+        expect(spawnCalled).toBe(1);
+        return {
+          ref: spawn(anotherMachine)
+        };
+      },
+      states: {
+        testing: {
+          on: {
+            ping: {
+              target: 'done'
+            }
+          }
+        },
+        done: {}
+      }
+    });
+
+    const service = interpret(testMachine).start();
+    expect(service.state.value).toEqual('done');
+  });
+
   it('should spawn null actors if not used within a service', () => {
     interface TestContext {
       ref?: ActorRef<any>;
@@ -846,46 +924,6 @@ describe('actors', () => {
           })
           .start();
       });
-
-      it('should only spawn an actor in an initial state of a child that gets invoked in the initial state of a parent when the parent gets started', () => {
-        let spawnCounter = 0;
-
-        interface TestContext {
-          promise?: ActorRefFrom<Promise<string>>;
-        }
-
-        const child = Machine<TestContext>({
-          initial: 'bar',
-          context: {},
-          states: {
-            bar: {
-              entry: assign<TestContext>({
-                promise: () => {
-                  return spawn(() => {
-                    spawnCounter++;
-                    return Promise.resolve('answer');
-                  });
-                }
-              })
-            }
-          }
-        });
-
-        const parent = Machine({
-          initial: 'foo',
-          states: {
-            foo: {
-              invoke: {
-                src: child,
-                onDone: 'end'
-              }
-            },
-            end: { type: 'final' }
-          }
-        });
-        interpret(parent).start();
-        expect(spawnCounter).toBe(1);
-      });
     });
   });
 
@@ -934,7 +972,7 @@ describe('actors', () => {
       const promiseBehavior = fromPromise(
         () =>
           new Promise<number>((res) => {
-            setTimeout(res(42));
+            setTimeout(() => res(42));
           })
       );
 
@@ -974,7 +1012,7 @@ describe('actors', () => {
       const promiseBehavior = fromPromise(
         () =>
           new Promise<number>((_, rej) => {
-            setTimeout(rej(errorMessage), 1000);
+            setTimeout(() => rej(errorMessage), 1000);
           })
       );
 
@@ -1188,7 +1226,7 @@ describe('actors', () => {
 
   it('should receive done event from an immediately completed observable when self-initializing', () => {
     const parentMachine = createMachine<{
-      child: ActorRef<any> | null;
+      child: ActorRef<EventObject, unknown> | null;
     }>({
       context: {
         child: null

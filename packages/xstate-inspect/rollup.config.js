@@ -1,4 +1,13 @@
 import typescript from 'rollup-plugin-typescript2';
+import pkg from './package.json';
+
+const makeExternalPredicate = (externalArr) => {
+  if (externalArr.length === 0) {
+    return () => false;
+  }
+  const pattern = new RegExp(`^(${externalArr.join('|')})($|/)`);
+  return (id) => pattern.test(id);
+};
 
 const createTsPlugin = () =>
   typescript({
@@ -14,7 +23,10 @@ const createNpmConfig = ({ input, output }) => ({
   input,
   output,
   preserveModules: true,
-  external: ['xstate', 'xstate/lib/utils'],
+  external: makeExternalPredicate([
+    ...Object.keys(pkg.dependencies || {}),
+    ...Object.keys(pkg.peerDependencies | {})
+  ]),
   plugins: [createTsPlugin()]
 });
 

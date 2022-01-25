@@ -268,7 +268,7 @@ The VSCode extension is still experimental, but will become our recommended Type
 
 ## Config Objects
 
-The generic types for `MachineConfig<TContext, any, TEvent>` are the same as those for `createMachine<TContext, TEvent>`. This is useful when you are defining a machine config object _outside_ of the `createMachine(...)` function, and helps prevent [inference errors](https://github.com/davidkpiano/xstate/issues/310):
+The generic types for `MachineConfig<TContext, any, TEvent>` are the same as those for `createMachine<TContext, TEvent>`. This is useful when you are defining a machine config object _outside_ of the `createMachine(...)` function, and helps prevent [inference errors](https://github.com/statelyai/xstate/issues/310):
 
 ```ts
 import { MachineConfig } from 'xstate';

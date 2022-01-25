@@ -31,7 +31,7 @@
 ## Videos
 
 - [▶ Introduction to XState](https://www.youtube.com/watch?v=73Ch_EL4YVc) by Jon Bellah
-- [▶ https://egghead.io/courses/introduction-to-state-machines-using-xstate](Introduction to State Machines Using XState) by Kyle Shevlin
+- [▶ Introduction to State Machines Using XState](https://egghead.io/courses/introduction-to-state-machines-using-xstate) by Kyle Shevlin
 - [▶ Let's learn state machines with David K. Piano - Learn With Jason](https://www.youtube.com/watch?v=czi24DqUfSA) with Jason Lengstorf
 - [▶ State Machines (playlist)](https://www.youtube.com/watch?v=iDZxjJYMOUQ&list=PL8fumNHsC-3MFSqjrn603qkkK6KY3PBDZ) by Leigh Halliday
   1. [▶ XState - An Introduction - Finite State Machines in React](https://www.youtube.com/watch?v=iDZxjJYMOUQ&list=PL8fumNHsC-3MFSqjrn603qkkK6KY3PBDZ&index=1)

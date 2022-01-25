@@ -43,6 +43,7 @@ describe('useMachine hook', () => {
       },
       loading: {
         invoke: {
+          id: 'fetchData',
           src: 'fetchData',
           onDone: {
             target: 'success',
@@ -884,7 +885,7 @@ describe('useMachine (strict mode)', () => {
     done();
   });
 
-  // https://github.com/davidkpiano/xstate/issues/1334
+  // https://github.com/statelyai/xstate/issues/1334
   it('delayed transitions should work when initializing from a rehydrated state', () => {
     jest.useFakeTimers();
     try {
