@@ -31,7 +31,8 @@ import {
   ActorRefFrom,
   Behavior,
   StopActionObject,
-  Subscription
+  Subscription,
+  ResolvedTypeContainer
 } from './types';
 import { State, bindActionToState, isState } from './State';
 import * as actionTypes from './actionTypes';
@@ -65,19 +66,16 @@ import { registry } from './registry';
 import { getGlobal, registerService } from './devTools';
 import * as serviceScope from './serviceScope';
 import { spawnBehavior } from './behaviors';
-import {
-  AreAllImplementationsAssumedToBeProvided,
-  TypegenDisabled
-} from './typegenTypes';
+import { AreAllImplementationsAssumedToBeProvided } from './typegenTypes';
 
 export type StateListener<
   TContext,
   TEvent extends EventObject,
   TStateSchema extends StateSchema<TContext> = any,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext },
-  TResolvedTypesMeta = TypegenDisabled
+  TResolvedTypes extends ResolvedTypeContainer = ResolvedTypeContainer
 > = (
-  state: State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta>,
+  state: State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypes>,
   event: TEvent
 ) => void;
 
@@ -117,11 +115,11 @@ export class Interpreter<
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext },
-  TResolvedTypesMeta = TypegenDisabled
+  TResolvedTypes extends ResolvedTypeContainer = ResolvedTypeContainer
 > implements
     ActorRef<
       TEvent,
-      State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta>
+      State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypes>
     > {
   /**
    * The default interpreter options:
@@ -151,14 +149,14 @@ export class Interpreter<
     TEvent,
     TStateSchema,
     TTypestate,
-    TResolvedTypesMeta
+    TResolvedTypes
   >;
   private _initialState?: State<
     TContext,
     TEvent,
     TStateSchema,
     TTypestate,
-    TResolvedTypesMeta
+    TResolvedTypes
   >;
   /**
    * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
@@ -169,13 +167,7 @@ export class Interpreter<
   private scheduler: Scheduler = new Scheduler();
   private delayedEventsMap: Record<string, number> = {};
   private listeners: Set<
-    StateListener<
-      TContext,
-      TEvent,
-      TStateSchema,
-      TTypestate,
-      TResolvedTypesMeta
-    >
+    StateListener<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypes>
   > = new Set();
   private contextListeners: Set<ContextListener<TContext>> = new Set();
   private stopListeners: Set<Listener> = new Set();
@@ -215,8 +207,7 @@ export class Interpreter<
       TStateSchema,
       TEvent,
       TTypestate,
-      any,
-      TResolvedTypesMeta
+      TResolvedTypes
     >,
     options: InterpreterOptions = Interpreter.defaultOptions
   ) {
@@ -247,7 +238,7 @@ export class Interpreter<
     TEvent,
     TStateSchema,
     TTypestate,
-    TResolvedTypesMeta
+    TResolvedTypes
   > {
     if (this._initialState) {
       return this._initialState;
@@ -263,7 +254,7 @@ export class Interpreter<
     TEvent,
     TStateSchema,
     TTypestate,
-    TResolvedTypesMeta
+    TResolvedTypes
   > {
     if (!IS_PRODUCTION) {
       warn(
@@ -282,13 +273,7 @@ export class Interpreter<
    * @param actionsConfig The action implementations to use
    */
   public execute(
-    state: State<
-      TContext,
-      TEvent,
-      TStateSchema,
-      TTypestate,
-      TResolvedTypesMeta
-    >,
+    state: State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypes>,
     actionsConfig?: MachineOptions<TContext, TEvent>['actions']
   ): void {
     for (const action of state.actions) {
@@ -297,13 +282,7 @@ export class Interpreter<
   }
 
   private update(
-    state: State<
-      TContext,
-      TEvent,
-      TStateSchema,
-      TTypestate,
-      TResolvedTypesMeta
-    >,
+    state: State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypes>,
     _event: SCXML.Event<TEvent>
   ): void {
     // Attach session ID to state
@@ -379,7 +358,7 @@ export class Interpreter<
       TEvent,
       TStateSchema,
       TTypestate,
-      TResolvedTypesMeta
+      TResolvedTypes
     >
   ): this {
     this.listeners.add(listener);
@@ -393,22 +372,20 @@ export class Interpreter<
   }
   public subscribe(
     nextListener?: (
-      state: State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta>
+      state: State<TContext, TEvent, any, TTypestate, TResolvedTypes>
     ) => void,
     errorListener?: (error: any) => void,
     completeListener?: () => void
   ): Subscription;
   public subscribe(
-    observer: Observer<
-      State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta>
-    >
+    observer: Observer<State<TContext, TEvent, any, TTypestate, TResolvedTypes>>
   ): Subscription;
   public subscribe(
     nextListenerOrObserver?:
       | ((
-          state: State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta>
+          state: State<TContext, TEvent, any, TTypestate, TResolvedTypes>
         ) => void)
-      | Observer<State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta>>,
+      | Observer<State<TContext, TEvent, any, TTypestate, TResolvedTypes>>,
     _?: (error: any) => void, // TODO: error listener
     completeListener?: () => void
   ): Subscription {
@@ -417,7 +394,7 @@ export class Interpreter<
     }
 
     let listener: (
-      state: State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta>
+      state: State<TContext, TEvent, any, TTypestate, TResolvedTypes>
     ) => void;
     let resolvedCompleteListener = completeListener;
 
@@ -513,7 +490,7 @@ export class Interpreter<
    */
   public start(
     initialState?:
-      | State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta>
+      | State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypes>
       | StateValue
   ): this {
     if (this.status === InterpreterStatus.Running) {
@@ -534,7 +511,7 @@ export class Interpreter<
               TEvent,
               TStateSchema,
               TTypestate,
-              TResolvedTypesMeta
+              TResolvedTypes
             >(initialState)
               ? this.machine.resolveState(initialState)
               : this.machine.resolveState(
@@ -615,7 +592,7 @@ export class Interpreter<
   public send = (
     event: SingleOrArray<Event<TEvent>> | SCXML.Event<TEvent>,
     payload?: EventData
-  ): State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta> => {
+  ): State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypes> => {
     if (isArray(event)) {
       this.batch(event);
       return this.state;
@@ -780,7 +757,7 @@ export class Interpreter<
    */
   public nextState(
     event: Event<TEvent> | SCXML.Event<TEvent>
-  ): State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta> {
+  ): State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypes> {
     const _event = toSCXMLEvent(event);
 
     if (
@@ -828,13 +805,7 @@ export class Interpreter<
   }
   private exec(
     action: ActionObject<TContext, TEvent>,
-    state: State<
-      TContext,
-      TEvent,
-      TStateSchema,
-      TTypestate,
-      TResolvedTypesMeta
-    >,
+    state: State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypes>,
     actionFunctionMap = this.machine.options.actions
   ): void {
     const { context, _event } = state;
@@ -1300,7 +1271,7 @@ export class Interpreter<
     }
 
     // Start implementation
-    const dispose = implementation(this.state.context, activity);
+    const dispose = implementation(this.state.context as any, activity);
     this.spawnEffect(activity.id, dispose);
   }
   private spawnEffect(
@@ -1366,7 +1337,7 @@ export class Interpreter<
   }
 
   public [symbolObservable](): Subscribable<
-    State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta>
+    State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypes>
   > {
     return this;
   }
@@ -1374,7 +1345,7 @@ export class Interpreter<
   // this gets stripped by Babel to avoid having "undefined" property in environments without this non-standard Symbol
   // it has to be here to be included in the generated .d.ts
   public [Symbol.observable](): Subscribable<
-    State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta>
+    State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypes>
   > {
     return this;
   }
@@ -1404,9 +1375,9 @@ export function spawn<T extends Behavior<any, any>>(
   nameOrOptions?: string | SpawnOptions
 ): ActorRefFrom<T>;
 export function spawn<TC, TE extends EventObject>(
-  entity: StateMachine<TC, any, TE, any, any, any>,
+  entity: StateMachine<TC, any, TE, any, any>,
   nameOrOptions?: string | SpawnOptions
-): ActorRefFrom<StateMachine<TC, any, TE, any, any, any>>;
+): ActorRefFrom<StateMachine<TC, any, TE, any, any>>;
 export function spawn(
   entity: Spawnable,
   nameOrOptions?: string | SpawnOptions
@@ -1447,17 +1418,10 @@ export function interpret<
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext },
-  TResolvedTypesMeta = TypegenDisabled
+  TResolvedTypes extends ResolvedTypeContainer = ResolvedTypeContainer
 >(
-  machine: AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends true
-    ? StateMachine<
-        TContext,
-        TStateSchema,
-        TEvent,
-        TTypestate,
-        any,
-        TResolvedTypesMeta
-      >
+  machine: AreAllImplementationsAssumedToBeProvided<TResolvedTypes> extends true
+    ? StateMachine<TContext, TStateSchema, TEvent, TTypestate, TResolvedTypes>
     : 'Some implementations missing',
   options?: InterpreterOptions
 ) {
@@ -1466,7 +1430,7 @@ export function interpret<
     TStateSchema,
     TEvent,
     TTypestate,
-    TResolvedTypesMeta
+    TResolvedTypes
   >(machine as any, options);
 
   return interpreter;

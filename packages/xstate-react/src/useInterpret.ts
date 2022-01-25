@@ -36,70 +36,67 @@ function toObserver<T>(
 }
 
 type RestParams<
-  TMachine extends StateMachine<any, any, any, any, any, any>
+  TMachine extends StateMachine<any, any, any, any, any>
 > = AreAllImplementationsAssumedToBeProvided<
-  TMachine['__TResolvedTypesMeta']
+  TMachine['__TResolvedTypes']
 > extends false
   ? [
       options: InterpreterOptions &
-        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
-        InternalMachineOptions<
-          TMachine['__TContext'],
-          TMachine['__TEvent'],
-          TMachine['__TResolvedTypesMeta'],
-          true
-        >,
+        UseMachineOptions<
+          TMachine['__TResolvedTypes']['TContext'],
+          TMachine['__TResolvedTypes']['TEvent']
+        > &
+        InternalMachineOptions<TMachine['__TResolvedTypes'], true>,
       observerOrListener?:
         | Observer<
             State<
-              TMachine['__TContext'],
-              TMachine['__TEvent'],
+              TMachine['__TResolvedTypes']['TContext'],
+              TMachine['__TResolvedTypes']['TEvent'],
               any,
-              TMachine['__TTypestate'],
-              TMachine['__TResolvedTypesMeta']
+              TMachine['__TResolvedTypes']['TTypestate'],
+              TMachine['__TResolvedTypes']
             >
           >
         | ((
             value: State<
-              TMachine['__TContext'],
-              TMachine['__TEvent'],
+              TMachine['__TResolvedTypes']['TContext'],
+              TMachine['__TResolvedTypes']['TEvent'],
               any,
-              TMachine['__TTypestate'],
-              TMachine['__TResolvedTypesMeta']
+              TMachine['__TResolvedTypes']['TTypestate'],
+              TMachine['__TResolvedTypes']
             >
           ) => void)
     ]
   : [
       options?: InterpreterOptions &
-        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
-        InternalMachineOptions<
-          TMachine['__TContext'],
-          TMachine['__TEvent'],
-          TMachine['__TResolvedTypesMeta']
-        >,
+        UseMachineOptions<
+          TMachine['__TResolvedTypes']['TContext'],
+          TMachine['__TResolvedTypes']['TEvent']
+        > &
+        InternalMachineOptions<TMachine['__TResolvedTypes']>,
       observerOrListener?:
         | Observer<
             State<
-              TMachine['__TContext'],
-              TMachine['__TEvent'],
+              TMachine['__TResolvedTypes']['TContext'],
+              TMachine['__TResolvedTypes']['TEvent'],
               any,
-              TMachine['__TTypestate'],
-              TMachine['__TResolvedTypesMeta']
+              TMachine['__TResolvedTypes']['TTypestate'],
+              TMachine['__TResolvedTypes']
             >
           >
         | ((
             value: State<
-              TMachine['__TContext'],
-              TMachine['__TEvent'],
+              TMachine['__TResolvedTypes']['TContext'],
+              TMachine['__TResolvedTypes']['TEvent'],
               any,
-              TMachine['__TTypestate'],
-              TMachine['__TResolvedTypesMeta']
+              TMachine['__TResolvedTypes']['TTypestate'],
+              TMachine['__TResolvedTypes']
             >
           ) => void)
     ];
 
 export function useInterpret<
-  TMachine extends StateMachine<any, any, any, any, any, any>
+  TMachine extends StateMachine<any, any, any, any, any>
 >(
   getMachine: MaybeLazy<TMachine>,
   ...[options = {}, observerOrListener]: RestParams<TMachine>

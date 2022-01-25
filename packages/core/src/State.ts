@@ -13,7 +13,8 @@ import {
   Typestate,
   ActorRef,
   StateMachine,
-  SimpleEventsOf
+  SimpleEventsOf,
+  ResolvedTypeContainer
 } from './types';
 import { EMPTY_ACTIVITY_MAP } from './constants';
 import { matchesState, keys, isString, warn } from './utils';
@@ -21,8 +22,8 @@ import { StateNode } from './StateNode';
 import { getMeta, nextEvents } from './stateUtils';
 import { initEvent } from './actions';
 import { IS_PRODUCTION } from './environment';
-import { TypegenDisabled, TypegenEnabled } from './typegenTypes';
-import { BaseActionObject, Prop } from './types';
+import { TypegenEnabled } from './typegenTypes';
+import { Prop } from './types';
 
 export function stateValuesEqual(
   a: StateValue | undefined,
@@ -54,16 +55,10 @@ export function isState<
   TEvent extends EventObject,
   TStateSchema extends StateSchema<TContext> = any,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext },
-  TResolvedTypesMeta = TypegenDisabled
+  TResolvedTypes extends ResolvedTypeContainer = ResolvedTypeContainer
 >(
   state: object | string
-): state is State<
-  TContext,
-  TEvent,
-  TStateSchema,
-  TTypestate,
-  TResolvedTypesMeta
-> {
+): state is State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypes> {
   if (isString(state)) {
     return false;
   }
@@ -97,7 +92,7 @@ export class State<
   TEvent extends EventObject = EventObject,
   TStateSchema extends StateSchema<TContext> = any,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext },
-  TResolvedTypesMeta = TypegenDisabled
+  TResolvedTypes extends ResolvedTypeContainer = ResolvedTypeContainer
 > {
   public value: StateValue;
   public context: TContext;
@@ -107,7 +102,7 @@ export class State<
     TEvent,
     TStateSchema,
     TTypestate,
-    TResolvedTypesMeta
+    TResolvedTypes
   >;
   public actions: Array<ActionObject<TContext, TEvent>> = [];
   public activities: ActivityMap = EMPTY_ACTIVITY_MAP;
@@ -148,14 +143,7 @@ export class State<
   public children: Record<string, ActorRef<any>>;
   public tags: Set<string>;
   public machine:
-    | StateMachine<
-        TContext,
-        any,
-        TEvent,
-        TTypestate,
-        BaseActionObject,
-        TResolvedTypesMeta
-      >
+    | StateMachine<TContext, any, TEvent, TTypestate, TResolvedTypes>
     | undefined;
   /**
    * Creates a new State instance for the given `stateValue` and `context`.
@@ -323,8 +311,8 @@ export class State<
    * @param parentStateValue
    */
   public matches<
-    TSV extends TResolvedTypesMeta extends TypegenEnabled
-      ? Prop<TResolvedTypesMeta, 'matchesStates'>
+    TSV extends TResolvedTypes['TResolvedTypesMeta'] extends TypegenEnabled
+      ? Prop<TResolvedTypes['TResolvedTypesMeta'], 'matchesStates'>
       : TTypestate['value']
   >(
     parentStateValue: TSV
@@ -337,7 +325,7 @@ export class State<
     TEvent,
     TStateSchema,
     TTypestate,
-    TResolvedTypesMeta
+    TResolvedTypes
   > & { value: TSV } {
     return matchesState(parentStateValue as StateValue, this.value);
   }
@@ -347,8 +335,8 @@ export class State<
    * @param tag
    */
   public hasTag(
-    tag: TResolvedTypesMeta extends TypegenEnabled
-      ? Prop<TResolvedTypesMeta, 'tags'>
+    tag: TResolvedTypes['TResolvedTypesMeta'] extends TypegenEnabled
+      ? Prop<TResolvedTypes['TResolvedTypesMeta'], 'tags'>
       : string
   ): boolean {
     return this.tags.has(tag as string);

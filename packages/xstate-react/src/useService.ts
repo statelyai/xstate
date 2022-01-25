@@ -3,9 +3,8 @@ import {
   Interpreter,
   PayloadSender,
   State,
-  TypegenConstraint,
-  TypegenDisabled,
-  Typestate
+  Typestate,
+  ResolvedTypeContainer
 } from 'xstate';
 import { useActor } from './useActor';
 
@@ -28,11 +27,11 @@ export function useService<
   TContext,
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext },
-  TTypesMeta extends TypegenConstraint = TypegenDisabled
+  TResolvedTypes extends ResolvedTypeContainer = ResolvedTypeContainer
 >(
-  service: Interpreter<TContext, any, TEvent, TTypestate, TTypesMeta>
+  service: Interpreter<TContext, any, TEvent, TTypestate, TResolvedTypes>
 ): [
-  State<TContext, TEvent, any, TTypestate, TTypesMeta>,
+  State<TContext, TEvent, any, TTypestate, TResolvedTypes>,
   PayloadSender<TEvent>
 ] {
   if (process.env.NODE_ENV !== 'production' && !('machine' in service)) {

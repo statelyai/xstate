@@ -897,19 +897,6 @@ describe('typegen types', () => {
     );
   });
 
-  it('should allow for `tsTypes: true` to allow for explicit typegen opt-in', () => {
-    interface TypesMeta extends TypegenMeta {}
-
-    createMachine<
-      unknown,
-      { type: 'FOO' } | { type: 'BAR'; value: string },
-      any,
-      TypesMeta
-    >({
-      tsTypes: true
-    });
-  });
-
   it('should accept a machine as a service', () => {
     interface TypesMeta extends TypegenMeta {
       eventsCausingServices: {
