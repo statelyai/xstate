@@ -843,7 +843,7 @@ describe('invoke', () => {
     });
 
     it('should not reinvoke root-level invocations', (done) => {
-      // https://github.com/davidkpiano/xstate/issues/2147
+      // https://github.com/statelyai/xstate/issues/2147
 
       let invokeCount = 0;
       let invokeDisposeCount = 0;

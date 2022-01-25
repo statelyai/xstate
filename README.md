@@ -25,13 +25,13 @@ JavaScript and TypeScript [finite state machines](https://en.wikipedia.org/wiki/
 ## Packages
 
 - 🤖 `xstate` - Core finite state machine and statecharts library + interpreter
-- [🔬 `@xstate/fsm`](https://github.com/davidkpiano/xstate/tree/main/packages/xstate-fsm) - Minimal finite state machine library
-- [📉 `@xstate/graph`](https://github.com/davidkpiano/xstate/tree/main/packages/xstate-graph) - Graph traversal utilities for XState
-- [⚛️ `@xstate/react`](https://github.com/davidkpiano/xstate/tree/main/packages/xstate-react) - React hooks and utilities for using XState in React applications
-- [💚 `@xstate/vue`](https://github.com/davidkpiano/xstate/tree/main/packages/xstate-vue) - Vue composition functions and utilities for using XState in Vue applications
-- [🎷 `@xstate/svelte`](https://github.com/davidkpiano/xstate/tree/main/packages/xstate-svelte) - Svelte utilities for using XState in Svelte applications
-- [✅ `@xstate/test`](https://github.com/davidkpiano/xstate/tree/main/packages/xstate-test) - Model-Based-Testing utilities (using XState) for testing any software
-- [🔍 `@xstate/inspect`](https://github.com/davidkpiano/xstate/tree/main/packages/xstate-inspect) - Inspection utilities for XState
+- [🔬 `@xstate/fsm`](https://github.com/statelyai/xstate/tree/main/packages/xstate-fsm) - Minimal finite state machine library
+- [📉 `@xstate/graph`](https://github.com/statelyai/xstate/tree/main/packages/xstate-graph) - Graph traversal utilities for XState
+- [⚛️ `@xstate/react`](https://github.com/statelyai/xstate/tree/main/packages/xstate-react) - React hooks and utilities for using XState in React applications
+- [💚 `@xstate/vue`](https://github.com/statelyai/xstate/tree/main/packages/xstate-vue) - Vue composition functions and utilities for using XState in Vue applications
+- [🎷 `@xstate/svelte`](https://github.com/statelyai/xstate/tree/main/packages/xstate-svelte) - Svelte utilities for using XState in Svelte applications
+- [✅ `@xstate/test`](https://github.com/statelyai/xstate/tree/main/packages/xstate-test) - Model-Based-Testing utilities (using XState) for testing any software
+- [🔍 `@xstate/inspect`](https://github.com/statelyai/xstate/tree/main/packages/xstate-inspect) - Inspection utilities for XState
 
 ## Templates
 
@@ -171,7 +171,7 @@ Read [📽 the slides](http://slides.com/davidkhourshid/finite-state-machines) (
 - [The World of Statecharts](https://statecharts.github.io/) by Erik Mogensen
 - [Pure UI](https://rauchg.com/2015/pure-ui) by Guillermo Rauch
 - [Pure UI Control](https://medium.com/@asolove/pure-ui-control-ac8d1be97a8d) by Adam Solove
-- [Spectrum - Statecharts Community](https://spectrum.chat/statecharts) (For XState specific questions, please use the [GitHub Discussions](https://github.com/davidkpiano/xstate/discussions))
+- [Spectrum - Statecharts Community](https://spectrum.chat/statecharts) (For XState specific questions, please use the [GitHub Discussions](https://github.com/statelyai/xstate/discussions))
 
 ## Finite State Machines
 
