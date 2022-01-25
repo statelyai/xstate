@@ -1722,6 +1722,7 @@ export type MachineOptionsFrom<
   infer TEvent,
   any,
   any,
+  any,
   infer TResolvedTypesMeta
 >
   ? InternalMachineOptions<
