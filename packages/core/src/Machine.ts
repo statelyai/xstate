@@ -17,7 +17,6 @@ import {
   TypegenDisabled,
   ResolveTypegenMeta
 } from './typegenTypes';
-import { MachineSchema } from '.';
 
 /**
  * @deprecated Use `createMachine(...)` instead.
@@ -85,14 +84,7 @@ export function createMachine<
 >(
   config: TContext extends Model<any, any, any, any>
     ? 'Model type no longer supported as generic type. Please use `model.createMachine(...)` instead.'
-    : MachineConfig<
-        TContext,
-        any,
-        TEvent,
-        BaseActionObject,
-        MachineSchema<TContext, TEvent>,
-        TTypesMeta
-      >,
+    : MachineConfig<TContext, any, TEvent, BaseActionObject, TTypesMeta>,
   options?: InternalMachineOptions<
     TContext,
     TEvent,
@@ -113,14 +105,7 @@ export function createMachine<
   TTypestate extends Typestate<TContext> = { value: any; context: TContext },
   TTypesMeta extends TypegenConstraint = TypegenDisabled
 >(
-  config: MachineConfig<
-    TContext,
-    any,
-    TEvent,
-    BaseActionObject,
-    MachineSchema<TContext, TEvent>,
-    TTypesMeta
-  >,
+  config: MachineConfig<TContext, any, TEvent, BaseActionObject, TTypesMeta>,
   options?: MachineOptions<TContext, TEvent, BaseActionObject, TTypesMeta>
 ): StateMachine<
   TContext,

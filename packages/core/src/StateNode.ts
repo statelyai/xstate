@@ -839,7 +839,7 @@ class StateNode<
     return this.transitionParallelNode(stateValue, state, _event);
   }
   public getTransitionData(
-    state: State<TContext, TEvent, any, any, any>,
+    state: State<TContext, TEvent, any, any>,
     event: Event<TEvent> | SCXML.Event<TEvent>
   ) {
     return this._transition(state.value, state, toSCXMLEvent(event));
