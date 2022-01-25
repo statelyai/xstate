@@ -323,7 +323,7 @@ const countMachine = createMachine({
 
 ## TypeScript
 
-For proper type inference, add the context type as the first type parameter to `createMachine<TContext, ...>`:
+For proper type inference, add the context type to the schema property of the machine:
 
 ```ts
 interface CounterContext {
@@ -333,7 +333,10 @@ interface CounterContext {
   };
 }
 
-const machine = createMachine<CounterContext>({
+const machine = createMachine({
+  schema: {
+    context: {} as CounterContext
+  },
   // ...
   context: {
     count: 0,
@@ -351,21 +354,27 @@ const context = {
   user: { name: '' }
 };
 
-const machine = createMachine<typeof context>({
+const machine = createMachine({
+  schema: {
+    context: {} as typeof context
+  },
   // ...
   context
   // ...
 });
 ```
 
-In most cases, the types for `context` and `event` in `assign(...)` actions will be automatically inferred from the type parameters passed into `createMachine<TContext, TEvent>`:
+In most cases, the types for `context` and `event` in `assign(...)` actions will be automatically inferred from the type parameters passed into `schema`:
 
 ```ts
 interface CounterContext {
   count: number;
 }
 
-const machine = createMachine<CounterContext>({
+const machine = createMachine({
+  schema: {
+    context: {} as CounterContext
+  },
   // ...
   context: {
     count: 0

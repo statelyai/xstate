@@ -419,8 +419,12 @@ type Event =
       type: 'EVENT_WITHOUT_FLAG';
     };
 
-createMachine<Context, Event>(
+createMachine(
   {
+    schema: {
+      context: {} as Context,
+      events: {} as Event
+    },
     on: {
       EVENT_WITH_FLAG: {
         actions: 'consoleLogData'
@@ -441,7 +445,7 @@ createMachine<Context, Event>(
 The reason this errors is because inside the `consoleLogData` function, we don't know which event caused it to fire. The cleanest way to manage this is to assert the event type yourself.
 
 ```ts
-createMachine<Context, Event>(machine, {
+createMachine(machine, {
   actions: {
     consoleLogData: (context, event) => {
       if (event.type !== 'EVENT_WITH_FLAG') return
@@ -455,7 +459,11 @@ createMachine<Context, Event>(machine, {
 It's also sometimes possible to move the implementation inline.
 
 ```ts
-createMachine<Context, Event>({
+createMachine({
+  schema: {
+    context: {} as Context,
+    events: {} as Event
+  },
   on: {
     EVENT_WITH_FLAG: {
       actions: (context, event) => {
@@ -483,7 +491,11 @@ type Event =
       type: 'EVENT_WITHOUT_FLAG';
     };
 
-createMachine<Context, Event>({
+createMachine({
+  schema: {
+    context: {} as Context,
+    events: {} as Event
+  },
   initial: 'state1',
   states: {
     state1: {
@@ -533,8 +545,12 @@ type Event = {
   type: 'UNUSED_EVENT';
 };
 
-createMachine<Context, Event>(
+createMachine(
   {
+    schema: {
+      context: {} as Context,
+      events: {} as Event
+    },
     invoke: {
       src: async () => {
         const data: Data = {
@@ -592,7 +608,10 @@ interface Context {
   something: boolean;
 }
 
-createMachine<Context>({
+createMachine({
+  schema: {
+    context: {} as Context
+  },
   context: {
     something: true
   },
