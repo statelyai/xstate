@@ -75,7 +75,7 @@ Using our [VSCode extension](https://marketplace.visualstudio.com/items?itemName
 
 Here's how you can get started:
 
-1. Download and install the [VSCode extension](https://marketplace.visualstudio.com/items?itemName=mattpocock.xstate-vscode).
+1. Download and install the [VS Code extension](https://marketplace.visualstudio.com/items?itemName=mattpocock.xstate-vscode).
 2. Open a new file and create a new machine, passing the schema attributes:
 
 ```ts
