@@ -157,7 +157,7 @@ You'll notice that the events in the options are _strongly typed to the events t
 
 You'll also notice that `state.matches`, `tags` and other parts of the machine are now type-safe.
 
-### How to get the most out of the VSCode extension
+### How to get the most out of the VS Code extension
 
 #### Use named actions/guards/services
 
