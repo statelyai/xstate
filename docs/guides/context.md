@@ -326,6 +326,8 @@ const countMachine = createMachine({
 For proper type inference, add the context type to the schema property of the machine:
 
 ```ts
+import { t, createMachine } from 'xstate';
+
 interface CounterContext {
   count: number;
   user?: {
@@ -335,7 +337,7 @@ interface CounterContext {
 
 const machine = createMachine({
   schema: {
-    context: {} as CounterContext
+    context: t<CounterContext>()
   },
   // ...
   context: {
@@ -356,7 +358,7 @@ const context = {
 
 const machine = createMachine({
   schema: {
-    context: {} as typeof context
+    context: t<typeof context>()
   },
   // ...
   context
@@ -373,7 +375,7 @@ interface CounterContext {
 
 const machine = createMachine({
   schema: {
-    context: {} as CounterContext
+    context: t<CounterContext>()
   },
   // ...
   context: {

@@ -6,7 +6,7 @@ As XState is written in [TypeScript](https://www.typescriptlang.org/), strongly 
 const lightMachine = createMachine({
   schema: {
     // The context (extended state) of the machine
-    context: {} as { elapsed: number },
+    context: t<{ elapsed: number }>(),
     // The events this machine handles
     events: {} as
       | { type: 'TIMER' }
@@ -81,8 +81,8 @@ Here's how you can get started:
 ```ts
 const machine = createMachine({
   schema: {
-    context: {} as { value: string },
-    events: {} as { type: 'FOO'; value: string } | { type: 'BAR' }
+    context: t<{ value: string }>(),
+    events: t<{ type: 'FOO'; value: string } | { type: 'BAR' }>()
   },
   initial: 'a',
   states: {
@@ -107,8 +107,8 @@ const machine = createMachine({
 const machine = createMachine({
   tsTypes: true,
   schema: {
-    context: {} as { value: string },
-    events: {} as { type: 'FOO'; value: string } | { type: 'BAR' }
+    context: t<{ value: string }>(),
+    events: t<{ type: 'FOO'; value: string } | { type: 'BAR' }>()
   },
   initial: 'a',
   states: {
@@ -133,8 +133,8 @@ const machine = createMachine({
 const machine = createMachine({
   tsTypes: {} as import('./filename.typegen').Typegen[0],
   schema: {
-    context: {} as { value: string },
-    events: {} as { type: 'FOO'; value: string } | { type: 'BAR' }
+    context: t<{ value: string }>(),
+    events: t<{ type: 'FOO'; value: string } | { type: 'BAR' }>()
   },
   initial: 'a',
   states: {
@@ -228,12 +228,12 @@ You can use the generated types to specify the result of `onDone` services, by u
 createMachine(
   {
     schema: {
-      services: {
-        myService: {} as {
+      services: t<{
+        myService: {
           // The data that gets returned from the service
           data: { id: string };
-        }
-      }
+        };
+      }>()
     },
     invoke: {
       src: 'myService',
@@ -422,8 +422,8 @@ type Event =
 createMachine(
   {
     schema: {
-      context: {} as Context,
-      events: {} as Event
+      context: t<Context>(),
+      events: t<Event>()
     },
     on: {
       EVENT_WITH_FLAG: {
@@ -461,8 +461,8 @@ It's also sometimes possible to move the implementation inline.
 ```ts
 createMachine({
   schema: {
-    context: {} as Context,
-    events: {} as Event
+    context: t<Context>(),
+    events: t<Event>()
   },
   on: {
     EVENT_WITH_FLAG: {
@@ -493,8 +493,8 @@ type Event =
 
 createMachine({
   schema: {
-    context: {} as Context,
-    events: {} as Event
+    context: t<Context>(),
+    events: t<Event>()
   },
   initial: 'state1',
   states: {
@@ -548,8 +548,8 @@ type Event = {
 createMachine(
   {
     schema: {
-      context: {} as Context,
-      events: {} as Event
+      context: t<Context>(),
+      events: t<Event>()
     },
     invoke: {
       src: async () => {
@@ -610,7 +610,7 @@ interface Context {
 
 createMachine({
   schema: {
-    context: {} as Context
+    context: t<Context>()
   },
   context: {
     something: true

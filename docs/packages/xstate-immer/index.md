@@ -292,7 +292,7 @@ const nameUpdater = createUpdater<SomeContext, NameUpdateEvent>(
 Here is a fully typed example of the previous form example:
 
 ```ts
-import { createMachine } from 'xstate';
+import { createMachine, t } from 'xstate';
 import { createUpdater, ImmerUpdateEvent } from '@xstate/immer';
 
 interface FormContext {
@@ -326,8 +326,8 @@ type FormEvent =
 
 const formMachine = createMachine({
   schema: {
-    context: {} as FormContext,
-    events: {} as FormEvent
+    context: t<FormContext>(),
+    events: t<FormEvent>()
   },
   initial: 'editing',
   context: {
