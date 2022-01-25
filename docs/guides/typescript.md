@@ -79,6 +79,8 @@ Here's how you can get started:
 2. Open a new file and create a new machine, passing the schema attributes:
 
 ```ts
+import { createMachine, t } from 'xstate';
+
 const machine = createMachine({
   schema: {
     context: t<{ value: string }>(),
