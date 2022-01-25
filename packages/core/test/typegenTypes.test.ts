@@ -657,7 +657,7 @@ describe('typegen types', () => {
     );
   });
 
-  it('should include generated dynamic internal event in the provided parameter if an explicit one is not provided', () => {
+  it('should include generated dynamic internal event in the provided parameter if schema.services is not provided', () => {
     interface TypesMeta extends TypegenMeta {
       eventsCausingActions: {
         myAction: 'done.invoke.myService' | 'FOO';
@@ -668,6 +668,9 @@ describe('typegen types', () => {
           data: unknown;
           __tip: 'Declare the type.';
         };
+      };
+      invokeSrcNameMap: {
+        myService: 'done.invoke.myService';
       };
     }
 
@@ -695,7 +698,7 @@ describe('typegen types', () => {
     );
   });
 
-  it('should use an explicitly provided event type for a dynamic internal event over the generated one', () => {
+  it('should use an event generated based on schema.services for a dynamic internal event over the generated fallback', () => {
     interface TypesMeta extends TypegenMeta {
       eventsCausingActions: {
         myAction: 'done.invoke.myService' | 'FOO';
@@ -707,16 +710,21 @@ describe('typegen types', () => {
           __tip: 'Declare the type.';
         };
       };
+      invokeSrcNameMap: {
+        myService: 'done.invoke.myService';
+      };
     }
 
     createMachine(
       {
         tsTypes: {} as TypesMeta,
         schema: {
-          events: {} as
-            | { type: 'FOO' }
-            | { type: 'BAR' }
-            | { type: 'done.invoke.myService'; data: string }
+          events: {} as { type: 'FOO' } | { type: 'BAR' },
+          services: {
+            myService: {
+              data: {} as string
+            }
+          }
         }
       },
       {
@@ -734,7 +742,7 @@ describe('typegen types', () => {
     );
   });
 
-  it('should allow a promise service returning the explicitly declared data in the given done.invoke', () => {
+  it('should allow a promise service returning the explicitly declared data in the given schema.services', () => {
     interface TypesMeta extends TypegenMeta {
       eventsCausingServices: {
         myService: 'FOO';
@@ -755,9 +763,12 @@ describe('typegen types', () => {
       {
         tsTypes: {} as TypesMeta,
         schema: {
-          events: {} as
-            | { type: 'FOO' }
-            | { type: 'done.invoke.myService'; data: string }
+          events: {} as { type: 'FOO' },
+          services: {
+            myService: {
+              data: {} as string
+            }
+          }
         }
       },
       {
@@ -768,7 +779,7 @@ describe('typegen types', () => {
     );
   });
 
-  it('should not allow a promise service returning a different type than the explicitly declared one in the given done.invoke', () => {
+  it('should not allow a promise service returning a different type than the explicitly declared one in the given schema.services', () => {
     interface TypesMeta extends TypegenMeta {
       eventsCausingServices: {
         myService: 'FOO';
@@ -789,9 +800,12 @@ describe('typegen types', () => {
       {
         tsTypes: {} as TypesMeta,
         schema: {
-          events: {} as
-            | { type: 'FOO' }
-            | { type: 'done.invoke.myService'; data: string }
+          events: {} as { type: 'FOO' },
+          services: {
+            myService: {
+              data: {} as string
+            }
+          }
         }
       },
       {
@@ -803,7 +817,7 @@ describe('typegen types', () => {
     );
   });
 
-  it('should allow a machine service returning the explicitly declared data in the given done.invoke', () => {
+  it('should allow a machine service returning the explicitly declared data in the given schema.services', () => {
     interface TypesMeta extends TypegenMeta {
       eventsCausingServices: {
         myService: 'FOO';
@@ -824,9 +838,12 @@ describe('typegen types', () => {
       {
         tsTypes: {} as TypesMeta,
         schema: {
-          events: {} as
-            | { type: 'FOO' }
-            | { type: 'done.invoke.myService'; data: { foo: string } }
+          events: {} as { type: 'FOO' },
+          services: {
+            myService: {
+              data: {} as { foo: string }
+            }
+          }
         }
       },
       {
@@ -837,7 +854,7 @@ describe('typegen types', () => {
     );
   });
 
-  it('should not allow a machine service returning a different type than the explicitly declared one in the given done.invoke', () => {
+  it('should not allow a machine service returning a different type than the explicitly declared one in the given schema.services', () => {
     interface TypesMeta extends TypegenMeta {
       eventsCausingServices: {
         myService: 'FOO';
@@ -858,9 +875,12 @@ describe('typegen types', () => {
       {
         tsTypes: {} as TypesMeta,
         schema: {
-          events: {} as
-            | { type: 'FOO' }
-            | { type: 'done.invoke.myService'; data: { foo: string } }
+          events: {} as { type: 'FOO' },
+          services: {
+            myService: {
+              data: {} as { foo: string }
+            }
+          }
         }
       },
       {
@@ -895,19 +915,6 @@ describe('typegen types', () => {
         }
       }
     );
-  });
-
-  it('should allow for `tsTypes: true` to allow for explicit typegen opt-in', () => {
-    interface TypesMeta extends TypegenMeta {}
-
-    createMachine<
-      unknown,
-      { type: 'FOO' } | { type: 'BAR'; value: string },
-      any,
-      TypesMeta
-    >({
-      tsTypes: true
-    });
   });
 
   it('should accept a machine as a service', () => {

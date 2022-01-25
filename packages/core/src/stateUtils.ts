@@ -11,8 +11,9 @@ type AdjList<TC, TE extends EventObject> = Map<
   Array<StateNode<TC, any, TE>>
 >;
 
-export const isLeafNode = (stateNode: StateNode<any, any, any, any, any>) =>
-  stateNode.type === 'atomic' || stateNode.type === 'final';
+export const isLeafNode = (
+  stateNode: StateNode<any, any, any, any, any, any>
+) => stateNode.type === 'atomic' || stateNode.type === 'final';
 
 export function getChildren<TC, TE extends EventObject>(
   stateNode: StateNode<TC, any, TE>
@@ -21,8 +22,8 @@ export function getChildren<TC, TE extends EventObject>(
 }
 
 export function getAllStateNodes<TC, TE extends EventObject>(
-  stateNode: StateNode<TC, any, TE, any, any>
-): Array<StateNode<TC, any, TE, any, any>> {
+  stateNode: StateNode<TC, any, TE, any, any, any>
+): Array<StateNode<TC, any, TE, any, any, any>> {
   const stateNodes = [stateNode];
 
   if (isLeafNode(stateNode)) {
@@ -35,9 +36,9 @@ export function getAllStateNodes<TC, TE extends EventObject>(
 }
 
 export function getConfiguration<TC, TE extends EventObject>(
-  prevStateNodes: Iterable<StateNode<TC, any, TE, any, any>>,
-  stateNodes: Iterable<StateNode<TC, any, TE, any, any>>
-): Set<StateNode<TC, any, TE, any, any>> {
+  prevStateNodes: Iterable<StateNode<TC, any, TE, any, any, any>>,
+  stateNodes: Iterable<StateNode<TC, any, TE, any, any, any>>
+): Set<StateNode<TC, any, TE, any, any, any>> {
   const prevConfiguration = new Set(prevStateNodes);
   const prevAdjList = getAdjList(prevConfiguration);
 
@@ -177,8 +178,8 @@ export function nextEvents<TC, TE extends EventObject>(
 }
 
 export function isInFinalState<TC, TE extends EventObject>(
-  configuration: Array<StateNode<TC, any, TE, any, any>>,
-  stateNode: StateNode<TC, any, TE, any, any>
+  configuration: Array<StateNode<TC, any, TE, any, any, any>>,
+  stateNode: StateNode<TC, any, TE, any, any, any>
 ): boolean {
   if (stateNode.type === 'compound') {
     return getChildren(stateNode).some(

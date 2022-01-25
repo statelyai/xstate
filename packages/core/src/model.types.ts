@@ -17,6 +17,7 @@ import {
   TypegenConstraint,
   TypegenDisabled
 } from './typegenTypes';
+import { ServiceMap } from '.';
 
 export interface Model<
   TContext,
@@ -36,11 +37,18 @@ export interface Model<
   reset: () => AssignAction<TContext, any>;
   createMachine: {
     <TTypesMeta extends TypegenConstraint = TypegenDisabled>(
-      config: MachineConfig<TContext, any, TEvent, TAction, TTypesMeta>,
+      config: MachineConfig<
+        TContext,
+        any,
+        TEvent,
+        TAction,
+        ServiceMap,
+        TTypesMeta
+      >,
       implementations?: InternalMachineOptions<
         TContext,
         TEvent,
-        ResolveTypegenMeta<TTypesMeta, TEvent, TAction>
+        ResolveTypegenMeta<TTypesMeta, TEvent, TAction, ServiceMap>
       >
     ): StateMachine<
       TContext,
@@ -48,7 +56,8 @@ export interface Model<
       TEvent,
       { value: any; context: TContext },
       TAction,
-      ResolveTypegenMeta<TTypesMeta, TEvent, TAction>
+      ServiceMap,
+      ResolveTypegenMeta<TTypesMeta, TEvent, TAction, ServiceMap>
     >;
   };
 }

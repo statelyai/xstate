@@ -22,7 +22,7 @@ export interface InspectorOptions {
 }
 
 export interface Inspector
-  extends ActorRef<InspectMachineEvent, State<any, any, any>> {
+  extends ActorRef<InspectMachineEvent, State<any, any, any, any, any>> {
   /**
    * Disconnects the inspector.
    */
@@ -60,7 +60,7 @@ export type ReceiverEvent =
 export type ParsedReceiverEvent =
   | {
       type: 'service.register';
-      machine: StateMachine<any, any, any, any, any, any>;
+      machine: StateMachine<any, any, any, any, any, any, any>;
       state: State<any, any>;
       id: string;
       sessionId: string;

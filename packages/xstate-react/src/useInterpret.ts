@@ -36,7 +36,7 @@ function toObserver<T>(
 }
 
 type RestParams<
-  TMachine extends StateMachine<any, any, any, any, any, any>
+  TMachine extends StateMachine<any, any, any, any, any, any, any>
 > = AreAllImplementationsAssumedToBeProvided<
   TMachine['__TResolvedTypesMeta']
 > extends false
@@ -99,7 +99,7 @@ type RestParams<
     ];
 
 export function useInterpret<
-  TMachine extends StateMachine<any, any, any, any, any, any>
+  TMachine extends StateMachine<any, any, any, any, any, any, any>
 >(
   getMachine: MaybeLazy<TMachine>,
   ...[options = {}, observerOrListener]: RestParams<TMachine>

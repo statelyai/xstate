@@ -58,7 +58,7 @@ export interface UseMachineOptions<TContext, TEvent extends EventObject> {
 }
 
 type RestParams<
-  TMachine extends StateMachine<any, any, any, any, any, any>
+  TMachine extends StateMachine<any, any, any, any, any, any, any>
 > = AreAllImplementationsAssumedToBeProvided<
   TMachine['__TResolvedTypesMeta']
 > extends false
@@ -83,12 +83,12 @@ type RestParams<
     ];
 
 type UseMachineReturn<
-  TMachine extends StateMachine<any, any, any, any, any, any>,
+  TMachine extends StateMachine<any, any, any, any, any, any, any>,
   TInterpreter = InterpreterFrom<TMachine>
 > = [StateFrom<TMachine>, Prop<TInterpreter, 'send'>, TInterpreter];
 
 export function useMachine<
-  TMachine extends StateMachine<any, any, any, any, any, any>
+  TMachine extends StateMachine<any, any, any, any, any, any, any>
 >(
   getMachine: MaybeLazy<TMachine>,
   ...[options = {}]: RestParams<TMachine>

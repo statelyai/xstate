@@ -332,7 +332,7 @@ export type InvokeCreator<
   meta: InvokeMeta
 ) =>
   | PromiseLike<TFinalContext>
-  | StateMachine<TFinalContext, any, any, any, any, any>
+  | StateMachine<TFinalContext, any, any, any, any, any, any>
   | Subscribable<EventObject>
   | InvokeCallback<TInputEvent, TOutputEvent>
   | Behavior<any>;
@@ -808,7 +808,7 @@ type MachineOptionsServices<
   TInvokeSrcNameMap = Prop<TResolvedTypesMeta, 'invokeSrcNameMap'>
 > = {
   [K in keyof TEventsCausingServices]?:
-    | StateMachine<any, any, any, any, any, any>
+    | StateMachine<any, any, any, any, any, any, any>
     | InvokeCreator<
         TContext,
         Cast<Prop<TIndexedEvents, TEventsCausingServices[K]>, EventObject>,
@@ -926,11 +926,12 @@ export type MachineOptions<
   TContext,
   TEvent extends EventObject,
   TAction extends BaseActionObject = BaseActionObject,
+  TServiceMap extends ServiceMap = ServiceMap,
   TTypesMeta extends TypegenConstraint = TypegenDisabled
 > = InternalMachineOptions<
   TContext,
   TEvent,
-  ResolveTypegenMeta<TTypesMeta, TEvent, TAction>
+  ResolveTypegenMeta<TTypesMeta, TEvent, TAction, TServiceMap>
 >;
 
 export interface MachineConfig<
@@ -938,6 +939,7 @@ export interface MachineConfig<
   TStateSchema extends StateSchema,
   TEvent extends EventObject,
   TAction extends BaseActionObject = BaseActionObject,
+  TServiceMap extends ServiceMap = ServiceMap,
   TTypesMeta = TypegenDisabled
 > extends StateNodeConfig<TContext, TStateSchema, TEvent, TAction> {
   /**
@@ -948,16 +950,21 @@ export interface MachineConfig<
    * The machine's own version.
    */
   version?: string;
-  schema?: MachineSchema<TContext, TEvent>;
-  tsTypes?: TTypesMeta | true;
+  schema?: MachineSchema<TContext, TEvent, TServiceMap>;
+  tsTypes?: TTypesMeta;
 }
 
-export interface MachineSchema<TContext, TEvent extends EventObject> {
+export type ServiceMap = Record<string, { data: any }>;
+export interface MachineSchema<
+  TContext,
+  TEvent extends EventObject,
+  TServiceMap extends ServiceMap = ServiceMap
+> {
   context?: TContext;
   events?: TEvent;
   actions?: { type: string; [key: string]: any };
   guards?: { type: string; [key: string]: any };
-  services?: { type: string; [key: string]: any };
+  services?: TServiceMap;
 }
 
 export interface StandardMachineConfig<
@@ -992,12 +999,14 @@ export interface StateMachine<
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext },
   TAction extends BaseActionObject = BaseActionObject,
+  TServiceMap extends ServiceMap = ServiceMap,
   TResolvedTypesMeta = TypegenDisabled
 > extends StateNode<
     TContext,
     TStateSchema,
     TEvent,
     TTypestate,
+    TServiceMap,
     TResolvedTypesMeta
   > {
   id: string;
@@ -1006,6 +1015,7 @@ export interface StateMachine<
     TStateSchema,
     TEvent,
     TTypestate,
+    TServiceMap,
     TResolvedTypesMeta
   >['states'];
 
@@ -1018,6 +1028,7 @@ export interface StateMachine<
     TEvent,
     TTypestate,
     TAction,
+    TServiceMap,
     AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
       ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
       : TResolvedTypesMeta
@@ -1030,7 +1041,8 @@ export interface StateMachine<
     TStateSchema,
     TEvent,
     TTypestate,
-    any,
+    TAction,
+    TServiceMap,
     TResolvedTypesMeta
   >;
 
@@ -1039,16 +1051,19 @@ export interface StateMachine<
   __TEvent: TEvent;
   __TTypestate: TTypestate;
   __TAction: TAction;
+  __TServiceMap: TServiceMap;
   __TResolvedTypesMeta: TResolvedTypesMeta;
 }
 
 export type StateFrom<
   T extends
-    | StateMachine<any, any, any, any, any, any>
-    | ((...args: any[]) => StateMachine<any, any, any, any, any, any>)
-> = T extends StateMachine<any, any, any, any, any, any>
+    | StateMachine<any, any, any, any, any, any, any>
+    | ((...args: any[]) => StateMachine<any, any, any, any, any, any, any>)
+> = T extends StateMachine<any, any, any, any, any, any, any>
   ? ReturnType<T['transition']>
-  : T extends (...args: any[]) => StateMachine<any, any, any, any, any, any>
+  : T extends (
+      ...args: any[]
+    ) => StateMachine<any, any, any, any, any, any, any>
   ? ReturnType<ReturnType<T>['transition']>
   : never;
 
@@ -1075,9 +1090,9 @@ export interface ActivityMap {
 // tslint:disable-next-line:class-name
 export interface StateTransition<TContext, TEvent extends EventObject> {
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
-  configuration: Array<StateNode<TContext, any, TEvent, any, any>>;
-  entrySet: Array<StateNode<TContext, any, TEvent, any, any>>;
-  exitSet: Array<StateNode<TContext, any, TEvent, any, any>>;
+  configuration: Array<StateNode<TContext, any, TEvent, any, any, any>>;
+  entrySet: Array<StateNode<TContext, any, TEvent, any, any, any>>;
+  exitSet: Array<StateNode<TContext, any, TEvent, any, any, any>>;
   /**
    * The source state that preceded the transition.
    */
@@ -1458,7 +1473,7 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   children: Record<string, ActorRef<any>>;
   done?: boolean;
   tags?: Set<string>;
-  machine?: StateMachine<TContext, any, TEvent, any, any, any>;
+  machine?: StateMachine<TContext, any, TEvent, any, any, any, any>;
 }
 
 export interface StateSchema<TC = any> {
@@ -1672,8 +1687,8 @@ export type AnyInterpreter = Interpreter<any, any, any, any, any>;
 
 export type InterpreterFrom<
   T extends
-    | StateMachine<any, any, any, any, any, any>
-    | ((...args: any[]) => StateMachine<any, any, any, any, any, any>)
+    | StateMachine<any, any, any, any, any, any, any>
+    | ((...args: any[]) => StateMachine<any, any, any, any, any, any, any>)
 > = T extends StateMachine<
   infer TContext,
   infer TStateSchema,
@@ -1698,8 +1713,8 @@ export type InterpreterFrom<
 
 export type MachineOptionsFrom<
   T extends
-    | StateMachine<any, any, any, any, any, any>
-    | ((...args: any[]) => StateMachine<any, any, any, any, any, any>),
+    | StateMachine<any, any, any, any, any, any, any>
+    | ((...args: any[]) => StateMachine<any, any, any, any, any, any, any>),
   TRequireMissingImplementations extends boolean = false
 > = ReturnTypeOrValue<T> extends StateMachine<
   infer TContext,
@@ -1719,6 +1734,7 @@ export type MachineOptionsFrom<
 
 // only meant to be used internally for debugging purposes
 export type __ResolvedTypesMetaFrom<T> = T extends StateMachine<
+  any,
   any,
   any,
   any,

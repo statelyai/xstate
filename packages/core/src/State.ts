@@ -154,6 +154,7 @@ export class State<
         TEvent,
         TTypestate,
         BaseActionObject,
+        any,
         TResolvedTypesMeta
       >
     | undefined;

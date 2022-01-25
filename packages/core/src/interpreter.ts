@@ -216,6 +216,7 @@ export class Interpreter<
       TEvent,
       TTypestate,
       any,
+      any,
       TResolvedTypesMeta
     >,
     options: InterpreterOptions = Interpreter.defaultOptions
@@ -1455,6 +1456,7 @@ export function interpret<
         TStateSchema,
         TEvent,
         TTypestate,
+        any,
         any,
         TResolvedTypesMeta
       >
