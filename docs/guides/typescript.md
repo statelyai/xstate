@@ -127,19 +127,7 @@ const machine = createMachine({
     events: t<{ type: 'FOO'; value: string } | { type: 'BAR' }>()
   },
   initial: 'a',
-  states: {
-    a: {
-      on: {
-        FOO: {
-          actions: 'consoleLogValue',
-          target: 'b'
-        }
-      }
-    },
-    b: {
-      entry: 'consoleLogValueAgain'
-    }
-  }
+  states: {/* ... */}
 });
 ```
 
