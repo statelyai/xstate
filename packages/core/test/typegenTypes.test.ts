@@ -984,7 +984,7 @@ describe('typegen types', () => {
       },
       {
         services: {
-          fooService: (ctx, ev) => (send, onReceive) => {
+          fooService: (_ctx, _ev) => (send, onReceive) => {
             onReceive((event) => {
               ((_accept: string) => {})(event.type);
               // @ts-expect-error
@@ -1012,10 +1012,10 @@ describe('typegen types', () => {
       },
       {
         services: {
-          fooService: (ctx, ev) => (send, onReceive) => {
-            onReceive((event: { type: 'TEST' }) => {});
+          fooService: (_ctx, _ev) => (_send, onReceive) => {
+            onReceive((_event: { type: 'TEST' }) => {});
             // @ts-expect-error
-            onReceive((event: { type: number }) => {});
+            onReceive((_event: { type: number }) => {});
           }
         }
       }
