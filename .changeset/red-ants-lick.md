@@ -7,7 +7,7 @@ author: @mattpocock
 
 Added the ability to tighten TS declarations of machine with generated metadata. This opens several exciting doors to being able to use typegen seamlessly with XState to provide an amazing typing experience.
 
-With the [VSCode extension](https://marketplace.visualstudio.com/items?itemName=mattpocock.xstate-vscode), you can specify a new attribute called `tsTypes: true` in your machine definition:
+With the [VS Code extension](https://marketplace.visualstudio.com/items?itemName=statelyai.stately-vscode), you can specify a new attribute called `tsTypes: true` in your machine definition:
 
 ```ts
 const machine = createMachine({
