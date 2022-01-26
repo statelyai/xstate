@@ -198,9 +198,9 @@ Named actions/services/guards allow for:
 - Easier-to-understand code
 - Overrides in `useMachine`, or `machine.withConfig`
 
-#### Typing onDone/onError functions
+#### Typing promise services
 
-You can use the generated types to specify the result of `onDone` services, by using the `services` schema property:
+You can use the generated types to specify the return type of promise-based services, by using the `services` schema property:
 
 ```ts
 createMachine(
