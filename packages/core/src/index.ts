@@ -8,6 +8,7 @@ import {
   raise,
   send,
   sendParent,
+  sendTo,
   sendUpdate,
   log,
   cancel,
@@ -36,6 +37,7 @@ const actions = {
   raise,
   send,
   sendParent,
+  sendTo,
   sendUpdate,
   log,
   cancel,
@@ -75,3 +77,9 @@ export {
 };
 
 export * from './types';
+
+declare global {
+  interface SymbolConstructor {
+    readonly observable: symbol;
+  }
+}

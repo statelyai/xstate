@@ -13,7 +13,7 @@
     "composable"
   ],
   "author": "David Khourshid <davidkpiano@gmail.com>",
-  "homepage": "https://github.com/davidkpiano/xstate/tree/main/packages/xstate-vue#readme",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-vue#readme",
   "license": "MIT",
   "main": "lib/index.js",
   "module": "es/index.js",
@@ -32,7 +32,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
   },
   "scripts": {
     "clean": "rm -rf dist lib es tsconfig.tsbuildinfo",
@@ -41,12 +41,12 @@
     "prepublish": "npm run build"
   },
   "bugs": {
-    "url": "https://github.com/davidkpiano/xstate/issues"
+    "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
     "@xstate/fsm": "^1.0.0",
     "vue": "^3.0.0",
-    "xstate": "^4.7.8"
+    "xstate": "^4.28.1"
   },
   "peerDependenciesMeta": {
     "@xstate/fsm": {

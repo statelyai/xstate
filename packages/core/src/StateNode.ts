@@ -24,7 +24,8 @@ import {
   mapContext,
   toTransitionConfigArray,
   normalizeTarget,
-  evaluateGuard
+  evaluateGuard,
+  createInvokeId
 } from './utils';
 import {
   Event,
@@ -402,39 +403,40 @@ class StateNode<
         : undefined;
     this.invoke = toArray(this.config.invoke).map((invokeConfig, i) => {
       if (isMachine(invokeConfig)) {
+        const invokeId = createInvokeId(this.id, i);
         this.machine.options.services = {
-          [invokeConfig.id]: invokeConfig,
+          [invokeId]: invokeConfig,
           ...this.machine.options.services
         };
 
         return toInvokeDefinition({
-          src: invokeConfig.id,
-          id: invokeConfig.id
+          src: invokeId,
+          id: invokeId
         });
       } else if (isString(invokeConfig.src)) {
+        const invokeId = invokeConfig.id || createInvokeId(this.id, i);
         return toInvokeDefinition({
           ...invokeConfig,
-
-          id: invokeConfig.id || (invokeConfig.src as string),
+          id: invokeId,
           src: invokeConfig.src as string
         });
       } else if (isMachine(invokeConfig.src) || isFunction(invokeConfig.src)) {
-        const invokeSrc = `${this.id}:invocation[${i}]`; // TODO: util function
+        const invokeId = invokeConfig.id || createInvokeId(this.id, i);
         this.machine.options.services = {
-          [invokeSrc]: invokeConfig.src as InvokeCreator<TContext, TEvent>,
+          [invokeId]: invokeConfig.src as InvokeCreator<TContext, TEvent>,
           ...this.machine.options.services
         };
 
         return toInvokeDefinition({
-          id: invokeSrc,
+          id: invokeId,
           ...invokeConfig,
-          src: invokeSrc
+          src: invokeId
         });
       } else {
         const invokeSource = invokeConfig.src as InvokeSourceDefinition;
 
         return toInvokeDefinition({
-          id: invokeSource.type,
+          id: createInvokeId(this.id, i),
           ...invokeConfig,
           src: invokeSource
         });
@@ -1139,7 +1141,12 @@ class StateNode<
 
     stateTransition.configuration = [...resolvedConfig];
 
-    return this.resolveTransition(stateTransition, currentState, _event);
+    return this.resolveTransition(
+      stateTransition,
+      currentState,
+      currentState.context,
+      _event
+    );
   }
 
   private resolveRaisedTransition(
@@ -1161,9 +1168,9 @@ class StateNode<
 
   private resolveTransition(
     stateTransition: StateTransition<TContext, TEvent>,
-    currentState?: State<TContext, TEvent, any, any>,
-    _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>,
-    context: TContext = this.machine.context
+    currentState: State<TContext, TEvent, any, any> | undefined,
+    context: TContext,
+    _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>
   ): State<TContext, TEvent, TStateSchema, TTypestate> {
     const { configuration } = stateTransition;
     // Transition will "apply" if:
@@ -1181,10 +1188,9 @@ class StateNode<
         ? (this.machine.historyValue(currentState.value) as HistoryValue)
         : undefined
       : undefined;
-    const currentContext = currentState ? currentState.context : context;
     const actions = this.getActions(
       stateTransition,
-      currentContext,
+      context,
       _event,
       currentState
     );
@@ -1202,7 +1208,7 @@ class StateNode<
     const [resolvedActions, updatedContext] = resolveActions(
       this,
       currentState,
-      currentContext,
+      context,
       _event,
       actions,
       this.machine.config.preserveActionOrder
@@ -1245,7 +1251,7 @@ class StateNode<
         : ({} as Record<string, ActorRef<any>>)
     );
 
-    const resolvedConfiguration = resolvedStateValue
+    const resolvedConfiguration = willTransition
       ? stateTransition.configuration
       : currentState
       ? currentState.configuration
@@ -1285,7 +1291,7 @@ class StateNode<
       machine: this
     });
 
-    const didUpdateContext = currentContext !== updatedContext;
+    const didUpdateContext = context !== updatedContext;
 
     nextState.changed = _event.name === actionTypes.update || didUpdateContext;
 
@@ -1564,8 +1570,8 @@ class StateNode<
         actions: []
       },
       undefined,
-      undefined,
-      context
+      context ?? this.machine.context,
+      undefined
     );
   }
 

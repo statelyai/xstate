@@ -17,6 +17,7 @@ describe('useMachine composition function', () => {
       },
       loading: {
         invoke: {
+          id: 'fetchData',
           src: 'fetchData',
           onDone: {
             target: 'success',

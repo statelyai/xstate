@@ -14,7 +14,7 @@
     "testing"
   ],
   "author": "David Khourshid <davidkpiano@gmail.com>",
-  "homepage": "https://github.com/davidkpiano/xstate/tree/main/packages/xstate-test#readme",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-test#readme",
   "license": "MIT",
   "main": "lib/index.js",
   "module": "es/index.js",
@@ -32,7 +32,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
   },
   "scripts": {
     "clean": "rm -rf dist lib es tsconfig.tsbuildinfo",
@@ -41,10 +41,10 @@
     "prepublish": "npm run build"
   },
   "bugs": {
-    "url": "https://github.com/davidkpiano/xstate/issues"
+    "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "xstate": "^4.9.0"
+    "xstate": "^4.28.1"
   },
   "devDependencies": {
     "jest": "^26.6.3",
