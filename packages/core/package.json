@@ -1,6 +1,6 @@
 {
   "name": "xstate",
-  "version": "4.28.0",
+  "version": "4.28.1",
   "description": "Finite State Machines and Statecharts for the Modern Web.",
   "main": "dist/xstate.cjs.js",
   "module": "dist/xstate.esm.js",
@@ -31,14 +31,14 @@
   "scripts": {},
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/davidkpiano/xstate.git"
+    "url": "git+https://github.com/statelyai/xstate.git"
   },
   "author": "David Khourshid <davidkpiano@gmail.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/davidkpiano/xstate/issues"
+    "url": "https://github.com/statelyai/xstate/issues"
   },
-  "homepage": "https://github.com/davidkpiano/xstate/tree/main/packages/core#readme",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/core#readme",
   "devDependencies": {
     "@scion-scxml/test-framework": "^2.0.15",
     "jsdom": "^14.0.0",

@@ -606,7 +606,7 @@ describe('entry/exit actions', () => {
   });
 
   describe('when reaching a final state', () => {
-    // https://github.com/davidkpiano/xstate/issues/1109
+    // https://github.com/statelyai/xstate/issues/1109
     it('exit actions should be called when invoked machine reaches its final state', (done) => {
       let exitCalled = false;
       let childExitCalled = false;
@@ -1709,7 +1709,7 @@ describe('choose', () => {
 });
 
 describe('sendParent', () => {
-  // https://github.com/davidkpiano/xstate/issues/711
+  // https://github.com/statelyai/xstate/issues/711
   it('TS: should compile for any event', () => {
     interface ChildContext {}
     interface ChildEvent {

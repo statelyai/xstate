@@ -47,6 +47,7 @@ export function inspect(options: ServerInspectorOptions): Inspector {
   const inspectService = interpret(
     createInspectMachine(globalThis.__xstate__, options)
   ).start();
+
   const client: ActorRef<any, undefined> = {
     name: '@@xstate/ws-client',
     send: (event: any) => {

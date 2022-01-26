@@ -79,3 +79,9 @@ export * from './types';
 // TODO: decide from where those should be exported
 export { pathToStateValue, flatten, keys } from './utils';
 export { getStateNodes } from './stateUtils';
+
+declare global {
+  interface SymbolConstructor {
+    readonly observable: symbol;
+  }
+}

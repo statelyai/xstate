@@ -104,7 +104,7 @@ describe('useMachine', () => {
     render(<YesNo />);
   });
 
-  // Example from: https://github.com/davidkpiano/xstate/discussions/1534
+  // Example from: https://github.com/statelyai/xstate/discussions/1534
   it('spawned actors should be typed correctly', () => {
     const child = createMachine<{ bar: number }, { type: 'FOO'; data: number }>(
       {

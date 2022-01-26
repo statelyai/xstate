@@ -13,7 +13,7 @@
     "store"
   ],
   "author": "David Khourshid <davidkpiano@gmail.com>",
-  "homepage": "https://github.com/davidkpiano/xstate/tree/main/packages/xstate-svelte#readme",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-svelte#readme",
   "license": "MIT",
   "main": "dist/xstate-svelte.cjs.js",
   "module": "dist/xstate-svelte.esm.js",
@@ -24,16 +24,16 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
   },
   "scripts": {},
   "bugs": {
-    "url": "https://github.com/davidkpiano/xstate/issues"
+    "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
     "@xstate/fsm": "^1.0.0",
     "svelte": "^3.24.1",
-    "xstate": "^4.11.0"
+    "xstate": "^4.28.1"
   },
   "peerDependenciesMeta": {
     "@xstate/fsm": {
