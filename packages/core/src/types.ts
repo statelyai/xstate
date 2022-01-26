@@ -289,7 +289,9 @@ export interface PayloadSender<TEvent extends EventObject> {
 }
 
 export type Receiver<TEvent extends EventObject> = (
-  listener: (event: TEvent) => void
+  listener: {
+    bivarianceHack(event: TEvent): void;
+  }['bivarianceHack']
 ) => void;
 
 export type InvokeCallback<
@@ -324,7 +326,7 @@ export type InvokeCreator<
   TSourceEvent extends EventObject,
   TFinalContext = any,
   // those two are named from the perspective of the created invoke
-  TInputEvent extends EventObject = EventObject, // keeping a slot for it here, but it's actually not used right now, we don't have means to validate the communication contract between actors
+  TInputEvent extends EventObject = any, // keeping a slot for it here, but it's actually not used right now to ensure that the communication contract between actors is satisfied
   TOutputEvent extends EventObject = TSourceEvent // this default doesn't make a lot of sense, it's used like this just to be compatible with the previous version of this signature,
 > = (
   context: TContext,
