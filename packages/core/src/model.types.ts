@@ -10,14 +10,14 @@ import {
   Prop,
   PropertyAssigner,
   StateMachine,
-  InternalMachineOptions
+  InternalMachineOptions,
+  ServiceMap
 } from './types';
 import {
   ResolveTypegenMeta,
   TypegenConstraint,
   TypegenDisabled
 } from './typegenTypes';
-import { ServiceMap } from '.';
 
 export interface Model<
   TContext,
