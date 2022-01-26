@@ -968,7 +968,7 @@ describe('typegen types', () => {
     );
   });
 
-  it('Should tighten events in onReceive to be events from the generic', () => {
+  it("should not provide a loose type for `onReceive`'s argument as a default", () => {
     interface TypesMeta extends TypegenMeta {
       eventsCausingServices: {
         fooService: 'FOO';
@@ -984,10 +984,38 @@ describe('typegen types', () => {
       },
       {
         services: {
-          fooService: () => (send, onReceive) => {
+          fooService: (ctx, ev) => (send, onReceive) => {
             onReceive((event) => {
-              ((_accept: 'FOO') => {})(event.type);
+              ((_accept: string) => {})(event.type);
+              // @ts-expect-error
+              event.unknown;
             });
+          }
+        }
+      }
+    );
+  });
+
+  it("should allow specifying `onReceive`'s argument type manually", () => {
+    interface TypesMeta extends TypegenMeta {
+      eventsCausingServices: {
+        fooService: 'FOO';
+      };
+    }
+
+    createMachine(
+      {
+        tsTypes: {} as TypesMeta,
+        schema: {
+          events: {} as { type: 'FOO' } | { type: 'BAR' }
+        }
+      },
+      {
+        services: {
+          fooService: (ctx, ev) => (send, onReceive) => {
+            onReceive((event: { type: 'TEST' }) => {});
+            // @ts-expect-error
+            onReceive((event: { type: number }) => {});
           }
         }
       }
