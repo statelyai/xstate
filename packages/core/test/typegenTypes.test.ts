@@ -967,4 +967,30 @@ describe('typegen types', () => {
       }
     );
   });
+
+  it('Should tighten events in onReceive to be events from the generic', () => {
+    interface TypesMeta extends TypegenMeta {
+      eventsCausingServices: {
+        fooService: 'FOO';
+      };
+    }
+
+    createMachine(
+      {
+        tsTypes: {} as TypesMeta,
+        schema: {
+          events: {} as { type: 'FOO' } | { type: 'BAR' }
+        }
+      },
+      {
+        services: {
+          fooService: () => (send, onReceive) => {
+            onReceive((event) => {
+              ((_accept: 'FOO') => {})(event.type);
+            });
+          }
+        }
+      }
+    );
+  });
 });
