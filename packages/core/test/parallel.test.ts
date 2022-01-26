@@ -743,7 +743,7 @@ describe('parallel states', () => {
     });
   });
 
-  // https://github.com/davidkpiano/xstate/issues/191
+  // https://github.com/statelyai/xstate/issues/191
   describe('nested flat parallel states', () => {
     const machine = createMachine({
       initial: 'A',
@@ -833,7 +833,7 @@ describe('parallel states', () => {
   });
 
   describe('other', () => {
-    // https://github.com/davidkpiano/xstate/issues/518
+    // https://github.com/statelyai/xstate/issues/518
     it('regions should be able to transition to orthogonal regions', () => {
       const testMachine = createMachine({
         id: 'app',
@@ -897,7 +897,7 @@ describe('parallel states', () => {
       ).toBe(true);
     });
 
-    // https://github.com/davidkpiano/xstate/issues/531
+    // https://github.com/statelyai/xstate/issues/531
     it('should calculate the entry set for external transitions in parallel states', () => {
       const testMachine = createMachine<{ log: string[] }>({
         id: 'test',

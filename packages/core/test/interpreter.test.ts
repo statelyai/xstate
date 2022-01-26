@@ -129,7 +129,7 @@ describe('interpreter', () => {
       }, 100);
     });
 
-    // https://github.com/davidkpiano/xstate/issues/1174
+    // https://github.com/statelyai/xstate/issues/1174
     it('executes actions from a restored state', (done) => {
       const lightMachine = createMachine(
         {

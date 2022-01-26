@@ -60,11 +60,11 @@ const lightMachine = createMachine({
               }
             },
             stop: {
+              // 'stop' is a final state node for 'crosswalkEast'
               type: 'final'
             }
           },
           onDone: {
-            // 'stop' is a final state node for 'crosswalkEast'
             actions: 'stopCrosswalkEast'
           }
         }

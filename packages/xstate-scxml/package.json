@@ -11,7 +11,7 @@
     "state machine"
   ],
   "author": "David Khourshid <davidkpiano@gmail.com>",
-  "homepage": "https://github.com/davidkpiano/xstate/tree/main/packages/xstate-scxml#readme",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-scxml#readme",
   "license": "MIT",
   "main": "dist/xstate-scxml.cjs.js",
   "module": "dist/xstate-scxml.esm.js",
@@ -21,15 +21,15 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
   },
   "scripts": {},
   "bugs": {
-    "url": "https://github.com/davidkpiano/xstate/issues"
+    "url": "https://github.com/statelyai/xstate/issues"
   },
   "dependencies": {
     "xml-js": "^1.6.11",
-    "xstate": "^4.26.1"
+    "xstate": "^4.28.1"
   },
   "devDependencies": {
     "@scion-scxml/test-framework": "^2.0.15"

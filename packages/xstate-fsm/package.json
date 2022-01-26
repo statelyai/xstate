@@ -1,6 +1,6 @@
 {
   "name": "@xstate/fsm",
-  "version": "1.6.2",
+  "version": "1.6.3",
   "description": "XState for finite state machines",
   "keywords": [
     "state",
@@ -15,7 +15,7 @@
     "automata"
   ],
   "author": "David Khourshid <davidkpiano@gmail.com>",
-  "homepage": "https://github.com/davidkpiano/xstate/tree/main/packages/xstate-fsm#readme",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-fsm#readme",
   "license": "MIT",
   "main": "dist/xstate-fsm.cjs.js",
   "module": "dist/xstate-fsm.esm.js",
@@ -25,11 +25,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
   },
   "scripts": {},
   "bugs": {
-    "url": "https://github.com/davidkpiano/xstate/issues"
+    "url": "https://github.com/statelyai/xstate/issues"
   },
   "devDependencies": {}
 }

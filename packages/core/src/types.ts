@@ -1454,6 +1454,7 @@ export type Spawnable =
   | StateMachine<any, any>
   | PromiseLike<any>
   | InvokeCallback
+  | InteropObservable<any>
   | Subscribable<any>
   | Behavior<any, any>;
 
@@ -1477,6 +1478,10 @@ export type Observer<T> =
 
 export interface Subscription {
   unsubscribe(): void;
+}
+
+export interface InteropObservable<T> {
+  [Symbol.observable]: () => Subscribable<T>;
 }
 
 export interface Subscribable<T> {
@@ -1505,7 +1510,8 @@ export interface ActorLike<TCurrent, TEvent extends EventObject>
 export type Sender<TEvent extends EventObject> = (event: TEvent) => void;
 
 export interface ActorRef<TEvent extends EventObject, TEmitted = any>
-  extends Subscribable<TEmitted> {
+  extends Subscribable<TEmitted>,
+    InteropObservable<TEmitted> {
   name: string;
   send: (event: TEvent) => void;
   start?: () => void;
@@ -1553,7 +1559,7 @@ export interface ActorContext<TEvent extends EventObject, TEmitted> {
   self: ActorRef<TEvent, TEmitted>;
   name: string;
   observers: Set<Observer<TEmitted>>;
-  _event: SCXML.Event<TEvent>;
+  _event: SCXML.Event<TEvent> | LifecycleSignal;
 }
 
 export interface Behavior<TEvent extends EventObject, TEmitted = any> {
