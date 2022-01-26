@@ -967,4 +967,42 @@ describe('typegen types', () => {
       }
     );
   });
+
+  it('Should be able to handle Promise.reject', () => {
+    interface TypesMeta extends TypegenMeta {
+      eventsCausingServices: {
+        myService: 'FOO';
+      };
+      internalEvents: {
+        'done.invoke.myService': {
+          type: 'done.invoke.myService';
+          data: unknown;
+        };
+      };
+      invokeSrcNameMap: {
+        myService: 'done.invoke.myService';
+      };
+    }
+
+    createMachine(
+      {
+        tsTypes: {} as TypesMeta,
+        schema: {
+          events: {} as { type: 'FOO' },
+          services: {
+            myService: {
+              data: {} as string
+            }
+          }
+        }
+      },
+      {
+        services: {
+          myService: async (ctx) => {
+            return Promise.reject('Oh no!');
+          }
+        }
+      }
+    );
+  });
 });
