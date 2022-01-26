@@ -279,6 +279,7 @@ service.start();
 ```
 
 为了测试，XState 解释提供了一个 `SimulatedClock`：
+
 ```js
 import { interpret } from 'xstate';
 // import { SimulatedClock } from 'xstate/lib/interpreter'; // < 4.6.0
@@ -331,4 +332,4 @@ states: {
 // ...
 ```
 
-解释后的状态图将在 `delay` 之后 `send(...)` `after(...)` 事件，退出状态节点，则将 `cancel(...)`  那些延迟的 `send(...)` 事件。
+解释后的状态图将在 `delay` 之后 `send(...)` `after(...)` 事件，退出状态节点，则将 `cancel(...)` 那些延迟的 `send(...)` 事件。

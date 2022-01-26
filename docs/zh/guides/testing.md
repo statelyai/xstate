@@ -5,6 +5,7 @@
 > 给定**当前状态**，当某些**事件序列**发生时，被测系统应该处于**某种状态**和/或表现出特定的**输出**。
 
 这遵循 [行为驱动开发 (BDD)](https://en.wikipedia.org/wiki/Behavior-driven_development) 和 [黑盒测试](https://en.wikipedia.org/wiki/Black-box_testing) 策略。 不应直接测试状态机的内部工作； 相反，应该测试观察到的行为。 这使得测试状态机比单元测试更接近于集成或端到端 (E2E) 测试。
+
 ## 测试纯逻辑
 
 如果你不想测试副作用，例如执行操作或调用 演员，而是想测试纯逻辑，则可以使用 `machine.transition(...)` 函数来断言已达到特定状态 给定初始状态和事件：

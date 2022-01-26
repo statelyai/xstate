@@ -64,7 +64,7 @@ export default class ToggleComponent extends Component {
 ## ember-statechart-component
 
 Using [ember-statechart-component](https://github.com/NullVoxPopuli/ember-statechart-component), you can
-define an XState statechart in place of a component class. This also offers a deeper integration with Ember, 
+define an XState statechart in place of a component class. This also offers a deeper integration with Ember,
 in that actions and guards have a way to get access to the outer ember context via `getService`.
 
 ember-statechart-component provides the most isolation from the framework, while still encouraging managing
@@ -78,34 +78,39 @@ For example, an `<AuthenticatedToggle />` component may look like:
 import { getService } from 'ember-statechart-component';
 import { createMachine } from 'xstate';
 
-export default createMachine({
-  initial: 'inactive',
-  states: {
-    inactive: {
-      on: {
-        TOGGLE: [
-          {
-            target: 'active',
-            cond: 'isAuthenticated',
-          },
-          { actions: ['notify'] },
-        ],
+export default createMachine(
+  {
+    initial: 'inactive',
+    states: {
+      inactive: {
+        on: {
+          TOGGLE: [
+            {
+              target: 'active',
+              cond: 'isAuthenticated'
+            },
+            { actions: ['notify'] }
+          ]
+        }
       },
+      active: { on: { TOGGLE: 'inactive' } }
+    }
+  },
+  {
+    actions: {
+      notify: (ctx) => {
+        getService(ctx, 'toasts').notify('You must be logged in');
+      }
     },
-    active: { on: { TOGGLE: 'inactive' } },
-  },
-}, {
-  actions: {
-    notify: (ctx) => {
-      getService(ctx, 'toasts').notify('You must be logged in');
-    },
-  },
-  guards: {
-    isAuthenticated: (ctx) => getService(ctx, 'session').isAuthenticated,
-  },
-});
+    guards: {
+      isAuthenticated: (ctx) => getService(ctx, 'session').isAuthenticated
+    }
+  }
+);
 ```
+
 and used:
+
 ```hbs
 <AuthenticatedToggle as |state send|>
   {{state.value}}
@@ -128,6 +133,7 @@ export default class extends Component {
   CustomMachine = createMachine(...);
 }
 ```
+
 ```hbs
 <this.MyLocalMachine as |state send|>
 </this.MyLocalMachine>
@@ -136,10 +142,10 @@ export default class extends Component {
 
 </this.CustomMachine>
 ```
-It is recommended to also have [ember-could-get-used-to-this](https://github.com/pzuraq/ember-could-get-used-to-this/)
-installed so that you can use `state.matches` and other xstate-provided APIs from the template (at least until the 
-[Default Helper Manager](https://github.com/emberjs/rfcs/pull/756) RFC lands and is implemented.)
 
+It is recommended to also have [ember-could-get-used-to-this](https://github.com/pzuraq/ember-could-get-used-to-this/)
+installed so that you can use `state.matches` and other xstate-provided APIs from the template (at least until the
+[Default Helper Manager](https://github.com/emberjs/rfcs/pull/756) RFC lands and is implemented.)
 
 ## Custom integration
 
