@@ -6,7 +6,7 @@ import {
   State,
   createMachine
 } from '../src';
-import { createPromiseBehavior, fromPromise } from '../src/behaviors';
+import { createPromiseBehavior } from '../src/behaviors';
 import { invokeMachine, invokePromise } from '../src/invoke';
 import { ActorRef } from '../src/types';
 

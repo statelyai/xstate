@@ -281,14 +281,14 @@ export function createDeferredBehavior<TEvent extends EventObject>(
   return behavior;
 }
 
-export function createPromiseBehavior<T, TEvent extends EventObject>(
+export function createPromiseBehavior<T>(
   lazyPromise: Lazy<PromiseLike<T>>
-): Behavior<TEvent, T | undefined> {
+): Behavior<never, T | undefined> {
   const parent = CapturedState.current?.actorRef;
   let canceled = false;
   const observers: Set<Observer<T>> = new Set();
 
-  const behavior: Behavior<TEvent, T | undefined> = {
+  const behavior: Behavior<never, T | undefined> = {
     transition: (_, event, actorContext) => {
       switch (event.type) {
         case startSignalType:

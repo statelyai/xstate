@@ -3,7 +3,7 @@ import {
   createMachine,
   ActorRef,
   ActorRefFrom,
-  spawn,
+  // spawn,
   spawnMachine,
   spawnCallback,
   spawnObservable,
@@ -659,7 +659,7 @@ describe('actors', () => {
         initial: 'initial',
         states: {
           initial: {
-            entry: assign((ctx) => ({
+            entry: assign((ctx, _e, { spawn }) => ({
               ...ctx,
               serverRef: spawn(
                 createMachineBehavior(pongActorMachine, {
@@ -709,7 +709,7 @@ describe('actors', () => {
         states: {
           foo: {
             entry: assign({
-              ref: () =>
+              ref: (_ctx, _e, { spawn }) =>
                 spawn(createMachineBehavior(childMachine, { sync: true }))
             }),
             on: {
@@ -742,7 +742,7 @@ describe('actors', () => {
         states: {
           foo: {
             entry: assign({
-              refNoSync: () =>
+              refNoSync: (_ctx, _e, { spawn }) =>
                 spawn(createMachineBehavior(childMachine, { sync: false }))
             }),
             on: {
@@ -779,7 +779,8 @@ describe('actors', () => {
         states: {
           foo: {
             entry: assign({
-              refNoSyncDefault: () => spawn(createMachineBehavior(childMachine))
+              refNoSyncDefault: (_ctx, _e, { spawn }) =>
+                spawn(createMachineBehavior(childMachine))
             }),
             on: {
               '*': 'failure'
@@ -824,7 +825,7 @@ describe('actors', () => {
         states: {
           same: {
             entry: assign<SyncMachineContext>({
-              ref: () => {
+              ref: (_ctx, _e, { spawn }) => {
                 return spawn(
                   createMachineBehavior(syncChildMachine, { sync: true })
                 );
@@ -873,7 +874,7 @@ describe('actors', () => {
           states: {
             same: {
               entry: assign({
-                ref: () =>
+                ref: (_ctx, _e, { spawn }) =>
                   spawn(
                     createMachineBehavior(syncChildMachine, falseSyncOption)
                   )
@@ -925,7 +926,7 @@ describe('actors', () => {
           states: {
             same: {
               entry: assign({
-                ref: () =>
+                ref: (_ctx, _e, { spawn }) =>
                   spawn(
                     createMachineBehavior(syncChildMachine, falseSyncOption)
                   )
@@ -1005,7 +1006,7 @@ describe('actors', () => {
           count: undefined
         },
         entry: assign({
-          count: () => spawn(countBehavior)
+          count: (_ctx, _e, { spawn }) => spawn(countBehavior)
         }),
         on: {
           INC: {
@@ -1123,7 +1124,7 @@ describe('actors', () => {
           ponger: undefined
         },
         entry: assign({
-          ponger: () => spawn(pongBehavior)
+          ponger: (_ctx, _e, { spawn }) => spawn(pongBehavior)
         }),
         states: {
           waiting: {
@@ -1180,7 +1181,7 @@ describe('actors', () => {
     });
 
     const machine = createMachine<{ ref: ActorRef<any> }>({
-      context: () => ({
+      context: ({ spawn }) => ({
         ref: spawn(createMachineBehavior(childMachine))
       }),
       initial: 'waiting',
@@ -1231,7 +1232,8 @@ describe('actors', () => {
       {
         actions: {
           setup: assign({
-            child: () => spawn(createMachineBehavior(childMachine))
+            child: (_ctx, _e, { spawn }) =>
+              spawn(createMachineBehavior(childMachine))
           })
         }
       }
@@ -1250,7 +1252,7 @@ describe('actors', () => {
         child: null
       },
       entry: assign({
-        child: () =>
+        child: (_ctx, _e, { spawn }) =>
           spawn(
             createPromiseBehavior(() => ({ then: (fn) => fn(null) } as any))
           )
@@ -1275,7 +1277,8 @@ describe('actors', () => {
         child: null
       },
       entry: assign({
-        child: () => spawn(createObservableBehavior(createEmptyObservable))
+        child: (_ctx, _e, { spawn }) =>
+          spawn(createObservableBehavior(createEmptyObservable))
       })
     });
     const service = interpret(parentMachine);
@@ -1292,7 +1295,7 @@ describe('actors', () => {
         child: null
       },
       entry: assign({
-        child: () =>
+        child: (_ctx, _e, { spawn }) =>
           spawn(
             createObservableBehavior(() => EMPTY),
             'myactor'

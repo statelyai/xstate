@@ -27,6 +27,8 @@ import {
 } from './stateUtils';
 import { getStateNodes, transitionNode, resolveStateValue } from './stateUtils';
 import { StateNode } from './StateNode';
+import { AssignMeta } from '.';
+import { createSpawner } from './actions/assign';
 
 export const NULL_EVENT = '';
 export const STATE_IDENTIFIER = '#';
@@ -44,12 +46,20 @@ function createDefaultOptions<TContext extends MachineContext>(
   };
 }
 
-function resolveContext<TContext>(
+function resolveContext<TContext extends MachineContext>(
+  machine: StateMachine<TContext, any>,
   context: TContext,
-  partialContext?: MaybeLazy<Partial<TContext>>
+  partialContext?:
+    | Partial<TContext>
+    | ((stuff: { spawn: AssignMeta<TContext, any>['spawn'] }) => TContext)
 ): TContext {
   if (isFunction(partialContext)) {
-    return { ...context, ...partialContext() };
+    return {
+      ...context,
+      ...partialContext({
+        spawn: createSpawner(machine, context, null as any, [])
+      })
+    };
   }
 
   return {
@@ -62,9 +72,16 @@ export class StateMachine<
   TContext extends MachineContext = any,
   TEvent extends EventObject = EventObject
 > {
-  private _context: () => TContext;
+  private _context: (stuff: {
+    spawn: AssignMeta<TContext, TEvent>['spawn'];
+  }) => TContext;
   public get context(): TContext {
-    return resolveContext(this._context(), this.options.context);
+    return resolveContext(
+      this._context({
+        spawn: createSpawner(this, null as any, null as any, [])
+      }),
+      this.options.context
+    );
   }
   /**
    * The machine's own version.
@@ -108,7 +125,7 @@ export class StateMachine<
     );
     this._context = isFunction(config.context)
       ? config.context
-      : () => config.context as TContext;
+      : ((() => config.context) as any); // TODO
     // this.context = resolveContext(config.context, options?.context);
     this.delimiter = this.config.delimiter || STATE_DELIMITER;
     this.version = this.config.version;

@@ -802,7 +802,9 @@ export interface MachineConfig<
   /**
    * The initial context (extended state)
    */
-  context?: TContext | (() => TContext);
+  context?:
+    | TContext
+    | ((stuff: { spawn: AssignMeta<TContext, TEvent>['spawn'] }) => TContext);
   /**
    * The machine's own version.
    */
@@ -1528,7 +1530,7 @@ export type ActorRefFrom<T extends Spawnable> = T extends StateMachine<
   : T extends (...args: any[]) => StateMachine<infer TContext, infer TEvent>
   ? ActorRef<TEvent, State<TContext, TEvent>>
   : T extends Promise<infer U>
-  ? ActorRef<never, U>
+  ? ActorRef<never, U | undefined>
   : T extends Behavior<infer TEvent1, infer TEmitted>
   ? ActorRef<TEvent1, TEmitted>
   : T extends (...args: any[]) => Behavior<infer TEvent1, infer TEmitted>

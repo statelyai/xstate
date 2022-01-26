@@ -1,4 +1,4 @@
-import type {
+import {
   EventObject,
   Assigner,
   PropertyAssigner,
@@ -6,14 +6,78 @@ import type {
   AssignActionObject,
   DynamicAssignAction,
   AssignMeta,
-  InvokeActionObject
+  InvokeActionObject,
+  ActionTypes,
+  Behavior,
+  ActorRef
 } from '../types';
 import * as actionTypes from '../actionTypes';
 import { createDynamicAction } from '../../actions/dynamicAction';
 import { isFunction, isString, keys } from '../utils';
 
 import * as capturedState from '../capturedState';
-import { spawn } from '../actor';
+import { ObservableActorRef } from '../ObservableActorRef';
+import { StateMachine } from '../StateMachine';
+import { SCXML } from '..';
+
+export function createSpawner<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
+  machine: StateMachine<any, any>,
+  context: TContext,
+  _event: SCXML.Event<TEvent>,
+  capturedActions: InvokeActionObject[]
+): <TReceived extends EventObject, TEmitted>(
+  behavior: string | Behavior<TReceived, TEmitted>,
+  name?: string | undefined
+) => ActorRef<TReceived, TEmitted> {
+  return (behavior, name) => {
+    if (isString(behavior)) {
+      const behaviorCreator = machine.options.actors[behavior];
+
+      if (behaviorCreator) {
+        const resolvedName = name ?? 'anon';
+        const createdBehavior = behaviorCreator(context, _event.data, {
+          id: name || 'anon',
+          src: { type: behavior },
+          _event,
+          meta: undefined
+        });
+
+        const actorRef = new ObservableActorRef(createdBehavior, resolvedName);
+
+        capturedActions.push({
+          type: ActionTypes.Invoke,
+          params: {
+            src: actorRef,
+            ref: actorRef,
+            id: actorRef.name,
+            meta: undefined
+          }
+        });
+
+        return actorRef;
+      }
+
+      throw new Error('does not exist');
+    } else {
+      const actorRef = new ObservableActorRef(behavior, name || 'anonymous');
+
+      capturedActions.push({
+        type: ActionTypes.Invoke,
+        params: {
+          src: actorRef,
+          ref: actorRef,
+          id: actorRef.name,
+          meta: undefined
+        }
+      });
+
+      return actorRef;
+    }
+  };
+}
 
 /**
  * Updates the current context of the machine.
@@ -54,32 +118,7 @@ export function assign<
         state,
         action,
         _event,
-        spawn: (behavior, name) => {
-          if (isString(behavior)) {
-            // console.log(
-            //   '>>>',
-            //   behavior,
-            //   name,
-            //   machine.options.actors[behavior]
-            // );
-            const b = machine.options.actors[behavior];
-
-            if (b) {
-              const br = b(context, _event.data, {
-                id: name || 'anon',
-                src: { type: behavior },
-                _event,
-                meta: undefined
-              });
-
-              return spawn(br);
-            }
-
-            throw new Error('does not exist');
-          } else {
-            return spawn(behavior, name);
-          }
-        }
+        spawn: createSpawner(machine, context, _event, capturedActions)
       };
 
       let partialUpdate: Partial<TContext> = {};
