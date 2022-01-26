@@ -712,23 +712,23 @@ class StateNode<
   public resolveState(
     state: State<TContext, TEvent, any, any> | StateConfig<TContext, TEvent>
   ): State<TContext, TEvent, TStateSchema, TTypestate> {
-    const resolvedState =
+    const stateFromConfig =
       state instanceof State
         ? state
         : isStateConfig(state)
         ? State.create(state)
         : undefined;
 
-    if (!resolvedState) {
+    if (!stateFromConfig) {
       throw new Error(`Cannot resolve state: invalid state object`);
     }
 
     const configuration = Array.from(
-      getConfiguration([], this.getStateNodes(resolvedState.value))
+      getConfiguration([], this.getStateNodes(stateFromConfig.value))
     );
     return new State({
-      ...resolvedState,
-      value: this.resolve(resolvedState.value),
+      ...stateFromConfig,
+      value: this.resolve(stateFromConfig.value),
       configuration,
       done: isInFinalState(configuration, this),
       tags: getTagsFromConfiguration(configuration)

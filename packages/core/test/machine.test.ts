@@ -362,27 +362,16 @@ describe('machine', () => {
         }
       });
 
-      let persistedState: string;
+      const nextState = machine.transition(undefined, 'NEXT');
 
-      const service = interpret(machine)
-        .onTransition((state) => {
-          persistedState = JSON.stringify(state);
+      const persistedState = JSON.stringify(nextState);
 
-          if (state.matches('bar')) {
-            testStateRestoration();
-          }
-        })
-        .start();
+      const service = interpret(machine).onDone(() => {
+        // Should reach done state immediately
+        done();
+      });
 
-      service.send('NEXT');
-
-      function testStateRestoration() {
-        const service2 = interpret(machine).onDone(() => {
-          done();
-        });
-
-        service2.start(JSON.parse(persistedState!));
-      }
+      service.start(JSON.parse(persistedState!));
     });
   });
 

@@ -54,7 +54,7 @@ export function isStateConfig<TContext, TEvent extends EventObject>(
     return false;
   }
 
-  return 'value' in state && '_sessionid' in state;
+  return 'value' in state && '_event' in state;
 }
 
 /**
