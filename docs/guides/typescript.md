@@ -75,7 +75,7 @@ Using our [VS Code extension](https://marketplace.visualstudio.com/items?itemNam
 
 Here's how you can get started:
 
-1. Download and install the [VS Code extension](https://marketplace.visualstudio.com/items?itemName=mattpocock.xstate-vscode).
+1. Download and install the [VS Code extension](https://marketplace.visualstudio.com/items?itemName=statelyai.stately-vscode).
 2. Open a new file and create a new machine, passing the schema attributes:
 
 ```ts
@@ -103,7 +103,7 @@ const machine = createMachine({
 });
 ```
 
-3. Add `tsTypes: true` to the machine and save the file:
+3. Add `tsTypes: {}` to the machine and save the file:
 
 ```ts
 const machine = createMachine({
