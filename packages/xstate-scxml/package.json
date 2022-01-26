@@ -28,7 +28,7 @@
     "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
     "test": "jest",
     "build": "tsc",
-    "prepublish": "npm run build"
+    "prepare": "npm run build"
   },
   "bugs": {
     "url": "https://github.com/statelyai/xstate/issues"

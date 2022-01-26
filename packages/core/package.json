@@ -30,7 +30,7 @@
     "clean": "rm -rf lib es dist tsconfig.tsbuildinfo",
     "test": "jest",
     "build": "rollup -c",
-    "prepublishOnly": "npm run build"
+    "prepare": "npm run build"
   },
   "repository": {
     "type": "git",
