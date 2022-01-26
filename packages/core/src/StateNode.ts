@@ -68,7 +68,8 @@ import {
   MachineSchema,
   ActorRef,
   StateMachine,
-  InternalMachineOptions
+  InternalMachineOptions,
+  ServiceMap
 } from './types';
 import { matchesState } from './utils';
 import { State, stateValuesEqual } from './State';
@@ -104,7 +105,6 @@ import {
 import { createInvocableActor } from './Actor';
 import { toInvokeDefinition } from './invokeUtils';
 import { TypegenDisabled } from './typegenTypes';
-import { ServiceMap } from '.';
 
 const NULL_EVENT = '';
 const STATE_IDENTIFIER = '#';
@@ -975,7 +975,7 @@ class StateNode<
       | StateNode<TContext, any, TEvent, any>
       | undefined = childStateNode;
 
-    while (marker && marker !== (this as any)) {
+    while (marker && marker !== this) {
       nodes.push(marker);
       marker = marker.parent;
     }
