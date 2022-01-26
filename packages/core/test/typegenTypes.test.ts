@@ -967,4 +967,45 @@ describe('typegen types', () => {
       }
     );
   });
+
+  it('Should make invoked promises type-safe even if no event generic is passed', () => {
+    interface TypesMeta extends TypegenMeta {
+      eventsCausingActions: {
+        action: 'done.invoke.invocation';
+      };
+      eventsCausingServices: {
+        invocation: never;
+      };
+      invokeSrcNameMap: {
+        invocation: 'done.invoke.invocation';
+      };
+    }
+
+    createMachine(
+      {
+        tsTypes: {} as TypesMeta,
+        schema: {
+          services: {
+            invocation: {} as {
+              data: string;
+            }
+          }
+        }
+      },
+      {
+        services: {
+          invocation: () => {
+            // @ts-expect-error
+            return Promise.resolve(1);
+          }
+        },
+        actions: {
+          action: (_context, event) => {
+            // @ts-expect-error
+            ((_accept: number) => {})(event.data);
+          }
+        }
+      }
+    );
+  });
 });
