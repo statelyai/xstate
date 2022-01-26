@@ -967,4 +967,50 @@ describe('typegen types', () => {
       }
     );
   });
+
+  it('It should tighten service types when using model.createMachine', () => {
+    interface TypesMeta extends TypegenMeta {
+      eventsCausingActions: {
+        myAction: 'done.invoke.myService';
+      };
+      eventsCausingServices: {
+        myService: never;
+      };
+      internalEvents: {
+        'done.invoke.myService': {
+          type: 'done.invoke.myService';
+          data: unknown;
+        };
+      };
+      invokeSrcNameMap: {
+        myService: 'done.invoke.myService';
+      };
+    }
+
+    const model = createModel({}, {});
+
+    model.createMachine(
+      {
+        tsTypes: {} as TypesMeta,
+        schema: {
+          services: {} as {
+            myService: {
+              data: boolean;
+            };
+          }
+        }
+      },
+      {
+        actions: {
+          myAction: (_ctx, event) => {
+            ((_accept: boolean) => {})(event.data);
+          }
+        },
+        services: {
+          // @ts-expect-error
+          myService: () => Promise.resolve('')
+        }
+      }
+    );
+  });
 });
