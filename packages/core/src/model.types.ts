@@ -37,8 +37,8 @@ export interface Model<
   reset: () => AssignAction<TContext, any>;
   createMachine: {
     <
-      TTypesMeta extends TypegenConstraint = TypegenDisabled,
-      TServiceMap extends ServiceMap = ServiceMap
+      TServiceMap extends ServiceMap = ServiceMap,
+      TTypesMeta extends TypegenConstraint = TypegenDisabled
     >(
       config: MachineConfig<
         TContext,
