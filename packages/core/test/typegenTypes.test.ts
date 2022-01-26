@@ -968,7 +968,7 @@ describe('typegen types', () => {
     );
   });
 
-  it('Should be able to handle Promise.reject', () => {
+  it('Should be able to handle Promise.reject inside a promise-based service', () => {
     interface TypesMeta extends TypegenMeta {
       eventsCausingServices: {
         myService: 'FOO';
