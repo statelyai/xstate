@@ -13,7 +13,6 @@
     "clean:packages": "yarn workspaces run clean",
     "build": "tsc -b ./tsconfig.monorepo.json",
     "test": "jest",
-    "test:ci": "jest",
     "test:core": "npm test --prefix packages/core",
     "dev": "node ./scripts/dev.js",
     "ci": "npm run build && npm run test",

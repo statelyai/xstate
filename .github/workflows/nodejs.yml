@@ -27,6 +27,4 @@ jobs:
         run: yarn build
 
       - name: Test
-        run: yarn test:ci --silent
-        env:
-          NODE_OPTIONS: '--max_old_space_size=4096'
+        run: yarn test --silent
