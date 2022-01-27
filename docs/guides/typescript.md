@@ -1,6 +1,6 @@
 ## Using TypeScript
 
-As XState is written in [TypeScript](https://www.typescriptlang.org/), strongly typing your statecharts is useful and encouraged. Consider this light machine example:
+As XState is written in [TypeScript](https://www.typescriptlang.org/), strongly typing your statecharts is useful and encouraged.
 
 ```typescript
 import { t, createMachine } from 'xstate';
@@ -15,54 +15,8 @@ const lightMachine = createMachine({
       | { type: 'POWER_OUTAGE' }
       | { type: 'PED_COUNTDOWN'; duration: number }
     >()
-  },
-  key: 'light',
-  initial: 'green',
-  context: { elapsed: 0 },
-  states: {
-    green: {
-      on: {
-        TIMER: { target: 'yellow' },
-        POWER_OUTAGE: { target: 'red' }
-      }
-    },
-    yellow: {
-      on: {
-        TIMER: { target: 'red' },
-        POWER_OUTAGE: { target: 'red' }
-      }
-    },
-    red: {
-      on: {
-        TIMER: { target: 'green' },
-        POWER_OUTAGE: { target: 'red' }
-      },
-      initial: 'walk',
-      states: {
-        walk: {
-          on: {
-            PED_COUNTDOWN: { target: 'wait' }
-          }
-        },
-        wait: {
-          on: {
-            PED_COUNTDOWN: {
-              target: 'stop',
-              cond: (context, event) => {
-                return event.duration === 0 && context.elapsed > 0;
-              }
-            }
-          }
-        },
-        stop: {
-          // Transient transition
-          always: {
-            target: '#light.green'
-          }
-        }
-      }
-    }
   }
+  /* Other config... */
 });
 ```
 
@@ -72,9 +26,11 @@ Providing the context and events to the `schema` attribute gives many advantages
 - The event type (`TEvent`) ensures that only specified events (and built-in XState-specific ones) are used in transition configs. The provided event object shapes are also passed on to actions, guards, and services.
 - Events which you send to the machine will be strongly typed, offering you much more confidence in the payload shapes you'll be receiving.
 
-## The VSCode Extension <Badge text="4.29+" />
+## Typegen with the VSCode Extension <Badge text="4.29+" />
 
 Using our [VS Code extension](https://marketplace.visualstudio.com/items?itemName=statelyai.stately-vscode), you can automatically generate intelligent typings for XState.
+
+> This feature is in beta! See the section on known limitations below to see what we're actively looking to improve.
 
 Here's how you can get started:
 
@@ -157,7 +113,7 @@ You'll notice that the events in the options are _strongly typed to the events t
 
 You'll also notice that `state.matches`, `tags` and other parts of the machine are now type-safe.
 
-#### Typing promise services
+### Typing promise services
 
 You can use the generated types to specify the return type of promise-based services, by using the `services` schema property:
 
@@ -246,6 +202,12 @@ Named actions/services/guards allow for:
 We recommend you commit the generated files (`filename.typegen.ts`) to the repository. We currently don't have a way to generate the files en masse on a CI, for instance via a CLI.
 
 If you want to remove the generated file, just remove the `tsTypes` attribute from your machine and it'll stop being generated.
+
+### Known limitations
+
+#### Always transitions/raised events
+
+Actions/services/guards/delays might currently get incorrectly annotated if they are called "in response" to always transitions or raised events. We are working on fixing this, both in XState and in the typegen.
 
 ## Config Objects
 
