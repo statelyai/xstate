@@ -968,6 +968,52 @@ describe('typegen types', () => {
     );
   });
 
+  it('It should tighten service types when using model.createMachine', () => {
+    interface TypesMeta extends TypegenMeta {
+      eventsCausingActions: {
+        myAction: 'done.invoke.myService';
+      };
+      eventsCausingServices: {
+        myService: never;
+      };
+      internalEvents: {
+        'done.invoke.myService': {
+          type: 'done.invoke.myService';
+          data: unknown;
+        };
+      };
+      invokeSrcNameMap: {
+        myService: 'done.invoke.myService';
+      };
+    }
+
+    const model = createModel({}, {});
+
+    model.createMachine(
+      {
+        tsTypes: {} as TypesMeta,
+        schema: {
+          services: {} as {
+            myService: {
+              data: boolean;
+            };
+          }
+        }
+      },
+      {
+        actions: {
+          myAction: (_ctx, event) => {
+            ((_accept: boolean) => {})(event.data);
+          }
+        },
+        services: {
+          // @ts-expect-error
+          myService: () => Promise.resolve('')
+        }
+      }
+    );
+  });
+
   it("should not provide a loose type for `onReceive`'s argument as a default", () => {
     interface TypesMeta extends TypegenMeta {
       eventsCausingServices: {
@@ -984,7 +1030,7 @@ describe('typegen types', () => {
       },
       {
         services: {
-          fooService: (_ctx, _ev) => (send, onReceive) => {
+          fooService: (_ctx, _ev) => (_send, onReceive) => {
             onReceive((event) => {
               ((_accept: string) => {})(event.type);
               // @ts-expect-error
