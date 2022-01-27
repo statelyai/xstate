@@ -81,7 +81,7 @@ const machine = createMachine({
 
 ```ts
 const machine = createMachine({
-  tsTypes: {} as import('./filename.typegen').Typegen[0]
+  tsTypes: {} as import('./filename.typegen').Typegen0
   /* ... */
 });
 ```
