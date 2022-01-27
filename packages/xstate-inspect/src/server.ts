@@ -6,7 +6,7 @@ import {
   interpret,
   Interpreter
 } from 'xstate';
-import { toEventObject, toSCXMLEvent } from 'xstate/lib/utils';
+import { toEventObject, toSCXMLEvent, interopSymbols } from 'xstate/lib/utils';
 
 import { createInspectMachine } from './inspectMachine';
 import { Inspector, Replacer } from './types';
@@ -54,6 +54,7 @@ export function inspect(options: ServerInspectorOptions): Inspector {
     createInspectMachine(globalThis.__xstate__, options)
   ).start();
   let client: ActorRef<any, undefined> = {
+    ...interopSymbols,
     id: '@@xstate/ws-client',
     send: (event: any) => {
       server.clients.forEach((wsClient) => {
@@ -134,6 +135,7 @@ export function inspect(options: ServerInspectorOptions): Inspector {
   });
 
   const inspector: Inspector = {
+    ...interopSymbols,
     id: '@@xstate/inspector',
     send: (event) => {
       inspectService.send(event);

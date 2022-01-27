@@ -1,7 +1,6 @@
 import { useRef, useCallback } from 'react';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
-import { ActorRef, EventObject } from 'xstate';
-import { Sender } from './types';
+import { ActorRef, EventObject, Sender } from 'xstate';
 import useConstant from './useConstant';
 import { useSyncExternalStore } from 'use-sync-external-store/shim';
 
@@ -46,7 +45,7 @@ export function useActor(
   ) => unknown = defaultGetSnapshot
 ): [unknown, Sender<EventObject>] {
   const actorRefRef = useRef(actorRef);
-  const deferredEventsRef = useRef<EventObject[]>([]);
+  const deferredEventsRef = useRef<(EventObject | string)[]>([]);
 
   const subscribe = useCallback(
     (handleStoreChange) => {

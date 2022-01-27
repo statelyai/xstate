@@ -1,69 +1,7 @@
 import * as React from 'react';
 import { render } from '@testing-library/react';
-import {
-  Machine,
-  interpret,
-  assign,
-  spawn,
-  createMachine,
-  ActorRefFrom
-} from 'xstate';
-import { useService, useMachine, useActor } from '../src';
-
-describe('useService', () => {
-  it('should accept spawned machine', () => {
-    interface TodoCtx {
-      completed: boolean;
-    }
-    interface TodosCtx {
-      todos: Array<ActorRefFrom<typeof todoMachine>>;
-    }
-
-    const todoMachine = Machine<TodoCtx>({
-      context: {
-        completed: false
-      },
-      initial: 'uncompleted',
-      states: {
-        uncompleted: {
-          on: {
-            COMPLETE: 'done'
-          }
-        },
-        done: {
-          entry: assign<TodoCtx>({ completed: true })
-        }
-      }
-    });
-
-    const todosMachine = Machine<TodosCtx, any, { type: 'CREATE' }>({
-      context: { todos: [] },
-      initial: 'working',
-      states: { working: {} },
-      on: {
-        CREATE: {
-          actions: assign((ctx) => ({
-            ...ctx,
-            todos: ctx.todos.concat(spawn(todoMachine))
-          }))
-        }
-      }
-    });
-
-    const service = interpret(todosMachine).start();
-
-    const Todo = ({ index }: { index: number }) => {
-      const [current] = useService(service);
-      const todoRef = current.context.todos[index];
-      const [todoCurrent] = useActor(todoRef);
-      return <>{todoCurrent.context.completed}</>;
-    };
-
-    service.send('CREATE');
-
-    render(<Todo index={0} />);
-  });
-});
+import { assign, spawn, createMachine, ActorRefFrom } from 'xstate';
+import { useMachine, useActor } from '../src';
 
 describe('useMachine', () => {
   interface YesNoContext {
@@ -129,7 +67,7 @@ describe('useMachine', () => {
     render(<YesNo />);
   });
 
-  // Example from: https://github.com/davidkpiano/xstate/discussions/1534
+  // Example from: https://github.com/statelyai/xstate/discussions/1534
   it('spawned actors should be typed correctly', () => {
     const child = createMachine<{ bar: number }, { type: 'FOO'; data: number }>(
       {

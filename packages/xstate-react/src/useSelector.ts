@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
 import { ActorRef, Interpreter, Subscribable } from 'xstate';
 import { isActorWithState } from './useActor';
-import { getServiceSnapshot } from './useService';
+import { getServiceSnapshot } from './utils';
 
 function isService(actor: any): actor is Interpreter<any, any, any, any> {
   return 'state' in actor && 'machine' in actor;

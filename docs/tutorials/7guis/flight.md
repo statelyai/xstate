@@ -100,7 +100,7 @@ export const flightMachine = createMachine({
           actions: assign({
             returnDate: (_, event) => event.value
           }),
-          cond: context => context.trip === 'roundTrip'
+          cond: (context) => context.trip === 'roundTrip'
         },
         SET_TRIP: {
           actions: assign({
@@ -111,7 +111,7 @@ export const flightMachine = createMachine({
         },
         SUBMIT: {
           target: 'submitted',
-          cond: context => {
+          cond: (context) => {
             if (context.trip === 'oneWay') {
               return !!context.startDate;
             } else {

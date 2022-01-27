@@ -36,7 +36,7 @@ export const counterMachine = createMachine({
     active: {
       on: {
         INCREMENT: {
-          actions: assign({ count: ctx => ctx.count + 1 })
+          actions: assign({ count: (ctx) => ctx.count + 1 })
         }
       }
     }

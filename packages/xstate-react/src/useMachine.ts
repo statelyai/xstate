@@ -3,14 +3,15 @@ import {
   EventObject,
   StateMachine,
   State,
-  Interpreter,
   InterpreterOptions,
-  MachineOptions,
   StateConfig,
-  Typestate,
-  InterpreterStatus
+  InterpreterStatus,
+  AreAllImplementationsAssumedToBeProvided,
+  InternalMachineOptions,
+  InterpreterFrom,
+  StateFrom
 } from 'xstate';
-import { MaybeLazy } from './types';
+import { MaybeLazy, Prop } from './types';
 import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
 import { useIdleInterpreter } from './useInterpret';
 
@@ -30,32 +31,49 @@ export interface UseMachineOptions<TContext, TEvent extends EventObject> {
   state?: StateConfig<TContext, TEvent>;
 }
 
+type RestParams<
+  TMachine extends StateMachine<any, any, any, any, any, any, any>
+> = AreAllImplementationsAssumedToBeProvided<
+  TMachine['__TResolvedTypesMeta']
+> extends false
+  ? [
+      options: InterpreterOptions &
+        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+        InternalMachineOptions<
+          TMachine['__TContext'],
+          TMachine['__TEvent'],
+          TMachine['__TResolvedTypesMeta'],
+          true
+        >
+    ]
+  : [
+      options?: InterpreterOptions &
+        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+        InternalMachineOptions<
+          TMachine['__TContext'],
+          TMachine['__TEvent'],
+          TMachine['__TResolvedTypesMeta']
+        >
+    ];
+
+type UseMachineReturn<
+  TMachine extends StateMachine<any, any, any, any, any, any, any>,
+  TInterpreter = InterpreterFrom<TMachine>
+> = [StateFrom<TMachine>, Prop<TInterpreter, 'send'>, TInterpreter];
+
 export function useMachine<
-  TContext,
-  TEvent extends EventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TMachine extends StateMachine<any, any, any, any, any, any, any>
 >(
-  getMachine: MaybeLazy<StateMachine<TContext, any, TEvent, TTypestate>>,
-  options: Partial<InterpreterOptions> &
-    Partial<UseMachineOptions<TContext, TEvent>> &
-    Partial<MachineOptions<TContext, TEvent>> = {}
-): [
-  State<TContext, TEvent, any, TTypestate>,
-  Interpreter<TContext, any, TEvent, TTypestate>['send'],
-  Interpreter<TContext, any, TEvent, TTypestate>
-] {
+  getMachine: MaybeLazy<TMachine>,
+  ...[options = {}]: RestParams<TMachine>
+): UseMachineReturn<TMachine> {
   const service = useIdleInterpreter(getMachine, options);
 
   const getSnapshot = useCallback(() => {
     if (service.status === InterpreterStatus.NotStarted) {
       return (options.state
         ? State.create(options.state)
-        : service.machine.initialState) as State<
-        TContext,
-        TEvent,
-        any,
-        TTypestate
-      >;
+        : service.machine.initialState) as State<any, any, any, any, any>;
     }
 
     return service.state;
@@ -107,5 +125,5 @@ export function useMachine<
     };
   }, []);
 
-  return [storeSnapshot, service.send, service];
+  return [storeSnapshot, service.send, service] as any;
 }
