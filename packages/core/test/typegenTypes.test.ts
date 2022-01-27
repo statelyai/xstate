@@ -1013,4 +1013,58 @@ describe('typegen types', () => {
       }
     );
   });
+
+  it("should not provide a loose type for `onReceive`'s argument as a default", () => {
+    interface TypesMeta extends TypegenMeta {
+      eventsCausingServices: {
+        fooService: 'FOO';
+      };
+    }
+
+    createMachine(
+      {
+        tsTypes: {} as TypesMeta,
+        schema: {
+          events: {} as { type: 'FOO' } | { type: 'BAR' }
+        }
+      },
+      {
+        services: {
+          fooService: (_ctx, _ev) => (send, onReceive) => {
+            onReceive((event) => {
+              ((_accept: string) => {})(event.type);
+              // @ts-expect-error
+              event.unknown;
+            });
+          }
+        }
+      }
+    );
+  });
+
+  it("should allow specifying `onReceive`'s argument type manually", () => {
+    interface TypesMeta extends TypegenMeta {
+      eventsCausingServices: {
+        fooService: 'FOO';
+      };
+    }
+
+    createMachine(
+      {
+        tsTypes: {} as TypesMeta,
+        schema: {
+          events: {} as { type: 'FOO' } | { type: 'BAR' }
+        }
+      },
+      {
+        services: {
+          fooService: (_ctx, _ev) => (_send, onReceive) => {
+            onReceive((_event: { type: 'TEST' }) => {});
+            // @ts-expect-error
+            onReceive((_event: { type: number }) => {});
+          }
+        }
+      }
+    );
+  });
 });
