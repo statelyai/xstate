@@ -3,6 +3,8 @@
 As XState is written in [TypeScript](https://www.typescriptlang.org/), strongly typing your statecharts is useful and encouraged. Consider this light machine example:
 
 ```typescript
+import { t, createMachine } from 'xstate';
+
 const lightMachine = createMachine({
   schema: {
     // The context (extended state) of the machine
@@ -208,6 +210,8 @@ Named actions/services/guards allow for:
 You can use the generated types to specify the return type of promise-based services, by using the `services` schema property:
 
 ```ts
+import { createMachine, t } from 'xstate';
+
 createMachine(
   {
     schema: {
@@ -394,6 +398,8 @@ Here are some known issues, all of which can be worked around:
 When you use `createMachine`, you can pass in implementations to named actions/services/guards in your config. For instance:
 
 ```ts
+import { createMachine, t } from 'xstate';
+
 interface Context {}
 
 type Event =
@@ -428,7 +434,7 @@ createMachine(
 The reason this errors is because inside the `consoleLogData` function, we don't know which event caused it to fire. The cleanest way to manage this is to assert the event type yourself.
 
 ```ts
-createMachine(machine, {
+createMachine(config, {
   actions: {
     consoleLogData: (context, event) => {
       if (event.type !== 'EVENT_WITH_FLAG') return
@@ -442,6 +448,8 @@ createMachine(machine, {
 It's also sometimes possible to move the implementation inline.
 
 ```ts
+import { createMachine, t } from 'xstate';
+
 createMachine({
   schema: {
     context: t<Context>(),
@@ -466,6 +474,8 @@ This approach doesn't work for all cases. The action loses its name, so it becom
 Event types in inline entry actions are not currently typed to the event that led to them. Consider this example:
 
 ```ts
+import { createMachine, t } from 'xstate';
+
 interface Context {}
 
 type Event =
@@ -510,76 +520,6 @@ entry: [
     console.log(event.flag);
   }
 ];
-```
-
-### `onDone`/`onError` events in machine options
-
-The result of promise-based services is quite hard to type safely in XState. For instance, a machine like this:
-
-```ts
-interface Data {
-  flag: boolean;
-}
-
-interface Context {}
-
-type Event = {
-  // Added here in order to bring out the TS errors
-  type: 'UNUSED_EVENT';
-};
-
-createMachine(
-  {
-    schema: {
-      context: t<Context>(),
-      events: t<Event>()
-    },
-    invoke: {
-      src: async () => {
-        const data: Data = {
-          flag: true
-        };
-        return data;
-      },
-      onDone: {
-        actions: 'consoleLogData'
-      },
-      onError: {
-        actions: 'consoleLogError'
-      }
-    }
-  },
-  {
-    actions: {
-      consoleLogData: (context, event) => {
-        // Error on this line - data does not exist!
-        console.log(event.data.flag);
-      },
-      consoleLogError: (context, event) => {
-        // Error on this line - data does not exist!
-        console.log(event.data);
-      }
-    }
-  }
-);
-```
-
-Frustratingly, the best way to fix this is to cast the `event` to `any` and reassign it based on what we know it to be:
-
-```ts
-import { DoneInvokeEvent, ErrorPlatformEvent } from 'xstate'
-
-actions: {
-  consoleLogData: (context, _event: any) => {
-    const event: DoneInvokeEvent<Data> = _event;
-    console.log(event.data.flag);
-  },
-  consoleLogError: (context, _event: any) => {
-    const event: ErrorPlatformEvent = _event;
-    // Event.data is usually of type `Error`
-    console.log(event.data.message);
-  }
-}
 ```
 
 ### Assign action behaving strangely
