@@ -107,13 +107,15 @@ const machine = createMachine({
 
 ```ts
 const machine = createMachine({
-  tsTypes: true,
+  tsTypes: {},
   schema: {
     context: t<{ value: string }>(),
     events: t<{ type: 'FOO'; value: string } | { type: 'BAR' }>()
   },
   initial: 'a',
-  states: {/* ... */}
+  states: {
+    /* ... */
+  }
 });
 ```
 
@@ -127,7 +129,9 @@ const machine = createMachine({
     events: t<{ type: 'FOO'; value: string } | { type: 'BAR' }>()
   },
   initial: 'a',
-  states: {/* ... */}
+  states: {
+    /* ... */
+  }
 });
 ```
 
