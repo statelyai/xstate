@@ -4,10 +4,9 @@ import * as pkgUp from 'pkg-up';
 // import * as util from 'util';
 
 import { toMachine } from '../src/scxml';
-import { StateNode } from '../src/StateNode';
 import { interpret } from '../src/interpreter';
 import { SimulatedClock } from '../src/SimulatedClock';
-import { State } from '../src';
+import { State, StateMachine } from '../src';
 import { pathsToStateValue } from '../src/utils';
 // import { StateValue } from '../src/types';
 // import { Event, StateValue, ActionObject } from '../src/types';
@@ -355,7 +354,9 @@ interface SCIONTest {
   }>;
 }
 
-async function runW3TestToCompletion(machine: StateNode): Promise<void> {
+async function runW3TestToCompletion(
+  machine: StateMachine<any, any, any, any, any>
+): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     let nextState: State<any>;
 
@@ -375,7 +376,7 @@ async function runW3TestToCompletion(machine: StateNode): Promise<void> {
 }
 
 async function runTestToCompletion(
-  machine: StateNode,
+  machine: StateMachine<any, any, any, any, any>,
   test: SCIONTest
 ): Promise<void> {
   if (!test.events.length && test.initialConfiguration[0] === 'pass') {

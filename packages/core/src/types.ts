@@ -1,11 +1,34 @@
-import { StateNode } from './StateNode';
+import { Clock, Interpreter } from './interpreter';
+import { Model } from './model.types';
 import { State } from './State';
-import { Interpreter, Clock } from './interpreter';
-import { IsNever, Model, Prop } from './model.types';
+import { StateNode } from './StateNode';
+import {
+  MarkAllImplementationsAsProvided,
+  TypegenDisabled,
+  ResolveTypegenMeta,
+  TypegenConstraint,
+  AreAllImplementationsAssumedToBeProvided
+} from './typegenTypes';
 
-type AnyFunction = (...args: any[]) => any;
+export type AnyFunction = (...args: any[]) => any;
 type ReturnTypeOrValue<T> = T extends AnyFunction ? ReturnType<T> : T;
 
+// https://github.com/microsoft/TypeScript/issues/23182#issuecomment-379091887
+export type IsNever<T> = [T] extends [never] ? true : false;
+
+export type Compute<A extends any> = { [K in keyof A]: A[K] } & unknown;
+export type Prop<T, K> = K extends keyof T ? T[K] : never;
+export type Values<T> = T[keyof T];
+export type Merge<M, N> = Omit<M, keyof N> & N;
+export type IndexByType<T extends { type: string }> = {
+  [K in T['type']]: Extract<T, { type: K }>;
+};
+export type Equals<A1 extends any, A2 extends any> = (<A>() => A extends A2
+  ? true
+  : false) extends <A>() => A extends A1 ? true : false
+  ? true
+  : false;
+export type IsAny<T> = Equals<T, any>;
 export type Cast<A, B> = A extends B ? A : B;
 
 export type EventType = string;
@@ -58,10 +81,7 @@ export type Event<TEvent extends EventObject> = TEvent['type'] | TEvent;
 export interface ActionMeta<
   TContext,
   TEvent extends EventObject,
-  TAction extends ActionObject<TContext, TEvent> = ActionObject<
-    TContext,
-    TEvent
-  >
+  TAction extends BaseActionObject = BaseActionObject
 > extends StateMeta<TContext, TEvent> {
   action: TAction;
   _event: SCXML.Event<TEvent>;
@@ -76,15 +96,14 @@ export interface AssignMeta<TContext, TEvent extends EventObject> {
 export type ActionFunction<
   TContext,
   TEvent extends EventObject,
-  TAction extends ActionObject<TContext, TEvent> = ActionObject<
-    TContext,
-    TEvent
-  >
-> = (
-  context: TContext,
-  event: TEvent,
-  meta: ActionMeta<TContext, TEvent, TAction>
-) => void;
+  TAction extends BaseActionObject = BaseActionObject
+> = {
+  bivarianceHack(
+    context: TContext,
+    event: TEvent,
+    meta: ActionMeta<TContext, TEvent, TAction>
+  ): void;
+}['bivarianceHack'];
 
 export interface ChooseCondition<TContext, TEvent extends EventObject> {
   cond?: Condition<TContext, TEvent>;
@@ -270,7 +289,9 @@ export interface PayloadSender<TEvent extends EventObject> {
 }
 
 export type Receiver<TEvent extends EventObject> = (
-  listener: (event: TEvent) => void
+  listener: {
+    bivarianceHack(event: TEvent): void;
+  }['bivarianceHack']
 ) => void;
 
 export type InvokeCallback<
@@ -302,17 +323,20 @@ export interface InvokeMeta {
  */
 export type InvokeCreator<
   TContext,
-  TEvent extends EventObject,
-  TFinalContext = any
+  TSourceEvent extends EventObject,
+  TFinalContext = any,
+  // those two are named from the perspective of the created invoke
+  TInputEvent extends EventObject = any, // keeping a slot for it here, but it's actually not used right now to ensure that the communication contract between actors is satisfied
+  TOutputEvent extends EventObject = TSourceEvent // this default doesn't make a lot of sense, it's used like this just to be compatible with the previous version of this signature,
 > = (
   context: TContext,
-  event: TEvent,
+  event: TSourceEvent,
   meta: InvokeMeta
 ) =>
   | PromiseLike<TFinalContext>
-  | StateMachine<TFinalContext, any, any>
+  | StateMachine<TFinalContext, any, any, any, any, any, any>
   | Subscribable<EventObject>
-  | InvokeCallback<any, TEvent>
+  | InvokeCallback<TInputEvent, TOutputEvent>
   | Behavior<any>;
 
 export interface InvokeDefinition<TContext, TEvent extends EventObject>
@@ -710,10 +734,7 @@ export type SimpleOrStateNodeConfig<
 export type ActionFunctionMap<
   TContext,
   TEvent extends EventObject,
-  TAction extends ActionObject<TContext, TEvent> = ActionObject<
-    TContext,
-    TEvent
-  >
+  TAction extends BaseActionObject = BaseActionObject
 > = {
   [K in TAction['type']]?:
     | ActionObject<TContext, TEvent>
@@ -738,36 +759,190 @@ export type DelayConfig<TContext, TEvent extends EventObject> =
   | number
   | DelayExpr<TContext, TEvent>;
 
-export interface MachineOptions<
+type MachineOptionsActions<
+  TContext,
+  TResolvedTypesMeta,
+  TEventsCausingActions = Prop<TResolvedTypesMeta, 'eventsCausingActions'>,
+  TIndexedEvents = Prop<TResolvedTypesMeta, 'indexedEvents'>,
+  TIndexedActions = Prop<TResolvedTypesMeta, 'indexedActions'>
+> = {
+  [K in keyof TEventsCausingActions]?:
+    | ActionObject<
+        TContext,
+        Cast<Prop<TIndexedEvents, TEventsCausingActions[K]>, EventObject>
+      >
+    | ActionFunction<
+        TContext,
+        Cast<Prop<TIndexedEvents, TEventsCausingActions[K]>, EventObject>,
+        Cast<Prop<TIndexedActions, K>, BaseActionObject>
+      >;
+};
+
+type MachineOptionsDelays<
+  TContext,
+  TResolvedTypesMeta,
+  TEventsCausingDelays = Prop<TResolvedTypesMeta, 'eventsCausingDelays'>,
+  TIndexedEvents = Prop<TResolvedTypesMeta, 'indexedEvents'>
+> = {
+  [K in keyof TEventsCausingDelays]?: DelayConfig<
+    TContext,
+    Cast<Prop<TIndexedEvents, TEventsCausingDelays[K]>, EventObject>
+  >;
+};
+
+type MachineOptionsGuards<
+  TContext,
+  TResolvedTypesMeta,
+  TEventsCausingGuards = Prop<TResolvedTypesMeta, 'eventsCausingGuards'>,
+  TIndexedEvents = Prop<TResolvedTypesMeta, 'indexedEvents'>
+> = {
+  [K in keyof TEventsCausingGuards]?: ConditionPredicate<
+    TContext,
+    Cast<Prop<TIndexedEvents, TEventsCausingGuards[K]>, EventObject>
+  >;
+};
+
+type MachineOptionsServices<
+  TContext,
+  TResolvedTypesMeta,
+  TEventsCausingServices = Prop<TResolvedTypesMeta, 'eventsCausingServices'>,
+  TIndexedEvents = Prop<TResolvedTypesMeta, 'indexedEvents'>,
+  TInvokeSrcNameMap = Prop<TResolvedTypesMeta, 'invokeSrcNameMap'>
+> = {
+  [K in keyof TEventsCausingServices]?:
+    | StateMachine<any, any, any, any, any, any, any>
+    | InvokeCreator<
+        TContext,
+        Cast<Prop<TIndexedEvents, TEventsCausingServices[K]>, EventObject>,
+        Prop<Prop<TIndexedEvents, Prop<TInvokeSrcNameMap, K>>, 'data'>,
+        EventObject,
+        Cast<TIndexedEvents[keyof TIndexedEvents], EventObject> // it would make sense to pass `TEvent` around to use it here directly
+      >;
+};
+
+type MakeKeysRequired<T extends string> = { [K in T]: unknown };
+
+type MaybeMakeMissingImplementationsRequired<
+  TImplementationType,
+  TMissingImplementationsForType,
+  TRequireMissingImplementations
+> = TRequireMissingImplementations extends true
+  ? IsNever<TMissingImplementationsForType> extends true
+    ? {}
+    : {
+        [K in Cast<TImplementationType, string>]: MakeKeysRequired<
+          Cast<TMissingImplementationsForType, string>
+        >;
+      }
+  : {};
+
+type GenerateActionsConfigPart<
+  TContext,
+  TResolvedTypesMeta,
+  TRequireMissingImplementations,
+  TMissingImplementations
+> = MaybeMakeMissingImplementationsRequired<
+  'actions',
+  Prop<TMissingImplementations, 'actions'>,
+  TRequireMissingImplementations
+> & {
+  actions?: MachineOptionsActions<TContext, TResolvedTypesMeta>;
+};
+
+type GenerateDelaysConfigPart<
+  TContext,
+  TResolvedTypesMeta,
+  TRequireMissingImplementations,
+  TMissingImplementations
+> = MaybeMakeMissingImplementationsRequired<
+  'delays',
+  Prop<TMissingImplementations, 'delays'>,
+  TRequireMissingImplementations
+> & {
+  delays?: MachineOptionsDelays<TContext, TResolvedTypesMeta>;
+};
+
+type GenerateGuardsConfigPart<
+  TContext,
+  TResolvedTypesMeta,
+  TRequireMissingImplementations,
+  TMissingImplementations
+> = MaybeMakeMissingImplementationsRequired<
+  'guards',
+  Prop<TMissingImplementations, 'guards'>,
+  TRequireMissingImplementations
+> & {
+  guards?: MachineOptionsGuards<TContext, TResolvedTypesMeta>;
+};
+
+type GenerateServicesConfigPart<
+  TContext,
+  TResolvedTypesMeta,
+  TRequireMissingImplementations,
+  TMissingImplementations
+> = MaybeMakeMissingImplementationsRequired<
+  'services',
+  Prop<TMissingImplementations, 'services'>,
+  TRequireMissingImplementations
+> & {
+  services?: MachineOptionsServices<TContext, TResolvedTypesMeta>;
+};
+
+export type InternalMachineOptions<
   TContext,
   TEvent extends EventObject,
-  TAction extends ActionObject<TContext, TEvent> = ActionObject<
+  TResolvedTypesMeta,
+  TRequireMissingImplementations extends boolean = false,
+  TMissingImplementations = Prop<TResolvedTypesMeta, 'missingImplementations'>
+> = GenerateActionsConfigPart<
+  TContext,
+  TResolvedTypesMeta,
+  TRequireMissingImplementations,
+  TMissingImplementations
+> &
+  GenerateDelaysConfigPart<
     TContext,
-    TEvent
-  >
-> {
-  guards: Record<string, ConditionPredicate<TContext, TEvent>>;
-  actions: ActionFunctionMap<TContext, TEvent, TAction>;
-  /**
-   * @deprecated Use `services` instead.
-   */
-  activities: Record<string, ActivityConfig<TContext, TEvent>>;
-  services: Record<string, ServiceConfig<TContext, TEvent>>;
-  delays: DelayFunctionMap<TContext, TEvent>;
-  /**
-   * @private
-   */
-  _parent?: StateNode<TContext, any, TEvent, any>;
-  /**
-   * @private
-   */
-  _key?: string;
-}
+    TResolvedTypesMeta,
+    TRequireMissingImplementations,
+    TMissingImplementations
+  > &
+  GenerateGuardsConfigPart<
+    TContext,
+    TResolvedTypesMeta,
+    TRequireMissingImplementations,
+    TMissingImplementations
+  > &
+  GenerateServicesConfigPart<
+    TContext,
+    TResolvedTypesMeta,
+    TRequireMissingImplementations,
+    TMissingImplementations
+  > & {
+    /**
+     * @deprecated Use `services` instead.
+     */
+    activities?: Record<string, ActivityConfig<TContext, TEvent>>;
+  };
+
+export type MachineOptions<
+  TContext,
+  TEvent extends EventObject,
+  TAction extends BaseActionObject = BaseActionObject,
+  TServiceMap extends ServiceMap = ServiceMap,
+  TTypesMeta extends TypegenConstraint = TypegenDisabled
+> = InternalMachineOptions<
+  TContext,
+  TEvent,
+  ResolveTypegenMeta<TTypesMeta, TEvent, TAction, TServiceMap>
+>;
+
 export interface MachineConfig<
   TContext,
   TStateSchema extends StateSchema,
   TEvent extends EventObject,
-  TAction extends BaseActionObject = ActionObject<TContext, TEvent>
+  TAction extends BaseActionObject = BaseActionObject,
+  TServiceMap extends ServiceMap = ServiceMap,
+  TTypesMeta = TypegenDisabled
 > extends StateNodeConfig<TContext, TStateSchema, TEvent, TAction> {
   /**
    * The initial context (extended state)
@@ -777,15 +952,21 @@ export interface MachineConfig<
    * The machine's own version.
    */
   version?: string;
-  schema?: MachineSchema<TContext, TEvent>;
+  schema?: MachineSchema<TContext, TEvent, TServiceMap>;
+  tsTypes?: TTypesMeta;
 }
 
-export interface MachineSchema<TContext, TEvent extends EventObject> {
+export type ServiceMap = Record<string, { data: any }>;
+export interface MachineSchema<
+  TContext,
+  TEvent extends EventObject,
+  TServiceMap extends ServiceMap = ServiceMap
+> {
   context?: TContext;
   events?: TEvent;
   actions?: { type: string; [key: string]: any };
   guards?: { type: string; [key: string]: any };
-  services?: { type: string; [key: string]: any };
+  services?: TServiceMap;
 }
 
 export interface StandardMachineConfig<
@@ -813,36 +994,78 @@ export interface HistoryStateNode<TContext> extends StateNode<TContext> {
   target: StateValue | undefined;
 }
 
+// @ts-ignore TS complains about withConfig & withContext not being compatible here when extending StateNode
 export interface StateMachine<
   TContext,
   TStateSchema extends StateSchema,
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext },
-  _TAction extends ActionObject<TContext, TEvent> = ActionObject<
+  TAction extends BaseActionObject = BaseActionObject,
+  TServiceMap extends ServiceMap = ServiceMap,
+  TResolvedTypesMeta = TypegenDisabled
+> extends StateNode<
     TContext,
-    TEvent
-  >
-> extends StateNode<TContext, TStateSchema, TEvent, TTypestate> {
+    TStateSchema,
+    TEvent,
+    TTypestate,
+    TServiceMap,
+    TResolvedTypesMeta
+  > {
   id: string;
-  states: StateNode<TContext, TStateSchema, TEvent>['states'];
+  states: StateNode<
+    TContext,
+    TStateSchema,
+    TEvent,
+    TTypestate,
+    TServiceMap,
+    TResolvedTypesMeta
+  >['states'];
 
   withConfig(
-    options: Partial<MachineOptions<TContext, TEvent>>,
+    options: InternalMachineOptions<TContext, TEvent, TResolvedTypesMeta, true>,
     context?: TContext | (() => TContext)
-  ): StateMachine<TContext, TStateSchema, TEvent, TTypestate>;
+  ): StateMachine<
+    TContext,
+    TStateSchema,
+    TEvent,
+    TTypestate,
+    TAction,
+    TServiceMap,
+    AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
+      ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
+      : TResolvedTypesMeta
+  >;
 
   withContext(
     context: TContext | (() => TContext)
-  ): StateMachine<TContext, TStateSchema, TEvent, TTypestate>;
+  ): StateMachine<
+    TContext,
+    TStateSchema,
+    TEvent,
+    TTypestate,
+    TAction,
+    TServiceMap,
+    TResolvedTypesMeta
+  >;
+
+  __TContext: TContext;
+  __TStateSchema: TStateSchema;
+  __TEvent: TEvent;
+  __TTypestate: TTypestate;
+  __TAction: TAction;
+  __TServiceMap: TServiceMap;
+  __TResolvedTypesMeta: TResolvedTypesMeta;
 }
 
 export type StateFrom<
   T extends
-    | StateMachine<any, any, any, any>
-    | ((...args: any[]) => StateMachine<any, any, any, any>)
-> = T extends StateMachine<any, any, any>
+    | StateMachine<any, any, any, any, any, any, any>
+    | ((...args: any[]) => StateMachine<any, any, any, any, any, any, any>)
+> = T extends StateMachine<any, any, any, any, any, any, any>
   ? ReturnType<T['transition']>
-  : T extends (...args: any[]) => StateMachine<any, any, any>
+  : T extends (
+      ...args: any[]
+    ) => StateMachine<any, any, any, any, any, any, any>
   ? ReturnType<ReturnType<T>['transition']>
   : never;
 
@@ -869,13 +1092,13 @@ export interface ActivityMap {
 // tslint:disable-next-line:class-name
 export interface StateTransition<TContext, TEvent extends EventObject> {
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
-  configuration: Array<StateNode<TContext, any, TEvent, any>>;
-  entrySet: Array<StateNode<TContext, any, TEvent, any>>;
-  exitSet: Array<StateNode<TContext, any, TEvent, any>>;
+  configuration: Array<StateNode<TContext, any, TEvent, any, any, any>>;
+  entrySet: Array<StateNode<TContext, any, TEvent, any, any, any>>;
+  exitSet: Array<StateNode<TContext, any, TEvent, any, any, any>>;
   /**
    * The source state that preceded the transition.
    */
-  source: State<TContext, any, any, any> | undefined;
+  source: State<TContext, any, any, any, any> | undefined;
   actions: Array<ActionObject<TContext, TEvent>>;
 }
 
@@ -1217,7 +1440,7 @@ export interface SCXMLEventMeta<TEvent extends EventObject> {
 }
 
 export interface StateMeta<TContext, TEvent extends EventObject> {
-  state: State<TContext, TEvent, any, any>;
+  state: State<TContext, TEvent, any, any, any>;
   _event: SCXML.Event<TEvent>;
 }
 
@@ -1239,7 +1462,7 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   _event: SCXML.Event<TEvent>;
   _sessionid: string | null;
   historyValue?: HistoryValue | undefined;
-  history?: State<TContext, TEvent>;
+  history?: State<TContext, TEvent, any, any, any>;
   actions?: Array<ActionObject<TContext, TEvent>>;
   /**
    * @deprecated
@@ -1252,7 +1475,7 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   children: Record<string, ActorRef<any>>;
   done?: boolean;
   tags?: Set<string>;
-  machine?: StateMachine<TContext, any, TEvent, any>;
+  machine?: StateMachine<TContext, any, TEvent, any, any, any, any>;
 }
 
 export interface StateSchema<TC = any> {
@@ -1267,9 +1490,9 @@ export interface InterpreterOptions {
   /**
    * Whether state actions should be executed immediately upon transition. Defaults to `true`.
    */
-  execute: boolean;
-  clock: Clock;
-  logger: (...args: any[]) => void;
+  execute?: boolean;
+  clock?: Clock;
+  logger?: (...args: any[]) => void;
   parent?: AnyInterpreter;
   /**
    * If `true`, defers processing of sent events until the service
@@ -1278,7 +1501,7 @@ export interface InterpreterOptions {
    *
    * Default: `true`
    */
-  deferEvents: boolean;
+  deferEvents?: boolean;
   /**
    * The custom `id` for referencing this service.
    */
@@ -1288,8 +1511,7 @@ export interface InterpreterOptions {
    *
    * Default: `false`
    */
-  devTools: boolean | object; // TODO: add enhancer options
-  [option: string]: any;
+  devTools?: boolean | object; // TODO: add enhancer options
 }
 
 export namespace SCXML {
@@ -1418,25 +1640,45 @@ export type SpawnedActorRef<
 export type ActorRefWithDeprecatedState<
   TContext,
   TEvent extends EventObject,
-  TTypestate extends Typestate<TContext>
-> = ActorRef<TEvent, State<TContext, TEvent, any, TTypestate>> & {
+  TTypestate extends Typestate<TContext>,
+  TResolvedTypesMeta = TypegenDisabled
+> = ActorRef<
+  TEvent,
+  State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta>
+> & {
   /**
    * @deprecated Use `.getSnapshot()` instead.
    */
-  state: State<TContext, TEvent, any, TTypestate>;
+  state: State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta>;
 };
 
 export type ActorRefFrom<T> = T extends StateMachine<
   infer TContext,
   any,
   infer TEvent,
-  infer TTypestate
+  infer TTypestate,
+  any,
+  any,
+  any
 >
   ? ActorRefWithDeprecatedState<TContext, TEvent, TTypestate>
   : T extends (
       ...args: any[]
-    ) => StateMachine<infer TContext, any, infer TEvent, infer TTypestate>
-  ? ActorRefWithDeprecatedState<TContext, TEvent, TTypestate>
+    ) => StateMachine<
+      infer TContext,
+      any,
+      infer TEvent,
+      infer TTypestate,
+      any,
+      any,
+      infer TResolvedTypesMeta
+    >
+  ? ActorRefWithDeprecatedState<
+      TContext,
+      TEvent,
+      TTypestate,
+      TResolvedTypesMeta
+    >
   : T extends Promise<infer U>
   ? ActorRef<never, U>
   : T extends Behavior<infer TEvent1, infer TEmitted>
@@ -1445,28 +1687,69 @@ export type ActorRefFrom<T> = T extends StateMachine<
   ? ActorRef<TEvent1, TEmitted>
   : never;
 
-export type AnyInterpreter = Interpreter<any, any, any, any>;
+export type AnyInterpreter = Interpreter<any, any, any, any, any>;
 
 export type InterpreterFrom<
   T extends
-    | StateMachine<any, any, any, any>
-    | ((...args: any[]) => StateMachine<any, any, any, any>)
+    | StateMachine<any, any, any, any, any, any, any>
+    | ((...args: any[]) => StateMachine<any, any, any, any, any, any, any>)
 > = T extends StateMachine<
   infer TContext,
   infer TStateSchema,
   infer TEvent,
-  infer TTypestate
+  infer TTypestate,
+  any,
+  any,
+  infer TResolvedTypesMeta
 >
-  ? Interpreter<TContext, TStateSchema, TEvent, TTypestate>
+  ? Interpreter<TContext, TStateSchema, TEvent, TTypestate, TResolvedTypesMeta>
   : T extends (
       ...args: any[]
     ) => StateMachine<
       infer TContext,
       infer TStateSchema,
       infer TEvent,
-      infer TTypestate
+      infer TTypestate,
+      any,
+      any,
+      infer TResolvedTypesMeta
     >
-  ? Interpreter<TContext, TStateSchema, TEvent, TTypestate>
+  ? Interpreter<TContext, TStateSchema, TEvent, TTypestate, TResolvedTypesMeta>
+  : never;
+
+export type MachineOptionsFrom<
+  T extends
+    | StateMachine<any, any, any, any, any, any, any>
+    | ((...args: any[]) => StateMachine<any, any, any, any, any, any, any>),
+  TRequireMissingImplementations extends boolean = false
+> = ReturnTypeOrValue<T> extends StateMachine<
+  infer TContext,
+  any,
+  infer TEvent,
+  any,
+  any,
+  any,
+  infer TResolvedTypesMeta
+>
+  ? InternalMachineOptions<
+      TContext,
+      TEvent,
+      TResolvedTypesMeta,
+      TRequireMissingImplementations
+    >
+  : never;
+
+// only meant to be used internally for debugging purposes
+export type __ResolvedTypesMetaFrom<T> = T extends StateMachine<
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  infer TResolvedTypesMeta
+>
+  ? TResolvedTypesMeta
   : never;
 
 export interface ActorContext<TEvent extends EventObject, TEmitted> {

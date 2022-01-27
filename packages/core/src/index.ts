@@ -78,6 +78,7 @@ export {
 };
 
 export * from './types';
+export * from './typegenTypes';
 
 declare global {
   interface SymbolConstructor {

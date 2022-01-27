@@ -21,6 +21,8 @@ import { StateNode } from './StateNode';
 import { getMeta, nextEvents } from './stateUtils';
 import { initEvent } from './actions';
 import { IS_PRODUCTION } from './environment';
+import { TypegenDisabled, TypegenEnabled } from './typegenTypes';
+import { BaseActionObject, Prop } from './types';
 
 export function stateValuesEqual(
   a: StateValue | undefined,
@@ -51,10 +53,17 @@ export function isState<
   TContext,
   TEvent extends EventObject,
   TStateSchema extends StateSchema<TContext> = any,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext },
+  TResolvedTypesMeta = TypegenDisabled
 >(
   state: object | string
-): state is State<TContext, TEvent, TStateSchema, TTypestate> {
+): state is State<
+  TContext,
+  TEvent,
+  TStateSchema,
+  TTypestate,
+  TResolvedTypesMeta
+> {
   if (isString(state)) {
     return false;
   }
@@ -64,7 +73,7 @@ export function isState<
 
 export function bindActionToState<TC, TE extends EventObject>(
   action: ActionObject<TC, TE>,
-  state: State<TC, TE, any, any>
+  state: State<TC, TE, any, any, any>
 ): ActionObject<TC, TE> {
   const { exec } = action;
   const boundAction: ActionObject<TC, TE> = {
@@ -87,12 +96,19 @@ export class State<
   TContext,
   TEvent extends EventObject = EventObject,
   TStateSchema extends StateSchema<TContext> = any,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext },
+  TResolvedTypesMeta = TypegenDisabled
 > {
   public value: StateValue;
   public context: TContext;
   public historyValue?: HistoryValue | undefined;
-  public history?: State<TContext, TEvent, TStateSchema, TTypestate>;
+  public history?: State<
+    TContext,
+    TEvent,
+    TStateSchema,
+    TTypestate,
+    TResolvedTypesMeta
+  >;
   public actions: Array<ActionObject<TContext, TEvent>> = [];
   public activities: ActivityMap = EMPTY_ACTIVITY_MAP;
   public meta: any = {};
@@ -116,7 +132,7 @@ export class State<
   /**
    * The enabled state nodes representative of the state value.
    */
-  public configuration: Array<StateNode<TContext, any, TEvent, any>>;
+  public configuration: Array<StateNode<TContext, any, TEvent, any, any>>;
   /**
    * The next events that will cause a transition from the current state.
    */
@@ -131,16 +147,26 @@ export class State<
    */
   public children: Record<string, ActorRef<any>>;
   public tags: Set<string>;
-  public machine: StateMachine<TContext, any, TEvent, TTypestate> | undefined;
+  public machine:
+    | StateMachine<
+        TContext,
+        any,
+        TEvent,
+        TTypestate,
+        BaseActionObject,
+        any,
+        TResolvedTypesMeta
+      >
+    | undefined;
   /**
    * Creates a new State instance for the given `stateValue` and `context`.
    * @param stateValue
    * @param context
    */
   public static from<TC, TE extends EventObject = EventObject>(
-    stateValue: State<TC, TE, any, any> | StateValue,
+    stateValue: State<TC, TE, any, any, any> | StateValue,
     context?: TC | undefined
-  ): State<TC, TE, any, any> {
+  ): State<TC, TE, any, any, any> {
     if (stateValue instanceof State) {
       if (stateValue.context !== context) {
         return new State<TC, TE>({
@@ -187,7 +213,7 @@ export class State<
    */
   public static create<TC, TE extends EventObject = EventObject>(
     config: StateConfig<TC, TE>
-  ): State<TC, TE> {
+  ): State<TC, TE, any, any, any> {
     return new State(config);
   }
   /**
@@ -297,7 +323,11 @@ export class State<
    * Whether the current state value is a subset of the given parent state value.
    * @param parentStateValue
    */
-  public matches<TSV extends TTypestate['value']>(
+  public matches<
+    TSV extends TResolvedTypesMeta extends TypegenEnabled
+      ? Prop<TResolvedTypesMeta, 'matchesStates'>
+      : TTypestate['value']
+  >(
     parentStateValue: TSV
   ): this is State<
     (TTypestate extends any
@@ -307,7 +337,8 @@ export class State<
       : never)['context'],
     TEvent,
     TStateSchema,
-    TTypestate
+    TTypestate,
+    TResolvedTypesMeta
   > & { value: TSV } {
     return matchesState(parentStateValue as StateValue, this.value);
   }
@@ -316,8 +347,12 @@ export class State<
    * Whether the current state configuration has a state node with the specified `tag`.
    * @param tag
    */
-  public hasTag(tag: string): boolean {
-    return this.tags.has(tag);
+  public hasTag(
+    tag: TResolvedTypesMeta extends TypegenEnabled
+      ? Prop<TResolvedTypesMeta, 'tags'>
+      : string
+  ): boolean {
+    return this.tags.has(tag as string);
   }
 
   /**
