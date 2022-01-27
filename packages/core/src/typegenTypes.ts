@@ -182,14 +182,6 @@ export type ResolveTypegenMeta<
         >,
         Prop<TTypesMeta, 'internalEvents'>
       >;
-      __debug: {
-        TServiceMap: TServiceMap;
-        invokeSrcNameMap: Prop<TTypesMeta, 'invokeSrcNameMap'>;
-        generated: GenerateServiceEvents<
-          TServiceMap,
-          Prop<TTypesMeta, 'invokeSrcNameMap'>
-        >;
-      };
     }
   : MarkAllImplementationsAsProvided<TypegenDisabled> &
       AllowAllEvents & {

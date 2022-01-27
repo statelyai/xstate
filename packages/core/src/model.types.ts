@@ -10,14 +10,14 @@ import {
   Prop,
   PropertyAssigner,
   StateMachine,
-  InternalMachineOptions
+  InternalMachineOptions,
+  ServiceMap
 } from './types';
 import {
   ResolveTypegenMeta,
   TypegenConstraint,
   TypegenDisabled
 } from './typegenTypes';
-import { ServiceMap } from '.';
 
 export interface Model<
   TContext,
@@ -36,19 +36,22 @@ export interface Model<
   actions: Prop<TModelCreators, 'actions'>;
   reset: () => AssignAction<TContext, any>;
   createMachine: {
-    <TTypesMeta extends TypegenConstraint = TypegenDisabled>(
+    <
+      TServiceMap extends ServiceMap = ServiceMap,
+      TTypesMeta extends TypegenConstraint = TypegenDisabled
+    >(
       config: MachineConfig<
         TContext,
         any,
         TEvent,
         TAction,
-        ServiceMap,
+        TServiceMap,
         TTypesMeta
       >,
       implementations?: InternalMachineOptions<
         TContext,
         TEvent,
-        ResolveTypegenMeta<TTypesMeta, TEvent, TAction, ServiceMap>
+        ResolveTypegenMeta<TTypesMeta, TEvent, TAction, TServiceMap>
       >
     ): StateMachine<
       TContext,
@@ -56,8 +59,8 @@ export interface Model<
       TEvent,
       { value: any; context: TContext },
       TAction,
-      ServiceMap,
-      ResolveTypegenMeta<TTypesMeta, TEvent, TAction, ServiceMap>
+      TServiceMap,
+      ResolveTypegenMeta<TTypesMeta, TEvent, TAction, TServiceMap>
     >;
   };
 }
