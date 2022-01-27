@@ -1,6 +1,6 @@
 {
   "name": "@xstate/vue",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "XState tools for Vue",
   "keywords": [
     "state",
@@ -44,9 +44,9 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "@xstate/fsm": "^1.0.0",
+    "@xstate/fsm": "^1.6.4",
     "vue": "^3.0.0",
-    "xstate": "^4.28.1"
+    "xstate": "^4.29.0"
   },
   "peerDependenciesMeta": {
     "@xstate/fsm": {

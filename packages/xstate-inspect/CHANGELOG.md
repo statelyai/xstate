@@ -1,5 +1,11 @@
 # @xstate/inspect
 
+## 0.6.2
+
+### Patch Changes
+
+- [#2957](https://github.com/statelyai/xstate/pull/2957) [`8550ddda7`](https://github.com/statelyai/xstate/commit/8550ddda73e2ad291e19173d7fa8d13e3336fbb9) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The repository links have been updated from `github.com/davidkpiano` to `github.com/statelyai`.
+
 ## 0.6.1
 
 ### Patch Changes
@@ -101,7 +107,7 @@
 
   const windowReceiver = createWindowReceiver(/* options? */);
 
-  windowReceiver.subscribe((event) => {
+  windowReceiver.subscribe(event => {
     // here, you will receive events like:
     // { type: "service.register", machine: ..., state: ..., sessionId: ... }
     console.log(event);

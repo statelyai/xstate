@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.0.0
+
+### Major Changes
+
+- [#2674](https://github.com/statelyai/xstate/pull/2674) [`e5a8b8dff`](https://github.com/statelyai/xstate/commit/e5a8b8dffb88cffbdca26683099ffdf5f1b01c8d) Thanks [@Andarist](https://github.com/Andarist), [@mattpocock](https://github.com/mattpocock)! - To avoid breaking any consumers and to leverage the newly introduced typegen support, the major version of this package had to be bumped. While you can still use it with older versions of TS, the typegen support in this package requires TS version 4.0 or greater.
+
+  When using hooks from `@xstate/react` it's recommended to skip providing explicit generics to them. Note that that generics list has changed since v1 and we now only accept a single generic, `TMachine`.
+
+* [#2674](https://github.com/statelyai/xstate/pull/2674) [`ab919d300`](https://github.com/statelyai/xstate/commit/ab919d300f6d2b78871d3399ec58a697c4268d9b) Thanks [@Andarist](https://github.com/Andarist)! - Removed already deprecated `useService` from `@xstate/react`. You can replace its usage with `useActor`.
+
+### Patch Changes
+
+- [#2957](https://github.com/statelyai/xstate/pull/2957) [`8550ddda7`](https://github.com/statelyai/xstate/commit/8550ddda73e2ad291e19173d7fa8d13e3336fbb9) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The repository links have been updated from `github.com/davidkpiano` to `github.com/statelyai`.
+
 ## 1.6.3
 
 ### Patch Changes
@@ -60,7 +74,7 @@
   Previously, guards could not reference external props, because they would not be updated when the props changed. For instance:
 
   ```tsx
-  const Modal = (props) => {
+  const Modal = props => {
     useMachine(modalMachine, {
       guards: {
         isModalOpen: () => props.isOpen
@@ -74,7 +88,7 @@
   This is not true of actions/services. This will work as expected:
 
   ```tsx
-  const Modal = (props) => {
+  const Modal = props => {
     useMachine(modalMachine, {
       actions: {
         consoleLogModalOpen: () => {
@@ -231,7 +245,7 @@
   import { useSelector } from '@xstate/react';
 
   const App = ({ someActor }) => {
-    const count = useSelector(someActor, (state) => state.context.count);
+    const count = useSelector(someActor, state => state.context.count);
 
     // ...
   };
@@ -352,7 +366,7 @@ All notable changes to this project will be documented in this file.
 - The `useActor` hook now takes a second argument: `getSnapshot` which is a function that should return the last emitted value:
 
   ```js
-  const [state, send] = useActor(someActor, (actor) => actor.current);
+  const [state, send] = useActor(someActor, actor => actor.current);
   ```
 
 ## [1.0.0-rc.6]
