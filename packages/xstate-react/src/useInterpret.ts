@@ -1,15 +1,14 @@
 import { useState } from 'react';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 import {
+  AreAllImplementationsAssumedToBeProvided,
+  InternalMachineOptions,
   interpret,
-  EventObject,
-  StateMachine,
-  State,
-  Interpreter,
+  InterpreterFrom,
   InterpreterOptions,
-  MachineOptions,
-  Typestate,
-  Observer
+  Observer,
+  State,
+  StateMachine
 } from 'xstate';
 import { MaybeLazy } from './types';
 import useConstant from './useConstant';
@@ -36,19 +35,75 @@ function toObserver<T>(
   };
 }
 
+type RestParams<
+  TMachine extends StateMachine<any, any, any, any, any, any, any>
+> = AreAllImplementationsAssumedToBeProvided<
+  TMachine['__TResolvedTypesMeta']
+> extends false
+  ? [
+      options: InterpreterOptions &
+        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+        InternalMachineOptions<
+          TMachine['__TContext'],
+          TMachine['__TEvent'],
+          TMachine['__TResolvedTypesMeta'],
+          true
+        >,
+      observerOrListener?:
+        | Observer<
+            State<
+              TMachine['__TContext'],
+              TMachine['__TEvent'],
+              any,
+              TMachine['__TTypestate'],
+              TMachine['__TResolvedTypesMeta']
+            >
+          >
+        | ((
+            value: State<
+              TMachine['__TContext'],
+              TMachine['__TEvent'],
+              any,
+              TMachine['__TTypestate'],
+              TMachine['__TResolvedTypesMeta']
+            >
+          ) => void)
+    ]
+  : [
+      options?: InterpreterOptions &
+        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+        InternalMachineOptions<
+          TMachine['__TContext'],
+          TMachine['__TEvent'],
+          TMachine['__TResolvedTypesMeta']
+        >,
+      observerOrListener?:
+        | Observer<
+            State<
+              TMachine['__TContext'],
+              TMachine['__TEvent'],
+              any,
+              TMachine['__TTypestate'],
+              TMachine['__TResolvedTypesMeta']
+            >
+          >
+        | ((
+            value: State<
+              TMachine['__TContext'],
+              TMachine['__TEvent'],
+              any,
+              TMachine['__TTypestate'],
+              TMachine['__TResolvedTypesMeta']
+            >
+          ) => void)
+    ];
+
 export function useInterpret<
-  TContext,
-  TEvent extends EventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TMachine extends StateMachine<any, any, any, any, any, any, any>
 >(
-  getMachine: MaybeLazy<StateMachine<TContext, any, TEvent, TTypestate>>,
-  options: Partial<InterpreterOptions> &
-    Partial<UseMachineOptions<TContext, TEvent>> &
-    Partial<MachineOptions<TContext, TEvent>> = {},
-  observerOrListener?:
-    | Observer<State<TContext, TEvent, any, TTypestate>>
-    | ((value: State<TContext, TEvent, any, TTypestate>) => void)
-): Interpreter<TContext, any, TEvent, TTypestate> {
+  getMachine: MaybeLazy<TMachine>,
+  ...[options = {}, observerOrListener]: RestParams<TMachine>
+): InterpreterFrom<TMachine> {
   const machine = useConstant(() => {
     return typeof getMachine === 'function' ? getMachine() : getMachine;
   });
@@ -71,12 +126,14 @@ export function useInterpret<
     context,
     guards,
     actions,
-    activities,
     services,
     delays,
     state: rehydratedState,
     ...interpreterOptions
   } = options;
+
+  // it's not defined in `TypegenMachineOptions` so we can't just unpack this property here freely
+  const { activities } = options as any;
 
   const service = useConstant(() => {
     const machineConfig = {
@@ -87,12 +144,12 @@ export function useInterpret<
       services,
       delays
     };
-    const machineWithConfig = machine.withConfig(machineConfig, () => ({
+    const machineWithConfig = machine.withConfig(machineConfig as any, () => ({
       ...machine.context,
       ...context
     }));
 
-    return interpret(machineWithConfig, {
+    return interpret(machineWithConfig as any, {
       deferEvents: true,
       ...interpreterOptions
     });
@@ -101,7 +158,7 @@ export function useInterpret<
   useIsomorphicLayoutEffect(() => {
     let sub;
     if (observerOrListener) {
-      sub = service.subscribe(toObserver(observerOrListener));
+      sub = service.subscribe(toObserver(observerOrListener) as any);
     }
 
     return () => {
@@ -132,5 +189,5 @@ export function useInterpret<
 
   useReactEffectActions(service);
 
-  return service;
+  return service as any;
 }

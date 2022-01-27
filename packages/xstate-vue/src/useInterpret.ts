@@ -67,7 +67,7 @@ export function useInterpret<
     delays
   };
 
-  const machineWithConfig = machine.withConfig(machineConfig, () => ({
+  const machineWithConfig = machine.withConfig(machineConfig as any, () => ({
     ...machine.context,
     ...context
   }));
@@ -79,7 +79,7 @@ export function useInterpret<
   let sub;
   onMounted(() => {
     if (observerOrListener) {
-      sub = service.subscribe(toObserver(observerOrListener));
+      sub = service.subscribe(toObserver(observerOrListener as any));
     }
   });
 
@@ -88,5 +88,5 @@ export function useInterpret<
     sub?.unsubscribe();
   });
 
-  return service;
+  return service as any;
 }

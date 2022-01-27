@@ -16,26 +16,26 @@ The [@xstate/fsm package](https://github.com/statelyai/xstate/tree/main/packages
 ## Features
 
 |                             | **@xstate/fsm** | [XState](https://github.com/statelyai/xstate) |
-| --------------------------- | :-------------: | :---------------------------------------------: |
-| Finite states               |       ✅        |                       ✅                        |
-| Initial state               |       ✅        |                       ✅                        |
-| Transitions (object)        |       ✅        |                       ✅                        |
-| Transitions (string target) |       ✅        |                       ✅                        |
-| Delayed transitions         |       ❌        |                       ✅                        |
-| Eventless transitions       |       ❌        |                       ✅                        |
-| Nested states               |       ❌        |                       ✅                        |
-| Parallel states             |       ❌        |                       ✅                        |
-| History states              |       ❌        |                       ✅                        |
-| Final states                |       ❌        |                       ✅                        |
-| Context                     |       ✅        |                       ✅                        |
-| Entry actions               |       ✅        |                       ✅                        |
-| Exit actions                |       ✅        |                       ✅                        |
-| Transition actions          |       ✅        |                       ✅                        |
-| Parameterized actions       |       ❌        |                       ✅                        |
-| Transition guards           |       ✅        |                       ✅                        |
-| Parameterized guards        |       ❌        |                       ✅                        |
-| Spawned actors              |       ❌        |                       ✅                        |
-| Invoked actors              |       ❌        |                       ✅                        |
+| --------------------------- | :-------------: | :-------------------------------------------: |
+| Finite states               |       ✅        |                      ✅                       |
+| Initial state               |       ✅        |                      ✅                       |
+| Transitions (object)        |       ✅        |                      ✅                       |
+| Transitions (string target) |       ✅        |                      ✅                       |
+| Delayed transitions         |       ❌        |                      ✅                       |
+| Eventless transitions       |       ❌        |                      ✅                       |
+| Nested states               |       ❌        |                      ✅                       |
+| Parallel states             |       ❌        |                      ✅                       |
+| History states              |       ❌        |                      ✅                       |
+| Final states                |       ❌        |                      ✅                       |
+| Context                     |       ✅        |                      ✅                       |
+| Entry actions               |       ✅        |                      ✅                       |
+| Exit actions                |       ✅        |                      ✅                       |
+| Transition actions          |       ✅        |                      ✅                       |
+| Parameterized actions       |       ❌        |                      ✅                       |
+| Transition guards           |       ✅        |                      ✅                       |
+| Parameterized guards        |       ❌        |                      ✅                       |
+| Spawned actors              |       ❌        |                      ✅                       |
+| Invoked actors              |       ❌        |                      ✅                       |
 
 - Finite states (non-nested)
 - Initial state

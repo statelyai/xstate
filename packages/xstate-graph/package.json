@@ -31,7 +31,7 @@
     "clean": "rm -rf dist lib es tsconfig.tsbuildinfo",
     "build": "tsc && tsc --outDir es --module es2015",
     "test": "jest",
-    "prepublish": "npm run build && npm run test"
+    "prepare": "npm run build"
   },
   "bugs": {
     "url": "https://github.com/statelyai/xstate/issues"

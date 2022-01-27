@@ -11,7 +11,7 @@ SCXML 事件包括:
 - `name` - 给出事件名称的字符串。 `name` 等价于 XState 事件的 `.type` 属性。
 - `type` - 事件类型：`'platform'`、`'external'` 或 `'internal'`。
   - `platform` 事件由平台本身引发，例如错误事件。
-  - `internal` 事件由 `raise(...)`  动作 或带有 `target: '_internal'` 的 `send(...)` 动作 引发。
+  - `internal` 事件由 `raise(...)` 动作 或带有 `target: '_internal'` 的 `send(...)` 动作 引发。
   - `external` 事件描述所有其他事件。
 - `sendid` - 触发 `send(...)` 动作的发送 ID。
 - `origin` - 一个字符串，允许此事件的接收者`send(...)` 一个响应事件回源。
