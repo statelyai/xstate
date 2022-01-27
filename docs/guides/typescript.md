@@ -126,15 +126,8 @@ const machine = createMachine({
 
 ```ts
 const machine = createMachine({
-  tsTypes: {} as import('./filename.typegen').Typegen[0],
-  schema: {
-    context: t<{ value: string }>(),
-    events: t<{ type: 'FOO'; value: string } | { type: 'BAR' }>()
-  },
-  initial: 'a',
-  states: {
-    /* ... */
-  }
+  tsTypes: {} as import('./filename.typegen').Typegen[0]
+  /* ... */
 });
 ```
 
@@ -143,7 +136,7 @@ const machine = createMachine({
 ```ts
 const machine = createMachine(
   {
-    // Config here
+    /* ... */
   },
   {
     actions: {
@@ -163,47 +156,6 @@ const machine = createMachine(
 You'll notice that the events in the options are _strongly typed to the events that cause the action to be triggered_. This is true for actions, guards, services and delays.
 
 You'll also notice that `state.matches`, `tags` and other parts of the machine are now type-safe.
-
-### How to get the most out of the VS Code extension
-
-#### Use named actions/guards/services
-
-Our recommendation with this approach is to mostly use named actions/guards/services, not inline ones.
-
-This is optimal:
-
-```ts
-createMachine(
-  {
-    entry: ['sayHello']
-  },
-  {
-    actions: {
-      sayHello: () => {
-        console.log('Hello!');
-      }
-    }
-  }
-);
-```
-
-This is useful, but less optimal:
-
-```ts
-createMachine({
-  entry: [
-    () => {
-      console.log('Hello!');
-    }
-  ]
-});
-```
-
-Named actions/services/guards allow for:
-
-- Better visualisation, because the names appear in the statechart
-- Easier-to-understand code
-- Overrides in `useMachine`, or `machine.withConfig`
 
 #### Typing promise services
 
@@ -247,6 +199,47 @@ createMachine(
   }
 );
 ```
+
+### How to get the most out of the VS Code extension
+
+#### Use named actions/guards/services
+
+Our recommendation with this approach is to mostly use named actions/guards/services, not inline ones.
+
+This is optimal:
+
+```ts
+createMachine(
+  {
+    entry: ['sayHello']
+  },
+  {
+    actions: {
+      sayHello: () => {
+        console.log('Hello!');
+      }
+    }
+  }
+);
+```
+
+This is useful, but less optimal:
+
+```ts
+createMachine({
+  entry: [
+    () => {
+      console.log('Hello!');
+    }
+  ]
+});
+```
+
+Named actions/services/guards allow for:
+
+- Better visualisation, because the names appear in the statechart
+- Easier-to-understand code
+- Overrides in `useMachine`, or `machine.withConfig`
 
 #### The generated files
 
