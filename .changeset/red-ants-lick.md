@@ -16,3 +16,5 @@ const machine = createMachine({
 ```
 
 The extension will automatically add a type assertion to this property, which allows for type-safe access to a lot of XState's API's.
+
+⚠️ This feature is in beta. Actions/services/guards/delays might currently get incorrectly annotated if they are called "in response" to always transitions or raised events. We are working on fixing this, both in XState and in the typegen.
