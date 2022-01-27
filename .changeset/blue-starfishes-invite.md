@@ -7,7 +7,7 @@ Using `config.schema` becomes the preferred way of "declaring" TypeScript generi
 ```js
 createMachine({
     schema: {
-    context: {} as { count: number }
+        context: {} as { count: number },
         events: {} as { type: 'INC' } | { type: 'DEC' }
     }
 })
