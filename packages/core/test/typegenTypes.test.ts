@@ -968,16 +968,19 @@ describe('typegen types', () => {
     );
   });
 
-  it('Should make invoked promises type-safe even if no event generic is passed', () => {
+  it('should error correctly for implementations called in response to internal events when there is no explicit event type', () => {
     interface TypesMeta extends TypegenMeta {
       eventsCausingActions: {
-        action: 'done.invoke.invocation';
+        myAction: 'done.invoke.invocation';
       };
       eventsCausingServices: {
-        invocation: never;
+        myInvocation: 'xstate.init';
+      };
+      internalEvents: {
+        'xstate.init': { type: 'xstate.init' };
       };
       invokeSrcNameMap: {
-        invocation: 'done.invoke.invocation';
+        myInvocation: 'done.invoke.invocation';
       };
     }
 
@@ -986,7 +989,7 @@ describe('typegen types', () => {
         tsTypes: {} as TypesMeta,
         schema: {
           services: {
-            invocation: {} as {
+            myInvocation: {} as {
               data: string;
             }
           }
@@ -994,13 +997,15 @@ describe('typegen types', () => {
       },
       {
         services: {
-          invocation: () => {
-            // @ts-expect-error
+          // @ts-expect-error
+          myInvocation: () => {
             return Promise.resolve(1);
           }
         },
         actions: {
-          action: (_context, event) => {
+          myAction: (_context, event) => {
+            ((_accept: 'done.invoke.invocation') => {})(event.type);
+            ((_accept: string) => {})(event.data);
             // @ts-expect-error
             ((_accept: number) => {})(event.data);
           }
