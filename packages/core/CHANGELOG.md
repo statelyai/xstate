@@ -4,7 +4,7 @@
 
 ### Minor Changes
 
-- [#2963](https://github.com/statelyai/xstate/pull/2963) [`5491d4e0a`](https://github.com/statelyai/xstate/commit/5491d4e0af3782c6706959f615926aea04d59b0d) Thanks [@mattpocock](https://github.com/mattpocock)! - Using `config.schema` becomes the preferred way of "declaring" TypeScript generics with this release:
+- [#2674](https://github.com/statelyai/xstate/pull/2674) [`1cd26811c`](https://github.com/statelyai/xstate/commit/1cd26811cea441366a082b0f77c7a6ffb135dc38) Thanks [@Andarist](https://github.com/Andarist)! - Using `config.schema` becomes the preferred way of "declaring" TypeScript generics with this release:
 
   ```js
   createMachine({
@@ -33,8 +33,6 @@
 
 ### Patch Changes
 
-- [#2957](https://github.com/statelyai/xstate/pull/2957) [`8550ddda7`](https://github.com/statelyai/xstate/commit/8550ddda73e2ad291e19173d7fa8d13e3336fbb9) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The repository links have been updated from `github.com/davidkpiano` to `github.com/statelyai`.
-
 * [#2962](https://github.com/statelyai/xstate/pull/2962) [`32520650b`](https://github.com/statelyai/xstate/commit/32520650b7d6b43e416b896054033432aaede5d5) Thanks [@mattpocock](https://github.com/mattpocock)! - Added `t()`, which can be used to provide types for `schema` attributes in machine configs:
 
   ```ts
@@ -47,6 +45,8 @@
     }
   });
   ```
+
+- [#2957](https://github.com/statelyai/xstate/pull/2957) [`8550ddda7`](https://github.com/statelyai/xstate/commit/8550ddda73e2ad291e19173d7fa8d13e3336fbb9) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The repository links have been updated from `github.com/davidkpiano` to `github.com/statelyai`.
 
 ## 4.28.1
 
