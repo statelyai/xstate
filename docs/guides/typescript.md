@@ -27,9 +27,13 @@ Providing the context and events to the `schema` attribute gives many advantages
 
 ## Typegen with the VSCode Extension <Badge text="4.29+" />
 
-Using our [VS Code extension](https://marketplace.visualstudio.com/items?itemName=statelyai.stately-vscode), you can automatically generate intelligent typings for XState.
+::: warning Experimental Feature
 
-> This feature is in beta! See the section on known limitations below to see what we're actively looking to improve.
+This feature is in beta! See the section on known limitations below to see what we're actively looking to improve.
+
+:::
+
+Using our [VS Code extension](https://marketplace.visualstudio.com/items?itemName=statelyai.stately-vscode), you can automatically generate intelligent typings for XState.
 
 Here's how you can get started:
 
