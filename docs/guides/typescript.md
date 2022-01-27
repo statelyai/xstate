@@ -3,18 +3,17 @@
 As XState is written in [TypeScript](https://www.typescriptlang.org/), strongly typing your statecharts is useful and encouraged.
 
 ```typescript
-import { t, createMachine } from 'xstate';
+import { createMachine } from 'xstate';
 
 const lightMachine = createMachine({
   schema: {
     // The context (extended state) of the machine
-    context: t<{ elapsed: number }>(),
+    context: {} as { elapsed: number },
     // The events this machine handles
-    events: t<
+    events: {} as
       | { type: 'TIMER' }
       | { type: 'POWER_OUTAGE' }
       | { type: 'PED_COUNTDOWN'; duration: number }
-    >()
   }
   /* Other config... */
 });
@@ -38,12 +37,12 @@ Here's how you can get started:
 2. Open a new file and create a new machine, passing the schema attributes:
 
 ```ts
-import { createMachine, t } from 'xstate';
+import { createMachine } from 'xstate';
 
 const machine = createMachine({
   schema: {
-    context: t<{ value: string }>(),
-    events: t<{ type: 'FOO'; value: string } | { type: 'BAR' }>()
+    context: {} as { value: string },
+    events: {} as { type: 'FOO'; value: string } | { type: 'BAR' }
   },
   initial: 'a',
   states: {
@@ -68,8 +67,8 @@ const machine = createMachine({
 const machine = createMachine({
   tsTypes: {},
   schema: {
-    context: t<{ value: string }>(),
-    events: t<{ type: 'FOO'; value: string } | { type: 'BAR' }>()
+    context: {} as { value: string },
+    events: {} as { type: 'FOO'; value: string } | { type: 'BAR' }
   },
   initial: 'a',
   states: {
@@ -118,17 +117,17 @@ You'll also notice that `state.matches`, `tags` and other parts of the machine a
 You can use the generated types to specify the return type of promise-based services, by using the `services` schema property:
 
 ```ts
-import { createMachine, t } from 'xstate';
+import { createMachine } from 'xstate';
 
 createMachine(
   {
     schema: {
-      services: t<{
+      services: {} as {
         myService: {
           // The data that gets returned from the service
           data: { id: string };
         };
-      }>()
+      }
     },
     invoke: {
       src: 'myService',
@@ -353,7 +352,7 @@ Here are some known issues, all of which can be worked around:
 When you use `createMachine`, you can pass in implementations to named actions/services/guards in your config. For instance:
 
 ```ts
-import { createMachine, t } from 'xstate';
+import { createMachine } from 'xstate';
 
 interface Context {}
 
@@ -366,8 +365,8 @@ type Event =
 createMachine(
   {
     schema: {
-      context: t<Context>(),
-      events: t<Event>()
+      context: {} as Context,
+      events: {} as Event
     },
     on: {
       EVENT_WITH_FLAG: {
@@ -403,12 +402,12 @@ createMachine(config, {
 It's also sometimes possible to move the implementation inline.
 
 ```ts
-import { createMachine, t } from 'xstate';
+import { createMachine } from 'xstate';
 
 createMachine({
   schema: {
-    context: t<Context>(),
-    events: t<Event>()
+    context: {} as Context,
+    events: {} as Event
   },
   on: {
     EVENT_WITH_FLAG: {
@@ -429,7 +428,7 @@ This approach doesn't work for all cases. The action loses its name, so it becom
 Event types in inline entry actions are not currently typed to the event that led to them. Consider this example:
 
 ```ts
-import { createMachine, t } from 'xstate';
+import { createMachine } from 'xstate';
 
 interface Context {}
 
@@ -441,8 +440,8 @@ type Event =
 
 createMachine({
   schema: {
-    context: t<Context>(),
-    events: t<Event>()
+    context: {} as Context,
+    events: {} as Event
   },
   initial: 'state1',
   states: {
@@ -488,7 +487,7 @@ interface Context {
 
 createMachine({
   schema: {
-    context: t<Context>()
+    context: {} as Context
   },
   context: {
     something: true
