@@ -1030,7 +1030,7 @@ describe('typegen types', () => {
       },
       {
         services: {
-          fooService: (_ctx, _ev) => (send, onReceive) => {
+          fooService: (_ctx, _ev) => (_send, onReceive) => {
             onReceive((event) => {
               ((_accept: string) => {})(event.type);
               // @ts-expect-error
