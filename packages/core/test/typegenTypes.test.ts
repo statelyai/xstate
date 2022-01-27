@@ -1067,4 +1067,50 @@ describe('typegen types', () => {
       }
     );
   });
+
+  it('should error correctly for implementations called in response to internal events when there is no explicit event type', () => {
+    interface TypesMeta extends TypegenMeta {
+      eventsCausingActions: {
+        myAction: 'done.invoke.invocation';
+      };
+      eventsCausingServices: {
+        myInvocation: 'xstate.init';
+      };
+      internalEvents: {
+        'xstate.init': { type: 'xstate.init' };
+      };
+      invokeSrcNameMap: {
+        myInvocation: 'done.invoke.invocation';
+      };
+    }
+
+    createMachine(
+      {
+        tsTypes: {} as TypesMeta,
+        schema: {
+          services: {
+            myInvocation: {} as {
+              data: string;
+            }
+          }
+        }
+      },
+      {
+        services: {
+          // @ts-expect-error
+          myInvocation: () => {
+            return Promise.resolve(1);
+          }
+        },
+        actions: {
+          myAction: (_context, event) => {
+            ((_accept: 'done.invoke.invocation') => {})(event.type);
+            ((_accept: string) => {})(event.data);
+            // @ts-expect-error
+            ((_accept: number) => {})(event.data);
+          }
+        }
+      }
+    );
+  });
 });

@@ -174,7 +174,7 @@ export type ResolveTypegenMeta<
       indexedActions: IndexByType<TAction>;
       indexedEvents: MergeWithInternalEvents<
         IndexByType<
-          | TEvent
+          | (string extends TEvent['type'] ? never : TEvent)
           | GenerateServiceEvents<
               TServiceMap,
               Prop<TTypesMeta, 'invokeSrcNameMap'>
