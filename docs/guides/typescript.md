@@ -8,10 +8,11 @@ const lightMachine = createMachine({
     // The context (extended state) of the machine
     context: t<{ elapsed: number }>(),
     // The events this machine handles
-    events: {} as
+    events: t<
       | { type: 'TIMER' }
       | { type: 'POWER_OUTAGE' }
       | { type: 'PED_COUNTDOWN'; duration: number }
+    >()
   },
   key: 'light',
   initial: 'green',
