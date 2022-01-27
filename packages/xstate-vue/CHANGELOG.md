@@ -1,5 +1,11 @@
 # @xstate/vue
 
+## 0.8.2
+
+### Patch Changes
+
+- [#2957](https://github.com/statelyai/xstate/pull/2957) [`8550ddda7`](https://github.com/statelyai/xstate/commit/8550ddda73e2ad291e19173d7fa8d13e3336fbb9) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The repository links have been updated from `github.com/davidkpiano` to `github.com/statelyai`.
+
 ## 0.8.1
 
 ### Patch Changes
@@ -95,10 +101,7 @@
   export default {
     props: ['someActor'],
     setup(props) {
-      const count = useSelector(
-        props.someActor,
-        (state) => state.context.count
-      );
+      const count = useSelector(props.someActor, state => state.context.count);
       // ...
       return { count };
     }
@@ -133,7 +136,7 @@
   export default defineComponent({
     setup() {
       const state = ref();
-      const service = useInterpret(machine, {}, (nextState) => {
+      const service = useInterpret(machine, {}, nextState => {
         state.value = nextState.value;
       });
       return { service, state };
