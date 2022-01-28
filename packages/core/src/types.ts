@@ -1048,12 +1048,19 @@ export interface StateMachine<
     TResolvedTypesMeta
   >;
 
+  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
   __TContext: TContext;
+  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
   __TStateSchema: TStateSchema;
+  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
   __TEvent: TEvent;
+  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
   __TTypestate: TTypestate;
+  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
   __TAction: TAction;
+  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
   __TServiceMap: TServiceMap;
+  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
   __TResolvedTypesMeta: TResolvedTypesMeta;
 }
 
