@@ -1607,6 +1607,28 @@ describe('choose', () => {
 
     expect(service.state.context).toEqual({ answer: 42 });
   });
+
+  it('Should be able to infer its context types from schema declarations', () => {
+    createMachine({
+      schema: {
+        context: {} as {
+          value: string;
+        }
+      },
+      entry: [
+        choose([
+          {
+            cond: (context) => {
+              ((accept_: string) => {})(context.value);
+
+              return true;
+            },
+            actions: ['someAction']
+          }
+        ])
+      ]
+    });
+  });
 });
 
 describe('sendParent', () => {
