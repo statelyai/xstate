@@ -994,7 +994,7 @@ export interface HistoryStateNode<TContext> extends StateNode<TContext> {
   target: StateValue | undefined;
 }
 
-// @ts-ignore TS complains about withConfig & withContext not being compatible here when extending StateNode
+/** @ts-ignore TS complains about withConfig & withContext not being compatible here when extending StateNode */
 export interface StateMachine<
   TContext,
   TStateSchema extends StateSchema,
