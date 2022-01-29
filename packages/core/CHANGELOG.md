@@ -1,5 +1,53 @@
 # xstate
 
+## 4.29.0
+
+### Minor Changes
+
+- [#2674](https://github.com/statelyai/xstate/pull/2674) [`1cd26811c`](https://github.com/statelyai/xstate/commit/1cd26811cea441366a082b0f77c7a6ffb135dc38) Thanks [@Andarist](https://github.com/Andarist)! - Using `config.schema` becomes the preferred way of "declaring" TypeScript generics with this release:
+
+  ```js
+  createMachine({
+      schema: {
+          context: {} as { count: number },
+          events: {} as { type: 'INC' } | { type: 'DEC' }
+      }
+  })
+  ```
+
+  This allows us to leverage the inference algorithm better and unlocks some exciting possibilities for using XState in a more type-strict manner.
+
+* [#2674](https://github.com/statelyai/xstate/pull/2674) [`1cd26811c`](https://github.com/statelyai/xstate/commit/1cd26811cea441366a082b0f77c7a6ffb135dc38) Thanks [@Andarist](https://github.com/Andarist), [@mattpocock](https://github.com/mattpocock)! - Added the ability to tighten TS declarations of machine with generated metadata. This opens several exciting doors to being able to use typegen seamlessly with XState to provide an amazing typing experience.
+
+  With the [VS Code extension](https://marketplace.visualstudio.com/items?itemName=statelyai.stately-vscode), you can specify a new attribute called `tsTypes: {}` in your machine definition:
+
+  ```ts
+  const machine = createMachine({
+    tsTypes: {}
+  });
+  ```
+
+  The extension will automatically add a type assertion to this property, which allows for type-safe access to a lot of XState's API's.
+
+  ⚠️ This feature is in beta. Actions/services/guards/delays might currently get incorrectly annotated if they are called "in response" to always transitions or raised events. We are working on fixing this, both in XState and in the typegen.
+
+### Patch Changes
+
+- [#2962](https://github.com/statelyai/xstate/pull/2962) [`32520650b`](https://github.com/statelyai/xstate/commit/32520650b7d6b43e416b896054033432aaede5d5) Thanks [@mattpocock](https://github.com/mattpocock)! - Added `t()`, which can be used to provide types for `schema` attributes in machine configs:
+
+  ```ts
+  import { t, createMachine } from 'xstate';
+
+  const machine = createMachine({
+    schema: {
+      context: t<{ value: number }>(),
+      events: t<{ type: 'EVENT_1' } | { type: 'EVENT_2' }>()
+    }
+  });
+  ```
+
+* [#2957](https://github.com/statelyai/xstate/pull/2957) [`8550ddda7`](https://github.com/statelyai/xstate/commit/8550ddda73e2ad291e19173d7fa8d13e3336fbb9) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The repository links have been updated from `github.com/davidkpiano` to `github.com/statelyai`.
+
 ## 4.28.1
 
 ### Patch Changes

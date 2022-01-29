@@ -1,6 +1,6 @@
 {
   "name": "@xstate/graph",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "XState graph utilities",
   "keywords": [
     "state",
@@ -31,13 +31,13 @@
     "clean": "rm -rf dist lib es tsconfig.tsbuildinfo",
     "build": "tsc && tsc --outDir es --module es2015",
     "test": "jest",
-    "prepublish": "npm run build && npm run test"
+    "prepare": "npm run build"
   },
   "bugs": {
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "xstate": "^4.28.1"
+    "xstate": "^4.29.0"
   },
   "devDependencies": {
     "jest": "^26.6.3",

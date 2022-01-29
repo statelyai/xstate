@@ -129,7 +129,7 @@ console.log(unchangedState.changed);
 
 ### `state.done`
 
-`state.done` 指定 `state`  是否为“[最终状态](./final.md)” - 最终状态是指示其状态机已达到其最终状态，并且不能再转换到任何其他状态的状态。
+`state.done` 指定 `state` 是否为“[最终状态](./final.md)” - 最终状态是指示其状态机已达到其最终状态，并且不能再转换到任何其他状态的状态。
 
 ```js
 const answeringMachine = createMachine({
@@ -290,7 +290,6 @@ try {
 import { State, interpret } from 'xstate';
 import { myMachine } from '../path/to/myMachine';
 
-
 // 从 localStorage 检索状态定义，如果 localStorage 为空，则使用状态机的初始状态
 const stateDefinition =
   JSON.parse(localStorage.getItem('app-state')) || myMachine.initialState;
@@ -421,5 +420,5 @@ console.log(mergeMeta(failureTimeoutState.meta));
 
 - 你永远不必手动创建 `State` 实例。 将 `State` 视为仅来自 `machine.transition(...)` 或 `service.onTransition(...)` 的只读对象。
 - `state.history` 不会保留其历史记录以防止内存泄漏。`state.history.history === undefined`。
-否则，你最终会创建一个巨大的链表并重新发明区块链，而我们并不这样做。
+  否则，你最终会创建一个巨大的链表并重新发明区块链，而我们并不这样做。
   - 此行为可能会在未来版本中进行配置。

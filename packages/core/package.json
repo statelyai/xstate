@@ -1,6 +1,6 @@
 {
   "name": "xstate",
-  "version": "4.28.1",
+  "version": "4.29.0",
   "description": "Finite State Machines and Statecharts for the Modern Web.",
   "main": "lib/index.js",
   "module": "es/index.js",
@@ -30,7 +30,7 @@
     "clean": "rm -rf lib es dist tsconfig.tsbuildinfo",
     "test": "jest",
     "build": "rollup -c",
-    "prepublishOnly": "npm run build"
+    "prepare": "npm run build"
   },
   "repository": {
     "type": "git",

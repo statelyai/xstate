@@ -28,14 +28,14 @@
     "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
     "test": "jest",
     "build": "tsc",
-    "prepublish": "npm run build"
+    "prepare": "npm run build"
   },
   "bugs": {
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "dependencies": {
     "xml-js": "^1.6.11",
-    "xstate": "^4.28.1"
+    "xstate": "^4.29.0"
   },
   "devDependencies": {
     "@scion-scxml/test-framework": "^2.0.15",

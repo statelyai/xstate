@@ -324,7 +324,11 @@ type FormEvent =
       type: 'SUBMIT';
     };
 
-const formMachine = createMachine<FormContext, FormEvent>({
+const formMachine = createMachine({
+  schema: {
+    context: {} as FormContext,
+    events: {} as FormEvent
+  },
   initial: 'editing',
   context: {
     name: '',

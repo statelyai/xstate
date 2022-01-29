@@ -1,6 +1,6 @@
 {
   "name": "@xstate/inspect",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "XState inspection utilities",
   "keywords": [
     "state",
@@ -32,7 +32,7 @@
     "clean": "rm -rf dist lib es tsconfig.tsbuildinfo",
     "test": "jest",
     "build": "rollup -c",
-    "prepublish": "npm run build"
+    "prepare": "npm run build"
   },
   "bugs": {
     "url": "https://github.com/statelyai/xstate/issues"

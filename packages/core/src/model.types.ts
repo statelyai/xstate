@@ -1,25 +1,23 @@
 import {
-  EventObject,
-  Assigner,
-  ExtractEvent,
-  PropertyAssigner,
+  AnyFunction,
   AssignAction,
+  Assigner,
+  BaseActionObject,
+  Compute,
+  EventObject,
+  ExtractEvent,
   MachineConfig,
-  MachineOptions,
+  Prop,
+  PropertyAssigner,
   StateMachine,
-  BaseActionObject
+  InternalMachineOptions,
+  ServiceMap
 } from './types';
-
-export type AnyFunction = (...args: any[]) => any;
-
-// https://github.com/microsoft/TypeScript/issues/23182#issuecomment-379091887
-export type IsNever<T> = [T] extends [never] ? true : false;
-
-export type Cast<T extends any, TCastType extends any> = T extends TCastType
-  ? T
-  : TCastType;
-export type Compute<A extends any> = { [K in keyof A]: A[K] } & unknown;
-export type Prop<T, K> = K extends keyof T ? T[K] : never;
+import {
+  ResolveTypegenMeta,
+  TypegenConstraint,
+  TypegenDisabled
+} from './typegenTypes';
 
 export interface Model<
   TContext,
@@ -37,10 +35,34 @@ export interface Model<
   events: Prop<TModelCreators, 'events'>;
   actions: Prop<TModelCreators, 'actions'>;
   reset: () => AssignAction<TContext, any>;
-  createMachine: (
-    config: MachineConfig<TContext, any, TEvent, TAction>,
-    implementations?: Partial<MachineOptions<TContext, TEvent, TAction>>
-  ) => StateMachine<TContext, any, TEvent>;
+  createMachine: {
+    <
+      TServiceMap extends ServiceMap = ServiceMap,
+      TTypesMeta extends TypegenConstraint = TypegenDisabled
+    >(
+      config: MachineConfig<
+        TContext,
+        any,
+        TEvent,
+        TAction,
+        TServiceMap,
+        TTypesMeta
+      >,
+      implementations?: InternalMachineOptions<
+        TContext,
+        TEvent,
+        ResolveTypegenMeta<TTypesMeta, TEvent, TAction, TServiceMap>
+      >
+    ): StateMachine<
+      TContext,
+      any,
+      TEvent,
+      { value: any; context: TContext },
+      TAction,
+      TServiceMap,
+      ResolveTypegenMeta<TTypesMeta, TEvent, TAction, TServiceMap>
+    >;
+  };
 }
 
 export type ModelContextFrom<

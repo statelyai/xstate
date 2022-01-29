@@ -1,17 +1,16 @@
-import { Interpreter } from '.';
 import { AnyInterpreter } from './types';
 
 type ServiceListener = (service: AnyInterpreter) => void;
 
 export interface XStateDevInterface {
-  register: (service: Interpreter<any>) => void;
-  unregister: (service: Interpreter<any>) => void;
+  register: (service: AnyInterpreter) => void;
+  unregister: (service: AnyInterpreter) => void;
   onRegister: (
     listener: ServiceListener
   ) => {
     unsubscribe: () => void;
   };
-  services: Set<Interpreter<any>>;
+  services: Set<AnyInterpreter>;
 }
 
 // From https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/globalThis

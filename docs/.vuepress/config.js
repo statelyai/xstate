@@ -5,7 +5,7 @@ module.exports = {
     'Documentation for XState: State Machines and Statecharts for the Modern Web',
   locales: {
     '/': {
-      lang: 'en-US',
+      lang: 'en-US'
     },
     '/zh/': {
       lang: 'zh-CN',
@@ -32,10 +32,10 @@ module.exports = {
     },
     locales: {
       '/': {
-        label: 'English',
+        label: 'English'
       },
       '/zh/': {
-        selectText: '选择语言',      
+        selectText: '选择语言',
         label: '简体中文',
         editLinkText: '在 GitHub 上编辑此页',
         lastUpdated: '上次更新',

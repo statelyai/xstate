@@ -35,7 +35,11 @@ import {
   ChooseAction,
   AnyEventObject,
   Expr,
-  Cast
+  StopAction,
+  StopActionObject,
+  Cast,
+  ActorRef,
+  EventFrom
 } from './types';
 import * as actionTypes from './actionTypes';
 import {
@@ -56,7 +60,6 @@ import {
 import { State } from './State';
 import { StateNode } from './StateNode';
 import { IS_PRODUCTION } from './environment';
-import { ActorRef, EventFrom, StopAction, StopActionObject } from '.';
 
 export { actionTypes };
 
@@ -605,7 +608,7 @@ export function choose<TContext, TEvent extends EventObject>(
 }
 
 export function resolveActions<TContext, TEvent extends EventObject>(
-  machine: StateNode<TContext, any, TEvent, any>,
+  machine: StateNode<TContext, any, TEvent, any, any, any>,
   currentState: State<TContext, TEvent> | undefined,
   currentContext: TContext,
   _event: SCXML.Event<TEvent>,
@@ -639,7 +642,7 @@ export function resolveActions<TContext, TEvent extends EventObject>(
               actionObject as SendAction<TContext, TEvent, AnyEventObject>,
               updatedContext,
               _event,
-              machine.options.delays
+              machine.options.delays as any
             ) as ActionObject<TContext, TEvent>; // TODO: fix ActionTypes.Init
 
             if (!IS_PRODUCTION) {
@@ -662,7 +665,10 @@ export function resolveActions<TContext, TEvent extends EventObject>(
           case actionTypes.choose: {
             const chooseAction = actionObject as ChooseAction<TContext, TEvent>;
             const matchedActions = chooseAction.conds.find((condition) => {
-              const guard = toGuard(condition.cond, machine.options.guards);
+              const guard = toGuard(
+                condition.cond,
+                machine.options.guards as any
+              );
               return (
                 !guard ||
                 evaluateGuard(
@@ -687,7 +693,10 @@ export function resolveActions<TContext, TEvent extends EventObject>(
               currentState,
               updatedContext,
               _event,
-              toActionObjects(toArray(matchedActions), machine.options.actions),
+              toActionObjects(
+                toArray(matchedActions),
+                machine.options.actions as any
+              ),
               preserveActionOrder
             );
             updatedContext = resolvedContextFromChoose;
@@ -707,7 +716,10 @@ export function resolveActions<TContext, TEvent extends EventObject>(
               currentState,
               updatedContext,
               _event,
-              toActionObjects(toArray(matchedActions), machine.options.actions),
+              toActionObjects(
+                toArray(matchedActions),
+                machine.options.actions as any
+              ),
               preserveActionOrder
             );
             updatedContext = resolvedContext;
@@ -734,7 +746,7 @@ export function resolveActions<TContext, TEvent extends EventObject>(
           default:
             let resolvedActionObject = toActionObject(
               actionObject,
-              machine.options.actions
+              machine.options.actions as any
             );
             const { exec } = resolvedActionObject;
             if (exec && preservedContexts) {
