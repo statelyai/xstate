@@ -1113,4 +1113,26 @@ describe('typegen types', () => {
       }
     );
   });
+
+  it('Should ensure that state.matches does not narrow the context', () => {
+    interface TypesMeta extends TypegenMeta {}
+
+    const machine = createMachine({
+      tsTypes: {} as TypesMeta,
+
+      schema: {
+        context: {} as {
+          foo: string;
+        }
+      }
+    });
+
+    if (machine.initialState.matches('a')) {
+      /**
+       * context should not be typed as any
+       */
+      // @ts-expect-error
+      machine.initialState.context.val;
+    }
+  });
 });
