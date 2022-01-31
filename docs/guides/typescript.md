@@ -206,6 +206,31 @@ We recommend you commit the generated files (`filename.typegen.ts`) to the repos
 
 If you want to remove the generated file, just remove the `tsTypes` attribute from your machine and it'll stop being generated.
 
+#### Don't use enums
+
+Enums are a common pattern in the XState Typescript commmunity. They're often used to declare state names. like this:
+
+```ts
+enum States {
+  A,
+  B
+}
+
+createMachine({
+  initial: States.A,
+  states: {
+    [States.A]: {},
+    [States.B]: {}
+  }
+});
+```
+
+You can then check `state.matches(States.A)` on the resulting machine. This allows for type-safe checks of state names.
+
+With typegen, using enums is no longer necessary - all `state.matches` types are type-safe. Enums are currently not supported by our static analysis tool. It's also unlikely that we'll ever support them with typegen due to the complexity they add for comparatively little gain.
+
+Instead of enums, use typegen and rely on the strength of the type-safety it provides.
+
 ### Known limitations
 
 #### Always transitions/raised events
