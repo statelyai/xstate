@@ -208,7 +208,7 @@ If you want to remove the generated file, just remove the `tsTypes` attribute fr
 
 #### Don't use enums
 
-Enums are a common pattern in the XState Typescript commmunity. They're often used to declare state names. like this:
+Enums were a common pattern used with XState TypeScript. They were often used to declare state names. like this:
 
 ```ts
 enum States {
