@@ -1167,4 +1167,97 @@ describe('typegen types', () => {
 
     acceptMachine(machine);
   });
+
+  it('should error on a provided action where there are no inferred actions', () => {
+    interface TypesMeta extends TypegenMeta {
+      eventsCausingActions: never;
+    }
+
+    createMachine(
+      {
+        tsTypes: {} as TypesMeta,
+        schema: {
+          context: {} as {
+            foo: string;
+          }
+        }
+      },
+      {
+        // @ts-expect-error
+        actions: {
+          testAction: () => {}
+        }
+      }
+    );
+  });
+
+  it('should error on a provided delay where there are no inferred delays', () => {
+    interface TypesMeta extends TypegenMeta {
+      eventsCausingDelays: never;
+    }
+
+    createMachine(
+      {
+        tsTypes: {} as TypesMeta,
+        schema: {
+          context: {} as {
+            foo: string;
+          }
+        }
+      },
+      {
+        // @ts-expect-error
+        delays: {
+          testDelay: () => {}
+        }
+      }
+    );
+  });
+
+  it('should error on a provided guard where there are no inferred guards', () => {
+    interface TypesMeta extends TypegenMeta {
+      eventsCausingGuards: never;
+    }
+
+    createMachine(
+      {
+        tsTypes: {} as TypesMeta,
+        schema: {
+          context: {} as {
+            foo: string;
+          }
+        }
+      },
+      {
+        // @ts-expect-error
+        guards: {
+          testGuard: () => {}
+        }
+      }
+    );
+  });
+
+  it('should error on a provided service where there are no declared services', () => {
+    interface TypesMeta extends TypegenMeta {
+      eventsCausingServices: never;
+      invokeSrcNameMap: never;
+    }
+
+    createMachine(
+      {
+        tsTypes: {} as TypesMeta,
+        schema: {
+          context: {} as {
+            foo: string;
+          }
+        }
+      },
+      {
+        // @ts-expect-error
+        services: {
+          testService: () => Promise.resolve(42)
+        }
+      }
+    );
+  });
 });
