@@ -1114,8 +1114,10 @@ describe('typegen types', () => {
     );
   });
 
-  it('Should ensure that state.matches does not narrow the context', () => {
-    interface TypesMeta extends TypegenMeta {}
+  it("shouldn't end up with `any` context after calling `state.matches`", () => {
+    interface TypesMeta extends TypegenMeta {
+      matchesStates: 'a' | 'b' | 'c';
+    }
 
     const machine = createMachine({
       tsTypes: {} as TypesMeta,
@@ -1128,9 +1130,6 @@ describe('typegen types', () => {
     });
 
     if (machine.initialState.matches('a')) {
-      /**
-       * context should not be typed as any
-       */
       // @ts-expect-error
       machine.initialState.context.val;
     }
