@@ -105,7 +105,7 @@ export function createMachine<
   TContext,
   any,
   TEvent,
-  { value: any; context: TContext },
+  TTypestate,
   BaseActionObject,
   TServiceMap,
   ResolveTypegenMeta<TTypesMeta, TEvent, BaseActionObject, TServiceMap>
