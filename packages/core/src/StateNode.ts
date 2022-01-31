@@ -73,7 +73,7 @@ import {
   StateConfig
 } from './types';
 import { matchesState } from './utils';
-import { isStateConfig, State, stateValuesEqual } from './State';
+import { State, stateValuesEqual } from './State';
 import * as actionTypes from './actionTypes';
 import {
   start,
@@ -752,15 +752,7 @@ class StateNode<
     state: State<TContext, TEvent, any, any> | StateConfig<TContext, TEvent>
   ): State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta> {
     const stateFromConfig =
-      state instanceof State
-        ? state
-        : isStateConfig(state)
-        ? State.create(state)
-        : undefined;
-
-    if (!stateFromConfig) {
-      throw new Error(`Cannot resolve state: invalid state object`);
-    }
+      state instanceof State ? state : State.create(state);
 
     const configuration = Array.from(
       getConfiguration([], this.getStateNodes(stateFromConfig.value))

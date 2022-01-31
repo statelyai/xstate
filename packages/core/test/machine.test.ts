@@ -349,7 +349,7 @@ describe('machine', () => {
       expect(machine.resolveState(jsonBarState).matches('bar')).toBeTruthy();
     });
 
-    it('should resolve from a state config object (interpreter)', (done) => {
+    it('should terminate on a resolved final state', (done) => {
       const machine = createMachine({
         initial: 'foo',
         states: {
