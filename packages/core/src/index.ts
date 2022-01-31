@@ -4,26 +4,7 @@ import { StateNode } from './StateNode';
 import { State } from './State';
 import { Machine, createMachine } from './Machine';
 import { Actor } from './Actor';
-import {
-  raise,
-  send,
-  sendParent,
-  sendTo,
-  sendUpdate,
-  log,
-  cancel,
-  start,
-  stop,
-  assign,
-  after,
-  done,
-  respond,
-  doneInvoke,
-  forwardTo,
-  escalate,
-  choose,
-  pure
-} from './actions';
+import * as actions from './actions';
 import {
   interpret,
   Interpreter,
@@ -31,27 +12,9 @@ import {
   InterpreterStatus
 } from './interpreter';
 import { matchState } from './match';
-import { createSchema } from './schema';
+import { createSchema, t } from './schema';
 
-const actions = {
-  raise,
-  send,
-  sendParent,
-  sendTo,
-  sendUpdate,
-  log,
-  cancel,
-  start,
-  stop,
-  assign,
-  after,
-  done,
-  respond,
-  forwardTo,
-  escalate,
-  choose,
-  pure
-};
+const { assign, send, sendParent, sendUpdate, forwardTo, doneInvoke } = actions;
 
 export {
   Actor,
@@ -73,10 +36,12 @@ export {
   spawn,
   doneInvoke,
   createMachine,
-  createSchema
+  createSchema,
+  t
 };
 
 export * from './types';
+export * from './typegenTypes';
 
 declare global {
   interface SymbolConstructor {

@@ -1,6 +1,6 @@
 {
   "name": "@xstate/svelte",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "XState tools for Svelte",
   "keywords": [
     "state",
@@ -34,15 +34,15 @@
     "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
     "build": "tsc",
     "test": "jest",
-    "prepublish": "npm run build"
+    "prepare": "npm run build"
   },
   "bugs": {
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "@xstate/fsm": "^1.0.0",
+    "@xstate/fsm": "^1.6.4",
     "svelte": "^3.24.1",
-    "xstate": "^4.28.1"
+    "xstate": "^4.29.0"
   },
   "peerDependenciesMeta": {
     "@xstate/fsm": {

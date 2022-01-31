@@ -3,7 +3,7 @@ import { useSubscription } from 'use-subscription';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 import { ActorRef, Interpreter, Subscribable } from 'xstate';
 import { isActorWithState } from './useActor';
-import { getServiceSnapshot } from './useService';
+import { getServiceSnapshot } from './utils';
 
 function isService(actor: any): actor is Interpreter<any, any, any, any> {
   return 'state' in actor && 'machine' in actor;

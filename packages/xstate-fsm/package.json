@@ -1,6 +1,6 @@
 {
   "name": "@xstate/fsm",
-  "version": "1.6.3",
+  "version": "1.6.4",
   "description": "XState for finite state machines",
   "keywords": [
     "state",
@@ -36,7 +36,7 @@
     "clean": "rm -rf lib es dist tsconfig.tsbuildinfo",
     "build": "rollup -c",
     "test": "jest",
-    "prepublish": "npm run build"
+    "prepare": "npm run build"
   },
   "bugs": {
     "url": "https://github.com/statelyai/xstate/issues"

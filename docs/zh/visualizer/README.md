@@ -216,7 +216,7 @@ Import existing machines from GitHub gists -->
 
 [尝试在 Inspect 模式下 Visualizer](https://stately.ai/viz?inspect)
 
-Visualizer 现在可用，并且将永远免费和开源。欢迎投稿！ 
+Visualizer 现在可用，并且将永远免费和开源。欢迎投稿！
 
 ### 反馈和错误报告
 

@@ -1,6 +1,6 @@
 {
   "name": "@xstate/react",
-  "version": "1.6.3",
+  "version": "2.0.0",
   "description": "XState tools for React",
   "keywords": [
     "state",
@@ -18,6 +18,13 @@
   "main": "lib/index.js",
   "module": "es/index.js",
   "types": "lib/index.d.ts",
+  "typesVersions": {
+    "<4.0": {
+      "lib/index.d.ts": [
+        "index.v3.d.ts"
+      ]
+    }
+  },
   "sideEffects": false,
   "directories": {
     "lib": "lib",
@@ -39,15 +46,15 @@
     "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
     "build": "tsc && tsc --outDir es --module es2015 && rollup -c",
     "test": "jest",
-    "prepublish": "npm run build"
+    "prepare": "npm run build"
   },
   "bugs": {
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "@xstate/fsm": "^1.0.0",
+    "@xstate/fsm": "^1.6.4",
     "react": "^16.8.0 || ^17.0.0",
-    "xstate": "^4.28.1"
+    "xstate": "^4.29.0"
   },
   "peerDependenciesMeta": {
     "@xstate/fsm": {
