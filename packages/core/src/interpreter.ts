@@ -33,7 +33,7 @@ import {
   StopActionObject,
   Subscription
 } from './types';
-import { State, bindActionToState, isState } from './State';
+import { State, bindActionToState, isStateConfig } from './State';
 import * as actionTypes from './actionTypes';
 import { doneInvoke, error, getActionFunction, initEvent } from './actions';
 import { IS_PRODUCTION } from './environment';
@@ -65,6 +65,7 @@ import { registry } from './registry';
 import { getGlobal, registerService } from './devTools';
 import * as serviceScope from './serviceScope';
 import { spawnBehavior } from './behaviors';
+import { StateConfig } from '.';
 import {
   AreAllImplementationsAssumedToBeProvided,
   TypegenDisabled
@@ -298,13 +299,7 @@ export class Interpreter<
   }
 
   private update(
-    state: State<
-      TContext,
-      TEvent,
-      TStateSchema,
-      TTypestate,
-      TResolvedTypesMeta
-    >,
+    state: State<TContext, TEvent, TStateSchema, TTypestate, any>,
     _event: SCXML.Event<TEvent>
   ): void {
     // Attach session ID to state
@@ -515,6 +510,7 @@ export class Interpreter<
   public start(
     initialState?:
       | State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta>
+      | StateConfig<TContext, TEvent>
       | StateValue
   ): this {
     if (this.status === InterpreterStatus.Running) {
@@ -530,13 +526,7 @@ export class Interpreter<
       initialState === undefined
         ? this.initialState
         : serviceScope.provide(this, () => {
-            return isState<
-              TContext,
-              TEvent,
-              TStateSchema,
-              TTypestate,
-              TResolvedTypesMeta
-            >(initialState)
+            return isStateConfig<TContext, TEvent>(initialState)
               ? this.machine.resolveState(initialState)
               : this.machine.resolveState(
                   State.from(initialState, this.machine.context)

@@ -49,27 +49,20 @@ export function stateValuesEqual(
   );
 }
 
-export function isState<
-  TContext,
-  TEvent extends EventObject,
-  TStateSchema extends StateSchema<TContext> = any,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext },
-  TResolvedTypesMeta = TypegenDisabled
->(
-  state: object | string
-): state is State<
-  TContext,
-  TEvent,
-  TStateSchema,
-  TTypestate,
-  TResolvedTypesMeta
-> {
-  if (isString(state)) {
+export function isStateConfig<TContext, TEvent extends EventObject>(
+  state: any
+): state is StateConfig<TContext, TEvent> {
+  if (typeof state !== 'object' || state === null) {
     return false;
   }
 
-  return 'value' in state && 'history' in state;
+  return 'value' in state && '_event' in state;
 }
+
+/**
+ * @deprecated Use `isStateConfig(object)` or `state instanceof State` instead.
+ */
+export const isState = isStateConfig;
 
 export function bindActionToState<TC, TE extends EventObject>(
   action: ActionObject<TC, TE>,

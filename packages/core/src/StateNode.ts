@@ -69,7 +69,8 @@ import {
   ActorRef,
   StateMachine,
   InternalMachineOptions,
-  ServiceMap
+  ServiceMap,
+  StateConfig
 } from './types';
 import { matchesState } from './utils';
 import { State, stateValuesEqual } from './State';
@@ -748,14 +749,17 @@ class StateNode<
    * @param state The state to resolve
    */
   public resolveState(
-    state: State<TContext, TEvent, any, any, TResolvedTypesMeta>
+    state: State<TContext, TEvent, any, any> | StateConfig<TContext, TEvent>
   ): State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta> {
+    const stateFromConfig =
+      state instanceof State ? state : State.create(state);
+
     const configuration = Array.from(
-      getConfiguration([], this.getStateNodes(state.value))
+      getConfiguration([], this.getStateNodes(stateFromConfig.value))
     );
     return new State({
-      ...state,
-      value: this.resolve(state.value),
+      ...stateFromConfig,
+      value: this.resolve(stateFromConfig.value),
       configuration,
       done: isInFinalState(configuration, this),
       tags: getTagsFromConfiguration(configuration)
@@ -972,7 +976,7 @@ class StateNode<
 
     const nodes: Array<StateNode<TContext, any, TEvent, any, any, any>> = [];
     let marker:
-      | StateNode<TContext, any, TEvent, any>
+      | StateNode<TContext, any, TEvent, any, any>
       | undefined = childStateNode;
 
     while (marker && marker !== this) {
