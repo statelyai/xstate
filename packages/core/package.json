@@ -61,6 +61,7 @@
     "rollup-plugin-uglify": "^6.0.2",
     "rxjs": "^7.1.0",
     "ts-jest": "^26.5.6",
+    "ts-toolbelt": "^9.6.0",
     "tslib": "^2.3.1",
     "typescript": "^4.5.2",
     "xml-js": "^1.6.11"
