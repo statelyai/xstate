@@ -722,8 +722,7 @@ export class Interpreter<
     event: SCXML.Event<AnyEventObject>,
     to: string | number | ActorRef<any>
   ) => {
-    const isParent =
-      this.parent && (to === SpecialTargets.Parent || this.parent.id === to);
+    const isParent = to === SpecialTargets.Parent || this?.parent?.id === to;
     const target = isParent
       ? this.parent
       : isString(to)
