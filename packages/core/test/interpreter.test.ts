@@ -1040,7 +1040,6 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
     it('should not error if the childMachine uses sendParent when not invoked within a parent machine', (done) => {
       interpret(orphanMachine)
         .onTransition((state) => {
-          console.log(state);
           expect(state.matches('finish')).toBe(true);
         })
         .onDone(() => done())
