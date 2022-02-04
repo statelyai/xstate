@@ -1,7 +1,11 @@
 import type { StateMachine } from './StateMachine';
 import {
-  EventObject,
+  AnyFunction,
+  AssignAction,
   Assigner,
+  BaseActionObject,
+  Compute,
+  EventObject,
   ExtractEvent,
   PropertyAssigner,
   MachineConfig,
@@ -10,17 +14,11 @@ import {
   MachineContext,
   DynamicAssignAction
 } from './types';
-
-export type AnyFunction = (...args: any[]) => any;
-
-// https://github.com/microsoft/TypeScript/issues/23182#issuecomment-379091887
-export type IsNever<T> = [T] extends [never] ? true : false;
-
-export type Cast<T extends any, TCastType extends any> = T extends TCastType
-  ? T
-  : TCastType;
-export type Compute<A extends any> = { [K in keyof A]: A[K] } & unknown;
-export type Prop<T, K> = K extends keyof T ? T[K] : never;
+import {
+  ResolveTypegenMeta,
+  TypegenConstraint,
+  TypegenDisabled
+} from './typegenTypes';
 
 export interface Model<
   TContext extends MachineContext,

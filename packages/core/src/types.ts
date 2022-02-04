@@ -12,6 +12,22 @@ export type Prop<T, K> = K extends keyof T ? T[K] : never;
 // https://github.com/microsoft/TypeScript/issues/23182#issuecomment-379091887
 export type IsNever<T> = [T] extends [never] ? true : false;
 
+// https://github.com/microsoft/TypeScript/issues/23182#issuecomment-379091887
+export type IsNever<T> = [T] extends [never] ? true : false;
+
+export type Compute<A extends any> = { [K in keyof A]: A[K] } & unknown;
+export type Prop<T, K> = K extends keyof T ? T[K] : never;
+export type Values<T> = T[keyof T];
+export type Merge<M, N> = Omit<M, keyof N> & N;
+export type IndexByType<T extends { type: string }> = {
+  [K in T['type']]: Extract<T, { type: K }>;
+};
+export type Equals<A1 extends any, A2 extends any> = (<A>() => A extends A2
+  ? true
+  : false) extends <A>() => A extends A1 ? true : false
+  ? true
+  : false;
+export type IsAny<T> = Equals<T, any>;
 export type Cast<A, B> = A extends B ? A : B;
 
 export type EventType = string;
@@ -343,7 +359,9 @@ export interface PayloadSender<TEvent extends EventObject> {
 }
 
 export type Receiver<TEvent extends EventObject> = (
-  listener: (event: TEvent) => void
+  listener: {
+    bivarianceHack(event: TEvent): void;
+  }['bivarianceHack']
 ) => void;
 
 export type InvokeCallback<
@@ -813,7 +831,7 @@ export interface MachineSchema<
   events?: TEvent;
   actions?: { type: string; [key: string]: any };
   guards?: { type: string; [key: string]: any };
-  services?: { type: string; [key: string]: any };
+  services?: TServiceMap;
 }
 
 export interface HistoryStateNode<TContext extends MachineContext>
@@ -1341,7 +1359,7 @@ export interface InterpreterOptions {
    *
    * Default: `true`
    */
-  deferEvents: boolean;
+  deferEvents?: boolean;
   /**
    * The custom `id` for referencing this service.
    */

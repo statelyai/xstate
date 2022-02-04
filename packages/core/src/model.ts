@@ -3,13 +3,10 @@ import { createMachine } from './Machine';
 import type { EventObject, MachineContext, BaseActionObject } from './types';
 import { mapValues } from './utils';
 import {
-  Cast,
   UnionFromCreatorsReturnTypes,
   FinalModelCreators,
   Model,
-  ModelCreators,
-  Prop,
-  IsNever
+  ModelCreators
 } from './model.types';
 
 export function createModel<

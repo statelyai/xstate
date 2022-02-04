@@ -238,8 +238,12 @@ export class State<
    * Whether the current state configuration has a state node with the specified `tag`.
    * @param tag
    */
-  public hasTag(tag: string): boolean {
-    return this.tags.has(tag);
+  public hasTag(
+    tag: TResolvedTypesMeta extends TypegenEnabled
+      ? Prop<TResolvedTypesMeta, 'tags'>
+      : string
+  ): boolean {
+    return this.tags.has(tag as string);
   }
 
   /**

@@ -94,33 +94,6 @@ A [React hook](https://reactjs.org/hooks) that interprets the given `machine` an
 - `send` - A function that sends events to the running service.
 - `service` - The created service.
 
-### `useService(service)`
-
-::: warning Deprecated
-
-In the next major version, `useService(service)` will be replaced with `useActor(service)`. Prefer using the `useActor(service)` hook for services instead, since services are also actors.
-
-Also, keep in mind that only a single argument (the event object) can be sent to `send(eventObject)` from `useActor(...)`. When migrating to `useActor(...)`, refactor `send(...)` calls to use only a single event object:
-
-```diff
-const [state, send] = useActor(service);
--send('CLICK', { x: 0, y: 3 });
-+send({ type: 'CLICK', x: 0, y: 3 });
-```
-
-:::
-
-A [React hook](https://reactjs.org/hooks) that subscribes to state changes from an existing [service](https://xstate.js.org/docs/guides/interpretation.html).
-
-**Arguments**
-
-- `service` - An [XState service](https://xstate.js.org/docs/guides/interpretation.html).
-
-**Returns** a tuple of `[state, send]`:
-
-- `state` - Represents the current state of the service as an XState `State` object.
-- `send` - A function that sends events to the running service.
-
 ### `useActor(actor, getSnapshot?)`
 
 A [React hook](https://reactjs.org/hooks) that subscribes to emitted changes from an existing [actor](https://xstate.js.org/docs/guides/actors.html).
@@ -561,18 +534,6 @@ useEffect(() => {
   return subscription.unsubscribe;
 }, [service]); // note: service should never change
 ```
-
-## Migration from 0.x
-
-- For spawned actors created using `invoke` or `spawn(...)`, use the `useActor()` hook instead of `useService()`:
-
-  ```diff
-  -import { useService } from '@xstate/react';
-  +import { useActor } from '@xstate/react';
-
-  -const [state, send] = useService(someActor);
-  +const [state, send] = useActor(someActor);
-  ```
 
 ## Resources
 

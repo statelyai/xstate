@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 import {
+  AreAllImplementationsAssumedToBeProvided,
+  InternalMachineOptions,
   interpret,
-  EventObject,
-  StateMachine,
-  State,
-  Interpreter,
+  InterpreterFrom,
   InterpreterOptions,
   MachineImplementations,
   Observer
@@ -35,6 +34,69 @@ function toObserver<T>(
     complete: completionHandler || noop
   };
 }
+
+type RestParams<
+  TMachine extends StateMachine<any, any, any, any, any, any, any>
+> = AreAllImplementationsAssumedToBeProvided<
+  TMachine['__TResolvedTypesMeta']
+> extends false
+  ? [
+      options: InterpreterOptions &
+        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+        InternalMachineOptions<
+          TMachine['__TContext'],
+          TMachine['__TEvent'],
+          TMachine['__TResolvedTypesMeta'],
+          true
+        >,
+      observerOrListener?:
+        | Observer<
+            State<
+              TMachine['__TContext'],
+              TMachine['__TEvent'],
+              any,
+              TMachine['__TTypestate'],
+              TMachine['__TResolvedTypesMeta']
+            >
+          >
+        | ((
+            value: State<
+              TMachine['__TContext'],
+              TMachine['__TEvent'],
+              any,
+              TMachine['__TTypestate'],
+              TMachine['__TResolvedTypesMeta']
+            >
+          ) => void)
+    ]
+  : [
+      options?: InterpreterOptions &
+        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+        InternalMachineOptions<
+          TMachine['__TContext'],
+          TMachine['__TEvent'],
+          TMachine['__TResolvedTypesMeta']
+        >,
+      observerOrListener?:
+        | Observer<
+            State<
+              TMachine['__TContext'],
+              TMachine['__TEvent'],
+              any,
+              TMachine['__TTypestate'],
+              TMachine['__TResolvedTypesMeta']
+            >
+          >
+        | ((
+            value: State<
+              TMachine['__TContext'],
+              TMachine['__TEvent'],
+              any,
+              TMachine['__TTypestate'],
+              TMachine['__TResolvedTypesMeta']
+            >
+          ) => void)
+    ];
 
 export function useInterpret<
   TContext extends MachineContext,
@@ -76,6 +138,9 @@ export function useInterpret<
     ...interpreterOptions
   } = options;
 
+  // it's not defined in `TypegenMachineOptions` so we can't just unpack this property here freely
+  const { activities } = options as any;
+
   const service = useConstant(() => {
     const machineConfig = {
       context,
@@ -86,7 +151,7 @@ export function useInterpret<
     };
     const machineWithConfig = machine.provide(machineConfig);
 
-    return interpret(machineWithConfig, {
+    return interpret(machineWithConfig as any, {
       deferEvents: true,
       ...interpreterOptions
     });
@@ -95,7 +160,7 @@ export function useInterpret<
   useIsomorphicLayoutEffect(() => {
     let sub;
     if (observerOrListener) {
-      sub = service.subscribe(toObserver(observerOrListener));
+      sub = service.subscribe(toObserver(observerOrListener) as any);
     }
 
     return () => {
@@ -125,5 +190,5 @@ export function useInterpret<
 
   useReactEffectActions(service);
 
-  return service;
+  return service as any;
 }

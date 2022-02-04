@@ -17,7 +17,9 @@ import {
   Segments,
   ValueAdjMapOptions,
   DirectedGraphEdge,
-  DirectedGraphNode
+  DirectedGraphNode,
+  AnyStateNode,
+  StatePath
 } from './types';
 
 export function toEventObject<TEvent extends EventObject>(
@@ -40,18 +42,18 @@ export function getStateNodes(
   stateNode: StateNode | StateMachine<any, any>
 ): StateNode[] {
   const { states } = stateNode;
-  const nodes = keys(states).reduce((accNodes: StateNode[], stateKey) => {
+  const nodes = keys(states).reduce((accNodes, stateKey) => {
     const childStateNode = states[stateKey];
     const childStateNodes = getStateNodes(childStateNode);
 
     accNodes.push(childStateNode, ...childStateNodes);
     return accNodes;
-  }, []);
+  }, [] as AnyStateNode[]);
 
   return nodes;
 }
 
-export function getChildren(stateNode: StateNode): StateNode[] {
+export function getChildren(stateNode: AnyStateNode): AnyStateNode[] {
   if (!stateNode.states) {
     return [];
   }
@@ -361,7 +363,7 @@ export function toDirectedGraph(
       return targets.map((target, targetIndex) => {
         const edge: DirectedGraphEdge = {
           id: `${stateNode.id}:${transitionIndex}:${targetIndex}`,
-          source: stateNode,
+          source: stateNode as AnyStateNode,
           target,
           transition: t,
           label: {
@@ -382,8 +384,8 @@ export function toDirectedGraph(
 
   const graph = {
     id: stateNode.id,
-    stateNode,
-    children: getChildren(stateNode).map((sn) => toDirectedGraph(sn)),
+    stateNode: stateNode as AnyStateNode,
+    children: getChildren(stateNode as AnyStateNode).map(toDirectedGraph),
     edges,
     toJSON: () => {
       const { id, children, edges: graphEdges } = graph;

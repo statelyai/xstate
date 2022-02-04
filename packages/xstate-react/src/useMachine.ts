@@ -1,5 +1,7 @@
 import { useCallback, useState } from 'react';
 import {
+  ActionFunction,
+  AreAllImplementationsAssumedToBeProvided,
   EventObject,
   StateMachine,
   State,
@@ -66,6 +68,36 @@ export interface UseMachineOptions<
   state?: StateConfig<TContext, TEvent>;
 }
 
+type RestParams<
+  TMachine extends StateMachine<any, any, any, any, any, any, any>
+> = AreAllImplementationsAssumedToBeProvided<
+  TMachine['__TResolvedTypesMeta']
+> extends false
+  ? [
+      options: InterpreterOptions &
+        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+        InternalMachineOptions<
+          TMachine['__TContext'],
+          TMachine['__TEvent'],
+          TMachine['__TResolvedTypesMeta'],
+          true
+        >
+    ]
+  : [
+      options?: InterpreterOptions &
+        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+        InternalMachineOptions<
+          TMachine['__TContext'],
+          TMachine['__TEvent'],
+          TMachine['__TResolvedTypesMeta']
+        >
+    ];
+
+type UseMachineReturn<
+  TMachine extends StateMachine<any, any, any, any, any, any, any>,
+  TInterpreter = InterpreterFrom<TMachine>
+> = [StateFrom<TMachine>, Prop<TInterpreter, 'send'>, TInterpreter];
+
 export function useMachine<
   TContext extends MachineContext,
   TEvent extends EventObject
@@ -93,7 +125,7 @@ export function useMachine<
     }
   }, []);
 
-  const service = useInterpret(getMachine, options, listener);
+  const service = useInterpret(getMachine as any, options as any, listener);
 
   const [state, setState] = useState(() => {
     const { initialState } = service.machine;
@@ -102,5 +134,5 @@ export function useMachine<
       : initialState) as State<TContext, TEvent>;
   });
 
-  return [state, service.send, service];
+  return [state, service.send, service] as any;
 }

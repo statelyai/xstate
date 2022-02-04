@@ -4,7 +4,7 @@ import { InspectMachineEvent } from './inspectMachine';
 
 export type MaybeLazy<T> = T | (() => T);
 
-export type ServiceListener = (service: Interpreter<any>) => void;
+export type ServiceListener = (service: AnyInterpreter) => void;
 
 export type Replacer = (key: string, value: any) => any;
 
@@ -64,7 +64,7 @@ export type ParsedReceiverEvent =
   | { type: 'service.stop'; sessionId: string }
   | {
       type: 'service.state';
-      state: State<any, any>;
+      state: State<any, any, any, any, any>;
       sessionId: string;
     }
   | { type: 'service.event'; event: SCXML.Event<any>; sessionId: string };

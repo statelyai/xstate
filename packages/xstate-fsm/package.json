@@ -1,6 +1,6 @@
 {
   "name": "@xstate/fsm",
-  "version": "1.6.3",
+  "version": "1.6.4",
   "description": "XState for finite state machines",
   "keywords": [
     "state",
