@@ -140,7 +140,7 @@ export class Interpreter<
       clearTimeout: (id) => {
         return clearTimeout(id);
       }
-    },
+    } as Clock,
     logger: global.console.log.bind(console),
     devTools: false
   }))(typeof self !== 'undefined' ? self : global);
@@ -168,7 +168,7 @@ export class Interpreter<
   public options: Readonly<InterpreterOptions>;
 
   private scheduler: Scheduler = new Scheduler();
-  private delayedEventsMap: Record<string, number> = {};
+  private delayedEventsMap: Record<string, unknown> = {};
   private listeners: Set<
     StateListener<
       TContext,
