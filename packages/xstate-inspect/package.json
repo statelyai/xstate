@@ -1,6 +1,6 @@
 {
   "name": "@xstate/inspect",
-  "version": "0.6.0",
+  "version": "0.6.2",
   "description": "XState inspection utilities",
   "keywords": [
     "state",
@@ -12,7 +12,7 @@
     "viz"
   ],
   "author": "David Khourshid <davidkpiano@gmail.com>",
-  "homepage": "https://github.com/davidkpiano/xstate/tree/main/packages/xstate-inspect#readme",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-inspect#readme",
   "license": "MIT",
   "main": "lib/index.js",
   "module": "es/index.js",
@@ -26,16 +26,16 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
   },
   "scripts": {
     "clean": "rm -rf dist lib es tsconfig.tsbuildinfo",
     "test": "jest",
     "build": "rollup -c",
-    "prepublish": "npm run build"
+    "prepare": "npm run build"
   },
   "bugs": {
-    "url": "https://github.com/davidkpiano/xstate/issues"
+    "url": "https://github.com/statelyai/xstate/issues"
   },
   "devDependencies": {
     "@types/ws": "^8.2.2",

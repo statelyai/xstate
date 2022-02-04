@@ -269,7 +269,7 @@ describe('useMachine hook for fsm', () => {
     expect(flag).toBe(true);
   });
 
-  // Example from: https://github.com/davidkpiano/xstate/discussions/1944
+  // Example from: https://github.com/statelyai/xstate/discussions/1944
   it('fsm useMachine service should be typed correctly', () => {
     interface Context {
       count?: number;
