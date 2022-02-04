@@ -5,7 +5,7 @@ import { createStore, reconcile } from 'solid-js/store';
 import type { Accessor } from 'solid-js';
 
 import { batch, createEffect, on, onCleanup } from 'solid-js';
-import { deepClone } from './utils';
+import { deepClone, updateState } from './utils';
 
 const getServiceState = <
   TContext extends object,
@@ -22,13 +22,6 @@ const getServiceState = <
     .unsubscribe();
   return currentValue!;
 };
-
-const reconcileKeys: Array<keyof StateMachine.State<any, any, any>> = [
-  'value',
-  'context',
-  'actions',
-  'changed'
-];
 
 export function useMachine<
   TContext extends object,
@@ -65,9 +58,7 @@ export function useMachine<
 
   service.subscribe((nextState) => {
     batch(() => {
-      for (const key of reconcileKeys) {
-        setState(key, reconcile(nextState[key]));
-      }
+      updateState(nextState, setState);
     });
   });
 
@@ -92,9 +83,7 @@ export function useService<
   StateMachine.Service<TContext, TEvent, TState>
 ] {
   // Clone object to avoid mutation of services using the same machine
-  const [state, setState] = createStore(
-    deepClone(getServiceState(service()))
-  );
+  const [state, setState] = createStore(deepClone(getServiceState(service())));
 
   const send = (event: TEvent | TEvent['type']) => service().send(event);
 

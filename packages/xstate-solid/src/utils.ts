@@ -8,21 +8,8 @@ import type {
 import { produce, reconcile } from 'solid-js/store';
 import rfdc from 'rfdc';
 
-// List of keys to produce instead of reconcile while merging state
-export const produceKeys: Array<keyof State<any>> = [
-  'historyValue',
-  'history',
-  'event',
-  '_event',
-  'actions',
-  'activities',
-  'meta',
-  'events',
-  'nextEvents',
-  'transitions',
-  'machine',
-  'tags'
-];
+// List of keys to reconcile while merging state
+const reconcileKeys: Array<keyof State<any>> = ['context', 'value'];
 
 /**
  * Reconcile the state of the machine with the current state of the store.
@@ -45,7 +32,7 @@ export const updateState = <
       if (typeof nextState[key] === 'function') {
         continue;
       }
-      if (key in nextState && !produceKeys.includes(key as keyof State<any>)) {
+      if (key in nextState && reconcileKeys.includes(key as keyof State<any>)) {
         setReconcileState(key, nextState, setState);
       } else {
         setProduceState(key, nextState, setState);
@@ -88,4 +75,4 @@ const setReconcileState = <
   );
 
 // TODO: Replace with structuredClone when more broadly available
-export const deepClone = rfdc({circles: true, proto: true});
+export const deepClone = rfdc({ circles: true, proto: true });
