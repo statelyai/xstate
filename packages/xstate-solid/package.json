@@ -64,7 +64,7 @@
     "@babel/core": "^7.10.5",
     "@babel/preset-env": "^7.10.5",
     "@babel/preset-typescript": "^7.10.5",
-    "@testing-library/dom": "^8.11.1",
+    "@testing-library/dom": "^7.31.2",
     "@testing-library/user-event": "^13.5.0",
     "@types/jest": "^24.0.23",
     "@xstate/fsm": "*",
