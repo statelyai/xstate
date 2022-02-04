@@ -171,11 +171,10 @@ describe('interpreter', () => {
       const nextState = lightMachine.transition(currentState, 'TIMER');
 
       // saves state and recreate it
-      const recreated = JSON.parse(JSON.stringify(nextState));
-      const previousState = State.create(recreated);
+      const recreatedStateConfig = JSON.parse(JSON.stringify(nextState));
 
       const service = interpret(lightMachine);
-      service.start(previousState);
+      service.start(recreatedStateConfig);
     });
   });
 

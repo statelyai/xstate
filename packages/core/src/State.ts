@@ -23,15 +23,15 @@ import { IS_PRODUCTION } from './environment';
 import type { StateMachine } from './StateMachine';
 import { memo } from './memo';
 
-export function isState<
+export function isStateConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
->(state: object | string): state is State<TContext, TEvent> {
-  if (isString(state)) {
+>(state: any): state is StateConfig<TContext, TEvent> {
+  if (typeof state !== 'object' || state === null) {
     return false;
   }
 
-  return 'value' in state && '_sessionid' in state;
+  return 'value' in state && '_event' in state;
 }
 
 export class State<

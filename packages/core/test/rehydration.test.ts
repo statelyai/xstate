@@ -13,9 +13,9 @@ describe('rehydration', () => {
       });
 
       const persistedState = JSON.stringify(machine.initialState);
-      const restoredState = State.create(JSON.parse(persistedState));
+      const restoredStateConfig = JSON.parse(persistedState);
 
-      const service = interpret(machine).start(restoredState);
+      const service = interpret(machine).start(restoredStateConfig);
 
       expect(service.state.hasTag('foo')).toBe(true);
     });
@@ -33,9 +33,9 @@ describe('rehydration', () => {
       });
 
       const persistedState = JSON.stringify(machine.initialState);
-      const restoredState = State.create(JSON.parse(persistedState));
+      const restoredStateConfig = JSON.parse(persistedState);
 
-      interpret(machine).start(restoredState).stop();
+      interpret(machine).start(restoredStateConfig).stop();
 
       expect(actual).toEqual(['a', 'root']);
     });

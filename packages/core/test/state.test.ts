@@ -948,7 +948,7 @@ describe('State', () => {
       });
 
       const persistedState = JSON.stringify(machine.initialState);
-      const restoredState = State.create(JSON.parse(persistedState));
+      const restoredState = machine.resolveState(JSON.parse(persistedState));
 
       expect(restoredState.hasTag('foo')).toBe(true);
     });
