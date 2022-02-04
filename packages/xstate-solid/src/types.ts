@@ -1,6 +1,8 @@
 import type { EventObject, StateConfig } from 'xstate';
 
 export type MaybeLazy<T> = T | (() => T);
+export type Prop<T, K> = K extends keyof T ? T[K] : never;
+
 export interface UseMachineOptions<TContext, TEvent extends EventObject> {
   /**
    * If provided, will be merged with machine's `context`.
