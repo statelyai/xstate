@@ -18,8 +18,7 @@ import {
   ValueAdjMapOptions,
   DirectedGraphEdge,
   DirectedGraphNode,
-  AnyStateNode,
-  StatePath
+  AnyStateNode
 } from './types';
 
 export function toEventObject<TEvent extends EventObject>(

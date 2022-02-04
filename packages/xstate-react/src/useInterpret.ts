@@ -7,7 +7,8 @@ import {
   InterpreterFrom,
   InterpreterOptions,
   MachineImplementations,
-  Observer
+  Observer,
+  State
 } from 'xstate';
 import { MachineContext } from '../../core/src';
 import { MaybeLazy } from './types';

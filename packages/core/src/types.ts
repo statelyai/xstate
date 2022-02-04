@@ -7,10 +7,7 @@ import type { Model } from './model.types';
 
 type AnyFunction = (...args: any[]) => any;
 type ReturnTypeOrValue<T> = T extends AnyFunction ? ReturnType<T> : T;
-export type Prop<T, K> = K extends keyof T ? T[K] : never;
-
-// https://github.com/microsoft/TypeScript/issues/23182#issuecomment-379091887
-export type IsNever<T> = [T] extends [never] ? true : false;
+export type TODO = any;
 
 // https://github.com/microsoft/TypeScript/issues/23182#issuecomment-379091887
 export type IsNever<T> = [T] extends [never] ? true : false;
@@ -831,7 +828,7 @@ export interface MachineSchema<
   events?: TEvent;
   actions?: { type: string; [key: string]: any };
   guards?: { type: string; [key: string]: any };
-  services?: TServiceMap;
+  services?: TODO;
 }
 
 export interface HistoryStateNode<TContext extends MachineContext>

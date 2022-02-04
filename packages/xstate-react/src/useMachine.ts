@@ -8,7 +8,6 @@ import {
   InterpreterOptions,
   MachineImplementations,
   StateConfig,
-  ActionFunction,
   InterpreterOf,
   MachineContext
 } from 'xstate';

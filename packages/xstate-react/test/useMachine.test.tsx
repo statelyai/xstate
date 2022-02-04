@@ -10,7 +10,8 @@ import {
   spawnPromise,
   ActorRefFrom,
   spawn,
-  InterpreterFrom
+  InterpreterFrom,
+  StateFrom
 } from 'xstate';
 import {
   render,
