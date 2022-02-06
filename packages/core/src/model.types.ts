@@ -1,7 +1,6 @@
 import type { StateMachine } from './StateMachine';
 import {
   AnyFunction,
-  AssignAction,
   Assigner,
   BaseActionObject,
   Compute,
@@ -10,15 +9,15 @@ import {
   PropertyAssigner,
   MachineConfig,
   MachineImplementations,
-  BaseActionObject,
   MachineContext,
-  DynamicAssignAction
+  DynamicAssignAction,
+  Prop
 } from './types';
-import {
-  ResolveTypegenMeta,
-  TypegenConstraint,
-  TypegenDisabled
-} from './typegenTypes';
+// import {
+//   ResolveTypegenMeta,
+//   TypegenConstraint,
+//   TypegenDisabled
+// } from './typegenTypes';
 
 export interface Model<
   TContext extends MachineContext,

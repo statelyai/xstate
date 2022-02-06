@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { render } from '@testing-library/react';
-import { assign, spawn, createMachine, ActorRefFrom } from 'xstate';
+import { assign, createMachine, ActorRefFrom, spawnMachine } from 'xstate';
 import { useMachine, useActor } from '../src';
 
 describe('useMachine', () => {

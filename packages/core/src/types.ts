@@ -5,7 +5,7 @@ import type { StateMachine } from './StateMachine';
 import type { LifecycleSignal } from './behaviors';
 import type { Model } from './model.types';
 
-type AnyFunction = (...args: any[]) => any;
+export type AnyFunction = (...args: any[]) => any;
 type ReturnTypeOrValue<T> = T extends AnyFunction ? ReturnType<T> : T;
 export type TODO = any;
 
@@ -818,6 +818,7 @@ export interface MachineConfig<
    */
   scxml?: boolean;
   schema?: MachineSchema<TContext, TEvent>;
+  tsTypes?: TODO;
 }
 
 export interface MachineSchema<
@@ -1555,6 +1556,8 @@ export type InterpreterFrom<
   : T extends (...args: any[]) => StateMachine<infer TContext, infer TEvent>
   ? Interpreter<TContext, TEvent>
   : never;
+
+export type MachineOptionsFrom<T extends any> = T extends any ? TODO : TODO;
 
 export type EventOfMachine<
   TMachine extends StateMachine<any, any>

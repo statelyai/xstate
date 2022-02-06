@@ -2,7 +2,7 @@
 
 import { State } from 'xstate';
 
-export type StateListener = (state: State<any, any, any, any, any>) => void;
+export type StateListener = (state: State<any, any>) => void;
 
 interface TransitionsAnalysis {
   count: number;

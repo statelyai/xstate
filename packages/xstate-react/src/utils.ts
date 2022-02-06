@@ -1,4 +1,4 @@
-import { Interpreter } from 'xstate';
+import { AnyInterpreter } from 'xstate/src';
 
 export function partition<T, A extends T, B extends T>(
   items: T[],
@@ -17,8 +17,8 @@ export function partition<T, A extends T, B extends T>(
   return [truthy, falsy];
 }
 
-export function getServiceSnapshot<
-  TService extends Interpreter<any, any, any, any>
->(service: TService): TService['state'] {
+export function getServiceSnapshot<TService extends AnyInterpreter>(
+  service: TService
+): TService['state'] {
   return service.status !== 0 ? service.state : service.machine.initialState;
 }

@@ -7,7 +7,7 @@ import {
   MachineContext
 } from 'xstate';
 
-export type AnyStateNode = StateNode<any, any, any, any, any>;
+export type AnyStateNode = StateNode;
 
 export interface TransitionMap {
   state: StateValue | undefined;

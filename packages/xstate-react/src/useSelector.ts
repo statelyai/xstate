@@ -1,23 +1,11 @@
 import { useMemo, useRef } from 'react';
 import { useSubscription } from 'use-subscription';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
-import { ActorRef, Interpreter, Subscribable } from 'xstate';
-import { isActorWithState } from './useActor';
-import { getServiceSnapshot } from './utils';
-
-function isService(actor: any): actor is Interpreter<any, any> {
-  return 'state' in actor && 'machine' in actor;
-}
+import { ActorRef, Subscribable } from 'xstate';
 
 const defaultCompare = (a, b) => a === b;
 function defaultGetSnapshot<TActor extends ActorRef<any, any>>(a: TActor) {
-  return 'getSnapshot' in a
-    ? a.getSnapshot()
-    : isService(a)
-    ? getServiceSnapshot(a)
-    : isActorWithState(a)
-    ? a.state
-    : undefined;
+  return 'getSnapshot' in a ? a.getSnapshot() : undefined;
 }
 
 export function useSelector<

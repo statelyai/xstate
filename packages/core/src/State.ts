@@ -8,7 +8,8 @@ import type {
   ActorRef,
   MachineContext,
   SimpleEventsOf,
-  BaseActionObject
+  BaseActionObject,
+  TODO
 } from './types';
 import { matchesState, keys, isString, warn, toSCXMLEvent } from './utils';
 import type { StateNode } from './StateNode';
@@ -239,9 +240,10 @@ export class State<
    * @param tag
    */
   public hasTag(
-    tag: TResolvedTypesMeta extends TypegenEnabled
-      ? Prop<TResolvedTypesMeta, 'tags'>
-      : string
+    // tag: TResolvedTypesMeta extends TypegenEnabled
+    //   ? Prop<TResolvedTypesMeta, 'tags'>
+    //   : string
+    tag: TODO
   ): boolean {
     return this.tags.has(tag as string);
   }

@@ -1,4 +1,10 @@
-import type { ActorRef, Interpreter, SCXML, State, StateMachine } from 'xstate';
+import type {
+  ActorRef,
+  AnyInterpreter,
+  SCXML,
+  State,
+  StateMachine
+} from 'xstate';
 import { XStateDevInterface } from 'xstate/dev';
 import { InspectMachineEvent } from './inspectMachine';
 
@@ -64,7 +70,7 @@ export type ParsedReceiverEvent =
   | { type: 'service.stop'; sessionId: string }
   | {
       type: 'service.state';
-      state: State<any, any, any, any, any>;
+      state: State<any, any>;
       sessionId: string;
     }
   | { type: 'service.event'; event: SCXML.Event<any>; sessionId: string };
