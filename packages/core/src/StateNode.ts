@@ -1625,6 +1625,7 @@ class StateNode<
     stateValue: StateValue,
     context?: TContext
   ): State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta> {
+    this._init(); // TODO: this should be in the constructor (see note in constructor)
     const configuration = this.getStateNodes(stateValue);
 
     return this.resolveTransition(
@@ -1653,7 +1654,6 @@ class StateNode<
     TTypestate,
     TResolvedTypesMeta
   > {
-    this._init(); // TODO: this should be in the constructor (see note in constructor)
     const { initialStateValue } = this;
 
     if (!initialStateValue) {
