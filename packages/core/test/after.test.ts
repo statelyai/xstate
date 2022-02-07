@@ -1,8 +1,8 @@
-import { Machine, interpret } from '../src';
+import { createMachine, interpret } from '../src';
 import { after, cancel, send, actionTypes } from '../src/actions';
 import { toSCXMLEvent } from '../src/utils';
 
-const lightMachine = Machine({
+const lightMachine = createMachine({
   id: 'light',
   initial: 'green',
   context: {
@@ -53,7 +53,7 @@ describe('delayed transitions', () => {
   });
 
   it('should be able to transition with delay from nested initial state', (done) => {
-    const machine = Machine({
+    const machine = createMachine({
       initial: 'nested',
       states: {
         nested: {
@@ -82,7 +82,7 @@ describe('delayed transitions', () => {
 
   it('parent state should enter child state without re-entering self (relative target)', (done) => {
     const actual: string[] = [];
-    const machine = Machine({
+    const machine = createMachine({
       initial: 'one',
       states: {
         one: {
@@ -119,7 +119,7 @@ describe('delayed transitions', () => {
   it('should defer a single send event for a delayed transition with multiple conditions (#886)', () => {
     type Events = { type: 'FOO' };
 
-    const machine = Machine<{}, Events>({
+    const machine = createMachine<{}, Events>({
       initial: 'X',
       states: {
         X: {
@@ -146,11 +146,35 @@ describe('delayed transitions', () => {
     expect(machine.initialState.actions.length).toBe(1);
   });
 
+  it('should execute an after transition after starting from a state resolved using `machine.getInitialState`', (done) => {
+    const machine = createMachine({
+      id: 'machine',
+      initial: 'a',
+      states: {
+        a: {},
+
+        withAfter: {
+          after: {
+            1: { target: 'done' }
+          }
+        },
+
+        done: {
+          type: 'final'
+        }
+      }
+    });
+
+    interpret(machine)
+      .onDone(() => done())
+      .start(machine.getInitialState('withAfter'));
+  });
+
   describe('delay expressions', () => {
     type Events =
       | { type: 'ACTIVATE'; delay: number }
       | { type: 'NOEXPR'; delay: number };
-    const delayExprMachine = Machine<{ delay: number }, Events>(
+    const delayExprMachine = createMachine<{ delay: number }, Events>(
       {
         id: 'delayExpr',
         initial: 'inactive',
