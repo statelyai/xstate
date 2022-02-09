@@ -18,6 +18,8 @@ export function useSelector<
   getSnapshot: (a: TActor) => TEmitted = defaultGetSnapshot
 ): Accessor<T> {
   const actorMemo = createMemo<TActor>(actor);
+
+  // Deep clone to prevent mutating original snapshot
   const getActorSnapshot = (snapshotActor: TActor): T =>
     deepClone(selector(getSnapshot(snapshotActor)));
   const [selected, update] = createStoreSignal<T, T>(

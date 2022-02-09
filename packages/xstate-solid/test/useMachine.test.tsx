@@ -584,6 +584,122 @@ describe('useMachine hook', () => {
     done();
   });
 
+  it('should be reactive to hasTag method calls', (done) => {
+    const machine = createMachine({
+      initial: 'green',
+      states: {
+        green: {
+          tags: 'go', // single tag
+          on: {
+            TRANSITION: 'yellow'
+          }
+        },
+        yellow: {
+          tags: 'go',
+          on: {
+            TRANSITION: 'red'
+          }
+        },
+        red: {
+          tags: ['stop', 'other'], // multiple tags
+          on: {
+            TRANSITION: 'green'
+          }
+        }
+      }
+    });
+
+    const App = () => {
+      const [state, send] = useMachine(machine);
+      const [canGo, setCanGo] = createSignal(state.hasTag('go'));
+      createEffect(() => {
+        setCanGo(state.hasTag('go'));
+      });
+      return (
+        <div>
+          <button
+            data-testid="transition-button"
+            onclick={() => send('TRANSITION')}
+          />
+          <div data-testid="can-go">{canGo().toString()}</div>
+          <div data-testid="stop">{state.hasTag('stop').toString()}</div>
+        </div>
+      );
+    };
+
+    render(() => <App />);
+    const canGoEl = screen.getByTestId('can-go');
+    const stopEl = screen.getByTestId('stop');
+    const transitionBtn = screen.getByTestId('transition-button');
+
+    // Green
+    expect(canGoEl.textContent).toEqual('true');
+    expect(stopEl.textContent).toEqual('false');
+    transitionBtn.click();
+
+    // Yellow
+    expect(canGoEl.textContent).toEqual('true');
+    expect(stopEl.textContent).toEqual('false');
+    transitionBtn.click();
+
+    // Red
+    expect(canGoEl.textContent).toEqual('false');
+    expect(stopEl.textContent).toEqual('true');
+    transitionBtn.click();
+
+    // Green
+    expect(canGoEl.textContent).toEqual('true');
+    expect(stopEl.textContent).toEqual('false');
+    done();
+  });
+
+  it('should be reactive to can method calls', (done) => {
+    const machine = createMachine({
+      initial: 'inactive',
+      states: {
+        inactive: {
+          on: {
+            TOGGLE: 'active'
+          }
+        },
+        active: {
+          on: {
+            DO_SOMETHING: { actions: ['something'] }
+          }
+        }
+      }
+    });
+
+    const App = () => {
+      const [state, send] = useMachine(machine);
+      const [canToggle, setCanToggle] = createSignal(state.can('TOGGLE'));
+      createEffect(() => {
+        setCanToggle(state.can('TOGGLE'));
+      });
+      return (
+        <div>
+          <button data-testid="toggle-button" onclick={() => send('TOGGLE')} />
+          <div data-testid="can-toggle">{canToggle().toString()}</div>
+          <div data-testid="can-do-something">
+            {state.can('DO_SOMETHING').toString()}
+          </div>
+        </div>
+      );
+    };
+
+    render(() => <App />);
+    const canToggleEl = screen.getByTestId('can-toggle');
+    const canDoSomethingEl = screen.getByTestId('can-do-something');
+    const toggleBtn = screen.getByTestId('toggle-button');
+
+    expect(canToggleEl.textContent).toEqual('true');
+    expect(canDoSomethingEl.textContent).toEqual('false');
+    toggleBtn.click();
+    expect(canToggleEl.textContent).toEqual('false');
+    expect(canDoSomethingEl.textContent).toEqual('true');
+    done();
+  });
+
   it('should successfully spawn actors from the lazily declared context', () => {
     let childSpawned = false;
 

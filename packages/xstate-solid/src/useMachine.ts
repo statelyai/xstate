@@ -5,7 +5,8 @@ import type {
   InternalMachineOptions,
   InterpreterFrom,
   StateFrom,
-  TypegenEnabled
+  TypegenEnabled,
+  SimpleEventsOf
 } from 'xstate';
 import { State } from 'xstate';
 import { createStore } from 'solid-js/store';
@@ -62,20 +63,34 @@ export function useMachine<
     ) as unknown) as StateFrom<TMachine>;
   }
 
-  const [state, setState] = createStore({
+  const [state, setState] = createStore<StateFrom<TMachine>>({
     ...initialState,
     event: initialState.event || null,
-    can: initialState.can,
     toStrings: initialState.toStrings,
-    hasTag: initialState.hasTag,
     toJSON: initialState.toJSON,
+    can(
+      event: TMachine['__TEvent'] | SimpleEventsOf<TMachine['__TEvent']>['type']
+    ): boolean {
+      // tslint:disable-next-line:no-unused-expression
+      state.value; // sets state.value to be tracked
+      return service.state.can(event);
+    },
+    hasTag(
+      tag: TMachine['__TResolvedTypesMeta'] extends TypegenEnabled
+        ? Prop<TMachine['__TResolvedTypesMeta'], 'tags'>
+        : string
+    ): boolean {
+      // tslint:disable-next-line:no-unused-expression
+      state.tags; // sets state.tags to be tracked
+      return service.state.hasTag(tag);
+    },
     matches<
       TSV extends TMachine['__TResolvedTypesMeta'] extends TypegenEnabled
         ? Prop<TMachine['__TResolvedTypesMeta'], 'matchesStates'>
         : TMachine['__TTypestate']['value']
     >(parentStateValue: TSV) {
       // tslint:disable-next-line:no-unused-expression
-      state.value; // sets state.value to be tracked by the store
+      state.value; // sets state.value to be tracked
       return service.state.matches(parentStateValue);
     }
   } as StateFrom<TMachine>);
