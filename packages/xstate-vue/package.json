@@ -46,7 +46,7 @@
   "peerDependencies": {
     "@xstate/fsm": "^1.6.4",
     "vue": "^3.0.0",
-    "xstate": "^4.29.0"
+    "xstate": "^4.30.0"
   },
   "peerDependenciesMeta": {
     "@xstate/fsm": {
