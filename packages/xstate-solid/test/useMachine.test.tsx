@@ -584,12 +584,144 @@ describe('useMachine hook', () => {
     done();
   });
 
+  it('should be reactive to toStrings method calls', (done) => {
+    const machine = createMachine({
+      initial: 'green',
+      states: {
+        green: {
+          on: {
+            TRANSITION: 'yellow'
+          }
+        },
+        yellow: {
+          on: {
+            TRANSITION: 'red'
+          }
+        },
+        red: {
+          on: {
+            TRANSITION: 'green'
+          }
+        }
+      }
+    });
+
+    const App = () => {
+      const [state, send] = useMachine(machine);
+      const [toStrings, setToStrings] = createSignal(state.toStrings());
+      createEffect(
+        on(
+          () => state.value,
+          () => {
+            setToStrings(state.toStrings());
+          }
+        )
+      );
+      return (
+        <div>
+          <button
+            data-testid="transition-button"
+            onclick={() => send('TRANSITION')}
+          />
+          <div data-testid="to-strings">{JSON.stringify(toStrings())}</div>
+        </div>
+      );
+    };
+
+    render(() => <App />);
+    const toStringsEl = screen.getByTestId('to-strings');
+    const transitionBtn = screen.getByTestId('transition-button');
+
+    // Green
+    expect(toStringsEl.textContent).toEqual('["green"]');
+    transitionBtn.click();
+
+    // Yellow
+    expect(toStringsEl.textContent).toEqual('["yellow"]');
+    transitionBtn.click();
+
+    // Red
+    expect(toStringsEl.textContent).toEqual('["red"]');
+    transitionBtn.click();
+
+    // Green
+    expect(toStringsEl.textContent).toEqual('["green"]');
+
+    done();
+  });
+
+  it('should be reactive to toJSON method calls', (done) => {
+    const machine = createMachine({
+      initial: 'green',
+      states: {
+        green: {
+          on: {
+            TRANSITION: 'yellow'
+          }
+        },
+        yellow: {
+          on: {
+            TRANSITION: 'red'
+          }
+        },
+        red: {
+          on: {
+            TRANSITION: 'green'
+          }
+        }
+      }
+    });
+
+    const App = () => {
+      const [state, send] = useMachine(machine);
+      const [toJson, setToJson] = createSignal(state.toJSON());
+      createEffect(
+        on(
+          () => state.event,
+          () => {
+            setToJson(state.toJSON());
+          }
+        )
+      );
+      return (
+        <div>
+          <button
+            data-testid="transition-button"
+            onclick={() => send('TRANSITION')}
+          />
+          <div data-testid="to-json">{toJson().value.toString()}</div>
+        </div>
+      );
+    };
+
+    render(() => <App />);
+    const toJsonEl = screen.getByTestId('to-json');
+    const transitionBtn = screen.getByTestId('transition-button');
+
+    // Green
+    expect(toJsonEl.textContent).toEqual('green');
+    transitionBtn.click();
+
+    // Yellow
+    expect(toJsonEl.textContent).toEqual('yellow');
+    transitionBtn.click();
+
+    // Red
+    expect(toJsonEl.textContent).toEqual('red');
+    transitionBtn.click();
+
+    // Green
+    expect(toJsonEl.textContent).toEqual('green');
+
+    done();
+  });
+
   it('should be reactive to hasTag method calls', (done) => {
     const machine = createMachine({
       initial: 'green',
       states: {
         green: {
-          tags: 'go', // single tag
+          tags: 'go',
           on: {
             TRANSITION: 'yellow'
           }
@@ -601,7 +733,7 @@ describe('useMachine hook', () => {
           }
         },
         red: {
-          tags: ['stop', 'other'], // multiple tags
+          tags: ['stop', 'other'],
           on: {
             TRANSITION: 'green'
           }

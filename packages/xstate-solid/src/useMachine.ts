@@ -4,9 +4,7 @@ import type {
   AreAllImplementationsAssumedToBeProvided,
   InternalMachineOptions,
   InterpreterFrom,
-  StateFrom,
-  TypegenEnabled,
-  SimpleEventsOf
+  StateFrom
 } from 'xstate';
 import { State } from 'xstate';
 import { createStore } from 'solid-js/store';
@@ -66,32 +64,26 @@ export function useMachine<
   const [state, setState] = createStore<StateFrom<TMachine>>({
     ...initialState,
     event: initialState.event || null,
-    toStrings: initialState.toStrings,
-    toJSON: initialState.toJSON,
-    can(
-      event: TMachine['__TEvent'] | SimpleEventsOf<TMachine['__TEvent']>['type']
-    ): boolean {
+    toJSON() {
+      return service.state.toJSON();
+    },
+    toStrings(...args: Parameters<StateFrom<TMachine>['toStrings']>) {
+      return service.state.toStrings(args[0], args[1]);
+    },
+    can(...args: Parameters<StateFrom<TMachine>['can']>) {
       // tslint:disable-next-line:no-unused-expression
       state.value; // sets state.value to be tracked
-      return service.state.can(event);
+      return service.state.can(args[0]);
     },
-    hasTag(
-      tag: TMachine['__TResolvedTypesMeta'] extends TypegenEnabled
-        ? Prop<TMachine['__TResolvedTypesMeta'], 'tags'>
-        : string
-    ): boolean {
+    hasTag(...args: Parameters<StateFrom<TMachine>['hasTag']>) {
       // tslint:disable-next-line:no-unused-expression
       state.tags; // sets state.tags to be tracked
-      return service.state.hasTag(tag);
+      return service.state.hasTag(args[0]);
     },
-    matches<
-      TSV extends TMachine['__TResolvedTypesMeta'] extends TypegenEnabled
-        ? Prop<TMachine['__TResolvedTypesMeta'], 'matchesStates'>
-        : TMachine['__TTypestate']['value']
-    >(parentStateValue: TSV) {
+    matches(...args: Parameters<StateFrom<TMachine>['matches']>) {
       // tslint:disable-next-line:no-unused-expression
       state.value; // sets state.value to be tracked
-      return service.state.matches(parentStateValue);
+      return service.state.matches(args[0]);
     }
   } as StateFrom<TMachine>);
 
