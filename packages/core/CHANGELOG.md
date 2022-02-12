@@ -1,5 +1,38 @@
 # xstate
 
+## 4.30.0
+
+### Minor Changes
+
+- [#2965](https://github.com/statelyai/xstate/pull/2965) [`8b8f719c3`](https://github.com/statelyai/xstate/commit/8b8f719c36ab2c09fcd11b529cc6c9c89a06ad2e) Thanks [@satyasinha](https://github.com/satyasinha)! - All actions are now available in the `actions` variable when importing: `import { actions } from 'xstate'`
+
+* [#2892](https://github.com/statelyai/xstate/pull/2892) [`02de3d44f`](https://github.com/statelyai/xstate/commit/02de3d44f8ca87b4dcb4153d3560da7d43ee9d0b) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Persisted state can now be easily restored to a state compatible with the machine without converting it to a `State` instance first:
+
+  ```js
+  // Persisting a state
+  someService.subscribe(state => {
+    localStorage.setItem('some-state', JSON.stringify(state));
+  });
+
+  // Restoring a state
+  const stateJson = localStorage.getItem('some-state');
+
+  // No need to convert `stateJson` object to a state!
+  const someService = interpret(someMachine).start(stateJson);
+  ```
+
+### Patch Changes
+
+- [#3012](https://github.com/statelyai/xstate/pull/3012) [`ab431dcb8`](https://github.com/statelyai/xstate/commit/ab431dcb8bd67a3f0bcfc9b6ca31779bb15d14af) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with a reference to `@types/node` being inserted into XState's compiled output. This could cause unexpected issues in projects expecting APIs like `setTimeout` to be typed with browser compatibility in mind.
+
+* [#3023](https://github.com/statelyai/xstate/pull/3023) [`642e9f5b8`](https://github.com/statelyai/xstate/commit/642e9f5b83dae79f016be8b657d25499077bbcda) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with states created using `machine.getInitialState` not being "resolved" in full. This could cause some things, such as `after` transitions, not being executed correctly after starting an interpreter using such state.
+
+- [#2982](https://github.com/statelyai/xstate/pull/2982) [`a39145580`](https://github.com/statelyai/xstate/commit/a391455803171dcf03a1a0ec589f9dd603260d63) Thanks [@Andarist](https://github.com/Andarist)! - Marked all phantom properties on the `StateMachine` type as deprecated. This deprioritized them in IDEs so they don't popup as first suggestions during property access.
+
+* [#2992](https://github.com/statelyai/xstate/pull/2992) [`22737adf2`](https://github.com/statelyai/xstate/commit/22737adf211971197f3809f406ac3bee54dc69f0) Thanks [@Andarist](https://github.com/Andarist), [@mattpocock](https://github.com/mattpocock)! - Fixed an issue with `state.context` becoming `any` after `state.matches` when typegen is used.
+
+- [#2981](https://github.com/statelyai/xstate/pull/2981) [`edf60d67b`](https://github.com/statelyai/xstate/commit/edf60d67b3ca58eca96c7853410528c4e4abac7b) Thanks [@Andarist](https://github.com/Andarist)! - Moved an internal `@ts-ignore` to a JSDoc-style comment to fix consuming projects that do not use `skipLibCheck`. Regular inline and block comments are not preserved in the TypeScript's emit.
+
 ## 4.29.0
 
 ### Minor Changes
@@ -233,10 +266,10 @@
 
   model.createMachine({
     // `ctx` was of type `any`
-    entry: (ctx) => {},
+    entry: ctx => {},
     exit: assign({
       // `ctx` was of type `unknown`
-      foo: (ctx) => 42
+      foo: ctx => 42
     })
   });
   ```
@@ -412,11 +445,11 @@
   const machine = createMachine({
     context: { count: 0 },
     entry: [
-      (ctx) => console.log(ctx.count), // 0
-      assign({ count: (ctx) => ctx.count + 1 }),
-      (ctx) => console.log(ctx.count), // 1
-      assign({ count: (ctx) => ctx.count + 1 }),
-      (ctx) => console.log(ctx.count) // 2
+      ctx => console.log(ctx.count), // 0
+      assign({ count: ctx => ctx.count + 1 }),
+      ctx => console.log(ctx.count), // 1
+      assign({ count: ctx => ctx.count + 1 }),
+      ctx => console.log(ctx.count) // 2
     ],
     preserveActionOrder: true
   });
@@ -425,11 +458,11 @@
   const machine = createMachine({
     context: { count: 0 },
     entry: [
-      (ctx) => console.log(ctx.count), // 2
-      assign({ count: (ctx) => ctx.count + 1 }),
-      (ctx) => console.log(ctx.count), // 2
-      assign({ count: (ctx) => ctx.count + 1 }),
-      (ctx) => console.log(ctx.count) // 2
+      ctx => console.log(ctx.count), // 2
+      assign({ count: ctx => ctx.count + 1 }),
+      ctx => console.log(ctx.count), // 2
+      assign({ count: ctx => ctx.count + 1 }),
+      ctx => console.log(ctx.count) // 2
     ]
     // preserveActionOrder: false
   });
@@ -628,7 +661,7 @@
   });
 
   const service = interpret(machine)
-    .onTransition((state) => {
+    .onTransition(state => {
       // Read promise value synchronously
       const resolvedValue = state.context.promiseRef?.getSnapshot();
       // => undefined (if promise not resolved yet)
@@ -708,7 +741,7 @@
     context: { value: 42 },
     on: {
       INC: {
-        actions: assign({ value: (ctx) => ctx.value + 1 })
+        actions: assign({ value: ctx => ctx.value + 1 })
       }
     }
   });
@@ -968,7 +1001,7 @@
 
   ```js
   // ...
-  actions: stop((context) => context.someActor);
+  actions: stop(context => context.someActor);
   ```
 
 ### Patch Changes
@@ -1206,10 +1239,10 @@
   ```js
   entry: [
     choose([
-      { cond: (ctx) => ctx > 100, actions: raise('TOGGLE') },
+      { cond: ctx => ctx > 100, actions: raise('TOGGLE') },
       {
         cond: 'hasMagicBottle',
-        actions: [assign((ctx) => ({ counter: ctx.counter + 1 }))]
+        actions: [assign(ctx => ({ counter: ctx.counter + 1 }))]
       },
       { actions: ['fallbackAction'] }
     ])
