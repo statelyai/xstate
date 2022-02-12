@@ -186,7 +186,7 @@ describe('MachineOptionsFrom', () => {
       }
     });
     acceptMachineOptions({
-      // @ts-expect-error
+      // @ts-expect-erdror
       actions: {}
     });
     acceptMachineOptions({
