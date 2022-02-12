@@ -1,4 +1,4 @@
-import { Machine, StateMachine, State, interpret } from 'xstate';
+import { Machine, interpret } from 'xstate';
 import { xml2js } from 'xml-js';
 import { transitionToSCXML, toSCXML } from '../src';
 import { toMachine } from 'xstate/lib/scxml';

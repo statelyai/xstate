@@ -1,4 +1,4 @@
-import { AnyState, AnyStateMachine, State, StateMachine } from 'xstate';
+import { AnyState, AnyStateMachine } from 'xstate';
 import { Replacer } from './types';
 import { stringify } from './utils';
 
