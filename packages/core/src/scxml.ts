@@ -7,7 +7,7 @@ import {
   DelayExpr,
   ChooseCondition
 } from './types';
-import { StateNode, Machine } from './index';
+import { Machine, StateMachine } from './index';
 import { mapValues, keys, isString } from './utils';
 import * as actions from './actions';
 
@@ -426,7 +426,7 @@ export interface ScxmlToMachineOptions {
 function scxmlToMachine(
   scxmlJson: XMLElement,
   options: ScxmlToMachineOptions
-): StateNode {
+): StateMachine<any, any, any, any, any, any, any> {
   const machineElement = scxmlJson.elements!.find(
     (element) => element.name === 'scxml'
   ) as XMLElement;
@@ -462,7 +462,7 @@ function scxmlToMachine(
 export function toMachine(
   xml: string,
   options: ScxmlToMachineOptions
-): StateNode {
+): StateMachine<any, any, any, any, any, any, any> {
   const json = xml2js(xml) as XMLElement;
   return scxmlToMachine(json, options);
 }

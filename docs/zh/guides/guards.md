@@ -11,11 +11,11 @@
 
 在转换的 `.cond` 属性上指定的 **条件函数**（也称为 **守卫**），作为具有 `{ type: '...' }` 属性的字符串或条件对象 , 并接受 3 个参数：
 
-| 参数        | 类型   | 描述                            |
+| 参数       | 类型   | 描述                           |
 | ---------- | ------ | ------------------------------ |
-| `context`  | object | [状态机 context](./context.md)  |
-| `event`    | object | 触发条件的事件                    |
-| `condMeta` | object | 元数据（见下文）                  |
+| `context`  | object | [状态机 context](./context.md) |
+| `event`    | object | 触发条件的事件                 |
+| `condMeta` | object | 元数据（见下文）               |
 
 `condMeta` 对象包括以下属性：
 

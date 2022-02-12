@@ -1,4 +1,15 @@
-import { EventObject, StateNode, TransitionDefinition } from 'xstate';
+import {
+  EventObject,
+  StateValue,
+  StateNode,
+  TransitionDefinition
+} from 'xstate';
+
+export type AnyStateNode = StateNode<any, any, any, any, any>;
+
+export interface TransitionMap {
+  state: StateValue | undefined;
+}
 
 export type JSONSerializable<T extends object, U> = T & {
   toJSON: () => U;
@@ -16,8 +27,8 @@ export type DirectedGraphLabel = JSONSerializable<
 export type DirectedGraphEdge = JSONSerializable<
   {
     id: string;
-    source: StateNode;
-    target: StateNode;
+    source: AnyStateNode;
+    target: AnyStateNode;
     label: DirectedGraphLabel;
     transition: TransitionDefinition<any, any>;
   },

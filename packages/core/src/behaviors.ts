@@ -1,4 +1,10 @@
-import { ActorContext, ActorRef, Behavior, EventObject, Observer } from '.';
+import {
+  ActorContext,
+  ActorRef,
+  Behavior,
+  EventObject,
+  Observer
+} from './types';
 import { doneInvoke, error } from './actions';
 import { toActorRef } from './Actor';
 import { toObserver } from './utils';

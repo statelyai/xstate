@@ -55,7 +55,7 @@ export function useMachine<
     delays
   };
 
-  const resolvedMachine = machine.withConfig(machineConfig, () => ({
+  const resolvedMachine = machine.withConfig(machineConfig as any, () => ({
     ...machine.context,
     ...context
   }));

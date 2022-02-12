@@ -501,7 +501,7 @@ const service = interpret(parentMachine)
 [阅读有关`send`的更多信息](/guides/actions.html#send-action)
 :::
 
-下面是两台状态机 `pingMachine` 和  `pongMachine` 相互通信的例子：
+下面是两台状态机 `pingMachine` 和 `pongMachine` 相互通信的例子：
 
 ```js
 import { createMachine, interpret, send, sendParent } from 'xstate';

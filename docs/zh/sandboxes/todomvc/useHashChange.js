@@ -1,9 +1,9 @@
-import { useEffect } from "react";
+import { useEffect } from 'react';
 
 export function useHashChange(onHashChange) {
   useEffect(() => {
-    window.addEventListener("hashchange", onHashChange);
+    window.addEventListener('hashchange', onHashChange);
 
-    return () => window.removeEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 }
