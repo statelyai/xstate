@@ -11,13 +11,6 @@ export function createMachine<
   TContext extends MachineContext,
   TEvent extends EventObject = AnyEventObject
 >(
-  config: MachineConfig<TContext, TEvent>,
-  options?: Partial<MachineImplementations<TContext, TEvent>>
-): StateMachine<TContext, TEvent>;
-export function createMachine<
-  TContext extends MachineContext,
-  TEvent extends EventObject = AnyEventObject
->(
   definition: MachineConfig<TContext, TEvent>,
   implementations?: Partial<MachineImplementations<TContext, TEvent>>
 ): StateMachine<TContext, TEvent> {

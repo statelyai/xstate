@@ -1557,7 +1557,12 @@ export type InterpreterFrom<
   ? Interpreter<TContext, TEvent>
   : never;
 
-export type MachineOptionsFrom<T extends any> = T extends any ? TODO : TODO;
+export type MachineOptionsFrom<T extends StateMachine> = T extends StateMachine<
+  infer TContext,
+  infer TEvent
+>
+  ? Partial<MachineImplementations<TContext, TEvent>>
+  : never;
 
 export type EventOfMachine<
   TMachine extends StateMachine<any, any>
