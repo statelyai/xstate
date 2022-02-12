@@ -5,7 +5,8 @@ import {
   Event,
   EventObject,
   StateMachine,
-  AnyEventObject
+  AnyEventObject,
+  AnyStateMachine
 } from 'xstate';
 import { flatten, keys } from 'xstate/lib/utils';
 import {
@@ -37,7 +38,7 @@ const EMPTY_MAP = {};
  * @param stateNode State node to recursively get child state nodes from
  */
 export function getStateNodes(
-  stateNode: AnyStateNode | StateMachine<any, any, any, any, any, any, any>
+  stateNode: AnyStateNode | AnyStateMachine
 ): AnyStateNode[] {
   const { states } = stateNode;
   const nodes = keys(states).reduce((accNodes, stateKey) => {
@@ -346,7 +347,7 @@ export function getSimplePathsAsArray<
 }
 
 export function toDirectedGraph(
-  stateNode: AnyStateNode | StateMachine<any, any, any, any, any, any, any>
+  stateNode: AnyStateNode | AnyStateMachine
 ): DirectedGraphNode {
   const edges: DirectedGraphEdge[] = flatten(
     stateNode.transitions.map((t, transitionIndex) => {

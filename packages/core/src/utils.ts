@@ -11,7 +11,6 @@ import {
   AssignAction,
   Condition,
   Subscribable,
-  StateMachine,
   ConditionPredicate,
   SCXML,
   StateLike,
@@ -35,6 +34,7 @@ import { IS_PRODUCTION } from './environment';
 import { StateNode } from './StateNode';
 import { State } from './State';
 import { Actor } from './Actor';
+import { AnyStateMachine } from '.';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
   return Object.keys(value) as Array<keyof T & string>;
@@ -543,7 +543,7 @@ export const interopSymbols = {
   }
 };
 
-export function isMachine(value: any): value is StateMachine<any, any, any> {
+export function isMachine(value: any): value is AnyStateMachine {
   try {
     return '__xstatenode' in value;
   } catch (e) {

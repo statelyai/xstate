@@ -1,4 +1,4 @@
-import { State, StateMachine } from 'xstate';
+import { AnyStateMachine, State, StateMachine } from 'xstate';
 import { Replacer } from './types';
 import { stringify } from './utils';
 
@@ -28,7 +28,7 @@ export function stringifyState(
 }
 
 export function stringifyMachine(
-  machine: StateMachine<any, any, any>,
+  machine: AnyStateMachine,
   replacer?: Replacer
 ): string {
   return selectivelyStringify(machine, ['context'], replacer);

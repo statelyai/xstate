@@ -3,7 +3,8 @@ import type {
   SCXML,
   State,
   StateMachine,
-  AnyInterpreter
+  AnyInterpreter,
+  AnyStateMachine
 } from 'xstate';
 import { XStateDevInterface } from 'xstate/lib/devTools';
 import { InspectMachineEvent } from './inspectMachine';
@@ -60,7 +61,7 @@ export type ReceiverEvent =
 export type ParsedReceiverEvent =
   | {
       type: 'service.register';
-      machine: StateMachine<any, any, any, any, any, any, any>;
+      machine: AnyStateMachine;
       state: State<any, any>;
       id: string;
       sessionId: string;

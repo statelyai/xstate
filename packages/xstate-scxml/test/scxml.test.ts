@@ -5,6 +5,7 @@ import { toMachine } from 'xstate/lib/scxml';
 import { pathsToStateValue } from 'xstate/lib/utils';
 import { SimulatedClock } from 'xstate/lib/SimulatedClock';
 import * as fs from 'fs';
+import { AnyStateMachine } from 'xstate/src';
 
 interface SCIONTest {
   initialConfiguration: string[];
@@ -16,7 +17,7 @@ interface SCIONTest {
 }
 
 async function runTestToCompletion(
-  machine: StateMachine<any, any, any, any, any, any>,
+  machine: AnyStateMachine,
   test: SCIONTest
 ): Promise<void> {
   const stateValue = test.events.length
