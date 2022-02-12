@@ -1,10 +1,9 @@
 import type {
   ActorRef,
   SCXML,
-  State,
-  StateMachine,
   AnyInterpreter,
-  AnyStateMachine
+  AnyStateMachine,
+  AnyState
 } from 'xstate';
 import { XStateDevInterface } from 'xstate/lib/devTools';
 import { InspectMachineEvent } from './inspectMachine';
@@ -22,8 +21,7 @@ export interface InspectorOptions {
   serialize?: Replacer | undefined;
 }
 
-export interface Inspector
-  extends ActorRef<InspectMachineEvent, State<any, any, any, any, any>> {
+export interface Inspector extends ActorRef<InspectMachineEvent, AnyState> {
   /**
    * Disconnects the inspector.
    */
@@ -62,7 +60,7 @@ export type ParsedReceiverEvent =
   | {
       type: 'service.register';
       machine: AnyStateMachine;
-      state: State<any, any>;
+      state: AnyState;
       id: string;
       sessionId: string;
       parent?: string;
@@ -71,7 +69,7 @@ export type ParsedReceiverEvent =
   | { type: 'service.stop'; sessionId: string }
   | {
       type: 'service.state';
-      state: State<any, any, any, any, any>;
+      state: AnyState;
       sessionId: string;
     }
   | { type: 'service.event'; event: SCXML.Event<any>; sessionId: string };

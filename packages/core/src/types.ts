@@ -158,7 +158,7 @@ export type Actions<TContext, TEvent extends EventObject> = SingleOrArray<
   Action<TContext, TEvent>
 >;
 
-export type StateKey = string | State<any>;
+export type StateKey = string | AnyState;
 
 export interface StateValueMap {
   [key: string]: StateValue;
@@ -698,6 +698,8 @@ export interface StateNodeDefinition<
 
 export type AnyStateNodeDefinition = StateNodeDefinition<any, any, any>;
 
+export type AnyState = State<any, any, any, any, any>;
+
 export type AnyStateMachine = StateMachine<any, any, any, any, any, any, any>;
 
 export interface AtomicStateNodeConfig<TContext, TEvent extends EventObject>
@@ -1166,7 +1168,7 @@ export interface DoneEventObject extends EventObject {
 
 export interface UpdateObject extends EventObject {
   id: string | number;
-  state: State<any, any>;
+  state: AnyState;
 }
 
 export type DoneEvent = DoneEventObject & string;

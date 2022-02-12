@@ -31,7 +31,9 @@ import {
   ActorRefFrom,
   Behavior,
   StopActionObject,
-  Subscription
+  Subscription,
+  AnyState,
+  StateConfig
 } from './types';
 import { State, bindActionToState, isStateConfig } from './State';
 import * as actionTypes from './actionTypes';
@@ -65,7 +67,6 @@ import { registry } from './registry';
 import { getGlobal, registerService } from './devTools';
 import * as serviceScope from './serviceScope';
 import { spawnBehavior } from './behaviors';
-import { StateConfig } from '.';
 import {
   AreAllImplementationsAssumedToBeProvided,
   TypegenDisabled
@@ -1325,7 +1326,7 @@ export class Interpreter<
           {
             name: this.id,
             autoPause: true,
-            stateSanitizer: (state: State<any, any>): object => {
+            stateSanitizer: (state: AnyState): object => {
               return {
                 value: state.value,
                 context: state.context,

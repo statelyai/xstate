@@ -5,7 +5,7 @@ import { toMachine } from 'xstate/lib/scxml';
 import { pathsToStateValue } from 'xstate/lib/utils';
 import { SimulatedClock } from 'xstate/lib/SimulatedClock';
 import * as fs from 'fs';
-import { AnyStateMachine } from 'xstate/src';
+import { AnyState, AnyStateMachine } from 'xstate/src';
 
 interface SCIONTest {
   initialConfiguration: string[];
@@ -29,7 +29,7 @@ async function runTestToCompletion(
   const resolvedStateValue = machine.resolve(stateValue);
 
   let done = false;
-  let nextState: State<any> = machine.getInitialState(
+  let nextState: AnyState = machine.getInitialState(
     resolvedStateValue,
     machine.initialState.context
   );
