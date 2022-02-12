@@ -81,8 +81,8 @@ export function serializeState<TContext>(
 
 export function serializeEvent<TEvent extends EventObject>(
   event: TEvent
-): string {
-  return JSON.stringify(event);
+): SerializedEvent {
+  return JSON.stringify(event) as SerializedEvent;
 }
 
 export function deserializeEventString<TEvent extends EventObject>(
@@ -183,6 +183,7 @@ export function getAdjacencyMap<
 
 const defaultMachineStateOptions: TraversalOptions<State<any, any>, any> = {
   serializeState,
+  serializeEvent,
   getEvents: (state) => {
     return state.nextEvents.map((type) => ({ type }));
   }
@@ -301,9 +302,7 @@ export function getSimplePaths<
   return depthSimplePaths(machine as SimpleBehavior<any, any>, resolvedOptions);
 }
 
-export function toDirectedGraph(
-  stateNode: AnyStateNode | StateMachine<any, any, any, any, any, any, any>
-): DirectedGraphNode {
+export function toDirectedGraph(stateNode: AnyStateNode): DirectedGraphNode {
   const edges: DirectedGraphEdge[] = flatten(
     stateNode.transitions.map((t, transitionIndex) => {
       const targets = t.target ? t.target : [stateNode];
@@ -438,16 +437,17 @@ export function depthFirstTraversal<TState, TEvent>(
   return adj;
 }
 
-function resolveTraversalOptions<V, E>(
-  depthOptions?: TraversalOptions<V, E>,
-  defaultOptions?: TraversalOptions<V, E>
-): Required<TraversalOptions<V, E>> {
+function resolveTraversalOptions<TState, TEvent>(
+  depthOptions?: Partial<TraversalOptions<TState, TEvent>>,
+  defaultOptions?: TraversalOptions<TState, TEvent>
+): Required<TraversalOptions<TState, TEvent>> {
   const serializeState =
     depthOptions?.serializeState ??
     defaultOptions?.serializeState ??
     ((state) => JSON.stringify(state) as any);
   return {
     serializeState,
+    serializeEvent: serializeEvent as any, // TODO fix types
     filter: () => true,
     visitCondition: (state, event, vctx) => {
       return vctx.vertices.has(serializeState(state, event));

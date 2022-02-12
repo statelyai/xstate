@@ -1,13 +1,11 @@
-import { TraversalOptions } from '@xstate/graph';
+import { Step, TraversalOptions } from '@xstate/graph';
 import {
   EventObject,
   MachineConfig,
   State,
-  StateMachine,
   StateNode,
   StateNodeConfig,
-  TransitionConfig,
-  TransitionConfigOrTarget
+  TransitionConfig
 } from 'xstate';
 export interface TestMeta<T, TContext> {
   test?: (testContext: T, state: State<TContext, any>) => Promise<void> | void;
@@ -25,7 +23,7 @@ interface TestStateResult {
   error: null | Error;
 }
 export interface TestStepResult {
-  step: TestStep<any>;
+  step: Step<any, any>;
   state: TestStateResult;
   event: {
     error: null | Error;

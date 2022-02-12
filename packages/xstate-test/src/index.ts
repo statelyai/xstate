@@ -1,5 +1,6 @@
 import {
   getPathFromEvents,
+  SerializedEvent,
   serializeState,
   SimpleBehavior,
   StatePath,
@@ -25,8 +26,11 @@ import {
   StatePredicate,
   TestMeta,
   CoverageOptions,
-  TestEventsConfig
+  TestEventsConfig,
+  TestPathResult,
+  TestStepResult
 } from './types';
+import { formatPathTestResult, simpleStringify } from './utils';
 
 /**
  * Creates a test model that represents an abstract model of a
@@ -60,6 +64,7 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
       serializeState: isMachine(this.behavior)
         ? (serializeState as any)
         : serializeState,
+      serializeEvent: (event) => simpleStringify(event) as SerializedEvent,
       getEvents: () => [],
       testState: () => void 0,
       execEvent: () => void 0
@@ -78,7 +83,7 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
   }
 
   public getShortestPathPlans(
-    options?: TraversalOptions<TState, TEvent>
+    options?: Partial<TraversalOptions<TState, TEvent>>
   ): Array<StatePlan<TState, TEvent>> {
     const shortestPaths = depthShortestPaths(
       this.behavior,
@@ -180,159 +185,52 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
     path: StatePath<TState, TEvent>,
     testContext: TTestContext
   ) {
-    for (const step of path.steps) {
-      await this.testState(step.state, testContext);
+    const testPathResult: TestPathResult = {
+      steps: [],
+      state: {
+        error: null
+      }
+    };
 
-      await this.executeEvent(step.event, testContext);
+    try {
+      for (const step of path.steps) {
+        const testStepResult: TestStepResult = {
+          step,
+          state: { error: null },
+          event: { error: null }
+        };
+
+        testPathResult.steps.push(testStepResult);
+
+        try {
+          await this.testState(step.state, testContext);
+        } catch (err) {
+          testStepResult.state.error = err;
+
+          throw err;
+        }
+
+        try {
+          await this.executeEvent(step.event, testContext);
+        } catch (err) {
+          testStepResult.event.error = err;
+
+          throw err;
+        }
+      }
+
+      try {
+        await this.testState(path.state, testContext);
+      } catch (err) {
+        testPathResult.state.error = err.message;
+        throw err;
+      }
+    } catch (err) {
+      // TODO: make option
+      err.message += formatPathTestResult(path, testPathResult, this.options);
+      throw err;
     }
-
-    await this.testState(path.state, testContext);
   }
-
-  // public getTestPlans(
-  //   statePathsMap: StatePathsMap<TState, any>
-  // ): Array<TestPlan<TTestContext, TState>> {
-  //   return Object.keys(statePathsMap).map((key) => {
-  //     const testPlan = statePathsMap[key];
-  //     const paths = testPlan.paths.map((path) => {
-  //       const steps = path.steps.map((step) => {
-  //         return {
-  //           ...step,
-  //           description: getDescription(step.state),
-  //           test: (testContext) => this.testState(step.state, testContext),
-  //           exec: (testContext) => this.executeEvent(step.event, testContext)
-  //         };
-  //       });
-
-  //       function formatEvent(event: EventObject): string {
-  //         const { type, ...other } = event;
-
-  //         const propertyString = Object.keys(other).length
-  //           ? ` (${JSON.stringify(other)})`
-  //           : '';
-
-  //         return `${type}${propertyString}`;
-  //       }
-
-  //       const eventsString = path.steps
-  //         .map((s) => formatEvent(s.event))
-  //         .join(' → ');
-
-  //       return {
-  //         ...path,
-  //         steps,
-  //         description: `via ${eventsString}`,
-  //         test: async (testContext) => {
-  //           const testPathResult: TestPathResult = {
-  //             steps: [],
-  //             state: {
-  //               error: null
-  //             }
-  //           };
-
-  //           try {
-  //             for (const step of steps) {
-  //               const testStepResult: TestStepResult = {
-  //                 step,
-  //                 state: { error: null },
-  //                 event: { error: null }
-  //               };
-
-  //               testPathResult.steps.push(testStepResult);
-
-  //               try {
-  //                 await step.test(testContext);
-  //               } catch (err) {
-  //                 testStepResult.state.error = err;
-
-  //                 throw err;
-  //               }
-
-  //               try {
-  //                 await step.exec(testContext);
-  //               } catch (err) {
-  //                 testStepResult.event.error = err;
-
-  //                 throw err;
-  //               }
-  //             }
-
-  //             try {
-  //               await this.testState(testPlan.state, testContext);
-  //             } catch (err) {
-  //               testPathResult.state.error = err;
-  //               throw err;
-  //             }
-  //           } catch (err) {
-  //             const targetStateString = `${JSON.stringify(path.state.value)} ${
-  //               path.state.context === undefined
-  //                 ? ''
-  //                 : JSON.stringify(path.state.context)
-  //             }`;
-
-  //             let hasFailed = false;
-  //             err.message +=
-  //               '\nPath:\n' +
-  //               testPathResult.steps
-  //                 .map((s) => {
-  //                   const stateString = `${JSON.stringify(
-  //                     s.step.state.value
-  //                   )} ${
-  //                     s.step.state.context === undefined
-  //                       ? ''
-  //                       : JSON.stringify(s.step.state.context)
-  //                   }`;
-  //                   const eventString = `${JSON.stringify(s.step.event)}`;
-
-  //                   const stateResult = `\tState: ${
-  //                     hasFailed
-  //                       ? slimChalk('gray', stateString)
-  //                       : s.state.error
-  //                       ? ((hasFailed = true),
-  //                         slimChalk('redBright', stateString))
-  //                       : slimChalk('greenBright', stateString)
-  //                   }`;
-  //                   const eventResult = `\tEvent: ${
-  //                     hasFailed
-  //                       ? slimChalk('gray', eventString)
-  //                       : s.event.error
-  //                       ? ((hasFailed = true), slimChalk('red', eventString))
-  //                       : slimChalk('green', eventString)
-  //                   }`;
-
-  //                   return [stateResult, eventResult].join('\n');
-  //                 })
-  //                 .concat(
-  //                   `\tState: ${
-  //                     hasFailed
-  //                       ? slimChalk('gray', targetStateString)
-  //                       : testPathResult.state.error
-  //                       ? slimChalk('red', targetStateString)
-  //                       : slimChalk('green', targetStateString)
-  //                   }`
-  //                 )
-  //                 .join('\n\n');
-
-  //             throw err;
-  //           }
-
-  //           return testPathResult;
-  //         }
-  //       };
-  //     });
-
-  //     return {
-  //       ...testPlan,
-  //       test: async (testContext) => {
-  //         for (const path of paths) {
-  //           await path.test(testContext);
-  //         }
-  //       },
-  //       description: `reaches ${getDescription(testPlan.state)}`,
-  //       paths
-  //     } as TestPlan<TTestContext, TState>;
-  //   });
-  // }
 
   public async testState(state: TState, testContext: TTestContext) {
     return await this.options.testState(state, testContext);

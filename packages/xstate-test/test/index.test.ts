@@ -1,7 +1,6 @@
 // nothing yet
 import { createTestModel, getDescription } from '../src';
 import { assign, createMachine } from 'xstate';
-import stripAnsi from 'strip-ansi';
 
 interface DieHardContext {
   three: number;
@@ -155,23 +154,25 @@ const dieHardModel = createTestModel(dieHardMachine, null as any).withEvents({
 });
 
 describe('testing a model (shortestPathsTo)', () => {
-  dieHardModel
-    .getShortestPathPlansTo('success') // ...
-    .forEach((plan) => {
-      describe(`plan ${getDescription(plan.state)}`, () => {
-        plan.paths.forEach((path) => {
-          it(`path ${getDescription(path.state)}`, () => {
-            const testJugs = new Jugs();
-            return dieHardModel.testPath(path, { jugs: testJugs });
-          });
+  dieHardModel.getShortestPathPlansTo('success').forEach((plan) => {
+    describe(`plan ${getDescription(plan.state)}`, () => {
+      it('should generate a single path', () => {
+        expect(plan.paths.length).toEqual(1);
+      });
+
+      plan.paths.forEach((path) => {
+        it(`path ${getDescription(path.state)}`, () => {
+          const testJugs = new Jugs();
+          return dieHardModel.testPath(path, { jugs: testJugs });
         });
       });
     });
+  });
 });
 
 describe('testing a model (simplePathsTo)', () => {
   dieHardModel
-    .getSimplePathPlansTo((state) => state.matches('success')) // ...
+    .getSimplePathPlansTo((state) => state.matches('success'))
     .forEach((plan) => {
       describe(`reaches state ${JSON.stringify(
         plan.state.value
@@ -241,7 +242,7 @@ describe('path.test()', () => {
 });
 
 describe('error path trace', () => {
-  describe.only('should return trace for failed state', () => {
+  describe('should return trace for failed state', () => {
     const machine = createMachine({
       initial: 'first',
       states: {
@@ -274,7 +275,17 @@ describe('error path trace', () => {
             await testModel.testPath(path, undefined);
           } catch (err) {
             expect(err.message).toEqual(expect.stringContaining('test error'));
-            expect(stripAnsi(err.message)).toMatchSnapshot('error path trace');
+            expect(err.message).toMatchInlineSnapshot(`
+              "test error
+              Path:
+              	State: \\"first\\"
+              	Event: {\\"type\\":\\"NEXT\\"}
+
+              	State: \\"second\\"
+              	Event: {\\"type\\":\\"NEXT\\"}
+
+              	State: \\"third\\""
+            `);
             return;
           }
 
@@ -649,17 +660,17 @@ describe('plan description', () => {
 
   it('should give a description for every plan', () => {
     const planDescriptions = testPlans.map(
-      (plan) => `plan ${getDescription(plan.state)}`
+      (plan) => `reaches ${getDescription(plan.state)}`
     );
 
     expect(planDescriptions).toMatchInlineSnapshot(`
       Array [
-        "plan state: \\"#test.atomic\\" ({\\"count\\":0})",
-        "plan state: \\"#test.compound.child\\" ({\\"count\\":0})",
-        "plan state: \\"#test.final\\" ({\\"count\\":0})",
-        "plan state: \\"child with meta\\" ({\\"count\\":0})",
-        "plan states: \\"#test.parallel.one\\", \\"two description\\" ({\\"count\\":0})",
-        "plan state: \\"noMetaDescription\\" ({\\"count\\":0})",
+        "reaches state: \\"#test.atomic\\" ({\\"count\\":0})",
+        "reaches state: \\"#test.compound.child\\" ({\\"count\\":0})",
+        "reaches state: \\"#test.final\\" ({\\"count\\":0})",
+        "reaches state: \\"child with meta\\" ({\\"count\\":0})",
+        "reaches states: \\"#test.parallel.one\\", \\"two description\\" ({\\"count\\":0})",
+        "reaches state: \\"noMetaDescription\\" ({\\"count\\":0})",
       ]
     `);
   });

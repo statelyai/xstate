@@ -133,8 +133,13 @@ export interface VisitedContext<TState, TEvent> {
   a?: TState | TEvent; // TODO: remove
 }
 
-export interface TraversalOptions<TState, TEvent> {
-  serializeState?: (state: TState, event: TEvent | null) => SerializedState;
+export interface SerializationOptions<TState, TEvent> {
+  serializeState: (state: TState, event: TEvent | null) => SerializedState;
+  serializeEvent: (event: TEvent) => SerializedEvent;
+}
+
+export interface TraversalOptions<TState, TEvent>
+  extends SerializationOptions<TState, TEvent> {
   visitCondition?: (
     state: TState,
     event: TEvent,
