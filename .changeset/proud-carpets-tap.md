@@ -2,4 +2,4 @@
 'xstate': patch
 ---
 
-allow machines to use sendParent when they are not invoked/spawned
+Machines can now use `sendParent(...)` without error, even when they are not invoked/spawned from a parent.
