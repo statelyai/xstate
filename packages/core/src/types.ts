@@ -1485,6 +1485,8 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   machine?: StateMachine<TContext, any, TEvent, any, any, any, any>;
 }
 
+export type AnyStateConfig = StateConfig<any, AnyEventObject>
+
 export interface StateSchema<TC = any> {
   meta?: any;
   context?: Partial<TC>;
