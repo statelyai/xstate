@@ -201,7 +201,7 @@ export function getShortestPaths<
     options,
     defaultMachineStateOptions
   );
-  return depthShortestPaths(
+  return traverseShortestPaths(
     {
       transition: (state, event) => machine.transition(state, event),
       initialState: machine.initialState
@@ -210,14 +210,14 @@ export function getShortestPaths<
   );
 }
 
-export function depthShortestPaths<TState, TEvent extends EventObject>(
+export function traverseShortestPaths<TState, TEvent extends EventObject>(
   behavior: SimpleBehavior<TState, TEvent>,
   options?: TraversalOptions<TState, TEvent>
 ): StatePathsMap<TState, TEvent> {
   const optionsWithDefaults = resolveTraversalOptions(options);
   const { serializeState } = optionsWithDefaults;
 
-  const adjacency = depthFirstTraversal(behavior, optionsWithDefaults);
+  const adjacency = performDepthFirstTraversal(behavior, optionsWithDefaults);
 
   // weight, state, event
   const weightMap = new Map<
@@ -300,7 +300,10 @@ export function getSimplePaths<
     defaultMachineStateOptions
   );
 
-  return depthSimplePaths(machine as SimpleBehavior<any, any>, resolvedOptions);
+  return traverseSimplePaths(
+    machine as SimpleBehavior<any, any>,
+    resolvedOptions
+  );
 }
 
 export function toDirectedGraph(stateNode: AnyStateNode): DirectedGraphNode {
@@ -362,7 +365,7 @@ export function getPathFromEvents<
 
   const { serializeState } = optionsWithDefaults;
 
-  const adjacency = depthFirstTraversal(behavior, optionsWithDefaults);
+  const adjacency = performDepthFirstTraversal(behavior, optionsWithDefaults);
 
   const stateMap = new Map<string, TState>();
   const path: Steps<TState, TEvent> = [];
@@ -405,7 +408,7 @@ interface AdjMap<TState> {
   [key: SerializedState]: { [key: SerializedEvent]: TState };
 }
 
-export function depthFirstTraversal<TState, TEvent>(
+export function performDepthFirstTraversal<TState, TEvent>(
   behavior: SimpleBehavior<TState, TEvent>,
   options: TraversalOptions<TState, TEvent>
 ): AdjMap<TState> {
@@ -439,11 +442,11 @@ export function depthFirstTraversal<TState, TEvent>(
 }
 
 function resolveTraversalOptions<TState, TEvent>(
-  depthOptions?: Partial<TraversalOptions<TState, TEvent>>,
+  traversalOptions?: Partial<TraversalOptions<TState, TEvent>>,
   defaultOptions?: TraversalOptions<TState, TEvent>
 ): Required<TraversalOptions<TState, TEvent>> {
   const serializeState =
-    depthOptions?.serializeState ??
+    traversalOptions?.serializeState ??
     defaultOptions?.serializeState ??
     ((state) => JSON.stringify(state) as any);
   return {
@@ -455,20 +458,19 @@ function resolveTraversalOptions<TState, TEvent>(
     },
     getEvents: () => [],
     ...defaultOptions,
-    ...depthOptions
+    ...traversalOptions
   };
 }
 
-export function depthSimplePaths<TState, TEvent extends EventObject>(
+export function traverseSimplePaths<TState, TEvent extends EventObject>(
   behavior: SimpleBehavior<TState, TEvent>,
   options: TraversalOptions<TState, TEvent>
 ): StatePathsMap<TState, TEvent> {
   const { initialState } = behavior;
   const resolvedOptions = resolveTraversalOptions(options);
   const { serializeState, visitCondition } = resolvedOptions;
-  const adjacency = depthFirstTraversal(behavior, resolvedOptions);
+  const adjacency = performDepthFirstTraversal(behavior, resolvedOptions);
   const stateMap = new Map<string, TState>();
-  // const visited = new Set();
   const visitCtx: VisitedContext<TState, TEvent> = {
     vertices: new Set(),
     edges: new Set()
@@ -552,25 +554,25 @@ export function filterPlans<TState, TEvent extends EventObject>(
   return filteredPlans;
 }
 
-export function depthSimplePathsTo<TState, TEvent extends EventObject>(
+export function traverseSimplePathsTo<TState, TEvent extends EventObject>(
   behavior: SimpleBehavior<TState, TEvent>,
   predicate: (state: TState) => boolean,
   options: TraversalOptions<TState, TEvent>
 ): Array<StatePlan<TState, TEvent>> {
   const resolvedOptions = resolveTraversalOptions(options);
-  const simplePlansMap = depthSimplePaths(behavior, resolvedOptions);
+  const simplePlansMap = traverseSimplePaths(behavior, resolvedOptions);
 
   return filterPlans(simplePlansMap, predicate);
 }
 
-export function depthSimplePathsFromTo<TState, TEvent extends EventObject>(
+export function traverseSimplePathsFromTo<TState, TEvent extends EventObject>(
   behavior: SimpleBehavior<TState, TEvent>,
   fromPredicate: (state: TState) => boolean,
   toPredicate: (state: TState) => boolean,
   options: TraversalOptions<TState, TEvent>
 ): Array<StatePlan<TState, TEvent>> {
   const resolvedOptions = resolveTraversalOptions(options);
-  const simplePlansMap = depthSimplePaths(behavior, resolvedOptions);
+  const simplePlansMap = traverseSimplePaths(behavior, resolvedOptions);
 
   // Return all plans that contain a "from" state and target a "to" state
   return filterPlans(simplePlansMap, (state, plan) => {
@@ -580,25 +582,25 @@ export function depthSimplePathsFromTo<TState, TEvent extends EventObject>(
   });
 }
 
-export function depthShortestPathsTo<TState, TEvent extends EventObject>(
+export function traverseShortestPathsTo<TState, TEvent extends EventObject>(
   behavior: SimpleBehavior<TState, TEvent>,
   predicate: (state: TState) => boolean,
   options: TraversalOptions<TState, TEvent>
 ): Array<StatePlan<TState, TEvent>> {
   const resolvedOptions = resolveTraversalOptions(options);
-  const simplePlansMap = depthShortestPaths(behavior, resolvedOptions);
+  const simplePlansMap = traverseShortestPaths(behavior, resolvedOptions);
 
   return filterPlans(simplePlansMap, predicate);
 }
 
-export function depthShortestPathsFromTo<TState, TEvent extends EventObject>(
+export function traverseShortestPathsFromTo<TState, TEvent extends EventObject>(
   behavior: SimpleBehavior<TState, TEvent>,
   fromPredicate: (state: TState) => boolean,
   toPredicate: (state: TState) => boolean,
   options: TraversalOptions<TState, TEvent>
 ): Array<StatePlan<TState, TEvent>> {
   const resolvedOptions = resolveTraversalOptions(options);
-  const shortesPlansMap = depthShortestPaths(behavior, resolvedOptions);
+  const shortesPlansMap = traverseShortestPaths(behavior, resolvedOptions);
 
   // Return all plans that contain a "from" state and target a "to" state
   return filterPlans(shortesPlansMap, (state, plan) => {
@@ -607,35 +609,3 @@ export function depthShortestPathsFromTo<TState, TEvent extends EventObject>(
     );
   });
 }
-
-// type EventCases<TEvent extends EventObject> = Array<
-//   Omit<TEvent, 'type'> & { type?: TEvent['type'] }
-// >;
-
-// export function generateEvents<TState, TEvent extends EventObject>(
-//   blah: {
-//     [K in TEvent['type']]: TEvent extends { type: K }
-//       ? EventCases<TEvent> | ((state: TState) => EventCases<TEvent>)
-//       : never;
-//   }
-// ): (state: TState) => TEvent[] {
-//   return (state) => {
-//     const events: TEvent[] = [];
-
-//     Object.keys(blah).forEach((key) => {
-//       const cases = blah[key as TEvent['type']];
-
-//       const foo =
-//         typeof cases === 'function' ? cases(state) : (cases as TEvent[]);
-
-//       foo.forEach((payload) => {
-//         events.push({
-//           type: key,
-//           ...payload
-//         });
-//       });
-//     });
-
-//     return events;
-//   };
-// }

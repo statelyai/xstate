@@ -9,12 +9,12 @@ import {
   TraversalOptions
 } from '@xstate/graph';
 import {
-  depthShortestPaths,
-  depthSimplePaths,
-  depthSimplePathsTo
+  traverseShortestPaths,
+  traverseSimplePaths,
+  traverseSimplePathsTo
 } from '@xstate/graph/src/graph';
 import { EventObject } from 'xstate';
-import {
+import type {
   TestModelCoverage,
   TestModelOptions,
   StatePredicate,
@@ -78,7 +78,7 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
   public getShortestPlans(
     options?: Partial<TraversalOptions<TState, TEvent>>
   ): Array<StatePlan<TState, TEvent>> {
-    const shortestPaths = depthShortestPaths(
+    const shortestPaths = traverseShortestPaths(
       this.behavior,
       this.resolveOptions(options)
     );
@@ -110,7 +110,7 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
   public getSimplePlans(
     options?: Partial<TraversalOptions<TState, any>>
   ): Array<StatePlan<TState, TEvent>> {
-    const simplePaths = depthSimplePaths(
+    const simplePaths = traverseSimplePaths(
       this.behavior,
       this.resolveOptions(options)
     );
@@ -121,7 +121,7 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
   public getSimplePlansTo(
     predicate: StatePredicate<TState>
   ): Array<StatePlan<TState, TEvent>> {
-    return depthSimplePathsTo(this.behavior, predicate, this.options);
+    return traverseSimplePathsTo(this.behavior, predicate, this.options);
   }
 
   private filterPathsTo(
