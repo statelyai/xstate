@@ -195,7 +195,7 @@ export function getShortestPaths<
   TEvent extends EventObject = EventObject
 >(
   machine: StateMachine<TContext, any, TEvent>,
-  options?: TraversalOptions<State<TContext, TEvent>, TEvent>
+  options?: Partial<TraversalOptions<State<TContext, TEvent>, TEvent>>
 ): StatePathsMap<State<TContext, TEvent>, TEvent> {
   const resolvedOptions = resolveTraversalOptions(
     options,
@@ -212,7 +212,7 @@ export function getShortestPaths<
 
 export function traverseShortestPaths<TState, TEvent extends EventObject>(
   behavior: SimpleBehavior<TState, TEvent>,
-  options?: TraversalOptions<TState, TEvent>
+  options?: Partial<TraversalOptions<TState, TEvent>>
 ): StatePathsMap<TState, TEvent> {
   const optionsWithDefaults = resolveTraversalOptions(options);
   const { serializeState } = optionsWithDefaults;
@@ -293,7 +293,7 @@ export function getSimplePaths<
   TEvent extends EventObject = EventObject
 >(
   machine: StateMachine<TContext, any, TEvent>,
-  options?: TraversalOptions<State<TContext, TEvent>, TEvent>
+  options?: Partial<TraversalOptions<State<TContext, TEvent>, TEvent>>
 ): StatePathsMap<State<TContext, TEvent>, TEvent> {
   const resolvedOptions = resolveTraversalOptions(
     options,
@@ -464,7 +464,7 @@ function resolveTraversalOptions<TState, TEvent>(
 
 export function traverseSimplePaths<TState, TEvent extends EventObject>(
   behavior: SimpleBehavior<TState, TEvent>,
-  options: TraversalOptions<TState, TEvent>
+  options: Partial<TraversalOptions<TState, TEvent>>
 ): StatePathsMap<TState, TEvent> {
   const { initialState } = behavior;
   const resolvedOptions = resolveTraversalOptions(options);

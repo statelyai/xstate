@@ -7,22 +7,22 @@ Object {
   },
   "steps": Array [
     Object {
+      "eventType": "TIMER",
       "state": "green",
-      "type": "TIMER",
     },
     Object {
+      "eventType": "TIMER",
       "state": "yellow",
-      "type": "TIMER",
     },
     Object {
+      "eventType": "TIMER",
       "state": Object {
         "red": "walk",
       },
-      "type": "TIMER",
     },
     Object {
+      "eventType": "POWER_OUTAGE",
       "state": "green",
-      "type": "POWER_OUTAGE",
     },
   ],
 }
@@ -35,8 +35,8 @@ Object {
       "state": "bar",
       "steps": Array [
         Object {
+          "eventType": "EVENT",
           "state": "pending",
-          "type": "EVENT",
         },
       ],
     },
@@ -46,8 +46,8 @@ Object {
       "state": "foo",
       "steps": Array [
         Object {
+          "eventType": "STATE",
           "state": "pending",
-          "type": "STATE",
         },
       ],
     },
@@ -80,11 +80,11 @@ Object {
       },
       "steps": Array [
         Object {
+          "eventType": "2",
           "state": Object {
             "a": "a1",
             "b": "b1",
           },
-          "type": "2",
         },
       ],
     },
@@ -97,11 +97,11 @@ Object {
       },
       "steps": Array [
         Object {
+          "eventType": "3",
           "state": Object {
             "a": "a1",
             "b": "b1",
           },
-          "type": "3",
         },
       ],
     },
@@ -122,8 +122,8 @@ Object {
       "state": "yellow",
       "steps": Array [
         Object {
+          "eventType": "TIMER",
           "state": "green",
-          "type": "TIMER",
         },
       ],
     },
@@ -135,8 +135,8 @@ Object {
       },
       "steps": Array [
         Object {
+          "eventType": "POWER_OUTAGE",
           "state": "green",
-          "type": "POWER_OUTAGE",
         },
       ],
     },
@@ -148,24 +148,24 @@ Object {
       },
       "steps": Array [
         Object {
+          "eventType": "TIMER",
           "state": "green",
-          "type": "TIMER",
         },
         Object {
+          "eventType": "TIMER",
           "state": "yellow",
-          "type": "TIMER",
         },
         Object {
+          "eventType": "PED_COUNTDOWN",
           "state": Object {
             "red": "walk",
           },
-          "type": "PED_COUNTDOWN",
         },
         Object {
+          "eventType": "PED_COUNTDOWN",
           "state": Object {
             "red": "wait",
           },
-          "type": "PED_COUNTDOWN",
         },
       ],
     },
@@ -177,18 +177,18 @@ Object {
       },
       "steps": Array [
         Object {
+          "eventType": "TIMER",
           "state": "green",
-          "type": "TIMER",
         },
         Object {
+          "eventType": "TIMER",
           "state": "yellow",
-          "type": "TIMER",
         },
         Object {
+          "eventType": "PED_COUNTDOWN",
           "state": Object {
             "red": "walk",
           },
-          "type": "PED_COUNTDOWN",
         },
       ],
     },
@@ -200,12 +200,12 @@ Object {
       },
       "steps": Array [
         Object {
+          "eventType": "TIMER",
           "state": "green",
-          "type": "TIMER",
         },
         Object {
+          "eventType": "TIMER",
           "state": "yellow",
-          "type": "TIMER",
         },
       ],
     },
@@ -226,8 +226,8 @@ Object {
       "state": "yellow",
       "steps": Array [
         Object {
+          "eventType": "TIMER",
           "state": "green",
-          "type": "TIMER",
         },
       ],
     },
@@ -239,30 +239,30 @@ Object {
       },
       "steps": Array [
         Object {
+          "eventType": "TIMER",
           "state": "green",
-          "type": "TIMER",
         },
         Object {
+          "eventType": "TIMER",
           "state": "yellow",
-          "type": "TIMER",
         },
         Object {
+          "eventType": "PED_COUNTDOWN",
           "state": Object {
             "red": "walk",
           },
-          "type": "PED_COUNTDOWN",
         },
         Object {
+          "eventType": "PED_COUNTDOWN",
           "state": Object {
             "red": "wait",
           },
-          "type": "PED_COUNTDOWN",
         },
         Object {
+          "eventType": "POWER_OUTAGE",
           "state": Object {
             "red": "stop",
           },
-          "type": "POWER_OUTAGE",
         },
       ],
     },
@@ -272,24 +272,24 @@ Object {
       },
       "steps": Array [
         Object {
+          "eventType": "TIMER",
           "state": "green",
-          "type": "TIMER",
         },
         Object {
+          "eventType": "TIMER",
           "state": "yellow",
-          "type": "TIMER",
         },
         Object {
+          "eventType": "PED_COUNTDOWN",
           "state": Object {
             "red": "walk",
           },
-          "type": "PED_COUNTDOWN",
         },
         Object {
+          "eventType": "POWER_OUTAGE",
           "state": Object {
             "red": "wait",
           },
-          "type": "POWER_OUTAGE",
         },
       ],
     },
@@ -299,18 +299,18 @@ Object {
       },
       "steps": Array [
         Object {
+          "eventType": "TIMER",
           "state": "green",
-          "type": "TIMER",
         },
         Object {
+          "eventType": "TIMER",
           "state": "yellow",
-          "type": "TIMER",
         },
         Object {
+          "eventType": "POWER_OUTAGE",
           "state": Object {
             "red": "walk",
           },
-          "type": "POWER_OUTAGE",
         },
       ],
     },
@@ -320,12 +320,12 @@ Object {
       },
       "steps": Array [
         Object {
+          "eventType": "TIMER",
           "state": "green",
-          "type": "TIMER",
         },
         Object {
+          "eventType": "POWER_OUTAGE",
           "state": "yellow",
-          "type": "POWER_OUTAGE",
         },
       ],
     },
@@ -335,8 +335,8 @@ Object {
       },
       "steps": Array [
         Object {
+          "eventType": "POWER_OUTAGE",
           "state": "green",
-          "type": "POWER_OUTAGE",
         },
       ],
     },
@@ -348,24 +348,24 @@ Object {
       },
       "steps": Array [
         Object {
+          "eventType": "TIMER",
           "state": "green",
-          "type": "TIMER",
         },
         Object {
+          "eventType": "TIMER",
           "state": "yellow",
-          "type": "TIMER",
         },
         Object {
+          "eventType": "PED_COUNTDOWN",
           "state": Object {
             "red": "walk",
           },
-          "type": "PED_COUNTDOWN",
         },
         Object {
+          "eventType": "PED_COUNTDOWN",
           "state": Object {
             "red": "wait",
           },
-          "type": "PED_COUNTDOWN",
         },
       ],
     },
@@ -377,18 +377,18 @@ Object {
       },
       "steps": Array [
         Object {
+          "eventType": "TIMER",
           "state": "green",
-          "type": "TIMER",
         },
         Object {
+          "eventType": "TIMER",
           "state": "yellow",
-          "type": "TIMER",
         },
         Object {
+          "eventType": "PED_COUNTDOWN",
           "state": Object {
             "red": "walk",
           },
-          "type": "PED_COUNTDOWN",
         },
       ],
     },
@@ -400,12 +400,12 @@ Object {
       },
       "steps": Array [
         Object {
+          "eventType": "TIMER",
           "state": "green",
-          "type": "TIMER",
         },
         Object {
+          "eventType": "TIMER",
           "state": "yellow",
-          "type": "TIMER",
         },
       ],
     },
@@ -432,11 +432,11 @@ Object {
       },
       "steps": Array [
         Object {
+          "eventType": "2",
           "state": Object {
             "a": "a1",
             "b": "b1",
           },
-          "type": "2",
         },
       ],
     },
@@ -449,18 +449,18 @@ Object {
       },
       "steps": Array [
         Object {
+          "eventType": "2",
           "state": Object {
             "a": "a1",
             "b": "b1",
           },
-          "type": "2",
         },
         Object {
+          "eventType": "3",
           "state": Object {
             "a": "a2",
             "b": "b2",
           },
-          "type": "3",
         },
       ],
     },
@@ -471,11 +471,11 @@ Object {
       },
       "steps": Array [
         Object {
+          "eventType": "3",
           "state": Object {
             "a": "a1",
             "b": "b1",
           },
-          "type": "3",
         },
       ],
     },
@@ -496,8 +496,8 @@ Object {
       "state": "b",
       "steps": Array [
         Object {
+          "eventType": "FOO",
           "state": "a",
-          "type": "FOO",
         },
       ],
     },
@@ -505,8 +505,8 @@ Object {
       "state": "b",
       "steps": Array [
         Object {
+          "eventType": "BAR",
           "state": "a",
-          "type": "BAR",
         },
       ],
     },
@@ -521,16 +521,16 @@ Object {
       "state": "finish",
       "steps": Array [
         Object {
+          "eventType": "INC",
           "state": "start",
-          "type": "INC",
         },
         Object {
+          "eventType": "INC",
           "state": "start",
-          "type": "INC",
         },
         Object {
+          "eventType": "INC",
           "state": "start",
-          "type": "INC",
         },
       ],
     },
@@ -546,8 +546,8 @@ Object {
       "state": "start",
       "steps": Array [
         Object {
+          "eventType": "INC",
           "state": "start",
-          "type": "INC",
         },
       ],
     },
@@ -557,12 +557,12 @@ Object {
       "state": "start",
       "steps": Array [
         Object {
+          "eventType": "INC",
           "state": "start",
-          "type": "INC",
         },
         Object {
+          "eventType": "INC",
           "state": "start",
-          "type": "INC",
         },
       ],
     },
@@ -676,8 +676,59 @@ Object {
       "state": 0,
       "steps": Array [
         Object {
+          "eventType": "a",
           "state": 0,
-          "type": "b",
+        },
+        Object {
+          "eventType": "b",
+          "state": 1,
+        },
+        Object {
+          "eventType": "reset",
+          "state": 2,
+        },
+        Object {
+          "eventType": "b",
+          "state": 0,
+        },
+      ],
+    },
+    Object {
+      "state": 0,
+      "steps": Array [
+        Object {
+          "eventType": "a",
+          "state": 0,
+        },
+        Object {
+          "eventType": "reset",
+          "state": 1,
+        },
+        Object {
+          "eventType": "b",
+          "state": 0,
+        },
+      ],
+    },
+    Object {
+      "state": 0,
+      "steps": Array [
+        Object {
+          "eventType": "b",
+          "state": 0,
+        },
+      ],
+    },
+    Object {
+      "state": 0,
+      "steps": Array [
+        Object {
+          "eventType": "reset",
+          "state": 0,
+        },
+        Object {
+          "eventType": "b",
+          "state": 0,
         },
       ],
     },
@@ -687,8 +738,89 @@ Object {
       "state": 0,
       "steps": Array [
         Object {
+          "eventType": "a",
           "state": 0,
-          "type": "reset",
+        },
+        Object {
+          "eventType": "b",
+          "state": 1,
+        },
+        Object {
+          "eventType": "reset",
+          "state": 2,
+        },
+      ],
+    },
+    Object {
+      "state": 0,
+      "steps": Array [
+        Object {
+          "eventType": "a",
+          "state": 0,
+        },
+        Object {
+          "eventType": "reset",
+          "state": 1,
+        },
+      ],
+    },
+    Object {
+      "state": 0,
+      "steps": Array [
+        Object {
+          "eventType": "b",
+          "state": 0,
+        },
+        Object {
+          "eventType": "a",
+          "state": 0,
+        },
+        Object {
+          "eventType": "b",
+          "state": 1,
+        },
+        Object {
+          "eventType": "reset",
+          "state": 2,
+        },
+      ],
+    },
+    Object {
+      "state": 0,
+      "steps": Array [
+        Object {
+          "eventType": "b",
+          "state": 0,
+        },
+        Object {
+          "eventType": "a",
+          "state": 0,
+        },
+        Object {
+          "eventType": "reset",
+          "state": 1,
+        },
+      ],
+    },
+    Object {
+      "state": 0,
+      "steps": Array [
+        Object {
+          "eventType": "b",
+          "state": 0,
+        },
+        Object {
+          "eventType": "reset",
+          "state": 0,
+        },
+      ],
+    },
+    Object {
+      "state": 0,
+      "steps": Array [
+        Object {
+          "eventType": "reset",
+          "state": 0,
         },
       ],
     },
@@ -698,8 +830,68 @@ Object {
       "state": 1,
       "steps": Array [
         Object {
+          "eventType": "a",
           "state": 0,
-          "type": "a",
+        },
+      ],
+    },
+    Object {
+      "state": 1,
+      "steps": Array [
+        Object {
+          "eventType": "b",
+          "state": 0,
+        },
+        Object {
+          "eventType": "a",
+          "state": 0,
+        },
+      ],
+    },
+    Object {
+      "state": 1,
+      "steps": Array [
+        Object {
+          "eventType": "b",
+          "state": 0,
+        },
+        Object {
+          "eventType": "reset",
+          "state": 0,
+        },
+        Object {
+          "eventType": "a",
+          "state": 0,
+        },
+      ],
+    },
+    Object {
+      "state": 1,
+      "steps": Array [
+        Object {
+          "eventType": "reset",
+          "state": 0,
+        },
+        Object {
+          "eventType": "a",
+          "state": 0,
+        },
+      ],
+    },
+    Object {
+      "state": 1,
+      "steps": Array [
+        Object {
+          "eventType": "reset",
+          "state": 0,
+        },
+        Object {
+          "eventType": "b",
+          "state": 0,
+        },
+        Object {
+          "eventType": "a",
+          "state": 0,
         },
       ],
     },
@@ -709,12 +901,88 @@ Object {
       "state": 2,
       "steps": Array [
         Object {
+          "eventType": "a",
           "state": 0,
-          "type": "a",
         },
         Object {
+          "eventType": "b",
           "state": 1,
-          "type": "b",
+        },
+      ],
+    },
+    Object {
+      "state": 2,
+      "steps": Array [
+        Object {
+          "eventType": "b",
+          "state": 0,
+        },
+        Object {
+          "eventType": "a",
+          "state": 0,
+        },
+        Object {
+          "eventType": "b",
+          "state": 1,
+        },
+      ],
+    },
+    Object {
+      "state": 2,
+      "steps": Array [
+        Object {
+          "eventType": "b",
+          "state": 0,
+        },
+        Object {
+          "eventType": "reset",
+          "state": 0,
+        },
+        Object {
+          "eventType": "a",
+          "state": 0,
+        },
+        Object {
+          "eventType": "b",
+          "state": 1,
+        },
+      ],
+    },
+    Object {
+      "state": 2,
+      "steps": Array [
+        Object {
+          "eventType": "reset",
+          "state": 0,
+        },
+        Object {
+          "eventType": "a",
+          "state": 0,
+        },
+        Object {
+          "eventType": "b",
+          "state": 1,
+        },
+      ],
+    },
+    Object {
+      "state": 2,
+      "steps": Array [
+        Object {
+          "eventType": "reset",
+          "state": 0,
+        },
+        Object {
+          "eventType": "b",
+          "state": 0,
+        },
+        Object {
+          "eventType": "a",
+          "state": 0,
+        },
+        Object {
+          "eventType": "b",
+          "state": 1,
         },
       ],
     },
@@ -735,59 +1003,8 @@ Object {
       "state": 0,
       "steps": Array [
         Object {
+          "eventType": "b",
           "state": 0,
-          "type": "a",
-        },
-        Object {
-          "state": 1,
-          "type": "b",
-        },
-        Object {
-          "state": 2,
-          "type": "reset",
-        },
-        Object {
-          "state": 0,
-          "type": "b",
-        },
-      ],
-    },
-    Object {
-      "state": 0,
-      "steps": Array [
-        Object {
-          "state": 0,
-          "type": "a",
-        },
-        Object {
-          "state": 1,
-          "type": "reset",
-        },
-        Object {
-          "state": 0,
-          "type": "b",
-        },
-      ],
-    },
-    Object {
-      "state": 0,
-      "steps": Array [
-        Object {
-          "state": 0,
-          "type": "b",
-        },
-      ],
-    },
-    Object {
-      "state": 0,
-      "steps": Array [
-        Object {
-          "state": 0,
-          "type": "reset",
-        },
-        Object {
-          "state": 0,
-          "type": "b",
         },
       ],
     },
@@ -797,89 +1014,8 @@ Object {
       "state": 0,
       "steps": Array [
         Object {
+          "eventType": "reset",
           "state": 0,
-          "type": "a",
-        },
-        Object {
-          "state": 1,
-          "type": "b",
-        },
-        Object {
-          "state": 2,
-          "type": "reset",
-        },
-      ],
-    },
-    Object {
-      "state": 0,
-      "steps": Array [
-        Object {
-          "state": 0,
-          "type": "a",
-        },
-        Object {
-          "state": 1,
-          "type": "reset",
-        },
-      ],
-    },
-    Object {
-      "state": 0,
-      "steps": Array [
-        Object {
-          "state": 0,
-          "type": "b",
-        },
-        Object {
-          "state": 0,
-          "type": "a",
-        },
-        Object {
-          "state": 1,
-          "type": "b",
-        },
-        Object {
-          "state": 2,
-          "type": "reset",
-        },
-      ],
-    },
-    Object {
-      "state": 0,
-      "steps": Array [
-        Object {
-          "state": 0,
-          "type": "b",
-        },
-        Object {
-          "state": 0,
-          "type": "a",
-        },
-        Object {
-          "state": 1,
-          "type": "reset",
-        },
-      ],
-    },
-    Object {
-      "state": 0,
-      "steps": Array [
-        Object {
-          "state": 0,
-          "type": "b",
-        },
-        Object {
-          "state": 0,
-          "type": "reset",
-        },
-      ],
-    },
-    Object {
-      "state": 0,
-      "steps": Array [
-        Object {
-          "state": 0,
-          "type": "reset",
         },
       ],
     },
@@ -889,68 +1025,8 @@ Object {
       "state": 1,
       "steps": Array [
         Object {
+          "eventType": "a",
           "state": 0,
-          "type": "a",
-        },
-      ],
-    },
-    Object {
-      "state": 1,
-      "steps": Array [
-        Object {
-          "state": 0,
-          "type": "b",
-        },
-        Object {
-          "state": 0,
-          "type": "a",
-        },
-      ],
-    },
-    Object {
-      "state": 1,
-      "steps": Array [
-        Object {
-          "state": 0,
-          "type": "b",
-        },
-        Object {
-          "state": 0,
-          "type": "reset",
-        },
-        Object {
-          "state": 0,
-          "type": "a",
-        },
-      ],
-    },
-    Object {
-      "state": 1,
-      "steps": Array [
-        Object {
-          "state": 0,
-          "type": "reset",
-        },
-        Object {
-          "state": 0,
-          "type": "a",
-        },
-      ],
-    },
-    Object {
-      "state": 1,
-      "steps": Array [
-        Object {
-          "state": 0,
-          "type": "reset",
-        },
-        Object {
-          "state": 0,
-          "type": "b",
-        },
-        Object {
-          "state": 0,
-          "type": "a",
         },
       ],
     },
@@ -960,88 +1036,12 @@ Object {
       "state": 2,
       "steps": Array [
         Object {
+          "eventType": "a",
           "state": 0,
-          "type": "a",
         },
         Object {
+          "eventType": "b",
           "state": 1,
-          "type": "b",
-        },
-      ],
-    },
-    Object {
-      "state": 2,
-      "steps": Array [
-        Object {
-          "state": 0,
-          "type": "b",
-        },
-        Object {
-          "state": 0,
-          "type": "a",
-        },
-        Object {
-          "state": 1,
-          "type": "b",
-        },
-      ],
-    },
-    Object {
-      "state": 2,
-      "steps": Array [
-        Object {
-          "state": 0,
-          "type": "b",
-        },
-        Object {
-          "state": 0,
-          "type": "reset",
-        },
-        Object {
-          "state": 0,
-          "type": "a",
-        },
-        Object {
-          "state": 1,
-          "type": "b",
-        },
-      ],
-    },
-    Object {
-      "state": 2,
-      "steps": Array [
-        Object {
-          "state": 0,
-          "type": "reset",
-        },
-        Object {
-          "state": 0,
-          "type": "a",
-        },
-        Object {
-          "state": 1,
-          "type": "b",
-        },
-      ],
-    },
-    Object {
-      "state": 2,
-      "steps": Array [
-        Object {
-          "state": 0,
-          "type": "reset",
-        },
-        Object {
-          "state": 0,
-          "type": "b",
-        },
-        Object {
-          "state": 0,
-          "type": "a",
-        },
-        Object {
-          "state": 1,
-          "type": "b",
         },
       ],
     },

@@ -10,8 +10,8 @@ import {
 } from '../src/index';
 import {
   getAdjacencyMap,
-  depthSimplePaths,
-  depthShortestPaths
+  traverseShortestPaths,
+  traverseSimplePaths
 } from '../src/graph';
 import { assign } from 'xstate';
 import { mapValues } from 'xstate/lib/utils';
@@ -29,7 +29,7 @@ function getPathSnapshot(path: StatePath<any, any>) {
     state: path.state instanceof State ? path.state.value : path.state,
     steps: path.steps.map((step) => ({
       state: step.state instanceof State ? step.state.value : step.state,
-      type: step.event.type
+      eventType: step.event.type
     }))
   };
 }
@@ -489,7 +489,7 @@ describe('@xstate/graph', () => {
 });
 
 it('simple paths for reducers', () => {
-  const a = depthSimplePaths(
+  const a = traverseShortestPaths(
     {
       transition: (s, e) => {
         if (e.type === 'a') {
@@ -516,7 +516,7 @@ it('simple paths for reducers', () => {
 });
 
 it('shortest paths for reducers', () => {
-  const a = depthShortestPaths(
+  const a = traverseSimplePaths(
     {
       transition: (s, e) => {
         if (e.type === 'a') {
