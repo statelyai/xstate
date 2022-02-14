@@ -158,7 +158,7 @@ export type Actions<TContext, TEvent extends EventObject> = SingleOrArray<
   Action<TContext, TEvent>
 >;
 
-export type StateKey = string | State<any>;
+export type StateKey = string | AnyState;
 
 export interface StateValueMap {
   [key: string]: StateValue;
@@ -487,7 +487,7 @@ export interface InvokeConfig<TContext, TEvent extends EventObject> {
   src:
     | string
     | InvokeSourceDefinition
-    | StateMachine<any, any, any>
+    | AnyStateMachine
     | InvokeCreator<TContext, TEvent, any>;
   /**
    * If `true`, events sent to the parent service will be forwarded to the invoked service.
@@ -568,9 +568,7 @@ export interface StateNodeConfig<
   /**
    * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
    */
-  invoke?: SingleOrArray<
-    InvokeConfig<TContext, TEvent> | StateMachine<any, any, any>
-  >;
+  invoke?: SingleOrArray<InvokeConfig<TContext, TEvent> | AnyStateMachine>;
   /**
    * The mapping of event types to their potential transition(s).
    */
@@ -699,6 +697,11 @@ export interface StateNodeDefinition<
 }
 
 export type AnyStateNodeDefinition = StateNodeDefinition<any, any, any>;
+
+export type AnyState = State<any, any, any, any, any>;
+
+export type AnyStateMachine = StateMachine<any, any, any, any, any, any, any>;
+
 export interface AtomicStateNodeConfig<TContext, TEvent extends EventObject>
   extends StateNodeConfig<TContext, StateSchema, TEvent> {
   initial?: undefined;
@@ -753,7 +756,7 @@ export type DelayFunctionMap<TContext, TEvent extends EventObject> = Record<
 export type ServiceConfig<
   TContext,
   TEvent extends EventObject = AnyEventObject
-> = string | StateMachine<any, any, any> | InvokeCreator<TContext, TEvent>;
+> = string | AnyStateMachine | InvokeCreator<TContext, TEvent>;
 
 export type DelayConfig<TContext, TEvent extends EventObject> =
   | number
@@ -810,7 +813,7 @@ type MachineOptionsServices<
   TInvokeSrcNameMap = Prop<TResolvedTypesMeta, 'invokeSrcNameMap'>
 > = {
   [K in keyof TEventsCausingServices]?:
-    | StateMachine<any, any, any, any, any, any, any>
+    | AnyStateMachine
     | InvokeCreator<
         TContext,
         Cast<Prop<TIndexedEvents, TEventsCausingServices[K]>, EventObject>,
@@ -1065,14 +1068,10 @@ export interface StateMachine<
 }
 
 export type StateFrom<
-  T extends
-    | StateMachine<any, any, any, any, any, any, any>
-    | ((...args: any[]) => StateMachine<any, any, any, any, any, any, any>)
-> = T extends StateMachine<any, any, any, any, any, any, any>
+  T extends AnyStateMachine | ((...args: any[]) => AnyStateMachine)
+> = T extends AnyStateMachine
   ? ReturnType<T['transition']>
-  : T extends (
-      ...args: any[]
-    ) => StateMachine<any, any, any, any, any, any, any>
+  : T extends (...args: any[]) => AnyStateMachine
   ? ReturnType<ReturnType<T>['transition']>
   : never;
 
@@ -1169,7 +1168,7 @@ export interface DoneEventObject extends EventObject {
 
 export interface UpdateObject extends EventObject {
   id: string | number;
-  state: State<any, any>;
+  state: AnyState;
 }
 
 export type DoneEvent = DoneEventObject & string;
@@ -1485,7 +1484,7 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   machine?: StateMachine<TContext, any, TEvent, any, any, any, any>;
 }
 
-export type AnyStateConfig = StateConfig<any, AnyEventObject>
+export type AnyStateConfig = StateConfig<any, AnyEventObject>;
 
 export interface StateSchema<TC = any> {
   meta?: any;
@@ -1612,7 +1611,7 @@ export interface Subscribable<T> {
 }
 
 export type Spawnable =
-  | StateMachine<any, any, any>
+  | AnyStateMachine
   | PromiseLike<any>
   | InvokeCallback
   | InteropObservable<any>
@@ -1699,9 +1698,7 @@ export type ActorRefFrom<T> = T extends StateMachine<
 export type AnyInterpreter = Interpreter<any, any, any, any, any>;
 
 export type InterpreterFrom<
-  T extends
-    | StateMachine<any, any, any, any, any, any, any>
-    | ((...args: any[]) => StateMachine<any, any, any, any, any, any, any>)
+  T extends AnyStateMachine | ((...args: any[]) => AnyStateMachine)
 > = T extends StateMachine<
   infer TContext,
   infer TStateSchema,
@@ -1727,9 +1724,7 @@ export type InterpreterFrom<
   : never;
 
 export type MachineOptionsFrom<
-  T extends
-    | StateMachine<any, any, any, any, any, any, any>
-    | ((...args: any[]) => StateMachine<any, any, any, any, any, any, any>),
+  T extends AnyStateMachine | ((...args: any[]) => AnyStateMachine),
   TRequireMissingImplementations extends boolean = false
 > = ReturnTypeOrValue<T> extends StateMachine<
   infer TContext,

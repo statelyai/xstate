@@ -5,7 +5,8 @@ import {
   Event,
   EventObject,
   StateMachine,
-  AnyEventObject
+  AnyEventObject,
+  AnyStateMachine
 } from 'xstate';
 import { flatten, keys } from 'xstate/lib/utils';
 import {
@@ -42,7 +43,7 @@ export function toEventObject<TEvent extends EventObject>(
  * @param stateNode State node to recursively get child state nodes from
  */
 export function getStateNodes(
-  stateNode: AnyStateNode | StateMachine<any, any, any, any, any, any, any>
+  stateNode: AnyStateNode | AnyStateMachine
 ): AnyStateNode[] {
   const { states } = stateNode;
   const nodes = keys(states).reduce((accNodes, stateKey) => {

@@ -10,7 +10,8 @@ import {
   EventObject,
   StateValue,
   AnyEventObject,
-  createMachine
+  createMachine,
+  AnyState
 } from '../src';
 import { State } from '../src/State';
 import { log, actionTypes, raise, stop } from '../src/actions';
@@ -216,7 +217,7 @@ describe('interpreter', () => {
 
   describe('send with delay', () => {
     it('can send an event after a delay', () => {
-      const currentStates: Array<State<any>> = [];
+      const currentStates: Array<AnyState> = [];
       const listener = (state) => {
         currentStates.push(state);
 
@@ -631,7 +632,7 @@ describe('interpreter', () => {
   });
 
   it('can cancel a delayed event', () => {
-    let currentState: State<any>;
+    let currentState: AnyState;
     const listener = (state) => (currentState = state);
 
     const service = interpret(lightMachine, {
@@ -943,7 +944,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         }
       });
 
-      let state: State<any>;
+      let state: AnyState;
 
       interpret(raiseMachine)
         .onTransition((s) => {

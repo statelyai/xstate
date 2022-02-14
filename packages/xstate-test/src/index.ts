@@ -47,8 +47,8 @@ import { formatPathTestResult, simpleStringify } from './utils';
  */
 export class TestModel<TState, TEvent extends EventObject, TTestContext> {
   public coverage: TestModelCoverage = {
-    stateNodes: new Map(),
-    transitions: new Map()
+    states: {},
+    transitions: {}
   };
   public options: TestModelOptions<TState, TEvent, TTestContext>;
   public defaultTraversalOptions?: TraversalOptions<TState, TEvent>;

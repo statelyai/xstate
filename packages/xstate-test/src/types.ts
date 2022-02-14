@@ -1,5 +1,6 @@
 import { Step, TraversalOptions } from '@xstate/graph';
 import {
+  AnyState,
   EventObject,
   MachineConfig,
   State,
@@ -13,7 +14,7 @@ export interface TestMeta<T, TContext> {
   skip?: boolean;
 }
 interface TestStep<T> {
-  state: State<any, any>;
+  state: AnyState;
   event: EventObject;
   description: string;
   test: (testContext: T) => Promise<void>;
@@ -154,7 +155,7 @@ export interface TestModelOptions<
   ) => void | Promise<void>;
 }
 export interface TestModelCoverage {
-  stateNodes: Record<string, number>;
+  states: Record<string, number>;
   transitions: Record<string, Map<EventObject, number>>;
 }
 
