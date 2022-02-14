@@ -1,6 +1,7 @@
 // nothing yet
-import { createTestModel, getDescription } from '../src';
+import { createTestModel } from '../src';
 import { assign, createMachine } from 'xstate';
+import { getDescription } from '../src/utils';
 
 interface DieHardContext {
   three: number;
@@ -154,20 +155,22 @@ const dieHardModel = createTestModel(dieHardMachine, null as any).withEvents({
 });
 
 describe('testing a model (shortestPathsTo)', () => {
-  dieHardModel.getShortestPlansTo('success').forEach((plan) => {
-    describe(`plan ${getDescription(plan.state)}`, () => {
-      it('should generate a single path', () => {
-        expect(plan.paths.length).toEqual(1);
-      });
+  dieHardModel
+    .getShortestPlansTo((state) => state.matches('success'))
+    .forEach((plan) => {
+      describe(`plan ${getDescription(plan.state)}`, () => {
+        it('should generate a single path', () => {
+          expect(plan.paths.length).toEqual(1);
+        });
 
-      plan.paths.forEach((path) => {
-        it(`path ${getDescription(path.state)}`, () => {
-          const testJugs = new Jugs();
-          return dieHardModel.testPath(path, { jugs: testJugs });
+        plan.paths.forEach((path) => {
+          it(`path ${getDescription(path.state)}`, () => {
+            const testJugs = new Jugs();
+            return dieHardModel.testPath(path, { jugs: testJugs });
+          });
         });
       });
     });
-  });
 });
 
 describe('testing a model (simplePathsTo)', () => {
@@ -268,14 +271,18 @@ describe('error path trace', () => {
       }
     });
 
-    testModel.getShortestPlansTo('third').forEach((plan) => {
-      plan.paths.forEach((path) => {
-        it('should show an error path trace', async () => {
-          try {
-            await testModel.testPath(path, undefined);
-          } catch (err) {
-            expect(err.message).toEqual(expect.stringContaining('test error'));
-            expect(err.message).toMatchInlineSnapshot(`
+    testModel
+      .getShortestPlansTo((state) => state.matches('third'))
+      .forEach((plan) => {
+        plan.paths.forEach((path) => {
+          it('should show an error path trace', async () => {
+            try {
+              await testModel.testPath(path, undefined);
+            } catch (err) {
+              expect(err.message).toEqual(
+                expect.stringContaining('test error')
+              );
+              expect(err.message).toMatchInlineSnapshot(`
               "test error
               Path:
               	State: \\"first\\"
@@ -286,13 +293,13 @@ describe('error path trace', () => {
 
               	State: \\"third\\""
             `);
-            return;
-          }
+              return;
+            }
 
-          throw new Error('Should have failed');
+            throw new Error('Should have failed');
+          });
         });
       });
-    });
   });
 });
 

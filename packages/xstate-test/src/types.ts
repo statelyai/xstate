@@ -145,12 +145,12 @@ export interface TestEventsConfig<TTestContext> {
 
 export interface TestModelOptions<
   TState,
-  TEvents extends EventObject,
+  TEvent extends EventObject,
   TTestContext
-> extends TraversalOptions<TState, TEvents> {
+> extends TraversalOptions<TState, TEvent> {
   testState: (state: TState, testContext: TTestContext) => void | Promise<void>;
-  execEvent: (
-    event: TEvents,
+  testTransition: (
+    step: Step<TState, TEvent>,
     testContext: TTestContext
   ) => void | Promise<void>;
 }
