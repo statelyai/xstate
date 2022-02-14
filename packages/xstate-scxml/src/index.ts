@@ -1,10 +1,10 @@
 import { js2xml, Element as XMLElement, Attributes } from 'xml-js';
 import {
-  StateMachine,
   ActionObject,
   TransitionDefinition,
   StateNode,
-  ActionType
+  ActionType,
+  AnyStateMachine
 } from 'xstate';
 import { flatten } from 'xstate/lib/utils';
 
@@ -153,7 +153,7 @@ function stateNodeToSCXML(stateNode: StateNode<any, any, any>): XMLElement {
   };
 }
 
-export function toSCXML(machine: StateMachine<any, any, any>): string {
+export function toSCXML(machine: AnyStateMachine): string {
   const { states, initial } = machine;
 
   return js2xml(

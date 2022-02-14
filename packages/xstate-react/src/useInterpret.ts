@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 import {
+  AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
   InternalMachineOptions,
   interpret,
   InterpreterFrom,
   InterpreterOptions,
   Observer,
-  State,
-  StateMachine
+  State
 } from 'xstate';
 import { MaybeLazy } from './types';
 import useConstant from './useConstant';
@@ -36,7 +36,7 @@ function toObserver<T>(
 }
 
 type RestParams<
-  TMachine extends StateMachine<any, any, any, any, any, any, any>
+  TMachine extends AnyStateMachine
 > = AreAllImplementationsAssumedToBeProvided<
   TMachine['__TResolvedTypesMeta']
 > extends false
@@ -98,9 +98,7 @@ type RestParams<
           ) => void)
     ];
 
-export function useInterpret<
-  TMachine extends StateMachine<any, any, any, any, any, any, any>
->(
+export function useInterpret<TMachine extends AnyStateMachine>(
   getMachine: MaybeLazy<TMachine>,
   ...[options = {}, observerOrListener]: RestParams<TMachine>
 ): InterpreterFrom<TMachine> {
