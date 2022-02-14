@@ -154,8 +154,8 @@ export interface TestModelOptions<
   ) => void | Promise<void>;
 }
 export interface TestModelCoverage {
-  stateNodes: Map<string, number>;
-  transitions: Map<string, Map<EventObject, number>>;
+  stateNodes: Record<string, number>;
+  transitions: Record<string, Map<EventObject, number>>;
 }
 
 export interface CoverageOptions<TContext> {

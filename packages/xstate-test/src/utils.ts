@@ -4,7 +4,8 @@ import {
   SerializedState,
   StatePath
 } from '@xstate/graph';
-import { TestPathResult } from './types';
+import { State } from 'xstate';
+import { TestMeta, TestPathResult } from './types';
 
 interface TestResultStringOptions extends SerializationOptions<any, any> {
   formatColor: (color: string, string: string) => string;
@@ -70,4 +71,34 @@ export function formatPathTestResult(
       .join('\n\n');
 
   return errMessage;
+}
+
+export function getDescription<T, TContext>(
+  state: State<TContext, any>
+): string {
+  const contextString =
+    state.context === undefined ? '' : `(${JSON.stringify(state.context)})`;
+
+  const stateStrings = state.configuration
+    .filter((sn) => sn.type === 'atomic' || sn.type === 'final')
+    .map(({ id }) => {
+      const meta = state.meta[id] as TestMeta<T, TContext>;
+      if (!meta) {
+        return `"#${id}"`;
+      }
+
+      const { description } = meta;
+
+      if (typeof description === 'function') {
+        return description(state);
+      }
+
+      return description ? `"${description}"` : JSON.stringify(state.value);
+    });
+
+  return (
+    `state${stateStrings.length === 1 ? '' : 's'}: ` +
+    stateStrings.join(', ') +
+    ` ${contextString}`
+  );
 }

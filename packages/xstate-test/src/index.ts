@@ -9,22 +9,15 @@ import {
 } from '@xstate/graph';
 import {
   depthShortestPaths,
+  depthSimplePaths,
   depthSimplePathsTo
 } from '@xstate/graph/src/graph';
-import {
-  StateMachine,
-  EventObject,
-  State,
-  StateValue,
-  StateFrom,
-  EventFrom
-} from 'xstate';
+import { StateMachine, EventObject, State, StateFrom, EventFrom } from 'xstate';
 import { isMachine } from 'xstate/src/utils';
 import {
   TestModelCoverage,
   TestModelOptions,
   StatePredicate,
-  TestMeta,
   CoverageOptions,
   TestEventsConfig,
   TestPathResult,
@@ -82,7 +75,7 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
     };
   }
 
-  public getShortestPathPlans(
+  public getShortestPlans(
     options?: Partial<TraversalOptions<TState, TEvent>>
   ): Array<StatePlan<TState, TEvent>> {
     const shortestPaths = depthShortestPaths(
@@ -93,13 +86,13 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
     return Object.values(shortestPaths);
   }
 
-  public getShortestPathPlansTo(
-    stateValue: StateValue | StatePredicate<TState>
+  public getShortestPlansTo(
+    stateValue: StatePredicate<TState>
   ): Array<StatePlan<TState, TEvent>> {
     let minWeight = Infinity;
     let shortestPlans: Array<StatePlan<TState, TEvent>> = [];
 
-    const plans = this.filterPathsTo(stateValue, this.getShortestPathPlans());
+    const plans = this.filterPathsTo(stateValue, this.getShortestPlans());
 
     for (const plan of plans) {
       const currWeight = plan.paths[0].weight;
@@ -114,14 +107,28 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
     return shortestPlans;
   }
 
+  public getSimplePlans(
+    options?: Partial<TraversalOptions<TState, any>>
+  ): Array<StatePlan<TState, TEvent>> {
+    const simplePaths = depthSimplePaths(
+      this.behavior,
+      this.resolveOptions(options)
+    );
+
+    return Object.values(simplePaths);
+  }
+
+  public getSimplePlansTo(
+    predicate: StatePredicate<TState>
+  ): Array<StatePlan<TState, TEvent>> {
+    return depthSimplePathsTo(this.behavior, predicate, this.options);
+  }
+
   private filterPathsTo(
-    stateValue: StateValue | StatePredicate<TState>,
+    statePredicate: StatePredicate<TState>,
     testPlans: Array<StatePlan<TState, TEvent>>
   ): Array<StatePlan<TState, TEvent>> {
-    const predicate: StatePredicate<TState> =
-      typeof stateValue === 'function'
-        ? (state) => stateValue(state)
-        : (state) => (state as any).matches(stateValue);
+    const predicate: StatePredicate<TState> = (state) => statePredicate(state);
 
     return testPlans.filter((testPlan) => {
       return predicate(testPlan.state);
@@ -130,11 +137,11 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
 
   public getPlanFromEvents(
     events: TEvent[],
-    assertion: (state: TState) => boolean
+    statePredicate: StatePredicate<TState>
   ): StatePlan<TState, TEvent> {
-    const path = getPathFromEvents<TState, TEvent>(this.behavior, events);
+    const path = getPathFromEvents(this.behavior, events);
 
-    if (!assertion(path.state)) {
+    if (!statePredicate(path.state)) {
       throw new Error(
         `The last state ${JSON.stringify(
           (path.state as any).value
@@ -148,28 +155,6 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
     };
 
     return plan;
-  }
-
-  // public getSimplePathPlans(
-  //   options?: Partial<TraversalOptions<TState, any>>
-  // ): Array<StatePlan<TState, TEvent>> {
-  //   const simplePaths = depthSimplePaths(
-  //     this.behavior.transition,
-  //     this.behavior.initialState,
-  //     {
-  //       serializeState,
-  //       getEvents: () => getEventSamples(this.options.events),
-  //       ...options
-  //     }
-  //   );
-
-  //   return this.getTestPlans(simplePaths);
-  // }
-
-  public getSimplePathPlansTo(
-    predicate: (state: TState) => boolean
-  ): Array<StatePlan<TState, TEvent>> {
-    return depthSimplePathsTo(this.behavior, predicate, this.options);
   }
 
   public async testPlan(
@@ -300,36 +285,6 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
   ): TestModelOptions<TState, TEvent, TTestContext> {
     return { ...this.defaultTraversalOptions, ...this.options, ...options };
   }
-}
-
-export function getDescription<T, TContext>(
-  state: State<TContext, any>
-): string {
-  const contextString =
-    state.context === undefined ? '' : `(${JSON.stringify(state.context)})`;
-
-  const stateStrings = state.configuration
-    .filter((sn) => sn.type === 'atomic' || sn.type === 'final')
-    .map(({ id }) => {
-      const meta = state.meta[id] as TestMeta<T, TContext>;
-      if (!meta) {
-        return `"#${id}"`;
-      }
-
-      const { description } = meta;
-
-      if (typeof description === 'function') {
-        return description(state);
-      }
-
-      return description ? `"${description}"` : JSON.stringify(state.value);
-    });
-
-  return (
-    `state${stateStrings.length === 1 ? '' : 's'}: ` +
-    stateStrings.join(', ') +
-    ` ${contextString}`
-  );
 }
 
 export function getEventSamples<TEvent extends EventObject>(

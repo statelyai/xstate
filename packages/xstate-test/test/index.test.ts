@@ -154,7 +154,7 @@ const dieHardModel = createTestModel(dieHardMachine, null as any).withEvents({
 });
 
 describe('testing a model (shortestPathsTo)', () => {
-  dieHardModel.getShortestPathPlansTo('success').forEach((plan) => {
+  dieHardModel.getShortestPlansTo('success').forEach((plan) => {
     describe(`plan ${getDescription(plan.state)}`, () => {
       it('should generate a single path', () => {
         expect(plan.paths.length).toEqual(1);
@@ -172,7 +172,7 @@ describe('testing a model (shortestPathsTo)', () => {
 
 describe('testing a model (simplePathsTo)', () => {
   dieHardModel
-    .getSimplePathPlansTo((state) => state.matches('success'))
+    .getSimplePlansTo((state) => state.matches('success'))
     .forEach((plan) => {
       describe(`reaches state ${JSON.stringify(
         plan.state.value
@@ -221,7 +221,7 @@ describe('testing a model (getPlanFromEvents)', () => {
 });
 
 describe('path.test()', () => {
-  const plans = dieHardModel.getSimplePathPlansTo((state) => {
+  const plans = dieHardModel.getSimplePlansTo((state) => {
     return state.matches('success') && state.context.three === 0;
   });
 
@@ -268,7 +268,7 @@ describe('error path trace', () => {
       }
     });
 
-    testModel.getShortestPathPlansTo('third').forEach((plan) => {
+    testModel.getShortestPlansTo('third').forEach((plan) => {
       plan.paths.forEach((path) => {
         it('should show an error path trace', async () => {
           try {
@@ -538,7 +538,7 @@ describe('events', () => {
       }
     });
 
-    const testPlans = testModel.getShortestPathPlans();
+    const testPlans = testModel.getShortestPlans();
 
     for (const plan of testPlans) {
       await testModel.testPlan(plan, undefined);
@@ -560,7 +560,7 @@ describe('events', () => {
 
     const testModel = createTestModel(testMachine, undefined);
 
-    const testPlans = testModel.getShortestPathPlans();
+    const testPlans = testModel.getShortestPlans();
 
     expect(async () => {
       for (const plan of Object.values(testPlans)) {
@@ -592,7 +592,7 @@ describe('state limiting', () => {
       INC: () => {}
     });
 
-    const testPlans = testModel.getShortestPathPlans({
+    const testPlans = testModel.getShortestPlans({
       filter: (state) => {
         return state.context.count < 5;
       }
@@ -656,7 +656,7 @@ describe('plan description', () => {
     NEXT: { exec: () => {} },
     DONE: { exec: () => {} }
   });
-  const testPlans = testModel.getShortestPathPlans();
+  const testPlans = testModel.getShortestPlans();
 
   it('should give a description for every plan', () => {
     const planDescriptions = testPlans.map(
