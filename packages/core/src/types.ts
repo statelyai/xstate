@@ -1005,7 +1005,12 @@ export interface StateMachine<
   TTypestate extends Typestate<TContext> = { value: any; context: TContext },
   TAction extends BaseActionObject = BaseActionObject,
   TServiceMap extends ServiceMap = ServiceMap,
-  TResolvedTypesMeta = TypegenDisabled
+  TResolvedTypesMeta = ResolveTypegenMeta<
+    TypegenDisabled,
+    TEvent,
+    TAction,
+    TServiceMap
+  >
 > extends StateNode<
     TContext,
     TStateSchema,
@@ -1484,7 +1489,7 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   machine?: StateMachine<TContext, any, TEvent, any, any, any, any>;
 }
 
-export type AnyStateConfig = StateConfig<any, AnyEventObject>
+export type AnyStateConfig = StateConfig<any, AnyEventObject>;
 
 export interface StateSchema<TC = any> {
   meta?: any;
