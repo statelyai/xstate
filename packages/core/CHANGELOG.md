@@ -1,5 +1,39 @@
 # xstate
 
+## 4.30.1
+
+### Patch Changes
+
+- [#3040](https://github.com/statelyai/xstate/pull/3040) [`18dc2b3e2`](https://github.com/statelyai/xstate/commit/18dc2b3e2c49527b2155063490bb7295f1f06043) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `AnyState` and `AnyStateMachine` types are now available, which can be used to express any state and state machine, respectively:
+
+  ```ts
+  import type { AnyState, AnyStateMachine } from 'xstate';
+
+  // A function that takes in any state machine
+  function visualizeMachine(machine: AnyStateMachine) {
+    // (exercise left to reader)
+  }
+
+  function logState(state: AnyState) {
+    // ...
+  }
+  ```
+
+* [#3042](https://github.com/statelyai/xstate/pull/3042) [`e53396f08`](https://github.com/statelyai/xstate/commit/e53396f083091db26c117000ce6ec070914360e9) Thanks [@suerta-git](https://github.com/suerta-git)! - Added the `AnyStateConfig` type, which represents any `StateConfig<...>`:
+
+  ```ts
+  import type { AnyStateConfig } from 'xstate';
+  import { State } from 'xstate';
+
+  // Retrieving the state config from localStorage
+  const stateConfig: AnyStateConfig = JSON.parse(
+    localStorage.getItem('app-state')
+  );
+
+  // Use State.create() to restore state from config object with correct type
+  const previousState = State.create(stateConfig);
+  ```
+
 ## 4.30.0
 
 ### Minor Changes
