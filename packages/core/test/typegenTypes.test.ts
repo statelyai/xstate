@@ -1,4 +1,4 @@
-import { assign, interpret } from '../src';
+import { assign, interpret, StateMachine } from '../src';
 import { createMachine } from '../src/Machine';
 import { createModel } from '../src/model';
 import { TypegenMeta } from '../src/typegenTypes';
@@ -1133,5 +1133,17 @@ describe('typegen types', () => {
       // @ts-expect-error
       machine.initialState.context.val;
     }
+  });
+
+  it('should be possible to pass typegen-less machines to functions expecting a machine argument that do not utilize the typegen information', () => {
+    const machine = createMachine({});
+
+    function acceptMachine<TContext, TEvent extends { type: string }>(
+      machine: StateMachine<TContext, any, TEvent>
+    ) {
+      return machine;
+    }
+
+    acceptMachine(machine);
   });
 });
