@@ -18,7 +18,7 @@ const TEST_FRAMEWORK = path.dirname(
   }) as string
 );
 
-const testGroups = {
+const testGroups: Record<string, string[]> = {
   actionSend: [
     'send1',
     'send2',
@@ -338,7 +338,7 @@ const testGroups = {
   ]
 };
 
-const overrides = {
+const overrides: Record<string, string[]> = {
   'assign-current-small-step': [
     // original using <script/> to manipulate datamodel
     'test0'

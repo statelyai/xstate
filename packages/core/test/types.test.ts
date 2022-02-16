@@ -1,7 +1,7 @@
 import { Machine, assign, createMachine, interpret } from '../src/index';
 import { raise } from '../src/actions';
 
-function noop(_x) {
+function noop(_x: unknown) {
   return;
 }
 

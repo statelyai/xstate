@@ -1,4 +1,4 @@
-import { Machine, StateNode } from '../src';
+import { AnyStateMachine, Machine, StateNode } from '../src';
 import { flatten } from '../src/utils';
 
 describe('document order', () => {
@@ -53,10 +53,12 @@ describe('document order', () => {
       }
     });
 
-    function dfs(node: StateNode): StateNode[] {
+    function dfs(
+      node: AnyStateMachine
+    ): StateNode<any, any, any, any, any, any>[] {
       return flatten([
-        node,
-        ...Object.keys(node.states).map((key) => dfs(node.states[key]))
+        node as any,
+        ...Object.keys(node.states).map((key) => dfs(node.states[key] as any))
       ]);
     }
 
