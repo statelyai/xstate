@@ -3,7 +3,7 @@ import { mapState } from './mapState';
 import { StateNode } from './StateNode';
 import { State } from './State';
 import { Machine, createMachine } from './Machine';
-import { Actor } from './Actor';
+import { Actor, toActorRef } from './Actor';
 import * as actions from './actions';
 import {
   interpret,
@@ -18,6 +18,7 @@ const { assign, send, sendParent, sendUpdate, forwardTo, doneInvoke } = actions;
 
 export {
   Actor,
+  toActorRef,
   Machine,
   StateNode,
   State,

@@ -1603,16 +1603,20 @@ export interface Subscription {
 }
 
 export interface InteropObservable<T> {
-  [Symbol.observable]: () => Subscribable<T>;
+  [Symbol.observable]: () => InteropSubscribable<T>;
 }
 
-export interface Subscribable<T> {
+export interface InteropSubscribable<T> {
+  subscribe(observer: Observer<T>): Subscription;
+}
+
+export interface Subscribable<T> extends InteropSubscribable<T> {
+  subscribe(observer: Observer<T>): Subscription;
   subscribe(
     next: (value: T) => void,
     error?: (error: any) => void,
     complete?: () => void
   ): Subscription;
-  subscribe(observer: Observer<T>): Subscription;
 }
 
 export type Spawnable =
