@@ -543,7 +543,12 @@ describe('State', () => {
       const { initialState } = machine;
       const { matches } = initialState;
 
-      expect(matches('one')).toBe(true);
+      // This checks that `fn`'s context is bound
+      function assertBinding(fn: typeof matches) {
+        expect(fn('one')).toBe(true);
+      }
+
+      assertBinding(matches);
     });
   });
 
@@ -551,7 +556,12 @@ describe('State', () => {
     it('should return all state paths as strings', () => {
       const twoState = machine.transition('one', 'TO_TWO');
 
-      expect(twoState.toStrings()).toEqual(['two', 'two.deep', 'two.deep.foo']);
+      // This checks that `fn`'s context is bound
+      function assertBinding(fn: typeof twoState.toStrings) {
+        expect(fn()).toEqual(['two', 'two.deep', 'two.deep.foo']);
+      }
+
+      assertBinding(twoState.toStrings);
     });
 
     it('should respect `delimiter` option for deeply nested states', () => {
@@ -596,7 +606,12 @@ describe('State', () => {
         }
       });
 
-      expect(machine.initialState.can('NEXT')).toBe(true);
+      // This checks that `fn`'s context is bound
+      function assertBinding(fn: typeof machine.initialState.can) {
+        expect(fn('NEXT')).toBe(true);
+      }
+
+      assertBinding(machine.initialState.can);
     });
 
     it('should return true for an event object that results in a transition to a different state', () => {
@@ -921,7 +936,12 @@ describe('State', () => {
       const persistedState = JSON.stringify(machine.initialState);
       const restoredState = State.create(JSON.parse(persistedState));
 
-      expect(restoredState.hasTag('foo')).toBe(true);
+      // This checks that `fn`'s context is bound
+      function assertBinding(fn: typeof machine.initialState.hasTag) {
+        expect(fn('foo')).toBe(true);
+      }
+
+      assertBinding(restoredState.hasTag);
     });
   });
 });

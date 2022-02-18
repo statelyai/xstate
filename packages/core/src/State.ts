@@ -16,7 +16,7 @@ import {
   SimpleEventsOf
 } from './types';
 import { EMPTY_ACTIVITY_MAP } from './constants';
-import { matchesState, keys, isString, warn } from './utils';
+import { matchesState, keys, isString, bind, warn } from './utils';
 import { StateNode } from './StateNode';
 import { getMeta, nextEvents } from './stateUtils';
 import { initEvent } from './actions';
@@ -288,6 +288,7 @@ export class State<
    * @param stateValue
    * @param delimiter The character(s) that separate each subpath in the string state node path.
    */
+  @bind
   public toStrings(
     stateValue: StateValue = this.value,
     delimiter: string = '.'
@@ -306,6 +307,7 @@ export class State<
     );
   }
 
+  @bind
   public toJSON() {
     const { configuration, transitions, tags, machine, ...jsonValues } = this;
 
@@ -316,6 +318,7 @@ export class State<
    * Whether the current state value is a subset of the given parent state value.
    * @param parentStateValue
    */
+  @bind
   public matches<
     TSV extends TResolvedTypesMeta extends TypegenEnabled
       ? Prop<TResolvedTypesMeta, 'matchesStates'>
@@ -340,6 +343,7 @@ export class State<
    * Whether the current state configuration has a state node with the specified `tag`.
    * @param tag
    */
+  @bind
   public hasTag(
     tag: TResolvedTypesMeta extends TypegenEnabled
       ? Prop<TResolvedTypesMeta, 'tags'>
@@ -356,6 +360,7 @@ export class State<
    * @param event The event to test
    * @returns Whether the event will cause a transition
    */
+  @bind
   public can(event: TEvent | SimpleEventsOf<TEvent>['type']): boolean {
     if (IS_PRODUCTION) {
       warn(
