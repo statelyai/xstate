@@ -747,6 +747,7 @@ export function bind<T extends Function>(
 
   return {
     configurable: true,
+    enumerable: true,
     get(this: T): T {
       const bound: T = descriptor.value!.bind(this);
       // Credits to https://github.com/andreypopp/autobind-decorator
@@ -754,6 +755,7 @@ export function bind<T extends Function>(
       Object.defineProperty(this, propertyKey, {
         value: bound,
         configurable: true,
+        enumerable: true,
         writable: true
       });
       return bound;
