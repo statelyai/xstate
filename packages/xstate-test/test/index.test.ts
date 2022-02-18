@@ -571,7 +571,10 @@ describe('state limiting', () => {
       }
     });
 
-    const testModel = createModel(machine);
+    const testModel = createModel(machine).withEvents({
+      INC: () => {}
+    });
+
     const testPlans = testModel.getShortestPathPlans({
       filter: (state) => {
         return state.context.count < 5;
@@ -632,7 +635,10 @@ describe('plan description', () => {
     }
   });
 
-  const testModel = createModel(machine);
+  const testModel = createModel(machine).withEvents({
+    NEXT: () => {},
+    DONE: () => {}
+  });
   const testPlans = testModel.getShortestPathPlans();
 
   it('should give a description for every plan', () => {

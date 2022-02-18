@@ -158,21 +158,42 @@ describe('@xstate/graph', () => {
 
   describe('getShortestPaths()', () => {
     it('should return a mapping of shortest paths to all states', () => {
-      const paths = getShortestPaths(lightMachine) as any;
+      const paths = getShortestPaths(lightMachine, {
+        events: {
+          TIMER: [{ type: 'TIMER' }],
+          POWER_OUTAGE: [{ type: 'POWER_OUTAGE' }],
+          PUSH_BUTTON: [{ type: 'PUSH_BUTTON' }],
+          PED_COUNTDOWN: [{ type: 'PED_COUNTDOWN' }]
+        }
+      });
 
       expect(paths).toMatchSnapshot('shortest paths');
     });
 
     it('should return a mapping of shortest paths to all states (parallel)', () => {
-      const paths = getShortestPaths(parallelMachine) as any;
+      const paths = getShortestPaths(parallelMachine, {
+        events: {
+          1: [{ type: '1' }],
+          2: [{ type: '2' }],
+          3: [{ type: '3' }]
+        }
+      });
+
       expect(paths).toMatchSnapshot('shortest paths parallel');
     });
 
     it('the initial state should have a zero-length path', () => {
+      const paths = getShortestPaths(lightMachine, {
+        events: {
+          TIMER: [{ type: 'TIMER' }],
+          POWER_OUTAGE: [{ type: 'POWER_OUTAGE' }],
+          PUSH_BUTTON: [{ type: 'PUSH_BUTTON' }],
+          PED_COUNTDOWN: [{ type: 'PED_COUNTDOWN' }]
+        }
+      });
+
       expect(
-        getShortestPaths(lightMachine)[
-          JSON.stringify(lightMachine.initialState.value)
-        ].paths[0].segments
+        paths[JSON.stringify(lightMachine.initialState.value)].paths[0].segments
       ).toHaveLength(0);
     });
 
@@ -209,7 +230,14 @@ describe('@xstate/graph', () => {
 
   describe('getSimplePaths()', () => {
     it('should return a mapping of arrays of simple paths to all states', () => {
-      const paths = getSimplePaths(lightMachine) as any;
+      const paths = getSimplePaths(lightMachine, {
+        events: {
+          TIMER: [{ type: 'TIMER' }],
+          POWER_OUTAGE: [{ type: 'POWER_OUTAGE' }],
+          PUSH_BUTTON: [{ type: 'PUSH_BUTTON' }],
+          PED_COUNTDOWN: [{ type: 'PED_COUNTDOWN' }]
+        }
+      });
 
       expect(paths).toMatchSnapshot('simple paths');
     });
@@ -223,24 +251,49 @@ describe('@xstate/graph', () => {
     });
 
     it('should return a mapping of simple paths to all states (parallel)', () => {
-      const paths = getSimplePaths(parallelMachine);
+      const paths = getSimplePaths(parallelMachine, {
+        events: {
+          1: [{ type: '1' }],
+          2: [{ type: '2' }],
+          3: [{ type: '3' }]
+        }
+      });
       expect(paths).toMatchSnapshot('simple paths parallel');
     });
 
     it('should return multiple paths for equivalent transitions', () => {
-      const paths = getSimplePaths(equivMachine);
+      const paths = getSimplePaths(equivMachine, {
+        events: {
+          FOO: [{ type: 'FOO' }],
+          BAR: [{ type: 'BAR' }]
+        }
+      });
+
       expect(paths).toMatchSnapshot('simple paths equal transitions');
     });
 
     it('should return a single empty path for the initial state', () => {
-      expect(getSimplePaths(lightMachine)['"green"'].paths).toHaveLength(1);
-      expect(
-        getSimplePaths(lightMachine)['"green"'].paths[0].segments
-      ).toHaveLength(0);
-      expect(getSimplePaths(equivMachine)['"a"'].paths).toHaveLength(1);
-      expect(
-        getSimplePaths(equivMachine)['"a"'].paths[0].segments
-      ).toHaveLength(0);
+      const lightMachinePaths = getSimplePaths(lightMachine, {
+        events: {
+          TIMER: [{ type: 'TIMER' }],
+          POWER_OUTAGE: [{ type: 'POWER_OUTAGE' }],
+          PUSH_BUTTON: [{ type: 'PUSH_BUTTON' }],
+          PED_COUNTDOWN: [{ type: 'PED_COUNTDOWN' }]
+        }
+      });
+
+      expect(lightMachinePaths['"green"'].paths).toHaveLength(1);
+      expect(lightMachinePaths['"green"'].paths[0].segments).toHaveLength(0);
+
+      const equivMachinePaths = getSimplePaths(equivMachine, {
+        events: {
+          FOO: [{ type: 'FOO' }],
+          BAR: [{ type: 'BAR' }]
+        }
+      });
+
+      expect(equivMachinePaths['"a"'].paths).toHaveLength(1);
+      expect(equivMachinePaths['"a"'].paths[0].segments).toHaveLength(0);
     });
 
     it('should return value-based paths', () => {
@@ -287,7 +340,14 @@ describe('@xstate/graph', () => {
 
   describe('getSimplePathsAsArray()', () => {
     it('should return an array of shortest paths to all states', () => {
-      const pathsArray = getSimplePathsAsArray(lightMachine);
+      const pathsArray = getSimplePathsAsArray(lightMachine, {
+        events: {
+          TIMER: [{ type: 'TIMER' }],
+          POWER_OUTAGE: [{ type: 'POWER_OUTAGE' }],
+          PUSH_BUTTON: [{ type: 'PUSH_BUTTON' }],
+          PED_COUNTDOWN: [{ type: 'PED_COUNTDOWN' }]
+        }
+      });
 
       expect(Array.isArray(pathsArray)).toBeTruthy();
       expect(pathsArray).toMatchSnapshot('simple paths array');

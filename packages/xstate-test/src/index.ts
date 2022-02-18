@@ -63,9 +63,11 @@ export class TestModel<TTestContext, TContext> {
   public getShortestPathPlans(
     options?: Partial<ValueAdjMapOptions<TContext, any>>
   ): Array<TestPlan<TTestContext, TContext>> {
+    const events = getEventSamples<TTestContext>(this.options.events);
+
     const shortestPaths = getShortestPaths(this.machine, {
       ...options,
-      events: getEventSamples<TTestContext>(this.options.events)
+      events
     }) as StatePathsMap<TContext, any>;
 
     return this.getTestPlans(shortestPaths);
@@ -408,12 +410,15 @@ function getEventSamples<T>(eventsOptions: TestModelOptions<T>['events']) {
 
   Object.keys(eventsOptions).forEach((key) => {
     const eventConfig = eventsOptions[key];
+
     if (typeof eventConfig === 'function') {
-      return [
+      result[key] = [
         {
           type: key
         }
       ];
+
+      return;
     }
 
     result[key] = eventConfig.cases

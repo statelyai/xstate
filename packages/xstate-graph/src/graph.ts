@@ -130,17 +130,15 @@ export function getAdjacencyMap<
       nextEvents.map((nextEvent) => {
         const getNextEvents = events[nextEvent];
 
-        if (!getNextEvents) {
-          return [{ type: nextEvent }];
-        }
-
         if (typeof getNextEvents === 'function') {
           return getNextEvents(state);
         }
 
         return getNextEvents;
       })
-    ).map((event) => toEventObject(event));
+    )
+      .filter(Boolean)
+      .map((event) => toEventObject(event));
 
     for (const event of potentialEvents) {
       let nextState: State<TContext, TEvent>;
