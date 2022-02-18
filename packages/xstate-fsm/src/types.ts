@@ -65,7 +65,9 @@ export namespace StateMachine {
     changed?: boolean | undefined;
     matches: <TSV extends TState['value']>(
       value: TSV
-    ) => this is TState extends { value: TSV } ? TState : never;
+    ) => this is TState extends { value: TSV }
+      ? TState & { value: TSV }
+      : never;
   }
 
   export type AnyState = State<any, any, any>;
