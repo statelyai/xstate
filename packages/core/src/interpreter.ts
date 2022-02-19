@@ -33,7 +33,8 @@ import {
   StopActionObject,
   Subscription,
   AnyState,
-  StateConfig
+  StateConfig,
+  InteropSubscribable
 } from './types';
 import { State, bindActionToState, isStateConfig } from './State';
 import * as actionTypes from './actionTypes';
@@ -53,12 +54,11 @@ import {
   toEventObject,
   toSCXMLEvent,
   reportUnhandledExceptionOnInvocation,
-  symbolObservable,
   toInvokeSource,
   toObserver,
   isActor,
   isBehavior,
-  interopSymbols
+  symbolObservableRef
 } from './utils';
 import { Scheduler } from './scheduler';
 import { Actor, isSpawnedActor, createDeferredActor } from './Actor';
@@ -389,16 +389,16 @@ export class Interpreter<
     return this;
   }
   public subscribe(
+    observer: Observer<
+      State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta>
+    >
+  ): Subscription;
+  public subscribe(
     nextListener?: (
       state: State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta>
     ) => void,
     errorListener?: (error: any) => void,
     completeListener?: () => void
-  ): Subscription;
-  public subscribe(
-    observer: Observer<
-      State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta>
-    >
   ): Subscription;
   public subscribe(
     nextListenerOrObserver?:
@@ -1166,7 +1166,9 @@ export class Interpreter<
         return { id };
       },
       getSnapshot: () => resolvedData,
-      ...interopSymbols
+      [symbolObservableRef.symbol]: function () {
+        return this;
+      }
     };
 
     this.children.set(id, actor);
@@ -1208,11 +1210,12 @@ export class Interpreter<
       id,
       send: (event) => receivers.forEach((receiver) => receiver(event)),
       subscribe: (next) => {
-        listeners.add(next);
+        const observer = toObserver(next);
+        listeners.add(observer.next);
 
         return {
           unsubscribe: () => {
-            listeners.delete(next);
+            listeners.delete(observer.next);
           }
         };
       },
@@ -1226,7 +1229,9 @@ export class Interpreter<
         return { id };
       },
       getSnapshot: () => emitted,
-      ...interopSymbols
+      [symbolObservableRef.symbol]: function () {
+        return this;
+      }
     };
 
     this.children.set(id, actor);
@@ -1265,7 +1270,9 @@ export class Interpreter<
       toJSON() {
         return { id };
       },
-      ...interopSymbols
+      [symbolObservableRef.symbol]: function () {
+        return this;
+      }
     };
 
     this.children.set(id, actor);
@@ -1310,7 +1317,9 @@ export class Interpreter<
       toJSON() {
         return { id };
       },
-      ...interopSymbols
+      [symbolObservableRef.symbol]: function () {
+        return this;
+      }
     });
   }
 
@@ -1357,15 +1366,7 @@ export class Interpreter<
     };
   }
 
-  public [symbolObservable](): Subscribable<
-    State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta>
-  > {
-    return this;
-  }
-
-  // this gets stripped by Babel to avoid having "undefined" property in environments without this non-standard Symbol
-  // it has to be here to be included in the generated .d.ts
-  public [Symbol.observable](): Subscribable<
+  public [symbolObservableRef.symbol](): InteropSubscribable<
     State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta>
   > {
     return this;

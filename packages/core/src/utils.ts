@@ -529,15 +529,18 @@ export function isObservable<T>(value: any): value is Subscribable<T> {
   }
 }
 
-export const symbolObservable = (() =>
+const symbolObservable = (() =>
   (typeof Symbol === 'function' && Symbol.observable) || '@@observable')();
 
+export const symbolObservableRef = {
+  symbol: symbolObservable as Exclude<typeof symbolObservable, string>
+} as const;
+
+// TODO: to be removed in v5, left it out just to minimize the scope of the change and maintain compatibility with older versions of integration paackages
 export const interopSymbols = {
-  [symbolObservable]: function () {
+  [symbolObservableRef.symbol]: function () {
     return this;
   },
-  // this gets stripped by Babel to avoid having "undefined" property in environments without this non-standard Symbol
-  // it has to be here to be included in the generated .d.ts
   [Symbol.observable]: function () {
     return this;
   }
