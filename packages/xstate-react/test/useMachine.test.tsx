@@ -71,7 +71,7 @@ describe('useMachine hook', () => {
 
   const Fetcher: React.FC<{
     onFetch: () => Promise<any>;
-    persistedState?: State<any, any>;
+    persistedState?: AnyState;
   }> = ({
     onFetch = () => {
       console.log('fetching...');

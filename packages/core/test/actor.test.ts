@@ -1264,7 +1264,7 @@ describe('actors', () => {
 
   it('should not crash on child observable sync completion during self-initialization', () => {
     const createEmptyObservable = (): any => ({
-      subscribe(_next, _error, complete) {
+      subscribe(_next: () => void, _error: () => void, complete: () => void) {
         complete();
       }
     });

@@ -73,6 +73,8 @@ export declare namespace StateMachine {
     ) => this is TState extends { value: TSV } ? TState : never;
   }
 
+  export type AnyState = State<any, any, any>;
+
   export interface Config<
     TContext extends object,
     TEvent extends EventObject,
@@ -107,9 +109,7 @@ export declare namespace StateMachine {
     ) => State<TContext, TEvent, TState>;
   }
 
-  export type StateListener<T extends State<any, any, any>> = (
-    state: T
-  ) => void;
+  export type StateListener<T extends AnyState> = (state: T) => void;
 
   export interface Service<
     TContext extends object,

@@ -225,8 +225,11 @@ describe('interpreter', () => {
 
   describe('send with delay', () => {
     it('can send an event after a delay', () => {
-      const currentStates: Array<State<any>> = [];
-      const listener = (state) => {
+      const currentStates: Array<AnyState> = [];
+
+      const service = interpret(lightMachine, {
+        clock: new SimulatedClock()
+      }).onTransition((state) => {
         currentStates.push(state);
 
         if (currentStates.length === 4) {
@@ -237,11 +240,7 @@ describe('interpreter', () => {
             'green'
           ]);
         }
-      };
-
-      const service = interpret(lightMachine, {
-        clock: new SimulatedClock()
-      }).onTransition(listener);
+      });
       const clock = service.clock as SimulatedClock;
       service.start();
 
@@ -638,12 +637,11 @@ describe('interpreter', () => {
   });
 
   it('can cancel a delayed event', () => {
-    let currentState: State<any>;
-    const listener = (state) => (currentState = state);
+    let currentState: AnyState;
 
     const service = interpret(lightMachine, {
       clock: new SimulatedClock()
-    }).onTransition(listener);
+    }).onTransition((state) => (currentState = state));
     const clock = service.clock as SimulatedClock;
     service.start();
 
@@ -1003,7 +1001,7 @@ describe('interpreter', () => {
         }
       });
 
-      let state: State<any>;
+      let state: AnyState;
 
       interpret(raiseMachine)
         .onTransition((s) => {

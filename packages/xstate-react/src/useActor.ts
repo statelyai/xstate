@@ -48,7 +48,7 @@ export function useActor(
   ) => unknown = defaultGetSnapshot
 ): [unknown, Sender<EventObject>] {
   const actorRefRef = useRef(actorRef);
-  const deferredEventsRef = useRef<EventObject[]>([]);
+  const deferredEventsRef = useRef<(EventObject | string)[]>([]);
   const [current, setCurrent] = useState(() => getSnapshot(actorRef));
 
   const send: Sender<EventObject> = useConstant(() => (...args) => {

@@ -70,7 +70,7 @@ export type ParsedReceiverEvent =
   | { type: 'service.stop'; sessionId: string }
   | {
       type: 'service.state';
-      state: State<any, any>;
+      state: AnyState;
       sessionId: string;
     }
   | { type: 'service.event'; event: SCXML.Event<any>; sessionId: string };

@@ -49,7 +49,7 @@ const fetchMachine = createMachine<typeof context, any>({
 export default defineComponent({
   props: {
     persistedState: {
-      type: Object as PropType<State<any>>
+      type: Object as PropType<AnyState>
     }
   },
   setup({ persistedState }) {
