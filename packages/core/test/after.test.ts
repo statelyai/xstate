@@ -167,6 +167,7 @@ describe('delayed transitions', () => {
     expect(machine.initialState.actions.length).toBe(1);
   });
 
+  // TODO: fix
   it('should execute an after transition after starting from a state resolved using `machine.getInitialState`', (done) => {
     const machine = createMachine({
       id: 'machine',
