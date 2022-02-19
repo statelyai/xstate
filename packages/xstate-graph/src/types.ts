@@ -7,6 +7,8 @@ import {
   MachineContext
 } from 'xstate';
 
+export type AnyStateNode = StateNode;
+
 export interface TransitionMap {
   state: StateValue | undefined;
 }
@@ -27,8 +29,8 @@ export type DirectedGraphLabel = JSONSerializable<
 export type DirectedGraphEdge = JSONSerializable<
   {
     id: string;
-    source: StateNode;
-    target: StateNode;
+    source: AnyStateNode;
+    target: AnyStateNode;
     label: DirectedGraphLabel;
     transition: TransitionDefinition<any, any>;
   },

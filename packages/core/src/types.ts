@@ -5,13 +5,26 @@ import type { StateMachine } from './StateMachine';
 import type { LifecycleSignal } from './behaviors';
 import type { Model } from './model.types';
 
-type AnyFunction = (...args: any[]) => any;
+export type AnyFunction = (...args: any[]) => any;
 type ReturnTypeOrValue<T> = T extends AnyFunction ? ReturnType<T> : T;
-export type Prop<T, K> = K extends keyof T ? T[K] : never;
+export type TODO = any;
 
 // https://github.com/microsoft/TypeScript/issues/23182#issuecomment-379091887
 export type IsNever<T> = [T] extends [never] ? true : false;
 
+export type Compute<A extends any> = { [K in keyof A]: A[K] } & unknown;
+export type Prop<T, K> = K extends keyof T ? T[K] : never;
+export type Values<T> = T[keyof T];
+export type Merge<M, N> = Omit<M, keyof N> & N;
+export type IndexByType<T extends { type: string }> = {
+  [K in T['type']]: Extract<T, { type: K }>;
+};
+export type Equals<A1 extends any, A2 extends any> = (<A>() => A extends A2
+  ? true
+  : false) extends <A>() => A extends A1 ? true : false
+  ? true
+  : false;
+export type IsAny<T> = Equals<T, any>;
 export type Cast<A, B> = A extends B ? A : B;
 
 export type EventType = string;
@@ -171,7 +184,7 @@ export type Actions<
   TEvent extends EventObject
 > = SingleOrArray<Action<TContext, TEvent>>;
 
-export type StateKey = string | State<any>;
+export type StateKey = string | AnyState;
 
 export interface StateValueMap {
   [key: string]: StateValue;
@@ -352,7 +365,9 @@ export interface PayloadSender<TEvent extends EventObject> {
 }
 
 export type Receiver<TEvent extends EventObject> = (
-  listener: (event: TEvent) => void
+  listener: {
+    bivarianceHack(event: TEvent): void;
+  }['bivarianceHack']
 ) => void;
 
 export type InvokeCallback<
@@ -718,6 +733,10 @@ export interface StateNodeDefinition<
 
 export type AnyStateNodeDefinition = StateNodeDefinition<any, any>;
 
+export type AnyState = State<any, any>;
+
+export type AnyStateMachine = StateMachine<any, any>;
+
 export interface AtomicStateNodeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
@@ -814,6 +833,7 @@ export interface MachineConfig<
    */
   scxml?: boolean;
   schema?: MachineSchema<TContext, TEvent>;
+  tsTypes?: TODO;
 }
 
 export interface MachineSchema<
@@ -824,7 +844,7 @@ export interface MachineSchema<
   events?: TEvent;
   actions?: { type: string; [key: string]: any };
   guards?: { type: string; [key: string]: any };
-  services?: { type: string; [key: string]: any };
+  services?: TODO;
 }
 
 export interface HistoryStateNode<TContext extends MachineContext>
@@ -911,7 +931,7 @@ export interface DoneEventObject extends EventObject {
 
 export interface UpdateObject extends EventObject {
   id: string | number;
-  state: State<any, any>;
+  state: AnyState;
 }
 
 export type DoneEvent = DoneEventObject & string;
@@ -1352,7 +1372,7 @@ export interface InterpreterOptions {
    *
    * Default: `true`
    */
-  deferEvents: boolean;
+  deferEvents?: boolean;
   /**
    * The custom `id` for referencing this service.
    */
@@ -1550,6 +1570,13 @@ export type InterpreterFrom<
   ? Interpreter<TContext, TEvent>
   : T extends (...args: any[]) => StateMachine<infer TContext, infer TEvent>
   ? Interpreter<TContext, TEvent>
+  : never;
+
+export type MachineOptionsFrom<T extends StateMachine> = T extends StateMachine<
+  infer TContext,
+  infer TEvent
+>
+  ? Partial<MachineImplementations<TContext, TEvent>>
   : never;
 
 export type EventOfMachine<

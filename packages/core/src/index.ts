@@ -75,6 +75,7 @@ export {
 };
 
 export * from './types';
+export * from './typegenTypes';
 
 // TODO: decide from where those should be exported
 export { pathToStateValue, flatten, keys } from './utils';

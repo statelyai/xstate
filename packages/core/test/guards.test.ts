@@ -288,7 +288,7 @@ describe('custom guards', () => {
         custom: (ctx, e: Extract<Events, { type: 'EVENT' }>, meta) => {
           const { prop, compare, op } = meta.guard.params;
           if (op === 'greaterThan') {
-            return ctx[prop] + e.value > compare;
+            return ctx[prop as keyof typeof ctx] + e.value > compare;
           }
 
           return false;

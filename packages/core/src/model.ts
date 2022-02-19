@@ -1,15 +1,19 @@
 import { assign } from './actions/assign';
 import { createMachine } from './Machine';
-import type { EventObject, MachineContext, BaseActionObject } from './types';
+import type {
+  EventObject,
+  MachineContext,
+  BaseActionObject,
+  Prop,
+  Cast,
+  IsNever
+} from './types';
 import { mapValues } from './utils';
 import {
-  Cast,
   UnionFromCreatorsReturnTypes,
   FinalModelCreators,
   Model,
-  ModelCreators,
-  Prop,
-  IsNever
+  ModelCreators
 } from './model.types';
 
 export function createModel<

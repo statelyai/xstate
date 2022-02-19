@@ -167,6 +167,31 @@ describe('delayed transitions', () => {
     expect(machine.initialState.actions.length).toBe(1);
   });
 
+  // TODO: fix
+  it('should execute an after transition after starting from a state resolved using `machine.getInitialState`', (done) => {
+    const machine = createMachine({
+      id: 'machine',
+      initial: 'a',
+      states: {
+        a: {},
+
+        withAfter: {
+          after: {
+            1: { target: 'done' }
+          }
+        },
+
+        done: {
+          type: 'final'
+        }
+      }
+    });
+
+    interpret(machine)
+      .onDone(() => done())
+      .start(machine.getInitialState('withAfter'));
+  });
+
   describe('delay expressions', () => {
     type Events =
       | { type: 'ACTIVATE'; delay: number }

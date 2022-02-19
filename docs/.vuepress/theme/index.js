@@ -10,7 +10,7 @@ module.exports = (_, ctx) => ({
     const isAlgoliaSearch =
       themeConfig.algolia ||
       Object.keys((siteConfig.locales && themeConfig.locales) || {}).some(
-        base => themeConfig.locales[base].algolia
+        (base) => themeConfig.locales[base].algolia
       );
 
     return {

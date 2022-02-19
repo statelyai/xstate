@@ -1,6 +1,6 @@
 {
   "name": "@xstate/test",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "XState test utilities",
   "keywords": [
     "state",
@@ -35,14 +35,14 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "xstate": "^4.28.1"
+    "xstate": "^4.29.0"
   },
   "devDependencies": {
     "strip-ansi": "^5.2.0",
     "xstate": "*"
   },
   "dependencies": {
-    "@xstate/graph": "^1.4.0",
+    "@xstate/graph": "^1.4.1",
     "chalk": "^2.4.2"
   }
 }

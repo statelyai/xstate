@@ -1,5 +1,14 @@
 import { createModel } from 'xstate/lib/model';
-import { ContextFrom, EventFrom } from 'xstate';
+import { ContextFrom, EventFrom, EventObject } from 'xstate';
+
+function assertEvent<TEvent extends EventObject, Type extends TEvent['type']>(
+  ev: TEvent,
+  type: Type
+): asserts ev is Extract<TEvent, { type: Type }> {
+  if (ev.type !== type) {
+    throw new Error('Unexpected event type.');
+  }
+}
 
 type Player = 'x' | 'o';
 
@@ -109,21 +118,18 @@ export const ticTacToeMachine = model.createMachine(
   },
   {
     actions: {
-      // @ts-ignore (will be fixed in next minor version)
-      updateBoard: model.assign(
-        {
-          board: (context, event) => {
-            const updatedBoard = [...context.board];
-            updatedBoard[event.value] = context.player;
-            return updatedBoard;
-          },
-          moves: (context) => context.moves + 1,
-          player: (context) => (context.player === 'x' ? 'o' : 'x')
+      updateBoard: model.assign({
+        board: (context, event) => {
+          assertEvent(event, 'PLAY');
+          const updatedBoard = [...context.board];
+          updatedBoard[event.value] = context.player;
+          return updatedBoard;
         },
-        'PLAY'
-      ),
+        moves: (context) => context.moves + 1,
+        player: (context) => (context.player === 'x' ? 'o' : 'x')
+      }),
       resetGame: model.reset(),
-      setWinner: model.assign<'PLAY' | 'RESET'>({
+      setWinner: model.assign({
         winner: (context) => (context.player === 'x' ? 'o' : 'x')
       })
     },

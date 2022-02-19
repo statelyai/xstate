@@ -1,5 +1,120 @@
 # xstate
 
+## 4.30.1
+
+### Patch Changes
+
+- [#3040](https://github.com/statelyai/xstate/pull/3040) [`18dc2b3e2`](https://github.com/statelyai/xstate/commit/18dc2b3e2c49527b2155063490bb7295f1f06043) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `AnyState` and `AnyStateMachine` types are now available, which can be used to express any state and state machine, respectively:
+
+  ```ts
+  import type { AnyState, AnyStateMachine } from 'xstate';
+
+  // A function that takes in any state machine
+  function visualizeMachine(machine: AnyStateMachine) {
+    // (exercise left to reader)
+  }
+
+  function logState(state: AnyState) {
+    // ...
+  }
+  ```
+
+* [#3042](https://github.com/statelyai/xstate/pull/3042) [`e53396f08`](https://github.com/statelyai/xstate/commit/e53396f083091db26c117000ce6ec070914360e9) Thanks [@suerta-git](https://github.com/suerta-git)! - Added the `AnyStateConfig` type, which represents any `StateConfig<...>`:
+
+  ```ts
+  import type { AnyStateConfig } from 'xstate';
+  import { State } from 'xstate';
+
+  // Retrieving the state config from localStorage
+  const stateConfig: AnyStateConfig = JSON.parse(
+    localStorage.getItem('app-state')
+  );
+
+  // Use State.create() to restore state from config object with correct type
+  const previousState = State.create(stateConfig);
+  ```
+
+## 4.30.0
+
+### Minor Changes
+
+- [#2965](https://github.com/statelyai/xstate/pull/2965) [`8b8f719c3`](https://github.com/statelyai/xstate/commit/8b8f719c36ab2c09fcd11b529cc6c9c89a06ad2e) Thanks [@satyasinha](https://github.com/satyasinha)! - All actions are now available in the `actions` variable when importing: `import { actions } from 'xstate'`
+
+* [#2892](https://github.com/statelyai/xstate/pull/2892) [`02de3d44f`](https://github.com/statelyai/xstate/commit/02de3d44f8ca87b4dcb4153d3560da7d43ee9d0b) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Persisted state can now be easily restored to a state compatible with the machine without converting it to a `State` instance first:
+
+  ```js
+  // Persisting a state
+  someService.subscribe((state) => {
+    localStorage.setItem('some-state', JSON.stringify(state));
+  });
+
+  // Restoring a state
+  const stateJson = localStorage.getItem('some-state');
+
+  // No need to convert `stateJson` object to a state!
+  const someService = interpret(someMachine).start(stateJson);
+  ```
+
+### Patch Changes
+
+- [#3012](https://github.com/statelyai/xstate/pull/3012) [`ab431dcb8`](https://github.com/statelyai/xstate/commit/ab431dcb8bd67a3f0bcfc9b6ca31779bb15d14af) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with a reference to `@types/node` being inserted into XState's compiled output. This could cause unexpected issues in projects expecting APIs like `setTimeout` to be typed with browser compatibility in mind.
+
+* [#3023](https://github.com/statelyai/xstate/pull/3023) [`642e9f5b8`](https://github.com/statelyai/xstate/commit/642e9f5b83dae79f016be8b657d25499077bbcda) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with states created using `machine.getInitialState` not being "resolved" in full. This could cause some things, such as `after` transitions, not being executed correctly after starting an interpreter using such state.
+
+- [#2982](https://github.com/statelyai/xstate/pull/2982) [`a39145580`](https://github.com/statelyai/xstate/commit/a391455803171dcf03a1a0ec589f9dd603260d63) Thanks [@Andarist](https://github.com/Andarist)! - Marked all phantom properties on the `StateMachine` type as deprecated. This deprioritized them in IDEs so they don't popup as first suggestions during property access.
+
+* [#2992](https://github.com/statelyai/xstate/pull/2992) [`22737adf2`](https://github.com/statelyai/xstate/commit/22737adf211971197f3809f406ac3bee54dc69f0) Thanks [@Andarist](https://github.com/Andarist), [@mattpocock](https://github.com/mattpocock)! - Fixed an issue with `state.context` becoming `any` after `state.matches` when typegen is used.
+
+- [#2981](https://github.com/statelyai/xstate/pull/2981) [`edf60d67b`](https://github.com/statelyai/xstate/commit/edf60d67b3ca58eca96c7853410528c4e4abac7b) Thanks [@Andarist](https://github.com/Andarist)! - Moved an internal `@ts-ignore` to a JSDoc-style comment to fix consuming projects that do not use `skipLibCheck`. Regular inline and block comments are not preserved in the TypeScript's emit.
+
+## 4.29.0
+
+### Minor Changes
+
+- [#2674](https://github.com/statelyai/xstate/pull/2674) [`1cd26811c`](https://github.com/statelyai/xstate/commit/1cd26811cea441366a082b0f77c7a6ffb135dc38) Thanks [@Andarist](https://github.com/Andarist)! - Using `config.schema` becomes the preferred way of "declaring" TypeScript generics with this release:
+
+  ```js
+  createMachine({
+      schema: {
+          context: {} as { count: number },
+          events: {} as { type: 'INC' } | { type: 'DEC' }
+      }
+  })
+  ```
+
+  This allows us to leverage the inference algorithm better and unlocks some exciting possibilities for using XState in a more type-strict manner.
+
+* [#2674](https://github.com/statelyai/xstate/pull/2674) [`1cd26811c`](https://github.com/statelyai/xstate/commit/1cd26811cea441366a082b0f77c7a6ffb135dc38) Thanks [@Andarist](https://github.com/Andarist), [@mattpocock](https://github.com/mattpocock)! - Added the ability to tighten TS declarations of machine with generated metadata. This opens several exciting doors to being able to use typegen seamlessly with XState to provide an amazing typing experience.
+
+  With the [VS Code extension](https://marketplace.visualstudio.com/items?itemName=statelyai.stately-vscode), you can specify a new attribute called `tsTypes: {}` in your machine definition:
+
+  ```ts
+  const machine = createMachine({
+    tsTypes: {}
+  });
+  ```
+
+  The extension will automatically add a type assertion to this property, which allows for type-safe access to a lot of XState's API's.
+
+  ⚠️ This feature is in beta. Actions/services/guards/delays might currently get incorrectly annotated if they are called "in response" to always transitions or raised events. We are working on fixing this, both in XState and in the typegen.
+
+### Patch Changes
+
+- [#2962](https://github.com/statelyai/xstate/pull/2962) [`32520650b`](https://github.com/statelyai/xstate/commit/32520650b7d6b43e416b896054033432aaede5d5) Thanks [@mattpocock](https://github.com/mattpocock)! - Added `t()`, which can be used to provide types for `schema` attributes in machine configs:
+
+  ```ts
+  import { t, createMachine } from 'xstate';
+
+  const machine = createMachine({
+    schema: {
+      context: t<{ value: number }>(),
+      events: t<{ type: 'EVENT_1' } | { type: 'EVENT_2' }>()
+    }
+  });
+  ```
+
+* [#2957](https://github.com/statelyai/xstate/pull/2957) [`8550ddda7`](https://github.com/statelyai/xstate/commit/8550ddda73e2ad291e19173d7fa8d13e3336fbb9) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The repository links have been updated from `github.com/davidkpiano` to `github.com/statelyai`.
+
 ## 4.28.1
 
 ### Patch Changes

@@ -2,7 +2,7 @@ import { assign, createMachine } from '../src/index';
 import { raise } from '../src/actions/raise';
 import { createModel } from '../src/model';
 
-function noop(_x) {
+function noop(_x: unknown) {
   return;
 }
 

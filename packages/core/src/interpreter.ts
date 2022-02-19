@@ -15,9 +15,10 @@ import {
   AnyEventObject,
   ActorRef,
   SCXMLErrorEvent,
-  InvokeSourceDefinition
+  InvokeSourceDefinition,
+  StateConfig
 } from './types';
-import { State, isState } from './State';
+import { State, isStateConfig } from './State';
 import * as actionTypes from './actionTypes';
 import { doneInvoke, error } from './actions';
 import { IS_PRODUCTION } from './environment';
@@ -378,7 +379,10 @@ export class Interpreter<
    * @param initialState The state to start the statechart from
    */
   public start(
-    initialState?: State<TContext, TEvent> | StateValue
+    initialState?:
+      | State<TContext, TEvent>
+      | StateConfig<TContext, TEvent>
+      | StateValue
   ): Interpreter<TContext, TEvent> {
     if (this.status === InterpreterStatus.Running) {
       // Do not restart the service if it is already started
@@ -391,7 +395,7 @@ export class Interpreter<
     const resolvedState =
       initialState === undefined
         ? this.initialState
-        : isState<TContext, TEvent>(initialState)
+        : isStateConfig<TContext, TEvent>(initialState)
         ? this.machine.resolveState(initialState)
         : this.machine.resolveState(
             State.from(initialState, this.machine.context)

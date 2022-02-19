@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
-import { Sender } from './types';
-import { ActorRef, EventObject } from 'xstate';
+import { ActorRef, EventObject, Sender } from 'xstate';
 import useConstant from './useConstant';
 
 export function isActorWithState<T extends ActorRef<any>>(
@@ -49,7 +48,7 @@ export function useActor(
   ) => unknown = defaultGetSnapshot
 ): [unknown, Sender<EventObject>] {
   const actorRefRef = useRef(actorRef);
-  const deferredEventsRef = useRef<EventObject[]>([]);
+  const deferredEventsRef = useRef<(EventObject | string)[]>([]);
   const [current, setCurrent] = useState(() => getSnapshot(actorRef));
 
   const send: Sender<EventObject> = useConstant(() => (...args) => {

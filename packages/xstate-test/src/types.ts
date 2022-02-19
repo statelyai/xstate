@@ -6,7 +6,7 @@ export interface TestMeta<T, TContext extends MachineContext> {
   skip?: boolean;
 }
 interface TestSegment<T> {
-  state: State<any, any>;
+  state: AnyState;
   event: EventObject;
   description: string;
   test: (testContext: T) => Promise<void>;

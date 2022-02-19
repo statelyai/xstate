@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useMachine, useService, useActor } from '../src';
+import { useMachine, useActor } from '../src';
 import {
   assign,
   Interpreter,
@@ -9,7 +9,9 @@ import {
   send,
   spawnPromise,
   ActorRefFrom,
-  spawn
+  spawn,
+  InterpreterFrom,
+  StateFrom
 } from 'xstate';
 import {
   render,
@@ -69,7 +71,7 @@ describe('useMachine hook', () => {
 
   const Fetcher: React.FC<{
     onFetch: () => Promise<any>;
-    persistedState?: State<any, any>;
+    persistedState?: AnyState;
   }> = ({
     onFetch = () => {
       console.log('fetching...');
@@ -313,9 +315,9 @@ describe('useMachine hook', () => {
     });
 
     const ServiceApp: React.FC<{
-      service: Interpreter<TestContext, any>;
+      service: InterpreterFrom<typeof machine>;
     }> = ({ service }) => {
-      const [state] = useService(service);
+      const [state] = useActor(service);
 
       if (state.matches('loaded')) {
         const name = state.context.user!.name;
@@ -890,7 +892,7 @@ describe('useMachine hook', () => {
       }
     });
 
-    const App = ({ isAwesome }) => {
+    const App = ({ isAwesome }: { isAwesome: boolean }) => {
       const [state, send] = useMachine(machine, {
         guards: {
           isAwesome: () => isAwesome
@@ -1056,7 +1058,7 @@ describe('useMachine (strict mode)', () => {
 
       const persistedState = JSON.stringify(testMachine.initialState);
 
-      let currentState;
+      let currentState: StateFrom<typeof testMachine>;
 
       const Test = () => {
         const [state, send] = useMachine(testMachine, {
@@ -1082,7 +1084,7 @@ describe('useMachine (strict mode)', () => {
 
       jest.advanceTimersByTime(110);
 
-      expect(currentState.matches('idle')).toBe(true);
+      expect(currentState!.matches('idle')).toBe(true);
     } finally {
       jest.useRealTimers();
     }

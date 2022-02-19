@@ -1,5 +1,5 @@
 <script lang="ts">
-  export let persistedState: State<any> | undefined = undefined;
+  export let persistedState: AnyState | undefined = undefined;
 
   import { useMachine } from '../src';
   import { fetchMachine } from './fetchMachine';

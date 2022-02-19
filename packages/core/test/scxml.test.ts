@@ -333,7 +333,7 @@ const testGroups = {
   ]
 };
 
-const overrides = {
+const overrides: Record<string, string[]> = {
   'assign-current-small-step': [
     // original using <script/> to manipulate datamodel
     'test0'
