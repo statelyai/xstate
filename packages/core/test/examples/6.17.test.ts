@@ -1,4 +1,4 @@
-import { Machine } from '../../src/index';
+import { Machine, StateValue } from '../../src/index';
 import { testMultiTransition } from '../utils';
 
 describe('Example 6.17', () => {
@@ -32,7 +32,7 @@ describe('Example 6.17', () => {
     }
   });
 
-  const expected = {
+  const expected: Record<string, Record<string, StateValue>> = {
     X: {
       1: { Y: { A: 'D', B: 'G' } },
       2: { Y: { A: 'C', B: 'G' } }, // 6.18
@@ -106,7 +106,7 @@ describe('Jump to ID', () => {
     }
   });
 
-  const expected = {
+  const expected: Record<string, Record<string, string>> = {
     'Y.B.G': {
       kill: 'X'
     },

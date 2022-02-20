@@ -480,7 +480,7 @@ describe('actors', () => {
           entry: assign({
             refs: (ctx) => {
               count++;
-              const c = ctx.items.map((item) =>
+              const c = ctx.items.map((item: any) =>
                 spawn(new Promise((res) => res(item)))
               );
 
@@ -1174,7 +1174,7 @@ describe('actors', () => {
       {
         actions: {
           setup: assign({
-            child: () => spawn(childMachine)
+            child: (_) => spawn(childMachine)
           })
         }
       }
@@ -1193,7 +1193,7 @@ describe('actors', () => {
         child: null
       },
       entry: assign({
-        child: () => spawn({ then: (fn) => fn(null) } as any)
+        child: () => spawn({ then: (fn: any) => fn(null) } as any)
       })
     });
     const service = interpret(parentMachine);
@@ -1204,7 +1204,7 @@ describe('actors', () => {
 
   it('should not crash on child observable sync completion during self-initialization', () => {
     const createEmptyObservable = (): any => ({
-      subscribe(_next, _error, complete) {
+      subscribe(_next: () => void, _error: () => void, complete: () => void) {
         complete();
       }
     });

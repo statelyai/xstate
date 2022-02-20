@@ -215,7 +215,7 @@ export class State<
    * @param context
    */
   public static inert<TC, TE extends EventObject = EventObject>(
-    stateValue: State<TC, TE> | StateValue,
+    stateValue: State<TC, TE, any, any, any> | StateValue,
     context: TC
   ): State<TC, TE> {
     if (stateValue instanceof State) {

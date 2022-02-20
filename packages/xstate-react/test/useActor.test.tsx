@@ -7,9 +7,9 @@ import {
   spawn,
   ActorRef,
   ActorRefFrom,
-  interpret
+  interpret,
+  toActorRef
 } from 'xstate';
-import { toActorRef } from 'xstate/lib/Actor';
 import { render, cleanup, fireEvent, act } from '@testing-library/react';
 import { useActor } from '../src/useActor';
 import { useState } from 'react';

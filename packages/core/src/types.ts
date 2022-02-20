@@ -1005,7 +1005,12 @@ export interface StateMachine<
   TTypestate extends Typestate<TContext> = { value: any; context: TContext },
   TAction extends BaseActionObject = BaseActionObject,
   TServiceMap extends ServiceMap = ServiceMap,
-  TResolvedTypesMeta = TypegenDisabled
+  TResolvedTypesMeta = ResolveTypegenMeta<
+    TypegenDisabled,
+    TEvent,
+    TAction,
+    TServiceMap
+  >
 > extends StateNode<
     TContext,
     TStateSchema,
@@ -1598,16 +1603,20 @@ export interface Subscription {
 }
 
 export interface InteropObservable<T> {
-  [Symbol.observable]: () => Subscribable<T>;
+  [Symbol.observable]: () => InteropSubscribable<T>;
 }
 
-export interface Subscribable<T> {
+export interface InteropSubscribable<T> {
+  subscribe(observer: Observer<T>): Subscription;
+}
+
+export interface Subscribable<T> extends InteropSubscribable<T> {
+  subscribe(observer: Observer<T>): Subscription;
   subscribe(
     next: (value: T) => void,
     error?: (error: any) => void,
     complete?: () => void
   ): Subscription;
-  subscribe(observer: Observer<T>): Subscription;
 }
 
 export type Spawnable =

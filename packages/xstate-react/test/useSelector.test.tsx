@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { assign, createMachine, interpret, spawn } from 'xstate';
-import { toActorRef } from 'xstate/lib/Actor';
+import { assign, createMachine, interpret, spawn, toActorRef } from 'xstate';
 import { act, render, cleanup, fireEvent } from '@testing-library/react';
 import { useInterpret, useMachine, useSelector } from '../src';
 
