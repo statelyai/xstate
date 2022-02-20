@@ -529,16 +529,13 @@ export function isObservable<T>(value: any): value is Subscribable<T> {
   }
 }
 
-const symbolObservable = (() =>
-  (typeof Symbol === 'function' && Symbol.observable) || '@@observable')();
-
-export const symbolObservableRef = {
-  symbol: symbolObservable as Exclude<typeof symbolObservable, string>
-} as const;
+export const symbolObservable: typeof Symbol.observable = (() =>
+  (typeof Symbol === 'function' && Symbol.observable) ||
+  '@@observable')() as any;
 
 // TODO: to be removed in v5, left it out just to minimize the scope of the change and maintain compatibility with older versions of integration paackages
 export const interopSymbols = {
-  [symbolObservableRef.symbol]: function () {
+  [symbolObservable]: function () {
     return this;
   },
   [Symbol.observable]: function () {
