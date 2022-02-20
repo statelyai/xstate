@@ -545,25 +545,24 @@ describe('actors', () => {
   });
 
   // https://github.com/statelyai/xstate/issues/2565
-  it('should only spawn an initial actor once when it synchronously responds with an event', () => {
-    let spawnCalled = 0;
+  it('should only start an initial actor once when it synchronously responds with an event', (done) => {
+    let startCalled = 0;
     const anotherMachine = createMachine({
-      initial: 'hello',
-      states: {
-        hello: {
-          entry: sendParent('ping')
-        }
-      }
+      id: 'child',
+      entry: [
+        () => {
+          startCalled++;
+        },
+        sendParent('ping')
+      ]
     });
 
     const testMachine = createMachine<{ ref: ActorRef<any> }>({
+      id: 'parent',
       initial: 'testing',
-      context: () => {
-        spawnCalled++;
-        // throw in case of an infinite loop
-        expect(spawnCalled).toBe(1);
+      context: ({ spawn }) => {
         return {
-          ref: spawnMachine(anotherMachine)
+          ref: spawn(createMachineBehavior(anotherMachine))
         };
       },
       states: {
@@ -574,12 +573,18 @@ describe('actors', () => {
             }
           }
         },
-        done: {}
+        done: {
+          type: 'final'
+        }
       }
     });
 
-    const service = interpret(testMachine).start();
-    expect(service.state.value).toEqual('done');
+    interpret(testMachine)
+      .onDone(() => {
+        expect(startCalled).toEqual(1);
+        done();
+      })
+      .start();
   });
 
   it('should spawn null actors if not used within a service', () => {

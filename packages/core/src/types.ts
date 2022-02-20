@@ -812,7 +812,7 @@ export interface MachineConfig<
   /**
    * The initial context (extended state)
    */
-  context?: TContext | (() => TContext);
+  context?: TContext | ((stuff: { spawn: Spawner }) => TContext);
   /**
    * The machine's own version.
    */

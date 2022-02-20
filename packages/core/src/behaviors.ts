@@ -402,13 +402,13 @@ export function createMachineBehavior<
     | Lazy<StateMachine<TContext, TEvent>>,
   options?: Partial<InterpreterOptions>
 ): Behavior<TEvent, State<TContext, TEvent>> {
-  const parent = CapturedState.current?.actorRef;
   let service: Interpreter<TContext, TEvent> | undefined;
   let subscription: Subscription;
   let resolvedMachine: StateMachine<TContext, TEvent>;
 
   const behavior: Behavior<TEvent, State<TContext, TEvent>> = {
     transition: (state, event, actorContext) => {
+      const { parent } = actorContext;
       resolvedMachine = isFunction(machine) ? machine() : machine;
 
       if (event.type === startSignalType) {

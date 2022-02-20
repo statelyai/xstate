@@ -9,7 +9,8 @@ import {
   createMachine,
   ActorContext,
   Behavior,
-  SpecialTargets
+  SpecialTargets,
+  AnyState
 } from '../src';
 import { fromReducer } from '../src/behaviors';
 import {
@@ -377,7 +378,73 @@ describe('invoke', () => {
   });
 
   it('should start services (explicit machine, invoke = config)', (done) => {
-    interpret(fetcherMachine)
+    const childMachine = createMachine<{ userId: string | undefined }>({
+      id: 'fetch',
+      context: {
+        userId: undefined
+      },
+      initial: 'pending',
+      states: {
+        pending: {
+          entry: send({ type: 'RESOLVE', user }),
+          on: {
+            RESOLVE: {
+              target: 'success',
+              guard: (ctx) => {
+                return ctx.userId !== undefined;
+              }
+            }
+          }
+        },
+        success: {
+          type: 'final',
+          data: { user: (_: any, e: any) => e.user }
+        },
+        failure: {
+          entry: sendParent('REJECT')
+        }
+      }
+    });
+
+    const machine = createMachine({
+      id: 'fetcher',
+      initial: 'idle',
+      context: {
+        selectedUserId: '42',
+        user: undefined
+      },
+      states: {
+        idle: {
+          on: {
+            GO_TO_WAITING: 'waiting'
+          }
+        },
+        waiting: {
+          invoke: {
+            src: invokeMachine((ctx) =>
+              childMachine.withContext({
+                userId: ctx.selectedUserId
+              })
+            ),
+            data: {
+              userId: (ctx: any) => ctx.selectedUserId
+            },
+            onDone: {
+              target: 'received',
+              guard: (_, e) => {
+                // Should receive { user: { name: 'David' } } as event data
+                return e.data.user.name === 'David';
+              }
+            }
+          }
+        },
+        received: {
+          type: 'final'
+        }
+      }
+    });
+
+    interpret(machine)
       .onDone(() => {
         done();
       })
