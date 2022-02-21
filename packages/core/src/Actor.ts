@@ -10,7 +10,7 @@ import {
   BaseActorRef
 } from './types';
 import {
-  symbolObservableRef,
+  symbolObservable,
   isMachine,
   mapContext,
   toInvokeSource
@@ -43,7 +43,7 @@ export function createNullActor(id: string): ActorRef<any> {
     toJSON: () => ({
       id
     }),
-    [symbolObservableRef.symbol]: function () {
+    [symbolObservable]: function () {
       return this;
     }
   };
@@ -126,7 +126,7 @@ export function toActorRef<
     subscribe: () => ({ unsubscribe: () => void 0 }),
     id: 'anonymous',
     getSnapshot: () => undefined,
-    [symbolObservableRef.symbol]: function () {
+    [symbolObservable]: function () {
       return this;
     },
     ...actorRefLike

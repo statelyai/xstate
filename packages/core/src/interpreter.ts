@@ -58,7 +58,7 @@ import {
   toObserver,
   isActor,
   isBehavior,
-  symbolObservableRef
+  symbolObservable
 } from './utils';
 import { Scheduler } from './scheduler';
 import { Actor, isSpawnedActor, createDeferredActor } from './Actor';
@@ -1166,7 +1166,7 @@ export class Interpreter<
         return { id };
       },
       getSnapshot: () => resolvedData,
-      [symbolObservableRef.symbol]: function () {
+      [symbolObservable]: function () {
         return this;
       }
     };
@@ -1229,7 +1229,7 @@ export class Interpreter<
         return { id };
       },
       getSnapshot: () => emitted,
-      [symbolObservableRef.symbol]: function () {
+      [symbolObservable]: function () {
         return this;
       }
     };
@@ -1270,7 +1270,7 @@ export class Interpreter<
       toJSON() {
         return { id };
       },
-      [symbolObservableRef.symbol]: function () {
+      [symbolObservable]: function () {
         return this;
       }
     };
@@ -1317,7 +1317,7 @@ export class Interpreter<
       toJSON() {
         return { id };
       },
-      [symbolObservableRef.symbol]: function () {
+      [symbolObservable]: function () {
         return this;
       }
     });
@@ -1366,7 +1366,7 @@ export class Interpreter<
     };
   }
 
-  public [symbolObservableRef.symbol](): InteropSubscribable<
+  public [symbolObservable](): InteropSubscribable<
     State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta>
   > {
     return this;
