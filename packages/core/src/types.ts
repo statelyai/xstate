@@ -696,6 +696,8 @@ export interface StateNodeDefinition<
   tags: string[];
 }
 
+export type AnyStateNode = StateNode<any, any, any, any, any, any>;
+
 export type AnyStateNodeDefinition = StateNodeDefinition<any, any, any>;
 
 export type AnyState = State<any, any, any, any, any>;

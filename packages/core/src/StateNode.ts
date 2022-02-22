@@ -70,7 +70,8 @@ import {
   StateMachine,
   InternalMachineOptions,
   ServiceMap,
-  StateConfig
+  StateConfig,
+  AnyStateNode
 } from './types';
 import { matchesState } from './utils';
 import { State, stateValuesEqual } from './State';
@@ -953,14 +954,22 @@ class StateNode<
 
     const isInternal = !!selectedTransition.internal;
 
-    const reentryNodes = isInternal
-      ? []
-      : flatten(allNextStateNodes.map((n) => this.nodesFromChild(n)));
+    const reentryNodes: AnyStateNode[] = [];
+
+    if (!isInternal) {
+      allNextStateNodes.forEach((n1) => {
+        this.nodesFromChild(n1).forEach((n2) => {
+          if (n2 !== this.machine) {
+            reentryNodes.push(n2);
+          }
+        });
+      });
+    }
 
     return {
       transitions: [selectedTransition],
       entrySet: reentryNodes,
-      exitSet: isInternal ? [] : [this],
+      exitSet: isInternal || this === this.machine ? [] : [this],
       configuration: allNextStateNodes,
       source: state,
       actions
@@ -1025,14 +1034,17 @@ class StateNode<
       ? getConfiguration(prevConfig, transition.configuration)
       : prevConfig;
 
-    for (const sn of resolvedConfig) {
-      if (!has(prevConfig, sn)) {
-        transition.entrySet.push(sn);
+    for (const stateNode of resolvedConfig) {
+      if (!has(prevConfig, stateNode)) {
+        transition.entrySet.push(stateNode);
       }
     }
-    for (const sn of prevConfig) {
-      if (!has(resolvedConfig, sn) || has(transition.exitSet, sn.parent)) {
-        transition.exitSet.push(sn);
+    for (const stateNode of prevConfig) {
+      if (
+        !has(resolvedConfig, stateNode) ||
+        has(transition.exitSet, stateNode.parent)
+      ) {
+        transition.exitSet.push(stateNode);
       }
     }
 

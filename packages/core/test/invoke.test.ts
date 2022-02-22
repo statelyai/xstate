@@ -2905,6 +2905,41 @@ describe('invoke', () => {
       done();
     }, 0);
   });
+
+  // https://github.com/statelyai/xstate/issues/3072
+  it('root invocations should not restart on external transitions', (done) => {
+    let count = 0;
+
+    const machine = createMachine({
+      id: 'root',
+      invoke: {
+        src: () => () => {
+          count++;
+        }
+      },
+      initial: 'one',
+      on: {
+        // External event
+        EVENT: '#root.two'
+      },
+      states: {
+        one: {},
+        two: {
+          type: 'final'
+        }
+      }
+    });
+
+    const service = interpret(machine).onDone(() => {
+      expect(count).toEqual(1);
+      done();
+    });
+
+    // If the root node is included in the exit/reentry set, then the
+    // invocation will be stopped and restarted, which is not desired behavior.
+    // The invocation should only be started once.
+    service.start().send('EVENT');
+  });
 });
 
 describe('services option', () => {
