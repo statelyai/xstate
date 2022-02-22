@@ -1851,6 +1851,7 @@ describe('assign action order', () => {
     }
   );
 
+  // https://github.com/statelyai/xstate/issues/2880
   it('actions executed when machine is exited should be resolved', () => {
     const child = createMachine({
       initial: 'idle',
