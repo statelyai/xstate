@@ -141,4 +141,54 @@ describe('@xstate/inspect', () => {
       }
     });
   });
+
+  it('should handle using serializer to remove dangerous values', (done) => {
+    const circularStructure = {} as any;
+    let deepRef = circularStructure;
+    for (let i = 0; i < 20_000; i += 1) {
+      deepRef.circChild = {};
+      deepRef = deepRef.circChild;
+    }
+    deepRef.circChild = {
+      get cycle() {
+        return circularStructure;
+      }
+    };
+
+    const machine = createMachine({
+      initial: 'active',
+      context: circularStructure,
+      states: {
+        active: {}
+      }
+    });
+
+    const devTools = createDevTools();
+
+    devTools.onRegister(() => {
+      done();
+    });
+
+    inspect({
+      iframe: false,
+      devTools,
+      serialize: (key, value) => {
+        if (key === 'circChild') {
+          return 'circChild';
+        }
+
+        return value;
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    // The devTools will notify the listeners:
+    // 1. the built-in service listener
+    // 2. the test listener that calls done() above
+    // with the service. The built-in service listener is responsible for
+    // stringifying the service's machine definition (which contains a circular structure)
+    // and will throw an error if circular structures are not handled.
+    expect(() => devTools.register(service)).not.toThrow();
+  });
 });

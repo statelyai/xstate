@@ -10,7 +10,6 @@ import {
 import { XStateDevInterface } from 'xstate/lib/devTools';
 import { toSCXMLEvent, toEventObject, toObserver } from 'xstate/lib/utils';
 import { createInspectMachine, InspectMachineEvent } from './inspectMachine';
-import { stringifyMachine, stringifyState } from './serialize';
 import type {
   Inspector,
   InspectorOptions,
@@ -146,8 +145,8 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
     const state = service.state || service.initialState;
     inspectService.send({
       type: 'service.register',
-      machine: stringifyMachine(service.machine, options?.serialize),
-      state: stringifyState(state, options?.serialize),
+      machine: stringifyWithSerializer(service.machine),
+      state: stringifyWithSerializer(state),
       sessionId: service.sessionId,
       id: service.id,
       parent: service.parent?.sessionId
@@ -188,7 +187,7 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
       inspectService.send({
         type: 'service.state',
         // TODO: investigate usage of structuredClone in browsers if available
-        state: stringifyState(state, options?.serialize),
+        state: stringify(state, options?.serialize),
         sessionId: service.sessionId
       });
     });

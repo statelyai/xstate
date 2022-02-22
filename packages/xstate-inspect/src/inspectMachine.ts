@@ -1,6 +1,6 @@
 import { createMachine, assign, SCXML, ActorRef, Interpreter } from 'xstate';
 import { XStateDevInterface } from 'xstate/lib/devTools';
-import { stringifyMachine, stringifyState } from './serialize';
+import { stringify } from './utils';
 import { ReceiverEvent, Replacer } from './types';
 
 export type InspectMachineEvent =
@@ -85,8 +85,8 @@ export function createInspectMachine(
             devTools.services.forEach((service) => {
               ctx.client?.send({
                 type: 'service.register',
-                machine: stringifyMachine(service.machine, options?.serialize),
-                state: stringifyState(
+                machine: stringify(service.machine, options?.serialize),
+                state: stringify(
                   service.state || service.initialState,
                   options?.serialize
                 ),
