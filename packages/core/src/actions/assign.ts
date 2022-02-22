@@ -13,6 +13,7 @@ import { createDynamicAction } from '../../actions/dynamicAction';
 import { isFunction, keys } from '../utils';
 
 import * as capturedState from '../capturedState';
+import { createSpawner } from '../spawn';
 
 /**
  * Updates the current context of the machine.
@@ -40,7 +41,7 @@ export function assign<
     {
       assignment
     },
-    (_, context, _event, { state, action }) => {
+    (_, context, _event, { machine, state, action }) => {
       const capturedActions: InvokeActionObject[] = [];
 
       if (!context) {
@@ -52,7 +53,8 @@ export function assign<
       const meta: AssignMeta<TContext, TEvent> = {
         state,
         action,
-        _event
+        _event,
+        spawn: createSpawner(machine, context, _event, capturedActions)
       };
 
       let partialUpdate: Partial<TContext> = {};

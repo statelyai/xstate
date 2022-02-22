@@ -28,6 +28,7 @@ import {
   invokePromise,
   invokeActivity
 } from '../src/invoke';
+import { createPromiseBehavior } from '../src/behaviors';
 
 const lightMachine = createMachine({
   id: 'light',
@@ -83,8 +84,7 @@ describe('interpreter', () => {
       expect(service.initialState.value).toEqual(idMachine.initialState.value);
     });
 
-    it('initial state should be cached', (done) => {
-      let entryCalled = 0;
+    it('initially spawned actors should not be spawned when reading initial state', (done) => {
       let promiseSpawned = 0;
 
       const machine = createMachine<any, any>({
@@ -95,13 +95,13 @@ describe('interpreter', () => {
         states: {
           idle: {
             entry: assign({
-              actor: () => {
-                entryCalled++;
-                return spawnPromise(
-                  () =>
-                    new Promise(() => {
+              actor: (_, __, { spawn }) => {
+                return spawn(
+                  createPromiseBehavior(() => {
+                    return new Promise(() => {
                       promiseSpawned++;
-                    })
+                    });
+                  })
                 );
               }
             })
@@ -111,7 +111,6 @@ describe('interpreter', () => {
 
       const service = interpret(machine);
 
-      expect(entryCalled).toEqual(0);
       expect(promiseSpawned).toEqual(0);
 
       const callInitialState = () => service.initialState;
@@ -120,8 +119,6 @@ describe('interpreter', () => {
       callInitialState();
 
       service.start();
-
-      expect(entryCalled).toEqual(1);
 
       setTimeout(() => {
         expect(promiseSpawned).toEqual(1);

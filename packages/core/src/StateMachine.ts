@@ -10,8 +10,10 @@ import type {
   MachineSchema,
   StateNodeDefinition,
   MachineContext,
-  MaybeLazy,
-  StateConfig
+  StateConfig,
+  ActorRef,
+  InvokeActionObject,
+  Spawner
 } from './types';
 import { State } from './State';
 
@@ -27,7 +29,6 @@ import {
 } from './stateUtils';
 import { getStateNodes, transitionNode, resolveStateValue } from './stateUtils';
 import { StateNode } from './StateNode';
-import { InvokeActionObject, Spawner } from '.';
 import { createSpawner } from './spawn';
 
 export const NULL_EVENT = '';
@@ -88,7 +89,7 @@ export class StateMachine<
    */
   public version?: string;
 
-  public parent = undefined;
+  public parent: ActorRef<any, any> | undefined = undefined; // TODO: delete?
   public strict: boolean;
 
   /**
@@ -296,7 +297,7 @@ export class StateMachine<
     const nextState = resolveMicroTransition(
       this,
       [],
-      this.preInitialState,
+      preInitialState,
       undefined
     );
     nextState.actions.unshift(...preInitialState.actions);

@@ -5,7 +5,8 @@ import {
   interpret,
   spawnMachine,
   ActorRefFrom,
-  spawn
+  spawn,
+  InvokeActionObject
 } from '../src/index';
 import { sendParent } from '../src/actions';
 import { choose } from '../src/actions/choose';
@@ -1745,17 +1746,37 @@ describe('sendTo', () => {
         }
       }
     });
+    let createCount = 0;
 
     const parentMachine = createMachine<{
       child: ActorRefFrom<typeof childMachine>;
     }>({
-      context: () => ({
-        child: spawn(createMachineBehavior(childMachine))
-      }),
-      entry: sendTo((ctx) => ctx.child as any, { type: 'EVENT' })
+      context: ({ spawn }) => {
+        // TODO: clean up
+        createCount++;
+
+        if (createCount > 1) {
+          throw new Error('too many times');
+        } else {
+          console.log(new Error().stack);
+        }
+
+        return { child: spawn(createMachineBehavior(childMachine), 'child') };
+      },
+      entry: sendTo((ctx) => ctx.child, { type: 'EVENT' })
     });
 
-    interpret(parentMachine).start();
+    interpret(parentMachine)
+      .onTransition((state) => {
+        state.actions.forEach((action) => {
+          if (action.type === 'xstate.invoke') {
+            expect((action as InvokeActionObject).params.ref).toBe(
+              state.children['child']
+            );
+          }
+        });
+      })
+      .start();
   });
 
   it('should be able to send an event from expression to an actor', (done) => {
@@ -1777,7 +1798,7 @@ describe('sendTo', () => {
       child: ActorRefFrom<typeof childMachine>;
       count: number;
     }>({
-      context: () => ({
+      context: ({ spawn }) => ({
         child: spawn(createMachineBehavior(childMachine)),
         count: 42
       }),

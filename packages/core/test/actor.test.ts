@@ -5,11 +5,11 @@ import {
   ActorRefFrom,
   spawn,
   spawnMachine,
-  spawnCallback,
-  spawnObservable,
   spawnPromise,
   EventObject,
-  Behavior
+  Behavior,
+  Observer,
+  Subscribable
 } from '../src';
 import {
   sendParent,
@@ -26,6 +26,7 @@ import { EMPTY, interval } from 'rxjs';
 import { map } from 'rxjs/operators';
 import * as actionTypes from '../src/actionTypes';
 import {
+  createDeferredBehavior,
   createMachineBehavior,
   createObservableBehavior,
   createPromiseBehavior,
@@ -191,12 +192,14 @@ describe('spawning promises', () => {
       states: {
         idle: {
           entry: assign({
-            promiseRef: () => {
-              const ref = spawnPromise(
-                () =>
-                  new Promise((res) => {
-                    res('response');
-                  }),
+            promiseRef: (_, __, { spawn }) => {
+              const ref = spawn(
+                createPromiseBehavior(
+                  () =>
+                    new Promise((res) => {
+                      res('response');
+                    })
+                ),
                 'my-promise'
               );
 
@@ -235,16 +238,18 @@ describe('spawning callbacks', () => {
       states: {
         idle: {
           entry: assign({
-            callbackRef: () =>
-              spawnCallback((cb, receive) => {
-                receive((event) => {
-                  if (event.type === 'START') {
-                    setTimeout(() => {
-                      cb({ type: 'SEND_BACK' });
-                    }, 10);
-                  }
-                });
-              })
+            callbackRef: (_, __, { spawn }) =>
+              spawn(
+                createDeferredBehavior(() => (cb, receive) => {
+                  receive((event) => {
+                    if (event.type === 'START') {
+                      setTimeout(() => {
+                        cb({ type: 'SEND_BACK' });
+                      }, 10);
+                    }
+                  });
+                })
+              )
           }),
           on: {
             START_CB: {
@@ -284,13 +289,15 @@ describe('spawning observables', () => {
       states: {
         idle: {
           entry: assign({
-            observableRef: () => {
-              const ref = spawnObservable(() =>
-                interval(10).pipe(
-                  map((n) => ({
-                    type: 'INT',
-                    value: n
-                  }))
+            observableRef: (_, __, { spawn }) => {
+              const ref = spawn(
+                createObservableBehavior(() =>
+                  interval(10).pipe(
+                    map((n) => ({
+                      type: 'INT',
+                      value: n
+                    }))
+                  )
                 )
               );
 
@@ -1075,12 +1082,14 @@ describe('actors', () => {
       const countMachine = createMachine<{
         count: ActorRefFrom<Promise<number>>;
       }>({
-        context: () => ({
-          count: spawnPromise(
-            () =>
-              new Promise<number>((_, rej) => {
-                setTimeout(() => rej(errorMessage), 1000);
-              }),
+        context: ({ spawn }) => ({
+          count: spawn(
+            createPromiseBehavior(
+              () =>
+                new Promise<number>((_, rej) => {
+                  setTimeout(() => rej(errorMessage), 1000);
+                })
+            ),
             'test'
           )
         }),
@@ -1110,9 +1119,9 @@ describe('actors', () => {
 
     it('behaviors should have reference to the parent', (done) => {
       const pongBehavior: Behavior<EventObject, undefined> = {
-        transition: (_, event, { parent }) => {
+        transition: (_, event, { self }) => {
           if (event.type === 'PING') {
-            parent?.send({ type: 'PONG' });
+            self.parent?.send({ type: 'PONG' });
           }
 
           return undefined;
@@ -1128,7 +1137,7 @@ describe('actors', () => {
           ponger: undefined
         },
         entry: assign({
-          ponger: () => spawn(pongBehavior)
+          ponger: (_, __, { spawn }) => spawn(pongBehavior)
         }),
         states: {
           waiting: {
@@ -1156,10 +1165,12 @@ describe('actors', () => {
 
   it('should be able to spawn callback actors in (lazy) initial context', (done) => {
     const machine = createMachine<{ ref: ActorRef<any> }>({
-      context: () => ({
-        ref: spawnCallback((sendBack) => {
-          sendBack({ type: 'TEST' });
-        })
+      context: ({ spawn }) => ({
+        ref: spawn(
+          createDeferredBehavior(() => (sendBack) => {
+            sendBack({ type: 'TEST' });
+          })
+        )
       }),
       initial: 'waiting',
       states: {
@@ -1185,7 +1196,7 @@ describe('actors', () => {
     });
 
     const machine = createMachine<{ ref: ActorRef<any> }>({
-      context: () => ({
+      context: ({ spawn }) => ({
         ref: spawn(createMachineBehavior(childMachine))
       }),
       initial: 'waiting',
@@ -1236,7 +1247,8 @@ describe('actors', () => {
       {
         actions: {
           setup: assign({
-            child: () => spawn(createMachineBehavior(childMachine))
+            child: (_, __, { spawn }) =>
+              spawn(createMachineBehavior(childMachine))
           })
         }
       }
@@ -1255,7 +1267,7 @@ describe('actors', () => {
         child: null
       },
       entry: assign({
-        child: () =>
+        child: (_, __, { spawn }) =>
           spawn(
             createPromiseBehavior(() => ({ then: (fn) => fn(null) } as any))
           )
@@ -1268,11 +1280,14 @@ describe('actors', () => {
   });
 
   it('should not crash on child observable sync completion during self-initialization', () => {
-    const createEmptyObservable = (): any => ({
-      subscribe(_next: () => void, _error: () => void, complete: () => void) {
-        complete();
+    const createEmptyObservable = (): Subscribable<any> => ({
+      subscribe(observer) {
+        (observer as Observer<any>).complete?.();
+
+        return { unsubscribe: () => {} };
       }
     });
+
     const parentMachine = createMachine<{
       child: ActorRef<never, any> | null;
     }>({
@@ -1280,16 +1295,19 @@ describe('actors', () => {
         child: null
       },
       entry: assign({
-        child: () => spawn(createObservableBehavior(createEmptyObservable))
+        child: (_, __, { spawn }) =>
+          spawn(createObservableBehavior(createEmptyObservable))
       })
     });
+
     const service = interpret(parentMachine);
+
     expect(() => {
       service.start();
     }).not.toThrow();
   });
 
-  it('should receive done event from an immediately completed observable when self-initializing', () => {
+  it('should receive done event from an immediately completed observable when self-initializing', (done) => {
     const parentMachine = createMachine<{
       child: ActorRef<EventObject, unknown> | null;
     }>({
@@ -1297,7 +1315,7 @@ describe('actors', () => {
         child: null
       },
       entry: assign({
-        child: () =>
+        child: (_, __, { spawn }) =>
           spawn(
             createObservableBehavior(() => EMPTY),
             'myactor'
@@ -1310,13 +1328,17 @@ describe('actors', () => {
             'done.invoke.myactor': 'done'
           }
         },
-        done: {}
+        done: {
+          type: 'final'
+        }
       }
     });
     const service = interpret(parentMachine);
 
-    service.start();
-
-    expect(service.state.value).toBe('done');
+    service
+      .onDone(() => {
+        done();
+      })
+      .start();
   });
 });

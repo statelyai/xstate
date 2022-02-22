@@ -113,6 +113,7 @@ export interface AssignMeta<
   state?: State<TContext, TEvent>;
   action: BaseActionObject;
   _event: SCXML.Event<TEvent>;
+  spawn: Spawner;
 }
 
 export type ActionFunction<
@@ -1470,21 +1471,22 @@ export type Spawnable =
   | Behavior<any, any>;
 
 // Taken from RxJS
-export type Observer<T> =
+// TODO: fix complete types
+export type Observer<T, TDone = undefined> =
   | {
       next: (value: T) => void;
       error?: (err: any) => void;
-      complete?: () => void;
+      complete?: (doneData: TDone) => void;
     }
   | {
       next?: (value: T) => void;
       error: (err: any) => void;
-      complete?: () => void;
+      complete?: (doneData: TDone) => void;
     }
   | {
       next?: (value: T) => void;
       error?: (err: any) => void;
-      complete: () => void;
+      complete: (doneData: TDone) => void;
     };
 
 export interface Subscription {
@@ -1529,6 +1531,7 @@ export interface ActorRef<TEvent extends EventObject, TEmitted = any>
   getSnapshot: () => TEmitted | undefined;
   stop?: () => void;
   toJSON?: () => any;
+  parent?: ActorRef<any, any>;
 }
 
 export type ActorRefFrom<T extends Spawnable> = T extends StateMachine<
@@ -1573,7 +1576,6 @@ export type EventOfMachine<
 > = TMachine extends StateMachine<any, infer E> ? E : never;
 
 export interface ActorContext<TEvent extends EventObject, TEmitted> {
-  parent?: ActorRef<any, any>;
   self: ActorRef<TEvent, TEmitted>;
   name: string;
   observers: Set<Observer<TEmitted>>;

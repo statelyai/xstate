@@ -2104,9 +2104,9 @@ describe('invoke', () => {
 
     it('behaviors should have reference to the parent', (done) => {
       const pongBehavior: Behavior<EventObject, undefined> = {
-        transition: (_, event, { parent }) => {
+        transition: (_, event, { self }) => {
           if (event.type === 'PING') {
-            parent?.send({ type: 'PONG' });
+            self.parent?.send({ type: 'PONG' });
           }
 
           return undefined;
@@ -2874,7 +2874,7 @@ describe('invoke', () => {
           }
         },
         actors: {
-          fetchSmth: invokePromise(() => {
+          fetchSmth: invokePromise((_, e) => {
             if (invoked) {
               // create a promise that won't ever resolve for the second invoking state
               return new Promise(() => {
@@ -2889,7 +2889,6 @@ describe('invoke', () => {
     );
 
     interpret(testMachine).start();
-
     // check within a macrotask so all promise-induced microtasks have a chance to resolve first
     setTimeout(() => {
       expect(counter).toEqual(1);

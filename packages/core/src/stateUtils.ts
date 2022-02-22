@@ -1380,7 +1380,7 @@ export function microstep<
   TEvent extends EventObject
 >(
   transitions: Array<TransitionDefinition<TContext, TEvent>>,
-  currentState: State<TContext, TEvent> | undefined,
+  currentState: State<TContext, TEvent>,
   mutConfiguration: Set<StateNode<TContext, TEvent>>,
   machine: StateMachine<TContext, TEvent>,
   _event: SCXML.Event<TEvent>
@@ -1404,7 +1404,7 @@ export function microstep<
   const internalQueue: Array<SCXML.Event<TEvent>> = [];
 
   // Exit states
-  if (currentState) {
+  if (!currentState._initial) {
     const { historyValue: exitHistoryValue, actions: exitActions } = exitStates(
       filteredTransitions,
       mutConfiguration,
@@ -1550,7 +1550,7 @@ export function resolveMicroTransition<
             toJSON: null as any // TODO: fix
           }
         ],
-    currentState._initial ? undefined : currentState,
+    currentState,
     new Set(prevConfig),
     machine,
     _event
@@ -1564,7 +1564,7 @@ export function resolveMicroTransition<
     return inertState as any;
   }
 
-  const children = !currentState._initial ? { ...currentState.children } : {};
+  const children = currentState.children;
 
   const resolvedConfiguration = willTransition
     ? Array.from(resolved.configuration)
@@ -1579,9 +1579,7 @@ export function resolveMicroTransition<
     return acc;
   }, {} as Record<string, string>);
 
-  const currentContext = !currentState._initial
-    ? currentState.context
-    : machine.context;
+  const currentContext = currentState.context;
 
   const { context, actions: nonRaisedActions } = resolved;
 

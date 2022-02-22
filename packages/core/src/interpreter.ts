@@ -16,7 +16,8 @@ import {
   ActorRef,
   SCXMLErrorEvent,
   InvokeSourceDefinition,
-  StateConfig
+  StateConfig,
+  TODO
 } from './types';
 import { State, isStateConfig } from './State';
 import * as actionTypes from './actionTypes';
@@ -394,13 +395,12 @@ export class Interpreter<
 
     const resolvedState =
       initialState === undefined
-        ? this.initialState
+        ? this.machine.getInitialState()
         : isStateConfig<TContext, TEvent>(initialState)
         ? this.machine.resolveState(initialState)
         : this.machine.resolveState(
             State.from(initialState, this.machine.context)
           );
-
     this._state = resolvedState;
 
     this.update(resolvedState);
@@ -408,18 +408,14 @@ export class Interpreter<
     if (this.options.devTools) {
       this.attachDevTools();
     }
-
     this.mailbox.start();
-
     return this;
   }
 
   private _process(event: SCXML.Event<TEvent>) {
     // TODO: handle errors
     this.forward(event);
-
     const nextState = this.nextState(event);
-
     this.update(nextState);
   }
 
@@ -653,7 +649,8 @@ export class Interpreter<
             }
             return;
           }
-          (ref as any).parent = this; // TODO: fix
+
+          ref.parent = this; // TODO: fix
           // If the actor will be stopped right after it's started
           // (such as in transient states) don't bother starting the actor.
           if (
@@ -674,11 +671,20 @@ export class Interpreter<
             this.state.children[id] = ref;
 
             ref.subscribe({
-              error: () => {
+              next: (data) => {
+                this.send(data as TODO);
+              },
+              error: (errorData) => {
+                this.send(errorData as TODO);
                 // TODO: handle error
                 this.stop();
               },
-              complete: () => {
+              complete: (doneData) => {
+                this.send(
+                  toSCXMLEvent(doneInvoke(id, doneData) as any, {
+                    origin: ref
+                  })
+                );
                 /* ... */
               }
             });

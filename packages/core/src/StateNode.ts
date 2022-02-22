@@ -8,7 +8,8 @@ import {
   toInvokeConfig,
   toInvokeSource,
   isFunction,
-  toTransitionConfigArray
+  toTransitionConfigArray,
+  createInvokeId
 } from './utils';
 import type {
   Event,
@@ -264,10 +265,10 @@ export class StateNode<
   public get invoke(): Array<InvokeDefinition<TContext, TEvent>> {
     return memo(this, 'invoke', () =>
       toArray(this.config.invoke).map((invocable, i) => {
-        const id = `${this.id}:invocation[${i}]`;
+        const generatedId = createInvokeId(this.id, i);
 
-        const invokeConfig = toInvokeConfig(invocable, id);
-        const resolvedId = invokeConfig.id || id;
+        const invokeConfig = toInvokeConfig(invocable, generatedId);
+        const resolvedId = invokeConfig.id || generatedId;
 
         const resolvedSrc = toInvokeSource(
           isString(invokeConfig.src)
@@ -278,12 +279,12 @@ export class StateNode<
         );
 
         if (
-          !this.machine.options.actors[resolvedSrc.type] &&
+          !this.machine.options.actors[resolvedId] &&
           isFunction(invokeConfig.src)
         ) {
           this.machine.options.actors = {
             ...this.machine.options.actors,
-            [resolvedSrc.type]: invokeConfig.src
+            [resolvedId]: invokeConfig.src
           };
         }
 

@@ -28,7 +28,7 @@ export function createSpawner<
       const behaviorCreator = machine.options.actors[behavior];
 
       if (behaviorCreator) {
-        const resolvedName = name ?? 'anon';
+        const resolvedName = name ?? 'anon'; // TODO: better name
         const createdBehavior = behaviorCreator(context, _event.data, {
           id: name || 'anon',
           src: { type: behavior },
