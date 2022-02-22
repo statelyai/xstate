@@ -1,5 +1,17 @@
 # xstate
 
+## 4.30.2
+
+### Patch Changes
+
+- [#3063](https://github.com/statelyai/xstate/pull/3063) [`c826559b4`](https://github.com/statelyai/xstate/commit/c826559b4c495f64c85dd79f1d1262ae9e7d15bf) Thanks [@Andarist](https://github.com/Andarist)! - Fixed a type compatibility with Svelte's readables. It should be possible again to use XState interpreters directly as readables at the type-level.
+
+* [#3051](https://github.com/statelyai/xstate/pull/3051) [`04091f29c`](https://github.com/statelyai/xstate/commit/04091f29cb80dd8e6c95e42668bd56f02f775973) Thanks [@Andarist](https://github.com/Andarist)! - Fixed type compatibility with functions accepting machines that were created before typegen was a thing in XState. This should make it possible to use the latest version of XState with `@xstate/vue`, `@xstate/react@^1` and some community packages.
+
+  Note that this change doesn't make those functions to accept machines that have typegen information on them. For that the signatures of those functions would have to be adjusted.
+
+- [#3077](https://github.com/statelyai/xstate/pull/3077) [`2c76ecac5`](https://github.com/statelyai/xstate/commit/2c76ecac5de73fbb3a2376a0f66802480ec9549f) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with nested `state.matches` calls when the typegen was involved. The `state` ended up being `never` and thus not usable.
+
 ## 4.30.1
 
 ### Patch Changes
