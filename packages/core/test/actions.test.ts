@@ -1850,4 +1850,25 @@ describe('assign action order', () => {
       expect(captured).toEqual([2, 2, 2]);
     }
   );
+
+  it('actions executed when machine is exited should be resolved', () => {
+    const child = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          exit: sendParent('EXIT')
+        }
+      }
+    });
+
+    const parent = createMachine({
+      invoke: child
+    });
+
+    expect(() => {
+      const interpreter = interpret(parent);
+      interpreter.start();
+      interpreter.stop();
+    }).not.toThrow();
+  });
 });

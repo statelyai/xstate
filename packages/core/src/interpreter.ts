@@ -34,11 +34,18 @@ import {
   Subscription,
   AnyState,
   StateConfig,
-  InteropSubscribable
+  InteropSubscribable,
+  SendAction
 } from './types';
 import { State, bindActionToState, isStateConfig } from './State';
 import * as actionTypes from './actionTypes';
-import { doneInvoke, error, getActionFunction, initEvent } from './actions';
+import {
+  doneInvoke,
+  error,
+  getActionFunction,
+  initEvent,
+  resolveSend
+} from './actions';
 import { IS_PRODUCTION } from './environment';
 import {
   isPromiseLike,
@@ -859,7 +866,15 @@ export class Interpreter<
 
     switch (action.type) {
       case actionTypes.send:
-        const sendAction = action as SendActionObject<TContext, TEvent>;
+        // Ensure that send action is resolved
+        const sendAction =
+          '_event' in action
+            ? (action as SendActionObject<TContext, TEvent>)
+            : resolveSend(
+                action as SendAction<TContext, TEvent, AnyEventObject>,
+                context,
+                _event
+              );
 
         if (typeof sendAction.delay === 'number') {
           this.defer(sendAction);
