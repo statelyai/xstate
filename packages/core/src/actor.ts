@@ -5,25 +5,21 @@ import {
   InvokeCallback,
   InterpreterOptions,
   ActorRef,
-  Lazy,
   BaseActorRef,
   MachineContext,
   Behavior,
   ActorContext
 } from './types';
 import { StateMachine } from './StateMachine';
-import { State } from './State';
 import {
   createMachineBehavior,
   createDeferredBehavior,
   createPromiseBehavior,
   createObservableBehavior,
-  createBehaviorFrom,
   LifecycleSignal,
   startSignal,
   stopSignal
 } from './behaviors';
-import { registry } from './registry';
 import { ObservableActorRef } from './ObservableActorRef';
 import { interopSymbols, toSCXMLEvent } from './utils';
 import { Mailbox } from './Mailbox';

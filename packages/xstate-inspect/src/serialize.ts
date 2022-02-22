@@ -25,7 +25,7 @@ export function stringifyState(state: AnyState, replacer?: Replacer): string {
 }
 
 export function stringifyMachine(
-  machine: StateMachine<any, any>,
+  machine: AnyStateMachine,
   replacer?: Replacer
 ): string {
   return selectivelyStringify(machine, ['context'], replacer);

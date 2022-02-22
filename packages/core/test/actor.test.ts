@@ -278,7 +278,10 @@ describe('spawning observables', () => {
       value: number;
     }
 
-    const observableMachine = createMachine<any, Events>({
+    const observableMachine = createMachine<
+      { observableRef?: ActorRef<any> },
+      Events
+    >({
       id: 'observable',
       initial: 'idle',
       context: {
@@ -523,7 +526,7 @@ describe('actors', () => {
       context: {},
       states: {
         bar: {
-          entry: assign<TestContext>({
+          entry: assign({
             promise: (_, __, { spawn }) => {
               return spawn(
                 createPromiseBehavior(() => {
@@ -963,7 +966,9 @@ describe('actors', () => {
       it('should only spawn an actor in an initial state of a child that gets invoked in the initial state of a parent when the parent gets started', (done) => {
         let spawnCounter = 0;
 
-        const child = createMachine<any>({
+        const child = createMachine<{
+          promise?: ActorRefFrom<Promise<string>>;
+        }>({
           initial: 'bar',
           context: {},
           states: {

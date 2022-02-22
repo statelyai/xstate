@@ -139,9 +139,6 @@ export function useInterpret<
     ...interpreterOptions
   } = options;
 
-  // it's not defined in `TypegenMachineOptions` so we can't just unpack this property here freely
-  const { activities } = options as any;
-
   const service = useConstant(() => {
     const machineConfig = {
       context,

@@ -3,9 +3,7 @@ import {
   assign,
   forwardTo,
   interpret,
-  spawnMachine,
   ActorRefFrom,
-  spawn,
   InvokeActionObject
 } from '../src/index';
 import { sendParent } from '../src/actions';

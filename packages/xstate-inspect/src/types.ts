@@ -1,6 +1,7 @@
 import type {
   ActorRef,
   AnyInterpreter,
+  AnyState,
   SCXML,
   State,
   StateMachine

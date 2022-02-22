@@ -1,5 +1,10 @@
-import { EventObject, State, StateNode } from 'xstate';
-import { MachineContext } from '../../core/src';
+import {
+  EventObject,
+  State,
+  StateNode,
+  AnyState,
+  MachineContext
+} from 'xstate';
 export interface TestMeta<T, TContext extends MachineContext> {
   test?: (testContext: T, state: State<TContext, any>) => Promise<void> | void;
   description?: string | ((state: State<TContext, any>) => string);

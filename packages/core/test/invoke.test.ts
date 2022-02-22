@@ -2874,7 +2874,7 @@ describe('invoke', () => {
           }
         },
         actors: {
-          fetchSmth: invokePromise((_, e) => {
+          fetchSmth: invokePromise(() => {
             if (invoked) {
               // create a promise that won't ever resolve for the second invoking state
               return new Promise(() => {

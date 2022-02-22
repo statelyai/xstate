@@ -89,17 +89,15 @@ export function fromPromise<T>(
   };
 
   return {
-    transition: (state, event, { name, observers }) => {
+    transition: (state, event, { observers }) => {
       switch (event.type) {
         case 'fulfill':
-          // parent?.send(doneInvoke(name, event.data));
           return {
             error: undefined,
             data: event.data,
             status: 'fulfilled'
           };
         case 'reject':
-          // parent?.send(error(name, event.error));
           observers.forEach((observer) => {
             observer.error?.(event.error);
           });
@@ -299,7 +297,7 @@ export function createDeferredBehavior<TEvent extends EventObject>(
 
 export function createPromiseBehavior<T, TEvent extends EventObject>(
   lazyPromise: Lazy<PromiseLike<T>>
-): Behavior<TEvent, T | undefined> {
+): Behavior<any, T | undefined> {
   let canceled = false;
   const observers: Set<Observer<T>> = new Set();
 
