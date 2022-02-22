@@ -319,7 +319,12 @@ export class State<
   public matches<
     TSV extends TResolvedTypesMeta extends TypegenEnabled
       ? Prop<TResolvedTypesMeta, 'matchesStates'>
-      : TTypestate['value']
+      : never
+  >(parentStateValue: TSV): boolean;
+  public matches<
+    TSV extends TResolvedTypesMeta extends TypegenDisabled
+      ? TTypestate['value']
+      : never
   >(
     parentStateValue: TSV
   ): this is State<
@@ -332,7 +337,8 @@ export class State<
     TStateSchema,
     TTypestate,
     TResolvedTypesMeta
-  > & { value: TSV } {
+  > & { value: TSV };
+  public matches(parentStateValue: StateValue): any {
     return matchesState(parentStateValue as StateValue, this.value);
   }
 
