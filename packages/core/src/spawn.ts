@@ -18,7 +18,7 @@ export function createSpawner<
   machine: StateMachine<any, any>,
   context: TContext,
   _event: SCXML.Event<TEvent>,
-  capturedActions: InvokeActionObject[]
+  mutCapturedActions: InvokeActionObject[]
 ): <TReceived extends EventObject, TEmitted>(
   behavior: string | Behavior<TReceived, TEmitted>,
   name?: string | undefined
@@ -38,7 +38,7 @@ export function createSpawner<
 
         const actorRef = new ObservableActorRef(createdBehavior, resolvedName);
 
-        capturedActions.push({
+        mutCapturedActions.push({
           type: ActionTypes.Invoke,
           params: {
             src: actorRef,
@@ -55,7 +55,7 @@ export function createSpawner<
     } else {
       const actorRef = new ObservableActorRef(behavior, name || 'anonymous');
 
-      capturedActions.push({
+      mutCapturedActions.push({
         type: ActionTypes.Invoke,
         params: {
           src: actorRef,
