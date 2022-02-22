@@ -1472,22 +1472,25 @@ export type Spawnable =
 
 // Taken from RxJS
 // TODO: fix complete types
-export type Observer<T, TDone = undefined> =
+export type Observer<T> = (
   | {
       next: (value: T) => void;
       error?: (err: any) => void;
-      complete?: (doneData: TDone) => void;
+      complete?: () => void;
     }
   | {
       next?: (value: T) => void;
       error: (err: any) => void;
-      complete?: (doneData: TDone) => void;
+      complete?: () => void;
     }
   | {
       next?: (value: T) => void;
       error?: (err: any) => void;
-      complete: (doneData: TDone) => void;
-    };
+      complete: () => void;
+    }
+) & {
+  done?: (doneData: T) => void;
+};
 
 export interface Subscription {
   unsubscribe(): void;

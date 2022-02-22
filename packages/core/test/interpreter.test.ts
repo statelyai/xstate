@@ -10,9 +10,7 @@ import {
   StateValue,
   AnyEventObject,
   createMachine,
-  spawnPromise,
-  spawnMachine,
-  spawnObservable
+  AnyState
 } from '../src';
 import { State } from '../src/State';
 import { actionTypes } from '../src/actions';
@@ -28,7 +26,11 @@ import {
   invokePromise,
   invokeActivity
 } from '../src/invoke';
-import { createPromiseBehavior } from '../src/behaviors';
+import {
+  createMachineBehavior,
+  createObservableBehavior,
+  createPromiseBehavior
+} from '../src/behaviors';
 
 const lightMachine = createMachine({
   id: 'light',
@@ -1687,7 +1689,8 @@ describe('interpreter', () => {
         initial: 'idle',
         context: {},
         entry: assign({
-          firstNameRef: () => spawnMachine(childMachine, 'child')
+          firstNameRef: (_, __, { spawn }) =>
+            spawn(createMachineBehavior(childMachine), 'child')
         }),
         states: {
           idle: {}
@@ -1715,18 +1718,23 @@ describe('interpreter', () => {
         initial: 'present',
         context: {},
         entry: assign({
-          machineRef: () => spawnMachine(childMachine, 'machineChild'),
-          promiseRef: () =>
-            spawnPromise(
-              () =>
-                new Promise(() => {
-                  // ...
-                }),
+          machineRef: (_, __, { spawn }) =>
+            spawn(createMachineBehavior(childMachine), 'machineChild'),
+          promiseRef: (_, __, { spawn }) =>
+            spawn(
+              createPromiseBehavior(
+                () =>
+                  new Promise(() => {
+                    // ...
+                  })
+              ),
               'promiseChild'
             ),
-          observableRef: () =>
-            spawnObservable(
-              () => interval(1000).pipe(map((i) => ({ type: 'INTERVAL', i }))),
+          observableRef: (_, __, { spawn }) =>
+            spawn(
+              createObservableBehavior(() =>
+                interval(1000).pipe(map((i) => ({ type: 'INTERVAL', i })))
+              ),
               'observableChild'
             )
         }),

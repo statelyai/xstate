@@ -24,7 +24,6 @@ import {
   stopSignal
 } from './behaviors';
 import { registry } from './registry';
-import * as capturedState from './capturedState';
 import { ObservableActorRef } from './ObservableActorRef';
 import { interopSymbols, toSCXMLEvent } from './utils';
 import { Mailbox } from './Mailbox';
@@ -80,63 +79,6 @@ export function fromMachine<
   options?: Partial<InterpreterOptions>
 ): ActorRef<TEvent> {
   return new ObservableActorRef(createMachineBehavior(machine, options), name);
-}
-
-export function spawn<TReceived extends EventObject, TEmitted>(
-  behavior: Behavior<TReceived, TEmitted>,
-  // TODO: use more universal uniqueid)
-  name: string = registry.bookId()
-) {
-  const actorRef = new ObservableActorRef(behavior, name);
-  return capturedState.captureSpawn(actorRef, name);
-}
-
-export function spawnPromise<T>(
-  lazyPromise: Lazy<PromiseLike<T>>,
-  name?: string
-) {
-  return spawn(createPromiseBehavior(lazyPromise), name);
-}
-
-export function spawnObservable<T extends EventObject>(
-  lazyObservable: Lazy<Subscribable<T>>,
-  name?: string
-) {
-  return spawn(createObservableBehavior(lazyObservable), name);
-}
-
-export function spawnMachine(machine: StateMachine<any, any>, name?: string) {
-  return spawn(createMachineBehavior(machine), name);
-}
-
-export function spawnCallback(callback: InvokeCallback, name?: string) {
-  return spawn(
-    createDeferredBehavior(() => callback),
-    name
-  );
-}
-
-export function spawnFrom<TEvent extends EventObject, TEmitted>(
-  entity: PromiseLike<TEmitted>,
-  name?: string
-): ObservableActorRef<TEvent, TEmitted>;
-export function spawnFrom<TEvent extends EventObject, TEmitted>(
-  entity: Subscribable<any>,
-  name?: string
-): ObservableActorRef<any, TEmitted>;
-export function spawnFrom<
-  TEvent extends EventObject,
-  TEmitted extends State<any, any>
->(
-  entity: StateMachine<TEmitted['context'], TEmitted['event']>,
-  name?: string
-): ObservableActorRef<TEvent, TEmitted>;
-export function spawnFrom<TEvent extends EventObject>(
-  entity: InvokeCallback,
-  name?: string
-): ObservableActorRef<TEvent, undefined>;
-export function spawnFrom(entity: any): ObservableActorRef<any, any> {
-  return spawn(createBehaviorFrom(entity)) as ObservableActorRef<any, any>; // TODO: fix
 }
 
 export class Actor<TEvent extends EventObject, TEmitted> {

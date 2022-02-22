@@ -38,7 +38,7 @@ import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
 import type { StateMachine } from './StateMachine';
 import { devToolsAdapter } from './dev';
-import { CapturedState } from './capturedState';
+// import { CapturedState } from './capturedState';
 import type {
   ActionFunction,
   BaseActionObject,
@@ -171,25 +171,11 @@ export class Interpreter<
   }
 
   public get initialState(): State<TContext, TEvent> {
-    try {
-      CapturedState.current = {
-        actorRef: this.ref,
-        spawns: []
-      };
-      const initialState =
-        this._initialState ||
-        ((this._initialState = this.machine.getInitialState()),
-        this._initialState);
-
-      // Ensure that actors are spawned before initial actions
-      initialState.actions.unshift(...CapturedState.current.spawns);
-      return initialState;
-    } finally {
-      CapturedState.current = {
-        actorRef: undefined,
-        spawns: []
-      };
-    }
+    const initialState =
+      this._initialState ||
+      ((this._initialState = this.machine.getInitialState()),
+      this._initialState);
+    return initialState;
   }
 
   public get state(): State<TContext, TEvent> {
@@ -569,18 +555,7 @@ export class Interpreter<
       this.handleErrorEvent(_event);
     }
 
-    try {
-      CapturedState.current = {
-        actorRef: this.ref,
-        spawns: []
-      };
-      return this.machine.transition(this.state, event);
-    } finally {
-      CapturedState.current = {
-        actorRef: undefined,
-        spawns: []
-      };
-    }
+    return this.machine.transition(this.state, event);
   }
   private forward(event: SCXML.Event<TEvent>): void {
     for (const id of this.forwardTo) {
@@ -679,13 +654,20 @@ export class Interpreter<
                 // TODO: handle error
                 this.stop();
               },
-              complete: (doneData) => {
+              complete: () => {
+                this.send(
+                  toSCXMLEvent(doneInvoke(id) as any, {
+                    origin: ref
+                  })
+                );
+                /* ... */
+              },
+              done: (doneData) => {
                 this.send(
                   toSCXMLEvent(doneInvoke(id, doneData) as any, {
                     origin: ref
                   })
                 );
-                /* ... */
               }
             });
 

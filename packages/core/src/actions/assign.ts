@@ -11,8 +11,6 @@ import type {
 import * as actionTypes from '../actionTypes';
 import { createDynamicAction } from '../../actions/dynamicAction';
 import { isFunction, keys } from '../utils';
-
-import * as capturedState from '../capturedState';
 import { createSpawner } from '../spawn';
 
 /**
@@ -68,8 +66,6 @@ export function assign<
             : propAssignment;
         }
       }
-
-      capturedActions.push(...capturedState.flushSpawns());
 
       const updatedContext = Object.assign({}, context, partialUpdate);
 

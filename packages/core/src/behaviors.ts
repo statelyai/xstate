@@ -301,7 +301,7 @@ export function createPromiseBehavior<T, TEvent extends EventObject>(
   lazyPromise: Lazy<PromiseLike<T>>
 ): Behavior<TEvent, T | undefined> {
   let canceled = false;
-  const observers: Set<Observer<TODO, T>> = new Set();
+  const observers: Set<Observer<T>> = new Set();
 
   const behavior: Behavior<TEvent, T | undefined> = {
     transition: (_, event, actorContext) => {
@@ -313,7 +313,7 @@ export function createPromiseBehavior<T, TEvent extends EventObject>(
             (response) => {
               if (!canceled) {
                 observers.forEach((observer) => {
-                  observer.complete?.(response);
+                  observer.done?.(response);
                 });
               }
             },
