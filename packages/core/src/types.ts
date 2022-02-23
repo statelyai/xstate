@@ -30,6 +30,7 @@ export type Equals<A1 extends any, A2 extends any> = (<A>() => A extends A2
   : false;
 export type IsAny<T> = Equals<T, any>;
 export type Cast<A, B> = A extends B ? A : B;
+export type NoInfer<T> = [T][T extends any ? 0 : any];
 
 export type EventType = string;
 export type ActionType = string;
@@ -946,7 +947,7 @@ export interface MachineConfig<
   TAction extends BaseActionObject = BaseActionObject,
   TServiceMap extends ServiceMap = ServiceMap,
   TTypesMeta = TypegenDisabled
-> extends StateNodeConfig<TContext, TStateSchema, TEvent, TAction> {
+> extends StateNodeConfig<NoInfer<TContext>, TStateSchema, TEvent, TAction> {
   /**
    * The initial context (extended state)
    */
