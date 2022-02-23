@@ -1,5 +1,12 @@
 import { from } from 'rxjs';
-import { Machine, assign, createMachine, interpret } from '../src/index';
+import {
+  Machine,
+  assign,
+  createMachine,
+  interpret,
+  StateMachine,
+  MachineConfig
+} from '../src/index';
 import { raise } from '../src/actions';
 
 function noop(_x: unknown) {
@@ -409,6 +416,16 @@ describe('context', () => {
         }
       }
     );
+  });
+
+  it('should work with generic context', () => {
+    function createMachineWithExtras<TContext>(
+      context: TContext
+    ): StateMachine<TContext, any, any> {
+      return createMachine({ context });
+    }
+
+    createMachineWithExtras({ counter: 42 });
   });
 });
 
