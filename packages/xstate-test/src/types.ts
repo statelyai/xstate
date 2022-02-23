@@ -1,11 +1,11 @@
-import { EventObject, State, StateNode } from 'xstate';
+import { AnyState, EventObject, State, StateNode } from 'xstate';
 export interface TestMeta<T, TContext> {
   test?: (testContext: T, state: State<TContext, any>) => Promise<void> | void;
   description?: string | ((state: State<TContext, any>) => string);
   skip?: boolean;
 }
 interface TestSegment<T> {
-  state: State<any, any>;
+  state: AnyState;
   event: EventObject;
   description: string;
   test: (testContext: T) => Promise<void>;

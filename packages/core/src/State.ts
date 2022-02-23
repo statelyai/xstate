@@ -215,7 +215,7 @@ export class State<
    * @param context
    */
   public static inert<TC, TE extends EventObject = EventObject>(
-    stateValue: State<TC, TE> | StateValue,
+    stateValue: State<TC, TE, any, any, any> | StateValue,
     context: TC
   ): State<TC, TE> {
     if (stateValue instanceof State) {
@@ -319,7 +319,12 @@ export class State<
   public matches<
     TSV extends TResolvedTypesMeta extends TypegenEnabled
       ? Prop<TResolvedTypesMeta, 'matchesStates'>
-      : TTypestate['value']
+      : never
+  >(parentStateValue: TSV): boolean;
+  public matches<
+    TSV extends TResolvedTypesMeta extends TypegenDisabled
+      ? TTypestate['value']
+      : never
   >(
     parentStateValue: TSV
   ): this is State<
@@ -332,7 +337,8 @@ export class State<
     TStateSchema,
     TTypestate,
     TResolvedTypesMeta
-  > & { value: TSV } {
+  > & { value: TSV };
+  public matches(parentStateValue: StateValue): any {
     return matchesState(parentStateValue as StateValue, this.value);
   }
 

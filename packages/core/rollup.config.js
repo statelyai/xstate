@@ -4,33 +4,6 @@ import { terser } from 'rollup-plugin-terser';
 import rollupReplace from 'rollup-plugin-replace';
 import fileSize from 'rollup-plugin-filesize';
 
-const stripSymbolObservableMethodPlugin = ({ types: t }) => {
-  const isSymbolObservable = t.buildMatchMemberExpression('Symbol.observable');
-  return {
-    visitor: {
-      MemberExpression(path) {
-        if (!isSymbolObservable(path.node)) {
-          return;
-        }
-        // class Interpreter { [Symbol.observable]() {} }
-        if (path.parentPath.isClassMethod()) {
-          path.parentPath.remove();
-          return;
-        }
-        // Interpreter.prototype[Symbol.observable] = function() {}
-        if (
-          path.parentPath.isMemberExpression() &&
-          path.parentPath.get('property') === path &&
-          path.parentPath.parentPath.isAssignmentExpression()
-        ) {
-          path.parentPath.parentPath.remove();
-          return;
-        }
-      }
-    }
-  };
-};
-
 const createTsPlugin = ({ declaration = true, target } = {}) =>
   typescript({
     clean: true,
@@ -49,10 +22,7 @@ const createBabelPlugin = () =>
     skipPreflightCheck: true,
     babelHelpers: 'inline',
     extensions: ['.ts', '.tsx', '.js'],
-    plugins: [
-      'babel-plugin-annotate-pure-calls',
-      stripSymbolObservableMethodPlugin
-    ]
+    plugins: ['babel-plugin-annotate-pure-calls']
   });
 
 const createNpmConfig = ({ input, output }) => ({

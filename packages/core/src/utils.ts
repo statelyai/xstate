@@ -11,7 +11,6 @@ import {
   AssignAction,
   Condition,
   Subscribable,
-  StateMachine,
   ConditionPredicate,
   SCXML,
   StateLike,
@@ -35,6 +34,7 @@ import { IS_PRODUCTION } from './environment';
 import { StateNode } from './StateNode';
 import { State } from './State';
 import { Actor } from './Actor';
+import { AnyStateMachine } from '.';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
   return Object.keys(value) as Array<keyof T & string>;
@@ -529,21 +529,21 @@ export function isObservable<T>(value: any): value is Subscribable<T> {
   }
 }
 
-export const symbolObservable = (() =>
-  (typeof Symbol === 'function' && Symbol.observable) || '@@observable')();
+export const symbolObservable: typeof Symbol.observable = (() =>
+  (typeof Symbol === 'function' && Symbol.observable) ||
+  '@@observable')() as any;
 
+// TODO: to be removed in v5, left it out just to minimize the scope of the change and maintain compatibility with older versions of integration paackages
 export const interopSymbols = {
   [symbolObservable]: function () {
     return this;
   },
-  // this gets stripped by Babel to avoid having "undefined" property in environments without this non-standard Symbol
-  // it has to be here to be included in the generated .d.ts
   [Symbol.observable]: function () {
     return this;
   }
 };
 
-export function isMachine(value: any): value is StateMachine<any, any, any> {
+export function isMachine(value: any): value is AnyStateMachine {
   try {
     return '__xstatenode' in value;
   } catch (e) {

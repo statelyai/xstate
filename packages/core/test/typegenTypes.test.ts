@@ -1,4 +1,4 @@
-import { assign, interpret } from '../src';
+import { assign, interpret, StateMachine } from '../src';
 import { createMachine } from '../src/Machine';
 import { createModel } from '../src/model';
 import { TypegenMeta } from '../src/typegenTypes';
@@ -1133,5 +1133,38 @@ describe('typegen types', () => {
       // @ts-expect-error
       machine.initialState.context.val;
     }
+  });
+
+  it("shouldn't end up with `never` within a branch after two `state.matches` calls", () => {
+    interface TypesMeta extends TypegenMeta {
+      matchesStates: 'a' | 'a.b';
+    }
+
+    const machine = createMachine({
+      tsTypes: {} as TypesMeta,
+      schema: {
+        context: {} as {
+          foo: string;
+        }
+      }
+    });
+
+    const state = machine.initialState;
+
+    if (state.matches('a') && state.matches('a.b')) {
+      ((_accept: string) => {})(state.context.foo);
+    }
+  });
+
+  it('should be possible to pass typegen-less machines to functions expecting a machine argument that do not utilize the typegen information', () => {
+    const machine = createMachine({});
+
+    function acceptMachine<TContext, TEvent extends { type: string }>(
+      machine: StateMachine<TContext, any, TEvent>
+    ) {
+      return machine;
+    }
+
+    acceptMachine(machine);
   });
 });

@@ -15,9 +15,7 @@
     "test": "jest",
     "test:core": "npm test --prefix packages/core",
     "dev": "node ./scripts/dev.js",
-    "ci": "npm run build && npm run test",
     "changeset": "changeset",
-    "prerelease": "npm run build && npm run test",
     "release": "changeset publish",
     "version": "changeset version && node ./scripts/bump-peer-dep-ranges.js"
   },

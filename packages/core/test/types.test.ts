@@ -1,7 +1,8 @@
+import { from } from 'rxjs';
 import { Machine, assign, createMachine, interpret } from '../src/index';
 import { raise } from '../src/actions';
 
-function noop(_x) {
+function noop(_x: unknown) {
   return;
 }
 
@@ -384,5 +385,49 @@ describe('Typestates', () => {
       ? service.state.context
       : { result: none, error: 'oops' };
     expect(failed).toEqual({ result: none, error: 'oops' });
+  });
+});
+
+describe('context', () => {
+  it('should not use actions as possible inference sites', () => {
+    createMachine(
+      {
+        schema: {
+          context: {} as {
+            count: number;
+          }
+        },
+        entry: (_ctx: any) => {}
+      },
+      {
+        actions: {
+          someAction: (ctx) => {
+            ((_accept: number) => {})(ctx.count);
+            // @ts-expect-error
+            ((_accept: string) => {})(ctx.count);
+          }
+        }
+      }
+    );
+  });
+});
+
+describe('interpreter', () => {
+  it('should be convertable to Rx observable', () => {
+    const state$ = from(
+      interpret(
+        createMachine({
+          schema: {
+            context: {} as { count: number }
+          }
+        })
+      )
+    );
+
+    state$.subscribe((state) => {
+      ((_val: number) => {})(state.context.count);
+      // @ts-expect-error
+      ((_val: string) => {})(state.context.count);
+    });
   });
 });
