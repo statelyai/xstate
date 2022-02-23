@@ -388,6 +388,30 @@ describe('Typestates', () => {
   });
 });
 
+describe('context', () => {
+  it('should not use actions as possible inference sites', () => {
+    createMachine(
+      {
+        schema: {
+          context: {} as {
+            count: number;
+          }
+        },
+        entry: (_ctx: any) => {}
+      },
+      {
+        actions: {
+          someAction: (ctx) => {
+            ((_accept: number) => {})(ctx.count);
+            // @ts-expect-error
+            ((_accept: string) => {})(ctx.count);
+          }
+        }
+      }
+    );
+  });
+});
+
 describe('interpreter', () => {
   it('should be convertable to Rx observable', () => {
     const state$ = from(

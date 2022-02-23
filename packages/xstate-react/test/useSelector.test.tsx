@@ -1,5 +1,13 @@
 import * as React from 'react';
-import { assign, createMachine, interpret, spawn, toActorRef } from 'xstate';
+import {
+  ActorRefFrom,
+  assign,
+  createMachine,
+  interpret,
+  spawn,
+  StateFrom,
+  toActorRef
+} from 'xstate';
 import { act, render, cleanup, fireEvent } from '@testing-library/react';
 import { useInterpret, useMachine, useSelector } from '../src';
 
@@ -153,12 +161,16 @@ describe('useSelector', () => {
     });
 
     const parentMachine = createMachine({
+      schema: {
+        context: {} as { childActor: ActorRefFrom<typeof childMachine> }
+      },
       entry: assign({
         childActor: () => spawn(childMachine)
       })
     });
 
-    const selector = (state) => state.context.count;
+    const selector = (state: StateFrom<typeof childMachine>) =>
+      state.context.count;
 
     const App = () => {
       const [state] = useMachine(parentMachine);
@@ -200,6 +212,11 @@ describe('useSelector', () => {
     });
 
     const parentMachine = createMachine({
+      schema: {
+        context: {} as {
+          childActor: ActorRefFrom<ReturnType<typeof createActor>>;
+        }
+      },
       entry: assign({
         childActor: () => spawn(createActor('foo'))
       })
@@ -242,6 +259,9 @@ describe('useSelector', () => {
     });
 
     const parentMachine = createMachine({
+      schema: {
+        context: {} as { childActor: ActorRefFrom<typeof childMachine> }
+      },
       entry: assign({
         childActor: () => spawn(childMachine)
       })
@@ -281,6 +301,9 @@ describe('useSelector', () => {
     });
 
     const parentMachine = createMachine({
+      schema: {
+        context: {} as { childActor: ActorRefFrom<typeof childMachine> }
+      },
       entry: assign({
         childActor: () => spawn(childMachine)
       })
@@ -328,6 +351,11 @@ describe('useSelector', () => {
     });
 
     const parentMachine = createMachine({
+      schema: {
+        context: {} as {
+          childActor: ActorRefFrom<ReturnType<typeof createActor>>;
+        }
+      },
       entry: assign({
         childActor: () => spawn(createActor('foo'))
       })
