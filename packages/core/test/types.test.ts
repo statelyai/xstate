@@ -4,8 +4,7 @@ import {
   assign,
   createMachine,
   interpret,
-  StateMachine,
-  MachineConfig
+  StateMachine
 } from '../src/index';
 import { raise } from '../src/actions';
 
