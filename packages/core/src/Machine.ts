@@ -86,16 +86,14 @@ export function createMachine<
   TServiceMap extends ServiceMap = ServiceMap,
   TTypesMeta extends TypegenConstraint = TypegenDisabled
 >(
-  config: TContext extends Model<any, any, any, any>
-    ? 'Model type no longer supported as generic type. Please use `model.createMachine(...)` instead.'
-    : MachineConfig<
-        TContext,
-        any,
-        TEvent,
-        BaseActionObject,
-        TServiceMap,
-        TTypesMeta
-      >,
+  config: MachineConfig<
+    TContext,
+    any,
+    TEvent,
+    BaseActionObject,
+    TServiceMap,
+    TTypesMeta
+  >,
   options?: InternalMachineOptions<
     TContext,
     TEvent,

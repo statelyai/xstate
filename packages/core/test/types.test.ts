@@ -464,3 +464,21 @@ describe('interpreter', () => {
     });
   });
 });
+
+createMachine({
+  // tsTypes: {} as import("./index.typegen").Typegen0,
+  schema: {
+    // context: t<ChildContext>(),
+    events: {} as { type: 'pinga' }
+  },
+
+  context: {},
+
+  states: {
+    Idle: {
+      on: {
+        // try to autocomplete here
+      }
+    }
+  }
+});
