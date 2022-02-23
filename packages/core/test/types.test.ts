@@ -395,6 +395,25 @@ describe('Typestates', () => {
 });
 
 describe('context', () => {
+  it('should infer context type from `config.context` when there is no `schema.context`', () => {
+    createMachine(
+      {
+        context: {
+          foo: 'test'
+        }
+      },
+      {
+        actions: {
+          someAction: (ctx) => {
+            ((_accept: string) => {})(ctx.foo);
+            // @ts-expect-error
+            ((_accept: number) => {})(ctx.foo);
+          }
+        }
+      }
+    );
+  });
+
   it('should not use actions as possible inference sites', () => {
     createMachine(
       {
@@ -425,6 +444,20 @@ describe('context', () => {
     }
 
     createMachineWithExtras({ counter: 42 });
+  });
+
+  it('should not widen literal types defined in `schema.context` based on `config.context`', () => {
+    createMachine({
+      schema: {
+        context: {} as {
+          literalTest: 'foo' | 'bar';
+        }
+      },
+      context: {
+        // @ts-expect-error
+        literalTest: 'anything'
+      }
+    });
   });
 });
 
