@@ -2,4 +2,4 @@
 'xstate': patch
 ---
 
-fix: allow usage of generic TContext with createMachine
+Fixed an issue with not being able to call `createMachine` in a generic context when the type for the context was generic and not concrete.
