@@ -113,6 +113,7 @@ export enum InterpreterStatus {
   Stopped
 }
 
+/** @ts-ignore [symbolObservable] creates problems for people without `skipLibCheck` who are on older versions of TS, remove this comment when we drop support for TS@<4.3 */
 export class Interpreter<
   // tslint:disable-next-line:max-classes-per-file
   TContext,
@@ -1366,6 +1367,7 @@ export class Interpreter<
     };
   }
 
+  /** @ts-ignore this creates problems for people without `skipLibCheck` who are on older versions of TS, remove this comment when we drop support for TS@<4.3 */
   public [symbolObservable](): InteropSubscribable<
     State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta>
   > {
