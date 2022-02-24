@@ -31,6 +31,7 @@ export type Equals<A1 extends any, A2 extends any> = (<A>() => A extends A2
 export type IsAny<T> = Equals<T, any>;
 export type Cast<A, B> = A extends B ? A : B;
 export type NoInfer<T> = [T][T extends any ? 0 : any];
+export type LowInfer<T> = T & {};
 
 export type EventType = string;
 export type ActionType = string;
@@ -951,7 +952,7 @@ export interface MachineConfig<
   /**
    * The initial context (extended state)
    */
-  context?: TContext | (() => TContext);
+  context?: LowInfer<TContext | (() => TContext)>;
   /**
    * The machine's own version.
    */
