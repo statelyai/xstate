@@ -4,7 +4,9 @@ import {
   assign,
   createMachine,
   interpret,
-  StateMachine
+  StateMachine,
+  spawn,
+  ActorRefFrom
 } from '../src/index';
 import { raise } from '../src/actions';
 
@@ -477,6 +479,20 @@ describe('interpreter', () => {
       ((_val: number) => {})(state.context.count);
       // @ts-expect-error
       ((_val: string) => {})(state.context.count);
+    });
+  });
+});
+
+describe('spawn', () => {
+  it('spawned actor ref should be compatible with the result of ActorRefFrom', () => {
+    const createChild = () => createMachine({});
+
+    function createParent(_deps: {
+      spawnChild: () => ActorRefFrom<typeof createChild>;
+    }) {}
+
+    createParent({
+      spawnChild: () => spawn(createChild())
     });
   });
 });
