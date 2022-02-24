@@ -44,7 +44,6 @@ import {
   isPromiseLike,
   mapContext,
   warn,
-  keys,
   isArray,
   isFunction,
   isString,
@@ -350,7 +349,7 @@ export class Interpreter<
     if (this.state.configuration && isDone) {
       // get final child state node
       const finalChildStateNode = state.configuration.find(
-        (sn) => sn.type === 'final' && sn.parent === this.machine
+        (sn) => sn.type === 'final' && sn.parent === (this.machine as any)
       );
 
       const doneData =
@@ -584,7 +583,7 @@ export class Interpreter<
     });
 
     // Cancel all delayed events
-    for (const key of keys(this.delayedEventsMap)) {
+    for (const key of Object.keys(this.delayedEventsMap)) {
       this.clock.clearTimeout(this.delayedEventsMap[key]);
     }
 

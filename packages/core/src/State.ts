@@ -16,7 +16,7 @@ import {
   SimpleEventsOf
 } from './types';
 import { EMPTY_ACTIVITY_MAP } from './constants';
-import { matchesState, keys, isString, warn } from './utils';
+import { matchesState, isString, warn } from './utils';
 import { StateNode } from './StateNode';
 import { getMeta, nextEvents } from './stateUtils';
 import { initEvent } from './actions';
@@ -40,8 +40,8 @@ export function stateValuesEqual(
     return a === b;
   }
 
-  const aKeys = keys(a as StateValueMap);
-  const bKeys = keys(b as StateValueMap);
+  const aKeys = Object.keys(a as StateValueMap);
+  const bKeys = Object.keys(b as StateValueMap);
 
   return (
     aKeys.length === bKeys.length &&
@@ -295,7 +295,7 @@ export class State<
     if (isString(stateValue)) {
       return [stateValue];
     }
-    const valueKeys = keys(stateValue);
+    const valueKeys = Object.keys(stateValue);
 
     return valueKeys.concat(
       ...valueKeys.map((key) =>

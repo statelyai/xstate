@@ -1,5 +1,4 @@
-import { ActorRef, Behavior, EventObject } from 'xstate';
-import { spawnBehavior } from 'xstate/lib/behaviors';
+import { ActorRef, Behavior, EventObject, spawnBehavior } from 'xstate';
 
 /**
  * Vue composable that spawns an `ActorRef` with the specified `behavior`.
