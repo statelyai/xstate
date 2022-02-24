@@ -3,7 +3,6 @@
 '@xstate/graph': patch
 '@xstate/inspect': patch
 '@xstate/react': patch
-'@xstate/scxml': patch
 '@xstate/vue': patch
 ---
 
