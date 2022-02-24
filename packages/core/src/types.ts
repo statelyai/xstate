@@ -1671,19 +1671,8 @@ export type ActorRefWithDeprecatedState<
   state: State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta>;
 };
 
-export type ActorRefFrom<T> = T extends StateMachine<
-  infer TContext,
-  any,
-  infer TEvent,
-  infer TTypestate,
-  any,
-  any,
-  any
->
-  ? ActorRefWithDeprecatedState<TContext, TEvent, TTypestate>
-  : T extends (
-      ...args: any[]
-    ) => StateMachine<
+export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
+  ? R extends StateMachine<
       infer TContext,
       any,
       infer TEvent,
@@ -1692,18 +1681,17 @@ export type ActorRefFrom<T> = T extends StateMachine<
       any,
       infer TResolvedTypesMeta
     >
-  ? ActorRefWithDeprecatedState<
-      TContext,
-      TEvent,
-      TTypestate,
-      TResolvedTypesMeta
-    >
-  : T extends Promise<infer U>
-  ? ActorRef<never, U>
-  : T extends Behavior<infer TEvent1, infer TEmitted>
-  ? ActorRef<TEvent1, TEmitted>
-  : T extends (...args: any[]) => Behavior<infer TEvent1, infer TEmitted>
-  ? ActorRef<TEvent1, TEmitted>
+    ? ActorRefWithDeprecatedState<
+        TContext,
+        TEvent,
+        TTypestate,
+        TResolvedTypesMeta
+      >
+    : R extends Promise<infer U>
+    ? ActorRef<never, U>
+    : R extends Behavior<infer TEvent, infer TEmitted>
+    ? ActorRef<TEvent, TEmitted>
+    : never
   : never;
 
 export type AnyInterpreter = Interpreter<any, any, any, any, any>;
