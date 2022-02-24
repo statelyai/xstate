@@ -48,11 +48,13 @@ export interface Model<
         TServiceMap,
         TTypesMeta
       >,
-      implementations?: InternalMachineOptions<
-        TContext,
-        TEvent,
-        ResolveTypegenMeta<TTypesMeta, TEvent, TAction, TServiceMap>
-      >
+      implementations?: TTypesMeta extends infer EvaluatedTypesMeta
+        ? InternalMachineOptions<
+            TContext,
+            TEvent,
+            ResolveTypegenMeta<EvaluatedTypesMeta, TEvent, TAction, TServiceMap>
+          >
+        : never
     ): StateMachine<
       TContext,
       any,

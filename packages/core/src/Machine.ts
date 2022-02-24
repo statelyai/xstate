@@ -93,11 +93,18 @@ export function createMachine<
     TServiceMap,
     TTypesMeta
   >,
-  options?: InternalMachineOptions<
-    TContext,
-    TEvent,
-    ResolveTypegenMeta<TTypesMeta, TEvent, BaseActionObject, TServiceMap>
-  >
+  options?: TTypesMeta extends infer EvaluatedTypesMeta
+    ? InternalMachineOptions<
+        TContext,
+        TEvent,
+        ResolveTypegenMeta<
+          EvaluatedTypesMeta,
+          TEvent,
+          BaseActionObject,
+          TServiceMap
+        >
+      >
+    : never
 ): StateMachine<
   TContext,
   any,

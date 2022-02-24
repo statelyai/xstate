@@ -165,7 +165,7 @@ type AllowAllEvents = {
 };
 
 export type ResolveTypegenMeta<
-  TTypesMeta extends TypegenConstraint,
+  TTypesMeta,
   TEvent extends EventObject,
   TAction extends BaseActionObject,
   TServiceMap extends ServiceMap
