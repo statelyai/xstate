@@ -69,7 +69,8 @@ import {
   StateMachine,
   InternalMachineOptions,
   ServiceMap,
-  StateConfig
+  StateConfig,
+  AnyStateMachine
 } from './types';
 import { matchesState } from './utils';
 import { State, stateValuesEqual } from './State';
@@ -761,7 +762,8 @@ class StateNode<
       value: this.resolve(stateFromConfig.value),
       configuration,
       done: isInFinalState(configuration, this),
-      tags: getTagsFromConfiguration(configuration)
+      tags: getTagsFromConfiguration(configuration),
+      machine: (this.machine as unknown) as AnyStateMachine
     });
   }
 

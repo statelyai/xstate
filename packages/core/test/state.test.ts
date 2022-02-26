@@ -905,6 +905,27 @@ describe('State', () => {
 
       expect(nextState.can({ type: 'NEXT' })).toBeTruthy();
     });
+
+    // https://github.com/statelyai/xstate/issues/3096
+    it('should work with restored state', () => {
+      const machine = createMachine({
+        on: {
+          TOGGLE: {
+            actions: 'something'
+          }
+        }
+      });
+
+      const state = State.create(
+        JSON.parse(JSON.stringify(machine.initialState))
+      );
+
+      expect(state.can({ type: 'TOGGLE' })).toBeFalsy();
+
+      const restoredState = machine.resolveState(state);
+
+      expect(restoredState.can({ type: 'TOGGLE' })).toBeTruthy();
+    });
   });
 
   describe('.hasTag', () => {
