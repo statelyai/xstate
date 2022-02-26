@@ -194,13 +194,10 @@ const defaultMachineStateOptions: TraversalOptions<State<any, any>, any> = {
   }
 };
 
-export function getShortestPaths<
-  TContext = DefaultContext,
-  TEvent extends EventObject = EventObject
->(
-  machine: StateMachine<TContext, any, TEvent>,
-  options?: Partial<TraversalOptions<State<TContext, TEvent>, TEvent>>
-): StatePathsMap<State<TContext, TEvent>, TEvent> {
+export function getShortestPaths<TMachine extends AnyStateMachine>(
+  machine: TMachine,
+  options?: Partial<TraversalOptions<AnyState, EventObject>>
+): StatePathsMap<AnyState, EventObject> {
   const resolvedOptions = resolveTraversalOptions(
     options,
     defaultMachineStateOptions

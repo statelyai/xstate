@@ -209,7 +209,7 @@ describe('@xstate/graph', () => {
 
     it('should represent conditional paths based on context', () => {
       // explicit type arguments could be removed once davidkpiano/xstate#652 gets resolved
-      const paths = getShortestPaths<CondMachineCtx, CondMachineEvents>(
+      const paths = getShortestPaths(
         condMachine.withContext({
           id: 'foo'
         }),
