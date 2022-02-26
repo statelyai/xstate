@@ -6,9 +6,9 @@ import {
   EventObject,
   StateMachine,
   AnyEventObject,
-  AnyStateMachine
+  AnyStateMachine,
+  AnyState
 } from 'xstate';
-import { flatten, keys } from 'xstate/lib/utils';
 import {
   SerializedEvent,
   SerializedState,
@@ -28,6 +28,10 @@ import {
   AnyStateNode
 } from './types';
 
+function flatten<T>(array: Array<T | T[]>): T[] {
+  return ([] as T[]).concat(...array);
+}
+
 export function toEventObject<TEvent extends EventObject>(
   event: Event<TEvent>
 ): TEvent {
@@ -46,7 +50,7 @@ export function getStateNodes(
   stateNode: AnyStateNode | AnyStateMachine
 ): AnyStateNode[] {
   const { states } = stateNode;
-  const nodes = keys(states).reduce((accNodes, stateKey) => {
+  const nodes = Object.keys(states).reduce((accNodes, stateKey) => {
     const childStateNode = states[stateKey];
     const childStateNodes = getStateNodes(childStateNode);
 
@@ -125,7 +129,7 @@ export function getAdjacencyMap<
 
   const adjacency: AdjacencyMap<State<TContext, TEvent>, TEvent> = {};
 
-  function findAdjacencies(state: State<TContext, TEvent>) {
+  function findAdjacencies(state: AnyState) {
     const { nextEvents } = state;
     const stateHash = stateSerializer(state);
 
@@ -152,7 +156,7 @@ export function getAdjacencyMap<
     ).map((event) => toEventObject(event));
 
     for (const event of potentialEvents) {
-      let nextState: State<TContext, TEvent>;
+      let nextState: AnyState;
       try {
         nextState = machine.transition(state, event);
       } catch (e) {
@@ -236,7 +240,7 @@ export function traverseShortestPaths<TState, TEvent extends EventObject>(
   while (unvisited.size > 0) {
     for (const vertex of unvisited) {
       const [weight] = weightMap.get(vertex)!;
-      for (const event of keys(adjacency[vertex])) {
+      for (const event of Object.keys(adjacency[vertex]) as SerializedEvent[]) {
         const eventObject = JSON.parse(event);
         const nextState = adjacency[vertex][event];
         const nextVertex = serializeState(nextState, eventObject);
@@ -507,7 +511,9 @@ export function traverseSimplePaths<TState, TEvent extends EventObject>(
 
       toStatePlan.paths.push(path2);
     } else {
-      for (const serializedEvent of keys(adjacency[fromStateSerial])) {
+      for (const serializedEvent of Object.keys(
+        adjacency[fromStateSerial]
+      ) as SerializedEvent[]) {
         const subEvent = JSON.parse(serializedEvent);
         const nextState = adjacency[fromStateSerial][serializedEvent];
 
@@ -536,7 +542,7 @@ export function traverseSimplePaths<TState, TEvent extends EventObject>(
   const initialStateSerial = serializeState(initialState, null);
   stateMap.set(initialStateSerial, initialState);
 
-  for (const nextStateSerial of keys(adjacency)) {
+  for (const nextStateSerial of Object.keys(adjacency) as SerializedState[]) {
     util(initialState, nextStateSerial, null);
   }
 

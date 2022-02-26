@@ -1,6 +1,6 @@
 import { EventObject, StateValue } from './types';
 import { StateNode } from './StateNode';
-import { keys, flatten } from './utils';
+import { flatten } from './utils';
 
 type Configuration<TC, TE extends EventObject> = Iterable<
   StateNode<TC, any, TE>
@@ -18,7 +18,7 @@ export const isLeafNode = (
 export function getChildren<TC, TE extends EventObject>(
   stateNode: StateNode<TC, any, TE>
 ): Array<StateNode<TC, any, TE>> {
-  return keys(stateNode.states).map((key) => stateNode.states[key]);
+  return Object.keys(stateNode.states).map((key) => stateNode.states[key]);
 }
 
 export function getAllStateNodes<TC, TE extends EventObject>(

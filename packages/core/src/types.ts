@@ -30,6 +30,8 @@ export type Equals<A1 extends any, A2 extends any> = (<A>() => A extends A2
   : false;
 export type IsAny<T> = Equals<T, any>;
 export type Cast<A, B> = A extends B ? A : B;
+export type NoInfer<T> = [T][T extends any ? 0 : any];
+export type LowInfer<T> = T & {};
 
 export type EventType = string;
 export type ActionType = string;
@@ -946,11 +948,11 @@ export interface MachineConfig<
   TAction extends BaseActionObject = BaseActionObject,
   TServiceMap extends ServiceMap = ServiceMap,
   TTypesMeta = TypegenDisabled
-> extends StateNodeConfig<TContext, TStateSchema, TEvent, TAction> {
+> extends StateNodeConfig<NoInfer<TContext>, TStateSchema, TEvent, TAction> {
   /**
    * The initial context (extended state)
    */
-  context?: TContext | (() => TContext);
+  context?: LowInfer<TContext | (() => TContext)>;
   /**
    * The machine's own version.
    */
@@ -1669,19 +1671,8 @@ export type ActorRefWithDeprecatedState<
   state: State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta>;
 };
 
-export type ActorRefFrom<T> = T extends StateMachine<
-  infer TContext,
-  any,
-  infer TEvent,
-  infer TTypestate,
-  any,
-  any,
-  any
->
-  ? ActorRefWithDeprecatedState<TContext, TEvent, TTypestate>
-  : T extends (
-      ...args: any[]
-    ) => StateMachine<
+export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
+  ? R extends StateMachine<
       infer TContext,
       any,
       infer TEvent,
@@ -1690,18 +1681,17 @@ export type ActorRefFrom<T> = T extends StateMachine<
       any,
       infer TResolvedTypesMeta
     >
-  ? ActorRefWithDeprecatedState<
-      TContext,
-      TEvent,
-      TTypestate,
-      TResolvedTypesMeta
-    >
-  : T extends Promise<infer U>
-  ? ActorRef<never, U>
-  : T extends Behavior<infer TEvent1, infer TEmitted>
-  ? ActorRef<TEvent1, TEmitted>
-  : T extends (...args: any[]) => Behavior<infer TEvent1, infer TEmitted>
-  ? ActorRef<TEvent1, TEmitted>
+    ? ActorRefWithDeprecatedState<
+        TContext,
+        TEvent,
+        TTypestate,
+        TResolvedTypesMeta
+      >
+    : R extends Promise<infer U>
+    ? ActorRef<never, U>
+    : R extends Behavior<infer TEvent, infer TEmitted>
+    ? ActorRef<TEvent, TEmitted>
+    : never
   : never;
 
 export type AnyInterpreter = Interpreter<any, any, any, any, any>;

@@ -1,28 +1,28 @@
-import { matchesState } from './utils';
-import { mapState } from './mapState';
-import { StateNode } from './StateNode';
-import { State } from './State';
-import { Machine, createMachine } from './Machine';
-import { Actor, toActorRef } from './Actor';
 import * as actions from './actions';
+import { Actor, toActorRef } from './Actor';
 import {
   interpret,
   Interpreter,
-  spawn,
-  InterpreterStatus
+  InterpreterStatus,
+  spawn
 } from './interpreter';
+import { createMachine, Machine } from './Machine';
+import { mapState } from './mapState';
 import { matchState } from './match';
 import { createSchema, t } from './schema';
-
-const { assign, send, sendParent, sendUpdate, forwardTo, doneInvoke } = actions;
-
+import { State } from './State';
+import { StateNode } from './StateNode';
+export { spawnBehavior } from './behaviors';
+export { XStateDevInterface } from './devTools';
+export * from './typegenTypes';
+export * from './types';
+export { matchesState, toEventObject, toObserver, toSCXMLEvent } from './utils';
 export {
   Actor,
   toActorRef,
   Machine,
   StateNode,
   State,
-  matchesState,
   mapState,
   actions,
   assign,
@@ -41,8 +41,7 @@ export {
   t
 };
 
-export * from './types';
-export * from './typegenTypes';
+const { assign, send, sendParent, sendUpdate, forwardTo, doneInvoke } = actions;
 
 declare global {
   interface SymbolConstructor {
