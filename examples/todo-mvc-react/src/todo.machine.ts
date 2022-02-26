@@ -115,6 +115,7 @@ export const createTodoMachine = ({
           }
         },
         deleted: {
+          type: 'final',
           entry: sendParent((context) => ({
             type: 'TODO.DELETE',
             id: context.id
