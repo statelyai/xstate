@@ -154,7 +154,7 @@ const dieHardModel = createTestModel(dieHardMachine, null as any).withEvents({
   }
 });
 
-describe('testing a model (shortestPathsTo)', () => {
+describe.only('testing a model (shortestPathsTo)', () => {
   dieHardModel
     .getShortestPlansTo((state) => state.matches('success'))
     .forEach((plan) => {
@@ -303,148 +303,152 @@ describe('error path trace', () => {
   });
 });
 
-// describe('coverage', () => {
-//   it('reports state node coverage', () => {
-//     const coverage = dieHardModel.getCoverage();
+describe.only('coverage', () => {
+  it('reports state node coverage', () => {
+    const coverage = dieHardModel.getCoverage();
 
-//     expect(coverage.stateNodes['dieHard.pending']).toBeGreaterThan(0);
-//     expect(coverage.stateNodes['dieHard.success']).toBeGreaterThan(0);
-//   });
+    expect(coverage.states['"pending" | {"three":0,"five":0}']).toBeGreaterThan(
+      0
+    );
+    expect(coverage.states['"success" | {"three":3,"five":4}']).toBeGreaterThan(
+      0
+    );
+  });
 
-//   it.only('tests missing state node coverage', async () => {
-//     const machine = createMachine({
-//       id: 'missing',
-//       initial: 'first',
-//       states: {
-//         first: {
-//           on: { NEXT: 'third' },
-//           meta: {
-//             test: () => true
-//           }
-//         },
-//         second: {
-//           meta: {
-//             test: () => true
-//           }
-//         },
-//         third: {
-//           initial: 'one',
-//           states: {
-//             one: {
-//               meta: {
-//                 test: () => true
-//               },
-//               on: {
-//                 NEXT: 'two'
-//               }
-//             },
-//             two: {
-//               meta: {
-//                 test: () => true
-//               }
-//             },
-//             three: {
-//               meta: {
-//                 test: () => true
-//               }
-//             }
-//           },
-//           meta: {
-//             test: () => true
-//           }
-//         }
-//       }
-//     });
+  it('tests missing state node coverage', async () => {
+    const machine = createMachine({
+      id: 'missing',
+      initial: 'first',
+      states: {
+        first: {
+          on: { NEXT: 'third' },
+          meta: {
+            test: () => true
+          }
+        },
+        second: {
+          meta: {
+            test: () => true
+          }
+        },
+        third: {
+          initial: 'one',
+          states: {
+            one: {
+              meta: {
+                test: () => true
+              },
+              on: {
+                NEXT: 'two'
+              }
+            },
+            two: {
+              meta: {
+                test: () => true
+              }
+            },
+            three: {
+              meta: {
+                test: () => true
+              }
+            }
+          },
+          meta: {
+            test: () => true
+          }
+        }
+      }
+    });
 
-//     const testModel = createTestModel(machine, undefined).withEvents({
-//       NEXT: () => {
-//         /* ... */
-//       }
-//     });
+    const testModel = createTestModel(machine, undefined).withEvents({
+      NEXT: () => {
+        /* ... */
+      }
+    });
 
-//     const plans = testModel.getShortestPathPlans();
+    const plans = testModel.getShortestPlans();
 
-//     for (const plan of plans) {
-//       await testModel.testPlan(plan, undefined);
-//     }
+    for (const plan of plans) {
+      await testModel.testPlan(plan, undefined);
+    }
 
-//     // const plans = testModel.getShortestPathPlans();
+    // const plans = testModel.getShortestPathPlans();
 
-//     // for (const plan of plans) {
-//     //   for (const path of plan.paths) {
-//     //     await path.test(undefined);
-//     //   }
-//     // }
+    // for (const plan of plans) {
+    //   for (const path of plan.paths) {
+    //     await path.test(undefined);
+    //   }
+    // }
 
-//     // try {
-//     //   testModel.testCoverage();
-//     // } catch (err) {
-//     //   expect(err.message).toEqual(expect.stringContaining('missing.second'));
-//     //   expect(err.message).toEqual(expect.stringContaining('missing.third.two'));
-//     //   expect(err.message).toEqual(
-//     //     expect.stringContaining('missing.third.three')
-//     //   );
-//     // }
-//   });
+    // try {
+    //   testModel.testCoverage();
+    // } catch (err) {
+    //   expect(err.message).toEqual(expect.stringContaining('missing.second'));
+    //   expect(err.message).toEqual(expect.stringContaining('missing.third.two'));
+    //   expect(err.message).toEqual(
+    //     expect.stringContaining('missing.third.three')
+    //   );
+    // }
+  });
 
-//   it('skips filtered states (filter option)', async () => {
-//     const TestBug = Machine({
-//       id: 'testbug',
-//       initial: 'idle',
-//       context: {
-//         retries: 0
-//       },
-//       states: {
-//         idle: {
-//           on: {
-//             START: 'passthrough'
-//           },
-//           meta: {
-//             test: () => {
-//               /* ... */
-//             }
-//           }
-//         },
-//         passthrough: {
-//           always: 'end'
-//         },
-//         end: {
-//           type: 'final',
-//           meta: {
-//             test: () => {
-//               /* ... */
-//             }
-//           }
-//         }
-//       }
-//     });
+  it.skip('skips filtered states (filter option)', async () => {
+    const TestBug = createMachine({
+      id: 'testbug',
+      initial: 'idle',
+      context: {
+        retries: 0
+      },
+      states: {
+        idle: {
+          on: {
+            START: 'passthrough'
+          },
+          meta: {
+            test: () => {
+              /* ... */
+            }
+          }
+        },
+        passthrough: {
+          always: 'end'
+        },
+        end: {
+          type: 'final',
+          meta: {
+            test: () => {
+              /* ... */
+            }
+          }
+        }
+      }
+    });
 
-//     const testModel = createTestModel(TestBug, undefined).withEvents({
-//       START: () => {
-//         /* ... */
-//       }
-//     });
+    const testModel = createTestModel(TestBug, undefined).withEvents({
+      START: () => {
+        /* ... */
+      }
+    });
 
-//     const testPlans = testModel.getShortestPathPlans();
+    const testPlans = testModel.getShortestPlans();
 
-//     const promises: any[] = [];
-//     testPlans.forEach((plan) => {
-//       plan.paths.forEach(() => {
-//         promises.push(plan.test(undefined));
-//       });
-//     });
+    const promises: any[] = [];
+    testPlans.forEach((plan) => {
+      plan.paths.forEach(() => {
+        promises.push(testModel.testPlan(plan, undefined));
+      });
+    });
 
-//     await Promise.all(promises);
+    await Promise.all(promises);
 
-//     expect(() => {
-//       testModel.testCoverage({
-//         filter: (stateNode) => {
-//           return !!stateNode.meta;
-//         }
-//       });
-//     }).not.toThrow();
-//   });
-// });
+    expect(() => {
+      testModel.testCoverage({
+        filter: (stateNode) => {
+          return !!stateNode.meta;
+        }
+      });
+    }).not.toThrow();
+  });
+});
 
 describe('events', () => {
   it('should allow for representing many cases', async () => {

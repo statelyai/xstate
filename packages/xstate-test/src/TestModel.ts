@@ -48,7 +48,7 @@ import { getEventSamples } from './index';
  */
 
 export class TestModel<TState, TEvent extends EventObject, TTestContext> {
-  public coverage: TestModelCoverage = {
+  private _coverage: TestModelCoverage = {
     states: {},
     transitions: {}
   };
@@ -226,8 +226,12 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
     this.addStateCoverage(state);
   }
 
-  private addStateCoverage(_state: TState) {
-    // TODO
+  private addStateCoverage(state: TState) {
+    const stateSerial = this.options.serializeState(state, null as any); // TODO: fix
+
+    const coverage = this._coverage.states[stateSerial] ?? 0;
+
+    this._coverage.states[stateSerial] = coverage + 1;
   }
 
   public async testTransition(
@@ -241,23 +245,6 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
 
   private addTransitionCoverage(_step: Step<TState, TEvent>) {
     // TODO
-  }
-
-  public getCoverage(options?: CoverageOptions<TState>) {
-    return options;
-    // const filter = options ? options.filter : undefined;
-    // const stateNodes = getStateNodes(this.behavior);
-    // const filteredStateNodes = filter ? stateNodes.filter(filter) : stateNodes;
-    // const coverage = {
-    //   stateNodes: filteredStateNodes.reduce((acc, stateNode) => {
-    //     acc[stateNode.id] = 0;
-    //     return acc;
-    //   }, {})
-    // };
-    // for (const key of this.coverage.stateNodes.keys()) {
-    //   coverage.stateNodes[key] = this.coverage.stateNodes.get(key);
-    // }
-    // return coverage;
   }
 
   public testCoverage(options?: CoverageOptions<TState>): void {
@@ -299,5 +286,9 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
     options?: Partial<TestModelOptions<TState, TEvent, TTestContext>>
   ): TestModelOptions<TState, TEvent, TTestContext> {
     return { ...this.defaultTraversalOptions, ...this.options, ...options };
+  }
+
+  public getCoverage(): any {
+    return this._coverage;
   }
 }
