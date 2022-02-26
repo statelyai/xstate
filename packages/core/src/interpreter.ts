@@ -44,7 +44,6 @@ import {
   isPromiseLike,
   mapContext,
   warn,
-  keys,
   isArray,
   isFunction,
   isString,
@@ -113,6 +112,7 @@ export enum InterpreterStatus {
   Stopped
 }
 
+/** @ts-ignore [symbolObservable] creates problems for people without `skipLibCheck` who are on older versions of TS, remove this comment when we drop support for TS@<4.3 */
 export class Interpreter<
   // tslint:disable-next-line:max-classes-per-file
   TContext,
@@ -350,7 +350,7 @@ export class Interpreter<
     if (this.state.configuration && isDone) {
       // get final child state node
       const finalChildStateNode = state.configuration.find(
-        (sn) => sn.type === 'final' && sn.parent === this.machine
+        (sn) => sn.type === 'final' && sn.parent === (this.machine as any)
       );
 
       const doneData =
@@ -584,7 +584,7 @@ export class Interpreter<
     });
 
     // Cancel all delayed events
-    for (const key of keys(this.delayedEventsMap)) {
+    for (const key of Object.keys(this.delayedEventsMap)) {
       this.clock.clearTimeout(this.delayedEventsMap[key]);
     }
 
@@ -1366,6 +1366,7 @@ export class Interpreter<
     };
   }
 
+  /** @ts-ignore this creates problems for people without `skipLibCheck` who are on older versions of TS, remove this comment when we drop support for TS@<4.3 */
   public [symbolObservable](): InteropSubscribable<
     State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta>
   > {

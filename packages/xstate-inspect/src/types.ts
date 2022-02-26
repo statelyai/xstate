@@ -1,11 +1,11 @@
 import type {
   ActorRef,
-  SCXML,
   AnyInterpreter,
+  AnyState,
   AnyStateMachine,
-  AnyState
+  SCXML
 } from 'xstate';
-import { XStateDevInterface } from 'xstate/lib/devTools';
+import { XStateDevInterface } from 'xstate';
 import { InspectMachineEvent } from './inspectMachine';
 
 export type MaybeLazy<T> = T | (() => T);

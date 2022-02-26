@@ -52,9 +52,9 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "@xstate/fsm": "^1.6.4",
+    "@xstate/fsm": "^1.6.5",
     "react": "^16.8.0 || ^17.0.0",
-    "xstate": "^4.30.1"
+    "xstate": "^4.30.2"
   },
   "peerDependenciesMeta": {
     "@xstate/fsm": {

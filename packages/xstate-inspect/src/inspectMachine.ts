@@ -1,5 +1,11 @@
-import { createMachine, assign, SCXML, ActorRef, Interpreter } from 'xstate';
-import { XStateDevInterface } from 'xstate/lib/devTools';
+import {
+  createMachine,
+  assign,
+  SCXML,
+  ActorRef,
+  Interpreter,
+  XStateDevInterface
+} from 'xstate';
 import { stringifyMachine, stringifyState } from './serialize';
 import { ReceiverEvent, Replacer } from './types';
 

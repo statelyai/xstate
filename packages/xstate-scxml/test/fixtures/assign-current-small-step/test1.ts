@@ -1,5 +1,6 @@
-import { Machine, assign } from 'xstate';
-import { log } from 'xstate/lib/actions';
+import { Machine, assign, actions } from 'xstate';
+
+const { log } = actions;
 
 export default Machine<any>({
   initial: 'a',
