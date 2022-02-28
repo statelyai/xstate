@@ -37,7 +37,7 @@ Using our [VS Code extension](https://marketplace.visualstudio.com/items?itemNam
 
 Here's how you can get started:
 
-1. Download and install the [VS Code extension](https://marketplace.visualstudio.com/items?itemName=statelyai.stately-vscode).
+1. Download and install the [VS Code extension](https://marketplace.visualstudio.com/items?itemName=statelyai.stately-vscode) OR install the [CLI](../packages/xstate-cli/index.md) and run the `xstate typegen` command with the `--watch` flag.
 2. Open a new file and create a new machine, passing the schema attributes:
 
 ```ts
@@ -202,9 +202,17 @@ Named actions/services/guards allow for:
 
 #### The generated files
 
-We recommend you commit the generated files (`filename.typegen.ts`) to the repository. We currently don't have a way to generate the files en masse on a CI, for instance via a CLI.
+We recommend you gitignore the generated files (`*filename*.typegen.ts`) from the repository.
 
-If you want to remove the generated file, just remove the `tsTypes` attribute from your machine and it'll stop being generated.
+You can use the CLI to regenerate them on CI, for instance via a postinstall script:
+
+```json
+{
+  "scripts": {
+    "postinstall": "xstate typegen \"./src/**/*.tsx?\""
+  }
+}
+```
 
 #### Don't use enums
 
