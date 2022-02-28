@@ -25,7 +25,7 @@ Providing the context and events to the `schema` attribute gives many advantages
 - The event type (`TEvent`) ensures that only specified events (and built-in XState-specific ones) are used in transition configs. The provided event object shapes are also passed on to actions, guards, and services.
 - Events which you send to the machine will be strongly typed, offering you much more confidence in the payload shapes you'll be receiving.
 
-## Typegen with the VSCode Extension <Badge text="4.29+" />
+## Typegen <Badge text="4.29+" />
 
 ::: warning Experimental Feature
 
@@ -33,7 +33,7 @@ This feature is in beta! See the section on known limitations below to see what 
 
 :::
 
-Using our [VS Code extension](https://marketplace.visualstudio.com/items?itemName=statelyai.stately-vscode), you can automatically generate intelligent typings for XState.
+Using our [VS Code extension](https://marketplace.visualstudio.com/items?itemName=statelyai.stately-vscode) or our [CLI](), you can automatically generate intelligent typings for XState.
 
 Here's how you can get started:
 
