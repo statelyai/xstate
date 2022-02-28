@@ -204,7 +204,7 @@ Named actions/services/guards allow for:
 
 We recommend you gitignore the generated files (`*filename*.typegen.ts`) from the repository.
 
-You can use the CLI to regenerate them on CI, for instance via a postinstall script:
+You can use the [CLI](../packages/xstate-cli/index.md) to regenerate them on CI, for instance via a postinstall script:
 
 ```json
 {
