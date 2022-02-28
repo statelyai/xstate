@@ -8,7 +8,7 @@ The [@xstate/cli package](https://github.com/statelyai/xstate-vscode/tree/master
 
 ## Commands
 
-### xstate typegen <files>
+### xstate typegen
 
 `xstate typegen "src/**/*.tsx?"`
 
