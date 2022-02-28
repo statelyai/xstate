@@ -2,6 +2,7 @@
 import { createTestModel } from '../src';
 import { assign, createMachine } from 'xstate';
 import { getDescription } from '../src/utils';
+import { stateValueCoverage } from '../src/coverage';
 
 interface DieHardContext {
   three: number;
@@ -372,26 +373,10 @@ describe.only('coverage', () => {
       await testModel.testPlan(plan, undefined);
     }
 
-    // const plans = testModel.getShortestPathPlans();
-
-    // for (const plan of plans) {
-    //   for (const path of plan.paths) {
-    //     await path.test(undefined);
-    //   }
-    // }
-
-    // try {
-    //   testModel.testCoverage();
-    // } catch (err) {
-    //   expect(err.message).toEqual(expect.stringContaining('missing.second'));
-    //   expect(err.message).toEqual(expect.stringContaining('missing.third.two'));
-    //   expect(err.message).toEqual(
-    //     expect.stringContaining('missing.third.three')
-    //   );
-    // }
+    expect(testModel.covers(stateValueCoverage())).toBeTruthy();
   });
 
-  it.skip('skips filtered states (filter option)', async () => {
+  it('skips filtered states (filter option)', async () => {
     const TestBug = createMachine({
       id: 'testbug',
       initial: 'idle',

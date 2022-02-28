@@ -9,6 +9,7 @@ import {
   TraversalOptions
 } from '@xstate/graph';
 import {
+  performDepthFirstTraversal,
   traverseShortestPaths,
   traverseSimplePaths,
   traverseSimplePathsTo
@@ -21,7 +22,8 @@ import type {
   CoverageOptions,
   TestEventsConfig,
   TestPathResult,
-  TestStepResult
+  TestStepResult,
+  Criterion
 } from './types';
 import { formatPathTestResult, simpleStringify } from './utils';
 import { getEventSamples } from './index';
@@ -59,6 +61,7 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
       serializeState: (state) => simpleStringify(state) as SerializedState,
       serializeEvent: (event) => simpleStringify(event) as SerializedEvent,
       getEvents: () => [],
+      getStates: () => [],
       testState: () => void 0,
       testTransition: () => void 0
     };
@@ -155,6 +158,11 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
     };
 
     return plan;
+  }
+
+  public getAllStates(): TState[] {
+    const adj = performDepthFirstTraversal(this.behavior, this.options);
+    return Object.values(adj).map((x) => x.state);
   }
 
   public async testPlan(
@@ -290,5 +298,25 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
 
   public getCoverage(): any {
     return this._coverage;
+  }
+
+  public covers(
+    criteriaFn: (testModel: this) => Array<Criterion<TState>>
+  ): boolean {
+    const criteria = criteriaFn(this);
+    const criteriaSet = new Set(criteria);
+    const states = this.getAllStates();
+
+    states.forEach((state) => {
+      criteriaSet.forEach((criterion) => {
+        if (criterion.predicate(state)) {
+          criteriaSet.delete(criterion);
+        }
+      });
+    });
+
+    console.log(Array.from(criteriaSet).map((c) => c.label));
+
+    return criteriaSet.size === 0;
   }
 }

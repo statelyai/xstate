@@ -226,36 +226,46 @@ export function traverseShortestPaths<TState, TEvent extends EventObject>(
     [number, SerializedState | undefined, SerializedEvent | undefined]
   >();
   const stateMap = new Map<SerializedState, TState>();
-  const initialVertex = serializeState(behavior.initialState, null);
-  stateMap.set(initialVertex, behavior.initialState);
+  const initialSerializedState = serializeState(behavior.initialState, null);
+  stateMap.set(initialSerializedState, behavior.initialState);
 
-  weightMap.set(initialVertex, [0, undefined, undefined]);
+  weightMap.set(initialSerializedState, [0, undefined, undefined]);
   const unvisited = new Set<SerializedState>();
   const visited = new Set<string>();
 
-  unvisited.add(initialVertex);
+  unvisited.add(initialSerializedState);
   while (unvisited.size > 0) {
-    for (const vertex of unvisited) {
-      const [weight] = weightMap.get(vertex)!;
-      for (const event of Object.keys(adjacency[vertex]) as SerializedEvent[]) {
+    for (const serializedState of unvisited) {
+      const [weight] = weightMap.get(serializedState)!;
+      for (const event of Object.keys(
+        adjacency[serializedState].transitions
+      ) as SerializedEvent[]) {
         const eventObject = JSON.parse(event);
-        const nextState = adjacency[vertex][event];
-        const nextVertex = serializeState(nextState, eventObject);
-        stateMap.set(nextVertex, nextState);
-        if (!weightMap.has(nextVertex)) {
-          weightMap.set(nextVertex, [weight + 1, vertex, event]);
+        const nextState = adjacency[serializedState].transitions[event];
+        const nextSerializedState = serializeState(nextState, eventObject);
+        stateMap.set(nextSerializedState, nextState);
+        if (!weightMap.has(nextSerializedState)) {
+          weightMap.set(nextSerializedState, [
+            weight + 1,
+            serializedState,
+            event
+          ]);
         } else {
-          const [nextWeight] = weightMap.get(nextVertex)!;
+          const [nextWeight] = weightMap.get(nextSerializedState)!;
           if (nextWeight > weight + 1) {
-            weightMap.set(nextVertex, [weight + 1, vertex, event]);
+            weightMap.set(nextSerializedState, [
+              weight + 1,
+              serializedState,
+              event
+            ]);
           }
         }
-        if (!visited.has(nextVertex)) {
-          unvisited.add(nextVertex);
+        if (!visited.has(nextSerializedState)) {
+          unvisited.add(nextSerializedState);
         }
       }
-      visited.add(vertex);
-      unvisited.delete(vertex);
+      visited.add(serializedState);
+      unvisited.delete(serializedState);
     }
   }
 
@@ -383,7 +393,7 @@ export function getPathFromEvents<
     });
 
     const eventSerial = serializeEvent(event);
-    const nextState = adjacency[stateSerial][eventSerial];
+    const nextState = adjacency[stateSerial].transitions[eventSerial];
 
     if (!nextState) {
       throw new Error(
@@ -406,7 +416,10 @@ export function getPathFromEvents<
 }
 
 interface AdjMap<TState> {
-  [key: SerializedState]: { [key: SerializedEvent]: TState };
+  [key: SerializedState]: {
+    state: TState;
+    transitions: { [key: SerializedEvent]: TState };
+  };
 }
 
 export function performDepthFirstTraversal<TState, TEvent>(
@@ -423,7 +436,10 @@ export function performDepthFirstTraversal<TState, TEvent>(
       return;
     }
 
-    adj[serializedState] = {};
+    adj[serializedState] = {
+      state,
+      transitions: {}
+    };
 
     const events = getEvents(state);
 
@@ -431,7 +447,7 @@ export function performDepthFirstTraversal<TState, TEvent>(
       const nextState = transition(state, subEvent);
 
       if (!options.filter || options.filter(nextState, subEvent)) {
-        adj[serializedState][JSON.stringify(subEvent)] = nextState;
+        adj[serializedState].transitions[JSON.stringify(subEvent)] = nextState;
         util(nextState, subEvent);
       }
     }
@@ -509,12 +525,13 @@ export function traverseSimplePaths<TState, TEvent extends EventObject>(
       toStatePlan.paths.push(path2);
     } else {
       for (const serializedEvent of Object.keys(
-        adjacency[fromStateSerial]
+        adjacency[fromStateSerial].transitions
       ) as SerializedEvent[]) {
         const subEvent = JSON.parse(serializedEvent);
-        const nextState = adjacency[fromStateSerial][serializedEvent];
+        const nextState =
+          adjacency[fromStateSerial].transitions[serializedEvent];
 
-        if (!(serializedEvent in adjacency[fromStateSerial])) {
+        if (!(serializedEvent in adjacency[fromStateSerial].transitions)) {
           continue;
         }
 

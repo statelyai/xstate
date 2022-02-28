@@ -153,6 +153,7 @@ export interface TestModelOptions<
     step: Step<TState, TEvent>,
     testContext: TTestContext
   ) => void | Promise<void>;
+  getStates: () => TState[];
 }
 export interface TestModelCoverage {
   states: Record<string, number>;
@@ -161,6 +162,11 @@ export interface TestModelCoverage {
 
 export interface CoverageOptions<TContext> {
   filter?: (stateNode: StateNode<TContext, any, any>) => boolean;
+}
+
+export interface Criterion<TState> {
+  predicate: (state: TState) => boolean;
+  label?: string;
 }
 
 export interface TestTransitionConfig<
