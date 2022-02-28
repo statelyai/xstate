@@ -33,7 +33,7 @@ This feature is in beta! See the section on known limitations below to see what 
 
 :::
 
-Using our [VS Code extension](https://marketplace.visualstudio.com/items?itemName=statelyai.stately-vscode) or our [CLI](), you can automatically generate intelligent typings for XState.
+Using our [VS Code extension](https://marketplace.visualstudio.com/items?itemName=statelyai.stately-vscode) or our [CLI](../packages/xstate-cli/index.md), you can automatically generate intelligent typings for XState.
 
 Here's how you can get started:
 
