@@ -38,7 +38,7 @@
   "dependencies": {},
   "peerDependencies": {
     "immer": "^9.0.6",
-    "xstate": "^4.30.2"
+    "xstate": "^4.30.3"
   },
   "devDependencies": {
     "immer": "^9.0.6",

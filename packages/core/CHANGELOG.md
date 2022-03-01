@@ -1,5 +1,21 @@
 # xstate
 
+## 4.30.3
+
+### Patch Changes
+
+- [#3088](https://github.com/statelyai/xstate/pull/3088) [`9f02271a3`](https://github.com/statelyai/xstate/commit/9f02271a3dd0b314a270f54d4de56af8daab31d1) Thanks [@Andarist](https://github.com/Andarist)! - Added some internal `@ts-ignore` comments to fix consuming projects that do not use `skipLibCheck`.
+
+* [#3082](https://github.com/statelyai/xstate/pull/3082) [`8d3f2cfea`](https://github.com/statelyai/xstate/commit/8d3f2cfea7b57b6293fd862844400353e2a7451a) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with context type being inferred from too many places within `createMachine` call and possibly ending up as `any` for the entire machine.
+
+- [#3027](https://github.com/statelyai/xstate/pull/3027) [`97ad964bd`](https://github.com/statelyai/xstate/commit/97ad964bd064ce48c28323052557336ed4def1a9) Thanks [@hedgepigdaniel](https://github.com/hedgepigdaniel)! - Fixed an issue with not being able to call `createMachine` in a generic context when the type for the context was generic and not concrete.
+
+* [#3084](https://github.com/statelyai/xstate/pull/3084) [`50c271dc1`](https://github.com/statelyai/xstate/commit/50c271dc1a1a05b035364f8247aa4d80d613864f) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with context type defined using `schema.context` being sometimes widened based on `config.context`. If both are given the `schema.context` should always take precedence and should represent the complete type of the context.
+
+- [#3089](https://github.com/statelyai/xstate/pull/3089) [`862697e29`](https://github.com/statelyai/xstate/commit/862697e2990934d46050580d7e09c749d09d8426) Thanks [@Andarist](https://github.com/Andarist)! - Fixed compatibility with Skypack by exporting some shared utilities from root entry of XState and consuming them directly in other packages (this avoids accessing those things using deep imports and thus it avoids creating those compatibility problems).
+
+* [#3087](https://github.com/statelyai/xstate/pull/3087) [`ae9579497`](https://github.com/statelyai/xstate/commit/ae95794971f765e3f984f4080f8a92236c53cd6c) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with `ActorRefFrom` not resolving the typegen metadata from machine types given to it. This could sometimes result in types assignability problems, especially when using machine factories and `spawn`.
+
 ## 4.30.2
 
 ### Patch Changes
