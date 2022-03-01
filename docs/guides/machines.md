@@ -43,7 +43,7 @@ The machine config is the same as the [state node config](./statenodes.md), with
 
 ## Options
 
-Implementations for [actions](./actions.md), [activities](./activities.md), [delays](./delays.md), [guards](./guards.md), and [services](./communication.md) can be referenced in the machine config as a string, and then specified as an object in the 2nd argument to `createMachine()`:
+Implementations for [actions](./actions.md), [delays](./delays.md), [guards](./guards.md), and [services](./communication.md) can be referenced in the machine config as a string, and then specified as an object in the 2nd argument to `createMachine()`:
 
 ```js
 const lightMachine = createMachine(
@@ -64,9 +64,6 @@ const lightMachine = createMachine(
         alert('Green!');
       }
     },
-    activities: {
-      /* ... */
-    },
     delays: {
       /* ... */
     },
@@ -83,10 +80,10 @@ const lightMachine = createMachine(
 This object has 5 optional properties:
 
 - `actions` - the mapping of action names to their implementation
-- `activities` - the mapping of activity names to their implementation
 - `delays` - the mapping of delay names to their implementation
 - `guards` - the mapping of transition guard (`cond`) names to their implementation
 - `services` - the mapping of invoked service (`src`) names to their implementation
+- `activities` (deprecated) - the mapping of activity names to their implementation
 
 ## Extending Machines
 
