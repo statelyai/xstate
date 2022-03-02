@@ -5,7 +5,7 @@ import {
   State,
   Interpreter,
   InterpreterOptions,
-  MachineImplementations,
+  MachineImplementationsSimplified,
   MachineContext
 } from 'xstate';
 
@@ -20,13 +20,13 @@ export function useMachine<
   getMachine: MaybeLazy<StateMachine<TContext, TEvent>>,
   options: Partial<InterpreterOptions> &
     Partial<UseMachineOptions<TContext, TEvent>> &
-    Partial<MachineImplementations<TContext, TEvent>> = {}
+    Partial<MachineImplementationsSimplified<TContext, TEvent>> = {}
 ): {
   state: Ref<State<TContext, TEvent>>;
   send: Interpreter<TContext, TEvent>['send'];
   service: Interpreter<TContext, TEvent>;
 } {
-  const service = useInterpret(getMachine, options, listener);
+  const service = useInterpret<TContext, TEvent>(getMachine, options, listener);
 
   const { initialState } = service.machine;
   const state = shallowRef(

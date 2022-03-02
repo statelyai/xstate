@@ -1,24 +1,28 @@
 import {
-  StateNode,
-  State,
-  MachineContext,
+  AnyEventObject,
+  AnyStateMachine,
   Event,
   EventObject,
-  AnyEventObject,
+  MachineContext,
+  State,
   StateMachine,
-  flatten,
-  keys
+  StateNode
 } from 'xstate';
 import {
-  StatePathsMap,
-  StatePaths,
-  StatePath,
   AdjacencyMap,
-  Segments,
-  ValueAdjMapOptions,
+  AnyStateNode,
   DirectedGraphEdge,
-  DirectedGraphNode
+  DirectedGraphNode,
+  Segments,
+  StatePath,
+  StatePaths,
+  StatePathsMap,
+  ValueAdjMapOptions
 } from './types';
+
+function flatten<T>(array: Array<T | T[]>): T[] {
+  return ([] as T[]).concat(...array);
+}
 
 export function toEventObject<TEvent extends EventObject>(
   event: Event<TEvent>
@@ -37,21 +41,21 @@ const EMPTY_MAP = {};
  * @param stateNode State node to recursively get child state nodes from
  */
 export function getStateNodes(
-  stateNode: StateNode | StateMachine<any, any>
-): StateNode[] {
+  stateNode: AnyStateNode | AnyStateMachine
+): AnyStateNode[] {
   const { states } = stateNode;
-  const nodes = keys(states).reduce((accNodes: StateNode[], stateKey) => {
+  const nodes = Object.keys(states).reduce((accNodes, stateKey) => {
     const childStateNode = states[stateKey];
     const childStateNodes = getStateNodes(childStateNode);
 
     accNodes.push(childStateNode, ...childStateNodes);
     return accNodes;
-  }, []);
+  }, [] as AnyStateNode[]);
 
   return nodes;
 }
 
-export function getChildren(stateNode: StateNode): StateNode[] {
+export function getChildren(stateNode: AnyStateNode): AnyStateNode[] {
   if (!stateNode.states) {
     return [];
   }
@@ -109,7 +113,7 @@ export function getAdjacencyMap<
   TContext extends MachineContext,
   TEvent extends EventObject = AnyEventObject
 >(
-  node: StateMachine<TContext, TEvent>,
+  node: StateMachine<TContext, TEvent, any, any, any>,
   options?: ValueAdjMapOptions<TContext, TEvent>
 ): AdjacencyMap<TContext, TEvent> {
   const optionsWithDefaults = getValueAdjMapOptions(options);
@@ -179,7 +183,7 @@ export function getShortestPaths<
   TContext extends MachineContext,
   TEvent extends EventObject = EventObject
 >(
-  machine: StateMachine<TContext, TEvent>,
+  machine: StateMachine<TContext, TEvent, any, any, any>,
   options?: ValueAdjMapOptions<TContext, TEvent>
 ): StatePathsMap<TContext, TEvent> {
   if (!machine.states) {
@@ -211,7 +215,7 @@ export function getShortestPaths<
   while (unvisited.size > 0) {
     for (const vertex of unvisited) {
       const [weight] = weightMap.get(vertex)!;
-      for (const event of keys(adjacency[vertex])) {
+      for (const event of Object.keys(adjacency[vertex])) {
         const nextSegment = adjacency[vertex][event];
         const nextVertex = optionsWithDefaults.stateSerializer(
           nextSegment.state
@@ -268,7 +272,7 @@ export function getSimplePaths<
   TContext extends MachineContext,
   TEvent extends EventObject = EventObject
 >(
-  machine: StateMachine<TContext, TEvent>,
+  machine: StateMachine<TContext, TEvent, any, any, any>,
   options?: ValueAdjMapOptions<TContext, TEvent>
 ): StatePathsMap<TContext, TEvent> {
   const optionsWithDefaults = getValueAdjMapOptions(options);
@@ -303,7 +307,7 @@ export function getSimplePaths<
         segments: [...path]
       });
     } else {
-      for (const subEvent of keys(adjacency[fromStateSerial])) {
+      for (const subEvent of Object.keys(adjacency[fromStateSerial])) {
         const nextSegment = adjacency[fromStateSerial][subEvent];
 
         if (!nextSegment) {
@@ -330,7 +334,7 @@ export function getSimplePaths<
   const initialStateSerial = stateSerializer(machine.initialState);
   stateMap.set(initialStateSerial, machine.initialState);
 
-  for (const nextStateSerial of keys(adjacency)) {
+  for (const nextStateSerial of Object.keys(adjacency)) {
     util(machine.initialState, nextStateSerial);
   }
 
@@ -341,15 +345,15 @@ export function getSimplePathsAsArray<
   TContext extends MachineContext,
   TEvent extends EventObject = EventObject
 >(
-  machine: StateMachine<TContext, TEvent>,
+  machine: StateMachine<TContext, TEvent, any, any, any>,
   options?: ValueAdjMapOptions<TContext, TEvent>
 ): Array<StatePaths<TContext, TEvent>> {
   const result = getSimplePaths(machine, options);
-  return keys(result).map((key) => result[key]);
+  return Object.keys(result).map((key) => result[key]);
 }
 
 export function toDirectedGraph(
-  stateMachine: StateMachine | StateNode
+  stateMachine: AnyStateNode | AnyStateMachine
 ): DirectedGraphNode {
   const stateNode =
     stateMachine instanceof StateNode ? stateMachine : stateMachine.root; // TODO: accept only machines
@@ -361,7 +365,7 @@ export function toDirectedGraph(
       return targets.map((target, targetIndex) => {
         const edge: DirectedGraphEdge = {
           id: `${stateNode.id}:${transitionIndex}:${targetIndex}`,
-          source: stateNode,
+          source: stateNode as AnyStateNode,
           target,
           transition: t,
           label: {
@@ -382,8 +386,8 @@ export function toDirectedGraph(
 
   const graph = {
     id: stateNode.id,
-    stateNode,
-    children: getChildren(stateNode).map((sn) => toDirectedGraph(sn)),
+    stateNode: stateNode as AnyStateNode,
+    children: getChildren(stateNode as AnyStateNode).map(toDirectedGraph),
     edges,
     toJSON: () => {
       const { id, children, edges: graphEdges } = graph;
@@ -398,7 +402,7 @@ export function getPathFromEvents<
   TContext extends MachineContext,
   TEvent extends EventObject = EventObject
 >(
-  machine: StateMachine<TContext, TEvent>,
+  machine: StateMachine<TContext, TEvent, any, any, any>,
   events: TEvent[]
 ): StatePath<TContext, TEvent> {
   const optionsWithDefaults = getValueAdjMapOptions<TContext, TEvent>({

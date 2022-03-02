@@ -1,6 +1,5 @@
 import { useState, useRef } from 'react';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
-import { Sender } from './types';
 import { ActorRef, EventObject } from 'xstate';
 import useConstant from './useConstant';
 
@@ -41,18 +40,18 @@ export function useActor<TActor extends ActorRef<any, any>, TEmitted = any>(
 export function useActor<TEvent extends EventObject, TEmitted>(
   actorRef: ActorRef<TEvent, TEmitted>,
   getSnapshot?: (actor: ActorRef<TEvent, TEmitted>) => TEmitted
-): [TEmitted, Sender<TEvent>];
+): [TEmitted, (event: TEvent) => void];
 export function useActor(
   actorRef: ActorRef<EventObject, unknown>,
   getSnapshot: (
     actor: ActorRef<EventObject, unknown>
   ) => unknown = defaultGetSnapshot
-): [unknown, Sender<EventObject>] {
+): [unknown, (event: EventObject) => void] {
   const actorRefRef = useRef(actorRef);
   const deferredEventsRef = useRef<EventObject[]>([]);
   const [current, setCurrent] = useState(() => getSnapshot(actorRef));
 
-  const send: Sender<EventObject> = useConstant(() => (...args) => {
+  const send: (event: EventObject) => void = useConstant(() => (...args) => {
     const event = args[0];
 
     if (process.env.NODE_ENV !== 'production' && args.length > 1) {

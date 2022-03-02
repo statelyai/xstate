@@ -194,6 +194,39 @@ The `assign(...)` function is an **action creator**; it is a pure function that 
 
 ## Action Order
 
+::: warning
+In XState version 5, this behavior will change and `assign(...)` actions will be called **in order** instead of being prioritized, which is incorrect behavior according to SCXML.
+
+To get this behavior in version 4, add `preserveActionOrder: true` to the machine config:
+
+```js
+const counterMachine = createMachine({
+  preserveActionOrder: true, // Ensures that assign actions are called in order
+  // ...
+  context: { count: 0 },
+  states: {
+    active: {
+      on: {
+        INC_TWICE: {
+          actions: [
+            (context) => console.log(`Before: ${context.count}`), // "Before: 0"
+            assign({ count: (context) => context.count + 1 }), // count === 1
+            assign({ count: (context) => context.count + 1 }), // count === 2
+            (context) => console.log(`After: ${context.count}`) // "After: 2"
+          ]
+        }
+      }
+    }
+  }
+});
+
+interpret(counterMachine).start().send({ type: 'INC_TWICE' });
+// => "Before: 0"
+// => "After: 2"
+```
+
+:::
+
 Custom actions are always executed with regard to the _next state_ in the transition. When a state transition has `assign(...)` actions, those actions are always batched and computed _first_, to determine the next state. This is because a state is a combination of the finite state and the extended state (context).
 
 For example, in this counter machine, the custom actions will not work as expected:
@@ -323,9 +356,11 @@ const countMachine = createMachine({
 
 ## TypeScript
 
-For proper type inference, add the context type as the first type parameter to `createMachine<TContext, ...>`:
+For proper type inference, add the context type to the schema property of the machine:
 
 ```ts
+import { createMachine } from 'xstate';
+
 interface CounterContext {
   count: number;
   user?: {
@@ -333,7 +368,10 @@ interface CounterContext {
   };
 }
 
-const machine = createMachine<CounterContext>({
+const machine = createMachine({
+  schema: {
+    context: {} as CounterContext
+  },
   // ...
   context: {
     count: 0,
@@ -351,21 +389,27 @@ const context = {
   user: { name: '' }
 };
 
-const machine = createMachine<typeof context>({
+const machine = createMachine({
+  schema: {
+    context: {} as typeof context
+  },
   // ...
   context
   // ...
 });
 ```
 
-In most cases, the types for `context` and `event` in `assign(...)` actions will be automatically inferred from the type parameters passed into `createMachine<TContext, TEvent>`:
+In most cases, the types for `context` and `event` in `assign(...)` actions will be automatically inferred from the type parameters passed into `schema`:
 
 ```ts
 interface CounterContext {
   count: number;
 }
 
-const machine = createMachine<CounterContext>({
+const machine = createMachine({
+  schema: {
+    context: {} as CounterContext
+  },
   // ...
   context: {
     count: 0

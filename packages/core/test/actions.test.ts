@@ -1188,7 +1188,7 @@ describe('purely defined actions', () => {
           },
           EACH: {
             actions: pure<any, any>((ctx) =>
-              ctx.items.map((item, index) => ({
+              ctx.items.map((item: any, index: number) => ({
                 type: 'EVENT',
                 params: { item, index }
               }))
@@ -1752,7 +1752,7 @@ describe('sendTo', () => {
       context: () => ({
         child: spawn(createMachineBehavior(childMachine))
       }),
-      entry: sendTo((ctx) => ctx.child, { type: 'EVENT' })
+      entry: sendTo((ctx) => ctx.child as any, { type: 'EVENT' })
     });
 
     interpret(parentMachine).start();
@@ -1782,7 +1782,7 @@ describe('sendTo', () => {
         count: 42
       }),
       entry: sendTo(
-        (ctx) => ctx.child,
+        (ctx) => ctx.child as any,
         (ctx) => ({ type: 'EVENT', count: ctx.count })
       )
     });

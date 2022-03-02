@@ -1,6 +1,6 @@
-import { raise } from '../src/actions/raise';
+import { createMachine, interpret, StateValue } from '../src';
 import { assign } from '../src/actions/assign';
-import { createMachine, interpret } from '../src';
+import { raise } from '../src/actions/raise';
 import { testMultiTransition } from './utils';
 
 const composerMachine = createMachine({
@@ -505,7 +505,7 @@ describe('parallel states', () => {
     });
   });
 
-  const expected = {
+  const expected: Record<string, Record<string, StateValue>> = {
     '{"bold": "off"}': {
       TOGGLE_BOLD: {
         bold: 'on',

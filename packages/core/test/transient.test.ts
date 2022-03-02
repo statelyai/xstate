@@ -634,7 +634,7 @@ describe('transient states (eventless transitions)', () => {
           invoke: {
             src: invokeMachine(timerMachine),
             data: {
-              duration: (context) => context.customDuration
+              duration: (context: any) => context.customDuration
             }
           }
         }

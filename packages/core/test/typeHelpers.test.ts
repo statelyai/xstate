@@ -1,5 +1,11 @@
-import { EventFrom } from '../src';
+import {
+  assign,
+  createMachine,
+  EventFrom,
+  MachineImplementationsFrom
+} from '../src';
 import { createModel } from '../src/model';
+import { TypegenMeta } from '../src/typegenTypes';
 
 describe('EventFrom', () => {
   it('should return events for createModel', () => {
@@ -22,7 +28,7 @@ describe('EventFrom', () => {
     acceptUserModelEvent({ type: 'updateAge', value: 12 });
     acceptUserModelEvent({ type: 'anotherEvent' });
     acceptUserModelEvent({
-      /* @ts-expect-error */
+      // @ts-expect-error
       type: 'eventThatDoesNotExist'
     });
   });
@@ -52,9 +58,152 @@ describe('EventFrom', () => {
 
     acceptUserModelEventSubset({ type: 'updateName', value: 'test' });
     acceptUserModelEventSubset({ type: 'updateAge', value: 12 });
-    /* @ts-expect-error */
+    // @ts-expect-error
     acceptUserModelEventSubset({ type: 'anotherEvent' });
-    /* @ts-expect-error */
+    // @ts-expect-error
     acceptUserModelEventSubset({ type: 'eventThatDoesNotExist' });
+  });
+});
+
+describe('MachineImplementationsFrom', () => {
+  it('should return implementations for a typegen-less machine', () => {
+    const machine = createMachine({
+      context: {
+        count: 100
+      },
+      schema: {
+        events: {} as { type: 'FOO' } | { type: 'BAR'; value: string }
+      }
+    });
+
+    const acceptMachineImplementations = (
+      _options: MachineImplementationsFrom<typeof machine>
+    ) => {};
+
+    acceptMachineImplementations({
+      actions: {
+        foo: () => {}
+      }
+    });
+    acceptMachineImplementations({
+      actions: {
+        foo: assign(() => ({}))
+      }
+    });
+    acceptMachineImplementations({
+      actions: {
+        foo: assign((ctx) => {
+          ((_accept: number) => {})(ctx.count);
+          return {};
+        })
+      }
+    });
+    acceptMachineImplementations({
+      actions: {
+        foo: assign((_ctx, ev) => {
+          ((_accept: 'FOO' | 'BAR') => {})(ev.type);
+          return {};
+        })
+      }
+    });
+    // @ts-expect-error
+    acceptMachineImplementations(100);
+  });
+
+  it('should return optional implementations for a typegen-based machine by default', () => {
+    interface TypesMeta extends TypegenMeta {
+      missingImplementations: {
+        actions: 'myAction';
+        delays: never;
+        guards: never;
+        actors: never;
+      };
+      eventsCausingActions: {
+        myAction: 'FOO';
+      };
+    }
+    const machine = createMachine({
+      tsTypes: {} as TypesMeta,
+      context: {
+        count: 100
+      },
+      schema: {
+        events: {} as { type: 'FOO' } | { type: 'BAR'; value: string }
+      }
+    });
+
+    const acceptMachineImplementations = (
+      _options: MachineImplementationsFrom<typeof machine>
+    ) => {};
+
+    acceptMachineImplementations({
+      actions: {
+        // @ts-expect-error
+        foo: () => {}
+      }
+    });
+    acceptMachineImplementations({
+      actions: {}
+    });
+    acceptMachineImplementations({
+      actions: {
+        myAction: assign((ctx, ev) => {
+          ((_accept: number) => {})(ctx.count);
+          ((_accept: 'FOO') => {})(ev.type);
+          return {};
+        })
+      }
+    });
+    // @ts-expect-error
+    acceptMachineImplementations(100);
+  });
+
+  it('should return required implementations for a typegen-based machine with a flag', () => {
+    interface TypesMeta extends TypegenMeta {
+      missingImplementations: {
+        actions: 'myAction';
+        delays: never;
+        guards: never;
+        actors: never;
+      };
+      eventsCausingActions: {
+        myAction: 'FOO';
+      };
+    }
+    const machine = createMachine({
+      tsTypes: {} as TypesMeta,
+      context: {
+        count: 100
+      },
+      schema: {
+        events: {} as { type: 'FOO' } | { type: 'BAR'; value: string }
+      }
+    });
+
+    const acceptMachineImplementations = (
+      _options: MachineImplementationsFrom<typeof machine, true>
+    ) => {};
+
+    acceptMachineImplementations({
+      actions: {
+        // @ts-expect-error
+        foo: () => {}
+      }
+    });
+    acceptMachineImplementations({
+      // @ts-expect-error
+      actions: {}
+    });
+    acceptMachineImplementations({
+      actions: {
+        myAction: assign((ctx, ev) => {
+          ((_accept: number) => {})(ctx.count);
+          ((_accept: 'FOO') => {})(ev.type);
+          return {};
+        })
+      }
+    });
+    // @ts-expect-error
+    acceptMachineImplementations(100);
   });
 });

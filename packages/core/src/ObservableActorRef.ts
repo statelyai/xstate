@@ -51,9 +51,4 @@ export class ObservableActorRef<TEvent extends EventObject, TEmitted>
   public [symbolObservable]() {
     return this;
   }
-  // this gets stripped by Babel to avoid having "undefined" property in environments without this non-standard Symbol
-  // it has to be here to be included in the generated .d.ts
-  public [Symbol.observable]() {
-    return this;
-  }
 }

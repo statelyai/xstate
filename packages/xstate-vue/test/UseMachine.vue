@@ -13,7 +13,7 @@
 <script lang="ts">
 import { defineComponent, PropType } from 'vue';
 import { useMachine } from '../src';
-import { createMachine, assign, State } from 'xstate';
+import { createMachine, assign, AnyState } from 'xstate';
 import { invokePromise } from 'xstate/invoke';
 
 const context = {
@@ -49,7 +49,7 @@ const fetchMachine = createMachine<typeof context, any>({
 export default defineComponent({
   props: {
     persistedState: {
-      type: Object as PropType<State<any>>
+      type: Object as PropType<AnyState>
     }
   },
   setup({ persistedState }) {

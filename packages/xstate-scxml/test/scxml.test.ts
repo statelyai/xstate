@@ -1,15 +1,15 @@
+import * as fs from 'fs';
+import { xml2js } from 'xml-js';
 import {
+  AnyState,
+  AnyStateMachine,
   createMachine,
-  State,
+  getStateNodes,
   interpret,
-  StateMachine,
-  SimulatedClock,
-  getStateNodes
+  SimulatedClock
 } from 'xstate';
 import { toMachine } from 'xstate/src/scxml';
-import { xml2js } from 'xml-js';
-import { transitionToSCXML, toSCXML } from '../src';
-import * as fs from 'fs';
+import { toSCXML, transitionToSCXML } from '../src';
 
 interface SCIONTest {
   initialConfiguration: string[];
@@ -21,11 +21,11 @@ interface SCIONTest {
 }
 
 async function runTestToCompletion(
-  machine: StateMachine,
+  machine: AnyStateMachine,
   test: SCIONTest
 ): Promise<void> {
   let done = false;
-  let nextState: State<any> = machine.initialState;
+  let nextState: AnyState = machine.initialState;
 
   const service = interpret(machine, {
     clock: new SimulatedClock()

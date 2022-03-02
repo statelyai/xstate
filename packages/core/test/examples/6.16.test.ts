@@ -1,5 +1,5 @@
 import { stateIn } from '../../src/guards';
-import { createMachine } from '../../src/index';
+import { createMachine, StateValue } from '../../src/index';
 import { testAll } from '../utils';
 
 describe('Example 6.16', () => {
@@ -31,7 +31,7 @@ describe('Example 6.16', () => {
     }
   });
 
-  const expected = {
+  const expected: Record<string, Record<string, StateValue | undefined>> = {
     '{"A":"D", "B":"F"}': {
       1: { A: 'C', B: 'E' },
       2: undefined,

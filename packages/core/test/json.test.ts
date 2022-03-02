@@ -94,7 +94,7 @@ describe('json', () => {
 
     try {
       validate(json);
-    } catch (err) {
+    } catch (err: any) {
       throw new Error(JSON.stringify(JSON.parse(err.message), null, 2));
     }
 

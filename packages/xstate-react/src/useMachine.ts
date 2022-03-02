@@ -1,17 +1,20 @@
 import { useCallback, useState } from 'react';
 import {
-  EventObject,
-  StateMachine,
-  State,
-  InterpreterOptions,
-  MachineImplementations,
-  StateConfig,
   ActionFunction,
-  InterpreterOf,
-  MachineContext
+  AnyStateMachine,
+  AreAllImplementationsAssumedToBeProvided,
+  EventObject,
+  InternalMachineImplementations,
+  InterpreterFrom,
+  InterpreterOptions,
+  MachineContext,
+  State,
+  StateConfig,
+  StateFrom
 } from 'xstate';
 import {
   MaybeLazy,
+  Prop,
   ReactActionFunction,
   ReactActionObject,
   ReactEffectType
@@ -66,20 +69,41 @@ export interface UseMachineOptions<
   state?: StateConfig<TContext, TEvent>;
 }
 
-export function useMachine<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  getMachine: MaybeLazy<StateMachine<TContext, TEvent>>,
-  options: Partial<InterpreterOptions> &
-    Partial<UseMachineOptions<TContext, TEvent>> &
-    Partial<MachineImplementations<TContext, TEvent>> = {}
-): [
-  State<TContext, TEvent>,
-  InterpreterOf<StateMachine<TContext, TEvent>>['send'],
-  InterpreterOf<StateMachine<TContext, TEvent>>
-] {
-  const listener = useCallback((nextState: State<TContext, TEvent>) => {
+type RestParams<
+  TMachine extends AnyStateMachine
+> = AreAllImplementationsAssumedToBeProvided<
+  TMachine['__TResolvedTypesMeta']
+> extends false
+  ? [
+      options: InterpreterOptions &
+        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+        InternalMachineImplementations<
+          TMachine['__TContext'],
+          TMachine['__TEvent'],
+          TMachine['__TResolvedTypesMeta'],
+          true
+        >
+    ]
+  : [
+      options?: InterpreterOptions &
+        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+        InternalMachineImplementations<
+          TMachine['__TContext'],
+          TMachine['__TEvent'],
+          TMachine['__TResolvedTypesMeta']
+        >
+    ];
+
+type UseMachineReturn<
+  TMachine extends AnyStateMachine,
+  TInterpreter = InterpreterFrom<TMachine>
+> = [StateFrom<TMachine>, Prop<TInterpreter, 'send'>, TInterpreter];
+
+export function useMachine<TMachine extends AnyStateMachine>(
+  getMachine: MaybeLazy<TMachine>,
+  ...[options = {}]: RestParams<TMachine>
+): UseMachineReturn<TMachine> {
+  const listener = useCallback((nextState: StateFrom<TMachine>) => {
     // Only change the current state if:
     // - the incoming state is the "live" initial state (since it might have new actors)
     // - OR the incoming state actually changed.
@@ -93,14 +117,14 @@ export function useMachine<
     }
   }, []);
 
-  const service = useInterpret(getMachine, options, listener);
+  const service = useInterpret(getMachine as any, options as any, listener);
 
   const [state, setState] = useState(() => {
     const { initialState } = service.machine;
     return (options.state
-      ? State.create(options.state)
-      : initialState) as State<TContext, TEvent>;
+      ? State.create(options.state as any)
+      : initialState) as StateFrom<TMachine>;
   });
 
-  return [state, service.send, service];
+  return [state, service.send, service] as any;
 }

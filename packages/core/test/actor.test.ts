@@ -1252,7 +1252,9 @@ describe('actors', () => {
       entry: assign({
         child: () =>
           spawn(
-            createPromiseBehavior(() => ({ then: (fn) => fn(null) } as any))
+            createPromiseBehavior(
+              () => ({ then: (fn: any) => fn(null) } as any)
+            )
           )
       })
     });
@@ -1264,7 +1266,7 @@ describe('actors', () => {
 
   it('should not crash on child observable sync completion during self-initialization', () => {
     const createEmptyObservable = (): any => ({
-      subscribe(_next, _error, complete) {
+      subscribe(_next: () => void, _error: () => void, complete: () => void) {
         complete();
       }
     });

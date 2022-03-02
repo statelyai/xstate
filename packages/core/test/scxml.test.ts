@@ -1,13 +1,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as pkgUp from 'pkg-up';
-
-import { toMachine } from '../src/scxml';
+import { AnyState, AnyStateMachine } from '../src';
 import { interpret } from '../src/interpreter';
+import { toMachine } from '../src/scxml';
 import { SimulatedClock } from '../src/SimulatedClock';
-import { State } from '../src';
 import { getStateNodes } from '../src/stateUtils';
-import { StateMachine } from '../src/StateMachine';
 
 const TEST_FRAMEWORK = path.dirname(
   pkgUp.sync({
@@ -15,8 +13,7 @@ const TEST_FRAMEWORK = path.dirname(
   }) as string
 );
 
-// @ts-ignore
-const testGroups = {
+const testGroups: Record<string, string[]> = {
   actionSend: [
     'send1',
     'send2',
@@ -333,7 +330,7 @@ const testGroups = {
   ]
 };
 
-const overrides = {
+const overrides: Record<string, string[]> = {
   'assign-current-small-step': [
     // original using <script/> to manipulate datamodel
     'test0'
@@ -349,10 +346,10 @@ interface SCIONTest {
   }>;
 }
 
-async function runW3TestToCompletion(machine: StateMachine): Promise<void> {
+async function runW3TestToCompletion(machine: AnyStateMachine): Promise<void> {
   await new Promise<void>((resolve, reject) => {
-    let nextState: State<any>;
-    let prevState: State<any>;
+    let nextState: AnyState;
+    let prevState: AnyState;
 
     interpret(machine)
       .onTransition((state) => {
@@ -378,7 +375,7 @@ async function runW3TestToCompletion(machine: StateMachine): Promise<void> {
 }
 
 async function runTestToCompletion(
-  machine: StateMachine,
+  machine: AnyStateMachine,
   test: SCIONTest
 ): Promise<void> {
   if (!test.events.length && test.initialConfiguration[0] === 'pass') {
@@ -387,8 +384,8 @@ async function runTestToCompletion(
   }
 
   let done = false;
-  let nextState: State<any> = machine.initialState;
-  let prevState: State<any>;
+  let nextState: AnyState = machine.initialState;
+  let prevState: AnyState;
 
   const service = interpret(machine, {
     clock: new SimulatedClock()

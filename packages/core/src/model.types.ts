@@ -1,26 +1,24 @@
 import type { StateMachine } from './StateMachine';
 import {
-  EventObject,
+  AnyFunction,
   Assigner,
+  Compute,
+  EventObject,
   ExtractEvent,
   PropertyAssigner,
-  MachineConfig,
-  MachineImplementations,
   BaseActionObject,
   MachineContext,
-  DynamicAssignAction
+  DynamicAssignAction,
+  MachineConfig,
+  Prop,
+  InternalMachineImplementations,
+  ActorMap
 } from './types';
-
-export type AnyFunction = (...args: any[]) => any;
-
-// https://github.com/microsoft/TypeScript/issues/23182#issuecomment-379091887
-export type IsNever<T> = [T] extends [never] ? true : false;
-
-export type Cast<T extends any, TCastType extends any> = T extends TCastType
-  ? T
-  : TCastType;
-export type Compute<A extends any> = { [K in keyof A]: A[K] } & unknown;
-export type Prop<T, K> = K extends keyof T ? T[K] : never;
+import {
+  ResolveTypegenMeta,
+  TypegenConstraint,
+  TypegenDisabled
+} from './typegenTypes';
 
 export interface Model<
   TContext extends MachineContext,
@@ -38,10 +36,25 @@ export interface Model<
   events: Prop<TModelCreators, 'events'>;
   actions: Prop<TModelCreators, 'actions'>;
   reset: () => DynamicAssignAction<TContext, any>;
-  createMachine: (
-    config: MachineConfig<TContext, TEvent, TAction>,
-    implementations?: Partial<MachineImplementations<TContext, TEvent, TAction>>
-  ) => StateMachine<TContext, TEvent>;
+  createMachine: {
+    <
+      TActorMap extends ActorMap = ActorMap,
+      TTypesMeta extends TypegenConstraint = TypegenDisabled
+    >(
+      config: MachineConfig<TContext, TEvent, TAction, TActorMap, TTypesMeta>,
+      implementations?: InternalMachineImplementations<
+        TContext,
+        TEvent,
+        ResolveTypegenMeta<TTypesMeta, TEvent, TAction, TActorMap>
+      >
+    ): StateMachine<
+      TContext,
+      TEvent,
+      TAction,
+      TActorMap,
+      ResolveTypegenMeta<TTypesMeta, TEvent, TAction, TActorMap>
+    >;
+  };
 }
 
 export type ModelContextFrom<
