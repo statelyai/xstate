@@ -3,6 +3,7 @@ import {
   ContextFrom,
   createMachine,
   EventFrom,
+  interpret,
   MachineOptionsFrom
 } from '../src';
 import { createModel } from '../src/model';
@@ -98,6 +99,31 @@ describe('EventFrom', () => {
     acceptMachineEvent({ type: 'UPDATE_AGE', value: 12 });
     acceptMachineEvent({ type: 'ANOTHER_EVENT' });
     acceptMachineEvent({
+      // @ts-expect-error
+      type: 'UNKNOWN_EVENT'
+    });
+  });
+
+  it('should return events for an interpreter', () => {
+    const machine = createMachine({
+      schema: {
+        events: {} as
+          | { type: 'UPDATE_NAME'; value: string }
+          | { type: 'UPDATE_AGE'; value: number }
+          | { type: 'ANOTHER_EVENT' }
+      }
+    });
+
+    const service = interpret(machine);
+
+    type InterpreterEvent = EventFrom<typeof service>;
+
+    const acceptInterpreterEvent = (_event: InterpreterEvent) => {};
+
+    acceptInterpreterEvent({ type: 'UPDATE_NAME', value: 'test' });
+    acceptInterpreterEvent({ type: 'UPDATE_AGE', value: 12 });
+    acceptInterpreterEvent({ type: 'ANOTHER_EVENT' });
+    acceptInterpreterEvent({
       // @ts-expect-error
       type: 'UNKNOWN_EVENT'
     });
