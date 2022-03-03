@@ -43,7 +43,7 @@ const lightMachine = createMachine({
 
 ## 选项
 
-[actions](./actions.md)、 [activities](./activities.md)、 [delays](./delays.md)、 [guards](./guards.md)、 和 [services](./communication.md) 的实现可以在状态机配置中作为字符串引用，然后在 `createMachine()` 的第二个参数中指定为对象：
+[actions](./actions.md)、 [delays](./delays.md)、 [guards](./guards.md)、 和 [services](./communication.md) 的实现可以在状态机配置中作为字符串引用，然后在 `createMachine()` 的第二个参数中指定为对象：
 
 ```js
 const lightMachine = createMachine(
@@ -64,9 +64,6 @@ const lightMachine = createMachine(
         alert('Green!');
       }
     },
-    activities: {
-      /* ... */
-    },
     delays: {
       /* ... */
     },
@@ -83,10 +80,10 @@ const lightMachine = createMachine(
 该对象有 5 个可选属性：
 
 - `actions` - action 名称到它们的执行的映射
-- `activities` - activities 名称与其执行的映射
 - `delays` - delays 名称与其执行的映射
 - `guards` - 转换守卫 (`cond`) ，名称与其执行的映射
 - `services` - 调用的服务 (`src`) ，名称与其执行的映射
+- `activities` (deprecated) - activities 名称与其执行的映射
 
 ## 扩展状态机
 
