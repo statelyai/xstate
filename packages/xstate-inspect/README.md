@@ -45,4 +45,5 @@ import { inspect } from '@xstate/inspect';
 // ...
 
 const service = interpret(someMachine, { devTools: true });
+service.start();
 ```
