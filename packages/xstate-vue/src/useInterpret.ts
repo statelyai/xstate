@@ -1,14 +1,14 @@
 import { onBeforeUnmount, onMounted } from 'vue';
 import {
-  EventObject,
-  interpret,
-  Interpreter,
-  InterpreterOptions,
-  MachineContext,
-  MachineImplementationsSimplified,
   Observer,
   State,
-  StateMachine
+  AnyStateMachine,
+  AreAllImplementationsAssumedToBeProvided,
+  InternalMachineImplementations,
+  interpret,
+  InterpreterFrom,
+  InterpreterOptions,
+  StateFrom
 } from 'xstate';
 import { MaybeLazy, UseMachineOptions } from './types';
 
@@ -32,18 +32,41 @@ function toObserver<T>(
   };
 }
 
-export function useInterpret<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  getMachine: MaybeLazy<StateMachine<TContext, TEvent>>,
-  options: Partial<InterpreterOptions> &
-    Partial<UseMachineOptions<TContext, TEvent>> &
-    Partial<MachineImplementationsSimplified<TContext, TEvent>> = {},
-  observerOrListener?:
-    | Observer<State<TContext, TEvent>>
-    | ((value: State<TContext, TEvent>) => void)
-): Interpreter<TContext, TEvent> {
+type RestParams<
+  TMachine extends AnyStateMachine
+> = AreAllImplementationsAssumedToBeProvided<
+  TMachine['__TResolvedTypesMeta']
+> extends false
+  ? [
+      options: InterpreterOptions &
+        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+        InternalMachineImplementations<
+          TMachine['__TContext'],
+          TMachine['__TEvent'],
+          TMachine['__TResolvedTypesMeta'],
+          true
+        >,
+      observerOrListener?:
+        | Observer<StateFrom<TMachine>>
+        | ((value: StateFrom<TMachine>) => void)
+    ]
+  : [
+      options?: InterpreterOptions &
+        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+        InternalMachineImplementations<
+          TMachine['__TContext'],
+          TMachine['__TEvent'],
+          TMachine['__TResolvedTypesMeta']
+        >,
+      observerOrListener?:
+        | Observer<StateFrom<TMachine>>
+        | ((value: StateFrom<TMachine>) => void)
+    ];
+
+export function useInterpret<TMachine extends AnyStateMachine>(
+  getMachine: MaybeLazy<TMachine>,
+  ...[options = {}, observerOrListener]: RestParams<TMachine>
+): InterpreterFrom<TMachine> {
   const machine = typeof getMachine === 'function' ? getMachine() : getMachine;
 
   const {

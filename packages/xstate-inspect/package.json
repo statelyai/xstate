@@ -1,6 +1,6 @@
 {
   "name": "@xstate/inspect",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "description": "XState inspection utilities",
   "keywords": [
     "state",

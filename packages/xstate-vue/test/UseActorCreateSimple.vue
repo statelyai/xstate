@@ -10,13 +10,14 @@
 
 <script lang="ts">
 import { ActorRef } from 'xstate';
+import { toActorRef } from 'xstate/actor';
 import { defineComponent, shallowRef } from 'vue';
 
 import { useActor } from '../src';
 
 const createSimpleActor = (
   value: number
-): ActorRef<any, number> & { latestValue: number } => ({
+): ActorRef<any, number> & { latestValue: number } => toActorRef({
   send: () => {
     /* ... */
   },

@@ -8,7 +8,8 @@ import {
   InterpreterFrom,
   InterpreterOptions,
   Observer,
-  State
+  State,
+  StateFrom
 } from 'xstate';
 import { MaybeLazy } from './types';
 import useConstant from './useConstant';
@@ -50,20 +51,8 @@ type RestParams<
           true
         >,
       observerOrListener?:
-        | Observer<
-            State<
-              TMachine['__TContext'],
-              TMachine['__TEvent'],
-              TMachine['__TResolvedTypesMeta']
-            >
-          >
-        | ((
-            value: State<
-              TMachine['__TContext'],
-              TMachine['__TEvent'],
-              TMachine['__TResolvedTypesMeta']
-            >
-          ) => void)
+        | Observer<StateFrom<TMachine>>
+        | ((value: StateFrom<TMachine>) => void)
     ]
   : [
       options?: InterpreterOptions &
@@ -74,20 +63,8 @@ type RestParams<
           TMachine['__TResolvedTypesMeta']
         >,
       observerOrListener?:
-        | Observer<
-            State<
-              TMachine['__TContext'],
-              TMachine['__TEvent'],
-              TMachine['__TResolvedTypesMeta']
-            >
-          >
-        | ((
-            value: State<
-              TMachine['__TContext'],
-              TMachine['__TEvent'],
-              TMachine['__TResolvedTypesMeta']
-            >
-          ) => void)
+        | Observer<StateFrom<TMachine>>
+        | ((value: StateFrom<TMachine>) => void)
     ];
 
 export function useInterpret<TMachine extends AnyStateMachine>(

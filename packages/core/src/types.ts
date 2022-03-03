@@ -1819,13 +1819,19 @@ export type EmittedFrom<T> = ReturnTypeOrValue<T> extends infer R
   : never;
 
 type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends StateMachine<infer _, infer TEvent>
+  ? R extends StateMachine<
+      infer _,
+      infer TEvent,
+      infer __,
+      infer ___,
+      infer ____
+    >
     ? TEvent
     : R extends Model<infer _, infer TEvent, infer __, infer ___>
     ? TEvent
-    : R extends State<infer _, infer TEvent>
+    : R extends State<infer _, infer TEvent, infer __>
     ? TEvent
-    : R extends Interpreter<infer _, infer TEvent>
+    : R extends Interpreter<infer _, infer TEvent, infer __>
     ? TEvent
     : R extends ActorRef<infer TEvent, infer _>
     ? TEvent
@@ -1846,13 +1852,19 @@ export type SimpleEventsOf<
 > = ExtractWithSimpleSupport<TEvent>;
 
 export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends StateMachine<infer TContext, infer __>
+  ? R extends StateMachine<
+      infer TContext,
+      infer _,
+      infer __,
+      infer ___,
+      infer ____
+    >
     ? TContext
     : R extends Model<infer TContext, infer _, infer __, infer ___>
     ? TContext
-    : R extends State<infer TContext, infer __>
+    : R extends State<infer TContext, infer _, infer __>
     ? TContext
-    : R extends Interpreter<infer TContext, infer __>
+    : R extends Interpreter<infer TContext, infer _, infer __>
     ? TContext
     : never
   : never;

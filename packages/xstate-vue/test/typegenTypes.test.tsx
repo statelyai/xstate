@@ -1,5 +1,4 @@
-import { render } from '@testing-library/react';
-import * as React from 'react';
+import { defineComponent } from 'vue';
 import { assign, createMachine, TypegenMeta } from 'xstate';
 import { useInterpret, useMachine } from '../src';
 
@@ -18,12 +17,11 @@ describe('useMachine', () => {
       tsTypes: {} as TypesMeta
     });
 
-    function App() {
-      useMachine(machine);
-      return null;
-    }
-
-    render(<App />);
+    defineComponent({
+      setup() {
+        useMachine(machine);
+      }
+    });
   });
 
   it('should not allow to be used with a machine with some missing implementations', () => {
@@ -46,13 +44,13 @@ describe('useMachine', () => {
       }
     });
 
-    function App() {
-      // @ts-expect-error
-      useMachine(machine);
-      return null;
-    }
-
-    render(<App />);
+    defineComponent({
+      setup() {
+        // @ts-expect-error
+        useMachine(machine);
+        return null;
+      }
+    });
   });
 
   it('should require all missing implementations ', () => {
@@ -76,31 +74,30 @@ describe('useMachine', () => {
       }
     });
 
-    function App() {
-      // @ts-expect-error
-      useMachine(machine, {});
-      useMachine(machine, {
+    defineComponent({
+      setup: () => {
         // @ts-expect-error
-        actions: {}
-      });
-      // @ts-expect-error
-      useMachine(machine, {
-        actions: {
-          myAction: () => {}
-        }
-      });
-      useMachine(machine, {
-        actions: {
-          myAction: () => {}
-        },
-        delays: {
-          myDelay: () => 42
-        }
-      });
-      return null;
-    }
-
-    render(<App />);
+        useMachine(machine, {});
+        useMachine(machine, {
+          // @ts-expect-error
+          actions: {}
+        });
+        // @ts-expect-error
+        useMachine(machine, {
+          actions: {
+            myAction: () => {}
+          }
+        });
+        useMachine(machine, {
+          actions: {
+            myAction: () => {}
+          },
+          delays: {
+            myDelay: () => 42
+          }
+        });
+      }
+    });
   });
 
   it('should allow to override already provided implementation', () => {
@@ -129,19 +126,18 @@ describe('useMachine', () => {
       }
     );
 
-    function App() {
-      useMachine(machine, {
-        actions: {
-          fooAction: () => {}
-        },
-        delays: {
-          barDelay: () => 100
-        }
-      });
-      return null;
-    }
-
-    render(<App />);
+    defineComponent({
+      setup: () => {
+        useMachine(machine, {
+          actions: {
+            fooAction: () => {}
+          },
+          delays: {
+            barDelay: () => 100
+          }
+        });
+      }
+    });
   });
 
   it('should accept a machine that accepts a specific subset of events in one of the implementations', () => {
@@ -164,17 +160,16 @@ describe('useMachine', () => {
       }
     });
 
-    function App() {
-      useMachine(machine, {
-        actions: {
-          // it's important to use `event` here somehow to make this a possible source of information for inference
-          fooAction: (_context, _event) => {}
-        }
-      });
-      return null;
-    }
-
-    render(<App />);
+    defineComponent({
+      setup: () => {
+        useMachine(machine, {
+          actions: {
+            // it's important to use `event` here somehow to make this a possible source of information for inference
+            fooAction: (_context, _event) => {}
+          }
+        });
+      }
+    });
   });
 
   it('should provide subset of the event type to action objects given in the `options` argument', () => {
@@ -197,20 +192,19 @@ describe('useMachine', () => {
       }
     });
 
-    function App() {
-      useMachine(machine, {
-        actions: {
-          fooAction: assign((_context, _event) => {
-            ((_accept: 'FOO') => {})(_event.type);
-            // @ts-expect-error
-            ((_accept: "test that this isn't any") => {})(_event.type);
-          })
-        }
-      });
-      return null;
-    }
-
-    render(<App />);
+    defineComponent({
+      setup: () => {
+        useMachine(machine, {
+          actions: {
+            fooAction: assign((_context, _event) => {
+              ((_accept: 'FOO') => {})(_event.type);
+              // @ts-expect-error
+              ((_accept: "test that this isn't any") => {})(_event.type);
+            })
+          }
+        });
+      }
+    });
   });
 });
 
@@ -229,12 +223,11 @@ describe('useInterpret', () => {
       tsTypes: {} as TypesMeta
     });
 
-    function App() {
-      useInterpret(machine);
-      return null;
-    }
-
-    render(<App />);
+    defineComponent({
+      setup: () => {
+        useInterpret(machine);
+      }
+    });
   });
 
   it('should not allow to be used with a machine with some missing implementations', () => {
@@ -257,13 +250,12 @@ describe('useInterpret', () => {
       }
     });
 
-    function App() {
-      // @ts-expect-error
-      useInterpret(machine);
-      return null;
-    }
-
-    render(<App />);
+    defineComponent({
+      setup: () => {
+        // @ts-expect-error
+        useInterpret(machine);
+      }
+    });
   });
 
   it('should require all missing implementations ', () => {
@@ -287,31 +279,30 @@ describe('useInterpret', () => {
       }
     });
 
-    function App() {
-      // @ts-expect-error
-      useInterpret(machine, {});
-      useInterpret(machine, {
+    defineComponent({
+      setup: () => {
         // @ts-expect-error
-        actions: {}
-      });
-      // @ts-expect-error
-      useInterpret(machine, {
-        actions: {
-          myAction: () => {}
-        }
-      });
-      useInterpret(machine, {
-        actions: {
-          myAction: () => {}
-        },
-        delays: {
-          myDelay: () => 42
-        }
-      });
-      return null;
-    }
-
-    render(<App />);
+        useInterpret(machine, {});
+        useInterpret(machine, {
+          // @ts-expect-error
+          actions: {}
+        });
+        // @ts-expect-error
+        useInterpret(machine, {
+          actions: {
+            myAction: () => {}
+          }
+        });
+        useInterpret(machine, {
+          actions: {
+            myAction: () => {}
+          },
+          delays: {
+            myDelay: () => 42
+          }
+        });
+      }
+    });
   });
 
   it('should allow to override already provided implementation', () => {
@@ -340,19 +331,18 @@ describe('useInterpret', () => {
       }
     );
 
-    function App() {
-      useInterpret(machine, {
-        actions: {
-          fooAction: () => {}
-        },
-        delays: {
-          barDelay: () => 100
-        }
-      });
-      return null;
-    }
-
-    render(<App />);
+    defineComponent({
+      setup: () => {
+        useInterpret(machine, {
+          actions: {
+            fooAction: () => {}
+          },
+          delays: {
+            barDelay: () => 100
+          }
+        });
+      }
+    });
   });
 
   it('should accept a machine that accepts a specific subset of events in one of the implementations', () => {
@@ -375,17 +365,16 @@ describe('useInterpret', () => {
       }
     });
 
-    function App() {
-      useInterpret(machine, {
-        actions: {
-          // it's important to use `event` here somehow to make this a possible source of information for inference
-          fooAction: (_context, _event) => {}
-        }
-      });
-      return null;
-    }
-
-    render(<App />);
+    defineComponent({
+      setup: () => {
+        useInterpret(machine, {
+          actions: {
+            // it's important to use `event` here somehow to make this a possible source of information for inference
+            fooAction: (_context, _event) => {}
+          }
+        });
+      }
+    });
   });
 
   it('should provide subset of the event type to action objects given in the `options` argument', () => {
@@ -408,20 +397,19 @@ describe('useInterpret', () => {
       }
     });
 
-    function App() {
-      useInterpret(machine, {
-        actions: {
-          fooAction: assign((_context, _event) => {
-            ((_accept: 'FOO') => {})(_event.type);
-            // @ts-expect-error
-            ((_accept: "test that this isn't any") => {})(_event.type);
-          })
-        }
-      });
-      return null;
-    }
-
-    render(<App />);
+    defineComponent({
+      setup: () => {
+        useInterpret(machine, {
+          actions: {
+            fooAction: assign((_context, _event) => {
+              ((_accept: 'FOO') => {})(_event.type);
+              // @ts-expect-error
+              ((_accept: "test that this isn't any") => {})(_event.type);
+            })
+          }
+        });
+      }
+    });
   });
 
   it('Should handle multiple state.matches when passed TypegenMeta', () => {
@@ -439,32 +427,36 @@ describe('useInterpret', () => {
       tsTypes: {} as TypesMeta
     });
 
-    () => {
-      const [state] = useMachine(machine, {});
-      if (state.matches('a')) {
-        return <div>a</div>;
-      }
+    defineComponent({
+      setup: () => {
+        const { state } = useMachine(machine, {});
+        if (state.value.matches('a')) {
+          return { a: 1 };
+        }
 
-      // matches should still be defined
-      if (state.matches('b')) {
-        return <div>b</div>;
+        // matches should still be defined
+        if (state.value.matches('b')) {
+          return { b: 1 };
+        }
       }
-    };
+    });
   });
 
   it('Should handle multiple state.matches when NOT passed TypegenMeta', () => {
     const machine = createMachine({});
 
-    () => {
-      const [state] = useMachine(machine, {});
-      if (state.matches('a')) {
-        return <div>a</div>;
-      }
+    defineComponent({
+      setup: () => {
+        const { state } = useMachine(machine, {});
+        if (state.value.matches('a')) {
+          return { a: 1 };
+        }
 
-      // matches should still be defined
-      if (state.matches('b')) {
-        return <div>b</div>;
+        // matches should still be defined
+        if (state.value.matches('b')) {
+          return { b: 1 };
+        }
       }
-    };
+    });
   });
 });
