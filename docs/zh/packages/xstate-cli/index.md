@@ -1,6 +1,6 @@
 # @xstate/cli
 
-The [@xstate/cli package](https://github.com/statelyai/xstate-vscode/tree/master/apps/cli) contains commands for running typegen. It's pretty small right now, but we're planning on adding many cool features.
+The [@xstate/cli package](https://github.com/statelyai/xstate-tools/tree/master/apps/cli) contains commands for running typegen. It's pretty small right now, but we're planning on adding many cool features.
 
 ## Installation
 
