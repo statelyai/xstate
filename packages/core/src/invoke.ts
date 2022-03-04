@@ -10,21 +10,20 @@ import {
 } from './types';
 
 import { isFunction, mapContext } from './utils';
-import { AnyEventObject } from './types';
-import { StateMachine } from './StateMachine';
 import {
   createMachineBehavior,
   createDeferredBehavior,
   createObservableBehavior,
   createPromiseBehavior
 } from './behaviors';
+import { AnyStateMachine } from '.';
 
 export const DEFAULT_SPAWN_OPTIONS = { sync: false };
 
 export function invokeMachine<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TMachine extends StateMachine<any, any>
+  TMachine extends AnyStateMachine
 >(
   machine:
     | TMachine
@@ -52,13 +51,13 @@ export function invokeMachine<
   };
 }
 
-export function invokePromise<T>(
-  getPromise: (
-    ctx: any,
-    event: AnyEventObject,
-    meta: InvokeMeta
-  ) => PromiseLike<T>
-): BehaviorCreator<any, AnyEventObject> {
+export function invokePromise<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
+  T
+>(
+  getPromise: (ctx: TContext, event: TEvent, meta: InvokeMeta) => PromiseLike<T>
+): BehaviorCreator<TContext, TEvent> {
   return (ctx, e, { data, src, _event, meta }) => {
     const resolvedData = data ? mapContext(data, ctx, _event) : undefined;
 
@@ -72,7 +71,7 @@ export function invokeActivity<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  activityCreator: (ctx: TContext, event: TEvent) => any
+  activityCreator: (ctx: TContext, event: TEvent) => void
 ): BehaviorCreator<TContext, TEvent> {
   const callbackCreator = (ctx: TContext, event: TEvent) => () => {
     return activityCreator(ctx, event);
@@ -83,9 +82,12 @@ export function invokeActivity<
 
 export function invokeCallback<
   TContext extends MachineContext,
-  TEvent extends EventObject = AnyEventObject
+  TEvent extends EventObject
 >(
-  callbackCreator: (ctx: TContext, e: TEvent) => InvokeCallback
+  callbackCreator: (
+    ctx: TContext,
+    e: TEvent
+  ) => InvokeCallback<EventObject, TEvent>
 ): BehaviorCreator<TContext, TEvent> {
   return (ctx, event): Behavior<SCXML.Event<TEvent>, undefined> => {
     const lazyCallback = () => callbackCreator(ctx, event);
@@ -93,8 +95,11 @@ export function invokeCallback<
   };
 }
 
-export function invokeObservable<TEvent extends EventObject = AnyEventObject>(
-  source: (ctx: any, event: any) => Subscribable<TEvent>
+export function invokeObservable<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
+  source: (ctx: TContext, event: TEvent) => Subscribable<TEvent>
 ): BehaviorCreator<any, any> {
   return (ctx, e): Behavior<never, TEvent | undefined> => {
     const resolvedSource = isFunction(source) ? source(ctx, e) : source;

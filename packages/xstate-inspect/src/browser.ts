@@ -1,17 +1,15 @@
 import {
-  interpret,
-  EventObject,
-  Observer,
+  ActorRef,
   AnyInterpreter,
-  ActorRef
-} from 'xstate';
-import { XStateDevInterface } from 'xstate/dev';
-import {
-  toSCXMLEvent,
+  EventObject,
+  interpret,
+  Observer,
   toEventObject,
   toObserver,
-  interopSymbols
-} from 'xstate/src/utils';
+  toSCXMLEvent
+} from 'xstate';
+import { XStateDevInterface } from 'xstate/dev';
+import { toActorRef } from 'xstate/actor';
 import { createInspectMachine, InspectMachineEvent } from './inspectMachine';
 import { stringifyMachine, stringifyState } from './serialize';
 import type {
@@ -255,8 +253,9 @@ export function createWindowReceiver(
 
   ownWindow.addEventListener('message', handler);
 
-  const actorRef: InspectReceiver = {
+  const actorRef: InspectReceiver = toActorRef({
     name: 'xstate.windowReceiver',
+
     send(event) {
       if (!targetWindow) {
         return;
@@ -281,9 +280,8 @@ export function createWindowReceiver(
     },
     getSnapshot() {
       return latestEvent;
-    },
-    ...interopSymbols
-  };
+    }
+  });
 
   actorRef.send({
     type: 'xstate.inspecting'
@@ -300,7 +298,7 @@ export function createWebSocketReceiver(
   const observers = new Set<Observer<ParsedReceiverEvent>>();
   let latestEvent: ParsedReceiverEvent;
 
-  const actorRef: InspectReceiver = {
+  const actorRef: InspectReceiver = toActorRef({
     name: 'xstate.webSocketReceiver',
     send(event) {
       ws.send(stringify(event, options.serialize));
@@ -318,9 +316,8 @@ export function createWebSocketReceiver(
     },
     getSnapshot() {
       return latestEvent;
-    },
-    ...interopSymbols
-  };
+    }
+  });
 
   ws.onopen = () => {
     actorRef.send({

@@ -1,18 +1,18 @@
 import {
-  EventObject,
   InvokeCallback,
   Subscribable,
   Subscription,
   InterpreterOptions,
   Spawnable,
-  Observer,
   Lazy,
   Sender,
   Receiver,
-  ActorRef,
   MachineContext,
   Behavior,
-  ActorContext
+  ActorContext,
+  ActorRef,
+  EventObject,
+  Observer
 } from './types';
 import {
   toSCXMLEvent,
@@ -20,8 +20,7 @@ import {
   isObservable,
   isStateMachine,
   isSCXMLEvent,
-  isFunction,
-  interopSymbols
+  isFunction
 } from './utils';
 import { doneInvoke, error, actionTypes } from './actions';
 import { StateMachine } from './StateMachine';
@@ -166,8 +165,7 @@ export function spawnBehavior<TEvent extends EventObject, TEmitted>(
     },
     stop() {
       mailbox.clear();
-    },
-    ...interopSymbols
+    }
   });
 
   const actorCtx: ActorContext<TEvent, TEmitted> = {
@@ -398,16 +396,16 @@ export function createMachineBehavior<
   TEvent extends EventObject
 >(
   machine:
-    | StateMachine<TContext, TEvent>
-    | Lazy<StateMachine<TContext, TEvent>>,
+    | StateMachine<TContext, TEvent, any, any, any>
+    | Lazy<StateMachine<TContext, TEvent, any, any, any>>,
   options?: Partial<InterpreterOptions>
 ): Behavior<TEvent, State<TContext, TEvent>> {
   const parent = CapturedState.current?.actorRef;
-  let service: Interpreter<TContext, TEvent> | undefined;
+  let service: Interpreter<TContext, TEvent, any> | undefined;
   let subscription: Subscription;
   let resolvedMachine: StateMachine<TContext, TEvent>;
 
-  const behavior: Behavior<TEvent, State<TContext, TEvent>> = {
+  const behavior: Behavior<TEvent, State<TContext, TEvent, any>> = {
     transition: (state, event, actorContext) => {
       resolvedMachine = isFunction(machine) ? machine() : machine;
 

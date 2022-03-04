@@ -1,58 +1,62 @@
-import {
-  Event,
-  EventObject,
-  CancelActionObject,
-  SpecialTargets,
-  SendActionObject,
-  StateValue,
-  InterpreterOptions,
-  DoneEvent,
-  Subscription,
-  ActionFunctionMap,
-  SCXML,
-  Observer,
-  InvokeActionObject,
-  AnyEventObject,
-  ActorRef,
-  SCXMLErrorEvent,
-  InvokeSourceDefinition
-} from './types';
-import { State, isState } from './State';
-import * as actionTypes from './actionTypes';
+import { isExecutableAction } from '../actions/ExecutableAction';
 import { doneInvoke, error } from './actions';
-import { IS_PRODUCTION } from './environment';
-import {
-  mapContext,
-  warn,
-  keys,
-  isFunction,
-  toSCXMLEvent,
-  symbolObservable,
-  isSCXMLErrorEvent,
-  toEventObject
-} from './utils';
+import * as actionTypes from './actionTypes';
 import { isActorRef } from './actor';
-import { isInFinalState } from './stateUtils';
-import { registry } from './registry';
-import type { StateMachine } from './StateMachine';
-import { devToolsAdapter } from './dev';
 import { CapturedState } from './capturedState';
+import { devToolsAdapter } from './dev';
+import { IS_PRODUCTION } from './environment';
+import { Mailbox } from './Mailbox';
+import { registry } from './registry';
+import { isStateConfig, State } from './State';
+import type { StateMachine } from './StateMachine';
+import { isInFinalState } from './stateUtils';
+import {
+  AreAllImplementationsAssumedToBeProvided,
+  TypegenDisabled
+} from './typegenTypes';
 import type {
   ActionFunction,
   BaseActionObject,
   LogActionObject,
   MachineContext,
-  PayloadSender,
-  StopActionObject,
-  Subscribable
+  PayloadSender
 } from './types';
-import { isExecutableAction } from '../actions/ExecutableAction';
-import { Mailbox } from './Mailbox';
+import {
+  ActionFunctionMap,
+  ActorRef,
+  AnyEventObject,
+  CancelActionObject,
+  DoneEvent,
+  Event,
+  EventObject,
+  InteropSubscribable,
+  InterpreterOptions,
+  InvokeActionObject,
+  InvokeSourceDefinition,
+  Observer,
+  SCXML,
+  SCXMLErrorEvent,
+  SendActionObject,
+  SpecialTargets,
+  StateValue,
+  StopActionObject,
+  Subscription
+} from './types';
+import {
+  isFunction,
+  isSCXMLErrorEvent,
+  mapContext,
+  symbolObservable,
+  toEventObject,
+  toSCXMLEvent,
+  warn
+} from './utils';
 
 export type StateListener<
   TContext extends MachineContext,
-  TEvent extends EventObject
-> = (state: State<TContext, TEvent>, event: TEvent) => void;
+  TEvent extends EventObject,
+  TResolvedTypesMeta = TypegenDisabled
+> = (state: State<TContext, TEvent, TResolvedTypesMeta>, event: TEvent) => void;
 
 export type EventListener<TEvent extends EventObject = EventObject> = (
   event: TEvent
@@ -81,26 +85,22 @@ const defaultOptions: InterpreterOptions = ((global) => ({
     clearTimeout: (id) => {
       return clearTimeout(id);
     }
-  },
+  } as Clock,
   logger: global.console.log.bind(console),
   devTools: false
 }))(typeof window === 'undefined' ? global : window);
 
-declare global {
-  interface SymbolConstructor {
-    readonly observable: symbol;
-  }
-}
-
+/** @ts-ignore [symbolObservable] creates problems for people without `skipLibCheck` who are on older versions of TS, remove this comment when we drop support for TS@<4.3 */
 export class Interpreter<
   TContext extends MachineContext,
-  TEvent extends EventObject = EventObject
-> {
+  TEvent extends EventObject = EventObject,
+  TResolvedTypesMeta = TypegenDisabled
+> implements ActorRef<TEvent, State<TContext, TEvent, TResolvedTypesMeta>> {
   /**
    * The current state of the interpreted machine.
    */
-  private _state?: State<TContext, TEvent>;
-  private _initialState?: State<TContext, TEvent>;
+  private _state?: State<TContext, TEvent, TResolvedTypesMeta>;
+  private _initialState?: State<TContext, TEvent, TResolvedTypesMeta>;
   /**
    * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
    */
@@ -108,11 +108,16 @@ export class Interpreter<
   public options: Readonly<InterpreterOptions>;
 
   public id: string;
+
   private mailbox: Mailbox<SCXML.Event<TEvent>> = new Mailbox(
     this._process.bind(this)
   );
+
   private delayedEventsMap: Record<string, number> = {};
-  private listeners: Set<StateListener<TContext, TEvent>> = new Set();
+
+  private listeners: Set<
+    StateListener<TContext, TEvent, TResolvedTypesMeta>
+  > = new Set();
   private stopListeners: Set<Listener> = new Set();
   private errorListeners: Set<ErrorListener> = new Set();
   private doneListeners: Set<EventListener> = new Set();
@@ -140,13 +145,19 @@ export class Interpreter<
    * @param options Interpreter options
    */
   constructor(
-    public machine: StateMachine<TContext, TEvent>,
-    options?: Partial<InterpreterOptions>
+    public machine: StateMachine<
+      TContext,
+      TEvent,
+      any,
+      any,
+      TResolvedTypesMeta
+    >,
+    options?: InterpreterOptions
   ) {
-    const resolvedOptions: InterpreterOptions = {
+    const resolvedOptions = {
       ...defaultOptions,
       ...options
-    };
+    } as Required<InterpreterOptions>;
 
     const { clock, logger, parent, id } = resolvedOptions;
 
@@ -168,7 +179,7 @@ export class Interpreter<
     return this.status === InterpreterStatus.Running;
   }
 
-  public get initialState(): State<TContext, TEvent> {
+  public get initialState(): State<TContext, TEvent, TResolvedTypesMeta> {
     try {
       CapturedState.current = {
         actorRef: this.ref,
@@ -179,6 +190,7 @@ export class Interpreter<
         ((this._initialState = this.machine.getInitialState()),
         this._initialState);
 
+      // TODO: recheck correctness of this code, it seems that it might be possible to reuse cached initialState and thus skip over capturing spawns
       // Ensure that actors are spawned before initial actions
       initialState.actions.unshift(...CapturedState.current.spawns);
       return initialState;
@@ -190,7 +202,7 @@ export class Interpreter<
     }
   }
 
-  public get state(): State<TContext, TEvent> {
+  public get state(): State<TContext, TEvent, TResolvedTypesMeta> {
     return this._state!;
   }
 
@@ -199,13 +211,13 @@ export class Interpreter<
    *
    * @param state The state whose actions will be executed
    */
-  public execute(state: State<TContext, TEvent>): void {
+  public execute(state: State<TContext, TEvent, TResolvedTypesMeta>): void {
     for (const action of state.actions) {
       this.exec(action, state);
     }
   }
 
-  private update(state: State<TContext, TEvent>): void {
+  private update(state: State<TContext, TEvent, any>): void {
     // Attach session ID to state
     state._sessionid = this.sessionId;
 
@@ -250,7 +262,9 @@ export class Interpreter<
    *
    * @param listener The state listener
    */
-  public onTransition(listener: StateListener<TContext, TEvent>): this {
+  public onTransition(
+    listener: StateListener<TContext, TEvent, TResolvedTypesMeta>
+  ): this {
     this.listeners.add(listener);
 
     // Send current state to listener
@@ -262,23 +276,25 @@ export class Interpreter<
   }
 
   public subscribe(
-    nextListener?: (state: State<TContext, TEvent>) => void,
+    observer: Observer<State<TContext, TEvent, TResolvedTypesMeta>>
+  ): Subscription;
+  public subscribe(
+    nextListener?: (state: State<TContext, TEvent, TResolvedTypesMeta>) => void,
     errorListener?: (error: any) => void,
     completeListener?: () => void
   ): Subscription;
-  public subscribe(observer: Observer<State<TContext, TEvent>>): Subscription;
   public subscribe(
     nextListenerOrObserver?:
-      | ((state: State<TContext, TEvent>) => void)
-      | Observer<State<TContext, TEvent>>,
-    errorListener?: (error: Error) => void,
+      | ((state: State<TContext, TEvent, TResolvedTypesMeta>) => void)
+      | Observer<State<TContext, TEvent, TResolvedTypesMeta>>,
+    errorListener?: (error: any) => void,
     completeListener?: () => void
   ): Subscription {
     if (!nextListenerOrObserver) {
       return { unsubscribe: () => void 0 };
     }
 
-    let listener: (state: State<TContext, TEvent>) => void;
+    let listener: (state: State<TContext, TEvent, TResolvedTypesMeta>) => void;
     let resolvedCompleteListener = completeListener;
 
     if (typeof nextListenerOrObserver === 'function') {
@@ -317,6 +333,7 @@ export class Interpreter<
   }
 
   /**
+
    * Adds a listener that is notified when the machine is stopped.
    *
    * @param listener The listener
@@ -352,9 +369,7 @@ export class Interpreter<
    * Adds a state listener that is notified when the statechart has reached its final state.
    * @param listener The state listener
    */
-  public onDone(
-    listener: EventListener<DoneEvent>
-  ): Interpreter<TContext, TEvent> {
+  public onDone(listener: EventListener<DoneEvent>): this {
     this.doneListeners.add(listener);
     return this;
   }
@@ -363,9 +378,7 @@ export class Interpreter<
    * Removes a listener.
    * @param listener The listener to remove
    */
-  public off(
-    listener: (...args: any[]) => void
-  ): Interpreter<TContext, TEvent> {
+  public off(listener: (...args: any[]) => void): this {
     this.listeners.delete(listener);
     this.stopListeners.delete(listener);
     this.doneListeners.delete(listener);
@@ -378,8 +391,8 @@ export class Interpreter<
    * @param initialState The state to start the statechart from
    */
   public start(
-    initialState?: State<TContext, TEvent> | StateValue
-  ): Interpreter<TContext, TEvent> {
+    initialState?: State<TContext, TEvent, TResolvedTypesMeta> | StateValue
+  ): this {
     if (this.status === InterpreterStatus.Running) {
       // Do not restart the service if it is already started
       return this;
@@ -391,8 +404,8 @@ export class Interpreter<
     const resolvedState =
       initialState === undefined
         ? this.initialState
-        : isState<TContext, TEvent>(initialState)
-        ? this.machine.resolveState(initialState)
+        : isStateConfig<TContext, TEvent>(initialState)
+        ? this.machine.resolveState(initialState as any) // TODO: fix this
         : this.machine.resolveState(
             State.from(initialState, this.machine.context)
           );
@@ -424,7 +437,7 @@ export class Interpreter<
    *
    * This will also notify the `onStop` listeners.
    */
-  public stop(): Interpreter<TContext, TEvent> {
+  public stop(): this {
     this.listeners.clear();
     for (const listener of this.stopListeners) {
       // call listener, then remove
@@ -454,7 +467,7 @@ export class Interpreter<
     });
 
     // Cancel all delayed events
-    for (const key of keys(this.delayedEventsMap)) {
+    for (const key of Object.keys(this.delayedEventsMap)) {
       this.clock.clearTimeout(this.delayedEventsMap[key]);
     }
 
@@ -559,7 +572,7 @@ export class Interpreter<
    */
   public nextState(
     event: Event<TEvent> | SCXML.Event<TEvent>
-  ): State<TContext, TEvent> {
+  ): State<TContext, TEvent, TResolvedTypesMeta> {
     const _event = toSCXMLEvent(event);
 
     if (
@@ -708,7 +721,7 @@ export class Interpreter<
   }
   private exec(
     action: InvokeActionObject | BaseActionObject,
-    state: State<TContext, TEvent>
+    state: State<TContext, TEvent, TResolvedTypesMeta>
   ): void {
     const { _event } = state;
 
@@ -783,13 +796,10 @@ export class Interpreter<
     };
   }
 
-  public [symbolObservable](): Subscribable<State<TContext, TEvent>> {
-    return this;
-  }
-
-  // this gets stripped by Babel to avoid having "undefined" property in environments without this non-standard Symbol
-  // it has to be here to be included in the generated .d.ts
-  public [Symbol.observable](): Subscribable<State<TContext, TEvent>> {
+  /** @ts-ignore this creates problems for people without `skipLibCheck` who are on older versions of TS, remove this comment when we drop support for TS@<4.3 */
+  public [symbolObservable](): InteropSubscribable<
+    State<TContext, TEvent, TResolvedTypesMeta>
+  > {
     return this;
   }
 
@@ -809,12 +819,18 @@ export class Interpreter<
  */
 export function interpret<
   TContext extends MachineContext,
-  TEvent extends EventObject = EventObject
+  TEvent extends EventObject = EventObject,
+  TResolvedTypesMeta = TypegenDisabled
 >(
-  machine: StateMachine<TContext, TEvent>,
-  options?: Partial<InterpreterOptions>
+  machine: AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends true
+    ? StateMachine<TContext, TEvent, any, any, TResolvedTypesMeta>
+    : 'Some implementations missing',
+  options?: InterpreterOptions
 ) {
-  const interpreter = new Interpreter<TContext, TEvent>(machine, options);
+  const interpreter = new Interpreter<TContext, TEvent, TResolvedTypesMeta>(
+    machine as any,
+    options
+  );
 
   return interpreter;
 }

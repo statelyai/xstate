@@ -92,8 +92,8 @@ inspect();
   ```ts
   {
     type: 'service.register';
-    machine: StateMachine<any, any, any>;
-    state: State<any, any>;
+    machine: AnyStateMachine;
+    state: AnyState;
     id: string;
     sessionId: string;
     parent?: string;
@@ -115,7 +115,7 @@ inspect();
   ```ts
   {
     type: 'service.state';
-    state: State<any, any>;
+    state: AnyState;
     sessionId: string;
   }
   ```

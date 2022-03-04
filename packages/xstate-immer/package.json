@@ -1,6 +1,6 @@
 {
   "name": "@xstate/immer",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "XState with Immer",
   "keywords": [
     "immer",
@@ -10,7 +10,7 @@
     "statechart"
   ],
   "author": "David Khourshid <davidkpiano@gmail.com>",
-  "homepage": "https://github.com/davidkpiano/xstate/tree/main/packages/xstate-immer#readme",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-immer#readme",
   "license": "MIT",
   "main": "dist/xstate-immer.cjs.js",
   "module": "dist/xstate-immer.esm.js",
@@ -20,16 +20,16 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
   },
   "scripts": {},
   "bugs": {
-    "url": "https://github.com/davidkpiano/xstate/issues"
+    "url": "https://github.com/statelyai/xstate/issues"
   },
   "dependencies": {},
   "peerDependencies": {
     "immer": "^9.0.6",
-    "xstate": "^4.9.1"
+    "xstate": "^4.30.3"
   },
   "devDependencies": {
     "immer": "^9.0.6",

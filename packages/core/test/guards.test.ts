@@ -205,19 +205,22 @@ describe('guard conditions', () => {
               T1: [
                 {
                   target: 'B1',
-                  guard: (_state, _event, { state: s }) => s.matches('A.A1')
+                  guard: (_state: any, _event: any, { state: s }: any) =>
+                    s.matches('A.A1')
                 }
               ],
               T2: [
                 {
                   target: 'B2',
-                  guard: (_state, _event, { state: s }) => s.matches('A.A2')
+                  guard: (_state: any, _event: any, { state: s }: any) =>
+                    s.matches('A.A2')
                 }
               ],
               T3: [
                 {
                   target: 'B3',
-                  guard: (_state, _event, { state: s }) => s.matches('A.A3')
+                  guard: (_state: any, _event: any, { state: s }: any) =>
+                    s.matches('A.A3')
                 }
               ]
             }
@@ -288,7 +291,7 @@ describe('custom guards', () => {
         custom: (ctx, e: Extract<Events, { type: 'EVENT' }>, meta) => {
           const { prop, compare, op } = meta.guard.params;
           if (op === 'greaterThan') {
-            return ctx[prop] + e.value > compare;
+            return ctx[prop as keyof typeof ctx] + e.value > compare;
           }
 
           return false;
@@ -434,11 +437,11 @@ describe('guards with child guards', () => {
                     },
                     { type: 'customGuard' }
                   ],
-                  predicate: (_, __, { guard }) => {
+                  predicate: (_: any, __: any, { guard }: any) => {
                     expect(guard.children).toHaveLength(2);
                     expect(
                       guard.children?.find(
-                        (childGuard) => childGuard.type === 'customGuard'
+                        (childGuard: any) => childGuard.type === 'customGuard'
                       )?.predicate
                     ).toBeInstanceOf(Function);
 

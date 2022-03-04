@@ -1,8 +1,14 @@
 import { WebSocketServer } from 'ws';
-import { ActorRef, EventObject, interpret, Interpreter } from 'xstate';
-import { interopSymbols, toEventObject, toSCXMLEvent } from 'xstate/src/utils';
-
-import { createInspectMachine } from './inspectMachine';
+import {
+  ActorRef,
+  EventObject,
+  interpret,
+  Interpreter,
+  toEventObject,
+  toSCXMLEvent
+} from 'xstate';
+import { toActorRef } from 'xstate/actor';
+import { createInspectMachine, InspectMachineEvent } from './inspectMachine';
 import { Inspector, Replacer } from './types';
 import { stringify } from './utils';
 
@@ -47,7 +53,7 @@ export function inspect(options: ServerInspectorOptions): Inspector {
   const inspectService = interpret(
     createInspectMachine(globalThis.__xstate__, options)
   ).start();
-  const client: ActorRef<any, undefined> = {
+  let client: ActorRef<any, undefined> = toActorRef({
     name: '@@xstate/ws-client',
     send: (event: any) => {
       server.clients.forEach((wsClient) => {
@@ -59,9 +65,8 @@ export function inspect(options: ServerInspectorOptions): Inspector {
     subscribe: () => {
       return { unsubscribe: () => void 0 };
     },
-    getSnapshot: () => undefined,
-    ...interopSymbols
-  };
+    getSnapshot: () => undefined
+  });
 
   server.on('connection', function connection(wsClient) {
     wsClient.on('message', function incoming(data, isBinary) {
@@ -125,9 +130,9 @@ export function inspect(options: ServerInspectorOptions): Inspector {
     });
   });
 
-  const inspector: Inspector = {
+  const inspector: Inspector = toActorRef({
     name: '@@xstate/inspector',
-    send: (event) => {
+    send: (event: InspectMachineEvent) => {
       inspectService.send(event);
     },
     subscribe: () => {
@@ -139,9 +144,8 @@ export function inspect(options: ServerInspectorOptions): Inspector {
       server.close();
       inspectService.stop();
     },
-    getSnapshot: () => undefined,
-    ...interopSymbols
-  };
+    getSnapshot: () => undefined
+  });
 
   server.on('close', () => {
     inspectService.stop();

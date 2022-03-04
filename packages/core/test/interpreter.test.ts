@@ -12,7 +12,8 @@ import {
   createMachine,
   spawnPromise,
   spawnMachine,
-  spawnObservable
+  spawnObservable,
+  AnyState
 } from '../src';
 import { State } from '../src/State';
 import { actionTypes } from '../src/actions';
@@ -129,7 +130,7 @@ describe('interpreter', () => {
       }, 100);
     });
 
-    // https://github.com/davidkpiano/xstate/issues/1174
+    // https://github.com/statelyai/xstate/issues/1174
     it('executes actions from a restored state', (done) => {
       const lightMachine = createMachine(
         {
@@ -226,8 +227,11 @@ describe('interpreter', () => {
 
   describe('send with delay', () => {
     it('can send an event after a delay', () => {
-      const currentStates: Array<State<any>> = [];
-      const listener = (state) => {
+      const currentStates: Array<AnyState> = [];
+
+      const service = interpret(lightMachine, {
+        clock: new SimulatedClock()
+      }).onTransition((state) => {
         currentStates.push(state);
 
         if (currentStates.length === 4) {
@@ -238,11 +242,7 @@ describe('interpreter', () => {
             'green'
           ]);
         }
-      };
-
-      const service = interpret(lightMachine, {
-        clock: new SimulatedClock()
-      }).onTransition(listener);
+      });
       const clock = service.clock as SimulatedClock;
       service.start();
 
@@ -639,12 +639,11 @@ describe('interpreter', () => {
   });
 
   it('can cancel a delayed event', () => {
-    let currentState: State<any>;
-    const listener = (state) => (currentState = state);
+    let currentState: AnyState;
 
     const service = interpret(lightMachine, {
       clock: new SimulatedClock()
-    }).onTransition(listener);
+    }).onTransition((state) => (currentState = state));
     const clock = service.clock as SimulatedClock;
     service.start();
 
@@ -1004,7 +1003,7 @@ describe('interpreter', () => {
         }
       });
 
-      let state: State<any>;
+      let state: AnyState;
 
       interpret(raiseMachine)
         .onTransition((s) => {
@@ -1086,7 +1085,7 @@ describe('interpreter', () => {
           on: {
             EVENT: {
               target: 'active',
-              guard: (_, e: any) => e.id === 42 // TODO: fix unknown event type
+              guard: (_: any, e: any) => e.id === 42 // TODO: fix unknown event type
             },
             ACTIVATE: 'active'
           }
@@ -1654,7 +1653,7 @@ describe('interpreter', () => {
             on: {
               FIRED: {
                 target: 'success',
-                guard: (_, e: AnyEventObject) => {
+                guard: (_: unknown, e: AnyEventObject) => {
                   return e.value === 3;
                 }
               }

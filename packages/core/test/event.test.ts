@@ -25,7 +25,7 @@ describe('SCXML events', () => {
           on: {
             EVENT: {
               target: 'success',
-              guard: (_, __, { _event }) => {
+              guard: (_: any, __: any, { _event }: any) => {
                 return !!_event.origin;
               }
             }

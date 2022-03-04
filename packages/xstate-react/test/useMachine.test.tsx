@@ -1,27 +1,30 @@
-import * as React from 'react';
-import { useMachine, useService, useActor } from '../src';
 import {
-  assign,
-  Interpreter,
-  doneInvoke,
-  State,
-  createMachine,
-  send,
-  spawnPromise,
-  ActorRefFrom,
-  spawn
-} from 'xstate';
-import {
-  render,
+  cleanup,
   fireEvent,
-  waitForElement,
-  cleanup
+  render,
+  waitForElement
 } from '@testing-library/react';
+import * as React from 'react';
 import { useState } from 'react';
-import { invokePromise, invokeCallback, invokeMachine } from 'xstate/invoke';
-import { asEffect, asLayoutEffect } from '../src/useMachine';
-import { DoneEventObject } from 'xstate';
+import {
+  ActorRefFrom,
+  AnyState,
+  assign,
+  createMachine,
+  DoneEventObject,
+  doneInvoke,
+  Interpreter,
+  InterpreterFrom,
+  send,
+  spawn,
+  spawnPromise,
+  State,
+  StateFrom
+} from 'xstate';
 import { createBehaviorFrom } from 'xstate/behaviors';
+import { invokeCallback, invokeMachine, invokePromise } from 'xstate/invoke';
+import { useActor, useMachine } from '../src';
+import { asEffect, asLayoutEffect } from '../src/useMachine';
 
 afterEach(() => {
   cleanup();
@@ -69,7 +72,7 @@ describe('useMachine hook', () => {
 
   const Fetcher: React.FC<{
     onFetch: () => Promise<any>;
-    persistedState?: State<any, any>;
+    persistedState?: AnyState;
   }> = ({
     onFetch = () => {
       console.log('fetching...');
@@ -313,9 +316,9 @@ describe('useMachine hook', () => {
     });
 
     const ServiceApp: React.FC<{
-      service: Interpreter<TestContext, any>;
+      service: InterpreterFrom<typeof machine>;
     }> = ({ service }) => {
-      const [state] = useService(service);
+      const [state] = useActor(service);
 
       if (state.matches('loaded')) {
         const name = state.context.user!.name;
@@ -612,7 +615,7 @@ describe('useMachine hook', () => {
       {
         actions: {
           setup: assign({
-            stuff: (context) => [...context.stuff, 4]
+            stuff: (context: any) => [...context.stuff, 4]
           })
         }
       }
@@ -651,10 +654,10 @@ describe('useMachine hook', () => {
       {
         actions: {
           setup: assign({
-            stuff: (context) => [...context.stuff, 4]
+            stuff: (context: any) => [...context.stuff, 4]
           }),
           increase: assign({
-            counter: (context) => ++context.counter
+            counter: (context: any) => ++context.counter
           })
         }
       }
@@ -890,7 +893,7 @@ describe('useMachine hook', () => {
       }
     });
 
-    const App = ({ isAwesome }) => {
+    const App = ({ isAwesome }: { isAwesome: boolean }) => {
       const [state, send] = useMachine(machine, {
         guards: {
           isAwesome: () => isAwesome
@@ -1032,7 +1035,7 @@ describe('useMachine (strict mode)', () => {
     done();
   });
 
-  // https://github.com/davidkpiano/xstate/issues/1334
+  // https://github.com/statelyai/xstate/issues/1334
   it('delayed transitions should work when initializing from a rehydrated state', () => {
     jest.useFakeTimers();
     try {
@@ -1056,7 +1059,7 @@ describe('useMachine (strict mode)', () => {
 
       const persistedState = JSON.stringify(testMachine.initialState);
 
-      let currentState;
+      let currentState: StateFrom<typeof testMachine>;
 
       const Test = () => {
         const [state, send] = useMachine(testMachine, {
@@ -1082,7 +1085,7 @@ describe('useMachine (strict mode)', () => {
 
       jest.advanceTimersByTime(110);
 
-      expect(currentState.matches('idle')).toBe(true);
+      expect(currentState!.matches('idle')).toBe(true);
     } finally {
       jest.useRealTimers();
     }

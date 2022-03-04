@@ -1,9 +1,8 @@
-// @ts-nocheck todo
-import WebSocket from 'ws';
-import { createMachine, interpret, send } from 'xstate';
-import { toSCXMLEvent } from 'xstate/src/utils';
+// TODO: create preconstruct entrypoint or something
 import { inspect } from '@xstate/inspect/src/server';
-import { invokeCallback } from 'xstate/src/invoke';
+import WebSocket from 'ws';
+import { createMachine, interpret, send, toSCXMLEvent } from 'xstate';
+import { invokeCallback } from 'xstate/invoke';
 
 inspect({
   server: new WebSocket.Server({

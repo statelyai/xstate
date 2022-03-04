@@ -9,7 +9,8 @@ import {
   createMachine,
   ActorContext,
   Behavior,
-  SpecialTargets
+  SpecialTargets,
+  AnyState
 } from '../src';
 import { fromReducer } from '../src/behaviors';
 import {
@@ -50,7 +51,7 @@ const fetchMachine = createMachine<{ userId: string | undefined }>({
     },
     success: {
       type: 'final',
-      data: { user: (_, e) => e.user }
+      data: { user: (_: any, e: any) => e.user }
     },
     failure: {
       entry: sendParent('REJECT')
@@ -76,7 +77,7 @@ const fetcherMachine = createMachine({
       invoke: {
         src: invokeMachine(fetchMachine),
         data: {
-          userId: (ctx) => ctx.selectedUserId
+          userId: (ctx: any) => ctx.selectedUserId
         },
         onDone: {
           target: 'received',
@@ -292,15 +293,14 @@ describe('invoke', () => {
                 guard: (ctx) => {
                   actual.push('child got INCREMENT');
                   return ctx.count >= 2;
-                }
+                },
+                actions: assign((ctx) => ({ count: ++ctx.count }))
               },
               {
-                target: undefined
+                target: undefined,
+                actions: assign((ctx) => ({ count: ++ctx.count }))
               }
-            ].map((transition) => ({
-              ...transition,
-              actions: assign((ctx) => ({ count: ++ctx.count }))
-            }))
+            ]
           }
         },
         done: {
@@ -701,7 +701,7 @@ describe('invoke', () => {
       });
 
       const expectedStateValue = 'two';
-      let currentState;
+      let currentState: AnyState;
       interpret(mainMachine)
         .onTransition((current) => (currentState = current))
         .start();
@@ -756,7 +756,7 @@ describe('invoke', () => {
     });
 
     it('should not reinvoke root-level invocations', (done) => {
-      // https://github.com/davidkpiano/xstate/issues/2147
+      // https://github.com/statelyai/xstate/issues/2147
 
       let invokeCount = 0;
       let invokeDisposeCount = 0;
@@ -1288,7 +1288,7 @@ describe('invoke', () => {
           },
           {
             actors: {
-              somePromise: invokePromise((ctx, e: BeginEvent) => {
+              somePromise: invokePromise((ctx, e) => {
                 return createPromise((resolve, reject) => {
                   ctx.foo && e.payload ? resolve() : reject();
                 });
@@ -1354,24 +1354,22 @@ describe('invoke', () => {
         },
         {
           actors: {
-            someCallback: invokeCallback(
-              (ctx, e: BeginEvent) => (cb: (ev: CallbackEvent) => void) => {
-                if (ctx.foo && e.payload) {
-                  cb({
-                    type: 'CALLBACK',
-                    data: 40
-                  });
-                  cb({
-                    type: 'CALLBACK',
-                    data: 41
-                  });
-                  cb({
-                    type: 'CALLBACK',
-                    data: 42
-                  });
-                }
+            someCallback: invokeCallback((ctx, e) => (cb) => {
+              if (ctx.foo && e.type === 'BEGIN') {
+                cb({
+                  type: 'CALLBACK',
+                  data: 40
+                });
+                cb({
+                  type: 'CALLBACK',
+                  data: 41
+                });
+                cb({
+                  type: 'CALLBACK',
+                  data: 42
+                });
               }
-            )
+            })
           }
         }
       );
@@ -1626,11 +1624,8 @@ describe('invoke', () => {
       });
 
       const expectedStateValue = 'failed';
-      let currentState;
-      interpret(errorMachine)
-        .onTransition((current) => (currentState = current))
-        .start();
-      expect(currentState.value).toEqual(expectedStateValue);
+      const service = interpret(errorMachine).start();
+      expect(service.state.value).toEqual(expectedStateValue);
     });
 
     it('should call onError upon error (async)', (done) => {
@@ -2906,7 +2901,7 @@ describe('services option', () => {
               src: 'stringService',
               data: {
                 staticVal: 'hello',
-                newCount: (ctx) => ctx.count * 2
+                newCount: (ctx: any) => ctx.count * 2
               },
               onDone: 'success'
             }

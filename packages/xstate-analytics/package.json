@@ -12,7 +12,7 @@
     "analytics"
   ],
   "author": "David Khourshid <davidkpiano@gmail.com>",
-  "homepage": "https://github.com/davidkpiano/xstate/tree/main/packages/xstate-analytics#readme",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-analytics#readme",
   "license": "MIT",
   "main": "dist/xstate-analytics.cjs.js",
   "module": "dist/xstate-analytics.esm.js",
@@ -22,14 +22,14 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
   },
   "scripts": {},
   "bugs": {
-    "url": "https://github.com/davidkpiano/xstate/issues"
+    "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "xstate": "^4.7.0-rc"
+    "xstate": "^4.30.3"
   },
   "devDependencies": {
     "xstate": "*"

@@ -1,9 +1,16 @@
+import { act, fireEvent, render } from '@testing-library/react';
 import * as React from 'react';
-import { ActorRef, assign, createMachine, interpret, spawn } from 'xstate';
-import { act, render, fireEvent } from '@testing-library/react';
-import { useInterpret, useMachine, useSelector } from '../src';
-import { createMachineBehavior } from 'xstate/behaviors';
+import {
+  ActorRefFrom,
+  assign,
+  createMachine,
+  interpret,
+  spawn,
+  StateFrom
+} from 'xstate';
 import { toActorRef } from 'xstate/actor';
+import { createMachineBehavior } from 'xstate/behaviors';
+import { useInterpret, useMachine, useSelector } from '../src';
 
 describe('useSelector', () => {
   it('only rerenders for selected values', () => {
@@ -153,12 +160,17 @@ describe('useSelector', () => {
     });
 
     const parentMachine = createMachine({
+      schema: {
+        context: {} as {
+          childActor: ActorRefFrom<typeof childMachine>;
+        }
+      },
       context: () => ({
         childActor: spawn(createMachineBehavior(childMachine))
       })
     });
-
-    const selector = (state) => state.context.count;
+    const selector = (state: StateFrom<typeof childMachine>) =>
+      state.context.count;
 
     const App = () => {
       const [state] = useMachine(parentMachine);
@@ -200,6 +212,11 @@ describe('useSelector', () => {
     });
 
     const parentMachine = createMachine({
+      schema: {
+        context: {} as {
+          childActor: ReturnType<typeof createActor>;
+        }
+      },
       context: () => ({
         childActor: createActor('foo')
       })
@@ -242,6 +259,11 @@ describe('useSelector', () => {
     });
 
     const parentMachine = createMachine({
+      schema: {
+        context: {} as {
+          childActor: ActorRefFrom<typeof childMachine>;
+        }
+      },
       context: () => ({
         childActor: spawn(createMachineBehavior(childMachine))
       })
@@ -281,6 +303,11 @@ describe('useSelector', () => {
     });
 
     const parentMachine = createMachine({
+      schema: {
+        context: {} as {
+          childActor: ActorRefFrom<typeof childMachine>;
+        }
+      },
       context: () => ({
         childActor: spawn(createMachineBehavior(childMachine))
       })
@@ -327,9 +354,12 @@ describe('useSelector', () => {
       latestValue
     });
 
-    const parentMachine = createMachine<{
-      childActor: ActorRef<never, string>;
-    }>({
+    const parentMachine = createMachine({
+      schema: {
+        context: {} as {
+          childActor: ReturnType<typeof createActor>;
+        }
+      },
       context: () => ({
         childActor: createActor('foo')
       })

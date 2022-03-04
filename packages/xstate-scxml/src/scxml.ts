@@ -7,9 +7,9 @@ import {
   ChooseCondition,
   createMachine,
   BaseActionObject,
-  StateMachine
+  AnyStateMachine
 } from 'xstate';
-import { mapValues, keys, isString, flatten } from 'xstate/src/utils';
+import { mapValues, isString, flatten } from 'xstate/src/utils';
 import * as actions from 'xstate/actions';
 import { invokeMachine } from 'xstate/invoke';
 import { not, stateIn } from 'xstate/guards';
@@ -105,7 +105,7 @@ const evaluateExecutableContent = <
   body: string
 ) => {
   const datamodel = context
-    ? keys(context)
+    ? Object.keys(context)
         .map((key) => `const ${key} = context['${key}'];`)
         .join('\n')
     : '';
@@ -479,7 +479,7 @@ export interface ScxmlToMachineOptions {
 function scxmlToMachine(
   scxmlJson: XMLElement,
   options: ScxmlToMachineOptions
-): StateMachine {
+): AnyStateMachine {
   const machineElement = scxmlJson.elements!.find(
     (element) => element.name === 'scxml'
   ) as XMLElement;
@@ -520,7 +520,7 @@ function scxmlToMachine(
 export function toMachine(
   xml: string,
   options: ScxmlToMachineOptions
-): StateMachine {
+): AnyStateMachine {
   const json = xml2js(xml) as XMLElement;
   return scxmlToMachine(json, options);
 }

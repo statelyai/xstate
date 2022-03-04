@@ -3,7 +3,6 @@ import {
   mapValues,
   flatten,
   toArray,
-  keys,
   isString,
   toInvokeConfig,
   toInvokeSource,
@@ -12,7 +11,6 @@ import {
 } from './utils';
 import type {
   Event,
-  Transitions,
   EventObject,
   HistoryStateNodeConfig,
   StateNodeDefinition,
@@ -53,7 +51,7 @@ interface StateNodeOptions<
 > {
   _key: string;
   _parent?: StateNode<TContext, TEvent>;
-  _machine: StateMachine<TContext, TEvent>;
+  _machine: StateMachine<TContext, TEvent, any, any, any>;
 }
 
 export class StateNode<
@@ -108,7 +106,7 @@ export class StateNode<
   /**
    * The root machine node.
    */
-  public machine: StateMachine<TContext, TEvent>;
+  public machine: StateMachine<TContext, TEvent, any, any>;
   /**
    * The meta data associated with this state node, which will be returned in State instances.
    */
@@ -146,7 +144,7 @@ export class StateNode<
       [this.machine.key, ...this.path].join(this.machine.delimiter);
     this.type =
       this.config.type ||
-      (this.config.states && keys(this.config.states).length
+      (this.config.states && Object.keys(this.config.states).length
         ? 'compound'
         : this.config.history
         ? 'history'
@@ -342,10 +340,7 @@ export class StateNode<
     return this.events.includes(eventType);
   }
 
-  public next(
-    state: State<TContext, TEvent>,
-    _event: SCXML.Event<TEvent>
-  ): Transitions<TContext, TEvent> | undefined {
+  public next(state: State<TContext, TEvent>, _event: SCXML.Event<TEvent>) {
     const eventName = _event.name;
     const actions: BaseActionObject[] = [];
 
@@ -419,7 +414,7 @@ export class StateNode<
    */
   public get stateIds(): string[] {
     const childStateIds = flatten(
-      keys(this.states).map((stateKey) => {
+      Object.keys(this.states).map((stateKey) => {
         return this.states[stateKey].stateIds;
       })
     );
@@ -435,7 +430,7 @@ export class StateNode<
       const events = new Set(this.ownEvents);
 
       if (states) {
-        for (const stateId of keys(states)) {
+        for (const stateId of Object.keys(states)) {
           const state = states[stateId];
           if (state.states) {
             for (const event of state.events) {

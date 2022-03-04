@@ -2,17 +2,26 @@ import { isBuiltInEvent, isFunction, toSCXMLEvent } from './utils';
 import type {
   Event,
   StateValue,
-  MachineImplementations,
+  MachineImplementationsSimplified,
   EventObject,
   MachineConfig,
   SCXML,
-  Transitions,
   MachineSchema,
   StateNodeDefinition,
   MachineContext,
   MaybeLazy,
-  StateConfig
+  StateConfig,
+  InternalMachineImplementations,
+  BaseActionObject,
+  ActorMap,
+  Transitions
 } from './types';
+import type {
+  AreAllImplementationsAssumedToBeProvided,
+  MarkAllImplementationsAsProvided,
+  ResolveTypegenMeta,
+  TypegenDisabled
+} from './typegenTypes';
 import { State } from './State';
 
 import { IS_PRODUCTION } from './environment';
@@ -28,20 +37,19 @@ import {
 } from './stateUtils';
 import { getStateNodes, transitionNode, resolveStateValue } from './stateUtils';
 import { StateNode } from './StateNode';
+import { AnyStateMachine } from '.';
 
 export const NULL_EVENT = '';
 export const STATE_IDENTIFIER = '#';
 export const WILDCARD = '*';
 
-function createDefaultOptions<TContext extends MachineContext>(
-  context: TContext
-): MachineImplementations<TContext, any> {
+function createDefaultOptions() {
   return {
     actions: {},
-    guards: {},
     actors: {},
     delays: {},
-    context
+    guards: {},
+    context: {}
   };
 }
 
@@ -60,8 +68,16 @@ function resolveContext<TContext>(
 }
 
 export class StateMachine<
-  TContext extends MachineContext = any,
-  TEvent extends EventObject = EventObject
+  TContext extends MachineContext,
+  TEvent extends EventObject = EventObject,
+  TAction extends BaseActionObject = BaseActionObject,
+  TActorMap extends ActorMap = ActorMap,
+  TResolvedTypesMeta = ResolveTypegenMeta<
+    TypegenDisabled,
+    TEvent,
+    TAction,
+    TActorMap
+  >
 > {
   private _context: () => TContext;
   public get context(): TContext {
@@ -80,7 +96,7 @@ export class StateMachine<
    */
   public delimiter: string;
 
-  public options: MachineImplementations<TContext, TEvent>;
+  public options: MachineImplementationsSimplified<TContext, TEvent>;
 
   public schema: MachineSchema<TContext, TEvent>;
 
@@ -99,14 +115,11 @@ export class StateMachine<
     /**
      * The raw config used to create the machine.
      */
-    public config: MachineConfig<TContext, TEvent>,
-    options?: Partial<MachineImplementations<TContext, TEvent>>
+    public config: MachineConfig<TContext, TEvent, any, any, any>,
+    options?: MachineImplementationsSimplified<TContext, TEvent>
   ) {
     this.key = config.key || config.id || '(machine)';
-    this.options = Object.assign(
-      createDefaultOptions(config.context!),
-      options
-    );
+    this.options = Object.assign(createDefaultOptions(), options);
     this._context = isFunction(config.context)
       ? config.context
       : () => config.context as TContext;
@@ -138,8 +151,21 @@ export class StateMachine<
    * @returns A new `StateMachine` instance with the provided implementations.
    */
   public provide(
-    implementations: Partial<MachineImplementations<TContext, TEvent>>
-  ): StateMachine<TContext, TEvent> {
+    implementations: InternalMachineImplementations<
+      TContext,
+      TEvent,
+      TResolvedTypesMeta,
+      true
+    > & { context?: MaybeLazy<Partial<TContext>> }
+  ): StateMachine<
+    TContext,
+    TEvent,
+    TAction,
+    TActorMap,
+    AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
+      ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
+      : TResolvedTypesMeta
+  > {
     const { actions, guards, actors, delays } = this.options;
 
     return new StateMachine(this.config, {
@@ -147,7 +173,7 @@ export class StateMachine<
       guards: { ...guards, ...implementations.guards },
       actors: { ...actors, ...implementations.actors },
       delays: { ...delays, ...implementations.delays },
-      context: implementations.context
+      context: implementations.context!
     });
   }
 
@@ -158,12 +184,11 @@ export class StateMachine<
    *
    * @param context Custom context (will override predefined context, not recursive)
    */
-  public withContext(
-    context: Partial<TContext>
-  ): StateMachine<TContext, TEvent> {
+  public withContext(context: Partial<TContext>): this;
+  public withContext(context: Partial<TContext>): AnyStateMachine {
     return this.provide({
       context
-    });
+    } as any);
   }
 
   /**
@@ -173,7 +198,9 @@ export class StateMachine<
    *
    * @param state The state to resolve
    */
-  public resolveState(state: State<TContext, TEvent>): typeof state {
+  public resolveState(
+    state: State<TContext, TEvent, TResolvedTypesMeta>
+  ): typeof state {
     const configuration = Array.from(
       getConfiguration(getStateNodes(this.root, state.value))
     );
@@ -192,9 +219,10 @@ export class StateMachine<
    * @param event The received event
    */
   public transition(
-    state: StateValue | State<TContext, TEvent> = this.initialState,
+    state: StateValue | State<TContext, TEvent, TResolvedTypesMeta> = this
+      .initialState,
     event: Event<TEvent> | SCXML.Event<TEvent>
-  ): State<TContext, TEvent> {
+  ): State<TContext, TEvent, TResolvedTypesMeta> {
     const currentState = toState(state, this);
 
     return macrostep(currentState, event, this);
@@ -208,9 +236,10 @@ export class StateMachine<
    * @param event The received event
    */
   public microstep(
-    state: StateValue | State<TContext, TEvent> = this.initialState,
+    state: StateValue | State<TContext, TEvent, TResolvedTypesMeta> = this
+      .initialState,
     event: Event<TEvent> | SCXML.Event<TEvent>
-  ): State<TContext, TEvent> {
+  ): State<TContext, TEvent, TResolvedTypesMeta> {
     const resolvedState = toState(state, this);
     const _event = toSCXMLEvent(event);
 
@@ -235,7 +264,7 @@ export class StateMachine<
   }
 
   public getTransitionData(
-    state: State<TContext, TEvent>,
+    state: State<TContext, TEvent, TResolvedTypesMeta>,
     _event: SCXML.Event<TEvent>
   ): Transitions<TContext, TEvent> {
     return transitionNode(this.root, state.value, state, _event) || [];
@@ -244,7 +273,7 @@ export class StateMachine<
   /**
    * The initial state _before_ evaluating any microsteps.
    */
-  private get preInitialState(): State<TContext, TEvent> {
+  private get preInitialState(): State<TContext, TEvent, TResolvedTypesMeta> {
     const preInitial = this.resolveState(
       State.from(
         getStateValue(this.root, getConfiguration([this.root])),
@@ -260,7 +289,7 @@ export class StateMachine<
    * The initial State instance, which includes all actions to be executed from
    * entering the initial state.
    */
-  public get initialState(): State<TContext, TEvent> {
+  public get initialState(): State<TContext, TEvent, TResolvedTypesMeta> {
     const nextState = resolveMicroTransition(
       this,
       [],
@@ -273,14 +302,18 @@ export class StateMachine<
   /**
    * Returns the initial `State` instance, with reference to `self` as an `ActorRef`.
    */
-  public getInitialState(): State<TContext, TEvent> {
+  public getInitialState(): State<TContext, TEvent, TResolvedTypesMeta> {
     const nextState = resolveMicroTransition(
       this,
       [],
       this.preInitialState,
       undefined
     );
-    return macrostep(nextState, null as any, this) as State<TContext, TEvent>;
+    return macrostep(nextState, null as any, this) as State<
+      TContext,
+      TEvent,
+      TResolvedTypesMeta
+    >;
   }
 
   public getStateNodeById(stateId: string): StateNode<TContext, TEvent> {
@@ -308,13 +341,30 @@ export class StateMachine<
   }
 
   public createState(
-    stateConfig: State<TContext, TEvent> | StateConfig<TContext, TEvent>
-  ): State<TContext, TEvent> {
+    stateConfig:
+      | State<TContext, TEvent, TResolvedTypesMeta>
+      | StateConfig<TContext, TEvent>
+  ): State<TContext, TEvent, TResolvedTypesMeta> {
     const state =
       stateConfig instanceof State
         ? stateConfig
-        : (new State(stateConfig) as State<TContext, TEvent>);
+        : (new State(stateConfig) as State<
+            TContext,
+            TEvent,
+            TResolvedTypesMeta
+          >);
     state.machine = this;
     return state;
   }
+
+  /**@deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
+  __TContext!: TContext;
+  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
+  __TEvent!: TEvent;
+  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
+  __TAction!: TAction;
+  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
+  __TActorMap!: TActorMap;
+  /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
+  __TResolvedTypesMeta!: TResolvedTypesMeta;
 }

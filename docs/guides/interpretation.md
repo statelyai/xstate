@@ -139,7 +139,6 @@ The `.onTransition()` callback will not run between eventless ("always") transit
 Microsteps are the intermediate transitions between macrosteps.
 :::
 
-
 ## Starting and Stopping
 
 The service can be initialized (i.e., started) and stopped with `.start()` and `.stop()`. Calling `.start()` will immediately transition the service to its initial state. Calling `.stop()` will remove all listeners from the service, and do any listener cleanup, if applicable.

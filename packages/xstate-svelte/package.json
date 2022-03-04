@@ -1,6 +1,6 @@
 {
   "name": "@xstate/svelte",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "XState tools for Svelte",
   "keywords": [
     "state",
@@ -13,7 +13,7 @@
     "store"
   ],
   "author": "David Khourshid <davidkpiano@gmail.com>",
-  "homepage": "https://github.com/davidkpiano/xstate/tree/main/packages/xstate-svelte#readme",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-svelte#readme",
   "license": "MIT",
   "main": "dist/xstate-svelte.cjs.js",
   "module": "dist/xstate-svelte.esm.js",
@@ -24,16 +24,18 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
   },
-  "scripts": {},
+  "scripts": {
+    "svelte-check": "svelte-check"
+  },
   "bugs": {
-    "url": "https://github.com/davidkpiano/xstate/issues"
+    "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "@xstate/fsm": "^1.0.0",
+    "@xstate/fsm": "^1.6.5",
     "svelte": "^3.24.1",
-    "xstate": "^4.11.0"
+    "xstate": "^4.30.3"
   },
   "peerDependenciesMeta": {
     "@xstate/fsm": {
@@ -49,6 +51,7 @@
     "@types/jest": "^24.0.23",
     "@xstate/fsm": "*",
     "svelte": "^3.24.1",
+    "svelte-check": "^2.4.5",
     "svelte-jester": "^1.1.2",
     "svelte-preprocess": "^4.0.10",
     "typescript": "^4.5.2",

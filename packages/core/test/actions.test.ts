@@ -606,7 +606,7 @@ describe('entry/exit actions', () => {
   });
 
   describe('when reaching a final state', () => {
-    // https://github.com/davidkpiano/xstate/issues/1109
+    // https://github.com/statelyai/xstate/issues/1109
     it('exit actions should be called when invoked machine reaches its final state', (done) => {
       let exitCalled = false;
       let childExitCalled = false;
@@ -1188,7 +1188,7 @@ describe('purely defined actions', () => {
           },
           EACH: {
             actions: pure<any, any>((ctx) =>
-              ctx.items.map((item, index) => ({
+              ctx.items.map((item: any, index: number) => ({
                 type: 'EVENT',
                 params: { item, index }
               }))
@@ -1709,7 +1709,7 @@ describe('choose', () => {
 });
 
 describe('sendParent', () => {
-  // https://github.com/davidkpiano/xstate/issues/711
+  // https://github.com/statelyai/xstate/issues/711
   it('TS: should compile for any event', () => {
     interface ChildContext {}
     interface ChildEvent {
@@ -1752,7 +1752,7 @@ describe('sendTo', () => {
       context: () => ({
         child: spawn(createMachineBehavior(childMachine))
       }),
-      entry: sendTo((ctx) => ctx.child, { type: 'EVENT' })
+      entry: sendTo((ctx) => ctx.child as any, { type: 'EVENT' })
     });
 
     interpret(parentMachine).start();
@@ -1782,7 +1782,7 @@ describe('sendTo', () => {
         count: 42
       }),
       entry: sendTo(
-        (ctx) => ctx.child,
+        (ctx) => ctx.child as any,
         (ctx) => ({ type: 'EVENT', count: ctx.count })
       )
     });

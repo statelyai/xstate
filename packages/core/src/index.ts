@@ -1,40 +1,67 @@
-import { matchesState } from './utils';
-import { mapState } from './mapState';
-import { StateNode } from './StateNode';
-import { State } from './State';
-import { createMachine } from './Machine';
 import {
-  sendParent,
-  sendTo,
-  sendUpdate,
   after,
   done,
-  respond,
   doneInvoke,
+  escalate,
   forwardTo,
-  escalate
+  respond,
+  sendParent,
+  sendTo,
+  sendUpdate
 } from './actions';
-import { raise } from './actions/raise';
-import { choose } from './actions/choose';
 import { assign } from './actions/assign';
-import { pure } from './actions/pure';
-import { send } from './actions/send';
 import { cancel } from './actions/cancel';
-import { stop } from './actions/stop';
+import { choose } from './actions/choose';
 import { log } from './actions/log';
+import { pure } from './actions/pure';
+import { raise } from './actions/raise';
+import { send } from './actions/send';
+import { stop } from './actions/stop';
 import { interpret, Interpreter, InterpreterStatus } from './interpreter';
+import { createMachine } from './Machine';
+import { mapState } from './mapState';
 import { matchState } from './match';
-export { StateMachine } from './StateMachine';
-export { SimulatedClock } from './SimulatedClock';
+import { State } from './State';
+import { StateNode } from './StateNode';
 export {
   spawn,
+  spawnCallback,
   spawnFrom,
   spawnMachine,
-  spawnPromise,
   spawnObservable,
-  spawnCallback
+  spawnPromise
 } from './actor';
-export { createSchema } from './schema';
+export { createSchema, t } from './schema';
+export { SimulatedClock } from './SimulatedClock';
+export { StateMachine } from './StateMachine';
+export { getStateNodes } from './stateUtils';
+export * from './typegenTypes';
+export * from './types';
+// TODO: decide from where those should be exported
+export {
+  matchesState,
+  pathToStateValue,
+  toEventObject,
+  toObserver,
+  toSCXMLEvent
+} from './utils';
+export {
+  StateNode,
+  State,
+  mapState,
+  actions,
+  assign,
+  send,
+  sendParent,
+  sendUpdate,
+  forwardTo,
+  interpret,
+  Interpreter,
+  InterpreterStatus,
+  matchState,
+  doneInvoke,
+  createMachine
+};
 
 const actions = {
   raise,
@@ -55,27 +82,8 @@ const actions = {
   pure
 };
 
-export {
-  StateNode,
-  State,
-  matchesState,
-  mapState,
-  actions,
-  assign,
-  send,
-  sendParent,
-  sendUpdate,
-  forwardTo,
-  interpret,
-  Interpreter,
-  InterpreterStatus,
-  matchState,
-  doneInvoke,
-  createMachine
-};
-
-export * from './types';
-
-// TODO: decide from where those should be exported
-export { pathToStateValue, flatten, keys } from './utils';
-export { getStateNodes } from './stateUtils';
+declare global {
+  interface SymbolConstructor {
+    readonly observable: symbol;
+  }
+}

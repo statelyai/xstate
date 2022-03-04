@@ -10,12 +10,12 @@
 <script lang="ts">
 import { defineComponent, onMounted, PropType } from 'vue';
 import { useActor } from '../src';
-import { ActorRefFrom } from 'xstate';
+import { ActorRefFrom, AnyStateMachine } from 'xstate';
 
 export default defineComponent({
   props: {
     actor: {
-      type: Object as PropType<ActorRefFrom<any>>
+      type: Object as PropType<ActorRefFrom<AnyStateMachine>>
     }
   },
   setup(props) {

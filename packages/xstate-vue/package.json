@@ -1,6 +1,6 @@
 {
   "name": "@xstate/vue",
-  "version": "0.8.1",
+  "version": "1.0.0",
   "description": "XState tools for Vue",
   "keywords": [
     "state",
@@ -13,7 +13,7 @@
     "composable"
   ],
   "author": "David Khourshid <davidkpiano@gmail.com>",
-  "homepage": "https://github.com/davidkpiano/xstate/tree/main/packages/xstate-vue#readme",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-vue#readme",
   "license": "MIT",
   "main": "dist/xstate-vue.cjs.js",
   "module": "dist/xstate-vue.esm.js",
@@ -24,16 +24,16 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
   },
   "scripts": {},
   "bugs": {
-    "url": "https://github.com/davidkpiano/xstate/issues"
+    "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "@xstate/fsm": "^1.0.0",
+    "@xstate/fsm": "^1.6.5",
     "vue": "^3.0.0",
-    "xstate": "^4.7.8"
+    "xstate": "^4.30.3"
   },
   "peerDependenciesMeta": {
     "@xstate/fsm": {

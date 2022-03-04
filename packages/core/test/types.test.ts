@@ -1,8 +1,18 @@
-import { assign, createMachine } from '../src/index';
+import { from } from 'rxjs';
 import { raise } from '../src/actions/raise';
+import { createMachineBehavior } from '../src/behaviors';
+import {
+  ActorRefFrom,
+  assign,
+  createMachine,
+  interpret,
+  MachineContext,
+  spawn,
+  StateMachine
+} from '../src/index';
 import { createModel } from '../src/model';
 
-function noop(_x) {
+function noop(_x: unknown) {
   return;
 }
 
@@ -232,5 +242,106 @@ describe('types', () => {
   it('defined context passed to createModel() should be an object', () => {
     // @ts-expect-error
     createModel('string');
+  });
+});
+
+describe('context', () => {
+  it('should infer context type from `config.context` when there is no `schema.context`', () => {
+    createMachine(
+      {
+        context: {
+          foo: 'test'
+        }
+      },
+      {
+        actions: {
+          someAction: (ctx) => {
+            ((_accept: string) => {})(ctx.foo);
+            // @ts-expect-error
+            ((_accept: number) => {})(ctx.foo);
+          }
+        }
+      }
+    );
+  });
+
+  it('should not use actions as possible inference sites', () => {
+    createMachine(
+      {
+        schema: {
+          context: {} as {
+            count: number;
+          }
+        },
+        entry: (_ctx: any) => {}
+      },
+      {
+        actions: {
+          someAction: (ctx) => {
+            ((_accept: number) => {})(ctx.count);
+            // @ts-expect-error
+            ((_accept: string) => {})(ctx.count);
+          }
+        }
+      }
+    );
+  });
+
+  it('should work with generic context', () => {
+    function createMachineWithExtras<TContext extends MachineContext>(
+      context: TContext
+    ): StateMachine<TContext, any, any> {
+      return createMachine({ context });
+    }
+
+    createMachineWithExtras({ counter: 42 });
+  });
+
+  it('should not widen literal types defined in `schema.context` based on `config.context`', () => {
+    createMachine({
+      schema: {
+        context: {} as {
+          literalTest: 'foo' | 'bar';
+        }
+      },
+      context: {
+        // @ts-expect-error
+        literalTest: 'anything'
+      }
+    });
+  });
+});
+
+describe('interpreter', () => {
+  it('should be convertable to Rx observable', () => {
+    const state$ = from(
+      interpret(
+        createMachine({
+          schema: {
+            context: {} as { count: number }
+          }
+        })
+      )
+    );
+
+    state$.subscribe((state) => {
+      ((_val: number) => {})(state.context.count);
+      // @ts-expect-error
+      ((_val: string) => {})(state.context.count);
+    });
+  });
+});
+
+describe('spawn', () => {
+  it('spawned actor ref should be compatible with the result of ActorRefFrom', () => {
+    const createChild = () => createMachine({});
+
+    function createParent(_deps: {
+      spawnChild: () => ActorRefFrom<typeof createChild>;
+    }) {}
+
+    createParent({
+      spawnChild: () => spawn(createMachineBehavior(createChild()))
+    });
   });
 });
