@@ -64,7 +64,7 @@
     "babel-core": "^6.26.3",
     "jest": "^26.6.3",
     "lerna-alias": "3.0.3-0",
-    "rollup": "^2.35.1",
+    "rollup": "^2.69.0",
     "rollup-plugin-terser": "^5.1.2",
     "rollup-plugin-typescript2": "^0.30.0",
     "ts-jest": "^26.5.6",
