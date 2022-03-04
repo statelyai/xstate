@@ -1,5 +1,11 @@
 # xstate
 
+## 4.30.5
+
+### Patch Changes
+
+- [#3118](https://github.com/statelyai/xstate/pull/3118) [`28e353081`](https://github.com/statelyai/xstate/commit/28e3530818e1d800eba7b6d821bde0c0048f0579) Thanks [@Andarist](https://github.com/Andarist)! - Fixed a bundling issue that prevented the `keys()` export to be preserved in the previous release.
+
 ## 4.30.4
 
 ### Patch Changes
