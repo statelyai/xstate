@@ -39,7 +39,7 @@
   },
   "devDependencies": {
     "@types/ws": "^8.2.2",
-    "rollup": "^2.35.1",
+    "rollup": "^2.69.0",
     "rollup-plugin-typescript2": "^0.30.0",
     "typescript": "^4.5.2",
     "ws": "^8.4.0",

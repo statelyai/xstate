@@ -3,6 +3,7 @@ import babel from '@rollup/plugin-babel';
 import { terser } from 'rollup-plugin-terser';
 import rollupReplace from 'rollup-plugin-replace';
 import fileSize from 'rollup-plugin-filesize';
+import glob from 'fast-glob';
 
 const createTsPlugin = ({ declaration = true, target } = {}) =>
   typescript({
@@ -48,9 +49,11 @@ const createUmdConfig = ({ input, output, target = undefined }) => ({
   ]
 });
 
+const npmInputs = glob.sync('src/!(scxml|invoke|model.types|typegenTypes).ts');
+
 export default [
   createNpmConfig({
-    input: 'src/index.ts',
+    input: npmInputs,
     output: [
       {
         dir: 'lib',
@@ -59,7 +62,7 @@ export default [
     ]
   }),
   createNpmConfig({
-    input: 'src/index.ts',
+    input: npmInputs,
     output: [
       {
         dir: 'es',
