@@ -209,7 +209,7 @@ You can use the [CLI](../packages/xstate-cli/index.md) to regenerate them on CI,
 ```json
 {
   "scripts": {
-    "postinstall": "xstate typegen \"./src/**/*.tsx?\""
+    "postinstall": "xstate typegen \"./src/**/*.ts?(x)\""
   }
 }
 ```
