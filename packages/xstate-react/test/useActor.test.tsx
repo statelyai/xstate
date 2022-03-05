@@ -5,7 +5,6 @@ import {
   createMachine,
   sendParent,
   assign,
-  spawnMachine,
   ActorRefFrom,
   interpret,
   ActorRef
@@ -13,7 +12,7 @@ import {
 import { render, fireEvent, act } from '@testing-library/react';
 import { useActor } from '../src/useActor';
 import { invokeMachine } from 'xstate/invoke';
-import { spawn, toActorRef } from 'xstate/actor';
+import { toActorRef } from 'xstate/actor';
 import { createMachineBehavior } from 'xstate/behaviors';
 
 describe('useActor', () => {
@@ -147,7 +146,8 @@ describe('useActor', () => {
       states: {
         active: {
           entry: assign({
-            actorRef: () => spawnMachine(childMachine)
+            actorRef: (_, __, { spawn }) =>
+              spawn(createMachineBehavior(childMachine))
           })
         }
       }
@@ -201,7 +201,8 @@ describe('useActor', () => {
       states: {
         active: {
           entry: assign({
-            actorRef: () => spawnMachine(childMachine)
+            actorRef: (_, __, { spawn }) =>
+              spawn(createMachineBehavior(childMachine))
           }),
           on: { FINISH: 'success' }
         },
@@ -478,7 +479,7 @@ describe('useActor', () => {
     });
 
     const machine = createMachine<{ ref: ActorRef<any> }>({
-      context: () => ({
+      context: ({ spawn }) => ({
         ref: spawn(createMachineBehavior(childMachine))
       }),
       initial: 'waiting',

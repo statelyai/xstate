@@ -123,6 +123,7 @@ export interface AssignMeta<
   state?: State<TContext, TEvent>;
   action: BaseActionObject;
   _event: SCXML.Event<TEvent>;
+  spawn: Spawner;
 }
 
 export type ActionFunction<
@@ -735,6 +736,8 @@ export interface StateNodeDefinition<
   tags: string[];
 }
 
+export type AnyStateNode = StateNode<any, any>;
+
 export type AnyStateNodeDefinition = StateNodeDefinition<any, any>;
 
 export type AnyState = State<any, any, any>;
@@ -989,7 +992,7 @@ export type MachineImplementations<
 
 type InitialContext<TContext extends MachineContext> =
   | TContext
-  | (() => TContext);
+  | ((stuff: { spawn: Spawner }) => TContext);
 
 export interface MachineConfig<
   TContext extends MachineContext,
@@ -1643,7 +1646,8 @@ export declare namespace SCXML {
 }
 
 // Taken from RxJS
-export type Observer<T> =
+// TODO: fix complete types
+export type Observer<T> = (
   | {
       next: (value: T) => void;
       error?: (err: any) => void;
@@ -1658,7 +1662,10 @@ export type Observer<T> =
       next?: (value: T) => void;
       error?: (err: any) => void;
       complete: () => void;
-    };
+    }
+) & {
+  done?: (doneData: T) => void;
+};
 
 export interface Subscription {
   unsubscribe(): void;
@@ -1715,6 +1722,7 @@ export interface ActorRef<TEvent extends EventObject, TEmitted = any>
   getSnapshot: () => TEmitted | undefined;
   stop?: () => void;
   toJSON?: () => any;
+  parent?: ActorRef<any, any>;
 }
 
 export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
@@ -1727,7 +1735,7 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
     >
     ? ActorRef<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>
     : R extends Promise<infer U>
-    ? ActorRef<never, U>
+    ? ActorRef<never, U | undefined>
     : R extends Behavior<infer TEvent, infer TEmitted>
     ? ActorRef<TEvent, TEmitted>
     : never
@@ -1790,7 +1798,6 @@ export type EventOfMachine<
 > = TMachine extends StateMachine<any, infer E, any, any, any> ? E : never;
 
 export interface ActorContext<TEvent extends EventObject, TEmitted> {
-  parent?: ActorRef<any, any>;
   self: ActorRef<TEvent, TEmitted>;
   name: string;
   observers: Set<Observer<TEmitted>>;
@@ -1872,3 +1879,5 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
 export type InferEvent<E extends EventObject> = {
   [T in E['type']]: { type: T } & Extract<E, { type: T }>;
 }[E['type']];
+
+export type TODO = any;

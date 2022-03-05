@@ -1,6 +1,5 @@
 import { EventObject, ActorRef, Behavior, SCXML, ActorContext } from './types';
 import { Actor } from './actor';
-import { CapturedState } from './capturedState';
 import { symbolObservable, toSCXMLEvent } from './utils';
 
 export class ObservableActorRef<TEvent extends EventObject, TEmitted>
@@ -17,7 +16,6 @@ export class ObservableActorRef<TEvent extends EventObject, TEmitted>
       self: this,
       name: this.name,
       observers: new Set(),
-      parent: CapturedState.current?.actorRef,
       _event: toSCXMLEvent({ type: 'xstate.init' }) as SCXML.Event<TEvent> // TODO: fix
     };
     this.actor = new Actor(behavior, name, this.context);

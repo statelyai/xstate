@@ -3,9 +3,8 @@ import {
   assign,
   forwardTo,
   interpret,
-  spawnMachine,
   ActorRefFrom,
-  spawn
+  InvokeActionObject
 } from '../src/index';
 import { sendParent } from '../src/actions';
 import { choose } from '../src/actions/choose';
@@ -1322,7 +1321,8 @@ describe('forwardTo()', () => {
       states: {
         first: {
           entry: assign({
-            child: () => spawnMachine(child, 'x')
+            child: (_, __, { spawn }) =>
+              spawn(createMachineBehavior(child), 'x')
           }),
           on: {
             EVENT: {
@@ -1749,7 +1749,7 @@ describe('sendTo', () => {
     const parentMachine = createMachine<{
       child: ActorRefFrom<typeof childMachine>;
     }>({
-      context: () => ({
+      context: ({ spawn }) => ({
         child: spawn(createMachineBehavior(childMachine))
       }),
       entry: sendTo((ctx) => ctx.child as any, { type: 'EVENT' })
@@ -1765,7 +1765,6 @@ describe('sendTo', () => {
         waiting: {
           on: {
             EVENT: {
-              guard: (_, e) => e.count === 42,
               actions: () => done()
             }
           }
@@ -1773,21 +1772,38 @@ describe('sendTo', () => {
       }
     });
 
+    let createCount = 0;
+
     const parentMachine = createMachine<{
       child: ActorRefFrom<typeof childMachine>;
       count: number;
     }>({
-      context: () => ({
-        child: spawn(createMachineBehavior(childMachine)),
-        count: 42
-      }),
-      entry: sendTo(
-        (ctx) => ctx.child as any,
-        (ctx) => ({ type: 'EVENT', count: ctx.count })
-      )
+      context: ({ spawn }) => {
+        // TODO: clean up
+        createCount++;
+
+        if (createCount > 1) {
+          throw new Error('too many times');
+        } else {
+          console.log(new Error().stack);
+        }
+
+        return { child: spawn(createMachineBehavior(childMachine), 'child') };
+      },
+      entry: sendTo((ctx) => ctx.child, { type: 'EVENT' })
     });
 
-    interpret(parentMachine).start();
+    interpret(parentMachine)
+      .onTransition((state) => {
+        state.actions.forEach((action) => {
+          if (action.type === 'xstate.invoke') {
+            expect((action as InvokeActionObject).params.ref).toBe(
+              state.children['child']
+            );
+          }
+        });
+      })
+      .start();
   });
 });
 

@@ -12,7 +12,8 @@ import {
   ActorContext,
   ActorRef,
   EventObject,
-  Observer
+  Observer,
+  TODO
 } from './types';
 import {
   toSCXMLEvent,
@@ -26,7 +27,6 @@ import { doneInvoke, error, actionTypes } from './actions';
 import { StateMachine } from './StateMachine';
 import { interpret, Interpreter } from './interpreter';
 import { State } from './State';
-import { CapturedState } from './capturedState';
 import { toActorRef } from './actor';
 import { toObserver } from './utils';
 import { Mailbox } from './Mailbox';
@@ -88,17 +88,15 @@ export function fromPromise<T>(
   };
 
   return {
-    transition: (state, event, { parent, name, observers }) => {
+    transition: (state, event, { observers }) => {
       switch (event.type) {
         case 'fulfill':
-          parent?.send(doneInvoke(name, event.data));
           return {
             error: undefined,
             data: event.data,
             status: 'fulfilled'
           };
         case 'reject':
-          parent?.send(error(name, event.error));
           observers.forEach((observer) => {
             observer.error?.(event.error);
           });
@@ -169,7 +167,6 @@ export function spawnBehavior<TEvent extends EventObject, TEmitted>(
   });
 
   const actorCtx: ActorContext<TEvent, TEmitted> = {
-    parent: options.parent,
     self: actor,
     name: options.id || 'anonymous',
     observers,
@@ -211,10 +208,18 @@ function isSignal(
 export function createDeferredBehavior<TEvent extends EventObject>(
   lazyEntity: () => InvokeCallback
 ): Behavior<TEvent, undefined> {
-  const parent = CapturedState.current?.actorRef;
   let canceled = false;
   const receivers = new Set<(e: EventObject) => void>();
+  const observers: Set<Observer<TODO>> = new Set();
   let dispose;
+
+  const sendNext = (event: TODO) => {
+    observers.forEach((o) => o.next?.(event));
+  };
+
+  const sendError = (event: TODO) => {
+    observers.forEach((o) => o.error?.(event));
+  };
 
   const behavior: Behavior<TEvent, undefined> = {
     transition: (_, event, actorContext) => {
@@ -224,7 +229,7 @@ export function createDeferredBehavior<TEvent extends EventObject>(
             return;
           }
 
-          parent?.send(toSCXMLEvent(e, { origin: actorContext.self }));
+          sendNext(toSCXMLEvent(e, { origin: actorContext.self }));
         };
 
         const receiver: Receiver<TEvent> = (newListener) => {
@@ -237,7 +242,7 @@ export function createDeferredBehavior<TEvent extends EventObject>(
         if (isPromiseLike(dispose)) {
           dispose.then(
             (resolved) => {
-              parent?.send(
+              sendNext(
                 toSCXMLEvent(doneInvoke(actorContext.name, resolved) as any, {
                   origin: actorContext.self
                 })
@@ -246,7 +251,7 @@ export function createDeferredBehavior<TEvent extends EventObject>(
             },
             (errorData) => {
               const errorEvent = error(actorContext.name, errorData);
-              parent?.send(
+              sendError(
                 toSCXMLEvent(errorEvent, { origin: actorContext.self })
               );
               canceled = true;
@@ -273,6 +278,15 @@ export function createDeferredBehavior<TEvent extends EventObject>(
 
       return undefined;
     },
+    subscribe: (observer) => {
+      observers.add(observer);
+
+      return {
+        unsubscribe: () => {
+          observers.delete(observer);
+        }
+      };
+    },
     initialState: undefined
   };
 
@@ -281,8 +295,7 @@ export function createDeferredBehavior<TEvent extends EventObject>(
 
 export function createPromiseBehavior<T, TEvent extends EventObject>(
   lazyPromise: Lazy<PromiseLike<T>>
-): Behavior<TEvent, T | undefined> {
-  const parent = CapturedState.current?.actorRef;
+): Behavior<any, T | undefined> {
   let canceled = false;
   const observers: Set<Observer<T>> = new Set();
 
@@ -295,15 +308,8 @@ export function createPromiseBehavior<T, TEvent extends EventObject>(
           resolvedPromise.then(
             (response) => {
               if (!canceled) {
-                parent?.send(
-                  toSCXMLEvent(doneInvoke(actorContext.name, response) as any, {
-                    origin: actorContext.self
-                  })
-                );
-
                 observers.forEach((observer) => {
-                  observer.next?.(response);
-                  observer.complete?.();
+                  observer.done?.(response);
                 });
               }
             },
@@ -311,12 +317,10 @@ export function createPromiseBehavior<T, TEvent extends EventObject>(
               if (!canceled) {
                 const errorEvent = error(actorContext.name, errorData);
 
-                parent?.send(
-                  toSCXMLEvent(errorEvent, { origin: actorContext.self })
-                );
-
                 observers.forEach((observer) => {
-                  observer.error?.(errorData);
+                  observer.error?.(
+                    toSCXMLEvent(errorEvent, { origin: actorContext.self })
+                  );
                 });
               }
             }
@@ -349,33 +353,39 @@ export function createObservableBehavior<
   T extends EventObject,
   TEvent extends EventObject
 >(lazyObservable: Lazy<Subscribable<T>>): Behavior<TEvent, T | undefined> {
-  const parent = CapturedState.current?.actorRef;
   let subscription: Subscription | undefined;
   let observable: Subscribable<T> | undefined;
+  const observers: Set<Observer<TODO>> = new Set();
+  const sendNext = (event: TODO) => {
+    observers.forEach((o) => o.next?.(event));
+  };
+
+  const sendError = (event: TODO) => {
+    observers.forEach((o) => o.error?.(event));
+  };
+  const sendComplete = () => {
+    observers.forEach((o) => o.complete?.());
+  };
 
   const behavior: Behavior<TEvent, T | undefined> = {
     transition: (_, event, actorContext) => {
       if (event.type === startSignalType) {
         observable = lazyObservable();
-        subscription = observable.subscribe(
-          (value) => {
-            parent?.send(toSCXMLEvent(value, { origin: actorContext.self }));
+        subscription = observable.subscribe({
+          next: (value) => {
+            sendNext(toSCXMLEvent(value, { origin: actorContext.self }));
           },
-          (err) => {
-            parent?.send(
+          error: (err) => {
+            sendError(
               toSCXMLEvent(error(actorContext.name, err) as any, {
                 origin: actorContext.self
               })
             );
           },
-          () => {
-            parent?.send(
-              toSCXMLEvent(doneInvoke(actorContext.name) as any, {
-                origin: actorContext.self
-              })
-            );
+          complete: () => {
+            sendComplete();
           }
-        );
+        });
       } else if (event.type === stopSignalType) {
         subscription && subscription.unsubscribe();
       }
@@ -383,7 +393,13 @@ export function createObservableBehavior<
       return undefined;
     },
     subscribe: (observer) => {
-      return observable?.subscribe(observer);
+      observers.add(observer);
+
+      return {
+        unsubscribe: () => {
+          observers.delete(observer);
+        }
+      };
     },
     initialState: undefined
   };
@@ -400,14 +416,15 @@ export function createMachineBehavior<
     | Lazy<StateMachine<TContext, TEvent, any, any, any>>,
   options?: Partial<InterpreterOptions>
 ): Behavior<TEvent, State<TContext, TEvent>> {
-  const parent = CapturedState.current?.actorRef;
   let service: Interpreter<TContext, TEvent, any> | undefined;
   let subscription: Subscription;
   let resolvedMachine: StateMachine<TContext, TEvent>;
 
   const behavior: Behavior<TEvent, State<TContext, TEvent, any>> = {
     transition: (state, event, actorContext) => {
-      resolvedMachine = isFunction(machine) ? machine() : machine;
+      const { parent } = actorContext.self;
+      resolvedMachine =
+        resolvedMachine ?? (isFunction(machine) ? machine() : machine);
 
       if (event.type === startSignalType) {
         service = interpret(resolvedMachine, {
@@ -442,7 +459,7 @@ export function createMachineBehavior<
 
       if (event.type === stopSignalType) {
         service?.stop();
-        subscription && subscription.unsubscribe(); // TODO: might not be necessary
+        subscription?.unsubscribe(); // TODO: might not be necessary
         return state;
       }
 

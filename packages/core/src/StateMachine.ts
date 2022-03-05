@@ -14,7 +14,11 @@ import type {
   InternalMachineImplementations,
   BaseActionObject,
   ActorMap,
-  Transitions
+  Transitions,
+  AnyStateMachine,
+  Spawner,
+  InvokeActionObject,
+  ActorRef
 } from './types';
 import type {
   AreAllImplementationsAssumedToBeProvided,
@@ -36,7 +40,11 @@ import {
 } from './stateUtils';
 import { getStateNodes, transitionNode, resolveStateValue } from './stateUtils';
 import { StateNode } from './StateNode';
-import { AnyStateMachine } from '.';
+import { createSpawner } from './spawn';
+
+type ContextFactory<TContext extends MachineContext> = (stuff: {
+  spawn: Spawner;
+}) => TContext;
 
 export const NULL_EVENT = '';
 export const STATE_IDENTIFIER = '#';
@@ -52,9 +60,9 @@ function createDefaultOptions() {
   };
 }
 
-function resolveContext<TContext>(
+function resolveContext<TContext extends MachineContext>(
   context: TContext,
-  partialContext?: MaybeLazy<Partial<TContext>>
+  partialContext?: Partial<TContext> | ContextFactory<TContext>
 ): TContext {
   if (isFunction(partialContext)) {
     return { ...context, ...partialContext() };
@@ -78,16 +86,27 @@ export class StateMachine<
     TActorMap
   >
 > {
-  private _context: () => TContext;
+  private _contextFactory: (stuff: { spawn: Spawner }) => TContext;
   public get context(): TContext {
-    return resolveContext(this._context(), this.options.context);
+    return this.getContextAndActions()[0];
+  }
+  public getContextAndActions(): [TContext, InvokeActionObject[]] {
+    const actions: InvokeActionObject[] = [];
+    // TODO: merge with this.options.context
+    const context = this._contextFactory({
+      spawn: createSpawner(this, null as any, null as any, actions)
+    });
+
+    // console.log(actions);
+
+    return [context, actions];
   }
   /**
    * The machine's own version.
    */
   public version?: string;
 
-  public parent = undefined;
+  public parent: ActorRef<any, any> | undefined = undefined; // TODO: delete?
   public strict: boolean;
 
   /**
@@ -119,9 +138,13 @@ export class StateMachine<
   ) {
     this.key = config.key || config.id || '(machine)';
     this.options = Object.assign(createDefaultOptions(), options);
-    this._context = isFunction(config.context)
+    this._contextFactory = isFunction(config.context)
       ? config.context
-      : () => config.context as TContext;
+      : () =>
+          resolveContext(
+            config.context as TContext,
+            options?.context
+          ) as TContext; // TODO: fix types
     // this.context = resolveContext(config.context, options?.context);
     this.delimiter = this.config.delimiter || STATE_DELIMITER;
     this.version = this.config.version;
@@ -273,13 +296,15 @@ export class StateMachine<
    * The initial state _before_ evaluating any microsteps.
    */
   private get preInitialState(): State<TContext, TEvent, TResolvedTypesMeta> {
+    const [context, actions] = this.getContextAndActions();
     const preInitial = this.resolveState(
       State.from(
         getStateValue(this.root, getConfiguration([this.root])),
-        this.context
+        context
       )
     );
     preInitial._initial = true;
+    preInitial.actions.unshift(...actions);
 
     return preInitial;
   }
@@ -289,30 +314,22 @@ export class StateMachine<
    * entering the initial state.
    */
   public get initialState(): State<TContext, TEvent, TResolvedTypesMeta> {
-    const nextState = resolveMicroTransition(
-      this,
-      [],
-      this.preInitialState,
-      undefined
-    );
-    return macrostep(nextState, null as any, this);
+    return this.getInitialState();
   }
 
   /**
    * Returns the initial `State` instance, with reference to `self` as an `ActorRef`.
    */
   public getInitialState(): State<TContext, TEvent, TResolvedTypesMeta> {
+    const { preInitialState } = this;
     const nextState = resolveMicroTransition(
       this,
       [],
-      this.preInitialState,
+      preInitialState,
       undefined
     );
-    return macrostep(nextState, null as any, this) as State<
-      TContext,
-      TEvent,
-      TResolvedTypesMeta
-    >;
+    nextState.actions.unshift(...preInitialState.actions);
+    return macrostep(nextState, null as any, this);
   }
 
   public getStateNodeById(stateId: string): StateNode<TContext, TEvent> {

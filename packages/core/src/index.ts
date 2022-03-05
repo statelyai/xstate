@@ -23,14 +23,6 @@ import { mapState } from './mapState';
 import { matchState } from './match';
 import { State } from './State';
 import { StateNode } from './StateNode';
-export {
-  spawn,
-  spawnCallback,
-  spawnFrom,
-  spawnMachine,
-  spawnObservable,
-  spawnPromise
-} from './actor';
 export { createSchema, t } from './schema';
 export { SimulatedClock } from './SimulatedClock';
 export { StateMachine } from './StateMachine';

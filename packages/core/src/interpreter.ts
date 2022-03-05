@@ -2,7 +2,6 @@ import { isExecutableAction } from '../actions/ExecutableAction';
 import { doneInvoke, error } from './actions';
 import * as actionTypes from './actionTypes';
 import { isActorRef } from './actor';
-import { CapturedState } from './capturedState';
 import { devToolsAdapter } from './dev';
 import { IS_PRODUCTION } from './environment';
 import { Mailbox } from './Mailbox';
@@ -19,7 +18,8 @@ import type {
   BaseActionObject,
   LogActionObject,
   MachineContext,
-  PayloadSender
+  PayloadSender,
+  TODO
 } from './types';
 import {
   ActionFunctionMap,
@@ -180,26 +180,11 @@ export class Interpreter<
   }
 
   public get initialState(): State<TContext, TEvent, TResolvedTypesMeta> {
-    try {
-      CapturedState.current = {
-        actorRef: this.ref,
-        spawns: []
-      };
-      const initialState =
-        this._initialState ||
-        ((this._initialState = this.machine.getInitialState()),
-        this._initialState);
-
-      // TODO: recheck correctness of this code, it seems that it might be possible to reuse cached initialState and thus skip over capturing spawns
-      // Ensure that actors are spawned before initial actions
-      initialState.actions.unshift(...CapturedState.current.spawns);
-      return initialState;
-    } finally {
-      CapturedState.current = {
-        actorRef: undefined,
-        spawns: []
-      };
-    }
+    const initialState =
+      this._initialState ||
+      ((this._initialState = this.machine.getInitialState()),
+      this._initialState);
+    return initialState;
   }
 
   public get state(): State<TContext, TEvent, TResolvedTypesMeta> {
@@ -403,7 +388,7 @@ export class Interpreter<
 
     const resolvedState =
       initialState === undefined
-        ? this.initialState
+        ? this.machine.getInitialState()
         : isStateConfig<TContext, TEvent>(initialState)
         ? this.machine.resolveState(initialState as any) // TODO: fix this
         : this.machine.resolveState(
@@ -582,18 +567,7 @@ export class Interpreter<
       this.handleErrorEvent(_event);
     }
 
-    try {
-      CapturedState.current = {
-        actorRef: this.ref,
-        spawns: []
-      };
-      return this.machine.transition(this.state, event);
-    } finally {
-      CapturedState.current = {
-        actorRef: undefined,
-        spawns: []
-      };
-    }
+    return this.machine.transition(this.state, event);
   }
   private forward(event: SCXML.Event<TEvent>): void {
     for (const id of this.forwardTo) {
@@ -662,7 +636,7 @@ export class Interpreter<
             }
             return;
           }
-          (ref as any).parent = this; // TODO: fix
+          ref.parent = this; // TODO: fix
           // If the actor will be stopped right after it's started
           // (such as in transient states) don't bother starting the actor.
           if (
@@ -683,12 +657,28 @@ export class Interpreter<
             this.state.children[id] = ref;
 
             ref.subscribe({
-              error: () => {
+              next: (data) => {
+                this.send(data as TODO);
+              },
+              error: (errorData) => {
+                this.send(errorData as TODO);
                 // TODO: handle error
                 this.stop();
               },
               complete: () => {
+                this.send(
+                  toSCXMLEvent(doneInvoke(id) as any, {
+                    origin: ref
+                  })
+                );
                 /* ... */
+              },
+              done: (doneData) => {
+                this.send(
+                  toSCXMLEvent(doneInvoke(id, doneData) as any, {
+                    origin: ref
+                  })
+                );
               }
             });
 

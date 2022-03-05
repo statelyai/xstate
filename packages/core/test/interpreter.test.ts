@@ -10,9 +10,6 @@ import {
   StateValue,
   AnyEventObject,
   createMachine,
-  spawnPromise,
-  spawnMachine,
-  spawnObservable,
   AnyState
 } from '../src';
 import { State } from '../src/State';
@@ -29,6 +26,11 @@ import {
   invokePromise,
   invokeActivity
 } from '../src/invoke';
+import {
+  createMachineBehavior,
+  createObservableBehavior,
+  createPromiseBehavior
+} from '../src/behaviors';
 
 const lightMachine = createMachine({
   id: 'light',
@@ -84,11 +86,10 @@ describe('interpreter', () => {
       expect(service.initialState.value).toEqual(idMachine.initialState.value);
     });
 
-    it('initial state should be cached', (done) => {
-      let entryCalled = 0;
+    it('initially spawned actors should not be spawned when reading initial state', (done) => {
       let promiseSpawned = 0;
 
-      const machine = createMachine<any, any>({
+      const machine = createMachine({
         initial: 'idle',
         context: {
           actor: undefined
@@ -96,13 +97,14 @@ describe('interpreter', () => {
         states: {
           idle: {
             entry: assign({
-              actor: () => {
-                entryCalled++;
-                return spawnPromise(
-                  () =>
-                    new Promise(() => {
-                      promiseSpawned++;
-                    })
+              actor: (_, __, { spawn }) => {
+                return spawn(
+                  createPromiseBehavior(
+                    () =>
+                      new Promise(() => {
+                        promiseSpawned++;
+                      })
+                  )
                 );
               }
             })
@@ -112,7 +114,6 @@ describe('interpreter', () => {
 
       const service = interpret(machine);
 
-      expect(entryCalled).toEqual(0);
       expect(promiseSpawned).toEqual(0);
 
       const callInitialState = () => service.initialState;
@@ -121,8 +122,6 @@ describe('interpreter', () => {
       callInitialState();
 
       service.start();
-
-      expect(entryCalled).toEqual(1);
 
       setTimeout(() => {
         expect(promiseSpawned).toEqual(1);
@@ -1687,12 +1686,13 @@ describe('interpreter', () => {
         }
       });
 
-      const formMachine = createMachine<any, any>({
+      const formMachine = createMachine({
         id: 'form',
         initial: 'idle',
         context: {},
         entry: assign({
-          firstNameRef: () => spawnMachine(childMachine, 'child')
+          firstNameRef: (_, __, { spawn }) =>
+            spawn(createMachineBehavior(childMachine), 'child')
         }),
         states: {
           idle: {}
@@ -1715,23 +1715,28 @@ describe('interpreter', () => {
         }
       });
 
-      const parentMachine = createMachine<any>({
+      const parentMachine = createMachine({
         id: 'form',
         initial: 'present',
         context: {},
         entry: assign({
-          machineRef: () => spawnMachine(childMachine, 'machineChild'),
-          promiseRef: () =>
-            spawnPromise(
-              () =>
-                new Promise(() => {
-                  // ...
-                }),
+          machineRef: (_, __, { spawn }) =>
+            spawn(createMachineBehavior(childMachine), 'machineChild'),
+          promiseRef: (_, __, { spawn }) =>
+            spawn(
+              createPromiseBehavior(
+                () =>
+                  new Promise(() => {
+                    // ...
+                  })
+              ),
               'promiseChild'
             ),
-          observableRef: () =>
-            spawnObservable(
-              () => interval(1000).pipe(map((i) => ({ type: 'INTERVAL', i }))),
+          observableRef: (_, __, { spawn }) =>
+            spawn(
+              createObservableBehavior(() =>
+                interval(1000).pipe(map((i) => ({ type: 'INTERVAL', i })))
+              ),
               'observableChild'
             )
         }),
