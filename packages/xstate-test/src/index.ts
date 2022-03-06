@@ -1,5 +1,13 @@
 import { serializeState, SimpleBehavior } from '@xstate/graph';
-import { StateMachine, EventObject, State, StateFrom, EventFrom } from 'xstate';
+import {
+  EventObject,
+  State,
+  StateFrom,
+  EventFrom,
+  AnyStateMachine,
+  ActionObject,
+  AnyState
+} from 'xstate';
 import { TestModel } from './TestModel';
 import { TestModelOptions, TestEventsConfig } from './types';
 
@@ -48,6 +56,19 @@ async function assertState(state: State<any, any, any>, testContext: any) {
   }
 }
 
+function executeAction(
+  actionObject: ActionObject<any, any>,
+  state: AnyState
+): void {
+  if (typeof actionObject.exec == 'function') {
+    actionObject.exec(state.context, state.event, {
+      _event: state._event,
+      action: actionObject,
+      state
+    });
+  }
+}
+
 /**
  * Creates a test model that represents an abstract model of a
  * system under test (SUT).
@@ -73,7 +94,7 @@ async function assertState(state: State<any, any, any>, testContext: any) {
  * to an event test config (e.g., `{exec: () => {...}, cases: [...]}`)
  */
 export function createTestModel<
-  TMachine extends StateMachine<any, any, any>,
+  TMachine extends AnyStateMachine,
   TestContext = any
 >(
   machine: TMachine,
@@ -89,6 +110,11 @@ export function createTestModel<
   >(machine as SimpleBehavior<any, any>, testContext, {
     serializeState,
     testState: assertState,
+    execute: (state) => {
+      state.actions.forEach((action) => {
+        executeAction(action, state);
+      });
+    },
     ...options
   });
 

@@ -63,7 +63,8 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
       getEvents: () => [],
       getStates: () => [],
       testState: () => void 0,
-      testTransition: () => void 0
+      testTransition: () => void 0,
+      execute: () => void 0
     };
   }
 
@@ -231,6 +232,8 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
   ): Promise<void> {
     await this.options.testState(state, testContext);
 
+    await this.options.execute(state, testContext);
+
     this.addStateCoverage(state);
   }
 
@@ -314,8 +317,6 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
         }
       });
     });
-
-    console.log(Array.from(criteriaSet).map((c) => c.label));
 
     return criteriaSet.size === 0;
   }

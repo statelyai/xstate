@@ -283,16 +283,16 @@ describe('error path trace', () => {
                 expect.stringContaining('test error')
               );
               expect(err.message).toMatchInlineSnapshot(`
-              "test error
-              Path:
-              	State: \\"first\\"
-              	Event: {\\"type\\":\\"NEXT\\"}
+                "test error
+                Path:
+                	State: \\"first\\" |  | \\"\\"
+                	Event: {\\"type\\":\\"NEXT\\"}
 
-              	State: \\"second\\"
-              	Event: {\\"type\\":\\"NEXT\\"}
+                	State: \\"second\\" |  | \\"\\"
+                	Event: {\\"type\\":\\"NEXT\\"}
 
-              	State: \\"third\\""
-            `);
+                	State: \\"third\\" |  | \\"\\""
+              `);
               return;
             }
 
@@ -307,12 +307,12 @@ describe('coverage', () => {
   it('reports state node coverage', () => {
     const coverage = dieHardModel.getCoverage();
 
-    expect(coverage.states['"pending" | {"three":0,"five":0}']).toBeGreaterThan(
-      0
-    );
-    expect(coverage.states['"success" | {"three":3,"five":4}']).toBeGreaterThan(
-      0
-    );
+    expect(
+      coverage.states['"pending" | {"three":0,"five":0} | ""']
+    ).toBeGreaterThan(0);
+    expect(
+      coverage.states['"success" | {"three":3,"five":4} | ""']
+    ).toBeGreaterThan(0);
   });
 
   it('tests missing state node coverage', async () => {
@@ -694,4 +694,45 @@ it('prevents infinite recursion based on a provided limit', () => {
   expect(() => {
     model.getShortestPlans({ traversalLimit: 100 });
   }).toThrowErrorMatchingInlineSnapshot(`"Traversal limit exceeded"`);
+});
+
+it('executes actions', async () => {
+  let executedActive = false;
+  let executedDone = false;
+  const machine = createMachine({
+    initial: 'idle',
+    states: {
+      idle: {
+        on: {
+          TOGGLE: { target: 'active', actions: 'boom' }
+        }
+      },
+      active: {
+        entry: () => {
+          executedActive = true;
+        },
+        on: { TOGGLE: 'done' }
+      },
+      done: {
+        entry: () => {
+          executedDone = true;
+        }
+      }
+    }
+  });
+
+  const model = createTestModel(machine, null as any).withEvents({
+    TOGGLE: () => {
+      /**/
+    }
+  });
+
+  const testPlans = model.getShortestPlans();
+
+  for (const plan of testPlans) {
+    await model.testPlan(plan, undefined);
+  }
+
+  expect(executedActive).toBe(true);
+  expect(executedDone).toBe(true);
 });

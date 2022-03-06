@@ -76,12 +76,10 @@ export function getChildren(stateNode: AnyStateNode): AnyStateNode[] {
 export function serializeState<TContext>(
   state: State<TContext, any>
 ): SerializedState {
-  const { value, context } = state;
-  return (context === undefined
-    ? JSON.stringify(value)
-    : JSON.stringify(value) +
-      ' | ' +
-      JSON.stringify(context)) as SerializedState;
+  const { value, context, actions } = state;
+  return [value, context, actions.map((a) => a.type).join(',')]
+    .map((x) => JSON.stringify(x))
+    .join(' | ') as SerializedState;
 }
 
 export function serializeEvent<TEvent extends EventObject>(

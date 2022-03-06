@@ -153,6 +153,10 @@ export interface TestModelOptions<
     step: Step<TState, TEvent>,
     testContext: TTestContext
   ) => void | Promise<void>;
+  /**
+   * Executes actions based on the `state` after the state is tested.
+   */
+  execute: (state: TState, testContext: TTestContext) => void | Promise<void>;
   getStates: () => TState[];
 }
 export interface TestModelCoverage {
