@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.1
+
+### Patch Changes
+
+- [#3089](https://github.com/statelyai/xstate/pull/3089) [`862697e29`](https://github.com/statelyai/xstate/commit/862697e2990934d46050580d7e09c749d09d8426) Thanks [@Andarist](https://github.com/Andarist)! - Fixed compatibility with Skypack by exporting some shared utilities from root entry of XState and consuming them directly in other packages (this avoids accessing those things using deep imports and thus it avoids creating those compatibility problems).
+
 ## 2.0.0
 
 ### Major Changes
@@ -74,7 +80,7 @@
   Previously, guards could not reference external props, because they would not be updated when the props changed. For instance:
 
   ```tsx
-  const Modal = (props) => {
+  const Modal = props => {
     useMachine(modalMachine, {
       guards: {
         isModalOpen: () => props.isOpen
@@ -88,7 +94,7 @@
   This is not true of actions/services. This will work as expected:
 
   ```tsx
-  const Modal = (props) => {
+  const Modal = props => {
     useMachine(modalMachine, {
       actions: {
         consoleLogModalOpen: () => {
@@ -245,7 +251,7 @@
   import { useSelector } from '@xstate/react';
 
   const App = ({ someActor }) => {
-    const count = useSelector(someActor, (state) => state.context.count);
+    const count = useSelector(someActor, state => state.context.count);
 
     // ...
   };
@@ -366,7 +372,7 @@ All notable changes to this project will be documented in this file.
 - The `useActor` hook now takes a second argument: `getSnapshot` which is a function that should return the last emitted value:
 
   ```js
-  const [state, send] = useActor(someActor, (actor) => actor.current);
+  const [state, send] = useActor(someActor, actor => actor.current);
   ```
 
 ## [1.0.0-rc.6]

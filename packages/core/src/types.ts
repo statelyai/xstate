@@ -1783,13 +1783,29 @@ export type EmittedFrom<T> = ReturnTypeOrValue<T> extends infer R
   : never;
 
 type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends StateMachine<infer _, infer __, infer TEvent, infer ____>
+  ? R extends StateMachine<
+      infer _,
+      infer __,
+      infer TEvent,
+      infer ___,
+      infer ____,
+      infer _____,
+      infer ______
+    >
     ? TEvent
-    : R extends Model<infer _, infer TEvent, infer ___, infer ____>
+    : R extends Model<infer _, infer TEvent, infer __, infer ___>
     ? TEvent
-    : R extends State<infer _, infer TEvent, infer ___, infer ____>
+    : R extends State<infer _, infer TEvent, infer __, infer ___, infer ____>
     ? TEvent
-    : R extends Interpreter<infer _, infer __, infer TEvent, infer ____>
+    : // TODO: the special case for Interpreter shouldn't be needed here as it implements ActorRef
+    // however to drop it we'd have to remove ` | SCXML.Event<TEvent>` from its `send`'s accepted parameter
+    R extends Interpreter<
+        infer _,
+        infer __,
+        infer TEvent,
+        infer ___,
+        infer ____
+      >
     ? TEvent
     : R extends ActorRef<infer TEvent, infer _>
     ? TEvent
@@ -1803,13 +1819,27 @@ export type EventFrom<
 > = IsNever<K> extends true ? TEvent : Extract<TEvent, { type: K }>;
 
 export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends StateMachine<infer TContext, infer _, infer __, infer ___>
+  ? R extends StateMachine<
+      infer TContext,
+      infer _,
+      infer __,
+      infer ___,
+      infer ____,
+      infer _____,
+      infer ______
+    >
     ? TContext
     : R extends Model<infer TContext, infer _, infer __, infer ___>
     ? TContext
-    : R extends State<infer TContext, infer _, infer __, infer ___>
+    : R extends State<infer TContext, infer _, infer __, infer ___, infer ____>
     ? TContext
-    : R extends Interpreter<infer TContext, infer _, infer __, infer ___>
+    : R extends Interpreter<
+        infer TContext,
+        infer _,
+        infer __,
+        infer ___,
+        infer ____
+      >
     ? TContext
     : never
   : never;

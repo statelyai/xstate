@@ -1,5 +1,37 @@
 # xstate
 
+## 4.30.5
+
+### Patch Changes
+
+- [#3118](https://github.com/statelyai/xstate/pull/3118) [`28e353081`](https://github.com/statelyai/xstate/commit/28e3530818e1d800eba7b6d821bde0c0048f0579) Thanks [@Andarist](https://github.com/Andarist)! - Fixed a bundling issue that prevented the `keys()` export to be preserved in the previous release.
+
+## 4.30.4
+
+### Patch Changes
+
+- [#3104](https://github.com/statelyai/xstate/pull/3104) [`3706c62f4`](https://github.com/statelyai/xstate/commit/3706c62f49daa5cf84172713a004eb26704342f5) Thanks [@Andarist](https://github.com/Andarist)! - Fixed `ContextFrom` helper type to work on typegened machines.
+
+* [#3113](https://github.com/statelyai/xstate/pull/3113) [`144131bed`](https://github.com/statelyai/xstate/commit/144131beda5c00a15fbe0f58a3309eac81d940eb) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `keys()` utility function export, which was removed in [#3089](https://github.com/statelyai/xstate/issues/3089), is now added back, as older versions of XState libraries may depend on it still. See [#3106](https://github.com/statelyai/xstate/issues/3106) for more details.
+
+- [#3104](https://github.com/statelyai/xstate/pull/3104) [`3706c62f4`](https://github.com/statelyai/xstate/commit/3706c62f49daa5cf84172713a004eb26704342f5) Thanks [@Andarist](https://github.com/Andarist)! - Fixed `EventFrom` helper type to work on machines.
+
+## 4.30.3
+
+### Patch Changes
+
+- [#3088](https://github.com/statelyai/xstate/pull/3088) [`9f02271a3`](https://github.com/statelyai/xstate/commit/9f02271a3dd0b314a270f54d4de56af8daab31d1) Thanks [@Andarist](https://github.com/Andarist)! - Added some internal `@ts-ignore` comments to fix consuming projects that do not use `skipLibCheck`.
+
+* [#3082](https://github.com/statelyai/xstate/pull/3082) [`8d3f2cfea`](https://github.com/statelyai/xstate/commit/8d3f2cfea7b57b6293fd862844400353e2a7451a) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with context type being inferred from too many places within `createMachine` call and possibly ending up as `any` for the entire machine.
+
+- [#3027](https://github.com/statelyai/xstate/pull/3027) [`97ad964bd`](https://github.com/statelyai/xstate/commit/97ad964bd064ce48c28323052557336ed4def1a9) Thanks [@hedgepigdaniel](https://github.com/hedgepigdaniel)! - Fixed an issue with not being able to call `createMachine` in a generic context when the type for the context was generic and not concrete.
+
+* [#3084](https://github.com/statelyai/xstate/pull/3084) [`50c271dc1`](https://github.com/statelyai/xstate/commit/50c271dc1a1a05b035364f8247aa4d80d613864f) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with context type defined using `schema.context` being sometimes widened based on `config.context`. If both are given the `schema.context` should always take precedence and should represent the complete type of the context.
+
+- [#3089](https://github.com/statelyai/xstate/pull/3089) [`862697e29`](https://github.com/statelyai/xstate/commit/862697e2990934d46050580d7e09c749d09d8426) Thanks [@Andarist](https://github.com/Andarist)! - Fixed compatibility with Skypack by exporting some shared utilities from root entry of XState and consuming them directly in other packages (this avoids accessing those things using deep imports and thus it avoids creating those compatibility problems).
+
+* [#3087](https://github.com/statelyai/xstate/pull/3087) [`ae9579497`](https://github.com/statelyai/xstate/commit/ae95794971f765e3f984f4080f8a92236c53cd6c) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with `ActorRefFrom` not resolving the typegen metadata from machine types given to it. This could sometimes result in types assignability problems, especially when using machine factories and `spawn`.
+
 ## 4.30.2
 
 ### Patch Changes
