@@ -5,7 +5,6 @@ import {
   assign,
   createMachine,
   interpret,
-  spawn,
   StateFrom
 } from 'xstate';
 import { toActorRef } from 'xstate/actor';
@@ -165,7 +164,7 @@ describe('useSelector', () => {
           childActor: ActorRefFrom<typeof childMachine>;
         }
       },
-      context: () => ({
+      context: ({ spawn }) => ({
         childActor: spawn(createMachineBehavior(childMachine))
       })
     });
@@ -264,7 +263,7 @@ describe('useSelector', () => {
           childActor: ActorRefFrom<typeof childMachine>;
         }
       },
-      context: () => ({
+      context: ({ spawn }) => ({
         childActor: spawn(createMachineBehavior(childMachine))
       })
     });
@@ -308,7 +307,7 @@ describe('useSelector', () => {
           childActor: ActorRefFrom<typeof childMachine>;
         }
       },
-      context: () => ({
+      context: ({ spawn }) => ({
         childActor: spawn(createMachineBehavior(childMachine))
       })
     });

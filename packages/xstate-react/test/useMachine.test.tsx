@@ -16,12 +16,10 @@ import {
   Interpreter,
   InterpreterFrom,
   send,
-  spawn,
-  spawnPromise,
   State,
   StateFrom
 } from 'xstate';
-import { createBehaviorFrom } from 'xstate/behaviors';
+import { createBehaviorFrom, createPromiseBehavior } from 'xstate/behaviors';
 import { invokeCallback, invokeMachine, invokePromise } from 'xstate/invoke';
 import { useActor, useMachine } from '../src';
 import { asEffect, asLayoutEffect } from '../src/useMachine';
@@ -210,8 +208,11 @@ describe('useMachine hook', () => {
       states: {
         start: {
           entry: assign({
-            ref: () =>
-              spawnPromise(() => new Promise((res) => res(42)), 'my-promise')
+            ref: (_, __, { spawn }) =>
+              spawn(
+                createPromiseBehavior(() => new Promise((res) => res(42))),
+                'my-promise'
+              )
           }),
           on: {
             [doneInvoke('my-promise')]: 'success'
@@ -693,7 +694,7 @@ describe('useMachine hook', () => {
     let childSpawned = false;
 
     const machine = createMachine({
-      context: () => ({
+      context: ({ spawn }) => ({
         ref: spawn(
           createBehaviorFrom(() => {
             childSpawned = true;
