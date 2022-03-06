@@ -1746,12 +1746,11 @@ describe('sendTo', () => {
       }
     });
 
-    const parentMachine = createMachine<{
-      child: ActorRefFrom<typeof childMachine>;
-    }>({
-      context: ({ spawn }) => ({
-        child: spawn(createMachineBehavior(childMachine))
-      }),
+    const parentMachine = createMachine({
+      context: ({ spawn }) =>
+        ({
+          child: spawn(createMachineBehavior(childMachine))
+        } as { child: ActorRefFrom<typeof childMachine> }),
       entry: sendTo((ctx) => ctx.child as any, { type: 'EVENT' })
     });
 
@@ -1774,10 +1773,7 @@ describe('sendTo', () => {
 
     let createCount = 0;
 
-    const parentMachine = createMachine<{
-      child: ActorRefFrom<typeof childMachine>;
-      count: number;
-    }>({
+    const parentMachine = createMachine({
       context: ({ spawn }) => {
         // TODO: clean up
         createCount++;
@@ -1788,7 +1784,12 @@ describe('sendTo', () => {
           console.log(new Error().stack);
         }
 
-        return { child: spawn(createMachineBehavior(childMachine), 'child') };
+        return {
+          child: spawn(createMachineBehavior(childMachine), 'child')
+        } as {
+          child: ActorRefFrom<typeof childMachine>;
+          count: number;
+        };
       },
       entry: sendTo((ctx) => ctx.child, { type: 'EVENT' })
     });

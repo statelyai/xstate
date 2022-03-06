@@ -1,3 +1,4 @@
+import { AnyStateMachine, InterpreterFrom } from '.';
 import { isExecutableAction } from '../actions/ExecutableAction';
 import { doneInvoke, error } from './actions';
 import * as actionTypes from './actionTypes';
@@ -9,10 +10,7 @@ import { registry } from './registry';
 import { isStateConfig, State } from './State';
 import type { StateMachine } from './StateMachine';
 import { isInFinalState } from './stateUtils';
-import {
-  AreAllImplementationsAssumedToBeProvided,
-  TypegenDisabled
-} from './typegenTypes';
+import { TypegenDisabled } from './typegenTypes';
 import type {
   ActionFunction,
   BaseActionObject,
@@ -807,20 +805,14 @@ export class Interpreter<
  * @param machine The machine to interpret
  * @param options Interpreter options
  */
-export function interpret<
-  TContext extends MachineContext,
-  TEvent extends EventObject = EventObject,
-  TResolvedTypesMeta = TypegenDisabled
->(
-  machine: AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends true
-    ? StateMachine<TContext, TEvent, any, any, TResolvedTypesMeta>
-    : 'Some implementations missing',
+export function interpret<TMachine extends AnyStateMachine>(
+  // machine: AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends true
+  //   ? StateMachine<TContext, TEvent, any, any, TResolvedTypesMeta>
+  //   : 'Some implementations missing',
+  machine: TMachine,
   options?: InterpreterOptions
-) {
-  const interpreter = new Interpreter<TContext, TEvent, TResolvedTypesMeta>(
-    machine as any,
-    options
-  );
+): InterpreterFrom<TMachine> {
+  const interpreter = new Interpreter(machine, options);
 
-  return interpreter;
+  return interpreter as any;
 }

@@ -7,7 +7,6 @@ import {
   Lazy,
   Sender,
   Receiver,
-  MachineContext,
   Behavior,
   ActorContext,
   ActorRef,
@@ -25,11 +24,12 @@ import {
 } from './utils';
 import { doneInvoke, error, actionTypes } from './actions';
 import { StateMachine } from './StateMachine';
-import { interpret, Interpreter } from './interpreter';
+import { interpret } from './interpreter';
 import { State } from './State';
 import { toActorRef } from './actor';
 import { toObserver } from './utils';
 import { Mailbox } from './Mailbox';
+import { AnyStateMachine, EventFrom, InterpreterFrom, StateFrom } from '.';
 
 /**
  * Returns an actor behavior from a reducer and its initial state.
@@ -407,20 +407,15 @@ export function createObservableBehavior<
   return behavior;
 }
 
-export function createMachineBehavior<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  machine:
-    | StateMachine<TContext, TEvent, any, any, any>
-    | Lazy<StateMachine<TContext, TEvent, any, any, any>>,
+export function createMachineBehavior<TMachine extends AnyStateMachine>(
+  machine: TMachine | Lazy<TMachine>,
   options?: Partial<InterpreterOptions>
-): Behavior<TEvent, State<TContext, TEvent>> {
-  let service: Interpreter<TContext, TEvent, any> | undefined;
+): Behavior<EventFrom<TMachine>, StateFrom<TMachine>> {
+  let service: InterpreterFrom<TMachine> | undefined;
   let subscription: Subscription;
-  let resolvedMachine: StateMachine<TContext, TEvent>;
+  let resolvedMachine: TMachine;
 
-  const behavior: Behavior<TEvent, State<TContext, TEvent, any>> = {
+  const behavior: Behavior<EventFrom<TMachine>, StateFrom<TMachine>> = {
     transition: (state, event, actorContext) => {
       const { parent } = actorContext.self;
       resolvedMachine =
@@ -479,7 +474,7 @@ export function createMachineBehavior<
     get initialState() {
       resolvedMachine =
         resolvedMachine || (isFunction(machine) ? machine() : machine);
-      return resolvedMachine.initialState; // TODO: this should get from machine.getInitialState(ref)
+      return resolvedMachine.getInitialState();
     }
   };
 

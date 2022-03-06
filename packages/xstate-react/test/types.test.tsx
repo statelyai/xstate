@@ -59,12 +59,12 @@ describe('useMachine', () => {
       }
     );
 
-    const m = createMachine<{ actor: ActorRefFrom<typeof child> | null }>(
+    const m = createMachine(
       {
         initial: 'ready',
         context: {
           actor: null
-        },
+        } as { actor: ActorRefFrom<typeof child> | null },
         states: {
           ready: {
             entry: 'spawnActor'

@@ -17,8 +17,7 @@ import type {
   Transitions,
   AnyStateMachine,
   Spawner,
-  InvokeActionObject,
-  ActorRef
+  InvokeActionObject
 } from './types';
 import type {
   AreAllImplementationsAssumedToBeProvided,
@@ -41,6 +40,7 @@ import {
 import { getStateNodes, transitionNode, resolveStateValue } from './stateUtils';
 import { StateNode } from './StateNode';
 import { createSpawner } from './spawn';
+import { StateFrom } from '.';
 
 type ContextFactory<TContext extends MachineContext> = (stuff: {
   spawn: Spawner;
@@ -94,7 +94,7 @@ export class StateMachine<
     const actions: InvokeActionObject[] = [];
     // TODO: merge with this.options.context
     const context = this._contextFactory({
-      spawn: createSpawner(this, null as any, null as any, actions)
+      spawn: createSpawner(this, null as any, null as any, actions) // TODO: fix types
     });
 
     // console.log(actions);
@@ -106,7 +106,6 @@ export class StateMachine<
    */
   public version?: string;
 
-  public parent: ActorRef<any, any> | undefined = undefined; // TODO: delete?
   public strict: boolean;
 
   /**
@@ -320,7 +319,7 @@ export class StateMachine<
   /**
    * Returns the initial `State` instance, with reference to `self` as an `ActorRef`.
    */
-  public getInitialState(): State<TContext, TEvent, TResolvedTypesMeta> {
+  public getInitialState(): StateFrom<typeof this> {
     const { preInitialState } = this;
     const nextState = resolveMicroTransition(
       this,
@@ -329,7 +328,7 @@ export class StateMachine<
       undefined
     );
     nextState.actions.unshift(...preInitialState.actions);
-    return macrostep(nextState, null as any, this);
+    return macrostep(nextState, null as any, this) as StateFrom<typeof this>;
   }
 
   public getStateNodeById(stateId: string): StateNode<TContext, TEvent> {

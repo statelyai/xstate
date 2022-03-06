@@ -1,12 +1,12 @@
 import {
   MachineContext,
   EventObject,
-  StateMachine,
   SCXML,
   InvokeActionObject,
   Behavior,
-  ActorRef,
-  ActionTypes
+  ActionTypes,
+  AnyStateMachine,
+  ActorRefFrom
 } from '.';
 import { ObservableActorRef } from './ObservableActorRef';
 import { isString } from './utils';
@@ -15,14 +15,14 @@ export function createSpawner<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  machine: StateMachine<any, any>,
+  machine: AnyStateMachine,
   context: TContext,
   _event: SCXML.Event<TEvent>,
   mutCapturedActions: InvokeActionObject[]
-): <TReceived extends EventObject, TEmitted>(
-  behavior: string | Behavior<TReceived, TEmitted>,
+): <TBehavior extends Behavior<any, any>>(
+  behavior: string | TBehavior,
   name?: string | undefined
-) => ActorRef<TReceived, TEmitted> {
+) => ActorRefFrom<TBehavior> {
   return (behavior, name) => {
     if (isString(behavior)) {
       const behaviorCreator = machine.options.actors[behavior];
@@ -48,7 +48,7 @@ export function createSpawner<
           }
         });
 
-        return actorRef;
+        return actorRef as any; // TODO: fix types
       }
 
       throw new Error('does not exist');
@@ -65,7 +65,7 @@ export function createSpawner<
         }
       });
 
-      return actorRef;
+      return actorRef as any; // TODO: fix types
     }
   };
 }

@@ -1,13 +1,10 @@
 import { from } from 'rxjs';
 import { raise } from '../src/actions/raise';
-import { createMachineBehavior } from '../src/behaviors';
 import {
-  ActorRefFrom,
   assign,
   createMachine,
   interpret,
   MachineContext,
-  spawn,
   StateMachine
 } from '../src/index';
 import { createModel } from '../src/model';
@@ -328,20 +325,6 @@ describe('interpreter', () => {
       ((_val: number) => {})(state.context.count);
       // @ts-expect-error
       ((_val: string) => {})(state.context.count);
-    });
-  });
-});
-
-describe('spawn', () => {
-  it('spawned actor ref should be compatible with the result of ActorRefFrom', () => {
-    const createChild = () => createMachine({});
-
-    function createParent(_deps: {
-      spawnChild: () => ActorRefFrom<typeof createChild>;
-    }) {}
-
-    createParent({
-      spawnChild: () => spawn(createMachineBehavior(createChild()))
     });
   });
 });

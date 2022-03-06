@@ -288,7 +288,7 @@ describe('useSelector', () => {
   });
 
   it('should use a fresh selector for subscription updates after selector change', () => {
-    const childMachine = createMachine<{ count: number }>({
+    const childMachine = createMachine({
       context: {
         count: 0
       },
