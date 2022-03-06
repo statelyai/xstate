@@ -1,4 +1,3 @@
-// nothing yet
 import { createTestModel } from '../src';
 import { assign, createMachine } from 'xstate';
 import { getDescription } from '../src/utils';
