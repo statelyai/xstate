@@ -154,7 +154,7 @@ const dieHardModel = createTestModel(dieHardMachine, null as any).withEvents({
   }
 });
 
-describe.only('testing a model (shortestPathsTo)', () => {
+describe('testing a model (shortestPathsTo)', () => {
   dieHardModel
     .getShortestPlansTo((state) => state.matches('success'))
     .forEach((plan) => {
@@ -303,7 +303,7 @@ describe('error path trace', () => {
   });
 });
 
-describe.only('coverage', () => {
+describe('coverage', () => {
   it('reports state node coverage', () => {
     const coverage = dieHardModel.getCoverage();
 
@@ -669,4 +669,29 @@ describe('plan description', () => {
       ]
     `);
   });
+});
+
+// https://github.com/statelyai/xstate/issues/1935
+it('prevents infinite recursion based on a provided limit', () => {
+  const machine = createMachine<{ count: number }>({
+    id: 'machine',
+    context: {
+      count: 0
+    },
+    on: {
+      TOGGLE: {
+        actions: assign({ count: (ctx) => ctx.count + 1 })
+      }
+    }
+  });
+
+  const model = createTestModel(machine, null as any).withEvents({
+    TOGGLE: () => {
+      /**/
+    }
+  });
+
+  expect(() => {
+    model.getShortestPlans({ traversalLimit: 100 });
+  }).toThrowErrorMatchingInlineSnapshot(`"Traversal limit exceeded"`);
 });

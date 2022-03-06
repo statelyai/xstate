@@ -241,10 +241,10 @@ describe('@xstate/graph', () => {
         Array [
           "\\"green\\"",
           "\\"yellow\\"",
+          "{\\"red\\":\\"flashing\\"}",
           "{\\"red\\":\\"walk\\"}",
           "{\\"red\\":\\"wait\\"}",
           "{\\"red\\":\\"stop\\"}",
-          "{\\"red\\":\\"flashing\\"}",
         ]
       `);
 

@@ -427,13 +427,26 @@ export function performDepthFirstTraversal<TState, TEvent>(
   options: TraversalOptions<TState, TEvent>
 ): AdjMap<TState> {
   const { transition, initialState } = behavior;
-  const { serializeState, getEvents } = resolveTraversalOptions(options);
+  const {
+    serializeState,
+    getEvents,
+    traversalLimit: limit
+  } = resolveTraversalOptions(options);
   const adj: AdjMap<TState> = {};
 
-  function util(state: TState, event: TEvent | null) {
+  let iterations = 0;
+  const queue: Array<[TState, TEvent | null]> = [[initialState, null]];
+
+  while (queue.length) {
+    const [state, event] = queue.shift()!;
+
+    if (iterations++ > limit) {
+      throw new Error('Traversal limit exceeded');
+    }
+
     const serializedState = serializeState(state, event);
     if (adj[serializedState]) {
-      return;
+      continue;
     }
 
     adj[serializedState] = {
@@ -448,12 +461,10 @@ export function performDepthFirstTraversal<TState, TEvent>(
 
       if (!options.filter || options.filter(nextState, subEvent)) {
         adj[serializedState].transitions[JSON.stringify(subEvent)] = nextState;
-        util(nextState, subEvent);
+        queue.push([nextState, subEvent]);
       }
     }
   }
-
-  util(initialState, null);
 
   return adj;
 }
@@ -474,6 +485,7 @@ function resolveTraversalOptions<TState, TEvent>(
       return vctx.vertices.has(serializeState(state, event));
     },
     getEvents: () => [],
+    traversalLimit: Infinity,
     ...defaultOptions,
     ...traversalOptions
   };

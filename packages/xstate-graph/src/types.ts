@@ -147,6 +147,13 @@ export interface TraversalOptions<TState, TEvent>
   ) => boolean;
   filter?: (state: TState, event: TEvent) => boolean;
   getEvents?: (state: TState) => TEvent[];
+  /**
+   * The maximum number of traversals to perform when calculating
+   * the state transition adjacency map.
+   *
+   * @default `Infinity`
+   */
+  traversalLimit?: number;
 }
 
 type Brand<T, Tag extends string> = T & { __tag: Tag };
