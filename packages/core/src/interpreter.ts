@@ -616,8 +616,7 @@ export class Interpreter<
         );
 
         const newState = new State<TContext, TEvent, TStateSchema, TTypestate>({
-          // TODO: should this be included as valid value?
-          value: null as any,
+          value: {},
           context: updatedContext,
           _event,
           _sessionid: this.sessionId,
