@@ -131,7 +131,8 @@ module.exports = {
               '/packages/xstate-test/',
               '/packages/xstate-immer/',
               '/packages/xstate-inspect/',
-              '/packages/xstate-svelte/'
+              '/packages/xstate-svelte/',
+              '/packages/xstate-cli/'
             ]
           },
           {
@@ -253,7 +254,8 @@ module.exports = {
           'packages/xstate-test/',
           'packages/xstate-immer/',
           'packages/xstate-inspect/',
-          'packages/xstate-svelte/'
+          'packages/xstate-svelte/',
+          'packages/xstate-cli/'
         ]
       },
       {

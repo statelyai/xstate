@@ -6,6 +6,8 @@ on:
       - main
       - next
 
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
 jobs:
   release:
     if: github.repository == 'statelyai/xstate'
