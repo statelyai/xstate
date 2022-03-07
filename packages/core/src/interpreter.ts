@@ -38,7 +38,14 @@ import {
 } from './types';
 import { State, bindActionToState, isStateConfig } from './State';
 import * as actionTypes from './actionTypes';
-import { doneInvoke, error, getActionFunction, initEvent } from './actions';
+import {
+  doneInvoke,
+  error,
+  getActionFunction,
+  initEvent,
+  resolveActions,
+  toActionObjects
+} from './actions';
 import { IS_PRODUCTION } from './environment';
 import {
   isPromiseLike,
@@ -57,7 +64,8 @@ import {
   toObserver,
   isActor,
   isBehavior,
-  symbolObservable
+  symbolObservable,
+  flatten
 } from './utils';
 import { Scheduler } from './scheduler';
 import { Actor, isSpawnedActor, createDeferredActor } from './Actor';
@@ -548,6 +556,8 @@ export class Interpreter<
    * This will also notify the `onStop` listeners.
    */
   public stop(): this {
+    // TODO: add warning for stopping non-root interpreters
+
     for (const listener of this.listeners) {
       this.listeners.delete(listener);
     }
@@ -568,30 +578,83 @@ export class Interpreter<
       return this;
     }
 
-    [...this.state.configuration]
-      .sort((a, b) => b.order - a.order)
-      .forEach((stateNode) => {
-        for (const action of stateNode.definition.exit) {
-          this.exec(action, this.state);
-        }
-      });
+    this.initialized = false;
+    this.status = InterpreterStatus.Stopped;
 
-    // Stop all children
-    this.children.forEach((child) => {
-      if (isFunction(child.stop)) {
-        child.stop();
-      }
-    });
-
-    // Cancel all delayed events
+    // we are going to stop within the current sync frame
+    // so we can safely just cancel this here as nothing async should be fired anyway
     for (const key of Object.keys(this.delayedEventsMap)) {
       this.clock.clearTimeout(this.delayedEventsMap[key]);
     }
 
+    // clear everything that might be enqueued
     this.scheduler.clear();
-    this.initialized = false;
-    this.status = InterpreterStatus.Stopped;
-    registry.free(this.sessionId);
+
+    // at the same time let what is currently processed to be finished
+    this.scheduler.schedule(() => {
+      const _event = toSCXMLEvent({ type: 'xstate.stop' }) as any;
+
+      const nextState = serviceScope.provide(this, () => {
+        const exitActions = flatten(
+          [...this.state.configuration]
+            .sort((a, b) => b.order - a.order)
+            .map((stateNode) =>
+              toActionObjects(
+                stateNode.onExit,
+                this.machine.options.actions as any
+              )
+            )
+        );
+
+        const [resolvedActions, updatedContext] = resolveActions(
+          this.machine as any,
+          this.state,
+          this.state.context,
+          _event,
+          exitActions,
+          this.machine.config.preserveActionOrder
+        );
+
+        const newState = new State<TContext, TEvent, TStateSchema, TTypestate>({
+          // TODO: should this be included as valid value?
+          value: null as any,
+          context: updatedContext,
+          _event,
+          _sessionid: this.sessionId,
+          historyValue: undefined,
+          history: this.state,
+          // this filtering is somewhat questionable and we might reconsider this in the future
+          // we definitely don't want to execute raised events as the stop event is the last thing that should be processed by this machine
+          // the question is if we should allow sending events from here to other actors *while* preventing the parent that has stopped this machine from receiving an event from here
+          actions: resolvedActions.filter(
+            (action) =>
+              action.type !== actionTypes.raise &&
+              action.type !== actionTypes.send
+          ),
+          activities: {},
+          events: [],
+          configuration: [],
+          transitions: [],
+          children: {},
+          done: true,
+          tags: new Set(),
+          machine: this.machine
+        });
+        newState.changed = true;
+        return newState;
+      });
+
+      this.update(nextState, _event);
+
+      // TODO: think about converting those to actions
+      // Stop all children
+      this.children.forEach((child) => {
+        if (isFunction(child.stop)) {
+          child.stop();
+        }
+      });
+      registry.free(this.sessionId);
+    });
 
     return this;
   }
@@ -1018,6 +1081,9 @@ export class Interpreter<
     name: string,
     options?: SpawnOptions
   ): ActorRef<any> {
+    if (this.status !== InterpreterStatus.Running) {
+      return createDeferredActor(entity, name);
+    }
     if (isPromiseLike(entity)) {
       return this.spawnPromise(Promise.resolve(entity), name);
     } else if (isFunction(entity)) {

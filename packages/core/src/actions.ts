@@ -609,7 +609,7 @@ export function choose<TContext, TEvent extends EventObject>(
 
 export function resolveActions<TContext, TEvent extends EventObject>(
   machine: StateNode<TContext, any, TEvent, any, any, any>,
-  currentState: State<TContext, TEvent> | undefined,
+  currentState: State<TContext, TEvent, any, any, any> | undefined,
   currentContext: TContext,
   _event: SCXML.Event<TEvent>,
   actions: Array<ActionObject<TContext, TEvent>>,
