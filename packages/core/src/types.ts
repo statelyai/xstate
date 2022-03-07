@@ -948,7 +948,12 @@ export interface MachineConfig<
   TAction extends BaseActionObject = BaseActionObject,
   TServiceMap extends ServiceMap = ServiceMap,
   TTypesMeta = TypegenDisabled
-> extends StateNodeConfig<NoInfer<TContext>, TStateSchema, TEvent, TAction> {
+> extends StateNodeConfig<
+    NoInfer<TContext>,
+    TStateSchema,
+    NoInfer<TEvent>,
+    TAction
+  > {
   /**
    * The initial context (extended state)
    */
