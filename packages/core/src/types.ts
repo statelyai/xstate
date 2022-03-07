@@ -1831,7 +1831,9 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
     ? TEvent
     : R extends State<infer _, infer TEvent, infer __>
     ? TEvent
-    : R extends Interpreter<infer _, infer TEvent, infer __>
+    : // TODO: the special case for Interpreter shouldn't be needed here as it implements ActorRef
+    // however to drop it we'd have to remove ` | SCXML.Event<TEvent>` from its `send`'s accepted parameter
+    R extends Interpreter<infer _, infer TEvent, infer __>
     ? TEvent
     : R extends ActorRef<infer TEvent, infer _>
     ? TEvent

@@ -1,5 +1,21 @@
 # xstate
 
+## 4.30.5
+
+### Patch Changes
+
+- [#3118](https://github.com/statelyai/xstate/pull/3118) [`28e353081`](https://github.com/statelyai/xstate/commit/28e3530818e1d800eba7b6d821bde0c0048f0579) Thanks [@Andarist](https://github.com/Andarist)! - Fixed a bundling issue that prevented the `keys()` export to be preserved in the previous release.
+
+## 4.30.4
+
+### Patch Changes
+
+- [#3104](https://github.com/statelyai/xstate/pull/3104) [`3706c62f4`](https://github.com/statelyai/xstate/commit/3706c62f49daa5cf84172713a004eb26704342f5) Thanks [@Andarist](https://github.com/Andarist)! - Fixed `ContextFrom` helper type to work on typegened machines.
+
+* [#3113](https://github.com/statelyai/xstate/pull/3113) [`144131bed`](https://github.com/statelyai/xstate/commit/144131beda5c00a15fbe0f58a3309eac81d940eb) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `keys()` utility function export, which was removed in [#3089](https://github.com/statelyai/xstate/issues/3089), is now added back, as older versions of XState libraries may depend on it still. See [#3106](https://github.com/statelyai/xstate/issues/3106) for more details.
+
+- [#3104](https://github.com/statelyai/xstate/pull/3104) [`3706c62f4`](https://github.com/statelyai/xstate/commit/3706c62f49daa5cf84172713a004eb26704342f5) Thanks [@Andarist](https://github.com/Andarist)! - Fixed `EventFrom` helper type to work on machines.
+
 ## 4.30.3
 
 ### Patch Changes
