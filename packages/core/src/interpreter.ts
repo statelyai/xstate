@@ -616,7 +616,7 @@ export class Interpreter<
         );
 
         const newState = new State<TContext, TEvent, TStateSchema, TTypestate>({
-          value: {},
+          value: this.state.value,
           context: updatedContext,
           _event,
           _sessionid: this.sessionId,
