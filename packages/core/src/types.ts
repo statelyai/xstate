@@ -140,7 +140,7 @@ export type BaseAction<
   TAction extends BaseActionObject
 > =
   | SimpleActionsOf<TAction>['type']
-  | TAction
+  | (string extends TAction['type'] ? never : TAction)
   | RaiseAction<any>
   | SendAction<TContext, TEvent, any>
   | AssignAction<TContext, TEvent>

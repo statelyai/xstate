@@ -531,4 +531,36 @@ describe('spawn', () => {
       spawnChild: () => spawn(createChild())
     });
   });
+
+  it('incompatible actor ref should not be accepted within assign actions', () => {
+    const child = createMachine({
+      schema: {
+        context: {} as {
+          counter: number;
+        }
+      }
+    });
+
+    const otherChild = createMachine({
+      schema: {
+        context: {} as {
+          title: string;
+        }
+      }
+    });
+
+    createMachine({
+      schema: {
+        context: {} as {
+          myChild: ActorRefFrom<typeof child>;
+        }
+      },
+      // @ts-expect-error
+      entry: assign({
+        myChild: () => {
+          return spawn(otherChild);
+        }
+      })
+    });
+  });
 });
