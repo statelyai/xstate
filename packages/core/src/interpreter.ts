@@ -142,9 +142,9 @@ export class Interpreter<
         return clearTimeout(id);
       }
     } as Clock,
-    logger: global.console.log.bind(console),
+    logger: global?.console.log.bind(console),
     devTools: false
-  }))(typeof self !== 'undefined' ? self : global);
+  }))(getGlobal());
   /**
    * The current state of the interpreted machine.
    */
