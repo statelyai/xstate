@@ -519,6 +519,12 @@ export class Interpreter<
       return this;
     }
 
+    // yes, it's a hack but we need the related cache to be populated for some things to work (like delayed transitions)
+    // this is usually called by `machine.getInitialState` but if we rehydrate from a state we might bypass this call
+    // we also don't want to call this method here as it resolves the full initial state which might involve calling assign actions
+    // and that could potentially lead to some unwanted side-effects (even such as creating some rogue actors)
+    (this.machine as any)._init();
+
     registry.register(this.sessionId, this as Actor);
     this.initialized = true;
     this.status = InterpreterStatus.Running;
