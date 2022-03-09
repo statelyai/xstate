@@ -924,7 +924,7 @@ describe('State', () => {
 
       const restoredState = machine.resolveState(state);
 
-      expect(restoredState.can({ type: 'TOGGLE' })).toBeTruthy();
+      expect(restoredState.can({ type: 'TOGGLE' })).toBe(true);
     });
   });
 
