@@ -1,3 +1,4 @@
+import { IS_PRODUCTION } from './environment';
 import { AnyInterpreter } from './types';
 
 type ServiceListener = (service: AnyInterpreter) => void;
@@ -27,7 +28,7 @@ export function getGlobal(): typeof globalThis | undefined {
   if (typeof global !== 'undefined') {
     return global;
   }
-  if (process.env.NODE_ENV === 'development') {
+  if (!IS_PRODUCTION) {
     console.warn(
       'XState could not find a global object in this environment. Please let the maintainers know and raise an issue here: https://github.com/statelyai/xstate/issues'
     );
