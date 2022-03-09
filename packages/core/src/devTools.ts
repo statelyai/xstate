@@ -14,7 +14,7 @@ export interface XStateDevInterface {
 }
 
 // From https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/globalThis
-export function getGlobal() {
+export function getGlobal(): typeof globalThis | undefined {
   if (typeof globalThis !== 'undefined') {
     return globalThis;
   }
@@ -27,8 +27,11 @@ export function getGlobal() {
   if (typeof global !== 'undefined') {
     return global;
   }
-
-  return undefined;
+  if (process.env.NODE_ENV === 'development') {
+    console.warn(
+      'XState could not find a global object in this environment. Please let the maintainers know and raise an issue here: https://github.com/statelyai/xstate/issues'
+    );
+  }
 }
 
 function getDevTools(): XStateDevInterface | undefined {
