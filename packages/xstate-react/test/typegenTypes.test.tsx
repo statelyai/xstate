@@ -1,6 +1,12 @@
 import { render } from '@testing-library/react';
 import * as React from 'react';
-import { assign, createMachine, TypegenMeta } from 'xstate';
+import {
+  ActorRefFrom,
+  assign,
+  createMachine,
+  InterpreterFrom,
+  TypegenMeta
+} from 'xstate';
 import { useInterpret, useMachine } from '../src';
 
 describe('useMachine', () => {
@@ -466,5 +472,71 @@ describe('useInterpret', () => {
         return <div>b</div>;
       }
     };
+  });
+
+  it('returned service created based on a lazy machine that supplies missing implementations using `withConfig` should be assignable to the ActorRefFrom<...> type', () => {
+    interface TypesMeta extends TypegenMeta {
+      missingImplementations: {
+        actions: 'someAction';
+        delays: never;
+        guards: never;
+        services: never;
+      };
+    }
+
+    const machine = createMachine({
+      tsTypes: {} as TypesMeta
+    });
+
+    function ChildComponent({}: { actorRef: ActorRefFrom<typeof machine> }) {
+      return null;
+    }
+
+    function App() {
+      const service = useInterpret(() =>
+        machine.withConfig({
+          actions: {
+            someAction: () => {}
+          }
+        })
+      );
+
+      return <ChildComponent actorRef={service} />;
+    }
+
+    render(<App />);
+  });
+
+  it('returned service created based on a lazy machine that supplies missing implementations using `withConfig` should be assignable to the InterpreterFrom<...> type', () => {
+    interface TypesMeta extends TypegenMeta {
+      missingImplementations: {
+        actions: 'someAction';
+        delays: never;
+        guards: never;
+        services: never;
+      };
+    }
+
+    const machine = createMachine({
+      tsTypes: {} as TypesMeta
+    });
+
+    function ChildComponent({}: { actorRef: InterpreterFrom<typeof machine> }) {
+      return null;
+    }
+
+    function App() {
+      const service = useInterpret(() =>
+        machine.withConfig({
+          actions: {
+            someAction: () => {}
+          }
+        })
+      );
+
+      return <ChildComponent actorRef={service} />;
+    }
+
+    render(<App />);
   });
 });

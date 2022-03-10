@@ -1690,7 +1690,7 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
         TContext,
         TEvent,
         TTypestate,
-        TResolvedTypesMeta
+        MarkAllImplementationsAsProvided<TResolvedTypesMeta>
       >
     : R extends Promise<infer U>
     ? ActorRef<never, U>
@@ -1703,7 +1703,7 @@ export type AnyInterpreter = Interpreter<any, any, any, any, any>;
 
 export type InterpreterFrom<
   T extends AnyStateMachine | ((...args: any[]) => AnyStateMachine)
-> = T extends StateMachine<
+> = ReturnTypeOrValue<T> extends StateMachine<
   infer TContext,
   infer TStateSchema,
   infer TEvent,
@@ -1712,19 +1712,13 @@ export type InterpreterFrom<
   any,
   infer TResolvedTypesMeta
 >
-  ? Interpreter<TContext, TStateSchema, TEvent, TTypestate, TResolvedTypesMeta>
-  : T extends (
-      ...args: any[]
-    ) => StateMachine<
-      infer TContext,
-      infer TStateSchema,
-      infer TEvent,
-      infer TTypestate,
-      any,
-      any,
-      infer TResolvedTypesMeta
+  ? Interpreter<
+      TContext,
+      TStateSchema,
+      TEvent,
+      TTypestate,
+      MarkAllImplementationsAsProvided<TResolvedTypesMeta>
     >
-  ? Interpreter<TContext, TStateSchema, TEvent, TTypestate, TResolvedTypesMeta>
   : never;
 
 export type MachineOptionsFrom<
