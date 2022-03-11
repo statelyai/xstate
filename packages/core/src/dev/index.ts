@@ -1,3 +1,4 @@
+import { IS_PRODUCTION } from '../environment';
 import { AnyInterpreter, DevToolsAdapter } from '../types';
 
 interface DevInterface {
@@ -19,7 +20,7 @@ export interface XStateDevInterface {
 }
 
 // From https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/globalThis
-export function getGlobal(): any {
+export function getGlobal(): typeof globalThis | undefined {
   if (typeof globalThis !== 'undefined') {
     return globalThis;
   }
@@ -32,14 +33,17 @@ export function getGlobal(): any {
   if (typeof global !== 'undefined') {
     return global;
   }
-
-  return undefined;
+  if (!IS_PRODUCTION) {
+    console.warn(
+      'XState could not find a global object in this environment. Please let the maintainers know and raise an issue here: https://github.com/statelyai/xstate/issues'
+    );
+  }
 }
 
 function getDevTools(): DevInterface | undefined {
   const w = getGlobal();
-  if (!!w.__xstate__) {
-    return w.__xstate__;
+  if (!!(w as any).__xstate__) {
+    return (w as any).__xstate__;
   }
 
   return undefined;

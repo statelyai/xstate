@@ -1,4 +1,4 @@
-import { createMachine, interpret } from '../src';
+import { createMachine, interpret, State } from '../src';
 import { after, actionTypes } from '../src/actions';
 
 const lightMachine = createMachine({
@@ -165,6 +165,68 @@ describe('delayed transitions', () => {
     });
 
     expect(machine.initialState.actions.length).toBe(1);
+  });
+
+  it('should execute an after transition after starting from a state resolved using `machine.getInitialState`', (done) => {
+    const machine = createMachine({
+      id: 'machine',
+      initial: 'a',
+      states: {
+        a: {
+          on: { next: 'withAfter' }
+        },
+
+        withAfter: {
+          after: {
+            1: { target: 'done' }
+          }
+        },
+
+        done: {
+          type: 'final'
+        }
+      }
+    });
+
+    const withAfterState = machine.transition(undefined, 'next');
+
+    interpret(machine)
+      .onDone(() => done())
+      .start(withAfterState);
+  });
+
+  it('should execute an after transition after starting from a persisted state', (done) => {
+    const createMyMachine = () =>
+      createMachine({
+        initial: 'A',
+        states: {
+          A: {
+            on: {
+              NEXT: 'B'
+            }
+          },
+          B: {
+            after: {
+              1: 'C'
+            }
+          },
+          C: {
+            type: 'final'
+          }
+        }
+      });
+
+    let service = interpret(createMyMachine()).start();
+
+    const persistedState = State.create(
+      JSON.parse(JSON.stringify(service.state))
+    );
+
+    service = interpret(createMyMachine()).start(persistedState);
+
+    service.send({ type: 'NEXT' });
+
+    service.onDone(() => done());
   });
 
   describe('delay expressions', () => {

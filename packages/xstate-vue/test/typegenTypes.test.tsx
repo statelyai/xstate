@@ -1,5 +1,11 @@
 import { defineComponent } from 'vue';
-import { assign, createMachine, TypegenMeta } from 'xstate';
+import {
+  ActorRefFrom,
+  assign,
+  createMachine,
+  InterpreterFrom,
+  TypegenMeta
+} from 'xstate';
 import { useInterpret, useMachine } from '../src';
 
 describe('useMachine', () => {
@@ -456,6 +462,68 @@ describe('useInterpret', () => {
         if (state.value.matches('b')) {
           return { b: 1 };
         }
+      }
+    });
+  });
+
+  it('returned service created based on a machine that supplies missing implementations using `withConfig` should be assignable to the ActorRefFrom<...> type', () => {
+    interface TypesMeta extends TypegenMeta {
+      missingImplementations: {
+        actions: 'someAction';
+        delays: never;
+        guards: never;
+        actors: never;
+      };
+    }
+
+    const machine = createMachine({
+      tsTypes: {} as TypesMeta
+    });
+
+    function useMyActor(_actor: ActorRefFrom<typeof machine>) {}
+
+    defineComponent({
+      setup() {
+        const service = useInterpret(
+          machine.provide({
+            actions: {
+              someAction: () => {}
+            }
+          })
+        );
+        useMyActor(service);
+        return {};
+      }
+    });
+  });
+
+  it('returned service created based on a machine that supplies missing implementations using `withConfig` should be assignable to the InterpreterFrom<...> type', () => {
+    interface TypesMeta extends TypegenMeta {
+      missingImplementations: {
+        actions: 'someAction';
+        delays: never;
+        guards: never;
+        actors: never;
+      };
+    }
+
+    const machine = createMachine({
+      tsTypes: {} as TypesMeta
+    });
+
+    function useMyActor(_actor: InterpreterFrom<typeof machine>) {}
+
+    defineComponent({
+      setup() {
+        const service = useInterpret(
+          machine.provide({
+            actions: {
+              someAction: () => {}
+            }
+          })
+        );
+        useMyActor(service);
+        return {};
       }
     });
   });
