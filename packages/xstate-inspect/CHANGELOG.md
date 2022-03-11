@@ -1,5 +1,13 @@
 # @xstate/inspect
 
+## 0.6.4
+
+### Patch Changes
+
+- [#3144](https://github.com/statelyai/xstate/pull/3144) [`e08030faf`](https://github.com/statelyai/xstate/commit/e08030faf00e2bcb192040b6ba04178ecf057509) Thanks [@lecepin](https://github.com/lecepin)! - Added UMD build for this package that is available in the `dist` directory in the published package.
+
+* [#3144](https://github.com/statelyai/xstate/pull/3144) [`e08030faf`](https://github.com/statelyai/xstate/commit/e08030faf00e2bcb192040b6ba04178ecf057509) Thanks [@lecepin](https://github.com/lecepin)! - Added proper `peerDependency` on XState. It was incorrectly omitted from the `package.json` of this package.
+
 ## 0.6.3
 
 ### Patch Changes
