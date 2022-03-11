@@ -816,7 +816,7 @@ export interface MachineImplementationsSimplified<
   actions: ActionFunctionMap<TContext, TEvent, TAction>;
   actors: Record<string, BehaviorCreator<TContext, TEvent>>;
   delays: DelayFunctionMap<TContext, TEvent>;
-  context: MaybeLazy<Partial<TContext>>;
+  context: Partial<TContext> | ContextFactory<Partial<TContext>>;
 }
 
 type MachineImplementationsActions<
@@ -993,7 +993,11 @@ export type MachineImplementations<
 
 type InitialContext<TContext extends MachineContext> =
   | TContext
-  | ((stuff: { spawn: Spawner }) => TContext);
+  | ContextFactory<TContext>;
+
+export type ContextFactory<TContext extends MachineContext> = (stuff: {
+  spawn: Spawner;
+}) => TContext;
 
 export interface MachineConfig<
   TContext extends MachineContext,

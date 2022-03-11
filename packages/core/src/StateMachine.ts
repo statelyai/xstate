@@ -42,10 +42,6 @@ import { StateNode } from './StateNode';
 import { createSpawner } from './spawn';
 import { StateFrom } from '.';
 
-type ContextFactory<TContext extends MachineContext> = (stuff: {
-  spawn: Spawner;
-}) => TContext;
-
 export const NULL_EVENT = '';
 export const STATE_IDENTIFIER = '#';
 export const WILDCARD = '*';
@@ -62,10 +58,10 @@ function createDefaultOptions() {
 
 function resolveContext<TContext extends MachineContext>(
   context: TContext,
-  partialContext?: Partial<TContext> | ContextFactory<TContext>
+  partialContext?: Partial<TContext>
 ): TContext {
   if (isFunction(partialContext)) {
-    return { ...context, ...partialContext() };
+    return { ...context, ...partialContext };
   }
 
   return {
@@ -139,11 +135,17 @@ export class StateMachine<
     this.options = Object.assign(createDefaultOptions(), options);
     this._contextFactory = isFunction(config.context)
       ? config.context
-      : () =>
-          resolveContext(
+      : (stuff) => {
+          const partialContext =
+            typeof options?.context === 'function'
+              ? options.context(stuff)
+              : options?.context;
+
+          return resolveContext(
             config.context as TContext,
-            options?.context
-          ) as TContext; // TODO: fix types
+            partialContext
+          ) as TContext;
+        }; // TODO: fix types
     // this.context = resolveContext(config.context, options?.context);
     this.delimiter = this.config.delimiter || STATE_DELIMITER;
     this.version = this.config.version;
