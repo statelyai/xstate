@@ -43,9 +43,7 @@ function createUmdConfig({ input, output: file, name }) {
       format: 'umd',
       name,
       globals: {
-        react: 'React',
-        xstate: 'XState',
-        '@xstate/fsm': 'XStateFSM'
+        xstate: 'XState'
       }
     },
     plugins: [
