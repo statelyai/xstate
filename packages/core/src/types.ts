@@ -7,7 +7,8 @@ import type { Model } from './model.types';
 import {
   TypegenDisabled,
   ResolveTypegenMeta,
-  TypegenConstraint
+  TypegenConstraint,
+  MarkAllImplementationsAsProvided
 } from './typegenTypes';
 
 export type AnyFunction = (...args: any[]) => any;
@@ -1000,7 +1001,7 @@ export interface MachineConfig<
   TAction extends BaseActionObject = BaseActionObject,
   TActorMap extends ActorMap = ActorMap,
   TTypesMeta = TypegenDisabled
-> extends StateNodeConfig<NoInfer<TContext>, TEvent, TAction> {
+> extends StateNodeConfig<NoInfer<TContext>, NoInfer<TEvent>, TAction> {
   /**
    * The initial context (extended state)
    */
@@ -1733,7 +1734,14 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
       any,
       infer TResolvedTypesMeta
     >
-    ? ActorRef<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>
+    ? ActorRef<
+        TEvent,
+        State<
+          TContext,
+          TEvent,
+          MarkAllImplementationsAsProvided<TResolvedTypesMeta>
+        >
+      >
     : R extends Promise<infer U>
     ? ActorRef<never, U | undefined>
     : R extends Behavior<infer TEvent, infer TEmitted>
@@ -1745,14 +1753,18 @@ export type DevToolsAdapter = (service: AnyInterpreter) => void;
 
 export type InterpreterFrom<
   T extends AnyStateMachine | ((...args: any[]) => AnyStateMachine)
-> = T extends StateMachine<
+> = ReturnTypeOrValue<T> extends StateMachine<
   infer TContext,
   infer TEvent,
   any,
   any,
   infer TResolvedTypesMeta
 >
-  ? Interpreter<TContext, TEvent, TResolvedTypesMeta>
+  ? Interpreter<
+      TContext,
+      TEvent,
+      MarkAllImplementationsAsProvided<TResolvedTypesMeta>
+    >
   : T extends (
       ...args: any[]
     ) => StateMachine<
@@ -1762,7 +1774,11 @@ export type InterpreterFrom<
       any,
       infer TResolvedTypesMeta
     >
-  ? Interpreter<TContext, TEvent, TResolvedTypesMeta>
+  ? Interpreter<
+      TContext,
+      TEvent,
+      MarkAllImplementationsAsProvided<TResolvedTypesMeta>
+    >
   : never;
 
 export type MachineImplementationsFrom<
