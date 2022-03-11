@@ -22,7 +22,8 @@
     "lib/**/*.js",
     "lib/**/*.d.ts",
     "es/**/*.js",
-    "es/**/*.d.ts"
+    "es/**/*.d.ts",
+    "dist/**/*.js"
   ],
   "repository": {
     "type": "git",
