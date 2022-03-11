@@ -1,5 +1,9 @@
 import typescript from 'rollup-plugin-typescript2';
 import pkg from './package.json';
+import resolve from '@rollup/plugin-node-resolve';
+import commonjs from '@rollup/plugin-commonjs';
+import replace from 'rollup-plugin-replace';
+import { terser } from 'rollup-plugin-terser';
 
 const makeExternalPredicate = (externalArr) => {
   if (externalArr.length === 0) {
@@ -9,12 +13,12 @@ const makeExternalPredicate = (externalArr) => {
   return (id) => pattern.test(id);
 };
 
-const createTsPlugin = () =>
+const createTsPlugin = (declaration = true) =>
   typescript({
     clean: true,
     tsconfigOverride: {
       compilerOptions: {
-        declaration: true
+        declaration
       }
     }
   });
@@ -29,6 +33,34 @@ const createNpmConfig = ({ input, output }) => ({
   ]),
   plugins: [createTsPlugin()]
 });
+
+function createUmdConfig({ input, output: file, name }) {
+  return {
+    input,
+    external: makeExternalPredicate(Object.keys(pkg.peerDependencies)),
+    output: {
+      file,
+      format: 'umd',
+      name,
+      globals: {
+        react: 'React',
+        xstate: 'XState',
+        '@xstate/fsm': 'XStateFSM'
+      }
+    },
+    plugins: [
+      commonjs(),
+      resolve({
+        browser: true
+      }),
+      replace({
+        'process.env.NODE_ENV': JSON.stringify('production')
+      }),
+      createTsPlugin(false),
+      terser()
+    ]
+  };
+}
 
 export default [
   createNpmConfig({
@@ -48,5 +80,10 @@ export default [
         format: 'cjs'
       }
     ]
+  }),
+  createUmdConfig({
+    name: 'XStateInspect',
+    input: 'src/index.ts',
+    output: 'dist/xstate-inspect.umd.min.js'
   })
 ];
