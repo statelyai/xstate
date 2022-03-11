@@ -497,6 +497,23 @@ describe('events', () => {
     // @ts-expect-error
     service.send({ type: 'UNKNOWN' });
   });
+
+  it('event type should be inferrable from a simple state machine typr', () => {
+    const toggleMachine = createMachine<
+      {
+        count: number;
+      },
+      {
+        type: 'TOGGLE';
+      }
+    >({});
+
+    function acceptMachine<TContext, TEvent extends { type: string }>(
+      _machine: StateMachine<TContext, any, TEvent>
+    ) {}
+
+    acceptMachine(toggleMachine);
+  });
 });
 
 describe('interpreter', () => {
