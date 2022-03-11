@@ -1014,7 +1014,7 @@ export interface StateMachine<
   TServiceMap extends ServiceMap = ServiceMap,
   TResolvedTypesMeta = ResolveTypegenMeta<
     TypegenDisabled,
-    TEvent,
+    NoInfer<TEvent>,
     TAction,
     TServiceMap
   >
