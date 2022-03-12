@@ -123,11 +123,33 @@ export interface Spawner {
     : never;
   /**
    * Spawns an `ActorRef` from behavior defined by a state machine.
+   *
+   * @example
+   * ```ts
+   * spawn.machine(someMachine, {
+   *   name: 'something'
+   * })
+   * ```
    */
   machine: <TMachine extends AnyStateMachine>(
     machine: TMachine | Lazy<TMachine>,
     options?: Partial<InterpreterOptions & SpawnOptions>
   ) => ActorRefFrom<TMachine>;
+
+  /**
+   * Spawns an `ActorRef` from behavior defined by a lazy promise.
+   *
+   * @example
+   * ```ts
+   * spawn.promise(() => fetch('...'), {
+   *   name: 'fetchData'
+   * })
+   * ```
+   */
+  promise: <T>(
+    lazyPromise: Lazy<PromiseLike<T>>,
+    options?: SpawnOptions
+  ) => ActorRef<any, T>;
 }
 
 export interface AssignMeta<

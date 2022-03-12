@@ -7,7 +7,7 @@ import {
   AnyStateMachine,
   Spawner
 } from '.';
-import { createMachineBehavior } from './behaviors';
+import { createMachineBehavior, createPromiseBehavior } from './behaviors';
 import { ObservableActorRef } from './ObservableActorRef';
 import { isString } from './utils';
 
@@ -68,6 +68,11 @@ export function createSpawner<
 
   (spawner as Spawner).machine = (machine, options) => {
     const behavior = createMachineBehavior(machine, options);
+    return spawner(behavior, options?.name);
+  };
+
+  (spawner as Spawner).promise = (lazyPromise, options) => {
+    const behavior = createPromiseBehavior(lazyPromise);
     return spawner(behavior, options?.name);
   };
 
