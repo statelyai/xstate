@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 import {
+  AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
   InternalMachineOptions,
   interpret,
@@ -8,7 +9,7 @@ import {
   InterpreterOptions,
   Observer,
   State,
-  StateMachine
+  StateFrom
 } from 'xstate';
 import { MaybeLazy } from './types';
 import useConstant from './useConstant';
@@ -36,7 +37,7 @@ function toObserver<T>(
 }
 
 type RestParams<
-  TMachine extends StateMachine<any, any, any, any, any, any, any>
+  TMachine extends AnyStateMachine
 > = AreAllImplementationsAssumedToBeProvided<
   TMachine['__TResolvedTypesMeta']
 > extends false
@@ -50,24 +51,8 @@ type RestParams<
           true
         >,
       observerOrListener?:
-        | Observer<
-            State<
-              TMachine['__TContext'],
-              TMachine['__TEvent'],
-              any,
-              TMachine['__TTypestate'],
-              TMachine['__TResolvedTypesMeta']
-            >
-          >
-        | ((
-            value: State<
-              TMachine['__TContext'],
-              TMachine['__TEvent'],
-              any,
-              TMachine['__TTypestate'],
-              TMachine['__TResolvedTypesMeta']
-            >
-          ) => void)
+        | Observer<StateFrom<TMachine>>
+        | ((value: StateFrom<TMachine>) => void)
     ]
   : [
       options?: InterpreterOptions &
@@ -78,29 +63,11 @@ type RestParams<
           TMachine['__TResolvedTypesMeta']
         >,
       observerOrListener?:
-        | Observer<
-            State<
-              TMachine['__TContext'],
-              TMachine['__TEvent'],
-              any,
-              TMachine['__TTypestate'],
-              TMachine['__TResolvedTypesMeta']
-            >
-          >
-        | ((
-            value: State<
-              TMachine['__TContext'],
-              TMachine['__TEvent'],
-              any,
-              TMachine['__TTypestate'],
-              TMachine['__TResolvedTypesMeta']
-            >
-          ) => void)
+        | Observer<StateFrom<TMachine>>
+        | ((value: StateFrom<TMachine>) => void)
     ];
 
-export function useInterpret<
-  TMachine extends StateMachine<any, any, any, any, any, any, any>
->(
+export function useInterpret<TMachine extends AnyStateMachine>(
   getMachine: MaybeLazy<TMachine>,
   ...[options = {}, observerOrListener]: RestParams<TMachine>
 ): InterpreterFrom<TMachine> {

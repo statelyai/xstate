@@ -8,7 +8,7 @@
 npm install xstate --save
 ```
 
-> 如果你正在使用 VSCode，你应该安装我们的 [VSCode Extension](https://marketplace.visualstudio.com/items?itemName=mattpocock.xstate-vscode)，以便你可以随时可视化你正在构建的状态机。
+> 如果你正在使用 VSCode，你应该安装我们的 [VSCode Extension](https://marketplace.visualstudio.com/items?itemName=statelyai.stately-vscode)，以便你可以随时可视化你正在构建的状态机。
 
 然后，在你的项目中，导入 `createMachine`，这是一个创建状态机的函数。
 

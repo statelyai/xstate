@@ -10,7 +10,8 @@ import {
   createMachine,
   send,
   InterpreterFrom,
-  StateFrom
+  StateFrom,
+  AnyState
 } from 'xstate';
 import {
   render,
@@ -69,7 +70,7 @@ describe('useMachine hook', () => {
 
   const Fetcher: React.FC<{
     onFetch: () => Promise<any>;
-    persistedState?: State<any, any, any, any, any>;
+    persistedState?: AnyState;
   }> = ({
     onFetch = () => new Promise((res) => res('some data')),
     persistedState

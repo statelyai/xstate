@@ -1,5 +1,19 @@
 # @xstate/vue
 
+## 1.0.0
+
+### Major Changes
+
+- [#3083](https://github.com/statelyai/xstate/pull/3083) [`bc592582a`](https://github.com/statelyai/xstate/commit/bc592582a8b486ca3a6277ca9a9c922590572346) Thanks [@Andarist](https://github.com/Andarist)! - The major version of this package had to be bumped to allow integrating with the typegen. This package will now require TS version 4.0 or greater.
+
+  When using hooks from `@xstate/vue` it's recommended to skip providing explicit generics to them. Note that that generics list has changed since v1 and we now only accept a single generic, `TMachine`.
+
+* [#3083](https://github.com/statelyai/xstate/pull/3083) [`bc592582a`](https://github.com/statelyai/xstate/commit/bc592582a8b486ca3a6277ca9a9c922590572346) Thanks [@Andarist](https://github.com/Andarist)! - Removed already deprecated `useService` from `@xstate/vue`. You can replace its usage with `useActor`.
+
+### Patch Changes
+
+- [#3089](https://github.com/statelyai/xstate/pull/3089) [`862697e29`](https://github.com/statelyai/xstate/commit/862697e2990934d46050580d7e09c749d09d8426) Thanks [@Andarist](https://github.com/Andarist)! - Fixed compatibility with Skypack by exporting some shared utilities from root entry of XState and consuming them directly in other packages (this avoids accessing those things using deep imports and thus it avoids creating those compatibility problems).
+
 ## 0.8.2
 
 ### Patch Changes
@@ -101,10 +115,7 @@
   export default {
     props: ['someActor'],
     setup(props) {
-      const count = useSelector(
-        props.someActor,
-        (state) => state.context.count
-      );
+      const count = useSelector(props.someActor, state => state.context.count);
       // ...
       return { count };
     }
@@ -139,7 +150,7 @@
   export default defineComponent({
     setup() {
       const state = ref();
-      const service = useInterpret(machine, {}, (nextState) => {
+      const service = useInterpret(machine, {}, nextState => {
         state.value = nextState.value;
       });
       return { service, state };

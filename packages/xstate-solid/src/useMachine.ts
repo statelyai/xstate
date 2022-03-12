@@ -1,5 +1,5 @@
 import type {
-  StateMachine,
+  AnyStateMachine,
   InterpreterOptions,
   AreAllImplementationsAssumedToBeProvided,
   InternalMachineOptions,
@@ -7,14 +7,14 @@ import type {
   StateFrom
 } from 'xstate';
 import { State } from 'xstate';
-import { createStore } from 'solid-js/store';
+import { createStore, SetStoreFunction } from 'solid-js/store';
 import type { MaybeLazy, UseMachineOptions, Prop } from './types';
 import { useInterpret } from './useInterpret';
 import { batch } from 'solid-js';
 import { updateState } from './utils';
 
 type RestParams<
-  TMachine extends StateMachine<any, any, any, any, any, any, any>
+  TMachine extends AnyStateMachine
 > = AreAllImplementationsAssumedToBeProvided<
   TMachine['__TResolvedTypesMeta']
 > extends false
@@ -39,13 +39,11 @@ type RestParams<
     ];
 
 type UseMachineReturn<
-  TMachine extends StateMachine<any, any, any, any, any, any, any>,
+  TMachine extends AnyStateMachine,
   TInterpreter = InterpreterFrom<TMachine>
 > = [StateFrom<TMachine>, Prop<TInterpreter, 'send'>, TInterpreter];
 
-export function useMachine<
-  TMachine extends StateMachine<any, any, any, any, any, any, any>
->(
+export function useMachine<TMachine extends AnyStateMachine>(
   getMachine: MaybeLazy<TMachine>,
   ...[options = {}]: RestParams<TMachine>
 ): UseMachineReturn<TMachine> {
@@ -83,13 +81,16 @@ export function useMachine<
     matches(...args: Parameters<StateFrom<TMachine>['matches']>) {
       // tslint:disable-next-line:no-unused-expression
       state.value; // sets state.value to be tracked
-      return service.state.matches(args[0]);
+      return service.state.matches(args[0] as never);
     }
   } as StateFrom<TMachine>);
 
   service.onTransition((nextState) => {
     batch(() => {
-      updateState(nextState, setState);
+      updateState(
+        nextState,
+        setState as SetStoreFunction<StateFrom<AnyStateMachine>>
+      );
     });
   });
 

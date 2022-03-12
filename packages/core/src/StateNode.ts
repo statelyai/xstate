@@ -10,7 +10,6 @@ import {
   mapFilterValues,
   nestedPath,
   toArray,
-  keys,
   isBuiltInEvent,
   partition,
   updateHistoryValue,
@@ -70,7 +69,8 @@ import {
   StateMachine,
   InternalMachineOptions,
   ServiceMap,
-  StateConfig
+  StateConfig,
+  AnyStateMachine
 } from './types';
 import { matchesState } from './utils';
 import { State, stateValuesEqual } from './State';
@@ -331,7 +331,7 @@ class StateNode<
       this.config.type ||
       (this.config.parallel
         ? 'parallel'
-        : this.config.states && keys(this.config.states).length
+        : this.config.states && Object.keys(this.config.states).length
         ? 'compound'
         : this.config.history
         ? 'history'
@@ -643,7 +643,7 @@ class StateNode<
           return { ...transition, event: eventType };
         })
       : flatten(
-          keys(afterConfig).map((delay, i) => {
+          Object.keys(afterConfig).map((delay, i) => {
             const configTransition = afterConfig[delay];
             const resolvedTransition = isString(configTransition)
               ? { target: configTransition }
@@ -707,7 +707,7 @@ class StateNode<
         : [this, this.states[stateValue]];
     }
 
-    const subStateKeys = keys(stateValue);
+    const subStateKeys = Object.keys(stateValue);
     const subStateNodes: Array<
       StateNode<
         TContext,
@@ -762,7 +762,8 @@ class StateNode<
       value: this.resolve(stateFromConfig.value),
       configuration,
       done: isInFinalState(configuration, this),
-      tags: getTagsFromConfiguration(configuration)
+      tags: getTagsFromConfiguration(configuration),
+      machine: (this.machine as unknown) as AnyStateMachine
     });
   }
 
@@ -785,7 +786,7 @@ class StateNode<
     state: State<TContext, TEvent>,
     _event: SCXML.Event<TEvent>
   ): StateTransition<TContext, TEvent> | undefined {
-    const subStateKeys = keys(stateValue);
+    const subStateKeys = Object.keys(stateValue);
 
     const stateNode = this.getStateNode(subStateKeys[0]);
     const next = stateNode._transition(
@@ -807,7 +808,7 @@ class StateNode<
   ): StateTransition<TContext, TEvent> | undefined {
     const transitionMap: Record<string, StateTransition<TContext, TEvent>> = {};
 
-    for (const subStateKey of keys(stateValue)) {
+    for (const subStateKey of Object.keys(stateValue)) {
       const subStateValue = stateValue[subStateKey];
 
       if (!subStateValue) {
@@ -821,7 +822,7 @@ class StateNode<
       }
     }
 
-    const stateTransitions = keys(transitionMap).map(
+    const stateTransitions = Object.keys(transitionMap).map(
       (key) => transitionMap[key]
     );
     const enabledTransitions = flatten(
@@ -838,7 +839,7 @@ class StateNode<
     const entryNodes = flatten(stateTransitions.map((t) => t.entrySet));
 
     const configuration = flatten(
-      keys(transitionMap).map((key) => transitionMap[key].configuration)
+      Object.keys(transitionMap).map((key) => transitionMap[key].configuration)
     );
 
     return {
@@ -848,7 +849,7 @@ class StateNode<
       configuration,
       source: state,
       actions: flatten(
-        keys(transitionMap).map((key) => {
+        Object.keys(transitionMap).map((key) => {
           return transitionMap[key].actions;
         })
       )
@@ -865,7 +866,7 @@ class StateNode<
     }
 
     // hierarchical node
-    if (keys(stateValue).length === 1) {
+    if (Object.keys(stateValue).length === 1) {
       return this.transitionCompoundNode(stateValue, state, _event);
     }
 
@@ -976,7 +977,7 @@ class StateNode<
 
     const nodes: Array<StateNode<TContext, any, TEvent, any, any, any>> = [];
     let marker:
-      | StateNode<TContext, any, TEvent, any, any>
+      | StateNode<TContext, any, TEvent, any, any, any>
       | undefined = childStateNode;
 
     while (marker && marker !== this) {
@@ -1556,7 +1557,7 @@ class StateNode<
 
           return stateValue;
         }
-        if (!keys(stateValue).length) {
+        if (!Object.keys(stateValue).length) {
           return this.initialStateValue || {};
         }
 
@@ -1625,6 +1626,7 @@ class StateNode<
     stateValue: StateValue,
     context?: TContext
   ): State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta> {
+    this._init(); // TODO: this should be in the constructor (see note in constructor)
     const configuration = this.getStateNodes(stateValue);
 
     return this.resolveTransition(
@@ -1653,7 +1655,6 @@ class StateNode<
     TTypestate,
     TResolvedTypesMeta
   > {
-    this._init(); // TODO: this should be in the constructor (see note in constructor)
     const { initialStateValue } = this;
 
     if (!initialStateValue) {
@@ -1771,7 +1772,7 @@ class StateNode<
   private historyValue(
     relativeStateValue?: StateValue | undefined
   ): HistoryValue | undefined {
-    if (!keys(this.states).length) {
+    if (!Object.keys(this.states).length) {
       return undefined;
     }
 
@@ -1848,7 +1849,7 @@ class StateNode<
    */
   public get stateIds(): string[] {
     const childStateIds = flatten(
-      keys(this.states).map((stateKey) => {
+      Object.keys(this.states).map((stateKey) => {
         return this.states[stateKey].stateIds;
       })
     );
@@ -1866,7 +1867,7 @@ class StateNode<
     const events = new Set(this.ownEvents);
 
     if (states) {
-      for (const stateId of keys(states)) {
+      for (const stateId of Object.keys(states)) {
         const state = states[stateId];
         if (state.states) {
           for (const event of state.events) {
@@ -1994,7 +1995,7 @@ class StateNode<
       } = this.config.on;
 
       onConfig = flatten(
-        keys(strictTransitionConfigs)
+        Object.keys(strictTransitionConfigs)
           .map((key) => {
             if (!IS_PRODUCTION && key === NULL_EVENT) {
               warn(

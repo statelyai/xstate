@@ -1,5 +1,5 @@
 import type { ActorRef, Behavior, EventObject } from 'xstate';
-import { spawnBehavior } from 'xstate/lib/behaviors';
+import { spawnBehavior } from 'xstate';
 
 /**
  * SolidJS composable that spawns an `ActorRef` with the specified `behavior`.

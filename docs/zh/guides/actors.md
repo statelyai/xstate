@@ -63,7 +63,7 @@
 
 `spawn(...)` 函数通过提供 1 或 2 个参数来创建 **演员 引用**：
 
-- `entity` - 代表 演员 东走的（反应）值或状态机。 `entity` 的可能类型：
+- `entity` - 代表 演员 动作（反应）的值或状态机。 `entity` 的可能类型：
   - [Machine](./communication.md#invoking-machines)
   - [Promise](./communication.md#invoking-promises)
   - [Callback](./communication.md#invoking-callbacks)

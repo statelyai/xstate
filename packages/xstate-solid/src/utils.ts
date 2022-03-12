@@ -1,15 +1,10 @@
-import type { State } from 'xstate';
-import type {
-  DeepReadonly,
-  Next,
-  Part,
-  SetStoreFunction
-} from 'solid-js/store';
+import type { AnyState, AnyStateMachine, State, StateFrom } from 'xstate';
+import type { SetStoreFunction } from 'solid-js/store';
 import { produce, reconcile } from 'solid-js/store';
 import rfdc from 'rfdc';
 
 // List of keys to reconcile while merging state
-const reconcileKeys: Array<keyof State<any>> = ['context', 'value'];
+const reconcileKeys: Array<keyof AnyState> = ['context', 'value'];
 
 /**
  * Reconcile the state of the machine with the current state of the store.
@@ -17,7 +12,7 @@ const reconcileKeys: Array<keyof State<any>> = ['context', 'value'];
  * Provides granular reactivity for the state of the machine in solid-js.
  */
 export const updateState = <
-  NextState extends State<any> | object,
+  NextState extends StateFrom<AnyStateMachine> | object,
   UpdateState extends SetStoreFunction<NextState>
 >(
   nextState: NextState,
@@ -44,7 +39,7 @@ export const updateState = <
 };
 
 const setProduceState = <
-  NextState extends State<any> | object,
+  NextState extends AnyState | object,
   UpdateState extends SetStoreFunction<NextState>
 >(
   key: keyof NextState,
@@ -53,12 +48,12 @@ const setProduceState = <
 ) =>
   setState(
     produce((s) => {
-      s[key] = nextState[key];
+      s[key as any] = nextState[key];
     })
   );
 
 const setReconcileState = <
-  NextState extends State<any> | object,
+  NextState extends AnyState | object,
   UpdateState extends SetStoreFunction<NextState>
 >(
   key: keyof NextState,
@@ -66,12 +61,10 @@ const setReconcileState = <
   setState: UpdateState
 ) =>
   setState(
-    key as Part<DeepReadonly<NextState>>,
-    (typeof nextState[key] === 'object'
+    key as any,
+    typeof nextState[key] === 'object'
       ? reconcile(nextState[key])
-      : nextState[key]) as Partial<
-      Next<DeepReadonly<NextState>, Part<DeepReadonly<NextState>>>
-    >
+      : nextState[key]
   );
 
 // TODO: Replace with structuredClone when more broadly available
