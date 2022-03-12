@@ -107,7 +107,7 @@ export function useInterpret<TMachine extends AnyStateMachine>(
       actors,
       delays
     };
-    const machineWithConfig = machine.provide(machineConfig as any);
+    const machineWithConfig = machine.provide(machineConfig as any); // TODO: fix type
 
     return interpret(machineWithConfig as any, {
       deferEvents: true,
@@ -146,7 +146,7 @@ export function useInterpret<TMachine extends AnyStateMachine>(
     Object.assign(service.machine.options.delays, delays);
   }, [actions, guards, actors, delays]);
 
-  useReactEffectActions(service);
+  useReactEffectActions(service as any); // TODO: fix type
 
-  return service as any;
+  return service as any; // TODO: fix type
 }
