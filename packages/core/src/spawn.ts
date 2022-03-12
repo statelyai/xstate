@@ -3,11 +3,11 @@ import {
   EventObject,
   SCXML,
   InvokeActionObject,
-  Behavior,
   ActionTypes,
   AnyStateMachine,
-  ActorRefFrom
+  Spawner
 } from '.';
+import { createMachineBehavior } from './behaviors';
 import { ObservableActorRef } from './ObservableActorRef';
 import { isString } from './utils';
 
@@ -19,11 +19,8 @@ export function createSpawner<
   context: TContext,
   _event: SCXML.Event<TEvent>,
   mutCapturedActions: InvokeActionObject[]
-): <TBehavior extends Behavior<any, any>>(
-  behavior: string | TBehavior,
-  name?: string | undefined
-) => ActorRefFrom<TBehavior> {
-  return (behavior, name) => {
+): Spawner {
+  const spawner = (behavior, name) => {
     if (isString(behavior)) {
       const behaviorCreator = machine.options.actors[behavior];
 
@@ -68,4 +65,11 @@ export function createSpawner<
       return actorRef as any; // TODO: fix types
     }
   };
+
+  (spawner as Spawner).machine = (machine, options) => {
+    const behavior = createMachineBehavior(machine, options);
+    return spawner(behavior, options?.name);
+  };
+
+  return spawner as Spawner;
 }

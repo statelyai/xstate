@@ -13,7 +13,6 @@ import { log } from '../src/actions/log';
 import { invokeMachine } from '../src/invoke';
 import { ActorRef } from '../src';
 import { sendTo } from '../src/actions/send';
-import { createMachineBehavior } from '../src/behaviors';
 
 describe('entry/exit actions', () => {
   const pedestrianStates = {
@@ -1321,8 +1320,7 @@ describe('forwardTo()', () => {
       states: {
         first: {
           entry: assign({
-            child: (_, __, { spawn }) =>
-              spawn(createMachineBehavior(child), 'x')
+            child: (_, __, { spawn }) => spawn.machine(child, { name: 'x' })
           }),
           on: {
             EVENT: {
@@ -1749,7 +1747,7 @@ describe('sendTo', () => {
     const parentMachine = createMachine({
       context: ({ spawn }) =>
         ({
-          child: spawn(createMachineBehavior(childMachine))
+          child: spawn.machine(childMachine)
         } as { child: ActorRefFrom<typeof childMachine> }),
       entry: sendTo((ctx) => ctx.child as any, { type: 'EVENT' })
     });
@@ -1785,7 +1783,7 @@ describe('sendTo', () => {
         }
 
         return {
-          child: spawn(createMachineBehavior(childMachine), 'child')
+          child: spawn.machine(childMachine, { name: 'child' })
         } as {
           child: ActorRefFrom<typeof childMachine>;
           count: number;
