@@ -93,8 +93,6 @@ export class StateMachine<
       spawn: createSpawner(this, null as any, null as any, actions) // TODO: fix types
     });
 
-    // console.log(actions);
-
     return [context, actions];
   }
   /**
