@@ -22,23 +22,15 @@ import { send } from '../src/actions/send';
 import { EMPTY, interval } from 'rxjs';
 import { map } from 'rxjs/operators';
 import * as actionTypes from '../src/actionTypes';
-import { createDeferredBehavior, fromReducer } from '../src/behaviors';
+import {
+  createDeferredBehavior,
+  createMachineBehavior,
+  createPromiseBehavior,
+  fromReducer
+} from '../src/behaviors';
 import { invokeMachine } from '../src/invoke';
 
 describe('spawning machines', () => {
-  const todoMachine = createMachine({
-    id: 'todo',
-    initial: 'incomplete',
-    states: {
-      incomplete: {
-        on: { SET_COMPLETE: 'complete' }
-      },
-      complete: {
-        entry: sendParent({ type: 'TODO_COMPLETED' })
-      }
-    }
-  });
-
   const context = {
     todoRefs: {} as Record<string, ActorRef<any>>
   };
@@ -55,39 +47,6 @@ describe('spawning machines', () => {
     | {
         type: 'TODO_COMPLETED';
       };
-
-  const todosMachine = createMachine<typeof context, TodoEvent>({
-    id: 'todos',
-    context,
-    initial: 'active',
-    states: {
-      active: {
-        on: {
-          TODO_COMPLETED: 'success'
-        }
-      },
-      success: {
-        type: 'final'
-      }
-    },
-    on: {
-      ADD: {
-        actions: assign({
-          todoRefs: (ctx, e, { spawn }) => ({
-            ...ctx.todoRefs,
-            [e.id]: spawn.machine(todoMachine)
-          })
-        })
-      },
-      SET_COMPLETE: {
-        actions: send('SET_COMPLETE', {
-          to: (ctx, e: Extract<TodoEvent, { type: 'SET_COMPLETE' }>) => {
-            return ctx.todoRefs[e.id];
-          }
-        })
-      }
-    }
-  });
 
   // Adaptation: https://github.com/p-org/P/wiki/PingPong-program
   type PingPongEvent =
@@ -152,7 +111,52 @@ describe('spawning machines', () => {
     }
   });
 
-  it('should invoke actors', (done) => {
+  it('should spawn machines', (done) => {
+    const todoMachine = createMachine({
+      id: 'todo',
+      initial: 'incomplete',
+      states: {
+        incomplete: {
+          on: { SET_COMPLETE: 'complete' }
+        },
+        complete: {
+          entry: sendParent({ type: 'TODO_COMPLETED' })
+        }
+      }
+    });
+
+    const todosMachine = createMachine<typeof context, TodoEvent>({
+      id: 'todos',
+      context,
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            TODO_COMPLETED: 'success'
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      },
+      on: {
+        ADD: {
+          actions: assign({
+            todoRefs: (ctx, e, { spawn }) => ({
+              ...ctx.todoRefs,
+              [e.id]: spawn.machine(todoMachine)
+            })
+          })
+        },
+        SET_COMPLETE: {
+          actions: send('SET_COMPLETE', {
+            to: (ctx, e: Extract<TodoEvent, { type: 'SET_COMPLETE' }>) => {
+              return ctx.todoRefs[e.id];
+            }
+          })
+        }
+      }
+    });
     const service = interpret(todosMachine)
       .onDone(() => {
         done();
@@ -161,6 +165,45 @@ describe('spawning machines', () => {
 
     service.send({ type: 'ADD', id: 42 });
     service.send({ type: 'SET_COMPLETE', id: 42 });
+  });
+
+  it('should spawn referenced machines', (done) => {
+    const childMachine = createMachine({
+      entry: sendParent('DONE')
+    });
+
+    const parentMachine = createMachine(
+      {
+        context: {
+          ref: null
+        },
+        initial: 'waiting',
+        states: {
+          waiting: {
+            entry: assign({
+              ref: (_, __, { spawn }) => spawn('child')
+            }),
+            on: {
+              DONE: 'success'
+            }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      },
+      {
+        actors: {
+          child: () => createMachineBehavior(childMachine)
+        }
+      }
+    );
+
+    interpret(parentMachine)
+      .onDone(() => {
+        done();
+      })
+      .start();
   });
 
   it('should allow bidirectional communication between parent/child actors', (done) => {
@@ -207,6 +250,52 @@ describe('spawning promises', () => {
         }
       }
     });
+
+    const promiseService = interpret(promiseMachine).onDone(() => {
+      done();
+    });
+
+    promiseService.start();
+  });
+
+  it('should be able to spawn a referenced promise', (done) => {
+    const promiseMachine = createMachine<{ promiseRef?: ActorRef<any> }>(
+      {
+        id: 'promise',
+        initial: 'idle',
+        context: {
+          promiseRef: undefined
+        },
+        states: {
+          idle: {
+            entry: assign({
+              promiseRef: (_, __, { spawn }) =>
+                spawn('somePromise', 'my-promise')
+            }),
+            on: {
+              [doneInvoke('my-promise')]: {
+                target: 'success',
+                guard: (_, e) => e.data === 'response'
+              }
+            }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      },
+      {
+        actors: {
+          somePromise: () =>
+            createPromiseBehavior(
+              () =>
+                new Promise((res) => {
+                  res('response');
+                })
+            )
+        }
+      }
+    );
 
     const promiseService = interpret(promiseMachine).onDone(() => {
       done();
@@ -263,7 +352,7 @@ describe('spawning callbacks', () => {
 });
 
 describe('spawning observables', () => {
-  it('should be able to spawn an observable', (done) => {
+  it('should spawn an observable', (done) => {
     interface Events {
       type: 'INT';
       value: number;
@@ -313,6 +402,8 @@ describe('spawning observables', () => {
 
     observableService.start();
   });
+
+  it.todo('should spawn a referenced observable');
 });
 
 describe('communicating with spawned actors', () => {

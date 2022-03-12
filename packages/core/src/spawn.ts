@@ -52,7 +52,9 @@ export function createSpawner<
         return actorRef as any; // TODO: fix types
       }
 
-      throw new Error('does not exist');
+      throw new Error(
+        `Behavior '${behavior}' not implemented in machine '${machine.key}'`
+      );
     } else {
       const actorRef = new ObservableActorRef(behavior, name || 'anonymous');
 

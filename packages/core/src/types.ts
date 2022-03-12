@@ -114,7 +114,11 @@ export interface SpawnOptions {
   name?: string;
 }
 
-export interface Spawner {
+export interface Spawner<TMachine extends AnyStateMachine = AnyStateMachine> {
+  <T extends keyof TMachine['options']['actors']>(
+    behaviorName: T,
+    name?: string
+  ): ActorRef<any, any>;
   <T extends Behavior<any, any>>(
     behavior: T,
     name?: string
