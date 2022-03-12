@@ -22,11 +22,7 @@ import { send } from '../src/actions/send';
 import { EMPTY, interval } from 'rxjs';
 import { map } from 'rxjs/operators';
 import * as actionTypes from '../src/actionTypes';
-import {
-  createDeferredBehavior,
-  createObservableBehavior,
-  fromReducer
-} from '../src/behaviors';
+import { createDeferredBehavior, fromReducer } from '../src/behaviors';
 import { invokeMachine } from '../src/invoke';
 
 describe('spawning machines', () => {
@@ -286,14 +282,12 @@ describe('spawning observables', () => {
         idle: {
           entry: assign({
             observableRef: (_, __, { spawn }) => {
-              const ref = spawn(
-                createObservableBehavior(() =>
-                  interval(10).pipe(
-                    map((n) => ({
-                      type: 'INT',
-                      value: n
-                    }))
-                  )
+              const ref = spawn.observable(() =>
+                interval(10).pipe(
+                  map((n) => ({
+                    type: 'INT',
+                    value: n
+                  }))
                 )
               );
 
@@ -1274,8 +1268,7 @@ describe('actors', () => {
         child: null
       },
       entry: assign({
-        child: (_, __, { spawn }) =>
-          spawn(createObservableBehavior(createEmptyObservable))
+        child: (_, __, { spawn }) => spawn.observable(createEmptyObservable)
       })
     });
     const service = interpret(parentMachine);
@@ -1293,10 +1286,7 @@ describe('actors', () => {
       },
       entry: assign({
         child: (_, __, { spawn }) =>
-          spawn(
-            createObservableBehavior(() => EMPTY),
-            'myactor'
-          )
+          spawn.observable(() => EMPTY, { name: 'myactor' })
       }),
       initial: 'init',
       states: {

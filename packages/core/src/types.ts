@@ -149,7 +149,22 @@ export interface Spawner {
   promise: <T>(
     lazyPromise: Lazy<PromiseLike<T>>,
     options?: SpawnOptions
-  ) => ActorRef<any, T>;
+  ) => ActorRef<any, T | undefined>;
+
+  /**
+   * Spawns an `ActorRef` from behavior defined by a lazy observable.
+   *
+   * @example
+   * ```ts
+   * spawn.observable(() => click$, {
+   *   name: 'clicks'
+   * })
+   * ```
+   */
+  observable: <T>(
+    lazyObservable: Lazy<Subscribable<T>>,
+    options?: SpawnOptions
+  ) => ActorRef<any, T | undefined>;
 }
 
 export interface AssignMeta<
