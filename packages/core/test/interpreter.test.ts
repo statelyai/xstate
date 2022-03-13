@@ -26,7 +26,10 @@ import {
   invokePromise,
   invokeActivity
 } from '../src/invoke';
-import { createObservableBehavior } from '../src/behaviors';
+import {
+  createObservableBehavior,
+  createPromiseBehavior
+} from '../src/behaviors';
 
 const lightMachine = createMachine({
   id: 'light',
@@ -94,11 +97,13 @@ describe('interpreter', () => {
           idle: {
             entry: assign({
               actor: (_, __, { spawn }) => {
-                return spawn.promise(
-                  () =>
-                    new Promise(() => {
-                      promiseSpawned++;
-                    })
+                return spawn(
+                  createPromiseBehavior(
+                    () =>
+                      new Promise(() => {
+                        promiseSpawned++;
+                      })
+                  )
                 );
               }
             })
@@ -1717,12 +1722,14 @@ describe('interpreter', () => {
           machineRef: (_, __, { spawn }) =>
             spawn.machine(childMachine, { name: 'machineChild' }),
           promiseRef: (_, __, { spawn }) =>
-            spawn.promise(
-              () =>
-                new Promise(() => {
-                  // ...
-                }),
-              { name: 'promiseChild' }
+            spawn(
+              createPromiseBehavior(
+                () =>
+                  new Promise(() => {
+                    // ...
+                  })
+              ),
+              'promiseChild'
             ),
           observableRef: (_, __, { spawn }) =>
             spawn(

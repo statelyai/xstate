@@ -27,6 +27,7 @@ import {
   createMachineBehavior,
   createPromiseBehavior,
   createObservableBehavior,
+  createPromiseBehavior,
   fromReducer
 } from '../src/behaviors';
 import { invokeMachine } from '../src/invoke';
@@ -228,12 +229,14 @@ describe('spawning promises', () => {
         idle: {
           entry: assign({
             promiseRef: (_, __, { spawn }) => {
-              const ref = spawn.promise(
-                () =>
-                  new Promise((res) => {
-                    res('response');
-                  }),
-                { name: 'my-promise' }
+              const ref = spawn(
+                createPromiseBehavior(
+                  () =>
+                    new Promise((res) => {
+                      res('response');
+                    })
+                ),
+                'my-promise'
               );
 
               return ref;
@@ -578,7 +581,9 @@ describe('actors', () => {
             refs: (ctx, _, { spawn }) => {
               count++;
               const c = ctx.items.map((item) =>
-                spawn.promise(() => new Promise((res) => res(item)))
+                spawn(
+                  createPromiseBehavior(() => new Promise((res) => res(item)))
+                )
               );
 
               return c;
@@ -609,10 +614,12 @@ describe('actors', () => {
         bar: {
           entry: assign<TestContext>({
             promise: (_, __, { spawn }) => {
-              return spawn.promise(() => {
-                spawnCounter++;
-                return Promise.resolve('answer');
-              });
+              return spawn(
+                createPromiseBehavior(() => {
+                  spawnCounter++;
+                  return Promise.resolve('answer');
+                })
+              );
             }
           })
         }
@@ -680,7 +687,8 @@ describe('actors', () => {
       states: {
         foo: {
           entry: assign({
-            ref: (_, __, { spawn }) => spawn.promise(() => Promise.resolve(42))
+            ref: (_, __, { spawn }) =>
+              spawn(createPromiseBehavior(() => Promise.resolve(42)))
           })
         }
       }
@@ -1038,10 +1046,12 @@ describe('actors', () => {
             bar: {
               entry: assign({
                 promise: (_, __, { spawn }) => {
-                  return spawn.promise(() => {
-                    spawnCounter++;
-                    return Promise.resolve('answer');
-                  });
+                  return spawn(
+                    createPromiseBehavior(() => {
+                      spawnCounter++;
+                      return Promise.resolve('answer');
+                    })
+                  );
                 }
               })
             }
@@ -1119,12 +1129,14 @@ describe('actors', () => {
         },
         entry: assign({
           count: (_, __, { spawn }) =>
-            spawn.promise(
-              () =>
-                new Promise<number>((res) => {
-                  setTimeout(() => res(42));
-                }),
-              { name: 'test' }
+            spawn(
+              createPromiseBehavior(
+                () =>
+                  new Promise<number>((res) => {
+                    setTimeout(() => res(42));
+                  })
+              ),
+              'test'
             )
         }),
         initial: 'pending',
@@ -1155,12 +1167,14 @@ describe('actors', () => {
         count: ActorRefFrom<Promise<number>>;
       }>({
         context: ({ spawn }) => ({
-          count: spawn.promise(
-            () =>
-              new Promise<number>((_, rej) => {
-                setTimeout(() => rej(errorMessage), 1000);
-              }),
-            { name: 'test' }
+          count: spawn(
+            createPromiseBehavior(
+              () =>
+                new Promise<number>((_, rej) => {
+                  setTimeout(() => rej(errorMessage), 1000);
+                })
+            ),
+            'test'
           )
         }),
         initial: 'pending',
@@ -1337,7 +1351,11 @@ describe('actors', () => {
       },
       entry: assign({
         child: (_, __, { spawn }) =>
-          spawn.promise(() => ({ then: (fn: any) => fn(null) } as any))
+          spawn(
+            createPromiseBehavior(
+              () => ({ then: (fn: any) => fn(null) } as any)
+            )
+          )
       })
     });
     const service = interpret(parentMachine);
