@@ -27,6 +27,7 @@ import {
   invokeActivity
 } from '../src/invoke';
 import {
+  createMachineBehavior,
   createObservableBehavior,
   createPromiseBehavior
 } from '../src/behaviors';
@@ -1691,7 +1692,7 @@ describe('interpreter', () => {
         context: {},
         entry: assign({
           firstNameRef: (_, __, { spawn }) =>
-            spawn.machine(childMachine, { name: 'child' })
+            spawn(createMachineBehavior(childMachine), 'child')
         }),
         states: {
           idle: {}
@@ -1720,7 +1721,7 @@ describe('interpreter', () => {
         context: {},
         entry: assign({
           machineRef: (_, __, { spawn }) =>
-            spawn.machine(childMachine, { name: 'machineChild' }),
+            spawn(createMachineBehavior(childMachine), 'machineChild'),
           promiseRef: (_, __, { spawn }) =>
             spawn(
               createPromiseBehavior(

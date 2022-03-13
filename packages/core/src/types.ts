@@ -110,29 +110,12 @@ export interface ActionMeta<
   _event: SCXML.Event<TEvent>;
 }
 
-export interface SpawnOptions {
-  name?: string;
-}
-
-export interface Spawner<TMachine extends AnyStateMachine = AnyStateMachine> {
-  <T extends keyof TMachine['options']['actors']>(
-    behaviorName: T,
-    name?: string
-  ): ActorRef<any, any>;
-  <T extends Behavior<any, any>>(
-    behavior: T,
-    name?: string
-  ): T extends Behavior<infer TActorEvent, infer TActorEmitted>
-    ? ActorRef<TActorEvent, TActorEmitted>
-    : never;
-  /**
-   * Spawns an `ActorRef` from behavior defined by a state machine.
-   */
-  machine: <TMachine extends AnyStateMachine>(
-    machine: TMachine | Lazy<TMachine>,
-    options?: Partial<InterpreterOptions & SpawnOptions>
-  ) => ActorRefFrom<TMachine>;
-}
+export type Spawner = <T extends Behavior<any, any>>(
+  behavior: T,
+  name?: string
+) => T extends Behavior<infer TActorEvent, infer TActorEmitted>
+  ? ActorRef<TActorEvent, TActorEmitted>
+  : never;
 
 export interface AssignMeta<
   TContext extends MachineContext,
