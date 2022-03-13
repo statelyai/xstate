@@ -153,22 +153,7 @@ export interface Spawner<TMachine extends AnyStateMachine = AnyStateMachine> {
   promise: <T>(
     lazyPromise: Lazy<PromiseLike<T>>,
     options?: SpawnOptions
-  ) => ActorRef<any, T | undefined>;
-
-  /**
-   * Spawns an `ActorRef` from behavior defined by a lazy observable.
-   *
-   * @example
-   * ```ts
-   * spawn.observable(() => click$, {
-   *   name: 'clicks'
-   * })
-   * ```
-   */
-  observable: <T>(
-    lazyObservable: Lazy<Subscribable<T>>,
-    options?: SpawnOptions
-  ) => ActorRef<any, T | undefined>;
+  ) => ActorRef<any, T>;
 }
 
 export interface AssignMeta<

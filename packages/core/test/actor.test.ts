@@ -26,6 +26,7 @@ import {
   createDeferredBehavior,
   createMachineBehavior,
   createPromiseBehavior,
+  createObservableBehavior,
   fromReducer
 } from '../src/behaviors';
 import { invokeMachine } from '../src/invoke';
@@ -371,12 +372,14 @@ describe('spawning observables', () => {
         idle: {
           entry: assign({
             observableRef: (_, __, { spawn }) => {
-              const ref = spawn.observable(() =>
-                interval(10).pipe(
-                  map((n) => ({
-                    type: 'INT',
-                    value: n
-                  }))
+              const ref = spawn(
+                createObservableBehavior(() =>
+                  interval(10).pipe(
+                    map((n) => ({
+                      type: 'INT',
+                      value: n
+                    }))
+                  )
                 )
               );
 
@@ -1359,7 +1362,8 @@ describe('actors', () => {
         child: null
       },
       entry: assign({
-        child: (_, __, { spawn }) => spawn.observable(createEmptyObservable)
+        child: (_, __, { spawn }) =>
+          spawn(createObservableBehavior(createEmptyObservable))
       })
     });
     const service = interpret(parentMachine);
@@ -1377,7 +1381,10 @@ describe('actors', () => {
       },
       entry: assign({
         child: (_, __, { spawn }) =>
-          spawn.observable(() => EMPTY, { name: 'myactor' })
+          spawn(
+            createObservableBehavior(() => EMPTY),
+            'myactor'
+          )
       }),
       initial: 'init',
       states: {

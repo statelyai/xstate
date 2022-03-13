@@ -26,6 +26,7 @@ import {
   invokePromise,
   invokeActivity
 } from '../src/invoke';
+import { createObservableBehavior } from '../src/behaviors';
 
 const lightMachine = createMachine({
   id: 'light',
@@ -1724,9 +1725,11 @@ describe('interpreter', () => {
               { name: 'promiseChild' }
             ),
           observableRef: (_, __, { spawn }) =>
-            spawn.observable(
-              () => interval(1000).pipe(map((i) => ({ type: 'INTERVAL', i }))),
-              { name: 'observableChild' }
+            spawn(
+              createObservableBehavior(() =>
+                interval(1000).pipe(map((i) => ({ type: 'INTERVAL', i })))
+              ),
+              'observableChild'
             )
         }),
         states: {
