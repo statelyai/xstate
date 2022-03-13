@@ -110,12 +110,12 @@ export interface ActionMeta<
   _event: SCXML.Event<TEvent>;
 }
 
-export type Spawner = <T extends Behavior<any, any>>(
+export type Spawner = <T extends Behavior<any, any> | string>( // TODO: read string from machine behavior keys
   behavior: T,
   name?: string
 ) => T extends Behavior<infer TActorEvent, infer TActorEmitted>
   ? ActorRef<TActorEvent, TActorEmitted>
-  : never;
+  : ActorRef<any, any>; // TODO: narrow this to behaviors from machine
 
 export interface AssignMeta<
   TContext extends MachineContext,
