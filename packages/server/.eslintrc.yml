@@ -1,0 +1,20 @@
+env:
+  es2021: true
+  node: true
+extends:
+  - eslint:recommended
+  - plugin:@typescript-eslint/recommended
+
+parser: "@typescript-eslint/parser"
+parserOptions:
+  ecmaVersion: 12
+  sourceType: module
+plugins:
+  - "@typescript-eslint"
+
+rules:
+  indent: 0
+  "@typescript-eslint/no-explicit-any": off
+  linebreak-style: 0
+  quotes: 0
+  semi: 0

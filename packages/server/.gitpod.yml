@@ -1,0 +1,27 @@
+---
+# package.json repo à changer
+
+tasks:
+  - name: Configuration
+    before: npm install -g ts-node
+    command: yarn run build
+
+vscode:
+  extensions:
+    - ms-azuretools.vscode-docker
+    - github.vscode-pull-request-github
+    - eamodio.gitlens
+    - graphql.vscode-graphql
+    - kavod-io.vscode-jest-test-adapter
+    - pkief.material-icon-theme
+    - esbenp.prettier-vscode
+    - yatki.vscode-surround
+    - bradlc.vscode-tailwindcss
+    - hbenl.vscode-test-explorer
+    - fabiospampinato.vscode-todo-plus
+    - dbaeumer.vscode-eslint
+    - tabnine.tabnine-vscode
+    - codezombiech.gitignore
+    - foxundermoon.shell-format
+    - redhat.vscode-xml
+    - hbenl.test-adapter-converter
