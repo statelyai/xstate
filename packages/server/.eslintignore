@@ -1,7 +1,0 @@
-# Ignore artifacts:
-# Ignore artifacts:
-node_modules
-publish
-dist
-lib
-publish_npm
