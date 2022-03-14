@@ -9,17 +9,7 @@
   "scripts": {
     "test": "jest"
   },
-  "devDependencies": {
-    "@types/faker": "^6.6.9",
-    "@types/jest": "^27.4.0",
-    "dayjs": "^1.10.7",
-    "edit-json-file": "^1.7.0",
-    "faker": "^6.6.6",
-    "jest": "^27.5.0",
-    "rimraf": "^3.0.2",
-    "shelljs": "^0.8.5",
-    "ts-jest": "^27.1.3",
-    "typescript": "^4.5.5",
+  "dependencies": {
     "nanoid": "^3.2.0"
   }
 }
