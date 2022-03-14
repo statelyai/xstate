@@ -98,7 +98,6 @@ export function createTestModel<
   TestContext = any
 >(
   machine: TMachine,
-  testContext: TestContext,
   options?: Partial<
     TestModelOptions<StateFrom<TMachine>, EventFrom<TMachine>, TestContext>
   >
@@ -107,7 +106,7 @@ export function createTestModel<
     StateFrom<TMachine>,
     EventFrom<TMachine>,
     TestContext
-  >(machine as SimpleBehavior<any, any>, testContext, {
+  >(machine as SimpleBehavior<any, any>, {
     serializeState,
     testState: assertState,
     execute: (state) => {
@@ -115,6 +114,10 @@ export function createTestModel<
         executeAction(action, state);
       });
     },
+    getEvents: (state) =>
+      state.nextEvents.map(
+        (eventType) => ({ type: eventType } as EventFrom<TMachine>)
+      ),
     ...options
   });
 

@@ -70,7 +70,6 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
 
   constructor(
     public behavior: SimpleBehavior<TState, TEvent>,
-    public testContext: TTestContext,
     options?: Partial<TestModelOptions<TState, TEvent, TTestContext>>
   ) {
     this.options = {
@@ -275,7 +274,7 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
   public withEvents(
     eventMap: TestEventsConfig<TTestContext>
   ): TestModel<TState, TEvent, TTestContext> {
-    return new TestModel(this.behavior, this.testContext, {
+    return new TestModel(this.behavior, {
       ...this.options,
       getEvents: () => getEventSamples(eventMap),
       testTransition: async ({ event }, testContext) => {

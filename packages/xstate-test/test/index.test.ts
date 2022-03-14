@@ -121,7 +121,7 @@ class Jugs {
   }
 }
 
-const dieHardModel = createTestModel(dieHardMachine, null as any).withEvents({
+const dieHardModel = createTestModel(dieHardMachine).withEvents({
   POUR_3_TO_5: {
     exec: async ({ jugs }) => {
       await jugs.transferThree();
@@ -265,7 +265,7 @@ describe('error path trace', () => {
       }
     });
 
-    const testModel = createTestModel(machine, undefined).withEvents({
+    const testModel = createTestModel(machine).withEvents({
       NEXT: () => {
         /* noop */
       }
@@ -360,7 +360,7 @@ describe('coverage', () => {
       }
     });
 
-    const testModel = createTestModel(machine, undefined).withEvents({
+    const testModel = createTestModel(machine).withEvents({
       NEXT: () => {
         /* ... */
       }
@@ -407,7 +407,7 @@ describe('coverage', () => {
       }
     });
 
-    const testModel = createTestModel(TestBug, undefined).withEvents({
+    const testModel = createTestModel(TestBug).withEvents({
       START: () => {
         /* ... */
       }
@@ -518,7 +518,7 @@ describe('events', () => {
       }
     });
 
-    const testModel = createTestModel(feedbackMachine, undefined).withEvents({
+    const testModel = createTestModel(feedbackMachine).withEvents({
       CLICK_BAD: () => {
         /* ... */
       },
@@ -553,7 +553,7 @@ describe('events', () => {
       }
     });
 
-    const testModel = createTestModel(testMachine, undefined);
+    const testModel = createTestModel(testMachine);
 
     const testPlans = testModel.getShortestPlans();
 
@@ -583,7 +583,7 @@ describe('state limiting', () => {
       }
     });
 
-    const testModel = createTestModel(machine, undefined).withEvents({
+    const testModel = createTestModel(machine).withEvents({
       INC: () => {}
     });
 
@@ -647,7 +647,7 @@ describe('plan description', () => {
     }
   });
 
-  const testModel = createTestModel(machine, undefined).withEvents({
+  const testModel = createTestModel(machine).withEvents({
     NEXT: { exec: () => {} },
     DONE: { exec: () => {} }
   });
@@ -685,7 +685,7 @@ it('prevents infinite recursion based on a provided limit', () => {
     }
   });
 
-  const model = createTestModel(machine, null as any).withEvents({
+  const model = createTestModel(machine).withEvents({
     TOGGLE: () => {
       /**/
     }
@@ -721,7 +721,7 @@ it('executes actions', async () => {
     }
   });
 
-  const model = createTestModel(machine, null as any).withEvents({
+  const model = createTestModel(machine).withEvents({
     TOGGLE: () => {
       /**/
     }
@@ -735,4 +735,75 @@ it('executes actions', async () => {
 
   expect(executedActive).toBe(true);
   expect(executedDone).toBe(true);
+});
+
+describe('test model options', () => {
+  it('options.testState(...) should test state', async () => {
+    const testedStates: any[] = [];
+
+    const model = createTestModel(
+      createMachine({
+        initial: 'inactive',
+        states: {
+          inactive: {
+            on: {
+              NEXT: 'active'
+            }
+          },
+          active: {}
+        }
+      }),
+      {
+        testState: (state) => {
+          testedStates.push(state.value);
+        }
+      }
+    );
+
+    const plans = model.getShortestPlans();
+
+    for (const plan of plans) {
+      await model.testPlan(plan, null as any);
+    }
+
+    expect(testedStates).toEqual(['inactive', 'inactive', 'active']);
+  });
+
+  it('options.testTransition(...) should test transition', async () => {
+    const testedEvents: any[] = [];
+
+    const model = createTestModel(
+      createMachine({
+        initial: 'inactive',
+        states: {
+          inactive: {
+            on: {
+              NEXT: 'active'
+            }
+          },
+          active: {
+            on: {
+              PREV: 'inactive'
+            }
+          }
+        }
+      }),
+      {
+        // Force traversal to consider all transitions
+        serializeState: (state) =>
+          ((state.value as any) + state.event.type) as any,
+        testTransition: (step) => {
+          testedEvents.push(step.event.type);
+        }
+      }
+    );
+
+    const plans = model.getShortestPlans();
+
+    for (const plan of plans) {
+      await model.testPlan(plan, null as any);
+    }
+
+    expect(testedEvents).toEqual(['NEXT', 'NEXT', 'PREV']);
+  });
 });
