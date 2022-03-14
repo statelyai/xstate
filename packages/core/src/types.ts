@@ -1708,7 +1708,9 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
         TContext,
         TEvent,
         TTypestate,
-        MarkAllImplementationsAsProvided<TResolvedTypesMeta>
+        AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
+          ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
+          : TResolvedTypesMeta
       >
     : R extends Promise<infer U>
     ? ActorRef<never, U>
@@ -1735,7 +1737,9 @@ export type InterpreterFrom<
       TStateSchema,
       TEvent,
       TTypestate,
-      MarkAllImplementationsAsProvided<TResolvedTypesMeta>
+      AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
+        ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
+        : TResolvedTypesMeta
     >
   : never;
 

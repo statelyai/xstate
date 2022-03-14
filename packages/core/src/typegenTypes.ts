@@ -118,16 +118,18 @@ export type AreAllImplementationsAssumedToBeProvided<
     : false
   : true;
 
+interface AllImplementationsProvided {
+  missingImplementations: {
+    actions: never;
+    delays: never;
+    guards: never;
+    services: never;
+  };
+}
+
 export interface MarkAllImplementationsAsProvided<TResolvedTypesMeta> {
   '@@xstate/typegen': Prop<TResolvedTypesMeta, '@@xstate/typegen'>;
-  resolved: Prop<TResolvedTypesMeta, 'resolved'> & {
-    missingImplementations: {
-      actions: never;
-      delays: never;
-      guards: never;
-      services: never;
-    };
-  };
+  resolved: Prop<TResolvedTypesMeta, 'resolved'> & AllImplementationsProvided;
 }
 
 type GenerateServiceEvent<
@@ -191,7 +193,8 @@ export interface ResolveTypegenMeta<
           Prop<TTypesMeta, 'internalEvents'>
         >;
       }
-    : MarkAllImplementationsAsProvided<TypegenDisabled> &
+    : TypegenDisabled &
+        AllImplementationsProvided &
         AllowAllEvents & {
           indexedActions: IndexByType<TAction>;
           indexedEvents: Record<string, TEvent> & {
