@@ -9,7 +9,8 @@ import {
   createMachine,
   Behavior,
   ActorContext,
-  SpecialTargets
+  SpecialTargets,
+  AnyState
 } from '../src';
 import { fromReducer } from '../src/behaviors';
 import {
@@ -43,7 +44,7 @@ const fetchMachine = Machine<{ userId: string | undefined }>({
     },
     success: {
       type: 'final',
-      data: { user: (_, e) => e.user }
+      data: { user: (_: any, e: any) => e.user }
     },
     failure: {
       entry: sendParent('REJECT')
@@ -69,7 +70,7 @@ const fetcherMachine = Machine({
       invoke: {
         src: fetchMachine,
         data: {
-          userId: (ctx) => ctx.selectedUserId
+          userId: (ctx: any) => ctx.selectedUserId
         },
         onDone: {
           target: 'received',
@@ -285,15 +286,14 @@ describe('invoke', () => {
                 cond: (ctx) => {
                   actual.push('child got INCREMENT');
                   return ctx.count >= 2;
-                }
+                },
+                actions: assign((ctx) => ({ count: ++ctx.count }))
               },
               {
-                target: undefined
+                target: undefined,
+                actions: assign((ctx) => ({ count: ++ctx.count }))
               }
-            ].map((transition) => ({
-              ...transition,
-              actions: assign((ctx) => ({ count: ++ctx.count }))
-            }))
+            ]
           }
         },
         done: {
@@ -386,15 +386,14 @@ describe('invoke', () => {
                 cond: (ctx) => {
                   actual.push('child got INCREMENT');
                   return ctx.count >= 2;
-                }
+                },
+                actions: assign((ctx) => ({ count: ++ctx.count }))
               },
               {
-                target: undefined
+                target: undefined,
+                actions: assign((ctx) => ({ count: ++ctx.count }))
               }
-            ].map((transition) => ({
-              ...transition,
-              actions: assign((ctx) => ({ count: ++ctx.count }))
-            }))
+            ]
           }
         },
         done: {
@@ -788,7 +787,7 @@ describe('invoke', () => {
       });
 
       const expectedStateValue = 'two';
-      let currentState;
+      let currentState: AnyState;
       interpret(mainMachine)
         .onTransition((current) => (currentState = current))
         .start();
@@ -1695,11 +1694,8 @@ describe('invoke', () => {
       });
 
       const expectedStateValue = 'failed';
-      let currentState;
-      interpret(errorMachine)
-        .onTransition((current) => (currentState = current))
-        .start();
-      expect(currentState.value).toEqual(expectedStateValue);
+      const service = interpret(errorMachine).start();
+      expect(service.state.value).toEqual(expectedStateValue);
     });
 
     it('should call onError upon error (async)', (done) => {
@@ -2925,7 +2921,7 @@ describe('services option', () => {
               src: 'stringService',
               data: {
                 staticVal: 'hello',
-                newCount: (ctx) => ctx.count * 2
+                newCount: (ctx: any) => ctx.count * 2
               },
               onDone: 'success'
             }

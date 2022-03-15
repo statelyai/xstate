@@ -16,7 +16,7 @@ import {
   SimpleEventsOf
 } from './types';
 import { EMPTY_ACTIVITY_MAP } from './constants';
-import { matchesState, keys, isString, warn } from './utils';
+import { matchesState, isString, warn } from './utils';
 import { StateNode } from './StateNode';
 import { getMeta, nextEvents } from './stateUtils';
 import { initEvent } from './actions';
@@ -40,8 +40,8 @@ export function stateValuesEqual(
     return a === b;
   }
 
-  const aKeys = keys(a as StateValueMap);
-  const bKeys = keys(b as StateValueMap);
+  const aKeys = Object.keys(a as StateValueMap);
+  const bKeys = Object.keys(b as StateValueMap);
 
   return (
     aKeys.length === bKeys.length &&
@@ -215,7 +215,7 @@ export class State<
    * @param context
    */
   public static inert<TC, TE extends EventObject = EventObject>(
-    stateValue: State<TC, TE> | StateValue,
+    stateValue: State<TC, TE, any, any, any> | StateValue,
     context: TC
   ): State<TC, TE> {
     if (stateValue instanceof State) {
@@ -295,7 +295,7 @@ export class State<
     if (isString(stateValue)) {
       return [stateValue];
     }
-    const valueKeys = keys(stateValue);
+    const valueKeys = Object.keys(stateValue);
 
     return valueKeys.concat(
       ...valueKeys.map((key) =>
@@ -318,8 +318,13 @@ export class State<
    */
   public matches<
     TSV extends TResolvedTypesMeta extends TypegenEnabled
-      ? Prop<TResolvedTypesMeta, 'matchesStates'>
-      : TTypestate['value']
+      ? Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'matchesStates'>
+      : never
+  >(parentStateValue: TSV): boolean;
+  public matches<
+    TSV extends TResolvedTypesMeta extends TypegenDisabled
+      ? TTypestate['value']
+      : never
   >(
     parentStateValue: TSV
   ): this is State<
@@ -332,7 +337,8 @@ export class State<
     TStateSchema,
     TTypestate,
     TResolvedTypesMeta
-  > & { value: TSV } {
+  > & { value: TSV };
+  public matches(parentStateValue: StateValue): any {
     return matchesState(parentStateValue as StateValue, this.value);
   }
 
@@ -342,7 +348,7 @@ export class State<
    */
   public hasTag(
     tag: TResolvedTypesMeta extends TypegenEnabled
-      ? Prop<TResolvedTypesMeta, 'tags'>
+      ? Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'tags'>
       : string
   ): boolean {
     return this.tags.has(tag as string);

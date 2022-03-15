@@ -1,7 +1,16 @@
-import { Machine, assign, createMachine, interpret } from '../src/index';
+import { from } from 'rxjs';
+import {
+  Machine,
+  assign,
+  createMachine,
+  interpret,
+  StateMachine,
+  spawn,
+  ActorRefFrom
+} from '../src/index';
 import { raise } from '../src/actions';
 
-function noop(_x) {
+function noop(_x: unknown) {
   return;
 }
 
@@ -384,5 +393,159 @@ describe('Typestates', () => {
       ? service.state.context
       : { result: none, error: 'oops' };
     expect(failed).toEqual({ result: none, error: 'oops' });
+  });
+});
+
+describe('context', () => {
+  it('should infer context type from `config.context` when there is no `schema.context`', () => {
+    createMachine(
+      {
+        context: {
+          foo: 'test'
+        }
+      },
+      {
+        actions: {
+          someAction: (ctx) => {
+            ((_accept: string) => {})(ctx.foo);
+            // @ts-expect-error
+            ((_accept: number) => {})(ctx.foo);
+          }
+        }
+      }
+    );
+  });
+
+  it('should not use actions as possible inference sites', () => {
+    createMachine(
+      {
+        schema: {
+          context: {} as {
+            count: number;
+          }
+        },
+        entry: (_ctx: any) => {}
+      },
+      {
+        actions: {
+          someAction: (ctx) => {
+            ((_accept: number) => {})(ctx.count);
+            // @ts-expect-error
+            ((_accept: string) => {})(ctx.count);
+          }
+        }
+      }
+    );
+  });
+
+  it('should work with generic context', () => {
+    function createMachineWithExtras<TContext>(
+      context: TContext
+    ): StateMachine<TContext, any, any> {
+      return createMachine({ context });
+    }
+
+    createMachineWithExtras({ counter: 42 });
+  });
+
+  it('should not widen literal types defined in `schema.context` based on `config.context`', () => {
+    createMachine({
+      schema: {
+        context: {} as {
+          literalTest: 'foo' | 'bar';
+        }
+      },
+      context: {
+        // @ts-expect-error
+        literalTest: 'anything'
+      }
+    });
+  });
+});
+
+describe('events', () => {
+  it('should not use actions as possible inference sites 1', () => {
+    const machine = createMachine({
+      schema: {
+        events: {} as {
+          type: 'FOO';
+        }
+      },
+      entry: raise('FOO')
+    });
+
+    const service = interpret(machine).start();
+
+    service.send({ type: 'FOO' });
+    // @ts-expect-error
+    service.send({ type: 'UNKNOWN' });
+  });
+
+  it('should not use actions as possible inference sites 2', () => {
+    const machine = createMachine({
+      schema: {
+        events: {} as {
+          type: 'FOO';
+        }
+      },
+      entry: (_ctx, _ev: any) => {}
+    });
+
+    const service = interpret(machine).start();
+
+    service.send({ type: 'FOO' });
+    // @ts-expect-error
+    service.send({ type: 'UNKNOWN' });
+  });
+
+  it('event type should be inferrable from a simple state machine typr', () => {
+    const toggleMachine = createMachine<
+      {
+        count: number;
+      },
+      {
+        type: 'TOGGLE';
+      }
+    >({});
+
+    function acceptMachine<TContext, TEvent extends { type: string }>(
+      _machine: StateMachine<TContext, any, TEvent>
+    ) {}
+
+    acceptMachine(toggleMachine);
+  });
+});
+
+describe('interpreter', () => {
+  it('should be convertable to Rx observable', () => {
+    const state$ = from(
+      interpret(
+        createMachine({
+          schema: {
+            context: {} as { count: number }
+          }
+        })
+      )
+    );
+
+    state$.subscribe((state) => {
+      ((_val: number) => {})(state.context.count);
+      // @ts-expect-error
+      ((_val: string) => {})(state.context.count);
+    });
+  });
+});
+
+describe('spawn', () => {
+  it('spawned actor ref should be compatible with the result of ActorRefFrom', () => {
+    const createChild = () => createMachine({});
+
+    function createParent(_deps: {
+      spawnChild: () => ActorRefFrom<typeof createChild>;
+    }) {}
+
+    createParent({
+      spawnChild: () => spawn(createChild())
+    });
   });
 });

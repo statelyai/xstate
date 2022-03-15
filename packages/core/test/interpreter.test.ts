@@ -10,7 +10,8 @@ import {
   EventObject,
   StateValue,
   AnyEventObject,
-  createMachine
+  createMachine,
+  AnyState
 } from '../src';
 import { State } from '../src/State';
 import { log, actionTypes, raise, stop } from '../src/actions';
@@ -216,8 +217,11 @@ describe('interpreter', () => {
 
   describe('send with delay', () => {
     it('can send an event after a delay', () => {
-      const currentStates: Array<State<any>> = [];
-      const listener = (state) => {
+      const currentStates: Array<AnyState> = [];
+
+      const service = interpret(lightMachine, {
+        clock: new SimulatedClock()
+      }).onTransition((state) => {
         currentStates.push(state);
 
         if (currentStates.length === 4) {
@@ -228,11 +232,7 @@ describe('interpreter', () => {
             'green'
           ]);
         }
-      };
-
-      const service = interpret(lightMachine, {
-        clock: new SimulatedClock()
-      }).onTransition(listener);
+      });
       const clock = service.clock as SimulatedClock;
       service.start();
 
@@ -631,12 +631,11 @@ describe('interpreter', () => {
   });
 
   it('can cancel a delayed event', () => {
-    let currentState: State<any>;
-    const listener = (state) => (currentState = state);
+    let currentState: AnyState;
 
     const service = interpret(lightMachine, {
       clock: new SimulatedClock()
-    }).onTransition(listener);
+    }).onTransition((state) => (currentState = state));
     const clock = service.clock as SimulatedClock;
     service.start();
 
@@ -943,7 +942,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         }
       });
 
-      let state: State<any>;
+      let state: AnyState;
 
       interpret(raiseMachine)
         .onTransition((s) => {
@@ -1164,7 +1163,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
   });
 
   describe('send()', () => {
-    const sendMachine = Machine({
+    const sendMachine = createMachine({
       id: 'send',
       initial: 'inactive',
       states: {
@@ -1172,7 +1171,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
           on: {
             EVENT: {
               target: 'active',
-              cond: (_, e: any) => e.id === 42 // TODO: fix unknown event type
+              cond: (_: any, e: any) => e.id === 42 // TODO: fix unknown event type
             },
             ACTIVATE: 'active'
           }
@@ -1852,16 +1851,16 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         }
       });
 
-      const subscriber = (data) => {
-        expect(data).toEqual(42);
-        done();
-      };
-      let subscription;
+      let subscribed = false;
 
       const service = interpret(parentMachine)
         .onTransition((state) => {
-          if (state.children.childActor && !subscription) {
-            subscription = state.children.childActor.subscribe(subscriber);
+          if (state.children.childActor && !subscribed) {
+            subscribed = true;
+            state.children.childActor.subscribe((data) => {
+              expect(data).toEqual(42);
+              done();
+            });
           }
         })
         .onDone(() => {
@@ -1886,7 +1885,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
             on: {
               FIRED: {
                 target: 'success',
-                cond: (_, e: AnyEventObject) => {
+                cond: (_: unknown, e: AnyEventObject) => {
                   return e.value === 3;
                 }
               }
@@ -1898,21 +1897,21 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         }
       });
 
-      const subscriber = (data) => {
-        if (data.value === 3) {
-          done();
-        }
-      };
-      let subscription;
+      let subscribed = false;
 
       const service = interpret(parentMachine)
         .onTransition((state) => {
           if (
             state.matches('active') &&
             state.children.childActor &&
-            !subscription
+            !subscribed
           ) {
-            subscription = state.children.childActor.subscribe(subscriber);
+            subscribed = true;
+            state.children.childActor.subscribe((data) => {
+              if (data.value === 3) {
+                done();
+              }
+            });
           }
         })
         .onDone(() => {

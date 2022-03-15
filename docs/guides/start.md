@@ -8,7 +8,7 @@ Suppose we want to model a [Promise](https://developer.mozilla.org/en-US/docs/We
 npm install xstate --save
 ```
 
-> If you're using VSCode, you should install our [VSCode Extension](https://marketplace.visualstudio.com/items?itemName=mattpocock.xstate-vscode) to allow you to visualize the machine you're building as you go.
+> If you're using VSCode, you should install our [VSCode Extension](https://marketplace.visualstudio.com/items?itemName=statelyai.stately-vscode) to allow you to visualize the machine you're building as you go.
 
 Then, in your project, import `createMachine`, which is a function that creates a state machine.
 

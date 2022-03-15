@@ -4,11 +4,12 @@ import {
   EventData,
   EventObject,
   interpret,
-  Interpreter
+  Interpreter,
+  toActorRef,
+  toEventObject,
+  toSCXMLEvent
 } from 'xstate';
-import { toEventObject, toSCXMLEvent, interopSymbols } from 'xstate/lib/utils';
-
-import { createInspectMachine } from './inspectMachine';
+import { createInspectMachine, InspectMachineEvent } from './inspectMachine';
 import { Inspector, Replacer } from './types';
 import { stringify } from './utils';
 
@@ -53,8 +54,7 @@ export function inspect(options: ServerInspectorOptions): Inspector {
   const inspectService = interpret(
     createInspectMachine(globalThis.__xstate__, options)
   ).start();
-  let client: ActorRef<any, undefined> = {
-    ...interopSymbols,
+  let client: ActorRef<any, undefined> = toActorRef({
     id: '@@xstate/ws-client',
     send: (event: any) => {
       server.clients.forEach((wsClient) => {
@@ -67,7 +67,7 @@ export function inspect(options: ServerInspectorOptions): Inspector {
       return { unsubscribe: () => void 0 };
     },
     getSnapshot: () => undefined
-  };
+  });
 
   server.on('connection', function connection(wsClient) {
     wsClient.on('message', function incoming(data, isBinary) {
@@ -134,10 +134,9 @@ export function inspect(options: ServerInspectorOptions): Inspector {
     });
   });
 
-  const inspector: Inspector = {
-    ...interopSymbols,
+  const inspector: Inspector = toActorRef({
     id: '@@xstate/inspector',
-    send: (event) => {
+    send: (event: InspectMachineEvent) => {
       inspectService.send(event);
     },
     subscribe: () => {
@@ -150,7 +149,7 @@ export function inspect(options: ServerInspectorOptions): Inspector {
       inspectService.stop();
     },
     getSnapshot: () => undefined
-  };
+  });
 
   server.on('close', () => {
     inspectService.stop();

@@ -1,5 +1,11 @@
 # @xstate/graph
 
+## 1.4.2
+
+### Patch Changes
+
+- [#3089](https://github.com/statelyai/xstate/pull/3089) [`862697e29`](https://github.com/statelyai/xstate/commit/862697e2990934d46050580d7e09c749d09d8426) Thanks [@Andarist](https://github.com/Andarist)! - Fixed compatibility with Skypack by exporting some shared utilities from root entry of XState and consuming them directly in other packages (this avoids accessing those things using deep imports and thus it avoids creating those compatibility problems).
+
 ## 1.4.1
 
 ### Patch Changes
@@ -41,7 +47,7 @@
 
   const shortestPaths = getShortestPaths(countMachine, {
     events: {
-      ADD: (state) => {
+      ADD: state => {
         // contrived example: if `context.count` is >= 10, increment by 10
         return state.context.count >= 10
           ? [{ type: 'ADD', value: 10 }]

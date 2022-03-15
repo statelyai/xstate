@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import {
   ActionFunction,
+  AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
   EventObject,
   InternalMachineOptions,
@@ -8,8 +9,7 @@ import {
   InterpreterOptions,
   State,
   StateConfig,
-  StateFrom,
-  StateMachine
+  StateFrom
 } from 'xstate';
 import { MaybeLazy, Prop, ReactActionFunction, ReactEffectType } from './types';
 import { useInterpret } from './useInterpret';
@@ -58,7 +58,7 @@ export interface UseMachineOptions<TContext, TEvent extends EventObject> {
 }
 
 type RestParams<
-  TMachine extends StateMachine<any, any, any, any, any, any, any>
+  TMachine extends AnyStateMachine
 > = AreAllImplementationsAssumedToBeProvided<
   TMachine['__TResolvedTypesMeta']
 > extends false
@@ -83,13 +83,11 @@ type RestParams<
     ];
 
 type UseMachineReturn<
-  TMachine extends StateMachine<any, any, any, any, any, any, any>,
+  TMachine extends AnyStateMachine,
   TInterpreter = InterpreterFrom<TMachine>
 > = [StateFrom<TMachine>, Prop<TInterpreter, 'send'>, TInterpreter];
 
-export function useMachine<
-  TMachine extends StateMachine<any, any, any, any, any, any, any>
->(
+export function useMachine<TMachine extends AnyStateMachine>(
   getMachine: MaybeLazy<TMachine>,
   ...[options = {}]: RestParams<TMachine>
 ): UseMachineReturn<TMachine> {
