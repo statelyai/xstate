@@ -3,7 +3,7 @@
   <br />
   <img src="https://user-images.githubusercontent.com/1093738/101672561-06aa7480-3a24-11eb-89d1-787fa7112138.png" alt="XState" width="150"/>
   <br />
-    <sub><strong>State machines and statecharts for the modern web.</strong></sub>
+    <sub><strong>Machines d'état et diagrammes d'état pour le Web moderne.</strong></sub>
   <br />
   <br />
   </a>
@@ -12,40 +12,40 @@
 [![npm version](https://badge.fury.io/js/xstate.svg)](https://badge.fury.io/js/xstate)
 <img src="https://opencollective.com/xstate/tiers/backer/badge.svg?label=sponsors&color=brightgreen" />
 
-JavaScript and TypeScript [finite state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and [statecharts](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf) for the modern web.
+JavaScript et TypeScript [finite state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and [statecharts](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf) pour le Web moderne.
 
-New to state machines and statecharts? [Read our introduction](/guides/introduction-to-state-machines-and-statecharts/).
+Vous débutez avec les machines d'état et les diagrammes d'état ? [Lire notre présentation](/guides/introduction-to-state-machines-and-statecharts/).
 
-🖥 [Download our VS Code extension](https://marketplace.visualstudio.com/items?itemName=statelyai.stately-vscode).
+🖥 [Téléchargez notre extension VS Code](https://marketplace.visualstudio.com/items?itemName=statelyai.stately-vscode).
 
-📑 Adheres to the [SCXML specification](https://www.w3.org/TR/scxml/)
+📑 Consulter [la specification SCXML](https://www.w3.org/TR/scxml/)
 
-💬 Chat on the [Stately Discord Community](https://discord.gg/KCtSX7Cdjh)
+💬 Collaborez avec la Communauté Stately [sur Discord](https://discord.gg/KCtSX7Cdjh)
 
 ## Packages
 
-- 🤖 `xstate` - Core finite state machine and statecharts library + interpreter
-- [🔬 `@xstate/fsm`](https://github.com/statelyai/xstate/tree/main/packages/xstate-fsm) - Minimal finite state machine library
+- 🤖 `xstate` - Machine à états finis de base et bibliothèque de diagrammes d'états + interpréteur
+- [🔬 `@xstate/fsm`](https://github.com/statelyai/xstate/tree/main/packages/xstate-fsm) - Bibliothèque minimale de machines à états finis
 - [📉 `@xstate/graph`](https://github.com/statelyai/xstate/tree/main/packages/xstate-graph) - Graph traversal utilities for XState
-- [⚛️ `@xstate/react`](https://github.com/statelyai/xstate/tree/main/packages/xstate-react) - React hooks and utilities for using XState in React applications
-- [💚 `@xstate/vue`](https://github.com/statelyai/xstate/tree/main/packages/xstate-vue) - Vue composition functions and utilities for using XState in Vue applications
-- [🎷 `@xstate/svelte`](https://github.com/statelyai/xstate/tree/main/packages/xstate-svelte) - Svelte utilities for using XState in Svelte applications
-- [✅ `@xstate/test`](https://github.com/statelyai/xstate/tree/main/packages/xstate-test) - Model-Based-Testing utilities (using XState) for testing any software
-- [🔍 `@xstate/inspect`](https://github.com/statelyai/xstate/tree/main/packages/xstate-inspect) - Inspection utilities for XState
+- [⚛️ `@xstate/react`](https://github.com/statelyai/xstate/tree/main/packages/xstate-react) - Hooks et utilitaires React pour utiliser XState dans les applications React
+- [💚 `@xstate/vue`](https://github.com/statelyai/xstate/tree/main/packages/xstate-vue) - Fonctions et utilitaires de composition Vue.js pour utiliser XState dans les applications Vue.js
+- [🎷 `@xstate/svelte`](https://github.com/statelyai/xstate/tree/main/packages/xstate-svelte) - Utilitaires Svelte pour utiliser XState dans les applications Svelte
+- [✅ `@xstate/test`](https://github.com/statelyai/xstate/tree/main/packages/xstate-test) - Utilitaires de Test basés sur des modèles (utilisant XState) pour tester n'importe quel logiciel
+- [🔍 `@xstate/inspect`](https://github.com/statelyai/xstate/tree/main/packages/xstate-inspect) - Utilitaires d'inspection pour XState
 
 ## Templates
 
-Get started by forking one of these templates on CodeSandbox:
+Commencez par dupliquer l'un de ces modèles sur CodeSandbox :
 
-- [XState Template](https://codesandbox.io/s/xstate-example-template-m4ckv) - no framework
-- [XState + TypeScript Template](https://codesandbox.io/s/xstate-typescript-template-s9kz8) - no framework
-- [XState + React Template](https://codesandbox.io/s/xstate-react-template-3t2tg)
-- [XState + React + TypeScript Template](https://codesandbox.io/s/xstate-react-typescript-template-wjdvn)
-- [XState + Vue Template](https://codesandbox.io/s/xstate-vue-template-composition-api-1n23l)
-- [XState + Vue 3 Template](https://codesandbox.io/s/xstate-vue-3-template-vrkk9)
-- [XState + Svelte Template](https://codesandbox.io/s/xstate-svelte-template-jflv1)
+- [Modèle XState](https://codesandbox.io/s/xstate-example-template-m4ckv) - sans framework
+- [Modèle XState + TypeScript](https://codesandbox.io/s/xstate-typescript-template-s9kz8) - sans framework
+- [Modèle XState + React](https://codesandbox.io/s/xstate-react-template-3t2tg)
+- [Modèle XState + React + TypeScript](https://codesandbox.io/s/xstate-react-typescript-template-wjdvn)
+- [Modèle XState + Vue](https://codesandbox.io/s/xstate-vue-template-composition-api-1n23l)
+- [Modèle XState + Vue 3](https://codesandbox.io/s/xstate-vue-3-template-vrkk9)
+- [Modèle XState + Svelte](https://codesandbox.io/s/xstate-svelte-template-jflv1)
 
-## Super quick start
+## Démarrage ultra rapide
 
 ```bash
 npm install xstate
@@ -54,8 +54,8 @@ npm install xstate
 ```js
 import { createMachine, interpret } from 'xstate';
 
-// Stateless machine definition
-// machine.transition(...) is a pure function used by the interpreter.
+// Définition de machine
+// machine.transition(...) est une fonction pure utilisée par l'interpréteur.
 const toggleMachine = createMachine({
   id: 'toggle',
   initial: 'inactive',
@@ -73,7 +73,7 @@ const toggleMachine = createMachine({
   }
 });
 
-// Machine instance with internal state
+// Instance de machine avec état interne
 const toggleService = interpret(toggleMachine)
   .onTransition((state) => console.log(state.value))
   .start();
@@ -86,9 +86,9 @@ toggleService.send({ type: 'TOGGLE' });
 // => 'inactive'
 ```
 
-## Promise example
+## Exemple de promesse
 
-[📉 See the visualization on stately.ai/viz](https://stately.ai/viz?gist=bbcb4379b36edea0458f597e5eec2f91)
+[📉 Visualiser sur stately.ai/viz](https://stately.ai/viz?gist=bbcb4379b36edea0458f597e5eec2f91)
 
 ```js
 import { createMachine, interpret, assign } from 'xstate';
@@ -147,35 +147,35 @@ dogService.send({ type: 'FETCH' });
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-- [Visualizer](#visualizer)
-- [Why?](#why)
-- [Finite State Machines](#finite-state-machines)
-- [Hierarchical (Nested) State Machines](#hierarchical-nested-state-machines)
-- [Parallel State Machines](#parallel-state-machines)
-- [History States](#history-states)
+- [Visualiseur](#visualizer)
+- [Pourquoi?](#why)
+- [Machine à états finis](#finite-state-machines)
+- [Machines avec états composés](#hierarchical-nested-state-machines)
+- [Machines avec états parallèles](#parallel-state-machines)
+- [États d'historique](#history-states)
 - [Sponsors](#sponsors)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-## Visualizer
+## Visualiseur
 
-**[Visualize, simulate, and share your statecharts in XState Viz!](https://stately.ai/viz)**
+**[Visualisez, simulez et partagez vos diagrammes d'états dans XState Viz !](https://stately.ai/viz)**
 
-<a href="https://stately.ai/viz"><img src="https://i.imgur.com/3pEB0B3.png" alt="XState Visualizer" width="300" /></a>
+<a href="https://stately.ai/viz"><img src="https://i.imgur.com/3pEB0B3.png" alt="Visualiseur Xstate" width="300" /></a>
 
-## Why?
+## Pourquoi ?
 
-Statecharts are a formalism for modeling stateful, reactive systems. This is useful for declaratively describing the _behavior_ of your application, from the individual components to the overall application logic.
+Un diagramme d'état est un formalisme permettant de modéliser des systèmes réactifs avec état. Ceci est utile pour décrire de manière déclarative le _comportement_ de votre application, des composants individuels à la logique globale de l'application.
 
-Read [📽 the slides](http://slides.com/davidkhourshid/finite-state-machines) ([🎥 video](https://www.youtube.com/watch?v=VU1NKX6Qkxc)) or check out these resources for learning about the importance of finite state machines and statecharts in user interfaces:
+Lire [📽 les slides](http://slides.com/davidkhourshid/finite-state-machines) ([🎥 vidéo](https://www.youtube.com/watch?v=VU1NKX6Qkxc)) ou consultez ces ressources pour en savoir plus sur l'importance des machines à états finis et des diagrammes d'états dans les interfaces utilisateur :
 
-- [Statecharts - A Visual Formalism for Complex Systems](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf) by David Harel
-- [The World of Statecharts](https://statecharts.github.io/) by Erik Mogensen
-- [Pure UI](https://rauchg.com/2015/pure-ui) by Guillermo Rauch
-- [Pure UI Control](https://medium.com/@asolove/pure-ui-control-ac8d1be97a8d) by Adam Solove
-- [Spectrum - Statecharts Community](https://spectrum.chat/statecharts) (For XState specific questions, please use the [GitHub Discussions](https://github.com/statelyai/xstate/discussions))
+- [Statecharts - A Visual Formalism for Complex Systems](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf) par David Harel
+- [The World of Statecharts](https://statecharts.github.io/) par Erik Mogensen
+- [Pure UI](https://rauchg.com/2015/pure-ui) par Guillermo Rauch
+- [Pure UI Control](https://medium.com/@asolove/pure-ui-control-ac8d1be97a8d) par Adam Solove
+- [Spectrum - Statecharts Community](https://spectrum.chat/statecharts) (Pour les questions spécifiques à XState, veuillez utiliser les discussions sur [Github](https://github.com/statelyai/xstate/discussions))
 
-## Finite State Machines
+## Machines à états finis
 
 <img src="https://imgur.com/rqqmkJh.png" alt="Light Machine" width="300" />
 
@@ -212,7 +212,7 @@ const nextState = lightMachine.transition(currentState, { type: 'TIMER' })
 // => 'yellow'
 ```
 
-## Hierarchical (Nested) State Machines
+## Machines avec des états composés
 
 <img src="https://imgur.com/GDZAeB9.png" alt="Hierarchical Light Machine" width="300" />
 
@@ -273,7 +273,7 @@ lightMachine.transition('red.walk', { type: 'PED_TIMER' }).value;
 // }
 ```
 
-**Object notation for hierarchical states:**
+**Notation d'objet pour les états composés:**
 
 ```js
 // ...
@@ -293,7 +293,7 @@ lightMachine.transition({ red: 'stop' }, { type: 'TIMER' }).value;
 // => 'green'
 ```
 
-## Parallel State Machines
+## Machines avec des états parallèles
 
 <img src="https://imgur.com/GKd4HwR.png" width="300" alt="Parallel state machine" />
 
@@ -403,7 +403,7 @@ const nextState = wordMachine.transition(
 // }
 ```
 
-## History States
+## États d'historique
 
 <img src="https://imgur.com/I4QsQsz.png" width="300" alt="Machine with history state" />
 
@@ -466,7 +466,7 @@ const previousState = paymentMachine.transition(reviewState, {
 
 ## Sponsors
 
-Huge thanks to the following companies for sponsoring `xstate`. You can sponsor further `xstate` development [on OpenCollective](https://opencollective.com/xstate).
+Un grand merci aux entreprises suivantes pour avoir parrainé `xstate`. Vous pouvez parrainer d'autres développements de `xstate` [sur OpenCollective](https://opencollective.com/xstate).
 
-<a href="https://tipe.io" title="Tipe.io"><img src="https://cdn.tipe.io/tipe/tipe-logo.svg?w=240" style="background:#613DEF" /></a>
+<a href="https://tipe.io" title="Tipe.io"><img src="https://cdn.tipe.io/tipe/tipe-logo.svg?w=240" style="background:#613DEF" alt="Tipe.io"/></a>
 <a href="https://webflow.com" title="Webflow"><img src="https://uploads-ssl.webflow.com/583347ca8f6c7ee058111b3b/5b03bde0971fdd75d75b5591_webflow.png" height="100" /></a>
