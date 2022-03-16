@@ -23,7 +23,8 @@ import type {
   TestEventsConfig,
   TestPathResult,
   TestStepResult,
-  Criterion
+  Criterion,
+  CriterionResult
 } from './types';
 import { formatPathTestResult, simpleStringify } from './utils';
 import { getEventSamples } from './index';
@@ -50,7 +51,7 @@ import { getEventSamples } from './index';
  */
 
 export class TestModel<TState, TEvent extends EventObject, TTestContext> {
-  private _coverage: TestModelCoverage = {
+  private _coverage: TestModelCoverage<TState> = {
     states: {},
     transitions: {}
   };
@@ -64,7 +65,11 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
       getStates: () => [],
       testState: () => void 0,
       testTransition: () => void 0,
-      execute: () => void 0
+      execute: () => void 0,
+      logger: {
+        log: console.log.bind(console),
+        error: console.error.bind(console)
+      }
     };
   }
 
@@ -239,9 +244,16 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
   private addStateCoverage(state: TState) {
     const stateSerial = this.options.serializeState(state, null as any); // TODO: fix
 
-    const coverage = this._coverage.states[stateSerial] ?? 0;
+    const existingCoverage = this._coverage.states[stateSerial];
 
-    this._coverage.states[stateSerial] = coverage + 1;
+    if (existingCoverage) {
+      existingCoverage.count++;
+    } else {
+      this._coverage.states[stateSerial] = {
+        state,
+        count: 1
+      };
+    }
   }
 
   public async testTransition(
@@ -298,25 +310,17 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
     return { ...this.defaultTraversalOptions, ...this.options, ...options };
   }
 
-  public getCoverage(): any {
-    return this._coverage;
-  }
+  public getCoverage(
+    criteriaFn?: (testModel: this) => Array<Criterion<TState>>
+  ): Array<CriterionResult<TState>> {
+    const criteria = criteriaFn?.(this) ?? [];
+    const stateCoverages = Object.values(this._coverage.states);
 
-  public covers(
-    criteriaFn: (testModel: this) => Array<Criterion<TState>>
-  ): boolean {
-    const criteria = criteriaFn(this);
-    const criteriaSet = new Set(criteria);
-    const states = this.getAllStates();
-
-    states.forEach((state) => {
-      criteriaSet.forEach((criterion) => {
-        if (criterion.predicate(state)) {
-          criteriaSet.delete(criterion);
-        }
-      });
+    return criteria.map((c) => {
+      return {
+        criterion: c,
+        covered: stateCoverages.some((sc) => c.predicate(sc))
+      };
     });
-
-    return criteriaSet.size === 0;
   }
 }

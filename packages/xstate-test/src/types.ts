@@ -158,9 +158,22 @@ export interface TestModelOptions<
    */
   execute: (state: TState, testContext: TTestContext) => void | Promise<void>;
   getStates: () => TState[];
+  logger: {
+    log: (msg: string) => void;
+    error: (msg: string) => void;
+  };
 }
-export interface TestModelCoverage {
-  states: Record<string, number>;
+
+export interface TestStateCoverage<TState> {
+  state: TState;
+  /**
+   * Number of times state was visited
+   */
+  count: number;
+}
+
+export interface TestModelCoverage<TState> {
+  states: Record<string, TestStateCoverage<TState>>;
   transitions: Record<string, Map<EventObject, number>>;
 }
 
@@ -169,8 +182,16 @@ export interface CoverageOptions<TContext> {
 }
 
 export interface Criterion<TState> {
-  predicate: (state: TState) => boolean;
-  label?: string;
+  predicate: (stateCoverage: TestStateCoverage<TState>) => boolean;
+  description?: string;
+}
+
+export interface CriterionResult<TState> {
+  criterion: Criterion<TState>;
+  /**
+   * Whether the criterion was covered or not
+   */
+  covered: boolean;
 }
 
 export interface TestTransitionConfig<

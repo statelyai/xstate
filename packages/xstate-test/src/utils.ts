@@ -4,7 +4,7 @@ import {
   SerializedState,
   StatePath
 } from '@xstate/graph';
-import { State } from 'xstate';
+import { AnyState } from 'xstate';
 import { TestMeta, TestPathResult } from './types';
 
 interface TestResultStringOptions extends SerializationOptions<any, any> {
@@ -73,9 +73,7 @@ export function formatPathTestResult(
   return errMessage;
 }
 
-export function getDescription<T, TContext>(
-  state: State<TContext, any>
-): string {
+export function getDescription<T, TContext>(state: AnyState): string {
   const contextString =
     state.context === undefined ? '' : `(${JSON.stringify(state.context)})`;
 

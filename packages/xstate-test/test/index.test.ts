@@ -304,67 +304,66 @@ describe('error path trace', () => {
 });
 
 describe('coverage', () => {
-  it('reports state node coverage', () => {
-    const coverage = dieHardModel.getCoverage();
+  it('reports state node coverage', async () => {
+    const plans = dieHardModel.getSimplePlansTo((state) => {
+      return state.matches('success') && state.context.three === 0;
+    });
 
-    expect(
-      coverage.states['"pending" | {"three":0,"five":0} | ""']
-    ).toBeGreaterThan(0);
-    expect(
-      coverage.states['"success" | {"three":3,"five":4} | ""']
-    ).toBeGreaterThan(0);
+    for (const plan of plans) {
+      for (const path of plan.paths) {
+        const jugs = new Jugs();
+        await dieHardModel.testPath(path, { jugs });
+      }
+    }
+
+    const coverage = dieHardModel.getCoverage(stateValueCoverage());
+
+    expect(coverage.every((c) => c.covered)).toEqual(true);
+
+    expect(coverage.map((c) => [c.criterion.description, c.covered]))
+      .toMatchInlineSnapshot(`
+      Array [
+        Array [
+          "Visits \\"dieHard\\"",
+          true,
+        ],
+        Array [
+          "Visits \\"dieHard.pending\\"",
+          true,
+        ],
+        Array [
+          "Visits \\"dieHard.success\\"",
+          true,
+        ],
+      ]
+    `);
   });
 
   it('tests missing state node coverage', async () => {
     const machine = createMachine({
-      id: 'missing',
+      id: 'test',
       initial: 'first',
       states: {
         first: {
-          on: { NEXT: 'third' },
-          meta: {
-            test: () => true
-          }
+          on: { NEXT: 'third' }
         },
-        second: {
-          meta: {
-            test: () => true
-          }
-        },
+        secondMissing: {},
         third: {
           initial: 'one',
           states: {
             one: {
-              meta: {
-                test: () => true
-              },
               on: {
                 NEXT: 'two'
               }
             },
-            two: {
-              meta: {
-                test: () => true
-              }
-            },
-            three: {
-              meta: {
-                test: () => true
-              }
-            }
-          },
-          meta: {
-            test: () => true
+            two: {},
+            threeMissing: {}
           }
         }
       }
     });
 
-    const testModel = createTestModel(machine).withEvents({
-      NEXT: () => {
-        /* ... */
-      }
-    });
+    const testModel = createTestModel(machine);
 
     const plans = testModel.getShortestPlans();
 
@@ -372,7 +371,55 @@ describe('coverage', () => {
       await testModel.testPlan(plan, undefined);
     }
 
-    expect(testModel.covers(stateValueCoverage())).toBeTruthy();
+    expect(
+      testModel
+        .getCoverage(stateValueCoverage())
+        .filter((c) => !c.covered)
+        .map((c) => c.criterion.description)
+    ).toMatchInlineSnapshot(`
+      Array [
+        "Visits \\"test.secondMissing\\"",
+        "Visits \\"test.third.threeMissing\\"",
+      ]
+    `);
+  });
+
+  it('test', async () => {
+    const feedbackMachine = createMachine({
+      id: 'feedback',
+      initial: 'logon',
+      states: {
+        logon: {
+          initial: 'empty',
+          states: {
+            empty: {
+              on: {
+                ENTER_LOGON: 'filled'
+              }
+            },
+            filled: { type: 'final' }
+          },
+          on: {
+            LOGON_SUBMIT: 'ordermenu'
+          }
+        },
+        ordermenu: {
+          type: 'final'
+        }
+      }
+    });
+
+    const model = createTestModel(feedbackMachine);
+
+    for (const plan of model.getShortestPlans()) {
+      await model.testPlan(plan, null);
+    }
+
+    const coverage = model.getCoverage(stateValueCoverage());
+
+    expect(coverage).toHaveLength(5);
+
+    expect(coverage.filter((c) => !c.covered)).toHaveLength(0);
   });
 
   it('skips filtered states (filter option)', async () => {
