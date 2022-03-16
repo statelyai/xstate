@@ -112,7 +112,6 @@ export enum InterpreterStatus {
   Stopped
 }
 
-/** @ts-ignore [symbolObservable] creates problems for people without `skipLibCheck` who are on older versions of TS, remove this comment when we drop support for TS@<4.3 */
 export class Interpreter<
   // tslint:disable-next-line:max-classes-per-file
   TContext,
@@ -131,7 +130,7 @@ export class Interpreter<
    * - `clock` uses the global `setTimeout` and `clearTimeout` functions
    * - `logger` uses the global `console.log()` method
    */
-  public static defaultOptions = ((global) => ({
+  public static defaultOptions = {
     execute: true,
     deferEvents: true,
     clock: {
@@ -142,9 +141,9 @@ export class Interpreter<
         return clearTimeout(id);
       }
     } as Clock,
-    logger: global.console.log.bind(console),
+    logger: console.log.bind(console),
     devTools: false
-  }))(typeof self !== 'undefined' ? self : global);
+  };
   /**
    * The current state of the interpreted machine.
    */
@@ -518,6 +517,12 @@ export class Interpreter<
       // Do not restart the service if it is already started
       return this;
     }
+
+    // yes, it's a hack but we need the related cache to be populated for some things to work (like delayed transitions)
+    // this is usually called by `machine.getInitialState` but if we rehydrate from a state we might bypass this call
+    // we also don't want to call this method here as it resolves the full initial state which might involve calling assign actions
+    // and that could potentially lead to some unwanted side-effects (even such as creating some rogue actors)
+    (this.machine as any)._init();
 
     registry.register(this.sessionId, this as Actor);
     this.initialized = true;
@@ -1366,7 +1371,6 @@ export class Interpreter<
     };
   }
 
-  /** @ts-ignore this creates problems for people without `skipLibCheck` who are on older versions of TS, remove this comment when we drop support for TS@<4.3 */
   public [symbolObservable](): InteropSubscribable<
     State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta>
   > {
