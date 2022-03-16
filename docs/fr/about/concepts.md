@@ -1,57 +1,58 @@
 # Concepts
 
-XState is a library for creating, interpreting, and executing finite state machines and statecharts, as well as managing invocations of those machines as actors. The following fundamental computer science concepts are important to know how to make the best use of XState, and in general for all your current and future software projects.
+XState est une bibliothèque permettant de créer, interpréter et exécuter des machines à états finis et des diagrammes d'états. Elle permet aussi de gérer les invocations de ces machines en tant qu'acteurs. Les concepts informatiques fondamentaux suivants sont importants pour savoir comment tirer le meilleur parti de XState, et en général pour tous vos projets logiciels actuels et futurs.
 
-## Finite State Machines
+## Machines à états finis
 
-A finite state machine is a mathematical model of computation that describes the behavior of a system that can be in only one state at any given time. For example, let's say you can be represented by a state machine with a finite number (2) of states: `asleep` or `awake`. At any given time, you're either `asleep` or `awake`. It is impossible for you to be both `asleep` and `awake` at the same time, and it is impossible for you to be neither `asleep` nor `awake`.
+Une machine à états finis est un modèle mathématique de calcul qui décrit le comportement d'un système qui est dans un seul état à la fois. Par exemple, supposons une machine à états avec un nombre fini (2) d'états : "endormi" et "éveillé". À tout moment, vous êtes soit "endormi", soit "éveillé". Il vous est impossible d'être à la fois « endormi » et « éveillé » en même temps, et il vous est impossible de n'être ni « endormi » ni « éveillé ».
 
-Formally, finite state machines have five parts:
+Généralement, les machines à états finis ont cinq caractéristiques :
 
-- A finite number of **states**
-- A finite number of **events**
-- An **initial state**
-- A **transition function** that determines the next state given the current state and event
-- A (possibly empty) set of **final states**
+- Un nombre fini d'**états**
+- Un nombre fini d'**événements**
+- Un **état initial**
+- Une **fonction de transition** qui fait migrer vers l'état suivant en fonction des paramètres et de l'évenement
+- Un ensemble (qui peut être vide) d'**états finaux**
 
-**State** refers to some finite, _qualitative_ "mode" or "status" of a system being modeled by a state machine, and does not describe all the (possibly infinite) data related to that system. For example, water can be in 1 of 4 states: `ice`, `liquid`, `gas`, or `plasma`. However, the temperature of water can vary and its measurement is _quantitative_ and infinite.
+Un **état** fait référence à un "mode" ou "état" fini, d'un système modélisé par une machine à états, et ne décrit pas toutes les données (éventuellement infinies) liées à ce système. Il est de nature _qualitatif_, condition siné qua none d'un nombre fini d'**étas**.
+Par exemple, l'eau peut être dans l'un des 4 états : "glace", "liquide", "gaz" ou "plasma". Cependant, la température de l'eau peut varier et sa mesure est _quantitative_ et infinie.
 
-More resources:
+Plus de ressources:
 
-- [Finite-state machine](https://en.wikipedia.org/wiki/Finite-state_machine) article on Wikipedia
-- [Understanding State Machines](https://www.freecodecamp.org/news/state-machines-basics-of-computer-science-d42855debc66/) by Mark Shead
+- [Finite-state machine](https://en.wikipedia.org/wiki/Finite-state_machine) Wikipédia
+- [Understanding State Machines](https://www.freecodecamp.org/news/state-machines-basics-of-computer-science-d42855debc66/) par Mark Shead
 - [▶️ A-Level Comp Sci: Finite State Machine](https://www.youtube.com/watch?v=4rNYAvsSkwk)
 
-## Statecharts
+## Diagrammes d'états
 
-Statecharts are a formalism for modeling stateful, reactive systems. Computer scientist David Harel presented this formalism as an extension to state machines in his 1987 paper [Statecharts: A Visual Formalism for Complex Systems](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf). Some of the extensions include:
+Les diagrammes d'états sont un formalisme permettant de modéliser des systèmes réactifs avec état. L'informaticien David Harel a présenté ce formalisme comme une extension des machines à états dans son article de 1987 [Statecharts : A Visual Formalism for Complex Systems](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf). Certaines des extensions incluent :
 
-- Guarded transitions
-- Actions (entry, exit, transition)
-- Extended state (context)
-- Orthogonal (parallel) states
-- Hierarchical (nested) states
-- History
-
-More resources:
-
-- [Statecharts: A Visual Formalism for Complex Systems](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf) by David Harel
-- [The World of Statecharts](https://statecharts.github.io/) by Erik Mogensen
-
-## Actor Model
-
-The actor model is another very old mathematical model of computation that goes well with state machines. It states that everything is an "actor" that can do three things:
-
-- **Receive** messages
-- **Send** messages to other actors
-- Do something with the messages it received (its **behavior**), such as:
-  - change its local state
-  - send messages to other actors
-  - _spawn_ new actors
-
-An actor's behavior can be described by a state machine (or a statechart).
+- Transitions sécurisées
+- Actions (entrée, sortie, transition)
+- État étendu ou une extension infinie (quantitative) de l'état (contexte)
+- États orthogonaux (parallèles)
+- États hiérarchiques (imbriqués)
+- Historique des états passés
 
 More resources:
 
-- [Actor model](https://en.wikipedia.org/wiki/Actor_model) article on Wikipedia
-- [The actor model in 10 minutes](https://www.brianstorti.com/the-actor-model/) by Brian Storti
+- [Statecharts: A Visual Formalism for Complex Systems](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf) par David Harel
+- [The World of Statecharts](https://statecharts.github.io/) par Erik Mogensen
+
+## Le modèle de l'acteur
+
+Le modèle de l'**acteur** est un autre modèle mathématique de calcul très ancien qui se marie bien avec les machines à états. Il précise que toute chose peut être représenté par un « acteur ». Un **acteur** peut faire trois choses:
+
+- **Recevoir** des messages
+- **Envoyer** des messages aux autres acteurs
+- Éxécuter une action avec les messages qu'il a reçus (son **comportement**), comme :
+  - changer son état local (_qualititatif_ et _quantitatif_)
+  - envoyer des messages aux autres acteurs
+  - _générer_ de nouveaux acteurs
+
+Le comportement d'un acteur peut être décrit par une machine à états (ou un diagramme d'états).
+
+Davantage de ressources:
+
+- [Actor model](https://en.wikipedia.org/wiki/Actor_model) Wikipédia
+- [The actor model in 10 minutes](https://www.brianstorti.com/the-actor-model/) par Brian Storti
