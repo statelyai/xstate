@@ -1,117 +1,118 @@
-# Glossary
+# Glossaire
 
-Adapted from [The World of Statecharts (Glossary)](https://statecharts.dev/glossary/).
+[The World of Statecharts (Glossary)](https://statecharts.dev/glossary/).
 
 ## Action
 
-An action is an [effect](../guides/effects.md) that is executed as a reaction to a state transition. Actions are fire-and-forget; that is, they are executed without needing to wait for a response.
+Une action est un [effet](../guides/effects.md) exécuté lors d'une transition d'état. Les actions sont exécutés sans qu'il soit nécessaire d'attendre une réponse.
 
-## Actor
+## Acteur
 
-An actor is an entity that can send messages to other actors, receive messages, and designate its next behavior in response to a message, which may include spawning other actors.
+Un acteur est une entité qui peut envoyer des messages à d'autres acteurs, recevoir des messages, changer d'état et créer (engendrer) d'autres acteurs.
 
-## Atomic state
+## État atomique
 
-An atomic state is a state node that has no child states.
+Un état atomique est un état qui n'a pas d'états enfants. En opposition à l'état composé.
 
-## Compound state
+## État composé
 
-A compound state has one or more child states. One of these child states must be the initial state, which is the default state node entered when the parent compound state is entered.
+Un état composé a au moins un état enfant. L'un de ces états enfants doit être l'état initial, qui est l'état d'entrée (on considérera un état composé comme une mini machine à états finis) par défaut lorsque l'état composé parent est entré.
 
 ## Condition
 
-See [guard](#guard).
+Se référer à [condition](#guard).
 
-## Entry action
+## Action d'entrée (à l'entrée de l'état)
 
-An entry action is an [action](#action) that is executed when its parent state is entered.
+Une action d'entrée est une [action](#action) qui est exécutée lorsque l'on rentre dans un nouvel état. Elle est exécutée en tout une fois, lorsque l'état est signalé.
 
-## Event
+## Événement
 
-An event is an indication that something happened at a specific moment in time. Events are what state machines receive, and are what cause transitions to potentially be taken.
+Un événement est l'action de déclencher une transiion. C'est l'utilisateur qui la déclenche le plus souvent. Les machines d'état les reçoivent et éxécutent la potentielle transition.
 
-## Eventless transition
+## Transition sans événement
 
-An eventless transition is a transition that is automatically taken when its parent state is active.
+Une transition sans événement est une transition qui est automatiquement prise lorsque son état parent est actif.
 
-## Exit action
+## Action de sortie (à la sortie de l'état)
 
-An exit action is an [action](#action) that is executed when its parent state is exited.
+Une action de sortie est une [action](#action) qui est exécutée lorsque son état parent est quitté.
 
 ## External transition
 
-In SCXML, an external transition is a transition that exits the source state when the target state is a descendant of the source state. See [selecting transitions (SCXML)](https://www.w3.org/TR/scxml/#SelectingTransitions) for details.
+Dans SCXML, une transition externe est une transition qui quitte l'état source lorsque l'état cible est un descendant de l'état source. Voir [selecting transitions (SCXML)](https://www.w3.org/TR/scxml/#SelectingTransitions) pour plu de détails.
 
-## Final state
+## État final
 
-A final state is an indication that the state is "done", and no more events will be handled from it.
+Un état final est une indication que la machine est "en fin de vie", et qu'aucun autre événement ne sera géré à partir de celui-ci.
 
-## Guard
+## Sécurité
 
-A guard is a Boolean expression that determines whether a transition is enabled (if the condition evaluates to _true_) or disabled (_false_). Also known as a [condition](#condition).
+Une sécurité est une fonction retournant un booléan qui détermine si une transition sera éffectuée (si la condition est évaluée à _true_) ou non (_false_). Également appelée [condition](#condition).
 
-## History state
+## État de l'historique
 
-A history state is a pseudo-state that will remember and transition to the most recently active child states of its parent state, or a default target state.
+Un état d'historique est un pseudo-état qui se souviendra et effectuera la transition vers les états antérieurs les plus récemment actifs de son état parent, ou un état cible par défaut.
 
-## Initial state
+## Etat initial
 
-The initial state of a compound state is the default child state that is entered when the compound state is entered.
+Considérons un état composé C. L'état initial I de C est l'état enfant de C par lequel il débutera. C'est le premier enfant de C et les prochains évènements internes à C se feront à partir de I, qui pourra éventuellement migré vers un état lambda de C.
 
-## Internal event
+## Evénement interne
 
-An internal event is an event that is raised by the state machine itself. Internal events are processed immediately after the previous event.
+Un événement interne est un événement déclenché par la machine d'état elle-même. Les événements internes sont traités immédiatement après l'événement précédent.
 
-## Internal transition
+Dans SCXML, une transition interne est une transition qui passe à un état cible descendant sans quitter l'état source. Il s'agit du comportement de transition par défaut. Voir [selecting transitions (SCXML)](https://www.w3.org/TR/scxml/#SelectingTransitions) pour plus de détails.
 
-In SCXML, an internal transition is a transition that transitions to a descendant target state without exiting the source state. This is the default transition behavior. See [selecting transitions (SCXML)](https://www.w3.org/TR/scxml/#SelectingTransitions) for details.
+## Modèle mathématique de calcul
 
-## Mathematical model of computation
+Un modèle mathématique de calcul est une façon de décrire comment les choses sont calculées . Exemple : Étant donné une entrée, quelle sera la sortie ?
+Avec les machines à états et les diagrammes d'états, la fonction pertinente est la _fonction de transition d'état_ (voir [Finite state machine: Mathematical model (Wikipedia)](https://en.wikipedia.org/wiki/Finite-state_machine#Mathematical_model))
 
-A mathematical model of computation is a way of describing how things are computed (given an input, what is the output?) based on a mathematical function. With state machines and statecharts, the pertinent function is the _state-transition function_ (see [Finite state machine: Mathematical model (Wikipedia)](https://en.wikipedia.org/wiki/Finite-state_machine#Mathematical_model))
+Voir [Modèle de calcul (Wikipedia)](https://en.wikipedia.org/wiki/Model_of_computation) et [Mathematical model (Wikipedia)](https://en.wikipedia.org/wiki/Mathematical_model) pour plus d'informations .
 
-See [Model of computation (Wikipedia)](https://en.wikipedia.org/wiki/Model_of_computation) and [Mathematical model (Wikipedia)](https://en.wikipedia.org/wiki/Mathematical_model) for more information.
+## État orthogonal
 
-## Orthogonal state
+Voir [état parallèle](#parallel-state).
 
-See [parallel state](#parallel-state).
+## État parallèle
 
-## Parallel state
+Un état parallèle est un état composé où tous ses états enfants (appelés _regions_) sont actifs simultanément. Les états enfants d'un état parallèle sont indépendants l'un de l'autre.
 
-A parallel state is a compound state where all of its child states (known as _regions_) are active simultaneously.
+## Pseudo-état
 
-## Pseudostate
+Un état transitoire ; par exemple, un [état initial](#initial-state) ou un [état d'historique](#history-state).
 
-A transient state; e.g., an [initial state](#initial-state) or a [history state](#history-state).
+## Événement déclenché
 
-## Raised event
-
-See [internal event](#internal-event).
+Voir [événement interne](#événement-interne).
 
 ## Service
 
-A service is an interpreted [machine](#state-machine); i.e., an [actor](#actor) that represents a machine.
+Un service est une [machine](#state-machine) interprétée ; c'est-à-dire un [acteur](#acteur) qui représente une machine. C'est le service que l'on utilise pour intéragir avec la machine le plus souvent.
 
 ## State machine
 
-A state machine is a mathematical model of the behavior of a system. It describes the behavior through [states](#state), [events](#event), and [transitions](#transition).
+## Machine d'état
 
-## State
+Une machine à états est un modèle mathématique du comportement d'un système. Il décrit le comportement via les [états](#state), les [évènements](#event) et les [transitions](#transition).
 
-A state represents the overall behavior of a state machine. In statecharts, the state is the aggregate of all active states (which can be atomic, compound, parallel, and/or final).
+## État
 
-## Transient state
+Un état représente le comportement global d'une machine d'état. Dans les diagrammes d'états, l'état est l'agrégat de tous les états actifs (qui peuvent être atomiques, composés, parallèles et/ou finaux).
 
-A transient state is a state that only has [eventless transitions](#eventless-transition).
+## État transitoire
+
+Un état transitoire est un état qui n'a que des [transitions sans événement](#eventless-transition).
 
 ## Transition
 
-A transition is a description of which target [state(s)](#state) and [actions](#action) a state machine will immediately be in when a specific [event](#event) is taken in the transition's source state.
+Une transition est une description de la cible-[état(s)](#état) et des[actions](#action) d'une machine d'état lorsqu'un [événement](#événement) spécifique est déclenché.
 
-## Visual formalism
+## Formalisme visuel
 
-A visual formalism is an exact language (like a programming language) that primarily uses visual symbols (states, transitions, etc.) instead of only code or text. State diagrams and statecharts are visual formalisms.
+Un formalisme visuel est un langage exact (comme un langage de programmation) qui utilise principalement des symboles visuels (états, transitions, etc.) au lieu uniquement de code ou de texte. Les diagrammes d'états sont des formalismes visuels.
 
-> Visual formalisms are diagrammatic and intuitive, yet mathematically rigorous languages.
+> Les formalismes visuels sont des langages schématiques et intuitifs, mais mathématiquement rigoureux.
 >
 > – https://link.springer.com/referenceworkentry/10.1007%2F978-0-387-39940-9_444
