@@ -1,30 +1,30 @@
-# Goals
+# Les enjeux
 
-## API Goals
+## Les enjeux de l'API
 
-- Adherence to the [W3C SCXML Specification](https://www.w3.org/TR/scxml/) and David Harel's original statecharts formalism
-- Promote an [Actor model](https://en.wikipedia.org/wiki/Actor_model) event-based architecture
-- Compatibility with all frameworks and platforms
-- Ability to completely serialize machine definitions to JSON (and SCXML)
-- Pure, functional `createMachine(...)` API
-- Zero dependencies
+- Adhésion à la [Spécification SCXML de la W3C](https://www.w3.org/TR/scxml/) et le formalisme original des statecharts de David Harel
+- Promouvoir une architecture basée sur les événements [Actor model](https://en.wikipedia.org/wiki/Actor_model)
+- Compatibilité avec tous les frameworks et plateformes
+- Possibilité de sérialiser complètement les définitions de machine en JSON (et SCXML)
+- API `createMachine(...)` pure et fonctionnelle
+- Zéro dépendances
 
-## Choosing XState
+## Choisir XState
 
-If you're deciding if you should use XState, [John Yanarella](https://github.com/CodeCatalyst) summed up his reasons really well (links and emphasis mine):
+Si vous décidez d'utiliser XState, [John Yanarella](https://github.com/CodeCatalyst) a très bien résumé ses raisons (liens et accent mis sur moi):
 
-> When I was making that same choice as to whether to use and advocate for the use of XState where I work, the things that stood out for me were:
+> Lorsque j'ai fait ce même choix quant à savoir si j'utilisais et défendais l'utilisation de XState là où je travaillais, les choses qui m'ont marqué étaient :
 >
-> 1. The **committment to understanding the relevant prior art** and informing the implementation based on existing research papers (Harel's [original paper on statecharts](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf)), books (Horrocks' ["Constructing the User Interface with Statecharts"](https://www.amazon.com/Constructing-User-Interface-Statecharts-Horrocks/dp/0201342782/ref=sr_1_3?ie=UTF8&qid=1548690916&sr=8-3&keywords=statecharts)), and standards ([W3C's SCXML](https://www.w3.org/TR/scxml/)).
+> 1. L'**engagement à comprendre l'état de la technique pertinent** et à éclairer la mise en œuvre sur la base d'articles de recherche existants ([article original sur les statecharts](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf) par Harel), Livres (Horrocks' ["Constructing the User Interface with Statecharts"](https://www.amazon.com/Constructing-User-Interface-Statecharts-Horrocks/dp/0201342782/ref=sr_1_3?ie=UTF8&qid=1548690916&sr=8-3&keywords=statecharts)), et les standards ([W3C's SCXML](https://www.w3.org/TR/scxml/)).
 >
-> Many of the other libraries I reviewed along the way are projects that stop at the point of implementing simple finite state machines. (If that's all you need - and it might be - David's been quick to point out how few lines it takes to just roll your own.) Their reach is shortened, since they don't address the subsequent limitations that can be overcome via a statechart.
+> La plupart des autres bibliothèques que j'ai examinées en cours de route sont des projets qui s'arrêtent au point d'implémenter de simples machines à états finis. (Si c'est tout ce dont vous avez besoin - et c'est peut-être le cas - David n'a pas tardé à souligner le peu de lignes qu'il faut pour lancer la vôtre.). Leur portée était raccourcie, car elles ne traitaient pas des limitations ultérieures qui peuvent être surmontées via un diagramme d'état.
 >
-> XState stands on the shoulders of giants by embracing [W3C's SCXML spec](https://www.w3.org/TR/scxml/) - it gets the benefit of that working group's research into edge cases.
+> XState repose sur de bonnes bases en adoptant [la spécification SCXML du W3C](https://www.w3.org/TR/scxml/) - il bénéficie des recherches de ce groupe de travail sur les cas extrêmes.
 >
-> 2. It's a **refuge from the "shiny object syndrome"** of embracing the latest flavor-of-the-month "state management library". It faithfully implements a 30+ year old formalism. You end up putting your most important logic into something you can take with you to any UI framework (and potentially to other statechart implementions in other languages). It's a zero-dependency library.
+> 2. C'est un **refuge du "syndrome de l'objet brillant"** consistant à adopter la dernière "bibliothèque de gestion d'état" du mois. Il implémente fidèlement un formalisme vieux de plus de 30 ans. Vous finissez par mettre votre logique la plus importante dans quelque chose que vous pouvez emporter avec vous dans n'importe quel framework d'interface utilisateur (et potentiellement dans d'autres implémentations dans d'autres langages). C'est une bibliothèque sans dépendance.
 >
-> The front-end development world is the wild west, and it could stand to learn from what other engineering disciplines have known and employed for years.
+> Le monde du développement Front est le Far West, et il pourrait apprendre de ce que d'autres disciplines d'ingénierie ont connu et employé pendant des années.
 >
-> 3. It has **passed a critical threshold of maturity** as of version 4, particularly given the introduction of [the visualizer](https://statecharts.github.io/xstate-viz). And that's just the tip of the iceberg of where it could go next, as it (and [its community](https://github.com/statelyai/xstate/discussions)) introduces tooling that takes advantage of how a statechart can be visualized, analyzed, and tested.
+> 3. Il a **passé un seuil critique de maturité** depuis la version 4, notamment depuis l'introduction du [visualiseur](https://statecharts.github.io/xstate-viz). Et ce n'est que la partie émergée de l'iceberg de ce qu'il pourrait accomplir ensuite, car lui (et [sa communauté] (https://github.com/statelyai/xstate/discussions)) ont introduit des outils qui tirent parti de la façon dont un diagramme d'état peut être visualisé, analysé et testé.
 >
-> 4. The **community** that is growing around it and the awareness it is bringing to finite state machines and statecharts. If you read back through this gitter history, there's a wealth of links to research papers, other FSM and Statechart implementations, etc. that have been collected by [Erik Mogensen](https://twitter.com/mogsie) over at [statecharts.github.io](https://statecharts.github.io).
+> 4. La **communauté** qui grandit tout autour et la prise de conscience qu'elle apporte aux machines à états finis et aux diagrammes d'états. Si vous relisez cet historique gitter, il y a une multitude de liens vers des articles de recherche, d'autres implémentations FSM et Statechart, etc. qui ont été collectés par [Erik Mogensen](https://twitter.com/mogsie) sur [statecharts.github.io](https://statecharts.github.io).
