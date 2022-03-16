@@ -384,7 +384,8 @@ describe('coverage', () => {
     `);
   });
 
-  it('test', async () => {
+  // https://github.com/statelyai/xstate/issues/729
+  it('reports full coverage when all states are covered', async () => {
     const feedbackMachine = createMachine({
       id: 'feedback',
       initial: 'logon',
