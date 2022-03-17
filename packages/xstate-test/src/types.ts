@@ -100,14 +100,11 @@ export type StatePredicate<TState> = (state: TState) => boolean;
  * that triggers the represented `event`.
  */
 export type EventExecutor<T> = (
+  step: TestStep<any>,
   /**
    * The testing context used to execute the effect
    */
-  testContext: T,
-  /**
-   * The represented event that will be triggered when executed
-   */
-  event: EventObject
+  testContext: T
 ) => Promise<any> | void;
 
 export interface TestEventConfig<TTestContext> {
@@ -144,6 +141,14 @@ export interface TestEventsConfig<TTestContext> {
     | TestEventConfig<TTestContext>;
 }
 
+export interface TestModelEventConfig<
+  TEvent extends EventObject,
+  TTestContext
+> {
+  cases?: () => Array<Omit<TEvent, 'type'> | TEvent>;
+  exec?: EventExecutor<TTestContext>;
+}
+
 export interface TestModelOptions<
   TState,
   TEvent extends EventObject,
@@ -160,13 +165,10 @@ export interface TestModelOptions<
   execute: (state: TState, testContext: TTestContext) => void | Promise<void>;
   getStates: () => TState[];
   events: {
-    [TEventType in TEvent['type']]?: {
-      cases?: () => Array<
-        | Omit<ExtractEvent<TEvent, TEventType>, 'type'>
-        | ExtractEvent<TEvent, TEventType>
-      >;
-      exec?: EventExecutor<TTestContext>;
-    };
+    [TEventType in TEvent['type']]?: TestModelEventConfig<
+      ExtractEvent<TEvent, TEventType>,
+      TTestContext
+    >;
   };
   logger: {
     log: (msg: string) => void;

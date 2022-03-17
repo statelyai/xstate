@@ -124,32 +124,32 @@ class Jugs {
 const dieHardModel = createTestModel(dieHardMachine, {
   events: {
     POUR_3_TO_5: {
-      exec: async ({ jugs }) => {
+      exec: async (_step, { jugs }) => {
         await jugs.transferThree();
       }
     },
     POUR_5_TO_3: {
-      exec: async ({ jugs }) => {
+      exec: async (_step, { jugs }) => {
         await jugs.transferFive();
       }
     },
     EMPTY_3: {
-      exec: async ({ jugs }) => {
+      exec: async (_step, { jugs }) => {
         await jugs.emptyThree();
       }
     },
     EMPTY_5: {
-      exec: async ({ jugs }) => {
+      exec: async (_step, { jugs }) => {
         await jugs.emptyFive();
       }
     },
     FILL_3: {
-      exec: async ({ jugs }) => {
+      exec: async (_step, { jugs }) => {
         await jugs.fillThree();
       }
     },
     FILL_5: {
-      exec: async ({ jugs }) => {
+      exec: async (_step, { jugs }) => {
         await jugs.fillFive();
       }
     }
@@ -878,4 +878,38 @@ describe('invocations', () => {
 
     model.testCoverage(stateValueCoverage());
   });
+});
+
+// https://github.com/statelyai/xstate/issues/1538
+it('tests transitions', async () => {
+  expect.assertions(3);
+  const machine = createMachine({
+    initial: 'first',
+    states: {
+      first: {
+        on: { NEXT: 'second' }
+      },
+      second: {}
+    }
+  });
+
+  const obj = {};
+
+  const model = createTestModel(machine, {
+    events: {
+      NEXT: {
+        exec: (step, sut) => {
+          expect(step).toHaveProperty('event');
+          expect(step).toHaveProperty('state');
+          expect(sut).toBe(obj);
+        }
+      }
+    }
+  });
+
+  const plans = model.getShortestPlansTo((state) => state.matches('second'));
+
+  const path = plans[0].paths[0];
+
+  await model.testPath(path, obj);
 });

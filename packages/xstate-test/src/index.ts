@@ -9,7 +9,7 @@ import {
   AnyState
 } from 'xstate';
 import { TestModel } from './TestModel';
-import { TestModelOptions, TestEventsConfig } from './types';
+import { TestModelOptions, TestEventsConfig, TestEventConfig } from './types';
 
 export function getEventSamples<TEvent extends EventObject>(
   eventsOptions: TestEventsConfig<any>
@@ -121,10 +121,13 @@ export function createTestModel<
           ).map((e) => ({ type: eventType, ...e }));
         })
       ),
-    testTransition: async ({ event }, testContext) => {
-      const eventConfig = options?.events?.[(event as any).type];
+    testTransition: async (step, testContext) => {
+      // TODO: fix types
+      const eventConfig = options?.events?.[
+        (step.event as any).type
+      ] as TestEventConfig<any>;
 
-      await eventConfig?.exec?.(testContext, event);
+      await eventConfig?.exec?.(step as any, testContext);
     },
     ...options
   });
