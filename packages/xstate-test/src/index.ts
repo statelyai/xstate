@@ -110,11 +110,28 @@ export function createTestModel<
       });
     },
     getEvents: (state) =>
-      state.nextEvents.map(
-        (eventType) => ({ type: eventType } as EventFrom<TMachine>)
+      flatten(
+        state.nextEvents.map((eventType) => {
+          const eventCaseGenerator = options?.events?.[eventType]?.cases;
+
+          return (
+            eventCaseGenerator?.() ?? [
+              { type: eventType } as EventFrom<TMachine>
+            ]
+          ).map((e) => ({ type: eventType, ...e }));
+        })
       ),
+    testTransition: async ({ event }, testContext) => {
+      const eventConfig = options?.events?.[(event as any).type];
+
+      await eventConfig?.exec?.(testContext, event);
+    },
     ...options
   });
 
   return testModel;
+}
+
+export function flatten<T>(array: Array<T | T[]>): T[] {
+  return ([] as T[]).concat(...array);
 }

@@ -1,5 +1,5 @@
 import { createTestModel } from '../src';
-import { assign, createMachine } from 'xstate';
+import { assign, createMachine, interpret } from 'xstate';
 import { getDescription } from '../src/utils';
 import { stateValueCoverage } from '../src/coverage';
 
@@ -121,35 +121,37 @@ class Jugs {
   }
 }
 
-const dieHardModel = createTestModel(dieHardMachine).withEvents({
-  POUR_3_TO_5: {
-    exec: async ({ jugs }) => {
-      await jugs.transferThree();
-    }
-  },
-  POUR_5_TO_3: {
-    exec: async ({ jugs }) => {
-      await jugs.transferFive();
-    }
-  },
-  EMPTY_3: {
-    exec: async ({ jugs }) => {
-      await jugs.emptyThree();
-    }
-  },
-  EMPTY_5: {
-    exec: async ({ jugs }) => {
-      await jugs.emptyFive();
-    }
-  },
-  FILL_3: {
-    exec: async ({ jugs }) => {
-      await jugs.fillThree();
-    }
-  },
-  FILL_5: {
-    exec: async ({ jugs }) => {
-      await jugs.fillFive();
+const dieHardModel = createTestModel(dieHardMachine, {
+  events: {
+    POUR_3_TO_5: {
+      exec: async ({ jugs }) => {
+        await jugs.transferThree();
+      }
+    },
+    POUR_5_TO_3: {
+      exec: async ({ jugs }) => {
+        await jugs.transferFive();
+      }
+    },
+    EMPTY_3: {
+      exec: async ({ jugs }) => {
+        await jugs.emptyThree();
+      }
+    },
+    EMPTY_5: {
+      exec: async ({ jugs }) => {
+        await jugs.emptyFive();
+      }
+    },
+    FILL_3: {
+      exec: async ({ jugs }) => {
+        await jugs.fillThree();
+      }
+    },
+    FILL_5: {
+      exec: async ({ jugs }) => {
+        await jugs.fillFive();
+      }
     }
   }
 });
@@ -223,7 +225,7 @@ describe('testing a model (getPlanFromEvents)', () => {
   });
 });
 
-describe('path.test()', () => {
+describe('.testPath(path)', () => {
   const plans = dieHardModel.getSimplePlansTo((state) => {
     return state.matches('success') && state.context.three === 0;
   });
@@ -473,7 +475,7 @@ describe('coverage', () => {
       testModel.testCoverage(
         stateValueCoverage({
           filter: (stateNode) => {
-            return !!stateNode.meta;
+            return stateNode.key !== 'passthrough';
           }
         })
       );
@@ -536,18 +538,9 @@ describe('events', () => {
       }
     });
 
-    const testModel = createTestModel(feedbackMachine).withEvents({
-      CLICK_BAD: () => {
-        /* ... */
-      },
-      CLICK_GOOD: () => {
-        /* ... */
-      },
-      CLOSE: () => {
-        /* ... */
-      },
-      SUBMIT: {
-        cases: [{ value: 'something' }, { value: '' }]
+    const testModel = createTestModel(feedbackMachine, {
+      events: {
+        SUBMIT: { cases: () => [{ value: 'something' }, { value: '' }] }
       }
     });
 
@@ -601,9 +594,7 @@ describe('state limiting', () => {
       }
     });
 
-    const testModel = createTestModel(machine).withEvents({
-      INC: () => {}
-    });
+    const testModel = createTestModel(machine);
 
     const testPlans = testModel.getShortestPlans({
       filter: (state) => {
@@ -665,10 +656,7 @@ describe('plan description', () => {
     }
   });
 
-  const testModel = createTestModel(machine).withEvents({
-    NEXT: { exec: () => {} },
-    DONE: { exec: () => {} }
-  });
+  const testModel = createTestModel(machine);
   const testPlans = testModel.getShortestPlans();
 
   it('should give a description for every plan', () => {
@@ -703,11 +691,7 @@ it('prevents infinite recursion based on a provided limit', () => {
     }
   });
 
-  const model = createTestModel(machine).withEvents({
-    TOGGLE: () => {
-      /**/
-    }
-  });
+  const model = createTestModel(machine);
 
   expect(() => {
     model.getShortestPlans({ traversalLimit: 100 });
@@ -739,11 +723,7 @@ it('executes actions', async () => {
     }
   });
 
-  const model = createTestModel(machine).withEvents({
-    TOGGLE: () => {
-      /**/
-    }
-  });
+  const model = createTestModel(machine);
 
   const testPlans = model.getShortestPlans();
 
@@ -823,5 +803,83 @@ describe('test model options', () => {
     }
 
     expect(testedEvents).toEqual(['NEXT', 'NEXT', 'PREV']);
+  });
+});
+
+describe('invocations', () => {
+  it.skip('invokes', async () => {
+    const machine = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            START: 'pending'
+          }
+        },
+        pending: {
+          invoke: {
+            src: (_, e) => new Promise((res) => res(e.value)),
+            onDone: [
+              { cond: (_, e) => e.data === 42, target: 'success' },
+              { target: 'failure' }
+            ]
+          }
+        },
+        success: {},
+        failure: {}
+      }
+    });
+
+    const model = createTestModel(machine, {
+      testState: (state, service) => {
+        return new Promise((res) => {
+          let actualState;
+          const t = setTimeout(() => {
+            throw new Error(
+              `expected ${state.value}, got ${actualState.value}`
+            );
+          }, 1000);
+          service.subscribe((s) => {
+            actualState = s;
+            if (s.matches(state.value)) {
+              clearTimeout(t);
+              res();
+            }
+          });
+        });
+      },
+      testTransition: (step, service) => {
+        if (step.event.type.startsWith('done.')) {
+          return;
+        }
+
+        service.send(step.event);
+      },
+      events: {
+        START: {
+          cases: () => [
+            { type: 'START', value: 42 },
+            { type: 'START', value: 1 }
+          ]
+        }
+      }
+    });
+
+    // const plans = model.getShortestPlansTo((state) => state.matches('success'));
+    const plans = model.getShortestPlans();
+
+    for (const plan of plans) {
+      for (const path of plan.paths) {
+        const service = interpret(machine).start();
+
+        service.subscribe((state) => {
+          console.log(state.event, state.value);
+        });
+
+        await model.testPath(path, service);
+      }
+    }
+
+    model.testCoverage(stateValueCoverage());
   });
 });

@@ -2,6 +2,7 @@ import { Step, TraversalOptions } from '@xstate/graph';
 import {
   AnyState,
   EventObject,
+  ExtractEvent,
   MachineConfig,
   State,
   StateNode,
@@ -158,6 +159,15 @@ export interface TestModelOptions<
    */
   execute: (state: TState, testContext: TTestContext) => void | Promise<void>;
   getStates: () => TState[];
+  events: {
+    [TEventType in TEvent['type']]?: {
+      cases?: () => Array<
+        | Omit<ExtractEvent<TEvent, TEventType>, 'type'>
+        | ExtractEvent<TEvent, TEventType>
+      >;
+      exec?: EventExecutor<TTestContext>;
+    };
+  };
   logger: {
     log: (msg: string) => void;
     error: (msg: string) => void;

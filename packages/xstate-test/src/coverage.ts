@@ -20,13 +20,13 @@ export function stateValueCoverage(
     const allStateNodes = getAllStateNodes(testModel.behavior as AnyStateNode);
 
     return allStateNodes.map((stateNode) => {
-      const skipped = !resolvedOptions.filter(stateNode);
+      const skip = !resolvedOptions.filter(stateNode);
 
       return {
         predicate: (stateCoverage) =>
           stateCoverage.state.configuration.includes(stateNode),
         description: `Visits ${JSON.stringify(stateNode.id)}`,
-        skipped
+        skip
       };
     });
   };

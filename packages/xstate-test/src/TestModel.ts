@@ -61,6 +61,7 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
       serializeState: (state) => simpleStringify(state) as SerializedState,
       serializeEvent: (event) => simpleStringify(event) as SerializedEvent,
       getEvents: () => [],
+      events: {},
       getStates: () => [],
       testState: () => void 0,
       testTransition: () => void 0,
@@ -266,27 +267,6 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
 
   private addTransitionCoverage(_step: Step<TState, TEvent>) {
     // TODO
-  }
-
-  public withEvents(
-    eventMap: TestEventsConfig<TTestContext>
-  ): TestModel<TState, TEvent, TTestContext> {
-    return new TestModel(this.behavior, {
-      ...this.options,
-      getEvents: () => getEventSamples(eventMap),
-      testTransition: async ({ event }, testContext) => {
-        const eventConfig = eventMap[event.type];
-
-        if (!eventConfig) {
-          return;
-        }
-
-        const exec =
-          typeof eventConfig === 'function' ? eventConfig : eventConfig.exec;
-
-        await exec?.(testContext, event);
-      }
-    });
   }
 
   public resolveOptions(
