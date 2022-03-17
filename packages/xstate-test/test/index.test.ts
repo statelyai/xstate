@@ -267,11 +267,7 @@ describe('error path trace', () => {
       }
     });
 
-    const testModel = createTestModel(machine).withEvents({
-      NEXT: () => {
-        /* noop */
-      }
-    });
+    const testModel = createTestModel(machine);
 
     testModel
       .getShortestPlansTo((state) => state.matches('third'))
