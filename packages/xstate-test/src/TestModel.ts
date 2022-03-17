@@ -19,14 +19,12 @@ import type {
   TestModelCoverage,
   TestModelOptions,
   StatePredicate,
-  TestEventsConfig,
   TestPathResult,
   TestStepResult,
   Criterion,
   CriterionResult
 } from './types';
 import { formatPathTestResult, simpleStringify } from './utils';
-import { getEventSamples } from './index';
 
 /**
  * Creates a test model that represents an abstract model of a
