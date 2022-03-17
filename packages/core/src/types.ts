@@ -7,7 +7,8 @@ import {
   TypegenDisabled,
   ResolveTypegenMeta,
   TypegenConstraint,
-  AreAllImplementationsAssumedToBeProvided
+  AreAllImplementationsAssumedToBeProvided,
+  TypegenEnabled
 } from './typegenTypes';
 
 export type AnyFunction = (...args: any[]) => any;
@@ -1838,6 +1839,32 @@ export type EventFrom<
   K extends Prop<TEvent, 'type'> = never,
   TEvent = ResolveEventType<T>
 > = IsNever<K> extends true ? TEvent : Extract<TEvent, { type: K }>;
+
+type __InternalEventFromMachine<
+  TMachine extends AnyStateMachine,
+  TIndexedEvents = TMachine['__TResolvedTypesMeta']['indexedEvents'],
+  TPublicType = TMachine['__TEvent']['type']
+> = Values<
+  string extends TPublicType
+    ? TIndexedEvents
+    : Omit<TIndexedEvents, Cast<TPublicType, string>>
+>;
+
+export type InternalEventFrom<T> = ReturnTypeOrValue<T> extends infer R
+  ? R extends StateMachine<
+      infer _,
+      infer __,
+      infer ___,
+      infer ____,
+      infer _____,
+      infer ______,
+      infer TResolvedTypesMeta
+    >
+    ? TResolvedTypesMeta extends TypegenEnabled
+      ? __InternalEventFromMachine<R>
+      : never
+    : never
+  : never;
 
 export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<
