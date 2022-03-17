@@ -318,25 +318,27 @@ describe('coverage', () => {
 
     const coverage = dieHardModel.getCoverage(stateValueCoverage());
 
-    expect(coverage.every((c) => c.covered)).toEqual(true);
+    expect(coverage.every((c) => c.status === 'covered')).toEqual(true);
 
-    expect(coverage.map((c) => [c.criterion.description, c.covered]))
+    expect(coverage.map((c) => [c.criterion.description, c.status]))
       .toMatchInlineSnapshot(`
       Array [
         Array [
           "Visits \\"dieHard\\"",
-          true,
+          "covered",
         ],
         Array [
           "Visits \\"dieHard.pending\\"",
-          true,
+          "covered",
         ],
         Array [
           "Visits \\"dieHard.success\\"",
-          true,
+          "covered",
         ],
       ]
     `);
+
+    expect(() => dieHardModel.testCoverage(stateValueCoverage())).not.toThrow();
   });
 
   it('tests missing state node coverage', async () => {
@@ -374,13 +376,20 @@ describe('coverage', () => {
     expect(
       testModel
         .getCoverage(stateValueCoverage())
-        .filter((c) => !c.covered)
+        .filter((c) => c.status !== 'covered')
         .map((c) => c.criterion.description)
     ).toMatchInlineSnapshot(`
       Array [
         "Visits \\"test.secondMissing\\"",
         "Visits \\"test.third.threeMissing\\"",
       ]
+    `);
+
+    expect(() => testModel.testCoverage(stateValueCoverage()))
+      .toThrowErrorMatchingInlineSnapshot(`
+      "Coverage criteria not met:
+      	Visits \\"test.secondMissing\\"
+      	Visits \\"test.third.threeMissing\\""
     `);
   });
 
@@ -420,7 +429,9 @@ describe('coverage', () => {
 
     expect(coverage).toHaveLength(5);
 
-    expect(coverage.filter((c) => !c.covered)).toHaveLength(0);
+    expect(coverage.filter((c) => c.status !== 'covered')).toHaveLength(0);
+
+    expect(() => model.testCoverage(stateValueCoverage())).not.toThrow();
   });
 
   it('skips filtered states (filter option)', async () => {
@@ -434,32 +445,18 @@ describe('coverage', () => {
         idle: {
           on: {
             START: 'passthrough'
-          },
-          meta: {
-            test: () => {
-              /* ... */
-            }
           }
         },
         passthrough: {
           always: 'end'
         },
         end: {
-          type: 'final',
-          meta: {
-            test: () => {
-              /* ... */
-            }
-          }
+          type: 'final'
         }
       }
     });
 
-    const testModel = createTestModel(TestBug).withEvents({
-      START: () => {
-        /* ... */
-      }
-    });
+    const testModel = createTestModel(TestBug);
 
     const testPlans = testModel.getShortestPlans();
 
@@ -473,11 +470,13 @@ describe('coverage', () => {
     await Promise.all(promises);
 
     expect(() => {
-      testModel.testCoverage({
-        filter: (stateNode) => {
-          return !!stateNode.meta;
-        }
-      });
+      testModel.testCoverage(
+        stateValueCoverage({
+          filter: (stateNode) => {
+            return !!stateNode.meta;
+          }
+        })
+      );
     }).not.toThrow();
   });
 });
@@ -490,8 +489,11 @@ describe('events', () => {
       | { type: 'CLOSE' }
       | { type: 'ESC' }
       | { type: 'SUBMIT'; value: string };
-    const feedbackMachine = createMachine<any, Events>({
+    const feedbackMachine = createMachine({
       id: 'feedback',
+      schema: {
+        events: {} as Events
+      },
       initial: 'question',
       states: {
         question: {
@@ -500,11 +502,6 @@ describe('events', () => {
             CLICK_BAD: 'form',
             CLOSE: 'closed',
             ESC: 'closed'
-          },
-          meta: {
-            test: () => {
-              // ...
-            }
           }
         },
         form: {
@@ -521,47 +518,20 @@ describe('events', () => {
             CLOSE: 'closed',
             ESC: 'closed'
           },
-          meta: {
-            test: () => {
-              // ...
-            }
-          },
           initial: 'valid',
           states: {
-            valid: {
-              meta: {
-                test: () => {
-                  // noop
-                }
-              }
-            },
-            invalid: {
-              meta: {
-                test: () => {
-                  // noop
-                }
-              }
-            }
+            valid: {},
+            invalid: {}
           }
         },
         thanks: {
           on: {
             CLOSE: 'closed',
             ESC: 'closed'
-          },
-          meta: {
-            test: () => {
-              // ...
-            }
           }
         },
         closed: {
-          type: 'final',
-          meta: {
-            test: () => {
-              // ...
-            }
-          }
+          type: 'final'
         }
       }
     });
@@ -587,7 +557,7 @@ describe('events', () => {
       await testModel.testPlan(plan, undefined);
     }
 
-    return testModel.testCoverage();
+    expect(() => testModel.testCoverage(stateValueCoverage())).not.toThrow();
   });
 
   it('should not throw an error for unimplemented events', () => {

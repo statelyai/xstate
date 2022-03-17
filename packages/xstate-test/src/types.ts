@@ -183,7 +183,8 @@ export interface CoverageOptions<TContext> {
 
 export interface Criterion<TState> {
   predicate: (stateCoverage: TestStateCoverage<TState>) => boolean;
-  description?: string;
+  description: string;
+  skip?: boolean;
 }
 
 export interface CriterionResult<TState> {
@@ -191,7 +192,7 @@ export interface CriterionResult<TState> {
   /**
    * Whether the criterion was covered or not
    */
-  covered: boolean;
+  status: 'uncovered' | 'covered' | 'skipped';
 }
 
 export interface TestTransitionConfig<

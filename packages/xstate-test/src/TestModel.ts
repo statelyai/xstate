@@ -19,7 +19,6 @@ import type {
   TestModelCoverage,
   TestModelOptions,
   StatePredicate,
-  CoverageOptions,
   TestEventsConfig,
   TestPathResult,
   TestStepResult,
@@ -269,20 +268,6 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
     // TODO
   }
 
-  public testCoverage(options?: CoverageOptions<TState>): void {
-    return void options;
-    // const coverage = this.getCoverage(options);
-    // const missingStateNodes = Object.keys(coverage.stateNodes).filter((id) => {
-    //   return !coverage.stateNodes[id];
-    // });
-    // if (missingStateNodes.length) {
-    //   throw new Error(
-    //     'Missing coverage for state nodes:\n' +
-    //       missingStateNodes.map((id) => `\t${id}`).join('\n')
-    //   );
-    // }
-  }
-
   public withEvents(
     eventMap: TestEventsConfig<TTestContext>
   ): TestModel<TState, TEvent, TTestContext> {
@@ -316,11 +301,33 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
     const criteria = criteriaFn?.(this) ?? [];
     const stateCoverages = Object.values(this._coverage.states);
 
-    return criteria.map((c) => {
+    return criteria.map((criterion) => {
       return {
-        criterion: c,
-        covered: stateCoverages.some((sc) => c.predicate(sc))
+        criterion,
+        status: criterion.skip
+          ? 'skipped'
+          : stateCoverages.some((sc) => criterion.predicate(sc))
+          ? 'covered'
+          : 'uncovered'
       };
     });
+  }
+
+  public testCoverage(
+    criteriaFn?: (testModel: this) => Array<Criterion<TState>>
+  ): void {
+    const criteriaResult = this.getCoverage(criteriaFn);
+
+    const unmetCriteria = criteriaResult.filter(
+      (c) => c.status === 'uncovered'
+    );
+
+    if (unmetCriteria.length) {
+      const criteriaMessage = `Coverage criteria not met:\n${unmetCriteria
+        .map((c) => '\t' + c.criterion.description)
+        .join('\n')}`;
+
+      throw new Error(criteriaMessage);
+    }
   }
 }
