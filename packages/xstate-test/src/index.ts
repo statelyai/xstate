@@ -46,11 +46,6 @@ async function assertState(state: State<any, any, any>, testContext: any) {
   for (const id of Object.keys(state.meta)) {
     const stateNodeMeta = state.meta[id];
     if (typeof stateNodeMeta.test === 'function' && !stateNodeMeta.skip) {
-      // this.coverage.stateNodes.set(
-      //   id,
-      //   (this.coverage.stateNodes.get(id) || 0) + 1
-      // );
-
       await stateNodeMeta.test(testContext, state);
     }
   }
