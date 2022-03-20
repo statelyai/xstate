@@ -35,7 +35,7 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "xstate": "^4.30.3"
+    "xstate": "^4.30.5"
   },
   "devDependencies": {
     "strip-ansi": "^5.2.0",

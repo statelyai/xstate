@@ -25,6 +25,10 @@ import type {
 } from './types';
 import { AnyStateMachine } from './types';
 
+export function keys<T extends object>(value: T): Array<keyof T & string> {
+  return Object.keys(value) as Array<keyof T & string>;
+}
+
 export function matchesState(
   parentStateId: StateValue,
   childStateId: StateValue,

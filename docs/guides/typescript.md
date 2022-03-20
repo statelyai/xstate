@@ -25,7 +25,7 @@ Providing the context and events to the `schema` attribute gives many advantages
 - The event type (`TEvent`) ensures that only specified events (and built-in XState-specific ones) are used in transition configs. The provided event object shapes are also passed on to actions, guards, and services.
 - Events which you send to the machine will be strongly typed, offering you much more confidence in the payload shapes you'll be receiving.
 
-## Typegen with the VSCode Extension <Badge text="4.29+" />
+## Typegen <Badge text="4.29+" />
 
 ::: warning Experimental Feature
 
@@ -33,11 +33,11 @@ This feature is in beta! See the section on known limitations below to see what 
 
 :::
 
-Using our [VS Code extension](https://marketplace.visualstudio.com/items?itemName=statelyai.stately-vscode), you can automatically generate intelligent typings for XState.
+Using our [VS Code extension](https://marketplace.visualstudio.com/items?itemName=statelyai.stately-vscode) or our [CLI](../packages/xstate-cli/index.md), you can automatically generate intelligent typings for XState.
 
 Here's how you can get started:
 
-1. Download and install the [VS Code extension](https://marketplace.visualstudio.com/items?itemName=statelyai.stately-vscode).
+1. Download and install the [VS Code extension](https://marketplace.visualstudio.com/items?itemName=statelyai.stately-vscode) OR install the [CLI](../packages/xstate-cli/index.md) and run the `xstate typegen` command with the `--watch` flag.
 2. Open a new file and create a new machine, passing the schema attributes:
 
 ```ts
@@ -202,9 +202,17 @@ Named actions/services/guards allow for:
 
 #### The generated files
 
-We recommend you commit the generated files (`filename.typegen.ts`) to the repository. We currently don't have a way to generate the files en masse on a CI, for instance via a CLI.
+We recommend you gitignore the generated files (`*filename*.typegen.ts`) from the repository.
 
-If you want to remove the generated file, just remove the `tsTypes` attribute from your machine and it'll stop being generated.
+You can use the [CLI](../packages/xstate-cli/index.md) to regenerate them on CI, for instance via a postinstall script:
+
+```json
+{
+  "scripts": {
+    "postinstall": "xstate typegen \"./src/**/*.ts?(x)\""
+  }
+}
+```
 
 #### Don't use enums
 
