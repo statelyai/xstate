@@ -463,6 +463,59 @@ describe('context', () => {
   });
 });
 
+describe('events', () => {
+  it('should not use actions as possible inference sites 1', () => {
+    const machine = createMachine({
+      schema: {
+        events: {} as {
+          type: 'FOO';
+        }
+      },
+      entry: raise('FOO')
+    });
+
+    const service = interpret(machine).start();
+
+    service.send({ type: 'FOO' });
+    // @ts-expect-error
+    service.send({ type: 'UNKNOWN' });
+  });
+
+  it('should not use actions as possible inference sites 2', () => {
+    const machine = createMachine({
+      schema: {
+        events: {} as {
+          type: 'FOO';
+        }
+      },
+      entry: (_ctx, _ev: any) => {}
+    });
+
+    const service = interpret(machine).start();
+
+    service.send({ type: 'FOO' });
+    // @ts-expect-error
+    service.send({ type: 'UNKNOWN' });
+  });
+
+  it('event type should be inferrable from a simple state machine typr', () => {
+    const toggleMachine = createMachine<
+      {
+        count: number;
+      },
+      {
+        type: 'TOGGLE';
+      }
+    >({});
+
+    function acceptMachine<TContext, TEvent extends { type: string }>(
+      _machine: StateMachine<TContext, any, TEvent>
+    ) {}
+
+    acceptMachine(toggleMachine);
+  });
+});
+
 describe('interpreter', () => {
   it('should be convertable to Rx observable', () => {
     const state$ = from(
