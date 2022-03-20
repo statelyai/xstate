@@ -1,13 +1,13 @@
 import {
-  StateNode,
   State,
   DefaultContext,
   Event,
   EventObject,
   StateMachine,
-  AnyEventObject,
   AnyStateMachine,
-  AnyState
+  AnyState,
+  StateFrom,
+  EventFrom
 } from 'xstate';
 import {
   SerializedEvent,
@@ -73,9 +73,7 @@ export function getChildren(stateNode: AnyStateNode): AnyStateNode[] {
   return children;
 }
 
-export function serializeState<TContext>(
-  state: State<TContext, any>
-): SerializedState {
+export function serializeState(state: AnyState): SerializedState {
   const { value, context, actions } = state;
   return [value, context, actions.map((a) => a.type).join(',')]
     .map((x) => JSON.stringify(x))
@@ -112,22 +110,20 @@ function getValueAdjMapOptions<TState, TEvent extends EventObject>(
   };
 }
 
-export function getAdjacencyMap<
-  TContext = DefaultContext,
-  TEvent extends EventObject = AnyEventObject
->(
-  machine:
-    | StateNode<TContext, any, TEvent>
-    | StateMachine<TContext, any, TEvent>,
-  options?: ValueAdjMapOptions<State<TContext, TEvent>, TEvent>
-): AdjacencyMap<State<TContext, TEvent>, TEvent> {
+export function getAdjacencyMap<TMachine extends AnyStateMachine>(
+  machine: TMachine,
+  options?: ValueAdjMapOptions<StateFrom<TMachine>, EventFrom<TMachine>>
+): AdjacencyMap<StateFrom<TMachine>, EventFrom<TMachine>> {
+  type TState = StateFrom<TMachine>;
+  type TEvent = EventFrom<TMachine>;
+
   const optionsWithDefaults = getValueAdjMapOptions(options);
   const { filter, stateSerializer, eventSerializer } = optionsWithDefaults;
   const { events } = optionsWithDefaults;
 
-  const adjacency: AdjacencyMap<State<TContext, TEvent>, TEvent> = {};
+  const adjacency: AdjacencyMap<TState, TEvent> = {};
 
-  function findAdjacencies(state: AnyState) {
+  function findAdjacencies(state: TState) {
     const { nextEvents } = state;
     const stateHash = stateSerializer(state);
 
@@ -154,9 +150,9 @@ export function getAdjacencyMap<
     ).map((event) => toEventObject(event));
 
     for (const event of potentialEvents) {
-      let nextState: AnyState;
+      let nextState: TState;
       try {
-        nextState = machine.transition(state, event);
+        nextState = machine.transition(state, event) as TState;
       } catch (e) {
         throw new Error(
           `Unable to transition from state ${stateSerializer(
@@ -179,7 +175,7 @@ export function getAdjacencyMap<
     }
   }
 
-  findAdjacencies(machine.initialState);
+  findAdjacencies(machine.initialState as TState);
 
   return adjacency;
 }

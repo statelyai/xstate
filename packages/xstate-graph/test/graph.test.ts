@@ -10,6 +10,7 @@ import {
 } from '../src/index';
 import {
   getAdjacencyMap,
+  serializeState,
   traverseShortestPaths,
   traverseSimplePaths
 } from '../src/graph';
@@ -196,10 +197,10 @@ describe('@xstate/graph', () => {
     });
 
     it('the initial state should have a zero-length path', () => {
+      const shortestPaths = getShortestPaths(lightMachine);
+
       expect(
-        getShortestPaths(lightMachine)[
-          JSON.stringify(lightMachine.initialState.value)
-        ].paths[0].steps
+        shortestPaths[serializeState(lightMachine.initialState)].paths[0].steps
       ).toHaveLength(0);
     });
 
@@ -239,12 +240,13 @@ describe('@xstate/graph', () => {
 
       expect(Object.keys(paths)).toMatchInlineSnapshot(`
         Array [
-          "\\"green\\"",
-          "\\"yellow\\"",
-          "{\\"red\\":\\"flashing\\"}",
-          "{\\"red\\":\\"walk\\"}",
-          "{\\"red\\":\\"wait\\"}",
-          "{\\"red\\":\\"stop\\"}",
+          "\\"green\\" |  | \\"\\"",
+          "\\"yellow\\" |  | \\"\\"",
+          "{\\"red\\":\\"flashing\\"} |  | \\"\\"",
+          "\\"green\\" |  | \\"doNothing\\"",
+          "{\\"red\\":\\"walk\\"} |  | \\"\\"",
+          "{\\"red\\":\\"wait\\"} |  | \\"startCountdown\\"",
+          "{\\"red\\":\\"stop\\"} |  | \\"\\"",
         ]
       `);
 
@@ -264,9 +266,9 @@ describe('@xstate/graph', () => {
 
       expect(Object.keys(paths)).toMatchInlineSnapshot(`
         Array [
-          "{\\"a\\":\\"a1\\",\\"b\\":\\"b1\\"}",
-          "{\\"a\\":\\"a2\\",\\"b\\":\\"b2\\"}",
-          "{\\"a\\":\\"a3\\",\\"b\\":\\"b3\\"}",
+          "{\\"a\\":\\"a1\\",\\"b\\":\\"b1\\"} |  | \\"\\"",
+          "{\\"a\\":\\"a2\\",\\"b\\":\\"b2\\"} |  | \\"\\"",
+          "{\\"a\\":\\"a3\\",\\"b\\":\\"b3\\"} |  | \\"\\"",
         ]
       `);
       expect(getPathsMapSnapshot(paths)).toMatchSnapshot(
@@ -279,8 +281,8 @@ describe('@xstate/graph', () => {
 
       expect(Object.keys(paths)).toMatchInlineSnapshot(`
         Array [
-          "\\"a\\"",
-          "\\"b\\"",
+          "\\"a\\" |  | \\"\\"",
+          "\\"b\\" |  | \\"\\"",
         ]
       `);
       expect(getPathsMapSnapshot(paths)).toMatchSnapshot(
@@ -289,14 +291,22 @@ describe('@xstate/graph', () => {
     });
 
     it('should return a single empty path for the initial state', () => {
-      expect(getSimplePaths(lightMachine)['"green"'].paths).toHaveLength(1);
       expect(
-        getSimplePaths(lightMachine)['"green"'].paths[0].steps
+        getSimplePaths(lightMachine)[serializeState(lightMachine.initialState)]
+          .paths
+      ).toHaveLength(1);
+      expect(
+        getSimplePaths(lightMachine)[serializeState(lightMachine.initialState)]
+          .paths[0].steps
       ).toHaveLength(0);
-      expect(getSimplePaths(equivMachine)['"a"'].paths).toHaveLength(1);
-      expect(getSimplePaths(equivMachine)['"a"'].paths[0].steps).toHaveLength(
-        0
-      );
+      expect(
+        getSimplePaths(equivMachine)[serializeState(equivMachine.initialState)]
+          .paths
+      ).toHaveLength(1);
+      expect(
+        getSimplePaths(equivMachine)[serializeState(equivMachine.initialState)]
+          .paths[0].steps
+      ).toHaveLength(0);
     });
 
     it('should return value-based paths', () => {
@@ -337,10 +347,10 @@ describe('@xstate/graph', () => {
 
       expect(Object.keys(paths)).toMatchInlineSnapshot(`
         Array [
-          "\\"start\\" | {\\"count\\":0}",
-          "\\"start\\" | {\\"count\\":1}",
-          "\\"start\\" | {\\"count\\":2}",
-          "\\"finish\\" | {\\"count\\":3}",
+          "\\"start\\" | {\\"count\\":0} | \\"\\"",
+          "\\"start\\" | {\\"count\\":1} | \\"\\"",
+          "\\"start\\" | {\\"count\\":2} | \\"\\"",
+          "\\"finish\\" | {\\"count\\":3} | \\"\\"",
         ]
       `);
       expect(getPathsMapSnapshot(paths)).toMatchSnapshot(
@@ -410,7 +420,7 @@ describe('@xstate/graph', () => {
       });
 
       // explicit type arguments could be removed once davidkpiano/xstate#652 gets resolved
-      const adj = getAdjacencyMap<Ctx, Events>(counterMachine, {
+      const adj = getAdjacencyMap(counterMachine, {
         filter: (state) => state.context.count >= 0 && state.context.count <= 5,
         stateSerializer: (state) => {
           const ctx = {
@@ -452,11 +462,13 @@ describe('@xstate/graph', () => {
 
       const adj = getAdjacencyMap(machine, {
         events: {
-          EVENT: (state) => [{ type: 'EVENT', value: state.context.count + 10 }]
+          EVENT: (state) => [
+            { type: 'EVENT' as const, value: state.context.count + 10 }
+          ] // TODO: fix as const
         }
       });
 
-      expect(adj).toHaveProperty('"second" | {"count":10}');
+      expect(adj).toHaveProperty('"second" | {"count":10} | ""');
     });
   });
 
@@ -567,11 +579,11 @@ describe('filtering', () => {
 
     expect(Object.keys(sp)).toMatchInlineSnapshot(`
       Array [
-        "\\"counting\\" | {\\"count\\":0}",
-        "\\"counting\\" | {\\"count\\":1}",
-        "\\"counting\\" | {\\"count\\":2}",
-        "\\"counting\\" | {\\"count\\":3}",
-        "\\"counting\\" | {\\"count\\":4}",
+        "\\"counting\\" | {\\"count\\":0} | \\"\\"",
+        "\\"counting\\" | {\\"count\\":1} | \\"\\"",
+        "\\"counting\\" | {\\"count\\":2} | \\"\\"",
+        "\\"counting\\" | {\\"count\\":3} | \\"\\"",
+        "\\"counting\\" | {\\"count\\":4} | \\"\\"",
       ]
     `);
   });

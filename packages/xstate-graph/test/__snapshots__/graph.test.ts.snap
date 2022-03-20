@@ -30,7 +30,7 @@ Object {
 
 exports[`@xstate/graph getShortestPaths() should represent conditional paths based on context: shortest paths conditional 1`] = `
 Object {
-  "\\"bar\\" | {\\"id\\":\\"foo\\"}": Array [
+  "\\"bar\\" | {\\"id\\":\\"foo\\"} | \\"\\"": Array [
     Object {
       "state": "bar",
       "steps": Array [
@@ -41,7 +41,7 @@ Object {
       ],
     },
   ],
-  "\\"foo\\" | {\\"id\\":\\"foo\\"}": Array [
+  "\\"foo\\" | {\\"id\\":\\"foo\\"} | \\"\\"": Array [
     Object {
       "state": "foo",
       "steps": Array [
@@ -52,7 +52,7 @@ Object {
       ],
     },
   ],
-  "\\"pending\\" | {\\"id\\":\\"foo\\"}": Array [
+  "\\"pending\\" | {\\"id\\":\\"foo\\"} | \\"\\"": Array [
     Object {
       "state": "pending",
       "steps": Array [],
@@ -63,7 +63,7 @@ Object {
 
 exports[`@xstate/graph getShortestPaths() should return a mapping of shortest paths to all states (parallel): shortest paths parallel 1`] = `
 Object {
-  "{\\"a\\":\\"a1\\",\\"b\\":\\"b1\\"}": Array [
+  "{\\"a\\":\\"a1\\",\\"b\\":\\"b1\\"} |  | \\"\\"": Array [
     Object {
       "state": Object {
         "a": "a1",
@@ -72,7 +72,7 @@ Object {
       "steps": Array [],
     },
   ],
-  "{\\"a\\":\\"a2\\",\\"b\\":\\"b2\\"}": Array [
+  "{\\"a\\":\\"a2\\",\\"b\\":\\"b2\\"} |  | \\"\\"": Array [
     Object {
       "state": Object {
         "a": "a2",
@@ -89,7 +89,7 @@ Object {
       ],
     },
   ],
-  "{\\"a\\":\\"a3\\",\\"b\\":\\"b3\\"}": Array [
+  "{\\"a\\":\\"a3\\",\\"b\\":\\"b3\\"} |  | \\"\\"": Array [
     Object {
       "state": Object {
         "a": "a3",
@@ -111,13 +111,24 @@ Object {
 
 exports[`@xstate/graph getShortestPaths() should return a mapping of shortest paths to all states: shortest paths 1`] = `
 Object {
-  "\\"green\\"": Array [
+  "\\"green\\" |  | \\"\\"": Array [
     Object {
       "state": "green",
       "steps": Array [],
     },
   ],
-  "\\"yellow\\"": Array [
+  "\\"green\\" |  | \\"doNothing\\"": Array [
+    Object {
+      "state": "green",
+      "steps": Array [
+        Object {
+          "eventType": "PUSH_BUTTON",
+          "state": "green",
+        },
+      ],
+    },
+  ],
+  "\\"yellow\\" |  | \\"\\"": Array [
     Object {
       "state": "yellow",
       "steps": Array [
@@ -128,7 +139,7 @@ Object {
       ],
     },
   ],
-  "{\\"red\\":\\"flashing\\"}": Array [
+  "{\\"red\\":\\"flashing\\"} |  | \\"\\"": Array [
     Object {
       "state": Object {
         "red": "flashing",
@@ -141,7 +152,7 @@ Object {
       ],
     },
   ],
-  "{\\"red\\":\\"stop\\"}": Array [
+  "{\\"red\\":\\"stop\\"} |  | \\"\\"": Array [
     Object {
       "state": Object {
         "red": "stop",
@@ -170,7 +181,7 @@ Object {
       ],
     },
   ],
-  "{\\"red\\":\\"wait\\"}": Array [
+  "{\\"red\\":\\"wait\\"} |  | \\"startCountdown\\"": Array [
     Object {
       "state": Object {
         "red": "wait",
@@ -193,7 +204,7 @@ Object {
       ],
     },
   ],
-  "{\\"red\\":\\"walk\\"}": Array [
+  "{\\"red\\":\\"walk\\"} |  | \\"\\"": Array [
     Object {
       "state": Object {
         "red": "walk",
@@ -215,13 +226,24 @@ Object {
 
 exports[`@xstate/graph getSimplePaths() should return a mapping of arrays of simple paths to all states 2`] = `
 Object {
-  "\\"green\\"": Array [
+  "\\"green\\" |  | \\"\\"": Array [
     Object {
       "state": "green",
       "steps": Array [],
     },
   ],
-  "\\"yellow\\"": Array [
+  "\\"green\\" |  | \\"doNothing\\"": Array [
+    Object {
+      "state": "green",
+      "steps": Array [
+        Object {
+          "eventType": "PUSH_BUTTON",
+          "state": "green",
+        },
+      ],
+    },
+  ],
+  "\\"yellow\\" |  | \\"\\"": Array [
     Object {
       "state": "yellow",
       "steps": Array [
@@ -231,8 +253,21 @@ Object {
         },
       ],
     },
+    Object {
+      "state": "yellow",
+      "steps": Array [
+        Object {
+          "eventType": "PUSH_BUTTON",
+          "state": "green",
+        },
+        Object {
+          "eventType": "TIMER",
+          "state": "green",
+        },
+      ],
+    },
   ],
-  "{\\"red\\":\\"flashing\\"}": Array [
+  "{\\"red\\":\\"flashing\\"} |  | \\"\\"": Array [
     Object {
       "state": Object {
         "red": "flashing",
@@ -340,8 +375,135 @@ Object {
         },
       ],
     },
+    Object {
+      "state": Object {
+        "red": "flashing",
+      },
+      "steps": Array [
+        Object {
+          "eventType": "PUSH_BUTTON",
+          "state": "green",
+        },
+        Object {
+          "eventType": "TIMER",
+          "state": "green",
+        },
+        Object {
+          "eventType": "TIMER",
+          "state": "yellow",
+        },
+        Object {
+          "eventType": "PED_COUNTDOWN",
+          "state": Object {
+            "red": "walk",
+          },
+        },
+        Object {
+          "eventType": "PED_COUNTDOWN",
+          "state": Object {
+            "red": "wait",
+          },
+        },
+        Object {
+          "eventType": "POWER_OUTAGE",
+          "state": Object {
+            "red": "stop",
+          },
+        },
+      ],
+    },
+    Object {
+      "state": Object {
+        "red": "flashing",
+      },
+      "steps": Array [
+        Object {
+          "eventType": "PUSH_BUTTON",
+          "state": "green",
+        },
+        Object {
+          "eventType": "TIMER",
+          "state": "green",
+        },
+        Object {
+          "eventType": "TIMER",
+          "state": "yellow",
+        },
+        Object {
+          "eventType": "PED_COUNTDOWN",
+          "state": Object {
+            "red": "walk",
+          },
+        },
+        Object {
+          "eventType": "POWER_OUTAGE",
+          "state": Object {
+            "red": "wait",
+          },
+        },
+      ],
+    },
+    Object {
+      "state": Object {
+        "red": "flashing",
+      },
+      "steps": Array [
+        Object {
+          "eventType": "PUSH_BUTTON",
+          "state": "green",
+        },
+        Object {
+          "eventType": "TIMER",
+          "state": "green",
+        },
+        Object {
+          "eventType": "TIMER",
+          "state": "yellow",
+        },
+        Object {
+          "eventType": "POWER_OUTAGE",
+          "state": Object {
+            "red": "walk",
+          },
+        },
+      ],
+    },
+    Object {
+      "state": Object {
+        "red": "flashing",
+      },
+      "steps": Array [
+        Object {
+          "eventType": "PUSH_BUTTON",
+          "state": "green",
+        },
+        Object {
+          "eventType": "TIMER",
+          "state": "green",
+        },
+        Object {
+          "eventType": "POWER_OUTAGE",
+          "state": "yellow",
+        },
+      ],
+    },
+    Object {
+      "state": Object {
+        "red": "flashing",
+      },
+      "steps": Array [
+        Object {
+          "eventType": "PUSH_BUTTON",
+          "state": "green",
+        },
+        Object {
+          "eventType": "POWER_OUTAGE",
+          "state": "green",
+        },
+      ],
+    },
   ],
-  "{\\"red\\":\\"stop\\"}": Array [
+  "{\\"red\\":\\"stop\\"} |  | \\"\\"": Array [
     Object {
       "state": Object {
         "red": "stop",
@@ -369,8 +531,39 @@ Object {
         },
       ],
     },
+    Object {
+      "state": Object {
+        "red": "stop",
+      },
+      "steps": Array [
+        Object {
+          "eventType": "PUSH_BUTTON",
+          "state": "green",
+        },
+        Object {
+          "eventType": "TIMER",
+          "state": "green",
+        },
+        Object {
+          "eventType": "TIMER",
+          "state": "yellow",
+        },
+        Object {
+          "eventType": "PED_COUNTDOWN",
+          "state": Object {
+            "red": "walk",
+          },
+        },
+        Object {
+          "eventType": "PED_COUNTDOWN",
+          "state": Object {
+            "red": "wait",
+          },
+        },
+      ],
+    },
   ],
-  "{\\"red\\":\\"wait\\"}": Array [
+  "{\\"red\\":\\"wait\\"} |  | \\"startCountdown\\"": Array [
     Object {
       "state": Object {
         "red": "wait",
@@ -392,13 +585,57 @@ Object {
         },
       ],
     },
+    Object {
+      "state": Object {
+        "red": "wait",
+      },
+      "steps": Array [
+        Object {
+          "eventType": "PUSH_BUTTON",
+          "state": "green",
+        },
+        Object {
+          "eventType": "TIMER",
+          "state": "green",
+        },
+        Object {
+          "eventType": "TIMER",
+          "state": "yellow",
+        },
+        Object {
+          "eventType": "PED_COUNTDOWN",
+          "state": Object {
+            "red": "walk",
+          },
+        },
+      ],
+    },
   ],
-  "{\\"red\\":\\"walk\\"}": Array [
+  "{\\"red\\":\\"walk\\"} |  | \\"\\"": Array [
     Object {
       "state": Object {
         "red": "walk",
       },
       "steps": Array [
+        Object {
+          "eventType": "TIMER",
+          "state": "green",
+        },
+        Object {
+          "eventType": "TIMER",
+          "state": "yellow",
+        },
+      ],
+    },
+    Object {
+      "state": Object {
+        "red": "walk",
+      },
+      "steps": Array [
+        Object {
+          "eventType": "PUSH_BUTTON",
+          "state": "green",
+        },
         Object {
           "eventType": "TIMER",
           "state": "green",
@@ -415,7 +652,7 @@ Object {
 
 exports[`@xstate/graph getSimplePaths() should return a mapping of simple paths to all states (parallel): simple paths parallel 1`] = `
 Object {
-  "{\\"a\\":\\"a1\\",\\"b\\":\\"b1\\"}": Array [
+  "{\\"a\\":\\"a1\\",\\"b\\":\\"b1\\"} |  | \\"\\"": Array [
     Object {
       "state": Object {
         "a": "a1",
@@ -424,7 +661,7 @@ Object {
       "steps": Array [],
     },
   ],
-  "{\\"a\\":\\"a2\\",\\"b\\":\\"b2\\"}": Array [
+  "{\\"a\\":\\"a2\\",\\"b\\":\\"b2\\"} |  | \\"\\"": Array [
     Object {
       "state": Object {
         "a": "a2",
@@ -441,7 +678,7 @@ Object {
       ],
     },
   ],
-  "{\\"a\\":\\"a3\\",\\"b\\":\\"b3\\"}": Array [
+  "{\\"a\\":\\"a3\\",\\"b\\":\\"b3\\"} |  | \\"\\"": Array [
     Object {
       "state": Object {
         "a": "a3",
@@ -485,13 +722,13 @@ Object {
 
 exports[`@xstate/graph getSimplePaths() should return multiple paths for equivalent transitions: simple paths equal transitions 1`] = `
 Object {
-  "\\"a\\"": Array [
+  "\\"a\\" |  | \\"\\"": Array [
     Object {
       "state": "a",
       "steps": Array [],
     },
   ],
-  "\\"b\\"": Array [
+  "\\"b\\" |  | \\"\\"": Array [
     Object {
       "state": "b",
       "steps": Array [
@@ -516,7 +753,7 @@ Object {
 
 exports[`@xstate/graph getSimplePaths() should return value-based paths: simple paths context 1`] = `
 Object {
-  "\\"finish\\" | {\\"count\\":3}": Array [
+  "\\"finish\\" | {\\"count\\":3} | \\"\\"": Array [
     Object {
       "state": "finish",
       "steps": Array [
@@ -535,13 +772,13 @@ Object {
       ],
     },
   ],
-  "\\"start\\" | {\\"count\\":0}": Array [
+  "\\"start\\" | {\\"count\\":0} | \\"\\"": Array [
     Object {
       "state": "start",
       "steps": Array [],
     },
   ],
-  "\\"start\\" | {\\"count\\":1}": Array [
+  "\\"start\\" | {\\"count\\":1} | \\"\\"": Array [
     Object {
       "state": "start",
       "steps": Array [
@@ -552,7 +789,7 @@ Object {
       ],
     },
   ],
-  "\\"start\\" | {\\"count\\":2}": Array [
+  "\\"start\\" | {\\"count\\":2} | \\"\\"": Array [
     Object {
       "state": "start",
       "steps": Array [
