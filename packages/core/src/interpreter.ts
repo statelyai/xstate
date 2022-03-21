@@ -76,7 +76,7 @@ export enum InterpreterStatus {
   Stopped
 }
 
-const defaultOptions: InterpreterOptions = ((global) => ({
+const defaultOptions: InterpreterOptions = {
   deferEvents: true,
   clock: {
     setTimeout: (fn, ms) => {
@@ -86,11 +86,10 @@ const defaultOptions: InterpreterOptions = ((global) => ({
       return clearTimeout(id);
     }
   } as Clock,
-  logger: global.console.log.bind(console),
+  logger: console.log.bind(console),
   devTools: false
-}))(typeof window === 'undefined' ? global : window);
+};
 
-/** @ts-ignore [symbolObservable] creates problems for people without `skipLibCheck` who are on older versions of TS, remove this comment when we drop support for TS@<4.3 */
 export class Interpreter<
   TContext extends MachineContext,
   TEvent extends EventObject = EventObject,
@@ -796,7 +795,6 @@ export class Interpreter<
     };
   }
 
-  /** @ts-ignore this creates problems for people without `skipLibCheck` who are on older versions of TS, remove this comment when we drop support for TS@<4.3 */
   public [symbolObservable](): InteropSubscribable<
     State<TContext, TEvent, TResolvedTypesMeta>
   > {

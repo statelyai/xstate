@@ -25,6 +25,14 @@ npm install @xstate/inspect
 # or yarn add @xstate/inspect
 ```
 
+**Via CDN**
+
+```html
+<script src="https://unpkg.com/@xstate/inspect/dist/xstate-inspect.umd.min.js"></script>
+```
+
+By using the global variable `XStateInspect`
+
 2. Import it at the beginning of your project, before any other code is called:
 
 ```js
