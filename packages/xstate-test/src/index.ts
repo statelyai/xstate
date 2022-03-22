@@ -115,10 +115,13 @@ export function createTestModel<
           const eventCaseGenerator = options?.events?.[eventType]?.cases;
 
           return (
-            eventCaseGenerator?.() ?? [
-              { type: eventType } as EventFrom<TMachine>
-            ]
-          ).map((e) => ({ type: eventType, ...e }));
+            // Use generated events or a plain event without payload
+            (
+              eventCaseGenerator?.() ?? [
+                { type: eventType } as EventFrom<TMachine>
+              ]
+            ).map((e) => ({ type: eventType, ...e }))
+          );
         })
       ),
     testTransition: async (step, testContext) => {

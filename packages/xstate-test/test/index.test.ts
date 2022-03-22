@@ -477,6 +477,53 @@ describe('coverage', () => {
       );
     }).not.toThrow();
   });
+
+  // https://github.com/statelyai/xstate/issues/981
+  it.skip('skips transient states (type: final)', async () => {
+    const machine = createMachine({
+      id: 'menu',
+      initial: 'initial',
+      states: {
+        initial: {
+          initial: 'inner1',
+
+          states: {
+            inner1: {
+              on: {
+                INNER2: 'inner2'
+              }
+            },
+
+            inner2: {
+              on: {
+                DONE: 'done'
+              }
+            },
+
+            done: {
+              type: 'final'
+            }
+          },
+
+          onDone: 'later'
+        },
+
+        later: {}
+      }
+    });
+
+    const model = createTestModel(machine);
+    const shortestPlans = model.getShortestPlans();
+
+    for (const plan of shortestPlans) {
+      await model.testPlan(plan, null);
+    }
+
+    // TODO: determine how to handle missing coverage for transient states,
+    // which arguably should not be counted towards coverage, as the app is never in
+    // a transient state for any length of time
+    model.testCoverage(stateValueCoverage());
+  });
 });
 
 describe('events', () => {

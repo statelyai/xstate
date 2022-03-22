@@ -1505,6 +1505,9 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
    */
   activities?: ActivityMap;
   meta?: any;
+  /**
+   * @deprecated
+   */
   events?: TEvent[];
   configuration: Array<StateNode<TContext, any, TEvent>>;
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
