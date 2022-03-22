@@ -1,6 +1,6 @@
 {
   "name": "@xstate/inspect",
-  "version": "0.6.3",
+  "version": "0.6.4",
   "description": "XState inspection utilities",
   "keywords": [
     "state",
@@ -37,7 +37,7 @@
   "peerDependencies": {
     "@types/ws": "^8.0.0",
     "ws": "^8.0.0",
-    "xstate": "^4.11.0"
+    "xstate": "^4.30.6"
   },
   "peerDependenciesMeta": {
     "@types/ws": {

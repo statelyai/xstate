@@ -8,7 +8,8 @@ import {
   TypegenDisabled,
   ResolveTypegenMeta,
   TypegenConstraint,
-  MarkAllImplementationsAsProvided
+  MarkAllImplementationsAsProvided,
+  AreAllImplementationsAssumedToBeProvided
 } from './typegenTypes';
 
 export type AnyFunction = (...args: any[]) => any;
@@ -819,9 +820,12 @@ export interface MachineImplementationsSimplified<
 type MachineImplementationsActions<
   TContext extends MachineContext,
   TResolvedTypesMeta,
-  TEventsCausingActions = Prop<TResolvedTypesMeta, 'eventsCausingActions'>,
-  TIndexedEvents = Prop<TResolvedTypesMeta, 'indexedEvents'>,
-  TIndexedActions = Prop<TResolvedTypesMeta, 'indexedActions'>
+  TEventsCausingActions = Prop<
+    Prop<TResolvedTypesMeta, 'resolved'>,
+    'eventsCausingActions'
+  >,
+  TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>,
+  TIndexedActions = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedActions'>
 > = {
   [K in keyof TEventsCausingActions]?:
     | BaseDynamicActionObject<
@@ -840,8 +844,11 @@ type MachineImplementationsActions<
 type MachineImplementationsDelays<
   TContext extends MachineContext,
   TResolvedTypesMeta,
-  TEventsCausingDelays = Prop<TResolvedTypesMeta, 'eventsCausingDelays'>,
-  TIndexedEvents = Prop<TResolvedTypesMeta, 'indexedEvents'>
+  TEventsCausingDelays = Prop<
+    Prop<TResolvedTypesMeta, 'resolved'>,
+    'eventsCausingDelays'
+  >,
+  TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>
 > = {
   [K in keyof TEventsCausingDelays]?: DelayConfig<
     TContext,
@@ -852,8 +859,11 @@ type MachineImplementationsDelays<
 type MachineImplementationsGuards<
   TContext extends MachineContext,
   TResolvedTypesMeta,
-  TEventsCausingGuards = Prop<TResolvedTypesMeta, 'eventsCausingGuards'>,
-  TIndexedEvents = Prop<TResolvedTypesMeta, 'indexedEvents'>
+  TEventsCausingGuards = Prop<
+    Prop<TResolvedTypesMeta, 'resolved'>,
+    'eventsCausingGuards'
+  >,
+  TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>
 > = {
   [K in keyof TEventsCausingGuards]?: GuardPredicate<
     TContext,
@@ -864,9 +874,15 @@ type MachineImplementationsGuards<
 type MachineImplementationsActors<
   TContext extends MachineContext,
   TResolvedTypesMeta,
-  TEventsCausingActors = Prop<TResolvedTypesMeta, 'eventsCausingActors'>,
-  TIndexedEvents = Prop<TResolvedTypesMeta, 'indexedEvents'>,
-  _TInvokeSrcNameMap = Prop<TResolvedTypesMeta, 'invokeSrcNameMap'>
+  TEventsCausingActors = Prop<
+    Prop<TResolvedTypesMeta, 'resolved'>,
+    'eventsCausingActors'
+  >,
+  TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>,
+  _TInvokeSrcNameMap = Prop<
+    Prop<TResolvedTypesMeta, 'resolved'>,
+    'invokeSrcNameMap'
+  >
 > = {
   [K in keyof TEventsCausingActors]?: BehaviorCreator<
     TContext,
@@ -950,7 +966,10 @@ export type InternalMachineImplementations<
   _TEvent extends EventObject,
   TResolvedTypesMeta,
   TRequireMissingImplementations extends boolean = false,
-  TMissingImplementations = Prop<TResolvedTypesMeta, 'missingImplementations'>
+  TMissingImplementations = Prop<
+    Prop<TResolvedTypesMeta, 'resolved'>,
+    'missingImplementations'
+  >
 > = GenerateActionsImplementationsPart<
   TContext,
   TResolvedTypesMeta,
@@ -1731,7 +1750,9 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
         State<
           TContext,
           TEvent,
-          MarkAllImplementationsAsProvided<TResolvedTypesMeta>
+          AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
+            ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
+            : TResolvedTypesMeta
         >
       >
     : R extends Promise<infer U>
@@ -1755,21 +1776,9 @@ export type InterpreterFrom<
   ? Interpreter<
       TContext,
       TEvent,
-      MarkAllImplementationsAsProvided<TResolvedTypesMeta>
-    >
-  : T extends (
-      ...args: any[]
-    ) => StateMachine<
-      infer TContext,
-      infer TEvent,
-      any,
-      any,
-      infer TResolvedTypesMeta
-    >
-  ? Interpreter<
-      TContext,
-      TEvent,
-      MarkAllImplementationsAsProvided<TResolvedTypesMeta>
+      AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
+        ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
+        : TResolvedTypesMeta
     >
   : never;
 

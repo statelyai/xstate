@@ -232,7 +232,7 @@ export class State<
    */
   public matches<
     TSV extends TResolvedTypesMeta extends TypegenEnabled
-      ? Prop<TResolvedTypesMeta, 'matchesStates'>
+      ? Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'matchesStates'>
       : StateValue
   >(parentStateValue: TSV): boolean {
     return matchesState(parentStateValue as any, this.value);
@@ -251,7 +251,7 @@ export class State<
    */
   public hasTag(
     tag: TResolvedTypesMeta extends TypegenEnabled
-      ? Prop<TResolvedTypesMeta, 'tags'>
+      ? Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'tags'>
       : string
   ): boolean {
     return this.tags.has(tag as string);

@@ -1,5 +1,35 @@
 # xstate
 
+## 4.30.6
+
+### Patch Changes
+
+- [#3131](https://github.com/statelyai/xstate/pull/3131) [`d9a0bcfc9`](https://github.com/statelyai/xstate/commit/d9a0bcfc9be03e49726d6dc4a6bbce25239913a1) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with event type being inferred from too many places within `createMachine` call and possibly ending up as `any`/`AnyEventObject` for the entire machine.
+
+* [#3133](https://github.com/statelyai/xstate/pull/3133) [`4feef9d47`](https://github.com/statelyai/xstate/commit/4feef9d47f81d1b28f2f898431eb4bd1c42d8368) Thanks [@fw6](https://github.com/fw6)! - Fixed compatibility with esoteric [Mini Program](https://developers.weixin.qq.com/miniprogram/en/dev/framework/app-service/) environment where `global` object was available but `global.console` wasn't.
+
+- [#3140](https://github.com/statelyai/xstate/pull/3140) [`502ffe91a`](https://github.com/statelyai/xstate/commit/502ffe91a19579f5f747b76ce29d50de81e8b15c) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with interpreters started using a persisted state not being "resolved" in full. This could cause some things, such as `after` transitions, not being executed correctly after starting an interpreter like this.
+
+* [#3147](https://github.com/statelyai/xstate/pull/3147) [`155539c85`](https://github.com/statelyai/xstate/commit/155539c8597b2f2783e8419c782922545d7e6424) Thanks [@Andarist](https://github.com/Andarist)! - Fixed a TS inference issue causing some functions to infer the constraint type for the event type even though a `StateMachine` passed to the function was parametrized with a concrete type for the event. More information can be found [here](https://github.com/statelyai/xstate/issues/3141#issuecomment-1063995705).
+
+- [#3146](https://github.com/statelyai/xstate/pull/3146) [`4cf89b5f9`](https://github.com/statelyai/xstate/commit/4cf89b5f9cf645f741164d23e3bc35dd7c5706f6) Thanks [@Andarist](https://github.com/Andarist)! - Fixed compatibility of `Interpreter` with older versions of TypeScript. This ensures that our interpreters can correctly be consumed by functions expecting `ActorRef` interface (like for example `useSelector`).
+
+* [#3139](https://github.com/statelyai/xstate/pull/3139) [`7b45fda9e`](https://github.com/statelyai/xstate/commit/7b45fda9e1bd544b505c86ddcd6cf1f949007fef) Thanks [@Andarist](https://github.com/Andarist)! - `InterpreterFrom` and `ActorRefFrom` types used on machines with typegen data should now correctly return types with final/resolved typegen data. The "final" type here means a type that already encodes the information that all required implementations have been provided. Before this change this wouldn't typecheck correctly:
+
+  ```ts
+  const machine = createMachine({
+    // this encodes that we still expect `myAction` to be provided
+    tsTypes: {} as Typegen0
+  });
+  const service: InterpreterFrom<typeof machine> = machine.withConfig({
+    actions: {
+      myAction: () => {}
+    }
+  });
+  ```
+
+- [#3097](https://github.com/statelyai/xstate/pull/3097) [`c881c8ca9`](https://github.com/statelyai/xstate/commit/c881c8ca9baaf4928064a04d7034cd775a702bc2) Thanks [@davidkpiano](https://github.com/davidkpiano)! - State that is persisted and restored from `machine.resolveState(state)` will now have the correct `state.machine` value, so that `state.can(...)` and other methods will work as expected. See [#3096](https://github.com/statelyai/xstate/issues/3096) for more details.
+
 ## 4.30.5
 
 ### Patch Changes

@@ -1,43 +1,45 @@
-import { isBuiltInEvent, isFunction, toSCXMLEvent } from './utils';
-import type {
-  Event,
-  StateValue,
-  MachineImplementationsSimplified,
-  EventObject,
-  MachineConfig,
-  SCXML,
-  MachineSchema,
-  StateNodeDefinition,
-  MachineContext,
-  MaybeLazy,
-  StateConfig,
-  InternalMachineImplementations,
-  BaseActionObject,
-  ActorMap,
-  Transitions
-} from './types';
+import { AnyStateMachine } from '.';
+import { STATE_DELIMITER } from './constants';
+import { IS_PRODUCTION } from './environment';
+import { State } from './State';
+import { StateNode } from './StateNode';
+import {
+  getConfiguration,
+  getStateNodeByPath,
+  getStateNodes,
+  getStateValue,
+  isStateId,
+  macrostep,
+  resolveMicroTransition,
+  resolveStateValue,
+  toState,
+  transitionNode
+} from './stateUtils';
 import type {
   AreAllImplementationsAssumedToBeProvided,
   MarkAllImplementationsAsProvided,
   ResolveTypegenMeta,
   TypegenDisabled
 } from './typegenTypes';
-import { State } from './State';
-
-import { IS_PRODUCTION } from './environment';
-import { STATE_DELIMITER } from './constants';
-import {
-  getConfiguration,
-  resolveMicroTransition,
-  macrostep,
-  toState,
-  isStateId,
-  getStateValue,
-  getStateNodeByPath
-} from './stateUtils';
-import { getStateNodes, transitionNode, resolveStateValue } from './stateUtils';
-import { StateNode } from './StateNode';
-import { AnyStateMachine } from '.';
+import type {
+  ActorMap,
+  BaseActionObject,
+  Event,
+  EventObject,
+  InternalMachineImplementations,
+  MachineConfig,
+  MachineContext,
+  MachineImplementationsSimplified,
+  MachineSchema,
+  MaybeLazy,
+  NoInfer,
+  SCXML,
+  StateConfig,
+  StateNodeDefinition,
+  StateValue,
+  Transitions
+} from './types';
+import { isBuiltInEvent, isFunction, toSCXMLEvent } from './utils';
 
 export const NULL_EVENT = '';
 export const STATE_IDENTIFIER = '#';
@@ -74,7 +76,7 @@ export class StateMachine<
   TActorMap extends ActorMap = ActorMap,
   TResolvedTypesMeta = ResolveTypegenMeta<
     TypegenDisabled,
-    TEvent,
+    NoInfer<TEvent>,
     TAction,
     TActorMap
   >
