@@ -93,7 +93,7 @@ A [Vue composition function](https://v3.vuejs.org/guide/composition-api-introduc
 
 ### `useActor(actor, getSnapshot)`
 
-A [Vue composition function](https://v3.vuejs.org/guide/composition-api-introduction.html) that subscribes to emitted changes from an existing [actor](https://xstate.js.org/docs/guides/actors.html).
+A [Vue composition function](https://v3.vuejs.org/guide/composition-api-introduction.html) that provides access to an existing [actor](https://xstate.js.org/docs/guides/actors.html). Use in combination with `toRef` if subscription to changes from the actor are required. 
 
 _Since 0.5.0_
 
