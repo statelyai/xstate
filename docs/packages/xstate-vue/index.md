@@ -93,7 +93,7 @@ A [Vue composition function](https://v3.vuejs.org/guide/composition-api-introduc
 
 ### `useActor(actor, getSnapshot)`
 
-A [Vue composition function](https://v3.vuejs.org/guide/composition-api-introduction.html) that provides access to an existing [actor](https://xstate.js.org/docs/guides/actors.html). Use in combination with `toRef` if subscription to changes from the actor are required. 
+A [Vue composition function](https://v3.vuejs.org/guide/composition-api-introduction.html) that provides access to an existing [actor](https://xstate.js.org/docs/guides/actors.html). Can be in combination with Vue's [computed](https://vuex.vuejs.org/guide/composition-api.html#accessing-state-and-getters) to subscribe to changes from the actor. 
 
 _Since 0.5.0_
 
@@ -104,13 +104,13 @@ _Since 0.5.0_
   - Defaults to attempting to get the `actor.state`, or returning `undefined` if that does not exist.
 
 ```js
-import { toRef } from "vue";
+import { computed } from "vue";
 import { useActor } from '@xstate/vue';
 
 export default {
   props: ['someSpawnedActor'],
   setup(props) {
-    const { state, send } = useActor(toRef(props, "someSpawnedActor"));
+    const { state, send } = useActor(computed(() => props.someSpawnedActor));
     return { state, send };
   }
 };
