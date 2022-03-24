@@ -104,12 +104,13 @@ _Since 0.5.0_
   - Defaults to attempting to get the `actor.state`, or returning `undefined` if that does not exist.
 
 ```js
+import { toRef } from "vue";
 import { useActor } from '@xstate/vue';
 
 export default {
   props: ['someSpawnedActor'],
   setup(props) {
-    const { state, send } = useActor(props.someSpawnedActor);
+    const { state, send } = useActor(toRef(props, "someSpawnedActor"));
     return { state, send };
   }
 };
