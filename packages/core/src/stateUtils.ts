@@ -80,6 +80,7 @@ export function getChildren<
   TE extends EventObject
 >(stateNode: StateNode<TContext, TE>): Array<StateNode<TContext, TE>> {
   return Object.keys(stateNode.states).map((key) => stateNode.states[key]);
+  // .filter((sn) => sn.type !== 'history');
 }
 
 export function getProperAncestors<
@@ -1173,9 +1174,11 @@ export function enterStates<
 
         if (grandparent.type === 'parallel') {
           if (
-            getChildren(grandparent).every((parentNode) =>
-              isInFinalState([...mutConfiguration], parentNode)
-            )
+            getChildren(grandparent)
+              .filter((child) => child.type !== 'history')
+              .every((parentNode) =>
+                isInFinalState([...mutConfiguration], parentNode)
+              )
           ) {
             internalQueue.push(toSCXMLEvent(done(grandparent.id)));
           }

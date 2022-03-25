@@ -1,4 +1,4 @@
-import { interpret, State, createMachine } from '../src';
+import { interpret, State, createMachine, actions } from '../src';
 import { and, not, or } from '../src/guards';
 
 describe('guard conditions', () => {
@@ -253,6 +253,36 @@ describe('guard conditions', () => {
       A: 'A5',
       B: 'B4'
     });
+  });
+
+  it('should be able to check source state tags when checking', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            MACRO: 'b'
+          }
+        },
+        b: {
+          entry: actions.raise('MICRO'),
+          tags: 'theTag',
+          on: {
+            MICRO: {
+              guard: (_ctx: any, _event: any, { state }: any) =>
+                state.hasTag('theTag'),
+              target: 'c'
+            }
+          }
+        },
+        c: {}
+      }
+    });
+
+    const service = interpret(machine).start();
+    service.send('MACRO');
+
+    expect(service.state.value).toBe('c');
   });
 });
 
