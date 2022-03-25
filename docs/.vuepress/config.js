@@ -274,6 +274,7 @@ module.exports = {
       {
         title: 'News and Useful Links',
         children: [
+          '/roadmap/',
           '/updates/',
           [
             'https://github.com/statelyai/xstate/blob/main/CODE_OF_CONDUCT.md',
