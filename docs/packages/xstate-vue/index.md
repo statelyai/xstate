@@ -95,9 +95,6 @@ A [Vue composition function](https://v3.vuejs.org/guide/composition-api-introduc
 
 A [Vue composition function](https://vuejs.org/guide/extras/composition-api-faq.html) that provides access to an existing [actor](https://xstate.js.org/docs/guides/actors.html).
 
-To subscribe to changes on the an actor whilst retaining reactivity from props or another reactive variable, Vue's [computed](https://vuejs.org/api/reactivity-core.html#computed) can be used.
-
-
 _Since 0.5.0_
 
 **Arguments**
@@ -105,6 +102,19 @@ _Since 0.5.0_
 - `actor` - an actor-like object that contains `.send(...)` and `.subscribe(...)` methods.
 - `getSnapshot` - a function that should return the latest emitted value from the `actor`.
   - Defaults to attempting to get the `actor.state`, or returning `undefined` if that does not exist.
+
+```js
+import { useActor } from '@xstate/vue';
+
+export default {
+  props: ['someSpawnedActor'],
+  setup(props) {
+    const { state, send } = useActor(props.someSpawnedActor);
+    return { state, send };
+  }
+};
+```
+To subscribe to changes on the an actor whilst retaining reactivity from props or another reactive variable, Vue's [computed](https://vuejs.org/api/reactivity-core.html#computed) can be used.
 
 ```js
 import { computed } from "vue";
