@@ -1246,6 +1246,19 @@ describe('forwardTo()', () => {
 
     service.send('EVENT', { value: 42 });
   });
+
+  it('should not cause an infinite loop when forwarding to undefined', () => {
+    const machine = createMachine({
+      on: {
+        '*': { cond: () => true, actions: forwardTo(undefined as any) }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    // This is testing for an infinite loop
+    service.send('TEST');
+  });
 });
 
 describe('log()', () => {

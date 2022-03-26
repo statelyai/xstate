@@ -872,6 +872,13 @@ export class Interpreter<
         } else {
           if (sendAction.to) {
             this.sendTo(sendAction._event, sendAction.to);
+          } else if (sendAction.sendType === 'forward') {
+            // Expected to forward to an actor
+            warn(
+              false,
+              `Attempted to forward event "${sendAction.event.type}" to undefined actor`
+            );
+            break;
           } else {
             this.send(
               (sendAction as SendActionObject<TContext, TEvent, TEvent>)._event

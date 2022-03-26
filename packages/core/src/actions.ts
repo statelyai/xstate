@@ -205,7 +205,8 @@ export function send<
         ? options.id
         : isFunction(event)
         ? event.name
-        : (getEventType<TSentEvent>(event) as string)
+        : (getEventType<TSentEvent>(event) as string),
+    sendType: options?.sendType
   };
 }
 
@@ -563,7 +564,8 @@ export function forwardTo<TContext, TEvent extends EventObject>(
 ): SendAction<TContext, TEvent, AnyEventObject> {
   return send<TContext, TEvent>((_, event) => event, {
     ...options,
-    to: target
+    to: target,
+    sendType: 'forward'
   });
 }
 
