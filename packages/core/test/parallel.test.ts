@@ -987,4 +987,59 @@ describe('parallel states', () => {
 
     service.send('FINISH');
   });
+
+  it('should raise a "done.state.*" event when a pseudostate of a history type is directly on a parallel state', () => {
+    const machine = createMachine({
+      initial: 'parallelSteps',
+      states: {
+        parallelSteps: {
+          type: 'parallel',
+          states: {
+            hist: {
+              type: 'history'
+            },
+            one: {
+              initial: 'wait_one',
+              states: {
+                wait_one: {
+                  on: {
+                    finish_one: {
+                      target: 'done'
+                    }
+                  }
+                },
+                done: {
+                  type: 'final'
+                }
+              }
+            },
+            two: {
+              initial: 'wait_two',
+              states: {
+                wait_two: {
+                  on: {
+                    finish_two: {
+                      target: 'done'
+                    }
+                  }
+                },
+                done: {
+                  type: 'final'
+                }
+              }
+            }
+          },
+          onDone: 'finished'
+        },
+        finished: {}
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    service.send({ type: 'finish_one' });
+    service.send({ type: 'finish_two' });
+
+    expect(service.state.value).toBe('finished');
+  });
 });
