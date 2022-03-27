@@ -86,12 +86,6 @@ export function serializeEvent<TEvent extends EventObject>(
   return JSON.stringify(event) as SerializedEvent;
 }
 
-export function deserializeEventString<TEvent extends EventObject>(
-  eventString: string
-): TEvent {
-  return JSON.parse(eventString) as TEvent;
-}
-
 const defaultValueAdjMapOptions: Required<ValueAdjMapOptions<any, any>> = {
   events: {},
   filter: () => true,
@@ -217,7 +211,7 @@ export function traverseShortestPaths<TState, TEvent extends EventObject>(
   // weight, state, event
   const weightMap = new Map<
     SerializedState,
-    [number, SerializedState | undefined, SerializedEvent | undefined]
+    [number, SerializedState | undefined, TEvent | undefined]
   >();
   const stateMap = new Map<SerializedState, TState>();
   const initialSerializedState = serializeState(behavior.initialState, null);
@@ -234,15 +228,16 @@ export function traverseShortestPaths<TState, TEvent extends EventObject>(
       for (const event of Object.keys(
         adjacency[serializedState].transitions
       ) as SerializedEvent[]) {
-        const eventObject = JSON.parse(event);
-        const nextState = adjacency[serializedState].transitions[event];
+        const { state: nextState, event: eventObject } = adjacency[
+          serializedState
+        ].transitions[event];
         const nextSerializedState = serializeState(nextState, eventObject);
         stateMap.set(nextSerializedState, nextState);
         if (!weightMap.has(nextSerializedState)) {
           weightMap.set(nextSerializedState, [
             weight + 1,
             serializedState,
-            event
+            eventObject
           ]);
         } else {
           const [nextWeight] = weightMap.get(nextSerializedState)!;
@@ -250,7 +245,7 @@ export function traverseShortestPaths<TState, TEvent extends EventObject>(
             weightMap.set(nextSerializedState, [
               weight + 1,
               serializedState,
-              event
+              eventObject
             ]);
           }
         }
@@ -282,7 +277,7 @@ export function traverseShortestPaths<TState, TEvent extends EventObject>(
               state,
               steps: statePathMap[fromState].paths[0].steps.concat({
                 state: stateMap.get(fromState)!,
-                event: deserializeEventString(fromEvent!) as TEvent
+                event: fromEvent!
               }),
               weight
             }
@@ -387,7 +382,9 @@ export function getPathFromEvents<
     });
 
     const eventSerial = serializeEvent(event);
-    const nextState = adjacency[stateSerial].transitions[eventSerial];
+    const { state: nextState, event: _nextEvent } = adjacency[
+      stateSerial
+    ].transitions[eventSerial];
 
     if (!nextState) {
       throw new Error(
@@ -409,24 +406,29 @@ export function getPathFromEvents<
   };
 }
 
-interface AdjMap<TState> {
+interface AdjMap<TState, TEvent> {
   [key: SerializedState]: {
     state: TState;
-    transitions: { [key: SerializedEvent]: TState };
+    transitions: {
+      [key: SerializedEvent]: {
+        event: TEvent;
+        state: TState;
+      };
+    };
   };
 }
 
 export function performDepthFirstTraversal<TState, TEvent>(
   behavior: SimpleBehavior<TState, TEvent>,
   options: TraversalOptions<TState, TEvent>
-): AdjMap<TState> {
+): AdjMap<TState, TEvent> {
   const { transition, initialState } = behavior;
   const {
     serializeState,
     getEvents,
     traversalLimit: limit
   } = resolveTraversalOptions(options);
-  const adj: AdjMap<TState> = {};
+  const adj: AdjMap<TState, TEvent> = {};
 
   let iterations = 0;
   const queue: Array<[TState, TEvent | null]> = [[initialState, null]];
@@ -454,7 +456,12 @@ export function performDepthFirstTraversal<TState, TEvent>(
       const nextState = transition(state, subEvent);
 
       if (!options.filter || options.filter(nextState, subEvent)) {
-        adj[serializedState].transitions[JSON.stringify(subEvent)] = nextState;
+        adj[serializedState].transitions[
+          JSON.stringify(subEvent) as SerializedEvent
+        ] = {
+          event: subEvent,
+          state: nextState
+        };
         queue.push([nextState, subEvent]);
       }
     }
@@ -533,9 +540,9 @@ export function traverseSimplePaths<TState, TEvent extends EventObject>(
       for (const serializedEvent of Object.keys(
         adjacency[fromStateSerial].transitions
       ) as SerializedEvent[]) {
-        const subEvent = JSON.parse(serializedEvent);
-        const nextState =
-          adjacency[fromStateSerial].transitions[serializedEvent];
+        const { state: nextState, event: subEvent } = adjacency[
+          fromStateSerial
+        ].transitions[serializedEvent];
 
         if (!(serializedEvent in adjacency[fromStateSerial].transitions)) {
           continue;
@@ -548,7 +555,7 @@ export function traverseSimplePaths<TState, TEvent extends EventObject>(
           visitCtx.edges.add(serializedEvent);
           path.push({
             state: stateMap.get(fromStateSerial)!,
-            event: deserializeEventString(serializedEvent)
+            event: subEvent
           });
           util(nextState, toStateSerial, subEvent);
         }

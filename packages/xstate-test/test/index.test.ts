@@ -960,3 +960,41 @@ it('tests transitions', async () => {
 
   await model.testPath(path, obj);
 });
+
+// https://github.com/statelyai/xstate/issues/982
+it('Event in event executor should contain payload from case', async () => {
+  const machine = createMachine({
+    initial: 'first',
+    states: {
+      first: {
+        on: { NEXT: 'second' }
+      },
+      second: {}
+    }
+  });
+
+  const obj = {};
+
+  const nonSerializableData = () => 42;
+
+  const model = createTestModel(machine, {
+    events: {
+      NEXT: {
+        cases: () => [{ payload: 10, fn: nonSerializableData }],
+        exec: (step) => {
+          expect(step.event).toEqual({
+            type: 'NEXT',
+            payload: 10,
+            fn: nonSerializableData
+          });
+        }
+      }
+    }
+  });
+
+  const plans = model.getShortestPlansTo((state) => state.matches('second'));
+
+  const path = plans[0].paths[0];
+
+  await model.testPath(path, obj);
+});

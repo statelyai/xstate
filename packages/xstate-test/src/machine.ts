@@ -88,7 +88,9 @@ export function createTestModel<
               eventCaseGenerator?.() ?? [
                 { type: eventType } as EventFrom<TMachine>
               ]
-            ).map((e) => ({ type: eventType, ...e }))
+            ).map((e) => {
+              return { type: eventType, ...e };
+            })
           );
         })
       ),
