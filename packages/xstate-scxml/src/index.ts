@@ -6,7 +6,10 @@ import {
   ActionType,
   AnyStateMachine
 } from 'xstate';
-import { flatten } from 'xstate/lib/utils';
+
+function flatten<T>(array: Array<T | T[]>): T[] {
+  return ([] as T[]).concat(...array);
+}
 
 function cleanAttributes(attributes: Attributes): Attributes {
   for (const key of Object.keys(attributes)) {

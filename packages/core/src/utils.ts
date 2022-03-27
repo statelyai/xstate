@@ -61,7 +61,7 @@ export function matchesState(
     return parentStateValue in childStateValue;
   }
 
-  return keys(parentStateValue).every((key) => {
+  return Object.keys(parentStateValue).every((key) => {
     if (!(key in childStateValue)) {
       return false;
     }
@@ -163,19 +163,28 @@ export function pathToStateValue(statePath: string[]): StateValue {
   return value;
 }
 
-export function mapValues<T, P, O extends { [key: string]: T }>(
+export function mapValues<P, O extends Record<string, unknown>>(
   collection: O,
   iteratee: (item: O[keyof O], key: keyof O, collection: O, i: number) => P
-): { [key in keyof O]: P } {
-  const result: Partial<{ [key in keyof O]: P }> = {};
+): { [key in keyof O]: P };
+export function mapValues(
+  collection: Record<string, unknown>,
+  iteratee: (
+    item: unknown,
+    key: string,
+    collection: Record<string, unknown>,
+    i: number
+  ) => unknown
+) {
+  const result: Record<string, unknown> = {};
 
-  const collectionKeys = keys(collection);
+  const collectionKeys = Object.keys(collection);
   for (let i = 0; i < collectionKeys.length; i++) {
     const key = collectionKeys[i];
     result[key] = iteratee(collection[key], key, collection, i);
   }
 
-  return result as { [key in keyof O]: P };
+  return result;
 }
 
 export function mapFilterValues<T, P>(
@@ -185,7 +194,7 @@ export function mapFilterValues<T, P>(
 ): { [key: string]: P } {
   const result: { [key: string]: P } = {};
 
-  for (const key of keys(collection)) {
+  for (const key of Object.keys(collection)) {
     const item = collection[key];
 
     if (!predicate(item)) {
@@ -243,7 +252,7 @@ export function toStatePaths(stateValue: StateValue | undefined): string[][] {
   }
 
   const result = flatten(
-    keys(stateValue).map((key) => {
+    Object.keys(stateValue).map((key) => {
       const subStateValue = stateValue[key];
 
       if (
@@ -431,7 +440,7 @@ export function updateContext<TContext, TEvent extends EventObject>(
         if (isFunction(assignment)) {
           partialUpdate = assignment(acc, _event.data, meta);
         } else {
-          for (const key of keys(assignment)) {
+          for (const key of Object.keys(assignment)) {
             const propAssignment = assignment[key];
 
             partialUpdate[key] = isFunction(propAssignment)
@@ -481,18 +490,6 @@ export function isFunction(value: any): value is Function {
 export function isString(value: any): value is string {
   return typeof value === 'string';
 }
-
-// export function memoizedGetter<T, TP extends { prototype: object }>(
-//   o: TP,
-//   property: string,
-//   getter: () => T
-// ): void {
-//   Object.defineProperty(o.prototype, property, {
-//     get: getter,
-//     enumerable: false,
-//     configurable: false
-//   });
-// }
 
 export function toGuard<TContext, TEvent extends EventObject>(
   condition?: Condition<TContext, TEvent>,
@@ -544,11 +541,7 @@ export const interopSymbols = {
 };
 
 export function isMachine(value: any): value is AnyStateMachine {
-  try {
-    return '__xstatenode' in value;
-  } catch (e) {
-    return false;
-  }
+  return !!value && '__xstatenode' in value;
 }
 
 export function isActor(value: any): value is Actor {

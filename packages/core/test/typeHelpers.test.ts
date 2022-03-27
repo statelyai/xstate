@@ -1,8 +1,134 @@
-import { assign, createMachine, EventFrom, MachineOptionsFrom } from '../src';
+import {
+  assign,
+  ContextFrom,
+  createMachine,
+  EventFrom,
+  interpret,
+  MachineOptionsFrom
+} from '../src';
 import { createModel } from '../src/model';
 import { TypegenMeta } from '../src/typegenTypes';
 
+describe('ContextFrom', () => {
+  it('should return context of a machine', () => {
+    const machine = createMachine({
+      schema: {
+        context: {} as { counter: number }
+      }
+    });
+
+    type MachineContext = ContextFrom<typeof machine>;
+
+    const acceptMachineContext = (_event: MachineContext) => {};
+
+    acceptMachineContext({ counter: 100 });
+    acceptMachineContext({
+      counter: 100,
+      // @ts-expect-error
+      other: 'unknown'
+    });
+    const obj = { completely: 'invalid' };
+    // @ts-expect-error
+    acceptMachineContext(obj);
+  });
+
+  it('should return context of a typegened machine', () => {
+    const machine = createMachine({
+      tsTypes: {} as TypegenMeta,
+      schema: {
+        context: {} as { counter: number }
+      }
+    });
+
+    type MachineContext = ContextFrom<typeof machine>;
+
+    const acceptMachineContext = (_event: MachineContext) => {};
+
+    acceptMachineContext({ counter: 100 });
+    acceptMachineContext({
+      counter: 100,
+      // @ts-expect-error
+      other: 'unknown'
+    });
+    const obj = { completely: 'invalid' };
+    // @ts-expect-error
+    acceptMachineContext(obj);
+  });
+});
+
 describe('EventFrom', () => {
+  it('should return events for a machine', () => {
+    const machine = createMachine({
+      schema: {
+        events: {} as
+          | { type: 'UPDATE_NAME'; value: string }
+          | { type: 'UPDATE_AGE'; value: number }
+          | { type: 'ANOTHER_EVENT' }
+      }
+    });
+
+    type MachineEvent = EventFrom<typeof machine>;
+
+    const acceptMachineEvent = (_event: MachineEvent) => {};
+
+    acceptMachineEvent({ type: 'UPDATE_NAME', value: 'test' });
+    acceptMachineEvent({ type: 'UPDATE_AGE', value: 12 });
+    acceptMachineEvent({ type: 'ANOTHER_EVENT' });
+    acceptMachineEvent({
+      // @ts-expect-error
+      type: 'UNKNOWN_EVENT'
+    });
+  });
+
+  it('should return events for a typegened machine', () => {
+    const machine = createMachine({
+      tsTypes: {} as TypegenMeta,
+      schema: {
+        events: {} as
+          | { type: 'UPDATE_NAME'; value: string }
+          | { type: 'UPDATE_AGE'; value: number }
+          | { type: 'ANOTHER_EVENT' }
+      }
+    });
+
+    type MachineEvent = EventFrom<typeof machine>;
+
+    const acceptMachineEvent = (_event: MachineEvent) => {};
+
+    acceptMachineEvent({ type: 'UPDATE_NAME', value: 'test' });
+    acceptMachineEvent({ type: 'UPDATE_AGE', value: 12 });
+    acceptMachineEvent({ type: 'ANOTHER_EVENT' });
+    acceptMachineEvent({
+      // @ts-expect-error
+      type: 'UNKNOWN_EVENT'
+    });
+  });
+
+  it('should return events for an interpreter', () => {
+    const machine = createMachine({
+      schema: {
+        events: {} as
+          | { type: 'UPDATE_NAME'; value: string }
+          | { type: 'UPDATE_AGE'; value: number }
+          | { type: 'ANOTHER_EVENT' }
+      }
+    });
+
+    const service = interpret(machine);
+
+    type InterpreterEvent = EventFrom<typeof service>;
+
+    const acceptInterpreterEvent = (_event: InterpreterEvent) => {};
+
+    acceptInterpreterEvent({ type: 'UPDATE_NAME', value: 'test' });
+    acceptInterpreterEvent({ type: 'UPDATE_AGE', value: 12 });
+    acceptInterpreterEvent({ type: 'ANOTHER_EVENT' });
+    acceptInterpreterEvent({
+      // @ts-expect-error
+      type: 'UNKNOWN_EVENT'
+    });
+  });
+
   it('should return events for createModel', () => {
     const userModel = createModel(
       {},

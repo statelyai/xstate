@@ -5,10 +5,10 @@ import {
   EventObject,
   interpret,
   Interpreter,
-  toActorRef
+  toActorRef,
+  toEventObject,
+  toSCXMLEvent
 } from 'xstate';
-import { toEventObject, toSCXMLEvent } from 'xstate/lib/utils';
-
 import { createInspectMachine, InspectMachineEvent } from './inspectMachine';
 import { Inspector, Replacer } from './types';
 import { stringify } from './utils';

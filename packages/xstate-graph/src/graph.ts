@@ -8,7 +8,6 @@ import {
   AnyEventObject,
   AnyStateMachine
 } from 'xstate';
-import { flatten, keys } from 'xstate/lib/utils';
 import {
   StatePathsMap,
   StatePaths,
@@ -20,6 +19,10 @@ import {
   AnyStateNode,
   StatePath
 } from './types';
+
+function flatten<T>(array: Array<T | T[]>): T[] {
+  return ([] as T[]).concat(...array);
+}
 
 export function toEventObject<TEvent extends EventObject>(
   event: Event<TEvent>
@@ -41,7 +44,7 @@ export function getStateNodes(
   stateNode: AnyStateNode | AnyStateMachine
 ): AnyStateNode[] {
   const { states } = stateNode;
-  const nodes = keys(states).reduce((accNodes, stateKey) => {
+  const nodes = Object.keys(states).reduce((accNodes, stateKey) => {
     const childStateNode = states[stateKey];
     const childStateNodes = getStateNodes(childStateNode);
 
@@ -209,7 +212,7 @@ export function getShortestPaths<
   while (unvisited.size > 0) {
     for (const vertex of unvisited) {
       const [weight] = weightMap.get(vertex)!;
-      for (const event of keys(adjacency[vertex])) {
+      for (const event of Object.keys(adjacency[vertex])) {
         const nextSegment = adjacency[vertex][event];
         const nextVertex = optionsWithDefaults.stateSerializer(
           nextSegment.state
@@ -301,7 +304,7 @@ export function getSimplePaths<
         segments: [...path]
       });
     } else {
-      for (const subEvent of keys(adjacency[fromStateSerial])) {
+      for (const subEvent of Object.keys(adjacency[fromStateSerial])) {
         const nextSegment = adjacency[fromStateSerial][subEvent];
 
         if (!nextSegment) {
@@ -328,7 +331,7 @@ export function getSimplePaths<
   const initialStateSerial = stateSerializer(machine.initialState);
   stateMap.set(initialStateSerial, machine.initialState);
 
-  for (const nextStateSerial of keys(adjacency)) {
+  for (const nextStateSerial of Object.keys(adjacency)) {
     util(machine.initialState, nextStateSerial);
   }
 
@@ -343,7 +346,7 @@ export function getSimplePathsAsArray<
   options?: ValueAdjMapOptions<TContext, TEvent>
 ): Array<StatePaths<TContext, TEvent>> {
   const result = getSimplePaths(machine, options);
-  return keys(result).map((key) => result[key]);
+  return Object.keys(result).map((key) => result[key]);
 }
 
 export function toDirectedGraph(

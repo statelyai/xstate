@@ -1,4 +1,4 @@
-import { Machine, interpret } from '../src';
+import { Machine, interpret, createMachine, actions } from '../src';
 
 describe('guard conditions', () => {
   type LightMachineCtx = {
@@ -226,6 +226,36 @@ describe('guard conditions', () => {
       A: 'A5',
       B: 'B4'
     });
+  });
+
+  it('should be able to check source state tags when checking', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            MACRO: 'b'
+          }
+        },
+        b: {
+          entry: actions.raise('MICRO'),
+          tags: 'theTag',
+          on: {
+            MICRO: {
+              cond: (_ctx: any, _event: any, { state }: any) =>
+                state.hasTag('theTag'),
+              target: 'c'
+            }
+          }
+        },
+        c: {}
+      }
+    });
+
+    const service = interpret(machine).start();
+    service.send('MACRO');
+
+    expect(service.state.value).toBe('c');
   });
 });
 
