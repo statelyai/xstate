@@ -1,7 +1,7 @@
 import { createTestModel } from '../src';
 import { assign, createMachine, interpret } from 'xstate';
 import { getDescription } from '../src/utils';
-import { stateValueCoverage } from '../src/coverage';
+import { stateValueCoverage, transitionCoverage } from '../src/coverage';
 
 interface DieHardContext {
   three: number;
@@ -523,6 +523,38 @@ describe('coverage', () => {
     // which arguably should not be counted towards coverage, as the app is never in
     // a transient state for any length of time
     model.testCoverage(stateValueCoverage());
+  });
+
+  it('tests transition coverage', async () => {
+    const model = createTestModel(
+      createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              EVENT_ONE: 'b',
+              EVENT_TWO: 'b'
+            }
+          },
+          b: {}
+        }
+      })
+    );
+
+    await model.testPlans(model.getShortestPlans(), null);
+
+    expect(() => {
+      model.testCoverage(transitionCoverage());
+    }).toThrowErrorMatchingInlineSnapshot(`
+      "Coverage criteria not met:
+      	Transitions a on event EVENT_TWO"
+    `);
+
+    await model.testPlans(model.getSimplePlans(), null);
+
+    expect(() => {
+      model.testCoverage(transitionCoverage());
+    }).not.toThrow();
   });
 });
 

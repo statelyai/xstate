@@ -1,6 +1,7 @@
 import { AnyStateNode } from '@xstate/graph';
 import type { AnyState } from 'xstate';
 import { getAllStateNodes } from 'xstate/lib/stateUtils';
+import { flatten } from '.';
 import { TestModel } from './TestModel';
 import { Criterion } from './types';
 
@@ -23,11 +24,51 @@ export function stateValueCoverage(
       const skip = !resolvedOptions.filter(stateNode);
 
       return {
-        predicate: (stateCoverage) =>
-          stateCoverage.state.configuration.includes(stateNode),
+        predicate: (coverage) =>
+          Object.values(coverage.states).some(({ state }) =>
+            state.configuration.includes(stateNode)
+          ),
         description: `Visits ${JSON.stringify(stateNode.id)}`,
         skip
       };
     });
+  };
+}
+
+export function transitionCoverage(): (
+  testModel: TestModel<AnyState, any, any>
+) => Array<Criterion<AnyState>> {
+  return (testModel) => {
+    const allStateNodes = getAllStateNodes(testModel.behavior as AnyStateNode);
+    const allTransitions = flatten(allStateNodes.map((sn) => sn.transitions));
+
+    return allTransitions.map((t) => {
+      return {
+        predicate: (coverage) =>
+          Object.values(coverage.transitions).some((transitionCoverage) => {
+            return (
+              transitionCoverage.step.state.configuration.includes(t.source) &&
+              t.eventType === transitionCoverage.step.event.type
+            );
+          }),
+        description: `Transitions ${t.source.key} on event ${t.eventType}`
+      };
+    });
+    // return flatten(
+    //   allStateNodes.map((sn) => {
+    //     const transitions = sn.transitions;
+    //     const transitionSerial = `${this.options.serializeState(
+    //       step.state,
+    //       null as any
+    //     )} | ${this.options.serializeEvent(step.event)}`;
+
+    //     return {
+    //       predicate: () => true,
+    //       description: ''
+    //     };
+    //   })
+    // );
+
+    // return [];
   };
 }

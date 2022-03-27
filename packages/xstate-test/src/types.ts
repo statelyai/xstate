@@ -184,9 +184,14 @@ export interface TestStateCoverage<TState> {
   count: number;
 }
 
+export interface TestTransitionCoverage<TState, TEvent extends EventObject> {
+  step: Step<TState, TEvent>;
+  count: number;
+}
+
 export interface TestModelCoverage<TState> {
   states: Record<string, TestStateCoverage<TState>>;
-  transitions: Record<string, Map<EventObject, number>>;
+  transitions: Record<string, TestTransitionCoverage<TState, any>>;
 }
 
 export interface CoverageOptions<TContext> {
@@ -194,7 +199,7 @@ export interface CoverageOptions<TContext> {
 }
 
 export interface Criterion<TState> {
-  predicate: (stateCoverage: TestStateCoverage<TState>) => boolean;
+  predicate: (coverage: TestModelCoverage<TState>) => boolean;
   description: string;
   skip?: boolean;
 }

@@ -168,6 +168,15 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
     return Object.values(adj).map((x) => x.state);
   }
 
+  public async testPlans(
+    plans: Array<StatePlan<TState, TEvent>>,
+    testContext: TTestContext
+  ) {
+    for (const plan of plans) {
+      await this.testPlan(plan, testContext);
+    }
+  }
+
   public async testPlan(
     plan: StatePlan<TState, TEvent>,
     testContext: TTestContext
@@ -263,8 +272,22 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
     this.addTransitionCoverage(step);
   }
 
-  private addTransitionCoverage(_step: Step<TState, TEvent>) {
-    // TODO
+  private addTransitionCoverage(step: Step<TState, TEvent>) {
+    const transitionSerial = `${this.options.serializeState(
+      step.state,
+      null as any
+    )} | ${this.options.serializeEvent(step.event)}`;
+
+    const existingCoverage = this._coverage.transitions[transitionSerial];
+
+    if (existingCoverage) {
+      existingCoverage.count++;
+    } else {
+      this._coverage.transitions[transitionSerial] = {
+        step,
+        count: 1
+      };
+    }
   }
 
   public resolveOptions(
@@ -277,14 +300,13 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
     criteriaFn?: (testModel: this) => Array<Criterion<TState>>
   ): Array<CriterionResult<TState>> {
     const criteria = criteriaFn?.(this) ?? [];
-    const stateCoverages = Object.values(this._coverage.states);
 
     return criteria.map((criterion) => {
       return {
         criterion,
         status: criterion.skip
           ? 'skipped'
-          : stateCoverages.some((sc) => criterion.predicate(sc))
+          : criterion.predicate(this._coverage)
           ? 'covered'
           : 'uncovered'
       };
