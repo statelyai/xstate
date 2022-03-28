@@ -1,4 +1,9 @@
-import { Step, TraversalOptions } from '@xstate/graph';
+import {
+  SimpleBehavior,
+  StatePlan,
+  Step,
+  TraversalOptions
+} from '@xstate/graph';
 import {
   AnyState,
   EventObject,
@@ -251,3 +256,8 @@ export interface TestMachineConfig<
     [key: string]: TestStateNodeConfig<TContext, TEvent, TTestContext>;
   };
 }
+
+export type PlanGenerator<TState, TEvent extends EventObject> = (
+  behavior: SimpleBehavior<TState, TEvent>,
+  options: TraversalOptions<TState, TEvent>
+) => Array<StatePlan<TState, TEvent>>;

@@ -22,7 +22,8 @@ import type {
   TestPathResult,
   TestStepResult,
   Criterion,
-  CriterionResult
+  CriterionResult,
+  PlanGenerator
 } from './types';
 import { formatPathTestResult, simpleStringify } from './utils';
 
@@ -81,15 +82,23 @@ export class TestModel<TState, TEvent extends EventObject> {
     };
   }
 
+  public getPlans(
+    planGenerator: PlanGenerator<TState, TEvent>,
+    options?: Partial<TraversalOptions<TState, TEvent>>
+  ): Array<StatePlan<TState, TEvent>> {
+    const plans = planGenerator(this.behavior, this.resolveOptions(options));
+
+    return plans;
+  }
+
   public getShortestPlans(
     options?: Partial<TraversalOptions<TState, TEvent>>
   ): Array<StatePlan<TState, TEvent>> {
-    const shortestPaths = traverseShortestPaths(
-      this.behavior,
-      this.resolveOptions(options)
-    );
+    return this.getPlans((behavior, resolvedOptions) => {
+      const shortestPaths = traverseShortestPaths(behavior, resolvedOptions);
 
-    return Object.values(shortestPaths);
+      return Object.values(shortestPaths);
+    }, options);
   }
 
   public getShortestPlansTo(
@@ -116,12 +125,11 @@ export class TestModel<TState, TEvent extends EventObject> {
   public getSimplePlans(
     options?: Partial<TraversalOptions<TState, any>>
   ): Array<StatePlan<TState, TEvent>> {
-    const simplePaths = traverseSimplePaths(
-      this.behavior,
-      this.resolveOptions(options)
-    );
+    return this.getPlans((behavior, resolvedOptions) => {
+      const simplePaths = traverseSimplePaths(behavior, resolvedOptions);
 
-    return Object.values(simplePaths);
+      return Object.values(simplePaths);
+    }, options);
   }
 
   public getSimplePlansTo(
