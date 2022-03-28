@@ -32,7 +32,7 @@ describe('coverage', () => {
     const plans = testModel.getShortestPlans();
 
     for (const plan of plans) {
-      await testModel.testPlan(plan, undefined);
+      await testModel.testPlan(plan);
     }
 
     expect(
@@ -125,7 +125,7 @@ describe('coverage', () => {
     const promises: any[] = [];
     testPlans.forEach((plan) => {
       plan.paths.forEach(() => {
-        promises.push(testModel.testPlan(plan, undefined));
+        promises.push(testModel.testPlan(plan));
       });
     });
 

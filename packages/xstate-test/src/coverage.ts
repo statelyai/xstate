@@ -1,5 +1,5 @@
 import { AnyStateNode } from '@xstate/graph';
-import type { AnyState } from 'xstate';
+import type { AnyState, EventObject } from 'xstate';
 import { getAllStateNodes } from 'xstate/lib/stateUtils';
 import { flatten } from '.';
 import { TestModel } from './TestModel';
@@ -9,16 +9,23 @@ interface StateValueCoverageOptions {
   filter?: (stateNode: AnyStateNode) => boolean;
 }
 
-export function coversAllStates(
-  options?: StateValueCoverageOptions
-): (testModel: TestModel<AnyState, any>) => Array<Criterion<AnyState>> {
+export type CoverageFunction<TState, TEvent extends EventObject> = (
+  testModel: TestModel<TState, TEvent>
+) => Array<Criterion<TState, TEvent>>;
+
+export function coversAllStates<
+  TState extends AnyState,
+  TEvent extends EventObject
+>(options?: StateValueCoverageOptions): CoverageFunction<TState, TEvent> {
   const resolvedOptions: Required<StateValueCoverageOptions> = {
     filter: () => true,
     ...options
   };
 
   return (testModel) => {
-    const allStateNodes = getAllStateNodes(testModel.behavior as AnyStateNode);
+    const allStateNodes = getAllStateNodes(
+      (testModel.behavior as unknown) as AnyStateNode
+    );
 
     return allStateNodes.map((stateNode) => {
       const skip = !resolvedOptions.filter(stateNode);
@@ -35,11 +42,14 @@ export function coversAllStates(
   };
 }
 
-export function coversAllTransitions(): (
-  testModel: TestModel<AnyState, any>
-) => Array<Criterion<AnyState>> {
+export function coversAllTransitions<
+  TState extends AnyState,
+  TEvent extends EventObject
+>(): CoverageFunction<TState, TEvent> {
   return (testModel) => {
-    const allStateNodes = getAllStateNodes(testModel.behavior as AnyStateNode);
+    const allStateNodes = getAllStateNodes(
+      (testModel.behavior as unknown) as AnyStateNode
+    );
     const allTransitions = flatten(allStateNodes.map((sn) => sn.transitions));
 
     return allTransitions.map((t) => {

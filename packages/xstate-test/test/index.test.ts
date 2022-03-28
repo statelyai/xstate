@@ -67,7 +67,7 @@ describe('events', () => {
     const testPlans = testModel.getShortestPlans();
 
     for (const plan of testPlans) {
-      await testModel.testPlan(plan, undefined);
+      await testModel.testPlan(plan);
     }
 
     expect(() => testModel.testCoverage(coversAllStates())).not.toThrow();
@@ -90,7 +90,7 @@ describe('events', () => {
 
     expect(async () => {
       for (const plan of Object.values(testPlans)) {
-        await testModel.testPlan(plan, undefined);
+        await testModel.testPlan(plan);
       }
     }).not.toThrow();
   });
@@ -248,7 +248,7 @@ it('executes actions', async () => {
   const testPlans = model.getShortestPlans();
 
   for (const plan of testPlans) {
-    await model.testPlan(plan, undefined);
+    await model.testPlan(plan);
   }
 
   expect(executedActive).toBe(true);
@@ -281,7 +281,7 @@ describe('test model options', () => {
     const plans = model.getShortestPlans();
 
     for (const plan of plans) {
-      await model.testPlan(plan, null as any);
+      await model.testPlan(plan);
     }
 
     expect(testedStates).toEqual(['inactive', 'inactive', 'active']);
@@ -319,7 +319,7 @@ describe('test model options', () => {
     const plans = model.getShortestPlans();
 
     for (const plan of plans) {
-      await model.testPlan(plan, null as any);
+      await model.testPlan(plan);
     }
 
     expect(testedEvents).toEqual(['NEXT', 'NEXT', 'PREV']);

@@ -189,23 +189,23 @@ export interface TestTransitionCoverage<TState, TEvent extends EventObject> {
   count: number;
 }
 
-export interface TestModelCoverage<TState> {
+export interface TestModelCoverage<TState, TEvent extends EventObject> {
   states: Record<string, TestStateCoverage<TState>>;
-  transitions: Record<string, TestTransitionCoverage<TState, any>>;
+  transitions: Record<string, TestTransitionCoverage<TState, TEvent>>;
 }
 
 export interface CoverageOptions<TContext> {
   filter?: (stateNode: StateNode<TContext, any, any>) => boolean;
 }
 
-export interface Criterion<TState> {
-  predicate: (coverage: TestModelCoverage<TState>) => boolean;
+export interface Criterion<TState, TEvent extends EventObject> {
+  predicate: (coverage: TestModelCoverage<TState, TEvent>) => boolean;
   description: string;
   skip?: boolean;
 }
 
-export interface CriterionResult<TState> {
-  criterion: Criterion<TState>;
+export interface CriterionResult<TState, TEvent extends EventObject> {
+  criterion: Criterion<TState, TEvent>;
   /**
    * Whether the criterion was covered or not
    */

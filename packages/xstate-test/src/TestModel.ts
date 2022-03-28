@@ -15,13 +15,13 @@ import {
   traverseSimplePathsTo
 } from '@xstate/graph/src/graph';
 import { EventObject } from 'xstate';
+import { CoverageFunction } from './coverage';
 import type {
   TestModelCoverage,
   TestModelOptions,
   StatePredicate,
   TestPathResult,
   TestStepResult,
-  Criterion,
   CriterionResult,
   PlanGenerator
 } from './types';
@@ -49,7 +49,7 @@ import { formatPathTestResult, simpleStringify } from './utils';
  */
 
 export class TestModel<TState, TEvent extends EventObject> {
-  private _coverage: TestModelCoverage<TState> = {
+  private _coverage: TestModelCoverage<TState, TEvent> = {
     states: {},
     transitions: {}
   };
@@ -310,8 +310,8 @@ export class TestModel<TState, TEvent extends EventObject> {
   }
 
   public getCoverage(
-    criteriaFn?: (testModel: this) => Array<Criterion<TState>>
-  ): Array<CriterionResult<TState>> {
+    criteriaFn?: CoverageFunction<TState, TEvent>
+  ): Array<CriterionResult<TState, TEvent>> {
     const criteria = criteriaFn?.(this) ?? [];
 
     return criteria.map((criterion) => {
@@ -326,9 +326,7 @@ export class TestModel<TState, TEvent extends EventObject> {
     });
   }
 
-  public testCoverage(
-    criteriaFn?: (testModel: this) => Array<Criterion<TState>>
-  ): void {
+  public testCoverage(criteriaFn?: CoverageFunction<TState, TEvent>): void {
     const criteriaResult = this.getCoverage(criteriaFn);
 
     const unmetCriteria = criteriaResult.filter(
