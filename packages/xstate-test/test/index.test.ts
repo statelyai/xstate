@@ -1,7 +1,7 @@
 import { createTestModel } from '../src';
 import { assign, createMachine, interpret } from 'xstate';
 import { getDescription } from '../src/utils';
-import { allStates } from '../src/coverage';
+import { coversAllStates } from '../src/coverage';
 
 describe('events', () => {
   it('should allow for representing many cases', async () => {
@@ -70,7 +70,7 @@ describe('events', () => {
       await testModel.testPlan(plan, undefined);
     }
 
-    expect(() => testModel.testCoverage(allStates())).not.toThrow();
+    expect(() => testModel.testCoverage(coversAllStates())).not.toThrow();
   });
 
   it('should not throw an error for unimplemented events', () => {
@@ -466,7 +466,7 @@ describe('invocations', () => {
       }
     }
 
-    model.testCoverage(allStates());
+    model.testCoverage(coversAllStates());
   });
 });
 

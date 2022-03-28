@@ -1,7 +1,7 @@
 import { createTestModel } from '../src';
 import { assign, createMachine } from 'xstate';
 import { getDescription } from '../src/utils';
-import { stateValueCoverage } from '../src/coverage';
+import { coversAllStates } from '../src/coverage';
 
 describe('die hard example', () => {
   interface DieHardContext {
@@ -270,7 +270,7 @@ describe('die hard example', () => {
       }
     }
 
-    const coverage = dieHardModel.getCoverage(stateValueCoverage());
+    const coverage = dieHardModel.getCoverage(coversAllStates());
 
     expect(coverage.every((c) => c.status === 'covered')).toEqual(true);
 
@@ -292,7 +292,7 @@ describe('die hard example', () => {
       ]
     `);
 
-    expect(() => dieHardModel.testCoverage(stateValueCoverage())).not.toThrow();
+    expect(() => dieHardModel.testCoverage(coversAllStates())).not.toThrow();
   });
 });
 describe('error path trace', () => {

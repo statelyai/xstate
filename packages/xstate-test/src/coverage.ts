@@ -9,7 +9,7 @@ interface StateValueCoverageOptions {
   filter?: (stateNode: AnyStateNode) => boolean;
 }
 
-export function allStates(
+export function coversAllStates(
   options?: StateValueCoverageOptions
 ): (testModel: TestModel<AnyState, any>) => Array<Criterion<AnyState>> {
   const resolvedOptions: Required<StateValueCoverageOptions> = {
@@ -35,7 +35,7 @@ export function allStates(
   };
 }
 
-export function allTransitions(): (
+export function coversAllTransitions(): (
   testModel: TestModel<AnyState, any>
 ) => Array<Criterion<AnyState>> {
   return (testModel) => {
