@@ -8,13 +8,13 @@ import type {
 } from 'xstate';
 import { flatten } from '.';
 import { TestModel } from './TestModel';
-import { TestModelOptions, TestEventConfig } from './types';
+import { TestModelOptions } from './types';
 
-export async function testMachineState(state: AnyState, testContext: any) {
+export async function testMachineState(state: AnyState) {
   for (const id of Object.keys(state.meta)) {
     const stateNodeMeta = state.meta[id];
     if (typeof stateNodeMeta.test === 'function' && !stateNodeMeta.skip) {
-      await stateNodeMeta.test(testContext, state);
+      await stateNodeMeta.test(state);
     }
   }
 }
@@ -56,54 +56,46 @@ export function executeAction(
  * - `events`: an object mapping string event types (e.g., `SUBMIT`)
  * to an event test config (e.g., `{exec: () => {...}, cases: [...]}`)
  */
-export function createTestModel<
-  TMachine extends AnyStateMachine,
-  TestContext = any
->(
+export function createTestModel<TMachine extends AnyStateMachine>(
   machine: TMachine,
-  options?: Partial<
-    TestModelOptions<StateFrom<TMachine>, EventFrom<TMachine>, TestContext>
-  >
-): TestModel<StateFrom<TMachine>, EventFrom<TMachine>, TestContext> {
-  const testModel = new TestModel<
-    StateFrom<TMachine>,
-    EventFrom<TMachine>,
-    TestContext
-  >(machine as SimpleBehavior<any, any>, {
-    serializeState,
-    testState: testMachineState,
-    execute: (state) => {
-      state.actions.forEach((action) => {
-        executeAction(action, state);
-      });
-    },
-    getEvents: (state) =>
-      flatten(
-        state.nextEvents.map((eventType) => {
-          const eventCaseGenerator = options?.events?.[eventType]?.cases;
+  options?: Partial<TestModelOptions<StateFrom<TMachine>, EventFrom<TMachine>>>
+): TestModel<StateFrom<TMachine>, EventFrom<TMachine>> {
+  const testModel = new TestModel<StateFrom<TMachine>, EventFrom<TMachine>>(
+    machine as SimpleBehavior<any, any>,
+    {
+      serializeState,
+      testState: testMachineState,
+      execute: (state) => {
+        state.actions.forEach((action) => {
+          executeAction(action, state);
+        });
+      },
+      getEvents: (state) =>
+        flatten(
+          state.nextEvents.map((eventType) => {
+            const eventCaseGenerator = options?.events?.[eventType]?.cases;
 
-          return (
-            // Use generated events or a plain event without payload
-            (
-              eventCaseGenerator?.() ?? [
-                { type: eventType } as EventFrom<TMachine>
-              ]
-            ).map((e) => {
-              return { type: eventType, ...e };
-            })
-          );
-        })
-      ),
-    testTransition: async (step, testContext) => {
-      // TODO: fix types
-      const eventConfig = options?.events?.[
-        (step.event as any).type
-      ] as TestEventConfig<any>;
+            return (
+              // Use generated events or a plain event without payload
+              (
+                eventCaseGenerator?.() ?? [
+                  { type: eventType } as EventFrom<TMachine>
+                ]
+              ).map((e) => {
+                return { type: eventType, ...(e as any) };
+              })
+            );
+          })
+        ),
+      testTransition: async (step) => {
+        // TODO: fix types
+        const eventConfig = options?.events?.[(step.event as any).type] as any;
 
-      await eventConfig?.exec?.(step as any, testContext);
-    },
-    ...options
-  });
+        await eventConfig?.exec?.(step as any);
+      },
+      ...options
+    }
+  );
 
   return testModel;
 }

@@ -306,7 +306,9 @@ export function getSimplePaths<
   );
 }
 
-export function toDirectedGraph(stateNode: AnyStateNode): DirectedGraphNode {
+export function toDirectedGraph(
+  stateNode: AnyStateNode | AnyStateMachine
+): DirectedGraphNode {
   const edges: DirectedGraphEdge[] = flatten(
     stateNode.transitions.map((t, transitionIndex) => {
       const targets = t.target ? t.target : [stateNode];

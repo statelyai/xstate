@@ -47,14 +47,14 @@ import { formatPathTestResult, simpleStringify } from './utils';
  *
  */
 
-export class TestModel<TState, TEvent extends EventObject, TTestContext> {
+export class TestModel<TState, TEvent extends EventObject> {
   private _coverage: TestModelCoverage<TState> = {
     states: {},
     transitions: {}
   };
-  public options: TestModelOptions<TState, TEvent, TTestContext>;
+  public options: TestModelOptions<TState, TEvent>;
   public defaultTraversalOptions?: TraversalOptions<TState, TEvent>;
-  public getDefaultOptions(): TestModelOptions<TState, TEvent, TTestContext> {
+  public getDefaultOptions(): TestModelOptions<TState, TEvent> {
     return {
       serializeState: (state) => simpleStringify(state) as SerializedState,
       serializeEvent: (event) => simpleStringify(event) as SerializedEvent,
@@ -73,7 +73,7 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
 
   constructor(
     public behavior: SimpleBehavior<TState, TEvent>,
-    options?: Partial<TestModelOptions<TState, TEvent, TTestContext>>
+    options?: Partial<TestModelOptions<TState, TEvent>>
   ) {
     this.options = {
       ...this.getDefaultOptions(),
@@ -170,26 +170,30 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
 
   public async testPlans(
     plans: Array<StatePlan<TState, TEvent>>,
-    testContext: TTestContext
+    options?: Partial<TestModelOptions<TState, TEvent>>
   ) {
     for (const plan of plans) {
-      await this.testPlan(plan, testContext);
+      await this.testPlan(plan, options);
     }
   }
 
   public async testPlan(
     plan: StatePlan<TState, TEvent>,
-    testContext: TTestContext
+    options?: Partial<TestModelOptions<TState, TEvent>>
   ) {
     for (const path of plan.paths) {
-      await this.testPath(path, testContext);
+      await this.testPath(path, options);
     }
   }
 
   public async testPath(
     path: StatePath<TState, TEvent>,
-    testContext: TTestContext
+    options?: Partial<TestModelOptions<TState, TEvent>>
   ) {
+    const resolvedOptions = this.resolveOptions(options);
+
+    await resolvedOptions.beforePath?.();
+
     const testPathResult: TestPathResult = {
       steps: [],
       state: {
@@ -208,7 +212,7 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
         testPathResult.steps.push(testStepResult);
 
         try {
-          await this.testState(step.state, testContext);
+          await this.testState(step.state, options);
         } catch (err) {
           testStepResult.state.error = err;
 
@@ -216,7 +220,7 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
         }
 
         try {
-          await this.testTransition(step, testContext);
+          await this.testTransition(step);
         } catch (err) {
           testStepResult.event.error = err;
 
@@ -225,7 +229,7 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
       }
 
       try {
-        await this.testState(path.state, testContext);
+        await this.testState(path.state, options);
       } catch (err) {
         testPathResult.state.error = err.message;
         throw err;
@@ -234,16 +238,20 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
       // TODO: make option
       err.message += formatPathTestResult(path, testPathResult, this.options);
       throw err;
+    } finally {
+      await resolvedOptions.afterPath?.();
     }
   }
 
   public async testState(
     state: TState,
-    testContext: TTestContext
+    options?: Partial<TestModelOptions<TState, TEvent>>
   ): Promise<void> {
-    await this.options.testState(state, testContext);
+    const resolvedOptions = this.resolveOptions(options);
 
-    await this.options.execute(state, testContext);
+    await resolvedOptions.testState(state);
+
+    await resolvedOptions.execute(state);
 
     this.addStateCoverage(state);
   }
@@ -263,11 +271,8 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
     }
   }
 
-  public async testTransition(
-    step: Step<TState, TEvent>,
-    testContext: TTestContext
-  ): Promise<void> {
-    await this.options.testTransition(step, testContext);
+  public async testTransition(step: Step<TState, TEvent>): Promise<void> {
+    await this.options.testTransition(step);
 
     this.addTransitionCoverage(step);
   }
@@ -291,8 +296,8 @@ export class TestModel<TState, TEvent extends EventObject, TTestContext> {
   }
 
   public resolveOptions(
-    options?: Partial<TestModelOptions<TState, TEvent, TTestContext>>
-  ): TestModelOptions<TState, TEvent, TTestContext> {
+    options?: Partial<TestModelOptions<TState, TEvent>>
+  ): TestModelOptions<TState, TEvent> {
     return { ...this.defaultTraversalOptions, ...this.options, ...options };
   }
 

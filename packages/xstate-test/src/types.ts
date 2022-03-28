@@ -99,15 +99,11 @@ export type StatePredicate<TState> = (state: TState) => boolean;
  * Executes an effect using the `testContext` and `event`
  * that triggers the represented `event`.
  */
-export type EventExecutor<T> = (
-  step: TestStep<any>,
-  /**
-   * The testing context used to execute the effect
-   */
-  testContext: T
+export type EventExecutor<TState, TEvent extends EventObject> = (
+  step: Step<TState, TEvent>
 ) => Promise<any> | void;
 
-export interface TestEventConfig<TTestContext> {
+export interface TestEventConfig<TState, TEvent extends EventObject> {
   /**
    * Executes an effect that triggers the represented event.
    *
@@ -119,7 +115,7 @@ export interface TestEventConfig<TTestContext> {
    * }
    * ```
    */
-  exec?: EventExecutor<TTestContext>;
+  exec?: EventExecutor<TState, TEvent>;
   /**
    * Sample event object payloads _without_ the `type` property.
    *
@@ -135,45 +131,44 @@ export interface TestEventConfig<TTestContext> {
   cases?: EventCase[];
 }
 
-export interface TestEventsConfig<TTestContext> {
+export interface TestEventsConfig<TState, TEvent extends EventObject> {
   [eventType: string]:
-    | EventExecutor<TTestContext>
-    | TestEventConfig<TTestContext>;
+    | EventExecutor<TState, TEvent>
+    | TestEventConfig<TState, TEvent>;
 }
 
-export interface TestModelEventConfig<
-  TEvent extends EventObject,
-  TTestContext
-> {
+export interface TestModelEventConfig<TState, TEvent extends EventObject> {
   cases?: () => Array<Omit<TEvent, 'type'> | TEvent>;
-  exec?: EventExecutor<TTestContext>;
+  exec?: EventExecutor<TState, TEvent>;
 }
 
-export interface TestModelOptions<
-  TState,
-  TEvent extends EventObject,
-  TTestContext
-> extends TraversalOptions<TState, TEvent> {
-  testState: (state: TState, testContext: TTestContext) => void | Promise<void>;
-  testTransition: (
-    step: Step<TState, TEvent>,
-    testContext: TTestContext
-  ) => void | Promise<void>;
+export interface TestModelOptions<TState, TEvent extends EventObject>
+  extends TraversalOptions<TState, TEvent> {
+  testState: (state: TState) => void | Promise<void>;
+  testTransition: (step: Step<TState, TEvent>) => void | Promise<void>;
   /**
    * Executes actions based on the `state` after the state is tested.
    */
-  execute: (state: TState, testContext: TTestContext) => void | Promise<void>;
+  execute: (state: TState) => void | Promise<void>;
   getStates: () => TState[];
   events: {
-    [TEventType in TEvent['type']]?: TestModelEventConfig<
-      ExtractEvent<TEvent, TEventType>,
-      TTestContext
+    [TEventType in string /* TODO: TEvent['type'] */]?: TestModelEventConfig<
+      TState,
+      ExtractEvent<TEvent, TEventType>
     >;
   };
   logger: {
     log: (msg: string) => void;
     error: (msg: string) => void;
   };
+  /**
+   * Executed before each path is tested
+   */
+  beforePath?: () => void | Promise<void>;
+  /**
+   * Executed after each path is tested
+   */
+  afterPath?: () => void | Promise<void>;
 }
 
 export interface TestStateCoverage<TState> {

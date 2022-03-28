@@ -4,7 +4,7 @@ import { TestEventsConfig } from './types';
 export { createTestModel } from './machine';
 
 export function getEventSamples<TEvent extends EventObject>(
-  eventsOptions: TestEventsConfig<any>
+  eventsOptions: TestEventsConfig<any, TEvent> // TODO
 ): TEvent[] {
   const result: TEvent[] = [];
 
