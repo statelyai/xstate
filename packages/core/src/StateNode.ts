@@ -953,9 +953,13 @@ class StateNode<
 
     const isInternal = !!selectedTransition.internal;
 
-    const reentryNodes = isInternal
-      ? []
-      : flatten(allNextStateNodes.map((n) => this.nodesFromChild(n)));
+    const reentryNodes: StateNode<any, any, any, any, any>[] = [];
+
+    if (!isInternal) {
+      allNextStateNodes.forEach((n1) => {
+        reentryNodes.push(...this.getExternalReentryNodes(n1));
+      });
+    }
 
     return {
       transitions: [selectedTransition],
@@ -967,13 +971,9 @@ class StateNode<
     };
   }
 
-  private nodesFromChild(
+  private getExternalReentryNodes(
     childStateNode: StateNode<TContext, any, TEvent, any, any, any>
   ): Array<StateNode<TContext, any, TEvent, any, any, any>> {
-    if (childStateNode.escapes(this)) {
-      return [];
-    }
-
     const nodes: Array<StateNode<TContext, any, TEvent, any, any, any>> = [];
     let marker:
       | StateNode<TContext, any, TEvent, any, any, any>
@@ -983,32 +983,16 @@ class StateNode<
       nodes.push(marker);
       marker = marker.parent;
     }
-    nodes.push(this); // inclusive
-
+    if (marker !== this) {
+      // we never got to `this`, therefore the `childStateNode` "escapes" it
+      // it's in a different part of the tree so no states will be reentered for such an external transition
+      return [];
+    }
+    // root is never exited, so it also can't be reentered
+    if (marker.parent) {
+      nodes.push(this);
+    }
     return nodes;
-  }
-
-  /**
-   * Whether the given state node "escapes" this state node. If the `stateNode` is equal to or the parent of
-   * this state node, it does not escape.
-   */
-  private escapes(
-    stateNode: StateNode<TContext, any, TEvent, any, any, any>
-  ): boolean {
-    if (this === stateNode) {
-      return false;
-    }
-
-    let parent = this.parent;
-
-    while (parent) {
-      if (parent === stateNode) {
-        return false;
-      }
-      parent = parent.parent;
-    }
-
-    return true;
   }
 
   private getActions(
