@@ -1256,8 +1256,9 @@ describe('forwardTo()', () => {
 
     const service = interpret(machine).start();
 
-    // This is testing for an infinite loop
-    service.send('TEST');
+    expect(() => service.send('TEST')).toThrowErrorMatchingInlineSnapshot(
+      `"Attempted to forward event to undefined actor. This risks an infinite loop in the sender."`
+    );
   });
 });
 
