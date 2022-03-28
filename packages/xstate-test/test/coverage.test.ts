@@ -1,6 +1,6 @@
 import { createTestModel } from '../src';
 import { createMachine } from 'xstate';
-import { allStates, allTransitions } from '../src/coverage';
+import { coversAllStates, coversAllTransitions } from '../src/coverage';
 
 describe('coverage', () => {
   it('reports missing state node coverage', async () => {
@@ -37,7 +37,7 @@ describe('coverage', () => {
 
     expect(
       testModel
-        .getCoverage(allStates())
+        .getCoverage(coversAllStates())
         .filter((c) => c.status !== 'covered')
         .map((c) => c.criterion.description)
     ).toMatchInlineSnapshot(`
@@ -47,7 +47,7 @@ describe('coverage', () => {
       ]
     `);
 
-    expect(() => testModel.testCoverage(allStates()))
+    expect(() => testModel.testCoverage(coversAllStates()))
       .toThrowErrorMatchingInlineSnapshot(`
       "Coverage criteria not met:
       	Visits \\"test.secondMissing\\"
@@ -87,13 +87,13 @@ describe('coverage', () => {
       await model.testPlan(plan);
     }
 
-    const coverage = model.getCoverage(allStates());
+    const coverage = model.getCoverage(coversAllStates());
 
     expect(coverage).toHaveLength(5);
 
     expect(coverage.filter((c) => c.status !== 'covered')).toHaveLength(0);
 
-    expect(() => model.testCoverage(allStates())).not.toThrow();
+    expect(() => model.testCoverage(coversAllStates())).not.toThrow();
   });
 
   it('skips filtered states (filter option)', async () => {
@@ -133,7 +133,7 @@ describe('coverage', () => {
 
     expect(() => {
       testModel.testCoverage(
-        allStates({
+        coversAllStates({
           filter: (stateNode) => {
             return stateNode.key !== 'passthrough';
           }
@@ -186,7 +186,7 @@ describe('coverage', () => {
     // TODO: determine how to handle missing coverage for transient states,
     // which arguably should not be counted towards coverage, as the app is never in
     // a transient state for any length of time
-    model.testCoverage(allStates());
+    model.testCoverage(coversAllStates());
   });
 
   it('tests transition coverage', async () => {
@@ -208,7 +208,7 @@ describe('coverage', () => {
     await model.testPlans(model.getShortestPlans());
 
     expect(() => {
-      model.testCoverage(allTransitions());
+      model.testCoverage(coversAllTransitions());
     }).toThrowErrorMatchingInlineSnapshot(`
       "Coverage criteria not met:
       	Transitions a on event EVENT_TWO"
@@ -217,7 +217,7 @@ describe('coverage', () => {
     await model.testPlans(model.getSimplePlans());
 
     expect(() => {
-      model.testCoverage(allTransitions());
+      model.testCoverage(coversAllTransitions());
     }).not.toThrow();
   });
 });
