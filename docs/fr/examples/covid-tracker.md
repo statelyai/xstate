@@ -1,11 +1,11 @@
-# Covid Tracker
+# Traqueur Covid
 
-This example shows a current statistics about COVID-19 pandemic filtered by countries using XState and React. It contains:
+Cet exemple montre des statistiques actuelles sur la pandémie de COVID-19 filtrées par pays utilisant xState et React. Il contient:
 
-- `covidMachine` - handles country selection, including a "sub-state" responsible for fetching the list of all countries across the globe
-- `covidDataMachine` - handles fetching specific statistics (including `confirmed`, `deaths`, `recovered` cases) based on selected country
+- `covidMachine` - gère la sélection des pays, y compris un "sous-état" chargé de récupérer la liste de tous les pays du monde
+- `covidDataMachine` - gère la récupération de statistiques spécifiques (y compris les cas : `confirmed`, `deaths`, `recovered`) en fonction du pays sélectionné
 
-The two child components `<Indicator />` and `<Chart />` that responsibles of rendering data, consumes the service from the `MachineProvider` context provider
+Les deux composants enfants `<Indicator />` et `<Chart />` qui sont responsables de la restitution des données, consomment le service provenant de `MachineProvider`.
 
 <iframe
   src="https://codesandbox.io/embed/covid-state-machine-lromu?fontsize=14&hidenavigation=1&theme=dark"

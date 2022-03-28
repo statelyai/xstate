@@ -26,7 +26,7 @@
 - [Getting Started with XState](https://www.vietnguyen.site/getting-started-with-xstate/) par [Viet Nguyen](https://www.vietnguyen.site)
   - Un exemple d'utilisation de XState avec NextJS
 - [Chatbot PureUI avec Xstate + React](https://dev.to/cris_o/pure-ui-using-xstate-and-reactjs-5em7)
-  - construit un chatbot en utilisant XState et reactjs
+  - construire un chatbot en utilisant XState et reactjs
 
 ## Vidéos
 
