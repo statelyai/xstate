@@ -1,11 +1,11 @@
-# Counter
+# Compteur
 
-This counter app example demonstrates a counter that has a single `'active'` state and two possible events:
+Cet exemple d'application de compteur montre un compteur qui a un seul état (`'active'`) et deux événements possibles :
 
-- `'INC'` - an intent to increment the current count by 1
-- `'DEC'` - an intent to decrement the current count by 1
+- `'INC'` - incrémenter le nombre actuel de 1
+- `'DEC'` - décrémenter le nombre actuel de 1
 
-The `count` is [stored in `context`](../guides/context.md).
+La valeur de la variable `count` est stocké dans le [`contexte`](../guides/context.md).
 
 ```js
 import { createMachine, interpret, assign } from 'xstate';
@@ -43,9 +43,9 @@ counterService.send('DEC');
 // => 1
 ```
 
-## Modeling Min and Max
+## Modélisation Min et Max
 
-With [guards](../guides/guards.md), we can model min and max by preventing transitions on the `'DEC'` and `'INC'` events on certain values, respectively:
+Avec les [protections](../guides/guards.md), nous pouvons introduire un minimum et un maximum en empêchant les transitions sur les événements `'DEC'` et `'INC'` sur certaines valeurs, respectivement :
 
 ```js
 // ...
@@ -76,10 +76,10 @@ const counterMachine = createMachine({
 
 // ...
 
-// assume context is { count: 9 }
+// Supposons que le valeur du contexte était { count: 9 }
 counterService.send('INC');
 // => 10
 
-counterService.send('INC'); // no transition taken!
+counterService.send('INC'); // Pas de transition !
 // => 10
 ```
