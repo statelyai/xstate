@@ -1,5 +1,5 @@
 import { raise, assign } from '../src/actions';
-import { createMachine, interpret, Machine } from '../src';
+import { createMachine, interpret, Machine, StateValue } from '../src';
 import { testMultiTransition } from './utils';
 
 const composerMachine = Machine({
@@ -504,7 +504,7 @@ describe('parallel states', () => {
     });
   });
 
-  const expected = {
+  const expected: Record<string, Record<string, StateValue>> = {
     'bold.off': {
       TOGGLE_BOLD: {
         bold: 'on',
@@ -986,5 +986,60 @@ describe('parallel states', () => {
       .start();
 
     service.send('FINISH');
+  });
+
+  it('should raise a "done.state.*" event when a pseudostate of a history type is directly on a parallel state', () => {
+    const machine = createMachine({
+      initial: 'parallelSteps',
+      states: {
+        parallelSteps: {
+          type: 'parallel',
+          states: {
+            hist: {
+              type: 'history'
+            },
+            one: {
+              initial: 'wait_one',
+              states: {
+                wait_one: {
+                  on: {
+                    finish_one: {
+                      target: 'done'
+                    }
+                  }
+                },
+                done: {
+                  type: 'final'
+                }
+              }
+            },
+            two: {
+              initial: 'wait_two',
+              states: {
+                wait_two: {
+                  on: {
+                    finish_two: {
+                      target: 'done'
+                    }
+                  }
+                },
+                done: {
+                  type: 'final'
+                }
+              }
+            }
+          },
+          onDone: 'finished'
+        },
+        finished: {}
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    service.send({ type: 'finish_one' });
+    service.send({ type: 'finish_two' });
+
+    expect(service.state.value).toBe('finished');
   });
 });

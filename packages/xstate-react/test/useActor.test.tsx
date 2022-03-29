@@ -8,9 +8,9 @@ import {
   createMachine,
   interpret,
   sendParent,
-  spawn
+  spawn,
+  toActorRef
 } from 'xstate';
-import { toActorRef } from 'xstate/lib/Actor';
 import { useMachine } from '../src';
 import { useActor } from '../src/useActor';
 

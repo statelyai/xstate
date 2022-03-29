@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import * as React from 'react';
 import { useState } from 'react';
 import {
+  AnyState,
   assign,
   createMachine,
   DoneEventObject,
@@ -60,7 +61,7 @@ describe('useMachine hook', () => {
 
   const Fetcher: React.FC<{
     onFetch: () => Promise<any>;
-    persistedState?: State<any, any, any, any, any>;
+    persistedState?: AnyState;
   }> = ({
     onFetch = () => new Promise((res) => res('some data')),
     persistedState

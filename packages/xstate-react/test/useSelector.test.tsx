@@ -1,7 +1,14 @@
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import * as React from 'react';
-import { assign, createMachine, interpret, spawn } from 'xstate';
-import { toActorRef } from 'xstate/lib/Actor';
-import { act, render, fireEvent, screen } from '@testing-library/react';
+import {
+  ActorRefFrom,
+  assign,
+  createMachine,
+  interpret,
+  spawn,
+  StateFrom,
+  toActorRef
+} from 'xstate';
 import { useInterpret, useMachine, useSelector } from '../src';
 
 describe('useSelector', () => {
@@ -152,12 +159,16 @@ describe('useSelector', () => {
     });
 
     const parentMachine = createMachine({
+      schema: {
+        context: {} as { childActor: ActorRefFrom<typeof childMachine> }
+      },
       entry: assign({
         childActor: () => spawn(childMachine)
       })
     });
 
-    const selector = (state) => state.context.count;
+    const selector = (state: StateFrom<typeof childMachine>) =>
+      state.context.count;
 
     const App = () => {
       const [state] = useMachine(parentMachine);
@@ -199,6 +210,11 @@ describe('useSelector', () => {
     });
 
     const parentMachine = createMachine({
+      schema: {
+        context: {} as {
+          childActor: ActorRefFrom<ReturnType<typeof createActor>>;
+        }
+      },
       entry: assign({
         childActor: () => spawn(createActor('foo'))
       })
@@ -241,6 +257,9 @@ describe('useSelector', () => {
     });
 
     const parentMachine = createMachine({
+      schema: {
+        context: {} as { childActor: ActorRefFrom<typeof childMachine> }
+      },
       entry: assign({
         childActor: () => spawn(childMachine)
       })
@@ -280,6 +299,9 @@ describe('useSelector', () => {
     });
 
     const parentMachine = createMachine({
+      schema: {
+        context: {} as { childActor: ActorRefFrom<typeof childMachine> }
+      },
       entry: assign({
         childActor: () => spawn(childMachine)
       })
@@ -327,6 +349,11 @@ describe('useSelector', () => {
     });
 
     const parentMachine = createMachine({
+      schema: {
+        context: {} as {
+          childActor: ActorRefFrom<ReturnType<typeof createActor>>;
+        }
+      },
       entry: assign({
         childActor: () => spawn(createActor('foo'))
       })

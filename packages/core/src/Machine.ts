@@ -1,4 +1,3 @@
-import { Model } from './model.types';
 import { StateNode } from './StateNode';
 import {
   AnyEventObject,
@@ -86,16 +85,14 @@ export function createMachine<
   TServiceMap extends ServiceMap = ServiceMap,
   TTypesMeta extends TypegenConstraint = TypegenDisabled
 >(
-  config: TContext extends Model<any, any, any, any>
-    ? 'Model type no longer supported as generic type. Please use `model.createMachine(...)` instead.'
-    : MachineConfig<
-        TContext,
-        any,
-        TEvent,
-        BaseActionObject,
-        TServiceMap,
-        TTypesMeta
-      >,
+  config: MachineConfig<
+    TContext,
+    any,
+    TEvent,
+    BaseActionObject,
+    TServiceMap,
+    TTypesMeta
+  >,
   options?: InternalMachineOptions<
     TContext,
     TEvent,
@@ -105,7 +102,7 @@ export function createMachine<
   TContext,
   any,
   TEvent,
-  any,
+  TTypestate,
   BaseActionObject,
   TServiceMap,
   ResolveTypegenMeta<TTypesMeta, TEvent, BaseActionObject, TServiceMap>

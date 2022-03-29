@@ -1,18 +1,18 @@
 import { useCallback, useEffect } from 'react';
+import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
 import {
-  EventObject,
-  StateMachine,
-  State,
-  InterpreterOptions,
-  StateConfig,
-  InterpreterStatus,
+  AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
+  EventObject,
   InternalMachineOptions,
   InterpreterFrom,
+  InterpreterOptions,
+  InterpreterStatus,
+  State,
+  StateConfig,
   StateFrom
 } from 'xstate';
 import { MaybeLazy, Prop } from './types';
-import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
 import { useIdleInterpreter } from './useInterpret';
 
 function identity<T>(a: T): T {
@@ -32,7 +32,7 @@ export interface UseMachineOptions<TContext, TEvent extends EventObject> {
 }
 
 type RestParams<
-  TMachine extends StateMachine<any, any, any, any, any, any, any>
+  TMachine extends AnyStateMachine
 > = AreAllImplementationsAssumedToBeProvided<
   TMachine['__TResolvedTypesMeta']
 > extends false
@@ -57,13 +57,11 @@ type RestParams<
     ];
 
 type UseMachineReturn<
-  TMachine extends StateMachine<any, any, any, any, any, any, any>,
+  TMachine extends AnyStateMachine,
   TInterpreter = InterpreterFrom<TMachine>
 > = [StateFrom<TMachine>, Prop<TInterpreter, 'send'>, TInterpreter];
 
-export function useMachine<
-  TMachine extends StateMachine<any, any, any, any, any, any, any>
->(
+export function useMachine<TMachine extends AnyStateMachine>(
   getMachine: MaybeLazy<TMachine>,
   ...[options = {}]: RestParams<TMachine>
 ): UseMachineReturn<TMachine> {

@@ -1,5 +1,17 @@
 # @xstate/fsm
 
+## 1.6.5
+
+### Patch Changes
+
+- [#3065](https://github.com/statelyai/xstate/pull/3065) [`de08b61ad`](https://github.com/statelyai/xstate/commit/de08b61adf2ad960a88085dc0f07b96fac0a8799) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with `state.matches(...)` narrowing down `state` to `never` for the "alternate" branch of the code when no type states were defined.
+
+## 1.6.4
+
+### Patch Changes
+
+- [#2957](https://github.com/statelyai/xstate/pull/2957) [`8550ddda7`](https://github.com/statelyai/xstate/commit/8550ddda73e2ad291e19173d7fa8d13e3336fbb9) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The repository links have been updated from `github.com/davidkpiano` to `github.com/statelyai`.
+
 ## 1.6.3
 
 ### Patch Changes

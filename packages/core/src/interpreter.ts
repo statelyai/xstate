@@ -31,9 +31,12 @@ import {
   ActorRefFrom,
   Behavior,
   StopActionObject,
-  Subscription
+  Subscription,
+  AnyState,
+  StateConfig,
+  InteropSubscribable
 } from './types';
-import { State, bindActionToState, isState } from './State';
+import { State, bindActionToState, isStateConfig } from './State';
 import * as actionTypes from './actionTypes';
 import { doneInvoke, error, getActionFunction, initEvent } from './actions';
 import { IS_PRODUCTION } from './environment';
@@ -41,7 +44,6 @@ import {
   isPromiseLike,
   mapContext,
   warn,
-  keys,
   isArray,
   isFunction,
   isString,
@@ -51,12 +53,11 @@ import {
   toEventObject,
   toSCXMLEvent,
   reportUnhandledExceptionOnInvocation,
-  symbolObservable,
   toInvokeSource,
   toObserver,
   isActor,
   isBehavior,
-  interopSymbols
+  symbolObservable
 } from './utils';
 import { Scheduler } from './scheduler';
 import { Actor, isSpawnedActor, createDeferredActor } from './Actor';
@@ -129,7 +130,7 @@ export class Interpreter<
    * - `clock` uses the global `setTimeout` and `clearTimeout` functions
    * - `logger` uses the global `console.log()` method
    */
-  public static defaultOptions = ((global) => ({
+  public static defaultOptions = {
     execute: true,
     deferEvents: true,
     clock: {
@@ -139,10 +140,10 @@ export class Interpreter<
       clearTimeout: (id) => {
         return clearTimeout(id);
       }
-    },
-    logger: global.console.log.bind(console),
+    } as Clock,
+    logger: console.log.bind(console),
     devTools: false
-  }))(typeof self !== 'undefined' ? self : global);
+  };
   /**
    * The current state of the interpreted machine.
    */
@@ -167,7 +168,7 @@ export class Interpreter<
   public options: Readonly<InterpreterOptions>;
 
   private scheduler: Scheduler = new Scheduler();
-  private delayedEventsMap: Record<string, number> = {};
+  private delayedEventsMap: Record<string, unknown> = {};
   private listeners: Set<
     StateListener<
       TContext,
@@ -298,13 +299,7 @@ export class Interpreter<
   }
 
   private update(
-    state: State<
-      TContext,
-      TEvent,
-      TStateSchema,
-      TTypestate,
-      TResolvedTypesMeta
-    >,
+    state: State<TContext, TEvent, TStateSchema, TTypestate, any>,
     _event: SCXML.Event<TEvent>
   ): void {
     // Attach session ID to state
@@ -354,7 +349,7 @@ export class Interpreter<
     if (this.state.configuration && isDone) {
       // get final child state node
       const finalChildStateNode = state.configuration.find(
-        (sn) => sn.type === 'final' && sn.parent === this.machine
+        (sn) => sn.type === 'final' && sn.parent === (this.machine as any)
       );
 
       const doneData =
@@ -393,16 +388,16 @@ export class Interpreter<
     return this;
   }
   public subscribe(
+    observer: Observer<
+      State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta>
+    >
+  ): Subscription;
+  public subscribe(
     nextListener?: (
       state: State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta>
     ) => void,
     errorListener?: (error: any) => void,
     completeListener?: () => void
-  ): Subscription;
-  public subscribe(
-    observer: Observer<
-      State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta>
-    >
   ): Subscription;
   public subscribe(
     nextListenerOrObserver?:
@@ -515,12 +510,19 @@ export class Interpreter<
   public start(
     initialState?:
       | State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta>
+      | StateConfig<TContext, TEvent>
       | StateValue
   ): this {
     if (this.status === InterpreterStatus.Running) {
       // Do not restart the service if it is already started
       return this;
     }
+
+    // yes, it's a hack but we need the related cache to be populated for some things to work (like delayed transitions)
+    // this is usually called by `machine.getInitialState` but if we rehydrate from a state we might bypass this call
+    // we also don't want to call this method here as it resolves the full initial state which might involve calling assign actions
+    // and that could potentially lead to some unwanted side-effects (even such as creating some rogue actors)
+    (this.machine as any)._init();
 
     registry.register(this.sessionId, this as Actor);
     this.initialized = true;
@@ -530,13 +532,7 @@ export class Interpreter<
       initialState === undefined
         ? this.initialState
         : serviceScope.provide(this, () => {
-            return isState<
-              TContext,
-              TEvent,
-              TStateSchema,
-              TTypestate,
-              TResolvedTypesMeta
-            >(initialState)
+            return isStateConfig<TContext, TEvent>(initialState)
               ? this.machine.resolveState(initialState)
               : this.machine.resolveState(
                   State.from(initialState, this.machine.context)
@@ -594,7 +590,7 @@ export class Interpreter<
     this.children.clear();
 
     // Cancel all delayed events
-    for (const key of keys(this.delayedEventsMap)) {
+    for (const key of Object.keys(this.delayedEventsMap)) {
       this.clock.clearTimeout(this.delayedEventsMap[key]);
     }
 
@@ -1177,7 +1173,9 @@ export class Interpreter<
         return { id };
       },
       getSnapshot: () => resolvedData,
-      ...interopSymbols
+      [symbolObservable]: function () {
+        return this;
+      }
     };
 
     this.children.set(id, actor);
@@ -1219,11 +1217,12 @@ export class Interpreter<
       id,
       send: (event) => receivers.forEach((receiver) => receiver(event)),
       subscribe: (next) => {
-        listeners.add(next);
+        const observer = toObserver(next);
+        listeners.add(observer.next);
 
         return {
           unsubscribe: () => {
-            listeners.delete(next);
+            listeners.delete(observer.next);
           }
         };
       },
@@ -1237,7 +1236,9 @@ export class Interpreter<
         return { id };
       },
       getSnapshot: () => emitted,
-      ...interopSymbols
+      [symbolObservable]: function () {
+        return this;
+      }
     };
 
     this.children.set(id, actor);
@@ -1276,7 +1277,9 @@ export class Interpreter<
       toJSON() {
         return { id };
       },
-      ...interopSymbols
+      [symbolObservable]: function () {
+        return this;
+      }
     };
 
     this.children.set(id, actor);
@@ -1321,7 +1324,9 @@ export class Interpreter<
       toJSON() {
         return { id };
       },
-      ...interopSymbols
+      [symbolObservable]: function () {
+        return this;
+      }
     });
   }
 
@@ -1337,7 +1342,7 @@ export class Interpreter<
           {
             name: this.id,
             autoPause: true,
-            stateSanitizer: (state: State<any, any>): object => {
+            stateSanitizer: (state: AnyState): object => {
               return {
                 value: state.value,
                 context: state.context,
@@ -1368,15 +1373,7 @@ export class Interpreter<
     };
   }
 
-  public [symbolObservable](): Subscribable<
-    State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta>
-  > {
-    return this;
-  }
-
-  // this gets stripped by Babel to avoid having "undefined" property in environments without this non-standard Symbol
-  // it has to be here to be included in the generated .d.ts
-  public [Symbol.observable](): Subscribable<
+  public [symbolObservable](): InteropSubscribable<
     State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta>
   > {
     return this;

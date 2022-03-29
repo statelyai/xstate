@@ -89,8 +89,10 @@ export interface TypegenMeta extends TypegenEnabled {
 }
 
 export interface ResolvedTypegenMeta extends TypegenMeta {
-  indexedActions: Record<string, BaseActionObject>;
-  indexedEvents: Record<string, EventObject>;
+  resolved: TypegenMeta & {
+    indexedActions: Record<string, BaseActionObject>;
+    indexedEvents: Record<string, EventObject>;
+  };
 }
 
 export type TypegenConstraint = TypegenEnabled | TypegenDisabled;
@@ -98,7 +100,10 @@ export type TypegenConstraint = TypegenEnabled | TypegenDisabled;
 // if combined union of all missing implementation types is never then everything has been provided
 export type AreAllImplementationsAssumedToBeProvided<
   TResolvedTypesMeta,
-  TMissingImplementations = Prop<TResolvedTypesMeta, 'missingImplementations'>
+  TMissingImplementations = Prop<
+    Prop<TResolvedTypesMeta, 'resolved'>,
+    'missingImplementations'
+  >
 > = IsAny<TResolvedTypesMeta> extends true
   ? true
   : TResolvedTypesMeta extends TypegenEnabled
@@ -113,16 +118,19 @@ export type AreAllImplementationsAssumedToBeProvided<
     : false
   : true;
 
-export type MarkAllImplementationsAsProvided<
-  TResolvedTypesMeta
-> = TResolvedTypesMeta & {
+interface AllImplementationsProvided {
   missingImplementations: {
     actions: never;
     delays: never;
     guards: never;
     services: never;
   };
-};
+}
+
+export interface MarkAllImplementationsAsProvided<TResolvedTypesMeta> {
+  '@@xstate/typegen': Prop<TResolvedTypesMeta, '@@xstate/typegen'>;
+  resolved: Prop<TResolvedTypesMeta, 'resolved'> & AllImplementationsProvided;
+}
 
 type GenerateServiceEvent<
   TServiceName,
@@ -164,33 +172,37 @@ type AllowAllEvents = {
   eventsCausingServices: Record<string, string>;
 };
 
-export type ResolveTypegenMeta<
+export interface ResolveTypegenMeta<
   TTypesMeta extends TypegenConstraint,
   TEvent extends EventObject,
   TAction extends BaseActionObject,
   TServiceMap extends ServiceMap
-> = TTypesMeta extends TypegenEnabled
-  ? TTypesMeta & {
-      indexedActions: IndexByType<TAction>;
-      indexedEvents: MergeWithInternalEvents<
-        IndexByType<
-          | (string extends TEvent['type'] ? never : TEvent)
-          | GenerateServiceEvents<
-              TServiceMap,
-              Prop<TTypesMeta, 'invokeSrcNameMap'>
-            >
-        >,
-        Prop<TTypesMeta, 'internalEvents'>
-      >;
-    }
-  : MarkAllImplementationsAsProvided<TypegenDisabled> &
-      AllowAllEvents & {
+> {
+  '@@xstate/typegen': TTypesMeta['@@xstate/typegen'];
+  resolved: TTypesMeta extends TypegenEnabled
+    ? TTypesMeta & {
         indexedActions: IndexByType<TAction>;
-        indexedEvents: Record<string, TEvent> & {
-          __XSTATE_ALLOW_ANY_INVOKE_DATA_HACK__: { data: any };
-        };
-        invokeSrcNameMap: Record<
-          string,
-          '__XSTATE_ALLOW_ANY_INVOKE_DATA_HACK__'
+        indexedEvents: MergeWithInternalEvents<
+          IndexByType<
+            | (string extends TEvent['type'] ? never : TEvent)
+            | GenerateServiceEvents<
+                TServiceMap,
+                Prop<TTypesMeta, 'invokeSrcNameMap'>
+              >
+          >,
+          Prop<TTypesMeta, 'internalEvents'>
         >;
-      };
+      }
+    : TypegenDisabled &
+        AllImplementationsProvided &
+        AllowAllEvents & {
+          indexedActions: IndexByType<TAction>;
+          indexedEvents: Record<string, TEvent> & {
+            __XSTATE_ALLOW_ANY_INVOKE_DATA_HACK__: { data: any };
+          };
+          invokeSrcNameMap: Record<
+            string,
+            '__XSTATE_ALLOW_ANY_INVOKE_DATA_HACK__'
+          >;
+        };
+}

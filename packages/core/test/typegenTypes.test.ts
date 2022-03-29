@@ -1,4 +1,4 @@
-import { assign, interpret } from '../src';
+import { assign, interpret, StateMachine } from '../src';
 import { createMachine } from '../src/Machine';
 import { createModel } from '../src/model';
 import { TypegenMeta } from '../src/typegenTypes';
@@ -1109,6 +1109,153 @@ describe('typegen types', () => {
             // @ts-expect-error
             ((_accept: number) => {})(event.data);
           }
+        }
+      }
+    );
+  });
+
+  it("shouldn't end up with `any` context after calling `state.matches`", () => {
+    interface TypesMeta extends TypegenMeta {
+      matchesStates: 'a' | 'b' | 'c';
+    }
+
+    const machine = createMachine({
+      tsTypes: {} as TypesMeta,
+
+      schema: {
+        context: {} as {
+          foo: string;
+        }
+      }
+    });
+
+    if (machine.initialState.matches('a')) {
+      // @ts-expect-error
+      machine.initialState.context.val;
+    }
+  });
+
+  it("shouldn't end up with `never` within a branch after two `state.matches` calls", () => {
+    interface TypesMeta extends TypegenMeta {
+      matchesStates: 'a' | 'a.b';
+    }
+
+    const machine = createMachine({
+      tsTypes: {} as TypesMeta,
+      schema: {
+        context: {} as {
+          foo: string;
+        }
+      }
+    });
+
+    const state = machine.initialState;
+
+    if (state.matches('a') && state.matches('a.b')) {
+      ((_accept: string) => {})(state.context.foo);
+    }
+  });
+
+  it('should be possible to pass typegen-less machines to functions expecting a machine argument that do not utilize the typegen information', () => {
+    const machine = createMachine({});
+
+    function acceptMachine<TContext, TEvent extends { type: string }>(
+      machine: StateMachine<TContext, any, TEvent>
+    ) {
+      return machine;
+    }
+
+    acceptMachine(machine);
+  });
+
+  it('should error on a provided action where there are no inferred actions', () => {
+    interface TypesMeta extends TypegenMeta {
+      eventsCausingActions: never;
+    }
+
+    createMachine(
+      {
+        tsTypes: {} as TypesMeta,
+        schema: {
+          context: {} as {
+            foo: string;
+          }
+        }
+      },
+      {
+        // @ts-expect-error
+        actions: {
+          testAction: () => {}
+        }
+      }
+    );
+  });
+
+  it('should error on a provided delay where there are no inferred delays', () => {
+    interface TypesMeta extends TypegenMeta {
+      eventsCausingDelays: never;
+    }
+
+    createMachine(
+      {
+        tsTypes: {} as TypesMeta,
+        schema: {
+          context: {} as {
+            foo: string;
+          }
+        }
+      },
+      {
+        // @ts-expect-error
+        delays: {
+          testDelay: () => {}
+        }
+      }
+    );
+  });
+
+  it('should error on a provided guard where there are no inferred guards', () => {
+    interface TypesMeta extends TypegenMeta {
+      eventsCausingGuards: never;
+    }
+
+    createMachine(
+      {
+        tsTypes: {} as TypesMeta,
+        schema: {
+          context: {} as {
+            foo: string;
+          }
+        }
+      },
+      {
+        // @ts-expect-error
+        guards: {
+          testGuard: () => {}
+        }
+      }
+    );
+  });
+
+  it('should error on a provided service where there are no declared services', () => {
+    interface TypesMeta extends TypegenMeta {
+      eventsCausingServices: never;
+      invokeSrcNameMap: never;
+    }
+
+    createMachine(
+      {
+        tsTypes: {} as TypesMeta,
+        schema: {
+          context: {} as {
+            foo: string;
+          }
+        }
+      },
+      {
+        // @ts-expect-error
+        services: {
+          testService: () => Promise.resolve(42)
         }
       }
     );

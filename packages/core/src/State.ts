@@ -16,7 +16,7 @@ import {
   SimpleEventsOf
 } from './types';
 import { EMPTY_ACTIVITY_MAP } from './constants';
-import { matchesState, keys, isString, warn } from './utils';
+import { matchesState, isString, warn } from './utils';
 import { StateNode } from './StateNode';
 import { getMeta, nextEvents } from './stateUtils';
 import { initEvent } from './actions';
@@ -40,8 +40,8 @@ export function stateValuesEqual(
     return a === b;
   }
 
-  const aKeys = keys(a as StateValueMap);
-  const bKeys = keys(b as StateValueMap);
+  const aKeys = Object.keys(a as StateValueMap);
+  const bKeys = Object.keys(b as StateValueMap);
 
   return (
     aKeys.length === bKeys.length &&
@@ -49,27 +49,20 @@ export function stateValuesEqual(
   );
 }
 
-export function isState<
-  TContext,
-  TEvent extends EventObject,
-  TStateSchema extends StateSchema<TContext> = any,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext },
-  TResolvedTypesMeta = TypegenDisabled
->(
-  state: object | string
-): state is State<
-  TContext,
-  TEvent,
-  TStateSchema,
-  TTypestate,
-  TResolvedTypesMeta
-> {
-  if (isString(state)) {
+export function isStateConfig<TContext, TEvent extends EventObject>(
+  state: any
+): state is StateConfig<TContext, TEvent> {
+  if (typeof state !== 'object' || state === null) {
     return false;
   }
 
-  return 'value' in state && 'history' in state;
+  return 'value' in state && '_event' in state;
 }
+
+/**
+ * @deprecated Use `isStateConfig(object)` or `state instanceof State` instead.
+ */
+export const isState = isStateConfig;
 
 export function bindActionToState<TC, TE extends EventObject>(
   action: ActionObject<TC, TE>,
@@ -222,7 +215,7 @@ export class State<
    * @param context
    */
   public static inert<TC, TE extends EventObject = EventObject>(
-    stateValue: State<TC, TE> | StateValue,
+    stateValue: State<TC, TE, any, any, any> | StateValue,
     context: TC
   ): State<TC, TE> {
     if (stateValue instanceof State) {
@@ -302,7 +295,7 @@ export class State<
     if (isString(stateValue)) {
       return [stateValue];
     }
-    const valueKeys = keys(stateValue);
+    const valueKeys = Object.keys(stateValue);
 
     return valueKeys.concat(
       ...valueKeys.map((key) =>
@@ -325,8 +318,13 @@ export class State<
    */
   public matches<
     TSV extends TResolvedTypesMeta extends TypegenEnabled
-      ? Prop<TResolvedTypesMeta, 'matchesStates'>
-      : TTypestate['value']
+      ? Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'matchesStates'>
+      : never
+  >(parentStateValue: TSV): boolean;
+  public matches<
+    TSV extends TResolvedTypesMeta extends TypegenDisabled
+      ? TTypestate['value']
+      : never
   >(
     parentStateValue: TSV
   ): this is State<
@@ -339,7 +337,8 @@ export class State<
     TStateSchema,
     TTypestate,
     TResolvedTypesMeta
-  > & { value: TSV } {
+  > & { value: TSV };
+  public matches(parentStateValue: StateValue): any {
     return matchesState(parentStateValue as StateValue, this.value);
   }
 
@@ -349,7 +348,7 @@ export class State<
    */
   public hasTag(
     tag: TResolvedTypesMeta extends TypegenEnabled
-      ? Prop<TResolvedTypesMeta, 'tags'>
+      ? Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'tags'>
       : string
   ): boolean {
     return this.tags.has(tag as string);
