@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 import {
   AnyStateMachine,
@@ -150,18 +150,19 @@ export function useInterpret<TMachine extends AnyStateMachine>(
 ): InterpreterFrom<TMachine> {
   const service = useIdleInterpreter(getMachine, options);
 
-  useIsomorphicLayoutEffect(() => {
-    let sub;
-    if (observerOrListener) {
-      sub = service.subscribe(toObserver(observerOrListener));
+  useEffect(() => {
+    if (!observerOrListener) {
+      return;
     }
 
+    let sub = service.subscribe(toObserver(observerOrListener));
+
     return () => {
-      sub?.unsubscribe();
+      sub.unsubscribe();
     };
   }, [observerOrListener]);
 
-  useIsomorphicLayoutEffect(() => {
+  useEffect(() => {
     const rehydratedState = options.state;
     service.start(
       rehydratedState ? (State.create(rehydratedState) as any) : undefined
