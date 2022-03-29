@@ -35,10 +35,10 @@ describe('delayed transitions', () => {
     expect(nextState.value).toEqual('yellow');
     expect(nextState.actions).toEqual([
       cancel(after(1000, 'light.green')),
-      {
+      expect.objectContaining({
         ...send(after(1000, 'light.yellow'), { delay: 1000 }),
         _event: toSCXMLEvent(after(1000, 'light.yellow'))
-      }
+      })
     ]);
   });
 
@@ -296,5 +296,23 @@ describe('delayed transitions', () => {
 
       expect(sendActions[0].delay).toEqual(undefined);
     });
+  });
+
+  it('the delayed action should provide the timestamp', () => {
+    const machine = createMachine({
+      initial: 'pending',
+      states: {
+        pending: {
+          after: {
+            100: 'started'
+          }
+        },
+        started: {}
+      }
+    });
+
+    const initialState = machine.initialState;
+
+    expect(typeof initialState.actions[0].timestamp).toBe('number');
   });
 });

@@ -251,7 +251,8 @@ export function resolveSend<
     to: resolvedTarget,
     _event: resolvedEvent,
     event: resolvedEvent.data,
-    delay: resolvedDelay
+    delay: resolvedDelay,
+    timestamp: Date.now()
   };
 }
 

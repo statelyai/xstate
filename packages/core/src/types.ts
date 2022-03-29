@@ -1268,6 +1268,7 @@ export interface SendActionObject<
   event: TSentEvent;
   delay?: number;
   id: string | number;
+  timestamp?: number;
 }
 
 export interface StopAction<TContext, TEvent extends EventObject>
