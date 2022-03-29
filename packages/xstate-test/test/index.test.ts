@@ -218,6 +218,7 @@ it('prevents infinite recursion based on a provided limit', () => {
   }).toThrowErrorMatchingInlineSnapshot(`"Traversal limit exceeded"`);
 });
 
+// TODO: have this as an opt-in
 it('executes actions', async () => {
   let executedActive = false;
   let executedDone = false;

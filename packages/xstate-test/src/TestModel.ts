@@ -326,6 +326,8 @@ export class TestModel<TState, TEvent extends EventObject> {
     });
   }
 
+  // TODO: criteriaFn can be array
+  // TODO: consider options
   public testCoverage(criteriaFn?: CoverageFunction<TState, TEvent>): void {
     const criteriaResult = this.getCoverage(criteriaFn);
 
