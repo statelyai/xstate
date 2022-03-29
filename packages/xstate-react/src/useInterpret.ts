@@ -1,36 +1,29 @@
 import { useEffect, useState } from 'react';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 import {
+  AnyInterpreter,
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
-  EventObject,
   InternalMachineOptions,
   interpret,
-  Interpreter,
   InterpreterFrom,
   InterpreterOptions,
   MachineOptions,
   Observer,
   State,
   StateFrom,
-  StateMachine,
-  toObserver,
-  Typestate
+  toObserver
 } from 'xstate';
 import { MaybeLazy } from './types';
 import useConstant from './useConstant';
 import { UseMachineOptions } from './useMachine';
 
-export function useIdleInterpreter<
-  TContext,
-  TEvent extends EventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
->(
-  getMachine: MaybeLazy<StateMachine<TContext, any, TEvent, TTypestate>>,
+export function useIdleInterpreter(
+  getMachine: MaybeLazy<AnyStateMachine>,
   options: Partial<InterpreterOptions> &
-    Partial<UseMachineOptions<TContext, TEvent>> &
-    Partial<MachineOptions<TContext, TEvent>>
-): Interpreter<TContext, any, TEvent, TTypestate> {
+    Partial<UseMachineOptions<unknown, never>> &
+    Partial<MachineOptions<unknown, never>>
+): AnyInterpreter {
   const machine = useConstant(() => {
     return typeof getMachine === 'function' ? getMachine() : getMachine;
   });
@@ -74,10 +67,7 @@ export function useIdleInterpreter<
       ...context
     }));
 
-    return interpret(machineWithConfig, {
-      deferEvents: true,
-      ...interpreterOptions
-    });
+    return interpret(machineWithConfig, interpreterOptions);
   });
 
   // Make sure options are kept updated when they change.
@@ -129,7 +119,7 @@ export function useInterpret<TMachine extends AnyStateMachine>(
   getMachine: MaybeLazy<TMachine>,
   ...[options = {}, observerOrListener]: RestParams<TMachine>
 ): InterpreterFrom<TMachine> {
-  const service = useIdleInterpreter(getMachine, options);
+  const service = useIdleInterpreter(getMachine, options as any);
 
   useEffect(() => {
     if (!observerOrListener) {
