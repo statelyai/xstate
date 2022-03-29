@@ -14,31 +14,12 @@ import {
   State,
   StateFrom,
   StateMachine,
+  toObserver,
   Typestate
 } from 'xstate';
 import { MaybeLazy } from './types';
 import useConstant from './useConstant';
 import { UseMachineOptions } from './useMachine';
-
-// copied from core/src/utils.ts
-// it avoids a breaking change between this package and XState which is its peer dep
-function toObserver<T>(
-  nextHandler: Observer<T> | ((value: T) => void),
-  errorHandler?: (error: any) => void,
-  completionHandler?: () => void
-): Observer<T> {
-  if (typeof nextHandler === 'object') {
-    return nextHandler;
-  }
-
-  const noop = () => void 0;
-
-  return {
-    next: nextHandler,
-    error: errorHandler || noop,
-    complete: completionHandler || noop
-  };
-}
 
 export function useIdleInterpreter<
   TContext,
