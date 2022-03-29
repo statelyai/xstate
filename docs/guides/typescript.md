@@ -569,6 +569,13 @@ entry: [
 ],
 ```
 
+ Or you can specify generics type by hand too, this allows to keep empty params args.
+```ts
+ assign<GameEngineContext, GameEngineEvents>({
+        color: () => _.sample(["bg-cyan-500", "bg-green-400", "bg-red-400"]),
+      })
+```
+
 This is a nasty bug to fix and involves moving our codebase to strict mode, but we're planning to do it in V5.
 
 ### `keyofStringsOnly`
