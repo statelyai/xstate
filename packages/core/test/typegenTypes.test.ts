@@ -475,7 +475,7 @@ describe('typegen types', () => {
     interpret(machine);
   });
 
-  it.skip('should not allow to create an actor out of a machine with missing implementations', () => {
+  it('should not allow to create an actor out of a machine with missing implementations', () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
         actions: 'myAction';
