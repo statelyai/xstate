@@ -498,7 +498,7 @@ describe('actors', () => {
       .start();
   });
 
-  it('should only spawn an actor in an initial state of a child that gets invoked in the initial state of a parent when the parent gets started', () => {
+  it('should spawn an actor in an initial state of a child that gets invoked in the initial state of a parent when the parent gets started', () => {
     let spawnCounter = 0;
 
     interface TestContext {

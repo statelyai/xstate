@@ -37,6 +37,8 @@ export type EventType = string;
 export type ActionType = string;
 export type MetaObject = Record<string, any>;
 
+export type Lazy<T> = () => T;
+
 /**
  * The full definition of an event, with a string `type`.
  */
@@ -1158,6 +1160,7 @@ export enum ActionTypes {
   Log = 'xstate.log',
   Init = 'xstate.init',
   Invoke = 'xstate.invoke',
+  Spawn = 'xstate.spawn',
   ErrorExecution = 'error.execution',
   ErrorCommunication = 'error.communication',
   ErrorPlatform = 'error.platform',

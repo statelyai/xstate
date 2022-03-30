@@ -60,6 +60,7 @@ import {
 import { State } from './State';
 import { StateNode } from './StateNode';
 import { IS_PRODUCTION } from './environment';
+import * as capturedState from './capturedState';
 
 export { actionTypes };
 
@@ -627,6 +628,8 @@ export function resolveActions<TContext, TEvent extends EventObject>(
     ? updateContext(currentContext, _event, assignActions, currentState)
     : currentContext;
 
+  otherActions.push(...capturedState.flushSpawns());
+
   const preservedContexts: TContext[] | undefined = preserveActionOrder
     ? [currentContext]
     : undefined;
@@ -741,7 +744,10 @@ export function resolveActions<TContext, TEvent extends EventObject>(
               currentState
             );
             preservedContexts?.push(updatedContext);
-            break;
+            return capturedState.flushSpawns();
+          }
+          case actionTypes.invoke: {
+            return actionObject;
           }
           default:
             let resolvedActionObject = toActionObject(

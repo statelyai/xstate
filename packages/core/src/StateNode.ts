@@ -103,9 +103,10 @@ import {
   isLeafNode,
   getTagsFromConfiguration
 } from './stateUtils';
-import { createInvocableActor } from './Actor';
+import { createDeferredActor } from './Actor';
 import { toInvokeDefinition } from './invokeUtils';
 import { TypegenDisabled } from './typegenTypes';
+import { flushSpawns } from './capturedState';
 
 const NULL_EVENT = '';
 const STATE_IDENTIFIER = '#';
@@ -1243,15 +1244,6 @@ class StateNode<
       currentState
     );
     const activities = currentState ? { ...currentState.activities } : {};
-    for (const action of actions) {
-      if (action.type === actionTypes.start) {
-        activities[
-          action.activity!.id || action.activity!.type
-        ] = action as ActivityDefinition<TContext, TEvent>;
-      } else if (action.type === actionTypes.stop) {
-        activities[action.activity!.id || action.activity!.type] = false;
-      }
-    }
 
     const [resolvedActions, updatedContext] = resolveActions(
       this,
@@ -1261,6 +1253,16 @@ class StateNode<
       actions,
       this.machine.config.preserveActionOrder
     );
+
+    for (const action of resolvedActions) {
+      if (action.type === actionTypes.start) {
+        activities[
+          action.activity!.id || action.activity!.type
+        ] = action as ActivityDefinition<TContext, TEvent>;
+      } else if (action.type === actionTypes.stop) {
+        activities[action.activity!.id || action.activity!.type] = false;
+      }
+    }
 
     const [raisedEvents, nonRaisedActions] = partition(
       resolvedActions,
@@ -1276,21 +1278,29 @@ class StateNode<
     );
 
     const invokeActions = resolvedActions.filter((action) => {
-      return (
-        action.type === actionTypes.start &&
-        (action as ActivityActionObject<TContext, TEvent>).activity?.type ===
-          actionTypes.invoke
-      );
+      if (action.type !== actionTypes.start) {
+        return false;
+      }
+      const type = (action as ActivityActionObject<TContext, TEvent>).activity
+        ?.type;
+      return type === actionTypes.invoke || type === actionTypes.spawn;
     }) as Array<InvokeActionObject<TContext, TEvent>>;
 
+    // TODO: those actions should probably be copied
     const children = invokeActions.reduce(
       (acc, action) => {
-        acc[action.activity.id] = createInvocableActor(
-          action.activity,
-          this.machine as any,
-          updatedContext,
-          _event
-        );
+        const activity = action.activity;
+
+        const autoForward =
+          'autoForward' in activity ? activity.autoForward : !!activity.forward;
+
+        const deferred =
+          activity.type === actionTypes.invoke
+            ? createDeferredActor({ name: activity.id, autoForward } as any)
+            : activity.deferred;
+        acc[activity.id] = deferred.actorRef;
+
+        activity.deferred = deferred;
 
         return acc;
       },
@@ -1628,6 +1638,7 @@ class StateNode<
   ): State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta> {
     this._init(); // TODO: this should be in the constructor (see note in constructor)
     const configuration = this.getStateNodes(stateValue);
+    const resolvedContext = context ?? this.machine.context;
 
     return this.resolveTransition(
       {
@@ -1636,10 +1647,10 @@ class StateNode<
         exitSet: [],
         transitions: [],
         source: undefined,
-        actions: []
+        actions: flushSpawns()
       },
       undefined,
-      context ?? this.machine.context,
+      resolvedContext,
       undefined
     );
   }

@@ -108,7 +108,7 @@ export function useMachine<TMachine extends AnyStateMachine>(
   const service = useInterpret(getMachine as any, options as any, listener);
 
   const [state, setState] = useState(() => {
-    const { initialState } = service.machine;
+    const { initialState } = service;
     return (options.state
       ? State.create(options.state as any)
       : initialState) as StateFrom<TMachine>;

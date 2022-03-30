@@ -25,6 +25,7 @@ import {
   Observer,
   Behavior
 } from './types';
+import * as actionTypes from './actionTypes';
 import {
   STATE_DELIMITER,
   DEFAULT_GUARD_TYPE,
@@ -34,7 +35,7 @@ import { IS_PRODUCTION } from './environment';
 import { StateNode } from './StateNode';
 import { State } from './State';
 import { Actor } from './Actor';
-import { AnyStateMachine } from '.';
+import { AnyEventObject, AnyInterpreter, AnyStateMachine } from '.';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
   return Object.keys(value) as Array<keyof T & string>;
@@ -718,4 +719,15 @@ export function toObserver<T>(
 
 export function createInvokeId(stateNodeId: string, index: number): string {
   return `${stateNodeId}:invocation[${index}]`;
+}
+
+export function wrapWithOrigin(parent: AnyInterpreter, event: AnyEventObject) {
+  return {
+    ...event,
+    name:
+      event.name === actionTypes.error
+        ? `${actionTypes.errorPlatform}.${parent.id}`
+        : event.name,
+    origin: parent.sessionId
+  };
 }

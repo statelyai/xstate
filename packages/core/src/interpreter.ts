@@ -11,13 +11,11 @@ import {
   ActionTypes,
   InvokeDefinition,
   SendActionObject,
-  InvokeCallback,
   DisposeActivityFunction,
   StateValue,
   InterpreterOptions,
   ActivityDefinition,
   SingleOrArray,
-  Subscribable,
   DoneEvent,
   MachineOptions,
   SCXML,
@@ -38,34 +36,30 @@ import {
 } from './types';
 import { State, bindActionToState, isStateConfig } from './State';
 import * as actionTypes from './actionTypes';
-import { doneInvoke, error, getActionFunction, initEvent } from './actions';
+import { doneInvoke, getActionFunction, initEvent } from './actions';
 import { IS_PRODUCTION } from './environment';
 import {
-  isPromiseLike,
   mapContext,
   warn,
   isArray,
   isFunction,
   isString,
-  isObservable,
   uniqueId,
   isMachine,
   toEventObject,
   toSCXMLEvent,
-  reportUnhandledExceptionOnInvocation,
   toInvokeSource,
-  toObserver,
   isActor,
-  isBehavior,
-  symbolObservable
+  symbolObservable,
+  wrapWithOrigin,
+  isBehavior
 } from './utils';
 import { Scheduler } from './scheduler';
-import { Actor, isSpawnedActor, createDeferredActor } from './Actor';
+import { Actor, createDeferredActor } from './Actor';
 import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
 import { getGlobal, registerService } from './devTools';
-import * as serviceScope from './serviceScope';
-import { spawnBehavior } from './behaviors';
+import { CapturedState, captureSpawn } from './capturedState';
 import {
   AreAllImplementationsAssumedToBeProvided,
   TypegenDisabled
@@ -251,14 +245,25 @@ export class Interpreter<
     TTypestate,
     TResolvedTypesMeta
   > {
+    // TODO: check if it's safe to cache this, especially when it comes to those spawns, they probably can't really be reused
     if (this._initialState) {
       return this._initialState;
     }
 
-    return serviceScope.provide(this, () => {
-      this._initialState = this.machine.initialState;
+    try {
+      CapturedState.current = {
+        actorRef: this,
+        spawns: []
+      };
+      const initialState = this.machine.initialState;
+      this._initialState = initialState;
       return this._initialState;
-    });
+    } finally {
+      CapturedState.current = {
+        actorRef: undefined,
+        spawns: []
+      };
+    }
   }
   public get state(): State<
     TContext,
@@ -312,11 +317,6 @@ export class Interpreter<
     if (this.options.execute) {
       this.execute(this.state);
     }
-
-    // Update children
-    this.children.forEach((child) => {
-      this.state.children[child.id] = child;
-    });
 
     // Dev tools
     if (this.devTools) {
@@ -531,13 +531,11 @@ export class Interpreter<
     const resolvedState =
       initialState === undefined
         ? this.initialState
-        : serviceScope.provide(this, () => {
-            return isStateConfig<TContext, TEvent>(initialState)
-              ? this.machine.resolveState(initialState)
-              : this.machine.resolveState(
-                  State.from(initialState, this.machine.context)
-                );
-          });
+        : isStateConfig<TContext, TEvent>(initialState)
+        ? this.machine.resolveState(initialState)
+        : this.machine.resolveState(
+            State.from(initialState, this.machine.context)
+          );
 
     if (this.options.devTools) {
       this.attachDev();
@@ -694,9 +692,18 @@ export class Interpreter<
 
         this.forward(_event);
 
-        nextState = serviceScope.provide(this, () => {
-          return this.machine.transition(nextState, _event);
-        });
+        try {
+          CapturedState.current = {
+            actorRef: this,
+            spawns: []
+          };
+          nextState = this.machine.transition(nextState, _event);
+        } finally {
+          CapturedState.current = {
+            actorRef: undefined,
+            spawns: []
+          };
+        }
 
         batchedActions.push(
           ...(nextState.actions.map((a) =>
@@ -757,12 +764,7 @@ export class Interpreter<
 
     if ('machine' in target) {
       // Send SCXML events to machines
-      (target as AnyInterpreter).send({
-        ...event,
-        name:
-          event.name === actionTypes.error ? `${error(this.id)}` : event.name,
-        origin: this.sessionId
-      });
+      (target as AnyInterpreter).send(wrapWithOrigin(this, event));
     } else {
       // Send normal events to other targets
       target.send(event.data);
@@ -789,11 +791,18 @@ export class Interpreter<
       throw (_event.data as any).data;
     }
 
-    const nextState = serviceScope.provide(this, () => {
+    try {
+      CapturedState.current = {
+        actorRef: this,
+        spawns: []
+      };
       return this.machine.transition(this.state, _event);
-    });
-
-    return nextState;
+    } finally {
+      CapturedState.current = {
+        actorRef: undefined,
+        spawns: []
+      };
+    }
   }
   private forward(event: SCXML.Event<TEvent>): void {
     for (const id of this.forwardTo) {
@@ -905,7 +914,7 @@ export class Interpreter<
             ? this.machine.options.services[invokeSource.type]
             : undefined;
 
-          const { id, data } = activity;
+          const { data } = activity;
 
           if (!IS_PRODUCTION) {
             warn(
@@ -915,11 +924,6 @@ export class Interpreter<
                 `Please use \`autoForward\` instead.`
             );
           }
-
-          const autoForward =
-            'autoForward' in activity
-              ? activity.autoForward
-              : !!activity.forward;
 
           if (!serviceCreator) {
             // tslint:disable-next-line:no-console
@@ -954,16 +958,18 @@ export class Interpreter<
             return;
           }
 
-          let options: SpawnOptions | undefined;
-
           if (isMachine(source)) {
             source = resolvedData ? source.withContext(resolvedData) : source;
-            options = {
-              autoForward
-            };
           }
 
-          this.spawn(source, id, options);
+          const isLazyEntity =
+            isMachine(source) || isFunction(source) || isBehavior(source);
+          activity.deferred.start({
+            parent: this,
+            entity: isLazyEntity ? source : () => source
+          });
+        } else if (activity.type === ActionTypes.Spawn) {
+          activity.deferred.start({ parent: this, entity: activity.entity });
         } else {
           this.spawnActivity(activity);
         }
@@ -1023,23 +1029,16 @@ export class Interpreter<
     name: string,
     options?: SpawnOptions
   ): ActorRef<any> {
-    if (isPromiseLike(entity)) {
-      return this.spawnPromise(Promise.resolve(entity), name);
-    } else if (isFunction(entity)) {
-      return this.spawnCallback(entity as InvokeCallback, name);
-    } else if (isSpawnedActor(entity)) {
-      return this.spawnActor(entity, name);
-    } else if (isObservable<TEvent>(entity)) {
-      return this.spawnObservable(entity, name);
-    } else if (isMachine(entity)) {
-      return this.spawnMachine(entity, { ...options, id: name });
-    } else if (isBehavior(entity)) {
-      return this.spawnBehavior(entity, name);
-    } else {
-      throw new Error(
-        `Unable to spawn entity "${name}" of type "${typeof entity}".`
+    if (!IS_PRODUCTION) {
+      console.warn(
+        "`interpreter.spawn` isn't supposed to be a public API. Please don't use this."
       );
     }
+    const { start, actorRef } = createDeferredActor(
+      resolveSpawnOptions({ ...options, name })
+    );
+    start({ parent: this, entity });
+    return actorRef;
   }
   public spawnMachine<
     TChildContext,
@@ -1049,245 +1048,16 @@ export class Interpreter<
     machine: StateMachine<TChildContext, TChildStateSchema, TChildEvent>,
     options: { id?: string; autoForward?: boolean; sync?: boolean } = {}
   ): ActorRef<TChildEvent, State<TChildContext, TChildEvent>> {
-    const childService = new Interpreter(machine, {
-      ...this.options, // inherit options from this interpreter
-      parent: this,
-      id: options.id || machine.id
-    });
-
-    const resolvedOptions = {
-      ...DEFAULT_SPAWN_OPTIONS,
-      ...options
-    };
-
-    if (resolvedOptions.sync) {
-      childService.onTransition((state) => {
-        this.send(actionTypes.update as any, {
-          state,
-          id: childService.id
-        });
-      });
+    if (!IS_PRODUCTION) {
+      console.warn(
+        "`interpreter.spawnMachine` isn't supposed to be a public API. Please don't use this."
+      );
     }
-
-    const actor = childService;
-
-    this.children.set(childService.id, actor);
-
-    if (resolvedOptions.autoForward) {
-      this.forwardTo.add(childService.id);
-    }
-
-    childService
-      .onDone((doneEvent) => {
-        this.removeChild(childService.id);
-        this.send(toSCXMLEvent(doneEvent as any, { origin: childService.id }));
-      })
-      .start();
-
-    return actor;
-  }
-  private spawnBehavior<TActorEvent extends EventObject, TEmitted>(
-    behavior: Behavior<TActorEvent, TEmitted>,
-    id: string
-  ): ActorRef<TActorEvent, TEmitted> {
-    const actorRef = spawnBehavior(behavior, { id, parent: this });
-
-    this.children.set(id, actorRef);
-
+    const { start, actorRef } = createDeferredActor(
+      resolveSpawnOptions(options)
+    );
+    start({ parent: this, entity: machine });
     return actorRef;
-  }
-  private spawnPromise<T>(promise: Promise<T>, id: string): ActorRef<never, T> {
-    let canceled = false;
-    let resolvedData: T | undefined;
-
-    promise.then(
-      (response) => {
-        if (!canceled) {
-          resolvedData = response;
-          this.removeChild(id);
-          this.send(
-            toSCXMLEvent(doneInvoke(id, response) as any, { origin: id })
-          );
-        }
-      },
-      (errorData) => {
-        if (!canceled) {
-          this.removeChild(id);
-          const errorEvent = error(id, errorData);
-          try {
-            // Send "error.platform.id" to this (parent).
-            this.send(toSCXMLEvent(errorEvent as any, { origin: id }));
-          } catch (error) {
-            reportUnhandledExceptionOnInvocation(errorData, error, id);
-            if (this.devTools) {
-              this.devTools.send(errorEvent, this.state);
-            }
-            if (this.machine.strict) {
-              // it would be better to always stop the state machine if unhandled
-              // exception/promise rejection happens but because we don't want to
-              // break existing code so enforce it on strict mode only especially so
-              // because documentation says that onError is optional
-              this.stop();
-            }
-          }
-        }
-      }
-    );
-
-    const actor: ActorRef<never, T> = {
-      id,
-      send: () => void 0,
-      subscribe: (next, handleError?, complete?) => {
-        const observer = toObserver(next, handleError, complete);
-
-        let unsubscribed = false;
-        promise.then(
-          (response) => {
-            if (unsubscribed) {
-              return;
-            }
-            observer.next(response);
-            if (unsubscribed) {
-              return;
-            }
-            observer.complete();
-          },
-          (err) => {
-            if (unsubscribed) {
-              return;
-            }
-            observer.error(err);
-          }
-        );
-
-        return {
-          unsubscribe: () => (unsubscribed = true)
-        };
-      },
-      stop: () => {
-        canceled = true;
-      },
-      toJSON() {
-        return { id };
-      },
-      getSnapshot: () => resolvedData,
-      [symbolObservable]: function () {
-        return this;
-      }
-    };
-
-    this.children.set(id, actor);
-
-    return actor;
-  }
-  private spawnCallback(callback: InvokeCallback, id: string): ActorRef<any> {
-    let canceled = false;
-    const receivers = new Set<(e: EventObject) => void>();
-    const listeners = new Set<(e: EventObject) => void>();
-    let emitted: TEvent | undefined;
-
-    const receive = (e: TEvent) => {
-      emitted = e;
-      listeners.forEach((listener) => listener(e));
-      if (canceled) {
-        return;
-      }
-      this.send(toSCXMLEvent(e, { origin: id }));
-    };
-
-    let callbackStop;
-
-    try {
-      callbackStop = callback(receive, (newListener) => {
-        receivers.add(newListener);
-      });
-    } catch (err) {
-      this.send(error(id, err) as any);
-    }
-
-    if (isPromiseLike(callbackStop)) {
-      // it turned out to be an async function, can't reliably check this before calling `callback`
-      // because transpiled async functions are not recognizable
-      return this.spawnPromise(callbackStop as Promise<any>, id);
-    }
-
-    const actor = {
-      id,
-      send: (event) => receivers.forEach((receiver) => receiver(event)),
-      subscribe: (next) => {
-        const observer = toObserver(next);
-        listeners.add(observer.next);
-
-        return {
-          unsubscribe: () => {
-            listeners.delete(observer.next);
-          }
-        };
-      },
-      stop: () => {
-        canceled = true;
-        if (isFunction(callbackStop)) {
-          callbackStop();
-        }
-      },
-      toJSON() {
-        return { id };
-      },
-      getSnapshot: () => emitted,
-      [symbolObservable]: function () {
-        return this;
-      }
-    };
-
-    this.children.set(id, actor);
-
-    return actor;
-  }
-  private spawnObservable<T extends TEvent>(
-    source: Subscribable<T>,
-    id: string
-  ): ActorRef<any, T> {
-    let emitted: T | undefined;
-
-    const subscription = source.subscribe(
-      (value) => {
-        emitted = value;
-        this.send(toSCXMLEvent(value, { origin: id }));
-      },
-      (err) => {
-        this.removeChild(id);
-        this.send(toSCXMLEvent(error(id, err) as any, { origin: id }));
-      },
-      () => {
-        this.removeChild(id);
-        this.send(toSCXMLEvent(doneInvoke(id) as any, { origin: id }));
-      }
-    );
-
-    const actor: ActorRef<any, T> = {
-      id,
-      send: () => void 0,
-      subscribe: (next, handleError?, complete?) => {
-        return source.subscribe(next, handleError, complete);
-      },
-      stop: () => subscription.unsubscribe(),
-      getSnapshot: () => emitted,
-      toJSON() {
-        return { id };
-      },
-      [symbolObservable]: function () {
-        return this;
-      }
-    };
-
-    this.children.set(id, actor);
-
-    return actor;
-  }
-  private spawnActor<T extends ActorRef<any>>(actor: T, name: string): T {
-    this.children.set(name, actor);
-
-    return actor;
   }
   private spawnActivity(activity: ActivityDefinition<TContext, TEvent>): void {
     const implementation =
@@ -1413,25 +1183,44 @@ export function spawn(
   entity: Spawnable,
   nameOrOptions?: string | SpawnOptions
 ): ActorRef<any> {
+  const isLazyEntity =
+    isMachine(entity) ||
+    isFunction(entity) ||
+    isBehavior(entity) ||
+    isActor(entity);
+
+  if (!IS_PRODUCTION) {
+    const service = CapturedState.current.actorRef;
+    warn(
+      !!service || isLazyEntity,
+      `Attempted to spawn an Actor (ID: "${
+        isMachine(entity) ? entity.id : 'undefined'
+      }") outside of a service. This will have no effect.`
+    );
+  }
+
   const resolvedOptions = resolveSpawnOptions(nameOrOptions);
 
-  return serviceScope.consume((service) => {
-    if (!IS_PRODUCTION) {
-      const isLazyEntity = isMachine(entity) || isFunction(entity);
-      warn(
-        !!service || isLazyEntity,
-        `Attempted to spawn an Actor (ID: "${
-          isMachine(entity) ? entity.id : 'undefined'
-        }") outside of a service. This will have no effect.`
-      );
-    }
+  if (isMachine(entity)) {
+    const parent = CapturedState.current.actorRef as any;
+    const childService = new Interpreter(entity, {
+      ...parent?.options, // inherit options from this interpreter
+      parent,
+      id: resolvedOptions.name || entity.id
+    });
+    const deferred = createDeferredActor(resolvedOptions, childService);
+    captureSpawn(deferred, childService);
+    return childService;
+  }
 
-    if (service) {
-      return service.spawn(entity, resolvedOptions.name, resolvedOptions);
-    } else {
-      return createDeferredActor(entity, resolvedOptions.name);
-    }
-  });
+  const deferred = createDeferredActor(
+    resolvedOptions,
+    isActor(entity) ? entity : undefined
+  );
+
+  captureSpawn(deferred, isLazyEntity ? entity : () => entity);
+
+  return deferred.actorRef;
 }
 
 /**

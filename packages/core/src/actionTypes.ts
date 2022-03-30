@@ -13,6 +13,7 @@ export const doneState = ActionTypes.DoneState;
 export const log = ActionTypes.Log;
 export const init = ActionTypes.Init;
 export const invoke = ActionTypes.Invoke;
+export const spawn = ActionTypes.Spawn;
 export const errorExecution = ActionTypes.ErrorExecution;
 export const errorPlatform = ActionTypes.ErrorPlatform;
 export const error = ActionTypes.ErrorCustom;
