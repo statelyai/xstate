@@ -205,7 +205,7 @@ function isSignal(
   return typeof event.type === 'symbol';
 }
 
-export function createDeferredBehavior<TEvent extends EventObject>(
+export function createCallbackBehavior<TEvent extends EventObject>(
   lazyEntity: () => InvokeCallback
 ): Behavior<TEvent, undefined> {
   let canceled = false;
@@ -511,7 +511,7 @@ export function createBehaviorFrom(entity: Spawnable): Behavior<any, any> {
   }
 
   if (isFunction(entity)) {
-    return createDeferredBehavior(() => entity);
+    return createCallbackBehavior(() => entity);
   }
 
   throw new Error(`Unable to create behavior from entity`);

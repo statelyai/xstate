@@ -13,7 +13,7 @@ import {
   AnyState
 } from '../src';
 import {
-  createDeferredBehavior,
+  createCallbackBehavior,
   createMachineBehavior,
   createObservableBehavior,
   createPromiseBehavior,
@@ -116,7 +116,7 @@ const intervalMachine = createMachine<{
         id: 'intervalService',
         src: (ctx) =>
           // TODO: lazy might not be necessary here
-          createDeferredBehavior(() => (cb) => {
+          createCallbackBehavior(() => (cb) => {
             const ivl = setInterval(() => {
               cb({ type: 'INC' });
             }, ctx.interval);
@@ -624,7 +624,7 @@ describe('invoke', () => {
         active: {
           invoke: {
             src: () =>
-              createDeferredBehavior(() => () => {
+              createCallbackBehavior(() => () => {
                 startCount++;
               })
           }
@@ -839,7 +839,7 @@ describe('invoke', () => {
       const machine = createMachine({
         invoke: {
           src: () =>
-            createDeferredBehavior(() => () => {
+            createCallbackBehavior(() => () => {
               invokeCount++;
 
               return () => {
@@ -888,7 +888,7 @@ describe('invoke', () => {
           idle: {
             invoke: {
               src: () =>
-                createDeferredBehavior(() => {
+                createCallbackBehavior(() => {
                   invokeCount++;
 
                   if (invokeCount > 1) {
@@ -910,7 +910,7 @@ describe('invoke', () => {
           active: {
             invoke: {
               src: () =>
-                createDeferredBehavior(() => {
+                createCallbackBehavior(() => {
                   return (sendBack) => {
                     sendBack({ type: 'STOPPED' });
                   };
@@ -1441,7 +1441,7 @@ describe('invoke', () => {
         {
           actors: {
             someCallback: (ctx, e) =>
-              createDeferredBehavior(() => (cb) => {
+              createCallbackBehavior(() => (cb) => {
                 if (ctx.foo && e.type === 'BEGIN') {
                   cb({
                     type: 'CALLBACK',
@@ -1497,7 +1497,7 @@ describe('invoke', () => {
         {
           actors: {
             someCallback: () =>
-              createDeferredBehavior(() => (cb) => {
+              createCallbackBehavior(() => (cb) => {
                 cb({ type: 'CALLBACK' });
               })
           }
@@ -1539,7 +1539,7 @@ describe('invoke', () => {
         {
           actors: {
             someCallback: () =>
-              createDeferredBehavior(() => (cb) => {
+              createCallbackBehavior(() => (cb) => {
                 cb({ type: 'CALLBACK' });
               })
           }
@@ -1588,7 +1588,7 @@ describe('invoke', () => {
         {
           actors: {
             someCallback: () =>
-              createDeferredBehavior(() => (cb) => {
+              createCallbackBehavior(() => (cb) => {
                 cb({ type: 'CALLBACK' });
               })
           }
@@ -1642,7 +1642,7 @@ describe('invoke', () => {
             invoke: {
               id: 'child',
               src: () =>
-                createDeferredBehavior(() => (callback, onReceive) => {
+                createCallbackBehavior(() => (callback, onReceive) => {
                   onReceive((e) => {
                     if (e.type === 'PING') {
                       callback({ type: 'PONG' });
@@ -1674,7 +1674,7 @@ describe('invoke', () => {
           safe: {
             invoke: {
               src: () =>
-                createDeferredBehavior(() => () => {
+                createCallbackBehavior(() => () => {
                   throw new Error('test');
                 }),
               onError: {
@@ -1704,7 +1704,7 @@ describe('invoke', () => {
           safe: {
             invoke: {
               src: () =>
-                createDeferredBehavior(() => () => {
+                createCallbackBehavior(() => () => {
                   throw new Error('test');
                 }),
               onError: 'failed'
@@ -1729,7 +1729,7 @@ describe('invoke', () => {
           safe: {
             invoke: {
               src: () =>
-                createDeferredBehavior(() => async () => {
+                createCallbackBehavior(() => async () => {
                   await true;
                   throw new Error('test');
                 }),
@@ -1763,7 +1763,7 @@ describe('invoke', () => {
           fetch: {
             invoke: {
               src: () =>
-                createDeferredBehavior(() => async () => {
+                createCallbackBehavior(() => async () => {
                   await true;
                   return 42;
                 }),
@@ -1807,7 +1807,7 @@ describe('invoke', () => {
               first: {
                 invoke: {
                   src: () =>
-                    createDeferredBehavior(() => () => {
+                    createCallbackBehavior(() => () => {
                       throw new Error('test');
                     }),
                   onError: {
@@ -1822,7 +1822,7 @@ describe('invoke', () => {
               second: {
                 invoke: {
                   src: () =>
-                    createDeferredBehavior(() => () => {
+                    createCallbackBehavior(() => () => {
                       // empty
                     }),
                   onError: {
@@ -1868,7 +1868,7 @@ describe('invoke', () => {
           safe: {
             invoke: {
               src: () =>
-                createDeferredBehavior(() => {
+                createCallbackBehavior(() => {
                   throw new Error('test');
                 })
             }
@@ -2368,12 +2368,12 @@ describe('invoke', () => {
                 {
                   id: 'child',
                   src: () =>
-                    createDeferredBehavior(() => (cb) => cb({ type: 'ONE' }))
+                    createCallbackBehavior(() => (cb) => cb({ type: 'ONE' }))
                 },
                 {
                   id: 'child2',
                   src: () =>
-                    createDeferredBehavior(() => (cb) => cb({ type: 'TWO' }))
+                    createCallbackBehavior(() => (cb) => cb({ type: 'TWO' }))
                 }
               ]
             }
@@ -2436,14 +2436,14 @@ describe('invoke', () => {
                   invoke: {
                     id: 'child',
                     src: () =>
-                      createDeferredBehavior(() => (cb) => cb({ type: 'ONE' }))
+                      createCallbackBehavior(() => (cb) => cb({ type: 'ONE' }))
                   }
                 },
                 b: {
                   invoke: {
                     id: 'child2',
                     src: () =>
-                      createDeferredBehavior(() => (cb) => cb({ type: 'TWO' }))
+                      createCallbackBehavior(() => (cb) => cb({ type: 'TWO' }))
                   }
                 }
               }
@@ -2483,7 +2483,7 @@ describe('invoke', () => {
             invoke: {
               id: 'doNotInvoke',
               src: () =>
-                createDeferredBehavior(() => () => {
+                createCallbackBehavior(() => () => {
                   actorStarted = true;
                 })
             },
@@ -2513,7 +2513,7 @@ describe('invoke', () => {
             invoke: {
               id: 'doNotInvoke',
               src: () =>
-                createDeferredBehavior(() => () => {
+                createCallbackBehavior(() => () => {
                   actorStarted = true;
                 })
             },
@@ -2558,7 +2558,7 @@ describe('invoke', () => {
                     invoke: {
                       id: 'active',
                       src: () =>
-                        createDeferredBehavior(() => () => {
+                        createCallbackBehavior(() => () => {
                           /* ... */
                         })
                     },
@@ -2614,7 +2614,7 @@ describe('invoke', () => {
           active: {
             invoke: {
               src: () =>
-                createDeferredBehavior(() => () => {
+                createCallbackBehavior(() => () => {
                   actorStartedCount++;
                 })
             },
@@ -2843,7 +2843,7 @@ describe('invoke', () => {
       'src containing a callback actor directly',
       {
         src: () =>
-          createDeferredBehavior(() => () => {
+          createCallbackBehavior(() => () => {
             /* ... */
           })
       }
@@ -2873,7 +2873,7 @@ describe('invoke', () => {
         {
           actors: {
             someSrc: () =>
-              createDeferredBehavior(() => () => {
+              createCallbackBehavior(() => () => {
                 /* ... */
               })
           }

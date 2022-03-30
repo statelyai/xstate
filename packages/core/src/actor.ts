@@ -13,7 +13,7 @@ import {
 import { StateMachine } from './StateMachine';
 import {
   createMachineBehavior,
-  createDeferredBehavior,
+  createCallbackBehavior,
   createPromiseBehavior,
   createObservableBehavior,
   LifecycleSignal,
@@ -61,7 +61,7 @@ export function fromCallback<TEvent extends EventObject>(
   name: string
 ): ActorRef<SCXML.Event<TEvent>> {
   return new ObservableActorRef(
-    createDeferredBehavior(() => callback),
+    createCallbackBehavior(() => callback),
     name
   );
 }

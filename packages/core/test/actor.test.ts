@@ -23,7 +23,7 @@ import { EMPTY, interval } from 'rxjs';
 import { map } from 'rxjs/operators';
 import * as actionTypes from '../src/actionTypes';
 import {
-  createDeferredBehavior,
+  createCallbackBehavior,
   createMachineBehavior,
   createObservableBehavior,
   createPromiseBehavior,
@@ -322,7 +322,7 @@ describe('spawning callbacks', () => {
           entry: assign({
             callbackRef: (_, __, { spawn }) =>
               spawn(
-                createDeferredBehavior(() => (cb, receive) => {
+                createCallbackBehavior(() => (cb, receive) => {
                   receive((event) => {
                     if (event.type === 'START') {
                       setTimeout(() => {
@@ -1256,7 +1256,7 @@ describe('actors', () => {
     const machine = createMachine<{ ref: ActorRef<any> }>({
       context: ({ spawn }) => ({
         ref: spawn(
-          createDeferredBehavior(() => (sendBack) => {
+          createCallbackBehavior(() => (sendBack) => {
             sendBack({ type: 'TEST' });
           })
         )

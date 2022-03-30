@@ -12,7 +12,7 @@ import {
 import { isFunction, mapContext } from './utils';
 import {
   createMachineBehavior,
-  createDeferredBehavior,
+  createCallbackBehavior,
   createObservableBehavior,
   createPromiseBehavior
 } from './behaviors';
@@ -91,7 +91,7 @@ export function invokeCallback<
 ): BehaviorCreator<TContext, TEvent> {
   return (ctx, event): Behavior<SCXML.Event<TEvent>, undefined> => {
     const lazyCallback = () => callbackCreator(ctx, event);
-    return createDeferredBehavior<SCXML.Event<TEvent>>(lazyCallback);
+    return createCallbackBehavior<SCXML.Event<TEvent>>(lazyCallback);
   };
 }
 
