@@ -12,7 +12,13 @@ import {
   SpecialTargets,
   AnyState
 } from '../src';
-import { fromReducer } from '../src/behaviors';
+import {
+  createDeferredBehavior,
+  createMachineBehavior,
+  createObservableBehavior,
+  createPromiseBehavior,
+  fromReducer
+} from '../src/behaviors';
 import {
   actionTypes,
   done as _done,
@@ -21,13 +27,6 @@ import {
   forwardTo
 } from '../src/actions';
 import { raise } from '../src/actions/raise';
-import {
-  invokeMachine,
-  invokeCallback,
-  invokePromise,
-  invokeObservable,
-  invokeActivity
-} from '../src/invoke';
 import { interval } from 'rxjs';
 import { map, take } from 'rxjs/operators';
 
@@ -75,7 +74,7 @@ const fetcherMachine = createMachine({
     },
     waiting: {
       invoke: {
-        src: invokeMachine(fetchMachine),
+        src: () => createMachineBehavior(fetchMachine),
         data: {
           userId: (ctx: any) => ctx.selectedUserId
         },
@@ -90,7 +89,8 @@ const fetcherMachine = createMachine({
     },
     waitingInvokeMachine: {
       invoke: {
-        src: invokeMachine(fetchMachine.withContext({ userId: '55' })),
+        src: () =>
+          createMachineBehavior(fetchMachine.withContext({ userId: '55' })),
         onDone: 'received'
       }
     },
@@ -114,13 +114,15 @@ const intervalMachine = createMachine<{
     counting: {
       invoke: {
         id: 'intervalService',
-        src: invokeCallback((ctx) => (cb) => {
-          const ivl = setInterval(() => {
-            cb({ type: 'INC' });
-          }, ctx.interval);
+        src: (ctx) =>
+          // TODO: lazy might not be necessary here
+          createDeferredBehavior(() => (cb) => {
+            const ivl = setInterval(() => {
+              cb({ type: 'INC' });
+            }, ctx.interval);
 
-          return () => clearInterval(ivl);
-        })
+            return () => clearInterval(ivl);
+          })
       },
       always: {
         target: 'finished',
@@ -187,7 +189,7 @@ describe('invoke', () => {
       },
       {
         actors: {
-          child: invokeMachine(childMachine)
+          child: () => createMachineBehavior(childMachine)
         }
       }
     );
@@ -254,7 +256,7 @@ describe('invoke', () => {
       },
       {
         actors: {
-          child: invokeMachine(childMachine)
+          child: () => createMachineBehavior(childMachine)
         }
       }
     );
@@ -329,7 +331,7 @@ describe('invoke', () => {
         },
         invokeChild: {
           invoke: {
-            src: invokeMachine(childMachine),
+            src: () => createMachineBehavior(childMachine),
             autoForward: true,
             onDone: {
               target: 'done',
@@ -421,11 +423,12 @@ describe('invoke', () => {
         },
         waiting: {
           invoke: {
-            src: invokeMachine((ctx) =>
-              childMachine.withContext({
-                userId: ctx.selectedUserId
-              })
-            ),
+            src: (ctx) =>
+              createMachineBehavior(
+                childMachine.withContext({
+                  userId: ctx.selectedUserId
+                })
+              ),
             data: {
               userId: (ctx: any) => ctx.selectedUserId
             },
@@ -470,17 +473,18 @@ describe('invoke', () => {
       initial: 'pending',
       states: {
         pending: {
-          invoke: invokeMachine(
-            createMachine({
-              id: 'child',
-              initial: 'sending',
-              states: {
-                sending: {
-                  entry: sendParent({ type: 'SUCCESS', data: 42 })
+          invoke: () =>
+            createMachineBehavior(
+              createMachine({
+                id: 'child',
+                initial: 'sending',
+                states: {
+                  sending: {
+                    entry: sendParent({ type: 'SUCCESS', data: 42 })
+                  }
                 }
-              }
-            })
-          ),
+              })
+            ),
           on: {
             SUCCESS: {
               target: 'success',
@@ -513,17 +517,18 @@ describe('invoke', () => {
           initial: 'b',
           states: {
             b: {
-              invoke: invokeMachine(
-                createMachine({
-                  id: 'child',
-                  initial: 'sending',
-                  states: {
-                    sending: {
-                      entry: sendParent({ type: 'SUCCESS', data: 42 })
+              invoke: () =>
+                createMachineBehavior(
+                  createMachine({
+                    id: 'child',
+                    initial: 'sending',
+                    states: {
+                      sending: {
+                        entry: sendParent({ type: 'SUCCESS', data: 42 })
+                      }
                     }
-                  }
-                })
-              )
+                  })
+                )
             }
           }
         },
@@ -579,7 +584,7 @@ describe('invoke', () => {
       },
       {
         actors: {
-          child: invokeMachine(childMachine)
+          child: () => createMachineBehavior(childMachine)
         }
       }
     );
@@ -587,17 +592,18 @@ describe('invoke', () => {
     interpret(
       someParentMachine.provide({
         actors: {
-          child: invokeMachine(
-            createMachine({
-              id: 'child',
-              initial: 'init',
-              states: {
-                init: {
-                  entry: [sendParent('STOP')]
+          child: () =>
+            createMachineBehavior(
+              createMachine({
+                id: 'child',
+                initial: 'init',
+                states: {
+                  init: {
+                    entry: [sendParent('STOP')]
+                  }
                 }
-              }
-            })
-          )
+              })
+            )
         }
       })
     )
@@ -617,9 +623,10 @@ describe('invoke', () => {
       states: {
         active: {
           invoke: {
-            src: invokeActivity(() => {
-              startCount++;
-            })
+            src: () =>
+              createDeferredBehavior(() => () => {
+                startCount++;
+              })
           }
         }
       }
@@ -652,7 +659,7 @@ describe('invoke', () => {
         initial: 'one',
         invoke: {
           id: 'foo-child',
-          src: invokeMachine(subMachine)
+          src: () => createMachineBehavior(subMachine)
         },
         states: {
           one: {
@@ -685,7 +692,7 @@ describe('invoke', () => {
         },
         invoke: {
           id: 'foo-child',
-          src: invokeMachine((ctx) => ctx.machine)
+          src: (ctx) => createMachineBehavior(ctx.machine)
         },
         states: {
           one: {
@@ -713,7 +720,7 @@ describe('invoke', () => {
           one: {
             invoke: {
               id: 'foo-child',
-              src: invokeMachine(subMachine)
+              src: () => createMachineBehavior(subMachine)
             },
             entry: send('NEXT', { to: 'foo-child' }),
             on: { NEXT: 'two' }
@@ -752,7 +759,7 @@ describe('invoke', () => {
           one: {
             invoke: {
               id: 'foo-child',
-              src: invokeMachine(doneSubMachine),
+              src: () => createMachineBehavior(doneSubMachine),
               onDone: 'two'
             },
             entry: send('NEXT', { to: 'foo-child' })
@@ -799,7 +806,7 @@ describe('invoke', () => {
               active: {
                 invoke: {
                   id: 'pong',
-                  src: invokeMachine(pongMachine),
+                  src: () => createMachineBehavior(pongMachine),
                   onDone: {
                     target: 'success',
                     guard: (_, e) => e.data.secret === 'pingpong'
@@ -831,13 +838,14 @@ describe('invoke', () => {
 
       const machine = createMachine({
         invoke: {
-          src: invokeCallback(() => () => {
-            invokeCount++;
+          src: () =>
+            createDeferredBehavior(() => () => {
+              invokeCount++;
 
-            return () => {
-              invokeDisposeCount++;
-            };
-          })
+              return () => {
+                invokeDisposeCount++;
+              };
+            })
         },
         entry: () => entryActionsCount++,
         on: {
@@ -879,20 +887,21 @@ describe('invoke', () => {
         states: {
           idle: {
             invoke: {
-              src: invokeCallback(() => {
-                invokeCount++;
+              src: () =>
+                createDeferredBehavior(() => {
+                  invokeCount++;
 
-                if (invokeCount > 1) {
-                  // prevent a potential infinite loop
-                  throw new Error('This should be impossible.');
-                }
+                  if (invokeCount > 1) {
+                    // prevent a potential infinite loop
+                    throw new Error('This should be impossible.');
+                  }
 
-                return (sendBack) => {
-                  // it's important for this test to send the event back when the parent is *not* currently processing an event
-                  // this ensures that the parent can process the received event immediately and can stop the child immediately
-                  setTimeout(() => sendBack({ type: 'STARTED' }));
-                };
-              })
+                  return (sendBack) => {
+                    // it's important for this test to send the event back when the parent is *not* currently processing an event
+                    // this ensures that the parent can process the received event immediately and can stop the child immediately
+                    setTimeout(() => sendBack({ type: 'STARTED' }));
+                  };
+                })
             },
             on: {
               STARTED: 'active'
@@ -900,11 +909,12 @@ describe('invoke', () => {
           },
           active: {
             invoke: {
-              src: invokeCallback(() => {
-                return (sendBack) => {
-                  sendBack({ type: 'STOPPED' });
-                };
-              })
+              src: () =>
+                createDeferredBehavior(() => {
+                  return (sendBack) => {
+                    sendBack({ type: 'STOPPED' });
+                  };
+                })
             },
             on: {
               STOPPED: {
@@ -926,7 +936,7 @@ describe('invoke', () => {
           },
           active: {
             // TODO: prevent this from being src: child in types
-            invoke: { src: invokeMachine(child) },
+            invoke: { src: () => createMachineBehavior(child) },
             on: {
               STOPPED: 'done'
             }
@@ -988,15 +998,16 @@ describe('invoke', () => {
         states: {
           pending: {
             invoke: {
-              src: invokePromise((ctx) =>
-                createPromise((resolve) => {
-                  if (ctx.succeed) {
-                    resolve(ctx.id);
-                  } else {
-                    throw new Error(`failed on purpose for: ${ctx.id}`);
-                  }
-                })
-              ),
+              src: (ctx) =>
+                createPromiseBehavior(() =>
+                  createPromise((resolve) => {
+                    if (ctx.succeed) {
+                      resolve(ctx.id);
+                    } else {
+                      throw new Error(`failed on purpose for: ${ctx.id}`);
+                    }
+                  })
+                ),
               onDone: {
                 target: 'success',
                 guard: (ctx, e) => {
@@ -1037,11 +1048,12 @@ describe('invoke', () => {
           states: {
             pending: {
               invoke: {
-                src: invokePromise(() =>
-                  createPromise(() => {
-                    throw new Error('test');
-                  })
-                ),
+                src: () =>
+                  createPromiseBehavior(() =>
+                    createPromise(() => {
+                      throw new Error('test');
+                    })
+                  ),
                 onDone: 'success'
               }
             },
@@ -1069,11 +1081,12 @@ describe('invoke', () => {
           states: {
             pending: {
               invoke: {
-                src: invokePromise(() =>
-                  createPromise(() => {
-                    throw new Error('test');
-                  })
-                ),
+                src: () =>
+                  createPromiseBehavior(() =>
+                    createPromise(() => {
+                      throw new Error('test');
+                    })
+                  ),
                 onDone: 'success'
               }
             },
@@ -1107,9 +1120,10 @@ describe('invoke', () => {
               states: {
                 pending: {
                   invoke: {
-                    src: invokePromise(() =>
-                      createPromise((resolve) => resolve())
-                    ),
+                    src: () =>
+                      createPromiseBehavior(() =>
+                        createPromise((resolve) => resolve())
+                      ),
                     onDone: 'success'
                   }
                 },
@@ -1158,9 +1172,10 @@ describe('invoke', () => {
           },
           {
             actors: {
-              somePromise: invokePromise(() =>
-                createPromise((resolve) => resolve())
-              )
+              somePromise: () =>
+                createPromiseBehavior(() =>
+                  createPromise((resolve) => resolve())
+                )
             }
           }
         );
@@ -1178,9 +1193,10 @@ describe('invoke', () => {
           states: {
             pending: {
               invoke: {
-                src: invokePromise(() =>
-                  createPromise((resolve) => resolve({ count: 1 }))
-                ),
+                src: () =>
+                  createPromiseBehavior(() =>
+                    createPromise((resolve) => resolve({ count: 1 }))
+                  ),
                 onDone: {
                   target: 'success',
                   actions: assign({ count: (_, e) => e.data.count })
@@ -1228,9 +1244,10 @@ describe('invoke', () => {
           },
           {
             actors: {
-              somePromise: invokePromise(() =>
-                createPromise((resolve) => resolve({ count: 1 }))
-              )
+              somePromise: () =>
+                createPromiseBehavior(() =>
+                  createPromise((resolve) => resolve({ count: 1 }))
+                )
             }
           }
         );
@@ -1257,9 +1274,10 @@ describe('invoke', () => {
           states: {
             pending: {
               invoke: {
-                src: invokePromise(() =>
-                  createPromise((resolve) => resolve({ count: 1 }))
-                ),
+                src: () =>
+                  createPromiseBehavior(() =>
+                    createPromise((resolve) => resolve({ count: 1 }))
+                  ),
                 onDone: {
                   target: 'success',
                   actions: (_, e) => {
@@ -1308,9 +1326,10 @@ describe('invoke', () => {
           },
           {
             actors: {
-              somePromise: invokePromise(() =>
-                createPromise((resolve) => resolve({ count: 1 }))
-              )
+              somePromise: () =>
+                createPromiseBehavior(() =>
+                  createPromise((resolve) => resolve({ count: 1 }))
+                )
             }
           }
         );
@@ -1354,11 +1373,12 @@ describe('invoke', () => {
           },
           {
             actors: {
-              somePromise: invokePromise((ctx, e) => {
-                return createPromise((resolve, reject) => {
-                  ctx.foo && e.payload ? resolve() : reject();
-                });
-              })
+              somePromise: (ctx, e) =>
+                createPromiseBehavior(() => {
+                  return createPromise((resolve, reject) => {
+                    ctx.foo && e.payload ? resolve() : reject();
+                  });
+                })
             }
           }
         );
@@ -1420,22 +1440,23 @@ describe('invoke', () => {
         },
         {
           actors: {
-            someCallback: invokeCallback((ctx, e) => (cb) => {
-              if (ctx.foo && e.type === 'BEGIN') {
-                cb({
-                  type: 'CALLBACK',
-                  data: 40
-                });
-                cb({
-                  type: 'CALLBACK',
-                  data: 41
-                });
-                cb({
-                  type: 'CALLBACK',
-                  data: 42
-                });
-              }
-            })
+            someCallback: (ctx, e) =>
+              createDeferredBehavior(() => (cb) => {
+                if (ctx.foo && e.type === 'BEGIN') {
+                  cb({
+                    type: 'CALLBACK',
+                    data: 40
+                  });
+                  cb({
+                    type: 'CALLBACK',
+                    data: 41
+                  });
+                  cb({
+                    type: 'CALLBACK',
+                    data: 42
+                  });
+                }
+              })
           }
         }
       );
@@ -1475,9 +1496,10 @@ describe('invoke', () => {
         },
         {
           actors: {
-            someCallback: invokeCallback(() => (cb) => {
-              cb({ type: 'CALLBACK' });
-            })
+            someCallback: () =>
+              createDeferredBehavior(() => (cb) => {
+                cb({ type: 'CALLBACK' });
+              })
           }
         }
       );
@@ -1516,9 +1538,10 @@ describe('invoke', () => {
         },
         {
           actors: {
-            someCallback: invokeCallback(() => (cb) => {
-              cb({ type: 'CALLBACK' });
-            })
+            someCallback: () =>
+              createDeferredBehavior(() => (cb) => {
+                cb({ type: 'CALLBACK' });
+              })
           }
         }
       );
@@ -1564,9 +1587,10 @@ describe('invoke', () => {
         },
         {
           actors: {
-            someCallback: invokeCallback(() => (cb) => {
-              cb({ type: 'CALLBACK' });
-            })
+            someCallback: () =>
+              createDeferredBehavior(() => (cb) => {
+                cb({ type: 'CALLBACK' });
+              })
           }
         }
       );
@@ -1617,13 +1641,14 @@ describe('invoke', () => {
           active: {
             invoke: {
               id: 'child',
-              src: invokeCallback(() => (callback, onReceive) => {
-                onReceive((e) => {
-                  if (e.type === 'PING') {
-                    callback({ type: 'PONG' });
-                  }
-                });
-              })
+              src: () =>
+                createDeferredBehavior(() => (callback, onReceive) => {
+                  onReceive((e) => {
+                    if (e.type === 'PING') {
+                      callback({ type: 'PONG' });
+                    }
+                  });
+                })
             },
             entry: send('PING', { to: 'child' }),
             on: {
@@ -1648,9 +1673,10 @@ describe('invoke', () => {
         states: {
           safe: {
             invoke: {
-              src: invokeActivity(() => {
-                throw new Error('test');
-              }),
+              src: () =>
+                createDeferredBehavior(() => () => {
+                  throw new Error('test');
+                }),
               onError: {
                 target: 'failed',
                 guard: (_, e) => {
@@ -1677,9 +1703,10 @@ describe('invoke', () => {
         states: {
           safe: {
             invoke: {
-              src: invokeActivity(() => {
-                throw new Error('test');
-              }),
+              src: () =>
+                createDeferredBehavior(() => () => {
+                  throw new Error('test');
+                }),
               onError: 'failed'
             }
           },
@@ -1701,10 +1728,11 @@ describe('invoke', () => {
         states: {
           safe: {
             invoke: {
-              src: invokeCallback(() => async () => {
-                await true;
-                throw new Error('test');
-              }),
+              src: () =>
+                createDeferredBehavior(() => async () => {
+                  await true;
+                  throw new Error('test');
+                }),
               onError: {
                 target: 'failed',
                 guard: (_, e) => {
@@ -1734,10 +1762,11 @@ describe('invoke', () => {
         states: {
           fetch: {
             invoke: {
-              src: invokeCallback(() => async () => {
-                await true;
-                return 42;
-              }),
+              src: () =>
+                createDeferredBehavior(() => async () => {
+                  await true;
+                  return 42;
+                }),
               onDone: {
                 target: 'success',
                 actions: assign((_, { data: result }) => ({ result }))
@@ -1777,9 +1806,10 @@ describe('invoke', () => {
             states: {
               first: {
                 invoke: {
-                  src: invokeActivity(() => {
-                    throw new Error('test');
-                  }),
+                  src: () =>
+                    createDeferredBehavior(() => () => {
+                      throw new Error('test');
+                    }),
                   onError: {
                     target: 'failed',
                     guard: () => {
@@ -1791,9 +1821,10 @@ describe('invoke', () => {
               },
               second: {
                 invoke: {
-                  src: invokeActivity(() => {
-                    // empty
-                  }),
+                  src: () =>
+                    createDeferredBehavior(() => () => {
+                      // empty
+                    }),
                   onError: {
                     target: 'failed',
                     guard: () => {
@@ -1836,9 +1867,10 @@ describe('invoke', () => {
         states: {
           safe: {
             invoke: {
-              src: invokeCallback(() => {
-                throw new Error('test');
-              })
+              src: () =>
+                createDeferredBehavior(() => {
+                  throw new Error('test');
+                })
             }
           },
           failed: {
@@ -1871,7 +1903,7 @@ describe('invoke', () => {
         states: {
           begin: {
             invoke: {
-              src: invokeMachine(anotherChildMachine),
+              src: () => createMachineBehavior(anotherChildMachine),
               id: 'invoked.child',
               onDone: 'completed'
             },
@@ -1926,13 +1958,14 @@ describe('invoke', () => {
         states: {
           counting: {
             invoke: {
-              src: invokeObservable(() =>
-                infinite$.pipe(
-                  map((value) => {
-                    return { type: 'COUNT', value };
-                  })
+              src: () =>
+                createObservableBehavior(() =>
+                  infinite$.pipe(
+                    map((value) => {
+                      return { type: 'COUNT', value };
+                    })
+                  )
                 )
-              )
             },
             always: {
               target: 'counted',
@@ -1973,17 +2006,18 @@ describe('invoke', () => {
         states: {
           counting: {
             invoke: {
-              src: invokeObservable(() =>
-                infinite$.pipe(
-                  take(5),
-                  map((value) => {
-                    return {
-                      type: 'COUNT',
-                      value
-                    };
-                  })
-                )
-              ),
+              src: () =>
+                createObservableBehavior(() =>
+                  infinite$.pipe(
+                    take(5),
+                    map((value) => {
+                      return {
+                        type: 'COUNT',
+                        value
+                      };
+                    })
+                  )
+                ),
               onDone: {
                 target: 'counted',
                 guard: (ctx) => ctx.count === 4
@@ -2025,17 +2059,18 @@ describe('invoke', () => {
         states: {
           counting: {
             invoke: {
-              src: invokeObservable(() =>
-                infinite$.pipe(
-                  map((value) => {
-                    if (value === 5) {
-                      throw new Error('some error');
-                    }
+              src: () =>
+                createObservableBehavior(() =>
+                  infinite$.pipe(
+                    map((value) => {
+                      if (value === 5) {
+                        throw new Error('some error');
+                      }
 
-                    return { type: 'COUNT', value };
-                  })
-                )
-              ),
+                      return { type: 'COUNT', value };
+                    })
+                  )
+                ),
               onError: {
                 target: 'success',
                 guard: (ctx, e) => {
@@ -2246,7 +2281,7 @@ describe('invoke', () => {
             active: {
               invoke: {
                 id: 'pong',
-                src: invokeMachine(pongMachine)
+                src: () => createMachineBehavior(pongMachine)
               },
               // Sends 'PING' event to child machine with ID 'pong'
               entry: send('PING', { to: 'pong' }),
@@ -2284,7 +2319,7 @@ describe('invoke', () => {
         states: {
           pending: {
             invoke: {
-              src: invokeMachine(childMachine, { sync: true })
+              src: () => createMachineBehavior(childMachine, { sync: true })
             }
           },
           success: { type: 'final' }
@@ -2332,11 +2367,13 @@ describe('invoke', () => {
               invoke: [
                 {
                   id: 'child',
-                  src: invokeCallback(() => (cb) => cb({ type: 'ONE' }))
+                  src: () =>
+                    createDeferredBehavior(() => (cb) => cb({ type: 'ONE' }))
                 },
                 {
                   id: 'child2',
-                  src: invokeCallback(() => (cb) => cb({ type: 'TWO' }))
+                  src: () =>
+                    createDeferredBehavior(() => (cb) => cb({ type: 'TWO' }))
                 }
               ]
             }
@@ -2398,13 +2435,15 @@ describe('invoke', () => {
                 a: {
                   invoke: {
                     id: 'child',
-                    src: invokeCallback(() => (cb) => cb({ type: 'ONE' }))
+                    src: () =>
+                      createDeferredBehavior(() => (cb) => cb({ type: 'ONE' }))
                   }
                 },
                 b: {
                   invoke: {
                     id: 'child2',
-                    src: invokeCallback(() => (cb) => cb({ type: 'TWO' }))
+                    src: () =>
+                      createDeferredBehavior(() => (cb) => cb({ type: 'TWO' }))
                   }
                 }
               }
@@ -2443,9 +2482,10 @@ describe('invoke', () => {
           active: {
             invoke: {
               id: 'doNotInvoke',
-              src: invokeCallback(() => () => {
-                actorStarted = true;
-              })
+              src: () =>
+                createDeferredBehavior(() => () => {
+                  actorStarted = true;
+                })
             },
             always: 'inactive'
           },
@@ -2472,9 +2512,10 @@ describe('invoke', () => {
           withNonLeafInvoke: {
             invoke: {
               id: 'doNotInvoke',
-              src: invokeCallback(() => () => {
-                actorStarted = true;
-              })
+              src: () =>
+                createDeferredBehavior(() => () => {
+                  actorStarted = true;
+                })
             },
             initial: 'first',
             states: {
@@ -2516,9 +2557,10 @@ describe('invoke', () => {
                   active: {
                     invoke: {
                       id: 'active',
-                      src: invokeCallback(() => () => {
-                        /* ... */
-                      })
+                      src: () =>
+                        createDeferredBehavior(() => () => {
+                          /* ... */
+                        })
                     },
                     on: {
                       NEXT: {
@@ -2538,7 +2580,8 @@ describe('invoke', () => {
                   active: {
                     invoke: {
                       id: 'post',
-                      src: invokePromise(() => Promise.resolve(42)),
+                      src: () =>
+                        createPromiseBehavior(() => Promise.resolve(42)),
                       onDone: '#done'
                     }
                   }
@@ -2570,9 +2613,10 @@ describe('invoke', () => {
         states: {
           active: {
             invoke: {
-              src: invokeCallback(() => () => {
-                actorStartedCount++;
-              })
+              src: () =>
+                createDeferredBehavior(() => () => {
+                  actorStartedCount++;
+                })
             },
             always: [
               {
@@ -2615,7 +2659,7 @@ describe('invoke', () => {
           one: {
             invoke: {
               id: 'child',
-              src: invokeMachine(child),
+              src: () => createMachineBehavior(child),
               onError: {
                 target: 'two',
                 guard: (_, event) => event.data === 'oops'
@@ -2657,7 +2701,7 @@ describe('invoke', () => {
           one: {
             invoke: {
               id: 'child',
-              src: invokeMachine(child),
+              src: () => createMachineBehavior(child),
               onError: {
                 target: 'two',
                 guard: (_, event) => {
@@ -2702,11 +2746,12 @@ describe('invoke', () => {
       },
       {
         actors: {
-          search: invokePromise(async (_, __, meta) => {
-            expect(meta.src.endpoint).toEqual('example.com');
+          search: (_, __, meta) =>
+            createPromiseBehavior(async () => {
+              expect(meta.src.endpoint).toEqual('example.com');
 
-            return await 42;
-          })
+              return await 42;
+            })
         }
       }
     );
@@ -2734,10 +2779,11 @@ describe('invoke', () => {
       expect.assertions(1);
       const machine = createMachine({
         invoke: {
-          src: invokePromise((_ctx, _e, { meta }) => {
-            expect(meta).toEqual({ url: 'stately.ai' });
-            return Promise.resolve();
-          }),
+          src: (_ctx, _e, { meta }) =>
+            createPromiseBehavior(() => {
+              expect(meta).toEqual({ url: 'stately.ai' });
+              return Promise.resolve();
+            }),
           meta: {
             url: 'stately.ai'
           }
@@ -2774,7 +2820,7 @@ describe('invoke', () => {
       },
       {
         actors: {
-          someSrc: invokePromise(() => Promise.resolve())
+          someSrc: () => createPromiseBehavior(() => Promise.resolve())
         }
       }
     );
@@ -2791,14 +2837,15 @@ describe('invoke', () => {
     // ['machine', createMachine({ id: 'someId' })],
     [
       'src containing a machine directly',
-      { src: invokeMachine(createMachine({ id: 'someId' })) }
+      { src: () => createMachineBehavior(createMachine({ id: 'someId' })) }
     ],
     [
       'src containing a callback actor directly',
       {
-        src: invokeCallback(() => () => {
-          /* ... */
-        })
+        src: () =>
+          createDeferredBehavior(() => () => {
+            /* ... */
+          })
       }
     ],
     [
@@ -2825,9 +2872,10 @@ describe('invoke', () => {
         },
         {
           actors: {
-            someSrc: invokeCallback(() => () => {
-              /* ... */
-            })
+            someSrc: () =>
+              createDeferredBehavior(() => () => {
+                /* ... */
+              })
           }
         }
       );
@@ -2872,16 +2920,17 @@ describe('invoke', () => {
           }
         },
         actors: {
-          fetchSmth: invokePromise(() => {
-            if (invoked) {
-              // create a promise that won't ever resolve for the second invoking state
-              return new Promise(() => {
-                /* ... */
-              });
-            }
-            invoked = true;
-            return Promise.resolve(42);
-          })
+          fetchSmth: () =>
+            createPromiseBehavior(() => {
+              if (invoked) {
+                // create a promise that won't ever resolve for the second invoking state
+                return new Promise(() => {
+                  /* ... */
+                });
+              }
+              invoked = true;
+              return Promise.resolve(42);
+            })
         }
       }
     );
@@ -2904,7 +2953,7 @@ describe('invoke', () => {
       states: {
         a: {
           invoke: {
-            src: invokePromise(() => Promise.resolve(42)),
+            src: () => createPromiseBehavior(() => Promise.resolve(42)),
             onDone: 'b'
           }
         },
@@ -2919,7 +2968,7 @@ describe('invoke', () => {
       states: {
         fetch: {
           invoke: {
-            src: invokeMachine(childMachine)
+            src: () => createMachineBehavior(childMachine)
           }
         }
       }
@@ -2954,7 +3003,8 @@ describe('invoke', () => {
 });
 
 describe('services option', () => {
-  it('should provide data params to a service creator', (done) => {
+  // TODO: determine if we want to keep or get rid of `data` property, and use context instead
+  it.skip('should provide data params to a service creator', (done) => {
     const machine = createMachine(
       {
         initial: 'pending',
@@ -2979,15 +3029,16 @@ describe('services option', () => {
       },
       {
         actors: {
-          stringService: invokePromise((ctx, _, { data }) => {
-            expect(ctx).toEqual({ count: 42 });
+          stringService: (ctx, _, { data }) =>
+            createPromiseBehavior(() => {
+              expect(ctx).toEqual({ count: 42 });
 
-            expect(data).toEqual({ newCount: 84, staticVal: 'hello' });
+              expect(data).toEqual({ newCount: 84, staticVal: 'hello' });
 
-            return new Promise<void>((res) => {
-              res();
-            });
-          })
+              return new Promise<void>((res) => {
+                res();
+              });
+            })
         }
       }
     );
