@@ -55,7 +55,6 @@
       "./actions.ts",
       "./invoke.ts",
       "./behaviors.ts",
-      "./model.ts",
       "./guards.ts",
       "./dev/index.ts"
     ]

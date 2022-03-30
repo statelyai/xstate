@@ -10,7 +10,6 @@ import {
   spawn,
   StateMachine
 } from '../src/index';
-import { createModel } from '../src/model';
 
 function noop(_x: unknown) {
   return;
@@ -237,11 +236,6 @@ describe('types', () => {
       // @ts-expect-error
       context: 'string'
     });
-  });
-
-  it('defined context passed to createModel() should be an object', () => {
-    // @ts-expect-error
-    createModel('string');
   });
 });
 

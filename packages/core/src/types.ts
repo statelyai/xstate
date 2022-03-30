@@ -3,7 +3,6 @@ import type { State } from './State';
 import type { Clock, Interpreter } from './interpreter';
 import type { StateMachine } from './StateMachine';
 import type { LifecycleSignal } from './behaviors';
-import type { Model } from './model.types';
 import {
   TypegenDisabled,
   ResolveTypegenMeta,
@@ -1852,8 +1851,6 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
       infer ____
     >
     ? TEvent
-    : R extends Model<infer _, infer TEvent, infer __, infer ___>
-    ? TEvent
     : R extends State<infer _, infer TEvent, infer __>
     ? TEvent
     : // TODO: the special case for Interpreter shouldn't be needed here as it implements ActorRef
@@ -1886,8 +1883,6 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
       infer ___,
       infer ____
     >
-    ? TContext
-    : R extends Model<infer TContext, infer _, infer __, infer ___>
     ? TContext
     : R extends State<infer TContext, infer _, infer __>
     ? TContext
