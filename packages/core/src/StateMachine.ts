@@ -85,7 +85,7 @@ export class StateMachine<
   public get context(): TContext {
     return this.getContextAndActions()[0];
   }
-  public getContextAndActions(): [TContext, InvokeActionObject[]] {
+  private getContextAndActions(): [TContext, InvokeActionObject[]] {
     const actions: InvokeActionObject[] = [];
     // TODO: merge with this.options.context
     const context = this._contextFactory({

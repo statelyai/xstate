@@ -357,12 +357,7 @@ describe('spawning callbacks', () => {
 
 describe('spawning observables', () => {
   it('should spawn an observable', (done) => {
-    interface Events {
-      type: 'INT';
-      value: number;
-    }
-
-    const observableMachine = createMachine<any, Events>({
+    const observableMachine = createMachine({
       id: 'observable',
       initial: 'idle',
       context: {
@@ -389,7 +384,7 @@ describe('spawning observables', () => {
           on: {
             INT: {
               target: 'success',
-              guard: (_, e) => e.value === 5
+              guard: (_: any, e: any) => e.value === 5
             }
           }
         },
