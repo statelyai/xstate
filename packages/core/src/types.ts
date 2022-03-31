@@ -1746,7 +1746,7 @@ export interface ActorRef<TEvent extends EventObject, TEmitted = any>
   getSnapshot: () => TEmitted | undefined;
   stop?: () => void;
   toJSON?: () => any;
-  parent?: ActorRef<any, any>;
+  _parent?: ActorRef<any, any>;
 }
 
 export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R

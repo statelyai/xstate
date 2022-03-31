@@ -417,7 +417,7 @@ export function createMachineBehavior<TMachine extends AnyStateMachine>(
 
   const behavior: Behavior<EventFrom<TMachine>, StateFrom<TMachine>> = {
     transition: (state, event, actorContext) => {
-      const { parent } = actorContext.self;
+      const { _parent: parent } = actorContext.self;
       resolvedMachine =
         resolvedMachine ?? (isFunction(machine) ? machine() : machine);
 

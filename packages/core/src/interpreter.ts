@@ -125,7 +125,7 @@ export class Interpreter<
   public status: InterpreterStatus = InterpreterStatus.NotStarted;
 
   // Actor Ref
-  public parent?: ActorRef<any>;
+  public _parent?: ActorRef<any>;
   public name: string;
   public ref: ActorRef<TEvent>;
 
@@ -163,7 +163,7 @@ export class Interpreter<
     this.name = this.id = resolvedId;
     this.logger = logger;
     this.clock = clock;
-    this.parent = parent;
+    this._parent = parent;
 
     this.options = resolvedOptions;
 
@@ -509,9 +509,9 @@ export class Interpreter<
     event: SCXML.Event<AnyEventObject>,
     to: string | ActorRef<any>
   ) {
-    const isParent = this.parent && to === SpecialTargets.Parent;
+    const isParent = this._parent && to === SpecialTargets.Parent;
     const target = isParent
-      ? this.parent
+      ? this._parent
       : isActorRef(to)
       ? to
       : this.state.children[to];
@@ -633,7 +633,7 @@ export class Interpreter<
             }
             return;
           }
-          ref.parent = this; // TODO: fix
+          ref._parent = this; // TODO: fix
           // If the actor will be stopped right after it's started
           // (such as in transient states) don't bother starting the actor.
           if (
@@ -716,7 +716,7 @@ export class Interpreter<
       try {
         return action.execute(state);
       } catch (err) {
-        this.parent?.send({
+        this._parent?.send({
           type: 'xstate.error',
           data: err
         });
@@ -736,8 +736,8 @@ export class Interpreter<
           _event
         });
       } catch (err) {
-        if (this.parent) {
-          this.parent.send({
+        if (this._parent) {
+          this._parent.send({
             type: 'xstate.error',
             data: err
           } as EventObject);

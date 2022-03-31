@@ -2139,7 +2139,7 @@ describe('invoke', () => {
       const pongBehavior: Behavior<EventObject, undefined> = {
         transition: (_, event, { self }) => {
           if (event.type === 'PING') {
-            self.parent?.send({ type: 'PONG' });
+            self._parent?.send({ type: 'PONG' });
           }
 
           return undefined;
