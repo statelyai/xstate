@@ -3,7 +3,12 @@ import {
   EventObject,
   interpret,
   StateMachine,
-  Typestate
+  Typestate,
+  AnyMachine,
+  MachineImplementationsFrom,
+  StateFrom,
+  ServiceFrom,
+  AnyService
 } from '@xstate/fsm';
 import { useCallback, useEffect, useState } from 'react';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
@@ -30,20 +35,10 @@ const getServiceState = <
   return currentValue!;
 };
 
-export function useMachine<
-  TContext extends object,
-  TEvent extends EventObject = EventObject,
-  TState extends Typestate<TContext> = { value: any; context: TContext }
->(
-  stateMachine: StateMachine.Machine<TContext, TEvent, TState>,
-  options?: {
-    actions?: StateMachine.ActionMap<TContext, TEvent>;
-  }
-): [
-  StateMachine.State<TContext, TEvent, TState>,
-  StateMachine.Service<TContext, TEvent, TState>['send'],
-  StateMachine.Service<TContext, TEvent, TState>
-] {
+export function useMachine<TMachine extends AnyMachine>(
+  stateMachine: TMachine,
+  options?: MachineImplementationsFrom<TMachine>
+): [StateFrom<TMachine>, ServiceFrom<TMachine>['send'], ServiceFrom<TMachine>] {
   if (process.env.NODE_ENV !== 'production') {
     const [initialMachine] = useState(stateMachine);
 
@@ -81,20 +76,12 @@ export function useMachine<
     };
   }, []);
 
-  return [state, service.send, service];
+  return [state, service.send, service] as any;
 }
 
-export function useService<
-  TContext extends object,
-  TEvent extends EventObject = EventObject,
-  TState extends Typestate<TContext> = { value: any; context: TContext }
->(
-  service: StateMachine.Service<TContext, TEvent, TState>
-): [
-  StateMachine.State<TContext, TEvent, TState>,
-  StateMachine.Service<TContext, TEvent, TState>['send'],
-  StateMachine.Service<TContext, TEvent, TState>
-] {
+export function useService<TService extends AnyService>(
+  service: TService
+): [StateFrom<TService>, TService['send'], TService] {
   const getSnapshot = useCallback(() => getServiceState(service), [service]);
 
   const isEqual = useCallback(

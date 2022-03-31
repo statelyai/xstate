@@ -1,12 +1,31 @@
 import {
-  StateMachine,
+  AnyMachine,
+  AnyService,
+  ContextFrom,
+  EventFrom,
   EventObject,
-  Typestate,
+  InitEvent,
   InterpreterStatus,
-  InitEvent
+  MachineImplementationsFrom,
+  ServiceFrom,
+  StateFrom,
+  StateMachine,
+  Typestate
 } from './types';
 
-export { StateMachine, EventObject, InterpreterStatus, Typestate };
+export {
+  AnyService,
+  StateMachine,
+  EventObject,
+  InterpreterStatus,
+  Typestate,
+  AnyMachine,
+  MachineImplementationsFrom,
+  StateFrom,
+  EventFrom,
+  ContextFrom,
+  ServiceFrom
+};
 
 const INIT_EVENT: InitEvent = { type: 'xstate.init' };
 const ASSIGN_ACTION: StateMachine.AssignAction = 'xstate.assign';

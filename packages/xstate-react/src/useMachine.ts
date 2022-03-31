@@ -65,7 +65,7 @@ export function useMachine<TMachine extends AnyStateMachine>(
   getMachine: MaybeLazy<TMachine>,
   ...[options = {}]: RestParams<TMachine>
 ): UseMachineReturn<TMachine> {
-  const service = useIdleInterpreter(getMachine, options);
+  const service = useIdleInterpreter(getMachine, options as any);
 
   const getSnapshot = useCallback(() => {
     if (service.status === InterpreterStatus.NotStarted) {

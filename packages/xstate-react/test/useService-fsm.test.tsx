@@ -56,8 +56,12 @@ describe('useService hook for fsm', () => {
     const counterService1 = interpret(counterMachine).start();
     const counterService2 = interpret(counterMachine).start();
 
-    const Counter = ({ counterRef }) => {
-      const [state, send] = useService<{ count: number }, any>(counterRef);
+    const Counter = ({
+      counterRef
+    }: {
+      counterRef: typeof counterService1;
+    }) => {
+      const [state, send] = useService(counterRef);
 
       return (
         <>
