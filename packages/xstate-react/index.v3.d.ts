@@ -1,45 +1,79 @@
 import {
-  EventObject,
-  Interpreter,
+  AnyStateMachine,
+  AreAllImplementationsAssumedToBeProvided,
+  InternalMachineOptions,
+  InterpreterFrom,
   InterpreterOptions,
-  MachineOptions,
   Observer,
-  State,
-  StateMachine,
-  Typestate
+  StateFrom
 } from 'xstate';
-import { MaybeLazy, UseMachineOptions } from './lib/types';
+import { MaybeLazy, Prop, UseMachineOptions } from './lib/types';
 
 export * from './lib/index';
 
-export declare function useMachine<
-  TContext,
-  TEvent extends EventObject,
-  TTypestate extends Typestate<TContext> = {
-    value: any;
-    context: TContext;
-  }
->(
-  getMachine: MaybeLazy<StateMachine<TContext, any, TEvent, TTypestate>>,
-  options?: InterpreterOptions &
-    UseMachineOptions<TContext, TEvent> &
-    MachineOptions<TContext, TEvent>
-): [
-  State<TContext, TEvent, any, TTypestate>,
-  Interpreter<TContext, any, TEvent, TTypestate>['send'],
-  Interpreter<TContext, any, TEvent, TTypestate>
-];
+type UseMachineReturn<
+  TMachine extends AnyStateMachine,
+  TInterpreter = InterpreterFrom<TMachine>
+> = [StateFrom<TMachine>, Prop<TInterpreter, 'send'>, TInterpreter];
 
-export declare function useInterpret<
-  TContext,
-  TEvent extends EventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
->(
-  getMachine: MaybeLazy<StateMachine<TContext, any, TEvent, TTypestate>>,
-  options?: InterpreterOptions &
-    UseMachineOptions<TContext, TEvent> &
-    MachineOptions<TContext, TEvent>,
-  observerOrListener?:
-    | Observer<State<TContext, TEvent, any, TTypestate>>
-    | ((value: State<TContext, TEvent, any, TTypestate>) => void)
-): Interpreter<TContext, any, TEvent, TTypestate>;
+type UseMachineRestParams<
+  TMachine extends AnyStateMachine
+> = AreAllImplementationsAssumedToBeProvided<
+  TMachine['__TResolvedTypesMeta']
+> extends false
+  ? [
+      InterpreterOptions &
+        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+        InternalMachineOptions<
+          TMachine['__TContext'],
+          TMachine['__TEvent'],
+          TMachine['__TResolvedTypesMeta'],
+          true
+        >
+    ]
+  : [
+      (InterpreterOptions &
+        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+        InternalMachineOptions<
+          TMachine['__TContext'],
+          TMachine['__TEvent'],
+          TMachine['__TResolvedTypesMeta']
+        >)?
+    ];
+
+export declare function useMachine<TMachine extends AnyStateMachine>(
+  getMachine: MaybeLazy<TMachine>,
+  ...options: UseMachineRestParams<TMachine>
+): UseMachineReturn<TMachine>;
+
+type UseInterpretRestParams<
+  TMachine extends AnyStateMachine
+> = AreAllImplementationsAssumedToBeProvided<
+  TMachine['__TResolvedTypesMeta']
+> extends false
+  ? [
+      InterpreterOptions &
+        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+        InternalMachineOptions<
+          TMachine['__TContext'],
+          TMachine['__TEvent'],
+          TMachine['__TResolvedTypesMeta'],
+          true
+        >,
+      (Observer<StateFrom<TMachine>> | ((value: StateFrom<TMachine>) => void))?
+    ]
+  : [
+      (InterpreterOptions &
+        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+        InternalMachineOptions<
+          TMachine['__TContext'],
+          TMachine['__TEvent'],
+          TMachine['__TResolvedTypesMeta']
+        >)?,
+      (Observer<StateFrom<TMachine>> | ((value: StateFrom<TMachine>) => void))?
+    ];
+
+export declare function useInterpret<TMachine extends AnyStateMachine>(
+  getMachine: MaybeLazy<TMachine>,
+  ...options: UseInterpretRestParams<TMachine>
+): InterpreterFrom<TMachine>;
