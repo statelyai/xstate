@@ -71,7 +71,7 @@
   "devDependencies": {
     "@rollup/plugin-commonjs": "^17.0.0",
     "@rollup/plugin-node-resolve": "^11.0.1",
-    "@testing-library/react": "13.0.0-alpha.6",
+    "@testing-library/react": "^13.0.0",
     "@types/jsdom": "^12.2.3",
     "@types/react": "^17.0.43",
     "@types/react-dom": "^17.0.14",
