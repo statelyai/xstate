@@ -197,8 +197,7 @@ describe('useSelector', () => {
     expect(countEl.textContent).toEqual('1');
   });
 
-  // doesn't work because initially the actor is "deferred"
-  it.skip('should render custom snapshot of initially spawned custom actor', () => {
+  it('should render custom snapshot of initially spawned custom actor', () => {
     const createActor = (latestValue: string) => ({
       ...toActorRef({
         send: () => {},

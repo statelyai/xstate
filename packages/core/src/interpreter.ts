@@ -167,7 +167,7 @@ export class Interpreter<
   public clock: Clock;
   public options: Readonly<InterpreterOptions>;
 
-  private scheduler: Scheduler = new Scheduler();
+  private scheduler: Scheduler;
   private delayedEventsMap: Record<string, unknown> = {};
   private listeners: Set<
     StateListener<
@@ -595,6 +595,10 @@ export class Interpreter<
     }
 
     this.scheduler.clear();
+    this.scheduler = new Scheduler({
+      deferEvents: this.options.deferEvents
+    });
+
     this.initialized = false;
     this.status = InterpreterStatus.Stopped;
     this._initialState = undefined;

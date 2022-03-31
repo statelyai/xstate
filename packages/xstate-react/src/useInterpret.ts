@@ -8,6 +8,7 @@ import {
   interpret,
   InterpreterFrom,
   InterpreterOptions,
+  InterpreterStatus,
   MachineOptions,
   Observer,
   State,
@@ -141,6 +142,7 @@ export function useInterpret<TMachine extends AnyStateMachine>(
 
     return () => {
       service.stop();
+      service.status = InterpreterStatus.NotStarted;
     };
   }, []);
 

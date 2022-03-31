@@ -604,9 +604,7 @@ describe('useMachine (strict mode)', () => {
     expect(activatedCount).toEqual(2);
   });
 
-  // TODO: we need to investigate if this test is working correctly cause atm even though it pass it comes with this warning:
-  // Warning: Event "FINISH" was sent to stopped service "(machine)". This service has already reached its final state, and will not transition.
-  it.skip('child component should be able to send an event to a parent immediately in an effect', (done) => {
+  it('child component should be able to send an event to a parent immediately in an effect', (done) => {
     const machine = createMachine<any, { type: 'FINISH' }>({
       initial: 'active',
       states: {
