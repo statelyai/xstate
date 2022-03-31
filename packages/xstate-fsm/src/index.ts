@@ -137,7 +137,7 @@ export function createMachine<
   TState extends Typestate<TContext> = { value: any; context: TContext }
 >(
   fsmConfig: StateMachine.Config<TContext, TEvent, TState>,
-  options: {
+  implementations: {
     actions?: StateMachine.ActionMap<TContext, TEvent>;
   } = {}
 ): StateMachine.Machine<TContext, TEvent, TState> {
@@ -152,7 +152,7 @@ export function createMachine<
 
   const [initialActions, initialContext] = handleActions(
     toArray(fsmConfig.states[fsmConfig.initial].entry).map((action) =>
-      toActionObject(action, options.actions)
+      toActionObject(action, implementations.actions)
     ),
     fsmConfig.context!,
     INIT_EVENT as TEvent
@@ -160,7 +160,7 @@ export function createMachine<
 
   const machine = {
     config: fsmConfig,
-    _options: options,
+    _options: implementations,
     initialState: {
       value: fsmConfig.initial,
       actions: initialActions,
