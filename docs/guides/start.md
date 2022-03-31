@@ -117,31 +117,3 @@ promiseService.start();
 promiseService.send({ type: 'RESOLVE' });
 // => 'resolved'
 ```
-
-### In React
-
-If we wanted to use our machine inside a React component, we could use the [useMachine](../packages/xstate-react/index.md#api) hook:
-
-> You'll need to install `@xstate/react`
-
-```tsx
-import { useMachine } from '@xstate/react';
-
-const Component = () => {
-  const [state, send] = useMachine(promiseMachine);
-
-  return (
-    <div>
-      {/** You can listen to what state the service is in */}
-      {state.matches('pending') && <p>Loading...</p>}
-      {state.matches('rejected') && <p>Promise Rejected</p>}
-      {state.matches('resolved') && <p>Promise Resolved</p>}
-      <div>
-        {/** You can send events to the running service */}
-        <button onClick={() => send('RESOLVE')}>Resolve</button>
-        <button onClick={() => send('REJECT')}>Reject</button>
-      </div>
-    </div>
-  );
-};
-```

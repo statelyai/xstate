@@ -114,58 +114,6 @@ const [state, send] = useActor(customActor, (actor) => {
 });
 ```
 
-### `useInterpret(machine, options?, observer?)`
-
-A React hook that returns the `service` created from the `machine` with the `options`, if specified. It starts the service and runs it for the lifetime of the component. This is similar to `useMachine`; however, `useInterpret` allows for a custom `observer` to subscribe to the `service`.
-
-The `useInterpret` is useful when you want fine-grained control, e.g. to add logging, or minimize re-renders. In contrast to `useMachine` that would flush each update from the machine to the React component, `useInterpret` instead returns a static reference (to just the interpreted machine) which will not rerender when its state changes.
-
-To use a piece of state from the service inside a render, use the `useSelector(...)` hook to subscribe to it.
-
-_Since 1.3.0_
-
-**Arguments**
-
-- `machine` - An [XState machine](https://xstate.js.org/docs/guides/machines.html) or a function that lazily returns a machine.
-- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `immediate`, `context`, `state`.
-- `observer` (optional) - an observer or listener that listens to state updates:
-  - an observer (e.g., `{ next: (state) => {/* ... */} }`)
-  - or a listener (e.g., `(state) => {/* ... */}`)
-
-```js
-import { useInterpret } from '@xstate/react';
-import { someMachine } from '../path/to/someMachine';
-
-const App = () => {
-  const service = useInterpret(someMachine);
-
-  // ...
-};
-```
-
-With options + listener:
-
-```js
-// ...
-
-const App = () => {
-  const service = useInterpret(
-    someMachine,
-    {
-      actions: {
-        /* ... */
-      }
-    },
-    (state) => {
-      // subscribes to state changes
-      console.log(state);
-    }
-  );
-
-  // ...
-};
-```
-
 ### `useSelector(actor, selector, compare?, getSnapshot?)`
 
 A React hook that returns the selected value from the snapshot of an `actor`, such as a service. This hook will only cause a rerender if the selected value changes, as determined by the optional `compare` function.

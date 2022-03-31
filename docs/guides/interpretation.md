@@ -106,39 +106,6 @@ Batched events are useful for [event sourcing](https://martinfowler.com/eaaDev/E
 
 :::
 
-## Transitions
-
-Listeners for state transitions are registered via the `.onTransition(...)` method, which takes a state listener. State listeners are called every time a state transition (including the initial state) happens, with the current [`state` instance](./states.md):
-
-```js
-// Interpret the machine
-const service = interpret(machine);
-
-// Add a state listener, which is called whenever a state transition occurs.
-service.onTransition((state) => {
-  console.log(state.value);
-});
-
-service.start();
-```
-
-::: tip
-
-If you only want the `.onTransition(...)` handler(s) to be called when the state changes (that is, when the `state.value` changes, the `state.context` changes, or there are new `state.actions`), use [`state.changed`](https://xstate.js.org/docs/guides/states.html#state-changed):
-
-```js {2}
-service.onTransition((state) => {
-  if (state.changed) {
-    console.log(state.value);
-  }
-});
-```
-
-::: tip
-The `.onTransition()` callback will not run between eventless ("always") transitions or other microsteps. It only runs on macrosteps.
-Microsteps are the intermediate transitions between macrosteps.
-:::
-
 ## Starting and Stopping
 
 The service can be initialized (i.e., started) and stopped with `.start()` and `.stop()`. Calling `.start()` will immediately transition the service to its initial state. Calling `.stop()` will remove all listeners from the service, and do any listener cleanup, if applicable.

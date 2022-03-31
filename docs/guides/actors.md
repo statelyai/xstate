@@ -298,62 +298,6 @@ const machine = createMachine({
 });
 ```
 
-## Spawning Machines
-
-Machines are the most effective way to use actors, since they offer the most capabilities. Spawning machines is just like [invoking machines](./communication.md#invoking-machines), where a `machine` is passed into `spawn(machine)`:
-
-```js {13,26,30-32}
-const remoteMachine = createMachine({
-  id: 'remote',
-  initial: 'offline',
-  states: {
-    offline: {
-      on: {
-        WAKE: 'online'
-      }
-    },
-    online: {
-      after: {
-        1000: {
-          actions: sendParent('REMOTE.ONLINE')
-        }
-      }
-    }
-  }
-});
-
-const parentMachine = createMachine({
-  id: 'parent',
-  initial: 'waiting',
-  context: {
-    localOne: null
-  },
-  states: {
-    waiting: {
-      entry: assign({
-        localOne: () => spawn(remoteMachine)
-      }),
-      on: {
-        'LOCAL.WAKE': {
-          actions: send({ type: 'WAKE' }, { to: (context) => context.localOne })
-        },
-        'REMOTE.ONLINE': { target: 'connected' }
-      }
-    },
-    connected: {}
-  }
-});
-
-const parentService = interpret(parentMachine)
-  .onTransition((state) => console.log(state.value))
-  .start();
-
-parentService.send({ type: 'LOCAL.WAKE' });
-// => 'waiting'
-// ... after 1000ms
-// => 'connected'
-```
-
 ## Syncing and Reading State <Badge text="4.6.1+"/>
 
 One of the main tenets of the Actor model is that actor state is _private_ and _local_ - it is never shared unless the actor chooses to share it, via message passing. Sticking with this model, an actor can _notify_ its parent whenever its state changes by sending it a special "update" event with its latest state. In other words, parent actors can subscribe to their child actors' states.
