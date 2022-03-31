@@ -292,6 +292,7 @@ export class StateMachine<
 
   /**
    * The initial state _before_ evaluating any microsteps.
+   * This "pre-initial" state is provided to initial actions executed in the initial state.
    */
   private get preInitialState(): State<TContext, TEvent, TResolvedTypesMeta> {
     const [context, actions] = this.getContextAndActions();
