@@ -651,6 +651,7 @@ export class Interpreter<
               this.forwardTo.add(id);
             }
 
+            // TODO: determine how this can be immutably updated
             this.state.children[id] = ref;
 
             ref.subscribe({
@@ -761,6 +762,7 @@ export class Interpreter<
     }
 
     this.forwardTo.delete(childId);
+    // TODO: determine how this can be immutably updated
     delete this.state.children[childId];
 
     if (isFunction(child.stop)) {

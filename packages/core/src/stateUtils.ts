@@ -1582,7 +1582,7 @@ export function resolveMicroTransition<
     return inertState as any;
   }
 
-  const children = currentState.children;
+  const children = { ...currentState.children };
 
   const resolvedConfiguration = willTransition
     ? Array.from(resolved.configuration)
