@@ -1,13 +1,18 @@
-import { useState, useEffect, useMemo } from 'react';
 import {
-  StateMachine,
+  createMachine,
   EventObject,
-  Typestate,
   interpret,
-  createMachine
+  StateMachine,
+  Typestate
 } from '@xstate/fsm';
-import { useSubscription, Subscription } from 'use-subscription';
+import { useCallback, useEffect, useState } from 'react';
+import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
+import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
 import useConstant from './useConstant';
+
+function identity<T>(a: T): T {
+  return a;
+}
 
 const getServiceState = <
   TContext extends object,
@@ -56,12 +61,12 @@ export function useMachine<
         stateMachine.config,
         options ? options : (stateMachine as any)._options
       )
-    ).start()
+    )
   );
 
   const [state, setState] = useState(() => getServiceState(service));
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (options) {
       (service as any)._machine._options = options;
     }
@@ -69,6 +74,8 @@ export function useMachine<
 
   useEffect(() => {
     service.subscribe(setState);
+    service.start();
+
     return () => {
       service.stop();
     };
@@ -88,26 +95,28 @@ export function useService<
   StateMachine.Service<TContext, TEvent, TState>['send'],
   StateMachine.Service<TContext, TEvent, TState>
 ] {
-  const subscription: Subscription<
-    StateMachine.State<TContext, TEvent, TState>
-  > = useMemo(() => {
-    let currentState = getServiceState(service);
+  const getSnapshot = useCallback(() => getServiceState(service), [service]);
 
-    return {
-      getCurrentValue: () => currentState,
-      subscribe: (callback) => {
-        const { unsubscribe } = service.subscribe((state) => {
-          if (state.changed !== false) {
-            currentState = state;
-            callback();
-          }
-        });
-        return unsubscribe;
-      }
-    };
-  }, [service]);
+  const isEqual = useCallback(
+    (_prevState, nextState) => nextState.changed === false,
+    []
+  );
 
-  const state = useSubscription(subscription);
+  const subscribe = useCallback(
+    (handleStoreChange) => {
+      const { unsubscribe } = service.subscribe(handleStoreChange);
+      return unsubscribe;
+    },
+    [service]
+  );
 
-  return [state, service.send, service];
+  const storeSnapshot = useSyncExternalStoreWithSelector(
+    subscribe,
+    getSnapshot,
+    getSnapshot,
+    identity,
+    isEqual
+  );
+
+  return [storeSnapshot, service.send, service];
 }
