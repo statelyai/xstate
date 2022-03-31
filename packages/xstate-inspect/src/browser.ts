@@ -151,7 +151,7 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
       state: stringifyState(state, options?.serialize),
       sessionId: service.sessionId,
       id: service.id,
-      parent: (service.parent as AnyInterpreter)?.sessionId
+      parent: (service._parent as AnyInterpreter)?.sessionId
     });
 
     inspectService.send({
