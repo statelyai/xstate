@@ -325,7 +325,7 @@ describe('assign meta', () => {
   });
 
   // TODO: determine what should be the correct behavior
-  it.skip('should not provide the state from initial state', () => {
+  it('should only provide the pre-initial state from initial state', () => {
     const machine = createMachine<{ count: number }>({
       id: 'assign',
       initial: 'start',
@@ -334,7 +334,10 @@ describe('assign meta', () => {
         start: {
           entry: assign({
             count: (_, __, { state }) => {
-              return state === undefined ? 1 : -1;
+              // The pre-initial state is the state _before_ any actions (like this one)
+              // are applied
+              expect(state?.context.count).toBe(0);
+              return 1;
             }
           })
         }
