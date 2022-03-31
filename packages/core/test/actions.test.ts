@@ -1771,19 +1771,8 @@ describe('sendTo', () => {
       }
     });
 
-    let createCount = 0;
-
     const parentMachine = createMachine({
       context: ({ spawn }) => {
-        // TODO: clean up
-        createCount++;
-
-        if (createCount > 1) {
-          throw new Error('too many times');
-        } else {
-          console.log(new Error().stack);
-        }
-
         return {
           child: spawn(createMachineBehavior(childMachine), 'child')
         } as {
