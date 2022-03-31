@@ -401,7 +401,52 @@ describe('spawning observables', () => {
     observableService.start();
   });
 
-  it.todo('should spawn a referenced observable');
+  it('should spawn a referenced observable', (done) => {
+    const observableMachine = createMachine(
+      {
+        id: 'observable',
+        initial: 'idle',
+        context: {
+          observableRef: undefined
+        },
+        states: {
+          idle: {
+            entry: assign({
+              observableRef: (_, __, { spawn }) => spawn('interval')
+            }),
+            on: {
+              INT: {
+                target: 'success',
+                guard: (_: any, e: any) => e.value === 5
+              }
+            }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      },
+      {
+        actors: {
+          interval: () =>
+            createObservableBehavior(() =>
+              interval(10).pipe(
+                map((n) => ({
+                  type: 'INT',
+                  value: n
+                }))
+              )
+            )
+        }
+      }
+    );
+
+    const observableService = interpret(observableMachine).onDone(() => {
+      done();
+    });
+
+    observableService.start();
+  });
 });
 
 describe('communicating with spawned actors', () => {
