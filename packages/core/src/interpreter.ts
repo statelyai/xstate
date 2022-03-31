@@ -385,7 +385,7 @@ export class Interpreter<
 
     const resolvedState =
       initialState === undefined
-        ? this.machine.getInitialState()
+        ? this.initialState
         : isStateConfig<TContext, TEvent>(initialState)
         ? this.machine.resolveState(initialState as any) // TODO: fix this
         : this.machine.resolveState(
