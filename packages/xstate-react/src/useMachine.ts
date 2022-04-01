@@ -65,6 +65,8 @@ export function useMachine<TMachine extends AnyStateMachine>(
   getMachine: MaybeLazy<TMachine>,
   ...[options = {}]: RestParams<TMachine>
 ): UseMachineReturn<TMachine> {
+  // using `useIdleInterpreter` allows us to subscribe to the service *before* we start it
+  // so we don't miss any notifications
   const service = useIdleInterpreter(getMachine, options as any);
 
   const getSnapshot = useCallback(() => {

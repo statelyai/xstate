@@ -1,4 +1,5 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import * as RTL from '@testing-library/react';
+import { act, fireEvent, screen } from '@testing-library/react';
 import * as React from 'react';
 import { useState } from 'react';
 import {
@@ -20,7 +21,22 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
-describe('useMachine hook', () => {
+// TS trips over signatures with generic overloads when using bare `typeof RTL.render`
+// conditional types just resolve the last overload
+// and that is enough for us here
+type SimplifiedRTLRender = (
+  ...args: Parameters<typeof RTL.render>
+) => ReturnType<typeof RTL.render>;
+
+const PassThrough: React.FC = ({ children }) => <>{children}</>;
+
+describe.each([
+  ['non-strict', PassThrough],
+  ['strict', React.StrictMode]
+] as const)('useMachine hook (%s)', (suiteKey, Wrapper) => {
+  const render: SimplifiedRTLRender = (ui, ...rest) =>
+    RTL.render(<Wrapper>{ui}</Wrapper>, ...rest);
+
   const context = {
     data: undefined
   };
@@ -568,9 +584,7 @@ describe('useMachine hook', () => {
 
     expect(screen.getByTestId('result').textContent).toBe('b');
   });
-});
 
-describe('useMachine (strict mode)', () => {
   it('should not invoke initial services more than once', () => {
     let activatedCount = 0;
     const machine = createMachine({
@@ -592,16 +606,9 @@ describe('useMachine (strict mode)', () => {
       return null;
     };
 
-    render(
-      <React.StrictMode>
-        <Test />
-      </React.StrictMode>
-    );
+    render(<Test />);
 
-    // TODO: figure out what to do with this test
-    // maybe the expected result is just different here for React 17 and React 18
-    // we also need to consider how this should behave with actor rehydration
-    expect(activatedCount).toEqual(2);
+    expect(activatedCount).toEqual(suiteKey === 'strict' ? 2 : 1);
   });
 
   it('child component should be able to send an event to a parent immediately in an effect', (done) => {
@@ -635,14 +642,10 @@ describe('useMachine (strict mode)', () => {
       return <ChildTest send={send} />;
     };
 
-    render(
-      <React.StrictMode>
-        <Test />
-      </React.StrictMode>
-    );
+    render(<Test />);
   });
 
-  it('custom data should be available right away for the invoked actor', (done) => {
+  it('custom data should be available right away for the invoked actor', () => {
     const childMachine = Machine({
       initial: 'intitial',
       context: {
@@ -677,69 +680,56 @@ describe('useMachine (strict mode)', () => {
       return null;
     };
 
-    render(
-      <React.StrictMode>
-        <Test />
-      </React.StrictMode>
-    );
-    done();
+    render(<Test />);
   });
 
   // https://github.com/statelyai/xstate/issues/1334
   it('delayed transitions should work when initializing from a rehydrated state', () => {
     jest.useFakeTimers();
-    try {
-      const testMachine = Machine<any, { type: 'START' }>({
-        id: 'app',
-        initial: 'idle',
-        states: {
-          idle: {
-            on: {
-              START: 'doingStuff'
-            }
-          },
-          doingStuff: {
-            id: 'doingStuff',
-            after: {
-              100: 'idle'
-            }
+    const testMachine = Machine<any, { type: 'START' }>({
+      id: 'app',
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            START: 'doingStuff'
+          }
+        },
+        doingStuff: {
+          id: 'doingStuff',
+          after: {
+            100: 'idle'
           }
         }
+      }
+    });
+
+    const persistedState = JSON.stringify(testMachine.initialState);
+
+    let currentState: State<any, any, any, any, any>;
+
+    const Test = () => {
+      const [state, send] = useMachine(testMachine, {
+        state: State.create(JSON.parse(persistedState))
       });
 
-      const persistedState = JSON.stringify(testMachine.initialState);
+      currentState = state;
 
-      let currentState: State<any, any, any, any, any>;
-
-      const Test = () => {
-        const [state, send] = useMachine(testMachine, {
-          state: State.create(JSON.parse(persistedState))
-        });
-
-        currentState = state;
-
-        return (
-          <button onClick={() => send('START')} data-testid="button"></button>
-        );
-      };
-
-      render(
-        <React.StrictMode>
-          <Test />
-        </React.StrictMode>
+      return (
+        <button onClick={() => send('START')} data-testid="button"></button>
       );
+    };
 
-      const button = screen.getByTestId('button');
+    render(<Test />);
 
-      fireEvent.click(button);
-      act(() => {
-        jest.advanceTimersByTime(110);
-      });
+    const button = screen.getByTestId('button');
 
-      expect(currentState!.matches('idle')).toBe(true);
-    } finally {
-      jest.useRealTimers();
-    }
+    fireEvent.click(button);
+    act(() => {
+      jest.advanceTimersByTime(110);
+    });
+
+    expect(currentState!.matches('idle')).toBe(true);
   });
 
   it('should accept a lazily created machine', () => {
