@@ -66,34 +66,6 @@ export const Toggler = () => {
 
 ## API
 
-### `useMachine(machine, options?)`
-
-A [React hook](https://reactjs.org/hooks) that interprets the given `machine` and starts a service that runs for the lifetime of the component.
-
-**Arguments**
-
-- `machine` - An [XState machine](https://xstate.js.org/docs/guides/machines.html) or a function that lazily returns a machine:
-
-  ```js
-  // existing machine
-  const [state, send] = useMachine(machine);
-
-  // lazily-created machine
-  const [state, send] = useMachine(() =>
-    createMachine({
-      /* ... */
-    })
-  );
-  ```
-
-- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `immediate`, `context`, `state`.
-
-**Returns** a tuple of `[state, send, service]`:
-
-- `state` - Represents the current state of the machine as an XState `State` object.
-- `send` - A function that sends events to the running service.
-- `service` - The created service.
-
 ### `useActor(actor, getSnapshot?)`
 
 A [React hook](https://reactjs.org/hooks) that subscribes to emitted changes from an existing [actor](https://xstate.js.org/docs/guides/actors.html).
@@ -112,64 +84,6 @@ const [state, send] = useActor(customActor, (actor) => {
   // implementation-specific pseudocode example:
   return actor.getLastEmittedValue();
 });
-```
-
-### `useSelector(actor, selector, compare?, getSnapshot?)`
-
-A React hook that returns the selected value from the snapshot of an `actor`, such as a service. This hook will only cause a rerender if the selected value changes, as determined by the optional `compare` function.
-
-_Since 1.3.0_
-
-**Arguments**
-
-- `actor` - a service or an actor-like object that contains `.send(...)` and `.subscribe(...)` methods.
-- `selector` - a function that takes in an actor's "current state" (snapshot) as an argument and returns the desired selected value.
-- `compare` (optional) - a function that determines if the current selected value is the same as the previous selected value.
-- `getSnapshot` (optional) - a function that should return the latest emitted value from the `actor`.
-  - Defaults to attempting to get the `actor.state`, or returning `undefined` if that does not exist. Will automatically pull the state from services.
-
-```js
-import { useSelector } from '@xstate/react';
-
-// tip: optimize selectors by defining them externally when possible
-const selectCount = (state) => state.context.count;
-
-const App = ({ service }) => {
-  const count = useSelector(service, selectCount);
-
-  // ...
-};
-```
-
-With `compare` function:
-
-```js
-// ...
-
-const selectUser = (state) => state.context.user;
-const compareUser = (prevUser, nextUser) => prevUser.id === nextUser.id;
-
-const App = ({ service }) => {
-  const user = useSelector(service, selectUser, compareUser);
-
-  // ...
-};
-```
-
-With `useInterpret(...)`:
-
-```js
-import { useInterpret, useSelector } from '@xstate/react';
-import { someMachine } from '../path/to/someMachine';
-
-const selectCount = (state) => state.context.count;
-
-const App = ({ service }) => {
-  const service = useInterpret(someMachine);
-  const count = useSelector(service, selectCount);
-
-  // ...
-};
 ```
 
 ### `asEffect(action)`

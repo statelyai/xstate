@@ -54,38 +54,6 @@ The `State` object also contains other properties such as `historyValue`, `event
 
 There are some helpful methods and properties you can use for a better development experience:
 
-### `state.matches(parentStateValue)`
-
-The `state.matches(parentStateValue)` method determines whether the current `state.value` is a subset of the given `parentStateValue`. The method determines if the parent state value “matches” the state value. For example, assuming the current `state.value` is `{ red: 'stop' }`:
-
-```js
-console.log(state.value);
-// => { red: 'stop' }
-
-console.log(state.matches('red'));
-// => true
-
-console.log(state.matches('red.stop'));
-// => true
-
-console.log(state.matches({ red: 'stop' }));
-// => true
-
-console.log(state.matches('green'));
-// => false
-```
-
-::: tip
-If you want to match one of multiple states, you can use [`.some()`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/some) on an array of state values to accomplish this:
-
-```js
-const isMatch = [{ customer: 'deposit' }, { customer: 'withdrawal' }].some(
-  state.matches
-);
-```
-
-:::
-
 ### `state.nextEvents`
 
 `state.nextEvents` specifies the next events that will cause a transition from the current state:
@@ -125,34 +93,6 @@ const unchangedState = lightMachine.transition(nextState, {
 
 console.log(unchangedState.changed);
 // => false
-```
-
-### `state.done`
-
-`state.done` specifies whether the `state` is a [“final state”](./final.md) - a final state is a state that indicates that its machine has reached its final (terminal) state and can no longer transition to any other state.
-
-```js
-const answeringMachine = createMachine({
-  initial: 'unanswered',
-  states: {
-    unanswered: {
-      on: {
-        ANSWER: { target: 'answered' }
-      }
-    },
-    answered: {
-      type: 'final'
-    }
-  }
-});
-
-const { initialState } = answeringMachine;
-initialState.done; // false
-
-const answeredState = answeringMachine.transition(initialState, {
-  type: 'ANSWER'
-});
-answeredState.done; // true
 ```
 
 ### `state.toStrings()`
