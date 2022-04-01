@@ -2,9 +2,10 @@ import { useState } from 'react';
 import * as React from 'react';
 import { useService, useMachine } from '../src/fsm';
 import { createMachine, assign, interpret, StateMachine } from '@xstate/fsm';
-import { render, fireEvent, act, screen } from '@testing-library/react';
+import { fireEvent, act, screen } from '@testing-library/react';
+import { describeEachReactMode } from './utils';
 
-describe('useService hook for fsm', () => {
+describeEachReactMode('useService, fsm (%s)', ({ render }) => {
   const counterMachine = createMachine<{ count: number }>({
     id: 'counter',
     initial: 'active',

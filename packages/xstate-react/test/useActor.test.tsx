@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, screen } from '@testing-library/react';
 import * as React from 'react';
 import { useState } from 'react';
 import {
@@ -13,8 +13,9 @@ import {
 } from 'xstate';
 import { useMachine } from '../src';
 import { useActor } from '../src/useActor';
+import { describeEachReactMode } from './utils';
 
-describe('useActor', () => {
+describeEachReactMode('useActor (%s)', ({ render }) => {
   it('initial invoked actor should be immediately available', (done) => {
     const childMachine = createMachine({
       id: 'childMachine',
@@ -56,11 +57,7 @@ describe('useActor', () => {
       );
     };
 
-    render(
-      <React.StrictMode>
-        <Test />
-      </React.StrictMode>
-    );
+    render(<Test />);
   });
 
   it('invoked actor should be able to receive (deferred) events that it replays when active', (done) => {
@@ -117,11 +114,7 @@ describe('useActor', () => {
       );
     };
 
-    render(
-      <React.StrictMode>
-        <Test />
-      </React.StrictMode>
-    );
+    render(<Test />);
   });
 
   it('initial spawned actor should be immediately available', (done) => {
@@ -170,11 +163,7 @@ describe('useActor', () => {
       return <ChildTest actor={actorRef!} />;
     };
 
-    render(
-      <React.StrictMode>
-        <Test />
-      </React.StrictMode>
-    );
+    render(<Test />);
   });
 
   it('spawned actor should be able to receive (deferred) events that it replays when active', (done) => {
@@ -233,11 +222,7 @@ describe('useActor', () => {
       return <ChildTest actor={actorRef!} />;
     };
 
-    render(
-      <React.StrictMode>
-        <Test />
-      </React.StrictMode>
-    );
+    render(<Test />);
   });
 
   it('actor should provide snapshot value immediately', () => {

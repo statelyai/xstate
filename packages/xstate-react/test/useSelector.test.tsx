@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, screen } from '@testing-library/react';
 import * as React from 'react';
 import {
   ActorRefFrom,
@@ -10,8 +10,9 @@ import {
   toActorRef
 } from 'xstate';
 import { useInterpret, useMachine, useSelector } from '../src';
+import { describeEachReactMode } from './utils';
 
-describe('useSelector', () => {
+describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   it('only rerenders for selected values', () => {
     const machine = createMachine<{ count: number; other: number }>({
       initial: 'active',
@@ -55,11 +56,7 @@ describe('useSelector', () => {
       );
     };
 
-    render(
-      <React.StrictMode>
-        <App />
-      </React.StrictMode>
-    );
+    render(<App />);
     const countButton = screen.getByTestId('count');
     const otherButton = screen.getByTestId('other');
     const incrementEl = screen.getByTestId('increment');
@@ -119,11 +116,7 @@ describe('useSelector', () => {
       );
     };
 
-    render(
-      <React.StrictMode>
-        <App />
-      </React.StrictMode>
-    );
+    render(<App />);
     const nameEl = screen.getByTestId('name');
     const sendUpperButton = screen.getByTestId('sendUpper');
     const sendOtherButton = screen.getByTestId('sendOther');
@@ -486,6 +479,6 @@ describe('useSelector', () => {
       service.send({ type: 'INC' });
     });
 
-    expect(renders).toBe(1);
+    expect(renders).toBe(suiteKey === 'strict' ? 2 : 1);
   });
 });

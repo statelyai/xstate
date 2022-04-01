@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { createMachine } from 'xstate';
-import { render, fireEvent, screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import { useInterpret, useMachine } from '../src';
+import { describeEachReactMode } from './utils';
 
 const originalConsoleWarn = console.warn;
 
@@ -9,7 +10,7 @@ afterEach(() => {
   console.warn = originalConsoleWarn;
 });
 
-describe('useInterpret', () => {
+describeEachReactMode('useInterpret (%s)', ({ render }) => {
   it('observer should be called with initial state', (done) => {
     const machine = createMachine({
       initial: 'inactive',

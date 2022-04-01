@@ -1,4 +1,3 @@
-import * as RTL from '@testing-library/react';
 import { act, fireEvent, screen } from '@testing-library/react';
 import * as React from 'react';
 import { useState } from 'react';
@@ -16,27 +15,13 @@ import {
   State
 } from 'xstate';
 import { useActor, useMachine } from '../src';
+import { describeEachReactMode } from './utils';
 
 afterEach(() => {
   jest.useRealTimers();
 });
 
-// TS trips over signatures with generic overloads when using bare `typeof RTL.render`
-// conditional types just resolve the last overload
-// and that is enough for us here
-type SimplifiedRTLRender = (
-  ...args: Parameters<typeof RTL.render>
-) => ReturnType<typeof RTL.render>;
-
-const PassThrough: React.FC = ({ children }) => <>{children}</>;
-
-describe.each([
-  ['non-strict', PassThrough],
-  ['strict', React.StrictMode]
-] as const)('useMachine hook (%s)', (suiteKey, Wrapper) => {
-  const render: SimplifiedRTLRender = (ui, ...rest) =>
-    RTL.render(<Wrapper>{ui}</Wrapper>, ...rest);
-
+describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
   const context = {
     data: undefined
   };

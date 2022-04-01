@@ -1,9 +1,10 @@
 import * as React from 'react';
 import { useMachine } from '../src/fsm';
 import { createMachine, assign, interpret, StateMachine } from '@xstate/fsm';
-import { render, fireEvent, screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
+import { describeEachReactMode } from './utils';
 
-describe('useMachine hook for fsm', () => {
+describeEachReactMode('useMachine, fsm (%s)', ({ render }) => {
   const context = {
     data: undefined
   };

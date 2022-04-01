@@ -1,9 +1,10 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import * as React from 'react';
 import { fromReducer } from 'xstate/src/behaviors';
 import { useActor, useSpawn } from '../src';
+import { describeEachReactMode } from './utils';
 
-describe('useSpawn', () => {
+describeEachReactMode('useSpawn (%s)', ({ render }) => {
   it('should be able to spawn an actor from a behavior', () => {
     const reducer = (state: number, event: { type: 'INC' }): number => {
       if (event.type === 'INC') {
@@ -28,11 +29,7 @@ describe('useSpawn', () => {
       );
     };
 
-    render(
-      <React.StrictMode>
-        <Test />
-      </React.StrictMode>
-    );
+    render(<Test />);
     const button = screen.getByTestId('count');
 
     expect(button.textContent).toEqual('0');
