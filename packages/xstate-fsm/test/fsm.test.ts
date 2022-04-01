@@ -1,4 +1,5 @@
 import { createMachine, assign, interpret, StateMachine } from '../src';
+import { createMachine2, interpret as interpret2 } from '../src/createMachine';
 
 describe('@xstate/fsm', () => {
   interface LightContext {
@@ -461,5 +462,75 @@ describe('interpreter', () => {
     const nextState = machine.transition(initialState, 'EVENT');
 
     expect(nextState.actions.map((a) => a.type)).toEqual(['action']);
+  });
+});
+
+describe.only('new', () => {
+  it('should transition correctly', () => {
+    const machine = createMachine2({
+      initial: 'green',
+      states: {
+        green: {
+          on: {
+            TIMER: 'yellow'
+          }
+        },
+        yellow: {},
+        red: {}
+      }
+    });
+
+    expect(
+      machine.transition({ value: 'green', actions: [] }, { type: 'TIMER' })
+        .value
+    ).toEqual('yellow');
+  });
+  it('should', (done) => {
+    const m = createMachine2({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            NEXT: {
+              target: 'loading'
+            }
+          }
+        },
+        loading: {
+          invoke: {
+            id: 'promise',
+            src: () => ({
+              start: () => {
+                const observers = new Set<any>();
+
+                setTimeout(() => {
+                  observers.forEach((observer) => observer.next(42));
+                  setTimeout(() => done(), 400);
+                }, 1000);
+
+                return {
+                  send: () => {},
+                  subscribe: (obs) => {
+                    observers.add(obs);
+                  }
+                };
+              }
+            })
+          },
+          on: {
+            'done.invoke.promise': 'success'
+          }
+        },
+        success: {}
+      }
+    });
+
+    const s = interpret2(m);
+
+    s.subscribe((state) => {
+      console.log('NEXT', state);
+    });
+
+    s.send({ type: 'NEXT' });
   });
 });
