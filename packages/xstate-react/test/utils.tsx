@@ -26,6 +26,14 @@ export function describeEachReactMode(
     const render: SimplifiedRTLRender = (ui, ...rest) =>
       RTL.render(<Wrapper>{ui}</Wrapper>, ...rest);
 
-    fn({ suiteKey, render });
+    fn({
+      suiteKey,
+      render: (...args) => {
+        const renderResult = render(...args);
+        const { rerender } = renderResult;
+        renderResult.rerender = (ui) => rerender(<Wrapper>{ui}</Wrapper>);
+        return renderResult;
+      }
+    });
   });
 }
