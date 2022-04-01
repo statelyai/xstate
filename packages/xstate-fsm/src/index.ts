@@ -315,6 +315,8 @@ export function interpret<
             );
           }
         }
+      } else {
+        state = machine.initialState;
       }
       status = InterpreterStatus.Running;
       executeStateActions(state, INIT_EVENT);

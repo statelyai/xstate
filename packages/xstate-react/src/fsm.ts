@@ -8,7 +8,8 @@ import {
   MachineImplementationsFrom,
   StateFrom,
   ServiceFrom,
-  AnyService
+  AnyService,
+  InterpreterStatus
 } from '@xstate/fsm';
 import { useCallback, useEffect, useState } from 'react';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
@@ -50,14 +51,24 @@ export function useMachine<TMachine extends AnyMachine>(
     }
   }
 
-  const service = useConstant(() =>
-    interpret(
+  const [service, queue] = useConstant(() => {
+    const queue: unknown[] = [];
+    const service = interpret(
       createMachine(
         stateMachine.config,
         options ? options : (stateMachine as any)._options
       )
-    )
-  );
+    );
+    const { send } = service;
+    service.send = (event) => {
+      if (service.status === InterpreterStatus.NotStarted) {
+        queue.push(event);
+        return;
+      }
+      send(event);
+    };
+    return [service, queue];
+  });
 
   const [state, setState] = useState(() => getServiceState(service));
 
@@ -70,6 +81,7 @@ export function useMachine<TMachine extends AnyMachine>(
   useEffect(() => {
     service.subscribe(setState);
     service.start();
+    queue.forEach(service.send);
 
     return () => {
       service.stop();

@@ -4,7 +4,7 @@ import { createMachine, assign, interpret, StateMachine } from '@xstate/fsm';
 import { fireEvent, screen } from '@testing-library/react';
 import { describeEachReactMode } from './utils';
 
-describeEachReactMode('useMachine, fsm (%s)', ({ render }) => {
+describeEachReactMode('useMachine, fsm (%s)', ({ suiteKey, render }) => {
   const context = {
     data: undefined
   };
@@ -313,5 +313,45 @@ describeEachReactMode('useMachine, fsm (%s)', ({ render }) => {
     };
 
     noop(App);
+  });
+
+  it('actions created by a layout effect should access the latest closure values', () => {
+    const actual: number[] = [];
+
+    const machine = createMachine({
+      initial: 'foo',
+      states: {
+        foo: {
+          on: {
+            EXEC_ACTION: {
+              actions: 'recordProp'
+            }
+          }
+        }
+      }
+    });
+
+    const App = ({ value }: { value: number }) => {
+      const [, send] = useMachine(machine, {
+        actions: {
+          recordProp: () => actual.push(value)
+        }
+      });
+
+      React.useLayoutEffect(() => {
+        send('EXEC_ACTION');
+      }, [value]);
+
+      return null;
+    };
+
+    const { rerender } = render(<App value={1} />);
+
+    expect(actual).toEqual(suiteKey === 'strict' ? [1, 1] : [1]);
+
+    actual.length = 0;
+    rerender(<App value={42} />);
+
+    expect(actual).toEqual([42]);
   });
 });
