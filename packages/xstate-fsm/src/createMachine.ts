@@ -1,4 +1,5 @@
-import { EventObject } from '.';
+import { EventObject, toActionObject } from '.';
+import { SingleOrArray } from './types';
 
 export namespace A {
   export type Cast<T, U> = T extends U ? T : U;
@@ -52,29 +53,41 @@ interface Behavior {
   start: () => ActorRef<any>;
 }
 
-type TransitionConfig2<_Self, TMachine extends MachineConfig2<any>> =
-  | keyof A.Get<TMachine, 'states'>
+type TransitionConfig2<_Self, TMachine> =
+  | (string & keyof A.Get<TMachine, 'states'>)
   | {
       target?: keyof A.Get<TMachine, 'states'>;
+      guard?: (context: A.Get<TMachine, 'context'>, event: TMachine) => boolean;
+      actions?: string | string[];
     };
 
 interface StateNodeConfig2<_Self, TMachine extends MachineConfig2<any>> {
+  entry?: string | string[];
+  exit?: string | string[];
   invoke?: {
     id: string;
     src: () => Behavior;
   };
+  ctx?: A.Get<TMachine, 'context'>;
   on?: {
-    [key in keyof A.Get<_Self, 'on'>]: TransitionConfig2<
-      A.Get<_Self, ['on', key]>,
-      TMachine
-    >;
+    [key in string & keyof A.Get<_Self, 'on'>]:
+      | TransitionConfig2<A.Get<_Self, ['on', key]>, TMachine>
+      | {
+          [n in number]: TransitionConfig2<
+            A.Get<_Self, ['on', key, n]>,
+            TMachine
+          >;
+        };
   };
 }
+
+export type NoInfer<T> = [T][T extends any ? 0 : any];
 
 interface MachineConfig2<Self> {
   id?: string;
   key?: string;
   context?: A.Get<Self, 'context'>;
+  foo?: SingleOrArray<A.Get<Self, 'context'>>;
   // on?: Transitions2<A.Get<Self, 'on'>, Self, undefined, Self, TSchema>;
   states?: {
     [StateKey in keyof A.Get<Self, 'states'>]?: StateNodeConfig2<
@@ -92,7 +105,7 @@ interface MachineConfig2<Self> {
 
 interface StateFrom<T extends MachineConfig2<any>> {
   value: keyof A.Get<T, 'states'> | null;
-  context?: any;
+  context?: A.Get<T, 'context'>;
   actions: any[];
 }
 
@@ -101,16 +114,26 @@ interface Machine<T extends MachineConfig2<any>> {
   initialState: StateFrom<T>;
 }
 
+function toArray<T>(item: T | T[] | undefined): T[] {
+  return item === undefined ? [] : ([] as T[]).concat(item);
+}
+
 export function createMachine2<T extends MachineConfig2<T>>(
   config: InferNarrowestObject<T>
 ): Machine<T> {
   const machine: Machine<T> = {
     transition: (state, event) => {
+      if (state.value === null) {
+        return state;
+      }
+
       const stateConfig =
         config.states?.[state.value as keyof A.Get<T, 'states'>];
 
       if (stateConfig?.on) {
-        const transitions = [stateConfig.on[event.type]]; // TODO: array
+        const transitions = toArray<TransitionConfig2<any, any>>(
+          stateConfig.on[event.type]
+        );
 
         for (const transition of transitions) {
           const transitionObject =
@@ -121,9 +144,15 @@ export function createMachine2<T extends MachineConfig2<T>>(
             return state;
           }
 
-          const { target } = transitionObject;
+          const { target = state.value, guard } = transitionObject;
 
-          const nextStateConfig = config.states?.[target];
+          if (guard && !guard(state.context, event)) {
+            continue;
+          }
+
+          const nextStateConfig = target
+            ? (config.states?.[target] as StateNodeConfig2<any, any>)
+            : undefined;
 
           const actions: any[] = [];
           if (nextStateConfig?.invoke) {
@@ -133,10 +162,19 @@ export function createMachine2<T extends MachineConfig2<T>>(
             });
           }
 
+          if (target !== state.value) {
+            actions.push(
+              ...toArray(stateConfig.exit),
+              ...toArray(transitionObject.actions),
+              ...toArray(nextStateConfig!.entry)
+            );
+          }
+
           return {
             value: target,
-            actions
-          };
+            actions: actions.map((a) => toActionObject(a, {})),
+            context: state.context
+          } as StateFrom<T>;
         }
       }
 
@@ -144,7 +182,8 @@ export function createMachine2<T extends MachineConfig2<T>>(
     },
     initialState: {
       value: config.initial ?? null,
-      actions: []
+      actions: [],
+      context: config.context as any
     }
   };
 

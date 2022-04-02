@@ -466,25 +466,123 @@ describe('interpreter', () => {
 });
 
 describe.only('new', () => {
-  it('should transition correctly', () => {
-    const machine = createMachine2({
-      initial: 'green',
-      states: {
-        green: {
-          on: {
-            TIMER: 'yellow'
-          }
-        },
-        yellow: {},
-        red: {}
-      }
+  describe('machine', () => {
+    it('should transition correctly', () => {
+      const machine = createMachine2({
+        initial: 'green',
+        states: {
+          green: {
+            on: {
+              TIMER: 'yellow'
+            }
+          },
+          yellow: {},
+          red: {}
+        }
+      });
+
+      expect(
+        machine.transition({ value: 'green', actions: [] }, { type: 'TIMER' })
+          .value
+      ).toEqual('yellow');
+    });
+    it('should stay on the same state when there is no transition for the sent event', () => {
+      const machine = createMachine2({
+        initial: 'green',
+        states: {
+          green: {
+            on: {
+              TIMER: 'yellow'
+            }
+          },
+          yellow: {},
+          red: {}
+        }
+      });
+
+      expect(
+        machine.transition(machine.initialState, { type: 'NONEXISTANT' }).value
+      ).toEqual('green');
+    });
+    it('should stay on the same state when there is no transition for the sent event', () => {
+      const machine = createMachine2({
+        initial: 'green',
+        states: {
+          green: {
+            on: {
+              TIMER: 'yellow'
+            }
+          },
+          yellow: {},
+          red: {}
+        }
+      });
+
+      expect(
+        machine.transition(machine.initialState, { type: 'NONEXISTANT' }).value
+      ).toEqual('green');
     });
 
-    expect(
-      machine.transition({ value: 'green', actions: [] }, { type: 'TIMER' })
-        .value
-    ).toEqual('yellow');
+    it('should output actions', () => {
+      const machine = createMachine2({
+        initial: 'green',
+        context: { number: 42 },
+        states: {
+          green: {
+            on: {
+              TIMER: {
+                target: 'yellow',
+                actions: 'greenToYellowAction'
+              }
+            },
+            exit: 'greenExit'
+          },
+          yellow: {
+            entry: 'yellowEntry'
+          },
+          red: {}
+        }
+      });
+
+      expect(
+        machine.transition(machine.initialState, { type: 'TIMER' }).actions
+      ).toEqual([
+        { type: 'greenExit' },
+        { type: 'greenToYellowAction' },
+        { type: 'yellowEntry' }
+      ]);
+    });
+
+    it('should work with guards', () => {
+      const machine = createMachine2({
+        initial: 'inactive',
+        context: { num: 42 },
+        states: {
+          inactive: {
+            on: {
+              EVENT: [
+                {
+                  guard: (ctx) => ctx.num === 10,
+                  target: 'fail'
+                },
+                'active'
+              ],
+              FOO: {
+                guard: (ctx) => true
+              }
+            }
+          },
+          active: {},
+          fail: {}
+        }
+      });
+
+      expect(
+        machine.transition(machine.initialState, { type: 'EVENT' }).value
+      ).toEqual('active');
+    });
   });
+
   it('should', (done) => {
     const m = createMachine2({
       initial: 'idle',

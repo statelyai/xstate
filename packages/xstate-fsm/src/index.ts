@@ -26,7 +26,10 @@ export function assign<TC extends object, TE extends EventObject = EventObject>(
   };
 }
 
-function toActionObject<TContext extends object, TEvent extends EventObject>(
+export function toActionObject<
+  TContext extends object,
+  TEvent extends EventObject
+>(
   // tslint:disable-next-line:ban-types
   action:
     | string
