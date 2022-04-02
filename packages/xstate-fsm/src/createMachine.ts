@@ -56,7 +56,7 @@ interface Behavior {
 type TransitionConfig2<_Self, TMachine> =
   | (string & keyof A.Get<TMachine, 'states'>)
   | {
-      target?: keyof A.Get<TMachine, 'states'>;
+      target?: string & keyof A.Get<TMachine, 'states'>;
       guard?: (context: A.Get<TMachine, 'context'>, event: TMachine) => boolean;
       actions?: string | string[];
     };
@@ -68,7 +68,6 @@ interface StateNodeConfig2<_Self, TMachine extends MachineConfig2<any>> {
     id: string;
     src: () => Behavior;
   };
-  ctx?: A.Get<TMachine, 'context'>;
   on?: {
     [key in string & keyof A.Get<_Self, 'on'>]:
       | TransitionConfig2<A.Get<_Self, ['on', key]>, TMachine>
@@ -78,6 +77,24 @@ interface StateNodeConfig2<_Self, TMachine extends MachineConfig2<any>> {
             TMachine
           >;
         };
+  };
+}
+
+interface TransitionObject2 {
+  target?: string;
+  guard?: (context: any, eventObject: any) => boolean;
+  actions?: Array<{ type: string }>;
+}
+
+interface StateNode2 {
+  entry?: Array<{ type: string }>;
+  exit?: Array<{ type: string }>;
+  invoke?: {
+    id: string;
+    src: () => Behavior;
+  };
+  on?: {
+    [EventType in string]: TransitionObject2[];
   };
 }
 
@@ -110,6 +127,9 @@ interface StateFrom<T extends MachineConfig2<any>> {
 }
 
 interface Machine<T extends MachineConfig2<any>> {
+  states: {
+    [StateKey: string]: StateNode2;
+  };
   transition: (state: StateFrom<T>, event: EventObject) => StateFrom<T>;
   initialState: StateFrom<T>;
 }
@@ -121,58 +141,96 @@ function toArray<T>(item: T | T[] | undefined): T[] {
 export function createMachine2<T extends MachineConfig2<T>>(
   config: InferNarrowestObject<T>
 ): Machine<T> {
+  const states: Record<string, StateNode2> = {};
+
+  if (config.states) {
+    Object.entries(
+      config.states as Record<string, StateNodeConfig2<any, any>>
+    ).forEach(([key, stateConfig]) => {
+      const transitionMap: Record<string, TransitionObject2[]> = {};
+
+      if (stateConfig.on) {
+        Object.entries(
+          stateConfig.on as Record<
+            string,
+            SingleOrArray<TransitionConfig2<any, any>>
+          >
+        ).map(([eventType, transitionConfig]) => {
+          const transitions = toArray(transitionConfig);
+          transitionMap[eventType] = transitions.map((t) =>
+            typeof t === 'string'
+              ? { target: t }
+              : {
+                  target: t.target,
+                  actions: t.actions
+                    ? toArray(t.actions).map((action) =>
+                        toActionObject(action, {})
+                      )
+                    : undefined,
+                  guard: t.guard
+                }
+          );
+        });
+      }
+      states[key] = {
+        entry: stateConfig.entry
+          ? toArray(stateConfig.entry).map((action) =>
+              toActionObject(action, {})
+            )
+          : undefined,
+        exit: stateConfig.exit
+          ? toArray(stateConfig.exit).map((action) =>
+              toActionObject(action, {})
+            )
+          : undefined,
+        invoke: stateConfig.invoke,
+        on: transitionMap
+      };
+    });
+  }
+
   const machine: Machine<T> = {
+    states,
     transition: (state, event) => {
       if (state.value === null) {
         return state;
       }
 
-      const stateConfig =
-        config.states?.[state.value as keyof A.Get<T, 'states'>];
+      const stateNodeObject = machine.states[state.value as string];
 
-      if (stateConfig?.on) {
-        const transitions = toArray<TransitionConfig2<any, any>>(
-          stateConfig.on[event.type]
-        );
+      if (stateNodeObject?.on) {
+        const transitions = toArray(stateNodeObject.on?.[event.type] ?? []);
 
-        for (const transition of transitions) {
-          const transitionObject =
-            typeof transition === 'string'
-              ? { target: transition }
-              : transition;
-          if (transitionObject === undefined) {
-            return state;
-          }
-
-          const { target = state.value, guard } = transitionObject;
+        for (const transitionObject of transitions) {
+          const { target = state.value as string, guard } = transitionObject;
 
           if (guard && !guard(state.context, event)) {
             continue;
           }
 
-          const nextStateConfig = target
-            ? (config.states?.[target] as StateNodeConfig2<any, any>)
+          const nextStateNodeObject = target
+            ? machine.states?.[target]
             : undefined;
 
           const actions: any[] = [];
-          if (nextStateConfig?.invoke) {
+          if (nextStateNodeObject?.invoke) {
             actions.push({
               type: 'xstate.start',
-              invoke: nextStateConfig.invoke
+              invoke: nextStateNodeObject.invoke
             });
           }
 
           if (target !== state.value) {
             actions.push(
-              ...toArray(stateConfig.exit),
-              ...toArray(transitionObject.actions),
-              ...toArray(nextStateConfig!.entry)
+              ...(stateNodeObject.exit ?? []),
+              ...(transitionObject.actions ?? []),
+              ...(nextStateNodeObject!.entry ?? [])
             );
           }
 
           return {
             value: target,
-            actions: actions.map((a) => toActionObject(a, {})),
+            actions,
             context: state.context
           } as StateFrom<T>;
         }

@@ -568,7 +568,7 @@ describe.only('new', () => {
                 'active'
               ],
               FOO: {
-                guard: (ctx) => true
+                guard: (_ctx) => true
               }
             }
           },
