@@ -354,4 +354,59 @@ describeEachReactMode('useMachine, fsm (%s)', ({ suiteKey, render }) => {
 
     expect(actual).toEqual([42]);
   });
+
+  it('child component should be able to send an event to a parent immediately in an effect', (done) => {
+    const machine = createMachine<any, { type: 'FINISH' }>({
+      initial: 'active',
+      states: {
+        active: {
+          on: { FINISH: 'success' }
+        },
+        success: {}
+      }
+    });
+
+    const ChildTest: React.FC<{ send: any }> = ({ send }) => {
+      // This will send an event to the parent service
+      // BEFORE the service is ready.
+      React.useLayoutEffect(() => {
+        send({ type: 'FINISH' });
+      }, []);
+
+      return null;
+    };
+
+    const Test = () => {
+      const [state, send] = useMachine(machine);
+
+      if (state.matches('success')) {
+        done();
+      }
+
+      return <ChildTest send={send} />;
+    };
+
+    render(<Test />);
+  });
+
+  it('should not execute actions (side-effects) in render', () => {
+    let entryActionCalled = false;
+
+    const machine = createMachine({
+      initial: 'init',
+      states: {
+        init: {
+          entry: () => (entryActionCalled = true)
+        }
+      }
+    });
+
+    const Test = () => {
+      useMachine(machine);
+      expect(entryActionCalled).toBe(false);
+      return null;
+    };
+
+    render(<Test />);
+  });
 });

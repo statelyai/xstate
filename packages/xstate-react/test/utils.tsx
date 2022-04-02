@@ -8,10 +8,8 @@ type SimplifiedRTLRender = (
   ...args: Parameters<typeof RTL.render>
 ) => ReturnType<typeof RTL.render>;
 
-const PassThrough: React.FC = ({ children }) => <>{children}</>;
-
 const modeSuits = [
-  ['non-strict', PassThrough],
+  ['non-strict', React.Fragment],
   ['strict', React.StrictMode]
 ] as const;
 
