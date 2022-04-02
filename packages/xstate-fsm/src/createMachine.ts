@@ -52,28 +52,65 @@ interface ActorRef<TEvent extends EventObject> {
 interface Behavior {
   start: () => ActorRef<any>;
 }
+export function assign<TMachine extends MachineConfig2<any>>(
+  assignment: Assigner<TMachine> | PropertyAssigner<TMachine>
+): AssignActionObject<TMachine> {
+  return {
+    type: 'xstate.assign',
+    assignment
+  };
+}
+export interface AssignActionObject<TMachine> {
+  __xstate?: true;
+  type: 'xstate.assign';
+  assignment: Assigner<TMachine> | PropertyAssigner<TMachine>;
+}
+export type Assigner<TMachine> = (
+  context: A.Get<TMachine, 'context'>,
+  event: A.Get<TMachine, ['schema', 'event']>
+) => Partial<A.Get<TMachine, 'context'>>;
+
+export type PropertyAssigner<TMachine> = {
+  [K in keyof A.Get<TMachine, 'context'>]?:
+    | ((
+        context: A.Get<TMachine, 'context'>,
+        event: A.Get<TMachine, ['schema', 'event']>
+      ) => A.Get<TMachine, ['context', K]>)
+    | A.Get<TMachine, ['context', K]>;
+};
+
+type ActionsConfig2<TMachine> = SingleOrArray<
+  | DynamicActionObject<A.Get<TMachine, 'context'>>
+  | ((ctx: A.Get<TMachine, 'context'>) => void)
+  | { type: string }
+  | string
+>;
 
 type TransitionConfig2<_Self, TMachine> =
   | (string & keyof A.Get<TMachine, 'states'>)
   | {
       target?: string & keyof A.Get<TMachine, 'states'>;
-      guard?: (context: A.Get<TMachine, 'context'>, event: TMachine) => boolean;
-      actions?: string | string[];
+      guard?: (
+        context: A.Get<TMachine, 'context'>,
+        event: A.Get<TMachine, ['schema', 'event']>
+      ) => boolean;
+      actions?: ActionsConfig2<TMachine>;
     };
 
 interface StateNodeConfig2<_Self, TMachine extends MachineConfig2<any>> {
-  entry?: string | string[];
-  exit?: string | string[];
+  entry?: ActionsConfig2<TMachine>;
+  exit?: ActionsConfig2<TMachine>;
   invoke?: {
     id: string;
     src: () => Behavior;
   };
   on?: {
-    [key in string & keyof A.Get<_Self, 'on'>]:
-      | TransitionConfig2<A.Get<_Self, ['on', key]>, TMachine>
+    [EventType in string &
+      A.Get<TMachine, ['schema', 'event', 'type'], string>]?:
+      | TransitionConfig2<A.Get<_Self, ['on', EventType]>, TMachine>
       | {
           [n in number]: TransitionConfig2<
-            A.Get<_Self, ['on', key, n]>,
+            A.Get<_Self, ['on', EventType, n]>,
             TMachine
           >;
         };
@@ -104,8 +141,9 @@ interface MachineConfig2<Self> {
   id?: string;
   key?: string;
   context?: A.Get<Self, 'context'>;
-  foo?: SingleOrArray<A.Get<Self, 'context'>>;
-  // on?: Transitions2<A.Get<Self, 'on'>, Self, undefined, Self, TSchema>;
+  schema?: {
+    event?: EventObject;
+  };
   states?: {
     [StateKey in keyof A.Get<Self, 'states'>]?: StateNodeConfig2<
       A.Get<Self, ['states', StateKey]>,
@@ -124,14 +162,20 @@ interface StateFrom<T extends MachineConfig2<any>> {
   value: keyof A.Get<T, 'states'> | null;
   context?: A.Get<T, 'context'>;
   actions: any[];
+  matches: (value: keyof A.Get<T, 'states'>) => boolean;
 }
 
 interface Machine<T extends MachineConfig2<any>> {
   states: {
     [StateKey: string]: StateNode2;
   };
-  transition: (state: StateFrom<T>, event: EventObject) => StateFrom<T>;
+  transition: (
+    state: StateFrom<T>,
+    event: EventObject,
+    execute?: (action: any, state: any) => void
+  ) => StateFrom<T>;
   initialState: StateFrom<T>;
+  getInitialState: (exec: any) => StateFrom<T>;
 }
 
 function toArray<T>(item: T | T[] | undefined): T[] {
@@ -191,26 +235,34 @@ export function createMachine2<T extends MachineConfig2<T>>(
 
   const machine: Machine<T> = {
     states,
-    transition: (state, event) => {
+    transition: (state, eventObject, execute) => {
       if (state.value === null) {
         return state;
       }
 
       const stateNodeObject = machine.states[state.value as string];
 
+      if (!stateNodeObject) {
+        throw new Error(`Invalid state value: ${state.value}`);
+      }
+
       if (stateNodeObject?.on) {
-        const transitions = toArray(stateNodeObject.on?.[event.type] ?? []);
+        const transitions = toArray(stateNodeObject.on[eventObject.type] ?? []);
 
         for (const transitionObject of transitions) {
           const { target = state.value as string, guard } = transitionObject;
 
-          if (guard && !guard(state.context, event)) {
+          if (guard && !guard(state.context, eventObject)) {
             continue;
           }
 
           const nextStateNodeObject = target
             ? machine.states?.[target]
             : undefined;
+
+          if (target && !nextStateNodeObject) {
+            throw new Error(`Invalid next state value: ${target}`);
+          }
 
           const actions: any[] = [];
           if (nextStateNodeObject?.invoke) {
@@ -226,38 +278,145 @@ export function createMachine2<T extends MachineConfig2<T>>(
               ...(transitionObject.actions ?? []),
               ...(nextStateNodeObject!.entry ?? [])
             );
+          } else {
+            actions.push(...(transitionObject.actions ?? []));
+          }
+
+          let nextContext = state.context;
+
+          for (const action of actions) {
+            if (action.type === 'xstate.assign') {
+              let tmpContext = Object.assign({}, nextContext);
+
+              if (typeof action.assignment === 'function') {
+                tmpContext = action.assignment(nextContext, eventObject);
+              } else {
+                Object.keys(action.assignment).forEach((key) => {
+                  tmpContext[key] =
+                    typeof action.assignment[key] === 'function'
+                      ? action.assignment[key](nextContext, eventObject)
+                      : action.assignment[key];
+                });
+              }
+
+              nextContext = tmpContext;
+            } else {
+              execute?.(action, nextContext);
+            }
           }
 
           return {
             value: target,
             actions,
-            context: state.context
+            context: nextContext,
+            matches: (value) => value === target
           } as StateFrom<T>;
         }
       }
 
+      // INITIAL STATE
+      if (eventObject.type === 'xstate.init') {
+        let nextContext = state.context;
+
+        for (const action of state.actions) {
+          if (action.type === 'xstate.assign') {
+            let tmpContext = Object.assign({}, nextContext);
+
+            if (typeof action.assignment === 'function') {
+              tmpContext = action.assignment(nextContext, eventObject);
+            } else {
+              Object.keys(action.assignment).forEach((key) => {
+                tmpContext[key] =
+                  typeof action.assignment[key] === 'function'
+                    ? action.assignment[key](nextContext, eventObject)
+                    : action.assignment[key];
+              });
+            }
+
+            nextContext = tmpContext;
+          } else {
+            execute?.(action, nextContext);
+          }
+        }
+
+        return {
+          ...state,
+          context: nextContext
+        };
+      }
+
       return state;
     },
-    initialState: {
-      value: config.initial ?? null,
-      actions: [],
-      context: config.context as any
+    get initialState() {
+      return machine.transition(
+        {
+          value: config.initial ?? null,
+          actions: config.initial
+            ? states[config.initial as string].entry ?? []
+            : [],
+          context: config.context as any,
+          matches: () => true
+        },
+        { type: 'xstate.init' }
+      );
+      // return {
+      //   value: config.initial ?? null,
+      //   actions: config.initial
+      //     ? states[config.initial as string].entry ?? []
+      //     : [],
+      //   context: config.context as any
+      // };
+    },
+    getInitialState: (exec) => {
+      return machine.transition(
+        {
+          value: config.initial ?? null,
+          actions: config.initial
+            ? states[config.initial as string].entry ?? []
+            : [],
+          context: config.context as any,
+          matches: () => true
+        },
+        { type: 'xstate.init' },
+        exec
+      );
     }
   };
 
   return machine;
 }
 
-export function interpret(machine: any) {
-  let state = machine.initialState;
-  const observers = new Set<any>();
-  // let status = 0;
+interface Interpreter2 {
+  start: () => Interpreter2;
+  send: (event: EventObject) => void;
+  subscribe: (obs: any) => { unsubscribe: () => void };
+  getSnapshot: () => StateFrom<any>;
+}
 
-  const self = {
+export function interpret(machine: Machine<any>): Interpreter2 {
+  let state: StateFrom<typeof machine>;
+  const observers = new Set<any>();
+  let status = 0;
+
+  const executor = (action) => {
+    if ('exec' in action) {
+      action.exec();
+    }
+  };
+
+  const self: Interpreter2 = {
+    start: () => {
+      status = 1;
+      state = machine.getInitialState(executor);
+      observers.forEach((obs) => obs.next(state));
+      return self;
+    },
     send: (event: any) => {
-      console.log(event);
-      state = machine.transition(state, event);
-      console.log(state.actions);
+      if (status !== 1) {
+        return;
+      }
+
+      state = machine.transition(state, event, executor);
 
       state.actions.forEach((action) => {
         if (action.type === 'xstate.start') {
@@ -268,7 +427,7 @@ export function interpret(machine: any) {
               self.send({
                 type: `done.invoke.${action.invoke.id}`,
                 data
-              });
+              } as any);
             }
           });
         }
@@ -277,18 +436,33 @@ export function interpret(machine: any) {
       observers.forEach((obs) => obs.next(state));
     },
     subscribe: (obs) => {
+      let observer = obs;
       if (typeof obs === 'function') {
-        observers.add({ next: obs });
-      } else {
-        observers.add(obs);
+        observer = { next: obs };
       }
-    }
+      observers.add(observer);
+
+      observer.next(state);
+
+      return {
+        unsubscribe: () => {
+          observers.delete(observer);
+        }
+      };
+    },
+    getSnapshot: () => state
   };
 
   return self;
 }
 
 createMachine2({
+  context: {
+    num: 42
+  },
+  schema: {
+    event: {} as { type: 'EVENT' } | { type: 'WHATEVER' }
+  },
   states: {
     red: {},
     green: {
@@ -296,12 +470,79 @@ createMachine2({
         EVENT: 'yellow'
       }
     },
-    yellow: {}
+    yellow: {
+      on: {
+        WHATEVER: [
+          {
+            guard: (ctx) => ctx.num === 42,
+            target: 'green'
+          }
+        ]
+      }
+    }
   },
   initial: 'green',
   on: {
     EVENT: {
       target: '.red'
     }
+  }
+});
+
+createMachine2({
+  initial: 'inactive',
+  context: { num: 42 },
+  states: {
+    inactive: {
+      entry: assign({ num: 2 }),
+      on: {
+        EVENT: [
+          {
+            guard: (ctx) => ctx.num === 20,
+            target: 'inactive'
+          },
+          'active'
+        ],
+        FOO: {
+          guard: (_ctx) => true
+        }
+      }
+    },
+    active: {},
+    fail: {}
+  }
+});
+
+interface DynamicActionObject<TContext> {
+  type: `xstate.${string}`;
+  // (machine: TMachine): void;
+  resolve: (ctx: TContext) => any;
+}
+
+createMachine2({
+  id: 'light',
+  initial: 'green',
+  context: { count: 0, foo: 'bar', go: true },
+  states: {
+    green: {
+      entry: 'enterGreen',
+      exit: [
+        'exitGreen',
+        assign({ count: (ctx) => ctx.count + 1 }),
+        assign({ count: (ctx) => ctx.count + 1 }),
+        assign({ foo: 'static' }),
+        assign({ foo: (ctx) => ctx.foo + '++' })
+      ],
+      on: {
+        TIMER: {
+          target: 'yellow',
+          actions: ['g-y 1', 'g-y 2']
+        }
+      }
+    },
+    yellow: {
+      entry: assign({ go: false })
+    },
+    red: {}
   }
 });
