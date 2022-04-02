@@ -70,16 +70,15 @@ export function useMachine<TMachine extends AnyMachine>(
     return [service, queue];
   });
 
-  const [state, setState] = useState(() => getServiceState(service));
-
   useIsomorphicLayoutEffect(() => {
     if (options) {
       (service as any)._machine._options = options;
     }
   });
 
+  const useServiceResult = useService(service);
+
   useEffect(() => {
-    service.subscribe(setState);
     service.start();
     queue.forEach(service.send);
 
@@ -88,18 +87,18 @@ export function useMachine<TMachine extends AnyMachine>(
     };
   }, []);
 
-  return [state, service.send, service] as any;
+  return useServiceResult as any;
 }
+
+const isEqual = (
+  _prevState: StateMachine.AnyState,
+  nextState: StateMachine.AnyState
+) => nextState.changed === false;
 
 export function useService<TService extends AnyService>(
   service: TService
 ): [StateFrom<TService>, TService['send'], TService] {
   const getSnapshot = useCallback(() => getServiceState(service), [service]);
-
-  const isEqual = useCallback(
-    (_prevState, nextState) => nextState.changed === false,
-    []
-  );
 
   const subscribe = useCallback(
     (handleStoreChange) => {
@@ -117,5 +116,5 @@ export function useService<TService extends AnyService>(
     isEqual
   );
 
-  return [storeSnapshot, service.send, service];
+  return [storeSnapshot, service.send, service] as any;
 }
