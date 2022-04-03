@@ -14,7 +14,8 @@ import {
   traverseSimplePaths,
   traverseSimplePathsTo
 } from '@xstate/graph/src/graph';
-import { EventObject } from 'xstate';
+import { EventObject, SingleOrArray } from 'xstate';
+import { flatten } from '.';
 import { CoverageFunction } from './coverage';
 import type {
   TestModelCoverage,
@@ -326,10 +327,14 @@ export class TestModel<TState, TEvent extends EventObject> {
     });
   }
 
-  // TODO: criteriaFn can be array
   // TODO: consider options
-  public testCoverage(criteriaFn?: CoverageFunction<TState, TEvent>): void {
-    const criteriaResult = this.getCoverage(criteriaFn);
+  public testCoverage(
+    criteriaFn?: SingleOrArray<CoverageFunction<TState, TEvent>>
+  ): void {
+    const criteriaFns = Array.isArray(criteriaFn) ? criteriaFn : [criteriaFn];
+    const criteriaResult = flatten(
+      criteriaFns.map((fn) => this.getCoverage(fn))
+    );
 
     const unmetCriteria = criteriaResult.filter(
       (c) => c.status === 'uncovered'

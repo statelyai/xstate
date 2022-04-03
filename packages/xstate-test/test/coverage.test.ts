@@ -220,4 +220,36 @@ describe('coverage', () => {
       model.testCoverage(coversAllTransitions());
     }).not.toThrow();
   });
+
+  it('tests multiple kinds of coverage', async () => {
+    const model = createTestModel(
+      createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              EVENT_ONE: 'b',
+              EVENT_TWO: 'b'
+            }
+          },
+          b: {}
+        }
+      })
+    );
+
+    await model.testPlans(model.getShortestPlans());
+
+    expect(() => {
+      model.testCoverage([coversAllStates(), coversAllTransitions()]);
+    }).toThrowErrorMatchingInlineSnapshot(`
+      "Coverage criteria not met:
+      	Transitions a on event EVENT_TWO"
+    `);
+
+    await model.testPlans(model.getSimplePlans());
+
+    expect(() => {
+      model.testCoverage([coversAllStates(), coversAllTransitions()]);
+    }).not.toThrow();
+  });
 });
