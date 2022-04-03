@@ -8,7 +8,7 @@ import type {
 } from 'xstate';
 import { flatten } from '.';
 import { TestModel } from './TestModel';
-import { TestModelOptions } from './types';
+import { TestModelEventConfig, TestModelOptions } from './types';
 
 export async function testMachineState(state: AnyState) {
   for (const id of Object.keys(state.meta)) {
@@ -78,15 +78,18 @@ export function createTestModel<TMachine extends AnyStateMachine>(
       getEvents: (state) =>
         flatten(
           state.nextEvents.map((eventType) => {
-            const eventCaseGenerator = options?.events?.[eventType]?.cases;
+            const eventCaseGenerator = options?.events?.[eventType]
+              ?.cases as TestModelEventConfig<any, any>['cases'];
+
+            const cases = eventCaseGenerator
+              ? Array.isArray(eventCaseGenerator)
+                ? eventCaseGenerator
+                : eventCaseGenerator(state)
+              : [{ type: eventType }];
 
             return (
               // Use generated events or a plain event without payload
-              (
-                eventCaseGenerator?.() ?? [
-                  { type: eventType } as EventFrom<TMachine>
-                ]
-              ).map((e) => {
+              cases.map((e) => {
                 return { type: eventType, ...(e as any) };
               })
             );

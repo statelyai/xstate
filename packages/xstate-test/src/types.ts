@@ -94,10 +94,7 @@ export interface TestPlan<TTestContext, TState> {
  * }
  * ```
  */
-interface EventCase {
-  type?: never;
-  [prop: string]: any;
-}
+type EventCase<TEvent extends EventObject> = Omit<TEvent, 'type'>;
 
 export type StatePredicate<TState> = (state: TState) => boolean;
 /**
@@ -133,17 +130,19 @@ export interface TestEventConfig<TState, TEvent extends EventObject> {
    * ]
    * ```
    */
-  cases?: EventCase[];
+  cases?: Array<EventCase<TEvent>>;
 }
 
-export interface TestEventsConfig<TState, TEvent extends EventObject> {
-  [eventType: string]:
+export type TestEventsConfig<TState, TEvent extends EventObject> = {
+  [EventType in TEvent['type']]?:
     | EventExecutor<TState, TEvent>
     | TestEventConfig<TState, TEvent>;
-}
+};
 
 export interface TestModelEventConfig<TState, TEvent extends EventObject> {
-  cases?: () => Array<Omit<TEvent, 'type'> | TEvent>;
+  cases?:
+    | ((state: TState) => Array<EventCase<TEvent>>)
+    | Array<EventCase<TEvent>>;
   exec?: EventExecutor<TState, TEvent>;
 }
 
@@ -161,7 +160,7 @@ export interface TestModelOptions<TState, TEvent extends EventObject>
     [key: string]: (state: TState) => void | Promise<void>;
   };
   events: {
-    [TEventType in string /* TODO: TEvent['type'] */]?: TestModelEventConfig<
+    [TEventType in TEvent['type']]?: TestModelEventConfig<
       TState,
       ExtractEvent<TEvent, TEventType>
     >;

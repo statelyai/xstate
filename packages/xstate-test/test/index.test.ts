@@ -60,7 +60,7 @@ describe('events', () => {
 
     const testModel = createTestModel(feedbackMachine, {
       events: {
-        SUBMIT: { cases: () => [{ value: 'something' }, { value: '' }] }
+        SUBMIT: { cases: [{ value: 'something' }, { value: '' }] }
       }
     });
 
@@ -93,6 +93,66 @@ describe('events', () => {
         await testModel.testPlan(plan);
       }
     }).not.toThrow();
+  });
+
+  it('should allow for dynamic generation of cases based on state', async () => {
+    const testMachine = createMachine({
+      initial: 'a',
+      context: {
+        values: [1, 2, 3] // to be read by generator
+      },
+      states: {
+        a: {
+          on: {
+            EVENT: [
+              { cond: (_, e) => e.value === 1, target: 'b' },
+              { cond: (_, e) => e.value === 2, target: 'c' },
+              { cond: (_, e) => e.value === 3, target: 'd' }
+            ]
+          }
+        },
+        b: {},
+        c: {},
+        d: {}
+      }
+    });
+
+    const testedEvents: any[] = [];
+
+    const testModel = createTestModel(testMachine, {
+      events: {
+        EVENT: {
+          // Read dynamically from state context
+          cases: (state) => state.context.values.map((value) => ({ value })),
+          exec: ({ event }) => {
+            testedEvents.push(event);
+          }
+        }
+      }
+    });
+
+    const plans = testModel.getShortestPlans();
+
+    expect(plans.length).toBe(4);
+
+    await testModel.testPlans(plans);
+
+    expect(testedEvents).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "type": "EVENT",
+          "value": 1,
+        },
+        Object {
+          "type": "EVENT",
+          "value": 2,
+        },
+        Object {
+          "type": "EVENT",
+          "value": 3,
+        },
+      ]
+    `);
   });
 });
 
@@ -426,7 +486,7 @@ describe('invocations', () => {
     const model = createTestModel(machine, {
       events: {
         START: {
-          cases: () => [
+          cases: [
             { type: 'START', value: 42 },
             { type: 'START', value: 1 }
           ]
@@ -525,7 +585,7 @@ it('Event in event executor should contain payload from case', async () => {
   const model = createTestModel(machine, {
     events: {
       NEXT: {
-        cases: () => [{ payload: 10, fn: nonSerializableData }],
+        cases: [{ payload: 10, fn: nonSerializableData }],
         exec: (step) => {
           expect(step.event).toEqual({
             type: 'NEXT',
