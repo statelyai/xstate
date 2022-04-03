@@ -10,7 +10,7 @@ import { flatten } from '.';
 import { TestModel } from './TestModel';
 import { TestModelEventConfig, TestModelOptions } from './types';
 
-export async function testMachineState(state: AnyState) {
+export async function testStateFromMeta(state: AnyState) {
   for (const id of Object.keys(state.meta)) {
     const stateNodeMeta = state.meta[id];
     if (typeof stateNodeMeta.test === 'function' && !stateNodeMeta.skip) {
@@ -68,7 +68,7 @@ export function createTestModel<TMachine extends AnyStateMachine>(
         return state.matches(key);
       },
       states: {
-        '*': testMachineState
+        '*': testStateFromMeta
       },
       execute: (state) => {
         state.actions.forEach((action) => {

@@ -96,26 +96,10 @@ describe('die hard example', () => {
               EMPTY_5: {
                 actions: empty5
               }
-            },
-            meta: {
-              description: (state) => {
-                return `pending with (${state.context.three}, ${state.context.five})`;
-              },
-              test: async (state) => {
-                expect(jugs.five).not.toEqual(4);
-                expect(jugs.three).toEqual(state.context.three);
-                expect(jugs.five).toEqual(state.context.five);
-              }
             }
           },
           success: {
-            type: 'final',
-            meta: {
-              description: '4 gallons',
-              test: async () => {
-                expect(jugs.five).toEqual(4);
-              }
-            }
+            type: 'final'
           }
         }
       },
@@ -130,6 +114,16 @@ describe('die hard example', () => {
       beforePath: () => {
         jugs = new Jugs();
         jugs.version = Math.random();
+      },
+      states: {
+        pending: (state) => {
+          expect(jugs.five).not.toEqual(4);
+          expect(jugs.three).toEqual(state.context.three);
+          expect(jugs.five).toEqual(state.context.five);
+        },
+        success: () => {
+          expect(jugs.five).toEqual(4);
+        }
       },
       events: {
         POUR_3_TO_5: {
@@ -306,17 +300,17 @@ describe('error path trace', () => {
         second: {
           on: { NEXT: 'third' }
         },
-        third: {
-          meta: {
-            test: () => {
-              throw new Error('test error');
-            }
-          }
-        }
+        third: {}
       }
     });
 
-    const testModel = createTestModel(machine);
+    const testModel = createTestModel(machine, {
+      states: {
+        third: () => {
+          throw new Error('test error');
+        }
+      }
+    });
 
     testModel
       .getShortestPlansTo((state) => state.matches('third'))

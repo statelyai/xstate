@@ -317,7 +317,7 @@ export function toDirectedGraph(
         const edge: DirectedGraphEdge = {
           id: `${stateNode.id}:${transitionIndex}:${targetIndex}`,
           source: stateNode as AnyStateNode,
-          target,
+          target: target as AnyStateNode,
           transition: t,
           label: {
             text: t.eventType,
