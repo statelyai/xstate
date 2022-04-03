@@ -64,7 +64,12 @@ export function createTestModel<TMachine extends AnyStateMachine>(
     machine as SimpleBehavior<any, any>,
     {
       serializeState,
-      testState: testMachineState,
+      stateMatcher: (state, key) => {
+        return state.matches(key);
+      },
+      states: {
+        '*': testMachineState
+      },
       execute: (state) => {
         state.actions.forEach((action) => {
           executeAction(action, state);

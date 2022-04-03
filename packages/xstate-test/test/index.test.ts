@@ -273,8 +273,10 @@ describe('test model options', () => {
         }
       }),
       {
-        testState: (state) => {
-          testedStates.push(state.value);
+        states: {
+          '*': (state) => {
+            testedStates.push(state.value);
+          }
         }
       }
     );
@@ -439,22 +441,24 @@ describe('invocations', () => {
         const service = interpret(machine).start();
 
         await model.testPath(path, {
-          testState: (state) => {
-            return new Promise<void>((res) => {
-              let actualState;
-              const t = setTimeout(() => {
-                throw new Error(
-                  `expected ${state.value}, got ${actualState.value}`
-                );
-              }, 1000);
-              service.subscribe((s) => {
-                actualState = s;
-                if (s.matches(state.value)) {
-                  clearTimeout(t);
-                  res();
-                }
+          states: {
+            '*': (state) => {
+              return new Promise<void>((res) => {
+                let actualState;
+                const t = setTimeout(() => {
+                  throw new Error(
+                    `expected ${state.value}, got ${actualState.value}`
+                  );
+                }, 1000);
+                service.subscribe((s) => {
+                  actualState = s;
+                  if (s.matches(state.value)) {
+                    clearTimeout(t);
+                    res();
+                  }
+                });
               });
-            });
+            }
           },
           testTransition: (step) => {
             if (step.event.type.startsWith('done.')) {
@@ -538,4 +542,115 @@ it('Event in event executor should contain payload from case', async () => {
   const path = plans[0].paths[0];
 
   await model.testPath(path, obj);
+});
+
+describe('state tests', () => {
+  it('should test states', async () => {
+    // a (1)
+    // a -> b (2)
+    expect.assertions(3);
+
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: { NEXT: 'b' }
+        },
+        b: {}
+      }
+    });
+
+    const model = createTestModel(machine, {
+      states: {
+        a: (state) => {
+          expect(state.value).toEqual('a');
+        },
+        b: (state) => {
+          expect(state.value).toEqual('b');
+        }
+      }
+    });
+
+    await model.testPlans(model.getShortestPlans());
+  });
+
+  it('should test wildcard state for non-matching states', async () => {
+    // a (1)
+    // a -> b (2)
+    // a -> c (2)
+    expect.assertions(5);
+
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: { NEXT: 'b', OTHER: 'c' }
+        },
+        b: {},
+        c: {}
+      }
+    });
+
+    const model = createTestModel(machine, {
+      states: {
+        a: (state) => {
+          expect(state.value).toEqual('a');
+        },
+        b: (state) => {
+          expect(state.value).toEqual('b');
+        },
+        '*': (state) => {
+          expect(state.value).toEqual('c');
+        }
+      }
+    });
+
+    await model.testPlans(model.getShortestPlans());
+  });
+
+  it('should test nested states', async () => {
+    const testedStateValues: any[] = [];
+
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: { NEXT: 'b' }
+        },
+        b: {
+          initial: 'b1',
+          states: {
+            b1: {}
+          }
+        }
+      }
+    });
+
+    const model = createTestModel(machine, {
+      states: {
+        a: (state) => {
+          testedStateValues.push('a');
+          expect(state.value).toEqual('a');
+        },
+        b: (state) => {
+          testedStateValues.push('b');
+          expect(state.matches('b')).toBe(true);
+        },
+        'b.b1': (state) => {
+          testedStateValues.push('b.b1');
+          expect(state.value).toEqual({ b: 'b1' });
+        }
+      }
+    });
+
+    await model.testPlans(model.getShortestPlans());
+    expect(testedStateValues).toMatchInlineSnapshot(`
+      Array [
+        "a",
+        "a",
+        "b",
+        "b.b1",
+      ]
+    `);
+  });
 });

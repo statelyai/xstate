@@ -149,13 +149,17 @@ export interface TestModelEventConfig<TState, TEvent extends EventObject> {
 
 export interface TestModelOptions<TState, TEvent extends EventObject>
   extends TraversalOptions<TState, TEvent> {
-  testState: (state: TState) => void | Promise<void>;
+  // testState: (state: TState) => void | Promise<void>;
   testTransition: (step: Step<TState, TEvent>) => void | Promise<void>;
   /**
    * Executes actions based on the `state` after the state is tested.
    */
   execute: (state: TState) => void | Promise<void>;
   getStates: () => TState[];
+  stateMatcher: (state: TState, stateKey: string) => boolean;
+  states: {
+    [key: string]: (state: TState) => void | Promise<void>;
+  };
   events: {
     [TEventType in string /* TODO: TEvent['type'] */]?: TestModelEventConfig<
       TState,

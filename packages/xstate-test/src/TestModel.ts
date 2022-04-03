@@ -61,9 +61,10 @@ export class TestModel<TState, TEvent extends EventObject> {
       serializeState: (state) => simpleStringify(state) as SerializedState,
       serializeEvent: (event) => simpleStringify(event) as SerializedEvent,
       getEvents: () => [],
+      states: {},
       events: {},
+      stateMatcher: (_, stateKey) => stateKey === '*',
       getStates: () => [],
-      testState: () => void 0,
       testTransition: () => void 0,
       execute: () => void 0,
       logger: {
@@ -258,7 +259,20 @@ export class TestModel<TState, TEvent extends EventObject> {
   ): Promise<void> {
     const resolvedOptions = this.resolveOptions(options);
 
-    await resolvedOptions.testState(state);
+    const stateTestKeys = Object.keys(resolvedOptions.states).filter(
+      (stateKey) => {
+        return resolvedOptions.stateMatcher(state, stateKey);
+      }
+    );
+
+    // Fallthrough state tests
+    if (!stateTestKeys.length && '*' in resolvedOptions.states) {
+      stateTestKeys.push('*');
+    }
+
+    for (const stateTestKey of stateTestKeys) {
+      await resolvedOptions.states[stateTestKey](state);
+    }
 
     await resolvedOptions.execute(state);
 
