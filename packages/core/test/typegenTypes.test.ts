@@ -1040,7 +1040,7 @@ describe('typegen types', () => {
             createCallbackBehavior(() => (_send, onReceive) => {
               onReceive((event) => {
                 ((_accept: string) => {})(event.type);
-                // @ts-expect-error
+                // @x-ts-expect-error TODO: determine how to get parent event type here
                 event.unknown;
               });
             })
