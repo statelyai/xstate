@@ -18,6 +18,7 @@ import { log, actionTypes, raise, stop } from '../src/actions';
 import { isObservable } from '../src/utils';
 import { interval, from } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { waitFor } from '../src/waitFor';
 
 const lightMachine = Machine({
   id: 'light',
@@ -2011,5 +2012,54 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         }
       });
     });
+  });
+});
+
+describe('waitFor', () => {
+  it('should wait for a condition to be true and return the emitted value', async () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: { NEXT: 'b' }
+        },
+        b: {
+          on: { NEXT: 'c' }
+        },
+        c: {}
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    setInterval(() => service.send('NEXT'), 100);
+
+    const state = await waitFor(service, (s) => s.matches('c'));
+
+    expect(state.value).toEqual('c');
+  });
+
+  it('should throw an error after a timeout', async () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: { NEXT: 'b' }
+        },
+        b: {
+          on: { NEXT: 'c' }
+        },
+        c: {}
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    try {
+      await waitFor(service, (state) => state.matches('c'), { timeout: 100 });
+    } catch (e) {
+      expect(e).toBeInstanceOf(Error);
+      // expect(e).toEqual('fjeif');
+    }
   });
 });
