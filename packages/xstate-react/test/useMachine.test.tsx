@@ -19,8 +19,12 @@ import {
   State,
   StateFrom
 } from 'xstate';
-import { createBehaviorFrom, createPromiseBehavior } from 'xstate/behaviors';
-import { invokeCallback, invokeMachine, invokePromise } from 'xstate/invoke';
+import {
+  createBehaviorFrom,
+  createCallbackBehavior,
+  createPromiseBehavior
+} from 'xstate/behaviors';
+import { invokeMachine } from 'xstate/invoke';
 import { useActor, useMachine } from '../src';
 import { asEffect, asLayoutEffect } from '../src/useMachine';
 
@@ -80,7 +84,7 @@ describe('useMachine hook', () => {
   }) => {
     const [current, send] = useMachine(fetchMachine, {
       actors: {
-        fetchData: invokePromise(onFetch)
+        fetchData: () => createPromiseBehavior(onFetch)
       },
       state: persistedState
     });
@@ -806,10 +810,11 @@ describe('useMachine hook', () => {
       },
       {
         actors: {
-          foo: invokePromise(() => {
-            serviceCalled = true;
-            return Promise.resolve();
-          })
+          foo: () =>
+            createPromiseBehavior(() => {
+              serviceCalled = true;
+              return Promise.resolve();
+            })
         }
       }
     );
@@ -926,12 +931,13 @@ describe('useMachine (strict mode)', () => {
     const machine = createMachine({
       initial: 'active',
       invoke: {
-        src: invokeCallback(() => {
-          activatedCount++;
-          return () => {
-            /* empty */
-          };
-        })
+        src: () =>
+          createCallbackBehavior(() => {
+            activatedCount++;
+            return () => {
+              /* empty */
+            };
+          })
       },
       states: {
         active: {}

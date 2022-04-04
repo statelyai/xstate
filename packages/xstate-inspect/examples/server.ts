@@ -2,7 +2,7 @@
 import { inspect } from '@xstate/inspect/src/server';
 import WebSocket from 'ws';
 import { createMachine, interpret, send, toSCXMLEvent } from 'xstate';
-import { invokeCallback } from 'xstate/invoke';
+import { createCallbackBehavior } from 'xstate/behaviors';
 
 inspect({
   server: new WebSocket.Server({
@@ -14,18 +14,19 @@ const machine = createMachine({
   initial: 'inactive',
   invoke: {
     id: 'ponger',
-    src: invokeCallback(() => (cb, receive) => {
-      receive((event) => {
-        if (event.type === 'PING') {
-          cb(
-            toSCXMLEvent({
-              type: 'PONG',
-              arr: [1, 2, 3]
-            })
-          );
-        }
-      });
-    })
+    src: () =>
+      createCallbackBehavior(() => (cb, receive) => {
+        receive((event) => {
+          if (event.type === 'PING') {
+            cb(
+              toSCXMLEvent({
+                type: 'PONG',
+                arr: [1, 2, 3]
+              })
+            );
+          }
+        });
+      })
   },
   states: {
     inactive: {

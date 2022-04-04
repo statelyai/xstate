@@ -20,13 +20,9 @@ import { log } from '../src/actions/log';
 import { isObservable } from '../src/utils';
 import { interval, from } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { invokeMachine } from '../src/invoke';
 import {
-  invokeObservable,
-  invokeMachine,
-  invokePromise,
-  invokeActivity
-} from '../src/invoke';
-import {
+  createCallbackBehavior,
   createMachineBehavior,
   createObservableBehavior,
   createPromiseBehavior
@@ -523,10 +519,11 @@ describe('interpreter', () => {
       },
       {
         actors: {
-          myActivity: invokeActivity(() => {
-            activityState = 'on';
-            return () => (activityState = 'off');
-          })
+          myActivity: () =>
+            createCallbackBehavior(() => () => {
+              activityState = 'on';
+              return () => (activityState = 'off');
+            })
         }
       }
     );
@@ -570,10 +567,11 @@ describe('interpreter', () => {
         },
         {
           actors: {
-            myActivity: invokeActivity(() => {
-              stopActivityState = 'on';
-              return () => (stopActivityState = 'off');
-            })
+            myActivity: () =>
+              createCallbackBehavior(() => () => {
+                stopActivityState = 'on';
+                return () => (stopActivityState = 'off');
+              })
           }
         }
       );
@@ -611,13 +609,14 @@ describe('interpreter', () => {
         },
         {
           actors: {
-            blink: invokeActivity(() => {
-              activityActive = true;
+            blink: () =>
+              createCallbackBehavior(() => () => {
+                activityActive = true;
 
-              return () => {
-                activityActive = false;
-              };
-            })
+                return () => {
+                  activityActive = false;
+                };
+              })
           }
         }
       );
@@ -866,7 +865,7 @@ describe('interpreter', () => {
         foo: {
           invoke: {
             id: 'child',
-            src: invokeMachine(childMachine)
+            src: () => createMachineBehavior(childMachine)
           }
         }
       },
@@ -1016,52 +1015,46 @@ describe('interpreter', () => {
   });
 
   describe('sendParent() event expressions', () => {
-    interface Ctx {
-      password: string;
-    }
-    interface Events {
-      type: 'NEXT';
-      password: string;
-    }
-    const childMachine = createMachine<Ctx>({
-      id: 'child',
-      initial: 'start',
-      context: {
-        password: 'unknown'
-      },
-      states: {
-        start: {
-          entry: sendParent((ctx) => {
-            return { type: 'NEXT', password: ctx.password };
-          })
-        }
-      }
-    });
-    // Ctx, any, Events, any
-    const parentMachine = createMachine<Ctx, Events>({
-      id: 'parent',
-      initial: 'start',
-      states: {
-        start: {
-          invoke: {
-            id: 'child',
-            src: invokeMachine(childMachine),
-            data: { password: 'foo' }
-          },
-          on: {
-            NEXT: {
-              target: 'finish',
-              guard: (_, e) => e.password === 'foo'
-            }
-          }
-        },
-        finish: {
-          type: 'final'
-        }
-      }
-    });
-
     it('should resolve sendParent event expressions', (done) => {
+      const childMachine = createMachine({
+        id: 'child',
+        initial: 'start',
+        context: {
+          password: 'unknown'
+        },
+        entry: () => console.log('entry'),
+        states: {
+          start: {
+            entry: sendParent((ctx) => {
+              return { type: 'NEXT', password: ctx.password };
+            })
+          }
+        }
+      });
+
+      const parentMachine = createMachine({
+        id: 'parent',
+        initial: 'start',
+        states: {
+          start: {
+            invoke: {
+              id: 'child',
+              src: invokeMachine(childMachine), // TODO: determine how to pass data using `data` property
+              data: { password: 'foo' }
+            },
+            on: {
+              NEXT: {
+                target: 'finish',
+                guard: (_, e) => e.password === 'foo'
+              }
+            }
+          },
+          finish: {
+            type: 'final'
+          }
+        }
+      });
+
       interpret(parentMachine)
         .onTransition((state) => {
           if (state.matches('start')) {
@@ -1523,9 +1516,10 @@ describe('interpreter', () => {
         },
         {
           actors: {
-            testService: invokeActivity(() => {
-              // nothing
-            })
+            testService: () =>
+              createCallbackBehavior(() => () => {
+                // nothing
+              })
           }
         }
       );
@@ -1556,7 +1550,7 @@ describe('interpreter', () => {
           active: {
             invoke: {
               id: 'childActor',
-              src: invokeMachine(childMachine)
+              src: () => createMachineBehavior(childMachine)
             },
             on: {
               FIRED: 'success'
@@ -1591,14 +1585,15 @@ describe('interpreter', () => {
           active: {
             invoke: {
               id: 'childActor',
-              src: invokePromise(
-                () =>
-                  new Promise((res) => {
-                    setTimeout(() => {
-                      res(42);
-                    }, 100);
-                  })
-              ),
+              src: () =>
+                createPromiseBehavior(
+                  () =>
+                    new Promise((res) => {
+                      setTimeout(() => {
+                        res(42);
+                      }, 100);
+                    })
+                ),
               onDone: [
                 {
                   target: 'success',
@@ -1645,9 +1640,10 @@ describe('interpreter', () => {
           active: {
             invoke: {
               id: 'childActor',
-              src: invokeObservable(() =>
-                interval$.pipe(map((value) => ({ type: 'FIRED', value })))
-              )
+              src: () =>
+                createObservableBehavior(() =>
+                  interval$.pipe(map((value) => ({ type: 'FIRED', value })))
+                )
             },
             on: {
               FIRED: {

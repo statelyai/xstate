@@ -1,7 +1,8 @@
 import { createMachine, sendParent, interpret, assign } from '../src';
 import { respond } from '../src/actions';
 import { send } from '../src/actions/send';
-import { invokeCallback, invokeMachine } from '../src/invoke';
+import { createCallbackBehavior } from '../src/behaviors';
+import { invokeMachine } from '../src/invoke';
 
 describe('SCXML events', () => {
   it('should have the origin (id) from the sending machine service', (done) => {
@@ -50,7 +51,10 @@ describe('SCXML events', () => {
         active: {
           invoke: {
             id: 'callback_child',
-            src: invokeCallback(() => (sendBack) => sendBack({ type: 'EVENT' }))
+            src: () =>
+              createCallbackBehavior(() => (sendBack) =>
+                sendBack({ type: 'EVENT' })
+              )
           },
           on: {
             EVENT: {
