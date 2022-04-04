@@ -80,7 +80,7 @@ export function useMachine<TMachine extends AnyStateMachine>(
   }, [service]);
 
   const isEqual = useCallback(
-    (_prevState, nextState) => {
+    (prevState, nextState) => {
       if (service.status === InterpreterStatus.NotStarted) {
         return true;
       }
@@ -92,7 +92,8 @@ export function useMachine<TMachine extends AnyStateMachine>(
       // The "live" initial state will have .changed === undefined.
       const initialStateChanged =
         nextState.changed === undefined &&
-        Object.keys(nextState.children).length;
+        (Object.keys(nextState.children).length > 0 ||
+          typeof prevState.changed === 'boolean');
 
       return !(nextState.changed || initialStateChanged);
     },
