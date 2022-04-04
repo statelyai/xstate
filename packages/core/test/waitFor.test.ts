@@ -27,7 +27,6 @@ describe('waitFor', () => {
   });
 
   it('should throw an error after a timeout', async () => {
-    expect.assertions(3);
     const machine = createMachine({
       initial: 'a',
       states: {
