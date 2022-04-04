@@ -1,17 +1,17 @@
 import {
+  AnyMachine,
+  AnyService,
   createMachine,
   EventObject,
   interpret,
-  StateMachine,
-  Typestate,
-  AnyMachine,
+  InterpreterStatus,
   MachineImplementationsFrom,
-  StateFrom,
   ServiceFrom,
-  AnyService,
-  InterpreterStatus
+  StateFrom,
+  StateMachine,
+  Typestate
 } from '@xstate/fsm';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
 import useConstant from './useConstant';
@@ -40,6 +40,8 @@ export function useMachine<TMachine extends AnyMachine>(
   stateMachine: TMachine,
   options?: MachineImplementationsFrom<TMachine>
 ): [StateFrom<TMachine>, ServiceFrom<TMachine>['send'], ServiceFrom<TMachine>] {
+  const persistedStateRef = useRef<StateMachine.AnyState>();
+
   if (process.env.NODE_ENV !== 'production') {
     const [initialMachine] = useState(stateMachine);
 
@@ -66,6 +68,7 @@ export function useMachine<TMachine extends AnyMachine>(
         return;
       }
       send(event);
+      persistedStateRef.current = service.state;
     };
     return [service, queue];
   });
@@ -79,8 +82,10 @@ export function useMachine<TMachine extends AnyMachine>(
   const useServiceResult = useService(service);
 
   useEffect(() => {
-    service.start();
+    service.start(persistedStateRef.current);
     queue.forEach(service.send);
+
+    persistedStateRef.current = service.state;
 
     return () => {
       service.stop();

@@ -409,4 +409,27 @@ describeEachReactMode('useMachine, fsm (%s)', ({ suiteKey, render }) => {
 
     render(<Test />);
   });
+
+  it('should only execute actions once when mounting', () => {
+    let entryActionCalled = 0;
+
+    const machine = createMachine({
+      initial: 'init',
+      states: {
+        init: {
+          entry: () => entryActionCalled++
+        }
+      }
+    });
+
+    const Test = () => {
+      useMachine(machine);
+      return null;
+    };
+
+    render(<Test />);
+
+    // in StrictMode this would return 2 if we wouldn't be calling `.start(persistedState)` in an effect
+    expect(entryActionCalled).toEqual(1);
+  });
 });
