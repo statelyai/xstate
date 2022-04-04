@@ -18,7 +18,6 @@ import { log, actionTypes, raise, stop } from '../src/actions';
 import { isObservable } from '../src/utils';
 import { interval, from } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { waitFor } from '../src/waitFor';
 
 const lightMachine = Machine({
   id: 'light',
