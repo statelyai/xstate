@@ -1,6 +1,4 @@
 import {
-  AnyMachine,
-  AnyService,
   ContextFrom,
   EventFrom,
   EventObject,
@@ -14,12 +12,10 @@ import {
 } from './types';
 
 export {
-  AnyService,
   StateMachine,
   EventObject,
   InterpreterStatus,
   Typestate,
-  AnyMachine,
   MachineImplementationsFrom,
   StateFrom,
   EventFrom,

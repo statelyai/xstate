@@ -14,10 +14,6 @@ export interface EventObject {
 
 export type InitEvent = { type: 'xstate.init' };
 
-export type AnyMachine = StateMachine.Machine<any, any, any>;
-
-export type AnyService = StateMachine.Service<any, any, any>;
-
 export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine.Machine<infer TContext, any, any>
     ? TContext
@@ -48,7 +44,9 @@ export type ServiceFrom<T> = ReturnTypeOrValue<T> extends infer R
     : never
   : never;
 
-export type MachineImplementationsFrom<TMachine extends AnyMachine> = {
+export type MachineImplementationsFrom<
+  TMachine extends StateMachine.AnyMachine
+> = {
   actions?: StateMachine.ActionMap<ContextFrom<TMachine>, EventFrom<TMachine>>;
 };
 
@@ -110,6 +108,10 @@ export namespace StateMachine {
       ? TState & { value: TSV }
       : never;
   }
+
+  export type AnyMachine = StateMachine.Machine<any, any, any>;
+
+  export type AnyService = StateMachine.Service<any, any, any>;
 
   export type AnyState = State<any, any, any>;
 

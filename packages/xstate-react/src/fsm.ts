@@ -1,6 +1,4 @@
 import {
-  AnyMachine,
-  AnyService,
   createMachine,
   EventObject,
   interpret,
@@ -36,7 +34,7 @@ const getServiceState = <
   return currentValue!;
 };
 
-export function useMachine<TMachine extends AnyMachine>(
+export function useMachine<TMachine extends StateMachine.AnyMachine>(
   stateMachine: TMachine,
   options?: MachineImplementationsFrom<TMachine>
 ): [StateFrom<TMachine>, ServiceFrom<TMachine>['send'], ServiceFrom<TMachine>] {
@@ -100,7 +98,7 @@ const isEqual = (
   nextState: StateMachine.AnyState
 ) => nextState.changed === false;
 
-export function useService<TService extends AnyService>(
+export function useService<TService extends StateMachine.AnyService>(
   service: TService
 ): [StateFrom<TService>, TService['send'], TService] {
   const getSnapshot = useCallback(() => getServiceState(service), [service]);
