@@ -48,4 +48,45 @@ describe('waitFor', () => {
       expect(e).toBeInstanceOf(Error);
     }
   });
+
+  it('should resolve correctly when the predicate immediately matches the current state', async () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {}
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    await expect(
+      waitFor(service, (state) => state.matches('a'))
+    ).resolves.toHaveProperty('value', 'a');
+  });
+
+  it('should internally unsubscribe when the predicate immediately matches the current state', async () => {
+    let count = 0;
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {}
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    await waitFor(service, (state) => {
+      count++;
+      return state.matches('a');
+    });
+
+    service.send({ type: 'NEXT' });
+
+    expect(count).toBe(1);
+  });
 });
