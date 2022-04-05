@@ -25,6 +25,7 @@ What we’re working on right now. Features planned for April - June 2022.
 - Feature parity with XState
 - Authentication bug fixes
 - Welcome emails
+- Entity snapping
 - Inline editing
 - Simulation mode
 - Markdown descriptions
