@@ -1,6 +1,6 @@
 import { ActorRef, EmittedFrom } from '.';
 
-interface WaitForOptions<_TActorRef extends ActorRef<any, any>> {
+interface WaitForOptions {
   timeout: number;
 }
 
@@ -28,9 +28,9 @@ const TIMEOUT = 10000; // 10 seconds
 export function waitFor<TActorRef extends ActorRef<any, any>>(
   actorRef: TActorRef,
   predicate: (emitted: EmittedFrom<TActorRef>) => boolean,
-  options?: WaitForOptions<TActorRef>
+  options?: WaitForOptions
 ): Promise<EmittedFrom<TActorRef>> {
-  const resolvedOptions: WaitForOptions<TActorRef> = {
+  const resolvedOptions: WaitForOptions = {
     timeout: TIMEOUT, // 10 seconds,
     ...options
   };
