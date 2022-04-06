@@ -141,4 +141,46 @@ describe('@xstate/inspect', () => {
       }
     });
   });
+
+  it('should not crash when registering machine with very deep context when serializer manages to replace it', (done) => {
+    type DeepObject = { nested?: DeepObject };
+
+    const deepObj: DeepObject = {};
+
+    let current = deepObj;
+    for (let i = 0; i < 20_000; i += 1) {
+      current.nested = {};
+      current = current.nested;
+    }
+
+    const machine = createMachine({
+      initial: 'active',
+      context: deepObj,
+      states: {
+        active: {}
+      }
+    });
+
+    const devTools = createDevTools();
+
+    inspect({
+      iframe: false,
+      devTools,
+      serialize: (key, value) => {
+        if (key === 'nested') {
+          return '[very deep]';
+        }
+
+        return value;
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    devTools.onRegister(() => {
+      done();
+    });
+
+    expect(() => devTools.register(service)).not.toThrow();
+  });
 });
