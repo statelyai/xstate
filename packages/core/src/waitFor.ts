@@ -1,10 +1,18 @@
 import { ActorRef, EmittedFrom } from '.';
 
 interface WaitForOptions {
+  /**
+   * How long to wait before rejecting, if no emitted
+   * state satisfies the predicate.
+   *
+   * @default 10_000 (10 seconds)
+   */
   timeout: number;
 }
 
-const TIMEOUT = 10000; // 10 seconds
+const defaultWaitForOptions: WaitForOptions = {
+  timeout: 10_000 // 10 seconds
+};
 
 /**
  * Subscribes to an actor ref and waits for its emitted value to satisfy
@@ -28,10 +36,10 @@ const TIMEOUT = 10000; // 10 seconds
 export function waitFor<TActorRef extends ActorRef<any, any>>(
   actorRef: TActorRef,
   predicate: (emitted: EmittedFrom<TActorRef>) => boolean,
-  options?: WaitForOptions
+  options?: Partial<WaitForOptions>
 ): Promise<EmittedFrom<TActorRef>> {
   const resolvedOptions: WaitForOptions = {
-    timeout: TIMEOUT, // 10 seconds,
+    ...defaultWaitForOptions,
     ...options
   };
   return new Promise((res, rej) => {
