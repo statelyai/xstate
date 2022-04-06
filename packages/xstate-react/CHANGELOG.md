@@ -80,7 +80,7 @@
   Previously, guards could not reference external props, because they would not be updated when the props changed. For instance:
 
   ```tsx
-  const Modal = props => {
+  const Modal = (props) => {
     useMachine(modalMachine, {
       guards: {
         isModalOpen: () => props.isOpen
@@ -94,7 +94,7 @@
   This is not true of actions/services. This will work as expected:
 
   ```tsx
-  const Modal = props => {
+  const Modal = (props) => {
     useMachine(modalMachine, {
       actions: {
         consoleLogModalOpen: () => {
@@ -251,7 +251,7 @@
   import { useSelector } from '@xstate/react';
 
   const App = ({ someActor }) => {
-    const count = useSelector(someActor, state => state.context.count);
+    const count = useSelector(someActor, (state) => state.context.count);
 
     // ...
   };
@@ -372,7 +372,7 @@ All notable changes to this project will be documented in this file.
 - The `useActor` hook now takes a second argument: `getSnapshot` which is a function that should return the last emitted value:
 
   ```js
-  const [state, send] = useActor(someActor, actor => actor.current);
+  const [state, send] = useActor(someActor, (actor) => actor.current);
   ```
 
 ## [1.0.0-rc.6]
