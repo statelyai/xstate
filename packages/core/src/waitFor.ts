@@ -35,6 +35,7 @@ export function waitFor<TActorRef extends ActorRef<any, any>>(
     ...options
   };
   return new Promise((res, rej) => {
+    let done = false;
     const handle = setTimeout(() => {
       sub.unsubscribe();
       rej(new Error(`Timeout of ${resolvedOptions.timeout} ms exceeded`));
@@ -42,10 +43,14 @@ export function waitFor<TActorRef extends ActorRef<any, any>>(
 
     const sub = actorRef.subscribe((emitted) => {
       if (predicate(emitted)) {
-        sub.unsubscribe();
+        done = true;
+        sub?.unsubscribe();
         res(emitted);
         clearTimeout(handle);
       }
     });
+    if (done) {
+      sub.unsubscribe();
+    }
   });
 }
