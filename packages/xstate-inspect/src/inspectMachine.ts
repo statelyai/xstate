@@ -6,7 +6,7 @@ import {
   Interpreter,
   XStateDevInterface
 } from 'xstate';
-import { stringify } from './utils';
+import { stringifyMachine, stringifyState } from './serialize';
 
 import { ReceiverEvent, Replacer } from './types';
 
@@ -92,8 +92,8 @@ export function createInspectMachine(
             devTools.services.forEach((service) => {
               ctx.client?.send({
                 type: 'service.register',
-                machine: stringify(service.machine, options?.serialize),
-                state: stringify(
+                machine: stringifyMachine(service.machine, options?.serialize),
+                state: stringifyState(
                   service.state || service.initialState,
                   options?.serialize
                 ),
