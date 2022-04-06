@@ -1,14 +1,16 @@
 import {
   ActorRef,
-  Interpreter,
-  interpret,
-  EventObject,
   EventData,
+  EventObject,
+  interpret,
+  Interpreter,
   Observer,
-  toActorRef
+  toActorRef,
+  toEventObject,
+  toObserver,
+  toSCXMLEvent,
+  XStateDevInterface
 } from 'xstate';
-import { XStateDevInterface } from 'xstate/lib/devTools';
-import { toSCXMLEvent, toEventObject, toObserver } from 'xstate/lib/utils';
 import { createInspectMachine, InspectMachineEvent } from './inspectMachine';
 import type {
   Inspector,

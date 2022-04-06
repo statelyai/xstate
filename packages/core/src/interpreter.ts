@@ -44,7 +44,6 @@ import {
   isPromiseLike,
   mapContext,
   warn,
-  keys,
   isArray,
   isFunction,
   isString,
@@ -131,7 +130,7 @@ export class Interpreter<
    * - `clock` uses the global `setTimeout` and `clearTimeout` functions
    * - `logger` uses the global `console.log()` method
    */
-  public static defaultOptions = ((global) => ({
+  public static defaultOptions = {
     execute: true,
     deferEvents: true,
     clock: {
@@ -142,9 +141,9 @@ export class Interpreter<
         return clearTimeout(id);
       }
     } as Clock,
-    logger: global.console.log.bind(console),
+    logger: console.log.bind(console),
     devTools: false
-  }))(typeof self !== 'undefined' ? self : global);
+  };
   /**
    * The current state of the interpreted machine.
    */
@@ -350,7 +349,7 @@ export class Interpreter<
     if (this.state.configuration && isDone) {
       // get final child state node
       const finalChildStateNode = state.configuration.find(
-        (sn) => sn.type === 'final' && sn.parent === this.machine
+        (sn) => sn.type === 'final' && sn.parent === (this.machine as any)
       );
 
       const doneData =
@@ -519,6 +518,12 @@ export class Interpreter<
       return this;
     }
 
+    // yes, it's a hack but we need the related cache to be populated for some things to work (like delayed transitions)
+    // this is usually called by `machine.getInitialState` but if we rehydrate from a state we might bypass this call
+    // we also don't want to call this method here as it resolves the full initial state which might involve calling assign actions
+    // and that could potentially lead to some unwanted side-effects (even such as creating some rogue actors)
+    (this.machine as any)._init();
+
     registry.register(this.sessionId, this as Actor);
     this.initialized = true;
     this.status = InterpreterStatus.Running;
@@ -584,7 +589,7 @@ export class Interpreter<
     });
 
     // Cancel all delayed events
-    for (const key of keys(this.delayedEventsMap)) {
+    for (const key of Object.keys(this.delayedEventsMap)) {
       this.clock.clearTimeout(this.delayedEventsMap[key]);
     }
 

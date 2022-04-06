@@ -4,9 +4,9 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { ActorRef } from 'xstate';
+import { ActorRef, toActorRef } from 'xstate';
 import { useActor } from '../src';
-const simpleActor: ActorRef<any, number> & { latestValue: number } = {
+const simpleActor: ActorRef<any, number> & { latestValue: number } = toActorRef({
   send: () => {
     /* ... */
   },
@@ -18,7 +18,7 @@ const simpleActor: ActorRef<any, number> & { latestValue: number } = {
       }
     };
   }
-};
+});
 
 export default defineComponent({
   setup() {

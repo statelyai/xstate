@@ -8,7 +8,7 @@ import {
   ChooseCondition
 } from './types';
 import { AnyStateMachine, Machine } from './index';
-import { mapValues, keys, isString } from './utils';
+import { mapValues, isString } from './utils';
 import * as actions from './actions';
 
 function getAttribute(
@@ -102,7 +102,7 @@ const evaluateExecutableContent = <
   body: string
 ) => {
   const datamodel = context
-    ? keys(context)
+    ? Object.keys(context)
         .map((key) => `const ${key} = context['${key}'];`)
         .join('\n')
     : '';

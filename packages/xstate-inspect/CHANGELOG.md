@@ -1,5 +1,19 @@
 # @xstate/inspect
 
+## 0.6.4
+
+### Patch Changes
+
+- [#3144](https://github.com/statelyai/xstate/pull/3144) [`e08030faf`](https://github.com/statelyai/xstate/commit/e08030faf00e2bcb192040b6ba04178ecf057509) Thanks [@lecepin](https://github.com/lecepin)! - Added UMD build for this package that is available in the `dist` directory in the published package.
+
+* [#3144](https://github.com/statelyai/xstate/pull/3144) [`e08030faf`](https://github.com/statelyai/xstate/commit/e08030faf00e2bcb192040b6ba04178ecf057509) Thanks [@lecepin](https://github.com/lecepin)! - Added proper `peerDependency` on XState. It was incorrectly omitted from the `package.json` of this package.
+
+## 0.6.3
+
+### Patch Changes
+
+- [#3089](https://github.com/statelyai/xstate/pull/3089) [`862697e29`](https://github.com/statelyai/xstate/commit/862697e2990934d46050580d7e09c749d09d8426) Thanks [@Andarist](https://github.com/Andarist)! - Fixed compatibility with Skypack by exporting some shared utilities from root entry of XState and consuming them directly in other packages (this avoids accessing those things using deep imports and thus it avoids creating those compatibility problems).
+
 ## 0.6.2
 
 ### Patch Changes
@@ -107,7 +121,7 @@
 
   const windowReceiver = createWindowReceiver(/* options? */);
 
-  windowReceiver.subscribe((event) => {
+  windowReceiver.subscribe(event => {
     // here, you will receive events like:
     // { type: "service.register", machine: ..., state: ..., sessionId: ... }
     console.log(event);
