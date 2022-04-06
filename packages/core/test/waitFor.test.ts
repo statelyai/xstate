@@ -49,6 +49,40 @@ describe('waitFor', () => {
     }
   });
 
+  it('should throw an error when reaching a final state that does not match the predicate', async () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: { NEXT: 'b' }
+        },
+        b: {
+          on: { NEXT: 'c' }
+        },
+        c: {
+          type: 'final'
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    setInterval(() => {
+      service.send('NEXT');
+    }, 10);
+
+    setTimeout(() => {
+      throw new Error('Should not reach here');
+    }, 50);
+
+    try {
+      await waitFor(service, (state) => state.matches('never'));
+    } catch (e) {
+      expect(e).toBeInstanceOf(Error);
+      expect((e as Error).message).toMatch(/terminated/);
+    }
+  });
+
   it('should resolve correctly when the predicate immediately matches the current state', async () => {
     const machine = createMachine({
       initial: 'a',

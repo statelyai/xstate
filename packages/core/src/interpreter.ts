@@ -1084,7 +1084,7 @@ export class Interpreter<
       })
       .start();
 
-    return actor;
+    return actor as any;
   }
   private spawnBehavior<TActorEvent extends EventObject, TEmitted>(
     behavior: Behavior<TActorEvent, TEmitted>,

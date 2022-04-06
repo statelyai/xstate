@@ -49,12 +49,21 @@ export function waitFor<TActorRef extends ActorRef<any, any>>(
       rej(new Error(`Timeout of ${resolvedOptions.timeout} ms exceeded`));
     }, resolvedOptions.timeout);
 
-    const sub = actorRef.subscribe((emitted) => {
-      if (predicate(emitted)) {
-        done = true;
-        sub?.unsubscribe();
-        res(emitted);
-        clearTimeout(handle);
+    const sub = actorRef.subscribe({
+      next: (emitted) => {
+        if (predicate(emitted)) {
+          done = true;
+          sub?.unsubscribe();
+          res(emitted);
+          clearTimeout(handle);
+        }
+      },
+      error: (err) => {
+        rej(err);
+      },
+      complete: () => {
+        // Actor has completed without satisfying the predicate
+        rej(new Error(`Actor terminated without satisfying predicate`));
       }
     });
     if (done) {
