@@ -20,11 +20,13 @@ export function selectivelyStringify<T extends object>(
   });
 }
 
-export function stringifyState(
-  { machine, configuration, ...state }: AnyState,
-  replacer?: Replacer
-): string {
-  return selectivelyStringify(state, ['context', 'event', '_event'], replacer);
+export function stringifyState(state: AnyState, replacer?: Replacer): string {
+  const { machine, configuration, ...stateToStringify } = state;
+  return selectivelyStringify(
+    stateToStringify,
+    ['context', 'event', '_event'],
+    replacer
+  );
 }
 
 export function stringifyMachine(

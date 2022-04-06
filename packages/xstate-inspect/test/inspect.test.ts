@@ -142,22 +142,20 @@ describe('@xstate/inspect', () => {
     });
   });
 
-  it('should handle using serializer to remove dangerous values', (done) => {
-    const circularStructure = {} as any;
-    let deepRef = circularStructure;
+  it('should not crash when registering machine with very deep context when serializer manages to replace it', (done) => {
+    type DeepObject = { nested?: DeepObject };
+
+    const deepObj: DeepObject = {};
+
+    let current = deepObj;
     for (let i = 0; i < 20_000; i += 1) {
-      deepRef.circChild = {};
-      deepRef = deepRef.circChild;
+      current.nested = {};
+      current = current.nested;
     }
-    deepRef.circChild = {
-      get cycle() {
-        return circularStructure;
-      }
-    };
 
     const machine = createMachine({
       initial: 'active',
-      context: circularStructure,
+      context: deepObj,
       states: {
         active: {}
       }
@@ -165,16 +163,12 @@ describe('@xstate/inspect', () => {
 
     const devTools = createDevTools();
 
-    devTools.onRegister(() => {
-      done();
-    });
-
     inspect({
       iframe: false,
       devTools,
       serialize: (key, value) => {
-        if (key === 'circChild') {
-          return 'circChild';
+        if (key === 'nested') {
+          return '[very deep]';
         }
 
         return value;
@@ -183,12 +177,10 @@ describe('@xstate/inspect', () => {
 
     const service = interpret(machine).start();
 
-    // The devTools will notify the listeners:
-    // 1. the built-in service listener
-    // 2. the test listener that calls done() above
-    // with the service. The built-in service listener is responsible for
-    // stringifying the service's machine definition (which contains a circular structure)
-    // and will throw an error if circular structures are not handled.
+    devTools.onRegister(() => {
+      done();
+    });
+
     expect(() => devTools.register(service)).not.toThrow();
   });
 });
