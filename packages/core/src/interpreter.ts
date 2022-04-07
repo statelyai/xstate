@@ -429,12 +429,16 @@ export class Interpreter<
     this.listeners.add(listener);
 
     // Send current state to listener
-    if (this.status === InterpreterStatus.Running) {
+    if (this.status !== InterpreterStatus.NotStarted) {
       listener(this.state);
     }
 
     if (resolvedCompleteListener) {
-      this.onDone(resolvedCompleteListener);
+      if (this.status === InterpreterStatus.Stopped) {
+        resolvedCompleteListener();
+      } else {
+        this.onDone(resolvedCompleteListener);
+      }
     }
 
     return {
@@ -1090,7 +1094,7 @@ export class Interpreter<
       })
       .start();
 
-    return actor;
+    return actor as any;
   }
   private spawnBehavior<TActorEvent extends EventObject, TEmitted>(
     behavior: Behavior<TActorEvent, TEmitted>,
