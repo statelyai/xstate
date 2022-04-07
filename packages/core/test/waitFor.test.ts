@@ -123,4 +123,27 @@ describe('waitFor', () => {
 
     expect(count).toBe(1);
   });
+
+  it('should immediately resolve for an actor in its final state that matches the predicate', async () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {
+          type: 'final'
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+    service.send({ type: 'NEXT' });
+
+    await expect(
+      waitFor(service, (state) => state.matches('b'))
+    ).resolves.toHaveProperty('value', 'b');
+  });
 });

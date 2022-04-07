@@ -429,7 +429,7 @@ export class Interpreter<
     this.listeners.add(listener);
 
     // Send current state to listener
-    if (this.status === InterpreterStatus.Running) {
+    if (this.status !== InterpreterStatus.NotStarted) {
       listener(this.state);
     }
 
