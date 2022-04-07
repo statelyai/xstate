@@ -10,20 +10,17 @@ describe('waitFor', () => {
         a: {
           on: { NEXT: 'b' }
         },
-        b: {
-          on: { NEXT: 'c' }
-        },
-        c: {}
+        b: {}
       }
     });
 
     const service = interpret(machine).start();
 
-    setInterval(() => service.send('NEXT'), 10);
+    setTimeout(() => service.send('NEXT'), 10);
 
-    const state = await waitFor(service, (s) => s.matches('c'));
+    const state = await waitFor(service, (s) => s.matches('b'));
 
-    expect(state.value).toEqual('c');
+    expect(state.value).toEqual('b');
   });
 
   it('should throw an error after a timeout', async () => {
