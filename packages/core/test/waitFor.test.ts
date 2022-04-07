@@ -10,20 +10,17 @@ describe('waitFor', () => {
         a: {
           on: { NEXT: 'b' }
         },
-        b: {
-          on: { NEXT: 'c' }
-        },
-        c: {}
+        b: {}
       }
     });
 
     const service = interpret(machine).start();
 
-    setInterval(() => service.send('NEXT'), 10);
+    setTimeout(() => service.send('NEXT'), 10);
 
-    const state = await waitFor(service, (s) => s.matches('c'));
+    const state = await waitFor(service, (s) => s.matches('b'));
 
-    expect(state.value).toEqual('c');
+    expect(state.value).toEqual('b');
   });
 
   it('should throw an error after a timeout', async () => {
@@ -57,9 +54,6 @@ describe('waitFor', () => {
           on: { NEXT: 'b' }
         },
         b: {
-          on: { NEXT: 'c' }
-        },
-        c: {
           type: 'final'
         }
       }
@@ -67,20 +61,15 @@ describe('waitFor', () => {
 
     const service = interpret(machine).start();
 
-    setInterval(() => {
+    setTimeout(() => {
       service.send('NEXT');
     }, 10);
 
-    setTimeout(() => {
-      throw new Error('Should not reach here');
-    }, 50);
-
-    try {
-      await waitFor(service, (state) => state.matches('never'));
-    } catch (e) {
-      expect(e).toBeInstanceOf(Error);
-      expect((e as Error).message).toMatch(/terminated/);
-    }
+    await expect(
+      waitFor(service, (state) => state.matches('never'))
+    ).rejects.toMatchInlineSnapshot(
+      `[Error: Actor terminated without satisfying predicate]`
+    );
   });
 
   it('should resolve correctly when the predicate immediately matches the current state', async () => {
@@ -122,5 +111,53 @@ describe('waitFor', () => {
     service.send({ type: 'NEXT' });
 
     expect(count).toBe(1);
+  });
+
+  it('should immediately resolve for an actor in its final state that matches the predicate', async () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {
+          type: 'final'
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+    service.send({ type: 'NEXT' });
+
+    await expect(
+      waitFor(service, (state) => state.matches('b'))
+    ).resolves.toHaveProperty('value', 'b');
+  });
+
+  it('should immediately reject for an actor in its final state that does not match the predicate', async () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {
+          type: 'final'
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+    service.send({ type: 'NEXT' });
+
+    await expect(
+      waitFor(service, (state) => state.matches('a'))
+    ).rejects.toMatchInlineSnapshot(
+      `[Error: Actor terminated without satisfying predicate]`
+    );
   });
 });
