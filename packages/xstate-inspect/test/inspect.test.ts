@@ -1,5 +1,49 @@
-import { createMachine, interpret } from 'xstate';
+import { assign, createMachine, interpret } from 'xstate';
 import { createDevTools, inspect } from '../src';
+
+afterEach(() => {
+  // this clears timers, removes global listeners etc
+  // I'm not sure if this is 100% safe to do
+  // it's not clear if the window object after this operation is still usable in the same way (is it recyclable?)
+  // it does seem to cover our needs so far though
+  window.close();
+});
+
+const createIframeMock = () => {
+  const messages: any = [];
+
+  // if only we wouldn't transpile down to es5 we could wrap this in a custom class extending EventTarget
+  // transpiled classes can't extend native classes because they are calling super like this: var _this = _super.call(this) || this;
+  // and native classes must be instantiated with new/super
+  const iframe = new EventTarget() as HTMLIFrameElement;
+
+  (iframe as any).contentWindow = {
+    postMessage(ev) {
+      messages.push(ev);
+    }
+  };
+
+  iframe.setAttribute = () => {};
+
+  return {
+    iframe,
+    initConnection() {
+      iframe.dispatchEvent(new Event('load'));
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          data: {
+            type: 'xstate.inspecting'
+          }
+        })
+      );
+    },
+    flushMessages() {
+      const [...flushed] = messages;
+      messages.length = 0;
+      return flushed;
+    }
+  };
+};
 
 describe('@xstate/inspect', () => {
   it('should handle circular structures in context', (done) => {
@@ -182,5 +226,87 @@ describe('@xstate/inspect', () => {
     });
 
     expect(() => devTools.register(service)).not.toThrow();
+  });
+
+  it('should successfully serialize value with unsafe toJSON when serializer manages to replace it', () => {
+    const machine = createMachine({
+      context: {},
+      on: {
+        EV: {
+          actions: assign({
+            value: (_ctx, ev: any) => ev.value
+          })
+        }
+      }
+    });
+
+    const devTools = createDevTools();
+    const iframeMock = createIframeMock();
+
+    inspect({
+      iframe: iframeMock.iframe,
+      devTools,
+      serialize(_key, value) {
+        if (value && typeof value === 'object' && 'unsafe' in value) {
+          return {
+            ...value,
+            unsafe: '[unsafe]'
+          };
+        }
+        return value;
+      }
+    });
+
+    iframeMock.initConnection();
+
+    const service = interpret(machine).start();
+    devTools.register(service);
+
+    iframeMock.flushMessages();
+
+    service.send({
+      type: 'EV',
+      value: {
+        unsafe: {
+          get toJSON() {
+            throw new Error('oops');
+          }
+        }
+      }
+    });
+
+    expect(iframeMock.flushMessages()).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "event": "{\\"name\\":\\"EV\\",\\"data\\":{\\"type\\":\\"EV\\",\\"value\\":{\\"unsafe\\":\\"[unsafe]\\"}},\\"$$type\\":\\"scxml\\",\\"type\\":\\"external\\"}",
+          "sessionId": "x:9",
+          "type": "service.event",
+        },
+        Object {
+          "sessionId": "x:9",
+          "state": "{\\"actions\\":[],\\"activities\\":{},\\"meta\\":{},\\"events\\":[],\\"value\\":{},\\"context\\":{\\"value\\":{\\"unsafe\\":\\"[unsafe]\\"}},\\"_event\\":{\\"name\\":\\"EV\\",\\"data\\":{\\"type\\":\\"EV\\",\\"value\\":{\\"unsafe\\":\\"[unsafe]\\"}},\\"$$type\\":\\"scxml\\",\\"type\\":\\"external\\"},\\"_sessionid\\":\\"x:9\\",\\"event\\":{\\"type\\":\\"EV\\",\\"value\\":{\\"unsafe\\":\\"[unsafe]\\"}},\\"transitions\\":[{\\"actions\\":[{\\"type\\":\\"xstate.assign\\",\\"assignment\\":{}}],\\"event\\":\\"EV\\",\\"source\\":\\"#(machine)\\",\\"internal\\":true,\\"eventType\\":\\"EV\\"}],\\"children\\":{},\\"done\\":false,\\"tags\\":{},\\"changed\\":true}",
+          "type": "service.state",
+        },
+      ]
+    `);
+
+    // this is important because this moves the previous `state` to `state.history` (this was the case in v4)
+    // and serializing a `state` with a `state.history` containing unsafe value should still work
+    service.send({ type: 'UNKNOWN' });
+
+    expect(iframeMock.flushMessages()).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "event": "{\\"name\\":\\"UNKNOWN\\",\\"data\\":{\\"type\\":\\"UNKNOWN\\"},\\"$$type\\":\\"scxml\\",\\"type\\":\\"external\\"}",
+          "sessionId": "x:9",
+          "type": "service.event",
+        },
+        Object {
+          "sessionId": "x:9",
+          "state": "{\\"actions\\":[],\\"activities\\":{},\\"meta\\":{},\\"events\\":[],\\"value\\":{},\\"context\\":{\\"value\\":{\\"unsafe\\":\\"[unsafe]\\"}},\\"_event\\":{\\"name\\":\\"UNKNOWN\\",\\"data\\":{\\"type\\":\\"UNKNOWN\\"},\\"$$type\\":\\"scxml\\",\\"type\\":\\"external\\"},\\"_sessionid\\":\\"x:9\\",\\"event\\":{\\"type\\":\\"UNKNOWN\\"},\\"transitions\\":[],\\"children\\":{},\\"done\\":false,\\"tags\\":{},\\"changed\\":false}",
+          "type": "service.state",
+        },
+      ]
+    `);
   });
 });
