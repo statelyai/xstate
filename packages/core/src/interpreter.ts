@@ -434,7 +434,11 @@ export class Interpreter<
     }
 
     if (resolvedCompleteListener) {
-      this.onDone(resolvedCompleteListener);
+      if (this.status === InterpreterStatus.Stopped) {
+        resolvedCompleteListener();
+      } else {
+        this.onDone(resolvedCompleteListener);
+      }
     }
 
     return {
