@@ -1,23 +1,23 @@
 # Reddit API
 
-_Adapted from the [Redux Docs: Advanced Tutorial](https://redux.js.org/advanced/advanced-tutorial)_
+_本文由 [Redux Docs: Advanced Tutorial](https://redux.js.org/advanced/advanced-tutorial) 修改而来_
 
-Suppose we wanted to create an app that displays a selected subreddit's posts. The app should be able to:
+假设我们要写一个 App 来展示 reddit 帖子, 它的主要功能:
 
-- Have a predefined list of subreddits that the user can select from
-- Load the selected subreddit
-- Display the last time the selected subreddit was loaded
-- Reload the selected subreddit
-- Select a different subreddit at any time
+- 包含一个可供用户选择的预定义的帖子列表
+- 加载已选帖子
+- 展示上一次帖子加载的时间
+- 重新加载已选的帖子
+- 随时可以切换不同的帖子
 
-The app logic and state can be modeled with a single app-level machine, as well as invoked child machines for modeling the logic of each individual subreddit. For now, let's start with a single machine.
+App 的逻辑、状态可以被建模为单应用层状态机, 也可以为每个 subreddit 逻辑建模调用子状态机. 现在, 让我们从单一的状态机开始.
 
-## Modeling the App
+## 为App建模
 
-The Reddit app we're creating can be modeled with two top-level states:
+我们可以为 Reddit App 创建2个顶级的状态:
 
-- `'idle'` - no subreddit selected yet (the initial state)
-- `'selected'` - a subreddit is selected
+- `'idle'` - 还没有 subreddit 被选中 (初始状态)
+- `'selected'` - 选择了一个 subreddit 
 
 ```js {6-9}
 import { createMachine, assign } from 'xstate';
@@ -32,7 +32,7 @@ const redditMachine = createMachine({
 });
 ```
 
-We also need somewhere to store the selected `subreddit`, so let's put that in [`context`](../guides/context.md):
+我们需要一个地方来存储 `subreddit`, 我们可以把它放到 [`context`](../guides/context.md) 中:
 
 ```js {6-8}
 // ...
@@ -49,7 +49,8 @@ const redditMachine = createMachine({
 });
 ```
 
-Since a subreddit can be selected at any time, we can create a top-level transition for a `'SELECT'` event, which signals that a subreddit was selected by the user. This event will have a payload that has the selected subreddit name in `.name`:
+因为用户每次次只能选中一个 subreddit, 我们可以为 `'SELECT'` 事件创建一个顶层 `'transition'` .
+这个事件包含一个 `.name` 的荷载用来存放被选中的 subreddit 的名字:
 
 ```js
 // sample SELECT event
@@ -59,10 +60,10 @@ const selectEvent = {
 };
 ```
 
-This event will be handled at the top-level, so that whenever the `'SELECT'` event occurs, the machine will:
+事件会在顶层被处理. 所以, 无论什么时候触发 `'SELECT'` 状态机都会:
 
-- [transition](../guides/transitions.md) to its child `'.selected'` state (notice the dot, which indicates a [relative target](../guides/ids.md#relative-targets))
-- [assign](../guides/context.md#updating-context-with-assign) `event.name` to the `context.subreddit`
+- 过渡 [transition](../guides/transitions.md) 到子状态 `'.selected'` (注意 select 前面的点儿, 它代表一个关联目标 [relative target](../guides/ids.md#relative-targets))
+- 指派 [assign](../guides/context.md#updating-context-with-assign) `event.name` 给 `context.subreddit`
 
 ```js {10-17}
 const redditMachine = createMachine({
@@ -85,9 +86,9 @@ const redditMachine = createMachine({
 });
 ```
 
-## Async Flow
+## 异步流
 
-When a subreddit is selected (that is, when the machine is in the `'selected'` state due to a `'SELECT'` event), the machine should start loading the subreddit data. To do this, we [invoke a Promise](../guides/communication.html#invoking-promises) that will resolve with the selected subreddit data:
+当 subreddit 被选中后 (也就是触发 `'SELECT'` 事件, 状态机处于 `'selected'` 选中状态时), 状态机开始加载 subreddit 数据. 为了实现这个, 我们通过 [invoke a Promise](../guides/communication.html#invoking-promises) 来 resolve 加载选中 subreddit 的数据:
 
 ```js {1-7,14-17}
 function invokeFetchSubreddit(context) {
@@ -116,18 +117,18 @@ const redditMachine = createMachine({
 ```
 
 <details>
-  <summary>Why specify the invoke ID?</summary>
+  <summary>为什么要设置 invoke ID ?</summary>
 
-Specifying an `id` on the `invoke` config object allows clearer debugging and visualization, as well as the ability to send events directly to an invoked entity by its `id`.
+为 `invoke` 配置对象配置一个 `id` 可以让调试和可视化更清晰,也可以通过发送这个`id`直接触发它的实体.
 
 </details>
 
-When the `'selected'` state is entered, `invokeFetchSubreddit(...)` will be called with the current `context` and `event` (not used here) and start fetching subreddit data from the Reddit API. The promise can then take two special transitions:
+进入到 `'selected'` 状态后, `invokeFetchSubreddit(...)` 调用时会以 `context` 和 `event`(此处没用到) 作为上下文环境, 并开始从 Reddit API 拉取 subreddit 数据. 此处调用 promise 可以触发两次过渡:
 
-- `onDone` - taken when the invoked promise resolves
-- `onError` - taken when the invoked promise rejects
+- `onDone` - 当 Promise 的结果为 resolves 时触发
+- `onError` - 当 Promise 的结果为 rejects 时触发
 
-This is where it's helpful to have [nested (hierarchical) states](../guides/hierarchical.md). We can make 3 child states that represent when the subreddit is `'loading'`, `'loaded'` or `'failed'` (pick names appropriate to your use-cases):
+这也是嵌套状态 [nested (hierarchical) states](../guides/hierarchical.md) 的有用之处. 我们可以创建三个子状态,分别表示 `'loading'`, `'loaded'` or `'failed'` 三种不同情况(也可选择适合的用例名称):
 
 ```js {8-17}
 const redditMachine = createMachine({
@@ -156,9 +157,9 @@ const redditMachine = createMachine({
 });
 ```
 
-Notice how we moved the `invoke` config to the `'loading'` state. This is useful because if we want to change the app logic in the future to have some sort of `'paused'` or `'canceled'` child state, the invoked promise will automatically be "canceled" since it's no longer in the `'loading'` state where it was invoked.
+注意我们是如何把 `invoke` 配置放到 `'loading'` 状态的. 这很有用,因为以后如果想改 app 逻辑为 `'paused'` 或者 `'canceled'` 子状态,触发后的 Promise 就会自动被 "canceled" 掉,因为它一旦触发后就不在`'loading'` 状态了.
 
-When the promise resolves, a special `'done.invoke.<invoke ID>'` event will be sent to the machine, containing the resolved data as `event.data`. For convenience, XState maps the `onDone` property within the `invoke` object to this special event. You can assign the resolved data to `context.posts`:
+当 Promise 被 resolves 时, 一个特殊的 `'done.invoke.<invoke ID>'` 事件会被发送给状态机, 同时包含被 resolved 的数据 `event.data`.方便起见, XState会把 `invoke` 对象中的 `onDone` 属性跟该事件映射. 你可以在里面将 resolved 后的赋值给 `context.posts`:
 
 ```js {18-20}
 const redditMachine = createMachine({
@@ -196,9 +197,9 @@ const redditMachine = createMachine({
 });
 ```
 
-## Testing It Out
+## 测试
 
-It's a good idea to test that your machine's logic matches the app logic you intended. The most straightforward way to confidently test your app logic is by writing **integration tests**. You can test against a real or mock implementation of your app logic (e.g., using real services, making API calls, etc.), you can [run the logic in an interpreter](../guides/interpretation.md) via `interpret(...)` and write an async test that finishes when the state machine reaches a certain state:
+可以测试一下状态机的逻辑是否和你的程序逻辑是否一致. 最直接的测试程序逻辑的办法是编写**集成测试**(**integration tests**). 你可以直接测试或者用mock的方式测试你的程序逻辑(e.g., using real services, making API calls, etc.), 你也可以通过 `interpret(...)` [run the logic in an interpreter](../guides/interpretation.md) 编写异步测试来验证状态机是否达到预期的状态:
 
 ```js
 import { interpret } from 'xstate';
@@ -228,11 +229,11 @@ describe('reddit machine (live)', () => {
 });
 ```
 
-## Implementing the UI
+## 实现UI
 
-From here, your app logic is self-contained in the `redditMachine` and can be used however you want, in any front-end framework, such as React, Vue, Angular, Svelte, etc.
+现在, 你的 app 逻辑独立存在 `redditMachine` 文件中, 它可以被独立使用,也可以在任何框架中被引入, 如: React, Vue, Angular, Svelte 等等.
 
-Here's an example of how it would be [used in React with `@xstate/react`](../packages/xstate-react):
+下面有一个 React [used in React with `@xstate/react`](../packages/xstate-react) 的例子:
 
 ```jsx
 import React from 'react';
@@ -274,14 +275,14 @@ const App = () => {
 };
 ```
 
-## Splitting Machines
+## 拆分状态机
 
-Within the chosen UI framework, components provide natural isolation and encapsulation of logic. We can take advantage of that to organize logic and make smaller, more manageable machines.
+选择一个UI框架后, 组件提供了自然的隔离和逻辑的封装. 我们可以利用这一点去组织逻辑, 可以创建更小、更利用管理的状态机.
 
-Consider two machines:
+探讨两种状态机:
 
-- A `redditMachine`, which is the app-level machine, responsible for rendering the selected subreddit component
-- A `subredditMachine`, which is the machine responsible for loading and displaying its specified subreddit
+- `redditMachine` 应用级状态机, 用来渲染已选 subreddit 组件
+- `subredditMachine` 用来负责加载和显示某个 subreddit 的状态机
 
 ```js
 const createSubredditMachine = (subreddit) => {
@@ -323,7 +324,7 @@ const createSubredditMachine = (subreddit) => {
 };
 ```
 
-Notice how a lot of the logic in the original `redditMachine` was moved to the `subredditMachine`. That allows us to isolate logic to their specific domains and make the `redditMachine` more general, without being concerned with subreddit loading logic:
+注意: 原先的一些组织在 `redditMachine` 的逻辑被迁移到了 `subredditMachine`. 这样我们可以根据领域去拆分逻辑, 让 `redditMachine` 更通用, 无需考虑 subreddit 的加载逻辑:
 
 ```js {9}
 const redditMachine = createMachine({
@@ -347,7 +348,7 @@ const redditMachine = createMachine({
 });
 ```
 
-Then, in the UI framework (React, in this case), a `<Subreddit>` component can be responsible for displaying the subreddit, using the logic from the created `subredditMachine`:
+接着, 在 UI 框架中(这里指React), `<Subreddit>` 组件负责展示 subreddit , 逻辑放在 `subredditMachine`:
 
 ```jsx
 const Subreddit = ({ name }) => {
@@ -396,7 +397,7 @@ const Subreddit = ({ name }) => {
 };
 ```
 
-And the overall app can use that `<Subreddit>` component:
+在 app 中可以使用 `<Subreddit>` 组件:
 
 ```jsx {8}
 const App = () => {
@@ -412,18 +413,18 @@ const App = () => {
 };
 ```
 
-## Using Actors
+## 使用 Actors
 
-The machines we've created work, and fit our basic use-cases. However, suppose we want to support the following use-cases:
+这个状态机可以用了, 符合我们的基本使用情况. 但是我们希望支持更多的功能:
 
-- When a subreddit is selected, it should load fully, even if a different one is selected (basic "caching")
-- The user should see when a subreddit was last updated, and have the ability to refresh the subreddit.
+- 当选中一个 subreddit 后, 它必须被完全加载, 无论它之前是否被选中过(通过缓存)
+- 用户可以看到 subreddit 的更新时间, 也可以刷新 subreddit .
 
-A good mental model for this is the [Actor model](../guides/actors.md), where each individual subreddit is its own "actor" that controls its own logic based on events, whether internal or external.
+[Actor model](../guides/actors.md) 是一个不错的心智模型, 让每一个被拆分的 subreddit 都有它自己的基于事件控制内外逻辑的 "actor".
 
-## Spawning Subreddit Actors
+## 调用 subreddit 的 Actors
 
-Recall that an actor is an entity that has its own logic/behavior, and it can receive and send events to other actors.
+回顾一下, actor 是一个拥有逻辑/行为(logic/behavior)的实体, 它可以对其它 actors 接收和发送事件.
 
 <mermaid>
   graph TD;
@@ -435,10 +436,10 @@ Recall that an actor is an entity that has its own logic/behavior, and it can re
   reddit-.->C;
 </mermaid>
 
-The `context` of the `redditMachine` needs to be modeled to:
+`redditMachine` 的 `context` 需要这样设计:
 
-- maintain a mapping of subreddits to their spawned actors
-- keep track of which subreddit is currently visible
+- 维护一个 subreddit 和 actors 的映射
+- 记录当前可见的 subreddit 
 
 ```js {4,5}
 const redditMachine = createMachine({
@@ -451,10 +452,10 @@ const redditMachine = createMachine({
 });
 ```
 
-When a subreddit is selected, one of two things can happen:
+当选择一个 subreddit 时,会触发如下事件中的一个:
 
-1. If that subreddit actor already exists in the `context.subreddits` object, `assign()` it as the current `context.subreddit`.
-2. Otherwise, `spawn()` a new subreddit actor with subreddit machine behavior from `createSubredditMachine`, assign it as the current `context.subreddit`, and save it in the `context.subreddits` object.
+1. 如果 `context.subreddits` 对象中已存在某个 subreddit  actor, 就调用 `assign()` 赋值给当前 `context.subreddit`
+2. 调用 `spawn()`,从 `createSubredditMachine` 发出一个新的 subreddit 行为, 并把它指派给当前 `context.subreddit`、存储在 `context.subreddits` 对象中.
 
 ```js
 const redditMachine = createMachine({
@@ -495,14 +496,14 @@ const redditMachine = createMachine({
 });
 ```
 
-## Putting It All Together
+## 综合一起
 
-Now that we have each subreddit encapsulated in its own "live" actor with its own logic and behavior, we can pass these actor references (or "refs") around as data. These actors created from machines are called "services" in XState. Just like any actor, events can be sent to these services, but these services can also be subscribed to. The subscriber will receive the most current state of the service whenever it's updated.
+现在, 每个 subreddit 的的逻辑和行为都被封装在它自己的 actor 中了, 我们可以把这些 actor 引用 (or "refs") 作为数据传递.状态机创建的 actors 在 XState 中被称做服务(services). 就像 actor 一样,事件可以被发送给这些 services, 而这些 services 也可以被订阅.每当服务更新时,订阅者会接收当前服务 (services) 的状态.
 
 ::: tip
-In React, change detection is done by reference, and changes to props/state cause rerenders. An actor's reference never changes, but its internal state may change. This makes actors ideal for when top-level state needs to maintain references to spawned actors, but should _not_ rerender when a spawned actor changes (unless explicitly told to do so via an event sent to the parent).
+在 React 中,变化检测是由引用(references)变化来完成的, props/state 的变化会导致重新渲染.actor 的 引用 永远不会变化,但它内部的状态也许会改变.这使得顶级状态需要维护 referneces 来触发 actors 时,actors 就成为了一个理想的选择,但是不应该通过触发改变 actor 来重新渲染（除非通过发送给父级的事件明确要求这样做）
 
-In other words, spawned child actors updating will _not_ cause unnecessary rerenders. 🎉
+换句话说,已触发的子 actors 变化不应造成不必要的渲染. 🎉
 :::
 
 ```jsx
@@ -531,11 +532,11 @@ const App = () => {
 };
 ```
 
-The differences between using the actor model above and just using machines with a component hierarchy (e.g., with React) are:
+使用 actor 模型,和仅在组件层级使用状态机（比如 React）的区别有:
 
-- The data flow and logic hierarchy live in the XState services, not in the components. This is important when the subreddit needs to continue loading, even when its `<Subreddit>` component may be unmounted.
-- The UI framework layer (e.g., React) becomes a plain view layer; logic and side-effects are not tied directly to the UI, except where it is appropriate.
-- The `redditMachine` → `subredditMachine` actor hierarchy is "self-sustaining", and allows for the logic to be transferred to any UI framework, or even no framework at all!
+- 数据流和逻辑层应在 XState 服务中,而不是组件中. 这点很重要,特别当 subreddit 需要继续加载时,无论  `<Subreddit>` 组件是否被卸载时.
+- UI框架（比如 React）成为一个纯粹的视图层; 非必要时, 逻辑和副作用不应直接绑定到UI层. 
+- `redditMachine` → `subredditMachine` 是 "self-sustaining" 的, 同时可以传递逻辑给任何 UI 框架,甚至没框架也行.
 
 ## React Demo
 
@@ -544,6 +545,8 @@ The differences between using the actor model above and just using machines with
 ## Vue Demo
 
 Unsurprisingly, the same machines can be used in a Vue app that exhibits the exact same behavior (thanks to [Chris Hannaby](https://github.com/chrishannaby)):
+
+毫不例外, 同样的状态机也可以用在 Vue 应用中,用以展示同样的行为, 感谢 ([Chris Hannaby](https://github.com/chrishannaby)):
 
 <iframe
   src="https://codesandbox.io/embed/xstate-vue-reddit-example-with-actors-uvu14?fontsize=14"
