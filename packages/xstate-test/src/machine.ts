@@ -8,7 +8,7 @@ import type {
 } from 'xstate';
 import { flatten } from '.';
 import { TestModel } from './TestModel';
-import { TestModelEventConfig, TestModelOptions } from './types';
+import { TestModelEventConfig, TestModelOptions, EventExecutor } from './types';
 
 export async function testStateFromMeta(state: AnyState) {
   for (const id of Object.keys(state.meta)) {
@@ -78,8 +78,14 @@ export function createTestModel<TMachine extends AnyStateMachine>(
       getEvents: (state) =>
         flatten(
           state.nextEvents.map((eventType) => {
-            const eventCaseGenerator = options?.events?.[eventType]
-              ?.cases as TestModelEventConfig<any, any>['cases'];
+            const eventConfig = options?.events?.[eventType];
+            const eventCaseGenerator =
+              typeof eventConfig === 'function'
+                ? undefined
+                : (eventConfig?.cases as TestModelEventConfig<
+                    any,
+                    any
+                  >['cases']);
 
             const cases = eventCaseGenerator
               ? Array.isArray(eventCaseGenerator)
@@ -96,10 +102,18 @@ export function createTestModel<TMachine extends AnyStateMachine>(
           })
         ),
       testTransition: async (step) => {
-        // TODO: fix types
-        const eventConfig = options?.events?.[(step.event as any).type] as any;
+        const eventConfig =
+          testModel.options.events?.[
+            (step.event as any).type as EventFrom<TMachine>['type']
+          ];
 
-        await eventConfig?.exec?.(step as any);
+        const eventExec =
+          typeof eventConfig === 'function' ? eventConfig : eventConfig?.exec;
+
+        await (eventExec as EventExecutor<
+          StateFrom<TMachine>,
+          EventFrom<TMachine>
+        >)?.(step);
       },
       ...options
     }
