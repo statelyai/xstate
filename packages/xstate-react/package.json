@@ -1,6 +1,6 @@
 {
   "name": "@xstate/react",
-  "version": "2.0.1",
+  "version": "3.0.0",
   "description": "XState tools for React",
   "keywords": [
     "state",
@@ -52,9 +52,9 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "@xstate/fsm": "^1.6.5",
+    "@xstate/fsm": "^2.0.0",
     "react": "^16.8.0 || ^17.0.0 || ^18.0.0",
-    "xstate": "^4.30.6"
+    "xstate": "^4.31.0"
   },
   "peerDependenciesMeta": {
     "@xstate/fsm": {
