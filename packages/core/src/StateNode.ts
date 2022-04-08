@@ -77,7 +77,7 @@ import { State, stateValuesEqual } from './State';
 import * as actionTypes from './actionTypes';
 import {
   start,
-  stop,
+  invokeStop,
   toActivityDefinition,
   send,
   cancel,
@@ -1095,7 +1095,7 @@ class StateNode<
       flatten(
         Array.from(exitStates).map((stateNode) => [
           ...stateNode.onExit,
-          ...stateNode.activities.map((activity) => stop(activity))
+          ...stateNode.activities.map((activity) => invokeStop(activity))
         ])
       )
     ];

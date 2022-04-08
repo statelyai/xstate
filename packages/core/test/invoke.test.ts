@@ -627,7 +627,7 @@ describe('invoke', () => {
       .start();
   });
 
-  it('should not start services only once when using withContext', () => {
+  it('should start services only once when using withContext', () => {
     let startCount = 0;
 
     const startMachine = Machine({
@@ -841,7 +841,7 @@ describe('invoke', () => {
         .start();
     });
 
-    it('should not reinvoke root-level invocations', (done) => {
+    it('should not reinvoke root-level invocations on root internal transitions', () => {
       // https://github.com/statelyai/xstate/issues/2147
 
       let invokeCount = 0;
@@ -887,7 +887,6 @@ describe('invoke', () => {
       expect(invokeCount).toEqual(1);
       expect(invokeDisposeCount).toEqual(0);
       expect(actionsCount).toEqual(2);
-      done();
     });
 
     it('child should not invoke an actor when it transitions to an invoking state when it gets stopped by its parent', (done) => {
@@ -2551,6 +2550,55 @@ describe('invoke', () => {
         .start();
 
       service.send('NEXT');
+    });
+
+    it('should be able to restart an invoke when reentering the invoking state', () => {
+      const actual: string[] = [];
+      let invokeCounter = 0;
+
+      const machine = createMachine({
+        initial: 'inactive',
+        states: {
+          inactive: {
+            on: { ACTIVATE: 'active' }
+          },
+          active: {
+            invoke: {
+              src: () => {
+                const localId = ++invokeCounter;
+
+                actual.push(`start ${localId}`);
+
+                return () => {
+                  return () => {
+                    actual.push(`stop ${localId}`);
+                  };
+                };
+              }
+            },
+            on: {
+              REENTER: {
+                target: 'active',
+                internal: false
+              }
+            }
+          }
+        }
+      });
+
+      const service = interpret(machine).start();
+
+      service.send({
+        type: 'ACTIVATE'
+      });
+
+      actual.length = 0;
+
+      service.send({
+        type: 'REENTER'
+      });
+
+      expect(actual).toEqual(['stop 1', 'start 2']);
     });
   });
 

@@ -1281,7 +1281,7 @@ export interface StopAction<TContext, TEvent extends EventObject>
 
 export interface StopActionObject {
   type: ActionTypes.Stop;
-  activity: { id: string };
+  activity: { id: string } | ActorRef<any, any>;
 }
 
 export type Expr<TContext, TEvent extends EventObject, T> = (

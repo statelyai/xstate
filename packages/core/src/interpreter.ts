@@ -977,7 +977,14 @@ export class Interpreter<
         break;
       }
       case actionTypes.stop: {
-        this.stopChild((action as StopActionObject).activity.id);
+        const activity = (action as StopActionObject).activity;
+        if (isActor(activity)) {
+          if (isFunction(activity.stop)) {
+            activity.stop();
+          }
+          return;
+        }
+        this.stopChild(activity.id);
         break;
       }
 

@@ -55,11 +55,13 @@ import {
   toGuard,
   evaluateGuard,
   toArray,
-  isArray
+  isArray,
+  isActor
 } from './utils';
 import { State } from './State';
 import { StateNode } from './StateNode';
 import { IS_PRODUCTION } from './environment';
+import * as serviceScope from './serviceScope';
 
 export { actionTypes };
 
@@ -415,6 +417,24 @@ export function start<TContext, TEvent extends EventObject>(
   };
 }
 
+export function invokeStop<TContext, TEvent extends EventObject>(
+  actorRef:
+    | string
+    | ActivityDefinition<TContext, TEvent>
+    | Expr<TContext, TEvent, string | { id: string }>
+): StopAction<TContext, TEvent> {
+  const activity = isFunction(actorRef)
+    ? actorRef
+    : toActivityDefinition(actorRef);
+
+  return {
+    type: ActionTypes.Stop,
+    subtype: 'invoke',
+    activity,
+    exec: undefined
+  };
+}
+
 /**
  * Stops an activity.
  *
@@ -432,10 +452,29 @@ export function stop<TContext, TEvent extends EventObject>(
 
   return {
     type: ActionTypes.Stop,
+    subtype: 'spawn',
     activity,
     exec: undefined
   };
 }
+
+const resolveSpawnedActorById = (id: string) =>
+  serviceScope.consume((service) => {
+    if (!service) {
+      return {
+        id
+      };
+    }
+    const actorRef = service.children.get(id);
+    if (!actorRef && !IS_PRODUCTION) {
+      console.error(`Actor with the '${id}' doesn't exist`);
+    }
+    return (
+      actorRef || {
+        id
+      }
+    );
+  });
 
 export function resolveStop<TContext, TEvent extends EventObject>(
   action: StopAction<TContext, TEvent>,
@@ -445,10 +484,24 @@ export function resolveStop<TContext, TEvent extends EventObject>(
   const actorRefOrString = isFunction(action.activity)
     ? action.activity(context, _event.data)
     : action.activity;
-  const resolvedActorRef =
-    typeof actorRefOrString === 'string'
-      ? { id: actorRefOrString }
-      : actorRefOrString;
+
+  let resolvedActorRef: any;
+
+  if (typeof actorRefOrString === 'string') {
+    if (action.subtype === 'spawn') {
+      resolvedActorRef = resolveSpawnedActorById(actorRefOrString);
+    } else {
+      resolvedActorRef = {
+        id: actorRefOrString
+      };
+    }
+  } else if (isActor(actorRefOrString)) {
+    resolvedActorRef = actorRefOrString;
+  } else if (action.subtype === 'spawn') {
+    resolvedActorRef = resolveSpawnedActorById(actorRefOrString.id);
+  } else {
+    resolvedActorRef = actorRefOrString;
+  }
 
   const actionObject = {
     type: ActionTypes.Stop as const,

@@ -17,7 +17,8 @@ import {
   sendUpdate,
   respond,
   forwardTo,
-  error
+  error,
+  stop
 } from '../src/actions';
 import { interval, EMPTY } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -1249,5 +1250,229 @@ describe('actors', () => {
     service.start();
 
     expect(service.state.value).toBe('done');
+  });
+
+  it('should be able to restart a spawned actor within a single macrostep', () => {
+    const actual: string[] = [];
+    let invokeCounter = 0;
+
+    const machine = createMachine<any, any>({
+      preserveActionOrder: true,
+      initial: 'active',
+      context: () => {
+        const localId = ++invokeCounter;
+        actual.push(`start ${localId}`);
+
+        return {
+          actorRef: spawn(() => {
+            return () => {
+              actual.push(`stop ${localId}`);
+            };
+          })
+        };
+      },
+      states: {
+        active: {
+          on: {
+            update: {
+              actions: [
+                stop((ctx: any) => ctx.actorRef),
+                assign({
+                  actorRef: () => {
+                    const localId = ++invokeCounter;
+                    actual.push(`start ${localId}`);
+
+                    return spawn(() => {
+                      return () => {
+                        actual.push(`stop ${localId}`);
+                      };
+                    });
+                  }
+                })
+              ]
+            }
+          }
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    actual.length = 0;
+
+    service.send({
+      type: 'update'
+    });
+
+    // TODO: in v5 the order will most likely be flipped
+    expect(actual).toEqual(['start 2', 'stop 1']);
+  });
+
+  it('should be able to restart a named spawned actor within a single macrostep when stopping by ref', () => {
+    const actual: string[] = [];
+    let invokeCounter = 0;
+
+    const machine = createMachine<any, any>({
+      preserveActionOrder: true,
+      initial: 'active',
+      context: () => {
+        const localId = ++invokeCounter;
+        actual.push(`start ${localId}`);
+
+        return {
+          actorRef: spawn(() => {
+            return () => {
+              actual.push(`stop ${localId}`);
+            };
+          }, 'my_name')
+        };
+      },
+      states: {
+        active: {
+          on: {
+            update: {
+              actions: [
+                stop((ctx: any) => ctx.actorRef),
+                assign({
+                  actorRef: () => {
+                    const localId = ++invokeCounter;
+                    actual.push(`start ${localId}`);
+
+                    return spawn(() => {
+                      return () => {
+                        actual.push(`stop ${localId}`);
+                      };
+                    }, 'my_name');
+                  }
+                })
+              ]
+            }
+          }
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    actual.length = 0;
+
+    service.send({
+      type: 'update'
+    });
+
+    // TODO: in v5 the order will most likely be flipped
+    expect(actual).toEqual(['start 2', 'stop 1']);
+  });
+
+  it('should be able to restart a named spawned actor within a single macrostep when stopping by static name', () => {
+    const actual: string[] = [];
+    let invokeCounter = 0;
+
+    const machine = createMachine<any, any>({
+      preserveActionOrder: true,
+      initial: 'active',
+      context: () => {
+        const localId = ++invokeCounter;
+        actual.push(`start ${localId}`);
+
+        return {
+          actorRef: spawn(() => {
+            return () => {
+              actual.push(`stop ${localId}`);
+            };
+          }, 'my_name')
+        };
+      },
+      states: {
+        active: {
+          on: {
+            update: {
+              actions: [
+                stop('my_name'),
+                assign({
+                  actorRef: () => {
+                    const localId = ++invokeCounter;
+                    actual.push(`start ${localId}`);
+
+                    return spawn(() => {
+                      return () => {
+                        actual.push(`stop ${localId}`);
+                      };
+                    }, 'my_name');
+                  }
+                })
+              ]
+            }
+          }
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    actual.length = 0;
+
+    service.send({
+      type: 'update'
+    });
+
+    // TODO: in v5 the order will most likely be flipped
+    expect(actual).toEqual(['start 2', 'stop 1']);
+  });
+
+  it('should be able to restart a named spawned actor within a single macrostep when stopping by resolved name', () => {
+    const actual: string[] = [];
+    let invokeCounter = 0;
+
+    const machine = createMachine<any, any>({
+      preserveActionOrder: true,
+      initial: 'active',
+      context: () => {
+        const localId = ++invokeCounter;
+        actual.push(`start ${localId}`);
+
+        return {
+          actorRef: spawn(() => {
+            return () => {
+              actual.push(`stop ${localId}`);
+            };
+          }, 'my_name')
+        };
+      },
+      states: {
+        active: {
+          on: {
+            update: {
+              actions: [
+                stop(() => 'my_name'),
+                assign({
+                  actorRef: () => {
+                    const localId = ++invokeCounter;
+                    actual.push(`start ${localId}`);
+
+                    return spawn(() => {
+                      return () => {
+                        actual.push(`stop ${localId}`);
+                      };
+                    }, 'my_name');
+                  }
+                })
+              ]
+            }
+          }
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    actual.length = 0;
+
+    service.send({
+      type: 'update'
+    });
+
+    // TODO: in v5 the order will most likely be flipped
+    expect(actual).toEqual(['start 2', 'stop 1']);
   });
 });
