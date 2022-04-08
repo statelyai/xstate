@@ -122,7 +122,7 @@ export interface AssignMeta<
   TContext extends MachineContext,
   TEvent extends EventObject
 > {
-  state?: State<TContext, TEvent>;
+  state: State<TContext, TEvent>;
   action: BaseActionObject;
   _event: SCXML.Event<TEvent>;
   spawn: Spawner;

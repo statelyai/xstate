@@ -407,6 +407,7 @@ export function createObservableBehavior<
   return behavior;
 }
 
+// TODO: rethink how this plays with machines without all implementations being provided
 export function createMachineBehavior<TMachine extends AnyStateMachine>(
   machine: TMachine | Lazy<TMachine>,
   options?: Partial<InterpreterOptions>
@@ -422,11 +423,11 @@ export function createMachineBehavior<TMachine extends AnyStateMachine>(
         resolvedMachine ?? (isFunction(machine) ? machine() : machine);
 
       if (event.type === startSignalType) {
-        service = interpret(resolvedMachine, {
+        service = interpret(resolvedMachine as AnyStateMachine, {
           ...options,
           parent,
           id: actorContext.name
-        });
+        }) as InterpreterFrom<TMachine>;
         service.onDone((doneEvent) => {
           parent?.send(
             toSCXMLEvent(doneEvent, {
