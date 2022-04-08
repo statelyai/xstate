@@ -500,7 +500,7 @@ describe('typegen types', () => {
       }
     });
 
-    // @x-ts-expect-error // TODO: re-enable and determine what behavior is expected
+    // @ts-expect-error
     interpret(machine);
   });
 
