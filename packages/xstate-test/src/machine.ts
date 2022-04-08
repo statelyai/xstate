@@ -65,7 +65,9 @@ export function createTestModel<TMachine extends AnyStateMachine>(
     {
       serializeState,
       stateMatcher: (state, key) => {
-        return state.matches(key);
+        return key.startsWith('#')
+          ? state.configuration.includes(machine.getStateNodeById(key))
+          : state.matches(key);
       },
       states: {
         '*': testStateFromMeta
