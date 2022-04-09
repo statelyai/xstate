@@ -409,21 +409,18 @@ export function createObservableBehavior<
 
 // TODO: rethink how this plays with machines without all implementations being provided
 export function createMachineBehavior<TMachine extends AnyStateMachine>(
-  machine: TMachine | Lazy<TMachine>,
+  machine: TMachine,
   options?: Partial<InterpreterOptions>
 ): Behavior<EventFrom<TMachine>, StateFrom<TMachine>> {
   let service: InterpreterFrom<TMachine> | undefined;
   let subscription: Subscription;
-  let resolvedMachine: TMachine;
 
   const behavior: Behavior<EventFrom<TMachine>, StateFrom<TMachine>> = {
     transition: (state, event, actorContext) => {
       const { _parent: parent } = actorContext.self;
-      resolvedMachine =
-        resolvedMachine ?? (isFunction(machine) ? machine() : machine);
 
       if (event.type === startSignalType) {
-        service = interpret(resolvedMachine as AnyStateMachine, {
+        service = interpret(machine as AnyStateMachine, {
           ...options,
           parent,
           id: actorContext.name
@@ -473,9 +470,7 @@ export function createMachineBehavior<TMachine extends AnyStateMachine>(
       return service?.subscribe(observer);
     },
     get initialState() {
-      resolvedMachine =
-        resolvedMachine || (isFunction(machine) ? machine() : machine);
-      return resolvedMachine.getInitialState();
+      return machine.getInitialState();
     }
   };
 

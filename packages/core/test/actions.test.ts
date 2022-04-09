@@ -10,7 +10,6 @@ import { sendParent } from '../src/actions';
 import { choose } from '../src/actions/choose';
 import { pure } from '../src/actions/pure';
 import { log } from '../src/actions/log';
-import { invokeMachine } from '../src/invoke';
 import { ActorRef } from '../src';
 import { sendTo } from '../src/actions/send';
 import { createMachineBehavior } from '../src/behaviors';
@@ -629,7 +628,7 @@ describe('entry/exit actions', () => {
         states: {
           active: {
             invoke: {
-              src: invokeMachine(childMachine),
+              src: () => createMachineBehavior(childMachine),
               onDone: 'finished'
             }
           },
@@ -1272,7 +1271,7 @@ describe('forwardTo()', () => {
       initial: 'first',
       states: {
         first: {
-          invoke: { src: invokeMachine(child), id: 'myChild' },
+          invoke: { src: () => createMachineBehavior(child), id: 'myChild' },
           on: {
             EVENT: {
               actions: forwardTo('myChild')

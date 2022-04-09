@@ -29,7 +29,6 @@ import {
   createPromiseBehavior,
   fromReducer
 } from '../src/behaviors';
-import { invokeMachine } from '../src/invoke';
 
 describe('spawning machines', () => {
   const context = {
@@ -668,7 +667,7 @@ describe('actors', () => {
       states: {
         foo: {
           invoke: {
-            src: invokeMachine(child),
+            src: () => createMachineBehavior(child),
             onDone: 'end'
           }
         },
@@ -1108,7 +1107,7 @@ describe('actors', () => {
           states: {
             foo: {
               invoke: {
-                src: invokeMachine(child),
+                src: () => createMachineBehavior(child),
                 onDone: 'end'
               }
             },

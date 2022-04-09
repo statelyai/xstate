@@ -892,7 +892,7 @@ describe('typegen types', () => {
   //     {
   //       actors: {
   //         // @ts-expect-error
-  //         myActor: invokeMachine((_ctx) => createMachine<{ foo: number }>({}))
+  //         myActor: () => createMachineBehavior(createMachine<{ foo: number }>({}))
   //       }
   //     }
   //   );

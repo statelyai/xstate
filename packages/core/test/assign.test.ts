@@ -6,7 +6,7 @@ import {
   State,
   createMachine
 } from '../src';
-import { invokeMachine } from '../src/invoke';
+import { createMachineBehavior } from '../src/behaviors';
 import { ActorRef } from '../src/types';
 
 interface CounterContext {
@@ -381,7 +381,7 @@ describe('assign meta', () => {
         foo: {
           invoke: {
             id: 'child',
-            src: invokeMachine(childMachine)
+            src: () => createMachineBehavior(childMachine)
           }
         }
       },
