@@ -14,6 +14,7 @@ import {
   Observer,
   TODO
 } from './types';
+import { AreAllImplementationsAssumedToBeProvided } from './typegenTypes';
 import {
   toSCXMLEvent,
   isPromiseLike,
@@ -407,11 +408,15 @@ export function createObservableBehavior<
   return behavior;
 }
 
-// TODO: rethink how this plays with machines without all implementations being provided
 export function createMachineBehavior<TMachine extends AnyStateMachine>(
-  machine: TMachine,
+  machine: AreAllImplementationsAssumedToBeProvided<
+    TMachine['__TResolvedTypesMeta']
+  > extends true
+    ? TMachine
+    : 'Some implementations missing',
   options?: Partial<InterpreterOptions>
 ): Behavior<EventFrom<TMachine>, StateFrom<TMachine>> {
+  const castedMachine = machine as TMachine;
   let service: InterpreterFrom<TMachine> | undefined;
   let subscription: Subscription;
 
@@ -420,7 +425,7 @@ export function createMachineBehavior<TMachine extends AnyStateMachine>(
       const { _parent: parent } = actorContext.self;
 
       if (event.type === startSignalType) {
-        service = interpret(machine as AnyStateMachine, {
+        service = interpret(castedMachine as AnyStateMachine, {
           ...options,
           parent,
           id: actorContext.name
@@ -470,7 +475,7 @@ export function createMachineBehavior<TMachine extends AnyStateMachine>(
       return service?.subscribe(observer);
     },
     get initialState() {
-      return machine.getInitialState();
+      return castedMachine.getInitialState();
     }
   };
 
