@@ -1,7 +1,7 @@
 import { AnyStateNode } from '@xstate/graph';
 import type { AnyState, EventObject } from 'xstate';
 import { getAllStateNodes } from 'xstate/lib/stateUtils';
-import { flatten } from '.';
+import { flatten } from './utils';
 import { TestModel } from './TestModel';
 import { Criterion } from './types';
 

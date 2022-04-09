@@ -15,7 +15,7 @@ import {
   traverseSimplePathsTo
 } from '@xstate/graph/src/graph';
 import { EventObject, SingleOrArray } from 'xstate';
-import { flatten } from '.';
+import { flatten } from './utils';
 import { CoverageFunction } from './coverage';
 import type {
   TestModelCoverage,

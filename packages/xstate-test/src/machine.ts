@@ -6,7 +6,7 @@ import type {
   EventFrom,
   StateFrom
 } from 'xstate';
-import { flatten } from '.';
+import { flatten } from './utils';
 import { TestModel } from './TestModel';
 import { TestModelEventConfig, TestModelOptions, EventExecutor } from './types';
 

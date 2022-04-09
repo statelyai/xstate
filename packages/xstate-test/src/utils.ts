@@ -100,3 +100,7 @@ export function getDescription<T, TContext>(state: AnyState): string {
     ` ${contextString}`
   );
 }
+
+export function flatten<T>(array: Array<T | T[]>): T[] {
+  return ([] as T[]).concat(...array);
+}
