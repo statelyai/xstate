@@ -1,4 +1,4 @@
-import { TestModel } from '../src/TestModel';
+import { TestModel } from '../src';
 
 describe('custom test models', () => {
   it('tests any behavior', async () => {
