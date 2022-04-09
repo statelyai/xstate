@@ -9,13 +9,11 @@ describe('states', () => {
         initial: 'a',
         states: {
           a: {
-            id: 'statea_a',
             on: {
               EVENT: 'b'
             }
           },
           b: {
-            id: 'statae_b',
             initial: 'b1',
             states: {
               b1: { on: { NEXT: 'b2' } },
