@@ -1,5 +1,30 @@
 # Changelog
 
+## 3.0.0
+
+### Major Changes
+
+- [#2939](https://github.com/statelyai/xstate/pull/2939) [`360e85462`](https://github.com/statelyai/xstate/commit/360e8546298c4a06b6d51d8f12c0563672dd7acf) Thanks [@Andarist](https://github.com/Andarist)! - This package now accepts React 18 as a peer dep and the implementation has been rewritten to use [`use-sync-external-store`](https://www.npmjs.com/package/use-sync-external-store) package. This doesn't break compatibility with older versions of React since we are using the shim to keep compatibility with those older versions.
+
+* [#2939](https://github.com/statelyai/xstate/pull/2939) [`360e85462`](https://github.com/statelyai/xstate/commit/360e8546298c4a06b6d51d8f12c0563672dd7acf) Thanks [@Andarist](https://github.com/Andarist)! - `asEffect` and `asLayoutEffect` action creators were removed. They were not fitting the React model that well and could lead to issues as their existence suggested that they are easy to use.
+
+  To execute actions at those exact times you can always either just call your stuff directly from those effects or send events to the machine from those effects and execute explicit actions in response to said events.
+
+- [#2939](https://github.com/statelyai/xstate/pull/2939) [`360e85462`](https://github.com/statelyai/xstate/commit/360e8546298c4a06b6d51d8f12c0563672dd7acf) Thanks [@Andarist](https://github.com/Andarist)! - The signatures of `useMachine` and `useService` integrating with `@xstate/fsm` were changed. They now only accept a single generic each (`TMachine` and `TService` respectively). This has been done to match their signatures with the related hooks that integrate with `xstate` itself.
+
+### Patch Changes
+
+- [#2939](https://github.com/statelyai/xstate/pull/2939) [`360e85462`](https://github.com/statelyai/xstate/commit/360e8546298c4a06b6d51d8f12c0563672dd7acf) Thanks [@Andarist](https://github.com/Andarist)! - In v2 we have changed signatures of `useMachine` and `useInterpret`. Instead of accepting a list of generics they now only support a single generic: `TMachine`. This change, erroneously, was only introduced to types targeting TS@4.x but the types targeting previous TS releases were still using the older signatures. This has now been fixed and users of older TS versions should now be able to leverage typegen with `@xstate/react`.
+
+* [#2939](https://github.com/statelyai/xstate/pull/2939) [`360e85462`](https://github.com/statelyai/xstate/commit/360e8546298c4a06b6d51d8f12c0563672dd7acf) Thanks [@Andarist](https://github.com/Andarist)! - `useMachine` for `xstate` now correctly rerenders with the initial state when the internal service is being restarted. This might happen during Fast Refresh and now you shouldn't be able to observe this stale state that didn't match the actual state of the service.
+
+- [#2939](https://github.com/statelyai/xstate/pull/2939) [`360e85462`](https://github.com/statelyai/xstate/commit/360e8546298c4a06b6d51d8f12c0563672dd7acf) Thanks [@Andarist](https://github.com/Andarist)! - `useMachine` for `@xstate/fsm` now starts the service in an effect. This avoids side-effects in render and improves the compatibility with `StrictMode`.
+
+* [#2939](https://github.com/statelyai/xstate/pull/2939) [`360e85462`](https://github.com/statelyai/xstate/commit/360e8546298c4a06b6d51d8f12c0563672dd7acf) Thanks [@Andarist](https://github.com/Andarist)! - Implementations given to `useMachine` targeting `@xstate/fsm` are now updated in a layout effect. This avoid some stale closure problems for actions that are executed in response to events sent from layout effects.
+
+* Updated dependencies [[`360e85462`](https://github.com/statelyai/xstate/commit/360e8546298c4a06b6d51d8f12c0563672dd7acf), [`360e85462`](https://github.com/statelyai/xstate/commit/360e8546298c4a06b6d51d8f12c0563672dd7acf)]:
+  - @xstate/fsm@2.0.0
+
 ## 2.0.1
 
 ### Patch Changes
@@ -80,7 +105,7 @@
   Previously, guards could not reference external props, because they would not be updated when the props changed. For instance:
 
   ```tsx
-  const Modal = (props) => {
+  const Modal = props => {
     useMachine(modalMachine, {
       guards: {
         isModalOpen: () => props.isOpen
@@ -94,7 +119,7 @@
   This is not true of actions/services. This will work as expected:
 
   ```tsx
-  const Modal = (props) => {
+  const Modal = props => {
     useMachine(modalMachine, {
       actions: {
         consoleLogModalOpen: () => {
@@ -251,7 +276,7 @@
   import { useSelector } from '@xstate/react';
 
   const App = ({ someActor }) => {
-    const count = useSelector(someActor, (state) => state.context.count);
+    const count = useSelector(someActor, state => state.context.count);
 
     // ...
   };
@@ -372,7 +397,7 @@ All notable changes to this project will be documented in this file.
 - The `useActor` hook now takes a second argument: `getSnapshot` which is a function that should return the last emitted value:
 
   ```js
-  const [state, send] = useActor(someActor, (actor) => actor.current);
+  const [state, send] = useActor(someActor, actor => actor.current);
   ```
 
 ## [1.0.0-rc.6]
