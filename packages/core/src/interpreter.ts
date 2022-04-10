@@ -167,7 +167,7 @@ export class Interpreter<
   public clock: Clock;
   public options: Readonly<InterpreterOptions>;
 
-  private scheduler: Scheduler = new Scheduler();
+  private scheduler: Scheduler;
   private delayedEventsMap: Record<string, unknown> = {};
   private listeners: Set<
     StateListener<
@@ -429,12 +429,16 @@ export class Interpreter<
     this.listeners.add(listener);
 
     // Send current state to listener
-    if (this.status === InterpreterStatus.Running) {
+    if (this.status !== InterpreterStatus.NotStarted) {
       listener(this.state);
     }
 
     if (resolvedCompleteListener) {
-      this.onDone(resolvedCompleteListener);
+      if (this.status === InterpreterStatus.Stopped) {
+        resolvedCompleteListener();
+      } else {
+        this.onDone(resolvedCompleteListener);
+      }
     }
 
     return {
@@ -587,6 +591,7 @@ export class Interpreter<
         child.stop();
       }
     });
+    this.children.clear();
 
     // Cancel all delayed events
     for (const key of Object.keys(this.delayedEventsMap)) {
@@ -594,8 +599,13 @@ export class Interpreter<
     }
 
     this.scheduler.clear();
+    this.scheduler = new Scheduler({
+      deferEvents: this.options.deferEvents
+    });
+
     this.initialized = false;
     this.status = InterpreterStatus.Stopped;
+    this._initialState = undefined;
     registry.free(this.sessionId);
 
     return this;
@@ -1084,7 +1094,7 @@ export class Interpreter<
       })
       .start();
 
-    return actor;
+    return actor as any;
   }
   private spawnBehavior<TActorEvent extends EventObject, TEmitted>(
     behavior: Behavior<TActorEvent, TEmitted>,
