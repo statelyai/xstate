@@ -44,10 +44,13 @@ export function waitFor<TActorRef extends ActorRef<any, any>>(
   };
   return new Promise((res, rej) => {
     let done = false;
-    const handle = setTimeout(() => {
-      sub.unsubscribe();
-      rej(new Error(`Timeout of ${resolvedOptions.timeout} ms exceeded`));
-    }, resolvedOptions.timeout);
+    const handle =
+      resolvedOptions.timeout === Infinity
+        ? undefined
+        : ((setTimeout(() => {
+            sub.unsubscribe();
+            rej(new Error(`Timeout of ${resolvedOptions.timeout} ms exceeded`));
+          }, resolvedOptions.timeout) as unknown) as number);
 
     const dispose = () => {
       clearTimeout(handle);
