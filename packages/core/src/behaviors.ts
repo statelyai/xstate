@@ -419,6 +419,7 @@ export function createMachineBehavior<TMachine extends AnyStateMachine>(
   const castedMachine = machine as TMachine;
   let service: InterpreterFrom<TMachine> | undefined;
   let subscription: Subscription;
+  let initialState: StateFrom<TMachine>;
 
   const behavior: Behavior<EventFrom<TMachine>, StateFrom<TMachine>> = {
     transition: (state, event, actorContext) => {
@@ -475,7 +476,12 @@ export function createMachineBehavior<TMachine extends AnyStateMachine>(
       return service?.subscribe(observer);
     },
     get initialState() {
-      return castedMachine.getInitialState();
+      // TODO: recheck if this caching is needed, write a test for its importance or remove the caching
+      if (initialState) {
+        return initialState;
+      }
+      initialState = castedMachine.getInitialState();
+      return initialState;
     }
   };
 
@@ -507,7 +513,6 @@ export function createBehaviorFrom(entity: Spawnable): Behavior<any, any> {
   }
 
   if (isStateMachine(entity)) {
-    // @ts-ignore
     return createMachineBehavior(entity);
   }
 
