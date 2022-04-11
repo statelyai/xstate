@@ -1,5 +1,38 @@
 # xstate
 
+## 4.31.0
+
+### Minor Changes
+
+- [#3190](https://github.com/statelyai/xstate/pull/3190) [`fbf5ca0ad`](https://github.com/statelyai/xstate/commit/fbf5ca0adcafacbf170f5522eec64ac612bdeb47) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `waitFor(...)` helper function, which asynchronously _waits_ for an actor's emitted value to satisfy a `predicate` before a `timeout`, is now available.
+
+  Example usage:
+
+  ```js
+  import { waitFor } from 'xstate/lib/waitFor';
+
+  // ...
+  const loginService = interpret(loginMachine).start();
+
+  const loggedInState = await waitFor(loginService, state =>
+    state.hasTag('loggedIn')
+  );
+
+  loggedInState.hasTag('loggedIn'); // true
+  ```
+
+* [#3200](https://github.com/statelyai/xstate/pull/3200) [`56c0a36`](https://github.com/statelyai/xstate/commit/56c0a36f222195d0b18edd7a72d5429a213b3808) Thanks [@Andarist](https://github.com/Andarist)! - Subscribing to a stopped interpreter will now always immediately emit its state and call a completion callback.
+
+### Patch Changes
+
+- [#3166](https://github.com/statelyai/xstate/pull/3166) [`be4c5c74d`](https://github.com/statelyai/xstate/commit/be4c5c74d400a1ca58befd306029c3ce77793e3e) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with `state.tags` not having correct values when resolving micro transitions (taken in response to raised events). This was creating issues when checking tags in guards.
+
+* [#3171](https://github.com/statelyai/xstate/pull/3171) [`14f8b4785`](https://github.com/statelyai/xstate/commit/14f8b4785599fb366ae2901c03c2a3202594499c) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with `onDone` on parallel states not being "called" correctly when a parallel state had a history state defined directly on it.
+
+- [#2939](https://github.com/statelyai/xstate/pull/2939) [`360e85462`](https://github.com/statelyai/xstate/commit/360e8546298c4a06b6d51d8f12c0563672dd7acf) Thanks [@Andarist](https://github.com/Andarist)! - Fixed issues with not disposing some cached internal values when stopping interpreters, which could have led to issues when starting such an interpreter again.
+
+* [#3153](https://github.com/statelyai/xstate/pull/3153) [`b36ef9dda`](https://github.com/statelyai/xstate/commit/b36ef9dda560fca4c00428f48742fd9d2e325324) Thanks [@Andarist](https://github.com/Andarist)! - Made type displays (like in the IDE tooltips etc) more readable by using a type interface for the internal `ResolveTypegenMeta` type.
+
 ## 4.30.6
 
 ### Patch Changes

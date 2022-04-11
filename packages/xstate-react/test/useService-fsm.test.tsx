@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { act, fireEvent, screen } from '@testing-library/react';
+import { assign, createMachine, interpret, StateMachine } from '@xstate/fsm';
 import * as React from 'react';
-import { useService, useMachine } from '../src/fsm';
-import { createMachine, assign, interpret, StateMachine } from '@xstate/fsm';
-import { render, fireEvent, act } from '@testing-library/react';
+import { useState } from 'react';
+import { useMachine, useService } from '../src/fsm';
+import { describeEachReactMode } from './utils';
 
-describe('useService hook for fsm', () => {
+describeEachReactMode('useService, fsm (%s)', ({ render }) => {
   const counterMachine = createMachine<{ count: number }>({
     id: 'counter',
     initial: 'active',
@@ -28,14 +29,14 @@ describe('useService hook for fsm', () => {
       return <div data-testid="count">{state.context.count}</div>;
     };
 
-    const { getAllByTestId } = render(
+    render(
       <>
         <Counter />
         <Counter />
       </>
     );
 
-    const countEls = getAllByTestId('count');
+    const countEls = screen.getAllByTestId('count');
 
     expect(countEls.length).toBe(2);
 
@@ -56,8 +57,12 @@ describe('useService hook for fsm', () => {
     const counterService1 = interpret(counterMachine).start();
     const counterService2 = interpret(counterMachine).start();
 
-    const Counter = ({ counterRef }) => {
-      const [state, send] = useService<{ count: number }, any>(counterRef);
+    const Counter = ({
+      counterRef
+    }: {
+      counterRef: typeof counterService1;
+    }) => {
+      const [state, send] = useService(counterRef);
 
       return (
         <>
@@ -80,11 +85,11 @@ describe('useService hook for fsm', () => {
       );
     };
 
-    const { getByTestId } = render(<CounterParent />);
+    render(<CounterParent />);
 
-    const changeServiceButton = getByTestId('change-service');
-    const incButton = getByTestId('inc');
-    const countEl = getByTestId('count');
+    const changeServiceButton = screen.getByTestId('change-service');
+    const incButton = screen.getByTestId('inc');
+    const countEl = screen.getByTestId('count');
 
     expect(countEl.textContent).toBe('0');
     fireEvent.click(incButton);
@@ -113,10 +118,10 @@ describe('useService hook for fsm', () => {
       );
     };
 
-    const { getByTestId } = render(<Counter />);
+    render(<Counter />);
 
-    const incButton = getByTestId('inc');
-    const countEl = getByTestId('count');
+    const incButton = screen.getByTestId('inc');
+    const countEl = screen.getByTestId('count');
 
     expect(countEl.textContent).toBe('0');
     fireEvent.click(incButton);
