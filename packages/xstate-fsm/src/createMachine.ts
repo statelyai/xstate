@@ -54,11 +54,25 @@ interface Behavior {
 }
 export function assign<TMachine extends MachineConfig2<any>>(
   assignment: Assigner<TMachine> | PropertyAssigner<TMachine>
-): AssignActionObject<TMachine> {
-  return {
-    type: 'xstate.assign',
-    assignment
+): DynamicActionObject<TMachine> {
+  const d = function resolveAssign(ctx, eventObject) {
+    if (typeof assignment === 'function') {
+      return assignment(ctx, eventObject);
+    }
+    const tmpContext = { ...ctx };
+    for (const key in assignment) {
+      const assigner = assignment[key];
+      tmpContext[key] =
+        typeof assigner === 'function' ? assigner(ctx, eventObject) : assigner;
+    }
+
+    return tmpContext;
   };
+
+  // @ts-ignore
+  d.type = 'xstate.assign' as const;
+  d.__xstate = true as true;
+  return d;
 }
 export interface AssignActionObject<TMachine> {
   __xstate?: true;
@@ -80,7 +94,7 @@ export type PropertyAssigner<TMachine> = {
 };
 
 type ActionsConfig2<TMachine> = SingleOrArray<
-  | DynamicActionObject<A.Get<TMachine, 'context'>>
+  | DynamicActionObject<TMachine>
   | ((ctx: A.Get<TMachine, 'context'>) => void)
   | { type: string }
   | string
@@ -137,10 +151,13 @@ interface StateNode2 {
 
 export type NoInfer<T> = [T][T extends any ? 0 : any];
 
-interface MachineConfig2<Self> {
+interface MachineConfig2<
+  Self extends MachineConfig2<any>,
+  TContext = A.Get<Self, 'context'>
+> {
   id?: string;
   key?: string;
-  context?: A.Get<Self, 'context'>;
+  context: TContext;
   schema?: {
     event?: EventObject;
   };
@@ -160,7 +177,7 @@ interface MachineConfig2<Self> {
 
 interface StateFrom<T extends MachineConfig2<any>> {
   value: keyof A.Get<T, 'states'> | null;
-  context?: A.Get<T, 'context'>;
+  context: A.Get<T, 'context'>;
   actions: any[];
   matches: (value: keyof A.Get<T, 'states'>) => boolean;
 }
@@ -171,7 +188,7 @@ interface Machine<T extends MachineConfig2<any>> {
   };
   transition: (
     state: StateFrom<T>,
-    event: EventObject,
+    event: EventObject & A.Get<T, ['schema', 'event'], EventObject>,
     execute?: (action: any, state: any) => void
   ) => StateFrom<T>;
   initialState: StateFrom<T>;
@@ -286,20 +303,7 @@ export function createMachine2<T extends MachineConfig2<T>>(
 
           for (const action of actions) {
             if (action.type === 'xstate.assign') {
-              let tmpContext = Object.assign({}, nextContext);
-
-              if (typeof action.assignment === 'function') {
-                tmpContext = action.assignment(nextContext, eventObject);
-              } else {
-                Object.keys(action.assignment).forEach((key) => {
-                  tmpContext[key] =
-                    typeof action.assignment[key] === 'function'
-                      ? action.assignment[key](nextContext, eventObject)
-                      : action.assignment[key];
-                });
-              }
-
-              nextContext = tmpContext;
+              nextContext = action(nextContext, eventObject);
             } else {
               execute?.(action, nextContext);
             }
@@ -320,20 +324,7 @@ export function createMachine2<T extends MachineConfig2<T>>(
 
         for (const action of state.actions) {
           if (action.type === 'xstate.assign') {
-            let tmpContext = Object.assign({}, nextContext);
-
-            if (typeof action.assignment === 'function') {
-              tmpContext = action.assignment(nextContext, eventObject);
-            } else {
-              Object.keys(action.assignment).forEach((key) => {
-                tmpContext[key] =
-                  typeof action.assignment[key] === 'function'
-                    ? action.assignment[key](nextContext, eventObject)
-                    : action.assignment[key];
-              });
-            }
-
-            nextContext = tmpContext;
+            nextContext = action(nextContext, eventObject);
           } else {
             execute?.(action, nextContext);
           }
@@ -357,15 +348,8 @@ export function createMachine2<T extends MachineConfig2<T>>(
           context: config.context as any,
           matches: () => true
         },
-        { type: 'xstate.init' }
+        { type: 'xstate.init' } as any
       );
-      // return {
-      //   value: config.initial ?? null,
-      //   actions: config.initial
-      //     ? states[config.initial as string].entry ?? []
-      //     : [],
-      //   context: config.context as any
-      // };
     },
     getInitialState: (exec) => {
       return machine.transition(
@@ -377,7 +361,7 @@ export function createMachine2<T extends MachineConfig2<T>>(
           context: config.context as any,
           matches: () => true
         },
-        { type: 'xstate.init' },
+        { type: 'xstate.init' } as any,
         exec
       );
     }
@@ -394,7 +378,8 @@ interface Interpreter2 {
 }
 
 export function interpret(machine: Machine<any>): Interpreter2 {
-  let state: StateFrom<typeof machine>;
+  // let state: StateFrom<typeof machine>;
+  let state: StateFrom<any>;
   const observers = new Set<any>();
   let status = 0;
 
@@ -456,6 +441,15 @@ export function interpret(machine: Machine<any>): Interpreter2 {
   return self;
 }
 
+interface DynamicActionObject<TMachine> {
+  type: `xstate.${string}`;
+  (
+    ctx: A.Get<TMachine, 'context'>,
+    eventObject: A.Get<TMachine, ['schema', 'event']>
+  ): { type: string };
+  __xstate: true;
+}
+
 createMachine2({
   context: {
     num: 42
@@ -471,6 +465,7 @@ createMachine2({
       }
     },
     yellow: {
+      entry: assign((ctx) => ({ num: ctx.num + 3 })),
       on: {
         WHATEVER: [
           {
@@ -512,12 +507,6 @@ createMachine2({
     fail: {}
   }
 });
-
-interface DynamicActionObject<TContext> {
-  type: `xstate.${string}`;
-  // (machine: TMachine): void;
-  resolve: (ctx: TContext) => any;
-}
 
 createMachine2({
   id: 'light',

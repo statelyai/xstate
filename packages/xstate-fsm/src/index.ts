@@ -61,10 +61,12 @@ export function toActionObject<
         type: action
       }
     : typeof action === 'function'
-    ? {
-        type: action.name,
-        exec: action
-      }
+    ? '__xstate' in action
+      ? action
+      : {
+          type: action.name,
+          exec: action
+        }
     : action;
 }
 
