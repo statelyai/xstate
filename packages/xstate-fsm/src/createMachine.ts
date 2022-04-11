@@ -93,10 +93,17 @@ export type PropertyAssigner<TMachine> = {
     | A.Get<TMachine, ['context', K]>;
 };
 
+interface BaseActionObject2 {
+  type: string;
+}
+
 type ActionsConfig2<TMachine> = SingleOrArray<
   | DynamicActionObject<TMachine>
-  | ((ctx: A.Get<TMachine, 'context'>) => void)
-  | { type: string }
+  | ((
+      context: A.Get<TMachine, 'context'>,
+      event: A.Get<TMachine, ['schema', 'event'], EventObject>
+    ) => void)
+  | BaseActionObject2
   | string
 >;
 
@@ -175,12 +182,24 @@ interface MachineConfig2<
   initial?: keyof A.Get<Self, 'states'>;
 }
 
-interface StateFrom<T extends MachineConfig2<any>> {
+interface StateFrom<T extends MachineConfig2<any> | Machine<any>> {
   value: keyof A.Get<T, 'states'> | null;
   context: A.Get<T, 'context'>;
   actions: any[];
   matches: (value: keyof A.Get<T, 'states'>) => boolean;
 }
+
+interface Implementations2 {
+  actions?: {
+    [key: string]: any;
+  };
+}
+
+type Executor = (
+  action: BaseActionObject2,
+  context: any,
+  implementations?: Implementations2
+) => void;
 
 interface Machine<T extends MachineConfig2<any>> {
   states: {
@@ -189,7 +208,7 @@ interface Machine<T extends MachineConfig2<any>> {
   transition: (
     state: StateFrom<T>,
     event: EventObject & A.Get<T, ['schema', 'event'], EventObject>,
-    execute?: (action: any, state: any) => void
+    execute?: Executor
   ) => StateFrom<T>;
   initialState: StateFrom<T>;
   getInitialState: (exec: any) => StateFrom<T>;
@@ -200,9 +219,13 @@ function toArray<T>(item: T | T[] | undefined): T[] {
 }
 
 export function createMachine2<T extends MachineConfig2<T>>(
-  config: InferNarrowestObject<T>
+  config: InferNarrowestObject<T>,
+  implementations?: Implementations2
 ): Machine<T> {
   const states: Record<string, StateNode2> = {};
+  const actionImpls: Implementations2['actions'] = {
+    ...implementations?.actions
+  };
 
   if (config.states) {
     Object.entries(
@@ -218,31 +241,52 @@ export function createMachine2<T extends MachineConfig2<T>>(
           >
         ).map(([eventType, transitionConfig]) => {
           const transitions = toArray(transitionConfig);
-          transitionMap[eventType] = transitions.map((t) =>
-            typeof t === 'string'
+          transitionMap[eventType] = transitions.map((t) => {
+            return typeof t === 'string'
               ? { target: t }
               : {
                   target: t.target,
                   actions: t.actions
-                    ? toArray(t.actions).map((action) =>
-                        toActionObject(action, {})
-                      )
+                    ? toArray(t.actions).map((action, i) => {
+                        if (
+                          typeof action === 'function' &&
+                          !('__xstate' in action)
+                        ) {
+                          const actionType = `${key}:${eventType}:${i}`;
+                          actionImpls[actionType] = action;
+
+                          return { type: actionType };
+                        }
+                        return toActionObject(action, {});
+                      })
                     : undefined,
                   guard: t.guard
-                }
-          );
+                };
+          });
         });
       }
       states[key] = {
         entry: stateConfig.entry
-          ? toArray(stateConfig.entry).map((action) =>
-              toActionObject(action, {})
-            )
+          ? toArray(stateConfig.entry).map((action, i) => {
+              if (typeof action === 'function' && !('__xstate' in action)) {
+                const actionType = `${key}::entry:${i}`;
+                actionImpls[actionType] = action;
+
+                return { type: actionType };
+              }
+              return toActionObject(action, {});
+            })
           : undefined,
         exit: stateConfig.exit
-          ? toArray(stateConfig.exit).map((action) =>
-              toActionObject(action, {})
-            )
+          ? toArray(stateConfig.exit).map((action, i) => {
+              if (typeof action === 'function' && !('__xstate' in action)) {
+                const actionType = `${key}::exit:${i}`;
+                actionImpls[actionType] = action;
+
+                return { type: actionType };
+              }
+              return toActionObject(action, {});
+            })
           : undefined,
         invoke: stateConfig.invoke,
         on: transitionMap
@@ -305,7 +349,7 @@ export function createMachine2<T extends MachineConfig2<T>>(
             if (action.type === 'xstate.assign') {
               nextContext = action(nextContext, eventObject);
             } else {
-              execute?.(action, nextContext);
+              execute?.(action, nextContext, { actions: actionImpls });
             }
           }
 
@@ -326,7 +370,7 @@ export function createMachine2<T extends MachineConfig2<T>>(
           if (action.type === 'xstate.assign') {
             nextContext = action(nextContext, eventObject);
           } else {
-            execute?.(action, nextContext);
+            execute?.(action, nextContext, { actions: actionImpls });
           }
         }
 
@@ -371,28 +415,29 @@ export function createMachine2<T extends MachineConfig2<T>>(
 }
 
 interface Interpreter2 {
-  start: () => Interpreter2;
+  start: (state?: StateFrom<any>) => Interpreter2;
   send: (event: EventObject) => void;
   subscribe: (obs: any) => { unsubscribe: () => void };
   getSnapshot: () => StateFrom<any>;
 }
 
-export function interpret(machine: Machine<any>): Interpreter2 {
-  // let state: StateFrom<typeof machine>;
-  let state: StateFrom<any>;
+export function interpret<T extends Machine<any>>(machine: T): Interpreter2 {
+  let state: StateFrom<T>;
   const observers = new Set<any>();
   let status = 0;
 
-  const executor = (action) => {
-    if ('exec' in action) {
-      action.exec();
+  const executor: Executor = (action, _ctx, implementations) => {
+    const implementation = implementations?.actions?.[action.type];
+
+    if (implementation) {
+      implementation();
     }
   };
 
   const self: Interpreter2 = {
-    start: () => {
+    start: (restoredState?: StateFrom<T>) => {
       status = 1;
-      state = machine.getInitialState(executor);
+      state = restoredState ?? machine.getInitialState(executor);
       observers.forEach((obs) => obs.next(state));
       return self;
     },
