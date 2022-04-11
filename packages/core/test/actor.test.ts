@@ -321,7 +321,7 @@ describe('spawning callbacks', () => {
           entry: assign({
             callbackRef: (_, __, { spawn }) =>
               spawn(
-                createCallbackBehavior(() => (cb, receive) => {
+                createCallbackBehavior((cb, receive) => {
                   receive((event) => {
                     if (event.type === 'START') {
                       setTimeout(() => {
@@ -1295,7 +1295,7 @@ describe('actors', () => {
     const machine = createMachine<{ ref: ActorRef<any> }>({
       context: ({ spawn }) => ({
         ref: spawn(
-          createCallbackBehavior(() => (sendBack) => {
+          createCallbackBehavior((sendBack) => {
             sendBack({ type: 'TEST' });
           })
         )

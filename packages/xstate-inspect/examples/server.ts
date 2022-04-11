@@ -15,7 +15,7 @@ const machine = createMachine({
   invoke: {
     id: 'ponger',
     src: () =>
-      createCallbackBehavior(() => (cb, receive) => {
+      createCallbackBehavior((cb, receive) => {
         receive((event) => {
           if (event.type === 'PING') {
             cb(

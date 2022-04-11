@@ -519,7 +519,7 @@ describe('interpreter', () => {
       {
         actors: {
           myActivity: () =>
-            createCallbackBehavior(() => () => {
+            createCallbackBehavior(() => {
               activityState = 'on';
               return () => (activityState = 'off');
             })
@@ -567,7 +567,7 @@ describe('interpreter', () => {
         {
           actors: {
             myActivity: () =>
-              createCallbackBehavior(() => () => {
+              createCallbackBehavior(() => {
                 stopActivityState = 'on';
                 return () => (stopActivityState = 'off');
               })
@@ -609,7 +609,7 @@ describe('interpreter', () => {
         {
           actors: {
             blink: () =>
-              createCallbackBehavior(() => () => {
+              createCallbackBehavior(() => {
                 activityActive = true;
 
                 return () => {
@@ -1014,15 +1014,13 @@ describe('interpreter', () => {
   });
 
   describe('sendParent() event expressions', () => {
-    // TODO: figure out the story for `invoke.data`
-    it.skip('should resolve sendParent event expressions', (done) => {
+    it('should resolve sendParent event expressions', (done) => {
       const childMachine = createMachine({
         id: 'child',
         initial: 'start',
         context: {
           password: 'unknown'
         },
-        entry: () => console.log('entry'),
         states: {
           start: {
             entry: sendParent((ctx) => {
@@ -1039,8 +1037,10 @@ describe('interpreter', () => {
           start: {
             invoke: {
               id: 'child',
-              src: () => createMachineBehavior(childMachine), // TODO: determine how to pass data using `data` property
-              data: { password: 'foo' }
+              src: () =>
+                createMachineBehavior(
+                  childMachine.withContext({ password: 'foo' })
+                )
             },
             on: {
               NEXT: {
@@ -1517,7 +1517,7 @@ describe('interpreter', () => {
         {
           actors: {
             testService: () =>
-              createCallbackBehavior(() => () => {
+              createCallbackBehavior(() => {
                 // nothing
               })
           }

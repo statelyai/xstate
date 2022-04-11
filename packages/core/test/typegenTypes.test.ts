@@ -961,7 +961,7 @@ describe('typegen types', () => {
   //     },
   //     {
   //       actors: {
-  //         fooActor: () => createCallbackBehavior((_context, event) => (send) => {
+  //         fooActor: () => createCallbackBehavior((send) => {
   //           ((_accept: 'FOO') => {})(event.type);
 
   //           send({ type: 'BAR' });
@@ -1037,7 +1037,7 @@ describe('typegen types', () => {
       {
         actors: {
           fooActor: () =>
-            createCallbackBehavior(() => (_send, onReceive) => {
+            createCallbackBehavior((_send, onReceive) => {
               onReceive((event) => {
                 ((_accept: string) => {})(event.type);
                 // @x-ts-expect-error TODO: determine how to get parent event type here
@@ -1066,7 +1066,7 @@ describe('typegen types', () => {
       {
         actors: {
           fooActor: () =>
-            createCallbackBehavior(() => (_send, onReceive) => {
+            createCallbackBehavior((_send, onReceive) => {
               onReceive((_event: { type: 'TEST' }) => {});
               // @ts-expect-error
               onReceive((_event: { type: number }) => {});

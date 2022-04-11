@@ -54,9 +54,7 @@ describe('SCXML events', () => {
           invoke: {
             id: 'callback_child',
             src: () =>
-              createCallbackBehavior(() => (sendBack) =>
-                sendBack({ type: 'EVENT' })
-              )
+              createCallbackBehavior((sendBack) => sendBack({ type: 'EVENT' }))
           },
           on: {
             EVENT: {

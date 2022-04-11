@@ -207,7 +207,7 @@ function isSignal(
 }
 
 export function createCallbackBehavior<TEvent extends EventObject>(
-  lazyEntity: () => InvokeCallback
+  invokeCallback: InvokeCallback
 ): Behavior<TEvent, undefined> {
   let canceled = false;
   const receivers = new Set<(e: EventObject) => void>();
@@ -237,8 +237,7 @@ export function createCallbackBehavior<TEvent extends EventObject>(
           receivers.add(newListener);
         };
 
-        const callbackEntity = lazyEntity();
-        dispose = callbackEntity(sender, receiver);
+        dispose = invokeCallback(sender, receiver);
 
         if (isPromiseLike(dispose)) {
           dispose.then(
@@ -517,7 +516,7 @@ export function createBehaviorFrom(entity: Spawnable): Behavior<any, any> {
   }
 
   if (isFunction(entity)) {
-    return createCallbackBehavior(() => entity);
+    return createCallbackBehavior(entity);
   }
 
   throw new Error(`Unable to create behavior from entity`);
