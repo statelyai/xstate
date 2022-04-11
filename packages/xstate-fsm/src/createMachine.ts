@@ -116,7 +116,7 @@ interface StateNodeConfig2<_Self, TMachine extends MachineConfig2<any>> {
   exit?: ActionsConfig2<TMachine>;
   invoke?: {
     id: string;
-    src: () => Behavior;
+    src: Behavior | (() => Behavior);
   };
   on?: {
     [EventType in string &
@@ -142,7 +142,7 @@ interface StateNode2 {
   exit?: Array<{ type: string }>;
   invoke?: {
     id: string;
-    src: () => Behavior;
+    src: Behavior | (() => Behavior);
   };
   on?: {
     [EventType in string]: TransitionObject2[];
@@ -405,7 +405,10 @@ export function interpret(machine: Machine<any>): Interpreter2 {
 
       state.actions.forEach((action) => {
         if (action.type === 'xstate.start') {
-          const actorRef = action.invoke.src().start();
+          const { src } = action.invoke;
+
+          const srcBehavior = typeof src === 'function' ? src() : src;
+          const actorRef = srcBehavior.start();
 
           actorRef.subscribe({
             next: (data) => {
@@ -535,3 +538,28 @@ createMachine2({
     red: {}
   }
 });
+
+export function createPromiseBehavior<T>(
+  createPromise: () => Promise<T>
+): Behavior {
+  return {
+    start: () => {
+      const observers = new Set<any>();
+
+      createPromise().then((res) => observers.forEach((o) => o.next(res)));
+
+      return {
+        send: () => void 0,
+        subscribe: (obs) => {
+          observers.add(obs);
+
+          return {
+            unsubscribe: () => {
+              observers.delete(obs);
+            }
+          };
+        }
+      };
+    }
+  };
+}

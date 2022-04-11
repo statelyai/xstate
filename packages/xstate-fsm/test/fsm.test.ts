@@ -2,7 +2,8 @@ import { createMachine, interpret, StateMachine } from '../src';
 import {
   createMachine2,
   interpret as interpret2,
-  assign as assign2
+  assign as assign2,
+  createPromiseBehavior
 } from '../src/createMachine';
 
 describe('@xstate/fsm', () => {
@@ -846,7 +847,7 @@ describe('new', () => {
   });
 
   it('should support invokes', (done) => {
-    const m = createMachine2({
+    const machine = createMachine2({
       initial: 'idle',
       context: {},
       states: {
@@ -860,33 +861,74 @@ describe('new', () => {
         loading: {
           invoke: {
             id: 'promise',
-            src: () => ({
-              start: () => {
-                const observers = new Set<any>();
-
-                setTimeout(() => {
-                  observers.forEach((observer) => observer.next(42));
-                  setTimeout(() => done(), 400);
-                }, 1000);
-
-                return {
-                  send: () => {},
-                  subscribe: (obs) => {
-                    observers.add(obs);
-                  }
-                };
-              }
-            })
+            src: createPromiseBehavior(
+              () =>
+                new Promise((res) => {
+                  setTimeout(() => {
+                    res(42);
+                  }, 1000);
+                })
+            )
           },
           on: {
-            'done.invoke.promise': 'success'
+            'done.invoke.promise': {
+              guard: (_, event) => event.data === 42,
+              target: 'success'
+            }
           }
         },
         success: {}
       }
     });
 
-    const s = interpret2(m).start();
+    const s = interpret2(machine).start();
+
+    s.subscribe((state) => {
+      if (state.value === 'success') {
+        done();
+      }
+    });
+
+    s.send({ type: 'NEXT' });
+  });
+
+  it('should support invokes with dynamic source', (done) => {
+    const machine = createMachine2({
+      initial: 'idle',
+      context: {},
+      states: {
+        idle: {
+          on: {
+            NEXT: {
+              target: 'loading'
+            }
+          }
+        },
+        loading: {
+          invoke: {
+            id: 'promise',
+            src: () =>
+              createPromiseBehavior(
+                () =>
+                  new Promise((res) => {
+                    setTimeout(() => {
+                      res(42);
+                    }, 1000);
+                  })
+              )
+          },
+          on: {
+            'done.invoke.promise': {
+              guard: (_, event) => event.data === 42,
+              target: 'success'
+            }
+          }
+        },
+        success: {}
+      }
+    });
+
+    const s = interpret2(machine).start();
 
     s.subscribe((state) => {
       if (state.value === 'success') {
