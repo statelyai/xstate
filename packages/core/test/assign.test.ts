@@ -6,7 +6,7 @@ import {
   State,
   createMachine
 } from '../src';
-import { invokeMachine } from '../src/invoke';
+import { createMachineBehavior } from '../src/behaviors';
 import { ActorRef } from '../src/types';
 
 interface CounterContext {
@@ -324,28 +324,28 @@ describe('assign meta', () => {
     expect(nextState.context).toEqual({ count: 5 });
   });
 
-  // TODO: determine what should be the correct behavior
-  it('should only provide the pre-initial state from initial state', () => {
+  it('should provide the pre-initial state when executing initial state actions', () => {
+    let receivedCount = Infinity;
+
     const machine = createMachine<{ count: number }>({
       id: 'assign',
       initial: 'start',
-      context: { count: 0 },
+      context: { count: 101 },
       states: {
         start: {
           entry: assign({
             count: (_, __, { state }) => {
-              // The pre-initial state is the state _before_ any actions (like this one)
-              // are applied
-              expect(state?.context.count).toBe(0);
-              return 1;
+              receivedCount = state.context.count;
+              return 0;
             }
           })
         }
       }
     });
-    const { initialState } = machine;
 
-    expect(initialState.context).toEqual({ count: 1 });
+    interpret(machine).start();
+
+    expect(receivedCount).toBe(101);
   });
 
   it('should provide meta._event to assigner', () => {
@@ -381,7 +381,7 @@ describe('assign meta', () => {
         foo: {
           invoke: {
             id: 'child',
-            src: invokeMachine(childMachine)
+            src: () => createMachineBehavior(childMachine)
           }
         }
       },

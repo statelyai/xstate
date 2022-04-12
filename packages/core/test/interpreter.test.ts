@@ -20,7 +20,6 @@ import { log } from '../src/actions/log';
 import { isObservable } from '../src/utils';
 import { interval, from } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { invokeMachine } from '../src/invoke';
 import {
   createCallbackBehavior,
   createMachineBehavior,
@@ -520,7 +519,7 @@ describe('interpreter', () => {
       {
         actors: {
           myActivity: () =>
-            createCallbackBehavior(() => () => {
+            createCallbackBehavior(() => {
               activityState = 'on';
               return () => (activityState = 'off');
             })
@@ -568,7 +567,7 @@ describe('interpreter', () => {
         {
           actors: {
             myActivity: () =>
-              createCallbackBehavior(() => () => {
+              createCallbackBehavior(() => {
                 stopActivityState = 'on';
                 return () => (stopActivityState = 'off');
               })
@@ -610,7 +609,7 @@ describe('interpreter', () => {
         {
           actors: {
             blink: () =>
-              createCallbackBehavior(() => () => {
+              createCallbackBehavior(() => {
                 activityActive = true;
 
                 return () => {
@@ -1022,7 +1021,6 @@ describe('interpreter', () => {
         context: {
           password: 'unknown'
         },
-        entry: () => console.log('entry'),
         states: {
           start: {
             entry: sendParent((ctx) => {
@@ -1039,8 +1037,10 @@ describe('interpreter', () => {
           start: {
             invoke: {
               id: 'child',
-              src: invokeMachine(childMachine), // TODO: determine how to pass data using `data` property
-              data: { password: 'foo' }
+              src: () =>
+                createMachineBehavior(
+                  childMachine.withContext({ password: 'foo' })
+                )
             },
             on: {
               NEXT: {
@@ -1517,7 +1517,7 @@ describe('interpreter', () => {
         {
           actors: {
             testService: () =>
-              createCallbackBehavior(() => () => {
+              createCallbackBehavior(() => {
                 // nothing
               })
           }

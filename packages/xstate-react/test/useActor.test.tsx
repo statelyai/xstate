@@ -11,7 +11,6 @@ import {
 } from 'xstate';
 import { render, fireEvent, act } from '@testing-library/react';
 import { useActor } from '../src/useActor';
-import { invokeMachine } from 'xstate/invoke';
 import { toActorRef } from 'xstate/actor';
 import { createMachineBehavior } from 'xstate/behaviors';
 
@@ -28,7 +27,7 @@ describe('useActor', () => {
       initial: 'active',
       invoke: {
         id: 'child',
-        src: invokeMachine(childMachine)
+        src: () => createMachineBehavior(childMachine)
       },
       states: {
         active: {}
@@ -80,7 +79,7 @@ describe('useActor', () => {
       initial: 'active',
       invoke: {
         id: 'child',
-        src: invokeMachine(childMachine)
+        src: () => createMachineBehavior(childMachine)
       },
       states: {
         active: {

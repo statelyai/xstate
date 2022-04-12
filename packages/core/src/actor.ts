@@ -60,10 +60,7 @@ export function fromCallback<TEvent extends EventObject>(
   callback: InvokeCallback,
   name: string
 ): ActorRef<SCXML.Event<TEvent>> {
-  return new ObservableActorRef(
-    createCallbackBehavior(() => callback),
-    name
-  );
+  return new ObservableActorRef(createCallbackBehavior(callback), name);
 }
 
 export function fromMachine<

@@ -14,6 +14,7 @@ import {
   Observer,
   TODO
 } from './types';
+import { AreAllImplementationsAssumedToBeProvided } from './typegenTypes';
 import {
   toSCXMLEvent,
   isPromiseLike,
@@ -206,7 +207,7 @@ function isSignal(
 }
 
 export function createCallbackBehavior<TEvent extends EventObject>(
-  lazyEntity: () => InvokeCallback
+  invokeCallback: InvokeCallback
 ): Behavior<TEvent, undefined> {
   let canceled = false;
   const receivers = new Set<(e: EventObject) => void>();
@@ -236,8 +237,7 @@ export function createCallbackBehavior<TEvent extends EventObject>(
           receivers.add(newListener);
         };
 
-        const callbackEntity = lazyEntity();
-        dispose = callbackEntity(sender, receiver);
+        dispose = invokeCallback(sender, receiver);
 
         if (isPromiseLike(dispose)) {
           dispose.then(
@@ -408,25 +408,28 @@ export function createObservableBehavior<
 }
 
 export function createMachineBehavior<TMachine extends AnyStateMachine>(
-  machine: TMachine | Lazy<TMachine>,
+  machine: AreAllImplementationsAssumedToBeProvided<
+    TMachine['__TResolvedTypesMeta']
+  > extends true
+    ? TMachine
+    : 'Some implementations missing',
   options?: Partial<InterpreterOptions>
 ): Behavior<EventFrom<TMachine>, StateFrom<TMachine>> {
+  const castedMachine = machine as TMachine;
   let service: InterpreterFrom<TMachine> | undefined;
   let subscription: Subscription;
-  let resolvedMachine: TMachine;
+  let initialState: StateFrom<TMachine>;
 
   const behavior: Behavior<EventFrom<TMachine>, StateFrom<TMachine>> = {
     transition: (state, event, actorContext) => {
       const { _parent: parent } = actorContext.self;
-      resolvedMachine =
-        resolvedMachine ?? (isFunction(machine) ? machine() : machine);
 
       if (event.type === startSignalType) {
-        service = interpret(resolvedMachine, {
+        service = interpret(castedMachine as AnyStateMachine, {
           ...options,
           parent,
           id: actorContext.name
-        });
+        }) as InterpreterFrom<TMachine>;
         service.onDone((doneEvent) => {
           parent?.send(
             toSCXMLEvent(doneEvent, {
@@ -472,9 +475,12 @@ export function createMachineBehavior<TMachine extends AnyStateMachine>(
       return service?.subscribe(observer);
     },
     get initialState() {
-      resolvedMachine =
-        resolvedMachine || (isFunction(machine) ? machine() : machine);
-      return resolvedMachine.getInitialState();
+      // TODO: recheck if this caching is needed, write a test for its importance or remove the caching
+      if (initialState) {
+        return initialState;
+      }
+      initialState = castedMachine.getInitialState();
+      return initialState;
     }
   };
 
@@ -506,12 +512,11 @@ export function createBehaviorFrom(entity: Spawnable): Behavior<any, any> {
   }
 
   if (isStateMachine(entity)) {
-    // @ts-ignore
     return createMachineBehavior(entity);
   }
 
   if (isFunction(entity)) {
-    return createCallbackBehavior(() => entity);
+    return createCallbackBehavior(entity);
   }
 
   throw new Error(`Unable to create behavior from entity`);

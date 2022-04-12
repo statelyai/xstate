@@ -122,7 +122,7 @@ export interface AssignMeta<
   TContext extends MachineContext,
   TEvent extends EventObject
 > {
-  state?: State<TContext, TEvent>;
+  state: State<TContext, TEvent>;
   action: BaseActionObject;
   _event: SCXML.Event<TEvent>;
   spawn: Spawner;
@@ -1746,6 +1746,7 @@ export interface ActorRef<TEvent extends EventObject, TEmitted = any>
   getSnapshot: () => TEmitted | undefined;
   stop?: () => void;
   toJSON?: () => any;
+  // TODO: figure out how to hide this externally as `sendTo(ctx => ctx.actorRef._parent._parent._parent._parent)` shouldn't be allowed
   _parent?: ActorRef<any, any>;
 }
 

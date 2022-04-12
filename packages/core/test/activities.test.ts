@@ -57,7 +57,7 @@ describe('activities with guarded transitions', () => {
       {
         actors: {
           B_ACTIVITY: () =>
-            createCallbackBehavior(() => () => {
+            createCallbackBehavior(() => {
               done();
             })
         }
@@ -93,7 +93,7 @@ describe('remembering activities', () => {
       machine.provide({
         actors: {
           B_ACTIVITY: () =>
-            createCallbackBehavior(() => () => {
+            createCallbackBehavior(() => {
               done();
             })
         }
@@ -111,7 +111,7 @@ describe('activities', () => {
       lightMachine.provide({
         actors: {
           fadeInGreen: () =>
-            createCallbackBehavior(() => () => {
+            createCallbackBehavior(() => {
               done();
             })
         }
@@ -125,7 +125,7 @@ describe('activities', () => {
       lightMachine.provide({
         actors: {
           activateCrosswalkLight: () =>
-            createCallbackBehavior(() => () => {
+            createCallbackBehavior(() => {
               done();
             })
         }
@@ -142,7 +142,7 @@ describe('activities', () => {
       lightMachine.provide({
         actors: {
           blinkCrosswalkLight: () =>
-            createCallbackBehavior(() => () => {
+            createCallbackBehavior(() => {
               done();
             })
         }
@@ -160,7 +160,7 @@ describe('activities', () => {
       lightMachine.provide({
         actors: {
           blinkCrosswalkLight: () =>
-            createCallbackBehavior(() => () => {
+            createCallbackBehavior(() => {
               return () => {
                 done();
               };
@@ -183,13 +183,13 @@ describe('activities', () => {
       lightMachine.provide({
         actors: {
           fadeInGreen: () =>
-            createCallbackBehavior(() => () => {
+            createCallbackBehavior(() => {
               if (stopActivateCrosswalkLightcalled) {
                 done();
               }
             }),
           activateCrosswalkLight: () =>
-            createCallbackBehavior(() => () => {
+            createCallbackBehavior(() => {
               return () => {
                 stopActivateCrosswalkLightcalled = true;
               };
@@ -287,7 +287,7 @@ describe('transient activities', () => {
       machine.provide({
         actors: {
           A: () =>
-            createCallbackBehavior(() => () => {
+            createCallbackBehavior(() => {
               done();
             })
         }
@@ -302,7 +302,7 @@ describe('transient activities', () => {
       machine.provide({
         actors: {
           A1: () =>
-            createCallbackBehavior(() => () => {
+            createCallbackBehavior(() => {
               done();
             })
         }
@@ -316,7 +316,7 @@ describe('transient activities', () => {
       machine.provide({
         actors: {
           A: () =>
-            createCallbackBehavior(() => () => {
+            createCallbackBehavior(() => {
               done();
             })
         }
@@ -331,7 +331,7 @@ describe('transient activities', () => {
       machine.provide({
         actors: {
           C1: () =>
-            createCallbackBehavior(() => () => {
+            createCallbackBehavior(() => {
               done();
             })
         }
@@ -346,7 +346,7 @@ describe('transient activities', () => {
       machine.provide({
         actors: {
           C1: () =>
-            createCallbackBehavior(() => () => {
+            createCallbackBehavior(() => {
               done();
             })
         }
@@ -361,7 +361,7 @@ describe('transient activities', () => {
       machine.provide({
         actors: {
           B2: () =>
-            createCallbackBehavior(() => () => {
+            createCallbackBehavior(() => {
               done();
             })
         }

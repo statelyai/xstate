@@ -29,7 +29,6 @@ import {
   createPromiseBehavior,
   fromReducer
 } from '../src/behaviors';
-import { invokeMachine } from '../src/invoke';
 
 describe('spawning machines', () => {
   const context = {
@@ -322,7 +321,7 @@ describe('spawning callbacks', () => {
           entry: assign({
             callbackRef: (_, __, { spawn }) =>
               spawn(
-                createCallbackBehavior(() => (cb, receive) => {
+                createCallbackBehavior((cb, receive) => {
                   receive((event) => {
                     if (event.type === 'START') {
                       setTimeout(() => {
@@ -668,7 +667,7 @@ describe('actors', () => {
       states: {
         foo: {
           invoke: {
-            src: invokeMachine(child),
+            src: () => createMachineBehavior(child),
             onDone: 'end'
           }
         },
@@ -1108,7 +1107,7 @@ describe('actors', () => {
           states: {
             foo: {
               invoke: {
-                src: invokeMachine(child),
+                src: () => createMachineBehavior(child),
                 onDone: 'end'
               }
             },
@@ -1296,7 +1295,7 @@ describe('actors', () => {
     const machine = createMachine<{ ref: ActorRef<any> }>({
       context: ({ spawn }) => ({
         ref: spawn(
-          createCallbackBehavior(() => (sendBack) => {
+          createCallbackBehavior((sendBack) => {
             sendBack({ type: 'TEST' });
           })
         )

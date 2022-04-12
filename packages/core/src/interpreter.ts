@@ -10,7 +10,10 @@ import { registry } from './registry';
 import { isStateConfig, State } from './State';
 import type { StateMachine } from './StateMachine';
 import { isInFinalState } from './stateUtils';
-import { TypegenDisabled } from './typegenTypes';
+import {
+  TypegenDisabled,
+  AreAllImplementationsAssumedToBeProvided
+} from './typegenTypes';
 import type {
   ActionFunction,
   BaseActionObject,
@@ -806,13 +809,14 @@ export class Interpreter<
  * @param options Interpreter options
  */
 export function interpret<TMachine extends AnyStateMachine>(
-  // machine: AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends true
-  //   ? StateMachine<TContext, TEvent, any, any, TResolvedTypesMeta>
-  //   : 'Some implementations missing',
-  machine: TMachine,
+  machine: AreAllImplementationsAssumedToBeProvided<
+    TMachine['__TResolvedTypesMeta']
+  > extends true
+    ? TMachine
+    : 'Some implementations missing',
   options?: InterpreterOptions
 ): InterpreterFrom<TMachine> {
-  const interpreter = new Interpreter(machine, options);
+  const interpreter = new Interpreter(machine as AnyStateMachine, options);
 
   return interpreter as any;
 }

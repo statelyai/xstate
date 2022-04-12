@@ -107,12 +107,12 @@ export function useInterpret<TMachine extends AnyStateMachine>(
       actors,
       delays
     };
-    const machineWithConfig = machine.provide(machineConfig as any); // TODO: fix type
+    const machineWithConfig = machine.provide(machineConfig as any);
 
-    return interpret(machineWithConfig as any, {
+    return interpret(machineWithConfig, {
       deferEvents: true,
       ...interpreterOptions
-    });
+    }) as InterpreterFrom<TMachine>;
   });
 
   useIsomorphicLayoutEffect(() => {
@@ -148,5 +148,5 @@ export function useInterpret<TMachine extends AnyStateMachine>(
 
   useReactEffectActions(service as any); // TODO: fix type
 
-  return service as any; // TODO: fix type
+  return service;
 }

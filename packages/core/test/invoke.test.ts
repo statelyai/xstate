@@ -115,8 +115,7 @@ const intervalMachine = createMachine<{
       invoke: {
         id: 'intervalService',
         src: (ctx) =>
-          // TODO: lazy might not be necessary here
-          createCallbackBehavior(() => (cb) => {
+          createCallbackBehavior((cb) => {
             const ivl = setInterval(() => {
               cb({ type: 'INC' });
             }, ctx.interval);
@@ -624,7 +623,7 @@ describe('invoke', () => {
         active: {
           invoke: {
             src: () =>
-              createCallbackBehavior(() => () => {
+              createCallbackBehavior(() => {
                 startCount++;
               })
           }
@@ -839,7 +838,7 @@ describe('invoke', () => {
       const machine = createMachine({
         invoke: {
           src: () =>
-            createCallbackBehavior(() => () => {
+            createCallbackBehavior(() => {
               invokeCount++;
 
               return () => {
@@ -888,7 +887,7 @@ describe('invoke', () => {
           idle: {
             invoke: {
               src: () =>
-                createCallbackBehavior(() => {
+                createCallbackBehavior((sendBack) => {
                   invokeCount++;
 
                   if (invokeCount > 1) {
@@ -896,11 +895,9 @@ describe('invoke', () => {
                     throw new Error('This should be impossible.');
                   }
 
-                  return (sendBack) => {
-                    // it's important for this test to send the event back when the parent is *not* currently processing an event
-                    // this ensures that the parent can process the received event immediately and can stop the child immediately
-                    setTimeout(() => sendBack({ type: 'STARTED' }));
-                  };
+                  // it's important for this test to send the event back when the parent is *not* currently processing an event
+                  // this ensures that the parent can process the received event immediately and can stop the child immediately
+                  setTimeout(() => sendBack({ type: 'STARTED' }));
                 })
             },
             on: {
@@ -910,10 +907,8 @@ describe('invoke', () => {
           active: {
             invoke: {
               src: () =>
-                createCallbackBehavior(() => {
-                  return (sendBack) => {
-                    sendBack({ type: 'STOPPED' });
-                  };
+                createCallbackBehavior((sendBack) => {
+                  sendBack({ type: 'STOPPED' });
                 })
             },
             on: {
@@ -1441,7 +1436,7 @@ describe('invoke', () => {
         {
           actors: {
             someCallback: (ctx, e) =>
-              createCallbackBehavior(() => (cb) => {
+              createCallbackBehavior((cb) => {
                 if (ctx.foo && e.type === 'BEGIN') {
                   cb({
                     type: 'CALLBACK',
@@ -1497,7 +1492,7 @@ describe('invoke', () => {
         {
           actors: {
             someCallback: () =>
-              createCallbackBehavior(() => (cb) => {
+              createCallbackBehavior((cb) => {
                 cb({ type: 'CALLBACK' });
               })
           }
@@ -1539,7 +1534,7 @@ describe('invoke', () => {
         {
           actors: {
             someCallback: () =>
-              createCallbackBehavior(() => (cb) => {
+              createCallbackBehavior((cb) => {
                 cb({ type: 'CALLBACK' });
               })
           }
@@ -1588,7 +1583,7 @@ describe('invoke', () => {
         {
           actors: {
             someCallback: () =>
-              createCallbackBehavior(() => (cb) => {
+              createCallbackBehavior((cb) => {
                 cb({ type: 'CALLBACK' });
               })
           }
@@ -1642,7 +1637,7 @@ describe('invoke', () => {
             invoke: {
               id: 'child',
               src: () =>
-                createCallbackBehavior(() => (callback, onReceive) => {
+                createCallbackBehavior((callback, onReceive) => {
                   onReceive((e) => {
                     if (e.type === 'PING') {
                       callback({ type: 'PONG' });
@@ -1674,7 +1669,7 @@ describe('invoke', () => {
           safe: {
             invoke: {
               src: () =>
-                createCallbackBehavior(() => () => {
+                createCallbackBehavior(() => {
                   throw new Error('test');
                 }),
               onError: {
@@ -1704,7 +1699,7 @@ describe('invoke', () => {
           safe: {
             invoke: {
               src: () =>
-                createCallbackBehavior(() => () => {
+                createCallbackBehavior(() => {
                   throw new Error('test');
                 }),
               onError: 'failed'
@@ -1729,7 +1724,7 @@ describe('invoke', () => {
           safe: {
             invoke: {
               src: () =>
-                createCallbackBehavior(() => async () => {
+                createCallbackBehavior(async () => {
                   await true;
                   throw new Error('test');
                 }),
@@ -1763,7 +1758,7 @@ describe('invoke', () => {
           fetch: {
             invoke: {
               src: () =>
-                createCallbackBehavior(() => async () => {
+                createCallbackBehavior(async () => {
                   await true;
                   return 42;
                 }),
@@ -1807,7 +1802,7 @@ describe('invoke', () => {
               first: {
                 invoke: {
                   src: () =>
-                    createCallbackBehavior(() => () => {
+                    createCallbackBehavior(() => {
                       throw new Error('test');
                     }),
                   onError: {
@@ -1822,7 +1817,7 @@ describe('invoke', () => {
               second: {
                 invoke: {
                   src: () =>
-                    createCallbackBehavior(() => () => {
+                    createCallbackBehavior(() => {
                       // empty
                     }),
                   onError: {
@@ -2367,13 +2362,11 @@ describe('invoke', () => {
               invoke: [
                 {
                   id: 'child',
-                  src: () =>
-                    createCallbackBehavior(() => (cb) => cb({ type: 'ONE' }))
+                  src: () => createCallbackBehavior((cb) => cb({ type: 'ONE' }))
                 },
                 {
                   id: 'child2',
-                  src: () =>
-                    createCallbackBehavior(() => (cb) => cb({ type: 'TWO' }))
+                  src: () => createCallbackBehavior((cb) => cb({ type: 'TWO' }))
                 }
               ]
             }
@@ -2436,14 +2429,14 @@ describe('invoke', () => {
                   invoke: {
                     id: 'child',
                     src: () =>
-                      createCallbackBehavior(() => (cb) => cb({ type: 'ONE' }))
+                      createCallbackBehavior((cb) => cb({ type: 'ONE' }))
                   }
                 },
                 b: {
                   invoke: {
                     id: 'child2',
                     src: () =>
-                      createCallbackBehavior(() => (cb) => cb({ type: 'TWO' }))
+                      createCallbackBehavior((cb) => cb({ type: 'TWO' }))
                   }
                 }
               }
@@ -2483,7 +2476,7 @@ describe('invoke', () => {
             invoke: {
               id: 'doNotInvoke',
               src: () =>
-                createCallbackBehavior(() => () => {
+                createCallbackBehavior(() => {
                   actorStarted = true;
                 })
             },
@@ -2513,7 +2506,7 @@ describe('invoke', () => {
             invoke: {
               id: 'doNotInvoke',
               src: () =>
-                createCallbackBehavior(() => () => {
+                createCallbackBehavior(() => {
                   actorStarted = true;
                 })
             },
@@ -2558,7 +2551,7 @@ describe('invoke', () => {
                     invoke: {
                       id: 'active',
                       src: () =>
-                        createCallbackBehavior(() => () => {
+                        createCallbackBehavior(() => {
                           /* ... */
                         })
                     },
@@ -2614,7 +2607,7 @@ describe('invoke', () => {
           active: {
             invoke: {
               src: () =>
-                createCallbackBehavior(() => () => {
+                createCallbackBehavior(() => {
                   actorStartedCount++;
                 })
             },
@@ -2843,7 +2836,7 @@ describe('invoke', () => {
       'src containing a callback actor directly',
       {
         src: () =>
-          createCallbackBehavior(() => () => {
+          createCallbackBehavior(() => {
             /* ... */
           })
       }
@@ -2873,7 +2866,7 @@ describe('invoke', () => {
         {
           actors: {
             someSrc: () =>
-              createCallbackBehavior(() => () => {
+              createCallbackBehavior(() => {
                 /* ... */
               })
           }
