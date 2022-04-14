@@ -767,9 +767,12 @@ export type DelayConfig<TContext, TEvent extends EventObject> =
 type MachineOptionsActions<
   TContext,
   TResolvedTypesMeta,
-  TEventsCausingActions = Prop<TResolvedTypesMeta, 'eventsCausingActions'>,
-  TIndexedEvents = Prop<TResolvedTypesMeta, 'indexedEvents'>,
-  TIndexedActions = Prop<TResolvedTypesMeta, 'indexedActions'>
+  TEventsCausingActions = Prop<
+    Prop<TResolvedTypesMeta, 'resolved'>,
+    'eventsCausingActions'
+  >,
+  TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>,
+  TIndexedActions = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedActions'>
 > = {
   [K in keyof TEventsCausingActions]?:
     | ActionObject<
@@ -786,8 +789,11 @@ type MachineOptionsActions<
 type MachineOptionsDelays<
   TContext,
   TResolvedTypesMeta,
-  TEventsCausingDelays = Prop<TResolvedTypesMeta, 'eventsCausingDelays'>,
-  TIndexedEvents = Prop<TResolvedTypesMeta, 'indexedEvents'>
+  TEventsCausingDelays = Prop<
+    Prop<TResolvedTypesMeta, 'resolved'>,
+    'eventsCausingDelays'
+  >,
+  TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>
 > = {
   [K in keyof TEventsCausingDelays]?: DelayConfig<
     TContext,
@@ -798,8 +804,11 @@ type MachineOptionsDelays<
 type MachineOptionsGuards<
   TContext,
   TResolvedTypesMeta,
-  TEventsCausingGuards = Prop<TResolvedTypesMeta, 'eventsCausingGuards'>,
-  TIndexedEvents = Prop<TResolvedTypesMeta, 'indexedEvents'>
+  TEventsCausingGuards = Prop<
+    Prop<TResolvedTypesMeta, 'resolved'>,
+    'eventsCausingGuards'
+  >,
+  TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>
 > = {
   [K in keyof TEventsCausingGuards]?: ConditionPredicate<
     TContext,
@@ -810,9 +819,15 @@ type MachineOptionsGuards<
 type MachineOptionsServices<
   TContext,
   TResolvedTypesMeta,
-  TEventsCausingServices = Prop<TResolvedTypesMeta, 'eventsCausingServices'>,
-  TIndexedEvents = Prop<TResolvedTypesMeta, 'indexedEvents'>,
-  TInvokeSrcNameMap = Prop<TResolvedTypesMeta, 'invokeSrcNameMap'>
+  TEventsCausingServices = Prop<
+    Prop<TResolvedTypesMeta, 'resolved'>,
+    'eventsCausingServices'
+  >,
+  TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>,
+  TInvokeSrcNameMap = Prop<
+    Prop<TResolvedTypesMeta, 'resolved'>,
+    'invokeSrcNameMap'
+  >
 > = {
   [K in keyof TEventsCausingServices]?:
     | AnyStateMachine
@@ -898,7 +913,10 @@ export type InternalMachineOptions<
   TEvent extends EventObject,
   TResolvedTypesMeta,
   TRequireMissingImplementations extends boolean = false,
-  TMissingImplementations = Prop<TResolvedTypesMeta, 'missingImplementations'>
+  TMissingImplementations = Prop<
+    Prop<TResolvedTypesMeta, 'resolved'>,
+    'missingImplementations'
+  >
 > = GenerateActionsConfigPart<
   TContext,
   TResolvedTypesMeta,
@@ -948,7 +966,12 @@ export interface MachineConfig<
   TAction extends BaseActionObject = BaseActionObject,
   TServiceMap extends ServiceMap = ServiceMap,
   TTypesMeta = TypegenDisabled
-> extends StateNodeConfig<NoInfer<TContext>, TStateSchema, TEvent, TAction> {
+> extends StateNodeConfig<
+    NoInfer<TContext>,
+    TStateSchema,
+    NoInfer<TEvent>,
+    TAction
+  > {
   /**
    * The initial context (extended state)
    */
@@ -1009,7 +1032,7 @@ export interface StateMachine<
   TServiceMap extends ServiceMap = ServiceMap,
   TResolvedTypesMeta = ResolveTypegenMeta<
     TypegenDisabled,
-    TEvent,
+    NoInfer<TEvent>,
     TAction,
     TServiceMap
   >
@@ -1685,7 +1708,9 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
         TContext,
         TEvent,
         TTypestate,
-        TResolvedTypesMeta
+        AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
+          ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
+          : TResolvedTypesMeta
       >
     : R extends Promise<infer U>
     ? ActorRef<never, U>
@@ -1698,7 +1723,7 @@ export type AnyInterpreter = Interpreter<any, any, any, any, any>;
 
 export type InterpreterFrom<
   T extends AnyStateMachine | ((...args: any[]) => AnyStateMachine)
-> = T extends StateMachine<
+> = ReturnTypeOrValue<T> extends StateMachine<
   infer TContext,
   infer TStateSchema,
   infer TEvent,
@@ -1707,19 +1732,15 @@ export type InterpreterFrom<
   any,
   infer TResolvedTypesMeta
 >
-  ? Interpreter<TContext, TStateSchema, TEvent, TTypestate, TResolvedTypesMeta>
-  : T extends (
-      ...args: any[]
-    ) => StateMachine<
-      infer TContext,
-      infer TStateSchema,
-      infer TEvent,
-      infer TTypestate,
-      any,
-      any,
-      infer TResolvedTypesMeta
+  ? Interpreter<
+      TContext,
+      TStateSchema,
+      TEvent,
+      TTypestate,
+      AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
+        ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
+        : TResolvedTypesMeta
     >
-  ? Interpreter<TContext, TStateSchema, TEvent, TTypestate, TResolvedTypesMeta>
   : never;
 
 export type MachineOptionsFrom<

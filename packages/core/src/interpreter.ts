@@ -120,7 +120,6 @@ export enum InterpreterStatus {
   Stopped
 }
 
-/** @ts-ignore [symbolObservable] creates problems for people without `skipLibCheck` who are on older versions of TS, remove this comment when we drop support for TS@<4.3 */
 export class Interpreter<
   // tslint:disable-next-line:max-classes-per-file
   TContext,
@@ -139,7 +138,7 @@ export class Interpreter<
    * - `clock` uses the global `setTimeout` and `clearTimeout` functions
    * - `logger` uses the global `console.log()` method
    */
-  public static defaultOptions = ((global) => ({
+  public static defaultOptions = {
     execute: true,
     deferEvents: true,
     clock: {
@@ -150,9 +149,9 @@ export class Interpreter<
         return clearTimeout(id);
       }
     } as Clock,
-    logger: global.console.log.bind(console),
+    logger: console.log.bind(console),
     devTools: false
-  }))(typeof self !== 'undefined' ? self : global);
+  };
   /**
    * The current state of the interpreted machine.
    */
@@ -176,7 +175,7 @@ export class Interpreter<
   public clock: Clock;
   public options: Readonly<InterpreterOptions>;
 
-  private scheduler: Scheduler = new Scheduler();
+  private scheduler: Scheduler;
   private delayedEventsMap: Record<string, unknown> = {};
   private listeners: Set<
     StateListener<
@@ -438,12 +437,16 @@ export class Interpreter<
     this.listeners.add(listener);
 
     // Send current state to listener
-    if (this.status === InterpreterStatus.Running) {
+    if (this.status !== InterpreterStatus.NotStarted) {
       listener(this.state);
     }
 
     if (resolvedCompleteListener) {
-      this.onDone(resolvedCompleteListener);
+      if (this.status === InterpreterStatus.Stopped) {
+        resolvedCompleteListener();
+      } else {
+        this.onDone(resolvedCompleteListener);
+      }
     }
 
     return {
@@ -527,6 +530,12 @@ export class Interpreter<
       return this;
     }
 
+    // yes, it's a hack but we need the related cache to be populated for some things to work (like delayed transitions)
+    // this is usually called by `machine.getInitialState` but if we rehydrate from a state we might bypass this call
+    // we also don't want to call this method here as it resolves the full initial state which might involve calling assign actions
+    // and that could potentially lead to some unwanted side-effects (even such as creating some rogue actors)
+    (this.machine as any)._init();
+
     registry.register(this.sessionId, this as Actor);
     this.initialized = true;
     this.status = InterpreterStatus.Running;
@@ -580,6 +589,7 @@ export class Interpreter<
 
     this.initialized = false;
     this.status = InterpreterStatus.Stopped;
+    this._initialState = undefined;
 
     // we are going to stop within the current sync frame
     // so we can safely just cancel this here as nothing async should be fired anyway
@@ -650,7 +660,13 @@ export class Interpreter<
           child.stop();
         }
       });
+      this.children.clear();
+
       registry.free(this.sessionId);
+    });
+
+    this.scheduler = new Scheduler({
+      deferEvents: this.options.deferEvents
     });
 
     return this;
@@ -1151,7 +1167,7 @@ export class Interpreter<
       })
       .start();
 
-    return actor;
+    return actor as any;
   }
   private spawnBehavior<TActorEvent extends EventObject, TEmitted>(
     behavior: Behavior<TActorEvent, TEmitted>,
@@ -1438,7 +1454,6 @@ export class Interpreter<
     };
   }
 
-  /** @ts-ignore this creates problems for people without `skipLibCheck` who are on older versions of TS, remove this comment when we drop support for TS@<4.3 */
   public [symbolObservable](): InteropSubscribable<
     State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta>
   > {

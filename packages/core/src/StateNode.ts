@@ -69,7 +69,8 @@ import {
   StateMachine,
   InternalMachineOptions,
   ServiceMap,
-  StateConfig
+  StateConfig,
+  AnyStateMachine
 } from './types';
 import { matchesState } from './utils';
 import { State, stateValuesEqual } from './State';
@@ -761,7 +762,8 @@ class StateNode<
       value: this.resolve(stateFromConfig.value),
       configuration,
       done: isInFinalState(configuration, this),
-      tags: getTagsFromConfiguration(configuration)
+      tags: getTagsFromConfiguration(configuration),
+      machine: (this.machine as unknown) as AnyStateMachine
     });
   }
 
@@ -1339,7 +1341,7 @@ class StateNode<
       transitions: stateTransition.transitions,
       children,
       done: isDone,
-      tags: currentState?.tags,
+      tags: getTagsFromConfiguration(resolvedConfiguration),
       machine: this as any
     });
 
@@ -1412,10 +1414,6 @@ class StateNode<
 
     // Preserve original history after raised events
     maybeNextState.history = history;
-
-    maybeNextState.tags = getTagsFromConfiguration(
-      maybeNextState.configuration
-    );
 
     return maybeNextState;
   }

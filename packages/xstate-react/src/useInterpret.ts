@@ -1,39 +1,88 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 import {
+  AnyInterpreter,
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
   InternalMachineOptions,
   interpret,
   InterpreterFrom,
   InterpreterOptions,
+  InterpreterStatus,
+  MachineOptions,
   Observer,
   State,
-  StateFrom
+  StateFrom,
+  toObserver
 } from 'xstate';
 import { MaybeLazy } from './types';
 import useConstant from './useConstant';
 import { UseMachineOptions } from './useMachine';
-import { useReactEffectActions } from './useReactEffectActions';
 
-// copied from core/src/utils.ts
-// it avoids a breaking change between this package and XState which is its peer dep
-function toObserver<T>(
-  nextHandler: Observer<T> | ((value: T) => void),
-  errorHandler?: (error: any) => void,
-  completionHandler?: () => void
-): Observer<T> {
-  if (typeof nextHandler === 'object') {
-    return nextHandler;
+export function useIdleInterpreter(
+  getMachine: MaybeLazy<AnyStateMachine>,
+  options: Partial<InterpreterOptions> &
+    Partial<UseMachineOptions<unknown, never>> &
+    Partial<MachineOptions<unknown, never>>
+): AnyInterpreter {
+  const machine = useConstant(() => {
+    return typeof getMachine === 'function' ? getMachine() : getMachine;
+  });
+
+  if (
+    process.env.NODE_ENV !== 'production' &&
+    typeof getMachine !== 'function'
+  ) {
+    const [initialMachine] = useState(machine);
+
+    if (getMachine !== initialMachine) {
+      console.warn(
+        'Machine given to `useMachine` has changed between renders. This is not supported and might lead to unexpected results.\n' +
+          'Please make sure that you pass the same Machine as argument each time.'
+      );
+    }
   }
 
-  const noop = () => void 0;
+  const {
+    context,
+    guards,
+    actions,
+    activities,
+    services,
+    delays,
+    state: rehydratedState,
+    ...interpreterOptions
+  } = options;
 
-  return {
-    next: nextHandler,
-    error: errorHandler || noop,
-    complete: completionHandler || noop
-  };
+  const service = useConstant(() => {
+    const machineConfig = {
+      context,
+      guards,
+      actions,
+      activities,
+      services,
+      delays
+    };
+    const machineWithConfig = machine.withConfig(machineConfig as any, () => ({
+      ...machine.context,
+      ...context
+    }));
+
+    return interpret(machineWithConfig, interpreterOptions);
+  });
+
+  // Make sure options are kept updated when they change.
+  // This mutation assignment is safe because the service instance is only used
+  // in one place -- this hook's caller.
+  useIsomorphicLayoutEffect(() => {
+    Object.assign(service.machine.options.actions, actions);
+    Object.assign(service.machine.options.guards, guards);
+    Object.assign(service.machine.options.activities, activities);
+    Object.assign(service.machine.options.services, services);
+    Object.assign(service.machine.options.delays, delays);
+  }, [actions, guards, activities, services, delays]);
+
+  return service as any;
 }
 
 type RestParams<
@@ -71,90 +120,31 @@ export function useInterpret<TMachine extends AnyStateMachine>(
   getMachine: MaybeLazy<TMachine>,
   ...[options = {}, observerOrListener]: RestParams<TMachine>
 ): InterpreterFrom<TMachine> {
-  const machine = useConstant(() => {
-    return typeof getMachine === 'function' ? getMachine() : getMachine;
-  });
+  const service = useIdleInterpreter(getMachine, options as any);
 
-  if (
-    process.env.NODE_ENV !== 'production' &&
-    typeof getMachine !== 'function'
-  ) {
-    const [initialMachine] = useState(machine);
-
-    if (getMachine !== initialMachine) {
-      console.warn(
-        'Machine given to `useMachine` has changed between renders. This is not supported and might lead to unexpected results.\n' +
-          'Please make sure that you pass the same Machine as argument each time.'
-      );
+  useEffect(() => {
+    if (!observerOrListener) {
+      return;
     }
-  }
 
-  const {
-    context,
-    guards,
-    actions,
-    services,
-    delays,
-    state: rehydratedState,
-    ...interpreterOptions
-  } = options;
-
-  // it's not defined in `TypegenMachineOptions` so we can't just unpack this property here freely
-  const { activities } = options as any;
-
-  const service = useConstant(() => {
-    const machineConfig = {
-      context,
-      guards,
-      actions,
-      activities,
-      services,
-      delays
-    };
-    const machineWithConfig = machine.withConfig(machineConfig as any, () => ({
-      ...machine.context,
-      ...context
-    }));
-
-    return interpret(machineWithConfig as any, {
-      deferEvents: true,
-      ...interpreterOptions
-    });
-  });
-
-  useIsomorphicLayoutEffect(() => {
-    let sub;
-    if (observerOrListener) {
-      sub = service.subscribe(toObserver(observerOrListener) as any);
-    }
+    let sub = service.subscribe(toObserver(observerOrListener));
 
     return () => {
-      sub?.unsubscribe();
+      sub.unsubscribe();
     };
   }, [observerOrListener]);
 
-  useIsomorphicLayoutEffect(() => {
+  useEffect(() => {
+    const rehydratedState = options.state;
     service.start(
       rehydratedState ? (State.create(rehydratedState) as any) : undefined
     );
 
     return () => {
       service.stop();
+      service.status = InterpreterStatus.NotStarted;
     };
   }, []);
-
-  // Make sure options are kept updated when they change.
-  // This mutation assignment is safe because the service instance is only used
-  // in one place -- this hook's caller.
-  useIsomorphicLayoutEffect(() => {
-    Object.assign(service.machine.options.actions, actions);
-    Object.assign(service.machine.options.guards, guards);
-    Object.assign(service.machine.options.activities, activities);
-    Object.assign(service.machine.options.services, services);
-    Object.assign(service.machine.options.delays, delays);
-  }, [actions, guards, activities, services, delays]);
-
-  useReactEffectActions(service);
 
   return service as any;
 }
