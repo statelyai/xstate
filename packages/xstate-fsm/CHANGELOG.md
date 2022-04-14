@@ -1,5 +1,15 @@
 # @xstate/fsm
 
+## 2.0.0
+
+### Major Changes
+
+- [#2939](https://github.com/statelyai/xstate/pull/2939) [`360e85462`](https://github.com/statelyai/xstate/commit/360e8546298c4a06b6d51d8f12c0563672dd7acf) Thanks [@Andarist](https://github.com/Andarist)! - `.start()` (when called without any argument) now always starts from the initial state of the machine. This matches the behavior of XState itself.
+
+### Patch Changes
+
+- [#2939](https://github.com/statelyai/xstate/pull/2939) [`360e85462`](https://github.com/statelyai/xstate/commit/360e8546298c4a06b6d51d8f12c0563672dd7acf) Thanks [@Andarist](https://github.com/Andarist)! - A bunch of TypeScript helpers has been added: `StateMachine.AnyMachine`, `StateMachine.AnyService`, `ContextFrom`, `EventFrom`, `StateFrom` and `ServiceFrom`.
+
 ## 1.6.5
 
 ### Patch Changes

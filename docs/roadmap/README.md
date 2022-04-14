@@ -1,5 +1,5 @@
 ---
-reviewed: 2022-03-22
+reviewed: 2022-04-05
 styleGuideVersion: 0
 ---
 
@@ -7,20 +7,11 @@ styleGuideVersion: 0
 
 A roadmap for what Stately is working on for XState and Stately tools.
 
-## In Progress
+[Read about our latest updates on the Stately blog](https://stately.ai/blog).
 
-What we’re working on right now.
+## In Progress, Q2 2022
 
-### Editor
-
-- Bug fixes
-- Discover page
-- Inline implementations
-- Entity snapping
-
-## Upcoming Q2 2022
-
-Features planned for April - June 2022.
+What we’re working on right now. Features planned for April - June 2022.
 
 ### XState
 
@@ -28,10 +19,13 @@ Features planned for April - June 2022.
 
 ### Editor
 
-- Billing and Teams
+- Bug fixes
+- Discover page
+- Billing and Teams, including private machines
 - Feature parity with XState
 - Authentication bug fixes
 - Welcome emails
+- Entity snapping improvements
 - Inline editing
 - Simulation mode
 - Markdown descriptions
@@ -86,4 +80,4 @@ We prioritize features based on your feedback. Please let us know if you have fe
 
 ---
 
-Last updated: March 22, 2022.
+Last updated: April 5, 2022.

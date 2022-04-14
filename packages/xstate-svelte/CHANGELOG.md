@@ -1,5 +1,12 @@
 # @xstate/svelte
 
+## 1.0.0
+
+### Patch Changes
+
+- Updated dependencies [[`360e85462`](https://github.com/statelyai/xstate/commit/360e8546298c4a06b6d51d8f12c0563672dd7acf), [`360e85462`](https://github.com/statelyai/xstate/commit/360e8546298c4a06b6d51d8f12c0563672dd7acf)]:
+  - @xstate/fsm@2.0.0
+
 ## 0.2.1
 
 ### Patch Changes

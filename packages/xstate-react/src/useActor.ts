@@ -1,7 +1,8 @@
-import { useState, useRef } from 'react';
+import { useRef, useCallback } from 'react';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 import { ActorRef, EventObject } from 'xstate';
 import useConstant from './useConstant';
+import { useSyncExternalStore } from 'use-sync-external-store/shim';
 
 export function isActorWithState<T extends ActorRef<any>>(
   actorRef: T
@@ -18,10 +19,6 @@ function isDeferredActor<T extends ActorRef<any>>(
 type EmittedFromActorRef<
   TActor extends ActorRef<any, any>
 > = TActor extends ActorRef<any, infer TEmitted> ? TEmitted : never;
-
-const noop = () => {
-  /* ... */
-};
 
 function defaultGetSnapshot<TEmitted>(
   actorRef: ActorRef<any, TEmitted>
@@ -49,7 +46,25 @@ export function useActor(
 ): [unknown, (event: EventObject) => void] {
   const actorRefRef = useRef(actorRef);
   const deferredEventsRef = useRef<EventObject[]>([]);
-  const [current, setCurrent] = useState(() => getSnapshot(actorRef));
+
+  const subscribe = useCallback(
+    (handleStoreChange) => {
+      const { unsubscribe } = actorRef.subscribe(handleStoreChange);
+      return unsubscribe;
+    },
+    [actorRef]
+  );
+
+  const boundGetSnapshot = useCallback(() => getSnapshot(actorRef), [
+    actorRef,
+    getSnapshot
+  ]);
+
+  const storeSnapshot = useSyncExternalStore(
+    subscribe,
+    boundGetSnapshot,
+    boundGetSnapshot
+  );
 
   const send: (event: EventObject) => void = useConstant(() => (...args) => {
     const event = args[0];
@@ -75,12 +90,6 @@ export function useActor(
 
   useIsomorphicLayoutEffect(() => {
     actorRefRef.current = actorRef;
-    setCurrent(getSnapshot(actorRef));
-    const subscription = actorRef.subscribe({
-      next: (emitted) => setCurrent(emitted),
-      error: noop,
-      complete: noop
-    });
 
     // Dequeue deferred events from the previous deferred actorRef
     while (deferredEventsRef.current.length > 0) {
@@ -88,11 +97,7 @@ export function useActor(
 
       actorRef.send(deferredEvent);
     }
-
-    return () => {
-      subscription.unsubscribe();
-    };
   }, [actorRef]);
 
-  return [current, send];
+  return [storeSnapshot, send];
 }

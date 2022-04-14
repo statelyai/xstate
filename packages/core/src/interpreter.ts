@@ -113,7 +113,7 @@ export class Interpreter<
     this._process.bind(this)
   );
 
-  private delayedEventsMap: Record<string, number> = {};
+  private delayedEventsMap: Record<string, unknown> = {};
 
   private listeners: Set<
     StateListener<TContext, TEvent, TResolvedTypesMeta>
@@ -300,12 +300,16 @@ export class Interpreter<
     }
 
     // Send current state to listener
-    if (this.status === InterpreterStatus.Running) {
+    if (this.status !== InterpreterStatus.NotStarted) {
       listener(this.state);
     }
 
     if (resolvedCompleteListener) {
-      this.onDone(resolvedCompleteListener);
+      if (this.status === InterpreterStatus.Stopped) {
+        resolvedCompleteListener();
+      } else {
+        this.onDone(resolvedCompleteListener);
+      }
     }
 
     return {
@@ -457,7 +461,14 @@ export class Interpreter<
     }
 
     this.mailbox.clear();
+    // TODO: after `stop` we must prepare ourselves for receiving events again
+    // events sent *after* stop signal must be queued
+    // it seems like this should be the common behavior for all of our consumers
+    // so perhaps this should be unified somehow for all of them
+    this.mailbox = new Mailbox(this._process.bind(this));
+
     this.status = InterpreterStatus.Stopped;
+    this._initialState = undefined;
     registry.free(this.sessionId);
 
     return this;
