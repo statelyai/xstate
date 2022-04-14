@@ -622,20 +622,18 @@ export class Interpreter<
           _sessionid: this.sessionId,
           historyValue: undefined,
           history: this.state,
-          // this filtering is somewhat questionable and we might reconsider this in the future
-          // we definitely don't want to execute raised events as the stop event is the last thing that should be processed by this machine
-          // the question is if we should allow sending events from here to other actors *while* preventing the parent that has stopped this machine from receiving an event from here
           actions: resolvedActions.filter(
             (action) =>
               action.type !== actionTypes.raise &&
-              action.type !== actionTypes.send
+              (action.type !== actionTypes.send ||
+                (!!action.to && action.to !== SpecialTargets.Internal))
           ),
           activities: {},
           events: [],
           configuration: [],
           transitions: [],
           children: {},
-          done: true,
+          done: this.state.done,
           tags: new Set(),
           machine: this.machine
         });
@@ -813,13 +811,22 @@ export class Interpreter<
     }
 
     if ('machine' in target) {
-      // Send SCXML events to machines
-      (target as AnyInterpreter).send({
-        ...event,
-        name:
-          event.name === actionTypes.error ? `${error(this.id)}` : event.name,
-        origin: this.sessionId
-      });
+      // perhaps those events should be rejected in the parent
+      // but atm it doesn't have easy access to all of the information that is required to do it reliably
+      if (
+        this.status !== InterpreterStatus.Stopped ||
+        this.parent !== target ||
+        // we need to send events to the parent from exit handlers of a machine that reached its final state
+        this.state.done
+      ) {
+        // Send SCXML events to machines
+        (target as AnyInterpreter).send({
+          ...event,
+          name:
+            event.name === actionTypes.error ? `${error(this.id)}` : event.name,
+          origin: this.sessionId
+        });
+      }
     } else {
       // Send normal events to other targets
       target.send(event.data);

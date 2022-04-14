@@ -7,7 +7,15 @@ import {
   spawn,
   ActorRefFrom
 } from '../src/index';
-import { pure, sendParent, log, choose, sendTo, stop } from '../src/actions';
+import {
+  pure,
+  sendParent,
+  log,
+  choose,
+  sendTo,
+  stop,
+  send
+} from '../src/actions';
 
 describe('entry/exit actions', () => {
   const pedestrianStates = {
@@ -885,7 +893,7 @@ describe('entry/exit actions', () => {
       expect(() => interpreter.stop()).not.toThrow();
     });
 
-    it('send actions from exit handlers of a stopped child should not be executed', () => {
+    it('sent events from exit handlers of a stopped child should not be received by the parent', () => {
       const child = createMachine({
         id: 'child',
         initial: 'idle',
@@ -915,6 +923,146 @@ describe('entry/exit actions', () => {
 
       const interpreter = interpret(parent).start();
       interpreter.send({ type: 'STOP_CHILD' });
+    });
+
+    it('sent events from exit handlers of a done child should be received by the parent ', () => {
+      let eventReceived = false;
+
+      const child = createMachine({
+        id: 'child',
+        initial: 'active',
+        states: {
+          active: {
+            on: {
+              FINISH: 'done'
+            }
+          },
+          done: {
+            type: 'final'
+          }
+        },
+        exit: sendParent('CHILD_DONE')
+      });
+
+      const parent = createMachine({
+        id: 'parent',
+        context: () => ({
+          child: spawn(child)
+        }),
+        on: {
+          FINISH_CHILD: {
+            actions: send({ type: 'FINISH' }, { to: (ctx: any) => ctx.child })
+          },
+          CHILD_DONE: {
+            actions: () => {
+              eventReceived = true;
+            }
+          }
+        }
+      });
+
+      const interpreter = interpret(parent).start();
+      interpreter.send({ type: 'FINISH_CHILD' });
+
+      expect(eventReceived).toBe(true);
+    });
+
+    it('sent events from exit handlers of a stopped child should be received by its children ', () => {
+      let eventReceived = false;
+
+      const grandchild = createMachine({
+        id: 'grandchild',
+        on: {
+          STOPPED: {
+            actions: () => {
+              eventReceived = true;
+            }
+          }
+        }
+      });
+
+      const child = createMachine({
+        id: 'child',
+        invoke: {
+          id: 'myChild',
+          src: grandchild
+        },
+        exit: send({ type: 'STOPPED' }, { to: 'myChild' })
+      });
+
+      const parent = createMachine({
+        id: 'parent',
+        initial: 'a',
+        states: {
+          a: {
+            invoke: {
+              src: child
+            },
+            on: {
+              NEXT: 'b'
+            }
+          },
+          b: {}
+        }
+      });
+
+      const interpreter = interpret(parent).start();
+      interpreter.send({ type: 'NEXT' });
+
+      expect(eventReceived).toBe(true);
+    });
+
+    it('sent events from exit handlers of a done child should be received by its children ', () => {
+      let eventReceived = false;
+
+      const grandchild = createMachine({
+        id: 'grandchild',
+        on: {
+          STOPPED: {
+            actions: () => {
+              eventReceived = true;
+            }
+          }
+        }
+      });
+
+      const child = createMachine({
+        id: 'child',
+        initial: 'a',
+        invoke: {
+          id: 'myChild',
+          src: grandchild
+        },
+        states: {
+          a: {
+            on: {
+              FINISH: 'b'
+            }
+          },
+          b: {
+            type: 'final'
+          }
+        },
+        exit: send({ type: 'STOPPED' }, { to: 'myChild' })
+      });
+
+      const parent = createMachine({
+        id: 'parent',
+        invoke: {
+          id: 'myChild',
+          src: child
+        },
+        on: {
+          NEXT: {
+            actions: send({ type: 'FINISH' }, { to: 'myChild' })
+          }
+        }
+      });
+
+      const interpreter = interpret(parent).start();
+      interpreter.send({ type: 'NEXT' });
+
+      expect(eventReceived).toBe(true);
     });
 
     it('actors spawned in exit handlers of a stopped child should not be started', () => {
