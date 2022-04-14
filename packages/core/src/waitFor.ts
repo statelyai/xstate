@@ -45,7 +45,9 @@ export function waitFor<TActorRef extends ActorRef<any, any>>(
   return new Promise((res, rej) => {
     let done = false;
     if (process.env.NODE_ENV !== 'production' && resolvedOptions.timeout < 0) {
-        console.error('`timeout` passed to `waitFor` is negative and it will reject its internal promise immediately.')
+      console.error(
+        '`timeout` passed to `waitFor` is negative and it will reject its internal promise immediately.'
+      );
     }
     const handle =
       resolvedOptions.timeout === Infinity
