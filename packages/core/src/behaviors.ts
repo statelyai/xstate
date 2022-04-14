@@ -9,7 +9,6 @@ import {
   Receiver,
   Behavior,
   ActorContext,
-  ActorRef,
   EventObject,
   Observer,
   TODO
@@ -27,9 +26,6 @@ import { doneInvoke, error, actionTypes } from './actions';
 import { StateMachine } from './StateMachine';
 import { interpret } from './interpreter';
 import { State } from './State';
-import { toActorRef } from './actor';
-import { toObserver } from './utils';
-import { Mailbox } from './Mailbox';
 import { AnyStateMachine, EventFrom, InterpreterFrom, StateFrom } from '.';
 
 /**
@@ -56,125 +52,6 @@ export function fromReducer<TState, TEvent extends EventObject>(
     },
     initialState
   };
-}
-
-type PromiseEvents<T> =
-  | { type: 'fulfill'; data: T }
-  | { type: 'reject'; error: unknown };
-
-type PromiseState<T> =
-  | {
-      status: 'pending';
-      data: undefined;
-      error: undefined;
-    }
-  | {
-      status: 'fulfilled';
-      data: T;
-      error: undefined;
-    }
-  | {
-      status: 'rejected';
-      data: undefined;
-      error: any;
-    };
-
-export function fromPromise<T>(
-  promiseFn: () => Promise<T>
-): Behavior<PromiseEvents<T>, PromiseState<T>> {
-  const initialState: PromiseState<T> = {
-    error: undefined,
-    data: undefined,
-    status: 'pending'
-  };
-
-  return {
-    transition: (state, event, { observers }) => {
-      switch (event.type) {
-        case 'fulfill':
-          return {
-            error: undefined,
-            data: event.data,
-            status: 'fulfilled'
-          };
-        case 'reject':
-          observers.forEach((observer) => {
-            observer.error?.(event.error);
-          });
-          return {
-            error: event.error,
-            data: undefined,
-            status: 'rejected'
-          };
-        default:
-          return state;
-      }
-    },
-    initialState,
-    start: ({ self }) => {
-      promiseFn().then(
-        (data) => {
-          self.send({ type: 'fulfill', data });
-        },
-        (reason) => {
-          self.send({ type: 'reject', error: reason });
-        }
-      );
-
-      return initialState;
-    }
-  };
-}
-
-interface SpawnBehaviorOptions {
-  id?: string;
-  parent?: ActorRef<any>;
-}
-
-export function spawnBehavior<TEvent extends EventObject, TEmitted>(
-  behavior: Behavior<TEvent, TEmitted>,
-  options: SpawnBehaviorOptions = {}
-): ActorRef<TEvent, TEmitted> {
-  let state = behavior.initialState;
-  const observers = new Set<Observer<TEmitted>>();
-  const mailbox = new Mailbox<TEvent>((event) => {
-    state = behavior.transition(state, event, actorCtx);
-    observers.forEach((observer) => observer.next?.(state));
-  });
-
-  const actor = toActorRef({
-    id: options.id,
-    send: (event: TEvent) => {
-      mailbox.enqueue(event);
-    },
-    getSnapshot: () => state,
-    subscribe: (next, handleError?, complete?) => {
-      const observer = toObserver(next, handleError, complete);
-      observers.add(observer);
-      observer.next?.(state);
-
-      return {
-        unsubscribe: () => {
-          observers.delete(observer);
-        }
-      };
-    },
-    start() {
-      mailbox.start();
-    },
-    stop() {
-      mailbox.clear();
-    }
-  });
-
-  const actorCtx: ActorContext<TEvent, TEmitted> = {
-    self: actor,
-    name: options.id || 'anonymous',
-    observers,
-    _event: null as any
-  };
-
-  return actor;
 }
 
 export const startSignalType = Symbol.for('xstate.invoke');
@@ -206,7 +83,7 @@ function isSignal(
   return typeof event.type === 'symbol';
 }
 
-export function createCallbackBehavior<TEvent extends EventObject>(
+export function fromCallback<TEvent extends EventObject>(
   invokeCallback: InvokeCallback
 ): Behavior<TEvent, undefined> {
   let canceled = false;
@@ -293,7 +170,7 @@ export function createCallbackBehavior<TEvent extends EventObject>(
   return behavior;
 }
 
-export function createPromiseBehavior<T, TEvent extends EventObject>(
+export function fromPromise<T, TEvent extends EventObject>(
   lazyPromise: Lazy<PromiseLike<T>>
 ): Behavior<any, T | undefined> {
   let canceled = false;
@@ -349,7 +226,7 @@ export function createPromiseBehavior<T, TEvent extends EventObject>(
   return behavior;
 }
 
-export function createObservableBehavior<
+export function fromObservable<
   T extends EventObject,
   TEvent extends EventObject
 >(lazyObservable: Lazy<Subscribable<T>>): Behavior<TEvent, T | undefined> {
@@ -407,7 +284,7 @@ export function createObservableBehavior<
   return behavior;
 }
 
-export function createMachineBehavior<TMachine extends AnyStateMachine>(
+export function fromMachine<TMachine extends AnyStateMachine>(
   machine: AreAllImplementationsAssumedToBeProvided<
     TMachine['__TResolvedTypesMeta']
   > extends true
@@ -439,12 +316,12 @@ export function createMachineBehavior<TMachine extends AnyStateMachine>(
         });
 
         if (options?.sync) {
-          subscription = service.subscribe((state) => {
+          subscription = service.subscribe((emittedState) => {
             parent?.send(
               toSCXMLEvent(
                 {
                   type: actionTypes.update,
-                  state
+                  state: emittedState
                 },
                 { origin: actorContext.self }
               )
@@ -504,25 +381,20 @@ export function createBehaviorFrom<TEvent extends EventObject>(
 ): Behavior<TEvent, undefined>;
 export function createBehaviorFrom(entity: Spawnable): Behavior<any, any> {
   if (isPromiseLike(entity)) {
-    return createPromiseBehavior(() => entity);
+    return fromPromise(() => entity);
   }
 
   if (isObservable<any>(entity)) {
-    return createObservableBehavior(() => entity);
+    return fromObservable(() => entity);
   }
 
   if (isStateMachine(entity)) {
-    return createMachineBehavior(entity);
+    return fromMachine(entity);
   }
 
   if (isFunction(entity)) {
-    return createCallbackBehavior(entity);
+    return fromCallback(entity);
   }
 
   throw new Error(`Unable to create behavior from entity`);
-}
-
-interface SpawnBehaviorOptions {
-  id?: string;
-  parent?: ActorRef<any>;
 }

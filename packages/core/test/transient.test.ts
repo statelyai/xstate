@@ -2,7 +2,7 @@ import { createMachine, interpret, State } from '../src/index';
 import { raise } from '../src/actions/raise';
 import { assign } from '../src/actions/assign';
 import { stateIn } from '../src/guards';
-import { createMachineBehavior } from '../src/behaviors';
+import { fromMachine } from '../src/behaviors';
 
 const greetingContext = { hour: 10 };
 const greetingMachine = createMachine<typeof greetingContext>({
@@ -632,7 +632,7 @@ describe('transient states (eventless transitions)', () => {
       states: {
         active: {
           invoke: {
-            src: () => createMachineBehavior(timerMachine),
+            src: () => fromMachine(timerMachine),
             data: {
               duration: (context: any) => context.customDuration
             }

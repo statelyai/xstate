@@ -17,9 +17,9 @@ import {
 } from 'xstate';
 import {
   createBehaviorFrom,
-  createCallbackBehavior,
-  createPromiseBehavior,
-  createMachineBehavior
+  fromCallback,
+  fromPromise,
+  fromMachine
 } from 'xstate/behaviors';
 import { useActor, useMachine } from '../src';
 import { describeEachReactMode } from './utils';
@@ -79,7 +79,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
   }) => {
     const [current, send] = useMachine(fetchMachine, {
       actors: {
-        fetchData: () => createPromiseBehavior(onFetch)
+        fetchData: () => fromPromise(onFetch)
       },
       state: persistedState
     });
@@ -205,7 +205,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
           entry: assign({
             ref: (_, __, { spawn }) =>
               spawn(
-                createPromiseBehavior(() => new Promise((res) => res(42))),
+                fromPromise(() => new Promise((res) => res(42))),
                 'my-promise'
               )
           }),
@@ -559,7 +559,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
       {
         actors: {
           foo: () =>
-            createPromiseBehavior(() => {
+            fromPromise(() => {
               serviceCalled = true;
               return Promise.resolve();
             })
@@ -678,7 +678,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
       initial: 'active',
       invoke: {
         src: () =>
-          createCallbackBehavior(() => {
+          fromCallback(() => {
             activatedCount++;
             return () => {
               /* empty */
@@ -752,7 +752,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
         active: {
           invoke: {
             id: 'test',
-            src: () => createMachineBehavior(childMachine),
+            src: () => fromMachine(childMachine),
             data: {
               value: () => 42
             }

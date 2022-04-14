@@ -21,10 +21,10 @@ import { isObservable } from '../src/utils';
 import { interval, from } from 'rxjs';
 import { map } from 'rxjs/operators';
 import {
-  createCallbackBehavior,
-  createMachineBehavior,
-  createObservableBehavior,
-  createPromiseBehavior
+  fromCallback,
+  fromMachine,
+  fromObservable,
+  fromPromise
 } from '../src/behaviors';
 
 const lightMachine = createMachine({
@@ -94,7 +94,7 @@ describe('interpreter', () => {
             entry: assign({
               actor: (_, __, { spawn }) => {
                 return spawn(
-                  createPromiseBehavior(
+                  fromPromise(
                     () =>
                       new Promise(() => {
                         promiseSpawned++;
@@ -519,7 +519,7 @@ describe('interpreter', () => {
       {
         actors: {
           myActivity: () =>
-            createCallbackBehavior(() => {
+            fromCallback(() => {
               activityState = 'on';
               return () => (activityState = 'off');
             })
@@ -567,7 +567,7 @@ describe('interpreter', () => {
         {
           actors: {
             myActivity: () =>
-              createCallbackBehavior(() => {
+              fromCallback(() => {
                 stopActivityState = 'on';
                 return () => (stopActivityState = 'off');
               })
@@ -609,7 +609,7 @@ describe('interpreter', () => {
         {
           actors: {
             blink: () =>
-              createCallbackBehavior(() => {
+              fromCallback(() => {
                 activityActive = true;
 
                 return () => {
@@ -864,7 +864,7 @@ describe('interpreter', () => {
         foo: {
           invoke: {
             id: 'child',
-            src: () => createMachineBehavior(childMachine)
+            src: () => fromMachine(childMachine)
           }
         }
       },
@@ -1038,9 +1038,7 @@ describe('interpreter', () => {
             invoke: {
               id: 'child',
               src: () =>
-                createMachineBehavior(
-                  childMachine.withContext({ password: 'foo' })
-                )
+                fromMachine(childMachine.withContext({ password: 'foo' }))
             },
             on: {
               NEXT: {
@@ -1517,7 +1515,7 @@ describe('interpreter', () => {
         {
           actors: {
             testService: () =>
-              createCallbackBehavior(() => {
+              fromCallback(() => {
                 // nothing
               })
           }
@@ -1550,7 +1548,7 @@ describe('interpreter', () => {
           active: {
             invoke: {
               id: 'childActor',
-              src: () => createMachineBehavior(childMachine)
+              src: () => fromMachine(childMachine)
             },
             on: {
               FIRED: 'success'
@@ -1586,7 +1584,7 @@ describe('interpreter', () => {
             invoke: {
               id: 'childActor',
               src: () =>
-                createPromiseBehavior(
+                fromPromise(
                   () =>
                     new Promise((res) => {
                       setTimeout(() => {
@@ -1641,7 +1639,7 @@ describe('interpreter', () => {
             invoke: {
               id: 'childActor',
               src: () =>
-                createObservableBehavior(() =>
+                fromObservable(() =>
                   interval$.pipe(map((value) => ({ type: 'FIRED', value })))
                 )
             },
@@ -1688,7 +1686,7 @@ describe('interpreter', () => {
         context: {},
         entry: assign({
           firstNameRef: (_, __, { spawn }) =>
-            spawn(createMachineBehavior(childMachine), 'child')
+            spawn(fromMachine(childMachine), 'child')
         }),
         states: {
           idle: {}
@@ -1717,10 +1715,10 @@ describe('interpreter', () => {
         context: {},
         entry: assign({
           machineRef: (_, __, { spawn }) =>
-            spawn(createMachineBehavior(childMachine), 'machineChild'),
+            spawn(fromMachine(childMachine), 'machineChild'),
           promiseRef: (_, __, { spawn }) =>
             spawn(
-              createPromiseBehavior(
+              fromPromise(
                 () =>
                   new Promise(() => {
                     // ...
@@ -1730,7 +1728,7 @@ describe('interpreter', () => {
             ),
           observableRef: (_, __, { spawn }) =>
             spawn(
-              createObservableBehavior(() =>
+              fromObservable(() =>
                 interval(1000).pipe(map((i) => ({ type: 'INTERVAL', i })))
               ),
               'observableChild'

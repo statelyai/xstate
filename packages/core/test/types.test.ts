@@ -1,6 +1,6 @@
 import { from } from 'rxjs';
 import { raise } from '../src/actions/raise';
-import { createMachineBehavior } from '../src/behaviors';
+import { fromMachine } from '../src/behaviors';
 import {
   ActorRefFrom,
   assign,
@@ -394,8 +394,7 @@ describe('spawn', () => {
     }) {}
 
     createParent({
-      spawnChild: (spawn: Spawner) =>
-        spawn(createMachineBehavior(createChild()))
+      spawnChild: (spawn: Spawner) => spawn(fromMachine(createChild()))
     });
   });
 });

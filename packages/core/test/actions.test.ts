@@ -12,7 +12,7 @@ import { pure } from '../src/actions/pure';
 import { log } from '../src/actions/log';
 import { ActorRef } from '../src';
 import { sendTo } from '../src/actions/send';
-import { createMachineBehavior } from '../src/behaviors';
+import { fromMachine } from '../src/behaviors';
 
 describe('entry/exit actions', () => {
   const pedestrianStates = {
@@ -628,7 +628,7 @@ describe('entry/exit actions', () => {
         states: {
           active: {
             invoke: {
-              src: () => createMachineBehavior(childMachine),
+              src: () => fromMachine(childMachine),
               onDone: 'finished'
             }
           },
@@ -1271,7 +1271,7 @@ describe('forwardTo()', () => {
       initial: 'first',
       states: {
         first: {
-          invoke: { src: () => createMachineBehavior(child), id: 'myChild' },
+          invoke: { src: () => fromMachine(child), id: 'myChild' },
           on: {
             EVENT: {
               actions: forwardTo('myChild')
@@ -1320,8 +1320,7 @@ describe('forwardTo()', () => {
       states: {
         first: {
           entry: assign({
-            child: (_, __, { spawn }) =>
-              spawn(createMachineBehavior(child), 'x')
+            child: (_, __, { spawn }) => spawn(fromMachine(child), 'x')
           }),
           on: {
             EVENT: {
@@ -1748,7 +1747,7 @@ describe('sendTo', () => {
     const parentMachine = createMachine({
       context: ({ spawn }) =>
         ({
-          child: spawn(createMachineBehavior(childMachine))
+          child: spawn(fromMachine(childMachine))
         } as { child: ActorRefFrom<typeof childMachine> }),
       entry: sendTo((ctx) => ctx.child as any, { type: 'EVENT' })
     });
@@ -1773,7 +1772,7 @@ describe('sendTo', () => {
     const parentMachine = createMachine({
       context: ({ spawn }) => {
         return {
-          child: spawn(createMachineBehavior(childMachine), 'child')
+          child: spawn(fromMachine(childMachine), 'child')
         } as {
           child: ActorRefFrom<typeof childMachine>;
           count: number;

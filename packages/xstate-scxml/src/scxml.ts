@@ -11,7 +11,7 @@ import {
 } from 'xstate';
 import { mapValues, isString, flatten } from 'xstate/src/utils';
 import * as actions from 'xstate/actions';
-import { createMachineBehavior } from 'xstate/behaviors';
+import { fromMachine } from 'xstate/behaviors';
 import { not, stateIn } from 'xstate/guards';
 
 function getAttribute(
@@ -439,7 +439,7 @@ function toConfig(
 
       return {
         ...(element.attributes!.id && { id: element.attributes!.id as string }),
-        src: () => createMachineBehavior(scxmlToMachine(content, options)),
+        src: () => fromMachine(scxmlToMachine(content, options)),
         autoForward: element.attributes!.autoforward === 'true'
       };
     });

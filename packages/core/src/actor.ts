@@ -1,26 +1,12 @@
 import {
   EventObject,
-  Subscribable,
   SCXML,
-  InvokeCallback,
-  InterpreterOptions,
   ActorRef,
   BaseActorRef,
-  MachineContext,
   Behavior,
   ActorContext
 } from './types';
-import { StateMachine } from './StateMachine';
-import {
-  createMachineBehavior,
-  createCallbackBehavior,
-  createPromiseBehavior,
-  createObservableBehavior,
-  LifecycleSignal,
-  startSignal,
-  stopSignal
-} from './behaviors';
-import { ObservableActorRef } from './ObservableActorRef';
+import { LifecycleSignal, startSignal, stopSignal } from './behaviors';
 import { symbolObservable, toSCXMLEvent } from './utils';
 import { Mailbox } from './Mailbox';
 
@@ -34,44 +20,6 @@ export function isActorRef(item: any): item is ActorRef<any> {
 
 export function isSpawnedActorRef(item: any): item is ActorRef<any> {
   return isActorRef(item) && 'name' in item;
-}
-
-export function fromObservable<TEvent extends EventObject>(
-  observable: Subscribable<TEvent>,
-  name: string
-): ActorRef<never> {
-  return new ObservableActorRef(
-    createObservableBehavior(() => observable),
-    name
-  );
-}
-
-export function fromPromise<T>(
-  promise: PromiseLike<T>,
-  name: string
-): ActorRef<never> {
-  return new ObservableActorRef(
-    createPromiseBehavior(() => promise),
-    name
-  );
-}
-
-export function fromCallback<TEvent extends EventObject>(
-  callback: InvokeCallback,
-  name: string
-): ActorRef<SCXML.Event<TEvent>> {
-  return new ObservableActorRef(createCallbackBehavior(callback), name);
-}
-
-export function fromMachine<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  machine: StateMachine<TContext, TEvent>,
-  name: string,
-  options?: Partial<InterpreterOptions>
-): ActorRef<TEvent> {
-  return new ObservableActorRef(createMachineBehavior(machine, options), name);
 }
 
 export class Actor<TEvent extends EventObject, TEmitted> {

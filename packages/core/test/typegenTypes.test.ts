@@ -1,9 +1,5 @@
 import { assign, interpret, MachineContext, StateMachine } from '../src';
-import {
-  createCallbackBehavior,
-  createMachineBehavior,
-  createPromiseBehavior
-} from '../src/behaviors';
+import { fromCallback, fromMachine, fromPromise } from '../src/behaviors';
 import { createMachine } from '../src/Machine';
 import { createModel } from '../src/model';
 import { TypegenMeta } from '../src/typegenTypes';
@@ -170,7 +166,7 @@ describe('typegen types', () => {
       {
         actors: {
           myActor: (_ctx, event) =>
-            createPromiseBehavior(() => {
+            fromPromise(() => {
               event.type === 'FOO';
               event.type === 'BAR';
               // @ts-expect-error
@@ -779,7 +775,7 @@ describe('typegen types', () => {
       },
       {
         actors: {
-          myActor: () => createPromiseBehavior(() => Promise.resolve('foo'))
+          myActor: () => fromPromise(() => Promise.resolve('foo'))
         }
       }
     );
@@ -892,7 +888,7 @@ describe('typegen types', () => {
   //     {
   //       actors: {
   //         // @ts-expect-error
-  //         myActor: () => createMachineBehavior(createMachine<{ foo: number }>({}))
+  //         myActor: () => fromMachine(createMachine<{ foo: number }>({}))
   //       }
   //     }
   //   );
@@ -939,7 +935,7 @@ describe('typegen types', () => {
       },
       {
         actors: {
-          fooActor: () => createMachineBehavior(createMachine({}))
+          fooActor: () => fromMachine(createMachine({}))
         }
       }
     );
@@ -961,7 +957,7 @@ describe('typegen types', () => {
   //     },
   //     {
   //       actors: {
-  //         fooActor: () => createCallbackBehavior((send) => {
+  //         fooActor: () => fromCallback((send) => {
   //           ((_accept: 'FOO') => {})(event.type);
 
   //           send({ type: 'BAR' });
@@ -1037,7 +1033,7 @@ describe('typegen types', () => {
       {
         actors: {
           fooActor: () =>
-            createCallbackBehavior((_send, onReceive) => {
+            fromCallback((_send, onReceive) => {
               onReceive((event) => {
                 ((_accept: string) => {})(event.type);
                 // @x-ts-expect-error TODO: determine how to get parent event type here
@@ -1066,7 +1062,7 @@ describe('typegen types', () => {
       {
         actors: {
           fooActor: () =>
-            createCallbackBehavior((_send, onReceive) => {
+            fromCallback((_send, onReceive) => {
               onReceive((_event: { type: 'TEST' }) => {});
               // @ts-expect-error
               onReceive((_event: { type: number }) => {});

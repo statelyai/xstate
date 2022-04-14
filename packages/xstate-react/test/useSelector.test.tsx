@@ -8,7 +8,8 @@ import {
   StateFrom
 } from 'xstate';
 import { toActorRef } from 'xstate/actor';
-import { createMachineBehavior } from 'xstate/behaviors';
+import { fromMachine } from 'xstate/behaviors';
+import { fromMachine } from 'xstate/src/behaviors';
 import { useInterpret, useMachine, useSelector } from '../src';
 import { describeEachReactMode } from './utils';
 
@@ -159,7 +160,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
         }
       },
       context: ({ spawn }) => ({
-        childActor: spawn(createMachineBehavior(childMachine))
+        childActor: spawn(fromMachine(childMachine))
       })
     });
     const selector = (state: StateFrom<typeof childMachine>) =>
@@ -257,7 +258,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
         }
       },
       context: ({ spawn }) => ({
-        childActor: spawn(createMachineBehavior(childMachine))
+        childActor: spawn(fromMachine(childMachine))
       })
     });
 
@@ -302,7 +303,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
         }
       },
       context: ({ spawn }) => ({
-        childActor: spawn(createMachineBehavior(childMachine))
+        childActor: spawn(fromMachine(childMachine))
       })
     });
 

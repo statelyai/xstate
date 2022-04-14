@@ -2,7 +2,7 @@
 import { inspect } from '@xstate/inspect/src/server';
 import WebSocket from 'ws';
 import { createMachine, interpret, send, toSCXMLEvent } from 'xstate';
-import { createCallbackBehavior } from 'xstate/behaviors';
+import { fromCallback } from 'xstate/behaviors';
 
 inspect({
   server: new WebSocket.Server({
@@ -15,7 +15,7 @@ const machine = createMachine({
   invoke: {
     id: 'ponger',
     src: () =>
-      createCallbackBehavior((cb, receive) => {
+      fromCallback((cb, receive) => {
         receive((event) => {
           if (event.type === 'PING') {
             cb(
