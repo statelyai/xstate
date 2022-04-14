@@ -225,7 +225,7 @@ const myFunc = async () => {
 
 In the example above, the machine waits for three seconds before moving on to its `done` state - at which point the `await` will resolve and the program will move on.
 
-By default, `waitFor` will time out after 10 seconds if the desired state is not reached. You can customize this timeout by passing `timeout` in the options:
+By default, `waitFor` will throw an error after 10 seconds if the desired state is not reached. You can customize this timeout by passing `timeout` in the options:
 
 ```ts {5-6}
 const myFunc = async () => {
