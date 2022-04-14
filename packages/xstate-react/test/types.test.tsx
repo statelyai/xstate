@@ -2,7 +2,6 @@ import { render } from '@testing-library/react';
 import * as React from 'react';
 import { ActorRefFrom, assign, createMachine } from 'xstate';
 import { fromMachine } from 'xstate/behaviors';
-import { fromMachine } from 'xstate/src/behaviors';
 import { useActor, useMachine } from '../src';
 
 describe('useMachine', () => {

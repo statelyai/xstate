@@ -4,14 +4,14 @@
   import { useMachine } from '../src';
   import { fetchMachine } from './fetchMachine';
   import type { AnyState } from 'xstate';
-  import { createPromiseBehavior } from 'xstate/behaviors';
+  import { fromPromise } from 'xstate/behaviors';
 
   const onFetch = () =>
     new Promise((res) => setTimeout(() => res('some data'), 50));
 
   const { state, send } = useMachine(fetchMachine, {
     actors: {
-      fetchData: () => createPromiseBehavior(onFetch)
+      fetchData: () => fromPromise(onFetch)
     },
     state: persistedState
   });

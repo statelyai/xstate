@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { ActorRef, Behavior, EventObject } from 'xstate';
-import { spawnBehavior } from 'xstate/behaviors';
+import { ObservableActorRef } from 'xstate/src/ObservableActorRef';
 import useConstant from './useConstant';
 
 /**
@@ -14,13 +14,13 @@ export function useSpawn<TState, TEvent extends EventObject>(
   behavior: Behavior<TEvent, TState>
 ): ActorRef<TEvent, TState> {
   const actorRef = useConstant(() => {
-    return spawnBehavior(behavior);
+    return new ObservableActorRef(behavior, '');
   });
 
   useEffect(() => {
     actorRef.start!();
     return () => actorRef!.stop!();
-  });
+  }, []);
 
   return actorRef;
 }
