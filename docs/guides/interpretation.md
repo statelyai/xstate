@@ -227,26 +227,7 @@ In the example above, the machine waits for three seconds before moving on to it
 
 By default, `waitFor` will time out after 10 seconds if the desired state is not reached. You can customize this timeout by passing `timeout` in the options:
 
-```ts {8-11}
-import { interpret, createMachine } from 'xstate';
-import { waitFor } from 'xstate/lib/waitFor';
-
-const machine = createMachine({
-  initial: 'pending',
-  states: {
-    pending: {
-      after: {
-        3000: {
-          target: 'done'
-        }
-      }
-    },
-    done: {}
-  }
-});
-
-// ---cut---
-
+```ts {5-6}
 const myFunc = async () => {
   const actor = interpret(machine).start();
 
