@@ -52,13 +52,13 @@ export function waitFor<TActorRef extends ActorRef<any, any>>(
     const handle =
       resolvedOptions.timeout === Infinity
         ? undefined
-        : ((setTimeout(() => {
+        : setTimeout(() => {
             sub.unsubscribe();
             rej(new Error(`Timeout of ${resolvedOptions.timeout} ms exceeded`));
-          }, resolvedOptions.timeout) as unknown) as number);
+          }, resolvedOptions.timeout);
 
     const dispose = () => {
-      clearTimeout(handle);
+      clearTimeout(handle!);
       done = true;
       sub?.unsubscribe();
     };
