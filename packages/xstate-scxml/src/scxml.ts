@@ -11,7 +11,7 @@ import {
 } from 'xstate';
 import { mapValues, isString, flatten } from 'xstate/src/utils';
 import * as actions from 'xstate/actions';
-import { fromMachine } from 'xstate/behaviors';
+import { fromMachine } from 'xstate/actors';
 import { not, stateIn } from 'xstate/guards';
 
 function getAttribute(

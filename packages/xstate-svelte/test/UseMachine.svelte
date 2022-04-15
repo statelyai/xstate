@@ -4,7 +4,7 @@
   import { useMachine } from '../src';
   import { fetchMachine } from './fetchMachine';
   import type { AnyState } from 'xstate';
-  import { fromPromise } from 'xstate/behaviors';
+  import { fromPromise } from 'xstate/actors';
 
   const onFetch = () =>
     new Promise((res) => setTimeout(() => res('some data'), 50));

@@ -1,6 +1,6 @@
 import { fireEvent, screen } from '@testing-library/react';
 import * as React from 'react';
-import { fromReducer } from 'xstate/behaviors';
+import { fromReducer } from 'xstate/actors';
 import { useActor, useSpawn } from '../src';
 import { describeEachReactMode } from './utils';
 

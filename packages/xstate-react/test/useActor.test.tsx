@@ -10,7 +10,7 @@ import {
   sendParent
 } from 'xstate';
 import { toActorRef } from 'xstate/actor';
-import { fromMachine } from 'xstate/behaviors';
+import { fromMachine } from 'xstate/actors';
 import { useMachine } from '../src';
 import { useActor } from '../src/useActor';
 import { describeEachReactMode } from './utils';

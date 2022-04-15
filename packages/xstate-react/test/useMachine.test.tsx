@@ -20,7 +20,7 @@ import {
   fromCallback,
   fromPromise,
   fromMachine
-} from 'xstate/behaviors';
+} from 'xstate/actors';
 import { useActor, useMachine } from '../src';
 import { describeEachReactMode } from './utils';
 

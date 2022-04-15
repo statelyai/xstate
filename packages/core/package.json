@@ -12,9 +12,9 @@
   "files": [
     "dist",
     "actor",
+    "actors",
     "actions",
     "invoke",
-    "behaviors",
     "guards",
     "dev",
     "model"
@@ -53,7 +53,7 @@
       "./index.ts",
       "./actor.ts",
       "./actions.ts",
-      "./behaviors.ts",
+      "./actors.ts",
       "./model.ts",
       "./guards.ts",
       "./dev/index.ts"

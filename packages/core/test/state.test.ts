@@ -2,7 +2,7 @@ import { createMachine, State, StateFrom, interpret } from '../src/index';
 import { initEvent } from '../src/actions';
 import { assign } from '../src/actions/assign';
 import { toSCXMLEvent } from '../src/utils';
-import { createBehaviorFrom } from '../src/behaviors';
+import { createBehaviorFrom } from '../src/actors';
 
 type Events =
   | { type: 'BAR_EVENT' }

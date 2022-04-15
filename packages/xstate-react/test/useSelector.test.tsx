@@ -8,7 +8,7 @@ import {
   StateFrom
 } from 'xstate';
 import { toActorRef } from 'xstate/actor';
-import { fromMachine } from 'xstate/behaviors';
+import { fromMachine } from 'xstate/actors';
 import { useInterpret, useMachine, useSelector } from '../src';
 import { describeEachReactMode } from './utils';
 

@@ -10,7 +10,7 @@
 <script lang="ts">
 import { useMachine, useActor } from '../src';
 import { createMachine, sendParent } from 'xstate';
-import { fromMachine } from 'xstate/behaviors';
+import { fromMachine } from 'xstate/actors';
 import { defineComponent } from 'vue';
 
 const childMachine = createMachine({

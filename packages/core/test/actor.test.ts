@@ -28,7 +28,7 @@ import {
   fromObservable,
   fromPromise,
   fromReducer
-} from '../src/behaviors';
+} from '../src/actors';
 
 describe('spawning machines', () => {
   const context = {

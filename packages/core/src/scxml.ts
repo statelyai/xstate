@@ -5,7 +5,7 @@ import { choose } from './actions/choose';
 import { log } from './actions/log';
 import { raise } from './actions/raise';
 import { send } from './actions/send';
-import { fromMachine } from './behaviors';
+import { fromMachine } from './actors';
 import { NULL_EVENT } from './constants';
 import { not, stateIn } from './guards';
 import { AnyStateMachine, BaseActionObject, createMachine } from './index';

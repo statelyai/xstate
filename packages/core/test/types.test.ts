@@ -1,6 +1,6 @@
 import { from } from 'rxjs';
 import { raise } from '../src/actions/raise';
-import { fromMachine } from '../src/behaviors';
+import { fromMachine } from '../src/actors';
 import {
   ActorRefFrom,
   assign,

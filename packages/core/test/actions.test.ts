@@ -12,7 +12,7 @@ import { pure } from '../src/actions/pure';
 import { log } from '../src/actions/log';
 import { ActorRef } from '../src';
 import { sendTo } from '../src/actions/send';
-import { fromMachine } from '../src/behaviors';
+import { fromMachine } from '../src/actors';
 
 describe('entry/exit actions', () => {
   const pedestrianStates = {

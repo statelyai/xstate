@@ -1,4 +1,4 @@
-import { fromCallback } from '../src/behaviors';
+import { fromCallback } from '../src/actors';
 import { stateIn } from '../src/guards';
 import { interpret, createMachine } from '../src/index';
 

@@ -25,7 +25,7 @@ import {
   fromMachine,
   fromObservable,
   fromPromise
-} from '../src/behaviors';
+} from '../src/actors';
 
 const lightMachine = createMachine({
   id: 'light',

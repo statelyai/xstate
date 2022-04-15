@@ -1,5 +1,5 @@
 import { assign, interpret, MachineContext, StateMachine } from '../src';
-import { fromCallback, fromMachine, fromPromise } from '../src/behaviors';
+import { fromCallback, fromMachine, fromPromise } from '../src/actors';
 import { createMachine } from '../src/Machine';
 import { createModel } from '../src/model';
 import { TypegenMeta } from '../src/typegenTypes';

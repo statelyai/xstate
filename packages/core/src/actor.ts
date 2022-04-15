@@ -1,6 +1,13 @@
-import { EventObject, SCXML, ActorRef, Behavior, ActorContext } from './types';
-import { LifecycleSignal, startSignal, stopSignal } from './behaviors';
-import { toSCXMLEvent } from './utils';
+import {
+  EventObject,
+  SCXML,
+  ActorRef,
+  BaseActorRef,
+  Behavior,
+  ActorContext
+} from './types';
+import { LifecycleSignal, startSignal, stopSignal } from './actors';
+import { symbolObservable, toSCXMLEvent } from './utils';
 import { Mailbox } from './Mailbox';
 
 const nullSubscription = {
@@ -69,4 +76,23 @@ export class Actor<TEvent extends EventObject, TEmitted> {
 
 export function isSpawnedActor(item: any): item is ActorRef<any> {
   return isActorRef(item) && 'id' in item;
+}
+
+// TODO: refactor the return type, this could be written in a better way but it's best to avoid unneccessary breaking changes now
+export function toActorRef<
+  TEvent extends EventObject,
+  TEmitted = any,
+  TActorRefLike extends BaseActorRef<TEvent> = BaseActorRef<TEvent>
+>(
+  actorRefLike: TActorRefLike
+): ActorRef<TEvent, TEmitted> & Omit<TActorRefLike, keyof ActorRef<any, any>> {
+  return {
+    subscribe: () => ({ unsubscribe: () => void 0 }),
+    name: 'anonymous',
+    getSnapshot: () => undefined,
+    [symbolObservable]: function () {
+      return this;
+    },
+    ...actorRefLike
+  };
 }

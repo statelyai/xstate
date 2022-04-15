@@ -6,7 +6,7 @@ import {
   State,
   createMachine
 } from '../src';
-import { fromMachine } from '../src/behaviors';
+import { fromMachine } from '../src/actors';
 import { ActorRef } from '../src/types';
 
 interface CounterContext {
