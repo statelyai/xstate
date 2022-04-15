@@ -870,6 +870,31 @@ describe('entry/exit actions', () => {
       expect(receivedEvent).toEqual({ type: 'xstate.stop' });
     });
 
+    it('an exit action executed when an interpreter reaches its final state should be called with the last received event', () => {
+      let receivedEvent;
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              NEXT: 'b'
+            }
+          },
+          b: {
+            type: 'final'
+          }
+        },
+        exit: (_ctx, ev) => {
+          receivedEvent = ev;
+        }
+      });
+
+      const service = interpret(machine).start();
+      service.send({ type: 'NEXT' });
+
+      expect(receivedEvent).toEqual({ type: 'NEXT' });
+    });
+
     // https://github.com/statelyai/xstate/issues/2880
     it('stopping an interpreter that receives events from its children exit handlers should not throw', () => {
       const child = createMachine({

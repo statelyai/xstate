@@ -69,7 +69,6 @@ import {
 } from './utils';
 import { Scheduler } from './scheduler';
 import { Actor, isSpawnedActor, createDeferredActor } from './Actor';
-import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
 import { getGlobal, registerService } from './devTools';
 import * as serviceScope from './serviceScope';
@@ -349,12 +348,7 @@ export class Interpreter<
       );
     }
 
-    const isDone = isInFinalState(
-      state.configuration || [],
-      this.machine as any
-    );
-
-    if (this.state.configuration && isDone) {
+    if (this.state.done) {
       // get final child state node
       const finalChildStateNode = state.configuration.find(
         (sn) => sn.type === 'final' && sn.parent === (this.machine as any)
@@ -368,7 +362,7 @@ export class Interpreter<
       for (const listener of this.doneListeners) {
         listener(doneInvoke(this.id, doneData));
       }
-      this.stop();
+      this._stop();
     }
   }
   /*
@@ -559,14 +553,7 @@ export class Interpreter<
     });
     return this;
   }
-  /**
-   * Stops the interpreter and unsubscribe all listeners.
-   *
-   * This will also notify the `onStop` listeners.
-   */
-  public stop(): this {
-    // TODO: add warning for stopping non-root interpreters
-
+  private _stop() {
     for (const listener of this.listeners) {
       this.listeners.delete(listener);
     }
@@ -600,8 +587,26 @@ export class Interpreter<
     // clear everything that might be enqueued
     this.scheduler.clear();
 
-    // at the same time let what is currently processed to be finished
-    this.scheduler.schedule(() => {
+    this.scheduler = new Scheduler({
+      deferEvents: this.options.deferEvents
+    });
+  }
+  /**
+   * Stops the interpreter and unsubscribe all listeners.
+   *
+   * This will also notify the `onStop` listeners.
+   */
+  public stop(): this {
+    // TODO: add warning for stopping non-root interpreters
+
+    // grab the current scheduler as it will be replaced in _stop
+    const scheduler = this.scheduler;
+
+    this._stop();
+
+    // let what is currently processed to be finished
+    scheduler.schedule(() => {
+      // it feels weird to handle this here but we need to handle this even slightly "out of band"
       const _event = toSCXMLEvent({ type: 'xstate.stop' }) as any;
 
       const nextState = serviceScope.provide(this, () => {
@@ -644,7 +649,7 @@ export class Interpreter<
           transitions: [],
           children: {},
           done: this.state.done,
-          tags: new Set(),
+          tags: this.state.tags,
           machine: this.machine
         });
         newState.changed = true;
@@ -663,10 +668,6 @@ export class Interpreter<
       this.children.clear();
 
       registry.free(this.sessionId);
-    });
-
-    this.scheduler = new Scheduler({
-      deferEvents: this.options.deferEvents
     });
 
     return this;
