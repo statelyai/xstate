@@ -1,6 +1,6 @@
 import { ActorRef, Behavior, EventObject } from 'xstate';
 import { onBeforeUnmount } from 'vue';
-import { ObservableActorRef } from 'xstate/src/ObservableActorRef';
+import { spawnBehavior } from 'xstate/behaviors';
 
 /**
  * Vue composable that spawns an `ActorRef` with the specified `behavior`.
@@ -12,7 +12,7 @@ import { ObservableActorRef } from 'xstate/src/ObservableActorRef';
 export function useSpawn<TState, TEvent extends EventObject>(
   behavior: Behavior<TEvent, TState>
 ): ActorRef<TEvent, TState> {
-  const actorRef = new ObservableActorRef(behavior, '');
+  const actorRef = spawnBehavior(behavior);
 
   actorRef.start!();
   onBeforeUnmount(() => {

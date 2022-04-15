@@ -20,13 +20,22 @@ import {
   isObservable,
   isStateMachine,
   isSCXMLEvent,
-  isFunction
+  isFunction,
+  toObserver,
+  symbolObservable
 } from './utils';
 import { doneInvoke, error, actionTypes } from './actions';
 import { StateMachine } from './StateMachine';
 import { interpret } from './interpreter';
 import { State } from './State';
-import { AnyStateMachine, EventFrom, InterpreterFrom, StateFrom } from '.';
+import type {
+  ActorRef,
+  AnyStateMachine,
+  EventFrom,
+  InterpreterFrom,
+  StateFrom
+} from '.';
+import { Mailbox } from './Mailbox';
 
 /**
  * Returns an actor behavior from a reducer and its initial state.
@@ -397,4 +406,58 @@ export function createBehaviorFrom(entity: Spawnable): Behavior<any, any> {
   }
 
   throw new Error(`Unable to create behavior from entity`);
+}
+
+interface CreateActorRefOptions {
+  id?: string;
+  parent?: ActorRef<any>;
+}
+
+export function createActorRef<TEvent extends EventObject, TEmitted>(
+  behavior: Behavior<TEvent, TEmitted>,
+  options: CreateActorRefOptions = {}
+): ActorRef<TEvent, TEmitted> {
+  let state = behavior.initialState;
+  const observers = new Set<Observer<TEmitted>>();
+  const mailbox = new Mailbox<TEvent>((event) => {
+    state = behavior.transition(state, event, actorCtx);
+    observers.forEach((observer) => observer.next?.(state));
+  });
+
+  const actor: ActorRef<TEvent, TEmitted> = {
+    name: options.id || 'anonymous',
+    send: (event: TEvent) => {
+      mailbox.enqueue(event);
+    },
+    getSnapshot: () => state,
+    [symbolObservable]: function () {
+      return this;
+    },
+    subscribe: (next, handleError?, complete?) => {
+      const observer = toObserver(next, handleError, complete);
+      observers.add(observer);
+      observer.next?.(state);
+
+      return {
+        unsubscribe: () => {
+          observers.delete(observer);
+        }
+      };
+    },
+    start() {
+      mailbox.start();
+    },
+    stop() {
+      mailbox.clear();
+    }
+  };
+
+  const actorCtx: ActorContext<TEvent, TEmitted> = {
+    self: actor,
+    name: options.id || 'anonymous',
+    observers,
+    _event: null as any
+  };
+
+  return actor;
 }
