@@ -1,5 +1,5 @@
 ---
-'xstate': minor
+'xstate': patch
 ---
 
 Removing the timeout that's built in to `waitFor` is now supported by explicitly passing an `Infinity` value.
