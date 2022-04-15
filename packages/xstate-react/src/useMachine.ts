@@ -1,57 +1,23 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect } from 'react';
+import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
 import {
-  ActionFunction,
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
   EventObject,
   InternalMachineImplementations,
   InterpreterFrom,
   InterpreterOptions,
+  InterpreterStatus,
   MachineContext,
   State,
   StateConfig,
   StateFrom
 } from 'xstate';
-import {
-  MaybeLazy,
-  Prop,
-  ReactActionFunction,
-  ReactActionObject,
-  ReactEffectType
-} from './types';
-import { useInterpret } from './useInterpret';
+import { MaybeLazy, Prop } from './types';
+import { useIdleInterpreter } from './useInterpret';
 
-function createReactAction<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  exec: ActionFunction<TContext, TEvent> | undefined,
-  tag: ReactEffectType
-): ReactActionObject<TContext, TEvent> {
-  const reactExec: ReactActionFunction<TContext, TEvent> = (...args) => {
-    // don't execute; just return
-    return () => {
-      return exec?.(...args);
-    };
-  };
-  return {
-    type: 'xstate/react.action',
-    params: { __effect: tag, exec: reactExec }
-  };
-}
-
-export function asEffect<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(exec: ActionFunction<TContext, TEvent>): ReactActionObject<TContext, TEvent> {
-  return createReactAction(exec, ReactEffectType.Effect);
-}
-
-export function asLayoutEffect<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(exec: ActionFunction<TContext, TEvent>): ReactActionObject<TContext, TEvent> {
-  return createReactAction(exec, ReactEffectType.LayoutEffect);
+function identity<T>(a: T): T {
+  return a;
 }
 
 export interface UseMachineOptions<
@@ -103,28 +69,67 @@ export function useMachine<TMachine extends AnyStateMachine>(
   getMachine: MaybeLazy<TMachine>,
   ...[options = {}]: RestParams<TMachine>
 ): UseMachineReturn<TMachine> {
-  const listener = useCallback((nextState: StateFrom<TMachine>) => {
-    // Only change the current state if:
-    // - the incoming state is the "live" initial state (since it might have new actors)
-    // - OR the incoming state actually changed.
-    //
-    // The "live" initial state will have .changed === undefined.
-    const initialStateChanged =
-      nextState.changed === undefined && Object.keys(nextState.children).length;
+  // using `useIdleInterpreter` allows us to subscribe to the service *before* we start it
+  // so we don't miss any notifications
+  const service = useIdleInterpreter(getMachine, options as any);
 
-    if (nextState.changed || initialStateChanged) {
-      setState(nextState);
+  const getSnapshot = useCallback(() => {
+    if (service.status === InterpreterStatus.NotStarted) {
+      return (options.state
+        ? State.create(options.state)
+        : service.machine.initialState) as State<any, any, any>;
     }
+
+    return service.state;
+  }, [service]);
+
+  const isEqual = useCallback(
+    (prevState, nextState) => {
+      if (service.status === InterpreterStatus.NotStarted) {
+        return true;
+      }
+
+      // Only change the current state if:
+      // - the incoming state is the "live" initial state (since it might have new actors)
+      // - OR the incoming state actually changed.
+      //
+      // The "live" initial state will have .changed === undefined.
+      const initialStateChanged =
+        nextState.changed === undefined &&
+        (Object.keys(nextState.children).length > 0 ||
+          typeof prevState.changed === 'boolean');
+
+      return !(nextState.changed || initialStateChanged);
+    },
+    [service]
+  );
+
+  const subscribe = useCallback(
+    (handleStoreChange) => {
+      const { unsubscribe } = service.subscribe(handleStoreChange);
+      return unsubscribe;
+    },
+    [service]
+  );
+  const storeSnapshot = useSyncExternalStoreWithSelector(
+    subscribe,
+    getSnapshot,
+    getSnapshot,
+    identity,
+    isEqual
+  );
+
+  useEffect(() => {
+    const rehydratedState = options.state;
+    service.start(
+      rehydratedState ? (State.create(rehydratedState) as any) : undefined
+    );
+
+    return () => {
+      service.stop();
+      service.status = InterpreterStatus.NotStarted;
+    };
   }, []);
 
-  const service = useInterpret(getMachine as any, options as any, listener);
-
-  const [state, setState] = useState(() => {
-    const { initialState } = service.machine;
-    return (options.state
-      ? State.create(options.state as any)
-      : initialState) as StateFrom<TMachine>;
-  });
-
-  return [state, service.send, service] as any;
+  return [storeSnapshot, service.send, service] as any;
 }

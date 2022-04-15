@@ -114,10 +114,11 @@ export default {
   }
 };
 ```
+
 To subscribe to changes on the an actor whilst retaining reactivity from props or another reactive variable, Vue's [computed](https://vuejs.org/api/reactivity-core.html#computed) can be used.
 
 ```js
-    const { state, send } = useActor(computed(() => props.someSpawnedActor));
+const { state, send } = useActor(computed(() => props.someSpawnedActor));
 ```
 
 ### `useInterpret(machine, options?, observer?)`

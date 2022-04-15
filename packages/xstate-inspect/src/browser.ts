@@ -85,6 +85,8 @@ const getFinalOptions = (options?: Partial<InspectorOptions>) => {
   };
 };
 
+const patchedInterpreters = new Set<AnyInterpreter>();
+
 export function inspect(options?: InspectorOptions): Inspector | undefined {
   const { iframe, url, devTools } = getFinalOptions(options);
 
@@ -160,22 +162,26 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
       sessionId: service.sessionId
     });
 
-    // monkey-patch service.send so that we know when an event was sent
-    // to a service *before* it is processed, since other events might occur
-    // while the sent one is being processed, which throws the order off
-    const originalSend = service.send.bind(service);
+    if (!patchedInterpreters.has(service)) {
+      patchedInterpreters.add(service);
 
-    service.send = function inspectSend(event: EventObject, payload?: any) {
-      inspectService.send({
-        type: 'service.event',
-        event: stringifyWithSerializer(
-          toSCXMLEvent(toEventObject(event as EventObject, payload))
-        ),
-        sessionId: service.sessionId
-      });
+      // monkey-patch service.send so that we know when an event was sent
+      // to a service *before* it is processed, since other events might occur
+      // while the sent one is being processed, which throws the order off
+      const originalSend = service.send.bind(service);
 
-      return originalSend(event, payload);
-    };
+      service.send = function inspectSend(event: EventObject, payload?: any) {
+        inspectService.send({
+          type: 'service.event',
+          event: stringifyWithSerializer(
+            toSCXMLEvent(toEventObject(event as EventObject, payload))
+          ),
+          sessionId: service.sessionId
+        });
+
+        return originalSend(event, payload);
+      };
+    }
 
     service.subscribe((state) => {
       // filter out synchronous notification from within `.start()` call
