@@ -14,6 +14,7 @@ import {
   InvokeActionObject
 } from '..';
 import { actionTypes } from '../actions';
+import { mapContext } from '../utils';
 
 export function invoke<
   TContext extends MachineContext,
@@ -54,7 +55,7 @@ export function invoke<
 
       const behavior = behaviorCreator(context, _event.data, {
         id,
-        data,
+        data: data && mapContext(data, context, _event),
         src,
         _event,
         meta

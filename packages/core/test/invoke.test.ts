@@ -2987,9 +2987,8 @@ describe('invoke', () => {
   });
 });
 
-describe('services option', () => {
-  // TODO: determine if we want to keep or get rid of `data` property, and use context instead
-  it.skip('should provide data params to a service creator', (done) => {
+describe('actors option', () => {
+  it('should provide data params to a service creator', (done) => {
     const machine = createMachine(
       {
         initial: 'pending',
@@ -3000,9 +2999,10 @@ describe('services option', () => {
           pending: {
             invoke: {
               src: 'stringService',
+              // TODO: should this be part of "input" concept?
               data: {
                 staticVal: 'hello',
-                newCount: (ctx: any) => ctx.count * 2
+                newCount: (ctx: any) => ctx.count * 2 // TODO: types
               },
               onDone: 'success'
             }
