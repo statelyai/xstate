@@ -56,7 +56,7 @@ export function sequence<
 
   items.forEach((item, i) => {
     const state: StateNodeConfig<TEvent, TStateSchema, TEvent> = {
-      on: {} as any
+      on: {}
     };
 
     if (i + 1 === items.length) {

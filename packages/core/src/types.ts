@@ -448,21 +448,14 @@ export type TransitionConfigOrTarget<
   TransitionConfigTarget<TContext, TEvent> | TransitionConfig<TContext, TEvent>
 >;
 
-export type TransitionsConfigMap<
-  TContext,
-  TEvent extends EventObject
-> = Compute<
-  {
-    [K in TEvent['type']]?: TransitionConfigOrTarget<
-      TContext,
-      TEvent extends { type: K } ? TEvent : never
-    >;
-  } & {
-    ''?: TransitionConfigOrTarget<TContext, TEvent>;
-  } & {
-    '*'?: TransitionConfigOrTarget<TContext, TEvent>;
-  }
->;
+export type TransitionsConfigMap<TContext, TEvent extends EventObject> = {
+  [K in TEvent['type'] | '' | '*']?: K extends '' | '*'
+    ? TransitionConfigOrTarget<TContext, TEvent>
+    : TransitionConfigOrTarget<
+        TContext,
+        TEvent extends { type: K } ? TEvent : never
+      >;
+};
 
 type TransitionsConfigArray<TContext, TEvent extends EventObject> = Array<
   // distribute the union
