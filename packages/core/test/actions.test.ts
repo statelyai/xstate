@@ -1851,30 +1851,3 @@ describe('assign action order', () => {
     }
   );
 });
-
-describe('Inline actions & TypeScript', () => {
-  it('Should pick up context and events defined in schema', () => {
-    interface Context {}
-
-    type Event =
-      | { type: 'EVENT_WITH_FLAG'; flag: boolean }
-      | {
-          type: 'EVENT_WITHOUT_FLAG';
-        };
-
-    createMachine({
-      schema: {
-        context: {} as Context,
-        events: {} as Event
-      },
-      on: {
-        EVENT_WITH_FLAG: {
-          actions: (context, event) => {
-            ((_accept: 'EVENT_WITH_FLAG') => {})(event.type);
-            ((_accept: boolean) => {})(event.flag);
-          }
-        }
-      }
-    });
-  });
-});
