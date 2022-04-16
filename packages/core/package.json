@@ -5,6 +5,13 @@
   "main": "lib/index.js",
   "module": "es/index.js",
   "types": "lib/index.d.ts",
+  "typesVersions": {
+    "<4.1": {
+      "lib/types.4.1.d.ts": [
+        "types.pre-4.1.d.ts"
+      ]
+    }
+  },
   "sideEffects": false,
   "funding": {
     "type": "opencollective",
@@ -15,7 +22,8 @@
     "lib/**/*.js",
     "lib/**/*.d.ts",
     "es/**/*.js",
-    "es/**/*.d.ts"
+    "es/**/*.d.ts",
+    "*.d.ts"
   ],
   "keywords": [
     "statechart",
