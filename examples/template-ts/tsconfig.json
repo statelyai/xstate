@@ -1,17 +1,13 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
-    "module": "ESNext",
-    "lib": ["ESNext", "DOM"],
-    "moduleResolution": "Node",
     "strict": true,
-    "sourceMap": true,
-    "resolveJsonModule": true,
+    "module": "commonjs",
+    "jsx": "preserve",
     "esModuleInterop": true,
-    "noEmit": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noImplicitReturns": true
-  },
-  "include": ["./src"]
+    "sourceMap": true,
+    "allowJs": true,
+    "lib": ["es6", "dom"],
+    "rootDir": "src",
+    "moduleResolution": "node"
+  }
 }

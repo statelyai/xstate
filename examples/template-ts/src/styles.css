@@ -1,0 +1,32 @@
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+*,
+*:before,
+*:after {
+  position: relative;
+  box-sizing: border-box;
+}
+
+
+output {
+  display: block;
+  margin-top: 3rem;
+  font-family: monospace;
+  white-space: pre;
+  background: #1b1f23;
+  color: #fff;
+  padding: 1rem;
+  border-radius: 0.25rem;
+}
+
+output::before {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  content: attr(data-output);
+  display: block;
+  font-weight: bold;
+  position: absolute;
+  bottom: calc(100% + 0.5rem);
+  color: #111;
+  left: 0;
+}
