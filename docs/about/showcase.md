@@ -2,6 +2,7 @@
 
 There are many developers and teams using XState [in the wild](https://github.com/statelyai/xstate/issues/255), to help control various aspects of their applications, in the frontend and backend, and in many different frameworks (or even without a framework!):
 
+- [Amazon's Amplify UI](https://docs.amplify.aws/ui/) uses XState for its Authenticator component ([see here](https://github.com/aws-amplify/amplify-ui/blob/main/packages/ui/src/machines/authenticator/index.ts))
 - The [Hashicorp Vault project](https://vaultproject.io) uses XState to control contextual user flows for getting new users up and running. The machines are [in the open-source repository](https://github.com/hashicorp/vault).
 - The [Service Workies game](https://serviceworkies.com/) has many levels whose flows are controlled by XState.
   - https://twitter.com/geddski/status/1090404900318502912
