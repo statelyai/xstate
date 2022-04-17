@@ -63,7 +63,7 @@ const setReconcileState = <
   setState(
     key as any,
     typeof nextState[key] === 'object'
-      ? reconcile(nextState[key])
+      ? reconcile<NextState[keyof NextState], unknown>(nextState[key])
       : nextState[key]
   );
 

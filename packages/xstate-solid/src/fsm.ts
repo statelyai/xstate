@@ -91,7 +91,7 @@ export function useService<
     on(service, () => {
       setState(deepClone(getServiceState(service())));
       const { unsubscribe } = service().subscribe((nextState) => {
-        setState(reconcile(nextState));
+        setState(reconcile<typeof nextState, unknown>(nextState));
       });
       onCleanup(() => unsubscribe());
     })
