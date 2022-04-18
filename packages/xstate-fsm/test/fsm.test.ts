@@ -2,9 +2,9 @@
 import {
   createMachine2,
   interpret as interpret2,
-  assign as assign2,
-  createPromiseBehavior
+  assign as assign2
 } from '../src/createMachine';
+import { fromPromise } from '../src/actors';
 
 describe('@xstate/fsm', () => {
   it('should have the correct initial state', () => {
@@ -38,26 +38,7 @@ describe('@xstate/fsm', () => {
 
     expect(initialState.context).toEqual({ count: 1 });
   });
-  it.skip('should have initial actions computed without assign actions', () => {
-    const { initialState } = createMachine2({
-      initial: 'init',
-      context: {
-        count: 0
-      },
-      states: {
-        init: {
-          entry: [
-            { type: 'foo' },
-            assign2({
-              count: () => 1
-            })
-          ]
-        }
-      }
-    });
 
-    expect(initialState.actions).toEqual([{ type: 'foo' }]);
-  });
   it('should transition correctly', () => {
     const fsm = createMachine2({
       id: 'light',
@@ -183,7 +164,12 @@ describe('@xstate/fsm', () => {
             }
           }
         },
-        active: {}
+        active: {
+          invoke: {
+            id: 'prom',
+            src: fromPromise<number>(() => null as any)
+          }
+        }
       }
     });
     const inactiveState = fsm.transition(fsm.initialState, {
@@ -198,30 +184,6 @@ describe('@xstate/fsm', () => {
     const activeState = fsm.transition(incState, { type: 'EVENT' });
     expect(activeState.value).toEqual('active');
   });
-
-  // it.skip('should be changed if state changes', () => {
-  //   const fsm = createMachine2({
-  //     initial: 'green',
-  //     context: {},
-  //     states: {
-  //       green: {
-  //         on: {
-  //           TIMER: 'yellow'
-  //         }
-  //       },
-  //       yellow: {}
-  //     }
-  //   })
-  //   expect(fsm.transition(fsm.initialState, { type: 'TIMER'})).toBe(true);
-  // });
-
-  // it.skip('should be changed if any actions occur', () => {
-  //   expect(lightFSM.transition('yellow', 'INC').changed).toBe(true);
-  // });
-
-  // it.skip('should not be changed on unknown transitions', () => {
-  //   expect(lightFSM.transition('yellow', 'UNKNOWN' as any).changed).toBe(false);
-  // });
 
   it('should match initialState', () => {
     const { initialState } = createMachine2({
@@ -459,6 +421,36 @@ describe('interpreter', () => {
       {
         actions: {
           testAction: () => {
+            executed = true;
+          }
+        }
+      }
+    );
+
+    interpret2(machine).start();
+
+    expect(executed).toBe(true);
+  });
+
+  it('referenced actions should read context', () => {
+    let executed = false;
+
+    const machine = createMachine2(
+      {
+        initial: 'start',
+        context: {
+          num: 42
+        },
+        states: {
+          start: {
+            entry: 'testAction'
+          }
+        }
+      },
+      {
+        actions: {
+          testAction: (ctx) => {
+            expect(ctx.num).toEqual(42);
             executed = true;
           }
         }
@@ -823,7 +815,9 @@ describe('new', () => {
   it('should support invokes', (done) => {
     const machine = createMachine2({
       initial: 'idle',
-      context: {},
+      context: {
+        num: 42
+      },
       states: {
         idle: {
           on: {
@@ -835,17 +829,15 @@ describe('new', () => {
         loading: {
           invoke: {
             id: 'promise',
-            src: createPromiseBehavior(
+            src: fromPromise<number>(
               () =>
                 new Promise((res) => {
                   setTimeout(() => {
                     res(42);
                   }, 1000);
                 })
-            )
-          },
-          on: {
-            'done.invoke.promise': {
+            ),
+            onDone: {
               guard: (_, event) => event.data === 42,
               target: 'success'
             }
@@ -882,17 +874,15 @@ describe('new', () => {
           invoke: {
             id: 'promise',
             src: () =>
-              createPromiseBehavior(
+              fromPromise(
                 () =>
-                  new Promise((res) => {
+                  new Promise<number>((res) => {
                     setTimeout(() => {
                       res(42);
                     }, 1000);
                   })
-              )
-          },
-          on: {
-            'done.invoke.promise': {
+              ),
+            onDone: {
               guard: (_, event) => event.data === 42,
               target: 'success'
             }

@@ -1,5 +1,34 @@
-import { EventObject, toActionObject } from '.';
-import { SingleOrArray } from './types';
+export type SingleOrArray<T> = T[] | T;
+
+export function toActionObject<TMachine>(
+  // tslint:disable-next-line:ban-types
+  action:
+    | string
+    | DynamicActionObject<TMachine>
+    | ActionFunction<TMachine>
+    | BaseActionObject2,
+  actionMap: ActionImplementionMap<TMachine> | undefined
+) {
+  action =
+    typeof action === 'string' && actionMap && actionMap[action]
+      ? actionMap[action]
+      : action;
+  return typeof action === 'string'
+    ? {
+        type: action
+      }
+    : typeof action === 'function'
+    ? '__xstate' in action
+      ? action
+      : {
+          type: action.name
+        }
+    : action;
+}
+
+export interface EventObject {
+  type: string;
+}
 
 export namespace A {
   export type Cast<T, U> = T extends U ? T : U;
@@ -44,17 +73,17 @@ export type InferNarrowestObject<T> = {
   readonly [K in keyof T]: InferNarrowest<T[K]>;
 };
 
-interface ActorRef<TEvent extends EventObject> {
+interface ActorRef<TEvent extends EventObject, _TEmitted> {
   send: (event: TEvent) => void;
   subscribe: (observer: any) => void;
 }
 
-interface Behavior {
-  start: () => ActorRef<any>;
+export interface Behavior<TEvent extends EventObject, TEmitted> {
+  start: () => ActorRef<TEvent, TEmitted>;
 }
-export function assign<TMachine extends MachineConfig2<any>>(
-  assignment: Assigner<TMachine> | PropertyAssigner<TMachine>
-): DynamicActionObject<TMachine> {
+export function assign<TMachine extends MachineConfig2<any>, TEvent>(
+  assignment: Assigner<TMachine, TEvent> | PropertyAssigner<TMachine, TEvent>
+): DynamicActionObject<TMachine, TEvent> {
   const d = function resolveAssign(ctx, eventObject) {
     if (typeof assignment === 'function') {
       return assignment(ctx, eventObject);
@@ -74,21 +103,22 @@ export function assign<TMachine extends MachineConfig2<any>>(
   d.__xstate = true as true;
   return d;
 }
-export interface AssignActionObject<TMachine> {
+
+export interface AssignActionObject<TMachine, TEvent> {
   __xstate?: true;
   type: 'xstate.assign';
-  assignment: Assigner<TMachine> | PropertyAssigner<TMachine>;
+  assignment: Assigner<TMachine, TEvent> | PropertyAssigner<TMachine, TEvent>;
 }
-export type Assigner<TMachine> = (
+export type Assigner<TMachine, TEvent> = (
   context: A.Get<TMachine, 'context'>,
-  event: A.Get<TMachine, ['schema', 'event']>
+  event: TEvent
 ) => Partial<A.Get<TMachine, 'context'>>;
 
-export type PropertyAssigner<TMachine> = {
+export type PropertyAssigner<TMachine, TEvent> = {
   [K in keyof A.Get<TMachine, 'context'>]?:
     | ((
         context: A.Get<TMachine, 'context'>,
-        event: A.Get<TMachine, ['schema', 'event']>
+        event: TEvent
       ) => A.Get<TMachine, ['context', K]>)
     | A.Get<TMachine, ['context', K]>;
 };
@@ -97,33 +127,55 @@ interface BaseActionObject2 {
   type: string;
 }
 
-type ActionsConfig2<TMachine> = SingleOrArray<
-  | DynamicActionObject<TMachine>
-  | ((
-      context: A.Get<TMachine, 'context'>,
-      event: A.Get<TMachine, ['schema', 'event'], EventObject>
-    ) => void)
+type ActionFunction<TMachine> = (
+  context: A.Get<TMachine, 'context'>,
+  event: A.Get<TMachine, ['schema', 'event'], EventObject>
+) => void;
+
+type ActionsConfig2<
+  TMachine,
+  TEvent = A.Get<TMachine, ['schema', 'event']>
+> = SingleOrArray<
+  | DynamicActionObject<TMachine, TEvent>
+  | ActionFunction<TMachine>
   | BaseActionObject2
   | string
 >;
 
-type TransitionConfig2<_Self, TMachine> =
+type TransitionConfig2<
+  _Self,
+  TMachine,
+  TEvent = A.Get<TMachine, ['schema', 'event']>
+> =
   | (string & keyof A.Get<TMachine, 'states'>)
   | {
       target?: string & keyof A.Get<TMachine, 'states'>;
-      guard?: (
-        context: A.Get<TMachine, 'context'>,
-        event: A.Get<TMachine, ['schema', 'event']>
-      ) => boolean;
-      actions?: ActionsConfig2<TMachine>;
+      guard?: (context: A.Get<TMachine, 'context'>, event: TEvent) => boolean;
+      actions?: ActionsConfig2<TMachine, TEvent>;
+      assign?: DynamicActionObject<TMachine, TEvent>;
     };
+
+type InvokeSrc<T> = Behavior<any, T> | (() => Behavior<any, T>);
+
+type DoneTransitionConfig2<_Self, TMachine, TInvoke> = TransitionConfig2<
+  _Self,
+  TMachine,
+  A.Get<TInvoke, 'src'> extends InvokeSrc<infer T>
+    ? { type: 'whatever'; data: T }
+    : unknown
+>;
 
 interface StateNodeConfig2<_Self, TMachine extends MachineConfig2<any>> {
   entry?: ActionsConfig2<TMachine>;
   exit?: ActionsConfig2<TMachine>;
   invoke?: {
     id: string;
-    src: Behavior | (() => Behavior);
+    src: InvokeSrc<any>;
+    onDone?: DoneTransitionConfig2<
+      A.Get<_Self, ['invoke', 'onDone']>,
+      TMachine,
+      A.Get<_Self, 'invoke'>
+    >;
   };
   on?: {
     [EventType in string &
@@ -149,7 +201,7 @@ interface StateNode2 {
   exit?: Array<{ type: string }>;
   invoke?: {
     id: string;
-    src: Behavior | (() => Behavior);
+    src: InvokeSrc<any>;
   };
   on?: {
     [EventType in string]: TransitionObject2[];
@@ -189,16 +241,19 @@ interface StateFrom<T extends MachineConfig2<any> | Machine<any>> {
   matches: (value: keyof A.Get<T, 'states'>) => boolean;
 }
 
-interface Implementations2 {
-  actions?: {
-    [key: string]: any;
-  };
+interface ActionImplementionMap<TMachine> {
+  [key: string]: ActionFunction<TMachine>;
 }
 
-type Executor = (
+interface Implementations2<TMachine> {
+  actions?: ActionImplementionMap<TMachine>;
+}
+
+type Executor<TMachine> = (
   action: BaseActionObject2,
   context: any,
-  implementations?: Implementations2
+  event: EventObject,
+  implementations?: Implementations2<TMachine>
 ) => void;
 
 interface Machine<T extends MachineConfig2<any>> {
@@ -208,7 +263,7 @@ interface Machine<T extends MachineConfig2<any>> {
   transition: (
     state: StateFrom<T>,
     event: EventObject & A.Get<T, ['schema', 'event'], EventObject>,
-    execute?: Executor
+    execute?: Executor<T>
   ) => StateFrom<T>;
   initialState: StateFrom<T>;
   getInitialState: (exec: any) => StateFrom<T>;
@@ -220,10 +275,10 @@ function toArray<T>(item: T | T[] | undefined): T[] {
 
 export function createMachine2<T extends MachineConfig2<T>>(
   config: InferNarrowestObject<T>,
-  implementations?: Implementations2
+  implementations?: Implementations2<T>
 ): Machine<T> {
   const states: Record<string, StateNode2> = {};
-  const actionImpls: Implementations2['actions'] = {
+  const actionImpls: Implementations2<T>['actions'] = {
     ...implementations?.actions
   };
 
@@ -233,6 +288,29 @@ export function createMachine2<T extends MachineConfig2<T>>(
     ).forEach(([key, stateConfig]) => {
       const transitionMap: Record<string, TransitionObject2[]> = {};
 
+      const toTransitionObject = (t, eventType) => {
+        return typeof t === 'string'
+          ? { target: t }
+          : {
+              target: t.target,
+              actions: t.actions
+                ? toArray(t.actions).map((action, i) => {
+                    if (
+                      typeof action === 'function' &&
+                      !('__xstate' in action)
+                    ) {
+                      const actionType = `${key}:${eventType}:${i}`;
+                      actionImpls[actionType] = action;
+
+                      return { type: actionType };
+                    }
+                    return toActionObject(action, {});
+                  })
+                : undefined,
+              guard: t.guard
+            };
+      };
+
       if (stateConfig.on) {
         Object.entries(
           stateConfig.on as Record<
@@ -241,29 +319,19 @@ export function createMachine2<T extends MachineConfig2<T>>(
           >
         ).map(([eventType, transitionConfig]) => {
           const transitions = toArray(transitionConfig);
-          transitionMap[eventType] = transitions.map((t) => {
-            return typeof t === 'string'
-              ? { target: t }
-              : {
-                  target: t.target,
-                  actions: t.actions
-                    ? toArray(t.actions).map((action, i) => {
-                        if (
-                          typeof action === 'function' &&
-                          !('__xstate' in action)
-                        ) {
-                          const actionType = `${key}:${eventType}:${i}`;
-                          actionImpls[actionType] = action;
-
-                          return { type: actionType };
-                        }
-                        return toActionObject(action, {});
-                      })
-                    : undefined,
-                  guard: t.guard
-                };
-          });
+          transitionMap[eventType] = transitions.map((t) =>
+            toTransitionObject(t, eventType)
+          );
         });
+      }
+
+      if (stateConfig.invoke?.onDone) {
+        transitionMap[`done.invoke.${stateConfig.invoke.id}`] = [
+          toTransitionObject(
+            stateConfig.invoke.onDone,
+            `done.invoke.${stateConfig.invoke.id}`
+          )
+        ];
       }
       states[key] = {
         entry: stateConfig.entry
@@ -349,7 +417,9 @@ export function createMachine2<T extends MachineConfig2<T>>(
             if (action.type === 'xstate.assign') {
               nextContext = action(nextContext, eventObject);
             } else {
-              execute?.(action, nextContext, { actions: actionImpls });
+              execute?.(action, nextContext, eventObject, {
+                actions: actionImpls
+              });
             }
           }
 
@@ -370,7 +440,9 @@ export function createMachine2<T extends MachineConfig2<T>>(
           if (action.type === 'xstate.assign') {
             nextContext = action(nextContext, eventObject);
           } else {
-            execute?.(action, nextContext, { actions: actionImpls });
+            execute?.(action, nextContext, eventObject, {
+              actions: actionImpls
+            });
           }
         }
 
@@ -426,11 +498,11 @@ export function interpret<T extends Machine<any>>(machine: T): Interpreter2 {
   const observers = new Set<any>();
   let status = 0;
 
-  const executor: Executor = (action, _ctx, implementations) => {
+  const executor: Executor<T> = (action, ctx, event, implementations) => {
     const implementation = implementations?.actions?.[action.type];
 
     if (implementation) {
-      implementation();
+      implementation(ctx, event as any);
     }
   };
 
@@ -447,6 +519,8 @@ export function interpret<T extends Machine<any>>(machine: T): Interpreter2 {
       }
 
       state = machine.transition(state, event, executor);
+
+      console.log(state.actions);
 
       state.actions.forEach((action) => {
         if (action.type === 'xstate.start') {
@@ -489,12 +563,12 @@ export function interpret<T extends Machine<any>>(machine: T): Interpreter2 {
   return self;
 }
 
-interface DynamicActionObject<TMachine> {
+interface DynamicActionObject<
+  TMachine,
+  TEvent = A.Get<TMachine, ['schema', 'event']>
+> {
   type: `xstate.${string}`;
-  (
-    ctx: A.Get<TMachine, 'context'>,
-    eventObject: A.Get<TMachine, ['schema', 'event']>
-  ): { type: string };
+  (ctx: A.Get<TMachine, 'context'>, eventObject: TEvent): { type: string };
   __xstate: true;
 }
 
@@ -566,7 +640,7 @@ createMachine2({
       exit: [
         'exitGreen',
         assign({ count: (ctx) => ctx.count + 1 }),
-        assign({ count: (ctx) => ctx.count + 1 }),
+        assign((ctx) => ({ count: ctx.count + 1 })),
         assign({ foo: 'static' }),
         assign({ foo: (ctx) => ctx.foo + '++' })
       ],
@@ -583,28 +657,3 @@ createMachine2({
     red: {}
   }
 });
-
-export function createPromiseBehavior<T>(
-  createPromise: () => Promise<T>
-): Behavior {
-  return {
-    start: () => {
-      const observers = new Set<any>();
-
-      createPromise().then((res) => observers.forEach((o) => o.next(res)));
-
-      return {
-        send: () => void 0,
-        subscribe: (obs) => {
-          observers.add(obs);
-
-          return {
-            unsubscribe: () => {
-              observers.delete(obs);
-            }
-          };
-        }
-      };
-    }
-  };
-}
