@@ -1054,106 +1054,127 @@ describe('action meta', () => {
 });
 
 describe('purely defined actions', () => {
-  interface Ctx {
-    items: Array<{ id: number }>;
-  }
-  type Events =
-    | { type: 'SINGLE'; id: number }
-    | { type: 'NONE'; id: number }
-    | { type: 'EACH' };
+  describe('Declaring actions as { type: string }', () => {
+    interface Ctx {
+      items: Array<{ id: number }>;
+    }
+    type Events =
+      | { type: 'SINGLE'; id: number }
+      | { type: 'NONE'; id: number }
+      | { type: 'EACH' };
 
-  const dynamicMachine = Machine<Ctx, Events>({
-    id: 'dynamic',
-    initial: 'idle',
-    context: {
-      items: [{ id: 1 }, { id: 2 }, { id: 3 }]
-    },
-    states: {
-      idle: {
-        on: {
-          SINGLE: {
-            actions: pure<any, any>((ctx, e) => {
-              if (ctx.items.length > 0) {
-                return {
-                  type: 'SINGLE_EVENT',
-                  length: ctx.items.length,
-                  id: e.id
-                };
-              }
-            })
-          },
-          NONE: {
-            actions: pure<any, any>((ctx, e) => {
-              if (ctx.items.length > 5) {
-                return {
-                  type: 'SINGLE_EVENT',
-                  length: ctx.items.length,
-                  id: e.id
-                };
-              }
-            })
-          },
-          EACH: {
-            actions: pure<any, any>((ctx) =>
-              ctx.items.map((item: any, index: number) => ({
-                type: 'EVENT',
-                item,
-                index
-              }))
-            )
+    const dynamicMachine = Machine<Ctx, Events>({
+      id: 'dynamic',
+      initial: 'idle',
+      context: {
+        items: [{ id: 1 }, { id: 2 }, { id: 3 }]
+      },
+      states: {
+        idle: {
+          on: {
+            SINGLE: {
+              actions: pure<any, any>((ctx, e) => {
+                if (ctx.items.length > 0) {
+                  return {
+                    type: 'SINGLE_EVENT',
+                    length: ctx.items.length,
+                    id: e.id
+                  };
+                }
+              })
+            },
+            NONE: {
+              actions: pure<any, any>((ctx, e) => {
+                if (ctx.items.length > 5) {
+                  return {
+                    type: 'SINGLE_EVENT',
+                    length: ctx.items.length,
+                    id: e.id
+                  };
+                }
+              })
+            },
+            EACH: {
+              actions: pure<any, any>((ctx) =>
+                ctx.items.map((item: any, index: number) => ({
+                  type: 'EVENT',
+                  item,
+                  index
+                }))
+              )
+            }
           }
         }
       }
-    }
-  });
-
-  it('should allow for a purely defined dynamic action', () => {
-    const nextState = dynamicMachine.transition(dynamicMachine.initialState, {
-      type: 'SINGLE',
-      id: 3
     });
 
-    expect(nextState.actions).toEqual([
-      {
-        type: 'SINGLE_EVENT',
-        length: 3,
+    it('should allow for a purely defined dynamic action', () => {
+      const nextState = dynamicMachine.transition(dynamicMachine.initialState, {
+        type: 'SINGLE',
         id: 3
-      }
-    ]);
-  });
+      });
 
-  it('should allow for purely defined lack of actions', () => {
-    const nextState = dynamicMachine.transition(dynamicMachine.initialState, {
-      type: 'NONE',
-      id: 3
+      expect(nextState.actions).toEqual([
+        {
+          type: 'SINGLE_EVENT',
+          length: 3,
+          id: 3
+        }
+      ]);
     });
 
-    expect(nextState.actions).toEqual([]);
+    it('should allow for purely defined lack of actions', () => {
+      const nextState = dynamicMachine.transition(dynamicMachine.initialState, {
+        type: 'NONE',
+        id: 3
+      });
+
+      expect(nextState.actions).toEqual([]);
+    });
+
+    it('should allow for purely defined dynamic actions', () => {
+      const nextState = dynamicMachine.transition(
+        dynamicMachine.initialState,
+        'EACH'
+      );
+
+      expect(nextState.actions).toEqual([
+        {
+          type: 'EVENT',
+          item: { id: 1 },
+          index: 0
+        },
+        {
+          type: 'EVENT',
+          item: { id: 2 },
+          index: 1
+        },
+        {
+          type: 'EVENT',
+          item: { id: 3 },
+          index: 2
+        }
+      ]);
+    });
   });
 
-  it('should allow for purely defined dynamic actions', () => {
-    const nextState = dynamicMachine.transition(
-      dynamicMachine.initialState,
-      'EACH'
-    );
-
-    expect(nextState.actions).toEqual([
-      {
-        type: 'EVENT',
-        item: { id: 1 },
-        index: 0
-      },
-      {
-        type: 'EVENT',
-        item: { id: 2 },
-        index: 1
-      },
-      {
-        type: 'EVENT',
-        item: { id: 3 },
-        index: 2
-      }
-    ]);
+  describe('Declaring actions as string[]', () => {
+    it('Should pass tsc', () => {
+      createMachine({
+        entry: pure((context, event) => {
+          return ['action1'];
+        })
+      });
+    });
+  });
+  describe('Declaring actions as string', () => {
+    it('Should pass tsc', () => {
+      createMachine({
+        entry: pure((context, event) => {
+          return 'action1';
+        })
+      });
+    });
   });
 });
 
