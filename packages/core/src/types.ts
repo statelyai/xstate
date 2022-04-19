@@ -7,7 +7,8 @@ import {
   TypegenDisabled,
   ResolveTypegenMeta,
   TypegenConstraint,
-  AreAllImplementationsAssumedToBeProvided
+  AreAllImplementationsAssumedToBeProvided,
+  TypegenEnabled
 } from './typegenTypes';
 
 export type AnyFunction = (...args: any[]) => any;
@@ -1861,4 +1862,20 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
       >
     ? TContext
     : never
+  : never;
+
+type Matches<TypegenEnabledArg, TypegenDisabledArg> = {
+  (stateValue: TypegenEnabledArg): any;
+  (stateValue: TypegenDisabledArg): any;
+};
+
+export type StateValueFrom<
+  TMachine extends AnyStateMachine
+> = StateFrom<TMachine>['matches'] extends Matches<
+  infer TypegenEnabledArg,
+  infer TypegenDisabledArg
+>
+  ? TMachine['__TResolvedTypesMeta'] extends TypegenEnabled
+    ? TypegenEnabledArg
+    : TypegenDisabledArg
   : never;
