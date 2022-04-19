@@ -9,8 +9,6 @@ import {
   TypegenConstraint,
   AreAllImplementationsAssumedToBeProvided
 } from './typegenTypes';
-import { IndexByType } from './types.4.1';
-export { IndexByType };
 
 export type AnyFunction = (...args: any[]) => any;
 type ReturnTypeOrValue<T> = T extends AnyFunction ? ReturnType<T> : T;
@@ -22,6 +20,11 @@ export type Compute<A extends any> = { [K in keyof A]: A[K] } & unknown;
 export type Prop<T, K> = K extends keyof T ? T[K] : never;
 export type Values<T> = T[keyof T];
 export type Merge<M, N> = Omit<M, keyof N> & N;
+// TODO: replace in v5 with:
+// export type IndexByType<T extends { type: string }> = { [E in T as E['type']]: E; };
+export type IndexByType<T extends { type: string }> = {
+  [K in T['type']]: T extends any ? (K extends T['type'] ? T : never) : never;
+};
 
 export type Equals<A1 extends any, A2 extends any> = (<A>() => A extends A2
   ? true
