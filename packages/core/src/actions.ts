@@ -38,8 +38,8 @@ import {
   StopAction,
   StopActionObject,
   Cast,
-  ActorRef,
-  EventFrom
+  EventFrom,
+  AnyActorRef
 } from './types';
 import * as actionTypes from './actionTypes';
 import {
@@ -290,7 +290,7 @@ type InferEvent<E extends EventObject> = {
 export function sendTo<
   TContext,
   TEvent extends EventObject,
-  TActor extends ActorRef<EventObject>
+  TActor extends AnyActorRef
 >(
   actor: (ctx: TContext) => TActor,
   event:

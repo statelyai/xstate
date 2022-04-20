@@ -1653,7 +1653,7 @@ describe('sendTo', () => {
       context: () => ({
         child: spawn(childMachine)
       }),
-      entry: sendTo((ctx) => ctx.child as any, { type: 'EVENT' })
+      entry: sendTo((ctx) => ctx.child, { type: 'EVENT' })
     });
 
     interpret(parentMachine).start();
@@ -1683,7 +1683,7 @@ describe('sendTo', () => {
         count: 42
       }),
       entry: sendTo(
-        (ctx) => ctx.child as any,
+        (ctx) => ctx.child,
         (ctx) => ({ type: 'EVENT', count: ctx.count })
       )
     });
