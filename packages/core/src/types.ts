@@ -1673,6 +1673,8 @@ export interface ActorRef<TEvent extends EventObject, TEmitted = any>
   toJSON?: () => any;
 }
 
+export type AnyActorRef = ActorRef<any, any>;
+
 /**
  * @deprecated Use `ActorRef` instead.
  */
