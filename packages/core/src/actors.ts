@@ -1,9 +1,8 @@
-import {
+import type {
   InvokeCallback,
   Subscribable,
   Subscription,
   InterpreterOptions,
-  Spawnable,
   Lazy,
   Sender,
   Receiver,
@@ -11,31 +10,25 @@ import {
   ActorContext,
   EventObject,
   Observer,
-  TODO
-} from './types';
-import { AreAllImplementationsAssumedToBeProvided } from './typegenTypes';
-import {
-  toSCXMLEvent,
-  isPromiseLike,
-  isObservable,
-  isStateMachine,
-  isSCXMLEvent,
-  isFunction,
-  toObserver,
-  symbolObservable
-} from './utils';
-import { doneInvoke, error, actionTypes } from './actions';
-import { StateMachine } from './StateMachine';
-import { interpret } from './interpreter';
-import { State } from './State';
-import type {
+  TODO,
   ActorRef,
   AnyStateMachine,
   BaseActorRef,
   EventFrom,
   InterpreterFrom,
   StateFrom
-} from '.';
+} from './types';
+import { AreAllImplementationsAssumedToBeProvided } from './typegenTypes';
+import {
+  toSCXMLEvent,
+  isPromiseLike,
+  isSCXMLEvent,
+  isFunction,
+  toObserver,
+  symbolObservable
+} from './utils';
+import { doneInvoke, error, actionTypes } from './actions';
+import { interpret } from './interpreter';
 import { Mailbox } from './Mailbox';
 
 /**
@@ -372,41 +365,6 @@ export function fromMachine<TMachine extends AnyStateMachine>(
   };
 
   return behavior;
-}
-
-export function createBehaviorFrom<TEvent extends EventObject, TEmitted>(
-  entity: PromiseLike<TEmitted>
-): Behavior<TEvent, TEmitted>;
-export function createBehaviorFrom<TEvent extends EventObject, TEmitted>(
-  entity: Subscribable<any>
-): Behavior<any, TEmitted>;
-export function createBehaviorFrom<
-  TEvent extends EventObject,
-  TEmitted extends State<any, any>
->(
-  entity: StateMachine<TEmitted['context'], TEmitted['event']>
-): Behavior<TEvent, TEmitted>;
-export function createBehaviorFrom<TEvent extends EventObject>(
-  entity: InvokeCallback
-): Behavior<TEvent, undefined>;
-export function createBehaviorFrom(entity: Spawnable): Behavior<any, any> {
-  if (isPromiseLike(entity)) {
-    return fromPromise(() => entity);
-  }
-
-  if (isObservable<any>(entity)) {
-    return fromObservable(() => entity);
-  }
-
-  if (isStateMachine(entity)) {
-    return fromMachine(entity);
-  }
-
-  if (isFunction(entity)) {
-    return fromCallback(entity);
-  }
-
-  throw new Error(`Unable to create behavior from entity`);
 }
 
 interface CreateActorRefOptions {
