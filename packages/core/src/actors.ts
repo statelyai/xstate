@@ -461,3 +461,7 @@ export function createActorRef<TEvent extends EventObject, TEmitted>(
 
   return actor;
 }
+
+export function isActorRef(item: any): item is ActorRef<any> {
+  return !!item && typeof item === 'object' && typeof item.send === 'function';
+}

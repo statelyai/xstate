@@ -2,7 +2,7 @@ import { AnyStateMachine, InterpreterFrom } from '.';
 import { isExecutableAction } from '../actions/ExecutableAction';
 import { doneInvoke, error } from './actions';
 import * as actionTypes from './actionTypes';
-import { isActorRef } from './actor';
+import { isActorRef } from './actors';
 import { devToolsAdapter } from './dev';
 import { IS_PRODUCTION } from './environment';
 import { Mailbox } from './Mailbox';

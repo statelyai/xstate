@@ -5,7 +5,7 @@ import {
   MachineContext
 } from '../types';
 import { invoke as invokeActionType } from '../actionTypes';
-import { isActorRef } from '../actor';
+import { isActorRef } from '../actors';
 import { ObservableActorRef } from '../ObservableActorRef';
 import { createDynamicAction } from '../../actions/dynamicAction';
 import {

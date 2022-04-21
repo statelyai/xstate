@@ -11,7 +11,6 @@
   },
   "files": [
     "dist",
-    "actor",
     "actors",
     "actions",
     "invoke",
@@ -51,7 +50,6 @@
     "umdName": "XState",
     "entrypoints": [
       "./index.ts",
-      "./actor.ts",
       "./actions.ts",
       "./actors.ts",
       "./model.ts",
