@@ -10,7 +10,7 @@
 
 <script lang="ts">
 import { ActorRef } from 'xstate';
-import { toActorRef } from 'xstate/actor';
+import { toActorRef } from 'xstate/actors';
 import { defineComponent, shallowRef } from 'vue';
 
 import { useActor } from '../src';

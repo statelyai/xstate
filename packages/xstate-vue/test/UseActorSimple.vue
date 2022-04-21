@@ -5,7 +5,7 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
 import { ActorRef } from 'xstate';
-import { toActorRef } from 'xstate/actor';
+import { toActorRef } from 'xstate/actors';
 import { useActor } from '../src';
 const simpleActor: ActorRef<any, number> & { latestValue: number } = toActorRef({
   send: () => {
