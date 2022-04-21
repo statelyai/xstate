@@ -708,7 +708,7 @@ describe('entry/exit actions', () => {
       });
 
       const service = interpret(machine).start();
-      // it's important to send an event here that results in a transition as that computes new `state.configuration`
+      // it's important to send an event here that results in a transition  that computes new `state.configuration`
       // and that could impact the order in which exit actions are called
       service.send({ type: 'EV' });
       service.stop();
@@ -1689,6 +1689,31 @@ describe('sendTo', () => {
     });
 
     interpret(parentMachine).start();
+  });
+
+  it('should report a type error for an invalid event', () => {
+    const childMachine = createMachine<any, { type: 'EVENT' }>({
+      initial: 'waiting',
+      states: {
+        waiting: {
+          on: {
+            EVENT: {}
+          }
+        }
+      }
+    });
+
+    createMachine<{
+      child: ActorRefFrom<typeof childMachine>;
+    }>({
+      context: () => ({
+        child: spawn(childMachine)
+      }),
+      entry: sendTo((ctx) => ctx.child, {
+        // @ts-expect-error
+        type: 'UNKNOWN'
+      })
+    });
   });
 });
 
