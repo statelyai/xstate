@@ -12,11 +12,12 @@ export class ObservableActorRef<TEvent extends EventObject, TEmitted>
   private current: TEmitted;
   public deferred = true;
   private context: ActorContext<TEvent, TEmitted>;
-  public name: string;
   private mailbox = new Mailbox(this._process.bind(this));
 
-  constructor(public behavior: Behavior<TEvent, TEmitted>, name: string) {
-    this.name = name;
+  constructor(
+    private behavior: Behavior<TEvent, TEmitted>,
+    public name: string
+  ) {
     this.context = {
       self: this,
       name: this.name,
