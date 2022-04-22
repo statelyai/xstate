@@ -1685,7 +1685,6 @@ export declare namespace SCXML {
 }
 
 // Taken from RxJS
-// TODO: fix complete types
 export type Observer<T> =
   | {
       next: (value: T) => void;
