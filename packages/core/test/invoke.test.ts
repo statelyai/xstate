@@ -1989,28 +1989,15 @@ describe('invoke', () => {
         states: {
           counting: {
             invoke: {
-              src: () =>
-                fromObservable(() =>
-                  infinite$.pipe(
-                    take(5),
-                    map((value) => {
-                      return {
-                        type: 'COUNT',
-                        value
-                      };
-                    })
-                  )
-                ),
+              src: () => fromObservable(() => infinite$.pipe(take(5))),
+              onEmit: {
+                actions: assign({
+                  count: (_, e) => e.data
+                })
+              },
               onDone: {
                 target: 'counted',
                 guard: (ctx) => ctx.count === 4
-              }
-            },
-            on: {
-              COUNT: {
-                actions: assign({
-                  count: (_, e) => e.value
-                })
               }
             }
           },
@@ -2050,10 +2037,13 @@ describe('invoke', () => {
                         throw new Error('some error');
                       }
 
-                      return { type: 'COUNT', value };
+                      return value;
                     })
                   )
                 ),
+              onEmit: {
+                actions: assign({ count: (_, e) => e.data })
+              },
               onError: {
                 target: 'success',
                 guard: (ctx, e) => {
@@ -2061,9 +2051,6 @@ describe('invoke', () => {
                   return ctx.count === 4 && e.data.message === 'some error';
                 }
               }
-            },
-            on: {
-              COUNT: { actions: assign({ count: (_, e) => e.value }) }
             }
           },
           success: {

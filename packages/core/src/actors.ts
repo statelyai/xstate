@@ -102,15 +102,21 @@ export function fromCallback<TEvent extends EventObject>(
     observers.forEach((o) => o.error?.(event));
   };
 
+  const sendComplete = () => {
+    observers.forEach((o) => o.complete?.());
+  };
+
   const behavior: Behavior<TEvent, undefined> = {
     transition: (_, event, actorContext) => {
+      const { _parent: parent } = actorContext.self;
+
       if (event.type === startSignalType) {
         const sender: Sender<TEvent> = (e) => {
           if (canceled) {
             return;
           }
 
-          sendNext(toSCXMLEvent(e, { origin: actorContext.self }));
+          parent?.send(toSCXMLEvent(e, { origin: actorContext.self }));
         };
 
         const receiver: Receiver<TEvent> = (newListener) => {
@@ -122,11 +128,8 @@ export function fromCallback<TEvent extends EventObject>(
         if (isPromiseLike(dispose)) {
           dispose.then(
             (resolved) => {
-              sendNext(
-                toSCXMLEvent(doneInvoke(actorContext.name, resolved) as any, {
-                  origin: actorContext.self
-                })
-              );
+              sendNext(resolved);
+              sendComplete();
               canceled = true;
             },
             (errorData) => {

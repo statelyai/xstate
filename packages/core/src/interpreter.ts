@@ -673,23 +673,16 @@ export class Interpreter<
             ref.subscribe({
               next: (data) => {
                 latestData = data;
-                if (
-                  typeof data === 'object' &&
-                  data !== null &&
-                  'type' in data
-                ) {
-                  this.send(data as TODO);
-                } else {
-                  this.send(
-                    toSCXMLEvent(
-                      {
-                        type: `xstate.emit.${id}`,
-                        data
-                      },
-                      { origin: ref }
-                    )
-                  );
-                }
+
+                this.send(
+                  toSCXMLEvent(
+                    {
+                      type: `xstate.emit.${id}`,
+                      data
+                    },
+                    { origin: ref }
+                  )
+                );
               },
               error: (errorData) => {
                 this.send(errorData as TODO);
