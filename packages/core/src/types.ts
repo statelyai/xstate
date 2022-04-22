@@ -437,11 +437,9 @@ export interface InvokeDefinition<
   /**
    * The transition to take upon the invoked child machine sending an error event.
    */
-  onError?:
-    | string
-    | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
+  onError?: string | SingleOrArray<TransitionConfig<TContext, ErrorEvent<any>>>;
 
-  onEmit?: string | SingleOrArray<TransitionConfig<TContext, any>>;
+  onEmit?: string | SingleOrArray<TransitionConfig<TContext, EmitEvent<any>>>;
 
   toJSON: () => Omit<
     InvokeDefinition<TContext, TEvent>,
@@ -1114,6 +1112,17 @@ export interface RaiseActionObject<TEvent extends EventObject>
 }
 
 export interface DoneInvokeEvent<TData> extends EventObject {
+  type: `done.invoke.${string}`;
+  data: TData;
+}
+
+export interface ErrorEvent<TErrorData> {
+  type: `error.${string}`;
+  data: TErrorData;
+}
+
+export interface EmitEvent<TData> {
+  type: `xstate.emit.${string}`;
   data: TData;
 }
 

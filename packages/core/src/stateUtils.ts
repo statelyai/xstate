@@ -38,8 +38,6 @@ import { State } from './State';
 import {
   after,
   done,
-  doneInvoke,
-  error,
   toActionObjects,
   initEvent,
   actionTypes,
@@ -491,7 +489,7 @@ export function formatTransitions<
       if (invokeDef.onDone) {
         settleTransitions.push(
           ...toTransitionConfigArray(
-            String(doneInvoke(invokeDef.id)),
+            `done.invoke.${invokeDef.id}`,
             invokeDef.onDone
           )
         );
@@ -499,7 +497,7 @@ export function formatTransitions<
       if (invokeDef.onError) {
         settleTransitions.push(
           ...toTransitionConfigArray(
-            String(error(invokeDef.id)),
+            `error.platform.${invokeDef.id}`,
             invokeDef.onError
           )
         );
