@@ -20,7 +20,6 @@ import { raise } from '../src/actions/raise';
 import { assign } from '../src/actions/assign';
 import { send } from '../src/actions/send';
 import { EMPTY, interval } from 'rxjs';
-import { map } from 'rxjs/operators';
 import * as actionTypes from '../src/actionTypes';
 import {
   fromCallback,
