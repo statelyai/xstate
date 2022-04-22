@@ -668,9 +668,28 @@ export class Interpreter<
             // TODO: determine how this can be immutably updated
             this.state.children[id] = ref;
 
+            let latestData;
+
             ref.subscribe({
               next: (data) => {
-                this.send(data as TODO);
+                latestData = data;
+                if (
+                  typeof data === 'object' &&
+                  data !== null &&
+                  'type' in data
+                ) {
+                  this.send(data as TODO);
+                } else {
+                  this.send(
+                    toSCXMLEvent(
+                      {
+                        type: `xstate.emit.${id}`,
+                        data
+                      },
+                      { origin: ref }
+                    )
+                  );
+                }
               },
               error: (errorData) => {
                 this.send(errorData as TODO);
@@ -679,15 +698,7 @@ export class Interpreter<
               },
               complete: () => {
                 this.send(
-                  toSCXMLEvent(doneInvoke(id) as any, {
-                    origin: ref
-                  })
-                );
-                /* ... */
-              },
-              done: (doneData) => {
-                this.send(
-                  toSCXMLEvent(doneInvoke(id, doneData) as any, {
+                  toSCXMLEvent(doneInvoke(id, latestData) as any, {
                     origin: ref
                   })
                 );

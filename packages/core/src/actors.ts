@@ -189,7 +189,8 @@ export function fromPromise<T, TEvent extends EventObject>(
             (response) => {
               if (!canceled) {
                 observers.forEach((observer) => {
-                  observer.done?.(response);
+                  observer.next?.(response);
+                  observer.complete?.();
                 });
               }
             },
@@ -229,10 +230,9 @@ export function fromPromise<T, TEvent extends EventObject>(
   return behavior;
 }
 
-export function fromObservable<
-  T extends EventObject,
-  TEvent extends EventObject
->(lazyObservable: Lazy<Subscribable<T>>): Behavior<TEvent, T | undefined> {
+export function fromObservable<T, TEvent extends EventObject>(
+  lazyObservable: Lazy<Subscribable<T>>
+): Behavior<TEvent, T | undefined> {
   let subscription: Subscription | undefined;
   let observable: Subscribable<T> | undefined;
   const observers: Set<Observer<TODO>> = new Set();
@@ -253,7 +253,7 @@ export function fromObservable<
         observable = lazyObservable();
         subscription = observable.subscribe({
           next: (value) => {
-            sendNext(toSCXMLEvent(value, { origin: actorContext.self }));
+            sendNext(value);
           },
           error: (err) => {
             sendError(

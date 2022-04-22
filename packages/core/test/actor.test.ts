@@ -366,23 +366,17 @@ describe('spawning observables', () => {
           entry: assign({
             observableRef: (_, __, { spawn }) => {
               const ref = spawn(
-                fromObservable(() =>
-                  interval(10).pipe(
-                    map((n) => ({
-                      type: 'INT',
-                      value: n
-                    }))
-                  )
-                )
+                fromObservable(() => interval(10)),
+                'int'
               );
 
               return ref;
             }
           }),
           on: {
-            INT: {
+            'xstate.emit.int': {
               target: 'success',
-              guard: (_: any, e: any) => e.value === 5
+              guard: (_: any, e: any) => e.data === 5
             }
           }
         },
@@ -410,12 +404,12 @@ describe('spawning observables', () => {
         states: {
           idle: {
             entry: assign({
-              observableRef: (_, __, { spawn }) => spawn('interval')
+              observableRef: (_, __, { spawn }) => spawn('interval', 'int')
             }),
             on: {
-              INT: {
+              'xstate.emit.int': {
                 target: 'success',
-                guard: (_: any, e: any) => e.value === 5
+                guard: (_: any, e: any) => e.data === 5
               }
             }
           },
@@ -426,15 +420,7 @@ describe('spawning observables', () => {
       },
       {
         actors: {
-          interval: () =>
-            fromObservable(() =>
-              interval(10).pipe(
-                map((n) => ({
-                  type: 'INT',
-                  value: n
-                }))
-              )
-            )
+          interval: () => fromObservable(() => interval(10))
         }
       }
     );

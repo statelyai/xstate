@@ -19,7 +19,6 @@ import { stop } from '../src/actions/stop';
 import { log } from '../src/actions/log';
 import { isObservable } from '../src/utils';
 import { interval, from } from 'rxjs';
-import { map } from 'rxjs/operators';
 import {
   fromCallback,
   fromMachine,
@@ -1638,16 +1637,11 @@ describe('interpreter', () => {
           active: {
             invoke: {
               id: 'childActor',
-              src: () =>
-                fromObservable(() =>
-                  interval$.pipe(map((value) => ({ type: 'FIRED', value })))
-                )
-            },
-            on: {
-              FIRED: {
+              src: () => fromObservable(() => interval$),
+              onEmit: {
                 target: 'success',
                 guard: (_: unknown, e: AnyEventObject) => {
-                  return e.value === 3;
+                  return e.data === 3;
                 }
               }
             }
@@ -1728,9 +1722,7 @@ describe('interpreter', () => {
             ),
           observableRef: (_, __, { spawn }) =>
             spawn(
-              fromObservable(() =>
-                interval(1000).pipe(map((i) => ({ type: 'INTERVAL', i })))
-              ),
+              fromObservable(() => interval(1000)),
               'observableChild'
             )
         }),

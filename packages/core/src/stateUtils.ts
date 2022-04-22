@@ -504,6 +504,14 @@ export function formatTransitions<
           )
         );
       }
+      if (invokeDef.onEmit) {
+        settleTransitions.push(
+          ...toTransitionConfigArray(
+            `xstate.emit.${invokeDef.id}`,
+            invokeDef.onEmit
+          )
+        );
+      }
       return settleTransitions;
     })
   );

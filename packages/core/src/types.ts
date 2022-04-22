@@ -441,6 +441,8 @@ export interface InvokeDefinition<
     | string
     | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
 
+  onEmit?: string | SingleOrArray<TransitionConfig<TContext, any>>;
+
   toJSON: () => Omit<
     InvokeDefinition<TContext, TEvent>,
     'onDone' | 'onError' | 'toJSON'
@@ -585,6 +587,10 @@ export interface InvokeConfig<
    * The transition to take upon the invoked child machine sending an error event.
    */
   onError?:
+    | string
+    | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
+
+  onEmit?:
     | string
     | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
   /**
@@ -1671,7 +1677,7 @@ export declare namespace SCXML {
 
 // Taken from RxJS
 // TODO: fix complete types
-export type Observer<T> = (
+export type Observer<T> =
   | {
       next: (value: T) => void;
       error?: (err: any) => void;
@@ -1686,10 +1692,7 @@ export type Observer<T> = (
       next?: (value: T) => void;
       error?: (err: any) => void;
       complete: () => void;
-    }
-) & {
-  done?: (doneData: T) => void;
-};
+    };
 
 export interface Subscription {
   unsubscribe(): void;

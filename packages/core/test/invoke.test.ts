@@ -1948,21 +1948,14 @@ describe('invoke', () => {
         states: {
           counting: {
             invoke: {
-              src: () =>
-                fromObservable(() =>
-                  infinite$.pipe(
-                    map((value) => {
-                      return { type: 'COUNT', value };
-                    })
-                  )
-                )
+              src: () => fromObservable(() => infinite$),
+              onEmit: {
+                actions: assign({ count: (_, e) => e.data })
+              }
             },
             always: {
               target: 'counted',
               guard: (ctx) => ctx.count === 5
-            },
-            on: {
-              COUNT: { actions: assign({ count: (_, e) => e.value }) }
             }
           },
           counted: {
