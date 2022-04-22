@@ -15,12 +15,7 @@ import {
   State,
   StateFrom
 } from 'xstate';
-import {
-  createBehaviorFrom,
-  fromCallback,
-  fromPromise,
-  fromMachine
-} from 'xstate/actors';
+import { fromCallback, fromPromise, fromMachine } from 'xstate/actors';
 import { useActor, useMachine } from '../src';
 import { describeEachReactMode } from './utils';
 
@@ -448,7 +443,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     const machine = createMachine({
       context: ({ spawn }) => ({
         ref: spawn(
-          createBehaviorFrom(() => {
+          fromCallback(() => {
             childSpawned = true;
           })
         )
