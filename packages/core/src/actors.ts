@@ -193,7 +193,7 @@ export function fromPromise<T, TEvent extends EventObject>(
               if (!canceled) {
                 observers.forEach((observer) => {
                   observer.next?.(response);
-                  observer.complete?.();
+                  if (observers.has(observer)) observer.complete?.();
                 });
               }
             },
