@@ -27,7 +27,7 @@ import {
   toObserver,
   symbolObservable
 } from './utils';
-import { doneInvoke, error, actionTypes } from './actions';
+import { error, actionTypes } from './actions';
 import { interpret } from './interpreter';
 import { Mailbox } from './Mailbox';
 

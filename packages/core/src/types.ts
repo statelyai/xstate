@@ -588,9 +588,7 @@ export interface InvokeConfig<
     | string
     | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
 
-  onEmit?:
-    | string
-    | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
+  onEmit?: string | SingleOrArray<TransitionConfig<TContext, EmitEvent<any>>>;
   /**
    * Meta data related to this invocation
    */
