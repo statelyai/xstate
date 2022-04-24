@@ -27,7 +27,7 @@ import { inspect } from '@xstate/inspect';
 
 inspect({
   // options
-  // url: 'https://statecharts.io/inspect', // (default)
+  // url: 'https://stately.ai/viz?inspect', // (default)
   iframe: false // 打开新窗口
 });
 ```
@@ -48,7 +48,7 @@ const service = interpret(someMachine, { devTools: true });
 // 默认
 inspect({
   iframe: () => document.querySelector('iframe[data-xstate]'),
-  url: 'https://statecharts.io/inspect'
+  url: 'https://stately.ai/viz?inspect'
 });
 
 // 同上
@@ -77,7 +77,7 @@ inspect();
   });
   ```
 
-- `url` (string) - 要连接到的检查器的 URL。 默认情况下，检查器在 `http://statecharts.io/inspect` 上运行。
+- `url` (string) - 要连接到的检查器的 URL。 默认情况下，检查器在 `https://stately.ai/viz?inspect` 上运行。
 
 **返回:** 具有以下属性的检查器对象：
 

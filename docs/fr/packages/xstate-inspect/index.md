@@ -27,7 +27,7 @@ import { inspect } from '@xstate/inspect';
 
 inspect({
   // options
-  // url: 'https://statecharts.io/inspect', // (default)
+  // url: 'https://stately.ai/viz?inspect', // (default)
   iframe: false // open in new window
 });
 ```
@@ -48,7 +48,7 @@ const service = interpret(someMachine, { devTools: true });
 // defaults
 inspect({
   iframe: () => document.querySelector('iframe[data-xstate]'),
-  url: 'https://statecharts.io/inspect'
+  url: 'https://stately.ai/viz?inspect'
 });
 
 // the above is the same as this:
@@ -77,7 +77,7 @@ inspect();
   });
   ```
 
-- `url` (string) - the URL of the inspector to connect to. By default, the inspector is running on `http://statecharts.io/inspect`.
+- `url` (string) - the URL of the inspector to connect to. By default, the inspector is running on `https://stately.ai/viz?inspect`.
 
 **Returns:** an inspector object with the following properties:
 

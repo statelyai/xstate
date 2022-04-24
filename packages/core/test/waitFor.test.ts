@@ -46,6 +46,31 @@ describe('waitFor', () => {
     }
   });
 
+  it('should not reject immediately when passing Infinity as timeout', async () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: { NEXT: 'b' }
+        },
+        b: {
+          on: { NEXT: 'c' }
+        },
+        c: {}
+      }
+    });
+    const service = interpret(machine).start();
+    const result = await Promise.race([
+      waitFor(service, (state) => state.matches('c'), {
+        timeout: Infinity
+      }),
+      new Promise((res) => setTimeout(res, 10)).then(() => 'timeout')
+    ]);
+
+    expect(result).toBe('timeout');
+    service.stop();
+  });
+
   it('should throw an error when reaching a final state that does not match the predicate', async () => {
     const machine = createMachine({
       initial: 'a',
