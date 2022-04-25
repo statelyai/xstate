@@ -1813,8 +1813,8 @@ describe('sendTo', () => {
       context: ({ spawn }) => ({
         child: spawn(childMachine)
       }),
-      // @ts-expect-error
       entry: sendTo((ctx) => ctx.child, {
+        // @ts-expect-error
         type: 'UNKNOWN'
       })
     });
