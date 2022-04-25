@@ -18,6 +18,8 @@ JavaScript and TypeScript [finite state machines](https://en.wikipedia.org/wiki/
 
 💙 [Explore our catalogue of examples](https://xstate-catalogue.com/)
 
+➡️ [Create state machines with the Stately Editor](https://stately.ai/editor)
+
 🖥 [Download our VS Code extension](https://marketplace.visualstudio.com/items?itemName=statelyai.stately-vscode)
 
 📑 Adheres to the [SCXML specification](https://www.w3.org/TR/scxml/)
