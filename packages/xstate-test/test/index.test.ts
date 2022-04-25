@@ -96,7 +96,10 @@ describe('events', () => {
   });
 
   it('should allow for dynamic generation of cases based on state', async () => {
-    const testMachine = createMachine({
+    const testMachine = createMachine<
+      { values: number[] },
+      { type: 'EVENT'; value: number }
+    >({
       initial: 'a',
       context: {
         values: [1, 2, 3] // to be read by generator
