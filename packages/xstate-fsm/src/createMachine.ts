@@ -172,7 +172,7 @@ export function createMachine<T extends MachineConfig<T>>(
       const stateNodeObject = machine.states[state.value as string];
 
       if (!stateNodeObject) {
-        throw new Error(`Invalid state value: ${state.value}`);
+        throw new Error(`Invalid state value: ${state.value as string}`);
       }
 
       if (stateNodeObject?.on) {
