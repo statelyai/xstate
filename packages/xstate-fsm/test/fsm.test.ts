@@ -1,4 +1,3 @@
-// import { createMachine, interpret, StateMachine } from '../src';
 import {
   createMachine2,
   interpret as interpret2,
@@ -7,7 +6,7 @@ import {
 import { fromPromise } from '../src/actors';
 
 describe('@xstate/fsm', () => {
-  it('should have the correct initial state', () => {
+  it('should have the correct initial state and actions', () => {
     const { initialState } = createMachine2({
       initial: 'green',
       context: {},
@@ -21,6 +20,7 @@ describe('@xstate/fsm', () => {
     expect(initialState.value).toEqual('green');
     expect(initialState.actions).toEqual([{ type: 'enterGreen' }]);
   });
+
   it('should have initial context updated by initial assign actions', () => {
     const { initialState } = createMachine2({
       initial: 'init',
@@ -194,7 +194,7 @@ describe('@xstate/fsm', () => {
       }
     });
 
-    expect(initialState.matches('green')).toBeTruthy();
+    expect(initialState.value).toEqual('green');
   });
 
   it('should match transition states', () => {
@@ -218,9 +218,9 @@ describe('@xstate/fsm', () => {
       type: 'TIMER'
     });
 
-    expect(nextState.matches('yellow')).toBeTruthy();
+    expect(nextState.value).toEqual('yellow');
 
-    if (nextState.matches('yellow')) {
+    if (nextState.value === 'yellow') {
       expect(nextState.context.go).toBeFalsy();
     }
   });
@@ -241,7 +241,7 @@ describe('interpreter', () => {
     const toggleService = interpret2(toggleMachine).start();
 
     toggleService.subscribe((state) => {
-      if (state.matches('active')) {
+      if (state.value === 'active') {
         done();
       }
     });
@@ -261,7 +261,7 @@ describe('interpreter', () => {
     const toggleService = interpret2(toggleMachine).start();
 
     toggleService.subscribe((state) => {
-      if (state.matches('inactive')) {
+      if (state.value === 'inactive') {
         done();
       }
     });
@@ -343,13 +343,12 @@ describe('interpreter', () => {
       const service = interpret2(machine).start({
         value: 'bar',
         context: {},
-        actions: [],
-        matches: () => false
+        actions: []
       });
       expect(service.getSnapshot().value).toBe('bar');
 
       service.send({ type: 'NEXT' });
-      expect(service.getSnapshot().matches('baz')).toBe(true);
+      expect(service.getSnapshot().value).toEqual('baz');
     });
 
     it('should rehydrate the state and the context if both are provided', () => {
@@ -375,14 +374,13 @@ describe('interpreter', () => {
       const service = interpret2(machine).start({
         value: 'bar',
         context,
-        actions: [],
-        matches: () => false
+        actions: []
       });
       expect(service.getSnapshot().value).toBe('bar');
       expect(service.getSnapshot().context).toBe(context);
 
       service.send({ type: 'NEXT' });
-      expect(service.getSnapshot().matches('baz')).toBe(true);
+      expect(service.getSnapshot().value).toEqual('baz');
     });
   });
 
@@ -571,13 +569,12 @@ describe('interpreter', () => {
       const service = interpret2(machine).start({
         value: 'bar',
         context: {},
-        actions: [],
-        matches: () => false
+        actions: []
       });
       expect(service.getSnapshot().value).toBe('bar');
 
       service.send({ type: 'NEXT' });
-      expect(service.getSnapshot().matches('baz')).toBe(true);
+      expect(service.getSnapshot().value).toEqual('baz');
     });
 
     it('should rehydrate the state and the context if both are provided', () => {
@@ -603,14 +600,13 @@ describe('interpreter', () => {
       const service = interpret2(machine).start({
         value: 'bar',
         context,
-        actions: [],
-        matches: () => false
+        actions: []
       });
       expect(service.getSnapshot().value).toBe('bar');
       expect(service.getSnapshot().context).toBe(context);
 
       service.send({ type: 'NEXT' });
-      expect(service.getSnapshot().matches('baz')).toBe(true);
+      expect(service.getSnapshot().value).toEqual('baz');
     });
 
     it('should execute initial actions when re-starting a service', () => {

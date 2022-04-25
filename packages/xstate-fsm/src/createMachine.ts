@@ -84,24 +84,25 @@ export interface Behavior<TEvent extends EventObject, TEmitted> {
 export function assign<TMachine extends MachineConfig2<any>, TEvent>(
   assignment: Assigner<TMachine, TEvent> | PropertyAssigner<TMachine, TEvent>
 ): DynamicActionObject<TMachine, TEvent> {
-  const d = function resolveAssign(ctx, eventObject) {
+  const assignAction = function resolveAssign(ctx, eventObject) {
     if (typeof assignment === 'function') {
       return assignment(ctx, eventObject);
     }
     const tmpContext = { ...ctx };
-    for (const key in assignment) {
-      const assigner = assignment[key];
+
+    Object.keys(assignment).forEach((key) => {
+      const assigner = assignment[key as keyof typeof assignment];
       tmpContext[key] =
         typeof assigner === 'function' ? assigner(ctx, eventObject) : assigner;
-    }
+    });
 
     return tmpContext;
   };
 
   // @ts-ignore
-  d.type = 'xstate.assign' as const;
-  d.__xstate = true as true;
-  return d;
+  assignAction.type = 'xstate.assign' as const;
+  assignAction.__xstate = true as true;
+  return assignAction;
 }
 
 export interface AssignActionObject<TMachine, TEvent> {
@@ -238,7 +239,6 @@ interface StateFrom<T extends MachineConfig2<any> | Machine<any>> {
   value: keyof A.Get<T, 'states'> | null;
   context: A.Get<T, 'context'>;
   actions: any[];
-  matches: (value: keyof A.Get<T, 'states'>) => boolean;
 }
 
 interface ActionImplementionMap<TMachine> {
@@ -426,8 +426,7 @@ export function createMachine2<T extends MachineConfig2<T>>(
           return {
             value: target,
             actions,
-            context: nextContext,
-            matches: (value) => value === target
+            context: nextContext
           } as StateFrom<T>;
         }
       }
@@ -461,8 +460,7 @@ export function createMachine2<T extends MachineConfig2<T>>(
           actions: config.initial
             ? states[config.initial as string].entry ?? []
             : [],
-          context: config.context as any,
-          matches: () => true
+          context: config.context as any
         },
         { type: 'xstate.init' } as any
       );
@@ -474,8 +472,7 @@ export function createMachine2<T extends MachineConfig2<T>>(
           actions: config.initial
             ? states[config.initial as string].entry ?? []
             : [],
-          context: config.context as any,
-          matches: () => true
+          context: config.context as any
         },
         { type: 'xstate.init' } as any,
         exec
@@ -486,10 +483,21 @@ export function createMachine2<T extends MachineConfig2<T>>(
   return machine;
 }
 
+// Taken from RxJS
+export interface Observer<T> {
+  next: (value: T) => void;
+  error?: (err: any) => void;
+  complete?: () => void;
+}
+
+type ObserverOrNext<T> = Observer<T> | Observer<T>['next'];
+
 interface Interpreter2 {
   start: (state?: StateFrom<any>) => Interpreter2;
   send: (event: EventObject) => void;
-  subscribe: (obs: any) => { unsubscribe: () => void };
+  subscribe: (
+    obs: ObserverOrNext<StateFrom<any>>
+  ) => { unsubscribe: () => void };
   getSnapshot: () => StateFrom<any>;
 }
 
@@ -520,8 +528,6 @@ export function interpret<T extends Machine<any>>(machine: T): Interpreter2 {
 
       state = machine.transition(state, event, executor);
 
-      console.log(state.actions);
-
       state.actions.forEach((action) => {
         if (action.type === 'xstate.start') {
           const { src } = action.invoke;
@@ -543,10 +549,8 @@ export function interpret<T extends Machine<any>>(machine: T): Interpreter2 {
       observers.forEach((obs) => obs.next(state));
     },
     subscribe: (obs) => {
-      let observer = obs;
-      if (typeof obs === 'function') {
-        observer = { next: obs };
-      }
+      const observer = typeof obs === 'function' ? { next: obs } : obs;
+
       observers.add(observer);
 
       observer.next(state);
