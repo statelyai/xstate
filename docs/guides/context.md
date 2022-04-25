@@ -241,10 +241,10 @@ const counterMachine = createMachine({
       on: {
         INC_TWICE: {
           actions: [
-            (context) => console.log(`Before: ${context.count}`),
+            (context) => console.log(`Before: ${context.count}`), // "Before: 2"
             assign({ count: (context) => context.count + 1 }), // count === 1
             assign({ count: (context) => context.count + 1 }), // count === 2
-            (context) => console.log(`After: ${context.count}`)
+            (context) => console.log(`After: ${context.count}`) // "After: 2"
           ]
         }
       }
