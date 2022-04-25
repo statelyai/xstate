@@ -715,7 +715,7 @@ describe('entry/exit actions', () => {
       });
 
       const service = interpret(machine).start();
-      // it's important to send an event here that results in a transition as that computes new `state.configuration`
+      // it's important to send an event here that results in a transition  that computes new `state.configuration`
       // and that could impact the order in which exit actions are called
       service.send({ type: 'EV' });
       service.stop();
@@ -1749,7 +1749,7 @@ describe('sendTo', () => {
         ({
           child: spawn(fromMachine(childMachine))
         } as { child: ActorRefFrom<typeof childMachine> }),
-      entry: sendTo((ctx) => ctx.child as any, { type: 'EVENT' })
+      entry: sendTo((ctx) => ctx.child, { type: 'EVENT' })
     });
 
     interpret(parentMachine).start();
@@ -1772,13 +1772,14 @@ describe('sendTo', () => {
     const parentMachine = createMachine({
       context: ({ spawn }) => {
         return {
-          child: spawn(fromMachine(childMachine), 'child')
-        } as {
-          child: ActorRefFrom<typeof childMachine>;
-          count: number;
+          child: spawn(fromMachine(childMachine), 'child'),
+          count: 42
         };
       },
-      entry: sendTo((ctx) => ctx.child, { type: 'EVENT' })
+      entry: sendTo(
+        (ctx) => ctx.child,
+        (ctx) => ({ type: 'EVENT', count: ctx.count })
+      )
     });
 
     interpret(parentMachine)
@@ -1792,6 +1793,31 @@ describe('sendTo', () => {
         });
       })
       .start();
+  });
+
+  it('should report a type error for an invalid event', () => {
+    const childMachine = createMachine<any, { type: 'EVENT' }>({
+      initial: 'waiting',
+      states: {
+        waiting: {
+          on: {
+            EVENT: {}
+          }
+        }
+      }
+    });
+
+    createMachine<{
+      child: ActorRefFrom<typeof childMachine>;
+    }>({
+      context: ({ spawn }) => ({
+        child: spawn(childMachine)
+      }),
+      // @ts-expect-error
+      entry: sendTo((ctx) => ctx.child, {
+        type: 'UNKNOWN'
+      })
+    });
   });
 });
 
