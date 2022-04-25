@@ -685,7 +685,12 @@ export class Interpreter<
                 );
               },
               error: (errorData) => {
-                this.send(errorData as TODO);
+                const errorEvent = error(id, errorData);
+                this.send(
+                  toSCXMLEvent(errorEvent, {
+                    origin: ref
+                  }) as TODO
+                );
                 // TODO: handle error
                 this.stop();
               },

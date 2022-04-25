@@ -27,7 +27,7 @@ import {
   toObserver,
   symbolObservable
 } from './utils';
-import { error, actionTypes } from './actions';
+import { actionTypes } from './actions';
 import { interpret } from './interpreter';
 import { Mailbox } from './Mailbox';
 
@@ -133,10 +133,7 @@ export function fromCallback<TEvent extends EventObject>(
               canceled = true;
             },
             (errorData) => {
-              const errorEvent = error(actorContext.name, errorData);
-              sendError(
-                toSCXMLEvent(errorEvent, { origin: actorContext.self })
-              );
+              sendError(errorData);
               canceled = true;
             }
           );
@@ -183,7 +180,7 @@ export function fromPromise<T, TEvent extends EventObject>(
   const observers: Set<Observer<T>> = new Set();
 
   const behavior: Behavior<TEvent, T | undefined> = {
-    transition: (_, event, actorContext) => {
+    transition: (_, event) => {
       switch (event.type) {
         case startSignalType:
           const resolvedPromise = Promise.resolve(lazyPromise());
@@ -193,18 +190,16 @@ export function fromPromise<T, TEvent extends EventObject>(
               if (!canceled) {
                 observers.forEach((observer) => {
                   observer.next?.(response);
-                  if (observers.has(observer)) observer.complete?.();
+                  if (observers.has(observer)) {
+                    observer.complete?.();
+                  }
                 });
               }
             },
             (errorData) => {
               if (!canceled) {
-                const errorEvent = error(actorContext.name, errorData);
-
                 observers.forEach((observer) => {
-                  observer.error?.(
-                    toSCXMLEvent(errorEvent, { origin: actorContext.self })
-                  );
+                  observer.error?.(errorData);
                 });
               }
             }
@@ -251,7 +246,7 @@ export function fromObservable<T, TEvent extends EventObject>(
   };
 
   const behavior: Behavior<TEvent, T | undefined> = {
-    transition: (_, event, actorContext) => {
+    transition: (_, event) => {
       if (event.type === startSignalType) {
         observable = lazyObservable();
         subscription = observable.subscribe({
@@ -259,11 +254,7 @@ export function fromObservable<T, TEvent extends EventObject>(
             sendNext(value);
           },
           error: (err) => {
-            sendError(
-              toSCXMLEvent(error(actorContext.name, err) as any, {
-                origin: actorContext.self
-              })
-            );
+            sendError(err);
           },
           complete: () => {
             sendComplete();
