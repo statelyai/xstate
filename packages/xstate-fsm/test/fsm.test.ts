@@ -1,13 +1,9 @@
-import {
-  createMachine2,
-  interpret as interpret2,
-  assign as assign2
-} from '../src/createMachine';
+import { createMachine, interpret, assign } from '../src/';
 import { fromPromise } from '../src/actors';
 
 describe('@xstate/fsm', () => {
   it('should have the correct initial state and actions', () => {
-    const { initialState } = createMachine2({
+    const { initialState } = createMachine({
       initial: 'green',
       context: {},
       states: {
@@ -22,17 +18,18 @@ describe('@xstate/fsm', () => {
   });
 
   it('should have initial context updated by initial assign actions', () => {
-    const { initialState } = createMachine2({
+    const { initialState } = createMachine({
       initial: 'init',
       context: {
         count: 0
       },
       states: {
         init: {
-          entry: assign2({
+          entry: assign({
             count: () => 1
-          }) as any // TODO: FIX
-        }
+          })
+        },
+        other: {}
       }
     });
 
@@ -40,7 +37,7 @@ describe('@xstate/fsm', () => {
   });
 
   it('should transition correctly', () => {
-    const fsm = createMachine2({
+    const fsm = createMachine({
       id: 'light',
       initial: 'green',
       context: { count: 0, foo: 'bar', go: true },
@@ -49,10 +46,10 @@ describe('@xstate/fsm', () => {
           entry: 'enterGreen',
           exit: [
             'exitGreen',
-            assign2({ count: (ctx) => ctx.count + 1 }),
-            assign2({ count: (ctx) => ctx.count + 1 }),
-            assign2({ foo: 'static' }),
-            assign2({ foo: (ctx) => ctx.foo + '++' })
+            assign({ count: (ctx) => ctx.count + 1 }),
+            assign({ count: (ctx) => ctx.count + 1 }),
+            assign({ foo: 'static' }),
+            assign({ foo: (ctx) => ctx.foo + '++' })
           ],
           on: {
             TIMER: {
@@ -62,7 +59,7 @@ describe('@xstate/fsm', () => {
           }
         },
         yellow: {
-          entry: assign2({ go: false })
+          entry: assign({ go: false })
         },
         red: {}
       }
@@ -90,7 +87,7 @@ describe('@xstate/fsm', () => {
   });
 
   it('should stay on the same state for undefined transitions', () => {
-    const fsm = createMachine2({
+    const fsm = createMachine({
       initial: 'green',
       context: {},
       states: {
@@ -109,28 +106,33 @@ describe('@xstate/fsm', () => {
 
   it('should throw an error for undefined states', () => {
     expect(() => {
-      const fsm = createMachine2({
+      const fsm = createMachine({
         initial: 'a',
         context: {},
         states: { a: {} }
       });
-      fsm.transition({ value: 'unknown', actions: [] } as any, {
-        type: 'TIMER'
-      });
+      fsm.transition(
+        // @ts-expect-error
+        { value: 'unknown', actions: [] },
+        {
+          type: 'TIMER'
+        }
+      );
     }).toThrow();
   });
 
   it('should throw an error for undefined next state config', () => {
     const invalidState = 'blue';
 
-    const testMachine = createMachine2({
+    const testMachine = createMachine({
       id: 'test',
       context: {},
       initial: 'green',
       states: {
         green: {
           on: {
-            TARGET_INVALID: invalidState as any
+            // @ts-expect-error
+            TARGET_INVALID: invalidState
           }
         },
         yellow: {}
@@ -144,7 +146,7 @@ describe('@xstate/fsm', () => {
   });
 
   it('should work with guards', () => {
-    const fsm = createMachine2({
+    const fsm = createMachine({
       initial: 'inactive',
       schema: {
         event: {} as { type: 'INC'; value: number } | { type: 'EVENT' }
@@ -158,8 +160,8 @@ describe('@xstate/fsm', () => {
               guard: (ctx) => ctx.count > 3
             },
             INC: {
-              actions: assign2({
-                count: (ctx, e) => ctx.count + (e as any).value
+              actions: assign({
+                count: (ctx, e) => ctx.count + e.value
               })
             }
           }
@@ -180,13 +182,13 @@ describe('@xstate/fsm', () => {
     const incState = fsm.transition(fsm.initialState, {
       type: 'INC',
       value: 5
-    } as any);
+    });
     const activeState = fsm.transition(incState, { type: 'EVENT' });
     expect(activeState.value).toEqual('active');
   });
 
   it('should match initialState', () => {
-    const { initialState } = createMachine2({
+    const { initialState } = createMachine({
       initial: 'green',
       context: {},
       states: {
@@ -198,7 +200,7 @@ describe('@xstate/fsm', () => {
   });
 
   it('should match transition states', () => {
-    const lightFSM2 = createMachine2({
+    const lightFSM2 = createMachine({
       initial: 'green',
       context: {
         go: true
@@ -208,7 +210,7 @@ describe('@xstate/fsm', () => {
           on: { TIMER: 'yellow' }
         },
         yellow: {
-          entry: assign2({
+          entry: assign({
             go: false
           })
         }
@@ -228,7 +230,7 @@ describe('@xstate/fsm', () => {
 
 describe('interpreter', () => {
   it('listeners should immediately get the initial state', (done) => {
-    const toggleMachine = createMachine2({
+    const toggleMachine = createMachine({
       initial: 'active',
       context: {},
       states: {
@@ -238,7 +240,7 @@ describe('interpreter', () => {
         inactive: {}
       }
     });
-    const toggleService = interpret2(toggleMachine).start();
+    const toggleService = interpret(toggleMachine).start();
 
     toggleService.subscribe((state) => {
       if (state.value === 'active') {
@@ -248,7 +250,7 @@ describe('interpreter', () => {
   });
 
   it('listeners should subscribe to state changes', (done) => {
-    const toggleMachine = createMachine2({
+    const toggleMachine = createMachine({
       initial: 'active',
       context: {},
       states: {
@@ -258,7 +260,7 @@ describe('interpreter', () => {
         inactive: {}
       }
     });
-    const toggleService = interpret2(toggleMachine).start();
+    const toggleService = interpret(toggleMachine).start();
 
     toggleService.subscribe((state) => {
       if (state.value === 'inactive') {
@@ -272,7 +274,7 @@ describe('interpreter', () => {
   it('should execute actions', (done) => {
     let executed = false;
 
-    const actionMachine = createMachine2({
+    const actionMachine = createMachine({
       initial: 'active',
       context: {},
       states: {
@@ -290,7 +292,7 @@ describe('interpreter', () => {
       }
     });
 
-    const actionService = interpret2(actionMachine).start();
+    const actionService = interpret(actionMachine).start();
 
     actionService.subscribe(() => {
       if (executed) {
@@ -303,7 +305,7 @@ describe('interpreter', () => {
 
   describe('`start` method', () => {
     it('should start the service with initial state by default', () => {
-      const machine = createMachine2({
+      const machine = createMachine({
         initial: 'foo',
         context: {},
         states: {
@@ -316,13 +318,13 @@ describe('interpreter', () => {
         }
       });
 
-      const service = interpret2(machine).start();
+      const service = interpret(machine).start();
 
       expect(service.getSnapshot().value).toBe('foo');
     });
 
     it('should rehydrate the state if the state if provided', () => {
-      const machine = createMachine2({
+      const machine = createMachine({
         initial: 'foo',
         context: {},
         states: {
@@ -340,7 +342,7 @@ describe('interpreter', () => {
         }
       });
 
-      const service = interpret2(machine).start({
+      const service = interpret(machine).start({
         value: 'bar',
         context: {},
         actions: []
@@ -352,7 +354,7 @@ describe('interpreter', () => {
     });
 
     it('should rehydrate the state and the context if both are provided', () => {
-      const machine = createMachine2({
+      const machine = createMachine({
         initial: 'foo',
         context: {},
         states: {
@@ -371,7 +373,7 @@ describe('interpreter', () => {
       });
 
       const context = { hello: 'world' };
-      const service = interpret2(machine).start({
+      const service = interpret(machine).start({
         value: 'bar',
         context,
         actions: []
@@ -387,7 +389,7 @@ describe('interpreter', () => {
   it('should execute initial entry action', () => {
     let executed = false;
 
-    const machine = createMachine2({
+    const machine = createMachine({
       initial: 'foo',
       context: {},
       states: {
@@ -399,14 +401,14 @@ describe('interpreter', () => {
       }
     });
 
-    interpret2(machine).start();
+    interpret(machine).start();
     expect(executed).toBe(true);
   });
 
   it('should lookup string actions in options', () => {
     let executed = false;
 
-    const machine = createMachine2(
+    const machine = createMachine(
       {
         initial: 'foo',
         context: {},
@@ -425,7 +427,7 @@ describe('interpreter', () => {
       }
     );
 
-    interpret2(machine).start();
+    interpret(machine).start();
 
     expect(executed).toBe(true);
   });
@@ -433,7 +435,7 @@ describe('interpreter', () => {
   it('referenced actions should read context', () => {
     let executed = false;
 
-    const machine = createMachine2(
+    const machine = createMachine(
       {
         initial: 'start',
         context: {
@@ -455,20 +457,20 @@ describe('interpreter', () => {
       }
     );
 
-    interpret2(machine).start();
+    interpret(machine).start();
 
     expect(executed).toBe(true);
   });
 
   it('should reveal the current state', () => {
-    const machine = createMachine2({
+    const machine = createMachine({
       initial: 'test',
       context: { foo: 'bar' },
       states: {
         test: {}
       }
     });
-    const service = interpret2(machine);
+    const service = interpret(machine);
 
     service.start();
 
@@ -477,7 +479,7 @@ describe('interpreter', () => {
   });
 
   it('should reveal the current state after transition', (done) => {
-    const machine = createMachine2({
+    const machine = createMachine({
       initial: 'test',
       context: { foo: 'bar' },
       states: {
@@ -487,7 +489,7 @@ describe('interpreter', () => {
         success: {}
       }
     });
-    const service = interpret2(machine);
+    const service = interpret(machine);
 
     service.start();
 
@@ -501,7 +503,7 @@ describe('interpreter', () => {
   });
 
   it('should not re-execute exit/entry actions for transitions with undefined targets', () => {
-    const machine = createMachine2({
+    const machine = createMachine({
       initial: 'test',
       context: {},
       states: {
@@ -529,7 +531,7 @@ describe('interpreter', () => {
 
   describe('`start` method', () => {
     it('should start the service with initial state by default', () => {
-      const machine = createMachine2({
+      const machine = createMachine({
         initial: 'foo',
         context: {},
         states: {
@@ -542,13 +544,13 @@ describe('interpreter', () => {
         }
       });
 
-      const service = interpret2(machine).start();
+      const service = interpret(machine).start();
 
       expect(service.getSnapshot().value).toBe('foo');
     });
 
     it('should rehydrate the state if the state if provided', () => {
-      const machine = createMachine2({
+      const machine = createMachine({
         initial: 'foo',
         context: {},
         states: {
@@ -566,7 +568,7 @@ describe('interpreter', () => {
         }
       });
 
-      const service = interpret2(machine).start({
+      const service = interpret(machine).start({
         value: 'bar',
         context: {},
         actions: []
@@ -578,7 +580,7 @@ describe('interpreter', () => {
     });
 
     it('should rehydrate the state and the context if both are provided', () => {
-      const machine = createMachine2({
+      const machine = createMachine({
         initial: 'foo',
         context: {},
         states: {
@@ -597,7 +599,7 @@ describe('interpreter', () => {
       });
 
       const context = { hello: 'world' };
-      const service = interpret2(machine).start({
+      const service = interpret(machine).start({
         value: 'bar',
         context,
         actions: []
@@ -611,7 +613,7 @@ describe('interpreter', () => {
 
     it('should execute initial actions when re-starting a service', () => {
       let entryActionCalled = false;
-      const machine = createMachine2({
+      const machine = createMachine({
         initial: 'test',
         context: {},
         states: {
@@ -621,7 +623,7 @@ describe('interpreter', () => {
         }
       });
 
-      const service = interpret2(machine).start();
+      const service = interpret(machine).start();
       // service.stop(); // TODO: stop
 
       entryActionCalled = false;
@@ -633,7 +635,7 @@ describe('interpreter', () => {
 
     it('should execute initial actions when re-starting a service that transitioned to a different state', () => {
       let entryActionCalled = false;
-      const machine = createMachine2({
+      const machine = createMachine({
         initial: 'a',
         context: {},
         states: {
@@ -647,7 +649,7 @@ describe('interpreter', () => {
         }
       });
 
-      const service = interpret2(machine).start();
+      const service = interpret(machine).start();
       service.send({ type: 'NEXT' });
       // service.stop(); // TODO: stop
 
@@ -660,7 +662,7 @@ describe('interpreter', () => {
 
     it('should not execute actions of the last known non-initial state when re-starting a service', () => {
       let entryActionCalled = false;
-      const machine = createMachine2({
+      const machine = createMachine({
         initial: 'a',
         context: {},
         states: {
@@ -675,7 +677,7 @@ describe('interpreter', () => {
         }
       });
 
-      const service = interpret2(machine).start();
+      const service = interpret(machine).start();
       service.send({ type: 'NEXT' });
       // service.stop(); // TODO: stop
 
@@ -691,7 +693,7 @@ describe('interpreter', () => {
 describe('new', () => {
   describe('machine', () => {
     it('should transition correctly', () => {
-      const machine = createMachine2({
+      const machine = createMachine({
         initial: 'green',
         context: {},
         states: {
@@ -710,7 +712,7 @@ describe('new', () => {
       ).toEqual('yellow');
     });
     it('should stay on the same state when there is no transition for the sent event', () => {
-      const machine = createMachine2({
+      const machine = createMachine({
         initial: 'green',
         context: {},
         states: {
@@ -729,7 +731,7 @@ describe('new', () => {
       ).toEqual('green');
     });
     it('should stay on the same state when there is no transition for the sent event', () => {
-      const machine = createMachine2({
+      const machine = createMachine({
         initial: 'green',
         context: {},
         states: {
@@ -749,7 +751,7 @@ describe('new', () => {
     });
 
     it('should output actions', () => {
-      const machine = createMachine2({
+      const machine = createMachine({
         initial: 'green',
         context: { number: 42 },
         states: {
@@ -779,7 +781,7 @@ describe('new', () => {
     });
 
     it('should work with guards', () => {
-      const machine = createMachine2({
+      const machine = createMachine({
         initial: 'inactive',
         context: { num: 42 },
         states: {
@@ -809,7 +811,7 @@ describe('new', () => {
   });
 
   it('should support invokes', (done) => {
-    const machine = createMachine2({
+    const machine = createMachine({
       initial: 'idle',
       context: {
         num: 42
@@ -843,7 +845,7 @@ describe('new', () => {
       }
     });
 
-    const s = interpret2(machine).start();
+    const s = interpret(machine).start();
 
     s.subscribe((state) => {
       if (state.value === 'success') {
@@ -855,7 +857,7 @@ describe('new', () => {
   });
 
   it('should support invokes with dynamic source', (done) => {
-    const machine = createMachine2({
+    const machine = createMachine({
       initial: 'idle',
       context: {},
       states: {
@@ -888,7 +890,7 @@ describe('new', () => {
       }
     });
 
-    const s = interpret2(machine).start();
+    const s = interpret(machine).start();
 
     s.subscribe((state) => {
       if (state.value === 'success') {
@@ -897,5 +899,93 @@ describe('new', () => {
     });
 
     s.send({ type: 'NEXT' });
+  });
+});
+
+it('type sanity check', () => {
+  createMachine({
+    context: {
+      num: 42
+    },
+    schema: {
+      event: {} as { type: 'EVENT' } | { type: 'WHATEVER' }
+    },
+    states: {
+      red: {},
+      green: {
+        on: {
+          EVENT: 'yellow'
+        }
+      },
+      yellow: {
+        entry: assign((ctx) => ({ num: ctx.num + 3 })),
+        on: {
+          WHATEVER: [
+            {
+              guard: (ctx) => ctx.num === 42,
+              target: 'green'
+            }
+          ]
+        }
+      }
+    },
+    initial: 'green',
+    on: {
+      EVENT: {
+        target: '.red'
+      }
+    }
+  });
+
+  createMachine({
+    initial: 'inactive',
+    context: { num: 42 },
+    states: {
+      inactive: {
+        entry: assign({ num: 2 }),
+        on: {
+          EVENT: [
+            {
+              guard: (ctx) => ctx.num === 20,
+              target: 'inactive'
+            },
+            'active'
+          ],
+          FOO: {
+            guard: (_ctx) => true
+          }
+        }
+      },
+      active: {},
+      fail: {}
+    }
+  });
+
+  createMachine({
+    id: 'light',
+    initial: 'green',
+    context: { count: 0, foo: 'bar', go: true },
+    states: {
+      green: {
+        entry: 'enterGreen',
+        exit: [
+          'exitGreen',
+          assign({ count: (ctx) => ctx.count + 1 }),
+          assign((ctx) => ({ count: ctx.count + 1 })),
+          assign({ foo: 'static' }),
+          assign({ foo: (ctx) => ctx.foo + '++' })
+        ],
+        on: {
+          TIMER: {
+            target: 'yellow',
+            actions: ['g-y 1', 'g-y 2']
+          }
+        }
+      },
+      yellow: {
+        entry: assign({ go: false })
+      },
+      red: {}
+    }
   });
 });

@@ -1,4 +1,4 @@
-import { Behavior } from './createMachine';
+import type { Behavior } from './types';
 
 export function fromPromise<T>(
   createPromise: () => Promise<T>
