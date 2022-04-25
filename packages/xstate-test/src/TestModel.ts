@@ -10,8 +10,8 @@ import {
 } from '@xstate/graph';
 import {
   performDepthFirstTraversal,
-  traverseShortestPaths,
-  traverseSimplePaths,
+  traverseShortestPlans,
+  traverseSimplePlans,
   traverseSimplePathsTo
 } from '@xstate/graph/src/graph';
 import { EventObject, SingleOrArray } from 'xstate';
@@ -97,7 +97,7 @@ export class TestModel<TState, TEvent extends EventObject> {
     options?: Partial<TraversalOptions<TState, TEvent>>
   ): Array<StatePlan<TState, TEvent>> {
     return this.getPlans((behavior, resolvedOptions) => {
-      const shortestPaths = traverseShortestPaths(behavior, resolvedOptions);
+      const shortestPaths = traverseShortestPlans(behavior, resolvedOptions);
 
       return Object.values(shortestPaths);
     }, options);
@@ -128,7 +128,7 @@ export class TestModel<TState, TEvent extends EventObject> {
     options?: Partial<TraversalOptions<TState, any>>
   ): Array<StatePlan<TState, TEvent>> {
     return this.getPlans((behavior, resolvedOptions) => {
-      const simplePaths = traverseSimplePaths(behavior, resolvedOptions);
+      const simplePaths = traverseSimplePlans(behavior, resolvedOptions);
 
       return Object.values(simplePaths);
     }, options);

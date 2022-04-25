@@ -28,783 +28,698 @@ Object {
 }
 `;
 
-exports[`@xstate/graph getShortestPaths() should represent conditional paths based on context: shortest paths conditional 1`] = `
-Object {
-  "\\"bar\\" | {\\"id\\":\\"foo\\"} | \\"\\"": Array [
-    Object {
-      "state": "bar",
-      "steps": Array [
-        Object {
-          "eventType": "EVENT",
-          "state": "pending",
-        },
-      ],
-    },
-  ],
-  "\\"foo\\" | {\\"id\\":\\"foo\\"} | \\"\\"": Array [
-    Object {
-      "state": "foo",
-      "steps": Array [
-        Object {
-          "eventType": "STATE",
-          "state": "pending",
-        },
-      ],
-    },
-  ],
-  "\\"pending\\" | {\\"id\\":\\"foo\\"} | \\"\\"": Array [
-    Object {
-      "state": "pending",
-      "steps": Array [],
-    },
-  ],
-}
-`;
-
 exports[`@xstate/graph getShortestPaths() should return a mapping of shortest paths to all states (parallel): shortest paths parallel 1`] = `
-Object {
-  "{\\"a\\":\\"a1\\",\\"b\\":\\"b1\\"} |  | \\"\\"": Array [
-    Object {
-      "state": Object {
-        "a": "a1",
-        "b": "b1",
-      },
-      "steps": Array [],
+Array [
+  Object {
+    "state": Object {
+      "a": "a1",
+      "b": "b1",
     },
-  ],
-  "{\\"a\\":\\"a2\\",\\"b\\":\\"b2\\"} |  | \\"\\"": Array [
-    Object {
-      "state": Object {
-        "a": "a2",
-        "b": "b2",
-      },
-      "steps": Array [
-        Object {
-          "eventType": "2",
-          "state": Object {
-            "a": "a1",
-            "b": "b1",
-          },
+    "steps": Array [],
+  },
+  Object {
+    "state": Object {
+      "a": "a2",
+      "b": "b2",
+    },
+    "steps": Array [
+      Object {
+        "eventType": "2",
+        "state": Object {
+          "a": "a1",
+          "b": "b1",
         },
-      ],
-    },
-  ],
-  "{\\"a\\":\\"a3\\",\\"b\\":\\"b3\\"} |  | \\"\\"": Array [
-    Object {
-      "state": Object {
-        "a": "a3",
-        "b": "b3",
       },
-      "steps": Array [
-        Object {
-          "eventType": "3",
-          "state": Object {
-            "a": "a1",
-            "b": "b1",
-          },
-        },
-      ],
+    ],
+  },
+  Object {
+    "state": Object {
+      "a": "a3",
+      "b": "b3",
     },
-  ],
-}
+    "steps": Array [
+      Object {
+        "eventType": "3",
+        "state": Object {
+          "a": "a1",
+          "b": "b1",
+        },
+      },
+    ],
+  },
+]
 `;
 
 exports[`@xstate/graph getShortestPaths() should return a mapping of shortest paths to all states: shortest paths 1`] = `
-Object {
-  "\\"green\\" |  | \\"\\"": Array [
-    Object {
-      "state": "green",
-      "steps": Array [],
-    },
-  ],
-  "\\"green\\" |  | \\"doNothing\\"": Array [
-    Object {
-      "state": "green",
-      "steps": Array [
-        Object {
-          "eventType": "PUSH_BUTTON",
-          "state": "green",
-        },
-      ],
-    },
-  ],
-  "\\"yellow\\" |  | \\"\\"": Array [
-    Object {
-      "state": "yellow",
-      "steps": Array [
-        Object {
-          "eventType": "TIMER",
-          "state": "green",
-        },
-      ],
-    },
-  ],
-  "{\\"red\\":\\"flashing\\"} |  | \\"\\"": Array [
-    Object {
-      "state": Object {
-        "red": "flashing",
+Array [
+  Object {
+    "state": "green",
+    "steps": Array [],
+  },
+  Object {
+    "state": "yellow",
+    "steps": Array [
+      Object {
+        "eventType": "TIMER",
+        "state": "green",
       },
-      "steps": Array [
-        Object {
-          "eventType": "POWER_OUTAGE",
-          "state": "green",
-        },
-      ],
+    ],
+  },
+  Object {
+    "state": Object {
+      "red": "flashing",
     },
-  ],
-  "{\\"red\\":\\"stop\\"} |  | \\"\\"": Array [
-    Object {
-      "state": Object {
-        "red": "stop",
+    "steps": Array [
+      Object {
+        "eventType": "POWER_OUTAGE",
+        "state": "green",
       },
-      "steps": Array [
-        Object {
-          "eventType": "TIMER",
-          "state": "green",
-        },
-        Object {
-          "eventType": "TIMER",
-          "state": "yellow",
-        },
-        Object {
-          "eventType": "PED_COUNTDOWN",
-          "state": Object {
-            "red": "walk",
-          },
-        },
-        Object {
-          "eventType": "PED_COUNTDOWN",
-          "state": Object {
-            "red": "wait",
-          },
-        },
-      ],
-    },
-  ],
-  "{\\"red\\":\\"wait\\"} |  | \\"startCountdown\\"": Array [
-    Object {
-      "state": Object {
-        "red": "wait",
+    ],
+  },
+  Object {
+    "state": "green",
+    "steps": Array [
+      Object {
+        "eventType": "PUSH_BUTTON",
+        "state": "green",
       },
-      "steps": Array [
-        Object {
-          "eventType": "TIMER",
-          "state": "green",
-        },
-        Object {
-          "eventType": "TIMER",
-          "state": "yellow",
-        },
-        Object {
-          "eventType": "PED_COUNTDOWN",
-          "state": Object {
-            "red": "walk",
-          },
-        },
-      ],
+    ],
+  },
+  Object {
+    "state": Object {
+      "red": "walk",
     },
-  ],
-  "{\\"red\\":\\"walk\\"} |  | \\"\\"": Array [
-    Object {
-      "state": Object {
-        "red": "walk",
+    "steps": Array [
+      Object {
+        "eventType": "TIMER",
+        "state": "green",
       },
-      "steps": Array [
-        Object {
-          "eventType": "TIMER",
-          "state": "green",
-        },
-        Object {
-          "eventType": "TIMER",
-          "state": "yellow",
-        },
-      ],
+      Object {
+        "eventType": "TIMER",
+        "state": "yellow",
+      },
+    ],
+  },
+  Object {
+    "state": Object {
+      "red": "wait",
     },
-  ],
-}
+    "steps": Array [
+      Object {
+        "eventType": "TIMER",
+        "state": "green",
+      },
+      Object {
+        "eventType": "TIMER",
+        "state": "yellow",
+      },
+      Object {
+        "eventType": "PED_COUNTDOWN",
+        "state": Object {
+          "red": "walk",
+        },
+      },
+    ],
+  },
+  Object {
+    "state": Object {
+      "red": "stop",
+    },
+    "steps": Array [
+      Object {
+        "eventType": "TIMER",
+        "state": "green",
+      },
+      Object {
+        "eventType": "TIMER",
+        "state": "yellow",
+      },
+      Object {
+        "eventType": "PED_COUNTDOWN",
+        "state": Object {
+          "red": "walk",
+        },
+      },
+      Object {
+        "eventType": "PED_COUNTDOWN",
+        "state": Object {
+          "red": "wait",
+        },
+      },
+    ],
+  },
+]
 `;
 
 exports[`@xstate/graph getSimplePaths() should return a mapping of arrays of simple paths to all states 2`] = `
-Object {
-  "\\"green\\" |  | \\"\\"": Array [
-    Object {
-      "state": "green",
-      "steps": Array [],
-    },
-  ],
-  "\\"green\\" |  | \\"doNothing\\"": Array [
-    Object {
-      "state": "green",
-      "steps": Array [
-        Object {
-          "eventType": "PUSH_BUTTON",
-          "state": "green",
-        },
-      ],
-    },
-  ],
-  "\\"yellow\\" |  | \\"\\"": Array [
-    Object {
-      "state": "yellow",
-      "steps": Array [
-        Object {
-          "eventType": "TIMER",
-          "state": "green",
-        },
-      ],
-    },
-    Object {
-      "state": "yellow",
-      "steps": Array [
-        Object {
-          "eventType": "PUSH_BUTTON",
-          "state": "green",
-        },
-        Object {
-          "eventType": "TIMER",
-          "state": "green",
-        },
-      ],
-    },
-  ],
-  "{\\"red\\":\\"flashing\\"} |  | \\"\\"": Array [
-    Object {
-      "state": Object {
-        "red": "flashing",
+Array [
+  Object {
+    "state": "green",
+    "steps": Array [],
+  },
+  Object {
+    "state": "yellow",
+    "steps": Array [
+      Object {
+        "eventType": "TIMER",
+        "state": "green",
       },
-      "steps": Array [
-        Object {
-          "eventType": "TIMER",
-          "state": "green",
-        },
-        Object {
-          "eventType": "TIMER",
-          "state": "yellow",
-        },
-        Object {
-          "eventType": "PED_COUNTDOWN",
-          "state": Object {
-            "red": "walk",
-          },
-        },
-        Object {
-          "eventType": "PED_COUNTDOWN",
-          "state": Object {
-            "red": "wait",
-          },
-        },
-        Object {
-          "eventType": "POWER_OUTAGE",
-          "state": Object {
-            "red": "stop",
-          },
-        },
-      ],
-    },
-    Object {
-      "state": Object {
-        "red": "flashing",
+    ],
+  },
+  Object {
+    "state": "yellow",
+    "steps": Array [
+      Object {
+        "eventType": "PUSH_BUTTON",
+        "state": "green",
       },
-      "steps": Array [
-        Object {
-          "eventType": "TIMER",
-          "state": "green",
-        },
-        Object {
-          "eventType": "TIMER",
-          "state": "yellow",
-        },
-        Object {
-          "eventType": "PED_COUNTDOWN",
-          "state": Object {
-            "red": "walk",
-          },
-        },
-        Object {
-          "eventType": "POWER_OUTAGE",
-          "state": Object {
-            "red": "wait",
-          },
-        },
-      ],
-    },
-    Object {
-      "state": Object {
-        "red": "flashing",
+      Object {
+        "eventType": "TIMER",
+        "state": "green",
       },
-      "steps": Array [
-        Object {
-          "eventType": "TIMER",
-          "state": "green",
-        },
-        Object {
-          "eventType": "TIMER",
-          "state": "yellow",
-        },
-        Object {
-          "eventType": "POWER_OUTAGE",
-          "state": Object {
-            "red": "walk",
-          },
-        },
-      ],
+    ],
+  },
+  Object {
+    "state": Object {
+      "red": "flashing",
     },
-    Object {
-      "state": Object {
-        "red": "flashing",
+    "steps": Array [
+      Object {
+        "eventType": "TIMER",
+        "state": "green",
       },
-      "steps": Array [
-        Object {
-          "eventType": "TIMER",
-          "state": "green",
-        },
-        Object {
-          "eventType": "POWER_OUTAGE",
-          "state": "yellow",
-        },
-      ],
-    },
-    Object {
-      "state": Object {
-        "red": "flashing",
+      Object {
+        "eventType": "TIMER",
+        "state": "yellow",
       },
-      "steps": Array [
-        Object {
-          "eventType": "POWER_OUTAGE",
-          "state": "green",
+      Object {
+        "eventType": "PED_COUNTDOWN",
+        "state": Object {
+          "red": "walk",
         },
-      ],
-    },
-    Object {
-      "state": Object {
-        "red": "flashing",
       },
-      "steps": Array [
-        Object {
-          "eventType": "PUSH_BUTTON",
-          "state": "green",
+      Object {
+        "eventType": "PED_COUNTDOWN",
+        "state": Object {
+          "red": "wait",
         },
-        Object {
-          "eventType": "TIMER",
-          "state": "green",
-        },
-        Object {
-          "eventType": "TIMER",
-          "state": "yellow",
-        },
-        Object {
-          "eventType": "PED_COUNTDOWN",
-          "state": Object {
-            "red": "walk",
-          },
-        },
-        Object {
-          "eventType": "PED_COUNTDOWN",
-          "state": Object {
-            "red": "wait",
-          },
-        },
-        Object {
-          "eventType": "POWER_OUTAGE",
-          "state": Object {
-            "red": "stop",
-          },
-        },
-      ],
-    },
-    Object {
-      "state": Object {
-        "red": "flashing",
       },
-      "steps": Array [
-        Object {
-          "eventType": "PUSH_BUTTON",
-          "state": "green",
+      Object {
+        "eventType": "POWER_OUTAGE",
+        "state": Object {
+          "red": "stop",
         },
-        Object {
-          "eventType": "TIMER",
-          "state": "green",
-        },
-        Object {
-          "eventType": "TIMER",
-          "state": "yellow",
-        },
-        Object {
-          "eventType": "PED_COUNTDOWN",
-          "state": Object {
-            "red": "walk",
-          },
-        },
-        Object {
-          "eventType": "POWER_OUTAGE",
-          "state": Object {
-            "red": "wait",
-          },
-        },
-      ],
-    },
-    Object {
-      "state": Object {
-        "red": "flashing",
       },
-      "steps": Array [
-        Object {
-          "eventType": "PUSH_BUTTON",
-          "state": "green",
-        },
-        Object {
-          "eventType": "TIMER",
-          "state": "green",
-        },
-        Object {
-          "eventType": "TIMER",
-          "state": "yellow",
-        },
-        Object {
-          "eventType": "POWER_OUTAGE",
-          "state": Object {
-            "red": "walk",
-          },
-        },
-      ],
+    ],
+  },
+  Object {
+    "state": Object {
+      "red": "flashing",
     },
-    Object {
-      "state": Object {
-        "red": "flashing",
+    "steps": Array [
+      Object {
+        "eventType": "TIMER",
+        "state": "green",
       },
-      "steps": Array [
-        Object {
-          "eventType": "PUSH_BUTTON",
-          "state": "green",
-        },
-        Object {
-          "eventType": "TIMER",
-          "state": "green",
-        },
-        Object {
-          "eventType": "POWER_OUTAGE",
-          "state": "yellow",
-        },
-      ],
-    },
-    Object {
-      "state": Object {
-        "red": "flashing",
+      Object {
+        "eventType": "TIMER",
+        "state": "yellow",
       },
-      "steps": Array [
-        Object {
-          "eventType": "PUSH_BUTTON",
-          "state": "green",
+      Object {
+        "eventType": "PED_COUNTDOWN",
+        "state": Object {
+          "red": "walk",
         },
-        Object {
-          "eventType": "POWER_OUTAGE",
-          "state": "green",
-        },
-      ],
-    },
-  ],
-  "{\\"red\\":\\"stop\\"} |  | \\"\\"": Array [
-    Object {
-      "state": Object {
-        "red": "stop",
       },
-      "steps": Array [
-        Object {
-          "eventType": "TIMER",
-          "state": "green",
+      Object {
+        "eventType": "POWER_OUTAGE",
+        "state": Object {
+          "red": "wait",
         },
-        Object {
-          "eventType": "TIMER",
-          "state": "yellow",
-        },
-        Object {
-          "eventType": "PED_COUNTDOWN",
-          "state": Object {
-            "red": "walk",
-          },
-        },
-        Object {
-          "eventType": "PED_COUNTDOWN",
-          "state": Object {
-            "red": "wait",
-          },
-        },
-      ],
-    },
-    Object {
-      "state": Object {
-        "red": "stop",
       },
-      "steps": Array [
-        Object {
-          "eventType": "PUSH_BUTTON",
-          "state": "green",
-        },
-        Object {
-          "eventType": "TIMER",
-          "state": "green",
-        },
-        Object {
-          "eventType": "TIMER",
-          "state": "yellow",
-        },
-        Object {
-          "eventType": "PED_COUNTDOWN",
-          "state": Object {
-            "red": "walk",
-          },
-        },
-        Object {
-          "eventType": "PED_COUNTDOWN",
-          "state": Object {
-            "red": "wait",
-          },
-        },
-      ],
+    ],
+  },
+  Object {
+    "state": Object {
+      "red": "flashing",
     },
-  ],
-  "{\\"red\\":\\"wait\\"} |  | \\"startCountdown\\"": Array [
-    Object {
-      "state": Object {
-        "red": "wait",
+    "steps": Array [
+      Object {
+        "eventType": "TIMER",
+        "state": "green",
       },
-      "steps": Array [
-        Object {
-          "eventType": "TIMER",
-          "state": "green",
-        },
-        Object {
-          "eventType": "TIMER",
-          "state": "yellow",
-        },
-        Object {
-          "eventType": "PED_COUNTDOWN",
-          "state": Object {
-            "red": "walk",
-          },
-        },
-      ],
-    },
-    Object {
-      "state": Object {
-        "red": "wait",
+      Object {
+        "eventType": "TIMER",
+        "state": "yellow",
       },
-      "steps": Array [
-        Object {
-          "eventType": "PUSH_BUTTON",
-          "state": "green",
+      Object {
+        "eventType": "POWER_OUTAGE",
+        "state": Object {
+          "red": "walk",
         },
-        Object {
-          "eventType": "TIMER",
-          "state": "green",
-        },
-        Object {
-          "eventType": "TIMER",
-          "state": "yellow",
-        },
-        Object {
-          "eventType": "PED_COUNTDOWN",
-          "state": Object {
-            "red": "walk",
-          },
-        },
-      ],
-    },
-  ],
-  "{\\"red\\":\\"walk\\"} |  | \\"\\"": Array [
-    Object {
-      "state": Object {
-        "red": "walk",
       },
-      "steps": Array [
-        Object {
-          "eventType": "TIMER",
-          "state": "green",
-        },
-        Object {
-          "eventType": "TIMER",
-          "state": "yellow",
-        },
-      ],
+    ],
+  },
+  Object {
+    "state": Object {
+      "red": "flashing",
     },
-    Object {
-      "state": Object {
-        "red": "walk",
+    "steps": Array [
+      Object {
+        "eventType": "TIMER",
+        "state": "green",
       },
-      "steps": Array [
-        Object {
-          "eventType": "PUSH_BUTTON",
-          "state": "green",
-        },
-        Object {
-          "eventType": "TIMER",
-          "state": "green",
-        },
-        Object {
-          "eventType": "TIMER",
-          "state": "yellow",
-        },
-      ],
+      Object {
+        "eventType": "POWER_OUTAGE",
+        "state": "yellow",
+      },
+    ],
+  },
+  Object {
+    "state": Object {
+      "red": "flashing",
     },
-  ],
-}
+    "steps": Array [
+      Object {
+        "eventType": "POWER_OUTAGE",
+        "state": "green",
+      },
+    ],
+  },
+  Object {
+    "state": Object {
+      "red": "flashing",
+    },
+    "steps": Array [
+      Object {
+        "eventType": "PUSH_BUTTON",
+        "state": "green",
+      },
+      Object {
+        "eventType": "TIMER",
+        "state": "green",
+      },
+      Object {
+        "eventType": "TIMER",
+        "state": "yellow",
+      },
+      Object {
+        "eventType": "PED_COUNTDOWN",
+        "state": Object {
+          "red": "walk",
+        },
+      },
+      Object {
+        "eventType": "PED_COUNTDOWN",
+        "state": Object {
+          "red": "wait",
+        },
+      },
+      Object {
+        "eventType": "POWER_OUTAGE",
+        "state": Object {
+          "red": "stop",
+        },
+      },
+    ],
+  },
+  Object {
+    "state": Object {
+      "red": "flashing",
+    },
+    "steps": Array [
+      Object {
+        "eventType": "PUSH_BUTTON",
+        "state": "green",
+      },
+      Object {
+        "eventType": "TIMER",
+        "state": "green",
+      },
+      Object {
+        "eventType": "TIMER",
+        "state": "yellow",
+      },
+      Object {
+        "eventType": "PED_COUNTDOWN",
+        "state": Object {
+          "red": "walk",
+        },
+      },
+      Object {
+        "eventType": "POWER_OUTAGE",
+        "state": Object {
+          "red": "wait",
+        },
+      },
+    ],
+  },
+  Object {
+    "state": Object {
+      "red": "flashing",
+    },
+    "steps": Array [
+      Object {
+        "eventType": "PUSH_BUTTON",
+        "state": "green",
+      },
+      Object {
+        "eventType": "TIMER",
+        "state": "green",
+      },
+      Object {
+        "eventType": "TIMER",
+        "state": "yellow",
+      },
+      Object {
+        "eventType": "POWER_OUTAGE",
+        "state": Object {
+          "red": "walk",
+        },
+      },
+    ],
+  },
+  Object {
+    "state": Object {
+      "red": "flashing",
+    },
+    "steps": Array [
+      Object {
+        "eventType": "PUSH_BUTTON",
+        "state": "green",
+      },
+      Object {
+        "eventType": "TIMER",
+        "state": "green",
+      },
+      Object {
+        "eventType": "POWER_OUTAGE",
+        "state": "yellow",
+      },
+    ],
+  },
+  Object {
+    "state": Object {
+      "red": "flashing",
+    },
+    "steps": Array [
+      Object {
+        "eventType": "PUSH_BUTTON",
+        "state": "green",
+      },
+      Object {
+        "eventType": "POWER_OUTAGE",
+        "state": "green",
+      },
+    ],
+  },
+  Object {
+    "state": "green",
+    "steps": Array [
+      Object {
+        "eventType": "PUSH_BUTTON",
+        "state": "green",
+      },
+    ],
+  },
+  Object {
+    "state": Object {
+      "red": "walk",
+    },
+    "steps": Array [
+      Object {
+        "eventType": "TIMER",
+        "state": "green",
+      },
+      Object {
+        "eventType": "TIMER",
+        "state": "yellow",
+      },
+    ],
+  },
+  Object {
+    "state": Object {
+      "red": "walk",
+    },
+    "steps": Array [
+      Object {
+        "eventType": "PUSH_BUTTON",
+        "state": "green",
+      },
+      Object {
+        "eventType": "TIMER",
+        "state": "green",
+      },
+      Object {
+        "eventType": "TIMER",
+        "state": "yellow",
+      },
+    ],
+  },
+  Object {
+    "state": Object {
+      "red": "wait",
+    },
+    "steps": Array [
+      Object {
+        "eventType": "TIMER",
+        "state": "green",
+      },
+      Object {
+        "eventType": "TIMER",
+        "state": "yellow",
+      },
+      Object {
+        "eventType": "PED_COUNTDOWN",
+        "state": Object {
+          "red": "walk",
+        },
+      },
+    ],
+  },
+  Object {
+    "state": Object {
+      "red": "wait",
+    },
+    "steps": Array [
+      Object {
+        "eventType": "PUSH_BUTTON",
+        "state": "green",
+      },
+      Object {
+        "eventType": "TIMER",
+        "state": "green",
+      },
+      Object {
+        "eventType": "TIMER",
+        "state": "yellow",
+      },
+      Object {
+        "eventType": "PED_COUNTDOWN",
+        "state": Object {
+          "red": "walk",
+        },
+      },
+    ],
+  },
+  Object {
+    "state": Object {
+      "red": "stop",
+    },
+    "steps": Array [
+      Object {
+        "eventType": "TIMER",
+        "state": "green",
+      },
+      Object {
+        "eventType": "TIMER",
+        "state": "yellow",
+      },
+      Object {
+        "eventType": "PED_COUNTDOWN",
+        "state": Object {
+          "red": "walk",
+        },
+      },
+      Object {
+        "eventType": "PED_COUNTDOWN",
+        "state": Object {
+          "red": "wait",
+        },
+      },
+    ],
+  },
+  Object {
+    "state": Object {
+      "red": "stop",
+    },
+    "steps": Array [
+      Object {
+        "eventType": "PUSH_BUTTON",
+        "state": "green",
+      },
+      Object {
+        "eventType": "TIMER",
+        "state": "green",
+      },
+      Object {
+        "eventType": "TIMER",
+        "state": "yellow",
+      },
+      Object {
+        "eventType": "PED_COUNTDOWN",
+        "state": Object {
+          "red": "walk",
+        },
+      },
+      Object {
+        "eventType": "PED_COUNTDOWN",
+        "state": Object {
+          "red": "wait",
+        },
+      },
+    ],
+  },
+]
 `;
 
 exports[`@xstate/graph getSimplePaths() should return a mapping of simple paths to all states (parallel): simple paths parallel 1`] = `
-Object {
-  "{\\"a\\":\\"a1\\",\\"b\\":\\"b1\\"} |  | \\"\\"": Array [
-    Object {
-      "state": Object {
-        "a": "a1",
-        "b": "b1",
-      },
-      "steps": Array [],
+Array [
+  Object {
+    "state": Object {
+      "a": "a1",
+      "b": "b1",
     },
-  ],
-  "{\\"a\\":\\"a2\\",\\"b\\":\\"b2\\"} |  | \\"\\"": Array [
-    Object {
-      "state": Object {
-        "a": "a2",
-        "b": "b2",
-      },
-      "steps": Array [
-        Object {
-          "eventType": "2",
-          "state": Object {
-            "a": "a1",
-            "b": "b1",
-          },
-        },
-      ],
+    "steps": Array [],
+  },
+  Object {
+    "state": Object {
+      "a": "a2",
+      "b": "b2",
     },
-  ],
-  "{\\"a\\":\\"a3\\",\\"b\\":\\"b3\\"} |  | \\"\\"": Array [
-    Object {
-      "state": Object {
-        "a": "a3",
-        "b": "b3",
+    "steps": Array [
+      Object {
+        "eventType": "2",
+        "state": Object {
+          "a": "a1",
+          "b": "b1",
+        },
       },
-      "steps": Array [
-        Object {
-          "eventType": "2",
-          "state": Object {
-            "a": "a1",
-            "b": "b1",
-          },
-        },
-        Object {
-          "eventType": "3",
-          "state": Object {
-            "a": "a2",
-            "b": "b2",
-          },
-        },
-      ],
+    ],
+  },
+  Object {
+    "state": Object {
+      "a": "a3",
+      "b": "b3",
     },
-    Object {
-      "state": Object {
-        "a": "a3",
-        "b": "b3",
+    "steps": Array [
+      Object {
+        "eventType": "2",
+        "state": Object {
+          "a": "a1",
+          "b": "b1",
+        },
       },
-      "steps": Array [
-        Object {
-          "eventType": "3",
-          "state": Object {
-            "a": "a1",
-            "b": "b1",
-          },
+      Object {
+        "eventType": "3",
+        "state": Object {
+          "a": "a2",
+          "b": "b2",
         },
-      ],
+      },
+    ],
+  },
+  Object {
+    "state": Object {
+      "a": "a3",
+      "b": "b3",
     },
-  ],
-}
+    "steps": Array [
+      Object {
+        "eventType": "3",
+        "state": Object {
+          "a": "a1",
+          "b": "b1",
+        },
+      },
+    ],
+  },
+]
 `;
 
 exports[`@xstate/graph getSimplePaths() should return multiple paths for equivalent transitions: simple paths equal transitions 1`] = `
-Object {
-  "\\"a\\" |  | \\"\\"": Array [
-    Object {
-      "state": "a",
-      "steps": Array [],
-    },
-  ],
-  "\\"b\\" |  | \\"\\"": Array [
-    Object {
-      "state": "b",
-      "steps": Array [
-        Object {
-          "eventType": "FOO",
-          "state": "a",
-        },
-      ],
-    },
-    Object {
-      "state": "b",
-      "steps": Array [
-        Object {
-          "eventType": "BAR",
-          "state": "a",
-        },
-      ],
-    },
-  ],
-}
+Array [
+  Object {
+    "state": "a",
+    "steps": Array [],
+  },
+  Object {
+    "state": "b",
+    "steps": Array [
+      Object {
+        "eventType": "FOO",
+        "state": "a",
+      },
+    ],
+  },
+  Object {
+    "state": "b",
+    "steps": Array [
+      Object {
+        "eventType": "BAR",
+        "state": "a",
+      },
+    ],
+  },
+]
 `;
 
 exports[`@xstate/graph getSimplePaths() should return value-based paths: simple paths context 1`] = `
-Object {
-  "\\"finish\\" | {\\"count\\":3} | \\"\\"": Array [
-    Object {
-      "state": "finish",
-      "steps": Array [
-        Object {
-          "eventType": "INC",
-          "state": "start",
-        },
-        Object {
-          "eventType": "INC",
-          "state": "start",
-        },
-        Object {
-          "eventType": "INC",
-          "state": "start",
-        },
-      ],
-    },
-  ],
-  "\\"start\\" | {\\"count\\":0} | \\"\\"": Array [
-    Object {
-      "state": "start",
-      "steps": Array [],
-    },
-  ],
-  "\\"start\\" | {\\"count\\":1} | \\"\\"": Array [
-    Object {
-      "state": "start",
-      "steps": Array [
-        Object {
-          "eventType": "INC",
-          "state": "start",
-        },
-      ],
-    },
-  ],
-  "\\"start\\" | {\\"count\\":2} | \\"\\"": Array [
-    Object {
-      "state": "start",
-      "steps": Array [
-        Object {
-          "eventType": "INC",
-          "state": "start",
-        },
-        Object {
-          "eventType": "INC",
-          "state": "start",
-        },
-      ],
-    },
-  ],
-}
+Array [
+  Object {
+    "state": "start",
+    "steps": Array [],
+  },
+  Object {
+    "state": "start",
+    "steps": Array [
+      Object {
+        "eventType": "INC",
+        "state": "start",
+      },
+    ],
+  },
+  Object {
+    "state": "start",
+    "steps": Array [
+      Object {
+        "eventType": "INC",
+        "state": "start",
+      },
+      Object {
+        "eventType": "INC",
+        "state": "start",
+      },
+    ],
+  },
+  Object {
+    "state": "finish",
+    "steps": Array [
+      Object {
+        "eventType": "INC",
+        "state": "start",
+      },
+      Object {
+        "eventType": "INC",
+        "state": "start",
+      },
+      Object {
+        "eventType": "INC",
+        "state": "start",
+      },
+    ],
+  },
+]
 `;
 
 exports[`@xstate/graph toDirectedGraph should represent a statechart as a directed graph 1`] = `
@@ -901,387 +816,367 @@ Object {
 `;
 
 exports[`shortest paths for reducers 1`] = `
-Object {
-  "0 | null": Array [
-    Object {
-      "state": 0,
-      "steps": Array [],
-    },
-  ],
-  "0 | {\\"type\\":\\"b\\"}": Array [
-    Object {
-      "state": 0,
-      "steps": Array [
-        Object {
-          "eventType": "a",
-          "state": 0,
-        },
-        Object {
-          "eventType": "b",
-          "state": 1,
-        },
-        Object {
-          "eventType": "reset",
-          "state": 2,
-        },
-        Object {
-          "eventType": "b",
-          "state": 0,
-        },
-      ],
-    },
-    Object {
-      "state": 0,
-      "steps": Array [
-        Object {
-          "eventType": "a",
-          "state": 0,
-        },
-        Object {
-          "eventType": "reset",
-          "state": 1,
-        },
-        Object {
-          "eventType": "b",
-          "state": 0,
-        },
-      ],
-    },
-    Object {
-      "state": 0,
-      "steps": Array [
-        Object {
-          "eventType": "b",
-          "state": 0,
-        },
-      ],
-    },
-    Object {
-      "state": 0,
-      "steps": Array [
-        Object {
-          "eventType": "reset",
-          "state": 0,
-        },
-        Object {
-          "eventType": "b",
-          "state": 0,
-        },
-      ],
-    },
-  ],
-  "0 | {\\"type\\":\\"reset\\"}": Array [
-    Object {
-      "state": 0,
-      "steps": Array [
-        Object {
-          "eventType": "a",
-          "state": 0,
-        },
-        Object {
-          "eventType": "b",
-          "state": 1,
-        },
-        Object {
-          "eventType": "reset",
-          "state": 2,
-        },
-      ],
-    },
-    Object {
-      "state": 0,
-      "steps": Array [
-        Object {
-          "eventType": "a",
-          "state": 0,
-        },
-        Object {
-          "eventType": "reset",
-          "state": 1,
-        },
-      ],
-    },
-    Object {
-      "state": 0,
-      "steps": Array [
-        Object {
-          "eventType": "b",
-          "state": 0,
-        },
-        Object {
-          "eventType": "a",
-          "state": 0,
-        },
-        Object {
-          "eventType": "b",
-          "state": 1,
-        },
-        Object {
-          "eventType": "reset",
-          "state": 2,
-        },
-      ],
-    },
-    Object {
-      "state": 0,
-      "steps": Array [
-        Object {
-          "eventType": "b",
-          "state": 0,
-        },
-        Object {
-          "eventType": "a",
-          "state": 0,
-        },
-        Object {
-          "eventType": "reset",
-          "state": 1,
-        },
-      ],
-    },
-    Object {
-      "state": 0,
-      "steps": Array [
-        Object {
-          "eventType": "b",
-          "state": 0,
-        },
-        Object {
-          "eventType": "reset",
-          "state": 0,
-        },
-      ],
-    },
-    Object {
-      "state": 0,
-      "steps": Array [
-        Object {
-          "eventType": "reset",
-          "state": 0,
-        },
-      ],
-    },
-  ],
-  "1 | {\\"type\\":\\"a\\"}": Array [
-    Object {
-      "state": 1,
-      "steps": Array [
-        Object {
-          "eventType": "a",
-          "state": 0,
-        },
-      ],
-    },
-    Object {
-      "state": 1,
-      "steps": Array [
-        Object {
-          "eventType": "b",
-          "state": 0,
-        },
-        Object {
-          "eventType": "a",
-          "state": 0,
-        },
-      ],
-    },
-    Object {
-      "state": 1,
-      "steps": Array [
-        Object {
-          "eventType": "b",
-          "state": 0,
-        },
-        Object {
-          "eventType": "reset",
-          "state": 0,
-        },
-        Object {
-          "eventType": "a",
-          "state": 0,
-        },
-      ],
-    },
-    Object {
-      "state": 1,
-      "steps": Array [
-        Object {
-          "eventType": "reset",
-          "state": 0,
-        },
-        Object {
-          "eventType": "a",
-          "state": 0,
-        },
-      ],
-    },
-    Object {
-      "state": 1,
-      "steps": Array [
-        Object {
-          "eventType": "reset",
-          "state": 0,
-        },
-        Object {
-          "eventType": "b",
-          "state": 0,
-        },
-        Object {
-          "eventType": "a",
-          "state": 0,
-        },
-      ],
-    },
-  ],
-  "2 | {\\"type\\":\\"b\\"}": Array [
-    Object {
-      "state": 2,
-      "steps": Array [
-        Object {
-          "eventType": "a",
-          "state": 0,
-        },
-        Object {
-          "eventType": "b",
-          "state": 1,
-        },
-      ],
-    },
-    Object {
-      "state": 2,
-      "steps": Array [
-        Object {
-          "eventType": "b",
-          "state": 0,
-        },
-        Object {
-          "eventType": "a",
-          "state": 0,
-        },
-        Object {
-          "eventType": "b",
-          "state": 1,
-        },
-      ],
-    },
-    Object {
-      "state": 2,
-      "steps": Array [
-        Object {
-          "eventType": "b",
-          "state": 0,
-        },
-        Object {
-          "eventType": "reset",
-          "state": 0,
-        },
-        Object {
-          "eventType": "a",
-          "state": 0,
-        },
-        Object {
-          "eventType": "b",
-          "state": 1,
-        },
-      ],
-    },
-    Object {
-      "state": 2,
-      "steps": Array [
-        Object {
-          "eventType": "reset",
-          "state": 0,
-        },
-        Object {
-          "eventType": "a",
-          "state": 0,
-        },
-        Object {
-          "eventType": "b",
-          "state": 1,
-        },
-      ],
-    },
-    Object {
-      "state": 2,
-      "steps": Array [
-        Object {
-          "eventType": "reset",
-          "state": 0,
-        },
-        Object {
-          "eventType": "b",
-          "state": 0,
-        },
-        Object {
-          "eventType": "a",
-          "state": 0,
-        },
-        Object {
-          "eventType": "b",
-          "state": 1,
-        },
-      ],
-    },
-  ],
-}
+Array [
+  Object {
+    "state": 0,
+    "steps": Array [],
+  },
+  Object {
+    "state": 1,
+    "steps": Array [
+      Object {
+        "eventType": "a",
+        "state": 0,
+      },
+    ],
+  },
+  Object {
+    "state": 1,
+    "steps": Array [
+      Object {
+        "eventType": "b",
+        "state": 0,
+      },
+      Object {
+        "eventType": "a",
+        "state": 0,
+      },
+    ],
+  },
+  Object {
+    "state": 1,
+    "steps": Array [
+      Object {
+        "eventType": "b",
+        "state": 0,
+      },
+      Object {
+        "eventType": "reset",
+        "state": 0,
+      },
+      Object {
+        "eventType": "a",
+        "state": 0,
+      },
+    ],
+  },
+  Object {
+    "state": 1,
+    "steps": Array [
+      Object {
+        "eventType": "reset",
+        "state": 0,
+      },
+      Object {
+        "eventType": "a",
+        "state": 0,
+      },
+    ],
+  },
+  Object {
+    "state": 1,
+    "steps": Array [
+      Object {
+        "eventType": "reset",
+        "state": 0,
+      },
+      Object {
+        "eventType": "b",
+        "state": 0,
+      },
+      Object {
+        "eventType": "a",
+        "state": 0,
+      },
+    ],
+  },
+  Object {
+    "state": 0,
+    "steps": Array [
+      Object {
+        "eventType": "a",
+        "state": 0,
+      },
+      Object {
+        "eventType": "b",
+        "state": 1,
+      },
+      Object {
+        "eventType": "reset",
+        "state": 2,
+      },
+      Object {
+        "eventType": "b",
+        "state": 0,
+      },
+    ],
+  },
+  Object {
+    "state": 0,
+    "steps": Array [
+      Object {
+        "eventType": "a",
+        "state": 0,
+      },
+      Object {
+        "eventType": "reset",
+        "state": 1,
+      },
+      Object {
+        "eventType": "b",
+        "state": 0,
+      },
+    ],
+  },
+  Object {
+    "state": 0,
+    "steps": Array [
+      Object {
+        "eventType": "b",
+        "state": 0,
+      },
+    ],
+  },
+  Object {
+    "state": 0,
+    "steps": Array [
+      Object {
+        "eventType": "reset",
+        "state": 0,
+      },
+      Object {
+        "eventType": "b",
+        "state": 0,
+      },
+    ],
+  },
+  Object {
+    "state": 0,
+    "steps": Array [
+      Object {
+        "eventType": "a",
+        "state": 0,
+      },
+      Object {
+        "eventType": "b",
+        "state": 1,
+      },
+      Object {
+        "eventType": "reset",
+        "state": 2,
+      },
+    ],
+  },
+  Object {
+    "state": 0,
+    "steps": Array [
+      Object {
+        "eventType": "a",
+        "state": 0,
+      },
+      Object {
+        "eventType": "reset",
+        "state": 1,
+      },
+    ],
+  },
+  Object {
+    "state": 0,
+    "steps": Array [
+      Object {
+        "eventType": "b",
+        "state": 0,
+      },
+      Object {
+        "eventType": "a",
+        "state": 0,
+      },
+      Object {
+        "eventType": "b",
+        "state": 1,
+      },
+      Object {
+        "eventType": "reset",
+        "state": 2,
+      },
+    ],
+  },
+  Object {
+    "state": 0,
+    "steps": Array [
+      Object {
+        "eventType": "b",
+        "state": 0,
+      },
+      Object {
+        "eventType": "a",
+        "state": 0,
+      },
+      Object {
+        "eventType": "reset",
+        "state": 1,
+      },
+    ],
+  },
+  Object {
+    "state": 0,
+    "steps": Array [
+      Object {
+        "eventType": "b",
+        "state": 0,
+      },
+      Object {
+        "eventType": "reset",
+        "state": 0,
+      },
+    ],
+  },
+  Object {
+    "state": 0,
+    "steps": Array [
+      Object {
+        "eventType": "reset",
+        "state": 0,
+      },
+    ],
+  },
+  Object {
+    "state": 2,
+    "steps": Array [
+      Object {
+        "eventType": "a",
+        "state": 0,
+      },
+      Object {
+        "eventType": "b",
+        "state": 1,
+      },
+    ],
+  },
+  Object {
+    "state": 2,
+    "steps": Array [
+      Object {
+        "eventType": "b",
+        "state": 0,
+      },
+      Object {
+        "eventType": "a",
+        "state": 0,
+      },
+      Object {
+        "eventType": "b",
+        "state": 1,
+      },
+    ],
+  },
+  Object {
+    "state": 2,
+    "steps": Array [
+      Object {
+        "eventType": "b",
+        "state": 0,
+      },
+      Object {
+        "eventType": "reset",
+        "state": 0,
+      },
+      Object {
+        "eventType": "a",
+        "state": 0,
+      },
+      Object {
+        "eventType": "b",
+        "state": 1,
+      },
+    ],
+  },
+  Object {
+    "state": 2,
+    "steps": Array [
+      Object {
+        "eventType": "reset",
+        "state": 0,
+      },
+      Object {
+        "eventType": "a",
+        "state": 0,
+      },
+      Object {
+        "eventType": "b",
+        "state": 1,
+      },
+    ],
+  },
+  Object {
+    "state": 2,
+    "steps": Array [
+      Object {
+        "eventType": "reset",
+        "state": 0,
+      },
+      Object {
+        "eventType": "b",
+        "state": 0,
+      },
+      Object {
+        "eventType": "a",
+        "state": 0,
+      },
+      Object {
+        "eventType": "b",
+        "state": 1,
+      },
+    ],
+  },
+]
 `;
 
 exports[`simple paths for reducers 1`] = `
-Object {
-  "0 | null": Array [
-    Object {
-      "state": 0,
-      "steps": Array [],
-    },
-  ],
-  "0 | {\\"type\\":\\"b\\"}": Array [
-    Object {
-      "state": 0,
-      "steps": Array [
-        Object {
-          "eventType": "b",
-          "state": 0,
-        },
-      ],
-    },
-  ],
-  "0 | {\\"type\\":\\"reset\\"}": Array [
-    Object {
-      "state": 0,
-      "steps": Array [
-        Object {
-          "eventType": "reset",
-          "state": 0,
-        },
-      ],
-    },
-  ],
-  "1 | {\\"type\\":\\"a\\"}": Array [
-    Object {
-      "state": 1,
-      "steps": Array [
-        Object {
-          "eventType": "a",
-          "state": 0,
-        },
-      ],
-    },
-  ],
-  "2 | {\\"type\\":\\"b\\"}": Array [
-    Object {
-      "state": 2,
-      "steps": Array [
-        Object {
-          "eventType": "a",
-          "state": 0,
-        },
-        Object {
-          "eventType": "b",
-          "state": 1,
-        },
-      ],
-    },
-  ],
-}
+Array [
+  Object {
+    "state": 0,
+    "steps": Array [],
+  },
+  Object {
+    "state": 1,
+    "steps": Array [
+      Object {
+        "eventType": "a",
+        "state": 0,
+      },
+    ],
+  },
+  Object {
+    "state": 0,
+    "steps": Array [
+      Object {
+        "eventType": "b",
+        "state": 0,
+      },
+    ],
+  },
+  Object {
+    "state": 0,
+    "steps": Array [
+      Object {
+        "eventType": "reset",
+        "state": 0,
+      },
+    ],
+  },
+  Object {
+    "state": 2,
+    "steps": Array [
+      Object {
+        "eventType": "a",
+        "state": 0,
+      },
+      Object {
+        "eventType": "b",
+        "state": 1,
+      },
+    ],
+  },
+]
 `;

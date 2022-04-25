@@ -1,20 +1,20 @@
 import {
   getStateNodes,
   getPathFromEvents,
-  getSimplePaths,
-  getShortestPaths,
+  getSimplePlans,
+  getShortestPlans,
   serializeEvent,
-  serializeState,
+  serializeMachineState,
   toDirectedGraph
 } from './graph';
 
 export {
   getStateNodes,
   getPathFromEvents,
-  getSimplePaths,
-  getShortestPaths,
+  getSimplePlans,
+  getShortestPlans,
   serializeEvent,
-  serializeState,
+  serializeMachineState as serializeState,
   toDirectedGraph
 };
 

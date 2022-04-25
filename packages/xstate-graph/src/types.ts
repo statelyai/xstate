@@ -57,8 +57,8 @@ export type DirectedGraphNode = JSONSerializable<
 >;
 
 export interface AdjacencyMap<TState, TEvent extends EventObject> {
-  [stateId: string]: Record<
-    string,
+  [stateId: SerializedState]: Record<
+    SerializedState,
     {
       state: TState;
       event: TEvent;
@@ -92,7 +92,7 @@ export interface StatePath<TState, TEvent extends EventObject> {
   weight: number;
 }
 
-export interface StatePathsMap<TState, TEvent extends EventObject> {
+export interface StatePlanMap<TState, TEvent extends EventObject> {
   [key: string]: StatePlan<TState, TEvent>;
 }
 

@@ -326,13 +326,13 @@ describe('error path trace', () => {
               expect(err.message).toMatchInlineSnapshot(`
                 "test error
                 Path:
-                	State: \\"first\\" |  | \\"\\"
+                	State: {\\"value\\":\\"first\\",\\"actions\\":[]}
                 	Event: {\\"type\\":\\"NEXT\\"}
 
-                	State: \\"second\\" |  | \\"\\"
+                	State: {\\"value\\":\\"second\\",\\"actions\\":[]}
                 	Event: {\\"type\\":\\"NEXT\\"}
 
-                	State: \\"third\\" |  | \\"\\""
+                	State: {\\"value\\":\\"third\\",\\"actions\\":[]}"
               `);
               return;
             }
