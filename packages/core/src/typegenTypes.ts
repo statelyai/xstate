@@ -165,32 +165,34 @@ type AllowAllEvents = {
 };
 
 export type ResolveTypegenMeta<
-  TTypesMeta,
+  TTypesMeta extends TypegenConstraint,
   TEvent extends EventObject,
   TAction extends BaseActionObject,
   TServiceMap extends ServiceMap
-> = TTypesMeta extends TypegenEnabled
-  ? TTypesMeta & {
+> = {
+  enabled: TTypesMeta & {
+    indexedActions: IndexByType<TAction>;
+    indexedEvents: MergeWithInternalEvents<
+      IndexByType<
+        | (string extends TEvent['type'] ? never : TEvent)
+        | GenerateServiceEvents<
+            TServiceMap,
+            Prop<TTypesMeta, 'invokeSrcNameMap'>
+          >
+      >,
+      Prop<TTypesMeta, 'internalEvents'>
+    >;
+  };
+  disabled: MarkAllImplementationsAsProvided<TypegenDisabled> &
+    AllowAllEvents & {
       indexedActions: IndexByType<TAction>;
-      indexedEvents: MergeWithInternalEvents<
-        IndexByType<
-          | (string extends TEvent['type'] ? never : TEvent)
-          | GenerateServiceEvents<
-              TServiceMap,
-              Prop<TTypesMeta, 'invokeSrcNameMap'>
-            >
-        >,
-        Prop<TTypesMeta, 'internalEvents'>
-      >;
-    }
-  : MarkAllImplementationsAsProvided<TypegenDisabled> &
-      AllowAllEvents & {
-        indexedActions: IndexByType<TAction>;
-        indexedEvents: Record<string, TEvent> & {
-          __XSTATE_ALLOW_ANY_INVOKE_DATA_HACK__: { data: any };
-        };
-        invokeSrcNameMap: Record<
-          string,
-          '__XSTATE_ALLOW_ANY_INVOKE_DATA_HACK__'
-        >;
+      indexedEvents: Record<string, TEvent> & {
+        __XSTATE_ALLOW_ANY_INVOKE_DATA_HACK__: { data: any };
       };
+      invokeSrcNameMap: Record<string, '__XSTATE_ALLOW_ANY_INVOKE_DATA_HACK__'>;
+    };
+}[IsNever<TTypesMeta> extends true
+  ? 'disabled'
+  : TTypesMeta extends TypegenEnabled
+  ? 'enabled'
+  : 'disabled'];
