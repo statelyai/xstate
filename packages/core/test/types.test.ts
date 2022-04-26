@@ -498,7 +498,7 @@ describe('events', () => {
     service.send({ type: 'UNKNOWN' });
   });
 
-  it('event type should be inferrable from a simple state machine typr', () => {
+  it('event type should be inferrable from a simple state machine type', () => {
     const toggleMachine = createMachine<
       {
         count: number;
@@ -561,6 +561,25 @@ describe('events', () => {
             // @ts-expect-error
             ((_accept: 'is not any') => {})(event);
           }
+        }
+      }
+    });
+  });
+
+  it('should infer argument types in inline action objects used in the config argument', () => {
+    createMachine({
+      schema: {
+        context: {} as { count: number },
+        events: {} as { type: 'EDIT_MODE' }
+      },
+      on: {
+        EDIT_MODE: {
+          actions: assign((ctx, event) => {
+            ((_accept: 'EDIT_MODE') => {})(event.type);
+            // @ts-expect-error
+            ((_accept: 'is not any') => {})(event.type);
+            return ctx;
+          })
         }
       }
     });
