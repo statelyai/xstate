@@ -66,10 +66,10 @@ import {
   InvokeSourceDefinition,
   MachineSchema,
   ActorRef,
-  StateMachine,
   InternalMachineOptions,
   ServiceMap,
-  StateConfig
+  StateConfig,
+  AnyStateMachine
 } from './types';
 import { matchesState } from './utils';
 import { State, stateValuesEqual } from './State';
@@ -305,7 +305,7 @@ class StateNode<
     private _context:
       | Readonly<TContext>
       | (() => Readonly<TContext>) = ('context' in config
-      ? (config as StateMachine<TContext, any, TEvent>).context
+      ? (config as any).context
       : undefined) as any, // TODO: this is unsafe, but we're removing it in v5 anyway
     _stateInfo?: {
       parent: StateNode<any, any, any, any, any, any>;
@@ -761,7 +761,8 @@ class StateNode<
       value: this.resolve(stateFromConfig.value),
       configuration,
       done: isInFinalState(configuration, this),
-      tags: getTagsFromConfiguration(configuration)
+      tags: getTagsFromConfiguration(configuration),
+      machine: (this.machine as unknown) as AnyStateMachine
     });
   }
 
@@ -1339,7 +1340,7 @@ class StateNode<
       transitions: stateTransition.transitions,
       children,
       done: isDone,
-      tags: currentState?.tags,
+      tags: getTagsFromConfiguration(resolvedConfiguration),
       machine: this as any
     });
 
@@ -1412,10 +1413,6 @@ class StateNode<
 
     // Preserve original history after raised events
     maybeNextState.history = history;
-
-    maybeNextState.tags = getTagsFromConfiguration(
-      maybeNextState.configuration
-    );
 
     return maybeNextState;
   }

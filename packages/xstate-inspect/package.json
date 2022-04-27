@@ -1,6 +1,6 @@
 {
   "name": "@xstate/inspect",
-  "version": "0.6.2",
+  "version": "0.6.5",
   "description": "XState inspection utilities",
   "keywords": [
     "state",
@@ -22,7 +22,8 @@
     "lib/**/*.js",
     "lib/**/*.d.ts",
     "es/**/*.js",
-    "es/**/*.d.ts"
+    "es/**/*.d.ts",
+    "dist/**/*.js"
   ],
   "repository": {
     "type": "git",
@@ -38,8 +39,12 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^17.0.0",
+    "@rollup/plugin-node-resolve": "^11.0.1",
     "@types/ws": "^8.2.2",
-    "rollup": "^2.35.1",
+    "rollup": "^2.69.0",
+    "rollup-plugin-replace": "^2.2.0",
+    "rollup-plugin-terser": "^5.1.2",
     "rollup-plugin-typescript2": "^0.30.0",
     "typescript": "^4.5.2",
     "ws": "^8.4.0",
@@ -47,7 +52,8 @@
   },
   "peerDependencies": {
     "@types/ws": "^8.0.0",
-    "ws": "^8.0.0"
+    "ws": "^8.0.0",
+    "xstate": "^4.31.0"
   },
   "peerDependenciesMeta": {
     "@types/ws": {
@@ -55,6 +61,6 @@
     }
   },
   "dependencies": {
-    "fast-safe-stringify": "^2.0.7"
+    "fast-safe-stringify": "^2.1.1"
   }
 }

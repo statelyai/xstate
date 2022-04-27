@@ -7,6 +7,7 @@ import {
   XStateDevInterface
 } from 'xstate';
 import { stringifyMachine, stringifyState } from './serialize';
+
 import { ReceiverEvent, Replacer } from './types';
 
 export type InspectMachineEvent =

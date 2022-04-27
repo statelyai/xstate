@@ -1,4 +1,4 @@
-import { createMachine, interpret } from '../src';
+import { createMachine, interpret, State } from '../src';
 import { after, cancel, send, actionTypes } from '../src/actions';
 import { toSCXMLEvent } from '../src/utils';
 
@@ -168,6 +168,40 @@ describe('delayed transitions', () => {
     interpret(machine)
       .onDone(() => done())
       .start(machine.getInitialState('withAfter'));
+  });
+
+  it('should execute an after transition after starting from a persisted state', (done) => {
+    const createMyMachine = () =>
+      createMachine({
+        initial: 'A',
+        states: {
+          A: {
+            on: {
+              NEXT: 'B'
+            }
+          },
+          B: {
+            after: {
+              1: 'C'
+            }
+          },
+          C: {
+            type: 'final'
+          }
+        }
+      });
+
+    let service = interpret(createMyMachine()).start();
+
+    const persistedState = State.create(
+      JSON.parse(JSON.stringify(service.state))
+    );
+
+    service = interpret(createMyMachine()).start(persistedState);
+
+    service.send({ type: 'NEXT' });
+
+    service.onDone(() => done());
   });
 
   describe('delay expressions', () => {

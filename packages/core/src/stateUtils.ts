@@ -18,7 +18,9 @@ export const isLeafNode = (
 export function getChildren<TC, TE extends EventObject>(
   stateNode: StateNode<TC, any, TE>
 ): Array<StateNode<TC, any, TE>> {
-  return Object.keys(stateNode.states).map((key) => stateNode.states[key]);
+  return Object.keys(stateNode.states)
+    .map((key) => stateNode.states[key])
+    .filter((sn) => sn.type !== 'history');
 }
 
 export function getAllStateNodes<TC, TE extends EventObject>(
@@ -68,10 +70,6 @@ export function getConfiguration<TC, TE extends EventObject>(
     } else {
       if (s.type === 'parallel') {
         for (const child of getChildren(s)) {
-          if (child.type === 'history') {
-            continue;
-          }
-
           if (!configuration.has(child)) {
             configuration.add(child);
 
