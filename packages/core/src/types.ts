@@ -9,8 +9,7 @@ import {
   ResolveTypegenMeta,
   TypegenConstraint,
   MarkAllImplementationsAsProvided,
-  AreAllImplementationsAssumedToBeProvided,
-  TypegenEnabled
+  AreAllImplementationsAssumedToBeProvided
 } from './typegenTypes';
 
 export type AnyFunction = (...args: any[]) => any;
@@ -175,7 +174,7 @@ export type BaseAction<
   | BaseDynamicActionObject<
       TContext,
       TEvent,
-      BuiltInActionObject | TAction,
+      any, // TODO: at the very least this should include TAction, but probably at a covariant position or something, we really need to rethink how action objects are typed
       any
     >
   | TAction
@@ -1906,18 +1905,6 @@ export type InferEvent<E extends EventObject> = {
   [T in E['type']]: { type: T } & Extract<E, { type: T }>;
 }[E['type']];
 
-type Matches<TypegenEnabledArg, TypegenDisabledArg> = {
-  (stateValue: TypegenEnabledArg): any;
-  (stateValue: TypegenDisabledArg): any;
-};
-
-export type StateValueFrom<
-  TMachine extends AnyStateMachine
-> = StateFrom<TMachine>['matches'] extends Matches<
-  infer TypegenEnabledArg,
-  infer TypegenDisabledArg
->
-  ? TMachine['__TResolvedTypesMeta'] extends TypegenEnabled
-    ? TypegenEnabledArg
-    : TypegenDisabledArg
-  : never;
+export type StateValueFrom<TMachine extends AnyStateMachine> = Parameters<
+  StateFrom<TMachine>['matches']
+>[0];
