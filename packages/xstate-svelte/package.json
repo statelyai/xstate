@@ -36,7 +36,7 @@
   },
   "scripts": {
     "clean": "rm -rf dist lib es tsconfig.tsbuildinfo",
-    "build": "tsc && tsc -p tsconfig.esm.json",
+    "build": "tsc && tsc --outDir es --module esnext",
     "test": "jest",
     "prepare": "npm run build",
     "svelte-check": "svelte-check"
