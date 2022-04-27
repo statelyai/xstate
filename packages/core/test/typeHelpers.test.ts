@@ -4,7 +4,8 @@ import {
   createMachine,
   EventFrom,
   interpret,
-  MachineOptionsFrom
+  MachineOptionsFrom,
+  StateValueFrom
 } from '../src';
 import { createModel } from '../src/model';
 import { TypegenMeta } from '../src/typegenTypes';
@@ -182,6 +183,20 @@ describe('EventFrom', () => {
     // @ts-expect-error
     acceptUserModelEventSubset({ type: 'eventThatDoesNotExist' });
   });
+
+  it('should correctly extract events from events having union of strings as their `type`', () => {
+    const machine = createMachine({
+      schema: {
+        events: {} as { type: 'INC' | 'DEC' }
+      }
+    });
+
+    type MachineEvent = EventFrom<typeof machine, 'INC'>;
+
+    const acceptEvent = (_event: MachineEvent) => {};
+
+    acceptEvent({ type: 'INC' });
+  });
 });
 
 describe('MachineOptionsFrom', () => {
@@ -324,5 +339,32 @@ describe('MachineOptionsFrom', () => {
     });
     // @ts-expect-error
     acceptMachineOptions(100);
+  });
+});
+
+describe('StateValueFrom', () => {
+  it('should return possible state values from a typegened machine', () => {
+    interface TypesMeta extends TypegenMeta {
+      matchesStates: 'a' | 'b' | 'c';
+    }
+
+    const machine = createMachine({
+      tsTypes: {} as TypesMeta
+    });
+
+    function matches(_value: StateValueFrom<typeof machine>) {}
+
+    matches('a');
+    matches('b');
+    // @ts-expect-error
+    matches('unknown');
+  });
+
+  it('should return any from a typegenless machine', () => {
+    const machine = createMachine({});
+
+    function matches(_value: StateValueFrom<typeof machine>) {}
+
+    matches('just anything');
   });
 });

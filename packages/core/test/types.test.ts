@@ -514,6 +514,74 @@ describe('events', () => {
 
     acceptMachine(toggleMachine);
   });
+
+  it('should infer inline function parameters when narrowing transition actions based on the event type', () => {
+    createMachine({
+      schema: {
+        context: {} as {
+          count: number;
+        },
+        events: {} as
+          | { type: 'EVENT_WITH_FLAG'; flag: boolean }
+          | {
+              type: 'EVENT_WITHOUT_FLAG';
+            }
+      },
+      on: {
+        EVENT_WITH_FLAG: {
+          actions: (_context, event) => {
+            ((_accept: 'EVENT_WITH_FLAG') => {})(event.type);
+            ((_accept: boolean) => {})(event.flag);
+            // @ts-expect-error
+            ((_accept: 'is not any') => {})(event);
+          }
+        }
+      }
+    });
+  });
+
+  it('should infer inline function parameters when for a wildcard transition', () => {
+    createMachine({
+      schema: {
+        context: {} as {
+          count: number;
+        },
+        events: {} as
+          | { type: 'EVENT_WITH_FLAG'; flag: boolean }
+          | {
+              type: 'EVENT_WITHOUT_FLAG';
+            }
+      },
+      on: {
+        '*': {
+          actions: (_context, event) => {
+            ((_accept: 'EVENT_WITH_FLAG' | 'EVENT_WITHOUT_FLAG') => {})(
+              event.type
+            );
+            // @ts-expect-error
+            ((_accept: 'is not any') => {})(event);
+          }
+        }
+      }
+    });
+  });
+
+  it('should provide the default TEvent to transition actions when there is no specific TEvent configured', () => {
+    createMachine({
+      schema: {
+        context: {} as {
+          count: number;
+        }
+      },
+      on: {
+        FOO: {
+          actions: (_context, event) => {
+            ((_accept: string) => {})(event.type);
+          }
+        }
+      }
+    });
+  });
 });
 
 describe('interpreter', () => {

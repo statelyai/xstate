@@ -309,4 +309,35 @@ describe('@xstate/inspect', () => {
       ]
     `);
   });
+
+  it('should only send events once to the inspector after restarting a service', () => {
+    const machine = createMachine({});
+
+    const devTools = createDevTools();
+    const iframeMock = createIframeMock();
+
+    inspect({
+      iframe: iframeMock.iframe,
+      devTools
+    });
+
+    iframeMock.initConnection();
+
+    const service = interpret(machine).start();
+    devTools.register(service);
+
+    service.stop();
+    service.start();
+    devTools.register(service);
+
+    iframeMock.flushMessages();
+
+    service.send({ type: 'EV' });
+
+    expect(
+      iframeMock
+        .flushMessages()
+        .filter((message: any) => message.type === 'service.event')
+    ).toHaveLength(1);
+  });
 });

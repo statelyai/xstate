@@ -1,5 +1,12 @@
 # @xstate/vue
 
+## 2.0.0
+
+### Patch Changes
+
+- Updated dependencies [[`360e85462`](https://github.com/statelyai/xstate/commit/360e8546298c4a06b6d51d8f12c0563672dd7acf), [`360e85462`](https://github.com/statelyai/xstate/commit/360e8546298c4a06b6d51d8f12c0563672dd7acf)]:
+  - @xstate/fsm@2.0.0
+
 ## 1.0.0
 
 ### Major Changes
@@ -115,10 +122,7 @@
   export default {
     props: ['someActor'],
     setup(props) {
-      const count = useSelector(
-        props.someActor,
-        (state) => state.context.count
-      );
+      const count = useSelector(props.someActor, state => state.context.count);
       // ...
       return { count };
     }
@@ -153,7 +157,7 @@
   export default defineComponent({
     setup() {
       const state = ref();
-      const service = useInterpret(machine, {}, (nextState) => {
+      const service = useInterpret(machine, {}, nextState => {
         state.value = nextState.value;
       });
       return { service, state };

@@ -1260,4 +1260,34 @@ describe('typegen types', () => {
       }
     );
   });
+
+  it('should be able to provide events that use string unions as their type', () => {
+    interface TypesMeta extends TypegenMeta {
+      eventsCausingActions: {
+        increment: 'INC';
+        decrement: 'DEC';
+      };
+    }
+
+    createMachine(
+      {
+        tsTypes: {} as TypesMeta,
+        schema: {
+          context: {} as {
+            count: number;
+          },
+          events: {} as { type: 'INC' | 'DEC'; value: number }
+        }
+      },
+      {
+        actions: {
+          increment: assign((ctx, ev) => {
+            return {
+              count: ctx.count + ev.value
+            };
+          })
+        }
+      }
+    );
+  });
 });
