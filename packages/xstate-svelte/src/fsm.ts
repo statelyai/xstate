@@ -1,3 +1,4 @@
+import { onDestroy } from 'svelte';
 import { readable } from 'svelte/store';
 import {
   createMachine,
@@ -32,16 +33,14 @@ export function useMachine<
 
   const service = interpret(resolvedMachine).start();
 
+  onDestroy(service.stop);
+
   const state = readable(service.state, (set) => {
-    service.subscribe((state) => {
+    return service.subscribe((state) => {
       if (state.changed) {
         set(state);
       }
-    });
-
-    return () => {
-      service.stop();
-    };
+    }).unsubscribe;
   });
 
   return { state, send: service.send, service };
