@@ -26,13 +26,12 @@ npm install @xstate/inspect
 ```
 
 **Via CDN**
+
 ```html
 <script src="https://unpkg.com/@xstate/inspect/dist/xstate-inspect.umd.min.js"></script>
 ```
 
 By using the global variable `XStateInspect`
-
-
 
 2. Import it at the beginning of your project, before any other code is called:
 
@@ -41,7 +40,7 @@ import { inspect } from '@xstate/inspect';
 
 inspect({
   // options
-  // url: 'https://statecharts.io/inspect', // (default)
+  // url: 'https://stately.ai/viz?inspect', // (default)
   iframe: false // open in new window
 });
 ```
