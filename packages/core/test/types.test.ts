@@ -565,6 +565,23 @@ describe('events', () => {
       }
     });
   });
+
+  it('should provide the default TEvent to transition actions when there is no specific TEvent configured', () => {
+    createMachine({
+      schema: {
+        context: {} as {
+          count: number;
+        }
+      },
+      on: {
+        FOO: {
+          actions: (_context, event) => {
+            ((_accept: string) => {})(event.type);
+          }
+        }
+      }
+    });
+  });
 });
 
 describe('interpreter', () => {

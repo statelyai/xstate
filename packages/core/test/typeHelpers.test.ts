@@ -183,6 +183,20 @@ describe('EventFrom', () => {
     // @ts-expect-error
     acceptUserModelEventSubset({ type: 'eventThatDoesNotExist' });
   });
+
+  it('should correctly extract events from events having union of strings as their `type`', () => {
+    const machine = createMachine({
+      schema: {
+        events: {} as { type: 'INC' | 'DEC' }
+      }
+    });
+
+    type MachineEvent = EventFrom<typeof machine, 'INC'>;
+
+    const acceptEvent = (_event: MachineEvent) => {};
+
+    acceptEvent({ type: 'INC' });
+  });
 });
 
 describe('MachineOptionsFrom', () => {
