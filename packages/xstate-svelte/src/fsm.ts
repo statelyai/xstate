@@ -1,29 +1,14 @@
-import { readable } from 'svelte/store';
 import {
   createMachine,
   interpret,
-  EventObject,
-  StateMachine,
-  Typestate
+  MachineImplementationsFrom,
+  StateMachine
 } from '@xstate/fsm';
+import { readable } from 'svelte/store';
 
-interface UseMachineOptions<
-  TContext extends object,
-  TEvent extends EventObject
-> {
-  /**
-   * If provided, will replace machine's `actions`.
-   */
-  actions: StateMachine.ActionMap<TContext, TEvent>;
-}
-
-export function useMachine<
-  TContext extends object,
-  TEvent extends EventObject,
-  TTypestate extends Typestate<TContext>
->(
-  machine: StateMachine.Machine<TContext, TEvent, TTypestate>,
-  options: Partial<UseMachineOptions<TContext, TEvent>> = {}
+export function useMachine<TMachine extends StateMachine.AnyMachine>(
+  machine: TMachine,
+  options?: MachineImplementationsFrom<TMachine>
 ) {
   const resolvedMachine = createMachine(
     machine.config,
