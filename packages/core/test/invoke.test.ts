@@ -1949,7 +1949,7 @@ describe('invoke', () => {
           counting: {
             invoke: {
               src: () => fromObservable(() => infinite$),
-              onEmit: {
+              onSnapshot: {
                 actions: assign({ count: (_, e) => e.data })
               }
             },
@@ -1990,7 +1990,7 @@ describe('invoke', () => {
           counting: {
             invoke: {
               src: () => fromObservable(() => infinite$.pipe(take(5))),
-              onEmit: {
+              onSnapshot: {
                 actions: assign({
                   count: (_, e) => e.data
                 })
@@ -2041,7 +2041,7 @@ describe('invoke', () => {
                     })
                   )
                 ),
-              onEmit: {
+              onSnapshot: {
                 actions: assign({ count: (_, e) => e.data })
               },
               onError: {

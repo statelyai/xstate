@@ -373,7 +373,7 @@ describe('spawning observables', () => {
             }
           }),
           on: {
-            'xstate.emit.int': {
+            'xstate.snapshot.int': {
               target: 'success',
               guard: (_: any, e: any) => e.data === 5
             }
@@ -406,7 +406,7 @@ describe('spawning observables', () => {
               observableRef: (_, __, { spawn }) => spawn('interval', 'int')
             }),
             on: {
-              'xstate.emit.int': {
+              'xstate.snapshot.int': {
                 target: 'success',
                 guard: (_: any, e: any) => e.data === 5
               }

@@ -1641,7 +1641,7 @@ describe('interpreter', () => {
             invoke: {
               id: 'childActor',
               src: () => fromObservable(() => interval$),
-              onEmit: {
+              onSnapshot: {
                 target: 'success',
                 guard: (_: unknown, e: AnyEventObject) => {
                   return e.data === 3;

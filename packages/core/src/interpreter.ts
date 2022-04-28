@@ -677,7 +677,7 @@ export class Interpreter<
                 this.send(
                   toSCXMLEvent(
                     {
-                      type: `xstate.emit.${id}`,
+                      type: `xstate.snapshot.${id}`,
                       data
                     },
                     { origin: ref }

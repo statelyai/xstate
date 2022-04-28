@@ -445,7 +445,9 @@ export interface InvokeDefinition<
    */
   onError?: string | SingleOrArray<TransitionConfig<TContext, ErrorEvent<any>>>;
 
-  onEmit?: string | SingleOrArray<TransitionConfig<TContext, EmitEvent<any>>>;
+  onSnapshot?:
+    | string
+    | SingleOrArray<TransitionConfig<TContext, SnapshotEvent<any>>>;
 
   toJSON: () => Omit<
     InvokeDefinition<TContext, TEvent>,
@@ -594,7 +596,9 @@ export interface InvokeConfig<
     | string
     | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
 
-  onEmit?: string | SingleOrArray<TransitionConfig<TContext, EmitEvent<any>>>;
+  onSnapshot?:
+    | string
+    | SingleOrArray<TransitionConfig<TContext, SnapshotEvent<any>>>;
   /**
    * Meta data related to this invocation
    */
@@ -1125,8 +1129,8 @@ export interface ErrorEvent<TErrorData> {
   data: TErrorData;
 }
 
-export interface EmitEvent<TData> {
-  type: `xstate.emit.${string}`;
+export interface SnapshotEvent<TData> {
+  type: `xstate.snapshot.${string}`;
   data: TData;
 }
 

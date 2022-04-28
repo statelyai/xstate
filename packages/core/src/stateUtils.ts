@@ -502,11 +502,11 @@ export function formatTransitions<
           )
         );
       }
-      if (invokeDef.onEmit) {
+      if (invokeDef.onSnapshot) {
         settleTransitions.push(
           ...toTransitionConfigArray(
-            `xstate.emit.${invokeDef.id}`,
-            invokeDef.onEmit
+            `xstate.snapshot.${invokeDef.id}`,
+            invokeDef.onSnapshot
           )
         );
       }
