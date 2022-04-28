@@ -7,12 +7,12 @@ const defaultCompare = (a, b) => a === b;
 export function useSelector<
   TActor extends ActorRef<any, any>,
   T,
-  TEmitted = TActor extends Subscribable<infer Emitted> ? Emitted : never
+  TSnapshot = TActor extends Subscribable<infer Emitted> ? Emitted : never
 >(
   actor: TActor,
-  selector: (emitted: TEmitted) => T,
+  selector: (emitted: TSnapshot) => T,
   compare: (a: T, b: T) => boolean = defaultCompare,
-  getSnapshot: (a: TActor) => TEmitted = defaultGetSnapshot
+  getSnapshot: (a: TActor) => TSnapshot = defaultGetSnapshot
 ) {
   const selected = shallowRef(selector(getSnapshot(actor)));
 

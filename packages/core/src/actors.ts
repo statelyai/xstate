@@ -77,7 +77,7 @@ export type LifecycleSignal = StartSignal | StopSignal;
  * as well as an optionally emitted stream of values.
  *
  * @template TReceived The received event
- * @template TEmitted The emitted value
+ * @template TSnapshot The emitted value
  */
 
 function isSignal(
@@ -313,12 +313,12 @@ export function fromMachine<TMachine extends AnyStateMachine>(
         });
 
         if (options?.sync) {
-          subscription = service.subscribe((emittedState) => {
+          subscription = service.subscribe((snapshotState) => {
             parent?.send(
               toSCXMLEvent(
                 {
                   type: actionTypes.update,
-                  state: emittedState
+                  state: snapshotState
                 },
                 { origin: actorContext.self }
               )
@@ -366,18 +366,18 @@ interface CreateActorRefOptions {
   parent?: ActorRef<any>;
 }
 
-export function createActorRef<TEvent extends EventObject, TEmitted>(
-  behavior: Behavior<TEvent, TEmitted>,
+export function createActorRef<TEvent extends EventObject, TSnapshot>(
+  behavior: Behavior<TEvent, TSnapshot>,
   options: CreateActorRefOptions = {}
-): ActorRef<TEvent, TEmitted> {
+): ActorRef<TEvent, TSnapshot> {
   let state = behavior.initialState;
-  const observers = new Set<Observer<TEmitted>>();
+  const observers = new Set<Observer<TSnapshot>>();
   const mailbox = new Mailbox<TEvent>((event) => {
     state = behavior.transition(state, event, actorCtx);
     observers.forEach((observer) => observer.next?.(state));
   });
 
-  const actor: ActorRef<TEvent, TEmitted> = {
+  const actor: ActorRef<TEvent, TSnapshot> = {
     name: options.id || 'anonymous',
     send: (event: TEvent) => {
       mailbox.enqueue(event);
@@ -405,7 +405,7 @@ export function createActorRef<TEvent extends EventObject, TEmitted>(
     }
   };
 
-  const actorCtx: ActorContext<TEvent, TEmitted> = {
+  const actorCtx: ActorContext<TEvent, TSnapshot> = {
     self: actor,
     name: options.id || 'anonymous',
     observers,
@@ -423,11 +423,11 @@ export function isActorRef(item: any): item is ActorRef<any> {
 // but it's best to avoid unneccessary breaking changes now
 export function toActorRef<
   TEvent extends EventObject,
-  TEmitted = any,
+  TSnapshot = any,
   TActorRefLike extends BaseActorRef<TEvent> = BaseActorRef<TEvent>
 >(
   actorRefLike: TActorRefLike
-): ActorRef<TEvent, TEmitted> & Omit<TActorRefLike, keyof ActorRef<any, any>> {
+): ActorRef<TEvent, TSnapshot> & Omit<TActorRefLike, keyof ActorRef<any, any>> {
   return {
     subscribe: () => ({ unsubscribe: () => void 0 }),
     name: 'anonymous',

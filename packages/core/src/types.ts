@@ -393,7 +393,7 @@ export type InvokeCallback<
 export type BehaviorCreator<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TEmitted = any
+  TSnapshot = any
 > = (
   context: TContext,
   event: TEvent,
@@ -404,7 +404,7 @@ export type BehaviorCreator<
     _event: SCXML.Event<TEvent>;
     meta: MetaObject | undefined;
   }
-) => Behavior<any, TEmitted>;
+) => Behavior<any, TSnapshot>;
 
 export interface InvokeMeta {
   data: any;
@@ -1756,13 +1756,13 @@ export interface ActorLike<TCurrent, TEvent extends EventObject>
 
 export type Sender<TEvent extends EventObject> = (event: TEvent) => void;
 
-export interface ActorRef<TEvent extends EventObject, TEmitted = any>
-  extends Subscribable<TEmitted>,
-    InteropObservable<TEmitted> {
+export interface ActorRef<TEvent extends EventObject, TSnapshot = any>
+  extends Subscribable<TSnapshot>,
+    InteropObservable<TSnapshot> {
   name: string;
   send: (event: TEvent) => void;
   start?: () => void;
-  getSnapshot: () => TEmitted | undefined;
+  getSnapshot: () => TSnapshot | undefined;
   stop?: () => void;
   toJSON?: () => any;
   // TODO: figure out how to hide this externally as `sendTo(ctx => ctx.actorRef._parent._parent._parent._parent)` shouldn't be allowed
@@ -1791,8 +1791,8 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
       >
     : R extends Promise<infer U>
     ? ActorRef<{ type: string }, U | undefined>
-    : R extends Behavior<infer TEvent, infer TEmitted>
-    ? ActorRef<TEvent, TEmitted>
+    : R extends Behavior<infer TEvent, infer TSnapshot>
+    ? ActorRef<TEvent, TSnapshot>
     : never
   : never;
 
@@ -1848,31 +1848,31 @@ export type EventOfMachine<
   TMachine extends AnyStateMachine
 > = TMachine extends StateMachine<any, infer E, any, any, any> ? E : never;
 
-export interface ActorContext<TEvent extends EventObject, TEmitted> {
-  self: ActorRef<TEvent, TEmitted>;
+export interface ActorContext<TEvent extends EventObject, TSnapshot> {
+  self: ActorRef<TEvent, TSnapshot>;
   name: string;
-  observers: Set<Observer<TEmitted>>;
+  observers: Set<Observer<TSnapshot>>;
   _event: SCXML.Event<TEvent> | LifecycleSignal;
 }
 
-export interface Behavior<TEvent extends EventObject, TEmitted = any> {
+export interface Behavior<TEvent extends EventObject, TSnapshot = any> {
   transition: (
-    state: TEmitted,
+    state: TSnapshot,
     message: TEvent | LifecycleSignal,
-    ctx: ActorContext<TEvent, TEmitted>
-  ) => TEmitted;
-  initialState: TEmitted;
-  start?: (actorCtx: ActorContext<TEvent, TEmitted>) => TEmitted;
-  subscribe?: (observer: Observer<TEmitted>) => Subscription | undefined;
+    ctx: ActorContext<TEvent, TSnapshot>
+  ) => TSnapshot;
+  initialState: TSnapshot;
+  start?: (actorCtx: ActorContext<TEvent, TSnapshot>) => TSnapshot;
+  subscribe?: (observer: Observer<TSnapshot>) => Subscription | undefined;
 }
 
 export type EmittedFrom<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends ActorRef<infer _, infer TEmitted>
-    ? TEmitted
-    : R extends Behavior<infer _, infer TEmitted>
-    ? TEmitted
-    : R extends ActorContext<infer _, infer TEmitted>
-    ? TEmitted
+  ? R extends ActorRef<infer _, infer TSnapshot>
+    ? TSnapshot
+    : R extends Behavior<infer _, infer TSnapshot>
+    ? TSnapshot
+    : R extends ActorContext<infer _, infer TSnapshot>
+    ? TSnapshot
     : never
   : never;
 

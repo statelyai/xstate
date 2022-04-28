@@ -9,15 +9,15 @@ export function isActorWithState<T extends ActorRef<any>>(
 
 type EmittedFromActorRef<
   TActor extends ActorRef<any, any>
-> = TActor extends ActorRef<any, infer TEmitted> ? TEmitted : never;
+> = TActor extends ActorRef<any, infer TSnapshot> ? TSnapshot : never;
 
 const noop = () => {
   /* ... */
 };
 
-export function defaultGetSnapshot<TEmitted>(
-  actorRef: ActorRef<any, TEmitted>
-): TEmitted | undefined {
+export function defaultGetSnapshot<TSnapshot>(
+  actorRef: ActorRef<any, TSnapshot>
+): TSnapshot | undefined {
   return 'getSnapshot' in actorRef
     ? actorRef.getSnapshot()
     : isActorWithState(actorRef)
@@ -32,10 +32,10 @@ export function useActor<TActor extends ActorRef<any, any>>(
   state: Ref<EmittedFromActorRef<TActor>>;
   send: TActor['send'];
 };
-export function useActor<TEvent extends EventObject, TEmitted>(
-  actorRef: ActorRef<TEvent, TEmitted> | Ref<ActorRef<TEvent, TEmitted>>,
-  getSnapshot?: (actor: ActorRef<TEvent, TEmitted>) => TEmitted
-): { state: Ref<TEmitted>; send: Sender<TEvent> };
+export function useActor<TEvent extends EventObject, TSnapshot>(
+  actorRef: ActorRef<TEvent, TSnapshot> | Ref<ActorRef<TEvent, TSnapshot>>,
+  getSnapshot?: (actor: ActorRef<TEvent, TSnapshot>) => TSnapshot
+): { state: Ref<TSnapshot>; send: Sender<TEvent> };
 export function useActor(
   actorRef:
     | ActorRef<EventObject, unknown>

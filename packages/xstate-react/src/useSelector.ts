@@ -22,12 +22,12 @@ function defaultGetSnapshot<TActor extends ActorRef<any, any>>(a: TActor) {
 export function useSelector<
   TActor extends ActorRef<any, any>,
   T,
-  TEmitted = TActor extends Subscribable<infer Emitted> ? Emitted : never
+  TSnapshot = TActor extends Subscribable<infer Emitted> ? Emitted : never
 >(
   actor: TActor,
-  selector: (emitted: TEmitted) => T,
+  selector: (emitted: TSnapshot) => T,
   compare: (a: T, b: T) => boolean = defaultCompare,
-  getSnapshot: (a: TActor) => TEmitted = defaultGetSnapshot
+  getSnapshot: (a: TActor) => TSnapshot = defaultGetSnapshot
 ): T {
   const subscribe = useCallback(
     (handleStoreChange) => {

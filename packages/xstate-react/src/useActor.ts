@@ -18,11 +18,11 @@ function isDeferredActor<T extends ActorRef<any>>(
 
 type EmittedFromActorRef<
   TActor extends ActorRef<any, any>
-> = TActor extends ActorRef<any, infer TEmitted> ? TEmitted : never;
+> = TActor extends ActorRef<any, infer TSnapshot> ? TSnapshot : never;
 
-function defaultGetSnapshot<TEmitted>(
-  actorRef: ActorRef<any, TEmitted>
-): TEmitted | undefined {
+function defaultGetSnapshot<TSnapshot>(
+  actorRef: ActorRef<any, TSnapshot>
+): TSnapshot | undefined {
   return 'getSnapshot' in actorRef
     ? actorRef.getSnapshot()
     : isActorWithState(actorRef)
@@ -30,14 +30,14 @@ function defaultGetSnapshot<TEmitted>(
     : undefined;
 }
 
-export function useActor<TActor extends ActorRef<any, any>, TEmitted = any>(
+export function useActor<TActor extends ActorRef<any, any>, TSnapshot = any>(
   actorRef: TActor,
   getSnapshot?: (actor: TActor) => EmittedFromActorRef<TActor>
 ): [EmittedFromActorRef<TActor>, TActor['send']];
-export function useActor<TEvent extends EventObject, TEmitted>(
-  actorRef: ActorRef<TEvent, TEmitted>,
-  getSnapshot?: (actor: ActorRef<TEvent, TEmitted>) => TEmitted
-): [TEmitted, (event: TEvent) => void];
+export function useActor<TEvent extends EventObject, TSnapshot>(
+  actorRef: ActorRef<TEvent, TSnapshot>,
+  getSnapshot?: (actor: ActorRef<TEvent, TSnapshot>) => TSnapshot
+): [TSnapshot, (event: TEvent) => void];
 export function useActor(
   actorRef: ActorRef<EventObject, unknown>,
   getSnapshot: (

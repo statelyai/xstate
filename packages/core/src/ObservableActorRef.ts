@@ -7,15 +7,15 @@ const nullSubscription = {
   unsubscribe: () => void 0
 };
 
-export class ObservableActorRef<TEvent extends EventObject, TEmitted>
-  implements ActorRef<TEvent, TEmitted> {
-  private current: TEmitted;
+export class ObservableActorRef<TEvent extends EventObject, TSnapshot>
+  implements ActorRef<TEvent, TSnapshot> {
+  private current: TSnapshot;
   public deferred = true;
-  private context: ActorContext<TEvent, TEmitted>;
+  private context: ActorContext<TEvent, TSnapshot>;
   private mailbox = new Mailbox(this._process.bind(this));
 
   constructor(
-    private behavior: Behavior<TEvent, TEmitted>,
+    private behavior: Behavior<TEvent, TSnapshot>,
     public name: string
   ) {
     this.context = {
