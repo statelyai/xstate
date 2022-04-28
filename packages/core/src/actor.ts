@@ -9,7 +9,9 @@ import {
   BaseActorRef,
   MachineContext,
   Behavior,
-  ActorContext
+  ActorContext,
+  ActorRefFrom,
+  AnyStateMachine
 } from './types';
 import { StateMachine } from './StateMachine';
 import { State } from './State';
@@ -28,7 +30,6 @@ import * as capturedState from './capturedState';
 import { ObservableActorRef } from './ObservableActorRef';
 import { symbolObservable, toSCXMLEvent } from './utils';
 import { Mailbox } from './Mailbox';
-import { AnyStateMachine } from '.';
 
 const nullSubscription = {
   unsubscribe: () => void 0
@@ -83,13 +84,16 @@ export function fromMachine<
   return new ObservableActorRef(createMachineBehavior(machine, options), name);
 }
 
-export function spawn<TReceived extends EventObject, TEmitted>(
-  behavior: Behavior<TReceived, TEmitted>,
+// TODO: do not accept machines without all implementations
+// we should also accept a raw machine as a behavior here
+// or just make machine a behavior
+export function spawn<TBehavior extends Behavior<any, any>>(
+  behavior: TBehavior,
   // TODO: use more universal uniqueid)
   name: string = registry.bookId()
-) {
+): ActorRefFrom<TBehavior> {
   const actorRef = new ObservableActorRef(behavior, name);
-  return capturedState.captureSpawn(actorRef, name);
+  return capturedState.captureSpawn(actorRef, name) as any;
 }
 
 export function spawnPromise<T>(

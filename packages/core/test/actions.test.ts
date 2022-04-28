@@ -1806,7 +1806,7 @@ describe('sendTo', () => {
       child: ActorRefFrom<typeof childMachine>;
     }>({
       context: () => ({
-        child: spawn(childMachine)
+        child: spawn(createMachineBehavior(childMachine))
       }),
       entry: sendTo((ctx) => ctx.child, {
         // @ts-expect-error

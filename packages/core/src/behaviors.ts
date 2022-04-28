@@ -7,12 +7,13 @@ import {
   Lazy,
   Sender,
   Receiver,
-  MachineContext,
   Behavior,
   ActorContext,
   ActorRef,
   EventObject,
-  Observer
+  Observer,
+  EventFrom,
+  StateFrom
 } from './types';
 import {
   toSCXMLEvent,
@@ -281,7 +282,7 @@ export function createDeferredBehavior<TEvent extends EventObject>(
 
 export function createPromiseBehavior<T, TEvent extends EventObject>(
   lazyPromise: Lazy<PromiseLike<T>>
-): Behavior<TEvent, T | undefined> {
+): Behavior<{ type: string }, T | undefined> {
   const parent = CapturedState.current?.actorRef;
   let canceled = false;
   const observers: Set<Observer<T>> = new Set();
@@ -392,20 +393,17 @@ export function createObservableBehavior<
 }
 
 export function createMachineBehavior<
-  TContext extends MachineContext,
-  TEvent extends EventObject
+  TMachine extends StateMachine<any, any, any, any, any>
 >(
-  machine:
-    | StateMachine<TContext, TEvent, any, any, any>
-    | Lazy<StateMachine<TContext, TEvent, any, any, any>>,
+  machine: TMachine | Lazy<TMachine>,
   options?: Partial<InterpreterOptions>
-): Behavior<TEvent, State<TContext, TEvent>> {
+): Behavior<EventFrom<TMachine>, StateFrom<TMachine>> {
   const parent = CapturedState.current?.actorRef;
-  let service: Interpreter<TContext, TEvent, any> | undefined;
+  let service: Interpreter<any, any, any> | undefined;
   let subscription: Subscription;
-  let resolvedMachine: StateMachine<TContext, TEvent>;
+  let resolvedMachine: TMachine;
 
-  const behavior: Behavior<TEvent, State<TContext, TEvent, any>> = {
+  const behavior: Behavior<any, any> = {
     transition: (state, event, actorContext) => {
       resolvedMachine = isFunction(machine) ? machine() : machine;
 

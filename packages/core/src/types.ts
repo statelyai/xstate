@@ -1761,7 +1761,7 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
         >
       >
     : R extends Promise<infer U>
-    ? ActorRef<never, U>
+    ? ActorRef<{ type: string }, U | undefined>
     : R extends Behavior<infer TEvent, infer TEmitted>
     ? ActorRef<TEvent, TEmitted>
     : never

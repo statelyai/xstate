@@ -18,7 +18,7 @@ import {
 import { createDynamicAction } from '../../actions/dynamicAction';
 import {
   ActionTypes,
-  ActorRef,
+  AnyActorRef,
   BaseDynamicActionObject,
   Cast,
   EventFrom,
@@ -240,7 +240,7 @@ export function escalate<
 export function sendTo<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActor extends ActorRef<EventObject>
+  TActor extends AnyActorRef
 >(
   actor: (ctx: TContext) => TActor,
   event:
