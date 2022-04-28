@@ -9,8 +9,7 @@ import {
   ResolveTypegenMeta,
   TypegenConstraint,
   MarkAllImplementationsAsProvided,
-  AreAllImplementationsAssumedToBeProvided,
-  TypegenEnabled
+  AreAllImplementationsAssumedToBeProvided
 } from './typegenTypes';
 
 export type AnyFunction = (...args: any[]) => any;
@@ -115,6 +114,9 @@ export interface ActionMeta<
   _event: SCXML.Event<TEvent>;
 }
 
+// TODO: do not accept machines without all implementations
+// we should also accept a raw machine as a behavior here
+// or just make machine a behavior
 export type Spawner = <T extends Behavior<any, any> | string>( // TODO: read string from machine behavior keys
   behavior: T,
   name?: string
@@ -176,7 +178,7 @@ export type BaseAction<
   | BaseDynamicActionObject<
       TContext,
       TEvent,
-      BuiltInActionObject | TAction,
+      any, // TODO: at the very least this should include TAction, but probably at a covariant position or something, we really need to rethink how action objects are typed
       any
     >
   | TAction
@@ -1784,7 +1786,7 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
         >
       >
     : R extends Promise<infer U>
-    ? ActorRef<never, U | undefined>
+    ? ActorRef<{ type: string }, U | undefined>
     : R extends Behavior<infer TEvent, infer TEmitted>
     ? ActorRef<TEvent, TEmitted>
     : never
@@ -1929,18 +1931,6 @@ export type InferEvent<E extends EventObject> = {
 
 export type TODO = any;
 
-type Matches<TypegenEnabledArg, TypegenDisabledArg> = {
-  (stateValue: TypegenEnabledArg): any;
-  (stateValue: TypegenDisabledArg): any;
-};
-
-export type StateValueFrom<
-  TMachine extends AnyStateMachine
-> = StateFrom<TMachine>['matches'] extends Matches<
-  infer TypegenEnabledArg,
-  infer TypegenDisabledArg
->
-  ? TMachine['__TResolvedTypesMeta'] extends TypegenEnabled
-    ? TypegenEnabledArg
-    : TypegenDisabledArg
-  : never;
+export type StateValueFrom<TMachine extends AnyStateMachine> = Parameters<
+  StateFrom<TMachine>['matches']
+>[0];

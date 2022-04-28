@@ -175,7 +175,7 @@ export function fromCallback<TEvent extends EventObject>(
 
 export function fromPromise<T, TEvent extends EventObject>(
   lazyPromise: Lazy<PromiseLike<T>>
-): Behavior<any, T | undefined> {
+): Behavior<{ type: string }, T | undefined> {
   let canceled = false;
   const observers: Set<Observer<T>> = new Set();
 
