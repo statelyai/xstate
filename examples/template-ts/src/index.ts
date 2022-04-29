@@ -5,79 +5,51 @@ const eventOutputEl = document.getElementById('output-event')!;
 const valueOutputEl = document.getElementById('output-value')!;
 const contextOutputEl = document.getElementById('output-context')!;
 
-const feedbackMachine = createMachine<
-  { content: string | null },
-  | { type: 'good' }
-  | { type: 'bad' }
-  | { type: 'submit'; content: string }
-  | { type: 'back' }
-  | { type: 'close' }
->({
-  id: 'feedback',
-  initial: 'question',
+const taskMachine = createMachine<{ time?: string }>({
+  initial: 'idle',
   context: {
-    content: null
+    time: undefined
   },
   states: {
-    question: {
+    idle: {
       on: {
-        good: 'thanks',
-        bad: 'form'
+        fetch: 'pending'
       }
     },
-    form: {
-      initial: 'normal',
-      states: {
-        normal: {},
-        invalid: {}
-      },
-      on: {
-        back: 'question',
-        submit: [
-          {
-            cond: (context, event) => {
-              return event.content.length > 0;
-            },
-            actions: assign({
-              content: (context, event) => event.content
-            }),
-            target: 'thanks'
-          },
-          { target: '.invalid' }
-        ]
+    pending: {
+      invoke: {
+        src: () =>
+          new Promise((res) => {
+            setTimeout(() => {
+              res(new Date().toLocaleTimeString());
+            }, 1000);
+          }),
+        onDone: {
+          actions: assign({
+            time: (_, event) => event.data
+          })
+        }
       }
     },
-    thanks: {},
-    closed: {
-      type: 'final'
+    success: {
+      on: {
+        refetch: 'pending'
+      }
     }
-  },
-  on: {
-    close: '.closed'
   }
 });
 
-console.log(
-  `Send events to the feedback actor, e.g.: \n\n${[
-    'feedback.send({ type: "good" })',
-    'feedback.send({ type: "bad" })',
-    'feedback.send({ type: "submit", contents: "Some feedback" })',
-    'feedback.send({ type: "back" })',
-    'feedback.send({ type: "close" })'
-  ].join('\n')}`
-);
-
-function renderState(state: StateFrom<typeof feedbackMachine>) {
+function renderState(state: StateFrom<typeof taskMachine>) {
   console.log(state);
   eventOutputEl.innerHTML = JSON.stringify(state.event, null, 2);
   valueOutputEl.innerHTML = JSON.stringify(state.value, null, 2);
   contextOutputEl.innerHTML = JSON.stringify(state.context, null, 2);
 }
 
-const feedback = interpret(feedbackMachine)
+const time = interpret(taskMachine)
   .onTransition((state) => {
     renderState(state);
   })
   .start();
 
-(window as any).feedback = feedback;
+(window as any).time = time;
