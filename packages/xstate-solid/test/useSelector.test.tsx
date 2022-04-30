@@ -33,7 +33,7 @@ describe('useSelector', () => {
     const App = () => {
       const service = useInterpret(machine);
       const count = useSelector(
-        () => service,
+        service,
         (state) => state.context.count
       );
 
@@ -91,7 +91,7 @@ describe('useSelector', () => {
     const App = () => {
       const service = useInterpret(machine);
       const name = useSelector(
-        () => service,
+        service,
         (state) => state.context.name,
         (a, b) => a.toUpperCase() === b.toUpperCase()
       );
@@ -157,7 +157,7 @@ describe('useSelector', () => {
     const App = () => {
       const [state] = useMachine(parentMachine);
       const actor = state.context.childActor;
-      const count = useSelector(() => actor, selector);
+      const count = useSelector(actor, selector);
 
       return (
         <div>
@@ -206,7 +206,7 @@ describe('useSelector', () => {
       const [state] = useMachine(parentMachine);
       const actor = state.context.childActor;
       const value = useSelector(
-        () => actor,
+        actor,
         (actorState) => `${prop()} ${actorState.context.count}`
       );
       return <div data-testid="value">{value()}</div>;
@@ -331,9 +331,9 @@ describe('useSelector', () => {
     const Child: Component<{ actorRef: ActorRefFrom<typeof childMachine> }> = (
       props
     ) => {
-      const [, send] = useActor(() => props.actorRef);
+      const [, send] = useActor(props.actorRef);
       const actorContext = useSelector(
-        () => props.actorRef,
+        props.actorRef,
         (actorState) => actorState.context,
         (a, b) => a.items.wins === b.items.wins
       );
@@ -398,7 +398,7 @@ describe('useSelector', () => {
       const [state] = useMachine(parentMachine);
       const actor = state.context.childActor;
       const value = useSelector(
-        () => actor,
+         actor,
         (actorState) => `${prop()} ${actorState.context.count}`
       );
       return (
@@ -454,7 +454,7 @@ describe('useSelector', () => {
       const actor = state.context.childActor;
 
       const value = useSelector(
-        () => actor,
+        actor,
         identitySelector,
         undefined,
         getSnapshot
@@ -489,7 +489,7 @@ describe('useSelector', () => {
 
     const App = () => {
       ++renders;
-      useSelector(() => service, selector);
+      useSelector(service, selector);
 
       return null;
     };

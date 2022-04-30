@@ -96,7 +96,7 @@ A SolidJS hook that subscribes to emitted changes from an existing [actor](https
 
 **Arguments**
 
-- `actor` - a [SolidJS Signal](https://www.solidjs.com/docs/latest/api#createsignal) (or function) that return an actor-like object that contains `.send(...)` and `.subscribe(...)` methods.
+- `actor` - an actor-like object that contains `.send(...)` and `.subscribe(...)` methods. Allows [SolidJS Signal](https://www.solidjs.com/docs/latest/api#createsignal) (or function) to dynamically specify an actor.
 - `getSnapshot` - a function that should return the latest emitted value from the `actor`.
   - Defaults to attempting to get the `actor.state`, or returning `undefined` if that does not exist.
 
@@ -166,7 +166,7 @@ A SolidJS hook that returns the selected value from the snapshot of an `actor`, 
 
 **Arguments**
 
-- `actor` - a [SolidJS Signal](https://www.solidjs.com/docs/latest/api#createsignal) (or function) that return a service or an actor-like object that contains `.send(...)` and `.subscribe(...)` methods.
+- `actor` - a service or an actor-like object that contains `.send(...)` and `.subscribe(...)` methods. Allows [SolidJS Signal](https://www.solidjs.com/docs/latest/api#createsignal) (or function) to dynamically specify a service or actor.
 - `selector` - a function that takes in an actor's "current state" (snapshot) as an argument and returns the desired selected value.
 - `compare` (optional) - a function that determines if the current selected value is the same as the previous selected value.
 - `getSnapshot` (optional) - a function that should return the latest emitted value from the `actor`.
@@ -182,8 +182,8 @@ import { useSelector } from '@xstate/solid';
 // Selectors can be defined outside or inside the component
 const selectCount = (state) => state.context.count;
 
-const App = ({ service }) => {
-  const count = useSelector(() => service, selectCount);
+const App = (props) => {
+  const count = useSelector(props.service, selectCount);
 
   count(); // the product of the selector
   // ...
@@ -198,8 +198,8 @@ With `compare` function:
 const selectUser = (state) => state.context.user;
 const compareUser = (prevUser, nextUser) => prevUser.id === nextUser.id;
 
-const App = ({ service }) => {
-  const user = useSelector(() => service, selectUser, compareUser);
+const App = (props) => {
+  const user = useSelector(props.service, selectUser, compareUser);
 
   // ...
 };
@@ -213,9 +213,9 @@ import { someMachine } from '../path/to/someMachine';
 
 const selectCount = (state) => state.context.count;
 
-const App = ({ service }) => {
+const App = (props) => {
   const service = useInterpret(someMachine);
-  const count = useSelector(() => service, selectCount);
+  const count = useSelector(service, selectCount);
 
   // ...
 };
@@ -241,7 +241,7 @@ This special `useMachine` hook is imported from `@xstate/solid/fsm`
 **Example**
 
 ```js
-import { useEffect } from 'solid';
+import { useEffect } from 'solid-js';
 import { useMachine } from '@xstate/solid/fsm';
 import { createMachine } from '@xstate/fsm';
 

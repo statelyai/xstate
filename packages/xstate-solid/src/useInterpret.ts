@@ -1,5 +1,5 @@
 import type {
-  StateMachine,
+  AnyStateMachine,
   InterpreterOptions,
   Observer,
   AreAllImplementationsAssumedToBeProvided,
@@ -12,7 +12,7 @@ import { onCleanup, onMount } from 'solid-js';
 import { createStore } from 'solid-js/store';
 
 type RestParams<
-  TMachine extends StateMachine<any, any, any, any, any, any, any>
+  TMachine extends AnyStateMachine
 > = AreAllImplementationsAssumedToBeProvided<
   TMachine['__TResolvedTypesMeta']
 > extends false
@@ -74,9 +74,7 @@ type RestParams<
           ) => void)
     ];
 
-export function useInterpret<
-  TMachine extends StateMachine<any, any, any, any, any, any, any>
->(
+export function useInterpret<TMachine extends AnyStateMachine>(
   getMachine: MaybeLazy<TMachine>,
   ...[options = {}, observerOrListener]: RestParams<TMachine>
 ): InterpreterFrom<TMachine> {

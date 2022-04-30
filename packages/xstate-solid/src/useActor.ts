@@ -35,22 +35,28 @@ export function defaultGetSnapshot<TEmitted>(
 
 type ActorReturn<T> = Accessor<T>;
 export function useActor<TActor extends ActorRef<any, any>>(
-  actorRef: Accessor<TActor>,
+  actorRef: Accessor<TActor> | TActor,
   getSnapshot?: (actor: TActor) => EmittedFromActorRef<TActor>
 ): [ActorReturn<EmittedFromActorRef<TActor>>, TActor['send']];
 export function useActor<TEvent extends EventObject, TEmitted>(
-  actorRef: Accessor<ActorRef<TEvent, TEmitted>>,
+  actorRef: Accessor<ActorRef<TEvent, TEmitted>> | ActorRef<TEvent, TEmitted>,
   getSnapshot?: (actor: ActorRef<TEvent, TEmitted>) => TEmitted
 ): [ActorReturn<TEmitted>, Sender<TEvent>];
 export function useActor(
-  actorRef: Accessor<ActorRef<EventObject, unknown>>,
+  actorRef:
+    | Accessor<ActorRef<EventObject, unknown>>
+    | ActorRef<EventObject, unknown>,
   getSnapshot: (
     actor: ActorRef<EventObject, unknown>
   ) => unknown = defaultGetSnapshot
 ): [ActorReturn<unknown>, Sender<EventObject>] {
-  const actorMemo = createMemo<ActorRef<EventObject, unknown>>(actorRef);
-  const deferredEventsRef: EventObject[] = [];
+  const actorMemo = createMemo<ActorRef<EventObject, unknown>>(
+    typeof actorRef === 'function' ? actorRef : () => actorRef
+  );
+
   const [snapshot, update] = createStoreSignal<unknown>(actorMemo, getSnapshot);
+
+  const deferredEventsRef: EventObject[] = [];
   const send: Sender<EventObject> = (event: EventObject) => {
     const currentActorRef = actorMemo();
     // If the previous actor is a deferred actor,
@@ -64,6 +70,7 @@ export function useActor(
   };
 
   createEffect(
+    // Track and rerun if a new actor is provided
     on(actorMemo, () => {
       update(getSnapshot(actorMemo()));
       const { unsubscribe } = actorMemo().subscribe({

@@ -7,7 +7,8 @@ import type {
   StateFrom
 } from 'xstate';
 import { State } from 'xstate';
-import { createStore, SetStoreFunction } from 'solid-js/store';
+import type { SetStoreFunction } from 'solid-js/store';
+import { createStore } from 'solid-js/store';
 import type { MaybeLazy, UseMachineOptions, Prop } from './types';
 import { useInterpret } from './useInterpret';
 import { batch } from 'solid-js';
