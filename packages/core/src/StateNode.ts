@@ -66,7 +66,6 @@ import {
   InvokeSourceDefinition,
   MachineSchema,
   ActorRef,
-  StateMachine,
   InternalMachineOptions,
   ServiceMap,
   StateConfig,
@@ -306,7 +305,7 @@ class StateNode<
     private _context:
       | Readonly<TContext>
       | (() => Readonly<TContext>) = ('context' in config
-      ? (config as StateMachine<TContext, any, TEvent>).context
+      ? (config as any).context
       : undefined) as any, // TODO: this is unsafe, but we're removing it in v5 anyway
     _stateInfo?: {
       parent: StateNode<any, any, any, any, any, any>;

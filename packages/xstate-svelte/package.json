@@ -16,23 +16,27 @@
   "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-svelte#readme",
   "license": "MIT",
   "main": "lib/index.js",
+  "module": "es/index.js",
   "types": "lib/index.d.ts",
   "sideEffects": false,
   "directories": {
     "lib": "lib",
+    "es": "es",
     "test": "test"
   },
   "files": [
     "lib/**/*.js",
-    "lib/**/*.d.ts"
+    "lib/**/*.d.ts",
+    "es/**/*.js",
+    "es/**/*.d.ts"
   ],
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/statelyai/xstate.git"
   },
   "scripts": {
-    "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
-    "build": "tsc",
+    "clean": "rm -rf dist lib es tsconfig.tsbuildinfo",
+    "build": "tsc && tsc --outDir es --module esnext",
     "test": "jest",
     "prepare": "npm run build",
     "svelte-check": "svelte-check"
