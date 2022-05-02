@@ -127,7 +127,7 @@ _Since 1.3.0_
 **Arguments**
 
 - `machine` - An [XState machine](https://xstate.js.org/docs/guides/machines.html) or a function that lazily returns a machine.
-- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `immediate`, `context`, `state`.  If the machine already contains any of these options, they will be merged, with these options taking precedence.
+- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `immediate`, `context`, `state`. If the machine already contains any of these options, they will be merged, with these options taking precedence.
 - `observer` (optional) - an observer or listener that listens to state updates:
   - an observer (e.g., `{ next: (state) => {/* ... */} }`)
   - or a listener (e.g., `(state) => {/* ... */}`)
