@@ -1,5 +1,17 @@
 # @xstate/inspect
 
+## 0.7.0
+
+### Minor Changes
+
+- [#3235](https://github.com/statelyai/xstate/pull/3235) [`f666f5823`](https://github.com/statelyai/xstate/commit/f666f5823835bd731034e7e2d64e5916b1f7dc0c) Thanks [@mattpocock](https://github.com/mattpocock)! - `@xstate/inspect` will now target `https://stately.ai/viz` by default. You can target the old inspector by setting the config options like so:
+
+  ```ts
+  inspect({
+    url: `https://statecharts.io/inspect`
+  });
+  ```
+
 ## 0.6.5
 
 ### Patch Changes
