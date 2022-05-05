@@ -5,7 +5,6 @@ import {
   BaseActionObject,
   Compute,
   EventObject,
-  ExtractEvent,
   MachineConfig,
   Prop,
   PropertyAssigner,
@@ -19,6 +18,12 @@ import {
   TypegenDisabled
 } from './typegenTypes';
 
+// real `ExtractEvent` breaks `model.assign` inference within transition actions
+type SimplisticExtractEvent<
+  TEvent extends EventObject,
+  TEventType extends TEvent['type']
+> = TEvent extends { type: TEventType } ? TEvent : never;
+
 export interface Model<
   TContext,
   TEvent extends EventObject,
@@ -28,10 +33,10 @@ export interface Model<
   initialContext: TContext;
   assign: <TEventType extends TEvent['type'] = TEvent['type']>(
     assigner:
-      | Assigner<TContext, ExtractEvent<TEvent, TEventType>>
-      | PropertyAssigner<TContext, ExtractEvent<TEvent, TEventType>>,
+      | Assigner<TContext, SimplisticExtractEvent<TEvent, TEventType>>
+      | PropertyAssigner<TContext, SimplisticExtractEvent<TEvent, TEventType>>,
     eventType?: TEventType
-  ) => AssignAction<TContext, ExtractEvent<TEvent, TEventType>>;
+  ) => AssignAction<TContext, SimplisticExtractEvent<TEvent, TEventType>>;
   events: Prop<TModelCreators, 'events'>;
   actions: Prop<TModelCreators, 'actions'>;
   reset: () => AssignAction<TContext, any>;
