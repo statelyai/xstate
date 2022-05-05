@@ -8,10 +8,8 @@ import {
   AnyState,
   EventObject,
   ExtractEvent,
-  MachineConfig,
   State,
   StateNode,
-  StateNodeConfig,
   TransitionConfig
 } from 'xstate';
 export interface TestMeta<T, TContext> {
@@ -239,25 +237,6 @@ export type TestTransitionsConfigMap<
 } & {
   '*'?: TestTransitionConfig<TContext, TEvent, TTestContext> | string;
 };
-
-export interface TestStateNodeConfig<
-  TContext,
-  TEvent extends EventObject,
-  TTestContext
-> extends StateNodeConfig<TContext, any, TEvent> {
-  test?: (state: State<TContext, TEvent>, testContext: TTestContext) => void;
-  on?: TestTransitionsConfigMap<TContext, TEvent, TTestContext>;
-}
-
-export interface TestMachineConfig<
-  TContext,
-  TEvent extends EventObject,
-  TTestContext
-> extends MachineConfig<TContext, any, TEvent> {
-  states?: {
-    [key: string]: TestStateNodeConfig<TContext, TEvent, TTestContext>;
-  };
-}
 
 export type PlanGenerator<TState, TEvent extends EventObject> = (
   behavior: SimpleBehavior<TState, TEvent>,

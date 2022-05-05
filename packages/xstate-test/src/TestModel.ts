@@ -6,14 +6,12 @@ import {
   StatePath,
   StatePlan,
   Step,
-  TraversalOptions
-} from '@xstate/graph';
-import {
+  TraversalOptions,
   performDepthFirstTraversal,
   traverseShortestPlans,
   traverseSimplePlans,
   traverseSimplePathsTo
-} from '@xstate/graph/src/graph';
+} from '@xstate/graph';
 import { EventObject, SingleOrArray } from 'xstate';
 import { flatten } from './utils';
 import { CoverageFunction } from './coverage';

@@ -1,13 +1,3 @@
-import {
-  getStateNodes,
-  getPathFromEvents,
-  getSimplePlans,
-  getShortestPlans,
-  serializeEvent,
-  serializeMachineState,
-  toDirectedGraph
-} from './graph';
-
 export {
   getStateNodes,
   getPathFromEvents,
@@ -15,7 +5,11 @@ export {
   getShortestPlans,
   serializeEvent,
   serializeMachineState as serializeState,
-  toDirectedGraph
-};
+  toDirectedGraph,
+  performDepthFirstTraversal,
+  traverseShortestPlans,
+  traverseSimplePlans,
+  traverseSimplePathsTo
+} from './graph';
 
 export * from './types';
