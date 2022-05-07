@@ -263,15 +263,13 @@ export class StateNode<
     return memo(this, 'invoke', () =>
       toArray(this.config.invoke).map((invocable, i) => {
         const generatedId = createInvokeId(this.id, i);
-
         const invokeConfig = toInvokeConfig(invocable, generatedId);
         const resolvedId = invokeConfig.id || generatedId;
+        const { src } = invokeConfig;
 
         const resolvedSrc = toInvokeSource(
-          isString(invokeConfig.src) ? invokeConfig.src : resolvedId
+          isString(src) ? src : !('type' in src) ? resolvedId : src
         );
-
-        const { src } = invokeConfig;
 
         if (
           !this.machine.options.actors[resolvedId] &&

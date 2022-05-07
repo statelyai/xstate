@@ -2827,7 +2827,7 @@ describe('invoke', () => {
     (_type, invokeConfig) => {
       const machine = createMachine(
         {
-          id: 'machine',
+          key: 'machine',
           initial: 'a',
           states: {
             a: {
@@ -2958,8 +2958,6 @@ describe('invoke', () => {
       }
     });
 
-    console.log(testMachine.options);
-    console.log('-------');
     interpret(testMachine).start();
 
     // check within a macrotask so all promise-induced microtasks have a chance to resolve first
