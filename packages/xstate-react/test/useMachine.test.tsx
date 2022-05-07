@@ -747,7 +747,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
         active: {
           invoke: {
             id: 'test',
-            src: () => fromMachine(childMachine.withContext({ value: 42 }))
+            src: fromMachine(childMachine.withContext({ value: 42 }))
           }
         }
       }

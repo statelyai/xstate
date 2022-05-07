@@ -43,8 +43,12 @@ export function invoke<
         } as InvokeActionObject;
       }
 
+      const behaviorImpl = machine.options.actors[src.type];
       const behaviorCreator: BehaviorCreator<TContext, TEvent> | undefined =
-        machine.options.actors[src.type];
+        behaviorImpl &&
+        (typeof behaviorImpl === 'function'
+          ? behaviorImpl
+          : () => behaviorImpl);
 
       if (!behaviorCreator) {
         return {

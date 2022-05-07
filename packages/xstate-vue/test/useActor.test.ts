@@ -34,7 +34,7 @@ describe('useActor composable function', () => {
       initial: 'active',
       invoke: {
         id: 'child',
-        src: () => fromMachine(childMachine)
+        src: fromMachine(childMachine)
       },
       states: {
         active: {

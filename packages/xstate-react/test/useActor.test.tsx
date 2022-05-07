@@ -27,7 +27,7 @@ describeEachReactMode('useActor (%s)', ({ render }) => {
       initial: 'active',
       invoke: {
         id: 'child',
-        src: () => fromMachine(childMachine)
+        src: fromMachine(childMachine)
       },
       states: {
         active: {}
@@ -75,7 +75,7 @@ describeEachReactMode('useActor (%s)', ({ render }) => {
       initial: 'active',
       invoke: {
         id: 'child',
-        src: () => fromMachine(childMachine)
+        src: fromMachine(childMachine)
       },
       states: {
         active: {

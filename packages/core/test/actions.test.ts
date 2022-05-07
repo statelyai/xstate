@@ -628,7 +628,7 @@ describe('entry/exit actions', () => {
         states: {
           active: {
             invoke: {
-              src: () => fromMachine(childMachine),
+              src: fromMachine(childMachine),
               onDone: 'finished'
             }
           },
@@ -1271,7 +1271,7 @@ describe('forwardTo()', () => {
       initial: 'first',
       states: {
         first: {
-          invoke: { src: () => fromMachine(child), id: 'myChild' },
+          invoke: { src: fromMachine(child), id: 'myChild' },
           on: {
             EVENT: {
               actions: forwardTo('myChild')

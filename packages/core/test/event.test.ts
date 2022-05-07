@@ -20,7 +20,7 @@ describe('SCXML events', () => {
         active: {
           invoke: {
             id: 'child',
-            src: () => fromMachine(childMachine)
+            src: fromMachine(childMachine)
           },
           on: {
             EVENT: {
@@ -50,7 +50,7 @@ describe('SCXML events', () => {
         active: {
           invoke: {
             id: 'callback_child',
-            src: () => fromCallback((sendBack) => sendBack({ type: 'EVENT' }))
+            src: fromCallback((sendBack) => sendBack({ type: 'EVENT' }))
           },
           on: {
             EVENT: {
@@ -104,7 +104,7 @@ describe('SCXML events', () => {
         authorizing: {
           invoke: {
             id: 'auth-server',
-            src: () => fromMachine(authServerMachine)
+            src: fromMachine(authServerMachine)
           },
           entry: send('CODE', {
             to: 'auth-server'

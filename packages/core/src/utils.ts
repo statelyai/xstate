@@ -524,9 +524,7 @@ export function toInvokeConfig<
   };
 }
 
-export function toInvokeSource(
-  src: string | InvokeSourceDefinition
-): InvokeSourceDefinition {
+export function toInvokeSource(src: string): InvokeSourceDefinition {
   if (typeof src === 'string') {
     return { type: src };
   }

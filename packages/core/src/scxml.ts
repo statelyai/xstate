@@ -444,7 +444,7 @@ function toConfig(
 
       return {
         ...(element.attributes!.id && { id: element.attributes!.id as string }),
-        src: () => fromMachine(scxmlToMachine(content, options)),
+        src: fromMachine(scxmlToMachine(content, options)),
         autoForward: element.attributes!.autoforward === 'true'
       };
     });

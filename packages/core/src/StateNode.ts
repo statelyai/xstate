@@ -6,7 +6,6 @@ import {
   isString,
   toInvokeConfig,
   toInvokeSource,
-  isFunction,
   toTransitionConfigArray,
   createInvokeId
 } from './utils';
@@ -269,20 +268,18 @@ export class StateNode<
         const resolvedId = invokeConfig.id || generatedId;
 
         const resolvedSrc = toInvokeSource(
-          isString(invokeConfig.src)
-            ? invokeConfig.src
-            : typeof invokeConfig.src === 'object' && invokeConfig.src !== null
-            ? invokeConfig.src
-            : resolvedId
+          isString(invokeConfig.src) ? invokeConfig.src : resolvedId
         );
+
+        const { src } = invokeConfig;
 
         if (
           !this.machine.options.actors[resolvedId] &&
-          isFunction(invokeConfig.src)
+          typeof src !== 'string'
         ) {
           this.machine.options.actors = {
             ...this.machine.options.actors,
-            [resolvedId]: invokeConfig.src
+            [resolvedId]: typeof src === 'function' ? src : () => src
           };
         }
 

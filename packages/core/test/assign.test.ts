@@ -381,7 +381,7 @@ describe('assign meta', () => {
         foo: {
           invoke: {
             id: 'child',
-            src: () => fromMachine(childMachine)
+            src: fromMachine(childMachine)
           }
         }
       },

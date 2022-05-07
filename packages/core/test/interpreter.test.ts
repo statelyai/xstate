@@ -863,7 +863,7 @@ describe('interpreter', () => {
         foo: {
           invoke: {
             id: 'child',
-            src: () => fromMachine(childMachine)
+            src: fromMachine(childMachine)
           }
         }
       },
@@ -1550,7 +1550,7 @@ describe('interpreter', () => {
           active: {
             invoke: {
               id: 'childActor',
-              src: () => fromMachine(childMachine)
+              src: fromMachine(childMachine)
             },
             on: {
               FIRED: 'success'
@@ -1640,7 +1640,7 @@ describe('interpreter', () => {
           active: {
             invoke: {
               id: 'childActor',
-              src: () => fromObservable(() => interval$),
+              src: fromObservable(() => interval$),
               onSnapshot: {
                 target: 'success',
                 guard: (_: unknown, e: AnyEventObject) => {

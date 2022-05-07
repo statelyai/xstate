@@ -7,6 +7,7 @@ import { fromMachine } from '../src/actors';
 const greetingContext = { hour: 10 };
 const greetingMachine = createMachine<typeof greetingContext>({
   key: 'greeting',
+  id: 'greeting',
   initial: 'pending',
   context: greetingContext,
   states: {
@@ -529,7 +530,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should work with transient transition on root', (done) => {
-    const machine = createMachine<any, any>({
+    const machine = createMachine<{ count: number }, any>({
       id: 'machine',
       initial: 'first',
       context: { count: 0 },
@@ -565,7 +566,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should work with transient transition on root (with `always`)', (done) => {
-    const machine = createMachine<any, any>({
+    const machine = createMachine<{ count: number }, any>({
       id: 'machine',
       initial: 'first',
       context: { count: 0 },
@@ -632,7 +633,7 @@ describe('transient states (eventless transitions)', () => {
       states: {
         active: {
           invoke: {
-            src: () => fromMachine(timerMachine),
+            src: fromMachine(timerMachine),
             data: {
               duration: (context: any) => context.customDuration
             }

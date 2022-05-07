@@ -649,7 +649,7 @@ describe('actors', () => {
       states: {
         foo: {
           invoke: {
-            src: () => fromMachine(child),
+            src: fromMachine(child),
             onDone: 'end'
           }
         },
@@ -1083,7 +1083,7 @@ describe('actors', () => {
           states: {
             foo: {
               invoke: {
-                src: () => fromMachine(child),
+                src: fromMachine(child),
                 onDone: 'end'
               }
             },
