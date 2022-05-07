@@ -275,7 +275,8 @@ export class StateNode<
 
         if (
           !this.machine.options.actors[resolvedId] &&
-          typeof src !== 'string'
+          typeof src !== 'string' &&
+          !('type' in src)
         ) {
           this.machine.options.actors = {
             ...this.machine.options.actors,
