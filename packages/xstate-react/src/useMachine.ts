@@ -1,6 +1,7 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
 import {
+  AnyState,
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
   EventObject,
@@ -73,7 +74,7 @@ export function useMachine<TMachine extends AnyStateMachine>(
     if (service.status === InterpreterStatus.NotStarted) {
       return (options.state
         ? State.create(options.state)
-        : service.machine.initialState) as State<any, any, any, any, any>;
+        : service.machine.initialState) as AnyState;
     }
 
     return service.state;
@@ -115,15 +116,27 @@ export function useMachine<TMachine extends AnyStateMachine>(
     isEqual
   );
 
+  // This timer is used for detecting React 18 strict mode's unmount/remount
+  // double effect execution. It will only stop the service if the component
+  // is truly unmounted.
+  const strictModeTimer = useRef<any>(null);
+
   useEffect(() => {
+    if (strictModeTimer.current) {
+      clearTimeout(strictModeTimer.current);
+    }
+
     const rehydratedState = options.state;
+
     service.start(
       rehydratedState ? (State.create(rehydratedState) as any) : undefined
     );
 
     return () => {
-      service.stop();
-      service.status = InterpreterStatus.NotStarted;
+      strictModeTimer.current = setTimeout(() => {
+        service.stop();
+        service.status = InterpreterStatus.NotStarted;
+      });
     };
   }, []);
 

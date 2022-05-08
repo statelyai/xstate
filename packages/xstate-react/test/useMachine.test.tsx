@@ -21,7 +21,7 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
-describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
+describeEachReactMode('useMachine (%s)', ({ render }) => {
   const context = {
     data: undefined
   };
@@ -184,7 +184,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
   });
 
   it('should not spawn actors until service is started', async (done) => {
-    const spawnMachine = Machine<any>({
+    const spawnMachine = createMachine<any>({
       id: 'spawn',
       initial: 'start',
       context: { ref: undefined },
@@ -593,7 +593,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
 
     render(<Test />);
 
-    expect(activatedCount).toEqual(suiteKey === 'strict' ? 2 : 1);
+    expect(activatedCount).toEqual(1);
   });
 
   it('child component should be able to send an event to a parent immediately in an effect', (done) => {
@@ -745,7 +745,10 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
       entry: [assign({ count: 1 }), send('INC')],
       on: {
         INC: {
-          actions: [assign({ count: (ctx) => ++ctx.count }), send('UNHANDLED')]
+          actions: [
+            assign({ count: (ctx) => ctx.count + 1 }),
+            send('UNHANDLED')
+          ]
         }
       },
       states: {
@@ -761,5 +764,24 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     const { container } = render(<App />);
 
     expect(container.textContent).toBe('2');
+  });
+
+  it('entry actions should not reexecute', () => {
+    let executionCount = 0;
+    const m = createMachine({
+      entry: () => {
+        executionCount++;
+      }
+    });
+
+    const App = () => {
+      useMachine(m);
+
+      return null;
+    };
+
+    render(<App />);
+
+    expect(executionCount).toBe(1);
   });
 });
