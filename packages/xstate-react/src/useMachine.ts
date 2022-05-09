@@ -124,6 +124,7 @@ export function useMachine<TMachine extends AnyStateMachine>(
   useEffect(() => {
     if (strictModeTimer.current) {
       clearTimeout(strictModeTimer.current);
+      return;
     }
 
     const rehydratedState = options.state;
