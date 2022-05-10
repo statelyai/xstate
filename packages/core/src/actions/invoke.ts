@@ -1,9 +1,4 @@
-import {
-  EventObject,
-  InvokeDefinition,
-  BehaviorCreator,
-  MachineContext
-} from '../types';
+import { EventObject, InvokeDefinition, MachineContext } from '../types';
 import { invoke as invokeActionType } from '../actionTypes';
 import { isActorRef } from '../actors';
 import { ObservableActorRef } from '../ObservableActorRef';
@@ -44,26 +39,24 @@ export function invoke<
       }
 
       const behaviorImpl = machine.options.actors[src.type];
-      const behaviorCreator: BehaviorCreator<TContext, TEvent> | undefined =
-        behaviorImpl &&
-        (typeof behaviorImpl === 'function'
-          ? behaviorImpl
-          : () => behaviorImpl);
 
-      if (!behaviorCreator) {
+      if (!behaviorImpl) {
         return {
           type,
           params
         } as InvokeActionObject;
       }
 
-      const behavior = behaviorCreator(context, _event.data, {
-        id,
-        data: data && mapContext(data, context, _event),
-        src,
-        _event,
-        meta
-      });
+      const behavior =
+        typeof behaviorImpl === 'function'
+          ? behaviorImpl(context, _event.data, {
+              id,
+              data: data && mapContext(data, context, _event),
+              src,
+              _event,
+              meta
+            })
+          : behaviorImpl;
 
       return {
         type,
