@@ -281,6 +281,66 @@ export function fromObservable<T, TEvent extends EventObject>(
   return behavior;
 }
 
+/**
+ * Creates an event observable behavior that listens to an observable
+ * that delivers event objects.
+ *
+ *
+ * @param lazyObservable A function that creates an observable
+ * @returns An event observable behavior
+ */
+export function fromEventObservable<T extends EventObject>(
+  lazyObservable: Lazy<Subscribable<T>>
+): Behavior<EventObject, T | undefined> {
+  let subscription: Subscription | undefined;
+  let observable: Subscribable<T> | undefined;
+  const observers: Set<Observer<TODO>> = new Set();
+
+  const sendError = (event: TODO) => {
+    observers.forEach((o) => o.error?.(event));
+  };
+  const sendComplete = () => {
+    observers.forEach((o) => o.complete?.());
+  };
+
+  const behavior: Behavior<EventObject, T | undefined> = {
+    transition: (_, event, actorContext) => {
+      const { _parent: parent } = actorContext.self;
+
+      if (event.type === startSignalType) {
+        observable = lazyObservable();
+        subscription = observable.subscribe({
+          next: (value) => {
+            parent?.send(toSCXMLEvent(value, { origin: actorContext.self }));
+          },
+          error: (err) => {
+            sendError(err);
+          },
+          complete: () => {
+            sendComplete();
+          }
+        });
+      } else if (event.type === stopSignalType) {
+        subscription && subscription.unsubscribe();
+      }
+
+      return undefined;
+    },
+    subscribe: (observer) => {
+      observers.add(observer);
+
+      return {
+        unsubscribe: () => {
+          observers.delete(observer);
+        }
+      };
+    },
+    initialState: undefined
+  };
+
+  return behavior;
+}
+
 export function fromMachine<TMachine extends AnyStateMachine>(
   machine: AreAllImplementationsAssumedToBeProvided<
     TMachine['__TResolvedTypesMeta']

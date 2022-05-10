@@ -14,6 +14,7 @@ import {
 } from '../src';
 import {
   fromCallback,
+  fromEventObservable,
   fromMachine,
   fromObservable,
   fromPromise,
@@ -2050,6 +2051,153 @@ describe('invoke', () => {
                   expect(e.data.message).toEqual('some error');
                   return ctx.count === 4 && e.data.message === 'some error';
                 }
+              }
+            }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      });
+
+      interpret(obsMachine)
+        .onDone(() => {
+          done();
+        })
+        .start();
+    });
+  });
+
+  describe('with event observables', () => {
+    const infinite$ = interval(10);
+
+    it('should work with an infinite event observable', (done) => {
+      interface Events {
+        type: 'COUNT';
+        value: number;
+      }
+      const obsMachine = createMachine<{ count: number | undefined }, Events>({
+        id: 'obs',
+        initial: 'counting',
+        context: { count: undefined },
+        states: {
+          counting: {
+            invoke: {
+              src: fromEventObservable(() =>
+                infinite$.pipe(map((value) => ({ type: 'COUNT', value })))
+              )
+            },
+            on: {
+              COUNT: {
+                actions: assign({ count: (_, e) => e.value })
+              }
+            },
+            always: {
+              target: 'counted',
+              guard: (ctx) => ctx.count === 5
+            }
+          },
+          counted: {
+            type: 'final'
+          }
+        }
+      });
+
+      const service = interpret(obsMachine)
+        .onDone(() => {
+          expect(service.state._event.origin).toBeDefined();
+          done();
+        })
+        .start();
+    });
+
+    it('should work with a finite event observable', (done) => {
+      interface Ctx {
+        count: number | undefined;
+      }
+      interface Events {
+        type: 'COUNT';
+        value: number;
+      }
+      const obsMachine = createMachine<Ctx, Events>({
+        id: 'obs',
+        initial: 'counting',
+        context: {
+          count: undefined
+        },
+        states: {
+          counting: {
+            invoke: {
+              src: fromEventObservable(() =>
+                infinite$.pipe(
+                  take(5),
+                  map((value) => ({ type: 'COUNT', value }))
+                )
+              ),
+              onDone: {
+                target: 'counted',
+                guard: (ctx) => ctx.count === 4
+              }
+            },
+            on: {
+              COUNT: {
+                actions: assign({
+                  count: (_, e) => e.value
+                })
+              }
+            }
+          },
+          counted: {
+            type: 'final'
+          }
+        }
+      });
+
+      interpret(obsMachine)
+        .onDone(() => {
+          done();
+        })
+        .start();
+    });
+
+    it('should receive an emitted error', (done) => {
+      interface Ctx {
+        count: number | undefined;
+      }
+      interface Events {
+        type: 'COUNT';
+        value: number;
+      }
+      const obsMachine = createMachine<Ctx, Events>({
+        id: 'obs',
+        initial: 'counting',
+        context: { count: undefined },
+        states: {
+          counting: {
+            invoke: {
+              src: () =>
+                fromEventObservable(() =>
+                  infinite$.pipe(
+                    map((value) => {
+                      if (value === 5) {
+                        throw new Error('some error');
+                      }
+
+                      return { type: 'COUNT', value };
+                    })
+                  )
+                ),
+              onError: {
+                target: 'success',
+                guard: (ctx, e) => {
+                  expect(e.data.message).toEqual('some error');
+                  return ctx.count === 4 && e.data.message === 'some error';
+                }
+              }
+            },
+            on: {
+              COUNT: {
+                actions: assign({ count: (_, e) => e.value })
               }
             }
           },

@@ -25,9 +25,11 @@ import {
   fromCallback,
   fromMachine,
   fromObservable,
+  fromEventObservable,
   fromPromise,
   fromReducer
 } from '../src/actors';
+import { map } from 'rxjs/operators';
 
 describe('spawning machines', () => {
   const context = {
@@ -420,6 +422,91 @@ describe('spawning observables', () => {
       {
         actors: {
           interval: () => fromObservable(() => interval(10))
+        }
+      }
+    );
+
+    const observableService = interpret(observableMachine).onDone(() => {
+      done();
+    });
+
+    observableService.start();
+  });
+});
+
+describe('spawning event observables', () => {
+  it('should spawn an event observable', (done) => {
+    const observableMachine = createMachine({
+      id: 'observable',
+      initial: 'idle',
+      context: {
+        observableRef: undefined
+      },
+      states: {
+        idle: {
+          entry: assign({
+            observableRef: (_, __, { spawn }) => {
+              const ref = spawn(
+                fromEventObservable(() =>
+                  interval(10).pipe(map((val) => ({ type: 'COUNT', val })))
+                ),
+                'int'
+              );
+
+              return ref;
+            }
+          }),
+          on: {
+            COUNT: {
+              target: 'success',
+              guard: (_: any, e: any) => e.val === 5
+            }
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    const observableService = interpret(observableMachine).onDone(() => {
+      done();
+    });
+
+    observableService.start();
+  });
+
+  it('should spawn a referenced event observable', (done) => {
+    const observableMachine = createMachine(
+      {
+        id: 'observable',
+        initial: 'idle',
+        context: {
+          observableRef: undefined
+        },
+        states: {
+          idle: {
+            entry: assign({
+              observableRef: (_, __, { spawn }) => spawn('interval', 'int')
+            }),
+            on: {
+              COUNT: {
+                target: 'success',
+                guard: (_: any, e: any) => e.val === 5
+              }
+            }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      },
+      {
+        actors: {
+          interval: () =>
+            fromEventObservable(() =>
+              interval(10).pipe(map((val) => ({ type: 'COUNT', val })))
+            )
         }
       }
     );
