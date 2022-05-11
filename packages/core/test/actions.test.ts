@@ -1782,17 +1782,7 @@ describe('sendTo', () => {
       )
     });
 
-    interpret(parentMachine)
-      .onTransition((state) => {
-        state.actions.forEach((action) => {
-          if (action.type === 'xstate.invoke') {
-            expect((action as InvokeActionObject).params.ref).toBe(
-              state.children['child']
-            );
-          }
-        });
-      })
-      .start();
+    interpret(parentMachine).start();
   });
 
   it('should report a type error for an invalid event', () => {
