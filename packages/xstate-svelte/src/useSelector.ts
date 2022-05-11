@@ -9,7 +9,7 @@ export const useSelector = <
   TSnapshot = TActor extends Subscribable<infer S> ? S : never
 >(
   actor: TActor,
-  selector: (emitted: TSnapshot) => T,
+  selector: (snapshot: TSnapshot) => T,
   compare: (a: T, b: T) => boolean = defaultCompare
 ) => {
   let sub: Subscription;
