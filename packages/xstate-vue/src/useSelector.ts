@@ -10,7 +10,7 @@ export function useSelector<
   TSnapshot = TActor extends Subscribable<infer Emitted> ? Emitted : never
 >(
   actor: TActor,
-  selector: (emitted: TSnapshot) => T,
+  selector: (snapshot: TSnapshot) => T,
   compare: (a: T, b: T) => boolean = defaultCompare,
   getSnapshot: (a: TActor) => TSnapshot = defaultGetSnapshot
 ) {
