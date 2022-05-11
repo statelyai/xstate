@@ -6,7 +6,7 @@ const defaultCompare = (a, b) => a === b;
 export const useSelector = <
   TActor extends ActorRef<any, any>,
   T,
-  TSnapshot = TActor extends Subscribable<infer Emitted> ? Emitted : never
+  TSnapshot = TActor extends Subscribable<infer S> ? S : never
 >(
   actor: TActor,
   selector: (emitted: TSnapshot) => T,
