@@ -1,4 +1,4 @@
-import { Machine, sendParent, interpret, assign } from '../src';
+import { Machine, sendParent, interpret, assign, createMachine } from '../src';
 import { respond, send } from '../src/actions';
 
 describe('SCXML events', () => {
@@ -183,5 +183,22 @@ describe('nested transitions', () => {
 
     expect(state.value).toEqual({ passwordField: 'hidden' });
     expect(state.context).toEqual({ password, email: '' });
+  });
+});
+
+describe('nextEvents', () => {
+  it('Should calculate properly for self-events', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            FOO: {}
+          }
+        }
+      }
+    });
+
+    expect(machine.initialState.nextEvents).toEqual(['FOO']);
   });
 });
