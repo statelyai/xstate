@@ -3,8 +3,7 @@ import {
   assign,
   forwardTo,
   interpret,
-  ActorRefFrom,
-  InvokeActionObject
+  ActorRefFrom
 } from '../src/index';
 import { sendParent } from '../src/actions';
 import { choose } from '../src/actions/choose';
