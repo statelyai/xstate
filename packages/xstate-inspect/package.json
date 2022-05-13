@@ -53,7 +53,7 @@
   "peerDependencies": {
     "@types/ws": "^8.0.0",
     "ws": "^8.0.0",
-    "xstate": "^4.32.0"
+    "xstate": "^4.32.1"
   },
   "peerDependenciesMeta": {
     "@types/ws": {
