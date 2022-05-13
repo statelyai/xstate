@@ -356,6 +356,7 @@ interface CreateActorRefOptions {
   parent?: ActorRef<any>;
 }
 
+// TODO: delete this (should use ObservableActorRef instead)
 export function createActorRef<TEvent extends EventObject, TSnapshot>(
   behavior: Behavior<TEvent, TSnapshot>,
   options: CreateActorRefOptions = {}
