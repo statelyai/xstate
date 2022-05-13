@@ -91,24 +91,11 @@ export function fromCallback<TEvent extends EventObject>(
 ): Behavior<TEvent, undefined> {
   let canceled = false;
   const receivers = new Set<(e: EventObject) => void>();
-  const observers: Set<Observer<TODO>> = new Set();
   let dispose;
 
-  const sendNext = (event: TODO) => {
-    observers.forEach((o) => o.next?.(event));
-  };
-
-  const sendError = (event: TODO) => {
-    observers.forEach((o) => o.error?.(event));
-  };
-
-  const sendComplete = () => {
-    observers.forEach((o) => o.complete?.());
-  };
-
   const behavior: Behavior<TEvent, undefined> = {
-    transition: (_, event, actorContext) => {
-      const { _parent: parent } = actorContext.self;
+    transition: (_, event, { self, observers }) => {
+      const { _parent: parent } = self;
 
       if (event.type === startSignalType) {
         const sender: Sender<TEvent> = (e) => {
@@ -116,7 +103,7 @@ export function fromCallback<TEvent extends EventObject>(
             return;
           }
 
-          parent?.send(toSCXMLEvent(e, { origin: actorContext.self }));
+          parent?.send(toSCXMLEvent(e, { origin: self }));
         };
 
         const receiver: Receiver<TEvent> = (newListener) => {
@@ -128,12 +115,14 @@ export function fromCallback<TEvent extends EventObject>(
         if (isPromiseLike(dispose)) {
           dispose.then(
             (resolved) => {
-              sendNext(resolved);
-              sendComplete();
+              observers.forEach((o) => o.next?.(resolved));
+              observers.forEach((o) => o.complete?.());
+
               canceled = true;
             },
             (errorData) => {
-              sendError(errorData);
+              observers.forEach((o) => o.error?.(errorData));
+
               canceled = true;
             }
           );
@@ -158,15 +147,6 @@ export function fromCallback<TEvent extends EventObject>(
 
       return undefined;
     },
-    subscribe: (observer) => {
-      observers.add(observer);
-
-      return {
-        unsubscribe: () => {
-          observers.delete(observer);
-        }
-      };
-    },
     initialState: undefined
   };
 
@@ -177,10 +157,9 @@ export function fromPromise<T, TEvent extends EventObject>(
   lazyPromise: Lazy<PromiseLike<T>>
 ): Behavior<{ type: string }, T | undefined> {
   let canceled = false;
-  const observers: Set<Observer<T>> = new Set();
 
   const behavior: Behavior<TEvent, T | undefined> = {
-    transition: (_, event) => {
+    transition: (_, event, { observers }) => {
       switch (event.type) {
         case startSignalType:
           const resolvedPromise = Promise.resolve(lazyPromise());
@@ -213,15 +192,6 @@ export function fromPromise<T, TEvent extends EventObject>(
           return undefined;
       }
     },
-    subscribe: (observer) => {
-      observers.add(observer);
-
-      return {
-        unsubscribe: () => {
-          observers.delete(observer);
-        }
-      };
-    },
     initialState: undefined
   };
 
@@ -233,31 +203,20 @@ export function fromObservable<T, TEvent extends EventObject>(
 ): Behavior<TEvent, T | undefined> {
   let subscription: Subscription | undefined;
   let observable: Subscribable<T> | undefined;
-  const observers: Set<Observer<TODO>> = new Set();
-  const sendNext = (event: TODO) => {
-    observers.forEach((o) => o.next?.(event));
-  };
-
-  const sendError = (event: TODO) => {
-    observers.forEach((o) => o.error?.(event));
-  };
-  const sendComplete = () => {
-    observers.forEach((o) => o.complete?.());
-  };
 
   const behavior: Behavior<TEvent, T | undefined> = {
-    transition: (_, event) => {
+    transition: (_, event, { observers }) => {
       if (event.type === startSignalType) {
         observable = lazyObservable();
         subscription = observable.subscribe({
           next: (value) => {
-            sendNext(value);
+            observers.forEach((o) => o.next?.(value));
           },
           error: (err) => {
-            sendError(err);
+            observers.forEach((o) => o.error?.(err));
           },
           complete: () => {
-            sendComplete();
+            observers.forEach((o) => o.complete?.());
           }
         });
       } else if (event.type === stopSignalType) {
@@ -265,15 +224,6 @@ export function fromObservable<T, TEvent extends EventObject>(
       }
 
       return undefined;
-    },
-    subscribe: (observer) => {
-      observers.add(observer);
-
-      return {
-        unsubscribe: () => {
-          observers.delete(observer);
-        }
-      };
     },
     initialState: undefined
   };
@@ -294,30 +244,22 @@ export function fromEventObservable<T extends EventObject>(
 ): Behavior<EventObject, T | undefined> {
   let subscription: Subscription | undefined;
   let observable: Subscribable<T> | undefined;
-  const observers: Set<Observer<TODO>> = new Set();
-
-  const sendError = (event: TODO) => {
-    observers.forEach((o) => o.error?.(event));
-  };
-  const sendComplete = () => {
-    observers.forEach((o) => o.complete?.());
-  };
 
   const behavior: Behavior<EventObject, T | undefined> = {
-    transition: (_, event, actorContext) => {
-      const { _parent: parent } = actorContext.self;
+    transition: (_, event, { self, observers }) => {
+      const { _parent: parent } = self;
 
       if (event.type === startSignalType) {
         observable = lazyObservable();
         subscription = observable.subscribe({
           next: (value) => {
-            parent?.send(toSCXMLEvent(value, { origin: actorContext.self }));
+            parent?.send(toSCXMLEvent(value, { origin: self }));
           },
           error: (err) => {
-            sendError(err);
+            observers.forEach((o) => o.error?.(err));
           },
           complete: () => {
-            sendComplete();
+            observers.forEach((o) => o.complete?.());
           }
         });
       } else if (event.type === stopSignalType) {
@@ -325,15 +267,6 @@ export function fromEventObservable<T extends EventObject>(
       }
 
       return undefined;
-    },
-    subscribe: (observer) => {
-      observers.add(observer);
-
-      return {
-        unsubscribe: () => {
-          observers.delete(observer);
-        }
-      };
     },
     initialState: undefined
   };
@@ -404,9 +337,6 @@ export function fromMachine<TMachine extends AnyStateMachine>(
 
       service?.send(_event);
       return state;
-    },
-    subscribe: (observer) => {
-      return service?.subscribe(observer);
     },
     get initialState() {
       // TODO: recheck if this caching is needed, write a test for its importance or remove the caching

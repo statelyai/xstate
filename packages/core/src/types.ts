@@ -1867,7 +1867,6 @@ export interface Behavior<TEvent extends EventObject, TSnapshot = any> {
   ) => TSnapshot;
   initialState: TSnapshot;
   start?: (actorCtx: ActorContext<TEvent, TSnapshot>) => TSnapshot;
-  subscribe?: (observer: Observer<TSnapshot>) => Subscription | undefined;
 }
 
 export type EmittedFrom<T> = ReturnTypeOrValue<T> extends infer R

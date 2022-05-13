@@ -1,11 +1,14 @@
-import { EventObject, ActorRef, Behavior, SCXML, ActorContext } from './types';
+import {
+  EventObject,
+  ActorRef,
+  Behavior,
+  SCXML,
+  ActorContext,
+  Observer
+} from './types';
 import { symbolObservable, toSCXMLEvent } from './utils';
 import { Mailbox } from './Mailbox';
 import { LifecycleSignal, startSignal, stopSignal } from './actors';
-
-const nullSubscription = {
-  unsubscribe: () => void 0
-};
 
 export class ObservableActorRef<TEvent extends EventObject, TSnapshot>
   implements ActorRef<TEvent, TSnapshot> {
@@ -13,6 +16,7 @@ export class ObservableActorRef<TEvent extends EventObject, TSnapshot>
   public deferred = true;
   private context: ActorContext<TEvent, TSnapshot>;
   private mailbox = new Mailbox(this._process.bind(this));
+  private _observers = new Set<Observer<TSnapshot>>();
 
   constructor(
     private behavior: Behavior<TEvent, TSnapshot>,
@@ -21,7 +25,7 @@ export class ObservableActorRef<TEvent extends EventObject, TSnapshot>
     this.context = {
       self: this,
       name: this.name,
-      observers: new Set(),
+      observers: this._observers,
       _event: toSCXMLEvent({ type: 'xstate.init' }) as SCXML.Event<TEvent> // TODO: fix
     };
     this.current = this.behavior.initialState;
@@ -39,7 +43,13 @@ export class ObservableActorRef<TEvent extends EventObject, TSnapshot>
     return this;
   }
   public subscribe(observer) {
-    return this.behavior.subscribe?.(observer) ?? nullSubscription;
+    this._observers.add(observer);
+
+    return {
+      unsubscribe: () => {
+        this._observers.delete(observer);
+      }
+    };
   }
   public send(event) {
     this.receive(event);
