@@ -2,6 +2,7 @@ import {
   assign,
   ContextFrom,
   createMachine,
+  EmittedFrom,
   EventFrom,
   interpret,
   MachineOptionsFrom,
@@ -366,5 +367,40 @@ describe('StateValueFrom', () => {
     function matches(_value: StateValueFrom<typeof machine>) {}
 
     matches('just anything');
+  });
+});
+
+describe('EmittedFrom', () => {
+  it('should return state type from a service that has concrete event type', () => {
+    const service = interpret(
+      createMachine({
+        schema: {
+          events: {} as { type: 'FOO' }
+        }
+      })
+    );
+
+    function acceptState(_state: EmittedFrom<typeof service>) {}
+
+    acceptState(service.initialState);
+    // @ts-expect-error
+    acceptState("isn't any");
+  });
+
+  it('should return state from a service created based on a model without any concrete events', () => {
+    const service = interpret(
+      createModel(
+        {},
+        {
+          // this empty obj is important for this test case
+        }
+      ).createMachine({})
+    );
+
+    function acceptState(_state: EmittedFrom<typeof service>) {}
+
+    acceptState(service.initialState);
+    // @ts-expect-error
+    acceptState("isn't any");
   });
 });

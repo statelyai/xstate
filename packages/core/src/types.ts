@@ -1799,7 +1799,7 @@ export interface Behavior<TEvent extends EventObject, TEmitted = any> {
 }
 
 export type EmittedFrom<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends ActorRef<infer _, infer TEmitted>
+  ? R extends ActorRef<any, infer TEmitted>
     ? TEmitted
     : R extends Behavior<infer _, infer TEmitted>
     ? TEmitted
