@@ -668,12 +668,8 @@ export class Interpreter<
             // TODO: determine how this can be immutably updated
             this.state.children[id] = ref;
 
-            let latestData;
-
             ref.subscribe({
               next: (data) => {
-                latestData = data;
-
                 this.send(
                   toSCXMLEvent(
                     {
@@ -696,7 +692,7 @@ export class Interpreter<
               },
               complete: () => {
                 this.send(
-                  toSCXMLEvent(doneInvoke(id, latestData) as any, {
+                  toSCXMLEvent(doneInvoke(id) as any, {
                     origin: ref
                   })
                 );
