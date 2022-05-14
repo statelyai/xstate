@@ -25,7 +25,6 @@ export class ObservableActorRef<TEvent extends EventObject, TSnapshot>
     this.context = {
       self: this,
       name: this.name,
-      observers: this._observers,
       _event: toSCXMLEvent({ type: 'xstate.init' }) as SCXML.Event<TEvent> // TODO: fix
     };
     this.current = this.behavior.initialState;

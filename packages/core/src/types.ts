@@ -1855,7 +1855,6 @@ export type EventOfMachine<
 export interface ActorContext<TEvent extends EventObject, TSnapshot> {
   self: ActorRef<TEvent, TSnapshot>;
   name: string;
-  observers: Set<Observer<TSnapshot>>;
   _event: SCXML.Event<TEvent> | LifecycleSignal;
 }
 

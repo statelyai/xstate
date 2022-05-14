@@ -575,7 +575,9 @@ export class Interpreter<
       isSCXMLErrorEvent(_event) &&
       !this.state.nextEvents.some((nextEvent) => nextEvent === _event.name)
     ) {
+      // Error event unhandled by machine
       this.handleErrorEvent(_event);
+      this.stop();
     }
 
     return this.machine.transition(this.state, event);

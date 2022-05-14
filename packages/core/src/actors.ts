@@ -93,7 +93,7 @@ export function fromCallback<TEvent extends EventObject>(
   let dispose;
 
   const behavior: Behavior<TEvent, undefined> = {
-    transition: (_, event, { self, observers }) => {
+    transition: (_, event, { self, name }) => {
       const { _parent: parent } = self;
 
       if (event.type === startSignalType) {
@@ -114,13 +114,22 @@ export function fromCallback<TEvent extends EventObject>(
         if (isPromiseLike(dispose)) {
           dispose.then(
             (resolved) => {
-              observers.forEach((o) => o.next?.(resolved));
-              observers.forEach((o) => o.complete?.());
+              self._parent?.send(
+                toSCXMLEvent(doneInvoke(name, resolved), {
+                  origin: self
+                })
+              );
 
               canceled = true;
             },
             (errorData) => {
-              observers.forEach((o) => o.error?.(errorData));
+              const errorEvent = error(name, errorData);
+
+              self._parent?.send(
+                toSCXMLEvent(errorEvent, {
+                  origin: self
+                })
+              );
 
               canceled = true;
             }
@@ -476,7 +485,6 @@ export function createActorRef<TEvent extends EventObject, TSnapshot>(
   const actorCtx: ActorContext<TEvent, TSnapshot> = {
     self: actor,
     name: options.id || 'anonymous',
-    observers,
     _event: null as any
   };
 
