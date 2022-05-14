@@ -19,10 +19,6 @@
   "main": "lib/index.js",
   "module": "es/index.js",
   "types": "lib/index.d.ts",
-  "browser": {
-    "./lib/slimChalk.js": "./lib/slimChalk.browser.js",
-    "./es/slimChalk.js": "./es/slimChalk.browser.js"
-  },
   "sideEffects": false,
   "files": [
     "lib/**/*.js",
@@ -55,7 +51,6 @@
     "xstate": "*"
   },
   "dependencies": {
-    "@xstate/graph": "^1.4.2",
-    "chalk": "^2.4.2"
+    "@xstate/graph": "^1.4.2"
   }
 }
