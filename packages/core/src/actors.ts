@@ -26,7 +26,7 @@ import {
   toObserver,
   symbolObservable
 } from './utils';
-import { actionTypes } from './actions';
+import { actionTypes, doneInvoke, error } from './actions';
 import { interpret } from './interpreter';
 import { Mailbox } from './Mailbox';
 
@@ -152,40 +152,50 @@ export function fromCallback<TEvent extends EventObject>(
   return behavior;
 }
 
-export function fromPromise<T, TEvent extends EventObject>(
+export function fromPromise<T>(
   lazyPromise: Lazy<PromiseLike<T>>
 ): Behavior<{ type: string }, T | undefined> {
   let canceled = false;
+  const resolveEvent = Symbol('resolve');
+  const rejectEvent = Symbol('reject');
 
-  const behavior: Behavior<TEvent, T | undefined> = {
-    transition: (_, event, { observers }) => {
+  const behavior: Behavior<any, T | undefined> = {
+    transition: (state, event, { self, name }) => {
+      if (canceled) {
+        return state;
+      }
+
       switch (event.type) {
         case startSignalType:
           const resolvedPromise = Promise.resolve(lazyPromise());
 
           resolvedPromise.then(
             (response) => {
-              if (!canceled) {
-                observers.forEach((observer) => {
-                  observer.next?.(response);
-                  if (observers.has(observer)) {
-                    observer.complete?.();
-                  }
-                });
-              }
+              self.send({ type: resolveEvent, data: response });
             },
             (errorData) => {
-              if (!canceled) {
-                observers.forEach((observer) => {
-                  observer.error?.(errorData);
-                });
-              }
+              self.send({ type: rejectEvent, data: errorData });
             }
           );
           return undefined;
+        case resolveEvent:
+          self._parent?.send(
+            toSCXMLEvent(doneInvoke(name, event.data) as any, {
+              origin: self
+            })
+          );
+          return event.data;
+        case rejectEvent:
+          const errorEvent = error(name, event.data);
+
+          self._parent?.send(
+            toSCXMLEvent(errorEvent, {
+              origin: self
+            })
+          );
+          return event.data;
         case stopSignalType:
           canceled = true;
-          observers.clear();
           return undefined;
         default:
           return undefined;
