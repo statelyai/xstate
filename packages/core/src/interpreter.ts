@@ -670,37 +670,6 @@ export class Interpreter<
             // TODO: determine how this can be immutably updated
             this.state.children[id] = ref;
 
-            ref.subscribe({
-              next: (data) => {
-                this.send(
-                  toSCXMLEvent(
-                    {
-                      type: `xstate.snapshot.${id}`,
-                      data
-                    },
-                    { origin: ref }
-                  )
-                );
-              },
-              error: (errorData) => {
-                const errorEvent = error(id, errorData);
-                this.send(
-                  toSCXMLEvent(errorEvent, {
-                    origin: ref
-                  }) as TODO
-                );
-                // TODO: handle error
-                this.stop();
-              },
-              complete: () => {
-                this.send(
-                  toSCXMLEvent(doneInvoke(id) as any, {
-                    origin: ref
-                  })
-                );
-              }
-            });
-
             ref.start?.();
           } catch (err) {
             this.send(error(id, err));
