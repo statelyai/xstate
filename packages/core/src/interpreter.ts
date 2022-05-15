@@ -19,8 +19,7 @@ import type {
   BaseActionObject,
   LogActionObject,
   MachineContext,
-  PayloadSender,
-  TODO
+  PayloadSender
 } from './types';
 import {
   ActionFunctionMap,
