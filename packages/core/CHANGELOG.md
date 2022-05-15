@@ -1,5 +1,48 @@
 # xstate
 
+## 4.32.1
+
+### Patch Changes
+
+- [#3292](https://github.com/statelyai/xstate/pull/3292) [`16514e466`](https://github.com/statelyai/xstate/commit/16514e4663deba95731a84deaee94c17edec1e06) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue in the `EmittedFrom` type helper that could prevent it from inferring the desired type from some services.
+
+## 4.32.0
+
+### Minor Changes
+
+- [#3234](https://github.com/statelyai/xstate/pull/3234) [`ce376b388`](https://github.com/statelyai/xstate/commit/ce376b3889ea900e67d20026517b87185377c32e) Thanks [@Andarist](https://github.com/Andarist)! - Added a `StateValueFrom` helper that can be used to extract valid state values from a machine. This might specifically be useful with typegen because typegenless `state.matches` accepts `any` anyway.
+
+### Patch Changes
+
+- [#3215](https://github.com/statelyai/xstate/pull/3215) [`44c66e74f`](https://github.com/statelyai/xstate/commit/44c66e74f9eafbb326979234e2bbe51e38dc3a86) Thanks [@tom-sherman](https://github.com/tom-sherman)! - Removing the timeout that's built in to `waitFor` is now supported by explicitly passing an `Infinity` value.
+
+  Example usage:
+
+  ```js
+  import { waitFor } from 'xstate/lib/waitFor';
+
+  // This will
+  const loggedInState = await waitFor(
+    loginService,
+    state => state.hasTag('loggedIn'),
+    { timeout: Infinity }
+  );
+  ```
+
+  This fixes a bug that causes `waitFor` to reject with an error immediately due to the behaviour of `setTimeout`.
+
+* [#3230](https://github.com/statelyai/xstate/pull/3230) [`780458c92`](https://github.com/statelyai/xstate/commit/780458c921d4525c7a00119c7eb43d4833978861) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with typegen types not being able to provide events that had a union of strings as their `type` (such as `{ type: 'INC' | 'DEC'; value: number; }`).
+
+- [#3252](https://github.com/statelyai/xstate/pull/3252) [`a94dfd467`](https://github.com/statelyai/xstate/commit/a94dfd46772cacc59154c165f27122164f48625b) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with `EventFrom` not being able to extract events that had a union of strings as their `type` (such as `{ type: 'INC' | 'DEC'; value: number; }`).
+
+* [#3090](https://github.com/statelyai/xstate/pull/3090) [`c4f73ca13`](https://github.com/statelyai/xstate/commit/c4f73ca1356d106423c8b4ee34865f7e4f2d2bb6) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with action objects not receiving correct event types when used in the second argument to the `createMachine`.
+
+- [#3238](https://github.com/statelyai/xstate/pull/3238) [`3df6335ef`](https://github.com/statelyai/xstate/commit/3df6335ef8db4edcf0a47d4c559716552ce4bbe8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The typings for `sendTo(...)` have been fixed.
+
+* [#3228](https://github.com/statelyai/xstate/pull/3228) [`fe5f0e6c9`](https://github.com/statelyai/xstate/commit/fe5f0e6c9bbb6ff740673889892301c8989eacfd) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with inline functions in the config object used as transition actions not having their argument types inferred.
+
+- [#3252](https://github.com/statelyai/xstate/pull/3252) [`a94dfd467`](https://github.com/statelyai/xstate/commit/a94dfd46772cacc59154c165f27122164f48625b) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with default `TEvent` (`{ type: string }`) not being correctly provided to inline transition actions.
+
 ## 4.31.0
 
 ### Minor Changes
