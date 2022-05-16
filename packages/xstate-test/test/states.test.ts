@@ -1,11 +1,12 @@
-import { createMachine, StateValue } from 'xstate';
+import { StateValue } from 'xstate';
 import { createTestModel } from '../src';
+import { createTestMachine } from '../src/machine';
 
 describe('states', () => {
   it('should test states by key', async () => {
     const testedStateValues: StateValue[] = [];
     const testModel = createTestModel(
-      createMachine({
+      createTestMachine({
         initial: 'a',
         states: {
           a: {
@@ -71,7 +72,7 @@ describe('states', () => {
   it('should test states by ID', async () => {
     const testedStateValues: StateValue[] = [];
     const testModel = createTestModel(
-      createMachine({
+      createTestMachine({
         initial: 'a',
         states: {
           a: {

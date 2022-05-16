@@ -1,7 +1,8 @@
-import { createTestModel } from '../src';
 import { assign, createMachine } from 'xstate';
-import { getDescription } from '../src/utils';
+import { createTestModel } from '../src';
 import { coversAllStates } from '../src/coverage';
+import { createTestMachine } from '../src/machine';
+import { getDescription } from '../src/utils';
 
 describe('die hard example', () => {
   interface DieHardContext {
@@ -293,7 +294,7 @@ describe('die hard example', () => {
 });
 describe('error path trace', () => {
   describe('should return trace for failed state', () => {
-    const machine = createMachine({
+    const machine = createTestMachine({
       initial: 'first',
       states: {
         first: {

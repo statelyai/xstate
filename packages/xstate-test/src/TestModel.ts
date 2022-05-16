@@ -1,5 +1,6 @@
 import {
   getPathFromEvents,
+  performDepthFirstTraversal,
   SerializedEvent,
   SerializedState,
   SimpleBehavior,
@@ -7,28 +8,76 @@ import {
   StatePlan,
   Step,
   TraversalOptions,
-  performDepthFirstTraversal,
   traverseShortestPlans,
-  traverseSimplePlans,
-  traverseSimplePathsTo
+  traverseSimplePathsTo,
+  traverseSimplePlans
 } from '@xstate/graph';
-import { EventObject, SingleOrArray } from 'xstate';
-import { flatten } from './utils';
+import {
+  BaseActionObject,
+  EventObject,
+  MachineConfig,
+  MachineOptions,
+  MachineSchema,
+  ServiceMap,
+  SingleOrArray,
+  StateNodeConfig,
+  StateSchema,
+  TypegenConstraint,
+  TypegenDisabled
+} from 'xstate';
 import {
   CoverageFunction,
   coversAllStates,
   coversAllTransitions
 } from './coverage';
 import type {
+  CriterionResult,
+  PlanGenerator,
+  StatePredicate,
   TestModelCoverage,
   TestModelOptions,
-  StatePredicate,
   TestPathResult,
-  TestStepResult,
-  CriterionResult,
-  PlanGenerator
+  TestStepResult
 } from './types';
-import { formatPathTestResult, simpleStringify } from './utils';
+import { flatten, formatPathTestResult, simpleStringify } from './utils';
+
+export interface TestMachineConfig<
+  TContext,
+  TEvent extends EventObject,
+  TTypesMeta = TypegenDisabled
+> extends TestStateNodeConfig<TContext, TEvent> {
+  context?: MachineConfig<TContext, StateSchema, TEvent>['context'];
+  schema?: MachineSchema<TContext, TEvent, ServiceMap>;
+  tsTypes?: TTypesMeta;
+}
+
+export interface TestStateNodeConfig<TContext, TEvent extends EventObject>
+  extends Pick<
+    StateNodeConfig<TContext, StateSchema, TEvent>,
+    | 'type'
+    | 'history'
+    | 'on'
+    | 'onDone'
+    | 'entry'
+    | 'exit'
+    | 'always'
+    | 'data'
+    | 'id'
+    | 'tags'
+    | 'description'
+  > {
+  initial?: string;
+  states?: Record<string, TestStateNodeConfig<TContext, TEvent>>;
+}
+
+export type TestMachineOptions<
+  TContext,
+  TEvent extends EventObject,
+  TTypesMeta extends TypegenConstraint = TypegenDisabled
+> = Pick<
+  MachineOptions<TContext, TEvent, BaseActionObject, ServiceMap, TTypesMeta>,
+  'actions' | 'guards'
+>;
 
 export interface TestModelDefaults<TState, TEvent extends EventObject> {
   coverage: Array<CoverageFunction<TState, TEvent>>;
