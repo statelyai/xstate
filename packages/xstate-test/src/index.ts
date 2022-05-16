@@ -1,2 +1,2 @@
 export { createTestModel } from './machine';
-export { TestModel } from './TestModel';
+export { TestModel, configure } from './TestModel';

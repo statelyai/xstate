@@ -14,7 +14,11 @@ import {
 } from '@xstate/graph';
 import { EventObject, SingleOrArray } from 'xstate';
 import { flatten } from './utils';
-import { CoverageFunction } from './coverage';
+import {
+  CoverageFunction,
+  coversAllStates,
+  coversAllTransitions
+} from './coverage';
 import type {
   TestModelCoverage,
   TestModelOptions,
@@ -26,6 +30,14 @@ import type {
 } from './types';
 import { formatPathTestResult, simpleStringify } from './utils';
 
+export interface TestModelDefaults<TState, TEvent extends EventObject> {
+  coverage: Array<CoverageFunction<TState, TEvent>>;
+}
+
+export const testModelDefaults: TestModelDefaults<any, any> = {
+  coverage: [coversAllStates<any, any>(), coversAllTransitions<any, any>()]
+};
+
 /**
  * Creates a test model that represents an abstract model of a
  * system under test (SUT).
@@ -33,20 +45,7 @@ import { formatPathTestResult, simpleStringify } from './utils';
  * The test model is used to generate test plans, which are used to
  * verify that states in the `machine` are reachable in the SUT.
  *
- * @example
- *
- * ```js
- * const toggleModel = createModel(toggleMachine).withEvents({
- *   TOGGLE: {
- *     exec: async page => {
- *       await page.click('input');
- *     }
- *   }
- * });
- * ```
- *
  */
-
 export class TestModel<TState, TEvent extends EventObject> {
   private _coverage: TestModelCoverage<TState, TEvent> = {
     states: {},
@@ -71,7 +70,7 @@ export class TestModel<TState, TEvent extends EventObject> {
       }
     };
   }
-  public defaults = {};
+  public static defaults: TestModelDefaults<any, any> = testModelDefaults;
 
   constructor(
     public behavior: SimpleBehavior<TState, TEvent>,
@@ -324,7 +323,8 @@ export class TestModel<TState, TEvent extends EventObject> {
   }
 
   public getCoverage(
-    criteriaFn?: SingleOrArray<CoverageFunction<TState, TEvent>>
+    criteriaFn: SingleOrArray<CoverageFunction<TState, TEvent>> = TestModel
+      .defaults.coverage
   ): Array<CriterionResult<TState, TEvent>> {
     const criteriaFns = criteriaFn
       ? Array.isArray(criteriaFn)
@@ -347,7 +347,8 @@ export class TestModel<TState, TEvent extends EventObject> {
 
   // TODO: consider options
   public testCoverage(
-    criteriaFn?: SingleOrArray<CoverageFunction<TState, TEvent>>
+    criteriaFn: SingleOrArray<CoverageFunction<TState, TEvent>> = TestModel
+      .defaults.coverage
   ): void {
     const criteriaFns = Array.isArray(criteriaFn) ? criteriaFn : [criteriaFn];
     const criteriaResult = flatten(
@@ -366,4 +367,17 @@ export class TestModel<TState, TEvent extends EventObject> {
       throw new Error(criteriaMessage);
     }
   }
+}
+
+/**
+ * Specifies default configuration for `TestModel` instances for coverage and plan generation options
+ *
+ * @param testModelConfiguration The partial configuration for all subsequent `TestModel` instances
+ */
+export function configure(
+  testModelConfiguration: Partial<
+    TestModelDefaults<any, any>
+  > = testModelDefaults
+): void {
+  TestModel.defaults = { ...testModelDefaults, ...testModelConfiguration };
 }

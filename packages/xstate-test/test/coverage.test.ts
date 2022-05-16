@@ -1,4 +1,4 @@
-import { createTestModel } from '../src';
+import { configure, createTestModel } from '../src';
 import { createMachine } from 'xstate';
 import { coversAllStates, coversAllTransitions } from '../src/coverage';
 
@@ -314,5 +314,75 @@ describe('coverage', () => {
     expect(() => {
       model.testCoverage([coversAllStates(), coversAllTransitions()]);
     }).not.toThrow();
+  });
+
+  it('tests states and transitions coverage by default', async () => {
+    const model = createTestModel(
+      createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              EVENT_ONE: 'b',
+              EVENT_TWO: 'b'
+            }
+          },
+          b: {},
+          c: {}
+        }
+      })
+    );
+
+    await model.testPlans(model.getShortestPlans());
+
+    expect(() => {
+      model.testCoverage();
+    }).toThrowErrorMatchingInlineSnapshot(`
+      "Coverage criteria not met:
+      	Visits \\"(machine).c\\"
+      	Transitions to state \\"a\\" on event \\"EVENT_TWO\\""
+    `);
+  });
+
+  it('configuration should be globally configurable', async () => {
+    configure({
+      coverage: [coversAllStates()]
+    });
+
+    const model = createTestModel(
+      createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              EVENT_ONE: 'b',
+              EVENT_TWO: 'b'
+            }
+          },
+          b: {},
+          c: {}
+        }
+      })
+    );
+
+    await model.testPlans(model.getShortestPlans());
+
+    expect(() => {
+      model.testCoverage();
+    }).toThrowErrorMatchingInlineSnapshot(`
+      "Coverage criteria not met:
+      	Visits \\"(machine).c\\""
+    `);
+
+    // Reset defaults
+    configure();
+
+    expect(() => {
+      model.testCoverage();
+    }).toThrowErrorMatchingInlineSnapshot(`
+      "Coverage criteria not met:
+      	Visits \\"(machine).c\\"
+      	Transitions to state \\"a\\" on event \\"EVENT_TWO\\""
+    `);
   });
 });
