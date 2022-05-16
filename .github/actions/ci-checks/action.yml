@@ -7,9 +7,5 @@ runs:
       shell: bash
 
     - name: Test
-      run: yarn test
-      shell: bash
-
-    - name: Svelte Check
-      run: yarn --cwd packages/xstate-svelte svelte-check
+      run: yarn turbo run test svelte-check
       shell: bash

@@ -4,6 +4,9 @@
   "pipeline": {
     "test": {
       "outputs": []
+    },
+    "svelte-check": {
+      "outputs": []
     }
   }
 }
