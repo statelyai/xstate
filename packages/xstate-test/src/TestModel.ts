@@ -83,7 +83,7 @@ export class TestModel<TState, TEvent extends EventObject> {
   }
 
   public getPlans(
-    planGenerator: PlanGenerator<TState, TEvent>,
+    planGenerator: PlanGenerator<TState, TEvent> = traverseShortestPlans,
     options?: Partial<TraversalOptions<TState, TEvent>>
   ): Array<StatePlan<TState, TEvent>> {
     const plans = planGenerator(this.behavior, this.resolveOptions(options));
@@ -177,7 +177,7 @@ export class TestModel<TState, TEvent extends EventObject> {
   }
 
   public async testPlans(
-    plans: Array<StatePlan<TState, TEvent>>,
+    plans: Array<StatePlan<TState, TEvent>> = this.getPlans(),
     options?: Partial<TestModelOptions<TState, TEvent>>
   ) {
     for (const plan of plans) {
