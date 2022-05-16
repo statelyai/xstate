@@ -211,7 +211,7 @@ describe('coverage', () => {
       model.testCoverage(coversAllTransitions());
     }).toThrowErrorMatchingInlineSnapshot(`
       "Coverage criteria not met:
-      	Transitions a on event EVENT_TWO"
+      	Transitions to state \\"a\\" on event \\"EVENT_TWO\\""
     `);
 
     await model.testPlans(model.getSimplePlans());
@@ -219,6 +219,69 @@ describe('coverage', () => {
     expect(() => {
       model.testCoverage(coversAllTransitions());
     }).not.toThrow();
+  });
+
+  it('reports multiple kinds of coverage', async () => {
+    const model = createTestModel(
+      createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              EVENT_ONE: 'b',
+              EVENT_TWO: 'b'
+            }
+          },
+          b: {}
+        }
+      })
+    );
+
+    await model.testPlans(model.getShortestPlans());
+
+    expect(model.getCoverage([coversAllStates(), coversAllTransitions()]))
+      .toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "criterion": Object {
+            "description": "Visits \\"(machine)\\"",
+            "predicate": [Function],
+            "skip": false,
+          },
+          "status": "covered",
+        },
+        Object {
+          "criterion": Object {
+            "description": "Visits \\"(machine).a\\"",
+            "predicate": [Function],
+            "skip": false,
+          },
+          "status": "covered",
+        },
+        Object {
+          "criterion": Object {
+            "description": "Visits \\"(machine).b\\"",
+            "predicate": [Function],
+            "skip": false,
+          },
+          "status": "covered",
+        },
+        Object {
+          "criterion": Object {
+            "description": "Transitions to state \\"a\\" on event \\"EVENT_ONE\\"",
+            "predicate": [Function],
+          },
+          "status": "covered",
+        },
+        Object {
+          "criterion": Object {
+            "description": "Transitions to state \\"a\\" on event \\"EVENT_TWO\\"",
+            "predicate": [Function],
+          },
+          "status": "uncovered",
+        },
+      ]
+    `);
   });
 
   it('tests multiple kinds of coverage', async () => {
@@ -243,7 +306,7 @@ describe('coverage', () => {
       model.testCoverage([coversAllStates(), coversAllTransitions()]);
     }).toThrowErrorMatchingInlineSnapshot(`
       "Coverage criteria not met:
-      	Transitions a on event EVENT_TWO"
+      	Transitions to state \\"a\\" on event \\"EVENT_TWO\\""
     `);
 
     await model.testPlans(model.getSimplePlans());

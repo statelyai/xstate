@@ -71,6 +71,7 @@ export class TestModel<TState, TEvent extends EventObject> {
       }
     };
   }
+  public defaults = {};
 
   constructor(
     public behavior: SimpleBehavior<TState, TEvent>,
@@ -323,11 +324,16 @@ export class TestModel<TState, TEvent extends EventObject> {
   }
 
   public getCoverage(
-    criteriaFn?: CoverageFunction<TState, TEvent>
+    criteriaFn?: SingleOrArray<CoverageFunction<TState, TEvent>>
   ): Array<CriterionResult<TState, TEvent>> {
-    const criteria = criteriaFn?.(this) ?? [];
+    const criteriaFns = criteriaFn
+      ? Array.isArray(criteriaFn)
+        ? criteriaFn
+        : [criteriaFn]
+      : [];
+    const criteriaResult = flatten(criteriaFns.map((fn) => fn(this)));
 
-    return criteria.map((criterion) => {
+    return criteriaResult.map((criterion) => {
       return {
         criterion,
         status: criterion.skip

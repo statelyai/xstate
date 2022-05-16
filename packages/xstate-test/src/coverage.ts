@@ -61,24 +61,8 @@ export function coversAllTransitions<
               t.eventType === transitionCoverage.step.event.type
             );
           }),
-        description: `Transitions ${t.source.key} on event ${t.eventType}`
+        description: `Transitions to state "${t.source.key}" on event "${t.eventType}"`
       };
     });
-    // return flatten(
-    //   allStateNodes.map((sn) => {
-    //     const transitions = sn.transitions;
-    //     const transitionSerial = `${this.options.serializeState(
-    //       step.state,
-    //       null as any
-    //     )} | ${this.options.serializeEvent(step.event)}`;
-
-    //     return {
-    //       predicate: () => true,
-    //       description: ''
-    //     };
-    //   })
-    // );
-
-    // return [];
   };
 }
