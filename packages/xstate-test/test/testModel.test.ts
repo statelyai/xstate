@@ -73,7 +73,7 @@ describe('custom test models', () => {
 
     const plans = model.getShortestPlansTo((state) => state === 1);
 
-    await model.testPlans(plans);
+    await model.testPlans({ plans });
 
     expect(testedStateKeys).toContain('even');
     expect(testedStateKeys).toContain('odd');

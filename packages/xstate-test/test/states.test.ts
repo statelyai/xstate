@@ -40,7 +40,7 @@ describe('states', () => {
       }
     );
 
-    await testModel.testPlans(testModel.getShortestPlans());
+    await testModel.testPlans();
 
     expect(testedStateValues).toMatchInlineSnapshot(`
       Array [
@@ -113,7 +113,7 @@ describe('states', () => {
       }
     );
 
-    await testModel.testPlans(testModel.getShortestPlans());
+    await testModel.testPlans();
 
     expect(testedStateValues).toMatchInlineSnapshot(`
       Array [

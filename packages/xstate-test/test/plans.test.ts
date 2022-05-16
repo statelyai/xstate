@@ -18,30 +18,32 @@ describe('testModel.testPlans(...)', () => {
       })
     );
 
-    const plans = testModel.getPlans((behavior, options) => {
-      const events = options.getEvents?.(behavior.initialState) ?? [];
+    const plans = testModel.getPlans({
+      planGenerator: (behavior, options) => {
+        const events = options.getEvents?.(behavior.initialState) ?? [];
 
-      const nextState = behavior.transition(behavior.initialState, events[0]);
-      return [
-        {
-          state: nextState,
-          paths: [
-            {
-              state: nextState,
-              steps: [
-                {
-                  state: behavior.initialState,
-                  event: events[0]
-                }
-              ],
-              weight: 1
-            }
-          ]
-        }
-      ];
+        const nextState = behavior.transition(behavior.initialState, events[0]);
+        return [
+          {
+            state: nextState,
+            paths: [
+              {
+                state: nextState,
+                steps: [
+                  {
+                    state: behavior.initialState,
+                    event: events[0]
+                  }
+                ],
+                weight: 1
+              }
+            ]
+          }
+        ];
+      }
     });
 
-    await testModel.testPlans(plans);
+    await testModel.testPlans({ plans });
 
     expect(testModel.getCoverage(coversAllStates())).toMatchInlineSnapshot(`
       Array [
