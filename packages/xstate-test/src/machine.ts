@@ -1,4 +1,4 @@
-import { SimpleBehavior, serializeState } from '@xstate/graph';
+import { serializeState, SimpleBehavior } from '@xstate/graph';
 import type {
   ActionObject,
   AnyState,
@@ -6,9 +6,9 @@ import type {
   EventFrom,
   StateFrom
 } from 'xstate';
-import { flatten } from './utils';
 import { TestModel } from './TestModel';
-import { TestModelEventConfig, TestModelOptions, EventExecutor } from './types';
+import { TestModelEventConfig, TestModelOptions } from './types';
+import { flatten } from './utils';
 
 export async function testStateFromMeta(state: AnyState) {
   for (const id of Object.keys(state.meta)) {
