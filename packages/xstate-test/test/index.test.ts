@@ -1,7 +1,7 @@
+import { assign, createMachine } from 'xstate';
 import { createTestModel } from '../src';
-import { assign, createMachine, interpret } from 'xstate';
-import { getDescription } from '../src/utils';
 import { coversAllStates } from '../src/coverage';
+import { getDescription } from '../src/utils';
 
 describe('events', () => {
   it('should allow for representing many cases', async () => {
@@ -351,120 +351,6 @@ describe('test model options', () => {
     }
 
     expect(testedStates).toEqual(['inactive', 'inactive', 'active']);
-  });
-
-  it('options.testTransition(...) should test transition', async () => {
-    const testedEvents: any[] = [];
-
-    const model = createTestModel(
-      createMachine({
-        initial: 'inactive',
-        states: {
-          inactive: {
-            on: {
-              NEXT: 'active'
-            }
-          },
-          active: {
-            on: {
-              PREV: 'inactive'
-            }
-          }
-        }
-      }),
-      {
-        // Force traversal to consider all transitions
-        serializeState: (state) =>
-          ((state.value as any) + state.event.type) as any,
-        testTransition: (step) => {
-          testedEvents.push(step.event.type);
-        }
-      }
-    );
-
-    const plans = model.getShortestPlans();
-
-    for (const plan of plans) {
-      await model.testPlan(plan);
-    }
-
-    expect(testedEvents).toEqual(['NEXT', 'NEXT', 'PREV']);
-  });
-});
-
-describe('invocations', () => {
-  it.skip('invokes', async () => {
-    const machine = createMachine({
-      initial: 'idle',
-      states: {
-        idle: {
-          on: {
-            START: 'pending'
-          }
-        },
-        pending: {
-          invoke: {
-            src: (_, e) => new Promise((res) => res(e.value)),
-            onDone: [
-              { cond: (_, e) => e.data === 42, target: 'success' },
-              { target: 'failure' }
-            ]
-          }
-        },
-        success: {},
-        failure: {}
-      }
-    });
-
-    const model = createTestModel(machine, {
-      events: {
-        START: {
-          cases: [
-            { type: 'START', value: 42 },
-            { type: 'START', value: 1 }
-          ]
-        }
-      }
-    });
-
-    const plans = model.getShortestPlans();
-
-    for (const plan of plans) {
-      for (const path of plan.paths) {
-        const service = interpret(machine).start();
-
-        await model.testPath(path, {
-          states: {
-            '*': (state) => {
-              return new Promise<void>((res) => {
-                let actualState;
-                const t = setTimeout(() => {
-                  throw new Error(
-                    `expected ${state.value}, got ${actualState.value}`
-                  );
-                }, 1000);
-                service.subscribe((s) => {
-                  actualState = s;
-                  if (s.matches(state.value)) {
-                    clearTimeout(t);
-                    res();
-                  }
-                });
-              });
-            }
-          },
-          testTransition: (step) => {
-            if (step.event.type.startsWith('done.')) {
-              return;
-            }
-
-            service.send(step.event);
-          }
-        });
-      }
-    }
-
-    model.testCoverage(coversAllStates());
   });
 });
 

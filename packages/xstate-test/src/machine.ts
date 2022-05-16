@@ -103,20 +103,6 @@ export function createTestModel<TMachine extends AnyStateMachine>(
             );
           })
         ),
-      testTransition: async (step) => {
-        const eventConfig =
-          testModel.options.events?.[
-            (step.event as any).type as EventFrom<TMachine>['type']
-          ];
-
-        const eventExec =
-          typeof eventConfig === 'function' ? eventConfig : eventConfig?.exec;
-
-        await (eventExec as EventExecutor<
-          StateFrom<TMachine>,
-          EventFrom<TMachine>
-        >)?.(step);
-      },
       ...options
     }
   );

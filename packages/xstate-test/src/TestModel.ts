@@ -1,5 +1,6 @@
 import {
   getPathFromEvents,
+  performDepthFirstTraversal,
   SerializedEvent,
   SerializedState,
   SimpleBehavior,
@@ -7,28 +8,27 @@ import {
   StatePlan,
   Step,
   TraversalOptions,
-  performDepthFirstTraversal,
   traverseShortestPlans,
-  traverseSimplePlans,
-  traverseSimplePathsTo
+  traverseSimplePathsTo,
+  traverseSimplePlans
 } from '@xstate/graph';
 import { EventObject, SingleOrArray } from 'xstate';
-import { flatten } from './utils';
 import {
   CoverageFunction,
   coversAllStates,
   coversAllTransitions
 } from './coverage';
 import type {
+  CriterionResult,
+  EventExecutor,
+  PlanGenerator,
+  StatePredicate,
   TestModelCoverage,
   TestModelOptions,
-  StatePredicate,
   TestPathResult,
-  TestStepResult,
-  CriterionResult,
-  PlanGenerator
+  TestStepResult
 } from './types';
-import { formatPathTestResult, simpleStringify } from './utils';
+import { flatten, formatPathTestResult, simpleStringify } from './utils';
 
 export interface TestModelDefaults<TState, TEvent extends EventObject> {
   coverage: Array<CoverageFunction<TState, TEvent>>;
@@ -62,7 +62,6 @@ export class TestModel<TState, TEvent extends EventObject> {
       events: {},
       stateMatcher: (_, stateKey) => stateKey === '*',
       getStates: () => [],
-      testTransition: () => void 0,
       execute: () => void 0,
       logger: {
         log: console.log.bind(console),
@@ -185,12 +184,81 @@ export class TestModel<TState, TEvent extends EventObject> {
     }
   }
 
+  public testPlansSync(
+    plans: Array<StatePlan<TState, TEvent>>,
+    options?: Partial<TestModelOptions<TState, TEvent>>
+  ) {
+    for (const plan of plans) {
+      this.testPlanSync(plan, options);
+    }
+  }
+
   public async testPlan(
     plan: StatePlan<TState, TEvent>,
     options?: Partial<TestModelOptions<TState, TEvent>>
   ) {
     for (const path of plan.paths) {
       await this.testPath(path, options);
+    }
+  }
+
+  public testPlanSync(
+    plan: StatePlan<TState, TEvent>,
+    options?: Partial<TestModelOptions<TState, TEvent>>
+  ) {
+    for (const path of plan.paths) {
+      this.testPathSync(path, options);
+    }
+  }
+
+  public testPathSync(
+    path: StatePath<TState, TEvent>,
+    options?: Partial<TestModelOptions<TState, TEvent>>
+  ) {
+    const testPathResult: TestPathResult = {
+      steps: [],
+      state: {
+        error: null
+      }
+    };
+
+    try {
+      for (const step of path.steps) {
+        const testStepResult: TestStepResult = {
+          step,
+          state: { error: null },
+          event: { error: null }
+        };
+
+        testPathResult.steps.push(testStepResult);
+
+        try {
+          this.testStateSync(step.state, options);
+        } catch (err) {
+          testStepResult.state.error = err;
+
+          throw err;
+        }
+
+        try {
+          this.testTransitionSync(step);
+        } catch (err) {
+          testStepResult.event.error = err;
+
+          throw err;
+        }
+      }
+
+      try {
+        this.testStateSync(path.state, options);
+      } catch (err) {
+        testPathResult.state.error = err.message;
+        throw err;
+      }
+    } catch (err) {
+      // TODO: make option
+      err.message += formatPathTestResult(path, testPathResult, this.options);
+      throw err;
     }
   }
 
@@ -251,6 +319,19 @@ export class TestModel<TState, TEvent extends EventObject> {
   ): Promise<void> {
     const resolvedOptions = this.resolveOptions(options);
 
+    const stateTestKeys = this.getStateTestKeys(state, resolvedOptions);
+
+    for (const stateTestKey of stateTestKeys) {
+      await resolvedOptions.states[stateTestKey](state);
+    }
+
+    this.afterTestState(state, resolvedOptions);
+  }
+
+  private getStateTestKeys(
+    state: TState,
+    resolvedOptions: TestModelOptions<TState, TEvent>
+  ) {
     const stateTestKeys = Object.keys(resolvedOptions.states).filter(
       (stateKey) => {
         return resolvedOptions.stateMatcher(state, stateKey);
@@ -262,13 +343,34 @@ export class TestModel<TState, TEvent extends EventObject> {
       stateTestKeys.push('*');
     }
 
-    for (const stateTestKey of stateTestKeys) {
-      await resolvedOptions.states[stateTestKey](state);
-    }
+    return stateTestKeys;
+  }
 
-    await resolvedOptions.execute(state);
+  private afterTestState(
+    state: TState,
+    resolvedOptions: TestModelOptions<TState, TEvent>
+  ) {
+    resolvedOptions.execute(state);
 
     this.addStateCoverage(state);
+  }
+
+  public testStateSync(
+    state: TState,
+    options?: Partial<TestModelOptions<TState, TEvent>>
+  ): void {
+    const resolvedOptions = this.resolveOptions(options);
+
+    const stateTestKeys = this.getStateTestKeys(state, resolvedOptions);
+
+    for (const stateTestKey of stateTestKeys) {
+      errorIfPromise(
+        resolvedOptions.states[stateTestKey](state),
+        `The test for '${stateTestKey}' returned a promise - did you mean to use the sync method?`
+      );
+    }
+
+    this.afterTestState(state, resolvedOptions);
   }
 
   private addStateCoverage(state: TState) {
@@ -286,8 +388,31 @@ export class TestModel<TState, TEvent extends EventObject> {
     }
   }
 
+  private getEventExec(step: Step<TState, TEvent>) {
+    const eventConfig = this.options.events?.[
+      (step.event as any).type as TEvent['type']
+    ];
+
+    const eventExec =
+      typeof eventConfig === 'function' ? eventConfig : eventConfig?.exec;
+
+    return eventExec;
+  }
+
   public async testTransition(step: Step<TState, TEvent>): Promise<void> {
-    await this.options.testTransition(step);
+    const eventExec = this.getEventExec(step);
+    await (eventExec as EventExecutor<TState, TEvent>)?.(step);
+
+    this.addTransitionCoverage(step);
+  }
+
+  public testTransitionSync(step: Step<TState, TEvent>): void {
+    const eventExec = this.getEventExec(step);
+
+    errorIfPromise(
+      (eventExec as EventExecutor<TState, TEvent>)?.(step),
+      `The event '${step.event.type}' returned a promise - did you mean to use the sync method?`
+    );
 
     this.addTransitionCoverage(step);
   }
@@ -375,3 +500,9 @@ export function configure(
 ): void {
   TestModel.defaults = { ...testModelDefaults, ...testModelConfiguration };
 }
+
+const errorIfPromise = (result: unknown, err: string) => {
+  if (typeof result === 'object' && result && 'then' in result) {
+    throw new Error(err);
+  }
+};
