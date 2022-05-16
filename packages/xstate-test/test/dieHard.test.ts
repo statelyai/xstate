@@ -62,10 +62,9 @@ describe('die hard example', () => {
       this.five = this.five - poured;
     }
   }
+  let jugs: Jugs;
 
   const createDieHardModel = () => {
-    let jugs: Jugs;
-
     const dieHardMachine = createMachine<DieHardContext>(
       {
         id: 'dieHard',
@@ -111,10 +110,6 @@ describe('die hard example', () => {
     );
 
     return createTestModel(dieHardMachine, {
-      beforePath: () => {
-        jugs = new Jugs();
-        jugs.version = Math.random();
-      },
       states: {
         pending: (state) => {
           expect(jugs.five).not.toEqual(4);
@@ -159,6 +154,11 @@ describe('die hard example', () => {
       }
     });
   };
+
+  beforeEach(() => {
+    jugs = new Jugs();
+    jugs.version = Math.random();
+  });
 
   describe('testing a model (shortestPathsTo)', () => {
     const dieHardModel = createDieHardModel();
@@ -260,6 +260,8 @@ describe('die hard example', () => {
 
     for (const plan of plans) {
       for (const path of plan.paths) {
+        jugs = new Jugs();
+        jugs.version = Math.random();
         await dieHardModel.testPath(path);
       }
     }

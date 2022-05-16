@@ -198,10 +198,6 @@ export class TestModel<TState, TEvent extends EventObject> {
     path: StatePath<TState, TEvent>,
     options?: Partial<TestModelOptions<TState, TEvent>>
   ) {
-    const resolvedOptions = this.resolveOptions(options);
-
-    await resolvedOptions.beforePath?.();
-
     const testPathResult: TestPathResult = {
       steps: [],
       state: {
@@ -246,8 +242,6 @@ export class TestModel<TState, TEvent extends EventObject> {
       // TODO: make option
       err.message += formatPathTestResult(path, testPathResult, this.options);
       throw err;
-    } finally {
-      await resolvedOptions.afterPath?.();
     }
   }
 
