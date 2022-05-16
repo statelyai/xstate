@@ -166,14 +166,6 @@ export interface TestModelOptions<TState, TEvent extends EventObject>
     log: (msg: string) => void;
     error: (msg: string) => void;
   };
-  /**
-   * Executed before each path is tested
-   */
-  beforePath?: () => void | Promise<void>;
-  /**
-   * Executed after each path is tested
-   */
-  afterPath?: () => void | Promise<void>;
 }
 
 export interface TestStateCoverage<TState> {
