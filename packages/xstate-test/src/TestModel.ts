@@ -1,5 +1,6 @@
 import {
   getPathFromEvents,
+  performDepthFirstTraversal,
   SerializedEvent,
   SerializedState,
   SimpleBehavior,
@@ -7,28 +8,26 @@ import {
   StatePlan,
   Step,
   TraversalOptions,
-  performDepthFirstTraversal,
   traverseShortestPlans,
-  traverseSimplePlans,
-  traverseSimplePathsTo
+  traverseSimplePathsTo,
+  traverseSimplePlans
 } from '@xstate/graph';
 import { EventObject, SingleOrArray } from 'xstate';
-import { flatten } from './utils';
 import {
   CoverageFunction,
   coversAllStates,
   coversAllTransitions
 } from './coverage';
 import type {
+  CriterionResult,
+  PlanGenerator,
+  StatePredicate,
   TestModelCoverage,
   TestModelOptions,
-  StatePredicate,
   TestPathResult,
-  TestStepResult,
-  CriterionResult,
-  PlanGenerator
+  TestStepResult
 } from './types';
-import { formatPathTestResult, simpleStringify } from './utils';
+import { flatten, formatPathTestResult, simpleStringify } from './utils';
 
 export interface TestModelDefaults<TState, TEvent extends EventObject> {
   coverage: Array<CoverageFunction<TState, TEvent>>;
