@@ -32,6 +32,20 @@ const stateCoverage = testModel.getCoverage([coversAllStates()]);
 // Returns state coverage
 const stateCoverage = testModel.getCoverage([coversAllStates()]);
 
+// Throws error for default coverage:
+// - state coverage
+// - transition coverage
+testModel.testCoverage();
+
 // Throws error if state coverage not met
 testModel.testCoverage([stateCoverage]);
+
+// Filters state coverage
+testModel.testCoverage(
+  coversAllStates({
+    filter: (stateNode) => {
+      return stateNode.key !== 'somePassedState';
+    }
+  })
+);
 ```
