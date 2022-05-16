@@ -11,8 +11,14 @@ import {
   TypegenConstraint,
   TypegenDisabled
 } from 'xstate';
-import { TestMachineConfig, TestMachineOptions, TestModel } from './TestModel';
-import { EventExecutor, TestModelEventConfig, TestModelOptions } from './types';
+import { TestModel } from './TestModel';
+import {
+  EventExecutor,
+  TestMachineConfig,
+  TestMachineOptions,
+  TestModelEventConfig,
+  TestModelOptions
+} from './types';
 import { flatten } from './utils';
 
 export async function testStateFromMeta(state: AnyState) {
