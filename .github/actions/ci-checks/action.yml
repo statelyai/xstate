@@ -10,7 +10,7 @@ runs:
       run: yarn test
       shell: bash
       env:
-        TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+        TURBO_TOKEN: '${{ secrets.TURBO_TOKEN }}'
         TURBO_TEAM: statelyai
 
     - name: Svelte Check
