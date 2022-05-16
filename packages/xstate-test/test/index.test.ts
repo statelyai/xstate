@@ -138,7 +138,7 @@ describe('events', () => {
 
     expect(plans.length).toBe(4);
 
-    await testModel.testPlans(plans);
+    await testModel.testPlans({ plans });
 
     expect(testedEvents).toMatchInlineSnapshot(`
       Array [
@@ -564,7 +564,7 @@ describe('state tests', () => {
       }
     });
 
-    await model.testPlans(model.getShortestPlans());
+    await model.testPlans();
   });
 
   it('should test wildcard state for non-matching states', async () => {
@@ -598,7 +598,7 @@ describe('state tests', () => {
       }
     });
 
-    await model.testPlans(model.getShortestPlans());
+    await model.testPlans();
   });
 
   it('should test nested states', async () => {
@@ -636,7 +636,7 @@ describe('state tests', () => {
       }
     });
 
-    await model.testPlans(model.getShortestPlans());
+    await model.testPlans();
     expect(testedStateValues).toMatchInlineSnapshot(`
       Array [
         "a",
