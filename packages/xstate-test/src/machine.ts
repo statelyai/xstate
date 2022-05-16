@@ -20,6 +20,7 @@ import {
   TestModelOptions
 } from './types';
 import { flatten } from './utils';
+import { validateMachine } from './validateMachine';
 
 export async function testStateFromMeta(state: AnyState) {
   for (const id of Object.keys(state.meta)) {
@@ -82,6 +83,8 @@ export function createTestModel<TMachine extends AnyStateMachine>(
   machine: TMachine,
   options?: Partial<TestModelOptions<StateFrom<TMachine>, EventFrom<TMachine>>>
 ): TestModel<StateFrom<TMachine>, EventFrom<TMachine>> {
+  validateMachine(machine);
+
   const testModel = new TestModel<StateFrom<TMachine>, EventFrom<TMachine>>(
     machine as SimpleBehavior<any, any>,
     {
