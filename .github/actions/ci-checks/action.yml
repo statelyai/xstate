@@ -9,9 +9,6 @@ runs:
     - name: Test
       run: yarn test
       shell: bash
-      env:
-        TURBO_TOKEN: '${{ secrets.TURBO_TOKEN }}'
-        TURBO_TEAM: statelyai
 
     - name: Svelte Check
       run: yarn --cwd packages/xstate-svelte svelte-check
