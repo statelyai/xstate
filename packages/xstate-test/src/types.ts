@@ -12,6 +12,19 @@ import {
   StateNode,
   TransitionConfig
 } from 'xstate';
+
+export type GetPlansOptions<TState, TEvent extends EventObject> = Partial<
+  TraversalOptions<TState, TEvent> & {
+    planGenerator?: PlanGenerator<TState, TEvent>;
+  }
+>;
+
+export type TestPlansOptions<TState, TEvent extends EventObject> = Partial<
+  TestModelOptions<TState, TEvent> & {
+    plans?: Array<StatePlan<TState, TEvent>>;
+  }
+>;
+
 export interface TestMeta<T, TContext> {
   test?: (testContext: T, state: State<TContext, any>) => Promise<void> | void;
   description?: string | ((state: State<TContext, any>) => string);
