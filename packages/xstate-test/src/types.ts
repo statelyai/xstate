@@ -6,11 +6,20 @@ import {
 } from '@xstate/graph';
 import {
   AnyState,
+  BaseActionObject,
   EventObject,
   ExtractEvent,
+  MachineConfig,
+  MachineOptions,
+  MachineSchema,
+  ServiceMap,
   State,
   StateNode,
-  TransitionConfig
+  StateNodeConfig,
+  StateSchema,
+  TransitionConfig,
+  TypegenConstraint,
+  TypegenDisabled
 } from 'xstate';
 
 export type GetPlansOptions<TState, TEvent extends EventObject> = Partial<
@@ -23,6 +32,45 @@ export type TestPlansOptions<TState, TEvent extends EventObject> = Partial<
   TestModelOptions<TState, TEvent> & {
     plans?: Array<StatePlan<TState, TEvent>>;
   }
+>;
+
+export interface TestMachineConfig<
+  TContext,
+  TEvent extends EventObject,
+  TTypesMeta = TypegenDisabled
+> extends TestStateNodeConfig<TContext, TEvent> {
+  context?: MachineConfig<TContext, StateSchema, TEvent>['context'];
+  schema?: MachineSchema<TContext, TEvent, ServiceMap>;
+  tsTypes?: TTypesMeta;
+}
+
+export interface TestStateNodeConfig<TContext, TEvent extends EventObject>
+  extends Pick<
+    StateNodeConfig<TContext, StateSchema, TEvent>,
+    | 'type'
+    | 'history'
+    | 'on'
+    | 'onDone'
+    | 'entry'
+    | 'exit'
+    | 'meta'
+    | 'always'
+    | 'data'
+    | 'id'
+    | 'tags'
+    | 'description'
+  > {
+  initial?: string;
+  states?: Record<string, TestStateNodeConfig<TContext, TEvent>>;
+}
+
+export type TestMachineOptions<
+  TContext,
+  TEvent extends EventObject,
+  TTypesMeta extends TypegenConstraint = TypegenDisabled
+> = Pick<
+  MachineOptions<TContext, TEvent, BaseActionObject, ServiceMap, TTypesMeta>,
+  'actions' | 'guards'
 >;
 
 export interface TestMeta<T, TContext> {

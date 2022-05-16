@@ -1,7 +1,8 @@
+import { assign, createMachine } from 'xstate';
 import { createTestModel } from '../src';
-import { assign, createMachine, interpret } from 'xstate';
-import { getDescription } from '../src/utils';
 import { coversAllStates } from '../src/coverage';
+import { createTestMachine } from '../src/machine';
+import { getDescription } from '../src/utils';
 
 describe('events', () => {
   it('should allow for representing many cases', async () => {
@@ -11,7 +12,7 @@ describe('events', () => {
       | { type: 'CLOSE' }
       | { type: 'ESC' }
       | { type: 'SUBMIT'; value: string };
-    const feedbackMachine = createMachine({
+    const feedbackMachine = createTestMachine({
       id: 'feedback',
       schema: {
         events: {} as Events
@@ -74,7 +75,7 @@ describe('events', () => {
   });
 
   it('should not throw an error for unimplemented events', () => {
-    const testMachine = createMachine({
+    const testMachine = createTestMachine({
       initial: 'idle',
       states: {
         idle: {
@@ -190,7 +191,7 @@ describe('state limiting', () => {
 });
 
 describe('plan description', () => {
-  const machine = createMachine({
+  const machine = createTestMachine({
     id: 'test',
     initial: 'atomic',
     context: { count: 0 },
@@ -285,7 +286,7 @@ it('prevents infinite recursion based on a provided limit', () => {
 it('executes actions', async () => {
   let executedActive = false;
   let executedDone = false;
-  const machine = createMachine({
+  const machine = createTestMachine({
     initial: 'idle',
     states: {
       idle: {
@@ -324,7 +325,7 @@ describe('test model options', () => {
     const testedStates: any[] = [];
 
     const model = createTestModel(
-      createMachine({
+      createTestMachine({
         initial: 'inactive',
         states: {
           inactive: {
@@ -357,7 +358,7 @@ describe('test model options', () => {
     const testedEvents: any[] = [];
 
     const model = createTestModel(
-      createMachine({
+      createTestMachine({
         initial: 'inactive',
         states: {
           inactive: {
@@ -392,86 +393,10 @@ describe('test model options', () => {
   });
 });
 
-describe('invocations', () => {
-  it.skip('invokes', async () => {
-    const machine = createMachine({
-      initial: 'idle',
-      states: {
-        idle: {
-          on: {
-            START: 'pending'
-          }
-        },
-        pending: {
-          invoke: {
-            src: (_, e) => new Promise((res) => res(e.value)),
-            onDone: [
-              { cond: (_, e) => e.data === 42, target: 'success' },
-              { target: 'failure' }
-            ]
-          }
-        },
-        success: {},
-        failure: {}
-      }
-    });
-
-    const model = createTestModel(machine, {
-      events: {
-        START: {
-          cases: [
-            { type: 'START', value: 42 },
-            { type: 'START', value: 1 }
-          ]
-        }
-      }
-    });
-
-    const plans = model.getShortestPlans();
-
-    for (const plan of plans) {
-      for (const path of plan.paths) {
-        const service = interpret(machine).start();
-
-        await model.testPath(path, {
-          states: {
-            '*': (state) => {
-              return new Promise<void>((res) => {
-                let actualState;
-                const t = setTimeout(() => {
-                  throw new Error(
-                    `expected ${state.value}, got ${actualState.value}`
-                  );
-                }, 1000);
-                service.subscribe((s) => {
-                  actualState = s;
-                  if (s.matches(state.value)) {
-                    clearTimeout(t);
-                    res();
-                  }
-                });
-              });
-            }
-          },
-          testTransition: (step) => {
-            if (step.event.type.startsWith('done.')) {
-              return;
-            }
-
-            service.send(step.event);
-          }
-        });
-      }
-    }
-
-    model.testCoverage(coversAllStates());
-  });
-});
-
 // https://github.com/statelyai/xstate/issues/1538
 it('tests transitions', async () => {
   expect.assertions(2);
-  const machine = createMachine({
+  const machine = createTestMachine({
     initial: 'first',
     states: {
       first: {
@@ -501,7 +426,7 @@ it('tests transitions', async () => {
 
 // https://github.com/statelyai/xstate/issues/982
 it('Event in event executor should contain payload from case', async () => {
-  const machine = createMachine({
+  const machine = createTestMachine({
     initial: 'first',
     states: {
       first: {
@@ -543,7 +468,7 @@ describe('state tests', () => {
     // a -> b (2)
     expect.assertions(3);
 
-    const machine = createMachine({
+    const machine = createTestMachine({
       initial: 'a',
       states: {
         a: {
@@ -573,7 +498,7 @@ describe('state tests', () => {
     // a -> c (2)
     expect.assertions(5);
 
-    const machine = createMachine({
+    const machine = createTestMachine({
       initial: 'a',
       states: {
         a: {
@@ -604,7 +529,7 @@ describe('state tests', () => {
   it('should test nested states', async () => {
     const testedStateValues: any[] = [];
 
-    const machine = createMachine({
+    const machine = createTestMachine({
       initial: 'a',
       states: {
         a: {

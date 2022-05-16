@@ -1,10 +1,10 @@
 import { configure, createTestModel } from '../src';
-import { createMachine } from 'xstate';
 import { coversAllStates, coversAllTransitions } from '../src/coverage';
+import { createTestMachine } from '../src/machine';
 
 describe('coverage', () => {
   it('reports missing state node coverage', async () => {
-    const machine = createMachine({
+    const machine = createTestMachine({
       id: 'test',
       initial: 'first',
       states: {
@@ -57,7 +57,7 @@ describe('coverage', () => {
 
   // https://github.com/statelyai/xstate/issues/729
   it('reports full coverage when all states are covered', async () => {
-    const feedbackMachine = createMachine({
+    const feedbackMachine = createTestMachine({
       id: 'feedback',
       initial: 'logon',
       states: {
@@ -97,7 +97,7 @@ describe('coverage', () => {
   });
 
   it('skips filtered states (filter option)', async () => {
-    const TestBug = createMachine({
+    const TestBug = createTestMachine({
       id: 'testbug',
       initial: 'idle',
       context: {
@@ -144,7 +144,7 @@ describe('coverage', () => {
 
   // https://github.com/statelyai/xstate/issues/981
   it.skip('skips transient states (type: final)', async () => {
-    const machine = createMachine({
+    const machine = createTestMachine({
       id: 'menu',
       initial: 'initial',
       states: {
@@ -191,7 +191,7 @@ describe('coverage', () => {
 
   it('tests transition coverage', async () => {
     const model = createTestModel(
-      createMachine({
+      createTestMachine({
         initial: 'a',
         states: {
           a: {
@@ -223,7 +223,7 @@ describe('coverage', () => {
 
   it('reports multiple kinds of coverage', async () => {
     const model = createTestModel(
-      createMachine({
+      createTestMachine({
         initial: 'a',
         states: {
           a: {
@@ -286,7 +286,7 @@ describe('coverage', () => {
 
   it('tests multiple kinds of coverage', async () => {
     const model = createTestModel(
-      createMachine({
+      createTestMachine({
         initial: 'a',
         states: {
           a: {
@@ -318,7 +318,7 @@ describe('coverage', () => {
 
   it('tests states and transitions coverage by default', async () => {
     const model = createTestModel(
-      createMachine({
+      createTestMachine({
         initial: 'a',
         states: {
           a: {
@@ -350,7 +350,7 @@ describe('coverage', () => {
     });
 
     const model = createTestModel(
-      createMachine({
+      createTestMachine({
         initial: 'a',
         states: {
           a: {
