@@ -47,10 +47,12 @@ const syncModel = createTestModel(machine, {
   }
 });
 
-describe('.testPlansSync', () => {
+describe('.testPlanSync', () => {
   it('Should error if it encounters a promise in a state', () => {
     expect(() =>
-      promiseStateModel.testPlansSync(promiseStateModel.getShortestPlans())
+      promiseStateModel
+        .getPlans()
+        .forEach((plan) => promiseStateModel.testPlanSync(plan))
     ).toThrowError(
       `The test for 'a' returned a promise - did you mean to use the sync method?`
     );
@@ -58,7 +60,9 @@ describe('.testPlansSync', () => {
 
   it('Should error if it encounters a promise in an event', () => {
     expect(() =>
-      promiseEventModel.testPlansSync(promiseEventModel.getShortestPlans())
+      promiseEventModel
+        .getPlans()
+        .forEach((plan) => promiseEventModel.testPlanSync(plan))
     ).toThrowError(
       `The event 'EVENT' returned a promise - did you mean to use the sync method?`
     );
@@ -66,7 +70,7 @@ describe('.testPlansSync', () => {
 
   it('Should succeed if it encounters no promises', () => {
     expect(() =>
-      syncModel.testPlansSync(syncModel.getShortestPlans())
+      syncModel.getPlans().forEach((plan) => syncModel.testPlanSync(plan))
     ).not.toThrow();
   });
 });

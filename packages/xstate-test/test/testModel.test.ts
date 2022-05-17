@@ -1,4 +1,5 @@
 import { TestModel } from '../src';
+import { testUtils } from '../src/testUtils';
 
 describe('custom test models', () => {
   it('tests any behavior', async () => {
@@ -73,7 +74,7 @@ describe('custom test models', () => {
 
     const plans = model.getShortestPlansTo((state) => state === 1);
 
-    await model.testPlans(plans);
+    await testUtils.testPlans(model, plans);
 
     expect(testedStateKeys).toContain('even');
     expect(testedStateKeys).toContain('odd');

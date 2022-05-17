@@ -1,6 +1,7 @@
 import { createTestModel } from '../src';
 import { coversAllStates } from '../src/coverage';
 import { createTestMachine } from '../src/machine';
+import { testUtils } from '../src/testUtils';
 
 const multiPathMachine = createTestMachine({
   initial: 'a',
@@ -67,7 +68,7 @@ describe('testModel.testPlans(...)', () => {
       }
     });
 
-    await testModel.testPlans(plans);
+    await testUtils.testModel(testModel);
 
     expect(testModel.getCoverage(coversAllStates())).toMatchInlineSnapshot(`
       Array [
