@@ -574,7 +574,7 @@ export function traverseSimplePlans<TState, TEvent extends EventObject>(
   return Object.values(pathMap);
 }
 
-export function filterPlans<TState, TEvent extends EventObject>(
+function filterPlans<TState, TEvent extends EventObject>(
   plans: Array<StatePlan<TState, TEvent>>,
   predicate: (state: TState, plan: StatePlan<TState, TEvent>) => boolean
 ): Array<StatePlan<TState, TEvent>> {
