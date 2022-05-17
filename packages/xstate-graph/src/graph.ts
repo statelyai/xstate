@@ -14,9 +14,7 @@ import type {
   SerializedState,
   SimpleBehavior,
   StatePath,
-  StatePlan
-} from '.';
-import type {
+  StatePlan,
   StatePlanMap,
   AdjacencyMap,
   Steps,
