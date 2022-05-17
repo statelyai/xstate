@@ -18,9 +18,11 @@ import {
   coversAllStates,
   coversAllTransitions
 } from './coverage';
+import { planGeneratorWithDedup } from './dedupPathPlans';
 import type {
   CriterionResult,
   EventExecutor,
+  GetPlansOptions,
   PlanGenerator,
   StatePredicate,
   TestModelCoverage,
@@ -32,10 +34,12 @@ import { flatten, formatPathTestResult, simpleStringify } from './utils';
 
 export interface TestModelDefaults<TState, TEvent extends EventObject> {
   coverage: Array<CoverageFunction<TState, TEvent>>;
+  planGenerator: PlanGenerator<TState, TEvent>;
 }
 
 export const testModelDefaults: TestModelDefaults<any, any> = {
-  coverage: [coversAllStates<any, any>(), coversAllTransitions<any, any>()]
+  coverage: [coversAllStates<any, any>(), coversAllTransitions<any, any>()],
+  planGenerator: traverseShortestPlans
 };
 
 /**
@@ -82,9 +86,11 @@ export class TestModel<TState, TEvent extends EventObject> {
   }
 
   public getPlans(
-    planGenerator: PlanGenerator<TState, TEvent>,
-    options?: Partial<TraversalOptions<TState, TEvent>>
+    options?: GetPlansOptions<TState, TEvent>
   ): Array<StatePlan<TState, TEvent>> {
+    const planGenerator = planGeneratorWithDedup<TState, TEvent>(
+      options?.planGenerator || TestModel.defaults.planGenerator
+    );
     const plans = planGenerator(this.behavior, this.resolveOptions(options));
 
     return plans;
@@ -93,11 +99,7 @@ export class TestModel<TState, TEvent extends EventObject> {
   public getShortestPlans(
     options?: Partial<TraversalOptions<TState, TEvent>>
   ): Array<StatePlan<TState, TEvent>> {
-    return this.getPlans((behavior, resolvedOptions) => {
-      const shortestPaths = traverseShortestPlans(behavior, resolvedOptions);
-
-      return Object.values(shortestPaths);
-    }, options);
+    return this.getPlans({ ...options, planGenerator: traverseShortestPlans });
   }
 
   public getShortestPlansTo(
@@ -124,11 +126,10 @@ export class TestModel<TState, TEvent extends EventObject> {
   public getSimplePlans(
     options?: Partial<TraversalOptions<TState, any>>
   ): Array<StatePlan<TState, TEvent>> {
-    return this.getPlans((behavior, resolvedOptions) => {
-      const simplePaths = traverseSimplePlans(behavior, resolvedOptions);
-
-      return Object.values(simplePaths);
-    }, options);
+    return this.getPlans({
+      ...options,
+      planGenerator: traverseSimplePlans
+    });
   }
 
   public getSimplePlansTo(
@@ -176,9 +177,22 @@ export class TestModel<TState, TEvent extends EventObject> {
   }
 
   public async testPlans(
-    plans: Array<StatePlan<TState, TEvent>>,
-    options?: Partial<TestModelOptions<TState, TEvent>>
-  ) {
+    plans: StatePlan<TState, TEvent>[],
+    options?: TraversalOptions<TState, TEvent>
+  ): Promise<void>;
+  public async testPlans(
+    options?: TraversalOptions<TState, TEvent>
+  ): Promise<void>;
+
+  public async testPlans(...args: any[]) {
+    const [plans, options]: [
+      StatePlan<TState, TEvent>[],
+      TraversalOptions<TState, TEvent>
+    ] =
+      args[0] instanceof Array
+        ? [args[0], args[1]]
+        : [this.getPlans(args[0]), args[0]];
+
     for (const plan of plans) {
       await this.testPlan(plan, options);
     }

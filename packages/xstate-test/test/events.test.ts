@@ -28,7 +28,7 @@ describe('events', () => {
       }
     );
 
-    await testModel.testPlans(testModel.getShortestPlans());
+    await testModel.testPlans();
 
     expect(executed).toBe(true);
   });
@@ -57,7 +57,7 @@ describe('events', () => {
       }
     );
 
-    await testModel.testPlans(testModel.getShortestPlans());
+    await testModel.testPlans();
 
     expect(executed).toBe(true);
   });
