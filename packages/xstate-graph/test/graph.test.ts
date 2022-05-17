@@ -254,18 +254,16 @@ describe('@xstate/graph', () => {
         }
       });
 
-      // explicit type arguments could be removed once davidkpiano/xstate#652 gets resolved
       const paths = getShortestPlans(machine, {
-        getEvents: () =>
-          [
-            {
-              type: 'EVENT',
-              id: 'whatever'
-            },
-            {
-              type: 'STATE'
-            }
-          ] as any[]
+        getEvents: () => [
+          {
+            type: 'EVENT',
+            id: 'whatever'
+          },
+          {
+            type: 'STATE'
+          }
+        ]
       });
 
       expect(getPathsMapSnapshot(paths)).toMatchSnapshot(
