@@ -587,7 +587,7 @@ it('simple paths for reducers', () => {
         }
         return s;
       },
-      initialState: 0 as number
+      initialState: 0
     },
     {
       getEvents: () => [{ type: 'a' }, { type: 'b' }, { type: 'reset' }],
