@@ -6,7 +6,7 @@ import { PlanGenerator } from './types';
  * Deduplicates your path plans so that A -> B
  * is not executed separately to A -> B -> C
  */
-export const addDedupToPlanGenerator = <TState, TEvent extends EventObject>(
+export const planGeneratorWithDedup = <TState, TEvent extends EventObject>(
   planGenerator: PlanGenerator<TState, TEvent>
 ): PlanGenerator<TState, TEvent> => (behavior, options) => {
   const pathPlans = planGenerator(behavior, options);
@@ -14,61 +14,63 @@ export const addDedupToPlanGenerator = <TState, TEvent extends EventObject>(
   /**
    * Put all plans on the same level so we can dedup them
    */
-  const allPathsWithPlan: {
+  const allPathsWithPlan: Array<{
     path: StatePath<TState, TEvent>;
     planIndex: number;
-    serialisedSteps: string[];
-  }[] = [];
+    eventSequence: string[];
+  }> = [];
 
   pathPlans.forEach((plan, index) => {
     plan.paths.forEach((path) => {
       allPathsWithPlan.push({
         path,
         planIndex: index,
-        serialisedSteps: path.steps.map((step) =>
+        eventSequence: path.steps.map((step) =>
           options.serializeEvent(step.event)
         )
       });
     });
   });
 
+  // Sort by path length, descending
+  allPathsWithPlan.sort((a, z) => z.path.steps.length - a.path.steps.length);
+
+  const superpathsWithPlan: typeof allPathsWithPlan = [];
+
   /**
-   * Filter out the paths that are just shorter versions
-   * of other paths
+   * Filter out the paths that are subpaths of superpaths
    */
-  const filteredPaths = allPathsWithPlan.filter((path) => {
-    if (path.serialisedSteps.length === 0) return false;
-
-    /**
-     * @example
-     * { type: 'EVENT_1' }{ type: 'EVENT_2' }
-     */
-    const concatenatedPath = path.serialisedSteps.join('');
-
-    return !allPathsWithPlan.some((pathToCompare) => {
-      const concatenatedPathToCompare = pathToCompare.serialisedSteps.join('');
-      /**
-       * Filter IN (return false) if it's the same as the current plan,
-       * because it's not a valid comparison
-       */
-      if (concatenatedPathToCompare === concatenatedPath) {
-        return false;
+  pathLoop: for (const pathWithPlan of allPathsWithPlan) {
+    // Check each existing superpath to see if the path is a subpath of it
+    superpathLoop: for (const superpathWithPlan of superpathsWithPlan) {
+      for (const i in pathWithPlan.eventSequence) {
+        // Check event sequence to determine if path is subpath, e.g.:
+        //
+        // This will short-circuit the check
+        // ['a', 'b', 'c', 'd'] (superpath)
+        // ['a', 'b', 'x']      (path)
+        //
+        // This will not short-circuit; path is subpath
+        // ['a', 'b', 'c', 'd'] (superpath)
+        // ['a', 'b', 'c']      (path)
+        if (
+          pathWithPlan.eventSequence[i] !== superpathWithPlan.eventSequence[i]
+        ) {
+          // If the path is different from the superpath,
+          // continue to the next superpath
+          continue superpathLoop;
+        }
       }
 
-      /**
-       * Filter IN (return false) if the plan to compare against has length 0
-       */
-      if (pathToCompare.serialisedSteps.length === 0) {
-        return false;
-      }
+      // If we reached here, path is subpath of superpath
+      // Continue & do not add path to superpaths
+      continue pathLoop;
+    }
 
-      /**
-       * We filter OUT (return true) if the segment to compare includes
-       * our current segment
-       */
-      return concatenatedPathToCompare.includes(concatenatedPath);
-    });
-  });
+    // If we reached here, path is not a subpath of any existing superpaths
+    // So add it to the superpaths
+    superpathsWithPlan.push(pathWithPlan);
+  }
 
   const newPathPlans = pathPlans
     .map(
@@ -77,7 +79,7 @@ export const addDedupToPlanGenerator = <TState, TEvent extends EventObject>(
          * Grab the paths which were originally related
          * to this planIndex
          */
-        const newPaths = filteredPaths
+        const newPaths = superpathsWithPlan
           .filter(({ planIndex }) => planIndex === index)
           .map(({ path }) => path);
         return {
