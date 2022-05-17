@@ -1,6 +1,7 @@
 import { assign, createMachine } from 'xstate';
 import { createTestModel } from '../src';
 import { coversAllStates } from '../src/coverage';
+import { createTestMachine } from '../src/machine';
 import { getDescription } from '../src/utils';
 
 describe('events', () => {
@@ -11,7 +12,7 @@ describe('events', () => {
       | { type: 'CLOSE' }
       | { type: 'ESC' }
       | { type: 'SUBMIT'; value: string };
-    const feedbackMachine = createMachine({
+    const feedbackMachine = createTestMachine({
       id: 'feedback',
       schema: {
         events: {} as Events
@@ -74,7 +75,7 @@ describe('events', () => {
   });
 
   it('should not throw an error for unimplemented events', () => {
-    const testMachine = createMachine({
+    const testMachine = createTestMachine({
       initial: 'idle',
       states: {
         idle: {
@@ -190,7 +191,7 @@ describe('state limiting', () => {
 });
 
 describe('plan description', () => {
-  const machine = createMachine({
+  const machine = createTestMachine({
     id: 'test',
     initial: 'atomic',
     context: { count: 0 },
@@ -285,7 +286,7 @@ it('prevents infinite recursion based on a provided limit', () => {
 it('executes actions', async () => {
   let executedActive = false;
   let executedDone = false;
-  const machine = createMachine({
+  const machine = createTestMachine({
     initial: 'idle',
     states: {
       idle: {
@@ -324,7 +325,7 @@ describe('test model options', () => {
     const testedStates: any[] = [];
 
     const model = createTestModel(
-      createMachine({
+      createTestMachine({
         initial: 'inactive',
         states: {
           inactive: {
@@ -357,7 +358,7 @@ describe('test model options', () => {
 // https://github.com/statelyai/xstate/issues/1538
 it('tests transitions', async () => {
   expect.assertions(2);
-  const machine = createMachine({
+  const machine = createTestMachine({
     initial: 'first',
     states: {
       first: {
@@ -387,7 +388,7 @@ it('tests transitions', async () => {
 
 // https://github.com/statelyai/xstate/issues/982
 it('Event in event executor should contain payload from case', async () => {
-  const machine = createMachine({
+  const machine = createTestMachine({
     initial: 'first',
     states: {
       first: {
@@ -429,7 +430,7 @@ describe('state tests', () => {
     // a -> b (2)
     expect.assertions(3);
 
-    const machine = createMachine({
+    const machine = createTestMachine({
       initial: 'a',
       states: {
         a: {
@@ -459,7 +460,7 @@ describe('state tests', () => {
     // a -> c (2)
     expect.assertions(5);
 
-    const machine = createMachine({
+    const machine = createTestMachine({
       initial: 'a',
       states: {
         a: {
@@ -490,7 +491,7 @@ describe('state tests', () => {
   it('should test nested states', async () => {
     const testedStateValues: any[] = [];
 
-    const machine = createMachine({
+    const machine = createTestMachine({
       initial: 'a',
       states: {
         a: {

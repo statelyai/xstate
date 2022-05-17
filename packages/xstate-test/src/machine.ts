@@ -1,14 +1,25 @@
 import { serializeState, SimpleBehavior } from '@xstate/graph';
-import type {
+import {
   ActionObject,
+  AnyEventObject,
   AnyState,
   AnyStateMachine,
+  createMachine,
   EventFrom,
-  StateFrom
+  EventObject,
+  StateFrom,
+  TypegenConstraint,
+  TypegenDisabled
 } from 'xstate';
 import { TestModel } from './TestModel';
-import { TestModelEventConfig, TestModelOptions } from './types';
+import {
+  TestMachineConfig,
+  TestMachineOptions,
+  TestModelEventConfig,
+  TestModelOptions
+} from './types';
 import { flatten } from './utils';
+import { validateMachine } from './validateMachine';
 
 export async function testStateFromMeta(state: AnyState) {
   for (const id of Object.keys(state.meta)) {
@@ -17,6 +28,17 @@ export async function testStateFromMeta(state: AnyState) {
       await stateNodeMeta.test(state);
     }
   }
+}
+
+export function createTestMachine<
+  TContext,
+  TEvent extends EventObject = AnyEventObject,
+  TTypesMeta extends TypegenConstraint = TypegenDisabled
+>(
+  config: TestMachineConfig<TContext, TEvent, TTypesMeta>,
+  options?: TestMachineOptions<TContext, TEvent, TTypesMeta>
+) {
+  return createMachine(config, options as any);
 }
 
 export function executeAction(
@@ -60,6 +82,8 @@ export function createTestModel<TMachine extends AnyStateMachine>(
   machine: TMachine,
   options?: Partial<TestModelOptions<StateFrom<TMachine>, EventFrom<TMachine>>>
 ): TestModel<StateFrom<TMachine>, EventFrom<TMachine>> {
+  validateMachine(machine);
+
   const testModel = new TestModel<StateFrom<TMachine>, EventFrom<TMachine>>(
     machine as SimpleBehavior<any, any>,
     {

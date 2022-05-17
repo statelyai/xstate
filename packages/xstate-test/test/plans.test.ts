@@ -1,11 +1,11 @@
-import { createMachine } from 'xstate';
 import { createTestModel } from '../src';
 import { coversAllStates } from '../src/coverage';
+import { createTestMachine } from '../src/machine';
 
 describe('testModel.testPlans(...)', () => {
   it('custom plan generators can be provided', async () => {
     const testModel = createTestModel(
-      createMachine({
+      createTestMachine({
         initial: 'a',
         states: {
           a: {

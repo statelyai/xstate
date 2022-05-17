@@ -1,12 +1,12 @@
-import { createMachine } from 'xstate';
 import { createTestModel } from '../src';
+import { createTestMachine } from '../src/machine';
 
 describe('events', () => {
   it('should execute events (`exec` property)', async () => {
     let executed = false;
 
     const testModel = createTestModel(
-      createMachine({
+      createTestMachine({
         initial: 'a',
         states: {
           a: {
@@ -37,7 +37,7 @@ describe('events', () => {
     let executed = false;
 
     const testModel = createTestModel(
-      createMachine({
+      createTestMachine({
         initial: 'a',
         states: {
           a: {
