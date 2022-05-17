@@ -2,6 +2,7 @@ import { assign, createMachine } from 'xstate';
 import { createTestModel } from '../src';
 import { coversAllStates } from '../src/coverage';
 import { createTestMachine } from '../src/machine';
+import { testUtils } from '../src/testUtils';
 import { getDescription } from '../src/utils';
 
 describe('events', () => {
@@ -139,7 +140,7 @@ describe('events', () => {
 
     expect(plans.length).toBe(3);
 
-    await testModel.testPlans(plans);
+    await testUtils.testPlans(testModel, plans);
 
     expect(testedEvents).toMatchInlineSnapshot(`
       Array [
@@ -447,7 +448,7 @@ describe('state tests', () => {
       }
     });
 
-    await model.testPlans();
+    await testUtils.testModel(model);
   });
 
   it('should test wildcard state for non-matching states', async () => {
@@ -481,7 +482,7 @@ describe('state tests', () => {
       }
     });
 
-    await model.testPlans();
+    await testUtils.testModel(model);
   });
 
   it('should test nested states', async () => {
@@ -519,7 +520,7 @@ describe('state tests', () => {
       }
     });
 
-    await model.testPlans();
+    await testUtils.testModel(model);
     expect(testedStateValues).toMatchInlineSnapshot(`
       Array [
         "a",

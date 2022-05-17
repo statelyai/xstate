@@ -1,5 +1,6 @@
 import { createTestModel } from '../src';
 import { createTestMachine } from '../src/machine';
+import { testUtils } from '../src/testUtils';
 
 describe('events', () => {
   it('should execute events (`exec` property)', async () => {
@@ -28,7 +29,7 @@ describe('events', () => {
       }
     );
 
-    await testModel.testPlans();
+    await testUtils.testModel(testModel);
 
     expect(executed).toBe(true);
   });
@@ -57,7 +58,7 @@ describe('events', () => {
       }
     );
 
-    await testModel.testPlans();
+    await testUtils.testModel(testModel);
 
     expect(executed).toBe(true);
   });

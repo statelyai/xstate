@@ -176,37 +176,6 @@ export class TestModel<TState, TEvent extends EventObject> {
     return Object.values(adj).map((x) => x.state);
   }
 
-  public async testPlans(
-    plans: StatePlan<TState, TEvent>[],
-    options?: TraversalOptions<TState, TEvent>
-  ): Promise<void>;
-  public async testPlans(
-    options?: TraversalOptions<TState, TEvent>
-  ): Promise<void>;
-
-  public async testPlans(...args: any[]) {
-    const [plans, options]: [
-      StatePlan<TState, TEvent>[],
-      TraversalOptions<TState, TEvent>
-    ] =
-      args[0] instanceof Array
-        ? [args[0], args[1]]
-        : [this.getPlans(args[0]), args[0]];
-
-    for (const plan of plans) {
-      await this.testPlan(plan, options);
-    }
-  }
-
-  public testPlansSync(
-    plans: Array<StatePlan<TState, TEvent>>,
-    options?: Partial<TestModelOptions<TState, TEvent>>
-  ) {
-    for (const plan of plans) {
-      this.testPlanSync(plan, options);
-    }
-  }
-
   public async testPlan(
     plan: StatePlan<TState, TEvent>,
     options?: Partial<TestModelOptions<TState, TEvent>>
