@@ -217,7 +217,7 @@ export function traverseShortestPlans<TState, TEvent extends EventObject>(
 
   weightMap.set(initialSerializedState, [0, undefined, undefined]);
   const unvisited = new Set<SerializedState>();
-  const visited = new Set<string>();
+  const visited = new Set<SerializedState>();
 
   unvisited.add(initialSerializedState);
   while (unvisited.size > 0) {
