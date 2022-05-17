@@ -46,14 +46,6 @@ describe('states', () => {
     expect(testedStateValues).toMatchInlineSnapshot(`
       Array [
         "a",
-        "a",
-        Object {
-          "b": "b1",
-        },
-        Object {
-          "b": "b1",
-        },
-        "a",
         Object {
           "b": "b1",
         },
@@ -118,14 +110,6 @@ describe('states', () => {
 
     expect(testedStateValues).toMatchInlineSnapshot(`
       Array [
-        "a",
-        "a",
-        Object {
-          "b": "b1",
-        },
-        Object {
-          "b": "b1",
-        },
         "a",
         Object {
           "b": "b1",

@@ -18,6 +18,7 @@ import {
   coversAllStates,
   coversAllTransitions
 } from './coverage';
+import { planGeneratorWithDedup } from './dedupPathPlans';
 import type {
   CriterionResult,
   GetPlansOptions,
@@ -88,8 +89,9 @@ export class TestModel<TState, TEvent extends EventObject> {
   public getPlans(
     options?: GetPlansOptions<TState, TEvent>
   ): Array<StatePlan<TState, TEvent>> {
-    const planGenerator =
-      options?.planGenerator || TestModel.defaults.planGenerator;
+    const planGenerator = planGeneratorWithDedup<TState, TEvent>(
+      options?.planGenerator || TestModel.defaults.planGenerator
+    );
     const plans = planGenerator(this.behavior, this.resolveOptions(options));
 
     return plans;
