@@ -1,4 +1,4 @@
-import { configure, createTestModel } from '../src';
+import { createTestModel } from '../src';
 import { coversAllStates } from '../src/coverage';
 import { createTestMachine } from '../src/machine';
 

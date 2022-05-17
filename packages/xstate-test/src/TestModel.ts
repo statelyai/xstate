@@ -18,10 +18,11 @@ import {
   coversAllStates,
   coversAllTransitions
 } from './coverage';
-import { addDedupToPlanGenerator } from './dedupPathPlans';
+import { planGeneratorWithDedup } from './dedupPathPlans';
 import type {
   CriterionResult,
   GetPlansOptions,
+  PlanGenerator,
   StatePredicate,
   TestModelCoverage,
   TestModelOptions,
@@ -33,10 +34,12 @@ import { flatten, formatPathTestResult, simpleStringify } from './utils';
 
 export interface TestModelDefaults<TState, TEvent extends EventObject> {
   coverage: Array<CoverageFunction<TState, TEvent>>;
+  planGenerator: PlanGenerator<TState, TEvent>;
 }
 
 export const testModelDefaults: TestModelDefaults<any, any> = {
-  coverage: [coversAllStates<any, any>(), coversAllTransitions<any, any>()]
+  coverage: [coversAllStates<any, any>(), coversAllTransitions<any, any>()],
+  planGenerator: traverseShortestPlans
 };
 
 /**
@@ -86,8 +89,8 @@ export class TestModel<TState, TEvent extends EventObject> {
   public getPlans(
     options?: GetPlansOptions<TState, TEvent>
   ): Array<StatePlan<TState, TEvent>> {
-    const planGenerator = addDedupToPlanGenerator<TState, TEvent>(
-      options?.planGenerator || traverseShortestPlans
+    const planGenerator = planGeneratorWithDedup<TState, TEvent>(
+      options?.planGenerator || TestModel.defaults.planGenerator
     );
     const plans = planGenerator(this.behavior, this.resolveOptions(options));
 
