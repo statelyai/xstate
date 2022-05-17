@@ -67,7 +67,7 @@ describe('testModel.testPlans(...)', () => {
       }
     });
 
-    await testModel.testPlans({ plans });
+    await testModel.testPlans(plans);
 
     expect(testModel.getCoverage(coversAllStates())).toMatchInlineSnapshot(`
       Array [

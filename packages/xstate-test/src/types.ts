@@ -28,12 +28,6 @@ export type GetPlansOptions<TState, TEvent extends EventObject> = Partial<
   }
 >;
 
-export type TestPlansOptions<TState, TEvent extends EventObject> = Partial<
-  TestModelOptions<TState, TEvent> & {
-    plans?: Array<StatePlan<TState, TEvent>>;
-  }
->;
-
 export interface TestMachineConfig<
   TContext,
   TEvent extends EventObject,
