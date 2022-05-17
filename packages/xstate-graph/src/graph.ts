@@ -209,7 +209,7 @@ export function traverseShortestPlans<TState, TEvent extends EventObject>(
   // weight, state, event
   const weightMap = new Map<
     SerializedState,
-    [number, SerializedState | undefined, TEvent | undefined]
+    [weight: number, state: SerializedState | undefined, event: TEvent | undefined]
   >();
   const stateMap = new Map<SerializedState, TState>();
   const initialSerializedState = serializeState(behavior.initialState, null);
