@@ -1,6 +1,7 @@
 import { StateValue } from 'xstate';
 import { createTestModel } from '../src';
 import { createTestMachine } from '../src/machine';
+import { testUtils } from '../src/testUtils';
 
 describe('states', () => {
   it('should test states by key', async () => {
@@ -41,7 +42,7 @@ describe('states', () => {
       }
     );
 
-    await testModel.testPlans();
+    await testUtils.testModel(testModel);
 
     expect(testedStateValues).toMatchInlineSnapshot(`
       Array [
@@ -106,7 +107,7 @@ describe('states', () => {
       }
     );
 
-    await testModel.testPlans();
+    await testUtils.testModel(testModel);
 
     expect(testedStateValues).toMatchInlineSnapshot(`
       Array [
