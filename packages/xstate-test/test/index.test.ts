@@ -137,7 +137,7 @@ describe('events', () => {
 
     const plans = testModel.getShortestPlans();
 
-    expect(plans.length).toBe(4);
+    expect(plans.length).toBe(3);
 
     await testModel.testPlans(plans);
 
@@ -186,7 +186,7 @@ describe('state limiting', () => {
       }
     });
 
-    expect(testPlans).toHaveLength(5);
+    expect(testPlans).toHaveLength(1);
   });
 });
 
@@ -250,11 +250,7 @@ describe('plan description', () => {
 
     expect(planDescriptions).toMatchInlineSnapshot(`
       Array [
-        "reaches state: \\"#test.atomic\\" ({\\"count\\":0})",
-        "reaches state: \\"#test.compound.child\\" ({\\"count\\":0})",
         "reaches state: \\"#test.final\\" ({\\"count\\":0})",
-        "reaches state: \\"child with meta\\" ({\\"count\\":0})",
-        "reaches states: \\"#test.parallel.one\\", \\"two description\\" ({\\"count\\":0})",
         "reaches state: \\"noMetaDescription\\" ({\\"count\\":0})",
       ]
     `);
@@ -351,45 +347,7 @@ describe('test model options', () => {
       await model.testPlan(plan);
     }
 
-    expect(testedStates).toEqual(['inactive', 'inactive', 'active']);
-  });
-
-  it('options.testTransition(...) should test transition', async () => {
-    const testedEvents: any[] = [];
-
-    const model = createTestModel(
-      createTestMachine({
-        initial: 'inactive',
-        states: {
-          inactive: {
-            on: {
-              NEXT: 'active'
-            }
-          },
-          active: {
-            on: {
-              PREV: 'inactive'
-            }
-          }
-        }
-      }),
-      {
-        // Force traversal to consider all transitions
-        serializeState: (state) =>
-          ((state.value as any) + state.event.type) as any,
-        testTransition: (step) => {
-          testedEvents.push(step.event.type);
-        }
-      }
-    );
-
-    const plans = model.getShortestPlans();
-
-    for (const plan of plans) {
-      await model.testPlan(plan);
-    }
-
-    expect(testedEvents).toEqual(['NEXT', 'NEXT', 'PREV']);
+    expect(testedStates).toEqual(['inactive', 'active']);
   });
 });
 
@@ -466,7 +424,7 @@ describe('state tests', () => {
   it('should test states', async () => {
     // a (1)
     // a -> b (2)
-    expect.assertions(3);
+    expect.assertions(2);
 
     const machine = createTestMachine({
       initial: 'a',
@@ -489,14 +447,14 @@ describe('state tests', () => {
       }
     });
 
-    await model.testPlans(model.getShortestPlans());
+    await model.testPlans();
   });
 
   it('should test wildcard state for non-matching states', async () => {
     // a (1)
     // a -> b (2)
     // a -> c (2)
-    expect.assertions(5);
+    expect.assertions(4);
 
     const machine = createTestMachine({
       initial: 'a',
@@ -523,7 +481,7 @@ describe('state tests', () => {
       }
     });
 
-    await model.testPlans(model.getShortestPlans());
+    await model.testPlans();
   });
 
   it('should test nested states', async () => {
@@ -561,10 +519,9 @@ describe('state tests', () => {
       }
     });
 
-    await model.testPlans(model.getShortestPlans());
+    await model.testPlans();
     expect(testedStateValues).toMatchInlineSnapshot(`
       Array [
-        "a",
         "a",
         "b",
         "b.b1",

@@ -41,18 +41,10 @@ describe('states', () => {
       }
     );
 
-    await testModel.testPlans(testModel.getShortestPlans());
+    await testModel.testPlans();
 
     expect(testedStateValues).toMatchInlineSnapshot(`
       Array [
-        "a",
-        "a",
-        Object {
-          "b": "b1",
-        },
-        Object {
-          "b": "b1",
-        },
         "a",
         Object {
           "b": "b1",
@@ -114,18 +106,10 @@ describe('states', () => {
       }
     );
 
-    await testModel.testPlans(testModel.getShortestPlans());
+    await testModel.testPlans();
 
     expect(testedStateValues).toMatchInlineSnapshot(`
       Array [
-        "a",
-        "a",
-        Object {
-          "b": "b1",
-        },
-        Object {
-          "b": "b1",
-        },
         "a",
         Object {
           "b": "b1",

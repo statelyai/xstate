@@ -22,6 +22,12 @@ import {
   TypegenDisabled
 } from 'xstate';
 
+export type GetPlansOptions<TState, TEvent extends EventObject> = Partial<
+  TraversalOptions<TState, TEvent> & {
+    planGenerator?: PlanGenerator<TState, TEvent>;
+  }
+>;
+
 export interface TestMachineConfig<
   TContext,
   TEvent extends EventObject,
