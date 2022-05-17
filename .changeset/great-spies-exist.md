@@ -1,5 +1,5 @@
 ---
-'@xstate/graph': major
+'@xstate/test': major
 ---
 
 Coverage can now be obtained from a tested test model via `testModel.getCoverage(...)`:
