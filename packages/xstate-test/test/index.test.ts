@@ -139,7 +139,7 @@ describe('events', () => {
 
     expect(plans.length).toBe(3);
 
-    await testModel.testPlans({ plans });
+    await testModel.testPlans(plans);
 
     expect(testedEvents).toMatchInlineSnapshot(`
       Array [

@@ -214,7 +214,7 @@ describe('coverage', () => {
       	Transitions to state \\"a\\" on event \\"EVENT_TWO\\""
     `);
 
-    await model.testPlans({ plans: model.getSimplePlans() });
+    await model.testPlans(model.getSimplePlans());
 
     expect(() => {
       model.testCoverage(coversAllTransitions());
@@ -300,7 +300,7 @@ describe('coverage', () => {
       })
     );
 
-    await model.testPlans({ plans: model.getShortestPlans() });
+    await model.testPlans(model.getShortestPlans());
 
     expect(() => {
       model.testCoverage([coversAllStates(), coversAllTransitions()]);
@@ -309,7 +309,7 @@ describe('coverage', () => {
       	Transitions to state \\"a\\" on event \\"EVENT_TWO\\""
     `);
 
-    await model.testPlans({ plans: model.getSimplePlans() });
+    await model.testPlans(model.getSimplePlans());
 
     expect(() => {
       model.testCoverage([coversAllStates(), coversAllTransitions()]);

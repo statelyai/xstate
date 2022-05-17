@@ -27,7 +27,6 @@ import type {
   TestModelCoverage,
   TestModelOptions,
   TestPathResult,
-  TestPlansOptions,
   TestStepResult
 } from './types';
 import { flatten, formatPathTestResult, simpleStringify } from './utils';
@@ -177,8 +176,23 @@ export class TestModel<TState, TEvent extends EventObject> {
     return Object.values(adj).map((x) => x.state);
   }
 
-  public async testPlans(options?: TestPlansOptions<TState, TEvent>) {
-    const plans = options?.plans || this.getPlans(options);
+  public async testPlans(
+    plans: StatePlan<TState, TEvent>[],
+    options?: TraversalOptions<TState, TEvent>
+  ): Promise<void>;
+  public async testPlans(
+    options?: TraversalOptions<TState, TEvent>
+  ): Promise<void>;
+
+  public async testPlans(...args: any[]) {
+    const [plans, options]: [
+      StatePlan<TState, TEvent>[],
+      TraversalOptions<TState, TEvent>
+    ] =
+      args[0] instanceof Array
+        ? [args[0], args[1]]
+        : [this.getPlans(args[0]), args[0]];
+
     for (const plan of plans) {
       await this.testPlan(plan, options);
     }
