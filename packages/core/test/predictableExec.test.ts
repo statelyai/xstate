@@ -286,7 +286,7 @@ describe('predictableExec', () => {
     expect(service.state.children.myChild).not.toBeDefined();
   });
 
-  it('should automatically enable predictableActionArguments', () => {
+  it('should automatically enable preserveActionOrder', () => {
     let calledWith = 0;
     const machine = createMachine({
       predictableActionArguments: true,
