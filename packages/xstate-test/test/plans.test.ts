@@ -127,7 +127,7 @@ describe('testModel.testPlans(...)', () => {
     });
   });
 
-  describe('When the machine only has more than one path', () => {
+  describe('When the machine has more than one path', () => {
     it('Should create plans for each path', () => {
       const model = createTestModel(multiPathMachine);
 
