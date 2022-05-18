@@ -143,7 +143,6 @@ describe('coverage', () => {
     }).not.toThrow();
   });
 
-  // https://github.com/statelyai/xstate/issues/981
   it.skip('skips transient states (type: final)', async () => {
     const machine = createTestMachine({
       id: 'menu',
