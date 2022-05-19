@@ -84,8 +84,8 @@ describe('coverage', () => {
 
     const model = createTestModel(feedbackMachine);
 
-    for (const plan of model.getShortestPaths()) {
-      await model.testPath(plan);
+    for (const path of model.getShortestPaths()) {
+      await model.testPath(path);
     }
 
     const coverage = model.getCoverage(coversAllStates());
