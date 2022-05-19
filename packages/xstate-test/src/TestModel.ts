@@ -5,12 +5,9 @@ import {
   SerializedState,
   SimpleBehavior,
   StatePath,
-  StatePlan,
   Step,
   TraversalOptions,
-  traverseShortestPlans,
-  traverseSimplePathsTo,
-  traverseSimplePlans
+  traverseSimplePathsTo
 } from '@xstate/graph';
 import { EventObject, SingleOrArray } from 'xstate';
 import {
@@ -18,28 +15,34 @@ import {
   coversAllStates,
   coversAllTransitions
 } from './coverage';
-import { planGeneratorWithDedup } from './dedupPathPlans';
+import { pathGeneratorWithDedup } from './dedupPaths';
+import { getShortestPaths, getSimplePaths } from './pathGenerators';
 import type {
   CriterionResult,
   EventExecutor,
-  GetPlansOptions,
-  PlanGenerator,
+  GetPathsOptions,
+  PathGenerator,
   StatePredicate,
   TestModelCoverage,
   TestModelOptions,
   TestPathResult,
   TestStepResult
 } from './types';
-import { flatten, formatPathTestResult, simpleStringify } from './utils';
+import {
+  flatten,
+  formatPathTestResult,
+  mapPlansToPaths,
+  simpleStringify
+} from './utils';
 
 export interface TestModelDefaults<TState, TEvent extends EventObject> {
   coverage: Array<CoverageFunction<TState, TEvent>>;
-  planGenerator: PlanGenerator<TState, TEvent>;
+  pathGenerator: PathGenerator<TState, TEvent>;
 }
 
 export const testModelDefaults: TestModelDefaults<any, any> = {
   coverage: [coversAllStates<any, any>(), coversAllTransitions<any, any>()],
-  planGenerator: traverseShortestPlans
+  pathGenerator: getShortestPaths
 };
 
 /**
@@ -85,74 +88,76 @@ export class TestModel<TState, TEvent extends EventObject> {
     };
   }
 
-  public getPlans(
-    options?: GetPlansOptions<TState, TEvent>
-  ): Array<StatePlan<TState, TEvent>> {
-    const planGenerator = planGeneratorWithDedup<TState, TEvent>(
-      options?.planGenerator || TestModel.defaults.planGenerator
-    );
-    const plans = planGenerator(this.behavior, this.resolveOptions(options));
-
-    return plans;
-  }
-
-  public getShortestPlans(
+  public getShortestPaths(
     options?: Partial<TraversalOptions<TState, TEvent>>
-  ): Array<StatePlan<TState, TEvent>> {
-    return this.getPlans({ ...options, planGenerator: traverseShortestPlans });
+  ): Array<StatePath<TState, TEvent>> {
+    return this.getPaths({ ...options, pathGenerator: getShortestPaths });
   }
 
-  public getShortestPlansTo(
+  public getPaths(
+    options?: Partial<GetPathsOptions<TState, TEvent>>
+  ): Array<StatePath<TState, TEvent>> {
+    const pathGenerator = pathGeneratorWithDedup<TState, TEvent>(
+      options?.pathGenerator || TestModel.defaults.pathGenerator
+    );
+    const paths = pathGenerator(this.behavior, this.resolveOptions(options));
+
+    return paths;
+  }
+
+  public getShortestPathsTo(
     stateValue: StatePredicate<TState>
-  ): Array<StatePlan<TState, TEvent>> {
+  ): Array<StatePath<TState, TEvent>> {
     let minWeight = Infinity;
-    let shortestPlans: Array<StatePlan<TState, TEvent>> = [];
+    let shortestPaths: Array<StatePath<TState, TEvent>> = [];
 
-    const plans = this.filterPathsTo(stateValue, this.getShortestPlans());
+    const paths = this.filterPathsTo(stateValue, this.getShortestPaths());
 
-    for (const plan of plans) {
-      const currWeight = plan.paths[0].weight;
+    for (const path of paths) {
+      const currWeight = path.weight;
       if (currWeight < minWeight) {
         minWeight = currWeight;
-        shortestPlans = [plan];
+        shortestPaths = [path];
       } else if (currWeight === minWeight) {
-        shortestPlans.push(plan);
+        shortestPaths.push(path);
       }
     }
 
-    return shortestPlans;
+    return shortestPaths;
   }
 
-  public getSimplePlans(
+  public getSimplePaths(
     options?: Partial<TraversalOptions<TState, any>>
-  ): Array<StatePlan<TState, TEvent>> {
-    return this.getPlans({
+  ): Array<StatePath<TState, TEvent>> {
+    return this.getPaths({
       ...options,
-      planGenerator: traverseSimplePlans
+      pathGenerator: getSimplePaths
     });
   }
 
-  public getSimplePlansTo(
+  public getSimplePathsTo(
     predicate: StatePredicate<TState>
-  ): Array<StatePlan<TState, TEvent>> {
-    return traverseSimplePathsTo(this.behavior, predicate, this.options);
+  ): Array<StatePath<TState, TEvent>> {
+    return mapPlansToPaths(
+      traverseSimplePathsTo(this.behavior, predicate, this.options)
+    );
   }
 
   private filterPathsTo(
     statePredicate: StatePredicate<TState>,
-    testPlans: Array<StatePlan<TState, TEvent>>
-  ): Array<StatePlan<TState, TEvent>> {
+    testPaths: Array<StatePath<TState, TEvent>>
+  ): Array<StatePath<TState, TEvent>> {
     const predicate: StatePredicate<TState> = (state) => statePredicate(state);
 
-    return testPlans.filter((testPlan) => {
-      return predicate(testPlan.state);
+    return testPaths.filter((testPath) => {
+      return predicate(testPath.state);
     });
   }
 
-  public getPlanFromEvents(
+  public getPathFromEvents(
     events: TEvent[],
     statePredicate: StatePredicate<TState>
-  ): StatePlan<TState, TEvent> {
+  ): StatePath<TState, TEvent> {
     const path = getPathFromEvents(this.behavior, events);
 
     if (!statePredicate(path.state)) {
@@ -163,35 +168,12 @@ export class TestModel<TState, TEvent extends EventObject> {
       );
     }
 
-    const plan: StatePlan<TState, TEvent> = {
-      state: path.state,
-      paths: [path]
-    };
-
-    return plan;
+    return path;
   }
 
   public getAllStates(): TState[] {
     const adj = performDepthFirstTraversal(this.behavior, this.options);
     return Object.values(adj).map((x) => x.state);
-  }
-
-  public async testPlan(
-    plan: StatePlan<TState, TEvent>,
-    options?: Partial<TestModelOptions<TState, TEvent>>
-  ) {
-    for (const path of plan.paths) {
-      await this.testPath(path, options);
-    }
-  }
-
-  public testPlanSync(
-    plan: StatePlan<TState, TEvent>,
-    options?: Partial<TestModelOptions<TState, TEvent>>
-  ) {
-    for (const path of plan.paths) {
-      this.testPathSync(path, options);
-    }
   }
 
   public testPathSync(

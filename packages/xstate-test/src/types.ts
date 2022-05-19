@@ -1,5 +1,6 @@
 import {
   SimpleBehavior,
+  StatePath,
   StatePlan,
   Step,
   TraversalOptions
@@ -22,9 +23,9 @@ import {
   TypegenDisabled
 } from 'xstate';
 
-export type GetPlansOptions<TState, TEvent extends EventObject> = Partial<
+export type GetPathsOptions<TState, TEvent extends EventObject> = Partial<
   TraversalOptions<TState, TEvent> & {
-    planGenerator?: PlanGenerator<TState, TEvent>;
+    pathGenerator?: PathGenerator<TState, TEvent>;
   }
 >;
 
@@ -285,7 +286,7 @@ export type TestTransitionsConfigMap<
   '*'?: TestTransitionConfig<TContext, TEvent, TTestContext> | string;
 };
 
-export type PlanGenerator<TState, TEvent extends EventObject> = (
+export type PathGenerator<TState, TEvent extends EventObject> = (
   behavior: SimpleBehavior<TState, TEvent>,
   options: TraversalOptions<TState, TEvent>
-) => Array<StatePlan<TState, TEvent>>;
+) => Array<StatePath<TState, TEvent>>;

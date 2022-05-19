@@ -51,8 +51,8 @@ describe('.testPlanSync', () => {
   it('Should error if it encounters a promise in a state', () => {
     expect(() =>
       promiseStateModel
-        .getPlans()
-        .forEach((plan) => promiseStateModel.testPlanSync(plan))
+        .getPaths()
+        .forEach((path) => promiseStateModel.testPathSync(path))
     ).toThrowError(
       `The test for 'a' returned a promise - did you mean to use the sync method?`
     );
@@ -61,8 +61,8 @@ describe('.testPlanSync', () => {
   it('Should error if it encounters a promise in an event', () => {
     expect(() =>
       promiseEventModel
-        .getPlans()
-        .forEach((plan) => promiseEventModel.testPlanSync(plan))
+        .getPaths()
+        .forEach((path) => promiseEventModel.testPathSync(path))
     ).toThrowError(
       `The event 'EVENT' returned a promise - did you mean to use the sync method?`
     );
@@ -70,7 +70,7 @@ describe('.testPlanSync', () => {
 
   it('Should succeed if it encounters no promises', () => {
     expect(() =>
-      syncModel.getPlans().forEach((plan) => syncModel.testPlanSync(plan))
+      syncModel.getPaths().forEach((path) => syncModel.testPathSync(path))
     ).not.toThrow();
   });
 });

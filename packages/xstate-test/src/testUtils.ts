@@ -1,22 +1,22 @@
-import { StatePlan } from '@xstate/graph';
+import { StatePath } from '@xstate/graph';
 import { TestModel } from './TestModel';
 
 const testModel = async (model: TestModel<any, any>) => {
-  for (const plan of model.getPlans()) {
-    await model.testPlan(plan);
+  for (const path of model.getPaths()) {
+    await model.testPath(path);
   }
 };
 
-const testPlans = async (
+const testPaths = async (
   model: TestModel<any, any>,
-  plans: StatePlan<any, any>[]
+  paths: StatePath<any, any>[]
 ) => {
-  for (const plan of plans) {
-    await model.testPlan(plan);
+  for (const path of paths) {
+    await model.testPath(path);
   }
 };
 
 export const testUtils = {
-  testPlans,
+  testPaths,
   testModel
 };
