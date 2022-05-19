@@ -1,6 +1,6 @@
 import {
   SimpleBehavior,
-  StatePlan,
+  StatePath,
   Step,
   TraversalOptions
 } from '@xstate/graph';
@@ -22,9 +22,9 @@ import {
   TypegenDisabled
 } from 'xstate';
 
-export type GetPlansOptions<TState, TEvent extends EventObject> = Partial<
+export type GetPathsOptions<TState, TEvent extends EventObject> = Partial<
   TraversalOptions<TState, TEvent> & {
-    planGenerator?: PlanGenerator<TState, TEvent>;
+    pathGenerator?: PathGenerator<TState, TEvent>;
   }
 >;
 
@@ -102,36 +102,6 @@ export interface TestPath<T> {
 export interface TestPathResult {
   steps: TestStepResult[];
   state: TestStateResult;
-}
-
-/**
- * A collection of `paths` used to verify that the SUT reaches
- * the target `state`.
- */
-export interface TestPlan<TTestContext, TState> {
-  /**
-   * The target state.
-   */
-  state: TState;
-  /**
-   * The paths that reach the target `state`.
-   */
-  paths: Array<TestPath<TTestContext>>;
-  /**
-   * The description of the target `state` to be reached.
-   */
-  description: string;
-  /**
-   * Tests the postcondition that the `state` is reached.
-   *
-   * This should be tested after navigating any path in `paths`.
-   */
-  test: (
-    /**
-     * The test context used for verifying the SUT.
-     */
-    testContext: TTestContext
-  ) => Promise<void> | void;
 }
 
 /**
@@ -285,7 +255,7 @@ export type TestTransitionsConfigMap<
   '*'?: TestTransitionConfig<TContext, TEvent, TTestContext> | string;
 };
 
-export type PlanGenerator<TState, TEvent extends EventObject> = (
+export type PathGenerator<TState, TEvent extends EventObject> = (
   behavior: SimpleBehavior<TState, TEvent>,
   options: TraversalOptions<TState, TEvent>
-) => Array<StatePlan<TState, TEvent>>;
+) => Array<StatePath<TState, TEvent>>;

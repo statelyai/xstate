@@ -30,10 +30,10 @@ describe('coverage', () => {
 
     const testModel = createTestModel(machine);
 
-    const plans = testModel.getShortestPlans();
+    const paths = testModel.getShortestPaths();
 
-    for (const plan of plans) {
-      await testModel.testPlan(plan);
+    for (const plan of paths) {
+      await testModel.testPath(plan);
     }
 
     expect(
@@ -84,8 +84,8 @@ describe('coverage', () => {
 
     const model = createTestModel(feedbackMachine);
 
-    for (const plan of model.getShortestPlans()) {
-      await model.testPlan(plan);
+    for (const path of model.getShortestPaths()) {
+      await model.testPath(path);
     }
 
     const coverage = model.getCoverage(coversAllStates());
@@ -121,13 +121,11 @@ describe('coverage', () => {
 
     const testModel = createTestModel(TestBug);
 
-    const testPlans = testModel.getShortestPlans();
+    const testPaths = testModel.getShortestPaths();
 
     const promises: any[] = [];
-    testPlans.forEach((plan) => {
-      plan.paths.forEach(() => {
-        promises.push(testModel.testPlan(plan));
-      });
+    testPaths.forEach((path) => {
+      promises.push(testModel.testPath(path));
     });
 
     await Promise.all(promises);
@@ -177,10 +175,10 @@ describe('coverage', () => {
     });
 
     const model = createTestModel(machine);
-    const shortestPlans = model.getShortestPlans();
+    const shortestPaths = model.getShortestPaths();
 
-    for (const plan of shortestPlans) {
-      await model.testPlan(plan);
+    for (const plan of shortestPaths) {
+      await model.testPath(plan);
     }
 
     // TODO: determine how to handle missing coverage for transient states,
@@ -214,7 +212,7 @@ describe('coverage', () => {
       	Transitions to state \\"a\\" on event \\"EVENT_TWO\\""
     `);
 
-    await testUtils.testPlans(model, model.getSimplePlans());
+    await testUtils.testPaths(model, model.getSimplePaths());
 
     expect(() => {
       model.testCoverage(coversAllTransitions());
@@ -300,7 +298,7 @@ describe('coverage', () => {
       })
     );
 
-    await testUtils.testPlans(model, model.getShortestPlans());
+    await testUtils.testPaths(model, model.getShortestPaths());
 
     expect(() => {
       model.testCoverage([coversAllStates(), coversAllTransitions()]);
@@ -309,7 +307,7 @@ describe('coverage', () => {
       	Transitions to state \\"a\\" on event \\"EVENT_TWO\\""
     `);
 
-    await testUtils.testPlans(model, model.getSimplePlans());
+    await testUtils.testPaths(model, model.getSimplePaths());
 
     expect(() => {
       model.testCoverage([coversAllStates(), coversAllTransitions()]);

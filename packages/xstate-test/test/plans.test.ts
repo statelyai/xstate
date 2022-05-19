@@ -27,7 +27,7 @@ const multiPathMachine = createTestMachine({
   }
 });
 
-describe('testModel.testPlans(...)', () => {
+describe('testModel.testPaths(...)', () => {
   it('custom plan generators can be provided', async () => {
     const testModel = createTestModel(
       createTestMachine({
@@ -43,32 +43,27 @@ describe('testModel.testPlans(...)', () => {
       })
     );
 
-    const plans = testModel.getPlans({
-      planGenerator: (behavior, options) => {
+    const paths = testModel.getPaths({
+      pathGenerator: (behavior, options) => {
         const events = options.getEvents?.(behavior.initialState) ?? [];
 
         const nextState = behavior.transition(behavior.initialState, events[0]);
         return [
           {
             state: nextState,
-            paths: [
+            steps: [
               {
-                state: nextState,
-                steps: [
-                  {
-                    state: behavior.initialState,
-                    event: events[0]
-                  }
-                ],
-                weight: 1
+                state: behavior.initialState,
+                event: events[0]
               }
-            ]
+            ],
+            weight: 1
           }
         ];
       }
     });
 
-    await testUtils.testPlans(testModel, plans);
+    await testUtils.testPaths(testModel, paths);
 
     expect(testModel.getCoverage(coversAllStates())).toMatchInlineSnapshot(`
       Array [
@@ -121,29 +116,19 @@ describe('testModel.testPlans(...)', () => {
 
       const model = createTestModel(machine);
 
-      const plans = model.getPlans();
+      const paths = model.getPaths();
 
-      expect(plans).toHaveLength(1);
+      expect(paths).toHaveLength(1);
     });
   });
 
-  describe('When the machine has more than one path', () => {
-    it('Should create plans for each path', () => {
+  describe('getSimplePaths', () => {
+    it('Should dedup simple path paths', () => {
       const model = createTestModel(multiPathMachine);
 
-      const plans = model.getPlans();
+      const paths = model.getSimplePaths();
 
-      expect(plans).toHaveLength(2);
-    });
-  });
-
-  describe('simplePathPlans', () => {
-    it('Should dedup simple path plans', () => {
-      const model = createTestModel(multiPathMachine);
-
-      const plans = model.getSimplePlans();
-
-      expect(plans).toHaveLength(2);
+      expect(paths).toHaveLength(2);
     });
   });
 });

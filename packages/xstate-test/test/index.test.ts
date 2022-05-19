@@ -3,7 +3,6 @@ import { createTestModel } from '../src';
 import { coversAllStates } from '../src/coverage';
 import { createTestMachine } from '../src/machine';
 import { testUtils } from '../src/testUtils';
-import { getDescription } from '../src/utils';
 
 describe('events', () => {
   it('should allow for representing many cases', async () => {
@@ -66,11 +65,7 @@ describe('events', () => {
       }
     });
 
-    const testPlans = testModel.getShortestPlans();
-
-    for (const plan of testPlans) {
-      await testModel.testPlan(plan);
-    }
+    await testUtils.testModel(testModel);
 
     expect(() => testModel.testCoverage(coversAllStates())).not.toThrow();
   });
@@ -88,12 +83,8 @@ describe('events', () => {
 
     const testModel = createTestModel(testMachine);
 
-    const testPlans = testModel.getShortestPlans();
-
     expect(async () => {
-      for (const plan of Object.values(testPlans)) {
-        await testModel.testPlan(plan);
-      }
+      await testUtils.testModel(testModel);
     }).not.toThrow();
   });
 
@@ -136,11 +127,11 @@ describe('events', () => {
       }
     });
 
-    const plans = testModel.getShortestPlans();
+    const paths = testModel.getShortestPaths();
 
-    expect(plans.length).toBe(3);
+    expect(paths.length).toBe(3);
 
-    await testUtils.testPlans(testModel, plans);
+    await testUtils.testPaths(testModel, paths);
 
     expect(testedEvents).toMatchInlineSnapshot(`
       Array [
@@ -181,80 +172,13 @@ describe('state limiting', () => {
 
     const testModel = createTestModel(machine);
 
-    const testPlans = testModel.getShortestPlans({
+    const testPaths = testModel.getShortestPaths({
       filter: (state) => {
         return state.context.count < 5;
       }
     });
 
-    expect(testPlans).toHaveLength(1);
-  });
-});
-
-describe('plan description', () => {
-  const machine = createTestMachine({
-    id: 'test',
-    initial: 'atomic',
-    context: { count: 0 },
-    states: {
-      atomic: {
-        on: { NEXT: 'compound', DONE: 'final' }
-      },
-      final: {
-        type: 'final'
-      },
-      compound: {
-        initial: 'child',
-        states: {
-          child: {
-            on: {
-              NEXT: 'childWithMeta'
-            }
-          },
-          childWithMeta: {
-            meta: {
-              description: 'child with meta'
-            }
-          }
-        },
-        on: {
-          NEXT: 'parallel'
-        }
-      },
-      parallel: {
-        type: 'parallel',
-        states: {
-          one: {},
-          two: {
-            meta: {
-              description: 'two description'
-            }
-          }
-        },
-        on: {
-          NEXT: 'noMetaDescription'
-        }
-      },
-      noMetaDescription: {
-        meta: {}
-      }
-    }
-  });
-
-  const testModel = createTestModel(machine);
-  const testPlans = testModel.getShortestPlans();
-
-  it('should give a description for every plan', () => {
-    const planDescriptions = testPlans.map(
-      (plan) => `reaches ${getDescription(plan.state)}`
-    );
-
-    expect(planDescriptions).toMatchInlineSnapshot(`
-      Array [
-        "reaches state: \\"#test.final\\" ({\\"count\\":0})",
-        "reaches state: \\"noMetaDescription\\" ({\\"count\\":0})",
-      ]
-    `);
+    expect(testPaths).toHaveLength(1);
   });
 });
 
@@ -275,7 +199,7 @@ it('prevents infinite recursion based on a provided limit', () => {
   const model = createTestModel(machine);
 
   expect(() => {
-    model.getShortestPlans({ traversalLimit: 100 });
+    model.getShortestPaths({ traversalLimit: 100 });
   }).toThrowErrorMatchingInlineSnapshot(`"Traversal limit exceeded"`);
 });
 
@@ -307,11 +231,7 @@ it('executes actions', async () => {
 
   const model = createTestModel(machine);
 
-  const testPlans = model.getShortestPlans();
-
-  for (const plan of testPlans) {
-    await model.testPlan(plan);
-  }
+  await testUtils.testModel(model);
 
   expect(executedActive).toBe(true);
   expect(executedDone).toBe(true);
@@ -342,11 +262,7 @@ describe('test model options', () => {
       }
     );
 
-    const plans = model.getShortestPlans();
-
-    for (const plan of plans) {
-      await model.testPlan(plan);
-    }
+    await testUtils.testModel(model);
 
     expect(testedStates).toEqual(['inactive', 'active']);
   });
@@ -376,11 +292,9 @@ it('tests transitions', async () => {
     }
   });
 
-  const plans = model.getShortestPlansTo((state) => state.matches('second'));
+  const paths = model.getShortestPathsTo((state) => state.matches('second'));
 
-  const path = plans[0].paths[0];
-
-  await model.testPath(path);
+  await model.testPath(paths[0]);
 });
 
 // https://github.com/statelyai/xstate/issues/982
@@ -414,11 +328,9 @@ it('Event in event executor should contain payload from case', async () => {
     }
   });
 
-  const plans = model.getShortestPlansTo((state) => state.matches('second'));
+  const paths = model.getShortestPathsTo((state) => state.matches('second'));
 
-  const path = plans[0].paths[0];
-
-  await model.testPath(path, obj);
+  await model.testPath(paths[0], obj);
 });
 
 describe('state tests', () => {

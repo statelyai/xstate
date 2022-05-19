@@ -165,17 +165,11 @@ describe('die hard example', () => {
     const dieHardModel = createDieHardModel();
 
     dieHardModel
-      .getShortestPlansTo((state) => state.matches('success'))
-      .forEach((plan) => {
-        describe(`plan ${getDescription(plan.state)}`, () => {
-          it('should generate a single path', () => {
-            expect(plan.paths.length).toEqual(1);
-          });
-
-          plan.paths.forEach((path) => {
-            it(`path ${getDescription(path.state)}`, async () => {
-              await dieHardModel.testPath(path);
-            });
+      .getShortestPathsTo((state) => state.matches('success'))
+      .forEach((path) => {
+        describe(`path ${getDescription(path.state)}`, () => {
+          it(`path ${getDescription(path.state)}`, async () => {
+            await dieHardModel.testPath(path);
           });
         });
       });
@@ -184,24 +178,22 @@ describe('die hard example', () => {
   describe('testing a model (simplePathsTo)', () => {
     const dieHardModel = createDieHardModel();
     dieHardModel
-      .getSimplePlansTo((state) => state.matches('success'))
-      .forEach((plan) => {
+      .getSimplePathsTo((state) => state.matches('success'))
+      .forEach((path) => {
         describe(`reaches state ${JSON.stringify(
-          plan.state.value
-        )} (${JSON.stringify(plan.state.context)})`, () => {
-          plan.paths.forEach((path) => {
-            it(`path ${getDescription(path.state)}`, async () => {
-              await dieHardModel.testPath(path);
-            });
+          path.state.value
+        )} (${JSON.stringify(path.state.context)})`, () => {
+          it(`path ${getDescription(path.state)}`, async () => {
+            await dieHardModel.testPath(path);
           });
         });
       });
   });
 
-  describe('testing a model (getPlanFromEvents)', () => {
+  describe('testing a model (getPathFromEvents)', () => {
     const dieHardModel = createDieHardModel();
 
-    const plan = dieHardModel.getPlanFromEvents(
+    const path = dieHardModel.getPathFromEvents(
       [
         { type: 'FILL_5' },
         { type: 'POUR_5_TO_3' },
@@ -214,18 +206,16 @@ describe('die hard example', () => {
     );
 
     describe(`reaches state ${JSON.stringify(
-      plan.state.value
-    )} (${JSON.stringify(plan.state.context)})`, () => {
-      plan.paths.forEach((path) => {
-        it(`path ${getDescription(path.state)}`, async () => {
-          await dieHardModel.testPath(path);
-        });
+      path.state.value
+    )} (${JSON.stringify(path.state.context)})`, () => {
+      it(`path ${getDescription(path.state)}`, async () => {
+        await dieHardModel.testPath(path);
       });
     });
 
     it('should throw if the target does not match the last entered state', () => {
       expect(() => {
-        dieHardModel.getPlanFromEvents([{ type: 'FILL_5' }], (state) =>
+        dieHardModel.getPathFromEvents([{ type: 'FILL_5' }], (state) =>
           state.matches('success')
         );
       }).toThrow();
@@ -234,19 +224,17 @@ describe('die hard example', () => {
 
   describe('.testPath(path)', () => {
     const dieHardModel = createDieHardModel();
-    const plans = dieHardModel.getSimplePlansTo((state) => {
+    const paths = dieHardModel.getSimplePathsTo((state) => {
       return state.matches('success') && state.context.three === 0;
     });
 
-    plans.forEach((plan) => {
+    paths.forEach((path) => {
       describe(`reaches state ${JSON.stringify(
-        plan.state.value
-      )} (${JSON.stringify(plan.state.context)})`, () => {
-        plan.paths.forEach((path) => {
-          describe(`path ${getDescription(path.state)}`, () => {
-            it(`reaches the target state`, async () => {
-              await dieHardModel.testPath(path);
-            });
+        path.state.value
+      )} (${JSON.stringify(path.state.context)})`, () => {
+        describe(`path ${getDescription(path.state)}`, () => {
+          it(`reaches the target state`, async () => {
+            await dieHardModel.testPath(path);
           });
         });
       });
@@ -255,16 +243,14 @@ describe('die hard example', () => {
 
   it('reports state node coverage', async () => {
     const dieHardModel = createDieHardModel();
-    const plans = dieHardModel.getSimplePlansTo((state) => {
+    const paths = dieHardModel.getSimplePathsTo((state) => {
       return state.matches('success') && state.context.three === 0;
     });
 
-    for (const plan of plans) {
-      for (const path of plan.paths) {
-        jugs = new Jugs();
-        jugs.version = Math.random();
-        await dieHardModel.testPath(path);
-      }
+    for (const path of paths) {
+      jugs = new Jugs();
+      jugs.version = Math.random();
+      await dieHardModel.testPath(path);
     }
 
     const coverage = dieHardModel.getCoverage(coversAllStates());
@@ -316,17 +302,14 @@ describe('error path trace', () => {
     });
 
     testModel
-      .getShortestPlansTo((state) => state.matches('third'))
-      .forEach((plan) => {
-        plan.paths.forEach((path) => {
-          it('should show an error path trace', async () => {
-            try {
-              await testModel.testPath(path, undefined);
-            } catch (err) {
-              expect(err.message).toEqual(
-                expect.stringContaining('test error')
-              );
-              expect(err.message).toMatchInlineSnapshot(`
+      .getShortestPathsTo((state) => state.matches('third'))
+      .forEach((path) => {
+        it('should show an error path trace', async () => {
+          try {
+            await testModel.testPath(path, undefined);
+          } catch (err) {
+            expect(err.message).toEqual(expect.stringContaining('test error'));
+            expect(err.message).toMatchInlineSnapshot(`
                 "test error
                 Path:
                 	State: {\\"value\\":\\"first\\",\\"actions\\":[]}
@@ -337,11 +320,10 @@ describe('error path trace', () => {
 
                 	State: {\\"value\\":\\"third\\",\\"actions\\":[]}"
               `);
-              return;
-            }
+            return;
+          }
 
-            throw new Error('Should have failed');
-          });
+          throw new Error('Should have failed');
         });
       });
   });
