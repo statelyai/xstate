@@ -9,7 +9,6 @@ import type {
 import { State, interpret, toObserver } from 'xstate';
 import type { UseMachineOptions, MaybeLazy } from './types';
 import { onCleanup, onMount } from 'solid-js';
-import { createStore } from 'solid-js/store';
 
 type RestParams<
   TMachine extends AnyStateMachine
@@ -105,13 +104,11 @@ export function useInterpret<TMachine extends AnyStateMachine>(
     ...context
   }));
 
-  const [service] = createStore(
-    interpret(machineWithConfig, {
-      deferEvents: true,
-      ...interpreterOptions
-    }).start(
-      rehydratedState ? (State.create(rehydratedState) as any) : undefined
-    )
+  const service = interpret(machineWithConfig, {
+    deferEvents: true,
+    ...interpreterOptions
+  }).start(
+    rehydratedState ? (State.create(rehydratedState) as any) : undefined
   );
 
   let sub;

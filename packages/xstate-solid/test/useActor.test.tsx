@@ -38,7 +38,7 @@ describe('useActor', () => {
     const ChildTest: Component<{ actor: ActorRefFrom<typeof childMachine> }> = (
       props
     ) => {
-      const [state] = useActor( props.actor);
+      const [state] = useActor(props.actor);
 
       expect(state().value).toEqual('active');
       done();
@@ -167,7 +167,9 @@ describe('useActor', () => {
       }
     });
 
-    const ChildTest = (props: { actor: Readonly<ActorRefFrom<typeof childMachine>> }) => {
+    const ChildTest = (props: {
+      actor: Readonly<ActorRefFrom<typeof childMachine>>;
+    }) => {
       const [state, send] = useActor(props.actor);
       const [count, setCount] = createSignal(0);
       const [total, setTotal] = createSignal(0);
@@ -344,10 +346,7 @@ describe('useActor', () => {
     };
 
     const Test = () => {
-      const [state] = useActor(
-        simpleActor,
-        (a) => a.latestValue
-      );
+      const [state] = useActor(simpleActor, (a) => a.latestValue);
 
       return <div data-testid="state">{state()}</div>;
     };

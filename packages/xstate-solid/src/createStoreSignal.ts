@@ -3,7 +3,7 @@
  * Handles primitives or objects.
  */
 import type { Accessor } from 'solid-js';
-import { createSignal } from 'solid-js';
+import { createComputed, createSignal } from 'solid-js';
 import { createStore } from 'solid-js/store';
 import { updateState } from './utils';
 
@@ -45,9 +45,12 @@ export const createStoreSignal = <
   const [snapshot, setSnapshot] = createSignal(
     getSnapshotValue<ReturnValue>(state)
   );
+
+  // Update snapshot after state is finished updating
+  createComputed(() => setSnapshot(getSnapshotValue(state)), state);
+
   const update = (updateValue: UpdateValue) => {
     updateState(setSnapshotValue(updateValue), setState);
-    setSnapshot(getSnapshotValue(state));
   };
   return [snapshot, update];
 };

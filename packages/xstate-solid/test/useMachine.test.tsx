@@ -470,8 +470,7 @@ describe('useMachine hook', () => {
           () => state.context.item.counts,
           () => {
             setStateCount((c) => c + 1);
-          },
-          { defer: true }
+          }
         )
       );
       onMount(() => {

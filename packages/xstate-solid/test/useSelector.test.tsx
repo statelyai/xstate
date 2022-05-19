@@ -32,10 +32,7 @@ describe('useSelector', () => {
 
     const App = () => {
       const service = useInterpret(machine);
-      const count = useSelector(
-        service,
-        (state) => state.context.count
-      );
+      const count = useSelector(service, (state) => state.context.count);
 
       rerenders++;
 
@@ -398,7 +395,7 @@ describe('useSelector', () => {
       const [state] = useMachine(parentMachine);
       const actor = state.context.childActor;
       const value = useSelector(
-         actor,
+        actor,
         (actorState) => `${prop()} ${actorState.context.count}`
       );
       return (

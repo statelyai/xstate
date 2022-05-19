@@ -20,10 +20,12 @@ export const updateState = <
   keys?: Array<keyof NextState>
 ): void => {
   if (typeof nextState === 'object' && !!nextState) {
+    // If a list of keys to update is not provided, get keys from nextState
     if (!keys) {
       keys = Object.keys(nextState) as Array<keyof NextState>;
     }
     for (const key of keys) {
+      // Don't update functions
       if (typeof nextState[key] === 'function') {
         continue;
       }

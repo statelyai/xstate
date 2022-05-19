@@ -47,9 +47,9 @@
     "rfdc": "^1.3.0"
   },
   "peerDependencies": {
-    "@xstate/fsm": "^1.6.3",
-    "solid-js": "^1.3.1",
-    "xstate": "^4.27.0"
+    "@xstate/fsm": "^2.0.0",
+    "solid-js": "^1.4",
+    "xstate": "^4.31.0"
   },
   "peerDependenciesMeta": {
     "@xstate/fsm": {
@@ -75,8 +75,8 @@
     "rollup-plugin-terser": "^5.1.2",
     "rollup-plugin-typescript2": "^0.30.0",
     "solid-jest": "^0.1.1",
-    "solid-js": "^1.3.1",
-    "solid-testing-library": "^0.2.1",
+    "solid-js": "^1.4.1",
+    "solid-testing-library": "^0.3.0",
     "typescript": "^4.5.2",
     "xstate": "*"
   }
