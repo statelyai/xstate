@@ -190,7 +190,7 @@ describe('die hard example', () => {
       });
   });
 
-  describe('testing a model (getPlanFromEvents)', () => {
+  describe('testing a model (getPathFromEvents)', () => {
     const dieHardModel = createDieHardModel();
 
     const path = dieHardModel.getPathFromEvents(

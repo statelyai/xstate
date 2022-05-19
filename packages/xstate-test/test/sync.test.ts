@@ -47,7 +47,7 @@ const syncModel = createTestModel(machine, {
   }
 });
 
-describe('.testPlanSync', () => {
+describe('.testPathSync', () => {
   it('Should error if it encounters a promise in a state', () => {
     expect(() =>
       promiseStateModel

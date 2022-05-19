@@ -122,7 +122,7 @@ describe('testModel.testPaths(...)', () => {
     });
   });
 
-  describe('simplePathPlans', () => {
+  describe('getSimplePaths', () => {
     it('Should dedup simple path paths', () => {
       const model = createTestModel(multiPathMachine);
 

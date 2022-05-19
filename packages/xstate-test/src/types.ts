@@ -1,7 +1,6 @@
 import {
   SimpleBehavior,
   StatePath,
-  StatePlan,
   Step,
   TraversalOptions
 } from '@xstate/graph';
@@ -103,36 +102,6 @@ export interface TestPath<T> {
 export interface TestPathResult {
   steps: TestStepResult[];
   state: TestStateResult;
-}
-
-/**
- * A collection of `paths` used to verify that the SUT reaches
- * the target `state`.
- */
-export interface TestPlan<TTestContext, TState> {
-  /**
-   * The target state.
-   */
-  state: TState;
-  /**
-   * The paths that reach the target `state`.
-   */
-  paths: Array<TestPath<TTestContext>>;
-  /**
-   * The description of the target `state` to be reached.
-   */
-  description: string;
-  /**
-   * Tests the postcondition that the `state` is reached.
-   *
-   * This should be tested after navigating any path in `paths`.
-   */
-  test: (
-    /**
-     * The test context used for verifying the SUT.
-     */
-    testContext: TTestContext
-  ) => Promise<void> | void;
 }
 
 /**
