@@ -9,39 +9,29 @@ import {
   TraversalOptions,
   traverseSimplePathsTo
 } from '@xstate/graph';
-import { EventObject, SingleOrArray } from 'xstate';
-import {
-  CoverageFunction,
-  coversAllStates,
-  coversAllTransitions
-} from './coverage';
+import { EventObject } from 'xstate';
 import { pathGeneratorWithDedup } from './dedupPaths';
 import { getShortestPaths, getSimplePaths } from './pathGenerators';
 import type {
-  CriterionResult,
   EventExecutor,
   GetPathsOptions,
   PathGenerator,
   StatePredicate,
-  TestModelCoverage,
   TestModelOptions,
   TestPathResult,
   TestStepResult
 } from './types';
 import {
-  flatten,
   formatPathTestResult,
   mapPlansToPaths,
   simpleStringify
 } from './utils';
 
 export interface TestModelDefaults<TState, TEvent extends EventObject> {
-  coverage: Array<CoverageFunction<TState, TEvent>>;
   pathGenerator: PathGenerator<TState, TEvent>;
 }
 
 export const testModelDefaults: TestModelDefaults<any, any> = {
-  coverage: [coversAllStates<any, any>(), coversAllTransitions<any, any>()],
   pathGenerator: getShortestPaths
 };
 
@@ -53,10 +43,6 @@ export const testModelDefaults: TestModelDefaults<any, any> = {
  * verify that states in the model are reachable in the SUT.
  */
 export class TestModel<TState, TEvent extends EventObject> {
-  private _coverage: TestModelCoverage<TState, TEvent> = {
-    states: {},
-    transitions: {}
-  };
   public options: TestModelOptions<TState, TEvent>;
   public defaultTraversalOptions?: TraversalOptions<TState, TEvent>;
   public getDefaultOptions(): TestModelOptions<TState, TEvent> {
@@ -315,8 +301,6 @@ export class TestModel<TState, TEvent extends EventObject> {
     resolvedOptions: TestModelOptions<TState, TEvent>
   ) {
     resolvedOptions.execute(state);
-
-    this.addStateCoverage(state);
   }
 
   public testStateSync(
@@ -337,21 +321,6 @@ export class TestModel<TState, TEvent extends EventObject> {
     this.afterTestState(state, resolvedOptions);
   }
 
-  private addStateCoverage(state: TState) {
-    const stateSerial = this.options.serializeState(state, null as any); // TODO: fix
-
-    const existingCoverage = this._coverage.states[stateSerial];
-
-    if (existingCoverage) {
-      existingCoverage.count++;
-    } else {
-      this._coverage.states[stateSerial] = {
-        state,
-        count: 1
-      };
-    }
-  }
-
   private getEventExec(step: Step<TState, TEvent>) {
     const eventConfig = this.options.events?.[
       (step.event as any).type as TEvent['type']
@@ -366,8 +335,6 @@ export class TestModel<TState, TEvent extends EventObject> {
   public async testTransition(step: Step<TState, TEvent>): Promise<void> {
     const eventExec = this.getEventExec(step);
     await (eventExec as EventExecutor<TState, TEvent>)?.(step);
-
-    this.addTransitionCoverage(step);
   }
 
   public testTransitionSync(step: Step<TState, TEvent>): void {
@@ -377,26 +344,6 @@ export class TestModel<TState, TEvent extends EventObject> {
       (eventExec as EventExecutor<TState, TEvent>)?.(step),
       `The event '${step.event.type}' returned a promise - did you mean to use the sync method?`
     );
-
-    this.addTransitionCoverage(step);
-  }
-
-  private addTransitionCoverage(step: Step<TState, TEvent>) {
-    const transitionSerial = `${this.options.serializeState(
-      step.state,
-      null as any
-    )} | ${this.options.serializeEvent(step.event)}`;
-
-    const existingCoverage = this._coverage.transitions[transitionSerial];
-
-    if (existingCoverage) {
-      existingCoverage.count++;
-    } else {
-      this._coverage.transitions[transitionSerial] = {
-        step,
-        count: 1
-      };
-    }
   }
 
   public resolveOptions(
@@ -404,56 +351,10 @@ export class TestModel<TState, TEvent extends EventObject> {
   ): TestModelOptions<TState, TEvent> {
     return { ...this.defaultTraversalOptions, ...this.options, ...options };
   }
-
-  public getCoverage(
-    criteriaFn: SingleOrArray<CoverageFunction<TState, TEvent>> = TestModel
-      .defaults.coverage
-  ): Array<CriterionResult<TState, TEvent>> {
-    const criteriaFns = criteriaFn
-      ? Array.isArray(criteriaFn)
-        ? criteriaFn
-        : [criteriaFn]
-      : [];
-    const criteriaResult = flatten(criteriaFns.map((fn) => fn(this)));
-
-    return criteriaResult.map((criterion) => {
-      return {
-        criterion,
-        status: criterion.skip
-          ? 'skipped'
-          : criterion.predicate(this._coverage)
-          ? 'covered'
-          : 'uncovered'
-      };
-    });
-  }
-
-  // TODO: consider options
-  public testCoverage(
-    criteriaFn: SingleOrArray<CoverageFunction<TState, TEvent>> = TestModel
-      .defaults.coverage
-  ): void {
-    const criteriaFns = Array.isArray(criteriaFn) ? criteriaFn : [criteriaFn];
-    const criteriaResult = flatten(
-      criteriaFns.map((fn) => this.getCoverage(fn))
-    );
-
-    const unmetCriteria = criteriaResult.filter(
-      (c) => c.status === 'uncovered'
-    );
-
-    if (unmetCriteria.length) {
-      const criteriaMessage = `Coverage criteria not met:\n${unmetCriteria
-        .map((c) => '\t' + c.criterion.description)
-        .join('\n')}`;
-
-      throw new Error(criteriaMessage);
-    }
-  }
 }
 
 /**
- * Specifies default configuration for `TestModel` instances for coverage and path generation options
+ * Specifies default configuration for `TestModel` instances for path generation options
  *
  * @param testModelConfiguration The partial configuration for all subsequent `TestModel` instances
  */

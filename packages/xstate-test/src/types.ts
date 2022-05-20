@@ -14,7 +14,6 @@ import {
   MachineSchema,
   ServiceMap,
   State,
-  StateNode,
   StateNodeConfig,
   StateSchema,
   TransitionConfig,
@@ -191,42 +190,6 @@ export interface TestModelOptions<TState, TEvent extends EventObject>
     log: (msg: string) => void;
     error: (msg: string) => void;
   };
-}
-
-export interface TestStateCoverage<TState> {
-  state: TState;
-  /**
-   * Number of times state was visited
-   */
-  count: number;
-}
-
-export interface TestTransitionCoverage<TState, TEvent extends EventObject> {
-  step: Step<TState, TEvent>;
-  count: number;
-}
-
-export interface TestModelCoverage<TState, TEvent extends EventObject> {
-  states: Record<string, TestStateCoverage<TState>>;
-  transitions: Record<string, TestTransitionCoverage<TState, TEvent>>;
-}
-
-export interface CoverageOptions<TContext> {
-  filter?: (stateNode: StateNode<TContext, any, any>) => boolean;
-}
-
-export interface Criterion<TState, TEvent extends EventObject> {
-  predicate: (coverage: TestModelCoverage<TState, TEvent>) => boolean;
-  description: string;
-  skip?: boolean;
-}
-
-export interface CriterionResult<TState, TEvent extends EventObject> {
-  criterion: Criterion<TState, TEvent>;
-  /**
-   * Whether the criterion was covered or not
-   */
-  status: 'uncovered' | 'covered' | 'skipped';
 }
 
 export interface TestTransitionConfig<
