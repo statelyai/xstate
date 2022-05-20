@@ -472,12 +472,8 @@ function resolveTraversalOptions<TState, TEvent>(
   traversalOptions?: Partial<TraversalOptions<TState, TEvent>>,
   defaultOptions?: TraversalOptions<TState, TEvent>
 ): Required<TraversalOptions<TState, TEvent>> {
-  const serializeState =
-    traversalOptions?.serializeState ??
-    defaultOptions?.serializeState ??
-    ((state) => JSON.stringify(state) as any);
   return {
-    serializeState,
+    serializeState: (state) => JSON.stringify(state) as any,
     serializeEvent: serializeEvent as any, // TODO fix types
     filter: () => true,
     visitCondition: (state, event, vctx) => {
