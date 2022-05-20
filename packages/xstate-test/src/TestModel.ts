@@ -50,8 +50,7 @@ export const testModelDefaults: TestModelDefaults<any, any> = {
  * system under test (SUT).
  *
  * The test model is used to generate test plans, which are used to
- * verify that states in the `machine` are reachable in the SUT.
- *
+ * verify that states in the model are reachable in the SUT.
  */
 export class TestModel<TState, TEvent extends EventObject> {
   private _coverage: TestModelCoverage<TState, TEvent> = {
