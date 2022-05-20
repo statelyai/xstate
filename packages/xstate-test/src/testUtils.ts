@@ -1,18 +1,15 @@
-import { StatePath } from '@xstate/graph';
 import { TestModel } from './TestModel';
+import { TestPath } from './types';
 
 const testModel = async (model: TestModel<any, any>) => {
   for (const path of model.getPaths()) {
-    await model.testPath(path);
+    await path.test();
   }
 };
 
-const testPaths = async (
-  model: TestModel<any, any>,
-  paths: StatePath<any, any>[]
-) => {
+const testPaths = async (paths: TestPath<any, any>[]) => {
   for (const path of paths) {
-    await model.testPath(path);
+    await path.test();
   }
 };
 

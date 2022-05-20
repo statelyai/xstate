@@ -62,7 +62,7 @@ describe('testModel.testPaths(...)', () => {
       }
     });
 
-    await testUtils.testPaths(testModel, paths);
+    await testUtils.testPaths(paths);
   });
 
   describe('When the machine only has one path', () => {
@@ -100,5 +100,18 @@ describe('testModel.testPaths(...)', () => {
 
       expect(paths).toHaveLength(2);
     });
+  });
+});
+
+describe('path.description', () => {
+  it('Should write a readable description including the target state and the path', () => {
+    const model = createTestModel(multiPathMachine);
+
+    const paths = model.getPaths();
+
+    expect(paths.map((path) => path.description)).toEqual([
+      'Reaches state "#(machine).d": EVENT → EVENT → EVENT',
+      'Reaches state "#(machine).e": EVENT → EVENT → EVENT_2'
+    ]);
   });
 });

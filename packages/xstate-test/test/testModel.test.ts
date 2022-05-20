@@ -74,7 +74,7 @@ describe('custom test models', () => {
 
     const paths = model.getShortestPathsTo((state) => state === 1);
 
-    await testUtils.testPaths(model, paths);
+    await testUtils.testPaths(paths);
 
     expect(testedStateKeys).toContain('even');
     expect(testedStateKeys).toContain('odd');
