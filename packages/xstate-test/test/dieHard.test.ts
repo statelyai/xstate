@@ -1,6 +1,5 @@
 import { assign, createMachine } from 'xstate';
 import { createTestModel } from '../src';
-import { coversAllStates } from '../src/coverage';
 import { createTestMachine } from '../src/machine';
 import { getDescription } from '../src/utils';
 
@@ -239,43 +238,6 @@ describe('die hard example', () => {
         });
       });
     });
-  });
-
-  it('reports state node coverage', async () => {
-    const dieHardModel = createDieHardModel();
-    const paths = dieHardModel.getSimplePathsTo((state) => {
-      return state.matches('success') && state.context.three === 0;
-    });
-
-    for (const path of paths) {
-      jugs = new Jugs();
-      jugs.version = Math.random();
-      await dieHardModel.testPath(path);
-    }
-
-    const coverage = dieHardModel.getCoverage(coversAllStates());
-
-    expect(coverage.every((c) => c.status === 'covered')).toEqual(true);
-
-    expect(coverage.map((c) => [c.criterion.description, c.status]))
-      .toMatchInlineSnapshot(`
-      Array [
-        Array [
-          "Visits \\"dieHard\\"",
-          "covered",
-        ],
-        Array [
-          "Visits \\"dieHard.pending\\"",
-          "covered",
-        ],
-        Array [
-          "Visits \\"dieHard.success\\"",
-          "covered",
-        ],
-      ]
-    `);
-
-    expect(() => dieHardModel.testCoverage(coversAllStates())).not.toThrow();
   });
 });
 describe('error path trace', () => {

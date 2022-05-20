@@ -1,5 +1,4 @@
 import { createTestModel } from '../src';
-import { coversAllStates } from '../src/coverage';
 import { createTestMachine } from '../src/machine';
 import { testUtils } from '../src/testUtils';
 
@@ -64,35 +63,6 @@ describe('testModel.testPaths(...)', () => {
     });
 
     await testUtils.testPaths(testModel, paths);
-
-    expect(testModel.getCoverage(coversAllStates())).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "criterion": Object {
-            "description": "Visits \\"(machine)\\"",
-            "predicate": [Function],
-            "skip": false,
-          },
-          "status": "covered",
-        },
-        Object {
-          "criterion": Object {
-            "description": "Visits \\"(machine).a\\"",
-            "predicate": [Function],
-            "skip": false,
-          },
-          "status": "covered",
-        },
-        Object {
-          "criterion": Object {
-            "description": "Visits \\"(machine).b\\"",
-            "predicate": [Function],
-            "skip": false,
-          },
-          "status": "covered",
-        },
-      ]
-    `);
   });
 
   describe('When the machine only has one path', () => {

@@ -1,6 +1,5 @@
 import { assign, createMachine } from 'xstate';
 import { createTestModel } from '../src';
-import { coversAllStates } from '../src/coverage';
 import { createTestMachine } from '../src/machine';
 import { testUtils } from '../src/testUtils';
 
@@ -66,8 +65,6 @@ describe('events', () => {
     });
 
     await testUtils.testModel(testModel);
-
-    expect(() => testModel.testCoverage(coversAllStates())).not.toThrow();
   });
 
   it('should not throw an error for unimplemented events', () => {
