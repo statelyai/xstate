@@ -72,8 +72,8 @@ export function getChildren(stateNode: AnyStateNode): AnyStateNode[] {
 }
 
 export function serializeMachineState(state: AnyState): SerializedState {
-  const { value, context, actions } = state;
-  return JSON.stringify({ value, context, actions }) as SerializedState;
+  const { value, context } = state;
+  return JSON.stringify({ value, context }) as SerializedState;
 }
 
 export function serializeEvent<TEvent extends EventObject>(
@@ -207,7 +207,11 @@ export function traverseShortestPlans<TState, TEvent extends EventObject>(
   // weight, state, event
   const weightMap = new Map<
     SerializedState,
-    [weight: number, state: SerializedState | undefined, event: TEvent | undefined]
+    [
+      weight: number,
+      state: SerializedState | undefined,
+      event: TEvent | undefined
+    ]
   >();
   const stateMap = new Map<SerializedState, TState>();
   const initialSerializedState = serializeState(behavior.initialState, null);

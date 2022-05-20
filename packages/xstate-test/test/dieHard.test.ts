@@ -272,16 +272,16 @@ describe('error path trace', () => {
           } catch (err) {
             expect(err.message).toEqual(expect.stringContaining('test error'));
             expect(err.message).toMatchInlineSnapshot(`
-                "test error
-                Path:
-                	State: {\\"value\\":\\"first\\",\\"actions\\":[]}
-                	Event: {\\"type\\":\\"NEXT\\"}
+              "test error
+              Path:
+              	State: {\\"value\\":\\"first\\"}
+              	Event: {\\"type\\":\\"NEXT\\"}
 
-                	State: {\\"value\\":\\"second\\",\\"actions\\":[]}
-                	Event: {\\"type\\":\\"NEXT\\"}
+              	State: {\\"value\\":\\"second\\"}
+              	Event: {\\"type\\":\\"NEXT\\"}
 
-                	State: {\\"value\\":\\"third\\",\\"actions\\":[]}"
-              `);
+              	State: {\\"value\\":\\"third\\"}"
+            `);
             return;
           }
 
