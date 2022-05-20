@@ -3,7 +3,6 @@ import {
   performDepthFirstTraversal,
   SerializedEvent,
   SerializedState,
-  serializeState,
   SimpleBehavior,
   StatePath,
   Step,
