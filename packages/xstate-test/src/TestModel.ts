@@ -105,12 +105,12 @@ export class TestModel<TState, TEvent extends EventObject> {
   }
 
   public getShortestPathsTo(
-    stateValue: StatePredicate<TState>
+    statePredicate: StatePredicate<TState>
   ): Array<StatePath<TState, TEvent>> {
     let minWeight = Infinity;
     let shortestPaths: Array<StatePath<TState, TEvent>> = [];
 
-    const paths = this.filterPathsTo(stateValue, this.getShortestPaths());
+    const paths = this.filterPathsTo(statePredicate, this.getShortestPaths());
 
     for (const path of paths) {
       const currWeight = path.weight;
