@@ -366,63 +366,71 @@ export function fromMachine<TMachine extends AnyStateMachine>(
   > extends true
     ? TMachine
     : 'Some implementations missing',
-  options?: Partial<InterpreterOptions>
+  options: Partial<InterpreterOptions> = {}
 ): Behavior<EventFrom<TMachine>, StateFrom<TMachine>> {
+  const snapshotEventType = Symbol('snapshot');
+
   const castedMachine = machine as TMachine;
   let service: InterpreterFrom<TMachine> | undefined;
-  let subscription: Subscription;
   let initialState: StateFrom<TMachine>;
 
-  const behavior: Behavior<EventFrom<TMachine>, StateFrom<TMachine>> = {
+  // TODO: use better type for `TEvent`
+  const behavior: Behavior<any, StateFrom<TMachine>> = {
     transition: (state, event, actorContext) => {
       const { _parent: parent } = actorContext.self;
 
-      if (event.type === startSignalType) {
-        service = interpret(castedMachine as AnyStateMachine, {
-          ...options,
-          parent,
-          id: actorContext.name
-        }) as InterpreterFrom<TMachine>;
-        service.onDone((doneEvent) => {
-          parent?.send(
-            toSCXMLEvent(doneEvent, {
-              origin: actorContext.self
-            })
-          );
-        });
+      switch (event.type) {
+        case startSignalType:
+          service = interpret(castedMachine as AnyStateMachine, {
+            ...options,
+            parent,
+            id: actorContext.name
+          }) as InterpreterFrom<TMachine>;
+          service.onDone((doneEvent) => {
+            parent?.send(
+              toSCXMLEvent(doneEvent, {
+                origin: actorContext.self
+              })
+            );
+          });
 
-        if (options?.sync) {
-          subscription = service.subscribe((snapshotState) => {
+          service.subscribe((state) => {
+            actorContext.self.send({
+              type: snapshotEventType,
+              snapshot: state
+            });
+          });
+          service.start();
+          return state;
+        case stopSignalType:
+          service?.stop();
+          return state;
+        case snapshotEventType: {
+          const snapshot = event.snapshot;
+          if (options.sync) {
             parent?.send(
               toSCXMLEvent(
                 {
                   type: actionTypes.update,
-                  state: snapshotState
+                  state: snapshot
                 },
                 { origin: actorContext.self }
               )
             );
-          });
+          }
+          return snapshot;
         }
-        service.start();
-        return state;
+        default:
+          const _event = actorContext._event;
+
+          if (isSignal(_event)) {
+            // TODO: unrecognized signal
+            return state;
+          }
+
+          service?.send(_event);
+          return state;
       }
-
-      if (event.type === stopSignalType) {
-        service?.stop();
-        subscription?.unsubscribe(); // TODO: might not be necessary
-        return state;
-      }
-
-      const _event = actorContext._event;
-
-      if (isSignal(_event)) {
-        // TODO: unrecognized signal
-        return state;
-      }
-
-      service?.send(_event);
-      return state;
     },
     get initialState() {
       // TODO: recheck if this caching is needed, write a test for its importance or remove the caching

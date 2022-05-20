@@ -136,8 +136,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     expect(nameEl.textContent).toEqual('DAVID');
   });
 
-  // TODO: subscribers are called before `.current` is asigned in the Actor class and thus `getSnapshot` ends up reading a stale value
-  it.skip('should work with selecting values from initially spawned actors', () => {
+  it('should work with selecting values from initially spawned actors', () => {
     const childMachine = createMachine<{ count: number }>({
       context: {
         count: 0
@@ -191,16 +190,15 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     expect(countEl.textContent).toEqual('1');
   });
 
-  it('should render custom snapshot of initially spawned custom actor', () => {
-    const createActor = (latestValue: string) => ({
-      ...toActorRef({
+  it('should immediately render snapshot of initially spawned custom actor', () => {
+    const createActor = (latestValue: string) =>
+      toActorRef({
         send: () => {},
         subscribe: () => {
           return { unsubscribe: () => {} };
-        }
-      }),
-      latestValue
-    });
+        },
+        getSnapshot: () => latestValue
+      });
 
     const parentMachine = createMachine({
       schema: {
@@ -214,19 +212,12 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     });
 
     const identitySelector = (value: any) => value;
-    const getSnapshot = (actor: ReturnType<typeof createActor>) =>
-      actor.latestValue;
 
     const App = () => {
       const [state] = useMachine(parentMachine);
       const actor = state.context.childActor;
 
-      const value = useSelector(
-        actor,
-        identitySelector,
-        undefined,
-        getSnapshot
-      );
+      const value = useSelector(actor, identitySelector);
 
       return <>{value}</>;
     };
@@ -279,8 +270,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     expect(container.textContent).toEqual('second 0');
   });
 
-  // TODO: subscribers are called before `.current` is asigned in the Actor class and thus `getSnapshot` ends up reading a stale value
-  it.skip('should use a fresh selector for subscription updates after selector change', () => {
+  it('should use a fresh selector for subscription updates after selector change', () => {
     const childMachine = createMachine<{ count: number }>({
       context: {
         count: 0
@@ -336,15 +326,14 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   });
 
   it("should render snapshot value when actor doesn't emit anything", () => {
-    const createActor = (latestValue: string) => ({
-      ...toActorRef({
+    const createActor = (latestValue: string) =>
+      toActorRef({
         send: () => {},
         subscribe: () => {
           return { unsubscribe: () => {} };
-        }
-      }),
-      latestValue
-    });
+        },
+        getSnapshot: () => latestValue
+      });
 
     const parentMachine = createMachine({
       schema: {
@@ -358,19 +347,12 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     });
 
     const identitySelector = (value: any) => value;
-    const getSnapshot = (actor: ReturnType<typeof createActor>) =>
-      actor.latestValue;
 
     const App = () => {
       const [state] = useMachine(parentMachine);
       const actor = state.context.childActor;
 
-      const value = useSelector(
-        actor,
-        identitySelector,
-        undefined,
-        getSnapshot
-      );
+      const value = useSelector(actor, identitySelector);
 
       return <>{value}</>;
     };
@@ -380,29 +362,24 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   });
 
   it('should render snapshot state when actor changes', () => {
-    const createActor = (latestValue: string) => ({
-      ...toActorRef({
+    const createActor = (latestValue: string) =>
+      toActorRef({
         send: () => {},
         subscribe: () => {
           return { unsubscribe: () => {} };
-        }
-      }),
-      latestValue
-    });
+        },
+        getSnapshot: () => latestValue
+      });
 
     const actor1 = createActor('foo');
     const actor2 = createActor('bar');
 
     const identitySelector = (value: any) => value;
-    const getSnapshot = (actor: ReturnType<typeof createActor>) =>
-      actor.latestValue;
 
     const App = ({ prop }: { prop: string }) => {
       const value = useSelector(
         prop === 'first' ? actor1 : actor2,
-        identitySelector,
-        undefined,
-        getSnapshot
+        identitySelector
       );
 
       return <>{value}</>;

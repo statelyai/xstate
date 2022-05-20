@@ -328,7 +328,12 @@ export class StateMachine<
       undefined
     );
     nextState.actions.unshift(...preInitialState.actions);
-    return macrostep(nextState, null as any, this) as StateFrom<typeof this>;
+
+    const macroState = macrostep(nextState, null as any, this) as StateFrom<
+      typeof this
+    >;
+    macroState.changed = undefined;
+    return macroState;
   }
 
   public getStateNodeById(stateId: string): StateNode<TContext, TEvent> {

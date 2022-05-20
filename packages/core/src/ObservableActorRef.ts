@@ -6,14 +6,13 @@ import {
   ActorContext,
   Observer
 } from './types';
-import { symbolObservable, toSCXMLEvent } from './utils';
+import { symbolObservable, toObserver, toSCXMLEvent } from './utils';
 import { Mailbox } from './Mailbox';
 import { LifecycleSignal, startSignal, stopSignal } from './actors';
 
 export class ObservableActorRef<TEvent extends EventObject, TSnapshot>
   implements ActorRef<TEvent, TSnapshot> {
   private current: TSnapshot;
-  public deferred = true;
   private context: ActorContext<TEvent, TSnapshot>;
   private mailbox = new Mailbox(this._process.bind(this));
   private _observers = new Set<Observer<TSnapshot>>();
@@ -30,8 +29,7 @@ export class ObservableActorRef<TEvent extends EventObject, TSnapshot>
     this.current = this.behavior.initialState;
   }
   public start() {
-    this.deferred = false;
-    this.mailbox.enqueue(startSignal);
+    this.mailbox.prepend(startSignal);
     this.mailbox.start();
 
     return this;
@@ -42,11 +40,12 @@ export class ObservableActorRef<TEvent extends EventObject, TSnapshot>
     return this;
   }
   public subscribe(observer) {
-    this._observers.add(observer);
+    const resolved = toObserver(observer);
+    this._observers.add(resolved);
 
     return {
       unsubscribe: () => {
-        this._observers.delete(observer);
+        this._observers.delete(resolved);
       }
     };
   }
@@ -65,7 +64,7 @@ export class ObservableActorRef<TEvent extends EventObject, TSnapshot>
   public [symbolObservable]() {
     return this;
   }
-  public receive(event: TEvent | LifecycleSignal) {
+  private receive(event: TEvent | LifecycleSignal) {
     this.mailbox.enqueue(event);
   }
   private _process(event: TEvent | LifecycleSignal) {
@@ -74,6 +73,8 @@ export class ObservableActorRef<TEvent extends EventObject, TSnapshot>
         ? (event as LifecycleSignal)
         : toSCXMLEvent(event as TEvent);
 
+    const previous = this.current;
+
     this.current = this.behavior.transition(
       this.current,
       typeof this.context._event.type !== 'string'
@@ -81,5 +82,10 @@ export class ObservableActorRef<TEvent extends EventObject, TSnapshot>
         : (this.context._event as SCXML.Event<TEvent>).data,
       this.context
     );
+
+    if (previous !== this.current) {
+      const current = this.current;
+      this._observers.forEach((observer) => observer.next?.(current));
+    }
   }
 }

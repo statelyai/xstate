@@ -1,8 +1,9 @@
 import { onMounted, onBeforeUnmount, shallowRef } from 'vue';
 import { ActorRef, Subscribable } from 'xstate';
-import { defaultGetSnapshot } from './useActor';
 
-const defaultCompare = (a, b) => a === b;
+function defaultCompare<T>(a: T, b: T) {
+  return a === b;
+}
 
 export function useSelector<
   TActor extends ActorRef<any, any>,
@@ -11,10 +12,9 @@ export function useSelector<
 >(
   actor: TActor,
   selector: (snapshot: TSnapshot) => T,
-  compare: (a: T, b: T) => boolean = defaultCompare,
-  getSnapshot: (a: TActor) => TSnapshot = defaultGetSnapshot
+  compare: (a: T, b: T) => boolean = defaultCompare
 ) {
-  const selected = shallowRef(selector(getSnapshot(actor)));
+  const selected = shallowRef(selector(actor.getSnapshot()));
 
   const updateSelectedIfChanged = (nextSelected: T) => {
     if (!compare(selected.value, nextSelected)) {
@@ -24,7 +24,7 @@ export function useSelector<
 
   let sub;
   onMounted(() => {
-    const initialSelected = selector(getSnapshot(actor));
+    const initialSelected = selector(actor.getSnapshot());
     updateSelectedIfChanged(initialSelected);
     sub = actor.subscribe((emitted) => {
       const nextSelected = selector(emitted);
