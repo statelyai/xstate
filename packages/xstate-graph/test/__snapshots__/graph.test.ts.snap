@@ -97,15 +97,6 @@ Array [
     ],
   },
   Object {
-    "state": "green",
-    "steps": Array [
-      Object {
-        "eventType": "PUSH_BUTTON",
-        "state": "green",
-      },
-    ],
-  },
-  Object {
     "state": Object {
       "red": "walk",
     },
@@ -187,19 +178,6 @@ Array [
     ],
   },
   Object {
-    "state": "yellow",
-    "steps": Array [
-      Object {
-        "eventType": "PUSH_BUTTON",
-        "state": "green",
-      },
-      Object {
-        "eventType": "TIMER",
-        "state": "green",
-      },
-    ],
-  },
-  Object {
     "state": Object {
       "red": "flashing",
     },
@@ -308,164 +286,9 @@ Array [
   },
   Object {
     "state": Object {
-      "red": "flashing",
-    },
-    "steps": Array [
-      Object {
-        "eventType": "PUSH_BUTTON",
-        "state": "green",
-      },
-      Object {
-        "eventType": "TIMER",
-        "state": "green",
-      },
-      Object {
-        "eventType": "TIMER",
-        "state": "yellow",
-      },
-      Object {
-        "eventType": "PED_COUNTDOWN",
-        "state": Object {
-          "red": "walk",
-        },
-      },
-      Object {
-        "eventType": "PED_COUNTDOWN",
-        "state": Object {
-          "red": "wait",
-        },
-      },
-      Object {
-        "eventType": "POWER_OUTAGE",
-        "state": Object {
-          "red": "stop",
-        },
-      },
-    ],
-  },
-  Object {
-    "state": Object {
-      "red": "flashing",
-    },
-    "steps": Array [
-      Object {
-        "eventType": "PUSH_BUTTON",
-        "state": "green",
-      },
-      Object {
-        "eventType": "TIMER",
-        "state": "green",
-      },
-      Object {
-        "eventType": "TIMER",
-        "state": "yellow",
-      },
-      Object {
-        "eventType": "PED_COUNTDOWN",
-        "state": Object {
-          "red": "walk",
-        },
-      },
-      Object {
-        "eventType": "POWER_OUTAGE",
-        "state": Object {
-          "red": "wait",
-        },
-      },
-    ],
-  },
-  Object {
-    "state": Object {
-      "red": "flashing",
-    },
-    "steps": Array [
-      Object {
-        "eventType": "PUSH_BUTTON",
-        "state": "green",
-      },
-      Object {
-        "eventType": "TIMER",
-        "state": "green",
-      },
-      Object {
-        "eventType": "TIMER",
-        "state": "yellow",
-      },
-      Object {
-        "eventType": "POWER_OUTAGE",
-        "state": Object {
-          "red": "walk",
-        },
-      },
-    ],
-  },
-  Object {
-    "state": Object {
-      "red": "flashing",
-    },
-    "steps": Array [
-      Object {
-        "eventType": "PUSH_BUTTON",
-        "state": "green",
-      },
-      Object {
-        "eventType": "TIMER",
-        "state": "green",
-      },
-      Object {
-        "eventType": "POWER_OUTAGE",
-        "state": "yellow",
-      },
-    ],
-  },
-  Object {
-    "state": Object {
-      "red": "flashing",
-    },
-    "steps": Array [
-      Object {
-        "eventType": "PUSH_BUTTON",
-        "state": "green",
-      },
-      Object {
-        "eventType": "POWER_OUTAGE",
-        "state": "green",
-      },
-    ],
-  },
-  Object {
-    "state": "green",
-    "steps": Array [
-      Object {
-        "eventType": "PUSH_BUTTON",
-        "state": "green",
-      },
-    ],
-  },
-  Object {
-    "state": Object {
       "red": "walk",
     },
     "steps": Array [
-      Object {
-        "eventType": "TIMER",
-        "state": "green",
-      },
-      Object {
-        "eventType": "TIMER",
-        "state": "yellow",
-      },
-    ],
-  },
-  Object {
-    "state": Object {
-      "red": "walk",
-    },
-    "steps": Array [
-      Object {
-        "eventType": "PUSH_BUTTON",
-        "state": "green",
-      },
       Object {
         "eventType": "TIMER",
         "state": "green",
@@ -499,65 +322,9 @@ Array [
   },
   Object {
     "state": Object {
-      "red": "wait",
-    },
-    "steps": Array [
-      Object {
-        "eventType": "PUSH_BUTTON",
-        "state": "green",
-      },
-      Object {
-        "eventType": "TIMER",
-        "state": "green",
-      },
-      Object {
-        "eventType": "TIMER",
-        "state": "yellow",
-      },
-      Object {
-        "eventType": "PED_COUNTDOWN",
-        "state": Object {
-          "red": "walk",
-        },
-      },
-    ],
-  },
-  Object {
-    "state": Object {
       "red": "stop",
     },
     "steps": Array [
-      Object {
-        "eventType": "TIMER",
-        "state": "green",
-      },
-      Object {
-        "eventType": "TIMER",
-        "state": "yellow",
-      },
-      Object {
-        "eventType": "PED_COUNTDOWN",
-        "state": Object {
-          "red": "walk",
-        },
-      },
-      Object {
-        "eventType": "PED_COUNTDOWN",
-        "state": Object {
-          "red": "wait",
-        },
-      },
-    ],
-  },
-  Object {
-    "state": Object {
-      "red": "stop",
-    },
-    "steps": Array [
-      Object {
-        "eventType": "PUSH_BUTTON",
-        "state": "green",
-      },
       Object {
         "eventType": "TIMER",
         "state": "green",

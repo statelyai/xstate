@@ -283,7 +283,6 @@ describe('@xstate/graph', () => {
           Object {
             "red": "flashing",
           },
-          "green",
           Object {
             "red": "walk",
           },
