@@ -28,7 +28,7 @@ const multiPathMachine = createTestMachine({
 });
 
 describe('testModel.testPaths(...)', () => {
-  it('custom plan generators can be provided', async () => {
+  it('custom path generators can be provided', async () => {
     const testModel = createTestModel(
       createTestMachine({
         initial: 'a',

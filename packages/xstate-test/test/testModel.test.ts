@@ -24,9 +24,9 @@ describe('custom test models', () => {
       }
     );
 
-    const plans = model.getShortestPathsTo((state) => state === 1);
+    const paths = model.getShortestPathsTo((state) => state === 1);
 
-    expect(plans.length).toBeGreaterThan(0);
+    expect(paths.length).toBeGreaterThan(0);
   });
 
   it('tests states for any behavior', async () => {
@@ -72,9 +72,9 @@ describe('custom test models', () => {
       }
     );
 
-    const plans = model.getShortestPathsTo((state) => state === 1);
+    const paths = model.getShortestPathsTo((state) => state === 1);
 
-    await testUtils.testPaths(model, plans);
+    await testUtils.testPaths(model, paths);
 
     expect(testedStateKeys).toContain('even');
     expect(testedStateKeys).toContain('odd');

@@ -49,7 +49,7 @@ export const testModelDefaults: TestModelDefaults<any, any> = {
  * Creates a test model that represents an abstract model of a
  * system under test (SUT).
  *
- * The test model is used to generate test plans, which are used to
+ * The test model is used to generate test paths, which are used to
  * verify that states in the model are reachable in the SUT.
  */
 export class TestModel<TState, TEvent extends EventObject> {
@@ -453,7 +453,7 @@ export class TestModel<TState, TEvent extends EventObject> {
 }
 
 /**
- * Specifies default configuration for `TestModel` instances for coverage and plan generation options
+ * Specifies default configuration for `TestModel` instances for coverage and path generation options
  *
  * @param testModelConfiguration The partial configuration for all subsequent `TestModel` instances
  */

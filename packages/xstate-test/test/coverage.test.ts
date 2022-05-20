@@ -32,8 +32,8 @@ describe('coverage', () => {
 
     const paths = testModel.getShortestPaths();
 
-    for (const plan of paths) {
-      await testModel.testPath(plan);
+    for (const path of paths) {
+      await testModel.testPath(path);
     }
 
     expect(
@@ -177,8 +177,8 @@ describe('coverage', () => {
     const model = createTestModel(machine);
     const shortestPaths = model.getShortestPaths();
 
-    for (const plan of shortestPaths) {
-      await model.testPath(plan);
+    for (const path of shortestPaths) {
+      await model.testPath(path);
     }
 
     // TODO: determine how to handle missing coverage for transient states,
