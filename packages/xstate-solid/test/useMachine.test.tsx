@@ -467,10 +467,11 @@ describe('useMachine hook', () => {
       const [state, send] = useMachine(machine);
       createEffect(
         on(
-          () => state.context.item.counts,
+          () => [...state.context.item.counts],
           () => {
             setStateCount((c) => c + 1);
-          }
+          },
+          { defer: true }
         )
       );
       onMount(() => {

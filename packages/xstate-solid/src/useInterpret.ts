@@ -123,5 +123,5 @@ export function useInterpret<TMachine extends AnyStateMachine>(
     sub?.unsubscribe();
   });
 
-  return (service as unknown) as InterpreterFrom<TMachine>;
+  return service as InterpreterFrom<TMachine>;
 }
