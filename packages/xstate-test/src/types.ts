@@ -5,7 +5,6 @@ import {
   TraversalOptions
 } from '@xstate/graph';
 import {
-  AnyState,
   BaseActionObject,
   EventObject,
   ExtractEvent,
@@ -71,13 +70,6 @@ export interface TestMeta<T, TContext> {
   description?: string | ((state: State<TContext, any>) => string);
   skip?: boolean;
 }
-interface TestStep<T> {
-  state: AnyState;
-  event: EventObject;
-  description: string;
-  test: (testContext: T) => Promise<void>;
-  exec: (testContext: T) => Promise<void>;
-}
 interface TestStateResult {
   error: null | Error;
 }
@@ -88,15 +80,15 @@ export interface TestStepResult {
     error: null | Error;
   };
 }
-export interface TestPath<T> {
-  weight: number;
-  steps: Array<TestStep<T>>;
+export interface TestPath<TState, TEvent extends EventObject>
+  extends StatePath<TState, TEvent> {
   description: string;
   /**
    * Tests and executes each step in `steps` sequentially, and then
    * tests the postcondition that the `state` is reached.
    */
-  test: (testContext: T) => Promise<TestPathResult>;
+  test: () => Promise<TestPathResult>;
+  testSync: () => TestPathResult;
 }
 export interface TestPathResult {
   steps: TestStepResult[];

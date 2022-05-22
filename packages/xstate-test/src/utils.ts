@@ -96,9 +96,9 @@ export function getDescription<T, TContext>(state: AnyState): string {
     });
 
   return (
-    `state${stateStrings.length === 1 ? '' : 's'}: ` +
+    `state${stateStrings.length === 1 ? '' : 's'} ` +
     stateStrings.join(', ') +
-    ` ${contextString}`
+    ` ${contextString}`.trim()
   );
 }
 

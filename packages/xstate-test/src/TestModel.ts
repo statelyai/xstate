@@ -10,6 +10,7 @@ import {
   traverseSimplePathsTo
 } from '@xstate/graph';
 import { EventObject } from 'xstate';
+import { isStateLike } from 'xstate/src/utils';
 import { pathGeneratorWithDedup } from './dedupPaths';
 import { getShortestPaths, getSimplePaths } from './pathGenerators';
 import type {
@@ -18,11 +19,13 @@ import type {
   PathGenerator,
   StatePredicate,
   TestModelOptions,
+  TestPath,
   TestPathResult,
   TestStepResult
 } from './types';
 import {
   formatPathTestResult,
+  getDescription,
   mapPlansToPaths,
   simpleStringify
 } from './utils';
@@ -75,26 +78,26 @@ export class TestModel<TState, TEvent extends EventObject> {
 
   public getShortestPaths(
     options?: Partial<TraversalOptions<TState, TEvent>>
-  ): Array<StatePath<TState, TEvent>> {
+  ): Array<TestPath<TState, TEvent>> {
     return this.getPaths({ ...options, pathGenerator: getShortestPaths });
   }
 
   public getPaths(
     options?: Partial<GetPathsOptions<TState, TEvent>>
-  ): Array<StatePath<TState, TEvent>> {
+  ): Array<TestPath<TState, TEvent>> {
     const pathGenerator = pathGeneratorWithDedup<TState, TEvent>(
       options?.pathGenerator || TestModel.defaults.pathGenerator
     );
     const paths = pathGenerator(this.behavior, this.resolveOptions(options));
 
-    return paths;
+    return paths.map(this.toTestPath);
   }
 
   public getShortestPathsTo(
     statePredicate: StatePredicate<TState>
-  ): Array<StatePath<TState, TEvent>> {
+  ): Array<TestPath<TState, TEvent>> {
     let minWeight = Infinity;
-    let shortestPaths: Array<StatePath<TState, TEvent>> = [];
+    let shortestPaths: Array<TestPath<TState, TEvent>> = [];
 
     const paths = this.filterPathsTo(statePredicate, this.getShortestPaths());
 
@@ -113,7 +116,7 @@ export class TestModel<TState, TEvent extends EventObject> {
 
   public getSimplePaths(
     options?: Partial<TraversalOptions<TState, any>>
-  ): Array<StatePath<TState, TEvent>> {
+  ): Array<TestPath<TState, TEvent>> {
     return this.getPaths({
       ...options,
       pathGenerator: getSimplePaths
@@ -122,16 +125,16 @@ export class TestModel<TState, TEvent extends EventObject> {
 
   public getSimplePathsTo(
     predicate: StatePredicate<TState>
-  ): Array<StatePath<TState, TEvent>> {
+  ): Array<TestPath<TState, TEvent>> {
     return mapPlansToPaths(
       traverseSimplePathsTo(this.behavior, predicate, this.options)
-    );
+    ).map(this.toTestPath);
   }
 
   private filterPathsTo(
     statePredicate: StatePredicate<TState>,
-    testPaths: Array<StatePath<TState, TEvent>>
-  ): Array<StatePath<TState, TEvent>> {
+    testPaths: Array<TestPath<TState, TEvent>>
+  ): Array<TestPath<TState, TEvent>> {
     const predicate: StatePredicate<TState> = (state) => statePredicate(state);
 
     return testPaths.filter((testPath) => {
@@ -139,10 +142,38 @@ export class TestModel<TState, TEvent extends EventObject> {
     });
   }
 
+  private toTestPath = (
+    statePath: StatePath<TState, TEvent>
+  ): TestPath<TState, TEvent> => {
+    function formatEvent(event: EventObject): string {
+      const { type, ...other } = event;
+
+      const propertyString = Object.keys(other).length
+        ? ` (${JSON.stringify(other)})`
+        : '';
+
+      return `${type}${propertyString}`;
+    }
+
+    const eventsString = statePath.steps
+      .map((s) => formatEvent(s.event))
+      .join(' → ');
+    return {
+      ...statePath,
+      test: () => this.testPath(statePath),
+      testSync: () => this.testPathSync(statePath),
+      description: isStateLike(statePath.state)
+        ? `Reaches ${getDescription(
+            statePath.state as any
+          ).trim()}: ${eventsString}`
+        : JSON.stringify(statePath.state)
+    };
+  };
+
   public getPathFromEvents(
     events: TEvent[],
     statePredicate: StatePredicate<TState>
-  ): StatePath<TState, TEvent> {
+  ): TestPath<TState, TEvent> {
     const path = getPathFromEvents(this.behavior, events);
 
     if (!statePredicate(path.state)) {
@@ -153,7 +184,7 @@ export class TestModel<TState, TEvent extends EventObject> {
       );
     }
 
-    return path;
+    return this.toTestPath(path);
   }
 
   public getAllStates(): TState[] {
@@ -164,7 +195,7 @@ export class TestModel<TState, TEvent extends EventObject> {
   public testPathSync(
     path: StatePath<TState, TEvent>,
     options?: Partial<TestModelOptions<TState, TEvent>>
-  ) {
+  ): TestPathResult {
     const testPathResult: TestPathResult = {
       steps: [],
       state: {
@@ -210,12 +241,14 @@ export class TestModel<TState, TEvent extends EventObject> {
       err.message += formatPathTestResult(path, testPathResult, this.options);
       throw err;
     }
+
+    return testPathResult;
   }
 
   public async testPath(
     path: StatePath<TState, TEvent>,
     options?: Partial<TestModelOptions<TState, TEvent>>
-  ) {
+  ): Promise<TestPathResult> {
     const testPathResult: TestPathResult = {
       steps: [],
       state: {
@@ -261,6 +294,8 @@ export class TestModel<TState, TEvent extends EventObject> {
       err.message += formatPathTestResult(path, testPathResult, this.options);
       throw err;
     }
+
+    return testPathResult;
   }
 
   public async testState(

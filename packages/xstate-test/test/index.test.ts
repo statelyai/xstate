@@ -128,7 +128,7 @@ describe('events', () => {
 
     expect(paths.length).toBe(3);
 
-    await testUtils.testPaths(testModel, paths);
+    await testUtils.testPaths(paths);
 
     expect(testedEvents).toMatchInlineSnapshot(`
       Array [
@@ -291,7 +291,7 @@ it('tests transitions', async () => {
 
   const paths = model.getShortestPathsTo((state) => state.matches('second'));
 
-  await model.testPath(paths[0]);
+  await paths[0].test();
 });
 
 // https://github.com/statelyai/xstate/issues/982
