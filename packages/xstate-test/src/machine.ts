@@ -1,4 +1,4 @@
-import { EventCaseMap, serializeState, SimpleBehavior } from '@xstate/graph';
+import { serializeState, SimpleBehavior } from '@xstate/graph';
 import {
   ActionObject,
   AnyEventObject,
