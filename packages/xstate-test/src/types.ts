@@ -7,7 +7,6 @@ import {
 import {
   BaseActionObject,
   EventObject,
-  ExtractEvent,
   MachineConfig,
   MachineOptions,
   MachineSchema,
@@ -80,6 +79,16 @@ export interface TestStepResult {
     error: null | Error;
   };
 }
+
+export interface TestParam<TState, TEvent extends EventObject> {
+  states?: {
+    [key: string]: (state: TState) => void | Promise<void>;
+  };
+  events?: {
+    [TEventType in TEvent['type']]?: EventExecutor<TState, TEvent>;
+  };
+}
+
 export interface TestPath<TState, TEvent extends EventObject>
   extends StatePath<TState, TEvent> {
   description: string;
@@ -87,28 +96,13 @@ export interface TestPath<TState, TEvent extends EventObject>
    * Tests and executes each step in `steps` sequentially, and then
    * tests the postcondition that the `state` is reached.
    */
-  test: () => Promise<TestPathResult>;
-  testSync: () => TestPathResult;
+  test: (params: TestParam<TState, TEvent>) => Promise<TestPathResult>;
+  testSync: (params: TestParam<TState, TEvent>) => TestPathResult;
 }
 export interface TestPathResult {
   steps: TestStepResult[];
   state: TestStateResult;
 }
-
-/**
- * A sample event object payload (_without_ the `type` property).
- *
- * @example
- *
- * ```js
- * {
- *   value: 'testValue',
- *   other: 'something',
- *   id: 42
- * }
- * ```
- */
-type EventCase<TEvent extends EventObject> = Omit<TEvent, 'type'>;
 
 export type StatePredicate<TState> = (state: TState) => boolean;
 /**
@@ -118,47 +112,6 @@ export type StatePredicate<TState> = (state: TState) => boolean;
 export type EventExecutor<TState, TEvent extends EventObject> = (
   step: Step<TState, TEvent>
 ) => Promise<any> | void;
-
-export interface TestEventConfig<TState, TEvent extends EventObject> {
-  /**
-   * Executes an effect that triggers the represented event.
-   *
-   * @example
-   *
-   * ```js
-   * exec: async (page, event) => {
-   *   await page.type('.foo', event.value);
-   * }
-   * ```
-   */
-  exec?: EventExecutor<TState, TEvent>;
-  /**
-   * Sample event object payloads _without_ the `type` property.
-   *
-   * @example
-   *
-   * ```js
-   * cases: [
-   *   { value: 'foo' },
-   *   { value: '' }
-   * ]
-   * ```
-   */
-  cases?: Array<EventCase<TEvent>>;
-}
-
-export type TestEventsConfig<TState, TEvent extends EventObject> = {
-  [EventType in TEvent['type']]?:
-    | EventExecutor<TState, TEvent>
-    | TestEventConfig<TState, TEvent>;
-};
-
-export interface TestModelEventConfig<TState, TEvent extends EventObject> {
-  cases?:
-    | ((state: TState) => Array<EventCase<TEvent>>)
-    | Array<EventCase<TEvent>>;
-  exec?: EventExecutor<TState, TEvent>;
-}
 
 export interface TestModelOptions<TState, TEvent extends EventObject>
   extends TraversalOptions<TState, TEvent> {
@@ -170,14 +123,6 @@ export interface TestModelOptions<TState, TEvent extends EventObject>
   execute: (state: TState) => void;
   getStates: () => TState[];
   stateMatcher: (state: TState, stateKey: string) => boolean;
-  states: {
-    [key: string]: (state: TState) => void | Promise<void>;
-  };
-  events: {
-    [TEventType in TEvent['type']]?:
-      | EventExecutor<TState, TEvent>
-      | TestModelEventConfig<TState, ExtractEvent<TEvent, TEventType>>;
-  };
   logger: {
     log: (msg: string) => void;
     error: (msg: string) => void;

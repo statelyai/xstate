@@ -1,15 +1,21 @@
 import { TestModel } from './TestModel';
-import { TestPath } from './types';
+import { TestParam, TestPath } from './types';
 
-const testModel = async (model: TestModel<any, any>) => {
+const testModel = async (
+  model: TestModel<any, any>,
+  params: TestParam<any, any>
+) => {
   for (const path of model.getPaths()) {
-    await path.test();
+    await path.test(params);
   }
 };
 
-const testPaths = async (paths: TestPath<any, any>[]) => {
+const testPaths = async (
+  paths: TestPath<any, any>[],
+  params: TestParam<any, any>
+) => {
   for (const path of paths) {
-    await path.test();
+    await path.test(params);
   }
 };
 

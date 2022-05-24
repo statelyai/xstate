@@ -133,12 +133,28 @@ export interface VisitedContext<TState, TEvent> {
   a?: TState | TEvent; // TODO: remove
 }
 
-export interface SerializationOptions<TState, TEvent> {
+export interface SerializationOptions<TState, TEvent extends EventObject> {
+  eventCases: EventCaseMap<TState, TEvent>;
   serializeState: (state: TState, event: TEvent | null) => SerializedState;
   serializeEvent: (event: TEvent) => SerializedEvent;
 }
 
-export interface TraversalOptions<TState, TEvent>
+/**
+ * A sample event object payload (_without_ the `type` property).
+ *
+ * @example
+ *
+ * ```js
+ * {
+ *   value: 'testValue',
+ *   other: 'something',
+ *   id: 42
+ * }
+ * ```
+ */
+type EventCase<TEvent extends EventObject> = Omit<TEvent, 'type'>;
+
+export interface TraversalOptions<TState, TEvent extends EventObject>
   extends SerializationOptions<TState, TEvent> {
   visitCondition?: (
     state: TState,
@@ -146,7 +162,7 @@ export interface TraversalOptions<TState, TEvent>
     vctx: VisitedContext<TState, TEvent>
   ) => boolean;
   filter?: (state: TState, event: TEvent) => boolean;
-  getEvents?: (state: TState) => TEvent[];
+  getEvents?: (cases: EventCaseMap<TState, TEvent>, state: TState) => TEvent[];
   /**
    * The maximum number of traversals to perform when calculating
    * the state transition adjacency map.
@@ -155,6 +171,12 @@ export interface TraversalOptions<TState, TEvent>
    */
   traversalLimit?: number;
 }
+
+export type EventCaseMap<TState, TEvent extends EventObject> = {
+  [TEventType in TEvent['type']]?:
+    | ((state: TState) => Array<EventCase<TEvent>>)
+    | Array<EventCase<TEvent>>;
+};
 
 type Brand<T, Tag extends string> = T & { __tag: Tag };
 

@@ -13,46 +13,26 @@ const machine = createMachine({
   }
 });
 
-const promiseStateModel = createTestModel(machine, {
-  states: {
-    a: async () => {},
-    b: () => {}
-  },
-  events: {
-    EVENT: () => {}
-  }
-});
+const promiseStateModel = createTestModel(machine);
 
-const promiseEventModel = createTestModel(machine, {
-  states: {
-    a: () => {},
-    b: () => {}
-  },
-  events: {
-    EVENT: {
-      exec: async () => {}
-    }
-  }
-});
+const promiseEventModel = createTestModel(machine);
 
-const syncModel = createTestModel(machine, {
-  states: {
-    a: () => {},
-    b: () => {}
-  },
-  events: {
-    EVENT: {
-      exec: () => {}
-    }
-  }
-});
+const syncModel = createTestModel(machine);
 
 describe('.testPathSync', () => {
   it('Should error if it encounters a promise in a state', () => {
     expect(() =>
-      promiseStateModel
-        .getPaths()
-        .forEach((path) => promiseStateModel.testPathSync(path))
+      promiseStateModel.getPaths().forEach((path) =>
+        promiseStateModel.testPathSync(path, {
+          states: {
+            a: async () => {},
+            b: () => {}
+          },
+          events: {
+            EVENT: () => {}
+          }
+        })
+      )
     ).toThrowError(
       `The test for 'a' returned a promise - did you mean to use the sync method?`
     );
@@ -60,9 +40,17 @@ describe('.testPathSync', () => {
 
   it('Should error if it encounters a promise in an event', () => {
     expect(() =>
-      promiseEventModel
-        .getPaths()
-        .forEach((path) => promiseEventModel.testPathSync(path))
+      promiseEventModel.getPaths().forEach((path) =>
+        promiseEventModel.testPathSync(path, {
+          states: {
+            a: () => {},
+            b: () => {}
+          },
+          events: {
+            EVENT: async () => {}
+          }
+        })
+      )
     ).toThrowError(
       `The event 'EVENT' returned a promise - did you mean to use the sync method?`
     );
@@ -70,7 +58,17 @@ describe('.testPathSync', () => {
 
   it('Should succeed if it encounters no promises', () => {
     expect(() =>
-      syncModel.getPaths().forEach((path) => syncModel.testPathSync(path))
+      syncModel.getPaths().forEach((path) =>
+        syncModel.testPathSync(path, {
+          states: {
+            a: () => {},
+            b: () => {}
+          },
+          events: {
+            EVENT: () => {}
+          }
+        })
+      )
     ).not.toThrow();
   });
 });

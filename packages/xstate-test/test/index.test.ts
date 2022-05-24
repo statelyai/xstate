@@ -59,12 +59,12 @@ describe('events', () => {
     });
 
     const testModel = createTestModel(feedbackMachine, {
-      events: {
-        SUBMIT: { cases: [{ value: 'something' }, { value: '' }] }
+      eventCases: {
+        SUBMIT: [{ value: 'something' }, { value: '' }]
       }
     });
 
-    await testUtils.testModel(testModel);
+    await testUtils.testModel(testModel, {});
   });
 
   it('should not throw an error for unimplemented events', () => {
@@ -81,18 +81,19 @@ describe('events', () => {
     const testModel = createTestModel(testMachine);
 
     expect(async () => {
-      await testUtils.testModel(testModel);
+      await testUtils.testModel(testModel, {});
     }).not.toThrow();
   });
 
   it('should allow for dynamic generation of cases based on state', async () => {
+    const values = [1, 2, 3];
     const testMachine = createMachine<
       { values: number[] },
       { type: 'EVENT'; value: number }
     >({
       initial: 'a',
       context: {
-        values: [1, 2, 3] // to be read by generator
+        values // to be read by generator
       },
       states: {
         a: {
@@ -113,14 +114,8 @@ describe('events', () => {
     const testedEvents: any[] = [];
 
     const testModel = createTestModel(testMachine, {
-      events: {
-        EVENT: {
-          // Read dynamically from state context
-          cases: (state) => state.context.values.map((value) => ({ value })),
-          exec: ({ event }) => {
-            testedEvents.push(event);
-          }
-        }
+      eventCases: {
+        EVENT: (state) => state.context.values.map((value) => ({ value }))
       }
     });
 
@@ -128,7 +123,13 @@ describe('events', () => {
 
     expect(paths.length).toBe(3);
 
-    await testUtils.testPaths(paths);
+    await testUtils.testPaths(paths, {
+      events: {
+        EVENT: ({ event }) => {
+          testedEvents.push(event);
+        }
+      }
+    });
 
     expect(testedEvents).toMatchInlineSnapshot(`
       Array [
@@ -228,7 +229,7 @@ it('executes actions', async () => {
 
   const model = createTestModel(machine);
 
-  await testUtils.testModel(model);
+  await testUtils.testModel(model, {});
 
   expect(executedActive).toBe(true);
   expect(executedDone).toBe(true);
@@ -249,17 +250,16 @@ describe('test model options', () => {
           },
           active: {}
         }
-      }),
-      {
-        states: {
-          '*': (state) => {
-            testedStates.push(state.value);
-          }
-        }
-      }
+      })
     );
 
-    await testUtils.testModel(model);
+    await testUtils.testModel(model, {
+      states: {
+        '*': (state) => {
+          testedStates.push(state.value);
+        }
+      }
+    });
 
     expect(testedStates).toEqual(['inactive', 'active']);
   });
@@ -278,20 +278,18 @@ it('tests transitions', async () => {
     }
   });
 
-  const model = createTestModel(machine, {
-    events: {
-      NEXT: {
-        exec: (step) => {
-          expect(step).toHaveProperty('event');
-          expect(step).toHaveProperty('state');
-        }
-      }
-    }
-  });
+  const model = createTestModel(machine);
 
   const paths = model.getShortestPathsTo((state) => state.matches('second'));
 
-  await paths[0].test();
+  await paths[0].test({
+    events: {
+      NEXT: (step) => {
+        expect(step).toHaveProperty('event');
+        expect(step).toHaveProperty('state');
+      }
+    }
+  });
 });
 
 // https://github.com/statelyai/xstate/issues/982
@@ -311,10 +309,18 @@ it('Event in event executor should contain payload from case', async () => {
   const nonSerializableData = () => 42;
 
   const model = createTestModel(machine, {
-    events: {
-      NEXT: {
-        cases: [{ payload: 10, fn: nonSerializableData }],
-        exec: (step) => {
+    eventCases: {
+      NEXT: [{ payload: 10, fn: nonSerializableData }]
+    }
+  });
+
+  const paths = model.getShortestPathsTo((state) => state.matches('second'));
+
+  await model.testPath(
+    paths[0],
+    {
+      events: {
+        NEXT: (step) => {
           expect(step.event).toEqual({
             type: 'NEXT',
             payload: 10,
@@ -322,12 +328,9 @@ it('Event in event executor should contain payload from case', async () => {
           });
         }
       }
-    }
-  });
-
-  const paths = model.getShortestPathsTo((state) => state.matches('second'));
-
-  await model.testPath(paths[0], obj);
+    },
+    obj
+  );
 });
 
 describe('state tests', () => {
@@ -346,7 +349,9 @@ describe('state tests', () => {
       }
     });
 
-    const model = createTestModel(machine, {
+    const model = createTestModel(machine);
+
+    await testUtils.testModel(model, {
       states: {
         a: (state) => {
           expect(state.value).toEqual('a');
@@ -356,8 +361,6 @@ describe('state tests', () => {
         }
       }
     });
-
-    await testUtils.testModel(model);
   });
 
   it('should test wildcard state for non-matching states', async () => {
@@ -377,7 +380,9 @@ describe('state tests', () => {
       }
     });
 
-    const model = createTestModel(machine, {
+    const model = createTestModel(machine);
+
+    await testUtils.testModel(model, {
       states: {
         a: (state) => {
           expect(state.value).toEqual('a');
@@ -390,8 +395,6 @@ describe('state tests', () => {
         }
       }
     });
-
-    await testUtils.testModel(model);
   });
 
   it('should test nested states', async () => {
@@ -412,7 +415,9 @@ describe('state tests', () => {
       }
     });
 
-    const model = createTestModel(machine, {
+    const model = createTestModel(machine);
+
+    await testUtils.testModel(model, {
       states: {
         a: (state) => {
           testedStateValues.push('a');
@@ -428,8 +433,6 @@ describe('state tests', () => {
         }
       }
     });
-
-    await testUtils.testModel(model);
     expect(testedStateValues).toMatchInlineSnapshot(`
       Array [
         "a",
