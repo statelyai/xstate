@@ -19,6 +19,7 @@ import type {
   PathGenerator,
   StatePredicate,
   TestModelOptions,
+  TestParam,
   TestPath,
   TestPathResult,
   TestStepResult
@@ -53,10 +54,9 @@ export class TestModel<TState, TEvent extends EventObject> {
       serializeState: (state) => simpleStringify(state) as SerializedState,
       serializeEvent: (event) => simpleStringify(event) as SerializedEvent,
       getEvents: () => [],
-      states: {},
-      events: {},
       stateMatcher: (_, stateKey) => stateKey === '*',
       getStates: () => [],
+      eventCases: {},
       execute: () => void 0,
       logger: {
         log: console.log.bind(console),
@@ -160,8 +160,10 @@ export class TestModel<TState, TEvent extends EventObject> {
       .join(' → ');
     return {
       ...statePath,
-      test: () => this.testPath(statePath),
-      testSync: () => this.testPathSync(statePath),
+      test: (params: TestParam<TState, TEvent>) =>
+        this.testPath(statePath, params),
+      testSync: (params: TestParam<TState, TEvent>) =>
+        this.testPathSync(statePath, params),
       description: isStateLike(statePath.state)
         ? `Reaches ${getDescription(
             statePath.state as any
@@ -194,6 +196,7 @@ export class TestModel<TState, TEvent extends EventObject> {
 
   public testPathSync(
     path: StatePath<TState, TEvent>,
+    params: TestParam<TState, TEvent>,
     options?: Partial<TestModelOptions<TState, TEvent>>
   ): TestPathResult {
     const testPathResult: TestPathResult = {
@@ -214,7 +217,7 @@ export class TestModel<TState, TEvent extends EventObject> {
         testPathResult.steps.push(testStepResult);
 
         try {
-          this.testStateSync(step.state, options);
+          this.testStateSync(params, step.state, options);
         } catch (err) {
           testStepResult.state.error = err;
 
@@ -222,7 +225,7 @@ export class TestModel<TState, TEvent extends EventObject> {
         }
 
         try {
-          this.testTransitionSync(step);
+          this.testTransitionSync(params, step);
         } catch (err) {
           testStepResult.event.error = err;
 
@@ -231,7 +234,7 @@ export class TestModel<TState, TEvent extends EventObject> {
       }
 
       try {
-        this.testStateSync(path.state, options);
+        this.testStateSync(params, path.state, options);
       } catch (err) {
         testPathResult.state.error = err.message;
         throw err;
@@ -247,6 +250,7 @@ export class TestModel<TState, TEvent extends EventObject> {
 
   public async testPath(
     path: StatePath<TState, TEvent>,
+    params: TestParam<TState, TEvent>,
     options?: Partial<TestModelOptions<TState, TEvent>>
   ): Promise<TestPathResult> {
     const testPathResult: TestPathResult = {
@@ -267,7 +271,7 @@ export class TestModel<TState, TEvent extends EventObject> {
         testPathResult.steps.push(testStepResult);
 
         try {
-          await this.testState(step.state, options);
+          await this.testState(params, step.state, options);
         } catch (err) {
           testStepResult.state.error = err;
 
@@ -275,7 +279,7 @@ export class TestModel<TState, TEvent extends EventObject> {
         }
 
         try {
-          await this.testTransition(step);
+          await this.testTransition(params, step);
         } catch (err) {
           testStepResult.event.error = err;
 
@@ -284,7 +288,7 @@ export class TestModel<TState, TEvent extends EventObject> {
       }
 
       try {
-        await this.testState(path.state, options);
+        await this.testState(params, path.state, options);
       } catch (err) {
         testPathResult.state.error = err.message;
         throw err;
@@ -299,32 +303,33 @@ export class TestModel<TState, TEvent extends EventObject> {
   }
 
   public async testState(
+    params: TestParam<TState, TEvent>,
     state: TState,
     options?: Partial<TestModelOptions<TState, TEvent>>
   ): Promise<void> {
     const resolvedOptions = this.resolveOptions(options);
 
-    const stateTestKeys = this.getStateTestKeys(state, resolvedOptions);
+    const stateTestKeys = this.getStateTestKeys(params, state, resolvedOptions);
 
     for (const stateTestKey of stateTestKeys) {
-      await resolvedOptions.states[stateTestKey](state);
+      await params.states?.[stateTestKey](state);
     }
 
     this.afterTestState(state, resolvedOptions);
   }
 
   private getStateTestKeys(
+    params: TestParam<TState, TEvent>,
     state: TState,
     resolvedOptions: TestModelOptions<TState, TEvent>
   ) {
-    const stateTestKeys = Object.keys(resolvedOptions.states).filter(
-      (stateKey) => {
-        return resolvedOptions.stateMatcher(state, stateKey);
-      }
-    );
+    const states = params.states || {};
+    const stateTestKeys = Object.keys(states).filter((stateKey) => {
+      return resolvedOptions.stateMatcher(state, stateKey);
+    });
 
     // Fallthrough state tests
-    if (!stateTestKeys.length && '*' in resolvedOptions.states) {
+    if (!stateTestKeys.length && '*' in states) {
       stateTestKeys.push('*');
     }
 
@@ -339,16 +344,17 @@ export class TestModel<TState, TEvent extends EventObject> {
   }
 
   public testStateSync(
+    params: TestParam<TState, TEvent>,
     state: TState,
     options?: Partial<TestModelOptions<TState, TEvent>>
   ): void {
     const resolvedOptions = this.resolveOptions(options);
 
-    const stateTestKeys = this.getStateTestKeys(state, resolvedOptions);
+    const stateTestKeys = this.getStateTestKeys(params, state, resolvedOptions);
 
     for (const stateTestKey of stateTestKeys) {
       errorIfPromise(
-        resolvedOptions.states[stateTestKey](state),
+        params.states?.[stateTestKey](state),
         `The test for '${stateTestKey}' returned a promise - did you mean to use the sync method?`
       );
     }
@@ -356,24 +362,29 @@ export class TestModel<TState, TEvent extends EventObject> {
     this.afterTestState(state, resolvedOptions);
   }
 
-  private getEventExec(step: Step<TState, TEvent>) {
-    const eventConfig = this.options.events?.[
-      (step.event as any).type as TEvent['type']
-    ];
-
+  private getEventExec(
+    params: TestParam<TState, TEvent>,
+    step: Step<TState, TEvent>
+  ) {
     const eventExec =
-      typeof eventConfig === 'function' ? eventConfig : eventConfig?.exec;
+      params.events?.[(step.event as any).type as TEvent['type']];
 
     return eventExec;
   }
 
-  public async testTransition(step: Step<TState, TEvent>): Promise<void> {
-    const eventExec = this.getEventExec(step);
+  public async testTransition(
+    params: TestParam<TState, TEvent>,
+    step: Step<TState, TEvent>
+  ): Promise<void> {
+    const eventExec = this.getEventExec(params, step);
     await (eventExec as EventExecutor<TState, TEvent>)?.(step);
   }
 
-  public testTransitionSync(step: Step<TState, TEvent>): void {
-    const eventExec = this.getEventExec(step);
+  public testTransitionSync(
+    params: TestParam<TState, TEvent>,
+    step: Step<TState, TEvent>
+  ): void {
+    const eventExec = this.getEventExec(params, step);
 
     errorIfPromise(
       (eventExec as EventExecutor<TState, TEvent>)?.(step),

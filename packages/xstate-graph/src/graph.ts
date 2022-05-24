@@ -173,6 +173,7 @@ export function getAdjacencyMap<TMachine extends AnyStateMachine>(
 const defaultMachineStateOptions: TraversalOptions<State<any, any>, any> = {
   serializeState: serializeMachineState,
   serializeEvent,
+  eventCases: {},
   getEvents: (state) => {
     return state.nextEvents.map((type) => ({ type }));
   }
@@ -420,7 +421,7 @@ interface AdjMap<TState, TEvent> {
   };
 }
 
-export function performDepthFirstTraversal<TState, TEvent>(
+export function performDepthFirstTraversal<TState, TEvent extends EventObject>(
   behavior: SimpleBehavior<TState, TEvent>,
   options: TraversalOptions<TState, TEvent>
 ): AdjMap<TState, TEvent> {
@@ -428,6 +429,7 @@ export function performDepthFirstTraversal<TState, TEvent>(
   const {
     serializeState,
     getEvents,
+    eventCases,
     traversalLimit: limit
   } = resolveTraversalOptions(options);
   const adj: AdjMap<TState, TEvent> = {};
@@ -452,7 +454,7 @@ export function performDepthFirstTraversal<TState, TEvent>(
       transitions: {}
     };
 
-    const events = getEvents(state);
+    const events = getEvents(state, eventCases);
 
     for (const subEvent of events) {
       const nextState = transition(state, subEvent);
@@ -472,7 +474,7 @@ export function performDepthFirstTraversal<TState, TEvent>(
   return adj;
 }
 
-function resolveTraversalOptions<TState, TEvent>(
+function resolveTraversalOptions<TState, TEvent extends EventObject>(
   traversalOptions?: Partial<TraversalOptions<TState, TEvent>>,
   defaultOptions?: TraversalOptions<TState, TEvent>
 ): Required<TraversalOptions<TState, TEvent>> {
@@ -487,6 +489,7 @@ function resolveTraversalOptions<TState, TEvent>(
     visitCondition: (state, event, vctx) => {
       return vctx.vertices.has(serializeState(state, event));
     },
+    eventCases: {},
     getEvents: () => [],
     traversalLimit: Infinity,
     ...defaultOptions,

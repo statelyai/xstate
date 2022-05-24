@@ -50,16 +50,6 @@ describe('custom test models', () => {
           }
           return [{ type: 'odd' }];
         },
-        states: {
-          even: (state) => {
-            testedStateKeys.push('even');
-            expect(state % 2).toBe(0);
-          },
-          odd: (state) => {
-            testedStateKeys.push('odd');
-            expect(state % 2).toBe(1);
-          }
-        },
         stateMatcher: (state, key) => {
           if (key === 'even') {
             return state % 2 === 0;
@@ -74,7 +64,18 @@ describe('custom test models', () => {
 
     const paths = model.getShortestPathsTo((state) => state === 1);
 
-    await testUtils.testPaths(paths);
+    await testUtils.testPaths(paths, {
+      states: {
+        even: (state) => {
+          testedStateKeys.push('even');
+          expect(state % 2).toBe(0);
+        },
+        odd: (state) => {
+          testedStateKeys.push('odd');
+          expect(state % 2).toBe(1);
+        }
+      }
+    });
 
     expect(testedStateKeys).toContain('even');
     expect(testedStateKeys).toContain('odd');

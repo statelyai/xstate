@@ -44,7 +44,7 @@ describe('testModel.testPaths(...)', () => {
 
     const paths = testModel.getPaths({
       pathGenerator: (behavior, options) => {
-        const events = options.getEvents?.(behavior.initialState) ?? [];
+        const events = options.getEvents?.(behavior.initialState, {}) ?? [];
 
         const nextState = behavior.transition(behavior.initialState, events[0]);
         return [
@@ -62,7 +62,7 @@ describe('testModel.testPaths(...)', () => {
       }
     });
 
-    await testUtils.testPaths(paths);
+    await testUtils.testPaths(paths, {});
   });
 
   describe('When the machine only has one path', () => {

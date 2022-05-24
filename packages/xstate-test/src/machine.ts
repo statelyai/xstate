@@ -15,7 +15,6 @@ import { TestModel } from './TestModel';
 import {
   TestMachineConfig,
   TestMachineOptions,
-  TestModelEventConfig,
   TestModelOptions
 } from './types';
 import { flatten } from './utils';
@@ -93,25 +92,15 @@ export function createTestModel<TMachine extends AnyStateMachine>(
           ? state.configuration.includes(machine.getStateNodeById(key))
           : state.matches(key);
       },
-      states: {
-        '*': testStateFromMeta
-      },
       execute: (state) => {
         state.actions.forEach((action) => {
           executeAction(action, state);
         });
       },
-      getEvents: (state) =>
+      getEvents: (state, eventCases) =>
         flatten(
           state.nextEvents.map((eventType) => {
-            const eventConfig = options?.events?.[eventType];
-            const eventCaseGenerator =
-              typeof eventConfig === 'function'
-                ? undefined
-                : (eventConfig?.cases as TestModelEventConfig<
-                    any,
-                    any
-                  >['cases']);
+            const eventCaseGenerator = eventCases?.[eventType];
 
             const cases = eventCaseGenerator
               ? Array.isArray(eventCaseGenerator)

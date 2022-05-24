@@ -17,19 +17,16 @@ describe('events', () => {
           },
           b: {}
         }
-      }),
-      {
-        events: {
-          EVENT: {
-            exec: () => {
-              executed = true;
-            }
-          }
-        }
-      }
+      })
     );
 
-    await testUtils.testModel(testModel);
+    await testUtils.testModel(testModel, {
+      events: {
+        EVENT: () => {
+          executed = true;
+        }
+      }
+    });
 
     expect(executed).toBe(true);
   });
@@ -48,17 +45,16 @@ describe('events', () => {
           },
           b: {}
         }
-      }),
-      {
-        events: {
-          EVENT: () => {
-            executed = true;
-          }
-        }
-      }
+      })
     );
 
-    await testUtils.testModel(testModel);
+    await testUtils.testModel(testModel, {
+      events: {
+        EVENT: () => {
+          executed = true;
+        }
+      }
+    });
 
     expect(executed).toBe(true);
   });
