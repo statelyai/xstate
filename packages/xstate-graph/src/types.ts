@@ -162,7 +162,7 @@ export interface TraversalOptions<TState, TEvent extends EventObject>
     vctx: VisitedContext<TState, TEvent>
   ) => boolean;
   filter?: (state: TState, event: TEvent) => boolean;
-  getEvents?: (cases: EventCaseMap<TState, TEvent>, state: TState) => TEvent[];
+  getEvents?: (state: TState, cases: EventCaseMap<TState, TEvent>) => TEvent[];
   /**
    * The maximum number of traversals to perform when calculating
    * the state transition adjacency map.

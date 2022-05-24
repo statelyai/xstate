@@ -174,7 +174,7 @@ const defaultMachineStateOptions: TraversalOptions<State<any, any>, any> = {
   serializeState: serializeMachineState,
   serializeEvent,
   eventCases: {},
-  getEvents: (_eventCases, state) => {
+  getEvents: (state) => {
     return state.nextEvents.map((type) => ({ type }));
   }
 };
@@ -454,7 +454,7 @@ export function performDepthFirstTraversal<TState, TEvent extends EventObject>(
       transitions: {}
     };
 
-    const events = getEvents(eventCases, state);
+    const events = getEvents(state, eventCases);
 
     for (const subEvent of events) {
       const nextState = transition(state, subEvent);

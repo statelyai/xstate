@@ -97,10 +97,7 @@ export function createTestModel<TMachine extends AnyStateMachine>(
           executeAction(action, state);
         });
       },
-      getEvents: (
-        eventCases: EventCaseMap<StateFrom<TMachine>, EventFrom<TMachine>>,
-        state
-      ) =>
+      getEvents: (state, eventCases) =>
         flatten(
           state.nextEvents.map((eventType) => {
             const eventCaseGenerator = eventCases?.[eventType];
