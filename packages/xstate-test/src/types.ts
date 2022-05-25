@@ -121,7 +121,6 @@ export interface TestModelOptions<TState, TEvent extends EventObject>
    * Executes actions based on the `state` after the state is tested.
    */
   execute: (state: TState) => void;
-  getStates: () => TState[];
   stateMatcher: (state: TState, stateKey: string) => boolean;
   logger: {
     log: (msg: string) => void;
