@@ -94,4 +94,20 @@ describe('types', () => {
       }
     });
   });
+
+  it('`serializeEvent` should be allowed to return plain string', () => {
+    const machine = createMachine({});
+
+    getShortestPlans(machine, {
+      serializeEvent: () => ''
+    });
+  });
+
+  it('`serializeState` should be allowed to return plain string', () => {
+    const machine = createMachine({});
+
+    getShortestPlans(machine, {
+      serializeState: () => ''
+    });
+  });
 });
