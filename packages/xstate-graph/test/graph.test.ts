@@ -400,8 +400,8 @@ describe('@xstate/graph', () => {
         }
       });
 
-      const paths = getSimplePlans(countMachine as any, {
-        getEvents: () => [{ type: 'INC', value: 1 }]
+      const paths = getSimplePlans(countMachine, {
+        getEvents: () => [{ type: 'INC', value: 1 }] as const
       });
 
       expect(paths.map((p) => p.state.value)).toMatchInlineSnapshot(`

@@ -1,9 +1,7 @@
 import type {
   State,
-  DefaultContext,
   Event,
   EventObject,
-  StateMachine,
   AnyStateMachine,
   AnyState,
   StateFrom,
@@ -289,13 +287,10 @@ export function traverseShortestPlans<TState, TEvent extends EventObject>(
   return Object.values(statePlanMap);
 }
 
-export function getSimplePlans<
-  TContext = DefaultContext,
-  TEvent extends EventObject = EventObject
->(
-  machine: StateMachine<TContext, any, TEvent>,
-  options?: Partial<TraversalOptions<State<TContext, TEvent>, TEvent>>
-): Array<StatePlan<State<TContext, TEvent>, TEvent>> {
+export function getSimplePlans<TMachine extends AnyStateMachine>(
+  machine: TMachine,
+  options?: Partial<TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>>>
+): Array<StatePlan<StateFrom<TMachine>, EventFrom<TMachine>>> {
   const resolvedOptions = resolveTraversalOptions(
     options,
     defaultMachineStateOptions
