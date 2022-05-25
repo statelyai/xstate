@@ -9,7 +9,6 @@ import type {
   Behavior,
   ActorContext,
   EventObject,
-  Observer,
   ActorRef,
   AnyStateMachine,
   BaseActorRef,
@@ -23,12 +22,10 @@ import {
   isPromiseLike,
   isSCXMLEvent,
   isFunction,
-  toObserver,
   symbolObservable
 } from './utils';
 import { actionTypes, doneInvoke, error } from './actions';
 import { interpret } from './interpreter';
-import { Mailbox } from './Mailbox';
 
 /**
  * Returns an actor behavior from a reducer and its initial state.
@@ -443,60 +440,6 @@ export function fromMachine<TMachine extends AnyStateMachine>(
   };
 
   return behavior;
-}
-
-interface CreateActorRefOptions {
-  id?: string;
-  parent?: ActorRef<any>;
-}
-
-// TODO: delete this (should use ObservableActorRef instead)
-export function createActorRef<TEvent extends EventObject, TSnapshot>(
-  behavior: Behavior<TEvent, TSnapshot>,
-  options: CreateActorRefOptions = {}
-): ActorRef<TEvent, TSnapshot> {
-  let state = behavior.initialState;
-  const observers = new Set<Observer<TSnapshot>>();
-  const mailbox = new Mailbox<TEvent>((event) => {
-    state = behavior.transition(state, event, actorCtx);
-    observers.forEach((observer) => observer.next?.(state));
-  });
-
-  const actor: ActorRef<TEvent, TSnapshot> = {
-    name: options.id || 'anonymous',
-    send: (event: TEvent) => {
-      mailbox.enqueue(event);
-    },
-    getSnapshot: () => state,
-    [symbolObservable]: function () {
-      return this;
-    },
-    subscribe: (next, handleError?, complete?) => {
-      const observer = toObserver(next, handleError, complete);
-      observers.add(observer);
-      observer.next?.(state);
-
-      return {
-        unsubscribe: () => {
-          observers.delete(observer);
-        }
-      };
-    },
-    start() {
-      mailbox.start();
-    },
-    stop() {
-      mailbox.clear();
-    }
-  };
-
-  const actorCtx: ActorContext<TEvent, TSnapshot> = {
-    self: actor,
-    name: options.id || 'anonymous',
-    _event: null as any
-  };
-
-  return actor;
 }
 
 export function isActorRef(item: any): item is ActorRef<any> {
