@@ -1,5 +1,5 @@
-import { TestModel } from './TestModel';
-import { TestParam, TestPath } from './types';
+import { TestModel } from '../src/TestModel';
+import { TestParam, TestPath } from '../src/types';
 
 const testModel = async (
   model: TestModel<any, any>,

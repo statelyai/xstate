@@ -1,7 +1,7 @@
 import { StateValue } from 'xstate';
 import { createTestModel } from '../src';
 import { createTestMachine } from '../src/machine';
-import { testUtils } from '../src/testUtils';
+import { testUtils } from './testUtils';
 
 describe('states', () => {
   it('should test states by key', async () => {

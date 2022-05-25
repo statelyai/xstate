@@ -1,6 +1,6 @@
 import { createTestModel } from '../src';
 import { createTestMachine } from '../src/machine';
-import { testUtils } from '../src/testUtils';
+import { testUtils } from './testUtils';
 
 describe('events', () => {
   it('should execute events (`exec` property)', async () => {

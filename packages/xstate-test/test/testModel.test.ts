@@ -1,5 +1,5 @@
 import { TestModel } from '../src';
-import { testUtils } from '../src/testUtils';
+import { testUtils } from './testUtils';
 
 describe('custom test models', () => {
   it('tests any behavior', async () => {
