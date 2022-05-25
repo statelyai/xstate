@@ -184,6 +184,7 @@ describe('transition coverage', () => {
       Array [
         "Reaches state \\"#(machine).b\\": NEXT ({\\"value\\":0})",
         "Reaches state \\"#(machine).b\\": NEXT ({\\"value\\":100})",
+        "Reaches state \\"#(machine).b\\": NEXT ({\\"value\\":1000})",
       ]
     `);
   });
