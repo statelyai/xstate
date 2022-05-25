@@ -181,8 +181,8 @@ const defaultMachineStateOptions: TraversalOptions<State<any, any>, any> = {
 
 export function getShortestPlans<TMachine extends AnyStateMachine>(
   machine: TMachine,
-  options?: Partial<TraversalOptions<AnyState, EventObject>>
-): Array<StatePlan<AnyState, EventObject>> {
+  options?: Partial<TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>>>
+): Array<StatePlan<StateFrom<TMachine>, EventFrom<TMachine>>> {
   const resolvedOptions = resolveTraversalOptions(
     options,
     defaultMachineStateOptions
@@ -193,7 +193,7 @@ export function getShortestPlans<TMachine extends AnyStateMachine>(
       initialState: machine.initialState
     },
     resolvedOptions
-  );
+  ) as Array<StatePlan<StateFrom<TMachine>, EventFrom<TMachine>>>;
 }
 
 export function traverseShortestPlans<TState, TEvent extends EventObject>(

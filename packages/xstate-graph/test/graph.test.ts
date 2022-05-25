@@ -255,15 +255,16 @@ describe('@xstate/graph', () => {
       });
 
       const paths = getShortestPlans(machine, {
-        getEvents: () => [
-          {
-            type: 'EVENT',
-            id: 'whatever'
-          },
-          {
-            type: 'STATE'
-          }
-        ]
+        getEvents: () =>
+          [
+            {
+              type: 'EVENT',
+              id: 'whatever'
+            },
+            {
+              type: 'STATE'
+            }
+          ] as const
       });
 
       expect(getPathsMapSnapshot(paths)).toMatchSnapshot(
