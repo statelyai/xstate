@@ -16,7 +16,8 @@ import {
   StateSchema,
   TransitionConfig,
   TypegenConstraint,
-  TypegenDisabled
+  TypegenDisabled,
+  ExtractEvent
 } from 'xstate';
 
 export type GetPathsOptions<TState, TEvent extends EventObject> = Partial<
@@ -142,17 +143,11 @@ export type TestTransitionsConfigMap<
   TEvent extends EventObject,
   TTestContext
 > = {
-  [K in TEvent['type']]?:
-    | TestTransitionConfig<
-        TContext,
-        TEvent extends { type: K } ? TEvent : never,
-        TTestContext
-      >
-    | string;
-} & {
-  ''?: TestTransitionConfig<TContext, TEvent, TTestContext> | string;
-} & {
-  '*'?: TestTransitionConfig<TContext, TEvent, TTestContext> | string;
+  [K in TEvent['type'] | '' | '*']?: K extends '' | '*'
+    ? TestTransitionConfig<TContext, TEvent, TTestContext> | string
+    :
+        | TestTransitionConfig<TContext, ExtractEvent<TEvent, K>, TTestContext>
+        | string;
 };
 
 export type PathGenerator<TState, TEvent extends EventObject> = (
