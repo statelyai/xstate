@@ -14,9 +14,9 @@ import type {
   StatePath,
   StatePlan,
   StatePlanMap,
-  AdjacencyMap,
+  ValueAdjacencyMap,
   Steps,
-  ValueAdjMapOptions,
+  ValueAdjacencyMapOptions,
   DirectedGraphEdge,
   DirectedGraphNode,
   TraversalOptions,
@@ -80,36 +80,38 @@ export function serializeEvent<TEvent extends EventObject>(
   return JSON.stringify(event) as SerializedEvent;
 }
 
-const defaultValueAdjMapOptions: Required<ValueAdjMapOptions<any, any>> = {
+const defaultValueAdjacencyMapOptions: Required<
+  ValueAdjacencyMapOptions<any, any>
+> = {
   events: {},
   filter: () => true,
   stateSerializer: serializeMachineState,
   eventSerializer: serializeEvent
 };
 
-function getValueAdjMapOptions<TState, TEvent extends EventObject>(
-  options?: ValueAdjMapOptions<TState, TEvent>
-): Required<ValueAdjMapOptions<TState, TEvent>> {
+function getValueAdjacencyMapOptions<TState, TEvent extends EventObject>(
+  options?: ValueAdjacencyMapOptions<TState, TEvent>
+): Required<ValueAdjacencyMapOptions<TState, TEvent>> {
   return {
-    ...(defaultValueAdjMapOptions as Required<
-      ValueAdjMapOptions<TState, TEvent>
+    ...(defaultValueAdjacencyMapOptions as Required<
+      ValueAdjacencyMapOptions<TState, TEvent>
     >),
     ...options
   };
 }
 
-export function getAdjacencyMap<TMachine extends AnyStateMachine>(
+export function getValueAdjacencyMap<TMachine extends AnyStateMachine>(
   machine: TMachine,
-  options?: ValueAdjMapOptions<StateFrom<TMachine>, EventFrom<TMachine>>
-): AdjacencyMap<StateFrom<TMachine>, EventFrom<TMachine>> {
+  options?: ValueAdjacencyMapOptions<StateFrom<TMachine>, EventFrom<TMachine>>
+): ValueAdjacencyMap<StateFrom<TMachine>, EventFrom<TMachine>> {
   type TState = StateFrom<TMachine>;
   type TEvent = EventFrom<TMachine>;
 
-  const optionsWithDefaults = getValueAdjMapOptions(options);
+  const optionsWithDefaults = getValueAdjacencyMapOptions(options);
   const { filter, stateSerializer, eventSerializer } = optionsWithDefaults;
   const { events } = optionsWithDefaults;
 
-  const adjacency: AdjacencyMap<TState, TEvent> = {};
+  const adjacency: ValueAdjacencyMap<TState, TEvent> = {};
 
   function findAdjacencies(state: TState) {
     const { nextEvents } = state;
@@ -406,7 +408,7 @@ export function getPathFromEvents<
   };
 }
 
-interface AdjMap<TState, TEvent> {
+interface AdjacencyMap<TState, TEvent> {
   [key: SerializedState]: {
     state: TState;
     transitions: {
@@ -421,7 +423,7 @@ interface AdjMap<TState, TEvent> {
 export function performDepthFirstTraversal<TState, TEvent extends EventObject>(
   behavior: SimpleBehavior<TState, TEvent>,
   options: TraversalOptions<TState, TEvent>
-): AdjMap<TState, TEvent> {
+): AdjacencyMap<TState, TEvent> {
   const { transition, initialState } = behavior;
   const {
     serializeEvent,
@@ -430,7 +432,7 @@ export function performDepthFirstTraversal<TState, TEvent extends EventObject>(
     eventCases,
     traversalLimit: limit
   } = resolveTraversalOptions(options);
-  const adj: AdjMap<TState, TEvent> = {};
+  const adj: AdjacencyMap<TState, TEvent> = {};
 
   let iterations = 0;
   const queue: Array<[TState, TEvent | null]> = [[initialState, null]];
