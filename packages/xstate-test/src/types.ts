@@ -127,6 +127,7 @@ export interface TestModelOptions<TState, TEvent extends EventObject>
     log: (msg: string) => void;
     error: (msg: string) => void;
   };
+  serializeTransition: (state: TState, event: TEvent | null) => string;
 }
 
 export interface TestTransitionConfig<

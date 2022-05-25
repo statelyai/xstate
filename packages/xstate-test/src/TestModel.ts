@@ -53,6 +53,10 @@ export class TestModel<TState, TEvent extends EventObject> {
     return {
       serializeState: (state) => simpleStringify(state) as SerializedState,
       serializeEvent: (event) => simpleStringify(event) as SerializedEvent,
+      // For non-state-machine test models, we cannot identify
+      // separate transitions, so just use event type
+      serializeTransition: (state, event) =>
+        `${simpleStringify(state)}|${event?.type ?? ''}`,
       getEvents: () => [],
       stateMatcher: (_, stateKey) => stateKey === '*',
       getStates: () => [],

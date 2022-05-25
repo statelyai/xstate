@@ -366,7 +366,7 @@ export function getPathFromEvents<
     defaultMachineStateOptions as any
   );
 
-  const { serializeState } = optionsWithDefaults;
+  const { serializeState, serializeEvent } = optionsWithDefaults;
 
   const adjacency = performDepthFirstTraversal(behavior, optionsWithDefaults);
 

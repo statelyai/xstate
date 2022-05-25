@@ -1,4 +1,4 @@
-import { serializeState, SimpleBehavior } from '@xstate/graph';
+import { SerializedState, serializeState, SimpleBehavior } from '@xstate/graph';
 import {
   ActionObject,
   AnyEventObject,
@@ -53,6 +53,16 @@ export function executeAction(
   }
 }
 
+function serializeMachineTransition(state: AnyState): string {
+  return state.transitions
+    .map((t) => {
+      const guardName = t.cond?.name;
+      const guardString = guardName ? `[${guardName}]` : '';
+      return `${t.eventType}${guardString}`;
+    })
+    .join(',');
+}
+
 /**
  * Creates a test model that represents an abstract model of a
  * system under test (SUT).
@@ -83,10 +93,19 @@ export function createTestModel<TMachine extends AnyStateMachine>(
 ): TestModel<StateFrom<TMachine>, EventFrom<TMachine>> {
   validateMachine(machine);
 
+  const serializeTransition =
+    options?.serializeTransition ?? serializeMachineTransition;
+
   const testModel = new TestModel<StateFrom<TMachine>, EventFrom<TMachine>>(
     machine as SimpleBehavior<any, any>,
     {
-      serializeState,
+      serializeState: (state, event) => {
+        const serializedTransition = serializeTransition(state, event);
+
+        return `${serializeState(state)}${
+          serializedTransition ? ` via ${serializedTransition}` : ''
+        }` as SerializedState;
+      },
       stateMatcher: (state, key) => {
         return key.startsWith('#')
           ? state.configuration.includes(machine.getStateNodeById(key))
