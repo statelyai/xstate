@@ -16,7 +16,7 @@ import {
   StatePlan
 } from '../src/index';
 import {
-  getAdjacencyMap,
+  getValueAdjacencyMap,
   traverseShortestPlans,
   traverseSimplePlans
 } from '../src/graph';
@@ -439,7 +439,7 @@ describe('@xstate/graph', () => {
     });
   });
 
-  describe('getAdjacencyMap', () => {
+  describe('getValueAdjacencyMap', () => {
     it('should map adjacencies', () => {
       interface Ctx {
         count: number;
@@ -477,8 +477,7 @@ describe('@xstate/graph', () => {
         }
       });
 
-      // explicit type arguments could be removed once davidkpiano/xstate#652 gets resolved
-      const adj = getAdjacencyMap(counterMachine, {
+      const adj = getValueAdjacencyMap(counterMachine, {
         filter: (state) => state.context.count >= 0 && state.context.count <= 5,
         stateSerializer: (state) => {
           const ctx = {
@@ -518,7 +517,7 @@ describe('@xstate/graph', () => {
         }
       });
 
-      const adj = getAdjacencyMap(machine, {
+      const adj = getValueAdjacencyMap(machine, {
         events: {
           EVENT: (state) => [
             { type: 'EVENT' as const, value: state.context.count + 10 }

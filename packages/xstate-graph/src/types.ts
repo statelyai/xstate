@@ -56,7 +56,7 @@ export type DirectedGraphNode = JSONSerializable<
   }
 >;
 
-export interface AdjacencyMap<TState, TEvent extends EventObject> {
+export interface ValueAdjacencyMap<TState, TEvent extends EventObject> {
   [stateId: SerializedState]: Record<
     SerializedState,
     {
@@ -116,7 +116,7 @@ export type ExtractEvent<
   TType extends TEvent['type']
 > = TEvent extends { type: TType } ? TEvent : never;
 
-export interface ValueAdjMapOptions<TState, TEvent extends EventObject> {
+export interface ValueAdjacencyMapOptions<TState, TEvent extends EventObject> {
   events?: {
     [K in TEvent['type']]?:
       | Array<ExtractEvent<TEvent, K>>
