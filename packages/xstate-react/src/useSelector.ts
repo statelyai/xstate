@@ -1,22 +1,9 @@
 import { useCallback } from 'react';
 import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
-import { ActorRef, Interpreter, Subscribable } from 'xstate';
-import { isActorWithState } from './useActor';
-import { getServiceSnapshot } from './utils';
+import { ActorRef, Subscribable } from 'xstate';
 
-function isService(actor: any): actor is Interpreter<any, any> {
-  return 'state' in actor && 'machine' in actor;
-}
-
-const defaultCompare = (a, b) => a === b;
-function defaultGetSnapshot<TActor extends ActorRef<any, any>>(a: TActor) {
-  return 'getSnapshot' in a
-    ? a.getSnapshot()
-    : isService(a)
-    ? getServiceSnapshot(a)
-    : isActorWithState(a)
-    ? a.state
-    : undefined;
+function defaultCompare<T>(a: T, b: T) {
+  return a === b;
 }
 
 export function useSelector<
@@ -26,8 +13,7 @@ export function useSelector<
 >(
   actor: TActor,
   selector: (emitted: TSnapshot) => T,
-  compare: (a: T, b: T) => boolean = defaultCompare,
-  getSnapshot: (a: TActor) => TSnapshot = defaultGetSnapshot
+  compare: (a: T, b: T) => boolean = defaultCompare
 ): T {
   const subscribe = useCallback(
     (handleStoreChange) => {
@@ -37,10 +23,7 @@ export function useSelector<
     [actor]
   );
 
-  const boundGetSnapshot = useCallback(() => getSnapshot(actor), [
-    actor,
-    getSnapshot
-  ]);
+  const boundGetSnapshot = useCallback(() => actor.getSnapshot(), [actor]);
 
   const selectedSnapshot = useSyncExternalStoreWithSelector(
     subscribe,

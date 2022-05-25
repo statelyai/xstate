@@ -71,6 +71,7 @@ export function useMachine<TMachine extends StateMachine.AnyMachine>(
     return [service, queue];
   });
 
+  // TODO: consider using `useInsertionEffect` if available
   useIsomorphicLayoutEffect(() => {
     if (options) {
       (service as any)._machine._options = options;

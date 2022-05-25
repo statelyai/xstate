@@ -50,15 +50,7 @@ export function useMachine<TMachine extends AnyStateMachine>(
   ...[options = {}]: RestParams<TMachine>
 ): UseMachineReturn<TMachine> {
   function listener(nextState: StateFrom<TMachine>) {
-    // Only change the current state if:
-    // - the incoming state is the "live" initial state (since it might have new actors)
-    // - OR the incoming state actually changed.
-    //
-    // The "live" initial state will have .changed === undefined.
-    const initialStateChanged =
-      nextState.changed === undefined && Object.keys(nextState.children).length;
-
-    if (nextState.changed || initialStateChanged) {
+    if (nextState.changed) {
       state.value = nextState;
     }
   }

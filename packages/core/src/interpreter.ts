@@ -400,6 +400,9 @@ export class Interpreter<
 
     this._state = resolvedState;
 
+    // TODO: this notifies all subscribers but usually this is redundant
+    // if we are using the initialState as `resolvedState` then there is no real change happening here
+    // we need to rethink if this needs to be refactored
     this.update(resolvedState);
 
     if (this.options.devTools) {
