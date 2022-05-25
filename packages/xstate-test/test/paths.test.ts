@@ -115,3 +115,76 @@ describe('path.description', () => {
     ]);
   });
 });
+
+describe('transition coverage', () => {
+  it('path generation should cover all transitions by default', () => {
+    const machine = createTestMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: 'b',
+            END: 'b'
+          }
+        },
+        b: {
+          on: {
+            PREV: 'a',
+            RESTART: 'a'
+          }
+        }
+      }
+    });
+
+    const model = createTestModel(machine);
+
+    const paths = model.getPaths();
+
+    expect(paths.map((path) => path.description)).toMatchInlineSnapshot(`
+      Array [
+        "Reaches state \\"#(machine).a\\": NEXT → PREV",
+        "Reaches state \\"#(machine).a\\": NEXT → RESTART",
+        "Reaches state \\"#(machine).b\\": END",
+      ]
+    `);
+  });
+
+  it('transition coverage should consider guarded transitions', () => {
+    const machine = createTestMachine(
+      {
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              NEXT: [{ cond: 'valid', target: 'b' }, { target: 'b' }]
+            }
+          },
+          b: {}
+        }
+      },
+      {
+        guards: {
+          valid: (_, event) => {
+            return event.value > 10;
+          }
+        }
+      }
+    );
+
+    const model = createTestModel(machine);
+
+    const paths = model.getPaths({
+      eventCases: {
+        NEXT: [{ value: 0 }, { value: 100 }, { value: 1000 }]
+      }
+    });
+
+    // { value: 1000 } already covered by first guarded transition
+    expect(paths.map((path) => path.description)).toMatchInlineSnapshot(`
+      Array [
+        "Reaches state \\"#(machine).b\\": NEXT ({\\"value\\":0})",
+        "Reaches state \\"#(machine).b\\": NEXT ({\\"value\\":100})",
+      ]
+    `);
+  });
+});
