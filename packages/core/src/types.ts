@@ -1868,8 +1868,10 @@ export interface Behavior<TEvent extends EventObject, TSnapshot = any> {
   start?: (actorCtx: ActorContext<TEvent, TSnapshot>) => TSnapshot;
 }
 
-export type EmittedFrom<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends ActorRef<infer _, infer TSnapshot>
+export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
+  ? R extends AnyInterpreter
+    ? R['initialState']
+    : R extends ActorRef<infer _, infer TSnapshot>
     ? TSnapshot
     : R extends Behavior<infer _, infer TSnapshot>
     ? TSnapshot
