@@ -164,7 +164,7 @@ describe('@xstate/graph', () => {
     }
   });
 
-  describe('getNodes()', () => {
+  describe('getStateNodes()', () => {
     it('should return an array of all nodes', () => {
       const nodes = getStateNodes(lightMachine);
       expect(nodes.every((node) => node instanceof StateNode)).toBe(true);
@@ -197,13 +197,13 @@ describe('@xstate/graph', () => {
 
   describe('getShortestPaths()', () => {
     it('should return a mapping of shortest paths to all states', () => {
-      const paths = getShortestPlans(lightMachine) as any;
+      const paths = getShortestPlans(lightMachine);
 
       expect(getPathsMapSnapshot(paths)).toMatchSnapshot('shortest paths');
     });
 
     it('should return a mapping of shortest paths to all states (parallel)', () => {
-      const paths = getShortestPlans(parallelMachine) as any;
+      const paths = getShortestPlans(parallelMachine);
       expect(getPathsMapSnapshot(paths)).toMatchSnapshot(
         'shortest paths parallel'
       );
@@ -255,15 +255,16 @@ describe('@xstate/graph', () => {
       });
 
       const paths = getShortestPlans(machine, {
-        getEvents: () => [
-          {
-            type: 'EVENT',
-            id: 'whatever'
-          },
-          {
-            type: 'STATE'
-          }
-        ]
+        getEvents: () =>
+          [
+            {
+              type: 'EVENT',
+              id: 'whatever'
+            },
+            {
+              type: 'STATE'
+            }
+          ] as const
       });
 
       expect(getPathsMapSnapshot(paths)).toMatchSnapshot(
@@ -399,8 +400,8 @@ describe('@xstate/graph', () => {
         }
       });
 
-      const paths = getSimplePlans(countMachine as any, {
-        getEvents: () => [{ type: 'INC', value: 1 }]
+      const paths = getSimplePlans(countMachine, {
+        getEvents: () => [{ type: 'INC', value: 1 }] as const
       });
 
       expect(paths.map((p) => p.state.value)).toMatchInlineSnapshot(`
@@ -588,8 +589,7 @@ it('simple paths for reducers', () => {
     },
     {
       getEvents: () => [{ type: 'a' }, { type: 'b' }, { type: 'reset' }],
-      serializeState: (v, e) =>
-        (JSON.stringify(v) + ' | ' + JSON.stringify(e)) as any
+      serializeState: (v, e) => JSON.stringify(v) + ' | ' + JSON.stringify(e)
     }
   );
 
@@ -615,8 +615,7 @@ it('shortest paths for reducers', () => {
     },
     {
       getEvents: () => [{ type: 'a' }, { type: 'b' }, { type: 'reset' }],
-      serializeState: (v, e) =>
-        (JSON.stringify(v) + ' | ' + JSON.stringify(e)) as any
+      serializeState: (v, e) => JSON.stringify(v) + ' | ' + JSON.stringify(e)
     }
   );
 

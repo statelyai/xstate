@@ -135,8 +135,8 @@ export interface VisitedContext<TState, TEvent> {
 
 export interface SerializationOptions<TState, TEvent extends EventObject> {
   eventCases: EventCaseMap<TState, TEvent>;
-  serializeState: (state: TState, event: TEvent | null) => SerializedState;
-  serializeEvent: (event: TEvent) => SerializedEvent;
+  serializeState: (state: TState, event: TEvent | null) => string;
+  serializeEvent: (event: TEvent) => string;
 }
 
 /**
@@ -162,7 +162,10 @@ export interface TraversalOptions<TState, TEvent extends EventObject>
     vctx: VisitedContext<TState, TEvent>
   ) => boolean;
   filter?: (state: TState, event: TEvent) => boolean;
-  getEvents?: (state: TState, cases: EventCaseMap<TState, TEvent>) => TEvent[];
+  getEvents?: (
+    state: TState,
+    cases: EventCaseMap<TState, TEvent>
+  ) => ReadonlyArray<TEvent>;
   /**
    * The maximum number of traversals to perform when calculating
    * the state transition adjacency map.
@@ -173,9 +176,9 @@ export interface TraversalOptions<TState, TEvent extends EventObject>
 }
 
 export type EventCaseMap<TState, TEvent extends EventObject> = {
-  [TEventType in TEvent['type']]?:
-    | ((state: TState) => Array<EventCase<TEvent>>)
-    | Array<EventCase<TEvent>>;
+  [E in TEvent as E['type']]?:
+    | ((state: TState) => Array<EventCase<E>>)
+    | Array<EventCase<E>>;
 };
 
 type Brand<T, Tag extends string> = T & { __tag: Tag };

@@ -1,9 +1,7 @@
 import type {
   State,
-  DefaultContext,
   Event,
   EventObject,
-  StateMachine,
   AnyStateMachine,
   AnyState,
   StateFrom,
@@ -181,8 +179,8 @@ const defaultMachineStateOptions: TraversalOptions<State<any, any>, any> = {
 
 export function getShortestPlans<TMachine extends AnyStateMachine>(
   machine: TMachine,
-  options?: Partial<TraversalOptions<AnyState, EventObject>>
-): Array<StatePlan<AnyState, EventObject>> {
+  options?: Partial<TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>>>
+): Array<StatePlan<StateFrom<TMachine>, EventFrom<TMachine>>> {
   const resolvedOptions = resolveTraversalOptions(
     options,
     defaultMachineStateOptions
@@ -193,7 +191,7 @@ export function getShortestPlans<TMachine extends AnyStateMachine>(
       initialState: machine.initialState
     },
     resolvedOptions
-  );
+  ) as Array<StatePlan<StateFrom<TMachine>, EventFrom<TMachine>>>;
 }
 
 export function traverseShortestPlans<TState, TEvent extends EventObject>(
@@ -201,7 +199,9 @@ export function traverseShortestPlans<TState, TEvent extends EventObject>(
   options?: Partial<TraversalOptions<TState, TEvent>>
 ): Array<StatePlan<TState, TEvent>> {
   const optionsWithDefaults = resolveTraversalOptions(options);
-  const { serializeState } = optionsWithDefaults;
+  const serializeState = optionsWithDefaults.serializeState as (
+    ...args: Parameters<typeof optionsWithDefaults.serializeState>
+  ) => SerializedState;
 
   const adjacency = performDepthFirstTraversal(behavior, optionsWithDefaults);
 
@@ -289,13 +289,10 @@ export function traverseShortestPlans<TState, TEvent extends EventObject>(
   return Object.values(statePlanMap);
 }
 
-export function getSimplePlans<
-  TContext = DefaultContext,
-  TEvent extends EventObject = EventObject
->(
-  machine: StateMachine<TContext, any, TEvent>,
-  options?: Partial<TraversalOptions<State<TContext, TEvent>, TEvent>>
-): Array<StatePlan<State<TContext, TEvent>, TEvent>> {
+export function getSimplePlans<TMachine extends AnyStateMachine>(
+  machine: TMachine,
+  options?: Partial<TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>>>
+): Array<StatePlan<StateFrom<TMachine>, EventFrom<TMachine>>> {
   const resolvedOptions = resolveTraversalOptions(
     options,
     defaultMachineStateOptions
@@ -482,13 +479,13 @@ function resolveTraversalOptions<TState, TEvent extends EventObject>(
   const serializeState =
     traversalOptions?.serializeState ??
     defaultOptions?.serializeState ??
-    ((state) => JSON.stringify(state) as any);
+    ((state) => JSON.stringify(state));
   return {
     serializeState,
-    serializeEvent: serializeEvent as any, // TODO fix types
+    serializeEvent,
     filter: () => true,
     visitCondition: (state, event, vctx) => {
-      return vctx.vertices.has(serializeState(state, event));
+      return vctx.vertices.has(serializeState(state, event) as SerializedState);
     },
     eventCases: {},
     getEvents: () => [],
@@ -504,7 +501,10 @@ export function traverseSimplePlans<TState, TEvent extends EventObject>(
 ): Array<StatePlan<TState, TEvent>> {
   const { initialState } = behavior;
   const resolvedOptions = resolveTraversalOptions(options);
-  const { serializeState, visitCondition } = resolvedOptions;
+  const { visitCondition } = resolvedOptions;
+  const serializeState = resolvedOptions.serializeState as (
+    ...args: Parameters<typeof resolvedOptions.serializeState>
+  ) => SerializedState;
   const adjacency = performDepthFirstTraversal(behavior, resolvedOptions);
   const stateMap = new Map<string, TState>();
   const visitCtx: VisitedContext<TState, TEvent> = {
