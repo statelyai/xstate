@@ -427,6 +427,7 @@ export function performDepthFirstTraversal<TState, TEvent extends EventObject>(
 ): AdjMap<TState, TEvent> {
   const { transition, initialState } = behavior;
   const {
+    serializeEvent,
     serializeState,
     getEvents,
     eventCases,
@@ -461,7 +462,7 @@ export function performDepthFirstTraversal<TState, TEvent extends EventObject>(
 
       if (!options.filter || options.filter(nextState, subEvent)) {
         adj[serializedState].transitions[
-          JSON.stringify(subEvent) as SerializedEvent
+          serializeEvent(subEvent) as SerializedEvent
         ] = {
           event: subEvent,
           state: nextState
