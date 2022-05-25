@@ -1494,8 +1494,12 @@ export interface StateLike<TContext> {
   _event: SCXML.Event<EventObject>;
 }
 
-export interface StateConfig<TContext, TEvent extends EventObject> {
-  value: StateValue;
+export interface StateConfig<
+  TContext,
+  TEvent extends EventObject,
+  TResolvedTypesMeta = TypegenDisabled
+> {
+  value: StateValue<TResolvedTypesMeta>;
   context: TContext;
   _event: SCXML.Event<TEvent>;
   _sessionid: string | null;

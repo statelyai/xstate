@@ -35,14 +35,15 @@ import { StateNode } from './StateNode';
 import { State } from './State';
 import { Actor } from './Actor';
 import { AnyStateMachine } from '.';
+import { TypegenDisabled } from './typegenTypes';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
   return Object.keys(value) as Array<keyof T & string>;
 }
 
-export function matchesState(
-  parentStateId: StateValue,
-  childStateId: StateValue,
+export function matchesState<TResolvedTypesMeta = TypegenDisabled>(
+  parentStateId: StateValue<TResolvedTypesMeta>,
+  childStateId: StateValue<TResolvedTypesMeta>,
   delimiter: string = STATE_DELIMITER
 ): boolean {
   const parentStateValue = toStateValue(parentStateId, delimiter);
@@ -122,8 +123,8 @@ export function isStateLike(state: any): state is StateLike<any> {
   );
 }
 
-export function toStateValue(
-  stateValue: StateLike<any> | StateValue | string[],
+export function toStateValue<TResolvedTypesMeta = TypegenDisabled>(
+  stateValue: StateLike<any> | StateValue<TResolvedTypesMeta> | string[],
   delimiter: string
 ): StateValue {
   if (isStateLike(stateValue)) {

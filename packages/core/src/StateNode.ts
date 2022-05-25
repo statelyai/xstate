@@ -677,7 +677,7 @@ class StateNode<
    */
   public getStateNodes(
     state:
-      | StateValue
+      | StateValue<TResolvedTypesMeta>
       | State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta>
   ): Array<
     StateNode<
@@ -702,7 +702,9 @@ class StateNode<
       const initialStateValue = this.getStateNode(stateValue).initial;
 
       return initialStateValue !== undefined
-        ? this.getStateNodes({ [stateValue]: initialStateValue } as StateValue)
+        ? this.getStateNodes({
+            [stateValue]: initialStateValue
+          } as StateValue<TResolvedTypesMeta>)
         : [this, this.states[stateValue]];
     }
 
@@ -758,7 +760,7 @@ class StateNode<
     );
     return new State({
       ...stateFromConfig,
-      value: this.resolve(stateFromConfig.value),
+      value: this.resolve<TResolvedTypesMeta>(stateFromConfig.value),
       configuration,
       done: isInFinalState(configuration, this),
       tags: getTagsFromConfiguration(configuration),
@@ -780,8 +782,8 @@ class StateNode<
 
     return next;
   }
-  private transitionCompoundNode(
-    stateValue: StateValueMap,
+  private transitionCompoundNode<TResolvedTypesMeta>(
+    stateValue: StateValue<TResolvedTypesMeta>,
     state: State<TContext, TEvent>,
     _event: SCXML.Event<TEvent>
   ): StateTransition<TContext, TEvent> | undefined {
@@ -800,8 +802,8 @@ class StateNode<
 
     return next;
   }
-  private transitionParallelNode(
-    stateValue: StateValueMap,
+  private transitionParallelNode<TResolvedTypesMeta>(
+    stateValue: StateValue<TResolvedTypesMeta>,
     state: State<TContext, TEvent>,
     _event: SCXML.Event<TEvent>
   ): StateTransition<TContext, TEvent> | undefined {
@@ -854,8 +856,8 @@ class StateNode<
       )
     };
   }
-  private _transition(
-    stateValue: StateValue,
+  private _transition<TResolvedTypesMeta>(
+    stateValue: StateValue<TResolvedTypesMeta>,
     state: State<TContext, TEvent, any, any, any>,
     _event: SCXML.Event<TEvent>
   ): StateTransition<TContext, TEvent> | undefined {
@@ -1521,15 +1523,23 @@ class StateNode<
    *
    * @param stateValue The partial state value to resolve.
    */
-  public resolve(stateValue: StateValue): StateValue {
+  public resolve<TResolvedTypesMeta>(
+    stateValue: StateValue<TResolvedTypesMeta>
+  ): StateValue<TResolvedTypesMeta> {
     if (!stateValue) {
-      return this.initialStateValue || EMPTY_OBJECT; // TODO: type-specific properties
+      return (
+        (this.initialStateValue as StateValue<TResolvedTypesMeta>) ||
+        (EMPTY_OBJECT as StateValue<TResolvedTypesMeta>)
+      ); // TODO: type-specific properties
     }
 
     switch (this.type) {
       case 'parallel':
         return mapValues(
-          this.initialStateValue as Record<string, StateValue>,
+          this.initialStateValue as Record<
+            string,
+            StateValue<TResolvedTypesMeta>
+          >,
           (subStateValue, subStateKey) => {
             return subStateValue
               ? this.getStateNode(subStateKey).resolve(
@@ -1537,7 +1547,7 @@ class StateNode<
                 )
               : EMPTY_OBJECT;
           }
-        );
+        ) as StateValue<TResolvedTypesMeta>;
 
       case 'compound':
         if (isString(stateValue)) {
@@ -1547,23 +1557,31 @@ class StateNode<
             subStateNode.type === 'parallel' ||
             subStateNode.type === 'compound'
           ) {
-            return { [stateValue]: subStateNode.initialStateValue! };
+            return {
+              [stateValue]: subStateNode.initialStateValue!
+            } as StateValue<TResolvedTypesMeta>;
           }
 
           return stateValue;
         }
         if (!Object.keys(stateValue).length) {
-          return this.initialStateValue || {};
+          return (this.initialStateValue ||
+            {}) as StateValue<TResolvedTypesMeta>;
         }
 
-        return mapValues(stateValue, (subStateValue, subStateKey) => {
-          return subStateValue
-            ? this.getStateNode(subStateKey as string).resolve(subStateValue)
-            : EMPTY_OBJECT;
-        });
+        return mapValues(
+          stateValue as Record<string, unknown>,
+          (subStateValue, subStateKey) => {
+            return subStateValue
+              ? this.getStateNode(subStateKey as string).resolve(
+                  subStateValue as string | StateValueMap
+                )
+              : EMPTY_OBJECT;
+          }
+        ) as StateValue<TResolvedTypesMeta>;
 
       default:
-        return stateValue || EMPTY_OBJECT;
+        return (stateValue || EMPTY_OBJECT) as StateValue<TResolvedTypesMeta>;
     }
   }
 
@@ -1618,7 +1636,7 @@ class StateNode<
   }
 
   public getInitialState(
-    stateValue: StateValue,
+    stateValue: StateValue<TResolvedTypesMeta>,
     context?: TContext
   ): State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta> {
     this._init(); // TODO: this should be in the constructor (see note in constructor)
@@ -1658,7 +1676,9 @@ class StateNode<
       );
     }
 
-    return this.getInitialState(initialStateValue);
+    return this.getInitialState(
+      initialStateValue as StateValue<TResolvedTypesMeta>
+    );
   }
 
   /**

@@ -24,9 +24,9 @@ import { IS_PRODUCTION } from './environment';
 import { TypegenDisabled, TypegenEnabled } from './typegenTypes';
 import { BaseActionObject, Prop } from './types';
 
-export function stateValuesEqual(
-  a: StateValue | undefined,
-  b: StateValue | undefined
+export function stateValuesEqual<TResolvedTypesMeta = TypegenDisabled>(
+  a: StateValue<TResolvedTypesMeta> | undefined,
+  b: StateValue<TResolvedTypesMeta> | undefined
 ): boolean {
   if (a === b) {
     return true;
@@ -92,7 +92,7 @@ export class State<
   TTypestate extends Typestate<TContext> = { value: any; context: TContext },
   TResolvedTypesMeta = TypegenDisabled
 > {
-  public value: StateValue;
+  public value: StateValue<TResolvedTypesMeta>;
   public context: TContext;
   public historyValue?: HistoryValue | undefined;
   public history?: State<
@@ -253,7 +253,7 @@ export class State<
    * @param events Internal event queue. Should be empty with run-to-completion semantics.
    * @param configuration
    */
-  constructor(config: StateConfig<TContext, TEvent>) {
+  constructor(config: StateConfig<TContext, TEvent, TResolvedTypesMeta>) {
     this.value = config.value;
     this.context = config.context;
     this._event = config._event;
@@ -288,10 +288,7 @@ export class State<
    * @param stateValue
    * @param delimiter The character(s) that separate each subpath in the string state node path.
    */
-  public toStrings(
-    stateValue: StateValue = this.value,
-    delimiter: string = '.'
-  ): string[] {
+  public toStrings(stateValue = this.value, delimiter: string = '.'): string[] {
     if (isString(stateValue)) {
       return [stateValue];
     }
@@ -338,8 +335,8 @@ export class State<
     TTypestate,
     TResolvedTypesMeta
   > & { value: TSV };
-  public matches(parentStateValue: StateValue): any {
-    return matchesState(parentStateValue as StateValue, this.value);
+  public matches(parentStateValue: StateValue<TResolvedTypesMeta>): any {
+    return matchesState(parentStateValue, this.value);
   }
 
   /**
