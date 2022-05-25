@@ -115,8 +115,6 @@ export type EventExecutor<TState, TEvent extends EventObject> = (
 
 export interface TestModelOptions<TState, TEvent extends EventObject>
   extends TraversalOptions<TState, TEvent> {
-  // testState: (state: TState) => void | Promise<void>;
-  // testTransition: (step: Step<TState, TEvent>) => void | Promise<void>;
   /**
    * Executes actions based on the `state` after the state is tested.
    */
