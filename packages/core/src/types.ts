@@ -176,8 +176,11 @@ export interface StateValueMap {
  * - For a child atomic state node, this is a string, e.g., `"pending"`.
  * - For complex state nodes, this is an object, e.g., `{ success: "someChildState" }`.
  */
-export type StateValue = string | StateValueMap;
-
+export type StateValue<
+  TResolvedTypesMeta = TypegenDisabled
+> = TResolvedTypesMeta extends TypegenEnabled
+  ? Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'matchesStates'>
+  : string | StateValueMap;
 export interface HistoryValue {
   states: Record<string, HistoryValue | undefined>;
   current: StateValue | undefined;
