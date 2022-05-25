@@ -483,13 +483,13 @@ function resolveTraversalOptions<TState, TEvent extends EventObject>(
   const serializeState =
     traversalOptions?.serializeState ??
     defaultOptions?.serializeState ??
-    ((state) => JSON.stringify(state) as any);
+    ((state) => JSON.stringify(state));
   return {
     serializeState,
-    serializeEvent: serializeEvent as any, // TODO fix types
+    serializeEvent,
     filter: () => true,
     visitCondition: (state, event, vctx) => {
-      return vctx.vertices.has(serializeState(state, event));
+      return vctx.vertices.has(serializeState(state, event) as SerializedState);
     },
     eventCases: {},
     getEvents: () => [],
