@@ -35,7 +35,6 @@ import {
   InvokeSourceDefinition,
   Observer,
   SCXML,
-  SCXMLErrorEvent,
   SendActionObject,
   SpecialTargets,
   StateValue,
@@ -342,17 +341,6 @@ export class Interpreter<
     return this;
   }
 
-  private handleErrorEvent(errorEvent: SCXMLErrorEvent): void {
-    if (this.errorListeners.size > 0) {
-      this.errorListeners.forEach((listener) => {
-        listener(errorEvent.data.data);
-      });
-    } else {
-      this.stop();
-      throw errorEvent.data.data;
-    }
-  }
-
   /**
    * Adds a state listener that is notified when the statechart has reached its final state.
    * @param listener The state listener
@@ -418,9 +406,31 @@ export class Interpreter<
     // TODO: handle errors
     this.forward(event);
 
+    let errored = false;
+
+    if (
+      isSCXMLErrorEvent(event) &&
+      !this.state.nextEvents.some((nextEvent) => nextEvent === event.name)
+    ) {
+      errored = true;
+      // Error event unhandled by machine
+      if (this.errorListeners.size > 0) {
+        this.errorListeners.forEach((listener) => {
+          listener(event.data.data);
+        });
+      } else {
+        this.stop();
+        throw event.data.data;
+      }
+    }
+
     const nextState = this.nextState(event);
 
     this.update(nextState);
+
+    if (errored) {
+      this.stop();
+    }
   }
 
   /**
@@ -571,17 +581,6 @@ export class Interpreter<
   public nextState(
     event: Event<TEvent> | SCXML.Event<TEvent>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    const _event = toSCXMLEvent(event);
-
-    if (
-      isSCXMLErrorEvent(_event) &&
-      !this.state.nextEvents.some((nextEvent) => nextEvent === _event.name)
-    ) {
-      // Error event unhandled by machine
-      this.handleErrorEvent(_event);
-      this.stop();
-    }
-
     return this.machine.transition(this.state, event);
   }
   private forward(event: SCXML.Event<TEvent>): void {
