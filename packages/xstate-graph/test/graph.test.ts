@@ -164,7 +164,7 @@ describe('@xstate/graph', () => {
     }
   });
 
-  describe('getNodes()', () => {
+  describe('getStateNodes()', () => {
     it('should return an array of all nodes', () => {
       const nodes = getStateNodes(lightMachine);
       expect(nodes.every((node) => node instanceof StateNode)).toBe(true);
@@ -197,13 +197,13 @@ describe('@xstate/graph', () => {
 
   describe('getShortestPaths()', () => {
     it('should return a mapping of shortest paths to all states', () => {
-      const paths = getShortestPlans(lightMachine) as any;
+      const paths = getShortestPlans(lightMachine);
 
       expect(getPathsMapSnapshot(paths)).toMatchSnapshot('shortest paths');
     });
 
     it('should return a mapping of shortest paths to all states (parallel)', () => {
-      const paths = getShortestPlans(parallelMachine) as any;
+      const paths = getShortestPlans(parallelMachine);
       expect(getPathsMapSnapshot(paths)).toMatchSnapshot(
         'shortest paths parallel'
       );
