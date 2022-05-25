@@ -55,7 +55,6 @@ export class TestModel<TState, TEvent extends EventObject> {
       serializeEvent: (event) => simpleStringify(event) as SerializedEvent,
       getEvents: () => [],
       stateMatcher: (_, stateKey) => stateKey === '*',
-      getStates: () => [],
       eventCases: {},
       execute: () => void 0,
       logger: {
