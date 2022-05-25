@@ -1,17 +1,13 @@
 import { onMounted, onBeforeUnmount, shallowRef } from 'vue';
-import { ActorRef, Subscribable } from 'xstate';
+import { ActorRef, SnapshotFrom } from 'xstate';
 
 function defaultCompare<T>(a: T, b: T) {
   return a === b;
 }
 
-export function useSelector<
-  TActor extends ActorRef<any, any>,
-  T,
-  TSnapshot = TActor extends Subscribable<infer S> ? S : never
->(
+export function useSelector<TActor extends ActorRef<any, any>, T>(
   actor: TActor,
-  selector: (snapshot: TSnapshot) => T,
+  selector: (snapshot: SnapshotFrom<TActor>) => T,
   compare: (a: T, b: T) => boolean = defaultCompare
 ) {
   const selected = shallowRef(selector(actor.getSnapshot()));

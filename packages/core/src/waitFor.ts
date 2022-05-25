@@ -1,4 +1,4 @@
-import { ActorRef, EmittedFrom } from '.';
+import { ActorRef, SnapshotFrom } from '.';
 
 interface WaitForOptions {
   /**
@@ -35,9 +35,9 @@ const defaultWaitForOptions: WaitForOptions = {
  */
 export function waitFor<TActorRef extends ActorRef<any, any>>(
   actorRef: TActorRef,
-  predicate: (emitted: EmittedFrom<TActorRef>) => boolean,
+  predicate: (emitted: SnapshotFrom<TActorRef>) => boolean,
   options?: Partial<WaitForOptions>
-): Promise<EmittedFrom<TActorRef>> {
+): Promise<SnapshotFrom<TActorRef>> {
   const resolvedOptions: WaitForOptions = {
     ...defaultWaitForOptions,
     ...options

@@ -1,14 +1,10 @@
 import { useCallback } from 'react';
-import { ActorRef, EventObject } from 'xstate';
+import { ActorRef, EventObject, SnapshotFrom } from 'xstate';
 import { useSyncExternalStore } from 'use-sync-external-store/shim';
 
-type EmittedFromActorRef<
-  TActor extends ActorRef<any, any>
-> = TActor extends ActorRef<any, infer TSnapshot> ? TSnapshot : never;
-
-export function useActor<TActor extends ActorRef<any, any>, TSnapshot = any>(
+export function useActor<TActor extends ActorRef<any, any>>(
   actorRef: TActor
-): [EmittedFromActorRef<TActor>, TActor['send']];
+): [SnapshotFrom<TActor>, TActor['send']];
 export function useActor<TEvent extends EventObject, TSnapshot>(
   actorRef: ActorRef<TEvent, TSnapshot>
 ): [TSnapshot, (event: TEvent) => void];

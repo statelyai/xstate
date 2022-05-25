@@ -1,9 +1,5 @@
-import { ActorRef, EventObject, Sender } from 'xstate';
+import { ActorRef, EventObject, Sender, SnapshotFrom } from 'xstate';
 import { shallowRef, isRef, watch, Ref } from 'vue';
-
-type EmittedFromActorRef<
-  TActor extends ActorRef<any, any>
-> = TActor extends ActorRef<any, infer TSnapshot> ? TSnapshot : never;
 
 const noop = () => {
   /* ... */
@@ -12,7 +8,7 @@ const noop = () => {
 export function useActor<TActor extends ActorRef<any, any>>(
   actorRef: TActor | Ref<TActor>
 ): {
-  state: Ref<EmittedFromActorRef<TActor>>;
+  state: Ref<SnapshotFrom<TActor>>;
   send: TActor['send'];
 };
 export function useActor<TEvent extends EventObject, TSnapshot>(
