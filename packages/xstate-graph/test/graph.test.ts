@@ -589,8 +589,7 @@ it('simple paths for reducers', () => {
     },
     {
       getEvents: () => [{ type: 'a' }, { type: 'b' }, { type: 'reset' }],
-      serializeState: (v, e) =>
-        (JSON.stringify(v) + ' | ' + JSON.stringify(e)) as any
+      serializeState: (v, e) => JSON.stringify(v) + ' | ' + JSON.stringify(e)
     }
   );
 
@@ -616,8 +615,7 @@ it('shortest paths for reducers', () => {
     },
     {
       getEvents: () => [{ type: 'a' }, { type: 'b' }, { type: 'reset' }],
-      serializeState: (v, e) =>
-        (JSON.stringify(v) + ' | ' + JSON.stringify(e)) as any
+      serializeState: (v, e) => JSON.stringify(v) + ' | ' + JSON.stringify(e)
     }
   );
 

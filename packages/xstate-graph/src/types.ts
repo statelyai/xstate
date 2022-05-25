@@ -135,8 +135,8 @@ export interface VisitedContext<TState, TEvent> {
 
 export interface SerializationOptions<TState, TEvent extends EventObject> {
   eventCases: EventCaseMap<TState, TEvent>;
-  serializeState: (state: TState, event: TEvent | null) => SerializedState;
-  serializeEvent: (event: TEvent) => SerializedEvent;
+  serializeState: (state: TState, event: TEvent | null) => string;
+  serializeEvent: (event: TEvent) => string;
 }
 
 /**
