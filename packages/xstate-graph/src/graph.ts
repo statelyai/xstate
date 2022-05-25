@@ -486,9 +486,6 @@ function resolveTraversalOptions<TState, TEvent extends EventObject>(
     serializeState,
     serializeEvent,
     filter: () => true,
-    visitCondition: (state, event, vctx) => {
-      return vctx.vertices.has(serializeState(state, event) as SerializedState);
-    },
     eventCases: {},
     getEvents: () => [],
     traversalLimit: Infinity,
@@ -503,7 +500,6 @@ export function traverseSimplePlans<TState, TEvent extends EventObject>(
 ): Array<StatePlan<TState, TEvent>> {
   const { initialState } = behavior;
   const resolvedOptions = resolveTraversalOptions(options);
-  const { visitCondition } = resolvedOptions;
   const serializeState = resolvedOptions.serializeState as (
     ...args: Parameters<typeof resolvedOptions.serializeState>
   ) => SerializedState;
@@ -559,7 +555,7 @@ export function traverseSimplePlans<TState, TEvent extends EventObject>(
         const nextStateSerial = serializeState(nextState, subEvent);
         stateMap.set(nextStateSerial, nextState);
 
-        if (!visitCondition(nextState, subEvent, visitCtx)) {
+        if (!visitCtx.vertices.has(serializeState(nextState, subEvent))) {
           visitCtx.edges.add(serializedEvent);
           path.push({
             state: stateMap.get(fromStateSerial)!,

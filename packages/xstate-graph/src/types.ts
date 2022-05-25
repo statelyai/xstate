@@ -156,11 +156,6 @@ type EventCase<TEvent extends EventObject> = Omit<TEvent, 'type'>;
 
 export interface TraversalOptions<TState, TEvent extends EventObject>
   extends SerializationOptions<TState, TEvent> {
-  visitCondition?: (
-    state: TState,
-    event: TEvent,
-    vctx: VisitedContext<TState, TEvent>
-  ) => boolean;
   filter?: (state: TState, event: TEvent) => boolean;
   getEvents?: (
     state: TState,
