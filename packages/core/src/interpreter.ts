@@ -1,8 +1,8 @@
+import { AnyStateMachine, InterpreterFrom } from '.';
 import { isExecutableAction } from '../actions/ExecutableAction';
 import { doneInvoke, error } from './actions';
 import * as actionTypes from './actionTypes';
-import { isActorRef } from './actor';
-import { CapturedState } from './capturedState';
+import { isActorRef } from './actors';
 import { devToolsAdapter } from './dev';
 import { IS_PRODUCTION } from './environment';
 import { Mailbox } from './Mailbox';
@@ -11,8 +11,8 @@ import { isStateConfig, State } from './State';
 import type { StateMachine } from './StateMachine';
 import { isInFinalState } from './stateUtils';
 import {
-  AreAllImplementationsAssumedToBeProvided,
-  TypegenDisabled
+  TypegenDisabled,
+  AreAllImplementationsAssumedToBeProvided
 } from './typegenTypes';
 import type {
   ActionFunction,
@@ -35,7 +35,6 @@ import {
   InvokeSourceDefinition,
   Observer,
   SCXML,
-  SCXMLErrorEvent,
   SendActionObject,
   SpecialTargets,
   StateValue,
@@ -127,7 +126,7 @@ export class Interpreter<
   public status: InterpreterStatus = InterpreterStatus.NotStarted;
 
   // Actor Ref
-  public parent?: ActorRef<any>;
+  public _parent?: ActorRef<any>;
   public name: string;
   public ref: ActorRef<TEvent>;
 
@@ -165,7 +164,7 @@ export class Interpreter<
     this.name = this.id = resolvedId;
     this.logger = logger;
     this.clock = clock;
-    this.parent = parent;
+    this._parent = parent;
 
     this.options = resolvedOptions;
 
@@ -179,26 +178,11 @@ export class Interpreter<
   }
 
   public get initialState(): State<TContext, TEvent, TResolvedTypesMeta> {
-    try {
-      CapturedState.current = {
-        actorRef: this.ref,
-        spawns: []
-      };
-      const initialState =
-        this._initialState ||
-        ((this._initialState = this.machine.getInitialState()),
-        this._initialState);
-
-      // TODO: recheck correctness of this code, it seems that it might be possible to reuse cached initialState and thus skip over capturing spawns
-      // Ensure that actors are spawned before initial actions
-      initialState.actions.unshift(...CapturedState.current.spawns);
-      return initialState;
-    } finally {
-      CapturedState.current = {
-        actorRef: undefined,
-        spawns: []
-      };
-    }
+    const initialState =
+      this._initialState ||
+      ((this._initialState = this.machine.getInitialState()),
+      this._initialState);
+    return initialState;
   }
 
   public get state(): State<TContext, TEvent, TResolvedTypesMeta> {
@@ -357,17 +341,6 @@ export class Interpreter<
     return this;
   }
 
-  private handleErrorEvent(errorEvent: SCXMLErrorEvent): void {
-    if (this.errorListeners.size > 0) {
-      this.errorListeners.forEach((listener) => {
-        listener(errorEvent.data.data);
-      });
-    } else {
-      this.stop();
-      throw errorEvent.data.data;
-    }
-  }
-
   /**
    * Adds a state listener that is notified when the statechart has reached its final state.
    * @param listener The state listener
@@ -415,6 +388,9 @@ export class Interpreter<
 
     this._state = resolvedState;
 
+    // TODO: this notifies all subscribers but usually this is redundant
+    // if we are using the initialState as `resolvedState` then there is no real change happening here
+    // we need to rethink if this needs to be refactored
     this.update(resolvedState);
 
     if (this.options.devTools) {
@@ -430,9 +406,31 @@ export class Interpreter<
     // TODO: handle errors
     this.forward(event);
 
+    let errored = false;
+
+    if (
+      isSCXMLErrorEvent(event) &&
+      !this.state.nextEvents.some((nextEvent) => nextEvent === event.name)
+    ) {
+      errored = true;
+      // Error event unhandled by machine
+      if (this.errorListeners.size > 0) {
+        this.errorListeners.forEach((listener) => {
+          listener(event.data.data);
+        });
+      } else {
+        this.stop();
+        throw event.data.data;
+      }
+    }
+
     const nextState = this.nextState(event);
 
     this.update(nextState);
+
+    if (errored) {
+      this.stop();
+    }
   }
 
   /**
@@ -537,9 +535,9 @@ export class Interpreter<
     event: SCXML.Event<AnyEventObject>,
     to: string | ActorRef<any>
   ) {
-    const isParent = this.parent && to === SpecialTargets.Parent;
+    const isParent = this._parent && to === SpecialTargets.Parent;
     const target = isParent
-      ? this.parent
+      ? this._parent
       : isActorRef(to)
       ? to
       : this.state.children[to];
@@ -583,27 +581,7 @@ export class Interpreter<
   public nextState(
     event: Event<TEvent> | SCXML.Event<TEvent>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    const _event = toSCXMLEvent(event);
-
-    if (
-      isSCXMLErrorEvent(_event) &&
-      !this.state.nextEvents.some((nextEvent) => nextEvent === _event.name)
-    ) {
-      this.handleErrorEvent(_event);
-    }
-
-    try {
-      CapturedState.current = {
-        actorRef: this.ref,
-        spawns: []
-      };
-      return this.machine.transition(this.state, event);
-    } finally {
-      CapturedState.current = {
-        actorRef: undefined,
-        spawns: []
-      };
-    }
+    return this.machine.transition(this.state, event);
   }
   private forward(event: SCXML.Event<TEvent>): void {
     for (const id of this.forwardTo) {
@@ -672,7 +650,7 @@ export class Interpreter<
             }
             return;
           }
-          (ref as any).parent = this; // TODO: fix
+          ref._parent = this; // TODO: fix
           // If the actor will be stopped right after it's started
           // (such as in transient states) don't bother starting the actor.
           if (
@@ -690,17 +668,8 @@ export class Interpreter<
               this.forwardTo.add(id);
             }
 
+            // TODO: determine how this can be immutably updated
             this.state.children[id] = ref;
-
-            ref.subscribe({
-              error: () => {
-                // TODO: handle error
-                this.stop();
-              },
-              complete: () => {
-                /* ... */
-              }
-            });
 
             ref.start?.();
           } catch (err) {
@@ -739,7 +708,7 @@ export class Interpreter<
       try {
         return action.execute(state);
       } catch (err) {
-        this.parent?.send({
+        this._parent?.send({
           type: 'xstate.error',
           data: err
         });
@@ -759,8 +728,8 @@ export class Interpreter<
           _event
         });
       } catch (err) {
-        if (this.parent) {
-          this.parent.send({
+        if (this._parent) {
+          this._parent.send({
             type: 'xstate.error',
             data: err
           } as EventObject);
@@ -784,6 +753,7 @@ export class Interpreter<
     }
 
     this.forwardTo.delete(childId);
+    // TODO: determine how this can be immutably updated
     delete this.state.children[childId];
 
     if (isFunction(child.stop)) {
@@ -826,20 +796,15 @@ export class Interpreter<
  * @param machine The machine to interpret
  * @param options Interpreter options
  */
-export function interpret<
-  TContext extends MachineContext,
-  TEvent extends EventObject = EventObject,
-  TResolvedTypesMeta = TypegenDisabled
->(
-  machine: AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends true
-    ? StateMachine<TContext, TEvent, any, any, TResolvedTypesMeta>
+export function interpret<TMachine extends AnyStateMachine>(
+  machine: AreAllImplementationsAssumedToBeProvided<
+    TMachine['__TResolvedTypesMeta']
+  > extends true
+    ? TMachine
     : 'Some implementations missing',
   options?: InterpreterOptions
-) {
-  const interpreter = new Interpreter<TContext, TEvent, TResolvedTypesMeta>(
-    machine as any,
-    options
-  );
+): InterpreterFrom<TMachine> {
+  const interpreter = new Interpreter(machine as AnyStateMachine, options);
 
-  return interpreter;
+  return interpreter as any;
 }

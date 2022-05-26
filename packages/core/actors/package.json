@@ -1,0 +1,4 @@
+{
+  "main": "dist/xstate-actors.cjs.js",
+  "module": "dist/xstate-actors.esm.js"
+}

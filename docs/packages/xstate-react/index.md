@@ -86,7 +86,7 @@ A [React hook](https://reactjs.org/hooks) that interprets the given `machine` an
   );
   ```
 
-- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `immediate`, `context`, `state`.
+- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `immediate`, `context`, `state`. If the machine already contains any of these options, they will be merged, with these options taking precedence.
 
 **Returns** a tuple of `[state, send, service]`:
 
@@ -127,7 +127,7 @@ _Since 1.3.0_
 **Arguments**
 
 - `machine` - An [XState machine](https://xstate.js.org/docs/guides/machines.html) or a function that lazily returns a machine.
-- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `immediate`, `context`, `state`.
+- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `immediate`, `context`, `state`. If the machine already contains any of these options, they will be merged, with these options taking precedence.
 - `observer` (optional) - an observer or listener that listens to state updates:
   - an observer (e.g., `{ next: (state) => {/* ... */} }`)
   - or a listener (e.g., `(state) => {/* ... */}`)
@@ -224,52 +224,6 @@ const App = ({ service }) => {
 };
 ```
 
-### `asEffect(action)`
-
-Ensures that the `action` is executed as an effect in `useEffect`, rather than being immediately executed.
-
-**Arguments**
-
-- `action` - An action function (e.g., `(context, event) => { alert(context.message) })`)
-
-**Returns** a special action function that wraps the original so that `useMachine` knows to execute it in `useEffect`.
-
-**Example**
-
-```jsx
-const machine = createMachine({
-  initial: 'focused',
-  states: {
-    focused: {
-      entry: 'focus'
-    }
-  }
-});
-
-const Input = () => {
-  const inputRef = useRef(null);
-  const [state, send] = useMachine(machine, {
-    actions: {
-      focus: asEffect((context, event) => {
-        inputRef.current && inputRef.current.focus();
-      })
-    }
-  });
-
-  return <input ref={inputRef} />;
-};
-```
-
-### `asLayoutEffect(action)`
-
-Ensures that the `action` is executed as an effect in `useLayoutEffect`, rather than being immediately executed.
-
-**Arguments**
-
-- `action` - An action function (e.g., `(context, event) => { alert(context.message) })`)
-
-**Returns** a special action function that wraps the original so that `useMachine` knows to execute it in `useLayoutEffect`.
-
 ### `useMachine(machine)` with `@xstate/fsm`
 
 A [React hook](https://reactjs.org/hooks) that interprets the given finite state `machine` from [`@xstate/fsm`] and starts a service that runs for the lifetime of the component.
@@ -358,7 +312,7 @@ Example: the `'fetchData'` service and `'notifySuccess'` action are both configu
 
 ```js
 import { createMachine } from 'xstate';
-import { invokePromise } from 'xstate/invoke';
+import { fromPromise } from 'xstate/actors';
 
 const fetchMachine = createMachine({
   id: 'fetch',
@@ -406,9 +360,10 @@ const Fetcher = ({ onResolve }) => {
       notifySuccess: (ctx) => onResolve(ctx.data)
     },
     actors: {
-      fetchData: invokePromise((_, event) =>
-        fetch(`some/api/${event.query}`).then((res) => res.json())
-      )
+      fetchData: (_, event) =>
+        fromPromise(() =>
+          fetch(`some/api/${event.query}`).then((res) => res.json())
+        )
     }
   });
 

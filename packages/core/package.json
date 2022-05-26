@@ -1,6 +1,6 @@
 {
   "name": "xstate",
-  "version": "4.31.0",
+  "version": "5.0.0-alpha.0",
   "description": "Finite State Machines and Statecharts for the Modern Web.",
   "main": "dist/xstate.cjs.js",
   "module": "dist/xstate.esm.js",
@@ -11,10 +11,9 @@
   },
   "files": [
     "dist",
-    "actor",
+    "actors",
     "actions",
     "invoke",
-    "behaviors",
     "guards",
     "dev",
     "model"
@@ -51,10 +50,8 @@
     "umdName": "XState",
     "entrypoints": [
       "./index.ts",
-      "./actor.ts",
       "./actions.ts",
-      "./invoke.ts",
-      "./behaviors.ts",
+      "./actors.ts",
       "./guards.ts",
       "./dev/index.ts"
     ]

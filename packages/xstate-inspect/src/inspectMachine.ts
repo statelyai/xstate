@@ -88,7 +88,7 @@ export function createInspectMachine(
                 type: 'service.register',
                 machine: stringifyMachine(service.machine, options?.serialize),
                 state: stringifyState(
-                  service.state || service.initialState,
+                  service.getSnapshot(),
                   options?.serialize
                 ),
                 sessionId: service.sessionId

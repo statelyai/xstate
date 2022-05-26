@@ -1,5 +1,5 @@
 import { assign, interpret, MachineContext, StateMachine } from '../src';
-import { invokeCallback, invokeMachine, invokePromise } from '../src/invoke';
+import { fromCallback, fromMachine, fromPromise } from '../src/actors';
 import { createMachine } from '../src/Machine';
 import { TypegenMeta } from '../src/typegenTypes';
 
@@ -147,14 +147,15 @@ describe('typegen types', () => {
       },
       {
         actors: {
-          myActor: invokePromise((_ctx, event) => {
-            event.type === 'FOO';
-            event.type === 'BAR';
-            // @ts-expect-error
-            event.type === 'BAZ';
+          myActor: (_ctx, event) =>
+            fromPromise(() => {
+              event.type === 'FOO';
+              event.type === 'BAR';
+              // @ts-expect-error
+              event.type === 'BAZ';
 
-            return Promise.resolve(42);
-          })
+              return Promise.resolve(42);
+            })
         }
       }
     );
@@ -718,7 +719,7 @@ describe('typegen types', () => {
       },
       {
         actors: {
-          myActor: invokePromise((_ctx) => Promise.resolve('foo'))
+          myActor: () => fromPromise(() => Promise.resolve('foo'))
         }
       }
     );
@@ -831,7 +832,7 @@ describe('typegen types', () => {
   //     {
   //       actors: {
   //         // @ts-expect-error
-  //         myActor: invokeMachine((_ctx) => createMachine<{ foo: number }>({}))
+  //         myActor: () => fromMachine(createMachine<{ foo: number }>({}))
   //       }
   //     }
   //   );
@@ -878,7 +879,7 @@ describe('typegen types', () => {
       },
       {
         actors: {
-          fooActor: invokeMachine(createMachine({}))
+          fooActor: () => fromMachine(createMachine({}))
         }
       }
     );
@@ -900,7 +901,7 @@ describe('typegen types', () => {
   //     },
   //     {
   //       actors: {
-  //         fooActor: invokeCallback((_context, event) => (send) => {
+  //         fooActor: () => fromCallback((send) => {
   //           ((_accept: 'FOO') => {})(event.type);
 
   //           send({ type: 'BAR' });
@@ -929,13 +930,14 @@ describe('typegen types', () => {
       },
       {
         actors: {
-          fooActor: invokeCallback((_ctx, _ev) => (_send, onReceive) => {
-            onReceive((event) => {
-              ((_accept: string) => {})(event.type);
-              // @ts-expect-error
-              event.unknown;
-            });
-          })
+          fooActor: () =>
+            fromCallback((_send, onReceive) => {
+              onReceive((event) => {
+                ((_accept: string) => {})(event.type);
+                // @x-ts-expect-error TODO: determine how to get parent event type here
+                event.unknown;
+              });
+            })
         }
       }
     );
@@ -957,11 +959,12 @@ describe('typegen types', () => {
       },
       {
         actors: {
-          fooActor: invokeCallback((_ctx, _ev) => (_send, onReceive) => {
-            onReceive((_event: { type: 'TEST' }) => {});
-            // @ts-expect-error
-            onReceive((_event: { type: number }) => {});
-          })
+          fooActor: () =>
+            fromCallback((_send, onReceive) => {
+              onReceive((_event: { type: 'TEST' }) => {});
+              // @ts-expect-error
+              onReceive((_event: { type: number }) => {});
+            })
         }
       }
     );
@@ -1156,6 +1159,36 @@ describe('typegen types', () => {
         // @ts-expect-error
         actors: {
           testActor: () => Promise.resolve(42)
+        }
+      }
+    );
+  });
+
+  it('should be able to provide events that use string unions as their type', () => {
+    interface TypesMeta extends TypegenMeta {
+      eventsCausingActions: {
+        increment: 'INC';
+        decrement: 'DEC';
+      };
+    }
+
+    createMachine(
+      {
+        tsTypes: {} as TypesMeta,
+        schema: {
+          context: {} as {
+            count: number;
+          },
+          events: {} as { type: 'INC' | 'DEC'; value: number }
+        }
+      },
+      {
+        actions: {
+          increment: assign((ctx, ev) => {
+            return {
+              count: ctx.count + ev.value
+            };
+          })
         }
       }
     );

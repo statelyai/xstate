@@ -9,7 +9,7 @@ import {
   toSCXMLEvent
 } from 'xstate';
 import { XStateDevInterface } from 'xstate/dev';
-import { toActorRef } from 'xstate/actor';
+import { toActorRef } from 'xstate/actors';
 import { createInspectMachine, InspectMachineEvent } from './inspectMachine';
 import { stringifyMachine, stringifyState } from './serialize';
 import type {
@@ -64,7 +64,7 @@ export function createDevTools(): XStateDevInterface {
 }
 
 const defaultInspectorOptions = {
-  url: 'https://statecharts.io/inspect',
+  url: 'https://stately.ai/viz?inspect',
   iframe: () =>
     document.querySelector<HTMLIFrameElement>('iframe[data-xstate]'),
   devTools: () => {
@@ -153,7 +153,7 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
       state: stringifyState(state, options?.serialize),
       sessionId: service.sessionId,
       id: service.id,
-      parent: (service.parent as AnyInterpreter)?.sessionId
+      parent: (service._parent as AnyInterpreter)?.sessionId
     });
 
     inspectService.send({

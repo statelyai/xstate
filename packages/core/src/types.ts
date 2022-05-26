@@ -2,7 +2,7 @@ import type { StateNode } from './StateNode';
 import type { State } from './State';
 import type { Clock, Interpreter } from './interpreter';
 import type { StateMachine } from './StateMachine';
-import type { LifecycleSignal } from './behaviors';
+import type { LifecycleSignal } from './actors';
 import {
   TypegenDisabled,
   ResolveTypegenMeta,
@@ -22,9 +22,12 @@ export type Compute<A extends any> = { [K in keyof A]: A[K] } & unknown;
 export type Prop<T, K> = K extends keyof T ? T[K] : never;
 export type Values<T> = T[keyof T];
 export type Merge<M, N> = Omit<M, keyof N> & N;
+// TODO: replace in v5 with:
+// export type IndexByType<T extends { type: string }> = { [E in T as E['type']]: E; };
 export type IndexByType<T extends { type: string }> = {
-  [K in T['type']]: Extract<T, { type: K }>;
+  [K in T['type']]: T extends any ? (K extends T['type'] ? T : never) : never;
 };
+
 export type Equals<A1 extends any, A2 extends any> = (<A>() => A extends A2
   ? true
   : false) extends <A>() => A extends A1 ? true : false
@@ -110,20 +113,24 @@ export interface ActionMeta<
   _event: SCXML.Event<TEvent>;
 }
 
-export type Spawner = <T extends Behavior<any, any>>(
+// TODO: do not accept machines without all implementations
+// we should also accept a raw machine as a behavior here
+// or just make machine a behavior
+export type Spawner = <T extends Behavior<any, any> | string>( // TODO: read string from machine behavior keys
   behavior: T,
   name?: string
 ) => T extends Behavior<infer TActorEvent, infer TActorEmitted>
   ? ActorRef<TActorEvent, TActorEmitted>
-  : never;
+  : ActorRef<any, any>; // TODO: narrow this to behaviors from machine
 
 export interface AssignMeta<
   TContext extends MachineContext,
   TEvent extends EventObject
 > {
-  state?: State<TContext, TEvent>;
+  state: State<TContext, TEvent>;
   action: BaseActionObject;
   _event: SCXML.Event<TEvent>;
+  spawn: Spawner;
 }
 
 export type ActionFunction<
@@ -170,7 +177,7 @@ export type BaseAction<
   | BaseDynamicActionObject<
       TContext,
       TEvent,
-      BuiltInActionObject | TAction,
+      any, // TODO: at the very least this should include TAction, but probably at a covariant position or something, we really need to rethink how action objects are typed
       any
     >
   | TAction
@@ -385,7 +392,7 @@ export type InvokeCallback<
 export type BehaviorCreator<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TEmitted = any
+  TSnapshot = any
 > = (
   context: TContext,
   event: TEvent,
@@ -396,7 +403,7 @@ export type BehaviorCreator<
     _event: SCXML.Event<TEvent>;
     meta: MetaObject | undefined;
   }
-) => Behavior<any, TEmitted>;
+) => Behavior<any, TSnapshot>;
 
 export interface InvokeMeta {
   data: any;
@@ -435,9 +442,11 @@ export interface InvokeDefinition<
   /**
    * The transition to take upon the invoked child machine sending an error event.
    */
-  onError?:
+  onError?: string | SingleOrArray<TransitionConfig<TContext, ErrorEvent<any>>>;
+
+  onSnapshot?:
     | string
-    | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
+    | SingleOrArray<TransitionConfig<TContext, SnapshotEvent<any>>>;
 
   toJSON: () => Omit<
     InvokeDefinition<TContext, TEvent>,
@@ -516,12 +525,9 @@ export type TransitionsConfigMap<
   TContext extends MachineContext,
   TEvent extends EventObject
 > = {
-  [K in TEvent['type']]?: TransitionConfigOrTarget<
-    TContext,
-    TEvent extends { type: K } ? TEvent : never
-  >;
-} & {
-  '*'?: TransitionConfigOrTarget<TContext, TEvent>;
+  [K in TEvent['type'] | '' | '*']?: K extends '' | '*'
+    ? TransitionConfigOrTarget<TContext, TEvent>
+    : TransitionConfigOrTarget<TContext, ExtractEvent<TEvent, K>>;
 };
 
 type TransitionsConfigArray<
@@ -559,7 +565,11 @@ export interface InvokeConfig<
   /**
    * The source of the machine to be invoked, or the machine itself.
    */
-  src: string | InvokeSourceDefinition | BehaviorCreator<TContext, TEvent>;
+  src:
+    | string
+    | InvokeSourceDefinition
+    | BehaviorCreator<TContext, TEvent>
+    | Behavior<any, any>; // TODO: fix types
   /**
    * If `true`, events sent to the parent service will be forwarded to the invoked service.
    *
@@ -585,6 +595,10 @@ export interface InvokeConfig<
   onError?:
     | string
     | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
+
+  onSnapshot?:
+    | string
+    | SingleOrArray<TransitionConfig<TContext, SnapshotEvent<any>>>;
   /**
    * Meta data related to this invocation
    */
@@ -736,6 +750,8 @@ export interface StateNodeDefinition<
   tags: string[];
 }
 
+export type AnyStateNode = StateNode<any, any>;
+
 export type AnyStateNodeDefinition = StateNodeDefinition<any, any>;
 
 export type AnyState = State<any, any, any>;
@@ -813,7 +829,7 @@ export interface MachineImplementationsSimplified<
   actions: ActionFunctionMap<TContext, TEvent, TAction>;
   actors: Record<string, BehaviorCreator<TContext, TEvent>>;
   delays: DelayFunctionMap<TContext, TEvent>;
-  context: MaybeLazy<Partial<TContext>>;
+  context: Partial<TContext> | ContextFactory<Partial<TContext>>;
 }
 
 type MachineImplementationsActions<
@@ -1008,7 +1024,11 @@ export type MachineImplementations<
 
 type InitialContext<TContext extends MachineContext> =
   | TContext
-  | (() => TContext);
+  | ContextFactory<TContext>;
+
+export type ContextFactory<TContext extends MachineContext> = (stuff: {
+  spawn: Spawner;
+}) => TContext;
 
 export interface MachineConfig<
   TContext extends MachineContext,
@@ -1100,6 +1120,17 @@ export interface RaiseActionObject<TEvent extends EventObject>
 }
 
 export interface DoneInvokeEvent<TData> extends EventObject {
+  type: `done.invoke.${string}`;
+  data: TData;
+}
+
+export interface ErrorEvent<TErrorData> {
+  type: `error.${string}`;
+  data: TErrorData;
+}
+
+export interface SnapshotEvent<TData> {
+  type: `xstate.snapshot.${string}`;
   data: TData;
 }
 
@@ -1712,7 +1743,11 @@ export type Spawnable =
 export type ExtractEvent<
   TEvent extends EventObject,
   TEventType extends TEvent['type']
-> = TEvent extends { type: TEventType } ? TEvent : never;
+> = TEvent extends any
+  ? TEventType extends TEvent['type']
+    ? TEvent
+    : never
+  : never;
 
 export interface BaseActorRef<TEvent extends EventObject> {
   send: (event: TEvent) => void;
@@ -1725,16 +1760,20 @@ export interface ActorLike<TCurrent, TEvent extends EventObject>
 
 export type Sender<TEvent extends EventObject> = (event: TEvent) => void;
 
-export interface ActorRef<TEvent extends EventObject, TEmitted = any>
-  extends Subscribable<TEmitted>,
-    InteropObservable<TEmitted> {
+export interface ActorRef<TEvent extends EventObject, TSnapshot = any>
+  extends Subscribable<TSnapshot>,
+    InteropObservable<TSnapshot> {
   name: string;
   send: (event: TEvent) => void;
   start?: () => void;
-  getSnapshot: () => TEmitted | undefined;
+  getSnapshot: () => TSnapshot | undefined;
   stop?: () => void;
   toJSON?: () => any;
+  // TODO: figure out how to hide this externally as `sendTo(ctx => ctx.actorRef._parent._parent._parent._parent)` shouldn't be allowed
+  _parent?: ActorRef<any, any>;
 }
+
+export type AnyActorRef = ActorRef<any, any>;
 
 export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<
@@ -1755,9 +1794,9 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
         >
       >
     : R extends Promise<infer U>
-    ? ActorRef<never, U>
-    : R extends Behavior<infer TEvent, infer TEmitted>
-    ? ActorRef<TEvent, TEmitted>
+    ? ActorRef<{ type: string }, U | undefined>
+    : R extends Behavior<infer TEvent, infer TSnapshot>
+    ? ActorRef<TEvent, TSnapshot>
     : never
   : never;
 
@@ -1813,32 +1852,31 @@ export type EventOfMachine<
   TMachine extends AnyStateMachine
 > = TMachine extends StateMachine<any, infer E, any, any, any> ? E : never;
 
-export interface ActorContext<TEvent extends EventObject, TEmitted> {
-  parent?: ActorRef<any, any>;
-  self: ActorRef<TEvent, TEmitted>;
+export interface ActorContext<TEvent extends EventObject, TSnapshot> {
+  self: ActorRef<TEvent, TSnapshot>;
   name: string;
-  observers: Set<Observer<TEmitted>>;
   _event: SCXML.Event<TEvent> | LifecycleSignal;
 }
 
-export interface Behavior<TEvent extends EventObject, TEmitted = any> {
+export interface Behavior<TEvent extends EventObject, TSnapshot = any> {
   transition: (
-    state: TEmitted,
+    state: TSnapshot,
     message: TEvent | LifecycleSignal,
-    ctx: ActorContext<TEvent, TEmitted>
-  ) => TEmitted;
-  initialState: TEmitted;
-  start?: (actorCtx: ActorContext<TEvent, TEmitted>) => TEmitted;
-  subscribe?: (observer: Observer<TEmitted>) => Subscription | undefined;
+    ctx: ActorContext<TEvent, TSnapshot>
+  ) => TSnapshot;
+  initialState: TSnapshot;
+  start?: (actorCtx: ActorContext<TEvent, TSnapshot>) => TSnapshot;
 }
 
-export type EmittedFrom<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends ActorRef<infer _, infer TEmitted>
-    ? TEmitted
-    : R extends Behavior<infer _, infer TEmitted>
-    ? TEmitted
-    : R extends ActorContext<infer _, infer TEmitted>
-    ? TEmitted
+export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
+  ? R extends Interpreter<infer _, infer __, infer ___>
+    ? R['initialState']
+    : R extends ActorRef<infer _, infer TSnapshot>
+    ? TSnapshot
+    : R extends Behavior<infer _, infer TSnapshot>
+    ? TSnapshot
+    : R extends ActorContext<infer _, infer TSnapshot>
+    ? TSnapshot
     : never
   : never;
 
@@ -1865,8 +1903,8 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
 export type EventFrom<
   T,
   K extends Prop<TEvent, 'type'> = never,
-  TEvent = ResolveEventType<T>
-> = IsNever<K> extends true ? TEvent : Extract<TEvent, { type: K }>;
+  TEvent extends EventObject = ResolveEventType<T>
+> = IsNever<K> extends true ? TEvent : ExtractEvent<TEvent, K>;
 
 /**
  * Events that do not require payload
@@ -1894,3 +1932,9 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
 export type InferEvent<E extends EventObject> = {
   [T in E['type']]: { type: T } & Extract<E, { type: T }>;
 }[E['type']];
+
+export type TODO = any;
+
+export type StateValueFrom<TMachine extends AnyStateMachine> = Parameters<
+  StateFrom<TMachine>['matches']
+>[0];

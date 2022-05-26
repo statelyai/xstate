@@ -1,14 +1,8 @@
-import {
-  createMachine,
-  State,
-  StateFrom,
-  interpret,
-  spawn
-} from '../src/index';
+import { createMachine, State, StateFrom, interpret } from '../src/index';
 import { initEvent } from '../src/actions';
 import { assign } from '../src/actions/assign';
 import { toSCXMLEvent } from '../src/utils';
-import { createBehaviorFrom } from '../src/behaviors';
+import { fromCallback } from '../src/actors';
 
 type Events =
   | { type: 'BAR_EVENT' }
@@ -829,9 +823,9 @@ describe('State', () => {
           a: {
             on: {
               SPAWN: {
-                actions: assign(() => ({
+                actions: assign((_, __, { spawn }) => ({
                   ref: spawn(
-                    createBehaviorFrom(() => {
+                    fromCallback(() => {
                       spawned = true;
                     })
                   )

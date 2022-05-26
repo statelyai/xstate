@@ -38,8 +38,6 @@ import { State } from './State';
 import {
   after,
   done,
-  doneInvoke,
-  error,
   toActionObjects,
   initEvent,
   actionTypes,
@@ -491,7 +489,7 @@ export function formatTransitions<
       if (invokeDef.onDone) {
         settleTransitions.push(
           ...toTransitionConfigArray(
-            String(doneInvoke(invokeDef.id)),
+            `done.invoke.${invokeDef.id}`,
             invokeDef.onDone
           )
         );
@@ -499,8 +497,16 @@ export function formatTransitions<
       if (invokeDef.onError) {
         settleTransitions.push(
           ...toTransitionConfigArray(
-            String(error(invokeDef.id)),
+            `error.platform.${invokeDef.id}`,
             invokeDef.onError
+          )
+        );
+      }
+      if (invokeDef.onSnapshot) {
+        settleTransitions.push(
+          ...toTransitionConfigArray(
+            `xstate.snapshot.${invokeDef.id}`,
+            invokeDef.onSnapshot
           )
         );
       }
@@ -1390,7 +1396,7 @@ export function microstep<
   TEvent extends EventObject
 >(
   transitions: Array<TransitionDefinition<TContext, TEvent>>,
-  currentState: State<TContext, TEvent> | undefined,
+  currentState: State<TContext, TEvent>,
   context: TContext,
   mutConfiguration: Set<StateNode<TContext, TEvent>>,
   machine: StateMachine<TContext, TEvent>,
@@ -1415,7 +1421,7 @@ export function microstep<
   const internalQueue: Array<SCXML.Event<TEvent>> = [];
 
   // Exit states
-  if (currentState) {
+  if (!currentState._initial) {
     const { historyValue: exitHistoryValue, actions: exitActions } = exitStates(
       filteredTransitions,
       mutConfiguration,
@@ -1567,7 +1573,7 @@ export function resolveMicroTransition<
             toJSON: null as any // TODO: fix
           }
         ],
-    currentState._initial ? undefined : currentState,
+    currentState,
     currentState.context,
     new Set(prevConfig),
     machine,
@@ -1582,7 +1588,7 @@ export function resolveMicroTransition<
     return inertState as any;
   }
 
-  const children = !currentState._initial ? { ...currentState.children } : {};
+  const children = { ...currentState.children };
 
   const resolvedConfiguration = willTransition
     ? Array.from(resolved.configuration)

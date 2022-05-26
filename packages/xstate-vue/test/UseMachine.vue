@@ -14,7 +14,7 @@
 import { defineComponent, PropType } from 'vue';
 import { useMachine } from '../src';
 import { createMachine, assign, AnyState } from 'xstate';
-import { invokePromise } from 'xstate/invoke';
+import { fromPromise } from 'xstate/actors';
 
 const context = {
   data: undefined
@@ -58,7 +58,7 @@ export default defineComponent({
 
     const { state, send, service } = useMachine(fetchMachine, {
       actors: {
-        fetchData: invokePromise(onFetch)
+        fetchData: () => fromPromise(onFetch)
       },
       state: persistedState
     });

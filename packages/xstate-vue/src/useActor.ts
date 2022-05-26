@@ -1,54 +1,27 @@
-import { ActorRef, EventObject, Sender } from 'xstate';
+import { ActorRef, EventObject, Sender, SnapshotFrom } from 'xstate';
 import { shallowRef, isRef, watch, Ref } from 'vue';
-
-export function isActorWithState<T extends ActorRef<any>>(
-  actorRef: T
-): actorRef is T & { state: any } {
-  return 'state' in actorRef;
-}
-
-type EmittedFromActorRef<
-  TActor extends ActorRef<any, any>
-> = TActor extends ActorRef<any, infer TEmitted> ? TEmitted : never;
 
 const noop = () => {
   /* ... */
 };
 
-export function defaultGetSnapshot<TEmitted>(
-  actorRef: ActorRef<any, TEmitted>
-): TEmitted | undefined {
-  return 'getSnapshot' in actorRef
-    ? actorRef.getSnapshot()
-    : isActorWithState(actorRef)
-    ? actorRef.state
-    : undefined;
-}
-
 export function useActor<TActor extends ActorRef<any, any>>(
-  actorRef: TActor | Ref<TActor>,
-  getSnapshot?: (actor: TActor) => EmittedFromActorRef<TActor>
+  actorRef: TActor | Ref<TActor>
 ): {
-  state: Ref<EmittedFromActorRef<TActor>>;
+  state: Ref<SnapshotFrom<TActor>>;
   send: TActor['send'];
 };
-export function useActor<TEvent extends EventObject, TEmitted>(
-  actorRef: ActorRef<TEvent, TEmitted> | Ref<ActorRef<TEvent, TEmitted>>,
-  getSnapshot?: (actor: ActorRef<TEvent, TEmitted>) => TEmitted
-): { state: Ref<TEmitted>; send: Sender<TEvent> };
+export function useActor<TEvent extends EventObject, TSnapshot>(
+  actorRef: ActorRef<TEvent, TSnapshot> | Ref<ActorRef<TEvent, TSnapshot>>
+): { state: Ref<TSnapshot>; send: Sender<TEvent> };
 export function useActor(
-  actorRef:
-    | ActorRef<EventObject, unknown>
-    | Ref<ActorRef<EventObject, unknown>>,
-  getSnapshot: (
-    actor: ActorRef<EventObject, unknown>
-  ) => unknown = defaultGetSnapshot
+  actorRef: ActorRef<EventObject, unknown> | Ref<ActorRef<EventObject, unknown>>
 ): {
   state: Ref<unknown>;
   send: Sender<EventObject>;
 } {
   const actorRefRef = isRef(actorRef) ? actorRef : shallowRef(actorRef);
-  const state = shallowRef(getSnapshot(actorRefRef.value));
+  const state = shallowRef(actorRefRef.value.getSnapshot());
 
   const send: Sender<EventObject> = (event: EventObject) => {
     actorRefRef.value.send(event);
@@ -57,7 +30,7 @@ export function useActor(
   watch(
     actorRefRef,
     (newActor, _, onCleanup) => {
-      state.value = getSnapshot(newActor);
+      state.value = newActor.getSnapshot();
       const { unsubscribe } = newActor.subscribe({
         next: (emitted) => (state.value = emitted),
         error: noop,

@@ -10,9 +10,6 @@ import {
   StateValue,
   AnyEventObject,
   createMachine,
-  spawnPromise,
-  spawnMachine,
-  spawnObservable,
   AnyState
 } from '../src';
 import { State } from '../src/State';
@@ -22,13 +19,12 @@ import { stop } from '../src/actions/stop';
 import { log } from '../src/actions/log';
 import { isObservable } from '../src/utils';
 import { interval, from } from 'rxjs';
-import { map } from 'rxjs/operators';
 import {
-  invokeObservable,
-  invokeMachine,
-  invokePromise,
-  invokeActivity
-} from '../src/invoke';
+  fromCallback,
+  fromMachine,
+  fromObservable,
+  fromPromise
+} from '../src/actors';
 
 const lightMachine = createMachine({
   id: 'light',
@@ -84,11 +80,10 @@ describe('interpreter', () => {
       expect(service.initialState.value).toEqual(idMachine.initialState.value);
     });
 
-    it('initial state should be cached', (done) => {
-      let entryCalled = 0;
+    it('initially spawned actors should not be spawned when reading initial state', (done) => {
       let promiseSpawned = 0;
 
-      const machine = createMachine<any, any>({
+      const machine = createMachine({
         initial: 'idle',
         context: {
           actor: undefined
@@ -96,13 +91,14 @@ describe('interpreter', () => {
         states: {
           idle: {
             entry: assign({
-              actor: () => {
-                entryCalled++;
-                return spawnPromise(
-                  () =>
-                    new Promise(() => {
-                      promiseSpawned++;
-                    })
+              actor: (_, __, { spawn }) => {
+                return spawn(
+                  fromPromise(
+                    () =>
+                      new Promise(() => {
+                        promiseSpawned++;
+                      })
+                  )
                 );
               }
             })
@@ -112,7 +108,6 @@ describe('interpreter', () => {
 
       const service = interpret(machine);
 
-      expect(entryCalled).toEqual(0);
       expect(promiseSpawned).toEqual(0);
 
       const callInitialState = () => service.initialState;
@@ -121,8 +116,6 @@ describe('interpreter', () => {
       callInitialState();
 
       service.start();
-
-      expect(entryCalled).toEqual(1);
 
       setTimeout(() => {
         expect(promiseSpawned).toEqual(1);
@@ -524,10 +517,11 @@ describe('interpreter', () => {
       },
       {
         actors: {
-          myActivity: invokeActivity(() => {
-            activityState = 'on';
-            return () => (activityState = 'off');
-          })
+          myActivity: () =>
+            fromCallback(() => {
+              activityState = 'on';
+              return () => (activityState = 'off');
+            })
         }
       }
     );
@@ -571,10 +565,11 @@ describe('interpreter', () => {
         },
         {
           actors: {
-            myActivity: invokeActivity(() => {
-              stopActivityState = 'on';
-              return () => (stopActivityState = 'off');
-            })
+            myActivity: () =>
+              fromCallback(() => {
+                stopActivityState = 'on';
+                return () => (stopActivityState = 'off');
+              })
           }
         }
       );
@@ -612,13 +607,14 @@ describe('interpreter', () => {
         },
         {
           actors: {
-            blink: invokeActivity(() => {
-              activityActive = true;
+            blink: () =>
+              fromCallback(() => {
+                activityActive = true;
 
-              return () => {
-                activityActive = false;
-              };
-            })
+                return () => {
+                  activityActive = false;
+                };
+              })
           }
         }
       );
@@ -867,7 +863,7 @@ describe('interpreter', () => {
         foo: {
           invoke: {
             id: 'child',
-            src: invokeMachine(childMachine)
+            src: fromMachine(childMachine)
           }
         }
       },
@@ -1017,52 +1013,48 @@ describe('interpreter', () => {
   });
 
   describe('sendParent() event expressions', () => {
-    interface Ctx {
-      password: string;
-    }
-    interface Events {
-      type: 'NEXT';
-      password: string;
-    }
-    const childMachine = createMachine<Ctx>({
-      id: 'child',
-      initial: 'start',
-      context: {
-        password: 'unknown'
-      },
-      states: {
-        start: {
-          entry: sendParent((ctx) => {
-            return { type: 'NEXT', password: ctx.password };
-          })
-        }
-      }
-    });
-    // Ctx, any, Events, any
-    const parentMachine = createMachine<Ctx, Events>({
-      id: 'parent',
-      initial: 'start',
-      states: {
-        start: {
-          invoke: {
-            id: 'child',
-            src: invokeMachine(childMachine),
-            data: { password: 'foo' }
-          },
-          on: {
-            NEXT: {
-              target: 'finish',
-              guard: (_, e) => e.password === 'foo'
-            }
-          }
-        },
-        finish: {
-          type: 'final'
-        }
-      }
-    });
-
     it('should resolve sendParent event expressions', (done) => {
+      const childMachine = createMachine({
+        id: 'child',
+        initial: 'start',
+        context: {
+          password: 'unknown'
+        },
+        states: {
+          start: {
+            entry: sendParent((ctx) => {
+              return { type: 'NEXT', password: ctx.password };
+            })
+          }
+        }
+      });
+
+      const parentMachine = createMachine<
+        any,
+        { type: 'NEXT'; password: string }
+      >({
+        id: 'parent',
+        initial: 'start',
+        states: {
+          start: {
+            invoke: {
+              id: 'child',
+              src: () =>
+                fromMachine(childMachine.withContext({ password: 'foo' }))
+            },
+            on: {
+              NEXT: {
+                target: 'finish',
+                guard: (_, e) => e.password === 'foo'
+              }
+            }
+          },
+          finish: {
+            type: 'final'
+          }
+        }
+      });
+
       interpret(parentMachine)
         .onTransition((state) => {
           if (state.matches('start')) {
@@ -1524,9 +1516,10 @@ describe('interpreter', () => {
         },
         {
           actors: {
-            testService: invokeActivity(() => {
-              // nothing
-            })
+            testService: () =>
+              fromCallback(() => {
+                // nothing
+              })
           }
         }
       );
@@ -1557,7 +1550,7 @@ describe('interpreter', () => {
           active: {
             invoke: {
               id: 'childActor',
-              src: invokeMachine(childMachine)
+              src: fromMachine(childMachine)
             },
             on: {
               FIRED: 'success'
@@ -1592,14 +1585,15 @@ describe('interpreter', () => {
           active: {
             invoke: {
               id: 'childActor',
-              src: invokePromise(
-                () =>
-                  new Promise((res) => {
-                    setTimeout(() => {
-                      res(42);
-                    }, 100);
-                  })
-              ),
+              src: () =>
+                fromPromise(
+                  () =>
+                    new Promise((res) => {
+                      setTimeout(() => {
+                        res(42);
+                      }, 100);
+                    })
+                ),
               onDone: [
                 {
                   target: 'success',
@@ -1646,15 +1640,11 @@ describe('interpreter', () => {
           active: {
             invoke: {
               id: 'childActor',
-              src: invokeObservable(() =>
-                interval$.pipe(map((value) => ({ type: 'FIRED', value })))
-              )
-            },
-            on: {
-              FIRED: {
+              src: fromObservable(() => interval$),
+              onSnapshot: {
                 target: 'success',
                 guard: (_: unknown, e: AnyEventObject) => {
-                  return e.value === 3;
+                  return e.data === 3;
                 }
               }
             }
@@ -1687,12 +1677,13 @@ describe('interpreter', () => {
         }
       });
 
-      const formMachine = createMachine<any, any>({
+      const formMachine = createMachine({
         id: 'form',
         initial: 'idle',
         context: {},
         entry: assign({
-          firstNameRef: () => spawnMachine(childMachine, 'child')
+          firstNameRef: (_, __, { spawn }) =>
+            spawn(fromMachine(childMachine), 'child')
         }),
         states: {
           idle: {}
@@ -1715,23 +1706,26 @@ describe('interpreter', () => {
         }
       });
 
-      const parentMachine = createMachine<any>({
+      const parentMachine = createMachine({
         id: 'form',
         initial: 'present',
         context: {},
         entry: assign({
-          machineRef: () => spawnMachine(childMachine, 'machineChild'),
-          promiseRef: () =>
-            spawnPromise(
-              () =>
-                new Promise(() => {
-                  // ...
-                }),
+          machineRef: (_, __, { spawn }) =>
+            spawn(fromMachine(childMachine), 'machineChild'),
+          promiseRef: (_, __, { spawn }) =>
+            spawn(
+              fromPromise(
+                () =>
+                  new Promise(() => {
+                    // ...
+                  })
+              ),
               'promiseChild'
             ),
-          observableRef: () =>
-            spawnObservable(
-              () => interval(1000).pipe(map((i) => ({ type: 'INTERVAL', i }))),
+          observableRef: (_, __, { spawn }) =>
+            spawn(
+              fromObservable(() => interval(1000)),
               'observableChild'
             )
         }),

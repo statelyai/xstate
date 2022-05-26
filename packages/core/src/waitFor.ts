@@ -1,4 +1,4 @@
-import { ActorRef, EmittedFrom } from '.';
+import { ActorRef, SnapshotFrom } from '.';
 
 interface WaitForOptions {
   /**
@@ -35,22 +35,30 @@ const defaultWaitForOptions: WaitForOptions = {
  */
 export function waitFor<TActorRef extends ActorRef<any, any>>(
   actorRef: TActorRef,
-  predicate: (emitted: EmittedFrom<TActorRef>) => boolean,
+  predicate: (emitted: SnapshotFrom<TActorRef>) => boolean,
   options?: Partial<WaitForOptions>
-): Promise<EmittedFrom<TActorRef>> {
+): Promise<SnapshotFrom<TActorRef>> {
   const resolvedOptions: WaitForOptions = {
     ...defaultWaitForOptions,
     ...options
   };
   return new Promise((res, rej) => {
     let done = false;
-    const handle = setTimeout(() => {
-      sub.unsubscribe();
-      rej(new Error(`Timeout of ${resolvedOptions.timeout} ms exceeded`));
-    }, resolvedOptions.timeout);
+    if (process.env.NODE_ENV !== 'production' && resolvedOptions.timeout < 0) {
+      console.error(
+        '`timeout` passed to `waitFor` is negative and it will reject its internal promise immediately.'
+      );
+    }
+    const handle =
+      resolvedOptions.timeout === Infinity
+        ? undefined
+        : setTimeout(() => {
+            sub.unsubscribe();
+            rej(new Error(`Timeout of ${resolvedOptions.timeout} ms exceeded`));
+          }, resolvedOptions.timeout);
 
     const dispose = () => {
-      clearTimeout(handle);
+      clearTimeout(handle!);
       done = true;
       sub?.unsubscribe();
     };
