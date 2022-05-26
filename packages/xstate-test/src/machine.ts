@@ -55,16 +55,16 @@ export function executeAction(
 
 function serializeMachineTransition(
   state: AnyState,
-  event: AnyEventObject | null,
+  _event: AnyEventObject | null,
   { serializeEvent }: { serializeEvent: (event: AnyEventObject) => string }
 ): string {
   // Only consider the transition via the serialized event if there actually
   // was a defined transition for the event
-  if (!event || state.transitions.length === 0) {
+  if (!state.event || state.transitions.length === 0) {
     return '';
   }
 
-  return ` via ${serializeEvent(event)}`;
+  return ` via ${serializeEvent(state.event)}`;
 }
 
 /**
