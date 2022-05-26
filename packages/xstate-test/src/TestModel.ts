@@ -138,10 +138,8 @@ export class TestModel<TState, TEvent extends EventObject> {
     statePredicate: StatePredicate<TState>,
     testPaths: Array<TestPath<TState, TEvent>>
   ): Array<TestPath<TState, TEvent>> {
-    const predicate: StatePredicate<TState> = (state) => statePredicate(state);
-
     return testPaths.filter((testPath) => {
-      return predicate(testPath.state);
+      return statePredicate(testPath.state);
     });
   }
 

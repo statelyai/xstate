@@ -17,7 +17,7 @@ import {
   TestMachineOptions,
   TestModelOptions
 } from './types';
-import { flatten } from './utils';
+import { flatten, simpleStringify } from './utils';
 import { validateMachine } from './validateMachine';
 
 export async function testStateFromMeta(state: AnyState) {
@@ -53,14 +53,18 @@ export function executeAction(
   }
 }
 
-function serializeMachineTransition(state: AnyState): string {
-  return state.transitions
-    .map((t) => {
-      const guardName = t.cond?.name;
-      const guardString = guardName ? `[${guardName}]` : '';
-      return `${t.eventType}${guardString}`;
-    })
-    .join(',');
+function serializeMachineTransition(
+  state: AnyState,
+  _event: AnyEventObject | null,
+  { serializeEvent }: { serializeEvent: (event: AnyEventObject) => string }
+): string {
+  // Only consider the transition via the serialized event if there actually
+  // was a defined transition for the event
+  if (!state.event || state.transitions.length === 0) {
+    return '';
+  }
+
+  return ` via ${serializeEvent(state.event)}`;
 }
 
 /**
@@ -93,6 +97,7 @@ export function createTestModel<TMachine extends AnyStateMachine>(
 ): TestModel<StateFrom<TMachine>, EventFrom<TMachine>> {
   validateMachine(machine);
 
+  const serializeEvent = options?.serializeEvent ?? simpleStringify;
   const serializeTransition =
     options?.serializeTransition ?? serializeMachineTransition;
 
@@ -100,11 +105,9 @@ export function createTestModel<TMachine extends AnyStateMachine>(
     machine as SimpleBehavior<any, any>,
     {
       serializeState: (state, event) => {
-        const serializedTransition = serializeTransition(state, event);
-
-        return `${serializeState(state)}${
-          serializedTransition ? ` via ${serializedTransition}` : ''
-        }` as SerializedState;
+        return `${serializeState(state)}${serializeTransition(state, event, {
+          serializeEvent
+        })}` as SerializedState;
       },
       stateMatcher: (state, key) => {
         return key.startsWith('#')
