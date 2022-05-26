@@ -53,7 +53,7 @@ export function useMachine<TContext extends object, TEvent extends EventObject>(
     rehydratedState ? (machine.createState(rehydratedState) as any) : undefined
   );
 
-  const state = readable(service.state, (set) => {
+  const state = readable(service.getSnapshot(), (set) => {
     service.subscribe((state) => {
       if (state.changed) {
         set(state);

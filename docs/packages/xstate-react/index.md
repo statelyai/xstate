@@ -358,7 +358,7 @@ Example: the `'fetchData'` service and `'notifySuccess'` action are both configu
 
 ```js
 import { createMachine } from 'xstate';
-import { invokePromise } from 'xstate/invoke';
+import { fromPromise } from 'xstate/actors';
 
 const fetchMachine = createMachine({
   id: 'fetch',
@@ -406,9 +406,10 @@ const Fetcher = ({ onResolve }) => {
       notifySuccess: (ctx) => onResolve(ctx.data)
     },
     actors: {
-      fetchData: invokePromise((_, event) =>
-        fetch(`some/api/${event.query}`).then((res) => res.json())
-      )
+      fetchData: (_, event) =>
+        fromPromise(() =>
+          fetch(`some/api/${event.query}`).then((res) => res.json())
+        )
     }
   });
 

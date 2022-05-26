@@ -7,7 +7,7 @@ import {
   toEventObject,
   toSCXMLEvent
 } from 'xstate';
-import { toActorRef } from 'xstate/actor';
+import { toActorRef } from 'xstate/actors';
 import { createInspectMachine, InspectMachineEvent } from './inspectMachine';
 import { Inspector, Replacer } from './types';
 import { stringify } from './utils';
@@ -86,14 +86,14 @@ export function inspect(options: ServerInspectorOptions): Inspector {
     inspectService.send({
       type: 'service.register',
       machine: JSON.stringify(service.machine),
-      state: JSON.stringify(service.state || service.initialState),
+      state: JSON.stringify(service.getSnapshot()),
       id: service.id,
       sessionId: service.sessionId
     });
 
     inspectService.send({
       type: 'service.event',
-      event: stringify((service.state || service.initialState)._event),
+      event: stringify(service.getSnapshot()._event),
       sessionId: service.sessionId
     });
 

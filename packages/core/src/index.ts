@@ -23,18 +23,11 @@ import { mapState } from './mapState';
 import { matchState } from './match';
 import { State } from './State';
 import { StateNode } from './StateNode';
-export {
-  spawn,
-  spawnCallback,
-  spawnFrom,
-  spawnMachine,
-  spawnObservable,
-  spawnPromise
-} from './actor';
 export { createSchema, t } from './schema';
 export { SimulatedClock } from './SimulatedClock';
 export { StateMachine } from './StateMachine';
 export { getStateNodes } from './stateUtils';
+export { ObservableActorRef } from './ObservableActorRef';
 export * from './typegenTypes';
 export * from './types';
 // TODO: decide from where those should be exported

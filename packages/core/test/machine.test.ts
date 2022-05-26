@@ -283,7 +283,7 @@ describe('machine', () => {
       }
     };
 
-    it.skip('context from a function should be lazily evaluated', () => {
+    it('context from a function should be lazily evaluated', () => {
       const testMachine1 = createMachine(testMachineConfig);
       const testMachine2 = createMachine(testMachineConfig);
 

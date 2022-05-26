@@ -1,6 +1,7 @@
 import { useCallback, useEffect } from 'react';
 import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
 import {
+  AnyState,
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
   EventObject,
@@ -19,6 +20,9 @@ import { useIdleInterpreter } from './useInterpret';
 function identity<T>(a: T): T {
   return a;
 }
+
+const isEqual = (prevState: AnyState, nextState: AnyState) =>
+  prevState === nextState || nextState.changed === false;
 
 export interface UseMachineOptions<
   TContext extends MachineContext,
@@ -65,6 +69,9 @@ type UseMachineReturn<
   TInterpreter = InterpreterFrom<TMachine>
 > = [StateFrom<TMachine>, Prop<TInterpreter, 'send'>, TInterpreter];
 
+// TODO: rethink how we can do this better
+const cachedRehydratedStates = new WeakMap();
+
 export function useMachine<TMachine extends AnyStateMachine>(
   getMachine: MaybeLazy<TMachine>,
   ...[options = {}]: RestParams<TMachine>
@@ -74,35 +81,18 @@ export function useMachine<TMachine extends AnyStateMachine>(
   const service = useIdleInterpreter(getMachine, options as any);
 
   const getSnapshot = useCallback(() => {
-    if (service.status === InterpreterStatus.NotStarted) {
-      return (options.state
-        ? State.create(options.state)
-        : service.machine.initialState) as State<any, any, any>;
+    if (service.status === InterpreterStatus.NotStarted && options.state) {
+      const cached = cachedRehydratedStates.get(options.state);
+      if (cached) {
+        return cached;
+      }
+      const created = State.create(options.state) as State<any, any, any>;
+      cachedRehydratedStates.set(options.state, created);
+      return created;
     }
 
-    return service.state;
+    return service.getSnapshot();
   }, [service]);
-
-  const isEqual = useCallback(
-    (prevState, nextState) => {
-      if (service.status === InterpreterStatus.NotStarted) {
-        return true;
-      }
-
-      // Only change the current state if:
-      // - the incoming state is the "live" initial state (since it might have new actors)
-      // - OR the incoming state actually changed.
-      //
-      // The "live" initial state will have .changed === undefined.
-      const initialStateChanged =
-        nextState.changed === undefined &&
-        (Object.keys(nextState.children).length > 0 ||
-          typeof prevState.changed === 'boolean');
-
-      return !(nextState.changed || initialStateChanged);
-    },
-    [service]
-  );
 
   const subscribe = useCallback(
     (handleStoreChange) => {

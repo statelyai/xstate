@@ -3,18 +3,15 @@ import {
   assign,
   forwardTo,
   interpret,
-  spawnMachine,
-  ActorRefFrom,
-  spawn
+  ActorRefFrom
 } from '../src/index';
 import { sendParent } from '../src/actions';
 import { choose } from '../src/actions/choose';
 import { pure } from '../src/actions/pure';
 import { log } from '../src/actions/log';
-import { invokeMachine } from '../src/invoke';
 import { ActorRef } from '../src';
 import { sendTo } from '../src/actions/send';
-import { createMachineBehavior } from '../src/behaviors';
+import { fromMachine } from '../src/actors';
 
 describe('entry/exit actions', () => {
   const pedestrianStates = {
@@ -630,7 +627,7 @@ describe('entry/exit actions', () => {
         states: {
           active: {
             invoke: {
-              src: invokeMachine(childMachine),
+              src: fromMachine(childMachine),
               onDone: 'finished'
             }
           },
@@ -1273,7 +1270,7 @@ describe('forwardTo()', () => {
       initial: 'first',
       states: {
         first: {
-          invoke: { src: invokeMachine(child), id: 'myChild' },
+          invoke: { src: fromMachine(child), id: 'myChild' },
           on: {
             EVENT: {
               actions: forwardTo('myChild')
@@ -1322,7 +1319,7 @@ describe('forwardTo()', () => {
       states: {
         first: {
           entry: assign({
-            child: () => spawnMachine(child, 'x')
+            child: (_, __, { spawn }) => spawn(fromMachine(child), 'x')
           }),
           on: {
             EVENT: {
@@ -1746,12 +1743,11 @@ describe('sendTo', () => {
       }
     });
 
-    const parentMachine = createMachine<{
-      child: ActorRefFrom<typeof childMachine>;
-    }>({
-      context: () => ({
-        child: spawn(createMachineBehavior(childMachine))
-      }),
+    const parentMachine = createMachine({
+      context: ({ spawn }) =>
+        ({
+          child: spawn(fromMachine(childMachine))
+        } as { child: ActorRefFrom<typeof childMachine> }),
       entry: sendTo((ctx) => ctx.child, { type: 'EVENT' })
     });
 
@@ -1765,7 +1761,6 @@ describe('sendTo', () => {
         waiting: {
           on: {
             EVENT: {
-              guard: (_, e) => e.count === 42,
               actions: () => done()
             }
           }
@@ -1773,14 +1768,13 @@ describe('sendTo', () => {
       }
     });
 
-    const parentMachine = createMachine<{
-      child: ActorRefFrom<typeof childMachine>;
-      count: number;
-    }>({
-      context: () => ({
-        child: spawn(createMachineBehavior(childMachine)),
-        count: 42
-      }),
+    const parentMachine = createMachine({
+      context: ({ spawn }) => {
+        return {
+          child: spawn(fromMachine(childMachine), 'child'),
+          count: 42
+        };
+      },
       entry: sendTo(
         (ctx) => ctx.child,
         (ctx) => ({ type: 'EVENT', count: ctx.count })
@@ -1805,8 +1799,8 @@ describe('sendTo', () => {
     createMachine<{
       child: ActorRefFrom<typeof childMachine>;
     }>({
-      context: () => ({
-        child: spawn(createMachineBehavior(childMachine))
+      context: ({ spawn }) => ({
+        child: spawn(fromMachine(childMachine))
       }),
       entry: sendTo((ctx) => ctx.child, {
         // @ts-expect-error

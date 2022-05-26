@@ -1,13 +1,13 @@
 import { from } from 'rxjs';
 import { raise } from '../src/actions/raise';
-import { createMachineBehavior } from '../src/behaviors';
+import { fromMachine } from '../src/actors';
 import {
   ActorRefFrom,
   assign,
   createMachine,
   interpret,
   MachineContext,
-  spawn,
+  Spawner,
   StateMachine
 } from '../src/index';
 import { createModel } from '../src/model';
@@ -441,11 +441,11 @@ describe('spawn', () => {
     const createChild = () => createMachine({});
 
     function createParent(_deps: {
-      spawnChild: () => ActorRefFrom<typeof createChild>;
+      spawnChild: (spawn: Spawner) => ActorRefFrom<typeof createChild>;
     }) {}
 
     createParent({
-      spawnChild: () => spawn(createMachineBehavior(createChild()))
+      spawnChild: (spawn: Spawner) => spawn(fromMachine(createChild()))
     });
   });
 });

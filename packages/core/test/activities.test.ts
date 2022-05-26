@@ -1,6 +1,6 @@
+import { fromCallback } from '../src/actors';
 import { stateIn } from '../src/guards';
 import { interpret, createMachine } from '../src/index';
-import { invokeActivity } from '../src/invoke';
 
 // TODO: remove this file but before doing that ensure that things tested here are covered by other tests
 
@@ -56,9 +56,10 @@ describe('activities with guarded transitions', () => {
       },
       {
         actors: {
-          B_ACTIVITY: invokeActivity(() => {
-            done();
-          })
+          B_ACTIVITY: () =>
+            fromCallback(() => {
+              done();
+            })
         }
       }
     );
@@ -91,9 +92,10 @@ describe('remembering activities', () => {
     const service = interpret(
       machine.provide({
         actors: {
-          B_ACTIVITY: invokeActivity(() => {
-            done();
-          })
+          B_ACTIVITY: () =>
+            fromCallback(() => {
+              done();
+            })
         }
       })
     ).start();
@@ -108,9 +110,10 @@ describe('activities', () => {
     const service = interpret(
       lightMachine.provide({
         actors: {
-          fadeInGreen: invokeActivity(() => {
-            done();
-          })
+          fadeInGreen: () =>
+            fromCallback(() => {
+              done();
+            })
         }
       })
     );
@@ -121,9 +124,10 @@ describe('activities', () => {
     const service = interpret(
       lightMachine.provide({
         actors: {
-          activateCrosswalkLight: invokeActivity(() => {
-            done();
-          })
+          activateCrosswalkLight: () =>
+            fromCallback(() => {
+              done();
+            })
         }
       })
     );
@@ -137,9 +141,10 @@ describe('activities', () => {
     const service = interpret(
       lightMachine.provide({
         actors: {
-          blinkCrosswalkLight: invokeActivity(() => {
-            done();
-          })
+          blinkCrosswalkLight: () =>
+            fromCallback(() => {
+              done();
+            })
         }
       })
     );
@@ -154,11 +159,12 @@ describe('activities', () => {
     const service = interpret(
       lightMachine.provide({
         actors: {
-          blinkCrosswalkLight: invokeActivity(() => {
-            return () => {
-              done();
-            };
-          })
+          blinkCrosswalkLight: () =>
+            fromCallback(() => {
+              return () => {
+                done();
+              };
+            })
         }
       })
     );
@@ -176,16 +182,18 @@ describe('activities', () => {
     const service = interpret(
       lightMachine.provide({
         actors: {
-          fadeInGreen: invokeActivity(() => {
-            if (stopActivateCrosswalkLightcalled) {
-              done();
-            }
-          }),
-          activateCrosswalkLight: invokeActivity(() => {
-            return () => {
-              stopActivateCrosswalkLightcalled = true;
-            };
-          })
+          fadeInGreen: () =>
+            fromCallback(() => {
+              if (stopActivateCrosswalkLightcalled) {
+                done();
+              }
+            }),
+          activateCrosswalkLight: () =>
+            fromCallback(() => {
+              return () => {
+                stopActivateCrosswalkLightcalled = true;
+              };
+            })
         }
       })
     );
@@ -278,9 +286,10 @@ describe('transient activities', () => {
     const service = interpret(
       machine.provide({
         actors: {
-          A: invokeActivity(() => {
-            done();
-          })
+          A: () =>
+            fromCallback(() => {
+              done();
+            })
         }
       })
     );
@@ -292,9 +301,10 @@ describe('transient activities', () => {
     const service = interpret(
       machine.provide({
         actors: {
-          A1: invokeActivity(() => {
-            done();
-          })
+          A1: () =>
+            fromCallback(() => {
+              done();
+            })
         }
       })
     );
@@ -305,9 +315,10 @@ describe('transient activities', () => {
     const service = interpret(
       machine.provide({
         actors: {
-          A: invokeActivity(() => {
-            done();
-          })
+          A: () =>
+            fromCallback(() => {
+              done();
+            })
         }
       })
     ).start();
@@ -319,9 +330,10 @@ describe('transient activities', () => {
     const service = interpret(
       machine.provide({
         actors: {
-          C1: invokeActivity(() => {
-            done();
-          })
+          C1: () =>
+            fromCallback(() => {
+              done();
+            })
         }
       })
     ).start();
@@ -333,9 +345,10 @@ describe('transient activities', () => {
     const service = interpret(
       machine.provide({
         actors: {
-          C1: invokeActivity(() => {
-            done();
-          })
+          C1: () =>
+            fromCallback(() => {
+              done();
+            })
         }
       })
     ).start();
@@ -347,9 +360,10 @@ describe('transient activities', () => {
     const service = interpret(
       machine.provide({
         actors: {
-          B2: invokeActivity(() => {
-            done();
-          })
+          B2: () =>
+            fromCallback(() => {
+              done();
+            })
         }
       })
     ).start();

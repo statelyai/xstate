@@ -391,7 +391,6 @@ async function runTestToCompletion(
     clock: new SimulatedClock()
   })
     .onTransition((state) => {
-      // console.log(state._event, state.value);
       prevState = nextState;
       nextState = state;
     })

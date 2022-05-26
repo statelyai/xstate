@@ -14,7 +14,7 @@
   // ...
   const loginService = interpret(loginMachine).start();
 
-  const loggedInState = await waitFor(loginService, state =>
+  const loggedInState = await waitFor(loginService, (state) =>
     state.hasTag('loggedIn')
   );
 
