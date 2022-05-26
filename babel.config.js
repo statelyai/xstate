@@ -39,6 +39,24 @@ module.exports = {
       { isTSX: true, allExtensions: true, disallowAmbiguousJSXLike: true }
     ]
   ],
+  overrides: [
+    {
+      test: /\.svelte$/,
+      presets: [
+        [
+          '@babel/preset-typescript',
+          {
+            isTSX: true,
+            allExtensions: true,
+            disallowAmbiguousJSXLike: true,
+            // this is the only overriden option
+            // potentially we could just configure it for all the files but surprisingly something crashes when we try to do it
+            onlyRemoveTypeImports: true
+          }
+        ]
+      ]
+    }
+  ],
   plugins: [
     stripSymbolObservableMethodPlugin,
     '@babel/proposal-class-properties'

@@ -2,6 +2,7 @@ import {
   assign,
   ContextFrom,
   createMachine,
+  SnapshotFrom,
   EventFrom,
   interpret,
   MachineImplementationsFrom,
@@ -185,6 +186,20 @@ describe('EventFrom', () => {
     // @ts-expect-error
     acceptUserModelEventSubset({ type: 'eventThatDoesNotExist' });
   });
+
+  it('should correctly extract events from events having union of strings as their `type`', () => {
+    const machine = createMachine({
+      schema: {
+        events: {} as { type: 'INC' | 'DEC' }
+      }
+    });
+
+    type MachineEvent = EventFrom<typeof machine, 'INC'>;
+
+    const acceptEvent = (_event: MachineEvent) => {};
+
+    acceptEvent({ type: 'INC' });
+  });
 });
 
 describe('MachineImplementationsFrom', () => {
@@ -354,5 +369,40 @@ describe('StateValueFrom', () => {
     function matches(_value: StateValueFrom<typeof machine>) {}
 
     matches('just anything');
+  });
+});
+
+describe('SnapshotFrom', () => {
+  it('should return state type from a service that has concrete event type', () => {
+    const service = interpret(
+      createMachine({
+        schema: {
+          events: {} as { type: 'FOO' }
+        }
+      })
+    );
+
+    function acceptState(_state: SnapshotFrom<typeof service>) {}
+
+    acceptState(service.initialState);
+    // @ts-expect-error
+    acceptState("isn't any");
+  });
+
+  it('should return state from a service created based on a model without any concrete events', () => {
+    const service = interpret(
+      createModel(
+        {},
+        {
+          // this empty obj is important for this test case
+        }
+      ).createMachine({})
+    );
+
+    function acceptState(_state: SnapshotFrom<typeof service>) {}
+
+    acceptState(service.initialState);
+    // @ts-expect-error
+    acceptState("isn't any");
   });
 });

@@ -168,7 +168,7 @@ Other event descriptors include:
 
 A self-transition is when a state transitions to itself, in which it _may_ exit and then reenter itself. Self-transitions can either be an **internal** or **external** transition:
 
-- An **internal transition** will not exit nor re-enter itself, but may enter different child states.
+- An **internal transition** will neither exit nor re-enter itself, but may enter different child states.
 - An **external transition** will exit and re-enter itself, and may also exit/enter child states.
 
 By default, all transitions with a specified target are external.

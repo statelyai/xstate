@@ -414,6 +414,73 @@ describe('events', () => {
       }
     });
   });
+
+  it('action objects used within implementations parameter should get access to the provided event type', () => {
+    createMachine(
+      {
+        schema: {
+          context: {} as { numbers: number[] },
+          events: {} as { type: 'ADD'; number: number }
+        }
+      },
+      {
+        actions: {
+          addNumber: assign({
+            numbers: (context, event) => {
+              ((_accept: number) => {})(event.number);
+              // @ts-expect-error
+              ((_accept: string) => {})(event.number);
+              return context.numbers.concat(event.number);
+            }
+          })
+        }
+      }
+    );
+  });
+
+  it('action objects used within implementations parameter should get access to the provided event type when using model', () => {
+    createModel(
+      {
+        numbers: [] as number[]
+      },
+      {
+        events: {
+          ADD: (number: number) => ({ number })
+        }
+      }
+    ).createMachine(
+      {},
+      {
+        actions: {
+          addNumber: assign({
+            numbers: (context, event) => {
+              ((_accept: number) => {})(event.number);
+              // @ts-expect-error
+              ((_accept: string) => {})(event.number);
+              return context.numbers.concat(event.number);
+            }
+          })
+        }
+      }
+    );
+  });
+
+  it('should provide the default TEvent to transition actions when there is no specific TEvent configured', () => {
+    createMachine({
+      schema: {
+        context: {} as {
+          count: number;
+        }
+      },
+      on: {
+        FOO: {
+          actions: (_context, event) => {
+            ((_accept: string) => {})(event.type);
+          }
+        }
+      }
+    });
+  });
 });
 
 describe('interpreter', () => {

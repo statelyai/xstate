@@ -1,24 +1,29 @@
 import type { StateMachine } from './StateMachine';
 import {
-  AnyFunction,
-  Assigner,
-  Compute,
-  EventObject,
-  ExtractEvent,
-  PropertyAssigner,
-  BaseActionObject,
-  MachineContext,
-  DynamicAssignAction,
-  MachineConfig,
-  Prop,
-  InternalMachineImplementations,
-  ActorMap
-} from './types';
-import {
   ResolveTypegenMeta,
   TypegenConstraint,
   TypegenDisabled
 } from './typegenTypes';
+import {
+  ActorMap,
+  AnyFunction,
+  Assigner,
+  BaseActionObject,
+  Compute,
+  DynamicAssignAction,
+  EventObject,
+  InternalMachineImplementations,
+  MachineConfig,
+  MachineContext,
+  Prop,
+  PropertyAssigner
+} from './types';
+
+// real `ExtractEvent` breaks `model.assign` inference within transition actions
+type SimplisticExtractEvent<
+  TEvent extends EventObject,
+  TEventType extends TEvent['type']
+> = TEvent extends { type: TEventType } ? TEvent : never;
 
 export interface Model<
   TContext extends MachineContext,
@@ -29,10 +34,13 @@ export interface Model<
   initialContext: TContext;
   assign: <TEventType extends TEvent['type'] = TEvent['type']>(
     assigner:
-      | Assigner<TContext, ExtractEvent<TEvent, TEventType>>
-      | PropertyAssigner<TContext, ExtractEvent<TEvent, TEventType>>,
+      | Assigner<TContext, SimplisticExtractEvent<TEvent, TEventType>>
+      | PropertyAssigner<TContext, SimplisticExtractEvent<TEvent, TEventType>>,
     eventType?: TEventType
-  ) => DynamicAssignAction<TContext, ExtractEvent<TEvent, TEventType>>;
+  ) => DynamicAssignAction<
+    TContext,
+    SimplisticExtractEvent<TEvent, TEventType>
+  >;
   events: Prop<TModelCreators, 'events'>;
   actions: Prop<TModelCreators, 'actions'>;
   reset: () => DynamicAssignAction<TContext, any>;

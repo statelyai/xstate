@@ -528,10 +528,7 @@ export type TransitionsConfigMap<
 > = {
   [K in TEvent['type'] | '' | '*']?: K extends '' | '*'
     ? TransitionConfigOrTarget<TContext, TEvent>
-    : TransitionConfigOrTarget<
-        TContext,
-        TEvent extends { type: K } ? TEvent : never
-      >;
+    : TransitionConfigOrTarget<TContext, ExtractEvent<TEvent, K>>;
 };
 
 type TransitionsConfigArray<
@@ -1747,7 +1744,11 @@ export type Spawnable =
 export type ExtractEvent<
   TEvent extends EventObject,
   TEventType extends TEvent['type']
-> = TEvent extends { type: TEventType } ? TEvent : never;
+> = TEvent extends any
+  ? TEventType extends TEvent['type']
+    ? TEvent
+    : never
+  : never;
 
 export interface BaseActorRef<TEvent extends EventObject> {
   send: (event: TEvent) => void;
@@ -1869,7 +1870,7 @@ export interface Behavior<TEvent extends EventObject, TSnapshot = any> {
 }
 
 export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends AnyInterpreter
+  ? R extends Interpreter<infer _, infer __, infer ___>
     ? R['initialState']
     : R extends ActorRef<infer _, infer TSnapshot>
     ? TSnapshot
@@ -1905,8 +1906,8 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
 export type EventFrom<
   T,
   K extends Prop<TEvent, 'type'> = never,
-  TEvent = ResolveEventType<T>
-> = IsNever<K> extends true ? TEvent : Extract<TEvent, { type: K }>;
+  TEvent extends EventObject = ResolveEventType<T>
+> = IsNever<K> extends true ? TEvent : ExtractEvent<TEvent, K>;
 
 /**
  * Events that do not require payload
