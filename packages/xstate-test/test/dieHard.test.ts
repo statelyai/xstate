@@ -273,7 +273,7 @@ describe('error path trace', () => {
               	State: {\\"value\\":\\"second\\"} via {\\"type\\":\\"NEXT\\"}
               	Event: {\\"type\\":\\"NEXT\\"}
 
-              	State: {\\"value\\":\\"third\\"}"
+              	State: {\\"value\\":\\"third\\"} via {\\"type\\":\\"NEXT\\"}"
             `);
             return;
           }
