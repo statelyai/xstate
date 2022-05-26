@@ -1,6 +1,6 @@
 {
   "mode": "pre",
-  "tag": "next",
+  "tag": "alpha",
   "initialVersions": {
     "xstate": "4.7.3",
     "@xstate/analytics": "0.0.1",
