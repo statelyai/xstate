@@ -19,4 +19,18 @@ const model = createTestModel(machine, {
     ]
   }
 });
+
+model.getPaths().forEach((path) => {
+  it(path.description, async () => {
+    await path.test({
+      events: {
+        CHOOSE_CURRENCY: ({ event }) => {
+          console.log(event.currency);
+        }
+      }
+    });
+  });
+});
 ```
+
+`eventCases` will also now always produce a new path, instead of only creating a path for the first case which matches.
