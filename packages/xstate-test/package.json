@@ -39,7 +39,7 @@
   },
   "devDependencies": {
     "strip-ansi": "^5.2.0",
-    "xstate": "*"
+    "xstate": "4.32.1"
   },
   "dependencies": {
     "@xstate/graph": "^1.4.2",
