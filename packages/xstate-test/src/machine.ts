@@ -58,15 +58,13 @@ function serializeMachineTransition(
   event: AnyEventObject | null,
   { serializeEvent }: { serializeEvent: (event: AnyEventObject) => string }
 ): string {
-  if (!event) {
+  // Only consider the transition via the serialized event if there actually
+  // was a defined transition for the event
+  if (!event || state.transitions.length === 0) {
     return '';
   }
 
-  const causedTransition = state.transitions.find(
-    (t) => t.eventType === event.type
-  );
-
-  return causedTransition ? ` via ${serializeEvent(event)}` : '';
+  return ` via ${serializeEvent(event)}`;
 }
 
 /**
