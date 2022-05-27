@@ -4,4 +4,4 @@
 
 @author: @davidkpiano
 
-Removed `.testCoverage()`, and instead made `getPlans`, `getShortestPlans` and `getSimplePlans` cover all paths by default.
+Removed `.testCoverage()`, and instead made `getPlans`, `getShortestPlans` and `getSimplePlans` cover all states and transitions enabled by event cases by default.
