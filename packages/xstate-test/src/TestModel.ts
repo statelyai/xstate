@@ -10,7 +10,7 @@ import {
   traverseSimplePathsTo
 } from '@xstate/graph';
 import { EventObject } from 'xstate';
-import { isStateLike } from 'xstate/src/utils';
+import { isStateLike } from 'xstate/lib/utils';
 import { pathGeneratorWithDedup } from './dedupPaths';
 import { getShortestPaths, getSimplePaths } from './pathGenerators';
 import type {
