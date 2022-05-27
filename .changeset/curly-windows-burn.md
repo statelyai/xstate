@@ -4,4 +4,4 @@
 
 @author: @davidkpiano
 
-Changed `getAdjacencyMap` to `getValueAdjacencyMap`.
+Renamed `getAdjacencyMap` to `getValueAdjacencyMap`.
