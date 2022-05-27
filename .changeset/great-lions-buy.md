@@ -2,7 +2,9 @@
 '@xstate/test': major
 ---
 
-@author: @mattpocock 
+pr: #3036
+
+@author: @mattpocock
 @author: @davidkpiano
 
 Substantially simplified how paths and plans work in `TestModel`. Changed `getShortestPlans` and `getSimplePlans` to `getShortestPaths` and `getSimplePaths`. These functions now return an array of paths, instead of an array of plans which contain paths.

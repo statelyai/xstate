@@ -2,6 +2,7 @@
 '@xstate/test': major
 ---
 
+pr: #3036
 @author: @mattpocock @davidkpiano
 
 Added `states` to `path.test()`:

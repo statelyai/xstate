@@ -2,6 +2,7 @@
 '@xstate/test': major
 ---
 
+pr: #3036
 @author: @mattpocock @davidkpiano
 
 Moved `events` from `createTestModel` to `path.test`.

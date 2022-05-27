@@ -2,6 +2,7 @@
 '@xstate/test': major
 ---
 
+pr: #3036
 @author: @davidkpiano
 
 `getShortestPaths()` and `getPaths()` will now traverse all _transitions_ by default, not just all events.

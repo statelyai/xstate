@@ -2,6 +2,7 @@
 '@xstate/test': major
 ---
 
+pr: #3036
 @author: @davidkpiano
 
 Added validation on `createTestModel` to ensure that you don't include invalid machine configuration in your test machine. Invalid machine configs include `invoke`, `after`, and any actions with a `delay`.

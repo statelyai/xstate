@@ -2,6 +2,7 @@
 '@xstate/graph': major
 ---
 
+pr: #3036
 @author: @davidkpiano
 
 Changed `getSimplePaths` to `getSimplePlans`, and `getShortestPaths` to `getShortestPlans`. Both of these functions now return `StatePlan[]`.
