@@ -27,7 +27,7 @@ const machine = createTestMachine({
 });
 ```
 
-In `v0`, this would run this path by default:
+In `@xstate/test` version 0.x, this would run this path by default:
 
 ```txt
 toggledOn -> TOGGLE -> toggledOff
