@@ -2,7 +2,7 @@ import { Event, EventObject, RaiseActionObject } from '../types';
 import * as actionTypes from '../actionTypes';
 import { toSCXMLEvent } from '../utils';
 import { createDynamicAction } from '../../actions/dynamicAction';
-import { BaseDynamicActionObject } from '..';
+import type { BaseDynamicActionObject } from '../types';
 
 /**
  * Raises an event. This places the event in the internal event queue, so that

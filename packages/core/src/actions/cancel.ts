@@ -1,11 +1,11 @@
 import { EventObject, ExprWithMeta, MachineContext } from '../types';
 import { cancel as cancelActionType } from '../actionTypes';
 import { isFunction } from '../utils';
-import {
+import type {
   BaseDynamicActionObject,
   CancelActionObject,
   DynamicCancelActionObject
-} from '..';
+} from '../types';
 import { createDynamicAction } from '../../actions/dynamicAction';
 
 /**

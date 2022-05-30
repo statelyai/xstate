@@ -3,11 +3,11 @@ import * as actionTypes from '../actionTypes';
 import { toArray } from '../utils';
 import { createDynamicAction } from '../../actions/dynamicAction';
 import { evaluateGuard, toGuardDefinition } from '../guards';
-import {
+import type {
   BaseDynamicActionObject,
   ChooseAction,
   ResolvedChooseAction
-} from '..';
+} from '../types';
 import { toActionObject } from '../actions';
 
 export function choose<

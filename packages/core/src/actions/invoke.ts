@@ -3,11 +3,11 @@ import { invoke as invokeActionType } from '../actionTypes';
 import { isActorRef } from '../actors';
 import { ObservableActorRef } from '../ObservableActorRef';
 import { createDynamicAction } from '../../actions/dynamicAction';
-import {
+import type {
   BaseDynamicActionObject,
   DynamicInvokeActionObject,
   InvokeActionObject
-} from '..';
+} from '../types';
 import { actionTypes } from '../actions';
 import { mapContext } from '../utils';
 

@@ -6,7 +6,7 @@ import {
 } from '../types';
 import { log as logActionType } from '../actionTypes';
 import { createDynamicAction } from '../../actions/dynamicAction';
-import { BaseDynamicActionObject, DynamicLogAction } from '..';
+import type { BaseDynamicActionObject, DynamicLogAction } from '../types';
 
 const defaultLogExpr = <TContext, TEvent extends EventObject>(
   context: TContext,
