@@ -1,5 +1,19 @@
 # @xstate/graph
 
+## 2.0.0
+
+### Major Changes
+
+- [#3036](https://github.com/statelyai/xstate/pull/3036) [`8a101dc`](https://github.com/statelyai/xstate/commit/8a101dcfc32ee0dc886e46fbe9b84bb3ffe7fbfa) Thanks [@davidkpiano](https://github.com/davidkpiano)! - @author: @davidkpiano
+
+  Renamed `getAdjacencyMap` to `getValueAdjacencyMap`.
+
+* [#3036](https://github.com/statelyai/xstate/pull/3036) [`8a101dc`](https://github.com/statelyai/xstate/commit/8a101dcfc32ee0dc886e46fbe9b84bb3ffe7fbfa) Thanks [@davidkpiano](https://github.com/davidkpiano)! - @author: @davidkpiano
+
+  Changed `getSimplePaths` to `getSimplePlans`, and `getShortestPaths` to `getShortestPlans`. Both of these functions can be passed a machine, and return `StatePlan[]`.
+
+  Added functions `traverseSimplePlans`, `traverseShortestPlans`,`traverseShortestPlansFromTo`, `traverseSimplePlansTo` and `traverseSimplePlansFromTo`, which can be passed a `Behavior` and return `StatePlan[]`.
+
 ## 1.4.2
 
 ### Patch Changes
@@ -47,7 +61,7 @@
 
   const shortestPaths = getShortestPaths(countMachine, {
     events: {
-      ADD: (state) => {
+      ADD: state => {
         // contrived example: if `context.count` is >= 10, increment by 10
         return state.context.count >= 10
           ? [{ type: 'ADD', value: 10 }]
