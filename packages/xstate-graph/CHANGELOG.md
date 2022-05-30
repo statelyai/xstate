@@ -4,13 +4,9 @@
 
 ### Major Changes
 
-- [#3036](https://github.com/statelyai/xstate/pull/3036) Thanks [@davidkpiano](https://github.com/davidkpiano)! - @author: @davidkpiano
+- [#3036](https://github.com/statelyai/xstate/pull/3036) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Renamed `getAdjacencyMap` to `getValueAdjacencyMap`.
 
-  Renamed `getAdjacencyMap` to `getValueAdjacencyMap`.
-
-* [#3036](https://github.com/statelyai/xstate/pull/3036) Thanks [@davidkpiano](https://github.com/davidkpiano)! - @author: @davidkpiano
-
-  Changed `getSimplePaths` to `getSimplePlans`, and `getShortestPaths` to `getShortestPlans`. Both of these functions can be passed a machine, and return `StatePlan[]`.
+* [#3036](https://github.com/statelyai/xstate/pull/3036) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Changed `getSimplePaths` to `getSimplePlans`, and `getShortestPaths` to `getShortestPlans`. Both of these functions can be passed a machine, and return `StatePlan[]`.
 
   Added functions `traverseSimplePlans`, `traverseShortestPlans`,`traverseShortestPlansFromTo`, `traverseSimplePlansTo` and `traverseSimplePlansFromTo`, which can be passed a `Behavior` and return `StatePlan[]`.
 

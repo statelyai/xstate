@@ -3,6 +3,7 @@
 ---
 
 pr: #3036
-@author: @mattpocock @davidkpiano
+author: @mattpocock
+author: @davidkpiano
 
 Added `path.testSync(...)` to allow for testing paths in sync-only environments, such as Cypress.

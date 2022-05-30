@@ -3,7 +3,7 @@
 ---
 
 pr: #3036
-@author: @davidkpiano
+author: @davidkpiano
 
 Changed `getSimplePaths` to `getSimplePlans`, and `getShortestPaths` to `getShortestPlans`. Both of these functions can be passed a machine, and return `StatePlan[]`.
 

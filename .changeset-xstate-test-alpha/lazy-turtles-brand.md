@@ -3,7 +3,7 @@
 ---
 
 pr: #3036
-@author: @mattpocock
+author: @mattpocock
 
 Moved event cases out of `events`, and into their own attribute called `eventCases`:
 

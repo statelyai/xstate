@@ -3,6 +3,6 @@
 ---
 
 pr: #3036
-@author: @davidkpiano
+author: @davidkpiano
 
 Renamed `getAdjacencyMap` to `getValueAdjacencyMap`.

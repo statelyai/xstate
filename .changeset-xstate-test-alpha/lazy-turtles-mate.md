@@ -3,7 +3,8 @@
 ---
 
 pr: #3036
-@author: @mattpocock @davidkpiano
+author: @mattpocock
+author: @davidkpiano
 
 Moved `events` from `createTestModel` to `path.test`.
 

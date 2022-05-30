@@ -3,7 +3,8 @@
 ---
 
 pr: #3036
-@author: @mattpocock @davidkpiano
+author: @mattpocock
+author: @davidkpiano
 
 Added `states` to `path.test()`:
 
