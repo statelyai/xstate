@@ -1,6 +1,6 @@
 {
   "name": "@xstate/test",
-  "version": "0.5.1",
+  "version": "1.0.0-alpha.0",
   "description": "XState test utilities",
   "keywords": [
     "state",
@@ -51,6 +51,6 @@
     "xstate": "*"
   },
   "dependencies": {
-    "@xstate/graph": "^1.4.2"
+    "@xstate/graph": "^2.0.0-alpha.0"
   }
 }
