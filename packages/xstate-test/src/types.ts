@@ -128,7 +128,7 @@ export interface TestModelOptions<TState, TEvent extends EventObject>
   serializeTransition: (
     state: TState,
     event: TEvent | undefined,
-    prevState: TState | undefined
+    prevState?: TState
   ) => string;
 }
 
