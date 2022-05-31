@@ -79,7 +79,10 @@ export function getDescription<T, TContext>(state: AnyState): string {
   const contextString =
     state.context === undefined ? '' : `(${JSON.stringify(state.context)})`;
   const transitionDescription = state.transitions[0].description
-    ? `"${state.transitions[0].description}"`
+    ? state.transitions[0].description.trim()
+    : '';
+  const formattedTransitionDescription = transitionDescription
+    ? ' "' + transitionDescription + '"'
     : '';
 
   const stateStrings = state.configuration
@@ -102,7 +105,7 @@ export function getDescription<T, TContext>(state: AnyState): string {
   return (
     `state${stateStrings.length === 1 ? '' : 's'} ` +
     stateStrings.join(', ') +
-    ` ${transitionDescription} ${contextString}`
+    `${formattedTransitionDescription} ${contextString}`
   ).trim();
 }
 
