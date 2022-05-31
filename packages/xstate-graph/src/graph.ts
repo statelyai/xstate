@@ -85,8 +85,8 @@ const defaultValueAdjacencyMapOptions: Required<
 > = {
   events: {},
   filter: () => true,
-  stateSerializer: serializeMachineState,
-  eventSerializer: serializeEvent
+  serializeState: serializeMachineState,
+  serializeEvent
 };
 
 function getValueAdjacencyMapOptions<TState, TEvent extends EventObject>(
@@ -108,7 +108,11 @@ export function getValueAdjacencyMap<TMachine extends AnyStateMachine>(
   type TEvent = EventFrom<TMachine>;
 
   const optionsWithDefaults = getValueAdjacencyMapOptions(options);
-  const { filter, stateSerializer, eventSerializer } = optionsWithDefaults;
+  const {
+    filter,
+    serializeState: stateSerializer,
+    serializeEvent: eventSerializer
+  } = optionsWithDefaults;
   const { events } = optionsWithDefaults;
 
   const adjacency: ValueAdjacencyMap<TState, TEvent> = {};
@@ -386,9 +390,9 @@ export function getPathFromEvents<
     undefined,
     undefined
   ) as SerializedState;
-  stateMap.set(initialStateSerial, behavior.initialState);
+  stateMap.set(initialSerializedState, behavior.initialState);
 
-  let stateSerial = initialStateSerial;
+  let stateSerial = initialSerializedState;
   let state = behavior.initialState;
   for (const event of events) {
     path.push({
