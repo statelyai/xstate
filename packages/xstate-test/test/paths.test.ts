@@ -189,3 +189,35 @@ describe('transition coverage', () => {
     `);
   });
 });
+
+it('Should find the most efficient path from the available options', () => {
+  const machine = createTestMachine({
+    initial: 'a',
+    states: {
+      a: {
+        on: {
+          NEXT: 'b'
+        }
+      },
+      b: {
+        on: {
+          NEXT: 'c',
+          BACK: 'a'
+        }
+      },
+      c: {
+        on: {
+          BACK: 'b'
+        }
+      }
+    }
+  });
+
+  const model = createTestModel(machine);
+
+  const paths = model.getPaths();
+
+  expect(paths.map((p) => p.description)).toEqual([
+    `Reaches state "#(machine).a": NEXT → NEXT → BACK → BACK`
+  ]);
+});
