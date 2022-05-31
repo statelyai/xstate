@@ -390,9 +390,9 @@ export function getPathFromEvents<
     undefined,
     undefined
   ) as SerializedState;
-  stateMap.set(initialStateSerial, behavior.initialState);
+  stateMap.set(initialSerializedState, behavior.initialState);
 
-  let stateSerial = initialStateSerial;
+  let stateSerial = initialSerializedState;
   let state = behavior.initialState;
   for (const event of events) {
     path.push({
