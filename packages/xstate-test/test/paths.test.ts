@@ -217,8 +217,8 @@ describe('transition coverage', () => {
     const paths = model.getPaths();
 
     expect(paths.map((p) => p.description)).toEqual([
-      `Reaches state "#(machine).a": GO_TO_B → GO_TO_A`,
-      `Reaches state "#(machine).a": GO_TO_C → GO_TO_A`
+      `Reaches state "a": GO_TO_B → GO_TO_A`,
+      `Reaches state "a": GO_TO_C → GO_TO_A`
     ]);
   });
 });
