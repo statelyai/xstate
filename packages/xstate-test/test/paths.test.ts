@@ -189,3 +189,36 @@ describe('transition coverage', () => {
     `);
   });
 });
+
+describe('getShortestPathsTo', () => {
+  const machine = createTestMachine({
+    initial: 'open',
+    states: {
+      open: {
+        on: {
+          CLOSE: 'closed'
+        }
+      },
+      closed: {
+        on: {
+          OPEN: 'open'
+        }
+      }
+    }
+  });
+  it('Should find a path to a non-initial target state', () => {
+    const closedPaths = createTestModel(machine).getShortestPathsTo((state) =>
+      state.matches('closed')
+    );
+
+    expect(closedPaths).toHaveLength(1);
+  });
+
+  it('Should find a path to an initial target state', () => {
+    const openPaths = createTestModel(machine).getShortestPathsTo((state) =>
+      state.matches('open')
+    );
+
+    expect(openPaths).toHaveLength(1);
+  });
+});
