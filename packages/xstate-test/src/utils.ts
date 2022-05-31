@@ -78,6 +78,9 @@ export function formatPathTestResult(
 export function getDescription<T, TContext>(state: AnyState): string {
   const contextString =
     state.context === undefined ? '' : `(${JSON.stringify(state.context)})`;
+  const jestConsoleMessage = state.transitions[0].description
+    ? `"${state.transitions[0].description}"`
+    : '';
 
   const stateStrings = state.configuration
     .filter((sn) => sn.type === 'atomic' || sn.type === 'final')
@@ -99,8 +102,8 @@ export function getDescription<T, TContext>(state: AnyState): string {
   return (
     `state${stateStrings.length === 1 ? '' : 's'} ` +
     stateStrings.join(', ') +
-    ` ${contextString}`.trim()
-  );
+    ` ${jestConsoleMessage} ${contextString}`
+  ).trim();
 }
 
 export function flatten<T>(array: Array<T | T[]>): T[] {

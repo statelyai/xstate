@@ -114,6 +114,33 @@ describe('path.description', () => {
       'Reaches state "e": EVENT → EVENT → EVENT_2'
     ]);
   });
+
+  it('Should append a readable description from the machine to the target state path', () => {
+    const machine = createTestMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EVENT: { target: 'b' }
+          }
+        },
+        b: {
+          on: {
+            EVENT: { description: 'go to c', target: 'c' }
+          }
+        },
+        c: {}
+      }
+    });
+
+    const model = createTestModel(machine);
+
+    const paths = model.getPaths();
+
+    expect(paths.map((path) => path.description)).toEqual([
+      'Reaches state "c" "go to c": EVENT → EVENT'
+    ]);
+  });
 });
 
 describe('transition coverage', () => {
