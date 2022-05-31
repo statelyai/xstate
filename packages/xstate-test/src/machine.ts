@@ -55,8 +55,7 @@ export function executeAction(
 
 function serializeMachineTransition(
   state: AnyState,
-  _event: AnyEventObject | undefined,
-  prevState: AnyState | undefined,
+  _event: AnyEventObject | null,
   { serializeEvent }: { serializeEvent: (event: AnyEventObject) => string }
 ): string {
   // Only consider the transition via the serialized event if there actually
@@ -65,11 +64,7 @@ function serializeMachineTransition(
     return '';
   }
 
-  const prevStateString = prevState
-    ? `from ${simpleStringify(prevState.value)}`
-    : '';
-
-  return ` via ${serializeEvent(state.event)}${prevStateString}`;
+  return ` via ${serializeEvent(state.event)}`;
 }
 
 /**
@@ -109,16 +104,10 @@ export function createTestModel<TMachine extends AnyStateMachine>(
   const testModel = new TestModel<StateFrom<TMachine>, EventFrom<TMachine>>(
     machine as SimpleBehavior<any, any>,
     {
-      serializeState: (state, event, prevState) => {
-        // Only consider the `state` if `serializeTransition()` is opted out (empty string)
-        return `${serializeState(state)}${serializeTransition(
-          state,
-          event,
-          prevState,
-          {
-            serializeEvent
-          }
-        )}` as SerializedState;
+      serializeState: (state, event) => {
+        return `${serializeState(state)}${serializeTransition(state, event, {
+          serializeEvent
+        })}` as SerializedState;
       },
       stateMatcher: (state, key) => {
         return key.startsWith('#')

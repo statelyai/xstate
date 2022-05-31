@@ -217,11 +217,7 @@ export function traverseShortestPlans<TState, TEvent extends EventObject>(
     ]
   >();
   const stateMap = new Map<SerializedState, TState>();
-  const initialSerializedState = serializeState(
-    behavior.initialState,
-    undefined,
-    undefined
-  );
+  const initialSerializedState = serializeState(behavior.initialState, null);
   stateMap.set(initialSerializedState, behavior.initialState);
 
   weightMap.set(initialSerializedState, [0, undefined, undefined]);
@@ -238,12 +234,7 @@ export function traverseShortestPlans<TState, TEvent extends EventObject>(
         const { state: nextState, event: eventObject } = adjacency[
           serializedState
         ].transitions[event];
-        const prevState = stateMap.get(serializedState);
-        const nextSerializedState = serializeState(
-          nextState,
-          eventObject,
-          prevState
-        );
+        const nextSerializedState = serializeState(nextState, eventObject);
         stateMap.set(nextSerializedState, nextState);
         if (!weightMap.has(nextSerializedState)) {
           weightMap.set(nextSerializedState, [
@@ -378,14 +369,10 @@ export function getPathFromEvents<
 
   const adjacency = performDepthFirstTraversal(behavior, optionsWithDefaults);
 
-  const stateMap = new Map<SerializedState, TState>();
+  const stateMap = new Map<string, TState>();
   const path: Steps<TState, TEvent> = [];
 
-  const initialSerializedState = serializeState(
-    behavior.initialState,
-    undefined,
-    undefined
-  ) as SerializedState;
+  const initialStateSerial = serializeState(behavior.initialState, null);
   stateMap.set(initialStateSerial, behavior.initialState);
 
   let stateSerial = initialStateSerial;
@@ -406,12 +393,8 @@ export function getPathFromEvents<
         `Invalid transition from ${stateSerial} with ${eventSerial}`
       );
     }
-    const prevState = stateMap.get(stateSerial);
-    const nextStateSerial = serializeState(
-      nextState,
-      event,
-      prevState
-    ) as SerializedState;
+
+    const nextStateSerial = serializeState(nextState, event);
     stateMap.set(nextStateSerial, nextState);
 
     stateSerial = nextStateSerial;
@@ -452,31 +435,19 @@ export function performDepthFirstTraversal<TState, TEvent extends EventObject>(
   const adj: AdjacencyMap<TState, TEvent> = {};
 
   let iterations = 0;
-  const queue: Array<
-    [
-      nextState: TState,
-      event: TEvent | undefined,
-      prevState: TState | undefined
-    ]
-  > = [[initialState, undefined, undefined]];
-  const stateMap = new Map<SerializedState, TState>();
+  const queue: Array<[TState, TEvent | null]> = [[initialState, null]];
 
   while (queue.length) {
-    const [state, event, prevState] = queue.shift()!;
+    const [state, event] = queue.shift()!;
 
     if (iterations++ > limit) {
       throw new Error('Traversal limit exceeded');
     }
 
-    const serializedState = serializeState(
-      state,
-      event,
-      prevState
-    ) as SerializedState;
+    const serializedState = serializeState(state, event);
     if (adj[serializedState]) {
       continue;
     }
-    stateMap.set(serializedState, state);
 
     adj[serializedState] = {
       state,
@@ -495,7 +466,7 @@ export function performDepthFirstTraversal<TState, TEvent extends EventObject>(
           event: subEvent,
           state: nextState
         };
-        queue.push([nextState, subEvent, state]);
+        queue.push([nextState, subEvent]);
       }
     }
   }
@@ -533,7 +504,7 @@ export function traverseSimplePlans<TState, TEvent extends EventObject>(
     ...args: Parameters<typeof resolvedOptions.serializeState>
   ) => SerializedState;
   const adjacency = performDepthFirstTraversal(behavior, resolvedOptions);
-  const stateMap = new Map<SerializedState, TState>();
+  const stateMap = new Map<string, TState>();
   const visitCtx: VisitedContext<TState, TEvent> = {
     vertices: new Set(),
     edges: new Set()
@@ -545,10 +516,11 @@ export function traverseSimplePlans<TState, TEvent extends EventObject>(
   > = {};
 
   function util(
-    fromStateSerial: SerializedState,
-    toStateSerial: SerializedState
+    fromState: TState,
+    toStateSerial: SerializedState,
+    event: TEvent | null
   ) {
-    const fromState = stateMap.get(fromStateSerial)!;
+    const fromStateSerial = serializeState(fromState, event);
     visitCtx.vertices.add(fromStateSerial);
 
     if (fromStateSerial === toStateSerial) {
@@ -579,18 +551,17 @@ export function traverseSimplePlans<TState, TEvent extends EventObject>(
         if (!(serializedEvent in adjacency[fromStateSerial].transitions)) {
           continue;
         }
-        const prevState = stateMap.get(fromStateSerial);
 
-        const nextStateSerial = serializeState(nextState, subEvent, prevState);
+        const nextStateSerial = serializeState(nextState, subEvent);
         stateMap.set(nextStateSerial, nextState);
 
-        if (!visitCtx.vertices.has(nextStateSerial)) {
+        if (!visitCtx.vertices.has(serializeState(nextState, subEvent))) {
           visitCtx.edges.add(serializedEvent);
           path.push({
             state: stateMap.get(fromStateSerial)!,
             event: subEvent
           });
-          util(nextStateSerial, toStateSerial);
+          util(nextState, toStateSerial, subEvent);
         }
       }
     }
@@ -599,11 +570,11 @@ export function traverseSimplePlans<TState, TEvent extends EventObject>(
     visitCtx.vertices.delete(fromStateSerial);
   }
 
-  const initialStateSerial = serializeState(initialState, undefined);
+  const initialStateSerial = serializeState(initialState, null);
   stateMap.set(initialStateSerial, initialState);
 
   for (const nextStateSerial of Object.keys(adjacency) as SerializedState[]) {
-    util(initialStateSerial, nextStateSerial);
+    util(initialState, nextStateSerial, null);
   }
 
   return Object.values(pathMap);
