@@ -78,7 +78,7 @@ export function formatPathTestResult(
 export function getDescription<T, TContext>(state: AnyState): string {
   const contextString =
     state.context === undefined ? '' : `(${JSON.stringify(state.context)})`;
-  const jestConsoleMessage = state.transitions[0].description
+  const machineDescriptionMessage = state.transitions[0].description
     ? `"${state.transitions[0].description}"`
     : '';
 
@@ -102,7 +102,7 @@ export function getDescription<T, TContext>(state: AnyState): string {
   return (
     `state${stateStrings.length === 1 ? '' : 's'} ` +
     stateStrings.join(', ') +
-    ` ${jestConsoleMessage} ${contextString}`
+    ` ${machineDescriptionMessage} ${contextString}`
   ).trim();
 }
 
