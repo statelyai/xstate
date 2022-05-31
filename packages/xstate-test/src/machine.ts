@@ -66,7 +66,7 @@ function serializeMachineTransition(
   }
 
   const prevStateString = prevState
-    ? `from ${simpleStringify(prevState.value)}`
+    ? ` from ${simpleStringify(prevState.value)}`
     : '';
 
   return ` via ${serializeEvent(state.event)}${prevStateString}`;
