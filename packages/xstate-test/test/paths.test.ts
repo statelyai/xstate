@@ -189,3 +189,26 @@ describe('transition coverage', () => {
     `);
   });
 });
+
+describe('Self events', () => {
+  it('Self events should be taken as part of other paths, not their own path', () => {
+    const machine = createTestMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            FOO: 'b',
+            BAR: 'a'
+          }
+        },
+        b: {}
+      }
+    });
+
+    const paths = createTestModel(machine).getPaths();
+
+    expect(paths.map((p) => p.description)).toEqual([
+      'Reaches state "#(machine).b": BAR → FOO'
+    ]);
+  });
+});
