@@ -11,7 +11,7 @@ import {
 } from '@xstate/graph';
 import { EventObject } from 'xstate';
 import { isStateLike } from 'xstate/lib/utils';
-import { pathGeneratorWithDedup } from './dedupPaths';
+import { deduplicatePaths } from './deduplicatePaths';
 import { getShortestPaths, getSimplePaths } from './pathGenerators';
 import type {
   EventExecutor,
@@ -85,15 +85,21 @@ export class TestModel<TState, TEvent extends EventObject> {
     return this.getPaths({ ...options, pathGenerator: getShortestPaths });
   }
 
+  private _getStatePaths(
+    options?: Partial<GetPathsOptions<TState, TEvent>>
+  ): Array<StatePath<TState, TEvent>> {
+    const pathGenerator =
+      options?.pathGenerator || TestModel.defaults.pathGenerator;
+    return pathGenerator(this.behavior, this.resolveOptions(options));
+  }
+
   public getPaths(
     options?: Partial<GetPathsOptions<TState, TEvent>>
   ): Array<TestPath<TState, TEvent>> {
-    const pathGenerator = pathGeneratorWithDedup<TState, TEvent>(
-      options?.pathGenerator || TestModel.defaults.pathGenerator
-    );
-    const paths = pathGenerator(this.behavior, this.resolveOptions(options));
-
-    return paths.map(this.toTestPath);
+    return deduplicatePaths(
+      this._getStatePaths(options),
+      options?.serializeEvent
+    ).map(this.toTestPath);
   }
 
   public getShortestPathsTo(
@@ -102,7 +108,9 @@ export class TestModel<TState, TEvent extends EventObject> {
     let minWeight = Infinity;
     let shortestPaths: Array<TestPath<TState, TEvent>> = [];
 
-    const paths = this.filterPathsTo(statePredicate, this.getShortestPaths());
+    const paths = deduplicatePaths(
+      this.filterPathsTo(statePredicate, this._getStatePaths())
+    ).map(this.toTestPath);
 
     for (const path of paths) {
       const currWeight = path.weight;
@@ -136,10 +144,10 @@ export class TestModel<TState, TEvent extends EventObject> {
 
   private filterPathsTo(
     statePredicate: StatePredicate<TState>,
-    testPaths: Array<TestPath<TState, TEvent>>
-  ): Array<TestPath<TState, TEvent>> {
-    return testPaths.filter((testPath) => {
-      return statePredicate(testPath.state);
+    statePaths: Array<StatePath<TState, TEvent>>
+  ): Array<StatePath<TState, TEvent>> {
+    return statePaths.filter((statePath) => {
+      return statePredicate(statePath.state);
     });
   }
 
