@@ -81,10 +81,10 @@ export function getDescription<T, TContext>(state: AnyState): string {
 
   const stateStrings = state.configuration
     .filter((sn) => sn.type === 'atomic' || sn.type === 'final')
-    .map(({ id }) => {
+    .map(({ id, path }) => {
       const meta = state.meta[id] as TestMeta<T, TContext>;
       if (!meta) {
-        return `"#${id}"`;
+        return `"${path.join('.')}"`;
       }
 
       const { description } = meta;

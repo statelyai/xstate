@@ -233,45 +233,43 @@ export function traverseShortestPlans<TState, TEvent extends EventObject>(
   const visited = new Set<SerializedState>();
 
   unvisited.add(initialSerializedState);
-  while (unvisited.size > 0) {
-    for (const serializedState of unvisited) {
-      const [weight] = weightMap.get(serializedState)!;
-      for (const event of Object.keys(
-        adjacency[serializedState].transitions
-      ) as SerializedEvent[]) {
-        const { state: nextState, event: eventObject } = adjacency[
-          serializedState
-        ].transitions[event];
-        const prevState = stateMap.get(serializedState);
-        const nextSerializedState = serializeState(
-          nextState,
-          eventObject,
-          prevState
-        );
-        stateMap.set(nextSerializedState, nextState);
-        if (!weightMap.has(nextSerializedState)) {
+  for (const serializedState of unvisited) {
+    const [weight] = weightMap.get(serializedState)!;
+    for (const event of Object.keys(
+      adjacency[serializedState].transitions
+    ) as SerializedEvent[]) {
+      const { state: nextState, event: eventObject } = adjacency[
+        serializedState
+      ].transitions[event];
+      const prevState = stateMap.get(serializedState);
+      const nextSerializedState = serializeState(
+        nextState,
+        eventObject,
+        prevState
+      );
+      stateMap.set(nextSerializedState, nextState);
+      if (!weightMap.has(nextSerializedState)) {
+        weightMap.set(nextSerializedState, [
+          weight + 1,
+          serializedState,
+          eventObject
+        ]);
+      } else {
+        const [nextWeight] = weightMap.get(nextSerializedState)!;
+        if (nextWeight > weight + 1) {
           weightMap.set(nextSerializedState, [
             weight + 1,
             serializedState,
             eventObject
           ]);
-        } else {
-          const [nextWeight] = weightMap.get(nextSerializedState)!;
-          if (nextWeight > weight + 1) {
-            weightMap.set(nextSerializedState, [
-              weight + 1,
-              serializedState,
-              eventObject
-            ]);
-          }
-        }
-        if (!visited.has(nextSerializedState)) {
-          unvisited.add(nextSerializedState);
         }
       }
-      visited.add(serializedState);
-      unvisited.delete(serializedState);
+      if (!visited.has(nextSerializedState)) {
+        unvisited.add(nextSerializedState);
+      }
     }
+    visited.add(serializedState);
+    unvisited.delete(serializedState);
   }
 
   const statePlanMap: StatePlanMap<TState, TEvent> = {};

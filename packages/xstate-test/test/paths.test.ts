@@ -110,8 +110,8 @@ describe('path.description', () => {
     const paths = model.getPaths();
 
     expect(paths.map((path) => path.description)).toEqual([
-      'Reaches state "#(machine).d": EVENT → EVENT → EVENT',
-      'Reaches state "#(machine).e": EVENT → EVENT → EVENT_2'
+      'Reaches state "d": EVENT → EVENT → EVENT',
+      'Reaches state "e": EVENT → EVENT → EVENT_2'
     ]);
   });
 });
@@ -142,9 +142,9 @@ describe('transition coverage', () => {
 
     expect(paths.map((path) => path.description)).toMatchInlineSnapshot(`
       Array [
-        "Reaches state \\"#(machine).a\\": NEXT → PREV",
-        "Reaches state \\"#(machine).a\\": NEXT → RESTART",
-        "Reaches state \\"#(machine).b\\": END",
+        "Reaches state \\"a\\": NEXT → PREV",
+        "Reaches state \\"a\\": NEXT → RESTART",
+        "Reaches state \\"b\\": END",
       ]
     `);
   });
@@ -182,9 +182,9 @@ describe('transition coverage', () => {
     // { value: 1000 } already covered by first guarded transition
     expect(paths.map((path) => path.description)).toMatchInlineSnapshot(`
       Array [
-        "Reaches state \\"#(machine).b\\": NEXT ({\\"value\\":0})",
-        "Reaches state \\"#(machine).b\\": NEXT ({\\"value\\":100})",
-        "Reaches state \\"#(machine).b\\": NEXT ({\\"value\\":1000})",
+        "Reaches state \\"b\\": NEXT ({\\"value\\":0})",
+        "Reaches state \\"b\\": NEXT ({\\"value\\":100})",
+        "Reaches state \\"b\\": NEXT ({\\"value\\":1000})",
       ]
     `);
   });
@@ -217,8 +217,8 @@ describe('transition coverage', () => {
     const paths = model.getPaths();
 
     expect(paths.map((p) => p.description)).toEqual([
-      `Reaches state "#(machine).a": GO_TO_B → GO_TO_A`,
-      `Reaches state "#(machine).a": GO_TO_C → GO_TO_A`
+      `Reaches state "a": GO_TO_B → GO_TO_A`,
+      `Reaches state "a": GO_TO_C → GO_TO_A`
     ]);
   });
 });
@@ -243,5 +243,38 @@ describe('Self events', () => {
     expect(paths.map((p) => p.description)).toEqual([
       'Reaches state "#(machine).b": BAR → FOO'
     ]);
+  });
+});
+
+describe('getShortestPathsTo', () => {
+  const machine = createTestMachine({
+    initial: 'open',
+    states: {
+      open: {
+        on: {
+          CLOSE: 'closed'
+        }
+      },
+      closed: {
+        on: {
+          OPEN: 'open'
+        }
+      }
+    }
+  });
+  it('Should find a path to a non-initial target state', () => {
+    const closedPaths = createTestModel(machine).getShortestPathsTo((state) =>
+      state.matches('closed')
+    );
+
+    expect(closedPaths).toHaveLength(1);
+  });
+
+  it('Should find a path to an initial target state', () => {
+    const openPaths = createTestModel(machine).getShortestPathsTo((state) =>
+      state.matches('open')
+    );
+
+    expect(openPaths).toHaveLength(1);
   });
 });
