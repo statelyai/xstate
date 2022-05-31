@@ -110,8 +110,8 @@ describe('path.description', () => {
     const paths = model.getPaths();
 
     expect(paths.map((path) => path.description)).toEqual([
-      'Reaches state "#(machine).d": EVENT → EVENT → EVENT',
-      'Reaches state "#(machine).e": EVENT → EVENT → EVENT_2'
+      'Reaches state "d": EVENT → EVENT → EVENT',
+      'Reaches state "e": EVENT → EVENT → EVENT_2'
     ]);
   });
 });
@@ -142,9 +142,9 @@ describe('transition coverage', () => {
 
     expect(paths.map((path) => path.description)).toMatchInlineSnapshot(`
       Array [
-        "Reaches state \\"#(machine).a\\": NEXT → PREV",
-        "Reaches state \\"#(machine).a\\": NEXT → RESTART",
-        "Reaches state \\"#(machine).b\\": END",
+        "Reaches state \\"a\\": NEXT → PREV",
+        "Reaches state \\"a\\": NEXT → RESTART",
+        "Reaches state \\"b\\": END",
       ]
     `);
   });
@@ -182,9 +182,9 @@ describe('transition coverage', () => {
     // { value: 1000 } already covered by first guarded transition
     expect(paths.map((path) => path.description)).toMatchInlineSnapshot(`
       Array [
-        "Reaches state \\"#(machine).b\\": NEXT ({\\"value\\":0})",
-        "Reaches state \\"#(machine).b\\": NEXT ({\\"value\\":100})",
-        "Reaches state \\"#(machine).b\\": NEXT ({\\"value\\":1000})",
+        "Reaches state \\"b\\": NEXT ({\\"value\\":0})",
+        "Reaches state \\"b\\": NEXT ({\\"value\\":100})",
+        "Reaches state \\"b\\": NEXT ({\\"value\\":1000})",
       ]
     `);
   });
