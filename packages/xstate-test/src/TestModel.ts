@@ -109,7 +109,10 @@ export class TestModel<TState, TEvent extends EventObject> {
     let shortestPaths: Array<TestPath<TState, TEvent>> = [];
 
     const paths = deduplicatePaths(
-      this.filterPathsTo(statePredicate, this._getStatePaths())
+      this.filterPathsTo(
+        statePredicate,
+        this._getStatePaths({ pathGenerator: getShortestPaths })
+      )
     ).map(this.toTestPath);
 
     for (const path of paths) {
