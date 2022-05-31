@@ -480,7 +480,7 @@ describe('@xstate/graph', () => {
 
       const adj = getValueAdjacencyMap(counterMachine, {
         filter: (state) => state.context.count >= 0 && state.context.count <= 5,
-        stateSerializer: (state) => {
+        serializeState: (state) => {
           const ctx = {
             count: state.context.count
           };
@@ -664,4 +664,38 @@ describe('filtering', () => {
       ]
     `);
   });
+});
+
+it('should provide previous state for serializeState()', () => {
+  const machine = createMachine({
+    initial: 'a',
+    states: {
+      a: {
+        on: { toB: 'b' }
+      },
+      b: {
+        on: { toC: 'c' }
+      },
+      c: {
+        on: { toA: 'a' }
+      }
+    }
+  });
+
+  const shortestPaths = getShortestPlans(machine, {
+    serializeState: (state, event, prevState) => {
+      return `${JSON.stringify(state.value)} via ${event?.type}${
+        prevState ? ` via ${JSON.stringify(prevState.value)}` : ''
+      }`;
+    }
+  });
+
+  // Should be [0, 3]:
+  // 0 (a)
+  // 3 (a -> b -> c -> a)
+  expect(
+    shortestPaths
+      .filter((path) => path.state.matches('a'))
+      .map((plan) => plan.paths[0].steps.length)
+  ).toEqual([0, 3]);
 });

@@ -188,4 +188,37 @@ describe('transition coverage', () => {
       ]
     `);
   });
+
+  it('transition coverage should consider multiple transitions with the same target', () => {
+    const machine = createTestMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            GO_TO_B: 'b',
+            GO_TO_C: 'c'
+          }
+        },
+        b: {
+          on: {
+            GO_TO_A: 'a'
+          }
+        },
+        c: {
+          on: {
+            GO_TO_A: 'a'
+          }
+        }
+      }
+    });
+
+    const model = createTestModel(machine);
+
+    const paths = model.getPaths();
+
+    expect(paths.map((p) => p.description)).toEqual([
+      `Reaches state "#(machine).a": GO_TO_B → GO_TO_A`,
+      `Reaches state "#(machine).a": GO_TO_C → GO_TO_A`
+    ]);
+  });
 });
