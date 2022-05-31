@@ -123,8 +123,8 @@ export interface ValueAdjacencyMapOptions<TState, TEvent extends EventObject> {
       | ((state: TState) => Array<ExtractEvent<TEvent, K>>);
   };
   filter?: (state: TState) => boolean;
-  stateSerializer?: (state: TState) => string;
-  eventSerializer?: (event: TEvent) => string;
+  serializeState?: (state: TState) => string;
+  serializeEvent?: (event: TEvent) => string;
 }
 
 export interface VisitedContext<TState, TEvent> {
