@@ -110,6 +110,7 @@ export function createTestModel<TMachine extends AnyStateMachine>(
     machine as SimpleBehavior<any, any>,
     {
       serializeState: (state, event, prevState) => {
+        // Only consider the `state` if `serializeTransition()` is opted out (empty string)
         return `${serializeState(state)}${serializeTransition(
           state,
           event,

@@ -385,8 +385,9 @@ export function getPathFromEvents<
   const stateMap = new Map<SerializedState, TState>();
   const path: Steps<TState, TEvent> = [];
 
-  const initialStateSerial = serializeState(
+  const initialSerializedState = serializeState(
     behavior.initialState,
+    undefined,
     undefined
   ) as SerializedState;
   stateMap.set(initialStateSerial, behavior.initialState);
