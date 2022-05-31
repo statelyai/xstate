@@ -1,16 +1,15 @@
 import { StatePath } from '@xstate/graph';
 import { EventObject } from 'xstate';
-import { PathGenerator } from './types';
+import { simpleStringify } from './utils';
 
 /**
  * Deduplicates your path plans so that A -> B
  * is not executed separately to A -> B -> C
  */
-export const pathGeneratorWithDedup = <TState, TEvent extends EventObject>(
-  pathGenerator: PathGenerator<TState, TEvent>
-): PathGenerator<TState, TEvent> => (behavior, options) => {
-  const paths = pathGenerator(behavior, options);
-
+export const deduplicatePaths = <TState, TEvent extends EventObject>(
+  paths: StatePath<TState, TEvent>[],
+  serializeEvent: (event: TEvent) => string = simpleStringify
+): StatePath<TState, TEvent>[] => {
   /**
    * Put all plans on the same level so we can dedup them
    */
@@ -22,9 +21,7 @@ export const pathGeneratorWithDedup = <TState, TEvent extends EventObject>(
   paths.forEach((path) => {
     allPathsWithEventSequence.push({
       path,
-      eventSequence: path.steps.map((step) =>
-        options.serializeEvent(step.event)
-      )
+      eventSequence: path.steps.map((step) => serializeEvent(step.event))
     });
   });
 
