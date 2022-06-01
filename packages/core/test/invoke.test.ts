@@ -3117,6 +3117,35 @@ describe('invoke', () => {
       done();
     }, 100);
   });
+
+  it('should get reinstantiated after reentering the invoking state in a microstep', () => {
+    let invokeCount = 0;
+
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          invoke: {
+            src: () =>
+              fromCallback(() => {
+                invokeCount++;
+              })
+          },
+          on: {
+            GO_AWAY_AND_REENTER: 'b'
+          }
+        },
+        b: {
+          always: 'a'
+        }
+      }
+    });
+    const service = interpret(machine).start();
+
+    service.send({ type: 'GO_AWAY_AND_REENTER' });
+
+    expect(invokeCount).toBe(2);
+  });
 });
 
 describe('actors option', () => {

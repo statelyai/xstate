@@ -62,10 +62,7 @@ export function invoke<
         type,
         params: {
           ...params,
-          id: params.id,
-          src: params.src,
-          ref: new ObservableActorRef(behavior, id),
-          meta
+          ref: new ObservableActorRef(behavior, id)
         }
       } as InvokeActionObject;
     }

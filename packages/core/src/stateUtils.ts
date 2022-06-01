@@ -16,6 +16,7 @@ import {
   BaseActionObject,
   EventObject,
   InvokeActionObject,
+  StopActionObject,
   StateValue,
   TransitionConfig,
   TransitionDefinition,
@@ -1588,8 +1589,6 @@ export function resolveMicroTransition<
     return inertState as any;
   }
 
-  const children = { ...currentState.children };
-
   const resolvedConfiguration = willTransition
     ? Array.from(resolved.configuration)
     : !currentState._initial
@@ -1604,6 +1603,9 @@ export function resolveMicroTransition<
   }, {} as Record<string, string>);
 
   const { context, actions: nonRaisedActions } = resolved;
+
+  const children = { ...currentState.children };
+  setChildren(children, nonRaisedActions);
 
   const nextState = machine.createState({
     value: getStateValue(machine.root, resolved.configuration),
@@ -1627,7 +1629,14 @@ export function resolveMicroTransition<
       context !== currentState.context;
   nextState._internalQueue = resolved.internalQueue;
 
-  nextState.actions.forEach((action) => {
+  return nextState;
+}
+
+export function setChildren<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(children: State<TContext, TEvent>['children'], actions: BaseActionObject[]) {
+  actions.forEach((action) => {
     if (
       action.type === actionTypes.invoke &&
       (action as InvokeActionObject).params.ref
@@ -1636,10 +1645,13 @@ export function resolveMicroTransition<
       if (ref) {
         children[ref.name] = ref;
       }
+    } else if (action.type === actionTypes.stop) {
+      const ref = (action as StopActionObject).params.actor;
+      if (ref) {
+        delete children[ref.name];
+      }
     }
   });
-
-  return nextState;
 }
 
 function resolveActionsAndContext<
