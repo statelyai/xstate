@@ -782,7 +782,7 @@ class StateNode<
 
     return next;
   }
-  private transitionCompoundNode<TResolvedTypesMeta>(
+  private transitionCompoundNode(
     stateValue: StateValue<TResolvedTypesMeta>,
     state: State<TContext, TEvent>,
     _event: SCXML.Event<TEvent>
@@ -802,7 +802,7 @@ class StateNode<
 
     return next;
   }
-  private transitionParallelNode<TResolvedTypesMeta>(
+  private transitionParallelNode(
     stateValue: StateValue<TResolvedTypesMeta>,
     state: State<TContext, TEvent>,
     _event: SCXML.Event<TEvent>
@@ -856,7 +856,7 @@ class StateNode<
       )
     };
   }
-  private _transition<TResolvedTypesMeta>(
+  private _transition(
     stateValue: StateValue<TResolvedTypesMeta>,
     state: State<TContext, TEvent, any, any, any>,
     _event: SCXML.Event<TEvent>
