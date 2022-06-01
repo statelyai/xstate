@@ -13,7 +13,8 @@ import {
   resolveMicroTransition,
   resolveStateValue,
   toState,
-  transitionNode
+  transitionNode,
+  setChildren
 } from './stateUtils';
 import type {
   AreAllImplementationsAssumedToBeProvided,
@@ -304,6 +305,8 @@ export class StateMachine<
     );
     preInitial._initial = true;
     preInitial.actions.unshift(...actions);
+
+    setChildren(preInitial.children, actions);
 
     return preInitial;
   }

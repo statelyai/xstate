@@ -32,14 +32,14 @@ export function stop<
     {
       actor
     },
-    ({ params, type }, context, _event) => {
-      const actorRefOrString = isFunction(params.actor)
+    ({ params, type }, context, _event, { state }) => {
+      const actorRef = isFunction(params.actor)
         ? params.actor(context, _event.data)
-        : params.actor;
+        : state.children[params.actor];
 
       return {
         type,
-        params: { actor: actorRefOrString }
+        params: { actor: actorRef }
       } as StopActionObject;
     }
   );
