@@ -541,7 +541,10 @@ export interface StateNodeConfig<
   /**
    * The initial state node key.
    */
-  initial?: keyof TStateSchema['states'] | undefined;
+  initial?:
+    | keyof TStateSchema['states']
+    | (() => keyof TStateSchema['states'])
+    | undefined;
   /**
    * @deprecated
    */

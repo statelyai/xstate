@@ -352,7 +352,9 @@ class StateNode<
       );
     }
 
-    this.initial = this.config.initial;
+    this.initial = isFunction(this.config.initial)
+      ? this.config.initial()
+      : this.config.initial;
 
     this.states = (this.config.states
       ? mapValues(
