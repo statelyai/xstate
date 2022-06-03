@@ -1,29 +1,23 @@
-import type { AnyState, AnyStateMachine, State, StateFrom } from 'xstate';
+import type { AnyState, State } from 'xstate';
 import type { SetStoreFunction } from 'solid-js/store';
-import { produce, reconcile } from 'solid-js/store';
+import { reconcile } from 'solid-js/store';
 import rfdc from 'rfdc';
 
 // List of keys to reconcile while merging state
-const reconcileKeys: Array<keyof AnyState> = ['context', 'value'];
+const reconcileKeys: Array<keyof AnyState> = ['context'];
 
 /**
  * Reconcile the state of the machine with the current state of the store.
  * Handles primitive values, arrays, and objects.
  * Provides granular reactivity for the state of the machine in solid-js.
  */
-export const updateState = <
-  NextState extends StateFrom<AnyStateMachine> | object,
-  UpdateState extends SetStoreFunction<NextState>
->(
+export const updateState = <NextState extends AnyState | object>(
   nextState: NextState,
-  setState: UpdateState,
-  keys?: Array<keyof NextState>
+  setState: SetStoreFunction<NextState>
 ): void => {
   if (typeof nextState === 'object' && !!nextState) {
     // If a list of keys to update is not provided, get keys from nextState
-    if (!keys) {
-      keys = Object.keys(nextState) as Array<keyof NextState>;
-    }
+    const keys = Object.keys(nextState) as Array<keyof NextState>;
     for (const key of keys) {
       // Don't update functions
       if (typeof nextState[key] === 'function') {
@@ -32,7 +26,7 @@ export const updateState = <
       if (key in nextState && reconcileKeys.includes(key as keyof State<any>)) {
         setReconcileState(key, nextState, setState);
       } else {
-        setProduceState(key, nextState, setState);
+        setState(key as any, nextState[key]);
       }
     }
   } else {
@@ -40,27 +34,10 @@ export const updateState = <
   }
 };
 
-const setProduceState = <
-  NextState extends AnyState | object,
-  UpdateState extends SetStoreFunction<NextState>
->(
+const setReconcileState = <NextState extends AnyState | object>(
   key: keyof NextState,
   nextState: NextState,
-  setState: UpdateState
-) =>
-  setState(
-    produce((s) => {
-      s[key as any] = nextState[key];
-    })
-  );
-
-const setReconcileState = <
-  NextState extends AnyState | object,
-  UpdateState extends SetStoreFunction<NextState>
->(
-  key: keyof NextState,
-  nextState: NextState,
-  setState: UpdateState
+  setState: SetStoreFunction<NextState>
 ) =>
   setState(
     key as any,

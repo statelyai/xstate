@@ -1,17 +1,8 @@
 /* @jsxImportSource solid-js */
 import { createMachine } from 'xstate';
-import { render, cleanup, fireEvent, screen } from 'solid-testing-library';
+import { render, fireEvent, screen } from 'solid-testing-library';
 import { useInterpret } from '../src';
 import { createEffect, onMount } from 'solid-js';
-
-// tslint:disable-next-line:no-console
-const originalConsoleWarn = console.warn;
-
-afterEach(() => {
-  cleanup();
-  // tslint:disable-next-line:no-console
-  console.warn = originalConsoleWarn;
-});
 
 describe('useInterpret', () => {
   it('observer should be called with initial state', (done) => {

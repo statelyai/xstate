@@ -13,13 +13,9 @@
     "store"
   ],
   "author": "David Khourshid <davidkpiano@gmail.com>",
-  "homepage": "https://github.com/davidkpiano/xstate/tree/main/packages/xstate-solid#readme",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-solid#readme",
   "license": "MIT",
   "sideEffects": false,
-  "directories": {
-    "lib": "lib",
-    "test": "test"
-  },
   "main": "lib/index.js",
   "module": "es/index.js",
   "types": "lib/index.d.ts",
@@ -32,7 +28,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
   },
   "scripts": {
     "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
@@ -41,7 +37,7 @@
     "prepublish": "npm run build"
   },
   "bugs": {
-    "url": "https://github.com/davidkpiano/xstate/issues"
+    "url": "https://github.com/statelyai/xstate/issues"
   },
   "dependencies": {
     "rfdc": "^1.3.0"

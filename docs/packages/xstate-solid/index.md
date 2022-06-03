@@ -68,18 +68,11 @@ A SolidJS hook that interprets the given `machine` and starts a service that run
 
 **Arguments**
 
-- `machine` - An [XState machine](https://xstate.js.org/docs/guides/machines.html) or a function that lazily returns a machine:
+- `machine` - An [XState machine](https://xstate.js.org/docs/guides/machines.html):
 
   ```js
   // existing machine
   const [state, send] = useMachine(machine);
-
-  // lazily-created machine
-  const [state, send] = useMachine(() =>
-    createMachine({
-      /* ... */
-    })
-  );
   ```
 
 - `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `immediate`, `context`, `state`.
@@ -114,7 +107,7 @@ const [state, send] = useActor(customActor, (actor) => {
 
 A SolidJS hook that returns the `service` created from the `machine` with the `options`, if specified. It starts the service and runs it for the lifetime of the component. This is similar to `useMachine`; however, `useInterpret` allows for a custom `observer` to subscribe to the `service`.
 
-The `useInterpret` is useful when you want fine-grained control, e.g. to add logging, or minimize re-renders. In contrast to `useMachine` that would flush each update from the machine to the Solid component, `useInterpret` instead returns a static reference (to just the interpreted machine) which will not rerender when its state changes.
+`useInterpret` returns a static reference (to just the interpreted machine) which will not rerender when its state changes.
 
 To use a piece of state from the service inside a render, use the `useSelector(...)` hook to subscribe to it.
 

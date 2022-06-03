@@ -9,11 +9,9 @@ import {
   ActorRefFrom,
   interpret
 } from 'xstate';
-import { fireEvent, screen, render, cleanup } from 'solid-testing-library';
+import { fireEvent, screen, render } from 'solid-testing-library';
 import { toActorRef } from 'xstate/lib/Actor';
 import { Component, createEffect, createSignal, on, onMount } from 'solid-js';
-
-afterEach(cleanup);
 
 describe('useActor', () => {
   it('initial invoked actor should be immediately available', (done) => {

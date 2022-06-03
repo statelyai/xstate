@@ -7,7 +7,7 @@ import type {
   InterpreterFrom
 } from 'xstate';
 import { State, interpret, toObserver } from 'xstate';
-import type { UseMachineOptions, MaybeLazy } from './types';
+import type { UseMachineOptions } from './types';
 import { onCleanup, onMount } from 'solid-js';
 
 type RestParams<
@@ -74,11 +74,9 @@ type RestParams<
     ];
 
 export function useInterpret<TMachine extends AnyStateMachine>(
-  getMachine: MaybeLazy<TMachine>,
+  machine: TMachine,
   ...[options = {}, observerOrListener]: RestParams<TMachine>
 ): InterpreterFrom<TMachine> {
-  const machine = typeof getMachine === 'function' ? getMachine() : getMachine;
-
   const {
     context,
     guards,
@@ -104,23 +102,21 @@ export function useInterpret<TMachine extends AnyStateMachine>(
     ...context
   }));
 
-  const service = interpret(machineWithConfig, {
-    deferEvents: true,
-    ...interpreterOptions
-  }).start(
+  const service = interpret(machineWithConfig, interpreterOptions).start(
     rehydratedState ? (State.create(rehydratedState) as any) : undefined
   );
 
-  let sub;
   onMount(() => {
+    let sub;
+
     if (observerOrListener) {
       sub = service.subscribe(toObserver(observerOrListener));
     }
-  });
 
-  onCleanup(() => {
-    service.stop();
-    sub?.unsubscribe();
+    onCleanup(() => {
+      service.stop();
+      sub?.unsubscribe();
+    });
   });
 
   return service as InterpreterFrom<TMachine>;

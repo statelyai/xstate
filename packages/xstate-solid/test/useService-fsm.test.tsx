@@ -1,10 +1,8 @@
 /* @jsxImportSource solid-js */
 import { useService, useMachine } from '../src/fsm';
 import { createMachine, assign, interpret, StateMachine } from '@xstate/fsm';
-import { render, cleanup, fireEvent, screen } from 'solid-testing-library';
+import { render, fireEvent, screen } from 'solid-testing-library';
 import { Component, createSignal } from 'solid-js';
-
-afterEach(cleanup);
 
 describe('useService hook for fsm', () => {
   const counterMachine = createMachine<{ count: number }>({

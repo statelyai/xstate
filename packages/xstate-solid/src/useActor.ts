@@ -9,12 +9,6 @@ export function isActorWithState<T extends ActorRef<any>>(
   return 'state' in actorRef;
 }
 
-function isDeferredActor<T extends ActorRef<any>>(
-  actorRef: T
-): actorRef is T & { deferred: boolean } {
-  return 'deferred' in actorRef;
-}
-
 type EmittedFromActorRef<
   TActor extends ActorRef<any, any>
 > = TActor extends ActorRef<any, infer TEmitted> ? TEmitted : never;
@@ -56,19 +50,6 @@ export function useActor(
 
   const [snapshot, update] = createStoreSignal<unknown>(actorMemo, getSnapshot);
 
-  const deferredEventsRef: EventObject[] = [];
-  const send: Sender<EventObject> = (event: EventObject) => {
-    const currentActorRef = actorMemo();
-    // If the previous actor is a deferred actor,
-    // queue the events so that they can be replayed
-    // on the non-deferred actor.
-    if (isDeferredActor(currentActorRef) && currentActorRef.deferred) {
-      deferredEventsRef.push(event);
-    } else {
-      currentActorRef.send(event);
-    }
-  };
-
   createEffect(
     // Track and rerun if a new actor is provided
     on(actorMemo, () => {
@@ -80,13 +61,9 @@ export function useActor(
         error: noop,
         complete: noop
       });
-      while (deferredEventsRef.length > 0) {
-        const deferredEvent = deferredEventsRef.shift()!;
-        actorMemo().send(deferredEvent);
-      }
-      onCleanup(() => unsubscribe());
+      onCleanup(unsubscribe);
     })
   );
 
-  return [snapshot, send];
+  return [snapshot, actorMemo().send];
 }

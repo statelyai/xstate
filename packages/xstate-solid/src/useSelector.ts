@@ -30,9 +30,10 @@ export function useSelector<
     getActorSnapshot
   );
 
-  const guardedUpdate = (nextSelected: TEmitted) => {
-    if (!compare(selected(), selector(nextSelected))) {
-      update(selector(nextSelected));
+  const guardedUpdate = (emitted: TEmitted) => {
+    const next = selector(emitted);
+    if (!compare(selected(), next)) {
+      update(next);
     }
   };
 
@@ -46,9 +47,7 @@ export function useSelector<
         const { unsubscribe } = actorMemo().subscribe((emitted) => {
           guardedUpdate(emitted);
         });
-        onCleanup(() => {
-          unsubscribe();
-        });
+        onCleanup(unsubscribe);
       }
     )
   );

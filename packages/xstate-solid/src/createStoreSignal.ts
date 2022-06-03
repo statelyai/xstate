@@ -13,37 +13,46 @@ const snapshotKey = '_snapshot';
  * Returns an object that can be used in a store
  * Handles primitives or objects.
  */
-export const setSnapshotValue = <Value, ReturnValue>(
-  value: Value,
-  getValue?: (val: Value) => ReturnValue
-) => {
-  const baseValue = typeof value === 'function' ? value() : value;
-  const defaultValue = getValue ? getValue(baseValue) : baseValue;
-  return typeof defaultValue === 'object' && defaultValue
-    ? defaultValue
-    : { [snapshotKey]: defaultValue, [isSnapshotSymbol]: true };
+const setSnapshotValue = <Value>(value: Value) => {
+  // If primitive, store in a unique object or return the value if an object
+  return typeof value === 'object' && value
+    ? value
+    : { [snapshotKey]: value, [isSnapshotSymbol]: true };
 };
 
-export const getSnapshotValue = <Value>(state): Value =>
+const getSnapshotValue = <ReturnValue>(state): ReturnValue =>
   snapshotKey in state && state[isSnapshotSymbol] ? state[snapshotKey] : state;
+
+const getInitialValue = <Value, ReturnValue>(
+  value: Value,
+  selector?: (val: Value) => ReturnValue
+) => {
+  // Access value if it is a signal
+  const baseValue = typeof value === 'function' ? value() : value;
+  return selector ? selector(baseValue) : baseValue;
+};
 
 /**
  * Create a SolidJS store wrapped in a signal. Handle primitives and objects
  * with one hook.
- * @param value
- * @param getValue
+ * @param value The base value to store
+ * @param selector A function that accepts value and returns a sub value (or any other value)
  */
 export const createStoreSignal = <
   UpdateValue,
-  ReturnValue = unknown,
+  SnapshotValue = unknown,
   Value = unknown
 >(
   value: Value,
-  getValue: (val: Value | UpdateValue) => ReturnValue
-): [Accessor<ReturnValue>, (value: UpdateValue) => void] => {
-  const [state, setState] = createStore(setSnapshotValue(value, getValue));
+  selector?: (val: Value | UpdateValue) => SnapshotValue
+): [Accessor<SnapshotValue>, (value: UpdateValue) => void] => {
+  const initialValue = getInitialValue(value, selector);
+  // Stores an object or primitive - gets value from selector if provided
+  const [state, setState] = createStore(setSnapshotValue(initialValue));
+
+  // A signal with the original value or value from selector if provided
   const [snapshot, setSnapshot] = createSignal(
-    getSnapshotValue<ReturnValue>(state)
+    getSnapshotValue<SnapshotValue>(state)
   );
 
   // Update snapshot after state is finished updating

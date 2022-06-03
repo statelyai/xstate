@@ -1,11 +1,9 @@
 /* @jsxImportSource solid-js */
 import { ActorRefFrom, assign, createMachine, interpret, spawn } from 'xstate';
 import { toActorRef } from 'xstate/lib/Actor';
-import { render, cleanup, fireEvent, screen } from 'solid-testing-library';
+import { render, fireEvent, screen } from 'solid-testing-library';
 import { useActor, useInterpret, useMachine, useSelector } from '../src';
 import { Component, createSignal } from 'solid-js';
-
-afterEach(cleanup);
 
 describe('useSelector', () => {
   it('only rerenders for selected values', () => {

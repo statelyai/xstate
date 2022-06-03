@@ -4,7 +4,7 @@ import { interpret, createMachine } from '@xstate/fsm';
 import { createStore, reconcile } from 'solid-js/store';
 import type { Accessor } from 'solid-js';
 
-import { batch, createEffect, on, onCleanup } from 'solid-js';
+import { batch, createEffect, on, onCleanup, onMount } from 'solid-js';
 import { deepClone, updateState } from './utils';
 
 const getServiceState = <
@@ -56,13 +56,15 @@ export function useMachine<
     }
   });
 
-  service.subscribe((nextState) => {
-    batch(() => {
-      updateState(nextState, setState);
+  onMount(() => {
+    service.subscribe((nextState) => {
+      batch(() => {
+        updateState(nextState, setState);
+      });
     });
-  });
 
-  onCleanup(() => service.stop());
+    onCleanup(service.stop);
+  });
 
   return [
     (state as unknown) as StateMachine.State<TContext, TEvent, TTypestate>,
@@ -89,11 +91,10 @@ export function useService<
 
   createEffect(
     on(service, () => {
-      setState(deepClone(getServiceState(service())));
       const { unsubscribe } = service().subscribe((nextState) => {
         setState(reconcile<typeof nextState, unknown>(nextState));
       });
-      onCleanup(() => unsubscribe());
+      onCleanup(unsubscribe);
     })
   );
 

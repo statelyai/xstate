@@ -4,7 +4,6 @@ import { createMachine, assign, interpret, StateMachine } from '@xstate/fsm';
 import {
   screen,
   render,
-  cleanup,
   fireEvent,
   waitFor
 } from 'solid-testing-library';
@@ -16,7 +15,6 @@ import {
   Match,
   on
 } from 'solid-js';
-afterEach(cleanup);
 
 describe('useMachine hook for fsm', () => {
   const context = {

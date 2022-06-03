@@ -29,7 +29,6 @@ import {
 } from 'solid-js';
 
 afterEach(() => {
-  cleanup();
   jest.useRealTimers();
 });
 
@@ -1061,24 +1060,6 @@ describe('useMachine hook', () => {
     fireEvent.click(btn);
 
     expect(screen.getByTestId('result').textContent).toBe('b');
-  });
-  it('should accept a lazily created machine', () => {
-    const App = () => {
-      const [state] = useMachine(() =>
-        createMachine({
-          initial: 'idle',
-          states: {
-            idle: {}
-          }
-        })
-      );
-
-      expect(state.matches('idle')).toBeTruthy();
-
-      return null;
-    };
-
-    render(() => <App />);
   });
 
   it('should not miss initial synchronous updates', () => {

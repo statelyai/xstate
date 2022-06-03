@@ -6,12 +6,11 @@ import type {
   InterpreterFrom,
   StateFrom
 } from 'xstate';
-import { State } from 'xstate';
 import type { SetStoreFunction } from 'solid-js/store';
 import { createStore } from 'solid-js/store';
-import type { MaybeLazy, UseMachineOptions, Prop } from './types';
+import type { UseMachineOptions, Prop } from './types';
 import { useInterpret } from './useInterpret';
-import { batch } from 'solid-js';
+import { batch, onCleanup, onMount } from 'solid-js';
 import { updateState } from './utils';
 
 type RestParams<
@@ -45,24 +44,13 @@ export type UseMachineReturn<
 > = [StateFrom<TMachine>, Prop<TInterpreter, 'send'>, TInterpreter];
 
 export function useMachine<TMachine extends AnyStateMachine>(
-  getMachine: MaybeLazy<TMachine>,
+  machine: TMachine,
   ...[options = {}]: RestParams<TMachine>
 ): UseMachineReturn<TMachine> {
-  const service = useInterpret(getMachine, options);
-
-  // Get initial state - ensures that the service initialState is tracked
-  let initialState = {} as StateFrom<TMachine>;
-  if (service.machine.initialState && !options.state) {
-    initialState = service.machine.initialState as StateFrom<TMachine>;
-  } else if (options.state) {
-    initialState = (State.create(
-      options.state
-    ) as unknown) as StateFrom<TMachine>;
-  }
+  const service = useInterpret(machine, options);
 
   const [state, setState] = createStore<StateFrom<TMachine>>({
-    ...initialState,
-    event: initialState.event || null,
+    ...service.state,
     toJSON() {
       return service.state.toJSON();
     },
@@ -86,13 +74,17 @@ export function useMachine<TMachine extends AnyStateMachine>(
     }
   } as StateFrom<TMachine>);
 
-  service.onTransition((nextState) => {
-    batch(() => {
-      updateState(
-        nextState,
-        setState as SetStoreFunction<StateFrom<AnyStateMachine>>
-      );
+  onMount(() => {
+    const { unsubscribe } = service.subscribe((nextState) => {
+      batch(() => {
+        updateState(
+          nextState,
+          setState as SetStoreFunction<StateFrom<AnyStateMachine>>
+        );
+      });
     });
+
+    onCleanup(unsubscribe);
   });
 
   return [
