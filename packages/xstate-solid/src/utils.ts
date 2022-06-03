@@ -11,7 +11,7 @@ const reconcileKeys: Array<keyof AnyState> = ['context'];
  * Handles primitive values, arrays, and objects.
  * Provides granular reactivity for the state of the machine in solid-js.
  */
-export const updateState = <NextState extends AnyState | object>(
+export const updateState = <NextState extends object>(
   nextState: NextState,
   setState: SetStoreFunction<NextState>
 ): void => {
@@ -34,7 +34,7 @@ export const updateState = <NextState extends AnyState | object>(
   }
 };
 
-const setReconcileState = <NextState extends AnyState | object>(
+const setReconcileState = <NextState extends object>(
   key: keyof NextState,
   nextState: NextState,
   setState: SetStoreFunction<NextState>
