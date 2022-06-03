@@ -74,7 +74,7 @@ export function useService<TService extends StateMachine.AnyService>(
   createEffect(
     on(service, () => {
       const { unsubscribe } = service().subscribe((nextState) => {
-        setState(reconcile<typeof nextState, unknown>(nextState));
+        setState(reconcile<typeof nextState, typeof nextState>(nextState));
       });
       onCleanup(unsubscribe);
     })
