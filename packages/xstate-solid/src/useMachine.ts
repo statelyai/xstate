@@ -67,7 +67,7 @@ export function useMachine<TMachine extends AnyStateMachine>(
       state.tags; // sets state.tags to be tracked
       return service.state.hasTag(args[0]);
     },
-    matches: (...args: Parameters<StateFrom<TMachine>['matches']>) => {
+    matches(...args: Parameters<StateFrom<TMachine>['matches']>) {
       // tslint:disable-next-line:no-unused-expression
       state.value; // sets state.value to be tracked
       return service.state.matches(args[0] as never);

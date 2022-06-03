@@ -1,5 +1,11 @@
 import type { EventObject, StateMachine, Typestate } from '@xstate/fsm';
-import { interpret, createMachine } from '@xstate/fsm';
+import {
+  interpret,
+  createMachine,
+  MachineImplementationsFrom,
+  StateFrom,
+  ServiceFrom
+} from '@xstate/fsm';
 
 import { createStore, reconcile } from 'solid-js/store';
 import type { Accessor } from 'solid-js';
@@ -23,71 +29,47 @@ const getServiceState = <
   return currentValue!;
 };
 
-export function useMachine<
-  TContext extends object,
-  TEvent extends EventObject,
-  TTypestate extends Typestate<TContext>
->(
-  machine: StateMachine.Machine<TContext, TEvent, TTypestate>,
-  options?: {
-    actions?: StateMachine.ActionMap<TContext, TEvent>;
-  }
-): [
-  StateMachine.State<TContext, TEvent, TTypestate>,
-  (event: TEvent | TEvent['type']) => void,
-  StateMachine.Service<TContext, TEvent, TTypestate>
-] {
+export function useMachine<TMachine extends StateMachine.AnyMachine>(
+  machine: TMachine,
+  options?: MachineImplementationsFrom<TMachine>
+): [StateFrom<TMachine>, ServiceFrom<TMachine>['send'], ServiceFrom<TMachine>] {
   const resolvedMachine = createMachine(
     machine.config,
     options ? options : (machine as any)._options
   );
 
   const service = interpret(resolvedMachine).start();
-  const send = (event: TEvent | TEvent['type']) => service.send(event);
+  const send = (event: ServiceFrom<TMachine>['send']) => service.send(event);
 
-  const [state, setState] = createStore<
-    StateMachine.State<TContext, TEvent, TTypestate>
-  >({
+  const [state, setState] = createStore<StateFrom<TMachine>>({
     ...service.state,
-    matches<TSV extends TTypestate['value']>(value: TSV) {
+    matches(...args: Parameters<StateFrom<TMachine>['matches']>) {
       // tslint:disable-next-line:no-unused-expression
-      state.value; // sets state.value to be tracked by the store
-      return service.state.matches(value);
+      (state as StateFrom<StateMachine.AnyMachine>).value; // sets state.value to be tracked by the store
+      return service.state.matches(args[0] as never);
     }
-  });
+  } as StateFrom<TMachine>);
 
   onMount(() => {
     service.subscribe((nextState) => {
       batch(() => {
-        updateState(nextState, setState);
+        updateState(nextState as StateFrom<TMachine>, setState);
       });
     });
 
     onCleanup(service.stop);
   });
 
-  return [
-    (state as unknown) as StateMachine.State<TContext, TEvent, TTypestate>,
-    send,
-    service
-  ];
+  return [(state as unknown) as StateFrom<TMachine>, send, service] as any;
 }
 
-export function useService<
-  TContext extends object,
-  TEvent extends EventObject = EventObject,
-  TState extends Typestate<TContext> = { value: any; context: TContext }
->(
-  service: Accessor<StateMachine.Service<TContext, TEvent, TState>>
-): [
-  StateMachine.State<TContext, TEvent, TState>,
-  StateMachine.Service<TContext, TEvent, TState>['send'],
-  StateMachine.Service<TContext, TEvent, TState>
-] {
+export function useService<TService extends StateMachine.AnyService>(
+  service: Accessor<TService>
+): [StateFrom<TService>, TService['send'], TService] {
   // Clone object to avoid mutation of services using the same machine
   const [state, setState] = createStore(deepClone(getServiceState(service())));
 
-  const send = (event: TEvent | TEvent['type']) => service().send(event);
+  const send = (event: TService['send']) => service().send(event);
 
   createEffect(
     on(service, () => {
@@ -98,9 +80,5 @@ export function useService<
     })
   );
 
-  return [
-    (state as unknown) as StateMachine.State<TContext, TEvent, TState>,
-    send,
-    service()
-  ];
+  return [(state as unknown) as StateFrom<TService>, send, service()];
 }

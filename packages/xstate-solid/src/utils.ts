@@ -1,6 +1,6 @@
 import type { AnyState, State } from 'xstate';
 import type { SetStoreFunction } from 'solid-js/store';
-import { reconcile } from 'solid-js/store';
+import { reconcile, produce } from 'solid-js/store';
 import rfdc from 'rfdc';
 
 // List of keys to reconcile while merging state
@@ -26,7 +26,7 @@ export const updateState = <NextState extends AnyState | object>(
       if (key in nextState && reconcileKeys.includes(key as keyof State<any>)) {
         setReconcileState(key, nextState, setState);
       } else {
-        setState(key as any, nextState[key]);
+        setState(produce((state) => (state[key as any] = nextState[key])));
       }
     }
   } else {
