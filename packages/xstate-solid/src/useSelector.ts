@@ -2,7 +2,6 @@ import type { ActorRef, Subscribable } from 'xstate';
 import { defaultGetSnapshot } from './useActor';
 import type { Accessor } from 'solid-js';
 import { createEffect, createMemo, on, onCleanup } from 'solid-js';
-import { deepClone } from './utils';
 import { createStoreSignal } from './createStoreSignal';
 
 const defaultCompare = (a, b) => a === b;
@@ -23,11 +22,12 @@ export function useSelector<
 
   // Deep clone to prevent mutating original snapshot
   const getActorSnapshot = (snapshotActor: TActor): T =>
-    deepClone(selector(getSnapshot(snapshotActor)));
+    selector(getSnapshot(snapshotActor));
 
   const [selected, update] = createStoreSignal<T, T>(
     actorMemo,
-    getActorSnapshot
+    getActorSnapshot,
+    false
   );
 
   const guardedUpdate = (emitted: TEmitted) => {

@@ -5,7 +5,7 @@
 import type { Accessor } from 'solid-js';
 import { createComputed, createSignal } from 'solid-js';
 import { createStore } from 'solid-js/store';
-import { updateState } from './utils';
+import { updateState } from './updateState';
 
 const isSnapshotSymbol: unique symbol = Symbol('is-xstate-solid-snapshot');
 const snapshotKey = '_snapshot';
@@ -37,6 +37,7 @@ const getInitialValue = <Value, ReturnValue>(
  * with one hook.
  * @param value The base value to store
  * @param selector A function that accepts value and returns a sub value (or any other value)
+ * @param merge Merge update object with state or replace nested referentially not equal properties
  */
 export const createStoreSignal = <
   UpdateValue,
@@ -44,7 +45,8 @@ export const createStoreSignal = <
   Value = unknown
 >(
   value: Value,
-  selector?: (val: Value | UpdateValue) => SnapshotValue
+  selector?: (val: Value | UpdateValue) => SnapshotValue,
+  merge?: boolean
 ): [Accessor<SnapshotValue>, (value: UpdateValue) => void] => {
   const initialValue = getInitialValue(value, selector);
   // Stores an object or primitive - gets value from selector if provided
@@ -59,7 +61,7 @@ export const createStoreSignal = <
   createComputed(() => setSnapshot(getSnapshotValue(state)), state);
 
   const update = (updateValue: UpdateValue) => {
-    updateState(setSnapshotValue(updateValue), setState);
+    updateState(setSnapshotValue(updateValue), setState, merge);
   };
   return [snapshot, update];
 };

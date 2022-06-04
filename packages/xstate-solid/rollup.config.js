@@ -23,7 +23,6 @@ function createUmdConfig({ input, output: file, name }) {
         '@xstate/fsm': 'XStateFSM',
         'solid-js': 'Solid',
         'solid-js/store': 'SolidStore',
-        rfdc: 'rfdc'
       }
     },
     plugins: [typescript(), terser({ include: [/^.+\.min\.js$/] })]

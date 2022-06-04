@@ -11,7 +11,7 @@ import { createStore } from 'solid-js/store';
 import type { UseMachineOptions, Prop } from './types';
 import { useInterpret } from './useInterpret';
 import { batch, onCleanup, onMount } from 'solid-js';
-import { updateState } from './utils';
+import { updateState } from './updateState';
 
 type RestParams<
   TMachine extends AnyStateMachine

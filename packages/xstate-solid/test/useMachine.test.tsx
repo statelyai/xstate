@@ -12,7 +12,6 @@ import {
 } from 'xstate';
 import {
   render,
-  cleanup,
   screen,
   waitFor,
   fireEvent

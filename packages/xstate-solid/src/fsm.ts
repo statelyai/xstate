@@ -11,7 +11,7 @@ import { createStore, reconcile } from 'solid-js/store';
 import type { Accessor } from 'solid-js';
 
 import { batch, createEffect, on, onCleanup, onMount } from 'solid-js';
-import { deepClone, updateState } from './utils';
+import { updateState } from './updateState';
 
 const getServiceState = <
   TContext extends object,
@@ -60,14 +60,16 @@ export function useMachine<TMachine extends StateMachine.AnyMachine>(
     onCleanup(service.stop);
   });
 
-  return [(state as unknown) as StateFrom<TMachine>, send, service] as any;
+  return [state, send, service] as any;
 }
 
 export function useService<TService extends StateMachine.AnyService>(
   service: Accessor<TService>
 ): [StateFrom<TService>, TService['send'], TService] {
-  // Clone object to avoid mutation of services using the same machine
-  const [state, setState] = createStore(deepClone(getServiceState(service())));
+  // Lazy clone object to avoid mutation of services using the same machine
+  const [state, setState] = createStore(
+    JSON.parse(JSON.stringify(getServiceState(service())))
+  );
 
   const send = (event: TService['send']) => service().send(event);
 
@@ -80,5 +82,5 @@ export function useService<TService extends StateMachine.AnyService>(
     })
   );
 
-  return [(state as unknown) as StateFrom<TService>, send, service()];
+  return [state, send, service()] as any;
 }

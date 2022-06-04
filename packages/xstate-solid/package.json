@@ -31,16 +31,13 @@
     "url": "git+ssh://git@github.com/statelyai/xstate.git"
   },
   "scripts": {
-    "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
+    "clean": "rm -rf dist lib es tsconfig.tsbuildinfo",
     "build": "tsc && tsc --outDir es --module es2015 && rollup -c",
     "test": "jest",
     "prepublish": "npm run build"
   },
   "bugs": {
     "url": "https://github.com/statelyai/xstate/issues"
-  },
-  "dependencies": {
-    "rfdc": "^1.3.0"
   },
   "peerDependencies": {
     "@xstate/fsm": "^2.0.0",
