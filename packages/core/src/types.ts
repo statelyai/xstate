@@ -1208,7 +1208,7 @@ export interface DynamicStopActionObject<
 export interface StopActionObject {
   type: ActionTypes.Stop;
   params: {
-    actor: string | ActorRef<any>;
+    actor: ActorRef<any>;
   };
 }
 

@@ -632,7 +632,7 @@ export class Interpreter<
         [actionTypes.cancel]: (_ctx, _e, { action }) => {
           this.cancel((action as CancelActionObject).params.sendId);
         },
-        [actionTypes.invoke]: (_ctx, _e, { action, state }) => {
+        [actionTypes.invoke]: (_ctx, _e, { action }) => {
           const {
             id,
             autoForward,
@@ -651,25 +651,15 @@ export class Interpreter<
             return;
           }
           ref._parent = this; // TODO: fix
-          // If the actor will be stopped right after it's started
-          // (such as in transient states) don't bother starting the actor.
-          if (
-            state.actions.find((otherAction) => {
-              return (
-                otherAction.type === actionTypes.stop &&
-                (otherAction as StopActionObject).params.actor === id
-              );
-            })
-          ) {
+          // If the actor didn't end up being in the state
+          // (eg. going through transient states could stop it) don't bother starting the actor.
+          if (!this.state.children[id]) {
             return;
           }
           try {
             if (autoForward) {
               this.forwardTo.add(id);
             }
-
-            // TODO: determine how this can be immutably updated
-            this.state.children[id] = ref;
 
             ref.start?.();
           } catch (err) {
@@ -679,11 +669,9 @@ export class Interpreter<
         },
         [actionTypes.stop]: (_ctx, _e, { action }) => {
           const { actor } = (action as StopActionObject).params;
-          const actorRef =
-            typeof actor === 'string' ? this.state.children[actor] : actor;
 
-          if (actorRef) {
-            this.stopChild(actorRef.name);
+          if (actor) {
+            this.stopChild(actor);
           }
         },
         [actionTypes.log]: (_ctx, _e, { action }) => {
@@ -746,16 +734,8 @@ export class Interpreter<
     return undefined;
   }
 
-  private stopChild(childId: string): void {
-    const child = this.state.children[childId];
-    if (!child) {
-      return;
-    }
-
-    this.forwardTo.delete(childId);
-    // TODO: determine how this can be immutably updated
-    delete this.state.children[childId];
-
+  private stopChild(child: ActorRef<any, any>): void {
+    this.forwardTo.delete(child.name);
     if (isFunction(child.stop)) {
       child.stop();
     }
