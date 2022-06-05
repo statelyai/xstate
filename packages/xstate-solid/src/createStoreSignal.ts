@@ -23,9 +23,9 @@ const setSnapshotValue = <Value>(value: Value) => {
 const getSnapshotValue = <ReturnValue>(state): ReturnValue =>
   snapshotKey in state && state[isSnapshotSymbol] ? state[snapshotKey] : state;
 
-const getInitialValue = <Value, ReturnValue>(
-  value: Value,
-  selector?: (val: Value) => ReturnValue
+const getInitialValue = <InitialValue, ReturnValue>(
+  value: InitialValue,
+  selector?: (val: InitialValue) => ReturnValue
 ) => {
   // Access value if it is a signal
   const baseValue = typeof value === 'function' ? value() : value;
@@ -42,10 +42,10 @@ const getInitialValue = <Value, ReturnValue>(
 export const createStoreSignal = <
   UpdateValue,
   SnapshotValue = unknown,
-  Value = unknown
+  InitialValue = unknown
 >(
-  value: Value,
-  selector?: (val: Value | UpdateValue) => SnapshotValue,
+  value: InitialValue,
+  selector: (val: InitialValue) => SnapshotValue,
   merge?: boolean
 ): [Accessor<SnapshotValue>, (value: UpdateValue) => void] => {
   const initialValue = getInitialValue(value, selector);
