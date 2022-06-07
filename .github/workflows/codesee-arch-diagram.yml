@@ -15,7 +15,7 @@ jobs:
     steps:
       - name: checkout
         id: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
           ref: ${{ github.event.pull_request.head.ref }}
@@ -35,11 +35,11 @@ jobs:
 
       # CodeSee Maps Go support uses a static binary so there's no setup step required.
 
-      - name: Configure Node.js 14
+      - name: Configure Node.js 16
         uses: actions/setup-node@v2
         if: ${{ fromJSON(steps.detect-languages.outputs.languages).javascript }}
         with:
-          node-version: '14'
+          node-version: '16'
 
       - name: Configure Python 3.x
         uses: actions/setup-python@v2
@@ -71,7 +71,7 @@ jobs:
           step: mapUpload
           api_token: ${{ secrets.CODESEE_ARCH_DIAG_API_TOKEN }}
           github_ref: ${{ github.ref }}
-      
+
       - name: Insights
         id: insights
         uses: Codesee-io/codesee-map-action@latest
