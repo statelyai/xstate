@@ -1,7 +1,3 @@
-/**
- * Returns an object that can be used in a store
- * Handles primitives or objects.
- */
 import type { Accessor } from 'solid-js';
 import { createComputed, createSignal } from 'solid-js';
 import { createStore } from 'solid-js/store';
