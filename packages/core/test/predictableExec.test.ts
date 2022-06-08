@@ -4,6 +4,7 @@ import { raise, stop } from '../src/actions';
 describe('predictableExec', () => {
   it('should call mixed custom and builtin actions in the definitions order', () => {
     const actual: string[] = [];
+
     const machine = createMachine({
       initial: 'a',
       context: {},
@@ -583,5 +584,26 @@ describe('predictableExec', () => {
     });
 
     expect(actual).toEqual(['stop 1', 'start 2']);
+  });
+
+  // TODO: this might be tricky in v5 because this currently relies on `.exec` property being mutated to capture the context values in a closure
+  it('initial actions should receive context updated only by preceeding assign actions', () => {
+    const actual: number[] = [];
+
+    const machine = createMachine({
+      predictableActionArguments: true,
+      context: { count: 0 },
+      entry: [
+        (ctx) => actual.push(ctx.count),
+        assign({ count: 1 }),
+        (ctx) => actual.push(ctx.count),
+        assign({ count: 2 }),
+        (ctx) => actual.push(ctx.count)
+      ]
+    });
+
+    interpret(machine).start();
+
+    expect(actual).toEqual([0, 1, 2]);
   });
 });
