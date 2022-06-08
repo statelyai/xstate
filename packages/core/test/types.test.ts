@@ -10,7 +10,6 @@ import {
   Spawner,
   StateMachine
 } from '../src/index';
-import { createModel } from '../src/model';
 
 function noop(_x: unknown) {
   return;
@@ -238,11 +237,6 @@ describe('types', () => {
       context: 'string'
     });
   });
-
-  it('defined context passed to createModel() should be an object', () => {
-    // @ts-expect-error
-    createModel('string');
-  });
 });
 
 describe('context', () => {
@@ -423,33 +417,6 @@ describe('events', () => {
           events: {} as { type: 'ADD'; number: number }
         }
       },
-      {
-        actions: {
-          addNumber: assign({
-            numbers: (context, event) => {
-              ((_accept: number) => {})(event.number);
-              // @ts-expect-error
-              ((_accept: string) => {})(event.number);
-              return context.numbers.concat(event.number);
-            }
-          })
-        }
-      }
-    );
-  });
-
-  it('action objects used within implementations parameter should get access to the provided event type when using model', () => {
-    createModel(
-      {
-        numbers: [] as number[]
-      },
-      {
-        events: {
-          ADD: (number: number) => ({ number })
-        }
-      }
-    ).createMachine(
-      {},
       {
         actions: {
           addNumber: assign({

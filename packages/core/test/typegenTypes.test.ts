@@ -1,7 +1,6 @@
 import { assign, interpret, MachineContext, StateMachine } from '../src';
 import { fromCallback, fromMachine, fromPromise } from '../src/actors';
 import { createMachine } from '../src/Machine';
-import { createModel } from '../src/model';
 import { TypegenMeta } from '../src/typegenTypes';
 
 describe('typegen types', () => {
@@ -15,23 +14,6 @@ describe('typegen types', () => {
       };
     }
     createMachine({
-      tsTypes: {} as TypesMeta
-    });
-  });
-
-  it('should not require implementations when creating machine using `model.createMachine`', () => {
-    interface TypesMeta extends TypegenMeta {
-      missingImplementations: {
-        actions: 'fooAction';
-        delays: 'barDelay';
-        guards: 'bazGuard';
-        actors: 'qwertyActor';
-      };
-    }
-
-    const model = createModel({});
-
-    model.createMachine({
       tsTypes: {} as TypesMeta
     });
   });
@@ -594,44 +576,6 @@ describe('typegen types', () => {
     });
   });
 
-  it('should preserve provided action type for the meta object', () => {
-    interface TypesMeta extends TypegenMeta {
-      eventsCausingActions: {
-        myAction: 'FOO' | 'BAR';
-      };
-    }
-
-    const model = createModel(
-      { foo: 100 },
-      {
-        actions: {
-          myAction: (x: number) => ({ x })
-        },
-        events: {
-          FOO: () => ({}),
-          BAR: () => ({}),
-          BAZ: () => ({})
-        }
-      }
-    );
-
-    model.createMachine(
-      {
-        tsTypes: {} as TypesMeta
-      },
-      {
-        actions: {
-          myAction: (_ctx, _ev, { action }) => {
-            action.type === 'myAction';
-            ((_accept: number) => {})(action.x);
-            // @ts-expect-error
-            ((_accept: string) => {})(action.x);
-          }
-        }
-      }
-    );
-  });
-
   it('should include init event in the provided parameter type if necessary', () => {
     interface TypesMeta extends TypegenMeta {
       eventsCausingActions: {
@@ -969,52 +913,6 @@ describe('typegen types', () => {
   //     }
   //   );
   // });
-
-  it('It should tighten actor types when using model.createMachine', () => {
-    interface TypesMeta extends TypegenMeta {
-      eventsCausingActions: {
-        myAction: 'done.invoke.myActor';
-      };
-      eventsCausingActors: {
-        myActor: never;
-      };
-      internalEvents: {
-        'done.invoke.myActor': {
-          type: 'done.invoke.myActor';
-          data: unknown;
-        };
-      };
-      invokeSrcNameMap: {
-        myActor: 'done.invoke.myActor';
-      };
-    }
-
-    const model = createModel({}, {});
-
-    model.createMachine(
-      {
-        tsTypes: {} as TypesMeta,
-        schema: {
-          actors: {} as {
-            myActor: {
-              data: boolean;
-            };
-          }
-        }
-      },
-      {
-        actions: {
-          myAction: (_ctx, event) => {
-            ((_accept: boolean) => {})(event.data);
-          }
-        },
-        actors: {
-          // @ts-expect-error
-          myActor: () => Promise.resolve('')
-        }
-      }
-    );
-  });
 
   it("should not provide a loose type for `onReceive`'s argument as a default", () => {
     interface TypesMeta extends TypegenMeta {

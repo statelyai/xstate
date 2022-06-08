@@ -8,7 +8,6 @@ import {
   MachineImplementationsFrom,
   StateValueFrom
 } from '../src';
-import { createModel } from '../src/model';
 import { TypegenMeta } from '../src/typegenTypes';
 
 describe('ContextFrom', () => {
@@ -129,76 +128,6 @@ describe('EventFrom', () => {
       // @ts-expect-error
       type: 'UNKNOWN_EVENT'
     });
-  });
-
-  it('should return events for createModel', () => {
-    const userModel = createModel(
-      {},
-      {
-        events: {
-          updateName: (value: string) => ({ value }),
-          updateAge: (value: number) => ({ value }),
-          anotherEvent: () => ({})
-        }
-      }
-    );
-
-    type UserModelEvent = EventFrom<typeof userModel>;
-
-    const acceptUserModelEvent = (_event: UserModelEvent) => {};
-
-    acceptUserModelEvent({ type: 'updateName', value: 'test' });
-    acceptUserModelEvent({ type: 'updateAge', value: 12 });
-    acceptUserModelEvent({ type: 'anotherEvent' });
-    acceptUserModelEvent({
-      // @ts-expect-error
-      type: 'eventThatDoesNotExist'
-    });
-  });
-
-  it('should narrow events down to the specified types', () => {
-    const userModel = createModel(
-      {},
-      {
-        events: {
-          updateName: (value: string) => ({ value }),
-          updateAge: (value: number) => ({ value }),
-          anotherEvent: () => ({})
-        }
-      }
-    );
-
-    type UserModelEventSubset = EventFrom<
-      typeof userModel,
-      'updateName' | 'updateAge'
-    >;
-
-    const acceptUserModelEventSubset = (
-      _userModelEventSubset: UserModelEventSubset
-    ) => {
-      /* empty */
-    };
-
-    acceptUserModelEventSubset({ type: 'updateName', value: 'test' });
-    acceptUserModelEventSubset({ type: 'updateAge', value: 12 });
-    // @ts-expect-error
-    acceptUserModelEventSubset({ type: 'anotherEvent' });
-    // @ts-expect-error
-    acceptUserModelEventSubset({ type: 'eventThatDoesNotExist' });
-  });
-
-  it('should correctly extract events from events having union of strings as their `type`', () => {
-    const machine = createMachine({
-      schema: {
-        events: {} as { type: 'INC' | 'DEC' }
-      }
-    });
-
-    type MachineEvent = EventFrom<typeof machine, 'INC'>;
-
-    const acceptEvent = (_event: MachineEvent) => {};
-
-    acceptEvent({ type: 'INC' });
   });
 });
 
@@ -380,23 +309,6 @@ describe('SnapshotFrom', () => {
           events: {} as { type: 'FOO' }
         }
       })
-    );
-
-    function acceptState(_state: SnapshotFrom<typeof service>) {}
-
-    acceptState(service.initialState);
-    // @ts-expect-error
-    acceptState("isn't any");
-  });
-
-  it('should return state from a service created based on a model without any concrete events', () => {
-    const service = interpret(
-      createModel(
-        {},
-        {
-          // this empty obj is important for this test case
-        }
-      ).createMachine({})
     );
 
     function acceptState(_state: SnapshotFrom<typeof service>) {}
