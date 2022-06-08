@@ -17,6 +17,12 @@ module.exports = {
       title: 'Documentation XState',
       description:
         "Documentation XState : Machines d'état et diagrammes d'état pour le Web moderne"
+    },
+    '/ru/': {
+      lang: 'ru-RU',
+      title: 'Документация XState',
+      description:
+        'Документация XState : Конечные автоматы и диаграммы состояний для современного Интернета'
     }
   },
   markdown: {
@@ -290,6 +296,134 @@ module.exports = {
                 'Code de conduite'
               ],
               ['https://stately.ai/privacy', 'Politique de confidentialité']
+            ]
+          }
+        ]
+      },
+      '/ru/': {
+        selectText: 'Выберите язык',
+        label: 'Русский',
+        editLinkText: 'Редактировать страницу на GitHub',
+        lastUpdated: 'Последнее обновление',
+        nav: [
+          { text: 'API', link: 'https://paka.dev/npm/xstate/' },
+          { text: 'Визуализатор', link: 'https://stately.ai/viz' },
+          { text: 'Discord', link: 'https://discord.gg/xtWgFTgvNV' },
+          {
+            text: 'Сообщество',
+            link: 'https://github.com/statelyai/xstate/discussions'
+          }
+        ],
+        sidebar: [
+          {
+            title: 'Что такое XState?',
+            children: ['/ru/visualizer/']
+          },
+          {
+            title: 'Об XState',
+            children: [
+              '/ru/about/concepts',
+              '/ru/about/goals',
+              '/ru/about/showcase',
+              '/ru/about/resources',
+              '/ru/about/tutorials',
+              '/ru/about/glossary'
+            ]
+          },
+          {
+            title: 'Руководства',
+            children: [
+              '/ru/guides/start',
+              '/ru/guides/installation',
+              '/ru/guides/introduction-to-state-machines-and-statecharts/',
+              '/ru/guides/machines',
+              '/ru/guides/states',
+              '/ru/guides/statenodes',
+              '/ru/guides/events',
+              '/ru/guides/transitions',
+              '/ru/guides/hierarchical',
+              '/ru/guides/parallel',
+              '/ru/guides/final',
+              '/ru/guides/effects',
+              '/ru/guides/actions',
+              '/ru/guides/guards',
+              '/ru/guides/context',
+              '/ru/guides/models',
+              '/ru/guides/activities',
+              '/ru/guides/communication',
+              '/ru/guides/actors',
+              '/ru/guides/delays',
+              '/ru/guides/history',
+              '/ru/guides/ids',
+              '/ru/guides/interpretation',
+              '/ru/guides/testing',
+              '/ru/guides/typescript',
+              '/ru/guides/scxml'
+            ]
+          },
+          {
+            title: 'Учебники',
+            children: [
+              '/ru/tutorials/reddit',
+              {
+                title: '7GUIs',
+                children: [
+                  '/ru/tutorials/7guis/counter',
+                  '/ru/tutorials/7guis/temperature',
+                  '/ru/tutorials/7guis/flight',
+                  '/ru/tutorials/7guis/timer'
+                ]
+              }
+            ]
+          },
+          {
+            title: 'Рецепты',
+            children: [
+              '/ru/recipes/react',
+              '/ru/recipes/vue',
+              '/ru/recipes/rxjs',
+              '/ru/recipes/ember',
+              '/ru/recipes/stencil',
+              '/ru/recipes/svelte'
+            ]
+          },
+          {
+            title: 'Пакеты',
+            children: [
+              '/ru/packages/xstate-react/',
+              '/ru/packages/xstate-vue/',
+              '/ru/packages/xstate-graph/',
+              '/ru/packages/xstate-fsm/',
+              '/ru/packages/xstate-test/',
+              '/ru/packages/xstate-immer/',
+              '/ru/packages/xstate-inspect/',
+              '/ru/packages/xstate-svelte/',
+              '/ru/packages/xstate-cli/'
+            ]
+          },
+          {
+            title: 'Паттерны',
+            children: ['/patterns/sequence']
+          },
+          {
+            title: 'Примеры',
+            children: [
+              '/ru/examples/counter',
+              '/ru/examples/todomvc',
+              '/ru/examples/calculator',
+              '/ru/examples/covid-tracker'
+            ]
+          },
+          {
+            title: 'Новости и ссылки',
+            children: [
+              '/ru/roadmap/',
+              '/ru/updates/',
+              [
+                'https://github.com/statelyai/xstate/blob/main/CODE_OF_CONDUCT.md',
+                'Code of Conduct'
+              ],
+              ['https://stately.ai/privacy', 'Privacy Policy']
             ]
           }
         ]
