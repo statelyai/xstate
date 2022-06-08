@@ -322,7 +322,7 @@ export class StateMachine<
   /**
    * Returns the initial `State` instance, with reference to `self` as an `ActorRef`.
    */
-  public getInitialState(): StateFrom<typeof this> {
+  public getInitialState(): State<TContext, TEvent, TResolvedTypesMeta> {
     const { preInitialState } = this;
     const nextState = resolveMicroTransition(
       this,
