@@ -17,7 +17,8 @@ import {
   sendUpdate,
   respond,
   forwardTo,
-  error
+  error,
+  sendTo
 } from '../src/actions';
 import { interval, EMPTY } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -54,7 +55,7 @@ describe('spawning machines', () => {
         type: 'TODO_COMPLETED';
       };
 
-  const todosMachine = Machine<any, TodoEvent>({
+  const todosMachine = createMachine<typeof context, TodoEvent>({
     id: 'todos',
     context: context,
     initial: 'active',
@@ -78,11 +79,14 @@ describe('spawning machines', () => {
         })
       },
       SET_COMPLETE: {
-        actions: send('SET_COMPLETE', {
-          to: (ctx, e: Extract<TodoEvent, { type: 'SET_COMPLETE' }>) => {
-            return ctx.todoRefs[e.id];
-          }
-        })
+        // xactions: send('SET_COMPLETE', {
+        //   to: (ctx, e: Extract<TodoEvent, { type: 'SET_COMPLETE' }>) => {
+        //     return ctx.todoRefs[e.id];
+        //   }
+        // }),
+        actions: sendTo((ctx, e) => {
+          return ctx.todoRefs[e.id];
+        }, 'SET_COMPLETE')
       }
     }
   });

@@ -181,6 +181,8 @@ export function resolveRaise<TEvent extends EventObject>(
  * Sends an event. This returns an action that will be read by an interpreter to
  * send the event in the next step, after the current step is finished executing.
  *
+ * @deprecated Use the `sendTo(...)` action creator instead.
+ *
  * @param event The event to send.
  * @param options Options to pass into the send event:
  *  - `id` - The unique send event identifier (used with `cancel()`).
