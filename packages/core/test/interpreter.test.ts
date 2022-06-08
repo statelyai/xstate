@@ -14,7 +14,7 @@ import {
   AnyState
 } from '../src';
 import { State } from '../src/State';
-import { log, actionTypes, raise, stop } from '../src/actions';
+import { log, actionTypes, raise, stop, sendTo } from '../src/actions';
 import { isObservable } from '../src/utils';
 import { interval, from } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -830,7 +830,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       },
       on: {
         PING_CHILD: {
-          actions: [send('PING', { to: 'child' }), logAction]
+          actions: [sendTo('child', 'PING'), logAction]
         },
         '*': {
           actions: [logAction]

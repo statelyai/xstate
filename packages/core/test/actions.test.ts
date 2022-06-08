@@ -487,7 +487,7 @@ describe('entry/exit actions', () => {
         }
       };
 
-      const pingPong = Machine({
+      const pingPong = createMachine({
         initial: 'ping',
         key: 'machine',
         states: {

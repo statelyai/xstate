@@ -10,7 +10,6 @@ import {
 } from '../src';
 import {
   assign,
-  send,
   sendParent,
   raise,
   doneInvoke,
@@ -79,11 +78,6 @@ describe('spawning machines', () => {
         })
       },
       SET_COMPLETE: {
-        // xactions: send('SET_COMPLETE', {
-        //   to: (ctx, e: Extract<TodoEvent, { type: 'SET_COMPLETE' }>) => {
-        //     return ctx.todoRefs[e.id];
-        //   }
-        // }),
         actions: sendTo((ctx, e) => {
           return ctx.todoRefs[e.id];
         }, 'SET_COMPLETE')
@@ -138,7 +132,10 @@ describe('spawning machines', () => {
         }
       },
       sendPing: {
-        entry: [send('PING', { to: (ctx) => ctx.server! }), raise('SUCCESS')],
+        entry: [
+          sendTo((ctx) => ctx.server!, { type: 'PING' }),
+          raise('SUCCESS')
+        ],
         on: {
           SUCCESS: 'waitPong'
         }
@@ -255,7 +252,7 @@ describe('spawning callbacks', () => {
         }),
         on: {
           START_CB: {
-            actions: send('START', { to: (ctx) => ctx.callbackRef })
+            actions: sendTo((ctx) => ctx.callbackRef, { type: 'START' })
           },
           SEND_BACK: 'success'
         }
@@ -359,7 +356,7 @@ describe('communicating with spawned actors', () => {
           },
           after: {
             100: {
-              actions: send('ACTIVATE', { to: (ctx) => ctx.existingRef })
+              actions: sendTo((ctx) => ctx.existingRef, { type: 'ACTIVATE' })
             }
           }
         },
@@ -408,7 +405,7 @@ describe('communicating with spawned actors', () => {
           },
           after: {
             100: {
-              actions: send('ACTIVATE', { to: 'existing' })
+              actions: sendTo('existing', 'ACTIVATE')
             }
           }
         },
@@ -440,17 +437,17 @@ describe('communicating with spawned actors', () => {
 
     const existingService = interpret(existingMachine).start();
 
-    const parentMachine = Machine<any>({
+    const parentMachine = createMachine<any>({
       initial: 'pending',
       states: {
         pending: {
-          entry: send('ACTIVATE', { to: existingService.sessionId }),
+          entry: sendTo(existingService.sessionId, { type: 'ACTIVATE' }),
           on: {
             'EXISTING.DONE': 'success'
           },
           after: {
             100: {
-              actions: send('ACTIVATE', { to: (ctx) => ctx.existingRef })
+              actions: sendTo((ctx) => ctx.existingRef, { type: 'ACTIVATE' })
             }
           }
         },
@@ -1074,7 +1071,7 @@ describe('actors', () => {
         }),
         states: {
           waiting: {
-            entry: send('PING', { to: (ctx) => ctx.ponger! }),
+            entry: sendTo((ctx) => ctx.ponger!, { type: 'PING' }),
             invoke: {
               id: 'ponger',
               src: () => pongBehavior
