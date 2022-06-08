@@ -434,7 +434,7 @@ export function fromMachine<TMachine extends AnyStateMachine>(
       if (initialState) {
         return initialState;
       }
-      initialState = castedMachine.getInitialState();
+      initialState = castedMachine.getInitialState() as StateFrom<TMachine>;
       return initialState;
     }
   };
