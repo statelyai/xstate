@@ -1,57 +1,58 @@
-# Concepts
+# Понятия
 
-XState is a library for creating, interpreting, and executing finite state machines and statecharts, as well as managing invocations of those machines as actors. The following fundamental computer science concepts are important to know how to make the best use of XState, and in general for all your current and future software projects.
+**XState** — это библиотека для создания, интерпретации и выполнения конечных автоматов и диаграмм состояний, а также для управления вызовами этих автоматов как субъектов. Следующие фундаментальные концепции информатики важны для понимания того, как наилучшим образом использовать XState и в целом для всех ваших текущих и будущих программных проектов.
 
-## Finite State Machines
+## Конечные автоматы
 
-A finite state machine is a mathematical model of computation that describes the behavior of a system that can be in only one state at any given time. For example, let's say you can be represented by a state machine with a finite number (2) of states: `asleep` or `awake`. At any given time, you're either `asleep` or `awake`. It is impossible for you to be both `asleep` and `awake` at the same time, and it is impossible for you to be neither `asleep` nor `awake`.
+Конечный автомат — это математическая модель вычислений, которая описывает поведение системы, которая может находиться только в одном состоянии в любой момент времени. Например, предположим, что вы можете быть представлены конечным автоматом с конечным числом (2) состояний: `asleep` (спящий) или `awake` (бодрствующий). В любой момент вы либо спите, либо бодрствуете. Вы не можете одновременно спать и бодрствовать, и вы не можете ни спать, ни бодрствовать.
 
-Formally, finite state machines have five parts:
+Формально конечные автоматы состоят из пяти частей:
 
-- A finite number of **states**
-- A finite number of **events**
-- An **initial state**
-- A **transition function** that determines the next state given the current state and event
-- A (possibly empty) set of **final states**
+- Конечное число **состояний**
+- Конечное число **событий**
+- **Исходное состояние**
+- **Функция перехода**, определяющая следующее состояние с учетом текущего состояния и события.
+- Множество (может быть пустым) **конечных состояний**
 
-**State** refers to some finite, _qualitative_ "mode" or "status" of a system being modeled by a state machine, and does not describe all the (possibly infinite) data related to that system. For example, water can be in 1 of 4 states: `ice`, `liquid`, `gas`, or `plasma`. However, the temperature of water can vary and its measurement is _quantitative_ and infinite.
+**Состояние** относится к некоторому конечному _качественному_ «режиму» или «состоянию» системы, моделируемой конечным автоматом, и не описывает все (возможно, бесконечные) данные, относящиеся к этой системе. Например, вода может находиться в одном из четырех состояний: `ice` (лёд), `liquid` (жидкость), `gas` (газ) или `plasma` (плазма). Однако температура воды может меняться, и ее измерение может быть _количественным_ и бесконечным.
 
-More resources:
+Дополнительная информация про конечные автоматы:
 
-- [Finite-state machine](https://en.wikipedia.org/wiki/Finite-state_machine) article on Wikipedia
-- [Understanding State Machines](https://www.freecodecamp.org/news/state-machines-basics-of-computer-science-d42855debc66/) by Mark Shead
+- [Конечный автомат](https://ru.wikipedia.org/wiki/%D0%9A%D0%BE%D0%BD%D0%B5%D1%87%D0%BD%D1%8B%D0%B9_%D0%B0%D0%B2%D1%82%D0%BE%D0%BC%D0%B0%D1%82), статья в Википедии
+- [Understanding State Machines](https://www.freecodecamp.org/news/state-machines-basics-of-computer-science-d42855debc66/), автор Mark Shead
+- [▶️ Автоматное программирование c примерами на JavaScript](https://www.youtube.com/watch?v=mxz7_zcip0c)
 - [▶️ A-Level Comp Sci: Finite State Machine](https://www.youtube.com/watch?v=4rNYAvsSkwk)
 
-## Statecharts
+## Диаграммы состояний
 
-Statecharts are a formalism for modeling stateful, reactive systems. Computer scientist David Harel presented this formalism as an extension to state machines in his 1987 paper [Statecharts: A Visual Formalism for Complex Systems](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf). Some of the extensions include:
+**Диаграммы состояний** — это формализм для моделирования реактивных систем с отслеживанием состояния. Ученый-компьютерщик Дэвид Харел представил этот формализм как расширение конечных автоматов в своей статье 1987 года «[Диаграммы состояний: визуальный формализм для сложных систем](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf)». Некоторые из расширений включают:
 
-- Guarded transitions
-- Actions (entry, exit, transition)
-- Extended state (context)
-- Orthogonal (parallel) states
-- Hierarchical (nested) states
-- History
+- Охраняемые переходы
+- Действия (вход, выход, переход)
+- Расширенное состояние (контекст)
+- Ортогональные (параллельные) состояния
+- Иерархические (вложенные) состояния
+- Историю состояний
 
-More resources:
+Дополнительная информация про диаграммы состояний:
 
-- [Statecharts: A Visual Formalism for Complex Systems](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf) by David Harel
-- [The World of Statecharts](https://statecharts.github.io/) by Erik Mogensen
+- [Statecharts: A Visual Formalism for Complex Systems](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf), автор David Harel
+- [The World of Statecharts](https://statecharts.github.io/), автор Erik Mogensen
 
-## Actor Model
+## Модель акторов
 
-The actor model is another very old mathematical model of computation that goes well with state machines. It states that everything is an "actor" that can do three things:
+**Модель акторов (участников)** — это еще одна очень старая математическая модель вычислений, которая хорошо сочетается с конечными автоматами. В нем говорится, что все является «актором», который может делать три вещи:
 
-- **Receive** messages
-- **Send** messages to other actors
-- Do something with the messages it received (its **behavior**), such as:
-  - change its local state
-  - send messages to other actors
-  - _spawn_ new actors
+- **Получать** сообщения
+- **Отправлять** сообщения другим участникам
+- Обрабатывать полученные сообщения (его поведение), например:
+  : - изменить свое локальное состояние
+  : - отправлять сообщения другим участникам
+  : - _создавать_ новых актеров
 
-An actor's behavior can be described by a state machine (or a statechart).
+Поведение актора можно описать с помощью конечного автомата (или диаграммы состояний).
 
-More resources:
+Дополнительная информация:
 
-- [Actor model](https://en.wikipedia.org/wiki/Actor_model) article on Wikipedia
-- [The actor model in 10 minutes](https://www.brianstorti.com/the-actor-model/) by Brian Storti
+- [Модель акторов](https://ru.wikipedia.org/wiki/%D0%9C%D0%BE%D0%B4%D0%B5%D0%BB%D1%8C_%D0%B0%D0%BA%D1%82%D0%BE%D1%80%D0%BE%D0%B2), статья в Википедии
+- [The actor model in 10 minutes](https://www.brianstorti.com/the-actor-model/), автор Brian Storti

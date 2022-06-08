@@ -24,21 +24,21 @@ JavaScript и TypeScript [конечные автоматы](https://en.wikipedi
 
 ## Пакеты
 
-- 🤖 `xstate` - Core finite state machine and statecharts library + interpreter
-- [🔬 `@xstate/fsm`](https://github.com/statelyai/xstate/tree/main/packages/xstate-fsm) - Minimal finite state machine library
-- [📉 `@xstate/graph`](https://github.com/statelyai/xstate/tree/main/packages/xstate-graph) - Graph traversal utilities for XState
-- [⚛️ `@xstate/react`](https://github.com/statelyai/xstate/tree/main/packages/xstate-react) - React hooks and utilities for using XState in React applications
-- [💚 `@xstate/vue`](https://github.com/statelyai/xstate/tree/main/packages/xstate-vue) - Vue composition functions and utilities for using XState in Vue applications
-- [🎷 `@xstate/svelte`](https://github.com/statelyai/xstate/tree/main/packages/xstate-svelte) - Svelte utilities for using XState in Svelte applications
-- [✅ `@xstate/test`](https://github.com/statelyai/xstate/tree/main/packages/xstate-test) - Model-Based-Testing utilities (using XState) for testing any software
-- [🔍 `@xstate/inspect`](https://github.com/statelyai/xstate/tree/main/packages/xstate-inspect) - Inspection utilities for XState
+- 🤖 `xstate` - Базовая библиотека конечных автоматов и диаграмм состояний + интерпретатор
+- [🔬 `@xstate/fsm`](https://github.com/statelyai/xstate/tree/main/packages/xstate-fsm) - Минимальная библиотека конечных автоматов
+- [📉 `@xstate/graph`](https://github.com/statelyai/xstate/tree/main/packages/xstate-graph) - Утилиты обхода графа для XState
+- [⚛️ `@xstate/react`](https://github.com/statelyai/xstate/tree/main/packages/xstate-react) - React xуки и утилиты для использования XState в приложениях React
+- [💚 `@xstate/vue`](https://github.com/statelyai/xstate/tree/main/packages/xstate-vue) - Функции композиции и утилиты Vue для использования XState в приложениях Vue
+- [🎷 `@xstate/svelte`](https://github.com/statelyai/xstate/tree/main/packages/xstate-svelte) - Утилиты Svelte для использования XState в приложениях Svelte
+- [✅ `@xstate/test`](https://github.com/statelyai/xstate/tree/main/packages/xstate-test) - Утилиты Model-Based-Testing (с использованием XState) для тестирования любого программного обеспечения
+- [🔍 `@xstate/inspect`](https://github.com/statelyai/xstate/tree/main/packages/xstate-inspect) - Утилиты разработчика (проверки) для XState
 
 ## Шаблоны
 
-Get started by forking one of these templates on CodeSandbox:
+Начните с создания форка одного из этих шаблонов на CodeSandbox:
 
-- [XState Template](https://codesandbox.io/s/xstate-example-template-m4ckv) - no framework
-- [XState + TypeScript Template](https://codesandbox.io/s/xstate-typescript-template-s9kz8) - no framework
+- [XState Template](https://codesandbox.io/s/xstate-example-template-m4ckv) - без фреймворков
+- [XState + TypeScript Template](https://codesandbox.io/s/xstate-typescript-template-s9kz8) - без фреймворков
 - [XState + React Template](https://codesandbox.io/s/xstate-react-template-3t2tg)
 - [XState + React + TypeScript Template](https://codesandbox.io/s/xstate-react-typescript-template-wjdvn)
 - [XState + Vue Template](https://codesandbox.io/s/xstate-vue-template-composition-api-1n23l)
@@ -88,7 +88,7 @@ toggleService.send({ type: 'TOGGLE' });
 
 ## Пример с промисами
 
-[📉 See the visualization on stately.ai/viz](https://stately.ai/viz?gist=bbcb4379b36edea0458f597e5eec2f91)
+[📉 Визуализация на stately.ai/viz](https://stately.ai/viz?gist=bbcb4379b36edea0458f597e5eec2f91)
 
 ```js
 import { createMachine, interpret, assign } from 'xstate';
@@ -159,21 +159,21 @@ dogService.send({ type: 'FETCH' });
 
 ## Визуализатор
 
-**[Visualize, simulate, and share your statecharts in XState Viz!](https://stately.ai/viz)**
+**[Визуализируйте, моделируйте и делитесь своими диаграммами состояний в XState Viz!](https://stately.ai/viz)**
 
 <a href="https://stately.ai/viz"><img src="https://i.imgur.com/3pEB0B3.png" alt="XState Visualizer" width="300" /></a>
 
 ## Почему?
 
-Statecharts are a formalism for modeling stateful, reactive systems. This is useful for declaratively describing the _behavior_ of your application, from the individual components to the overall application logic.
+**Диаграммы состояний** - это формализм для моделирования реактивных систем с отслеживанием состояния. Это полезно для декларативного описания _поведения_ вашего приложения, от отдельных компонентов до общей логики приложения.
 
-Read [📽 the slides](http://slides.com/davidkhourshid/finite-state-machines) ([🎥 video](https://www.youtube.com/watch?v=VU1NKX6Qkxc)) or check out these resources for learning about the importance of finite state machines and statecharts in user interfaces:
+Смотрите [📽 слайды](http://slides.com/davidkhourshid/finite-state-machines) ([🎥 видео](https://www.youtube.com/watch?v=VU1NKX6Qkxc)) ли ознакомьтесь с этими ресурсами, чтобы узнать о важности конечных автоматов и диаграмм состояний в пользовательских интерфейсах:
 
 - [Statecharts - A Visual Formalism for Complex Systems](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf) by David Harel
-- [The World of Statecharts](https://statecharts.github.io/) by Erik Mogensen
-- [Pure UI](https://rauchg.com/2015/pure-ui) by Guillermo Rauch
-- [Pure UI Control](https://medium.com/@asolove/pure-ui-control-ac8d1be97a8d) by Adam Solove
-- [Spectrum - Statecharts Community](https://spectrum.chat/statecharts) (For XState specific questions, please use the [GitHub Discussions](https://github.com/statelyai/xstate/discussions))
+- [The World of Statecharts](https://statecharts.github.io/) автор Erik Mogensen
+- [Pure UI](https://rauchg.com/2015/pure-ui) автор Guillermo Rauch
+- [Pure UI Control](https://medium.com/@asolove/pure-ui-control-ac8d1be97a8d) автор Adam Solove
+- [Spectrum - Statecharts Community](https://spectrum.chat/statecharts) (Для вопросов, связанных с XState, используйте [GitHub Discussions](https://github.com/statelyai/xstate/discussions))
 
 ## Конечные автоматы
 
@@ -273,7 +273,7 @@ lightMachine.transition('red.walk', { type: 'PED_TIMER' }).value;
 // }
 ```
 
-**Object notation for hierarchical states:**
+**Объектная нотация для иерархических состояний:**
 
 ```js
 // ...
@@ -405,7 +405,7 @@ const nextState = wordMachine.transition(
 
 ## История состояний
 
-<img src="https://imgur.com/I4QsQsz.png" width="300" alt="Machine with history state" />
+<img src="https://imgur.com/I4QsQsz.png" width="300" alt="Конечный автомат с историей состояний" />
 
 ```js
 import { createMachine } from 'xstate';

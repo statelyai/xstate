@@ -1,30 +1,24 @@
-# Goals
+# Цели
 
-## API Goals
+## Цели API
 
-- Adherence to the [W3C SCXML Specification](https://www.w3.org/TR/scxml/) and David Harel's original statecharts formalism
-- Promote an [Actor model](https://en.wikipedia.org/wiki/Actor_model) event-based architecture
-- Compatibility with all frameworks and platforms
-- Ability to completely serialize machine definitions to JSON (and SCXML)
-- Pure, functional `createMachine(...)` API
-- Zero dependencies
+- Соблюдение [спецификации W3C SCXML](https://www.w3.org/TR/scxml/) и оригинального формализма диаграмм состояний Дэвида Харела.
+- Продвижение [модели акторов](https://ru.wikipedia.org/wiki/%D0%9C%D0%BE%D0%B4%D0%B5%D0%BB%D1%8C_%D0%B0%D0%BA%D1%82%D0%BE%D1%80%D0%BE%D0%B2) на основе архитектуры событий
+- Совместимость со всеми фреймворками и платформами
+- Возможность полностью сериализовать определения автоматов в JSON (и SCXML)
+- Чистое, функциональное `createMachine(...)` API
+- Нулевые зависимости
 
-## Choosing XState
+## Выбирая XState
 
-If you're deciding if you should use XState, [John Yanarella](https://github.com/CodeCatalyst) summed up his reasons really well (links and emphasis mine):
+Если вы решаете, следует ли вам использовать XState, [Джон Янарелла](https://github.com/CodeCatalyst) очень хорошо резюмировал свои доводы.
 
-> When I was making that same choice as to whether to use and advocate for the use of XState where I work, the things that stood out for me were:
->
-> 1. The **committment to understanding the relevant prior art** and informing the implementation based on existing research papers (Harel's [original paper on statecharts](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf)), books (Horrocks' ["Constructing the User Interface with Statecharts"](https://www.amazon.com/Constructing-User-Interface-Statecharts-Horrocks/dp/0201342782/ref=sr_1_3?ie=UTF8&qid=1548690916&sr=8-3&keywords=statecharts)), and standards ([W3C's SCXML](https://www.w3.org/TR/scxml/)).
->
-> Many of the other libraries I reviewed along the way are projects that stop at the point of implementing simple finite state machines. (If that's all you need - and it might be - David's been quick to point out how few lines it takes to just roll your own.) Their reach is shortened, since they don't address the subsequent limitations that can be overcome via a statechart.
->
-> XState stands on the shoulders of giants by embracing [W3C's SCXML spec](https://www.w3.org/TR/scxml/) - it gets the benefit of that working group's research into edge cases.
->
-> 2. It's a **refuge from the "shiny object syndrome"** of embracing the latest flavor-of-the-month "state management library". It faithfully implements a 30+ year old formalism. You end up putting your most important logic into something you can take with you to any UI framework (and potentially to other statechart implementions in other languages). It's a zero-dependency library.
->
-> The front-end development world is the wild west, and it could stand to learn from what other engineering disciplines have known and employed for years.
->
-> 3. It has **passed a critical threshold of maturity** as of version 4, particularly given the introduction of [the visualizer](https://statecharts.github.io/xstate-viz). And that's just the tip of the iceberg of where it could go next, as it (and [its community](https://github.com/statelyai/xstate/discussions)) introduces tooling that takes advantage of how a statechart can be visualized, analyzed, and tested.
->
-> 4. The **community** that is growing around it and the awareness it is bringing to finite state machines and statecharts. If you read back through this gitter history, there's a wealth of links to research papers, other FSM and Statechart implementations, etc. that have been collected by [Erik Mogensen](https://twitter.com/mogsie) over at [statecharts.github.io](https://statecharts.github.io).
+Когда я делал тот же выбор относительно того, использовать ли и защищать ли использование XState там, где я работаю, для меня выделялись следующие вещи:
+
+1. Приверженность пониманию соответствующего уровня техники и информированию о реализации на основе существующих исследовательских работ (оригинальная статья Харела о [диаграммах состояний](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf)), книг («[Конструирование пользовательского интерфейса с диаграммами состояний](https://www.amazon.com/Constructing-User-Interface-Statecharts-Horrocks/dp/0201342782/ref=sr_1_3?ie=UTF8&qid=1548690916&sr=8-3&keywords=statecharts)» Хоррокса) и стандартов ([SCXML W3C](https://www.w3.org/TR/scxml/)).<br /><br />Многие из других библиотек, которые я рассмотрел по ходу дела, представляют собой проекты, которые останавливаются на реализации простых конечных автоматов. Их охват мал, поскольку они не устраняют последующие ограничения, которые можно преодолеть с помощью диаграмм состояний.<br /><br />XState стоит на плечах гигантов, принимая [спецификацию W3C SCXML](https://www.w3.org/TR/scxml/) — он получает выгоду от исследований этой рабочей группы.
+
+2. Это убежище от «синдрома блестящего цацки, связанное с использованием новейшей «библиотеки управления состоянием», получившей название «вкус месяца». Она точно реализует формализм 30-летней давности. В конечном итоге вы помещаете свою наиболее важную логику во что-то, что можете взять с собой в любую структуру пользовательского интерфейса (и, возможно, в другие реализации диаграммы состояний на других языках). Это библиотека с нулевой зависимостью.<br /><br />Мир фронтенд-разработки — это дикий запад, который может освоить то, что другие инженерные дисциплины знали и использовали в течение многих лет.
+
+3. Начиная с версии 4, XState прошел критический порог зрелости, особенно с учетом появления [визуализатора](https://statecharts.github.io/xstate-viz). И это только верхушка айсберга того, куда можно развиваться дальше, поскольку он (и его [сообщество](https://github.com/statelyai/xstate/discussions)) вводят инструменты, которые используют преимущества того, как диаграмма состояний может быть визуализирована, проанализирована и протестирована.
+
+4. **Сообщество**, которое растет вокруг XState, и понимание, которое оно приносит в конечные автоматы и диаграммы состояний. Вы увидите множество ссылок на исследовательские работы, другие реализации FSM и Statechart и т. д., которые были собраны [Эриком Могенсеном](https://twitter.com/mogsie) на [statecharts.github.io](https://statecharts.github.io/).

@@ -1,16 +1,16 @@
-# Actions
+# Действия
 
-Actions are fire-and-forget [effects](./effects.md). They can be declared in three ways:
+**Действия** (_actions_) — это [эффект](./effects.md) запустил и забыл». Их можно объявить тремя способами:
 
-- `entry` actions are executed upon entering a state
-- `exit` actions are executed upon exiting a state
-- transition actions are executed when a transition is taken
+- `entry` действия выполняются при входе в состояние
+- `exit` действия выполняются при выходе из состояния
+- действия перехода выполняются при переходе
 
 To learn more, read about [actions in our introduction to statecharts](./introduction-to-state-machines-and-statecharts/index.md#actions).
 
 ## API
 
-Actions can be added like so:
+Действия могут быть добавлены так:
 
 ```js {10-11,16-19,27-41}
 const triggerMachine = createMachine(
@@ -60,12 +60,12 @@ const triggerMachine = createMachine(
 
 <details>
   <summary>
-    When should I use transition vs. entry/exit actions?
+    Когда мне следует использовать переход (transition), а когда - входные и выходные действия (action)?
   </summary>
 
-It depends! They mean different things:
+Они означают разные вещи:
 
-- An entry/exit action means “execute this action **on any transition that enters/exits this state**”. Use entry/exit actions when the action is only dependent on the state node that it’s in, and not on previous/next state nodes or events.
+- Действие входа или выхода означает «выполнить это действие **при любом переходе, который входит или выходит из этого состояния**». Используйте действия входа или выхода, когда само действие зависит только от узла состояния, в котором оно находится, а не от узлов или событий предыдущего или следующего состояния.
 
 ```js
 // ...
@@ -83,7 +83,7 @@ It depends! They mean different things:
 // ...
 ```
 
-- A transition action means “execute this action **only on this transition**”. Use transition actions when the action is dependent on the event and the state node that it is currently in.
+- Действие перехода означает «выполнить это действие **только на этом переходе**». Используйте действия перехода, когда действие зависит от события и узла состояния, в котором оно находится в данный момент.
 
 ```js
 // ...
@@ -106,7 +106,7 @@ It depends! They mean different things:
 </details>
 
 ::: tip
-Action implementations can be quickly prototyped by specifying the action function directly in the machine config:
+Реализации действий можно быстро прототипировать, указав функцию действия непосредственно в конфигурации автомата:
 
 ```js {4}
 // ...
@@ -117,13 +117,13 @@ TRIGGER: {
 // ...
 ```
 
-Refactoring inline action implementations in the `actions` property of the machine options makes it easier to debug, serialize, test, and accurately visualize actions.
+Реорганизация встроенных реализаций действий в свойстве `actions` параметров автомата упрощает отладку, сериализацию, тестирование и точную визуализацию действий.
 
 :::
 
-## Declarative actions
+## Декларативные действия
 
-The `State` instance returned from `machine.transition(...)` has an `.actions` property, which is an array of action objects for the interpreter to execute:
+Экземпляр `State`, возвращаемый из `machine.transition(...)`, имеет свойство `.actions`, которое представляет собой массив объектов действия для выполнения интерпретатором:
 
 ```js {4-9}
 const activeState = triggerMachine.transition('inactive', { type: 'TRIGGER' });
@@ -137,43 +137,43 @@ console.log(activeState.actions);
 // ]
 ```
 
-Each action object has two properties (and others, that you can specify):
+Каждый объект действия имеет два свойства (и другие, которые вы можете указать):
 
-- `type` - the action type
-- `exec` - the action implementation function
+- `type` — тип действия
+- `exec` — реализация функции действия
 
-The `exec` function takes three arguments:
+Функция `exec` принимает три параметра:
 
-| Argument     | Type         | Description                                                 |
-| ------------ | ------------ | ----------------------------------------------------------- |
-| `context`    | TContext     | The current machine context                                 |
-| `event`      | event object | The event that caused the transition                        |
-| `actionMeta` | meta object  | An object containing meta data about the action (see below) |
+| Параметр     | Тип          | Описание                                 |
+| ------------ | ------------ | ---------------------------------------- |
+| `context`    | TContext     | Текущий контекст автомата                |
+| `event`      | event object | Событие, вызвавшее переход               |
+| `actionMeta` | meta object  | Объект, содержащий метаданные о действии |
 
-The `actionMeta` object includes the following properties:
+Объект `actionMeta` включает следующие свойства:
 
-| Property | Type          | Description                                  |
-| -------- | ------------- | -------------------------------------------- |
-| `action` | action object | The original action object                   |
-| `state`  | State         | The resolved machine state, after transition |
+| Свойство | Тип           | Описание                                      |
+| -------- | ------------- | --------------------------------------------- |
+| `action` | action object | Исходный объект действия                      |
+| `state`  | State         | Разрешенное состояние автомата после перехода |
 
-The interpreter will call the `exec` function with the `currentState.context`, the `event`, and the `state` that the machine transitioned to. You can customize this behavior. Read [executing actions](./interpretation.md#executing-actions) for more details.
+Интерпретатор вызовет функцию `exec` с `currentState.context`, `event` и `state`, в которое перешел автомат. Вы можете настроить это поведение. Подробнее читайте в разделе «[Выполнение действий](./interpretation.md#executing-actions)».
 
-## Action order
+## Порядок действий
 
-When interpreting statecharts, the order of actions should not necessarily matter (that is, they should not be dependent on each other). However, the order of the actions in the `state.actions` array is:
+При интерпретации диаграмм состояний порядок действий не обязательно имеет значение (то есть они не должны зависеть друг от друга). Однако порядок действий в массиве `state.actions`:
 
-1. `exit` actions - all the exit actions of the exited state node(s), from the atomic state node up
-2. transition `actions` - all actions defined on the chosen transition
-3. `entry` actions - all the entry actions of the entered state node(s), from the parent state down
+1. `exit` — все действия выхода узла (ов) вышедшего состояния, от узла атомарного состояния вверх
+2. `actions` — все действия перехода, определенные на выбранном переходе
+3. `entry` — все действия входа узла (ов) введенного состояния, от родительского состояния вниз
 
 ::: warning
-In XState version 4.x, `assign` actions have priority and are executed before any other actions. This behavior will be fixed in version 5, as the `assign` actions will be called in order.
+В XState версии 4.x назначенные действия `assign` имеют приоритет и выполняются перед любыми другими действиями. Это поведение будет исправлено в версии 5, так как действия назначения будут вызываться по порядку.
 :::
 
 ::: danger
 
-All action creators documented here return **action objects**; it is a pure function that only returns an action object and does _not_ imperatively send an event. Do not imperatively call action creators; they will do nothing!
+Все создатели действий, описанные здесь, возвращают **объекты действий**; это чистая функция, которая возвращает только объект действия и не обязательно отправляет событие. Не вызывайте создателей действий самостоятельно — они ничего не сделают!
 
 ```js
 // 🚫 Do not do this!
@@ -191,25 +191,25 @@ entry: send({ type: 'SOME_EVENT' });
 
 :::
 
-## Send action
+## Действие send()
 
-The `send(event)` action creator creates a special “send” action object that tells a service (i.e., [interpreted machine](./interpretation.md)) to send that event to itself. It queues an event to the running service, in the external event queue, which means the event is sent on the next “step” of the interpreter.
+Создатель действия `send(action)` создает специальный объект действия `send`, который сообщает службе (т. е. [интерпретируемому автомату](./interpretation.md)) отправить это событие самому себе. Он ставит событие в очередь работающей службы во внешней очереди событий, что означает, что событие отправляется на следующем «шаге» интерпретатора.
 
-| Argument   | Type                                       | Description                                               |
-| ---------- | ------------------------------------------ | --------------------------------------------------------- |
-| `event`    | string or event object or event expression | The event to send to the specified `options.to` (or self) |
-| `options?` | send options (see below)                   | Options for sending the event.                            |
+| Параметр   | Тип                                    | Описание                                                 |
+| ---------- | -------------------------------------- | -------------------------------------------------------- |
+| `event`    | string, event object, event expression | Событие для отправки в указанные `options.to` (или себе) |
+| `options?` | send options                           | Параметры отправки события                               |
 
-The send `options` argument is an object containing:
+Параметр отправки `options` — это объект, содержащий:
 
-| Property | Type   | Description                                                                                          |
-| -------- | ------ | ---------------------------------------------------------------------------------------------------- |
-| `id?`    | string | The send ID (used for cancellation)                                                                  |
-| `to?`    | string | The target of the event (defaults to self)                                                           |
-| `delay?` | number | The timeout (milliseconds) before sending the event, if the event is not canceled before the timeout |
+| Свойство | Тип    | Описание                                                                                          |
+| -------- | ------ | ------------------------------------------------------------------------------------------------- |
+| `id?`    | string | Идентификатор отправки (используется для отмены)                                                  |
+| `to?`    | string | Цель события (по умолчанию `self`)                                                                |
+| `delay?` | number | Тайм-аут (миллисекунды) перед отправкой события, если событие не отменено до истечения тайм-аута. |
 
 ::: warning
-The `send(...)` function is an **action creator**; it is a pure function that only returns an action object and does _not_ imperatively send an event.
+Функция `send(...)` является создателем действия; это чистая функция, которая возвращает только объект действия и не обязательно отправляет событие.
 :::
 
 ```js
@@ -248,11 +248,11 @@ nextState.actions;
 // The service will proceed to send itself the { type: 'TOGGLE' } event.
 ```
 
-The `event` argument passed to `send(event)` can be:
+Аргумент события `event`, переданный в `send(event)`, может быть:
 
-- A string event, e.g., `send('TOGGLE')`
-- An event object, e.g., `send({ type: 'TOGGLE', payload: ... })`
-- An event expression, which is a function that takes in the current `context` and `event` that triggered the `send()` action, and returns an event object:
+- Строковое событие, например `send('TOGGLE')`
+- Объект события, например `send({type: 'TOGGLE', payload: ...})`
+- Выражение события, которое представляет собой функцию, которая принимает текущий контекст `context` и событие `event`, вызвавшее действие `send()`, и возвращает объект события:
 
 ```js
 import { send } from 'xstate';
@@ -275,9 +275,9 @@ const machine = createMachine({
 });
 ```
 
-### Send targets
+### Цели отправки
 
-An event sent from a `send(...)` action creator can signify that it should be sent to specific targets, such as [invoked services](./communication.md) or [spawned actors](./actors.md). This is done by specifying the `{ to: ... }` property in the `send(...)` action:
+Событие, отправленное создателем действия `send(...)`, может означать, что оно должно быть отправлено определенным целям, таким как [вызванные службы](./communication.md) или [порожденные акторы](./actors.md). Это делается путем указания свойства `{to: ...}` в действии `send (...)`:
 
 ```js
 // ...
@@ -291,7 +291,7 @@ invoke: {
 actions: send({ type: 'SOME_EVENT' }, { to: 'some-service-id' })
 ```
 
-The target in the `to` prop can also be a **target expression**, which is a function that takes in the current `context` and `event` that triggered the action, and returns either a string target or an [actor reference](./actors.md#spawning-actors):
+Цель в свойстве `to` также может быть **целевым выражением** (_target expression_), которое представляет собой функцию, принимающую текущий контекст `context` и событие `event`, вызвавшее действие, и возвращает либо строковую цель, либо [ссылку на актора](./actors.md#spawning-actors):
 
 ```js
 entry: assign({
@@ -313,7 +313,7 @@ entry: assign({
 ```
 
 ::: warning
-Again, the `send(...)` function is an action creator and **will not imperatively send an event.** Instead, it returns an action object that describes where the event will be sent to:
+Опять же, функция `send(...)` является создателем действия и не обязательно отправляет событие. Вместо этого она возвращает объект действия, который описывает, куда будет отправлено событие:
 
 ```js
 console.log(send({ type: 'SOME_EVENT' }, { to: 'child' }));
@@ -329,15 +329,15 @@ console.log(send({ type: 'SOME_EVENT' }, { to: 'child' }));
 
 :::
 
-To send from a child machine to a parent machine, use `sendParent(event)` (takes the same arguments as `send(...)`).
+Чтобы отправить событие с дочернего автомата в родительский, используйте `sendParent(event)` (принимает те же аргументы, что и `send(...)`).
 
-## Raise action
+## Действие raise()
 
-The `raise()` action creator queues an event to the statechart, in the internal event queue. This means the event is sent immediately on the current “step” of the interpreter.
+Создатель действия `raise()` ставит событие в очередь на диаграмму состояний во внутренней очереди событий. Это означает, что событие отправляется немедленно на текущем «шаге» интерпретатора.
 
-| Argument | Type                   | Description         |
-| -------- | ---------------------- | ------------------- |
-| `event`  | string or event object | The event to raise. |
+| Параметр | Тип                  | Описание                        |
+| -------- | -------------------- | ------------------------------- |
+| `event`  | string, event object | Событие, которое нужно поднять. |
 
 ```js
 import { createMachine, actions } from 'xstate';
@@ -373,22 +373,22 @@ const raiseActionDemo = createMachine({
 });
 ```
 
-Click on both `STEP` and `RAISE` events in the [visualizer](https://stately.ai/viz?gist=fd763ff2c161b172f719891e2544d428) to see the difference.
+Кликните оба события `STEP` и `RAISE` в [визуализаторе](https://stately.ai/viz?gist=fd763ff2c161b172f719891e2544d428), чтобы увидеть разницу.
 
-## Respond action <Badge text="4.7+" />
+## Действие `respond()` <Badge text="4.7+" />
 
-The `respond()` action creator creates a [`send()` action](#send-action) that is sent to the service that sent the event which triggered the response.
+`respond()` создает действие [`send()`](#send-action), которое отправляется в службу, отправившую событие.
 
-This uses [SCXML events](./scxml.md#events) internally to get the `origin` from the event and set the `to` of the `send()` action to the `origin`.
+При этом используются внутренние события SCXML, чтобы получить `origin` из события и установить `to` для действия `send()`.
 
-| Argument   | Type                                     | Description                             |
-| ---------- | ---------------------------------------- | --------------------------------------- |
-| `event`    | string, event object, or send expression | The event to send back to the sender    |
-| `options?` | send options object                      | Options to pass into the `send()` event |
+| Параметр   | Тип                                   | Описание                                             |
+| ---------- | ------------------------------------- | ---------------------------------------------------- |
+| `event`    | string, event object, send expression | Событие, которое нужно отправить обратно отправителю |
+| `options?` | send options object                   | Параметры для передачи в событие `send()`            |
 
-### Example using respond action
+### Пример использования действия `respond()`
 
-This demonstrates some parent service (`authClientMachine`) sending a `'CODE'` event to the invoked `authServerMachine`, and the `authServerMachine` responding with a `'TOKEN'` event.
+Пример демонстрирует, как некоторая родительская служба (`authClientMachine`) отправляет событие `'CODE'` в вызываемую `authServerMachine`, а `authServerMachine` отвечает событием `'TOKEN'`.
 
 ```js
 const authServerMachine = createMachine({
@@ -429,17 +429,17 @@ const authClientMachine = createMachine({
 });
 ```
 
-See [📖 Sending Responses](./actors.md#sending-responses) for more details.
+См. [📖 Отправка ответов](./actors.md#sending-responses) для более подробной информации.
 
-## forwardTo action <Badge text="4.7+" />
+## Действие `forwardTo()` <Badge text="4.7+" />
 
-The `forwardTo()` action creator creates a [`send()` action](#send-action) that forwards the most recent event to the specified service via its ID.
+`forwardTo()` создает действие [`send()`](#send-action), которое перенаправляет самое последнее событие указанной службе через его идентификатор.
 
-| Argument | Type                                    | Description                                          |
-| -------- | --------------------------------------- | ---------------------------------------------------- |
-| `target` | string or function that returns service | The target service to send the most recent event to. |
+| Параметр | Тип                                     | Описание                                                           |
+| -------- | --------------------------------------- | ------------------------------------------------------------------ |
+| `target` | string or function that returns service | Целевая служба, в которую нужно отправить самое последнее событие. |
 
-### Example using forwardTo action
+### Пример использования действия `forwardTo()`
 
 ```js
 import { createMachine, forwardTo, interpret } from 'xstate';
@@ -469,15 +469,15 @@ parentService.send({ type: 'ALERT', message: 'hello world' });
 // => alerts "hello world"
 ```
 
-## Escalate action <Badge text="4.7+" />
+## Действие escalate() <Badge text="4.7+" />
 
-The `escalate()` action creator escalates an error by sending it to the parent machine. This is sent as a special error event that is recognized by the machine.
+`escalate()` эскалирует ошибку, отправляя ее в родительский автомат. Ошибка отправляется как специальное событие, которое распознается автоматом.
 
-| Argument    | Type | Description                                      |
-| ----------- | ---- | ------------------------------------------------ |
-| `errorData` | any  | The error data to escalate (send) to the parent. |
+| Параметр    | Тип | Описание                                                         |
+| ----------- | --- | ---------------------------------------------------------------- |
+| `errorData` | any | Данные об ошибке для передачи (отправки) родительскому автомату. |
 
-### Example using escalate action
+### Пример использования действия `escalate()`
 
 ```js
 import { createMachine, actions } from 'xstate';
@@ -508,14 +508,14 @@ const parentMachine = createMachine({
 });
 ```
 
-## Log action
+## Действие log()
 
-The `log()` action creator is a declarative way of logging anything related to the current state `context` and/or `event`. It takes two optional arguments:
+Создатель действия `log()` — это декларативный способ регистрации всего, что связано с текущим контекстом состояния `context` и / или событием `event`. Принимает два необязательных параметра:
 
-| Argument | Type               | Description                                                                                                     |
-| -------- | ------------------ | --------------------------------------------------------------------------------------------------------------- |
-| `expr?`  | string or function | A plain string or a function that takes the `context` and `event` as arguments and returns a value to be logged |
-| `label?` | string             | A string to label the logged message                                                                            |
+| Параметр | Тип                  | Описание                                                                                                          |
+| -------- | -------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `expr?`  | string<br />function | Строка или функция, которая принимает контекст `context` и событие `event` и возвращает значение для логирования. |
+| `label?` | string               | Метка для обозначения залогированного сообщения message                                                           |
 
 ```js {9,14-17,28-34}
 import { createMachine, actions } from 'xstate';
@@ -557,27 +557,27 @@ endState.actions;
 // based on the current state context and event.
 ```
 
-Without any arguments, `log()` is an action that logs an object with `context` and `event` properties, containing the current context and triggering event, respectively.
+Без параметров `log()` — это действие, которое регистрирует объект со свойствами `context` и `event`, содержащими текущий контекст и инициирующее событие.
 
-## Choose action
+## Действие choose()
 
-The `choose()` action creator creates an action that specifies which actions should be executed based on some conditions.
+`choose()` создает действие, которое указывает, какие действия должны быть выполнены на основе определенных условий.
 
-| Argument | Type  | Description                                                                                       |
-| -------- | ----- | ------------------------------------------------------------------------------------------------- |
-| `conds`  | array | An array of objects containing the `actions` to execute when the given `cond` is true (see below) |
+| Параметр | Тип   | Описание                                                                                                       |
+| -------- | ----- | -------------------------------------------------------------------------------------------------------------- |
+| `conds`  | array | Массив объектов, содержащий действия `actions`, которые нужно выполнить, когда заданное условие `cond` истинно |
 
-**Returns:**
+**Возвращает:**
 
-A special `"xstate.choose"` action object that is internally evaluated to conditionally determine which action objects should be executed.
+Специальный объект действия `"xstate.choose"`, который внутренне оценивается, чтобы определить, какие объекты действия должны быть выполнены.
 
-Each "conditional actions" object in `cond` has these properties:
+Каждый объект «условных действий» в `cond` имеет следующие свойства:
 
-- `actions` - the action objects to execute
-- `cond?` - the condition for executing those `actions`
+- `actions` — объекты действия для выполнения
+- `cond?` — условие выполнения этих действий `actions`
 
 ::: warning
-Do not use the `choose()` action creator to execute actions that can otherwise be represented as non-conditional actions executed in certain states/transitions via `entry`, `exit`, or `actions`.
+Не используйте `choose()` для выполнения действий, которые в иначе можно определить как безусловные действия, выполняемые в определенных состояниях или переходах в `entry`, `exit` или `actions`.
 :::
 
 ```js
@@ -624,30 +624,30 @@ const maybeDoThese = choose([
 ]);
 ```
 
-This is analogous to the SCXML `<if>`, `<elseif>`, and `<else>` elements: [www.w3.org/TR/scxml/#if](https://www.w3.org/TR/scxml/#if)
+Это аналогично элементам SCXML `<if>`, `<elseif>` и `<else>`: [www.w3.org/TR/scxml/#if](https://www.w3.org/TR/scxml/#if)
 
-## Pure action
+## Действие pure()
 
-The `pure()` action creator is a pure function (hence the name) that returns the action object(s) to be executed based on the current state `context` and `event` that triggered the action. This allows you to dynamically define which actions should be executed.
+Создатель действия `pure()` — это чистая функция (отсюда и название), которая возвращает объект(ы) действия, который должен быть выполнен, на основе контекста `context` текущего состояния и события `event`, вызвавшего действие. Это позволяет вам динамически определять, какие действия нужно выполнять.
 
-| Argument     | Type     | Description                                                                                                      |
-| ------------ | -------- | ---------------------------------------------------------------------------------------------------------------- |
-| `getActions` | function | A function that returns the action object(s) to be executed based on the given `context` and `event` (see below) |
+| Параметр     | Тип      | Описание                                                                                              |
+| ------------ | -------- | ----------------------------------------------------------------------------------------------------- |
+| `getActions` | function | Функция, которая возвращает объект(ы) действия для выполнения на основе заданного `context` и `event` |
 
-**Returns:**
+**Возвращает:**
 
-A special `"xstate.pure"` action object that will internally evaluate the `get` property to determine the action objects that should be executed.
+Специальный объект действия «`xstate.pure`», который будет внутренне оценивать свойство `get` для определения объектов действия, которые нужно выполнить.
 
-Arguments for `getActions(context, event)`:
+Параметры `getActions(context, event)`:
 
-| Argument  | Type         | Description                                 |
-| --------- | ------------ | ------------------------------------------- |
-| `context` | object       | The current state `context`                 |
-| `event`   | event object | The event object that triggered the actions |
+| Параметр  | Тип          | Описание                                 |
+| --------- | ------------ | ---------------------------------------- |
+| `context` | object       | Текущий `context` состояния              |
+| `event`   | event object | Объект события, инициировавший действия. |
 
-**Returns:**
+**Возвращает:**
 
-A single action object, an array of action objects, or `undefined` that represents no action objects.
+Объект действия, массив объектов действия или `undefined`, если объектов действия нет.
 
 ```js
 import { createMachine, actions } from 'xstate';
@@ -675,18 +675,21 @@ const machine = createMachine({
 });
 ```
 
-## Actions on self-transitions
+## Действия в переходах без смены состояния
 
-A [self-transition](./transitions.md#self-transitions) is when a state transitions to itself, in which it _may_ exit and then reenter itself. Self-transitions can either be an **internal** or **external** transition:
+[Переход без смены состояния](./transitions.md#self-transitions) (_self-transition_) — это когда состояние переходит в само себя, из которого оно _может_ выйти, а затем снова войти в себя. Такие переходы могут быть **внутренними** или **внешними**:
 
-- An internal transition will _neither_ exit nor reenter itself, so the state node's `entry` and `exit` actions will not be executed again.
-  - Internal transitions are indicated with `{ internal: true }`, or by leaving the `target` as `undefined`.
-  - Actions defined on the transition's `actions` property will be executed.
-- An external transition _will_ exit and reenter itself, so the state node's `entry` and `exit` actions will be executed again.
-  - All transitions are external by default. To be explicit, you can indicate them with `{ internal: false }`.
-  - Actions defined on the transition's `actions` property will be executed.
+Внутренний переход _не будет_ завершен и повторно начат, поэтому действия входа `entry` и выхода `exit` узла состояния не будут выполняться заново.
 
-For example, this counter machine has one `'counting'` state with internal and external transitions:
+- Внутренние переходы обозначаются `{internal: true}` или `target` как `undefined`.
+- Действия, определенные в свойстве `actions` перехода, будут выполнены.
+
+Внешний переход завершится и повторно войдет в себя, поэтому действия входа `entry` и выхода `exit` узла состояния будут выполнены снова.
+
+- По умолчанию все переходы внешние. Чтобы задать внешний переход явно, укажите `{internal: false}`.
+- Действия, определенные в свойстве `actions` перехода, будут выполнены.
+
+Например, эта счетная машина имеет одно состояние `'counting'` с внутренними и внешними переходами:
 
 ```js {9-12}
 const counterMachine = createMachine({
