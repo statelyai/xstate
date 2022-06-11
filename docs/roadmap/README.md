@@ -1,5 +1,5 @@
 ---
-reviewed: 2022-04-05
+reviewed: 2022-06-01
 styleGuideVersion: 0
 ---
 
@@ -19,6 +19,8 @@ What we’re working on right now. Features planned for April - June 2022.
 
 ### Editor
 
+- Share by link
+- Autolayout improvements
 - Bug fixes
 - Discover page
 - Billing and Teams, including private machines
@@ -80,4 +82,4 @@ We prioritize features based on your feedback. Please let us know if you have fe
 
 ---
 
-Last updated: April 5, 2022.
+Last updated: June 1, 2022.
