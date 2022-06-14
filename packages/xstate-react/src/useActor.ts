@@ -1,6 +1,6 @@
 import { useRef, useCallback } from 'react';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
-import { ActorRef, EventObject, Sender } from 'xstate';
+import { ActorRef, EmittedFrom, EventObject, Sender } from 'xstate';
 import useConstant from './useConstant';
 import { useSyncExternalStore } from 'use-sync-external-store/shim';
 
@@ -16,10 +16,6 @@ function isDeferredActor<T extends ActorRef<any>>(
   return 'deferred' in actorRef;
 }
 
-type EmittedFromActorRef<
-  TActor extends ActorRef<any, any>
-> = TActor extends ActorRef<any, infer TEmitted> ? TEmitted : never;
-
 function defaultGetSnapshot<TEmitted>(
   actorRef: ActorRef<any, TEmitted>
 ): TEmitted | undefined {
@@ -32,8 +28,8 @@ function defaultGetSnapshot<TEmitted>(
 
 export function useActor<TActor extends ActorRef<any, any>>(
   actorRef: TActor,
-  getSnapshot?: (actor: TActor) => EmittedFromActorRef<TActor>
-): [EmittedFromActorRef<TActor>, TActor['send']];
+  getSnapshot?: (actor: TActor) => EmittedFrom<TActor>
+): [EmittedFrom<TActor>, TActor['send']];
 export function useActor<TEvent extends EventObject, TEmitted>(
   actorRef: ActorRef<TEvent, TEmitted>,
   getSnapshot?: (actor: ActorRef<TEvent, TEmitted>) => TEmitted
