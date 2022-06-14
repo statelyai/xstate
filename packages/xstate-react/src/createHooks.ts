@@ -90,15 +90,17 @@ export function createHooks<TActorRef extends AnyActorRef>(
     actorRef,
     Provider: actorContext.Provider,
     useActor: () => {
-      const actorRef = useContext(actorContext);
-      return useActor(actorRef);
+      // Note: all methods should make use of the `actorRef` from the `actorContext`,
+      // not the initial one passed in.
+      const actorRefFromContext = useContext(actorContext);
+      return useActor(actorRefFromContext);
     },
     useSelector: <T>(
       selector: (snapshot: EmittedFrom<TActorRef>) => T,
       comparator?: (a: T, b: T) => boolean
     ) => {
-      const actorRef = useContext(actorContext);
-      return useSelector(actorRef, selector, comparator);
+      const actorRefFromContext = useContext(actorContext);
+      return useSelector(actorRefFromContext, selector, comparator);
     }
   };
 }
