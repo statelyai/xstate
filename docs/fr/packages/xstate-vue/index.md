@@ -256,7 +256,7 @@ Example: the `'fetchData'` service and `'notifySuccess'` action are both configu
 ```vue
 <template>
   <template v-if="state.value === 'idle'">
-    <button @click="send('FETCH', { query: 'something' })">
+    <button @click="send({ type: 'FETCH', query: 'something' })">
       Search for something
     </button>
   </template>
