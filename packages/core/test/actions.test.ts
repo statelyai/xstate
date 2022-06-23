@@ -485,6 +485,37 @@ describe('entry/exit actions', () => {
         newLightMachine.transition('red', 'NOTHING').actions.map((a) => a.type)
       ).toEqual(['exit_walk', 'exit_red', 'enter_red', 'enter_walk']);
     });
+
+    it('should exit deep descendant during a self-transition', () => {
+      const actual: string[] = [];
+      const m = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              EV: 'a'
+            },
+            initial: 'a1',
+            states: {
+              a1: {
+                initial: 'a11',
+                states: {
+                  a11: {
+                    exit: () => actual.push('a11.exit')
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const service = interpret(m).start();
+
+      service.send('EV');
+
+      expect(actual).toEqual(['a11.exit']);
+    });
   });
 
   describe('parallel states', () => {
