@@ -1,16 +1,17 @@
-import type { EventObject, StateMachine, Typestate } from '@xstate/fsm';
-import {
-  interpret,
-  createMachine,
+import type {
+  EventObject,
   MachineImplementationsFrom,
+  StateMachine,
   StateFrom,
-  ServiceFrom
+  ServiceFrom,
+  Typestate
 } from '@xstate/fsm';
+import { interpret, createMachine } from '@xstate/fsm';
 
 import { createStore, reconcile } from 'solid-js/store';
 import type { Accessor } from 'solid-js';
 
-import { batch, createEffect, on, onCleanup, onMount } from 'solid-js';
+import { $PROXY, batch, createEffect, on, onCleanup, onMount } from 'solid-js';
 import { updateState } from './updateState';
 
 const getServiceState = <
@@ -66,21 +67,40 @@ export function useMachine<TMachine extends StateMachine.AnyMachine>(
 export function useService<TService extends StateMachine.AnyService>(
   service: Accessor<TService>
 ): [StateFrom<TService>, TService['send'], TService] {
-  // Lazy clone object to avoid mutation of services using the same machine
-  const [state, setState] = createStore(
-    JSON.parse(JSON.stringify(getServiceState(service())))
-  );
+  const serviceState = getServiceState(service());
+  const [state, setState] = createStore(serviceState);
 
   const send = (event: TService['send']) => service().send(event);
 
   createEffect(
-    on(service, () => {
+    on(service, (_, prev) => {
+      if (prev) {
+        checkReusedService(getServiceState(service()));
+      }
       const { unsubscribe } = service().subscribe((nextState) => {
-        setState(reconcile<typeof nextState, typeof nextState>(nextState));
+        setState(
+          reconcile<typeof nextState, typeof nextState>(nextState, {
+            merge: false
+          })
+        );
       });
       onCleanup(unsubscribe);
     })
   );
 
   return [state, send, service()] as any;
+}
+
+function checkReusedService(serviceState: StateMachine.State<any, any, any>) {
+  // Check if the machine has already been used as a service
+  // When FSM services re-use a single machine they share a reference to the same
+  // machine state object, causing updates to propagate to all services when used
+  // with Solid's store
+  if ($PROXY in serviceState) {
+    // tslint:disable-next-line:no-console
+    console.warn(
+      'Reusing an FSM machine will cause unexpected state changes in @xstate/solid.\n' +
+        'Use a factory function to reuse a machine: `const newMachine = () => createMachine(...some machine config)`'
+    );
+  }
 }

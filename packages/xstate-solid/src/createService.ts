@@ -73,7 +73,7 @@ type RestParams<
           ) => void)
     ];
 
-export function useInterpret<TMachine extends AnyStateMachine>(
+export function createService<TMachine extends AnyStateMachine>(
   machine: TMachine,
   ...[options = {}, observerOrListener]: RestParams<TMachine>
 ): InterpreterFrom<TMachine> {

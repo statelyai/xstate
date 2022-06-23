@@ -2,7 +2,7 @@
 import { ActorRefFrom, assign, createMachine, interpret, spawn } from 'xstate';
 import { toActorRef } from 'xstate/lib/Actor';
 import { render, fireEvent, screen } from 'solid-testing-library';
-import { useActor, useInterpret, useMachine, useSelector } from '../src';
+import { useActor, createService, useMachine, useSelector } from '../src';
 import { Component, createSignal } from 'solid-js';
 
 describe('useSelector', () => {
@@ -29,7 +29,7 @@ describe('useSelector', () => {
     let rerenders = 0;
 
     const App = () => {
-      const service = useInterpret(machine);
+      const service = createService(machine);
       const count = useSelector(service, (state) => state.context.count);
 
       rerenders++;
@@ -84,7 +84,7 @@ describe('useSelector', () => {
     });
 
     const App = () => {
-      const service = useInterpret(machine);
+      const service = createService(machine);
       const name = useSelector(
         service,
         (state) => state.context.name,

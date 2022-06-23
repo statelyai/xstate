@@ -1,7 +1,7 @@
 /* @jsxImportSource solid-js */
 import { createMachine } from 'xstate';
 import { render, fireEvent, screen } from 'solid-testing-library';
-import { useInterpret } from '../src';
+import { createService } from '../src';
 import { createEffect, onMount } from 'solid-js';
 
 describe('useInterpret', () => {
@@ -19,7 +19,7 @@ describe('useInterpret', () => {
     });
 
     const App = () => {
-      const service = useInterpret(machine);
+      const service = createService(machine);
 
       onMount(() => {
         service.subscribe((state) => {
@@ -48,7 +48,47 @@ describe('useInterpret', () => {
     });
 
     const App = () => {
-      const service = useInterpret(machine);
+      const service = createService(machine);
+
+      createEffect(() => {
+        service.subscribe((state) => {
+          if (state.matches('active')) {
+            done();
+          }
+        });
+      });
+
+      return (
+        <button
+          data-testid="button"
+          onclick={() => {
+            service.send('ACTIVATE');
+          }}
+        />
+      );
+    };
+
+    render(() => <App />);
+    const button = screen.getByTestId('button');
+
+    fireEvent.click(button);
+  });
+
+  it('service should work with from SolidJS utility', (done) => {
+    const machine = createMachine({
+      initial: 'inactive',
+      states: {
+        inactive: {
+          on: {
+            ACTIVATE: 'active'
+          }
+        },
+        active: {}
+      }
+    });
+
+    const App = () => {
+      const service = createService(machine);
 
       createEffect(() => {
         service.subscribe((state) => {

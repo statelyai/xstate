@@ -5,7 +5,7 @@ import { render, fireEvent, screen } from 'solid-testing-library';
 import { Component, createSignal } from 'solid-js';
 
 describe('useService hook for fsm', () => {
-  const counterMachine = createMachine<{ count: number }>({
+  const counterMachine = () => createMachine<{ count: number }>({
     id: 'counter',
     initial: 'active',
     context: { count: 0 },
@@ -20,7 +20,7 @@ describe('useService hook for fsm', () => {
   });
 
   it('should share a single service instance', () => {
-    const counterService = interpret(counterMachine).start();
+    const counterService = interpret(counterMachine()).start();
 
     const Counter = () => {
       const [state] = useService(() => counterService);
@@ -51,11 +51,11 @@ describe('useService hook for fsm', () => {
   });
 
   it('service should be updated when it changes', () => {
-    const counterService1 = interpret(counterMachine).start();
-    const counterService2 = interpret(counterMachine).start();
+    const counterService1 = interpret(counterMachine()).start();
+    const counterService2 = interpret(counterMachine()).start();
 
     const Counter = (props) => {
-      const [state, send] = useService<{ count: number }, any>(
+      const [state, send] = useService(
         props.counterRef
       );
 
@@ -103,7 +103,7 @@ describe('useService hook for fsm', () => {
     };
 
     const Counter = () => {
-      const [, send, service] = useMachine(counterMachine);
+      const [, send, service] = useMachine(counterMachine());
 
       return (
         <div>

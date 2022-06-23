@@ -9,7 +9,7 @@ import type {
 import type { SetStoreFunction } from 'solid-js/store';
 import { createStore } from 'solid-js/store';
 import type { UseMachineOptions, Prop } from './types';
-import { useInterpret } from './useInterpret';
+import { createService } from './createService';
 import { batch, onCleanup, onMount } from 'solid-js';
 import { updateState } from './updateState';
 
@@ -47,7 +47,7 @@ export function useMachine<TMachine extends AnyStateMachine>(
   machine: TMachine,
   ...[options = {}]: RestParams<TMachine>
 ): UseMachineReturn<TMachine> {
-  const service = useInterpret(machine, options);
+  const service = createService(machine, options);
 
   const [state, setState] = createStore<StateFrom<TMachine>>({
     ...service.state,
