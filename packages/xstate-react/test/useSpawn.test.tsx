@@ -1,6 +1,6 @@
 import { fireEvent, screen } from '@testing-library/react';
 import * as React from 'react';
-import { fromReducer } from 'xstate/lib/behaviors';
+import { fromReducer, fromPromise } from 'xstate/lib/behaviors';
 import { useActor, useSpawn } from '../src';
 import { describeEachReactMode } from './utils';
 
@@ -37,5 +37,27 @@ describeEachReactMode('useSpawn (%s)', ({ render }) => {
     fireEvent.click(button);
 
     expect(button.textContent).toEqual('1');
+  });
+});
+
+describeEachReactMode('useSpawn (%s) with options', ({ render }) => {
+  it('should be able to spawn an actor from a behavior with options', () => {
+    const bahavior = fromPromise(() => Promise.resolve(1));
+
+    const Test = () => {
+      const actor = useSpawn(bahavior, {
+        id: 'optionID'
+      });
+
+      return (
+        <>
+          <div data-testid="actor-id">{actor.id}</div>
+        </>
+      );
+    };
+
+    render(<Test />);
+    const tag = screen.getByTestId('actor-id');
+    expect(tag.textContent).toEqual('optionID');
   });
 });

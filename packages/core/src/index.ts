@@ -12,7 +12,7 @@ import { matchState } from './match';
 import { createSchema, t } from './schema';
 import { State } from './State';
 import { StateNode } from './StateNode';
-export { spawnBehavior } from './behaviors';
+export { spawnBehavior, SpawnBehaviorOptions } from './behaviors';
 export { XStateDevInterface } from './devTools';
 export * from './typegenTypes';
 export * from './types';

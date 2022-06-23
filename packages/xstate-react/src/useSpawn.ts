@@ -1,5 +1,10 @@
-import { ActorRef, Behavior, EventObject } from 'xstate';
-import { spawnBehavior } from 'xstate';
+import {
+  ActorRef,
+  Behavior,
+  EventObject,
+  spawnBehavior,
+  SpawnBehaviorOptions
+} from 'xstate';
 import useConstant from './useConstant';
 
 /**
@@ -10,10 +15,11 @@ import useConstant from './useConstant';
  * @returns An ActorRef with the specified `behavior`
  */
 export function useSpawn<TState, TEvent extends EventObject>(
-  behavior: Behavior<TEvent, TState>
+  behavior: Behavior<TEvent, TState>,
+  options?: SpawnBehaviorOptions
 ): ActorRef<TEvent, TState> {
   const actorRef = useConstant(() => {
-    return spawnBehavior(behavior);
+    return spawnBehavior(behavior, options);
   });
 
   return actorRef;

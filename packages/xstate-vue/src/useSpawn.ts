@@ -1,4 +1,10 @@
-import { ActorRef, Behavior, EventObject, spawnBehavior } from 'xstate';
+import {
+  ActorRef,
+  Behavior,
+  EventObject,
+  spawnBehavior,
+  SpawnBehaviorOptions
+} from 'xstate';
 
 /**
  * Vue composable that spawns an `ActorRef` with the specified `behavior`.
@@ -8,9 +14,9 @@ import { ActorRef, Behavior, EventObject, spawnBehavior } from 'xstate';
  * @returns An ActorRef with the specified `behavior`
  */
 export function useSpawn<TState, TEvent extends EventObject>(
-  behavior: Behavior<TEvent, TState>
+  behavior: Behavior<TEvent, TState>,
+  options?: SpawnBehaviorOptions
 ): ActorRef<TEvent, TState> {
-  const actorRef = spawnBehavior(behavior);
-
+  const actorRef = spawnBehavior(behavior, options);
   return actorRef;
 }

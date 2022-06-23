@@ -100,7 +100,7 @@ export function fromPromise<T>(
   };
 }
 
-interface SpawnBehaviorOptions {
+export interface SpawnBehaviorOptions {
   id?: string;
   parent?: ActorRef<any>;
 }

@@ -20,7 +20,7 @@ const behavior = fromReducer(reducer, 0);
 
 export default defineComponent({
   setup() {
-    const actorRef = useSpawn(behavior);
+    const actorRef = useSpawn(behavior, { id: "countActor" });
     const { state: count, send } = useActor(actorRef);
 
     return { count, send };
