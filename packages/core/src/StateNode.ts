@@ -1007,7 +1007,7 @@ class StateNode<
       : prevConfig;
 
     for (const sn of resolvedConfig) {
-      if (!has(prevConfig, sn)) {
+      if (!has(prevConfig, sn) || has(transition.entrySet, sn.parent)) {
         transition.entrySet.push(sn);
       }
     }
@@ -1608,7 +1608,7 @@ class StateNode<
     return this.resolveTransition(
       {
         configuration,
-        entrySet: configuration,
+        entrySet: [...configuration],
         exitSet: [],
         transitions: [],
         source: undefined,

@@ -520,6 +520,51 @@ describe('entry/exit actions', () => {
           .actions.map((a) => a.type)
       ).toEqual(['enter_p1', 'enter_inner']);
     });
+
+    it('should reenter parallel region when a parallel state gets reentered while targeting another region', () => {
+      const actions: string[] = [];
+
+      const machine = createMachine({
+        initial: 'ready',
+        states: {
+          ready: {
+            type: 'parallel',
+            on: {
+              FOO: '#cameraOff'
+            },
+            states: {
+              devicesInfo: {
+                entry: () => actions.push('entry devicesInfo'),
+                exit: () => actions.push('exit devicesInfo')
+              },
+              camera: {
+                entry: () => actions.push('entry camera'),
+                exit: () => actions.push('exit camera'),
+                initial: 'on',
+                states: {
+                  on: {},
+                  off: {
+                    id: 'cameraOff'
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const service = interpret(machine).start();
+
+      actions.length = 0;
+      service.send('FOO');
+
+      expect(actions).toEqual([
+        'exit camera',
+        'exit devicesInfo',
+        'entry devicesInfo',
+        'entry camera'
+      ]);
+    });
   });
 
   describe('targetless transitions', () => {
