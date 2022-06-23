@@ -988,10 +988,7 @@ class StateNode<
       // it's in a different part of the tree so no states will be reentered for such an external transition
       return [];
     }
-    // root is never exited, so it also can't be reentered
-    if (marker.parent) {
-      nodes.push(this);
-    }
+    nodes.push(this);
     return nodes;
   }
 
