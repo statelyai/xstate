@@ -383,6 +383,34 @@ describe('entry/exit actions', () => {
       expect(stateA.actions.map((action) => action.type)).toEqual(['D2 Exit']);
     });
 
+    it("should reenter targeted ancestor (as it's a descendant of the transition domain)", () => {
+      const actual: string[] = [];
+      const machine = createMachine({
+        initial: 'loaded',
+        states: {
+          loaded: {
+            id: 'loaded',
+            entry: () => actual.push('loaded entry'),
+            initial: 'idle',
+            states: {
+              idle: {
+                on: {
+                  UPDATE: '#loaded'
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const service = interpret(machine).start();
+
+      actual.length = 0;
+      service.send('UPDATE');
+
+      expect(actual).toEqual(['loaded entry']);
+    });
+
     describe('should ignore same-parent state actions (sparse)', () => {
       const fooBar = {
         initial: 'foo',

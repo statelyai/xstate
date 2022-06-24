@@ -956,8 +956,8 @@ class StateNode<
     const reentryNodes: StateNode<any, any, any, any, any>[] = [];
 
     if (!isInternal) {
-      allNextStateNodes.forEach((n1) => {
-        reentryNodes.push(...this.getExternalReentryNodes(n1));
+      nextStateNodes.forEach((targetNode) => {
+        reentryNodes.push(...this.getExternalReentryNodes(targetNode));
       });
     }
 
@@ -972,23 +972,24 @@ class StateNode<
   }
 
   private getExternalReentryNodes(
-    childStateNode: StateNode<TContext, any, TEvent, any, any, any>
+    targetNode: StateNode<TContext, any, TEvent, any, any, any>
   ): Array<StateNode<TContext, any, TEvent, any, any, any>> {
     const nodes: Array<StateNode<TContext, any, TEvent, any, any, any>> = [];
-    let marker:
-      | StateNode<TContext, any, TEvent, any, any, any>
-      | undefined = childStateNode;
+    let [marker, possibleAncestor]: [
+      StateNode<TContext, any, TEvent, any, any, any> | undefined,
+      StateNode<TContext, any, TEvent, any, any, any>
+    ] = targetNode.order > this.order ? [targetNode, this] : [this, targetNode];
 
-    while (marker && marker !== this) {
+    while (marker && marker !== possibleAncestor) {
       nodes.push(marker);
       marker = marker.parent;
     }
-    if (marker !== this) {
-      // we never got to `this`, therefore the `childStateNode` "escapes" it
+    if (marker !== possibleAncestor) {
+      // we never got to `possibleAncestor`, therefore the initial `marker` "escapes" it
       // it's in a different part of the tree so no states will be reentered for such an external transition
       return [];
     }
-    nodes.push(this);
+    nodes.push(possibleAncestor);
     return nodes;
   }
 
