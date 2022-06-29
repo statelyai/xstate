@@ -392,6 +392,17 @@ export type DelayedTransitions<TContext, TEvent extends EventObject> =
       }
     >;
 
+export type PeriodicEvents<TContext, TEvent extends EventObject> =
+  | Record<
+      string | number,
+      string | SingleOrArray<TransitionConfig<TContext, TEvent>>
+    >
+  | Array<
+      TransitionConfig<TContext, TEvent> & {
+        period: number | string | Expr<TContext, TEvent, number>;
+      }
+    >;
+
 export type StateTypes =
   | 'atomic'
   | 'compound'
@@ -610,6 +621,12 @@ export interface StateNodeConfig<
   after?: DelayedTransitions<TContext, TEvent>;
 
   /**
+   * The mapping (or array) of periods (in milliseconds) to their potential transition(s).
+   * The periodic transitions are taken every specified period in an interpreter.
+   */
+  every?: PeriodicEvents<TContext, TEvent>;
+
+  /**
    * An eventless transition that is always taken when this state node is active.
    * Equivalent to a transition specified as an empty `''`' string in the `on` property.
    */
@@ -754,6 +771,11 @@ export type DelayFunctionMap<TContext, TEvent extends EventObject> = Record<
   DelayConfig<TContext, TEvent>
 >;
 
+export type PeriodFunctionMap<TContext, TEvent extends EventObject> = Record<
+  string,
+  PeriodConfig<TContext, TEvent>
+>;
+
 export type ServiceConfig<
   TContext,
   TEvent extends EventObject = AnyEventObject
@@ -762,6 +784,10 @@ export type ServiceConfig<
 export type DelayConfig<TContext, TEvent extends EventObject> =
   | number
   | DelayExpr<TContext, TEvent>;
+
+export type PeriodConfig<TContext, TEvent extends EventObject> =
+  | number
+  | PeriodExpr<TContext, TEvent>;
 
 type MachineOptionsActions<
   TContext,
@@ -797,6 +823,21 @@ type MachineOptionsDelays<
   [K in keyof TEventsCausingDelays]?: DelayConfig<
     TContext,
     Cast<Prop<TIndexedEvents, TEventsCausingDelays[K]>, EventObject>
+  >;
+};
+
+type MachineOptionsPeriods<
+  TContext,
+  TResolvedTypesMeta,
+  TEventsCausingIntervals = Prop<
+    Prop<TResolvedTypesMeta, 'resolved'>,
+    'eventsCausingIntervals'
+  >,
+  TIndexedEvents = Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'indexedEvents'>
+> = {
+  [K in keyof TEventsCausingIntervals]?: DelayConfig<
+    TContext,
+    Cast<Prop<TIndexedEvents, TEventsCausingIntervals[K]>, EventObject>
   >;
 };
 
@@ -881,6 +922,19 @@ type GenerateDelaysConfigPart<
   delays?: MachineOptionsDelays<TContext, TResolvedTypesMeta>;
 };
 
+type GeneratePeriodsConfigPart<
+  TContext,
+  TResolvedTypesMeta,
+  TRequireMissingImplementations,
+  TMissingImplementations
+> = MaybeMakeMissingImplementationsRequired<
+  'periods',
+  Prop<TMissingImplementations, 'periods'>,
+  TRequireMissingImplementations
+> & {
+  periods?: MachineOptionsPeriods<TContext, TResolvedTypesMeta>;
+};
+
 type GenerateGuardsConfigPart<
   TContext,
   TResolvedTypesMeta,
@@ -923,6 +977,12 @@ export type InternalMachineOptions<
   TMissingImplementations
 > &
   GenerateDelaysConfigPart<
+    TContext,
+    TResolvedTypesMeta,
+    TRequireMissingImplementations,
+    TMissingImplementations
+  > &
+  GeneratePeriodsConfigPart<
     TContext,
     TResolvedTypesMeta,
     TRequireMissingImplementations,
@@ -1152,6 +1212,7 @@ export enum ActionTypes {
   NullEvent = '',
   Assign = 'xstate.assign',
   After = 'xstate.after',
+  Every = 'xstate.every',
   DoneState = 'done.state',
   DoneInvoke = 'done.invoke',
   Log = 'xstate.log',
@@ -1219,6 +1280,12 @@ export interface InvokeActionObject<TContext, TEvent extends EventObject>
 }
 
 export type DelayExpr<TContext, TEvent extends EventObject> = ExprWithMeta<
+  TContext,
+  TEvent,
+  number
+>;
+
+export type PeriodExpr<TContext, TEvent extends EventObject> = ExprWithMeta<
   TContext,
   TEvent,
   number
@@ -1308,6 +1375,7 @@ export enum SpecialTargets {
 export interface SendActionOptions<TContext, TEvent extends EventObject> {
   id?: string | number;
   delay?: number | string | DelayExpr<TContext, TEvent>;
+  period?: number | string | PeriodExpr<TContext, TEvent>;
   to?: string | ExprWithMeta<TContext, TEvent, string | number | ActorRef<any>>;
 }
 
@@ -1408,6 +1476,11 @@ export interface DelayedTransitionDefinition<
   TEvent extends EventObject
 > extends TransitionDefinition<TContext, TEvent> {
   delay: number | string | DelayExpr<TContext, TEvent>;
+}
+
+export interface PeriodicEventDefinition<TContext, TEvent extends EventObject>
+  extends TransitionDefinition<TContext, TEvent> {
+  period: number | string | PeriodExpr<TContext, TEvent>;
 }
 
 export interface Edge<

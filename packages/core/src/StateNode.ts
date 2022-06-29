@@ -39,6 +39,7 @@ import {
   StateNodeDefinition,
   TransitionDefinition,
   DelayedTransitionDefinition,
+  PeriodicEventDefinition,
   ActivityDefinition,
   StateNodeConfig,
   StateSchema,
@@ -63,6 +64,7 @@ import {
   Typestate,
   TransitionDefinitionMap,
   DelayExpr,
+  PeriodExpr,
   InvokeSourceDefinition,
   MachineSchema,
   ActorRef,
@@ -81,6 +83,7 @@ import {
   send,
   cancel,
   after,
+  every,
   raise,
   done,
   doneInvoke,
@@ -118,7 +121,8 @@ const createDefaultOptions = <TContext>(): MachineOptions<TContext, any> => ({
   guards: {},
   services: {},
   activities: {},
-  delays: {}
+  delays: {},
+  periods: {}
 });
 
 const validateArrayifiedTransitions = <TContext>(
@@ -284,6 +288,9 @@ class StateNode<
     },
     delayedTransitions: undefined as
       | Array<DelayedTransitionDefinition<TContext, TEvent>>
+      | undefined,
+    periodicEvents: undefined as
+      | Array<PeriodicEventDefinition<TContext, TEvent>>
       | undefined
   };
 
@@ -492,7 +499,14 @@ class StateNode<
     TServiceMap,
     TResolvedTypesMeta
   > {
-    const { actions, activities, guards, services, delays } = this.options;
+    const {
+      actions,
+      activities,
+      guards,
+      services,
+      delays,
+      periods
+    } = this.options;
 
     return new StateNode(
       this.config,
@@ -501,7 +515,8 @@ class StateNode<
         activities: { ...activities, ...(options as any).activities },
         guards: { ...guards, ...options.guards },
         services: { ...services, ...options.services },
-        delays: { ...delays, ...options.delays }
+        delays: { ...delays, ...options.delays },
+        periods: { ...periods, ...options.periods }
       },
       context ?? this.context
     );
@@ -581,6 +596,14 @@ class StateNode<
     );
   }
 
+  public get every(): Array<PeriodicEventDefinition<TContext, TEvent>> {
+    return (
+      this.__cache.periodicEvents ||
+      ((this.__cache.periodicEvents = this.getPeriodicEvents()),
+      this.__cache.periodicEvents)
+    );
+  }
+
   /**
    * All the transitions that can be taken from this state node.
    */
@@ -610,6 +633,26 @@ class StateNode<
     return candidates;
   }
 
+  private mutateEntryExitWithTimedEvent(
+    timerType: 'delay' | 'period',
+    time:
+      | string
+      | number
+      | DelayExpr<TContext, TEvent>
+      | PeriodExpr<TContext, TEvent>,
+    fn: (delayRef: number | string, id?: string) => string,
+    i: number
+  ) {
+    const delayRef = isFunction(time) ? `${this.id}:${timerType}[${i}]` : time;
+
+    const eventType = fn(delayRef, this.id);
+
+    this.onEntry.push(send(eventType, { [timerType]: time }));
+    this.onExit.push(cancel(eventType));
+
+    return eventType;
+  }
+
   /**
    * All delayed transitions from the config.
    */
@@ -622,23 +665,14 @@ class StateNode<
       return [];
     }
 
-    const mutateEntryExit = (
-      delay: string | number | DelayExpr<TContext, TEvent>,
-      i: number
-    ) => {
-      const delayRef = isFunction(delay) ? `${this.id}:delay[${i}]` : delay;
-
-      const eventType = after(delayRef, this.id);
-
-      this.onEntry.push(send(eventType, { delay }));
-      this.onExit.push(cancel(eventType));
-
-      return eventType;
-    };
-
     const delayedTransitions = isArray(afterConfig)
       ? afterConfig.map((transition, i) => {
-          const eventType = mutateEntryExit(transition.delay, i);
+          const eventType = this.mutateEntryExitWithTimedEvent(
+            'delay',
+            transition.delay,
+            after,
+            i
+          );
           return { ...transition, event: eventType };
         })
       : flatten(
@@ -650,7 +684,12 @@ class StateNode<
 
             const resolvedDelay = !isNaN(+delay) ? +delay : delay;
 
-            const eventType = mutateEntryExit(resolvedDelay, i);
+            const eventType = this.mutateEntryExitWithTimedEvent(
+              'delay',
+              resolvedDelay,
+              after,
+              i
+            );
 
             return toArray(resolvedTransition).map((transition) => ({
               ...transition,
@@ -668,6 +707,58 @@ class StateNode<
         delay
       };
     });
+  }
+
+  /**
+   * All periodic transitions from the config.
+   */
+  private getPeriodicEvents(): Array<
+    PeriodicEventDefinition<TContext, TEvent>
+  > {
+    const everyConfig = this.config.every;
+
+    if (!everyConfig) {
+      return [];
+    }
+
+    const periodicEvents = isArray(everyConfig)
+      ? everyConfig.map((transition, i) => {
+          const eventType = this.mutateEntryExitWithTimedEvent(
+            'period',
+            transition.period,
+            every,
+            i
+          );
+          return { ...transition, event: eventType };
+        })
+      : flatten(
+          Object.keys(everyConfig).map((period, i) => {
+            const configTransition = everyConfig[period];
+            const resolvedTransition = isString(configTransition)
+              ? { target: configTransition }
+              : configTransition;
+
+            const resolvedPeriod = !isNaN(+period) ? +period : period;
+
+            const eventType = this.mutateEntryExitWithTimedEvent(
+              'period',
+              resolvedPeriod,
+              every,
+              i
+            );
+
+            return toArray(resolvedTransition).map((transition) => ({
+              ...transition,
+              event: eventType,
+              period: resolvedPeriod
+            }));
+          })
+        );
+
+    return periodicEvents.map((periodicEvent) => ({
+      ...this.formatTransition(periodicEvent),
+      period: periodicEvent.period
+    }));
   }
 
   /**
@@ -1580,7 +1671,7 @@ class StateNode<
     } else if (this.initial !== undefined) {
       if (!this.states[this.initial]) {
         throw new Error(
-          `Initial state '${this.initial}' not found on '${this.key}'`
+          `Initial state '${String(this.initial)}' not found on '${this.key}'`
         );
       }
 
@@ -2042,6 +2133,7 @@ class StateNode<
     );
 
     const delayedTransitions = this.after;
+    const periodicEvents = this.every;
 
     const formattedTransitions = flatten(
       [...doneConfig, ...invokeConfig, ...onConfig, ...eventlessConfig].map(
@@ -2058,6 +2150,10 @@ class StateNode<
 
     for (const delayedTransition of delayedTransitions) {
       formattedTransitions.push(delayedTransition as any);
+    }
+
+    for (const periodicEvent of periodicEvents) {
+      formattedTransitions.push(periodicEvent as any);
     }
 
     return formattedTransitions;

@@ -96,6 +96,8 @@ export type Listener = () => void;
 export interface Clock {
   setTimeout(fn: (...args: any[]) => void, timeout: number): any;
   clearTimeout(id: any): void;
+  setInterval(fn: (...args: any[]) => void, interval: number): any;
+  clearInterval(id: any): void;
 }
 
 interface SpawnOptions {
@@ -139,6 +141,12 @@ export class Interpreter<
       },
       clearTimeout: (id) => {
         return clearTimeout(id);
+      },
+      setInterval: (fn, ms) => {
+        return setInterval(fn, ms);
+      },
+      clearInterval: (id) => {
+        return clearInterval(id);
       }
     } as Clock,
     logger: console.log.bind(console),
@@ -169,6 +177,7 @@ export class Interpreter<
 
   private scheduler: Scheduler;
   private delayedEventsMap: Record<string, unknown> = {};
+  private periodicEventsMap: Record<string, unknown> = {};
   private listeners: Set<
     StateListener<
       TContext,
@@ -598,6 +607,11 @@ export class Interpreter<
       this.clock.clearTimeout(this.delayedEventsMap[key]);
     }
 
+    // Cancel all periodic events
+    for (const key of Object.keys(this.periodicEventsMap)) {
+      this.clock.clearInterval(this.periodicEventsMap[key]);
+    }
+
     this.scheduler.clear();
     this.scheduler = new Scheduler({
       deferEvents: this.options.deferEvents
@@ -829,10 +843,29 @@ export class Interpreter<
       }
     }, sendAction.delay as number);
   }
-  private cancel(sendId: string | number): void {
-    this.clock.clearTimeout(this.delayedEventsMap[sendId]);
-    delete this.delayedEventsMap[sendId];
+
+  private repeatEvery(sendAction: SendActionObject<TContext, TEvent>): void {
+    this.periodicEventsMap[sendAction.id] = this.clock.setInterval(() => {
+      if (sendAction.to) {
+        this.sendTo(sendAction._event, sendAction.to);
+      } else {
+        this.send(
+          (sendAction as SendActionObject<TContext, TEvent, TEvent>)._event
+        );
+      }
+    }, sendAction.period as number);
   }
+
+  private cancel(sendId: string | number): void {
+    if (this.delayedEventsMap[sendId]) {
+      this.clock.clearTimeout(this.delayedEventsMap[sendId]);
+      delete this.delayedEventsMap[sendId];
+    } else if (this.periodicEventsMap[sendId]) {
+      this.clock.clearInterval(this.periodicEventsMap[sendId]);
+      delete this.periodicEventsMap[sendId];
+    }
+  }
+
   private exec(
     action: ActionObject<TContext, TEvent>,
     state: State<
@@ -878,6 +911,9 @@ export class Interpreter<
 
         if (typeof sendAction.delay === 'number') {
           this.defer(sendAction);
+          return;
+        } else if (typeof sendAction.period === 'number') {
+          this.repeatEvery(sendAction);
           return;
         } else {
           if (sendAction.to) {

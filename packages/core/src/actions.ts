@@ -29,6 +29,7 @@ import {
   LogAction,
   LogActionObject,
   DelayFunctionMap,
+  PeriodFunctionMap,
   SCXML,
   ExprWithMeta,
   ChooseCondition,
@@ -200,6 +201,7 @@ export function send<
     type: actionTypes.send,
     event: isFunction(event) ? event : toEventObject<TSentEvent>(event),
     delay: options ? options.delay : undefined,
+    period: options ? options.period : undefined,
     id:
       options && options.id !== undefined
         ? options.id
@@ -217,7 +219,8 @@ export function resolveSend<
   action: SendAction<TContext, TEvent, TSentEvent>,
   ctx: TContext,
   _event: SCXML.Event<TEvent>,
-  delaysMap?: DelayFunctionMap<TContext, TEvent>
+  delaysMap?: DelayFunctionMap<TContext, TEvent>,
+  periodsMap?: PeriodFunctionMap<TContext, TEvent>
 ): SendActionObject<TContext, TEvent, TSentEvent> {
   const meta = {
     _event
@@ -230,17 +233,15 @@ export function resolveSend<
       : action.event
   );
 
-  let resolvedDelay: number | undefined;
-  if (isString(action.delay)) {
-    const configDelay = delaysMap && delaysMap[action.delay];
-    resolvedDelay = isFunction(configDelay)
-      ? configDelay(ctx, _event.data, meta)
-      : configDelay;
-  } else {
-    resolvedDelay = isFunction(action.delay)
-      ? action.delay(ctx, _event.data, meta)
-      : action.delay;
-  }
+  const getResolvedTime = (actionMap, actionProperty) => {
+    if (isString(actionProperty)) {
+      const config = actionMap && actionMap[actionProperty];
+      return isFunction(config) ? config(ctx, _event.data, meta) : config;
+    }
+    return isFunction(actionProperty)
+      ? actionProperty(ctx, _event.data, meta)
+      : actionProperty;
+  };
 
   const resolvedTarget = isFunction(action.to)
     ? action.to(ctx, _event.data, meta)
@@ -251,7 +252,8 @@ export function resolveSend<
     to: resolvedTarget,
     _event: resolvedEvent,
     event: resolvedEvent.data,
-    delay: resolvedDelay
+    delay: getResolvedTime(delaysMap, action.delay) || undefined,
+    period: getResolvedTime(periodsMap, action.period) || undefined
   };
 }
 
@@ -491,6 +493,18 @@ export function after(delayRef: number | string, id?: string) {
 }
 
 /**
+ * Returns an event type that represents an implicit event that
+ * is sent every specified periodic time `period`.
+ *
+ * @param period The period to retrigger the event in milliseconds
+ * @param id The state node ID where this event is handled
+ */
+export function every(period: number | string, id?: string) {
+  const idSuffix = id ? `#${id}` : '';
+  return `${ActionTypes.Every}(${period})${idSuffix}`;
+}
+
+/**
  * Returns an event that represents that a final state node
  * has been reached in the parent state node.
  *
@@ -642,7 +656,8 @@ export function resolveActions<TContext, TEvent extends EventObject>(
               actionObject as SendAction<TContext, TEvent, AnyEventObject>,
               updatedContext,
               _event,
-              machine.options.delays as any
+              machine.options.delays as any,
+              machine.options.periods as any
             ) as ActionObject<TContext, TEvent>; // TODO: fix ActionTypes.Init
 
             if (!IS_PRODUCTION) {

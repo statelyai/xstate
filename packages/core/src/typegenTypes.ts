@@ -72,6 +72,14 @@ export interface TypegenMeta extends TypegenEnabled {
   eventsCausingDelays: Record<string, string>;
   /**
    * Keeps track of which events lead to which
+   * intervals.
+   *
+   * Key: 'EVENT_NAME'
+   * Value: 'intervalName' | 'otherIntervalName'
+   */
+  eventsCausingIntervals: Record<string, string>;
+  /**
+   * Keeps track of which events lead to which
    * guards.
    *
    * Key: 'EVENT_NAME'
@@ -168,6 +176,7 @@ type MergeWithInternalEvents<TIndexedEvents, TInternalEvents> = TIndexedEvents &
 type AllowAllEvents = {
   eventsCausingActions: Record<string, string>;
   eventsCausingDelays: Record<string, string>;
+  eventsCausingIntervals: Record<string, string>;
   eventsCausingGuards: Record<string, string>;
   eventsCausingServices: Record<string, string>;
 };

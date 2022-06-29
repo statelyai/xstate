@@ -667,6 +667,42 @@ describe('entry/exit actions', () => {
         done();
       }, 50);
     });
+    it("shouldn't exit (and reenter) state on targetless periodic transition", (done) => {
+      const actual: string[] = [];
+
+      const machine = Machine({
+        initial: 'one',
+        states: {
+          one: {
+            entry: () => {
+              actual.push('entered one');
+            },
+            exit: () => {
+              actual.push('exited one');
+            },
+            every: {
+              10: {
+                actions: () => {
+                  actual.push('got FOO');
+                }
+              }
+            }
+          }
+        }
+      });
+
+      interpret(machine).start();
+
+      setTimeout(() => {
+        expect(actual).toEqual([
+          'entered one',
+          'got FOO',
+          'got FOO',
+          'got FOO'
+        ]);
+        done();
+      }, 38);
+    });
   });
 
   describe('when reaching a final state', () => {
