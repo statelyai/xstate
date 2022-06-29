@@ -11,8 +11,15 @@ interface SimulatedTimeout {
   timeout: number;
   fn: (...args: any[]) => void;
 }
+
+interface SimulatedInterval {
+  start: number;
+  interval: number;
+  fn: (...args: any[]) => void;
+}
 export class SimulatedClock implements SimulatedClock {
   private timeouts: Map<number, SimulatedTimeout> = new Map();
+  private intervals: Map<number, SimulatedInterval> = new Map();
   private _now: number = 0;
   private _id: number = 0;
   public now() {
@@ -26,6 +33,18 @@ export class SimulatedClock implements SimulatedClock {
     this.timeouts.set(id, {
       start: this.now(),
       timeout,
+      fn
+    });
+    return id;
+  }
+  public clearInterval(id: number) {
+    this.intervals.delete(id);
+  }
+  public setInterval(fn: (...args: any[]) => void, interval: number) {
+    const id = this.getId();
+    this.intervals.set(id, {
+      start: this.now(),
+      interval,
       fn
     });
     return id;

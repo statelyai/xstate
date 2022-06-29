@@ -857,13 +857,10 @@ export class Interpreter<
   }
 
   private cancel(sendId: string | number): void {
-    if (this.delayedEventsMap[sendId]) {
-      this.clock.clearTimeout(this.delayedEventsMap[sendId]);
-      delete this.delayedEventsMap[sendId];
-    } else if (this.periodicEventsMap[sendId]) {
-      this.clock.clearInterval(this.periodicEventsMap[sendId]);
-      delete this.periodicEventsMap[sendId];
-    }
+    this.clock.clearTimeout(this.delayedEventsMap[sendId]);
+    delete this.delayedEventsMap[sendId];
+    this.clock.clearInterval(this.periodicEventsMap[sendId]);
+    delete this.periodicEventsMap[sendId];
   }
 
   private exec(
