@@ -853,7 +853,7 @@ export class Interpreter<
           (sendAction as SendActionObject<TContext, TEvent, TEvent>)._event
         );
       }
-    }, sendAction.period as number);
+    }, sendAction.interval as number);
   }
 
   private cancel(sendId: string | number): void {
@@ -909,7 +909,7 @@ export class Interpreter<
         if (typeof sendAction.delay === 'number') {
           this.defer(sendAction);
           return;
-        } else if (typeof sendAction.period === 'number') {
+        } else if (typeof sendAction.interval === 'number') {
           this.repeatEvery(sendAction);
           return;
         } else {

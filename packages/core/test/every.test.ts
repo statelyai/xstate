@@ -19,7 +19,7 @@ const lightMachine = createMachine({
       }
     },
     red: {
-      every: [{ period: 1000, target: 'green' }]
+      every: [{ interval: 1000, target: 'green' }]
     }
   }
 });
@@ -167,18 +167,18 @@ describe('periodic events', () => {
     type Events =
       | { type: 'ACTIVATE'; delay: number }
       | { type: 'NOEXPR'; delay: number };
-    const delayExprMachine = createMachine<{ period: number }, Events>(
+    const delayExprMachine = createMachine<{ interval: number }, Events>(
       {
         id: 'delayExpr',
         initial: 'inactive',
         context: {
-          period: 1000
+          interval: 1000
         },
         states: {
           inactive: {
             every: [
               {
-                period: (ctx) => ctx.period,
+                interval: (ctx) => ctx.interval,
                 target: 'active'
               }
             ],
@@ -190,7 +190,7 @@ describe('periodic events', () => {
           active: {
             every: [
               {
-                period: 'somePeriod',
+                interval: 'somePeriod',
                 target: 'inactive'
               }
             ]
@@ -198,7 +198,7 @@ describe('periodic events', () => {
           activeNoExpr: {
             every: [
               {
-                period: 'nonExistantPeriod',
+                interval: 'nonExistantPeriod',
                 target: 'inactive'
               }
             ]
@@ -206,8 +206,8 @@ describe('periodic events', () => {
         }
       },
       {
-        periods: {
-          somePeriod: (ctx, event) => ctx.period + (event as any).period
+        intervals: {
+          somePeriod: (ctx, event) => ctx.interval + (event as any).interval
         }
       }
     );
@@ -221,7 +221,7 @@ describe('periodic events', () => {
 
       expect(sendActions.length).toBe(1);
 
-      expect(sendActions[0].period).toEqual(1000);
+      expect(sendActions[0].interval).toEqual(1000);
     });
   });
 });

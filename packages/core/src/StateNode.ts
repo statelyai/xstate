@@ -122,7 +122,7 @@ const createDefaultOptions = <TContext>(): MachineOptions<TContext, any> => ({
   services: {},
   activities: {},
   delays: {},
-  periods: {}
+  intervals: {}
 });
 
 const validateArrayifiedTransitions = <TContext>(
@@ -505,7 +505,7 @@ class StateNode<
       guards,
       services,
       delays,
-      periods
+      intervals
     } = this.options;
 
     return new StateNode(
@@ -516,7 +516,7 @@ class StateNode<
         guards: { ...guards, ...options.guards },
         services: { ...services, ...options.services },
         delays: { ...delays, ...options.delays },
-        periods: { ...periods, ...options.periods }
+        intervals: { ...intervals, ...options.intervals }
       },
       context ?? this.context
     );
@@ -634,7 +634,7 @@ class StateNode<
   }
 
   private mutateEntryExitWithTimedEvent(
-    timerType: 'delay' | 'period',
+    timerType: 'delay' | 'interval',
     time:
       | string
       | number
@@ -724,25 +724,25 @@ class StateNode<
     const periodicEvents = isArray(everyConfig)
       ? everyConfig.map((transition, i) => {
           const eventType = this.mutateEntryExitWithTimedEvent(
-            'period',
-            transition.period,
+            'interval',
+            transition.interval,
             every,
             i
           );
           return { ...transition, event: eventType };
         })
       : flatten(
-          Object.keys(everyConfig).map((period, i) => {
-            const configTransition = everyConfig[period];
+          Object.keys(everyConfig).map((interval, i) => {
+            const configTransition = everyConfig[interval];
             const resolvedTransition = isString(configTransition)
               ? { target: configTransition }
               : configTransition;
 
-            const resolvedPeriod = !isNaN(+period) ? +period : period;
+            const resolvedInterval = !isNaN(+interval) ? +interval : interval;
 
             const eventType = this.mutateEntryExitWithTimedEvent(
-              'period',
-              resolvedPeriod,
+              'interval',
+              resolvedInterval,
               every,
               i
             );
@@ -750,14 +750,14 @@ class StateNode<
             return toArray(resolvedTransition).map((transition) => ({
               ...transition,
               event: eventType,
-              period: resolvedPeriod
+              interval: resolvedInterval
             }));
           })
         );
 
     return periodicEvents.map((periodicEvent) => ({
       ...this.formatTransition(periodicEvent),
-      period: periodicEvent.period
+      interval: periodicEvent.interval
     }));
   }
 

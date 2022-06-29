@@ -399,7 +399,7 @@ export type PeriodicEvents<TContext, TEvent extends EventObject> =
     >
   | Array<
       TransitionConfig<TContext, TEvent> & {
-        period: number | string | Expr<TContext, TEvent, number>;
+        interval: number | string | Expr<TContext, TEvent, number>;
       }
     >;
 
@@ -928,11 +928,11 @@ type GeneratePeriodsConfigPart<
   TRequireMissingImplementations,
   TMissingImplementations
 > = MaybeMakeMissingImplementationsRequired<
-  'periods',
-  Prop<TMissingImplementations, 'periods'>,
+  'intervals',
+  Prop<TMissingImplementations, 'intervals'>,
   TRequireMissingImplementations
 > & {
-  periods?: MachineOptionsPeriods<TContext, TResolvedTypesMeta>;
+  intervals?: MachineOptionsPeriods<TContext, TResolvedTypesMeta>;
 };
 
 type GenerateGuardsConfigPart<
@@ -1375,7 +1375,7 @@ export enum SpecialTargets {
 export interface SendActionOptions<TContext, TEvent extends EventObject> {
   id?: string | number;
   delay?: number | string | DelayExpr<TContext, TEvent>;
-  period?: number | string | PeriodExpr<TContext, TEvent>;
+  interval?: number | string | PeriodExpr<TContext, TEvent>;
   to?: string | ExprWithMeta<TContext, TEvent, string | number | ActorRef<any>>;
 }
 
@@ -1480,7 +1480,7 @@ export interface DelayedTransitionDefinition<
 
 export interface PeriodicEventDefinition<TContext, TEvent extends EventObject>
   extends TransitionDefinition<TContext, TEvent> {
-  period: number | string | PeriodExpr<TContext, TEvent>;
+  interval: number | string | PeriodExpr<TContext, TEvent>;
 }
 
 export interface Edge<

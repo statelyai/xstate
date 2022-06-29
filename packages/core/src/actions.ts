@@ -201,7 +201,7 @@ export function send<
     type: actionTypes.send,
     event: isFunction(event) ? event : toEventObject<TSentEvent>(event),
     delay: options ? options.delay : undefined,
-    period: options ? options.period : undefined,
+    interval: options ? options.interval : undefined,
     id:
       options && options.id !== undefined
         ? options.id
@@ -220,7 +220,7 @@ export function resolveSend<
   ctx: TContext,
   _event: SCXML.Event<TEvent>,
   delaysMap?: DelayFunctionMap<TContext, TEvent>,
-  periodsMap?: PeriodFunctionMap<TContext, TEvent>
+  intervalsMap?: PeriodFunctionMap<TContext, TEvent>
 ): SendActionObject<TContext, TEvent, TSentEvent> {
   const meta = {
     _event
@@ -253,7 +253,7 @@ export function resolveSend<
     _event: resolvedEvent,
     event: resolvedEvent.data,
     delay: getResolvedTime(delaysMap, action.delay) || undefined,
-    period: getResolvedTime(periodsMap, action.period) || undefined
+    interval: getResolvedTime(intervalsMap, action.interval) || undefined
   };
 }
 
@@ -494,14 +494,14 @@ export function after(delayRef: number | string, id?: string) {
 
 /**
  * Returns an event type that represents an implicit event that
- * is sent every specified periodic time `period`.
+ * is sent every specified periodic time `interval`.
  *
- * @param period The period to retrigger the event in milliseconds
+ * @param interval The period to retrigger the event in milliseconds
  * @param id The state node ID where this event is handled
  */
-export function every(period: number | string, id?: string) {
+export function every(interval: number | string, id?: string) {
   const idSuffix = id ? `#${id}` : '';
-  return `${ActionTypes.Every}(${period})${idSuffix}`;
+  return `${ActionTypes.Every}(${interval})${idSuffix}`;
 }
 
 /**
@@ -657,7 +657,7 @@ export function resolveActions<TContext, TEvent extends EventObject>(
               updatedContext,
               _event,
               machine.options.delays as any,
-              machine.options.periods as any
+              machine.options.intervals as any
             ) as ActionObject<TContext, TEvent>; // TODO: fix ActionTypes.Init
 
             if (!IS_PRODUCTION) {

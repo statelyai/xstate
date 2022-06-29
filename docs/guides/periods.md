@@ -56,7 +56,7 @@ states: {
 // ...
 ```
 
-Periodic events can also be conditional with regard to a single period value:
+Periodic events can also be conditional with regard to a single interval value:
 
 ```js
 // ...
@@ -75,7 +75,7 @@ states: {
 
 ### Periodic expressions on transitions <Badge text="4.4+" />
 
-Periodic events specified on the `every: { ... }` property can have dynamic priods, specified either by a string period reference:
+Periodic events specified on the `every: { ... }` property can have dynamic priods, specified either by a string interval reference:
 
 ```js
 const lightDelayMachine = createMachine(
@@ -102,7 +102,7 @@ const lightDelayMachine = createMachine(
   },
   {
     // String delays configured here
-    periods: {
+    intervals: {
       LIGHT_DELAY: (context, event) => {
         return context.trafficLevel === 'low' ? 1000 : 3000;
       },
@@ -129,14 +129,14 @@ green: {
 // ...
 ```
 
-However, prefer using string period references, just like the first example, or in the `period` property:
+However, prefer using string interval references, just like the first example, or in the `interval` property:
 
 ```js
 // ...
 green: {
   after: [
     {
-      period: 'LIGHT_DELAY',
+      interval: 'LIGHT_DELAY',
       actions: doSomeAction
     }
   ]
@@ -146,14 +146,14 @@ green: {
 
 ## Periodic events
 
-If you just want to send an event every period of time, you can specify the `period` as an option in the second argument of the `send(...)` action creator:
+If you just want to send an event every period of time, you can specify the `interval` as an option in the second argument of the `send(...)` action creator:
 
 ```js
 import { actions } from 'xstate';
 const { send } = actions;
 
 // action to send the 'TIMER' event every 1 second
-const sendTimerEvery1Second = send({ type: 'TIMER' }, { period: 1000 });
+const sendTimerEvery1Second = send({ type: 'TIMER' }, { interval: 1000 });
 ```
 
 You can also prevent those delayed events from being sent by canceling them. This is done with the `cancel(...)` action creator:
@@ -166,7 +166,7 @@ const { send, cancel } = actions;
 const sendTimerAfter1Second = send(
   { type: 'TIMER' },
   {
-    period: 1000,
+    interval: 1000,
     id: 'oneSecondInterval' // give the event a unique ID
   }
 );
@@ -204,8 +204,8 @@ The `every: ...` property does not introduce anything new to statechart semantic
 states: {
   green: {
     entry: [
-      send(every(1000, 'light.green'), { period: 1000 }),
-      send(every(2000, 'light.green'), { period: 2000 })
+      send(every(1000, 'light.green'), { interval: 1000 }),
+      send(every(2000, 'light.green'), { interval: 2000 })
     ],
     onExit: [
       cancel(every(1000, 'light.green')),
@@ -225,4 +225,4 @@ states: {
 // ...
 ```
 
-The interpreted statechart will `send(...)` the `every(...)` events recurrently every `period`, unless the state node is exited, which will `cancel(...)` those periodic `send(...)` events.
+The interpreted statechart will `send(...)` the `every(...)` events recurrently every `interval`, unless the state node is exited, which will `cancel(...)` those periodic `send(...)` events.
