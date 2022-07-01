@@ -383,6 +383,34 @@ describe('entry/exit actions', () => {
       expect(stateA.actions.map((action) => action.type)).toEqual(['D2 Exit']);
     });
 
+    it("should reenter targeted ancestor (as it's a descendant of the transition domain)", () => {
+      const actual: string[] = [];
+      const machine = createMachine({
+        initial: 'loaded',
+        states: {
+          loaded: {
+            id: 'loaded',
+            entry: () => actual.push('loaded entry'),
+            initial: 'idle',
+            states: {
+              idle: {
+                on: {
+                  UPDATE: '#loaded'
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const service = interpret(machine).start();
+
+      actual.length = 0;
+      service.send('UPDATE');
+
+      expect(actual).toEqual(['loaded entry']);
+    });
+
     describe('should ignore same-parent state actions (sparse)', () => {
       const fooBar = {
         initial: 'foo',
@@ -519,6 +547,51 @@ describe('entry/exit actions', () => {
           .transition('start', 'ENTER_PARALLEL')
           .actions.map((a) => a.type)
       ).toEqual(['enter_p1', 'enter_inner']);
+    });
+
+    it('should reenter parallel region when a parallel state gets reentered while targeting another region', () => {
+      const actions: string[] = [];
+
+      const machine = createMachine({
+        initial: 'ready',
+        states: {
+          ready: {
+            type: 'parallel',
+            on: {
+              FOO: '#cameraOff'
+            },
+            states: {
+              devicesInfo: {
+                entry: () => actions.push('entry devicesInfo'),
+                exit: () => actions.push('exit devicesInfo')
+              },
+              camera: {
+                entry: () => actions.push('entry camera'),
+                exit: () => actions.push('exit camera'),
+                initial: 'on',
+                states: {
+                  on: {},
+                  off: {
+                    id: 'cameraOff'
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const service = interpret(machine).start();
+
+      actions.length = 0;
+      service.send('FOO');
+
+      expect(actions).toEqual([
+        'exit camera',
+        'exit devicesInfo',
+        'entry devicesInfo',
+        'entry camera'
+      ]);
     });
   });
 

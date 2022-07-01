@@ -953,9 +953,13 @@ class StateNode<
 
     const isInternal = !!selectedTransition.internal;
 
-    const reentryNodes = isInternal
-      ? []
-      : flatten(allNextStateNodes.map((n) => this.nodesFromChild(n)));
+    const reentryNodes: StateNode<any, any, any, any, any>[] = [];
+
+    if (!isInternal) {
+      nextStateNodes.forEach((targetNode) => {
+        reentryNodes.push(...this.getExternalReentryNodes(targetNode));
+      });
+    }
 
     return {
       transitions: [selectedTransition],
@@ -967,48 +971,26 @@ class StateNode<
     };
   }
 
-  private nodesFromChild(
-    childStateNode: StateNode<TContext, any, TEvent, any, any, any>
+  private getExternalReentryNodes(
+    targetNode: StateNode<TContext, any, TEvent, any, any, any>
   ): Array<StateNode<TContext, any, TEvent, any, any, any>> {
-    if (childStateNode.escapes(this)) {
-      return [];
-    }
-
     const nodes: Array<StateNode<TContext, any, TEvent, any, any, any>> = [];
-    let marker:
-      | StateNode<TContext, any, TEvent, any, any, any>
-      | undefined = childStateNode;
+    let [marker, possibleAncestor]: [
+      StateNode<TContext, any, TEvent, any, any, any> | undefined,
+      StateNode<TContext, any, TEvent, any, any, any>
+    ] = targetNode.order > this.order ? [targetNode, this] : [this, targetNode];
 
-    while (marker && marker !== this) {
+    while (marker && marker !== possibleAncestor) {
       nodes.push(marker);
       marker = marker.parent;
     }
-    nodes.push(this); // inclusive
-
+    if (marker !== possibleAncestor) {
+      // we never got to `possibleAncestor`, therefore the initial `marker` "escapes" it
+      // it's in a different part of the tree so no states will be reentered for such an external transition
+      return [];
+    }
+    nodes.push(possibleAncestor);
     return nodes;
-  }
-
-  /**
-   * Whether the given state node "escapes" this state node. If the `stateNode` is equal to or the parent of
-   * this state node, it does not escape.
-   */
-  private escapes(
-    stateNode: StateNode<TContext, any, TEvent, any, any, any>
-  ): boolean {
-    if (this === stateNode) {
-      return false;
-    }
-
-    let parent = this.parent;
-
-    while (parent) {
-      if (parent === stateNode) {
-        return false;
-      }
-      parent = parent.parent;
-    }
-
-    return true;
   }
 
   private getActions(
@@ -1026,7 +1008,7 @@ class StateNode<
       : prevConfig;
 
     for (const sn of resolvedConfig) {
-      if (!has(prevConfig, sn)) {
+      if (!has(prevConfig, sn) || has(transition.entrySet, sn.parent)) {
         transition.entrySet.push(sn);
       }
     }
@@ -1627,7 +1609,7 @@ class StateNode<
     return this.resolveTransition(
       {
         configuration,
-        entrySet: configuration,
+        entrySet: [...configuration],
         exitSet: [],
         transitions: [],
         source: undefined,
