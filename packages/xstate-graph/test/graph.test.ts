@@ -23,7 +23,7 @@ import {
 import { assign } from 'xstate';
 import { flatten } from 'xstate/lib/utils';
 
-function getPathsMapSnapshot(
+function getPlansSnapshot(
   plans: Array<StatePlan<any, EventObject>>
 ): Array<ReturnType<typeof getPathSnapshot>> {
   return flatten(
@@ -199,12 +199,12 @@ describe('@xstate/graph', () => {
     it('should return a mapping of shortest paths to all states', () => {
       const paths = getShortestPlans(lightMachine);
 
-      expect(getPathsMapSnapshot(paths)).toMatchSnapshot('shortest paths');
+      expect(getPlansSnapshot(paths)).toMatchSnapshot('shortest paths');
     });
 
     it('should return a mapping of shortest paths to all states (parallel)', () => {
       const paths = getShortestPlans(parallelMachine);
-      expect(getPathsMapSnapshot(paths)).toMatchSnapshot(
+      expect(getPlansSnapshot(paths)).toMatchSnapshot(
         'shortest paths parallel'
       );
     });
@@ -267,7 +267,7 @@ describe('@xstate/graph', () => {
           ] as const
       });
 
-      expect(getPathsMapSnapshot(paths)).toMatchSnapshot(
+      expect(getPlansSnapshot(paths)).toMatchSnapshot(
         'shortest paths conditional'
       );
     });
@@ -296,7 +296,7 @@ describe('@xstate/graph', () => {
         ]
       `);
 
-      expect(getPathsMapSnapshot(paths)).toMatchSnapshot();
+      expect(getPlansSnapshot(paths)).toMatchSnapshot();
     });
 
     const equivMachine = createMachine({
@@ -326,9 +326,7 @@ describe('@xstate/graph', () => {
           },
         ]
       `);
-      expect(getPathsMapSnapshot(paths)).toMatchSnapshot(
-        'simple paths parallel'
-      );
+      expect(getPlansSnapshot(paths)).toMatchSnapshot('simple paths parallel');
     });
 
     it('should return multiple paths for equivalent transitions', () => {
@@ -340,7 +338,7 @@ describe('@xstate/graph', () => {
           "b",
         ]
       `);
-      expect(getPathsMapSnapshot(paths)).toMatchSnapshot(
+      expect(getPlansSnapshot(paths)).toMatchSnapshot(
         'simple paths equal transitions'
       );
     });
@@ -412,9 +410,7 @@ describe('@xstate/graph', () => {
           "finish",
         ]
       `);
-      expect(getPathsMapSnapshot(paths)).toMatchSnapshot(
-        'simple paths context'
-      );
+      expect(getPlansSnapshot(paths)).toMatchSnapshot('simple paths context');
     });
   });
 
@@ -592,7 +588,7 @@ it('simple paths for reducers', () => {
     }
   );
 
-  expect(getPathsMapSnapshot(a)).toMatchSnapshot();
+  expect(getPlansSnapshot(a)).toMatchSnapshot();
 });
 
 it('shortest paths for reducers', () => {
@@ -618,7 +614,7 @@ it('shortest paths for reducers', () => {
     }
   );
 
-  expect(getPathsMapSnapshot(a)).toMatchSnapshot();
+  expect(getPlansSnapshot(a)).toMatchSnapshot();
 });
 
 describe('filtering', () => {
@@ -699,3 +695,42 @@ it('should provide previous state for serializeState()', () => {
       .map((plan) => plan.paths[0].steps.length)
   ).toEqual([0, 3]);
 });
+
+it.each([getShortestPlans, getSimplePlans])(
+  'initial state can be specified',
+  (getPlans) => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: { toB: 'b' }
+        },
+        b: {
+          on: { toC: 'c' }
+        },
+        c: {
+          on: { toA: 'a' }
+        }
+      }
+    });
+
+    const plans = getPlans(machine, {
+      initialState: machine.resolveState(State.from('b'))
+    });
+
+    // Instead of taking 1 step to reach state 'b', there should
+    // exist a path that takes 0 steps
+    expect(
+      plans
+        .find((plan) => plan.state.matches('b'))
+        ?.paths.find((path) => path.steps.length === 0)
+    ).toBeTruthy();
+
+    // Instead of starting at state 'a', it should take > 0 steps to reach 'a'
+    expect(
+      plans
+        .find((plan) => plan.state.matches('a'))
+        ?.paths.every((path) => path.steps.length > 0)
+    ).toBeTruthy();
+  }
+);

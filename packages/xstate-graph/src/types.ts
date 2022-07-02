@@ -133,7 +133,7 @@ export interface VisitedContext<TState, TEvent> {
   a?: TState | TEvent; // TODO: remove
 }
 
-export interface SerializationOptions<TState, TEvent extends EventObject> {
+export interface SerializationConfig<TState, TEvent extends EventObject> {
   eventCases: EventCaseMap<TState, TEvent>;
   serializeState: (
     state: TState,
@@ -143,6 +143,12 @@ export interface SerializationOptions<TState, TEvent extends EventObject> {
   serializeEvent: (event: TEvent) => string;
 }
 
+export type SerializationOptions<TState, TEvent extends EventObject> = Partial<
+  Pick<
+    SerializationConfig<TState, TEvent>,
+    'eventCases' | 'serializeState' | 'serializeEvent'
+  >
+>;
 /**
  * A sample event object payload (_without_ the `type` property).
  *
@@ -158,10 +164,21 @@ export interface SerializationOptions<TState, TEvent extends EventObject> {
  */
 type EventCase<TEvent extends EventObject> = Omit<TEvent, 'type'>;
 
-export interface TraversalOptions<TState, TEvent extends EventObject>
-  extends SerializationOptions<TState, TEvent> {
-  filter?: (state: TState, event: TEvent) => boolean;
-  getEvents?: (
+export type TraversalOptions<
+  TState,
+  TEvent extends EventObject
+> = SerializationOptions<TState, TEvent> &
+  Partial<
+    Pick<
+      TraversalConfig<TState, TEvent>,
+      'filter' | 'getEvents' | 'traversalLimit' | 'initialState'
+    >
+  >;
+
+export interface TraversalConfig<TState, TEvent extends EventObject>
+  extends SerializationConfig<TState, TEvent> {
+  filter: (state: TState, event: TEvent) => boolean;
+  getEvents: (
     state: TState,
     cases: EventCaseMap<TState, TEvent>
   ) => ReadonlyArray<TEvent>;
@@ -171,7 +188,8 @@ export interface TraversalOptions<TState, TEvent extends EventObject>
    *
    * @default `Infinity`
    */
-  traversalLimit?: number;
+  traversalLimit: number;
+  initialState: TState | undefined;
 }
 
 export type EventCaseMap<TState, TEvent extends EventObject> = {
