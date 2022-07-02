@@ -1,3 +1,11 @@
+const { slugify } = require('@vuepress/shared-utils');
+
+// TODO: remove once https://github.com/vuejs/vuepress/issues/1985 will be fixed
+function slugifyWithBadges(str) {
+  // remove badges and use original slugify function
+  return slugify(str.replace(/<Badge[^>]*\/>/, ''));
+}
+
 module.exports = {
   title: 'XState Docs',
   base: '/docs/',
@@ -20,7 +28,7 @@ module.exports = {
     }
   },
   markdown: {
-    toc: { includeLevel: [2, 3] }
+    toc: { includeLevel: [2, 3], slugify: slugifyWithBadges }
   },
   head: [
     ['script', { src: 'https://plausible.io/js/plausible.js', defer: 'defer' }]
