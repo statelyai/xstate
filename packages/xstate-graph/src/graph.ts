@@ -1,5 +1,4 @@
 import type {
-  State,
   Event,
   EventObject,
   AnyStateMachine,
@@ -21,7 +20,8 @@ import type {
   DirectedGraphNode,
   TraversalOptions,
   VisitedContext,
-  AnyStateNode
+  AnyStateNode,
+  TraversalConfig
 } from './types';
 
 function flatten<T>(array: Array<T | T[]>): T[] {
@@ -174,23 +174,39 @@ export function getValueAdjacencyMap<TMachine extends AnyStateMachine>(
   return adjacency;
 }
 
-const defaultMachineStateOptions: TraversalOptions<State<any, any>, any> = {
-  serializeState: serializeMachineState,
-  serializeEvent,
-  eventCases: {},
-  getEvents: (state) => {
-    return state.nextEvents.map((type) => ({ type }));
-  }
-};
+function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
+  machine: TMachine
+): TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>> {
+  return {
+    serializeState: serializeMachineState,
+    serializeEvent,
+    eventCases: {},
+    getEvents: (state) => {
+      return state.nextEvents.map((type) => ({ type })) as EventFrom<TMachine>;
+    },
+    initialState: machine.initialState as StateFrom<TMachine>
+  };
+}
+
+function createDefaultBehaviorOptions<
+  TBehavior extends SimpleBehavior<any, any>
+>(_behavior: TBehavior): TraversalOptions<any, any> {
+  return {
+    serializeState: (state) => JSON.stringify(state),
+    serializeEvent,
+    eventCases: {}
+  };
+}
 
 export function getShortestPlans<TMachine extends AnyStateMachine>(
   machine: TMachine,
-  options?: Partial<TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>>>
+  options?: TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>>
 ): Array<StatePlan<StateFrom<TMachine>, EventFrom<TMachine>>> {
   const resolvedOptions = resolveTraversalOptions(
     options,
-    defaultMachineStateOptions
+    createDefaultMachineOptions(machine)
   );
+
   return traverseShortestPlans(
     {
       transition: (state, event) => machine.transition(state, event),
@@ -202,14 +218,14 @@ export function getShortestPlans<TMachine extends AnyStateMachine>(
 
 export function traverseShortestPlans<TState, TEvent extends EventObject>(
   behavior: SimpleBehavior<TState, TEvent>,
-  options?: Partial<TraversalOptions<TState, TEvent>>
+  options?: TraversalOptions<TState, TEvent>
 ): Array<StatePlan<TState, TEvent>> {
-  const optionsWithDefaults = resolveTraversalOptions(options);
-  const serializeState = optionsWithDefaults.serializeState as (
-    ...args: Parameters<typeof optionsWithDefaults.serializeState>
+  const config = resolveTraversalOptions(options);
+  const serializeState = config.serializeState as (
+    ...args: Parameters<typeof config.serializeState>
   ) => SerializedState;
-
-  const adjacency = performDepthFirstTraversal(behavior, optionsWithDefaults);
+  const initialState = config.initialState ?? behavior.initialState;
+  const adjacency = performDepthFirstTraversal(behavior, config);
 
   // weight, state, event
   const weightMap = new Map<
@@ -222,11 +238,11 @@ export function traverseShortestPlans<TState, TEvent extends EventObject>(
   >();
   const stateMap = new Map<SerializedState, TState>();
   const initialSerializedState = serializeState(
-    behavior.initialState,
+    initialState,
     undefined,
     undefined
   );
-  stateMap.set(initialSerializedState, behavior.initialState);
+  stateMap.set(initialSerializedState, initialState);
 
   weightMap.set(initialSerializedState, [0, undefined, undefined]);
   const unvisited = new Set<SerializedState>();
@@ -304,11 +320,11 @@ export function traverseShortestPlans<TState, TEvent extends EventObject>(
 
 export function getSimplePlans<TMachine extends AnyStateMachine>(
   machine: TMachine,
-  options?: Partial<TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>>>
+  options?: TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>>
 ): Array<StatePlan<StateFrom<TMachine>, EventFrom<TMachine>>> {
   const resolvedOptions = resolveTraversalOptions(
     options,
-    defaultMachineStateOptions
+    createDefaultMachineOptions(machine)
   );
 
   return traverseSimplePlans(
@@ -373,7 +389,7 @@ export function getPathFromEvents<
         return events;
       }
     },
-    defaultMachineStateOptions as any
+    createDefaultBehaviorOptions(behavior)
   );
 
   const { serializeState, serializeEvent } = optionsWithDefaults;
@@ -443,14 +459,16 @@ export function performDepthFirstTraversal<TState, TEvent extends EventObject>(
   behavior: SimpleBehavior<TState, TEvent>,
   options: TraversalOptions<TState, TEvent>
 ): AdjacencyMap<TState, TEvent> {
-  const { transition, initialState } = behavior;
+  const { transition } = behavior;
   const {
     serializeEvent,
     serializeState,
     getEvents,
     eventCases,
-    traversalLimit: limit
+    traversalLimit: limit,
+    initialState: customInitialState
   } = resolveTraversalOptions(options);
+  const initialState = customInitialState ?? behavior.initialState;
   const adj: AdjacencyMap<TState, TEvent> = {};
 
   let iterations = 0;
@@ -506,9 +524,9 @@ export function performDepthFirstTraversal<TState, TEvent extends EventObject>(
 }
 
 function resolveTraversalOptions<TState, TEvent extends EventObject>(
-  traversalOptions?: Partial<TraversalOptions<TState, TEvent>>,
+  traversalOptions?: TraversalOptions<TState, TEvent>,
   defaultOptions?: TraversalOptions<TState, TEvent>
-): Required<TraversalOptions<TState, TEvent>> {
+): TraversalConfig<TState, TEvent> {
   const serializeState =
     traversalOptions?.serializeState ??
     defaultOptions?.serializeState ??
@@ -520,6 +538,7 @@ function resolveTraversalOptions<TState, TEvent extends EventObject>(
     eventCases: {},
     getEvents: () => [],
     traversalLimit: Infinity,
+    initialState: undefined,
     ...defaultOptions,
     ...traversalOptions
   };
@@ -527,10 +546,10 @@ function resolveTraversalOptions<TState, TEvent extends EventObject>(
 
 export function traverseSimplePlans<TState, TEvent extends EventObject>(
   behavior: SimpleBehavior<TState, TEvent>,
-  options: Partial<TraversalOptions<TState, TEvent>>
+  options: TraversalOptions<TState, TEvent>
 ): Array<StatePlan<TState, TEvent>> {
-  const { initialState } = behavior;
   const resolvedOptions = resolveTraversalOptions(options);
+  const initialState = resolvedOptions.initialState ?? behavior.initialState;
   const serializeState = resolvedOptions.serializeState as (
     ...args: Parameters<typeof resolvedOptions.serializeState>
   ) => SerializedState;
