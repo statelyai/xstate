@@ -69,6 +69,8 @@ export class TestModel<TState, TEvent extends EventObject> {
   }
   public static defaults: TestModelDefaults<any, any> = testModelDefaults;
 
+  private errorListeners = new Set<(error: Error) => void>();
+
   constructor(
     public behavior: SimpleBehavior<TState, TEvent>,
     options?: Partial<TestModelOptions<TState, TEvent>>
@@ -254,6 +256,7 @@ export class TestModel<TState, TEvent extends EventObject> {
     } catch (err) {
       // TODO: make option
       err.message += formatPathTestResult(path, testPathResult, this.options);
+      this.notifyErrorListeners(err);
       throw err;
     }
 
@@ -308,6 +311,7 @@ export class TestModel<TState, TEvent extends EventObject> {
     } catch (err) {
       // TODO: make option
       err.message += formatPathTestResult(path, testPathResult, this.options);
+      this.notifyErrorListeners(err);
       throw err;
     }
 
@@ -408,6 +412,16 @@ export class TestModel<TState, TEvent extends EventObject> {
     options?: Partial<TestModelOptions<TState, TEvent>>
   ): TestModelOptions<TState, TEvent> {
     return { ...this.defaultTraversalOptions, ...this.options, ...options };
+  }
+
+  public onError(errorListener: (error: Error) => void): void {
+    this.errorListeners.add(errorListener);
+  }
+
+  private notifyErrorListeners(error: Error): void {
+    this.errorListeners.forEach((listener) => {
+      listener(error);
+    });
   }
 }
 

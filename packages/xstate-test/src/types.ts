@@ -86,7 +86,10 @@ export interface TestParam<TState, TEvent extends EventObject> {
     [key: string]: (state: TState) => void | Promise<void>;
   };
   events?: {
-    [TEventType in TEvent['type']]?: EventExecutor<TState, ExtractEvent<TEvent, TEventType>>;
+    [TEventType in TEvent['type']]?: EventExecutor<
+      TState,
+      ExtractEvent<TEvent, TEventType>
+    >;
   };
 }
 
