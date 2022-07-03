@@ -80,100 +80,6 @@ export function serializeEvent<TEvent extends EventObject>(
   return JSON.stringify(event) as SerializedEvent;
 }
 
-const defaultValueAdjacencyMapOptions: Required<
-  ValueAdjacencyMapOptions<any, any>
-> = {
-  events: {},
-  filter: () => true,
-  serializeState: serializeMachineState,
-  serializeEvent
-};
-
-function getValueAdjacencyMapOptions<TState, TEvent extends EventObject>(
-  options?: ValueAdjacencyMapOptions<TState, TEvent>
-): Required<ValueAdjacencyMapOptions<TState, TEvent>> {
-  return {
-    ...(defaultValueAdjacencyMapOptions as Required<
-      ValueAdjacencyMapOptions<TState, TEvent>
-    >),
-    ...options
-  };
-}
-
-export function getValueAdjacencyMap<TMachine extends AnyStateMachine>(
-  machine: TMachine,
-  options?: ValueAdjacencyMapOptions<StateFrom<TMachine>, EventFrom<TMachine>>
-): ValueAdjacencyMap<StateFrom<TMachine>, EventFrom<TMachine>> {
-  type TState = StateFrom<TMachine>;
-  type TEvent = EventFrom<TMachine>;
-
-  const optionsWithDefaults = getValueAdjacencyMapOptions(options);
-  const {
-    filter,
-    serializeState: stateSerializer,
-    serializeEvent: eventSerializer
-  } = optionsWithDefaults;
-  const { events } = optionsWithDefaults;
-
-  const adjacency: ValueAdjacencyMap<TState, TEvent> = {};
-
-  function findAdjacencies(state: TState) {
-    const { nextEvents } = state;
-    const stateHash = stateSerializer(state);
-
-    if (adjacency[stateHash]) {
-      return;
-    }
-
-    adjacency[stateHash] = {};
-
-    const potentialEvents = flatten<TEvent>(
-      nextEvents.map((nextEvent) => {
-        const getNextEvents = events[nextEvent];
-
-        if (!getNextEvents) {
-          return [{ type: nextEvent }];
-        }
-
-        if (typeof getNextEvents === 'function') {
-          return getNextEvents(state);
-        }
-
-        return getNextEvents;
-      })
-    ).map((event) => toEventObject(event));
-
-    for (const event of potentialEvents) {
-      let nextState: TState;
-      try {
-        nextState = machine.transition(state, event) as TState;
-      } catch (e) {
-        throw new Error(
-          `Unable to transition from state ${stateSerializer(
-            state
-          )} on event ${eventSerializer(event)}: ${e.message}`
-        );
-      }
-
-      if (
-        (!filter || filter(nextState)) &&
-        stateHash !== stateSerializer(nextState)
-      ) {
-        adjacency[stateHash][eventSerializer(event)] = {
-          state: nextState,
-          event
-        };
-
-        findAdjacencies(nextState);
-      }
-    }
-  }
-
-  findAdjacencies(machine.initialState as TState);
-
-  return adjacency;
-}
-
 function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
   machine: TMachine
 ): TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>> {
@@ -381,33 +287,36 @@ export function getPathFromEvents<
   TEvent extends EventObject = EventObject
 >(
   behavior: SimpleBehavior<TState, TEvent>,
-  events: TEvent[]
+  events: TEvent[],
+  options?: TraversalOptions<TState, TEvent>
 ): StatePath<TState, TEvent> {
-  const optionsWithDefaults = resolveTraversalOptions<TState, TEvent>(
+  const resolvedOptions = resolveTraversalOptions<TState, TEvent>(
     {
       getEvents: () => {
         return events;
-      }
+      },
+      ...options
     },
     createDefaultBehaviorOptions(behavior)
   );
+  const initialState = resolvedOptions.initialState ?? behavior.initialState;
 
-  const { serializeState, serializeEvent } = optionsWithDefaults;
+  const { serializeState, serializeEvent } = resolvedOptions;
 
-  const adjacency = performDepthFirstTraversal(behavior, optionsWithDefaults);
+  const adjacency = performDepthFirstTraversal(behavior, resolvedOptions);
 
   const stateMap = new Map<SerializedState, TState>();
   const path: Steps<TState, TEvent> = [];
 
   const initialSerializedState = serializeState(
-    behavior.initialState,
+    initialState,
     undefined,
     undefined
   ) as SerializedState;
-  stateMap.set(initialSerializedState, behavior.initialState);
+  stateMap.set(initialSerializedState, initialState);
 
   let stateSerial = initialSerializedState;
-  let state = behavior.initialState;
+  let state = initialState;
   for (const event of events) {
     path.push({
       state: stateMap.get(stateSerial)!,
