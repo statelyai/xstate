@@ -15,11 +15,7 @@ import {
   StatePath,
   StatePlan
 } from '../src/index';
-import {
-  getValueAdjacencyMap,
-  traverseShortestPlans,
-  traverseSimplePlans
-} from '../src/graph';
+import { traverseShortestPlans, traverseSimplePlans } from '../src/graph';
 import { assign } from 'xstate';
 import { flatten } from 'xstate/lib/utils';
 
@@ -434,106 +430,14 @@ describe('@xstate/graph', () => {
         ])
       ).toThrow();
     });
-  });
 
-  describe('getValueAdjacencyMap', () => {
-    it('should map adjacencies', () => {
-      interface Ctx {
-        count: number;
-        other: string;
-      }
-      type Events = { type: 'INC'; value: number } | { type: 'DEC' };
-
-      const counterMachine = createMachine<Ctx, Events>({
-        id: 'counter',
-        initial: 'empty',
-        context: {
-          count: 0,
-          other: 'something'
-        },
-        states: {
-          empty: {
-            always: {
-              target: 'full',
-              cond: (ctx) => ctx.count === 5
-            },
-            on: {
-              INC: {
-                actions: assign({
-                  count: (ctx, e) => ctx.count + e.value
-                })
-              },
-              DEC: {
-                actions: assign({
-                  count: (ctx) => ctx.count - 1
-                })
-              }
-            }
-          },
-          full: {}
-        }
+    it('should return a path from a specified initial state', () => {
+      const path = getPathFromEvents(lightMachine, [{ type: 'TIMER' }], {
+        initialState: lightMachine.resolveState(State.from('yellow'))
       });
 
-      const adj = getValueAdjacencyMap(counterMachine, {
-        filter: (state) => state.context.count >= 0 && state.context.count <= 5,
-        serializeState: (state) => {
-          const ctx = {
-            count: state.context.count
-          };
-          return JSON.stringify(state.value) + ' | ' + JSON.stringify(ctx);
-        },
-        events: {
-          INC: [{ type: 'INC', value: 1 }]
-        }
-      });
-
-      expect(adj).toHaveProperty('"full" | {"count":5}');
-    });
-
-    it('should get events via function', () => {
-      const machine = createMachine<
-        { count: number },
-        { type: 'EVENT'; value: number }
-      >({
-        initial: 'first',
-        context: {
-          count: 0
-        },
-        states: {
-          first: {
-            on: {
-              EVENT: {
-                target: 'second',
-                actions: assign({
-                  count: (_, event) => event.value
-                })
-              }
-            }
-          },
-          second: {}
-        }
-      });
-
-      const adj = getValueAdjacencyMap(machine, {
-        events: {
-          EVENT: (state) => [
-            { type: 'EVENT' as const, value: state.context.count + 10 }
-          ]
-        }
-      });
-
-      const states = flatten(
-        Object.values(adj).map((map) => Object.values(map))
-      );
-
-      expect(states).toContainEqual(
-        expect.objectContaining({
-          state: expect.objectContaining({
-            value: 'second',
-            context: { count: 10 }
-          })
-        })
-      );
+      // TODO: types work fine in test file, but not when running test!
+      expect((path as any).state.matches('red')).toBeTruthy();
     });
   });
 
