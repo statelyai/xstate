@@ -24,7 +24,7 @@
   // This will
   const loggedInState = await waitFor(
     loginService,
-    state => state.hasTag('loggedIn'),
+    (state) => state.hasTag('loggedIn'),
     { timeout: Infinity }
   );
   ```

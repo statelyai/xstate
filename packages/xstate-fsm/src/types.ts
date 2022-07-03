@@ -1,265 +1,198 @@
-export type SingleOrArray<T> = T[] | T;
+type AnyFunction = (...args: any[]) => any;
+type ReturnTypeOrValue<T> = T extends AnyFunction ? ReturnType<T> : T;
 
+export enum InterpreterStatus {
+  NotStarted = 0,
+  Running = 1,
+  Stopped = 2
+}
+
+export type SingleOrArray<T> = T[] | T;
 export interface EventObject {
   type: string;
 }
 
-export namespace A {
-  export type Cast<T, U> = T extends U ? T : U;
-  export type Fallback<T, U> = T extends U ? T : U;
-  export type Tuple<T = any> = T[] | [T];
-  export type Object = object;
-  export type String = string;
-  export type Function = (...args: any[]) => any;
-  export namespace Get {
-    const Returned$$ = Symbol('Returned$$');
-    export type Returned$$ = typeof Returned$$;
-    const Parameters$$ = Symbol('Parameters$$');
-    export type Parameters$$ = typeof Parameters$$;
-  }
-  type _Get<T, P, F> = P extends []
-    ? T extends undefined
-      ? F
-      : T
-    : P extends [infer K1, ...infer Kr]
-    ? K1 extends keyof T
-      ? _Get<T[K1], Kr, F>
-      : K1 extends Get.Returned$$
-      ? _Get<T extends (...a: any[]) => infer R ? R : undefined, Kr, F>
-      : K1 extends Get.Parameters$$
-      ? _Get<T extends (...a: infer Args) => any ? Args : undefined, Kr, F>
-      : F
-    : never;
-  export type Get<T, TProps, TDefault = undefined> = TProps extends any[]
-    ? _Get<T, TProps, TDefault>
-    : _Get<T, [TProps], TDefault>;
-}
+export type InitEvent = { type: 'xstate.init' };
 
-export type InferNarrowest<T> = T extends any
-  ? T extends A.Function
-    ? T
-    : T extends A.Object
-    ? InferNarrowestObject<T>
-    : T
+export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
+  ? R extends StateMachine.Machine<infer TContext, any, any>
+    ? TContext
+    : R extends StateMachine.Service<infer TContext, any, any>
+    ? TContext
+    : never
   : never;
 
-export type InferNarrowestObject<T> = {
-  readonly [K in keyof T]: InferNarrowest<T[K]>;
-};
-
-export interface ActorRef<TEvent extends EventObject, _TEmitted> {
-  send: (event: TEvent) => void;
-  subscribe: (observer: any) => void;
-}
-
-export interface Behavior<TEvent extends EventObject, TEmitted> {
-  start: () => ActorRef<TEvent, TEmitted>;
-}
-
-export interface AssignActionObject<TMachine, TEvent> {
-  __xstate?: true;
-  type: 'xstate.assign';
-  assignment: Assigner<TMachine, TEvent> | PropertyAssigner<TMachine, TEvent>;
-}
-export type Assigner<TMachine, TEvent> = (
-  context: A.Get<TMachine, 'context'>,
-  event: TEvent
-) => Partial<A.Get<TMachine, 'context'>>;
-
-export type PropertyAssigner<TMachine, TEvent> = {
-  [K in keyof A.Get<TMachine, 'context'>]?:
-    | ((
-        context: A.Get<TMachine, 'context'>,
-        event: TEvent
-      ) => A.Get<TMachine, ['context', K]>)
-    | A.Get<TMachine, ['context', K]>;
-};
-
-export interface BaseActionObject {
-  type: string;
-}
-
-export type ActionFunction<TMachine> = (
-  context: A.Get<TMachine, 'context'>,
-  event: A.Get<TMachine, ['schema', 'event'], EventObject>
-) => void;
-
-export type ActionsConfig<
-  TMachine,
-  TEvent = A.Get<TMachine, ['schema', 'event']>
-> = SingleOrArray<
-  | DynamicActionObject<TMachine, TEvent>
-  | ActionFunction<TMachine>
-  | BaseActionObject
-  | string
->;
-
-export type TransitionConfig<
-  _Self,
-  TMachine,
-  TEvent = A.Get<TMachine, ['schema', 'event']>
-> =
-  | (string & keyof A.Get<TMachine, 'states'>)
-  | {
-      target?: string & keyof A.Get<TMachine, 'states'>;
-      guard?: (context: A.Get<TMachine, 'context'>, event: TEvent) => boolean;
-      actions?: ActionsConfig<TMachine, TEvent>;
-      assign?: DynamicActionObject<TMachine, TEvent>;
-    };
-
-export type InvokeSrc<T, TMachine> =
-  | Behavior<any, T>
-  | ((
-      context: A.Get<TMachine, 'context'>,
-      event: A.Get<TMachine, ['schema', 'event']>
-    ) => Behavior<any, T>);
-
-export type DoneTransitionConfig<Self, TMachine, TInvoke> = TransitionConfig<
-  Self,
-  TMachine,
-  A.Get<TInvoke, 'src'> extends InvokeSrc<infer T, infer _>
-    ? { type: `done.invoke.${string & A.Get<TInvoke, 'id'>}`; data: T }
+export type EventFrom<T> = ReturnTypeOrValue<T> extends infer R
+  ? R extends StateMachine.Machine<any, infer TEvent, any>
+    ? TEvent
+    : R extends StateMachine.Service<any, infer TEvent, any>
+    ? TEvent
     : never
->;
+  : never;
 
-export interface StateNodeConfig<
-  Self,
-  TMachine extends MachineConfig<any>,
-  TContext = A.Get<TMachine, 'context'>,
-  TEvent = A.Get<TMachine, ['schema', 'event']>
-> {
-  entry?: ActionsConfig<TMachine>;
-  exit?: ActionsConfig<TMachine>;
-  invoke?: {
-    id: string;
-    src:
-      | Behavior<any, any>
-      | ((context: TContext, event: TEvent) => Behavior<any, any>);
-    onDone?: DoneTransitionConfig<
-      A.Get<Self, ['invoke', 'onDone']>,
-      TMachine,
-      A.Get<Self, 'invoke'>
-    >;
-  };
-  on?: {
-    [EventType in string &
-      A.Get<TMachine, ['schema', 'event', 'type'], string>]?:
-      | TransitionConfig<
-          A.Get<Self, ['on', EventType]>,
-          TMachine,
-          TEvent extends { type: EventType } ? TEvent : never
-        >
-      | {
-          [Index in number]: TransitionConfig<
-            A.Get<Self, ['on', EventType, Index]>,
-            TMachine,
-            TEvent extends { type: EventType } ? TEvent : never
+export type StateFrom<T> = ReturnTypeOrValue<T> extends infer R
+  ? R extends StateMachine.Machine<infer TContext, infer TEvent, infer TState>
+    ? StateMachine.State<TContext, TEvent, TState>
+    : R extends StateMachine.Service<infer TContext, infer TEvent, infer TState>
+    ? StateMachine.State<TContext, TEvent, TState>
+    : never
+  : never;
+
+export type ServiceFrom<T> = ReturnTypeOrValue<T> extends infer R
+  ? R extends StateMachine.Machine<infer TContext, infer TEvent, infer TState>
+    ? StateMachine.Service<TContext, TEvent, TState>
+    : never
+  : never;
+
+export type MachineImplementationsFrom<
+  TMachine extends StateMachine.AnyMachine
+> = {
+  actions?: StateMachine.ActionMap<ContextFrom<TMachine>, EventFrom<TMachine>>;
+};
+
+export namespace StateMachine {
+  export type Action<TContext extends object, TEvent extends EventObject> =
+    | string
+    | AssignActionObject<TContext, TEvent>
+    | ActionObject<TContext, TEvent>
+    | ActionFunction<TContext, TEvent>;
+
+  export type ActionMap<
+    TContext extends object,
+    TEvent extends EventObject
+  > = Record<string, Exclude<Action<TContext, TEvent>, string>>;
+
+  export interface ActionObject<
+    TContext extends object,
+    TEvent extends EventObject
+  > {
+    type: string;
+    exec?: ActionFunction<TContext, TEvent>;
+    [key: string]: any;
+  }
+
+  export type ActionFunction<
+    TContext extends object,
+    TEvent extends EventObject
+  > = (context: TContext, event: TEvent | InitEvent) => void;
+
+  export type AssignAction = 'xstate.assign';
+
+  export interface AssignActionObject<
+    TContext extends object,
+    TEvent extends EventObject
+  > extends ActionObject<TContext, TEvent> {
+    type: AssignAction;
+    assignment: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent>;
+  }
+
+  export type Transition<TContext extends object, TEvent extends EventObject> =
+    | string
+    | {
+        target?: string;
+        actions?: SingleOrArray<Action<TContext, TEvent>>;
+        cond?: (context: TContext, event: TEvent) => boolean;
+      };
+  export interface State<
+    TContext extends object,
+    TEvent extends EventObject,
+    TState extends Typestate<TContext>
+  > {
+    value: TState['value'];
+    context: TContext;
+    actions: Array<ActionObject<TContext, TEvent>>;
+    changed?: boolean | undefined;
+    matches: <TSV extends TState['value']>(
+      value: TSV
+    ) => this is TState extends { value: TSV }
+      ? TState & { value: TSV }
+      : never;
+  }
+
+  export type AnyMachine = StateMachine.Machine<any, any, any>;
+
+  export type AnyService = StateMachine.Service<any, any, any>;
+
+  export type AnyState = State<any, any, any>;
+
+  export interface Config<
+    TContext extends object,
+    TEvent extends EventObject,
+    TState extends Typestate<TContext> = { value: any; context: TContext }
+  > {
+    id?: string;
+    initial: string;
+    context?: TContext;
+    states: {
+      [key in TState['value']]: {
+        on?: {
+          [K in TEvent['type']]?: SingleOrArray<
+            Transition<TContext, TEvent extends { type: K } ? TEvent : never>
           >;
         };
-  };
-}
-
-export interface TransitionObject {
-  target?: string;
-  guard?: (context: any, eventObject: any) => boolean;
-  actions?: Array<{ type: string }>;
-}
-
-export interface StateNode {
-  entry?: Array<{ type: string }>;
-  exit?: Array<{ type: string }>;
-  invoke?: {
-    id: string;
-    src: InvokeSrc<any, any>;
-  };
-  on?: {
-    [EventType in string]: TransitionObject[];
-  };
-}
-
-export type NoInfer<T> = [T][T extends any ? 0 : any];
-
-export interface MachineConfig<
-  Self extends MachineConfig<any>,
-  TContext = A.Get<Self, 'context'>
-> {
-  id?: string;
-  key?: string;
-  context: TContext;
-  schema?: {
-    event?: EventObject;
-  };
-  states?: {
-    [StateKey in keyof A.Get<Self, 'states'>]?: StateNodeConfig<
-      A.Get<Self, ['states', StateKey]>,
-      Self
-    >;
-  };
-  on?: {
-    [key: string]: {
-      target: `.${string & keyof A.Get<Self, 'states'>}`;
+        exit?: SingleOrArray<Action<TContext, TEvent>>;
+        entry?: SingleOrArray<Action<TContext, TEvent>>;
+      };
     };
+  }
+
+  export interface Machine<
+    TContext extends object,
+    TEvent extends EventObject,
+    TState extends Typestate<TContext>
+  > {
+    config: StateMachine.Config<TContext, TEvent, TState>;
+    initialState: State<TContext, TEvent, TState>;
+    transition: (
+      state: string | State<TContext, TEvent, TState>,
+      event: TEvent['type'] | TEvent
+    ) => State<TContext, TEvent, TState>;
+  }
+
+  export type StateListener<T extends AnyState> = (state: T) => void;
+
+  export interface Service<
+    TContext extends object,
+    TEvent extends EventObject,
+    TState extends Typestate<TContext> = { value: any; context: TContext }
+  > {
+    send: (event: TEvent | TEvent['type']) => void;
+    subscribe: (
+      listener: StateListener<State<TContext, TEvent, TState>>
+    ) => {
+      unsubscribe: () => void;
+    };
+    start: (
+      initialState?:
+        | TState['value']
+        | { context: TContext; value: TState['value'] }
+    ) => Service<TContext, TEvent, TState>;
+    stop: () => Service<TContext, TEvent, TState>;
+    readonly status: InterpreterStatus;
+    readonly state: State<TContext, TEvent, TState>;
+  }
+
+  export type Assigner<TContext extends object, TEvent extends EventObject> = (
+    context: TContext,
+    event: TEvent
+  ) => Partial<TContext>;
+
+  export type PropertyAssigner<
+    TContext extends object,
+    TEvent extends EventObject
+  > = {
+    [K in keyof TContext]?:
+      | ((context: TContext, event: TEvent) => TContext[K])
+      | TContext[K];
   };
-  initial?: keyof A.Get<Self, 'states'>;
 }
 
-export interface StateFrom<T extends MachineConfig<any> | StateMachine<any>> {
-  value: keyof A.Get<T, 'states'> | null;
-  context: A.Get<T, 'context'>;
-  actions: any[];
+export interface Typestate<TContext extends object> {
+  value: string;
+  context: TContext;
 }
 
-export interface ActionImplementionMap<TMachine> {
-  [key: string]: ActionFunction<TMachine>;
-}
-
-export interface Implementations<TMachine> {
-  actions?: ActionImplementionMap<TMachine>;
-}
-
-export type Executor<TMachine> = (
-  action: BaseActionObject,
-  context: any,
-  event: EventObject,
-  implementations?: Implementations<TMachine>
-) => void;
-
-export interface StateMachine<T extends MachineConfig<any>> {
-  states: {
-    [StateKey: string]: StateNode;
-  };
-  transition: (
-    state: StateFrom<T>,
-    event: EventObject & A.Get<T, ['schema', 'event'], EventObject>,
-    execute?: Executor<T>
-  ) => StateFrom<T>;
-  initialState: StateFrom<T>;
-  getInitialState: (exec: any) => StateFrom<T>;
-}
-
-// Taken from RxJS
-export interface Observer<T> {
-  next: (value: T) => void;
-  error?: (err: any) => void;
-  complete?: () => void;
-}
-
-export type ObserverOrNext<T> = Observer<T> | Observer<T>['next'];
-
-export interface Interpreter {
-  start: (state?: StateFrom<any>) => Interpreter;
-  send: (event: EventObject) => void;
-  subscribe: (
-    obs: ObserverOrNext<StateFrom<any>>
-  ) => { unsubscribe: () => void };
-  getSnapshot: () => StateFrom<any>;
-}
-
-export interface DynamicActionObject<
-  TMachine,
-  TEvent = A.Get<TMachine, ['schema', 'event']>
-> {
-  type: `xstate.${string}`;
-  (ctx: A.Get<TMachine, 'context'>, eventObject: TEvent): { type: string };
-  __xstate: true;
-}
+export type ExtractEvent<
+  TEvent extends EventObject,
+  TEventType extends TEvent['type']
+> = TEvent extends { type: TEventType } ? TEvent : never;

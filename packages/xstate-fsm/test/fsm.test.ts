@@ -1,22 +1,81 @@
-import { createMachine, interpret, assign } from '../src/';
-import { fromPromise } from '../src/actors';
+import { createMachine, assign, interpret, StateMachine } from '../src';
 
 describe('@xstate/fsm', () => {
-  it('should have the correct initial state and actions', () => {
-    const { initialState } = createMachine({
-      initial: 'green',
-      context: {},
-      states: {
-        green: {
-          entry: 'enterGreen'
-        }
+  interface LightContext {
+    count: number;
+    foo: string | undefined;
+    go: boolean;
+  }
+
+  type LightEvent =
+    | { type: 'TIMER' }
+    | { type: 'INC' }
+    | { type: 'EMERGENCY'; value: number };
+
+  type LightState =
+    | {
+        value: 'green';
+        context: LightContext & { go: true };
       }
-    });
+    | {
+        value: 'yellow';
+        context: LightContext & { go: false };
+      }
+    | {
+        value: 'red';
+        context: LightContext & { go: false };
+      };
+
+  const lightConfig: StateMachine.Config<
+    LightContext,
+    LightEvent,
+    LightState
+  > = {
+    id: 'light',
+    initial: 'green',
+    context: { count: 0, foo: 'bar', go: true },
+    states: {
+      green: {
+        entry: 'enterGreen',
+        exit: [
+          'exitGreen',
+          assign({ count: (ctx) => ctx.count + 1 }),
+          assign({ count: (ctx) => ctx.count + 1 }),
+          assign<LightContext>({ foo: 'static' }),
+          assign({ foo: (ctx) => ctx.foo + '++' })
+        ],
+        on: {
+          TIMER: {
+            target: 'yellow',
+            actions: ['g-y 1', 'g-y 2']
+          }
+        }
+      },
+      yellow: {
+        entry: assign<LightContext>({ go: false }),
+        on: {
+          INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) },
+          EMERGENCY: {
+            target: 'red',
+            cond: (ctx, e) => ctx.count + e.value === 2
+          }
+        }
+      },
+      red: {}
+    }
+  };
+  const lightFSM = createMachine<LightContext, LightEvent, LightState>(
+    lightConfig
+  );
+  it('should return back the config object', () => {
+    expect(lightFSM.config).toBe(lightConfig);
+  });
+  it('should have the correct initial state', () => {
+    const { initialState } = lightFSM;
 
     expect(initialState.value).toEqual('green');
     expect(initialState.actions).toEqual([{ type: 'enterGreen' }]);
   });
-
   it('should have initial context updated by initial assign actions', () => {
     const { initialState } = createMachine({
       initial: 'init',
@@ -28,57 +87,40 @@ describe('@xstate/fsm', () => {
           entry: assign({
             count: () => 1
           })
-        },
-        other: {}
+        }
       }
     });
 
     expect(initialState.context).toEqual({ count: 1 });
   });
-
-  it('should transition correctly', () => {
-    const fsm = createMachine({
-      id: 'light',
-      initial: 'green',
-      context: { count: 0, foo: 'bar', go: true },
+  it('should have initial actions computed without assign actions', () => {
+    const { initialState } = createMachine({
+      initial: 'init',
+      context: {
+        count: 0
+      },
       states: {
-        green: {
-          entry: 'enterGreen',
-          exit: [
-            'exitGreen',
-            assign({ count: (ctx) => ctx.count + 1 }),
-            assign({ count: (ctx) => ctx.count + 1 }),
-            assign({ foo: 'static' }),
-            assign({ foo: (ctx) => ctx.foo + '++' })
-          ],
-          on: {
-            TIMER: {
-              target: 'yellow',
-              actions: ['g-y 1', 'g-y 2']
-            }
-          }
-        },
-        yellow: {
-          entry: assign({ go: false })
-        },
-        red: {}
+        init: {
+          entry: [
+            { type: 'foo' },
+            assign({
+              count: () => 1
+            })
+          ]
+        }
       }
     });
-    const nextState = fsm.transition(fsm.initialState, { type: 'TIMER' });
+
+    expect(initialState.actions).toEqual([{ type: 'foo' }]);
+  });
+  it('should transition correctly', () => {
+    const nextState = lightFSM.transition('green', 'TIMER');
     expect(nextState.value).toEqual('yellow');
-    expect(nextState.actions.map((action) => action.type))
-      .toMatchInlineSnapshot(`
-      Array [
-        "exitGreen",
-        "xstate.assign",
-        "xstate.assign",
-        "xstate.assign",
-        "xstate.assign",
-        "g-y 1",
-        "g-y 2",
-        "xstate.assign",
-      ]
-    `);
+    expect(nextState.actions.map((action) => action.type)).toEqual([
+      'exitGreen',
+      'g-y 1',
+      'g-y 2'
+    ]);
     expect(nextState.context).toEqual({
       count: 2,
       foo: 'static++',
@@ -87,188 +129,125 @@ describe('@xstate/fsm', () => {
   });
 
   it('should stay on the same state for undefined transitions', () => {
-    const fsm = createMachine({
-      initial: 'green',
-      context: {},
-      states: {
-        green: {
-          on: {
-            EVENT: 'yellow'
-          }
-        },
-        yellow: {}
-      }
-    });
-    const nextState = fsm.transition(fsm.initialState, { type: 'FAKE' });
+    const nextState = lightFSM.transition('green', 'FAKE' as any);
     expect(nextState.value).toBe('green');
     expect(nextState.actions).toEqual([]);
   });
 
   it('should throw an error for undefined states', () => {
     expect(() => {
-      const fsm = createMachine({
-        initial: 'a',
-        context: {},
-        states: { a: {} }
-      });
-      fsm.transition(
-        // @ts-expect-error
-        { value: 'unknown', actions: [] },
-        {
-          type: 'TIMER'
-        }
-      );
+      lightFSM.transition('unknown', 'TIMER');
     }).toThrow();
   });
 
   it('should throw an error for undefined next state config', () => {
     const invalidState = 'blue';
-
-    const testMachine = createMachine({
+    const testConfig = {
       id: 'test',
-      context: {},
       initial: 'green',
       states: {
         green: {
           on: {
-            // @ts-expect-error
             TARGET_INVALID: invalidState
           }
         },
         yellow: {}
       }
-    });
+    };
+    const testMachine = createMachine(testConfig);
     expect(() => {
-      testMachine.transition(testMachine.initialState, {
-        type: 'TARGET_INVALID'
-      });
-    }).toThrowErrorMatchingInlineSnapshot(`"Invalid next state value: blue"`);
+      testMachine.transition('green', 'TARGET_INVALID');
+    }).toThrow(
+      `State '${invalidState}' not found on machine ${testConfig.id ?? ''}`
+    );
   });
 
   it('should work with guards', () => {
-    const fsm = createMachine({
-      initial: 'inactive',
-      schema: {
-        event: {} as { type: 'INC'; value: number } | { type: 'EVENT' }
-      },
-      context: { count: 0, foo: 'bar', go: true },
-      states: {
-        inactive: {
-          on: {
-            EVENT: {
-              target: 'active',
-              guard: (ctx) => ctx.count > 3
-            },
-            INC: {
-              actions: assign({
-                count: (ctx, e) => ctx.count + e.value
-              })
-            }
-          }
-        },
-        active: {
-          invoke: {
-            id: 'prom',
-            src: fromPromise<number>(() => null as any)
-          }
-        }
-      }
-    });
-    const inactiveState = fsm.transition(fsm.initialState, {
-      type: 'EVENT'
-    });
-    expect(inactiveState.value).toEqual('inactive');
+    const yellowState = lightFSM.transition('yellow', 'EMERGENCY');
+    expect(yellowState.value).toEqual('yellow');
 
-    const incState = fsm.transition(fsm.initialState, {
-      type: 'INC',
-      value: 5
+    const redState = lightFSM.transition('yellow', {
+      type: 'EMERGENCY',
+      value: 2
     });
-    const activeState = fsm.transition(incState, { type: 'EVENT' });
-    expect(activeState.value).toEqual('active');
+    expect(redState.value).toEqual('red');
+    expect(redState.context.count).toBe(0);
+
+    const yellowOneState = lightFSM.transition('yellow', 'INC');
+    const redOneState = lightFSM.transition(yellowOneState, {
+      type: 'EMERGENCY',
+      value: 1
+    });
+
+    expect(redOneState.value).toBe('red');
+    expect(redOneState.context.count).toBe(1);
+  });
+
+  it('should be changed if state changes', () => {
+    expect(lightFSM.transition('green', 'TIMER').changed).toBe(true);
+  });
+
+  it('should be changed if any actions occur', () => {
+    expect(lightFSM.transition('yellow', 'INC').changed).toBe(true);
+  });
+
+  it('should not be changed on unknown transitions', () => {
+    expect(lightFSM.transition('yellow', 'UNKNOWN' as any).changed).toBe(false);
   });
 
   it('should match initialState', () => {
-    const { initialState } = createMachine({
-      initial: 'green',
-      context: {},
-      states: {
-        green: {}
-      }
-    });
+    const { initialState } = lightFSM;
 
-    expect(initialState.value).toEqual('green');
+    expect(initialState.matches('green')).toBeTruthy();
+
+    if (initialState.matches('green')) {
+      expect(initialState.context.go).toBeTruthy();
+    }
   });
 
   it('should match transition states', () => {
-    const lightFSM2 = createMachine({
-      initial: 'green',
-      context: {
-        go: true
-      },
-      states: {
-        green: {
-          on: { TIMER: 'yellow' }
-        },
-        yellow: {
-          entry: assign({
-            go: false
-          })
-        }
-      }
-    });
-    const nextState = lightFSM2.transition(lightFSM2.initialState, {
-      type: 'TIMER'
-    });
+    const { initialState } = lightFSM;
+    const nextState = lightFSM.transition(initialState, 'TIMER');
 
-    expect(nextState.value).toEqual('yellow');
+    expect(nextState.matches('yellow')).toBeTruthy();
 
-    if (nextState.value === 'yellow') {
+    if (nextState.matches('yellow')) {
       expect(nextState.context.go).toBeFalsy();
     }
   });
 });
 
 describe('interpreter', () => {
+  const toggleMachine = createMachine({
+    initial: 'active',
+    states: {
+      active: {
+        on: { TOGGLE: 'inactive' }
+      },
+      inactive: {}
+    }
+  });
+
   it('listeners should immediately get the initial state', (done) => {
-    const toggleMachine = createMachine({
-      initial: 'active',
-      context: {},
-      states: {
-        active: {
-          on: { TOGGLE: 'inactive' }
-        },
-        inactive: {}
-      }
-    });
     const toggleService = interpret(toggleMachine).start();
 
     toggleService.subscribe((state) => {
-      if (state.value === 'active') {
+      if (state.matches('active')) {
         done();
       }
     });
   });
 
   it('listeners should subscribe to state changes', (done) => {
-    const toggleMachine = createMachine({
-      initial: 'active',
-      context: {},
-      states: {
-        active: {
-          on: { TOGGLE: 'inactive' }
-        },
-        inactive: {}
-      }
-    });
     const toggleService = interpret(toggleMachine).start();
 
     toggleService.subscribe((state) => {
-      if (state.value === 'inactive') {
+      if (state.matches('inactive')) {
         done();
       }
     });
 
-    toggleService.send({ type: 'TOGGLE' });
+    toggleService.send('TOGGLE');
   });
 
   it('should execute actions', (done) => {
@@ -276,7 +255,6 @@ describe('interpreter', () => {
 
     const actionMachine = createMachine({
       initial: 'active',
-      context: {},
       states: {
         active: {
           on: {
@@ -300,90 +278,7 @@ describe('interpreter', () => {
       }
     });
 
-    actionService.send({ type: 'TOGGLE' });
-  });
-
-  describe('`start` method', () => {
-    it('should start the service with initial state by default', () => {
-      const machine = createMachine({
-        initial: 'foo',
-        context: {},
-        states: {
-          foo: {
-            on: {
-              NEXT: 'bar'
-            }
-          },
-          bar: {}
-        }
-      });
-
-      const service = interpret(machine).start();
-
-      expect(service.getSnapshot().value).toBe('foo');
-    });
-
-    it('should rehydrate the state if the state if provided', () => {
-      const machine = createMachine({
-        initial: 'foo',
-        context: {},
-        states: {
-          foo: {
-            on: {
-              NEXT: 'bar'
-            }
-          },
-          bar: {
-            on: {
-              NEXT: 'baz'
-            }
-          },
-          baz: {}
-        }
-      });
-
-      const service = interpret(machine).start({
-        value: 'bar',
-        context: {},
-        actions: []
-      });
-      expect(service.getSnapshot().value).toBe('bar');
-
-      service.send({ type: 'NEXT' });
-      expect(service.getSnapshot().value).toEqual('baz');
-    });
-
-    it('should rehydrate the state and the context if both are provided', () => {
-      const machine = createMachine({
-        initial: 'foo',
-        context: {},
-        states: {
-          foo: {
-            on: {
-              NEXT: 'bar'
-            }
-          },
-          bar: {
-            on: {
-              NEXT: 'baz'
-            }
-          },
-          baz: {}
-        }
-      });
-
-      const context = { hello: 'world' };
-      const service = interpret(machine).start({
-        value: 'bar',
-        context,
-        actions: []
-      });
-      expect(service.getSnapshot().value).toBe('bar');
-      expect(service.getSnapshot().context).toBe(context);
-
-      service.send({ type: 'NEXT' });
-      expect(service.getSnapshot().value).toEqual('baz');
-    });
+    actionService.send('TOGGLE');
   });
 
   it('should execute initial entry action', () => {
@@ -391,7 +286,6 @@ describe('interpreter', () => {
 
     const machine = createMachine({
       initial: 'foo',
-      context: {},
       states: {
         foo: {
           entry: () => {
@@ -411,7 +305,6 @@ describe('interpreter', () => {
     const machine = createMachine(
       {
         initial: 'foo',
-        context: {},
         states: {
           foo: {
             entry: 'testAction'
@@ -421,36 +314,6 @@ describe('interpreter', () => {
       {
         actions: {
           testAction: () => {
-            executed = true;
-          }
-        }
-      }
-    );
-
-    interpret(machine).start();
-
-    expect(executed).toBe(true);
-  });
-
-  it('referenced actions should read context', () => {
-    let executed = false;
-
-    const machine = createMachine(
-      {
-        initial: 'start',
-        context: {
-          num: 42
-        },
-        states: {
-          start: {
-            entry: 'testAction'
-          }
-        }
-      },
-      {
-        actions: {
-          testAction: (ctx) => {
-            expect(ctx.num).toEqual(42);
             executed = true;
           }
         }
@@ -474,8 +337,8 @@ describe('interpreter', () => {
 
     service.start();
 
-    expect(service.getSnapshot().value).toEqual('test');
-    expect(service.getSnapshot().context).toEqual({ foo: 'bar' });
+    expect(service.state.value).toEqual('test');
+    expect(service.state.context).toEqual({ foo: 'bar' });
   });
 
   it('should reveal the current state after transition', (done) => {
@@ -494,18 +357,17 @@ describe('interpreter', () => {
     service.start();
 
     service.subscribe(() => {
-      if (service.getSnapshot().value === 'success') {
+      if (service.state.value === 'success') {
         done();
       }
     });
 
-    service.send({ type: 'CHANGE' });
+    service.send('CHANGE');
   });
 
   it('should not re-execute exit/entry actions for transitions with undefined targets', () => {
     const machine = createMachine({
       initial: 'test',
-      context: {},
       states: {
         test: {
           entry: ['entry'],
@@ -524,7 +386,7 @@ describe('interpreter', () => {
 
     expect(initialState.actions.map((a) => a.type)).toEqual(['entry']);
 
-    const nextState = machine.transition(initialState, { type: 'EVENT' });
+    const nextState = machine.transition(initialState, 'EVENT');
 
     expect(nextState.actions.map((a) => a.type)).toEqual(['action']);
   });
@@ -533,7 +395,6 @@ describe('interpreter', () => {
     it('should start the service with initial state by default', () => {
       const machine = createMachine({
         initial: 'foo',
-        context: {},
         states: {
           foo: {
             on: {
@@ -546,13 +407,12 @@ describe('interpreter', () => {
 
       const service = interpret(machine).start();
 
-      expect(service.getSnapshot().value).toBe('foo');
+      expect(service.state.value).toBe('foo');
     });
 
     it('should rehydrate the state if the state if provided', () => {
       const machine = createMachine({
         initial: 'foo',
-        context: {},
         states: {
           foo: {
             on: {
@@ -568,21 +428,16 @@ describe('interpreter', () => {
         }
       });
 
-      const service = interpret(machine).start({
-        value: 'bar',
-        context: {},
-        actions: []
-      });
-      expect(service.getSnapshot().value).toBe('bar');
+      const service = interpret(machine).start('bar');
+      expect(service.state.value).toBe('bar');
 
-      service.send({ type: 'NEXT' });
-      expect(service.getSnapshot().value).toEqual('baz');
+      service.send('NEXT');
+      expect(service.state.matches('baz')).toBe(true);
     });
 
     it('should rehydrate the state and the context if both are provided', () => {
       const machine = createMachine({
         initial: 'foo',
-        context: {},
         states: {
           foo: {
             on: {
@@ -599,23 +454,18 @@ describe('interpreter', () => {
       });
 
       const context = { hello: 'world' };
-      const service = interpret(machine).start({
-        value: 'bar',
-        context,
-        actions: []
-      });
-      expect(service.getSnapshot().value).toBe('bar');
-      expect(service.getSnapshot().context).toBe(context);
+      const service = interpret(machine).start({ value: 'bar', context });
+      expect(service.state.value).toBe('bar');
+      expect(service.state.context).toBe(context);
 
-      service.send({ type: 'NEXT' });
-      expect(service.getSnapshot().value).toEqual('baz');
+      service.send('NEXT');
+      expect(service.state.matches('baz')).toBe(true);
     });
 
     it('should execute initial actions when re-starting a service', () => {
       let entryActionCalled = false;
       const machine = createMachine({
         initial: 'test',
-        context: {},
         states: {
           test: {
             entry: () => (entryActionCalled = true)
@@ -624,7 +474,7 @@ describe('interpreter', () => {
       });
 
       const service = interpret(machine).start();
-      // service.stop(); // TODO: stop
+      service.stop();
 
       entryActionCalled = false;
 
@@ -637,7 +487,6 @@ describe('interpreter', () => {
       let entryActionCalled = false;
       const machine = createMachine({
         initial: 'a',
-        context: {},
         states: {
           a: {
             entry: () => (entryActionCalled = true),
@@ -651,7 +500,7 @@ describe('interpreter', () => {
 
       const service = interpret(machine).start();
       service.send({ type: 'NEXT' });
-      // service.stop(); // TODO: stop
+      service.stop();
 
       entryActionCalled = false;
 
@@ -664,7 +513,6 @@ describe('interpreter', () => {
       let entryActionCalled = false;
       const machine = createMachine({
         initial: 'a',
-        context: {},
         states: {
           a: {
             on: {
@@ -679,7 +527,7 @@ describe('interpreter', () => {
 
       const service = interpret(machine).start();
       service.send({ type: 'NEXT' });
-      // service.stop(); // TODO: stop
+      service.stop();
 
       entryActionCalled = false;
 
@@ -687,305 +535,5 @@ describe('interpreter', () => {
 
       expect(entryActionCalled).toBe(false);
     });
-  });
-});
-
-describe('new', () => {
-  describe('machine', () => {
-    it('should transition correctly', () => {
-      const machine = createMachine({
-        initial: 'green',
-        context: {},
-        states: {
-          green: {
-            on: {
-              TIMER: 'yellow'
-            }
-          },
-          yellow: {},
-          red: {}
-        }
-      });
-
-      expect(
-        machine.transition(machine.initialState, { type: 'TIMER' }).value
-      ).toEqual('yellow');
-    });
-    it('should stay on the same state when there is no transition for the sent event', () => {
-      const machine = createMachine({
-        initial: 'green',
-        context: {},
-        states: {
-          green: {
-            on: {
-              TIMER: 'yellow'
-            }
-          },
-          yellow: {},
-          red: {}
-        }
-      });
-
-      expect(
-        machine.transition(machine.initialState, { type: 'NONEXISTANT' }).value
-      ).toEqual('green');
-    });
-    it('should stay on the same state when there is no transition for the sent event', () => {
-      const machine = createMachine({
-        initial: 'green',
-        context: {},
-        states: {
-          green: {
-            on: {
-              TIMER: 'yellow'
-            }
-          },
-          yellow: {},
-          red: {}
-        }
-      });
-
-      expect(
-        machine.transition(machine.initialState, { type: 'NONEXISTANT' }).value
-      ).toEqual('green');
-    });
-
-    it('should output actions', () => {
-      const machine = createMachine({
-        initial: 'green',
-        context: { number: 42 },
-        states: {
-          green: {
-            on: {
-              TIMER: {
-                target: 'yellow',
-                actions: 'greenToYellowAction'
-              }
-            },
-            exit: 'greenExit'
-          },
-          yellow: {
-            entry: 'yellowEntry'
-          },
-          red: {}
-        }
-      });
-
-      expect(
-        machine.transition(machine.initialState, { type: 'TIMER' }).actions
-      ).toEqual([
-        { type: 'greenExit' },
-        { type: 'greenToYellowAction' },
-        { type: 'yellowEntry' }
-      ]);
-    });
-
-    it('should work with guards', () => {
-      const machine = createMachine({
-        initial: 'inactive',
-        context: { num: 42 },
-        states: {
-          inactive: {
-            on: {
-              EVENT: [
-                {
-                  guard: (ctx) => ctx.num === 10,
-                  target: 'fail'
-                },
-                'active'
-              ],
-              FOO: {
-                guard: (_ctx) => true
-              }
-            }
-          },
-          active: {},
-          fail: {}
-        }
-      });
-
-      expect(
-        machine.transition(machine.initialState, { type: 'EVENT' }).value
-      ).toEqual('active');
-    });
-  });
-
-  it('should support invokes', (done) => {
-    const machine = createMachine({
-      initial: 'idle',
-      context: {
-        num: 42
-      },
-      states: {
-        idle: {
-          on: {
-            NEXT: {
-              target: 'loading'
-            }
-          }
-        },
-        loading: {
-          invoke: {
-            id: 'promise',
-            src: fromPromise<number>(
-              () =>
-                new Promise((res) => {
-                  setTimeout(() => {
-                    res(42);
-                  }, 1000);
-                })
-            ),
-            onDone: {
-              guard: (_, event) => event.data === 42,
-              target: 'success'
-            }
-          }
-        },
-        success: {}
-      }
-    });
-
-    const s = interpret(machine).start();
-
-    s.subscribe((state) => {
-      if (state.value === 'success') {
-        done();
-      }
-    });
-
-    s.send({ type: 'NEXT' });
-  });
-
-  it('should support invokes with dynamic source', (done) => {
-    const machine = createMachine({
-      initial: 'idle',
-      context: {},
-      states: {
-        idle: {
-          on: {
-            NEXT: {
-              target: 'loading'
-            }
-          }
-        },
-        loading: {
-          invoke: {
-            id: 'promise',
-            src: () =>
-              fromPromise(
-                () =>
-                  new Promise<number>((res) => {
-                    setTimeout(() => {
-                      res(42);
-                    }, 1000);
-                  })
-              ),
-            onDone: {
-              guard: (_, event) => event.data === 42,
-              target: 'success'
-            }
-          }
-        },
-        success: {}
-      }
-    });
-
-    const s = interpret(machine).start();
-
-    s.subscribe((state) => {
-      if (state.value === 'success') {
-        done();
-      }
-    });
-
-    s.send({ type: 'NEXT' });
-  });
-});
-
-it('type sanity check', () => {
-  createMachine({
-    context: {
-      num: 42
-    },
-    schema: {
-      event: {} as { type: 'EVENT' } | { type: 'WHATEVER' }
-    },
-    states: {
-      red: {},
-      green: {
-        on: {
-          EVENT: 'yellow'
-        }
-      },
-      yellow: {
-        entry: assign((ctx) => ({ num: ctx.num + 3 })),
-        on: {
-          WHATEVER: [
-            {
-              guard: (ctx) => ctx.num === 42,
-              target: 'green'
-            }
-          ]
-        }
-      }
-    },
-    initial: 'green',
-    on: {
-      EVENT: {
-        target: '.red'
-      }
-    }
-  });
-
-  createMachine({
-    initial: 'inactive',
-    context: { num: 42 },
-    states: {
-      inactive: {
-        entry: assign({ num: 2 }),
-        on: {
-          EVENT: [
-            {
-              guard: (ctx) => ctx.num === 20,
-              target: 'inactive'
-            },
-            'active'
-          ],
-          FOO: {
-            guard: (_ctx) => true
-          }
-        }
-      },
-      active: {},
-      fail: {}
-    }
-  });
-
-  createMachine({
-    id: 'light',
-    initial: 'green',
-    context: { count: 0, foo: 'bar', go: true },
-    states: {
-      green: {
-        entry: 'enterGreen',
-        exit: [
-          'exitGreen',
-          assign({ count: (ctx) => ctx.count + 1 }),
-          assign((ctx) => ({ count: ctx.count + 1 })),
-          assign({ foo: 'static' }),
-          assign({ foo: (ctx) => ctx.foo + '++' })
-        ],
-        on: {
-          TIMER: {
-            target: 'yellow',
-            actions: ['g-y 1', 'g-y 2']
-          }
-        }
-      },
-      yellow: {
-        entry: assign({ go: false })
-      },
-      red: {}
-    }
   });
 });
