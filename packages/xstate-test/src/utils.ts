@@ -1,5 +1,5 @@
 import {
-  SerializationOptions,
+  SerializationConfig,
   SerializedEvent,
   SerializedState,
   StatePath,
@@ -8,7 +8,7 @@ import {
 import { AnyState, EventObject } from 'xstate';
 import { TestMeta, TestPathResult } from './types';
 
-interface TestResultStringOptions extends SerializationOptions<any, any> {
+interface TestResultStringOptions extends SerializationConfig<any, any> {
   formatColor: (color: string, string: string) => string;
 }
 
