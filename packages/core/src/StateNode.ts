@@ -97,6 +97,7 @@ import {
   getConfiguration,
   has,
   getChildren,
+  getAllChildren,
   getAllStateNodes,
   isInFinalState,
   isLeafNode,
@@ -379,7 +380,7 @@ class StateNode<
     ): void {
       stateNode.order = order++;
 
-      for (const child of getChildren(stateNode)) {
+      for (const child of getAllChildren(stateNode)) {
         dfs(child);
       }
     }
