@@ -165,6 +165,7 @@ module.exports = {
           {
             title: '新闻和有用地址',
             children: [
+              ['https://statelyai.canny.io', 'Roadmap'],
               '/updates/',
               [
                 'https://github.com/statelyai/xstate/blob/main/CODE_OF_CONDUCT.md',
@@ -292,6 +293,7 @@ module.exports = {
           {
             title: 'Actualités et liens utiles',
             children: [
+              ['https://statelyai.canny.io', 'Roadmap'],
               '/fr/updates/',
               [
                 'https://github.com/statelyai/xstate/blob/main/CODE_OF_CONDUCT.md',
@@ -415,7 +417,7 @@ module.exports = {
       {
         title: 'News and Useful Links',
         children: [
-          '/roadmap/',
+          ['https://statelyai.canny.io', 'Roadmap'],
           '/updates/',
           [
             'https://github.com/statelyai/xstate/blob/main/CODE_OF_CONDUCT.md',
