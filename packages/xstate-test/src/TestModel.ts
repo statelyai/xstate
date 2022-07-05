@@ -9,6 +9,7 @@ import {
   TraversalOptions,
   traverseSimplePathsTo
 } from '@xstate/graph';
+import { joinPaths } from '@xstate/graph/src/graph';
 import { EventObject } from 'xstate';
 import { isStateLike } from 'xstate/lib/utils';
 import { deduplicatePaths } from './deduplicatePaths';
@@ -408,6 +409,21 @@ export class TestModel<TState, TEvent extends EventObject> {
     options?: Partial<TestModelOptions<TState, TEvent>>
   ): TestModelOptions<TState, TEvent> {
     return { ...this.defaultTraversalOptions, ...this.options, ...options };
+  }
+
+  public getShortestPathsFrom(
+    paths: Array<TestPath<TState, TEvent>>
+  ): Array<TestPath<TState, TEvent>> {
+    const resultPaths: any[] = [];
+
+    for (const path of paths) {
+      const shortestPaths = this.getShortestPaths({ initialState: path.state });
+      for (const shortestPath of shortestPaths) {
+        resultPaths.push(joinPaths(path, shortestPath));
+      }
+    }
+
+    return resultPaths;
   }
 }
 

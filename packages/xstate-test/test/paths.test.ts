@@ -255,3 +255,41 @@ describe('getShortestPathsTo', () => {
     expect(openPaths).toHaveLength(1);
   });
 });
+
+describe('getShortestPathsFrom', () => {
+  it('should get shortest paths from array of paths', () => {
+    const machine = createTestMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: { NEXT: 'b', OTHER: 'b', TO_C: 'c', TO_D: 'd', TO_E: 'e' }
+        },
+        b: {
+          on: {
+            TO_C: 'c',
+            TO_D: 'd'
+          }
+        },
+        c: {},
+        d: {},
+        e: {}
+      }
+    });
+    const model = createTestModel(machine);
+    const pathsToB = model.getShortestPathsTo((state) => state.matches('b'));
+
+    // a (NEXT) -> b
+    // a (OTHER) -> b
+    expect(pathsToB).toHaveLength(2);
+
+    const shortestPaths = model.getShortestPathsFrom(pathsToB);
+
+    // a (NEXT) -> b (TO_C) -> c
+    // a (OTHER) -> b (TO_C) -> c
+    // a (NEXT) -> b (TO_D) -> d
+    // a (OTHER) -> b (TO_D) -> d
+    expect(shortestPaths).toHaveLength(4);
+
+    expect(shortestPaths.every((path) => path.steps.length === 2)).toBeTruthy();
+  });
+});

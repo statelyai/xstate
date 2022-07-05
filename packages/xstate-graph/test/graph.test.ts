@@ -15,7 +15,11 @@ import {
   StatePath,
   StatePlan
 } from '../src/index';
-import { traverseShortestPlans, traverseSimplePlans } from '../src/graph';
+import {
+  joinPaths,
+  traverseShortestPlans,
+  traverseSimplePlans
+} from '../src/graph';
 import { assign } from 'xstate';
 import { flatten } from 'xstate/lib/utils';
 
@@ -638,3 +642,60 @@ it.each([getShortestPlans, getSimplePlans])(
     ).toBeTruthy();
   }
 );
+
+describe('joinPaths()', () => {
+  it('should join two paths', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: { NEXT: 'b' }
+        },
+        b: {
+          on: {
+            TO_C: 'c'
+          }
+        },
+        c: {}
+      }
+    });
+
+    const pathToB = getPathFromEvents(machine, [{ type: 'NEXT' }]);
+    const pathToC = getPathFromEvents(machine, [{ type: 'TO_C' }], {
+      initialState: pathToB.state
+    });
+    const pathToBAndC = joinPaths(pathToB, pathToC);
+
+    expect(pathToBAndC.steps.map((step) => step.event.type))
+      .toMatchInlineSnapshot(`
+      Array [
+        "NEXT",
+        "TO_C",
+      ]
+    `);
+  });
+
+  it('should not join two paths with mismatched source/target states', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: { NEXT: 'b' }
+        },
+        b: {
+          on: {
+            TO_C: 'c'
+          }
+        },
+        c: {}
+      }
+    });
+
+    const pathToB = getPathFromEvents(machine, [{ type: 'NEXT' }]);
+    const pathToCFromA = getPathFromEvents(machine, [{ type: 'TO_C' }]);
+
+    expect(() => {
+      joinPaths(pathToB, pathToCFromA);
+    }).toThrowError(/Paths cannot be joined/);
+  });
+});
