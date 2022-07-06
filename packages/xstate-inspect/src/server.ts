@@ -1,8 +1,14 @@
-import * as WebSocket from 'ws';
-import { ActorRef, EventObject, interpret, Interpreter } from 'xstate';
-import { toEventObject, toSCXMLEvent } from 'xstate/src/utils';
-
-import { createInspectMachine } from './inspectMachine';
+import { WebSocketServer } from 'ws';
+import {
+  ActorRef,
+  EventObject,
+  interpret,
+  Interpreter,
+  toEventObject,
+  toSCXMLEvent
+} from 'xstate';
+import { toActorRef } from 'xstate/actors';
+import { createInspectMachine, InspectMachineEvent } from './inspectMachine';
 import { Inspector, Replacer } from './types';
 import { stringify } from './utils';
 
@@ -37,7 +43,7 @@ function createDevTools() {
 }
 
 interface ServerInspectorOptions {
-  server: WebSocket.Server;
+  server: WebSocketServer;
   serialize?: Replacer | undefined;
 }
 
@@ -47,35 +53,28 @@ export function inspect(options: ServerInspectorOptions): Inspector {
   const inspectService = interpret(
     createInspectMachine(globalThis.__xstate__, options)
   ).start();
-  let client: ActorRef<any, undefined>;
+  let client: ActorRef<any, undefined> = toActorRef({
+    name: '@@xstate/ws-client',
+    send: (event: any) => {
+      server.clients.forEach((wsClient) => {
+        if (wsClient.readyState === wsClient.OPEN) {
+          wsClient.send(JSON.stringify(event));
+        }
+      });
+    },
+    subscribe: () => {
+      return { unsubscribe: () => void 0 };
+    },
+    getSnapshot: () => undefined
+  });
 
-  server.on('connection', function connection(wss) {
-    client = {
-      name: '@@xstate/ws-client',
-      send: (event: any) => {
-        server.clients.forEach((ws) => {
-          if (ws.readyState === ws.OPEN) {
-            ws.send(JSON.stringify(event));
-          }
-        });
-      },
-      subscribe: () => {
-        return { unsubscribe: () => void 0 };
-      },
-      getSnapshot: () => undefined
-    };
-
-    wss.on('message', function incoming(message) {
-      let msg: string;
-      if (typeof message === 'string') {
-        msg = message;
-      } else if (message instanceof Buffer) {
-        msg = message.toString('utf8');
-      } else {
+  server.on('connection', function connection(wsClient) {
+    wsClient.on('message', function incoming(data, isBinary) {
+      if (isBinary) {
         return;
       }
 
-      const jsonMessage = JSON.parse(msg);
+      const jsonMessage = JSON.parse(data.toString());
       inspectService.send({
         ...jsonMessage,
         client
@@ -87,14 +86,14 @@ export function inspect(options: ServerInspectorOptions): Inspector {
     inspectService.send({
       type: 'service.register',
       machine: JSON.stringify(service.machine),
-      state: JSON.stringify(service.state || service.initialState),
+      state: JSON.stringify(service.getSnapshot()),
       id: service.id,
       sessionId: service.sessionId
     });
 
     inspectService.send({
       type: 'service.event',
-      event: stringify((service.state || service.initialState)._event),
+      event: stringify(service.getSnapshot()._event),
       sessionId: service.sessionId
     });
 
@@ -129,19 +128,11 @@ export function inspect(options: ServerInspectorOptions): Inspector {
         sessionId: service.sessionId
       });
     });
-
-    service.subscribe((state) => {
-      inspectService.send({
-        type: 'service.state',
-        state: JSON.stringify(state),
-        sessionId: service.sessionId
-      });
-    });
   });
 
-  const inspector: Inspector = {
+  const inspector: Inspector = toActorRef({
     name: '@@xstate/inspector',
-    send: (event) => {
+    send: (event: InspectMachineEvent) => {
       inspectService.send(event);
     },
     subscribe: () => {
@@ -154,10 +145,11 @@ export function inspect(options: ServerInspectorOptions): Inspector {
       inspectService.stop();
     },
     getSnapshot: () => undefined
-  };
+  });
 
   server.on('close', () => {
     inspectService.stop();
+    server.clients.forEach((client) => client.terminate());
   });
 
   return inspector;

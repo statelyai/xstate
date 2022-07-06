@@ -1,12 +1,13 @@
 import { createMachine, interpret, State } from '../src/index';
 import { raise } from '../src/actions/raise';
 import { assign } from '../src/actions/assign';
-import { invokeMachine } from '../src/invoke';
 import { stateIn } from '../src/guards';
+import { fromMachine } from '../src/actors';
 
 const greetingContext = { hour: 10 };
 const greetingMachine = createMachine<typeof greetingContext>({
   key: 'greeting',
+  id: 'greeting',
   initial: 'pending',
   context: greetingContext,
   states: {
@@ -529,7 +530,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should work with transient transition on root', (done) => {
-    const machine = createMachine<any, any>({
+    const machine = createMachine<{ count: number }, any>({
       id: 'machine',
       initial: 'first',
       context: { count: 0 },
@@ -565,7 +566,7 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should work with transient transition on root (with `always`)', (done) => {
-    const machine = createMachine<any, any>({
+    const machine = createMachine<{ count: number }, any>({
       id: 'machine',
       initial: 'first',
       context: { count: 0 },
@@ -632,9 +633,9 @@ describe('transient states (eventless transitions)', () => {
       states: {
         active: {
           invoke: {
-            src: invokeMachine(timerMachine),
+            src: fromMachine(timerMachine),
             data: {
-              duration: (context) => context.customDuration
+              duration: (context: any) => context.customDuration
             }
           }
         }

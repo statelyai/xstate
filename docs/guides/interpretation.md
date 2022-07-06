@@ -139,7 +139,6 @@ The `.onTransition()` callback will not run between eventless ("always") transit
 Microsteps are the intermediate transitions between macrosteps.
 :::
 
-
 ## Starting and Stopping
 
 The service can be initialized (i.e., started) and stopped with `.start()` and `.stop()`. Calling `.start()` will immediately transition the service to its initial state. Calling `.stop()` will remove all listeners from the service, and do any listener cleanup, if applicable.
@@ -184,6 +183,62 @@ service.onTransition((state) => {
 
 service.start();
 ```
+
+## `waitFor`
+
+Lots of backend code relies on short-running processes, such as backend functions. This is especially true in serverless contexts, where code needs to boot up and shut down as fast as possible.
+
+A lot of this type of code relies on `async` functions:
+
+```ts
+const myFunc = async () => {};
+```
+
+The best pattern to use for async functions is `waitFor`, which gives you the ability to `await` a state machine being in a certain state.
+
+```ts
+import { interpret, createMachine } from 'xstate';
+import { waitFor } from 'xstate/lib/waitFor';
+
+const machine = createMachine({
+  initial: 'pending',
+  states: {
+    pending: {
+      after: {
+        3000: {
+          target: 'done'
+        }
+      }
+    },
+    done: {}
+  }
+});
+
+const myFunc = async () => {
+  const actor = interpret(machine).start();
+
+  const doneState = await waitFor(actor, (state) => state.matches('done'));
+
+  console.log(doneState.value); // 'done'
+};
+```
+
+In the example above, the machine waits for three seconds before moving on to its `done` state - at which point the `await` will resolve and the program will move on.
+
+By default, `waitFor` will throw an error after 10 seconds if the desired state is not reached. You can customize this timeout by passing `timeout` in the options:
+
+```ts {5-6}
+const myFunc = async () => {
+  const actor = interpret(machine).start();
+
+  const doneState = await waitFor(actor, (state) => state.matches('done'), {
+    // 20 seconds in ms
+    timeout: 20_000
+  });
+};
+```
+
+`waitFor` will also throw an error if it reaches a final state _other_ than the one you chose. For more information on final states, [click here](./final.md).
 
 ## Options
 

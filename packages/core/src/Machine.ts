@@ -1,25 +1,46 @@
 import {
-  MachineImplementations,
   MachineConfig,
   EventObject,
   AnyEventObject,
-  MachineContext
+  MachineContext,
+  ActorMap,
+  InternalMachineImplementations,
+  BaseActionObject
 } from './types';
+import {
+  TypegenConstraint,
+  TypegenDisabled,
+  ResolveTypegenMeta
+} from './typegenTypes';
 import { StateMachine } from './StateMachine';
 
 export function createMachine<
   TContext extends MachineContext,
-  TEvent extends EventObject = AnyEventObject
+  TEvent extends EventObject = AnyEventObject,
+  TActorMap extends ActorMap = ActorMap,
+  TTypesMeta extends TypegenConstraint = TypegenDisabled
 >(
-  config: MachineConfig<TContext, TEvent>,
-  options?: Partial<MachineImplementations<TContext, TEvent>>
-): StateMachine<TContext, TEvent>;
-export function createMachine<
-  TContext extends MachineContext,
-  TEvent extends EventObject = AnyEventObject
->(
-  definition: MachineConfig<TContext, TEvent>,
-  implementations?: Partial<MachineImplementations<TContext, TEvent>>
-): StateMachine<TContext, TEvent> {
-  return new StateMachine<TContext, TEvent>(definition, implementations);
+  config: MachineConfig<
+    TContext,
+    TEvent,
+    BaseActionObject,
+    TActorMap,
+    TTypesMeta
+  >,
+  implementations?: InternalMachineImplementations<
+    TContext,
+    TEvent,
+    ResolveTypegenMeta<TTypesMeta, TEvent, BaseActionObject, TActorMap>
+  >
+): StateMachine<
+  TContext,
+  TEvent,
+  BaseActionObject,
+  TActorMap,
+  ResolveTypegenMeta<TTypesMeta, TEvent, BaseActionObject, TActorMap>
+> {
+  return new StateMachine<any, any, any, any, any>(
+    config,
+    implementations as any
+  );
 }

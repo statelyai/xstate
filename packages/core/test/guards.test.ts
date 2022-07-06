@@ -1,4 +1,4 @@
-import { interpret, State, createMachine } from '../src';
+import { interpret, State, createMachine, actions } from '../src';
 import { and, not, or } from '../src/guards';
 
 describe('guard conditions', () => {
@@ -205,19 +205,22 @@ describe('guard conditions', () => {
               T1: [
                 {
                   target: 'B1',
-                  guard: (_state, _event, { state: s }) => s.matches('A.A1')
+                  guard: (_state: any, _event: any, { state: s }: any) =>
+                    s.matches('A.A1')
                 }
               ],
               T2: [
                 {
                   target: 'B2',
-                  guard: (_state, _event, { state: s }) => s.matches('A.A2')
+                  guard: (_state: any, _event: any, { state: s }: any) =>
+                    s.matches('A.A2')
                 }
               ],
               T3: [
                 {
                   target: 'B3',
-                  guard: (_state, _event, { state: s }) => s.matches('A.A3')
+                  guard: (_state: any, _event: any, { state: s }: any) =>
+                    s.matches('A.A3')
                 }
               ]
             }
@@ -250,6 +253,36 @@ describe('guard conditions', () => {
       A: 'A5',
       B: 'B4'
     });
+  });
+
+  it('should be able to check source state tags when checking', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            MACRO: 'b'
+          }
+        },
+        b: {
+          entry: actions.raise('MICRO'),
+          tags: 'theTag',
+          on: {
+            MICRO: {
+              guard: (_ctx: any, _event: any, { state }: any) =>
+                state.hasTag('theTag'),
+              target: 'c'
+            }
+          }
+        },
+        c: {}
+      }
+    });
+
+    const service = interpret(machine).start();
+    service.send('MACRO');
+
+    expect(service.state.value).toBe('c');
   });
 });
 
@@ -288,7 +321,7 @@ describe('custom guards', () => {
         custom: (ctx, e: Extract<Events, { type: 'EVENT' }>, meta) => {
           const { prop, compare, op } = meta.guard.params;
           if (op === 'greaterThan') {
-            return ctx[prop] + e.value > compare;
+            return ctx[prop as keyof typeof ctx] + e.value > compare;
           }
 
           return false;
@@ -434,11 +467,11 @@ describe('guards with child guards', () => {
                     },
                     { type: 'customGuard' }
                   ],
-                  predicate: (_, __, { guard }) => {
+                  predicate: (_: any, __: any, { guard }: any) => {
                     expect(guard.children).toHaveLength(2);
                     expect(
                       guard.children?.find(
-                        (childGuard) => childGuard.type === 'customGuard'
+                        (childGuard: any) => childGuard.type === 'customGuard'
                       )?.predicate
                     ).toBeInstanceOf(Function);
 

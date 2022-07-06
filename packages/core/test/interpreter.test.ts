@@ -10,9 +10,7 @@ import {
   StateValue,
   AnyEventObject,
   createMachine,
-  spawnPromise,
-  spawnMachine,
-  spawnObservable
+  AnyState
 } from '../src';
 import { State } from '../src/State';
 import { actionTypes } from '../src/actions';
@@ -21,13 +19,12 @@ import { stop } from '../src/actions/stop';
 import { log } from '../src/actions/log';
 import { isObservable } from '../src/utils';
 import { interval, from } from 'rxjs';
-import { map } from 'rxjs/operators';
 import {
-  invokeObservable,
-  invokeMachine,
-  invokePromise,
-  invokeActivity
-} from '../src/invoke';
+  fromCallback,
+  fromMachine,
+  fromObservable,
+  fromPromise
+} from '../src/actors';
 
 const lightMachine = createMachine({
   id: 'light',
@@ -83,11 +80,10 @@ describe('interpreter', () => {
       expect(service.initialState.value).toEqual(idMachine.initialState.value);
     });
 
-    it('initial state should be cached', (done) => {
-      let entryCalled = 0;
+    it('initially spawned actors should not be spawned when reading initial state', (done) => {
       let promiseSpawned = 0;
 
-      const machine = createMachine<any, any>({
+      const machine = createMachine({
         initial: 'idle',
         context: {
           actor: undefined
@@ -95,13 +91,14 @@ describe('interpreter', () => {
         states: {
           idle: {
             entry: assign({
-              actor: () => {
-                entryCalled++;
-                return spawnPromise(
-                  () =>
-                    new Promise(() => {
-                      promiseSpawned++;
-                    })
+              actor: (_, __, { spawn }) => {
+                return spawn(
+                  fromPromise(
+                    () =>
+                      new Promise(() => {
+                        promiseSpawned++;
+                      })
+                  )
                 );
               }
             })
@@ -111,7 +108,6 @@ describe('interpreter', () => {
 
       const service = interpret(machine);
 
-      expect(entryCalled).toEqual(0);
       expect(promiseSpawned).toEqual(0);
 
       const callInitialState = () => service.initialState;
@@ -121,15 +117,13 @@ describe('interpreter', () => {
 
       service.start();
 
-      expect(entryCalled).toEqual(1);
-
       setTimeout(() => {
         expect(promiseSpawned).toEqual(1);
         done();
       }, 100);
     });
 
-    // https://github.com/davidkpiano/xstate/issues/1174
+    // https://github.com/statelyai/xstate/issues/1174
     it('executes actions from a restored state', (done) => {
       const lightMachine = createMachine(
         {
@@ -226,8 +220,11 @@ describe('interpreter', () => {
 
   describe('send with delay', () => {
     it('can send an event after a delay', () => {
-      const currentStates: Array<State<any>> = [];
-      const listener = (state) => {
+      const currentStates: Array<AnyState> = [];
+
+      const service = interpret(lightMachine, {
+        clock: new SimulatedClock()
+      }).onTransition((state) => {
         currentStates.push(state);
 
         if (currentStates.length === 4) {
@@ -238,11 +235,7 @@ describe('interpreter', () => {
             'green'
           ]);
         }
-      };
-
-      const service = interpret(lightMachine, {
-        clock: new SimulatedClock()
-      }).onTransition(listener);
+      });
       const clock = service.clock as SimulatedClock;
       service.start();
 
@@ -524,10 +517,11 @@ describe('interpreter', () => {
       },
       {
         actors: {
-          myActivity: invokeActivity(() => {
-            activityState = 'on';
-            return () => (activityState = 'off');
-          })
+          myActivity: () =>
+            fromCallback(() => {
+              activityState = 'on';
+              return () => (activityState = 'off');
+            })
         }
       }
     );
@@ -571,10 +565,11 @@ describe('interpreter', () => {
         },
         {
           actors: {
-            myActivity: invokeActivity(() => {
-              stopActivityState = 'on';
-              return () => (stopActivityState = 'off');
-            })
+            myActivity: () =>
+              fromCallback(() => {
+                stopActivityState = 'on';
+                return () => (stopActivityState = 'off');
+              })
           }
         }
       );
@@ -612,13 +607,14 @@ describe('interpreter', () => {
         },
         {
           actors: {
-            blink: invokeActivity(() => {
-              activityActive = true;
+            blink: () =>
+              fromCallback(() => {
+                activityActive = true;
 
-              return () => {
-                activityActive = false;
-              };
-            })
+                return () => {
+                  activityActive = false;
+                };
+              })
           }
         }
       );
@@ -639,12 +635,11 @@ describe('interpreter', () => {
   });
 
   it('can cancel a delayed event', () => {
-    let currentState: State<any>;
-    const listener = (state) => (currentState = state);
+    let currentState: AnyState;
 
     const service = interpret(lightMachine, {
       clock: new SimulatedClock()
-    }).onTransition(listener);
+    }).onTransition((state) => (currentState = state));
     const clock = service.clock as SimulatedClock;
     service.start();
 
@@ -868,7 +863,7 @@ describe('interpreter', () => {
         foo: {
           invoke: {
             id: 'child',
-            src: invokeMachine(childMachine)
+            src: fromMachine(childMachine)
           }
         }
       },
@@ -1004,7 +999,7 @@ describe('interpreter', () => {
         }
       });
 
-      let state: State<any>;
+      let state: AnyState;
 
       interpret(raiseMachine)
         .onTransition((s) => {
@@ -1018,52 +1013,48 @@ describe('interpreter', () => {
   });
 
   describe('sendParent() event expressions', () => {
-    interface Ctx {
-      password: string;
-    }
-    interface Events {
-      type: 'NEXT';
-      password: string;
-    }
-    const childMachine = createMachine<Ctx>({
-      id: 'child',
-      initial: 'start',
-      context: {
-        password: 'unknown'
-      },
-      states: {
-        start: {
-          entry: sendParent((ctx) => {
-            return { type: 'NEXT', password: ctx.password };
-          })
-        }
-      }
-    });
-    // Ctx, any, Events, any
-    const parentMachine = createMachine<Ctx, Events>({
-      id: 'parent',
-      initial: 'start',
-      states: {
-        start: {
-          invoke: {
-            id: 'child',
-            src: invokeMachine(childMachine),
-            data: { password: 'foo' }
-          },
-          on: {
-            NEXT: {
-              target: 'finish',
-              guard: (_, e) => e.password === 'foo'
-            }
-          }
-        },
-        finish: {
-          type: 'final'
-        }
-      }
-    });
-
     it('should resolve sendParent event expressions', (done) => {
+      const childMachine = createMachine({
+        id: 'child',
+        initial: 'start',
+        context: {
+          password: 'unknown'
+        },
+        states: {
+          start: {
+            entry: sendParent((ctx) => {
+              return { type: 'NEXT', password: ctx.password };
+            })
+          }
+        }
+      });
+
+      const parentMachine = createMachine<
+        any,
+        { type: 'NEXT'; password: string }
+      >({
+        id: 'parent',
+        initial: 'start',
+        states: {
+          start: {
+            invoke: {
+              id: 'child',
+              src: () =>
+                fromMachine(childMachine.withContext({ password: 'foo' }))
+            },
+            on: {
+              NEXT: {
+                target: 'finish',
+                guard: (_, e) => e.password === 'foo'
+              }
+            }
+          },
+          finish: {
+            type: 'final'
+          }
+        }
+      });
+
       interpret(parentMachine)
         .onTransition((state) => {
           if (state.matches('start')) {
@@ -1077,155 +1068,6 @@ describe('interpreter', () => {
     });
   });
 
-  describe('send() batch events', () => {
-    const countMachine = createMachine<{ count: number }>({
-      id: 'count',
-      initial: 'even',
-      context: { count: 0 },
-      states: {
-        even: {
-          exit: [assign({ count: (ctx) => ctx.count + 1 }), 'evenAction'],
-          on: { INC: 'odd' }
-        },
-        odd: {
-          exit: [assign({ count: (ctx) => ctx.count + 1 }), 'oddAction'],
-          on: { INC: 'even' }
-        }
-      }
-    });
-
-    const countMachineNoActions = createMachine<{ count: number }>({
-      id: 'count',
-      initial: 'even',
-      context: { count: 0 },
-      states: {
-        even: {
-          on: { ODD: 'odd' }
-        },
-        odd: {
-          on: { EVEN: 'even' }
-        }
-      }
-    });
-
-    it('should batch send events', (done) => {
-      let transitions = 0;
-      const evenCounts: number[] = [];
-      const oddCounts: number[] = [];
-      const countService = interpret(
-        countMachine.provide({
-          actions: {
-            evenAction: (ctx) => {
-              evenCounts.push(ctx.count);
-            },
-            oddAction: (ctx) => {
-              oddCounts.push(ctx.count);
-            }
-          }
-        })
-      )
-        .onTransition((state) => {
-          transitions++;
-
-          switch (transitions) {
-            // initial state
-            case 1:
-              expect(state.context).toEqual({ count: 0 });
-              break;
-            // transition with batched events
-            case 2:
-              expect(state.value).toEqual('even');
-              expect(state.context).toEqual({ count: 4 });
-              expect(state.actions.map((a) => a.type)).toEqual([
-                actionTypes.assign,
-                'evenAction',
-                actionTypes.assign,
-                'oddAction',
-                actionTypes.assign,
-                'evenAction',
-                actionTypes.assign,
-                'oddAction'
-              ]);
-
-              expect(evenCounts).toEqual([1, 3]);
-              expect(oddCounts).toEqual([2, 4]);
-              done();
-              break;
-          }
-        })
-        .start();
-
-      countService.batch(['INC', 'INC', { type: 'INC' }, 'INC']);
-    });
-
-    it('state changed property should be true if any intermediate state is changed', (done) => {
-      let transitions = 0;
-
-      const countService = interpret(countMachine)
-        .onTransition((state) => {
-          transitions++;
-
-          if (transitions === 2) {
-            expect(state.changed).toBe(true);
-            done();
-          }
-        })
-        .start();
-
-      countService.batch(['INC', 'bar']);
-    });
-
-    it('state changed property should be false if no intermediate state is changed', (done) => {
-      let transitions = 0;
-
-      const countService = interpret(countMachine)
-        .onTransition((state) => {
-          transitions++;
-          if (transitions === 2) {
-            expect(state.changed).toBe(false);
-            done();
-          }
-        })
-        .start();
-
-      countService.batch(['foo', 'bar']);
-    });
-
-    it('state changed property should be true if a subsequent send call changes the state', (done) => {
-      let transitions = 0;
-
-      const countService = interpret(countMachineNoActions)
-        .onTransition((state) => {
-          transitions++;
-          if (transitions === 3) {
-            expect(state.changed).toBe(true);
-            done();
-          }
-        })
-        .start();
-
-      countService.batch(['ODD']);
-      countService.batch(['EVEN']);
-    });
-
-    it('state changed property should be false if a subsequent send call did not actually change the state', (done) => {
-      let transitions = 0;
-
-      const countService = interpret(countMachineNoActions)
-        .onTransition((state) => {
-          transitions++;
-          if (transitions === 3) {
-            expect(state.changed).toBe(false);
-            done();
-          }
-        })
-        .start();
-
-      countService.batch(['ODD']);
-      countService.batch(['ODD']);
-    });
-  });
-
   describe('send()', () => {
     const sendMachine = createMachine({
       id: 'send',
@@ -1235,7 +1077,7 @@ describe('interpreter', () => {
           on: {
             EVENT: {
               target: 'active',
-              guard: (_, e: any) => e.id === 42 // TODO: fix unknown event type
+              guard: (_: any, e: any) => e.id === 42 // TODO: fix unknown event type
             },
             ACTIVATE: 'active'
           }
@@ -1674,9 +1516,10 @@ describe('interpreter', () => {
         },
         {
           actors: {
-            testService: invokeActivity(() => {
-              // nothing
-            })
+            testService: () =>
+              fromCallback(() => {
+                // nothing
+              })
           }
         }
       );
@@ -1707,7 +1550,7 @@ describe('interpreter', () => {
           active: {
             invoke: {
               id: 'childActor',
-              src: invokeMachine(childMachine)
+              src: fromMachine(childMachine)
             },
             on: {
               FIRED: 'success'
@@ -1742,14 +1585,15 @@ describe('interpreter', () => {
           active: {
             invoke: {
               id: 'childActor',
-              src: invokePromise(
-                () =>
-                  new Promise((res) => {
-                    setTimeout(() => {
-                      res(42);
-                    }, 100);
-                  })
-              ),
+              src: () =>
+                fromPromise(
+                  () =>
+                    new Promise((res) => {
+                      setTimeout(() => {
+                        res(42);
+                      }, 100);
+                    })
+                ),
               onDone: [
                 {
                   target: 'success',
@@ -1796,15 +1640,11 @@ describe('interpreter', () => {
           active: {
             invoke: {
               id: 'childActor',
-              src: invokeObservable(() =>
-                interval$.pipe(map((value) => ({ type: 'FIRED', value })))
-              )
-            },
-            on: {
-              FIRED: {
+              src: fromObservable(() => interval$),
+              onSnapshot: {
                 target: 'success',
-                guard: (_, e: AnyEventObject) => {
-                  return e.value === 3;
+                guard: (_: unknown, e: AnyEventObject) => {
+                  return e.data === 3;
                 }
               }
             }
@@ -1837,12 +1677,13 @@ describe('interpreter', () => {
         }
       });
 
-      const formMachine = createMachine<any, any>({
+      const formMachine = createMachine({
         id: 'form',
         initial: 'idle',
         context: {},
         entry: assign({
-          firstNameRef: () => spawnMachine(childMachine, 'child')
+          firstNameRef: (_, __, { spawn }) =>
+            spawn(fromMachine(childMachine), 'child')
         }),
         states: {
           idle: {}
@@ -1865,23 +1706,26 @@ describe('interpreter', () => {
         }
       });
 
-      const parentMachine = createMachine<any>({
+      const parentMachine = createMachine({
         id: 'form',
         initial: 'present',
         context: {},
         entry: assign({
-          machineRef: () => spawnMachine(childMachine, 'machineChild'),
-          promiseRef: () =>
-            spawnPromise(
-              () =>
-                new Promise(() => {
-                  // ...
-                }),
+          machineRef: (_, __, { spawn }) =>
+            spawn(fromMachine(childMachine), 'machineChild'),
+          promiseRef: (_, __, { spawn }) =>
+            spawn(
+              fromPromise(
+                () =>
+                  new Promise(() => {
+                    // ...
+                  })
+              ),
               'promiseChild'
             ),
-          observableRef: () =>
-            spawnObservable(
-              () => interval(1000).pipe(map((i) => ({ type: 'INTERVAL', i }))),
+          observableRef: (_, __, { spawn }) =>
+            spawn(
+              fromObservable(() => interval(1000)),
               'observableChild'
             )
         }),

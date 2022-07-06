@@ -2,12 +2,11 @@ name: Bug Report
 description: File a bug report
 title: "Bug: "
 labels: [bug, triage]
-assignees:
 body:
   - type: markdown
     attributes:
       value: |
-        Report an issue with XState or any XState-related tooling.
+        Report an issue with XState or XState tooling within this repo.
   - type: textarea
     id: description
     attributes:

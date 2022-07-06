@@ -6,7 +6,7 @@ import {
   State,
   createMachine
 } from '../src';
-import { invokeMachine } from '../src/invoke';
+import { fromMachine } from '../src/actors';
 import { ActorRef } from '../src/types';
 
 interface CounterContext {
@@ -324,10 +324,28 @@ describe('assign meta', () => {
     expect(nextState.context).toEqual({ count: 5 });
   });
 
-  it('should not provide the state from initial state', () => {
-    const { initialState } = machine;
+  it('should provide the pre-initial state when executing initial state actions', () => {
+    let receivedCount = Infinity;
 
-    expect(initialState.context).toEqual({ count: 1 });
+    const machine = createMachine<{ count: number }>({
+      id: 'assign',
+      initial: 'start',
+      context: { count: 101 },
+      states: {
+        start: {
+          entry: assign({
+            count: (_, __, { state }) => {
+              receivedCount = state.context.count;
+              return 0;
+            }
+          })
+        }
+      }
+    });
+
+    interpret(machine).start();
+
+    expect(receivedCount).toBe(101);
   });
 
   it('should provide meta._event to assigner', () => {
@@ -363,7 +381,7 @@ describe('assign meta', () => {
         foo: {
           invoke: {
             id: 'child',
-            src: invokeMachine(childMachine)
+            src: fromMachine(childMachine)
           }
         }
       },

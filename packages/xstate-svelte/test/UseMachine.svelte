@@ -1,17 +1,17 @@
 <script lang="ts">
-  export let persistedState: State<any> | undefined = undefined;
+  export let persistedState: AnyState | undefined = undefined;
 
   import { useMachine } from '../src';
   import { fetchMachine } from './fetchMachine';
-  import type { State } from 'xstate';
-  import { invokePromise } from 'xstate/invoke';
+  import type { AnyState } from 'xstate';
+  import { fromPromise } from 'xstate/actors';
 
   const onFetch = () =>
     new Promise((res) => setTimeout(() => res('some data'), 50));
 
   const { state, send } = useMachine(fetchMachine, {
     actors: {
-      fetchData: invokePromise(onFetch)
+      fetchData: () => fromPromise(onFetch)
     },
     state: persistedState
   });

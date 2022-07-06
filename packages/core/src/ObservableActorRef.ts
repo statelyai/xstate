@@ -1,46 +1,56 @@
-import { EventObject, ActorRef, Behavior } from './types';
-import { ActorContext, startSignal, stopSignal } from './behaviors';
-import { Actor } from './actor';
-import { CapturedState } from './capturedState';
-import { toSCXMLEvent } from './utils';
-import { SCXML } from '.';
+import {
+  EventObject,
+  ActorRef,
+  Behavior,
+  SCXML,
+  ActorContext,
+  Observer
+} from './types';
+import { symbolObservable, toObserver, toSCXMLEvent } from './utils';
+import { Mailbox } from './Mailbox';
+import { LifecycleSignal, startSignal, stopSignal } from './actors';
 
-export class ObservableActorRef<TEvent extends EventObject, TEmitted>
-  implements ActorRef<TEvent, TEmitted> {
-  private current: TEmitted;
-  public deferred = true;
-  private context: ActorContext<TEvent, TEmitted>;
-  private actor: Actor<TEvent, TEmitted>;
-  public name: string;
+export class ObservableActorRef<TEvent extends EventObject, TSnapshot>
+  implements ActorRef<TEvent, TSnapshot> {
+  private current: TSnapshot;
+  private context: ActorContext<TEvent, TSnapshot>;
+  private mailbox = new Mailbox(this._process.bind(this));
+  private _observers = new Set<Observer<TSnapshot>>();
 
-  constructor(behavior: Behavior<TEvent, TEmitted>, name: string) {
-    this.name = name;
+  constructor(
+    private behavior: Behavior<TEvent, TSnapshot>,
+    public name: string
+  ) {
     this.context = {
       self: this,
       name: this.name,
-      observers: new Set(),
-      parent: CapturedState.current?.actorRef,
       _event: toSCXMLEvent({ type: 'xstate.init' }) as SCXML.Event<TEvent> // TODO: fix
     };
-    this.actor = new Actor(behavior, name, this.context);
-    this.current = this.actor.current;
+    this.current = this.behavior.initialState;
   }
   public start() {
-    this.deferred = false;
-    this.actor.receive(startSignal);
+    this.mailbox.prepend(startSignal);
+    this.mailbox.start();
 
     return this;
   }
   public stop() {
-    this.actor.receive(stopSignal);
-
+    this.mailbox.clear();
+    this.mailbox.enqueue(stopSignal);
     return this;
   }
   public subscribe(observer) {
-    return this.actor.subscribe(observer);
+    const resolved = toObserver(observer);
+    this._observers.add(resolved);
+
+    return {
+      unsubscribe: () => {
+        this._observers.delete(resolved);
+      }
+    };
   }
   public send(event) {
-    this.actor.receive(event);
+    this.receive(event);
   }
   public toJSON() {
     return {
@@ -49,6 +59,33 @@ export class ObservableActorRef<TEvent extends EventObject, TEmitted>
     };
   }
   public getSnapshot() {
-    return this.actor.current;
+    return this.current;
+  }
+  public [symbolObservable]() {
+    return this;
+  }
+  private receive(event: TEvent | LifecycleSignal) {
+    this.mailbox.enqueue(event);
+  }
+  private _process(event: TEvent | LifecycleSignal) {
+    this.context._event =
+      typeof event.type !== 'string'
+        ? (event as LifecycleSignal)
+        : toSCXMLEvent(event as TEvent);
+
+    const previous = this.current;
+
+    this.current = this.behavior.transition(
+      this.current,
+      typeof this.context._event.type !== 'string'
+        ? (this.context._event as LifecycleSignal)
+        : (this.context._event as SCXML.Event<TEvent>).data,
+      this.context
+    );
+
+    if (previous !== this.current) {
+      const current = this.current;
+      this._observers.forEach((observer) => observer.next?.(current));
+    }
   }
 }

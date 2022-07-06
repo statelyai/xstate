@@ -1,9 +1,10 @@
 import * as React from 'react';
 import { useMachine } from '../src/fsm';
 import { createMachine, assign, interpret, StateMachine } from '@xstate/fsm';
-import { render, fireEvent, waitForElement } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
+import { describeEachReactMode } from './utils';
 
-describe('useMachine hook for fsm', () => {
+describeEachReactMode('useMachine, fsm (%s)', ({ suiteKey, render }) => {
   const context = {
     data: undefined
   };
@@ -59,14 +60,12 @@ describe('useMachine hook for fsm', () => {
   };
 
   it('should work with the useMachine hook', async () => {
-    const { getByText, getByTestId } = render(
-      <Fetcher onFetch={() => new Promise((res) => res('fake data'))} />
-    );
-    const button = getByText('Fetch');
+    render(<Fetcher onFetch={() => new Promise((res) => res('fake data'))} />);
+    const button = screen.getByText('Fetch');
     fireEvent.click(button);
-    getByText('Loading...');
-    await waitForElement(() => getByText(/Success/));
-    const dataEl = getByTestId('data');
+    screen.getByText('Loading...');
+    await screen.findByText(/Success/);
+    const dataEl = screen.getByTestId('data');
     expect(dataEl.textContent).toBe('fake data');
   });
 
@@ -127,10 +126,10 @@ describe('useMachine hook for fsm', () => {
       );
     };
 
-    const { getByTestId } = render(<Toggle />);
+    render(<Toggle />);
 
-    const button = getByTestId('button');
-    const extButton = getByTestId('extbutton');
+    const button = screen.getByTestId('button');
+    const extButton = screen.getByTestId('extbutton');
     fireEvent.click(extButton);
 
     fireEvent.click(button);
@@ -262,7 +261,7 @@ describe('useMachine hook for fsm', () => {
     expect(flag).toBe(true);
   });
 
-  // Example from: https://github.com/davidkpiano/xstate/discussions/1944
+  // Example from: https://github.com/statelyai/xstate/discussions/1944
   it('fsm useMachine service should be typed correctly', () => {
     interface Context {
       count?: number;
@@ -314,5 +313,123 @@ describe('useMachine hook for fsm', () => {
     };
 
     noop(App);
+  });
+
+  it('actions created by a layout effect should access the latest closure values', () => {
+    const actual: number[] = [];
+
+    const machine = createMachine({
+      initial: 'foo',
+      states: {
+        foo: {
+          on: {
+            EXEC_ACTION: {
+              actions: 'recordProp'
+            }
+          }
+        }
+      }
+    });
+
+    const App = ({ value }: { value: number }) => {
+      const [, send] = useMachine(machine, {
+        actions: {
+          recordProp: () => actual.push(value)
+        }
+      });
+
+      React.useLayoutEffect(() => {
+        send('EXEC_ACTION');
+      }, [value]);
+
+      return null;
+    };
+
+    const { rerender } = render(<App value={1} />);
+
+    expect(actual).toEqual(suiteKey === 'strict' ? [1, 1] : [1]);
+
+    actual.length = 0;
+    rerender(<App value={42} />);
+
+    expect(actual).toEqual([42]);
+  });
+
+  it('child component should be able to send an event to a parent immediately in an effect', (done) => {
+    const machine = createMachine<any, { type: 'FINISH' }>({
+      initial: 'active',
+      states: {
+        active: {
+          on: { FINISH: 'success' }
+        },
+        success: {}
+      }
+    });
+
+    const ChildTest: React.FC<{ send: any }> = ({ send }) => {
+      // This will send an event to the parent service
+      // BEFORE the service is ready.
+      React.useLayoutEffect(() => {
+        send({ type: 'FINISH' });
+      }, []);
+
+      return null;
+    };
+
+    const Test = () => {
+      const [state, send] = useMachine(machine);
+
+      if (state.matches('success')) {
+        done();
+      }
+
+      return <ChildTest send={send} />;
+    };
+
+    render(<Test />);
+  });
+
+  it('should not execute actions (side-effects) in render', () => {
+    let entryActionCalled = false;
+
+    const machine = createMachine({
+      initial: 'init',
+      states: {
+        init: {
+          entry: () => (entryActionCalled = true)
+        }
+      }
+    });
+
+    const Test = () => {
+      useMachine(machine);
+      expect(entryActionCalled).toBe(false);
+      return null;
+    };
+
+    render(<Test />);
+  });
+
+  it('should only execute actions once when mounting', () => {
+    let entryActionCalled = 0;
+
+    const machine = createMachine({
+      initial: 'init',
+      states: {
+        init: {
+          entry: () => entryActionCalled++
+        }
+      }
+    });
+
+    const Test = () => {
+      useMachine(machine);
+      return null;
+    };
+
+    render(<Test />);
+
+    // in StrictMode this would return 2 if we wouldn't be calling `.start(persistedState)` in an effect
+    expect(entryActionCalled).toEqual(1);
   });
 });

@@ -5,12 +5,13 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
 import { ActorRef } from 'xstate';
+import { toActorRef } from 'xstate/actors';
 import { useActor } from '../src';
-const simpleActor: ActorRef<any, number> & { latestValue: number } = {
+const simpleActor: ActorRef<any, number> = toActorRef({
   send: () => {
     /* ... */
   },
-  latestValue: 42,
+  getSnapshot: () => 42,
   subscribe: () => {
     return {
       unsubscribe: () => {
@@ -18,11 +19,11 @@ const simpleActor: ActorRef<any, number> & { latestValue: number } = {
       }
     };
   }
-};
+});
 
 export default defineComponent({
   setup() {
-    const { state } = useActor(simpleActor, (a) => a.latestValue);
+    const { state } = useActor(simpleActor);
     return { state };
   }
 });

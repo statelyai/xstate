@@ -86,40 +86,13 @@ A [React hook](https://reactjs.org/hooks) that interprets the given `machine` an
   );
   ```
 
-- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `immediate`, `context`, `state`.
+- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `immediate`, `context`, `state`. If the machine already contains any of these options, they will be merged, with these options taking precedence.
 
 **Returns** a tuple of `[state, send, service]`:
 
 - `state` - Represents the current state of the machine as an XState `State` object.
 - `send` - A function that sends events to the running service.
 - `service` - The created service.
-
-### `useService(service)`
-
-::: warning Deprecated
-
-In the next major version, `useService(service)` will be replaced with `useActor(service)`. Prefer using the `useActor(service)` hook for services instead, since services are also actors.
-
-Also, keep in mind that only a single argument (the event object) can be sent to `send(eventObject)` from `useActor(...)`. When migrating to `useActor(...)`, refactor `send(...)` calls to use only a single event object:
-
-```diff
-const [state, send] = useActor(service);
--send('CLICK', { x: 0, y: 3 });
-+send({ type: 'CLICK', x: 0, y: 3 });
-```
-
-:::
-
-A [React hook](https://reactjs.org/hooks) that subscribes to state changes from an existing [service](https://xstate.js.org/docs/guides/interpretation.html).
-
-**Arguments**
-
-- `service` - An [XState service](https://xstate.js.org/docs/guides/interpretation.html).
-
-**Returns** a tuple of `[state, send]`:
-
-- `state` - Represents the current state of the service as an XState `State` object.
-- `send` - A function that sends events to the running service.
 
 ### `useActor(actor, getSnapshot?)`
 
@@ -154,7 +127,7 @@ _Since 1.3.0_
 **Arguments**
 
 - `machine` - An [XState machine](https://xstate.js.org/docs/guides/machines.html) or a function that lazily returns a machine.
-- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `immediate`, `context`, `state`.
+- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `immediate`, `context`, `state`. If the machine already contains any of these options, they will be merged, with these options taking precedence.
 - `observer` (optional) - an observer or listener that listens to state updates:
   - an observer (e.g., `{ next: (state) => {/* ... */} }`)
   - or a listener (e.g., `(state) => {/* ... */}`)
@@ -251,52 +224,6 @@ const App = ({ service }) => {
 };
 ```
 
-### `asEffect(action)`
-
-Ensures that the `action` is executed as an effect in `useEffect`, rather than being immediately executed.
-
-**Arguments**
-
-- `action` - An action function (e.g., `(context, event) => { alert(context.message) })`)
-
-**Returns** a special action function that wraps the original so that `useMachine` knows to execute it in `useEffect`.
-
-**Example**
-
-```jsx
-const machine = createMachine({
-  initial: 'focused',
-  states: {
-    focused: {
-      entry: 'focus'
-    }
-  }
-});
-
-const Input = () => {
-  const inputRef = useRef(null);
-  const [state, send] = useMachine(machine, {
-    actions: {
-      focus: asEffect((context, event) => {
-        inputRef.current && inputRef.current.focus();
-      })
-    }
-  });
-
-  return <input ref={inputRef} />;
-};
-```
-
-### `asLayoutEffect(action)`
-
-Ensures that the `action` is executed as an effect in `useLayoutEffect`, rather than being immediately executed.
-
-**Arguments**
-
-- `action` - An action function (e.g., `(context, event) => { alert(context.message) })`)
-
-**Returns** a special action function that wraps the original so that `useMachine` knows to execute it in `useLayoutEffect`.
-
 ### `useMachine(machine)` with `@xstate/fsm`
 
 A [React hook](https://reactjs.org/hooks) that interprets the given finite state `machine` from [`@xstate/fsm`] and starts a service that runs for the lifetime of the component.
@@ -385,7 +312,7 @@ Example: the `'fetchData'` service and `'notifySuccess'` action are both configu
 
 ```js
 import { createMachine } from 'xstate';
-import { invokePromise } from 'xstate/invoke';
+import { fromPromise } from 'xstate/actors';
 
 const fetchMachine = createMachine({
   id: 'fetch',
@@ -433,9 +360,10 @@ const Fetcher = ({ onResolve }) => {
       notifySuccess: (ctx) => onResolve(ctx.data)
     },
     actors: {
-      fetchData: invokePromise((_, event) =>
-        fetch(`some/api/${event.query}`).then((res) => res.json())
-      )
+      fetchData: (_, event) =>
+        fromPromise(() =>
+          fetch(`some/api/${event.query}`).then((res) => res.json())
+        )
     }
   });
 
@@ -561,18 +489,6 @@ useEffect(() => {
   return subscription.unsubscribe;
 }, [service]); // note: service should never change
 ```
-
-## Migration from 0.x
-
-- For spawned actors created using `invoke` or `spawn(...)`, use the `useActor()` hook instead of `useService()`:
-
-  ```diff
-  -import { useService } from '@xstate/react';
-  +import { useActor } from '@xstate/react';
-
-  -const [state, send] = useService(someActor);
-  +const [state, send] = useActor(someActor);
-  ```
 
 ## Resources
 

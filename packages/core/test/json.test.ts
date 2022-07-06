@@ -94,7 +94,7 @@ describe('json', () => {
 
     try {
       validate(json);
-    } catch (err) {
+    } catch (err: any) {
       throw new Error(JSON.stringify(JSON.parse(err.message), null, 2));
     }
 
@@ -138,6 +138,47 @@ describe('json', () => {
     const machineObject = JSON.parse(machineJSON);
 
     const revivedMachine = createMachine(machineObject);
+
+    expect(revivedMachine.states.active.transitions).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "actions": Array [],
+          "event": "done.invoke.active:invocation[0]",
+          "eventType": "done.invoke.active:invocation[0]",
+          "guard": undefined,
+          "internal": false,
+          "source": "#active",
+          "target": Array [
+            "#(machine).foo",
+          ],
+          "toJSON": [Function],
+        },
+        Object {
+          "actions": Array [],
+          "event": "error.platform.active:invocation[0]",
+          "eventType": "error.platform.active:invocation[0]",
+          "guard": undefined,
+          "internal": false,
+          "source": "#active",
+          "target": Array [
+            "#(machine).bar",
+          ],
+          "toJSON": [Function],
+        },
+        Object {
+          "actions": Array [],
+          "event": "EVENT",
+          "eventType": "EVENT",
+          "guard": undefined,
+          "internal": false,
+          "source": "#active",
+          "target": Array [
+            "#(machine).foo",
+          ],
+          "toJSON": [Function],
+        },
+      ]
+    `);
 
     // 1. onDone
     // 2. onError

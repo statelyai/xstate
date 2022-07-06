@@ -70,6 +70,7 @@ export class TestModel<TTestContext, TContext extends MachineContext> {
   public getShortestPathPlans(
     options?: Partial<ValueAdjMapOptions<TContext, any>>
   ): Array<TestPlan<TTestContext, TContext>> {
+    // @ts-ignore (excessive stack depth)
     const shortestPaths = getShortestPaths(this.machine, {
       ...options,
       events: getEventSamples<TTestContext>(this.options.events)

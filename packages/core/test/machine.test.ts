@@ -283,7 +283,7 @@ describe('machine', () => {
       }
     };
 
-    it.skip('context from a function should be lazily evaluated', () => {
+    it('context from a function should be lazily evaluated', () => {
       const testMachine1 = createMachine(testMachineConfig);
       const testMachine2 = createMachine(testMachineConfig);
 
@@ -376,6 +376,51 @@ describe('machine', () => {
       const resolvedState = machine.resolveState(tempState);
 
       expect(resolvedState.done).toBe(true);
+    });
+
+    it('should resolve from a state config object', () => {
+      const machine = createMachine({
+        initial: 'foo',
+        states: {
+          foo: {
+            on: { NEXT: 'bar' }
+          },
+          bar: {
+            type: 'final'
+          }
+        }
+      });
+
+      const barState = machine.transition(undefined, 'NEXT');
+
+      const jsonBarState = JSON.parse(JSON.stringify(barState));
+
+      expect(machine.resolveState(jsonBarState).matches('bar')).toBeTruthy();
+    });
+
+    it('should terminate on a resolved final state', (done) => {
+      const machine = createMachine({
+        initial: 'foo',
+        states: {
+          foo: {
+            on: { NEXT: 'bar' }
+          },
+          bar: {
+            type: 'final'
+          }
+        }
+      });
+
+      const nextState = machine.transition(undefined, 'NEXT');
+
+      const persistedState = JSON.stringify(nextState);
+
+      const service = interpret(machine).onDone(() => {
+        // Should reach done state immediately
+        done();
+      });
+
+      service.start(JSON.parse(persistedState!));
     });
   });
 

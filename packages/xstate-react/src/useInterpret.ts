@@ -1,53 +1,30 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 import {
+  AnyInterpreter,
+  AnyStateMachine,
+  AreAllImplementationsAssumedToBeProvided,
+  InternalMachineImplementations,
   interpret,
-  EventObject,
-  StateMachine,
-  State,
-  Interpreter,
+  InterpreterFrom,
   InterpreterOptions,
+  InterpreterStatus,
   MachineImplementations,
-  Observer
+  Observer,
+  State,
+  StateFrom,
+  toObserver
 } from 'xstate';
-import { MachineContext } from '../../core/src';
 import { MaybeLazy } from './types';
 import useConstant from './useConstant';
 import { UseMachineOptions } from './useMachine';
-import { useReactEffectActions } from './useReactEffectActions';
 
-// copied from core/src/utils.ts
-// it avoids a breaking change between this package and XState which is its peer dep
-function toObserver<T>(
-  nextHandler: Observer<T> | ((value: T) => void),
-  errorHandler?: (error: any) => void,
-  completionHandler?: () => void
-): Observer<T> {
-  if (typeof nextHandler === 'object') {
-    return nextHandler;
-  }
-
-  const noop = () => void 0;
-
-  return {
-    next: nextHandler,
-    error: errorHandler || noop,
-    complete: completionHandler || noop
-  };
-}
-
-export function useInterpret<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  getMachine: MaybeLazy<StateMachine<TContext, TEvent>>,
+export function useIdleInterpreter(
+  getMachine: MaybeLazy<AnyStateMachine>,
   options: Partial<InterpreterOptions> &
-    Partial<UseMachineOptions<TContext, TEvent>> &
-    Partial<MachineImplementations<TContext, TEvent>> = {},
-  observerOrListener?:
-    | Observer<State<TContext, TEvent>>
-    | ((value: State<TContext, TEvent>) => void)
-): Interpreter<TContext, TEvent> {
+    Partial<UseMachineOptions<any, never>> &
+    Partial<MachineImplementations<any, never>>
+): AnyInterpreter {
   const machine = useConstant(() => {
     return typeof getMachine === 'function' ? getMachine() : getMachine;
   });
@@ -68,9 +45,9 @@ export function useInterpret<
 
   const {
     context,
+    actors,
     guards,
     actions,
-    actors,
     delays,
     state: rehydratedState,
     ...interpreterOptions
@@ -84,34 +61,10 @@ export function useInterpret<
       actors,
       delays
     };
-    const machineWithConfig = machine.provide(machineConfig);
+    const machineWithConfig = machine.provide(machineConfig as any);
 
-    return interpret(machineWithConfig, {
-      deferEvents: true,
-      ...interpreterOptions
-    });
+    return interpret(machineWithConfig as any, interpreterOptions);
   });
-
-  useIsomorphicLayoutEffect(() => {
-    let sub;
-    if (observerOrListener) {
-      sub = service.subscribe(toObserver(observerOrListener));
-    }
-
-    return () => {
-      sub?.unsubscribe();
-    };
-  }, [observerOrListener]);
-
-  useIsomorphicLayoutEffect(() => {
-    service.start(
-      rehydratedState ? (State.create(rehydratedState) as any) : undefined
-    );
-
-    return () => {
-      service.stop();
-    };
-  }, []);
 
   // Make sure options are kept updated when they change.
   // This mutation assignment is safe because the service instance is only used
@@ -123,7 +76,67 @@ export function useInterpret<
     Object.assign(service.machine.options.delays, delays);
   }, [actions, guards, actors, delays]);
 
-  useReactEffectActions(service);
+  return service as any;
+}
 
-  return service;
+type RestParams<
+  TMachine extends AnyStateMachine
+> = AreAllImplementationsAssumedToBeProvided<
+  TMachine['__TResolvedTypesMeta']
+> extends false
+  ? [
+      options: InterpreterOptions &
+        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+        InternalMachineImplementations<
+          TMachine['__TContext'],
+          TMachine['__TEvent'],
+          TMachine['__TResolvedTypesMeta'],
+          true
+        >,
+      observerOrListener?:
+        | Observer<StateFrom<TMachine>>
+        | ((value: StateFrom<TMachine>) => void)
+    ]
+  : [
+      options?: InterpreterOptions &
+        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+        InternalMachineImplementations<
+          TMachine['__TContext'],
+          TMachine['__TEvent'],
+          TMachine['__TResolvedTypesMeta']
+        >,
+      observerOrListener?:
+        | Observer<StateFrom<TMachine>>
+        | ((value: StateFrom<TMachine>) => void)
+    ];
+
+export function useInterpret<TMachine extends AnyStateMachine>(
+  getMachine: MaybeLazy<TMachine>,
+  ...[options = {}, observerOrListener]: RestParams<TMachine>
+): InterpreterFrom<TMachine> {
+  const service = useIdleInterpreter(getMachine, options as any);
+
+  useEffect(() => {
+    if (!observerOrListener) {
+      return;
+    }
+    let sub = service.subscribe(toObserver(observerOrListener));
+    return () => {
+      sub.unsubscribe();
+    };
+  }, [observerOrListener]);
+
+  useEffect(() => {
+    const rehydratedState = options.state;
+    service.start(
+      rehydratedState ? (State.create(rehydratedState) as any) : undefined
+    );
+
+    return () => {
+      service.stop();
+      service.status = InterpreterStatus.NotStarted;
+    };
+  }, []);
+
+  return service as any;
 }

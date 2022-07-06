@@ -1,6 +1,6 @@
 {
   "name": "@xstate/inspect",
-  "version": "0.5.2",
+  "version": "0.7.0",
   "description": "XState inspection utilities",
   "keywords": [
     "state",
@@ -12,7 +12,7 @@
     "viz"
   ],
   "author": "David Khourshid <davidkpiano@gmail.com>",
-  "homepage": "https://github.com/davidkpiano/xstate/tree/main/packages/xstate-inspect#readme",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-inspect#readme",
   "license": "MIT",
   "main": "dist/xstate-inspect.cjs.js",
   "module": "dist/xstate-inspect.esm.js",
@@ -22,23 +22,29 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
   },
   "scripts": {},
   "bugs": {
-    "url": "https://github.com/davidkpiano/xstate/issues"
+    "url": "https://github.com/statelyai/xstate/issues"
   },
   "devDependencies": {
-    "@types/ws": "^7.2.6",
-    "typescript": "^4.5.2",
-    "ws": "^7.3.1",
-    "xstate": "*"
+    "@types/ws": "^8.2.2",
+    "typescript": "^4.6.3",
+    "ws": "^8.4.0",
+    "xstate": "5.0.0-alpha.0"
   },
   "peerDependencies": {
-    "ws": "^7.3.1",
-    "xstate": "^4.11.0"
+    "@types/ws": "^8.0.0",
+    "ws": "^8.0.0",
+    "xstate": "^5.0.0-alpha.0"
+  },
+  "peerDependenciesMeta": {
+    "@types/ws": {
+      "optional": true
+    }
   },
   "dependencies": {
-    "fast-safe-stringify": "^2.0.7"
+    "fast-safe-stringify": "^2.1.1"
   }
 }

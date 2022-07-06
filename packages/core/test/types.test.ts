@@ -1,8 +1,17 @@
-import { assign, createMachine } from '../src/index';
+import { from } from 'rxjs';
 import { raise } from '../src/actions/raise';
-import { createModel } from '../src/model';
+import { fromMachine } from '../src/actors';
+import {
+  ActorRefFrom,
+  assign,
+  createMachine,
+  interpret,
+  MachineContext,
+  Spawner,
+  StateMachine
+} from '../src/index';
 
-function noop(_x) {
+function noop(_x: unknown) {
   return;
 }
 
@@ -228,9 +237,249 @@ describe('types', () => {
       context: 'string'
     });
   });
+});
 
-  it('defined context passed to createModel() should be an object', () => {
+describe('context', () => {
+  it('should infer context type from `config.context` when there is no `schema.context`', () => {
+    createMachine(
+      {
+        context: {
+          foo: 'test'
+        }
+      },
+      {
+        actions: {
+          someAction: (ctx) => {
+            ((_accept: string) => {})(ctx.foo);
+            // @ts-expect-error
+            ((_accept: number) => {})(ctx.foo);
+          }
+        }
+      }
+    );
+  });
+
+  it('should not use actions as possible inference sites', () => {
+    createMachine(
+      {
+        schema: {
+          context: {} as {
+            count: number;
+          }
+        },
+        entry: (_ctx: any) => {}
+      },
+      {
+        actions: {
+          someAction: (ctx) => {
+            ((_accept: number) => {})(ctx.count);
+            // @ts-expect-error
+            ((_accept: string) => {})(ctx.count);
+          }
+        }
+      }
+    );
+  });
+
+  it('should work with generic context', () => {
+    function createMachineWithExtras<TContext extends MachineContext>(
+      context: TContext
+    ): StateMachine<TContext, any, any> {
+      return createMachine({ context });
+    }
+
+    createMachineWithExtras({ counter: 42 });
+  });
+
+  it('should not widen literal types defined in `schema.context` based on `config.context`', () => {
+    createMachine({
+      schema: {
+        context: {} as {
+          literalTest: 'foo' | 'bar';
+        }
+      },
+      context: {
+        // @ts-expect-error
+        literalTest: 'anything'
+      }
+    });
+  });
+});
+
+describe('events', () => {
+  it('should not use actions as possible inference sites 1', () => {
+    const machine = createMachine({
+      schema: {
+        events: {} as {
+          type: 'FOO';
+        }
+      },
+      entry: raise('FOO')
+    });
+
+    const service = interpret(machine).start();
+
+    service.send({ type: 'FOO' });
     // @ts-expect-error
-    createModel('string');
+    service.send({ type: 'UNKNOWN' });
+  });
+
+  it('should not use actions as possible inference sites 2', () => {
+    const machine = createMachine({
+      schema: {
+        events: {} as {
+          type: 'FOO';
+        }
+      },
+      entry: (_ctx, _ev: any) => {}
+    });
+
+    const service = interpret(machine).start();
+
+    service.send({ type: 'FOO' });
+    // @ts-expect-error
+    service.send({ type: 'UNKNOWN' });
+  });
+
+  it('event type should be inferrable from a simple state machine typr', () => {
+    const toggleMachine = createMachine<
+      {
+        count: number;
+      },
+      {
+        type: 'TOGGLE';
+      }
+    >({});
+
+    function acceptMachine<TContext, TEvent extends { type: string }>(
+      _machine: StateMachine<TContext, any, TEvent>
+    ) {}
+
+    acceptMachine(toggleMachine);
+  });
+
+  it('should infer inline function parameters when narrowing transition actions based on the event type', () => {
+    createMachine({
+      schema: {
+        context: {} as {
+          count: number;
+        },
+        events: {} as
+          | { type: 'EVENT_WITH_FLAG'; flag: boolean }
+          | {
+              type: 'EVENT_WITHOUT_FLAG';
+            }
+      },
+      on: {
+        EVENT_WITH_FLAG: {
+          actions: (_context, event) => {
+            ((_accept: 'EVENT_WITH_FLAG') => {})(event.type);
+            ((_accept: boolean) => {})(event.flag);
+            // @ts-expect-error
+            ((_accept: 'is not any') => {})(event);
+          }
+        }
+      }
+    });
+  });
+
+  it('should infer inline function parameters when for a wildcard transition', () => {
+    createMachine({
+      schema: {
+        context: {} as {
+          count: number;
+        },
+        events: {} as
+          | { type: 'EVENT_WITH_FLAG'; flag: boolean }
+          | {
+              type: 'EVENT_WITHOUT_FLAG';
+            }
+      },
+      on: {
+        '*': {
+          actions: (_context, event) => {
+            ((_accept: 'EVENT_WITH_FLAG' | 'EVENT_WITHOUT_FLAG') => {})(
+              event.type
+            );
+            // @ts-expect-error
+            ((_accept: 'is not any') => {})(event);
+          }
+        }
+      }
+    });
+  });
+
+  it('action objects used within implementations parameter should get access to the provided event type', () => {
+    createMachine(
+      {
+        schema: {
+          context: {} as { numbers: number[] },
+          events: {} as { type: 'ADD'; number: number }
+        }
+      },
+      {
+        actions: {
+          addNumber: assign({
+            numbers: (context, event) => {
+              ((_accept: number) => {})(event.number);
+              // @ts-expect-error
+              ((_accept: string) => {})(event.number);
+              return context.numbers.concat(event.number);
+            }
+          })
+        }
+      }
+    );
+  });
+
+  it('should provide the default TEvent to transition actions when there is no specific TEvent configured', () => {
+    createMachine({
+      schema: {
+        context: {} as {
+          count: number;
+        }
+      },
+      on: {
+        FOO: {
+          actions: (_context, event) => {
+            ((_accept: string) => {})(event.type);
+          }
+        }
+      }
+    });
+  });
+});
+
+describe('interpreter', () => {
+  it('should be convertable to Rx observable', () => {
+    const state$ = from(
+      interpret(
+        createMachine({
+          schema: {
+            context: {} as { count: number }
+          }
+        })
+      )
+    );
+
+    state$.subscribe((state) => {
+      ((_val: number) => {})(state.context.count);
+      // @ts-expect-error
+      ((_val: string) => {})(state.context.count);
+    });
+  });
+});
+
+describe('spawn', () => {
+  it('spawned actor ref should be compatible with the result of ActorRefFrom', () => {
+    const createChild = () => createMachine({});
+
+    function createParent(_deps: {
+      spawnChild: (spawn: Spawner) => ActorRefFrom<typeof createChild>;
+    }) {}
+
+    createParent({
+      spawnChild: (spawn: Spawner) => spawn(fromMachine(createChild()))
+    });
   });
 });

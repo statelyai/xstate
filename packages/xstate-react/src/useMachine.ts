@@ -1,55 +1,28 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect } from 'react';
+import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
 import {
+  AnyState,
+  AnyStateMachine,
+  AreAllImplementationsAssumedToBeProvided,
   EventObject,
-  StateMachine,
-  State,
+  InternalMachineImplementations,
+  InterpreterFrom,
   InterpreterOptions,
-  MachineImplementations,
+  InterpreterStatus,
+  MachineContext,
+  State,
   StateConfig,
-  ActionFunction,
-  InterpreterOf,
-  MachineContext
+  StateFrom
 } from 'xstate';
-import {
-  MaybeLazy,
-  ReactActionFunction,
-  ReactActionObject,
-  ReactEffectType
-} from './types';
-import { useInterpret } from './useInterpret';
+import { MaybeLazy, Prop } from './types';
+import { useIdleInterpreter } from './useInterpret';
 
-function createReactAction<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  exec: ActionFunction<TContext, TEvent> | undefined,
-  tag: ReactEffectType
-): ReactActionObject<TContext, TEvent> {
-  const reactExec: ReactActionFunction<TContext, TEvent> = (...args) => {
-    // don't execute; just return
-    return () => {
-      return exec?.(...args);
-    };
-  };
-  return {
-    type: 'xstate/react.action',
-    params: { __effect: tag, exec: reactExec }
-  };
+function identity<T>(a: T): T {
+  return a;
 }
 
-export function asEffect<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(exec: ActionFunction<TContext, TEvent>): ReactActionObject<TContext, TEvent> {
-  return createReactAction(exec, ReactEffectType.Effect);
-}
-
-export function asLayoutEffect<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(exec: ActionFunction<TContext, TEvent>): ReactActionObject<TContext, TEvent> {
-  return createReactAction(exec, ReactEffectType.LayoutEffect);
-}
+const isEqual = (prevState: AnyState, nextState: AnyState) =>
+  prevState === nextState || nextState.changed === false;
 
 export interface UseMachineOptions<
   TContext extends MachineContext,
@@ -66,41 +39,87 @@ export interface UseMachineOptions<
   state?: StateConfig<TContext, TEvent>;
 }
 
-export function useMachine<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  getMachine: MaybeLazy<StateMachine<TContext, TEvent>>,
-  options: Partial<InterpreterOptions> &
-    Partial<UseMachineOptions<TContext, TEvent>> &
-    Partial<MachineImplementations<TContext, TEvent>> = {}
-): [
-  State<TContext, TEvent>,
-  InterpreterOf<StateMachine<TContext, TEvent>>['send'],
-  InterpreterOf<StateMachine<TContext, TEvent>>
-] {
-  const listener = useCallback((nextState: State<TContext, TEvent>) => {
-    // Only change the current state if:
-    // - the incoming state is the "live" initial state (since it might have new actors)
-    // - OR the incoming state actually changed.
-    //
-    // The "live" initial state will have .changed === undefined.
-    const initialStateChanged =
-      nextState.changed === undefined && Object.keys(nextState.children).length;
+type RestParams<
+  TMachine extends AnyStateMachine
+> = AreAllImplementationsAssumedToBeProvided<
+  TMachine['__TResolvedTypesMeta']
+> extends false
+  ? [
+      options: InterpreterOptions &
+        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+        InternalMachineImplementations<
+          TMachine['__TContext'],
+          TMachine['__TEvent'],
+          TMachine['__TResolvedTypesMeta'],
+          true
+        >
+    ]
+  : [
+      options?: InterpreterOptions &
+        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+        InternalMachineImplementations<
+          TMachine['__TContext'],
+          TMachine['__TEvent'],
+          TMachine['__TResolvedTypesMeta']
+        >
+    ];
 
-    if (nextState.changed || initialStateChanged) {
-      setState(nextState);
+type UseMachineReturn<
+  TMachine extends AnyStateMachine,
+  TInterpreter = InterpreterFrom<TMachine>
+> = [StateFrom<TMachine>, Prop<TInterpreter, 'send'>, TInterpreter];
+
+// TODO: rethink how we can do this better
+const cachedRehydratedStates = new WeakMap();
+
+export function useMachine<TMachine extends AnyStateMachine>(
+  getMachine: MaybeLazy<TMachine>,
+  ...[options = {}]: RestParams<TMachine>
+): UseMachineReturn<TMachine> {
+  // using `useIdleInterpreter` allows us to subscribe to the service *before* we start it
+  // so we don't miss any notifications
+  const service = useIdleInterpreter(getMachine, options as any);
+
+  const getSnapshot = useCallback(() => {
+    if (service.status === InterpreterStatus.NotStarted && options.state) {
+      const cached = cachedRehydratedStates.get(options.state);
+      if (cached) {
+        return cached;
+      }
+      const created = State.create(options.state) as State<any, any, any>;
+      cachedRehydratedStates.set(options.state, created);
+      return created;
     }
+
+    return service.getSnapshot();
+  }, [service]);
+
+  const subscribe = useCallback(
+    (handleStoreChange) => {
+      const { unsubscribe } = service.subscribe(handleStoreChange);
+      return unsubscribe;
+    },
+    [service]
+  );
+  const storeSnapshot = useSyncExternalStoreWithSelector(
+    subscribe,
+    getSnapshot,
+    getSnapshot,
+    identity,
+    isEqual
+  );
+
+  useEffect(() => {
+    const rehydratedState = options.state;
+    service.start(
+      rehydratedState ? (State.create(rehydratedState) as any) : undefined
+    );
+
+    return () => {
+      service.stop();
+      service.status = InterpreterStatus.NotStarted;
+    };
   }, []);
 
-  const service = useInterpret(getMachine, options, listener);
-
-  const [state, setState] = useState(() => {
-    const { initialState } = service.machine;
-    return (options.state
-      ? State.create(options.state)
-      : initialState) as State<TContext, TEvent>;
-  });
-
-  return [state, service.send, service];
+  return [storeSnapshot, service.send, service] as any;
 }

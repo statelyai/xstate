@@ -1,42 +1,49 @@
-import type {
-  StateValue,
-  EventObject,
-  EventType,
-  StateConfig,
-  SCXML,
-  TransitionDefinition,
-  HistoryValue,
-  ActorRef,
-  MachineContext,
-  SimpleEventsOf,
-  BaseActionObject
-} from './types';
-import { matchesState, keys, isString, warn, toSCXMLEvent } from './utils';
-import type { StateNode } from './StateNode';
-import {
-  isInFinalState,
-  nextEvents,
-  getMeta,
-  getTagsFromConfiguration
-} from './stateUtils';
 import { initEvent } from './actions';
 import { IS_PRODUCTION } from './environment';
+import { memo } from './memo';
 import type { StateMachine } from './StateMachine';
+import type { StateNode } from './StateNode';
+import {
+  getMeta,
+  getTagsFromConfiguration,
+  isInFinalState,
+  nextEvents
+} from './stateUtils';
+import { TypegenDisabled, TypegenEnabled } from './typegenTypes';
+import type {
+  ActorRef,
+  BaseActionObject,
+  EventObject,
+  HistoryValue,
+  MachineContext,
+  Prop,
+  SCXML,
+  SimpleEventsOf,
+  StateConfig,
+  StateValue,
+  TransitionDefinition
+} from './types';
+import { isString, matchesState, toSCXMLEvent, warn } from './utils';
 
-export function isState<
+export function isStateConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
->(state: object | string): state is State<TContext, TEvent> {
-  if (isString(state)) {
+>(state: any): state is StateConfig<TContext, TEvent> {
+  if (typeof state !== 'object' || state === null) {
     return false;
   }
 
-  return 'value' in state && '_sessionid' in state;
+  return 'value' in state && '_event' in state;
 }
 
+/**
+ * @deprecated Use `isStateConfig(object)` or `state instanceof State` instead.
+ */
+export const isState = isStateConfig;
 export class State<
   TContext extends MachineContext,
-  TEvent extends EventObject = EventObject
+  TEvent extends EventObject = EventObject,
+  TResolvedTypesMeta = TypegenDisabled
 > {
   public value: StateValue;
   public context: TContext;
@@ -62,11 +69,6 @@ export class State<
    */
   public configuration: Array<StateNode<TContext, TEvent>>;
   /**
-   * The next events that will cause a transition from the current state.
-   */
-  // @ts-ignore - getter for this gets configured in constructor so this property can stay non-enumerable
-  public nextEvents: EventType[];
-  /**
    * The transition definitions that resulted in this state.
    */
   public transitions: Array<TransitionDefinition<TContext, TEvent>>;
@@ -75,7 +77,9 @@ export class State<
    */
   public children: Record<string, ActorRef<any>>;
   public tags: Set<string>;
-  public machine: StateMachine<TContext, TEvent> | undefined;
+  public machine:
+    | StateMachine<TContext, TEvent, BaseActionObject, any, TResolvedTypesMeta>
+    | undefined;
   /**
    * Creates a new State instance for the given `stateValue` and `context`.
    * @param stateValue
@@ -85,9 +89,9 @@ export class State<
     TContext extends MachineContext,
     TEvent extends EventObject = EventObject
   >(
-    stateValue: State<TContext, TEvent> | StateValue,
+    stateValue: State<TContext, TEvent, any> | StateValue,
     context: TContext = {} as TContext
-  ): State<TContext, TEvent> {
+  ): State<TContext, TEvent, any> {
     if (stateValue instanceof State) {
       if (stateValue.context !== context) {
         return new State<TContext, TEvent>({
@@ -113,7 +117,6 @@ export class State<
       context,
       _event,
       _sessionid: null,
-      history: undefined,
       actions: [],
       meta: undefined,
       configuration: [],
@@ -126,9 +129,9 @@ export class State<
    * @param config The state config
    */
   public static create<
-    TContext extends MachineContext,
-    TEvent extends EventObject = EventObject
-  >(config: StateConfig<TContext, TEvent>): State<TContext, TEvent> {
+    TC extends MachineContext,
+    TE extends EventObject = EventObject
+  >(config: StateConfig<TC, TE>): State<TC, TE, any> {
     return new State(config);
   }
   /**
@@ -136,15 +139,17 @@ export class State<
    * @param stateValue
    * @param context
    */
-  public static inert<TState extends State<any, any>>(state: TState): TState;
+  public static inert<TState extends State<any, any, any>>(
+    state: TState
+  ): TState;
   public static inert<
     TContext extends MachineContext,
     TEvent extends EventObject = EventObject
   >(stateValue: StateValue, context: TContext): State<TContext, TEvent>;
   public static inert(
-    stateValue: State<any, any> | StateValue,
+    stateValue: State<any, any, any> | StateValue,
     context?: MachineContext
-  ): State<any, any> {
+  ): State<any, any, any> {
     if (stateValue instanceof State) {
       if (!stateValue.actions.length) {
         return stateValue;
@@ -190,13 +195,6 @@ export class State<
       ? new Set(config.tags)
       : new Set();
     this.machine = config.machine;
-
-    Object.defineProperty(this, 'nextEvents', {
-      enumerable: false,
-      get: () => {
-        return nextEvents(this.configuration);
-      }
-    });
   }
 
   /**
@@ -211,7 +209,7 @@ export class State<
     if (isString(stateValue)) {
       return [stateValue];
     }
-    const valueKeys = keys(stateValue);
+    const valueKeys = Object.keys(stateValue);
 
     return valueKeys.concat(
       ...valueKeys.map((key) =>
@@ -232,10 +230,12 @@ export class State<
    * Whether the current state value is a subset of the given parent state value.
    * @param parentStateValue
    */
-  public matches<TSV extends StateValue>(
-    parentStateValue: TSV
-  ): this is State<TContext, TEvent> & { value: TSV } {
-    return matchesState(parentStateValue as StateValue, this.value);
+  public matches<
+    TSV extends TResolvedTypesMeta extends TypegenEnabled
+      ? Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'matchesStates'>
+      : StateValue
+  >(parentStateValue: TSV): boolean {
+    return matchesState(parentStateValue as any, this.value);
   }
 
   /**
@@ -249,8 +249,12 @@ export class State<
    * Whether the current state configuration has a state node with the specified `tag`.
    * @param tag
    */
-  public hasTag(tag: string): boolean {
-    return this.tags.has(tag);
+  public hasTag(
+    tag: TResolvedTypesMeta extends TypegenEnabled
+      ? Prop<Prop<TResolvedTypesMeta, 'resolved'>, 'tags'>
+      : string
+  ): boolean {
+    return this.tags.has(tag as string);
   }
 
   /**
@@ -279,5 +283,12 @@ export class State<
       // Check that at least one transition is not forbidden
       transitionData.some((t) => t.target !== undefined || t.actions.length)
     );
+  }
+
+  /**
+   * The next events that will cause a transition from the current state.
+   */
+  public get nextEvents(): Array<TEvent['type']> {
+    return memo(this, 'nextEvents', () => nextEvents(this.configuration));
   }
 }

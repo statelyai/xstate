@@ -1,6 +1,7 @@
-import { createMachine, assign, SCXML, ActorRef, Interpreter } from 'xstate';
+import { ActorRef, assign, createMachine, Interpreter, SCXML } from 'xstate';
 import { XStateDevInterface } from 'xstate/dev';
 import { stringifyMachine, stringifyState } from './serialize';
+
 import { ReceiverEvent, Replacer } from './types';
 
 export type InspectMachineEvent =
@@ -87,7 +88,7 @@ export function createInspectMachine(
                 type: 'service.register',
                 machine: stringifyMachine(service.machine, options?.serialize),
                 state: stringifyState(
-                  service.state || service.initialState,
+                  service.getSnapshot(),
                   options?.serialize
                 ),
                 sessionId: service.sessionId

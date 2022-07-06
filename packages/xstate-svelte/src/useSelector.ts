@@ -1,15 +1,11 @@
 import { get, readable } from 'svelte/store';
-import type { ActorRef, Subscribable, Subscription } from 'xstate';
+import type { ActorRef, SnapshotFrom, Subscription } from 'xstate';
 
 const defaultCompare = (a, b) => a === b;
 
-export const useSelector = <
-  TActor extends ActorRef<any, any>,
-  T,
-  TEmitted = TActor extends Subscribable<infer Emitted> ? Emitted : never
->(
+export const useSelector = <TActor extends ActorRef<any, any>, T>(
   actor: TActor,
-  selector: (emitted: TEmitted) => T,
+  selector: (snapshot: SnapshotFrom<TActor>) => T,
   compare: (a: T, b: T) => boolean = defaultCompare
 ) => {
   let sub: Subscription;

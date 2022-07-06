@@ -1,29 +1,29 @@
-import type {
-  Event,
-  StateValue,
-  EventObject,
-  PropertyMapper,
-  Mapper,
-  EventType,
-  Subscribable,
-  SCXML,
-  StateLike,
-  TransitionConfig,
-  TransitionConfigTarget,
-  SingleOrArray,
-  BehaviorCreator,
-  InvokeSourceDefinition,
-  Observer,
-  MachineContext,
-  Behavior,
-  InvokeConfig,
-  SCXMLErrorEvent
-} from './types';
-import { STATE_DELIMITER, TARGETLESS_KEY, NULL_EVENT } from './constants';
+import { errorExecution, errorPlatform } from './actionTypes';
+import { NULL_EVENT, STATE_DELIMITER, TARGETLESS_KEY } from './constants';
 import { IS_PRODUCTION } from './environment';
 import type { StateNode } from './StateNode';
-import type { StateMachine } from './StateMachine';
-import { errorExecution, errorPlatform } from './actionTypes';
+import type {
+  Behavior,
+  BehaviorCreator,
+  Event,
+  EventObject,
+  EventType,
+  InvokeConfig,
+  InvokeSourceDefinition,
+  MachineContext,
+  Mapper,
+  Observer,
+  PropertyMapper,
+  SCXML,
+  SCXMLErrorEvent,
+  SingleOrArray,
+  StateLike,
+  StateValue,
+  Subscribable,
+  TransitionConfig,
+  TransitionConfigTarget
+} from './types';
+import { AnyStateMachine } from './types';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
   return Object.keys(value) as Array<keyof T & string>;
@@ -50,7 +50,7 @@ export function matchesState(
     return parentStateValue in childStateValue;
   }
 
-  return keys(parentStateValue).every((key) => {
+  return Object.keys(parentStateValue).every((key) => {
     if (!(key in childStateValue)) {
       return false;
     }
@@ -139,19 +139,28 @@ export function pathToStateValue(statePath: string[]): StateValue {
   return value;
 }
 
-export function mapValues<T, P, O extends { [key: string]: T }>(
+export function mapValues<P, O extends Record<string, unknown>>(
   collection: O,
   iteratee: (item: O[keyof O], key: keyof O, collection: O, i: number) => P
-): { [key in keyof O]: P } {
-  const result: Partial<{ [key in keyof O]: P }> = {};
+): { [key in keyof O]: P };
+export function mapValues(
+  collection: Record<string, unknown>,
+  iteratee: (
+    item: unknown,
+    key: string,
+    collection: Record<string, unknown>,
+    i: number
+  ) => unknown
+) {
+  const result: Record<string, unknown> = {};
 
-  const collectionKeys = keys(collection);
+  const collectionKeys = Object.keys(collection);
   for (let i = 0; i < collectionKeys.length; i++) {
     const key = collectionKeys[i];
     result[key] = iteratee(collection[key], key, collection, i);
   }
 
-  return result as { [key in keyof O]: P };
+  return result;
 }
 
 export function mapFilterValues<T, P>(
@@ -161,7 +170,7 @@ export function mapFilterValues<T, P>(
 ): { [key: string]: P } {
   const result: { [key: string]: P } = {};
 
-  for (const key of keys(collection)) {
+  for (const key of Object.keys(collection)) {
     const item = collection[key];
 
     if (!predicate(item)) {
@@ -200,7 +209,7 @@ export function toStatePaths(stateValue: StateValue | undefined): string[][] {
   }
 
   const result = flatten(
-    keys(stateValue).map((key) => {
+    Object.keys(stateValue).map((key) => {
       const subStateValue = stateValue[key];
 
       if (
@@ -283,6 +292,32 @@ export function isPromiseLike(value: any): value is PromiseLike<any> {
   return false;
 }
 
+export function isBehavior(value: any): value is Behavior<any, any> {
+  return (
+    value !== null &&
+    typeof value === 'object' &&
+    'transition' in value &&
+    typeof value.transition === 'function'
+  );
+}
+
+export function partition<T, A extends T, B extends T>(
+  items: T[],
+  predicate: (item: T) => item is A
+): [A[], B[]] {
+  const [truthy, falsy] = [[], []] as [A[], B[]];
+
+  for (const item of items) {
+    if (predicate(item)) {
+      truthy.push(item);
+    } else {
+      falsy.push(item as B);
+    }
+  }
+
+  return [truthy, falsy];
+}
+
 // tslint:disable-next-line:no-empty
 export let warn: (
   condition: boolean | Error,
@@ -328,16 +363,12 @@ export function isObservable<T>(value: any): value is Subscribable<T> {
   }
 }
 
-export const symbolObservable = (() =>
-  (typeof Symbol === 'function' && (Symbol as any).observable) ||
-  '@@observable')();
+export const symbolObservable: typeof Symbol.observable = (() =>
+  (typeof Symbol === 'function' && Symbol.observable) ||
+  '@@observable')() as any;
 
-export function isStateMachine(value: any): value is StateMachine<any, any> {
-  try {
-    return '__xstatenode' in value && value.parent === undefined;
-  } catch (e) {
-    return false;
-  }
+export function isStateMachine(value: any): value is AnyStateMachine {
+  return !!value && '__xstatenode' in value;
 }
 
 export const uniqueId = (() => {
@@ -519,4 +550,8 @@ export function toObserver<T>(
     error: errorHandler || noop,
     complete: completionHandler || noop
   };
+}
+
+export function createInvokeId(stateNodeId: string, index: number): string {
+  return `${stateNodeId}:invocation[${index}]`;
 }

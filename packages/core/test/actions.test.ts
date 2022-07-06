@@ -3,18 +3,15 @@ import {
   assign,
   forwardTo,
   interpret,
-  spawnMachine,
-  ActorRefFrom,
-  spawn
+  ActorRefFrom
 } from '../src/index';
 import { sendParent } from '../src/actions';
 import { choose } from '../src/actions/choose';
 import { pure } from '../src/actions/pure';
 import { log } from '../src/actions/log';
-import { invokeMachine } from '../src/invoke';
 import { ActorRef } from '../src';
 import { sendTo } from '../src/actions/send';
-import { createMachineBehavior } from '../src/behaviors';
+import { fromMachine } from '../src/actors';
 
 describe('entry/exit actions', () => {
   const pedestrianStates = {
@@ -604,6 +601,259 @@ describe('entry/exit actions', () => {
       }, 50);
     });
   });
+
+  describe('when reaching a final state', () => {
+    // https://github.com/statelyai/xstate/issues/1109
+    it('exit actions should be called when invoked machine reaches its final state', (done) => {
+      let exitCalled = false;
+      let childExitCalled = false;
+      const childMachine = createMachine({
+        exit: () => {
+          exitCalled = true;
+        },
+        initial: 'a',
+        states: {
+          a: {
+            type: 'final',
+            exit: () => {
+              childExitCalled = true;
+            }
+          }
+        }
+      });
+
+      const parentMachine = createMachine({
+        initial: 'active',
+        states: {
+          active: {
+            invoke: {
+              src: fromMachine(childMachine),
+              onDone: 'finished'
+            }
+          },
+          finished: {
+            type: 'final'
+          }
+        }
+      });
+
+      interpret(parentMachine)
+        .onDone(() => {
+          expect(exitCalled).toBeTruthy();
+          expect(childExitCalled).toBeTruthy();
+          done();
+        })
+        .start();
+    });
+  });
+
+  describe('when stopped', () => {
+    it('exit actions should be called when stopping a machine', () => {
+      let exitCalled = false;
+      let childExitCalled = false;
+
+      const machine = createMachine({
+        exit: () => {
+          exitCalled = true;
+        },
+        initial: 'a',
+        states: {
+          a: {
+            exit: () => {
+              childExitCalled = true;
+            }
+          }
+        }
+      });
+
+      const service = interpret(machine).start();
+      service.stop();
+
+      expect(exitCalled).toBeTruthy();
+      expect(childExitCalled).toBeTruthy();
+    });
+
+    it('should call each exit handler only once when the service gets stopped', () => {
+      const actual: string[] = [];
+      const machine = createMachine({
+        exit: () => actual.push('root'),
+        initial: 'a',
+        states: {
+          a: {
+            exit: () => actual.push('a'),
+            initial: 'a1',
+            states: {
+              a1: {
+                exit: () => actual.push('a1')
+              }
+            }
+          }
+        }
+      });
+
+      interpret(machine).start().stop();
+      expect(actual).toEqual(['a1', 'a', 'root']);
+    });
+
+    it('should call exit actions in reversed document order when the service gets stopped', () => {
+      const actual: string[] = [];
+      const machine = createMachine({
+        exit: () => actual.push('root'),
+        initial: 'a',
+        states: {
+          a: {
+            exit: () => actual.push('a'),
+            on: {
+              EV: {
+                // just a noop action to ensure that a transition is selected when we send an event
+                actions: () => {}
+              }
+            }
+          }
+        }
+      });
+
+      const service = interpret(machine).start();
+      // it's important to send an event here that results in a transition  that computes new `state.configuration`
+      // and that could impact the order in which exit actions are called
+      service.send({ type: 'EV' });
+      service.stop();
+
+      expect(actual).toEqual(['a', 'root']);
+    });
+
+    it('should call exit actions of parallel states in reversed document order when the service gets stopped after earlier region transition', () => {
+      const actual: string[] = [];
+      const machine = createMachine({
+        exit: () => actual.push('root'),
+        type: 'parallel',
+        states: {
+          a: {
+            exit: () => actual.push('a'),
+            initial: 'child_a',
+            states: {
+              child_a: {
+                exit: () => actual.push('child_a'),
+                on: {
+                  EV: {
+                    // just a noop action to ensure that a transition is selected when we send an event
+                    actions: () => {}
+                  }
+                }
+              }
+            }
+          },
+          b: {
+            exit: () => actual.push('b'),
+            initial: 'child_b',
+            states: {
+              child_b: {
+                exit: () => actual.push('child_b')
+              }
+            }
+          }
+        }
+      });
+
+      const service = interpret(machine).start();
+      // it's important to send an event here that results in a transition as that computes new `state.configuration`
+      // and that could impact the order in which exit actions are called
+      service.send({ type: 'EV' });
+      service.stop();
+
+      expect(actual).toEqual(['child_b', 'b', 'child_a', 'a', 'root']);
+    });
+
+    it('should call exit actions of parallel states in reversed document order when the service gets stopped after later region transition', () => {
+      const actual: string[] = [];
+      const machine = createMachine({
+        exit: () => actual.push('root'),
+        type: 'parallel',
+        states: {
+          a: {
+            exit: () => actual.push('a'),
+            initial: 'child_a',
+            states: {
+              child_a: {
+                exit: () => actual.push('child_a')
+              }
+            }
+          },
+          b: {
+            exit: () => actual.push('b'),
+            initial: 'child_b',
+            states: {
+              child_b: {
+                exit: () => actual.push('child_b'),
+                on: {
+                  EV: {
+                    // just a noop action to ensure that a transition is selected when we send an event
+                    actions: () => {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const service = interpret(machine).start();
+      // it's important to send an event here that results in a transition as that computes new `state.configuration`
+      // and that could impact the order in which exit actions are called
+      service.send({ type: 'EV' });
+      service.stop();
+
+      expect(actual).toEqual(['child_b', 'b', 'child_a', 'a', 'root']);
+    });
+
+    it('should call exit actions of parallel states in reversed document order when the service gets stopped after multiple regions transition', () => {
+      const actual: string[] = [];
+      const machine = createMachine({
+        exit: () => actual.push('root'),
+        type: 'parallel',
+        states: {
+          a: {
+            exit: () => actual.push('a'),
+            initial: 'child_a',
+            states: {
+              child_a: {
+                exit: () => actual.push('child_a'),
+                on: {
+                  EV: {
+                    // just a noop action to ensure that a transition is selected when we send an event
+                    actions: () => {}
+                  }
+                }
+              }
+            }
+          },
+          b: {
+            exit: () => actual.push('b'),
+            initial: 'child_b',
+            states: {
+              child_b: {
+                exit: () => actual.push('child_b'),
+                on: {
+                  EV: {
+                    // just a noop action to ensure that a transition is selected when we send an event
+                    actions: () => {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const service = interpret(machine).start();
+      // it's important to send an event here that results in a transition as that computes new `state.configuration`
+      // and that could impact the order in which exit actions are called
+      service.send({ type: 'EV' });
+      service.stop();
+
+      expect(actual).toEqual(['child_b', 'b', 'child_a', 'a', 'root']);
+    });
+  });
 });
 
 describe('initial actions', () => {
@@ -935,7 +1185,7 @@ describe('purely defined actions', () => {
           },
           EACH: {
             actions: pure<any, any>((ctx) =>
-              ctx.items.map((item, index) => ({
+              ctx.items.map((item: any, index: number) => ({
                 type: 'EVENT',
                 params: { item, index }
               }))
@@ -1020,7 +1270,7 @@ describe('forwardTo()', () => {
       initial: 'first',
       states: {
         first: {
-          invoke: { src: invokeMachine(child), id: 'myChild' },
+          invoke: { src: fromMachine(child), id: 'myChild' },
           on: {
             EVENT: {
               actions: forwardTo('myChild')
@@ -1069,7 +1319,7 @@ describe('forwardTo()', () => {
       states: {
         first: {
           entry: assign({
-            child: () => spawnMachine(child, 'x')
+            child: (_, __, { spawn }) => spawn(fromMachine(child), 'x')
           }),
           on: {
             EVENT: {
@@ -1453,78 +1703,10 @@ describe('choose', () => {
 
     expect(service.state.context).toEqual({ answer: 42 });
   });
-
-  // https://github.com/davidkpiano/xstate/issues/1109
-  it('exit actions should be called when invoked machine reaches final state', (done) => {
-    let exitCalled = false;
-    let childExitCalled = false;
-    const childMachine = createMachine({
-      exit: () => {
-        exitCalled = true;
-      },
-      initial: 'a',
-      states: {
-        a: {
-          type: 'final',
-          exit: () => {
-            childExitCalled = true;
-          }
-        }
-      }
-    });
-
-    const parentMachine = createMachine({
-      initial: 'active',
-      states: {
-        active: {
-          invoke: {
-            src: invokeMachine(childMachine),
-            onDone: 'finished'
-          }
-        },
-        finished: {
-          type: 'final'
-        }
-      }
-    });
-
-    interpret(parentMachine)
-      .onDone(() => {
-        expect(exitCalled).toBeTruthy();
-        expect(childExitCalled).toBeTruthy();
-        done();
-      })
-      .start();
-  });
-
-  it('exit actions should be called when stopping a machine', () => {
-    let exitCalled = false;
-    let childExitCalled = false;
-
-    const machine = createMachine({
-      exit: () => {
-        exitCalled = true;
-      },
-      initial: 'a',
-      states: {
-        a: {
-          exit: () => {
-            childExitCalled = true;
-          }
-        }
-      }
-    });
-
-    const service = interpret(machine).start();
-    service.stop();
-
-    expect(exitCalled).toBeTruthy();
-    expect(childExitCalled).toBeTruthy();
-  });
 });
 
 describe('sendParent', () => {
-  // https://github.com/davidkpiano/xstate/issues/711
+  // https://github.com/statelyai/xstate/issues/711
   it('TS: should compile for any event', () => {
     interface ChildContext {}
     interface ChildEvent {
@@ -1561,12 +1743,11 @@ describe('sendTo', () => {
       }
     });
 
-    const parentMachine = createMachine<{
-      child: ActorRefFrom<typeof childMachine>;
-    }>({
-      context: () => ({
-        child: spawn(createMachineBehavior(childMachine))
-      }),
+    const parentMachine = createMachine({
+      context: ({ spawn }) =>
+        ({
+          child: spawn(fromMachine(childMachine))
+        } as { child: ActorRefFrom<typeof childMachine> }),
       entry: sendTo((ctx) => ctx.child, { type: 'EVENT' })
     });
 
@@ -1580,7 +1761,6 @@ describe('sendTo', () => {
         waiting: {
           on: {
             EVENT: {
-              guard: (_, e) => e.count === 42,
               actions: () => done()
             }
           }
@@ -1588,14 +1768,13 @@ describe('sendTo', () => {
       }
     });
 
-    const parentMachine = createMachine<{
-      child: ActorRefFrom<typeof childMachine>;
-      count: number;
-    }>({
-      context: () => ({
-        child: spawn(createMachineBehavior(childMachine)),
-        count: 42
-      }),
+    const parentMachine = createMachine({
+      context: ({ spawn }) => {
+        return {
+          child: spawn(fromMachine(childMachine), 'child'),
+          count: 42
+        };
+      },
       entry: sendTo(
         (ctx) => ctx.child,
         (ctx) => ({ type: 'EVENT', count: ctx.count })
@@ -1603,6 +1782,31 @@ describe('sendTo', () => {
     });
 
     interpret(parentMachine).start();
+  });
+
+  it('should report a type error for an invalid event', () => {
+    const childMachine = createMachine<any, { type: 'EVENT' }>({
+      initial: 'waiting',
+      states: {
+        waiting: {
+          on: {
+            EVENT: {}
+          }
+        }
+      }
+    });
+
+    createMachine<{
+      child: ActorRefFrom<typeof childMachine>;
+    }>({
+      context: ({ spawn }) => ({
+        child: spawn(fromMachine(childMachine))
+      }),
+      entry: sendTo((ctx) => ctx.child, {
+        // @ts-expect-error
+        type: 'UNKNOWN'
+      })
+    });
   });
 });
 

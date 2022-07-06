@@ -1,12 +1,15 @@
-import { js2xml, Element as XMLElement, Attributes } from 'xml-js';
+import { Attributes, Element as XMLElement, js2xml } from 'xml-js';
 import {
+  AnyStateMachine,
   BaseActionObject,
-  TransitionDefinition,
+  RaiseActionObject,
   StateNode,
-  StateMachine,
-  flatten
+  TransitionDefinition
 } from 'xstate';
-import { RaiseActionObject } from 'xstate';
+
+function flatten<T>(array: Array<T | T[]>): T[] {
+  return ([] as T[]).concat(...array);
+}
 
 function cleanAttributes(attributes: Attributes): Attributes {
   for (const key of Object.keys(attributes)) {
@@ -153,7 +156,7 @@ function stateNodeToSCXML(stateNode: StateNode<any, any>): XMLElement {
   };
 }
 
-export function toSCXML(machine: StateMachine<any, any>): string {
+export function toSCXML(machine: AnyStateMachine): string {
   const { states, initial } = machine.root;
 
   const elements = Object.keys(states).map<XMLElement>((key) => {

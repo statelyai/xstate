@@ -1,9 +1,10 @@
 {
   "name": "xstate",
-  "version": "4.26.1",
+  "version": "5.0.0-alpha.0",
   "description": "Finite State Machines and Statecharts for the Modern Web.",
   "main": "dist/xstate.cjs.js",
   "module": "dist/xstate.esm.js",
+  "umd:main": "dist/xstate.umd.min.js",
   "sideEffects": false,
   "funding": {
     "type": "opencollective",
@@ -11,10 +12,9 @@
   },
   "files": [
     "dist",
-    "actor",
+    "actors",
     "actions",
     "invoke",
-    "behaviors",
     "guards",
     "dev",
     "model"
@@ -31,14 +31,14 @@
   "scripts": {},
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/davidkpiano/xstate.git"
+    "url": "git+https://github.com/statelyai/xstate.git"
   },
   "author": "David Khourshid <davidkpiano@gmail.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/davidkpiano/xstate/issues"
+    "url": "https://github.com/statelyai/xstate/issues"
   },
-  "homepage": "https://github.com/davidkpiano/xstate/tree/main/packages/core#readme",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/core#readme",
   "devDependencies": {
     "@scion-scxml/test-framework": "^2.0.15",
     "jsdom": "^14.0.0",
@@ -51,11 +51,8 @@
     "umdName": "XState",
     "entrypoints": [
       "./index.ts",
-      "./actor.ts",
       "./actions.ts",
-      "./invoke.ts",
-      "./behaviors.ts",
-      "./model.ts",
+      "./actors.ts",
       "./guards.ts",
       "./dev/index.ts"
     ]

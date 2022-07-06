@@ -1,11 +1,6 @@
-import {
-  EventObject,
-  InvokeDefinition,
-  BehaviorCreator,
-  MachineContext
-} from '../types';
+import { EventObject, InvokeDefinition, MachineContext } from '../types';
 import { invoke as invokeActionType } from '../actionTypes';
-import { isActorRef } from '../actor';
+import { isActorRef } from '../actors';
 import { ObservableActorRef } from '../ObservableActorRef';
 import { createDynamicAction } from '../../actions/dynamicAction';
 import {
@@ -14,6 +9,7 @@ import {
   InvokeActionObject
 } from '..';
 import { actionTypes } from '../actions';
+import { mapContext } from '../utils';
 
 export function invoke<
   TContext extends MachineContext,
@@ -42,32 +38,31 @@ export function invoke<
         } as InvokeActionObject;
       }
 
-      const behaviorCreator: BehaviorCreator<TContext, TEvent> | undefined =
-        machine.options.actors[src.type];
+      const behaviorImpl = machine.options.actors[src.type];
 
-      if (!behaviorCreator) {
+      if (!behaviorImpl) {
         return {
           type,
           params
         } as InvokeActionObject;
       }
 
-      const behavior = behaviorCreator(context, _event.data, {
-        id,
-        data,
-        src,
-        _event,
-        meta
-      });
+      const behavior =
+        typeof behaviorImpl === 'function'
+          ? behaviorImpl(context, _event.data, {
+              id,
+              data: data && mapContext(data, context, _event),
+              src,
+              _event,
+              meta
+            })
+          : behaviorImpl;
 
       return {
         type,
         params: {
           ...params,
-          id: params.id,
-          src: params.src,
-          ref: new ObservableActorRef(behavior, id),
-          meta
+          ref: new ObservableActorRef(behavior, id)
         }
       } as InvokeActionObject;
     }

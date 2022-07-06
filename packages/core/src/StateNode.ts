@@ -3,16 +3,14 @@ import {
   mapValues,
   flatten,
   toArray,
-  keys,
   isString,
   toInvokeConfig,
   toInvokeSource,
-  isFunction,
-  toTransitionConfigArray
+  toTransitionConfigArray,
+  createInvokeId
 } from './utils';
 import type {
   Event,
-  Transitions,
   EventObject,
   HistoryStateNodeConfig,
   StateNodeDefinition,
@@ -53,7 +51,7 @@ interface StateNodeOptions<
 > {
   _key: string;
   _parent?: StateNode<TContext, TEvent>;
-  _machine: StateMachine<TContext, TEvent>;
+  _machine: StateMachine<TContext, TEvent, any, any, any>;
 }
 
 export class StateNode<
@@ -108,7 +106,7 @@ export class StateNode<
   /**
    * The root machine node.
    */
-  public machine: StateMachine<TContext, TEvent>;
+  public machine: StateMachine<TContext, TEvent, any, any>;
   /**
    * The meta data associated with this state node, which will be returned in State instances.
    */
@@ -146,7 +144,7 @@ export class StateNode<
       [this.machine.key, ...this.path].join(this.machine.delimiter);
     this.type =
       this.config.type ||
-      (this.config.states && keys(this.config.states).length
+      (this.config.states && Object.keys(this.config.states).length
         ? 'compound'
         : this.config.history
         ? 'history'
@@ -264,26 +262,23 @@ export class StateNode<
   public get invoke(): Array<InvokeDefinition<TContext, TEvent>> {
     return memo(this, 'invoke', () =>
       toArray(this.config.invoke).map((invocable, i) => {
-        const id = `${this.id}:invocation[${i}]`;
-
-        const invokeConfig = toInvokeConfig(invocable, id);
-        const resolvedId = invokeConfig.id || id;
+        const generatedId = createInvokeId(this.id, i);
+        const invokeConfig = toInvokeConfig(invocable, generatedId);
+        const resolvedId = invokeConfig.id || generatedId;
+        const { src } = invokeConfig;
 
         const resolvedSrc = toInvokeSource(
-          isString(invokeConfig.src)
-            ? invokeConfig.src
-            : typeof invokeConfig.src === 'object' && invokeConfig.src !== null
-            ? invokeConfig.src
-            : resolvedId
+          isString(src) ? src : !('type' in src) ? resolvedId : src
         );
 
         if (
-          !this.machine.options.actors[resolvedSrc.type] &&
-          isFunction(invokeConfig.src)
+          !this.machine.options.actors[resolvedId] &&
+          typeof src !== 'string' &&
+          !('type' in src)
         ) {
           this.machine.options.actors = {
             ...this.machine.options.actors,
-            [resolvedSrc.type]: invokeConfig.src
+            [resolvedId]: typeof src === 'function' ? src : () => src
           };
         }
 
@@ -342,10 +337,7 @@ export class StateNode<
     return this.events.includes(eventType);
   }
 
-  public next(
-    state: State<TContext, TEvent>,
-    _event: SCXML.Event<TEvent>
-  ): Transitions<TContext, TEvent> | undefined {
+  public next(state: State<TContext, TEvent>, _event: SCXML.Event<TEvent>) {
     const eventName = _event.name;
     const actions: BaseActionObject[] = [];
 
@@ -353,7 +345,7 @@ export class StateNode<
 
     const candidates: Array<TransitionDefinition<TContext, TEvent>> = memo(
       this,
-      `candidates-${eventName}`,
+      `candidates-${eventName.toString()}`,
       () =>
         getCandidates(
           this,
@@ -419,7 +411,7 @@ export class StateNode<
    */
   public get stateIds(): string[] {
     const childStateIds = flatten(
-      keys(this.states).map((stateKey) => {
+      Object.keys(this.states).map((stateKey) => {
         return this.states[stateKey].stateIds;
       })
     );
@@ -435,7 +427,7 @@ export class StateNode<
       const events = new Set(this.ownEvents);
 
       if (states) {
-        for (const stateId of keys(states)) {
+        for (const stateId of Object.keys(states)) {
           const state = states[stateId];
           if (state.states) {
             for (const event of state.events) {

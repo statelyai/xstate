@@ -1,6 +1,6 @@
 {
   "name": "@xstate/test",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "XState test utilities",
   "keywords": [
     "state",
@@ -14,7 +14,7 @@
     "testing"
   ],
   "author": "David Khourshid <davidkpiano@gmail.com>",
-  "homepage": "https://github.com/davidkpiano/xstate/tree/main/packages/xstate-test#readme",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-test#readme",
   "license": "MIT",
   "main": "dist/xstate-test.cjs.js",
   "module": "dist/xstate-test.esm.js",
@@ -28,21 +28,21 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
   },
   "scripts": {},
   "bugs": {
-    "url": "https://github.com/davidkpiano/xstate/issues"
+    "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "xstate": "^4.9.0"
+    "xstate": "^5.0.0-alpha.0"
   },
   "devDependencies": {
     "strip-ansi": "^5.2.0",
-    "xstate": "*"
+    "xstate": "5.0.0-alpha.0"
   },
   "dependencies": {
-    "@xstate/graph": "^1.4.0",
+    "@xstate/graph": "^1.4.2",
     "chalk": "^2.4.2"
   }
 }

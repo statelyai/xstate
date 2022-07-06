@@ -1,23 +1,22 @@
-import { xml2js, Element as XMLElement } from 'xml-js';
+import { Element as XMLElement, xml2js } from 'xml-js';
+import { assign } from './actions/assign';
+import { cancel } from './actions/cancel';
+import { choose } from './actions/choose';
+import { log } from './actions/log';
+import { raise } from './actions/raise';
+import { send } from './actions/send';
+import { fromMachine } from './actors';
+import { NULL_EVENT } from './constants';
+import { not, stateIn } from './guards';
+import { AnyStateMachine, BaseActionObject, createMachine } from './index';
 import {
+  ChooseCondition,
+  DelayExpr,
   EventObject,
   SCXMLEventMeta,
-  SendExpr,
-  DelayExpr,
-  ChooseCondition
+  SendExpr
 } from './types';
-import { BaseActionObject, createMachine } from './index';
-import { mapValues, isString, flatten } from './utils';
-import { raise } from './actions/raise';
-import { choose } from './actions/choose';
-import { assign } from './actions/assign';
-import { send } from './actions/send';
-import { cancel } from './actions/cancel';
-import { log } from './actions/log';
-import { invokeMachine } from './invoke';
-import { StateMachine } from './StateMachine';
-import { not, stateIn } from './guards';
-import { NULL_EVENT } from './constants';
+import { flatten, isString, mapValues } from './utils';
 
 function getAttribute(
   element: XMLElement,
@@ -445,7 +444,7 @@ function toConfig(
 
       return {
         ...(element.attributes!.id && { id: element.attributes!.id as string }),
-        src: invokeMachine(scxmlToMachine(content, options)),
+        src: fromMachine(scxmlToMachine(content, options)),
         autoForward: element.attributes!.autoforward === 'true'
       };
     });
@@ -486,7 +485,7 @@ export interface ScxmlToMachineOptions {
 function scxmlToMachine(
   scxmlJson: XMLElement,
   options: ScxmlToMachineOptions
-): StateMachine {
+): AnyStateMachine {
   const machineElement = scxmlJson.elements!.find(
     (element) => element.name === 'scxml'
   ) as XMLElement;
@@ -527,7 +526,7 @@ function scxmlToMachine(
 export function toMachine(
   xml: string,
   options: ScxmlToMachineOptions
-): StateMachine {
+): AnyStateMachine {
   const json = xml2js(xml) as XMLElement;
   return scxmlToMachine(json, options);
 }
