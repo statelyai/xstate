@@ -6,6 +6,7 @@ import type {
   StateFrom,
   EventFrom
 } from 'xstate';
+import { isMachine } from 'xstate/lib/utils';
 import type {
   SerializedEvent,
   SerializedState,
@@ -295,7 +296,9 @@ export function getPathFromEvents<
       },
       ...options
     },
-    createDefaultBehaviorOptions(behavior)
+    isMachine(behavior)
+      ? createDefaultMachineOptions(behavior)
+      : createDefaultBehaviorOptions(behavior)
   );
   const initialState = resolvedOptions.initialState ?? behavior.initialState;
 

@@ -9,7 +9,8 @@ export {
   performDepthFirstTraversal,
   traverseShortestPlans,
   traverseSimplePlans,
-  traverseSimplePathsTo
+  traverseSimplePathsTo,
+  joinPaths
 } from './graph';
 
 export * from './types';

@@ -9,7 +9,7 @@ import {
   TraversalOptions,
   traverseSimplePathsTo
 } from '@xstate/graph';
-import { joinPaths } from '@xstate/graph/src/graph';
+import { joinPaths } from '@xstate/graph';
 import { EventObject } from 'xstate';
 import { isStateLike } from 'xstate/lib/utils';
 import { deduplicatePaths } from './deduplicatePaths';
