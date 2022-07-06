@@ -9,13 +9,10 @@
   },
   "dependencies": {
     "parcel-bundler": "1.12.5",
-    "xstate": "4.30.6"
+    "xstate": "^4.32.1"
   },
   "devDependencies": {
-    "typescript": "4.4.4"
-  },
-  "resolutions": {
-    "@babel/preset-env": "7.13.8"
-  },
-  "keywords": []
+    "typescript": "^4.7.4",
+    "vite": "^2.9.13"
+  }
 }

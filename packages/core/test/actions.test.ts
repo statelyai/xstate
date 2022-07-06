@@ -383,6 +383,34 @@ describe('entry/exit actions', () => {
       expect(stateA.actions.map((action) => action.type)).toEqual(['D2 Exit']);
     });
 
+    it("should reenter targeted ancestor (as it's a descendant of the transition domain)", () => {
+      const actual: string[] = [];
+      const machine = createMachine({
+        initial: 'loaded',
+        states: {
+          loaded: {
+            id: 'loaded',
+            entry: () => actual.push('loaded entry'),
+            initial: 'idle',
+            states: {
+              idle: {
+                on: {
+                  UPDATE: '#loaded'
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const service = interpret(machine).start();
+
+      actual.length = 0;
+      service.send('UPDATE');
+
+      expect(actual).toEqual(['loaded entry']);
+    });
+
     describe('should ignore same-parent state actions (sparse)', () => {
       const fooBar = {
         initial: 'foo',
@@ -519,6 +547,51 @@ describe('entry/exit actions', () => {
           .transition('start', 'ENTER_PARALLEL')
           .actions.map((a) => a.type)
       ).toEqual(['enter_p1', 'enter_inner']);
+    });
+
+    it('should reenter parallel region when a parallel state gets reentered while targeting another region', () => {
+      const actions: string[] = [];
+
+      const machine = createMachine({
+        initial: 'ready',
+        states: {
+          ready: {
+            type: 'parallel',
+            on: {
+              FOO: '#cameraOff'
+            },
+            states: {
+              devicesInfo: {
+                entry: () => actions.push('entry devicesInfo'),
+                exit: () => actions.push('exit devicesInfo')
+              },
+              camera: {
+                entry: () => actions.push('entry camera'),
+                exit: () => actions.push('exit camera'),
+                initial: 'on',
+                states: {
+                  on: {},
+                  off: {
+                    id: 'cameraOff'
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const service = interpret(machine).start();
+
+      actions.length = 0;
+      service.send('FOO');
+
+      expect(actions).toEqual([
+        'exit camera',
+        'exit devicesInfo',
+        'entry devicesInfo',
+        'entry camera'
+      ]);
     });
   });
 
@@ -708,7 +781,7 @@ describe('entry/exit actions', () => {
       });
 
       const service = interpret(machine).start();
-      // it's important to send an event here that results in a transition as that computes new `state.configuration`
+      // it's important to send an event here that results in a transition  that computes new `state.configuration`
       // and that could impact the order in which exit actions are called
       service.send({ type: 'EV' });
       service.stop();
@@ -1653,7 +1726,7 @@ describe('sendTo', () => {
       context: () => ({
         child: spawn(childMachine)
       }),
-      entry: sendTo((ctx) => ctx.child as any, { type: 'EVENT' })
+      entry: sendTo((ctx) => ctx.child, { type: 'EVENT' })
     });
 
     interpret(parentMachine).start();
@@ -1683,12 +1756,37 @@ describe('sendTo', () => {
         count: 42
       }),
       entry: sendTo(
-        (ctx) => ctx.child as any,
+        (ctx) => ctx.child,
         (ctx) => ({ type: 'EVENT', count: ctx.count })
       )
     });
 
     interpret(parentMachine).start();
+  });
+
+  it('should report a type error for an invalid event', () => {
+    const childMachine = createMachine<any, { type: 'EVENT' }>({
+      initial: 'waiting',
+      states: {
+        waiting: {
+          on: {
+            EVENT: {}
+          }
+        }
+      }
+    });
+
+    createMachine<{
+      child: ActorRefFrom<typeof childMachine>;
+    }>({
+      context: () => ({
+        child: spawn(childMachine)
+      }),
+      entry: sendTo((ctx) => ctx.child, {
+        // @ts-expect-error
+        type: 'UNKNOWN'
+      })
+    });
   });
 });
 

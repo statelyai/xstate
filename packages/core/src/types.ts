@@ -7,7 +7,8 @@ import {
   TypegenDisabled,
   ResolveTypegenMeta,
   TypegenConstraint,
-  AreAllImplementationsAssumedToBeProvided
+  AreAllImplementationsAssumedToBeProvided,
+  TypegenEnabled
 } from './typegenTypes';
 
 export type AnyFunction = (...args: any[]) => any;
@@ -20,9 +21,12 @@ export type Compute<A extends any> = { [K in keyof A]: A[K] } & unknown;
 export type Prop<T, K> = K extends keyof T ? T[K] : never;
 export type Values<T> = T[keyof T];
 export type Merge<M, N> = Omit<M, keyof N> & N;
+// TODO: replace in v5 with:
+// export type IndexByType<T extends { type: string }> = { [E in T as E['type']]: E; };
 export type IndexByType<T extends { type: string }> = {
-  [K in T['type']]: Extract<T, { type: K }>;
+  [K in T['type']]: T extends any ? (K extends T['type'] ? T : never) : never;
 };
+
 export type Equals<A1 extends any, A2 extends any> = (<A>() => A extends A2
   ? true
   : false) extends <A>() => A extends A1 ? true : false
@@ -451,10 +455,7 @@ export type TransitionConfigOrTarget<
 export type TransitionsConfigMap<TContext, TEvent extends EventObject> = {
   [K in TEvent['type'] | '' | '*']?: K extends '' | '*'
     ? TransitionConfigOrTarget<TContext, TEvent>
-    : TransitionConfigOrTarget<
-        TContext,
-        TEvent extends { type: K } ? TEvent : never
-      >;
+    : TransitionConfigOrTarget<TContext, ExtractEvent<TEvent, K>>;
 };
 
 type TransitionsConfigArray<TContext, TEvent extends EventObject> = Array<
@@ -1503,6 +1504,9 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
    */
   activities?: ActivityMap;
   meta?: any;
+  /**
+   * @deprecated
+   */
   events?: TEvent[];
   configuration: Array<StateNode<TContext, any, TEvent>>;
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
@@ -1653,7 +1657,11 @@ export type Spawnable =
 export type ExtractEvent<
   TEvent extends EventObject,
   TEventType extends TEvent['type']
-> = TEvent extends { type: TEventType } ? TEvent : never;
+> = TEvent extends any
+  ? TEventType extends TEvent['type']
+    ? TEvent
+    : never
+  : never;
 
 export interface BaseActorRef<TEvent extends EventObject> {
   send: (event: TEvent) => void;
@@ -1668,6 +1676,8 @@ export interface ActorRef<TEvent extends EventObject, TEmitted = any>
   stop?: () => void;
   toJSON?: () => any;
 }
+
+export type AnyActorRef = ActorRef<any, any>;
 
 /**
  * @deprecated Use `ActorRef` instead.
@@ -1792,7 +1802,9 @@ export interface Behavior<TEvent extends EventObject, TEmitted = any> {
 }
 
 export type EmittedFrom<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends ActorRef<infer _, infer TEmitted>
+  ? R extends Interpreter<infer _, infer __, infer ___, infer ____, infer _____>
+    ? R['initialState']
+    : R extends ActorRef<infer _, infer TEmitted>
     ? TEmitted
     : R extends Behavior<infer _, infer TEmitted>
     ? TEmitted
@@ -1834,8 +1846,8 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
 export type EventFrom<
   T,
   K extends Prop<TEvent, 'type'> = never,
-  TEvent = ResolveEventType<T>
-> = IsNever<K> extends true ? TEvent : Extract<TEvent, { type: K }>;
+  TEvent extends EventObject = ResolveEventType<T>
+> = IsNever<K> extends true ? TEvent : ExtractEvent<TEvent, K>;
 
 export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<
@@ -1861,4 +1873,20 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
       >
     ? TContext
     : never
+  : never;
+
+type Matches<TypegenEnabledArg, TypegenDisabledArg> = {
+  (stateValue: TypegenEnabledArg): any;
+  (stateValue: TypegenDisabledArg): any;
+};
+
+export type StateValueFrom<
+  TMachine extends AnyStateMachine
+> = StateFrom<TMachine>['matches'] extends Matches<
+  infer TypegenEnabledArg,
+  infer TypegenDisabledArg
+>
+  ? TMachine['__TResolvedTypesMeta'] extends TypegenEnabled
+    ? TypegenEnabledArg
+    : TypegenDisabledArg
   : never;

@@ -7,14 +7,14 @@
   },
   "dependencies": {
     "@xstate/vue": "^0.5.0",
-    "vue": "^3.0.5",
-    "xstate": "^4.20.0"
+    "vue": "^3.2.37",
+    "xstate": "^4.32.1"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^1.2.3",
-    "@vue/compiler-sfc": "^3.0.5",
-    "typescript": "^4.3.2",
-    "vite": "^2.3.7",
+    "@vitejs/plugin-vue": "^1.10.2",
+    "@vue/compiler-sfc": "^3.2.37",
+    "typescript": "^4.7.4",
+    "vite": "^2.9.13",
     "vue-tsc": "^0.0.24"
   }
 }
