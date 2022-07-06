@@ -1256,7 +1256,6 @@ export interface SendAction<
   event: TSentEvent | SendExpr<TContext, TEvent, TSentEvent>;
   delay?: number | string | DelayExpr<TContext, TEvent>;
   id: string | number;
-  sendType?: 'send' | 'forward';
 }
 
 export interface SendActionObject<
@@ -1311,7 +1310,6 @@ export interface SendActionOptions<TContext, TEvent extends EventObject> {
   id?: string | number;
   delay?: number | string | DelayExpr<TContext, TEvent>;
   to?: string | ExprWithMeta<TContext, TEvent, string | number | ActorRef<any>>;
-  sendType?: 'send' | 'forward';
 }
 
 export interface CancelAction extends ActionObject<any, any> {
