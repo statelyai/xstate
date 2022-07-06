@@ -1319,6 +1319,20 @@ describe('forwardTo()', () => {
 
     service.send('EVENT', { value: 42 });
   });
+
+  it('should not cause an infinite loop when forwarding to undefined', () => {
+    const machine = createMachine({
+      on: {
+        '*': { cond: () => true, actions: forwardTo(undefined as any) }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    expect(() => service.send('TEST')).toThrowErrorMatchingInlineSnapshot(
+      `"Attempted to forward event to undefined actor. This risks an infinite loop in the sender."`
+    );
+  });
 });
 
 describe('log()', () => {
