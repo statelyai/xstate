@@ -25,6 +25,7 @@ import {
   fromObservable,
   fromPromise
 } from '../src/actors';
+import { waitFor } from '../src/waitFor';
 
 const lightMachine = createMachine({
   id: 'light',
@@ -215,6 +216,44 @@ describe('interpreter', () => {
       const nextState = service.nextState('TIMER');
       expect(nextState.value).toEqual('yellow');
       expect(state.value).toEqual('green');
+    });
+
+    it('calling .nextState(...) should not start any spawned actors', async () => {
+      let callbackStarted = false;
+      const machine = createMachine({
+        initial: 'foo',
+        context: {} as any,
+        states: {
+          foo: {
+            on: { NEXT: 'bar' }
+          },
+          bar: {
+            entry: assign({
+              foo: (_, __, { spawn }) => {
+                return spawn(
+                  fromCallback(() => {
+                    callbackStarted = true;
+                  })
+                );
+              }
+            })
+          }
+        }
+      });
+
+      const actor = interpret(machine).start();
+
+      const state = actor.nextState('NEXT');
+
+      expect(state.value).toEqual('bar');
+
+      expect(callbackStarted).toBeFalsy();
+
+      actor.send({ type: 'NEXT' });
+
+      await waitFor(actor, (s) => s.matches('bar'));
+
+      expect(callbackStarted).toBeTruthy();
     });
   });
 
