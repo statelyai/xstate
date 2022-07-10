@@ -52,7 +52,7 @@ export interface EventObject {
   /**
    * The type of event that is sent.
    */
-  type: string;
+  type: string | Symbol;
 }
 
 export interface AnyEventObject extends EventObject {
@@ -1855,7 +1855,7 @@ export type EventOfMachine<
 export interface ActorContext<TEvent extends EventObject, TSnapshot> {
   self: ActorRef<TEvent, TSnapshot>;
   name: string;
-  _event: SCXML.Event<TEvent> | LifecycleSignal;
+  _event: SCXML.Event<TEvent | { type: LifecycleSignal }>;
 }
 
 export interface Behavior<TEvent extends EventObject, TSnapshot = any> {

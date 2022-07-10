@@ -7,6 +7,7 @@ import {
   AnyStateMachine,
   Spawner
 } from '.';
+import { interpret } from './interpreter';
 import { ObservableActorRef } from './ObservableActorRef';
 import { isString } from './utils';
 
@@ -32,7 +33,7 @@ export function createSpawner<
           meta: undefined
         });
 
-        const actorRef = new ObservableActorRef(createdBehavior, resolvedName);
+        const actorRef = interpret(createdBehavior, { id: resolvedName });
 
         mutCapturedActions.push({
           type: ActionTypes.Invoke,
@@ -51,7 +52,7 @@ export function createSpawner<
         `Behavior '${behavior}' not implemented in machine '${machine.key}'`
       );
     } else {
-      const actorRef = new ObservableActorRef(behavior, name || 'anonymous');
+      const actorRef = interpret(behavior, { id: name || 'anonymous' });
 
       mutCapturedActions.push({
         type: ActionTypes.Invoke,

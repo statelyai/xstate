@@ -10,6 +10,7 @@ import {
 } from '..';
 import { actionTypes } from '../actions';
 import { mapContext } from '../utils';
+import { interpret } from '../interpreter';
 
 export function invoke<
   TContext extends MachineContext,
@@ -62,7 +63,8 @@ export function invoke<
         type,
         params: {
           ...params,
-          ref: new ObservableActorRef(behavior, id)
+          // ref: new ObservableActorRef(behavior, id)
+          ref: interpret(behavior, { id })
         }
       } as InvokeActionObject;
     }

@@ -90,10 +90,10 @@ export function fromCallback<TEvent extends EventObject>(
   let dispose;
 
   const behavior: Behavior<TEvent, undefined> = {
-    transition: (_, event, { self, name }) => {
+    transition: (_, event, { self, name, _event }) => {
       const { _parent: parent } = self;
 
-      if (event.type === startSignalType) {
+      if (_event.name === startSignalType) {
         const sender: Sender<TEvent> = (e) => {
           if (canceled) {
             return;
@@ -133,7 +133,7 @@ export function fromCallback<TEvent extends EventObject>(
           );
         }
         return undefined;
-      } else if (event.type === stopSignalType) {
+      } else if (_event.name === stopSignalType) {
         canceled = true;
 
         if (isFunction(dispose)) {
@@ -142,7 +142,7 @@ export function fromCallback<TEvent extends EventObject>(
         return undefined;
       }
 
-      if (isSignal(event)) {
+      if (isSignal(_event.name)) {
         // TODO: unrecognized signal
         return undefined;
       }
@@ -168,11 +168,12 @@ export function fromPromise<T>(
   // TODO: add event types
   const behavior: Behavior<any, T | undefined> = {
     transition: (state, event, { self, name }) => {
+      const _event = toSCXMLEvent(event);
       if (canceled) {
         return state;
       }
 
-      switch (event.type) {
+      switch (_event.name) {
         case startSignalType:
           const resolvedPromise = Promise.resolve(lazyPromise());
 
@@ -187,13 +188,13 @@ export function fromPromise<T>(
           return undefined;
         case resolveEventType:
           self._parent?.send(
-            toSCXMLEvent(doneInvoke(name, event.data) as any, {
+            toSCXMLEvent(doneInvoke(name, _event.data.data) as any, {
               origin: self
             })
           );
           return event.data;
         case rejectEventType:
-          const errorEvent = error(name, event.data);
+          const errorEvent = error(name, _event.data.data);
 
           self._parent?.send(
             toSCXMLEvent(errorEvent, {
@@ -227,11 +228,12 @@ export function fromObservable<T, TEvent extends EventObject>(
   // TODO: add event types
   const behavior: Behavior<any, T | undefined> = {
     transition: (state, event, { self, name }) => {
+      const _event = toSCXMLEvent(event);
       if (canceled) {
         return state;
       }
 
-      switch (event.type) {
+      switch (_event.name) {
         case startSignalType:
           observable = lazyObservable();
           subscription = observable.subscribe({
@@ -251,14 +253,14 @@ export function fromObservable<T, TEvent extends EventObject>(
             toSCXMLEvent(
               {
                 type: `xstate.snapshot.${name}`,
-                data: event.data
+                data: _event.data.data
               },
               { origin: self }
             )
           );
           return event.data;
         case errorEventType:
-          const errorEvent = error(name, event.data);
+          const errorEvent = error(name, _event.data.data);
           self._parent?.send(
             toSCXMLEvent(errorEvent, {
               origin: self
@@ -307,11 +309,12 @@ export function fromEventObservable<T extends EventObject>(
   // TODO: event types
   const behavior: Behavior<any, T | undefined> = {
     transition: (state, event, { self, name }) => {
+      const _event = toSCXMLEvent(event);
       if (canceled) {
         return state;
       }
 
-      switch (event.type) {
+      switch (_event.name) {
         case startSignalType:
           observable = lazyObservable();
           subscription = observable.subscribe({
@@ -327,9 +330,9 @@ export function fromEventObservable<T extends EventObject>(
           });
           return state;
         case nextEventType:
-          return event.data;
+          return _event.data;
         case errorEventType:
-          const errorEvent = error(name, event.data);
+          const errorEvent = error(name, _event.data.data);
           self._parent?.send(
             toSCXMLEvent(errorEvent, {
               origin: self
@@ -365,6 +368,7 @@ export function fromMachine<TMachine extends AnyStateMachine>(
     : 'Some implementations missing',
   options: Partial<InterpreterOptions> = {}
 ): Behavior<EventFrom<TMachine>, StateFrom<TMachine>> {
+  return machine;
   const snapshotEventType = Symbol('snapshot');
 
   const castedMachine = machine as TMachine;

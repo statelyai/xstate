@@ -1,6 +1,8 @@
 import { errorExecution, errorPlatform } from './actionTypes';
 import { NULL_EVENT, STATE_DELIMITER, TARGETLESS_KEY } from './constants';
 import { IS_PRODUCTION } from './environment';
+import { State } from './State';
+import { StateMachine } from './StateMachine';
 import type { StateNode } from './StateNode';
 import type {
   Behavior,
@@ -88,7 +90,7 @@ export function toStatePath(
   }
 }
 
-export function isStateLike(state: any): state is StateLike<any> {
+export function isStateLike(state: any): state is State<any, any> {
   return (
     typeof state === 'object' &&
     'value' in state &&
@@ -368,7 +370,7 @@ export const symbolObservable: typeof Symbol.observable = (() =>
   '@@observable')() as any;
 
 export function isStateMachine(value: any): value is AnyStateMachine {
-  return !!value && '__xstatenode' in value;
+  return value instanceof StateMachine;
 }
 
 export const uniqueId = (() => {
@@ -400,7 +402,10 @@ export function isSCXMLEvent<TEvent extends EventObject>(
 export function isSCXMLErrorEvent(
   event: SCXML.Event<any>
 ): event is SCXMLErrorEvent {
-  return event.name === errorExecution || event.name.startsWith(errorPlatform);
+  return (
+    typeof event.name === 'string' &&
+    (event.name === errorExecution || event.name.startsWith(errorPlatform))
+  );
 }
 
 export function toSCXMLEvent<TEvent extends EventObject>(

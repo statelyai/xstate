@@ -2,7 +2,7 @@ import { AnyStateMachine, InterpreterFrom } from '.';
 import { isExecutableAction } from '../actions/ExecutableAction';
 import { doneInvoke, error } from './actions';
 import * as actionTypes from './actionTypes';
-import { isActorRef } from './actors';
+import { isActorRef, startSignalType, stopSignalType } from './actors';
 import { devToolsAdapter } from './dev';
 import { IS_PRODUCTION } from './environment';
 import { Mailbox } from './Mailbox';
@@ -44,6 +44,7 @@ import {
 import {
   isFunction,
   isSCXMLErrorEvent,
+  isStateMachine,
   mapContext,
   symbolObservable,
   toEventObject,
@@ -178,6 +179,9 @@ export class Interpreter<
   }
 
   public get initialState(): State<TContext, TEvent, TResolvedTypesMeta> {
+    if (!isStateMachine(this.machine)) {
+      return this.machine.initialState;
+    }
     const initialState =
       this._initialState ||
       ((this._initialState = this.machine.getInitialState()),
@@ -202,42 +206,56 @@ export class Interpreter<
 
   private update(state: State<TContext, TEvent, any>): void {
     // Attach session ID to state
-    state._sessionid = this.sessionId;
+    this.gate(() => {
+      state._sessionid = this.sessionId;
+    });
 
     // Update state
     this._state = state;
+
     // Execute actions
-    this.execute(this.state);
+    this.gate(() => {
+      this.execute(this.state);
+    });
 
     for (const listener of this.listeners) {
       listener(state, state.event);
     }
 
-    const isDone = isInFinalState(state.configuration || [], this.machine.root);
-
-    if (this.state.configuration && isDone) {
-      // get final child state node
-      const finalChildStateNode = state.configuration.find(
-        (stateNode) =>
-          stateNode.type === 'final' && stateNode.parent === this.machine.root
+    this.gate(() => {
+      const isDone = isInFinalState(
+        state.configuration || [],
+        this.machine.root
       );
 
-      const doneData =
-        finalChildStateNode && finalChildStateNode.doneData
-          ? mapContext(
-              finalChildStateNode.doneData,
-              state.context,
-              state._event
-            )
-          : undefined;
-
-      for (const listener of this.doneListeners) {
-        listener(
-          toSCXMLEvent(doneInvoke(this.name, doneData), { invokeid: this.name })
+      if (this.state.configuration && isDone) {
+        // get final child state node
+        const finalChildStateNode = state.configuration.find(
+          (stateNode) =>
+            stateNode.type === 'final' && stateNode.parent === this.machine.root
         );
+
+        const doneData =
+          finalChildStateNode && finalChildStateNode.doneData
+            ? mapContext(
+                finalChildStateNode.doneData,
+                state.context,
+                state._event
+              )
+            : undefined;
+
+        const doneEvent = toSCXMLEvent(doneInvoke(this.name, doneData), {
+          invokeid: this.name
+        });
+        for (const listener of this.doneListeners) {
+          listener(doneEvent);
+        }
+
+        this._parent?.send(doneEvent);
+
+        this.stop();
       }
-      this.stop();
-    }
+    });
   }
   /*
    * Adds a listener that is notified whenever a state transition happens. The listener is called with
@@ -377,7 +395,7 @@ export class Interpreter<
     registry.register(this.sessionId, this.ref);
     this.status = InterpreterStatus.Running;
 
-    const resolvedState =
+    let resolvedState =
       initialState === undefined
         ? this.initialState
         : isStateConfig<TContext, TEvent>(initialState)
@@ -385,6 +403,18 @@ export class Interpreter<
         : this.machine.resolveState(
             State.from(initialState, this.machine.context)
           );
+
+    if (!isStateMachine(this.machine)) {
+      resolvedState = this.machine.transition(
+        this.machine.initialState,
+        { type: startSignalType },
+        {
+          self: this,
+          name: this.id,
+          _event: toSCXMLEvent({ type: startSignalType })
+        }
+      );
+    }
 
     this._state = resolvedState;
 
@@ -433,12 +463,22 @@ export class Interpreter<
     }
   }
 
+  private gate(fn: () => void): void {
+    if (isStateMachine(this.machine)) {
+      fn.call(this);
+    }
+  }
+
   /**
    * Stops the interpreter and unsubscribe all listeners.
    *
    * This will also notify the `onStop` listeners.
    */
   public stop(): this {
+    try {
+      this._state = this.nextState({ type: stopSignalType });
+    } catch (_) {}
+
     this.listeners.clear();
     for (const listener of this.stopListeners) {
       // call listener, then remove
@@ -452,19 +492,21 @@ export class Interpreter<
       return this;
     }
 
-    [...this.state.configuration]
-      .sort((a, b) => b.order - a.order)
-      .forEach((stateNode) => {
-        for (const action of stateNode.definition.exit) {
-          this.exec(action, this.state);
+    this.gate(() => {
+      [...this.state.configuration]
+        .sort((a, b) => b.order - a.order)
+        .forEach((stateNode) => {
+          for (const action of stateNode.definition.exit) {
+            this.exec(action, this.state);
+          }
+        });
+
+      // Stop all children
+      Object.values(this.state.children).forEach((child) => {
+        if (isFunction(child.stop)) {
+          child.stop();
         }
       });
-
-    // Stop all children
-    Object.values(this.state.children).forEach((child) => {
-      if (isFunction(child.stop)) {
-        child.stop();
-      }
     });
 
     // Cancel all delayed events
@@ -502,13 +544,13 @@ export class Interpreter<
     if (this.status === InterpreterStatus.Stopped) {
       // do nothing
       if (!IS_PRODUCTION) {
+        const eventString = JSON.stringify(_event.data);
+
         warn(
           false,
-          `Event "${_event.name}" was sent to stopped service "${
+          `Event "${_event.name.toString()}" was sent to stopped service "${
             this.machine.key
-          }". This service has already reached its final state, and will not transition.\nEvent: ${JSON.stringify(
-            _event.data
-          )}`
+          }". This service has already reached its final state, and will not transition.\nEvent: ${eventString}`
         );
       }
       return;
@@ -581,7 +623,11 @@ export class Interpreter<
   public nextState(
     event: Event<TEvent> | SCXML.Event<TEvent>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    return this.machine.transition(this.state, event);
+    return this.machine.transition(this.state, event, {
+      self: this,
+      name: this.id,
+      _event: toSCXMLEvent(event)
+    });
   }
   private forward(event: SCXML.Event<TEvent>): void {
     for (const id of this.forwardTo) {

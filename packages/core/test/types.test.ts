@@ -452,15 +452,14 @@ describe('events', () => {
 
 describe('interpreter', () => {
   it('should be convertable to Rx observable', () => {
-    const state$ = from(
-      interpret(
-        createMachine({
-          schema: {
-            context: {} as { count: number }
-          }
-        })
-      )
+    const s = interpret(
+      createMachine({
+        schema: {
+          context: {} as { count: number }
+        }
+      })
     );
+    const state$ = from(s);
 
     state$.subscribe((state) => {
       ((_val: number) => {})(state.context.count);

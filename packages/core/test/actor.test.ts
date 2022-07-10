@@ -6,7 +6,8 @@ import {
   EventObject,
   Behavior,
   Subscribable,
-  Observer
+  Observer,
+  toSCXMLEvent
 } from '../src';
 import {
   sendParent,
@@ -1308,10 +1309,11 @@ describe('actors', () => {
       countService.start();
     });
 
-    it('behaviors should have reference to the parent', (done) => {
+    it.only('behaviors should have reference to the parent', (done) => {
       const pongBehavior: Behavior<EventObject, undefined> = {
         transition: (_, event, { self }) => {
-          if (event.type === 'PING') {
+          const _event = toSCXMLEvent(event);
+          if (_event.name === 'PING') {
             self._parent?.send({ type: 'PONG' });
           }
 
