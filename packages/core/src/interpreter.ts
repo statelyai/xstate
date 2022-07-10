@@ -112,6 +112,29 @@ export enum InterpreterStatus {
   Stopped
 }
 
+// onceWrapper and _onceWrap from nodejs EventEmitter
+// https://github.com/nodejs/node/blob/3350d9610864af3219de7dd20e3ac18b3c214c52/lib/events.js#L622-L638
+function onceWrapper() {
+  if (!this.fired) {
+    if (this.target.off) {
+      this.target.off(this.wrapFn);
+    }
+    this.fired = true;
+    if (arguments.length === 0) {
+      return this.listener.call(this.target);
+    }
+    return this.listener.apply(this.target, arguments);
+  }
+}
+
+function _onceWrap(target: any, listener: () => void) {
+  const state = { fired: false, wrapFn: undefined, target, listener };
+  const wrapped = onceWrapper.bind(state);
+  wrapped.listener = listener;
+  state.wrapFn = wrapped;
+  return wrapped;
+}
+
 export class Interpreter<
   // tslint:disable-next-line:max-classes-per-file
   TContext,
@@ -437,7 +460,12 @@ export class Interpreter<
       if (this.status === InterpreterStatus.Stopped) {
         resolvedCompleteListener();
       } else {
-        this.onDone(resolvedCompleteListener);
+        const wrappedCompleteListener = _onceWrap(
+          this,
+          resolvedCompleteListener
+        );
+        this.onDone(wrappedCompleteListener);
+        this.onStop(wrappedCompleteListener);
       }
     }
 

@@ -1750,6 +1750,44 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       service.send('INC');
       service.send('INC');
     });
+
+    it('should call complete() once a final state is reached', (done) => {
+      const mockNextCb = jest.fn();
+      const mockCompleteCb = jest.fn();
+
+      const intervalService = interpret(intervalMachine).start();
+
+      intervalService.subscribe(mockNextCb, undefined, mockCompleteCb);
+
+      intervalService.onStop(() => {
+        expect(mockNextCb.mock.calls.length).toBe(6);
+        expect(mockCompleteCb.mock.calls.length).toBe(1);
+        done();
+      });
+    });
+
+    it('should call complete() once the interpreter is stopped', (done) => {
+      let count = 0;
+      const mockNextCb = jest.fn();
+      const mockCompleteCb = jest.fn();
+
+      const intervalService = interpret(intervalMachine).start();
+
+      intervalService.subscribe(mockNextCb, undefined, mockCompleteCb);
+
+      intervalService.onTransition(() => {
+        count += 1;
+        if (count === 2) {
+          intervalService.stop();
+        }
+      });
+
+      intervalService.onStop(() => {
+        expect(mockNextCb.mock.calls.length).toBe(2);
+        expect(mockCompleteCb.mock.calls.length).toBe(1);
+        done();
+      });
+    });
   });
 
   describe('services', () => {
