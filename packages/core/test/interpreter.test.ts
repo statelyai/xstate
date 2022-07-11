@@ -713,7 +713,7 @@ describe('interpreter', () => {
     const service = interpret(machine).start();
 
     service.onDone(() => {
-      expect(service.state.value).toBe('pass');
+      expect(service.getSnapshot().value).toBe('pass');
       done();
     });
   });
@@ -1600,7 +1600,9 @@ describe('interpreter', () => {
           }
         })
         .onDone(() => {
-          expect(service.state.children).not.toHaveProperty('childActor');
+          expect(service.getSnapshot().children).not.toHaveProperty(
+            'childActor'
+          );
           done();
         });
 
@@ -1652,8 +1654,10 @@ describe('interpreter', () => {
           }
         })
         .onDone(() => {
-          expect(service.state.matches('success')).toBeTruthy();
-          expect(service.state.children).not.toHaveProperty('childActor');
+          expect(service.getSnapshot().matches('success')).toBeTruthy();
+          expect(service.getSnapshot().children).not.toHaveProperty(
+            'childActor'
+          );
           done();
         });
 
@@ -1691,7 +1695,9 @@ describe('interpreter', () => {
           }
         })
         .onDone(() => {
-          expect(service.state.children).not.toHaveProperty('childActor');
+          expect(service.getSnapshot().children).not.toHaveProperty(
+            'childActor'
+          );
           done();
         });
 
@@ -1779,9 +1785,11 @@ describe('interpreter', () => {
 
       const service = interpret(parentMachine)
         .onDone(() => {
-          expect(service.state.children.machineChild).toBeUndefined();
-          expect(service.state.children.promiseChild).toBeUndefined();
-          expect(service.state.children.observableChild).toBeUndefined();
+          expect(service.getSnapshot().children.machineChild).toBeUndefined();
+          expect(service.getSnapshot().children.promiseChild).toBeUndefined();
+          expect(
+            service.getSnapshot().children.observableChild
+          ).toBeUndefined();
           done();
         })
         .start();

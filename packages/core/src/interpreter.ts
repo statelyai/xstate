@@ -167,10 +167,6 @@ export class Interpreter<
     return this.machine.initialState;
   }
 
-  public get state(): SnapshotFrom<TBehavior> {
-    return this._state!;
-  }
-
   /**
    * Executes the actions of the given state, with that state's `context` and `event`.
    *
@@ -196,8 +192,8 @@ export class Interpreter<
     this._state = state;
 
     // Execute actions
-    if (isStateLike(this.state)) {
-      this.execute(this.state);
+    if (isStateLike(this.getSnapshot())) {
+      this.execute(this.getSnapshot());
     }
 
     for (const listener of this.listeners) {
@@ -250,7 +246,7 @@ export class Interpreter<
 
     // Send current state to listener
     if (this.status === InterpreterStatus.Running) {
-      listener(this.state); // TODO: remove event
+      listener(this.getSnapshot()); // TODO: remove event
     }
 
     return this;
@@ -295,7 +291,7 @@ export class Interpreter<
 
     // Send current state to listener
     if (this.status !== InterpreterStatus.NotStarted) {
-      listener(this.state);
+      listener(this.getSnapshot());
     }
 
     if (resolvedCompleteListener) {
@@ -415,9 +411,11 @@ export class Interpreter<
     let errored = false;
 
     if (
-      isStateLike(this.state) &&
+      isStateLike(this.getSnapshot()) &&
       isSCXMLErrorEvent(event) &&
-      !this.state.nextEvents.some((nextEvent) => nextEvent === event.name)
+      !this.getSnapshot().nextEvents.some(
+        (nextEvent) => nextEvent === event.name
+      )
     ) {
       errored = true;
       // Error event unhandled by machine
@@ -463,17 +461,17 @@ export class Interpreter<
       return this;
     }
 
-    if (isStateLike(this.state)) {
-      [...this.state.configuration]
+    if (isStateLike(this.getSnapshot())) {
+      [...this.getSnapshot().configuration]
         .sort((a, b) => b.order - a.order)
         .forEach((stateNode) => {
           for (const action of stateNode.definition.exit) {
-            this.exec(action, this.state);
+            this.exec(action, this.getSnapshot());
           }
         });
 
       // Stop all children
-      Object.values(this.state.children).forEach((child) => {
+      Object.values(this.getSnapshot().children).forEach((child) => {
         if (isFunction(child.stop)) {
           child.stop();
         }
@@ -553,8 +551,8 @@ export class Interpreter<
       ? this._parent
       : isActorRef(to)
       ? to
-      : isStateLike(this.state)
-      ? this.state.children[to]
+      : isStateLike(this.getSnapshot())
+      ? this.getSnapshot().children[to]
       : undefined;
 
     if (!target) {
@@ -596,19 +594,19 @@ export class Interpreter<
   public nextState(
     event: Event<TEvent> | SCXML.Event<TEvent>
   ): SnapshotFrom<TBehavior> {
-    return this.machine.transition(this.state, event, {
+    return this.machine.transition(this.getSnapshot(), event, {
       self: this,
       name: this.id,
       _event: toSCXMLEvent(event)
     });
   }
   private forward(event: SCXML.Event<TEvent>): void {
-    if (!isStateLike(this.state)) {
+    if (!isStateLike(this.getSnapshot())) {
       return;
     }
 
     for (const id of this.forwardTo) {
-      const child = this.state.children[id];
+      const child = this.getSnapshot().children[id];
 
       if (!child) {
         throw new Error(

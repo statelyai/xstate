@@ -668,7 +668,7 @@ describe('transient states (eventless transitions)', () => {
     shouldMatch = true;
     service.send({ type: 'WHATEVER' });
 
-    expect(service.state.value).toBe('b');
+    expect(service.getSnapshot().value).toBe('b');
   });
 
   it('should select subsequent transient transitions even in absence of other transitions', () => {
@@ -700,7 +700,7 @@ describe('transient states (eventless transitions)', () => {
     shouldMatch = true;
     service.send({ type: 'WHATEVER' });
 
-    expect(service.state.value).toBe('c');
+    expect(service.getSnapshot().value).toBe('c');
   });
 
   it('events that trigger eventless transitions should be preserved in guards', () => {

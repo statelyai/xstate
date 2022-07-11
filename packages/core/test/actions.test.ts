@@ -1407,7 +1407,7 @@ describe('choose', () => {
 
     const service = interpret(machine).start();
 
-    expect(service.state.context).toEqual({ answer: 42 });
+    expect(service.getSnapshot().context).toEqual({ answer: 42 });
   });
 
   it('should execute a multiple conditional actions', () => {
@@ -1434,7 +1434,7 @@ describe('choose', () => {
 
     const service = interpret(machine).start();
 
-    expect(service.state.context).toEqual({ answer: 42 });
+    expect(service.getSnapshot().context).toEqual({ answer: 42 });
     expect(executed).toBeTruthy();
   });
 
@@ -1462,7 +1462,7 @@ describe('choose', () => {
 
     const service = interpret(machine).start();
 
-    expect(service.state.context).toEqual({ answer: 42 });
+    expect(service.getSnapshot().context).toEqual({ answer: 42 });
   });
 
   it('should allow for fallback unguarded actions', () => {
@@ -1489,7 +1489,7 @@ describe('choose', () => {
 
     const service = interpret(machine).start();
 
-    expect(service.state.context).toEqual({ answer: 42 });
+    expect(service.getSnapshot().context).toEqual({ answer: 42 });
   });
 
   it('should allow for nested conditional actions', () => {
@@ -1536,7 +1536,7 @@ describe('choose', () => {
 
     const service = interpret(machine).start();
 
-    expect(service.state.context).toEqual({
+    expect(service.getSnapshot().context).toEqual({
       firstLevel: true,
       secondLevel: true,
       thirdLevel: true
@@ -1567,7 +1567,7 @@ describe('choose', () => {
 
     const service = interpret(machine).start();
 
-    expect(service.state.context).toEqual({ counter: 101, answer: 42 });
+    expect(service.getSnapshot().context).toEqual({ counter: 101, answer: 42 });
   });
 
   it('should provide event to a condition expression', () => {
@@ -1602,7 +1602,7 @@ describe('choose', () => {
 
     const service = interpret(machine).start();
     service.send({ type: 'NEXT', counter: 101 });
-    expect(service.state.context).toEqual({ answer: 42 });
+    expect(service.getSnapshot().context).toEqual({ answer: 42 });
   });
 
   it('should provide stateGuard.state to a condition expression', () => {
@@ -1638,7 +1638,7 @@ describe('choose', () => {
     const service = interpret(machine).start();
     service.send('GIVE_ANSWER');
 
-    expect(service.state.context).toEqual({ counter: 101, answer: 42 });
+    expect(service.getSnapshot().context).toEqual({ counter: 101, answer: 42 });
   });
 
   it('should be able to use actions and guards defined in options', () => {
@@ -1668,7 +1668,7 @@ describe('choose', () => {
 
     const service = interpret(machine).start();
 
-    expect(service.state.context).toEqual({ answer: 42 });
+    expect(service.getSnapshot().context).toEqual({ answer: 42 });
   });
 
   it('should be able to use choose actions from within options', () => {
@@ -1701,7 +1701,7 @@ describe('choose', () => {
 
     const service = interpret(machine).start();
 
-    expect(service.state.context).toEqual({ answer: 42 });
+    expect(service.getSnapshot().context).toEqual({ answer: 42 });
   });
 });
 

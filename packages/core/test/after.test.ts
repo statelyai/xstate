@@ -219,7 +219,7 @@ describe('delayed transitions', () => {
     let service = interpret(createMyMachine()).start();
 
     const persistedState = State.create(
-      JSON.parse(JSON.stringify(service.state))
+      JSON.parse(JSON.stringify(service.getSnapshot()))
     );
 
     service = interpret(createMyMachine()).start(persistedState);

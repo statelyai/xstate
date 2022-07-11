@@ -1051,6 +1051,6 @@ describe('parallel states', () => {
     service.send({ type: 'finish_one' });
     service.send({ type: 'finish_two' });
 
-    expect(service.state.value).toBe('finished');
+    expect(service.getSnapshot().value).toBe('finished');
   });
 });

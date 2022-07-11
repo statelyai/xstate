@@ -18,7 +18,7 @@ describe('event descriptors', () => {
 
     const service = interpret(machine).start();
     service.send('BAR');
-    expect(service.state.value).toBe('C');
+    expect(service.getSnapshot().value).toBe('C');
   });
 
   it('should not use wildcard transition over explicit one when using object `.on` config - even if wildcard comes first', () => {
@@ -38,7 +38,7 @@ describe('event descriptors', () => {
 
     const service = interpret(machine).start();
     service.send('NEXT');
-    expect(service.state.value).toBe('pass');
+    expect(service.getSnapshot().value).toBe('pass');
   });
 
   it('should select wildcard over explicit event type for array `.on` config (according to document order)', () => {
@@ -58,7 +58,7 @@ describe('event descriptors', () => {
 
     const service = interpret(machine).start();
     service.send('NEXT');
-    expect(service.state.value).toBe('pass');
+    expect(service.getSnapshot().value).toBe('pass');
   });
 
   it('should NOT support non-tokenized wildcards', () => {

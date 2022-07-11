@@ -110,7 +110,7 @@ describe('history states', () => {
     service.send('DEPLOY');
     service.send('FAILURE');
 
-    expect(service.state.value).toEqual({ idle: 'absent' });
+    expect(service.getSnapshot().value).toEqual({ idle: 'absent' });
   });
 });
 
@@ -388,7 +388,7 @@ it('internal transition to a history state should enter default history state co
   service.send('NEXT');
   service.send('NEXT');
 
-  expect(service.state.value).toEqual({
+  expect(service.getSnapshot().value).toEqual({
     second: 'nested'
   });
 });

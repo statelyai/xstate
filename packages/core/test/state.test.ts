@@ -838,7 +838,7 @@ describe('State', () => {
       });
 
       const service = interpret(machine).start();
-      service.state.can('SPAWN');
+      service.getSnapshot().can('SPAWN');
       expect(spawned).toBe(false);
     });
 

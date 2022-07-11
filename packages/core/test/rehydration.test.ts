@@ -17,7 +17,7 @@ describe('rehydration', () => {
 
       const service = interpret(machine).start(restoredState);
 
-      expect(service.state.hasTag('foo')).toBe(true);
+      expect(service.getSnapshot().hasTag('foo')).toBe(true);
     });
 
     it('should call exit actions when machine gets stopped immediately', () => {
@@ -49,11 +49,13 @@ describe('rehydration', () => {
         }
       });
 
-      const persistedState = JSON.stringify(interpret(machine).start().state);
+      const persistedState = JSON.stringify(
+        interpret(machine).start().getSnapshot()
+      );
       const restoredState = JSON.parse(persistedState);
       const service = interpret(machine).start(restoredState);
 
-      expect(service.state.can('FOO')).toBe(true);
+      expect(service.getSnapshot().can('FOO')).toBe(true);
     });
   });
 
@@ -75,7 +77,7 @@ describe('rehydration', () => {
 
       service.start('active');
 
-      expect(service.state.hasTag('foo')).toBe(true);
+      expect(service.getSnapshot().hasTag('foo')).toBe(true);
     });
 
     it('should call exit actions when machine gets stopped immediately', () => {

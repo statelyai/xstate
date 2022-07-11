@@ -979,7 +979,7 @@ describe('invoke', () => {
       it('should be invoked with a promise factory and resolve through onDone', (done) => {
         const service = interpret(invokePromiseMachine)
           .onDone(() => {
-            expect(service.state._event.origin).toBeDefined();
+            expect(service.getSnapshot()._event.origin).toBeDefined();
             done();
           })
           .start();
@@ -1756,7 +1756,7 @@ describe('invoke', () => {
 
       const expectedStateValue = 'failed';
       const service = interpret(errorMachine).start();
-      expect(service.state.value).toEqual(expectedStateValue);
+      expect(service.getSnapshot().value).toEqual(expectedStateValue);
     });
 
     it('should call onError upon error (async)', (done) => {
@@ -2014,7 +2014,7 @@ describe('invoke', () => {
 
       const service = interpret(obsMachine)
         .onDone(() => {
-          expect(service.state._event.origin).toBeDefined();
+          expect(service.getSnapshot()._event.origin).toBeDefined();
           done();
         })
         .start();
@@ -2150,7 +2150,7 @@ describe('invoke', () => {
 
       const service = interpret(obsMachine)
         .onDone(() => {
-          expect(service.state._event.origin).toBeDefined();
+          expect(service.getSnapshot()._event.origin).toBeDefined();
           done();
         })
         .start();

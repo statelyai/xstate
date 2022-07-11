@@ -783,7 +783,7 @@ describe('actors', () => {
     });
 
     const service = interpret(testMachine).start();
-    expect(service.state.value).toEqual('done');
+    expect(service.getSnapshot().value).toEqual('done');
   });
 
   it('should spawn null actors if not used within a service', () => {
@@ -1309,7 +1309,7 @@ describe('actors', () => {
       countService.start();
     });
 
-    it.only('behaviors should have reference to the parent', (done) => {
+    it('behaviors should have reference to the parent', (done) => {
       const pongBehavior: Behavior<EventObject, undefined> = {
         transition: (_, event, { self }) => {
           const _event = toSCXMLEvent(event);
@@ -1523,6 +1523,6 @@ describe('actors', () => {
 
     service.start();
 
-    expect(service.state.value).toBe('done');
+    expect(service.getSnapshot().value).toBe('done');
   });
 });

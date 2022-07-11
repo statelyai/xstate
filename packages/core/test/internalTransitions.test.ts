@@ -187,7 +187,7 @@ describe('internal transitions', () => {
 
     service.send('REENTER');
 
-    expect(service.state.context).toEqual({
+    expect(service.getSnapshot().context).toEqual({
       sourceStateEntries: 1,
       directDescendantEntries: 2,
       deepDescendantEntries: 2
@@ -238,7 +238,7 @@ describe('internal transitions', () => {
 
     service.send('REENTER');
 
-    expect(service.state.context).toEqual({
+    expect(service.getSnapshot().context).toEqual({
       sourceStateExits: 0,
       directDescendantExits: 1,
       deepDescendantExits: 1

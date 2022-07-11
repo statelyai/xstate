@@ -282,7 +282,7 @@ describe('guard conditions', () => {
     const service = interpret(machine).start();
     service.send('MACRO');
 
-    expect(service.state.value).toBe('c');
+    expect(service.getSnapshot().value).toBe('c');
   });
 });
 
@@ -442,7 +442,7 @@ describe('guards - other', () => {
     const service = interpret(machine).start();
     service.send('EVENT');
 
-    expect(service.state.value).toBe('c');
+    expect(service.getSnapshot().value).toBe('c');
   });
 });
 

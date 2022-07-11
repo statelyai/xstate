@@ -229,7 +229,7 @@ describe('machine', () => {
       const a = interpret(copiedMachine).start();
       const b = interpret(copiedMachine).start();
 
-      expect(a.state.context.foo).not.toBe(b.state.context.foo);
+      expect(a.getSnapshot().context.foo).not.toBe(b.getSnapshot().context.foo);
     });
   });
 
