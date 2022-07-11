@@ -1,4 +1,4 @@
-import { interpret } from '../src/interpreter';
+import { interpret } from '../src';
 import { createMachine } from '../src';
 import { waitFor } from '../src/waitFor';
 

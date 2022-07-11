@@ -1,8 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as pkgUp from 'pkg-up';
-import { AnyState, AnyStateMachine } from '../src';
-import { interpret } from '../src/interpreter';
+import { AnyState, AnyStateMachine, interpret } from '../src';
 import { toMachine } from '../src/scxml';
 import { SimulatedClock } from '../src/SimulatedClock';
 import { getStateNodes } from '../src/stateUtils';

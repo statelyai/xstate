@@ -108,7 +108,7 @@ export class Interpreter<
   public clock: Clock;
   public options: Readonly<InterpreterOptions>;
 
-  public id: string;
+  public id: string | undefined;
 
   private mailbox: Mailbox<SCXML.Event<TEvent>> = new Mailbox(
     this._process.bind(this)
@@ -151,9 +151,7 @@ export class Interpreter<
 
     const { clock, logger, parent, id } = resolvedOptions;
 
-    const resolvedId = id !== undefined ? id : '__unknown';
-
-    this.name = this.id = resolvedId;
+    this.name = this.id = id;
     this.logger = logger;
     this.clock = clock;
     this._parent = parent;
@@ -165,20 +163,8 @@ export class Interpreter<
     this.sessionId = this.ref.name;
   }
 
-  public get initialized() {
-    return this.status === InterpreterStatus.Running;
-  }
-
   public get initialState(): SnapshotFrom<TBehavior> {
-    if (!isStateMachine(this.machine)) {
-      return this.machine.initialState;
-    }
-
-    const initialState =
-      this._initialState ||
-      ((this._initialState = (this.machine.getInitialState() as unknown) as SnapshotFrom<TBehavior>),
-      this._initialState);
-    return initialState;
+    return this.machine.initialState;
   }
 
   public get state(): SnapshotFrom<TBehavior> {
@@ -472,7 +458,7 @@ export class Interpreter<
     this.stopListeners.clear();
     this.doneListeners.clear();
 
-    if (!this.initialized) {
+    if (this.status !== InterpreterStatus.Running) {
       // Interpreter already stopped; do nothing
       return this;
     }
@@ -835,7 +821,12 @@ export function interpret<TBehavior extends Behavior<any, any>>(
   options?: InterpreterOptions
 ): ActorRefFrom<TBehavior>;
 export function interpret(machine: any, options?: InterpreterOptions): any {
-  const interpreter = new Interpreter(machine, options);
+  const resolvedOptions = {
+    id: isStateMachine(machine) ? machine.key : undefined,
+    ...options
+  };
+
+  const interpreter = new Interpreter(machine, resolvedOptions);
 
   return interpreter as any;
 }

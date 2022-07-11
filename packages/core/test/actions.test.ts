@@ -5,7 +5,7 @@ import {
   interpret,
   ActorRefFrom
 } from '../src/index';
-import { sendParent } from '../src/actions';
+import { sendParent } from '../src/actions/send';
 import { choose } from '../src/actions/choose';
 import { pure } from '../src/actions/pure';
 import { log } from '../src/actions/log';
