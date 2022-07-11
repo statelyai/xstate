@@ -67,6 +67,9 @@ export interface StopSignal {
 }
 
 export type LifecycleSignal = StartSignal | StopSignal;
+export type LifecycleSignalType =
+  | typeof startSignalType
+  | typeof stopSignalType;
 
 /**
  * An object that expresses the behavior of an actor in reaction to received events,
@@ -77,9 +80,9 @@ export type LifecycleSignal = StartSignal | StopSignal;
  */
 
 function isSignal(
-  event: EventObject | LifecycleSignal
-): event is LifecycleSignal {
-  return typeof event.type === 'symbol';
+  eventType: string | Symbol
+): eventType is LifecycleSignalType {
+  return eventType === startSignalType || eventType === stopSignalType;
 }
 
 export function fromCallback<TEvent extends EventObject>(
@@ -361,13 +364,9 @@ export function fromEventObservable<T extends EventObject>(
 }
 
 export function fromMachine<TMachine extends AnyStateMachine>(
-  machine: AreAllImplementationsAssumedToBeProvided<
-    TMachine['__TResolvedTypesMeta']
-  > extends true
-    ? TMachine
-    : 'Some implementations missing',
+  machine: TMachine,
   options: Partial<InterpreterOptions> = {}
-): Behavior<EventFrom<TMachine>, StateFrom<TMachine>> {
+): TMachine {
   return machine;
   const snapshotEventType = Symbol('snapshot');
 

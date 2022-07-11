@@ -8,7 +8,6 @@ import {
   Spawner
 } from '.';
 import { interpret } from './interpreter';
-import { ObservableActorRef } from './ObservableActorRef';
 import { isString } from './utils';
 
 export function createSpawner<

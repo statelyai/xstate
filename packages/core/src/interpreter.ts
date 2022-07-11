@@ -1,4 +1,13 @@
-import { AnyStateMachine, InterpreterFrom } from '.';
+import {
+  ActorRefFrom,
+  AnyState,
+  AnyStateMachine,
+  Behavior,
+  ContextFrom,
+  EventFrom,
+  InterpreterFrom,
+  SnapshotFrom
+} from '.';
 import { isExecutableAction } from '../actions/ExecutableAction';
 import { doneInvoke, error } from './actions';
 import * as actionTypes from './actionTypes';
@@ -8,17 +17,12 @@ import { IS_PRODUCTION } from './environment';
 import { Mailbox } from './Mailbox';
 import { registry } from './registry';
 import { isStateConfig, State } from './State';
-import type { StateMachine } from './StateMachine';
 import { isInFinalState } from './stateUtils';
-import {
-  TypegenDisabled,
-  AreAllImplementationsAssumedToBeProvided
-} from './typegenTypes';
+import { AreAllImplementationsAssumedToBeProvided } from './typegenTypes';
 import type {
   ActionFunction,
   BaseActionObject,
   LogActionObject,
-  MachineContext,
   PayloadSender
 } from './types';
 import {
@@ -44,6 +48,7 @@ import {
 import {
   isFunction,
   isSCXMLErrorEvent,
+  isStateLike,
   isStateMachine,
   mapContext,
   symbolObservable,
@@ -52,11 +57,9 @@ import {
   warn
 } from './utils';
 
-export type StateListener<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TResolvedTypesMeta = TypegenDisabled
-> = (state: State<TContext, TEvent, TResolvedTypesMeta>, event: TEvent) => void;
+export type StateListener<TBehavior extends Behavior<any, any>> = (
+  state: SnapshotFrom<TBehavior>
+) => void;
 
 export type EventListener<TEvent extends EventObject = EventObject> = (
   event: TEvent
@@ -91,15 +94,14 @@ const defaultOptions: InterpreterOptions = {
 };
 
 export class Interpreter<
-  TContext extends MachineContext,
-  TEvent extends EventObject = EventObject,
-  TResolvedTypesMeta = TypegenDisabled
-> implements ActorRef<TEvent, State<TContext, TEvent, TResolvedTypesMeta>> {
+  TBehavior extends Behavior<any, any>,
+  TEvent extends EventObject = any
+> implements ActorRef<TEvent, SnapshotFrom<TBehavior>> {
   /**
    * The current state of the interpreted machine.
    */
-  private _state?: State<TContext, TEvent, TResolvedTypesMeta>;
-  private _initialState?: State<TContext, TEvent, TResolvedTypesMeta>;
+  private _state?: SnapshotFrom<TBehavior>;
+  private _initialState?: SnapshotFrom<TBehavior>;
   /**
    * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
    */
@@ -114,9 +116,7 @@ export class Interpreter<
 
   private delayedEventsMap: Record<string, unknown> = {};
 
-  private listeners: Set<
-    StateListener<TContext, TEvent, TResolvedTypesMeta>
-  > = new Set();
+  private listeners: Set<StateListener<TBehavior>> = new Set();
   private stopListeners: Set<Listener> = new Set();
   private errorListeners: Set<ErrorListener> = new Set();
   private doneListeners: Set<EventListener> = new Set();
@@ -143,16 +143,7 @@ export class Interpreter<
    * @param machine The machine to be interpreted
    * @param options Interpreter options
    */
-  constructor(
-    public machine: StateMachine<
-      TContext,
-      TEvent,
-      any,
-      any,
-      TResolvedTypesMeta
-    >,
-    options?: InterpreterOptions
-  ) {
+  constructor(public machine: TBehavior, options?: InterpreterOptions) {
     const resolvedOptions = {
       ...defaultOptions,
       ...options
@@ -160,7 +151,7 @@ export class Interpreter<
 
     const { clock, logger, parent, id } = resolvedOptions;
 
-    const resolvedId = id !== undefined ? id : machine.key;
+    const resolvedId = id !== undefined ? id : '__unknown';
 
     this.name = this.id = resolvedId;
     this.logger = logger;
@@ -178,18 +169,19 @@ export class Interpreter<
     return this.status === InterpreterStatus.Running;
   }
 
-  public get initialState(): State<TContext, TEvent, TResolvedTypesMeta> {
+  public get initialState(): SnapshotFrom<TBehavior> {
     if (!isStateMachine(this.machine)) {
       return this.machine.initialState;
     }
+
     const initialState =
       this._initialState ||
-      ((this._initialState = this.machine.getInitialState()),
+      ((this._initialState = (this.machine.getInitialState() as unknown) as SnapshotFrom<TBehavior>),
       this._initialState);
     return initialState;
   }
 
-  public get state(): State<TContext, TEvent, TResolvedTypesMeta> {
+  public get state(): SnapshotFrom<TBehavior> {
     return this._state!;
   }
 
@@ -198,37 +190,41 @@ export class Interpreter<
    *
    * @param state The state whose actions will be executed
    */
-  public execute(state: State<TContext, TEvent, TResolvedTypesMeta>): void {
+  public execute(state: SnapshotFrom<TBehavior>): void {
+    if (!isStateLike(state)) {
+      return;
+    }
+
     for (const action of state.actions) {
       this.exec(action, state);
     }
   }
 
-  private update(state: State<TContext, TEvent, any>): void {
+  private update(state: SnapshotFrom<TBehavior>): void {
     // Attach session ID to state
-    this.gate(() => {
+    if (isStateLike(state)) {
       state._sessionid = this.sessionId;
-    });
+    }
 
     // Update state
     this._state = state;
 
     // Execute actions
-    this.gate(() => {
+    if (isStateLike(this.state)) {
       this.execute(this.state);
-    });
-
-    for (const listener of this.listeners) {
-      listener(state, state.event);
     }
 
-    this.gate(() => {
+    for (const listener of this.listeners) {
+      listener(state);
+    }
+
+    if (isStateLike(state) && isStateMachine(this.machine)) {
       const isDone = isInFinalState(
         state.configuration || [],
         this.machine.root
       );
 
-      if (this.state.configuration && isDone) {
+      if (state.configuration && isDone) {
         // get final child state node
         const finalChildStateNode = state.configuration.find(
           (stateNode) =>
@@ -255,7 +251,7 @@ export class Interpreter<
 
         this.stop();
       }
-    });
+    }
   }
   /*
    * Adds a listener that is notified whenever a state transition happens. The listener is called with
@@ -263,31 +259,27 @@ export class Interpreter<
    *
    * @param listener The state listener
    */
-  public onTransition(
-    listener: StateListener<TContext, TEvent, TResolvedTypesMeta>
-  ): this {
+  public onTransition(listener: StateListener<TBehavior>): this {
     this.listeners.add(listener);
 
     // Send current state to listener
     if (this.status === InterpreterStatus.Running) {
-      listener(this.state, this.state.event);
+      listener(this.state); // TODO: remove event
     }
 
     return this;
   }
 
+  public subscribe(observer: Observer<SnapshotFrom<TBehavior>>): Subscription;
   public subscribe(
-    observer: Observer<State<TContext, TEvent, TResolvedTypesMeta>>
-  ): Subscription;
-  public subscribe(
-    nextListener?: (state: State<TContext, TEvent, TResolvedTypesMeta>) => void,
+    nextListener?: (state: SnapshotFrom<TBehavior>) => void,
     errorListener?: (error: any) => void,
     completeListener?: () => void
   ): Subscription;
   public subscribe(
     nextListenerOrObserver?:
-      | ((state: State<TContext, TEvent, TResolvedTypesMeta>) => void)
-      | Observer<State<TContext, TEvent, TResolvedTypesMeta>>,
+      | ((state: SnapshotFrom<TBehavior>) => void)
+      | Observer<SnapshotFrom<TBehavior>>,
     errorListener?: (error: any) => void,
     completeListener?: () => void
   ): Subscription {
@@ -295,7 +287,7 @@ export class Interpreter<
       return { unsubscribe: () => void 0 };
     }
 
-    let listener: (state: State<TContext, TEvent, TResolvedTypesMeta>) => void;
+    let listener: (state: SnapshotFrom<TBehavior>) => void;
     let resolvedCompleteListener = completeListener;
 
     if (typeof nextListenerOrObserver === 'function') {
@@ -384,9 +376,7 @@ export class Interpreter<
    * Starts the interpreter from the given state, or the initial state.
    * @param initialState The state to start the statechart from
    */
-  public start(
-    initialState?: State<TContext, TEvent, TResolvedTypesMeta> | StateValue
-  ): this {
+  public start(initialState?: SnapshotFrom<TBehavior> | StateValue): this {
     if (this.status === InterpreterStatus.Running) {
       // Do not restart the service if it is already started
       return this;
@@ -398,7 +388,7 @@ export class Interpreter<
     let resolvedState =
       initialState === undefined
         ? this.initialState
-        : isStateConfig<TContext, TEvent>(initialState)
+        : isStateConfig(initialState)
         ? this.machine.resolveState(initialState as any) // TODO: fix this
         : this.machine.resolveState(
             State.from(initialState, this.machine.context)
@@ -439,6 +429,7 @@ export class Interpreter<
     let errored = false;
 
     if (
+      isStateLike(this.state) &&
       isSCXMLErrorEvent(event) &&
       !this.state.nextEvents.some((nextEvent) => nextEvent === event.name)
     ) {
@@ -460,12 +451,6 @@ export class Interpreter<
 
     if (errored) {
       this.stop();
-    }
-  }
-
-  private gate(fn: () => void): void {
-    if (isStateMachine(this.machine)) {
-      fn.call(this);
     }
   }
 
@@ -492,7 +477,7 @@ export class Interpreter<
       return this;
     }
 
-    this.gate(() => {
+    if (isStateLike(this.state)) {
       [...this.state.configuration]
         .sort((a, b) => b.order - a.order)
         .forEach((stateNode) => {
@@ -507,7 +492,7 @@ export class Interpreter<
           child.stop();
         }
       });
-    });
+    }
 
     // Cancel all delayed events
     for (const key of Object.keys(this.delayedEventsMap)) {
@@ -548,9 +533,9 @@ export class Interpreter<
 
         warn(
           false,
-          `Event "${_event.name.toString()}" was sent to stopped service "${
-            this.machine.key
-          }". This service has already reached its final state, and will not transition.\nEvent: ${eventString}`
+          `Event "${_event.name.toString()}" was sent to stopped actor "${
+            this.id
+          }". This actor has already reached its final state, and will not transition.\nEvent: ${eventString}`
         );
       }
       return;
@@ -561,10 +546,10 @@ export class Interpreter<
       !this.options.deferEvents
     ) {
       throw new Error(
-        `Event "${_event.name}" was sent to uninitialized service "${
-          this.machine.key
+        `Event "${_event.name}" was sent to uninitialized actor "${
+          this.id
           // tslint:disable-next-line:max-line-length
-        }". Make sure .start() is called for this service, or set { deferEvents: true } in the service options.\nEvent: ${JSON.stringify(
+        }". Make sure .start() is called for this actor, or set { deferEvents: true } in the actor options.\nEvent: ${JSON.stringify(
           _event.data
         )}`
       );
@@ -582,7 +567,9 @@ export class Interpreter<
       ? this._parent
       : isActorRef(to)
       ? to
-      : this.state.children[to];
+      : isStateLike(this.state)
+      ? this.state.children[to]
+      : undefined;
 
     if (!target) {
       if (!isParent) {
@@ -622,7 +609,7 @@ export class Interpreter<
    */
   public nextState(
     event: Event<TEvent> | SCXML.Event<TEvent>
-  ): State<TContext, TEvent, TResolvedTypesMeta> {
+  ): SnapshotFrom<TBehavior> {
     return this.machine.transition(this.state, event, {
       self: this,
       name: this.id,
@@ -630,6 +617,10 @@ export class Interpreter<
     });
   }
   private forward(event: SCXML.Event<TEvent>): void {
+    if (!isStateLike(this.state)) {
+      return;
+    }
+
     for (const id of this.forwardTo) {
       const child = this.state.children[id];
 
@@ -655,9 +646,14 @@ export class Interpreter<
     this.clock.clearTimeout(this.delayedEventsMap[sendId]);
     delete this.delayedEventsMap[sendId];
   }
-  private getActionFunction(
+  private getActionFunction<TState extends AnyState>(
+    state: TState,
     actionType: string
-  ): BaseActionObject | ActionFunction<TContext, TEvent> | undefined {
+  ): BaseActionObject | ActionFunction<any, TEvent> | undefined {
+    if (!isStateMachine(this.machine)) {
+      return;
+    }
+
     return (
       this.machine.options.actions[actionType] ??
       ({
@@ -691,7 +687,7 @@ export class Interpreter<
                 `Actor type '${
                   ((action as InvokeActionObject).params
                     .src as InvokeSourceDefinition).type
-                }' not found in machine '${this.machine.key}'.`
+                }' not found in machine '${this.id}'.`
               );
             }
             return;
@@ -699,7 +695,7 @@ export class Interpreter<
           ref._parent = this; // TODO: fix
           // If the actor didn't end up being in the state
           // (eg. going through transient states could stop it) don't bother starting the actor.
-          if (!this.state.children[id]) {
+          if (!state.children[id]) {
             return;
           }
           try {
@@ -729,13 +725,19 @@ export class Interpreter<
             this.logger(value);
           }
         }
-      } as ActionFunctionMap<TContext, TEvent>)[actionType]
+      } as ActionFunctionMap<ContextFrom<TState>, EventFrom<TState>>)[
+        actionType
+      ]
     );
   }
   private exec(
     action: InvokeActionObject | BaseActionObject,
-    state: State<TContext, TEvent, TResolvedTypesMeta>
+    state: SnapshotFrom<TBehavior>
   ): void {
+    if (!isStateLike(state)) {
+      return;
+    }
+
     const { _event } = state;
 
     if (isExecutableAction(action)) {
@@ -751,14 +753,14 @@ export class Interpreter<
       }
     }
 
-    const actionOrExec = this.getActionFunction(action.type);
+    const actionOrExec = this.getActionFunction(state, action.type);
     const exec = isFunction(actionOrExec) ? actionOrExec : undefined;
 
     if (exec) {
       try {
         return exec(state.context, _event.data, {
           action,
-          state: this.state,
+          state,
           _event
         });
       } catch (err) {
@@ -802,9 +804,7 @@ export class Interpreter<
     };
   }
 
-  public [symbolObservable](): InteropSubscribable<
-    State<TContext, TEvent, TResolvedTypesMeta>
-  > {
+  public [symbolObservable](): InteropSubscribable<SnapshotFrom<TBehavior>> {
     return this;
   }
 
@@ -829,8 +829,13 @@ export function interpret<TMachine extends AnyStateMachine>(
     ? TMachine
     : 'Some implementations missing',
   options?: InterpreterOptions
-): InterpreterFrom<TMachine> {
-  const interpreter = new Interpreter(machine as AnyStateMachine, options);
+): InterpreterFrom<TMachine>;
+export function interpret<TBehavior extends Behavior<any, any>>(
+  machine: TBehavior,
+  options?: InterpreterOptions
+): ActorRefFrom<TBehavior>;
+export function interpret(machine: any, options?: InterpreterOptions): any {
+  const interpreter = new Interpreter(machine, options);
 
   return interpreter as any;
 }

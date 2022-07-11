@@ -52,7 +52,7 @@ export interface EventObject {
   /**
    * The type of event that is sent.
    */
-  type: string | Symbol;
+  type: string;
 }
 
 export interface AnyEventObject extends EventObject {
@@ -1626,7 +1626,7 @@ export interface InterpreterOptions {
   sync?: boolean;
 }
 
-export type AnyInterpreter = Interpreter<any, any, any>;
+export type AnyInterpreter = Interpreter<any>;
 
 export declare namespace SCXML {
   // tslint:disable-next-line:no-shadowed-variable
@@ -1638,7 +1638,7 @@ export declare namespace SCXML {
      * Note that transitions can do additional tests by using the value of this field
      * inside boolean expressions in the 'cond' attribute.
      */
-    name: string;
+    name: string | Symbol;
     /**
      * This field describes the event type.
      * The SCXML Processor must set it to: "platform" (for events raised by the platform itself, such as error events),
@@ -1811,13 +1811,7 @@ export type InterpreterFrom<
   any,
   infer TResolvedTypesMeta
 >
-  ? Interpreter<
-      TContext,
-      TEvent,
-      AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
-        ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
-        : TResolvedTypesMeta
-    >
+  ? Interpreter<TODO>
   : never;
 
 export type MachineImplementationsFrom<
@@ -1893,7 +1887,7 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
     ? TEvent
     : // TODO: the special case for Interpreter shouldn't be needed here as it implements ActorRef
     // however to drop it we'd have to remove ` | SCXML.Event<TEvent>` from its `send`'s accepted parameter
-    R extends Interpreter<infer _, infer TEvent, infer __>
+    R extends Interpreter<infer _, infer TEvent>
     ? TEvent
     : R extends ActorRef<infer TEvent, infer _>
     ? TEvent
@@ -1924,8 +1918,10 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
     ? TContext
     : R extends State<infer TContext, infer _, infer __>
     ? TContext
-    : R extends Interpreter<infer TContext, infer _, infer __>
-    ? TContext
+    : R extends Interpreter<infer TBehavior>
+    ? TBehavior extends StateMachine<infer TContext, infer _>
+      ? TContext
+      : never
     : never
   : never;
 

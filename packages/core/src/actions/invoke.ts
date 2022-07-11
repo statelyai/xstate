@@ -1,7 +1,6 @@
 import { EventObject, InvokeDefinition, MachineContext } from '../types';
 import { invoke as invokeActionType } from '../actionTypes';
 import { isActorRef } from '../actors';
-import { ObservableActorRef } from '../ObservableActorRef';
 import { createDynamicAction } from '../../actions/dynamicAction';
 import {
   BaseDynamicActionObject,
@@ -63,7 +62,6 @@ export function invoke<
         type,
         params: {
           ...params,
-          // ref: new ObservableActorRef(behavior, id)
           ref: interpret(behavior, { id })
         }
       } as InvokeActionObject;
