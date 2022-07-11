@@ -6,7 +6,8 @@ import {
   ActorContext,
   Observer
 } from './types';
-import { symbolObservable, toObserver, toSCXMLEvent } from './utils';
+import { toObserver, toSCXMLEvent } from './utils';
+import { symbolObservable } from './symbolObservable';
 import { Mailbox } from './Mailbox';
 import { LifecycleSignal, startSignal, stopSignal } from './actors';
 

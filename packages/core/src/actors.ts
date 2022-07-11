@@ -12,18 +12,11 @@ import type {
   ActorRef,
   AnyStateMachine,
   BaseActorRef,
-  EventFrom,
   InterpreterFrom,
   StateFrom
 } from './types';
-import { AreAllImplementationsAssumedToBeProvided } from './typegenTypes';
-import {
-  toSCXMLEvent,
-  isPromiseLike,
-  isSCXMLEvent,
-  isFunction,
-  symbolObservable
-} from './utils';
+import { toSCXMLEvent, isPromiseLike, isSCXMLEvent, isFunction } from './utils';
+import { symbolObservable } from './symbolObservable';
 import { actionTypes, doneInvoke, error } from './actions';
 import { interpret } from './interpreter';
 

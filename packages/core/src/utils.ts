@@ -365,10 +365,6 @@ export function isObservable<T>(value: any): value is Subscribable<T> {
   }
 }
 
-export const symbolObservable: typeof Symbol.observable = (() =>
-  (typeof Symbol === 'function' && Symbol.observable) ||
-  '@@observable')() as any;
-
 export function isStateMachine(value: any): value is AnyStateMachine {
   return value instanceof StateMachine;
 }

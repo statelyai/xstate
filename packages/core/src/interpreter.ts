@@ -51,11 +51,11 @@ import {
   isStateLike,
   isStateMachine,
   mapContext,
-  symbolObservable,
   toEventObject,
   toSCXMLEvent,
   warn
 } from './utils';
+import { symbolObservable } from './symbolObservable';
 
 export type StateListener<TBehavior extends Behavior<any, any>> = (
   state: SnapshotFrom<TBehavior>
