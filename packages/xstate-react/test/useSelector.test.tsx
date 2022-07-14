@@ -137,7 +137,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     expect(nameEl.textContent).toEqual('DAVID');
   });
 
-  it.only('should work with the shallowEqual comparison function', () => {
+  it('should work with the shallowEqual comparison function', () => {
     const machine = createMachine<{ user: { name: string } }>({
       initial: 'active',
       context: {
