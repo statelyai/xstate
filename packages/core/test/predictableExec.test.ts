@@ -73,64 +73,6 @@ describe('predictableExec', () => {
     expect(interpret(machine).initialState.context.called).toBe(true);
   });
 
-  it('should call always transition custom actions with source event', () => {
-    let eventArg: any;
-    const machine = createMachine({
-      predictableActionArguments: true,
-      initial: 'a',
-      states: {
-        a: {
-          on: {
-            NEXT: 'b'
-          }
-        },
-        b: {
-          always: {
-            target: 'c',
-            actions: (_ctx, ev) => (eventArg = ev)
-          }
-        },
-        c: {}
-      }
-    });
-
-    const service = interpret(machine).start();
-    service.send({ type: 'NEXT' });
-
-    expect(eventArg.type).toBe('NEXT');
-  });
-
-  it('should call always transition builtin actions with source event', () => {
-    let eventArg: any;
-    const machine = createMachine({
-      predictableActionArguments: true,
-      context: {},
-      initial: 'a',
-      states: {
-        a: {
-          on: {
-            NEXT: 'b'
-          }
-        },
-        b: {
-          always: {
-            target: 'c',
-            actions: assign((_ctx, ev) => {
-              eventArg = ev;
-              return {};
-            })
-          }
-        },
-        c: {}
-      }
-    });
-
-    const service = interpret(machine).start();
-    service.send({ type: 'NEXT' });
-
-    expect(eventArg.type).toBe('NEXT');
-  });
-
   it('should call raised transition custom actions with source event', () => {
     let eventArg: any;
     const machine = createMachine({

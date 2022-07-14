@@ -770,14 +770,13 @@ class StateNode<
   private transitionLeafNode(
     stateValue: string,
     state: State<TContext, TEvent>,
-    _event: SCXML.Event<TEvent>,
-    isTransient: boolean
+    _event: SCXML.Event<TEvent>
   ): StateTransition<TContext, TEvent> | undefined {
     const stateNode = this.getStateNode(stateValue);
-    const next = stateNode.next(state, _event, isTransient);
+    const next = stateNode.next(state, _event);
 
     if (!next || !next.transitions.length) {
-      return this.next(state, _event, isTransient);
+      return this.next(state, _event);
     }
 
     return next;
@@ -785,8 +784,7 @@ class StateNode<
   private transitionCompoundNode(
     stateValue: StateValueMap,
     state: State<TContext, TEvent>,
-    _event: SCXML.Event<TEvent>,
-    isTransient: boolean
+    _event: SCXML.Event<TEvent>
   ): StateTransition<TContext, TEvent> | undefined {
     const subStateKeys = Object.keys(stateValue);
 
@@ -794,12 +792,11 @@ class StateNode<
     const next = stateNode._transition(
       stateValue[subStateKeys[0]],
       state,
-      _event,
-      isTransient
+      _event
     );
 
     if (!next || !next.transitions.length) {
-      return this.next(state, _event, isTransient);
+      return this.next(state, _event);
     }
 
     return next;
@@ -807,8 +804,7 @@ class StateNode<
   private transitionParallelNode(
     stateValue: StateValueMap,
     state: State<TContext, TEvent>,
-    _event: SCXML.Event<TEvent>,
-    isTransient: boolean
+    _event: SCXML.Event<TEvent>
   ): StateTransition<TContext, TEvent> | undefined {
     const transitionMap: Record<string, StateTransition<TContext, TEvent>> = {};
 
@@ -820,12 +816,7 @@ class StateNode<
       }
 
       const subStateNode = this.getStateNode(subStateKey);
-      const next = subStateNode._transition(
-        subStateValue,
-        state,
-        _event,
-        isTransient
-      );
+      const next = subStateNode._transition(subStateValue, state, _event);
       if (next) {
         transitionMap[subStateKey] = next;
       }
@@ -843,7 +834,7 @@ class StateNode<
     );
 
     if (!willTransition) {
-      return this.next(state, _event, isTransient);
+      return this.next(state, _event);
     }
     const entryNodes = flatten(stateTransitions.map((t) => t.entrySet));
 
@@ -867,26 +858,20 @@ class StateNode<
   private _transition(
     stateValue: StateValue,
     state: State<TContext, TEvent, any, any, any>,
-    _event: SCXML.Event<TEvent>,
-    isTransient = false
+    _event: SCXML.Event<TEvent>
   ): StateTransition<TContext, TEvent> | undefined {
     // leaf node
     if (isString(stateValue)) {
-      return this.transitionLeafNode(stateValue, state, _event, isTransient);
+      return this.transitionLeafNode(stateValue, state, _event);
     }
 
     // hierarchical node
     if (Object.keys(stateValue).length === 1) {
-      return this.transitionCompoundNode(
-        stateValue,
-        state,
-        _event,
-        isTransient
-      );
+      return this.transitionCompoundNode(stateValue, state, _event);
     }
 
     // orthogonal node
-    return this.transitionParallelNode(stateValue, state, _event, isTransient);
+    return this.transitionParallelNode(stateValue, state, _event);
   }
   public getTransitionData(
     state: State<TContext, TEvent, any, any, any>,
@@ -896,8 +881,7 @@ class StateNode<
   }
   private next(
     state: State<TContext, TEvent>,
-    _event: SCXML.Event<TEvent>,
-    isTransient: boolean
+    _event: SCXML.Event<TEvent>
   ): StateTransition<TContext, TEvent> | undefined {
     const eventName = _event.name;
     const actions: Array<ActionObject<TContext, TEvent>> = [];
@@ -905,7 +889,7 @@ class StateNode<
     let nextStateNodes: Array<StateNode<TContext, any, TEvent>> = [];
     let selectedTransition: TransitionDefinition<TContext, TEvent> | undefined;
 
-    for (const candidate of this.getCandidates(isTransient ? '' : eventName)) {
+    for (const candidate of this.getCandidates(eventName)) {
       const { cond, in: stateIn } = candidate;
       const resolvedContext = state.context;
 
@@ -1138,7 +1122,6 @@ class StateNode<
       .initialState,
     event: Event<TEvent> | SCXML.Event<TEvent>,
     context?: TContext,
-    isTransient?: boolean,
     exec?: PredictableActionArgumentsExec
   ): State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta> {
     const _event = toSCXMLEvent(event);
@@ -1182,8 +1165,7 @@ class StateNode<
     const stateTransition = this._transition(
       currentState.value,
       currentState,
-      _event,
-      isTransient
+      _event
     ) || {
       transitions: [],
       configuration: [],
@@ -1207,7 +1189,6 @@ class StateNode<
       stateTransition,
       currentState,
       currentState.context,
-      isTransient,
       exec,
       _event
     );
@@ -1223,7 +1204,6 @@ class StateNode<
     >,
     _event: SCXML.Event<TEvent> | NullEvent,
     originalEvent: SCXML.Event<TEvent>,
-    isTransient: boolean,
     predictableExec?: PredictableActionArgumentsExec
   ): State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta> {
     const currentActions = state.actions;
@@ -1232,15 +1212,12 @@ class StateNode<
       state,
       _event as SCXML.Event<TEvent>,
       undefined,
-      isTransient,
       predictableExec
     );
     // Save original event to state
     // TODO: this should be the raised event! Delete in V5 (breaking)
-    if (!predictableExec || isTransient) {
-      state._event = originalEvent;
-      state.event = originalEvent.data;
-    }
+    state._event = originalEvent;
+    state.event = originalEvent.data;
 
     state.actions.unshift(...currentActions);
     return state;
@@ -1250,12 +1227,9 @@ class StateNode<
     stateTransition: StateTransition<TContext, TEvent>,
     currentState: State<TContext, TEvent, any, any, any> | undefined,
     context: TContext,
-    isTransient?: boolean,
     predictableExec?: PredictableActionArgumentsExec,
     _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>
   ): State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta> {
-    isTransient = isTransient || _event.name === NULL_EVENT;
-
     const { configuration } = stateTransition;
 
     // Transition will "apply" if:
@@ -1411,7 +1385,10 @@ class StateNode<
     // If we're already working on an transient transition then stop to prevent an infinite loop.
     //
     // Otherwise, if there are no enabled nor transient transitions, we are done.
-    if (!willTransition && (!hasAlwaysTransitions || isTransient)) {
+    if (
+      !willTransition &&
+      (!hasAlwaysTransitions || _event.name === NULL_EVENT)
+    ) {
       return nextState;
     }
 
@@ -1421,13 +1398,10 @@ class StateNode<
       if (hasAlwaysTransitions) {
         maybeNextState = this.resolveRaisedTransition(
           maybeNextState,
-          predictableExec
-            ? _event
-            : {
-                type: actionTypes.nullEvent
-              },
+          {
+            type: actionTypes.nullEvent
+          },
           _event,
-          true,
           predictableExec
         );
       }
@@ -1438,7 +1412,6 @@ class StateNode<
           maybeNextState,
           raisedEvent._event,
           _event,
-          false,
           predictableExec
         );
       }
@@ -1680,7 +1653,6 @@ class StateNode<
       },
       undefined,
       context ?? this.machine.context,
-      undefined,
       undefined
     );
   }

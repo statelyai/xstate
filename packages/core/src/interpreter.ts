@@ -802,7 +802,6 @@ export class Interpreter<
         this.state,
         _event,
         undefined,
-        false,
         this.machine.config.predictableActionArguments ? this._exec : undefined
       );
     });
