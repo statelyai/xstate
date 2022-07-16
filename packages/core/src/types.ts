@@ -1576,7 +1576,7 @@ export interface StateConfig<
   value: StateValue;
   context: TContext;
   _event: SCXML.Event<TEvent>;
-  _sessionid: string | null;
+  _sessionid: string | undefined;
   historyValue?: HistoryValue<TContext, TEvent>;
 
   actions?: BaseActionObject[];
@@ -1850,6 +1850,7 @@ export interface ActorContext<TEvent extends EventObject, TSnapshot> {
   self: ActorRef<TEvent, TSnapshot>;
   name: string;
   _event: SCXML.Event<TEvent | { type: LifecycleSignal }>;
+  sessionId: string;
 }
 
 export interface Behavior<TEvent extends EventObject, TSnapshot = any> {
@@ -1863,7 +1864,7 @@ export interface Behavior<TEvent extends EventObject, TSnapshot = any> {
 }
 
 export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends Interpreter<infer _, infer __, infer ___>
+  ? R extends Interpreter<infer _, infer __>
     ? R['initialState']
     : R extends ActorRef<infer _, infer TSnapshot>
     ? TSnapshot

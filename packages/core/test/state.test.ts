@@ -474,7 +474,7 @@ describe('State', () => {
           }
         });
 
-        expect(testMachine.initialState._sessionid).toBeNull();
+        expect(testMachine.initialState._sessionid).toBeUndefined();
       });
 
       it('_sessionid should be the service sessionId for invoked machines', (done) => {

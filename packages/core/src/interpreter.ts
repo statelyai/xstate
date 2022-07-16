@@ -1,4 +1,5 @@
 import {
+  ActorContext,
   ActorRefFrom,
   AnyState,
   AnyStateMachine,
@@ -101,7 +102,6 @@ export class Interpreter<
    * The current state of the interpreted machine.
    */
   private _state?: SnapshotFrom<TBehavior>;
-  private _initialState?: SnapshotFrom<TBehavior>;
   /**
    * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
    */
@@ -164,6 +164,11 @@ export class Interpreter<
   }
 
   public get initialState(): SnapshotFrom<TBehavior> {
+    if ('getInitialState' in this.machine) {
+      return this.machine.getInitialState(
+        this._getActorContext(toSCXMLEvent({ type: 'xstate.init' }))
+      );
+    }
     return this.machine.initialState;
   }
 
@@ -183,11 +188,6 @@ export class Interpreter<
   }
 
   private update(state: SnapshotFrom<TBehavior>): void {
-    // Attach session ID to state
-    if (isStateLike(state)) {
-      state._sessionid = this.sessionId;
-    }
-
     // Update state
     this._state = state;
 
@@ -380,11 +380,7 @@ export class Interpreter<
       resolvedState = this.machine.transition(
         this.machine.initialState,
         { type: startSignalType },
-        {
-          self: this,
-          name: this.id,
-          _event: toSCXMLEvent({ type: startSignalType })
-        }
+        this._getActorContext(toSCXMLEvent({ type: startSignalType }))
       );
     }
 
@@ -402,6 +398,17 @@ export class Interpreter<
     this.mailbox.start();
 
     return this;
+  }
+
+  private _getActorContext(
+    scxmlEvent: SCXML.Event<TEvent>
+  ): ActorContext<TEvent, SnapshotFrom<TBehavior>> {
+    return {
+      self: this,
+      name: this.id ?? 'todo',
+      _event: scxmlEvent,
+      sessionId: this.sessionId
+    };
   }
 
   private _process(event: SCXML.Event<TEvent>) {
@@ -491,7 +498,6 @@ export class Interpreter<
     this.mailbox = new Mailbox(this._process.bind(this));
 
     this.status = InterpreterStatus.Stopped;
-    this._initialState = undefined;
     registry.free(this.sessionId);
 
     return this;
@@ -592,13 +598,13 @@ export class Interpreter<
    * @param event The event to determine the next state
    */
   public nextState(
-    event: Event<TEvent> | SCXML.Event<TEvent>
+    event: TEvent | SCXML.Event<TEvent>
   ): SnapshotFrom<TBehavior> {
-    return this.machine.transition(this.getSnapshot(), event, {
-      self: this,
-      name: this.id,
-      _event: toSCXMLEvent(event)
-    });
+    return this.machine.transition(
+      this.getSnapshot(),
+      event,
+      this._getActorContext(toSCXMLEvent(event))
+    );
   }
   private forward(event: SCXML.Event<TEvent>): void {
     if (!isStateLike(this.getSnapshot())) {

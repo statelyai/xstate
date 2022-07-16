@@ -888,7 +888,7 @@ describe('actors', () => {
     });
   });
 
-  describe('sync option', () => {
+  describe.skip('sync option', () => {
     const childMachine = createMachine({
       id: 'child',
       context: { value: 0 },
@@ -896,7 +896,7 @@ describe('actors', () => {
       states: {
         active: {
           after: {
-            10: { actions: assign({ value: 42 }), internal: true }
+            10: { actions: assign({ value: 42 }) }
           }
         }
       }

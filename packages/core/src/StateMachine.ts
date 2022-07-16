@@ -1,4 +1,10 @@
-import { AnyStateMachine, InvokeActionObject, Spawner, StateFrom } from '.';
+import {
+  ActorContext,
+  AnyStateMachine,
+  InvokeActionObject,
+  Spawner,
+  StateFrom
+} from '.';
 import { STATE_DELIMITER } from './constants';
 import { IS_PRODUCTION } from './environment';
 import { createSpawner } from './spawn';
@@ -242,11 +248,15 @@ export class StateMachine<
   public transition(
     state: StateValue | State<TContext, TEvent, TResolvedTypesMeta> = this
       .initialState,
-    event: Event<TEvent> | SCXML.Event<TEvent>
+    event: Event<TEvent> | SCXML.Event<TEvent>,
+    _actorCtx?: ActorContext<TEvent, State<TContext, TEvent, any>>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const currentState = toState(state, this);
 
-    return macrostep(currentState, event, this);
+    const nextState = macrostep(currentState, event, this);
+    nextState._sessionid = _actorCtx?.sessionId ?? currentState._sessionid;
+
+    return nextState;
   }
 
   /**
@@ -322,7 +332,9 @@ export class StateMachine<
   /**
    * Returns the initial `State` instance, with reference to `self` as an `ActorRef`.
    */
-  public getInitialState(): State<TContext, TEvent, TResolvedTypesMeta> {
+  public getInitialState(
+    actorCtx?: ActorContext<TEvent, State<TContext, TEvent>>
+  ): State<TContext, TEvent, TResolvedTypesMeta> {
     const { preInitialState } = this;
     const nextState = resolveMicroTransition(
       this,
@@ -336,6 +348,7 @@ export class StateMachine<
       typeof this
     >;
     macroState.changed = undefined;
+    macroState._sessionid = actorCtx?.sessionId;
     return macroState;
   }
 
