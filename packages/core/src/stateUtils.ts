@@ -1612,7 +1612,7 @@ export function resolveMicroTransition<
     context,
     _event,
     // Persist _sessionid between states
-    _sessionid: !currentState._initial ? currentState._sessionid : null,
+    _sessionid: !currentState._initial ? currentState._sessionid : undefined,
     actions: nonRaisedActions,
     meta,
     configuration: resolvedConfiguration,
@@ -1654,7 +1654,7 @@ export function setChildren<
   });
 }
 
-function resolveActionsAndContext<
+export function resolveActionsAndContext<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(

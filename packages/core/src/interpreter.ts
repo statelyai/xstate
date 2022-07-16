@@ -31,7 +31,6 @@ import {
   AnyEventObject,
   CancelActionObject,
   DoneEvent,
-  Event,
   EventObject,
   InteropSubscribable,
   InterpreterOptions,
@@ -50,7 +49,6 @@ import {
   isSCXMLErrorEvent,
   isStateLike,
   isStateMachine,
-  mapContext,
   toEventObject,
   toSCXMLEvent,
   warn
@@ -154,11 +152,8 @@ export class Interpreter<
     this.logger = logger;
     this.clock = clock;
     this._parent = parent;
-
     this.options = resolvedOptions;
-
     this.ref = this;
-
     this.sessionId = this.ref.name;
   }
 
@@ -452,21 +447,15 @@ export class Interpreter<
       return this;
     }
 
-    if (isStateLike(this.getSnapshot())) {
-      [...this.getSnapshot().configuration]
-        .sort((a, b) => b.order - a.order)
-        .forEach((stateNode) => {
-          for (const action of stateNode.definition.exit) {
-            this.exec(action, this.getSnapshot());
-          }
-        });
+    const stoppedState = this.machine.stop?.(
+      this.getSnapshot(),
+      this._getActorContext({ type: stopSignalType })
+    );
 
-      // Stop all children
-      Object.values(this.getSnapshot().children).forEach((child) => {
-        if (isFunction(child.stop)) {
-          child.stop();
-        }
-      });
+    if (isStateLike(stoppedState)) {
+      for (const action of stoppedState.actions) {
+        this.exec(action, stoppedState);
+      }
     }
 
     // Cancel all delayed events
@@ -706,7 +695,7 @@ export class Interpreter<
   }
   private exec(
     action: InvokeActionObject | BaseActionObject,
-    state: SnapshotFrom<TBehavior>
+    state: State<any, TEvent>
   ): void {
     if (!isStateLike(state)) {
       return;

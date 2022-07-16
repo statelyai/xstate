@@ -1861,6 +1861,10 @@ export interface Behavior<TEvent extends EventObject, TSnapshot = any> {
   ) => TSnapshot;
   initialState: TSnapshot;
   start?: (actorCtx: ActorContext<TEvent, TSnapshot>) => TSnapshot;
+  stop?: (
+    state: TSnapshot,
+    actorCtx: ActorContext<TEvent, TSnapshot>
+  ) => TSnapshot;
 }
 
 export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R

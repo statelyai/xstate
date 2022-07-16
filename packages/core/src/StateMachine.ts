@@ -5,6 +5,7 @@ import {
   Spawner,
   StateFrom
 } from '.';
+import { stop } from './actions';
 import { STATE_DELIMITER } from './constants';
 import { IS_PRODUCTION } from './environment';
 import { createSpawner } from './spawn';
@@ -20,7 +21,8 @@ import {
   resolveStateValue,
   toState,
   transitionNode,
-  setChildren
+  setChildren,
+  resolveActionsAndContext
 } from './stateUtils';
 import type {
   AreAllImplementationsAssumedToBeProvided,
@@ -352,6 +354,37 @@ export class StateMachine<
     macroState.changed = undefined;
     macroState._sessionid = actorCtx?.sessionId;
     return macroState;
+  }
+
+  public stop(
+    state: State<TContext, TEvent>,
+    _actorCtx?: ActorContext<TEvent, State<TContext, TEvent>>
+  ) {
+    const stoppedState = new State(state);
+
+    stoppedState.actions.length = 0;
+
+    state.configuration
+      .sort((a, b) => b.order - a.order)
+      .forEach((stateNode) => {
+        for (const action of stateNode.definition.exit) {
+          stoppedState.actions.push(action);
+        }
+      });
+
+    Object.values(state.children).forEach((child) => {
+      stoppedState.actions.push(stop(() => child));
+    });
+
+    stoppedState.actions = resolveActionsAndContext(
+      stoppedState.actions,
+      this,
+      state._event,
+      state,
+      state.context
+    ).actions;
+
+    return stoppedState;
   }
 
   public getStateNodeById(stateId: string): StateNode<TContext, TEvent> {
