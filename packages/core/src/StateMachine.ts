@@ -228,9 +228,11 @@ export class StateMachine<
   public resolveState(
     state: State<TContext, TEvent, TResolvedTypesMeta>
   ): typeof state {
-    const configuration = Array.from(
-      getConfiguration(getStateNodes(this.root, state.value))
+    const configurationSet = getConfiguration(
+      getStateNodes(this.root, state.value)
     );
+    configurationSet.add(this.root); // TODO: fix in getStateNodes or getConfiguration
+    const configuration = Array.from(configurationSet);
     return this.createState({
       ...state,
       value: resolveStateValue(this.root, state.value),

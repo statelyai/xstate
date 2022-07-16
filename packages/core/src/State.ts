@@ -23,7 +23,13 @@ import type {
   StateValue,
   TransitionDefinition
 } from './types';
-import { isString, matchesState, toSCXMLEvent, warn } from './utils';
+import {
+  isString,
+  mapContext,
+  matchesState,
+  toSCXMLEvent,
+  warn
+} from './utils';
 
 export function isStateConfig<
   TContext extends MachineContext,
@@ -243,6 +249,24 @@ export class State<
    */
   public get done(): boolean {
     return isInFinalState(this.configuration);
+  }
+
+  public get doneData(): any {
+    if (!this.done) {
+      return undefined;
+    }
+
+    const finalChildStateNode = this.configuration.find(
+      (stateNode) =>
+        stateNode.type === 'final' && stateNode.parent === this.machine?.root
+    );
+
+    const doneData =
+      finalChildStateNode && finalChildStateNode.doneData
+        ? mapContext(finalChildStateNode.doneData, this.context, this._event)
+        : undefined;
+
+    return doneData;
   }
 
   /**

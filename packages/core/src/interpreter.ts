@@ -18,7 +18,6 @@ import { IS_PRODUCTION } from './environment';
 import { Mailbox } from './Mailbox';
 import { registry } from './registry';
 import { isStateConfig, State } from './State';
-import { isInFinalState } from './stateUtils';
 import { AreAllImplementationsAssumedToBeProvided } from './typegenTypes';
 import type {
   ActionFunction,
@@ -200,31 +199,16 @@ export class Interpreter<
       listener(state);
     }
 
-    if (isStateLike(state) && isStateMachine(this.machine)) {
-      const isDone = isInFinalState(
-        state.configuration || [],
-        this.machine.root
-      );
+    if (isStateMachine(this.machine) && isStateLike(state)) {
+      const isDone = (state as State<any, any>).done;
 
-      if (state.configuration && isDone) {
-        // get final child state node
-        const finalChildStateNode = state.configuration.find(
-          (stateNode) =>
-            stateNode.type === 'final' && stateNode.parent === this.machine.root
-        );
-
-        const doneData =
-          finalChildStateNode && finalChildStateNode.doneData
-            ? mapContext(
-                finalChildStateNode.doneData,
-                state.context,
-                state._event
-              )
-            : undefined;
+      if (isDone) {
+        const doneData = (state as State<any, any>).doneData;
 
         const doneEvent = toSCXMLEvent(doneInvoke(this.name, doneData), {
           invokeid: this.name
         });
+
         for (const listener of this.doneListeners) {
           listener(doneEvent);
         }
