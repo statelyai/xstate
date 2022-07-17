@@ -13,7 +13,7 @@ import {
 import { isExecutableAction } from '../actions/ExecutableAction';
 import { doneInvoke, error } from './actions';
 import * as actionTypes from './actionTypes';
-import { isActorRef, startSignalType, stopSignalType } from './actors';
+import { isActorRef, LifecycleSignal, startSignalType } from './actors';
 import { devToolsAdapter } from './dev';
 import { IS_PRODUCTION } from './environment';
 import { Mailbox } from './Mailbox';
@@ -387,7 +387,7 @@ export class Interpreter<
   }
 
   private _getActorContext(
-    scxmlEvent: SCXML.Event<TEvent>
+    scxmlEvent: SCXML.Event<TEvent | LifecycleSignal>
   ): ActorContext<TEvent, SnapshotFrom<TBehavior>> {
     return {
       self: this,
@@ -441,7 +441,7 @@ export class Interpreter<
   public stop(): this {
     try {
       // TODO: need this to perform stopping logic in the behavior
-      this._state = this.nextState({ type: stopSignalType });
+      this._state = this.nextState({ type: 'xstate.stop' });
     } catch (_) {}
 
     this.listeners.clear();
@@ -459,7 +459,7 @@ export class Interpreter<
 
     const stoppedState = this.machine.stop?.(
       this.getSnapshot(),
-      this._getActorContext({ type: stopSignalType })
+      this._getActorContext(toSCXMLEvent({ type: 'xstate.stop' }))
     );
 
     if (isStateLike(stoppedState)) {
@@ -582,7 +582,7 @@ export class Interpreter<
    * @param event The event to determine the next state
    */
   public nextState(
-    event: TEvent | SCXML.Event<TEvent>
+    event: TEvent | SCXML.Event<TEvent> | LifecycleSignal
   ): SnapshotFrom<TBehavior> {
     return this.machine.transition(
       this.getSnapshot(),

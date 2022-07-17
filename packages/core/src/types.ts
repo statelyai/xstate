@@ -1638,7 +1638,7 @@ export declare namespace SCXML {
      * Note that transitions can do additional tests by using the value of this field
      * inside boolean expressions in the 'cond' attribute.
      */
-    name: string | Symbol;
+    name: string;
     /**
      * This field describes the event type.
      * The SCXML Processor must set it to: "platform" (for events raised by the platform itself, such as error events),
@@ -1849,7 +1849,7 @@ export type EventOfMachine<
 export interface ActorContext<TEvent extends EventObject, TSnapshot> {
   self: ActorRef<TEvent, TSnapshot>;
   name: string;
-  _event: SCXML.Event<TEvent | { type: LifecycleSignal }>;
+  _event: SCXML.Event<TEvent | LifecycleSignal>;
   sessionId: string;
 }
 

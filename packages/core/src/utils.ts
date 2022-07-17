@@ -1,6 +1,5 @@
 import { AnyState } from '.';
 import { errorExecution, errorPlatform } from './actionTypes';
-import { LifecycleSignal } from './actors';
 import { NULL_EVENT, STATE_DELIMITER, TARGETLESS_KEY } from './constants';
 import { IS_PRODUCTION } from './environment';
 import { StateMachine } from './StateMachine';
@@ -406,7 +405,7 @@ export function isSCXMLErrorEvent(
 }
 
 export function toSCXMLEvent<TEvent extends EventObject>(
-  event: Event<TEvent> | SCXML.Event<TEvent> | LifecycleSignal,
+  event: Event<TEvent> | SCXML.Event<TEvent>,
   scxmlEvent?: Partial<SCXML.Event<TEvent>>
 ): SCXML.Event<TEvent> {
   if (isSCXMLEvent(event)) {

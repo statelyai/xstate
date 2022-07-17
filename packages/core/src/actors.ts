@@ -43,17 +43,17 @@ export function fromReducer<TState, TEvent extends EventObject>(
   };
 }
 
-export const startSignalType = Symbol.for('xstate.invoke');
-export const stopSignalType = Symbol.for('xstate.stop');
-export const startSignal: StartSignal = { type: startSignalType };
-export const stopSignal: StopSignal = { type: stopSignalType };
+export const startSignalType = 'xstate.init';
+export const stopSignalType = 'xstate.stop';
+export const startSignal: StartSignal = { type: 'xstate.init' };
+export const stopSignal: StopSignal = { type: 'xstate.stop' };
 
 export interface StartSignal {
-  type: typeof startSignalType;
+  type: 'xstate.init';
 }
 
 export interface StopSignal {
-  type: typeof stopSignalType;
+  type: 'xstate.stop';
 }
 
 export type LifecycleSignal = StartSignal | StopSignal;
@@ -157,8 +157,8 @@ export function fromPromise<T>(
   lazyPromise: Lazy<PromiseLike<T>>
 ): Behavior<{ type: string }, T | undefined> {
   let canceled = false;
-  const resolveEventType = Symbol('resolve');
-  const rejectEventType = Symbol('reject');
+  const resolveEventType = '$$xstate.resolve';
+  const rejectEventType = '$$xstate.reject';
 
   // TODO: add event types
   const behavior: Behavior<any, T | undefined> = {
@@ -215,9 +215,9 @@ export function fromObservable<T, TEvent extends EventObject>(
 ): Behavior<TEvent, T | undefined> {
   let subscription: Subscription | undefined;
   let observable: Subscribable<T> | undefined;
-  const nextEventType = Symbol('next');
-  const errorEventType = Symbol('error');
-  const completeEventType = Symbol('complete');
+  const nextEventType = '$$xstate.next';
+  const errorEventType = '$$xstate.error';
+  const completeEventType = '$$xstate.complete';
   let canceled = false;
 
   // TODO: add event types
@@ -296,9 +296,9 @@ export function fromEventObservable<T extends EventObject>(
 ): Behavior<EventObject, T | undefined> {
   let subscription: Subscription | undefined;
   let observable: Subscribable<T> | undefined;
-  const nextEventType = Symbol('next');
-  const errorEventType = Symbol('error');
-  const completeEventType = Symbol('complete');
+  const nextEventType = '$$xstate.next';
+  const errorEventType = '$$xstate.error';
+  const completeEventType = '$$xstate.complete';
   let canceled = false;
 
   // TODO: event types

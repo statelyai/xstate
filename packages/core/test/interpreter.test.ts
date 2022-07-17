@@ -204,7 +204,7 @@ describe('interpreter', () => {
         })
         .start();
 
-      const nextState = service.nextState('TIMER');
+      const nextState = service.nextState({ type: 'TIMER' });
       expect(nextState.value).toEqual('yellow');
       expect(state.value).toEqual('green');
     });
@@ -234,7 +234,7 @@ describe('interpreter', () => {
 
       const actor = interpret(machine).start();
 
-      const state = actor.nextState('NEXT');
+      const state = actor.nextState({ type: 'NEXT' });
 
       expect(state.value).toEqual('bar');
 
