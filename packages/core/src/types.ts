@@ -1811,7 +1811,7 @@ export type InterpreterFrom<
   any,
   infer TResolvedTypesMeta
 >
-  ? Interpreter<TODO>
+  ? Interpreter<Behavior<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>>
   : never;
 
 export type MachineImplementationsFrom<
@@ -1880,6 +1880,10 @@ export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
     ? TSnapshot
     : never
   : never;
+
+export type EventFromBehavior<
+  TBehavior extends Behavior<any, any>
+> = TBehavior extends Behavior<infer TEvent, infer _> ? TEvent : never;
 
 type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<

@@ -47,13 +47,15 @@ describe('useActor composable function', () => {
     const serviceMachine = interpret(machine).start();
 
     const { getByTestId } = render(UseActorComponentProp, {
-      props: { actor: serviceMachine.state.children.child }
+      props: { actor: serviceMachine.getSnapshot().children.child }
     });
 
     const actorStateEl = getByTestId('actor-state');
     expect(actorStateEl.textContent).toBe('active');
 
-    await waitFor(() => expect(serviceMachine.state.value).toBe('success'));
+    await waitFor(() =>
+      expect(serviceMachine.getSnapshot().value).toBe('success')
+    );
   });
 
   it('actor should provide snapshot value immediately', () => {

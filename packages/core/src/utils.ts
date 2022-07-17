@@ -1,7 +1,8 @@
+import { AnyState } from '.';
 import { errorExecution, errorPlatform } from './actionTypes';
+import { LifecycleSignal } from './actors';
 import { NULL_EVENT, STATE_DELIMITER, TARGETLESS_KEY } from './constants';
 import { IS_PRODUCTION } from './environment';
-import { State } from './State';
 import { StateMachine } from './StateMachine';
 import type { StateNode } from './StateNode';
 import type {
@@ -90,7 +91,7 @@ export function toStatePath(
   }
 }
 
-export function isStateLike(state: any): state is State<any, any> {
+export function isStateLike(state: any): state is AnyState {
   return (
     typeof state === 'object' &&
     'value' in state &&
@@ -405,7 +406,7 @@ export function isSCXMLErrorEvent(
 }
 
 export function toSCXMLEvent<TEvent extends EventObject>(
-  event: Event<TEvent> | SCXML.Event<TEvent>,
+  event: Event<TEvent> | SCXML.Event<TEvent> | LifecycleSignal,
   scxmlEvent?: Partial<SCXML.Event<TEvent>>
 ): SCXML.Event<TEvent> {
   if (isSCXMLEvent(event)) {

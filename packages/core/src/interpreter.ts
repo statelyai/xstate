@@ -6,6 +6,7 @@ import {
   Behavior,
   ContextFrom,
   EventFrom,
+  EventFromBehavior,
   InterpreterFrom,
   SnapshotFrom
 } from '.';
@@ -93,7 +94,7 @@ const defaultOptions: InterpreterOptions = {
 
 export class Interpreter<
   TBehavior extends Behavior<any, any>,
-  TEvent extends EventObject = any
+  TEvent extends EventObject = EventFromBehavior<TBehavior>
 > implements ActorRef<TEvent, SnapshotFrom<TBehavior>> {
   /**
    * The current state of the interpreted machine.
@@ -160,7 +161,7 @@ export class Interpreter<
   public get initialState(): SnapshotFrom<TBehavior> {
     return (
       this.machine.getInitialState?.(
-        this._getActorContext(toSCXMLEvent({ type: 'xstate.init' }))
+        this._getActorContext(toSCXMLEvent({ type: 'xstate.init' } as TEvent))
       ) ?? this.machine.initialState
     );
   }
@@ -175,7 +176,7 @@ export class Interpreter<
       return;
     }
 
-    for (const action of state.actions) {
+    for (const action of (state as AnyState).actions) {
       this.exec(action, state);
     }
   }
@@ -345,20 +346,27 @@ export class Interpreter<
     registry.register(this.sessionId, this.ref);
     this.status = InterpreterStatus.Running;
 
-    let resolvedState =
-      initialState === undefined
-        ? this.initialState
-        : isStateConfig(initialState)
-        ? this.machine.resolveState(initialState as any) // TODO: fix this
-        : this.machine.resolveState(
-            State.from(initialState, this.machine.context)
-          );
+    let resolvedState = (initialState === undefined
+      ? this.initialState
+      : isStateConfig(initialState)
+      ? // TODO: fix these types
+        ((this.machine as unknown) as AnyStateMachine).resolveState(
+          initialState as any
+        )
+      : ((this.machine as unknown) as AnyStateMachine).resolveState(
+          State.from(
+            initialState,
+            ((this.machine as unknown) as AnyStateMachine).context
+          )
+        )) as SnapshotFrom<TBehavior>;
 
     if (!isStateMachine(this.machine)) {
       resolvedState = this.machine.transition(
         this.machine.initialState,
         { type: startSignalType },
-        this._getActorContext(toSCXMLEvent({ type: startSignalType }))
+        this._getActorContext(
+          toSCXMLEvent(({ type: startSignalType } as unknown) as TEvent)
+        )
       );
     }
 
@@ -400,7 +408,9 @@ export class Interpreter<
     if (
       isStateLike(snapshot) &&
       isSCXMLErrorEvent(event) &&
-      !snapshot.nextEvents.some((nextEvent) => nextEvent === event.name)
+      !(snapshot as AnyState).nextEvents.some(
+        (nextEvent) => nextEvent === event.name
+      )
     ) {
       errored = true;
       // Error event unhandled by machine
@@ -430,6 +440,7 @@ export class Interpreter<
    */
   public stop(): this {
     try {
+      // TODO: need this to perform stopping logic in the behavior
       this._state = this.nextState({ type: stopSignalType });
     } catch (_) {}
 
@@ -525,12 +536,13 @@ export class Interpreter<
     to: string | ActorRef<any>
   ) {
     const isParent = this._parent && to === SpecialTargets.Parent;
+    const state = this.getSnapshot() as AnyState;
     const target = isParent
       ? this._parent
       : isActorRef(to)
       ? to
-      : isStateLike(this.getSnapshot())
-      ? this.getSnapshot().children[to]
+      : isStateLike(state)
+      ? state.children[to]
       : undefined;
 
     if (!target) {
@@ -579,12 +591,13 @@ export class Interpreter<
     );
   }
   private forward(event: SCXML.Event<TEvent>): void {
-    if (!isStateLike(this.getSnapshot())) {
+    const snapshot = this.getSnapshot();
+    if (!isStateLike(snapshot)) {
       return;
     }
 
     for (const id of this.forwardTo) {
-      const child = this.getSnapshot().children[id];
+      const child = (snapshot as AnyState).children[id];
 
       if (!child) {
         throw new Error(

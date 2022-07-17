@@ -146,7 +146,7 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
     stringify(value, options?.serialize);
 
   devTools.onRegister((service) => {
-    const state = service.state || service.initialState;
+    const state = service.getSnapshot() || service.initialState;
     inspectService.send({
       type: 'service.register',
       machine: stringifyMachine(service.machine, options?.serialize),
@@ -223,7 +223,7 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
       const observer = toObserver(next, onError, onComplete);
 
       listeners.add(observer);
-      observer.next?.(inspectService.state);
+      observer.next?.(inspectService.getSnapshot());
 
       return {
         unsubscribe: () => {

@@ -1,4 +1,4 @@
-import { ActorRef, Behavior, EventObject, ObservableActorRef } from 'xstate';
+import { ActorRef, Behavior, EventObject, interpret } from 'xstate';
 import { onBeforeUnmount } from 'vue';
 
 /**
@@ -11,11 +11,11 @@ import { onBeforeUnmount } from 'vue';
 export function useSpawn<TState, TEvent extends EventObject>(
   behavior: Behavior<TEvent, TState>
 ): ActorRef<TEvent, TState> {
-  const actorRef = new ObservableActorRef(behavior, '');
+  const actorRef = interpret(behavior);
 
-  actorRef.start();
+  actorRef.start?.();
   onBeforeUnmount(() => {
-    actorRef.stop();
+    actorRef.stop?.();
   });
 
   return actorRef;

@@ -22,6 +22,7 @@ export class ObservableActorRef<TEvent extends EventObject, TSnapshot>
     private behavior: Behavior<TEvent, TSnapshot>,
     public name: string
   ) {
+    // @ts-ignore
     this.context = {
       self: this,
       name: this.name,

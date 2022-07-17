@@ -11,14 +11,11 @@ import type {
   EventObject,
   ActorRef,
   AnyStateMachine,
-  BaseActorRef,
-  InterpreterFrom,
-  StateFrom
+  BaseActorRef
 } from './types';
 import { toSCXMLEvent, isPromiseLike, isSCXMLEvent, isFunction } from './utils';
 import { symbolObservable } from './symbolObservable';
-import { actionTypes, doneInvoke, error } from './actions';
-import { interpret } from './interpreter';
+import { doneInvoke, error } from './actions';
 
 /**
  * Returns an actor behavior from a reducer and its initial state.
@@ -144,7 +141,9 @@ export function fromCallback<TEvent extends EventObject>(
       }
 
       const plainEvent = isSCXMLEvent(event) ? event.data : event;
-      receivers.forEach((receiver) => receiver(plainEvent));
+      if (!isSignal(plainEvent.type)) {
+        receivers.forEach((receiver) => receiver(plainEvent as EventObject));
+      }
 
       return undefined;
     },
@@ -358,84 +357,9 @@ export function fromEventObservable<T extends EventObject>(
 
 export function fromMachine<TMachine extends AnyStateMachine>(
   machine: TMachine,
-  options: Partial<InterpreterOptions> = {}
+  _options: Partial<InterpreterOptions> = {}
 ): TMachine {
   return machine;
-  const snapshotEventType = Symbol('snapshot');
-
-  const castedMachine = machine as TMachine;
-  let service: InterpreterFrom<TMachine> | undefined;
-  let initialState: StateFrom<TMachine>;
-
-  // TODO: use better type for `TEvent`
-  const behavior: Behavior<any, StateFrom<TMachine>> = {
-    transition: (state, event, actorContext) => {
-      const { _parent: parent } = actorContext.self;
-
-      switch (event.type) {
-        case startSignalType:
-          service = interpret(castedMachine as AnyStateMachine, {
-            ...options,
-            parent,
-            id: actorContext.name
-          }) as InterpreterFrom<TMachine>;
-          service.onDone((doneEvent) => {
-            parent?.send(
-              toSCXMLEvent(doneEvent, {
-                origin: actorContext.self
-              })
-            );
-          });
-
-          service.subscribe((state) => {
-            actorContext.self.send({
-              type: snapshotEventType,
-              snapshot: state
-            });
-          });
-          service.start();
-          return state;
-        case stopSignalType:
-          service?.stop();
-          return state;
-        case snapshotEventType: {
-          const snapshot = event.snapshot;
-          if (options.sync) {
-            parent?.send(
-              toSCXMLEvent(
-                {
-                  type: actionTypes.update,
-                  state: snapshot
-                },
-                { origin: actorContext.self }
-              )
-            );
-          }
-          return snapshot;
-        }
-        default:
-          const _event = actorContext._event;
-
-          if (isSignal(_event)) {
-            // TODO: unrecognized signal
-            return state;
-          }
-
-          service?.send(_event);
-          return state;
-      }
-    },
-    get initialState() {
-      // TODO: recheck if this caching is needed, write a test for its importance or remove the caching
-      if (initialState) {
-        return initialState;
-      }
-      initialState = castedMachine.getInitialState() as StateFrom<TMachine>;
-      return initialState;
-    }
-  };
-
-  return behavior;
 }
 
 export function isActorRef(item: any): item is ActorRef<any> {
