@@ -158,12 +158,11 @@ export class Interpreter<
   }
 
   public get initialState(): SnapshotFrom<TBehavior> {
-    if ('getInitialState' in this.machine) {
-      return this.machine.getInitialState(
+    return (
+      this.machine.getInitialState?.(
         this._getActorContext(toSCXMLEvent({ type: 'xstate.init' }))
-      );
-    }
-    return this.machine.initialState;
+      ) ?? this.machine.initialState
+    );
   }
 
   /**
@@ -396,12 +395,12 @@ export class Interpreter<
 
     let errored = false;
 
+    const snapshot = this.getSnapshot();
+
     if (
-      isStateLike(this.getSnapshot()) &&
+      isStateLike(snapshot) &&
       isSCXMLErrorEvent(event) &&
-      !this.getSnapshot().nextEvents.some(
-        (nextEvent) => nextEvent === event.name
-      )
+      !snapshot.nextEvents.some((nextEvent) => nextEvent === event.name)
     ) {
       errored = true;
       // Error event unhandled by machine

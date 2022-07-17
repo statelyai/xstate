@@ -1859,7 +1859,9 @@ export interface Behavior<TEvent extends EventObject, TSnapshot = any> {
     message: TEvent | LifecycleSignal,
     ctx: ActorContext<TEvent, TSnapshot>
   ) => TSnapshot;
+  // TODO: should we only use `getInitialState(...)`?
   initialState: TSnapshot;
+  getInitialState?: (ctx: ActorContext<TEvent, TSnapshot>) => TSnapshot;
   start?: (actorCtx: ActorContext<TEvent, TSnapshot>) => TSnapshot;
   stop?: (
     state: TSnapshot,
