@@ -616,7 +616,7 @@ export function joinPaths<TState, TEvent extends EventObject>(
   }
 
   return {
-    state: path1.state,
+    state: path2.state,
     steps: path1.steps.concat(path2.steps),
     weight: path1.weight + path2.weight
   };

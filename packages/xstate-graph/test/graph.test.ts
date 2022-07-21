@@ -4,7 +4,8 @@ import {
   createMachine,
   State,
   EventObject,
-  StateValue
+  StateValue,
+  AnyState
 } from 'xstate';
 import {
   getStateNodes,
@@ -673,6 +674,9 @@ describe('joinPaths()', () => {
         "TO_C",
       ]
     `);
+
+    // TODO: figure out why TS is complaining only in the test
+    expect((pathToBAndC.state as AnyState)!.matches('c')).toBeTruthy();
   });
 
   it('should not join two paths with mismatched source/target states', () => {
