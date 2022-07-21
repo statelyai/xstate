@@ -208,6 +208,30 @@ const App = ({ service }) => {
 };
 ```
 
+### Shallow comparison
+
+The default comparison is a strict reference comparison (`===`). If your selector returns non-primitive values, such as objects or arrays, you should keep this in mind and either return the same reference, or provide a shallow or deep comparator.
+
+The `shallowEqual(...)` comparator function is available for shallow comparison:
+
+```js
+import { useSelector, shallowEqual } from '@xstate/react';
+
+// ...
+
+const selectUser = (state) => state.context.user;
+
+const App = ({ service }) => {
+  // shallowEqual comparator is needed to compare the object, whose
+  // reference might change despite the shallow object values being equal
+  const user = useSelector(service, selectUser, shallowEqual);
+
+  // ...
+};
+```
+
+:::
+
 With `useInterpret(...)`:
 
 ```js
