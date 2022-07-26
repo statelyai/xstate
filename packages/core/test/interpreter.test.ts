@@ -1751,42 +1751,44 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       service.send('INC');
     });
 
-    it('should call complete() once a final state is reached', (done) => {
-      const mockNextCb = jest.fn();
-      const mockCompleteCb = jest.fn();
+    it('should call complete() once a final state is reached', () => {
+      const completeCb = jest.fn();
 
-      const intervalService = interpret(intervalMachine).start();
+      const service = interpret(
+        createMachine({
+          initial: 'idle',
+          states: {
+            idle: {
+              on: {
+                NEXT: 'done'
+              }
+            },
+            done: { type: 'final' }
+          }
+        })
+      ).start();
 
-      intervalService.subscribe(mockNextCb, undefined, mockCompleteCb);
-
-      intervalService.onStop(() => {
-        expect(mockNextCb.mock.calls.length).toBe(6);
-        expect(mockCompleteCb.mock.calls.length).toBe(1);
-        done();
+      service.subscribe({
+        complete: completeCb
       });
+
+      service.send({ type: 'NEXT' });
+
+      expect(completeCb).toHaveBeenCalledTimes(1);
     });
 
-    it('should call complete() once the interpreter is stopped', (done) => {
-      let count = 0;
-      const mockNextCb = jest.fn();
-      const mockCompleteCb = jest.fn();
+    it('should call complete() once the interpreter is stopped', () => {
+      const completeCb = jest.fn();
 
-      const intervalService = interpret(intervalMachine).start();
+      const service = interpret(createMachine({})).start();
 
-      intervalService.subscribe(mockNextCb, undefined, mockCompleteCb);
-
-      intervalService.onTransition(() => {
-        count += 1;
-        if (count === 2) {
-          intervalService.stop();
-        }
+      service.subscribe({
+        complete: completeCb
       });
 
-      intervalService.onStop(() => {
-        expect(mockNextCb.mock.calls.length).toBe(2);
-        expect(mockCompleteCb.mock.calls.length).toBe(1);
-        done();
-      });
+      service.stop();
+
+      expect(completeCb).toHaveBeenCalledTimes(1);
     });
   });
 
