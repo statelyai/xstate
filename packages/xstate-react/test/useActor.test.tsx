@@ -196,7 +196,8 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
         states: {
           active: {
             entry: assign({
-              actorRef: (_, __, { spawn }) => spawn(fromMachine(childMachine))
+              actorRef: (_, __, { spawn }) =>
+                spawn(fromMachine(childMachine), 'child')
             }),
             on: { FINISH: 'success' }
           },

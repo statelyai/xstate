@@ -158,11 +158,16 @@ export class Interpreter<
     this.sessionId = this.ref.name;
   }
 
+  private __initial: SnapshotFrom<TBehavior> | undefined = undefined;
+
   public get initialState(): SnapshotFrom<TBehavior> {
     return (
-      this.machine.getInitialState?.(
-        this._getActorContext(toSCXMLEvent({ type: 'xstate.init' } as TEvent))
-      ) ?? this.machine.initialState
+      this.__initial ||
+      ((this.__initial =
+        this.machine.getInitialState?.(
+          this._getActorContext(toSCXMLEvent({ type: 'xstate.init' } as TEvent))
+        ) ?? this.machine.initialState),
+      this.__initial!)
     );
   }
 
