@@ -929,15 +929,20 @@ function getPathFromRootToNode<
   TC extends MachineContext,
   TE extends EventObject
 >(stateNode: StateNode<TC, TE>): Array<StateNode<TC, TE>> {
-  const path: Array<StateNode<TC, TE>> = [];
   let marker = stateNode.parent;
 
+  if (!marker) {
+    return [stateNode];
+  }
+
+  const path: Array<typeof stateNode> = [];
+
   while (marker) {
-    path.unshift(marker);
+    path.push(marker);
     marker = marker.parent;
   }
 
-  return path;
+  return path.reverse();
 }
 
 function hasIntersection<T>(s1: Iterable<T>, s2: Iterable<T>): boolean {
@@ -996,25 +1001,6 @@ export function removeConflictingTransitions<
   }
 
   return Array.from(filteredTransitions);
-}
-
-function findLCCA<TContext extends MachineContext, TEvent extends EventObject>(
-  stateNodes: Array<StateNode<TContext, TEvent>>
-): StateNode<TContext, TEvent> {
-  const [head] = stateNodes;
-
-  let current = getPathFromRootToNode(head);
-  let candidates: Array<StateNode<TContext, TEvent>> = [];
-
-  stateNodes.forEach((stateNode) => {
-    const path = getPathFromRootToNode(stateNode);
-
-    candidates = current.filter((sn) => path.includes(sn));
-    current = candidates;
-    candidates = [];
-  });
-
-  return current[current.length - 1];
 }
 
 function getEffectiveTargetStates<
@@ -1078,9 +1064,25 @@ function getTransitionDomain<
     return transition.source;
   }
 
-  const lcca = findLCCA(targetStates.concat(transition.source));
+  const involvedStates = targetStates.concat(transition.source);
+  const [head] = involvedStates;
 
-  return lcca;
+  let current = getPathFromRootToNode(head);
+
+  for (let i = 1; i < involvedStates.length; i++) {
+    const path = getPathFromRootToNode(involvedStates[i]);
+    current = current.filter((sn) => path.includes(sn));
+  }
+
+  const domain = current[current.length - 1];
+
+  if (!IS_PRODUCTION && !domain) {
+    throw new Error(
+      'No transition domain could be found for an external transition. This error is likely caused by a bug in XState. Please file an issue.'
+    );
+  }
+
+  return domain;
 }
 
 function exitStates<
@@ -1121,13 +1123,13 @@ export function enterStates<
 >(
   transitions: Array<TransitionDefinition<TContext, TEvent>>,
   mutConfiguration: Set<StateNode<TContext, TEvent>>,
-  state: State<TContext, TEvent>
+  state: State<TContext, TEvent>,
+  mutStatesToEnter: Set<StateNode<TContext, TEvent>>
 ) {
   const statesToInvoke: typeof mutConfiguration = new Set();
   const internalQueue: Array<SCXML.Event<TEvent>> = [];
 
   const actions: BaseActionObject[] = [];
-  const mutStatesToEnter = new Set<StateNode<TContext, TEvent>>();
   const mutStatesForDefaultEntry = new Set<StateNode<TContext, TEvent>>();
 
   computeEntrySet(
@@ -1401,7 +1403,8 @@ export function microstep<
   context: TContext,
   mutConfiguration: Set<StateNode<TContext, TEvent>>,
   machine: StateMachine<TContext, TEvent>,
-  _event: SCXML.Event<TEvent>
+  _event: SCXML.Event<TEvent>,
+  mutStatesToEnter: Set<StateNode<TContext, TEvent>>
 ): {
   actions: BaseActionObject[];
   configuration: typeof mutConfiguration;
@@ -1441,7 +1444,8 @@ export function microstep<
   const res = enterStates(
     filteredTransitions,
     mutConfiguration,
-    currentState || State.from({})
+    currentState || State.from({}),
+    mutStatesToEnter
   );
 
   // Start invocations
@@ -1578,7 +1582,8 @@ export function resolveMicroTransition<
     currentState.context,
     new Set(prevConfig),
     machine,
-    _event
+    _event,
+    new Set(!currentState._initial ? [] : [machine.root])
   );
 
   if (!currentState._initial && !willTransition) {
