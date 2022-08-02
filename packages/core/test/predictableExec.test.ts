@@ -73,7 +73,7 @@ describe('predictableExec', () => {
     expect(interpret(machine).initialState.context.called).toBe(true);
   });
 
-  it('should call raised transition custom actions with source event', () => {
+  it('should call raised transition custom actions with raised event', () => {
     let eventArg: any;
     const machine = createMachine({
       predictableActionArguments: true,
@@ -103,7 +103,7 @@ describe('predictableExec', () => {
     expect(eventArg.type).toBe('RAISED');
   });
 
-  it('should call raised transition builtin actions with source event', () => {
+  it('should call raised transition builtin actions with raised event', () => {
     let eventArg: any;
     const machine = createMachine({
       predictableActionArguments: true,
@@ -137,7 +137,7 @@ describe('predictableExec', () => {
     expect(eventArg.type).toBe('RAISED');
   });
 
-  it('should call invoke creator with source event', () => {
+  it('should call invoke creator with raised event', () => {
     let eventArg: any;
     const machine = createMachine({
       predictableActionArguments: true,
