@@ -995,6 +995,8 @@ class StateNode<
   }
 
   private getActions(
+    resolvedConfig: Set<StateNode<any, any, any, any, any, any>>,
+    isDone: boolean,
     transition: StateTransition<TContext, TEvent>,
     currentContext: TContext,
     _event: SCXML.Event<TEvent>,
@@ -1004,9 +1006,6 @@ class StateNode<
       [],
       prevState ? this.getStateNodes(prevState.value) : [this]
     );
-    const resolvedConfig = transition.configuration.length
-      ? getConfiguration(prevConfig, transition.configuration)
-      : prevConfig;
 
     for (const sn of resolvedConfig) {
       if (!has(prevConfig, sn) || has(transition.entrySet, sn.parent)) {
@@ -1086,6 +1085,23 @@ class StateNode<
       exitActions.concat(transition.actions).concat(entryActions),
       this.machine.options.actions as any
     ) as Array<ActionObject<TContext, TEvent>>;
+
+    if (isDone) {
+      const stopActions = toActionObjects(
+        flatten(
+          [...resolvedConfig]
+            .sort((a, b) => b.order - a.order)
+            .map((stateNode) => stateNode.onExit)
+        ),
+        this.machine.options.actions as any
+      ).filter(
+        (action) =>
+          action.type !== actionTypes.raise &&
+          (action.type !== actionTypes.send ||
+            (!!action.to && action.to !== SpecialTargets.Internal))
+      );
+      return actions.concat(stopActions);
+    }
 
     return actions;
   }
@@ -1208,6 +1224,15 @@ class StateNode<
     // - OR there are transitions
     const willTransition =
       !currentState || stateTransition.transitions.length > 0;
+
+    const resolvedConfiguration = willTransition
+      ? stateTransition.configuration
+      : currentState
+      ? currentState.configuration
+      : [];
+
+    const isDone = isInFinalState(resolvedConfiguration, this);
+
     const resolvedStateValue = willTransition
       ? getValue(this.machine, configuration)
       : undefined;
@@ -1219,6 +1244,8 @@ class StateNode<
         : undefined
       : undefined;
     const actions = this.getActions(
+      new Set(resolvedConfiguration),
+      isDone,
       stateTransition,
       context,
       _event,
@@ -1280,14 +1307,6 @@ class StateNode<
         ? { ...currentState.children }
         : ({} as Record<string, ActorRef<any>>)
     );
-
-    const resolvedConfiguration = willTransition
-      ? stateTransition.configuration
-      : currentState
-      ? currentState.configuration
-      : [];
-
-    const isDone = isInFinalState(resolvedConfiguration, this);
 
     const nextState = new State<
       TContext,
