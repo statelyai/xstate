@@ -207,8 +207,7 @@ describe('guard conditions', () => {
     }
   });
 
-  it.only('should guard against transition', () => {
-    debugger;
+  it('should guard against transition', () => {
     expect(machine.transition({ A: 'A2', B: 'B0' }, 'T1').value).toEqual({
       A: 'A2',
       B: 'B0'
