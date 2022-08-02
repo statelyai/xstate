@@ -663,6 +663,10 @@ export interface StateNodeConfig<
    */
   preserveActionOrder?: boolean;
   /**
+   * @default false
+   */
+  predictableActionArguments?: boolean;
+  /**
    * A text description of the state node
    */
   description?: string;
@@ -1890,3 +1894,9 @@ export type StateValueFrom<
     ? TypegenEnabledArg
     : TypegenDisabledArg
   : never;
+
+export type PredictableActionArgumentsExec = (
+  action: ActionObject<unknown, EventObject>,
+  context: unknown,
+  _event: SCXML.Event<EventObject>
+) => void;

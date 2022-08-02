@@ -316,7 +316,13 @@ export class Interpreter<
     this._state = state;
 
     // Execute actions
-    if (this.options.execute) {
+    if (
+      (!this.machine.config.predictableActionArguments ||
+        // this is currently required to execute initial actions as the `initialState` gets cached
+        // we can't just recompute it (and execute actions while doing so) because we try to preserve identity of actors created within initial assigns
+        _event === initEvent) &&
+      this.options.execute
+    ) {
       this.execute(this.state);
     }
 
@@ -627,7 +633,11 @@ export class Interpreter<
           this.state.context,
           _event,
           exitActions,
-          this.machine.config.preserveActionOrder
+          this.machine.config.predictableActionArguments
+            ? this._exec
+            : undefined,
+          this.machine.config.predictableActionArguments ||
+            this.machine.config.preserveActionOrder
         );
 
         const newState = new State<TContext, TEvent, TStateSchema, TTypestate>({
@@ -849,16 +859,8 @@ export class Interpreter<
       target.send(event.data);
     }
   };
-  /**
-   * Returns the next state given the interpreter's current state and the event.
-   *
-   * This is a pure method that does _not_ update the interpreter's state.
-   *
-   * @param event The event to determine the next state
-   */
-  public nextState(
-    event: Event<TEvent> | SCXML.Event<TEvent>
-  ): State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta> {
+
+  private _nextState(event: Event<TEvent> | SCXML.Event<TEvent>) {
     const _event = toSCXMLEvent(event);
 
     if (
@@ -871,11 +873,30 @@ export class Interpreter<
     }
 
     const nextState = serviceScope.provide(this, () => {
-      return this.machine.transition(this.state, _event);
+      return this.machine.transition(
+        this.state,
+        _event,
+        undefined,
+        this.machine.config.predictableActionArguments ? this._exec : undefined
+      );
     });
 
     return nextState;
   }
+
+  /**
+   * Returns the next state given the interpreter's current state and the event.
+   *
+   * This is a pure method that does _not_ update the interpreter's state.
+   *
+   * @param event The event to determine the next state
+   */
+  public nextState(
+    event: Event<TEvent> | SCXML.Event<TEvent>
+  ): State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta> {
+    return this._nextState(event);
+  }
+
   private forward(event: SCXML.Event<TEvent>): void {
     for (const id of this.forwardTo) {
       const child = this.children.get(id);
@@ -904,18 +925,13 @@ export class Interpreter<
     this.clock.clearTimeout(this.delayedEventsMap[sendId]);
     delete this.delayedEventsMap[sendId];
   }
-  private exec(
+
+  private _exec = (
     action: ActionObject<TContext, TEvent>,
-    state: State<
-      TContext,
-      TEvent,
-      TStateSchema,
-      TTypestate,
-      TResolvedTypesMeta
-    >,
+    context: TContext,
+    _event: SCXML.Event<TEvent>,
     actionFunctionMap = this.machine.options.actions
-  ): void {
-    const { context, _event } = state;
+  ): void => {
     const actionOrExec =
       action.exec || getActionFunction(action.type, actionFunctionMap);
     const exec = isFunction(actionOrExec)
@@ -926,11 +942,20 @@ export class Interpreter<
 
     if (exec) {
       try {
-        return (exec as any)(context, _event.data, {
-          action,
-          state: this.state,
-          _event
-        });
+        return (exec as any)(
+          context,
+          _event.data,
+          !this.machine.config.predictableActionArguments
+            ? {
+                action,
+                state: this.state,
+                _event
+              }
+            : {
+                action,
+                _event
+              }
+        );
       } catch (err) {
         if (this.parent) {
           this.parent.send({
@@ -975,7 +1000,11 @@ export class Interpreter<
         // If the activity will be stopped right after it's started
         // (such as in transient states)
         // don't bother starting the activity.
-        if (!this.state.activities[activity.id || activity.type]) {
+        if (
+          // in v4 with `predictableActionArguments` invokes are called eagerly when the `this.state` still points to the previous state
+          !this.machine.config.predictableActionArguments &&
+          !this.state.activities[activity.id || activity.type]
+        ) {
           break;
         }
 
@@ -1074,8 +1103,20 @@ export class Interpreter<
         }
         break;
     }
+  };
 
-    return undefined;
+  private exec(
+    action: ActionObject<TContext, TEvent>,
+    state: State<
+      TContext,
+      TEvent,
+      TStateSchema,
+      TTypestate,
+      TResolvedTypesMeta
+    >,
+    actionFunctionMap = this.machine.options.actions
+  ) {
+    this._exec(action, state.context, state._event, actionFunctionMap);
   }
 
   private removeChild(childId: string): void {

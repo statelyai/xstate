@@ -39,7 +39,8 @@ import {
   StopActionObject,
   Cast,
   EventFrom,
-  AnyActorRef
+  AnyActorRef,
+  PredictableActionArgumentsExec
 } from './types';
 import * as actionTypes from './actionTypes';
 import {
@@ -628,6 +629,7 @@ export function resolveActions<TContext, TEvent extends EventObject>(
   currentContext: TContext,
   _event: SCXML.Event<TEvent>,
   actions: Array<ActionObject<TContext, TEvent>>,
+  predictableExec?: PredictableActionArgumentsExec,
   preserveActionOrder: boolean = false
 ): [Array<ActionObject<TContext, TEvent>>, TContext] {
   const [assignActions, otherActions] = preserveActionOrder
@@ -650,15 +652,16 @@ export function resolveActions<TContext, TEvent extends EventObject>(
     otherActions
       .map((actionObject) => {
         switch (actionObject.type) {
-          case actionTypes.raise:
+          case actionTypes.raise: {
             return resolveRaise(actionObject as RaiseAction<TEvent>);
+          }
           case actionTypes.send:
             const sendAction = resolveSend(
               actionObject as SendAction<TContext, TEvent, AnyEventObject>,
               updatedContext,
               _event,
               machine.options.delays as any
-            ) as ActionObject<TContext, TEvent>; // TODO: fix ActionTypes.Init
+            ) as SendActionObject<TContext, TEvent>; // TODO: fix ActionTypes.Init
 
             if (!IS_PRODUCTION) {
               // warn after resolving as we can create better contextual message here
@@ -670,13 +673,20 @@ export function resolveActions<TContext, TEvent extends EventObject>(
               );
             }
 
+            if (sendAction.to !== SpecialTargets.Internal) {
+              predictableExec?.(sendAction, updatedContext, _event);
+            }
+
             return sendAction;
-          case actionTypes.log:
-            return resolveLog(
+          case actionTypes.log: {
+            const resolved = resolveLog(
               actionObject as LogAction<TContext, TEvent>,
               updatedContext,
               _event
             );
+            predictableExec?.(resolved, updatedContext, _event);
+            return resolved;
+          }
           case actionTypes.choose: {
             const chooseAction = actionObject as ChooseAction<TContext, TEvent>;
             const matchedActions = chooseAction.conds.find((condition) => {
@@ -691,7 +701,7 @@ export function resolveActions<TContext, TEvent extends EventObject>(
                   guard,
                   updatedContext,
                   _event,
-                  currentState as any
+                  (!predictableExec ? currentState : undefined) as any
                 )
               );
             })?.actions;
@@ -712,6 +722,7 @@ export function resolveActions<TContext, TEvent extends EventObject>(
                 toArray(matchedActions),
                 machine.options.actions as any
               ),
+              predictableExec,
               preserveActionOrder
             );
             updatedContext = resolvedContextFromChoose;
@@ -735,6 +746,7 @@ export function resolveActions<TContext, TEvent extends EventObject>(
                 toArray(matchedActions),
                 machine.options.actions as any
               ),
+              predictableExec,
               preserveActionOrder
             );
             updatedContext = resolvedContext;
@@ -742,18 +754,20 @@ export function resolveActions<TContext, TEvent extends EventObject>(
             return resolvedActionsFromPure;
           }
           case actionTypes.stop: {
-            return resolveStop(
+            const resolved = resolveStop(
               actionObject as StopAction<TContext, TEvent>,
               updatedContext,
               _event
             );
+            predictableExec?.(resolved, updatedContext, _event);
+            return resolved;
           }
           case actionTypes.assign: {
             updatedContext = updateContext(
               updatedContext,
               _event,
               [actionObject as AssignAction<TContext, TEvent>],
-              currentState
+              !predictableExec ? currentState : undefined
             );
             preservedContexts?.push(updatedContext);
             break;
@@ -764,7 +778,9 @@ export function resolveActions<TContext, TEvent extends EventObject>(
               machine.options.actions as any
             );
             const { exec } = resolvedActionObject;
-            if (exec && preservedContexts) {
+            if (predictableExec) {
+              predictableExec(resolvedActionObject, updatedContext, _event);
+            } else if (exec && preservedContexts) {
               const contextIndex = preservedContexts.length - 1;
               resolvedActionObject = {
                 ...resolvedActionObject,

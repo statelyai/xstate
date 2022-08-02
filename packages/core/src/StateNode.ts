@@ -69,7 +69,8 @@ import {
   InternalMachineOptions,
   ServiceMap,
   StateConfig,
-  AnyStateMachine
+  AnyStateMachine,
+  PredictableActionArgumentsExec
 } from './types';
 import { matchesState } from './utils';
 import { State, stateValuesEqual } from './State';
@@ -1119,9 +1120,11 @@ class StateNode<
       | State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta> = this
       .initialState,
     event: Event<TEvent> | SCXML.Event<TEvent>,
-    context?: TContext
+    context?: TContext,
+    exec?: PredictableActionArgumentsExec
   ): State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta> {
     const _event = toSCXMLEvent(event);
+
     let currentState: State<
       TContext,
       TEvent,
@@ -1185,6 +1188,7 @@ class StateNode<
       stateTransition,
       currentState,
       currentState.context,
+      exec,
       _event
     );
   }
@@ -1198,11 +1202,17 @@ class StateNode<
       TResolvedTypesMeta
     >,
     _event: SCXML.Event<TEvent> | NullEvent,
-    originalEvent: SCXML.Event<TEvent>
+    originalEvent: SCXML.Event<TEvent>,
+    predictableExec?: PredictableActionArgumentsExec
   ): State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta> {
     const currentActions = state.actions;
 
-    state = this.transition(state, _event as SCXML.Event<TEvent>);
+    state = this.transition(
+      state,
+      _event as SCXML.Event<TEvent>,
+      undefined,
+      predictableExec
+    );
     // Save original event to state
     // TODO: this should be the raised event! Delete in V5 (breaking)
     state._event = originalEvent;
@@ -1216,9 +1226,11 @@ class StateNode<
     stateTransition: StateTransition<TContext, TEvent>,
     currentState: State<TContext, TEvent, any, any, any> | undefined,
     context: TContext,
+    predictableExec?: PredictableActionArgumentsExec,
     _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>
   ): State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta> {
     const { configuration } = stateTransition;
+
     // Transition will "apply" if:
     // - this is the initial state (there is no current state)
     // - OR there are transitions
@@ -1268,7 +1280,9 @@ class StateNode<
       context,
       _event,
       actions,
-      this.machine.config.preserveActionOrder
+      predictableExec,
+      this.machine.config.predictableActionArguments ||
+        this.machine.config.preserveActionOrder
     );
 
     const [raisedEvents, nonRaisedActions] = partition(
@@ -1358,7 +1372,7 @@ class StateNode<
 
     // There are transient transitions if the machine is not in a final state
     // and if some of the state nodes have transient ("always") transitions.
-    const isTransient =
+    const hasAlwaysTransitions =
       !isDone &&
       (this._transient ||
         configuration.some((stateNode) => {
@@ -1370,24 +1384,27 @@ class StateNode<
     // because an transient transition should be triggered even if there are no
     // enabled transitions.
     //
-    // If we're already working on an transient transition (by checking
-    // if the event is a NULL_EVENT), then stop to prevent an infinite loop.
+    // If we're already working on an transient transition then stop to prevent an infinite loop.
     //
     // Otherwise, if there are no enabled nor transient transitions, we are done.
-    if (!willTransition && (!isTransient || _event.name === NULL_EVENT)) {
+    if (
+      !willTransition &&
+      (!hasAlwaysTransitions || _event.name === NULL_EVENT)
+    ) {
       return nextState;
     }
 
     let maybeNextState = nextState;
 
     if (!isDone) {
-      if (isTransient) {
+      if (hasAlwaysTransitions) {
         maybeNextState = this.resolveRaisedTransition(
           maybeNextState,
           {
             type: actionTypes.nullEvent
           },
-          _event
+          _event,
+          predictableExec
         );
       }
 
@@ -1396,7 +1413,8 @@ class StateNode<
         maybeNextState = this.resolveRaisedTransition(
           maybeNextState,
           raisedEvent._event,
-          _event
+          _event,
+          predictableExec
         );
       }
     }
