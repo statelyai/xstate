@@ -1,6 +1,6 @@
 {
   "name": "@xstate/test",
-  "version": "0.5.1",
+  "version": "1.0.0-alpha.0",
   "description": "XState test utilities",
   "keywords": [
     "state",
@@ -19,10 +19,6 @@
   "main": "lib/index.js",
   "module": "es/index.js",
   "types": "lib/index.d.ts",
-  "browser": {
-    "./lib/slimChalk.js": "./lib/slimChalk.browser.js",
-    "./es/slimChalk.js": "./es/slimChalk.browser.js"
-  },
   "sideEffects": false,
   "files": [
     "lib/**/*.js",
@@ -44,7 +40,7 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "xstate": "^4.32.0"
+    "xstate": "^4.32.1"
   },
   "devDependencies": {
     "jest": "^26.6.3",
@@ -55,7 +51,6 @@
     "xstate": "*"
   },
   "dependencies": {
-    "@xstate/graph": "^1.4.2",
-    "chalk": "^2.4.2"
+    "@xstate/graph": "^2.0.0-alpha.0"
   }
 }

@@ -38,7 +38,14 @@ import {
 } from './types';
 import { State, bindActionToState, isStateConfig } from './State';
 import * as actionTypes from './actionTypes';
-import { doneInvoke, error, getActionFunction, initEvent } from './actions';
+import {
+  doneInvoke,
+  error,
+  getActionFunction,
+  initEvent,
+  resolveActions,
+  toActionObjects
+} from './actions';
 import { IS_PRODUCTION } from './environment';
 import {
   isPromiseLike,
@@ -57,11 +64,11 @@ import {
   toObserver,
   isActor,
   isBehavior,
-  symbolObservable
+  symbolObservable,
+  flatten
 } from './utils';
 import { Scheduler } from './scheduler';
 import { Actor, isSpawnedActor, createDeferredActor } from './Actor';
-import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
 import { getGlobal, registerService } from './devTools';
 import * as serviceScope from './serviceScope';
@@ -347,12 +354,7 @@ export class Interpreter<
       );
     }
 
-    const isDone = isInFinalState(
-      state.configuration || [],
-      this.machine as any
-    );
-
-    if (this.state.configuration && isDone) {
+    if (this.state.done) {
       // get final child state node
       const finalChildStateNode = state.configuration.find(
         (sn) => sn.type === 'final' && sn.parent === (this.machine as any)
@@ -366,7 +368,7 @@ export class Interpreter<
       for (const listener of this.doneListeners) {
         listener(doneInvoke(this.id, doneData));
       }
-      this.stop();
+      this._stop();
     }
   }
   /*
@@ -557,12 +559,7 @@ export class Interpreter<
     });
     return this;
   }
-  /**
-   * Stops the interpreter and unsubscribe all listeners.
-   *
-   * This will also notify the `onStop` listeners.
-   */
-  public stop(): this {
+  private _stop() {
     for (const listener of this.listeners) {
       this.listeners.delete(listener);
     }
@@ -583,36 +580,101 @@ export class Interpreter<
       return this;
     }
 
-    [...this.state.configuration]
-      .sort((a, b) => b.order - a.order)
-      .forEach((stateNode) => {
-        for (const action of stateNode.definition.exit) {
-          this.exec(action, this.state);
-        }
-      });
+    this.initialized = false;
+    this.status = InterpreterStatus.Stopped;
+    this._initialState = undefined;
 
-    // Stop all children
-    this.children.forEach((child) => {
-      if (isFunction(child.stop)) {
-        child.stop();
-      }
-    });
-    this.children.clear();
-
-    // Cancel all delayed events
+    // we are going to stop within the current sync frame
+    // so we can safely just cancel this here as nothing async should be fired anyway
     for (const key of Object.keys(this.delayedEventsMap)) {
       this.clock.clearTimeout(this.delayedEventsMap[key]);
     }
 
+    // clear everything that might be enqueued
     this.scheduler.clear();
+
     this.scheduler = new Scheduler({
       deferEvents: this.options.deferEvents
     });
+  }
+  /**
+   * Stops the interpreter and unsubscribe all listeners.
+   *
+   * This will also notify the `onStop` listeners.
+   */
+  public stop(): this {
+    // TODO: add warning for stopping non-root interpreters
 
-    this.initialized = false;
-    this.status = InterpreterStatus.Stopped;
-    this._initialState = undefined;
-    registry.free(this.sessionId);
+    // grab the current scheduler as it will be replaced in _stop
+    const scheduler = this.scheduler;
+
+    this._stop();
+
+    // let what is currently processed to be finished
+    scheduler.schedule(() => {
+      // it feels weird to handle this here but we need to handle this even slightly "out of band"
+      const _event = toSCXMLEvent({ type: 'xstate.stop' }) as any;
+
+      const nextState = serviceScope.provide(this, () => {
+        const exitActions = flatten(
+          [...this.state.configuration]
+            .sort((a, b) => b.order - a.order)
+            .map((stateNode) =>
+              toActionObjects(
+                stateNode.onExit,
+                this.machine.options.actions as any
+              )
+            )
+        );
+
+        const [resolvedActions, updatedContext] = resolveActions(
+          this.machine as any,
+          this.state,
+          this.state.context,
+          _event,
+          exitActions,
+          this.machine.config.preserveActionOrder
+        );
+
+        const newState = new State<TContext, TEvent, TStateSchema, TTypestate>({
+          value: this.state.value,
+          context: updatedContext,
+          _event,
+          _sessionid: this.sessionId,
+          historyValue: undefined,
+          history: this.state,
+          actions: resolvedActions.filter(
+            (action) =>
+              action.type !== actionTypes.raise &&
+              (action.type !== actionTypes.send ||
+                (!!action.to && action.to !== SpecialTargets.Internal))
+          ),
+          activities: {},
+          events: [],
+          configuration: [],
+          transitions: [],
+          children: {},
+          done: this.state.done,
+          tags: this.state.tags,
+          machine: this.machine
+        });
+        newState.changed = true;
+        return newState;
+      });
+
+      this.update(nextState, _event);
+
+      // TODO: think about converting those to actions
+      // Stop all children
+      this.children.forEach((child) => {
+        if (isFunction(child.stop)) {
+          child.stop();
+        }
+      });
+      this.children.clear();
+
+      registry.free(this.sessionId);
+    });
 
     return this;
   }
@@ -772,13 +834,22 @@ export class Interpreter<
     }
 
     if ('machine' in target) {
-      // Send SCXML events to machines
-      (target as AnyInterpreter).send({
-        ...event,
-        name:
-          event.name === actionTypes.error ? `${error(this.id)}` : event.name,
-        origin: this.sessionId
-      });
+      // perhaps those events should be rejected in the parent
+      // but atm it doesn't have easy access to all of the information that is required to do it reliably
+      if (
+        this.status !== InterpreterStatus.Stopped ||
+        this.parent !== target ||
+        // we need to send events to the parent from exit handlers of a machine that reached its final state
+        this.state.done
+      ) {
+        // Send SCXML events to machines
+        (target as AnyInterpreter).send({
+          ...event,
+          name:
+            event.name === actionTypes.error ? `${error(this.id)}` : event.name,
+          origin: this.sessionId
+        });
+      }
     } else {
       // Send normal events to other targets
       target.send(event.data);
@@ -1070,6 +1141,9 @@ export class Interpreter<
     name: string,
     options?: SpawnOptions
   ): ActorRef<any> {
+    if (this.status !== InterpreterStatus.Running) {
+      return createDeferredActor(entity, name);
+    }
     if (isPromiseLike(entity)) {
       return this.spawnPromise(Promise.resolve(entity), name);
     } else if (isFunction(entity)) {
@@ -1131,7 +1205,7 @@ export class Interpreter<
       })
       .start();
 
-    return actor as any;
+    return actor as ActorRef<TChildEvent, State<TChildContext, TChildEvent>>;
   }
   private spawnBehavior<TActorEvent extends EventObject, TEmitted>(
     behavior: Behavior<TActorEvent, TEmitted>,

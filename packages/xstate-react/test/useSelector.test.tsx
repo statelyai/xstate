@@ -9,7 +9,7 @@ import {
   StateFrom,
   toActorRef
 } from 'xstate';
-import { useInterpret, useMachine, useSelector } from '../src';
+import { shallowEqual, useInterpret, useMachine, useSelector } from '../src';
 import { describeEachReactMode } from './utils';
 
 describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
@@ -135,6 +135,89 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     fireEvent.click(sendUpperButton);
 
     expect(nameEl.textContent).toEqual('DAVID');
+  });
+
+  it('should work with the shallowEqual comparison function', () => {
+    const machine = createMachine<{ user: { name: string } }>({
+      initial: 'active',
+      context: {
+        user: { name: 'david' }
+      },
+      states: {
+        active: {}
+      },
+      on: {
+        'change.same': {
+          // New object reference
+          actions: assign({ user: { name: 'david' } })
+        },
+        'change.other': {
+          // New object reference
+          actions: assign({ user: { name: 'other' } })
+        }
+      }
+    });
+
+    const App = () => {
+      const service = useInterpret(machine);
+      const [userChanges, setUserChanges] = React.useState(0);
+      const user = useSelector(
+        service,
+        (state) => state.context.user,
+        shallowEqual
+      );
+      const prevUser = React.useRef(user);
+
+      React.useEffect(() => {
+        if (user !== prevUser.current) {
+          setUserChanges((c) => c + 1);
+        }
+        prevUser.current = user;
+      }, [user]);
+
+      return (
+        <>
+          <div data-testid="name">{user.name}</div>
+          <div data-testid="changes">{userChanges}</div>
+          <button
+            data-testid="sendSame"
+            onClick={() => service.send({ type: 'change.same' })}
+          ></button>
+          <button
+            data-testid="sendOther"
+            onClick={() => service.send({ type: 'change.other' })}
+          ></button>
+        </>
+      );
+    };
+
+    render(<App />);
+    const nameEl = screen.getByTestId('name');
+    const changesEl = screen.getByTestId('changes');
+    const sendSameButton = screen.getByTestId('sendSame');
+    const sendOtherButton = screen.getByTestId('sendOther');
+
+    expect(nameEl.textContent).toEqual('david');
+
+    // unchanged due to comparison function
+    fireEvent.click(sendSameButton);
+    expect(nameEl.textContent).toEqual('david');
+    expect(changesEl.textContent).toEqual('0');
+
+    // changed
+    fireEvent.click(sendOtherButton);
+    expect(nameEl.textContent).toEqual('other');
+    expect(changesEl.textContent).toEqual('1');
+
+    // changed
+    fireEvent.click(sendSameButton);
+    expect(nameEl.textContent).toEqual('david');
+    expect(changesEl.textContent).toEqual('2');
+
+    // unchanged due to comparison function
+    fireEvent.click(sendSameButton);
+    expect(nameEl.textContent).toEqual('david');
+    expect(changesEl.textContent).toEqual('2');
   });
 
   it('should work with selecting values from initially spawned actors', () => {

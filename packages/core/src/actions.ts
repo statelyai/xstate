@@ -562,6 +562,21 @@ export function forwardTo<TContext, TEvent extends EventObject>(
   target: Required<SendActionOptions<TContext, TEvent>>['to'],
   options?: SendActionOptions<TContext, TEvent>
 ): SendAction<TContext, TEvent, AnyEventObject> {
+  if (!IS_PRODUCTION && (!target || typeof target === 'function')) {
+    const originalTarget = target;
+    target = (...args) => {
+      const resolvedTarget =
+        typeof originalTarget === 'function'
+          ? originalTarget(...args)
+          : originalTarget;
+      if (!resolvedTarget) {
+        throw new Error(
+          `Attempted to forward event to undefined actor. This risks an infinite loop in the sender.`
+        );
+      }
+      return resolvedTarget;
+    };
+  }
   return send<TContext, TEvent>((_, event) => event, {
     ...options,
     to: target
@@ -610,7 +625,7 @@ export function choose<TContext, TEvent extends EventObject>(
 
 export function resolveActions<TContext, TEvent extends EventObject>(
   machine: StateNode<TContext, any, TEvent, any, any, any>,
-  currentState: State<TContext, TEvent> | undefined,
+  currentState: State<TContext, TEvent, any, any, any> | undefined,
   currentContext: TContext,
   _event: SCXML.Event<TEvent>,
   actions: Array<ActionObject<TContext, TEvent>>,

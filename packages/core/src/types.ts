@@ -1508,6 +1508,9 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
    */
   activities?: ActivityMap;
   meta?: any;
+  /**
+   * @deprecated
+   */
   events?: TEvent[];
   configuration: Array<StateNode<TContext, any, TEvent>>;
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
@@ -1803,7 +1806,9 @@ export interface Behavior<TEvent extends EventObject, TEmitted = any> {
 }
 
 export type EmittedFrom<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends ActorRef<infer _, infer TEmitted>
+  ? R extends Interpreter<infer _, infer __, infer ___, infer ____, infer _____>
+    ? R['initialState']
+    : R extends ActorRef<infer _, infer TEmitted>
     ? TEmitted
     : R extends Behavior<infer _, infer TEmitted>
     ? TEmitted

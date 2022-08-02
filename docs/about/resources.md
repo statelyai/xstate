@@ -49,7 +49,7 @@ Explore a collection of professionally-designed state machines and statecharts i
 - [Getting Started with XState, React and Typescript (Part 1)](https://moduscreate.com/blog/getting-started-with-xstate-react-and-typescript-part-2/) by [Santiago Kent](https://twitter.com/moduscreate) on 2021-01-05
 - [Untangling your Logic using State Machines](https://blog.robruizr.dev/untangling-your-logic-using-state-machines) by [Roberto Ruiz](https://twitter.com/robruizrdevs) on 2021-10-07
 - [The power of XState](https://dev.to/manoryanir/the-power-of-x-state-1npg) by [Yanir Manor](https://dev.to/manoryanir) on 2021-10-04
-- [Building an acquisition Funnel in React with Xstate - Part 1](https://dev.indooroutdoor.io/building-an-acquisition-funnel-in-react-with-xstate) by [Jb Rocher](https://hashnode.com/@Araelath)
+- [Building an acquisition Funnel in React with Xstate - Part 1](https://dev.indooroutdoor.io/building-an-acquisition-funnel-in-react-with-xstate) by [Jb Rocher](https://hashnode.com/@jibrocher)
 - [XState - Expero Night](https://slides.com/ivanbtrujillo/deck) by Iván Trujillo
 - [Orchestrating Serverless from Serverless](https://medium.com/@kjartanmuller/orchestrating-serverless-from-serverless-bcdb751ddd6c) by [Kjartan Rekdal Müller](https://medium.com/@kjartanmuller) on 2021-09-20
 - [How to model application flows in React with finite state machines and XState](https://engineering.kablamo.com.au/posts/2021/finite-state-machines-and-xstate) by [Andrew McDowell](https://twitter.com/madole) on 2021-07-23

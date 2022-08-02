@@ -1,5 +1,11 @@
 # xstate
 
+## 4.32.1
+
+### Patch Changes
+
+- [#3292](https://github.com/statelyai/xstate/pull/3292) [`16514e466`](https://github.com/statelyai/xstate/commit/16514e4663deba95731a84deaee94c17edec1e06) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue in the `EmittedFrom` type helper that could prevent it from inferring the desired type from some services.
+
 ## 4.32.0
 
 ### Minor Changes
