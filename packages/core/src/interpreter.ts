@@ -633,7 +633,11 @@ export class Interpreter<
           this.state.context,
           _event,
           exitActions,
-          this.machine.config.preserveActionOrder
+          this.machine.config.predictableActionArguments
+            ? this._exec
+            : undefined,
+          this.machine.config.predictableActionArguments ||
+            this.machine.config.preserveActionOrder
         );
 
         const newState = new State<TContext, TEvent, TStateSchema, TTypestate>({
