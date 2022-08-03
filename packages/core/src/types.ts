@@ -663,6 +663,8 @@ export interface StateNodeConfig<
    */
   preserveActionOrder?: boolean;
   /**
+   * Whether XState calls actions with the event directly responsible for the related transition.
+   *
    * @default false
    */
   predictableActionArguments?: boolean;

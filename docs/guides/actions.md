@@ -1,6 +1,7 @@
 # Actions
 
 ::: warning
+<Badge text="4.33+" />
 
 It is advised to configure `predictableActionArguments: true` at the top-level of your machine config, like this:
 
