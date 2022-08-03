@@ -396,8 +396,8 @@ export class Interpreter<
     return this;
   }
   public subscribe(
-    observer: Observer<
-      State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta>
+    observer: Partial<
+      Observer<State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta>>
     >
   ): Subscription;
   public subscribe(
@@ -412,48 +412,39 @@ export class Interpreter<
       | ((
           state: State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta>
         ) => void)
-      | Observer<State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta>>,
+      | Partial<
+          Observer<State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta>>
+        >,
     _?: (error: any) => void, // TODO: error listener
     completeListener?: () => void
   ): Subscription {
-    if (!nextListenerOrObserver) {
-      return { unsubscribe: () => void 0 };
-    }
+    const observer = toObserver(nextListenerOrObserver, _, completeListener);
 
-    let listener: (
-      state: State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta>
-    ) => void;
-    let resolvedCompleteListener = completeListener;
-
-    if (typeof nextListenerOrObserver === 'function') {
-      listener = nextListenerOrObserver;
-    } else {
-      listener = nextListenerOrObserver.next.bind(nextListenerOrObserver);
-      resolvedCompleteListener = nextListenerOrObserver.complete.bind(
-        nextListenerOrObserver
-      );
-    }
-
-    this.listeners.add(listener);
+    this.listeners.add(observer.next);
 
     // Send current state to listener
     if (this.status !== InterpreterStatus.NotStarted) {
-      listener(this.state);
+      observer.next(this.state);
     }
 
-    if (resolvedCompleteListener) {
-      if (this.status === InterpreterStatus.Stopped) {
-        resolvedCompleteListener();
-      } else {
-        this.onDone(resolvedCompleteListener);
-      }
+    const completeOnce = () => {
+      this.doneListeners.delete(completeOnce);
+      this.stopListeners.delete(completeOnce);
+      observer.complete();
+    };
+
+    if (this.status === InterpreterStatus.Stopped) {
+      observer.complete();
+    } else {
+      this.onDone(completeOnce);
+      this.onStop(completeOnce);
     }
 
     return {
       unsubscribe: () => {
-        listener && this.listeners.delete(listener);
-        resolvedCompleteListener &&
-          this.doneListeners.delete(resolvedCompleteListener);
+        this.listeners.delete(observer.next);
+        this.doneListeners.delete(completeOnce);
+        this.stopListeners.delete(completeOnce);
       }
     };
   }
