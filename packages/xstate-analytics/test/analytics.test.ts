@@ -67,7 +67,7 @@ describe('@xstate/analytics', () => {
     const service = interpret(lightMachine);
 
     service.subscribe(
-      createAnalyzer(a => {
+      createAnalyzer((a) => {
         analysis = a;
       })
     );

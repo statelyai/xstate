@@ -1,90 +1,74 @@
-import { ref, Ref, onBeforeMount, onBeforeUnmount } from '@vue/composition-api';
+import { Ref, shallowRef } from 'vue';
 import {
-  interpret,
-  EventObject,
-  StateMachine,
-  State,
-  Interpreter,
+  AnyStateMachine,
+  AreAllImplementationsAssumedToBeProvided,
+  InternalMachineOptions,
+  InterpreterFrom,
   InterpreterOptions,
-  MachineOptions,
-  StateConfig
+  State,
+  StateFrom
 } from 'xstate';
+import { MaybeLazy, Prop, UseMachineOptions } from './types';
+import { useInterpret } from './useInterpret';
 
-interface UseMachineOptions<TContext, TEvent extends EventObject> {
-  /**
-   * If provided, will be merged with machine's `context`.
-   */
-  context?: Partial<TContext>;
-  /**
-   * The state to rehydrate the machine to. The machine will
-   * start at this state instead of its `initialState`.
-   */
-  state?: StateConfig<TContext, TEvent>;
-}
+type RestParams<
+  TMachine extends AnyStateMachine
+> = AreAllImplementationsAssumedToBeProvided<
+  TMachine['__TResolvedTypesMeta']
+> extends false
+  ? [
+      options: InterpreterOptions &
+        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+        InternalMachineOptions<
+          TMachine['__TContext'],
+          TMachine['__TEvent'],
+          TMachine['__TResolvedTypesMeta'],
+          true
+        >
+    ]
+  : [
+      options?: InterpreterOptions &
+        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+        InternalMachineOptions<
+          TMachine['__TContext'],
+          TMachine['__TEvent'],
+          TMachine['__TResolvedTypesMeta']
+        >
+    ];
 
-export function useMachine<TContext, TEvent extends EventObject>(
-  machine: StateMachine<TContext, any, TEvent>,
-  options: Partial<InterpreterOptions> &
-    Partial<UseMachineOptions<TContext, TEvent>> &
-    Partial<MachineOptions<TContext, TEvent>>
-): {
-  current: Ref<State<TContext, TEvent>>;
-  send: Interpreter<TContext, any, TEvent>['send'];
-  service: Interpreter<TContext, any, TEvent>;
-} {
-  const {
-    context,
-    guards,
-    actions,
-    activities,
-    services,
-    delays,
-    state: rehydratedState,
-    ...interpreterOptions
-  } = options;
+type UseMachineReturn<
+  TMachine extends AnyStateMachine,
+  TInterpreter = InterpreterFrom<TMachine>
+> = {
+  state: Ref<StateFrom<TMachine>>;
+  send: Prop<TInterpreter, 'send'>;
+  service: TInterpreter;
+};
 
-  const machineConfig = {
-    context,
-    guards,
-    actions,
-    activities,
-    services,
-    delays
-  };
+export function useMachine<TMachine extends AnyStateMachine>(
+  getMachine: MaybeLazy<TMachine>,
+  ...[options = {}]: RestParams<TMachine>
+): UseMachineReturn<TMachine> {
+  function listener(nextState: StateFrom<TMachine>) {
+    // Only change the current state if:
+    // - the incoming state is the "live" initial state (since it might have new actors)
+    // - OR the incoming state actually changed.
+    //
+    // The "live" initial state will have .changed === undefined.
+    const initialStateChanged =
+      nextState.changed === undefined && Object.keys(nextState.children).length;
 
-  const machineWithConfig = machine.withConfig(machineConfig, {
-    ...machine.context,
-    ...context
-  } as TContext);
-
-  const service = interpret(machineWithConfig, interpreterOptions).onTransition(
-    state => {
-      if (state.changed) {
-        current.value = state;
-      }
+    if (nextState.changed || initialStateChanged) {
+      state.value = nextState;
     }
+  }
+
+  const service = useInterpret(getMachine, options, listener);
+
+  const { initialState } = service.machine;
+  const state = shallowRef(
+    options.state ? State.create(options.state) : initialState
   );
 
-  const initialState = rehydratedState
-    ? State.create(rehydratedState)
-    : service.initialState;
-
-  const current = ref<State<TContext, TEvent>>(initialState);
-
-  // extract send method for sending events to the service
-  const send = (event: TEvent | TEvent['type']) => service.send(event);
-
-  onBeforeMount(() => {
-    service.start(rehydratedState ? initialState : undefined);
-  });
-
-  onBeforeUnmount(() => {
-    service.stop();
-  });
-
-  return {
-    current,
-    service,
-    send
-  };
+  return { state, send: service.send, service } as any;
 }

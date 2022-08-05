@@ -1,52 +1,28 @@
-import { matchesState } from './utils';
-import { mapState } from './mapState';
-import { StateNode } from './StateNode';
-import { State } from './State';
-import { Machine, createMachine } from './Machine';
-import { Actor } from './Actor';
+import * as actions from './actions';
+import { Actor, toActorRef } from './Actor';
 import {
-  raise,
-  send,
-  sendParent,
-  sendUpdate,
-  log,
-  cancel,
-  start,
-  stop,
-  assign,
-  after,
-  done,
-  respond,
-  doneInvoke,
-  forwardTo,
-  escalate
-} from './actions';
-import { interpret, Interpreter, spawn } from './interpreter';
+  interpret,
+  Interpreter,
+  InterpreterStatus,
+  spawn
+} from './interpreter';
+import { createMachine, Machine } from './Machine';
+import { mapState } from './mapState';
 import { matchState } from './match';
-
-const actions = {
-  raise,
-  send,
-  sendParent,
-  sendUpdate,
-  log,
-  cancel,
-  start,
-  stop,
-  assign,
-  after,
-  done,
-  respond,
-  forwardTo,
-  escalate
-};
-
+import { createSchema, t } from './schema';
+import { State } from './State';
+import { StateNode } from './StateNode';
+export { spawnBehavior } from './behaviors';
+export { XStateDevInterface } from './devTools';
+export * from './typegenTypes';
+export * from './types';
+export { matchesState, toEventObject, toObserver, toSCXMLEvent } from './utils';
 export {
   Actor,
+  toActorRef,
   Machine,
   StateNode,
   State,
-  matchesState,
   mapState,
   actions,
   assign,
@@ -56,10 +32,19 @@ export {
   forwardTo,
   interpret,
   Interpreter,
+  InterpreterStatus,
   matchState,
   spawn,
   doneInvoke,
-  createMachine
+  createMachine,
+  createSchema,
+  t
 };
 
-export * from './types';
+const { assign, send, sendParent, sendUpdate, forwardTo, doneInvoke } = actions;
+
+declare global {
+  interface SymbolConstructor {
+    readonly observable: symbol;
+  }
+}

@@ -1,24 +1,24 @@
 <template>
   <div>
     Hallo
-    <button v-if="current.matches('idle')" @click="send('FETCH')">Fetch</button>
-    <div v-else-if="current.matches('loading')">Loading...</div>
-    <div v-else-if="current.matches('success')">
+    <button v-if="state.matches('idle')" @click="send('FETCH')">Fetch</button>
+    <div v-else-if="state.matches('loading')">Loading...</div>
+    <div v-else-if="state.matches('success')">
       Success! Data:
-      <div data-testid="data">{{ current.context.data }}</div>
+      <div data-testid="data">{{ state.context.data }}</div>
     </div>
   </div>
 </template>
 
 <script lang="ts">
-import { useMachine } from '../src/useMachine';
-import { Machine, assign, Interpreter, spawn, doneInvoke, State } from 'xstate';
-import { watch } from '@vue/composition-api';
+import { defineComponent, PropType } from 'vue';
+import { useMachine } from '../src';
+import { createMachine, assign, State, AnyState } from 'xstate';
 
 const context = {
   data: undefined
 };
-const fetchMachine = Machine<typeof context, any>({
+const fetchMachine = createMachine<typeof context, any>({
   id: 'fetch',
   initial: 'idle',
   context,
@@ -44,28 +44,23 @@ const fetchMachine = Machine<typeof context, any>({
   }
 });
 
-export default {
-  props: ['persistedState'],
-  setup({ persistedState }): { persistedState: State<any, any> } {
+export default defineComponent({
+  props: {
+    persistedState: {
+      type: Object as PropType<AnyState>
+    }
+  },
+  setup({ persistedState }) {
     const onFetch = () =>
-      new Promise(res => setTimeout(() => res('some data'), 50));
+      new Promise((res) => setTimeout(() => res('some data'), 50));
 
-    const { current, send, service } = useMachine(fetchMachine, {
+    const { state, send, service } = useMachine(fetchMachine, {
       services: {
         fetchData: onFetch
       },
       state: persistedState
     });
-    watch(() =>
-      current.value.actions.forEach(action => {
-        if (action.type === 'load') {
-          onFetch().then(res => {
-            send({ type: 'RESOLVE', data: res });
-          });
-        }
-      })
-    );
-    return { current, send, service };
+    return { state, send, service };
   }
-};
+});
 </script>

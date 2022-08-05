@@ -1,4 +1,4 @@
-import { Machine, interpret } from '../src/index';
+import { Machine, interpret, createMachine, assign } from '../src/index';
 import { State } from '../src/State';
 
 const pedestrianStates = {
@@ -194,20 +194,47 @@ describe('machine', () => {
         foo: 'different'
       });
     });
+
+    it('should allow for lazy context to be used with `withConfig`', () => {
+      const machine = createMachine({
+        context: { foo: { prop: 'bar' } }
+      });
+      const copiedMachine = machine.withConfig({}, () => ({
+        foo: { prop: 'baz' }
+      }));
+      expect(copiedMachine.initialState.context).toEqual({
+        foo: { prop: 'baz' }
+      });
+    });
+
+    it('should lazily create context for all interpreter instances created from the same machine template created by `withConfig`', () => {
+      const machine = createMachine({
+        context: { foo: { prop: 'bar' } }
+      });
+
+      const copiedMachine = machine.withConfig({}, () => ({
+        foo: { prop: 'baz' }
+      }));
+
+      const a = interpret(copiedMachine).start();
+      const b = interpret(copiedMachine).start();
+
+      expect(a.state.context.foo).not.toBe(b.state.context.foo);
+    });
   });
 
   describe('machine function context', () => {
-    const testMachineConfig = {
-      initial: 'active',
-      context: () => ({
-        foo: { bar: 'baz' }
-      }),
-      states: {
-        active: {}
-      }
-    };
-
     it('context from a function should be lazily evaluated', () => {
+      const testMachineConfig = {
+        initial: 'active',
+        context: () => ({
+          foo: { bar: 'baz' }
+        }),
+        states: {
+          active: {}
+        }
+      };
+
       const testMachine1 = Machine(testMachineConfig);
       const testMachine2 = Machine(testMachineConfig);
 
@@ -281,6 +308,70 @@ describe('machine', () => {
       const resolvedState = resolveMachine.resolveState(tempState);
 
       expect(resolvedState.nextEvents.sort()).toEqual(['TO_BAR', 'TO_TWO']);
+    });
+
+    it('should resolve .done', () => {
+      const machine = createMachine({
+        initial: 'foo',
+        states: {
+          foo: {
+            on: { NEXT: 'bar' }
+          },
+          bar: {
+            type: 'final'
+          }
+        }
+      });
+      const tempState = State.from<any>('bar');
+
+      const resolvedState = machine.resolveState(tempState);
+
+      expect(resolvedState.done).toBe(true);
+    });
+
+    it('should resolve from a state config object', () => {
+      const machine = createMachine({
+        initial: 'foo',
+        states: {
+          foo: {
+            on: { NEXT: 'bar' }
+          },
+          bar: {
+            type: 'final'
+          }
+        }
+      });
+
+      const barState = machine.transition(undefined, 'NEXT');
+
+      const jsonBarState = JSON.parse(JSON.stringify(barState));
+
+      expect(machine.resolveState(jsonBarState).matches('bar')).toBeTruthy();
+    });
+
+    it('should terminate on a resolved final state', (done) => {
+      const machine = createMachine({
+        initial: 'foo',
+        states: {
+          foo: {
+            on: { NEXT: 'bar' }
+          },
+          bar: {
+            type: 'final'
+          }
+        }
+      });
+
+      const nextState = machine.transition(undefined, 'NEXT');
+
+      const persistedState = JSON.stringify(nextState);
+
+      const service = interpret(machine).onDone(() => {
+        // Should reach done state immediately
+        done();
+      });
+
+      service.start(JSON.parse(persistedState!));
     });
   });
 
@@ -359,6 +450,27 @@ describe('machine', () => {
       );
     });
   });
+
+  describe('combinatorial machines', () => {
+    it('should support combinatorial machines (single-state)', () => {
+      const testMachine = createMachine<{ value: number }>({
+        context: { value: 42 },
+        on: {
+          INC: {
+            actions: assign({ value: (ctx) => ctx.value + 1 })
+          }
+        }
+      });
+
+      const state = testMachine.initialState;
+
+      expect(state.value).toEqual({});
+
+      const nextState = testMachine.transition(state, 'INC');
+
+      expect(nextState.context.value).toEqual(43);
+    });
+  });
 });
 
 describe('StateNode', () => {
@@ -367,7 +479,7 @@ describe('StateNode', () => {
 
     const transitions = greenNode.transitions;
 
-    expect(transitions.map(t => t.eventType)).toEqual([
+    expect(transitions.map((t) => t.eventType)).toEqual([
       'TIMER',
       'POWER_OUTAGE',
       'FORBIDDEN_EVENT'

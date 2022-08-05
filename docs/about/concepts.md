@@ -1,6 +1,6 @@
 # Concepts
 
-XState is a library for creating, interpreting, and executing finite state machines and statecharts, as well as managing invocations of those machines as actors. The following fundamental computer science concepts are important to know to make the best use of XState, and in general for all your current and future software projects.
+XState is a library for creating, interpreting, and executing finite state machines and statecharts, as well as managing invocations of those machines as actors. The following fundamental computer science concepts are important to know how to make the best use of XState, and in general for all your current and future software projects.
 
 ## Finite State Machines
 
@@ -24,7 +24,7 @@ More resources:
 
 ## Statecharts
 
-Statecharts are a formalism for modeling stateful, reactive systems. Computer scientist David Harel presented this formalism as an extension to state machines in his 1987 paper [Statecharts: A Visual Formalism for Complex Systems](http://www.inf.ed.ac.uk/teaching/courses/seoc/2005_2006/resources/statecharts.pdf). Some of the extensions include:
+Statecharts are a formalism for modeling stateful, reactive systems. Computer scientist David Harel presented this formalism as an extension to state machines in his 1987 paper [Statecharts: A Visual Formalism for Complex Systems](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf). Some of the extensions include:
 
 - Guarded transitions
 - Actions (entry, exit, transition)
@@ -35,7 +35,7 @@ Statecharts are a formalism for modeling stateful, reactive systems. Computer sc
 
 More resources:
 
-- [Statecharts: A Visual Formalism for Complex Systems](http://www.inf.ed.ac.uk/teaching/courses/seoc/2005_2006/resources/statecharts.pdf) by David Harel
+- [Statecharts: A Visual Formalism for Complex Systems](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf) by David Harel
 - [The World of Statecharts](https://statecharts.github.io/) by Erik Mogensen
 
 ## Actor Model

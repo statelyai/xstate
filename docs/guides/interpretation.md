@@ -22,12 +22,12 @@ An optional interpreter is provided that you can use to run your statecharts. Th
 - And more!
 
 ```js
-import { Machine, interpret } from 'xstate';
+import { createMachine, interpret } from 'xstate';
 
-const machine = Machine(/* machine config */);
+const machine = createMachine(/* machine config */);
 
 // Interpret the machine, and add a listener for whenever a transition occurs.
-const service = interpret(machine).onTransition(state => {
+const service = interpret(machine).onTransition((state) => {
   console.log(state.value);
 });
 
@@ -35,7 +35,7 @@ const service = interpret(machine).onTransition(state => {
 service.start();
 
 // Send events
-service.send('SOME_EVENT');
+service.send({ type: 'SOME_EVENT' });
 
 // Stop the service when you are no longer using it.
 service.stop();
@@ -48,22 +48,22 @@ Events are sent to a running service by calling `service.send(event)`. There are
 ```js {5,8,12}
 service.start();
 
+// As an object (preferred):
+service.send({ type: 'CLICK', x: 40, y: 21 });
+
 // As a string:
 // (same as service.send({ type: 'CLICK' }))
 service.send('CLICK');
-
-// As an object:
-service.send({ type: 'CLICK', x: 40, y: 21 });
 
 // As a string with an object payload:
 // (same as service.send({ type: 'CLICK', x: 40, y: 21 }))
 service.send('CLICK', { x: 40, y: 21 });
 ```
 
-- As a string (e.g., `.send('CLICK')`, which resolves to sending `{ type: 'CLICK' }`)
-  - The string represents the event type.
 - As an event object (e.g., `.send({ type: 'CLICK', x: 40, y: 21 })`)
   - The event object must have a `type: ...` string property.
+- As a string (e.g., `.send('CLICK')`, which resolves to sending `{ type: 'CLICK' }`)
+  - The string represents the event type.
 - As a string followed by an object payload (e.g., `.send('CLICK', { x: 40, y: 21 })`) <Badge text="4.5+"/>
   - The first string argument represents the event type.
   - The second argument must be an object without a `type: ...` property.
@@ -115,7 +115,7 @@ Listeners for state transitions are registered via the `.onTransition(...)` meth
 const service = interpret(machine);
 
 // Add a state listener, which is called whenever a state transition occurs.
-service.onTransition(state => {
+service.onTransition((state) => {
   console.log(state.value);
 });
 
@@ -127,13 +127,16 @@ service.start();
 If you only want the `.onTransition(...)` handler(s) to be called when the state changes (that is, when the `state.value` changes, the `state.context` changes, or there are new `state.actions`), use [`state.changed`](https://xstate.js.org/docs/guides/states.html#state-changed):
 
 ```js {2}
-service.onTransition(state => {
+service.onTransition((state) => {
   if (state.changed) {
     console.log(state.value);
   }
 });
 ```
 
+::: tip
+The `.onTransition()` callback will not run between eventless ("always") transitions or other microsteps. It only runs on macrosteps.
+Microsteps are the intermediate transitions between macrosteps.
 :::
 
 ## Starting and Stopping
@@ -172,7 +175,7 @@ const service = interpret(machine, {
   execute: false // do not execute actions on state transitions
 });
 
-service.onTransition(state => {
+service.onTransition((state) => {
   // execute actions on next animation frame
   // instead of immediately
   requestAnimationFrame(() => service.execute(state));
@@ -180,6 +183,62 @@ service.onTransition(state => {
 
 service.start();
 ```
+
+## `waitFor`
+
+Lots of backend code relies on short-running processes, such as backend functions. This is especially true in serverless contexts, where code needs to boot up and shut down as fast as possible.
+
+A lot of this type of code relies on `async` functions:
+
+```ts
+const myFunc = async () => {};
+```
+
+The best pattern to use for async functions is `waitFor`, which gives you the ability to `await` a state machine being in a certain state.
+
+```ts
+import { interpret, createMachine } from 'xstate';
+import { waitFor } from 'xstate/lib/waitFor';
+
+const machine = createMachine({
+  initial: 'pending',
+  states: {
+    pending: {
+      after: {
+        3000: {
+          target: 'done'
+        }
+      }
+    },
+    done: {}
+  }
+});
+
+const myFunc = async () => {
+  const actor = interpret(machine).start();
+
+  const doneState = await waitFor(actor, (state) => state.matches('done'));
+
+  console.log(doneState.value); // 'done'
+};
+```
+
+In the example above, the machine waits for three seconds before moving on to its `done` state - at which point the `await` will resolve and the program will move on.
+
+By default, `waitFor` will throw an error after 10 seconds if the desired state is not reached. You can customize this timeout by passing `timeout` in the options:
+
+```ts {5-6}
+const myFunc = async () => {
+  const actor = interpret(machine).start();
+
+  const doneState = await waitFor(actor, (state) => state.matches('done'), {
+    // 20 seconds in ms
+    timeout: 20_000
+  });
+};
+```
+
+`waitFor` will also throw an error if it reaches a final state _other_ than the one you chose. For more information on final states, [click here](./final.md).
 
 ## Options
 
@@ -189,15 +248,16 @@ The following options can be passed into the interpreter as the 2nd argument (`i
   - See [Executing Actions](#executing-actions) for customizing this behavior.
 - `deferEvents` (boolean) <Badge text="4.4+"/> - Signifies whether events sent to an uninitialized service (i.e., prior to calling `service.start()`) should be deferred until the service is initialized. Defaults to `true`.
   - If `false`, events sent to an uninitialized service will throw an error.
-- `devTools` (boolean) - Signifies whether events should be sent to the [Redux DevTools extension](https://github.com/zalmoxisus/redux-devtools-extension). Defaults to `false`.
+- `devTools` (boolean) - Signifies whether events should be sent to the [Redux DevTools extension](https://github.com/reduxjs/redux-devtools). Defaults to `false`.
 - `logger` - Specifies the logger to be used for `log(...)` actions. Defaults to the native `console.log` method.
+- `clock` - Specifies the [clock interface for delayed actions](./delays.md#interpretation). Defaults to the native `setTimeout` and `clearTimeout` functions.
 
 ## Custom Interpreters
 
 You may use any interpreter (or create your own) to run your state machine/statechart. Here's an example minimal implementation that demonstrates how flexible interpretation can be (despite the amount of boilerplate):
 
 ```js
-const machine = Machine(/* machine config */);
+const machine = createMachine(/* machine config */);
 
 // Keep track of the current state, and start
 // with the initial state
@@ -214,13 +274,13 @@ function send(event) {
   // Get the side-effect actions to execute
   const { actions } = currentState;
 
-  actions.forEach(action => {
+  actions.forEach((action) => {
     // If the action is executable, execute it
-    action.exec && action.exec();
+    typeof action.exec === 'function' && action.exec();
   });
 
   // Notify the listeners
-  listeners.forEach(listener => listener(currentState));
+  listeners.forEach((listener) => listener(currentState));
 }
 
 function listen(listener) {
@@ -232,7 +292,7 @@ function unlisten(listener) {
 }
 
 // Now you can listen and send events to update state
-listen(state => {
+listen((state) => {
   console.log(state.value);
 });
 
@@ -246,7 +306,7 @@ send('SOME_EVENT');
 
 ```js
 const service = interpret(machine)
-  .onTransition(state => console.log(state))
+  .onTransition((state) => console.log(state))
   .onDone(() => console.log('done'))
   .start(); // returns started service
 ```

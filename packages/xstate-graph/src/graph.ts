@@ -1,99 +1,123 @@
-import {
-  StateNode,
+import type {
   State,
-  DefaultContext,
   Event,
   EventObject,
-  StateMachine,
-  AnyEventObject
+  AnyStateMachine,
+  AnyState,
+  StateFrom,
+  EventFrom
 } from 'xstate';
-import { flatten, keys } from 'xstate/lib/utils';
-import {
-  StatePathsMap,
-  StatePaths,
-  AdjacencyMap,
-  Segments,
-  ValueAdjMapOptions
+import type {
+  SerializedEvent,
+  SerializedState,
+  SimpleBehavior,
+  StatePath,
+  StatePlan,
+  StatePlanMap,
+  ValueAdjacencyMap,
+  Steps,
+  ValueAdjacencyMapOptions,
+  DirectedGraphEdge,
+  DirectedGraphNode,
+  TraversalOptions,
+  VisitedContext,
+  AnyStateNode
 } from './types';
+
+function flatten<T>(array: Array<T | T[]>): T[] {
+  return ([] as T[]).concat(...array);
+}
 
 export function toEventObject<TEvent extends EventObject>(
   event: Event<TEvent>
 ): TEvent {
   if (typeof event === 'string' || typeof event === 'number') {
-    return { type: event } as TEvent;
+    return ({ type: event } as unknown) as TEvent;
   }
 
   return event;
 }
-
-const EMPTY_MAP = {};
 
 /**
  * Returns all state nodes of the given `node`.
  * @param stateNode State node to recursively get child state nodes from
  */
 export function getStateNodes(
-  stateNode: StateNode | StateMachine<any, any, any>
-): StateNode[] {
+  stateNode: AnyStateNode | AnyStateMachine
+): AnyStateNode[] {
   const { states } = stateNode;
-  const nodes = keys(states).reduce((accNodes: StateNode[], stateKey) => {
+  const nodes = Object.keys(states).reduce((accNodes, stateKey) => {
     const childStateNode = states[stateKey];
     const childStateNodes = getStateNodes(childStateNode);
 
     accNodes.push(childStateNode, ...childStateNodes);
     return accNodes;
-  }, []);
+  }, [] as AnyStateNode[]);
 
   return nodes;
 }
 
-export function serializeState<TContext>(state: State<TContext, any>): string {
+export function getChildren(stateNode: AnyStateNode): AnyStateNode[] {
+  if (!stateNode.states) {
+    return [];
+  }
+
+  const children = Object.keys(stateNode.states).map((key) => {
+    return stateNode.states[key];
+  });
+
+  return children;
+}
+
+export function serializeMachineState(state: AnyState): SerializedState {
   const { value, context } = state;
-  return context === undefined
-    ? JSON.stringify(value)
-    : JSON.stringify(value) + ' | ' + JSON.stringify(context);
+  return JSON.stringify({ value, context }) as SerializedState;
 }
 
 export function serializeEvent<TEvent extends EventObject>(
   event: TEvent
-): string {
-  return JSON.stringify(event);
+): SerializedEvent {
+  return JSON.stringify(event) as SerializedEvent;
 }
 
-export function deserializeEventString<TEvent extends EventObject>(
-  eventString: string
-): TEvent {
-  return JSON.parse(eventString) as TEvent;
-}
-
-const defaultValueAdjMapOptions: ValueAdjMapOptions<any, any> = {
+const defaultValueAdjacencyMapOptions: Required<
+  ValueAdjacencyMapOptions<any, any>
+> = {
   events: {},
   filter: () => true,
-  stateSerializer: serializeState,
-  eventSerializer: serializeEvent
+  serializeState: serializeMachineState,
+  serializeEvent
 };
 
-export function getAdjacencyMap<
-  TContext = DefaultContext,
-  TEvent extends EventObject = AnyEventObject
->(
-  node: StateNode<TContext, any, TEvent> | StateMachine<TContext, any, TEvent>,
-  options?: Partial<ValueAdjMapOptions<TContext, TEvent>>
-): AdjacencyMap<TContext, TEvent> {
-  const optionsWithDefaults = {
-    ...defaultValueAdjMapOptions,
+function getValueAdjacencyMapOptions<TState, TEvent extends EventObject>(
+  options?: ValueAdjacencyMapOptions<TState, TEvent>
+): Required<ValueAdjacencyMapOptions<TState, TEvent>> {
+  return {
+    ...(defaultValueAdjacencyMapOptions as Required<
+      ValueAdjacencyMapOptions<TState, TEvent>
+    >),
     ...options
-  } as ValueAdjMapOptions<TContext, TEvent>;
-  const { filter, stateSerializer, eventSerializer } = optionsWithDefaults;
-  const events = {} as Record<TEvent['type'], Array<Event<TEvent>>>;
-  for (const event of node.events) {
-    events[event] = [event];
-  }
-  Object.assign(events, optionsWithDefaults.events);
+  };
+}
 
-  const adjacency: AdjacencyMap<TContext, TEvent> = {};
+export function getValueAdjacencyMap<TMachine extends AnyStateMachine>(
+  machine: TMachine,
+  options?: ValueAdjacencyMapOptions<StateFrom<TMachine>, EventFrom<TMachine>>
+): ValueAdjacencyMap<StateFrom<TMachine>, EventFrom<TMachine>> {
+  type TState = StateFrom<TMachine>;
+  type TEvent = EventFrom<TMachine>;
 
-  function findAdjacencies(state: State<TContext, TEvent>) {
+  const optionsWithDefaults = getValueAdjacencyMapOptions(options);
+  const {
+    filter,
+    serializeState: stateSerializer,
+    serializeEvent: eventSerializer
+  } = optionsWithDefaults;
+  const { events } = optionsWithDefaults;
+
+  const adjacency: ValueAdjacencyMap<TState, TEvent> = {};
+
+  function findAdjacencies(state: TState) {
     const { nextEvents } = state;
     const stateHash = stateSerializer(state);
 
@@ -104,13 +128,25 @@ export function getAdjacencyMap<
     adjacency[stateHash] = {};
 
     const potentialEvents = flatten<TEvent>(
-      nextEvents.map(nextEvent => events[nextEvent] || [])
-    ).map(event => toEventObject(event));
+      nextEvents.map((nextEvent) => {
+        const getNextEvents = events[nextEvent];
+
+        if (!getNextEvents) {
+          return [{ type: nextEvent }];
+        }
+
+        if (typeof getNextEvents === 'function') {
+          return getNextEvents(state);
+        }
+
+        return getNextEvents;
+      })
+    ).map((event) => toEventObject(event));
 
     for (const event of potentialEvents) {
-      let nextState: State<TContext, TEvent>;
+      let nextState: TState;
       try {
-        nextState = node.transition(state, event);
+        nextState = machine.transition(state, event) as TState;
       } catch (e) {
         throw new Error(
           `Unable to transition from state ${stateSerializer(
@@ -133,96 +169,129 @@ export function getAdjacencyMap<
     }
   }
 
-  findAdjacencies(node.initialState);
+  findAdjacencies(machine.initialState as TState);
 
   return adjacency;
 }
 
-export function getShortestPaths<
-  TContext = DefaultContext,
-  TEvent extends EventObject = EventObject
->(
-  machine: StateMachine<TContext, any, TEvent>,
-  options?: Partial<ValueAdjMapOptions<TContext, TEvent>>
-): StatePathsMap<TContext, TEvent> {
-  if (!machine.states) {
-    // return EMPTY_MAP;
-    return EMPTY_MAP;
+const defaultMachineStateOptions: TraversalOptions<State<any, any>, any> = {
+  serializeState: serializeMachineState,
+  serializeEvent,
+  eventCases: {},
+  getEvents: (state) => {
+    return state.nextEvents.map((type) => ({ type }));
   }
-  const optionsWithDefaults = {
-    events: {},
-    stateSerializer: serializeState,
-    eventSerializer: serializeEvent,
-    ...options
-  } as ValueAdjMapOptions<TContext, TEvent>;
+};
 
-  const adjacency = getAdjacencyMap<TContext, TEvent>(
-    machine,
-    optionsWithDefaults
+export function getShortestPlans<TMachine extends AnyStateMachine>(
+  machine: TMachine,
+  options?: Partial<TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>>>
+): Array<StatePlan<StateFrom<TMachine>, EventFrom<TMachine>>> {
+  const resolvedOptions = resolveTraversalOptions(
+    options,
+    defaultMachineStateOptions
   );
+  return traverseShortestPlans(
+    {
+      transition: (state, event) => machine.transition(state, event),
+      initialState: machine.initialState
+    },
+    resolvedOptions
+  ) as Array<StatePlan<StateFrom<TMachine>, EventFrom<TMachine>>>;
+}
+
+export function traverseShortestPlans<TState, TEvent extends EventObject>(
+  behavior: SimpleBehavior<TState, TEvent>,
+  options?: Partial<TraversalOptions<TState, TEvent>>
+): Array<StatePlan<TState, TEvent>> {
+  const optionsWithDefaults = resolveTraversalOptions(options);
+  const serializeState = optionsWithDefaults.serializeState as (
+    ...args: Parameters<typeof optionsWithDefaults.serializeState>
+  ) => SerializedState;
+
+  const adjacency = performDepthFirstTraversal(behavior, optionsWithDefaults);
 
   // weight, state, event
   const weightMap = new Map<
-    string,
-    [number, string | undefined, string | undefined]
+    SerializedState,
+    [
+      weight: number,
+      state: SerializedState | undefined,
+      event: TEvent | undefined
+    ]
   >();
-  const stateMap = new Map<string, State<TContext, TEvent>>();
-  const initialVertex = optionsWithDefaults.stateSerializer(
-    machine.initialState
+  const stateMap = new Map<SerializedState, TState>();
+  const initialSerializedState = serializeState(
+    behavior.initialState,
+    undefined,
+    undefined
   );
-  stateMap.set(initialVertex, machine.initialState);
+  stateMap.set(initialSerializedState, behavior.initialState);
 
-  weightMap.set(initialVertex, [0, undefined, undefined]);
-  const unvisited = new Set<string>();
-  const visited = new Set<string>();
+  weightMap.set(initialSerializedState, [0, undefined, undefined]);
+  const unvisited = new Set<SerializedState>();
+  const visited = new Set<SerializedState>();
 
-  unvisited.add(initialVertex);
-  while (unvisited.size > 0) {
-    for (const vertex of unvisited) {
-      const [weight] = weightMap.get(vertex)!;
-      for (const event of keys(adjacency[vertex])) {
-        const nextSegment = adjacency[vertex][event];
-        const nextVertex = optionsWithDefaults.stateSerializer(
-          nextSegment.state
-        );
-        stateMap.set(nextVertex, nextSegment.state);
-        if (!weightMap.has(nextVertex)) {
-          weightMap.set(nextVertex, [weight + 1, vertex, event]);
-        } else {
-          const [nextWeight] = weightMap.get(nextVertex)!;
-          if (nextWeight > weight + 1) {
-            weightMap.set(nextVertex, [weight + 1, vertex, event]);
-          }
-        }
-        if (!visited.has(nextVertex)) {
-          unvisited.add(nextVertex);
+  unvisited.add(initialSerializedState);
+  for (const serializedState of unvisited) {
+    const [weight] = weightMap.get(serializedState)!;
+    for (const event of Object.keys(
+      adjacency[serializedState].transitions
+    ) as SerializedEvent[]) {
+      const { state: nextState, event: eventObject } = adjacency[
+        serializedState
+      ].transitions[event];
+      const prevState = stateMap.get(serializedState);
+      const nextSerializedState = serializeState(
+        nextState,
+        eventObject,
+        prevState
+      );
+      stateMap.set(nextSerializedState, nextState);
+      if (!weightMap.has(nextSerializedState)) {
+        weightMap.set(nextSerializedState, [
+          weight + 1,
+          serializedState,
+          eventObject
+        ]);
+      } else {
+        const [nextWeight] = weightMap.get(nextSerializedState)!;
+        if (nextWeight > weight + 1) {
+          weightMap.set(nextSerializedState, [
+            weight + 1,
+            serializedState,
+            eventObject
+          ]);
         }
       }
-      visited.add(vertex);
-      unvisited.delete(vertex);
+      if (!visited.has(nextSerializedState)) {
+        unvisited.add(nextSerializedState);
+      }
     }
+    visited.add(serializedState);
+    unvisited.delete(serializedState);
   }
 
-  const statePathMap: StatePathsMap<TContext, TEvent> = {};
+  const statePlanMap: StatePlanMap<TState, TEvent> = {};
 
   weightMap.forEach(([weight, fromState, fromEvent], stateSerial) => {
     const state = stateMap.get(stateSerial)!;
-    statePathMap[stateSerial] = {
+    statePlanMap[stateSerial] = {
       state,
       paths: !fromState
         ? [
             {
               state,
-              segments: [],
+              steps: [],
               weight
             }
           ]
         : [
             {
               state,
-              segments: statePathMap[fromState].paths[0].segments.concat({
+              steps: statePlanMap[fromState].paths[0].steps.concat({
                 state: stateMap.get(fromState)!,
-                event: deserializeEventString(fromEvent!) as TEvent
+                event: fromEvent!
               }),
               weight
             }
@@ -230,92 +299,379 @@ export function getShortestPaths<
     };
   });
 
-  return statePathMap;
+  return Object.values(statePlanMap);
 }
 
-export function getSimplePaths<
-  TContext = DefaultContext,
-  TEvent extends EventObject = EventObject
->(
-  machine: StateMachine<TContext, any, TEvent>,
-  options?: Partial<ValueAdjMapOptions<TContext, TEvent>>
-): StatePathsMap<TContext, TEvent> {
-  const optionsWithDefaults = {
-    ...defaultValueAdjMapOptions,
-    ...options
+export function getSimplePlans<TMachine extends AnyStateMachine>(
+  machine: TMachine,
+  options?: Partial<TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>>>
+): Array<StatePlan<StateFrom<TMachine>, EventFrom<TMachine>>> {
+  const resolvedOptions = resolveTraversalOptions(
+    options,
+    defaultMachineStateOptions
+  );
+
+  return traverseSimplePlans(
+    machine as SimpleBehavior<any, any>,
+    resolvedOptions
+  );
+}
+
+export function toDirectedGraph(
+  stateNode: AnyStateNode | AnyStateMachine
+): DirectedGraphNode {
+  const edges: DirectedGraphEdge[] = flatten(
+    stateNode.transitions.map((t, transitionIndex) => {
+      const targets = t.target ? t.target : [stateNode];
+
+      return targets.map((target, targetIndex) => {
+        const edge: DirectedGraphEdge = {
+          id: `${stateNode.id}:${transitionIndex}:${targetIndex}`,
+          source: stateNode as AnyStateNode,
+          target: target as AnyStateNode,
+          transition: t,
+          label: {
+            text: t.eventType,
+            toJSON: () => ({ text: t.eventType })
+          },
+          toJSON: () => {
+            const { label } = edge;
+
+            return { source: stateNode.id, target: target.id, label };
+          }
+        };
+
+        return edge;
+      });
+    })
+  );
+
+  const graph = {
+    id: stateNode.id,
+    stateNode: stateNode as AnyStateNode,
+    children: getChildren(stateNode as AnyStateNode).map(toDirectedGraph),
+    edges,
+    toJSON: () => {
+      const { id, children, edges: graphEdges } = graph;
+      return { id, children, edges: graphEdges };
+    }
   };
 
-  const { stateSerializer } = optionsWithDefaults;
+  return graph;
+}
 
-  if (!machine.states) {
-    return EMPTY_MAP;
+export function getPathFromEvents<
+  TState,
+  TEvent extends EventObject = EventObject
+>(
+  behavior: SimpleBehavior<TState, TEvent>,
+  events: TEvent[]
+): StatePath<TState, TEvent> {
+  const optionsWithDefaults = resolveTraversalOptions<TState, TEvent>(
+    {
+      getEvents: () => {
+        return events;
+      }
+    },
+    defaultMachineStateOptions as any
+  );
+
+  const { serializeState, serializeEvent } = optionsWithDefaults;
+
+  const adjacency = performDepthFirstTraversal(behavior, optionsWithDefaults);
+
+  const stateMap = new Map<SerializedState, TState>();
+  const path: Steps<TState, TEvent> = [];
+
+  const initialSerializedState = serializeState(
+    behavior.initialState,
+    undefined,
+    undefined
+  ) as SerializedState;
+  stateMap.set(initialSerializedState, behavior.initialState);
+
+  let stateSerial = initialSerializedState;
+  let state = behavior.initialState;
+  for (const event of events) {
+    path.push({
+      state: stateMap.get(stateSerial)!,
+      event
+    });
+
+    const eventSerial = serializeEvent(event);
+    const { state: nextState, event: _nextEvent } = adjacency[
+      stateSerial
+    ].transitions[eventSerial];
+
+    if (!nextState) {
+      throw new Error(
+        `Invalid transition from ${stateSerial} with ${eventSerial}`
+      );
+    }
+    const prevState = stateMap.get(stateSerial);
+    const nextStateSerial = serializeState(
+      nextState,
+      event,
+      prevState
+    ) as SerializedState;
+    stateMap.set(nextStateSerial, nextState);
+
+    stateSerial = nextStateSerial;
+    state = nextState;
   }
 
-  // @ts-ignore - excessively deep
-  const adjacency = getAdjacencyMap(machine, optionsWithDefaults);
-  const stateMap = new Map<string, State<TContext, TEvent>>();
-  const visited = new Set();
-  const path: Segments<TContext, TEvent> = [];
-  const paths: StatePathsMap<TContext, TEvent> = {};
+  return {
+    state,
+    steps: path,
+    weight: path.length
+  };
+}
 
-  function util(fromState: State<TContext, TEvent>, toStateSerial: string) {
-    const fromStateSerial = stateSerializer(fromState);
-    visited.add(fromStateSerial);
+interface AdjacencyMap<TState, TEvent> {
+  [key: SerializedState]: {
+    state: TState;
+    transitions: {
+      [key: SerializedEvent]: {
+        event: TEvent;
+        state: TState;
+      };
+    };
+  };
+}
+
+export function performDepthFirstTraversal<TState, TEvent extends EventObject>(
+  behavior: SimpleBehavior<TState, TEvent>,
+  options: TraversalOptions<TState, TEvent>
+): AdjacencyMap<TState, TEvent> {
+  const { transition, initialState } = behavior;
+  const {
+    serializeEvent,
+    serializeState,
+    getEvents,
+    eventCases,
+    traversalLimit: limit
+  } = resolveTraversalOptions(options);
+  const adj: AdjacencyMap<TState, TEvent> = {};
+
+  let iterations = 0;
+  const queue: Array<
+    [
+      nextState: TState,
+      event: TEvent | undefined,
+      prevState: TState | undefined
+    ]
+  > = [[initialState, undefined, undefined]];
+  const stateMap = new Map<SerializedState, TState>();
+
+  while (queue.length) {
+    const [state, event, prevState] = queue.shift()!;
+
+    if (iterations++ > limit) {
+      throw new Error('Traversal limit exceeded');
+    }
+
+    const serializedState = serializeState(
+      state,
+      event,
+      prevState
+    ) as SerializedState;
+    if (adj[serializedState]) {
+      continue;
+    }
+    stateMap.set(serializedState, state);
+
+    adj[serializedState] = {
+      state,
+      transitions: {}
+    };
+
+    const events = getEvents(state, eventCases);
+
+    for (const subEvent of events) {
+      const nextState = transition(state, subEvent);
+
+      if (!options.filter || options.filter(nextState, subEvent)) {
+        adj[serializedState].transitions[
+          serializeEvent(subEvent) as SerializedEvent
+        ] = {
+          event: subEvent,
+          state: nextState
+        };
+        queue.push([nextState, subEvent, state]);
+      }
+    }
+  }
+
+  return adj;
+}
+
+function resolveTraversalOptions<TState, TEvent extends EventObject>(
+  traversalOptions?: Partial<TraversalOptions<TState, TEvent>>,
+  defaultOptions?: TraversalOptions<TState, TEvent>
+): Required<TraversalOptions<TState, TEvent>> {
+  const serializeState =
+    traversalOptions?.serializeState ??
+    defaultOptions?.serializeState ??
+    ((state) => JSON.stringify(state));
+  return {
+    serializeState,
+    serializeEvent,
+    filter: () => true,
+    eventCases: {},
+    getEvents: () => [],
+    traversalLimit: Infinity,
+    ...defaultOptions,
+    ...traversalOptions
+  };
+}
+
+export function traverseSimplePlans<TState, TEvent extends EventObject>(
+  behavior: SimpleBehavior<TState, TEvent>,
+  options: Partial<TraversalOptions<TState, TEvent>>
+): Array<StatePlan<TState, TEvent>> {
+  const { initialState } = behavior;
+  const resolvedOptions = resolveTraversalOptions(options);
+  const serializeState = resolvedOptions.serializeState as (
+    ...args: Parameters<typeof resolvedOptions.serializeState>
+  ) => SerializedState;
+  const adjacency = performDepthFirstTraversal(behavior, resolvedOptions);
+  const stateMap = new Map<SerializedState, TState>();
+  const visitCtx: VisitedContext<TState, TEvent> = {
+    vertices: new Set(),
+    edges: new Set()
+  };
+  const path: any[] = [];
+  const pathMap: Record<
+    SerializedState,
+    { state: TState; paths: Array<StatePath<TState, TEvent>> }
+  > = {};
+
+  function util(
+    fromStateSerial: SerializedState,
+    toStateSerial: SerializedState
+  ) {
+    const fromState = stateMap.get(fromStateSerial)!;
+    visitCtx.vertices.add(fromStateSerial);
 
     if (fromStateSerial === toStateSerial) {
-      if (!paths[toStateSerial]) {
-        paths[toStateSerial] = {
+      if (!pathMap[toStateSerial]) {
+        pathMap[toStateSerial] = {
           state: stateMap.get(toStateSerial)!,
           paths: []
         };
       }
-      paths[toStateSerial].paths.push({
+
+      const toStatePlan = pathMap[toStateSerial];
+
+      const path2: StatePath<TState, TEvent> = {
         state: fromState,
         weight: path.length,
-        segments: [...path]
-      });
-    } else {
-      for (const subEvent of keys(adjacency[fromStateSerial])) {
-        const nextSegment = adjacency[fromStateSerial][subEvent];
+        steps: [...path]
+      };
 
-        if (!nextSegment) {
+      toStatePlan.paths.push(path2);
+    } else {
+      for (const serializedEvent of Object.keys(
+        adjacency[fromStateSerial].transitions
+      ) as SerializedEvent[]) {
+        const { state: nextState, event: subEvent } = adjacency[
+          fromStateSerial
+        ].transitions[serializedEvent];
+
+        if (!(serializedEvent in adjacency[fromStateSerial].transitions)) {
           continue;
         }
+        const prevState = stateMap.get(fromStateSerial);
 
-        const nextStateSerial = stateSerializer(nextSegment.state);
-        stateMap.set(nextStateSerial, nextSegment.state);
+        const nextStateSerial = serializeState(nextState, subEvent, prevState);
+        stateMap.set(nextStateSerial, nextState);
 
-        if (!visited.has(nextStateSerial)) {
+        if (!visitCtx.vertices.has(nextStateSerial)) {
+          visitCtx.edges.add(serializedEvent);
           path.push({
             state: stateMap.get(fromStateSerial)!,
-            event: deserializeEventString(subEvent)
+            event: subEvent
           });
-          util(nextSegment.state, toStateSerial);
+          util(nextStateSerial, toStateSerial);
         }
       }
     }
 
     path.pop();
-    visited.delete(fromStateSerial);
+    visitCtx.vertices.delete(fromStateSerial);
   }
 
-  const initialStateSerial = stateSerializer(machine.initialState);
-  stateMap.set(initialStateSerial, machine.initialState);
+  const initialStateSerial = serializeState(initialState, undefined);
+  stateMap.set(initialStateSerial, initialState);
 
-  for (const nextStateSerial of keys(adjacency)) {
-    util(machine.initialState, nextStateSerial);
+  for (const nextStateSerial of Object.keys(adjacency) as SerializedState[]) {
+    util(initialStateSerial, nextStateSerial);
   }
 
-  return paths;
+  return Object.values(pathMap);
 }
 
-export function getSimplePathsAsArray<
-  TContext = DefaultContext,
-  TEvent extends EventObject = EventObject
->(
-  machine: StateNode<TContext, any, TEvent>,
-  options?: ValueAdjMapOptions<TContext, TEvent>
-): Array<StatePaths<TContext, TEvent>> {
-  const result = getSimplePaths(machine, options);
-  return keys(result).map(key => result[key]);
+function filterPlans<TState, TEvent extends EventObject>(
+  plans: Array<StatePlan<TState, TEvent>>,
+  predicate: (state: TState, plan: StatePlan<TState, TEvent>) => boolean
+): Array<StatePlan<TState, TEvent>> {
+  const filteredPlans = plans.filter((plan) => predicate(plan.state, plan));
+
+  return filteredPlans;
+}
+
+export function traverseSimplePathsTo<TState, TEvent extends EventObject>(
+  behavior: SimpleBehavior<TState, TEvent>,
+  predicate: (state: TState) => boolean,
+  options: TraversalOptions<TState, TEvent>
+): Array<StatePlan<TState, TEvent>> {
+  const resolvedOptions = resolveTraversalOptions(options);
+  const simplePlansMap = traverseSimplePlans(behavior, resolvedOptions);
+
+  return filterPlans(simplePlansMap, predicate);
+}
+
+export function traverseSimplePathsFromTo<TState, TEvent extends EventObject>(
+  behavior: SimpleBehavior<TState, TEvent>,
+  fromPredicate: (state: TState) => boolean,
+  toPredicate: (state: TState) => boolean,
+  options: TraversalOptions<TState, TEvent>
+): Array<StatePlan<TState, TEvent>> {
+  const resolvedOptions = resolveTraversalOptions(options);
+  const simplePlansMap = traverseSimplePlans(behavior, resolvedOptions);
+
+  // Return all plans that contain a "from" state and target a "to" state
+  return filterPlans(simplePlansMap, (state, plan) => {
+    return (
+      toPredicate(state) && plan.paths.some((path) => fromPredicate(path.state))
+    );
+  });
+}
+
+export function traverseShortestPathsTo<TState, TEvent extends EventObject>(
+  behavior: SimpleBehavior<TState, TEvent>,
+  predicate: (state: TState) => boolean,
+  options: TraversalOptions<TState, TEvent>
+): Array<StatePlan<TState, TEvent>> {
+  const resolvedOptions = resolveTraversalOptions(options);
+  const simplePlansMap = traverseShortestPlans(behavior, resolvedOptions);
+
+  return filterPlans(simplePlansMap, predicate);
+}
+
+export function traverseShortestPathsFromTo<TState, TEvent extends EventObject>(
+  behavior: SimpleBehavior<TState, TEvent>,
+  fromPredicate: (state: TState) => boolean,
+  toPredicate: (state: TState) => boolean,
+  options: TraversalOptions<TState, TEvent>
+): Array<StatePlan<TState, TEvent>> {
+  const resolvedOptions = resolveTraversalOptions(options);
+  const shortesPlansMap = traverseShortestPlans(behavior, resolvedOptions);
+
+  // Return all plans that contain a "from" state and target a "to" state
+  return filterPlans(shortesPlansMap, (state, plan) => {
+    return (
+      toPredicate(state) && plan.paths.some((path) => fromPredicate(path.state))
+    );
+  });
 }

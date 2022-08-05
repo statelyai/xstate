@@ -77,11 +77,11 @@ describe('algorithm', () => {
         c3: 'd3'
       }
     });
-    const nodes = ['c1', 'd4'].map(id => testMachine.getStateNodeById(id));
+    const nodes = ['c1', 'd4'].map((id) => testMachine.getStateNodeById(id));
 
     const c = getConfiguration(prevNodes, nodes);
 
-    expect([...c].map(sn => sn.id).sort()).toEqual([
+    expect([...c].map((sn) => sn.id).sort()).toEqual([
       'a',
       'b1',
       'c1',

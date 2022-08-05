@@ -10,17 +10,20 @@ import {
   HistoryValue,
   AssignAction,
   Condition,
-  Guard,
   Subscribable,
-  StateMachine,
   ConditionPredicate,
   SCXML,
   StateLike,
   EventData,
   TransitionConfig,
-  TransitionConfigTargetShortcut,
+  TransitionConfigTarget,
   NullEvent,
-  SingleOrArray
+  SingleOrArray,
+  Guard,
+  GuardMeta,
+  InvokeSourceDefinition,
+  Observer,
+  Behavior
 } from './types';
 import {
   STATE_DELIMITER,
@@ -29,8 +32,9 @@ import {
 } from './constants';
 import { IS_PRODUCTION } from './environment';
 import { StateNode } from './StateNode';
-import { State } from '.';
+import { State } from './State';
 import { Actor } from './Actor';
+import { AnyStateMachine } from '.';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
   return Object.keys(value) as Array<keyof T & string>;
@@ -57,7 +61,7 @@ export function matchesState(
     return parentStateValue in childStateValue;
   }
 
-  return keys(parentStateValue).every(key => {
+  return Object.keys(parentStateValue).every((key) => {
     if (!(key in childStateValue)) {
       return false;
     }
@@ -111,10 +115,10 @@ export function toStatePath(
 export function isStateLike(state: any): state is StateLike<any> {
   return (
     typeof state === 'object' &&
-    ('value' in state &&
-      'context' in state &&
-      'event' in state &&
-      '_event' in state)
+    'value' in state &&
+    'context' in state &&
+    'event' in state &&
+    '_event' in state
   );
 }
 
@@ -159,18 +163,22 @@ export function pathToStateValue(statePath: string[]): StateValue {
   return value;
 }
 
-export function mapValues<T, P>(
-  collection: { [key: string]: T },
+export function mapValues<P, O extends Record<string, unknown>>(
+  collection: O,
+  iteratee: (item: O[keyof O], key: keyof O, collection: O, i: number) => P
+): { [key in keyof O]: P };
+export function mapValues(
+  collection: Record<string, unknown>,
   iteratee: (
-    item: T,
+    item: unknown,
     key: string,
-    collection: { [key: string]: T },
+    collection: Record<string, unknown>,
     i: number
-  ) => P
-): { [key: string]: P } {
-  const result: { [key: string]: P } = {};
+  ) => unknown
+) {
+  const result: Record<string, unknown> = {};
 
-  const collectionKeys = keys(collection);
+  const collectionKeys = Object.keys(collection);
   for (let i = 0; i < collectionKeys.length; i++) {
     const key = collectionKeys[i];
     result[key] = iteratee(collection[key], key, collection, i);
@@ -186,7 +194,7 @@ export function mapFilterValues<T, P>(
 ): { [key: string]: P } {
   const result: { [key: string]: P } = {};
 
-  for (const key of keys(collection)) {
+  for (const key of Object.keys(collection)) {
     const item = collection[key];
 
     if (!predicate(item)) {
@@ -223,7 +231,7 @@ export function nestedPath<T extends Record<string, any>>(
   props: string[],
   accessorProp: keyof T
 ): (object: T) => T {
-  return object => {
+  return (object) => {
     let result: T = object;
 
     for (const prop of props) {
@@ -244,7 +252,7 @@ export function toStatePaths(stateValue: StateValue | undefined): string[][] {
   }
 
   const result = flatten(
-    keys(stateValue).map(key => {
+    Object.keys(stateValue).map((key) => {
       const subStateValue = stateValue[key];
 
       if (
@@ -254,7 +262,7 @@ export function toStatePaths(stateValue: StateValue | undefined): string[][] {
         return [[key]];
       }
 
-      return toStatePaths(stateValue[key]).map(subPath => {
+      return toStatePaths(stateValue[key]).map((subPath) => {
         return [key].concat(subPath);
       });
     })
@@ -307,17 +315,17 @@ export function toArray<T>(value: T[] | T | undefined): T[] {
 }
 
 export function mapContext<TContext, TEvent extends EventObject>(
-  mapper: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>,
+  mapper: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>,
   context: TContext,
   _event: SCXML.Event<TEvent>
 ): any {
   if (isFunction(mapper)) {
-    return (mapper as Mapper<TContext, TEvent>)(context, _event.data);
+    return mapper(context, _event.data);
   }
 
   const result = {} as any;
 
-  for (const key of keys(mapper)) {
+  for (const key of Object.keys(mapper)) {
     const subMapper = mapper[key];
 
     if (isFunction(subMapper)) {
@@ -347,6 +355,15 @@ export function isPromiseLike(value: any): value is PromiseLike<any> {
     return true;
   }
   return false;
+}
+
+export function isBehavior(value: any): value is Behavior<any, any> {
+  return (
+    value !== null &&
+    typeof value === 'object' &&
+    'transition' in value &&
+    typeof value.transition === 'function'
+  );
 }
 
 export function partition<T, A extends T, B extends T>(
@@ -423,7 +440,7 @@ export function updateContext<TContext, TEvent extends EventObject>(
         if (isFunction(assignment)) {
           partialUpdate = assignment(acc, _event.data, meta);
         } else {
-          for (const key of keys(assignment)) {
+          for (const key of Object.keys(assignment)) {
             const propAssignment = assignment[key];
 
             partialUpdate[key] = isFunction(propAssignment)
@@ -474,18 +491,6 @@ export function isString(value: any): value is string {
   return typeof value === 'string';
 }
 
-// export function memoizedGetter<T, TP extends { prototype: object }>(
-//   o: TP,
-//   property: string,
-//   getter: () => T
-// ): void {
-//   Object.defineProperty(o.prototype, property, {
-//     get: getter,
-//     enumerable: false,
-//     configurable: false
-//   });
-// }
-
 export function toGuard<TContext, TEvent extends EventObject>(
   condition?: Condition<TContext, TEvent>,
   guardMap?: Record<string, ConditionPredicate<TContext, TEvent>>
@@ -513,9 +518,7 @@ export function toGuard<TContext, TEvent extends EventObject>(
   return condition;
 }
 
-export function isObservable<T>(
-  value: Subscribable<T> | any
-): value is Subscribable<T> {
+export function isObservable<T>(value: any): value is Subscribable<T> {
   try {
     return 'subscribe' in value && isFunction(value.subscribe);
   } catch (e) {
@@ -523,15 +526,22 @@ export function isObservable<T>(
   }
 }
 
-export const symbolObservable = (() =>
-  (typeof Symbol === 'function' && Symbol.observable) || '@@observable')();
+export const symbolObservable: typeof Symbol.observable = (() =>
+  (typeof Symbol === 'function' && Symbol.observable) ||
+  '@@observable')() as any;
 
-export function isMachine(value: any): value is StateMachine<any, any, any> {
-  try {
-    return '__xstatenode' in value;
-  } catch (e) {
-    return false;
+// TODO: to be removed in v5, left it out just to minimize the scope of the change and maintain compatibility with older versions of integration paackages
+export const interopSymbols = {
+  [symbolObservable]: function () {
+    return this;
+  },
+  [Symbol.observable]: function () {
+    return this;
   }
+};
+
+export function isMachine(value: any): value is AnyStateMachine {
+  return !!value && '__xstatenode' in value;
 }
 
 export function isActor(value: any): value is Actor {
@@ -582,20 +592,19 @@ export function toTransitionConfigArray<TContext, TEvent extends EventObject>(
   event: TEvent['type'] | NullEvent['type'] | '*',
   configLike: SingleOrArray<
     | TransitionConfig<TContext, TEvent>
-    | TransitionConfigTargetShortcut<TContext, TEvent>
+    | TransitionConfigTarget<TContext, TEvent>
   >
 ): Array<
   TransitionConfig<TContext, TEvent> & {
     event: TEvent['type'] | NullEvent['type'] | '*';
   }
 > {
-  const transitions = toArrayStrict(configLike).map(transitionLike => {
+  const transitions = toArrayStrict(configLike).map((transitionLike) => {
     if (
       typeof transitionLike === 'undefined' ||
       typeof transitionLike === 'string' ||
       isMachine(transitionLike)
     ) {
-      // @ts-ignore until Type instantiation is excessively deep and possibly infinite bug is fixed
       return { target: transitionLike, event };
     }
 
@@ -643,4 +652,70 @@ export function reportUnhandledExceptionOnInvocation(
       );
     }
   }
+}
+
+export function evaluateGuard<TContext, TEvent extends EventObject>(
+  machine: StateNode<TContext, any, TEvent, any, any>,
+  guard: Guard<TContext, TEvent>,
+  context: TContext,
+  _event: SCXML.Event<TEvent>,
+  state: State<TContext, TEvent>
+): boolean {
+  const { guards } = machine.options;
+  const guardMeta: GuardMeta<TContext, TEvent> = {
+    state,
+    cond: guard,
+    _event
+  };
+
+  // TODO: do not hardcode!
+  if (guard.type === DEFAULT_GUARD_TYPE) {
+    return (guards?.[guard.name] || guard.predicate)(
+      context,
+      _event.data,
+      guardMeta
+    );
+  }
+
+  const condFn = guards?.[guard.type];
+
+  if (!condFn) {
+    throw new Error(
+      `Guard '${guard.type}' is not implemented on machine '${machine.id}'.`
+    );
+  }
+
+  return (condFn as any)(context, _event.data, guardMeta);
+}
+
+export function toInvokeSource(
+  src: string | InvokeSourceDefinition
+): InvokeSourceDefinition {
+  if (typeof src === 'string') {
+    return { type: src };
+  }
+
+  return src;
+}
+
+export function toObserver<T>(
+  nextHandler?: Partial<Observer<T>> | ((value: T) => void),
+  errorHandler?: (error: any) => void,
+  completionHandler?: () => void
+): Observer<T> {
+  const noop = () => {};
+  const isObserver = typeof nextHandler === 'object';
+  const self = isObserver ? nextHandler : null;
+
+  return {
+    next: ((isObserver ? nextHandler.next : nextHandler) || noop).bind(self),
+    error: ((isObserver ? nextHandler.error : errorHandler) || noop).bind(self),
+    complete: (
+      (isObserver ? nextHandler.complete : completionHandler) || noop
+    ).bind(self)
+  };
+}
+
+export function createInvokeId(stateNodeId: string, index: number): string {
+  return `${stateNodeId}:invocation[${index}]`;
 }

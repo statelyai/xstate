@@ -1,12 +1,15 @@
 import { js2xml, Element as XMLElement, Attributes } from 'xml-js';
 import {
-  StateMachine,
   ActionObject,
   TransitionDefinition,
   StateNode,
-  ActionType
+  ActionType,
+  AnyStateMachine
 } from 'xstate';
-import { flatten } from 'xstate/lib/utils';
+
+function flatten<T>(array: Array<T | T[]>): T[] {
+  return ([] as T[]).concat(...array);
+}
 
 function cleanAttributes(attributes: Attributes): Attributes {
   for (const key of Object.keys(attributes)) {
@@ -55,8 +58,6 @@ function actionToSCXML(action: ActionObject<any, any>): XMLElement {
 export function transitionToSCXML(
   transition: TransitionDefinition<any, any>
 ): XMLElement {
-  // console.log(transition.cond!.predicate);
-
   const elements = transition.actions.map(actionToSCXML);
 
   return {
@@ -68,7 +69,7 @@ export function transitionToSCXML(
         ? functionToExpr(transition.cond.predicate)
         : undefined,
       target: (transition.target || [])
-        .map(stateNode => stateNode.id)
+        .map((stateNode) => stateNode.id)
         .join(' '),
       type: transition.internal ? 'internal' : undefined
     }),
@@ -99,14 +100,14 @@ function actionsToSCXML(
   return {
     type: 'element',
     name,
-    elements: actions.map<XMLElement>(action => {
+    elements: actions.map<XMLElement>((action) => {
       return actionToSCXML(action);
     })
   };
 }
 
 function stateNodeToSCXML(stateNode: StateNode<any, any, any>): XMLElement {
-  const childStates = Object.keys(stateNode.states).map(key => {
+  const childStates = Object.keys(stateNode.states).map((key) => {
     const childStateNode = stateNode.states[key];
 
     return stateNodeToSCXML(childStateNode);
@@ -125,18 +126,18 @@ function stateNodeToSCXML(stateNode: StateNode<any, any, any>): XMLElement {
   }
 
   const transitionElements = flatten(
-    Object.keys(stateNode.on).map(event => {
+    Object.keys(stateNode.on).map((event) => {
       const transitions = stateNode.on[event];
 
-      return transitions.map(transition => transitionToSCXML(transition));
+      return transitions.map((transition) => transitionToSCXML(transition));
     })
   );
 
   elements.push(...transitionElements);
   elements.push(...childStates);
 
-  if (stateNode.type === 'final' && stateNode.data) {
-    elements.push(doneDataToSCXML(stateNode.data));
+  if (stateNode.type === 'final' && stateNode.doneData) {
+    elements.push(doneDataToSCXML(stateNode.doneData));
   }
 
   return {
@@ -155,7 +156,7 @@ function stateNodeToSCXML(stateNode: StateNode<any, any, any>): XMLElement {
   };
 }
 
-export function toSCXML(machine: StateMachine<any, any, any>): string {
+export function toSCXML(machine: AnyStateMachine): string {
   const { states, initial } = machine;
 
   return js2xml(
@@ -171,7 +172,7 @@ export function toSCXML(machine: StateMachine<any, any, any>): string {
             version: '1.0',
             datamodel: 'ecmascript'
           },
-          elements: Object.keys(states).map<XMLElement>(key => {
+          elements: Object.keys(states).map<XMLElement>((key) => {
             const stateNode = states[key];
 
             return stateNodeToSCXML(stateNode);

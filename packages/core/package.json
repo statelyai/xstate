@@ -1,6 +1,6 @@
 {
   "name": "xstate",
-  "version": "4.7.6",
+  "version": "4.33.0",
   "description": "Finite State Machines and Statecharts for the Modern Web.",
   "main": "lib/index.js",
   "module": "es/index.js",
@@ -29,44 +29,41 @@
   "scripts": {
     "clean": "rm -rf lib es dist tsconfig.tsbuildinfo",
     "test": "jest",
-    "build": "tsc && rollup -c && npm run annotate:es",
-    "annotate:es": "babel es --out-dir es --no-babelrc --plugins annotate-pure-calls",
-    "preversion": "npm run test",
-    "version": "npm run build",
-    "postversion": "git push --follow-tags",
-    "prepublishOnly": "npm run build",
-    "publish:next": "npm version prerelease && npm publish --tag next"
+    "build": "rollup -c",
+    "prepare": "npm run build"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/davidkpiano/xstate.git"
+    "url": "git+https://github.com/statelyai/xstate.git"
   },
   "author": "David Khourshid <davidkpiano@gmail.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/davidkpiano/xstate/issues"
+    "url": "https://github.com/statelyai/xstate/issues"
   },
-  "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/core#readme",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/core#readme",
   "devDependencies": {
-    "@babel/cli": "^7.6.0",
-    "@babel/core": "^7.6.0",
+    "@babel/cli": "^7.10.5",
+    "@babel/core": "^7.10.5",
+    "@rollup/plugin-babel": "^5.3.0",
     "@scion-scxml/test-framework": "^2.0.15",
     "babel-plugin-annotate-pure-calls": "^0.4.0",
-    "jest": "^24.8.0",
+    "fast-glob": "^3.2.11",
+    "jest": "^26.6.3",
     "jsdom": "^14.0.0",
     "jsdom-global": "^3.0.2",
     "lerna-alias": "3.0.3-0",
     "pkg-up": "^3.1.0",
-    "rollup": "^1.26.3",
+    "rollup": "^2.69.0",
     "rollup-plugin-filesize": "^6.2.1",
     "rollup-plugin-replace": "^2.2.0",
     "rollup-plugin-terser": "^5.1.2",
-    "rollup-plugin-typescript2": "^0.25.2",
+    "rollup-plugin-typescript2": "^0.30.0",
     "rollup-plugin-uglify": "^6.0.2",
-    "rxjs": "^6.5.1",
-    "ts-jest": "^24.1.9",
-    "tslib": "^1.10.0",
-    "typescript": "^3.7.2",
+    "rxjs": "^7.1.0",
+    "ts-jest": "^26.5.6",
+    "tslib": "^2.3.1",
+    "typescript": "^4.5.2",
     "xml-js": "^1.6.11"
   }
 }

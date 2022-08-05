@@ -10,8 +10,8 @@ const greetingMachine = Machine<typeof greetingContext>({
     pending: {
       on: {
         '': [
-          { target: 'morning', cond: ctx => ctx.hour < 12 },
-          { target: 'afternoon', cond: ctx => ctx.hour < 18 },
+          { target: 'morning', cond: (ctx) => ctx.hour < 12 },
+          { target: 'afternoon', cond: (ctx) => ctx.hour < 18 },
           { target: 'evening' }
         ]
       }
@@ -108,7 +108,7 @@ describe('transient states (eventless transitions)', () => {
 
     const state = machine.transition('A', 'TIMER');
 
-    expect(state.actions.map(a => a.type)).toEqual([
+    expect(state.actions.map((a) => a.type)).toEqual([
       'exit_A',
       'timer',
       'enter_B'
@@ -241,6 +241,62 @@ describe('transient states (eventless transitions)', () => {
     expect(state.value).toEqual({ A: 'A4', B: 'B4' });
   });
 
+  it('should execute all eventless transitions in the same microstep (with `always`)', () => {
+    const machine = Machine({
+      type: 'parallel',
+      states: {
+        A: {
+          initial: 'A1',
+          states: {
+            A1: {
+              on: {
+                E: 'A2' // the external event
+              }
+            },
+            A2: {
+              always: 'A3'
+            },
+            A3: {
+              always: {
+                target: 'A4',
+                in: 'B.B3'
+              }
+            },
+            A4: {}
+          }
+        },
+
+        B: {
+          initial: 'B1',
+          states: {
+            B1: {
+              on: {
+                E: 'B2'
+              }
+            },
+            B2: {
+              always: {
+                target: 'B3',
+                in: 'A.A2'
+              }
+            },
+            B3: {
+              always: {
+                target: 'B4',
+                in: 'A.A3'
+              }
+            },
+            B4: {}
+          }
+        }
+      }
+    });
+
+    const state = machine.transition(machine.initialState, 'E');
+
+    expect(state.value).toEqual({ A: 'A4', B: 'B4' });
+  });
+
   it('should check for automatic transitions even after microsteps are done', () => {
     const machine = Machine({
       type: 'parallel',
@@ -279,6 +335,53 @@ describe('transient states (eventless transitions)', () => {
                   target: 'C2',
                   in: 'A.A2'
                 }
+              }
+            },
+            C2: {}
+          }
+        }
+      }
+    });
+
+    let state = machine.initialState; // A1, B1, C1
+    state = machine.transition(state, 'A'); // A2, B2, C2
+    expect(state.value).toEqual({ A: 'A2', B: 'B2', C: 'C2' });
+  });
+
+  it('should check for automatic transitions even after microsteps are done (with `always`)', () => {
+    const machine = Machine({
+      type: 'parallel',
+      states: {
+        A: {
+          initial: 'A1',
+          states: {
+            A1: {
+              on: {
+                A: 'A2'
+              }
+            },
+            A2: {}
+          }
+        },
+        B: {
+          initial: 'B1',
+          states: {
+            B1: {
+              always: {
+                target: 'B2',
+                cond: (_xs, _e, { state: s }) => s.matches('A.A2')
+              }
+            },
+            B2: {}
+          }
+        },
+        C: {
+          initial: 'C1',
+          states: {
+            C1: {
+              always: {
+                target: 'C2',
+                in: 'A.A2'
               }
             },
             C2: {}
@@ -344,6 +447,36 @@ describe('transient states (eventless transitions)', () => {
     expect(state.value).toBe('e');
   });
 
+  it('should select eventless transition before processing raised events (with `always`)', () => {
+    const machine = Machine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            FOO: 'b'
+          }
+        },
+        b: {
+          entry: raise('BAR'),
+          always: 'c',
+          on: {
+            BAR: 'd'
+          }
+        },
+        c: {
+          on: {
+            BAR: 'e'
+          }
+        },
+        d: {},
+        e: {}
+      }
+    });
+
+    const state = machine.transition('a', 'FOO');
+    expect(state.value).toBe('e');
+  });
+
   it('should select eventless transition for array `.on` config', () => {
     const machine = Machine({
       initial: 'a',
@@ -388,7 +521,10 @@ describe('transient states (eventless transitions)', () => {
           on: { FOO: 'b' }
         },
         b: {
-          on: [{ event: '*', target: 'fail' }, { event: '', target: 'pass' }]
+          on: [
+            { event: '*', target: 'fail' },
+            { event: '', target: 'pass' }
+          ]
         },
         fail: {},
         pass: {}
@@ -399,8 +535,28 @@ describe('transient states (eventless transitions)', () => {
     expect(state.value).toBe('pass');
   });
 
-  it('should work with transient transition on root', done => {
-    const machine = createMachine<any, any>({
+  it('should not select wildcard for eventless transition (with `always`)', () => {
+    const machine = Machine({
+      initial: 'a',
+      states: {
+        a: {
+          on: { FOO: 'b' }
+        },
+        b: {
+          always: 'pass',
+          on: [{ event: '*', target: 'fail' }]
+        },
+        fail: {},
+        pass: {}
+      }
+    });
+
+    const state = machine.transition('a', 'FOO');
+    expect(state.value).toBe('pass');
+  });
+
+  it('should work with transient transition on root', (done) => {
+    const machine = createMachine<any, any, any>({
       id: 'machine',
       initial: 'first',
       context: { count: 0 },
@@ -408,7 +564,7 @@ describe('transient states (eventless transitions)', () => {
         first: {
           on: {
             ADD: {
-              actions: assign({ count: ctx => ctx.count + 1 })
+              actions: assign({ count: (ctx) => ctx.count + 1 })
             }
           }
         },
@@ -420,7 +576,7 @@ describe('transient states (eventless transitions)', () => {
         '': [
           {
             target: '.success',
-            cond: ctx => {
+            cond: (ctx) => {
               return ctx.count > 0;
             }
           }
@@ -435,5 +591,140 @@ describe('transient states (eventless transitions)', () => {
     service.start();
 
     service.send('ADD');
+  });
+
+  it('should work with transient transition on root (with `always`)', (done) => {
+    const machine = createMachine<any, any, any>({
+      id: 'machine',
+      initial: 'first',
+      context: { count: 0 },
+      states: {
+        first: {
+          on: {
+            ADD: {
+              actions: assign({ count: (ctx) => ctx.count + 1 })
+            }
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      },
+
+      always: [
+        {
+          target: '.success',
+          cond: (ctx) => {
+            return ctx.count > 0;
+          }
+        }
+      ]
+    });
+
+    const service = interpret(machine).onDone(() => {
+      done();
+    });
+
+    service.start();
+
+    service.send('ADD');
+  });
+
+  it("shouldn't crash when invoking a machine with initial transient transition depending on custom data", () => {
+    const timerMachine = Machine({
+      initial: 'initial',
+      states: {
+        initial: {
+          always: [
+            {
+              target: `finished`,
+              cond: (ctx) => ctx.duration < 1000
+            },
+            {
+              target: `active`
+            }
+          ]
+        },
+        active: {},
+        finished: { type: 'final' }
+      }
+    });
+
+    const machine = Machine({
+      initial: 'active',
+      context: {
+        customDuration: 3000
+      },
+      states: {
+        active: {
+          invoke: {
+            src: timerMachine,
+            data: {
+              duration: (context: any) => context.customDuration
+            }
+          }
+        }
+      }
+    });
+
+    const service = interpret(machine);
+    expect(() => service.start()).not.toThrow();
+  });
+
+  it('should be taken even in absence of other transitions', () => {
+    let shouldMatch = false;
+
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          always: {
+            target: 'b',
+            // TODO: in v5 remove `shouldMatch` and replace this guard with:
+            // cond: (ctx, ev) => ev.type === 'WHATEVER'
+            cond: () => shouldMatch
+          }
+        },
+        b: {}
+      }
+    });
+    const service = interpret(machine).start();
+
+    shouldMatch = true;
+    service.send({ type: 'WHATEVER' });
+
+    expect(service.state.value).toBe('b');
+  });
+
+  it('should select subsequent transient transitions even in absence of other transitions', () => {
+    let shouldMatch = false;
+
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          always: {
+            target: 'b',
+            // TODO: in v5 remove `shouldMatch` and replace this guard with:
+            // cond: (ctx, ev) => ev.type === 'WHATEVER'
+            cond: () => shouldMatch
+          }
+        },
+        b: {
+          always: {
+            target: 'c',
+            cond: () => true
+          }
+        },
+        c: {}
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    shouldMatch = true;
+    service.send({ type: 'WHATEVER' });
+
+    expect(service.state.value).toBe('c');
   });
 });

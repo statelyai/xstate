@@ -1,7 +1,7 @@
-import { Machine } from '../src/index';
+import { Machine, createMachine, interpret } from '../src/index';
 
 describe('history states', () => {
-  const historyMachine = Machine({
+  const historyMachine = createMachine({
     key: 'history',
     initial: 'off',
     states: {
@@ -70,6 +70,95 @@ describe('history states', () => {
     const onState = historyMachine.transition(offState, 'H_POWER');
     const nextState = historyMachine.transition(onState, 'H_POWER');
     expect(nextState.history!.history).not.toBeDefined();
+  });
+
+  it('should go to the most recently visited state by a transient transition', () => {
+    const machine = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          id: 'idle',
+          initial: 'absent',
+          states: {
+            absent: {
+              on: {
+                DEPLOY: '#deploy'
+              }
+            },
+            present: {
+              on: {
+                DEPLOY: '#deploy',
+                DESTROY: '#destroy'
+              }
+            },
+            hist: {
+              type: 'history'
+            }
+          }
+        },
+        deploy: {
+          id: 'deploy',
+          on: {
+            SUCCESS: 'idle.present',
+            FAILURE: 'idle.hist'
+          }
+        },
+        destroy: {
+          id: 'destroy',
+          always: [{ target: 'idle.absent' }]
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    service.send('DEPLOY');
+    service.send('SUCCESS');
+    service.send('DESTROY');
+    service.send('DEPLOY');
+    service.send('FAILURE');
+
+    expect(service.state.value).toEqual({ idle: 'absent' });
+  });
+
+  it('should reenter persisted state during external transition targeting a history state', () => {
+    const actual: string[] = [];
+
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            REENTER: '#b_hist'
+          },
+          initial: 'a1',
+          states: {
+            a1: {
+              on: {
+                NEXT: 'a2'
+              }
+            },
+            a2: {
+              entry: () => actual.push('a2 entered'),
+              exit: () => actual.push('a2 exited')
+            },
+            a3: {
+              type: 'history',
+              id: 'b_hist'
+            }
+          }
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    service.send({ type: 'NEXT' });
+
+    actual.length = 0;
+    service.send({ type: 'REENTER' });
+
+    expect(actual).toEqual(['a2 exited', 'a2 entered']);
   });
 });
 
@@ -304,10 +393,8 @@ describe('transient history', () => {
         on: { EVENT: 'B' }
       },
       B: {
-        on: {
-          // eventless transition
-          '': 'C'
-        }
+        // eventless transition
+        always: 'C'
       },
       C: {}
     }

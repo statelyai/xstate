@@ -1,7 +1,9 @@
 # Showcase
 
-There are many developers and teams using XState [in the wild](https://github.com/davidkpiano/xstate/issues/255), to help control various aspects of their applications, in the frontend and backend, and in many different frameworks (or even without a framework!):
+There are many developers and teams using XState [in the wild](https://github.com/statelyai/xstate/issues/255), to help control various aspects of their applications, in the frontend and backend, and in many different frameworks (or even without a framework!):
 
+- [Nhost](https://nhost.io) uses XState to manage the authentication state and transitions of their [Vanilla, React and Vue libraries](https://github.com/nhost/nhost). Nhost is an Open Source Firebase Alternative with GraphQL.
+- [Amazon's Amplify UI](https://docs.amplify.aws/ui/) uses XState for its Authenticator component ([see here](https://github.com/aws-amplify/amplify-ui/blob/main/packages/ui/src/machines/authenticator/index.ts))
 - The [Hashicorp Vault project](https://vaultproject.io) uses XState to control contextual user flows for getting new users up and running. The machines are [in the open-source repository](https://github.com/hashicorp/vault).
 - The [Service Workies game](https://serviceworkies.com/) has many levels whose flows are controlled by XState.
   - https://twitter.com/geddski/status/1090404900318502912
@@ -14,3 +16,5 @@ There are many developers and teams using XState [in the wild](https://github.co
 - "Used XState for the navigation of a keg analytics web-app [BinaryBeer](https://binarybeer.io/)."
 - "Used XState to model data fetching and filtering of a collection of products 👉 [stimm.com](https://stimm.com)"
 - "We're now using xstate to power a couple of the more complicated interactions at my place in our Behavior Insights Engine at [Maritz](https://www.maritz.com/).
+- At [Cypress](https://cypress.io) we chose XState to manage state for our open source [Real World App](https://github.com/cypress-io/cypress-realworld-app). The app is a payment application used to demonstrate real-world usage of Cypress testing methods, patterns, and workflows. [The machines](https://github.com/cypress-io/cypress-realworld-app/tree/develop/src/machines) are used for several different types of scenarios present in modern, responsive web applications.
+- "We use XState at the backend in projects to control entity state" (https://www.linkedin.com/in/haltentech-team)

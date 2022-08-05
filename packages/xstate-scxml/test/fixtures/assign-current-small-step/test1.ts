@@ -1,5 +1,6 @@
-import { Machine, assign } from 'xstate';
-import { log } from 'xstate/lib/actions';
+import { Machine, assign, actions } from 'xstate';
+
+const { log } = actions;
 
 export default Machine<any>({
   initial: 'a',
@@ -21,19 +22,19 @@ export default Machine<any>({
         '': [
           {
             target: 'b',
-            cond: ctx => {
+            cond: (ctx) => {
               return ctx.i < 10;
             },
             actions: [
               assign({
-                i: ctx => ctx.i + 1
+                i: (ctx) => ctx.i + 1
               }),
               log()
             ]
           },
           {
             target: '#c',
-            cond: ctx => ctx.i === 10
+            cond: (ctx) => ctx.i === 10
           }
         ]
       }

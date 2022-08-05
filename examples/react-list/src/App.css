@@ -1,0 +1,91 @@
+*,
+*:before,
+*:after {
+  box-sizing: border-box;
+  position: relative;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+}
+
+#root {
+  display: grid;
+  place-items: center;
+}
+
+.friendsTable {
+  border-collapse: collapse;
+  min-width: 20rem;
+  width: 50vw;
+}
+
+.friendsTable td {
+  padding: 0.5rem;
+}
+
+table tr {
+  border: 1px solid lightgray;
+}
+
+button {
+  appearance: none;
+  box-shadow: 0 1px 2px #0003;
+  background: #fff;
+  font-weight: bold;
+  color: #555;
+}
+
+button.remove {
+  color: red;
+}
+
+.actions {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
+}
+
+input,
+button {
+  border: 1px solid #e3e3e3;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+}
+
+.friendForm {
+  margin-top: 0.5rem;
+}
+
+.label {
+  font-size: 85%;
+  margin-bottom: 0.25rem;
+  display: block;
+}
+
+form.newFriend {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border: 1px solid lightgray;
+  margin-top: 0.5rem;
+}
+
+form.newFriend > input {
+  flex-grow: 1;
+}
+
+.actionsCell {
+  vertical-align: top;
+}
+
+.field {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
+  align-items: center;
+}

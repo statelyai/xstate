@@ -7,7 +7,7 @@ While _finite_ states are well-defined in finite state machines and statecharts,
 In XState, extended state is known as **context**. Below is an example of how `context` is used to simulate filling a glass of water:
 
 ```js
-import { Machine, assign } from 'xstate';
+import { createMachine, assign } from 'xstate';
 
 // Action to increment the context amount
 const addWater = assign({
@@ -19,7 +19,7 @@ function glassIsFull(context, event) {
   return context.amount >= 10;
 }
 
-const glassMachine = Machine(
+const glassMachine = createMachine(
   {
     id: 'glass',
     // the initial context (extended state) of the statechart
@@ -37,12 +37,12 @@ const glassMachine = Machine(
         }
       },
       filling: {
+        // Transient transition
+        always: {
+          target: 'full',
+          cond: 'glassIsFull'
+        },
         on: {
-          // Transient transition
-          '': {
-            target: 'full',
-            cond: 'glassIsFull'
-          },
           FILL: {
             target: 'filling',
             actions: 'addWater'
@@ -62,10 +62,12 @@ const glassMachine = Machine(
 The current context is referenced on the `State` as `state.context`:
 
 ```js
-const nextState = glassMachine.transition(glassMachine.initialState, 'FILL');
+const nextState = glassMachine.transition(glassMachine.initialState, {
+  type: 'FILL'
+});
 
 nextState.context;
-// => { count: 1 }
+// => { amount: 1 }
 ```
 
 ## Initial Context
@@ -73,7 +75,7 @@ nextState.context;
 The initial context is specified on the `context` property of the `Machine`:
 
 ```js
-const counterMachine = Machine({
+const counterMachine = createMachine({
   id: 'counter',
   // initial context
   context: {
@@ -95,7 +97,7 @@ For dynamic `context` (that is, `context` whose initial value is retrieved or pr
 
 ```js
 const createCounterMachine = (count, time) => {
-  return Machine({
+  return createMachine({
     id: 'counter',
     // values provided from function arguments
     context: {
@@ -112,7 +114,7 @@ const counterMachine = createCounterMachine(42, Date.now());
 Or for existing machines, `machine.withContext(...)` should be used:
 
 ```js
-const counterMachine = Machine({
+const counterMachine = createMachine({
   /* ... */
 });
 
@@ -142,7 +144,7 @@ The `assign()` action is used to update the machine's `context`. It takes the co
 The "assigner" can be an object (recommended):
 
 ```js
-import { Machine, assign } from 'xstate';
+import { createMachine, assign } from 'xstate';
 // example: property assigner
 
 // ...
@@ -187,17 +189,65 @@ The `meta` object contains:
 - `action` - the assign action
 
 ::: warning
+Assigners **must be pure**; they should not contain any side-effects.
+
+```js
+actions: assign({
+  count: (context) => {
+    doSomeSideEffect(); // ❌ No side-effects in assignment functions
+
+    return context.count + 1;
+  }
+});
+```
+
+:::
+
+::: warning
 The `assign(...)` function is an **action creator**; it is a pure function that only returns an action object and does _not_ imperatively make assignments to the context.
 :::
 
 ## Action Order
+
+::: warning
+In XState version 5, this behavior will change and `assign(...)` actions will be called **in order** instead of being prioritized, which is incorrect behavior according to SCXML.
+
+To get this behavior in version 4, add `preserveActionOrder: true` to the machine config:
+
+```js
+const counterMachine = createMachine({
+  preserveActionOrder: true, // Ensures that assign actions are called in order
+  // ...
+  context: { count: 0 },
+  states: {
+    active: {
+      on: {
+        INC_TWICE: {
+          actions: [
+            (context) => console.log(`Before: ${context.count}`), // "Before: 0"
+            assign({ count: (context) => context.count + 1 }), // count === 1
+            assign({ count: (context) => context.count + 1 }), // count === 2
+            (context) => console.log(`After: ${context.count}`) // "After: 2"
+          ]
+        }
+      }
+    }
+  }
+});
+
+interpret(counterMachine).start().send({ type: 'INC_TWICE' });
+// => "Before: 0"
+// => "After: 2"
+```
+
+:::
 
 Custom actions are always executed with regard to the _next state_ in the transition. When a state transition has `assign(...)` actions, those actions are always batched and computed _first_, to determine the next state. This is because a state is a combination of the finite state and the extended state (context).
 
 For example, in this counter machine, the custom actions will not work as expected:
 
 ```js
-const counterMachine = Machine({
+const counterMachine = createMachine({
   id: 'counter',
   context: { count: 0 },
   initial: 'active',
@@ -206,10 +256,10 @@ const counterMachine = Machine({
       on: {
         INC_TWICE: {
           actions: [
-            context => console.log(`Before: ${context.count}`),
-            assign({ count: context => context.count + 1 }), // count === 1
-            assign({ count: context => context.count + 1 }), // count === 2
-            context => console.log(`After: ${context.count}`)
+            (context) => console.log(`Before: ${context.count}`), // "Before: 2"
+            assign({ count: (context) => context.count + 1 }), // count === 1
+            assign({ count: (context) => context.count + 1 }), // count === 2
+            (context) => console.log(`After: ${context.count}`) // "After: 2"
           ]
         }
       }
@@ -217,7 +267,7 @@ const counterMachine = Machine({
   }
 });
 
-interpret(counterMachine).send('INC_TWICE');
+interpret(counterMachine).start().send({ type: 'INC_TWICE' });
 // => "Before: 2"
 // => "After: 2"
 ```
@@ -229,7 +279,7 @@ This is because both `assign(...)` actions are batched in order and executed fir
 A good way to refactor this to get the desired result is modeling the `context` with explicit _previous_ values, if those are needed:
 
 ```js
-const counterMachine = Machine({
+const counterMachine = createMachine({
   id: 'counter',
   context: { count: 0, prevCount: undefined },
   initial: 'active',
@@ -238,13 +288,13 @@ const counterMachine = Machine({
       on: {
         INC_TWICE: {
           actions: [
-            context => console.log(`Before: ${context.prevCount}`),
+            (context) => console.log(`Before: ${context.prevCount}`),
             assign({
-              count: context => context.count + 1,
-              prevCount: context => context.count
+              count: (context) => context.count + 1,
+              prevCount: (context) => context.count
             }), // count === 1, prevCount === 0
-            assign({ count: context => context.count + 1 }), // count === 2
-            context => console.log(`After: ${context.count}`)
+            assign({ count: (context) => context.count + 1 }), // count === 2
+            (context) => console.log(`After: ${context.count}`)
           ]
         }
       }
@@ -252,7 +302,7 @@ const counterMachine = Machine({
   }
 });
 
-interpret(counterMachine).send('INC_TWICE');
+interpret(counterMachine).start().send({ type: 'INC_TWICE' });
 // => "Before: 0"
 // => "After: 2"
 ```
@@ -282,7 +332,7 @@ The benefits of this are:
 - Just like with `actions`, it's best to represent `assign()` actions as strings or functions, and then reference them in the machine options:
 
 ```js {5}
-const countMachine = Machine({
+const countMachine = createMachine({
   initial: 'start',
   context: { count: 0 }
   states: {
@@ -304,7 +354,7 @@ Or as named functions (same result as above):
 const increment = assign({ count: context => context.count + 1 });
 const decrement = assign({ count: context => context.count - 1 });
 
-const countMachine = Machine({
+const countMachine = createMachine({
   initial: 'start',
   context: { count: 0 }
   states: {
@@ -321,9 +371,11 @@ const countMachine = Machine({
 
 ## TypeScript
 
-For proper type inference, add the context type as the first type parameter to `Machine<TContext, ...>`:
+For proper type inference, add the context type to the schema property of the machine:
 
 ```ts
+import { createMachine } from 'xstate';
+
 interface CounterContext {
   count: number;
   user?: {
@@ -331,7 +383,10 @@ interface CounterContext {
   };
 }
 
-const machine = Machine<CounterContext>({
+const machine = createMachine({
+  schema: {
+    context: {} as CounterContext
+  },
   // ...
   context: {
     count: 0,
@@ -349,21 +404,27 @@ const context = {
   user: { name: '' }
 };
 
-const machine = Machine<typeof context>({
+const machine = createMachine({
+  schema: {
+    context: {} as typeof context
+  },
   // ...
   context
   // ...
 });
 ```
 
-In most cases, the types for `context` and `event` in `assign(...)` actions will be automatically inferred from the type parameters passed into `Machine<TContext, TEvent>`:
+In most cases, the types for `context` and `event` in `assign(...)` actions will be automatically inferred from the type parameters passed into `schema`:
 
 ```ts
 interface CounterContext {
   count: number;
 }
 
-const machine = Machine<CounterContext>({
+const machine = createMachine({
+  schema: {
+    context: {} as CounterContext
+  },
   // ...
   context: {
     count: 0
@@ -393,7 +454,7 @@ on: {
   INCREMENT: {
     // Generics guarantee proper inference
     actions: assign<CounterContext, CounterEvent>({
-      count: context => {
+      count: (context) => {
         // context: { count: number }
         return context.count + 1;
       }
@@ -408,7 +469,7 @@ on: {
 **Set initial context**
 
 ```js
-const machine = Machine({
+const machine = createMachine({
   // ...
   context: {
     count: 0,
@@ -421,8 +482,8 @@ const machine = Machine({
 **Set dynamic initial context**
 
 ```js
-const createMachine = (count, user) => {
-  return Machine({
+const createSomeMachine = (count, user) => {
+  return createMachine({
     // ...
     // Provided from arguments; your implementation may vary
     context: {
@@ -437,7 +498,7 @@ const createMachine = (count, user) => {
 **Set custom initial context**
 
 ```js
-const machine = Machine({
+const machine = createMachine({
   // ...
   // Provided from arguments; your implementation may vary
   context: {
@@ -458,7 +519,7 @@ const myMachine = machine.withContext({
 **Assign to context**
 
 ```js
-const machine = Machine({
+const machine = createMachine({
   // ...
   context: {
     count: 0,

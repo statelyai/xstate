@@ -63,15 +63,15 @@ const omniMachine = Machine({
             two: {
               after: {
                 2000: [
-                  { target: 'three', cond: ctx => ctx.count === 3 },
-                  { target: 'four', cond: ctx => ctx.count === 4 },
+                  { target: 'three', cond: (ctx) => ctx.count === 3 },
+                  { target: 'four', cond: (ctx) => ctx.count === 4 },
                   { target: 'one' }
                 ]
               }
             },
             three: {
               after: {
-                1000: [{ target: 'one', cond: ctx => ctx.count === -1 }],
+                1000: [{ target: 'one', cond: (ctx) => ctx.count === -1 }],
                 2000: 'four'
               }
             },
@@ -82,18 +82,14 @@ const omniMachine = Machine({
           type: 'compound',
           states: {
             transient: {
-              on: {
-                '': 'one'
-              }
+              always: 'one'
             },
             transientCond: {
-              on: {
-                '': [
-                  { target: 'two', cond: ctx => ctx.count === 2 },
-                  { target: 'three', cond: ctx => ctx.count === 3 },
-                  { target: 'one' }
-                ]
-              }
+              always: [
+                { target: 'two', cond: (ctx) => ctx.count === 2 },
+                { target: 'three', cond: (ctx) => ctx.count === 3 },
+                { target: 'one' }
+              ]
             },
             one: {},
             two: {},

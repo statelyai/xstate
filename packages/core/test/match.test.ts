@@ -3,7 +3,8 @@ import {
   matchState,
   matchesState,
   Machine,
-  createMachine
+  createMachine,
+  assign
 } from '../src';
 
 describe('matchState()', () => {
@@ -13,8 +14,12 @@ describe('matchState()', () => {
     expect(
       matchState(
         simpleState,
-        [['b', () => false], ['a', () => true], [{ a: 'b' }, () => false]],
-        _ => false
+        [
+          ['b', () => false],
+          ['a', () => true],
+          [{ a: 'b' }, () => false]
+        ],
+        (_) => false
       )
     ).toBeTruthy();
   });
@@ -23,8 +28,12 @@ describe('matchState()', () => {
     expect(
       matchState(
         'a',
-        [['b', () => false], ['a', () => true], [{ a: 'b' }, () => false]],
-        _ => false
+        [
+          ['b', () => false],
+          ['a', () => true],
+          [{ a: 'b' }, () => false]
+        ],
+        (_) => false
       )
     ).toBeTruthy();
   });
@@ -41,7 +50,7 @@ describe('matchState()', () => {
           [{ a: 'b' }, () => true],
           ['a', () => false]
         ],
-        _ => false
+        (_) => false
       )
     ).toBeTruthy();
   });
@@ -58,7 +67,7 @@ describe('matchState()', () => {
           ['a', () => true],
           [{ a: 'b' }, () => false]
         ],
-        _ => false
+        (_) => false
       )
     ).toBeTruthy();
   });
@@ -78,7 +87,7 @@ describe('matchState()', () => {
           ['a', () => true],
           [{ a: 'b' }, () => false]
         ],
-        _ => false
+        (_) => false
       )
     ).toBeTruthy();
 
@@ -91,7 +100,7 @@ describe('matchState()', () => {
           [{ a: 'b', c: 'e' }, () => false],
           [{ a: 'b' }, () => true]
         ],
-        _ => false
+        (_) => false
       )
     ).toBeTruthy();
 
@@ -104,7 +113,7 @@ describe('matchState()', () => {
           [{ a: 'b', c: 'e' }, () => false],
           [{ a: 'b', c: {} }, () => true]
         ],
-        _ => false
+        (_) => false
       )
     ).toBeTruthy();
 
@@ -117,7 +126,7 @@ describe('matchState()', () => {
           [{ a: 'b', c: 'e' }, () => false],
           [{ a: 'b', c: { d: 'e' } }, () => true]
         ],
-        _ => false
+        (_) => false
       )
     ).toBeTruthy();
 
@@ -130,7 +139,7 @@ describe('matchState()', () => {
           [{ a: 'b', c: 'e' }, () => false],
           [{ a: 'b', c: { d: 'e', f: 'g' } }, () => true]
         ],
-        _ => false
+        (_) => false
       )
     ).toBeTruthy();
 
@@ -143,7 +152,7 @@ describe('matchState()', () => {
           [{ a: 'b', c: 'e' }, () => false],
           [{ c: {} }, () => true]
         ],
-        _ => false
+        (_) => false
       )
     ).toBeTruthy();
 
@@ -156,7 +165,7 @@ describe('matchState()', () => {
           [{ a: 'b', c: 'e' }, () => false],
           [{ c: { d: 'e' } }, () => true]
         ],
-        _ => false
+        (_) => false
       )
     ).toBeTruthy();
 
@@ -169,7 +178,7 @@ describe('matchState()', () => {
           [{ a: 'b', c: 'e' }, () => false],
           [{ c: { d: 'e', f: 'g' } }, () => true]
         ],
-        _ => false
+        (_) => false
       )
     ).toBeTruthy();
   });
@@ -178,7 +187,7 @@ describe('matchState()', () => {
     const simpleState = State.from('a', undefined);
 
     expect(
-      matchState(simpleState, [['b', () => false]], _ => true)
+      matchState(simpleState, [['b', () => false]], (_) => true)
     ).toBeTruthy();
   });
 });
@@ -339,8 +348,95 @@ describe('matches() method', () => {
       // never called - it's okay if the name is undefined
       expect(name).toBeTruthy();
     } else if (init.matches('loading')) {
-      // Make sure init isn't "never" - if it is, tests will fail to compile
+      // Make sure init isn't "never" - if it is, tests should fail to compile
       expect(init).toBeTruthy();
+    }
+  });
+
+  it('should compile with conditional matches even without a specified Typestate', () => {
+    const toggleMachine = createMachine<{ foo: number }>({
+      id: 'toggle',
+      context: {
+        foo: 0
+      },
+      initial: 'a',
+      states: {
+        a: { on: { TOGGLE: 'b' } },
+        b: { on: { TOGGLE: 'a' } }
+      }
+    });
+
+    const state = toggleMachine.initialState;
+
+    if (state.matches('a') || state.matches('b')) {
+      // This should be a `number` type
+      state.context.foo;
+
+      // Make sure state isn't "never" - if it is, tests should fail to compile
+      expect(state).toBeTruthy();
+    }
+  });
+
+  it('should compile with a typestate value that is a union', (done) => {
+    interface MachineContext {
+      countObject:
+        | {
+            count: number;
+          }
+        | undefined;
+    }
+
+    type MachineEvent = { type: 'TOGGLE' };
+
+    type MachineTypestate =
+      | {
+          value: 'active' | { other: 'one' };
+          context: MachineContext & { countObject: { count: number } };
+        }
+      | {
+          value: 'inactive';
+          context: MachineContext;
+        };
+
+    const machine = createMachine<
+      MachineContext,
+      MachineEvent,
+      MachineTypestate
+    >({
+      initial: 'active',
+      context: {
+        countObject: { count: 0 }
+      },
+      states: {
+        inactive: {
+          entry: assign({
+            countObject: undefined
+          }),
+          on: { TOGGLE: 'active' }
+        },
+        active: {
+          entry: assign({
+            countObject: (ctx) => ({
+              count: (ctx.countObject?.count ?? 0) + 1
+            })
+          }),
+          on: { TOGGLE: 'other' }
+        },
+        other: {
+          on: { TOGGLE: 'active' },
+          initial: 'one',
+          states: {
+            one: {}
+          }
+        }
+      }
+    });
+
+    const state = machine.initialState;
+
+    if (state.matches('active')) {
+      expect(state.context.countObject.count).toBe(1);
+      done();
     }
   });
 });

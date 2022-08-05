@@ -1,7 +1,6 @@
 {
   "name": "@xstate/immer",
-  "private": true,
-  "version": "0.0.1",
+  "version": "0.3.1",
   "description": "XState with Immer",
   "keywords": [
     "immer",
@@ -11,7 +10,7 @@
     "statechart"
   ],
   "author": "David Khourshid <davidkpiano@gmail.com>",
-  "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-immer#readme",
+  "homepage": "https://github.com/statelyai/xstate/tree/main/packages/xstate-immer#readme",
   "license": "MIT",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -26,7 +25,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
+    "url": "git+ssh://git@github.com/statelyai/xstate.git"
   },
   "scripts": {
     "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
@@ -34,17 +33,17 @@
     "test": "jest"
   },
   "bugs": {
-    "url": "https://github.com/davidkpiano/xstate/issues"
+    "url": "https://github.com/statelyai/xstate/issues"
   },
   "dependencies": {},
   "peerDependencies": {
-    "immer": "^5.0.0",
-    "xstate": "^4.6.0"
+    "immer": "^9.0.6",
+    "xstate": "^4.33.0"
   },
   "devDependencies": {
-    "immer": "^5.0.0",
+    "immer": "^9.0.6",
     "lerna-alias": "3.0.3-0",
-    "typescript": "^3.7.2",
+    "typescript": "^4.5.2",
     "xstate": "*"
   }
 }

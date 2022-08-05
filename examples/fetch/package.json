@@ -1,0 +1,17 @@
+{
+  "name": "@xstate/examples-fetch",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.html",
+  "author": "David Khourshid",
+  "license": "MIT",
+  "scripts": {
+    "start": "parcel index.html --open",
+    "build": "parcel build index.html"
+  },
+  "dependencies": {
+    "parcel-bundler": "^1.12.5",
+    "typescript": "^4.7.4",
+    "xstate": "^4.32.1"
+  }
+}

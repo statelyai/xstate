@@ -2,11 +2,10 @@ import { useState } from 'react';
 import * as React from 'react';
 import { useService, useMachine } from '../src/fsm';
 import { createMachine, assign, interpret, StateMachine } from '@xstate/fsm';
-import { render, cleanup, fireEvent, act } from '@testing-library/react';
+import { fireEvent, act, screen } from '@testing-library/react';
+import { describeEachReactMode } from './utils';
 
-afterEach(cleanup);
-
-describe('useService hook for fsm', () => {
+describeEachReactMode('useService, fsm (%s)', ({ render }) => {
   const counterMachine = createMachine<{ count: number }>({
     id: 'counter',
     initial: 'active',
@@ -14,7 +13,7 @@ describe('useService hook for fsm', () => {
     states: {
       active: {
         on: {
-          INC: { actions: assign({ count: ctx => ctx.count + 1 }) },
+          INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) },
           SOMETHING: { actions: 'doSomething' }
         }
       }
@@ -30,18 +29,18 @@ describe('useService hook for fsm', () => {
       return <div data-testid="count">{state.context.count}</div>;
     };
 
-    const { getAllByTestId } = render(
+    render(
       <>
         <Counter />
         <Counter />
       </>
     );
 
-    const countEls = getAllByTestId('count');
+    const countEls = screen.getAllByTestId('count');
 
     expect(countEls.length).toBe(2);
 
-    countEls.forEach(countEl => {
+    countEls.forEach((countEl) => {
       expect(countEl.textContent).toBe('0');
     });
 
@@ -49,7 +48,7 @@ describe('useService hook for fsm', () => {
       counterService.send('INC');
     });
 
-    countEls.forEach(countEl => {
+    countEls.forEach((countEl) => {
       expect(countEl.textContent).toBe('1');
     });
   });
@@ -58,12 +57,16 @@ describe('useService hook for fsm', () => {
     const counterService1 = interpret(counterMachine).start();
     const counterService2 = interpret(counterMachine).start();
 
-    const Counter = ({ counterRef }) => {
-      const [state, send] = useService<{ count: number }, any>(counterRef);
+    const Counter = ({
+      counterRef
+    }: {
+      counterRef: typeof counterService1;
+    }) => {
+      const [state, send] = useService(counterRef);
 
       return (
         <>
-          <button data-testid="inc" onClick={_ => send('INC')} />
+          <button data-testid="inc" onClick={(_) => send('INC')} />
           <div data-testid="count">{state.context.count}</div>
         </>
       );
@@ -82,11 +85,11 @@ describe('useService hook for fsm', () => {
       );
     };
 
-    const { getByTestId } = render(<CounterParent />);
+    render(<CounterParent />);
 
-    const changeServiceButton = getByTestId('change-service');
-    const incButton = getByTestId('inc');
-    const countEl = getByTestId('count');
+    const changeServiceButton = screen.getByTestId('change-service');
+    const incButton = screen.getByTestId('inc');
+    const countEl = screen.getByTestId('count');
 
     expect(countEl.textContent).toBe('0');
     fireEvent.click(incButton);
@@ -109,16 +112,16 @@ describe('useService hook for fsm', () => {
 
       return (
         <>
-          <button data-testid="inc" onClick={_ => send('INC')} />
+          <button data-testid="inc" onClick={(_) => send('INC')} />
           <CounterDisplay service={service} />
         </>
       );
     };
 
-    const { getByTestId } = render(<Counter />);
+    render(<Counter />);
 
-    const incButton = getByTestId('inc');
-    const countEl = getByTestId('count');
+    const incButton = screen.getByTestId('inc');
+    const countEl = screen.getByTestId('count');
 
     expect(countEl.textContent).toBe('0');
     fireEvent.click(incButton);

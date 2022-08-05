@@ -56,8 +56,4 @@ describe('Initial states', () => {
       }
     });
   });
-
-  it('should return undefined for leaf nodes', () => {
-    expect(() => deepMachine.states.leaf.initialState).toThrow();
-  });
 });

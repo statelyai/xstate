@@ -26,10 +26,12 @@ Only `'parallel'`, `'history'`, and `'final'` are required for those state nodes
 IDs are recommended on the root state node (machine):
 
 ```js
-const machine = Machine({
+const machine = createMachine({
   id: 'light', // add this property!
   initial: 'green',
-  states: { /* ... */ }
+  states: {
+    /* ... */
+  }
 });
 ```
 
@@ -40,7 +42,7 @@ This may become a strict-mode requirement in future versions.
 The single nested object syntax will no longer work:
 
 ```js
-const machine = Machine({
+const machine = createMachine({
   // ...
   states: {
     green: {
@@ -58,7 +60,7 @@ const machine = Machine({
 You now specify the transition as an object (or an array of objects) instead:
 
 ```js
-const machine = Machine({
+const machine = createMachine({
   // ...
   states: {
     green: {
@@ -77,7 +79,7 @@ const machine = Machine({
 Of course, string targets still work as expected:
 
 ```js
-const machine = Machine({
+const machine = createMachine({
   // ...
   states: {
     green: {
@@ -99,7 +101,7 @@ For developer convenience, every property that expects one or more entries now _
   // This still works
   onEntry: ['someEntryAction'],
   onExit: [{ type: 'someExitAction' }],
-  
+
   // But you can do this instead, if you prefer:
   onEntry: 'someEntryAction',
   onExit: { type: 'someExitAction' }

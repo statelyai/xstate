@@ -4,6 +4,7 @@
   "compilerOptions": {
     "outDir": "./lib",
     "rootDir": "./src",
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "resolveJsonModule": true
   }
 }

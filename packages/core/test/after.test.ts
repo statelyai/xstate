@@ -1,8 +1,8 @@
-import { Machine, interpret } from '../src';
+import { createMachine, interpret, State } from '../src';
 import { after, cancel, send, actionTypes } from '../src/actions';
 import { toSCXMLEvent } from '../src/utils';
 
-const lightMachine = Machine({
+const lightMachine = createMachine({
   id: 'light',
   initial: 'green',
   context: {
@@ -47,13 +47,13 @@ describe('delayed transitions', () => {
 
     const transitions = greenNode.transitions;
 
-    expect(transitions.map(t => t.eventType)).toEqual([
+    expect(transitions.map((t) => t.eventType)).toEqual([
       after(1000, greenNode.id)
     ]);
   });
 
-  it('should be able to transition with delay from nested initial state', done => {
-    const machine = Machine({
+  it('should be able to transition with delay from nested initial state', (done) => {
+    const machine = createMachine({
       initial: 'nested',
       states: {
         nested: {
@@ -80,9 +80,9 @@ describe('delayed transitions', () => {
       .start();
   });
 
-  it('parent state should enter child state without re-entering self (relative target)', done => {
+  it('parent state should enter child state without re-entering self (relative target)', (done) => {
     const actual: string[] = [];
-    const machine = Machine({
+    const machine = createMachine({
       initial: 'one',
       states: {
         one: {
@@ -94,9 +94,7 @@ describe('delayed transitions', () => {
             },
             three: {
               entry: () => actual.push('entered three'),
-              on: {
-                '': '#end'
-              }
+              always: '#end'
             }
           },
           after: {
@@ -121,7 +119,7 @@ describe('delayed transitions', () => {
   it('should defer a single send event for a delayed transition with multiple conditions (#886)', () => {
     type Events = { type: 'FOO' };
 
-    const machine = Machine<{}, Events>({
+    const machine = createMachine<{}, Events>({
       initial: 'X',
       states: {
         X: {
@@ -148,11 +146,69 @@ describe('delayed transitions', () => {
     expect(machine.initialState.actions.length).toBe(1);
   });
 
+  it('should execute an after transition after starting from a state resolved using `machine.getInitialState`', (done) => {
+    const machine = createMachine({
+      id: 'machine',
+      initial: 'a',
+      states: {
+        a: {},
+
+        withAfter: {
+          after: {
+            1: { target: 'done' }
+          }
+        },
+
+        done: {
+          type: 'final'
+        }
+      }
+    });
+
+    interpret(machine)
+      .onDone(() => done())
+      .start(machine.getInitialState('withAfter'));
+  });
+
+  it('should execute an after transition after starting from a persisted state', (done) => {
+    const createMyMachine = () =>
+      createMachine({
+        initial: 'A',
+        states: {
+          A: {
+            on: {
+              NEXT: 'B'
+            }
+          },
+          B: {
+            after: {
+              1: 'C'
+            }
+          },
+          C: {
+            type: 'final'
+          }
+        }
+      });
+
+    let service = interpret(createMyMachine()).start();
+
+    const persistedState = State.create(
+      JSON.parse(JSON.stringify(service.state))
+    );
+
+    service = interpret(createMyMachine()).start(persistedState);
+
+    service.send({ type: 'NEXT' });
+
+    service.onDone(() => done());
+  });
+
   describe('delay expressions', () => {
     type Events =
       | { type: 'ACTIVATE'; delay: number }
       | { type: 'NOEXPR'; delay: number };
-    const delayExprMachine = Machine<{ delay: number }, Events>(
+    const delayExprMachine = createMachine<{ delay: number }, Events>(
       {
         id: 'delayExpr',
         initial: 'inactive',
@@ -163,7 +219,7 @@ describe('delayed transitions', () => {
           inactive: {
             after: [
               {
-                delay: ctx => ctx.delay,
+                delay: (ctx) => ctx.delay,
                 target: 'active'
               }
             ],
@@ -201,7 +257,7 @@ describe('delayed transitions', () => {
       const { initialState } = delayExprMachine;
 
       const sendActions = initialState.actions.filter(
-        a => a.type === actionTypes.send
+        (a) => a.type === actionTypes.send
       );
 
       expect(sendActions.length).toBe(1);
@@ -217,7 +273,7 @@ describe('delayed transitions', () => {
       });
 
       const sendActions = activeState.actions.filter(
-        a => a.type === actionTypes.send
+        (a) => a.type === actionTypes.send
       );
 
       expect(sendActions.length).toBe(1);
@@ -233,7 +289,7 @@ describe('delayed transitions', () => {
       });
 
       const sendActions = activeState.actions.filter(
-        a => a.type === actionTypes.send
+        (a) => a.type === actionTypes.send
       );
 
       expect(sendActions.length).toBe(1);

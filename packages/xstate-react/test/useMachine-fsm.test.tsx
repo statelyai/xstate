@@ -1,16 +1,10 @@
 import * as React from 'react';
 import { useMachine } from '../src/fsm';
-import { createMachine, assign } from '@xstate/fsm';
-import {
-  render,
-  fireEvent,
-  cleanup,
-  waitForElement
-} from '@testing-library/react';
+import { createMachine, assign, interpret, StateMachine } from '@xstate/fsm';
+import { fireEvent, screen } from '@testing-library/react';
+import { describeEachReactMode } from './utils';
 
-afterEach(cleanup);
-
-describe('useMachine hook for fsm', () => {
+describeEachReactMode('useMachine, fsm (%s)', ({ suiteKey, render }) => {
   const context = {
     data: undefined
   };
@@ -39,22 +33,19 @@ describe('useMachine hook for fsm', () => {
 
   const Fetcher: React.FC<{
     onFetch: () => Promise<any>;
-  }> = ({ onFetch = () => new Promise(res => res('some data')) }) => {
-    const [current, send] = useMachine(fetchMachine);
-
-    React.useEffect(() => {
-      current.actions.forEach(action => {
-        if (action.type === 'load') {
-          onFetch().then(res => {
+  }> = ({ onFetch = () => new Promise((res) => res('some data')) }) => {
+    const [current, send] = useMachine(fetchMachine, {
+      actions: {
+        load: () =>
+          onFetch().then((res) => {
             send({ type: 'RESOLVE', data: res });
-          });
-        }
-      });
-    }, [current]);
+          })
+      }
+    });
 
     switch (current.value) {
       case 'idle':
-        return <button onClick={_ => send('FETCH')}>Fetch</button>;
+        return <button onClick={(_) => send('FETCH')}>Fetch</button>;
       case 'loading':
         return <div>Loading...</div>;
       case 'success':
@@ -69,14 +60,12 @@ describe('useMachine hook for fsm', () => {
   };
 
   it('should work with the useMachine hook', async () => {
-    const { getByText, getByTestId } = render(
-      <Fetcher onFetch={() => new Promise(res => res('fake data'))} />
-    );
-    const button = getByText('Fetch');
+    render(<Fetcher onFetch={() => new Promise((res) => res('fake data'))} />);
+    const button = screen.getByText('Fetch');
     fireEvent.click(button);
-    getByText('Loading...');
-    await waitForElement(() => getByText(/Success/));
-    const dataEl = getByTestId('data');
+    screen.getByText('Loading...');
+    await screen.findByText(/Success/);
+    const dataEl = screen.getByTestId('data');
     expect(dataEl.textContent).toBe('fake data');
   });
 
@@ -92,95 +81,355 @@ describe('useMachine hook for fsm', () => {
     render(<Test />);
   });
 
-  // it('should provide options for the service', () => {
-  //   const Test = () => {
-  //     const [, , service] = useFSM(fetchMachine);
+  it('actions should not have stale data', async (done) => {
+    const toggleMachine = createMachine({
+      initial: 'inactive',
+      states: {
+        inactive: {
+          on: { TOGGLE: 'active' }
+        },
+        active: {
+          entry: 'doAction'
+        }
+      }
+    });
 
-  //     expect(typeof service.send).toBe('function');
+    const Toggle = () => {
+      const [ext, setExt] = React.useState(false);
 
-  //     return null;
-  //   };
+      const doAction = React.useCallback(() => {
+        expect(ext).toBeTruthy();
+        done();
+      }, [ext]);
 
-  //   render(<Test />);
-  // });
+      const [, send] = useMachine(toggleMachine, {
+        actions: {
+          doAction
+        }
+      });
 
-  // it('should merge machine context with options.context', () => {
-  //   const testMachine = Machine<{ foo: string; test: boolean }>({
-  //     context: {
-  //       foo: 'bar',
-  //       test: false
-  //     },
-  //     initial: 'idle',
-  //     states: {
-  //       idle: {}
-  //     }
-  //   });
+      return (
+        <>
+          <button
+            data-testid="extbutton"
+            onClick={(_) => {
+              setExt(true);
+            }}
+          />
+          <button
+            data-testid="button"
+            onClick={(_) => {
+              send('TOGGLE');
+            }}
+          />
+        </>
+      );
+    };
 
-  //   const Test = () => {
-  //     const [state] = useMachine(testMachine, { context: { test: true } });
+    render(<Toggle />);
 
-  //     expect(state.context).toEqual({
-  //       foo: 'bar',
-  //       test: true
-  //     });
+    const button = screen.getByTestId('button');
+    const extButton = screen.getByTestId('extbutton');
+    fireEvent.click(extButton);
 
-  //     return null;
-  //   };
+    fireEvent.click(button);
+  });
 
-  //   render(<Test />);
-  // });
+  it('should keep options defined on a machine when they are not possed to `useMachine` hook', async (done) => {
+    let actual = false;
 
-  // it('actions should not have stale data', async done => {
-  //   const toggleMachine = Machine({
-  //     initial: 'inactive',
-  //     states: {
-  //       inactive: {
-  //         on: { TOGGLE: 'active' }
-  //       },
-  //       active: {
-  //         entry: 'doAction'
-  //       }
-  //     }
-  //   });
+    const toggleMachine = createMachine(
+      {
+        initial: 'inactive',
+        states: {
+          inactive: {
+            on: { TOGGLE: 'active' }
+          },
+          active: {
+            entry: 'doAction'
+          }
+        }
+      },
+      {
+        actions: {
+          doAction() {
+            actual = true;
+          }
+        }
+      }
+    );
 
-  //   const Toggle = () => {
-  //     const [ext, setExt] = useState(false);
+    const Comp = () => {
+      const [, send] = useMachine(toggleMachine);
 
-  //     const doAction = React.useCallback(() => {
-  //       expect(ext).toBeTruthy();
-  //       done();
-  //     }, [ext]);
+      React.useEffect(() => {
+        send('TOGGLE');
+        expect(actual).toEqual(true);
+        done();
+      }, []);
 
-  //     const [, send] = useMachine(toggleMachine, {
-  //       actions: {
-  //         doAction
-  //       }
-  //     });
+      return null;
+    };
 
-  //     return (
-  //       <>
-  //         <button
-  //           data-testid="extbutton"
-  //           onClick={_ => {
-  //             setExt(true);
-  //           }}
-  //         />
-  //         <button
-  //           data-testid="button"
-  //           onClick={_ => {
-  //             send('TOGGLE');
-  //           }}
-  //         />
-  //       </>
-  //     );
-  //   };
+    render(<Comp />);
+  });
 
-  //   const { getByTestId } = render(<Toggle />);
+  it('should be able to lookup initial action passed to the hook', async (done) => {
+    let outer = false;
 
-  //   const button = getByTestId('button');
-  //   const extButton = getByTestId('extbutton');
-  //   fireEvent.click(extButton);
+    const machine = createMachine(
+      {
+        initial: 'foo',
+        states: {
+          foo: {
+            entry: 'doAction'
+          }
+        }
+      },
+      {
+        actions: {
+          doAction() {
+            outer = true;
+          }
+        }
+      }
+    );
 
-  //   fireEvent.click(button);
-  // });
+    const Comp = () => {
+      let inner = false;
+
+      useMachine(machine, {
+        actions: {
+          doAction() {
+            inner = true;
+          }
+        }
+      });
+
+      React.useEffect(() => {
+        expect(outer).toBe(false);
+        expect(inner).toBe(true);
+        done();
+      }, []);
+
+      return null;
+    };
+
+    render(<Comp />);
+  });
+
+  it('should not change actions configured on a machine itself', () => {
+    let flag = false;
+
+    const machine = createMachine(
+      {
+        initial: 'foo',
+        states: {
+          foo: {
+            on: {
+              EV: 'bar'
+            }
+          },
+          bar: {
+            entry: 'doAction'
+          }
+        }
+      },
+      {
+        actions: {
+          doAction() {
+            flag = true;
+          }
+        }
+      }
+    );
+
+    const Comp = () => {
+      useMachine(machine, {
+        actions: {
+          doAction() {}
+        }
+      });
+
+      return null;
+    };
+
+    render(<Comp />);
+
+    const service = interpret(machine).start();
+    service.send('EV');
+    expect(flag).toBe(true);
+  });
+
+  // Example from: https://github.com/statelyai/xstate/discussions/1944
+  it('fsm useMachine service should be typed correctly', () => {
+    interface Context {
+      count?: number;
+    }
+
+    type Event = { type: 'READY' };
+
+    type State =
+      | {
+          value: 'idle';
+          context: Context & {
+            count: undefined;
+          };
+        }
+      | {
+          value: 'ready';
+          context: Context & {
+            count: number;
+          };
+        };
+
+    type Service = StateMachine.Service<Context, Event, State>;
+
+    const machine = createMachine<Context, Event, State>({
+      id: 'machine',
+      initial: 'idle',
+      context: {
+        count: undefined
+      },
+      states: {
+        idle: {},
+        ready: {}
+      }
+    });
+
+    const useCustomService = (service: Service) =>
+      React.useEffect(() => {}, [service]);
+
+    function App() {
+      const [, , service] = useMachine(machine);
+
+      useCustomService(service);
+
+      return null;
+    }
+
+    const noop = (_val: any) => {
+      /* ... */
+    };
+
+    noop(App);
+  });
+
+  it('actions created by a layout effect should access the latest closure values', () => {
+    const actual: number[] = [];
+
+    const machine = createMachine({
+      initial: 'foo',
+      states: {
+        foo: {
+          on: {
+            EXEC_ACTION: {
+              actions: 'recordProp'
+            }
+          }
+        }
+      }
+    });
+
+    const App = ({ value }: { value: number }) => {
+      const [, send] = useMachine(machine, {
+        actions: {
+          recordProp: () => actual.push(value)
+        }
+      });
+
+      React.useLayoutEffect(() => {
+        send('EXEC_ACTION');
+      }, [value]);
+
+      return null;
+    };
+
+    const { rerender } = render(<App value={1} />);
+
+    expect(actual).toEqual(suiteKey === 'strict' ? [1, 1] : [1]);
+
+    actual.length = 0;
+    rerender(<App value={42} />);
+
+    expect(actual).toEqual([42]);
+  });
+
+  it('child component should be able to send an event to a parent immediately in an effect', (done) => {
+    const machine = createMachine<any, { type: 'FINISH' }>({
+      initial: 'active',
+      states: {
+        active: {
+          on: { FINISH: 'success' }
+        },
+        success: {}
+      }
+    });
+
+    const ChildTest: React.FC<{ send: any }> = ({ send }) => {
+      // This will send an event to the parent service
+      // BEFORE the service is ready.
+      React.useLayoutEffect(() => {
+        send({ type: 'FINISH' });
+      }, []);
+
+      return null;
+    };
+
+    const Test = () => {
+      const [state, send] = useMachine(machine);
+
+      if (state.matches('success')) {
+        done();
+      }
+
+      return <ChildTest send={send} />;
+    };
+
+    render(<Test />);
+  });
+
+  it('should not execute actions (side-effects) in render', () => {
+    let entryActionCalled = false;
+
+    const machine = createMachine({
+      initial: 'init',
+      states: {
+        init: {
+          entry: () => (entryActionCalled = true)
+        }
+      }
+    });
+
+    const Test = () => {
+      useMachine(machine);
+      expect(entryActionCalled).toBe(false);
+      return null;
+    };
+
+    render(<Test />);
+  });
+
+  it('should only execute actions once when mounting', () => {
+    let entryActionCalled = 0;
+
+    const machine = createMachine({
+      initial: 'init',
+      states: {
+        init: {
+          entry: () => entryActionCalled++
+        }
+      }
+    });
+
+    const Test = () => {
+      useMachine(machine);
+      return null;
+    };
+
+    render(<Test />);
+
+    // in StrictMode this would return 2 if we wouldn't be calling `.start(persistedState)` in an effect
+    expect(entryActionCalled).toEqual(1);
+  });
 });

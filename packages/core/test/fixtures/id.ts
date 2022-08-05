@@ -1,6 +1,6 @@
-import { Machine } from '../../src';
+import { AnyStateMachine, Machine } from '../../src';
 
-export const machine = Machine({
+export const machine: AnyStateMachine = Machine({
   initial: 'A',
   states: {
     A: {

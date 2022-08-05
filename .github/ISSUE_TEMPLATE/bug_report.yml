@@ -1,0 +1,55 @@
+name: Bug Report
+description: File a bug report
+title: "Bug: "
+labels: [bug, triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Report an issue with XState or XState tooling within this repo.
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Please provide a clear and concise description of what the bug is.
+      placeholder: Something is broken!
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+      description: What did you expect to happen?
+      placeholder: I expected this to work.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+      description: What was the actual observed result?
+      placeholder: This did not work.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Reproduction
+      description: |
+        Please provide a reproducible example. You can use one of the following templates:
+
+        - [CodeSandbox template (JavaScript)](https://codesandbox.io/s/xstate-example-template-m4ckv)
+        - [CodeSandbox template (TypeScript)](https://codesandbox.io/s/xstate-typescript-template-s9kz8)
+        - ⚛︎ [CodeSandbox template (React)](https://codesandbox.io/s/xstate-react-template-3t2tg)
+        - ⚛︎ [CodeSandbox template (React + TypeScript)](https://codesandbox.io/s/xstate-react-typescript-template-wjdvn)
+        - 💚 [CodeSandbox template (Vue + Composition API)](https://codesandbox.io/s/xstate-vue-template-composition-api-1n23l)
+        - [XState Visualizer](https://stately.ai/viz/)
+    validations:
+      required: true
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Add any other context about the problem here (e.g., XState version)
+    validations:
+      required: false

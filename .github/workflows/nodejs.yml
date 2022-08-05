@@ -1,6 +1,13 @@
 name: Node CI
 
-on: [push]
+on:
+  push:
+    branches:
+      - main
+      - next
+  pull_request:
+    branches:
+      - '**'
 
 jobs:
   build:
@@ -8,23 +15,9 @@ jobs:
 
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version: [12.x]
-
     steps:
-      - uses: actions/checkout@v2
-
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v1
+      - uses: actions/checkout@v3
         with:
-          node-version: ${{ matrix.node-version }}
-
-      - name: Install dependencies
-        run: yarn install
-
-      - name: Build
-        run: yarn build
-
-      - name: Test
-        run: yarn test
+          ref: ${{ github.event.pull_request && github.event.pull_request.head.sha || env.GITHUB_SHA }}
+      - uses: ./.github/actions/ci-setup
+      - uses: ./.github/actions/ci-checks

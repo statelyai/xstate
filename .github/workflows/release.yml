@@ -3,35 +3,28 @@ name: Release
 on:
   push:
     branches:
-      - master
+      - main
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
   release:
+    if: github.repository == 'statelyai/xstate'
+
     timeout-minutes: 20
 
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
-        with:
-          # This makes action fetch all Git history so that Changesets can generate changelogs with the correct commits
-          fetch-depth: 0
-
-      - name: Use Node.js 12.x
-        uses: actions/setup-node@v1
-        with:
-          version: 12.x
-
-      - name: Install Dependencies
-        run: yarn
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/ci-setup
+      - uses: ./.github/actions/ci-checks
 
       - name: Create Release Pull Request or Publish to npm
-        uses: changesets/action@master
+        uses: changesets/action@v1
         with:
-          publish: yarn release
+          publish: yarn run release
+          version: yarn run version
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Change generated release intent
-        uses: ./.github/actions/change-release-intent

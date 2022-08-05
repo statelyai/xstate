@@ -1,76 +1,123 @@
-import { useState, useEffect, useMemo } from 'react';
-import { StateMachine, EventObject, Typestate, interpret } from '@xstate/fsm';
-import { useSubscription, Subscription } from 'use-subscription';
+import {
+  createMachine,
+  EventObject,
+  interpret,
+  InterpreterStatus,
+  MachineImplementationsFrom,
+  ServiceFrom,
+  StateFrom,
+  StateMachine,
+  Typestate
+} from '@xstate/fsm';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
+import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
 import useConstant from './useConstant';
 
-export function useMachine<TC, TE extends EventObject = EventObject>(
-  stateMachine: StateMachine.Machine<TC, TE, any>
-): [
-  StateMachine.State<TC, TE, any>,
-  StateMachine.Service<TC, TE>['send'],
-  StateMachine.Service<TC, TE>
-] {
+function identity<T>(a: T): T {
+  return a;
+}
+
+const getServiceState = <
+  TContext extends object,
+  TEvent extends EventObject = EventObject,
+  TState extends Typestate<TContext> = { value: any; context: TContext }
+>(
+  service: StateMachine.Service<TContext, TEvent, TState>
+): StateMachine.State<TContext, TEvent, TState> => {
+  let currentValue: StateMachine.State<TContext, TEvent, TState>;
+  service
+    .subscribe((state) => {
+      currentValue = state;
+    })
+    .unsubscribe();
+  return currentValue!;
+};
+
+export function useMachine<TMachine extends StateMachine.AnyMachine>(
+  stateMachine: TMachine,
+  options?: MachineImplementationsFrom<TMachine>
+): [StateFrom<TMachine>, ServiceFrom<TMachine>['send'], ServiceFrom<TMachine>] {
+  const persistedStateRef = useRef<StateMachine.AnyState>();
+
   if (process.env.NODE_ENV !== 'production') {
     const [initialMachine] = useState(stateMachine);
 
     if (stateMachine !== initialMachine) {
-      throw new Error(
+      console.warn(
         'Machine given to `useMachine` has changed between renders. This is not supported and might lead to unexpected results.\n' +
           'Please make sure that you pass the same Machine as argument each time.'
       );
     }
   }
 
-  const service = useConstant(() => interpret(stateMachine).start());
-  const [current, setCurrent] = useState(stateMachine.initialState);
+  const [service, queue] = useConstant(() => {
+    const queue: unknown[] = [];
+    const service = interpret(
+      createMachine(
+        stateMachine.config,
+        options ? options : (stateMachine as any)._options
+      )
+    );
+    const { send } = service;
+    service.send = (event) => {
+      if (service.status === InterpreterStatus.NotStarted) {
+        queue.push(event);
+        return;
+      }
+      send(event);
+      persistedStateRef.current = service.state;
+    };
+    return [service, queue];
+  });
+
+  useIsomorphicLayoutEffect(() => {
+    if (options) {
+      (service as any)._machine._options = options;
+    }
+  });
+
+  const useServiceResult = useService(service);
 
   useEffect(() => {
-    service.subscribe(setCurrent);
+    service.start(persistedStateRef.current);
+    queue.forEach(service.send);
+
+    persistedStateRef.current = service.state;
+
     return () => {
       service.stop();
     };
   }, []);
 
-  return [current, service.send, service];
+  return useServiceResult as any;
 }
 
-export function useService<
-  TContext,
-  TEvent extends EventObject = EventObject,
-  TState extends Typestate<TContext> = any
->(
-  service: StateMachine.Service<TContext, TEvent, TState>
-): [
-  StateMachine.State<TContext, TEvent, TState>,
-  StateMachine.Service<TContext, TEvent, TState>['send'],
-  StateMachine.Service<TContext, TEvent, TState>
-] {
-  const subscription: Subscription<
-    StateMachine.State<TContext, TEvent, TState>
-  > = useMemo(() => {
-    let currentValue: StateMachine.State<TContext, TEvent, TState>;
+const isEqual = (
+  _prevState: StateMachine.AnyState,
+  nextState: StateMachine.AnyState
+) => nextState.changed === false;
 
-    service
-      .subscribe(state => {
-        currentValue = state;
-      })
-      .unsubscribe();
+export function useService<TService extends StateMachine.AnyService>(
+  service: TService
+): [StateFrom<TService>, TService['send'], TService] {
+  const getSnapshot = useCallback(() => getServiceState(service), [service]);
 
-    return {
-      getCurrentValue: () => currentValue,
-      subscribe: callback => {
-        const { unsubscribe } = service.subscribe(state => {
-          if (state.changed !== false) {
-            currentValue = state;
-            callback();
-          }
-        });
-        return unsubscribe;
-      }
-    };
-  }, [service]);
+  const subscribe = useCallback(
+    (handleStoreChange) => {
+      const { unsubscribe } = service.subscribe(handleStoreChange);
+      return unsubscribe;
+    },
+    [service]
+  );
 
-  const current = useSubscription(subscription);
+  const storeSnapshot = useSyncExternalStoreWithSelector(
+    subscribe,
+    getSnapshot,
+    getSnapshot,
+    identity,
+    isEqual
+  );
 
-  return [current, service.send, service];
+  return [storeSnapshot, service.send, service] as any;
 }

@@ -1,4 +1,11 @@
-import { Machine, interpret, assign, send, sendParent } from '../src';
+import {
+  Machine,
+  interpret,
+  assign,
+  send,
+  sendParent,
+  createMachine
+} from '../src';
 
 interface CounterContext {
   count: number;
@@ -15,7 +22,7 @@ const counterMachine = Machine<CounterContext>({
         INC: [
           {
             target: 'counting',
-            actions: assign(ctx => ({
+            actions: assign((ctx) => ({
               count: ctx.count + 1
             }))
           }
@@ -25,7 +32,7 @@ const counterMachine = Machine<CounterContext>({
             target: 'counting',
             actions: [
               assign({
-                count: ctx => ctx.count - 1
+                count: (ctx) => ctx.count - 1
               })
             ]
           }
@@ -224,6 +231,33 @@ describe('assign', () => {
       maybe: 'defined'
     });
   });
+
+  it('can assign from event', () => {
+    const machine = createMachine<
+      { count: number },
+      { type: 'INC'; value: number }
+    >({
+      initial: 'active',
+      context: {
+        count: 0
+      },
+      states: {
+        active: {
+          on: {
+            INC: {
+              actions: assign({
+                count: (_, event) => event.value
+              })
+            }
+          }
+        }
+      }
+    });
+
+    const nextState = machine.transition(undefined, { type: 'INC', value: 30 });
+
+    expect(nextState.context.count).toEqual(30);
+  });
 });
 
 describe('assign meta', () => {
@@ -346,7 +380,7 @@ describe('assign meta', () => {
     let state: any;
 
     const service = interpret(parentMachine)
-      .onTransition(s => {
+      .onTransition((s) => {
         state = s;
       })
       .start();
