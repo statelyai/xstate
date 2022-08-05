@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.0.1
+
+### Patch Changes
+
+- [#3456](https://github.com/statelyai/xstate/pull/3456) [`131d429ab`](https://github.com/statelyai/xstate/commit/131d429ab350aaca371c4c7974829c621a50c024) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Add `shallowEqual` helper comparator function.
+
+* [#3500](https://github.com/statelyai/xstate/pull/3500) [`0dfc6d92f`](https://github.com/statelyai/xstate/commit/0dfc6d92f6950b3eb78e0693ae3b0abe5751bf42) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with `useSelector` always computing fresh snapshots internally for uninitialized services. This avoids the internal `useSyncExternalStore` from warning about the snapshot value not being cached properly.
+
 ## 3.0.0
 
 ### Major Changes
