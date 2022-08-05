@@ -11,6 +11,7 @@ function isService(actor: any): actor is Interpreter<any, any, any, any> {
 const defaultCompare = (a, b) => a === b;
 const defaultGetSnapshot = (a, initialStateCacheRef) => {
   if (isService(a)) {
+    // A status of 0 = interpreter not started
     if (a.status === 0 && initialStateCacheRef.current) {
       return initialStateCacheRef.current;
     }
