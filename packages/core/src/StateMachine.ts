@@ -1,5 +1,6 @@
 import {
   ActorContext,
+  AnyInterpreter,
   AnyStateMachine,
   InvokeActionObject,
   Spawner,
@@ -8,6 +9,7 @@ import {
 import { stop } from './actions';
 import { STATE_DELIMITER } from './constants';
 import { IS_PRODUCTION } from './environment';
+import { execAction } from './interpreter';
 import { createSpawner } from './spawn';
 import { State } from './State';
 import { StateNode } from './StateNode';
@@ -432,7 +434,7 @@ export class StateMachine<
   ): Array<() => void> {
     return state.actions.map((action) => {
       return () => {
-        _actorCtx.self.exec?.(action, state);
+        execAction(action, state, _actorCtx);
       };
     });
   }

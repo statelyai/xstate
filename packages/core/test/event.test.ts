@@ -79,7 +79,7 @@ describe('SCXML events', () => {
       .start();
   });
 
-  it('respond() should be able to respond to sender', (done) => {
+  it.only('respond() should be able to respond to sender', (done) => {
     const authServerMachine = createMachine({
       initial: 'waitingForCode',
       states: {
