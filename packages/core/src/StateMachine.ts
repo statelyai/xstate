@@ -426,6 +426,17 @@ export class StateMachine<
     return state;
   }
 
+  public getActions(
+    state: State<TContext, TEvent, TResolvedTypesMeta>,
+    _actorCtx: ActorContext<TEvent, State<TContext, TEvent, any>>
+  ): Array<() => void> {
+    return state.actions.map((action) => {
+      return () => {
+        _actorCtx.self.exec?.(action, state);
+      };
+    });
+  }
+
   /**@deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
   __TContext!: TContext;
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */

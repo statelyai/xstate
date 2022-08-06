@@ -1861,7 +1861,11 @@ export interface Behavior<TEvent extends EventObject, TSnapshot = any> {
   ) => TSnapshot;
   // TODO: should we only use `getInitialState(...)`?
   initialState: TSnapshot;
-  getInitialState?: (ctx: ActorContext<TEvent, TSnapshot>) => TSnapshot;
+  getInitialState?: (actorCtx: ActorContext<TEvent, TSnapshot>) => TSnapshot;
+  getActions?: (
+    state: TSnapshot,
+    actorCtx: ActorContext<TEvent, TSnapshot>
+  ) => Array<() => void>;
   start?: (actorCtx: ActorContext<TEvent, TSnapshot>) => TSnapshot;
   stop?: (
     state: TSnapshot,

@@ -176,13 +176,15 @@ export class Interpreter<
    *
    * @param state The state whose actions will be executed
    */
-  public execute(state: SnapshotFrom<TBehavior>): void {
-    if (!isStateLike(state)) {
-      return;
-    }
-
-    for (const action of (state as AnyState).actions) {
-      this.exec(action, state);
+  private execute(state: SnapshotFrom<TBehavior>): void {
+    const actions = this.machine.getActions?.(
+      state,
+      this._getActorContext(state._event)
+    );
+    if (actions) {
+      for (const actionFn of actions) {
+        actionFn();
+      }
     }
   }
 
@@ -191,9 +193,7 @@ export class Interpreter<
     this._state = state;
 
     // Execute actions
-    if (isStateLike(this.getSnapshot())) {
-      this.execute(this.getSnapshot());
-    }
+    this.execute(state);
 
     for (const listener of this.listeners) {
       listener(state);
@@ -710,7 +710,9 @@ export class Interpreter<
       ]
     );
   }
-  private exec(
+
+  // TODO: move to external function
+  public exec(
     action: InvokeActionObject | BaseActionObject,
     state: State<any, TEvent>
   ): void {
