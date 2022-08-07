@@ -1,12 +1,6 @@
 import { render } from '@testing-library/react';
 import * as React from 'react';
-import {
-  ActorRefFrom,
-  assign,
-  createMachine,
-  InterpreterFrom,
-  TypegenMeta
-} from 'xstate';
+import { ActorRefFrom, assign, createMachine, TypegenMeta } from 'xstate';
 import { useInterpret, useMachine } from '../src';
 
 describe('useMachine', () => {
@@ -521,7 +515,7 @@ describe('useInterpret', () => {
       tsTypes: {} as TypesMeta
     });
 
-    function ChildComponent({}: { actorRef: InterpreterFrom<typeof machine> }) {
+    function ChildComponent({}: { actorRef: ActorRefFrom<typeof machine> }) {
       return null;
     }
 
