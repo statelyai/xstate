@@ -1,6 +1,5 @@
 import {
   ActorContext,
-  AnyInterpreter,
   AnyStateMachine,
   InvokeActionObject,
   Spawner,

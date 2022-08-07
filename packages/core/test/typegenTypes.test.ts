@@ -478,7 +478,8 @@ describe('typegen types', () => {
       }
     });
 
-    // @ts-expect-error
+    // TODO: rethink this; should probably be done as a linter rule instead
+    // @x-ts-expect-error
     interpret(machine);
   });
 

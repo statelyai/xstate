@@ -134,7 +134,9 @@ export class Interpreter<
    * The globally unique process ID for this invocation.
    */
   public sessionId: string;
-  private forwardTo: Set<string> = new Set();
+
+  // TODO: remove
+  public _forwardTo: Set<string> = new Set();
 
   /**
    * Creates a new Interpreter instance (i.e., service) for the given machine with the provided options, if any.
@@ -570,7 +572,7 @@ export class Interpreter<
       return;
     }
 
-    for (const id of this.forwardTo) {
+    for (const id of this._forwardTo) {
       const child = (snapshot as AnyState).children[id];
 
       if (!child) {
@@ -592,16 +594,11 @@ export class Interpreter<
       }
     }, sendAction.params.delay as number);
   }
-  private cancel(sendId: string | number): void {
+
+  // TODO: make private (and figure out a way to do this within the machine)
+  public cancel(sendId: string | number): void {
     this.clock.clearTimeout(this.delayedEventsMap[sendId]);
     delete this.delayedEventsMap[sendId];
-  }
-
-  private stopChild(child: ActorRef<any, any>): void {
-    this.forwardTo.delete(child.name);
-    if (isFunction(child.stop)) {
-      child.stop();
-    }
   }
 
   private attachDevTools(): void {
@@ -770,7 +767,7 @@ function getActionFunction<TState extends AnyState>(
         }
         try {
           if (autoForward) {
-            interpreter.forwardTo.add(id);
+            interpreter._forwardTo.add(id);
           }
 
           ref.start?.();
