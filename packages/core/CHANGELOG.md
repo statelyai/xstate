@@ -1,5 +1,11 @@
 # xstate
 
+## 4.33.1
+
+### Patch Changes
+
+- [#3514](https://github.com/statelyai/xstate/pull/3514) [`b451f5789`](https://github.com/statelyai/xstate/commit/b451f5789fdfcfe05b9212e6754ae07ed0ee7cf3) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with `.nextState(event)` calls accidentally executing actions in machines with `predictableActionArguments`.
+
 ## 4.33.0
 
 ### Minor Changes
