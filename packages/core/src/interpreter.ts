@@ -726,7 +726,7 @@ export class Interpreter<
       // Forward copy of event to child actors
       this.forward(_event);
 
-      const nextState = this.nextState(_event);
+      const nextState = this._nextState(_event);
 
       this.update(nextState, _event);
     });
@@ -851,7 +851,10 @@ export class Interpreter<
     }
   };
 
-  private _nextState(event: Event<TEvent> | SCXML.Event<TEvent>) {
+  private _nextState(
+    event: Event<TEvent> | SCXML.Event<TEvent>,
+    exec = !!this.machine.config.predictableActionArguments && this._exec
+  ) {
     const _event = toSCXMLEvent(event);
 
     if (
@@ -868,7 +871,7 @@ export class Interpreter<
         this.state,
         _event,
         undefined,
-        this.machine.config.predictableActionArguments ? this._exec : undefined
+        exec || undefined
       );
     });
 
@@ -885,7 +888,7 @@ export class Interpreter<
   public nextState(
     event: Event<TEvent> | SCXML.Event<TEvent>
   ): State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta> {
-    return this._nextState(event);
+    return this._nextState(event, false);
   }
 
   private forward(event: SCXML.Event<TEvent>): void {

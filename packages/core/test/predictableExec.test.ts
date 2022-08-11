@@ -548,4 +548,22 @@ describe('predictableExec', () => {
 
     expect(actual).toEqual([0, 1, 2]);
   });
+
+  it('`.nextState()` should not execute actions `predictableActionArguments`', () => {
+    let spy = jest.fn();
+
+    const machine = createMachine({
+      predictableActionArguments: true,
+      on: {
+        TICK: {
+          actions: spy
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+    service.nextState({ type: 'TICK' });
+
+    expect(spy).not.toBeCalled();
+  });
 });
