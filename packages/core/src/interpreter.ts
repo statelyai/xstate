@@ -637,13 +637,10 @@ export class Interpreter<
     }
   }
   public _nextState(
-    event: Event<TEvent> | SCXML.Event<TEvent>
+    event: Event<TEvent> | SCXML.Event<TEvent>,
+    exec = !!this.machine.config.predictableActionArguments && this._exec
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    return this.machine._transition(
-      this.state,
-      event,
-      this.machine.config.predictableActionArguments ? this._exec : undefined
-    );
+    return this.machine._transition(this.state, event, exec || undefined);
   }
   /**
    * Returns the next state given the interpreter's current state and the event.
@@ -655,7 +652,7 @@ export class Interpreter<
   public nextState(
     event: Event<TEvent> | SCXML.Event<TEvent>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    return this._nextState(event);
+    return this._nextState(event, false);
   }
 
   private forward(event: SCXML.Event<TEvent>): void {
