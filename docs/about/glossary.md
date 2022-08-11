@@ -1,117 +1,101 @@
 # Glossary
 
-Adapted from [The World of Statecharts (Glossary)](https://statecharts.dev/glossary/).
+## State machines
 
-## Action
+A state machine is a model showing how you transition from state to state in a process when events occur.
 
-An action is an [effect](../guides/effects.md) that is executed as a reaction to a state transition. Actions are fire-and-forget; that is, they are executed without needing to wait for a response.
+## Statecharts
 
-## Actor
+Statecharts are a visual language used to visualize state machines. You may have used similar diagrams in the past to design user flows, plan databases or map app architecture. Statecharts are another way of using boxes and arrows to represent flows. With Stately studio powered by XState, these flows are also executable code you can use to control the logic in your applications.
 
-An actor is an entity that can send messages to other actors, receive messages, and designate its next behavior in response to a message, which may include spawning other actors.
+## States
 
-## Atomic state
+A state describes the status of the process. Status, waiting for input
+States finite, logged in/logged out example
 
-An atomic state is a state node that has no child states.
+### Initial state
 
-## Compound state
+When a state machine starts, it enters the **initial state** first. The initial state is represented by the ![filled circle with an arrow pointing from the circle to the initial state] icon. A machine can only have one initial state.
 
-A compound state has one or more child states. One of these child states must be the initial state, which is the default state node entered when the parent compound state is entered.
+<!-- What a state might be -->
 
-## Condition
+#### Initial states in child states
 
-See [guard](#guard).
+Inside a parent state, you must specify which child state is the initial state, which the machine enters automatically when it enters the parent state. The initial state is represented by the ![filled circle with an arrow pointing from the circle to the initial state] icon.
 
-## Entry action
+<!-- What is a typical initial state -->
 
-An entry action is an [action](#action) that is executed when its parent state is entered.
+### Parent and child states
 
-## Event
+States can contain more states, also known as child states. These child states can only happen when the parent state is happening.
 
-An event is an indication that something happened at a specific moment in time. Events are what state machines receive, and are what cause transitions to potentially be taken.
+<!-- Why you might use parent and child states -->
 
-## Eventless transition
+### Final state
 
-An eventless transition is a transition that is automatically taken when its parent state is active.
+When a machine reaches the final state, it can no longer receive any events, and anything running inside the machine is canceled and cleaned up. The final state is represented by the ![box with a surrounding border] icon.
 
-## Exit action
+A machine can have multiple final states or no final states.
 
-An exit action is an [action](#action) that is executed when its parent state is exited.
+<!-- What makes a typical final state, and when might you have no final states or multiple final states -->
 
-## External transition
+### History state
 
-In SCXML, an external transition is a transition that exits the source state when the target state is a descendant of the source state. See [selecting transitions (SCXML)](https://www.w3.org/TR/scxml/#SelectingTransitions) for details.
+A history state returns the machine to the most recently active state. The history state is represented by the ![box with an H inside] icon.
 
-## Final state
+The history state can be deep or shallow:
 
-A final state is an indication that the state is "done", and no more events will be handled from it.
+- A shallow history state remembers the immediate child’s state.
+- A deep history state remembers the deepest active state or states inside its child states.
 
-## Guard
+<!-- What you might use a shallow history state for -->
 
-A guard is a Boolean expression that determines whether a transition is enabled (if the condition evaluates to _true_) or disabled (_false_). Also known as a [condition](#condition).
+<!-- What you might use a deep history state for -->
 
-## History state
+## Transitions and events
 
-A history state is a pseudo-state that will remember and transition to the most recently active child states of its parent state, or a default target state.
+A machine moves from state to state through transitions. These transitions are caused by events. Events are deterministic; each combination of state and event always points to the same next state.
 
-## Initial state
+<!-- What is a typical event -->
 
-The initial state of a compound state is the default child state that is entered when the compound state is entered.
+### Guarded transitions
 
-## Internal event
+A guard is a condition that the machine checks when it goes through an event. If the condition is true, the machine follows the transition to the next state. If the condition is false, the machine follows the rest of the conditions to the next state. Any transition can be a guarded transition.
 
-An internal event is an event that is raised by the state machine itself. Internal events are processed immediately after the previous event.
+<!-- What you might use a guard for -->
 
-## Internal transition
+### Eventless transitions
 
-In SCXML, an internal transition is a transition that transitions to a descendant target state without exiting the source state. This is the default transition behavior. See [selecting transitions (SCXML)](https://www.w3.org/TR/scxml/#SelectingTransitions) for details.
+Eventless transitions are transitions without events. These transitions **always** run when the machine goes through the event; no event is necessary to trigger the transition. Eventless transitions are labeled “always.”
 
-## Mathematical model of computation
+<!-- What you might use an eventless transition for -->
 
-A mathematical model of computation is a way of describing how things are computed (given an input, what is the output?) based on a mathematical function. With state machines and statecharts, the pertinent function is the _state-transition function_ (see [Finite state machine: Mathematical model (Wikipedia)](https://en.wikipedia.org/wiki/Finite-state_machine#Mathematical_model))
+### Wildcard transitions
 
-See [Model of computation (Wikipedia)](https://en.wikipedia.org/wiki/Model_of_computation) and [Mathematical model (Wikipedia)](https://en.wikipedia.org/wiki/Mathematical_model) for more information.
+Wildcard transitions are triggered by any event not already handled by the current state. Wildcard transitions are represented by a \*.
 
-## Orthogonal state
+Wildcard transitions are useful for logging untracked events and reducing code duplication.
 
-See [parallel state](#parallel-state).
+<!-- What you might use a wildcard transition for -->
 
-## Parallel state
+<!-- #### Partial wildcard transitions -->
 
-A parallel state is a compound state where all of its child states (known as _regions_) are active simultaneously.
+<!-- Will be in v5 -->
 
-## Pseudostate
+<!-- ### Raised events -->
 
-A transient state; e.g., an [initial state](#initial-state) or a [history state](#history-state).
+<!-- Will be in v5 -->
 
-## Raised event
+## Actors, actions and invocations
 
-See [internal event](#internal-event).
+Statecharts are executable code. When you run a statechart, it becomes an actor; a running process that can receive messages, send messages and change its behavior based on the messages it receives, causing effects outside the machine.
 
-## Service
+While the statechart actor is running, it can run other processes called actions.
 
-A service is an interpreted [machine](#state-machine); i.e., an [actor](#actor) that represents a machine.
+An action can be fired upon entry or exit of a state and can also be fired on transitions. Entry and exit actions are fire-and-forget processes; once the machine has fired the action, it moves on and forgets the action.
 
-## State machine
+<!-- What you might use an action (on a state) for -->
 
-A state machine is a mathematical model of the behavior of a system. It describes the behavior through [states](#state), [events](#event), and [transitions](#transition).
+<!-- What you might use an action transition for -->
 
-## State
-
-A state represents the overall behavior of a state machine. In statecharts, the state is the aggregate of all active states (which can be atomic, compound, parallel, and/or final).
-
-## Transient state
-
-A transient state is a state that only has [eventless transitions](#eventless-transition).
-
-## Transition
-
-A transition is a description of which target [state(s)](#state) and [actions](#action) a state machine will immediately be in when a specific [event](#event) is taken in the transition's source state.
-
-## Visual formalism
-
-A visual formalism is an exact language (like a programming language) that primarily uses visual symbols (states, transitions, etc.) instead of only code or text. State diagrams and statecharts are visual formalisms.
-
-> Visual formalisms are diagrammatic and intuitive, yet mathematically rigorous languages.
->
-> – https://link.springer.com/referenceworkentry/10.1007%2F978-0-387-39940-9_444
+An invocation is an action that can run continuously and return information back to the machine. A state can invoke these actions, including communicating with other actors.
