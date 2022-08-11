@@ -38,7 +38,14 @@ import {
 } from './types';
 import { State, bindActionToState, isStateConfig } from './State';
 import * as actionTypes from './actionTypes';
-import { doneInvoke, error, getActionFunction, initEvent } from './actions';
+import {
+  doneInvoke,
+  error,
+  getActionFunction,
+  initEvent,
+  resolveActions,
+  toActionObjects
+} from './actions';
 import { IS_PRODUCTION } from './environment';
 import {
   isPromiseLike,
@@ -57,11 +64,11 @@ import {
   toObserver,
   isActor,
   isBehavior,
-  symbolObservable
+  symbolObservable,
+  flatten
 } from './utils';
 import { Scheduler } from './scheduler';
 import { Actor, isSpawnedActor, createDeferredActor } from './Actor';
-import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
 import { getGlobal, registerService } from './devTools';
 import * as serviceScope from './serviceScope';
@@ -309,7 +316,13 @@ export class Interpreter<
     this._state = state;
 
     // Execute actions
-    if (this.options.execute) {
+    if (
+      (!this.machine.config.predictableActionArguments ||
+        // this is currently required to execute initial actions as the `initialState` gets cached
+        // we can't just recompute it (and execute actions while doing so) because we try to preserve identity of actors created within initial assigns
+        _event === initEvent) &&
+      this.options.execute
+    ) {
       this.execute(this.state);
     }
 
@@ -341,12 +354,7 @@ export class Interpreter<
       );
     }
 
-    const isDone = isInFinalState(
-      state.configuration || [],
-      this.machine as any
-    );
-
-    if (this.state.configuration && isDone) {
+    if (this.state.done) {
       // get final child state node
       const finalChildStateNode = state.configuration.find(
         (sn) => sn.type === 'final' && sn.parent === (this.machine as any)
@@ -360,7 +368,7 @@ export class Interpreter<
       for (const listener of this.doneListeners) {
         listener(doneInvoke(this.id, doneData));
       }
-      this.stop();
+      this._stop();
     }
   }
   /*
@@ -388,8 +396,8 @@ export class Interpreter<
     return this;
   }
   public subscribe(
-    observer: Observer<
-      State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta>
+    observer: Partial<
+      Observer<State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta>>
     >
   ): Subscription;
   public subscribe(
@@ -404,48 +412,39 @@ export class Interpreter<
       | ((
           state: State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta>
         ) => void)
-      | Observer<State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta>>,
+      | Partial<
+          Observer<State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta>>
+        >,
     _?: (error: any) => void, // TODO: error listener
     completeListener?: () => void
   ): Subscription {
-    if (!nextListenerOrObserver) {
-      return { unsubscribe: () => void 0 };
-    }
+    const observer = toObserver(nextListenerOrObserver, _, completeListener);
 
-    let listener: (
-      state: State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta>
-    ) => void;
-    let resolvedCompleteListener = completeListener;
-
-    if (typeof nextListenerOrObserver === 'function') {
-      listener = nextListenerOrObserver;
-    } else {
-      listener = nextListenerOrObserver.next.bind(nextListenerOrObserver);
-      resolvedCompleteListener = nextListenerOrObserver.complete.bind(
-        nextListenerOrObserver
-      );
-    }
-
-    this.listeners.add(listener);
+    this.listeners.add(observer.next);
 
     // Send current state to listener
     if (this.status !== InterpreterStatus.NotStarted) {
-      listener(this.state);
+      observer.next(this.state);
     }
 
-    if (resolvedCompleteListener) {
-      if (this.status === InterpreterStatus.Stopped) {
-        resolvedCompleteListener();
-      } else {
-        this.onDone(resolvedCompleteListener);
-      }
+    const completeOnce = () => {
+      this.doneListeners.delete(completeOnce);
+      this.stopListeners.delete(completeOnce);
+      observer.complete();
+    };
+
+    if (this.status === InterpreterStatus.Stopped) {
+      observer.complete();
+    } else {
+      this.onDone(completeOnce);
+      this.onStop(completeOnce);
     }
 
     return {
       unsubscribe: () => {
-        listener && this.listeners.delete(listener);
-        resolvedCompleteListener &&
-          this.doneListeners.delete(resolvedCompleteListener);
+        this.listeners.delete(observer.next);
+        this.doneListeners.delete(completeOnce);
+        this.stopListeners.delete(completeOnce);
       }
     };
   }
@@ -551,12 +550,7 @@ export class Interpreter<
     });
     return this;
   }
-  /**
-   * Stops the interpreter and unsubscribe all listeners.
-   *
-   * This will also notify the `onStop` listeners.
-   */
-  public stop(): this {
+  private _stop() {
     for (const listener of this.listeners) {
       this.listeners.delete(listener);
     }
@@ -577,36 +571,105 @@ export class Interpreter<
       return this;
     }
 
-    [...this.state.configuration]
-      .sort((a, b) => b.order - a.order)
-      .forEach((stateNode) => {
-        for (const action of stateNode.definition.exit) {
-          this.exec(action, this.state);
-        }
-      });
+    this.initialized = false;
+    this.status = InterpreterStatus.Stopped;
+    this._initialState = undefined;
 
-    // Stop all children
-    this.children.forEach((child) => {
-      if (isFunction(child.stop)) {
-        child.stop();
-      }
-    });
-    this.children.clear();
-
-    // Cancel all delayed events
+    // we are going to stop within the current sync frame
+    // so we can safely just cancel this here as nothing async should be fired anyway
     for (const key of Object.keys(this.delayedEventsMap)) {
       this.clock.clearTimeout(this.delayedEventsMap[key]);
     }
 
+    // clear everything that might be enqueued
     this.scheduler.clear();
+
     this.scheduler = new Scheduler({
       deferEvents: this.options.deferEvents
     });
+  }
+  /**
+   * Stops the interpreter and unsubscribe all listeners.
+   *
+   * This will also notify the `onStop` listeners.
+   */
+  public stop(): this {
+    // TODO: add warning for stopping non-root interpreters
 
-    this.initialized = false;
-    this.status = InterpreterStatus.Stopped;
-    this._initialState = undefined;
-    registry.free(this.sessionId);
+    // grab the current scheduler as it will be replaced in _stop
+    const scheduler = this.scheduler;
+
+    this._stop();
+
+    // let what is currently processed to be finished
+    scheduler.schedule(() => {
+      // it feels weird to handle this here but we need to handle this even slightly "out of band"
+      const _event = toSCXMLEvent({ type: 'xstate.stop' }) as any;
+
+      const nextState = serviceScope.provide(this, () => {
+        const exitActions = flatten(
+          [...this.state.configuration]
+            .sort((a, b) => b.order - a.order)
+            .map((stateNode) =>
+              toActionObjects(
+                stateNode.onExit,
+                this.machine.options.actions as any
+              )
+            )
+        );
+
+        const [resolvedActions, updatedContext] = resolveActions(
+          this.machine as any,
+          this.state,
+          this.state.context,
+          _event,
+          exitActions,
+          this.machine.config.predictableActionArguments
+            ? this._exec
+            : undefined,
+          this.machine.config.predictableActionArguments ||
+            this.machine.config.preserveActionOrder
+        );
+
+        const newState = new State<TContext, TEvent, TStateSchema, TTypestate>({
+          value: this.state.value,
+          context: updatedContext,
+          _event,
+          _sessionid: this.sessionId,
+          historyValue: undefined,
+          history: this.state,
+          actions: resolvedActions.filter(
+            (action) =>
+              action.type !== actionTypes.raise &&
+              (action.type !== actionTypes.send ||
+                (!!action.to && action.to !== SpecialTargets.Internal))
+          ),
+          activities: {},
+          events: [],
+          configuration: [],
+          transitions: [],
+          children: {},
+          done: this.state.done,
+          tags: this.state.tags,
+          machine: this.machine
+        });
+        newState.changed = true;
+        return newState;
+      });
+
+      this.update(nextState, _event);
+
+      // TODO: think about converting those to actions
+      // Stop all children
+      this.children.forEach((child) => {
+        if (isFunction(child.stop)) {
+          child.stop();
+        }
+      });
+      this.children.clear();
+
+      registry.free(this.sessionId);
+    });
 
     return this;
   }
@@ -766,28 +829,29 @@ export class Interpreter<
     }
 
     if ('machine' in target) {
-      // Send SCXML events to machines
-      (target as AnyInterpreter).send({
-        ...event,
-        name:
-          event.name === actionTypes.error ? `${error(this.id)}` : event.name,
-        origin: this.sessionId
-      });
+      // perhaps those events should be rejected in the parent
+      // but atm it doesn't have easy access to all of the information that is required to do it reliably
+      if (
+        this.status !== InterpreterStatus.Stopped ||
+        this.parent !== target ||
+        // we need to send events to the parent from exit handlers of a machine that reached its final state
+        this.state.done
+      ) {
+        // Send SCXML events to machines
+        (target as AnyInterpreter).send({
+          ...event,
+          name:
+            event.name === actionTypes.error ? `${error(this.id)}` : event.name,
+          origin: this.sessionId
+        });
+      }
     } else {
       // Send normal events to other targets
       target.send(event.data);
     }
   };
-  /**
-   * Returns the next state given the interpreter's current state and the event.
-   *
-   * This is a pure method that does _not_ update the interpreter's state.
-   *
-   * @param event The event to determine the next state
-   */
-  public nextState(
-    event: Event<TEvent> | SCXML.Event<TEvent>
-  ): State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta> {
+
+  private _nextState(event: Event<TEvent> | SCXML.Event<TEvent>) {
     const _event = toSCXMLEvent(event);
 
     if (
@@ -800,11 +864,30 @@ export class Interpreter<
     }
 
     const nextState = serviceScope.provide(this, () => {
-      return this.machine.transition(this.state, _event);
+      return this.machine.transition(
+        this.state,
+        _event,
+        undefined,
+        this.machine.config.predictableActionArguments ? this._exec : undefined
+      );
     });
 
     return nextState;
   }
+
+  /**
+   * Returns the next state given the interpreter's current state and the event.
+   *
+   * This is a pure method that does _not_ update the interpreter's state.
+   *
+   * @param event The event to determine the next state
+   */
+  public nextState(
+    event: Event<TEvent> | SCXML.Event<TEvent>
+  ): State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta> {
+    return this._nextState(event);
+  }
+
   private forward(event: SCXML.Event<TEvent>): void {
     for (const id of this.forwardTo) {
       const child = this.children.get(id);
@@ -833,18 +916,13 @@ export class Interpreter<
     this.clock.clearTimeout(this.delayedEventsMap[sendId]);
     delete this.delayedEventsMap[sendId];
   }
-  private exec(
+
+  private _exec = (
     action: ActionObject<TContext, TEvent>,
-    state: State<
-      TContext,
-      TEvent,
-      TStateSchema,
-      TTypestate,
-      TResolvedTypesMeta
-    >,
+    context: TContext,
+    _event: SCXML.Event<TEvent>,
     actionFunctionMap = this.machine.options.actions
-  ): void {
-    const { context, _event } = state;
+  ): void => {
     const actionOrExec =
       action.exec || getActionFunction(action.type, actionFunctionMap);
     const exec = isFunction(actionOrExec)
@@ -855,11 +933,20 @@ export class Interpreter<
 
     if (exec) {
       try {
-        return (exec as any)(context, _event.data, {
-          action,
-          state: this.state,
-          _event
-        });
+        return (exec as any)(
+          context,
+          _event.data,
+          !this.machine.config.predictableActionArguments
+            ? {
+                action,
+                state: this.state,
+                _event
+              }
+            : {
+                action,
+                _event
+              }
+        );
       } catch (err) {
         if (this.parent) {
           this.parent.send({
@@ -904,7 +991,11 @@ export class Interpreter<
         // If the activity will be stopped right after it's started
         // (such as in transient states)
         // don't bother starting the activity.
-        if (!this.state.activities[activity.id || activity.type]) {
+        if (
+          // in v4 with `predictableActionArguments` invokes are called eagerly when the `this.state` still points to the previous state
+          !this.machine.config.predictableActionArguments &&
+          !this.state.activities[activity.id || activity.type]
+        ) {
           break;
         }
 
@@ -1003,8 +1094,20 @@ export class Interpreter<
         }
         break;
     }
+  };
 
-    return undefined;
+  private exec(
+    action: ActionObject<TContext, TEvent>,
+    state: State<
+      TContext,
+      TEvent,
+      TStateSchema,
+      TTypestate,
+      TResolvedTypesMeta
+    >,
+    actionFunctionMap = this.machine.options.actions
+  ) {
+    this._exec(action, state.context, state._event, actionFunctionMap);
   }
 
   private removeChild(childId: string): void {
@@ -1033,6 +1136,9 @@ export class Interpreter<
     name: string,
     options?: SpawnOptions
   ): ActorRef<any> {
+    if (this.status !== InterpreterStatus.Running) {
+      return createDeferredActor(entity, name);
+    }
     if (isPromiseLike(entity)) {
       return this.spawnPromise(Promise.resolve(entity), name);
     } else if (isFunction(entity)) {

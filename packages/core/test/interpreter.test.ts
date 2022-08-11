@@ -1750,6 +1750,46 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       service.send('INC');
       service.send('INC');
     });
+
+    it('should call complete() once a final state is reached', () => {
+      const completeCb = jest.fn();
+
+      const service = interpret(
+        createMachine({
+          initial: 'idle',
+          states: {
+            idle: {
+              on: {
+                NEXT: 'done'
+              }
+            },
+            done: { type: 'final' }
+          }
+        })
+      ).start();
+
+      service.subscribe({
+        complete: completeCb
+      });
+
+      service.send({ type: 'NEXT' });
+
+      expect(completeCb).toHaveBeenCalledTimes(1);
+    });
+
+    it('should call complete() once the interpreter is stopped', () => {
+      const completeCb = jest.fn();
+
+      const service = interpret(createMachine({})).start();
+
+      service.subscribe({
+        complete: completeCb
+      });
+
+      service.stop();
+
+      expect(completeCb).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('services', () => {

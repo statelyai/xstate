@@ -69,7 +69,8 @@ import {
   InternalMachineOptions,
   ServiceMap,
   StateConfig,
-  AnyStateMachine
+  AnyStateMachine,
+  PredictableActionArgumentsExec
 } from './types';
 import { matchesState } from './utils';
 import { State, stateValuesEqual } from './State';
@@ -97,6 +98,7 @@ import {
   getConfiguration,
   has,
   getChildren,
+  getAllChildren,
   getAllStateNodes,
   isInFinalState,
   isLeafNode,
@@ -379,7 +381,7 @@ class StateNode<
     ): void {
       stateNode.order = order++;
 
-      for (const child of getChildren(stateNode)) {
+      for (const child of getAllChildren(stateNode)) {
         dfs(child);
       }
     }
@@ -953,9 +955,13 @@ class StateNode<
 
     const isInternal = !!selectedTransition.internal;
 
-    const reentryNodes = isInternal
-      ? []
-      : flatten(allNextStateNodes.map((n) => this.nodesFromChild(n)));
+    const reentryNodes: StateNode<any, any, any, any, any>[] = [];
+
+    if (!isInternal) {
+      nextStateNodes.forEach((targetNode) => {
+        reentryNodes.push(...this.getExternalReentryNodes(targetNode));
+      });
+    }
 
     return {
       transitions: [selectedTransition],
@@ -967,51 +973,31 @@ class StateNode<
     };
   }
 
-  private nodesFromChild(
-    childStateNode: StateNode<TContext, any, TEvent, any, any, any>
+  private getExternalReentryNodes(
+    targetNode: StateNode<TContext, any, TEvent, any, any, any>
   ): Array<StateNode<TContext, any, TEvent, any, any, any>> {
-    if (childStateNode.escapes(this)) {
-      return [];
-    }
-
     const nodes: Array<StateNode<TContext, any, TEvent, any, any, any>> = [];
-    let marker:
-      | StateNode<TContext, any, TEvent, any, any, any>
-      | undefined = childStateNode;
+    let [marker, possibleAncestor]: [
+      StateNode<TContext, any, TEvent, any, any, any> | undefined,
+      StateNode<TContext, any, TEvent, any, any, any>
+    ] = targetNode.order > this.order ? [targetNode, this] : [this, targetNode];
 
-    while (marker && marker !== this) {
+    while (marker && marker !== possibleAncestor) {
       nodes.push(marker);
       marker = marker.parent;
     }
-    nodes.push(this); // inclusive
-
+    if (marker !== possibleAncestor) {
+      // we never got to `possibleAncestor`, therefore the initial `marker` "escapes" it
+      // it's in a different part of the tree so no states will be reentered for such an external transition
+      return [];
+    }
+    nodes.push(possibleAncestor);
     return nodes;
   }
 
-  /**
-   * Whether the given state node "escapes" this state node. If the `stateNode` is equal to or the parent of
-   * this state node, it does not escape.
-   */
-  private escapes(
-    stateNode: StateNode<TContext, any, TEvent, any, any, any>
-  ): boolean {
-    if (this === stateNode) {
-      return false;
-    }
-
-    let parent = this.parent;
-
-    while (parent) {
-      if (parent === stateNode) {
-        return false;
-      }
-      parent = parent.parent;
-    }
-
-    return true;
-  }
-
   private getActions(
+    resolvedConfig: Set<StateNode<any, any, any, any, any, any>>,
+    isDone: boolean,
     transition: StateTransition<TContext, TEvent>,
     currentContext: TContext,
     _event: SCXML.Event<TEvent>,
@@ -1021,12 +1007,9 @@ class StateNode<
       [],
       prevState ? this.getStateNodes(prevState.value) : [this]
     );
-    const resolvedConfig = transition.configuration.length
-      ? getConfiguration(prevConfig, transition.configuration)
-      : prevConfig;
 
     for (const sn of resolvedConfig) {
-      if (!has(prevConfig, sn)) {
+      if (!has(prevConfig, sn) || has(transition.entrySet, sn.parent)) {
         transition.entrySet.push(sn);
       }
     }
@@ -1104,6 +1087,23 @@ class StateNode<
       this.machine.options.actions as any
     ) as Array<ActionObject<TContext, TEvent>>;
 
+    if (isDone) {
+      const stopActions = toActionObjects(
+        flatten(
+          [...resolvedConfig]
+            .sort((a, b) => b.order - a.order)
+            .map((stateNode) => stateNode.onExit)
+        ),
+        this.machine.options.actions as any
+      ).filter(
+        (action) =>
+          action.type !== actionTypes.raise &&
+          (action.type !== actionTypes.send ||
+            (!!action.to && action.to !== SpecialTargets.Internal))
+      );
+      return actions.concat(stopActions);
+    }
+
     return actions;
   }
 
@@ -1120,9 +1120,11 @@ class StateNode<
       | State<TContext, TEvent, any, TTypestate, TResolvedTypesMeta> = this
       .initialState,
     event: Event<TEvent> | SCXML.Event<TEvent>,
-    context?: TContext
+    context?: TContext,
+    exec?: PredictableActionArgumentsExec
   ): State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta> {
     const _event = toSCXMLEvent(event);
+
     let currentState: State<
       TContext,
       TEvent,
@@ -1186,6 +1188,7 @@ class StateNode<
       stateTransition,
       currentState,
       currentState.context,
+      exec,
       _event
     );
   }
@@ -1199,11 +1202,17 @@ class StateNode<
       TResolvedTypesMeta
     >,
     _event: SCXML.Event<TEvent> | NullEvent,
-    originalEvent: SCXML.Event<TEvent>
+    originalEvent: SCXML.Event<TEvent>,
+    predictableExec?: PredictableActionArgumentsExec
   ): State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta> {
     const currentActions = state.actions;
 
-    state = this.transition(state, _event as SCXML.Event<TEvent>);
+    state = this.transition(
+      state,
+      _event as SCXML.Event<TEvent>,
+      undefined,
+      predictableExec
+    );
     // Save original event to state
     // TODO: this should be the raised event! Delete in V5 (breaking)
     state._event = originalEvent;
@@ -1217,14 +1226,25 @@ class StateNode<
     stateTransition: StateTransition<TContext, TEvent>,
     currentState: State<TContext, TEvent, any, any, any> | undefined,
     context: TContext,
+    predictableExec?: PredictableActionArgumentsExec,
     _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>
   ): State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta> {
     const { configuration } = stateTransition;
+
     // Transition will "apply" if:
     // - this is the initial state (there is no current state)
     // - OR there are transitions
     const willTransition =
       !currentState || stateTransition.transitions.length > 0;
+
+    const resolvedConfiguration = willTransition
+      ? stateTransition.configuration
+      : currentState
+      ? currentState.configuration
+      : [];
+
+    const isDone = isInFinalState(resolvedConfiguration, this);
+
     const resolvedStateValue = willTransition
       ? getValue(this.machine, configuration)
       : undefined;
@@ -1236,6 +1256,8 @@ class StateNode<
         : undefined
       : undefined;
     const actions = this.getActions(
+      new Set(resolvedConfiguration),
+      isDone,
       stateTransition,
       context,
       _event,
@@ -1258,7 +1280,9 @@ class StateNode<
       context,
       _event,
       actions,
-      this.machine.config.preserveActionOrder
+      predictableExec,
+      this.machine.config.predictableActionArguments ||
+        this.machine.config.preserveActionOrder
     );
 
     const [raisedEvents, nonRaisedActions] = partition(
@@ -1297,14 +1321,6 @@ class StateNode<
         ? { ...currentState.children }
         : ({} as Record<string, ActorRef<any>>)
     );
-
-    const resolvedConfiguration = willTransition
-      ? stateTransition.configuration
-      : currentState
-      ? currentState.configuration
-      : [];
-
-    const isDone = isInFinalState(resolvedConfiguration, this);
 
     const nextState = new State<
       TContext,
@@ -1356,7 +1372,7 @@ class StateNode<
 
     // There are transient transitions if the machine is not in a final state
     // and if some of the state nodes have transient ("always") transitions.
-    const isTransient =
+    const hasAlwaysTransitions =
       !isDone &&
       (this._transient ||
         configuration.some((stateNode) => {
@@ -1368,24 +1384,27 @@ class StateNode<
     // because an transient transition should be triggered even if there are no
     // enabled transitions.
     //
-    // If we're already working on an transient transition (by checking
-    // if the event is a NULL_EVENT), then stop to prevent an infinite loop.
+    // If we're already working on an transient transition then stop to prevent an infinite loop.
     //
     // Otherwise, if there are no enabled nor transient transitions, we are done.
-    if (!willTransition && (!isTransient || _event.name === NULL_EVENT)) {
+    if (
+      !willTransition &&
+      (!hasAlwaysTransitions || _event.name === NULL_EVENT)
+    ) {
       return nextState;
     }
 
     let maybeNextState = nextState;
 
     if (!isDone) {
-      if (isTransient) {
+      if (hasAlwaysTransitions) {
         maybeNextState = this.resolveRaisedTransition(
           maybeNextState,
           {
             type: actionTypes.nullEvent
           },
-          _event
+          _event,
+          predictableExec
         );
       }
 
@@ -1394,7 +1413,8 @@ class StateNode<
         maybeNextState = this.resolveRaisedTransition(
           maybeNextState,
           raisedEvent._event,
-          _event
+          _event,
+          predictableExec
         );
       }
     }
@@ -1627,7 +1647,7 @@ class StateNode<
     return this.resolveTransition(
       {
         configuration,
-        entrySet: configuration,
+        entrySet: [...configuration],
         exitSet: [],
         transitions: [],
         source: undefined,
