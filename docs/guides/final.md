@@ -143,3 +143,4 @@ The `onDone` transition cannot be defined on the root node of the machine. This 
 - A parallel state that reaches a final substate does not stop receiving events until all its siblings are done. The final substate can still be exited with an event.
 - Final state nodes cannot have any children. They are atomic state nodes.
 - You can specify `entry` and `exit` actions on final state nodes.
+- Upon reaching a top-level final state, the interpreted machine will stop.

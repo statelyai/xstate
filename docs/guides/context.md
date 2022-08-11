@@ -189,6 +189,21 @@ The `meta` object contains:
 - `action` - the assign action
 
 ::: warning
+Assigners **must be pure**; they should not contain any side-effects.
+
+```js
+actions: assign({
+  count: (context) => {
+    doSomeSideEffect(); // ❌ No side-effects in assignment functions
+
+    return context.count + 1;
+  }
+});
+```
+
+:::
+
+::: warning
 The `assign(...)` function is an **action creator**; it is a pure function that only returns an action object and does _not_ imperatively make assignments to the context.
 :::
 
