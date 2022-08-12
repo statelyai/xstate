@@ -46,7 +46,7 @@ export const GlobalStateProvider = (props) => {
 };
 ```
 
-> For Typescript, you can create the context as `createContext({ authService: {} as UseMachineReturn<typeof authService> });` to ensure strong typings.
+> For Typescript, you can create the context as `createContext({ authService: {} as UseMachineReturn<typeof authMachine> });` to ensure strong typings.
 
 ### Utilizing context
 
