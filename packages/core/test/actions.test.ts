@@ -1023,7 +1023,10 @@ describe('entry/exit actions', () => {
       expect(() => interpreter.stop()).not.toThrow();
     });
 
-    it('sent events from exit handlers of a stopped child should not be received by the parent', () => {
+    // TODO: determine if the sendParent action should execute when the child actor is stopped.
+    // If it shouldn't be, we need to clarify whether exit actions in general should be executed on machine stop,
+    // since this is contradictory to other tests.
+    it.skip('sent events from exit handlers of a stopped child should not be received by the parent', () => {
       const child = createMachine({
         id: 'child',
         initial: 'idle',
@@ -1263,7 +1266,7 @@ describe('entry/exit actions', () => {
       const interpreter = interpret(machine).start();
       interpreter.stop();
 
-      expect(interpreter.state.context.executedAssigns).toEqual([
+      expect(interpreter.getSnapshot().context.executedAssigns).toEqual([
         'referenced',
         'inline'
       ]);

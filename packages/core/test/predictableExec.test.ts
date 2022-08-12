@@ -2,7 +2,7 @@ import { createMachine, interpret, assign } from '../src';
 import { raise, stop } from '../src/actions';
 import { fromCallback } from '../src/actors';
 
-describe('predictableExec', () => {
+describe.skip('predictableExec', () => {
   it('should call mixed custom and builtin actions in the definitions order', () => {
     const actual: string[] = [];
 
