@@ -5,7 +5,6 @@ import {
   Spawner,
   StateFrom
 } from '.';
-import { stop } from './actions';
 import { STATE_DELIMITER } from './constants';
 import { IS_PRODUCTION } from './environment';
 import { execAction } from './interpreter';
@@ -22,8 +21,7 @@ import {
   resolveStateValue,
   toState,
   transitionNode,
-  setChildren,
-  resolveActionsAndContext
+  setChildren
 } from './stateUtils';
 import type {
   AreAllImplementationsAssumedToBeProvided,
@@ -244,17 +242,6 @@ export class StateMachine<
     });
   }
 
-  public _transition(
-    state: StateValue | State<TContext, TEvent, TResolvedTypesMeta> = this
-      .initialState,
-    event: Event<TEvent> | SCXML.Event<TEvent>,
-    predictableExec?: PredictableActionArgumentsExec
-  ): State<TContext, TEvent, TResolvedTypesMeta> {
-    const currentState = toState(state, this);
-
-    return macrostep(currentState, event, this, predictableExec);
-  }
-
   /**
    * Determines the next state given the current `state` and received `event`.
    * Calculates a full macrostep from all microsteps.
@@ -266,16 +253,13 @@ export class StateMachine<
     state: StateValue | State<TContext, TEvent, TResolvedTypesMeta> = this
       .initialState,
     event: Event<TEvent> | SCXML.Event<TEvent>,
-    _actorCtx?: ActorContext<TEvent, State<TContext, TEvent, any>>
+    actorCtx?: ActorContext<TEvent, State<TContext, TEvent, any>>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const currentState = toState(state, this);
     const scxmlEvent = toSCXMLEvent(event);
 
-    const nextState =
-      scxmlEvent.name === 'xstate.stop'
-        ? this.stop(currentState, _actorCtx)
-        : macrostep(currentState, event, this);
-    nextState._sessionid = _actorCtx?.sessionId ?? currentState._sessionid;
+    const nextState = macrostep(currentState, scxmlEvent, this);
+    nextState._sessionid = actorCtx?.sessionId ?? currentState._sessionid;
 
     return nextState;
   }
@@ -367,49 +351,13 @@ export class StateMachine<
     const nextState = resolveMicroTransition(this, [], preInitialState);
     nextState.actions.unshift(...preInitialState.actions);
 
+    // TODO: remove use of null; use xstate.init instead
     const macroState = macrostep(nextState, null as any, this) as StateFrom<
       typeof this
     >;
     macroState.changed = undefined;
     macroState._sessionid = actorCtx?.sessionId;
     return macroState;
-  }
-
-  public stop(
-    state: State<TContext, TEvent>,
-    _actorCtx?: ActorContext<TEvent, State<TContext, TEvent>>
-  ): State<TContext, TEvent, TResolvedTypesMeta> {
-    const stopScxmlEvent = toSCXMLEvent({ type: 'xstate.stop' });
-    const stoppedState = new State(state);
-    stoppedState._event = stopScxmlEvent;
-    stoppedState.event = stopScxmlEvent.data;
-
-    stoppedState.actions.length = 0;
-
-    state.configuration
-      .sort((a, b) => b.order - a.order)
-      .forEach((stateNode) => {
-        for (const action of stateNode.definition.exit) {
-          stoppedState.actions.push(action);
-        }
-      });
-
-    Object.values(state.children).forEach((child) => {
-      stoppedState.actions.push(stop(() => child));
-    });
-
-    const { actions, context } = resolveActionsAndContext(
-      stoppedState.actions,
-      this,
-      stoppedState._event,
-      stoppedState,
-      stoppedState.context
-    );
-
-    stoppedState.actions = actions;
-    stoppedState.context = context;
-
-    return stoppedState as State<TContext, TEvent, TResolvedTypesMeta>;
   }
 
   public getStateNodeById(stateId: string): StateNode<TContext, TEvent> {

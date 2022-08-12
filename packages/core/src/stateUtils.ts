@@ -31,7 +31,6 @@ import {
   HistoryValue,
   InitialTransitionConfig,
   InitialTransitionDefinition,
-  Event,
   MachineContext,
   PredictableActionArgumentsExec
 } from './types';
@@ -59,7 +58,7 @@ import {
 } from '../actions/ExecutableAction';
 import type { StateNode } from './StateNode';
 import { isDynamicAction } from '../actions/dynamicAction';
-import { AnyStateMachine } from '.';
+import { AnyState, AnyStateMachine } from '.';
 
 type Configuration<
   TContext extends MachineContext,
@@ -1811,14 +1810,21 @@ type StateFromMachine<
 
 export function macrostep<TMachine extends AnyStateMachine>(
   state: StateFromMachine<TMachine>,
-  event: Event<TMachine['__TEvent']> | SCXML.Event<TMachine['__TEvent']> | null,
+  scxmlEvent: SCXML.Event<TMachine['__TEvent']>,
   machine: TMachine,
   predictableExec?: PredictableActionArgumentsExec
 ): typeof state {
+  // Handle stop event
+  if (scxmlEvent?.name === 'xstate.stop') {
+    return stopStep(state, machine);
+  }
+
   // Assume the state is at rest (no raised events)
   // Determine the next state based on the next microstep
   const nextState =
-    event === null ? state : machine.microstep(state, event, predictableExec);
+    scxmlEvent === null
+      ? state
+      : machine.microstep(state, scxmlEvent, predictableExec);
 
   const { _internalQueue } = nextState;
   let maybeNextState = nextState;
@@ -1982,4 +1988,40 @@ export function getTagsFromConfiguration(
   configuration: Array<StateNode<any, any>>
 ) {
   return new Set(flatten(configuration.map((sn) => sn.tags)));
+}
+
+function stopStep(state: AnyState, machine: AnyStateMachine): typeof state {
+  const stopScxmlEvent = toSCXMLEvent({ type: 'xstate.stop' });
+  const stoppedState = new State(state);
+
+  // TODO: fix this
+  stoppedState._event = stopScxmlEvent;
+  stoppedState.event = stopScxmlEvent.data;
+
+  stoppedState.actions.length = 0;
+
+  state.configuration
+    .sort((a, b) => b.order - a.order)
+    .forEach((stateNode) => {
+      for (const action of stateNode.definition.exit) {
+        stoppedState.actions.push(action);
+      }
+    });
+
+  Object.values(state.children).forEach((child) => {
+    stoppedState.actions.push(stop(() => child));
+  });
+
+  const { actions, context } = resolveActionsAndContext(
+    stoppedState.actions,
+    machine,
+    stoppedState._event,
+    stoppedState,
+    stoppedState.context
+  );
+
+  stoppedState.actions = actions;
+  stoppedState.context = context;
+
+  return stoppedState;
 }
