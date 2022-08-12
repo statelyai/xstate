@@ -9,7 +9,8 @@ import {
   EventFrom,
   EventFromBehavior,
   InterpreterFrom,
-  SnapshotFrom
+  SnapshotFrom,
+  toObserver
 } from '.';
 import { isExecutableAction } from '../actions/ExecutableAction';
 import { doneInvoke, error } from './actions';
@@ -224,7 +225,7 @@ export class Interpreter<
 
         this._parent?.send(doneEvent);
 
-        this.stop();
+        this._stop();
       }
     }
   }
@@ -258,25 +259,13 @@ export class Interpreter<
     errorListener?: (error: any) => void,
     completeListener?: () => void
   ): Subscription {
-    if (!nextListenerOrObserver) {
-      return { unsubscribe: () => void 0 };
-    }
+    const observer = toObserver(
+      nextListenerOrObserver,
+      errorListener,
+      completeListener
+    );
 
-    let listener: (state: SnapshotFrom<TBehavior>) => void;
-    let resolvedCompleteListener = completeListener;
-
-    if (typeof nextListenerOrObserver === 'function') {
-      listener = nextListenerOrObserver;
-    } else {
-      listener = nextListenerOrObserver.next?.bind(nextListenerOrObserver);
-      resolvedCompleteListener = nextListenerOrObserver.complete?.bind(
-        nextListenerOrObserver
-      );
-    }
-
-    if (listener) {
-      this.listeners.add(listener);
-    }
+    this.listeners.add(observer.next);
 
     if (errorListener) {
       this.onError(errorListener);
@@ -284,22 +273,28 @@ export class Interpreter<
 
     // Send current state to listener
     if (this.status !== InterpreterStatus.NotStarted) {
-      listener(this.getSnapshot());
+      observer.next(this.getSnapshot());
     }
 
-    if (resolvedCompleteListener) {
-      if (this.status === InterpreterStatus.Stopped) {
-        resolvedCompleteListener();
-      } else {
-        this.onDone(resolvedCompleteListener);
-      }
+    const completeOnce = () => {
+      this.doneListeners.delete(completeOnce);
+      this.stopListeners.delete(completeOnce);
+      observer.complete();
+    };
+
+    if (this.status === InterpreterStatus.Stopped) {
+      observer.complete();
+    } else {
+      this.onDone(completeOnce);
+      this.onStop(completeOnce);
     }
 
     return {
       unsubscribe: () => {
-        listener && this.off(listener);
-        resolvedCompleteListener && this.off(resolvedCompleteListener);
-        errorListener && this.off(errorListener);
+        this.listeners.delete(observer.next);
+        this.errorListeners.delete(observer.error);
+        this.doneListeners.delete(completeOnce);
+        this.stopListeners.delete(completeOnce);
       }
     };
   }
@@ -443,6 +438,10 @@ export class Interpreter<
 
     this.update(nextState, event);
 
+    if (event.name === 'xstate.stop') {
+      this._stop();
+    }
+
     if (errored) {
       this.stop();
     }
@@ -454,9 +453,18 @@ export class Interpreter<
    * This will also notify the `onStop` listeners.
    */
   public stop(): this {
+    // const mailbox = this.mailbox;
+
+    // this._stop();
+    this.mailbox.clear();
+    this.mailbox.enqueue(toSCXMLEvent({ type: 'xstate.stop' }) as any);
+
+    return this;
+  }
+  private _stop(): this {
     try {
+      // this._state = this.nextState({ type: 'xstate.stop' });
       // TODO: need this to perform stopping logic in the behavior
-      this._state = this.nextState({ type: 'xstate.stop' });
     } catch (_) {}
 
     this.listeners.clear();
@@ -470,21 +478,6 @@ export class Interpreter<
     if (this.status !== InterpreterStatus.Running) {
       // Interpreter already stopped; do nothing
       return this;
-    }
-
-    const stoppedState = this.machine.stop?.(
-      this.getSnapshot(),
-      this._getActorContext(toSCXMLEvent({ type: 'xstate.stop' }))
-    );
-
-    if (isStateLike(stoppedState)) {
-      for (const action of stoppedState.actions) {
-        execAction(
-          action,
-          stoppedState,
-          this._getActorContext(toSCXMLEvent({ type: 'xstate.stop' }))
-        );
-      }
     }
 
     // Cancel all delayed events

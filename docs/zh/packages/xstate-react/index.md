@@ -365,7 +365,7 @@ const Fetcher = ({ onResolve }) => {
   switch (state.value) {
     case 'idle':
       return (
-        <button onClick={() => send('FETCH', { query: 'something' })}>
+        <button onClick={() => send({ type: 'FETCH', query: 'something' })}>
           Search for something
         </button>
       );

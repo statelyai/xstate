@@ -47,7 +47,8 @@ import type {
   StateConfig,
   StateNodeDefinition,
   StateValue,
-  Transitions
+  Transitions,
+  PredictableActionArgumentsExec
 } from './types';
 import { isBuiltInEvent, isFunction, toSCXMLEvent } from './utils';
 
@@ -243,6 +244,17 @@ export class StateMachine<
     });
   }
 
+  public _transition(
+    state: StateValue | State<TContext, TEvent, TResolvedTypesMeta> = this
+      .initialState,
+    event: Event<TEvent> | SCXML.Event<TEvent>,
+    predictableExec?: PredictableActionArgumentsExec
+  ): State<TContext, TEvent, TResolvedTypesMeta> {
+    const currentState = toState(state, this);
+
+    return macrostep(currentState, event, this, predictableExec);
+  }
+
   /**
    * Determines the next state given the current `state` and received `event`.
    * Calculates a full macrostep from all microsteps.
@@ -257,8 +269,12 @@ export class StateMachine<
     _actorCtx?: ActorContext<TEvent, State<TContext, TEvent, any>>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const currentState = toState(state, this);
+    const scxmlEvent = toSCXMLEvent(event);
 
-    const nextState = macrostep(currentState, event, this);
+    const nextState =
+      scxmlEvent.name === 'xstate.stop'
+        ? this.stop(currentState, _actorCtx)
+        : macrostep(currentState, event, this);
     nextState._sessionid = _actorCtx?.sessionId ?? currentState._sessionid;
 
     return nextState;
@@ -274,7 +290,8 @@ export class StateMachine<
   public microstep(
     state: StateValue | State<TContext, TEvent, TResolvedTypesMeta> = this
       .initialState,
-    event: Event<TEvent> | SCXML.Event<TEvent>
+    event: Event<TEvent> | SCXML.Event<TEvent>,
+    predictableExec?: PredictableActionArgumentsExec
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const resolvedState = toState(state, this);
     const _event = toSCXMLEvent(event);
@@ -296,7 +313,13 @@ export class StateMachine<
 
     const transitions = this.getTransitionData(resolvedState, _event);
 
-    return resolveMicroTransition(this, transitions, resolvedState, _event);
+    return resolveMicroTransition(
+      this,
+      transitions,
+      resolvedState,
+      predictableExec,
+      _event
+    );
   }
 
   public getTransitionData(
@@ -341,12 +364,7 @@ export class StateMachine<
     actorCtx?: ActorContext<TEvent, State<TContext, TEvent>>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const { preInitialState } = this;
-    const nextState = resolveMicroTransition(
-      this,
-      [],
-      preInitialState,
-      undefined
-    );
+    const nextState = resolveMicroTransition(this, [], preInitialState);
     nextState.actions.unshift(...preInitialState.actions);
 
     const macroState = macrostep(nextState, null as any, this) as StateFrom<
@@ -360,8 +378,11 @@ export class StateMachine<
   public stop(
     state: State<TContext, TEvent>,
     _actorCtx?: ActorContext<TEvent, State<TContext, TEvent>>
-  ) {
+  ): State<TContext, TEvent, TResolvedTypesMeta> {
+    const stopScxmlEvent = toSCXMLEvent({ type: 'xstate.stop' });
     const stoppedState = new State(state);
+    stoppedState._event = stopScxmlEvent;
+    stoppedState.event = stopScxmlEvent.data;
 
     stoppedState.actions.length = 0;
 
@@ -377,15 +398,18 @@ export class StateMachine<
       stoppedState.actions.push(stop(() => child));
     });
 
-    stoppedState.actions = resolveActionsAndContext(
+    const { actions, context } = resolveActionsAndContext(
       stoppedState.actions,
       this,
-      state._event,
-      state,
-      state.context
-    ).actions;
+      stoppedState._event,
+      stoppedState,
+      stoppedState.context
+    );
 
-    return stoppedState;
+    stoppedState.actions = actions;
+    stoppedState.context = context;
+
+    return stoppedState as State<TContext, TEvent, TResolvedTypesMeta>;
   }
 
   public getStateNodeById(stateId: string): StateNode<TContext, TEvent> {

@@ -714,12 +714,11 @@ export interface StateNodeConfig<
    */
   tags?: SingleOrArray<string>;
   /**
-   * Whether actions should be called in order.
-   * When `false` (default), `assign(...)` actions are prioritized before other actions.
+   * Whether XState calls actions with the event directly responsible for the related transition.
    *
    * @default false
    */
-  preserveActionOrder?: boolean;
+  predictableActionArguments?: boolean;
   /**
    * A text description of the state node
    */
@@ -1201,7 +1200,7 @@ export interface DynamicStopActionObject<
 > {
   type: ActionTypes.Stop;
   params: {
-    actor: string | Expr<TContext, TEvent, ActorRef<any>>;
+    actor: string | Expr<TContext, TEvent, ActorRef<any> | string>;
   };
 }
 
@@ -1950,3 +1949,9 @@ export type TODO = any;
 export type StateValueFrom<TMachine extends AnyStateMachine> = Parameters<
   StateFrom<TMachine>['matches']
 >[0];
+
+export type PredictableActionArgumentsExec = (
+  action: InvokeActionObject | BaseActionObject,
+  context: unknown,
+  _event: SCXML.Event<EventObject>
+) => void;
