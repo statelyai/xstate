@@ -6,12 +6,11 @@ A state machine is a model showing how you transition from state to state in a p
 
 ## Statecharts
 
-Statecharts are a visual language used to visualize state machines. You may have used similar diagrams in the past to design user flows, plan databases or map app architecture. Statecharts are another way of using boxes and arrows to represent flows. With Stately studio powered by XState, these flows are also executable code you can use to control the logic in your applications.
+Statecharts are a visual language used to visualize state machines. You may have used similar diagrams in the past to design user flows, plan databases or map app architecture. Statecharts are another way of using boxes and arrows to represent flows. These flows are also executable code you can use to control the logic in your applications.
 
 ## States
 
-A state describes the status of the process. Status, waiting for input
-States finite, logged in/logged out example
+A state describes the status of the machine. A state can be as simple as _on_ and _off_. These states are finite; the machine can only move through the pre-defined states. And machines can only be in one state at a time, unless it is a [parent state](#parent-and-child-states) or a [parallel state](#parallel-states).
 
 ### Initial state
 
@@ -38,6 +37,12 @@ When a machine reaches the final state, it can no longer receive any events, and
 A machine can have multiple final states or no final states.
 
 <!-- What makes a typical final state, and when might you have no final states or multiple final states -->
+
+### Parallel states
+
+A parallel state is a parent state that is separated into multiple regions of states, where each region is active simultaneously. Regions are represented by a dashed line around each region.
+
+<!-- Why you might use parallel states -->
 
 ### History state
 
