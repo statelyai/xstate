@@ -176,16 +176,6 @@ describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
         "Machine given to \`useMachine\` has changed between renders. This is not supported and might lead to unexpected results.
         Please make sure that you pass the same Machine as argument each time."
       `);
-      expect((console.warn as jest.Mock).mock.calls[2][0])
-        .toMatchInlineSnapshot(`
-        "Machine given to \`useMachine\` has changed between renders. This is not supported and might lead to unexpected results.
-        Please make sure that you pass the same Machine as argument each time."
-      `);
-      expect((console.warn as jest.Mock).mock.calls[3][0])
-        .toMatchInlineSnapshot(`
-        "Machine given to \`useMachine\` has changed between renders. This is not supported and might lead to unexpected results.
-        Please make sure that you pass the same Machine as argument each time."
-      `);
     }
   });
 });
