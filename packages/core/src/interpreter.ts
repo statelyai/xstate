@@ -58,7 +58,7 @@ import {
 } from './utils';
 import { symbolObservable } from './symbolObservable';
 
-export type StateListener<TBehavior extends Behavior<any, any>> = (
+export type SnapshotListener<TBehavior extends Behavior<any, any>> = (
   state: SnapshotFrom<TBehavior>
 ) => void;
 
@@ -94,6 +94,12 @@ const defaultOptions: InterpreterOptions = {
   devTools: false
 };
 
+type InternalStateFrom<
+  TBehavior extends Behavior<any, any, any>
+> = TBehavior extends Behavior<infer _, infer __, infer TInternalState>
+  ? TInternalState
+  : never;
+
 export class Interpreter<
   TBehavior extends Behavior<any, any>,
   TEvent extends EventObject = EventFromBehavior<TBehavior>
@@ -101,7 +107,7 @@ export class Interpreter<
   /**
    * The current state of the interpreted machine.
    */
-  private _state?: SnapshotFrom<TBehavior>;
+  private _state?: InternalStateFrom<TBehavior>;
   /**
    * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
    */
@@ -116,7 +122,7 @@ export class Interpreter<
 
   private delayedEventsMap: Record<string, unknown> = {};
 
-  private listeners: Set<StateListener<TBehavior>> = new Set();
+  private listeners: Set<SnapshotListener<TBehavior>> = new Set();
   private stopListeners: Set<Listener> = new Set();
   private errorListeners: Set<ErrorListener> = new Set();
   private doneListeners: Set<EventListener> = new Set();
@@ -162,9 +168,10 @@ export class Interpreter<
     this.sessionId = this.ref.name;
   }
 
-  private __initial: SnapshotFrom<TBehavior> | undefined = undefined;
+  private __initial: InternalStateFrom<TBehavior> | undefined = undefined;
 
-  public get initialState(): SnapshotFrom<TBehavior> {
+  public get initialState(): InternalStateFrom<TBehavior> {
+    // TODO: getSnapshot
     return (
       this.__initial ||
       ((this.__initial =
@@ -196,17 +203,17 @@ export class Interpreter<
   }
 
   private update(
-    state: SnapshotFrom<TBehavior>,
+    state: InternalStateFrom<TBehavior>,
     scxmlEvent: SCXML.Event<TEvent>
   ): void {
     // Update state
     this._state = state;
-
+    const snapshot = this.getSnapshot();
     // Execute actions
-    this.execute(state, scxmlEvent);
+    this.execute(snapshot, scxmlEvent);
 
     for (const listener of this.listeners) {
-      listener(state);
+      listener(snapshot);
     }
 
     if (isStateMachine(this.machine) && isStateLike(state)) {
@@ -235,7 +242,7 @@ export class Interpreter<
    *
    * @param listener The state listener
    */
-  public onTransition(listener: StateListener<TBehavior>): this {
+  public onTransition(listener: SnapshotListener<TBehavior>): this {
     this.listeners.add(listener);
 
     // Send current state to listener
@@ -265,6 +272,7 @@ export class Interpreter<
       completeListener
     );
 
+    // @ts-ignore Type instantiation excessively deep?
     this.listeners.add(observer.next);
 
     if (errorListener) {
@@ -346,7 +354,7 @@ export class Interpreter<
    * Starts the interpreter from the given state, or the initial state.
    * @param initialState The state to start the statechart from
    */
-  public start(initialState?: SnapshotFrom<TBehavior> | StateValue): this {
+  public start(initialState?: InternalStateFrom<TBehavior> | StateValue): this {
     if (this.status === InterpreterStatus.Running) {
       // Do not restart the service if it is already started
       return this;
@@ -364,10 +372,10 @@ export class Interpreter<
         )
       : ((this.machine as unknown) as AnyStateMachine).resolveState(
           State.from(
-            initialState,
+            initialState as any, // TODO: fix type
             ((this.machine as unknown) as AnyStateMachine).context
           )
-        )) as SnapshotFrom<TBehavior>;
+        )) as InternalStateFrom<TBehavior>;
 
     const scxmlEvent = isStateLike(resolvedState)
       ? (resolvedState as AnyState)._event
@@ -552,9 +560,9 @@ export class Interpreter<
    */
   public nextState(
     event: TEvent | SCXML.Event<TEvent> | LifecycleSignal
-  ): SnapshotFrom<TBehavior> {
+  ): InternalStateFrom<TBehavior> {
     return this.machine.transition(
-      this.getSnapshot(),
+      this._state,
       event,
       this._getActorContext(toSCXMLEvent(event))
     );
@@ -614,10 +622,11 @@ export class Interpreter<
   }
 
   public getSnapshot() {
+    const getter = this.machine.getSnapshot ?? ((s) => s);
     if (this.status === InterpreterStatus.NotStarted) {
-      return this.initialState;
+      return getter(this.initialState);
     }
-    return this._state!;
+    return getter(this._state!);
   }
 }
 

@@ -1853,24 +1853,31 @@ export interface ActorContext<TEvent extends EventObject, TSnapshot> {
   logger: (...args: any[]) => void;
 }
 
-export interface Behavior<TEvent extends EventObject, TSnapshot = any> {
+export interface Behavior<
+  TEvent extends EventObject,
+  TSnapshot = any,
+  TInternalState = any
+> {
   transition: (
-    state: TSnapshot,
+    state: TInternalState,
     message: TEvent | LifecycleSignal,
     ctx: ActorContext<TEvent, TSnapshot>
-  ) => TSnapshot;
+  ) => TInternalState;
   // TODO: should we only use `getInitialState(...)`?
-  initialState: TSnapshot;
-  getInitialState?: (actorCtx: ActorContext<TEvent, TSnapshot>) => TSnapshot;
+  initialState: TInternalState;
+  getInitialState?: (
+    actorCtx: ActorContext<TEvent, TSnapshot>
+  ) => TInternalState;
   getActions?: (
     state: TSnapshot,
     actorCtx: ActorContext<TEvent, TSnapshot>
   ) => Array<() => void>;
-  start?: (actorCtx: ActorContext<TEvent, TSnapshot>) => TSnapshot;
+  getSnapshot?: (state: TInternalState) => TSnapshot;
+  start?: (actorCtx: ActorContext<TEvent, TSnapshot>) => TInternalState;
   stop?: (
     state: TSnapshot,
     actorCtx: ActorContext<TEvent, TSnapshot>
-  ) => TSnapshot;
+  ) => TInternalState;
 }
 
 export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
