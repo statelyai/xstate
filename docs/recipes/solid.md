@@ -55,11 +55,9 @@ Further down the tree, you can subscribe to the service like this:
 ```js
 import { useContext } from 'solid-js';
 import { GlobalStateContext } from './globalState';
-import { useActor } from '@xstate/solid';
 
 export const SomeComponent = (props) => {
-  const {authService} = useContext(GlobalStateContext);
-  const [state] = authService;
+  const {authService: [state]} = useContext(GlobalStateContext);
   return <>{state.matches('loggedIn') ? 'Logged In' : 'Logged Out'}</>;
 };
 ```
@@ -75,8 +73,7 @@ import { useContext } from 'solid-js';
 import { GlobalStateContext } from './globalState';
 
 export const SomeComponent = (props) => {
-  const {authService} = useContext(GlobalStateContext);
-  const [,send] = authService;
+  const {authService: [,send]} = useContext(GlobalStateContext);
   return (
     <button onClick={() => send('LOG_OUT')}>
       Log Out
@@ -94,8 +91,7 @@ import { GlobalStateContext } from './globalState';
 import { useSelector } from '@xstate/solid';
 
 export const SomeComponent = (props) => {
-  const {authService} = useContext(GlobalStateContext);
-  const [state] = authService;
+  const {authService: [state]} = useContext(GlobalStateContext);
   const user = useSelector(state.context.someUserActor, actor => actor.context, (a) => a.username !== undefined);
 
   return <>{user().username ? 'Logged In' : 'Logged Out'}</>;
