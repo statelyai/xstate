@@ -103,11 +103,11 @@ const [state, send] = useActor(customActor, (actor) => {
 });
 ```
 
-### `useInterpret(machine, options?, observer?)`
+### `createService(machine, options?, observer?)`
 
-A SolidJS hook that returns the `service` created from the `machine` with the `options`, if specified. It starts the service and runs it for the lifetime of the component. This is similar to `useMachine`; however, `useInterpret` allows for a custom `observer` to subscribe to the `service`.
+A SolidJS hook that returns the `service` created from the `machine` with the `options`, if specified. It starts the service and runs it for the lifetime of the component. This is similar to `useMachine`; however, `createService` allows for a custom `observer` to subscribe to the `service`.
 
-`useInterpret` returns a static reference (to just the interpreted machine) which will not rerender when its state changes.
+`createService` returns a static reference (to just the interpreted machine) which will not rerender when its state changes.
 
 To use a piece of state from the service inside a render, use the `useSelector(...)` hook to subscribe to it.
 
@@ -120,11 +120,11 @@ To use a piece of state from the service inside a render, use the `useSelector(.
   - or a listener (e.g., `(state) => {/* ... */}`)
 
 ```js
-import { useInterpret } from '@xstate/solid';
+import { createService } from '@xstate/solid';
 import { someMachine } from '../path/to/someMachine';
 
 const App = () => {
-  const service = useInterpret(someMachine);
+  const service = createService(someMachine);
 
   // ...
 };
@@ -136,7 +136,7 @@ With options + listener:
 // ...
 
 const App = () => {
-  const service = useInterpret(
+  const service = createService(
     someMachine,
     {
       actions: {
@@ -198,16 +198,16 @@ const App = (props) => {
 };
 ```
 
-With `useInterpret(...)`:
+With `createService(...)`:
 
 ```js
-import { useInterpret, useSelector } from '@xstate/solid';
+import { createService, useSelector } from '@xstate/solid';
 import { someMachine } from '../path/to/someMachine';
 
 const selectCount = (state) => state.context.count;
 
 const App = (props) => {
-  const service = useInterpret(someMachine);
+  const service = createService(someMachine);
   const count = useSelector(service, selectCount);
 
   // ...
