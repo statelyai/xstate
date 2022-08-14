@@ -89,7 +89,6 @@ export function createService<TMachine extends AnyStateMachine>(
   } = options;
 
   const machineConfig = {
-    context,
     guards,
     actions,
     activities,
