@@ -12,7 +12,6 @@ import { createStore, reconcile } from 'solid-js/store';
 import type { Accessor } from 'solid-js';
 
 import { $PROXY, batch, createEffect, on, onCleanup, onMount } from 'solid-js';
-import { updateState } from './updateState';
 
 const getServiceState = <
   TContext extends object,
@@ -54,7 +53,7 @@ export function useMachine<TMachine extends StateMachine.AnyMachine>(
   onMount(() => {
     service.subscribe((nextState) => {
       batch(() => {
-        updateState(nextState as StateFrom<TMachine>, setState);
+        setState(reconcile(nextState as StateFrom<TMachine>));
       });
     });
 
@@ -79,9 +78,7 @@ export function useService<TService extends StateMachine.AnyService>(
       }
       const { unsubscribe } = service().subscribe((nextState) => {
         setState(
-          reconcile<typeof nextState, typeof nextState>(nextState, {
-            merge: false
-          })
+          reconcile<typeof nextState, typeof nextState>(nextState)
         );
       });
       onCleanup(unsubscribe);

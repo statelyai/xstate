@@ -6,12 +6,10 @@ import type {
   InterpreterFrom,
   StateFrom
 } from 'xstate';
-import type { SetStoreFunction } from 'solid-js/store';
-import { createStore } from 'solid-js/store';
+import { createStore, reconcile } from 'solid-js/store';
 import type { UseMachineOptions, Prop } from './types';
 import { createService } from './createService';
 import { batch, onCleanup, onMount } from 'solid-js';
-import { updateState } from './updateState';
 
 type RestParams<
   TMachine extends AnyStateMachine
@@ -77,10 +75,7 @@ export function useMachine<TMachine extends AnyStateMachine>(
   onMount(() => {
     const { unsubscribe } = service.subscribe((nextState) => {
       batch(() => {
-        updateState(
-          nextState,
-          setState as SetStoreFunction<StateFrom<AnyStateMachine>>
-        );
+        setState(reconcile(nextState as StateFrom<TMachine>));
       });
     });
 

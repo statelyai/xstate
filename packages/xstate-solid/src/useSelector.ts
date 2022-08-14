@@ -2,7 +2,7 @@ import type { ActorRef, Subscribable } from 'xstate';
 import { defaultGetSnapshot } from './useActor';
 import type { Accessor } from 'solid-js';
 import { createEffect, createMemo, on, onCleanup } from 'solid-js';
-import { createStoreSignal } from './createStoreSignal';
+import { createStore, reconcile } from 'solid-js/store';
 
 const defaultCompare = (a, b) => a === b;
 
@@ -20,19 +20,16 @@ export function useSelector<
     typeof actor === 'function' ? actor : () => actor
   );
 
-  // Deep clone to prevent mutating original snapshot
-  const getActorSnapshot = (snapshotActor: TActor): T =>
-    selector(getSnapshot(snapshotActor));
+  const getActorSnapshot = (act: TActor): T => selector(getSnapshot(act));
 
-  const [selected, update] = createStoreSignal<T, T>(
-    actorMemo,
-    getActorSnapshot
-  );
+  const [state, setState] = createStore({
+    snapshot: getActorSnapshot(actorMemo())
+  });
 
   const guardedUpdate = (emitted: TEmitted) => {
     const next = selector(emitted);
-    if (!compare(selected(), next)) {
-      update(next);
+    if (!compare(state.snapshot, next)) {
+      setState('snapshot', reconcile(next));
     }
   };
 
@@ -51,5 +48,5 @@ export function useSelector<
     )
   );
 
-  return selected;
+  return createMemo(() => state.snapshot);
 }

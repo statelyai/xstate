@@ -1,7 +1,7 @@
 import type { ActorRef, EventObject, Sender } from 'xstate';
 import type { Accessor } from 'solid-js';
 import { createEffect, createMemo, onCleanup } from 'solid-js';
-import { createStoreSignal } from './createStoreSignal';
+import { createStore, reconcile } from 'solid-js/store';
 
 export function isActorWithState<T extends ActorRef<any>>(
   actorRef: T
@@ -10,7 +10,7 @@ export function isActorWithState<T extends ActorRef<any>>(
 }
 
 type EmittedFromActorRef<
-  TActor extends ActorRef<any, any>
+  TActor extends ActorRef<any>
 > = TActor extends ActorRef<any, infer TEmitted> ? TEmitted : never;
 
 const noop = () => {
@@ -48,13 +48,15 @@ export function useActor(
     typeof actorRef === 'function' ? actorRef : () => actorRef
   );
 
-  const [snapshot, update] = createStoreSignal<unknown>(actorMemo, getSnapshot);
+  const [state, update] = createStore({
+    snapshot: getSnapshot(actorMemo()),
+  });
 
   createEffect(() => {
-    update(getSnapshot(actorMemo()));
+    update('snapshot', reconcile(getSnapshot(actorMemo())));
     const { unsubscribe } = actorMemo().subscribe({
       next: (emitted: unknown) => {
-        update(emitted);
+        update('snapshot', reconcile(emitted));
       },
       error: noop,
       complete: noop
@@ -62,5 +64,5 @@ export function useActor(
     onCleanup(unsubscribe);
   });
 
-  return [snapshot, actorMemo().send];
+  return [createMemo(() => state.snapshot), actorMemo().send];
 }
