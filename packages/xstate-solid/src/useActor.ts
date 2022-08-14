@@ -1,6 +1,6 @@
 import type { ActorRef, EventObject, Sender } from 'xstate';
 import type { Accessor } from 'solid-js';
-import { createEffect, createMemo, on, onCleanup } from 'solid-js';
+import { createEffect, createMemo, onCleanup } from 'solid-js';
 import { createStoreSignal } from './createStoreSignal';
 
 export function isActorWithState<T extends ActorRef<any>>(
@@ -50,20 +50,17 @@ export function useActor(
 
   const [snapshot, update] = createStoreSignal<unknown>(actorMemo, getSnapshot);
 
-  createEffect(
-    // Track and rerun if a new actor is provided
-    on(actorMemo, () => {
-      update(getSnapshot(actorMemo()));
-      const { unsubscribe } = actorMemo().subscribe({
-        next: (emitted: unknown) => {
-          update(emitted);
-        },
-        error: noop,
-        complete: noop
-      });
-      onCleanup(unsubscribe);
-    })
-  );
+  createEffect(() => {
+    update(getSnapshot(actorMemo()));
+    const { unsubscribe } = actorMemo().subscribe({
+      next: (emitted: unknown) => {
+        update(emitted);
+      },
+      error: noop,
+      complete: noop
+    });
+    onCleanup(unsubscribe);
+  });
 
   return [snapshot, actorMemo().send];
 }

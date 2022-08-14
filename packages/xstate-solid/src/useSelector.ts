@@ -26,8 +26,7 @@ export function useSelector<
 
   const [selected, update] = createStoreSignal<T, T>(
     actorMemo,
-    getActorSnapshot,
-    false
+    getActorSnapshot
   );
 
   const guardedUpdate = (emitted: TEmitted) => {

@@ -8381,10 +8381,10 @@ solid-jest@^0.1.1:
     babel-jest "^26.6.3"
     enhanced-resolve-jest "^1.1.0"
 
-solid-js@^1.4.1:
-  version "1.4.1"
-  resolved "https://registry.yarnpkg.com/solid-js/-/solid-js-1.4.1.tgz#8714838a59e31695e7e6ecfe69494b1428d2dfb3"
-  integrity sha512-ts480PccmUW9WAludSXET2dbBevjv+l6XMmN/OyG/a/xA8ZQoX4hNBN3gGhW785ZZv90fowbUSuSQUwOISm3YA==
+solid-js@^1.4.8:
+  version "1.4.8"
+  resolved "https://registry.yarnpkg.com/solid-js/-/solid-js-1.4.8.tgz#a1e7f56c17d64c1729c6fd36fe513ca283e78dbd"
+  integrity sha512-XErZdnnYYXF7OwGSUAPcua2y5/ELB/c53zFCpWiEGqxTNoH1iQghzI8EsHJXk06sNn+Z/TGhb8bPDNNGSgimag==
 
 solid-testing-library@^0.3.0:
   version "0.3.0"

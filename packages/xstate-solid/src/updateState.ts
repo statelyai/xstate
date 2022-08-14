@@ -7,17 +7,13 @@ import { reconcile } from 'solid-js/store';
  * Provides granular reactivity for the state of the machine in SolidJS.
  * @param nextState The next state value to update current store with
  * @param setState A Solid store setter
- * @param merge Merge update object with state or replace nested referentially not equal properties
  */
 export function updateState<NextState extends object>(
   nextState: NextState,
-  setState: SetStoreFunction<NextState>,
-  merge: boolean = true
+  setState: SetStoreFunction<NextState>
 ): void {
   if (typeof nextState === 'object' && !!nextState) {
-    setState(
-      reconcile<NextState, unknown>(nextState, { merge })
-    );
+    setState(reconcile<NextState, unknown>(nextState));
   } else {
     setState(nextState);
   }

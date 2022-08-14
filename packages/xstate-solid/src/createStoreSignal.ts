@@ -33,7 +33,6 @@ const getInitialValue = <InitialValue, ReturnValue>(
  * with one hook.
  * @param value The base value to store
  * @param selector A function that accepts value and returns a sub value (or any other value)
- * @param merge Merge update object with state or replace nested referentially not equal properties
  */
 export const createStoreSignal = <
   UpdateValue,
@@ -41,8 +40,7 @@ export const createStoreSignal = <
   InitialValue = unknown
 >(
   value: InitialValue,
-  selector: (val: InitialValue) => SnapshotValue,
-  merge?: boolean
+  selector: (val: InitialValue) => SnapshotValue
 ): [Accessor<SnapshotValue>, (value: UpdateValue) => void] => {
   const initialValue = getInitialValue(value, selector);
   // Stores an object or primitive - gets value from selector if provided
@@ -57,7 +55,7 @@ export const createStoreSignal = <
   createComputed(() => setSnapshot(getSnapshotValue(state)), state);
 
   const update = (updateValue: UpdateValue) => {
-    updateState(setSnapshotValue(updateValue), setState, merge);
+    updateState(setSnapshotValue(updateValue), setState);
   };
   return [snapshot, update];
 };
