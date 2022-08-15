@@ -6,7 +6,7 @@ function App() {
   const [state, send] = useMachine(toggleMachine);
 
   return (
-    <div className="app">
+    <div class="app">
       <h1>XState SolidJS Template</h1>
       <h2>Fork this template!</h2>
       <button onClick={() => send('TOGGLE')}>

@@ -447,3 +447,10 @@ createEffect(() => {
   onCleanup(() => subscription.unsubscribe());
 }); // note: service should never change
 ```
+
+Or by using the [`from` utility](https://www.solidjs.com/docs/latest/api#from)
+
+```js
+
+const serviceState = from(service); // Returns an auto updating signal that subscribes/unsubscribes for you
+```
