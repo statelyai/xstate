@@ -714,12 +714,6 @@ export interface StateNodeConfig<
    */
   tags?: SingleOrArray<string>;
   /**
-   * Whether XState calls actions with the event directly responsible for the related transition.
-   *
-   * @default false
-   */
-  predictableActionArguments?: boolean;
-  /**
    * A text description of the state node
    */
   description?: string;
@@ -1810,7 +1804,13 @@ export type InterpreterFrom<
   any,
   infer TResolvedTypesMeta
 >
-  ? Interpreter<Behavior<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>>
+  ? Interpreter<
+      Behavior<
+        TEvent,
+        State<TContext, TEvent, TResolvedTypesMeta>,
+        State<TContext, TEvent, TResolvedTypesMeta>
+      >
+    >
   : never;
 
 export type MachineImplementationsFrom<
@@ -1957,9 +1957,3 @@ export type TODO = any;
 export type StateValueFrom<TMachine extends AnyStateMachine> = Parameters<
   StateFrom<TMachine>['matches']
 >[0];
-
-export type PredictableActionArgumentsExec = (
-  action: InvokeActionObject | BaseActionObject,
-  context: unknown,
-  _event: SCXML.Event<EventObject>
-) => void;

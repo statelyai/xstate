@@ -13,7 +13,7 @@ import {
   toObserver
 } from '.';
 import { isExecutableAction } from '../actions/ExecutableAction';
-import { doneInvoke, error, initEvent } from './actions';
+import { doneInvoke, error } from './actions';
 import * as actionTypes from './actionTypes';
 import { isActorRef, LifecycleSignal, startSignalType } from './actors';
 import { devToolsAdapter } from './dev';
@@ -182,10 +182,7 @@ export class Interpreter<
     );
   }
 
-  private update(
-    state: InternalStateFrom<TBehavior>,
-    scxmlEvent: SCXML.Event<TEvent>
-  ): void {
+  private update(state: InternalStateFrom<TBehavior>): void {
     // Update state
     this._state = state;
     const snapshot = this.getSnapshot();
@@ -389,7 +386,7 @@ export class Interpreter<
     // TODO: this notifies all subscribers but usually this is redundant
     // if we are using the initialState as `resolvedState` then there is no real change happening here
     // we need to rethink if this needs to be refactored
-    this.update(resolvedState, scxmlEvent);
+    this.update(resolvedState);
 
     if (this.options.devTools) {
       this.attachDevTools();
@@ -446,7 +443,7 @@ export class Interpreter<
 
     const nextState = this._nextState(event);
 
-    this.update(nextState, event);
+    this.update(nextState);
 
     if (event.name === 'xstate.stop') {
       this._stop();

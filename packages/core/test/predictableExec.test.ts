@@ -9,7 +9,6 @@ describe('predictableExec', () => {
     const machine = createMachine({
       initial: 'a',
       context: {},
-      predictableActionArguments: true,
       states: {
         a: {
           on: { NEXT: 'b' }
@@ -37,7 +36,6 @@ describe('predictableExec', () => {
   it('should call initial custom actions when starting a service', () => {
     let called = false;
     const machine = createMachine({
-      predictableActionArguments: true,
       context: {
         initialized: false
       },
@@ -60,7 +58,6 @@ describe('predictableExec', () => {
 
   it('should resolve initial assign actions before starting a service', () => {
     const machine = createMachine({
-      predictableActionArguments: true,
       context: {
         called: false
       },
@@ -77,7 +74,6 @@ describe('predictableExec', () => {
   it('should call raised transition custom actions with raised event', () => {
     let eventArg: any;
     const machine = createMachine({
-      predictableActionArguments: true,
       initial: 'a',
       states: {
         a: {
@@ -107,7 +103,6 @@ describe('predictableExec', () => {
   it('should call raised transition builtin actions with raised event', () => {
     let eventArg: any;
     const machine = createMachine({
-      predictableActionArguments: true,
       context: {},
       initial: 'a',
       states: {
@@ -141,7 +136,6 @@ describe('predictableExec', () => {
   it('should call invoke creator with raised event', () => {
     let eventArg: any;
     const machine = createMachine({
-      predictableActionArguments: true,
       context: {},
       initial: 'a',
       states: {
@@ -175,7 +169,6 @@ describe('predictableExec', () => {
 
   it('invoked child should be available on the new state', () => {
     const machine = createMachine({
-      predictableActionArguments: true,
       context: {},
       initial: 'a',
       states: {
@@ -201,7 +194,6 @@ describe('predictableExec', () => {
 
   it('invoked child should not be available on the state after leaving invoking state', () => {
     const machine = createMachine({
-      predictableActionArguments: true,
       context: {},
       initial: 'a',
       states: {
@@ -233,7 +225,6 @@ describe('predictableExec', () => {
   it('should correctly provide intermediate context value to a custom action executed in between assign actions', () => {
     let calledWith = 0;
     const machine = createMachine({
-      predictableActionArguments: true,
       context: {
         counter: 0
       },
@@ -265,7 +256,6 @@ describe('predictableExec', () => {
     let invokeCounter = 0;
 
     const machine = createMachine({
-      predictableActionArguments: true,
       initial: 'active',
       context: ({ spawn }) => {
         const localId = ++invokeCounter;
@@ -328,7 +318,6 @@ describe('predictableExec', () => {
     let invokeCounter = 0;
 
     const machine = createMachine({
-      predictableActionArguments: true,
       initial: 'active',
       context: ({ spawn }) => {
         const localId = ++invokeCounter;
@@ -389,7 +378,6 @@ describe('predictableExec', () => {
     let invokeCounter = 0;
 
     const machine = createMachine({
-      predictableActionArguments: true,
       initial: 'active',
       context: ({ spawn }) => {
         const localId = ++invokeCounter;
@@ -450,7 +438,6 @@ describe('predictableExec', () => {
     let invokeCounter = 0;
 
     const machine = createMachine({
-      predictableActionArguments: true,
       initial: 'active',
       context: ({ spawn }) => {
         const localId = ++invokeCounter;
@@ -511,7 +498,6 @@ describe('predictableExec', () => {
     let invokeCounter = 0;
 
     const machine = createMachine({
-      predictableActionArguments: true,
       initial: 'inactive',
       states: {
         inactive: {
@@ -559,7 +545,6 @@ describe('predictableExec', () => {
     const actual: number[] = [];
 
     const machine = createMachine({
-      predictableActionArguments: true,
       context: { count: 0 },
       entry: [
         (ctx) => actual.push(ctx.count),
@@ -575,11 +560,10 @@ describe('predictableExec', () => {
     expect(actual).toEqual([0, 1, 2]);
   });
 
-  it('`.nextState()` should not execute actions `predictableActionArguments`', () => {
-    let spy = jest.fn();
+  it('`.nextState()` should not execute actions', () => {
+    const spy = jest.fn();
 
     const machine = createMachine({
-      predictableActionArguments: true,
       on: {
         TICK: {
           actions: spy

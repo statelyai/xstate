@@ -19,7 +19,7 @@ describe('machine.microstep()', () => {
       }
     });
 
-    const state = machine.microstep('first', 'TRIGGER');
+    const state = machine.microstep('first', 'TRIGGER', undefined);
     expect(state.matches('second')).toBeTruthy();
   });
 
@@ -44,7 +44,7 @@ describe('machine.microstep()', () => {
       }
     });
 
-    const state = machine.microstep('first', 'TRIGGER');
+    const state = machine.microstep('first', 'TRIGGER', undefined);
 
     expect(state.matches('second')).toBeTruthy();
     expect(state._internalQueue).toContainEqual(

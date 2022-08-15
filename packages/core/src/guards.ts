@@ -109,9 +109,7 @@ export function evaluateGuard<
   machine: StateMachine<TContext, TEvent>
 ): boolean {
   const guardMeta: GuardMeta<TContext, TEvent> = {
-    state: (!machine.config.predictableActionArguments
-      ? state
-      : undefined) as any,
+    state,
     guard,
     _event,
     evaluate: evaluateGuard

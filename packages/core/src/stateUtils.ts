@@ -31,8 +31,7 @@ import {
   HistoryValue,
   InitialTransitionConfig,
   InitialTransitionDefinition,
-  MachineContext,
-  PredictableActionArgumentsExec
+  MachineContext
 } from './types';
 import { State } from './State';
 import {
@@ -1091,8 +1090,7 @@ function exitStates<
 >(
   transitions: Array<TransitionDefinition<TContext, TEvent>>,
   mutConfiguration: Set<StateNode<TContext, TEvent>>,
-  state: State<TContext, TEvent>,
-  actorCtx: ActorContext<any, any> | undefined
+  state: State<TContext, TEvent>
 ) {
   const statesToExit = computeExitSet(transitions, mutConfiguration, state);
   const actions: BaseActionObject[] = [];
@@ -1124,8 +1122,7 @@ export function enterStates<
 >(
   transitions: Array<TransitionDefinition<TContext, TEvent>>,
   mutConfiguration: Set<StateNode<TContext, TEvent>>,
-  state: State<TContext, TEvent>,
-  actorCtx: ActorContext<any, any> | undefined
+  state: State<TContext, TEvent>
 ) {
   const statesToInvoke: typeof mutConfiguration = new Set();
   const internalQueue: Array<SCXML.Event<TEvent>> = [];
@@ -1430,8 +1427,7 @@ export function microstep<
     const { historyValue: exitHistoryValue, actions: exitActions } = exitStates(
       filteredTransitions,
       mutConfiguration,
-      currentState,
-      actorCtx
+      currentState
     );
 
     actions.push(...exitActions);
@@ -1447,8 +1443,7 @@ export function microstep<
   const res = enterStates(
     filteredTransitions,
     mutConfiguration,
-    currentState || State.from({}),
-    actorCtx
+    currentState || State.from({})
   );
 
   // Start invocations

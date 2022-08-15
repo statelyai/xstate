@@ -45,8 +45,7 @@ import type {
   StateConfig,
   StateNodeDefinition,
   StateValue,
-  Transitions,
-  PredictableActionArgumentsExec
+  Transitions
 } from './types';
 import { isBuiltInEvent, isFunction, toSCXMLEvent } from './utils';
 
@@ -413,20 +412,6 @@ export class StateMachine<
           >);
     state.machine = this;
     return state;
-  }
-
-  public getActions(
-    state: State<TContext, TEvent, TResolvedTypesMeta>,
-    _actorCtx: ActorContext<TEvent, State<TContext, TEvent, any>>
-  ): Array<() => void> {
-    const actionFns = [];
-    state.actions.forEach((action) => {
-      actionFns.push(() => {
-        execAction(action, state, _actorCtx);
-      });
-    });
-
-    return actionFns;
   }
 
   /**@deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
