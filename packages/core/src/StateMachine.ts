@@ -317,7 +317,9 @@ export class StateMachine<
    * The initial state _before_ evaluating any microsteps.
    * This "pre-initial" state is provided to initial actions executed in the initial state.
    */
-  private get preInitialState(): State<TContext, TEvent, TResolvedTypesMeta> {
+  private getPreInitialState(
+    actorCtx: ActorContext<any, any> | undefined
+  ): State<TContext, TEvent, TResolvedTypesMeta> {
     const [context, actions] = this.getContextAndActions();
     const preInitial = this.resolveState(
       State.from(
@@ -327,6 +329,12 @@ export class StateMachine<
     );
     preInitial._initial = true;
     preInitial.actions.unshift(...actions);
+
+    if (actorCtx?.exec) {
+      for (const action of actions) {
+        execAction(action, preInitial, actorCtx);
+      }
+    }
 
     setChildren(preInitial.children, actions);
 
@@ -347,7 +355,7 @@ export class StateMachine<
   public getInitialState(
     actorCtx?: ActorContext<TEvent, State<TContext, TEvent>>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    const { preInitialState } = this;
+    const preInitialState = this.getPreInitialState(actorCtx);
     const nextState = resolveMicroTransition(
       this,
       [],

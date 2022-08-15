@@ -1458,7 +1458,6 @@ export function microstep<
     )
   );
   actions.push(...invokeActions);
-
   actions.push(...res.actions);
 
   const nextConfiguration = [...mutConfiguration];
@@ -1745,10 +1744,10 @@ export function resolveActionsAndContext<
 
         context = resolvedActionObject.params.context;
         preservedContexts.push(resolvedActionObject.params.context);
-        resolvedActions.push(
-          resolvedActionObject,
-          ...resolvedActionObject.params.actions
-        );
+        resolvedActions.push(resolvedActionObject);
+        for (const spawnAction of resolvedActionObject.params.actions) {
+          resolveAction(spawnAction);
+        }
       } else {
         const resolvedActionObject = executableActionObject.resolve(
           executableActionObject,

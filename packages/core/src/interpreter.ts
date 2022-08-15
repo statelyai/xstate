@@ -182,26 +182,6 @@ export class Interpreter<
     );
   }
 
-  /**
-   * Executes the actions of the given state, with that state's `context` and `event`.
-   *
-   * @param state The state whose actions will be executed
-   */
-  private execute(
-    state: SnapshotFrom<TBehavior>,
-    scxmlEvent: SCXML.Event<TEvent>
-  ): void {
-    const actions = this.machine.getActions?.(
-      state,
-      this._getActorContext(scxmlEvent)
-    );
-    if (actions) {
-      for (const actionFn of actions) {
-        actionFn();
-      }
-    }
-  }
-
   private update(
     state: InternalStateFrom<TBehavior>,
     scxmlEvent: SCXML.Event<TEvent>
@@ -209,15 +189,6 @@ export class Interpreter<
     // Update state
     this._state = state;
     const snapshot = this.getSnapshot();
-
-    // Execute actions
-    if (isStateLike(state)) {
-      for (const action of state.actions) {
-        if (action.type === actionTypes.invoke) {
-          execAction(action, state, this._getActorContext(scxmlEvent));
-        }
-      }
-    }
 
     for (const listener of this.listeners) {
       listener(snapshot);
@@ -720,7 +691,7 @@ export function execAction(
 
   const { _event } = state;
 
-  if (isExecutableAction(action)) {
+  if (isExecutableAction(action) && action.type !== actionTypes.invoke) {
     try {
       return action.execute(state);
     } catch (err) {
