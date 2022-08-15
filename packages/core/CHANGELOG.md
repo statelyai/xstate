@@ -1,5 +1,11 @@
 # xstate
 
+## 4.33.2
+
+### Patch Changes
+
+- [#3523](https://github.com/statelyai/xstate/pull/3523) [`129bcf927`](https://github.com/statelyai/xstate/commit/129bcf927e065d8d8a1a3425fa13b62c930a4727) Thanks [@Andarist](https://github.com/Andarist)! - Fixed a regression that caused child actors not being correctly stopped when their parent reached a final state.
+
 ## 4.33.1
 
 ### Patch Changes
