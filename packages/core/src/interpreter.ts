@@ -369,6 +369,7 @@ export class Interpreter<
         listener(doneInvoke(this.id, doneData));
       }
       this._stop();
+      this._stopChildren();
     }
   }
   /*
@@ -550,6 +551,15 @@ export class Interpreter<
     });
     return this;
   }
+  private _stopChildren() {
+    // TODO: think about converting those to actions
+    this.children.forEach((child) => {
+      if (isFunction(child.stop)) {
+        child.stop();
+      }
+    });
+    this.children.clear();
+  }
   private _stop() {
     for (const listener of this.listeners) {
       this.listeners.delete(listener);
@@ -658,15 +668,7 @@ export class Interpreter<
       });
 
       this.update(nextState, _event);
-
-      // TODO: think about converting those to actions
-      // Stop all children
-      this.children.forEach((child) => {
-        if (isFunction(child.stop)) {
-          child.stop();
-        }
-      });
-      this.children.clear();
+      this._stopChildren();
 
       registry.free(this.sessionId);
     });
