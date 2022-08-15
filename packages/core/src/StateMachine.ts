@@ -258,7 +258,7 @@ export class StateMachine<
     const currentState = toState(state, this);
     const scxmlEvent = toSCXMLEvent(event);
 
-    const nextState = macrostep(currentState, scxmlEvent, this);
+    const nextState = macrostep(currentState, scxmlEvent, this, actorCtx);
     nextState._sessionid = actorCtx?.sessionId ?? currentState._sessionid;
 
     return nextState;
@@ -275,7 +275,7 @@ export class StateMachine<
     state: StateValue | State<TContext, TEvent, TResolvedTypesMeta> = this
       .initialState,
     event: Event<TEvent> | SCXML.Event<TEvent>,
-    predictableExec?: PredictableActionArgumentsExec
+    actorCtx: ActorContext<any, any> | undefined
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const resolvedState = toState(state, this);
     const _event = toSCXMLEvent(event);
@@ -301,7 +301,7 @@ export class StateMachine<
       this,
       transitions,
       resolvedState,
-      predictableExec,
+      actorCtx,
       _event
     );
   }
@@ -348,13 +348,21 @@ export class StateMachine<
     actorCtx?: ActorContext<TEvent, State<TContext, TEvent>>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const { preInitialState } = this;
-    const nextState = resolveMicroTransition(this, [], preInitialState);
+    const nextState = resolveMicroTransition(
+      this,
+      [],
+      preInitialState,
+      actorCtx
+    );
     nextState.actions.unshift(...preInitialState.actions);
 
     // TODO: remove use of null; use xstate.init instead
-    const macroState = macrostep(nextState, null as any, this) as StateFrom<
-      typeof this
-    >;
+    const macroState = macrostep(
+      nextState,
+      null as any,
+      this,
+      actorCtx
+    ) as StateFrom<typeof this>;
     macroState.changed = undefined;
     macroState._sessionid = actorCtx?.sessionId;
     return macroState;
@@ -403,11 +411,14 @@ export class StateMachine<
     state: State<TContext, TEvent, TResolvedTypesMeta>,
     _actorCtx: ActorContext<TEvent, State<TContext, TEvent, any>>
   ): Array<() => void> {
-    return state.actions.map((action) => {
-      return () => {
+    const actionFns = [];
+    state.actions.forEach((action) => {
+      actionFns.push(() => {
         execAction(action, state, _actorCtx);
-      };
+      });
     });
+
+    return actionFns;
   }
 
   /**@deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */

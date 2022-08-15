@@ -13,7 +13,7 @@ import {
   toObserver
 } from '.';
 import { isExecutableAction } from '../actions/ExecutableAction';
-import { doneInvoke, error } from './actions';
+import { doneInvoke, error, initEvent } from './actions';
 import * as actionTypes from './actionTypes';
 import { isActorRef, LifecycleSignal, startSignalType } from './actors';
 import { devToolsAdapter } from './dev';
@@ -209,8 +209,15 @@ export class Interpreter<
     // Update state
     this._state = state;
     const snapshot = this.getSnapshot();
+
     // Execute actions
-    this.execute(snapshot, scxmlEvent);
+    if (isStateLike(state)) {
+      for (const action of state.actions) {
+        if (action.type === actionTypes.invoke) {
+          execAction(action, state, this._getActorContext(scxmlEvent));
+        }
+      }
+    }
 
     for (const listener of this.listeners) {
       listener(snapshot);
@@ -363,19 +370,38 @@ export class Interpreter<
     registry.register(this.sessionId, this.ref);
     this.status = InterpreterStatus.Running;
 
-    let resolvedState = (initialState === undefined
-      ? this.initialState
-      : isStateConfig(initialState)
-      ? // TODO: fix these types
-        ((this.machine as unknown) as AnyStateMachine).resolveState(
+    let resolvedState;
+
+    if (initialState === undefined) {
+      resolvedState = this.initialState;
+    } else {
+      if (isStateConfig(initialState)) {
+        // TODO: fix these types
+        resolvedState = ((this
+          .machine as unknown) as AnyStateMachine).resolveState(
           initialState as any
-        )
-      : ((this.machine as unknown) as AnyStateMachine).resolveState(
+        );
+      } else {
+        resolvedState = ((this
+          .machine as unknown) as AnyStateMachine).resolveState(
           State.from(
             initialState as any, // TODO: fix type
             ((this.machine as unknown) as AnyStateMachine).context
           )
-        )) as InternalStateFrom<TBehavior>;
+        );
+      }
+
+      // Re-execute actions
+      if (isStateLike(resolvedState)) {
+        for (const action of resolvedState.actions) {
+          execAction(
+            action,
+            resolvedState,
+            this._getActorContext(toSCXMLEvent({ type: 'xstate.init' }))
+          );
+        }
+      }
+    }
 
     const scxmlEvent = isStateLike(resolvedState)
       ? (resolvedState as AnyState)._event
@@ -411,7 +437,10 @@ export class Interpreter<
       name: this.id ?? 'todo',
       _event: scxmlEvent,
       sessionId: this.sessionId,
-      logger: this.logger
+      logger: this.logger,
+      exec: (fn) => {
+        fn();
+      }
     };
   }
 
@@ -438,11 +467,13 @@ export class Interpreter<
         });
       } else {
         this.stop();
+
+        // TODO: improve this
         throw event.data.data;
       }
     }
 
-    const nextState = this.nextState(event);
+    const nextState = this._nextState(event);
 
     this.update(nextState, event);
 
@@ -561,6 +592,14 @@ export class Interpreter<
   public nextState(
     event: TEvent | SCXML.Event<TEvent> | LifecycleSignal
   ): InternalStateFrom<TBehavior> {
+    return this.machine.transition(this._state, event, {
+      ...this._getActorContext(toSCXMLEvent(event)),
+      exec: undefined
+    });
+  }
+  private _nextState(
+    event: TEvent | SCXML.Event<TEvent> | LifecycleSignal
+  ): InternalStateFrom<TBehavior> {
     return this.machine.transition(
       this._state,
       event,
@@ -589,7 +628,12 @@ export class Interpreter<
   public defer(sendAction: SendActionObject): void {
     this.delayedEventsMap[sendAction.params.id] = this.clock.setTimeout(() => {
       if (sendAction.params.to) {
-        sendTo(sendAction.params._event, sendAction.params.to, this);
+        sendTo(
+          sendAction.params._event,
+          sendAction.params.to,
+          this.getSnapshot(),
+          this
+        );
       } else {
         this.send(sendAction.params._event as SCXML.Event<TEvent>);
       }
@@ -662,8 +706,12 @@ export function interpret(machine: any, options?: InterpreterOptions): any {
 export function execAction(
   action: InvokeActionObject | BaseActionObject,
   state: AnyState,
-  actorContext: ActorContext<any, any>
+  actorContext: ActorContext<any, any> | undefined
 ): void {
+  if (!actorContext) {
+    return;
+  }
+
   const interpreter = actorContext.self as AnyInterpreter;
 
   if (!isStateLike(state)) {
@@ -738,7 +786,12 @@ function getActionFunction<TState extends AnyState>(
           return;
         } else {
           if (sendAction.params.to) {
-            sendTo(sendAction.params._event, sendAction.params.to, interpreter);
+            sendTo(
+              sendAction.params._event,
+              sendAction.params.to,
+              state,
+              interpreter
+            );
           } else {
             interpreter.send(sendAction.params._event as SCXML.Event<any>);
           }
@@ -765,7 +818,7 @@ function getActionFunction<TState extends AnyState>(
         // If the actor didn't end up being in the state
         // (eg. going through transient states could stop it) don't bother starting the actor.
         if (!state.children[id]) {
-          return;
+          state.children[id] = ref;
         }
         try {
           if (autoForward) {
@@ -801,10 +854,10 @@ function getActionFunction<TState extends AnyState>(
 function sendTo(
   event: SCXML.Event<AnyEventObject>,
   to: string | ActorRef<any>,
+  state: AnyState,
   interpreter: AnyInterpreter
 ) {
   const isParent = interpreter._parent && to === SpecialTargets.Parent;
-  const state = interpreter.getSnapshot() as AnyState;
   const target = isParent
     ? interpreter._parent
     : isActorRef(to)

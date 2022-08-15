@@ -2,7 +2,7 @@ import { createMachine, interpret, assign } from '../src';
 import { raise, stop } from '../src/actions';
 import { fromCallback } from '../src/actors';
 
-describe.skip('predictableExec', () => {
+describe('predictableExec', () => {
   it('should call mixed custom and builtin actions in the definitions order', () => {
     const actual: string[] = [];
 
@@ -196,7 +196,7 @@ describe.skip('predictableExec', () => {
     const service = interpret(machine).start();
     service.send({ type: 'NEXT' });
 
-    expect(service.state.children.myChild).toBeDefined();
+    expect(service.getSnapshot().children.myChild).toBeDefined();
   });
 
   it('invoked child should not be available on the state after leaving invoking state', () => {
@@ -227,7 +227,7 @@ describe.skip('predictableExec', () => {
     service.send({ type: 'NEXT' });
     service.send({ type: 'NEXT' });
 
-    expect(service.state.children.myChild).not.toBeDefined();
+    expect(service.getSnapshot().children.myChild).not.toBeDefined();
   });
 
   it('should correctly provide intermediate context value to a custom action executed in between assign actions', () => {
@@ -277,7 +277,8 @@ describe.skip('predictableExec', () => {
               return () => {
                 actual.push(`stop ${localId}`);
               };
-            })
+            }),
+            'callback-1'
           )
         };
       },
@@ -286,7 +287,9 @@ describe.skip('predictableExec', () => {
           on: {
             update: {
               actions: [
-                stop((ctx: any) => ctx.actorRef),
+                stop((ctx: any) => {
+                  return ctx.actorRef;
+                }),
                 assign({
                   actorRef: (_ctx, _ev, { spawn }) => {
                     const localId = ++invokeCounter;
@@ -297,7 +300,8 @@ describe.skip('predictableExec', () => {
                         return () => {
                           actual.push(`stop ${localId}`);
                         };
-                      })
+                      }),
+                      'callback-2'
                     );
                   }
                 })

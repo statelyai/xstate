@@ -58,7 +58,8 @@ import {
 } from '../actions/ExecutableAction';
 import type { StateNode } from './StateNode';
 import { isDynamicAction } from '../actions/dynamicAction';
-import { AnyState, AnyStateMachine } from '.';
+import { ActorContext, AnyState, AnyStateMachine } from '.';
+import { execAction } from './interpreter';
 
 type Configuration<
   TContext extends MachineContext,
@@ -1090,7 +1091,8 @@ function exitStates<
 >(
   transitions: Array<TransitionDefinition<TContext, TEvent>>,
   mutConfiguration: Set<StateNode<TContext, TEvent>>,
-  state: State<TContext, TEvent>
+  state: State<TContext, TEvent>,
+  actorCtx: ActorContext<any, any> | undefined
 ) {
   const statesToExit = computeExitSet(transitions, mutConfiguration, state);
   const actions: BaseActionObject[] = [];
@@ -1122,7 +1124,8 @@ export function enterStates<
 >(
   transitions: Array<TransitionDefinition<TContext, TEvent>>,
   mutConfiguration: Set<StateNode<TContext, TEvent>>,
-  state: State<TContext, TEvent>
+  state: State<TContext, TEvent>,
+  actorCtx: ActorContext<any, any> | undefined
 ) {
   const statesToInvoke: typeof mutConfiguration = new Set();
   const internalQueue: Array<SCXML.Event<TEvent>> = [];
@@ -1149,7 +1152,8 @@ export function enterStates<
 
     if (mutStatesForDefaultEntry.has(stateNodeToEnter)) {
       mutStatesForDefaultEntry.forEach((stateNode) => {
-        actions.push(...stateNode.initial!.actions);
+        const initialActions = stateNode.initial!.actions;
+        actions.push(...initialActions);
       });
     }
     // if (defaultHistoryContent[s.id]) {
@@ -1401,7 +1405,7 @@ export function microstep<
   mutConfiguration: Set<StateNode<TContext, TEvent>>,
   machine: StateMachine<TContext, TEvent>,
   _event: SCXML.Event<TEvent>,
-  predictableExec?: PredictableActionArgumentsExec
+  actorCtx: ActorContext<any, any> | undefined
 ): {
   actions: BaseActionObject[];
   configuration: typeof mutConfiguration;
@@ -1426,7 +1430,8 @@ export function microstep<
     const { historyValue: exitHistoryValue, actions: exitActions } = exitStates(
       filteredTransitions,
       mutConfiguration,
-      currentState
+      currentState,
+      actorCtx
     );
 
     actions.push(...exitActions);
@@ -1435,36 +1440,36 @@ export function microstep<
 
   // Transition
   const transitionActions = flatten(filteredTransitions.map((t) => t.actions));
+
   actions.push(...transitionActions);
 
   // Enter states
   const res = enterStates(
     filteredTransitions,
     mutConfiguration,
-    currentState || State.from({})
+    currentState || State.from({}),
+    actorCtx
   );
 
   // Start invocations
-  actions.push(
-    ...flatten(
-      [...res.statesToInvoke].map((s) =>
-        s.invoke.map((invokeDef) => invoke(invokeDef))
-      )
+  const invokeActions = flatten(
+    [...res.statesToInvoke].map((s) =>
+      s.invoke.map((invokeDef) => invoke(invokeDef))
     )
   );
+  actions.push(...invokeActions);
 
   actions.push(...res.actions);
 
   const nextConfiguration = [...mutConfiguration];
 
   if (isInFinalState(nextConfiguration)) {
-    actions.push(
-      ...flatten(
-        nextConfiguration
-          .sort((a, b) => b.order - a.order)
-          .map((state) => state.exit)
-      )
+    const finalActions = flatten(
+      nextConfiguration
+        .sort((a, b) => b.order - a.order)
+        .map((state) => state.exit)
     );
+    actions.push(...finalActions);
   }
 
   try {
@@ -1478,7 +1483,7 @@ export function microstep<
       _event,
       currentState,
       context,
-      predictableExec
+      actorCtx
     );
 
     internalQueue.push(...res.internalQueue);
@@ -1560,7 +1565,7 @@ export function resolveMicroTransition<
   machine: StateMachine<TContext, TEvent, any, any, any>,
   transitions: Transitions<TContext, TEvent>,
   currentState: State<TContext, TEvent, any>,
-  predictableExec?: PredictableActionArgumentsExec,
+  actorCtx: ActorContext<any, any> | undefined,
   _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>
 ): State<TContext, TEvent, any> {
   // Transition will "apply" if:
@@ -1593,7 +1598,7 @@ export function resolveMicroTransition<
     new Set(prevConfig),
     machine,
     _event,
-    predictableExec
+    actorCtx
   );
 
   if (!currentState._initial && !willTransition) {
@@ -1669,6 +1674,16 @@ export function setChildren<
   });
 }
 
+export function executeContent(
+  actions: BaseActionObject[],
+  state: AnyState,
+  actorCtx: ActorContext<any, any> | undefined
+) {
+  for (const action of actions) {
+    execAction(action, state, actorCtx);
+  }
+}
+
 export function resolveActionsAndContext<
   TContext extends MachineContext,
   TEvent extends EventObject
@@ -1676,9 +1691,9 @@ export function resolveActionsAndContext<
   actions: BaseActionObject[],
   machine: StateMachine<TContext, TEvent, any, any, any>,
   _event: SCXML.Event<TEvent>,
-  currentState: State<TContext, TEvent, any> | undefined,
+  currentState: State<TContext, TEvent, any>,
   context: TContext,
-  predictableExec?: PredictableActionArgumentsExec
+  actorCtx: ActorContext<any, any> | undefined
 ): {
   actions: typeof actions;
   raised: Array<RaiseActionObject<TEvent>>;
@@ -1754,15 +1769,9 @@ export function resolveActionsAndContext<
           raiseActions.push(resolvedActionObject);
         } else {
           resolvedActions.push(resolvedActionObject);
-          if (
-            predictableExec &&
-            resolvedActionObject.type !== actionTypes.invoke
-          ) {
-            predictableExec(
-              resolvedActionObject,
-              preservedContexts[preservedContexts.length - 1],
-              _event
-            );
+          // TODO: only using actorCtx.exec as a flag to execute; actually use it for execution
+          if (actorCtx?.exec) {
+            execAction(resolvedActionObject, currentState, actorCtx);
           }
         }
       }
@@ -1783,12 +1792,18 @@ export function resolveActionsAndContext<
 
       resolvedActions.push(actionExec);
     }
-
-    if (predictableExec) {
-      predictableExec(
-        resolvedActions[resolvedActions.length - 1],
-        preservedContexts[preservedContexts.length - 1],
-        _event
+    const resolvedAction = resolvedActions[resolvedActions.length - 1];
+    // TODO: only using actorCtx.exec as a flag to execute; actually use it for execution
+    if (actorCtx?.exec) {
+      execAction(
+        resolvedAction,
+        {
+          ...currentState,
+          context: preservedContexts[preservedContexts.length - 1],
+          _event,
+          event: _event.data
+        } as any,
+        actorCtx
       );
     }
   }
@@ -1812,11 +1827,11 @@ export function macrostep<TMachine extends AnyStateMachine>(
   state: StateFromMachine<TMachine>,
   scxmlEvent: SCXML.Event<TMachine['__TEvent']>,
   machine: TMachine,
-  predictableExec?: PredictableActionArgumentsExec
+  actorCtx: ActorContext<any, any> | undefined
 ): typeof state {
   // Handle stop event
   if (scxmlEvent?.name === 'xstate.stop') {
-    return stopStep(state, machine);
+    return stopStep(state, machine, actorCtx);
   }
 
   // Assume the state is at rest (no raised events)
@@ -1824,7 +1839,7 @@ export function macrostep<TMachine extends AnyStateMachine>(
   const nextState =
     scxmlEvent === null
       ? state
-      : machine.microstep(state, scxmlEvent, predictableExec);
+      : machine.microstep(state, scxmlEvent, actorCtx);
 
   const { _internalQueue } = nextState;
   let maybeNextState = nextState;
@@ -1853,7 +1868,7 @@ export function macrostep<TMachine extends AnyStateMachine>(
         maybeNextState = machine.microstep(
           maybeNextState,
           internalEvent as any,
-          predictableExec
+          actorCtx
         );
 
         _internalQueue.push(...maybeNextState._internalQueue);
@@ -1868,7 +1883,7 @@ export function macrostep<TMachine extends AnyStateMachine>(
         machine,
         eventlessTransitions,
         maybeNextState,
-        predictableExec,
+        actorCtx,
         maybeNextState._event
       );
       _internalQueue.push(...maybeNextState._internalQueue);
@@ -1990,7 +2005,11 @@ export function getTagsFromConfiguration(
   return new Set(flatten(configuration.map((sn) => sn.tags)));
 }
 
-function stopStep(state: AnyState, machine: AnyStateMachine): typeof state {
+function stopStep(
+  state: AnyState,
+  machine: AnyStateMachine,
+  actorCtx: ActorContext<any, any> | undefined
+): typeof state {
   const stopScxmlEvent = toSCXMLEvent({ type: 'xstate.stop' });
   const stoppedState = new State(state);
 
@@ -2017,7 +2036,8 @@ function stopStep(state: AnyState, machine: AnyStateMachine): typeof state {
     machine,
     stoppedState._event,
     stoppedState,
-    stoppedState.context
+    stoppedState.context,
+    actorCtx
   );
 
   stoppedState.actions = actions;

@@ -1851,6 +1851,7 @@ export interface ActorContext<TEvent extends EventObject, TSnapshot> {
   _event: SCXML.Event<TEvent | LifecycleSignal>;
   sessionId: string;
   logger: (...args: any[]) => void;
+  exec: ((fn: () => void) => void) | undefined;
 }
 
 export interface Behavior<
