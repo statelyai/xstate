@@ -98,10 +98,6 @@ export const SomeComponent = (props) => {
 };
 ```
 
-## Other hooks
-
-`@xstate/solid` `useMachine` and `useInterpret` hooks can be used alongside others. Two patterns are most common:
-
 ### Named actions/services/guards
 
 Let's imagine that when you navigate to a certain state, you want to leave the page and go somewhere else, via `solid-app-router`. For now, we'll declare that action as a 'named' action - where we name it now and declare it later.

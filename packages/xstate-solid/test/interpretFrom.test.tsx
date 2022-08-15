@@ -1,10 +1,9 @@
 /* @jsxImportSource solid-js */
-import { createMachine } from 'xstate';
+import { createMachine, interpret } from 'xstate';
 import { render, fireEvent, screen } from 'solid-testing-library';
-import { createService } from '../src';
-import { createEffect, onMount } from 'solid-js';
+import { createEffect, from } from 'solid-js';
 
-describe('createService', () => {
+describe('useInterpret', () => {
   it('observer should be called with initial state', (done) => {
     const machine = createMachine({
       initial: 'inactive',
@@ -19,13 +18,12 @@ describe('createService', () => {
     });
 
     const App = () => {
-      const service = createService(machine);
+      const service = interpret(machine).start();
+      const serviceState = from(service);
 
-      onMount(() => {
-        service.subscribe((state) => {
-          expect(state.matches('inactive')).toBeTruthy();
-          done();
-        });
+      createEffect(() => {
+        expect(serviceState().matches('inactive')).toBeTruthy();
+        done();
       });
 
       return null;
@@ -48,14 +46,12 @@ describe('createService', () => {
     });
 
     const App = () => {
-      const service = createService(machine);
-
+      const service = interpret(machine).start();
+      const serviceState = from(service);
       createEffect(() => {
-        service.subscribe((state) => {
-          if (state.matches('active')) {
-            done();
-          }
-        });
+        if (serviceState().matches('active')) {
+          done();
+        }
       });
 
       return (
@@ -88,14 +84,13 @@ describe('createService', () => {
     });
 
     const App = () => {
-      const service = createService(machine);
+      const service = interpret(machine).start();
+      const serviceState = from(service);
 
       createEffect(() => {
-        service.subscribe((state) => {
-          if (state.matches('active')) {
-            done();
-          }
-        });
+        if (serviceState().matches('active')) {
+          done();
+        }
       });
 
       return (
