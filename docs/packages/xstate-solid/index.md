@@ -103,9 +103,9 @@ const [state, send] = useActor(customActor, (actor) => {
 });
 ```
 
-### `createService(machine, options?, observer?)`
+### `createService(machine, options?)`
 
-A SolidJS hook that returns the `service` created from the `machine` with the `options`, if specified. It starts the service and runs it for the lifetime of the component. This is similar to `useMachine`; however, `createService` allows for a custom `observer` to subscribe to the `service`.
+A SolidJS hook that returns the `service` created from the `machine` with the `options`, if specified. It starts the service and runs it for the lifetime of the component. This is similar to `useMachine`.
 
 `createService` returns a static reference (to just the interpreted machine) which will not rerender when its state changes.
 
@@ -115,9 +115,6 @@ To use a piece of state from the service inside a render, use the `useSelector(.
 
 - `machine` - An [XState machine](https://xstate.js.org/docs/guides/machines.html) or a function that lazily returns a machine.
 - `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `immediate`, `context`, `state`.
-- `observer` (optional) - an observer or listener that listens to state updates:
-  - an observer (e.g., `{ next: (state) => {/* ... */} }`)
-  - or a listener (e.g., `(state) => {/* ... */}`)
 
 ```js
 import { createService } from '@xstate/solid';
@@ -130,7 +127,7 @@ const App = () => {
 };
 ```
 
-With options + listener:
+With options:
 
 ```js
 // ...
@@ -142,10 +139,6 @@ const App = () => {
       actions: {
         /* ... */
       }
-    },
-    (state) => {
-      // subscribes to state changes
-      console.log(state);
     }
   );
 
