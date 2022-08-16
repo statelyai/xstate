@@ -57,7 +57,7 @@
     "@types/node": "^12.11.1",
     "@types/use-subscription": "^1.0.0",
     "@vue/compiler-sfc": "^3.0.11",
-    "@vue/vue3-jest": "^26.0.1",
+    "@vue/vue3-jest": "^28.1.0",
     "babel-jest": "^26",
     "gh-pages": "^2.0.1",
     "husky": "^3.1.0",

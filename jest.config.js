@@ -19,10 +19,7 @@ module.exports = {
       transform: {
         '^typescript$': 'babel-jest',
         '^tsx?$': 'babel-jest'
-      },
-      // https://github.com/vuejs/vue-jest/issues/431
-      // redirect tsconfig lookup elsewhere so vue-jest doesn't attempt to load ts-jest at all
-      tsConfig: os.tmpdir()
+      }
     }
   },
   watchPlugins: [
