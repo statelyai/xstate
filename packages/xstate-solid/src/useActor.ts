@@ -49,7 +49,7 @@ export function useActor(
   );
 
   const [state, update] = createStore({
-    snapshot: getSnapshot(actorMemo()),
+    snapshot: getSnapshot(actorMemo())
   });
 
   createEffect(() => {

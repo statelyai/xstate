@@ -1,45 +1,8 @@
-import type {
-  AnyStateMachine,
-  InterpreterOptions,
-  AreAllImplementationsAssumedToBeProvided,
-  InternalMachineOptions,
-  InterpreterFrom,
-  StateFrom
-} from 'xstate';
+import type { AnyStateMachine, StateFrom } from 'xstate';
 import { createStore, reconcile } from 'solid-js/store';
-import type { UseMachineOptions, Prop } from './types';
+import type { RestParams, UseMachineReturn } from './types';
 import { createService } from './createService';
 import { batch, onCleanup, onMount } from 'solid-js';
-
-type RestParams<
-  TMachine extends AnyStateMachine
-> = AreAllImplementationsAssumedToBeProvided<
-  TMachine['__TResolvedTypesMeta']
-> extends false
-  ? [
-      options: InterpreterOptions &
-        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
-        InternalMachineOptions<
-          TMachine['__TContext'],
-          TMachine['__TEvent'],
-          TMachine['__TResolvedTypesMeta'],
-          true
-        >
-    ]
-  : [
-      options?: InterpreterOptions &
-        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
-        InternalMachineOptions<
-          TMachine['__TContext'],
-          TMachine['__TEvent'],
-          TMachine['__TResolvedTypesMeta']
-        >
-    ];
-
-export type UseMachineReturn<
-  TMachine extends AnyStateMachine,
-  TInterpreter = InterpreterFrom<TMachine>
-> = [StateFrom<TMachine>, Prop<TInterpreter, 'send'>, TInterpreter];
 
 export function useMachine<TMachine extends AnyStateMachine>(
   machine: TMachine,
@@ -82,10 +45,5 @@ export function useMachine<TMachine extends AnyStateMachine>(
     onCleanup(unsubscribe);
   });
 
-  return [
-    // States are readonly by default, make downstream typing easier by casting away from DeepReadonly wrapper
-    (state as unknown) as StateFrom<TMachine>,
-    service.send,
-    service
-  ] as UseMachineReturn<TMachine>;
+  return [state, service.send, service] as UseMachineReturn<TMachine>;
 }
