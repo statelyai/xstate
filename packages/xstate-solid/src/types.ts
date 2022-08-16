@@ -20,12 +20,12 @@ interface UseMachineOptions<TContext, TEvent extends EventObject> {
   state?: StateConfig<TContext, TEvent>;
 }
 
+type Prop<T, K> = K extends keyof T ? T[K] : never;
+
 export type UseMachineReturn<
   TMachine extends AnyStateMachine,
   TInterpreter = InterpreterFrom<TMachine>
 > = [StateFrom<TMachine>, Prop<TInterpreter, 'send'>, TInterpreter];
-
-export type Prop<T, K> = K extends keyof T ? T[K] : never;
 
 export type RestParams<
   TMachine extends AnyStateMachine
