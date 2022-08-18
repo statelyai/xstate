@@ -3,7 +3,7 @@ import { createMachine, interpret } from 'xstate';
 import { render, fireEvent, screen } from 'solid-testing-library';
 import { createEffect, from } from 'solid-js';
 
-describe('useInterpret', () => {
+describe("usage of interpret from core with Solid's from", () => {
   it('observer should be called with initial state', (done) => {
     const machine = createMachine({
       initial: 'inactive',

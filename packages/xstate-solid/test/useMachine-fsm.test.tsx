@@ -1,12 +1,7 @@
 /* @jsxImportSource solid-js */
 import { useMachine } from '../src/fsm';
 import { createMachine, assign, interpret, StateMachine } from '@xstate/fsm';
-import {
-  screen,
-  render,
-  fireEvent,
-  waitFor
-} from 'solid-testing-library';
+import { screen, render, fireEvent, waitFor } from 'solid-testing-library';
 import {
   createEffect,
   createSignal,

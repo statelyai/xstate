@@ -4,20 +4,23 @@ import { createMachine, assign, interpret, StateMachine } from '@xstate/fsm';
 import { render, fireEvent, screen } from 'solid-testing-library';
 import { Component, createSignal } from 'solid-js';
 
+afterEach(() => jest.clearAllMocks());
+
 describe('useService hook for fsm', () => {
-  const counterMachine = () => createMachine<{ count: number }>({
-    id: 'counter',
-    initial: 'active',
-    context: { count: 0 },
-    states: {
-      active: {
-        on: {
-          INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) },
-          SOMETHING: { actions: 'doSomething' }
+  const counterMachine = () =>
+    createMachine<{ count: number }>({
+      id: 'counter',
+      initial: 'active',
+      context: { count: 0 },
+      states: {
+        active: {
+          on: {
+            INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) },
+            SOMETHING: { actions: 'doSomething' }
+          }
         }
       }
-    }
-  });
+    });
 
   it('should share a single service instance', () => {
     const counterService = interpret(counterMachine()).start();
@@ -55,9 +58,7 @@ describe('useService hook for fsm', () => {
     const counterService2 = interpret(counterMachine()).start();
 
     const Counter = (props) => {
-      const [state, send] = useService(
-        props.counterRef
-      );
+      const [state, send] = useService(props.counterRef);
 
       return (
         <div>
@@ -125,15 +126,15 @@ describe('useService hook for fsm', () => {
 
   it('service should warn when reusing the same machine instance - reusing will result in shared context', () => {
     // tslint:disable-next-line:no-console
-    const warn = jest.spyOn(console, "warn").mockImplementation(message => console.log(message));
+    jest
+      .spyOn(console, 'warn')
+      .mockImplementation((message) => console.log(message));
     const sameMachine = counterMachine();
     const counterService1 = interpret(sameMachine).start();
     const counterService2 = interpret(sameMachine).start();
 
     const Counter = (props) => {
-      const [state, send] = useService(
-        props.counterRef
-      );
+      const [state, send] = useService(props.counterRef);
 
       return (
         <div>
@@ -167,8 +168,11 @@ describe('useService hook for fsm', () => {
     expect(countEl.textContent).toBe('1');
     fireEvent.click(changeServiceButton);
     expect(countEl.textContent).toBe('1');
-    expect(warn).toBeCalled();
-    warn.mockRestore();
+    expect(console.warn).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'Reusing an FSM machine will cause unexpected state changes in @xstate/solid.\n' +
+          'Use a factory function to reuse a machine: `const newMachine = () => createMachine(...some machine config)`'
+      )
+    );
   });
-
 });

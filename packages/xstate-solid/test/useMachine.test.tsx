@@ -10,12 +10,7 @@ import {
   createMachine,
   send as xsend
 } from 'xstate';
-import {
-  render,
-  screen,
-  waitFor,
-  fireEvent
-} from 'solid-testing-library';
+import { render, screen, waitFor, fireEvent } from 'solid-testing-library';
 import { DoneEventObject } from 'xstate';
 import {
   createEffect,

@@ -48,5 +48,5 @@ export function useSelector<
     )
   );
 
-  return createMemo(() => state.snapshot);
+  return () => state.snapshot;
 }

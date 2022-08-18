@@ -53,7 +53,7 @@ export function useActor(
   });
 
   createEffect(() => {
-    update('snapshot', reconcile(getSnapshot(actorMemo())));
+    update('snapshot', getSnapshot(actorMemo()));
     const { unsubscribe } = actorMemo().subscribe({
       next: (emitted: unknown) => {
         update('snapshot', reconcile(emitted));
@@ -64,5 +64,5 @@ export function useActor(
     onCleanup(unsubscribe);
   });
 
-  return [createMemo(() => state.snapshot), actorMemo().send];
+  return [() => state.snapshot, actorMemo().send];
 }
