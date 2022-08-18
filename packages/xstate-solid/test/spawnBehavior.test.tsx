@@ -4,7 +4,7 @@ import { render, fireEvent, screen } from 'solid-testing-library';
 import { fromReducer } from 'xstate/src/behaviors';
 import { spawnBehavior } from 'xstate';
 
-describe('useSpawn', () => {
+describe("usage with core's spawnBehavior", () => {
   it('should be able to spawn an actor from a behavior', () => {
     const reducer = (state: number, event: { type: 'INC' }): number => {
       if (event.type === 'INC') {
