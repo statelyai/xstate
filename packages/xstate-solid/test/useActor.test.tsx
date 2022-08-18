@@ -545,6 +545,83 @@ describe('useActor', () => {
     });
   });
 
+  it('referenced object in context should not update both services', (done) => {
+    const latestValue = { value: 100 };
+    interface Context {
+      latestValue: { value: number };
+    }
+    const machine = createMachine<Context, { type: 'INC' }>({
+      initial: 'initial',
+      context: {
+        latestValue
+      },
+      states: {
+        initial: {
+          on: {
+            INC: {
+              actions: [
+                assign({
+                  latestValue: (ctx: Context) => ({
+                    value: ctx.latestValue.value + 1
+                  })
+                })
+              ]
+            }
+          }
+        }
+      }
+    });
+
+    const Test = () => {
+      const service1 = interpret(machine).start();
+      const service2 = interpret(machine).start();
+      const [state1, send1] = useActor(service1);
+      const [state2, send2] = useActor(service2);
+
+      return (
+        <div>
+          <div>
+            <button data-testid="inc-machine1" onclick={() => send1('INC')}>
+              INC 1
+            </button>
+            <div data-testid="value-machine1">
+              {state1().context.latestValue.value}
+            </div>
+          </div>
+          <div>
+            <button data-testid="inc-machine2" onclick={() => send2('INC')}>
+              INC 1
+            </button>
+            <div data-testid="value-machine2">
+              {state2().context.latestValue.value}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    render(() => <Test />);
+
+    const machine1Value = screen.getByTestId('value-machine1');
+    const machine2Value = screen.getByTestId('value-machine2');
+    const incMachine1 = screen.getByTestId('inc-machine1');
+    const incMachine2 = screen.getByTestId('inc-machine2');
+
+    expect(machine1Value.textContent).toEqual('100');
+    expect(machine2Value.textContent).toEqual('100');
+
+    fireEvent.click(incMachine1);
+
+    expect(machine1Value.textContent).toEqual('101');
+    expect(machine2Value.textContent).toEqual('100');
+
+    fireEvent.click(incMachine2);
+
+    expect(machine1Value.textContent).toEqual('101');
+    expect(machine2Value.textContent).toEqual('101');
+    done();
+  });
+
   it('should work with initially deferred actors spawned in lazy context', () => {
     const childMachine = createMachine({
       initial: 'one',

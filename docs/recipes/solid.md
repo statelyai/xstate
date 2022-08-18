@@ -48,7 +48,7 @@ export const GlobalStateProvider = (props) => {
 };
 ```
 
-> For Typescript, you can create the context as `createContext({ authService: {} as UseMachineReturn<typeof authMachine> });` to ensure strong typings.
+> For Typescript 4.7+, you can create the context as `createContext({ authService: {} as ReturnType<typeof useMachine<typeof authMachine>> });` to ensure strong typings.
 
 ### Utilizing context
 
@@ -81,29 +81,6 @@ export const SomeComponent = (props) => {
     authService: [, send]
   } = useContext(GlobalStateContext);
   return <button onClick={() => send('LOG_OUT')}>Log Out</button>;
-};
-```
-
-### Selectors
-
-`useSelector` is useful for accessing the context of an actor, optionally providing a custom update comparison function, and getting a snapshot.
-
-```js
-import { useContext } from 'solid-js';
-import { GlobalStateContext } from './globalState';
-import { useSelector } from '@xstate/solid';
-
-export const SomeComponent = (props) => {
-  const {
-    authService: [state]
-  } = useContext(GlobalStateContext);
-  const user = useSelector(
-    state.context.someUserActor,
-    (actor) => actor.context,
-    (a) => a.username !== undefined
-  );
-
-  return <>{user().username ? 'Logged In' : 'Logged Out'}</>;
 };
 ```
 

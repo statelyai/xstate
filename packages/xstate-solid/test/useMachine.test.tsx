@@ -1,20 +1,21 @@
 /* @jsxImportSource solid-js */
 import { useMachine, useActor } from '../src';
 import {
-  Machine,
   assign,
   Interpreter,
   spawn,
   doneInvoke,
   State,
   createMachine,
-  send as xsend
+  send as xsend,
+  interpret
 } from 'xstate';
 import { render, screen, waitFor, fireEvent } from 'solid-testing-library';
 import { DoneEventObject } from 'xstate';
 import {
   createEffect,
   createSignal,
+  from,
   Match,
   mergeProps,
   on,
@@ -30,7 +31,7 @@ describe('useMachine hook', () => {
   const context = {
     data: undefined
   };
-  const fetchMachine = Machine<
+  const fetchMachine = createMachine<
     typeof context,
     { type: 'FETCH' } | DoneEventObject
   >({
@@ -167,7 +168,7 @@ describe('useMachine hook', () => {
   });
 
   it('should merge machine context with options.context', () => {
-    const testMachine = Machine<{ foo: string; test: boolean }>({
+    const testMachine = createMachine<{ foo: string; test: boolean }>({
       context: {
         foo: 'bar',
         test: false
@@ -193,7 +194,7 @@ describe('useMachine hook', () => {
   });
 
   it('should not spawn actors until service is started', (done) => {
-    const spawnMachine = Machine<any>({
+    const spawnMachine = createMachine<any>({
       id: 'spawn',
       initial: 'start',
       context: { ref: undefined },
@@ -232,7 +233,7 @@ describe('useMachine hook', () => {
   });
 
   it('actions should not have stale data', (done) => {
-    const toggleMachine = Machine<any, { type: 'TOGGLE' }>({
+    const toggleMachine = createMachine<any, { type: 'TOGGLE' }>({
       initial: 'inactive',
       states: {
         inactive: {
@@ -1119,6 +1120,81 @@ describe('useMachine hook', () => {
 
     expect(screen.getByTestId('result').textContent).toBe('b');
   });
+
+  it('referenced object in context should not update both machines', (done) => {
+    const latestValue = { value: 100 };
+    interface Context {
+      latestValue: { value: number };
+    }
+    const machine = createMachine<Context, { type: 'INC' }>({
+      initial: 'initial',
+      context: {
+        latestValue
+      },
+      states: {
+        initial: {
+          on: {
+            INC: {
+              actions: [
+                assign({
+                  latestValue: (ctx: Context) => ({
+                    value: ctx.latestValue.value + 1
+                  })
+                })
+              ]
+            }
+          }
+        }
+      }
+    });
+
+    const Test = () => {
+      const [state1, send1] = useMachine(machine);
+      const [state2, send2] = useMachine(machine);
+
+      return (
+        <div>
+          <div>
+            <button data-testid="inc-machine1" onclick={() => send1('INC')}>
+              INC 1
+            </button>
+            <div data-testid="value-machine1">
+              {state1.context.latestValue.value}
+            </div>
+          </div>
+          <div>
+            <button data-testid="inc-machine2" onclick={() => send2('INC')}>
+              INC 1
+            </button>
+            <div data-testid="value-machine2">
+              {state2.context.latestValue.value}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    render(() => <Test />);
+
+    const machine1Value = screen.getByTestId('value-machine1');
+    const machine2Value = screen.getByTestId('value-machine2');
+    const incMachine1 = screen.getByTestId('inc-machine1');
+    const incMachine2 = screen.getByTestId('inc-machine2');
+
+    expect(machine1Value.textContent).toEqual('100');
+    expect(machine2Value.textContent).toEqual('100');
+
+    fireEvent.click(incMachine1);
+
+    expect(machine1Value.textContent).toEqual('101');
+    expect(machine2Value.textContent).toEqual('100');
+
+    fireEvent.click(incMachine2);
+
+    expect(machine1Value.textContent).toEqual('101');
+    expect(machine2Value.textContent).toEqual('101');
+    done();
+  });
 });
 
 describe('useMachine (strict mode)', () => {
@@ -1183,7 +1259,7 @@ describe('useMachine (strict mode)', () => {
   });
 
   it('custom data should be available right away for the invoked actor', (done) => {
-    const childMachine = Machine({
+    const childMachine = createMachine({
       initial: 'intitial',
       context: {
         value: 100
@@ -1193,7 +1269,7 @@ describe('useMachine (strict mode)', () => {
       }
     });
 
-    const machine = Machine({
+    const machine = createMachine({
       initial: 'active',
       states: {
         active: {
@@ -1225,7 +1301,7 @@ describe('useMachine (strict mode)', () => {
   it('delayed transitions should work when initializing from a rehydrated state', () => {
     jest.useFakeTimers();
     try {
-      const testMachine = Machine<any, { type: 'START' }>({
+      const testMachine = createMachine<any, { type: 'START' }>({
         id: 'app',
         initial: 'idle',
         states: {

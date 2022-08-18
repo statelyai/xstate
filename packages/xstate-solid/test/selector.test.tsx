@@ -1,9 +1,8 @@
 /* @jsxImportSource solid-js */
-import { ActorRefFrom, assign, createMachine, interpret, spawn } from 'xstate';
-import { toActorRef } from 'xstate/lib/Actor';
+import { ActorRefFrom, assign, createMachine, spawn, State } from 'xstate';
 import { render, fireEvent, screen } from 'solid-testing-library';
-import { useActor, createService, useMachine, useSelector } from '../src';
-import { Component, createSignal } from 'solid-js';
+import { useActor, createService, useMachine } from '../src';
+import { Component, createMemo, createSignal, from } from 'solid-js';
 
 describe('useSelector', () => {
   it('only rerenders for selected values', () => {
@@ -30,13 +29,14 @@ describe('useSelector', () => {
 
     const App = () => {
       const service = createService(machine);
-      const count = useSelector(service, (state) => state.context.count);
+      const serviceState = from(service);
 
+      const selector = (state) => state.context.count;
       rerenders++;
 
       return (
         <div>
-          <div data-testid="count">{count}</div>
+          <div data-testid="count">{selector(serviceState())}</div>
           <button data-testid="other" onclick={() => service.send('OTHER')} />
           <button
             data-testid="increment"
@@ -85,10 +85,11 @@ describe('useSelector', () => {
 
     const App = () => {
       const service = createService(machine);
-      const name = useSelector(
-        service,
-        (state) => state.context.name,
-        (a, b) => a.toUpperCase() === b.toUpperCase()
+      const serviceState = from(service);
+      const name = createMemo(
+        () => serviceState().context.name,
+        serviceState(),
+        { equals: (a, b) => a.toUpperCase() === b.toUpperCase() }
       );
 
       return (
@@ -141,7 +142,9 @@ describe('useSelector', () => {
       }
     });
 
-    const parentMachine = createMachine({
+    const parentMachine = createMachine<{
+      childActor: ActorRefFrom<typeof childMachine>;
+    }>({
       entry: assign({
         childActor: () => spawn(childMachine)
       })
@@ -151,15 +154,14 @@ describe('useSelector', () => {
 
     const App = () => {
       const [state] = useMachine(parentMachine);
-      const actor = state.context.childActor;
-      const count = useSelector(actor, selector);
+      const [actorState, actorSend] = useActor(state.context.childActor);
 
       return (
         <div>
-          <div data-testid="count">{count}</div>
+          <div data-testid="count">{selector(actorState())}</div>
 
           <button
-            onclick={() => actor.send({ type: 'UPDATE_COUNT' })}
+            onclick={() => actorSend({ type: 'UPDATE_COUNT' })}
             data-testid="button"
           />
         </div>
@@ -190,7 +192,9 @@ describe('useSelector', () => {
       }
     });
 
-    const parentMachine = createMachine({
+    const parentMachine = createMachine<{
+      childActor: ActorRefFrom<typeof childMachine>;
+    }>({
       entry: assign({
         childActor: () => spawn(childMachine)
       })
@@ -199,12 +203,13 @@ describe('useSelector', () => {
 
     const App = () => {
       const [state] = useMachine(parentMachine);
-      const actor = state.context.childActor;
-      const value = useSelector(
-        actor,
-        (actorState) => `${prop()} ${actorState.context.count}`
+      const value = (stateValue: State<any>) =>
+        `${prop()} ${stateValue.context.count}`;
+      return (
+        <div data-testid="value">
+          {value(state.context.childActor.getSnapshot())}
+        </div>
       );
-      return <div data-testid="value">{value()}</div>;
     };
 
     const { container } = render(() => <App />);
@@ -254,14 +259,11 @@ describe('useSelector', () => {
 
     const App = () => {
       const [state, send] = useMachine(machine);
-      const count = useSelector(
-        () => state.context.actorRef,
-        (actorState) => actorState.context.count
-      );
-
       return (
         <div>
-          <div data-testid="count">{count}</div>
+          <div data-testid="count">
+            {state.context.actorRef.state.context.count}
+          </div>
           <button data-testid="change-actor" onclick={() => send('CHANGE')} />
         </div>
       );
@@ -326,11 +328,13 @@ describe('useSelector', () => {
     const Child: Component<{ actorRef: ActorRefFrom<typeof childMachine> }> = (
       props
     ) => {
-      const [, send] = useActor(props.actorRef);
-      const actorContext = useSelector(
-        props.actorRef,
-        (actorState) => actorState.context,
-        (a, b) => a.items.wins === b.items.wins
+      const [state, send] = useActor(props.actorRef);
+      const actorContext = createMemo(
+        () => {
+          return state().context;
+        },
+        undefined,
+        { equals: (a, b) => a.items.wins === b.items.wins }
       );
 
       return (
@@ -382,7 +386,9 @@ describe('useSelector', () => {
       }
     });
 
-    const parentMachine = createMachine({
+    const parentMachine = createMachine<{
+      childActor: ActorRefFrom<typeof childMachine>;
+    }>({
       entry: assign({
         childActor: () => spawn(childMachine)
       })
@@ -391,15 +397,12 @@ describe('useSelector', () => {
 
     const App = () => {
       const [state] = useMachine(parentMachine);
-      const actor = state.context.childActor;
-      const value = useSelector(
-        actor,
-        (actorState) => `${prop()} ${actorState.context.count}`
-      );
+      const [actorState, actorSend] = useActor(state.context.childActor);
+      const value = createMemo(() => `${prop()} ${actorState().context.count}`);
       return (
         <div>
           <div data-testid="value">{value()}</div>
-          <button onclick={() => actor.send({ type: 'INC' })} />
+          <button onclick={() => actorSend({ type: 'INC' })} />
         </div>
       );
     };
@@ -415,82 +418,5 @@ describe('useSelector', () => {
     fireEvent.click(buttonEl);
 
     expect(valueEl.textContent).toEqual('second 1');
-  });
-
-  it("should render snapshot value when actor doesn't emit anything", () => {
-    const createActor = (latestValue: string) => ({
-      ...toActorRef({
-        send: () => {
-          // noop
-        },
-        subscribe: () => {
-          return {
-            unsubscribe: () => {
-              // noop
-            }
-          };
-        }
-      }),
-      latestValue
-    });
-
-    const parentMachine = createMachine({
-      entry: assign({
-        childActor: () => spawn(createActor('foo'))
-      })
-    });
-
-    const identitySelector = (value: any) => value;
-    const getSnapshot = (actor: ReturnType<typeof createActor>) =>
-      actor.latestValue;
-
-    const App = () => {
-      const [state] = useMachine(parentMachine);
-      const actor = state.context.childActor;
-
-      const value = useSelector(
-        actor,
-        identitySelector,
-        undefined,
-        getSnapshot
-      );
-
-      return <>{value}</>;
-    };
-
-    const { container } = render(() => <App />);
-    expect(container.textContent).toEqual('foo');
-  });
-
-  it('should only rerender once when the selected value changes', () => {
-    const selector = (state: any) => state.context.foo;
-
-    const machine = createMachine<{ foo: number }, { type: 'INC' }>({
-      context: {
-        foo: 0
-      },
-      on: {
-        INC: {
-          actions: assign({
-            foo: (context) => ++context.foo
-          })
-        }
-      }
-    });
-
-    const service = interpret(machine).start();
-
-    let renders = 0;
-
-    const App = () => {
-      ++renders;
-      useSelector(service, selector);
-
-      return null;
-    };
-
-    render(() => <App />);
-
-    expect(renders).toBe(1);
   });
 });

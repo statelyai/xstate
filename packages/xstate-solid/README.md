@@ -109,8 +109,6 @@ A SolidJS hook that returns the `service` created from the `machine` with the `o
 
 `createService` returns a static reference (to just the interpreted machine) which will not rerender when its state changes.
 
-To use a piece of state from the service inside a render, use the `useSelector(...)` hook to subscribe to it.
-
 **Arguments**
 
 - `machine` - An [XState machine](https://xstate.js.org/docs/guides/machines.html) or a function that lazily returns a machine.
@@ -138,67 +136,6 @@ const App = () => {
       /* ... */
     }
   });
-
-  // ...
-};
-```
-
-### `useSelector(actor, selector, compare?, getSnapshot?)`
-
-A SolidJS hook that returns the selected value from the snapshot of an `actor`, such as a service. This hook will only cause a rerender if the selected value changes, as determined by the optional `compare` function.
-
-**Arguments**
-
-- `actor` - a service or an actor-like object that contains `.send(...)` and `.subscribe(...)` methods. Allows [SolidJS Signal](https://www.solidjs.com/docs/latest/api#createsignal) (or function) to dynamically specify a service or actor.
-- `selector` - a function that takes in an actor's "current state" (snapshot) as an argument and returns the desired selected value.
-- `compare` (optional) - a function that determines if the current selected value is the same as the previous selected value.
-- `getSnapshot` (optional) - a function that should return the latest emitted value from the `actor`.
-  - Defaults to attempting to get the `actor.state`, or returning `undefined` if that does not exist. Will automatically pull the state from services.
-
-**Returns**
-
-- [SolidJS Signal](https://www.solidjs.com/docs/latest/api#createsignal) with the selected value.
-
-```js
-import { useSelector } from '@xstate/solid';
-
-// Selectors can be defined outside or inside the component
-const selectCount = (state) => state.context.count;
-
-const App = (props) => {
-  const count = useSelector(props.service, selectCount);
-
-  count(); // the product of the selector
-  // ...
-};
-```
-
-With `compare` function:
-
-```js
-// ...
-
-const selectUser = (state) => state.context.user;
-const compareUser = (prevUser, nextUser) => prevUser.id === nextUser.id;
-
-const App = (props) => {
-  const user = useSelector(props.service, selectUser, compareUser);
-
-  // ...
-};
-```
-
-With `createService(...)`:
-
-```js
-import { createService, useSelector } from '@xstate/solid';
-import { someMachine } from '../path/to/someMachine';
-
-const selectCount = (state) => state.context.count;
-
-const App = (props) => {
-  const service = createService(someMachine);
-  const count = useSelector(service, selectCount);
 
   // ...
 };
