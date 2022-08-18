@@ -133,14 +133,11 @@ With options:
 // ...
 
 const App = () => {
-  const service = createService(
-    someMachine,
-    {
-      actions: {
-        /* ... */
-      }
+  const service = createService(someMachine, {
+    actions: {
+      /* ... */
     }
-  );
+  });
 
   // ...
 };
@@ -444,6 +441,5 @@ createEffect(() => {
 Or by using the [`from` utility](https://www.solidjs.com/docs/latest/api#from)
 
 ```js
-
 const serviceState = from(service); // Returns an auto updating signal that subscribes/unsubscribes for you
 ```

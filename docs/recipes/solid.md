@@ -27,7 +27,9 @@ function Toggle() {
 ## Global State in Context
 
 ### Context Provider
+
 You can store a machine or service in [SolidJS context](https://www.solidjs.com/docs/latest/api#createcontext) to make them available throughout the component tree. Because @xstate/solid produces machines, actors, and services with SolidJS' fine-grained reactivity, you can access machine context and methods (e.g. `matches` or `can`) without worrying about wasted re-renders
+
 ```js
 import { createContext } from 'solid-js';
 import { useMachine } from '@xstate/solid';
@@ -57,7 +59,9 @@ import { useContext } from 'solid-js';
 import { GlobalStateContext } from './globalState';
 
 export const SomeComponent = (props) => {
-  const {authService: [state]} = useContext(GlobalStateContext);
+  const {
+    authService: [state]
+  } = useContext(GlobalStateContext);
   return <>{state.matches('loggedIn') ? 'Logged In' : 'Logged Out'}</>;
 };
 ```
@@ -73,14 +77,13 @@ import { useContext } from 'solid-js';
 import { GlobalStateContext } from './globalState';
 
 export const SomeComponent = (props) => {
-  const {authService: [,send]} = useContext(GlobalStateContext);
-  return (
-    <button onClick={() => send('LOG_OUT')}>
-      Log Out
-    </button>
-  );
+  const {
+    authService: [, send]
+  } = useContext(GlobalStateContext);
+  return <button onClick={() => send('LOG_OUT')}>Log Out</button>;
 };
 ```
+
 ### Selectors
 
 `useSelector` is useful for accessing the context of an actor, optionally providing a custom update comparison function, and getting a snapshot.
@@ -91,8 +94,14 @@ import { GlobalStateContext } from './globalState';
 import { useSelector } from '@xstate/solid';
 
 export const SomeComponent = (props) => {
-  const {authService: [state]} = useContext(GlobalStateContext);
-  const user = useSelector(state.context.someUserActor, actor => actor.context, (a) => a.username !== undefined);
+  const {
+    authService: [state]
+  } = useContext(GlobalStateContext);
+  const user = useSelector(
+    state.context.someUserActor,
+    (actor) => actor.context,
+    (a) => a.username !== undefined
+  );
 
   return <>{user().username ? 'Logged In' : 'Logged Out'}</>;
 };
@@ -148,16 +157,18 @@ This also works for services, guards, and delays.
 
 ### Syncing data with createEffect
 
-Sometimes, you want to outsource some functionality to another hook. 
+Sometimes, you want to outsource some functionality to another hook.
 
 The best way to manage this is via `createEffect`.
 
 ```js
-import {createResource, createEffect} from 'solid-js';
-import {useMachine} from '@xstate/solid';
+import { createResource, createEffect } from 'solid-js';
+import { useMachine } from '@xstate/solid';
 
 const Component = () => {
-  const [result, { mutate, refetch }] = createResource(() => fetch('/api/user').then(r => r.json()));
+  const [result, { mutate, refetch }] = createResource(() =>
+    fetch('/api/user').then((r) => r.json())
+  );
   const [state, send] = useMachine(machine);
 
   createEffect(() => {
