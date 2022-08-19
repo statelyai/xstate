@@ -4,7 +4,7 @@ import { render, fireEvent, screen } from 'solid-testing-library';
 import { useActor, createService, useMachine } from '../src';
 import { Component, createMemo, createSignal, from } from 'solid-js';
 
-describe('useSelector', () => {
+describe('usage of selectors with reactive service state', () => {
   it('only rerenders for selected values', () => {
     const machine = createMachine<{ count: number; other: number }>({
       initial: 'active',
