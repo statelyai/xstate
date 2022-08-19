@@ -75,7 +75,7 @@ A SolidJS hook that interprets the given `machine` and starts a service that run
   const [state, send] = useMachine(machine);
   ```
 
-- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `immediate`, `context`, `state`.
+- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `context`, `state`.
 
 **Returns** a tuple of `[state, send, service]`:
 
@@ -83,24 +83,16 @@ A SolidJS hook that interprets the given `machine` and starts a service that run
 - `send` - A function that sends events to the running service.
 - `service` - The created service.
 
-### `useActor(actor, getSnapshot?)`
+### `useActor(actor)`
 
 A SolidJS hook that subscribes to emitted changes from an existing [actor](https://xstate.js.org/docs/guides/actors.html).
 
 **Arguments**
 
 - `actor` - an actor-like object that contains `.send(...)` and `.subscribe(...)` methods. Allows [SolidJS Signal](https://www.solidjs.com/docs/latest/api#createsignal) (or function) to dynamically specify an actor.
-- `getSnapshot` - a function that should return the latest emitted value from the `actor`.
-  - Defaults to attempting to get the `actor.state`, or returning `undefined` if that does not exist.
 
 ```js
 const [state, send] = useActor(someSpawnedActor);
-
-// with custom actors
-const [state, send] = useActor(customActor, (actor) => {
-  // implementation-specific pseudocode example:
-  return actor.getLastEmittedValue();
-});
 ```
 
 ### `createService(machine, options?)`

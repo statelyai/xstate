@@ -17,43 +17,29 @@ const noop = () => {
   /* ... */
 };
 
-export function defaultGetSnapshot<TEmitted>(
-  actorRef: ActorRef<any, TEmitted>
-): TEmitted | object {
-  return 'getSnapshot' in actorRef
-    ? actorRef.getSnapshot()
-    : isActorWithState(actorRef)
-    ? actorRef.state
-    : {};
-}
-
 type ActorReturn<T> = Accessor<T>;
+
 export function useActor<TActor extends ActorRef<any, any>>(
-  actorRef: Accessor<TActor> | TActor,
-  getSnapshot?: (actor: TActor) => EmittedFromActorRef<TActor>
+  actorRef: Accessor<TActor> | TActor
 ): [ActorReturn<EmittedFromActorRef<TActor>>, TActor['send']];
 export function useActor<TEvent extends EventObject, TEmitted>(
-  actorRef: Accessor<ActorRef<TEvent, TEmitted>> | ActorRef<TEvent, TEmitted>,
-  getSnapshot?: (actor: ActorRef<TEvent, TEmitted>) => TEmitted
+  actorRef: Accessor<ActorRef<TEvent, TEmitted>> | ActorRef<TEvent, TEmitted>
 ): [ActorReturn<TEmitted>, Sender<TEvent>];
 export function useActor(
   actorRef:
     | Accessor<ActorRef<EventObject, unknown>>
-    | ActorRef<EventObject, unknown>,
-  getSnapshot: (
-    actor: ActorRef<EventObject, unknown>
-  ) => unknown = defaultGetSnapshot
+    | ActorRef<EventObject, unknown>
 ): [ActorReturn<unknown>, Sender<EventObject>] {
   const actorMemo = createMemo<ActorRef<EventObject, unknown>>(
     typeof actorRef === 'function' ? actorRef : () => actorRef
   );
 
   const [state, update] = createStore({
-    snapshot: getSnapshot(actorMemo())
+    snapshot: actorMemo().getSnapshot()
   });
 
   createEffect(() => {
-    update('snapshot', getSnapshot(actorMemo()));
+    update('snapshot', actorMemo().getSnapshot());
     const { unsubscribe } = actorMemo().subscribe({
       next: (emitted: unknown) => {
         update('snapshot', reconcile(emitted));
