@@ -103,7 +103,7 @@ Wildcard transitions are useful for logging untracked events and reducing code d
 
 ## Actors, actions and invocations
 
-Statecharts are executable code. When you run a statechart, it becomes an actor; a running process that can receive messages, send messages and change its behavior based on the messages it receives, causing effects outside the machine.
+A statechart is an executable model of an actor. When you run a statechart, it becomes an actor; a running process that can receive messages, send messages and change its behavior based on the messages it receives, which can cause effects outside of the actor.
 
 While the statechart actor is running, it can run other processes called actions.
 
