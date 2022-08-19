@@ -171,51 +171,6 @@ describe('useService hook for fsm', () => {
     expect(countEl.textContent).toBe('0');
   });
 
-  it('service should be updated when it changes shallow 2', () => {
-    const counterService1 = interpret(counterMachine).start();
-    const counterService2 = interpret(counterMachine).start();
-
-    const Counter = (props: {
-      counterRef:
-        | Accessor<typeof counterService1>
-        | Accessor<typeof counterService2>;
-    }) => {
-      const [state, send] = useService(props.counterRef);
-
-      return (
-        <div>
-          <button data-testid="inc" onclick={(_) => send({ type: 'INC' })} />
-          <div data-testid="count">{state.context.count}</div>
-        </div>
-      );
-    };
-    const CounterParent = () => {
-      const [service, setService] = createSignal(counterService1);
-
-      return (
-        <div>
-          <button
-            data-testid="change-service"
-            onclick={() => setService(counterService2)}
-          />
-          <Counter counterRef={service} />
-        </div>
-      );
-    };
-
-    render(() => <CounterParent />);
-
-    const changeServiceButton = screen.getByTestId('change-service');
-    const incButton = screen.getByTestId('inc');
-    const countEl = screen.getByTestId('count');
-
-    expect(countEl.textContent).toBe('0');
-    fireEvent.click(incButton);
-    expect(countEl.textContent).toBe('1');
-    fireEvent.click(changeServiceButton);
-    expect(countEl.textContent).toBe('0');
-  });
-
   it('service should be able to be used from useMachine', () => {
     const CounterDisplay: Component<{
       service: StateMachine.Service<any, any>;
