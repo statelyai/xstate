@@ -11,7 +11,15 @@ import { interpret, createMachine } from '@xstate/fsm';
 import { createStore, reconcile } from 'solid-js/store';
 import type { Accessor } from 'solid-js';
 
-import { $PROXY, batch, createEffect, on, onCleanup, onMount } from 'solid-js';
+import {
+  $PROXY,
+  batch,
+  createEffect,
+  createMemo,
+  on,
+  onCleanup,
+  onMount
+} from 'solid-js';
 
 const getServiceState = <
   TContext extends object,
@@ -64,26 +72,28 @@ export function useMachine<TMachine extends StateMachine.AnyMachine>(
 }
 
 export function useService<TService extends StateMachine.AnyService>(
-  service: Accessor<TService>
-): [StateFrom<TService>, TService['send'], TService] {
-  const serviceState = getServiceState(service());
-  const [state, setState] = createStore(serviceState);
+  service: TService | Accessor<TService>
+): TService {
+  const serviceMemo = createMemo(() =>
+    typeof service === 'function' ? service() : service
+  );
+  const [state, setState] = createStore(getServiceState(serviceMemo()));
 
-  const send = (event: TService['send']) => service().send(event);
+  const send = (event: TService['send']) => serviceMemo().send(event);
 
   createEffect(
-    on(service, (_, prev) => {
+    on(serviceMemo, (_, prev) => {
       if (prev) {
-        checkReusedService(getServiceState(service()));
+        checkReusedService(getServiceState(serviceMemo()));
       }
-      const { unsubscribe } = service().subscribe((nextState) => {
+      const { unsubscribe } = serviceMemo().subscribe((nextState) => {
         setState(reconcile<typeof nextState, typeof nextState>(nextState));
       });
       onCleanup(unsubscribe);
     })
   );
 
-  return [state, send, service()] as any;
+  return [state, send, serviceMemo()] as any;
 }
 
 function checkReusedService(serviceState: StateMachine.State<any, any, any>) {
