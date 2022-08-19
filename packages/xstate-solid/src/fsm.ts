@@ -73,7 +73,7 @@ export function useMachine<TMachine extends StateMachine.AnyMachine>(
 
 export function useService<TService extends StateMachine.AnyService>(
   service: TService | Accessor<TService>
-): TService {
+): [StateFrom<TService>, TService['send'], TService] {
   const serviceMemo = createMemo(() =>
     typeof service === 'function' ? service() : service
   );

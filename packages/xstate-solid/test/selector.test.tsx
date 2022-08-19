@@ -1,5 +1,13 @@
 /* @jsxImportSource solid-js */
-import { ActorRefFrom, assign, createMachine, spawn, State } from 'xstate';
+import {
+  ActorRefFrom,
+  AnyState,
+  assign,
+  createMachine,
+  InterpreterFrom,
+  spawn,
+  State
+} from 'xstate';
 import { render, fireEvent, screen } from 'solid-testing-library';
 import { useActor, createService, useMachine } from '../src';
 import { Component, createMemo, createSignal, from } from 'solid-js';
@@ -203,11 +211,11 @@ describe('usage of selectors with reactive service state', () => {
 
     const App = () => {
       const [state] = useMachine(parentMachine);
-      const value = (stateValue: State<any>) =>
+      const value = (stateValue: AnyState) =>
         `${prop()} ${stateValue.context.count}`;
       return (
         <div data-testid="value">
-          {value(state.context.childActor.getSnapshot())}
+          {value(state.context.childActor.getSnapshot()!)}
         </div>
       );
     };
@@ -231,12 +239,10 @@ describe('usage of selectors with reactive service state', () => {
         }
       });
 
-    const machine = createMachine<{
-      actorRef?: ActorRefFrom<typeof childMachine>;
-    }>({
+    const machine = createMachine({
       initial: 'active',
       context: {
-        actorRef: undefined
+        actorRef: (undefined as any) as ActorRefFrom<typeof childMachine>
       },
       states: {
         active: {
@@ -262,7 +268,7 @@ describe('usage of selectors with reactive service state', () => {
       return (
         <div>
           <div data-testid="count">
-            {state.context.actorRef.state.context.count}
+            {state.context.actorRef!.state.context.count}
           </div>
           <button data-testid="change-actor" onclick={() => send('CHANGE')} />
         </div>
@@ -349,7 +355,7 @@ describe('usage of selectors with reactive service state', () => {
     const App = () => {
       const [state] = useMachine(machine);
 
-      return <Child actorRef={state.context.actorRef} />;
+      return <Child actorRef={state.context.actorRef!} />;
     };
 
     render(() => <App />);

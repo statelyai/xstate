@@ -326,37 +326,7 @@ describe('useActor', () => {
     render(() => <Test />);
   });
 
-  it('actor should provide snapshot value immediately', () => {
-    const simpleActor = toActorRef({
-      send: () => {
-        /* ... */
-      },
-      latestValue: 42,
-      subscribe: () => {
-        return {
-          unsubscribe: () => {
-            /* ... */
-          }
-        };
-      }
-    }) as ActorRef<any, number> & {
-      latestValue: number;
-    };
-
-    const Test = () => {
-      const [state] = useActor(simpleActor, (a) => a.latestValue);
-
-      return <div data-testid="state">{state()}</div>;
-    };
-
-    render(() => <Test />);
-
-    const div = screen.getByTestId('state');
-
-    expect(div.textContent).toEqual('42');
-  });
-
-  it('should provide value from `actor.getSnapshot()`', () => {
+  it('should provide value from `actor.getSnapshot()` immediately', () => {
     const simpleActor = toActorRef({
       id: 'test',
       send: () => {
@@ -391,7 +361,7 @@ describe('useActor', () => {
         send: () => {
           /* ... */
         },
-        latestValue: value,
+        getSnapshot: () => value,
         subscribe: () => {
           return {
             unsubscribe: () => {
@@ -399,11 +369,11 @@ describe('useActor', () => {
             }
           };
         }
-      }) as ActorRef<any> & { latestValue: number };
+      }) as ActorRef<any, any>;
 
     const Test = () => {
       const [actor, setActor] = createSignal(createSimpleActor(42));
-      const [state] = useActor(actor, (a) => a.latestValue);
+      const [state] = useActor(actor);
 
       return (
         <div>

@@ -2,7 +2,7 @@
 import { useService, useMachine } from '../src/fsm';
 import { createMachine, assign, interpret, StateMachine } from '@xstate/fsm';
 import { render, fireEvent, screen } from 'solid-testing-library';
-import { Component, createSignal } from 'solid-js';
+import { Accessor, Component, createSignal } from 'solid-js';
 
 afterEach(() => jest.clearAllMocks());
 
@@ -57,7 +57,11 @@ describe('useService hook for fsm', () => {
     const counterService1 = interpret(counterMachine()).start();
     const counterService2 = interpret(counterMachine()).start();
 
-    const Counter = (props) => {
+    const Counter = (props: {
+      counterRef:
+        | Accessor<typeof counterService1>
+        | Accessor<typeof counterService2>;
+    }) => {
       const [state, send] = useService(props.counterRef);
 
       return (
@@ -133,7 +137,11 @@ describe('useService hook for fsm', () => {
     const counterService1 = interpret(sameMachine).start();
     const counterService2 = interpret(sameMachine).start();
 
-    const Counter = (props) => {
+    const Counter = (props: {
+      counterRef:
+        | Accessor<typeof counterService1>
+        | Accessor<typeof counterService2>;
+    }) => {
       const [state, send] = useService(props.counterRef);
 
       return (
