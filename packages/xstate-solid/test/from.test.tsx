@@ -58,7 +58,7 @@ describe("usage of interpret from core with Solid's from", () => {
         <button
           data-testid="button"
           onclick={() => {
-            service.send('ACTIVATE');
+            service.send({ type: 'ACTIVATE' });
           }}
         />
       );
@@ -97,7 +97,7 @@ describe("usage of interpret from core with Solid's from", () => {
         <button
           data-testid="button"
           onclick={() => {
-            service.send('ACTIVATE');
+            service.send({ type: 'ACTIVATE' });
           }}
         />
       );
@@ -146,7 +146,7 @@ describe("usage of interpret from core with Solid's from", () => {
           <div>
             <button
               data-testid="inc-machine1"
-              onclick={() => service1.send('INC')}
+              onclick={() => service1.send({ type: 'INC' })}
             >
               INC 1
             </button>
@@ -157,7 +157,7 @@ describe("usage of interpret from core with Solid's from", () => {
           <div>
             <button
               data-testid="inc-machine2"
-              onclick={() => service2.send('INC')}
+              onclick={() => service2.send({ type: 'INC' })}
             >
               INC 1
             </button>

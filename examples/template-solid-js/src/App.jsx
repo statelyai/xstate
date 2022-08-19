@@ -9,7 +9,7 @@ function App() {
     <div class="app">
       <h1>XState SolidJS Template</h1>
       <h2>Fork this template!</h2>
-      <button onClick={() => send('TOGGLE')}>
+      <button onClick={() => send({ type: 'TOGGLE' })}>
         Click me ({state.matches('active') ? '✅' : '❌'})
       </button>{' '}
       <code>

@@ -55,7 +55,7 @@ describe('useMachine hook for fsm', () => {
     return (
       <Switch fallback={null}>
         <Match when={current.matches('idle')}>
-          <button onclick={(_) => send('FETCH')}>Fetch</button>;
+          <button onclick={(_) => send({ type: 'FETCH' })}>Fetch</button>;
         </Match>
         <Match when={current.matches('loading')}>
           <div>Loading...</div>
@@ -129,7 +129,7 @@ describe('useMachine hook for fsm', () => {
           <button
             data-testid="button"
             onClick={(_) => {
-              send('TOGGLE');
+              send({ type: 'TOGGLE' });
             }}
           />
         </div>
@@ -172,7 +172,7 @@ describe('useMachine hook for fsm', () => {
     const Comp = () => {
       const [, send] = useMachine(toggleMachine);
       onMount(() => {
-        send('TOGGLE');
+        send({ type: 'TOGGLE' });
         expect(actual).toEqual(true);
         done();
       });
@@ -268,7 +268,7 @@ describe('useMachine hook for fsm', () => {
     render(() => <Comp />);
 
     const service = interpret(machine).start();
-    service.send('EV');
+    service.send({ type: 'EV' });
     expect(flag).toBe(true);
   });
 
@@ -319,10 +319,10 @@ describe('useMachine hook for fsm', () => {
         )
       );
       onMount(() => {
-        send('COUNT');
-        send('TOTAL');
-        send('COUNT');
-        send('TOTAL');
+        send({ type: 'COUNT' });
+        send({ type: 'TOTAL' });
+        send({ type: 'COUNT' });
+        send({ type: 'TOTAL' });
       });
 
       return <div data-testid="count">{stateCount()}</div>;

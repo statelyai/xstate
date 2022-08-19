@@ -2,7 +2,7 @@
 import { useService, useMachine } from '../src/fsm';
 import { createMachine, assign, interpret, StateMachine } from '@xstate/fsm';
 import { render, fireEvent, screen } from 'solid-testing-library';
-import { Component, createSignal } from 'solid-js';
+import { Accessor, Component, createSignal } from 'solid-js';
 
 afterEach(() => jest.clearAllMocks());
 
@@ -76,7 +76,7 @@ describe('useService hook for fsm', () => {
       expect(countEl.textContent).toBe('0');
     });
 
-    counterService.send('INC');
+    counterService.send({ type: 'INC' });
 
     countEls.forEach((countEl) => {
       expect(countEl.textContent).toBe('1');
@@ -87,12 +87,16 @@ describe('useService hook for fsm', () => {
     const counterService1 = interpret(counterMachine).start();
     const counterService2 = interpret(counterMachine).start();
 
-    const Counter = (props) => {
+    const Counter = (props: {
+      counterRef:
+        | Accessor<typeof counterService1>
+        | Accessor<typeof counterService2>;
+    }) => {
       const [state, send] = useService(props.counterRef);
 
       return (
         <div>
-          <button data-testid="inc" onclick={(_) => send('INC')} />
+          <button data-testid="inc" onclick={(_) => send({ type: 'INC' })} />
           <div data-testid="count">{state.context.count}</div>
         </div>
       );
@@ -133,7 +137,7 @@ describe('useService hook for fsm', () => {
 
       return (
         <div>
-          <button data-testid="inc" onclick={(_) => send('INC')} />
+          <button data-testid="inc" onclick={(_) => send({ type: 'INC' })} />
           <div data-testid="count">
             {state.context.subCount.subCount1.subCount2.count}
           </div>
@@ -171,12 +175,16 @@ describe('useService hook for fsm', () => {
     const counterService1 = interpret(counterMachine).start();
     const counterService2 = interpret(counterMachine).start();
 
-    const Counter = (props) => {
+    const Counter = (props: {
+      counterRef:
+        | Accessor<typeof counterService1>
+        | Accessor<typeof counterService2>;
+    }) => {
       const [state, send] = useService(props.counterRef);
 
       return (
         <div>
-          <button data-testid="inc" onclick={(_) => send('INC')} />
+          <button data-testid="inc" onclick={(_) => send({ type: 'INC' })} />
           <div data-testid="count">{state.context.count}</div>
         </div>
       );
@@ -222,7 +230,7 @@ describe('useService hook for fsm', () => {
 
       return (
         <div>
-          <button data-testid="inc" onclick={(_) => send('INC')} />
+          <button data-testid="inc" onclick={(_) => send({ type: 'INC' })} />
           <CounterDisplay service={service} />
         </div>
       );

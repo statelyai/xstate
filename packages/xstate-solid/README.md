@@ -51,7 +51,7 @@ export const Toggler = () => {
   const [state, send] = useMachine(toggleMachine);
 
   return (
-    <button onclick={() => send('TOGGLE')}>
+    <button onclick={() => send({ type: 'TOGGLE' })}>
       {state.value === 'inactive'
         ? 'Click to activate'
         : 'Active! Click to deactivate'}
@@ -75,7 +75,7 @@ A SolidJS hook that interprets the given `machine` and starts a service that run
   const [state, send] = useMachine(machine);
   ```
 
-- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `immediate`, `context`, `state`.
+- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `context`, `state`.
 
 **Returns** a tuple of `[state, send, service]`:
 
@@ -83,24 +83,16 @@ A SolidJS hook that interprets the given `machine` and starts a service that run
 - `send` - A function that sends events to the running service.
 - `service` - The created service.
 
-### `useActor(actor, getSnapshot?)`
+### `useActor(actor)`
 
 A SolidJS hook that subscribes to emitted changes from an existing [actor](https://xstate.js.org/docs/guides/actors.html).
 
 **Arguments**
 
 - `actor` - an actor-like object that contains `.send(...)` and `.subscribe(...)` methods. Allows [SolidJS Signal](https://www.solidjs.com/docs/latest/api#createsignal) (or function) to dynamically specify an actor.
-- `getSnapshot` - a function that should return the latest emitted value from the `actor`.
-  - Defaults to attempting to get the `actor.state`, or returning `undefined` if that does not exist.
 
 ```js
 const [state, send] = useActor(someSpawnedActor);
-
-// with custom actors
-const [state, send] = useActor(customActor, (actor) => {
-  // implementation-specific pseudocode example:
-  return actor.getLastEmittedValue();
-});
 ```
 
 ### `createService(machine, options?)`
@@ -112,7 +104,7 @@ A SolidJS hook that returns the `service` created from the `machine` with the `o
 **Arguments**
 
 - `machine` - An [XState machine](https://xstate.js.org/docs/guides/machines.html) or a function that lazily returns a machine.
-- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `immediate`, `context`, `state`.
+- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `context`, `state`.
 
 ```js
 import { createService } from '@xstate/solid';
@@ -145,7 +137,7 @@ const App = () => {
 
 A SolidJS hook that interprets the given finite state `machine` from [`@xstate/fsm`] and starts a service that runs for the lifetime of the component.
 
-This special `useMachine` hook is imported from `@xstate/solid/fsm`
+This special `useMachine` hook is imported from `@xstate/solid/lib/fsm`
 
 **Arguments**
 
@@ -162,7 +154,7 @@ This special `useMachine` hook is imported from `@xstate/solid/fsm`
 
 ```js
 import { useEffect } from 'solid-js';
-import { useMachine } from '@xstate/solid/fsm';
+import { useMachine } from '@xstate/solid/lib/fsm';
 import { createMachine } from '@xstate/fsm';
 
 const context = {
@@ -207,7 +199,7 @@ const Fetcher = ({
   return (
     <Switch fallback={null}>
       <Match when={state.value === 'idle'}>
-        <button onclick={(_) => send('FETCH')}>Fetch</button>;
+        <button onclick={(_) => send({ send: 'FETCH' })}>Fetch</button>;
       </Match>
       <Match when={state.value === 'loading'}>
         <div>Loading...</div>;
@@ -281,7 +273,7 @@ const Fetcher = ({ onResolve }) => {
   return (
     <Switch fallback={null}>
       <Match when={state.matches('idle')}>
-        <button onClick={() => send('FETCH', { query: 'something' })}>
+        <button onClick={() => send({ type: 'FETCH', query: 'something' })}>
           Search for something
         </button>
       </Match>
@@ -294,7 +286,7 @@ const Fetcher = ({ onResolve }) => {
       <Match when={state.matches('failure')}>
         <div>
           <p>{state.context.error.message}</p>
-          <button onClick={() => send('RETRY')}>Retry</button>
+          <button onClick={() => send({ type: 'RETRY' })}>Retry</button>
         </div>
       </Match>
     </Switch>

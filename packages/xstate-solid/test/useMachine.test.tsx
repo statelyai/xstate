@@ -8,7 +8,9 @@ import {
   State,
   createMachine,
   send as xsend,
-  interpret
+  interpret,
+  InterpreterFrom,
+  AnyState
 } from 'xstate';
 import { render, screen, waitFor, fireEvent } from 'solid-testing-library';
 import { DoneEventObject } from 'xstate';
@@ -68,7 +70,7 @@ describe('useMachine hook', () => {
 
   const Fetcher = (props: {
     onFetch: () => Promise<any>;
-    persistedState?: State<any, any>;
+    persistedState?: AnyState;
   }) => {
     const mergedProps = mergeProps(
       {
@@ -317,7 +319,7 @@ describe('useMachine hook', () => {
     });
 
     const ServiceApp = (props: {
-      service: Interpreter<TestContext, any, any, TestState>;
+      service: InterpreterFrom<typeof machine>;
     }) => {
       const [state] = useActor(() => props.service);
 
