@@ -13,7 +13,6 @@ import type { Accessor } from 'solid-js';
 
 import {
   $PROXY,
-  batch,
   createEffect,
   createMemo,
   on,
@@ -60,9 +59,7 @@ export function useMachine<TMachine extends StateMachine.AnyMachine>(
 
   onMount(() => {
     service.subscribe((nextState) => {
-      batch(() => {
-        setState(reconcile(nextState as StateFrom<TMachine>));
-      });
+      setState(reconcile(nextState as StateFrom<TMachine>));
     });
 
     onCleanup(service.stop);

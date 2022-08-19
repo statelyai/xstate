@@ -48,6 +48,8 @@ export function useActor(
     typeof actorRef === 'function' ? actorRef : () => actorRef
   );
 
+  const send = (event: any) => actorMemo().send(event);
+
   const [state, update] = createStore({
     snapshot: getSnapshot(actorMemo())
   });
@@ -64,5 +66,5 @@ export function useActor(
     onCleanup(unsubscribe);
   });
 
-  return [() => state.snapshot, actorMemo().send];
+  return [() => state.snapshot, send];
 }

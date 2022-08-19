@@ -185,7 +185,7 @@ describe('useActor', () => {
         on(
           () => state().context.item.total,
           () => {
-            setTotal(() => count() + 1);
+            setTotal(() => total() + 1);
           },
           { defer: true }
         )
@@ -267,6 +267,134 @@ describe('useActor', () => {
     };
 
     render(() => <Test />);
+  });
+
+  it('actor should be updated when it changes shallow', () => {
+    const counterMachine = createMachine<{ count: number }>({
+      id: 'counter',
+      initial: 'active',
+      context: { count: 0 },
+      states: {
+        active: {
+          on: {
+            INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) },
+            SOMETHING: { actions: 'doSomething' }
+          }
+        }
+      }
+    });
+
+    const counterService1 = interpret(counterMachine).start();
+    const counterService2 = interpret(counterMachine).start();
+
+    const Counter = (props) => {
+      const [state, send] = useActor(props.counterRef);
+
+      return (
+        <div>
+          <button data-testid="inc" onclick={(_) => send('INC')} />
+          <div data-testid="count">{state().context.count}</div>
+        </div>
+      );
+    };
+    const CounterParent = () => {
+      const [service, setService] = createSignal(counterService1);
+
+      return (
+        <div>
+          <button
+            data-testid="change-service"
+            onclick={() => setService(counterService2)}
+          />
+          <Counter counterRef={service} />
+        </div>
+      );
+    };
+
+    render(() => <CounterParent />);
+
+    const changeServiceButton = screen.getByTestId('change-service');
+    const incButton = screen.getByTestId('inc');
+    const countEl = screen.getByTestId('count');
+
+    expect(countEl.textContent).toBe('0');
+    fireEvent.click(incButton);
+    expect(countEl.textContent).toBe('1');
+    fireEvent.click(changeServiceButton);
+    expect(countEl.textContent).toBe('0');
+  });
+
+  it('actor should be updated when it changes deep', () => {
+    const counterMachine2 = createMachine<{
+      subCount: { subCount1: { subCount2: { count: number } } };
+    }>({
+      id: 'counter',
+      initial: 'active',
+      context: { subCount: { subCount1: { subCount2: { count: 0 } } } },
+      states: {
+        active: {
+          on: {
+            INC: {
+              actions: assign({
+                subCount: (ctx) => ({
+                  ...ctx.subCount,
+                  subCount1: {
+                    ...ctx.subCount.subCount1,
+                    subCount2: {
+                      ...ctx.subCount.subCount1.subCount2,
+                      count: ctx.subCount.subCount1.subCount2.count + 1
+                    }
+                  }
+                })
+              })
+            },
+            SOMETHING: { actions: 'doSomething' }
+          }
+        }
+      }
+    });
+    const counterService1 = interpret(counterMachine2).start();
+    const counterService2 = interpret(counterMachine2).start();
+
+    const Counter = (props) => {
+      const [state, send] = useActor(props.counterRef);
+
+      return (
+        <div>
+          <button data-testid="inc" onclick={(_) => send('INC')} />
+          <div data-testid="count">
+            {state().context.subCount.subCount1.subCount2.count}
+          </div>
+        </div>
+      );
+    };
+    const CounterParent = () => {
+      const [service, setService] = createSignal(counterService1);
+
+      return (
+        <div>
+          <button
+            data-testid="change-service"
+            onclick={() => setService(counterService2)}
+          />
+          <Counter counterRef={service} />
+        </div>
+      );
+    };
+
+    render(() => <CounterParent />);
+
+    const changeServiceButton = screen.getByTestId('change-service');
+    const incButton = screen.getByTestId('inc');
+    const countEl = screen.getByTestId('count');
+
+    expect(countEl.textContent).toBe('0');
+    fireEvent.click(incButton);
+    expect(countEl.textContent).toBe('1');
+    fireEvent.click(changeServiceButton);
+    expect(countEl.textContent).toBe('0');
+    fireEvent.click(incButton);
+    expect(countEl.textContent).toBe('1');
   });
 
   it('spawned actor should be able to receive (deferred) events that it replays when active', (done) => {

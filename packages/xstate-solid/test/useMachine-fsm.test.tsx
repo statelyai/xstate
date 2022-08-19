@@ -1,5 +1,5 @@
 /* @jsxImportSource solid-js */
-import { useMachine } from '../src/fsm';
+import { useMachine, useService } from '../src/fsm';
 import { createMachine, assign, interpret, StateMachine } from '@xstate/fsm';
 import { screen, render, fireEvent, waitFor } from 'solid-testing-library';
 import {
@@ -335,6 +335,133 @@ describe('useMachine hook for fsm', () => {
     // Effect should only trigger once for the COUNT events:
     expect(countEl.textContent).toEqual('1');
     done();
+  });
+
+  it('fsm useMachine should be updated when it changes shallow', () => {
+    const counterMachine = createMachine<{ count: number }>({
+      id: 'counter',
+      initial: 'active',
+      context: { count: 0 },
+      states: {
+        active: {
+          on: {
+            INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) },
+            SOMETHING: { actions: 'doSomething' }
+          }
+        }
+      }
+    });
+    const counterService1 = interpret(counterMachine).start();
+    const counterService2 = interpret(counterMachine).start();
+
+    const Counter = (props) => {
+      const [state, send] = useService(props.counterRef);
+
+      return (
+        <div>
+          <button data-testid="inc" onclick={(_) => send('INC')} />
+          <div data-testid="count">{state.context.count}</div>
+        </div>
+      );
+    };
+    const CounterParent = () => {
+      const [service, setService] = createSignal(counterService1);
+
+      return (
+        <div>
+          <button
+            data-testid="change-service"
+            onclick={() => setService(counterService2)}
+          />
+          <Counter counterRef={service} />
+        </div>
+      );
+    };
+
+    render(() => <CounterParent />);
+
+    const changeServiceButton = screen.getByTestId('change-service');
+    const incButton = screen.getByTestId('inc');
+    const countEl = screen.getByTestId('count');
+
+    expect(countEl.textContent).toBe('0');
+    fireEvent.click(incButton);
+    expect(countEl.textContent).toBe('1');
+    fireEvent.click(changeServiceButton);
+    expect(countEl.textContent).toBe('0');
+  });
+
+  it('fsm useMachine should be updated when it changes deep', () => {
+    const counterMachine2 = createMachine<{
+      subCount: { subCount1: { subCount2: { count: number } } };
+    }>({
+      id: 'counter',
+      initial: 'active',
+      context: { subCount: { subCount1: { subCount2: { count: 0 } } } },
+      states: {
+        active: {
+          on: {
+            INC: {
+              actions: assign({
+                subCount: (ctx) => ({
+                  ...ctx.subCount,
+                  subCount1: {
+                    ...ctx.subCount.subCount1,
+                    subCount1: {
+                      ...ctx.subCount.subCount1.subCount2,
+                      subCount2: {
+                        count: ctx.subCount.subCount1.subCount2.count + 1
+                      }
+                    }
+                  }
+                })
+              })
+            },
+            SOMETHING: { actions: 'doSomething' }
+          }
+        }
+      }
+    });
+    const counterService1 = interpret(counterMachine2).start();
+    const counterService2 = interpret(counterMachine2).start();
+
+    const Counter = (props) => {
+      const [state, send] = useService(props.counterRef);
+
+      return (
+        <div>
+          <button data-testid="inc" onclick={(_) => send('INC')} />
+          <div data-testid="count">
+            {state.context.subCount.subCount1.subCount2.count}
+          </div>
+        </div>
+      );
+    };
+    const CounterParent = () => {
+      const [service, setService] = createSignal(counterService1);
+
+      return (
+        <div>
+          <button
+            data-testid="change-service"
+            onclick={() => setService(counterService2)}
+          />
+          <Counter counterRef={service} />
+        </div>
+      );
+    };
+
+    render(() => <CounterParent />);
+
+    const changeServiceButton = screen.getByTestId('change-service');
+    const incButton = screen.getByTestId('inc');
+    const countEl = screen.getByTestId('count');
+
+    expect(countEl.textContent).toBe('0');
+    fireEvent.click(incButton);
+    expect(countEl.textContent).toBe('1');
+    fireEvent.click(changeServiceButton);
+    expect(countEl.textContent).toBe('0');
   });
 
   // Example from: https://github.com/davidkpiano/xstate/discussions/1944

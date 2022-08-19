@@ -7,23 +7,53 @@ import { Component, createSignal } from 'solid-js';
 afterEach(() => jest.clearAllMocks());
 
 describe('useService hook for fsm', () => {
-  const counterMachine = () =>
-    createMachine<{ count: number }>({
-      id: 'counter',
-      initial: 'active',
-      context: { count: 0 },
-      states: {
-        active: {
-          on: {
-            INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) },
-            SOMETHING: { actions: 'doSomething' }
-          }
+  const counterMachine = createMachine<{ count: number }>({
+    id: 'counter',
+    initial: 'active',
+    context: { count: 0 },
+    states: {
+      active: {
+        on: {
+          INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) },
+          SOMETHING: { actions: 'doSomething' }
         }
       }
-    });
+    }
+  });
+
+  const counterMachine2 = createMachine<{
+    subCount: { subCount1: { subCount2: { count: number } } };
+  }>({
+    id: 'counter',
+    initial: 'active',
+    context: { subCount: { subCount1: { subCount2: { count: 0 } } } },
+    states: {
+      active: {
+        on: {
+          INC: {
+            actions: assign({
+              subCount: (ctx) => ({
+                ...ctx.subCount,
+                subCount1: {
+                  ...ctx.subCount.subCount1,
+                  subCount1: {
+                    ...ctx.subCount.subCount1.subCount2,
+                    subCount2: {
+                      count: ctx.subCount.subCount1.subCount2.count + 1
+                    }
+                  }
+                }
+              })
+            })
+          },
+          SOMETHING: { actions: 'doSomething' }
+        }
+      }
+    }
+  });
 
   it('should share a single service instance', () => {
-    const counterService = interpret(counterMachine()).start();
+    const counterService = interpret(counterMachine).start();
 
     const Counter = () => {
       const [state] = useService(counterService);
@@ -53,9 +83,93 @@ describe('useService hook for fsm', () => {
     });
   });
 
-  it('service should be updated when it changes', () => {
-    const counterService1 = interpret(counterMachine()).start();
-    const counterService2 = interpret(counterMachine()).start();
+  it('service should be updated when it changes shallow', () => {
+    const counterService1 = interpret(counterMachine).start();
+    const counterService2 = interpret(counterMachine).start();
+
+    const Counter = (props) => {
+      const [state, send] = useService(props.counterRef);
+
+      return (
+        <div>
+          <button data-testid="inc" onclick={(_) => send('INC')} />
+          <div data-testid="count">{state.context.count}</div>
+        </div>
+      );
+    };
+    const CounterParent = () => {
+      const [service, setService] = createSignal(counterService1);
+
+      return (
+        <div>
+          <button
+            data-testid="change-service"
+            onclick={() => setService(counterService2)}
+          />
+          <Counter counterRef={service} />
+        </div>
+      );
+    };
+
+    render(() => <CounterParent />);
+
+    const changeServiceButton = screen.getByTestId('change-service');
+    const incButton = screen.getByTestId('inc');
+    const countEl = screen.getByTestId('count');
+
+    expect(countEl.textContent).toBe('0');
+    fireEvent.click(incButton);
+    expect(countEl.textContent).toBe('1');
+    fireEvent.click(changeServiceButton);
+    expect(countEl.textContent).toBe('0');
+  });
+
+  it('service should be updated when it changes deep', () => {
+    const counterService1 = interpret(counterMachine2).start();
+    const counterService2 = interpret(counterMachine2).start();
+
+    const Counter = (props) => {
+      const [state, send] = useService(props.counterRef);
+
+      return (
+        <div>
+          <button data-testid="inc" onclick={(_) => send('INC')} />
+          <div data-testid="count">
+            {state.context.subCount.subCount1.subCount2.count}
+          </div>
+        </div>
+      );
+    };
+    const CounterParent = () => {
+      const [service, setService] = createSignal(counterService1);
+
+      return (
+        <div>
+          <button
+            data-testid="change-service"
+            onclick={() => setService(counterService2)}
+          />
+          <Counter counterRef={service} />
+        </div>
+      );
+    };
+
+    render(() => <CounterParent />);
+
+    const changeServiceButton = screen.getByTestId('change-service');
+    const incButton = screen.getByTestId('inc');
+    const countEl = screen.getByTestId('count');
+
+    expect(countEl.textContent).toBe('0');
+    fireEvent.click(incButton);
+    expect(countEl.textContent).toBe('1');
+    fireEvent.click(changeServiceButton);
+    expect(countEl.textContent).toBe('0');
+  });
+
+  it('service should be updated when it changes shallow 2', () => {
+    const counterService1 = interpret(counterMachine).start();
+    const counterService2 = interpret(counterMachine).start();
 
     const Counter = (props) => {
       const [state, send] = useService(props.counterRef);
@@ -104,7 +218,7 @@ describe('useService hook for fsm', () => {
     };
 
     const Counter = () => {
-      const [, send, service] = useMachine(counterMachine());
+      const [, send, service] = useMachine(counterMachine);
 
       return (
         <div>
@@ -122,57 +236,5 @@ describe('useService hook for fsm', () => {
     expect(countEl.textContent).toBe('0');
     fireEvent.click(incButton);
     expect(countEl.textContent).toBe('1');
-  });
-
-  it('service should warn when reusing the same machine instance - reusing will result in shared context', () => {
-    // tslint:disable-next-line:no-console
-    jest
-      .spyOn(console, 'warn')
-      .mockImplementation((message) => console.log(message));
-    const sameMachine = counterMachine();
-    const counterService1 = interpret(sameMachine).start();
-    const counterService2 = interpret(sameMachine).start();
-
-    const Counter = (props) => {
-      const [state, send] = useService(props.counterRef);
-
-      return (
-        <div>
-          <button data-testid="inc" onclick={(_) => send('INC')} />
-          <div data-testid="count">{state.context.count}</div>
-        </div>
-      );
-    };
-    const CounterParent = () => {
-      const [service, setService] = createSignal(counterService1);
-
-      return (
-        <div>
-          <button
-            data-testid="change-service"
-            onclick={() => setService(counterService2)}
-          />
-          <Counter counterRef={service} />
-        </div>
-      );
-    };
-
-    render(() => <CounterParent />);
-
-    const changeServiceButton = screen.getByTestId('change-service');
-    const incButton = screen.getByTestId('inc');
-    const countEl = screen.getByTestId('count');
-
-    expect(countEl.textContent).toBe('0');
-    fireEvent.click(incButton);
-    expect(countEl.textContent).toBe('1');
-    fireEvent.click(changeServiceButton);
-    expect(countEl.textContent).toBe('1');
-    expect(console.warn).toHaveBeenCalledWith(
-      expect.stringContaining(
-        'Reusing an FSM machine will cause unexpected state changes in @xstate/solid.\n' +
-          'Use a factory function to reuse a machine: `const newMachine = () => createMachine(...some machine config)`'
-      )
-    );
   });
 });
