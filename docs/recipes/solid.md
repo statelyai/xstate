@@ -17,7 +17,7 @@ function Toggle() {
   const [current, send] = useMachine(toggleMachine);
 
   return (
-    <button onClick={() => send('TOGGLE')}>
+    <button onClick={() => send({ type: 'TOGGLE' })}>
       {current.matches('inactive') ? 'Off' : 'On'}
     </button>
   );
@@ -80,7 +80,7 @@ export const SomeComponent = (props) => {
   const {
     authService: [, send]
   } = useContext(GlobalStateContext);
-  return <button onClick={() => send('LOG_OUT')}>Log Out</button>;
+  return <button onClick={() => send({ type: 'LOG_OUT' })}>Log Out</button>;
 };
 ```
 

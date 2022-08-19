@@ -51,7 +51,7 @@ export const Toggler = () => {
   const [state, send] = useMachine(toggleMachine);
 
   return (
-    <button onclick={() => send('TOGGLE')}>
+    <button onclick={() => send({ type: 'TOGGLE' })}>
       {state.value === 'inactive'
         ? 'Click to activate'
         : 'Active! Click to deactivate'}
@@ -104,7 +104,7 @@ A SolidJS hook that returns the `service` created from the `machine` with the `o
 **Arguments**
 
 - `machine` - An [XState machine](https://xstate.js.org/docs/guides/machines.html) or a function that lazily returns a machine.
-- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `immediate`, `context`, `state`.
+- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `context`, `state`.
 
 ```js
 import { createService } from '@xstate/solid';
@@ -199,7 +199,7 @@ const Fetcher = ({
   return (
     <Switch fallback={null}>
       <Match when={state.value === 'idle'}>
-        <button onclick={(_) => send('FETCH')}>Fetch</button>;
+        <button onclick={(_) => send({ send: 'FETCH' })}>Fetch</button>;
       </Match>
       <Match when={state.value === 'loading'}>
         <div>Loading...</div>;
@@ -273,7 +273,7 @@ const Fetcher = ({ onResolve }) => {
   return (
     <Switch fallback={null}>
       <Match when={state.matches('idle')}>
-        <button onClick={() => send('FETCH', { query: 'something' })}>
+        <button onClick={() => send({ type: 'FETCH', query: 'something' })}>
           Search for something
         </button>
       </Match>
@@ -286,7 +286,7 @@ const Fetcher = ({ onResolve }) => {
       <Match when={state.matches('failure')}>
         <div>
           <p>{state.context.error.message}</p>
-          <button onClick={() => send('RETRY')}>Retry</button>
+          <button onClick={() => send({ type: 'RETRY' })}>Retry</button>
         </div>
       </Match>
     </Switch>

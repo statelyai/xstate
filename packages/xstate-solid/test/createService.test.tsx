@@ -62,7 +62,7 @@ describe('createService', () => {
         <button
           data-testid="button"
           onclick={() => {
-            service.send('ACTIVATE');
+            service.send({ type: 'ACTIVATE' });
           }}
         />
       );
@@ -102,7 +102,7 @@ describe('createService', () => {
         <button
           data-testid="button"
           onclick={() => {
-            service.send('ACTIVATE');
+            service.send({ type: 'ACTIVATE' });
           }}
         />
       );

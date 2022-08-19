@@ -46,7 +46,7 @@ describe('useService hook for fsm', () => {
       expect(countEl.textContent).toBe('0');
     });
 
-    counterService.send('INC');
+    counterService.send({ type: 'INC' });
 
     countEls.forEach((countEl) => {
       expect(countEl.textContent).toBe('1');
@@ -62,7 +62,7 @@ describe('useService hook for fsm', () => {
 
       return (
         <div>
-          <button data-testid="inc" onclick={(_) => send('INC')} />
+          <button data-testid="inc" onclick={(_) => send({ type: 'INC' })} />
           <div data-testid="count">{state.context.count}</div>
         </div>
       );
@@ -108,7 +108,7 @@ describe('useService hook for fsm', () => {
 
       return (
         <div>
-          <button data-testid="inc" onclick={(_) => send('INC')} />
+          <button data-testid="inc" onclick={(_) => send({ type: 'INC' })} />
           <CounterDisplay service={service} />
         </div>
       );
@@ -138,7 +138,7 @@ describe('useService hook for fsm', () => {
 
       return (
         <div>
-          <button data-testid="inc" onclick={(_) => send('INC')} />
+          <button data-testid="inc" onclick={(_) => send({ type: 'INC' })} />
           <div data-testid="count">{state.context.count}</div>
         </div>
       );
