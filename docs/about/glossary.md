@@ -18,7 +18,7 @@ A state describes the status of the machine. A state can be as simple as _on_ an
 
 ### Initial state
 
-When a state machine starts, it enters the **initial state** first. The initial state is represented by the <img alt='filled circle with an arrow pointing from the circle to the initial state' src='./initial-state-icon.png' height='24' width='24' style='display: inline; margin-bottom: -5px' /> icon. A machine can only have one initial state.
+When a state machine starts, it enters the **initial state** first. The initial state is represented by the <img alt='filled circle with an arrow pointing from the circle to the initial state' src='./initial-state-icon.png' height='24' width='24' style='display: inline; margin-bottom: -5px' /> icon. A machine can only have one top-level initial state.
 
 <!-- What a state might be -->
 
