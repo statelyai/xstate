@@ -137,7 +137,7 @@ const App = () => {
 
 A SolidJS hook that interprets the given finite state `machine` from [`@xstate/fsm`] and starts a service that runs for the lifetime of the component.
 
-This special `useMachine` hook is imported from `@xstate/solid/fsm`
+This special `useMachine` hook is imported from `@xstate/solid/lib/fsm`
 
 **Arguments**
 
@@ -154,7 +154,7 @@ This special `useMachine` hook is imported from `@xstate/solid/fsm`
 
 ```js
 import { useEffect } from 'solid-js';
-import { useMachine } from '@xstate/solid/fsm';
+import { useMachine } from '@xstate/solid/lib/fsm';
 import { createMachine } from '@xstate/fsm';
 
 const context = {
