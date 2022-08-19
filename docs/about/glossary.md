@@ -8,7 +8,7 @@ A state machine is a model that describes how the state of a process transitions
 
 ## Statecharts
 
-Statecharts are a visual language used to visualize state machines. You may have used similar diagrams in the past to design user flows, plan databases or map app architecture. Statecharts are another way of using boxes and arrows to represent flows. These flows are also executable code you can use to control the logic in your applications.
+Statecharts are a visual language used to express complex state machines in a simpler way. You may have used similar diagrams in the past to design user flows, plan data transformations or map app logic. Statecharts are another way of using boxes and arrows to represent these kinds of flows. These flows are also executable code you can use to control the logic directly in your application code.
 
 ![basic statechart with an initial state transitioning through an event to another state, then transitioning through another event to a final state.](./basic-statechart.png)
 
