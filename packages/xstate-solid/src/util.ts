@@ -68,27 +68,24 @@ const clone = <T>(value: T, objectRefs: any[], clonedObjectRefs: any[]): T => {
   clonedObjectRefs.push(clonedObject);
 
   // Loop over all values in object and clone
-  Object.entries(value).reduce((acc, [key, currentObj]) => {
+  for (const [key, currentObj] of Object.entries(value)) {
     if (isObject(currentObj)) {
       // Check if reference already exists, helps prevent max call stack
       const refIndex = objectRefs.indexOf(currentObj);
       if (refIndex !== -1) {
-        acc[key] = clonedObjectRefs[refIndex];
+        clonedObject[key] = clonedObjectRefs[refIndex];
       } else {
         if (isNonObjectPrototype(currentObj)) {
-          acc[key] = currentObj;
+          clonedObject[key] = currentObj;
         } else {
-          acc[key] = clone(currentObj, objectRefs, clonedObjectRefs);
+          clonedObject[key] = clone(currentObj, objectRefs, clonedObjectRefs);
         }
       }
     } else {
-      acc[key] = currentObj;
+      clonedObject[key] = currentObj;
     }
-    return acc;
-  }, clonedObject);
+  }
 
-  objectRefs.pop();
-  clonedObjectRefs.pop();
   return clonedObject;
 };
 
