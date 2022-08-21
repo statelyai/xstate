@@ -422,16 +422,16 @@ describe('useActor', () => {
 
     const Test = () => {
       const [actor, setActor] = createSignal(
-        createSimpleActor(new Date('2020'))
+        createSimpleActor(new Date('2020-08-21'))
       );
       const [state] = useActor(actor);
 
       return (
         <div>
-          <div data-testid="state">{state().getFullYear() + 1}</div>
+          <div data-testid="state">{state().getFullYear()}</div>
           <button
             data-testid="button"
-            onclick={() => setActor(createSimpleActor(new Date('2022')))}
+            onclick={() => setActor(createSimpleActor(new Date('2022-08-21')))}
           />
         </div>
       );
