@@ -1813,20 +1813,6 @@
     lz-string "^1.4.4"
     pretty-format "^26.6.2"
 
-"@testing-library/dom@^7.31.2":
-  version "7.31.2"
-  resolved "https://registry.yarnpkg.com/@testing-library/dom/-/dom-7.31.2.tgz#df361db38f5212b88555068ab8119f5d841a8c4a"
-  integrity sha512-3UqjCpey6HiTZT92vODYLPxTBWlM8ZOOjr3LX5F37/VRipW2M1kX6I/Cm4VXzteZqfGfagg8yXywpcOgQBlNsQ==
-  dependencies:
-    "@babel/code-frame" "^7.10.4"
-    "@babel/runtime" "^7.12.5"
-    "@types/aria-query" "^4.2.0"
-    aria-query "^4.2.2"
-    chalk "^4.1.0"
-    dom-accessibility-api "^0.5.6"
-    lz-string "^1.4.4"
-    pretty-format "^26.6.2"
-
 "@testing-library/dom@^8.5.0":
   version "8.11.1"
   resolved "https://registry.yarnpkg.com/@testing-library/dom/-/dom-8.11.1.tgz#03fa2684aa09ade589b460db46b4c7be9fc69753"
@@ -1870,13 +1856,6 @@
   integrity sha512-GxafAllShGM2nkntFGURZ7fYVlUYwv7K62lqv1aFqtTYzzeZ2Cu8zTVhtE/Qt3bk2zMl6+FPKP03wjLip/G8mA==
   dependencies:
     "@testing-library/dom" "^7.0.3"
-
-"@testing-library/user-event@^13.5.0":
-  version "13.5.0"
-  resolved "https://registry.yarnpkg.com/@testing-library/user-event/-/user-event-13.5.0.tgz#69d77007f1e124d55314a2b73fd204b333b13295"
-  integrity sha512-5Kwtbo3Y/NowpkbRuSepbyMFkZmHgD+vPzYB/RJ4oxt5Gj/avFFBYjhw27cqSVPVw/3a67NK1PbiIr9k4Gwmdg==
-  dependencies:
-    "@babel/runtime" "^7.12.5"
 
 "@testing-library/vue@^6.4.0":
   version "6.4.0"
@@ -2017,6 +1996,14 @@
   integrity sha512-Fb38HkXSVA4L8fGKEZ6le5bB8r6MRWlOCZbVuWZcmOMSCd2wCYOwN1ibj8daIoV9naq7aaOZjrLCoCMptKU/4Q==
   dependencies:
     jest-diff "^24.3.0"
+
+"@types/jest@^26.0.24":
+  version "26.0.24"
+  resolved "https://registry.yarnpkg.com/@types/jest/-/jest-26.0.24.tgz#943d11976b16739185913a1936e0de0c4a7d595a"
+  integrity sha512-E/X5Vib8BWqZNRlDxj9vYXhsDwPYbPINqKF9BsnSoon4RQ0D9moEuLD8txgyypFLH7J4+Lho9Nr/c8H0Fi+17w==
+  dependencies:
+    jest-diff "^26.0.0"
+    pretty-format "^26.0.0"
 
 "@types/jsdom@^12.2.3":
   version "12.2.4"
@@ -2702,10 +2689,10 @@ babel-plugin-jest-hoist@^26.6.2:
     "@types/babel__core" "^7.0.0"
     "@types/babel__traverse" "^7.0.6"
 
-babel-plugin-jsx-dom-expressions@^0.32.11:
-  version "0.32.11"
-  resolved "https://registry.yarnpkg.com/babel-plugin-jsx-dom-expressions/-/babel-plugin-jsx-dom-expressions-0.32.11.tgz#089f062a2089a781d85c517962eb2d4788e58ea6"
-  integrity sha512-hytqY33SGW6B3obSLt8K5X510UwtNkTktCCWgwba+QOOV0CowDFiqeL+0ru895FLacFaYANHFTu1y76dg3GVtw==
+babel-plugin-jsx-dom-expressions@^0.33.14:
+  version "0.33.14"
+  resolved "https://registry.yarnpkg.com/babel-plugin-jsx-dom-expressions/-/babel-plugin-jsx-dom-expressions-0.33.14.tgz#18e3bf41487a4aa85669e85750b7ed34e95ae145"
+  integrity sha512-91T8uEz6Wb42bUm5vxRBawY05fBHiwUxah/xWBimuWpH3nf7E0KJ0Wm/s8R7lxRIZzwGCILv1IBlUCqA50WOVw==
   dependencies:
     "@babel/helper-module-imports" "7.16.0"
     "@babel/plugin-syntax-jsx" "^7.16.5"
@@ -2762,12 +2749,12 @@ babel-preset-jest@^26.6.2:
     babel-plugin-jest-hoist "^26.6.2"
     babel-preset-current-node-syntax "^1.0.0"
 
-babel-preset-solid@^1.3.1:
-  version "1.3.13"
-  resolved "https://registry.yarnpkg.com/babel-preset-solid/-/babel-preset-solid-1.3.13.tgz#312373712a0492ff9e561ecb7a97aa7079aa018b"
-  integrity sha512-MZnmsceI9yiHlwwFCSALTJhadk2eea/+2UP4ec4jkPZFR+XRKTLoIwRkrBh7uLtvHF+3lHGyUaXtZukOmmUwhA==
+babel-preset-solid@^1.4.8:
+  version "1.4.8"
+  resolved "https://registry.yarnpkg.com/babel-preset-solid/-/babel-preset-solid-1.4.8.tgz#0b14f670d0dd53956024d70d8d980ebf399372b4"
+  integrity sha512-Qv1yoE7yIux68egUsUUEV26t7B0KLNyXKz1MTk89GJDc6mt+2s7+lDVr4tXa29PTZ/hXDTu2uLbEN/1OtmFFBg==
   dependencies:
-    babel-plugin-jsx-dom-expressions "^0.32.11"
+    babel-plugin-jsx-dom-expressions "^0.33.14"
 
 babel-register@^6.26.0:
   version "6.26.0"
@@ -3789,11 +3776,6 @@ dom-accessibility-api@^0.5.4:
   version "0.5.4"
   resolved "https://registry.yarnpkg.com/dom-accessibility-api/-/dom-accessibility-api-0.5.4.tgz#b06d059cdd4a4ad9a79275f9d414a5c126241166"
   integrity sha512-TvrjBckDy2c6v6RLxPv5QXOnU+SmF9nBII5621Ve5fu6Z/BDrENurBEvlC1f44lKEUVqOpK4w9E5Idc5/EgkLQ==
-
-dom-accessibility-api@^0.5.6:
-  version "0.5.13"
-  resolved "https://registry.yarnpkg.com/dom-accessibility-api/-/dom-accessibility-api-0.5.13.tgz#102ee5f25eacce09bdf1cfa5a298f86da473be4b"
-  integrity sha512-R305kwb5CcMDIpSHUnLyIAp7SrSPBx6F0VfQFB3M75xVMHhXJJIdePYgbPPh1o57vCHNu5QztokWUPsLjWzFqw==
 
 dom-accessibility-api@^0.5.9:
   version "0.5.10"

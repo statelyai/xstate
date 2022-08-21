@@ -8,7 +8,9 @@ import {
   onMount,
   Switch,
   Match,
-  on
+  on,
+  Accessor,
+  Component
 } from 'solid-js';
 
 describe('useMachine hook for fsm', () => {
@@ -354,12 +356,14 @@ describe('useMachine hook for fsm', () => {
     const counterService1 = interpret(counterMachine).start();
     const counterService2 = interpret(counterMachine).start();
 
-    const Counter = (props) => {
+    const Counter: Component<{
+      counterRef: Accessor<StateMachine.Service<any, any>>;
+    }> = (props) => {
       const [state, send] = useService(props.counterRef);
 
       return (
         <div>
-          <button data-testid="inc" onclick={(_) => send('INC')} />
+          <button data-testid="inc" onclick={(_) => send({ type: 'INC' })} />
           <div data-testid="count">{state.context.count}</div>
         </div>
       );
@@ -391,11 +395,11 @@ describe('useMachine hook for fsm', () => {
     expect(countEl.textContent).toBe('0');
   });
 
-  it('fsm useMachine should be updated when it changes deep', () => {
+  it('useMachine state should only trigger effect of directly tracked value', () => {
     const counterMachine2 = createMachine<{
       subCount: { subCount1: { subCount2: { count: number } } };
     }>({
-      id: 'counter',
+      id: 'counter2',
       initial: 'active',
       context: { subCount: { subCount1: { subCount2: { count: 0 } } } },
       states: {
@@ -407,11 +411,9 @@ describe('useMachine hook for fsm', () => {
                   ...ctx.subCount,
                   subCount1: {
                     ...ctx.subCount.subCount1,
-                    subCount1: {
+                    subCount2: {
                       ...ctx.subCount.subCount1.subCount2,
-                      subCount2: {
-                        count: ctx.subCount.subCount1.subCount2.count + 1
-                      }
+                      count: ctx.subCount.subCount1.subCount2.count + 1
                     }
                   }
                 })
@@ -422,46 +424,44 @@ describe('useMachine hook for fsm', () => {
         }
       }
     });
-    const counterService1 = interpret(counterMachine2).start();
-    const counterService2 = interpret(counterMachine2).start();
-
-    const Counter = (props) => {
-      const [state, send] = useService(props.counterRef);
-
+    const Counter = () => {
+      const [state, send] = useMachine(counterMachine2);
+      const [effectCount, setEffectCount] = createSignal(0);
+      createEffect(
+        on(
+          () => state.context.subCount.subCount1,
+          () => {
+            setEffectCount((prev) => prev + 1);
+          },
+          {
+            defer: true
+          }
+        )
+      );
       return (
         <div>
-          <button data-testid="inc" onclick={(_) => send('INC')} />
+          <button data-testid="inc" onclick={(_) => send({ type: 'INC' })} />
+          <div data-testid="effect-count">{effectCount()}</div>
           <div data-testid="count">
             {state.context.subCount.subCount1.subCount2.count}
           </div>
         </div>
       );
     };
-    const CounterParent = () => {
-      const [service, setService] = createSignal(counterService1);
 
-      return (
-        <div>
-          <button
-            data-testid="change-service"
-            onclick={() => setService(counterService2)}
-          />
-          <Counter counterRef={service} />
-        </div>
-      );
-    };
+    render(() => <Counter />);
 
-    render(() => <CounterParent />);
-
-    const changeServiceButton = screen.getByTestId('change-service');
     const incButton = screen.getByTestId('inc');
     const countEl = screen.getByTestId('count');
+    const effectCountEl = screen.getByTestId('effect-count');
 
     expect(countEl.textContent).toBe('0');
     fireEvent.click(incButton);
     expect(countEl.textContent).toBe('1');
-    fireEvent.click(changeServiceButton);
-    expect(countEl.textContent).toBe('0');
+    expect(effectCountEl.textContent).toBe('0');
+    fireEvent.click(incButton);
+    expect(countEl.textContent).toBe('2');
+    expect(effectCountEl.textContent).toBe('0');
   });
 
   // Example from: https://github.com/davidkpiano/xstate/discussions/1944

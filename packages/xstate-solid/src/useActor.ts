@@ -1,13 +1,8 @@
-import type { ActorRef, EventObject, Sender } from 'xstate';
-import type { Accessor } from 'solid-js';
-import { createEffect, createMemo, onCleanup } from 'solid-js';
-import { createStore, reconcile } from 'solid-js/store';
-
-export function isActorWithState<T extends ActorRef<any>>(
-  actorRef: T
-): actorRef is T & { state: any } {
-  return 'state' in actorRef;
-}
+import { ActorRef, EventObject, Sender } from 'xstate';
+import { Accessor, createEffect, on } from 'solid-js';
+import { createMemo, onCleanup } from 'solid-js';
+import { createStore } from 'solid-js/store';
+import { deepClone, spreadIfObject, updateState } from './util';
 
 type EmittedFromActorRef<
   TActor extends ActorRef<any>
@@ -19,7 +14,7 @@ const noop = () => {
 
 type ActorReturn<T> = Accessor<T>;
 
-export function useActor<TActor extends ActorRef<any, any>>(
+export function useActor<TActor extends ActorRef<any>>(
   actorRef: Accessor<TActor> | TActor
 ): [ActorReturn<EmittedFromActorRef<TActor>>, TActor['send']];
 export function useActor<TEvent extends EventObject, TEmitted>(
@@ -36,15 +31,32 @@ export function useActor(
 
   const send = (event: any) => actorMemo().send(event);
 
-  const [state, update] = createStore({
-    snapshot: actorMemo().getSnapshot()
+  const getClonedActorState = () =>
+    deepClone(spreadIfObject(actorMemo().getSnapshot?.()));
+
+  const [state, setState] = createStore({
+    snapshot: getClonedActorState()
   });
 
+  // Track if a new actor is passed in, only run once per actor
+  createEffect(
+    on(
+      () => actorMemo(),
+      () => {
+        updateState(getClonedActorState(), (...values) =>
+          setState('snapshot', ...(values as [any]))
+        );
+      },
+      { defer: true }
+    )
+  );
+
   createEffect(() => {
-    update('snapshot', actorMemo().getSnapshot());
     const { unsubscribe } = actorMemo().subscribe({
       next: (emitted: unknown) => {
-        update('snapshot', reconcile(emitted));
+        updateState(spreadIfObject(emitted), (...values) =>
+          setState('snapshot', ...(values as [any]))
+        );
       },
       error: noop,
       complete: noop

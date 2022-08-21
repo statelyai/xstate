@@ -8,7 +8,6 @@ import {
   State,
   createMachine,
   send as xsend,
-  interpret,
   InterpreterFrom,
   AnyState
 } from 'xstate';
@@ -17,7 +16,6 @@ import { DoneEventObject } from 'xstate';
 import {
   createEffect,
   createSignal,
-  from,
   Match,
   mergeProps,
   on,
@@ -88,7 +86,7 @@ describe('useMachine hook', () => {
     return (
       <Switch fallback={null}>
         <Match when={current.matches('idle')}>
-          <button onclick={(_) => send('FETCH')}>Fetch</button>;
+          <button onclick={(_) => send({ type: 'FETCH' })}>Fetch</button>;
         </Match>
         <Match when={current.matches('loading')}>
           <div>Loading...</div>
@@ -272,7 +270,7 @@ describe('useMachine hook', () => {
           <button
             data-testid="button"
             onclick={(_) => {
-              send('TOGGLE');
+              send({ type: 'TOGGLE' });
             }}
           />
         </div>
@@ -379,17 +377,17 @@ describe('useMachine hook', () => {
       const [state, send] = useMachine(machine);
       createEffect(
         on(
-          () => state.event,
+          () => state.transitions[0],
           () => {
             setStateCount((c) => c + 1);
           }
         )
       );
       onMount(() => {
-        send('EVENT');
-        send('EVENT');
-        send('EVENT');
-        send('EVENT');
+        send({ type: 'EVENT' });
+        send({ type: 'EVENT' });
+        send({ type: 'EVENT' });
+        send({ type: 'EVENT' });
       });
 
       return <div data-testid="count">{stateCount()}</div>;
@@ -471,10 +469,10 @@ describe('useMachine hook', () => {
         )
       );
       onMount(() => {
-        send('COUNT');
-        send('TOTAL');
-        send('COUNT');
-        send('TOTAL');
+        send({ type: 'COUNT' });
+        send({ type: 'TOTAL' });
+        send({ type: 'COUNT' });
+        send({ type: 'TOTAL' });
       });
 
       return <div data-testid="count">{stateCount()}</div>;
@@ -487,6 +485,76 @@ describe('useMachine hook', () => {
     // Effect should only trigger once for the COUNT events:
     expect(countEl.textContent).toEqual('1');
     done();
+  });
+
+  it('useMachine state should only trigger effect of directly tracked value', () => {
+    const counterMachine2 = createMachine<{
+      subCount: { subCount1: { subCount2: { count: number } } };
+    }>({
+      id: 'counter',
+      initial: 'active',
+      context: { subCount: { subCount1: { subCount2: { count: 0 } } } },
+      states: {
+        active: {
+          on: {
+            INC: {
+              actions: assign({
+                subCount: (ctx) => ({
+                  ...ctx.subCount,
+                  subCount1: {
+                    ...ctx.subCount.subCount1,
+                    subCount2: {
+                      ...ctx.subCount.subCount1.subCount2,
+                      count: ctx.subCount.subCount1.subCount2.count + 1
+                    }
+                  }
+                })
+              })
+            },
+            SOMETHING: { actions: 'doSomething' }
+          }
+        }
+      }
+    });
+
+    const Counter = () => {
+      const [state, send] = useMachine(counterMachine2);
+      const [effectCount, setEffectCount] = createSignal(0);
+      createEffect(
+        on(
+          () => state.context.subCount.subCount1,
+          () => {
+            setEffectCount((prev) => prev + 1);
+          },
+          {
+            defer: true
+          }
+        )
+      );
+      return (
+        <div>
+          <button data-testid="inc" onclick={(_) => send({ type: 'INC' })} />
+          <div data-testid="effect-count">{effectCount()}</div>
+          <div data-testid="count">
+            {state.context.subCount.subCount1.subCount2.count}
+          </div>
+        </div>
+      );
+    };
+
+    render(() => <Counter />);
+
+    const incButton = screen.getByTestId('inc');
+    const countEl = screen.getByTestId('count');
+    const effectCountEl = screen.getByTestId('effect-count');
+
+    expect(countEl.textContent).toBe('0');
+    fireEvent.click(incButton);
+    expect(countEl.textContent).toBe('1');
+    expect(effectCountEl.textContent).toBe('0');
+    fireEvent.click(incButton);
+    expect(countEl.textContent).toBe('2');
+    expect(effectCountEl.textContent).toBe('0');
   });
 
   it('should capture only nested value update', (done) => {
@@ -536,10 +604,10 @@ describe('useMachine hook', () => {
         )
       );
       onMount(() => {
-        send('COUNT');
-        send('TOTAL');
-        send('COUNT');
-        send('TOTAL');
+        send({ type: 'COUNT' });
+        send({ type: 'TOTAL' });
+        send({ type: 'COUNT' });
+        send({ type: 'TOTAL' });
       });
 
       return <div data-testid="count">{stateCount()}</div>;
@@ -617,7 +685,7 @@ describe('useMachine hook', () => {
         <div>
           <button
             data-testid="transition-button"
-            onclick={() => send('TRANSITION')}
+            onclick={() => send({ type: 'TRANSITION' })}
           />
           <div data-testid="to-strings">{JSON.stringify(toStrings())}</div>
         </div>
@@ -673,7 +741,7 @@ describe('useMachine hook', () => {
       const [toJson, setToJson] = createSignal(state.toJSON());
       createEffect(
         on(
-          () => state.event,
+          () => state.value,
           () => {
             setToJson(state.toJSON());
           }
@@ -683,7 +751,7 @@ describe('useMachine hook', () => {
         <div>
           <button
             data-testid="transition-button"
-            onclick={() => send('TRANSITION')}
+            onclick={() => send({ type: 'TRANSITION' })}
           />
           <div data-testid="to-json">{toJson().value.toString()}</div>
         </div>
@@ -747,7 +815,7 @@ describe('useMachine hook', () => {
         <div>
           <button
             data-testid="transition-button"
-            onclick={() => send('TRANSITION')}
+            onclick={() => send({ type: 'TRANSITION' })}
           />
           <div data-testid="can-go">{canGo().toString()}</div>
           <div data-testid="stop">{state.hasTag('stop').toString()}</div>
@@ -806,7 +874,10 @@ describe('useMachine hook', () => {
       });
       return (
         <div>
-          <button data-testid="toggle-button" onclick={() => send('TOGGLE')} />
+          <button
+            data-testid="toggle-button"
+            onclick={() => send({ type: 'TOGGLE' })}
+          />
           <div data-testid="can-toggle">{canToggle().toString()}</div>
           <div data-testid="can-do-something">
             {state.can('DO_SOMETHING').toString()}
@@ -1065,10 +1136,13 @@ describe('useMachine hook', () => {
       context: {
         count: 0
       },
-      entry: [assign({ count: 1 }), xsend('INC')],
+      entry: [assign({ count: 1 }), xsend({ type: 'INC' })],
       on: {
         INC: {
-          actions: [assign({ count: (ctx) => ++ctx.count }), xsend('UNHANDLED')]
+          actions: [
+            assign({ count: (ctx) => ++ctx.count }),
+            xsend({ type: 'UNHANDLED' })
+          ]
         }
       },
       states: {
@@ -1242,7 +1316,9 @@ describe('useMachine (strict mode)', () => {
     const ChildTest = (props: { send: any }) => {
       // This will send an event to the parent service
       // BEFORE the service is ready.
-      props.send({ type: 'FINISH' });
+      onMount(() => {
+        props.send({ type: 'FINISH' });
+      });
 
       return null;
     };
@@ -1338,7 +1414,12 @@ describe('useMachine (strict mode)', () => {
           )
         );
 
-        return <button onclick={() => send('START')} data-testid="button" />;
+        return (
+          <button
+            onclick={() => send({ type: 'START' })}
+            data-testid="button"
+          />
+        );
       };
 
       render(() => <Test />);

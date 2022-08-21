@@ -1,8 +1,9 @@
 import type { AnyStateMachine, StateFrom } from 'xstate';
-import { createStore, reconcile } from 'solid-js/store';
+import { createStore, SetStoreFunction } from 'solid-js/store';
 import type { RestParams, UseMachineReturn } from './types';
 import { createService } from './createService';
-import { batch, onCleanup, onMount } from 'solid-js';
+import { onCleanup, onMount } from 'solid-js';
+import { deepClone, updateState } from './util';
 
 export function useMachine<TMachine extends AnyStateMachine>(
   machine: TMachine,
@@ -11,7 +12,7 @@ export function useMachine<TMachine extends AnyStateMachine>(
   const service = createService(machine, options);
 
   const [state, setState] = createStore<StateFrom<TMachine>>({
-    ...service.state,
+    ...deepClone({ ...service.state }),
     toJSON() {
       return service.state.toJSON();
     },
@@ -37,9 +38,10 @@ export function useMachine<TMachine extends AnyStateMachine>(
 
   onMount(() => {
     const { unsubscribe } = service.subscribe((nextState) => {
-      batch(() => {
-        setState(reconcile(nextState as StateFrom<TMachine>));
-      });
+      updateState(
+        nextState,
+        setState as SetStoreFunction<StateFrom<AnyStateMachine>>
+      );
     });
 
     onCleanup(unsubscribe);

@@ -11,7 +11,14 @@ import {
 } from 'xstate';
 import { fireEvent, screen, render } from 'solid-testing-library';
 import { toActorRef } from 'xstate/lib/Actor';
-import { Component, createEffect, createSignal, on, onMount } from 'solid-js';
+import {
+  Accessor,
+  Component,
+  createEffect,
+  createSignal,
+  on,
+  onMount
+} from 'solid-js';
 
 describe('useActor', () => {
   it('initial invoked actor should be immediately available', (done) => {
@@ -87,9 +94,10 @@ describe('useActor', () => {
     ) => {
       const [state, send] = useActor(props.actor);
 
-      expect(state().value).toEqual('active');
-
-      send({ type: 'FINISH' });
+      onMount(() => {
+        expect(state().value).toEqual('active');
+        send({ type: 'FINISH' });
+      });
 
       return null;
     };
@@ -192,7 +200,7 @@ describe('useActor', () => {
       );
 
       onMount(() => {
-        send('COUNT');
+        send({ type: 'COUNT' });
         send({ type: 'FINISH' });
       });
 
@@ -267,134 +275,6 @@ describe('useActor', () => {
     };
 
     render(() => <Test />);
-  });
-
-  it('actor should be updated when it changes shallow', () => {
-    const counterMachine = createMachine<{ count: number }>({
-      id: 'counter',
-      initial: 'active',
-      context: { count: 0 },
-      states: {
-        active: {
-          on: {
-            INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) },
-            SOMETHING: { actions: 'doSomething' }
-          }
-        }
-      }
-    });
-
-    const counterService1 = interpret(counterMachine).start();
-    const counterService2 = interpret(counterMachine).start();
-
-    const Counter = (props) => {
-      const [state, send] = useActor(props.counterRef);
-
-      return (
-        <div>
-          <button data-testid="inc" onclick={(_) => send('INC')} />
-          <div data-testid="count">{state().context.count}</div>
-        </div>
-      );
-    };
-    const CounterParent = () => {
-      const [service, setService] = createSignal(counterService1);
-
-      return (
-        <div>
-          <button
-            data-testid="change-service"
-            onclick={() => setService(counterService2)}
-          />
-          <Counter counterRef={service} />
-        </div>
-      );
-    };
-
-    render(() => <CounterParent />);
-
-    const changeServiceButton = screen.getByTestId('change-service');
-    const incButton = screen.getByTestId('inc');
-    const countEl = screen.getByTestId('count');
-
-    expect(countEl.textContent).toBe('0');
-    fireEvent.click(incButton);
-    expect(countEl.textContent).toBe('1');
-    fireEvent.click(changeServiceButton);
-    expect(countEl.textContent).toBe('0');
-  });
-
-  it('actor should be updated when it changes deep', () => {
-    const counterMachine2 = createMachine<{
-      subCount: { subCount1: { subCount2: { count: number } } };
-    }>({
-      id: 'counter',
-      initial: 'active',
-      context: { subCount: { subCount1: { subCount2: { count: 0 } } } },
-      states: {
-        active: {
-          on: {
-            INC: {
-              actions: assign({
-                subCount: (ctx) => ({
-                  ...ctx.subCount,
-                  subCount1: {
-                    ...ctx.subCount.subCount1,
-                    subCount2: {
-                      ...ctx.subCount.subCount1.subCount2,
-                      count: ctx.subCount.subCount1.subCount2.count + 1
-                    }
-                  }
-                })
-              })
-            },
-            SOMETHING: { actions: 'doSomething' }
-          }
-        }
-      }
-    });
-    const counterService1 = interpret(counterMachine2).start();
-    const counterService2 = interpret(counterMachine2).start();
-
-    const Counter = (props) => {
-      const [state, send] = useActor(props.counterRef);
-
-      return (
-        <div>
-          <button data-testid="inc" onclick={(_) => send('INC')} />
-          <div data-testid="count">
-            {state().context.subCount.subCount1.subCount2.count}
-          </div>
-        </div>
-      );
-    };
-    const CounterParent = () => {
-      const [service, setService] = createSignal(counterService1);
-
-      return (
-        <div>
-          <button
-            data-testid="change-service"
-            onclick={() => setService(counterService2)}
-          />
-          <Counter counterRef={service} />
-        </div>
-      );
-    };
-
-    render(() => <CounterParent />);
-
-    const changeServiceButton = screen.getByTestId('change-service');
-    const incButton = screen.getByTestId('inc');
-    const countEl = screen.getByTestId('count');
-
-    expect(countEl.textContent).toBe('0');
-    fireEvent.click(incButton);
-    expect(countEl.textContent).toBe('1');
-    fireEvent.click(changeServiceButton);
-    expect(countEl.textContent).toBe('0');
-    fireEvent.click(incButton);
-    expect(countEl.textContent).toBe('1');
   });
 
   it('spawned actor should be able to receive (deferred) events that it replays when active', (done) => {
@@ -611,9 +491,9 @@ describe('useActor', () => {
         <div
           data-testid="count"
           onclick={() => {
-            send('INC');
+            send({ type: 'INC' });
             // @ts-expect-error
-            send('FAKE');
+            send({ type: 'FAKE' });
           }}
         >
           {state().context.count}
@@ -641,6 +521,209 @@ describe('useActor', () => {
     countEls.forEach((countEl) => {
       expect(countEl.textContent).toBe('1');
     });
+  });
+
+  it('actor should be updated when it changes shallow', () => {
+    const counterMachine = createMachine<{ count: number }>({
+      id: 'counter',
+      initial: 'active',
+      context: { count: 0 },
+      states: {
+        active: {
+          on: {
+            INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) },
+            SOMETHING: { actions: 'doSomething' }
+          }
+        }
+      }
+    });
+
+    const counterService1 = interpret(counterMachine).start();
+    const counterService2 = interpret(counterMachine).start();
+
+    const Counter = (props: {
+      counterRef: Accessor<ActorRefFrom<typeof counterMachine>>;
+    }) => {
+      const [state, send] = useActor(props.counterRef);
+
+      return (
+        <div>
+          <button data-testid="inc" onclick={(_) => send({ type: 'INC' })} />
+          <div data-testid="count">{state().context.count}</div>
+        </div>
+      );
+    };
+    const CounterParent = () => {
+      const [service, setService] = createSignal(counterService1);
+
+      return (
+        <div>
+          <button
+            data-testid="change-service"
+            onclick={() => setService(counterService2)}
+          />
+          <Counter counterRef={service} />
+        </div>
+      );
+    };
+
+    render(() => <CounterParent />);
+
+    const changeServiceButton = screen.getByTestId('change-service');
+    const incButton = screen.getByTestId('inc');
+    const countEl = screen.getByTestId('count');
+
+    expect(countEl.textContent).toBe('0');
+    fireEvent.click(incButton);
+    expect(countEl.textContent).toBe('1');
+    fireEvent.click(changeServiceButton);
+    expect(countEl.textContent).toBe('0');
+  });
+
+  it('actor should be updated when it changes deep', () => {
+    const counterMachine2 = createMachine<{
+      subCount: { subCount1: { subCount2: { count: number } } };
+    }>({
+      id: 'counter',
+      initial: 'active',
+      context: { subCount: { subCount1: { subCount2: { count: 0 } } } },
+      states: {
+        active: {
+          on: {
+            INC: {
+              actions: assign({
+                subCount: (ctx) => ({
+                  ...ctx.subCount,
+                  subCount1: {
+                    ...ctx.subCount.subCount1,
+                    subCount2: {
+                      ...ctx.subCount.subCount1.subCount2,
+                      count: ctx.subCount.subCount1.subCount2.count + 1
+                    }
+                  }
+                })
+              })
+            },
+            SOMETHING: { actions: 'doSomething' }
+          }
+        }
+      }
+    });
+    const counterService1 = interpret(counterMachine2).start();
+    const counterService2 = interpret(counterMachine2).start();
+
+    const Counter = (props: {
+      counterRef: Accessor<ActorRefFrom<typeof counterMachine2>>;
+    }) => {
+      const [state, send] = useActor(props.counterRef);
+
+      return (
+        <div>
+          <button data-testid="inc" onclick={(_) => send({ type: 'INC' })} />
+          <div data-testid="count">
+            {state().context.subCount.subCount1.subCount2.count}
+          </div>
+        </div>
+      );
+    };
+    const CounterParent = () => {
+      const [service, setService] = createSignal(counterService1);
+
+      return (
+        <div>
+          <button
+            data-testid="change-service"
+            onclick={() => setService(counterService2)}
+          />
+          <Counter counterRef={service} />
+        </div>
+      );
+    };
+
+    render(() => <CounterParent />);
+
+    const changeServiceButton = screen.getByTestId('change-service');
+    const incButton = screen.getByTestId('inc');
+    const countEl = screen.getByTestId('count');
+
+    expect(countEl.textContent).toBe('0');
+    fireEvent.click(incButton);
+    expect(countEl.textContent).toBe('1');
+    fireEvent.click(changeServiceButton);
+    expect(countEl.textContent).toBe('0');
+    fireEvent.click(incButton);
+    expect(countEl.textContent).toBe('1');
+  });
+
+  it('actor should only trigger effect of directly tracked value', () => {
+    const counterMachine2 = createMachine<{
+      subCount: { subCount1: { subCount2: { count: number } } };
+    }>({
+      id: 'counter',
+      initial: 'active',
+      context: { subCount: { subCount1: { subCount2: { count: 0 } } } },
+      states: {
+        active: {
+          on: {
+            INC: {
+              actions: assign({
+                subCount: (ctx) => ({
+                  ...ctx.subCount,
+                  subCount1: {
+                    ...ctx.subCount.subCount1,
+                    subCount2: {
+                      ...ctx.subCount.subCount1.subCount2,
+                      count: ctx.subCount.subCount1.subCount2.count + 1
+                    }
+                  }
+                })
+              })
+            },
+            SOMETHING: { actions: 'doSomething' }
+          }
+        }
+      }
+    });
+
+    const Counter = () => {
+      const counterService = interpret(counterMachine2).start();
+      const [state, send] = useActor(counterService);
+      const [effectCount, setEffectCount] = createSignal(0);
+      createEffect(
+        on(
+          () => state().context.subCount.subCount1,
+          () => {
+            setEffectCount((prev) => prev + 1);
+          },
+          {
+            defer: true
+          }
+        )
+      );
+      return (
+        <div>
+          <button data-testid="inc" onclick={(_) => send({ type: 'INC' })} />
+          <div data-testid="effect-count">{effectCount()}</div>
+          <div data-testid="count">
+            {state().context.subCount.subCount1.subCount2.count}
+          </div>
+        </div>
+      );
+    };
+
+    render(() => <Counter />);
+
+    const incButton = screen.getByTestId('inc');
+    const countEl = screen.getByTestId('count');
+    const effectCountEl = screen.getByTestId('effect-count');
+
+    expect(countEl.textContent).toBe('0');
+    fireEvent.click(incButton);
+    expect(countEl.textContent).toBe('1');
+    expect(effectCountEl.textContent).toBe('0');
+    fireEvent.click(incButton);
+    expect(countEl.textContent).toBe('2');
+    expect(effectCountEl.textContent).toBe('0');
   });
 
   it('referenced object in context should not update both services', (done) => {
@@ -753,7 +836,10 @@ describe('useActor', () => {
       return (
         <div>
           <div data-testid="child-state">{childState().value}</div>
-          <button data-testid="child-send" onclick={() => childSend('NEXT')} />
+          <button
+            data-testid="child-send"
+            onclick={() => childSend({ type: 'NEXT' })}
+          />
         </div>
       );
     };

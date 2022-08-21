@@ -45,10 +45,13 @@ describe('usage of selectors with reactive service state', () => {
       return (
         <div>
           <div data-testid="count">{selector(serviceState())}</div>
-          <button data-testid="other" onclick={() => service.send('OTHER')} />
+          <button
+            data-testid="other"
+            onclick={() => service.send({ type: 'OTHER' })}
+          />
           <button
             data-testid="increment"
-            onclick={() => service.send('INCREMENT')}
+            onclick={() => service.send({ type: 'INCREMENT' })}
           />
         </div>
       );
@@ -270,7 +273,10 @@ describe('usage of selectors with reactive service state', () => {
           <div data-testid="count">
             {state.context.actorRef!.state.context.count}
           </div>
-          <button data-testid="change-actor" onclick={() => send('CHANGE')} />
+          <button
+            data-testid="change-actor"
+            onclick={() => send({ type: 'CHANGE' })}
+          />
         </div>
       );
     };
@@ -283,99 +289,6 @@ describe('usage of selectors with reactive service state', () => {
     expect(div.textContent).toEqual('1');
     fireEvent.click(button);
     expect(div.textContent).toEqual('0');
-  });
-
-  it('should only update when custom comparer returns false', () => {
-    const childMachine = createMachine<{
-      items: { count: number; wins: number };
-    }>({
-      initial: 'active',
-      context: {
-        items: {
-          count: 0,
-          wins: 0
-        }
-      },
-      states: {
-        active: {
-          on: {
-            INC: {
-              actions: assign({
-                items: (ctx) => ({ ...ctx.items, count: ctx.items.count + 1 })
-              })
-            },
-            WIN: {
-              actions: assign({
-                items: (ctx) => ({ ...ctx.items, wins: ctx.items.wins + 1 })
-              })
-            }
-          }
-        }
-      }
-    });
-
-    const machine = createMachine<{
-      actorRef?: ActorRefFrom<typeof childMachine>;
-    }>({
-      initial: 'active',
-      context: {
-        actorRef: undefined
-      },
-      states: {
-        active: {
-          entry: assign({
-            actorRef: () => spawn(childMachine)
-          })
-        },
-        success: {}
-      }
-    });
-
-    const Child: Component<{ actorRef: ActorRefFrom<typeof childMachine> }> = (
-      props
-    ) => {
-      const [state, send] = useActor(props.actorRef);
-      const actorContext = createMemo(
-        () => {
-          return state().context;
-        },
-        undefined,
-        { equals: (a, b) => a.items.wins === b.items.wins }
-      );
-
-      return (
-        <div>
-          <div data-testid="count">{actorContext().items.count}</div>
-          <div data-testid="wins">{actorContext().items.wins}</div>
-          <button data-testid="inc" onclick={() => send('INC')} />
-          <button data-testid="win" onclick={() => send('WIN')} />
-        </div>
-      );
-    };
-    const App = () => {
-      const [state] = useMachine(machine);
-
-      return <Child actorRef={state.context.actorRef!} />;
-    };
-
-    render(() => <App />);
-
-    const countDiv = screen.getByTestId('count');
-    const winDiv = screen.getByTestId('wins');
-    const incrementButton = screen.getByTestId('inc');
-    const winsButton = screen.getByTestId('win');
-    fireEvent.click(incrementButton);
-    expect(countDiv.textContent).toEqual('0');
-    expect(winDiv.textContent).toEqual('0');
-    fireEvent.click(winsButton);
-    expect(countDiv.textContent).toEqual('1');
-    expect(winDiv.textContent).toEqual('1');
-    fireEvent.click(incrementButton);
-    fireEvent.click(incrementButton);
-    expect(countDiv.textContent).toEqual('1');
-    fireEvent.click(winsButton);
-    expect(countDiv.textContent).toEqual('3');
-    expect(winDiv.textContent).toEqual('2');
   });
 
   it('should use a fresh selector for subscription updates after selector change', () => {
