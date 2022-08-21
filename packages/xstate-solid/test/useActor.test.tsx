@@ -19,6 +19,7 @@ import {
   on,
   onMount
 } from 'solid-js';
+import { createStore, reconcile } from 'solid-js/store';
 
 describe('useActor', () => {
   it('initial invoked actor should be immediately available', (done) => {
@@ -552,6 +553,85 @@ describe('useActor', () => {
                 ['prop2', '10']
               ]);
               setSignal(newMap);
+              setActor(createSimpleActor(newMap));
+            }}
+          />
+        </div>
+      );
+    };
+
+    render(() => <Test />);
+
+    const actorState = screen.getByTestId('actor-state');
+    const signalState = screen.getByTestId('signal-state');
+    const actorChangeVal = screen.getByTestId('actor-change');
+    const signalChangeVal = screen.getByTestId('signal-change');
+    const button = screen.getByTestId('button');
+
+    expect(signalChangeVal.textContent).toEqual('1');
+    expect(actorChangeVal.textContent).toEqual('1');
+    expect(actorState.textContent).toEqual('5');
+    expect(signalState.textContent).toEqual('5');
+    fireEvent.click(button);
+    expect(actorState.textContent).toEqual('10');
+    expect(signalState.textContent).toEqual('10');
+    expect(signalChangeVal.textContent).toEqual('2');
+    expect(actorChangeVal.textContent).toEqual('2');
+  });
+
+  it('getSnapshot nested store Map should match vanilla Solid behavior', () => {
+    const createSimpleActor = (value: Map<string, string>) =>
+      toActorRef({
+        send: () => {
+          /* ... */
+        },
+        getSnapshot: () => ({ value }),
+        subscribe: () => {
+          return {
+            unsubscribe: () => {
+              /* ... */
+            }
+          };
+        }
+      }) as ActorRef<any, { value: Map<string, string> }>;
+
+    const Test = () => {
+      const map1 = new Map([
+        ['prop1', 'value'],
+        ['prop2', '5']
+      ]);
+      const [actor, setActor] = createSignal(createSimpleActor(map1));
+      const [signal, setSignal] = createStore({ value: map1 });
+      const [state] = useActor(actor);
+      const [actorChange, setActorChange] = createSignal(0);
+      const [signalChange, setSignalChange] = createSignal(0);
+
+      createEffect(() => {
+        if (state().value.get('prop1')) {
+          setActorChange((val) => val + 1);
+        }
+      });
+
+      createEffect(() => {
+        if (signal.value.get('prop1')) {
+          setSignalChange((val) => val + 1);
+        }
+      });
+
+      return (
+        <div>
+          <div data-testid="actor-change">{actorChange()}</div>
+          <div data-testid="signal-change">{signalChange()}</div>
+          <div data-testid="actor-state">{signal.value.get('prop2')}</div>
+          <div data-testid="signal-state">{state().value.get('prop2')}</div>
+          <button
+            data-testid="button"
+            onclick={() => {
+              const newMap = new Map([
+                ['prop1', 'value'],
+                ['prop2', '10']
+              ]);
+              setSignal(reconcile({ value: newMap }));
               setActor(createSimpleActor(newMap));
             }}
           />

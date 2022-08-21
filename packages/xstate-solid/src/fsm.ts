@@ -1,29 +1,23 @@
 import type {
-  EventObject,
   MachineImplementationsFrom,
   ServiceFrom,
   StateFrom,
-  StateMachine,
-  Typestate
+  StateMachine
 } from '@xstate/fsm';
 import { createMachine, interpret } from '@xstate/fsm';
 
-import { createStore } from 'solid-js/store';
+import { createStore, reconcile } from 'solid-js/store';
 import type { Accessor } from 'solid-js';
 import { createEffect, createMemo, on, onCleanup } from 'solid-js';
-import { deepClone, updateState } from './util';
+import { deepClone } from './util';
 
-const getServiceState = <
-  TContext extends object,
-  TEvent extends EventObject = EventObject,
-  TState extends Typestate<TContext> = { value: any; context: TContext }
->(
-  service: StateMachine.Service<TContext, TEvent, TState>
-): StateMachine.State<TContext, TEvent, TState> => {
-  let currentValue: StateMachine.State<TContext, TEvent, TState>;
+const getServiceState = <TService extends StateMachine.AnyService>(
+  service: TService
+): StateFrom<TService> => {
+  let currentValue: StateFrom<TService>;
   service
     .subscribe((state) => {
-      currentValue = state;
+      currentValue = state as StateFrom<TService>;
     })
     .unsubscribe();
   return currentValue!;
@@ -53,7 +47,7 @@ export function useService<TService extends StateMachine.AnyService>(
   const getClonedState = () => deepClone(getServiceState(serviceMemo()));
 
   const [state, setState] = createStore<StateFrom<TService>>({
-    ...getClonedState(),
+    ...(getClonedState() as object),
     matches(...args: Parameters<StateFrom<TService>['matches']>) {
       // tslint:disable-next-line:no-unused-expression
       (state as StateFrom<any>).value; // sets state.value to be tracked by the store
@@ -68,14 +62,14 @@ export function useService<TService extends StateMachine.AnyService>(
     on(
       () => serviceMemo(),
       () => {
-        updateState(getClonedState(), setState);
+        setState(getClonedState());
       },
       { defer: true }
     )
   );
   createEffect(() => {
     const { unsubscribe } = serviceMemo().subscribe((nextState) => {
-      updateState(nextState, setState);
+      setState(reconcile(nextState as StateFrom<TService>));
     });
     onCleanup(unsubscribe);
   });
