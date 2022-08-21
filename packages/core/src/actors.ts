@@ -86,7 +86,8 @@ export function fromCallback<TEvent extends EventObject>(
       dispose: void | (() => void) | Promise<any>;
     }
   > = {
-    transition: (state, event, { self, name, _event }) => {
+    transition: (state, event, { self, name }) => {
+      const _event = toSCXMLEvent(event);
       const { _parent: parent } = self;
 
       if (_event.name === startSignalType) {

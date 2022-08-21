@@ -137,6 +137,7 @@ export class Interpreter<
   public _parent?: ActorRef<any>;
   public name: string;
   public ref: ActorRef<TEvent>;
+  private _actorContext: ActorContext<TEvent, SnapshotFrom<TBehavior>>;
 
   /**
    * The globally unique process ID for this invocation.
@@ -168,6 +169,15 @@ export class Interpreter<
     this.ref = this;
     // TODO: this should come from a "system"
     this.sessionId = `x:${sessionCounter++}`;
+    this._actorContext = {
+      self: this,
+      name: this.id ?? 'todo',
+      sessionId: this.sessionId,
+      logger: this.logger,
+      exec: (fn) => {
+        fn();
+      }
+    };
   }
 
   private __initial: InternalStateFrom<TBehavior> | undefined = undefined;
@@ -177,9 +187,8 @@ export class Interpreter<
     return (
       this.__initial ||
       ((this.__initial =
-        this.machine.getInitialState?.(
-          this._getActorContext(toSCXMLEvent({ type: 'xstate.init' } as TEvent))
-        ) ?? this.machine.initialState),
+        this.machine.getInitialState?.(this._actorContext) ??
+        this.machine.initialState),
       this.__initial!)
     );
   }
@@ -364,24 +373,16 @@ export class Interpreter<
       // Re-execute actions
       if (isStateLike(resolvedState)) {
         for (const action of resolvedState.actions) {
-          execAction(
-            action,
-            resolvedState,
-            this._getActorContext(toSCXMLEvent({ type: 'xstate.init' }))
-          );
+          execAction(action, resolvedState, this._actorContext);
         }
       }
     }
-
-    const scxmlEvent = isStateLike(resolvedState)
-      ? (resolvedState as AnyState)._event
-      : toSCXMLEvent(({ type: startSignalType } as unknown) as TEvent);
 
     if (!isStateMachine(this.machine)) {
       resolvedState = this.machine.transition(
         this.machine.initialState,
         { type: startSignalType },
-        this._getActorContext(scxmlEvent)
+        this._actorContext
       );
     }
 
@@ -397,21 +398,6 @@ export class Interpreter<
     this.mailbox.start();
 
     return this;
-  }
-
-  private _getActorContext(
-    scxmlEvent: SCXML.Event<TEvent | LifecycleSignal>
-  ): ActorContext<TEvent, SnapshotFrom<TBehavior>> {
-    return {
-      self: this,
-      name: this.id ?? 'todo',
-      _event: scxmlEvent,
-      sessionId: this.sessionId,
-      logger: this.logger,
-      exec: (fn) => {
-        fn();
-      }
-    };
   }
 
   private _process(event: SCXML.Event<TEvent>) {
@@ -563,18 +549,14 @@ export class Interpreter<
     event: TEvent | SCXML.Event<TEvent> | LifecycleSignal
   ): InternalStateFrom<TBehavior> {
     return this.machine.transition(this._state, event, {
-      ...this._getActorContext(toSCXMLEvent(event)),
+      ...this._actorContext,
       exec: undefined
     });
   }
   private _nextState(
     event: TEvent | SCXML.Event<TEvent> | LifecycleSignal
   ): InternalStateFrom<TBehavior> {
-    return this.machine.transition(
-      this._state,
-      event,
-      this._getActorContext(toSCXMLEvent(event))
-    );
+    return this.machine.transition(this._state, event, this._actorContext);
   }
   private forward(event: SCXML.Event<TEvent>): void {
     const snapshot = this.getSnapshot();

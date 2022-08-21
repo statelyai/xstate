@@ -1848,7 +1848,6 @@ export type EventOfMachine<
 export interface ActorContext<TEvent extends EventObject, TSnapshot> {
   self: ActorRef<TEvent, TSnapshot>;
   name: string;
-  _event: SCXML.Event<TEvent | LifecycleSignal>;
   sessionId: string;
   logger: (...args: any[]) => void;
   exec: ((fn: () => void) => void) | undefined;
