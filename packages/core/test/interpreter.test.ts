@@ -1464,24 +1464,23 @@ describe('interpreter', () => {
       );
     });
 
-    // TODO: figure out why this doesn't pass
-    it.skip('should be interoperable with RxJS, etc. via Symbol.observable', (done) => {
+    it('should be interoperable with RxJS, etc. via Symbol.observable', (done) => {
       let count = 0;
       const intervalService = interpret(intervalMachine).start();
 
       expect(() => {
         const state$ = from(intervalService);
 
-        state$.subscribe(
-          () => {
+        state$.subscribe({
+          next: () => {
             count += 1;
           },
-          undefined,
-          () => {
+          error: undefined,
+          complete: () => {
             expect(count).toEqual(6);
             done();
           }
-        );
+        });
       }).not.toThrow();
     });
 

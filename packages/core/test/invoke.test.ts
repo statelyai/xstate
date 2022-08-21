@@ -829,8 +829,7 @@ describe('invoke', () => {
       done();
     });
 
-    // TODO: determine if this test is valid
-    it.skip('child should not invoke an actor when it transitions to an invoking state when it gets stopped by its parent', (done) => {
+    it('child should not invoke an actor when it transitions to an invoking state when it gets stopped by its parent', (done) => {
       let invokeCount = 0;
 
       const child = createMachine({
@@ -2247,6 +2246,8 @@ describe('invoke', () => {
     it('should work with a behavior', (done) => {
       const countBehavior: Behavior<EventObject, number> = {
         transition: (count, event) => {
+          // TODO: all behaviors receive SCXML.Event objects,
+          // make sure this is clear in the docs
           const _event = toSCXMLEvent(event);
           if (_event.name === 'INC') {
             return count + 1;
