@@ -1,4 +1,5 @@
-import { reconcile, SetStoreFunction } from 'solid-js/store';
+import type { SetStoreFunction } from 'solid-js/store';
+import { reconcile } from 'solid-js/store';
 
 function isObject(payload: any): payload is object {
   return payload && typeof payload === 'object' && !Array.isArray(payload);

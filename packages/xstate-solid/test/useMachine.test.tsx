@@ -1231,7 +1231,10 @@ describe('useMachine hook', () => {
       return (
         <div>
           <div>
-            <button data-testid="inc-machine1" onclick={() => send1('INC')}>
+            <button
+              data-testid="inc-machine1"
+              onclick={() => send1({ type: 'INC' })}
+            >
               INC 1
             </button>
             <div data-testid="value-machine1">
@@ -1239,7 +1242,10 @@ describe('useMachine hook', () => {
             </div>
           </div>
           <div>
-            <button data-testid="inc-machine2" onclick={() => send2('INC')}>
+            <button
+              data-testid="inc-machine2"
+              onclick={() => send2({ type: 'INC' })}
+            >
               INC 1
             </button>
             <div data-testid="value-machine2">

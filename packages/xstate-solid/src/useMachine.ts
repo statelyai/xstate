@@ -1,5 +1,6 @@
 import type { AnyStateMachine, StateFrom } from 'xstate';
-import { createStore, SetStoreFunction } from 'solid-js/store';
+import type { SetStoreFunction } from 'solid-js/store';
+import { createStore } from 'solid-js/store';
 import type { RestParams, UseMachineReturn } from './types';
 import { createService } from './createService';
 import { onCleanup, onMount } from 'solid-js';

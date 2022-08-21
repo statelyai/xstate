@@ -70,7 +70,7 @@ describe('useActor', () => {
       states: {
         active: {
           on: {
-            FINISH: { actions: sendParent('FINISH') }
+            FINISH: { actions: sendParent({ type: 'FINISH' }) }
           }
         }
       }
@@ -141,7 +141,7 @@ describe('useActor', () => {
                   item: (ctx) => ({ ...ctx.item, total: ctx.item.total + 1 })
                 }),
 
-                sendParent('FINISH')
+                sendParent({ type: 'FINISH' })
               ]
             },
             COUNT: {
@@ -284,7 +284,7 @@ describe('useActor', () => {
       states: {
         active: {
           on: {
-            FINISH: { actions: sendParent('FINISH') }
+            FINISH: { actions: sendParent({ type: 'FINISH' }) }
           }
         }
       }
@@ -762,7 +762,10 @@ describe('useActor', () => {
       return (
         <div>
           <div>
-            <button data-testid="inc-machine1" onclick={() => send1('INC')}>
+            <button
+              data-testid="inc-machine1"
+              onclick={() => send1({ type: 'INC' })}
+            >
               INC 1
             </button>
             <div data-testid="value-machine1">
@@ -770,7 +773,10 @@ describe('useActor', () => {
             </div>
           </div>
           <div>
-            <button data-testid="inc-machine2" onclick={() => send2('INC')}>
+            <button
+              data-testid="inc-machine2"
+              onclick={() => send2({ type: 'INC' })}
+            >
               INC 1
             </button>
             <div data-testid="value-machine2">

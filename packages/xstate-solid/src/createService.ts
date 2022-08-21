@@ -1,5 +1,5 @@
 import type { AnyStateMachine, InterpreterFrom } from 'xstate';
-import { State, interpret } from 'xstate';
+import { interpret, State } from 'xstate';
 import type { RestParams } from './types';
 import { onCleanup } from 'solid-js';
 

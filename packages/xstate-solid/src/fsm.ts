@@ -1,16 +1,15 @@
 import type {
   EventObject,
   MachineImplementationsFrom,
-  StateMachine,
-  StateFrom,
   ServiceFrom,
+  StateFrom,
+  StateMachine,
   Typestate
 } from '@xstate/fsm';
-import { interpret, createMachine } from '@xstate/fsm';
+import { createMachine, interpret } from '@xstate/fsm';
 
 import { createStore } from 'solid-js/store';
 import type { Accessor } from 'solid-js';
-
 import { createEffect, createMemo, on, onCleanup } from 'solid-js';
 import { deepClone, updateState } from './util';
 

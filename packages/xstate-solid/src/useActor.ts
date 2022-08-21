@@ -1,6 +1,6 @@
-import { ActorRef, EventObject, Sender } from 'xstate';
-import { Accessor, createEffect, on } from 'solid-js';
-import { createMemo, onCleanup } from 'solid-js';
+import type { ActorRef, EventObject, Sender } from 'xstate';
+import type { Accessor } from 'solid-js';
+import { createEffect, createMemo, on, onCleanup } from 'solid-js';
 import { createStore } from 'solid-js/store';
 import { deepClone, spreadIfObject, updateState } from './util';
 

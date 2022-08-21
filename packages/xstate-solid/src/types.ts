@@ -1,10 +1,11 @@
-import type { EventObject, StateConfig } from 'xstate';
-import {
+import type {
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
+  EventObject,
   InternalMachineOptions,
   InterpreterFrom,
   InterpreterOptions,
+  StateConfig,
   StateFrom
 } from 'xstate';
 
