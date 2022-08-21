@@ -576,10 +576,9 @@ describe('invoke', () => {
       states: {
         active: {
           invoke: {
-            src: () =>
-              fromCallback(() => {
-                startCount++;
-              })
+            src: fromCallback(() => {
+              startCount++;
+            })
           }
         }
       }
@@ -791,14 +790,13 @@ describe('invoke', () => {
 
       const machine = createMachine({
         invoke: {
-          src: () =>
-            fromCallback(() => {
-              invokeCount++;
+          src: fromCallback(() => {
+            invokeCount++;
 
-              return () => {
-                invokeDisposeCount++;
-              };
-            })
+            return () => {
+              invokeDisposeCount++;
+            };
+          })
         },
         entry: () => entryActionsCount++,
         on: {
@@ -841,19 +839,18 @@ describe('invoke', () => {
         states: {
           idle: {
             invoke: {
-              src: () =>
-                fromCallback((sendBack) => {
-                  invokeCount++;
+              src: fromCallback((sendBack) => {
+                invokeCount++;
 
-                  if (invokeCount > 1) {
-                    // prevent a potential infinite loop
-                    throw new Error('This should be impossible.');
-                  }
+                if (invokeCount > 1) {
+                  // prevent a potential infinite loop
+                  throw new Error('This should be impossible.');
+                }
 
-                  // it's important for this test to send the event back when the parent is *not* currently processing an event
-                  // this ensures that the parent can process the received event immediately and can stop the child immediately
-                  setTimeout(() => sendBack({ type: 'STARTED' }));
-                })
+                // it's important for this test to send the event back when the parent is *not* currently processing an event
+                // this ensures that the parent can process the received event immediately and can stop the child immediately
+                setTimeout(() => sendBack({ type: 'STARTED' }));
+              })
             },
             on: {
               STARTED: 'active'
@@ -861,10 +858,9 @@ describe('invoke', () => {
           },
           active: {
             invoke: {
-              src: () =>
-                fromCallback((sendBack) => {
-                  sendBack({ type: 'STOPPED' });
-                })
+              src: fromCallback((sendBack) => {
+                sendBack({ type: 'STOPPED' });
+              })
             },
             on: {
               STOPPED: {
@@ -998,12 +994,11 @@ describe('invoke', () => {
           states: {
             pending: {
               invoke: {
-                src: () =>
-                  fromPromise(() =>
-                    createPromise(() => {
-                      throw new Error('test');
-                    })
-                  ),
+                src: fromPromise(() =>
+                  createPromise(() => {
+                    throw new Error('test');
+                  })
+                ),
                 onDone: 'success'
               }
             },
@@ -1031,12 +1026,11 @@ describe('invoke', () => {
           states: {
             pending: {
               invoke: {
-                src: () =>
-                  fromPromise(() =>
-                    createPromise(() => {
-                      throw new Error('test');
-                    })
-                  ),
+                src: fromPromise(() =>
+                  createPromise(() => {
+                    throw new Error('test');
+                  })
+                ),
                 onDone: 'success'
               }
             },
@@ -1070,8 +1064,9 @@ describe('invoke', () => {
               states: {
                 pending: {
                   invoke: {
-                    src: () =>
-                      fromPromise(() => createPromise((resolve) => resolve())),
+                    src: fromPromise(() =>
+                      createPromise((resolve) => resolve())
+                    ),
                     onDone: 'success'
                   }
                 },
@@ -1139,10 +1134,9 @@ describe('invoke', () => {
           states: {
             pending: {
               invoke: {
-                src: () =>
-                  fromPromise(() =>
-                    createPromise((resolve) => resolve({ count: 1 }))
-                  ),
+                src: fromPromise(() =>
+                  createPromise((resolve) => resolve({ count: 1 }))
+                ),
                 onDone: {
                   target: 'success',
                   actions: assign({ count: (_, e) => e.data.count })
@@ -1220,10 +1214,9 @@ describe('invoke', () => {
           states: {
             pending: {
               invoke: {
-                src: () =>
-                  fromPromise(() =>
-                    createPromise((resolve) => resolve({ count: 1 }))
-                  ),
+                src: fromPromise(() =>
+                  createPromise((resolve) => resolve({ count: 1 }))
+                ),
                 onDone: {
                   target: 'success',
                   actions: (_, e) => {
@@ -1679,14 +1672,13 @@ describe('invoke', () => {
           active: {
             invoke: {
               id: 'child',
-              src: () =>
-                fromCallback((callback, onReceive) => {
-                  onReceive((e) => {
-                    if (e.type === 'PING') {
-                      callback({ type: 'PONG' });
-                    }
-                  });
-                })
+              src: fromCallback((callback, onReceive) => {
+                onReceive((e) => {
+                  if (e.type === 'PING') {
+                    callback({ type: 'PONG' });
+                  }
+                });
+              })
             },
             entry: send('PING', { to: 'child' }),
             on: {
@@ -1711,10 +1703,9 @@ describe('invoke', () => {
         states: {
           safe: {
             invoke: {
-              src: () =>
-                fromCallback(() => {
-                  throw new Error('test');
-                }),
+              src: fromCallback(() => {
+                throw new Error('test');
+              }),
               onError: {
                 target: 'failed',
                 guard: (_, e) => {
@@ -1741,10 +1732,9 @@ describe('invoke', () => {
         states: {
           safe: {
             invoke: {
-              src: () =>
-                fromCallback(() => {
-                  throw new Error('test');
-                }),
+              src: fromCallback(() => {
+                throw new Error('test');
+              }),
               onError: 'failed'
             }
           },
@@ -1766,11 +1756,10 @@ describe('invoke', () => {
         states: {
           safe: {
             invoke: {
-              src: () =>
-                fromCallback(async () => {
-                  await true;
-                  throw new Error('test');
-                }),
+              src: fromCallback(async () => {
+                await true;
+                throw new Error('test');
+              }),
               onError: {
                 target: 'failed',
                 guard: (_, e) => {
@@ -1800,11 +1789,10 @@ describe('invoke', () => {
         states: {
           fetch: {
             invoke: {
-              src: () =>
-                fromCallback(async () => {
-                  await true;
-                  return 42;
-                }),
+              src: fromCallback(async () => {
+                await true;
+                return 42;
+              }),
               onDone: {
                 target: 'success',
                 actions: assign((_, { data: result }) => ({ result }))
@@ -1844,10 +1832,9 @@ describe('invoke', () => {
             states: {
               first: {
                 invoke: {
-                  src: () =>
-                    fromCallback(() => {
-                      throw new Error('test');
-                    }),
+                  src: fromCallback(() => {
+                    throw new Error('test');
+                  }),
                   onError: {
                     target: 'failed',
                     guard: () => {
@@ -1859,10 +1846,9 @@ describe('invoke', () => {
               },
               second: {
                 invoke: {
-                  src: () =>
-                    fromCallback(() => {
-                      // empty
-                    }),
+                  src: fromCallback(() => {
+                    // empty
+                  }),
                   onError: {
                     target: 'failed',
                     guard: () => {
@@ -1905,10 +1891,9 @@ describe('invoke', () => {
         states: {
           safe: {
             invoke: {
-              src: () =>
-                fromCallback(() => {
-                  throw new Error('test');
-                })
+              src: fromCallback(() => {
+                throw new Error('test');
+              })
             }
           },
           failed: {
@@ -2077,18 +2062,17 @@ describe('invoke', () => {
         states: {
           counting: {
             invoke: {
-              src: () =>
-                fromObservable(() =>
-                  infinite$.pipe(
-                    map((value) => {
-                      if (value === 5) {
-                        throw new Error('some error');
-                      }
+              src: fromObservable(() =>
+                infinite$.pipe(
+                  map((value) => {
+                    if (value === 5) {
+                      throw new Error('some error');
+                    }
 
-                      return value;
-                    })
-                  )
-                ),
+                    return value;
+                  })
+                )
+              ),
               onSnapshot: {
                 actions: assign({ count: (_, e) => e.data })
               },
@@ -2220,18 +2204,17 @@ describe('invoke', () => {
         states: {
           counting: {
             invoke: {
-              src: () =>
-                fromEventObservable(() =>
-                  interval(10).pipe(
-                    map((value) => {
-                      if (value === 5) {
-                        throw new Error('some error');
-                      }
+              src: fromEventObservable(() =>
+                interval(10).pipe(
+                  map((value) => {
+                    if (value === 5) {
+                      throw new Error('some error');
+                    }
 
-                      return { type: 'COUNT', value };
-                    })
-                  )
-                ),
+                    return { type: 'COUNT', value };
+                  })
+                )
+              ),
               onError: {
                 target: 'success',
                 guard: (ctx, e) => {
@@ -2278,7 +2261,7 @@ describe('invoke', () => {
       const countMachine = createMachine({
         invoke: {
           id: 'count',
-          src: () => countBehavior
+          src: countBehavior
         },
         on: {
           INC: {
@@ -2320,7 +2303,7 @@ describe('invoke', () => {
             entry: send('PING', { to: 'ponger' }),
             invoke: {
               id: 'ponger',
-              src: () => pongBehavior
+              src: pongBehavior
             },
             on: {
               PONG: 'success'
@@ -2645,10 +2628,9 @@ describe('invoke', () => {
           active: {
             invoke: {
               id: 'doNotInvoke',
-              src: () =>
-                fromCallback(() => {
-                  actorStarted = true;
-                })
+              src: fromCallback(() => {
+                actorStarted = true;
+              })
             },
             always: 'inactive'
           },
@@ -2676,10 +2658,9 @@ describe('invoke', () => {
           withNonLeafInvoke: {
             invoke: {
               id: 'doNotInvoke',
-              src: () =>
-                fromCallback(() => {
-                  actorStarted = true;
-                })
+              src: fromCallback(() => {
+                actorStarted = true;
+              })
             },
             initial: 'first',
             states: {
@@ -2721,10 +2702,9 @@ describe('invoke', () => {
                   active: {
                     invoke: {
                       id: 'active',
-                      src: () =>
-                        fromCallback(() => {
-                          /* ... */
-                        })
+                      src: fromCallback(() => {
+                        /* ... */
+                      })
                     },
                     on: {
                       NEXT: {
@@ -2776,10 +2756,9 @@ describe('invoke', () => {
         states: {
           active: {
             invoke: {
-              src: () =>
-                fromCallback(() => {
-                  actorStartedCount++;
-                })
+              src: fromCallback(() => {
+                actorStartedCount++;
+              })
             },
             always: [
               {
@@ -3005,10 +2984,9 @@ describe('invoke', () => {
     [
       'src containing a callback actor directly',
       {
-        src: () =>
-          fromCallback(() => {
-            /* ... */
-          })
+        src: fromCallback(() => {
+          /* ... */
+        })
       }
     ],
     [
@@ -3035,6 +3013,7 @@ describe('invoke', () => {
         },
         {
           actors: {
+            // TODO: allow Behavior, not just BehaviorCreator
             someSrc: () =>
               fromCallback(() => {
                 /* ... */
@@ -3116,7 +3095,7 @@ describe('invoke', () => {
       states: {
         a: {
           invoke: {
-            src: () =>
+            src:
               // TODO: shortening this to src: fromPromise doesn't work!
               fromPromise(() => {
                 return Promise.resolve(42);
@@ -3176,10 +3155,9 @@ describe('invoke', () => {
       states: {
         a: {
           invoke: {
-            src: () =>
-              fromCallback(() => {
-                invokeCount++;
-              })
+            src: fromCallback(() => {
+              invokeCount++;
+            })
           },
           on: {
             GO_AWAY_AND_REENTER: 'b'

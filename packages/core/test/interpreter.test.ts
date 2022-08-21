@@ -1067,8 +1067,7 @@ describe('interpreter', () => {
           start: {
             invoke: {
               id: 'child',
-              src: () =>
-                fromMachine(childMachine.withContext({ password: 'foo' }))
+              src: fromMachine(childMachine.withContext({ password: 'foo' }))
             },
             on: {
               NEXT: {
@@ -1656,15 +1655,14 @@ describe('interpreter', () => {
           active: {
             invoke: {
               id: 'childActor',
-              src: () =>
-                fromPromise(
-                  () =>
-                    new Promise((res) => {
-                      setTimeout(() => {
-                        res(42);
-                      }, 100);
-                    })
-                ),
+              src: fromPromise(
+                () =>
+                  new Promise((res) => {
+                    setTimeout(() => {
+                      res(42);
+                    }, 100);
+                  })
+              ),
               onDone: [
                 {
                   target: 'success',

@@ -180,7 +180,7 @@ describe('predictableExec', () => {
         b: {
           invoke: {
             id: 'myChild',
-            src: () => fromCallback(() => {})
+            src: fromCallback(() => {})
           }
         }
       }
@@ -205,7 +205,7 @@ describe('predictableExec', () => {
         b: {
           invoke: {
             id: 'myChild',
-            src: () => fromCallback(() => {})
+            src: fromCallback(() => {})
           },
           on: {
             NEXT: 'c'
@@ -506,9 +506,8 @@ describe('predictableExec', () => {
         active: {
           invoke: {
             src: () => {
-              const localId = ++invokeCounter;
-
               return fromCallback(() => {
+                const localId = ++invokeCounter;
                 actual.push(`start ${localId}`);
                 return () => {
                   actual.push(`stop ${localId}`);

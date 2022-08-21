@@ -100,6 +100,7 @@ type InternalStateFrom<
   ? TInternalState
   : never;
 
+let sessionCounter = 0;
 export class Interpreter<
   TBehavior extends Behavior<any, any>,
   TEvent extends EventObject = EventFromBehavior<TBehavior>
@@ -165,7 +166,8 @@ export class Interpreter<
     this._parent = parent;
     this.options = resolvedOptions;
     this.ref = this;
-    this.sessionId = this.ref.name;
+    // TODO: this should come from a "system"
+    this.sessionId = `x:${sessionCounter++}`;
   }
 
   private __initial: InternalStateFrom<TBehavior> | undefined = undefined;

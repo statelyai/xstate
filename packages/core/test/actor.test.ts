@@ -1337,7 +1337,7 @@ describe('actors', () => {
             entry: send('PING', { to: (ctx) => ctx.ponger! }),
             invoke: {
               id: 'ponger',
-              src: () => pongBehavior
+              src: pongBehavior
             },
             on: {
               PONG: 'success'

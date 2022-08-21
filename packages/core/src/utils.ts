@@ -514,7 +514,7 @@ export function toInvokeConfig<
     if ('transition' in invocable) {
       return {
         id,
-        src: () => invocable
+        src: invocable
       };
     }
   }
