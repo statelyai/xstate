@@ -1,4 +1,4 @@
-import type { ActorRef, EventObject, Sender } from 'xstate';
+import type { ActorRef, Event, EventObject, Sender } from 'xstate';
 import type { Accessor } from 'solid-js';
 import { createEffect, createMemo, on, onCleanup } from 'solid-js';
 import { createStore } from 'solid-js/store';
@@ -34,7 +34,7 @@ export function useActor(
     typeof actorRef === 'function' ? actorRef : () => actorRef
   );
 
-  const send = (event: any) => actorMemo().send(event);
+  const send = (event: Event<EventObject>) => actorMemo().send(event);
 
   const getClonedActorState = () =>
     deepClone(spreadIfStateInstance(actorMemo().getSnapshot?.()));
@@ -57,7 +57,7 @@ export function useActor(
   createEffect(() => {
     const { unsubscribe } = actorMemo().subscribe({
       next: (emitted: unknown) => {
-        updateState(spreadIfStateInstance(emitted), (...values) =>
+        updateState(spreadIfStateInstance(emitted), (...values: any[]) =>
           setState('snapshot', ...(values as [any]))
         );
       },
