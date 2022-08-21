@@ -233,7 +233,7 @@ export class Interpreter<
 
     // Send current state to listener
     if (this.status === InterpreterStatus.Running) {
-      listener(this.getSnapshot()); // TODO: remove event
+      listener(this.getSnapshot());
     }
 
     return this;
