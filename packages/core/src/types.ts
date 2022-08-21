@@ -1869,16 +1869,8 @@ export interface Behavior<
   getInitialState?: (
     actorCtx: ActorContext<TEvent, TSnapshot>
   ) => TInternalState;
-  getActions?: (
-    state: TSnapshot,
-    actorCtx: ActorContext<TEvent, TSnapshot>
-  ) => Array<() => void>;
   getSnapshot?: (state: TInternalState) => TSnapshot;
   start?: (actorCtx: ActorContext<TEvent, TSnapshot>) => TInternalState;
-  stop?: (
-    state: TSnapshot,
-    actorCtx: ActorContext<TEvent, TSnapshot>
-  ) => TInternalState;
 }
 
 export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R

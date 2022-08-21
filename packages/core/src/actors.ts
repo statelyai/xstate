@@ -70,9 +70,7 @@ export type LifecycleSignalType =
  * @template TSnapshot The emitted value
  */
 
-function isSignal(
-  eventType: string | Symbol
-): eventType is LifecycleSignalType {
+function isSignal(eventType: string): eventType is LifecycleSignalType {
   return eventType === startSignalType || eventType === stopSignalType;
 }
 

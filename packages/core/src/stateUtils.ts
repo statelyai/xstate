@@ -1668,16 +1668,6 @@ export function setChildren<
   });
 }
 
-export function executeContent(
-  actions: BaseActionObject[],
-  state: AnyState,
-  actorCtx: ActorContext<any, any> | undefined
-) {
-  for (const action of actions) {
-    execAction(action, state, actorCtx);
-  }
-}
-
 export function resolveActionsAndContext<
   TContext extends MachineContext,
   TEvent extends EventObject
