@@ -404,6 +404,180 @@ describe('useActor', () => {
     expect(div.textContent).toEqual('100');
   });
 
+  it('should update snapshot Date value when actor changes', () => {
+    const createSimpleActor = (value: Date) =>
+      toActorRef({
+        send: () => {
+          /* ... */
+        },
+        getSnapshot: () => value,
+        subscribe: () => {
+          return {
+            unsubscribe: () => {
+              /* ... */
+            }
+          };
+        }
+      }) as ActorRef<any, Date>;
+
+    const Test = () => {
+      const [actor, setActor] = createSignal(
+        createSimpleActor(new Date('2020'))
+      );
+      const [state] = useActor(actor);
+
+      return (
+        <div>
+          <div data-testid="state">{state().getFullYear() + 1}</div>
+          <button
+            data-testid="button"
+            onclick={() => setActor(createSimpleActor(new Date('2022')))}
+          />
+        </div>
+      );
+    };
+
+    render(() => <Test />);
+
+    const div = screen.getByTestId('state');
+    const button = screen.getByTestId('button');
+
+    expect(div.textContent).toEqual('2020');
+    fireEvent.click(button);
+    expect(div.textContent).toEqual('2022');
+  });
+
+  it('should rerender and trigger effects only on array changes', () => {
+    const createSimpleActor = (value: string[]) =>
+      toActorRef({
+        send: () => {
+          /* ... */
+        },
+        getSnapshot: () => value,
+        subscribe: () => {
+          return {
+            unsubscribe: () => {
+              /* ... */
+            }
+          };
+        }
+      }) as ActorRef<any, string[]>;
+
+    const Test = () => {
+      const [actor, setActor] = createSignal(createSimpleActor(['1', '2']));
+      const [state] = useActor(actor);
+      const [change, setChange] = createSignal(0);
+
+      createEffect(() => {
+        if (state()[0]) {
+          setChange((val) => val + 1);
+        }
+      });
+
+      return (
+        <div>
+          <div data-testid="change">{change()}</div>
+          <div data-testid="state">{state()[1]}</div>
+          <button
+            data-testid="button"
+            onclick={() => setActor(createSimpleActor(['1', '3']))}
+          />
+        </div>
+      );
+    };
+
+    render(() => <Test />);
+
+    const div = screen.getByTestId('state');
+    const changeVal = screen.getByTestId('change');
+    const button = screen.getByTestId('button');
+
+    expect(changeVal.textContent).toEqual('1');
+    expect(div.textContent).toEqual('2');
+    fireEvent.click(button);
+    expect(div.textContent).toEqual('3');
+    expect(changeVal.textContent).toEqual('2');
+  });
+
+  it('getSnapshot Map should match vanilla Solid behavior', () => {
+    const createSimpleActor = (value: Map<string, string>) =>
+      toActorRef({
+        send: () => {
+          /* ... */
+        },
+        getSnapshot: () => value,
+        subscribe: () => {
+          return {
+            unsubscribe: () => {
+              /* ... */
+            }
+          };
+        }
+      }) as ActorRef<any, Map<string, string>>;
+
+    const Test = () => {
+      const map1 = new Map([
+        ['prop1', 'value'],
+        ['prop2', '5']
+      ]);
+      const [actor, setActor] = createSignal(createSimpleActor(map1));
+      const [signal, setSignal] = createSignal(map1);
+      const [state] = useActor(actor);
+      const [actorChange, setActorChange] = createSignal(0);
+      const [signalChange, setSignalChange] = createSignal(0);
+
+      createEffect(() => {
+        if (state().get('prop1')) {
+          setActorChange((val) => val + 1);
+        }
+      });
+
+      createEffect(() => {
+        if (signal().get('prop1')) {
+          setSignalChange((val) => val + 1);
+        }
+      });
+
+      return (
+        <div>
+          <div data-testid="actor-change">{actorChange()}</div>
+          <div data-testid="signal-change">{signalChange()}</div>
+          <div data-testid="actor-state">{signal().get('prop2')}</div>
+          <div data-testid="signal-state">{state().get('prop2')}</div>
+          <button
+            data-testid="button"
+            onclick={() => {
+              const newMap = new Map([
+                ['prop1', 'value'],
+                ['prop2', '10']
+              ]);
+              setSignal(newMap);
+              setActor(createSimpleActor(newMap));
+            }}
+          />
+        </div>
+      );
+    };
+
+    render(() => <Test />);
+
+    const actorState = screen.getByTestId('actor-state');
+    const signalState = screen.getByTestId('signal-state');
+    const actorChangeVal = screen.getByTestId('actor-change');
+    const signalChangeVal = screen.getByTestId('signal-change');
+    const button = screen.getByTestId('button');
+
+    expect(signalChangeVal.textContent).toEqual('1');
+    expect(actorChangeVal.textContent).toEqual('1');
+    expect(actorState.textContent).toEqual('5');
+    expect(signalState.textContent).toEqual('5');
+    fireEvent.click(button);
+    expect(actorState.textContent).toEqual('10');
+    expect(signalState.textContent).toEqual('10');
+    expect(signalChangeVal.textContent).toEqual('2');
+    expect(actorChangeVal.textContent).toEqual('2');
+  });
+
   it('send() should be stable', (done) => {
     jest.useFakeTimers();
     const fakeSubscribe = () => {

@@ -2,7 +2,8 @@ import type { ActorRef, EventObject, Sender } from 'xstate';
 import type { Accessor } from 'solid-js';
 import { createEffect, createMemo, on, onCleanup } from 'solid-js';
 import { createStore } from 'solid-js/store';
-import { deepClone, spreadIfObject, updateState } from './util';
+import { deepClone, updateState } from './util';
+import { State } from 'xstate';
 
 type EmittedFromActorRef<
   TActor extends ActorRef<any>
@@ -11,6 +12,10 @@ type EmittedFromActorRef<
 const noop = () => {
   /* ... */
 };
+
+// Only spread actor snapshot if it is an xstate state class
+const spreadIfStateInstance = <T>(value: T) =>
+  value instanceof State ? { ...value } : value;
 
 type ActorReturn<T> = Accessor<T>;
 
@@ -32,7 +37,7 @@ export function useActor(
   const send = (event: any) => actorMemo().send(event);
 
   const getClonedActorState = () =>
-    deepClone(spreadIfObject(actorMemo().getSnapshot?.()));
+    deepClone(spreadIfStateInstance(actorMemo().getSnapshot?.()));
 
   const [state, setState] = createStore({
     snapshot: getClonedActorState()
@@ -43,9 +48,7 @@ export function useActor(
     on(
       () => actorMemo(),
       () => {
-        updateState(getClonedActorState(), (...values) =>
-          setState('snapshot', ...(values as [any]))
-        );
+        setState('snapshot', getClonedActorState());
       },
       { defer: true }
     )
@@ -54,7 +57,7 @@ export function useActor(
   createEffect(() => {
     const { unsubscribe } = actorMemo().subscribe({
       next: (emitted: unknown) => {
-        updateState(spreadIfObject(emitted), (...values) =>
+        updateState(spreadIfStateInstance(emitted), (...values) =>
           setState('snapshot', ...(values as [any]))
         );
       },

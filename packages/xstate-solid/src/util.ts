@@ -1,5 +1,6 @@
 import type { SetStoreFunction } from 'solid-js/store';
 import { reconcile } from 'solid-js/store';
+import { State } from 'xstate';
 
 function isObject(payload: any): payload is object {
   return payload && typeof payload === 'object' && !Array.isArray(payload);
@@ -8,9 +9,6 @@ function isObject(payload: any): payload is object {
 function isNonObjectPrototype(payload: any): payload is object {
   return payload?.constructor?.name && payload.constructor.name !== 'Object';
 }
-
-export const spreadIfObject = <T>(value: T): T =>
-  isObject(value) ? { ...value } : value;
 
 /**
  * Reconcile the state of the machine with the current state of the store.
@@ -23,15 +21,14 @@ export function updateState<NextState extends object | unknown>(
   nextState: NextState,
   setState: SetStoreFunction<NextState>
 ): void {
-  if (isObject(nextState)) {
+  // Only reconcile each property if nextState is a class
+  if (nextState instanceof State) {
     const keys = Object.keys(nextState) as any[];
-
     for (const key of keys) {
       // Don't update functions
       if (typeof nextState[key] === 'function') {
         continue;
       }
-
       // Try to reconcile and fall back to replacing state
       try {
         setState(key, reconcile(nextState[key]));
@@ -40,7 +37,7 @@ export function updateState<NextState extends object | unknown>(
       }
     }
   } else {
-    setState(nextState);
+    setState(reconcile(nextState));
   }
 }
 
