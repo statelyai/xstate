@@ -1,5 +1,5 @@
 import { createMachine, interpret, assign, spawn } from '../src';
-import { raise, stop, send } from '../src/actions';
+import { raise, stop, send, sendParent } from '../src/actions';
 
 describe('predictableExec', () => {
   it('should call mixed custom and builtin actions in the definitions order', () => {
@@ -623,5 +623,44 @@ describe('predictableExec', () => {
     service.send({ type: 'NEXT' });
 
     expect(received).toEqual({ type: 'KNOCK_KNOCK' });
+  });
+
+  it('parent should be able to read the updated state of a child when receiving an event from it', (done) => {
+    let shouldCheck = false;
+
+    const child = createMachine({
+      predictableActionArguments: true,
+      initial: 'a',
+      states: {
+        a: {
+          after: {
+            1: 'b'
+          }
+        },
+        b: {
+          entry: [
+            () => (shouldCheck = true),
+            sendParent({ type: 'CHILD_UPDATED' })
+          ]
+        }
+      }
+    });
+
+    const machine = createMachine({
+      predictableActionArguments: true,
+      invoke: {
+        id: 'myChild',
+        src: child
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    service.subscribe((state) => {
+      if (shouldCheck) {
+        expect(state.children.myChild.getSnapshot().value).toEqual('b');
+        done();
+      }
+    });
   });
 });
