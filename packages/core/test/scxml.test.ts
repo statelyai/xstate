@@ -425,7 +425,7 @@ async function runTestToCompletion(
 describe('scxml', () => {
   const onlyTests: string[] = [
     // e.g., 'test399.txml'
-    // 'assign_invalid'
+    // 'test194.txml'
   ];
   const testGroupKeys = Object.keys(testGroups);
 

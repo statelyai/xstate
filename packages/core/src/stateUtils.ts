@@ -57,8 +57,8 @@ import {
 } from '../actions/ExecutableAction';
 import type { StateNode } from './StateNode';
 import { isDynamicAction } from '../actions/dynamicAction';
-import { ActorContext, AnyState, AnyStateMachine } from '.';
-import { execAction } from './interpreter';
+import { ActorContext, AnyState, AnyStateMachine, SendActionObject } from '.';
+import { execAction } from './exec';
 
 type Configuration<
   TContext extends MachineContext,
@@ -1705,7 +1705,8 @@ export function resolveActionsAndContext<
           {
             machine,
             state: currentState!,
-            action: actionObject
+            action: actionObject,
+            actorContext: actorCtx
           }
         ).params.actions;
 
@@ -1723,7 +1724,8 @@ export function resolveActionsAndContext<
           {
             machine,
             state: currentState!,
-            action: actionObject
+            action: actionObject,
+            actorContext: actorCtx
           }
         );
 
@@ -1741,14 +1743,17 @@ export function resolveActionsAndContext<
           {
             machine,
             state: currentState!,
-            action: actionObject
+            action: actionObject,
+            actorContext: actorCtx
           }
         );
 
         if (
           resolvedActionObject.type === actionTypes.raise ||
           (resolvedActionObject.type === actionTypes.send &&
-            resolvedActionObject.params.to === SpecialTargets.Internal)
+            actorCtx &&
+            (resolvedActionObject as SendActionObject).params.to ===
+              actorCtx.self)
         ) {
           raiseActions.push(resolvedActionObject);
         } else {

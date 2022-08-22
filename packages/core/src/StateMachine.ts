@@ -7,7 +7,7 @@ import {
 } from '.';
 import { STATE_DELIMITER } from './constants';
 import { IS_PRODUCTION } from './environment';
-import { execAction } from './interpreter';
+import { execAction } from './exec';
 import { createSpawner } from './spawn';
 import { State } from './State';
 import { StateNode } from './StateNode';

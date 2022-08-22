@@ -74,7 +74,7 @@ export function send<
           ? event.name
           : (getEventType<TSentEvent>(event) as string)
     },
-    ({ params }, ctx, _event, { machine }) => {
+    ({ params }, ctx, _event, { machine, actorContext, state }) => {
       const meta = {
         _event
       };
@@ -99,23 +99,39 @@ export function send<
           : params.delay;
       }
 
-      let resolvedTarget = isFunction(params.to)
+      const resolvedTarget = isFunction(params.to)
         ? params.to(ctx, _event.data, meta)
         : params.to;
-      resolvedTarget =
-        isString(resolvedTarget) &&
-        resolvedTarget !== SpecialTargets.Parent &&
-        resolvedTarget !== SpecialTargets.Internal &&
-        resolvedTarget.startsWith('#_')
-          ? resolvedTarget.slice(2)
-          : resolvedTarget;
+      let targetActorRef: AnyActorRef | undefined;
+
+      if (typeof resolvedTarget === 'string') {
+        if (resolvedTarget === SpecialTargets.Parent) {
+          targetActorRef = actorContext?.self._parent;
+        } else if (
+          resolvedTarget === SpecialTargets.Internal ||
+          // SCXML compatibility
+          resolvedTarget === '#_internal'
+        ) {
+          targetActorRef = actorContext?.self;
+        } else if (resolvedTarget?.startsWith('#_')) {
+          // SCXML compatibility
+          targetActorRef = state.children[resolvedTarget.slice(2)];
+        } else {
+          targetActorRef = state.children[resolvedTarget];
+          if (!targetActorRef) {
+            throw new Error('no');
+          }
+        }
+      } else {
+        targetActorRef = resolvedTarget;
+      }
 
       return {
         type: actionTypes.send,
         params: {
           id: '', // TODO: generate?
           ...params,
-          to: resolvedTarget,
+          to: targetActorRef,
           _event: resolvedEvent,
           event: resolvedEvent.data,
           delay: resolvedDelay

@@ -93,6 +93,7 @@ export interface BaseDynamicActionObject<
        * The original action object
        */
       action: BaseActionObject;
+      actorContext: ActorContext<any, any> | undefined;
     }
   ) => TResolvedAction;
 }
@@ -1243,7 +1244,7 @@ export interface SendActionObject<
 > extends BaseActionObject {
   type: 'xstate.send';
   params: {
-    to: string | ActorRef<TSentEvent> | undefined;
+    to: ActorRef<TSentEvent> | undefined;
     _event: SCXML.Event<TSentEvent>;
     event: TSentEvent;
     delay?: number;
