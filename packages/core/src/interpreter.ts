@@ -151,7 +151,7 @@ export class Interpreter<
     this.options = resolvedOptions;
     this.ref = this;
     // TODO: this should come from a "system"
-    this.sessionId = `x:${sessionCounter++}`;
+    this.sessionId = registry.bookId();
     this._actorContext = {
       self: this,
       name: this.id ?? 'todo',
@@ -418,9 +418,7 @@ export class Interpreter<
 
     if (event.name === 'xstate.stop') {
       this._stop();
-    }
-
-    if (errored) {
+    } else if (errored) {
       this.stop();
     }
   }
@@ -440,11 +438,6 @@ export class Interpreter<
     return this;
   }
   private _stop(): this {
-    try {
-      // this._state = this.nextState({ type: 'xstate.stop' });
-      // TODO: need this to perform stopping logic in the behavior
-    } catch (_) {}
-
     this.listeners.clear();
     for (const listener of this.stopListeners) {
       // call listener, then remove
