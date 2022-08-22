@@ -1,4 +1,5 @@
 import type { AnyStateMachine, StateFrom } from 'xstate';
+import type { SetStoreFunction } from 'solid-js/store';
 import { createStore } from 'solid-js/store';
 import type { RestParams } from './types';
 import { createService } from './createService';
@@ -27,7 +28,10 @@ export function useMachine<TMachine extends AnyStateMachine>(
 
   onMount(() => {
     const { unsubscribe } = service.subscribe((nextState) => {
-      updateState(nextState, setState);
+      updateState(
+        nextState,
+        setState as SetStoreFunction<StateFrom<AnyStateMachine>>
+      );
     });
 
     onCleanup(unsubscribe);
