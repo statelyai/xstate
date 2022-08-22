@@ -2,8 +2,9 @@ import type { ActorRef, Event, EventObject, Sender } from 'xstate';
 import type { Accessor } from 'solid-js';
 import { createEffect, createMemo, on, onCleanup } from 'solid-js';
 import { createStore } from 'solid-js/store';
-import { deepClone, updateState } from './util';
 import { State } from 'xstate';
+import { deepClone } from './utils';
+import { deriveServiceState, updateState } from './stateUtils';
 
 type EmittedFromActorRef<
   TActor extends ActorRef<any>
@@ -13,25 +14,23 @@ const noop = () => {
   /* ... */
 };
 
-// Only spread actor snapshot if it is an xstate state class
+// Only spread actor snapshot if it is a xstate state class
 const spreadIfStateInstance = <T>(value: T) =>
   value instanceof State ? { ...value } : value;
 
-type ActorReturn<T> = Accessor<T>;
-
 export function useActor<TActor extends ActorRef<any>>(
   actorRef: Accessor<TActor> | TActor
-): [ActorReturn<EmittedFromActorRef<TActor>>, TActor['send']];
+): [Accessor<EmittedFromActorRef<TActor>>, TActor['send']];
 export function useActor<TEvent extends EventObject, TEmitted>(
   actorRef: Accessor<ActorRef<TEvent, TEmitted>> | ActorRef<TEvent, TEmitted>
-): [ActorReturn<TEmitted>, Sender<TEvent>];
+): [Accessor<TEmitted>, Sender<TEvent>];
 export function useActor(
   actorRef:
     | Accessor<ActorRef<EventObject, unknown>>
     | ActorRef<EventObject, unknown>
-): [ActorReturn<unknown>, Sender<EventObject>] {
-  const actorMemo = createMemo<ActorRef<EventObject, unknown>>(
-    typeof actorRef === 'function' ? actorRef : () => actorRef
+): [Accessor<unknown>, Sender<EventObject>] {
+  const actorMemo = createMemo(() =>
+    typeof actorRef === 'function' ? actorRef() : actorRef
   );
 
   const send = (event: Event<EventObject>) => actorMemo().send(event);
@@ -40,7 +39,7 @@ export function useActor(
     deepClone(spreadIfStateInstance(actorMemo().getSnapshot?.()));
 
   const [state, setState] = createStore({
-    snapshot: getClonedActorState()
+    snapshot: deriveServiceState(actorMemo(), getClonedActorState())
   });
 
   // Track if a new actor is passed in, only run once per actor
@@ -48,7 +47,10 @@ export function useActor(
     on(
       () => actorMemo(),
       () => {
-        setState('snapshot', getClonedActorState());
+        setState(
+          'snapshot',
+          deriveServiceState(actorMemo(), getClonedActorState())
+        );
       },
       { defer: true }
     )
@@ -57,7 +59,7 @@ export function useActor(
   createEffect(() => {
     const { unsubscribe } = actorMemo().subscribe({
       next: (emitted: unknown) => {
-        updateState(spreadIfStateInstance(emitted), (...values: any[]) =>
+        updateState(emitted, (...values) =>
           setState('snapshot', ...(values as [any]))
         );
       },

@@ -9,24 +9,17 @@ import { createMachine, interpret } from '@xstate/fsm';
 import { createStore, reconcile } from 'solid-js/store';
 import type { Accessor } from 'solid-js';
 import { createEffect, createMemo, on, onCleanup } from 'solid-js';
-import { deepClone } from './util';
+import { deepClone } from './utils';
 
-const getServiceState = <TService extends StateMachine.AnyService>(
-  service: TService
-): StateFrom<TService> => {
-  let currentValue: StateFrom<TService>;
-  service
-    .subscribe((state) => {
-      currentValue = state as StateFrom<TService>;
-    })
-    .unsubscribe();
-  return currentValue!;
-};
-
+type UseFSMReturnTuple<TService extends StateMachine.AnyService> = [
+  StateFrom<TService>,
+  TService['send'],
+  TService
+];
 export function useMachine<TMachine extends StateMachine.AnyMachine>(
   machine: TMachine,
   options?: MachineImplementationsFrom<TMachine>
-): [StateFrom<TMachine>, ServiceFrom<TMachine>['send'], ServiceFrom<TMachine>] {
+): UseFSMReturnTuple<ServiceFrom<TMachine>> {
   const resolvedMachine = createMachine(
     machine.config,
     options ? options : (machine as any)._options
@@ -34,17 +27,18 @@ export function useMachine<TMachine extends StateMachine.AnyMachine>(
 
   const service = interpret(resolvedMachine).start();
 
-  return useService(service) as any;
+  return useService(service) as UseFSMReturnTuple<ServiceFrom<TMachine>>;
 }
 
 export function useService<TService extends StateMachine.AnyService>(
   service: TService | Accessor<TService>
-): [StateFrom<TService>, TService['send'], TService] {
+): UseFSMReturnTuple<TService> {
   const serviceMemo = createMemo(() =>
     typeof service === 'function' ? service() : service
   );
 
-  const getClonedState = () => deepClone(getServiceState(serviceMemo()));
+  const getClonedState = () =>
+    deepClone(serviceMemo().state) as StateFrom<TService>;
 
   const [state, setState] = createStore<StateFrom<TService>>({
     ...(getClonedState() as object),
@@ -67,6 +61,7 @@ export function useService<TService extends StateMachine.AnyService>(
       { defer: true }
     )
   );
+
   createEffect(() => {
     const { unsubscribe } = serviceMemo().subscribe((nextState) => {
       setState(reconcile(nextState as StateFrom<TService>));
@@ -74,5 +69,5 @@ export function useService<TService extends StateMachine.AnyService>(
     onCleanup(unsubscribe);
   });
 
-  return [state, send, serviceMemo()] as any;
+  return [state, send, serviceMemo()];
 }

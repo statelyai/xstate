@@ -1,52 +1,37 @@
 import type { AnyStateMachine, StateFrom } from 'xstate';
-import type { SetStoreFunction } from 'solid-js/store';
 import { createStore } from 'solid-js/store';
-import type { RestParams, UseMachineReturn } from './types';
+import type { RestParams } from './types';
 import { createService } from './createService';
 import { onCleanup, onMount } from 'solid-js';
-import { deepClone, updateState } from './util';
+import { InterpreterFrom, Prop } from 'xstate';
+import { deriveServiceState, updateState } from './stateUtils';
+import { deepClone } from './utils';
+
+type UseMachineReturnTuple<
+  TMachine extends AnyStateMachine,
+  TInterpreter = InterpreterFrom<TMachine>
+> = [StateFrom<TMachine>, Prop<TInterpreter, 'send'>, TInterpreter];
 
 export function useMachine<TMachine extends AnyStateMachine>(
   machine: TMachine,
   ...[options = {}]: RestParams<TMachine>
-): UseMachineReturn<TMachine> {
+): UseMachineReturnTuple<TMachine> {
   const service = createService(machine, options);
 
-  const [state, setState] = createStore<StateFrom<TMachine>>({
-    ...deepClone({ ...service.state }),
-    toJSON() {
-      return service.state.toJSON();
-    },
-    toStrings(...args: Parameters<StateFrom<TMachine>['toStrings']>) {
-      return service.state.toStrings(args[0], args[1]);
-    },
-    can(...args: Parameters<StateFrom<TMachine>['can']>) {
-      // tslint:disable-next-line:no-unused-expression
-      state.value; // sets state.value to be tracked
-      return service.state.can(args[0]);
-    },
-    hasTag(...args: Parameters<StateFrom<TMachine>['hasTag']>) {
-      // tslint:disable-next-line:no-unused-expression
-      state.tags; // sets state.tags to be tracked
-      return service.state.hasTag(args[0]);
-    },
-    matches(...args: Parameters<StateFrom<TMachine>['matches']>) {
-      // tslint:disable-next-line:no-unused-expression
-      state.value; // sets state.value to be tracked
-      return service.state.matches(args[0] as never);
-    }
-  } as StateFrom<TMachine>);
+  const [state, setState] = createStore(
+    deriveServiceState(
+      service,
+      deepClone({ ...service.state }) as StateFrom<TMachine>
+    )
+  );
 
   onMount(() => {
     const { unsubscribe } = service.subscribe((nextState) => {
-      updateState(
-        nextState,
-        setState as SetStoreFunction<StateFrom<AnyStateMachine>>
-      );
+      updateState(nextState, setState);
     });
 
     onCleanup(unsubscribe);
   });
 
-  return [state, service.send, service] as UseMachineReturn<TMachine>;
+  return [state, service.send, service] as UseMachineReturnTuple<TMachine>;
 }

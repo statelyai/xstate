@@ -3,10 +3,8 @@ import type {
   AreAllImplementationsAssumedToBeProvided,
   EventObject,
   InternalMachineOptions,
-  InterpreterFrom,
   InterpreterOptions,
-  StateConfig,
-  StateFrom
+  StateConfig
 } from 'xstate';
 
 interface UseMachineOptions<TContext, TEvent extends EventObject> {
@@ -21,34 +19,32 @@ interface UseMachineOptions<TContext, TEvent extends EventObject> {
   state?: StateConfig<TContext, TEvent>;
 }
 
-type Prop<T, K> = K extends keyof T ? T[K] : never;
-
-export type UseMachineReturn<
+type InternalMachineOpts<
   TMachine extends AnyStateMachine,
-  TInterpreter = InterpreterFrom<TMachine>
-> = [StateFrom<TMachine>, Prop<TInterpreter, 'send'>, TInterpreter];
+  RequireMissing extends boolean = false
+> = InternalMachineOptions<
+  TMachine['__TContext'],
+  TMachine['__TEvent'],
+  TMachine['__TResolvedTypesMeta'],
+  RequireMissing
+>;
 
 export type RestParams<
-  TMachine extends AnyStateMachine
+  TMachine extends AnyStateMachine,
+  UseMachineOpts = UseMachineOptions<
+    TMachine['__TContext'],
+    TMachine['__TEvent']
+  >
 > = AreAllImplementationsAssumedToBeProvided<
   TMachine['__TResolvedTypesMeta']
 > extends false
   ? [
       options: InterpreterOptions &
-        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
-        InternalMachineOptions<
-          TMachine['__TContext'],
-          TMachine['__TEvent'],
-          TMachine['__TResolvedTypesMeta'],
-          true
-        >
+        UseMachineOpts &
+        InternalMachineOpts<TMachine, true>
     ]
   : [
       options?: InterpreterOptions &
-        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
-        InternalMachineOptions<
-          TMachine['__TContext'],
-          TMachine['__TEvent'],
-          TMachine['__TResolvedTypesMeta']
-        >
+        UseMachineOpts &
+        InternalMachineOpts<TMachine>
     ];

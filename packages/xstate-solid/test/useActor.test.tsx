@@ -278,6 +278,261 @@ describe('useActor', () => {
     render(() => <Test />);
   });
 
+  it('should be reactive to toStrings method calls', (done) => {
+    const machine = createMachine({
+      initial: 'green',
+      states: {
+        green: {
+          on: {
+            TRANSITION: 'yellow'
+          }
+        },
+        yellow: {
+          on: {
+            TRANSITION: 'red'
+          }
+        },
+        red: {
+          on: {
+            TRANSITION: 'green'
+          }
+        }
+      }
+    });
+
+    const App = () => {
+      const service = interpret(machine).start();
+      const [state, send] = useActor(service);
+      const [toStrings, setToStrings] = createSignal(state().toStrings());
+      createEffect(
+        on(
+          () => state().value,
+          () => {
+            setToStrings(state().toStrings());
+          }
+        )
+      );
+      return (
+        <div>
+          <button
+            data-testid="transition-button"
+            onclick={() => send({ type: 'TRANSITION' })}
+          />
+          <div data-testid="to-strings">{JSON.stringify(toStrings())}</div>
+        </div>
+      );
+    };
+
+    render(() => <App />);
+    const toStringsEl = screen.getByTestId('to-strings');
+    const transitionBtn = screen.getByTestId('transition-button');
+
+    // Green
+    expect(toStringsEl.textContent).toEqual('["green"]');
+    transitionBtn.click();
+
+    // Yellow
+    expect(toStringsEl.textContent).toEqual('["yellow"]');
+    transitionBtn.click();
+
+    // Red
+    expect(toStringsEl.textContent).toEqual('["red"]');
+    transitionBtn.click();
+
+    // Green
+    expect(toStringsEl.textContent).toEqual('["green"]');
+
+    done();
+  });
+
+  it('should be reactive to toJSON method calls', (done) => {
+    const machine = createMachine({
+      initial: 'green',
+      states: {
+        green: {
+          on: {
+            TRANSITION: 'yellow'
+          }
+        },
+        yellow: {
+          on: {
+            TRANSITION: 'red'
+          }
+        },
+        red: {
+          on: {
+            TRANSITION: 'green'
+          }
+        }
+      }
+    });
+
+    const App = () => {
+      const service = interpret(machine).start();
+      const [state, send] = useActor(service);
+      const [toJson, setToJson] = createSignal(state().toJSON());
+      createEffect(
+        on(
+          () => state().value,
+          () => {
+            setToJson(state().toJSON());
+          }
+        )
+      );
+      return (
+        <div>
+          <button
+            data-testid="transition-button"
+            onclick={() => send({ type: 'TRANSITION' })}
+          />
+          <div data-testid="to-json">{toJson().value.toString()}</div>
+        </div>
+      );
+    };
+
+    render(() => <App />);
+    const toJsonEl = screen.getByTestId('to-json');
+    const transitionBtn = screen.getByTestId('transition-button');
+
+    // Green
+    expect(toJsonEl.textContent).toEqual('green');
+    transitionBtn.click();
+
+    // Yellow
+    expect(toJsonEl.textContent).toEqual('yellow');
+    transitionBtn.click();
+
+    // Red
+    expect(toJsonEl.textContent).toEqual('red');
+    transitionBtn.click();
+
+    // Green
+    expect(toJsonEl.textContent).toEqual('green');
+
+    done();
+  });
+
+  it('should be reactive to hasTag method calls', (done) => {
+    const machine = createMachine({
+      initial: 'green',
+      states: {
+        green: {
+          tags: 'go',
+          on: {
+            TRANSITION: 'yellow'
+          }
+        },
+        yellow: {
+          tags: 'go',
+          on: {
+            TRANSITION: 'red'
+          }
+        },
+        red: {
+          tags: ['stop', 'other'],
+          on: {
+            TRANSITION: 'green'
+          }
+        }
+      }
+    });
+
+    const App = () => {
+      const service = interpret(machine).start();
+      const [state, send] = useActor(service);
+      const [canGo, setCanGo] = createSignal(state().hasTag('go'));
+      createEffect(() => {
+        setCanGo(state().hasTag('go'));
+      });
+      return (
+        <div>
+          <button
+            data-testid="transition-button"
+            onclick={() => send({ type: 'TRANSITION' })}
+          />
+          <div data-testid="can-go">{canGo().toString()}</div>
+          <div data-testid="stop">{state().hasTag('stop').toString()}</div>
+        </div>
+      );
+    };
+
+    render(() => <App />);
+    const canGoEl = screen.getByTestId('can-go');
+    const stopEl = screen.getByTestId('stop');
+    const transitionBtn = screen.getByTestId('transition-button');
+
+    // Green
+    expect(canGoEl.textContent).toEqual('true');
+    expect(stopEl.textContent).toEqual('false');
+    transitionBtn.click();
+
+    // Yellow
+    expect(canGoEl.textContent).toEqual('true');
+    expect(stopEl.textContent).toEqual('false');
+    transitionBtn.click();
+
+    // Red
+    expect(canGoEl.textContent).toEqual('false');
+    expect(stopEl.textContent).toEqual('true');
+    transitionBtn.click();
+
+    // Green
+    expect(canGoEl.textContent).toEqual('true');
+    expect(stopEl.textContent).toEqual('false');
+    done();
+  });
+
+  it('should be reactive to can method calls', (done) => {
+    const machine = createMachine({
+      initial: 'inactive',
+      states: {
+        inactive: {
+          on: {
+            TOGGLE: 'active'
+          }
+        },
+        active: {
+          on: {
+            DO_SOMETHING: { actions: ['something'] }
+          }
+        }
+      }
+    });
+
+    const App = () => {
+      const service = interpret(machine).start();
+      const [state, send] = useActor(service);
+      const [canToggle, setCanToggle] = createSignal(state().can('TOGGLE'));
+      createEffect(() => {
+        setCanToggle(state().can('TOGGLE'));
+      });
+      return (
+        <div>
+          <button
+            data-testid="toggle-button"
+            onclick={() => send({ type: 'TOGGLE' })}
+          />
+          <div data-testid="can-toggle">{canToggle().toString()}</div>
+          <div data-testid="can-do-something">
+            {state().can('DO_SOMETHING').toString()}
+          </div>
+        </div>
+      );
+    };
+
+    render(() => <App />);
+    const canToggleEl = screen.getByTestId('can-toggle');
+    const canDoSomethingEl = screen.getByTestId('can-do-something');
+    const toggleBtn = screen.getByTestId('toggle-button');
+
+    expect(canToggleEl.textContent).toEqual('true');
+    expect(canDoSomethingEl.textContent).toEqual('false');
+    toggleBtn.click();
+    expect(canToggleEl.textContent).toEqual('false');
+    expect(canDoSomethingEl.textContent).toEqual('true');
+    done();
+  });
+
   it('spawned actor should be able to receive (deferred) events that it replays when active', (done) => {
     const childMachine = createMachine({
       id: 'childMachine',
@@ -378,7 +633,7 @@ describe('useActor', () => {
             }
           };
         }
-      }) as ActorRef<any, any>;
+      }) as ActorRef<any, number>;
 
     const Test = () => {
       const [actor, setActor] = createSignal(createSimpleActor(42));
@@ -624,6 +879,17 @@ describe('useActor', () => {
           <div data-testid="signal-change">{signalChange()}</div>
           <div data-testid="actor-state">{signal.value.get('prop2')}</div>
           <div data-testid="signal-state">{state().value.get('prop2')}</div>
+          <button
+            data-testid="change-button"
+            onclick={() => {
+              const newMap = new Map([
+                ['prop1', 'value'],
+                ['prop2', '10']
+              ]);
+              setSignal(reconcile({ value: newMap }));
+              setActor(createSimpleActor(newMap));
+            }}
+          />
           <button
             data-testid="button"
             onclick={() => {
