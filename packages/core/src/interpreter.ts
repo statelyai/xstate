@@ -633,7 +633,7 @@ export class Interpreter<
           this.state,
           this.state.context,
           _event,
-          exitActions,
+          [exitActions],
           this.machine.config.predictableActionArguments
             ? this._exec
             : undefined,

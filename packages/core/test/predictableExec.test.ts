@@ -1,5 +1,5 @@
 import { createMachine, interpret, assign, spawn } from '../src';
-import { raise, stop } from '../src/actions';
+import { raise, stop, send } from '../src/actions';
 
 describe('predictableExec', () => {
   it('should call mixed custom and builtin actions in the definitions order', () => {
@@ -37,17 +37,9 @@ describe('predictableExec', () => {
     let called = false;
     const machine = createMachine({
       predictableActionArguments: true,
-      context: {
-        initialized: false
-      },
-      entry: [
-        () => {
-          called = true;
-        },
-        assign({
-          initialized: true
-        })
-      ]
+      entry: () => {
+        called = true;
+      }
     });
 
     expect(called).toBe(false);
@@ -484,6 +476,7 @@ describe('predictableExec', () => {
     let invokeCounter = 0;
 
     const machine = createMachine({
+      predictableActionArguments: true,
       initial: 'inactive',
       states: {
         inactive: {
@@ -565,5 +558,70 @@ describe('predictableExec', () => {
     service.nextState({ type: 'TICK' });
 
     expect(spy).not.toBeCalled();
+  });
+
+  it('should create invoke based on context updated by entry actions of the same state', () => {
+    const machine = createMachine({
+      predictableActionArguments: true,
+      context: {
+        updated: false
+      },
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {
+          entry: assign({ updated: true }),
+          invoke: {
+            src: (ctx) => {
+              expect(ctx.updated).toBe(true);
+              return Promise.resolve();
+            }
+          }
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+    service.send({ type: 'NEXT' });
+  });
+
+  it('should deliver events sent from the entry actions to a service invoked in the same state', () => {
+    let received: any;
+
+    const machine = createMachine({
+      predictableActionArguments: true,
+      context: {
+        updated: false
+      },
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {
+          entry: send({ type: 'KNOCK_KNOCK' }, { to: 'myChild' }),
+          invoke: {
+            id: 'myChild',
+            src: () => (_sendBack, onReceive) => {
+              onReceive((event) => {
+                received = event;
+              });
+              return () => {};
+            }
+          }
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+    service.send({ type: 'NEXT' });
+
+    expect(received).toEqual({ type: 'KNOCK_KNOCK' });
   });
 });
