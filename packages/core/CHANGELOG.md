@@ -1,5 +1,13 @@
 # xstate
 
+## 4.33.3
+
+### Patch Changes
+
+- [#3540](https://github.com/statelyai/xstate/pull/3540) [`121fad172`](https://github.com/statelyai/xstate/commit/121fad172560f26c9374582c65a48bbe540f5c6e) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue that caused `invoke`d actors to be created before resolving `assign` actions from `entry` of the same state when using `predictableActionArguments` flag.
+
+* [#3541](https://github.com/statelyai/xstate/pull/3541) [`6c081ab87`](https://github.com/statelyai/xstate/commit/6c081ab87c4d344012ff72bae295de8f3ccdcca1) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with not being able to read the updated snapshot of a child when receiving and processing events from it and when using `predictableActionArguments` flag.
+
 ## 4.33.2
 
 ### Patch Changes
