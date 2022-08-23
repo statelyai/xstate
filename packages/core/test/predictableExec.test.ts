@@ -1,4 +1,10 @@
-import { createMachine, interpret, assign, spawn } from '../src';
+import {
+  createMachine,
+  interpret,
+  assign,
+  spawn,
+  AnyInterpreter
+} from '../src';
 import { raise, stop, send, sendParent } from '../src/actions';
 
 describe('predictableExec', () => {
@@ -626,41 +632,60 @@ describe('predictableExec', () => {
   });
 
   it('parent should be able to read the updated state of a child when receiving an event from it', (done) => {
-    let shouldCheck = false;
-
     const child = createMachine({
       predictableActionArguments: true,
       initial: 'a',
       states: {
         a: {
+          // we need to clear the call stack before we send the event to the parent
           after: {
             1: 'b'
           }
         },
         b: {
-          entry: [
-            () => (shouldCheck = true),
-            sendParent({ type: 'CHILD_UPDATED' })
-          ]
+          entry: sendParent({ type: 'CHILD_UPDATED' })
         }
       }
     });
+
+    let service: AnyInterpreter;
 
     const machine = createMachine({
       predictableActionArguments: true,
       invoke: {
         id: 'myChild',
         src: child
+      },
+      initial: 'initial',
+      states: {
+        initial: {
+          on: {
+            CHILD_UPDATED: [
+              {
+                cond: () =>
+                  service.state.children.myChild.getSnapshot().value === 'b',
+                target: 'success'
+              },
+              {
+                target: 'fail'
+              }
+            ]
+          }
+        },
+        success: {
+          type: 'final'
+        },
+        fail: {
+          type: 'final'
+        }
       }
     });
 
-    const service = interpret(machine).start();
-
-    service.subscribe((state) => {
-      if (shouldCheck) {
-        expect(state.children.myChild.getSnapshot().value).toEqual('b');
+    service = interpret(machine)
+      .onDone(() => {
+        expect(service.state.value).toBe('success');
         done();
-      }
-    });
+      })
+      .start();
   });
 });
