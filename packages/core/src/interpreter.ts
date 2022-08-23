@@ -208,6 +208,10 @@ export class Interpreter<
   public children: Map<string | number, ActorRef<any>> = new Map();
   private forwardTo: Set<string> = new Set();
 
+  private _outgoingQueue: Array<
+    [{ send: (ev: unknown) => void }, unknown]
+  > = [];
+
   // Dev Tools
   private devTools?: any;
 
@@ -324,6 +328,11 @@ export class Interpreter<
       this.options.execute
     ) {
       this.execute(this.state);
+    } else {
+      let item: typeof this._outgoingQueue[number] | undefined;
+      while ((item = this._outgoingQueue.shift())) {
+        item[0].send(item[1]);
+      }
     }
 
     // Update children
@@ -840,16 +849,25 @@ export class Interpreter<
         this.state.done
       ) {
         // Send SCXML events to machines
-        (target as AnyInterpreter).send({
+        const scxmlEvent = {
           ...event,
           name:
             event.name === actionTypes.error ? `${error(this.id)}` : event.name,
           origin: this.sessionId
-        });
+        };
+        if (this.machine.config.predictableActionArguments) {
+          this._outgoingQueue.push([target, scxmlEvent]);
+        } else {
+          (target as AnyInterpreter).send(scxmlEvent);
+        }
       }
     } else {
       // Send normal events to other targets
-      target.send(event.data);
+      if (this.machine.config.predictableActionArguments) {
+        this._outgoingQueue.push([target, event.data]);
+      } else {
+        target.send(event.data);
+      }
     }
   };
 

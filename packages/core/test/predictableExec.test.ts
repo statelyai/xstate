@@ -1,5 +1,11 @@
-import { createMachine, interpret, assign, spawn } from '../src';
-import { raise, stop, send } from '../src/actions';
+import {
+  createMachine,
+  interpret,
+  assign,
+  spawn,
+  AnyInterpreter
+} from '../src';
+import { raise, stop, send, sendParent } from '../src/actions';
 
 describe('predictableExec', () => {
   it('should call mixed custom and builtin actions in the definitions order', () => {
@@ -623,5 +629,63 @@ describe('predictableExec', () => {
     service.send({ type: 'NEXT' });
 
     expect(received).toEqual({ type: 'KNOCK_KNOCK' });
+  });
+
+  it('parent should be able to read the updated state of a child when receiving an event from it', (done) => {
+    const child = createMachine({
+      predictableActionArguments: true,
+      initial: 'a',
+      states: {
+        a: {
+          // we need to clear the call stack before we send the event to the parent
+          after: {
+            1: 'b'
+          }
+        },
+        b: {
+          entry: sendParent({ type: 'CHILD_UPDATED' })
+        }
+      }
+    });
+
+    let service: AnyInterpreter;
+
+    const machine = createMachine({
+      predictableActionArguments: true,
+      invoke: {
+        id: 'myChild',
+        src: child
+      },
+      initial: 'initial',
+      states: {
+        initial: {
+          on: {
+            CHILD_UPDATED: [
+              {
+                cond: () =>
+                  service.state.children.myChild.getSnapshot().value === 'b',
+                target: 'success'
+              },
+              {
+                target: 'fail'
+              }
+            ]
+          }
+        },
+        success: {
+          type: 'final'
+        },
+        fail: {
+          type: 'final'
+        }
+      }
+    });
+
+    service = interpret(machine)
+      .onDone(() => {
+        expect(service.state.value).toBe('success');
+        done();
+      })
+      .start();
   });
 });
