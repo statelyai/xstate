@@ -54,7 +54,7 @@ export function useService<TService extends StateMachine.AnyService>(
   // Track if a new service is passed in, only update once per service
   createEffect(
     on(
-      () => serviceMemo(),
+      serviceMemo,
       () => {
         setState(getClonedState());
       },

@@ -2,19 +2,10 @@ import type { SetStoreFunction } from 'solid-js/store';
 import { reconcile } from 'solid-js/store';
 import type { ActorRef, Interpreter, InterpreterFrom } from 'xstate';
 import { State } from 'xstate';
+import { isStateLike } from 'xstate/lib/utils';
 
 function isService(value: any): value is Interpreter<any> {
   return 'state' in value && 'machine' in value;
-}
-
-export function isState(value: any | State<any>): value is State<any> {
-  return (
-    typeof value === 'object' &&
-    'value' in value &&
-    'context' in value &&
-    'event' in value &&
-    '_event' in value
-  );
 }
 
 /**
@@ -61,7 +52,7 @@ export const deriveServiceState = <
   service: TService,
   initialState: InitialState extends unknown ? unknown : InitialState
 ): InitialState => {
-  if (isService(service) && isState(initialState)) {
+  if (isService(service) && isStateLike(initialState)) {
     return {
       ...(initialState as object),
       toJSON() {

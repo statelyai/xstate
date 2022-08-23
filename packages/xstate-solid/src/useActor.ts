@@ -45,7 +45,7 @@ export function useActor(
   // Track if a new actor is passed in, only run once per actor
   createEffect(
     on(
-      () => actorMemo(),
+      actorMemo,
       () => {
         setState(
           'snapshot',

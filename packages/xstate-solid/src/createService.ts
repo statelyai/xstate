@@ -32,7 +32,7 @@ export function createService<TMachine extends AnyStateMachine>(
   }));
 
   const service = interpret(machineWithConfig, interpreterOptions).start(
-    rehydratedState ? (State.create(rehydratedState) as any) : undefined
+    rehydratedState ? State.create(rehydratedState) : undefined
   );
 
   onCleanup(() => {
