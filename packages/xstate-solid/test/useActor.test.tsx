@@ -755,6 +755,122 @@ describe('useActor', () => {
     expect(changeVal.textContent).toEqual('2');
   });
 
+  it('should rerender and trigger effects only on object within array changes', () => {
+    const arr = [
+      { id: '1', value: 10 },
+      { id: '2', value: 20 }
+    ];
+    const actorMachine = createMachine<
+      { arr: Array<{ id: string; value: number }> },
+      { type: 'CHANGE'; index: number; value: number }
+    >({
+      context: {
+        arr
+      },
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            CHANGE: {
+              actions: [
+                assign((ctx, event) => {
+                  const newCtx = { ...ctx };
+                  newCtx.arr = [...newCtx.arr];
+                  newCtx.arr[event.index] = {
+                    ...newCtx.arr[event.index],
+                    value: event.value
+                  };
+                  return newCtx;
+                })
+              ]
+            }
+          }
+        }
+      }
+    });
+
+    const Test = () => {
+      const [state, send] = useActor(interpret(actorMachine).start());
+      const [changeIndex0, setChangeIndex0] = createSignal(0);
+      const [changeIndex1, setChangeIndex1] = createSignal(0);
+      const [changeRoot, setChangeRoot] = createSignal(0);
+
+      createEffect(() => {
+        if (state().context.arr) {
+          setChangeRoot((val) => val + 1);
+        }
+      });
+      createEffect(() => {
+        if (state().context.arr[0].value) {
+          setChangeIndex0((val) => val + 1);
+        }
+      });
+
+      createEffect(() => {
+        if (state().context.arr[1].value) {
+          setChangeIndex1((val) => val + 1);
+        }
+      });
+
+      return (
+        <div>
+          <div data-testid="change-root">{changeRoot()}</div>
+          <div data-testid="change-index-0">{changeIndex0()}</div>
+          <div data-testid="change-index-1">{changeIndex1()}</div>
+          <div data-testid="state-0">{state().context.arr[0].value}</div>
+          <div data-testid="state-1">{state().context.arr[1].value}</div>
+          <button
+            data-testid="index-0-btn"
+            onclick={() => send({ type: 'CHANGE', index: 0, value: -10 })}
+          />
+          <button
+            data-testid="index-1-btn"
+            onclick={() => send({ type: 'CHANGE', index: 1, value: 22 })}
+          />
+        </div>
+      );
+    };
+
+    render(() => <Test />);
+
+    const stateIndex0 = screen.getByTestId('state-0');
+    const stateIndex1 = screen.getByTestId('state-1');
+    const changeRootVal = screen.getByTestId('change-root');
+    const changeIndex0Val = screen.getByTestId('change-index-0');
+    const changeIndex1Val = screen.getByTestId('change-index-1');
+    const changeIndex0Btn = screen.getByTestId('index-0-btn');
+    const changeIndex1Btn = screen.getByTestId('index-1-btn');
+
+    // Initial values
+    expect(stateIndex0.textContent).toEqual('10');
+    expect(stateIndex1.textContent).toEqual('20');
+    expect(changeRootVal.textContent).toEqual('1');
+    expect(changeIndex0Val.textContent).toEqual('1');
+    expect(changeIndex1Val.textContent).toEqual('1');
+
+    // Change index 0
+    fireEvent.click(changeIndex0Btn);
+
+    expect(stateIndex0.textContent).toEqual('-10');
+    expect(stateIndex1.textContent).toEqual('20');
+    expect(changeRootVal.textContent).toEqual('1');
+    expect(changeIndex0Val.textContent).toEqual('2');
+    expect(changeIndex1Val.textContent).toEqual('1');
+
+    // Change index 1
+    fireEvent.click(changeIndex1Btn);
+
+    expect(stateIndex0.textContent).toEqual('-10');
+    expect(stateIndex1.textContent).toEqual('22');
+    expect(changeRootVal.textContent).toEqual('1');
+    expect(changeIndex0Val.textContent).toEqual('2');
+    expect(changeIndex1Val.textContent).toEqual('2');
+
+    // Check original array was cloned and is unchanged
+    expect(arr[0].value).toEqual(10);
+    expect(arr[1].value).toEqual(20);
+  });
+
   it('getSnapshot Map should match vanilla Solid behavior', () => {
     const createSimpleActor = (value: Map<string, string>) =>
       toActorRef({
