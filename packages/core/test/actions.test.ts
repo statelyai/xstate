@@ -1585,7 +1585,8 @@ describe('purely defined actions', () => {
   type Events =
     | { type: 'SINGLE'; id: number }
     | { type: 'NONE'; id: number }
-    | { type: 'EACH' };
+    | { type: 'EACH' }
+    | { type: 'AS_STRINGS' };
 
   const dynamicMachine = Machine<Ctx, Events>({
     id: 'dynamic',
@@ -1626,6 +1627,9 @@ describe('purely defined actions', () => {
                 index
               }))
             )
+          },
+          AS_STRINGS: {
+            actions: pure<any, any>(() => ['SOME_ACTION'])
           }
         }
       }
@@ -1679,6 +1683,15 @@ describe('purely defined actions', () => {
         index: 2
       }
     ]);
+  });
+
+  it('should allow for purely defined action type strings', () => {
+    const nextState = dynamicMachine.transition(
+      dynamicMachine.initialState,
+      'AS_STRINGS'
+    );
+
+    expect(nextState.actions).toEqual([{ type: 'SOME_ACTION' }]);
   });
 });
 

@@ -543,7 +543,9 @@ export function pure<TContext, TEvent extends EventObject>(
   getActions: (
     context: TContext,
     event: TEvent
-  ) => SingleOrArray<ActionObject<TContext, TEvent>> | undefined
+  ) =>
+    | SingleOrArray<ActionObject<TContext, TEvent> | TEvent['type']>
+    | undefined
 ): PureAction<TContext, TEvent> {
   return {
     type: ActionTypes.Pure,
