@@ -1375,7 +1375,9 @@ export interface PureAction<TContext, TEvent extends EventObject>
     context: TContext,
     event: TEvent
   ) =>
-    | SingleOrArray<ActionObject<TContext, TEvent> | TEvent['type']>
+    | SingleOrArray<
+        ActionObject<TContext, TEvent> | ActionObject<TContext, TEvent>['type']
+      >
     | undefined;
 }
 
