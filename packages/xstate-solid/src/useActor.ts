@@ -33,8 +33,6 @@ export function useActor(
     typeof actorRef === 'function' ? actorRef() : actorRef
   );
 
-  const send = (event: Event<EventObject>) => actorMemo().send(event);
-
   const getClonedActorState = () =>
     deepClone(spreadIfStateInstance(actorMemo().getSnapshot?.()));
 
@@ -68,6 +66,8 @@ export function useActor(
     });
     onCleanup(unsubscribe);
   });
+
+  const send = (event: Event<EventObject>) => actorMemo().send(event);
 
   return [() => state.snapshot, send];
 }

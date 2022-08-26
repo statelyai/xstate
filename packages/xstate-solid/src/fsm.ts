@@ -49,8 +49,6 @@ export function useService<TService extends StateMachine.AnyService>(
     }
   } as StateFrom<TService>);
 
-  const send = (event: TService['send']) => serviceMemo().send(event);
-
   // Track if a new service is passed in, only update once per service
   createEffect(
     on(
@@ -68,6 +66,8 @@ export function useService<TService extends StateMachine.AnyService>(
     });
     onCleanup(unsubscribe);
   });
+
+  const send = (event: TService['send']) => serviceMemo().send(event);
 
   return [state, send, serviceMemo()];
 }
