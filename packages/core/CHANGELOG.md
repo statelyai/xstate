@@ -1,5 +1,11 @@
 # xstate
 
+## 4.33.4
+
+### Patch Changes
+
+- [#3549](https://github.com/statelyai/xstate/pull/3549) [`768c4e938`](https://github.com/statelyai/xstate/commit/768c4e938d1f33b570d56f6c7f1ef454714c4b34) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with not being able to send events to initially started child actors when using `predictableActionArguments`.
+
 ## 4.33.3
 
 ### Patch Changes
