@@ -688,4 +688,39 @@ describe('predictableExec', () => {
       })
       .start();
   });
+
+  it('should be possible to send immediate events to initially invoked actors', () => {
+    const child = createMachine({
+      predictableActionArguments: true,
+      on: {
+        PING: {
+          actions: sendParent({ type: 'PONG' })
+        }
+      }
+    });
+
+    const machine = createMachine({
+      predictableActionArguments: true,
+      initial: 'waiting',
+      states: {
+        waiting: {
+          invoke: {
+            id: 'ponger',
+            src: child
+          },
+          entry: send({ type: 'PING' }, { to: 'ponger' }),
+          on: {
+            PONG: 'done'
+          }
+        },
+        done: {
+          type: 'final'
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    expect(service.getSnapshot().value).toBe('done');
+  });
 });

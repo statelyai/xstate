@@ -810,7 +810,8 @@ export class Interpreter<
 
   private sendTo = (
     event: SCXML.Event<AnyEventObject>,
-    to: string | number | ActorRef<any>
+    to: string | number | ActorRef<any>,
+    immediate: boolean
   ) => {
     const isParent =
       this.parent && (to === SpecialTargets.Parent || this.parent.id === to);
@@ -855,7 +856,7 @@ export class Interpreter<
             event.name === actionTypes.error ? `${error(this.id)}` : event.name,
           origin: this.sessionId
         };
-        if (this.machine.config.predictableActionArguments) {
+        if (!immediate && this.machine.config.predictableActionArguments) {
           this._outgoingQueue.push([target, scxmlEvent]);
         } else {
           (target as AnyInterpreter).send(scxmlEvent);
@@ -863,7 +864,7 @@ export class Interpreter<
       }
     } else {
       // Send normal events to other targets
-      if (this.machine.config.predictableActionArguments) {
+      if (!immediate && this.machine.config.predictableActionArguments) {
         this._outgoingQueue.push([target, event.data]);
       } else {
         target.send(event.data);
@@ -927,7 +928,7 @@ export class Interpreter<
   private defer(sendAction: SendActionObject<TContext, TEvent>): void {
     this.delayedEventsMap[sendAction.id] = this.clock.setTimeout(() => {
       if (sendAction.to) {
-        this.sendTo(sendAction._event, sendAction.to);
+        this.sendTo(sendAction._event, sendAction.to, true);
       } else {
         this.send(
           (sendAction as SendActionObject<TContext, TEvent, TEvent>)._event
@@ -991,7 +992,7 @@ export class Interpreter<
           return;
         } else {
           if (sendAction.to) {
-            this.sendTo(sendAction._event, sendAction.to);
+            this.sendTo(sendAction._event, sendAction.to, _event === initEvent);
           } else {
             this.send(
               (sendAction as SendActionObject<TContext, TEvent, TEvent>)._event
