@@ -1,5 +1,5 @@
 import { createMachine, interpret, assign } from '../src';
-import { raise, stop } from '../src/actions';
+import { raise, send, sendParent, stop } from '../src/actions';
 import { fromCallback } from '../src/actors';
 
 describe('predictableExec', () => {
@@ -574,5 +574,38 @@ describe('predictableExec', () => {
     service.nextState({ type: 'TICK' });
 
     expect(spy).not.toBeCalled();
+  });
+
+  it('should be possible to send immediate events to initially invoked actors', () => {
+    const child = createMachine({
+      on: {
+        PING: {
+          actions: sendParent({ type: 'PONG' })
+        }
+      }
+    });
+
+    const machine = createMachine({
+      initial: 'waiting',
+      states: {
+        waiting: {
+          invoke: {
+            id: 'ponger',
+            src: child
+          },
+          entry: send({ type: 'PING' }, { to: 'ponger' }),
+          on: {
+            PONG: 'done'
+          }
+        },
+        done: {
+          type: 'final'
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    expect(service.getSnapshot().value).toBe('done');
   });
 });
