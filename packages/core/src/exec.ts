@@ -108,7 +108,11 @@ function getActionFunction<TState extends AnyState>(
           return;
         } else {
           if (sendAction.params.to) {
-            sendTo(sendAction.params._event, sendAction.params.to, interpreter);
+            execSendTo(
+              sendAction.params._event,
+              sendAction.params.to,
+              interpreter
+            );
           } else {
             interpreter.send(sendAction.params._event as SCXML.Event<any>);
           }
@@ -168,7 +172,7 @@ function getActionFunction<TState extends AnyState>(
   );
 }
 
-function sendTo(
+function execSendTo(
   event: SCXML.Event<AnyEventObject>,
   to: ActorRef<any>,
   interpreter: AnyInterpreter

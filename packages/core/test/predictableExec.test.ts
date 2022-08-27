@@ -1,4 +1,4 @@
-import { createMachine, interpret, assign } from '../src';
+import { createMachine, interpret, assign, AnyInterpreter } from '../src';
 import { raise, send, sendParent, stop } from '../src/actions';
 import { fromCallback } from '../src/actors';
 
@@ -574,6 +574,64 @@ describe('predictableExec', () => {
     service.nextState({ type: 'TICK' });
 
     expect(spy).not.toBeCalled();
+  });
+
+  // TODO: re-enable and fix
+  it.skip('parent should be able to read the updated state of a child when receiving an event from it', (done) => {
+    const child = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          // we need to clear the call stack before we send the event to the parent
+          after: {
+            1: 'b'
+          }
+        },
+        b: {
+          entry: sendParent({ type: 'CHILD_UPDATED' })
+        }
+      }
+    });
+
+    let service: AnyInterpreter;
+
+    const machine = createMachine({
+      invoke: {
+        id: 'myChild',
+        src: child
+      },
+      initial: 'initial',
+      states: {
+        initial: {
+          on: {
+            CHILD_UPDATED: [
+              {
+                guard: () =>
+                  service.getSnapshot().children.myChild.getSnapshot().value ===
+                  'b',
+                target: 'success'
+              },
+              {
+                target: 'fail'
+              }
+            ]
+          }
+        },
+        success: {
+          type: 'final'
+        },
+        fail: {
+          type: 'final'
+        }
+      }
+    });
+
+    service = interpret(machine)
+      .onDone(() => {
+        expect(service.getSnapshot().value).toBe('success');
+        done();
+      })
+      .start();
   });
 
   it('should be possible to send immediate events to initially invoked actors', () => {
