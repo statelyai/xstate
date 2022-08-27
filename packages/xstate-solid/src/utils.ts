@@ -18,12 +18,8 @@ function isNonObjectPrototype(value: any): value is object {
  * object/array to the cloned object/array
  */
 const clone = <T>(value: T, valueRefs: WeakMap<any, any>): T => {
-  if (!isObjectOrArray(value)) {
-    return value;
-  }
-
   // If the value is a class or non object/array prototype, copy over instead of cloning
-  if (isNonObjectPrototype(value)) {
+  if (!isObjectOrArray(value) || isNonObjectPrototype(value)) {
     return value;
   }
 
