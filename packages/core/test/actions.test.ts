@@ -7,7 +7,15 @@ import {
   spawn,
   ActorRefFrom
 } from '../src/index';
-import { pure, sendParent, log, choose, sendTo } from '../src/actions';
+import {
+  pure,
+  sendParent,
+  log,
+  choose,
+  sendTo,
+  stop,
+  send
+} from '../src/actions';
 
 describe('entry/exit actions', () => {
   const pedestrianStates = {
@@ -513,6 +521,37 @@ describe('entry/exit actions', () => {
         newLightMachine.transition('red', 'NOTHING').actions.map((a) => a.type)
       ).toEqual(['exit_walk', 'exit_red', 'enter_red', 'enter_walk']);
     });
+
+    it('should exit deep descendant during a self-transition', () => {
+      const actual: string[] = [];
+      const m = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              EV: 'a'
+            },
+            initial: 'a1',
+            states: {
+              a1: {
+                initial: 'a11',
+                states: {
+                  a11: {
+                    exit: () => actual.push('a11.exit')
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const service = interpret(m).start();
+
+      service.send('EV');
+
+      expect(actual).toEqual(['a11.exit']);
+    });
   });
 
   describe('parallel states', () => {
@@ -920,6 +959,419 @@ describe('entry/exit actions', () => {
 
       expect(actual).toEqual(['child_b', 'b', 'child_a', 'a', 'root']);
     });
+
+    it('an exit action executed when an interpreter gets stopped should receive `xstate.stop` event', () => {
+      let receivedEvent;
+      const machine = createMachine({
+        exit: (_ctx, ev) => {
+          receivedEvent = ev;
+        }
+      });
+
+      const service = interpret(machine).start();
+      service.stop();
+
+      expect(receivedEvent).toEqual({ type: 'xstate.stop' });
+    });
+
+    it('an exit action executed when an interpreter reaches its final state should be called with the last received event', () => {
+      let receivedEvent;
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              NEXT: 'b'
+            }
+          },
+          b: {
+            type: 'final'
+          }
+        },
+        exit: (_ctx, ev) => {
+          receivedEvent = ev;
+        }
+      });
+
+      const service = interpret(machine).start();
+      service.send({ type: 'NEXT' });
+
+      expect(receivedEvent).toEqual({ type: 'NEXT' });
+    });
+
+    // https://github.com/statelyai/xstate/issues/2880
+    it('stopping an interpreter that receives events from its children exit handlers should not throw', () => {
+      const child = createMachine({
+        id: 'child',
+        initial: 'idle',
+        states: {
+          idle: {
+            exit: sendParent('EXIT')
+          }
+        }
+      });
+
+      const parent = createMachine({
+        id: 'parent',
+        invoke: child
+      });
+
+      const interpreter = interpret(parent);
+      interpreter.start();
+
+      expect(() => interpreter.stop()).not.toThrow();
+    });
+
+    it('sent events from exit handlers of a stopped child should not be received by the parent', () => {
+      const child = createMachine({
+        id: 'child',
+        initial: 'idle',
+        states: {
+          idle: {
+            exit: sendParent('EXIT')
+          }
+        }
+      });
+
+      const parent = createMachine({
+        id: 'parent',
+        context: () => ({
+          child: spawn(child)
+        }),
+        on: {
+          STOP_CHILD: {
+            actions: stop((ctx: any) => ctx.child)
+          },
+          EXIT: {
+            actions: () => {
+              throw new Error('This should not be called.');
+            }
+          }
+        }
+      });
+
+      const interpreter = interpret(parent).start();
+      interpreter.send({ type: 'STOP_CHILD' });
+    });
+
+    it('sent events from exit handlers of a done child should be received by the parent ', () => {
+      let eventReceived = false;
+
+      const child = createMachine({
+        id: 'child',
+        initial: 'active',
+        states: {
+          active: {
+            on: {
+              FINISH: 'done'
+            }
+          },
+          done: {
+            type: 'final'
+          }
+        },
+        exit: sendParent('CHILD_DONE')
+      });
+
+      const parent = createMachine({
+        id: 'parent',
+        context: () => ({
+          child: spawn(child)
+        }),
+        on: {
+          FINISH_CHILD: {
+            actions: send({ type: 'FINISH' }, { to: (ctx: any) => ctx.child })
+          },
+          CHILD_DONE: {
+            actions: () => {
+              eventReceived = true;
+            }
+          }
+        }
+      });
+
+      const interpreter = interpret(parent).start();
+      interpreter.send({ type: 'FINISH_CHILD' });
+
+      expect(eventReceived).toBe(true);
+    });
+
+    it('sent events from exit handlers of a stopped child should be received by its children ', () => {
+      let eventReceived = false;
+
+      const grandchild = createMachine({
+        id: 'grandchild',
+        on: {
+          STOPPED: {
+            actions: () => {
+              eventReceived = true;
+            }
+          }
+        }
+      });
+
+      const child = createMachine({
+        id: 'child',
+        invoke: {
+          id: 'myChild',
+          src: grandchild
+        },
+        exit: send({ type: 'STOPPED' }, { to: 'myChild' })
+      });
+
+      const parent = createMachine({
+        id: 'parent',
+        initial: 'a',
+        states: {
+          a: {
+            invoke: {
+              src: child
+            },
+            on: {
+              NEXT: 'b'
+            }
+          },
+          b: {}
+        }
+      });
+
+      const interpreter = interpret(parent).start();
+      interpreter.send({ type: 'NEXT' });
+
+      expect(eventReceived).toBe(true);
+    });
+
+    it('sent events from exit handlers of a done child should be received by its children ', () => {
+      let eventReceived = false;
+
+      const grandchild = createMachine({
+        id: 'grandchild',
+        on: {
+          STOPPED: {
+            actions: () => {
+              eventReceived = true;
+            }
+          }
+        }
+      });
+
+      const child = createMachine({
+        id: 'child',
+        initial: 'a',
+        invoke: {
+          id: 'myChild',
+          src: grandchild
+        },
+        states: {
+          a: {
+            on: {
+              FINISH: 'b'
+            }
+          },
+          b: {
+            type: 'final'
+          }
+        },
+        exit: send({ type: 'STOPPED' }, { to: 'myChild' })
+      });
+
+      const parent = createMachine({
+        id: 'parent',
+        invoke: {
+          id: 'myChild',
+          src: child
+        },
+        on: {
+          NEXT: {
+            actions: send({ type: 'FINISH' }, { to: 'myChild' })
+          }
+        }
+      });
+
+      const interpreter = interpret(parent).start();
+      interpreter.send({ type: 'NEXT' });
+
+      expect(eventReceived).toBe(true);
+    });
+
+    it('actors spawned in exit handlers of a stopped child should not be started', () => {
+      const grandchild = createMachine({
+        id: 'grandchild',
+        entry: () => {
+          throw new Error('This should not be called.');
+        }
+      });
+
+      const parent = createMachine({
+        id: 'parent',
+        context: {},
+        exit: assign({
+          actorRef: () => spawn(grandchild)
+        })
+      });
+
+      const interpreter = interpret(parent).start();
+      interpreter.stop();
+    });
+
+    it('should execute referenced custom actions correctly when stopping an interpreter', () => {
+      let called = false;
+      const parent = createMachine(
+        {
+          id: 'parent',
+          context: {},
+          exit: 'referencedAction'
+        },
+        {
+          actions: {
+            referencedAction: () => {
+              called = true;
+            }
+          }
+        }
+      );
+
+      const interpreter = interpret(parent).start();
+      interpreter.stop();
+
+      expect(called).toBe(true);
+    });
+
+    it('should execute builtin actions correctly when stopping an interpreter', () => {
+      const machine = createMachine(
+        {
+          context: {
+            executedAssigns: [] as string[]
+          },
+          exit: [
+            'referencedAction',
+            assign({
+              executedAssigns: (ctx: any) => [...ctx.executedAssigns, 'inline']
+            })
+          ]
+        },
+        {
+          actions: {
+            referencedAction: assign({
+              executedAssigns: (ctx) => [...ctx.executedAssigns, 'referenced']
+            })
+          }
+        }
+      );
+
+      const interpreter = interpret(machine).start();
+      interpreter.stop();
+
+      expect(interpreter.state.context.executedAssigns).toEqual([
+        'referenced',
+        'inline'
+      ]);
+    });
+
+    it('should clear all scheduled events when the interpreter gets stopped', () => {
+      const machine = createMachine({
+        on: {
+          INITIALIZE_SYNC_SEQUENCE: {
+            actions: () => {
+              // schedule those 2 events
+              service.send({ type: 'SOME_EVENT' });
+              service.send({ type: 'SOME_EVENT' });
+              // but also immediately stop *while* the `INITIALIZE_SYNC_SEQUENCE` is still being processed
+              service.stop();
+            }
+          },
+          SOME_EVENT: {
+            actions: () => {
+              throw new Error('This should not be called.');
+            }
+          }
+        }
+      });
+
+      const service = interpret(machine).start();
+
+      service.send({ type: 'INITIALIZE_SYNC_SEQUENCE' });
+    });
+
+    it('should execute exit actions of the settled state of the last initiated microstep', () => {
+      const exitActions: string[] = [];
+      const machine = createMachine({
+        initial: 'foo',
+        states: {
+          foo: {
+            exit: () => {
+              exitActions.push('foo action');
+            },
+            on: {
+              INITIALIZE_SYNC_SEQUENCE: {
+                target: 'bar',
+                actions: [
+                  () => {
+                    // immediately stop *while* the `INITIALIZE_SYNC_SEQUENCE` is still being processed
+                    service.stop();
+                  },
+                  () => {}
+                ]
+              }
+            }
+          },
+          bar: {
+            exit: () => {
+              exitActions.push('bar action');
+            }
+          }
+        }
+      });
+
+      const service = interpret(machine).start();
+
+      service.send({ type: 'INITIALIZE_SYNC_SEQUENCE' });
+
+      expect(exitActions).toEqual(['foo action', 'bar action']);
+    });
+
+    it('should execute exit actions of the settled state of the last initiated microstep after executing all actions from that microstep', () => {
+      const executedActions: string[] = [];
+      const machine = createMachine({
+        initial: 'foo',
+        states: {
+          foo: {
+            exit: () => {
+              executedActions.push('foo exit action');
+            },
+            on: {
+              INITIALIZE_SYNC_SEQUENCE: {
+                target: 'bar',
+                actions: [
+                  () => {
+                    // immediately stop *while* the `INITIALIZE_SYNC_SEQUENCE` is still being processed
+                    service.stop();
+                  },
+                  () => {
+                    executedActions.push('foo transition action');
+                  }
+                ]
+              }
+            }
+          },
+          bar: {
+            exit: () => {
+              executedActions.push('bar exit action');
+            }
+          }
+        }
+      });
+
+      const service = interpret(machine).start();
+
+      service.send({ type: 'INITIALIZE_SYNC_SEQUENCE' });
+
+      expect(executedActions).toEqual([
+        'foo exit action',
+        'foo transition action',
+        'bar exit action'
+      ]);
+    });
   });
 });
 
@@ -1318,6 +1770,20 @@ describe('forwardTo()', () => {
       .start();
 
     service.send('EVENT', { value: 42 });
+  });
+
+  it('should not cause an infinite loop when forwarding to undefined', () => {
+    const machine = createMachine({
+      on: {
+        '*': { cond: () => true, actions: forwardTo(undefined as any) }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    expect(() => service.send('TEST')).toThrowErrorMatchingInlineSnapshot(
+      `"Attempted to forward event to undefined actor. This risks an infinite loop in the sender."`
+    );
   });
 });
 
