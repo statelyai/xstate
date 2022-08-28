@@ -1147,7 +1147,10 @@ describe('entry/exit actions', () => {
       expect(eventReceived).toBe(true);
     });
 
-    it('sent events from exit handlers of a done child should be received by its children ', () => {
+    // TODO: Determine what is the correct behavior here
+    // We're incorrectly assuming that sending from child -> grandchild is synchronous
+    // A race condition can occur where the grandchild is stopped before an event is received
+    it.skip('sent events from exit handlers of a done child should be received by its children ', () => {
       let eventReceived = false;
 
       const grandchild = createMachine({

@@ -3166,6 +3166,68 @@ describe('invoke', () => {
 
     expect(invokeCount).toBe(2);
   });
+
+  it('invocations should be stopped when the machine reaches done state', () => {
+    let disposed = false;
+    const machine = createMachine({
+      initial: 'a',
+      invoke: {
+        src: fromCallback(() => {
+          return () => {
+            disposed = true;
+          };
+        })
+      },
+      states: {
+        a: {
+          on: {
+            FINISH: 'b'
+          }
+        },
+        b: {
+          type: 'final'
+        }
+      }
+    });
+    const service = interpret(machine).start();
+
+    service.send('FINISH');
+    expect(disposed).toBe(true);
+  });
+
+  it('deep invocations should be stopped when the machine reaches done state', () => {
+    let disposed = false;
+    const childMachine = createMachine({
+      invoke: {
+        src: fromCallback(() => {
+          return () => {
+            disposed = true;
+          };
+        })
+      }
+    });
+
+    const machine = createMachine({
+      initial: 'a',
+      invoke: {
+        src: childMachine
+      },
+      states: {
+        a: {
+          on: {
+            FINISH: 'b'
+          }
+        },
+        b: {
+          type: 'final'
+        }
+      }
+    });
+    const service = interpret(machine).start();
+
+    service.send('FINISH');
+    expect(disposed).toBe(true);
+  });
 });
 
 describe('actors option', () => {

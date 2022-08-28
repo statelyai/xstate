@@ -1820,7 +1820,7 @@ export function macrostep<TMachine extends AnyStateMachine>(
 ): typeof state {
   // Handle stop event
   if (scxmlEvent?.name === 'xstate.stop') {
-    return stopStep(state, machine, actorCtx);
+    return stopStep(state, scxmlEvent, machine, actorCtx);
   }
 
   // Assume the state is at rest (no raised events)
@@ -1886,6 +1886,11 @@ export function macrostep<TMachine extends AnyStateMachine>(
   );
 
   maybeNextState.machine = machine;
+
+  if (maybeNextState.done) {
+    // Perform the stop step to ensure that child actors are stopped
+    stopStep(maybeNextState, maybeNextState._event, machine, actorCtx);
+  }
 
   return maybeNextState;
 }
@@ -1996,15 +2001,15 @@ export function getTagsFromConfiguration(
 
 function stopStep(
   state: AnyState,
+  scxmlEvent: SCXML.Event<any>,
   machine: AnyStateMachine,
   actorCtx: ActorContext<any, any> | undefined
 ): typeof state {
-  const stopScxmlEvent = toSCXMLEvent({ type: 'xstate.stop' });
   const stoppedState = new State(state);
 
   // TODO: fix this
-  stoppedState._event = stopScxmlEvent;
-  stoppedState.event = stopScxmlEvent.data;
+  stoppedState._event = scxmlEvent;
+  stoppedState.event = scxmlEvent.data;
 
   stoppedState.actions.length = 0;
 
