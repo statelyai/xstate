@@ -1,13 +1,11 @@
 import {
   ActorContext,
-  AnyState,
   AnyStateMachine,
   InvokeActionObject,
   Spawner,
   StateFrom
 } from '.';
 import { STATE_DELIMITER } from './constants';
-import { IS_PRODUCTION } from './environment';
 import { execAction } from './exec';
 import { createSpawner } from './spawn';
 import { State } from './State';
@@ -20,7 +18,6 @@ import {
   macrostep,
   resolveMicroTransition,
   resolveStateValue,
-  toState,
   transitionNode,
   setChildren,
   machineMicrostep
@@ -49,7 +46,7 @@ import type {
   StateValue,
   Transitions
 } from './types';
-import { isBuiltInEvent, isFunction, toSCXMLEvent } from './utils';
+import { isFunction, toSCXMLEvent } from './utils';
 
 export const NULL_EVENT = '';
 export const STATE_IDENTIFIER = '#';
@@ -243,6 +240,15 @@ export class StateMachine<
     });
   }
 
+  public resolveStateValue(
+    stateValue: StateValue
+  ): State<TContext, TEvent, TResolvedTypesMeta> {
+    const resolvedStateValue = resolveStateValue(this.root, stateValue);
+    const resolvedContext = this.context;
+
+    return this.resolveState(State.from(resolvedStateValue, resolvedContext));
+  }
+
   /**
    * Determines the next state given the current `state` and received `event`.
    * Calculates a full macrostep from all microsteps.
@@ -256,7 +262,8 @@ export class StateMachine<
     event: Event<TEvent> | SCXML.Event<TEvent>,
     actorCtx?: ActorContext<TEvent, State<TContext, TEvent, any>>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    const currentState = toState(state, this);
+    const currentState =
+      state instanceof State ? state : this.resolveStateValue(state);
     const scxmlEvent = toSCXMLEvent(event);
 
     const nextState = macrostep(currentState, scxmlEvent, this, actorCtx);
@@ -273,15 +280,13 @@ export class StateMachine<
    * @param event The received event
    */
   public microstep(
-    state: StateValue | State<TContext, TEvent, TResolvedTypesMeta> = this
-      .initialState,
+    state: State<TContext, TEvent, TResolvedTypesMeta> = this.initialState,
     event: Event<TEvent> | SCXML.Event<TEvent>,
     actorCtx: ActorContext<any, any> | undefined
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    const resolvedState = toState(state, this);
     const scxmlEvent = toSCXMLEvent(event);
 
-    return machineMicrostep(resolvedState, scxmlEvent, actorCtx, this);
+    return machineMicrostep(state, scxmlEvent, actorCtx, this);
   }
 
   public getTransitionData(

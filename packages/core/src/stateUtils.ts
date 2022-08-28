@@ -1101,7 +1101,26 @@ function exitStates<
 
   statesToExit.sort((a, b) => b.order - a.order);
 
-  const historyValue = resolveHistoryValue(state, statesToExit);
+  const historyValue: Record<string, Array<StateNode<TContext, TEvent>>> = state
+    ? state.historyValue
+    : {};
+  if (state && state.configuration) {
+    // From SCXML algorithm: https://www.w3.org/TR/scxml/#exitStates
+    for (const exitStateNode of statesToExit) {
+      for (const historyNode of getHistoryNodes(exitStateNode)) {
+        let predicate: (sn: StateNode<TContext, TEvent>) => boolean;
+        if (historyNode.history === 'deep') {
+          predicate = (sn) =>
+            isAtomicStateNode(sn) && isDescendant(sn, exitStateNode);
+        } else {
+          predicate = (sn) => {
+            return sn.parent === exitStateNode;
+          };
+        }
+        historyValue[historyNode.id] = state.configuration.filter(predicate);
+      }
+    }
+  }
 
   for (const s of statesToExit) {
     actions.push(...flatten(s.exit));
@@ -1113,91 +1132,6 @@ function exitStates<
     historyValue,
     actions,
     configuration: mutConfiguration
-  };
-}
-
-export function enterStates<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  transitions: Array<TransitionDefinition<TContext, TEvent>>,
-  mutConfiguration: Set<StateNode<TContext, TEvent>>,
-  state: State<TContext, TEvent>
-) {
-  const statesToInvoke: typeof mutConfiguration = new Set();
-  const internalQueue: Array<SCXML.Event<TEvent>> = [];
-
-  const actions: BaseActionObject[] = [];
-  const mutStatesToEnter = new Set<StateNode<TContext, TEvent>>();
-  const mutStatesForDefaultEntry = new Set<StateNode<TContext, TEvent>>();
-
-  computeEntrySet(
-    transitions,
-    state,
-    mutStatesToEnter,
-    mutStatesForDefaultEntry
-  );
-
-  for (const stateNodeToEnter of [...mutStatesToEnter].sort(
-    (a, b) => a.order - b.order
-  )) {
-    mutConfiguration.add(stateNodeToEnter);
-    statesToInvoke.add(stateNodeToEnter);
-
-    // Add entry actions
-    actions.push(...stateNodeToEnter.entry);
-
-    if (mutStatesForDefaultEntry.has(stateNodeToEnter)) {
-      mutStatesForDefaultEntry.forEach((stateNode) => {
-        const initialActions = stateNode.initial!.actions;
-        actions.push(...initialActions);
-      });
-    }
-    // if (defaultHistoryContent[s.id]) {
-    //   actions.push(...defaultHistoryContent[s.id])
-    // }
-    if (stateNodeToEnter.type === 'final') {
-      const parent = stateNodeToEnter.parent!;
-
-      if (!parent.parent) {
-        continue;
-      }
-
-      internalQueue.push(
-        toSCXMLEvent(
-          done(
-            parent!.id,
-            stateNodeToEnter.doneData
-              ? mapContext(
-                  stateNodeToEnter.doneData,
-                  state.context,
-                  state._event
-                )
-              : undefined
-          )
-        )
-      );
-
-      if (parent.parent) {
-        const grandparent = parent.parent;
-
-        if (grandparent.type === 'parallel') {
-          if (
-            getChildren(grandparent).every((parentNode) =>
-              isInFinalState([...mutConfiguration], parentNode)
-            )
-          ) {
-            internalQueue.push(toSCXMLEvent(done(grandparent.id)));
-          }
-        }
-      }
-    }
-  }
-
-  return {
-    statesToInvoke,
-    internalQueue,
-    actions
   };
 }
 
@@ -1440,11 +1374,7 @@ export function microstep<
   actions.push(...transitionActions);
 
   // Enter states
-  const res = enterStates(
-    filteredTransitions,
-    mutConfiguration,
-    currentState || State.from({})
-  );
+  const res = enterStates();
 
   // Start invocations
   const invokeActions = flatten(
@@ -1504,6 +1434,84 @@ export function microstep<
     } else {
       throw e;
     }
+  }
+
+  function enterStates() {
+    const statesToInvoke: typeof mutConfiguration = new Set();
+    const internalQueue: Array<SCXML.Event<TEvent>> = [];
+
+    const actions: BaseActionObject[] = [];
+    const mutStatesToEnter = new Set<StateNode<TContext, TEvent>>();
+    const mutStatesForDefaultEntry = new Set<StateNode<TContext, TEvent>>();
+
+    computeEntrySet(
+      filteredTransitions,
+      currentState,
+      mutStatesToEnter,
+      mutStatesForDefaultEntry
+    );
+
+    for (const stateNodeToEnter of [...mutStatesToEnter].sort(
+      (a, b) => a.order - b.order
+    )) {
+      mutConfiguration.add(stateNodeToEnter);
+      statesToInvoke.add(stateNodeToEnter);
+
+      // Add entry actions
+      actions.push(...stateNodeToEnter.entry);
+
+      if (mutStatesForDefaultEntry.has(stateNodeToEnter)) {
+        mutStatesForDefaultEntry.forEach((stateNode) => {
+          const initialActions = stateNode.initial!.actions;
+          actions.push(...initialActions);
+        });
+      }
+      // if (defaultHistoryContent[s.id]) {
+      //   actions.push(...defaultHistoryContent[s.id])
+      // }
+      if (stateNodeToEnter.type === 'final') {
+        const parent = stateNodeToEnter.parent!;
+
+        if (!parent.parent) {
+          continue;
+        }
+
+        internalQueue.push(
+          toSCXMLEvent(
+            done(
+              parent!.id,
+              stateNodeToEnter.doneData
+                ? mapContext(
+                    stateNodeToEnter.doneData,
+                    currentState.context,
+                    currentState._event
+                  )
+                : undefined
+            )
+          )
+        );
+
+        if (parent.parent) {
+          const grandparent = parent.parent;
+
+          if (grandparent.type === 'parallel') {
+            if (
+              getChildren(grandparent).every((parentNode) =>
+                isInFinalState([...mutConfiguration], parentNode)
+              )
+            ) {
+              internalQueue.push(toSCXMLEvent(done(grandparent.id)));
+            }
+          }
+        }
+      }
+    }
+
+    return {
+      statesToInvoke,
+      internalQueue,
+      actions
+    };
   }
 }
 
@@ -1938,39 +1946,6 @@ export function macrostep<TMachine extends AnyStateMachine>(
   }
 }
 
-function resolveHistoryValue<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  currentState: State<TContext, TEvent> | undefined,
-  exitSet: Array<StateNode<TContext, TEvent>>
-): HistoryValue<TContext, TEvent> {
-  const historyValue: Record<
-    string,
-    Array<StateNode<TContext, TEvent>>
-  > = currentState ? currentState.historyValue : {};
-  if (currentState && currentState.configuration) {
-    // From SCXML algorithm: https://www.w3.org/TR/scxml/#exitStates
-    for (const exitStateNode of exitSet) {
-      for (const historyNode of getHistoryNodes(exitStateNode)) {
-        let predicate: (sn: StateNode<TContext, TEvent>) => boolean;
-        if (historyNode.history === 'deep') {
-          predicate = (sn) =>
-            isAtomicStateNode(sn) && isDescendant(sn, exitStateNode);
-        } else {
-          predicate = (sn) => {
-            return sn.parent === exitStateNode;
-          };
-        }
-        historyValue[historyNode.id] = currentState.configuration.filter(
-          predicate
-        );
-      }
-    }
-  }
-  return historyValue;
-}
-
 /**
  * Resolves a partial state value with its full representation in the state node's machine.
  *
@@ -1982,22 +1957,6 @@ export function resolveStateValue<
 >(rootNode: StateNode<TContext, TEvent>, stateValue: StateValue): StateValue {
   const configuration = getConfiguration(getStateNodes(rootNode, stateValue));
   return getStateValue(rootNode, [...configuration]);
-}
-
-export function toState<TMachine extends AnyStateMachine>(
-  state: StateValue | TMachine['initialState'],
-  machine: TMachine
-): StateFromMachine<TMachine> {
-  if (state instanceof State) {
-    return state;
-  } else {
-    const resolvedStateValue = resolveStateValue(machine.root, state);
-    const resolvedContext = machine.context;
-
-    return machine.resolveState(
-      State.from(resolvedStateValue, resolvedContext)
-    );
-  }
 }
 
 export function stateValuesEqual(
@@ -2048,8 +2007,6 @@ export function machineMicrostep(
   actorCtx: ActorContext<any, any> | undefined,
   machine: AnyStateMachine
 ) {
-  const resolvedState = toState(state, machine);
-
   if (!IS_PRODUCTION && _event.name === WILDCARD) {
     throw new Error(`An event cannot have the wildcard type ('${WILDCARD}')`);
   }
@@ -2065,13 +2022,7 @@ export function machineMicrostep(
     }
   }
 
-  const transitions = machine.getTransitionData(resolvedState, _event);
+  const transitions = machine.getTransitionData(state, _event);
 
-  return resolveMicroTransition(
-    machine,
-    transitions,
-    resolvedState,
-    actorCtx,
-    _event
-  );
+  return resolveMicroTransition(machine, transitions, state, actorCtx, _event);
 }
