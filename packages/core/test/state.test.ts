@@ -331,14 +331,14 @@ describe('State', () => {
     });
   });
 
-  describe('State.create()', () => {
+  describe('machine.createState()', () => {
     it('should be able to create a state from a JSON config', () => {
       const { initialState } = exampleMachine;
       const jsonInitialState = JSON.parse(JSON.stringify(initialState));
 
-      const stateFromConfig = State.create(jsonInitialState) as StateFrom<
-        typeof exampleMachine
-      >;
+      const stateFromConfig = exampleMachine.createState(
+        jsonInitialState
+      ) as StateFrom<typeof exampleMachine>;
 
       expect(
         exampleMachine.transition(stateFromConfig, 'TO_TWO').value
@@ -352,9 +352,9 @@ describe('State', () => {
       const { nextEvents } = initialState;
       const jsonInitialState = JSON.parse(JSON.stringify(initialState));
 
-      const stateFromConfig = State.create(jsonInitialState) as StateFrom<
-        typeof exampleMachine
-      >;
+      const stateFromConfig = exampleMachine.createState(
+        jsonInitialState
+      ) as StateFrom<typeof exampleMachine>;
 
       expect(
         exampleMachine.resolveState(stateFromConfig).nextEvents.sort()
@@ -942,7 +942,7 @@ describe('State', () => {
       });
 
       const persistedState = JSON.stringify(machine.initialState);
-      const restoredState = State.create(JSON.parse(persistedState));
+      const restoredState = machine.createState(JSON.parse(persistedState));
 
       expect(restoredState.hasTag('foo')).toBe(true);
     });

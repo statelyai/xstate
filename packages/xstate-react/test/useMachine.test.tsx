@@ -794,7 +794,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
 
     const Test = () => {
       const [state, send] = useMachine(testMachine, {
-        state: State.create(JSON.parse(persistedState))
+        state: testMachine.createState(JSON.parse(persistedState))
       });
 
       currentState = state;

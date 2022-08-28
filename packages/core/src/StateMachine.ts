@@ -394,6 +394,11 @@ export class StateMachine<
             TEvent,
             TResolvedTypesMeta
           >);
+
+    const configuration = getConfiguration(
+      getStateNodes(this.root, state.value)
+    );
+    state.configuration = Array.from(configuration);
     state.machine = this;
     return state;
   }

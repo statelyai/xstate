@@ -153,7 +153,7 @@ describe('interpreter', () => {
 
       // saves state and recreate it
       const recreated = JSON.parse(JSON.stringify(nextState));
-      const previousState = State.create(recreated);
+      const previousState = lightMachine.createState(recreated);
 
       const service = interpret(lightMachine);
       service.start(previousState);

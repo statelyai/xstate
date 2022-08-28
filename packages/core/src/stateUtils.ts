@@ -1891,9 +1891,9 @@ export function macrostep<TMachine extends AnyStateMachine>(
   }
 
   // Add tags
-  maybeNextState.tags = new Set(
-    flatten(maybeNextState.configuration.map((sn) => sn.tags))
-  );
+  // maybeNextState.tags = new Set(
+  //   flatten(maybeNextState.configuration.map((sn) => sn.tags))
+  // );
 
   maybeNextState.machine = machine;
 
@@ -1982,17 +1982,6 @@ export function stateValuesEqual(
     aKeys.length === bKeys.length &&
     aKeys.every((key) => stateValuesEqual(a[key], b[key]))
   );
-}
-
-export function getMeta(
-  configuration: Array<StateNode<any, any>> = []
-): Record<string, any> {
-  return configuration.reduce((acc, stateNode) => {
-    if (stateNode.meta !== undefined) {
-      acc[stateNode.id] = stateNode.meta;
-    }
-    return acc;
-  }, {} as Record<string, any>);
 }
 
 export function getTagsFromConfiguration(

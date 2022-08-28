@@ -3,12 +3,7 @@ import { IS_PRODUCTION } from './environment';
 import { memo } from './memo';
 import type { StateMachine } from './StateMachine';
 import type { StateNode } from './StateNode';
-import {
-  getMeta,
-  getTagsFromConfiguration,
-  isInFinalState,
-  nextEvents
-} from './stateUtils';
+import { isInFinalState, nextEvents } from './stateUtils';
 import { TypegenDisabled, TypegenEnabled } from './typegenTypes';
 import type {
   ActorRef,
@@ -24,6 +19,7 @@ import type {
   TransitionDefinition
 } from './types';
 import {
+  flatten,
   isString,
   mapContext,
   matchesState,
@@ -55,7 +51,6 @@ export class State<
   public context: TContext;
   public historyValue: HistoryValue<TContext, TEvent> = {};
   public actions: BaseActionObject[] = [];
-  public meta: any = {};
   public event: TEvent;
   public _internalQueue: Array<SCXML.Event<TEvent>> = [];
   public _event: SCXML.Event<TEvent>;
@@ -82,7 +77,6 @@ export class State<
    * An object mapping actor names to spawned/invoked actors.
    */
   public children: Record<string, ActorRef<any>>;
-  public tags: Set<string>;
   public machine:
     | StateMachine<TContext, TEvent, BaseActionObject, any, TResolvedTypesMeta>
     | undefined;
@@ -189,17 +183,11 @@ export class State<
     this.event = this._event.data;
     this.historyValue = config.historyValue || {};
     this.actions = [...(config.actions || [])];
-    this.meta = getMeta(config.configuration);
     this.matches = this.matches.bind(this);
     this.toStrings = this.toStrings.bind(this);
     this.configuration = config.configuration;
     this.transitions = config.transitions;
     this.children = config.children;
-    this.tags = config.configuration
-      ? getTagsFromConfiguration(config.configuration)
-      : config.tags
-      ? new Set(config.tags)
-      : new Set();
     this.machine = config.machine;
   }
 
@@ -317,5 +305,18 @@ export class State<
    */
   public get nextEvents(): Array<TEvent['type']> {
     return memo(this, 'nextEvents', () => nextEvents(this.configuration));
+  }
+
+  public get meta() {
+    return this.configuration.reduce((acc, stateNode) => {
+      if (stateNode.meta !== undefined) {
+        acc[stateNode.id] = stateNode.meta;
+      }
+      return acc;
+    }, {} as Record<string, any>);
+  }
+
+  public get tags(): Set<string> {
+    return new Set(flatten(this.configuration.map((sn) => sn.tags)));
   }
 }
