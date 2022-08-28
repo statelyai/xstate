@@ -16,7 +16,6 @@ import {
 import {
   fromCallback,
   fromEventObservable,
-  fromMachine,
   fromObservable,
   fromPromise,
   fromReducer
@@ -76,7 +75,7 @@ const fetcherMachine = createMachine({
     },
     waiting: {
       invoke: {
-        src: fromMachine(fetchMachine),
+        src: fetchMachine,
         data: {
           userId: (ctx: any) => ctx.selectedUserId
         },
@@ -91,7 +90,7 @@ const fetcherMachine = createMachine({
     },
     waitingInvokeMachine: {
       invoke: {
-        src: fromMachine(fetchMachine.withContext({ userId: '55' })),
+        src: fetchMachine.withContext({ userId: '55' }),
         onDone: 'received'
       }
     },
@@ -142,7 +141,7 @@ describe('invoke', () => {
       },
       {
         actors: {
-          child: () => fromMachine(childMachine)
+          child: () => childMachine
         }
       }
     );
@@ -209,7 +208,7 @@ describe('invoke', () => {
       },
       {
         actors: {
-          child: () => fromMachine(childMachine)
+          child: () => childMachine
         }
       }
     );
@@ -284,7 +283,7 @@ describe('invoke', () => {
         },
         invokeChild: {
           invoke: {
-            src: fromMachine(childMachine),
+            src: childMachine,
             autoForward: true,
             onDone: {
               target: 'done',
@@ -377,11 +376,9 @@ describe('invoke', () => {
         waiting: {
           invoke: {
             src: (ctx) =>
-              fromMachine(
-                childMachine.withContext({
-                  userId: ctx.selectedUserId
-                })
-              ),
+              childMachine.withContext({
+                userId: ctx.selectedUserId
+              }),
             data: {
               userId: (ctx: any) => ctx.selectedUserId
             },
@@ -427,17 +424,15 @@ describe('invoke', () => {
       states: {
         pending: {
           invoke: () =>
-            fromMachine(
-              createMachine({
-                id: 'child',
-                initial: 'sending',
-                states: {
-                  sending: {
-                    entry: sendParent({ type: 'SUCCESS', data: 42 })
-                  }
+            createMachine({
+              id: 'child',
+              initial: 'sending',
+              states: {
+                sending: {
+                  entry: sendParent({ type: 'SUCCESS', data: 42 })
                 }
-              })
-            ),
+              }
+            }),
           on: {
             SUCCESS: {
               target: 'success',
@@ -471,17 +466,15 @@ describe('invoke', () => {
           states: {
             b: {
               invoke: () =>
-                fromMachine(
-                  createMachine({
-                    id: 'child',
-                    initial: 'sending',
-                    states: {
-                      sending: {
-                        entry: sendParent({ type: 'SUCCESS', data: 42 })
-                      }
+                createMachine({
+                  id: 'child',
+                  initial: 'sending',
+                  states: {
+                    sending: {
+                      entry: sendParent({ type: 'SUCCESS', data: 42 })
                     }
-                  })
-                )
+                  }
+                })
             }
           }
         },
@@ -537,7 +530,7 @@ describe('invoke', () => {
       },
       {
         actors: {
-          child: () => fromMachine(childMachine)
+          child: () => childMachine
         }
       }
     );
@@ -546,17 +539,15 @@ describe('invoke', () => {
       someParentMachine.provide({
         actors: {
           child: () =>
-            fromMachine(
-              createMachine({
-                id: 'child',
-                initial: 'init',
-                states: {
-                  init: {
-                    entry: [sendParent('STOP')]
-                  }
+            createMachine({
+              id: 'child',
+              initial: 'init',
+              states: {
+                init: {
+                  entry: [sendParent('STOP')]
                 }
-              })
-            )
+              }
+            })
         }
       })
     )
@@ -611,7 +602,7 @@ describe('invoke', () => {
         initial: 'one',
         invoke: {
           id: 'foo-child',
-          src: fromMachine(subMachine)
+          src: subMachine
         },
         states: {
           one: {
@@ -644,7 +635,7 @@ describe('invoke', () => {
         },
         invoke: {
           id: 'foo-child',
-          src: (ctx) => fromMachine(ctx.machine)
+          src: (ctx) => ctx.machine
         },
         states: {
           one: {
@@ -672,7 +663,7 @@ describe('invoke', () => {
           one: {
             invoke: {
               id: 'foo-child',
-              src: fromMachine(subMachine)
+              src: subMachine
             },
             entry: send('NEXT', { to: 'foo-child' }),
             on: { NEXT: 'two' }
@@ -711,7 +702,7 @@ describe('invoke', () => {
           one: {
             invoke: {
               id: 'foo-child',
-              src: fromMachine(doneSubMachine),
+              src: doneSubMachine,
               onDone: 'two'
             },
             entry: send('NEXT', { to: 'foo-child' })
@@ -758,7 +749,7 @@ describe('invoke', () => {
               active: {
                 invoke: {
                   id: 'pong',
-                  src: fromMachine(pongMachine),
+                  src: pongMachine,
                   onDone: {
                     target: 'success',
                     guard: (_, e) => e.data.secret === 'pingpong'
@@ -881,7 +872,7 @@ describe('invoke', () => {
           },
           active: {
             // TODO: prevent this from being src: child in types
-            invoke: { src: fromMachine(child) },
+            invoke: { src: child },
             on: {
               STOPPED: 'done'
             }
@@ -1925,7 +1916,7 @@ describe('invoke', () => {
         states: {
           begin: {
             invoke: {
-              src: fromMachine(anotherChildMachine),
+              src: anotherChildMachine,
               id: 'invoked.child',
               onDone: 'completed'
             },
@@ -2431,7 +2422,7 @@ describe('invoke', () => {
             active: {
               invoke: {
                 id: 'pong',
-                src: fromMachine(pongMachine)
+                src: pongMachine
               },
               // Sends 'PING' event to child machine with ID 'pong'
               entry: send('PING', { to: 'pong' }),
@@ -2469,7 +2460,7 @@ describe('invoke', () => {
         states: {
           pending: {
             invoke: {
-              src: fromMachine(childMachine, { sync: true })
+              src: childMachine /* , { sync: true } */
             }
           },
           success: { type: 'final' }
@@ -2802,7 +2793,7 @@ describe('invoke', () => {
           one: {
             invoke: {
               id: 'child',
-              src: fromMachine(child),
+              src: child,
               onError: {
                 target: 'two',
                 guard: (_, event) => event.data === 'oops'
@@ -2844,7 +2835,7 @@ describe('invoke', () => {
           one: {
             invoke: {
               id: 'child',
-              src: fromMachine(child),
+              src: child,
               onError: {
                 target: 'two',
                 guard: (_, event) => {
@@ -2980,7 +2971,7 @@ describe('invoke', () => {
     // ['machine', createMachine({ id: 'someId' })],
     [
       'src containing a machine directly',
-      { src: fromMachine(createMachine({ id: 'someId' })) }
+      { src: createMachine({ id: 'someId' }) }
     ],
     [
       'src containing a callback actor directly',
@@ -3115,7 +3106,7 @@ describe('invoke', () => {
       states: {
         fetch: {
           invoke: {
-            src: fromMachine(childMachine)
+            src: childMachine
           }
         }
       }

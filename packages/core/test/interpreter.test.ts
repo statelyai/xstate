@@ -18,12 +18,7 @@ import { stop } from '../src/actions/stop';
 import { log } from '../src/actions/log';
 import { isObservable } from '../src/utils';
 import { interval, from } from 'rxjs';
-import {
-  fromCallback,
-  fromMachine,
-  fromObservable,
-  fromPromise
-} from '../src/actors';
+import { fromCallback, fromObservable, fromPromise } from '../src/actors';
 import { waitFor } from '../src/waitFor';
 
 const lightMachine = createMachine({
@@ -891,7 +886,7 @@ describe('interpreter', () => {
         foo: {
           invoke: {
             id: 'child',
-            src: fromMachine(childMachine)
+            src: childMachine
           }
         }
       },
@@ -1067,7 +1062,7 @@ describe('interpreter', () => {
           start: {
             invoke: {
               id: 'child',
-              src: fromMachine(childMachine.withContext({ password: 'foo' }))
+              src: childMachine.withContext({ password: 'foo' })
             },
             on: {
               NEXT: {
@@ -1617,7 +1612,7 @@ describe('interpreter', () => {
           active: {
             invoke: {
               id: 'childActor',
-              src: fromMachine(childMachine)
+              src: childMachine
             },
             on: {
               FIRED: 'success'
@@ -1754,8 +1749,7 @@ describe('interpreter', () => {
         initial: 'idle',
         context: {},
         entry: assign({
-          firstNameRef: (_, __, { spawn }) =>
-            spawn(fromMachine(childMachine), 'child')
+          firstNameRef: (_, __, { spawn }) => spawn(childMachine, 'child')
         }),
         states: {
           idle: {}
@@ -1783,8 +1777,7 @@ describe('interpreter', () => {
         initial: 'present',
         context: {},
         entry: assign({
-          machineRef: (_, __, { spawn }) =>
-            spawn(fromMachine(childMachine), 'machineChild'),
+          machineRef: (_, __, { spawn }) => spawn(childMachine, 'machineChild'),
           promiseRef: (_, __, { spawn }) =>
             spawn(
               fromPromise(

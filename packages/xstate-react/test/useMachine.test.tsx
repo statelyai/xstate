@@ -15,7 +15,7 @@ import {
   State,
   StateFrom
 } from 'xstate';
-import { fromCallback, fromPromise, fromMachine } from 'xstate/actors';
+import { fromCallback, fromPromise } from 'xstate/actors';
 import { useActor, useMachine } from '../src';
 import { describeEachReactMode } from './utils';
 
@@ -747,7 +747,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
         active: {
           invoke: {
             id: 'test',
-            src: fromMachine(childMachine.withContext({ value: 42 }))
+            src: childMachine.withContext({ value: 42 })
           }
         }
       }

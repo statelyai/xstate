@@ -8,7 +8,7 @@ import {
   interpret,
   StateFrom
 } from 'xstate';
-import { fromMachine, toActorRef } from 'xstate/actors';
+import { toActorRef } from 'xstate/actors';
 import { shallowEqual, useInterpret, useMachine, useSelector } from '../src';
 import { describeEachReactMode } from './utils';
 
@@ -247,7 +247,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
         }
       },
       context: ({ spawn }) => ({
-        childActor: spawn(fromMachine(childMachine))
+        childActor: spawn(childMachine)
       })
     });
     const selector = (state: StateFrom<typeof childMachine>) =>
@@ -337,7 +337,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
         }
       },
       context: ({ spawn }) => ({
-        childActor: spawn(fromMachine(childMachine))
+        childActor: spawn(childMachine)
       })
     });
 
@@ -381,7 +381,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
         }
       },
       context: ({ spawn }) => ({
-        childActor: spawn(fromMachine(childMachine))
+        childActor: spawn(childMachine)
       })
     });
 
@@ -560,7 +560,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     const machine = createMachine({
       invoke: {
         id: 'child',
-        src: fromMachine(child)
+        src: child
       }
     });
 

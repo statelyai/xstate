@@ -1,8 +1,7 @@
-import { createMachine, interpret, State } from '../src/index';
+import { AnyState, createMachine, interpret, State } from '../src/index';
 import { raise } from '../src/actions/raise';
 import { assign } from '../src/actions/assign';
 import { stateIn } from '../src/guards';
-import { fromMachine } from '../src/actors';
 
 const greetingContext = { hour: 10 };
 const greetingMachine = createMachine<typeof greetingContext>({
@@ -76,7 +75,7 @@ describe('transient states (eventless transitions)', () => {
       State.from('G', {
         data: true,
         status: 'X'
-      }),
+      }) as AnyState,
       'UPDATE_BUTTON_CLICKED'
     );
     expect(nextState.value).toEqual('C');
@@ -87,7 +86,7 @@ describe('transient states (eventless transitions)', () => {
       State.from('G', {
         data: true,
         status: 'other'
-      }),
+      }) as AnyState,
       'UPDATE_BUTTON_CLICKED'
     );
     expect(nextState.value).toEqual('F');
@@ -633,7 +632,7 @@ describe('transient states (eventless transitions)', () => {
       states: {
         active: {
           invoke: {
-            src: fromMachine(timerMachine),
+            src: timerMachine,
             data: {
               duration: (context: any) => context.customDuration
             }

@@ -12,7 +12,6 @@ import { log } from '../src/actions/log';
 import { ActorRef } from '../src';
 import { sendTo, send } from '../src/actions/send';
 import { stop } from '../src/actions/stop';
-import { fromMachine } from '../src/actors';
 
 describe('entry/exit actions', () => {
   const pedestrianStates = {
@@ -732,7 +731,7 @@ describe('entry/exit actions', () => {
         states: {
           active: {
             invoke: {
-              src: fromMachine(childMachine),
+              src: childMachine,
               onDone: 'finished'
             }
           },
@@ -1013,7 +1012,7 @@ describe('entry/exit actions', () => {
       const parent = createMachine({
         id: 'parent',
         invoke: {
-          src: fromMachine(child)
+          src: child
         }
       });
 
@@ -1040,7 +1039,7 @@ describe('entry/exit actions', () => {
       const parent = createMachine({
         id: 'parent',
         context: ({ spawn }) => ({
-          child: spawn(fromMachine(child))
+          child: spawn(child)
         }),
         on: {
           STOP_CHILD: {
@@ -1080,7 +1079,7 @@ describe('entry/exit actions', () => {
       const parent = createMachine({
         id: 'parent',
         context: ({ spawn }) => ({
-          child: spawn(fromMachine(child))
+          child: spawn(child)
         }),
         on: {
           FINISH_CHILD: {
@@ -1118,7 +1117,7 @@ describe('entry/exit actions', () => {
         id: 'child',
         invoke: {
           id: 'myChild',
-          src: fromMachine(grandchild)
+          src: grandchild
         },
         exit: send({ type: 'STOPPED' }, { to: 'myChild' })
       });
@@ -1129,7 +1128,7 @@ describe('entry/exit actions', () => {
         states: {
           a: {
             invoke: {
-              src: fromMachine(child)
+              src: child
             },
             on: {
               NEXT: 'b'
@@ -1164,7 +1163,7 @@ describe('entry/exit actions', () => {
         initial: 'a',
         invoke: {
           id: 'myChild',
-          src: fromMachine(grandchild)
+          src: grandchild
         },
         states: {
           a: {
@@ -1183,7 +1182,7 @@ describe('entry/exit actions', () => {
         id: 'parent',
         invoke: {
           id: 'myChild',
-          src: fromMachine(child)
+          src: child
         },
         on: {
           NEXT: {
@@ -1210,7 +1209,7 @@ describe('entry/exit actions', () => {
         id: 'parent',
         context: {},
         exit: assign({
-          actorRef: (_ctx, _ev, { spawn }) => spawn(fromMachine(grandchild))
+          actorRef: (_ctx, _ev, { spawn }) => spawn(grandchild)
         })
       });
 
@@ -1793,7 +1792,7 @@ describe('forwardTo()', () => {
       initial: 'first',
       states: {
         first: {
-          invoke: { src: fromMachine(child), id: 'myChild' },
+          invoke: { src: child, id: 'myChild' },
           on: {
             EVENT: {
               actions: forwardTo('myChild')
@@ -1842,7 +1841,7 @@ describe('forwardTo()', () => {
       states: {
         first: {
           entry: assign({
-            child: (_, __, { spawn }) => spawn(fromMachine(child), 'x')
+            child: (_, __, { spawn }) => spawn(child, 'x')
           }),
           on: {
             EVENT: {
@@ -2283,7 +2282,7 @@ describe('sendTo', () => {
     const parentMachine = createMachine({
       context: ({ spawn }) =>
         ({
-          child: spawn(fromMachine(childMachine))
+          child: spawn(childMachine)
         } as { child: ActorRefFrom<typeof childMachine> }),
       entry: sendTo((ctx) => ctx.child, { type: 'EVENT' })
     });
@@ -2308,7 +2307,7 @@ describe('sendTo', () => {
     const parentMachine = createMachine({
       context: ({ spawn }) => {
         return {
-          child: spawn(fromMachine(childMachine), 'child'),
+          child: spawn(childMachine, 'child'),
           count: 42
         };
       },
@@ -2337,7 +2336,7 @@ describe('sendTo', () => {
       child: ActorRefFrom<typeof childMachine>;
     }>({
       context: ({ spawn }) => ({
-        child: spawn(fromMachine(childMachine))
+        child: spawn(childMachine)
       }),
       entry: sendTo((ctx) => ctx.child, {
         // @ts-expect-error

@@ -9,7 +9,7 @@ import {
   interpret,
   sendParent
 } from 'xstate';
-import { fromMachine, toActorRef } from 'xstate/actors';
+import { toActorRef } from 'xstate/actors';
 import { useMachine } from '../src';
 import { useActor } from '../src/useActor';
 import { describeEachReactMode } from './utils';
@@ -27,7 +27,7 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
       initial: 'active',
       invoke: {
         id: 'child',
-        src: fromMachine(childMachine)
+        src: childMachine
       },
       states: {
         active: {}
@@ -79,7 +79,7 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
         initial: 'active',
         invoke: {
           id: 'child',
-          src: fromMachine(childMachine)
+          src: childMachine
         },
         states: {
           active: {
@@ -142,7 +142,7 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
       states: {
         active: {
           entry: assign({
-            actorRef: (_, __, { spawn }) => spawn(fromMachine(childMachine))
+            actorRef: (_, __, { spawn }) => spawn(childMachine)
           })
         }
       }
@@ -196,8 +196,7 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
         states: {
           active: {
             entry: assign({
-              actorRef: (_, __, { spawn }) =>
-                spawn(fromMachine(childMachine), 'child')
+              actorRef: (_, __, { spawn }) => spawn(childMachine, 'child')
             }),
             on: { FINISH: 'success' }
           },
@@ -449,7 +448,7 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
 
     const machine = createMachine<{ ref: ActorRef<any> }>({
       context: ({ spawn }) => ({
-        ref: spawn(fromMachine(childMachine))
+        ref: spawn(childMachine)
       }),
       initial: 'waiting',
       states: {

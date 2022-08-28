@@ -5,7 +5,6 @@ import { choose } from './actions/choose';
 import { log } from './actions/log';
 import { raise } from './actions/raise';
 import { send } from './actions/send';
-import { fromMachine } from './actors';
 import { NULL_EVENT } from './constants';
 import { not, stateIn } from './guards';
 import { AnyStateMachine, BaseActionObject, createMachine } from './index';
@@ -444,7 +443,7 @@ function toConfig(
 
       return {
         ...(element.attributes!.id && { id: element.attributes!.id as string }),
-        src: fromMachine(scxmlToMachine(content, options)),
+        src: scxmlToMachine(content, options),
         autoForward: element.attributes!.autoforward === 'true'
       };
     });

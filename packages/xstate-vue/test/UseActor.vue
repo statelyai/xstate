@@ -10,7 +10,6 @@
 <script lang="ts">
 import { useMachine, useActor } from '../src';
 import { createMachine, sendParent } from 'xstate';
-import { fromMachine } from 'xstate/actors';
 import { defineComponent } from 'vue';
 
 const childMachine = createMachine({
@@ -28,7 +27,7 @@ const machine = createMachine({
   initial: 'active',
   invoke: {
     id: 'child',
-    src: fromMachine(childMachine)
+    src: (childMachine)
   },
   states: {
     active: {

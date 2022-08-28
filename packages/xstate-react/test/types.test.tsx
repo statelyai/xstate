@@ -1,7 +1,6 @@
 import { render } from '@testing-library/react';
 import * as React from 'react';
 import { ActorRefFrom, assign, createMachine } from 'xstate';
-import { fromMachine } from 'xstate/actors';
 import { useActor, useMachine } from '../src';
 
 describe('useMachine', () => {
@@ -74,7 +73,7 @@ describe('useMachine', () => {
       {
         actions: {
           spawnActor: assign({
-            actor: (_, __, { spawn }) => spawn(fromMachine(child))
+            actor: (_, __, { spawn }) => spawn(child)
           })
         }
       }

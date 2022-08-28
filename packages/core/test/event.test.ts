@@ -1,7 +1,7 @@
 import { createMachine, sendParent, interpret, assign } from '../src';
 import { respond } from '../src/actions';
 import { send } from '../src/actions/send';
-import { fromCallback, fromMachine } from '../src/actors';
+import { fromCallback } from '../src/actors';
 
 describe('SCXML events', () => {
   it('should have the origin (id) from the sending machine service', (done) => {
@@ -20,7 +20,7 @@ describe('SCXML events', () => {
         active: {
           invoke: {
             id: 'child',
-            src: fromMachine(childMachine)
+            src: childMachine
           },
           on: {
             EVENT: {
@@ -106,7 +106,7 @@ describe('SCXML events', () => {
         authorizing: {
           invoke: {
             id: 'auth-server',
-            src: fromMachine(authServerMachine)
+            src: authServerMachine
           },
           entry: send('CODE', {
             to: 'auth-server'

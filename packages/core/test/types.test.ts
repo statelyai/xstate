@@ -1,6 +1,5 @@
 import { from } from 'rxjs';
 import { raise } from '../src/actions/raise';
-import { fromMachine } from '../src/actors';
 import {
   ActorRefFrom,
   assign,
@@ -351,9 +350,10 @@ describe('events', () => {
       }
     >({});
 
-    function acceptMachine<TContext, TEvent extends { type: string }>(
-      _machine: StateMachine<TContext, any, TEvent>
-    ) {}
+    function acceptMachine<
+      TContext extends {},
+      TEvent extends { type: string }
+    >(_machine: StateMachine<TContext, any, TEvent>) {}
 
     acceptMachine(toggleMachine);
   });
@@ -479,7 +479,7 @@ describe('spawn', () => {
     }) {}
 
     createParent({
-      spawnChild: (spawn: Spawner) => spawn(fromMachine(createChild()))
+      spawnChild: (spawn: Spawner) => spawn(createChild())
     });
   });
 });

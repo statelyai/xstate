@@ -1,5 +1,5 @@
 import { assign, interpret, MachineContext, StateMachine } from '../src';
-import { fromCallback, fromMachine, fromPromise } from '../src/actors';
+import { fromCallback, fromPromise } from '../src/actors';
 import { createMachine } from '../src/Machine';
 import { TypegenMeta } from '../src/typegenTypes';
 
@@ -833,7 +833,7 @@ describe('typegen types', () => {
   //     {
   //       actors: {
   //         // @ts-expect-error
-  //         myActor: () => fromMachine(createMachine<{ foo: number }>({}))
+  //         myActor: () => (createMachine<{ foo: number }>({}))
   //       }
   //     }
   //   );
@@ -880,7 +880,7 @@ describe('typegen types', () => {
       },
       {
         actors: {
-          fooActor: () => fromMachine(createMachine({}))
+          fooActor: () => createMachine({})
         }
       }
     );

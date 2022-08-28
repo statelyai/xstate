@@ -2,7 +2,6 @@ import type {
   InvokeCallback,
   Subscribable,
   Subscription,
-  InterpreterOptions,
   Lazy,
   Sender,
   Receiver,
@@ -10,7 +9,6 @@ import type {
   ActorContext,
   EventObject,
   ActorRef,
-  AnyStateMachine,
   BaseActorRef
 } from './types';
 import { toSCXMLEvent, isPromiseLike, isSCXMLEvent, isFunction } from './utils';
@@ -397,13 +395,6 @@ export function fromEventObservable<T extends EventObject>(
   };
 
   return behavior;
-}
-
-export function fromMachine<TMachine extends AnyStateMachine>(
-  machine: TMachine,
-  _options: Partial<InterpreterOptions> = {}
-): TMachine {
-  return machine;
 }
 
 export function isActorRef(item: any): item is ActorRef<any> {
