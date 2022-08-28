@@ -351,8 +351,7 @@ export class StateMachine<
     const nextState = resolveMicroTransition([], preInitialState, actorCtx);
     nextState.actions.unshift(...preInitialState.actions);
 
-    // TODO: remove use of null; use xstate.init instead
-    const macroState = macrostep(nextState, null as any, actorCtx) as StateFrom<
+    const macroState = macrostep(nextState, initEvent, actorCtx) as StateFrom<
       typeof this
     >;
     macroState._sessionid = actorCtx?.sessionId;
