@@ -1,7 +1,6 @@
 import { initEvent } from './actions';
 import { IS_PRODUCTION } from './environment';
 import { memo } from './memo';
-import type { StateMachine } from './StateMachine';
 import type { StateNode } from './StateNode';
 import { isInFinalState, nextEvents } from './stateUtils';
 import { TypegenDisabled, TypegenEnabled } from './typegenTypes';
@@ -285,7 +284,7 @@ export class State<
       );
     }
 
-    const transitionData = this.machine?.getTransitionData(
+    const transitionData = this.machine.getTransitionData(
       this,
       toSCXMLEvent(event)
     );

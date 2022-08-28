@@ -1853,7 +1853,7 @@ export function macrostep<TMachine extends AnyStateMachine>(
 
         maybeNextState = machineMicrostep(
           maybeNextState,
-          internalEvent as any,
+          internalEvent,
           actorCtx
         );
 
