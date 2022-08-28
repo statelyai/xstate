@@ -349,12 +349,7 @@ export class StateMachine<
     actorCtx?: ActorContext<TEvent, State<TContext, TEvent>>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const preInitialState = this.getPreInitialState(actorCtx);
-    const nextState = resolveMicroTransition(
-      this,
-      [],
-      preInitialState,
-      actorCtx
-    );
+    const nextState = resolveMicroTransition([], preInitialState, actorCtx);
     nextState.actions.unshift(...preInitialState.actions);
 
     // TODO: remove use of null; use xstate.init instead

@@ -1333,7 +1333,6 @@ export function microstep<
   currentState: State<TContext, TEvent>,
   context: TContext,
   mutConfiguration: Set<StateNode<TContext, TEvent>>,
-  machine: StateMachine<TContext, TEvent>,
   _event: SCXML.Event<TEvent>,
   actorCtx: ActorContext<any, any> | undefined
 ): {
@@ -1343,6 +1342,7 @@ export function microstep<
   internalQueue: Array<SCXML.Event<TEvent>>;
   context: TContext;
 } {
+  const { machine } = currentState;
   const actions: BaseActionObject[] = [];
 
   const filteredTransitions = removeConflictingTransitions(
@@ -1402,7 +1402,6 @@ export function microstep<
       context: resolvedContext
     } = resolveActionsAndContext(
       actions,
-      machine,
       _event,
       currentState,
       context,
@@ -1559,12 +1558,12 @@ export function resolveMicroTransition<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  machine: StateMachine<TContext, TEvent, any, any, any>,
   transitions: Transitions<TContext, TEvent>,
   currentState: State<TContext, TEvent, any>,
   actorCtx: ActorContext<any, any> | undefined,
   _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>
 ): State<TContext, TEvent, any> {
+  const { machine } = currentState;
   // Transition will "apply" if:
   // - the state node is the initial state (there is no current state)
   // - OR there are transitions
@@ -1593,7 +1592,6 @@ export function resolveMicroTransition<
     currentState,
     currentState.context,
     new Set(prevConfig),
-    machine,
     _event,
     actorCtx
   );
@@ -1676,7 +1674,6 @@ export function resolveActionsAndContext<
   TEvent extends EventObject
 >(
   actions: BaseActionObject[],
-  machine: StateMachine<TContext, TEvent, any, any, any>,
   _event: SCXML.Event<TEvent>,
   currentState: State<TContext, TEvent, any>,
   context: TContext,
@@ -1686,6 +1683,7 @@ export function resolveActionsAndContext<
   raised: Array<RaiseActionObject<TEvent>>;
   context: TContext;
 } {
+  const { machine } = currentState;
   const resolvedActions: BaseActionObject[] = [];
   const raiseActions: Array<RaiseActionObject<TEvent>> = [];
   const preservedContexts: [TContext, ...TContext[]] = [context];
@@ -1868,7 +1866,6 @@ export function macrostep<TMachine extends AnyStateMachine>(
     } else {
       const currentActions = maybeNextState.actions;
       maybeNextState = resolveMicroTransition(
-        machine,
         eventlessTransitions,
         maybeNextState,
         actorCtx,
@@ -1921,7 +1918,6 @@ export function macrostep<TMachine extends AnyStateMachine>(
 
     const { actions, context } = resolveActionsAndContext(
       stoppedState.actions,
-      machine,
       stoppedState._event,
       stoppedState,
       stoppedState.context,
@@ -2002,5 +1998,5 @@ export function machineMicrostep(
 
   const transitions = machine.getTransitionData(state, _event);
 
-  return resolveMicroTransition(machine, transitions, state, actorCtx, _event);
+  return resolveMicroTransition(transitions, state, actorCtx, _event);
 }
