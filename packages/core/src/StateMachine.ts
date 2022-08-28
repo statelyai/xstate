@@ -269,7 +269,7 @@ export class StateMachine<
       state instanceof State ? state : this.resolveStateValue(state);
     const scxmlEvent = toSCXMLEvent(event);
 
-    const nextState = macrostep(currentState, scxmlEvent, this, actorCtx);
+    const nextState = macrostep(currentState, scxmlEvent, actorCtx);
     nextState._sessionid = actorCtx?.sessionId ?? currentState._sessionid;
 
     return nextState;
@@ -358,12 +358,9 @@ export class StateMachine<
     nextState.actions.unshift(...preInitialState.actions);
 
     // TODO: remove use of null; use xstate.init instead
-    const macroState = macrostep(
-      nextState,
-      null as any,
-      this,
-      actorCtx
-    ) as StateFrom<typeof this>;
+    const macroState = macrostep(nextState, null as any, actorCtx) as StateFrom<
+      typeof this
+    >;
     macroState.changed = undefined;
     macroState._sessionid = actorCtx?.sessionId;
     return macroState;

@@ -51,9 +51,13 @@ describe('transient states (eventless transitions)', () => {
 
   it('should choose the first candidate target that matches the guard (D)', () => {
     const nextState = updateMachine.transition(
-      State.from<any>('G', {
-        data: false
-      }),
+      State.from<any>(
+        'G',
+        {
+          data: false
+        },
+        updateMachine
+      ),
       'UPDATE_BUTTON_CLICKED'
     );
     expect(nextState.value).toEqual('D');
@@ -61,10 +65,14 @@ describe('transient states (eventless transitions)', () => {
 
   it('should choose the first candidate target that matches the guard (B)', () => {
     const nextState = updateMachine.transition(
-      State.from<any>('G', {
-        data: true,
-        status: 'Y'
-      }),
+      State.from<any>(
+        'G',
+        {
+          data: true,
+          status: 'Y'
+        },
+        updateMachine
+      ),
       'UPDATE_BUTTON_CLICKED'
     );
     expect(nextState.value).toEqual('B');
@@ -72,10 +80,14 @@ describe('transient states (eventless transitions)', () => {
 
   it('should choose the first candidate target that matches the guard (C)', () => {
     const nextState = updateMachine.transition(
-      State.from('G', {
-        data: true,
-        status: 'X'
-      }) as AnyState,
+      State.from(
+        'G',
+        {
+          data: true,
+          status: 'X'
+        },
+        updateMachine
+      ) as AnyState,
       'UPDATE_BUTTON_CLICKED'
     );
     expect(nextState.value).toEqual('C');
@@ -83,10 +95,14 @@ describe('transient states (eventless transitions)', () => {
 
   it('should choose the final candidate without a guard if none others match', () => {
     const nextState = updateMachine.transition(
-      State.from('G', {
-        data: true,
-        status: 'other'
-      }) as AnyState,
+      State.from(
+        'G',
+        {
+          data: true,
+          status: 'other'
+        },
+        updateMachine
+      ) as AnyState,
       'UPDATE_BUTTON_CLICKED'
     );
     expect(nextState.value).toEqual('F');

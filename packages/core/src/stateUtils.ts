@@ -1823,9 +1823,9 @@ type StateFromMachine<
 export function macrostep<TMachine extends AnyStateMachine>(
   state: StateFromMachine<TMachine>,
   scxmlEvent: SCXML.Event<TMachine['__TEvent']>,
-  machine: TMachine,
   actorCtx: ActorContext<any, any> | undefined
 ): typeof state {
+  const { machine } = state;
   // Handle stop event
   if (scxmlEvent?.name === 'xstate.stop') {
     return stopStep(state, scxmlEvent);
