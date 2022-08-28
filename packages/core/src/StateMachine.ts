@@ -289,7 +289,7 @@ export class StateMachine<
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const scxmlEvent = toSCXMLEvent(event);
 
-    return machineMicrostep(state, scxmlEvent, actorCtx, this);
+    return machineMicrostep(state, scxmlEvent, actorCtx);
   }
 
   public getTransitionData(

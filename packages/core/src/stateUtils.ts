@@ -1517,10 +1517,7 @@ export function microstep<
 function selectEventlessTransitions<
   TContext extends MachineContext,
   TEvent extends EventObject
->(
-  state: State<TContext, TEvent>,
-  machine: StateMachine<TContext, TEvent>
-): Transitions<TContext, TEvent> {
+>(state: State<TContext, TEvent>): Transitions<TContext, TEvent> {
   const enabledTransitions: Set<
     TransitionDefinition<TContext, TEvent>
   > = new Set();
@@ -1541,8 +1538,7 @@ function selectEventlessTransitions<
             t.guard,
             state.context,
             state._event,
-            state,
-            machine
+            state
           )
         ) {
           enabledTransitions.add(t);
@@ -1576,7 +1572,7 @@ export function resolveMicroTransition<
   const willTransition =
     currentState._initial ||
     transitions.length > 0 ||
-    selectEventlessTransitions(currentState, machine).length > 0;
+    selectEventlessTransitions(currentState).length > 0;
 
   const prevConfig = getConfiguration<TContext, TEvent>(
     !currentState._initial ? currentState.configuration : [machine.root]
@@ -1834,18 +1830,13 @@ export function macrostep<TMachine extends AnyStateMachine>(
   // Assume the state is at rest (no raised events)
   // Determine the next state based on the next microstep
   const nextState =
-    scxmlEvent === null
-      ? state
-      : machineMicrostep(state, scxmlEvent, actorCtx, machine);
+    scxmlEvent === null ? state : machineMicrostep(state, scxmlEvent, actorCtx);
 
   const { _internalQueue } = nextState;
   let maybeNextState = nextState;
 
   while (!maybeNextState.done) {
-    const eventlessTransitions = selectEventlessTransitions(
-      maybeNextState,
-      machine
-    );
+    const eventlessTransitions = selectEventlessTransitions(maybeNextState);
 
     if (eventlessTransitions.length === 0) {
       // TODO: this is a bit of a hack, we need to review this
@@ -1865,8 +1856,7 @@ export function macrostep<TMachine extends AnyStateMachine>(
         maybeNextState = machineMicrostep(
           maybeNextState,
           internalEvent as any,
-          actorCtx,
-          machine
+          actorCtx
         );
 
         _internalQueue.push(...maybeNextState._internalQueue);
@@ -1992,9 +1982,9 @@ export function getTagsFromConfiguration(
 export function machineMicrostep(
   state: AnyState,
   _event: SCXML.Event<any>,
-  actorCtx: ActorContext<any, any> | undefined,
-  machine: AnyStateMachine
+  actorCtx: ActorContext<any, any> | undefined
 ) {
+  const { machine } = state;
   if (!IS_PRODUCTION && _event.name === WILDCARD) {
     throw new Error(`An event cannot have the wildcard type ('${WILDCARD}')`);
   }

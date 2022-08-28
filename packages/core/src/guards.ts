@@ -105,9 +105,9 @@ export function evaluateGuard<
   guard: GuardDefinition<TContext, TEvent>,
   context: TContext,
   _event: SCXML.Event<TEvent>,
-  state: State<TContext, TEvent>,
-  machine: StateMachine<TContext, TEvent>
+  state: State<TContext, TEvent>
 ): boolean {
+  const { machine } = state;
   const guardMeta: GuardMeta<TContext, TEvent> = {
     state,
     guard,
