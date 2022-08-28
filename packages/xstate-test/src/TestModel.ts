@@ -412,12 +412,16 @@ export class TestModel<TState, TEvent extends EventObject> {
   }
 
   public getShortestPathsFrom(
-    paths: Array<TestPath<TState, TEvent>>
+    paths: Array<TestPath<TState, TEvent>>,
+    options?: Partial<TraversalOptions<TState, any>>
   ): Array<TestPath<TState, TEvent>> {
     const resultPaths: any[] = [];
 
     for (const path of paths) {
-      const shortestPaths = this.getShortestPaths({ initialState: path.state });
+      const shortestPaths = this.getShortestPaths({
+        ...options,
+        initialState: path.state
+      });
       for (const shortestPath of shortestPaths) {
         resultPaths.push(joinPaths(path, shortestPath));
       }
