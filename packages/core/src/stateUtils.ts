@@ -10,7 +10,8 @@ import {
   normalizeTarget,
   toStateValue,
   mapContext,
-  toSCXMLEvent
+  toSCXMLEvent,
+  isBuiltInEvent
 } from './utils';
 import {
   BaseActionObject,
@@ -1828,7 +1829,7 @@ export function macrostep<TMachine extends AnyStateMachine>(
   const nextState =
     scxmlEvent === null
       ? state
-      : machine.microstep(state, scxmlEvent, actorCtx);
+      : machineMicrostep(state, scxmlEvent, actorCtx, machine);
 
   const { _internalQueue } = nextState;
   let maybeNextState = nextState;
@@ -1854,10 +1855,11 @@ export function macrostep<TMachine extends AnyStateMachine>(
         const internalEvent = _internalQueue.shift()!;
         const currentActions = maybeNextState.actions;
 
-        maybeNextState = machine.microstep(
+        maybeNextState = machineMicrostep(
           maybeNextState,
           internalEvent as any,
-          actorCtx
+          actorCtx,
+          machine
         );
 
         _internalQueue.push(...maybeNextState._internalQueue);
@@ -2038,4 +2040,38 @@ export function getTagsFromConfiguration(
   configuration: Array<StateNode<any, any>>
 ) {
   return new Set(flatten(configuration.map((sn) => sn.tags)));
+}
+
+export function machineMicrostep(
+  state: AnyState,
+  _event: SCXML.Event<any>,
+  actorCtx: ActorContext<any, any> | undefined,
+  machine: AnyStateMachine
+) {
+  const resolvedState = toState(state, machine);
+
+  if (!IS_PRODUCTION && _event.name === WILDCARD) {
+    throw new Error(`An event cannot have the wildcard type ('${WILDCARD}')`);
+  }
+
+  if (machine.strict) {
+    if (
+      !machine.root.events.includes(_event.name) &&
+      !isBuiltInEvent(_event.name)
+    ) {
+      throw new Error(
+        `Machine '${machine.key}' does not accept event '${_event.name}'`
+      );
+    }
+  }
+
+  const transitions = machine.getTransitionData(resolvedState, _event);
+
+  return resolveMicroTransition(
+    machine,
+    transitions,
+    resolvedState,
+    actorCtx,
+    _event
+  );
 }

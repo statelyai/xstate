@@ -1,5 +1,6 @@
 import {
   ActorContext,
+  AnyState,
   AnyStateMachine,
   InvokeActionObject,
   Spawner,
@@ -21,7 +22,8 @@ import {
   resolveStateValue,
   toState,
   transitionNode,
-  setChildren
+  setChildren,
+  machineMicrostep
 } from './stateUtils';
 import type {
   AreAllImplementationsAssumedToBeProvided,
@@ -277,32 +279,9 @@ export class StateMachine<
     actorCtx: ActorContext<any, any> | undefined
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const resolvedState = toState(state, this);
-    const _event = toSCXMLEvent(event);
+    const scxmlEvent = toSCXMLEvent(event);
 
-    if (!IS_PRODUCTION && _event.name === WILDCARD) {
-      throw new Error(`An event cannot have the wildcard type ('${WILDCARD}')`);
-    }
-
-    if (this.strict) {
-      if (
-        !this.root.events.includes(_event.name) &&
-        !isBuiltInEvent(_event.name)
-      ) {
-        throw new Error(
-          `Machine '${this.key}' does not accept event '${_event.name}'`
-        );
-      }
-    }
-
-    const transitions = this.getTransitionData(resolvedState, _event);
-
-    return resolveMicroTransition(
-      this,
-      transitions,
-      resolvedState,
-      actorCtx,
-      _event
-    );
+    return machineMicrostep(resolvedState, scxmlEvent, actorCtx, this);
   }
 
   public getTransitionData(
