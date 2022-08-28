@@ -20,7 +20,6 @@ import {
   resolveMicroTransition,
   resolveStateValue,
   transitionNode,
-  setChildren,
   machineMicrostep
 } from './stateUtils';
 import type {
@@ -328,8 +327,6 @@ export class StateMachine<
       }
     }
 
-    setChildren(preInitial.children, actions);
-
     return preInitial;
   }
 
@@ -354,7 +351,7 @@ export class StateMachine<
     const macroState = macrostep(nextState, initEvent, actorCtx) as StateFrom<
       typeof this
     >;
-    macroState._sessionid = actorCtx?.sessionId;
+
     return macroState;
   }
 

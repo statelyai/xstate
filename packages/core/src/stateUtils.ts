@@ -1543,17 +1543,17 @@ function selectEventlessTransitions<
       if (!s.always) {
         continue;
       }
-      for (const t of s.always) {
+      for (const transition of s.always) {
         if (
-          t.guard === undefined ||
+          transition.guard === undefined ||
           evaluateGuard<TContext, TEvent>(
-            t.guard,
+            transition.guard,
             state.context,
             state._event,
             state
           )
         ) {
-          enabledTransitions.add(t);
+          enabledTransitions.add(transition);
           break loop;
         }
       }
@@ -1586,7 +1586,7 @@ export function resolveMicroTransition<
     transitions.length > 0 ||
     selectEventlessTransitions(currentState).length > 0;
 
-  const prevConfig = getConfiguration<TContext, TEvent>(
+  const prevConfiguration = getConfiguration<TContext, TEvent>(
     !currentState._initial ? currentState.configuration : [machine.root]
   );
 
@@ -1605,7 +1605,7 @@ export function resolveMicroTransition<
     currentState._initial
       ? [
           {
-            target: [...prevConfig].filter(isAtomicStateNode),
+            target: [...prevConfiguration].filter(isAtomicStateNode),
             source: machine.root,
             actions: [],
             eventType: null as any,
@@ -1614,7 +1614,7 @@ export function resolveMicroTransition<
         ]
       : transitions,
     currentState,
-    prevConfig,
+    prevConfiguration,
     _event,
     actorCtx
   );
@@ -1622,7 +1622,7 @@ export function resolveMicroTransition<
   const { context, actions: nonRaisedActions } = microstate;
 
   const children = { ...currentState.children };
-  setChildren(children, nonRaisedActions);
+  setChildren();
 
   const nextState = microstate.clone({
     value: {}, // TODO: make optional
@@ -1636,31 +1636,27 @@ export function resolveMicroTransition<
       _event.name === actionTypes.update ||
       nextState.actions.length > 0 ||
       context !== currentState.context;
-  nextState._internalQueue = microstate._internalQueue;
 
   return nextState;
-}
 
-export function setChildren<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(children: State<TContext, TEvent>['children'], actions: BaseActionObject[]) {
-  actions.forEach((action) => {
-    if (
-      action.type === actionTypes.invoke &&
-      (action as InvokeActionObject).params.ref
-    ) {
-      const ref = (action as InvokeActionObject).params.ref;
-      if (ref) {
-        children[ref.name] = ref;
+  function setChildren() {
+    nonRaisedActions.forEach((action) => {
+      if (
+        action.type === actionTypes.invoke &&
+        (action as InvokeActionObject).params.ref
+      ) {
+        const ref = (action as InvokeActionObject).params.ref;
+        if (ref) {
+          children[ref.name] = ref;
+        }
+      } else if (action.type === actionTypes.stop) {
+        const ref = (action as StopActionObject).params.actor;
+        if (ref) {
+          delete children[ref.name];
+        }
       }
-    } else if (action.type === actionTypes.stop) {
-      const ref = (action as StopActionObject).params.actor;
-      if (ref) {
-        delete children[ref.name];
-      }
-    }
-  });
+    });
+  }
 }
 
 export function resolveActionsAndContext<
@@ -1782,12 +1778,10 @@ export function resolveActionsAndContext<
     if (actorCtx?.exec) {
       execAction(
         resolvedAction,
-        {
-          ...currentState,
+        currentState.clone({
           context: preservedContexts[preservedContexts.length - 1],
-          _event,
-          event: _event.data
-        } as any,
+          _event
+        }),
         actorCtx
       );
     }
@@ -1940,17 +1934,11 @@ export function stateValuesEqual(
   );
 }
 
-export function getTagsFromConfiguration(
-  configuration: Array<StateNode<any, any>>
-) {
-  return new Set(flatten(configuration.map((sn) => sn.tags)));
-}
-
 export function machineMicrostep(
   state: AnyState,
   _event: SCXML.Event<any>,
   actorCtx: ActorContext<any, any> | undefined
-) {
+): typeof state {
   const { machine } = state;
   if (!IS_PRODUCTION && _event.name === WILDCARD) {
     throw new Error(`An event cannot have the wildcard type ('${WILDCARD}')`);
