@@ -1,5 +1,58 @@
 # xstate
 
+## 4.33.4
+
+### Patch Changes
+
+- [#3549](https://github.com/statelyai/xstate/pull/3549) [`768c4e938`](https://github.com/statelyai/xstate/commit/768c4e938d1f33b570d56f6c7f1ef454714c4b34) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with not being able to send events to initially started child actors when using `predictableActionArguments`.
+
+## 4.33.3
+
+### Patch Changes
+
+- [#3540](https://github.com/statelyai/xstate/pull/3540) [`121fad172`](https://github.com/statelyai/xstate/commit/121fad172560f26c9374582c65a48bbe540f5c6e) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue that caused `invoke`d actors to be created before resolving `assign` actions from `entry` of the same state when using `predictableActionArguments` flag.
+
+* [#3541](https://github.com/statelyai/xstate/pull/3541) [`6c081ab87`](https://github.com/statelyai/xstate/commit/6c081ab87c4d344012ff72bae295de8f3ccdcca1) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with not being able to read the updated snapshot of a child when receiving and processing events from it and when using `predictableActionArguments` flag.
+
+## 4.33.2
+
+### Patch Changes
+
+- [#3523](https://github.com/statelyai/xstate/pull/3523) [`129bcf927`](https://github.com/statelyai/xstate/commit/129bcf927e065d8d8a1a3425fa13b62c930a4727) Thanks [@Andarist](https://github.com/Andarist)! - Fixed a regression that caused child actors not being correctly stopped when their parent reached a final state.
+
+## 4.33.1
+
+### Patch Changes
+
+- [#3514](https://github.com/statelyai/xstate/pull/3514) [`b451f5789`](https://github.com/statelyai/xstate/commit/b451f5789fdfcfe05b9212e6754ae07ed0ee7cf3) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with `.nextState(event)` calls accidentally executing actions in machines with `predictableActionArguments`.
+
+## 4.33.0
+
+### Minor Changes
+
+- [#3289](https://github.com/statelyai/xstate/pull/3289) [`c0a147e25`](https://github.com/statelyai/xstate/commit/c0a147e256e9d32d2bbe4bc098839c9dee25213a) Thanks [@Andarist](https://github.com/Andarist)! - A new [`predictableActionArguments`](https://xstate.js.org/docs/guides/actions.html) feature flag has been added that allows you to opt into some fixed behaviors that will be the default in v5. With this flag:
+
+  - XState will always call an action with the event directly responsible for the related transition,
+  - you also automatically opt-into [`preserveActionOrder`](https://xstate.js.org/docs/guides/context.html#action-order).
+
+  Please be aware that you might not able to use `state` from the `meta` argument when using this flag.
+
+* [#3126](https://github.com/statelyai/xstate/pull/3126) [`37b751cb3`](https://github.com/statelyai/xstate/commit/37b751cb3c80073d6f559f0eba2ae3619a643e63) Thanks [@Andarist](https://github.com/Andarist)! - All `exit` actions in the machine will now be correctly resolved and executed when a machine gets stopped or reaches its top-level final state. Previously, the actions were not correctly resolved and that was leading to runtime errors.
+
+  To implement this fix in a reliable way, a new internal event has been introduced: `{ type: 'xstate.stop' }` and when the machine stops its execution, all exit handlers of the current state (i.e. the active state nodes) will be called with that event. You should always assume that an exit handler might be called with that event.
+
+### Patch Changes
+
+- [#3178](https://github.com/statelyai/xstate/pull/3178) [`6badd2ba3`](https://github.com/statelyai/xstate/commit/6badd2ba3642391bee640aa4914003ad57f2e703) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added a dev-only error when `forwardTo` accidentally ends up trying to forward an event to an undefined actor. Such a situation indicates a logical error and risks an infinite loop.
+
+* [#3453](https://github.com/statelyai/xstate/pull/3453) [`368ed9b1c`](https://github.com/statelyai/xstate/commit/368ed9b1cd0ea2df8cbf6662b352455afae7abfa) Thanks [@pixtron](https://github.com/pixtron)! - Call the `complete` callback of the subscribed `observer` when an interpreter gets stopped.
+
+- [#3422](https://github.com/statelyai/xstate/pull/3422) [`e35493f59`](https://github.com/statelyai/xstate/commit/e35493f59d277ca57f0982417d5ba3bca0a352ed) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with parallel regions not always being correctly reentered on external transitions of the containing parallel state targeting another region within that parallel state.
+
+* [#3447](https://github.com/statelyai/xstate/pull/3447) [`e93754d7a`](https://github.com/statelyai/xstate/commit/e93754d7a65d8c143bcb0070e8412ca4ebc9e523) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The types for `state.nextEvents` are now properly typed to the actual event types of the machine. Original PR: #1115 (Thanks @alexreardon!)
+
+- [#3424](https://github.com/statelyai/xstate/pull/3424) [`88d540eb8`](https://github.com/statelyai/xstate/commit/88d540eb8e0b659c9621cc5c365bd626a000c1d7) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with targeted ancestors not being correctly reentered during external transitions.
+
 ## 4.32.1
 
 ### Patch Changes

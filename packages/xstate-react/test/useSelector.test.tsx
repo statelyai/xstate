@@ -2,6 +2,7 @@ import { act, fireEvent, screen } from '@testing-library/react';
 import * as React from 'react';
 import {
   ActorRefFrom,
+  AnyState,
   assign,
   createMachine,
   interpret,
@@ -11,6 +12,12 @@ import {
 } from 'xstate';
 import { shallowEqual, useInterpret, useMachine, useSelector } from '../src';
 import { describeEachReactMode } from './utils';
+
+const originalConsoleError = console.error;
+
+afterEach(() => {
+  console.error = originalConsoleError;
+});
 
 describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   it('only rerenders for selected values', () => {
@@ -563,5 +570,33 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     });
 
     expect(renders).toBe(suiteKey === 'strict' ? 2 : 1);
+  });
+
+  it('should compute a stable snapshot internally when selecting from uninitialized service', () => {
+    const child = createMachine({});
+    const machine = createMachine({
+      invoke: {
+        id: 'child',
+        src: child
+      }
+    });
+
+    const snapshots: AnyState[] = [];
+
+    function App() {
+      const service = useInterpret(machine);
+      useSelector(service, (state) => {
+        snapshots.push(state);
+        return state.children.child;
+      });
+      return null;
+    }
+
+    console.error = jest.fn();
+    render(<App />);
+
+    const [snapshot1] = snapshots;
+    expect(snapshots.every((s) => s === snapshot1));
+    expect(console.error).toHaveBeenCalledTimes(0);
   });
 });
