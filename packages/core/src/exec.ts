@@ -109,7 +109,7 @@ function getActionFunction<TState extends AnyState>(
         } else {
           if (sendAction.params.to) {
             const target = sendAction.params.to;
-            execSendTo(sendAction.params._event, target, interpreter);
+            execSendTo(sendAction.params._event, target, actorCtx);
           } else {
             interpreter.send(sendAction.params._event as SCXML.Event<any>);
           }
@@ -174,22 +174,20 @@ function getActionFunction<TState extends AnyState>(
 function execSendTo(
   event: SCXML.Event<AnyEventObject>,
   to: ActorRef<any>,
-  interpreter: AnyInterpreter
+  actorContext: ActorContext<any, any>
 ) {
-  const isParent = interpreter._parent;
+  const interpreter = actorContext.self;
   const target = to;
 
   if (!target) {
-    if (!isParent) {
-      const executionError = new Error(
-        `Unable to send event to child '${to}' from service '${interpreter.name}'.`
-      );
-      interpreter.send(
-        toSCXMLEvent<any>(actionTypes.errorExecution, {
-          data: executionError as any // TODO: refine
-        }) as any // TODO: fix
-      );
-    }
+    const executionError = new Error(
+      `Unable to send event to child '${to}' from service '${interpreter.name}'.`
+    );
+    interpreter.send(
+      toSCXMLEvent<any>(actionTypes.errorExecution, {
+        data: executionError as any // TODO: refine
+      }) as any // TODO: fix
+    );
 
     // tslint:disable-next-line:no-console
     if (!IS_PRODUCTION) {
@@ -201,12 +199,14 @@ function execSendTo(
     return;
   }
 
-  target.send({
-    ...event,
-    name:
-      event.name === actionTypes.error
-        ? `${error(interpreter.name)}`
-        : event.name,
-    origin: interpreter
+  actorContext.defer?.(() => {
+    target.send({
+      ...event,
+      name:
+        event.name === actionTypes.error
+          ? `${error(interpreter.name)}`
+          : event.name,
+      origin: interpreter
+    });
   });
 }

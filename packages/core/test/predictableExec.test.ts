@@ -576,8 +576,7 @@ describe('predictableExec', () => {
     expect(spy).not.toBeCalled();
   });
 
-  // TODO: re-enable and fix
-  it.skip('parent should be able to read the updated state of a child when receiving an event from it', (done) => {
+  it('parent should be able to read the updated state of a child when receiving an event from it', (done) => {
     const child = createMachine({
       initial: 'a',
       states: {
@@ -606,9 +605,12 @@ describe('predictableExec', () => {
           on: {
             CHILD_UPDATED: [
               {
-                guard: () =>
-                  service.getSnapshot().children.myChild.getSnapshot().value ===
-                  'b',
+                guard: () => {
+                  return (
+                    service.getSnapshot().children.myChild.getSnapshot()
+                      .value === 'b'
+                  );
+                },
                 target: 'success'
               },
               {

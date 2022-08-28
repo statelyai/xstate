@@ -491,6 +491,10 @@ export class Interpreter<
   public send: PayloadSender<TEvent> = (event, payload?): void => {
     const eventObject = toEventObject(event, payload);
     const _event = toSCXMLEvent(eventObject);
+    // console.log(
+    //   `${_event.origin?.sessionId} -> ${this.sessionId}`,
+    //   _event.name
+    // );
 
     if (this.status === InterpreterStatus.Stopped) {
       // do nothing
