@@ -3,7 +3,8 @@ import { IS_PRODUCTION } from './environment';
 import { memo } from './memo';
 import type { StateNode } from './StateNode';
 import {
-  getConfigurationFromStateValue,
+  getConfiguration,
+  getStateNodes,
   getStateValue,
   isInFinalState,
   nextEvents
@@ -119,6 +120,10 @@ export class State<
 
     const _event = initEvent as SCXML.Event<TEvent>;
 
+    const configuration = getConfiguration(
+      getStateNodes(machine.root, stateValue)
+    );
+
     return new State<TContext, TEvent>(
       {
         value: stateValue,
@@ -127,7 +132,7 @@ export class State<
         _sessionid: undefined,
         actions: [],
         meta: undefined,
-        configuration: [],
+        configuration: Array.from(configuration),
         transitions: [],
         children: {}
       },
@@ -190,10 +195,7 @@ export class State<
     this.transitions = config.transitions;
     this.children = config.children;
 
-    this.value = getStateValue(
-      machine.root,
-      getConfigurationFromStateValue(machine, config.value)
-    );
+    this.value = getStateValue(machine.root, config.configuration);
   }
 
   /**

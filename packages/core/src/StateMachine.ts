@@ -387,13 +387,17 @@ export class StateMachine<
       | State<TContext, TEvent, TResolvedTypesMeta>
       | StateConfig<TContext, TEvent>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    const state =
-      stateConfig instanceof State ? stateConfig : new State(stateConfig, this);
-
     const configuration = getConfiguration(
-      getStateNodes(this.root, state.value)
+      getStateNodes(this.root, stateConfig.value)
     );
-    state.configuration = Array.from(configuration);
+    const state =
+      stateConfig instanceof State
+        ? stateConfig
+        : new State(
+            { ...stateConfig, configuration: Array.from(configuration) },
+            this
+          );
+
     state.machine = this;
     return state as State<TContext, TEvent, TResolvedTypesMeta>;
   }

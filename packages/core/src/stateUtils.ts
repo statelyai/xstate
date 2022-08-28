@@ -49,7 +49,6 @@ import { invoke } from './actions/invoke';
 import { stop } from './actions/stop';
 import { IS_PRODUCTION } from './environment';
 import { STATE_IDENTIFIER, NULL_EVENT, WILDCARD } from './constants';
-import type { StateMachine } from './StateMachine';
 import { evaluateGuard, toGuardDefinition } from './guards';
 import {
   ExecutableAction,
@@ -117,9 +116,11 @@ export function getAllStateNodes<
 }
 
 export function getConfiguration<
-  TC extends MachineContext,
-  TE extends EventObject
->(stateNodes: Iterable<StateNode<TC, TE>>): Set<StateNode<TC, TE>> {
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
+  stateNodes: Iterable<StateNode<TContext, TEvent>>
+): Set<StateNode<TContext, TEvent>> {
   const configuration = new Set(stateNodes);
   const mutConfiguration = new Set(stateNodes);
 
