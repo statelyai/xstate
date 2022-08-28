@@ -69,19 +69,18 @@ type AdjList<TContext extends MachineContext, TE extends EventObject> = Map<
   Array<StateNode<TContext, TE>>
 >;
 
-export const isAtomicStateNode = (stateNode: StateNode<any, any>) =>
+const isAtomicStateNode = (stateNode: StateNode<any, any>) =>
   stateNode.type === 'atomic' || stateNode.type === 'final';
 
-export function getChildren<
-  TContext extends MachineContext,
-  TE extends EventObject
->(stateNode: StateNode<TContext, TE>): Array<StateNode<TContext, TE>> {
+function getChildren<TContext extends MachineContext, TE extends EventObject>(
+  stateNode: StateNode<TContext, TE>
+): Array<StateNode<TContext, TE>> {
   return Object.keys(stateNode.states)
     .map((key) => stateNode.states[key])
     .filter((sn) => sn.type !== 'history');
 }
 
-export function getProperAncestors<
+function getProperAncestors<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
@@ -98,21 +97,6 @@ export function getProperAncestors<
   }
 
   return ancestors;
-}
-
-export function getAllStateNodes<
-  TContext extends MachineContext,
-  TE extends EventObject
->(stateNode: StateNode<TContext, TE>): Array<StateNode<TContext, TE>> {
-  const stateNodes = [stateNode];
-
-  if (isAtomicStateNode(stateNode)) {
-    return stateNodes;
-  }
-
-  return stateNodes.concat(
-    flatten(getChildren(stateNode).map(getAllStateNodes))
-  );
 }
 
 export function getConfiguration<
@@ -159,17 +143,6 @@ export function getConfiguration<
   }
 
   return configurationSet;
-}
-
-export function getConfigurationFromStateValue(
-  machine: AnyStateMachine,
-  stateValue: StateValue
-): Set<StateNode<any, any>> {
-  const configuration = getConfiguration(
-    getStateNodes(machine.root, stateValue)
-  );
-
-  return configuration;
 }
 
 function getValueFromAdj<
@@ -238,25 +211,6 @@ export function getStateValue<
   return getValueFromAdj(rootNode, getAdjList(config));
 }
 
-export function has<T>(iterable: Iterable<T>, item: T): boolean {
-  if (Array.isArray(iterable)) {
-    return iterable.some((member) => member === item);
-  }
-
-  if (iterable instanceof Set) {
-    return iterable.has(item);
-  }
-
-  return false; // TODO: fix
-}
-
-export function nextEvents<
-  TContext extends MachineContext,
-  TE extends EventObject
->(configuration: Array<StateNode<TContext, TE>>): Array<TE['type']> {
-  return [...new Set(flatten([...configuration.map((sn) => sn.ownEvents)]))];
-}
-
 export function isInFinalState<
   TContext extends MachineContext,
   TE extends EventObject
@@ -266,7 +220,7 @@ export function isInFinalState<
 ): boolean {
   if (stateNode.type === 'compound') {
     return getChildren(stateNode).some(
-      (s) => s.type === 'final' && has(configuration, s)
+      (s) => s.type === 'final' && configuration.includes(s)
     );
   }
   if (stateNode.type === 'parallel') {
@@ -447,6 +401,7 @@ export function formatTransition<
 
   return transition;
 }
+
 export function formatTransitions<
   TContext extends MachineContext,
   TEvent extends EventObject

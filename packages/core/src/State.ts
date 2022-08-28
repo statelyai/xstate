@@ -6,8 +6,7 @@ import {
   getConfiguration,
   getStateNodes,
   getStateValue,
-  isInFinalState,
-  nextEvents
+  isInFinalState
 } from './stateUtils';
 import { TypegenDisabled, TypegenEnabled } from './typegenTypes';
 import type {
@@ -312,7 +311,11 @@ export class State<
    * The next events that will cause a transition from the current state.
    */
   public get nextEvents(): Array<TEvent['type']> {
-    return memo(this, 'nextEvents', () => nextEvents(this.configuration));
+    return memo(this, 'nextEvents', () => {
+      return [
+        ...new Set(flatten([...this.configuration.map((sn) => sn.ownEvents)]))
+      ];
+    });
   }
 
   public get meta() {
