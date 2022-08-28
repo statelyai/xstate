@@ -1820,7 +1820,7 @@ export function macrostep<TMachine extends AnyStateMachine>(
 ): typeof state {
   // Handle stop event
   if (scxmlEvent?.name === 'xstate.stop') {
-    return stopStep(state, scxmlEvent, machine, actorCtx);
+    return stopStep(state, scxmlEvent);
   }
 
   // Assume the state is at rest (no raised events)
@@ -1889,10 +1889,51 @@ export function macrostep<TMachine extends AnyStateMachine>(
 
   if (maybeNextState.done) {
     // Perform the stop step to ensure that child actors are stopped
-    stopStep(maybeNextState, maybeNextState._event, machine, actorCtx);
+    stopStep(maybeNextState, maybeNextState._event);
   }
 
   return maybeNextState;
+
+  // Functions
+
+  function stopStep(
+    stateToStop: AnyState,
+    scxmlEvent: SCXML.Event<any>
+  ): typeof stateToStop {
+    const stoppedState = new State(stateToStop);
+
+    // TODO: fix this
+    stoppedState._event = scxmlEvent;
+    stoppedState.event = scxmlEvent.data;
+
+    stoppedState.actions.length = 0;
+
+    stateToStop.configuration
+      .sort((a, b) => b.order - a.order)
+      .forEach((stateNode) => {
+        for (const action of stateNode.definition.exit) {
+          stoppedState.actions.push(action);
+        }
+      });
+
+    Object.values(stateToStop.children).forEach((child) => {
+      stoppedState.actions.push(stop(() => child));
+    });
+
+    const { actions, context } = resolveActionsAndContext(
+      stoppedState.actions,
+      machine,
+      stoppedState._event,
+      stoppedState,
+      stoppedState.context,
+      actorCtx
+    );
+
+    stoppedState.actions = actions;
+    stoppedState.context = context;
+
+    return stoppedState;
+  }
 }
 
 function resolveHistoryValue<
@@ -1997,45 +2038,4 @@ export function getTagsFromConfiguration(
   configuration: Array<StateNode<any, any>>
 ) {
   return new Set(flatten(configuration.map((sn) => sn.tags)));
-}
-
-function stopStep(
-  state: AnyState,
-  scxmlEvent: SCXML.Event<any>,
-  machine: AnyStateMachine,
-  actorCtx: ActorContext<any, any> | undefined
-): typeof state {
-  const stoppedState = new State(state);
-
-  // TODO: fix this
-  stoppedState._event = scxmlEvent;
-  stoppedState.event = scxmlEvent.data;
-
-  stoppedState.actions.length = 0;
-
-  state.configuration
-    .sort((a, b) => b.order - a.order)
-    .forEach((stateNode) => {
-      for (const action of stateNode.definition.exit) {
-        stoppedState.actions.push(action);
-      }
-    });
-
-  Object.values(state.children).forEach((child) => {
-    stoppedState.actions.push(stop(() => child));
-  });
-
-  const { actions, context } = resolveActionsAndContext(
-    stoppedState.actions,
-    machine,
-    stoppedState._event,
-    stoppedState,
-    stoppedState.context,
-    actorCtx
-  );
-
-  stoppedState.actions = actions;
-  stoppedState.context = context;
-
-  return stoppedState;
 }
