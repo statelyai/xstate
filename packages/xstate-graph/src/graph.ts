@@ -89,7 +89,7 @@ function createDefaultMachineOptions<TMachine extends AnyStateMachine>(
     getEvents: (state) => {
       return state.nextEvents.map((type) => ({ type })) as EventFrom<TMachine>;
     },
-    initialState: machine.initialState as StateFrom<TMachine>
+    fromState: machine.initialState as StateFrom<TMachine>
   };
 }
 
@@ -129,7 +129,7 @@ export function traverseShortestPlans<TState, TEvent extends EventObject>(
   const serializeState = config.serializeState as (
     ...args: Parameters<typeof config.serializeState>
   ) => SerializedState;
-  const initialState = config.initialState ?? behavior.initialState;
+  const fromState = config.fromState ?? behavior.initialState;
   const adjacency = performDepthFirstTraversal(behavior, config);
 
   // weight, state, event
@@ -143,11 +143,11 @@ export function traverseShortestPlans<TState, TEvent extends EventObject>(
   >();
   const stateMap = new Map<SerializedState, TState>();
   const initialSerializedState = serializeState(
-    initialState,
+    fromState,
     undefined,
     undefined
   );
-  stateMap.set(initialSerializedState, initialState);
+  stateMap.set(initialSerializedState, fromState);
 
   weightMap.set(initialSerializedState, [0, undefined, undefined]);
   const unvisited = new Set<SerializedState>();
@@ -300,7 +300,7 @@ export function getPathFromEvents<
       ? createDefaultMachineOptions(behavior)
       : createDefaultBehaviorOptions(behavior)
   );
-  const initialState = resolvedOptions.initialState ?? behavior.initialState;
+  const fromState = resolvedOptions.fromState ?? behavior.initialState;
 
   const { serializeState, serializeEvent } = resolvedOptions;
 
@@ -310,14 +310,14 @@ export function getPathFromEvents<
   const path: Steps<TState, TEvent> = [];
 
   const initialSerializedState = serializeState(
-    initialState,
+    fromState,
     undefined,
     undefined
   ) as SerializedState;
-  stateMap.set(initialSerializedState, initialState);
+  stateMap.set(initialSerializedState, fromState);
 
   let stateSerial = initialSerializedState;
-  let state = initialState;
+  let state = fromState;
   for (const event of events) {
     path.push({
       state: stateMap.get(stateSerial)!,
@@ -376,9 +376,9 @@ export function performDepthFirstTraversal<TState, TEvent extends EventObject>(
     getEvents,
     eventCases,
     traversalLimit: limit,
-    initialState: customInitialState
+    fromState: customInitialState
   } = resolveTraversalOptions(options);
-  const initialState = customInitialState ?? behavior.initialState;
+  const fromState = customInitialState ?? behavior.initialState;
   const adj: AdjacencyMap<TState, TEvent> = {};
 
   let iterations = 0;
@@ -388,7 +388,7 @@ export function performDepthFirstTraversal<TState, TEvent extends EventObject>(
       event: TEvent | undefined,
       prevState: TState | undefined
     ]
-  > = [[initialState, undefined, undefined]];
+  > = [[fromState, undefined, undefined]];
   const stateMap = new Map<SerializedState, TState>();
 
   while (queue.length) {
@@ -448,7 +448,7 @@ function resolveTraversalOptions<TState, TEvent extends EventObject>(
     eventCases: {},
     getEvents: () => [],
     traversalLimit: Infinity,
-    initialState: undefined,
+    fromState: undefined,
     ...defaultOptions,
     ...traversalOptions
   };
@@ -459,7 +459,7 @@ export function traverseSimplePlans<TState, TEvent extends EventObject>(
   options: TraversalOptions<TState, TEvent>
 ): Array<StatePlan<TState, TEvent>> {
   const resolvedOptions = resolveTraversalOptions(options);
-  const initialState = resolvedOptions.initialState ?? behavior.initialState;
+  const fromState = resolvedOptions.fromState ?? behavior.initialState;
   const serializeState = resolvedOptions.serializeState as (
     ...args: Parameters<typeof resolvedOptions.serializeState>
   ) => SerializedState;
@@ -530,11 +530,11 @@ export function traverseSimplePlans<TState, TEvent extends EventObject>(
     visitCtx.vertices.delete(fromStateSerial);
   }
 
-  const initialStateSerial = serializeState(initialState, undefined);
-  stateMap.set(initialStateSerial, initialState);
+  const fromStateSerial = serializeState(fromState, undefined);
+  stateMap.set(fromStateSerial, fromState);
 
   for (const nextStateSerial of Object.keys(adjacency) as SerializedState[]) {
-    util(initialStateSerial, nextStateSerial);
+    util(fromStateSerial, nextStateSerial);
   }
 
   return Object.values(pathMap);

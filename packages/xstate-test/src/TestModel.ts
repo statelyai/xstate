@@ -420,7 +420,7 @@ export class TestModel<TState, TEvent extends EventObject> {
     for (const path of paths) {
       const shortestPaths = this.getShortestPaths({
         ...options,
-        initialState: path.state
+        fromState: path.state
       });
       for (const shortestPath of shortestPaths) {
         resultPaths.push(joinPaths(path, shortestPath));

@@ -436,9 +436,9 @@ describe('@xstate/graph', () => {
       ).toThrow();
     });
 
-    it('should return a path from a specified initial state', () => {
+    it('should return a path from a specified from-state', () => {
       const path = getPathFromEvents(lightMachine, [{ type: 'TIMER' }], {
-        initialState: lightMachine.resolveState(State.from('yellow'))
+        fromState: lightMachine.resolveState(State.from('yellow'))
       });
 
       // TODO: types work fine in test file, but not when running test!
@@ -606,7 +606,7 @@ it('should provide previous state for serializeState()', () => {
 });
 
 it.each([getShortestPlans, getSimplePlans])(
-  'initial state can be specified',
+  'from-state can be specified',
   (getPlans) => {
     const machine = createMachine({
       initial: 'a',
@@ -624,7 +624,7 @@ it.each([getShortestPlans, getSimplePlans])(
     });
 
     const plans = getPlans(machine, {
-      initialState: machine.resolveState(State.from('b'))
+      fromState: machine.resolveState(State.from('b'))
     });
 
     // Instead of taking 1 step to reach state 'b', there should
@@ -663,7 +663,7 @@ describe('joinPaths()', () => {
 
     const pathToB = getPathFromEvents(machine, [{ type: 'NEXT' }]);
     const pathToC = getPathFromEvents(machine, [{ type: 'TO_C' }], {
-      initialState: pathToB.state
+      fromState: pathToB.state
     });
     const pathToBAndC = joinPaths(pathToB, pathToC);
 

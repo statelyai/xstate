@@ -171,7 +171,7 @@ export type TraversalOptions<
   Partial<
     Pick<
       TraversalConfig<TState, TEvent>,
-      'filter' | 'getEvents' | 'traversalLimit' | 'initialState'
+      'filter' | 'getEvents' | 'traversalLimit' | 'fromState'
     >
   >;
 
@@ -189,7 +189,7 @@ export interface TraversalConfig<TState, TEvent extends EventObject>
    * @default `Infinity`
    */
   traversalLimit: number;
-  initialState: TState | undefined;
+  fromState: TState | undefined;
 }
 
 export type EventCaseMap<TState, TEvent extends EventObject> = {
