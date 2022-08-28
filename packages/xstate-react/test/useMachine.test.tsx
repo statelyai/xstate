@@ -200,7 +200,9 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
           entry: assign({
             ref: (_, __, { spawn }) =>
               spawn(
-                fromPromise(() => new Promise((res) => res(42))),
+                fromPromise(() => {
+                  return new Promise((res) => res(42));
+                }),
                 'my-promise'
               )
           }),
@@ -376,7 +378,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
 
     render(<App />);
 
-    expect(rerenders).toBe(suiteKey === 'strict' ? 2 : 1);
+    expect(rerenders).toBe(suiteKey === 'strict' ? 4 : 1);
   });
 
   it('should maintain the same reference for objects created when resolving initial state', () => {
@@ -427,12 +429,12 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
 
     const { getByRole } = render(<App />);
 
-    expect(effectsFired).toBe(suiteKey === 'strict' ? 2 : 1);
+    expect(effectsFired).toBe(suiteKey === 'strict' ? 3 : 1);
 
     const button = getByRole('button');
     fireEvent.click(button);
 
-    expect(effectsFired).toBe(suiteKey === 'strict' ? 2 : 1);
+    expect(effectsFired).toBe(suiteKey === 'strict' ? 3 : 1);
   });
 
   it('should successfully spawn actors from the lazily declared context', () => {
@@ -691,7 +693,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
 
     render(<Test />);
 
-    expect(activatedCount).toEqual(suiteKey === 'strict' ? 1 : 1);
+    expect(activatedCount).toEqual(suiteKey === 'strict' ? 2 : 1);
   });
 
   it('child component should be able to send an event to a parent immediately in an effect', (done) => {

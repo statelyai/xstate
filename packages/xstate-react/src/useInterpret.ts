@@ -71,12 +71,12 @@ export function useIdleInterpreter(
   // in one place -- this hook's caller.
   useIsomorphicLayoutEffect(() => {
     Object.assign(
-      (service.machine as AnyStateMachine).options.actions,
+      (service.behavior as AnyStateMachine).options.actions,
       actions
     );
-    Object.assign((service.machine as AnyStateMachine).options.guards, guards);
-    Object.assign((service.machine as AnyStateMachine).options.actors, actors);
-    Object.assign((service.machine as AnyStateMachine).options.delays, delays);
+    Object.assign((service.behavior as AnyStateMachine).options.guards, guards);
+    Object.assign((service.behavior as AnyStateMachine).options.actors, actors);
+    Object.assign((service.behavior as AnyStateMachine).options.delays, delays);
   }, [actions, guards, actors, delays]);
 
   return service as any;

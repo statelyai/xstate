@@ -86,7 +86,7 @@ export function createInspectMachine(
             devTools.services.forEach((service) => {
               ctx.client?.send({
                 type: 'service.register',
-                machine: stringifyMachine(service.machine, options?.serialize),
+                machine: stringifyMachine(service.behavior, options?.serialize),
                 state: stringifyState(
                   service.getSnapshot(),
                   options?.serialize

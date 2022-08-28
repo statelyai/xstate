@@ -58,7 +58,7 @@ export function execAction(
   const actionOrExec = getActionFunction(
     state,
     action.type,
-    interpreter.machine,
+    interpreter.behavior,
     actorContext
   );
   const exec = isFunction(actionOrExec) ? actionOrExec : undefined;
@@ -108,11 +108,8 @@ function getActionFunction<TState extends AnyState>(
           return;
         } else {
           if (sendAction.params.to) {
-            execSendTo(
-              sendAction.params._event,
-              sendAction.params.to,
-              interpreter
-            );
+            const target = sendAction.params.to;
+            execSendTo(sendAction.params._event, target, interpreter);
           } else {
             interpreter.send(sendAction.params._event as SCXML.Event<any>);
           }
@@ -141,16 +138,18 @@ function getActionFunction<TState extends AnyState>(
         if (!state.children[id]) {
           state.children[id] = ref;
         }
-        try {
-          if (autoForward) {
-            interpreter._forwardTo.add(id);
-          }
+        actorCtx.defer?.(() => {
+          try {
+            if (autoForward) {
+              interpreter._forwardTo.add(id);
+            }
 
-          ref.start?.();
-        } catch (err) {
-          interpreter.send(error(id, err));
-          return;
-        }
+            ref.start?.();
+          } catch (err) {
+            interpreter.send(error(id, err));
+            return;
+          }
+        });
       },
       [actionTypes.stop]: (_ctx, _e, { action }) => {
         const { actor } = (action as StopActionObject).params;

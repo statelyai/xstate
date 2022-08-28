@@ -1735,6 +1735,7 @@ export function resolveActionsAndContext<
         for (const spawnAction of resolvedActionObject.params.actions) {
           resolveAction(spawnAction);
         }
+        // } else if (executableActionObject.type === actionTypes.invoke) {
       } else {
         const resolvedActionObject = executableActionObject.resolve(
           executableActionObject,

@@ -85,7 +85,7 @@ export function inspect(options: ServerInspectorOptions): Inspector {
   globalThis.__xstate__.onRegister((service: Interpreter<any>) => {
     inspectService.send({
       type: 'service.register',
-      machine: JSON.stringify(service.machine),
+      machine: JSON.stringify(service.behavior),
       state: JSON.stringify(service.getSnapshot()),
       id: service.name,
       sessionId: service.sessionId

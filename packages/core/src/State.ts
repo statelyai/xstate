@@ -188,7 +188,7 @@ export class State<
     this._sessionid = config._sessionid;
     this.event = this._event.data;
     this.historyValue = config.historyValue || {};
-    this.actions = config.actions || [];
+    this.actions = [...(config.actions || [])];
     this.meta = getMeta(config.configuration);
     this.matches = this.matches.bind(this);
     this.toStrings = this.toStrings.bind(this);
@@ -251,7 +251,10 @@ export class State<
     return isInFinalState(this.configuration);
   }
 
-  public get doneData(): any {
+  /**
+   * The done data of the top-level finite state.
+   */
+  public get output(): any {
     if (!this.done) {
       return undefined;
     }

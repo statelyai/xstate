@@ -149,7 +149,7 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
     const state = service.getSnapshot() || service.initialState;
     inspectService.send({
       type: 'service.register',
-      machine: stringifyMachine(service.machine, options?.serialize),
+      machine: stringifyMachine(service.behavior, options?.serialize),
       state: stringifyState(state, options?.serialize),
       sessionId: service.sessionId,
       id: service.name,

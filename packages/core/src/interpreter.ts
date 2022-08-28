@@ -83,7 +83,6 @@ type InternalStateFrom<
   ? TInternalState
   : never;
 
-let sessionCounter = 0;
 export class Interpreter<
   TBehavior extends Behavior<any, any>,
   TEvent extends EventObject = EventFromBehavior<TBehavior>
@@ -133,10 +132,10 @@ export class Interpreter<
   /**
    * Creates a new Interpreter instance (i.e., service) for the given machine with the provided options, if any.
    *
-   * @param machine The machine to be interpreted
+   * @param behavior The machine to be interpreted
    * @param options Interpreter options
    */
-  constructor(public machine: TBehavior, options?: InterpreterOptions) {
+  constructor(public behavior: TBehavior, options?: InterpreterOptions) {
     const resolvedOptions = {
       ...defaultOptions,
       ...options
@@ -159,9 +158,15 @@ export class Interpreter<
       logger: this.logger,
       exec: (fn) => {
         fn();
+      },
+      defer: (fn) => {
+        this._deferred.push(fn);
       }
     };
   }
+
+  // array of functions to defer
+  private _deferred: Array<() => void> = [];
 
   private __initial: InternalStateFrom<TBehavior> | undefined = undefined;
 
@@ -170,8 +175,8 @@ export class Interpreter<
     return (
       this.__initial ||
       ((this.__initial =
-        this.machine.getInitialState?.(this._actorContext) ??
-        this.machine.initialState),
+        this.behavior.getInitialState?.(this._actorContext) ??
+        this.behavior.initialState),
       this.__initial!)
     );
   }
@@ -181,17 +186,21 @@ export class Interpreter<
     this._state = state;
     const snapshot = this.getSnapshot();
 
+    while (this._deferred.length) {
+      this._deferred.shift()!();
+    }
+
     for (const listener of this.listeners) {
       listener(snapshot);
     }
 
-    if (isStateMachine(this.machine) && isStateLike(state)) {
+    if (isStateMachine(this.behavior) && isStateLike(state)) {
       const isDone = (state as State<any, any>).done;
 
       if (isDone) {
-        const doneData = (state as State<any, any>).doneData;
+        const output = (state as State<any, any>).output;
 
-        const doneEvent = toSCXMLEvent(doneInvoke(this.name, doneData), {
+        const doneEvent = toSCXMLEvent(doneInvoke(this.name, output), {
           invokeid: this.name
         });
 
@@ -340,15 +349,15 @@ export class Interpreter<
       if (isStateConfig(initialState)) {
         // TODO: fix these types
         resolvedState = ((this
-          .machine as unknown) as AnyStateMachine).resolveState(
+          .behavior as unknown) as AnyStateMachine).resolveState(
           initialState as any
         );
       } else {
         resolvedState = ((this
-          .machine as unknown) as AnyStateMachine).resolveState(
+          .behavior as unknown) as AnyStateMachine).resolveState(
           State.from(
             initialState as any, // TODO: fix type
-            ((this.machine as unknown) as AnyStateMachine).context
+            ((this.behavior as unknown) as AnyStateMachine).context
           )
         );
       }
@@ -361,9 +370,9 @@ export class Interpreter<
       }
     }
 
-    if (!isStateMachine(this.machine)) {
-      resolvedState = this.machine.transition(
-        this.machine.initialState,
+    if (!isStateMachine(this.behavior)) {
+      resolvedState = this.behavior.transition(
+        this.behavior.initialState,
         { type: startSignalType },
         this._actorContext
       );
@@ -429,6 +438,7 @@ export class Interpreter<
    * This will also notify the `onStop` listeners.
    */
   public stop(): this {
+    delete this.__initial;
     // const mailbox = this.mailbox;
 
     // this._stop();
@@ -491,7 +501,9 @@ export class Interpreter<
           false,
           `Event "${_event.name.toString()}" was sent to stopped actor "${
             this.id
-          }". This actor has already reached its final state, and will not transition.\nEvent: ${eventString}`
+          } (${
+            this.sessionId
+          })". This actor has already reached its final state, and will not transition.\nEvent: ${eventString}`
         );
       }
       return;
@@ -524,7 +536,7 @@ export class Interpreter<
   public nextState(
     event: TEvent | SCXML.Event<TEvent> | LifecycleSignal
   ): InternalStateFrom<TBehavior> {
-    return this.machine.transition(this._state, event, {
+    return this.behavior.transition(this._state, event, {
       ...this._actorContext,
       exec: undefined
     });
@@ -532,7 +544,7 @@ export class Interpreter<
   private _nextState(
     event: TEvent | SCXML.Event<TEvent> | LifecycleSignal
   ): InternalStateFrom<TBehavior> {
-    return this.machine.transition(this._state, event, this._actorContext);
+    return this.behavior.transition(this._state, event, this._actorContext);
   }
   private forward(event: SCXML.Event<TEvent>): void {
     const snapshot = this.getSnapshot();
@@ -589,7 +601,7 @@ export class Interpreter<
   }
 
   public getSnapshot() {
-    const getter = this.machine.getSnapshot ?? ((s) => s);
+    const getter = this.behavior.getSnapshot ?? ((s) => s);
     if (this.status === InterpreterStatus.NotStarted) {
       return getter(this.initialState);
     }
