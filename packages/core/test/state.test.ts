@@ -362,28 +362,6 @@ describe('State', () => {
     });
   });
 
-  describe('State.inert()', () => {
-    it('should create an inert instance of the given State', () => {
-      const { initialState } = exampleMachine;
-
-      expect(State.inert(initialState).actions).toEqual([]);
-    });
-
-    it('should create an inert instance of the given stateValue and context', () => {
-      const { initialState } = exampleMachine;
-      const inertState = State.inert(initialState.value, { foo: 'bar' });
-
-      expect(inertState.actions).toEqual([]);
-      expect(inertState.context).toEqual({ foo: 'bar' });
-    });
-
-    it('should preserve the given State if there are no actions', () => {
-      const naturallyInertState = State.from('foo');
-
-      expect(State.inert(naturallyInertState)).toEqual(naturallyInertState);
-    });
-  });
-
   describe('.event', () => {
     it('the .event prop should be the event (string) that caused the transition', () => {
       const { initialState } = exampleMachine;
@@ -840,12 +818,6 @@ describe('State', () => {
       const service = interpret(machine).start();
       service.getSnapshot().can('SPAWN');
       expect(spawned).toBe(false);
-    });
-
-    it('should return false for states created without a machine', () => {
-      const state = State.from('test');
-
-      expect(state.can({ type: 'ANY_EVENT' })).toEqual(false);
     });
 
     it('should not execute assignments', () => {

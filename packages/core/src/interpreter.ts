@@ -357,7 +357,8 @@ export class Interpreter<
           .behavior as unknown) as AnyStateMachine).resolveState(
           State.from(
             initialState as any, // TODO: fix type
-            ((this.behavior as unknown) as AnyStateMachine).context
+            ((this.behavior as unknown) as AnyStateMachine).context,
+            (this.behavior as unknown) as AnyStateMachine
           )
         );
       }

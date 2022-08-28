@@ -1909,7 +1909,7 @@ export function macrostep<TMachine extends AnyStateMachine>(
     stateToStop: AnyState,
     scxmlEvent: SCXML.Event<any>
   ): typeof stateToStop {
-    const stoppedState = new State(stateToStop);
+    const stoppedState = new State(stateToStop, stateToStop.machine);
 
     // TODO: fix this
     stoppedState._event = scxmlEvent;

@@ -247,7 +247,9 @@ export class StateMachine<
     const resolvedStateValue = resolveStateValue(this.root, stateValue);
     const resolvedContext = this.context;
 
-    return this.resolveState(State.from(resolvedStateValue, resolvedContext));
+    return this.resolveState(
+      State.from(resolvedStateValue, resolvedContext, this)
+    );
   }
 
   /**
@@ -309,7 +311,7 @@ export class StateMachine<
       this.createState({
         value: getStateValue(this.root, getConfiguration([this.root])),
         context,
-        _event: initEvent,
+        _event: initEvent as SCXML.Event<TEvent>,
         _sessionid: actorCtx?.sessionId ?? undefined,
         actions: [],
         meta: undefined,
@@ -397,22 +399,25 @@ export class StateMachine<
     const state =
       stateConfig instanceof State
         ? stateConfig
-        : new State({
-            // value: stateConfig.value,
-            // context: stateConfig.context,
-            // _event: stateConfig._event,
-            // _sessionid: undefined,
-            actions: [],
-            meta: undefined,
-            ...stateConfig
-          });
+        : new State(
+            {
+              // value: stateConfig.value,
+              // context: stateConfig.context,
+              // _event: stateConfig._event,
+              // _sessionid: undefined,
+              actions: [],
+              meta: undefined,
+              ...stateConfig
+            },
+            this
+          );
 
     const configuration = getConfiguration(
       getStateNodes(this.root, state.value)
     );
     state.configuration = Array.from(configuration);
     state.machine = this;
-    return state;
+    return state as State<TContext, TEvent, TResolvedTypesMeta>;
   }
 
   /**@deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
