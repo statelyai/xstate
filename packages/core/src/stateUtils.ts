@@ -1343,17 +1343,17 @@ export function microstep<
 >(
   transitions: Array<TransitionDefinition<TContext, TEvent>>,
   currentState: State<TContext, TEvent>,
-  context: TContext,
   mutConfiguration: Set<StateNode<TContext, TEvent>>,
   _event: SCXML.Event<TEvent>,
   actorCtx: ActorContext<any, any> | undefined
-): {
+): typeof currentState /* {
   actions: BaseActionObject[];
   configuration: typeof mutConfiguration;
   historyValue: HistoryValue<TContext, TEvent>;
   internalQueue: Array<SCXML.Event<TEvent>>;
   context: TContext;
-} {
+} */ {
+  const { context } = currentState;
   const { machine } = currentState;
   const actions: BaseActionObject[] = [];
 
@@ -1423,24 +1423,25 @@ export function microstep<
     internalQueue.push(...res.internalQueue);
     internalQueue.push(...raised.map((a) => a.params._event));
 
-    return {
+    return currentState.clone({
       actions: resolvedActions,
-      configuration: mutConfiguration,
+      configuration: Array.from(mutConfiguration),
       historyValue,
-      internalQueue,
-      context: resolvedContext
-    };
+      _internalQueue: internalQueue,
+      context: resolvedContext,
+      _event
+    });
   } catch (e) {
     // TODO: Refactor this once proper error handling is implemented.
     // See https://github.com/statelyai/rfcs/pull/4
     if (machine.config.scxml) {
-      return {
+      return currentState.clone({
         actions: [],
-        configuration: mutConfiguration,
+        configuration: Array.from(mutConfiguration),
         historyValue,
-        internalQueue: [toSCXMLEvent({ type: 'error.execution' } as TEvent)],
+        _internalQueue: [toSCXMLEvent({ type: 'error.execution' } as TEvent)],
         context: machine.context
-      };
+      });
     } else {
       throw e;
     }
@@ -1589,7 +1590,18 @@ export function resolveMicroTransition<
     !currentState._initial ? currentState.configuration : [machine.root]
   );
 
-  const resolved = microstep<TContext, TEvent>(
+  if (!currentState._initial && !willTransition) {
+    const inertState = currentState.clone({
+      _event,
+      actions: [],
+      transitions: []
+    });
+
+    inertState.changed = false;
+    return inertState;
+  }
+
+  const microstate = microstep<TContext, TEvent>(
     currentState._initial
       ? [
           {
@@ -1602,53 +1614,20 @@ export function resolveMicroTransition<
         ]
       : transitions,
     currentState,
-    currentState.context,
-    new Set(prevConfig),
+    prevConfig,
     _event,
     actorCtx
   );
 
-  if (!currentState._initial && !willTransition) {
-    const inertState = currentState.clone({
-      _event,
-      actions: [],
-      transitions: []
-    });
-
-    inertState.changed = false;
-    return inertState;
-  }
-
-  const resolvedConfiguration = willTransition
-    ? Array.from(resolved.configuration)
-    : !currentState._initial
-    ? currentState.configuration
-    : [];
-
-  const meta = resolvedConfiguration.reduce((acc, subStateNode) => {
-    if (subStateNode.meta !== undefined) {
-      acc[subStateNode.id] = subStateNode.meta;
-    }
-    return acc;
-  }, {} as Record<string, string>);
-
-  const { context, actions: nonRaisedActions } = resolved;
+  const { context, actions: nonRaisedActions } = microstate;
 
   const children = { ...currentState.children };
   setChildren(children, nonRaisedActions);
 
-  const nextState = machine.createState({
-    value: getStateValue(machine.root, resolved.configuration),
-    context,
-    _event,
-    // Persist _sessionid between states
-    _sessionid: !currentState._initial ? currentState._sessionid : undefined,
-    actions: nonRaisedActions,
-    meta,
-    configuration: resolvedConfiguration,
+  const nextState = microstate.clone({
+    value: {}, // TODO: make optional
     transitions,
-    children,
-    historyValue: resolved.historyValue
+    children
   });
 
   nextState.changed = currentState._initial
@@ -1657,7 +1636,7 @@ export function resolveMicroTransition<
       _event.name === actionTypes.update ||
       nextState.actions.length > 0 ||
       context !== currentState.context;
-  nextState._internalQueue = resolved.internalQueue;
+  nextState._internalQueue = microstate._internalQueue;
 
   return nextState;
 }

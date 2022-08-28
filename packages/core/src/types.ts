@@ -1580,6 +1580,7 @@ export interface StateConfig<
   done?: boolean;
   tags?: Set<string>;
   machine?: StateMachine<TContext, TEvent, any, any, any>;
+  _internalQueue?: Array<SCXML.Event<TEvent>>;
 }
 
 export interface InterpreterOptions {

@@ -59,7 +59,7 @@ export class State<
   public historyValue: HistoryValue<TContext, TEvent> = {};
   public actions: BaseActionObject[] = [];
   public event: TEvent;
-  public _internalQueue: Array<SCXML.Event<TEvent>> = [];
+  public _internalQueue: Array<SCXML.Event<TEvent>>;
   public _event: SCXML.Event<TEvent>;
   public _sessionid: string | undefined;
   public _initial: boolean = false;
@@ -186,6 +186,7 @@ export class State<
     this.context = config.context;
     this._event = config._event;
     this._sessionid = config._sessionid;
+    this._internalQueue = config._internalQueue ?? [];
     this.event = this._event.data;
     this.historyValue = config.historyValue || {};
     this.actions = [...(config.actions || [])];
