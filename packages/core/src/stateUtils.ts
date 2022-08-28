@@ -1590,9 +1590,8 @@ export function resolveMicroTransition<
   );
 
   const resolved = microstep<TContext, TEvent>(
-    !currentState._initial
-      ? transitions
-      : [
+    currentState._initial
+      ? [
           {
             target: [...prevConfig].filter(isAtomicStateNode),
             source: machine.root,
@@ -1600,7 +1599,8 @@ export function resolveMicroTransition<
             eventType: null as any,
             toJSON: null as any // TODO: fix
           }
-        ],
+        ]
+      : transitions,
     currentState,
     currentState.context,
     new Set(prevConfig),
@@ -1831,84 +1831,60 @@ export function macrostep<TMachine extends AnyStateMachine>(
   scxmlEvent: SCXML.Event<TMachine['__TEvent']>,
   actorCtx: ActorContext<any, any> | undefined
 ): typeof state {
-  const { machine } = state;
+  let nextState = state;
   // Handle stop event
   if (scxmlEvent?.name === 'xstate.stop') {
-    return stopStep(state, scxmlEvent);
+    return stopStep(scxmlEvent);
   }
 
   // Assume the state is at rest (no raised events)
   // Determine the next state based on the next microstep
-  const nextState =
+  nextState =
     scxmlEvent === null ? state : machineMicrostep(state, scxmlEvent, actorCtx);
 
   const { _internalQueue } = nextState;
-  let maybeNextState = nextState;
 
-  while (!maybeNextState.done) {
-    const eventlessTransitions = selectEventlessTransitions(maybeNextState);
+  while (!nextState.done) {
+    const eventlessTransitions = selectEventlessTransitions(nextState);
 
     if (eventlessTransitions.length === 0) {
-      // TODO: this is a bit of a hack, we need to review this
-      // this matches the behavior from v4 for eventless transitions
-      // where for `hasAlwaysTransitions` we were always trying to resolve with a NULL event
-      // and if a transition was not selected the `state.transitions` stayed empty
-      // without this we get into an infinite loop in the dieHard test in `@xstate/test` for the `simplePathsTo`
-      if (maybeNextState.configuration.some((state) => state.always)) {
-        maybeNextState.transitions = [];
-      }
       if (!_internalQueue.length) {
         break;
       } else {
         const internalEvent = _internalQueue.shift()!;
-        const currentActions = maybeNextState.actions;
+        const currentActions = nextState.actions;
 
-        maybeNextState = machineMicrostep(
-          maybeNextState,
-          internalEvent,
-          actorCtx
-        );
+        nextState = machineMicrostep(nextState, internalEvent, actorCtx);
 
-        _internalQueue.push(...maybeNextState._internalQueue);
+        _internalQueue.push(...nextState._internalQueue);
 
         // Since macrostep actions have not been executed yet,
         // prioritize them in the action queue
-        maybeNextState.actions.unshift(...currentActions);
+        nextState.actions.unshift(...currentActions);
       }
     } else {
-      const currentActions = maybeNextState.actions;
-      maybeNextState = resolveMicroTransition(
+      const currentActions = nextState.actions;
+      nextState = resolveMicroTransition(
         eventlessTransitions,
-        maybeNextState,
+        nextState,
         actorCtx,
-        maybeNextState._event
+        nextState._event
       );
-      _internalQueue.push(...maybeNextState._internalQueue);
-      maybeNextState.actions.unshift(...currentActions);
+      _internalQueue.push(...nextState._internalQueue);
+      nextState.actions.unshift(...currentActions);
     }
   }
 
-  // Add tags
-  // maybeNextState.tags = new Set(
-  //   flatten(maybeNextState.configuration.map((sn) => sn.tags))
-  // );
-
-  maybeNextState.machine = machine;
-
-  if (maybeNextState.done) {
+  if (nextState.done) {
     // Perform the stop step to ensure that child actors are stopped
-    stopStep(maybeNextState, maybeNextState._event);
+    stopStep(nextState._event);
   }
 
-  return maybeNextState;
+  return nextState;
 
   // Functions
-
-  function stopStep(
-    stateToStop: AnyState,
-    scxmlEvent: SCXML.Event<any>
-  ): typeof stateToStop {
-    const stoppedState = new State(stateToStop, stateToStop.machine);
+  function stopStep(scxmlEvent: SCXML.Event<any>): typeof nextState {
+    const stoppedState = new State(nextState, nextState.machine);
 
     // TODO: fix this
     stoppedState._event = scxmlEvent;
@@ -1916,7 +1892,7 @@ export function macrostep<TMachine extends AnyStateMachine>(
 
     stoppedState.actions.length = 0;
 
-    stateToStop.configuration
+    nextState.configuration
       .sort((a, b) => b.order - a.order)
       .forEach((stateNode) => {
         for (const action of stateNode.definition.exit) {
@@ -1924,7 +1900,7 @@ export function macrostep<TMachine extends AnyStateMachine>(
         }
       });
 
-    Object.values(stateToStop.children).forEach((child) => {
+    Object.values(nextState.children).forEach((child) => {
       stoppedState.actions.push(stop(() => child));
     });
 
