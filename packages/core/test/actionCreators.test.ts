@@ -67,7 +67,12 @@ describe('action creators', () => {
           type: 'EVENT';
           value: number;
         }),
-        { machine: createMachine<any, any>({}), state: null as any, action }
+        {
+          machine: createMachine<any, any>({}),
+          state: null as any,
+          action,
+          actorContext: undefined
+        }
       );
 
       expect(resolvedAction.params.delay).toEqual(150);

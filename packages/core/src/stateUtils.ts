@@ -27,7 +27,6 @@ import {
   Transitions,
   StateValueMap,
   RaiseActionObject,
-  SpecialTargets,
   HistoryValue,
   InitialTransitionConfig,
   InitialTransitionDefinition,
