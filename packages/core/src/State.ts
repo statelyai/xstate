@@ -326,4 +326,13 @@ export class State<
   public get tags(): Set<string> {
     return new Set(flatten(this.configuration.map((sn) => sn.tags)));
   }
+
+  public clone(
+    config: Partial<StateConfig<any, any>> = {}
+  ): State<TContext, TEvent> {
+    return new State(
+      { ...this, ...config } as StateConfig<any, any>,
+      this.machine
+    );
+  }
 }

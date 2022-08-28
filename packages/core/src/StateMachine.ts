@@ -355,7 +355,6 @@ export class StateMachine<
     const macroState = macrostep(nextState, null as any, actorCtx) as StateFrom<
       typeof this
     >;
-    macroState.changed = undefined;
     macroState._sessionid = actorCtx?.sessionId;
     return macroState;
   }

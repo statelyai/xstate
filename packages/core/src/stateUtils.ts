@@ -1609,11 +1609,14 @@ export function resolveMicroTransition<
   );
 
   if (!currentState._initial && !willTransition) {
-    const inertState = State.inert(currentState);
-    inertState.event = _event.data;
-    inertState._event = _event;
-    inertState.changed = _event.name === actionTypes.update;
-    return inertState as any;
+    const inertState = currentState.clone({
+      _event,
+      actions: [],
+      transitions: []
+    });
+
+    inertState.changed = false;
+    return inertState;
   }
 
   const resolvedConfiguration = willTransition
@@ -1884,11 +1887,10 @@ export function macrostep<TMachine extends AnyStateMachine>(
 
   // Functions
   function stopStep(scxmlEvent: SCXML.Event<any>): typeof nextState {
-    const stoppedState = new State(nextState, nextState.machine);
-
-    // TODO: fix this
-    stoppedState._event = scxmlEvent;
-    stoppedState.event = scxmlEvent.data;
+    const stoppedState = nextState.clone({
+      _event: scxmlEvent,
+      actions: []
+    });
 
     stoppedState.actions.length = 0;
 
