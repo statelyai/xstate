@@ -678,12 +678,7 @@ export function getInitialStateNodes<
   const mutStatesToEnter = new Set<StateNode<TContext, TEvent>>();
   const mutStatesForDefaultEntry = new Set<StateNode<TContext, TEvent>>();
 
-  computeEntrySet(
-    transitions,
-    State.from({}),
-    mutStatesToEnter,
-    mutStatesForDefaultEntry
-  );
+  computeEntrySet(transitions, {}, mutStatesToEnter, mutStatesForDefaultEntry);
 
   return [...mutStatesToEnter];
 }
@@ -964,7 +959,7 @@ export function removeConflictingTransitions<
 >(
   enabledTransitions: Array<TransitionDefinition<TContext, TEvent>>,
   configuration: Set<StateNode<TContext, TEvent>>,
-  state: State<TContext, TEvent>
+  historyValue: HistoryValue<TContext, TEvent>
 ): Array<TransitionDefinition<TContext, TEvent>> {
   const filteredTransitions = new Set<TransitionDefinition<TContext, TEvent>>();
 
@@ -976,8 +971,8 @@ export function removeConflictingTransitions<
     for (const t2 of filteredTransitions) {
       if (
         hasIntersection(
-          computeExitSet([t1], configuration, state),
-          computeExitSet([t2], configuration, state)
+          computeExitSet([t1], configuration, historyValue),
+          computeExitSet([t2], configuration, historyValue)
         )
       ) {
         if (isDescendant(t1.source, t2.source)) {
@@ -1023,7 +1018,7 @@ function getEffectiveTargetStates<
   TE extends EventObject
 >(
   transition: TransitionDefinition<TC, TE>,
-  state: State<TC, TE>
+  historyValue: HistoryValue<TC, TE>
 ): Array<StateNode<TC, TE>> {
   if (!transition.target) {
     return [];
@@ -1033,8 +1028,8 @@ function getEffectiveTargetStates<
 
   for (const s of transition.target) {
     if (isHistoryNode(s)) {
-      if (state.historyValue[s.id]) {
-        state.historyValue[s.id].forEach((node) => {
+      if (historyValue[s.id]) {
+        historyValue[s.id].forEach((node) => {
           targets.add(node);
         });
       } else {
@@ -1043,7 +1038,7 @@ function getEffectiveTargetStates<
             TC,
             TE
           >,
-          state
+          historyValue
         ).forEach((node) => {
           targets.add(node);
         });
@@ -1061,9 +1056,9 @@ function getTransitionDomain<
   TEvent extends EventObject
 >(
   transition: TransitionDefinition<TContext, TEvent>,
-  state: State<TContext, TEvent>
+  historyValue: HistoryValue<TContext, TEvent>
 ): StateNode<TContext, TEvent> | null {
-  const targetStates = getEffectiveTargetStates(transition, state);
+  const targetStates = getEffectiveTargetStates(transition, historyValue);
 
   if (!targetStates) {
     return null;
@@ -1092,7 +1087,11 @@ function exitStates<
   mutConfiguration: Set<StateNode<TContext, TEvent>>,
   state: State<TContext, TEvent>
 ) {
-  const statesToExit = computeExitSet(transitions, mutConfiguration, state);
+  const statesToExit = computeExitSet(
+    transitions,
+    mutConfiguration,
+    state.historyValue
+  );
   const actions: BaseActionObject[] = [];
 
   statesToExit.forEach((stateNode) => {
@@ -1141,13 +1140,13 @@ function computeExitSet<
 >(
   transitions: Array<TransitionDefinition<TContext, TEvent>>,
   configuration: Set<StateNode<TContext, TEvent>>,
-  state: State<TContext, TEvent>
+  historyValue: HistoryValue<TContext, TEvent>
 ): Array<StateNode<TContext, TEvent>> {
   const statesToExit = new Set<StateNode<TContext, TEvent>>();
 
   for (const t of transitions) {
     if (t.target && t.target.length) {
-      const domain = getTransitionDomain(t, state);
+      const domain = getTransitionDomain(t, historyValue);
 
       for (const s of configuration) {
         if (isDescendant(s, domain!)) {
@@ -1165,7 +1164,7 @@ function computeEntrySet<
   TEvent extends EventObject
 >(
   transitions: Array<TransitionDefinition<TContext, TEvent>>,
-  state: State<TContext, TEvent>,
+  historyValue: HistoryValue<TContext, TEvent>,
   mutStatesToEnter: Set<StateNode<TContext, TEvent>>,
   mutStatesForDefaultEntry: Set<StateNode<TContext, TEvent>>
 ) {
@@ -1173,18 +1172,18 @@ function computeEntrySet<
     for (const s of t.target || []) {
       addDescendantStatesToEnter(
         s,
-        state,
+        historyValue,
         mutStatesToEnter,
         mutStatesForDefaultEntry
       );
     }
-    const ancestor = getTransitionDomain(t, state);
-    const targetStates = getEffectiveTargetStates(t, state);
+    const ancestor = getTransitionDomain(t, historyValue);
+    const targetStates = getEffectiveTargetStates(t, historyValue);
     for (const s of targetStates) {
       addAncestorStatesToEnter(
         s,
         ancestor,
-        state,
+        historyValue,
         mutStatesToEnter,
         mutStatesForDefaultEntry
       );
@@ -1197,17 +1196,17 @@ function addDescendantStatesToEnter<
   TEvent extends EventObject
 >(
   stateNode: StateNode<TContext, TEvent>,
-  state: State<TContext, TEvent>,
+  historyValue: HistoryValue<TContext, TEvent>,
   mutStatesToEnter: Set<typeof stateNode>,
   mutStatesForDefaultEntry: Set<typeof stateNode>
 ) {
   if (isHistoryNode(stateNode)) {
-    if (state.historyValue[stateNode.id]) {
-      const historyStateNodes = state.historyValue[stateNode.id];
+    if (historyValue[stateNode.id]) {
+      const historyStateNodes = historyValue[stateNode.id];
       for (const s of historyStateNodes) {
         addDescendantStatesToEnter(
           s,
-          state,
+          historyValue,
           mutStatesToEnter,
           mutStatesForDefaultEntry
         );
@@ -1216,7 +1215,7 @@ function addDescendantStatesToEnter<
         addAncestorStatesToEnter(
           s,
           stateNode.parent!,
-          state,
+          historyValue,
           mutStatesToEnter,
           mutStatesForDefaultEntry
         );
@@ -1229,7 +1228,7 @@ function addDescendantStatesToEnter<
       for (const s of targets) {
         addDescendantStatesToEnter(
           s,
-          state,
+          historyValue,
           mutStatesToEnter,
           mutStatesForDefaultEntry
         );
@@ -1238,7 +1237,7 @@ function addDescendantStatesToEnter<
         addAncestorStatesToEnter<TContext, TEvent>(
           s,
           stateNode,
-          state,
+          historyValue,
           mutStatesToEnter,
           mutStatesForDefaultEntry
         );
@@ -1256,7 +1255,7 @@ function addDescendantStatesToEnter<
       for (const initialState of initialStates) {
         addDescendantStatesToEnter(
           initialState,
-          state,
+          historyValue,
           mutStatesToEnter,
           mutStatesForDefaultEntry
         );
@@ -1266,7 +1265,7 @@ function addDescendantStatesToEnter<
         addAncestorStatesToEnter(
           initialState,
           stateNode,
-          state,
+          historyValue,
           mutStatesToEnter,
           mutStatesForDefaultEntry
         );
@@ -1279,7 +1278,7 @@ function addDescendantStatesToEnter<
           if (![...mutStatesToEnter].some((s) => isDescendant(s, child))) {
             addDescendantStatesToEnter(
               child,
-              state,
+              historyValue,
               mutStatesToEnter,
               mutStatesForDefaultEntry
             );
@@ -1296,7 +1295,7 @@ function addAncestorStatesToEnter<
 >(
   stateNode: StateNode<TContext, TEvent>,
   toStateNode: StateNode<TContext, TEvent> | null,
-  state: State<TContext, TEvent>,
+  historyValue: HistoryValue<TContext, TEvent>,
   mutStatesToEnter: Set<typeof stateNode>,
   mutStatesForDefaultEntry: Set<typeof stateNode>
 ) {
@@ -1308,7 +1307,7 @@ function addAncestorStatesToEnter<
         if (![...mutStatesToEnter].some((s) => isDescendant(s, child))) {
           addDescendantStatesToEnter(
             child,
-            state,
+            historyValue,
             mutStatesToEnter,
             mutStatesForDefaultEntry
           );
@@ -1349,7 +1348,7 @@ export function microstep<
   const filteredTransitions = removeConflictingTransitions(
     transitions,
     mutConfiguration,
-    currentState || State.from({})
+    currentState.historyValue
   );
 
   let historyValue: HistoryValue<TContext, TEvent> = {};
@@ -1446,7 +1445,7 @@ export function microstep<
 
     computeEntrySet(
       filteredTransitions,
-      currentState,
+      currentState.historyValue,
       mutStatesToEnter,
       mutStatesForDefaultEntry
     );
@@ -1556,7 +1555,7 @@ function selectEventlessTransitions<
   return removeConflictingTransitions(
     Array.from(enabledTransitions),
     new Set(state.configuration),
-    state
+    state.historyValue
   );
 }
 

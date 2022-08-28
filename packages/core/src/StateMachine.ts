@@ -5,6 +5,7 @@ import {
   Spawner,
   StateFrom
 } from '.';
+import { initEvent } from './actions';
 import { STATE_DELIMITER } from './constants';
 import { execAction } from './exec';
 import { createSpawner } from './spawn';
@@ -305,10 +306,17 @@ export class StateMachine<
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const [context, actions] = this.getContextAndActions();
     const preInitial = this.resolveState(
-      State.from(
-        getStateValue(this.root, getConfiguration([this.root])),
-        context
-      )
+      this.createState({
+        value: getStateValue(this.root, getConfiguration([this.root])),
+        context,
+        _event: initEvent,
+        _sessionid: actorCtx?.sessionId ?? undefined,
+        actions: [],
+        meta: undefined,
+        configuration: [],
+        transitions: [],
+        children: {}
+      })
     );
     preInitial._initial = true;
     preInitial.actions.unshift(...actions);
@@ -389,11 +397,15 @@ export class StateMachine<
     const state =
       stateConfig instanceof State
         ? stateConfig
-        : (new State(stateConfig) as State<
-            TContext,
-            TEvent,
-            TResolvedTypesMeta
-          >);
+        : new State({
+            // value: stateConfig.value,
+            // context: stateConfig.context,
+            // _event: stateConfig._event,
+            // _sessionid: undefined,
+            actions: [],
+            meta: undefined,
+            ...stateConfig
+          });
 
     const configuration = getConfiguration(
       getStateNodes(this.root, state.value)
