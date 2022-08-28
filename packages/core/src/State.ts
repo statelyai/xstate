@@ -2,7 +2,12 @@ import { initEvent } from './actions';
 import { IS_PRODUCTION } from './environment';
 import { memo } from './memo';
 import type { StateNode } from './StateNode';
-import { isInFinalState, nextEvents } from './stateUtils';
+import {
+  getConfigurationFromStateValue,
+  getStateValue,
+  isInFinalState,
+  nextEvents
+} from './stateUtils';
 import { TypegenDisabled, TypegenEnabled } from './typegenTypes';
 import type {
   ActorRef,
@@ -173,7 +178,6 @@ export class State<
     config: StateConfig<TContext, TEvent>,
     public machine: AnyStateMachine
   ) {
-    this.value = config.value;
     this.context = config.context;
     this._event = config._event;
     this._sessionid = config._sessionid;
@@ -185,6 +189,11 @@ export class State<
     this.configuration = config.configuration;
     this.transitions = config.transitions;
     this.children = config.children;
+
+    this.value = getStateValue(
+      machine.root,
+      getConfigurationFromStateValue(machine, config.value)
+    );
   }
 
   /**

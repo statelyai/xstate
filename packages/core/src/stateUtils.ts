@@ -160,6 +160,17 @@ export function getConfiguration<
   return mutConfiguration;
 }
 
+export function getConfigurationFromStateValue(
+  machine: AnyStateMachine,
+  stateValue: StateValue
+): Set<StateNode<any, any>> {
+  const configuration = getConfiguration(
+    getStateNodes(machine.root, stateValue)
+  );
+
+  return configuration;
+}
+
 function getValueFromAdj<
   TContext extends MachineContext,
   TE extends EventObject
@@ -772,7 +783,7 @@ export function getStateNodes<
     .map((subStateKey) => getStateNode(stateNode, subStateKey))
     .filter(Boolean);
 
-  return [stateNode].concat(
+  return [stateNode.machine.root, stateNode].concat(
     childStateNodes,
     childStateKeys.reduce((allSubStateNodes, subStateKey) => {
       const subStateNode = getStateNode(stateNode, subStateKey);

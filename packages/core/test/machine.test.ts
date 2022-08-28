@@ -342,7 +342,7 @@ describe('machine', () => {
     });
 
     it('should resolve the state value', () => {
-      const tempState = State.from('foo');
+      const tempState = State.from('foo', undefined, resolveMachine);
 
       const resolvedState = resolveMachine.resolveState(tempState);
 
@@ -352,7 +352,7 @@ describe('machine', () => {
     });
 
     it('should resolve the state configuration (implicit via events)', () => {
-      const tempState = State.from('foo');
+      const tempState = State.from('foo', undefined, resolveMachine);
 
       const resolvedState = resolveMachine.resolveState(tempState);
 
@@ -371,7 +371,7 @@ describe('machine', () => {
           }
         }
       });
-      const tempState = State.from('bar');
+      const tempState = State.from('bar', undefined, machine);
 
       const resolvedState = machine.resolveState(tempState);
 

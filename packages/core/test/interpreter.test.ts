@@ -1216,7 +1216,7 @@ describe('interpreter', () => {
         done();
       });
 
-      startService.start(State.from('bar'));
+      startService.start(State.from('bar', undefined, startMachine));
     });
 
     it('should be able to be initialized at a custom state value', (done) => {
@@ -1234,7 +1234,7 @@ describe('interpreter', () => {
         done();
       });
 
-      startService.start(State.from('foo'));
+      startService.start(State.from('foo', undefined, startMachine));
     });
   });
 

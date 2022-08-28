@@ -232,7 +232,6 @@ export class StateMachine<
     const configurationSet = getConfiguration(
       getStateNodes(this.root, state.value)
     );
-    configurationSet.add(this.root); // TODO: fix in getStateNodes or getConfiguration
     const configuration = Array.from(configurationSet);
     return this.createState({
       ...state,
@@ -389,20 +388,7 @@ export class StateMachine<
       | StateConfig<TContext, TEvent>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const state =
-      stateConfig instanceof State
-        ? stateConfig
-        : new State(
-            {
-              // value: stateConfig.value,
-              // context: stateConfig.context,
-              // _event: stateConfig._event,
-              // _sessionid: undefined,
-              actions: [],
-              meta: undefined,
-              ...stateConfig
-            },
-            this
-          );
+      stateConfig instanceof State ? stateConfig : new State(stateConfig, this);
 
     const configuration = getConfiguration(
       getStateNodes(this.root, state.value)
