@@ -5,7 +5,6 @@ import {
   InternalMachineImplementations,
   InterpreterFrom,
   InterpreterOptions,
-  State,
   StateFrom
 } from 'xstate';
 import { MaybeLazy, Prop, UseMachineOptions } from './types';

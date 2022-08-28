@@ -1,4 +1,4 @@
-import { createMachine, State, StateFrom, interpret } from '../src/index';
+import { createMachine, StateFrom, interpret } from '../src/index';
 import { initEvent } from '../src/actions';
 import { assign } from '../src/actions/assign';
 import { toSCXMLEvent } from '../src/utils';

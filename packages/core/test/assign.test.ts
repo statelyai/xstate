@@ -1,11 +1,4 @@
-import {
-  interpret,
-  assign,
-  send,
-  sendParent,
-  State,
-  createMachine
-} from '../src';
+import { interpret, assign, send, sendParent, createMachine } from '../src';
 import { ActorRef } from '../src/types';
 
 interface CounterContext {

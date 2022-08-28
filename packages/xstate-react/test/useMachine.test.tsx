@@ -12,7 +12,6 @@ import {
   Interpreter,
   InterpreterFrom,
   send,
-  State,
   StateFrom
 } from 'xstate';
 import { fromCallback, fromPromise } from 'xstate/actors';

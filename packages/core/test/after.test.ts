@@ -1,4 +1,4 @@
-import { createMachine, interpret, State } from '../src';
+import { createMachine, interpret } from '../src';
 import { after, actionTypes } from '../src/actions';
 
 const lightMachine = createMachine({

@@ -122,15 +122,15 @@ export function getConfiguration<
   stateNodes: Iterable<StateNode<TContext, TEvent>>
 ): Set<StateNode<TContext, TEvent>> {
   const configuration = new Set(stateNodes);
-  const mutConfiguration = new Set(stateNodes);
+  const configurationSet = new Set(stateNodes);
 
-  const adjList = getAdjList(mutConfiguration);
+  const adjList = getAdjList(configurationSet);
 
   // add descendants
   for (const s of configuration) {
     // if previously active, add existing child nodes
     if (s.type === 'compound' && (!adjList.get(s) || !adjList.get(s)!.length)) {
-      getInitialStateNodes(s).forEach((sn) => mutConfiguration.add(sn));
+      getInitialStateNodes(s).forEach((sn) => configurationSet.add(sn));
     } else {
       if (s.type === 'parallel') {
         for (const child of getChildren(s)) {
@@ -138,9 +138,9 @@ export function getConfiguration<
             continue;
           }
 
-          if (!mutConfiguration.has(child)) {
+          if (!configurationSet.has(child)) {
             getInitialStateNodes(child).forEach((sn) =>
-              mutConfiguration.add(sn)
+              configurationSet.add(sn)
             );
           }
         }
@@ -149,16 +149,16 @@ export function getConfiguration<
   }
 
   // add all ancestors
-  for (const s of mutConfiguration) {
+  for (const s of configurationSet) {
     let m = s.parent;
 
     while (m) {
-      mutConfiguration.add(m);
+      configurationSet.add(m);
       m = m.parent;
     }
   }
 
-  return mutConfiguration;
+  return configurationSet;
 }
 
 export function getConfigurationFromStateValue(

@@ -367,8 +367,7 @@ export class StateNode<
             guard,
             resolvedContext,
             _event,
-            state,
-            this.machine
+            state
           );
       } catch (err) {
         throw new Error(

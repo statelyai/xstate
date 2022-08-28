@@ -12,7 +12,6 @@ import type {
 import { isStateId } from './stateUtils';
 import { isFunction, isString } from './utils';
 import type { State } from './State';
-import type { StateMachine } from './StateMachine';
 
 export function stateIn<
   TContext extends MachineContext,
