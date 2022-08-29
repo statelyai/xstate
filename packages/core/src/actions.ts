@@ -292,7 +292,7 @@ export function sendTo<
   TEvent extends EventObject,
   TActor extends AnyActorRef
 >(
-  actor: (ctx: TContext) => TActor,
+  actor: string | ((ctx: TContext) => TActor),
   event:
     | EventFrom<TActor>
     | SendExpr<

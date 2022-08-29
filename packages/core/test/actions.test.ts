@@ -2254,6 +2254,33 @@ describe('sendTo', () => {
       })
     });
   });
+
+  it('should be able to send an event to a named actor', (done) => {
+    const childMachine = createMachine<any, { type: 'EVENT' }>({
+      initial: 'waiting',
+      states: {
+        waiting: {
+          on: {
+            EVENT: {
+              actions: () => done()
+            }
+          }
+        }
+      }
+    });
+
+    const parentMachine = createMachine<{
+      child: ActorRefFrom<typeof childMachine>;
+    }>({
+      context: () => ({
+        child: spawn(childMachine, 'child')
+      }),
+      // No type-safety for the event yet
+      entry: sendTo('child', { type: 'EVENT' })
+    });
+
+    interpret(parentMachine).start();
+  });
 });
 
 it('should call transition actions in document order for same-level parallel regions', () => {
