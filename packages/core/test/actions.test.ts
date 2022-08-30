@@ -1682,6 +1682,32 @@ describe('purely defined actions', () => {
   });
 });
 
+describe('action groups', () => {
+  it('should execute actions provided as type strings in a group', () => {
+    const action1 = jest.fn();
+    const action2 = jest.fn();
+
+    const machine = Machine(
+      {
+        entry: ['group1']
+      },
+      {
+        actions: {
+          group1: ['action1', 'action2', 'group2'],
+          group2: ['action1', 'action2'],
+          action1,
+          action2
+        }
+      }
+    );
+
+    interpret(machine).start();
+
+    expect(action1).toHaveBeenCalledTimes(2);
+    expect(action2).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe('forwardTo()', () => {
   it('should forward an event to a service', (done) => {
     const child = Machine<void, { type: 'EVENT'; value: number }>({

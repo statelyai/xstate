@@ -152,6 +152,7 @@ export type BaseAction<
   | CancelAction
   | StopAction<TContext, TEvent>
   | ChooseAction<TContext, TEvent>
+  | ActionGroupAction<TContext, TEvent, TAction>
   | ActionFunction<TContext, TEvent>;
 
 export type BaseActions<
@@ -752,7 +753,8 @@ export type ActionFunctionMap<
         TContext,
         TEvent,
         TAction extends { type: K } ? TAction : never
-      >;
+      >
+    | Array<K>;
 };
 
 export type DelayFunctionMap<TContext, TEvent extends EventObject> = Record<
@@ -788,7 +790,8 @@ type MachineOptionsActions<
         TContext,
         Cast<Prop<TIndexedEvents, TEventsCausingActions[K]>, EventObject>,
         Cast<Prop<TIndexedActions, K>, BaseActionObject>
-      >;
+      >
+    | Array<Cast<Prop<TIndexedActions, K>, BaseActionObject>['type']>;
 };
 
 type MachineOptionsDelays<
@@ -1169,7 +1172,8 @@ export enum ActionTypes {
   ErrorCustom = 'xstate.error',
   Update = 'xstate.update',
   Pure = 'xstate.pure',
-  Choose = 'xstate.choose'
+  Choose = 'xstate.choose',
+  ActionGroup = 'xstate.actionGroup'
 }
 
 export interface RaiseAction<TEvent extends EventObject> {
@@ -1375,6 +1379,15 @@ export interface PureAction<TContext, TEvent extends EventObject>
     context: TContext,
     event: TEvent
   ) => SingleOrArray<ActionObject<TContext, TEvent>> | undefined;
+}
+
+export interface ActionGroupAction<
+  TContext,
+  TEvent extends EventObject,
+  TAction extends BaseActionObject
+> extends ActionObject<TContext, TEvent> {
+  type: ActionTypes.ActionGroup;
+  actions: Array<TAction['type']>;
 }
 
 export interface ChooseAction<TContext, TEvent extends EventObject>

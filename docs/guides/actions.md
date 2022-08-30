@@ -212,6 +212,57 @@ entry: send({ type: 'SOME_EVENT' });
 
 :::
 
+## Action groups
+
+An action can be defined as an "action group", which is an array of action `type` strings pointing to other actions that will be executed when the group is executed. This allows you to define named groups of actions that are executed together.
+
+```js
+const machine = createMachine(
+  {
+    on: {
+      event: { actions: 'group' }
+    }
+  },
+  {
+    actions: {
+      group: ['action1', 'action2'],
+      action1: () => console.log('action 1'),
+      action2: () => console.log('action 2')
+    }
+  }
+);
+
+const service = interpret(machine).start();
+
+service.send(service, 'event'); // "action 1", "action 2"
+```
+
+::: tip
+Action groups are useful for defining actions that should always be executed together. For example, if updating the context of a machine should always notify its parent of the change:
+
+```js
+const machine = createMachine(
+  {
+    context: { value: '' },
+    on: { valueUpdated: 'updateValue' }
+  },
+  {
+    actions: {
+      updateValue: ['setValue', 'notifyParent'],
+      setValue: assign({
+        value: (_context, event) => event.value
+      }),
+      notifyParent: sendParent((context) => ({
+        type: 'contextChanged',
+        updatedContext: context
+      }))
+    }
+  }
+);
+```
+
+:::
+
 ## Send action
 
 The `send(event)` action creator creates a special “send” action object that tells a service (i.e., [interpreted machine](./interpretation.md)) to send that event to itself. It queues an event to the running service, in the external event queue, which means the event is sent on the next “step” of the interpreter.

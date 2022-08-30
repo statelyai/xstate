@@ -40,7 +40,8 @@ import {
   Cast,
   EventFrom,
   AnyActorRef,
-  PredictableActionArgumentsExec
+  PredictableActionArgumentsExec,
+  ActionGroupAction
 } from './types';
 import * as actionTypes from './actionTypes';
 import {
@@ -72,9 +73,16 @@ export function getActionFunction<TContext, TEvent extends EventObject>(
   | ActionObject<TContext, TEvent>
   | ActionFunction<TContext, TEvent>
   | undefined {
-  return actionFunctionMap
-    ? actionFunctionMap[actionType] || undefined
-    : undefined;
+  const action = actionFunctionMap?.[actionType];
+
+  if (isArray(action)) {
+    return {
+      type: ActionTypes.ActionGroup,
+      actions: action
+    };
+  }
+
+  return action;
 }
 
 export function toActionObject<TContext, TEvent extends EventObject>(
@@ -741,15 +749,20 @@ export function resolveActions<TContext, TEvent extends EventObject>(
         preservedContexts?.push(updatedContext);
         return resolvedActionsFromChoose;
       }
+      case actionTypes.actionGroup:
       case actionTypes.pure: {
-        const matchedActions = (actionObject as PureAction<
-          TContext,
-          TEvent
-        >).get(updatedContext, _event.data);
+        const matchedActions =
+          actionObject.type === actionTypes.pure
+            ? (actionObject as PureAction<TContext, TEvent>).get(
+                updatedContext,
+                _event.data
+              )
+            : (actionObject as ActionGroupAction<TContext, TEvent, any>)
+                .actions;
         if (!matchedActions) {
           return [];
         }
-        const [resolvedActionsFromPure, resolvedContext] = resolveActions(
+        const [resolvedActions, resolvedContext] = resolveActions(
           machine,
           currentState,
           updatedContext,
@@ -765,7 +778,7 @@ export function resolveActions<TContext, TEvent extends EventObject>(
         );
         updatedContext = resolvedContext;
         preservedContexts?.push(updatedContext);
-        return resolvedActionsFromPure;
+        return resolvedActions;
       }
       case actionTypes.stop: {
         const resolved = resolveStop(
