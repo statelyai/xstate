@@ -4,23 +4,23 @@ This glossary is a guide to the most common terms in statecharts and state machi
 
 ## State machines
 
-A state machine is a model showing how you transition from state to state in a process when events occur.
+A state machine is a model that describes how the state of a process transitions to another state when an event occurs. State machines make building reliable software easier because they prevent impossible states and undesired transitions.
 
 State machines make building reliable software easier because they prevent impossible states and undesired transitions.
 
 ## Statecharts
 
-Statecharts are a visual language used to visualize state machines. You may have used similar diagrams in the past to design user flows, plan databases or map app architecture. Statecharts are another way of using boxes and arrows to represent flows. These flows are also executable code you can use to control the logic in your applications.
+Statecharts are a visual language used to express complex state machines in a simpler way. You may have used similar diagrams in the past to design user flows, plan data transformations or map app logic. Statecharts are another way of using boxes and arrows to represent these kinds of flows. These flows are also executable code you can use to control the logic directly in your application code.
 
 ![basic statechart with an initial state transitioning through an event to another state, then transitioning through another event to a final state.](./basic-statechart.png)
 
 ## States
 
-A state describes the status of the machine. A state can be as simple as _on_ and _off_. These states are finite; the machine can only move through the pre-defined states. And machines can only be in one state at a time, unless it is a [parent state](#parent-and-child-states) or a [parallel state](#parallel-states).
+A state describes the status of the machine. This status defines how the machine behaves when it receives an event. A state can be as simple as _active_ or _inactive_. These states are finite; the machine can only move through the predefined states. Machines can only be in one state at a time. [Parent states](#parent-and-child-states) and [parallel state](#parallel-states) can be used to express an overall state that is the combination of child states.
 
 ### Initial state
 
-When a state machine starts, it enters the **initial state** first. The initial state is represented by the <img alt='filled circle with an arrow pointing from the circle to the initial state' src='./initial-state-icon.png' height='24' width='24' style='display: inline; margin-bottom: -5px' /> icon. A machine can only have one initial state.
+When a state machine starts, it enters the **initial state** first. The initial state is represented by the <img alt='filled circle with an arrow pointing from the circle to the initial state' src='./initial-state-icon.png' height='24' width='24' style='display: inline; margin-bottom: -5px' /> icon. A machine can only have one top-level initial state.
 
 <!-- What a state might be -->
 
@@ -105,7 +105,7 @@ Wildcard transitions are useful for logging untracked events and reducing code d
 
 ## Actors, actions and invocations
 
-Statecharts are executable code. When you run a statechart, it becomes an actor; a running process that can receive messages, send messages and change its behavior based on the messages it receives, causing effects outside the machine.
+A statechart is an executable model of an actor. When you run a statechart, it becomes an actor; a running process that can receive messages, send messages and change its behavior based on the messages it receives, which can cause effects outside of the actor.
 
 While the statechart actor is running, it can run other processes called actions.
 
