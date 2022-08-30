@@ -1,5 +1,25 @@
 # xstate
 
+## 4.33.4
+
+### Patch Changes
+
+- [#3549](https://github.com/statelyai/xstate/pull/3549) [`768c4e938`](https://github.com/statelyai/xstate/commit/768c4e938d1f33b570d56f6c7f1ef454714c4b34) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with not being able to send events to initially started child actors when using `predictableActionArguments`.
+
+## 4.33.3
+
+### Patch Changes
+
+- [#3540](https://github.com/statelyai/xstate/pull/3540) [`121fad172`](https://github.com/statelyai/xstate/commit/121fad172560f26c9374582c65a48bbe540f5c6e) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue that caused `invoke`d actors to be created before resolving `assign` actions from `entry` of the same state when using `predictableActionArguments` flag.
+
+* [#3541](https://github.com/statelyai/xstate/pull/3541) [`6c081ab87`](https://github.com/statelyai/xstate/commit/6c081ab87c4d344012ff72bae295de8f3ccdcca1) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with not being able to read the updated snapshot of a child when receiving and processing events from it and when using `predictableActionArguments` flag.
+
+## 4.33.2
+
+### Patch Changes
+
+- [#3523](https://github.com/statelyai/xstate/pull/3523) [`129bcf927`](https://github.com/statelyai/xstate/commit/129bcf927e065d8d8a1a3425fa13b62c930a4727) Thanks [@Andarist](https://github.com/Andarist)! - Fixed a regression that caused child actors not being correctly stopped when their parent reached a final state.
+
 ## 4.33.1
 
 ### Patch Changes
