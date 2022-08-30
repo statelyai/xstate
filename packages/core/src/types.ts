@@ -409,7 +409,7 @@ export type StateNodesConfig<
 > = {
   [K in keyof TStateSchema['states']]: StateNode<
     TContext,
-    TStateSchema['states'][K],
+    NonNullable<TStateSchema['states'][K]>,
     TEvent
   >;
 };
@@ -422,7 +422,7 @@ export type StatesConfig<
 > = {
   [K in keyof TStateSchema['states']]: StateNodeConfig<
     TContext,
-    TStateSchema['states'][K],
+    NonNullable<TStateSchema['states'][K]>,
     TEvent,
     TAction
   >;
@@ -435,7 +435,7 @@ export type StatesDefinition<
 > = {
   [K in keyof TStateSchema['states']]: StateNodeDefinition<
     TContext,
-    TStateSchema['states'][K],
+    NonNullable<TStateSchema['states'][K]>,
     TEvent
   >;
 };
