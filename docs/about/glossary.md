@@ -10,7 +10,7 @@ State machines make building reliable software easier because they prevent impos
 
 ## Statecharts
 
-Statecharts are a visual extension to state machines enabling you to model more complex logic including hierarchy, concurrency, and communication.
+Statecharts are a visual extension to state machines enabling you to model more complex logic, including hierarchy, concurrency, and communication.
 
 You may have used similar diagrams in the past to design user flows, plan data transformations or map app logic. Statecharts are another way of using boxes and arrows to represent these kinds of flows. These flows are also executable code you can use to control the logic directly in your application code.
 
@@ -22,13 +22,13 @@ A state describes the status of the machine. This status defines how the machine
 
 ### Initial state
 
-When a state machine starts, it enters the **initial state** first. The initial state is represented by the <img alt='filled circle with an arrow pointing from the circle to the initial state' src='./initial-state-icon.png' height='24' width='24' style='display: inline; margin-bottom: -5px' /> icon. A machine can only have one top-level initial state.
+When a state machine starts, it enters the **initial state** first. The <img alt='filled circle with an arrow pointing from the circle to the initial state' src='./initial-state-icon.png' height='24' width='24' style='display: inline; margin-bottom: -5px' /> icon represents the initial state. A machine can only have one top-level initial state.
 
 <!-- What a state might be -->
 
 #### Initial states in child states
 
-Inside a parent state, you must specify which child state is the initial state, which the machine enters automatically when it enters the parent state. The initial state is represented by the <img alt='filled circle with an arrow pointing from the circle to the initial state' src='./initial-state-icon.png' height='24' width='24' style='display: inline; margin-bottom: -5px' /> icon.
+Inside a parent state, you must specify which child state is the initial state, which the machine enters automatically when it enters the parent state. The <img alt='filled circle with an arrow pointing from the circle to the initial state' src='./initial-state-icon.png' height='24' width='24' style='display: inline; margin-bottom: -5px' /> icon represents the initial state.
 
 <!-- What is a typical initial state -->
 
@@ -42,7 +42,7 @@ States can contain more states, also known as child states. These child states c
 
 ### Final state
 
-When a machine reaches the final state, it can no longer receive any events, and anything running inside the machine is canceled and cleaned up. The final state is represented by the <img alt='box with a surrounding border' src='./final-state-icon.png' height='24' width='24' style='display: inline; margin-bottom: -6px' /> icon.
+When a machine reaches the final state, it can no longer receive any events, and anything running inside it is canceled and cleaned up. The <img alt='box with a surrounding border' src='./final-state-icon.png' height='24' width='24' style='display: inline; margin-bottom: -6px' /> icon represents the final state.
 
 A machine can have multiple final states or no final states.
 
@@ -50,7 +50,7 @@ A machine can have multiple final states or no final states.
 
 ### Parallel states
 
-A parallel state is a parent state that is separated into multiple regions of states, where each region is active simultaneously. Regions are represented by a dashed line around each region.
+A parallel state is a parent state separated into multiple regions of child states, where each region is active simultaneously. Regions are represented by a dashed line around each region.
 
 <!-- Why you might use parallel states -->
 
@@ -58,14 +58,14 @@ A parallel state is a parent state that is separated into multiple regions of st
 
 ### History state
 
-A history state returns the machine to the most recently active state. The history state is represented by the <img alt='box with an H inside' src='./history-state-icon.png' height='24' width='24' style='display: inline; margin-bottom: -6px' /> icon.
+A history state returns the machine to the most recently active state. The <img alt='box with an H inside' src='./history-state-icon.png' height='24' width='24' style='display: inline; margin-bottom: -6px' /> icon represents the history state.
 
 The history state can be deep or shallow:
 
 - A shallow history state remembers the immediate child’s state.
 - A deep history state remembers the deepest active state or states inside its child states.
 
-The deep history state is represented by the <img alt='box with an H and asterisk inside' src='./deep-history-state-icon.png' height='24' width='24' style='display: inline; margin-bottom: -6px' /> icon.
+The <img alt='box with an H and asterisk inside' src='./deep-history-state-icon.png' height='24' width='24' style='display: inline; margin-bottom: -6px' /> icon represents the deep history state.
 
 <!-- What you might use a shallow history state for -->
 
@@ -85,13 +85,13 @@ A guard is a condition that the machine checks when it goes through an event. If
 
 ### Eventless transitions
 
-Eventless transitions are transitions without events. These transitions **always** run when the machine goes through the event; no event is necessary to trigger the transition. Eventless transitions are labeled “always” and often refered to as “always” transitions.
+Eventless transitions are transitions without events. These transitions are **always** taken after any transition in their state if enabled; no event is necessary to trigger the transition. Eventless transitions are labeled “always” and often referred to as “always” transitions.
 
 <!-- What you might use an eventless transition for -->
 
 ### Wildcard transitions
 
-Wildcard transitions are triggered by any event not already handled by the current state. Wildcard transitions are represented by a \*.
+Wildcard transitions are triggered by any event not already handled by the current state. Wildcard transitions are represented by an asterisk \*.
 
 Wildcard transitions are useful for logging untracked events and reducing code duplication.
 
@@ -117,4 +117,4 @@ An action can be fired upon entry or exit of a state and can also be fired on tr
 
 <!-- What you might use an action transition for -->
 
-An invoked actor is an action that can run continuously and return information back to the machine. A state can invoke these actions, including communicating with other actors.
+An invoked actor is an actor that can execute its own actions and communicate with the machine. These invoked actors are started in a state and stopped when the state is exited.
