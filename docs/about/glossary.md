@@ -10,7 +10,9 @@ State machines make building reliable software easier because they prevent impos
 
 ## Statecharts
 
-Statecharts are a visual language used to express complex state machines in a simpler way. You may have used similar diagrams in the past to design user flows, plan data transformations or map app logic. Statecharts are another way of using boxes and arrows to represent these kinds of flows. These flows are also executable code you can use to control the logic directly in your application code.
+Statecharts are a visual extension to state machines enabling you to model more complex logic including hierarchy, concurrency, and communication.
+
+You may have used similar diagrams in the past to design user flows, plan data transformations or map app logic. Statecharts are another way of using boxes and arrows to represent these kinds of flows. These flows are also executable code you can use to control the logic directly in your application code.
 
 ![basic statechart with an initial state transitioning through an event to another state, then transitioning through another event to a final state.](./basic-statechart.png)
 
@@ -83,7 +85,7 @@ A guard is a condition that the machine checks when it goes through an event. If
 
 ### Eventless transitions
 
-Eventless transitions are transitions without events. These transitions **always** run when the machine goes through the event; no event is necessary to trigger the transition. Eventless transitions are labeled “always.”
+Eventless transitions are transitions without events. These transitions **always** run when the machine goes through the event; no event is necessary to trigger the transition. Eventless transitions are labeled “always” and often refered to as “always” transitions.
 
 <!-- What you might use an eventless transition for -->
 
@@ -103,7 +105,7 @@ Wildcard transitions are useful for logging untracked events and reducing code d
 
 <!-- Will be in v5 -->
 
-## Actors, actions and invocations
+## Actors, actions and invoked actors
 
 A statechart is an executable model of an actor. When you run a statechart, it becomes an actor; a running process that can receive messages, send messages and change its behavior based on the messages it receives, which can cause effects outside of the actor.
 
@@ -115,4 +117,4 @@ An action can be fired upon entry or exit of a state and can also be fired on tr
 
 <!-- What you might use an action transition for -->
 
-An invocation is an action that can run continuously and return information back to the machine. A state can invoke these actions, including communicating with other actors.
+An invoked actor is an action that can run continuously and return information back to the machine. A state can invoke these actions, including communicating with other actors.
