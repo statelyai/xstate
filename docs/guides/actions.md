@@ -214,27 +214,35 @@ entry: send({ type: 'SOME_EVENT' });
 
 ## Action groups
 
-An action can be defined as an "action group", which is an array of action `type` strings pointing to other actions that will be executed when the group is executed. This allows you to define named groups of actions that are executed together.
+An action can be defined as an "action group" which is an array of actions that will be executed when the group action is executed. This allows you to define named groups of actions that are executed together.
 
 ```js
 const machine = createMachine(
   {
+    context: { value: '' },
     on: {
-      event: { actions: 'group' }
+      valueUpdated: { actions: 'updateValue' }
     }
   },
   {
     actions: {
-      group: ['action1', 'action2'],
-      action1: () => console.log('action 1'),
-      action2: () => console.log('action 2')
+      updateValue: [
+        assign({
+          value: (_context, event) => event.value
+        }),
+        'capitalizeValue',
+        (context) => console.log(`Value: ${context.value}`)
+      ],
+      capitalizeValue: assign({
+        value: (context) => context.value.toUpperCase()
+      })
     }
   }
 );
 
 const service = interpret(machine).start();
 
-service.send(service, 'event'); // "action 1", "action 2"
+service.send({ type: 'valueUpdated', value: 'hello' }); // logs "Value: HELLO"
 ```
 
 ::: tip

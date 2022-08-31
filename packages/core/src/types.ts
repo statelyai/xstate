@@ -754,7 +754,15 @@ export type ActionFunctionMap<
         TEvent,
         TAction extends { type: K } ? TAction : never
       >
-    | Array<K>;
+    | Array<
+        | ActionObject<TContext, TEvent>
+        | ActionFunction<
+            TContext,
+            TEvent,
+            TAction extends { type: K } ? TAction : never
+          >
+        | K
+      >;
 };
 
 export type DelayFunctionMap<TContext, TEvent extends EventObject> = Record<
@@ -791,7 +799,18 @@ type MachineOptionsActions<
         Cast<Prop<TIndexedEvents, TEventsCausingActions[K]>, EventObject>,
         Cast<Prop<TIndexedActions, K>, BaseActionObject>
       >
-    | Array<Cast<Prop<TIndexedActions, K>, BaseActionObject>['type']>;
+    | Array<
+        | ActionObject<
+            TContext,
+            Cast<Prop<TIndexedEvents, TEventsCausingActions[K]>, EventObject>
+          >
+        | ActionFunction<
+            TContext,
+            Cast<Prop<TIndexedEvents, TEventsCausingActions[K]>, EventObject>,
+            Cast<Prop<TIndexedActions, K>, BaseActionObject>
+          >
+        | keyof TEventsCausingActions
+      >;
 };
 
 type MachineOptionsDelays<
@@ -1387,7 +1406,11 @@ export interface ActionGroupAction<
   TAction extends BaseActionObject
 > extends ActionObject<TContext, TEvent> {
   type: ActionTypes.ActionGroup;
-  actions: Array<TAction['type']>;
+  actions: Array<
+    | TAction['type']
+    | ActionObject<TContext, TEvent>
+    | ActionFunction<TContext, TEvent>
+  >;
 }
 
 export interface ChooseAction<TContext, TEvent extends EventObject>

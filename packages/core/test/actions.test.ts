@@ -1689,7 +1689,7 @@ describe('action groups', () => {
 
     const machine = Machine(
       {
-        entry: ['group1']
+        entry: 'group1'
       },
       {
         actions: {
@@ -1705,6 +1705,203 @@ describe('action groups', () => {
 
     expect(action1).toHaveBeenCalledTimes(2);
     expect(action2).toHaveBeenCalledTimes(2);
+  });
+
+  it('should execute actions provided as action objects in a group', () => {
+    const action1 = jest.fn();
+    const action2 = jest.fn();
+
+    const machine = Machine(
+      {
+        entry: 'group1'
+      },
+      {
+        actions: {
+          group1: [
+            { type: 'action1' },
+            { type: 'action2' },
+            { type: 'group2' }
+          ],
+          group2: [{ type: 'action1' }, { type: 'action2' }],
+          action1,
+          action2
+        }
+      }
+    );
+
+    interpret(machine).start();
+
+    expect(action1).toHaveBeenCalledTimes(2);
+    expect(action2).toHaveBeenCalledTimes(2);
+  });
+
+  it('should execute actions provided as action functions in a group', () => {
+    const action1 = jest.fn();
+    const action2 = jest.fn();
+
+    const context = { value: 'string' };
+
+    const machine = Machine(
+      {
+        context,
+        on: {
+          event: { actions: 'group1' }
+        }
+      },
+      {
+        actions: {
+          group1: [
+            (context) => action1(context),
+            (_context, event) => action2(event)
+          ]
+        }
+      }
+    );
+
+    const service = interpret(machine).start();
+
+    service.send({ type: 'event', value: 'someValue' });
+
+    expect(action1).toHaveBeenCalledWith({ value: 'string' });
+    expect(action2).toHaveBeenCalledWith({ type: 'event', value: 'someValue' });
+  });
+
+  it('should execute a mix of actions in a group', () => {
+    const action1 = jest.fn();
+    const action2 = jest.fn();
+
+    const machine = Machine(
+      {
+        entry: 'group1',
+        context: {
+          value: ''
+        }
+      },
+      {
+        actions: {
+          group1: [
+            assign({
+              value: (_context) => 'someValue'
+            }),
+            (context) => action1(context),
+            'group2'
+          ],
+          group2: [
+            assign({
+              // @ts-expect-error
+              value: (context) => `${context.value}!`
+            }),
+            'action2'
+          ],
+          action2
+        }
+      }
+    );
+
+    interpret(machine).start();
+
+    expect(action1).toHaveBeenCalledWith({ value: 'someValue!' });
+    expect(action2).toHaveBeenCalled();
+  });
+
+  it('groups respect preserveActionOrder', () => {
+    const action1 = jest.fn();
+
+    const machine = createMachine(
+      {
+        preserveActionOrder: true,
+        entry: 'group1',
+        context: { value: '' }
+      },
+      {
+        actions: {
+          // @ts-expect-error
+          group1: [
+            'action1',
+            assign({
+              value: (_context) => 'a'
+            }),
+            'action1',
+            'group2'
+          ],
+          // @ts-expect-error
+          group2: [
+            assign({
+              value: (context) =>
+                // @ts-expect-error
+                context.value + 'b'
+            }),
+            'action1',
+            'group3'
+          ],
+          group3: [
+            // @ts-expect-error
+            assign({
+              value: (context) =>
+                // @ts-expect-error
+                context.value + 'c'
+            }),
+            'action1'
+          ],
+          action1: (context) => action1(context.value)
+        }
+      }
+    );
+
+    interpret(machine).start();
+
+    expect(action1).toHaveBeenNthCalledWith(1, '');
+    expect(action1).toHaveBeenNthCalledWith(2, 'a');
+    expect(action1).toHaveBeenNthCalledWith(3, 'ab');
+    expect(action1).toHaveBeenNthCalledWith(4, 'abc');
+  });
+
+  it('type strings in groups play nicely with typegen', () => {
+    interface Typegen0 {
+      '@@xstate/typegen': true;
+      eventsCausingActions: {
+        updateValue: 'update';
+        setValue: 'update';
+        displayValue: 'display';
+        incrementInteractionCount: 'update' | 'display';
+        logValue: 'update' | 'display';
+      };
+    }
+
+    // @ts-ignore
+    const machine = createMachine(
+      {
+        tsTypes: {} as Typegen0,
+        schema: {
+          context: {} as {
+            value: string;
+            interactionCount: number;
+          },
+          events: {} as { type: 'display' } | { type: 'update'; value: string }
+        },
+        context: {
+          value: '',
+          interactionCount: 0
+        },
+        on: {
+          update: { actions: 'updateValue' },
+          display: { actions: 'displayValue' }
+        }
+      },
+      {
+        actions: {
+          updateValue: ['incrementInteractionCount', 'setValue'],
+          displayValue: ['incrementInteractionCount', 'logValue'],
+          setValue: assign({
+            value: (_context, event) => event.value
+          }),
+          incrementInteractionCount: assign({
+            interactionCount: (context) => context.interactionCount + 1
+          }),
+          logValue: log((context) => `Value: ${context.value}`)
+        }
+      }
+    );
   });
 });
 
