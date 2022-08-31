@@ -1183,7 +1183,7 @@ export class Interpreter<
   }
   public spawnMachine<
     TChildContext,
-    TChildStateSchema,
+    TChildStateSchema extends StateSchema,
     TChildEvent extends EventObject
   >(
     machine: StateMachine<TChildContext, TChildStateSchema, TChildEvent>,

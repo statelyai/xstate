@@ -440,7 +440,7 @@ describe('context', () => {
   });
 
   it('should work with generic context', () => {
-    function createMachineWithExtras<TContext>(
+    function createMachineWithExtras<TContext extends {}>(
       context: TContext
     ): StateMachine<TContext, any, any> {
       return createMachine({ context });
