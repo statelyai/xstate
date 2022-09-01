@@ -5,6 +5,7 @@ const { jest: lernaAliases } = require('lerna-alias');
 module.exports = {
   preset: 'ts-jest',
   moduleNameMapper: lernaAliases(),
+  moduleFileExtensions: ['js', 'ts', 'tsx', 'vue'],
   transform: {
     // process *.vue files with vue-jest
     '^.+\\.vue$': require.resolve('@vue/vue3-jest')
