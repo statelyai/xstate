@@ -7,7 +7,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, onRenderTracked } from 'vue';
+import { defineComponent, onRenderTriggered } from 'vue';
 import { assign, createMachine } from 'xstate';
 import { useInterpret, useSelector } from '../src';
 
@@ -38,7 +38,7 @@ export default defineComponent({
 
     let rerenders = 0;
 
-    onRenderTracked(() => {
+    onRenderTriggered(() => {
       rerenders++;
       emit('rerender', rerenders);
     });
