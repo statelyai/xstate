@@ -773,6 +773,8 @@ export class Interpreter<
       return;
     }
 
+    const exec = !!this.machine.config.predictableActionArguments && this._exec;
+
     this.scheduler.schedule(() => {
       let nextState = this.state;
       let batchChanged = false;
@@ -783,13 +785,20 @@ export class Interpreter<
         this.forward(_event);
 
         nextState = serviceScope.provide(this, () => {
-          return this.machine.transition(nextState, _event);
+          return this.machine.transition(
+            nextState,
+            _event,
+            undefined,
+            exec || undefined
+          );
         });
 
         batchedActions.push(
-          ...(nextState.actions.map((a) =>
-            bindActionToState(a, nextState)
-          ) as Array<ActionObject<TContext, TEvent>>)
+          ...(this.machine.config.predictableActionArguments
+            ? nextState.actions
+            : (nextState.actions.map((a) =>
+                bindActionToState(a, nextState)
+              ) as Array<ActionObject<TContext, TEvent>>))
         );
 
         batchChanged = batchChanged || !!nextState.changed;
