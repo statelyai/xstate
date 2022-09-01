@@ -723,4 +723,56 @@ describe('predictableExec', () => {
 
     expect(service.getSnapshot().value).toBe('done');
   });
+
+  it('should execute actions when sending batched events', () => {
+    let executed = false;
+
+    const machine = createMachine({
+      predictableActionArguments: true,
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {
+          entry: () => (executed = true)
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    service.send([{ type: 'NEXT' }]);
+
+    expect(executed).toBe(true);
+  });
+
+  it('should deliver events sent to other actors when using batched events', () => {
+    let gotEvent = false;
+
+    const machine = createMachine({
+      predictableActionArguments: true,
+      invoke: {
+        id: 'myChild',
+        src: () => (_sendBack, onReceive) => {
+          onReceive(() => {
+            gotEvent = true;
+          });
+        }
+      },
+      on: {
+        PING_CHILD: {
+          actions: send({ type: 'PING' }, { to: 'myChild' })
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    service.send([{ type: 'PING_CHILD' }]);
+
+    expect(gotEvent).toBe(true);
+  });
 });
