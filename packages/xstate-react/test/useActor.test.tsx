@@ -13,10 +13,12 @@ import {
 } from 'xstate';
 import { useMachine } from '../src';
 import { useActor } from '../src/useActor';
-import { describeEachReactMode } from './utils';
+import { describeEachReactMode, once } from './utils';
 
 describeEachReactMode('useActor (%s)', ({ render }) => {
   it('initial invoked actor should be immediately available', (done) => {
+    const onDone = once(done);
+
     const childMachine = createMachine({
       id: 'childMachine',
       initial: 'active',
@@ -42,7 +44,7 @@ describeEachReactMode('useActor (%s)', ({ render }) => {
 
       expect(state.value).toEqual('active');
 
-      done();
+      onDone();
 
       return null;
     };
@@ -61,6 +63,8 @@ describeEachReactMode('useActor (%s)', ({ render }) => {
   });
 
   it('invoked actor should be able to receive (deferred) events that it replays when active', (done) => {
+    const onDone = once(done);
+
     const childMachine = createMachine({
       id: 'childMachine',
       initial: 'active',
@@ -104,7 +108,7 @@ describeEachReactMode('useActor (%s)', ({ render }) => {
       const [state] = useMachine(machine);
 
       if (state.matches('success')) {
-        done();
+        onDone();
       }
 
       return (
@@ -118,6 +122,8 @@ describeEachReactMode('useActor (%s)', ({ render }) => {
   });
 
   it('initial spawned actor should be immediately available', (done) => {
+    const onDone = once(done);
+
     const childMachine = createMachine({
       id: 'childMachine',
       initial: 'active',
@@ -151,7 +157,7 @@ describeEachReactMode('useActor (%s)', ({ render }) => {
 
       expect(state.value).toEqual('active');
 
-      done();
+      onDone();
 
       return null;
     };
@@ -167,6 +173,8 @@ describeEachReactMode('useActor (%s)', ({ render }) => {
   });
 
   it('spawned actor should be able to receive (deferred) events that it replays when active', (done) => {
+    const onDone = once(done);
+
     const childMachine = createMachine({
       id: 'childMachine',
       initial: 'active',
@@ -214,7 +222,7 @@ describeEachReactMode('useActor (%s)', ({ render }) => {
       const [state] = useMachine(machine);
 
       if (state.matches('success')) {
-        done();
+        onDone();
       }
 
       const { actorRef } = state.context;
@@ -326,6 +334,8 @@ describeEachReactMode('useActor (%s)', ({ render }) => {
   });
 
   it('send() should be stable', (done) => {
+    const onDone = once(done);
+
     jest.useFakeTimers();
     const fakeSubscribe = () => {
       return {
@@ -343,7 +353,7 @@ describeEachReactMode('useActor (%s)', ({ render }) => {
     });
     const lastActor = toActorRef({
       send: () => {
-        done();
+        onDone();
       },
       subscribe: fakeSubscribe
     });

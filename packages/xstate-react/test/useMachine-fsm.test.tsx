@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useMachine } from '../src/fsm';
 import { createMachine, assign, interpret, StateMachine } from '@xstate/fsm';
 import { fireEvent, screen } from '@testing-library/react';
-import { describeEachReactMode } from './utils';
+import { describeEachReactMode, once } from './utils';
 
 describeEachReactMode('useMachine, fsm (%s)', ({ suiteKey, render }) => {
   const context = {
@@ -81,7 +81,9 @@ describeEachReactMode('useMachine, fsm (%s)', ({ suiteKey, render }) => {
     render(<Test />);
   });
 
-  it('actions should not have stale data', async (done) => {
+  it('actions should not have stale data', (done) => {
+    const onDone = jest.fn().mockImplementationOnce(done);
+
     const toggleMachine = createMachine({
       initial: 'inactive',
       states: {
@@ -99,7 +101,7 @@ describeEachReactMode('useMachine, fsm (%s)', ({ suiteKey, render }) => {
 
       const doAction = React.useCallback(() => {
         expect(ext).toBeTruthy();
-        done();
+        onDone();
       }, [ext]);
 
       const [, send] = useMachine(toggleMachine, {
@@ -135,7 +137,8 @@ describeEachReactMode('useMachine, fsm (%s)', ({ suiteKey, render }) => {
     fireEvent.click(button);
   });
 
-  it('should keep options defined on a machine when they are not possed to `useMachine` hook', async (done) => {
+  it('should keep options defined on a machine when they are not possed to `useMachine` hook', (done) => {
+    const onDone = once(done);
     let actual = false;
 
     const toggleMachine = createMachine(
@@ -165,7 +168,7 @@ describeEachReactMode('useMachine, fsm (%s)', ({ suiteKey, render }) => {
       React.useEffect(() => {
         send('TOGGLE');
         expect(actual).toEqual(true);
-        done();
+        onDone();
       }, []);
 
       return null;
@@ -174,7 +177,8 @@ describeEachReactMode('useMachine, fsm (%s)', ({ suiteKey, render }) => {
     render(<Comp />);
   });
 
-  it('should be able to lookup initial action passed to the hook', async (done) => {
+  it('should be able to lookup initial action passed to the hook', (done) => {
+    const onDone = once(done);
     let outer = false;
 
     const machine = createMachine(
@@ -209,7 +213,7 @@ describeEachReactMode('useMachine, fsm (%s)', ({ suiteKey, render }) => {
       React.useEffect(() => {
         expect(outer).toBe(false);
         expect(inner).toBe(true);
-        done();
+        onDone();
       }, []);
 
       return null;
@@ -356,6 +360,8 @@ describeEachReactMode('useMachine, fsm (%s)', ({ suiteKey, render }) => {
   });
 
   it('child component should be able to send an event to a parent immediately in an effect', (done) => {
+    const onDone = once(done);
+
     const machine = createMachine<any, { type: 'FINISH' }>({
       initial: 'active',
       states: {
@@ -380,7 +386,7 @@ describeEachReactMode('useMachine, fsm (%s)', ({ suiteKey, render }) => {
       const [state, send] = useMachine(machine);
 
       if (state.matches('success')) {
-        done();
+        onDone();
       }
 
       return <ChildTest send={send} />;

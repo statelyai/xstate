@@ -35,3 +35,6 @@ export function describeEachReactMode(
     });
   });
 }
+
+export const once = (fn: (...args: any[]) => any) =>
+  jest.fn().mockImplementationOnce(fn);
