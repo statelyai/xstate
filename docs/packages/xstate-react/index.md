@@ -240,7 +240,7 @@ import { someMachine } from '../path/to/someMachine';
 
 const selectCount = (state) => state.context.count;
 
-const App = ({ service }) => {
+const App = () => {
   const service = useInterpret(someMachine);
   const count = useSelector(service, selectCount);
 
