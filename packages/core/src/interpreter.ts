@@ -769,6 +769,10 @@ export class Interpreter<
       );
     }
 
+    if (!events.length) {
+      return;
+    }
+
     this.scheduler.schedule(() => {
       let nextState = this.state;
       let batchChanged = false;
