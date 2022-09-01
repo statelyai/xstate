@@ -759,18 +759,6 @@ export class Interpreter<
     }
 
     if (!events.length) {
-      const currentState = this.state;
-      const nextState: AnyState = new State({
-        ...currentState,
-        history: currentState,
-        actions: [],
-        transitions: []
-      });
-      nextState.changed = false;
-      if (nextState.history) {
-        delete nextState.history.history;
-      }
-      this._state = nextState;
       return;
     }
 
