@@ -1910,7 +1910,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       service.start();
     });
 
-    it('state.children should reference invoked child actors (observable)', (done) => {
+    it.skip('state.children should reference invoked child actors (observable)', (done) => {
       const interval$ = interval(10);
 
       const parentMachine = Machine({
