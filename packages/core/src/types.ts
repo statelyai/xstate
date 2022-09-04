@@ -1762,9 +1762,16 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
       >
     : R extends Promise<infer U>
     ? ActorRef<{ type: string }, U | undefined>
-    : R extends Behavior<infer TEvent, infer TSnapshot>
-    ? ActorRef<TEvent, TSnapshot>
+    : R extends AnyBehavior
+    ? ActorRefFromBehavior<R>
     : never
+  : never;
+
+export type ActorRefFromBehavior<T> = T extends Behavior<
+  infer TEvent,
+  infer TSnapshot
+>
+  ? ActorRef<TEvent, TSnapshot>
   : never;
 
 export type DevToolsAdapter = (service: AnyInterpreter) => void;
@@ -1826,6 +1833,7 @@ export interface ActorContext<TEvent extends EventObject, TSnapshot> {
   logger: (...args: any[]) => void;
   exec: ((fn: () => void) => void) | undefined;
   defer: ((fn: () => void) => void) | undefined;
+  observers: Set<Observer<TSnapshot>>;
 }
 
 export interface Behavior<
@@ -1846,6 +1854,8 @@ export interface Behavior<
   getSnapshot?: (state: TInternalState) => TSnapshot;
   start?: (actorCtx: ActorContext<TEvent, TSnapshot>) => TInternalState;
 }
+
+export type AnyBehavior = Behavior<AnyEventObject, any, any>;
 
 export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends Interpreter<infer _, infer __>

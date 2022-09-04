@@ -174,11 +174,13 @@ export function fromPromise<T>(
     T | undefined,
     { canceled: boolean; data: T | undefined }
   > = {
-    transition: (state, event, { self, name }) => {
+    transition: (state, event, { self, name, observers }) => {
       const _event = toSCXMLEvent(event);
       if (state.canceled) {
         return state;
       }
+
+      const eventObject = _event.data;
 
       switch (_event.name) {
         case startSignalType:
@@ -195,11 +197,11 @@ export function fromPromise<T>(
           return state;
         case resolveEventType:
           self._parent?.send(
-            toSCXMLEvent(doneInvoke(name, _event.data.data) as any, {
+            toSCXMLEvent(doneInvoke(name, eventObject.data) as any, {
               origin: self
             })
           );
-          return { ...state, data: event.data };
+          return { ...state, data: eventObject.data };
         case rejectEventType:
           const errorEvent = error(name, _event.data.data);
 
@@ -208,6 +210,9 @@ export function fromPromise<T>(
               origin: self
             })
           );
+
+          observers.forEach((observer) => observer.error?.(eventObject.data));
+
           return { ...state, data: event.data };
         case stopSignalType:
           return { ...state, canceled: true };

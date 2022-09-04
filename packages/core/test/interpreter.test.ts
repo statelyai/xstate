@@ -1092,7 +1092,7 @@ describe('interpreter', () => {
     });
   });
 
-  describe('send()', () => {
+  describe('.send()', () => {
     const sendMachine = createMachine({
       id: 'send',
       initial: 'inactive',
@@ -1170,7 +1170,7 @@ describe('interpreter', () => {
     });
   });
 
-  describe('start()', () => {
+  describe('.start()', () => {
     const startMachine = createMachine({
       id: 'start',
       initial: 'foo',
@@ -1240,7 +1240,7 @@ describe('interpreter', () => {
     });
   });
 
-  describe('stop()', () => {
+  describe('.stop()', () => {
     it('should cancel delayed events', (done) => {
       let called = false;
       const delayedMachine = createMachine({
@@ -1316,7 +1316,7 @@ describe('interpreter', () => {
     });
   });
 
-  describe('off()', () => {
+  describe('.off()', () => {
     it('should remove transition listeners', () => {
       const toggleMachine = createMachine({
         id: 'toggle',
@@ -1337,7 +1337,7 @@ describe('interpreter', () => {
 
       const listener = () => stateCount++;
 
-      toggleService.onTransition(listener);
+      const sub = toggleService.subscribe(listener);
 
       expect(stateCount).toEqual(1);
 
@@ -1349,7 +1349,7 @@ describe('interpreter', () => {
 
       expect(stateCount).toEqual(3);
 
-      toggleService.off(listener);
+      sub.unsubscribe();
       toggleService.send({ type: 'TOGGLE' });
 
       expect(stateCount).toEqual(3);
@@ -1565,8 +1565,8 @@ describe('interpreter', () => {
     });
   });
 
-  describe('services', () => {
-    it("doesn't crash cryptically on undefined return from the service creator", () => {
+  describe('actors', () => {
+    it("doesn't crash cryptically on undefined return from the actor creator", () => {
       const machine = createMachine(
         {
           initial: 'initial',
@@ -1835,6 +1835,47 @@ describe('interpreter', () => {
           service.send({ type: 'NEXT' });
         }
       });
+    });
+  });
+
+  describe('fromPromise', () => {
+    it('should resolve', (done) => {
+      const actor = interpret(fromPromise(() => Promise.resolve(42)));
+
+      actor.subscribe((state) => {
+        if (state === 42) {
+          done();
+        }
+      });
+
+      actor.start();
+    });
+
+    it('should resolve (observer .next)', (done) => {
+      const actor = interpret(fromPromise(() => Promise.resolve(42)));
+
+      actor.subscribe({
+        next: (state) => {
+          if (state === 42) {
+            done();
+          }
+        }
+      });
+
+      actor.start();
+    });
+
+    it('should reject (observer .error)', (done) => {
+      const actor = interpret(fromPromise(() => Promise.reject('Error')));
+
+      actor.subscribe({
+        error: (data) => {
+          expect(data).toBe('Error');
+          done();
+        }
+      });
+
+      actor.start();
     });
   });
 });
