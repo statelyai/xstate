@@ -1781,6 +1781,15 @@ export function macrostep<TMachine extends AnyStateMachine>(
     const eventlessTransitions = selectEventlessTransitions(nextState);
 
     if (eventlessTransitions.length === 0) {
+      // TODO: this is a bit of a hack, we need to review this
+      // this matches the behavior from v4 for eventless transitions
+      // where for `hasAlwaysTransitions` we were always trying to resolve with a NULL event
+      // and if a transition was not selected the `state.transitions` stayed empty
+      // without this we get into an infinite loop in the dieHard test in `@xstate/test` for the `simplePathsTo`
+      if (nextState.configuration.some((state) => state.always)) {
+        nextState.transitions = [];
+      }
+
       if (!_internalQueue.length) {
         break;
       } else {
