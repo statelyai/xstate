@@ -81,7 +81,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
 
     switch (current.value) {
       case 'idle':
-        return <button onClick={(_) => send('FETCH')}>Fetch</button>;
+        return <button onClick={(_) => send({ type: 'FETCH' })}>Fetch</button>;
       case 'loading':
         return <div>Loading...</div>;
       case 'success':
@@ -272,7 +272,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
           <button
             data-testid="button"
             onClick={(_) => {
-              send('TOGGLE');
+              send({ type: 'TOGGLE' });
             }}
           />
         </>
@@ -422,7 +422,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
       return (
         <>
           <div>{`Counter: ${state.context.counter}`}</div>
-          <button onClick={() => send('INC')}>Increase</button>
+          <button onClick={() => send({ type: 'INC' })}>Increase</button>
         </>
       );
     };
@@ -800,7 +800,10 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
       currentState = state;
 
       return (
-        <button onClick={() => send('START')} data-testid="button"></button>
+        <button
+          onClick={() => send({ type: 'START' })}
+          data-testid="button"
+        ></button>
       );
     };
 
@@ -841,12 +844,12 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
       context: {
         count: 0
       },
-      entry: [assign({ count: 1 }), send('INC')],
+      entry: [assign({ count: 1 }), send({ type: 'INC' })],
       on: {
         INC: {
           actions: [
             assign({ count: (ctx) => ctx.count + 1 }),
-            send('UNHANDLED')
+            send({ type: 'UNHANDLED' })
           ]
         }
       },

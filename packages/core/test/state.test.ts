@@ -503,7 +503,7 @@ describe('State', () => {
           })
           .start();
 
-        service.send('TOGGLE');
+        service.send({ type: 'TOGGLE' });
       });
 
       it('_sessionid should persist through states (manual)', () => {

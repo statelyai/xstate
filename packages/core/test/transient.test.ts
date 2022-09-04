@@ -561,7 +561,7 @@ describe('transient states (eventless transitions)', () => {
 
     service.start();
 
-    service.send('ADD');
+    service.send({ type: 'ADD' });
   });
 
   it('should work with transient transition on root (with `always`)', (done) => {
@@ -598,7 +598,7 @@ describe('transient states (eventless transitions)', () => {
 
     service.start();
 
-    service.send('ADD');
+    service.send({ type: 'ADD' });
   });
 
   it("shouldn't crash when invoking a machine with initial transient transition depending on custom data", () => {

@@ -402,8 +402,8 @@ describe('assign meta', () => {
       })
       .start();
 
-    service.send('PING_CHILD');
-    service.send('PING_CHILD');
+    service.send({ type: 'PING_CHILD' });
+    service.send({ type: 'PING_CHILD' });
 
     expect(state.context).toMatchInlineSnapshot(`
       Object {

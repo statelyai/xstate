@@ -66,7 +66,7 @@ describe('activities with guarded transitions', () => {
 
     const service = interpret(machine).start();
 
-    service.send('E');
+    service.send({ type: 'E' });
   });
 });
 
@@ -100,8 +100,8 @@ describe('remembering activities', () => {
       })
     ).start();
 
-    service.send('E');
-    service.send('IGNORE');
+    service.send({ type: 'E' });
+    service.send({ type: 'IGNORE' });
   });
 });
 
@@ -133,8 +133,8 @@ describe('activities', () => {
     );
 
     service.start();
-    service.send('TIMER'); // yellow
-    service.send('TIMER'); // red
+    service.send({ type: 'TIMER' }); // yellow
+    service.send({ type: 'TIMER' }); // red
   });
 
   it('identifies start activities for child states and active activities', (done) => {
@@ -150,9 +150,9 @@ describe('activities', () => {
     );
 
     service.start();
-    service.send('TIMER'); // yellow
-    service.send('TIMER'); // red.walk
-    service.send('PED_WAIT'); // red.wait
+    service.send({ type: 'TIMER' }); // yellow
+    service.send({ type: 'TIMER' }); // red.walk
+    service.send({ type: 'PED_WAIT' }); // red.wait
   });
 
   it('identifies stop activities for child states', (done) => {
@@ -170,10 +170,10 @@ describe('activities', () => {
     );
 
     service.start();
-    service.send('TIMER'); // yellow
-    service.send('TIMER'); // red.walk
-    service.send('PED_WAIT'); // red.wait
-    service.send('PED_STOP');
+    service.send({ type: 'TIMER' }); // yellow
+    service.send({ type: 'TIMER' }); // red.walk
+    service.send({ type: 'PED_WAIT' }); // red.wait
+    service.send({ type: 'PED_STOP' });
   });
 
   it('identifies multiple stop activities for child and parent states', (done) => {
@@ -199,11 +199,11 @@ describe('activities', () => {
     );
 
     service.start();
-    service.send('TIMER'); // yellow
-    service.send('TIMER'); // red.walk
-    service.send('PED_WAIT'); // red.wait
-    service.send('PED_STOP'); // red.stop
-    service.send('TIMER'); // green
+    service.send({ type: 'TIMER' }); // yellow
+    service.send({ type: 'TIMER' }); // red.walk
+    service.send({ type: 'PED_WAIT' }); // red.wait
+    service.send({ type: 'PED_STOP' }); // red.stop
+    service.send({ type: 'TIMER' }); // green
   });
 });
 
@@ -323,7 +323,7 @@ describe('transient activities', () => {
       })
     ).start();
 
-    service.send('A');
+    service.send({ type: 'A' });
   });
 
   it('should have kept same activities', (done) => {
@@ -338,7 +338,7 @@ describe('transient activities', () => {
       })
     ).start();
 
-    service.send('C_SIMILAR');
+    service.send({ type: 'C_SIMILAR' });
   });
 
   it('should have kept same activities after self transition', (done) => {
@@ -353,7 +353,7 @@ describe('transient activities', () => {
       })
     ).start();
 
-    service.send('C');
+    service.send({ type: 'C' });
   });
 
   it('should have stopped after automatic transitions', (done) => {
@@ -368,6 +368,6 @@ describe('transient activities', () => {
       })
     ).start();
 
-    service.send('A');
+    service.send({ type: 'A' });
   });
 });

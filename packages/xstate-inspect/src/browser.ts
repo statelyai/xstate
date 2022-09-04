@@ -232,7 +232,7 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
       };
     },
     disconnect: () => {
-      inspectService.send('disconnect');
+      inspectService.send({ type: 'disconnect' });
       window.removeEventListener('message', messageHandler);
       sub.unsubscribe();
     }

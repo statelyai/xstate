@@ -350,7 +350,7 @@ describe('spawning callbacks', () => {
     });
 
     callbackService.start();
-    callbackService.send('START_CB');
+    callbackService.send({ type: 'START_CB' });
   });
 });
 
@@ -846,8 +846,8 @@ describe('actors', () => {
       });
       const service = interpret(machine);
       service.start();
-      service.send('PING');
-      service.send('PING');
+      service.send({ type: 'PING' });
+      service.send({ type: 'PING' });
       expect(pongCounter).toEqual(0);
     });
 
@@ -882,8 +882,8 @@ describe('actors', () => {
       });
       const service = interpret(machine);
       service.start();
-      service.send('PING');
-      service.send('PING');
+      service.send({ type: 'PING' });
+      service.send({ type: 'PING' });
       expect(pongCounter).toEqual(0);
     });
   });
@@ -1232,8 +1232,8 @@ describe('actors', () => {
         })
         .start();
 
-      countService.send('INC');
-      countService.send('INC');
+      countService.send({ type: 'INC' });
+      countService.send({ type: 'INC' });
     });
 
     it('should work with a promise behavior (fulfill)', (done) => {

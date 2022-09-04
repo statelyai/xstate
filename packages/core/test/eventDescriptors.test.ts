@@ -17,7 +17,7 @@ describe('event descriptors', () => {
     });
 
     const service = interpret(machine).start();
-    service.send('BAR');
+    service.send({ type: 'BAR' });
     expect(service.getSnapshot().value).toBe('C');
   });
 
@@ -37,7 +37,7 @@ describe('event descriptors', () => {
     });
 
     const service = interpret(machine).start();
-    service.send('NEXT');
+    service.send({ type: 'NEXT' });
     expect(service.getSnapshot().value).toBe('pass');
   });
 
@@ -57,7 +57,7 @@ describe('event descriptors', () => {
     });
 
     const service = interpret(machine).start();
-    service.send('NEXT');
+    service.send({ type: 'NEXT' });
     expect(service.getSnapshot().value).toBe('pass');
   });
 

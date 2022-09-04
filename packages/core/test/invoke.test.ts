@@ -228,7 +228,7 @@ describe('invoke', () => {
       })
       .start();
 
-    service.send('FORWARD_DEC');
+    service.send({ type: 'FORWARD_DEC' });
   });
 
   it('should forward events to services if autoForward: true before processing them', (done) => {
@@ -325,10 +325,10 @@ describe('invoke', () => {
       })
       .start();
 
-    service.send('START');
-    service.send('INCREMENT');
-    service.send('INCREMENT');
-    service.send('INCREMENT');
+    service.send({ type: 'START' });
+    service.send({ type: 'INCREMENT' });
+    service.send({ type: 'INCREMENT' });
+    service.send({ type: 'INCREMENT' });
   });
 
   it('should start services (explicit machine, invoke = config)', (done) => {
@@ -402,7 +402,7 @@ describe('invoke', () => {
         done();
       })
       .start()
-      .send('GO_TO_WAITING');
+      .send({ type: 'GO_TO_WAITING' });
   });
 
   it('should start services (explicit machine, invoke = machine)', (done) => {
@@ -411,7 +411,7 @@ describe('invoke', () => {
         done();
       })
       .start()
-      .send('GO_TO_WAITING_MACHINE');
+      .send({ type: 'GO_TO_WAITING_MACHINE' });
   });
 
   it('should start services (machine as invoke config)', (done) => {
@@ -806,13 +806,13 @@ describe('invoke', () => {
       expect(invokeDisposeCount).toEqual(0);
       expect(actionsCount).toEqual(0);
 
-      service.send('UPDATE');
+      service.send({ type: 'UPDATE' });
       expect(entryActionsCount).toEqual(1);
       expect(invokeCount).toEqual(1);
       expect(invokeDisposeCount).toEqual(0);
       expect(actionsCount).toEqual(1);
 
-      service.send('UPDATE');
+      service.send({ type: 'UPDATE' });
       expect(entryActionsCount).toEqual(1);
       expect(invokeCount).toEqual(1);
       expect(invokeDisposeCount).toEqual(0);
@@ -890,7 +890,7 @@ describe('invoke', () => {
         })
         .start();
 
-      service.send('START');
+      service.send({ type: 'START' });
     });
   });
 
@@ -1438,7 +1438,7 @@ describe('invoke', () => {
       interpret(callbackMachine)
         .onTransition((current) => stateValues.push(current.value))
         .start()
-        .send('BEGIN');
+        .send({ type: 'BEGIN' });
       for (let i = 0; i < expectedStateValues.length; i++) {
         expect(stateValues[i]).toEqual(expectedStateValues[i]);
       }
@@ -1480,7 +1480,7 @@ describe('invoke', () => {
       interpret(callbackMachine)
         .onTransition((current) => stateValues.push(current.value))
         .start()
-        .send('BEGIN');
+        .send({ type: 'BEGIN' });
       for (let i = 0; i < expectedStateValues.length; i++) {
         expect(stateValues[i]).toEqual(expectedStateValues[i]);
       }
@@ -1531,7 +1531,7 @@ describe('invoke', () => {
           stateValues.push(current.value);
         })
         .start()
-        .send('BEGIN');
+        .send({ type: 'BEGIN' });
 
       for (let i = 0; i < expectedStateValues.length; i++) {
         expect(stateValues[i]).toEqual(expectedStateValues[i]);
@@ -1651,7 +1651,7 @@ describe('invoke', () => {
         .start();
 
       // waits 50 milliseconds before going to final state.
-      service.send('SKIP');
+      service.send({ type: 'SKIP' });
     });
 
     it('callback should be able to receive messages from parent', (done) => {
@@ -1856,7 +1856,7 @@ describe('invoke', () => {
         }
       });
 
-      interpret(errorMachine).start().send('FETCH');
+      interpret(errorMachine).start().send({ type: 'FETCH' });
 
       expect(errorHandlersCalled).toEqual(1);
     });
@@ -1951,7 +1951,7 @@ describe('invoke', () => {
           })
           .start();
 
-        service.send('STOPCHILD');
+        service.send({ type: 'STOPCHILD' });
       });
     });
   });
@@ -2270,8 +2270,8 @@ describe('invoke', () => {
         })
         .start();
 
-      countService.send('INC');
-      countService.send('INC');
+      countService.send({ type: 'INC' });
+      countService.send({ type: 'INC' });
     });
 
     it('behaviors should have reference to the parent', (done) => {
@@ -2348,8 +2348,8 @@ describe('invoke', () => {
         })
         .start();
 
-      countService.send('INC');
-      countService.send('INC');
+      countService.send({ type: 'INC' });
+      countService.send({ type: 'INC' });
     });
 
     it('should schedule events in a FIFO queue', (done) => {
@@ -2391,7 +2391,7 @@ describe('invoke', () => {
         })
         .start();
 
-      countService.send('INC');
+      countService.send({ type: 'INC' });
     });
   });
 
@@ -2735,7 +2735,7 @@ describe('invoke', () => {
         .onDone(() => done())
         .start();
 
-      service.send('NEXT');
+      service.send({ type: 'NEXT' });
     });
 
     // TODO: make it work
@@ -3191,7 +3191,7 @@ describe('invoke', () => {
     });
     const service = interpret(machine).start();
 
-    service.send('FINISH');
+    service.send({ type: 'FINISH' });
     expect(disposed).toBe(true);
   });
 
@@ -3225,7 +3225,7 @@ describe('invoke', () => {
     });
     const service = interpret(machine).start();
 
-    service.send('FINISH');
+    service.send({ type: 'FINISH' });
     expect(disposed).toBe(true);
   });
 });

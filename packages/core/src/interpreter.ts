@@ -17,7 +17,6 @@ import { Mailbox } from './Mailbox';
 import { registry } from './registry';
 import { isStateConfig, State } from './State';
 import { AreAllImplementationsAssumedToBeProvided } from './typegenTypes';
-import type { PayloadSender } from './types';
 import {
   ActorRef,
   DoneEvent,
@@ -34,7 +33,6 @@ import {
   isSCXMLErrorEvent,
   isStateLike,
   isStateMachine,
-  toEventObject,
   toSCXMLEvent,
   warn
 } from './utils';
@@ -163,6 +161,10 @@ export class Interpreter<
         this._deferred.push(fn);
       }
     };
+
+    // Ensure that the send method is bound to this interpreter instance
+    // if destructured
+    this.send = this.send.bind(this);
   }
 
   // array of functions to defer
@@ -488,13 +490,8 @@ export class Interpreter<
    *
    * @param event The event(s) to send
    */
-  public send: PayloadSender<TEvent> = (event, payload?): void => {
-    const eventObject = toEventObject(event, payload);
-    const _event = toSCXMLEvent(eventObject);
-    // console.log(
-    //   `${_event.origin?.sessionId} -> ${this.sessionId}`,
-    //   _event.name
-    // );
+  public send(event: TEvent | SCXML.Event<TEvent>) {
+    const _event = toSCXMLEvent(event);
 
     if (this.status === InterpreterStatus.Stopped) {
       // do nothing
@@ -528,7 +525,7 @@ export class Interpreter<
     }
 
     this.mailbox.enqueue(_event);
-  };
+  }
 
   /**
    * Returns the next state given the interpreter's current state and the event.

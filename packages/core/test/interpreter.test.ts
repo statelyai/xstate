@@ -566,7 +566,7 @@ describe('interpreter', () => {
 
       expect(activityState).toEqual('on');
 
-      service.send('TURN_OFF');
+      service.send({ type: 'TURN_OFF' });
 
       expect(activityState).toEqual('off');
     });
@@ -669,7 +669,7 @@ describe('interpreter', () => {
     service.start();
 
     clock.increment(5);
-    service.send('KEEP_GOING');
+    service.send({ type: 'KEEP_GOING' });
 
     expect(currentState!.value).toEqual('green');
     clock.increment(10);
@@ -719,11 +719,13 @@ describe('interpreter', () => {
       deferEvents: false
     });
 
-    expect(() => service.send('SOME_EVENT')).toThrowError(/uninitialized/);
+    expect(() => service.send({ type: 'SOME_EVENT' })).toThrowError(
+      /uninitialized/
+    );
 
     service.start();
 
-    expect(() => service.send('SOME_EVENT')).not.toThrow();
+    expect(() => service.send({ type: 'SOME_EVENT' })).not.toThrow();
   });
 
   it('should not throw an error if an event is sent to an uninitialized interpreter if { deferEvents: true }', () => {
@@ -732,11 +734,11 @@ describe('interpreter', () => {
       deferEvents: true
     });
 
-    expect(() => service.send('SOME_EVENT')).not.toThrow();
+    expect(() => service.send({ type: 'SOME_EVENT' })).not.toThrow();
 
     service.start();
 
-    expect(() => service.send('SOME_EVENT')).not.toThrow();
+    expect(() => service.send({ type: 'SOME_EVENT' })).not.toThrow();
   });
 
   it('should not throw an error if an event is sent to an uninitialized interpreter (default options)', () => {
@@ -744,11 +746,11 @@ describe('interpreter', () => {
       clock: new SimulatedClock()
     });
 
-    expect(() => service.send('SOME_EVENT')).not.toThrow();
+    expect(() => service.send({ type: 'SOME_EVENT' })).not.toThrow();
 
     service.start();
 
-    expect(() => service.send('SOME_EVENT')).not.toThrow();
+    expect(() => service.send({ type: 'SOME_EVENT' })).not.toThrow();
   });
 
   it('should defer events sent to an uninitialized service', (done) => {
@@ -776,8 +778,8 @@ describe('interpreter', () => {
       .onDone(() => done());
 
     // uninitialized
-    deferService.send('NEXT_A');
-    deferService.send('NEXT_B');
+    deferService.send({ type: 'NEXT_A' });
+    deferService.send({ type: 'NEXT_B' });
 
     expect(state).not.toBeDefined();
 
@@ -818,12 +820,12 @@ describe('interpreter', () => {
     }).onTransition((s) => (state = s));
 
     service.start();
-    service.send('TIMER'); // yellow
+    service.send({ type: 'TIMER' }); // yellow
     expect(state.value).toEqual('yellow');
 
     service.stop();
     try {
-      service.send('TIMER'); // red if interpreter is not stopped
+      service.send({ type: 'TIMER' }); // red if interpreter is not stopped
     } catch (e) {
       expect(state.value).toEqual('yellow');
     }
@@ -854,8 +856,8 @@ describe('interpreter', () => {
       logger: (msg) => logs.push(msg)
     }).start();
 
-    service.send('LOG');
-    service.send('LOG');
+    service.send({ type: 'LOG' });
+    service.send({ type: 'LOG' });
 
     expect(logs.length).toBe(2);
     expect(logs).toEqual([{ count: 1 }, { count: 2 }]);
@@ -904,8 +906,8 @@ describe('interpreter', () => {
       logger: (msg) => logs.push(msg)
     }).start();
 
-    service.send('PING_CHILD');
-    service.send('PING_CHILD');
+    service.send({ type: 'PING_CHILD' });
+    service.send({ type: 'PING_CHILD' });
 
     expect(logs.length).toBe(4);
     expect(logs).toMatchInlineSnapshot(`
@@ -960,7 +962,7 @@ describe('interpreter', () => {
       logger: (msg) => logs.push(msg)
     }).start();
 
-    service.send('EXTERNAL_EVENT');
+    service.send({ type: 'EXTERNAL_EVENT' });
 
     expect(logs.length).toBe(2);
     expect(logs).toEqual(['EXTERNAL_EVENT', 'RAISED_EVENT']);
@@ -1115,7 +1117,7 @@ describe('interpreter', () => {
         .onDone(() => done())
         .start();
 
-      service.send('ACTIVATE');
+      service.send({ type: 'ACTIVATE' });
     });
 
     it('can send events with an object', (done) => {
@@ -1163,8 +1165,8 @@ describe('interpreter', () => {
         })
         .start();
 
-      toggleService.send('ACTIVATE');
-      toggleService.send('INACTIVATE');
+      toggleService.send({ type: 'ACTIVATE' });
+      toggleService.send({ type: 'INACTIVATE' });
     });
   });
 
@@ -1292,7 +1294,7 @@ describe('interpreter', () => {
 
       service.stop();
 
-      service.send('TRIGGER');
+      service.send({ type: 'TRIGGER' });
 
       setTimeout(() => {
         expect(called).toBeFalsy();
@@ -1339,16 +1341,16 @@ describe('interpreter', () => {
 
       expect(stateCount).toEqual(1);
 
-      toggleService.send('TOGGLE');
+      toggleService.send({ type: 'TOGGLE' });
 
       expect(stateCount).toEqual(2);
 
-      toggleService.send('TOGGLE');
+      toggleService.send({ type: 'TOGGLE' });
 
       expect(stateCount).toEqual(3);
 
       toggleService.off(listener);
-      toggleService.send('TOGGLE');
+      toggleService.send({ type: 'TOGGLE' });
 
       expect(stateCount).toEqual(3);
     });
@@ -1371,7 +1373,7 @@ describe('interpreter', () => {
       const service = interpret(stateMachine)
         .onTransition((current) => stateValues.push(current.value))
         .start();
-      service.send('START');
+      service.send({ type: 'START' });
 
       const expectedStateValues = ['idle', 'next'];
       expect(stateValues.length).toEqual(expectedStateValues.length);
@@ -1408,7 +1410,7 @@ describe('interpreter', () => {
       const service = interpret(stateMachine)
         .onTransition((current) => stateValues.push(current.value))
         .start();
-      service.send('START');
+      service.send({ type: 'START' });
 
       const expectedStateValues = ['idle', 'next'];
       expect(stateValues.length).toEqual(expectedStateValues.length);
@@ -1514,12 +1516,12 @@ describe('interpreter', () => {
         (state) => (count = state.context.count)
       );
 
-      service.send('INC');
-      service.send('INC');
+      service.send({ type: 'INC' });
+      service.send({ type: 'INC' });
       subscription.unsubscribe();
-      service.send('INC');
-      service.send('INC');
-      service.send('INC');
+      service.send({ type: 'INC' });
+      service.send({ type: 'INC' });
+      service.send({ type: 'INC' });
     });
 
     it('should call complete() once a final state is reached', () => {
@@ -1830,7 +1832,7 @@ describe('interpreter', () => {
           expect(state.children).toHaveProperty('promiseChild');
           expect(state.children).toHaveProperty('observableChild');
 
-          service.send('NEXT');
+          service.send({ type: 'NEXT' });
         }
       });
     });

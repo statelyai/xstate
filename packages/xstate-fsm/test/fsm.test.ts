@@ -247,7 +247,7 @@ describe('interpreter', () => {
       }
     });
 
-    toggleService.send('TOGGLE');
+    toggleService.send({ type: 'TOGGLE' });
   });
 
   it('should execute actions', (done) => {
@@ -278,7 +278,7 @@ describe('interpreter', () => {
       }
     });
 
-    actionService.send('TOGGLE');
+    actionService.send({ type: 'TOGGLE' });
   });
 
   it('should execute initial entry action', () => {
@@ -362,7 +362,7 @@ describe('interpreter', () => {
       }
     });
 
-    service.send('CHANGE');
+    service.send({ type: 'CHANGE' });
   });
 
   it('should not re-execute exit/entry actions for transitions with undefined targets', () => {
@@ -431,7 +431,7 @@ describe('interpreter', () => {
       const service = interpret(machine).start('bar');
       expect(service.state.value).toBe('bar');
 
-      service.send('NEXT');
+      service.send({ type: 'NEXT' });
       expect(service.state.matches('baz')).toBe(true);
     });
 
@@ -458,7 +458,7 @@ describe('interpreter', () => {
       expect(service.state.value).toBe('bar');
       expect(service.state.context).toBe(context);
 
-      service.send('NEXT');
+      service.send({ type: 'NEXT' });
       expect(service.state.matches('baz')).toBe(true);
     });
 

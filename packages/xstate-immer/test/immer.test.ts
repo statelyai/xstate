@@ -206,6 +206,6 @@ describe('@xstate/immer', () => {
     service.send(nameUpdater.update('David'));
     service.send(ageUpdater.update(0));
 
-    service.send('SUBMIT');
+    service.send({ type: 'SUBMIT' });
   });
 });

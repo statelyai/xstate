@@ -104,11 +104,11 @@ describe('history states', () => {
 
     const service = interpret(machine).start();
 
-    service.send('DEPLOY');
-    service.send('SUCCESS');
-    service.send('DESTROY');
-    service.send('DEPLOY');
-    service.send('FAILURE');
+    service.send({ type: 'DEPLOY' });
+    service.send({ type: 'SUCCESS' });
+    service.send({ type: 'DESTROY' });
+    service.send({ type: 'DEPLOY' });
+    service.send({ type: 'FAILURE' });
 
     expect(service.getSnapshot().value).toEqual({ idle: 'absent' });
   });
@@ -425,8 +425,8 @@ it('internal transition to a history state should enter default history state co
     })
   ).start();
 
-  service.send('NEXT');
-  service.send('NEXT');
+  service.send({ type: 'NEXT' });
+  service.send({ type: 'NEXT' });
 
   expect(service.getSnapshot().value).toEqual({
     second: 'nested'

@@ -996,7 +996,7 @@ describe('parallel states', () => {
       })
       .start();
 
-    service.send('FINISH');
+    service.send({ type: 'FINISH' });
   });
 
   it('should raise a "done.state.*" event when a pseudostate of a history type is directly on a parallel state', () => {

@@ -280,7 +280,7 @@ describe('guard conditions', () => {
     });
 
     const service = interpret(machine).start();
-    service.send('MACRO');
+    service.send({ type: 'MACRO' });
 
     expect(service.getSnapshot().value).toBe('c');
   });
@@ -440,7 +440,7 @@ describe('guards - other', () => {
     });
 
     const service = interpret(machine).start();
-    service.send('EVENT');
+    service.send({ type: 'EVENT' });
 
     expect(service.getSnapshot().value).toBe('c');
   });

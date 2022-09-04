@@ -401,9 +401,9 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
         <div
           data-testid="count"
           onClick={() => {
-            send('INC');
+            send({ type: 'INC' });
             // @ts-expect-error
-            send('FAKE');
+            send({ type: 'FAKE' });
           }}
         >
           {state.context.count}
@@ -470,7 +470,7 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
           <div data-testid="child-state">{childState.value}</div>
           <button
             data-testid="child-send"
-            onClick={() => childSend('NEXT')}
+            onClick={() => childSend({ type: 'NEXT' })}
           ></button>
         </>
       );

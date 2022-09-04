@@ -185,7 +185,7 @@ describe('internal transitions', () => {
 
     const service = interpret(machine).start();
 
-    service.send('REENTER');
+    service.send({ type: 'REENTER' });
 
     expect(service.getSnapshot().context).toEqual({
       sourceStateEntries: 1,
@@ -236,7 +236,7 @@ describe('internal transitions', () => {
 
     const service = interpret(machine).start();
 
-    service.send('REENTER');
+    service.send({ type: 'REENTER' });
 
     expect(service.getSnapshot().context).toEqual({
       sourceStateExits: 0,

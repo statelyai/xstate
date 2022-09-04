@@ -52,11 +52,11 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
           <div data-testid="count">{count}</div>
           <button
             data-testid="other"
-            onClick={() => service.send('OTHER')}
+            onClick={() => service.send({ type: 'OTHER' })}
           ></button>
           <button
             data-testid="increment"
-            onClick={() => service.send('INCREMENT')}
+            onClick={() => service.send({ type: 'INCREMENT' })}
           ></button>
         </>
       );

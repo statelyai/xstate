@@ -410,7 +410,7 @@ describe('entry/exit actions', () => {
       const service = interpret(machine).start();
 
       actual.length = 0;
-      service.send('UPDATE');
+      service.send({ type: 'UPDATE' });
 
       expect(actual).toEqual(['loaded entry']);
     });
@@ -546,7 +546,7 @@ describe('entry/exit actions', () => {
 
       const service = interpret(m).start();
 
-      service.send('EV');
+      service.send({ type: 'EV' });
 
       expect(actual).toEqual(['a11.exit']);
     });
@@ -621,7 +621,7 @@ describe('entry/exit actions', () => {
       const service = interpret(machine).start();
 
       actions.length = 0;
-      service.send('FOO');
+      service.send({ type: 'FOO' });
 
       expect(actions).toEqual([
         'exit camera',
@@ -664,7 +664,7 @@ describe('entry/exit actions', () => {
 
       Promise.resolve()
         .then(() => {
-          service.send('WHATEVER');
+          service.send({ type: 'WHATEVER' });
         })
         .then(() => {
           expect(actual).toEqual(['entered one', 'got WHATEVER']);
@@ -1878,7 +1878,9 @@ describe('forwardTo()', () => {
 
     const service = interpret(machine).start();
 
-    expect(() => service.send('TEST')).toThrowErrorMatchingInlineSnapshot(
+    expect(() =>
+      service.send({ type: 'TEST' })
+    ).toThrowErrorMatchingInlineSnapshot(
       `"Attempted to forward event to undefined actor. This risks an infinite loop in the sender."`
     );
   });
@@ -2178,7 +2180,7 @@ describe('choose', () => {
     });
 
     const service = interpret(machine).start();
-    service.send('GIVE_ANSWER');
+    service.send({ type: 'GIVE_ANSWER' });
 
     expect(service.getSnapshot().context).toEqual({ counter: 101, answer: 42 });
   });
@@ -2486,8 +2488,8 @@ describe('assign action order', () => {
 
     const service = interpret(machine).start();
 
-    service.send('EV');
-    service.send('EV');
+    service.send({ type: 'EV' });
+    service.send({ type: 'EV' });
 
     expect(captured).toEqual([1, 2]);
   });

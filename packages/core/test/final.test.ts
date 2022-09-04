@@ -192,7 +192,7 @@ describe('final states', () => {
       })
       .start();
 
-    service.send('REQUEST_SECRET');
+    service.send({ type: 'REQUEST_SECRET' });
   });
 
   it("should only call data expression once when entering root's final state", () => {

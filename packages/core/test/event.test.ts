@@ -125,7 +125,7 @@ describe('SCXML events', () => {
       .onDone(() => done())
       .start();
 
-    service.send('AUTH');
+    service.send({ type: 'AUTH' });
   });
 });
 
