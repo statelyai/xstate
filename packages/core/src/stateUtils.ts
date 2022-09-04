@@ -1065,70 +1065,12 @@ function getTransitionDomain<
   return lcca;
 }
 
-function exitStates<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  transitions: Array<TransitionDefinition<TContext, TEvent>>,
-  mutConfiguration: Set<StateNode<TContext, TEvent>>,
-  state: State<TContext, TEvent>
-) {
-  const statesToExit = computeExitSet(
-    transitions,
-    mutConfiguration,
-    state.historyValue
-  );
-  const actions: BaseActionObject[] = [];
-
-  statesToExit.forEach((stateNode) => {
-    actions.push(...stateNode.invoke.map((def) => stop(def.id)));
-  });
-
-  statesToExit.sort((a, b) => b.order - a.order);
-
-  const historyValue: Record<string, Array<StateNode<TContext, TEvent>>> = state
-    ? state.historyValue
-    : {};
-  if (state && state.configuration) {
-    // From SCXML algorithm: https://www.w3.org/TR/scxml/#exitStates
-    for (const exitStateNode of statesToExit) {
-      for (const historyNode of getHistoryNodes(exitStateNode)) {
-        let predicate: (sn: StateNode<TContext, TEvent>) => boolean;
-        if (historyNode.history === 'deep') {
-          predicate = (sn) =>
-            isAtomicStateNode(sn) && isDescendant(sn, exitStateNode);
-        } else {
-          predicate = (sn) => {
-            return sn.parent === exitStateNode;
-          };
-        }
-        historyValue[historyNode.id] = state.configuration.filter(predicate);
-      }
-    }
-  }
-
-  for (const s of statesToExit) {
-    actions.push(...flatten(s.exit));
-    mutConfiguration.delete(s);
-  }
-
-  return {
-    exitSet: statesToExit,
-    historyValue,
-    actions,
-    configuration: mutConfiguration
-  };
-}
-
-function computeExitSet<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  transitions: Array<TransitionDefinition<TContext, TEvent>>,
-  configuration: Set<StateNode<TContext, TEvent>>,
-  historyValue: HistoryValue<TContext, TEvent>
-): Array<StateNode<TContext, TEvent>> {
-  const statesToExit = new Set<StateNode<TContext, TEvent>>();
+function computeExitSet(
+  transitions: Array<TransitionDefinition<any, any>>,
+  configuration: Set<AnyStateNode>,
+  historyValue: HistoryValue<any, any>
+): Array<AnyStateNode> {
+  const statesToExit = new Set<AnyStateNode>();
 
   for (const t of transitions) {
     if (t.target && t.target.length) {
@@ -1169,8 +1111,7 @@ export function microstep<
   internalQueue: Array<SCXML.Event<TEvent>>;
   context: TContext;
 } */ {
-  const { context } = currentState;
-  const { machine } = currentState;
+  const { context, machine } = currentState;
   const actions: BaseActionObject[] = [];
 
   const filteredTransitions = removeConflictingTransitions(
@@ -1186,9 +1127,7 @@ export function microstep<
   // Exit states
   if (!currentState._initial) {
     const { historyValue: exitHistoryValue, actions: exitActions } = exitStates(
-      filteredTransitions,
-      mutConfiguration,
-      currentState
+      filteredTransitions
     );
 
     actions.push(...exitActions);
@@ -1268,13 +1207,13 @@ export function microstep<
     const internalQueue: Array<SCXML.Event<TEvent>> = [];
 
     const actions: BaseActionObject[] = [];
-    const mutStatesToEnter = new Set<AnyStateNode>();
-    const mutStatesForDefaultEntry = new Set<AnyStateNode>();
+    const statesToEnter = new Set<AnyStateNode>();
+    const statesForDefaultEntry = new Set<AnyStateNode>();
 
     const { historyValue } = currentState;
     computeEntrySet(filteredTransitions);
 
-    for (const stateNodeToEnter of [...mutStatesToEnter].sort(
+    for (const stateNodeToEnter of [...statesToEnter].sort(
       (a, b) => a.order - b.order
     )) {
       mutConfiguration.add(stateNodeToEnter);
@@ -1283,8 +1222,8 @@ export function microstep<
       // Add entry actions
       actions.push(...stateNodeToEnter.entry);
 
-      if (mutStatesForDefaultEntry.has(stateNodeToEnter)) {
-        mutStatesForDefaultEntry.forEach((stateNode) => {
+      if (statesForDefaultEntry.has(stateNodeToEnter)) {
+        statesForDefaultEntry.forEach((stateNode) => {
           const initialActions = stateNode.initial!.actions;
           actions.push(...initialActions);
         });
@@ -1365,8 +1304,8 @@ export function microstep<
           }
           for (const s of historyStateNodes) {
             addAncestorStatesToEnter(s, stateNode.parent!);
-            mutStatesForDefaultEntry.forEach((stateForDefaultEntry) =>
-              mutStatesForDefaultEntry.add(stateForDefaultEntry)
+            statesForDefaultEntry.forEach((stateForDefaultEntry) =>
+              statesForDefaultEntry.add(stateForDefaultEntry)
             );
           }
         } else {
@@ -1376,15 +1315,15 @@ export function microstep<
           }
           for (const s of targets) {
             addAncestorStatesToEnter(s, stateNode);
-            mutStatesForDefaultEntry.forEach((stateForDefaultEntry) =>
-              mutStatesForDefaultEntry.add(stateForDefaultEntry)
+            statesForDefaultEntry.forEach((stateForDefaultEntry) =>
+              statesForDefaultEntry.add(stateForDefaultEntry)
             );
           }
         }
       } else {
-        mutStatesToEnter.add(stateNode);
+        statesToEnter.add(stateNode);
         if (stateNode.type === 'compound') {
-          mutStatesForDefaultEntry.add(stateNode);
+          statesForDefaultEntry.add(stateNode);
           const initialStates = stateNode.initial.target;
 
           for (const initialState of initialStates) {
@@ -1399,7 +1338,7 @@ export function microstep<
             for (const child of getChildren(stateNode).filter(
               (sn) => !isHistoryNode(sn)
             )) {
-              if (![...mutStatesToEnter].some((s) => isDescendant(s, child))) {
+              if (![...statesToEnter].some((s) => isDescendant(s, child))) {
                 addDescendantStatesToEnter(child);
               }
             }
@@ -1414,18 +1353,68 @@ export function microstep<
     ) {
       const properAncestors = getProperAncestors(stateNode, toStateNode);
       for (const anc of properAncestors) {
-        mutStatesToEnter.add(anc);
+        statesToEnter.add(anc);
         if (anc.type === 'parallel') {
           for (const child of getChildren(anc).filter(
             (sn) => !isHistoryNode(sn)
           )) {
-            if (![...mutStatesToEnter].some((s) => isDescendant(s, child))) {
+            if (![...statesToEnter].some((s) => isDescendant(s, child))) {
               addDescendantStatesToEnter(child);
             }
           }
         }
       }
     }
+  }
+
+  function exitStates(transitions: Array<TransitionDefinition<any, any>>) {
+    const statesToExit = computeExitSet(
+      transitions,
+      mutConfiguration,
+      currentState.historyValue
+    );
+    const actions: BaseActionObject[] = [];
+
+    statesToExit.forEach((stateNode) => {
+      actions.push(...stateNode.invoke.map((def) => stop(def.id)));
+    });
+
+    statesToExit.sort((a, b) => b.order - a.order);
+
+    const historyValue: Record<string, Array<AnyStateNode>> = currentState
+      ? currentState.historyValue
+      : {};
+    if (currentState && currentState.configuration) {
+      // From SCXML algorithm: https://www.w3.org/TR/scxml/#exitStates
+      for (const exitStateNode of statesToExit) {
+        for (const historyNode of getHistoryNodes(exitStateNode)) {
+          let predicate: (sn: AnyStateNode) => boolean;
+          if (historyNode.history === 'deep') {
+            predicate = (sn) =>
+              isAtomicStateNode(sn) && isDescendant(sn, exitStateNode);
+          } else {
+            predicate = (sn) => {
+              return sn.parent === exitStateNode;
+            };
+          }
+          historyValue[historyNode.id] = currentState.configuration.filter(
+            predicate
+          );
+        }
+      }
+    }
+
+    for (const s of statesToExit) {
+      actions.push(...flatten(s.exit));
+      mutConfiguration.delete(s);
+    }
+
+    return {
+      exitSet: statesToExit,
+      historyValue,
+      actions,
+      configuration: mutConfiguration
+    };
   }
 }
 
