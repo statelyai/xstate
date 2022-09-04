@@ -337,7 +337,10 @@ export class StateNode<
     return this.events.includes(eventType);
   }
 
-  public next(state: State<TContext, TEvent>, _event: SCXML.Event<TEvent>) {
+  public next(
+    state: State<TContext, TEvent>,
+    _event: SCXML.Event<TEvent>
+  ): TransitionDefinition<TContext, TEvent>[] | undefined {
     const eventName = _event.name;
     const actions: BaseActionObject[] = [];
 

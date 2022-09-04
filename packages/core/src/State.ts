@@ -55,7 +55,7 @@ export class State<
 > {
   public value: StateValue;
   public context: TContext;
-  public historyValue: HistoryValue<TContext, TEvent> = {};
+  public historyValue: Readonly<HistoryValue<TContext, TEvent>> = {};
   public actions: BaseActionObject[] = [];
   public event: TEvent;
   public _internalQueue: Array<SCXML.Event<TEvent>>;

@@ -1071,6 +1071,8 @@ export type HistoryValue<
   TEvent extends EventObject
 > = Record<string, Array<StateNode<TContext, TEvent>>>;
 
+export type AnyHistoryValue = HistoryValue<any, any>;
+
 export type StateFrom<
   T extends AnyStateMachine | ((...args: any[]) => AnyStateMachine)
 > = T extends AnyStateMachine
@@ -1435,6 +1437,8 @@ export interface TransitionDefinition<
     meta?: Record<string, any>;
   };
 }
+
+export type AnyTransitionDefinition = TransitionDefinition<any, any>;
 
 export interface InitialTransitionDefinition<
   TContext extends MachineContext,

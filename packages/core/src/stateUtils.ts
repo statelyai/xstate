@@ -58,9 +58,11 @@ import type { StateNode } from './StateNode';
 import { isDynamicAction } from '../actions/dynamicAction';
 import {
   ActorContext,
+  AnyHistoryValue,
   AnyState,
   AnyStateMachine,
   AnyStateNode,
+  AnyTransitionDefinition,
   SendActionObject,
   StateFromMachine
 } from '.';
@@ -130,9 +132,9 @@ export function getConfiguration<
           }
 
           if (!configurationSet.has(child)) {
-            getInitialStateNodes(child).forEach((sn) =>
-              configurationSet.add(sn)
-            );
+            for (const initialStateNode of getInitialStateNodes(child)) {
+              configurationSet.add(initialStateNode);
+            }
           }
         }
       }
@@ -177,9 +179,9 @@ function getValueFromAdj<
   }
 
   const stateValue = {};
-  childStateNodes.forEach((csn) => {
-    stateValue[csn.key] = getValueFromAdj(csn, adjList);
-  });
+  for (const childStateNode of childStateNodes) {
+    stateValue[childStateNode.key] = getValueFromAdj(childStateNode, adjList);
+  }
 
   return stateValue;
 }
@@ -1000,18 +1002,15 @@ function findLCCA<TContext extends MachineContext, TEvent extends EventObject>(
   return current[current.length - 1];
 }
 
-function getEffectiveTargetStates<
-  TC extends MachineContext,
-  TE extends EventObject
->(
-  transition: TransitionDefinition<TC, TE>,
-  historyValue: HistoryValue<TC, TE>
-): Array<StateNode<TC, TE>> {
+function getEffectiveTargetStates(
+  transition: AnyTransitionDefinition,
+  historyValue: AnyHistoryValue
+): Array<AnyStateNode> {
   if (!transition.target) {
     return [];
   }
 
-  const targets = new Set<StateNode<TC, TE>>();
+  const targets = new Set<AnyStateNode>();
 
   for (const s of transition.target) {
     if (isHistoryNode(s)) {
@@ -1021,10 +1020,7 @@ function getEffectiveTargetStates<
         });
       } else {
         getEffectiveTargetStates(
-          { target: resolveHistoryTarget<TC, TE>(s) } as TransitionDefinition<
-            TC,
-            TE
-          >,
+          { target: resolveHistoryTarget(s) } as AnyTransitionDefinition,
           historyValue
         ).forEach((node) => {
           targets.add(node);
@@ -1038,13 +1034,10 @@ function getEffectiveTargetStates<
   return [...targets];
 }
 
-function getTransitionDomain<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  transition: TransitionDefinition<TContext, TEvent>,
-  historyValue: HistoryValue<TContext, TEvent>
-): StateNode<TContext, TEvent> | null {
+function getTransitionDomain(
+  transition: AnyTransitionDefinition,
+  historyValue: AnyHistoryValue
+): AnyStateNode | null {
   const targetStates = getEffectiveTargetStates(transition, historyValue);
 
   if (!targetStates) {
@@ -1067,9 +1060,9 @@ function getTransitionDomain<
 }
 
 function computeExitSet(
-  transitions: Array<TransitionDefinition<any, any>>,
+  transitions: AnyTransitionDefinition[],
   configuration: Set<AnyStateNode>,
-  historyValue: HistoryValue<any, any>
+  historyValue: AnyHistoryValue
 ): Array<AnyStateNode> {
   const statesToExit = new Set<AnyStateNode>();
 
@@ -1362,7 +1355,12 @@ export function microstep<
     }
   }
 
-  function exitStates(transitions: Array<TransitionDefinition<any, any>>) {
+  function exitStates(
+    transitions: AnyTransitionDefinition[]
+  ): {
+    historyValue: Record<string, AnyStateNode[]>;
+    actions: BaseActionObject[];
+  } {
     const statesToExit = computeExitSet(
       transitions,
       mutConfiguration,
@@ -1370,15 +1368,14 @@ export function microstep<
     );
     const actions: BaseActionObject[] = [];
 
-    statesToExit.forEach((stateNode) => {
-      actions.push(...stateNode.invoke.map((def) => stop(def.id)));
-    });
+    for (const sn of statesToExit) {
+      actions.push(...sn.invoke.map((def) => stop(def.id)));
+    }
 
     statesToExit.sort((a, b) => b.order - a.order);
 
-    const historyValue: Record<string, Array<AnyStateNode>> = currentState
-      ? currentState.historyValue
-      : {};
+    // TODO: fix mutation risk
+    const historyValue = currentState ? currentState.historyValue : {};
     if (currentState && currentState.configuration) {
       // From SCXML algorithm: https://www.w3.org/TR/scxml/#exitStates
       for (const exitStateNode of statesToExit) {
@@ -1405,10 +1402,8 @@ export function microstep<
     }
 
     return {
-      exitSet: statesToExit,
       historyValue,
-      actions,
-      configuration: mutConfiguration
+      actions
     };
   }
 }
@@ -1742,8 +1737,8 @@ export function macrostep<TMachine extends AnyStateMachine>(
     return stoppedState;
   }
 
-  function selectEventlessTransitions(): TransitionDefinition<any, any>[] {
-    const enabledTransitions: Set<TransitionDefinition<any, any>> = new Set();
+  function selectEventlessTransitions(): AnyTransitionDefinition[] {
+    const enabledTransitions: Set<AnyTransitionDefinition> = new Set();
 
     const atomicStates = nextState.configuration.filter(isAtomicStateNode);
 
