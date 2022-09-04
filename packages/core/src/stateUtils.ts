@@ -61,7 +61,8 @@ import {
   AnyState,
   AnyStateMachine,
   AnyStateNode,
-  SendActionObject
+  SendActionObject,
+  StateFromMachine
 } from '.';
 import { execAction } from './exec';
 
@@ -1104,13 +1105,7 @@ export function microstep<
   mutConfiguration: Set<StateNode<TContext, TEvent>>,
   _event: SCXML.Event<TEvent>,
   actorCtx: ActorContext<any, any> | undefined
-): typeof currentState /* {
-  actions: BaseActionObject[];
-  configuration: typeof mutConfiguration;
-  historyValue: HistoryValue<TContext, TEvent>;
-  internalQueue: Array<SCXML.Event<TEvent>>;
-  context: TContext;
-} */ {
+): typeof currentState {
   const { context, machine } = currentState;
   const actions: BaseActionObject[] = [];
 
@@ -1140,16 +1135,16 @@ export function microstep<
   actions.push(...transitionActions);
 
   // Enter states
-  const res = enterStates();
+  const enterStatesResult = enterStates();
 
   // Start invocations
-  const invokeActions = flatten(
-    [...res.statesToInvoke].map((s) =>
-      s.invoke.map((invokeDef) => invoke(invokeDef))
-    )
-  );
-  actions.push(...invokeActions);
-  actions.push(...res.actions);
+  for (const stateToInvoke of enterStatesResult.statesToInvoke) {
+    for (const invokeDef of stateToInvoke.invoke) {
+      actions.push(invoke(invokeDef));
+    }
+  }
+
+  actions.push(...enterStatesResult.actions);
 
   const nextConfiguration = [...mutConfiguration];
 
@@ -1175,7 +1170,7 @@ export function microstep<
       actorCtx
     );
 
-    internalQueue.push(...res.internalQueue);
+    internalQueue.push(...enterStatesResult.internalQueue);
     internalQueue.push(...raised.map((a) => a.params._event));
 
     return currentState.clone({
@@ -1418,47 +1413,6 @@ export function microstep<
   }
 }
 
-function selectEventlessTransitions<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(state: State<TContext, TEvent>): Transitions<TContext, TEvent> {
-  const enabledTransitions: Set<
-    TransitionDefinition<TContext, TEvent>
-  > = new Set();
-
-  const atomicStates = state.configuration.filter(isAtomicStateNode);
-
-  for (const stateNode of atomicStates) {
-    loop: for (const s of [stateNode].concat(
-      getProperAncestors(stateNode, null)
-    )) {
-      if (!s.always) {
-        continue;
-      }
-      for (const transition of s.always) {
-        if (
-          transition.guard === undefined ||
-          evaluateGuard<TContext, TEvent>(
-            transition.guard,
-            state.context,
-            state._event,
-            state
-          )
-        ) {
-          enabledTransitions.add(transition);
-          break loop;
-        }
-      }
-    }
-  }
-
-  return removeConflictingTransitions(
-    Array.from(enabledTransitions),
-    new Set(state.configuration),
-    state.historyValue
-  );
-}
-
 export function resolveMicroTransition<
   TContext extends MachineContext,
   TEvent extends EventObject
@@ -1472,11 +1426,7 @@ export function resolveMicroTransition<
   // Transition will "apply" if:
   // - the state node is the initial state (there is no current state)
   // - OR there are transitions
-  // - OR there are eventless transitions (if there are no transitions)
-  const willTransition =
-    currentState._initial ||
-    transitions.length > 0 ||
-    selectEventlessTransitions(currentState).length > 0;
+  const willTransition = currentState._initial || transitions.length > 0;
 
   const prevConfiguration = getConfiguration<TContext, TEvent>(
     !currentState._initial ? currentState.configuration : [machine.root]
@@ -1690,10 +1640,6 @@ export function resolveActionsAndContext<
   };
 }
 
-type StateFromMachine<
-  TMachine extends AnyStateMachine
-> = TMachine['initialState'];
-
 export function macrostep<TMachine extends AnyStateMachine>(
   state: StateFromMachine<TMachine>,
   scxmlEvent: SCXML.Event<TMachine['__TEvent']>,
@@ -1715,7 +1661,7 @@ export function macrostep<TMachine extends AnyStateMachine>(
   const { _internalQueue } = nextState;
 
   while (!nextState.done) {
-    const eventlessTransitions = selectEventlessTransitions(nextState);
+    const eventlessTransitions = selectEventlessTransitions();
 
     if (eventlessTransitions.length === 0) {
       // TODO: this is a bit of a hack, we need to review this
@@ -1794,6 +1740,42 @@ export function macrostep<TMachine extends AnyStateMachine>(
     stoppedState.context = context;
 
     return stoppedState;
+  }
+
+  function selectEventlessTransitions(): TransitionDefinition<any, any>[] {
+    const enabledTransitions: Set<TransitionDefinition<any, any>> = new Set();
+
+    const atomicStates = nextState.configuration.filter(isAtomicStateNode);
+
+    for (const stateNode of atomicStates) {
+      loop: for (const s of [stateNode].concat(
+        getProperAncestors(stateNode, null)
+      )) {
+        if (!s.always) {
+          continue;
+        }
+        for (const transition of s.always) {
+          if (
+            transition.guard === undefined ||
+            evaluateGuard(
+              transition.guard,
+              nextState.context,
+              nextState._event,
+              nextState
+            )
+          ) {
+            enabledTransitions.add(transition);
+            break loop;
+          }
+        }
+      }
+    }
+
+    return removeConflictingTransitions(
+      Array.from(enabledTransitions),
+      new Set(nextState.configuration),
+      nextState.historyValue
+    );
   }
 }
 
