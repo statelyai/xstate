@@ -56,7 +56,13 @@ import {
 } from '../actions/ExecutableAction';
 import type { StateNode } from './StateNode';
 import { isDynamicAction } from '../actions/dynamicAction';
-import { ActorContext, AnyState, AnyStateMachine, SendActionObject } from '.';
+import {
+  ActorContext,
+  AnyState,
+  AnyStateMachine,
+  AnyStateNode,
+  SendActionObject
+} from '.';
 import { execAction } from './exec';
 
 type Configuration<
@@ -633,21 +639,34 @@ export function getInitialStateNodes<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(stateNode: StateNode<TContext, TEvent>): Array<StateNode<TContext, TEvent>> {
-  const transitions = [
-    {
-      target: [stateNode],
-      source: stateNode,
-      actions: [],
-      eventType: 'init',
-      toJSON: null as any // TODO: fix
+  const set = new Set<AnyStateNode>();
+
+  function iter(descStateNode: AnyStateNode): void {
+    if (set.has(descStateNode)) {
+      return;
     }
-  ];
-  const mutStatesToEnter = new Set<StateNode<TContext, TEvent>>();
-  const mutStatesForDefaultEntry = new Set<StateNode<TContext, TEvent>>();
+    set.add(descStateNode);
+    if (descStateNode.type === 'compound') {
+      for (const targetStateNode of descStateNode.initial.target) {
+        let m = targetStateNode.parent;
 
-  computeEntrySet(transitions, {}, mutStatesToEnter, mutStatesForDefaultEntry);
+        while (m && m !== targetStateNode) {
+          if (m === stateNode) break;
+          set.add(m);
+          m = m.parent;
+        }
+        iter(targetStateNode);
+      }
+    } else if (descStateNode.type === 'parallel') {
+      for (const child of getChildren(descStateNode)) {
+        iter(child);
+      }
+    }
+  }
 
-  return [...mutStatesToEnter];
+  iter(stateNode);
+
+  return [...set];
 }
 /**
  * Returns the child state node from its relative `stateKey`, or throws.
@@ -1126,164 +1145,6 @@ function computeExitSet<
   return [...statesToExit];
 }
 
-function computeEntrySet<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  transitions: Array<TransitionDefinition<TContext, TEvent>>,
-  historyValue: HistoryValue<TContext, TEvent>,
-  mutStatesToEnter: Set<StateNode<TContext, TEvent>>,
-  mutStatesForDefaultEntry: Set<StateNode<TContext, TEvent>>
-) {
-  for (const t of transitions) {
-    for (const s of t.target || []) {
-      addDescendantStatesToEnter(
-        s,
-        historyValue,
-        mutStatesToEnter,
-        mutStatesForDefaultEntry
-      );
-    }
-    const ancestor = getTransitionDomain(t, historyValue);
-    const targetStates = getEffectiveTargetStates(t, historyValue);
-    for (const s of targetStates) {
-      addAncestorStatesToEnter(
-        s,
-        ancestor,
-        historyValue,
-        mutStatesToEnter,
-        mutStatesForDefaultEntry
-      );
-    }
-  }
-}
-
-function addDescendantStatesToEnter<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  stateNode: StateNode<TContext, TEvent>,
-  historyValue: HistoryValue<TContext, TEvent>,
-  mutStatesToEnter: Set<typeof stateNode>,
-  mutStatesForDefaultEntry: Set<typeof stateNode>
-) {
-  if (isHistoryNode(stateNode)) {
-    if (historyValue[stateNode.id]) {
-      const historyStateNodes = historyValue[stateNode.id];
-      for (const s of historyStateNodes) {
-        addDescendantStatesToEnter(
-          s,
-          historyValue,
-          mutStatesToEnter,
-          mutStatesForDefaultEntry
-        );
-      }
-      for (const s of historyStateNodes) {
-        addAncestorStatesToEnter(
-          s,
-          stateNode.parent!,
-          historyValue,
-          mutStatesToEnter,
-          mutStatesForDefaultEntry
-        );
-        mutStatesForDefaultEntry.forEach((stateForDefaultEntry) =>
-          mutStatesForDefaultEntry.add(stateForDefaultEntry)
-        );
-      }
-    } else {
-      const targets = resolveHistoryTarget<TContext, TEvent>(stateNode);
-      for (const s of targets) {
-        addDescendantStatesToEnter(
-          s,
-          historyValue,
-          mutStatesToEnter,
-          mutStatesForDefaultEntry
-        );
-      }
-      for (const s of targets) {
-        addAncestorStatesToEnter<TContext, TEvent>(
-          s,
-          stateNode,
-          historyValue,
-          mutStatesToEnter,
-          mutStatesForDefaultEntry
-        );
-        mutStatesForDefaultEntry.forEach((stateForDefaultEntry) =>
-          mutStatesForDefaultEntry.add(stateForDefaultEntry)
-        );
-      }
-    }
-  } else {
-    mutStatesToEnter.add(stateNode);
-    if (stateNode.type === 'compound') {
-      mutStatesForDefaultEntry.add(stateNode);
-      const initialStates = stateNode.initial.target;
-
-      for (const initialState of initialStates) {
-        addDescendantStatesToEnter(
-          initialState,
-          historyValue,
-          mutStatesToEnter,
-          mutStatesForDefaultEntry
-        );
-      }
-
-      for (const initialState of initialStates) {
-        addAncestorStatesToEnter(
-          initialState,
-          stateNode,
-          historyValue,
-          mutStatesToEnter,
-          mutStatesForDefaultEntry
-        );
-      }
-    } else {
-      if (stateNode.type === 'parallel') {
-        for (const child of getChildren(stateNode).filter(
-          (sn) => !isHistoryNode(sn)
-        )) {
-          if (![...mutStatesToEnter].some((s) => isDescendant(s, child))) {
-            addDescendantStatesToEnter(
-              child,
-              historyValue,
-              mutStatesToEnter,
-              mutStatesForDefaultEntry
-            );
-          }
-        }
-      }
-    }
-  }
-}
-
-function addAncestorStatesToEnter<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  stateNode: StateNode<TContext, TEvent>,
-  toStateNode: StateNode<TContext, TEvent> | null,
-  historyValue: HistoryValue<TContext, TEvent>,
-  mutStatesToEnter: Set<typeof stateNode>,
-  mutStatesForDefaultEntry: Set<typeof stateNode>
-) {
-  const properAncestors = getProperAncestors(stateNode, toStateNode);
-  for (const anc of properAncestors) {
-    mutStatesToEnter.add(anc);
-    if (anc.type === 'parallel') {
-      for (const child of getChildren(anc).filter((sn) => !isHistoryNode(sn))) {
-        if (![...mutStatesToEnter].some((s) => isDescendant(s, child))) {
-          addDescendantStatesToEnter(
-            child,
-            historyValue,
-            mutStatesToEnter,
-            mutStatesForDefaultEntry
-          );
-        }
-      }
-    }
-  }
-}
-
 /**
  * https://www.w3.org/TR/scxml/#microstepProcedure
  *
@@ -1407,15 +1268,11 @@ export function microstep<
     const internalQueue: Array<SCXML.Event<TEvent>> = [];
 
     const actions: BaseActionObject[] = [];
-    const mutStatesToEnter = new Set<StateNode<TContext, TEvent>>();
-    const mutStatesForDefaultEntry = new Set<StateNode<TContext, TEvent>>();
+    const mutStatesToEnter = new Set<AnyStateNode>();
+    const mutStatesForDefaultEntry = new Set<AnyStateNode>();
 
-    computeEntrySet(
-      filteredTransitions,
-      currentState.historyValue,
-      mutStatesToEnter,
-      mutStatesForDefaultEntry
-    );
+    const { historyValue } = currentState;
+    computeEntrySet(filteredTransitions);
 
     for (const stateNodeToEnter of [...mutStatesToEnter].sort(
       (a, b) => a.order - b.order
@@ -1478,6 +1335,97 @@ export function microstep<
       internalQueue,
       actions
     };
+
+    // Internal functions
+    function computeEntrySet<
+      TContext extends MachineContext,
+      TEvent extends EventObject
+    >(transitions: Array<TransitionDefinition<TContext, TEvent>>) {
+      for (const t of transitions) {
+        for (const s of t.target || []) {
+          addDescendantStatesToEnter(s);
+        }
+        const ancestor = getTransitionDomain(t, historyValue);
+        const targetStates = getEffectiveTargetStates(t, historyValue);
+        for (const s of targetStates) {
+          addAncestorStatesToEnter(s, ancestor);
+        }
+      }
+    }
+
+    function addDescendantStatesToEnter<
+      TContext extends MachineContext,
+      TEvent extends EventObject
+    >(stateNode: StateNode<TContext, TEvent>) {
+      if (isHistoryNode(stateNode)) {
+        if (historyValue[stateNode.id]) {
+          const historyStateNodes = historyValue[stateNode.id];
+          for (const s of historyStateNodes) {
+            addDescendantStatesToEnter(s);
+          }
+          for (const s of historyStateNodes) {
+            addAncestorStatesToEnter(s, stateNode.parent!);
+            mutStatesForDefaultEntry.forEach((stateForDefaultEntry) =>
+              mutStatesForDefaultEntry.add(stateForDefaultEntry)
+            );
+          }
+        } else {
+          const targets = resolveHistoryTarget<TContext, TEvent>(stateNode);
+          for (const s of targets) {
+            addDescendantStatesToEnter(s);
+          }
+          for (const s of targets) {
+            addAncestorStatesToEnter(s, stateNode);
+            mutStatesForDefaultEntry.forEach((stateForDefaultEntry) =>
+              mutStatesForDefaultEntry.add(stateForDefaultEntry)
+            );
+          }
+        }
+      } else {
+        mutStatesToEnter.add(stateNode);
+        if (stateNode.type === 'compound') {
+          mutStatesForDefaultEntry.add(stateNode);
+          const initialStates = stateNode.initial.target;
+
+          for (const initialState of initialStates) {
+            addDescendantStatesToEnter(initialState);
+          }
+
+          for (const initialState of initialStates) {
+            addAncestorStatesToEnter(initialState, stateNode);
+          }
+        } else {
+          if (stateNode.type === 'parallel') {
+            for (const child of getChildren(stateNode).filter(
+              (sn) => !isHistoryNode(sn)
+            )) {
+              if (![...mutStatesToEnter].some((s) => isDescendant(s, child))) {
+                addDescendantStatesToEnter(child);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    function addAncestorStatesToEnter(
+      stateNode: AnyStateNode,
+      toStateNode: AnyStateNode | null
+    ) {
+      const properAncestors = getProperAncestors(stateNode, toStateNode);
+      for (const anc of properAncestors) {
+        mutStatesToEnter.add(anc);
+        if (anc.type === 'parallel') {
+          for (const child of getChildren(anc).filter(
+            (sn) => !isHistoryNode(sn)
+          )) {
+            if (![...mutStatesToEnter].some((s) => isDescendant(s, child))) {
+              addDescendantStatesToEnter(child);
+            }
+          }
+        }
+      }
+    }
   }
 }
 
