@@ -1,6 +1,7 @@
 import {
   ActorContext,
   ActorRefFrom,
+  ActorRefFromBehavior,
   AnyState,
   AnyStateMachine,
   Behavior,
@@ -105,10 +106,10 @@ export class Interpreter<
 
   private delayedEventsMap: Record<string, unknown> = {};
 
-  private listeners: Set<SnapshotListener<TBehavior>> = new Set();
-  private stopListeners: Set<Listener> = new Set();
+  private observers: Set<Observer<SnapshotFrom<TBehavior>>> = new Set();
   private errorListeners: Set<ErrorListener> = new Set();
   private doneListeners: Set<EventListener> = new Set();
+  private stopListeners: Set<Listener> = new Set();
   private logger: (...args: any[]) => void;
   /**
    * Whether the service is started.
@@ -161,7 +162,8 @@ export class Interpreter<
       },
       defer: (fn) => {
         this._deferred.push(fn);
-      }
+      },
+      observers: this.observers
     };
   }
 
@@ -190,8 +192,8 @@ export class Interpreter<
       this._deferred.shift()!();
     }
 
-    for (const listener of this.listeners) {
-      listener(snapshot);
+    for (const observer of this.observers) {
+      observer.next?.(snapshot);
     }
 
     if (isStateMachine(this.behavior) && isStateLike(state)) {
@@ -219,13 +221,15 @@ export class Interpreter<
    * the next state and the event object that caused the state transition.
    *
    * @param listener The state listener
+   * @deprecated Use .subscribe(listener) instead
    */
   public onTransition(listener: SnapshotListener<TBehavior>): this {
-    this.listeners.add(listener);
+    const observer = toObserver(listener);
+    this.observers.add(observer);
 
     // Send current state to listener
     if (this.status === InterpreterStatus.Running) {
-      listener(this.getSnapshot());
+      observer.next(this.getSnapshot());
     }
 
     return this;
@@ -250,8 +254,7 @@ export class Interpreter<
       completeListener
     );
 
-    // @ts-ignore Type instantiation excessively deep?
-    this.listeners.add(observer.next);
+    this.observers.add(observer);
 
     if (errorListener) {
       this.onError(errorListener);
@@ -277,7 +280,7 @@ export class Interpreter<
 
     return {
       unsubscribe: () => {
-        this.listeners.delete(observer.next);
+        this.observers.delete(observer);
         this.errorListeners.delete(observer.error);
         this.doneListeners.delete(completeOnce);
         this.stopListeners.delete(completeOnce);
@@ -313,18 +316,6 @@ export class Interpreter<
    */
   public onDone(listener: EventListener<DoneEvent>): this {
     this.doneListeners.add(listener);
-    return this;
-  }
-
-  /**
-   * Removes a listener.
-   * @param listener The listener to remove
-   */
-  public off(listener: (...args: any[]) => void): this {
-    this.listeners.delete(listener);
-    this.stopListeners.delete(listener);
-    this.doneListeners.delete(listener);
-    this.errorListeners.delete(listener);
     return this;
   }
 
@@ -449,7 +440,7 @@ export class Interpreter<
     return this;
   }
   private _stop(): this {
-    this.listeners.clear();
+    this.observers.clear();
     for (const listener of this.stopListeners) {
       // call listener, then remove
       listener();
@@ -631,7 +622,7 @@ export function interpret<TMachine extends AnyStateMachine>(
 export function interpret<TBehavior extends Behavior<any, any>>(
   machine: TBehavior,
   options?: InterpreterOptions
-): ActorRefFrom<TBehavior>;
+): Interpreter<TBehavior>;
 export function interpret(machine: any, options?: InterpreterOptions): any {
   const resolvedOptions = {
     id: isStateMachine(machine) ? machine.key : undefined,
