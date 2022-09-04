@@ -734,9 +734,10 @@ describe('useActor', () => {
         <div>
           <div data-testid="change">{change()}</div>
           <div data-testid="state">{state()[1]}</div>
+          <div data-testid="state-2">{state()[3]}</div>
           <button
             data-testid="button"
-            onclick={() => setActor(createSimpleActor(['1', '3']))}
+            onclick={() => setActor(createSimpleActor(['1', '3', '5', '8']))}
           />
         </div>
       );
@@ -745,6 +746,7 @@ describe('useActor', () => {
     render(() => <Test />);
 
     const div = screen.getByTestId('state');
+    const div2 = screen.getByTestId('state-2');
     const changeVal = screen.getByTestId('change');
     const button = screen.getByTestId('button');
 
@@ -752,7 +754,66 @@ describe('useActor', () => {
     expect(div.textContent).toEqual('2');
     fireEvent.click(button);
     expect(div.textContent).toEqual('3');
-    expect(changeVal.textContent).toEqual('2');
+    expect(changeVal.textContent).toEqual('1');
+    expect(div2.textContent).toEqual('8');
+  });
+
+  it('should rerender and trigger effects only on array size changes', () => {
+    const createSimpleActor = (value: string[]) =>
+      toActorRef({
+        send: () => {
+          /* ... */
+        },
+        getSnapshot: () => value,
+        subscribe: () => {
+          return {
+            unsubscribe: () => {
+              /* ... */
+            }
+          };
+        }
+      }) as ActorRef<any, string[]>;
+
+    const [actor, setActor] = createSignal(
+      createSimpleActor(['1', '3', '5', '8'])
+    );
+    const [state] = useActor(actor);
+    const Test = () => {
+      const [change, setChange] = createSignal(0);
+
+      createEffect(() => {
+        if (state()[0]) {
+          setChange((val) => val + 1);
+        }
+      });
+
+      return (
+        <div>
+          <div data-testid="change">{change()}</div>
+          <div data-testid="state">{state()[1]}</div>
+          <div data-testid="state-2">{state()[3]}</div>
+          <button
+            data-testid="button"
+            onclick={() => setActor(createSimpleActor(['1', '2']))}
+          />
+        </div>
+      );
+    };
+
+    render(() => <Test />);
+
+    const div = screen.getByTestId('state');
+    const div2 = screen.getByTestId('state-2');
+    const changeVal = screen.getByTestId('change');
+    const button = screen.getByTestId('button');
+
+    expect(changeVal.textContent).toEqual('1');
+    expect(div.textContent).toEqual('3');
+    expect(div2.textContent).toEqual('8');
+    fireEvent.click(button);
+    expect(div.textContent).toEqual('2');
+    expect(changeVal.textContent).toEqual('1');
+    expect(div2.textContent).toEqual('');
   });
 
   it('should rerender and trigger effects only on object within array changes', () => {

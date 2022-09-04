@@ -1,14 +1,4 @@
-function isObjectOrArray(value: any): value is object {
-  return value && typeof value === 'object';
-}
-
-function isNonObjectPrototype(value: any): value is object {
-  return (
-    value?.constructor?.name &&
-    value.constructor.name !== 'Object' &&
-    value.constructor.name !== 'Array'
-  );
-}
+import { isWrappable } from './createImmutable';
 
 /**
  * Accepts any value and creates a deep clone if it is an object
@@ -18,24 +8,23 @@ function isNonObjectPrototype(value: any): value is object {
  * object/array to the cloned object/array
  */
 const clone = <T>(value: T, valueRefs: WeakMap<any, any>): T => {
-  // If the value is a class or non object/array prototype, copy over instead of cloning
-  if (!isObjectOrArray(value) || isNonObjectPrototype(value)) {
+  if (!isWrappable(value)) {
     return value;
   }
 
   const isObject = !Array.isArray(value);
 
   // Get either a new object/array and a typed iterator
-  const [clonedValue, keyedValues]: [T, Array<keyof T | any>] = isObject
-    ? [{} as T, Object.keys(value)]
-    : [([] as unknown) as T, value];
+  const [clonedValue, keyedValues] = isObject
+    ? [{} as T, Object.keys(value) as Array<keyof T>]
+    : [([] as unknown) as T, value as Array<keyof T>];
 
   // Save a reference of the object/array
   valueRefs.set(value, clonedValue);
 
   // Loop over all object/array indexes and clone
   for (let i = 0; i < keyedValues.length; ++i) {
-    const keyedIndex = isObject ? keyedValues[i] : i;
+    const keyedIndex = (isObject ? keyedValues[i] : i) as keyof T;
     const currentVal = value[keyedIndex];
     // Check if reference already exists, helps prevent max call stack
     if (valueRefs.has(currentVal)) {

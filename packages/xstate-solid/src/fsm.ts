@@ -5,21 +5,20 @@ import type {
   StateMachine
 } from '@xstate/fsm';
 import { createMachine, interpret } from '@xstate/fsm';
-
-import { createStore, reconcile } from 'solid-js/store';
 import type { Accessor } from 'solid-js';
 import { createEffect, createMemo, on, onCleanup } from 'solid-js';
-import { deepClone } from './utils';
+import { createImmutable } from './createImmutable';
 
-type UseFSMReturnTuple<TService extends StateMachine.AnyService> = [
+type UseFSMReturn<TService extends StateMachine.AnyService> = [
   StateFrom<TService>,
   TService['send'],
   TService
 ];
+
 export function useMachine<TMachine extends StateMachine.AnyMachine>(
   machine: TMachine,
   options?: MachineImplementationsFrom<TMachine>
-): UseFSMReturnTuple<ServiceFrom<TMachine>> {
+): UseFSMReturn<ServiceFrom<TMachine>> {
   const resolvedMachine = createMachine(
     machine.config,
     options ? options : (machine as any)._options
@@ -27,34 +26,28 @@ export function useMachine<TMachine extends StateMachine.AnyMachine>(
 
   const service = interpret(resolvedMachine).start();
 
-  return useService(service) as UseFSMReturnTuple<ServiceFrom<TMachine>>;
+  return useService(service) as UseFSMReturn<ServiceFrom<TMachine>>;
 }
 
 export function useService<TService extends StateMachine.AnyService>(
   service: TService | Accessor<TService>
-): UseFSMReturnTuple<TService> {
+): UseFSMReturn<TService> {
   const serviceMemo = createMemo(() =>
     typeof service === 'function' ? service() : service
   );
 
-  const getClonedState = () =>
-    deepClone(serviceMemo().state) as StateFrom<TService>;
+  const getServiceState = () => serviceMemo().state as StateFrom<TService>;
 
-  const [state, setState] = createStore<StateFrom<TService>>({
-    ...(getClonedState() as object),
-    matches(...args: Parameters<StateFrom<TService>['matches']>) {
-      // tslint:disable-next-line:no-unused-expression
-      (state as StateFrom<any>).value; // sets state.value to be tracked by the store
-      return serviceMemo().state.matches(args[0] as never);
-    }
-  } as StateFrom<TService>);
+  const [state, setState] = createImmutable(
+    deriveFSMState(serviceMemo(), getServiceState())
+  );
 
   // Track if a new service is passed in, only update once per service
   createEffect(
     on(
       serviceMemo,
       () => {
-        setState(getClonedState());
+        setState(deriveFSMState(serviceMemo(), getServiceState()));
       },
       { defer: true }
     )
@@ -62,7 +55,7 @@ export function useService<TService extends StateMachine.AnyService>(
 
   createEffect(() => {
     const { unsubscribe } = serviceMemo().subscribe((nextState) => {
-      setState(reconcile(nextState as StateFrom<TService>));
+      setState(deriveFSMState(serviceMemo(), nextState as StateFrom<TService>));
     });
     onCleanup(unsubscribe);
   });
@@ -71,3 +64,19 @@ export function useService<TService extends StateMachine.AnyService>(
 
   return [state, send, serviceMemo()];
 }
+
+const deriveFSMState = <
+  Service extends StateMachine.AnyService,
+  State extends StateFrom<Service>
+>(
+  service: Service,
+  state: State
+): State =>
+  ({
+    ...(state as object),
+    matches(...args: Parameters<State['matches']>) {
+      // tslint:disable-next-line:no-unused-expression
+      (this as StateMachine.AnyState).value as State['value']; // sets state.value to be tracked by the store
+      return service.state.matches(args[0] as never);
+    }
+  } as State);

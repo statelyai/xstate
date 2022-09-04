@@ -1,10 +1,9 @@
 import type { ActorRef, Event, EventObject, Sender } from 'xstate';
 import type { Accessor } from 'solid-js';
 import { createEffect, createMemo, on, onCleanup } from 'solid-js';
-import { createStore } from 'solid-js/store';
 import { State } from 'xstate';
-import { deepClone } from './utils';
-import { deriveServiceState, updateState } from './stateUtils';
+import { deriveServiceState } from './deriveServiceState';
+import { createImmutable } from './createImmutable';
 
 type EmittedFromActorRef<
   TActor extends ActorRef<any>
@@ -33,11 +32,11 @@ export function useActor(
     typeof actorRef === 'function' ? actorRef() : actorRef
   );
 
-  const getClonedActorState = () =>
-    deepClone(spreadIfStateInstance(actorMemo().getSnapshot?.()));
+  const getActorState = () =>
+    spreadIfStateInstance(actorMemo().getSnapshot?.());
 
-  const [state, setState] = createStore({
-    snapshot: deriveServiceState(actorMemo(), getClonedActorState())
+  const [state, setState] = createImmutable({
+    snapshot: deriveServiceState(actorMemo(), getActorState())
   });
 
   // Track if a new actor is passed in, only run once per actor
@@ -45,10 +44,9 @@ export function useActor(
     on(
       actorMemo,
       () => {
-        setState(
-          'snapshot',
-          deriveServiceState(actorMemo(), getClonedActorState())
-        );
+        setState({
+          snapshot: deriveServiceState(actorMemo(), getActorState())
+        });
       },
       { defer: true }
     )
@@ -57,9 +55,9 @@ export function useActor(
   createEffect(() => {
     const { unsubscribe } = actorMemo().subscribe({
       next: (emitted: unknown) => {
-        updateState(emitted, (...values) =>
-          setState('snapshot', ...(values as [any]))
-        );
+        setState({
+          snapshot: deriveServiceState(actorMemo(), emitted)
+        });
       },
       error: noop,
       complete: noop

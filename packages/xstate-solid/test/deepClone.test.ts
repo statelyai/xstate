@@ -1,4 +1,4 @@
-import { deepClone } from '../src/utils';
+import { deepClone } from '../src/deepClone';
 
 describe('Deep Clone', () => {
   it('should deep clone array of primitives', () => {
