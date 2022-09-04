@@ -343,38 +343,11 @@ export type Transition<
   | TransitionConfig<TContext, TEvent>
   | ConditionalTransitionConfig<TContext, TEvent>;
 
-type ExcludeType<A> = { [K in Exclude<keyof A, 'type'>]: A[K] };
-
-type ExtractExtraParameters<A, T> = A extends { type: T }
-  ? ExcludeType<A>
-  : never;
-
 type ExtractWithSimpleSupport<T extends { type: string }> = T extends any
   ? { type: T['type'] } extends T
     ? T
     : never
   : never;
-
-type NeverIfEmpty<T> = {} extends T ? never : T;
-
-export interface PayloadSender<TEvent extends EventObject> {
-  /**
-   * Send an event object or just the event type, if the event has no other payload
-   */
-  (
-    event:
-      | SCXML.Event<TEvent>
-      | TEvent
-      | ExtractWithSimpleSupport<TEvent>['type']
-  ): void;
-  /**
-   * Send an event type and its payload
-   */
-  <K extends TEvent['type']>(
-    eventType: K,
-    payload: NeverIfEmpty<ExtractExtraParameters<TEvent, K>>
-  ): void;
-}
 
 export type Receiver<TEvent extends EventObject> = (
   listener: {
