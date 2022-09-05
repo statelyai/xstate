@@ -1,5 +1,4 @@
 import {
-  flatten,
   toStatePath,
   toArray,
   warn,
@@ -338,21 +337,19 @@ export function getDelayedTransitions<
         const eventType = mutateEntryExit(transition.delay, i);
         return { ...transition, event: eventType };
       })
-    : flatten(
-        Object.keys(afterConfig).map((delay, i) => {
-          const configTransition = afterConfig[delay];
-          const resolvedTransition = isString(configTransition)
-            ? { target: configTransition }
-            : configTransition;
-          const resolvedDelay = !isNaN(+delay) ? +delay : delay;
-          const eventType = mutateEntryExit(resolvedDelay, i);
-          return toArray(resolvedTransition).map((transition) => ({
-            ...transition,
-            event: eventType,
-            delay: resolvedDelay
-          }));
-        })
-      );
+    : Object.keys(afterConfig).flatMap((delay, i) => {
+        const configTransition = afterConfig[delay];
+        const resolvedTransition = isString(configTransition)
+          ? { target: configTransition }
+          : configTransition;
+        const resolvedDelay = !isNaN(+delay) ? +delay : delay;
+        const eventType = mutateEntryExit(resolvedDelay, i);
+        return toArray(resolvedTransition).map((transition) => ({
+          ...transition,
+          event: eventType,
+          delay: resolvedDelay
+        }));
+      });
   return delayedTransitions.map((delayedTransition) => {
     const { delay } = delayedTransition;
     return {
@@ -460,48 +457,48 @@ export function formatTransitions<
         stateNode.config.onDone
       )
     : [];
-  const invokeConfig = flatten(
-    stateNode.invoke.map((invokeDef) => {
-      const settleTransitions: any[] = [];
-      if (invokeDef.onDone) {
-        settleTransitions.push(
-          ...toTransitionConfigArray(
-            `done.invoke.${invokeDef.id}`,
-            invokeDef.onDone
-          )
-        );
-      }
-      if (invokeDef.onError) {
-        settleTransitions.push(
-          ...toTransitionConfigArray(
-            `error.platform.${invokeDef.id}`,
-            invokeDef.onError
-          )
-        );
-      }
-      if (invokeDef.onSnapshot) {
-        settleTransitions.push(
-          ...toTransitionConfigArray(
-            `xstate.snapshot.${invokeDef.id}`,
-            invokeDef.onSnapshot
-          )
-        );
-      }
-      return settleTransitions;
-    })
-  );
-  const delayedTransitions = stateNode.after;
-  const formattedTransitions = flatten(
-    [...doneConfig, ...invokeConfig, ...transitionConfigs].map(
-      (
-        transitionConfig: TransitionConfig<TContext, TEvent> & {
-          event: TEvent['type'] | '*';
-        }
-      ) =>
-        toArray(transitionConfig).map((transition) =>
-          formatTransition(stateNode, transition)
+  const invokeConfig = stateNode.invoke.flatMap((invokeDef) => {
+    const settleTransitions: any[] = [];
+    if (invokeDef.onDone) {
+      settleTransitions.push(
+        ...toTransitionConfigArray(
+          `done.invoke.${invokeDef.id}`,
+          invokeDef.onDone
         )
-    )
+      );
+    }
+    if (invokeDef.onError) {
+      settleTransitions.push(
+        ...toTransitionConfigArray(
+          `error.platform.${invokeDef.id}`,
+          invokeDef.onError
+        )
+      );
+    }
+    if (invokeDef.onSnapshot) {
+      settleTransitions.push(
+        ...toTransitionConfigArray(
+          `xstate.snapshot.${invokeDef.id}`,
+          invokeDef.onSnapshot
+        )
+      );
+    }
+    return settleTransitions;
+  });
+  const delayedTransitions = stateNode.after;
+  const formattedTransitions = [
+    ...doneConfig,
+    ...invokeConfig,
+    ...transitionConfigs
+  ].flatMap(
+    (
+      transitionConfig: TransitionConfig<TContext, TEvent> & {
+        event: TEvent['type'] | '*';
+      }
+    ) =>
+      toArray(transitionConfig).map((transition) =>
+        formatTransition(stateNode, transition)
+      )
   );
   for (const delayedTransition of delayedTransitions) {
     formattedTransitions.push(delayedTransition as any);
@@ -852,18 +849,17 @@ export function transitionParallelNode<
     }
   }
 
-  const transitions = Object.keys(transitionMap).map(
+  const transitions = Object.keys(transitionMap).flatMap(
     (key) => transitionMap[key]
   );
-  const enabledTransitions = flatten(transitions);
 
-  const willTransition = transitions.some((st) => st.length > 0);
+  const willTransition = transitions.length > 0;
 
   if (!willTransition) {
     return stateNode.next(state, _event);
   }
 
-  return enabledTransitions;
+  return transitions;
 }
 
 export function transitionNode<
@@ -1118,10 +1114,10 @@ export function microstep<
     exitStates(filteredTransitions);
   }
 
-  // Transition
-  const transitionActions = flatten(filteredTransitions.map((t) => t.actions));
-
-  actions.push(...transitionActions);
+  // Execute transition content
+  for (const a of filteredTransitions.flatMap((t) => t.actions)) {
+    actions.push(a);
+  }
 
   // Enter states
   const enterStatesResult = enterStates();
@@ -1131,11 +1127,9 @@ export function microstep<
   const nextConfiguration = [...mutConfiguration];
 
   if (isInFinalState(nextConfiguration)) {
-    const finalActions = flatten(
-      nextConfiguration
-        .sort((a, b) => b.order - a.order)
-        .map((state) => state.exit)
-    );
+    const finalActions = nextConfiguration
+      .sort((a, b) => b.order - a.order)
+      .flatMap((state) => state.exit);
     actions.push(...finalActions);
   }
 
@@ -1378,7 +1372,7 @@ export function microstep<
     }
 
     for (const s of statesToExit) {
-      actions.push(...flatten(s.exit));
+      actions.push(...s.exit.flat());
       mutConfiguration.delete(s);
     }
   }
