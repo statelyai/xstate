@@ -158,10 +158,11 @@ describe('assign', () => {
 
   it('applies the assignment to the explicit external state (property assignment)', () => {
     const oneState = counterMachine.transition(
-      counterMachine.createState({
-        ...counterMachine.initialState,
-        context: { count: 50, foo: 'bar' }
-      }),
+      counterMachine.createState(
+        counterMachine.initialState.clone({
+          context: { count: 50, foo: 'bar' }
+        })
+      ),
       'DEC'
     );
 
@@ -174,10 +175,9 @@ describe('assign', () => {
     expect(twoState.context).toEqual({ count: 48, foo: 'bar' });
 
     const threeState = counterMachine.transition(
-      counterMachine.createState({
-        ...twoState,
-        context: { count: 100, foo: 'bar' }
-      }),
+      counterMachine.createState(
+        twoState.clone({ context: { count: 100, foo: 'bar' } })
+      ),
 
       'DEC'
     );
@@ -188,10 +188,11 @@ describe('assign', () => {
 
   it('applies the assignment to the explicit external state', () => {
     const oneState = counterMachine.transition(
-      counterMachine.createState({
-        ...counterMachine.initialState,
-        context: { count: 50, foo: 'bar' }
-      }),
+      counterMachine.createState(
+        counterMachine.initialState.clone({
+          context: { count: 50, foo: 'bar' }
+        })
+      ),
       'INC'
     );
 
@@ -204,11 +205,9 @@ describe('assign', () => {
     expect(twoState.context).toEqual({ count: 52, foo: 'bar' });
 
     const threeState = counterMachine.transition(
-      counterMachine.createState({
-        ...twoState,
-        context: { count: 102, foo: 'bar' }
-      }),
-
+      counterMachine.createState(
+        twoState.clone({ context: { count: 102, foo: 'bar' } })
+      ),
       'INC'
     );
 

@@ -224,7 +224,7 @@ export class State<
   public toJSON() {
     const { configuration, transitions, tags, machine, ...jsonValues } = this;
 
-    return { ...jsonValues, tags: Array.from(tags) };
+    return { ...jsonValues, tags: Array.from(tags), meta: this.meta };
   }
 
   /**
