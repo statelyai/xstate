@@ -100,11 +100,6 @@ export interface BaseDynamicActionObject<
 
 export type MachineContext = Record<string, any>;
 
-/**
- * The specified string event types or the specified event objects.
- */
-export type Event<TEvent extends EventObject> = TEvent['type'] | TEvent;
-
 export interface ActionMeta<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -359,7 +354,7 @@ export type InvokeCallback<
   TEvent extends EventObject = AnyEventObject,
   TSentEvent extends EventObject = AnyEventObject
 > = (
-  callback: Sender<TSentEvent>,
+  callback: (event: TSentEvent) => void,
   onReceive: Receiver<TEvent>
 ) => (() => void) | Promise<any> | void;
 
@@ -1722,10 +1717,8 @@ export interface BaseActorRef<TEvent extends EventObject> {
 
 export interface ActorLike<TCurrent, TEvent extends EventObject>
   extends Subscribable<TCurrent> {
-  send: Sender<TEvent>;
+  send: (event: TEvent) => void;
 }
-
-export type Sender<TEvent extends EventObject> = (event: TEvent) => void;
 
 export interface ActorRef<TEvent extends EventObject, TSnapshot = any>
   extends Subscribable<TSnapshot>,
@@ -1898,13 +1891,6 @@ export type EventFrom<
   K extends Prop<TEvent, 'type'> = never,
   TEvent extends EventObject = ResolveEventType<T>
 > = IsNever<K> extends true ? TEvent : ExtractEvent<TEvent, K>;
-
-/**
- * Events that do not require payload
- */
-export type SimpleEventsOf<
-  TEvent extends EventObject
-> = ExtractWithSimpleSupport<TEvent>;
 
 export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<

@@ -97,7 +97,9 @@ describe('deterministic machine', () => {
 
   describe('machine.transition()', () => {
     it('should properly transition states based on string event', () => {
-      expect(lightMachine.transition('green', 'TIMER').value).toEqual('yellow');
+      expect(lightMachine.transition('green', { type: 'TIMER' }).value).toEqual(
+        'yellow'
+      );
     });
 
     it('should properly transition states based on event-like object', () => {
@@ -109,8 +111,12 @@ describe('deterministic machine', () => {
     });
 
     it('should not transition states for illegal transitions', () => {
-      expect(lightMachine.transition('green', 'FAKE').value).toEqual('green');
-      expect(lightMachine.transition('green', 'FAKE').actions).toHaveLength(0);
+      expect(lightMachine.transition('green', { type: 'FAKE' }).value).toEqual(
+        'green'
+      );
+      expect(
+        lightMachine.transition('green', { type: 'FAKE' }).actions
+      ).toHaveLength(0);
     });
 
     it('should throw an error if not given an event', () => {
@@ -118,81 +124,95 @@ describe('deterministic machine', () => {
     });
 
     it('should transition to nested states as target', () => {
-      expect(testMachine.transition('a', 'T').value).toEqual({ b: 'b1' });
+      expect(testMachine.transition('a', { type: 'T' }).value).toEqual({
+        b: 'b1'
+      });
     });
 
     it('should throw an error for transitions from invalid states', () => {
-      expect(() => testMachine.transition('fake', 'T')).toThrow();
+      expect(() => testMachine.transition('fake', { type: 'T' })).toThrow();
     });
 
     it('should throw an error for transitions from invalid substates', () => {
-      expect(() => testMachine.transition('a.fake', 'T')).toThrow();
+      expect(() => testMachine.transition('a.fake', { type: 'T' })).toThrow();
     });
 
     it('should use the machine.initialState when an undefined state is given', () => {
-      expect(lightMachine.transition(undefined, 'TIMER').value).toEqual(
-        'yellow'
-      );
+      expect(
+        lightMachine.transition(undefined, { type: 'TIMER' }).value
+      ).toEqual('yellow');
     });
 
     it('should use the machine.initialState when an undefined state is given (unhandled event)', () => {
-      expect(lightMachine.transition(undefined, 'TIMER').value).toEqual(
-        'yellow'
-      );
+      expect(
+        lightMachine.transition(undefined, { type: 'TIMER' }).value
+      ).toEqual('yellow');
     });
   });
 
   describe('machine.transition() with nested states', () => {
     it('should properly transition a nested state', () => {
       expect(
-        lightMachine.transition({ red: 'walk' }, 'PED_COUNTDOWN').value
+        lightMachine.transition({ red: 'walk' }, { type: 'PED_COUNTDOWN' })
+          .value
       ).toEqual({ red: 'wait' });
     });
 
     it('should transition from initial nested states', () => {
-      expect(lightMachine.transition('red', 'PED_COUNTDOWN').value).toEqual({
+      expect(
+        lightMachine.transition('red', { type: 'PED_COUNTDOWN' }).value
+      ).toEqual({
         red: 'wait'
       });
     });
 
     it('should transition from deep initial nested states', () => {
-      expect(lightMachine.transition('red', 'PED_COUNTDOWN').value).toEqual({
+      expect(
+        lightMachine.transition('red', { type: 'PED_COUNTDOWN' }).value
+      ).toEqual({
         red: 'wait'
       });
     });
 
     it('should bubble up events that nested states cannot handle', () => {
-      expect(lightMachine.transition({ red: 'stop' }, 'TIMER').value).toEqual(
-        'green'
-      );
+      expect(
+        lightMachine.transition({ red: 'stop' }, { type: 'TIMER' }).value
+      ).toEqual('green');
     });
 
     it('should not transition from illegal events', () => {
-      expect(lightMachine.transition({ red: 'walk' }, 'FAKE').value).toEqual({
+      expect(
+        lightMachine.transition({ red: 'walk' }, { type: 'FAKE' }).value
+      ).toEqual({
         red: 'walk'
       });
       expect(
-        lightMachine.transition({ red: 'walk' }, 'FAKE').actions
+        lightMachine.transition({ red: 'walk' }, { type: 'FAKE' }).actions
       ).toHaveLength(0);
 
-      expect(deepMachine.transition('a1', 'FAKE').value).toEqual({
+      expect(deepMachine.transition('a1', { type: 'FAKE' }).value).toEqual({
         a1: { a2: { a3: 'a4' } }
       });
-      expect(deepMachine.transition('a1', 'FAKE').actions).toHaveLength(0);
+      expect(
+        deepMachine.transition('a1', { type: 'FAKE' }).actions
+      ).toHaveLength(0);
     });
 
     it('should transition to the deepest initial state', () => {
-      expect(lightMachine.transition('yellow', 'TIMER').value).toEqual({
+      expect(
+        lightMachine.transition('yellow', { type: 'TIMER' }).value
+      ).toEqual({
         red: 'walk'
       });
     });
 
     it('should return the equivalent state if no transition occurs', () => {
-      const initialState = lightMachine.transition(
-        lightMachine.initialState,
-        'NOTHING'
-      );
-      const nextState = lightMachine.transition(initialState, 'NOTHING');
+      const initialState = lightMachine.transition(lightMachine.initialState, {
+        type: 'NOTHING'
+      });
+      const nextState = lightMachine.transition(initialState, {
+        type: 'NOTHING'
+      });
 
       expect(initialState.value).toEqual(nextState.value);
       expect(nextState.changed).toBe(false);
@@ -210,7 +230,7 @@ describe('deterministic machine', () => {
           pass: {}
         }
       });
-      expect(machine.transition('a', 'NEXT').value).toBe('pass');
+      expect(machine.transition('a', { type: 'NEXT' }).value).toBe('pass');
     });
   });
 
@@ -231,15 +251,18 @@ describe('deterministic machine', () => {
     });
 
     it('should work with substate nodes that have the same key', () => {
-      expect(machine.transition(machine.initialState, 'NEXT').value).toEqual(
-        'test'
-      );
+      expect(
+        machine.transition(machine.initialState, { type: 'NEXT' }).value
+      ).toEqual('test');
     });
   });
 
   describe('forbidden events', () => {
     it('undefined transitions should forbid events', () => {
-      const walkState = lightMachine.transition({ red: 'walk' }, 'TIMER');
+      const walkState = lightMachine.transition(
+        { red: 'walk' },
+        { type: 'TIMER' }
+      );
 
       expect(walkState.value).toEqual({ red: 'walk' });
     });

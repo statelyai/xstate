@@ -26,7 +26,7 @@ const lightMachine = createMachine({
   initial: 'green',
   states: {
     green: {
-      entry: [actions.send('TIMER', { delay: 10 })],
+      entry: [actions.send({ type: 'TIMER' }, { delay: 10 })],
       on: {
         TIMER: 'yellow',
         KEEP_GOING: {
@@ -35,7 +35,7 @@ const lightMachine = createMachine({
       }
     },
     yellow: {
-      entry: [actions.send('TIMER', { delay: 10 })],
+      entry: [actions.send({ type: 'TIMER' }, { delay: 10 })],
       on: {
         TIMER: 'red'
       }
@@ -149,7 +149,9 @@ describe('interpreter', () => {
       );
 
       const currentState = 'green';
-      const nextState = lightMachine.transition(currentState, 'TIMER');
+      const nextState = lightMachine.transition(currentState, {
+        type: 'TIMER'
+      });
 
       // saves state and recreate it
       const recreated = JSON.parse(JSON.stringify(nextState));
@@ -321,14 +323,19 @@ describe('interpreter', () => {
             }
           },
           pending: {
-            entry: send('FINISH', {
-              delay: (ctx, e) =>
-                ctx.initialDelay +
-                ('wait' in e
-                  ? (e as Extract<DelayExpMachineEvents, { type: 'ACTIVATE' }>)
-                      .wait
-                  : 0)
-            }),
+            entry: send(
+              { type: 'FINISH' },
+              {
+                delay: (ctx, e) =>
+                  ctx.initialDelay +
+                  ('wait' in e
+                    ? (e as Extract<
+                        DelayExpMachineEvents,
+                        { type: 'ACTIVATE' }
+                      >).wait
+                    : 0)
+              }
+            ),
             on: {
               FINISH: 'finished'
             }
@@ -393,14 +400,17 @@ describe('interpreter', () => {
             }
           },
           pending: {
-            entry: send('FINISH', {
-              delay: (ctx, _, { _event }) =>
-                ctx.initialDelay +
-                (_event.data as Extract<
-                  DelayExpMachineEvents,
-                  { type: 'ACTIVATE' }
-                >).wait
-            }),
+            entry: send(
+              { type: 'FINISH' },
+              {
+                delay: (ctx, _, { _event }) =>
+                  ctx.initialDelay +
+                  (_event.data as Extract<
+                    DelayExpMachineEvents,
+                    { type: 'ACTIVATE' }
+                  >).wait
+              }
+            ),
             on: {
               FINISH: 'finished'
             }
@@ -644,11 +654,10 @@ describe('interpreter', () => {
         }
       );
 
-      const activeState = toggleMachine.transition(
-        toggleMachine.initialState,
-        'TOGGLE'
-      );
-      const bState = toggleMachine.transition(activeState, 'SWITCH');
+      const activeState = toggleMachine.transition(toggleMachine.initialState, {
+        type: 'TOGGLE'
+      });
+      const bState = toggleMachine.transition(activeState, { type: 'SWITCH' });
 
       interpret(toggleMachine).start(bState);
 
@@ -682,13 +691,19 @@ describe('interpreter', () => {
       states: {
         first: {
           entry: [
-            send('FOO', {
-              id: 'foo',
-              delay: 100
-            }),
-            send('BAR', {
-              delay: 200
-            }),
+            send(
+              { type: 'FOO' },
+              {
+                id: 'foo',
+                delay: 100
+              }
+            ),
+            send(
+              { type: 'BAR' },
+              {
+                delay: 200
+              }
+            ),
             actions.cancel(() => 'foo')
           ],
           on: {
@@ -877,7 +892,7 @@ describe('interpreter', () => {
       },
       on: {
         PING: {
-          actions: [actions.respond('PONG')]
+          actions: [actions.respond({ type: 'PONG' })]
         }
       }
     });
@@ -894,7 +909,7 @@ describe('interpreter', () => {
       },
       on: {
         PING_CHILD: {
-          actions: [send('PING', { to: 'child' }), logAction]
+          actions: [send({ type: 'PING' }, { to: 'child' }), logAction]
         },
         '*': {
           actions: [logAction]
@@ -946,7 +961,7 @@ describe('interpreter', () => {
         foo: {
           on: {
             EXTERNAL_EVENT: {
-              actions: [raise('RAISED_EVENT'), logAction]
+              actions: [raise({ type: 'RAISED_EVENT' }), logAction]
             }
           }
         }
@@ -1009,7 +1024,10 @@ describe('interpreter', () => {
         initial: 'foo',
         states: {
           foo: {
-            entry: [send('EVENT_2'), send('EVENT_1', { to: '#_internal' })],
+            entry: [
+              send({ type: 'EVENT_2' }),
+              send({ type: 'EVENT_1' }, { to: '#_internal' })
+            ],
             on: {
               EVENT_1: 'pass',
               EVENT_2: 'fail'
@@ -1601,7 +1619,7 @@ describe('interpreter', () => {
           active: {
             on: {
               FIRE: {
-                actions: sendParent('FIRED')
+                actions: sendParent({ type: 'FIRED' })
               }
             }
           }

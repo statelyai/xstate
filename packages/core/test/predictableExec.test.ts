@@ -88,7 +88,7 @@ describe('predictableExec', () => {
               actions: (_ctx, ev) => (eventArg = ev)
             }
           },
-          entry: raise('RAISED')
+          entry: raise({ type: 'RAISED' })
         },
         c: {}
       }
@@ -121,7 +121,7 @@ describe('predictableExec', () => {
               })
             }
           },
-          entry: raise('RAISED')
+          entry: raise({ type: 'RAISED' })
         },
         c: {}
       }
@@ -148,7 +148,7 @@ describe('predictableExec', () => {
           on: {
             RAISED: 'c'
           },
-          entry: raise('RAISED')
+          entry: raise({ type: 'RAISED' })
         },
         c: {
           invoke: {

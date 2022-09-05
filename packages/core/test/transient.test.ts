@@ -54,7 +54,7 @@ describe('transient states (eventless transitions)', () => {
       State.from<any>('G', {
         data: false
       }),
-      'UPDATE_BUTTON_CLICKED'
+      { type: 'UPDATE_BUTTON_CLICKED' }
     );
     expect(nextState.value).toEqual('D');
   });
@@ -65,7 +65,7 @@ describe('transient states (eventless transitions)', () => {
         data: true,
         status: 'Y'
       }),
-      'UPDATE_BUTTON_CLICKED'
+      { type: 'UPDATE_BUTTON_CLICKED' }
     );
     expect(nextState.value).toEqual('B');
   });
@@ -76,7 +76,7 @@ describe('transient states (eventless transitions)', () => {
         data: true,
         status: 'X'
       }) as AnyState,
-      'UPDATE_BUTTON_CLICKED'
+      { type: 'UPDATE_BUTTON_CLICKED' }
     );
     expect(nextState.value).toEqual('C');
   });
@@ -87,7 +87,7 @@ describe('transient states (eventless transitions)', () => {
         data: true,
         status: 'other'
       }) as AnyState,
-      'UPDATE_BUTTON_CLICKED'
+      { type: 'UPDATE_BUTTON_CLICKED' }
     );
     expect(nextState.value).toEqual('F');
   });
@@ -114,7 +114,7 @@ describe('transient states (eventless transitions)', () => {
       }
     });
 
-    const state = machine.transition('A', 'TIMER');
+    const state = machine.transition('A', { type: 'TIMER' });
 
     expect(state.actions.map((a) => a.type)).toEqual([
       'exit_A',
@@ -136,7 +136,7 @@ describe('transient states (eventless transitions)', () => {
               }
             },
             A2: {
-              entry: raise('INT1')
+              entry: raise({ type: 'INT1' })
             }
           }
         },
@@ -150,7 +150,7 @@ describe('transient states (eventless transitions)', () => {
               }
             },
             B2: {
-              entry: raise('INT2')
+              entry: raise({ type: 'INT2' })
             }
           }
         },
@@ -180,7 +180,7 @@ describe('transient states (eventless transitions)', () => {
       }
     });
 
-    const state = machine.transition(machine.initialState, 'E');
+    const state = machine.transition(machine.initialState, { type: 'E' });
 
     expect(state.value).toEqual({ A: 'A2', B: 'B2', C: 'C4' });
   });
@@ -236,7 +236,7 @@ describe('transient states (eventless transitions)', () => {
       }
     });
 
-    const state = machine.transition(machine.initialState, 'E');
+    const state = machine.transition(machine.initialState, { type: 'E' });
 
     expect(state.value).toEqual({ A: 'A4', B: 'B4' });
   });
@@ -292,7 +292,7 @@ describe('transient states (eventless transitions)', () => {
       }
     });
 
-    const state = machine.transition(machine.initialState, 'E');
+    const state = machine.transition(machine.initialState, { type: 'E' });
 
     expect(state.value).toEqual({ A: 'A4', B: 'B4' });
   });
@@ -340,7 +340,7 @@ describe('transient states (eventless transitions)', () => {
     });
 
     let state = machine.initialState; // A1, B1, C1
-    state = machine.transition(state, 'A'); // A2, B2, C2
+    state = machine.transition(state, { type: 'A' }); // A2, B2, C2
     expect(state.value).toEqual({ A: 'A2', B: 'B2', C: 'C2' });
   });
 
@@ -387,7 +387,7 @@ describe('transient states (eventless transitions)', () => {
     });
 
     let state = machine.initialState; // A1, B1, C1
-    state = machine.transition(state, 'A'); // A2, B2, C2
+    state = machine.transition(state, { type: 'A' }); // A2, B2, C2
     expect(state.value).toEqual({ A: 'A2', B: 'B2', C: 'C2' });
   });
 
@@ -398,15 +398,13 @@ describe('transient states (eventless transitions)', () => {
   it('should determine the resolved state from an initial transient state', () => {
     const morningState = greetingMachine.initialState;
     expect(morningState.value).toEqual('morning');
-    const stillMorningState = greetingMachine.transition(
-      morningState,
-      'CHANGE'
-    );
+    const stillMorningState = greetingMachine.transition(morningState, {
+      type: 'CHANGE'
+    });
     expect(stillMorningState.value).toEqual('morning');
-    const eveningState = greetingMachine.transition(
-      stillMorningState,
-      'RECHECK'
-    );
+    const eveningState = greetingMachine.transition(stillMorningState, {
+      type: 'RECHECK'
+    });
     expect(eveningState.value).toEqual('evening');
   });
 
@@ -420,7 +418,7 @@ describe('transient states (eventless transitions)', () => {
           }
         },
         b: {
-          entry: raise('BAR'),
+          entry: raise({ type: 'BAR' }),
           always: 'c',
           on: {
             BAR: 'd'
@@ -436,7 +434,7 @@ describe('transient states (eventless transitions)', () => {
       }
     });
 
-    const state = machine.transition('a', 'FOO');
+    const state = machine.transition('a', { type: 'FOO' });
     expect(state.value).toBe('e');
   });
 
@@ -450,7 +448,7 @@ describe('transient states (eventless transitions)', () => {
           }
         },
         b: {
-          entry: raise('BAR'),
+          entry: raise({ type: 'BAR' }),
           always: 'c',
           on: {
             BAR: 'd'
@@ -466,7 +464,7 @@ describe('transient states (eventless transitions)', () => {
       }
     });
 
-    const state = machine.transition('a', 'FOO');
+    const state = machine.transition('a', { type: 'FOO' });
     expect(state.value).toBe('e');
   });
 
@@ -484,7 +482,7 @@ describe('transient states (eventless transitions)', () => {
       }
     });
 
-    const state = machine.transition('a', 'FOO');
+    const state = machine.transition('a', { type: 'FOO' });
     expect(state.value).toBe('b');
   });
 
@@ -504,7 +502,7 @@ describe('transient states (eventless transitions)', () => {
       }
     });
 
-    const state = machine.transition('a', 'FOO');
+    const state = machine.transition('a', { type: 'FOO' });
     expect(state.value).toBe('pass');
   });
 
@@ -524,7 +522,7 @@ describe('transient states (eventless transitions)', () => {
       }
     });
 
-    const state = machine.transition('a', 'FOO');
+    const state = machine.transition('a', { type: 'FOO' });
     expect(state.value).toBe('pass');
   });
 
@@ -727,7 +725,7 @@ describe('transient states (eventless transitions)', () => {
       }
     });
 
-    const nextState = machine.transition(undefined, 'EVENT');
+    const nextState = machine.transition(undefined, { type: 'EVENT' });
 
     expect(nextState.done).toBeTruthy();
   });

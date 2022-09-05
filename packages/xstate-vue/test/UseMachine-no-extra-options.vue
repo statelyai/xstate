@@ -1,5 +1,5 @@
 <template>
-  <button @click="send('TOGGLE')">
+  <button @click="send({ type: 'TOGGLE' })">
     {{ state.value === 'inactive' ? 'Turn on' : 'Turn off' }}
   </button>
 </template>

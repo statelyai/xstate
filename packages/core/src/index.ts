@@ -33,7 +33,6 @@ export * from './types';
 export {
   matchesState,
   pathToStateValue,
-  toEventObject,
   toObserver,
   toSCXMLEvent
 } from './utils';

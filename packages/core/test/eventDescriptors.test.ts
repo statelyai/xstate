@@ -77,10 +77,10 @@ describe('event descriptors', () => {
     });
 
     expect(
-      machine.transition(undefined, 'event').matches('success')
+      machine.transition(undefined, { type: 'event' }).matches('success')
     ).toBeFalsy();
     expect(
-      machine.transition(undefined, 'eventually').matches('success')
+      machine.transition(undefined, { type: 'eventually' }).matches('success')
     ).toBeFalsy();
   });
 
@@ -100,10 +100,10 @@ describe('event descriptors', () => {
     });
 
     expect(
-      machine.transition(undefined, 'event').matches('success')
+      machine.transition(undefined, { type: 'event' }).matches('success')
     ).toBeTruthy();
     expect(
-      machine.transition(undefined, 'eventually').matches('success')
+      machine.transition(undefined, { type: 'eventually' }).matches('success')
     ).toBeFalsy();
   });
 
@@ -123,13 +123,17 @@ describe('event descriptors', () => {
     });
 
     expect(
-      machine.transition(undefined, 'event.whatever').matches('success')
+      machine
+        .transition(undefined, { type: 'event.whatever' })
+        .matches('success')
     ).toBeTruthy();
     expect(
-      machine.transition(undefined, 'eventually').matches('success')
+      machine.transition(undefined, { type: 'eventually' }).matches('success')
     ).toBeFalsy();
     expect(
-      machine.transition(undefined, 'eventually.event').matches('success')
+      machine
+        .transition(undefined, { type: 'eventually.event' })
+        .matches('success')
     ).toBeFalsy();
   });
 
@@ -149,7 +153,9 @@ describe('event descriptors', () => {
     });
 
     expect(
-      machine.transition(undefined, 'event.first.second').matches('success')
+      machine
+        .transition(undefined, { type: 'event.first.second' })
+        .matches('success')
     ).toBeTruthy();
   });
 
@@ -170,7 +176,7 @@ describe('event descriptors', () => {
 
     expect(
       machine
-        .transition(undefined, 'event.foo.bar.first.second')
+        .transition(undefined, { type: 'event.foo.bar.first.second' })
         .matches('success')
     ).toBeTruthy();
   });
@@ -206,15 +212,21 @@ describe('event descriptors', () => {
     });
 
     expect(
-      nonSCXMLMachine.transition(undefined, 'event.whatever').matches('start')
+      nonSCXMLMachine
+        .transition(undefined, { type: 'event.whatever' })
+        .matches('start')
     ).toBeTruthy();
 
     expect(
-      SCXMLMachine.transition(undefined, 'event.whatever').matches('success')
+      SCXMLMachine.transition(undefined, { type: 'event.whatever' }).matches(
+        'success'
+      )
     ).toBeTruthy();
 
     expect(
-      SCXMLMachine.transition(undefined, 'eventually').matches('start')
+      SCXMLMachine.transition(undefined, { type: 'eventually' }).matches(
+        'start'
+      )
     ).toBeTruthy();
   });
 
@@ -236,11 +248,13 @@ describe('event descriptors', () => {
 
     expect(
       machine
-        .transition(undefined, 'event.foo.bar.first.second')
+        .transition(undefined, { type: 'event.foo.bar.first.second' })
         .matches('success')
     ).toBeFalsy();
     expect(
-      machine.transition(undefined, 'whatever.event').matches('success')
+      machine
+        .transition(undefined, { type: 'whatever.event' })
+        .matches('success')
     ).toBeFalsy();
   });
 
@@ -261,10 +275,14 @@ describe('event descriptors', () => {
     });
 
     expect(
-      machine.transition(undefined, 'eventually.bar.baz').matches('success')
+      machine
+        .transition(undefined, { type: 'eventually.bar.baz' })
+        .matches('success')
     ).toBeFalsy();
     expect(
-      machine.transition(undefined, 'prevent.whatever').matches('success')
+      machine
+        .transition(undefined, { type: 'prevent.whatever' })
+        .matches('success')
     ).toBeFalsy();
   });
 });

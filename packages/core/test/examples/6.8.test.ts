@@ -68,9 +68,9 @@ describe('Example 6.8', () => {
   testAll(machine, expected);
 
   it('should respect the history mechanism', () => {
-    const stateC = machine.transition({ A: 'B' }, '1');
-    const stateF = machine.transition(stateC, '6');
-    const stateActual = machine.transition(stateF, '5');
+    const stateC = machine.transition({ A: 'B' }, { type: '1' });
+    const stateF = machine.transition(stateC, { type: '6' });
+    const stateActual = machine.transition(stateF, { type: '5' });
 
     expect(stateActual.value).toEqual({ A: 'C' });
   });

@@ -56,7 +56,7 @@ export default class ToggleComponent extends Component {
 
   @action
   toggle() {
-    this.statechart.send('TOGGLE');
+    this.statechart.send({ type: 'TOGGLE' });
   }
 }
 ```

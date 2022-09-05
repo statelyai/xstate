@@ -1,5 +1,4 @@
 import {
-  getEventType,
   mapValues,
   flatten,
   toArray,
@@ -10,7 +9,6 @@ import {
   createInvokeId
 } from './utils';
 import type {
-  Event,
   EventObject,
   HistoryStateNodeConfig,
   StateNodeDefinition,
@@ -331,10 +329,8 @@ export class StateNode<
    *
    * @param event The event in question
    */
-  public handles(event: Event<TEvent>): boolean {
-    const eventType = getEventType<TEvent>(event);
-
-    return this.events.includes(eventType);
+  public handles(event: TEvent): boolean {
+    return this.events.includes(event.type);
   }
 
   public next(state: State<TContext, TEvent>, _event: SCXML.Event<TEvent>) {

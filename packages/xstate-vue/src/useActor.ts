@@ -1,4 +1,4 @@
-import { ActorRef, EventObject, Sender, SnapshotFrom } from 'xstate';
+import { ActorRef, EventObject, SnapshotFrom } from 'xstate';
 import { shallowRef, isRef, watch, Ref } from 'vue';
 
 const noop = () => {
@@ -13,17 +13,17 @@ export function useActor<TActor extends ActorRef<any, any>>(
 };
 export function useActor<TEvent extends EventObject, TSnapshot>(
   actorRef: ActorRef<TEvent, TSnapshot> | Ref<ActorRef<TEvent, TSnapshot>>
-): { state: Ref<TSnapshot>; send: Sender<TEvent> };
+): { state: Ref<TSnapshot>; send: (event: TEvent) => void };
 export function useActor(
   actorRef: ActorRef<EventObject, unknown> | Ref<ActorRef<EventObject, unknown>>
 ): {
   state: Ref<unknown>;
-  send: Sender<EventObject>;
+  send: (event: EventObject) => void;
 } {
   const actorRefRef = isRef(actorRef) ? actorRef : shallowRef(actorRef);
   const state = shallowRef(actorRefRef.value.getSnapshot());
 
-  const send: Sender<EventObject> = (event: EventObject) => {
+  const send: typeof actorRefRef.value.send = (event) => {
     actorRefRef.value.send(event);
   };
 

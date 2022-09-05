@@ -70,7 +70,7 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
         states: {
           active: {
             on: {
-              FINISH: { actions: sendParent('FINISH') }
+              FINISH: { actions: sendParent({ type: 'FINISH' }) }
             }
           }
         }
@@ -181,7 +181,7 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
         states: {
           active: {
             on: {
-              FINISH: { actions: sendParent('FINISH') }
+              FINISH: { actions: sendParent({ type: 'FINISH' }) }
             }
           }
         }

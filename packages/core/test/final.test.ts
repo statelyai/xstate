@@ -67,21 +67,21 @@ const finalMachine = createMachine({
 
 describe('final states', () => {
   it('should emit the "done.state.final.red" event when all nested states are in their final states', () => {
-    const redState = finalMachine.transition('yellow', 'TIMER');
+    const redState = finalMachine.transition('yellow', { type: 'TIMER' });
     expect(redState.value).toEqual({
       red: {
         crosswalk1: 'walk',
         crosswalk2: 'walk'
       }
     });
-    const waitState = finalMachine.transition(redState, 'PED_WAIT');
+    const waitState = finalMachine.transition(redState, { type: 'PED_WAIT' });
     expect(waitState.value).toEqual({
       red: {
         crosswalk1: 'wait',
         crosswalk2: 'wait'
       }
     });
-    const stopState = finalMachine.transition(waitState, 'PED_STOP');
+    const stopState = finalMachine.transition(waitState, { type: 'PED_STOP' });
     expect(stopState.value).toEqual({
       red: {
         crosswalk1: 'stop',
@@ -93,14 +93,14 @@ describe('final states', () => {
       expect.objectContaining({ type: 'stopCrosswalk1' })
     ]);
 
-    const stopState2 = finalMachine.transition(stopState, 'PED_STOP');
+    const stopState2 = finalMachine.transition(stopState, { type: 'PED_STOP' });
 
     expect(stopState2.actions).toEqual([
       expect.objectContaining({ type: 'stopCrosswalk2' }),
       expect.objectContaining({ type: 'prepareGreenLight' })
     ]);
 
-    const greenState = finalMachine.transition(stopState, 'TIMER');
+    const greenState = finalMachine.transition(stopState, { type: 'TIMER' });
     expect(greenState.actions).toHaveLength(0);
   });
 
