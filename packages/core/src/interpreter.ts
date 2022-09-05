@@ -1,7 +1,5 @@
 import {
   ActorContext,
-  ActorRefFrom,
-  ActorRefFromBehavior,
   AnyState,
   AnyStateMachine,
   Behavior,
