@@ -1101,6 +1101,9 @@ export function microstep<
 ): typeof currentState {
   const { context, machine } = currentState;
   const actions: BaseActionObject[] = [];
+  const historyValue: HistoryValue<TContext, TEvent> = {
+    ...currentState.historyValue
+  };
 
   const filteredTransitions = removeConflictingTransitions(
     transitions,
@@ -1108,15 +1111,11 @@ export function microstep<
     currentState.historyValue
   );
 
-  let historyValue: HistoryValue<TContext, TEvent> = {};
-
   const internalQueue: Array<SCXML.Event<TEvent>> = [];
 
   // Exit states
   if (!currentState._initial) {
-    const { historyValue: exitHistoryValue } = exitStates(filteredTransitions);
-
-    historyValue = exitHistoryValue;
+    exitStates(filteredTransitions);
   }
 
   // Transition
@@ -1187,7 +1186,6 @@ export function microstep<
     const statesToEnter = new Set<AnyStateNode>();
     const statesForDefaultEntry = new Set<AnyStateNode>();
 
-    const { historyValue } = currentState;
     computeEntrySet(filteredTransitions);
 
     for (const stateNodeToEnter of [...statesToEnter].sort(
@@ -1348,15 +1346,11 @@ export function microstep<
     }
   }
 
-  function exitStates(
-    transitions: AnyTransitionDefinition[]
-  ): {
-    historyValue: Record<string, AnyStateNode[]>;
-  } {
+  function exitStates(transitions: AnyTransitionDefinition[]) {
     const statesToExit = computeExitSet(
       transitions,
       mutConfiguration,
-      currentState.historyValue
+      historyValue
     );
 
     for (const sn of statesToExit) {
@@ -1365,25 +1359,21 @@ export function microstep<
 
     statesToExit.sort((a, b) => b.order - a.order);
 
-    // TODO: fix mutation risk
-    const historyValue = currentState ? currentState.historyValue : {};
-    if (currentState && currentState.configuration) {
-      // From SCXML algorithm: https://www.w3.org/TR/scxml/#exitStates
-      for (const exitStateNode of statesToExit) {
-        for (const historyNode of getHistoryNodes(exitStateNode)) {
-          let predicate: (sn: AnyStateNode) => boolean;
-          if (historyNode.history === 'deep') {
-            predicate = (sn) =>
-              isAtomicStateNode(sn) && isDescendant(sn, exitStateNode);
-          } else {
-            predicate = (sn) => {
-              return sn.parent === exitStateNode;
-            };
-          }
-          historyValue[historyNode.id] = currentState.configuration.filter(
-            predicate
-          );
+    // From SCXML algorithm: https://www.w3.org/TR/scxml/#exitStates
+    for (const exitStateNode of statesToExit) {
+      for (const historyNode of getHistoryNodes(exitStateNode)) {
+        let predicate: (sn: AnyStateNode) => boolean;
+        if (historyNode.history === 'deep') {
+          predicate = (sn) =>
+            isAtomicStateNode(sn) && isDescendant(sn, exitStateNode);
+        } else {
+          predicate = (sn) => {
+            return sn.parent === exitStateNode;
+          };
         }
+        historyValue[historyNode.id] = Array.from(mutConfiguration).filter(
+          predicate
+        );
       }
     }
 
@@ -1391,10 +1381,6 @@ export function microstep<
       actions.push(...flatten(s.exit));
       mutConfiguration.delete(s);
     }
-
-    return {
-      historyValue
-    };
   }
 }
 
@@ -1692,7 +1678,7 @@ export function macrostep<TMachine extends AnyStateMachine>(
 
   return nextState;
 
-  // Functions
+  // ----- Internal functions -----
   function stopStep(scxmlEvent: SCXML.Event<any>): typeof nextState {
     const stoppedState = nextState.clone({
       _event: scxmlEvent,
