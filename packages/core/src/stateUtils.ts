@@ -83,9 +83,7 @@ const isAtomicStateNode = (stateNode: StateNode<any, any>) =>
 function getChildren<TContext extends MachineContext, TE extends EventObject>(
   stateNode: StateNode<TContext, TE>
 ): Array<StateNode<TContext, TE>> {
-  return Object.keys(stateNode.states)
-    .map((key) => stateNode.states[key])
-    .filter((sn) => sn.type !== 'history');
+  return Object.values(stateNode.states).filter((sn) => sn.type !== 'history');
 }
 
 function getProperAncestors<
@@ -426,7 +424,7 @@ export function formatTransitions<
       [WILDCARD]: wildcardConfigs = [],
       ...namedTransitionConfigs
     } = stateNode.config.on;
-    Object.keys(namedTransitionConfigs).forEach((eventType) => {
+    for (const eventType of Object.keys(namedTransitionConfigs)) {
       if (eventType === NULL_EVENT) {
         throw new Error(
           'Null events ("") cannot be specified as a transition key. Use `always: { ... }` instead.'
@@ -439,7 +437,7 @@ export function formatTransitions<
 
       transitionConfigs.push(...eventTransitionConfigs);
       // TODO: add dev-mode validation for unreachable transitions
-    });
+    }
     transitionConfigs.push(
       ...toTransitionConfigArray(
         WILDCARD,
@@ -987,13 +985,13 @@ function findLCCA<TContext extends MachineContext, TEvent extends EventObject>(
   let current = getPathFromRootToNode(head);
   let candidates: Array<StateNode<TContext, TEvent>> = [];
 
-  stateNodes.forEach((stateNode) => {
+  for (const stateNode of stateNodes) {
     const path = getPathFromRootToNode(stateNode);
 
     candidates = current.filter((sn) => path.includes(sn));
     current = candidates;
     candidates = [];
-  });
+  }
 
   return current[current.length - 1];
 }
@@ -1011,16 +1009,16 @@ function getEffectiveTargetStates(
   for (const s of transition.target) {
     if (isHistoryNode(s)) {
       if (historyValue[s.id]) {
-        historyValue[s.id].forEach((node) => {
+        for (const node of historyValue[s.id]) {
           targets.add(node);
-        });
+        }
       } else {
-        getEffectiveTargetStates(
+        for (const node of getEffectiveTargetStates(
           { target: resolveHistoryTarget(s) } as AnyTransitionDefinition,
           historyValue
-        ).forEach((node) => {
+        )) {
           targets.add(node);
-        });
+        }
       }
     } else {
       targets.add(s);
@@ -1196,10 +1194,10 @@ export function microstep<
       actions.push(...stateNodeToEnter.entry);
 
       if (statesForDefaultEntry.has(stateNodeToEnter)) {
-        statesForDefaultEntry.forEach((stateNode) => {
+        for (const stateNode of statesForDefaultEntry) {
           const initialActions = stateNode.initial!.actions;
           actions.push(...initialActions);
-        });
+        }
       }
       // if (defaultHistoryContent[s.id]) {
       //   actions.push(...defaultHistoryContent[s.id])
@@ -1277,9 +1275,9 @@ export function microstep<
           }
           for (const s of historyStateNodes) {
             addAncestorStatesToEnter(s, stateNode.parent!);
-            statesForDefaultEntry.forEach((stateForDefaultEntry) =>
-              statesForDefaultEntry.add(stateForDefaultEntry)
-            );
+            for (const stateForDefaultEntry of statesForDefaultEntry) {
+              statesForDefaultEntry.add(stateForDefaultEntry);
+            }
           }
         } else {
           const targets = resolveHistoryTarget<TContext, TEvent>(stateNode);
@@ -1288,9 +1286,9 @@ export function microstep<
           }
           for (const s of targets) {
             addAncestorStatesToEnter(s, stateNode);
-            statesForDefaultEntry.forEach((stateForDefaultEntry) =>
-              statesForDefaultEntry.add(stateForDefaultEntry)
-            );
+            for (const stateForDefaultEntry of statesForDefaultEntry) {
+              statesForDefaultEntry.add(stateForDefaultEntry);
+            }
           }
         }
       } else {
@@ -1447,7 +1445,7 @@ export function resolveMicroTransition<
   return nextState;
 
   function setChildren() {
-    nonRaisedActions.forEach((action) => {
+    for (const action of nonRaisedActions) {
       if (
         action.type === actionTypes.invoke &&
         (action as InvokeActionObject).params.ref
@@ -1462,7 +1460,7 @@ export function resolveMicroTransition<
           delete children[ref.name];
         }
       }
-    });
+    }
   }
 }
 
@@ -1681,17 +1679,17 @@ export function macrostep<TMachine extends AnyStateMachine>(
 
     stoppedState.actions.length = 0;
 
-    nextState.configuration
-      .sort((a, b) => b.order - a.order)
-      .forEach((stateNode) => {
-        for (const action of stateNode.definition.exit) {
-          stoppedState.actions.push(action);
-        }
-      });
+    for (const stateNode of nextState.configuration.sort(
+      (a, b) => b.order - a.order
+    )) {
+      for (const action of stateNode.definition.exit) {
+        stoppedState.actions.push(action);
+      }
+    }
 
-    Object.values(nextState.children).forEach((child) => {
-      stoppedState.actions.push(stop(() => child));
-    });
+    for (const child of Object.values(nextState.children)) {
+      stoppedState.actions.push(stop(child));
+    }
 
     const { actions, context } = resolveActionsAndContext(
       stoppedState.actions,

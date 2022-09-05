@@ -1197,7 +1197,10 @@ export interface DynamicStopActionObject<
 > {
   type: ActionTypes.Stop;
   params: {
-    actor: string | Expr<TContext, TEvent, ActorRef<any> | string>;
+    actor:
+      | string
+      | ActorRef<any>
+      | Expr<TContext, TEvent, ActorRef<any> | string>;
   };
 }
 

@@ -18,7 +18,10 @@ export function stop<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  actorRef: string | Expr<TContext, TEvent, ActorRef<any> | string>
+  actorRef:
+    | string
+    | ActorRef<any>
+    | Expr<TContext, TEvent, ActorRef<any> | string>
 ): BaseDynamicActionObject<
   TContext,
   TEvent,
