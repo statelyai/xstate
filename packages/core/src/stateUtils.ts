@@ -1114,11 +1114,8 @@ export function microstep<
 
   // Exit states
   if (!currentState._initial) {
-    const { historyValue: exitHistoryValue, actions: exitActions } = exitStates(
-      filteredTransitions
-    );
+    const { historyValue: exitHistoryValue } = exitStates(filteredTransitions);
 
-    actions.push(...exitActions);
     historyValue = exitHistoryValue;
   }
 
@@ -1129,13 +1126,6 @@ export function microstep<
 
   // Enter states
   const enterStatesResult = enterStates();
-
-  // Start invocations
-  for (const stateToInvoke of enterStatesResult.statesToInvoke) {
-    for (const invokeDef of stateToInvoke.invoke) {
-      actions.push(invoke(invokeDef));
-    }
-  }
 
   actions.push(...enterStatesResult.actions);
 
@@ -1194,7 +1184,6 @@ export function microstep<
     const statesToInvoke: typeof mutConfiguration = new Set();
     const internalQueue: Array<SCXML.Event<TEvent>> = [];
 
-    const actions: BaseActionObject[] = [];
     const statesToEnter = new Set<AnyStateNode>();
     const statesForDefaultEntry = new Set<AnyStateNode>();
 
@@ -1205,7 +1194,11 @@ export function microstep<
       (a, b) => a.order - b.order
     )) {
       mutConfiguration.add(stateNodeToEnter);
+
       statesToInvoke.add(stateNodeToEnter);
+      for (const invokeDef of stateNodeToEnter.invoke) {
+        actions.push(invoke(invokeDef));
+      }
 
       // Add entry actions
       actions.push(...stateNodeToEnter.entry);
@@ -1260,7 +1253,7 @@ export function microstep<
     return {
       statesToInvoke,
       internalQueue,
-      actions
+      actions: []
     };
 
     // Internal functions
@@ -1359,14 +1352,12 @@ export function microstep<
     transitions: AnyTransitionDefinition[]
   ): {
     historyValue: Record<string, AnyStateNode[]>;
-    actions: BaseActionObject[];
   } {
     const statesToExit = computeExitSet(
       transitions,
       mutConfiguration,
       currentState.historyValue
     );
-    const actions: BaseActionObject[] = [];
 
     for (const sn of statesToExit) {
       actions.push(...sn.invoke.map((def) => stop(def.id)));
@@ -1402,8 +1393,7 @@ export function microstep<
     }
 
     return {
-      historyValue,
-      actions
+      historyValue
     };
   }
 }
