@@ -1,4 +1,4 @@
-import { Event, EventObject, RaiseActionObject } from '../types';
+import { EventObject, RaiseActionObject } from '../types';
 import * as actionTypes from '../actionTypes';
 import { toSCXMLEvent } from '../utils';
 import { createDynamicAction } from '../../actions/dynamicAction';
@@ -12,7 +12,7 @@ import { BaseDynamicActionObject } from '..';
  */
 
 export function raise<TEvent extends EventObject>(
-  event: Event<TEvent>
+  event: TEvent
 ): BaseDynamicActionObject<
   any,
   TEvent,

@@ -3,7 +3,6 @@ import type {
   Subscribable,
   Subscription,
   Lazy,
-  Sender,
   Receiver,
   Behavior,
   ActorContext,
@@ -89,7 +88,7 @@ export function fromCallback<TEvent extends EventObject>(
       const { _parent: parent } = self;
 
       if (_event.name === startSignalType) {
-        const sender: Sender<TEvent> = (e) => {
+        const sender = (e: TEvent) => {
           if (state.canceled) {
             return state;
           }

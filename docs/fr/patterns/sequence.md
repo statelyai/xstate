@@ -19,7 +19,7 @@ const stepMachine = createMachine({
   }
 });
 
-console.log(stepMachine.transition('one', 'NEXT').value);
+console.log(stepMachine.transition('one', { type: 'NEXT' }).value);
 // => 'two'
 ```
 

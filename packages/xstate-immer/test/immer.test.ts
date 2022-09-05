@@ -22,8 +22,8 @@ describe('@xstate/immer', () => {
     });
 
     const zeroState = countMachine.initialState;
-    const oneState = countMachine.transition(zeroState, 'INC');
-    const twoState = countMachine.transition(zeroState, 'INC');
+    const oneState = countMachine.transition(zeroState, { type: 'INC' });
+    const twoState = countMachine.transition(zeroState, { type: 'INC' });
 
     expect(zeroState.context).toEqual({ count: 0 });
     expect(oneState.context).toEqual({ count: 1 });
@@ -57,7 +57,7 @@ describe('@xstate/immer', () => {
     );
 
     const zeroState = countMachine.initialState;
-    const twoState = countMachine.transition(zeroState, 'INC_TWICE');
+    const twoState = countMachine.transition(zeroState, { type: 'INC_TWICE' });
 
     expect(zeroState.context).toEqual({ count: 0 });
     expect(twoState.context).toEqual({ count: 2 });
@@ -94,7 +94,7 @@ describe('@xstate/immer', () => {
     );
 
     const zeroState = countMachine.initialState;
-    const twoState = countMachine.transition(zeroState, 'INC_TWICE');
+    const twoState = countMachine.transition(zeroState, { type: 'INC_TWICE' });
 
     expect(zeroState.context.foo.bar.baz).toEqual([1, 2, 3]);
     expect(twoState.context.foo.bar.baz).toEqual([1, 2, 3, 0, 0]);

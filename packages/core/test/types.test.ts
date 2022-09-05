@@ -313,7 +313,7 @@ describe('events', () => {
           type: 'FOO';
         }
       },
-      entry: raise('FOO')
+      entry: raise({ type: 'FOO' })
     });
 
     const service = interpret(machine).start();

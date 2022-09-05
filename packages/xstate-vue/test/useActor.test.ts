@@ -24,7 +24,7 @@ describe('useActor composable function', () => {
       states: {
         active: {
           on: {
-            FINISH: { actions: sendParent('FINISH') }
+            FINISH: { actions: sendParent({ type: 'FINISH' }) }
           }
         }
       }

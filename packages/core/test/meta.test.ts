@@ -73,7 +73,7 @@ describe('state meta data', () => {
   });
 
   it('states should aggregate meta data', () => {
-    const yellowState = lightMachine.transition('green', 'TIMER');
+    const yellowState = lightMachine.transition('green', { type: 'TIMER' });
     expect(yellowState.meta).toEqual({
       'light.yellow': {
         yellowData: 'yellow data'
@@ -84,7 +84,7 @@ describe('state meta data', () => {
   });
 
   it('states should aggregate meta data (deep)', () => {
-    expect(lightMachine.transition('yellow', 'TIMER').meta).toEqual({
+    expect(lightMachine.transition('yellow', { type: 'TIMER' }).meta).toEqual({
       'light.red': {
         redData: {
           nested: {
@@ -149,7 +149,7 @@ describe('transition meta data', () => {
       }
     });
 
-    const nextState = machine.transition(undefined, 'EVENT');
+    const nextState = machine.transition(undefined, { type: 'EVENT' });
 
     expect(nextState.transitions.map((t) => t.meta)).toMatchInlineSnapshot(`
       Array [

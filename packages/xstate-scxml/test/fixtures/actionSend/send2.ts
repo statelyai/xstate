@@ -5,7 +5,7 @@ const m = createMachine({
   states: {
     a: {
       id: 'a',
-      exit: actions.raise('s'),
+      exit: actions.raise({ type: 's' }),
       on: {
         t: 'b'
       }

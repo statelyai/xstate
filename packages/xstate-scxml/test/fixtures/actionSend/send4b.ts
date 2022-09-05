@@ -8,7 +8,7 @@ export default createMachine({
       on: { t: 'b' }
     },
     b: {
-      entry: actions.raise('s'),
+      entry: actions.raise({ type: 's' }),
       on: {
         s: 'c'
       }

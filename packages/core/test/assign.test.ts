@@ -98,67 +98,61 @@ const counterMachine = createMachine<CounterContext>({
 
 describe('assign', () => {
   it('applies the assignment to the external state (property assignment)', () => {
-    const oneState = counterMachine.transition(
-      counterMachine.initialState,
-      'DEC'
-    );
+    const oneState = counterMachine.transition(counterMachine.initialState, {
+      type: 'DEC'
+    });
 
     expect(oneState.value).toEqual('counting');
     expect(oneState.context).toEqual({ count: -1, foo: 'bar' });
 
-    const twoState = counterMachine.transition(oneState, 'DEC');
+    const twoState = counterMachine.transition(oneState, { type: 'DEC' });
 
     expect(twoState.value).toEqual('counting');
     expect(twoState.context).toEqual({ count: -2, foo: 'bar' });
   });
 
   it('applies the assignment to the external state', () => {
-    const oneState = counterMachine.transition(
-      counterMachine.initialState,
-      'INC'
-    );
+    const oneState = counterMachine.transition(counterMachine.initialState, {
+      type: 'INC'
+    });
 
     expect(oneState.value).toEqual('counting');
     expect(oneState.context).toEqual({ count: 1, foo: 'bar' });
 
-    const twoState = counterMachine.transition(oneState, 'INC');
+    const twoState = counterMachine.transition(oneState, { type: 'INC' });
 
     expect(twoState.value).toEqual('counting');
     expect(twoState.context).toEqual({ count: 2, foo: 'bar' });
   });
 
   it('applies the assignment to multiple properties (property assignment)', () => {
-    const nextState = counterMachine.transition(
-      counterMachine.initialState,
-      'WIN_PROP'
-    );
+    const nextState = counterMachine.transition(counterMachine.initialState, {
+      type: 'WIN_PROP'
+    });
 
     expect(nextState.context).toEqual({ count: 100, foo: 'win' });
   });
 
   it('applies the assignment to multiple properties (static)', () => {
-    const nextState = counterMachine.transition(
-      counterMachine.initialState,
-      'WIN_STATIC'
-    );
+    const nextState = counterMachine.transition(counterMachine.initialState, {
+      type: 'WIN_STATIC'
+    });
 
     expect(nextState.context).toEqual({ count: 100, foo: 'win' });
   });
 
   it('applies the assignment to multiple properties (static + prop assignment)', () => {
-    const nextState = counterMachine.transition(
-      counterMachine.initialState,
-      'WIN_MIX'
-    );
+    const nextState = counterMachine.transition(counterMachine.initialState, {
+      type: 'WIN_MIX'
+    });
 
     expect(nextState.context).toEqual({ count: 100, foo: 'win' });
   });
 
   it('applies the assignment to multiple properties', () => {
-    const nextState = counterMachine.transition(
-      counterMachine.initialState,
-      'WIN'
-    );
+    const nextState = counterMachine.transition(counterMachine.initialState, {
+      type: 'WIN'
+    });
 
     expect(nextState.context).toEqual({ count: 100, foo: 'win' });
   });
@@ -166,20 +160,20 @@ describe('assign', () => {
   it('applies the assignment to the explicit external state (property assignment)', () => {
     const oneState = counterMachine.transition(
       State.from(counterMachine.initialState, { count: 50, foo: 'bar' }),
-      'DEC'
+      { type: 'DEC' }
     );
 
     expect(oneState.value).toEqual('counting');
     expect(oneState.context).toEqual({ count: 49, foo: 'bar' });
 
-    const twoState = counterMachine.transition(oneState, 'DEC');
+    const twoState = counterMachine.transition(oneState, { type: 'DEC' });
 
     expect(twoState.value).toEqual('counting');
     expect(twoState.context).toEqual({ count: 48, foo: 'bar' });
 
     const threeState = counterMachine.transition(
       State.from(twoState, { count: 100, foo: 'bar' }),
-      'DEC'
+      { type: 'DEC' }
     );
 
     expect(threeState.value).toEqual('counting');
@@ -189,20 +183,20 @@ describe('assign', () => {
   it('applies the assignment to the explicit external state', () => {
     const oneState = counterMachine.transition(
       State.from(counterMachine.initialState, { count: 50, foo: 'bar' }),
-      'INC'
+      { type: 'INC' }
     );
 
     expect(oneState.value).toEqual('counting');
     expect(oneState.context).toEqual({ count: 51, foo: 'bar' });
 
-    const twoState = counterMachine.transition(oneState, 'INC');
+    const twoState = counterMachine.transition(oneState, { type: 'INC' });
 
     expect(twoState.value).toEqual('counting');
     expect(twoState.context).toEqual({ count: 52, foo: 'bar' });
 
     const threeState = counterMachine.transition(
       State.from(twoState, { count: 102, foo: 'bar' }),
-      'INC'
+      { type: 'INC' }
     );
 
     expect(threeState.value).toEqual('counting');
@@ -212,7 +206,9 @@ describe('assign', () => {
   it('should maintain state after unhandled event', () => {
     const { initialState } = counterMachine;
 
-    const nextState = counterMachine.transition(initialState, 'FAKE_EVENT');
+    const nextState = counterMachine.transition(initialState, {
+      type: 'FAKE_EVENT'
+    });
 
     expect(nextState.context).toBeDefined();
     expect(nextState.context).toEqual({ count: 0, foo: 'bar' });
@@ -221,7 +217,9 @@ describe('assign', () => {
   it('sets undefined properties', () => {
     const { initialState } = counterMachine;
 
-    const nextState = counterMachine.transition(initialState, 'SET_MAYBE');
+    const nextState = counterMachine.transition(initialState, {
+      type: 'SET_MAYBE'
+    });
 
     expect(nextState.context.maybe).toBeDefined();
     expect(nextState.context).toEqual({
@@ -302,7 +300,7 @@ describe('assign meta', () => {
   it('should provide the state in regular transitions (prop assigner)', () => {
     const { initialState } = machine;
 
-    const nextState = machine.transition(initialState, 'NEXT');
+    const nextState = machine.transition(initialState, { type: 'NEXT' });
 
     expect(nextState.context).toEqual({ count: 3 });
   });
@@ -310,7 +308,7 @@ describe('assign meta', () => {
   it('should provide the state in regular transitions (assigner)', () => {
     const { initialState } = machine;
 
-    const nextState = machine.transition(initialState, 'NEXT_FN');
+    const nextState = machine.transition(initialState, { type: 'NEXT_FN' });
 
     expect(nextState.context).toEqual({ count: 3 });
   });
@@ -318,7 +316,9 @@ describe('assign meta', () => {
   it('should provide the assign action', () => {
     const { initialState } = machine;
 
-    const nextState = machine.transition(initialState, 'NEXT_ASSIGNER');
+    const nextState = machine.transition(initialState, {
+      type: 'NEXT_ASSIGNER'
+    });
 
     expect(nextState.context).toEqual({ count: 5 });
   });
@@ -366,7 +366,7 @@ describe('assign meta', () => {
       },
       on: {
         PING: {
-          actions: [sendParent('PONG')]
+          actions: [sendParent({ type: 'PONG' })]
         }
       }
     });
@@ -386,7 +386,7 @@ describe('assign meta', () => {
       },
       on: {
         PING_CHILD: {
-          actions: [send('PING', { to: 'child' }), assignEventLog]
+          actions: [send({ type: 'PING' }, { to: 'child' }), assignEventLog]
         },
         '*': {
           actions: [assignEventLog]

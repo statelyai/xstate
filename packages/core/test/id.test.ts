@@ -98,7 +98,7 @@ describe('State node IDs', () => {
       }
     });
 
-    expect(brokenMachine.transition('foo', 'ACTION').value).toEqual({
+    expect(brokenMachine.transition('foo', { type: 'ACTION' }).value).toEqual({
       bar: { qux: 'quux' }
     });
   });

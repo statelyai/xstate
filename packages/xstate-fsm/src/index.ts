@@ -56,12 +56,6 @@ function createMatcher(value: string) {
   return (stateValue) => value === stateValue;
 }
 
-function toEventObject<TEvent extends EventObject>(
-  event: TEvent['type'] | TEvent
-): TEvent {
-  return (typeof event === 'string' ? { type: event } : event) as TEvent;
-}
-
 function createUnchangedState<
   TC extends object,
   TE extends EventObject,
@@ -149,14 +143,13 @@ export function createMachine<
       matches: createMatcher(fsmConfig.initial)
     },
     transition: (
-      state: string | StateMachine.State<TContext, TEvent, TState>,
-      event: TEvent | TEvent['type']
+      state: StateMachine.State<TContext, TEvent, TState>,
+      event: TEvent
     ): StateMachine.State<TContext, TEvent, TState> => {
       const { value, context } =
         typeof state === 'string'
           ? { value: state, context: fsmConfig.context! }
           : state;
-      const eventObject = toEventObject<TEvent>(event);
       const stateConfig = fsmConfig.states[value];
 
       if (!IS_PRODUCTION && !stateConfig) {
@@ -168,7 +161,7 @@ export function createMachine<
       if (stateConfig.on) {
         const transitions: Array<
           StateMachine.Transition<TContext, TEvent>
-        > = toArray(stateConfig.on[eventObject.type]);
+        > = toArray(stateConfig.on[event.type]);
 
         for (const transition of transitions) {
           if (transition === undefined) {
@@ -197,7 +190,7 @@ export function createMachine<
             );
           }
 
-          if (!guard || guard?.(context, eventObject)) {
+          if (!guard || guard?.(context, event)) {
             const allActions = (isTargetless
               ? toArray(actions)
               : ([] as any[])
@@ -210,7 +203,7 @@ export function createMachine<
             const [nonAssignActions, nextContext, assigned] = handleActions(
               allActions,
               context,
-              eventObject
+              event
             );
 
             const resolvedTarget = target ?? value;
@@ -256,12 +249,12 @@ export function interpret<
 
   const service = {
     _machine: machine,
-    send: (event: TEvent | TEvent['type']): void => {
+    send: (event: TEvent): void => {
       if (status !== InterpreterStatus.Running) {
         return;
       }
       state = machine.transition(state, event);
-      executeStateActions(state, toEventObject(event));
+      executeStateActions(state, event);
       listeners.forEach((listener) => listener(state));
     },
     subscribe: (listener: StateMachine.StateListener<typeof state>) => {

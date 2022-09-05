@@ -18,7 +18,7 @@ const childMachine = createMachine({
   states: {
     active: {
       on: {
-        FINISH: { actions: sendParent('FINISH') }
+        FINISH: { actions: sendParent({ type: 'FINISH' }) }
       }
     }
   }

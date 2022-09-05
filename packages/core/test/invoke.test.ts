@@ -54,7 +54,7 @@ const fetchMachine = createMachine<{ userId: string | undefined }>({
       data: { user: (_: any, e: any) => e.user }
     },
     failure: {
-      entry: sendParent('REJECT')
+      entry: sendParent({ type: 'REJECT' })
     }
   }
 });
@@ -107,7 +107,7 @@ describe('invoke', () => {
       initial: 'init',
       states: {
         init: {
-          entry: [sendParent('INC'), sendParent('INC')]
+          entry: [sendParent({ type: 'INC' }), sendParent({ type: 'INC' })]
         }
       }
     });
@@ -173,7 +173,11 @@ describe('invoke', () => {
         init: {
           on: {
             FORWARD_DEC: {
-              actions: [sendParent('DEC'), sendParent('DEC'), sendParent('DEC')]
+              actions: [
+                sendParent({ type: 'DEC' }),
+                sendParent({ type: 'DEC' }),
+                sendParent({ type: 'DEC' })
+              ]
             }
           }
         }
@@ -355,7 +359,7 @@ describe('invoke', () => {
           data: { user: (_: any, e: any) => e.user }
         },
         failure: {
-          entry: sendParent('REJECT')
+          entry: sendParent({ type: 'REJECT' })
         }
       }
     });
@@ -544,7 +548,7 @@ describe('invoke', () => {
               initial: 'init',
               states: {
                 init: {
-                  entry: [sendParent('STOP')]
+                  entry: [sendParent({ type: 'STOP' })]
                 }
               }
             })
@@ -591,7 +595,7 @@ describe('invoke', () => {
           on: { NEXT: 'two' }
         },
         two: {
-          entry: sendParent('NEXT')
+          entry: sendParent({ type: 'NEXT' })
         }
       }
     });
@@ -606,7 +610,7 @@ describe('invoke', () => {
         },
         states: {
           one: {
-            entry: send('NEXT', { to: 'foo-child' }),
+            entry: send({ type: 'NEXT' }, { to: 'foo-child' }),
             on: { NEXT: 'two' }
           },
           two: {
@@ -639,7 +643,7 @@ describe('invoke', () => {
         },
         states: {
           one: {
-            entry: send('NEXT', { to: 'foo-child' }),
+            entry: send({ type: 'NEXT' }, { to: 'foo-child' }),
             on: { NEXT: 'two' }
           },
           two: {
@@ -665,7 +669,7 @@ describe('invoke', () => {
               id: 'foo-child',
               src: subMachine
             },
-            entry: send('NEXT', { to: 'foo-child' }),
+            entry: send({ type: 'NEXT' }, { to: 'foo-child' }),
             on: { NEXT: 'two' }
           },
           two: {
@@ -705,7 +709,7 @@ describe('invoke', () => {
               src: doneSubMachine,
               onDone: 'two'
             },
-            entry: send('NEXT', { to: 'foo-child' })
+            entry: send({ type: 'NEXT' }, { to: 'foo-child' })
           },
           two: {
             on: { NEXT: 'three' }
@@ -1670,7 +1674,7 @@ describe('invoke', () => {
                 });
               })
             },
-            entry: send('PING', { to: 'child' }),
+            entry: send({ type: 'PING' }, { to: 'child' }),
             on: {
               PONG: 'done'
             }
@@ -1864,7 +1868,7 @@ describe('invoke', () => {
     it('should be able to be stringified', () => {
       const waitingState = fetcherMachine.transition(
         fetcherMachine.initialState,
-        'GO_TO_WAITING'
+        { type: 'GO_TO_WAITING' }
       );
 
       expect(() => {
@@ -1922,7 +1926,7 @@ describe('invoke', () => {
             },
             on: {
               STOPCHILD: {
-                actions: send('STOP', { to: 'invoked.child' })
+                actions: send({ type: 'STOP' }, { to: 'invoked.child' })
               }
             }
           },
@@ -2292,7 +2296,7 @@ describe('invoke', () => {
         initial: 'waiting',
         states: {
           waiting: {
-            entry: send('PING', { to: 'ponger' }),
+            entry: send({ type: 'PING' }, { to: 'ponger' }),
             invoke: {
               id: 'ponger',
               src: pongBehavior
@@ -2404,7 +2408,7 @@ describe('invoke', () => {
           on: {
             PING: {
               // Sends 'PONG' event to parent machine
-              actions: sendParent('PONG')
+              actions: sendParent({ type: 'PONG' })
             }
           }
         }
@@ -2425,7 +2429,7 @@ describe('invoke', () => {
                 src: pongMachine
               },
               // Sends 'PING' event to child machine with ID 'pong'
-              entry: send('PING', { to: 'pong' }),
+              entry: send({ type: 'PING' }, { to: 'pong' }),
               on: {
                 PONG: 'innerSuccess'
               }
@@ -2700,7 +2704,7 @@ describe('invoke', () => {
                     },
                     on: {
                       NEXT: {
-                        actions: raise('STOP_ONE')
+                        actions: raise({ type: 'STOP_ONE' })
                       }
                     }
                   }

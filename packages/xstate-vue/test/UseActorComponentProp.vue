@@ -19,7 +19,7 @@ export default defineComponent({
     }
   },
   setup(props) {
-    const { state: actorState, send: actorSend } = useActor(props.actor);
+    const { state: actorState, send: actorSend } = useActor(props.actor!);
 
     onMounted(() => {
       actorSend({ type: 'FINISH' });

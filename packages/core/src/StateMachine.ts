@@ -32,7 +32,6 @@ import type {
 import type {
   ActorMap,
   BaseActionObject,
-  Event,
   EventObject,
   InternalMachineImplementations,
   MachineConfig,
@@ -251,7 +250,7 @@ export class StateMachine<
   public transition(
     state: StateValue | State<TContext, TEvent, TResolvedTypesMeta> = this
       .initialState,
-    event: Event<TEvent> | SCXML.Event<TEvent>,
+    event: TEvent | SCXML.Event<TEvent>,
     actorCtx?: ActorContext<TEvent, State<TContext, TEvent, any>>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const currentState = toState(state, this);
@@ -273,7 +272,7 @@ export class StateMachine<
   public microstep(
     state: StateValue | State<TContext, TEvent, TResolvedTypesMeta> = this
       .initialState,
-    event: Event<TEvent> | SCXML.Event<TEvent>,
+    event: TEvent | SCXML.Event<TEvent>,
     actorCtx: ActorContext<any, any> | undefined
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const resolvedState = toState(state, this);

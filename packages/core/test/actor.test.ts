@@ -65,7 +65,7 @@ describe('spawning machines', () => {
         }
       },
       sendPong: {
-        entry: [sendParent('PONG'), raise('SUCCESS')],
+        entry: [sendParent({ type: 'PONG' }), raise({ type: 'SUCCESS' })],
         on: {
           SUCCESS: 'waitPing'
         }
@@ -89,14 +89,17 @@ describe('spawning machines', () => {
           assign({
             server: (_, __, { spawn }) => spawn(serverMachine)
           }),
-          raise('SUCCESS')
+          raise({ type: 'SUCCESS' })
         ],
         on: {
           SUCCESS: 'sendPing'
         }
       },
       sendPing: {
-        entry: [send('PING', { to: (ctx) => ctx.server! }), raise('SUCCESS')],
+        entry: [
+          send({ type: 'PING' }, { to: (ctx) => ctx.server! }),
+          raise({ type: 'SUCCESS' })
+        ],
         on: {
           SUCCESS: 'waitPong'
         }
@@ -150,11 +153,14 @@ describe('spawning machines', () => {
           })
         },
         SET_COMPLETE: {
-          actions: send('SET_COMPLETE', {
-            to: (ctx, e: Extract<TodoEvent, { type: 'SET_COMPLETE' }>) => {
-              return ctx.todoRefs[e.id];
+          actions: send(
+            { type: 'SET_COMPLETE' },
+            {
+              to: (ctx, e: Extract<TodoEvent, { type: 'SET_COMPLETE' }>) => {
+                return ctx.todoRefs[e.id];
+              }
             }
-          })
+          )
         }
       }
     });
@@ -170,7 +176,7 @@ describe('spawning machines', () => {
 
   it('should spawn referenced machines', (done) => {
     const childMachine = createMachine({
-      entry: sendParent('DONE')
+      entry: sendParent({ type: 'DONE' })
     });
 
     const parentMachine = createMachine(
@@ -334,7 +340,7 @@ describe('spawning callbacks', () => {
           }),
           on: {
             START_CB: {
-              actions: send('START', { to: (ctx) => ctx.callbackRef })
+              actions: send({ type: 'START' }, { to: (ctx) => ctx.callbackRef })
             },
             SEND_BACK: 'success'
           }
@@ -528,7 +534,7 @@ describe('communicating with spawned actors', () => {
           on: { ACTIVATE: 'active' }
         },
         active: {
-          entry: respond('EXISTING.DONE')
+          entry: respond({ type: 'EXISTING.DONE' })
         }
       }
     });
@@ -554,7 +560,10 @@ describe('communicating with spawned actors', () => {
           },
           after: {
             100: {
-              actions: send('ACTIVATE', { to: (ctx) => ctx.existingRef })
+              actions: send(
+                { type: 'ACTIVATE' },
+                { to: (ctx) => ctx.existingRef }
+              )
             }
           }
         },
@@ -579,7 +588,7 @@ describe('communicating with spawned actors', () => {
           on: { ACTIVATE: 'active' }
         },
         active: {
-          entry: respond('EXISTING.DONE')
+          entry: respond({ type: 'EXISTING.DONE' })
         }
       }
     });
@@ -605,7 +614,7 @@ describe('communicating with spawned actors', () => {
           },
           after: {
             100: {
-              actions: send('ACTIVATE', { to: 'existing' })
+              actions: send({ type: 'ACTIVATE' }, { to: 'existing' })
             }
           }
         },
@@ -630,7 +639,7 @@ describe('communicating with spawned actors', () => {
           on: { ACTIVATE: 'active' }
         },
         active: {
-          entry: respond('EXISTING.DONE')
+          entry: respond({ type: 'EXISTING.DONE' })
         }
       }
     });
@@ -644,13 +653,16 @@ describe('communicating with spawned actors', () => {
       },
       states: {
         pending: {
-          entry: send('ACTIVATE', { to: () => existingService }),
+          entry: send({ type: 'ACTIVATE' }, { to: () => existingService }),
           on: {
             'EXISTING.DONE': 'success'
           },
           after: {
             100: {
-              actions: send('ACTIVATE', { to: (ctx) => ctx.existingRef })
+              actions: send(
+                { type: 'ACTIVATE' },
+                { to: (ctx) => ctx.existingRef }
+              )
             }
           }
         },
@@ -754,7 +766,7 @@ describe('actors', () => {
       initial: 'hello',
       states: {
         hello: {
-          entry: sendParent('ping')
+          entry: sendParent({ type: 'ping' })
         }
       }
     });
@@ -816,7 +828,7 @@ describe('actors', () => {
           }
         },
         sendPong: {
-          entry: [sendParent('PONG'), raise('SUCCESS')],
+          entry: [sendParent({ type: 'PONG' }), raise({ type: 'SUCCESS' })],
           on: {
             SUCCESS: 'waitPing'
           }
@@ -1342,7 +1354,7 @@ describe('actors', () => {
         }),
         states: {
           waiting: {
-            entry: send('PING', { to: (ctx) => ctx.ponger! }),
+            entry: send({ type: 'PING' }, { to: (ctx) => ctx.ponger! }),
             invoke: {
               id: 'ponger',
               src: pongBehavior
@@ -1393,7 +1405,7 @@ describe('actors', () => {
 
   it('should be able to spawn machines in (lazy) initial context', (done) => {
     const childMachine = createMachine({
-      entry: sendParent('TEST')
+      entry: sendParent({ type: 'TEST' })
     });
 
     const machine = createMachine<{ ref: ActorRef<any> }>({

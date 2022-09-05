@@ -9,7 +9,7 @@ describe('SCXML events', () => {
       initial: 'active',
       states: {
         active: {
-          entry: sendParent('EVENT')
+          entry: sendParent({ type: 'EVENT' })
         }
       }
     });
@@ -87,9 +87,12 @@ describe('SCXML events', () => {
         waitingForCode: {
           on: {
             CODE: {
-              actions: respond('TOKEN', {
-                delay: 10
-              })
+              actions: respond(
+                { type: 'TOKEN' },
+                {
+                  delay: 10
+                }
+              )
             }
           }
         }
@@ -108,9 +111,12 @@ describe('SCXML events', () => {
             id: 'auth-server',
             src: authServerMachine
           },
-          entry: send('CODE', {
-            to: 'auth-server'
-          }),
+          entry: send(
+            { type: 'CODE' },
+            {
+              to: 'auth-server'
+            }
+          ),
           on: {
             TOKEN: 'authorized'
           }

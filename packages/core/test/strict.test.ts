@@ -63,13 +63,13 @@ describe('strict mode', () => {
 
   it('should throw for unacceptable events', () => {
     expect(() => {
-      lightMachine.transition('green', 'FOO');
+      lightMachine.transition('green', { type: 'FOO' });
     }).toThrow();
   });
 
   it('should not throw for built-in events', () => {
     expect(() => {
-      lightMachine.transition({ red: 'wait' }, 'PED_COUNTDOWN');
+      lightMachine.transition({ red: 'wait' }, { type: 'PED_COUNTDOWN' });
     }).not.toThrow();
   });
 });
