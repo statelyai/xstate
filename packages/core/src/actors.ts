@@ -201,6 +201,7 @@ export function fromPromise<T>(
               origin: self
             })
           );
+          observers.forEach((o) => o.complete?.());
           return { ...state, data: eventObject.data };
         case rejectEventType:
           const errorEvent = error(name, _event.data.data);
@@ -251,7 +252,7 @@ export function fromObservable<T, TEvent extends EventObject>(
       data: T | undefined;
     }
   > = {
-    transition: (state, event, { self, name }) => {
+    transition: (state, event, { self, name, observers }) => {
       const _event = toSCXMLEvent(event);
       if (canceled) {
         return state;
@@ -263,12 +264,15 @@ export function fromObservable<T, TEvent extends EventObject>(
           subscription = observable.subscribe({
             next: (value) => {
               self.send({ type: nextEventType, data: value });
+              observers.forEach((o) => o.next?.(value));
             },
             error: (err) => {
               self.send({ type: errorEventType, data: err });
+              observers.forEach((o) => o.error?.(err));
             },
             complete: () => {
               self.send({ type: completeEventType });
+              observers.forEach((o) => o.complete?.());
             }
           });
           return state;
@@ -282,7 +286,7 @@ export function fromObservable<T, TEvent extends EventObject>(
               { origin: self }
             )
           );
-          return { ...state, data: event.data };
+          return { ...state, data: event.data.data };
         case errorEventType:
           const errorEvent = error(name, _event.data.data);
           self._parent?.send(
