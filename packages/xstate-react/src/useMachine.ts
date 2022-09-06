@@ -76,7 +76,7 @@ export function useMachine<TMachine extends AnyStateMachine>(
         : service.machine.initialState) as State<any, any, any, any, any>;
     }
 
-    return service.state;
+    return service.getSnapshot();
   }, [service]);
 
   const isEqual = useCallback(

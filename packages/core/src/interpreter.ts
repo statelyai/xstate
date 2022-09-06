@@ -271,6 +271,9 @@ export class Interpreter<
       return this._initialState;
     });
   }
+  /**
+   * @deprecated Use `.getSnapshot()` instead.
+   */
   public get state(): State<
     TContext,
     TEvent,
