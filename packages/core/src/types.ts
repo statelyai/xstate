@@ -1317,7 +1317,7 @@ export interface SendActionOptions<TContext, TEvent extends EventObject> {
   to?:
     | string
     | ActorRef<any>
-    | ExprWithMeta<TContext, TEvent, string | number | ActorRef<any>>;
+    | ExprWithMeta<TContext, TEvent, string | ActorRef<any>>;
 }
 
 export interface CancelAction extends ActionObject<any, any> {
