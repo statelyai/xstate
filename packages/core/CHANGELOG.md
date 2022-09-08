@@ -1,5 +1,13 @@
 # xstate
 
+## 4.33.6
+
+### Patch Changes
+
+- [#3571](https://github.com/statelyai/xstate/pull/3571) [`6fdaae710`](https://github.com/statelyai/xstate/commit/6fdaae710e0c29e3d8ec4d694ba525d7bdb27484) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Reading state directly from ~~`someService.state`~~ is deprecated. Use `someService.getSnapshot()` instead.
+
+* [#3555](https://github.com/statelyai/xstate/pull/3555) [`4c13b3faf`](https://github.com/statelyai/xstate/commit/4c13b3fafbdabeac6a773d0b73a63b705b3eb775) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `sendTo(actorName, event)` action creator now accepts a string `actorName`.
+
 ## 4.33.5
 
 ### Patch Changes
