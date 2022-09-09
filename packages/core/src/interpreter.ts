@@ -410,7 +410,11 @@ export class Interpreter<
       }
     }
 
-    const nextState = this._nextState(event);
+    const nextState = this.behavior.transition(
+      this._state,
+      event,
+      this._actorContext
+    );
 
     this.update(nextState);
 
@@ -519,26 +523,6 @@ export class Interpreter<
     this.mailbox.enqueue(_event);
   };
 
-  /**
-   * Returns the next state given the interpreter's current state and the event.
-   *
-   * This is a pure method that does _not_ update the interpreter's state.
-   *
-   * @param event The event to determine the next state
-   */
-  public nextState(
-    event: TEvent | SCXML.Event<TEvent> | LifecycleSignal
-  ): InternalStateFrom<TBehavior> {
-    return this.behavior.transition(this._state, event, {
-      ...this._actorContext,
-      exec: undefined
-    });
-  }
-  private _nextState(
-    event: TEvent | SCXML.Event<TEvent> | LifecycleSignal
-  ): InternalStateFrom<TBehavior> {
-    return this.behavior.transition(this._state, event, this._actorContext);
-  }
   private forward(event: SCXML.Event<TEvent>): void {
     const snapshot = this.getSnapshot();
     if (!isStateLike(snapshot)) {
