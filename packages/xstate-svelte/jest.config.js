@@ -1,5 +1,6 @@
 const { jest: lernaAliases } = require('lerna-alias');
 
+/** @type {import('ts-jest/dist/types').InitialOptionsTsJest} */
 module.exports = {
   moduleNameMapper: lernaAliases(),
   transform: {
@@ -11,5 +12,6 @@ module.exports = {
       }
     ],
     '^.+\\.ts$': 'ts-jest'
-  }
+  },
+  testEnvironment: 'jsdom'
 };

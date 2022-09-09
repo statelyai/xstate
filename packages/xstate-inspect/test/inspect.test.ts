@@ -1,12 +1,14 @@
+import { JSDOM } from 'jsdom';
 import { assign, createMachine, interpret } from 'xstate';
 import { createDevTools, inspect } from '../src';
 
-afterEach(() => {
-  // this clears timers, removes global listeners etc
-  // I'm not sure if this is 100% safe to do
-  // it's not clear if the window object after this operation is still usable in the same way (is it recyclable?)
-  // it does seem to cover our needs so far though
-  window.close();
+const createNewWindow = () => new JSDOM('').window;
+
+beforeEach(() => {
+  // @ts-expect-error
+  global.window = createNewWindow();
+  // @ts-expect-error
+  window.open = jest.fn(createNewWindow);
 });
 
 const createIframeMock = () => {

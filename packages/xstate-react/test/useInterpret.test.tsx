@@ -2,7 +2,7 @@ import * as React from 'react';
 import { createMachine } from 'xstate';
 import { fireEvent, screen } from '@testing-library/react';
 import { useInterpret, useMachine } from '../src';
-import { describeEachReactMode } from './utils';
+import { describeEachReactMode, once } from './utils';
 
 const originalConsoleWarn = console.warn;
 
@@ -12,6 +12,8 @@ afterEach(() => {
 
 describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
   it('observer should be called with initial state', (done) => {
+    const onDone = once(done);
+
     const machine = createMachine({
       initial: 'inactive',
       states: {
@@ -30,7 +32,7 @@ describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
       React.useEffect(() => {
         service.subscribe((state) => {
           expect(state.matches('inactive')).toBeTruthy();
-          done();
+          onDone();
         });
       }, [service]);
 

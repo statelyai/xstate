@@ -15,7 +15,7 @@ import {
   State
 } from 'xstate';
 import { useActor, useMachine } from '../src';
-import { describeEachReactMode } from './utils';
+import { describeEachReactMode, once } from './utils';
 
 afterEach(() => {
   jest.useRealTimers();
@@ -183,7 +183,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     render(<Test />);
   });
 
-  it('should not spawn actors until service is started', async (done) => {
+  it('should not spawn actors until service is started', async () => {
     const spawnMachine = Machine<any>({
       id: 'spawn',
       initial: 'start',
@@ -218,10 +218,9 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
 
     render(<Spawner />);
     await screen.findByTestId('success');
-    done();
   });
 
-  it('actions should not have stale data', async (done) => {
+  it('actions should not have stale data', (done) => {
     const toggleMachine = Machine<any, { type: 'TOGGLE' }>({
       initial: 'inactive',
       states: {
@@ -597,6 +596,8 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
   });
 
   it('child component should be able to send an event to a parent immediately in an effect', (done) => {
+    const onDone = once(done);
+
     const machine = createMachine<any, { type: 'FINISH' }>({
       initial: 'active',
       states: {
@@ -621,7 +622,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
       const [state, send] = useMachine(machine);
 
       if (state.matches('success')) {
-        done();
+        onDone();
       }
 
       return <ChildTest send={send} />;
