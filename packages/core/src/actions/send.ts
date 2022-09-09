@@ -109,7 +109,7 @@ export function send<
           targetActorRef = actorContext?.self._parent;
         } else if (resolvedTarget === SpecialTargets.Internal) {
           targetActorRef = actorContext?.self;
-        } else if (resolvedTarget?.startsWith('#_')) {
+        } else if (resolvedTarget.startsWith('#_')) {
           // SCXML compatibility
           targetActorRef = state.children[resolvedTarget.slice(2)];
         } else {
