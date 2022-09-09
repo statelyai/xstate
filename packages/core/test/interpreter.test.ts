@@ -19,7 +19,6 @@ import { log } from '../src/actions/log';
 import { isObservable } from '../src/utils';
 import { interval, from, of, throwError, EMPTY } from 'rxjs';
 import { fromCallback, fromObservable, fromPromise } from '../src/actors';
-import { waitFor } from '../src/waitFor';
 
 const lightMachine = createMachine({
   id: 'light',

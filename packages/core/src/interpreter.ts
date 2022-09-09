@@ -9,7 +9,7 @@ import {
   toObserver
 } from '.';
 import { doneInvoke } from './actions';
-import { LifecycleSignal, startSignalType } from './actors';
+import { startSignalType } from './actors';
 import { devToolsAdapter } from './dev';
 import { IS_PRODUCTION } from './environment';
 import { Mailbox } from './Mailbox';
