@@ -9,7 +9,7 @@ import {
   toObserver
 } from '.';
 import { doneInvoke } from './actions';
-import { LifecycleSignal, startSignalType } from './actors';
+import { startSignalType } from './actors';
 import { devToolsAdapter } from './dev';
 import { IS_PRODUCTION } from './environment';
 import { Mailbox } from './Mailbox';
@@ -353,11 +353,8 @@ export class Interpreter<
         );
       }
 
-      // Re-execute actions
-      if (isStateLike(resolvedState)) {
-        for (const action of resolvedState.actions) {
-          execAction(action, resolvedState, this._actorContext);
-        }
+      for (const action of resolvedState.actions) {
+        execAction(action, resolvedState, this._actorContext);
       }
     }
 
@@ -412,7 +409,11 @@ export class Interpreter<
       }
     }
 
-    const nextState = this._nextState(event);
+    const nextState = this.behavior.transition(
+      this._state,
+      event,
+      this._actorContext
+    );
 
     this.update(nextState);
 
@@ -516,26 +517,6 @@ export class Interpreter<
     this.mailbox.enqueue(_event);
   }
 
-  /**
-   * Returns the next state given the interpreter's current state and the event.
-   *
-   * This is a pure method that does _not_ update the interpreter's state.
-   *
-   * @param event The event to determine the next state
-   */
-  public nextState(
-    event: TEvent | SCXML.Event<TEvent> | LifecycleSignal
-  ): InternalStateFrom<TBehavior> {
-    return this.behavior.transition(this._state, event, {
-      ...this._actorContext,
-      exec: undefined
-    });
-  }
-  private _nextState(
-    event: TEvent | SCXML.Event<TEvent> | LifecycleSignal
-  ): InternalStateFrom<TBehavior> {
-    return this.behavior.transition(this._state, event, this._actorContext);
-  }
   private forward(event: SCXML.Event<TEvent>): void {
     const snapshot = this.getSnapshot();
     if (!isStateLike(snapshot)) {

@@ -1848,7 +1848,7 @@ export interface Behavior<
   start?: (actorCtx: ActorContext<TEvent, TSnapshot>) => TInternalState;
 }
 
-export type AnyBehavior = Behavior<AnyEventObject, any, any>;
+export type AnyBehavior = Behavior<any, any, any>;
 
 export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends Interpreter<infer _, infer __>

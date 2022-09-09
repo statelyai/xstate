@@ -234,7 +234,121 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     done();
   });
 
-  it('actions should not have stale data', async (done) => {
+  it('actions should not use stale data in a builtin transition action', async (done) => {
+    const toggleMachine = createMachine<any, { type: 'SET_LATEST' }>({
+      context: {
+        latest: 0
+      },
+      on: {
+        SET_LATEST: {
+          actions: 'setLatest'
+        }
+      }
+    });
+
+    const Component = () => {
+      const [ext, setExt] = useState(1);
+
+      const [, send] = useMachine(toggleMachine, {
+        actions: {
+          setLatest: assign({
+            latest: () => {
+              expect(ext).toBe(2);
+              done();
+              return ext;
+            }
+          })
+        }
+      });
+
+      return (
+        <>
+          <button
+            data-testid="extbutton"
+            onClick={(_) => {
+              setExt(2);
+            }}
+          />
+          <button
+            data-testid="button"
+            onClick={(_) => {
+              send({ type: 'SET_LATEST' });
+            }}
+          />
+        </>
+      );
+    };
+
+    render(<Component />);
+
+    const button = screen.getByTestId('button');
+    const extButton = screen.getByTestId('extbutton');
+    fireEvent.click(extButton);
+
+    fireEvent.click(button);
+  });
+
+  it('actions should not use stale data in a builtin entry action', async (done) => {
+    const toggleMachine = createMachine<any, { type: 'NEXT' }>({
+      context: {
+        latest: 0
+      },
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {
+          entry: 'setLatest'
+        }
+      }
+    });
+
+    const Component = () => {
+      const [ext, setExt] = useState(1);
+
+      const [, send] = useMachine(toggleMachine, {
+        actions: {
+          setLatest: assign({
+            latest: () => {
+              expect(ext).toBe(2);
+              done();
+              return ext;
+            }
+          })
+        }
+      });
+
+      return (
+        <>
+          <button
+            data-testid="extbutton"
+            onClick={(_) => {
+              setExt(2);
+            }}
+          />
+          <button
+            data-testid="button"
+            onClick={(_) => {
+              send({ type: 'NEXT' });
+            }}
+          />
+        </>
+      );
+    };
+
+    render(<Component />);
+
+    const button = screen.getByTestId('button');
+    const extButton = screen.getByTestId('extbutton');
+    fireEvent.click(extButton);
+
+    fireEvent.click(button);
+  });
+
+  it('actions should not use stale data in a custom entry action', async (done) => {
     const toggleMachine = createMachine<any, { type: 'TOGGLE' }>({
       initial: 'inactive',
       states: {

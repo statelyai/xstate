@@ -694,13 +694,7 @@ Array [
           "_internalQueue": Array [],
           "_sessionid": undefined,
           "actions": Array [
-            ExecutableAction {
-              "_exec": undefined,
-              "actionObject": Object {
-                "params": Object {},
-                "type": "startCountdown",
-              },
-              "context": Object {},
+            Object {
               "params": Object {},
               "type": "startCountdown",
             },
@@ -833,13 +827,7 @@ Array [
       "_internalQueue": Array [],
       "_sessionid": undefined,
       "actions": Array [
-        ExecutableAction {
-          "_exec": undefined,
-          "actionObject": Object {
-            "params": Object {},
-            "type": "startCountdown",
-          },
-          "context": Object {},
+        Object {
           "params": Object {},
           "type": "startCountdown",
         },
@@ -1004,13 +992,7 @@ Array [
               "_internalQueue": Array [],
               "_sessionid": undefined,
               "actions": Array [
-                ExecutableAction {
-                  "_exec": undefined,
-                  "actionObject": Object {
-                    "params": Object {},
-                    "type": "startCountdown",
-                  },
-                  "context": Object {},
+                Object {
                   "params": Object {},
                   "type": "startCountdown",
                 },
@@ -1270,13 +1252,7 @@ Array [
               "_internalQueue": Array [],
               "_sessionid": undefined,
               "actions": Array [
-                ExecutableAction {
-                  "_exec": undefined,
-                  "actionObject": Object {
-                    "params": Object {},
-                    "type": "doNothing",
-                  },
-                  "context": Object {},
+                Object {
                   "params": Object {},
                   "type": "doNothing",
                 },
@@ -1409,13 +1385,7 @@ Array [
               "_internalQueue": Array [],
               "_sessionid": undefined,
               "actions": Array [
-                ExecutableAction {
-                  "_exec": undefined,
-                  "actionObject": Object {
-                    "params": Object {},
-                    "type": "doNothing",
-                  },
-                  "context": Object {},
+                Object {
                   "params": Object {},
                   "type": "doNothing",
                 },
@@ -1515,13 +1485,7 @@ Array [
               "_internalQueue": Array [],
               "_sessionid": undefined,
               "actions": Array [
-                ExecutableAction {
-                  "_exec": undefined,
-                  "actionObject": Object {
-                    "params": Object {},
-                    "type": "startCountdown",
-                  },
-                  "context": Object {},
+                Object {
                   "params": Object {},
                   "type": "startCountdown",
                 },
@@ -1592,13 +1556,7 @@ Array [
               "_internalQueue": Array [],
               "_sessionid": undefined,
               "actions": Array [
-                ExecutableAction {
-                  "_exec": undefined,
-                  "actionObject": Object {
-                    "params": Object {},
-                    "type": "doNothing",
-                  },
-                  "context": Object {},
+                Object {
                   "params": Object {},
                   "type": "doNothing",
                 },
@@ -1698,13 +1656,7 @@ Array [
               "_internalQueue": Array [],
               "_sessionid": undefined,
               "actions": Array [
-                ExecutableAction {
-                  "_exec": undefined,
-                  "actionObject": Object {
-                    "params": Object {},
-                    "type": "startCountdown",
-                  },
-                  "context": Object {},
+                Object {
                   "params": Object {},
                   "type": "startCountdown",
                 },
@@ -1808,13 +1760,7 @@ Array [
               "_internalQueue": Array [],
               "_sessionid": undefined,
               "actions": Array [
-                ExecutableAction {
-                  "_exec": undefined,
-                  "actionObject": Object {
-                    "params": Object {},
-                    "type": "doNothing",
-                  },
-                  "context": Object {},
+                Object {
                   "params": Object {},
                   "type": "doNothing",
                 },
@@ -2010,13 +1956,7 @@ Array [
               "_internalQueue": Array [],
               "_sessionid": undefined,
               "actions": Array [
-                ExecutableAction {
-                  "_exec": undefined,
-                  "actionObject": Object {
-                    "params": Object {},
-                    "type": "doNothing",
-                  },
-                  "context": Object {},
+                Object {
                   "params": Object {},
                   "type": "doNothing",
                 },
@@ -2115,13 +2055,7 @@ Array [
           "_internalQueue": Array [],
           "_sessionid": undefined,
           "actions": Array [
-            ExecutableAction {
-              "_exec": undefined,
-              "actionObject": Object {
-                "params": Object {},
-                "type": "startCountdown",
-              },
-              "context": Object {},
+            Object {
               "params": Object {},
               "type": "startCountdown",
             },
@@ -2159,13 +2093,7 @@ Array [
               "_internalQueue": Array [],
               "_sessionid": undefined,
               "actions": Array [
-                ExecutableAction {
-                  "_exec": undefined,
-                  "actionObject": Object {
-                    "params": Object {},
-                    "type": "doNothing",
-                  },
-                  "context": Object {},
+                Object {
                   "params": Object {},
                   "type": "doNothing",
                 },
@@ -2265,13 +2193,7 @@ Array [
       "_internalQueue": Array [],
       "_sessionid": undefined,
       "actions": Array [
-        ExecutableAction {
-          "_exec": undefined,
-          "actionObject": Object {
-            "params": Object {},
-            "type": "startCountdown",
-          },
-          "context": Object {},
+        Object {
           "params": Object {},
           "type": "startCountdown",
         },
@@ -2341,13 +2263,7 @@ Array [
               "_internalQueue": Array [],
               "_sessionid": undefined,
               "actions": Array [
-                ExecutableAction {
-                  "_exec": undefined,
-                  "actionObject": Object {
-                    "params": Object {},
-                    "type": "doNothing",
-                  },
-                  "context": Object {},
+                Object {
                   "params": Object {},
                   "type": "doNothing",
                 },
@@ -2447,13 +2363,7 @@ Array [
               "_internalQueue": Array [],
               "_sessionid": undefined,
               "actions": Array [
-                ExecutableAction {
-                  "_exec": undefined,
-                  "actionObject": Object {
-                    "params": Object {},
-                    "type": "startCountdown",
-                  },
-                  "context": Object {},
+                Object {
                   "params": Object {},
                   "type": "startCountdown",
                 },

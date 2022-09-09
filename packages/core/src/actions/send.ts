@@ -98,13 +98,9 @@ export function send<
       if (typeof resolvedTarget === 'string') {
         if (resolvedTarget === SpecialTargets.Parent) {
           targetActorRef = actorContext?.self._parent;
-        } else if (
-          resolvedTarget === SpecialTargets.Internal ||
-          // SCXML compatibility
-          resolvedTarget === '#_internal'
-        ) {
+        } else if (resolvedTarget === SpecialTargets.Internal) {
           targetActorRef = actorContext?.self;
-        } else if (resolvedTarget?.startsWith('#_')) {
+        } else if (resolvedTarget.startsWith('#_')) {
           // SCXML compatibility
           targetActorRef = state.children[resolvedTarget.slice(2)];
         } else {

@@ -29,7 +29,7 @@ import type {
 } from './types';
 import type { State } from './State';
 import * as actionTypes from './actionTypes';
-import { toActionObject } from './actions';
+import { toActionObjects } from './actions';
 import { formatInitialTransition, formatTransition } from './stateUtils';
 import {
   getDelayedTransitions,
@@ -180,13 +180,9 @@ export class StateNode<
     this.history =
       this.config.history === true ? 'shallow' : this.config.history || false;
 
-    this.entry = toArray(this.config.entry).map((action) =>
-      toActionObject(action, this.machine.options.actions)
-    );
+    this.entry = toActionObjects(this.config.entry);
+    this.exit = toActionObjects(this.config.exit);
 
-    this.exit = toArray(this.config.exit).map((action) =>
-      toActionObject(action, this.machine.options.actions)
-    );
     this.meta = this.config.meta;
     this.doneData =
       this.type === 'final'
@@ -345,7 +341,7 @@ export class StateNode<
       () =>
         getCandidates(
           this,
-          eventName as string,
+          eventName,
           this.machine.config.scxml // Whether token matching should be used
         )
     );

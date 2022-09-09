@@ -17,9 +17,8 @@ import { raise } from '../src/actions/raise';
 import { stop } from '../src/actions/stop';
 import { log } from '../src/actions/log';
 import { isObservable } from '../src/utils';
-import { interval, from } from 'rxjs';
+import { interval, from, of, throwError, EMPTY } from 'rxjs';
 import { fromCallback, fromObservable, fromPromise } from '../src/actors';
-import { waitFor } from '../src/waitFor';
 
 const lightMachine = createMachine({
   id: 'light',
@@ -111,7 +110,7 @@ describe('interpreter', () => {
     });
 
     // https://github.com/statelyai/xstate/issues/1174
-    it('executes actions from a restored state', (done) => {
+    it.skip('executes actions from a restored state', (done) => {
       const lightMachine = createMachine(
         {
           id: 'light',
@@ -186,62 +185,6 @@ describe('interpreter', () => {
         expect(state.value).toBe('active');
         done();
       });
-    });
-  });
-
-  describe('.nextState() method', () => {
-    it('returns the next state for the given event without changing the interpreter state', () => {
-      let state: any;
-
-      const service = interpret(lightMachine, {
-        clock: new SimulatedClock()
-      })
-        .onTransition((s) => {
-          state = s;
-        })
-        .start();
-
-      const nextState = service.nextState({ type: 'TIMER' });
-      expect(nextState.value).toEqual('yellow');
-      expect(state.value).toEqual('green');
-    });
-
-    it('calling .nextState(...) should not start any spawned actors', async () => {
-      let callbackStarted = false;
-      const machine = createMachine({
-        initial: 'foo',
-        context: {} as any,
-        states: {
-          foo: {
-            on: { NEXT: 'bar' }
-          },
-          bar: {
-            entry: assign({
-              foo: (_, __, { spawn }) => {
-                return spawn(
-                  fromCallback(() => {
-                    callbackStarted = true;
-                  })
-                );
-              }
-            })
-          }
-        }
-      });
-
-      const actor = interpret(machine).start();
-
-      const state = actor.nextState({ type: 'NEXT' });
-
-      expect(state.value).toEqual('bar');
-
-      expect(callbackStarted).toBeFalsy();
-
-      actor.send({ type: 'NEXT' });
-
-      await waitFor(actor, (s) => s.matches('bar'));
-
-      expect(callbackStarted).toBeTruthy();
     });
   });
 
@@ -1889,6 +1832,76 @@ describe('interpreter', () => {
       actor.subscribe({
         error: (data) => {
           expect(data).toBe('Error');
+          done();
+        }
+      });
+
+      actor.start();
+    });
+
+    // TODO: determine if tagged states should be used
+    it.skip('should complete (observer .complete)', (done) => {
+      const actor = interpret(fromPromise(() => Promise.resolve(42)));
+      expect.assertions(1);
+
+      actor.subscribe({
+        next: (state) => {
+          expect(state).toEqual(42);
+        },
+        complete: () => {
+          done();
+        }
+      });
+
+      actor.start();
+    });
+  });
+
+  describe('fromObservable', () => {
+    it('should resolve', (done) => {
+      const actor = interpret(fromObservable(() => of(42)));
+
+      actor.subscribe((state) => {
+        if (state === 42) {
+          done();
+        }
+      });
+
+      actor.start();
+    });
+
+    it('should resolve (observer .next)', (done) => {
+      const actor = interpret(fromObservable(() => of(42)));
+
+      actor.subscribe({
+        next: (state) => {
+          if (state === 42) {
+            done();
+          }
+        }
+      });
+
+      actor.start();
+    });
+
+    it('should reject (observer .error)', (done) => {
+      const actor = interpret(fromObservable(() => throwError(() => 'Error')));
+
+      actor.subscribe({
+        error: (data) => {
+          expect(data).toBe('Error');
+          done();
+        }
+      });
+
+      actor.start();
+    });
+
+    it('should complete (observer .complete)', (done) => {
+      const actor = interpret(fromObservable(() => EMPTY));
+
+      actor.subscribe({
+        complete: () => {
           done();
         }
       });
