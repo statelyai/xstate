@@ -1709,11 +1709,7 @@ export function resolveActionsAndContext<
           }
         ).params.actions;
 
-        if (matchedActions) {
-          toActionObjects(matchedActions, machine.options.actions).forEach(
-            resolveAction
-          );
-        }
+        toActionObjects(matchedActions).forEach(resolveAction);
       } else if (executableActionObject.type === actionTypes.assign) {
         const resolvedActionObject = executableActionObject.resolve(
           executableActionObject,
@@ -1770,11 +1766,7 @@ export function resolveActionsAndContext<
       executableActionObject.setContext(preservedContexts[contextIndex]);
       resolvedActions.push(executableActionObject);
     } else {
-      const resolvedActionObject = toActionObject(
-        executableActionObject,
-        machine.options.actions
-      );
-
+      const resolvedActionObject = toActionObject(executableActionObject);
       const actionExec = new ExecutableAction(resolvedActionObject);
       actionExec.setContext(preservedContexts[contextIndex]);
 
