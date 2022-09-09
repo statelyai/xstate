@@ -329,7 +329,7 @@ export class StateMachine<
     preInitial._initial = true;
     preInitial.actions.unshift(...actions);
 
-    if (actorCtx?.exec) {
+    if (actorCtx) {
       for (const action of actions) {
         execAction(action, preInitial, actorCtx);
       }
