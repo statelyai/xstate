@@ -1710,10 +1710,9 @@ export function resolveActionsAndContext<
         ).params.actions;
 
         if (matchedActions) {
-          toActionObjects(
-            toArray(matchedActions),
-            machine.options.actions
-          ).forEach(resolveAction);
+          toActionObjects(matchedActions, machine.options.actions).forEach(
+            resolveAction
+          );
         }
       } else if (executableActionObject.type === actionTypes.assign) {
         const resolvedActionObject = executableActionObject.resolve(
