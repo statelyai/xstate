@@ -415,6 +415,62 @@ describe('entry/exit actions', () => {
       expect(actual).toEqual(['loaded entry']);
     });
 
+    it("shouldn't use a referenced custom action over a builtin one when there is a naming conflict", () => {
+      const spy = jest.fn();
+      const machine = createMachine(
+        {
+          context: {
+            assigned: false
+          },
+          on: {
+            EV: {
+              actions: assign({ assigned: true })
+            }
+          }
+        },
+        {
+          actions: {
+            'xstate.assign': spy
+          }
+        }
+      );
+
+      const actor = interpret(machine).start();
+      actor.send({ type: 'EV' });
+
+      expect(spy).not.toHaveBeenCalled();
+      expect(actor.getSnapshot().context.assigned).toBe(true);
+    });
+
+    it("shouldn't use a referenced custom action over an inline one when there is a naming conflict", () => {
+      const spy = jest.fn();
+      let called = false;
+
+      const machine = createMachine(
+        {
+          on: {
+            EV: {
+              // it's important for this test to use a named function
+              actions: function myFn() {
+                called = true;
+              }
+            }
+          }
+        },
+        {
+          actions: {
+            myFn: spy
+          }
+        }
+      );
+
+      const actor = interpret(machine).start();
+      actor.send({ type: 'EV' });
+
+      expect(spy).not.toHaveBeenCalled();
+      expect(called).toBe(true);
+    });
+
     describe('should ignore same-parent state actions (sparse)', () => {
       const fooBar = {
         initial: 'foo',
