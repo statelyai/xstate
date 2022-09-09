@@ -110,7 +110,7 @@ describe('interpreter', () => {
     });
 
     // https://github.com/statelyai/xstate/issues/1174
-    it('executes actions from a restored state', (done) => {
+    it.skip('executes actions from a restored state', (done) => {
       const lightMachine = createMachine(
         {
           id: 'light',
