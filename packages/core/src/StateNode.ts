@@ -349,7 +349,7 @@ export class StateNode<
       () =>
         getCandidates(
           this,
-          eventName as string,
+          eventName,
           this.machine.config.scxml // Whether token matching should be used
         )
     );
