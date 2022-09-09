@@ -415,7 +415,7 @@ describe('entry/exit actions', () => {
       expect(actual).toEqual(['loaded entry']);
     });
 
-    it("shouldn't use referenced custom action over a builtin one when there is a naming conflict", () => {
+    it("shouldn't use a referenced custom action over a builtin one when there is a naming conflict", () => {
       const spy = jest.fn();
       const machine = createMachine(
         {
@@ -442,7 +442,7 @@ describe('entry/exit actions', () => {
       expect(actor.getSnapshot().context.assigned).toBe(true);
     });
 
-    it("shouldn't use referenced custom action over a builtin one when there is a naming conflict", () => {
+    it("shouldn't use a referenced custom action over an inline one when there is a naming conflict", () => {
       const spy = jest.fn();
       let called = false;
 
