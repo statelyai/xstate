@@ -351,11 +351,8 @@ export class Interpreter<
         );
       }
 
-      // Re-execute actions
-      if (isStateLike(resolvedState)) {
-        for (const action of resolvedState.actions) {
-          execAction(action, resolvedState, this._actorContext);
-        }
+      for (const action of resolvedState.actions) {
+        execAction(action, resolvedState, this._actorContext);
       }
     }
 

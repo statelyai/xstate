@@ -2,7 +2,6 @@ import {
   Action,
   EventObject,
   SingleOrArray,
-  ActionType,
   ActionFunction,
   ActionFunctionMap,
   ActionTypes,
@@ -13,7 +12,7 @@ import {
   BaseActionObject
 } from './types';
 import * as actionTypes from './actionTypes';
-import { isFunction, toSCXMLEvent, isArray } from './utils';
+import { toSCXMLEvent, isArray } from './utils';
 import {
   ExecutableAction,
   isExecutableAction
@@ -39,18 +38,6 @@ export { actionTypes };
 
 export const initEvent = toSCXMLEvent({ type: actionTypes.init });
 
-export function getActionFunction<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  actionType: ActionType,
-  actionFunctionMap?: ActionFunctionMap<TContext, TEvent>
-): BaseActionObject | ActionFunction<TContext, TEvent> | undefined {
-  return actionFunctionMap
-    ? actionFunctionMap[actionType] || undefined
-    : undefined;
-}
-
 export function resolveActionObject(
   actionObject: BaseActionObject,
   actionFunctionMap: ActionFunctionMap<any, any>
@@ -58,12 +45,12 @@ export function resolveActionObject(
   if (isDynamicAction(actionObject) || isExecutableAction(actionObject)) {
     return actionObject;
   }
-  const exec = getActionFunction(actionObject.type, actionFunctionMap);
+  const dereferencedAction = actionFunctionMap[actionObject.type];
 
-  if (isFunction(exec)) {
-    return new ExecutableAction(actionObject, exec);
-  } else if (exec) {
-    return exec;
+  if (typeof dereferencedAction === 'function') {
+    return new ExecutableAction(actionObject, dereferencedAction);
+  } else if (dereferencedAction) {
+    return dereferencedAction;
   } else {
     return actionObject;
   }
