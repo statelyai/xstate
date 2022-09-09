@@ -2,7 +2,6 @@ import {
   Action,
   EventObject,
   SingleOrArray,
-  ActionType,
   ActionFunction,
   ActionFunctionMap,
   ActionTypes,
@@ -13,8 +12,11 @@ import {
   BaseActionObject
 } from './types';
 import * as actionTypes from './actionTypes';
-import { isFunction, isString, toSCXMLEvent, isArray } from './utils';
-import { ExecutableAction } from '../actions/ExecutableAction';
+import { toSCXMLEvent, isArray } from './utils';
+import {
+  ExecutableAction,
+  isExecutableAction
+} from '../actions/ExecutableAction';
 import { isDynamicAction } from '../actions/dynamicAction';
 export {
   send,
@@ -36,27 +38,19 @@ export { actionTypes };
 
 export const initEvent = toSCXMLEvent({ type: actionTypes.init });
 
-export function getActionFunction<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
-  actionType: ActionType,
-  actionFunctionMap?: ActionFunctionMap<TContext, TEvent>
-): BaseActionObject | ActionFunction<TContext, TEvent> | undefined {
-  return actionFunctionMap
-    ? actionFunctionMap[actionType] || undefined
-    : undefined;
-}
-
 export function resolveActionObject(
   actionObject: BaseActionObject,
-  actionFunctionMap?: ActionFunctionMap<any, any>
+  actionFunctionMap: ActionFunctionMap<any, any>
 ): BaseActionObject {
-  const exec = getActionFunction(actionObject.type, actionFunctionMap);
-  if (isFunction(exec)) {
-    return new ExecutableAction(actionObject, exec);
-  } else if (exec) {
-    return exec;
+  if (isDynamicAction(actionObject) || isExecutableAction(actionObject)) {
+    return actionObject;
+  }
+  const dereferencedAction = actionFunctionMap[actionObject.type];
+
+  if (typeof dereferencedAction === 'function') {
+    return new ExecutableAction(actionObject, dereferencedAction);
+  } else if (dereferencedAction) {
+    return dereferencedAction;
   } else {
     return actionObject;
   }
@@ -66,45 +60,41 @@ export function toActionObject<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  action: BaseActionObject | ActionFunction<TContext, TEvent> | string,
-  actionFunctionMap?: ActionFunctionMap<TContext, TEvent>
+  action: BaseActionObject | ActionFunction<TContext, TEvent> | string
 ): BaseActionObject {
   if (isDynamicAction(action)) {
     return action;
   }
 
-  if (isString(action) || typeof action === 'number') {
-    return resolveActionObject({ type: action, params: {} }, actionFunctionMap);
-  } else if (isFunction(action)) {
+  if (typeof action === 'string') {
+    return { type: action, params: {} };
+  }
+
+  if (typeof action === 'function') {
+    // TODO: we could defer instantiating this until `resolveActionObject`
     return new ExecutableAction(
       {
-        type: action.name ?? 'xstate:expr',
-        params: {}
+        type: action.name ?? 'xstate:expr'
       },
       action
     );
-  } else {
-    // action is already a BaseActionObject
-    return action;
   }
+
+  // action is already a BaseActionObject
+  return action;
 }
 
 export const toActionObjects = <
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  action?: SingleOrArray<Action<TContext, TEvent>> | undefined,
-  actionFunctionMap?: ActionFunctionMap<TContext, TEvent>
+  action?: SingleOrArray<Action<TContext, TEvent>>
 ): BaseActionObject[] => {
   if (!action) {
     return [];
   }
-
   const actions = isArray(action) ? action : [action];
-
-  return actions.map((subAction) =>
-    toActionObject(subAction, actionFunctionMap)
-  );
+  return actions.map(toActionObject);
 };
 
 /**

@@ -1,6 +1,5 @@
 import { EventObject, ChooseCondition, MachineContext } from '../types';
 import * as actionTypes from '../actionTypes';
-import { toArray } from '../utils';
 import { createDynamicAction } from '../../actions/dynamicAction';
 import { evaluateGuard, toGuardDefinition } from '../guards';
 import {
@@ -8,7 +7,7 @@ import {
   ChooseAction,
   ResolvedChooseAction
 } from '..';
-import { toActionObject } from '../actions';
+import { toActionObjects } from '../actions';
 
 export function choose<
   TContext extends MachineContext,
@@ -38,9 +37,7 @@ export function choose<
       return {
         type: actionTypes.choose,
         params: {
-          actions: toArray(matchedActions).map((chosenAction) =>
-            toActionObject(chosenAction)
-          )
+          actions: toActionObjects(matchedActions)
         }
       };
     }

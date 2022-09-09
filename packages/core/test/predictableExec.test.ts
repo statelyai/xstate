@@ -559,23 +559,6 @@ describe('predictableExec', () => {
     expect(actual).toEqual([0, 1, 2]);
   });
 
-  it('`.nextState()` should not execute actions', () => {
-    const spy = jest.fn();
-
-    const machine = createMachine({
-      on: {
-        TICK: {
-          actions: spy
-        }
-      }
-    });
-
-    const service = interpret(machine).start();
-    service.nextState({ type: 'TICK' });
-
-    expect(spy).not.toBeCalled();
-  });
-
   it('parent should be able to read the updated state of a child when receiving an event from it', (done) => {
     const child = createMachine({
       initial: 'a',

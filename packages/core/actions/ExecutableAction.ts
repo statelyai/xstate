@@ -32,7 +32,7 @@ export class ExecutableAction<
   public context: TContext | undefined = undefined;
   constructor(
     public actionObject: BaseActionObject,
-    private _exec?: ActionFunction<TContext, TEvent>
+    private _exec: ActionFunction<TContext, TEvent>
   ) {
     this.type = actionObject.type;
     this.params = actionObject.params ?? {};
@@ -40,7 +40,7 @@ export class ExecutableAction<
   public execute(state: State<TContext, TEvent, TResolvedTypesMeta>) {
     const context = this.context ?? state.context;
 
-    return this._exec?.(context, state.event, {
+    return this._exec(context, state.event, {
       action: this.actionObject,
       _event: state._event,
       state

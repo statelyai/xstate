@@ -37,7 +37,6 @@ import {
   toActionObjects,
   initEvent,
   actionTypes,
-  toActionObject,
   resolveActionObject
 } from './actions';
 import { send } from './actions/send';
@@ -47,10 +46,7 @@ import { stop } from './actions/stop';
 import { IS_PRODUCTION } from './environment';
 import { STATE_IDENTIFIER, NULL_EVENT, WILDCARD } from './constants';
 import { evaluateGuard, toGuardDefinition } from './guards';
-import {
-  ExecutableAction,
-  isExecutableAction
-} from '../actions/ExecutableAction';
+import { isExecutableAction } from '../actions/ExecutableAction';
 import type { StateNode } from './StateNode';
 import { isDynamicAction } from '../actions/dynamicAction';
 import {
@@ -1435,7 +1431,7 @@ export function resolveActionsAndContext<
   const { machine } = currentState;
   const resolvedActions: BaseActionObject[] = [];
   const raiseActions: Array<RaiseActionObject<TEvent>> = [];
-  const preservedContexts: [TContext, ...TContext[]] = [context];
+  let updatedContext = context;
 
   function resolveAction(actionObject: BaseActionObject) {
     const executableActionObject = resolveActionObject(
@@ -1460,12 +1456,7 @@ export function resolveActionsAndContext<
           }
         ).params.actions;
 
-        if (matchedActions) {
-          toActionObjects(
-            toArray(matchedActions),
-            machine.options.actions
-          ).forEach(resolveAction);
-        }
+        toActionObjects(matchedActions).forEach(resolveAction);
       } else if (executableActionObject.type === actionTypes.assign) {
         const resolvedActionObject = executableActionObject.resolve(
           executableActionObject,
@@ -1480,7 +1471,7 @@ export function resolveActionsAndContext<
         );
 
         context = resolvedActionObject.params.context;
-        preservedContexts.push(resolvedActionObject.params.context);
+        updatedContext = resolvedActionObject.params.context;
         resolvedActions.push(resolvedActionObject);
         for (const spawnAction of resolvedActionObject.params.actions) {
           resolveAction(spawnAction);
@@ -1510,35 +1501,24 @@ export function resolveActionsAndContext<
         } else {
           resolvedActions.push(resolvedActionObject);
           // TODO: only using actorCtx.exec as a flag to execute; actually use it for execution
-          if (actorCtx?.exec) {
+          if (actorCtx) {
             execAction(resolvedActionObject, currentState, actorCtx);
           }
         }
       }
       return;
     }
-    const contextIndex = preservedContexts.length - 1;
     if (isExecutableAction(executableActionObject)) {
-      executableActionObject.setContext(preservedContexts[contextIndex]);
-      resolvedActions.push(executableActionObject);
-    } else {
-      const resolvedActionObject = toActionObject(
-        executableActionObject,
-        machine.options.actions
-      );
-
-      const actionExec = new ExecutableAction(resolvedActionObject);
-      actionExec.setContext(preservedContexts[contextIndex]);
-
-      resolvedActions.push(actionExec);
+      executableActionObject.setContext(updatedContext);
     }
+    resolvedActions.push(executableActionObject);
     const resolvedAction = resolvedActions[resolvedActions.length - 1];
     // TODO: only using actorCtx.exec as a flag to execute; actually use it for execution
-    if (actorCtx?.exec) {
+    if (actorCtx) {
       execAction(
         resolvedAction,
         currentState.clone({
-          context: preservedContexts[preservedContexts.length - 1],
+          context: updatedContext,
           _event
         }),
         actorCtx
