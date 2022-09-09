@@ -23,22 +23,14 @@ import {
 import { isExecutableAction } from '../actions/ExecutableAction';
 import { actionTypes, error } from './actions';
 import { IS_PRODUCTION } from './environment';
-import { isStateLike, isFunction, warn } from './utils';
+import { isFunction, warn } from './utils';
 
 export function execAction(
   action: InvokeActionObject | BaseActionObject,
   state: AnyState,
-  actorContext: ActorContext<any, any> | undefined
+  actorContext: ActorContext<any, any>
 ): void {
-  if (!actorContext) {
-    return;
-  }
-
   const interpreter = actorContext.self as AnyInterpreter;
-
-  if (!isStateLike(state)) {
-    return;
-  }
 
   const { _event } = state;
 
@@ -85,8 +77,6 @@ export function execAction(
   if (!IS_PRODUCTION && !action.type?.startsWith('xstate.')) {
     warn(false, `No implementation found for action type '${action.type}'`);
   }
-
-  return undefined;
 }
 
 function getActionFunction<TState extends AnyState>(
