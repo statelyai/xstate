@@ -17,7 +17,7 @@ import { raise } from '../src/actions/raise';
 import { stop } from '../src/actions/stop';
 import { log } from '../src/actions/log';
 import { isObservable } from '../src/utils';
-import { interval, from, of, throwError, empty, EMPTY } from 'rxjs';
+import { interval, from, of, throwError, EMPTY } from 'rxjs';
 import { fromCallback, fromObservable, fromPromise } from '../src/actors';
 import { waitFor } from '../src/waitFor';
 
