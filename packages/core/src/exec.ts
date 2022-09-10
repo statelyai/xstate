@@ -16,8 +16,7 @@ import {
   ContextFrom,
   EventFrom,
   AnyEventObject,
-  ActorRef,
-  toSCXMLEvent
+  ActorRef
 } from '.';
 import { isExecutableAction } from '../actions/ExecutableAction';
 import { actionTypes, error } from './actions';
