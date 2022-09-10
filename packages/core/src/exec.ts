@@ -155,16 +155,15 @@ function execSendTo(
   destination: ActorRef<any>,
   actorContext: ActorContext<any, any>
 ) {
-  const interpreter = actorContext.self;
+  const origin = actorContext.self;
+  const resolvedEvent: typeof event = {
+    ...event,
+    name:
+      event.name === actionTypes.error ? `${error(origin.name)}` : event.name,
+    origin: origin
+  };
 
   actorContext.defer?.(() => {
-    destination.send({
-      ...event,
-      name:
-        event.name === actionTypes.error
-          ? `${error(interpreter.name)}`
-          : event.name,
-      origin: interpreter
-    });
+    destination.send(resolvedEvent);
   });
 }
