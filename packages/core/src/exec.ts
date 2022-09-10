@@ -153,34 +153,13 @@ function getActionFunction<TState extends AnyState>(
 
 function execSendTo(
   event: SCXML.Event<AnyEventObject>,
-  to: ActorRef<any>,
+  destination: ActorRef<any>,
   actorContext: ActorContext<any, any>
 ) {
   const interpreter = actorContext.self;
-  const target = to;
-
-  if (!target) {
-    const executionError = new Error(
-      `Unable to send event to child '${to}' from service '${interpreter.name}'.`
-    );
-    interpreter.send(
-      toSCXMLEvent<any>(actionTypes.errorExecution, {
-        data: executionError as any // TODO: refine
-      }) as any // TODO: fix
-    );
-
-    // tslint:disable-next-line:no-console
-    if (!IS_PRODUCTION) {
-      warn(
-        false,
-        `Service '${interpreter.name}' has no parent: unable to send event ${event.type}`
-      );
-    }
-    return;
-  }
 
   actorContext.defer?.(() => {
-    target.send({
+    destination.send({
       ...event,
       name:
         event.name === actionTypes.error
