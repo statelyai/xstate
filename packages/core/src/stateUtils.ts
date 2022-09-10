@@ -1806,7 +1806,7 @@ export function macrostep<TMachine extends AnyStateMachine>(
   // Assume the state is at rest (no raised events)
   // Determine the next state based on the next microstep
   const nextState =
-    scxmlEvent === null
+    scxmlEvent.name === initEvent.name
       ? state
       : machine.microstep(state, scxmlEvent, actorCtx);
 

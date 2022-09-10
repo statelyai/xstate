@@ -5,6 +5,7 @@ import {
   Spawner,
   StateFrom
 } from '.';
+import { initEvent } from './actions';
 import { STATE_DELIMITER } from './constants';
 import { IS_PRODUCTION } from './environment';
 import { execAction } from './exec';
@@ -363,10 +364,9 @@ export class StateMachine<
     );
     nextState.actions.unshift(...preInitialState.actions);
 
-    // TODO: remove use of null; use xstate.init instead
     const macroState = macrostep(
       nextState,
-      null as any,
+      initEvent as any,
       this,
       actorCtx
     ) as StateFrom<typeof this>;
