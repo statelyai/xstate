@@ -8,7 +8,7 @@
 
   Also added `getPaths`, which defaults to `getShortestPaths`. This can be passed a `pathGenerator` to customize how paths are generated.
 
-* [#3036](https://github.com/statelyai/xstate/pull/3036) Thanks [@mattpocock](https://github.com/mattpocock)! - Moved event cases out of `events`, and into their own attribute called `eventCases`:
+- [#3036](https://github.com/statelyai/xstate/pull/3036) Thanks [@mattpocock](https://github.com/mattpocock)! - Moved event cases out of `events`, and into their own attribute called `eventCases`:
 
   ```ts
   const model = createTestModel(machine, {
@@ -41,7 +41,7 @@
 
 - [#3036](https://github.com/statelyai/xstate/pull/3036) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Removed `.testCoverage()`, and instead made `getPlans`, `getShortestPlans` and `getSimplePlans` cover all states and transitions enabled by event cases by default.
 
-* [#3036](https://github.com/statelyai/xstate/pull/3036) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added validation on `createTestModel` to ensure that you don't include invalid machine configuration in your test machine. Invalid machine configs include `invoke`, `after`, and any actions with a `delay`.
+- [#3036](https://github.com/statelyai/xstate/pull/3036) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Added validation on `createTestModel` to ensure that you don't include invalid machine configuration in your test machine. Invalid machine configs include `invoke`, `after`, and any actions with a `delay`.
 
   Added `createTestMachine`, which provides a slimmed-down API for creating machines which removes these types from the config type signature.
 
@@ -86,7 +86,7 @@
   toggledOn -> TOGGLE -> toggledOff -> TOGGLE -> toggledOn
   ```
 
-* [#3036](https://github.com/statelyai/xstate/pull/3036) Thanks [@mattpocock](https://github.com/mattpocock), [@davidkpiano](https://github.com/davidkpiano)! - Moved `events` from `createTestModel` to `path.test`.
+- [#3036](https://github.com/statelyai/xstate/pull/3036) Thanks [@mattpocock](https://github.com/mattpocock), [@davidkpiano](https://github.com/davidkpiano)! - Moved `events` from `createTestModel` to `path.test`.
 
   Old:
 

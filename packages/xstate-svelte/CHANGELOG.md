@@ -12,7 +12,7 @@
 
 - [#3172](https://github.com/statelyai/xstate/pull/3172) [`390a115cd`](https://github.com/statelyai/xstate/commit/390a115cd1912c017654ecd367ef9a869f7e8fe8) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with the internal interpreter created by `useMachine` being unsubscribed when its subscribers' count went to zero. The lifetime of this interpreter should be bound to the lifetime of the component that has created it.
 
-* [#3209](https://github.com/statelyai/xstate/pull/3209) [`8520e203b`](https://github.com/statelyai/xstate/commit/8520e203b60124fb66da2cedad27d0c9771dc62c) Thanks [@schibrikov](https://github.com/schibrikov)! - Added ESM build to fix some bundling issues, more information can be found [here](https://github.com/statelyai/xstate/issues/2642)
+- [#3209](https://github.com/statelyai/xstate/pull/3209) [`8520e203b`](https://github.com/statelyai/xstate/commit/8520e203b60124fb66da2cedad27d0c9771dc62c) Thanks [@schibrikov](https://github.com/schibrikov)! - Added ESM build to fix some bundling issues, more information can be found [here](https://github.com/statelyai/xstate/issues/2642)
 
 ## 1.0.0
 
