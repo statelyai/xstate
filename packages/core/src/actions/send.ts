@@ -114,9 +114,11 @@ export function send<
           targetActorRef = state.children[resolvedTarget.slice(2)];
         } else {
           targetActorRef = state.children[resolvedTarget];
-          if (!targetActorRef) {
-            throw new Error('no');
-          }
+        }
+        if (!targetActorRef) {
+          throw new Error(
+            `Unable to send event to actor '${resolvedTarget}' from machine '${machine.key}'.`
+          );
         }
       } else {
         targetActorRef = resolvedTarget;

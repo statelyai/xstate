@@ -16,8 +16,7 @@ import {
   ContextFrom,
   EventFrom,
   AnyEventObject,
-  ActorRef,
-  toSCXMLEvent
+  ActorRef
 } from '.';
 import { isExecutableAction } from '../actions/ExecutableAction';
 import { actionTypes, error } from './actions';
@@ -153,40 +152,18 @@ function getActionFunction<TState extends AnyState>(
 
 function execSendTo(
   event: SCXML.Event<AnyEventObject>,
-  to: ActorRef<any>,
+  destination: ActorRef<any>,
   actorContext: ActorContext<any, any>
 ) {
-  const interpreter = actorContext.self;
-  const target = to;
-
-  if (!target) {
-    const executionError = new Error(
-      `Unable to send event to child '${to}' from service '${interpreter.name}'.`
-    );
-    interpreter.send(
-      toSCXMLEvent<any>(actionTypes.errorExecution, {
-        data: executionError as any // TODO: refine
-      }) as any // TODO: fix
-    );
-
-    // tslint:disable-next-line:no-console
-    if (!IS_PRODUCTION) {
-      warn(
-        false,
-        `Service '${interpreter.name}' has no parent: unable to send event ${event.type}`
-      );
-    }
-    return;
-  }
+  const origin = actorContext.self;
+  const resolvedEvent: typeof event = {
+    ...event,
+    name:
+      event.name === actionTypes.error ? `${error(origin.name)}` : event.name,
+    origin: origin
+  };
 
   actorContext.defer?.(() => {
-    target.send({
-      ...event,
-      name:
-        event.name === actionTypes.error
-          ? `${error(interpreter.name)}`
-          : event.name,
-      origin: interpreter
-    });
+    destination.send(resolvedEvent);
   });
 }
