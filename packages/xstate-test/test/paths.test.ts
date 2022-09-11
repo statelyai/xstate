@@ -42,24 +42,22 @@ describe('testModel.testPaths(...)', () => {
       })
     );
 
-    const paths = testModel.getPaths({
-      pathGenerator: (behavior, options) => {
-        const events = options.getEvents?.(behavior.initialState, {}) ?? [];
+    const paths = testModel.getPaths((behavior, options) => {
+      const events = options.getEvents?.(behavior.initialState, {}) ?? [];
 
-        const nextState = behavior.transition(behavior.initialState, events[0]);
-        return [
-          {
-            state: nextState,
-            steps: [
-              {
-                state: behavior.initialState,
-                event: events[0]
-              }
-            ],
-            weight: 1
-          }
-        ];
-      }
+      const nextState = behavior.transition(behavior.initialState, events[0]);
+      return [
+        {
+          state: nextState,
+          steps: [
+            {
+              state: behavior.initialState,
+              event: events[0]
+            }
+          ],
+          weight: 1
+        }
+      ];
     });
 
     await testUtils.testPaths(paths, {});
@@ -86,7 +84,7 @@ describe('testModel.testPaths(...)', () => {
 
       const model = createTestModel(machine);
 
-      const paths = model.getPaths();
+      const paths = model.getShortestPaths();
 
       expect(paths).toHaveLength(1);
     });
@@ -107,7 +105,7 @@ describe('path.description', () => {
   it('Should write a readable description including the target state and the path', () => {
     const model = createTestModel(multiPathMachine);
 
-    const paths = model.getPaths();
+    const paths = model.getShortestPaths();
 
     expect(paths.map((path) => path.description)).toEqual([
       'Reaches state "d": EVENT → EVENT → EVENT',
@@ -138,7 +136,7 @@ describe('transition coverage', () => {
 
     const model = createTestModel(machine);
 
-    const paths = model.getPaths();
+    const paths = model.getShortestPaths();
 
     expect(paths.map((path) => path.description)).toMatchInlineSnapshot(`
       Array [
@@ -173,7 +171,7 @@ describe('transition coverage', () => {
 
     const model = createTestModel(machine);
 
-    const paths = model.getPaths({
+    const paths = model.getShortestPaths({
       eventCases: {
         NEXT: [{ value: 0 }, { value: 100 }, { value: 1000 }]
       }
@@ -214,7 +212,7 @@ describe('transition coverage', () => {
 
     const model = createTestModel(machine);
 
-    const paths = model.getPaths();
+    const paths = model.getShortestPaths();
 
     expect(paths.map((p) => p.description)).toEqual([
       `Reaches state "a": GO_TO_B → GO_TO_A`,

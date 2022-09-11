@@ -83,7 +83,7 @@ export class TestModel<TState, TEvent extends EventObject> {
   public getShortestPaths(
     options?: Partial<TraversalOptions<TState, TEvent>>
   ): Array<TestPath<TState, TEvent>> {
-    return this.getPaths({ ...options, pathGenerator: getShortestPaths });
+    return this.getPaths(getShortestPaths, { ...options });
   }
 
   private _getStatePaths(
@@ -95,12 +95,11 @@ export class TestModel<TState, TEvent extends EventObject> {
   }
 
   public getPaths(
-    options?: Partial<GetPathsOptions<TState, TEvent>>
+    pathGenerator: PathGenerator<TState, TEvent>,
+    options?: Partial<TraversalOptions<TState, TEvent>>
   ): Array<TestPath<TState, TEvent>> {
-    return deduplicatePaths(
-      this._getStatePaths(options),
-      options?.serializeEvent
-    ).map(this.toTestPath);
+    const paths = pathGenerator(this.behavior, this.resolveOptions(options));
+    return deduplicatePaths(paths).map(this.toTestPath);
   }
 
   public getShortestPathsTo(
@@ -132,9 +131,8 @@ export class TestModel<TState, TEvent extends EventObject> {
   public getSimplePaths(
     options?: Partial<TraversalOptions<TState, any>>
   ): Array<TestPath<TState, TEvent>> {
-    return this.getPaths({
-      ...options,
-      pathGenerator: getSimplePaths
+    return this.getPaths(getSimplePaths, {
+      ...options
     });
   }
 
