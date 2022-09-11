@@ -1,22 +1,23 @@
 import {
   getPathFromEvents,
   performDepthFirstTraversal,
+  traverseSimplePathsTo,
+  joinPaths
+} from '@xstate/graph';
+import type {
   SerializedEvent,
   SerializedState,
   SimpleBehavior,
   StatePath,
   Step,
-  TraversalOptions,
-  traverseSimplePathsTo
+  TraversalOptions
 } from '@xstate/graph';
-import { joinPaths } from '@xstate/graph';
 import { EventObject } from 'xstate';
 import { isStateLike } from 'xstate/lib/utils';
 import { deduplicatePaths } from './deduplicatePaths';
 import { getShortestPaths, getSimplePaths } from './pathGenerators';
 import type {
   EventExecutor,
-  GetPathsOptions,
   PathGenerator,
   StatePredicate,
   TestModelOptions,
@@ -31,6 +32,7 @@ import {
   mapPlansToPaths,
   simpleStringify
 } from './utils';
+import { traverseShortestPathsTo } from '@xstate/graph/src/graph';
 
 export interface TestModelDefaults<TState, TEvent extends EventObject> {
   pathGenerator: PathGenerator<TState, TEvent>;
@@ -86,14 +88,6 @@ export class TestModel<TState, TEvent extends EventObject> {
     return this.getPaths(getShortestPaths, { ...options });
   }
 
-  private _getStatePaths(
-    options?: Partial<GetPathsOptions<TState, TEvent>>
-  ): Array<StatePath<TState, TEvent>> {
-    const pathGenerator =
-      options?.pathGenerator || TestModel.defaults.pathGenerator;
-    return pathGenerator(this.behavior, this.resolveOptions(options));
-  }
-
   public getPaths(
     pathGenerator: PathGenerator<TState, TEvent>,
     options?: Partial<TraversalOptions<TState, TEvent>>
@@ -105,27 +99,11 @@ export class TestModel<TState, TEvent extends EventObject> {
   public getShortestPathsTo(
     statePredicate: StatePredicate<TState>
   ): Array<TestPath<TState, TEvent>> {
-    let minWeight = Infinity;
-    let shortestPaths: Array<TestPath<TState, TEvent>> = [];
-
-    const paths = deduplicatePaths(
-      this.filterPathsTo(
-        statePredicate,
-        this._getStatePaths({ pathGenerator: getShortestPaths })
+    return deduplicatePaths(
+      mapPlansToPaths(
+        traverseShortestPathsTo(this.behavior, statePredicate, this.options)
       )
     ).map(this.toTestPath);
-
-    for (const path of paths) {
-      const currWeight = path.weight;
-      if (currWeight < minWeight) {
-        minWeight = currWeight;
-        shortestPaths = [path];
-      } else if (currWeight === minWeight) {
-        shortestPaths.push(path);
-      }
-    }
-
-    return shortestPaths;
   }
 
   public getSimplePaths(
@@ -142,15 +120,6 @@ export class TestModel<TState, TEvent extends EventObject> {
     return mapPlansToPaths(
       traverseSimplePathsTo(this.behavior, predicate, this.options)
     ).map(this.toTestPath);
-  }
-
-  private filterPathsTo(
-    statePredicate: StatePredicate<TState>,
-    statePaths: Array<StatePath<TState, TEvent>>
-  ): Array<StatePath<TState, TEvent>> {
-    return statePaths.filter((statePath) => {
-      return statePredicate(statePath.state);
-    });
   }
 
   private toTestPath = (
