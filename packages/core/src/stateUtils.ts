@@ -1730,7 +1730,7 @@ export function machineMicrostep(
       !isBuiltInEvent(_event.name)
     ) {
       throw new Error(
-        `Machine '${machine.key}' does not accept event '${_event.name}'`
+        `Machine '${machine.id}' does not accept event '${_event.name}'`
       );
     }
   }

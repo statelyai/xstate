@@ -123,7 +123,7 @@ export class StateMachine<
 
   public root: StateNode<TContext, TEvent>;
 
-  public key: string;
+  public id: string;
 
   public states: StateNode<TContext, TEvent>['states'];
   public events: Array<TEvent['type']>;
@@ -135,7 +135,7 @@ export class StateMachine<
     public config: MachineConfig<TContext, TEvent, any, any, any>,
     options?: MachineImplementationsSimplified<TContext, TEvent>
   ) {
-    this.key = config.key || config.id || '(machine)';
+    this.id = config.key || config.id || '(machine)';
     this.options = Object.assign(createDefaultOptions(), options);
     this._contextFactory = isFunction(config.context)
       ? config.context
@@ -158,7 +158,7 @@ export class StateMachine<
     this.transition = this.transition.bind(this);
 
     this.root = new StateNode(config, {
-      _key: this.key,
+      _key: this.id,
       _machine: this
     });
 
@@ -363,7 +363,7 @@ export class StateMachine<
     const stateNode = this.idMap.get(resolvedStateId);
     if (!stateNode) {
       throw new Error(
-        `Child state node '#${resolvedStateId}' does not exist on machine '${this.key}'`
+        `Child state node '#${resolvedStateId}' does not exist on machine '${this.id}'`
       );
     }
     return stateNode;

@@ -48,7 +48,7 @@ export function createSpawner<
       }
 
       throw new Error(
-        `Behavior '${behavior}' not implemented in machine '${machine.key}'`
+        `Behavior '${behavior}' not implemented in machine '${machine.id}'`
       );
     } else {
       const actorRef = interpret(behavior, { id: name || 'anonymous' });

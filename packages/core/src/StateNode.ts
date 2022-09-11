@@ -141,7 +141,7 @@ export class StateNode<
     this.path = this.parent ? this.parent.path.concat(this.key) : [];
     this.id =
       this.config.id ||
-      [this.machine.key, ...this.path].join(this.machine.delimiter);
+      [this.machine.id, ...this.path].join(this.machine.delimiter);
     this.type =
       this.config.type ||
       (this.config.states && Object.keys(this.config.states).length

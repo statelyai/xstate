@@ -604,7 +604,7 @@ export function interpret<TBehavior extends Behavior<any, any>>(
 ): Interpreter<TBehavior>;
 export function interpret(machine: any, options?: InterpreterOptions): any {
   const resolvedOptions = {
-    id: isStateMachine(machine) ? machine.key : undefined,
+    id: isStateMachine(machine) ? machine.id : undefined,
     ...options
   };
 

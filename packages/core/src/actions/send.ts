@@ -117,7 +117,7 @@ export function send<
         }
         if (!targetActorRef) {
           throw new Error(
-            `Unable to send event to actor '${resolvedTarget}' from machine '${machine.key}'.`
+            `Unable to send event to actor '${resolvedTarget}' from machine '${machine.id}'.`
           );
         }
       } else {
