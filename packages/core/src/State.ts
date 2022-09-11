@@ -257,7 +257,7 @@ export class State<
 
     const finalChildStateNode = this.configuration.find(
       (stateNode) =>
-        stateNode.type === 'final' && stateNode.parent === this.machine?.root
+        stateNode.type === 'final' && stateNode.parent === this.machine.root
     );
 
     const doneData =
