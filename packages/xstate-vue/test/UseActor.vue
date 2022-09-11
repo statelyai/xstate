@@ -27,7 +27,7 @@ const machine = createMachine({
   initial: 'active',
   invoke: {
     id: 'child',
-    src: (childMachine)
+    src: childMachine
   },
   states: {
     active: {
