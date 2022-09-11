@@ -249,6 +249,7 @@ export class State<
   /**
    * The done data of the top-level finite state.
    */
+  // TODO: add an explicit type for `output`
   public get output(): any {
     if (!this.done) {
       return undefined;
