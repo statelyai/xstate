@@ -132,7 +132,7 @@
 
   </details>
 
-* [`3c10215`](https://github.com/statelyai/xstate/commit/3c102158d24d3f12aa671bc39dea0a2e98e3c34f) [#811](https://github.com/statelyai/xstate/pull/811) Thanks [@ghengeveld](https://github.com/ghengeveld)! - A `config` property got exposed on created machines. It's the same object which got passed in as argument.
+- [`3c10215`](https://github.com/statelyai/xstate/commit/3c102158d24d3f12aa671bc39dea0a2e98e3c34f) [#811](https://github.com/statelyai/xstate/pull/811) Thanks [@ghengeveld](https://github.com/ghengeveld)! - A `config` property got exposed on created machines. It's the same object which got passed in as argument.
 
 ### Patch Changes
 

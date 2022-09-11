@@ -1629,16 +1629,17 @@ class StateNode<
         (stateNode) => !(stateNode.type === 'history')
       );
     } else if (this.initial !== undefined) {
-      if (!this.states[this.initial]) {
+      if (!this.states[this.initial as string]) {
         throw new Error(
-          `Initial state '${this.initial}' not found on '${this.key}'`
+          `Initial state '${this.initial as string}' not found on '${this.key}'`
         );
       }
 
-      initialStateValue = (isLeafNode(this.states[this.initial])
+      initialStateValue = (isLeafNode(this.states[this.initial as string])
         ? this.initial
         : {
-            [this.initial]: this.states[this.initial].initialStateValue
+            [this.initial]: this.states[this.initial as string]
+              .initialStateValue
           }) as StateValue;
     } else {
       // The finite state value of a machine without child states is just an empty object
