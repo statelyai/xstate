@@ -188,7 +188,7 @@ export class State<
     this._internalQueue = config._internalQueue ?? [];
     this.event = this._event.data;
     this.historyValue = config.historyValue || {};
-    this.actions = [...(config.actions || [])];
+    this.actions = config.actions ?? [];
     this.matches = this.matches.bind(this);
     this.toStrings = this.toStrings.bind(this);
     this.configuration = config.configuration;
