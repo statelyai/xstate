@@ -11,7 +11,6 @@ import {
 import { TypegenDisabled, TypegenEnabled } from './typegenTypes';
 import type {
   ActorRef,
-  AnyState,
   AnyStateMachine,
   BaseActionObject,
   EventObject,
@@ -137,16 +136,6 @@ export class State<
       },
       machine
     );
-  }
-  /**
-   * Creates a new State instance for the given `config`.
-   * @param config The state config
-   */
-  public static create<
-    TC extends MachineContext,
-    TE extends EventObject = EventObject
-  >(config: StateConfig<TC, TE>, machine: AnyStateMachine): State<TC, TE, any> {
-    return new State(config, machine);
   }
 
   /**
