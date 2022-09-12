@@ -10,7 +10,6 @@ import {
   DoneEventObject,
   doneInvoke,
   Interpreter,
-  InterpreterFrom,
   send,
   StateFrom
 } from 'xstate';
@@ -422,7 +421,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     });
 
     const ServiceApp: React.FC<{
-      service: InterpreterFrom<typeof machine>;
+      service: ActorRefFrom<typeof machine>;
     }> = ({ service }) => {
       const [state] = useActor(service);
 
