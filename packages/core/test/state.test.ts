@@ -1,4 +1,4 @@
-import { createMachine, StateFrom, interpret } from '../src/index';
+import { createMachine, interpret } from '../src/index';
 import { initEvent } from '../src/actions';
 import { assign } from '../src/actions/assign';
 import { toSCXMLEvent } from '../src/utils';
@@ -336,9 +336,7 @@ describe('State', () => {
       const { initialState } = exampleMachine;
       const jsonInitialState = JSON.parse(JSON.stringify(initialState));
 
-      const stateFromConfig = exampleMachine.createState(
-        jsonInitialState
-      ) as StateFrom<typeof exampleMachine>;
+      const stateFromConfig = exampleMachine.createState(jsonInitialState);
 
       expect(
         exampleMachine.transition(stateFromConfig, 'TO_TWO').value
@@ -352,9 +350,7 @@ describe('State', () => {
       const { nextEvents } = initialState;
       const jsonInitialState = JSON.parse(JSON.stringify(initialState));
 
-      const stateFromConfig = exampleMachine.createState(
-        jsonInitialState
-      ) as StateFrom<typeof exampleMachine>;
+      const stateFromConfig = exampleMachine.createState(jsonInitialState);
 
       expect(
         exampleMachine.resolveState(stateFromConfig).nextEvents.sort()
