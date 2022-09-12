@@ -148,30 +148,6 @@ export class State<
   >(config: StateConfig<TC, TE>, machine: AnyStateMachine): State<TC, TE, any> {
     return new State(config, machine);
   }
-  /**
-   * Creates a new `State` instance for the given `stateValue` and `context` with no actions (side-effects).
-   * @param stateValue
-   * @param context
-   */
-  public static inert(state: AnyState): State<any, any, any> {
-    if (!state.actions.length) {
-      return state;
-    }
-    const _event = initEvent as SCXML.Event<any>;
-
-    return new State<any>(
-      {
-        value: state.value,
-        context: state.context,
-        _event,
-        _sessionid: undefined,
-        configuration: state.configuration,
-        transitions: [],
-        children: state.children
-      },
-      state.machine
-    );
-  }
 
   /**
    * Creates a new `State` instance that represents the current state of a running machine.
