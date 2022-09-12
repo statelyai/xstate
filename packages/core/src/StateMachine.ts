@@ -1,10 +1,4 @@
-import {
-  ActorContext,
-  AnyStateMachine,
-  InvokeActionObject,
-  Spawner,
-  StateFrom
-} from '.';
+import { ActorContext, AnyStateMachine, InvokeActionObject, Spawner } from '.';
 import { initEvent } from './actions';
 import { STATE_DELIMITER } from './constants';
 import { execAction } from './exec';
