@@ -416,6 +416,40 @@ describe('entry/exit actions', () => {
       expect(actual).toEqual(['loaded entry']);
     });
 
+    it('root entry/exit actions should not be called on root external transitions', () => {
+      let entrySpy = jest.fn();
+      let exitSpy = jest.fn();
+
+      const machine = createMachine({
+        id: 'root',
+        entry: entrySpy,
+        exit: exitSpy,
+        on: {
+          EVENT: {
+            target: '#two',
+            internal: false
+          }
+        },
+        initial: 'one',
+        states: {
+          one: {},
+          two: {
+            id: 'two'
+          }
+        }
+      });
+
+      const service = interpret(machine).start();
+
+      entrySpy.mockClear();
+      exitSpy.mockClear();
+
+      service.send({ type: 'EVENT' });
+
+      expect(entrySpy).not.toHaveBeenCalled();
+      expect(exitSpy).not.toHaveBeenCalled();
+    });
+
     describe('should ignore same-parent state actions (sparse)', () => {
       const fooBar = {
         initial: 'foo',
