@@ -2995,7 +2995,7 @@ describe('invoke', () => {
     (_type, invokeConfig) => {
       const machine = createMachine(
         {
-          key: 'machine',
+          id: 'machine',
           initial: 'a',
           states: {
             a: {

@@ -28,7 +28,6 @@ describe('strict mode', () => {
 
   const lightMachine = createMachine({
     strict: true,
-    key: 'light',
     initial: 'green',
     states: {
       green: {

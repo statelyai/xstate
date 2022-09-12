@@ -56,7 +56,7 @@ describe('@xstate/graph', () => {
   };
 
   const lightMachine = createMachine({
-    key: 'light',
+    id: 'light',
     initial: 'green',
     states: {
       green: {
@@ -92,7 +92,6 @@ describe('@xstate/graph', () => {
   type CondMachineEvents = { type: 'EVENT'; id: string } | { type: 'STATE' };
 
   const condMachine = createMachine<CondMachineCtx, CondMachineEvents>({
-    key: 'cond',
     initial: 'pending',
     context: {
       id: undefined
@@ -123,7 +122,7 @@ describe('@xstate/graph', () => {
 
   const parallelMachine = createMachine({
     type: 'parallel',
-    key: 'p',
+    id: 'p',
     states: {
       a: {
         initial: 'a1',
@@ -211,7 +210,6 @@ describe('@xstate/graph', () => {
 
     it.skip('should represent conditional paths based on context', () => {
       const machine = createMachine<CondMachineCtx, CondMachineEvents>({
-        key: 'cond',
         initial: 'pending',
         context: {
           id: 'foo'

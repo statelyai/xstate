@@ -129,7 +129,7 @@ export class StateMachine<
     public config: MachineConfig<TContext, TEvent, any, any, any>,
     options?: MachineImplementationsSimplified<TContext, TEvent>
   ) {
-    this.id = config.key || config.id || '(machine)';
+    this.id = config.id || '(machine)';
     this.options = Object.assign(createDefaultOptions(), options);
     this._contextFactory = isFunction(config.context)
       ? config.context
