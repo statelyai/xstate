@@ -121,7 +121,7 @@ export function send<
           );
         }
       } else {
-        targetActorRef = resolvedTarget;
+        targetActorRef = resolvedTarget || actorContext?.self;
       }
 
       return {
@@ -132,7 +132,8 @@ export function send<
           to: targetActorRef,
           _event: resolvedEvent,
           event: resolvedEvent.data,
-          delay: resolvedDelay
+          delay: resolvedDelay,
+          internal: resolvedTarget === SpecialTargets.Internal
         }
       };
     }

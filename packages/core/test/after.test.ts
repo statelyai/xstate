@@ -55,6 +55,7 @@ describe('delayed transitions', () => {
               "type": "xstate.after(1000)#light.yellow",
             },
             "id": "xstate.after(1000)#light.yellow",
+            "internal": false,
             "to": undefined,
           },
           "type": "xstate.send",
