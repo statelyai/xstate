@@ -1,6 +1,6 @@
 import { AnyStateMachine, InterpreterFrom } from '.';
 import { isExecutableAction } from '../actions/ExecutableAction';
-import { doneInvoke, error } from './actions';
+import { doneInvoke, error, toActionObjects, initEvent } from './actions';
 import * as actionTypes from './actionTypes';
 import { isActorRef } from './actors';
 import { devToolsAdapter } from './dev';
@@ -9,7 +9,6 @@ import { Mailbox } from './Mailbox';
 import { registry } from './registry';
 import { isStateConfig, State } from './State';
 import type { StateMachine } from './StateMachine';
-import { isInFinalState } from './stateUtils';
 import {
   TypegenDisabled,
   AreAllImplementationsAssumedToBeProvided
@@ -48,8 +47,11 @@ import {
   symbolObservable,
   toEventObject,
   toSCXMLEvent,
-  warn
+  warn,
+  toObserver,
+  flatten
 } from './utils';
+import { resolveActionsAndContext } from './stateUtils';
 
 export type StateListener<
   TContext extends MachineContext,
@@ -206,16 +208,27 @@ export class Interpreter<
 
     // Update state
     this._state = state;
-    // Execute actions
-    this.execute(this.state);
+
+    if (
+      !this.machine.config.predictableActionArguments ||
+      // this is currently required to execute initial actions as the `initialState` gets cached
+      // we can't just recompute it (and execute actions while doing so) because we try to preserve identity of actors created within initial assigns
+      this.state._event === initEvent
+    ) {
+      this.execute(this.state);
+    } else {
+      for (const action of state.actions) {
+        if (action.type === actionTypes.invoke) {
+          this.exec(action, this.state);
+        }
+      }
+    }
 
     for (const listener of this.listeners) {
       listener(state, state.event);
     }
 
-    const isDone = isInFinalState(state.configuration || [], this.machine.root);
-
-    if (this.state.configuration && isDone) {
+    if (this.state.done) {
       // get final child state node
       const finalChildStateNode = state.configuration.find(
         (stateNode) =>
@@ -236,7 +249,7 @@ export class Interpreter<
           toSCXMLEvent(doneInvoke(this.name, doneData), { invokeid: this.name })
         );
       }
-      this.stop();
+      this._stop();
     }
   }
   /*
@@ -273,48 +286,40 @@ export class Interpreter<
     errorListener?: (error: any) => void,
     completeListener?: () => void
   ): Subscription {
-    if (!nextListenerOrObserver) {
-      return { unsubscribe: () => void 0 };
-    }
+    const observer = toObserver(
+      nextListenerOrObserver,
+      errorListener,
+      completeListener
+    );
 
-    let listener: (state: State<TContext, TEvent, TResolvedTypesMeta>) => void;
-    let resolvedCompleteListener = completeListener;
+    this.listeners.add(observer.next);
 
-    if (typeof nextListenerOrObserver === 'function') {
-      listener = nextListenerOrObserver;
-    } else {
-      listener = nextListenerOrObserver.next?.bind(nextListenerOrObserver);
-      resolvedCompleteListener = nextListenerOrObserver.complete?.bind(
-        nextListenerOrObserver
-      );
-    }
-
-    if (listener) {
-      this.listeners.add(listener);
-    }
-
-    if (errorListener) {
-      this.onError(errorListener);
-    }
+    this.onError(observer.error);
 
     // Send current state to listener
     if (this.status !== InterpreterStatus.NotStarted) {
-      listener(this.state);
+      observer.next(this.state);
     }
 
-    if (resolvedCompleteListener) {
-      if (this.status === InterpreterStatus.Stopped) {
-        resolvedCompleteListener();
-      } else {
-        this.onDone(resolvedCompleteListener);
-      }
+    const completeOnce = () => {
+      this.doneListeners.delete(completeOnce);
+      this.stopListeners.delete(completeOnce);
+      observer.complete();
+    };
+
+    if (this.status === InterpreterStatus.Stopped) {
+      observer.complete();
+    } else {
+      this.onDone(completeOnce);
+      this.onStop(completeOnce);
     }
 
     return {
       unsubscribe: () => {
-        listener && this.off(listener);
-        resolvedCompleteListener && this.off(resolvedCompleteListener);
-        errorListener && this.off(errorListener);
+        this.listeners.delete(observer.next);
+        this.errorListeners.delete(observer.error);
+        this.doneListeners.delete(completeOnce);
+        this.stopListeners.delete(completeOnce);
       }
     };
   }
@@ -403,6 +408,58 @@ export class Interpreter<
   }
 
   private _process(event: SCXML.Event<TEvent>) {
+    // it feels weird to handle this here but we need to handle this even slightly "out of band"
+    if (event.name === 'xstate.stop') {
+      const exitActions = flatten(
+        [...this.state.configuration]
+          .sort((a, b) => b.order - a.order)
+          .map((stateNode) =>
+            toActionObjects(stateNode.exit, this.machine.options.actions as any)
+          )
+      );
+      const {
+        actions: resolvedActions,
+        context: updatedContext
+      } = resolveActionsAndContext(
+        exitActions,
+        this.machine,
+        event,
+        this.state,
+        this.state.context,
+        this.machine.config.predictableActionArguments ? this._exec : undefined
+      );
+
+      const prevState = this.state;
+
+      const nextState = new State<TContext, TEvent, TResolvedTypesMeta>({
+        value: prevState.value,
+        context: updatedContext,
+        _event: event,
+        _sessionid: this.sessionId,
+        historyValue: undefined,
+        actions: resolvedActions,
+        configuration: prevState.configuration,
+        transitions: [],
+        children: prevState.children,
+        tags: prevState.tags,
+        machine: this.machine
+      });
+      nextState.changed = true;
+      this._state = nextState;
+
+      this.execute(nextState);
+
+      // TODO: think about converting those to actions
+      // Stop all children
+      Object.values(prevState.children).forEach((child) => {
+        if (isFunction(child.stop)) {
+          child.stop();
+        }
+      });
+
+      registry.free(this.sessionId);
+      return;
+    }
     // TODO: handle errors
     this.forward(event);
 
@@ -424,7 +481,7 @@ export class Interpreter<
       }
     }
 
-    const nextState = this.nextState(event);
+    const nextState = this._nextState(event);
 
     this.update(nextState);
 
@@ -433,12 +490,7 @@ export class Interpreter<
     }
   }
 
-  /**
-   * Stops the interpreter and unsubscribe all listeners.
-   *
-   * This will also notify the `onStop` listeners.
-   */
-  public stop(): this {
+  private _stop() {
     this.listeners.clear();
     for (const listener of this.stopListeners) {
       // call listener, then remove
@@ -447,41 +499,45 @@ export class Interpreter<
     this.stopListeners.clear();
     this.doneListeners.clear();
 
-    if (!this.initialized) {
+    if (this.status === InterpreterStatus.Stopped) {
       // Interpreter already stopped; do nothing
       return this;
     }
 
-    [...this.state.configuration]
-      .sort((a, b) => b.order - a.order)
-      .forEach((stateNode) => {
-        for (const action of stateNode.definition.exit) {
-          this.exec(action, this.state);
-        }
-      });
+    this.status = InterpreterStatus.Stopped;
+    this._initialState = undefined;
 
-    // Stop all children
-    Object.values(this.state.children).forEach((child) => {
-      if (isFunction(child.stop)) {
-        child.stop();
-      }
-    });
-
-    // Cancel all delayed events
+    // we are going to stop within the current sync frame
+    // so we can safely just cancel this here as nothing async should be fired anyway
     for (const key of Object.keys(this.delayedEventsMap)) {
       this.clock.clearTimeout(this.delayedEventsMap[key]);
     }
 
+    // clear everything that might be enqueued
     this.mailbox.clear();
+
     // TODO: after `stop` we must prepare ourselves for receiving events again
     // events sent *after* stop signal must be queued
     // it seems like this should be the common behavior for all of our consumers
     // so perhaps this should be unified somehow for all of them
     this.mailbox = new Mailbox(this._process.bind(this));
+  }
 
-    this.status = InterpreterStatus.Stopped;
-    this._initialState = undefined;
-    registry.free(this.sessionId);
+  /**
+   * Stops the interpreter and unsubscribe all listeners.
+   *
+   * This will also notify the `onStop` listeners.
+   */
+  public stop(): this {
+    // TODO: add warning for stopping non-root interpreters
+
+    // grab the current mailbox as it will be replaced in _stop
+    // this is a good candidate for a refactor, ideally we wouldn't be recreating a mailbox
+    const mailbox = this.mailbox;
+
+    this._stop();
+
+    mailbox.enqueue(toSCXMLEvent({ type: 'xstate.stop' }) as any);
 
     return this;
   }
@@ -564,12 +620,27 @@ export class Interpreter<
       return;
     }
 
-    target.send({
-      ...event,
-      name:
-        event.name === actionTypes.error ? `${error(this.name)}` : event.name,
-      origin: this
-    });
+    // perhaps those events should be rejected in the parent
+    // but atm it doesn't have easy access to all of the information that is required to do it reliably
+    if (
+      this.status !== InterpreterStatus.Stopped ||
+      this._parent !== target ||
+      // we need to send events to the parent from exit handlers of a machine that reached its final state
+      this.state.done
+    ) {
+      target.send({
+        ...event,
+        name:
+          event.name === actionTypes.error ? `${error(this.name)}` : event.name,
+        origin: this
+      });
+    }
+  }
+  public _nextState(
+    event: Event<TEvent> | SCXML.Event<TEvent>,
+    exec = !!this.machine.config.predictableActionArguments && this._exec
+  ): State<TContext, TEvent, TResolvedTypesMeta> {
+    return this.machine._transition(this.state, event, exec || undefined);
   }
   /**
    * Returns the next state given the interpreter's current state and the event.
@@ -581,8 +652,9 @@ export class Interpreter<
   public nextState(
     event: Event<TEvent> | SCXML.Event<TEvent>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    return this.machine.transition(this.state, event);
+    return this._nextState(event, false);
   }
+
   private forward(event: SCXML.Event<TEvent>): void {
     for (const id of this.forwardTo) {
       const child = this.state.children[id];
@@ -686,15 +758,24 @@ export class Interpreter<
       } as ActionFunctionMap<TContext, TEvent>)[actionType]
     );
   }
-  private exec(
-    action: InvokeActionObject | BaseActionObject,
-    state: State<TContext, TEvent, TResolvedTypesMeta>
-  ): void {
-    const { _event } = state;
 
+  private _exec = (
+    action: InvokeActionObject | BaseActionObject,
+    context: unknown,
+    _event: SCXML.Event<TEvent>,
+    state = this.state
+  ) => {
     if (isExecutableAction(action)) {
       try {
-        return action.execute(state);
+        return action.execute(
+          this.machine.config.predictableActionArguments
+            ? ({
+                context,
+                _event,
+                event: _event.data
+              } as any)
+            : state
+        );
       } catch (err) {
         this._parent?.send({
           type: 'xstate.error',
@@ -730,8 +811,13 @@ export class Interpreter<
     if (!IS_PRODUCTION && !action.type?.startsWith('xstate.')) {
       warn(false, `No implementation found for action type '${action.type}'`);
     }
+  };
 
-    return undefined;
+  private exec(
+    action: InvokeActionObject | BaseActionObject,
+    state: State<TContext, TEvent, TResolvedTypesMeta>
+  ): void {
+    this._exec(action, state.context, state._event, state);
   }
 
   private stopChild(child: ActorRef<any, any>): void {

@@ -192,6 +192,24 @@ export function forwardTo<
   target: Required<SendActionParams<TContext, TEvent>>['to'],
   options?: SendActionOptions<TContext, TEvent>
 ) {
+  if (
+    process.env.NODE_END !== 'production' &&
+    (!target || typeof target === 'function')
+  ) {
+    const originalTarget = target;
+    target = (...args) => {
+      const resolvedTarget =
+        typeof originalTarget === 'function'
+          ? originalTarget(...args)
+          : originalTarget;
+      if (!resolvedTarget) {
+        throw new Error(
+          `Attempted to forward event to undefined actor. This risks an infinite loop in the sender.`
+        );
+      }
+      return resolvedTarget;
+    };
+  }
   return send<TContext, TEvent>((_, event) => event, {
     ...options,
     to: target

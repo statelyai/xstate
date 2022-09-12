@@ -18,7 +18,7 @@ export function stop<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  actorRef: string | Expr<TContext, TEvent, ActorRef<any>>
+  actorRef: string | Expr<TContext, TEvent, ActorRef<any> | string>
 ): BaseDynamicActionObject<
   TContext,
   TEvent,
@@ -33,9 +33,11 @@ export function stop<
       actor
     },
     ({ params, type }, context, _event, { state }) => {
-      const actorRef = isFunction(params.actor)
+      const resolved = isFunction(params.actor)
         ? params.actor(context, _event.data)
-        : state.children[params.actor];
+        : params.actor;
+      const actorRef =
+        typeof resolved === 'string' ? state.children[resolved] : resolved;
 
       return {
         type,

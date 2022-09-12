@@ -32,8 +32,8 @@ import {
   InitialTransitionConfig,
   InitialTransitionDefinition,
   Event,
-  ChooseAction,
-  MachineContext
+  MachineContext,
+  PredictableActionArgumentsExec
 } from './types';
 import { State } from './State';
 import {
@@ -78,8 +78,9 @@ export function getChildren<
   TContext extends MachineContext,
   TE extends EventObject
 >(stateNode: StateNode<TContext, TE>): Array<StateNode<TContext, TE>> {
-  return Object.keys(stateNode.states).map((key) => stateNode.states[key]);
-  // .filter((sn) => sn.type !== 'history');
+  return Object.keys(stateNode.states)
+    .map((key) => stateNode.states[key])
+    .filter((sn) => sn.type !== 'history');
 }
 
 export function getProperAncestors<
@@ -767,7 +768,7 @@ export function getStateNodes<
       : toStateValue(state, stateNode.machine.delimiter);
 
   if (isString(stateValue)) {
-    return [stateNode.states[stateValue]];
+    return [stateNode, stateNode.states[stateValue]];
   }
 
   const childStateKeys = Object.keys(stateValue);
@@ -777,7 +778,8 @@ export function getStateNodes<
     .map((subStateKey) => getStateNode(stateNode, subStateKey))
     .filter(Boolean);
 
-  return childStateNodes.concat(
+  return [stateNode].concat(
+    childStateNodes,
     childStateKeys.reduce((allSubStateNodes, subStateKey) => {
       const subStateNode = getStateNode(stateNode, subStateKey);
       if (!subStateNode) {
@@ -908,9 +910,9 @@ function getHistoryNodes<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(stateNode: StateNode<TContext, TEvent>): Array<StateNode<TContext, TEvent>> {
-  return getChildren(stateNode).filter((sn) => {
-    return sn.type === 'history';
-  });
+  return Object.keys(stateNode.states)
+    .map((key) => stateNode.states[key])
+    .filter((sn) => sn.type === 'history');
 }
 
 function isDescendant<TC extends MachineContext, TE extends EventObject>(
@@ -1183,11 +1185,9 @@ export function enterStates<
 
         if (grandparent.type === 'parallel') {
           if (
-            getChildren(grandparent)
-              .filter((child) => child.type !== 'history')
-              .every((parentNode) =>
-                isInFinalState([...mutConfiguration], parentNode)
-              )
+            getChildren(grandparent).every((parentNode) =>
+              isInFinalState([...mutConfiguration], parentNode)
+            )
           ) {
             internalQueue.push(toSCXMLEvent(done(grandparent.id)));
           }
@@ -1404,7 +1404,8 @@ export function microstep<
   mutConfiguration: Set<StateNode<TContext, TEvent>>,
   machine: StateMachine<TContext, TEvent>,
   _event: SCXML.Event<TEvent>,
-  mutStatesToEnter: Set<StateNode<TContext, TEvent>>
+  mutStatesToEnter: Set<StateNode<TContext, TEvent>>,
+  predictableExec?: PredictableActionArgumentsExec
 ): {
   actions: BaseActionObject[];
   configuration: typeof mutConfiguration;
@@ -1459,6 +1460,18 @@ export function microstep<
 
   actions.push(...res.actions);
 
+  const nextConfiguration = [...mutConfiguration];
+
+  if (isInFinalState(nextConfiguration)) {
+    actions.push(
+      ...flatten(
+        nextConfiguration
+          .sort((a, b) => b.order - a.order)
+          .map((state) => state.exit)
+      )
+    );
+  }
+
   try {
     const {
       actions: resolvedActions,
@@ -1469,7 +1482,8 @@ export function microstep<
       machine,
       _event,
       currentState,
-      context
+      context,
+      predictableExec
     );
 
     internalQueue.push(...res.internalQueue);
@@ -1551,6 +1565,7 @@ export function resolveMicroTransition<
   machine: StateMachine<TContext, TEvent, any, any, any>,
   transitions: Transitions<TContext, TEvent>,
   currentState: State<TContext, TEvent, any>,
+  predictableExec?: PredictableActionArgumentsExec,
   _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>
 ): State<TContext, TEvent, any> {
   // Transition will "apply" if:
@@ -1583,7 +1598,8 @@ export function resolveMicroTransition<
     new Set(prevConfig),
     machine,
     _event,
-    new Set(!currentState._initial ? [] : [machine.root])
+    new Set(!currentState._initial ? [] : [machine.root]),
+    predictableExec
   );
 
   if (!currentState._initial && !willTransition) {
@@ -1659,15 +1675,16 @@ export function setChildren<
   });
 }
 
-function resolveActionsAndContext<
+export function resolveActionsAndContext<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
   actions: BaseActionObject[],
   machine: StateMachine<TContext, TEvent, any, any, any>,
   _event: SCXML.Event<TEvent>,
-  currentState: State<TContext, TEvent> | undefined,
-  context: TContext
+  currentState: State<TContext, TEvent, any> | undefined,
+  context: TContext,
+  predictableExec?: PredictableActionArgumentsExec
 ): {
   actions: typeof actions;
   raised: Array<RaiseActionObject<TEvent>>;
@@ -1717,11 +1734,6 @@ function resolveActionsAndContext<
           }
         );
 
-        if (resolvedActionObject.type === actionTypes.raise) {
-          raiseActions.push(resolvedActionObject);
-          return;
-        }
-
         context = resolvedActionObject.params.context;
         preservedContexts.push(resolvedActionObject.params.context);
         resolvedActions.push(
@@ -1748,57 +1760,42 @@ function resolveActionsAndContext<
           raiseActions.push(resolvedActionObject);
         } else {
           resolvedActions.push(resolvedActionObject);
+          if (
+            predictableExec &&
+            resolvedActionObject.type !== actionTypes.invoke
+          ) {
+            predictableExec(
+              resolvedActionObject,
+              preservedContexts[preservedContexts.length - 1],
+              _event
+            );
+          }
         }
       }
       return;
     }
-    switch (executableActionObject.type) {
-      case actionTypes.raise:
-        raiseActions.push(executableActionObject as RaiseActionObject<TEvent>);
-        break;
-      case actionTypes.choose: {
-        const chooseAction = executableActionObject as ChooseAction<
-          TContext,
-          TEvent
-        >;
-        const matchedActions = chooseAction.params.guards.find((condition) => {
-          const guard =
-            condition.guard &&
-            toGuardDefinition(
-              condition.guard,
-              (guardType) => machine.options.guards[guardType]
-            );
-          return (
-            !guard ||
-            evaluateGuard(guard, context, _event, currentState as any, machine)
-          );
-        })?.actions;
+    const contextIndex = preservedContexts.length - 1;
+    if (isExecutableAction(executableActionObject)) {
+      executableActionObject.setContext(preservedContexts[contextIndex]);
+      resolvedActions.push(executableActionObject);
+    } else {
+      const resolvedActionObject = toActionObject(
+        executableActionObject,
+        machine.options.actions
+      );
 
-        if (matchedActions) {
-          toActionObjects(
-            toArray(matchedActions),
-            machine.options.actions
-          ).forEach(resolveAction);
-        }
-        break;
-      }
-      default:
-        const contextIndex = preservedContexts.length - 1;
-        if (isExecutableAction(executableActionObject)) {
-          executableActionObject.setContext(preservedContexts[contextIndex]);
-          resolvedActions.push(executableActionObject);
-        } else {
-          const resolvedActionObject = toActionObject(
-            executableActionObject,
-            machine.options.actions
-          );
+      const actionExec = new ExecutableAction(resolvedActionObject);
+      actionExec.setContext(preservedContexts[contextIndex]);
 
-          const actionExec = new ExecutableAction(resolvedActionObject);
-          actionExec.setContext(preservedContexts[contextIndex]);
+      resolvedActions.push(actionExec);
+    }
 
-          resolvedActions.push(actionExec);
-        }
-        break;
+    if (predictableExec) {
+      predictableExec(
+        resolvedActions[resolvedActions.length - 1],
+        preservedContexts[preservedContexts.length - 1],
+        _event
+      );
     }
   }
 
@@ -1820,11 +1817,13 @@ type StateFromMachine<
 export function macrostep<TMachine extends AnyStateMachine>(
   state: StateFromMachine<TMachine>,
   event: Event<TMachine['__TEvent']> | SCXML.Event<TMachine['__TEvent']> | null,
-  machine: TMachine
+  machine: TMachine,
+  predictableExec?: PredictableActionArgumentsExec
 ): typeof state {
   // Assume the state is at rest (no raised events)
   // Determine the next state based on the next microstep
-  const nextState = event === null ? state : machine.microstep(state, event);
+  const nextState =
+    event === null ? state : machine.microstep(state, event, predictableExec);
 
   const { _internalQueue } = nextState;
   let maybeNextState = nextState;
@@ -1836,6 +1835,14 @@ export function macrostep<TMachine extends AnyStateMachine>(
     );
 
     if (eventlessTransitions.length === 0) {
+      // TODO: this is a bit of a hack, we need to review this
+      // this matches the behavior from v4 for eventless transitions
+      // where for `hasAlwaysTransitions` we were always trying to resolve with a NULL event
+      // and if a transition was not selected the `state.transitions` stayed empty
+      // without this we get into an infinite loop in the dieHard test in `@xstate/test` for the `simplePathsTo`
+      if (maybeNextState.configuration.some((state) => state.always)) {
+        maybeNextState.transitions = [];
+      }
       if (!_internalQueue.length) {
         break;
       } else {
@@ -1844,7 +1851,8 @@ export function macrostep<TMachine extends AnyStateMachine>(
 
         maybeNextState = machine.microstep(
           maybeNextState,
-          internalEvent as any
+          internalEvent as any,
+          predictableExec
         );
 
         _internalQueue.push(...maybeNextState._internalQueue);
@@ -1859,6 +1867,7 @@ export function macrostep<TMachine extends AnyStateMachine>(
         machine,
         eventlessTransitions,
         maybeNextState,
+        predictableExec,
         maybeNextState._event
       );
       _internalQueue.push(...maybeNextState._internalQueue);
