@@ -348,9 +348,7 @@ export class StateMachine<
     const nextState = resolveMicroTransition([], preInitialState, actorCtx);
     nextState.actions.unshift(...preInitialState.actions);
 
-    const macroState = macrostep(nextState, initEvent, actorCtx) as StateFrom<
-      typeof this
-    >;
+    const macroState = macrostep(nextState, initEvent, actorCtx);
 
     return macroState;
   }
