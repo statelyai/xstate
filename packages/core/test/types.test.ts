@@ -451,7 +451,6 @@ describe('events', () => {
 });
 
 describe('interpreter', () => {
-  // TODO: figure out why this doesn't pass
   it('should be convertable to Rx observable', () => {
     const s = interpret(
       createMachine({
