@@ -12,8 +12,8 @@ import type {
   BaseActorRef
 } from './types';
 import { toSCXMLEvent, isPromiseLike, isSCXMLEvent, isFunction } from './utils';
-import { symbolObservable } from './symbolObservable';
 import { doneInvoke, error } from './actions';
+import { symbolObservable } from './symbolObservable';
 
 /**
  * Returns an actor behavior from a reducer and its initial state.
@@ -84,7 +84,7 @@ export function fromCallback<TEvent extends EventObject>(
       dispose: void | (() => void) | Promise<any>;
     }
   > = {
-    transition: (state, event, { self, name }) => {
+    transition: (state, event, { self, id }) => {
       const _event = toSCXMLEvent(event);
       const { _parent: parent } = self;
 
@@ -107,7 +107,7 @@ export function fromCallback<TEvent extends EventObject>(
           state.dispose.then(
             (resolved) => {
               self._parent?.send(
-                toSCXMLEvent(doneInvoke(name, resolved), {
+                toSCXMLEvent(doneInvoke(id, resolved), {
                   origin: self
                 })
               );
@@ -115,7 +115,7 @@ export function fromCallback<TEvent extends EventObject>(
               state.canceled = true;
             },
             (errorData) => {
-              const errorEvent = error(name, errorData);
+              const errorEvent = error(id, errorData);
 
               self._parent?.send(
                 toSCXMLEvent(errorEvent, {
@@ -174,7 +174,7 @@ export function fromPromise<T>(
     T | undefined,
     { canceled: boolean; data: T | undefined }
   > = {
-    transition: (state, event, { self, name, observers }) => {
+    transition: (state, event, { self, id, observers }) => {
       const _event = toSCXMLEvent(event);
       if (state.canceled) {
         return state;
@@ -197,14 +197,14 @@ export function fromPromise<T>(
           return state;
         case resolveEventType:
           self._parent?.send(
-            toSCXMLEvent(doneInvoke(name, eventObject.data) as any, {
+            toSCXMLEvent(doneInvoke(id, eventObject.data) as any, {
               origin: self
             })
           );
           observers.forEach((o) => o.complete?.());
           return { ...state, data: eventObject.data };
         case rejectEventType:
-          const errorEvent = error(name, _event.data.data);
+          const errorEvent = error(id, _event.data.data);
 
           self._parent?.send(
             toSCXMLEvent(errorEvent, {
@@ -252,7 +252,7 @@ export function fromObservable<T, TEvent extends EventObject>(
       data: T | undefined;
     }
   > = {
-    transition: (state, event, { self, name, observers }) => {
+    transition: (state, event, { self, id, observers }) => {
       const _event = toSCXMLEvent(event);
       if (canceled) {
         return state;
@@ -280,7 +280,7 @@ export function fromObservable<T, TEvent extends EventObject>(
           self._parent?.send(
             toSCXMLEvent(
               {
-                type: `xstate.snapshot.${name}`,
+                type: `xstate.snapshot.${id}`,
                 data: _event.data.data
               },
               { origin: self }
@@ -288,7 +288,7 @@ export function fromObservable<T, TEvent extends EventObject>(
           );
           return { ...state, data: event.data.data };
         case errorEventType:
-          const errorEvent = error(name, _event.data.data);
+          const errorEvent = error(id, _event.data.data);
           self._parent?.send(
             toSCXMLEvent(errorEvent, {
               origin: self
@@ -297,7 +297,7 @@ export function fromObservable<T, TEvent extends EventObject>(
           return state;
         case completeEventType:
           self._parent?.send(
-            toSCXMLEvent(doneInvoke(name), {
+            toSCXMLEvent(doneInvoke(id), {
               origin: self
             })
           );
@@ -348,7 +348,7 @@ export function fromEventObservable<T extends EventObject>(
       data: T | undefined;
     }
   > = {
-    transition: (state, event, { self, name }) => {
+    transition: (state, event, { self, id }) => {
       const _event = toSCXMLEvent(event);
       if (state.canceled) {
         return state;
@@ -372,7 +372,7 @@ export function fromEventObservable<T extends EventObject>(
         case nextEventType:
           return { ...state, data: _event.data };
         case errorEventType:
-          const errorEvent = error(name, _event.data.data);
+          const errorEvent = error(id, _event.data.data);
           self._parent?.send(
             toSCXMLEvent(errorEvent, {
               origin: self
@@ -381,7 +381,7 @@ export function fromEventObservable<T extends EventObject>(
           return state;
         case completeEventType:
           self._parent?.send(
-            toSCXMLEvent(doneInvoke(name), {
+            toSCXMLEvent(doneInvoke(id), {
               origin: self
             })
           );
@@ -410,7 +410,6 @@ export function isActorRef(item: any): item is ActorRef<any> {
   return !!item && typeof item === 'object' && typeof item.send === 'function';
 }
 
-// TODO: refactor the return type, this could be written in a better way
 // but it's best to avoid unneccessary breaking changes now
 export function toActorRef<
   TEvent extends EventObject,
@@ -421,7 +420,7 @@ export function toActorRef<
 ): ActorRef<TEvent, TSnapshot> & Omit<TActorRefLike, keyof ActorRef<any, any>> {
   return {
     subscribe: () => ({ unsubscribe: () => void 0 }),
-    name: 'anonymous',
+    id: 'anonymous',
     getSnapshot: () => undefined,
     [symbolObservable]: function () {
       return this;

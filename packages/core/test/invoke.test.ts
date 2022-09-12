@@ -2608,7 +2608,7 @@ describe('invoke', () => {
     });
 
     // TODO: determine the correct behavior for this: start then stop, or never start (more complicated)?
-    it.skip('should not invoke an actor if it gets stopped immediately by transitioning away in immediate microstep', () => {
+    it('should not invoke an actor if it gets stopped immediately by transitioning away in immediate microstep', () => {
       // Since an actor will be canceled when the state machine leaves the invoking state
       // it does not make sense to start an actor in a state that will be exited immediately
       let actorStarted = false;

@@ -118,13 +118,13 @@ function getActionFunction<TState extends AnyState>(
       if (!state.children[id]) {
         state.children[id] = ref;
       }
-      actorCtx.defer?.(() => {
+      actorCtx.defer?.((state2) => {
         try {
           if (autoForward) {
             interpreter._forwardTo.add(id);
           }
 
-          ref.start?.();
+          state2.children[id]?.start?.();
         } catch (err) {
           interpreter.send(error(id, err));
           return;
@@ -136,6 +136,7 @@ function getActionFunction<TState extends AnyState>(
 
       if (actor) {
         actor.stop?.();
+        delete state.children[actor.id];
       }
     },
     [actionTypes.log]: (_ctx, _e, { action }) => {
@@ -158,8 +159,7 @@ function execSendTo(
   const origin = actorContext.self;
   const resolvedEvent: typeof event = {
     ...event,
-    name:
-      event.name === actionTypes.error ? `${error(origin.name)}` : event.name,
+    name: event.name === actionTypes.error ? `${error(origin.id)}` : event.name,
     origin: origin
   };
 

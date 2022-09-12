@@ -96,7 +96,10 @@ export class Interpreter<
   public clock: Clock;
   public options: Readonly<InterpreterOptions>;
 
-  public id: string | undefined;
+  /**
+   * The unique identifier for this actor relative to its parent.
+   */
+  public id: string;
 
   private mailbox: Mailbox<SCXML.Event<TEvent>> = new Mailbox(
     this._process.bind(this)
@@ -116,7 +119,6 @@ export class Interpreter<
 
   // Actor Ref
   public _parent?: ActorRef<any>;
-  public name: string;
   public ref: ActorRef<TEvent>;
   private _actorContext: ActorContext<TEvent, SnapshotFrom<TBehavior>>;
 
@@ -142,7 +144,7 @@ export class Interpreter<
 
     const { clock, logger, parent, id } = resolvedOptions;
 
-    this.name = this.id = id;
+    this.id = id;
     this.logger = logger;
     this.clock = clock;
     this._parent = parent;
@@ -152,7 +154,7 @@ export class Interpreter<
     this.sessionId = registry.bookId();
     this._actorContext = {
       self: this,
-      name: this.id ?? 'todo',
+      id: this.id,
       sessionId: this.sessionId,
       logger: this.logger,
       exec: (fn) => {
@@ -166,7 +168,7 @@ export class Interpreter<
   }
 
   // array of functions to defer
-  private _deferred: Array<() => void> = [];
+  private _deferred: Array<(state: any) => void> = [];
 
   private __initial: InternalStateFrom<TBehavior> | undefined = undefined;
 
@@ -187,7 +189,7 @@ export class Interpreter<
     const snapshot = this.getSnapshot();
 
     while (this._deferred.length) {
-      this._deferred.shift()!();
+      this._deferred.shift()!(state);
     }
 
     for (const observer of this.observers) {
@@ -200,8 +202,8 @@ export class Interpreter<
       if (isDone) {
         const output = (state as State<any, any>).output;
 
-        const doneEvent = toSCXMLEvent(doneInvoke(this.name, output), {
-          invokeid: this.name
+        const doneEvent = toSCXMLEvent(doneInvoke(this.id, output), {
+          invokeid: this.id
         });
 
         for (const listener of this.doneListeners) {
@@ -532,7 +534,7 @@ export class Interpreter<
 
       if (!child) {
         throw new Error(
-          `Unable to forward event '${event.name}' from interpreter '${this.name}' to nonexistant child '${id}'.`
+          `Unable to forward event '${event.name}' from interpreter '${this.id}' to nonexistant child '${id}'.`
         );
       }
 
@@ -567,7 +569,7 @@ export class Interpreter<
   }
   public toJSON() {
     return {
-      id: this.name
+      id: this.id
     };
   }
 

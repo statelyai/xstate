@@ -1402,12 +1402,12 @@ export function resolveMicroTransition<
       ) {
         const ref = (action as InvokeActionObject).params.ref;
         if (ref) {
-          children[ref.name] = ref;
+          children[ref.id] = ref;
         }
       } else if (action.type === actionTypes.stop) {
         const ref = (action as StopActionObject).params.actor;
         if (ref) {
-          delete children[ref.name];
+          delete children[ref.id];
         }
       }
     }

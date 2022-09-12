@@ -87,7 +87,7 @@ export function inspect(options: ServerInspectorOptions): Inspector {
       type: 'service.register',
       machine: JSON.stringify(service.behavior),
       state: JSON.stringify(service.getSnapshot()),
-      id: service.name,
+      id: service.id,
       sessionId: service.sessionId
     });
 

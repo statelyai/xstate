@@ -1764,7 +1764,10 @@ export type Sender<TEvent extends EventObject> = (event: TEvent) => void;
 export interface ActorRef<TEvent extends EventObject, TSnapshot = any>
   extends Subscribable<TSnapshot>,
     InteropObservable<TSnapshot> {
-  name: string;
+  /**
+   * The unique identifier for this actor relative to its parent.
+   */
+  id: string;
   send: (event: TEvent) => void;
   start?: () => void;
   getSnapshot: () => TSnapshot | undefined;
@@ -1862,11 +1865,11 @@ export type EventOfMachine<
 
 export interface ActorContext<TEvent extends EventObject, TSnapshot> {
   self: ActorRef<TEvent, TSnapshot>;
-  name: string;
+  id: string;
   sessionId: string;
   logger: (...args: any[]) => void;
   exec: (fn: () => void) => void;
-  defer: ((fn: () => void) => void) | undefined;
+  defer: ((fn: (any) => void) => void) | undefined;
   observers: Set<Observer<TSnapshot>>;
 }
 
