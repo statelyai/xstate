@@ -3087,11 +3087,9 @@ describe('invoke', () => {
       states: {
         a: {
           invoke: {
-            src:
-              // TODO: shortening this to src: fromPromise doesn't work!
-              fromPromise(() => {
-                return Promise.resolve(42);
-              }),
+            src: fromPromise(() => {
+              return Promise.resolve(42);
+            }),
             onDone: 'b'
           }
         },
