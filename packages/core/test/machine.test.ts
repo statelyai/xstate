@@ -375,6 +375,22 @@ describe('machine', () => {
     });
   });
 
+  describe('machine.getInitialState', () => {
+    it('should follow always transition', () => {
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            always: [{ target: 'b' }]
+          },
+          b: {}
+        }
+      });
+
+      expect(machine.getInitialState('a').value).toBe('b');
+    });
+  });
+
   describe('versioning', () => {
     it('should allow a version to be specified', () => {
       const versionMachine = Machine({

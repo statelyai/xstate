@@ -98,21 +98,4 @@ describe('rehydration', () => {
       expect(actual).toEqual(['active', 'root']);
     });
   });
-
-  describe('using resolved state value', () => {
-    it('should follow always transitions', () => {
-      const machine = createMachine({
-        initial: 'a',
-        states: {
-          a: {
-            always: [{ target: 'b' }]
-          },
-          b: {}
-        }
-      });
-
-      const service = interpret(machine).start(machine.getInitialState('a'));
-      expect(service.getSnapshot().value).toBe('b');
-    });
-  });
 });
