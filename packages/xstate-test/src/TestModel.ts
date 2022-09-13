@@ -109,9 +109,7 @@ export class TestModel<TState, TEvent extends EventObject> {
   public getSimplePaths(
     options?: Partial<TraversalOptions<TState, any>>
   ): Array<TestPath<TState, TEvent>> {
-    return this.getPaths(getSimplePaths, {
-      ...options
-    });
+    return this.getPaths(getSimplePaths, options);
   }
 
   public getSimplePathsTo(
