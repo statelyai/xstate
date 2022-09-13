@@ -1240,7 +1240,10 @@ export class Interpreter<
       })
       .start();
 
-    return actor as ActorRef<TChildEvent, State<TChildContext, TChildEvent>>;
+    return actor as ActorRef<
+      TChildEvent,
+      State<TChildContext, TChildEvent, any, any, any>
+    >;
   }
   private spawnBehavior<TActorEvent extends EventObject, TEmitted>(
     behavior: Behavior<TActorEvent, TEmitted>,
