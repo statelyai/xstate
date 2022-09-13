@@ -107,7 +107,9 @@ export class Interpreter<
 
   private delayedEventsMap: Record<string, unknown> = {};
 
-  private observers: Set<Observer<SnapshotFrom<TBehavior>>> = new Set();
+  private observers: Set<
+    Required<Observer<SnapshotFrom<TBehavior>>>
+  > = new Set();
   private errorListeners: Set<ErrorListener> = new Set();
   private doneListeners: Set<EventListener> = new Set();
   private stopListeners: Set<Listener> = new Set();
@@ -193,7 +195,7 @@ export class Interpreter<
     }
 
     for (const observer of this.observers) {
-      observer.next?.(snapshot);
+      observer.next(snapshot);
     }
 
     if (isStateMachine(this.behavior) && isStateLike(state)) {
