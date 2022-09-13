@@ -1486,9 +1486,7 @@ export function resolveActionsAndContext<
         if (
           resolvedActionObject.type === actionTypes.raise ||
           (resolvedActionObject.type === actionTypes.send &&
-            actorCtx &&
-            (resolvedActionObject as SendActionObject).params.to ===
-              actorCtx.self)
+            (resolvedActionObject as SendActionObject).params.internal)
         ) {
           raiseActions.push(resolvedActionObject);
         } else {

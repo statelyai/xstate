@@ -1254,6 +1254,7 @@ export interface SendActionObject<
     event: TSentEvent;
     delay?: number;
     id: string | number;
+    internal: boolean;
   };
 }
 

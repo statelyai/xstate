@@ -87,12 +87,8 @@ function getActionFunction<TState extends AnyState>(
         interpreter.defer(sendAction);
         return;
       } else {
-        if (sendAction.params.to) {
-          const target = sendAction.params.to;
-          execSendTo(sendAction.params._event, target, actorCtx);
-        } else {
-          interpreter.send(sendAction.params._event as SCXML.Event<any>);
-        }
+        const target = sendAction.params.to!;
+        execSendTo(sendAction.params._event, target, actorCtx);
       }
     },
     [actionTypes.cancel]: (_ctx, _e, { action }) => {
