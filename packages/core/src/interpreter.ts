@@ -7,7 +7,7 @@ import {
   InterpreterFrom,
   SnapshotFrom,
   toObserver
-} from '.';
+} from './types';
 import { doneInvoke } from './actions';
 import { startSignalType } from './actors';
 import { devToolsAdapter } from './dev';
