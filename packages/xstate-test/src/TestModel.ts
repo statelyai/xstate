@@ -34,14 +34,6 @@ import {
 } from './utils';
 import { traverseShortestPathsTo } from '@xstate/graph/src/graph';
 
-export interface TestModelDefaults<TState, TEvent extends EventObject> {
-  pathGenerator: PathGenerator<TState, TEvent>;
-}
-
-export const testModelDefaults: TestModelDefaults<any, any> = {
-  pathGenerator: getShortestPaths
-};
-
 /**
  * Creates a test model that represents an abstract model of a
  * system under test (SUT).
@@ -70,7 +62,6 @@ export class TestModel<TState, TEvent extends EventObject> {
       }
     };
   }
-  public static defaults: TestModelDefaults<any, any> = testModelDefaults;
 
   constructor(
     public behavior: SimpleBehavior<TState, TEvent>,
@@ -394,19 +385,6 @@ export class TestModel<TState, TEvent extends EventObject> {
 
     return resultPaths;
   }
-}
-
-/**
- * Specifies default configuration for `TestModel` instances for path generation options
- *
- * @param testModelConfiguration The partial configuration for all subsequent `TestModel` instances
- */
-export function configure(
-  testModelConfiguration: Partial<
-    TestModelDefaults<any, any>
-  > = testModelDefaults
-): void {
-  TestModel.defaults = { ...testModelDefaults, ...testModelConfiguration };
 }
 
 const errorIfPromise = (result: unknown, err: string) => {
