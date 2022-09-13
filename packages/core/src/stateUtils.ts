@@ -789,7 +789,7 @@ export function transitionParallelNode<
   state: State<TContext, TEvent>,
   _event: SCXML.Event<TEvent>
 ): Transitions<TContext, TEvent> | undefined {
-  const transitions: Transitions<TContext, TEvent> = [];
+  const innerTransitions: Transitions<TContext, TEvent> = [];
 
   for (const subStateKey of Object.keys(stateValue)) {
     const subStateValue = stateValue[subStateKey];
@@ -806,14 +806,14 @@ export function transitionParallelNode<
       _event
     );
     if (nextStateNode) {
-      transitions.push(...nextStateNode);
+      innerTransitions.push(...nextStateNode);
     }
   }
-  if (!transitions.length) {
+  if (!innerTransitions.length) {
     return stateNode.next(state, _event);
   }
 
-  return transitions;
+  return innerTransitions;
 }
 
 export function transitionNode<
