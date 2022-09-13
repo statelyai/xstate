@@ -1,12 +1,11 @@
-import {
+import type {
   ActorContext,
   AnyState,
   AnyStateMachine,
   Behavior,
   EventFromBehavior,
   InterpreterFrom,
-  SnapshotFrom,
-  toObserver
+  SnapshotFrom
 } from './types';
 import { doneInvoke } from './actions';
 import { startSignalType } from './actors';
@@ -34,6 +33,7 @@ import {
   isStateLike,
   isStateMachine,
   toEventObject,
+  toObserver,
   toSCXMLEvent,
   warn
 } from './utils';
