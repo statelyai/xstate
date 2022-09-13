@@ -602,7 +602,7 @@ export function interpret<TBehavior extends Behavior<any, any>>(
 ): Interpreter<TBehavior>;
 export function interpret(machine: any, options?: InterpreterOptions): any {
   const resolvedOptions = {
-    id: isStateMachine(machine) ? machine.id : undefined,
+    id: isStateMachine(behavior) ? behavior.id : undefined,
     ...options
   };
 
