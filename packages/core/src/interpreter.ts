@@ -597,7 +597,7 @@ export function interpret<TMachine extends AnyStateMachine>(
   options?: InterpreterOptions
 ): InterpreterFrom<TMachine>;
 export function interpret<TBehavior extends Behavior<any, any>>(
-  machine: TBehavior,
+  behavior: TBehavior,
   options?: InterpreterOptions
 ): Interpreter<TBehavior>;
 export function interpret(machine: any, options?: InterpreterOptions): any {
