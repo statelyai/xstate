@@ -1616,9 +1616,7 @@ export function macrostep<TMachine extends AnyStateMachine>(
     for (const stateNode of nextState.configuration.sort(
       (a, b) => b.order - a.order
     )) {
-      for (const action of stateNode.definition.exit) {
-        stoppedState.actions.push(action);
-      }
+      stoppedState.actions.push(...stateNode.definition.exit);
     }
 
     for (const child of Object.values(nextState.children)) {
