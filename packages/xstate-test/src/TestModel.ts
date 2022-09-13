@@ -85,7 +85,7 @@ export class TestModel<TState, TEvent extends EventObject> {
   public getShortestPaths(
     options?: Partial<TraversalOptions<TState, TEvent>>
   ): Array<TestPath<TState, TEvent>> {
-    return this.getPaths(getShortestPaths, { ...options });
+    return this.getPaths(getShortestPaths, options);
   }
 
   public getPaths(
