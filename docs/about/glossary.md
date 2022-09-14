@@ -4,7 +4,7 @@ This glossary is a guide to the most common terms in statecharts and state machi
 
 ## State machines
 
-A state machine is a model that describes how the state of a process transitions to another state when an event occurs. State machines make building reliable software easier because they prevent impossible states and undesired transitions.
+A state machine is a model that describes how the state of a process transitions to another state when an event occurs.
 
 State machines make building reliable software easier because they prevent impossible states and undesired transitions.
 
