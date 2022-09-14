@@ -446,9 +446,9 @@ const secretMachine = createMachine({
     },
     reveal: {
       type: 'final',
-      data: {
-        secret: (context, event) => context.secret
-      }
+      data: (context, event) => ({
+        secret: context.secret
+      })
     }
   }
 });
