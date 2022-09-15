@@ -20,8 +20,8 @@ export const useSelector = <
     sub = actor.subscribe((state) => {
       const nextSelected = selector(state);
       if (!compare(prevSelected, nextSelected)) {
-        set(nextSelected);
         prevSelected = nextSelected;
+        set(nextSelected);
       }
     });
 
