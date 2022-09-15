@@ -2,4 +2,4 @@
 '@xstate/svelte': patch
 ---
 
-Avoid using svelte store get in useSelector
+Improve performance of the `useSelector` by avoiding `get`
