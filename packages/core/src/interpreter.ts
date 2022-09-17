@@ -8,7 +8,7 @@ import type {
   SnapshotFrom
 } from './types';
 import { doneInvoke } from './actions';
-import { startSignalType } from './actors';
+import { startSignalType, stopSignalType } from './actors';
 import { devToolsAdapter } from './dev';
 import { IS_PRODUCTION } from './environment';
 import { Mailbox } from './Mailbox';
@@ -426,7 +426,7 @@ export class Interpreter<
 
     this.update(nextState);
 
-    if (event.name === 'xstate.stop') {
+    if (event.name === stopSignalType) {
       this._stop();
     } else if (errored) {
       this.stop();
@@ -440,11 +440,9 @@ export class Interpreter<
    */
   public stop(): this {
     delete this.__initial;
-    // const mailbox = this.mailbox;
 
-    // this._stop();
     this.mailbox.clear();
-    this.mailbox.enqueue(toSCXMLEvent({ type: 'xstate.stop' }) as any);
+    this.mailbox.enqueue(toSCXMLEvent({ type: stopSignalType }) as any);
 
     return this;
   }
