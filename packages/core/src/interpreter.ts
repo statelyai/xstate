@@ -195,9 +195,9 @@ export class Interpreter<
     this._state = state;
     const snapshot = this.getSnapshot();
 
-    let deferred: typeof this._deferred[number] | undefined;
-    while ((deferred = this._deferred.shift())) {
-      deferred(state);
+    let deferredFn: typeof this._deferred[number] | undefined;
+    while ((deferredFn = this._deferred.shift())) {
+      deferredFn(state);
     }
 
     for (const observer of this.observers) {

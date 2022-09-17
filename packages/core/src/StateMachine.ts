@@ -260,9 +260,7 @@ export class StateMachine<
     const currentState =
       state instanceof State ? state : this.resolveStateValue(state);
     const scxmlEvent = toSCXMLEvent(event);
-
     const nextState = macrostep(currentState, scxmlEvent, actorCtx);
-    nextState._sessionid = actorCtx?.sessionId ?? currentState._sessionid;
 
     return nextState;
   }

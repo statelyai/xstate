@@ -62,6 +62,7 @@ import {
   StateFromMachine
 } from '.';
 import { execAction } from './exec';
+import { stopSignalType } from './actors';
 
 type Configuration<
   TContext extends MachineContext,
@@ -1535,7 +1536,7 @@ export function macrostep<TMachine extends AnyStateMachine>(
 ): typeof state {
   let nextState = state;
   // Handle stop event
-  if (scxmlEvent?.name === 'xstate.stop') {
+  if (scxmlEvent?.name === stopSignalType) {
     return stopStep(scxmlEvent);
   }
 
