@@ -190,8 +190,9 @@ export class Interpreter<
     this._state = state;
     const snapshot = this.getSnapshot();
 
-    while (this._deferred.length) {
-      this._deferred.shift()!(state);
+    let deferred: typeof this._deferred[number] | undefined;
+    while ((deferred = this._deferred.shift())) {
+      deferred(state);
     }
 
     for (const observer of this.observers) {
@@ -608,7 +609,7 @@ export function interpret(behavior: any, options?: InterpreterOptions): any {
     ...options
   };
 
-  const interpreter = new Interpreter(machine, resolvedOptions);
+  const interpreter = new Interpreter(behavior, resolvedOptions);
 
   return interpreter as any;
 }
