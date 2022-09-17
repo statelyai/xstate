@@ -10,9 +10,7 @@ import {
   DoneEventObject,
   doneInvoke,
   Interpreter,
-  InterpreterFrom,
   send,
-  State,
   StateFrom
 } from 'xstate';
 import { fromCallback, fromPromise } from 'xstate/actors';
@@ -423,7 +421,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     });
 
     const ServiceApp: React.FC<{
-      service: InterpreterFrom<typeof machine>;
+      service: ActorRefFrom<typeof machine>;
     }> = ({ service }) => {
       const [state] = useActor(service);
 
@@ -908,7 +906,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
 
     const Test = () => {
       const [state, send] = useMachine(testMachine, {
-        state: State.create(JSON.parse(persistedState))
+        state: testMachine.createState(JSON.parse(persistedState))
       });
 
       currentState = state;

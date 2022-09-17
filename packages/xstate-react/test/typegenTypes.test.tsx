@@ -501,7 +501,7 @@ describe('useInterpret', () => {
     render(<App />);
   });
 
-  it('returned service created based on a lazy machine that supplies missing implementations using `withConfig` should be assignable to the InterpreterFrom<...> type', () => {
+  it('returned service created based on a lazy machine that supplies missing implementations using `withConfig` should be assignable to the ActorRefFrom<...> type', () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
         actions: 'someAction';

@@ -211,17 +211,15 @@ describe('deep history states', () => {
   });
 
   describe('history', () => {
-    // on.first -> on.second.A
-    const state2A = historyMachine.transition(
-      { on: 'first' },
-      { type: 'SWITCH' }
-    );
-    // on.second.A -> on.second.B.P
-    const state2BP = historyMachine.transition(state2A, { type: 'INNER' });
-    // on.second.B.P -> on.second.B.Q
-    const state2BQ = historyMachine.transition(state2BP, { type: 'INNER' });
-
     it('should go to the shallow history', () => {
+      // on.first -> on.second.A
+      const state2A = historyMachine.transition(
+        { on: 'first' },
+        { type: 'SWITCH' }
+      );
+      // on.second.A -> on.second.B.P
+      const state2BP = historyMachine.transition(state2A, { type: 'INNER' });
+
       // on.second.B.P -> off
       const stateOff = historyMachine.transition(state2BP, { type: 'POWER' });
       expect(
@@ -232,6 +230,14 @@ describe('deep history states', () => {
     });
 
     it('should go to the deep history (explicit)', () => {
+      // on.first -> on.second.A
+      const state2A = historyMachine.transition(
+        { on: 'first' },
+        { type: 'SWITCH' }
+      );
+      // on.second.A -> on.second.B.P
+      const state2BP = historyMachine.transition(state2A, { type: 'INNER' });
+
       // on.second.B.P -> off
       const stateOff = historyMachine.transition(state2BP, { type: 'POWER' });
       expect(
@@ -242,6 +248,16 @@ describe('deep history states', () => {
     });
 
     it('should go to the deepest history', () => {
+      // on.first -> on.second.A
+      const state2A = historyMachine.transition(
+        { on: 'first' },
+        { type: 'SWITCH' }
+      );
+      // on.second.A -> on.second.B.P
+      const state2BP = historyMachine.transition(state2A, { type: 'INNER' });
+      // on.second.B.P -> on.second.B.Q
+      const state2BQ = historyMachine.transition(state2BP, { type: 'INNER' });
+
       // on.second.B.Q -> off
       const stateOff = historyMachine.transition(state2BQ, { type: 'POWER' });
       expect(
@@ -332,23 +348,16 @@ describe('parallel history states', () => {
     }
   });
 
-  // on.first -> on.second.A
-  const stateABKL = historyMachine.transition(historyMachine.initialState, {
-    type: 'SWITCH'
-  });
-  // INNER_A twice
-  const stateACDKL = historyMachine.transition(stateABKL, { type: 'INNER_A' });
-  const stateACEKL = historyMachine.transition(stateACDKL, { type: 'INNER_A' });
-
-  // INNER_K twice
-  const stateACEKMN = historyMachine.transition(stateACEKL, {
-    type: 'INNER_K'
-  });
-  const stateACEKMO = historyMachine.transition(stateACEKMN, {
-    type: 'INNER_K'
-  });
-
   it('should ignore parallel state history', () => {
+    // on.first -> on.second.A
+    const stateABKL = historyMachine.transition(historyMachine.initialState, {
+      type: 'SWITCH'
+    });
+    // INNER_A twice
+    const stateACDKL = historyMachine.transition(stateABKL, {
+      type: 'INNER_A'
+    });
+
     const stateOff = historyMachine.transition(stateACDKL, { type: 'POWER' });
     expect(
       historyMachine.transition(stateOff, { type: 'POWER' }).value
@@ -358,6 +367,15 @@ describe('parallel history states', () => {
   });
 
   it('should remember first level state history', () => {
+    // on.first -> on.second.A
+    const stateABKL = historyMachine.transition(historyMachine.initialState, {
+      type: 'SWITCH'
+    });
+    // INNER_A twice
+    const stateACDKL = historyMachine.transition(stateABKL, {
+      type: 'INNER_A'
+    });
+
     const stateOff = historyMachine.transition(stateACDKL, { type: 'POWER' });
     expect(
       historyMachine.transition(stateOff, { type: 'DEEP_POWER' }).value
@@ -367,6 +385,26 @@ describe('parallel history states', () => {
   });
 
   it('should re-enter each regions of parallel state correctly', () => {
+    // on.first -> on.second.A
+    const stateABKL = historyMachine.transition(historyMachine.initialState, {
+      type: 'SWITCH'
+    });
+    // INNER_A twice
+    const stateACDKL = historyMachine.transition(stateABKL, {
+      type: 'INNER_A'
+    });
+    const stateACEKL = historyMachine.transition(stateACDKL, {
+      type: 'INNER_A'
+    });
+
+    // INNER_K twice
+    const stateACEKMN = historyMachine.transition(stateACEKL, {
+      type: 'INNER_K'
+    });
+    const stateACEKMO = historyMachine.transition(stateACEKMN, {
+      type: 'INNER_K'
+    });
+
     const stateOff = historyMachine.transition(stateACEKMO, { type: 'POWER' });
     expect(
       historyMachine.transition(stateOff, { type: 'DEEP_POWER' }).value
@@ -376,6 +414,26 @@ describe('parallel history states', () => {
   });
 
   it('should re-enter multiple history states', () => {
+    // on.first -> on.second.A
+    const stateABKL = historyMachine.transition(historyMachine.initialState, {
+      type: 'SWITCH'
+    });
+    // INNER_A twice
+    const stateACDKL = historyMachine.transition(stateABKL, {
+      type: 'INNER_A'
+    });
+    const stateACEKL = historyMachine.transition(stateACDKL, {
+      type: 'INNER_A'
+    });
+
+    // INNER_K twice
+    const stateACEKMN = historyMachine.transition(stateACEKL, {
+      type: 'INNER_K'
+    });
+    const stateACEKMO = historyMachine.transition(stateACEKMN, {
+      type: 'INNER_K'
+    });
+
     const stateOff = historyMachine.transition(stateACEKMO, { type: 'POWER' });
     expect(
       historyMachine.transition(stateOff, { type: 'PARALLEL_HISTORY' }).value
@@ -385,6 +443,26 @@ describe('parallel history states', () => {
   });
 
   it('should re-enter a parallel with partial history', () => {
+    // on.first -> on.second.A
+    const stateABKL = historyMachine.transition(historyMachine.initialState, {
+      type: 'SWITCH'
+    });
+    // INNER_A twice
+    const stateACDKL = historyMachine.transition(stateABKL, {
+      type: 'INNER_A'
+    });
+    const stateACEKL = historyMachine.transition(stateACDKL, {
+      type: 'INNER_A'
+    });
+
+    // INNER_K twice
+    const stateACEKMN = historyMachine.transition(stateACEKL, {
+      type: 'INNER_K'
+    });
+    const stateACEKMO = historyMachine.transition(stateACEKMN, {
+      type: 'INNER_K'
+    });
+
     const stateOff = historyMachine.transition(stateACEKMO, { type: 'POWER' });
     expect(
       historyMachine.transition(stateOff, { type: 'PARALLEL_SOME_HISTORY' })
@@ -395,6 +473,26 @@ describe('parallel history states', () => {
   });
 
   it('should re-enter a parallel with full history', () => {
+    // on.first -> on.second.A
+    const stateABKL = historyMachine.transition(historyMachine.initialState, {
+      type: 'SWITCH'
+    });
+    // INNER_A twice
+    const stateACDKL = historyMachine.transition(stateABKL, {
+      type: 'INNER_A'
+    });
+    const stateACEKL = historyMachine.transition(stateACDKL, {
+      type: 'INNER_A'
+    });
+
+    // INNER_K twice
+    const stateACEKMN = historyMachine.transition(stateACEKL, {
+      type: 'INNER_K'
+    });
+    const stateACEKMO = historyMachine.transition(stateACEKMN, {
+      type: 'INNER_K'
+    });
+
     const stateOff = historyMachine.transition(stateACEKMO, { type: 'POWER' });
     expect(
       historyMachine.transition(stateOff, { type: 'PARALLEL_DEEP_HISTORY' })

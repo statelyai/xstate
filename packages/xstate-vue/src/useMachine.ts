@@ -5,7 +5,6 @@ import {
   InternalMachineImplementations,
   InterpreterFrom,
   InterpreterOptions,
-  State,
   StateFrom
 } from 'xstate';
 import { MaybeLazy, Prop, UseMachineOptions } from './types';
@@ -59,7 +58,9 @@ export function useMachine<TMachine extends AnyStateMachine>(
 
   const { initialState } = service.behavior;
   const state = shallowRef(
-    options.state ? State.create(options.state) : initialState
+    options.state
+      ? (service.behavior as AnyStateMachine).createState(options.state)
+      : initialState
   );
 
   return { state, send: service.send, service } as any;

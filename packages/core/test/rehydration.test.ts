@@ -1,4 +1,4 @@
-import { createMachine, interpret, State } from '../src';
+import { createMachine, interpret } from '../src';
 
 describe('rehydration', () => {
   describe('using persisted state', () => {
@@ -13,7 +13,7 @@ describe('rehydration', () => {
       });
 
       const persistedState = JSON.stringify(machine.initialState);
-      const restoredState = State.create(JSON.parse(persistedState));
+      const restoredState = machine.createState(JSON.parse(persistedState));
 
       const service = interpret(machine).start(restoredState);
 
@@ -33,7 +33,7 @@ describe('rehydration', () => {
       });
 
       const persistedState = JSON.stringify(machine.initialState);
-      const restoredState = State.create(JSON.parse(persistedState));
+      const restoredState = machine.createState(JSON.parse(persistedState));
 
       interpret(machine).start(restoredState).stop();
 

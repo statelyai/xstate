@@ -86,7 +86,9 @@ export function useMachine<TMachine extends AnyStateMachine>(
       if (cached) {
         return cached;
       }
-      const created = State.create(options.state) as State<any, any, any>;
+      const created = (service.behavior as AnyStateMachine).createState(
+        options.state
+      ) as State<any, any, any>;
       cachedRehydratedStates.set(options.state, created);
       return created;
     }
@@ -112,7 +114,11 @@ export function useMachine<TMachine extends AnyStateMachine>(
   useEffect(() => {
     const rehydratedState = options.state;
     service.start(
-      rehydratedState ? (State.create(rehydratedState) as any) : undefined
+      rehydratedState
+        ? ((service.behavior as AnyStateMachine).createState(
+            rehydratedState
+          ) as any)
+        : undefined
     );
 
     return () => {

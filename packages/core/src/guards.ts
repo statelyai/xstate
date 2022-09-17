@@ -12,7 +12,6 @@ import type {
 import { isStateId } from './stateUtils';
 import { isFunction, isString } from './utils';
 import type { State } from './State';
-import type { StateMachine } from './StateMachine';
 
 export function stateIn<
   TContext extends MachineContext,
@@ -105,9 +104,9 @@ export function evaluateGuard<
   guard: GuardDefinition<TContext, TEvent>,
   context: TContext,
   _event: SCXML.Event<TEvent>,
-  state: State<TContext, TEvent>,
-  machine: StateMachine<TContext, TEvent>
+  state: State<TContext, TEvent>
 ): boolean {
+  const { machine } = state;
   const guardMeta: GuardMeta<TContext, TEvent> = {
     state,
     guard,

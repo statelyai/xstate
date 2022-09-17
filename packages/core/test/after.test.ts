@@ -1,4 +1,4 @@
-import { createMachine, interpret, State } from '../src';
+import { createMachine, interpret } from '../src';
 import { after, actionTypes } from '../src/actions';
 
 const lightMachine = createMachine({
@@ -54,6 +54,7 @@ describe('delayed transitions', () => {
               "type": "xstate.after(1000)#light.yellow",
             },
             "id": "xstate.after(1000)#light.yellow",
+            "internal": false,
             "to": undefined,
           },
           "type": "xstate.send",
@@ -217,9 +218,7 @@ describe('delayed transitions', () => {
 
     let service = interpret(createMyMachine()).start();
 
-    const persistedState = State.create(
-      JSON.parse(JSON.stringify(service.getSnapshot()))
-    );
+    const persistedState = JSON.parse(JSON.stringify(service.getSnapshot()));
 
     service = interpret(createMyMachine()).start(persistedState);
 

@@ -1,11 +1,4 @@
-import {
-  interpret,
-  assign,
-  send,
-  sendParent,
-  State,
-  createMachine
-} from '../src';
+import { interpret, assign, send, sendParent, createMachine } from '../src';
 import { ActorRef } from '../src/types';
 
 interface CounterContext {
@@ -159,7 +152,11 @@ describe('assign', () => {
 
   it('applies the assignment to the explicit external state (property assignment)', () => {
     const oneState = counterMachine.transition(
-      State.from(counterMachine.initialState, { count: 50, foo: 'bar' }),
+      counterMachine.createState(
+        counterMachine.initialState.clone({
+          context: { count: 50, foo: 'bar' }
+        })
+      ),
       { type: 'DEC' }
     );
 
@@ -172,7 +169,10 @@ describe('assign', () => {
     expect(twoState.context).toEqual({ count: 48, foo: 'bar' });
 
     const threeState = counterMachine.transition(
-      State.from(twoState, { count: 100, foo: 'bar' }),
+      counterMachine.createState(
+        twoState.clone({ context: { count: 100, foo: 'bar' } })
+      ),
+
       { type: 'DEC' }
     );
 
@@ -182,7 +182,11 @@ describe('assign', () => {
 
   it('applies the assignment to the explicit external state', () => {
     const oneState = counterMachine.transition(
-      State.from(counterMachine.initialState, { count: 50, foo: 'bar' }),
+      counterMachine.createState(
+        counterMachine.initialState.clone({
+          context: { count: 50, foo: 'bar' }
+        })
+      ),
       { type: 'INC' }
     );
 
@@ -195,7 +199,9 @@ describe('assign', () => {
     expect(twoState.context).toEqual({ count: 52, foo: 'bar' });
 
     const threeState = counterMachine.transition(
-      State.from(twoState, { count: 102, foo: 'bar' }),
+      counterMachine.createState(
+        twoState.clone({ context: { count: 102, foo: 'bar' } })
+      ),
       { type: 'INC' }
     );
 

@@ -344,7 +344,7 @@ describe('machine', () => {
     });
 
     it('should resolve the state value', () => {
-      const tempState = State.from('foo');
+      const tempState = State.from('foo', undefined, resolveMachine);
 
       const resolvedState = resolveMachine.resolveState(tempState);
 
@@ -354,7 +354,7 @@ describe('machine', () => {
     });
 
     it('should resolve the state configuration (implicit via events)', () => {
-      const tempState = State.from('foo');
+      const tempState = State.from('foo', undefined, resolveMachine);
 
       const resolvedState = resolveMachine.resolveState(tempState);
 
@@ -373,7 +373,7 @@ describe('machine', () => {
           }
         }
       });
-      const tempState = State.from('bar');
+      const tempState = State.from('bar', undefined, machine);
 
       const resolvedState = machine.resolveState(tempState);
 
@@ -446,7 +446,7 @@ describe('machine', () => {
         states: { idle: {} }
       });
 
-      expect(idMachine.key).toEqual('some-id');
+      expect(idMachine.id).toEqual('some-id');
     });
 
     it('should represent the ID (state node)', () => {
@@ -470,7 +470,7 @@ describe('machine', () => {
         states: { idle: {} }
       });
 
-      expect(noIDMachine.key).toEqual('some-key');
+      expect(noIDMachine.id).toEqual('some-key');
     });
 
     it('should use the key as the ID if no ID is provided (state node)', () => {

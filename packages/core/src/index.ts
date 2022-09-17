@@ -20,7 +20,6 @@ import { stop } from './actions/stop';
 import { interpret, Interpreter, InterpreterStatus } from './interpreter';
 import { createMachine } from './Machine';
 import { mapState } from './mapState';
-import { matchState } from './match';
 import { State } from './State';
 import { StateNode } from './StateNode';
 export { createSchema, t } from './schema';
@@ -49,7 +48,6 @@ export {
   interpret,
   Interpreter,
   InterpreterStatus,
-  matchState,
   doneInvoke,
   createMachine
 };

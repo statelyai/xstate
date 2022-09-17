@@ -139,7 +139,7 @@ export class StateNode<
     this.path = this.parent ? this.parent.path.concat(this.key) : [];
     this.id =
       this.config.id ||
-      [this.machine.key, ...this.path].join(this.machine.delimiter);
+      [this.machine.id, ...this.path].join(this.machine.delimiter);
     this.type =
       this.config.type ||
       (this.config.states && Object.keys(this.config.states).length
@@ -329,7 +329,10 @@ export class StateNode<
     return this.events.includes(event.type);
   }
 
-  public next(state: State<TContext, TEvent>, _event: SCXML.Event<TEvent>) {
+  public next(
+    state: State<TContext, TEvent>,
+    _event: SCXML.Event<TEvent>
+  ): TransitionDefinition<TContext, TEvent>[] | undefined {
     const eventName = _event.name;
     const actions: BaseActionObject[] = [];
 
@@ -359,8 +362,7 @@ export class StateNode<
             guard,
             resolvedContext,
             _event,
-            state,
-            this.machine
+            state
           );
       } catch (err) {
         throw new Error(

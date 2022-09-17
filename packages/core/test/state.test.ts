@@ -1,4 +1,4 @@
-import { createMachine, State, StateFrom, interpret } from '../src/index';
+import { createMachine, interpret } from '../src/index';
 import { initEvent } from '../src/actions';
 import { assign } from '../src/actions/assign';
 import { toSCXMLEvent } from '../src/utils';
@@ -338,14 +338,12 @@ describe('State', () => {
     });
   });
 
-  describe('State.create()', () => {
+  describe('machine.createState()', () => {
     it('should be able to create a state from a JSON config', () => {
       const { initialState } = exampleMachine;
       const jsonInitialState = JSON.parse(JSON.stringify(initialState));
 
-      const stateFromConfig = State.create(jsonInitialState) as StateFrom<
-        typeof exampleMachine
-      >;
+      const stateFromConfig = exampleMachine.createState(jsonInitialState);
 
       expect(
         exampleMachine.transition(stateFromConfig, {
@@ -362,35 +360,11 @@ describe('State', () => {
       const { nextEvents } = initialState;
       const jsonInitialState = JSON.parse(JSON.stringify(initialState));
 
-      const stateFromConfig = State.create(jsonInitialState) as StateFrom<
-        typeof exampleMachine
-      >;
+      const stateFromConfig = exampleMachine.createState(jsonInitialState);
 
       expect(
         exampleMachine.resolveState(stateFromConfig).nextEvents.sort()
       ).toEqual(nextEvents.sort());
-    });
-  });
-
-  describe('State.inert()', () => {
-    it('should create an inert instance of the given State', () => {
-      const { initialState } = exampleMachine;
-
-      expect(State.inert(initialState).actions).toEqual([]);
-    });
-
-    it('should create an inert instance of the given stateValue and context', () => {
-      const { initialState } = exampleMachine;
-      const inertState = State.inert(initialState.value, { foo: 'bar' });
-
-      expect(inertState.actions).toEqual([]);
-      expect(inertState.context).toEqual({ foo: 'bar' });
-    });
-
-    it('should preserve the given State if there are no actions', () => {
-      const naturallyInertState = State.from('foo');
-
-      expect(State.inert(naturallyInertState)).toEqual(naturallyInertState);
     });
   });
 
@@ -870,12 +844,6 @@ describe('State', () => {
       expect(spawned).toBe(false);
     });
 
-    it('should return false for states created without a machine', () => {
-      const state = State.from('test');
-
-      expect(state.can({ type: 'ANY_EVENT' })).toEqual(false);
-    });
-
     it('should not execute assignments', () => {
       let executed = false;
       const machine = createMachine({
@@ -970,7 +938,7 @@ describe('State', () => {
       });
 
       const persistedState = JSON.stringify(machine.initialState);
-      const restoredState = State.create(JSON.parse(persistedState));
+      const restoredState = machine.createState(JSON.parse(persistedState));
 
       expect(restoredState.hasTag('foo')).toBe(true);
     });

@@ -154,7 +154,7 @@ describe('interpreter', () => {
 
       // saves state and recreate it
       const recreated = JSON.parse(JSON.stringify(nextState));
-      const previousState = State.create(recreated);
+      const previousState = lightMachine.createState(recreated);
 
       const service = interpret(lightMachine);
       service.start(previousState);
@@ -1179,7 +1179,7 @@ describe('interpreter', () => {
         done();
       });
 
-      startService.start(State.from('bar'));
+      startService.start(State.from('bar', undefined, startMachine));
     });
 
     it('should be able to be initialized at a custom state value', (done) => {
@@ -1197,7 +1197,7 @@ describe('interpreter', () => {
         done();
       });
 
-      startService.start(State.from('foo'));
+      startService.start(State.from('foo', undefined, startMachine));
     });
   });
 

@@ -1,13 +1,12 @@
-import {
+import type {
   ActorContext,
   AnyState,
   AnyStateMachine,
   Behavior,
   EventFromBehavior,
   InterpreterFrom,
-  SnapshotFrom,
-  toObserver
-} from '.';
+  SnapshotFrom
+} from './types';
 import { doneInvoke } from './actions';
 import { startSignalType } from './actors';
 import { devToolsAdapter } from './dev';
@@ -32,6 +31,7 @@ import {
   isSCXMLErrorEvent,
   isStateLike,
   isStateMachine,
+  toObserver,
   toSCXMLEvent,
   warn
 } from './utils';
@@ -94,7 +94,10 @@ export class Interpreter<
   public clock: Clock;
   public options: Readonly<InterpreterOptions>;
 
-  public id: string | undefined;
+  /**
+   * The unique identifier for this actor relative to its parent.
+   */
+  public id: string;
 
   private mailbox: Mailbox<SCXML.Event<TEvent>> = new Mailbox(
     this._process.bind(this)
@@ -102,7 +105,9 @@ export class Interpreter<
 
   private delayedEventsMap: Record<string, unknown> = {};
 
-  private observers: Set<Observer<SnapshotFrom<TBehavior>>> = new Set();
+  private observers: Set<
+    Required<Observer<SnapshotFrom<TBehavior>>>
+  > = new Set();
   private errorListeners: Set<ErrorListener> = new Set();
   private doneListeners: Set<EventListener> = new Set();
   private stopListeners: Set<Listener> = new Set();
@@ -114,7 +119,6 @@ export class Interpreter<
 
   // Actor Ref
   public _parent?: ActorRef<any>;
-  public name: string;
   public ref: ActorRef<TEvent>;
   private _actorContext: ActorContext<TEvent, SnapshotFrom<TBehavior>>;
 
@@ -140,7 +144,7 @@ export class Interpreter<
 
     const { clock, logger, parent, id } = resolvedOptions;
 
-    this.name = this.id = id;
+    this.id = id;
     this.logger = logger;
     this.clock = clock;
     this._parent = parent;
@@ -150,7 +154,7 @@ export class Interpreter<
     this.sessionId = registry.bookId();
     this._actorContext = {
       self: this,
-      name: this.id ?? 'todo',
+      id: this.id,
       sessionId: this.sessionId,
       logger: this.logger,
       exec: (fn) => {
@@ -168,7 +172,7 @@ export class Interpreter<
   }
 
   // array of functions to defer
-  private _deferred: Array<() => void> = [];
+  private _deferred: Array<(state: any) => void> = [];
 
   private __initial: InternalStateFrom<TBehavior> | undefined = undefined;
 
@@ -189,11 +193,11 @@ export class Interpreter<
     const snapshot = this.getSnapshot();
 
     while (this._deferred.length) {
-      this._deferred.shift()!();
+      this._deferred.shift()!(state);
     }
 
     for (const observer of this.observers) {
-      observer.next?.(snapshot);
+      observer.next(snapshot);
     }
 
     if (isStateMachine(this.behavior) && isStateLike(state)) {
@@ -202,8 +206,8 @@ export class Interpreter<
       if (isDone) {
         const output = (state as State<any, any>).output;
 
-        const doneEvent = toSCXMLEvent(doneInvoke(this.name, output), {
-          invokeid: this.name
+        const doneEvent = toSCXMLEvent(doneInvoke(this.id, output), {
+          invokeid: this.id
         });
 
         for (const listener of this.doneListeners) {
@@ -348,7 +352,8 @@ export class Interpreter<
           .behavior as unknown) as AnyStateMachine).resolveState(
           State.from(
             initialState as any, // TODO: fix type
-            ((this.behavior as unknown) as AnyStateMachine).context
+            ((this.behavior as unknown) as AnyStateMachine).context,
+            (this.behavior as unknown) as AnyStateMachine
           )
         );
       }
@@ -528,7 +533,7 @@ export class Interpreter<
 
       if (!child) {
         throw new Error(
-          `Unable to forward event '${event.name}' from interpreter '${this.name}' to nonexistant child '${id}'.`
+          `Unable to forward event '${event.name}' from interpreter '${this.id}' to nonexistant child '${id}'.`
         );
       }
 
@@ -563,7 +568,7 @@ export class Interpreter<
   }
   public toJSON() {
     return {
-      id: this.name
+      id: this.id
     };
   }
 
@@ -595,16 +600,16 @@ export function interpret<TMachine extends AnyStateMachine>(
   options?: InterpreterOptions
 ): InterpreterFrom<TMachine>;
 export function interpret<TBehavior extends Behavior<any, any>>(
-  machine: TBehavior,
+  behavior: TBehavior,
   options?: InterpreterOptions
 ): Interpreter<TBehavior>;
-export function interpret(machine: any, options?: InterpreterOptions): any {
+export function interpret(behavior: any, options?: InterpreterOptions): any {
   const resolvedOptions = {
-    id: isStateMachine(machine) ? machine.key : undefined,
+    id: isStateMachine(behavior) ? behavior.id : undefined,
     ...options
   };
 
-  const interpreter = new Interpreter(machine, resolvedOptions);
+  const interpreter = new Interpreter(behavior, resolvedOptions);
 
   return interpreter as any;
 }

@@ -1039,6 +1039,8 @@ export type HistoryValue<
   TEvent extends EventObject
 > = Record<string, Array<StateNode<TContext, TEvent>>>;
 
+export type AnyHistoryValue = HistoryValue<any, any>;
+
 export type StateFrom<
   T extends AnyStateMachine | ((...args: any[]) => AnyStateMachine)
 > = T extends AnyStateMachine
@@ -1163,7 +1165,10 @@ export interface DynamicStopActionObject<
 > {
   type: ActionTypes.Stop;
   params: {
-    actor: string | Expr<TContext, TEvent, ActorRef<any> | string>;
+    actor:
+      | string
+      | ActorRef<any>
+      | Expr<TContext, TEvent, ActorRef<any> | string>;
   };
 }
 
@@ -1217,6 +1222,7 @@ export interface SendActionObject<
     event: TSentEvent;
     delay?: number;
     id: string | number;
+    internal: boolean;
   };
 }
 
@@ -1404,6 +1410,8 @@ export interface TransitionDefinition<
   };
 }
 
+export type AnyTransitionDefinition = TransitionDefinition<any, any>;
+
 export interface InitialTransitionDefinition<
   TContext extends MachineContext,
   TEvent extends EventObject
@@ -1540,7 +1548,6 @@ export interface StateConfig<
   _event: SCXML.Event<TEvent>;
   _sessionid: string | undefined;
   historyValue?: HistoryValue<TContext, TEvent>;
-
   actions?: BaseActionObject[];
   meta?: any;
   configuration: Array<StateNode<TContext, TEvent>>;
@@ -1549,6 +1556,7 @@ export interface StateConfig<
   done?: boolean;
   tags?: Set<string>;
   machine?: StateMachine<TContext, TEvent, any, any, any>;
+  _internalQueue?: Array<SCXML.Event<TEvent>>;
 }
 
 export interface InterpreterOptions {
@@ -1723,7 +1731,10 @@ export interface ActorLike<TCurrent, TEvent extends EventObject>
 export interface ActorRef<TEvent extends EventObject, TSnapshot = any>
   extends Subscribable<TSnapshot>,
     InteropObservable<TSnapshot> {
-  name: string;
+  /**
+   * The unique identifier for this actor relative to its parent.
+   */
+  id: string;
   send: (event: TEvent) => void;
   start?: () => void;
   getSnapshot: () => TSnapshot | undefined;
@@ -1755,8 +1766,8 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
       >
     : R extends Promise<infer U>
     ? ActorRef<{ type: string }, U | undefined>
-    : R extends AnyBehavior
-    ? ActorRefFromBehavior<R>
+    : R extends Behavior<infer TEvent, infer TSnapshot>
+    ? ActorRef<TEvent, TSnapshot>
     : never
   : never;
 
@@ -1821,11 +1832,11 @@ export type EventOfMachine<
 
 export interface ActorContext<TEvent extends EventObject, TSnapshot> {
   self: ActorRef<TEvent, TSnapshot>;
-  name: string;
+  id: string;
   sessionId: string;
   logger: (...args: any[]) => void;
-  exec: ((fn: () => void) => void) | undefined;
-  defer: ((fn: () => void) => void) | undefined;
+  exec: (fn: () => void) => void;
+  defer: ((fn: (any) => void) => void) | undefined;
   observers: Set<Observer<TSnapshot>>;
 }
 
@@ -1919,3 +1930,7 @@ export type TODO = any;
 export type StateValueFrom<TMachine extends AnyStateMachine> = Parameters<
   StateFrom<TMachine>['matches']
 >[0];
+
+export type StateFromMachine<
+  TMachine extends AnyStateMachine
+> = TMachine['initialState'];

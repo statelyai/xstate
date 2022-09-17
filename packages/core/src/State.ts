@@ -1,17 +1,17 @@
 import { initEvent } from './actions';
 import { IS_PRODUCTION } from './environment';
 import { memo } from './memo';
-import type { StateMachine } from './StateMachine';
 import type { StateNode } from './StateNode';
 import {
-  getMeta,
-  getTagsFromConfiguration,
-  isInFinalState,
-  nextEvents
+  getConfiguration,
+  getStateNodes,
+  getStateValue,
+  isInFinalState
 } from './stateUtils';
 import { TypegenDisabled, TypegenEnabled } from './typegenTypes';
 import type {
   ActorRef,
+  AnyStateMachine,
   BaseActionObject,
   EventObject,
   HistoryValue,
@@ -23,6 +23,7 @@ import type {
   TransitionDefinition
 } from './types';
 import {
+  flatten,
   isString,
   mapContext,
   matchesState,
@@ -52,11 +53,10 @@ export class State<
 > {
   public value: StateValue;
   public context: TContext;
-  public historyValue: HistoryValue<TContext, TEvent> = {};
+  public historyValue: Readonly<HistoryValue<TContext, TEvent>> = {};
   public actions: BaseActionObject[] = [];
-  public meta: any = {};
   public event: TEvent;
-  public _internalQueue: Array<SCXML.Event<TEvent>> = [];
+  public _internalQueue: Array<SCXML.Event<TEvent>>;
   public _event: SCXML.Event<TEvent>;
   public _sessionid: string | undefined;
   public _initial: boolean = false;
@@ -81,10 +81,6 @@ export class State<
    * An object mapping actor names to spawned/invoked actors.
    */
   public children: Record<string, ActorRef<any>>;
-  public tags: Set<string>;
-  public machine:
-    | StateMachine<TContext, TEvent, BaseActionObject, any, TResolvedTypesMeta>
-    | undefined;
   /**
    * Creates a new State instance for the given `stateValue` and `context`.
    * @param stateValue
@@ -95,21 +91,25 @@ export class State<
     TEvent extends EventObject = EventObject
   >(
     stateValue: State<TContext, TEvent, any> | StateValue,
-    context: TContext = {} as TContext
+    context: TContext = {} as TContext,
+    machine: AnyStateMachine
   ): State<TContext, TEvent, any> {
     if (stateValue instanceof State) {
       if (stateValue.context !== context) {
-        return new State<TContext, TEvent>({
-          value: stateValue.value,
-          context,
-          _event: stateValue._event,
-          _sessionid: undefined,
-          actions: [],
-          meta: {},
-          configuration: [], // TODO: fix,
-          transitions: [],
-          children: {}
-        });
+        return new State<TContext, TEvent>(
+          {
+            value: stateValue.value,
+            context,
+            _event: stateValue._event,
+            _sessionid: undefined,
+            actions: [],
+            meta: {},
+            configuration: [], // TODO: fix,
+            transitions: [],
+            children: {}
+          },
+          machine
+        );
       }
 
       return stateValue;
@@ -117,62 +117,24 @@ export class State<
 
     const _event = initEvent as SCXML.Event<TEvent>;
 
-    return new State<TContext, TEvent>({
-      value: stateValue,
-      context,
-      _event,
-      _sessionid: undefined,
-      actions: [],
-      meta: undefined,
-      configuration: [],
-      transitions: [],
-      children: {}
-    });
-  }
-  /**
-   * Creates a new State instance for the given `config`.
-   * @param config The state config
-   */
-  public static create<
-    TC extends MachineContext,
-    TE extends EventObject = EventObject
-  >(config: StateConfig<TC, TE>): State<TC, TE, any> {
-    return new State(config);
-  }
-  /**
-   * Creates a new `State` instance for the given `stateValue` and `context` with no actions (side-effects).
-   * @param stateValue
-   * @param context
-   */
-  public static inert<TState extends State<any, any, any>>(
-    state: TState
-  ): TState;
-  public static inert<
-    TContext extends MachineContext,
-    TEvent extends EventObject = EventObject
-  >(stateValue: StateValue, context: TContext): State<TContext, TEvent>;
-  public static inert(
-    stateValue: State<any, any, any> | StateValue,
-    context?: MachineContext
-  ): State<any, any, any> {
-    if (stateValue instanceof State) {
-      if (!stateValue.actions.length) {
-        return stateValue;
-      }
-      const _event = initEvent as SCXML.Event<any>;
+    const configuration = getConfiguration(
+      getStateNodes(machine.root, stateValue)
+    );
 
-      return new State<any>({
-        value: stateValue.value,
-        context: stateValue.context,
+    return new State<TContext, TEvent>(
+      {
+        value: stateValue,
+        context,
         _event,
         _sessionid: undefined,
-        configuration: stateValue.configuration,
+        actions: [],
+        meta: undefined,
+        configuration: Array.from(configuration),
         transitions: [],
-        children: stateValue.children
-      });
-    }
-
-    return State.from(stateValue, context);
+        children: {}
+      },
+      machine
+    );
   }
 
   /**
@@ -180,26 +142,24 @@ export class State<
    *
    * @param config
    */
-  constructor(config: StateConfig<TContext, TEvent>) {
-    this.value = config.value;
+  constructor(
+    config: StateConfig<TContext, TEvent>,
+    public machine: AnyStateMachine
+  ) {
     this.context = config.context;
     this._event = config._event;
     this._sessionid = config._sessionid;
+    this._internalQueue = config._internalQueue ?? [];
     this.event = this._event.data;
     this.historyValue = config.historyValue || {};
-    this.actions = [...(config.actions || [])];
-    this.meta = getMeta(config.configuration);
+    this.actions = config.actions ?? [];
     this.matches = this.matches.bind(this);
     this.toStrings = this.toStrings.bind(this);
     this.configuration = config.configuration;
     this.transitions = config.transitions;
     this.children = config.children;
-    this.tags = config.configuration
-      ? getTagsFromConfiguration(config.configuration)
-      : config.tags
-      ? new Set(config.tags)
-      : new Set();
-    this.machine = config.machine;
+
+    this.value = getStateValue(machine.root, config.configuration);
   }
 
   /**
@@ -228,7 +188,7 @@ export class State<
   public toJSON() {
     const { configuration, transitions, tags, machine, ...jsonValues } = this;
 
-    return { ...jsonValues, tags: Array.from(tags) };
+    return { ...jsonValues, tags: Array.from(tags), meta: this.meta };
   }
 
   /**
@@ -253,6 +213,7 @@ export class State<
   /**
    * The done data of the top-level finite state.
    */
+  // TODO: add an explicit type for `output`
   public get output(): any {
     if (!this.done) {
       return undefined;
@@ -260,7 +221,7 @@ export class State<
 
     const finalChildStateNode = this.configuration.find(
       (stateNode) =>
-        stateNode.type === 'final' && stateNode.parent === this.machine?.root
+        stateNode.type === 'final' && stateNode.parent === this.machine.root
     );
 
     const doneData =
@@ -299,7 +260,7 @@ export class State<
       );
     }
 
-    const transitionData = this.machine?.getTransitionData(
+    const transitionData = this.machine.getTransitionData(
       this,
       toSCXMLEvent(event)
     );
@@ -315,6 +276,32 @@ export class State<
    * The next events that will cause a transition from the current state.
    */
   public get nextEvents(): Array<TEvent['type']> {
-    return memo(this, 'nextEvents', () => nextEvents(this.configuration));
+    return memo(this, 'nextEvents', () => {
+      return [
+        ...new Set(flatten([...this.configuration.map((sn) => sn.ownEvents)]))
+      ];
+    });
+  }
+
+  public get meta() {
+    return this.configuration.reduce((acc, stateNode) => {
+      if (stateNode.meta !== undefined) {
+        acc[stateNode.id] = stateNode.meta;
+      }
+      return acc;
+    }, {} as Record<string, any>);
+  }
+
+  public get tags(): Set<string> {
+    return new Set(flatten(this.configuration.map((sn) => sn.tags)));
+  }
+
+  public clone(
+    config: Partial<StateConfig<any, any>> = {}
+  ): State<TContext, TEvent> {
+    return new State(
+      { ...this, ...config } as StateConfig<any, any>,
+      this.machine
+    );
   }
 }

@@ -39,7 +39,7 @@ export function createSpawner<
           params: {
             src: actorRef,
             ref: actorRef,
-            id: actorRef.name,
+            id: actorRef.id,
             meta: undefined
           }
         });
@@ -48,7 +48,7 @@ export function createSpawner<
       }
 
       throw new Error(
-        `Behavior '${behavior}' not implemented in machine '${machine.key}'`
+        `Behavior '${behavior}' not implemented in machine '${machine.id}'`
       );
     } else {
       const actorRef = interpret(behavior, { id: name || 'anonymous' });
@@ -58,7 +58,7 @@ export function createSpawner<
         params: {
           src: actorRef,
           ref: actorRef,
-          id: actorRef.name,
+          id: actorRef.id,
           meta: undefined
         }
       });

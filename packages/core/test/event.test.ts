@@ -57,7 +57,7 @@ describe('SCXML events', () => {
               target: 'success',
               actions: assign({
                 childOrigin: (_, __, { _event }) => {
-                  return _event.origin?.name;
+                  return _event.origin?.id;
                 }
               })
             }

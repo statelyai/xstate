@@ -11,7 +11,6 @@ import {
   InterpreterStatus,
   MachineImplementations,
   Observer,
-  State,
   StateFrom,
   toObserver
 } from 'xstate';
@@ -132,7 +131,11 @@ export function useInterpret<TMachine extends AnyStateMachine>(
   useEffect(() => {
     const rehydratedState = options.state;
     service.start(
-      rehydratedState ? (State.create(rehydratedState) as any) : undefined
+      rehydratedState
+        ? ((service.behavior as AnyStateMachine).createState(
+            rehydratedState
+          ) as any)
+        : undefined
     );
 
     return () => {

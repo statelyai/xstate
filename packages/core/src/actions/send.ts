@@ -105,12 +105,14 @@ export function send<
           targetActorRef = state.children[resolvedTarget.slice(2)];
         } else {
           targetActorRef = state.children[resolvedTarget];
-          if (!targetActorRef) {
-            throw new Error('no');
-          }
+        }
+        if (!targetActorRef) {
+          throw new Error(
+            `Unable to send event to actor '${resolvedTarget}' from machine '${machine.id}'.`
+          );
         }
       } else {
-        targetActorRef = resolvedTarget;
+        targetActorRef = resolvedTarget || actorContext?.self;
       }
 
       return {
@@ -121,7 +123,8 @@ export function send<
           to: targetActorRef,
           _event: resolvedEvent,
           event: resolvedEvent.data,
-          delay: resolvedDelay
+          delay: resolvedDelay,
+          internal: resolvedTarget === SpecialTargets.Internal
         }
       };
     }
