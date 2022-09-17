@@ -1,15 +1,14 @@
 export {
   getStateNodes,
-  getPathFromEvents,
-  getSimplePlans,
   getShortestPlans,
   serializeEvent,
   serializeMachineState as serializeState,
   toDirectedGraph,
-  performDepthFirstTraversal,
+  getAdjacencyMap,
   traverseShortestPlans,
-  traverseSimplePlans,
   traverseSimplePathsTo
 } from './graph';
+export { getPathFromEvents } from './getPathFromEvents';
+export { getMachineSimplePlans, getSimplePlans } from './getSimplePlans';
 
 export * from './types';

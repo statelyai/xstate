@@ -1,6 +1,6 @@
 import {
   getPathFromEvents,
-  performDepthFirstTraversal,
+  getAdjacencyMap,
   SerializedEvent,
   SerializedState,
   SimpleBehavior,
@@ -9,6 +9,7 @@ import {
   TraversalOptions,
   traverseSimplePathsTo
 } from '@xstate/graph';
+import { AdjacencyValue } from '@xstate/graph/src/graph';
 import { EventObject } from 'xstate';
 import { isStateLike } from 'xstate/lib/utils';
 import { deduplicatePaths } from './deduplicatePaths';
@@ -202,8 +203,36 @@ export class TestModel<TState, TEvent extends EventObject> {
   }
 
   public getAllStates(): TState[] {
-    const adj = performDepthFirstTraversal(this.behavior, this.options);
+    const adj = getAdjacencyMap(this.behavior, this.options);
+    // @ts-ignore
     return Object.values(adj).map((x) => x.state);
+  }
+
+  public getAdjacencyList(): Array<{
+    state: TState;
+    event: TEvent;
+    nextState: TState;
+  }> {
+    const adj = getAdjacencyMap(this.behavior, this.options);
+    const adjList: Array<{
+      state: TState;
+      event: TEvent;
+      nextState: TState;
+    }> = [];
+
+    for (const v of Object.values(adj)) {
+      for (const t of Object.values(
+        (v as AdjacencyValue<TState, TEvent>).transitions
+      )) {
+        adjList.push({
+          state: (v as any).state,
+          event: t.event,
+          nextState: t.state
+        });
+      }
+    }
+
+    return adjList;
   }
 
   public testPathSync(
