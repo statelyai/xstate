@@ -1,8 +1,8 @@
+import { createMachine } from 'xstate';
 import { createTestModel } from '../src';
-import { createTestMachine } from '../src/machine';
 import { testUtils } from './testUtils';
 
-const multiPathMachine = createTestMachine({
+const multiPathMachine = createMachine({
   initial: 'a',
   states: {
     a: {
@@ -29,7 +29,7 @@ const multiPathMachine = createTestMachine({
 describe('testModel.testPaths(...)', () => {
   it('custom path generators can be provided', async () => {
     const testModel = createTestModel(
-      createTestMachine({
+      createMachine({
         initial: 'a',
         states: {
           a: {
@@ -67,7 +67,7 @@ describe('testModel.testPaths(...)', () => {
 
   describe('When the machine only has one path', () => {
     it('Should only follow that path', () => {
-      const machine = createTestMachine({
+      const machine = createMachine({
         initial: 'a',
         states: {
           a: {
@@ -118,7 +118,7 @@ describe('path.description', () => {
 
 describe('transition coverage', () => {
   it('path generation should cover all transitions by default', () => {
-    const machine = createTestMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -150,7 +150,7 @@ describe('transition coverage', () => {
   });
 
   it('transition coverage should consider guarded transitions', () => {
-    const machine = createTestMachine(
+    const machine = createMachine(
       {
         initial: 'a',
         states: {
@@ -190,7 +190,7 @@ describe('transition coverage', () => {
   });
 
   it('transition coverage should consider multiple transitions with the same target', () => {
-    const machine = createTestMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -224,7 +224,7 @@ describe('transition coverage', () => {
 });
 
 describe('getShortestPathsTo', () => {
-  const machine = createTestMachine({
+  const machine = createMachine({
     initial: 'open',
     states: {
       open: {

@@ -1,6 +1,5 @@
 import { assign, createMachine } from 'xstate';
 import { createTestModel } from '../src';
-import { createTestMachine } from '../src/machine';
 import { getDescription } from '../src/utils';
 
 describe('die hard example', () => {
@@ -235,7 +234,7 @@ describe('die hard example', () => {
 });
 describe('error path trace', () => {
   describe('should return trace for failed state', () => {
-    const machine = createTestMachine({
+    const machine = createMachine({
       initial: 'first',
       states: {
         first: {

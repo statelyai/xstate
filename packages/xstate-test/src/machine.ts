@@ -4,19 +4,11 @@ import {
   AnyEventObject,
   AnyState,
   AnyStateMachine,
-  createMachine,
   EventFrom,
-  EventObject,
-  StateFrom,
-  TypegenConstraint,
-  TypegenDisabled
+  StateFrom
 } from 'xstate';
 import { TestModel } from './TestModel';
-import {
-  TestMachineConfig,
-  TestMachineOptions,
-  TestModelOptions
-} from './types';
+import { TestModelOptions } from './types';
 import { flatten, simpleStringify } from './utils';
 import { validateMachine } from './validateMachine';
 
@@ -27,17 +19,6 @@ export async function testStateFromMeta(state: AnyState) {
       await stateNodeMeta.test(state);
     }
   }
-}
-
-export function createTestMachine<
-  TContext,
-  TEvent extends EventObject = AnyEventObject,
-  TTypesMeta extends TypegenConstraint = TypegenDisabled
->(
-  config: TestMachineConfig<TContext, TEvent, TTypesMeta>,
-  options?: TestMachineOptions<TContext, TEvent, TTypesMeta>
-) {
-  return createMachine(config, options as any);
 }
 
 export function executeAction(

@@ -4,65 +4,12 @@ import {
   Step,
   TraversalOptions
 } from '@xstate/graph';
-import {
-  BaseActionObject,
-  EventObject,
-  MachineConfig,
-  MachineOptions,
-  MachineSchema,
-  ServiceMap,
-  State,
-  StateNodeConfig,
-  StateSchema,
-  TransitionConfig,
-  TypegenConstraint,
-  TypegenDisabled,
-  ExtractEvent
-} from 'xstate';
+import { EventObject, State, TransitionConfig, ExtractEvent } from 'xstate';
 
 export type GetPathsOptions<TState, TEvent extends EventObject> = Partial<
   TraversalOptions<TState, TEvent> & {
     pathGenerator?: PathGenerator<TState, TEvent>;
   }
->;
-
-export interface TestMachineConfig<
-  TContext,
-  TEvent extends EventObject,
-  TTypesMeta = TypegenDisabled
-> extends TestStateNodeConfig<TContext, TEvent> {
-  context?: MachineConfig<TContext, StateSchema, TEvent>['context'];
-  schema?: MachineSchema<TContext, TEvent, ServiceMap>;
-  tsTypes?: TTypesMeta;
-}
-
-export interface TestStateNodeConfig<TContext, TEvent extends EventObject>
-  extends Pick<
-    StateNodeConfig<TContext, StateSchema, TEvent>,
-    | 'type'
-    | 'history'
-    | 'on'
-    | 'onDone'
-    | 'entry'
-    | 'exit'
-    | 'meta'
-    | 'always'
-    | 'data'
-    | 'id'
-    | 'tags'
-    | 'description'
-  > {
-  initial?: string;
-  states?: Record<string, TestStateNodeConfig<TContext, TEvent>>;
-}
-
-export type TestMachineOptions<
-  TContext,
-  TEvent extends EventObject,
-  TTypesMeta extends TypegenConstraint = TypegenDisabled
-> = Pick<
-  MachineOptions<TContext, TEvent, BaseActionObject, ServiceMap, TTypesMeta>,
-  'actions' | 'guards'
 >;
 
 export interface TestMeta<T, TContext> {
@@ -86,7 +33,10 @@ export interface TestParam<TState, TEvent extends EventObject> {
     [key: string]: (state: TState) => void | Promise<void>;
   };
   events?: {
-    [TEventType in TEvent['type']]?: EventExecutor<TState, ExtractEvent<TEvent, TEventType>>;
+    [TEventType in TEvent['type']]?: EventExecutor<
+      TState,
+      ExtractEvent<TEvent, TEventType>
+    >;
   };
 }
 

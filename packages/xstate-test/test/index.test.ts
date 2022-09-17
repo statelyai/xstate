@@ -1,6 +1,5 @@
 import { assign, createMachine } from 'xstate';
 import { createTestModel } from '../src';
-import { createTestMachine } from '../src/machine';
 import { testUtils } from './testUtils';
 
 describe('events', () => {
@@ -11,7 +10,7 @@ describe('events', () => {
       | { type: 'CLOSE' }
       | { type: 'ESC' }
       | { type: 'SUBMIT'; value: string };
-    const feedbackMachine = createTestMachine({
+    const feedbackMachine = createMachine({
       id: 'feedback',
       schema: {
         events: {} as Events
@@ -68,7 +67,7 @@ describe('events', () => {
   });
 
   it('should not throw an error for unimplemented events', () => {
-    const testMachine = createTestMachine({
+    const testMachine = createMachine({
       initial: 'idle',
       states: {
         idle: {
@@ -205,7 +204,7 @@ it('prevents infinite recursion based on a provided limit', () => {
 it('executes actions', async () => {
   let executedActive = false;
   let executedDone = false;
-  const machine = createTestMachine({
+  const machine = createMachine({
     initial: 'idle',
     states: {
       idle: {
@@ -240,7 +239,7 @@ describe('test model options', () => {
     const testedStates: any[] = [];
 
     const model = createTestModel(
-      createTestMachine({
+      createMachine({
         initial: 'inactive',
         states: {
           inactive: {
@@ -268,7 +267,7 @@ describe('test model options', () => {
 // https://github.com/statelyai/xstate/issues/1538
 it('tests transitions', async () => {
   expect.assertions(2);
-  const machine = createTestMachine({
+  const machine = createMachine({
     initial: 'first',
     states: {
       first: {
@@ -294,7 +293,7 @@ it('tests transitions', async () => {
 
 // https://github.com/statelyai/xstate/issues/982
 it('Event in event executor should contain payload from case', async () => {
-  const machine = createTestMachine({
+  const machine = createMachine({
     initial: 'first',
     states: {
       first: {
@@ -339,7 +338,7 @@ describe('state tests', () => {
     // a -> b (2)
     expect.assertions(2);
 
-    const machine = createTestMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -369,7 +368,7 @@ describe('state tests', () => {
     // a -> c (2)
     expect.assertions(4);
 
-    const machine = createTestMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
@@ -400,7 +399,7 @@ describe('state tests', () => {
   it('should test nested states', async () => {
     const testedStateValues: any[] = [];
 
-    const machine = createTestMachine({
+    const machine = createMachine({
       initial: 'a',
       states: {
         a: {
