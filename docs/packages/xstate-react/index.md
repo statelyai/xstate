@@ -248,7 +248,7 @@ const App = () => {
 };
 ```
 
-### `useMachine(machine)` with `@xstate/fsm`
+### `useMachine(machine, options?)` with `@xstate/fsm`
 
 A [React hook](https://reactjs.org/hooks) that interprets the given finite state `machine` from [`@xstate/fsm`] and starts a service that runs for the lifetime of the component.
 
