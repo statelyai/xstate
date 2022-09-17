@@ -1,5 +1,5 @@
 import { createMachine } from 'xstate';
-import { getMachineShortestPlans } from '../src/getShortestPlans';
+import { getMachineShortestPlans } from '../src/shortestPlans';
 
 describe('types', () => {
   it('`getEvents` should be allowed to return a mutable array', () => {

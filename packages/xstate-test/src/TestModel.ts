@@ -1,15 +1,14 @@
 import {
-  getPathFromEvents,
   getAdjacencyMap,
+  getPathFromEvents,
   SerializedEvent,
   SerializedState,
   SimpleBehavior,
   StatePath,
   Step,
-  TraversalOptions,
-  traverseSimplePathsTo
+  TraversalOptions
 } from '@xstate/graph';
-import { AdjacencyValue } from '@xstate/graph/src/graph';
+import { AdjacencyValue, traverseSimplePathsTo } from '@xstate/graph/src/graph';
 import { EventObject } from 'xstate';
 import { isStateLike } from 'xstate/lib/utils';
 import { deduplicatePaths } from './deduplicatePaths';

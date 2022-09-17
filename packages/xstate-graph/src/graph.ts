@@ -7,8 +7,8 @@ import type {
   StateFrom,
   EventFrom
 } from 'xstate';
-import { getShortestPlans } from './getShortestPlans';
-import { getSimplePlans } from './getSimplePlans';
+import { getShortestPlans } from './shortestPlans';
+import { getSimplePlans } from './simplePlans';
 import type {
   SerializedEvent,
   SerializedState,

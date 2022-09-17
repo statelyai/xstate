@@ -6,7 +6,8 @@ export {
   getAdjacencyMap,
   traverseSimplePathsTo
 } from './graph';
-export { getPathFromEvents } from './getPathFromEvents';
-export { getMachineSimplePlans, getSimplePlans } from './getSimplePlans';
+export { getPathFromEvents } from './pathFromEvents';
+export { getMachineSimplePlans, getSimplePlans } from './simplePlans';
+export { getMachineShortestPlans, getShortestPlans } from './shortestPlans';
 
 export * from './types';

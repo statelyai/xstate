@@ -21,12 +21,7 @@ const multiPathMachine = createTestMachine({
         EVENT_2: 'e'
       }
     },
-    d: {
-      initial: 'foo',
-      states: {
-        foo: {}
-      }
-    },
+    d: {},
     e: {}
   }
 });

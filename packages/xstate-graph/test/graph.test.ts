@@ -21,7 +21,7 @@ import { flatten } from 'xstate/lib/utils';
 import {
   getShortestPlans,
   getMachineShortestPlans
-} from '../src/getShortestPlans';
+} from '../src/shortestPlans';
 
 function getPathsMapSnapshot(
   plans: Array<StatePlan<any, EventObject>>
