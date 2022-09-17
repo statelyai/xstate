@@ -34,7 +34,7 @@ export function execAction(
 
   if (isExecutableAction(action) && action.type !== actionTypes.invoke) {
     try {
-      return action.execute(state);
+      return actorContext.exec(() => action.execute(state));
     } catch (err) {
       interpreter._parent?.send({
         type: 'xstate.error',

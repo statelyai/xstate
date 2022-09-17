@@ -145,6 +145,7 @@ export class Interpreter<
     } as Required<InterpreterOptions>;
 
     const { clock, logger, parent, id } = resolvedOptions;
+    const self = this;
 
     this.id = id;
     this.logger = logger;
@@ -155,12 +156,16 @@ export class Interpreter<
     // TODO: this should come from a "system"
     this.sessionId = registry.bookId();
     this._actorContext = {
-      self: this,
+      self,
       id: this.id,
       sessionId: this.sessionId,
       logger: this.logger,
       exec: (fn) => {
-        fn();
+        if (self.status === InterpreterStatus.NotStarted) {
+          this._deferred.push(fn);
+        } else {
+          fn();
+        }
       },
       defer: (fn) => {
         this._deferred.push(fn);
