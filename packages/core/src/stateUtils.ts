@@ -1335,9 +1335,7 @@ export function resolveMicroTransition<
   // - OR there are transitions
   const willTransition = currentState._initial || transitions.length > 0;
 
-  const prevConfiguration = getConfiguration(
-    !currentState._initial ? currentState.configuration : [machine.root]
-  );
+  const prevConfiguration = new Set(currentState.configuration);
 
   if (!currentState._initial && !willTransition) {
     const inertState = currentState.clone({
@@ -1354,7 +1352,7 @@ export function resolveMicroTransition<
     currentState._initial
       ? [
           {
-            target: [...prevConfiguration].filter(isAtomicStateNode),
+            target: [...currentState.configuration].filter(isAtomicStateNode),
             source: machine.root,
             actions: [],
             eventType: null as any,
