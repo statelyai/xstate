@@ -6,9 +6,10 @@ import {
   SimpleBehavior,
   StatePath,
   Step,
-  TraversalOptions
+  TraversalOptions,
+  getSimplePlansTo
 } from '@xstate/graph';
-import { AdjacencyValue, traverseSimplePathsTo } from '@xstate/graph/src/graph';
+import { AdjacencyValue } from '@xstate/graph/src/graph';
 import { EventObject } from 'xstate';
 import { isStateLike } from 'xstate/lib/utils';
 import { deduplicatePaths } from './deduplicatePaths';
@@ -141,7 +142,7 @@ export class TestModel<TState, TEvent extends EventObject> {
     predicate: StatePredicate<TState>
   ): Array<TestPath<TState, TEvent>> {
     return mapPlansToPaths(
-      traverseSimplePathsTo(this.behavior, predicate, this.options)
+      getSimplePlansTo(this.behavior, predicate, this.options)
     ).map(this.toTestPath);
   }
 

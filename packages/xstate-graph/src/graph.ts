@@ -7,12 +7,10 @@ import type {
   StateFrom,
   EventFrom
 } from 'xstate';
-import { getShortestPlans } from './shortestPlans';
-import { getSimplePlans } from './simplePlans';
+
 import type {
   SerializedEvent,
   SerializedState,
-  SimpleBehavior,
   StatePlan,
   ValueAdjacencyMap,
   ValueAdjacencyMapOptions,
@@ -98,7 +96,7 @@ function getValueAdjacencyMapOptions<TState, TEvent extends EventObject>(
   };
 }
 
-export function getValueAdjacencyMap<TMachine extends AnyStateMachine>(
+export function getMachineAdjacencyMap<TMachine extends AnyStateMachine>(
   machine: TMachine,
   options?: ValueAdjacencyMapOptions<StateFrom<TMachine>, EventFrom<TMachine>>
 ): ValueAdjacencyMap<StateFrom<TMachine>, EventFrom<TMachine>> {
@@ -241,72 +239,6 @@ export interface AdjacencyValue<TState, TEvent> {
   };
 }
 
-export function getAdjacencyMap<TState, TEvent extends EventObject>(
-  behavior: SimpleBehavior<TState, TEvent>,
-  options: TraversalOptions<TState, TEvent>
-): AdjacencyMap<TState, TEvent> {
-  const { transition, initialState } = behavior;
-  const {
-    serializeEvent,
-    serializeState,
-    getEvents,
-    eventCases,
-    traversalLimit
-  } = resolveTraversalOptions(options);
-  const adj: AdjacencyMap<TState, TEvent> = {};
-
-  let iterations = 0;
-  const queue: Array<
-    [
-      nextState: TState,
-      event: TEvent | undefined,
-      prevState: TState | undefined
-    ]
-  > = [[initialState, undefined, undefined]];
-  const stateMap = new Map<SerializedState, TState>();
-
-  while (queue.length) {
-    const [state, event, prevState] = queue.shift()!;
-
-    if (iterations++ > traversalLimit) {
-      throw new Error('Traversal limit exceeded');
-    }
-
-    const serializedState = serializeState(
-      state,
-      event,
-      prevState
-    ) as SerializedState;
-    if (adj[serializedState]) {
-      continue;
-    }
-    stateMap.set(serializedState, state);
-
-    adj[serializedState] = {
-      state,
-      transitions: {}
-    };
-
-    const events = getEvents(state, eventCases);
-
-    for (const subEvent of events) {
-      const nextState = transition(state, subEvent);
-
-      if (!options.filter || options.filter(nextState, subEvent)) {
-        adj[serializedState].transitions[
-          serializeEvent(subEvent) as SerializedEvent
-        ] = {
-          event: subEvent,
-          state: nextState
-        };
-        queue.push([nextState, subEvent, state]);
-      }
-    }
-  }
-
-  return adj;
-}
-
 export function resolveTraversalOptions<TState, TEvent extends EventObject>(
   traversalOptions?: Partial<TraversalOptions<TState, TEvent>>,
   defaultOptions?: TraversalOptions<TState, TEvent>
@@ -327,67 +259,11 @@ export function resolveTraversalOptions<TState, TEvent extends EventObject>(
   };
 }
 
-function filterPlans<TState, TEvent extends EventObject>(
+export function filterPlans<TState, TEvent extends EventObject>(
   plans: Array<StatePlan<TState, TEvent>>,
   predicate: (state: TState, plan: StatePlan<TState, TEvent>) => boolean
 ): Array<StatePlan<TState, TEvent>> {
   const filteredPlans = plans.filter((plan) => predicate(plan.state, plan));
 
   return filteredPlans;
-}
-
-export function traverseSimplePathsTo<TState, TEvent extends EventObject>(
-  behavior: SimpleBehavior<TState, TEvent>,
-  predicate: (state: TState) => boolean,
-  options: TraversalOptions<TState, TEvent>
-): Array<StatePlan<TState, TEvent>> {
-  const resolvedOptions = resolveTraversalOptions(options);
-  const simplePlansMap = getSimplePlans(behavior, resolvedOptions);
-
-  return filterPlans(simplePlansMap, predicate);
-}
-
-export function traverseSimplePathsFromTo<TState, TEvent extends EventObject>(
-  behavior: SimpleBehavior<TState, TEvent>,
-  fromPredicate: (state: TState) => boolean,
-  toPredicate: (state: TState) => boolean,
-  options: TraversalOptions<TState, TEvent>
-): Array<StatePlan<TState, TEvent>> {
-  const resolvedOptions = resolveTraversalOptions(options);
-  const simplePlansMap = getSimplePlans(behavior, resolvedOptions);
-
-  // Return all plans that contain a "from" state and target a "to" state
-  return filterPlans(simplePlansMap, (state, plan) => {
-    return (
-      toPredicate(state) && plan.paths.some((path) => fromPredicate(path.state))
-    );
-  });
-}
-
-export function traverseShortestPathsTo<TState, TEvent extends EventObject>(
-  behavior: SimpleBehavior<TState, TEvent>,
-  predicate: (state: TState) => boolean,
-  options: TraversalOptions<TState, TEvent>
-): Array<StatePlan<TState, TEvent>> {
-  const resolvedOptions = resolveTraversalOptions(options);
-  const simplePlansMap = getShortestPlans(behavior, resolvedOptions);
-
-  return filterPlans(simplePlansMap, predicate);
-}
-
-export function traverseShortestPathsFromTo<TState, TEvent extends EventObject>(
-  behavior: SimpleBehavior<TState, TEvent>,
-  fromPredicate: (state: TState) => boolean,
-  toPredicate: (state: TState) => boolean,
-  options: TraversalOptions<TState, TEvent>
-): Array<StatePlan<TState, TEvent>> {
-  const resolvedOptions = resolveTraversalOptions(options);
-  const shortesPlansMap = getShortestPlans(behavior, resolvedOptions);
-
-  // Return all plans that contain a "from" state and target a "to" state
-  return filterPlans(shortesPlansMap, (state, plan) => {
-    return (
-      toPredicate(state) && plan.paths.some((path) => fromPredicate(path.state))
-    );
-  });
 }

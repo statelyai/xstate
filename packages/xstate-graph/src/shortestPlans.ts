@@ -10,9 +10,10 @@ import {
 import {
   resolveTraversalOptions,
   defaultMachineStateOptions,
-  getAdjacencyMap,
-  AdjacencyMap
+  AdjacencyMap,
+  filterPlans
 } from './graph';
+import { getAdjacencyMap } from './adjacency';
 
 export function getMachineShortestPlans<TMachine extends AnyStateMachine>(
   machine: TMachine,
@@ -146,4 +147,32 @@ export function baseGetShortestPlans<TState, TEvent extends EventObject>(
   });
 
   return Object.values(statePlanMap);
+}
+
+export function getShortestPlansTo<TState, TEvent extends EventObject>(
+  behavior: SimpleBehavior<TState, TEvent>,
+  predicate: (state: TState) => boolean,
+  options: TraversalOptions<TState, TEvent>
+): Array<StatePlan<TState, TEvent>> {
+  const resolvedOptions = resolveTraversalOptions(options);
+  const simplePlansMap = getShortestPlans(behavior, resolvedOptions);
+
+  return filterPlans(simplePlansMap, predicate);
+}
+
+export function getShortestPlansFromTo<TState, TEvent extends EventObject>(
+  behavior: SimpleBehavior<TState, TEvent>,
+  fromPredicate: (state: TState) => boolean,
+  toPredicate: (state: TState) => boolean,
+  options: TraversalOptions<TState, TEvent>
+): Array<StatePlan<TState, TEvent>> {
+  const resolvedOptions = resolveTraversalOptions(options);
+  const shortesPlansMap = getShortestPlans(behavior, resolvedOptions);
+
+  // Return all plans that contain a "from" state and target a "to" state
+  return filterPlans(shortesPlansMap, (state, plan) => {
+    return (
+      toPredicate(state) && plan.paths.some((path) => fromPredicate(path.state))
+    );
+  });
 }

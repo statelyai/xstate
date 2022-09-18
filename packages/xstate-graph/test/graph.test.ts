@@ -15,13 +15,13 @@ import {
   StatePlan,
   getSimplePlans
 } from '../src/index';
-import { getValueAdjacencyMap } from '../src/graph';
 import { assign } from 'xstate';
 import { flatten } from 'xstate/lib/utils';
 import {
   getShortestPlans,
   getMachineShortestPlans
 } from '../src/shortestPlans';
+import { getMachineAdjacencyMap } from '../src/graph';
 
 function getPathsMapSnapshot(
   plans: Array<StatePlan<any, EventObject>>
@@ -440,7 +440,7 @@ describe('@xstate/graph', () => {
     });
   });
 
-  describe('getValueAdjacencyMap', () => {
+  describe('getAdjacencyMap', () => {
     it('should map adjacencies', () => {
       interface Ctx {
         count: number;
@@ -478,7 +478,7 @@ describe('@xstate/graph', () => {
         }
       });
 
-      const adj = getValueAdjacencyMap(counterMachine, {
+      const adj = getMachineAdjacencyMap(counterMachine, {
         filter: (state) => state.context.count >= 0 && state.context.count <= 5,
         serializeState: (state) => {
           const ctx = {
@@ -518,7 +518,7 @@ describe('@xstate/graph', () => {
         }
       });
 
-      const adj = getValueAdjacencyMap(machine, {
+      const adj = getMachineAdjacencyMap(machine, {
         events: {
           EVENT: (state) => [
             { type: 'EVENT' as const, value: state.context.count + 10 }

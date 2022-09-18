@@ -9,9 +9,9 @@ import {
 import {
   AdjacencyMap,
   defaultMachineStateOptions,
-  getAdjacencyMap,
   resolveTraversalOptions
 } from './graph';
+import { getAdjacencyMap } from './adjacency';
 
 export function getPathFromEvents<
   TState,
