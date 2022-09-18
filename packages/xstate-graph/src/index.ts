@@ -3,7 +3,9 @@ export {
   serializeEvent,
   serializeMachineState as serializeState,
   toDirectedGraph,
-  joinPaths
+  joinPaths,
+  AdjacencyMap,
+  AdjacencyValue
 } from './graph';
 export {
   getMachineSimplePlans,

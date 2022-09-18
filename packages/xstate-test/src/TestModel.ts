@@ -3,7 +3,8 @@ import {
   getAdjacencyMap,
   getSimplePlansTo,
   getShortestPlansTo,
-  joinPaths
+  joinPaths,
+  AdjacencyValue
 } from '@xstate/graph';
 import type {
   SerializedEvent,
@@ -161,6 +162,33 @@ export class TestModel<TState, TEvent extends EventObject> {
   public getAllStates(): TState[] {
     const adj = getAdjacencyMap(this.behavior, this.options);
     return Object.values(adj).map((x) => x.state);
+  }
+
+  public getAdjacencyList(): Array<{
+    state: TState;
+    event: TEvent;
+    nextState: TState;
+  }> {
+    const adj = getAdjacencyMap(this.behavior, this.options);
+    const adjList: Array<{
+      state: TState;
+      event: TEvent;
+      nextState: TState;
+    }> = [];
+
+    for (const v of Object.values(adj)) {
+      for (const t of Object.values(
+        (v as AdjacencyValue<TState, TEvent>).transitions
+      )) {
+        adjList.push({
+          state: (v as any).state,
+          event: t.event,
+          nextState: t.state
+        });
+      }
+    }
+
+    return adjList;
   }
 
   public testPathSync(
