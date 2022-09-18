@@ -9,19 +9,19 @@ import {
 import {
   getStateNodes,
   getPathFromEvents,
-  getSimplePlans,
-  getShortestPlans,
+  getMachineSimplePlans,
   toDirectedGraph,
   StatePath,
-  StatePlan
+  StatePlan,
+  getSimplePlans
 } from '../src/index';
-import {
-  getValueAdjacencyMap,
-  traverseShortestPlans,
-  traverseSimplePlans
-} from '../src/graph';
 import { assign } from 'xstate';
 import { flatten } from 'xstate/lib/utils';
+import {
+  getShortestPlans,
+  getMachineShortestPlans
+} from '../src/shortestPlans';
+import { getMachineAdjacencyMap } from '../src/graph';
 
 function getPathsMapSnapshot(
   plans: Array<StatePlan<any, EventObject>>
@@ -197,20 +197,20 @@ describe('@xstate/graph', () => {
 
   describe('getShortestPaths()', () => {
     it('should return a mapping of shortest paths to all states', () => {
-      const paths = getShortestPlans(lightMachine);
+      const paths = getMachineShortestPlans(lightMachine);
 
       expect(getPathsMapSnapshot(paths)).toMatchSnapshot('shortest paths');
     });
 
     it('should return a mapping of shortest paths to all states (parallel)', () => {
-      const paths = getShortestPlans(parallelMachine);
+      const paths = getMachineShortestPlans(parallelMachine);
       expect(getPathsMapSnapshot(paths)).toMatchSnapshot(
         'shortest paths parallel'
       );
     });
 
     it('the initial state should have a zero-length path', () => {
-      const shortestPaths = getShortestPlans(lightMachine);
+      const shortestPaths = getMachineShortestPlans(lightMachine);
 
       expect(
         shortestPaths.find((plan) =>
@@ -220,7 +220,7 @@ describe('@xstate/graph', () => {
     });
 
     xit('should not throw when a condition is present', () => {
-      expect(() => getShortestPlans(condMachine)).not.toThrow();
+      expect(() => getMachineShortestPlans(condMachine)).not.toThrow();
     });
 
     it.skip('should represent conditional paths based on context', () => {
@@ -254,7 +254,7 @@ describe('@xstate/graph', () => {
         }
       });
 
-      const paths = getShortestPlans(machine, {
+      const paths = getMachineShortestPlans(machine, {
         getEvents: () =>
           [
             {
@@ -275,7 +275,7 @@ describe('@xstate/graph', () => {
 
   describe('getSimplePaths()', () => {
     it('should return a mapping of arrays of simple paths to all states', () => {
-      const paths = getSimplePlans(lightMachine);
+      const paths = getMachineSimplePlans(lightMachine);
 
       expect(paths.map((path) => path.state.value)).toMatchInlineSnapshot(`
         Array [
@@ -308,7 +308,7 @@ describe('@xstate/graph', () => {
     });
 
     it('should return a mapping of simple paths to all states (parallel)', () => {
-      const paths = getSimplePlans(parallelMachine);
+      const paths = getMachineSimplePlans(parallelMachine);
 
       expect(paths.map((p) => p.state.value)).toMatchInlineSnapshot(`
         Array [
@@ -332,7 +332,7 @@ describe('@xstate/graph', () => {
     });
 
     it('should return multiple paths for equivalent transitions', () => {
-      const paths = getSimplePlans(equivMachine);
+      const paths = getMachineSimplePlans(equivMachine);
 
       expect(paths.map((p) => p.state.value)).toMatchInlineSnapshot(`
         Array [
@@ -347,22 +347,22 @@ describe('@xstate/graph', () => {
 
     it('should return a single empty path for the initial state', () => {
       expect(
-        getSimplePlans(lightMachine).find((p) =>
+        getMachineSimplePlans(lightMachine).find((p) =>
           p.state.matches(lightMachine.initialState.value)
         )!.paths
       ).toHaveLength(1);
       expect(
-        getSimplePlans(lightMachine).find((p) =>
+        getMachineSimplePlans(lightMachine).find((p) =>
           p.state.matches(lightMachine.initialState.value)
         )!.paths[0].steps
       ).toHaveLength(0);
       expect(
-        getSimplePlans(equivMachine).find((p) =>
+        getMachineSimplePlans(equivMachine).find((p) =>
           p.state.matches(equivMachine.initialState.value)
         )!.paths
       ).toHaveLength(1);
       expect(
-        getSimplePlans(equivMachine).find((p) =>
+        getMachineSimplePlans(equivMachine).find((p) =>
           p.state.matches(equivMachine.initialState.value)
         )!.paths[0].steps
       ).toHaveLength(0);
@@ -400,7 +400,7 @@ describe('@xstate/graph', () => {
         }
       });
 
-      const paths = getSimplePlans(countMachine, {
+      const paths = getMachineSimplePlans(countMachine, {
         getEvents: () => [{ type: 'INC', value: 1 }] as const
       });
 
@@ -440,7 +440,7 @@ describe('@xstate/graph', () => {
     });
   });
 
-  describe('getValueAdjacencyMap', () => {
+  describe('getAdjacencyMap', () => {
     it('should map adjacencies', () => {
       interface Ctx {
         count: number;
@@ -478,7 +478,7 @@ describe('@xstate/graph', () => {
         }
       });
 
-      const adj = getValueAdjacencyMap(counterMachine, {
+      const adj = getMachineAdjacencyMap(counterMachine, {
         filter: (state) => state.context.count >= 0 && state.context.count <= 5,
         serializeState: (state) => {
           const ctx = {
@@ -518,7 +518,7 @@ describe('@xstate/graph', () => {
         }
       });
 
-      const adj = getValueAdjacencyMap(machine, {
+      const adj = getMachineAdjacencyMap(machine, {
         events: {
           EVENT: (state) => [
             { type: 'EVENT' as const, value: state.context.count + 10 }
@@ -570,7 +570,7 @@ describe('@xstate/graph', () => {
 });
 
 it('simple paths for reducers', () => {
-  const a = traverseShortestPlans(
+  const a = getShortestPlans(
     {
       transition: (s, e) => {
         if (e.type === 'a') {
@@ -596,7 +596,7 @@ it('simple paths for reducers', () => {
 });
 
 it('shortest paths for reducers', () => {
-  const a = traverseSimplePlans(
+  const a = getSimplePlans(
     {
       transition: (s, e) => {
         if (e.type === 'a') {
@@ -639,7 +639,7 @@ describe('filtering', () => {
       }
     });
 
-    const sp = getShortestPlans(machine, {
+    const sp = getMachineShortestPlans(machine, {
       getEvents: () => [{ type: 'INC' }],
       filter: (s) => s.context.count < 5
     });
@@ -682,7 +682,7 @@ it('should provide previous state for serializeState()', () => {
     }
   });
 
-  const shortestPaths = getShortestPlans(machine, {
+  const shortestPaths = getMachineShortestPlans(machine, {
     serializeState: (state, event, prevState) => {
       return `${JSON.stringify(state.value)} via ${event?.type}${
         prevState ? ` via ${JSON.stringify(prevState.value)}` : ''
