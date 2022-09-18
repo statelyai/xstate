@@ -361,8 +361,7 @@ The `raise()` action creator queues an event to the statechart, in the internal 
 | `event`  | string or event object | The event to raise. |
 
 ```js
-import { createMachine, actions } from 'xstate';
-const { raise } = actions;
+import { createMachine, raise } from 'xstate';
 
 const raiseActionDemo = createMachine({
   id: 'raisedmo',
