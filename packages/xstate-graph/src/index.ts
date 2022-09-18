@@ -1,6 +1,5 @@
 export {
   getStateNodes,
-  getPathFromEvents,
   serializeEvent,
   serializeMachineState as serializeState,
   toDirectedGraph,
@@ -18,6 +17,7 @@ export {
   getShortestPlansTo,
   getShortestPlansFromTo
 } from './shortestPaths';
+export { getPathFromEvents } from './pathFromEvents';
 export { getAdjacencyMap } from './adjacency';
 
 export * from './types';
