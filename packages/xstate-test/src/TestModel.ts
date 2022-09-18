@@ -1,8 +1,8 @@
 import {
   getPathFromEvents,
   getAdjacencyMap,
-  traverseSimplePathsTo,
-  traverseShortestPathsTo,
+  getSimplePlansTo,
+  getShortestPlansTo,
   joinPaths
 } from '@xstate/graph';
 import type {
@@ -92,7 +92,7 @@ export class TestModel<TState, TEvent extends EventObject> {
   ): Array<TestPath<TState, TEvent>> {
     return deduplicatePaths(
       mapPlansToPaths(
-        traverseShortestPathsTo(this.behavior, statePredicate, this.options)
+        getShortestPlansTo(this.behavior, statePredicate, this.options)
       )
     ).map(this.toTestPath);
   }
@@ -107,7 +107,7 @@ export class TestModel<TState, TEvent extends EventObject> {
     predicate: StatePredicate<TState>
   ): Array<TestPath<TState, TEvent>> {
     return mapPlansToPaths(
-      traverseSimplePathsTo(this.behavior, predicate, this.options)
+      getSimplePlansTo(this.behavior, predicate, this.options)
     ).map(this.toTestPath);
   }
 

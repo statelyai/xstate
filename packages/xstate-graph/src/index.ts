@@ -7,16 +7,16 @@ export {
   joinPaths
 } from './graph';
 export {
+  getMachineSimplePlans,
   getSimplePlans,
-  traverseSimplePlans,
-  traverseSimplePathsTo,
-  traverseSimplePathsFromTo
+  getSimplePlansTo,
+  getSimplePlansFromTo
 } from './simplePaths';
 export {
+  getMachineShortestPlans,
   getShortestPlans,
-  traverseShortestPlans,
-  traverseShortestPathsTo,
-  traverseShortestPathsFromTo
+  getShortestPlansTo,
+  getShortestPlansFromTo
 } from './shortestPaths';
 export { getAdjacencyMap } from './adjacency';
 

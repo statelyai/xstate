@@ -15,7 +15,7 @@ import {
 } from './graph';
 import { getAdjacencyMap } from './adjacency';
 
-export function getSimplePlans<TMachine extends AnyStateMachine>(
+export function getMachineSimplePlans<TMachine extends AnyStateMachine>(
   machine: TMachine,
   options?: TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>>
 ): Array<StatePlan<StateFrom<TMachine>, EventFrom<TMachine>>> {
@@ -24,13 +24,10 @@ export function getSimplePlans<TMachine extends AnyStateMachine>(
     createDefaultMachineOptions(machine)
   );
 
-  return traverseSimplePlans(
-    machine as SimpleBehavior<any, any>,
-    resolvedOptions
-  );
+  return getSimplePlans(machine as SimpleBehavior<any, any>, resolvedOptions);
 }
 
-export function traverseSimplePlans<TState, TEvent extends EventObject>(
+export function getSimplePlans<TState, TEvent extends EventObject>(
   behavior: SimpleBehavior<TState, TEvent>,
   options: TraversalOptions<TState, TEvent>
 ): Array<StatePlan<TState, TEvent>> {
@@ -116,25 +113,25 @@ export function traverseSimplePlans<TState, TEvent extends EventObject>(
   return Object.values(pathMap);
 }
 
-export function traverseSimplePathsTo<TState, TEvent extends EventObject>(
+export function getSimplePlansTo<TState, TEvent extends EventObject>(
   behavior: SimpleBehavior<TState, TEvent>,
   predicate: (state: TState) => boolean,
   options: TraversalOptions<TState, TEvent>
 ): Array<StatePlan<TState, TEvent>> {
   const resolvedOptions = resolveTraversalOptions(options);
-  const simplePlansMap = traverseSimplePlans(behavior, resolvedOptions);
+  const simplePlansMap = getSimplePlans(behavior, resolvedOptions);
 
   return filterPlans(simplePlansMap, predicate);
 }
 
-export function traverseSimplePathsFromTo<TState, TEvent extends EventObject>(
+export function getSimplePlansFromTo<TState, TEvent extends EventObject>(
   behavior: SimpleBehavior<TState, TEvent>,
   fromPredicate: (state: TState) => boolean,
   toPredicate: (state: TState) => boolean,
   options: TraversalOptions<TState, TEvent>
 ): Array<StatePlan<TState, TEvent>> {
   const resolvedOptions = resolveTraversalOptions(options);
-  const simplePlansMap = traverseSimplePlans(behavior, resolvedOptions);
+  const simplePlansMap = getSimplePlans(behavior, resolvedOptions);
 
   // Return all plans that contain a "from" state and target a "to" state
   return filterPlans(simplePlansMap, (state, plan) => {

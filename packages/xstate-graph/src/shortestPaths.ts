@@ -14,7 +14,7 @@ import {
 } from './graph';
 import { getAdjacencyMap } from './adjacency';
 
-export function getShortestPlans<TMachine extends AnyStateMachine>(
+export function getMachineShortestPlans<TMachine extends AnyStateMachine>(
   machine: TMachine,
   options?: TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>>
 ): Array<StatePlan<StateFrom<TMachine>, EventFrom<TMachine>>> {
@@ -23,7 +23,7 @@ export function getShortestPlans<TMachine extends AnyStateMachine>(
     createDefaultMachineOptions(machine)
   );
 
-  return traverseShortestPlans(
+  return getShortestPlans(
     {
       transition: (state, event) => machine.transition(state, event),
       initialState: machine.initialState
@@ -32,7 +32,7 @@ export function getShortestPlans<TMachine extends AnyStateMachine>(
   ) as Array<StatePlan<StateFrom<TMachine>, EventFrom<TMachine>>>;
 }
 
-export function traverseShortestPlans<TState, TEvent extends EventObject>(
+export function getShortestPlans<TState, TEvent extends EventObject>(
   behavior: SimpleBehavior<TState, TEvent>,
   options?: TraversalOptions<TState, TEvent>
 ): Array<StatePlan<TState, TEvent>> {
@@ -134,25 +134,25 @@ export function traverseShortestPlans<TState, TEvent extends EventObject>(
   return Object.values(statePlanMap);
 }
 
-export function traverseShortestPathsTo<TState, TEvent extends EventObject>(
+export function getShortestPlansTo<TState, TEvent extends EventObject>(
   behavior: SimpleBehavior<TState, TEvent>,
   predicate: (state: TState) => boolean,
   options: TraversalOptions<TState, TEvent>
 ): Array<StatePlan<TState, TEvent>> {
   const resolvedOptions = resolveTraversalOptions(options);
-  const simplePlansMap = traverseShortestPlans(behavior, resolvedOptions);
+  const simplePlansMap = getShortestPlans(behavior, resolvedOptions);
 
   return filterPlans(simplePlansMap, predicate);
 }
 
-export function traverseShortestPathsFromTo<TState, TEvent extends EventObject>(
+export function getShortestPlansFromTo<TState, TEvent extends EventObject>(
   behavior: SimpleBehavior<TState, TEvent>,
   fromPredicate: (state: TState) => boolean,
   toPredicate: (state: TState) => boolean,
   options: TraversalOptions<TState, TEvent>
 ): Array<StatePlan<TState, TEvent>> {
   const resolvedOptions = resolveTraversalOptions(options);
-  const shortesPlansMap = traverseShortestPlans(behavior, resolvedOptions);
+  const shortesPlansMap = getShortestPlans(behavior, resolvedOptions);
 
   // Return all plans that contain a "from" state and target a "to" state
   return filterPlans(shortesPlansMap, (state, plan) => {

@@ -1,5 +1,5 @@
 import { createMachine } from 'xstate';
-import { getShortestPlans } from '../src';
+import { getMachineShortestPlans } from '../';
 
 describe('types', () => {
   it('`getEvents` should be allowed to return a mutable array', () => {
@@ -7,7 +7,7 @@ describe('types', () => {
       {}
     );
 
-    getShortestPlans(machine, {
+    getMachineShortestPlans(machine, {
       getEvents: () => [
         {
           type: 'FOO'
@@ -21,7 +21,7 @@ describe('types', () => {
       {}
     );
 
-    getShortestPlans(machine, {
+    getMachineShortestPlans(machine, {
       getEvents: () =>
         [
           {
@@ -34,7 +34,7 @@ describe('types', () => {
   it('`eventCases` should allow known event', () => {
     const machine = createMachine<unknown, { type: 'FOO'; value: number }>({});
 
-    getShortestPlans(machine, {
+    getMachineShortestPlans(machine, {
       eventCases: {
         FOO: [
           {
@@ -51,7 +51,7 @@ describe('types', () => {
       { type: 'FOO'; value: number } | { type: 'BAR'; value: number }
     >({});
 
-    getShortestPlans(machine, {
+    getMachineShortestPlans(machine, {
       eventCases: {
         FOO: [
           {
@@ -65,7 +65,7 @@ describe('types', () => {
   it('`eventCases` should not allow unknown events', () => {
     const machine = createMachine<unknown, { type: 'FOO'; value: number }>({});
 
-    getShortestPlans(machine, {
+    getMachineShortestPlans(machine, {
       eventCases: {
         // @ts-expect-error
         UNKNOWN: [
@@ -83,7 +83,7 @@ describe('types', () => {
       { type: 'FOO'; value: number } | { type: 'BAR'; other: string }
     >({});
 
-    getShortestPlans(machine, {
+    getMachineShortestPlans(machine, {
       eventCases: {
         FOO: [
           {
@@ -98,7 +98,7 @@ describe('types', () => {
   it('`serializeEvent` should be allowed to return plain string', () => {
     const machine = createMachine({});
 
-    getShortestPlans(machine, {
+    getMachineShortestPlans(machine, {
       serializeEvent: () => ''
     });
   });
@@ -106,7 +106,7 @@ describe('types', () => {
   it('`serializeState` should be allowed to return plain string', () => {
     const machine = createMachine({});
 
-    getShortestPlans(machine, {
+    getMachineShortestPlans(machine, {
       serializeState: () => ''
     });
   });

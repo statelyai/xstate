@@ -2,8 +2,8 @@ import {
   SimpleBehavior,
   StatePath,
   TraversalOptions,
-  traverseShortestPlans,
-  traverseSimplePlans
+  getShortestPlans,
+  getSimplePlans
 } from '@xstate/graph';
 import { EventObject } from 'xstate';
 import { mapPlansToPaths } from './utils';
@@ -12,7 +12,7 @@ export const getShortestPaths = <TState, TEvent extends EventObject>(
   behavior: SimpleBehavior<TState, TEvent>,
   options: TraversalOptions<TState, TEvent>
 ): Array<StatePath<TState, TEvent>> => {
-  const plans = traverseShortestPlans(behavior, options);
+  const plans = getShortestPlans(behavior, options);
 
   return mapPlansToPaths(plans);
 };
@@ -21,7 +21,7 @@ export const getSimplePaths = <TState, TEvent extends EventObject>(
   behavior: SimpleBehavior<TState, TEvent>,
   options: TraversalOptions<TState, TEvent>
 ): Array<StatePath<TState, TEvent>> => {
-  const plans = traverseSimplePlans(behavior, options);
+  const plans = getSimplePlans(behavior, options);
 
   return mapPlansToPaths(plans);
 };
