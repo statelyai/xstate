@@ -1,7 +1,8 @@
 import {
   getPathFromEvents,
-  performDepthFirstTraversal,
+  getAdjacencyMap,
   traverseSimplePathsTo,
+  traverseShortestPathsTo,
   joinPaths
 } from '@xstate/graph';
 import type {
@@ -32,7 +33,6 @@ import {
   mapPlansToPaths,
   simpleStringify
 } from './utils';
-import { traverseShortestPathsTo } from '@xstate/graph/src/graph';
 
 /**
  * Creates a test model that represents an abstract model of a
@@ -159,7 +159,7 @@ export class TestModel<TState, TEvent extends EventObject> {
   }
 
   public getAllStates(): TState[] {
-    const adj = performDepthFirstTraversal(this.behavior, this.options);
+    const adj = getAdjacencyMap(this.behavior, this.options);
     return Object.values(adj).map((x) => x.state);
   }
 
