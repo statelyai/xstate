@@ -269,6 +269,10 @@ A state is considered “changed” if [`state.changed`](#state-changed) is `tru
 - there are new `state.actions` to be executed
 - its `state.context` changes.
 
+::: warning
+`state.can` will execute transition guards too.
+:::
+
 ## Persisting state
 
 As mentioned, a `State` object can be persisted by serializing it to a string JSON format:
