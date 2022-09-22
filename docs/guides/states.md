@@ -270,7 +270,7 @@ A state is considered “changed” if [`state.changed`](#state-changed) is `tru
 - its `state.context` changes.
 
 ::: warning
-`state.can` will execute transition guards too.
+The `state.can(...)` function will also check transition guards by executing them. Transition guards should be pure functions.
 :::
 
 ## Persisting state
