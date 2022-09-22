@@ -27,8 +27,10 @@ export {
   actions,
   assign,
   send,
+  sendTo,
   sendParent,
   sendUpdate,
+  raise,
   forwardTo,
   interpret,
   Interpreter,
@@ -41,7 +43,16 @@ export {
   t
 };
 
-const { assign, send, sendParent, sendUpdate, forwardTo, doneInvoke } = actions;
+const {
+  assign,
+  send,
+  sendTo,
+  sendParent,
+  sendUpdate,
+  forwardTo,
+  doneInvoke,
+  raise
+} = actions;
 
 declare global {
   interface SymbolConstructor {

@@ -1,5 +1,11 @@
-import { createMachine, interpret, assign, spawn } from '../src';
-import { raise, stop } from '../src/actions';
+import {
+  createMachine,
+  interpret,
+  assign,
+  spawn,
+  AnyInterpreter
+} from '../src';
+import { raise, stop, send, sendParent } from '../src/actions';
 
 describe('predictableExec', () => {
   it('should call mixed custom and builtin actions in the definitions order', () => {
@@ -37,17 +43,9 @@ describe('predictableExec', () => {
     let called = false;
     const machine = createMachine({
       predictableActionArguments: true,
-      context: {
-        initialized: false
-      },
-      entry: [
-        () => {
-          called = true;
-        },
-        assign({
-          initialized: true
-        })
-      ]
+      entry: () => {
+        called = true;
+      }
     });
 
     expect(called).toBe(false);
@@ -484,6 +482,7 @@ describe('predictableExec', () => {
     let invokeCounter = 0;
 
     const machine = createMachine({
+      predictableActionArguments: true,
       initial: 'inactive',
       states: {
         inactive: {
@@ -547,5 +546,233 @@ describe('predictableExec', () => {
     interpret(machine).start();
 
     expect(actual).toEqual([0, 1, 2]);
+  });
+
+  it('`.nextState()` should not execute actions `predictableActionArguments`', () => {
+    let spy = jest.fn();
+
+    const machine = createMachine({
+      predictableActionArguments: true,
+      on: {
+        TICK: {
+          actions: spy
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+    service.nextState({ type: 'TICK' });
+
+    expect(spy).not.toBeCalled();
+  });
+
+  it('should create invoke based on context updated by entry actions of the same state', () => {
+    const machine = createMachine({
+      predictableActionArguments: true,
+      context: {
+        updated: false
+      },
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {
+          entry: assign({ updated: true }),
+          invoke: {
+            src: (ctx) => {
+              expect(ctx.updated).toBe(true);
+              return Promise.resolve();
+            }
+          }
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+    service.send({ type: 'NEXT' });
+  });
+
+  it('should deliver events sent from the entry actions to a service invoked in the same state', () => {
+    let received: any;
+
+    const machine = createMachine({
+      predictableActionArguments: true,
+      context: {
+        updated: false
+      },
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {
+          entry: send({ type: 'KNOCK_KNOCK' }, { to: 'myChild' }),
+          invoke: {
+            id: 'myChild',
+            src: () => (_sendBack, onReceive) => {
+              onReceive((event) => {
+                received = event;
+              });
+              return () => {};
+            }
+          }
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+    service.send({ type: 'NEXT' });
+
+    expect(received).toEqual({ type: 'KNOCK_KNOCK' });
+  });
+
+  it('parent should be able to read the updated state of a child when receiving an event from it', (done) => {
+    const child = createMachine({
+      predictableActionArguments: true,
+      initial: 'a',
+      states: {
+        a: {
+          // we need to clear the call stack before we send the event to the parent
+          after: {
+            1: 'b'
+          }
+        },
+        b: {
+          entry: sendParent({ type: 'CHILD_UPDATED' })
+        }
+      }
+    });
+
+    let service: AnyInterpreter;
+
+    const machine = createMachine({
+      predictableActionArguments: true,
+      invoke: {
+        id: 'myChild',
+        src: child
+      },
+      initial: 'initial',
+      states: {
+        initial: {
+          on: {
+            CHILD_UPDATED: [
+              {
+                cond: () =>
+                  service.state.children.myChild.getSnapshot().value === 'b',
+                target: 'success'
+              },
+              {
+                target: 'fail'
+              }
+            ]
+          }
+        },
+        success: {
+          type: 'final'
+        },
+        fail: {
+          type: 'final'
+        }
+      }
+    });
+
+    service = interpret(machine)
+      .onDone(() => {
+        expect(service.state.value).toBe('success');
+        done();
+      })
+      .start();
+  });
+
+  it('should be possible to send immediate events to initially invoked actors', () => {
+    const child = createMachine({
+      predictableActionArguments: true,
+      on: {
+        PING: {
+          actions: sendParent({ type: 'PONG' })
+        }
+      }
+    });
+
+    const machine = createMachine({
+      predictableActionArguments: true,
+      initial: 'waiting',
+      states: {
+        waiting: {
+          invoke: {
+            id: 'ponger',
+            src: child
+          },
+          entry: send({ type: 'PING' }, { to: 'ponger' }),
+          on: {
+            PONG: 'done'
+          }
+        },
+        done: {
+          type: 'final'
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    expect(service.getSnapshot().value).toBe('done');
+  });
+
+  it('should execute actions when sending batched events', () => {
+    let executed = false;
+
+    const machine = createMachine({
+      predictableActionArguments: true,
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {
+          entry: () => (executed = true)
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    service.send([{ type: 'NEXT' }]);
+
+    expect(executed).toBe(true);
+  });
+
+  it('should deliver events sent to other actors when using batched events', () => {
+    let gotEvent = false;
+
+    const machine = createMachine({
+      predictableActionArguments: true,
+      invoke: {
+        id: 'myChild',
+        src: () => (_sendBack, onReceive) => {
+          onReceive(() => {
+            gotEvent = true;
+          });
+        }
+      },
+      on: {
+        PING_CHILD: {
+          actions: send({ type: 'PING' }, { to: 'myChild' })
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    service.send([{ type: 'PING_CHILD' }]);
+
+    expect(gotEvent).toBe(true);
   });
 });

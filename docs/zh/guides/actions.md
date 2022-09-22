@@ -339,8 +339,7 @@ console.log(send({ type: 'SOME_EVENT' }, { to: 'child' }));
 | `event` | string or event object | 要提升的事件 |
 
 ```js
-import { createMachine, actions } from 'xstate';
-const { raise } = actions;
+import { createMachine, raise } from 'xstate';
 
 const raiseActionDemo = createMachine({
   id: 'raisedmo',

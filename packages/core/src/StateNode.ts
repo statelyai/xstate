@@ -1001,15 +1001,19 @@ class StateNode<
     transition: StateTransition<TContext, TEvent>,
     currentContext: TContext,
     _event: SCXML.Event<TEvent>,
-    prevState?: State<TContext, any, any, any, any>
-  ): Array<ActionObject<TContext, TEvent>> {
+    prevState?: State<TContext, any, any, any, any>,
+    predictableExec?: PredictableActionArgumentsExec
+  ): Array<Array<ActionObject<TContext, TEvent>>> {
     const prevConfig = getConfiguration(
       [],
       prevState ? this.getStateNodes(prevState.value) : [this]
     );
 
     for (const sn of resolvedConfig) {
-      if (!has(prevConfig, sn) || has(transition.entrySet, sn.parent)) {
+      if (
+        !has(prevConfig, sn) ||
+        (has(transition.entrySet, sn.parent) && !has(transition.entrySet, sn))
+      ) {
         transition.entrySet.push(sn);
       }
     }
@@ -1065,27 +1069,36 @@ class StateNode<
     const entryStates = new Set(transition.entrySet);
     const exitStates = new Set(transition.exitSet);
 
-    const [entryActions, exitActions] = [
-      flatten(
-        Array.from(entryStates).map((stateNode) => {
-          return [
-            ...stateNode.activities.map((activity) => start(activity)),
-            ...stateNode.onEntry
-          ];
-        })
-      ).concat(doneEvents.map(raise) as Array<ActionObject<TContext, TEvent>>),
-      flatten(
-        Array.from(exitStates).map((stateNode) => [
+    const entryActions = Array.from(entryStates)
+      .map((stateNode) => {
+        const entryActions = stateNode.onEntry;
+        const invokeActions = stateNode.activities.map((activity) =>
+          start(activity)
+        );
+        return toActionObjects(
+          predictableExec
+            ? [...entryActions, ...invokeActions]
+            : [...invokeActions, ...entryActions],
+          this.machine.options.actions as any
+        );
+      })
+      .concat([doneEvents.map(raise) as Array<ActionObject<TContext, TEvent>>]);
+
+    const exitActions = Array.from(exitStates).map((stateNode) =>
+      toActionObjects(
+        [
           ...stateNode.onExit,
           ...stateNode.activities.map((activity) => stop(activity))
-        ])
+        ],
+        this.machine.options.actions as any
       )
-    ];
+    );
 
-    const actions = toActionObjects(
-      exitActions.concat(transition.actions).concat(entryActions),
-      this.machine.options.actions as any
-    ) as Array<ActionObject<TContext, TEvent>>;
+    const actions = exitActions
+      .concat([
+        toActionObjects(transition.actions, this.machine.options.actions as any)
+      ])
+      .concat(entryActions);
 
     if (isDone) {
       const stopActions = toActionObjects(
@@ -1101,7 +1114,7 @@ class StateNode<
           (action.type !== actionTypes.send ||
             (!!action.to && action.to !== SpecialTargets.Internal))
       );
-      return actions.concat(stopActions);
+      return actions.concat([stopActions]);
     }
 
     return actions;
@@ -1255,22 +1268,25 @@ class StateNode<
         ? (this.machine.historyValue(currentState.value) as HistoryValue)
         : undefined
       : undefined;
-    const actions = this.getActions(
+    const actionBlocks = this.getActions(
       new Set(resolvedConfiguration),
       isDone,
       stateTransition,
       context,
       _event,
-      currentState
+      currentState,
+      predictableExec
     );
     const activities = currentState ? { ...currentState.activities } : {};
-    for (const action of actions) {
-      if (action.type === actionTypes.start) {
-        activities[
-          action.activity!.id || action.activity!.type
-        ] = action as ActivityDefinition<TContext, TEvent>;
-      } else if (action.type === actionTypes.stop) {
-        activities[action.activity!.id || action.activity!.type] = false;
+    for (const block of actionBlocks) {
+      for (const action of block) {
+        if (action.type === actionTypes.start) {
+          activities[
+            action.activity!.id || action.activity!.type
+          ] = action as ActivityDefinition<TContext, TEvent>;
+        } else if (action.type === actionTypes.stop) {
+          activities[action.activity!.id || action.activity!.type] = false;
+        }
       }
     }
 
@@ -1279,7 +1295,7 @@ class StateNode<
       currentState,
       context,
       _event,
-      actions,
+      actionBlocks,
       predictableExec,
       this.machine.config.predictableActionArguments ||
         this.machine.config.preserveActionOrder
@@ -1616,16 +1632,17 @@ class StateNode<
         (stateNode) => !(stateNode.type === 'history')
       );
     } else if (this.initial !== undefined) {
-      if (!this.states[this.initial]) {
+      if (!this.states[this.initial as string]) {
         throw new Error(
-          `Initial state '${this.initial}' not found on '${this.key}'`
+          `Initial state '${this.initial as string}' not found on '${this.key}'`
         );
       }
 
-      initialStateValue = (isLeafNode(this.states[this.initial])
+      initialStateValue = (isLeafNode(this.states[this.initial as string])
         ? this.initial
         : {
-            [this.initial]: this.states[this.initial].initialStateValue
+            [this.initial]: this.states[this.initial as string]
+              .initialStateValue
           }) as StateValue;
     } else {
       // The finite state value of a machine without child states is just an empty object
@@ -1647,7 +1664,7 @@ class StateNode<
     return this.resolveTransition(
       {
         configuration,
-        entrySet: [...configuration],
+        entrySet: configuration,
         exitSet: [],
         transitions: [],
         source: undefined,

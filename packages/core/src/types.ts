@@ -409,7 +409,7 @@ export type StateNodesConfig<
 > = {
   [K in keyof TStateSchema['states']]: StateNode<
     TContext,
-    TStateSchema['states'][K],
+    TStateSchema['states'][K] & {},
     TEvent
   >;
 };
@@ -422,7 +422,7 @@ export type StatesConfig<
 > = {
   [K in keyof TStateSchema['states']]: StateNodeConfig<
     TContext,
-    TStateSchema['states'][K],
+    TStateSchema['states'][K] & {},
     TEvent,
     TAction
   >;
@@ -435,7 +435,7 @@ export type StatesDefinition<
 > = {
   [K in keyof TStateSchema['states']]: StateNodeDefinition<
     TContext,
-    TStateSchema['states'][K],
+    TStateSchema['states'][K] & {},
     TEvent
   >;
 };
@@ -1314,7 +1314,10 @@ export enum SpecialTargets {
 export interface SendActionOptions<TContext, TEvent extends EventObject> {
   id?: string | number;
   delay?: number | string | DelayExpr<TContext, TEvent>;
-  to?: string | ExprWithMeta<TContext, TEvent, string | number | ActorRef<any>>;
+  to?:
+    | string
+    | ActorRef<any>
+    | ExprWithMeta<TContext, TEvent, string | ActorRef<any>>;
 }
 
 export interface CancelAction extends ActionObject<any, any> {

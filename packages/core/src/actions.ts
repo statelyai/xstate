@@ -49,7 +49,6 @@ import {
   isString,
   toEventObject,
   toSCXMLEvent,
-  partition,
   flatten,
   updateContext,
   warn,
@@ -293,7 +292,7 @@ export function sendTo<
   TEvent extends EventObject,
   TActor extends AnyActorRef
 >(
-  actor: (ctx: TContext) => TActor,
+  actor: string | TActor | ((ctx: TContext) => TActor),
   event:
     | EventFrom<TActor>
     | SendExpr<
@@ -623,22 +622,36 @@ export function choose<TContext, TEvent extends EventObject>(
   };
 }
 
+const pluckAssigns = <TContext, TEvent extends EventObject>(
+  actionBlocks: Array<Array<ActionObject<TContext, TEvent>>>
+): AssignAction<TContext, TEvent>[] => {
+  const assignActions: AssignAction<TContext, TEvent>[] = [];
+
+  for (const block of actionBlocks) {
+    let i = 0;
+    while (i < block.length) {
+      if (block[i].type === actionTypes.assign) {
+        assignActions.push(block[i] as AssignAction<TContext, TEvent>);
+        block.splice(i, 1);
+        continue;
+      }
+      i++;
+    }
+  }
+
+  return assignActions;
+};
+
 export function resolveActions<TContext, TEvent extends EventObject>(
   machine: StateNode<TContext, any, TEvent, any, any, any>,
   currentState: State<TContext, TEvent, any, any, any> | undefined,
   currentContext: TContext,
   _event: SCXML.Event<TEvent>,
-  actions: Array<ActionObject<TContext, TEvent>>,
+  actionBlocks: Array<Array<ActionObject<TContext, TEvent>>>,
   predictableExec?: PredictableActionArgumentsExec,
   preserveActionOrder: boolean = false
 ): [Array<ActionObject<TContext, TEvent>>, TContext] {
-  const [assignActions, otherActions] = preserveActionOrder
-    ? [[], actions]
-    : partition(
-        actions,
-        (action): action is AssignAction<TContext, TEvent> =>
-          action.type === actionTypes.assign
-      );
+  const assignActions = preserveActionOrder ? [] : pluckAssigns(actionBlocks);
 
   let updatedContext = assignActions.length
     ? updateContext(currentContext, _event, assignActions, currentState)
@@ -648,151 +661,171 @@ export function resolveActions<TContext, TEvent extends EventObject>(
     ? [currentContext]
     : undefined;
 
-  const resolvedActions = flatten(
-    otherActions
-      .map((actionObject) => {
-        switch (actionObject.type) {
-          case actionTypes.raise: {
-            return resolveRaise(actionObject as RaiseAction<TEvent>);
-          }
-          case actionTypes.send:
-            const sendAction = resolveSend(
-              actionObject as SendAction<TContext, TEvent, AnyEventObject>,
-              updatedContext,
-              _event,
-              machine.options.delays as any
-            ) as SendActionObject<TContext, TEvent>; // TODO: fix ActionTypes.Init
+  const deferredToBlockEnd: Array<ActionObject<TContext, TEvent>> = [];
 
-            if (!IS_PRODUCTION) {
-              // warn after resolving as we can create better contextual message here
-              warn(
-                !isString(actionObject.delay) ||
-                  typeof sendAction.delay === 'number',
-                // tslint:disable-next-line:max-line-length
-                `No delay reference for delay expression '${actionObject.delay}' was found on machine '${machine.id}'`
-              );
-            }
+  function handleAction(actionObject: ActionObject<TContext, TEvent>) {
+    switch (actionObject.type) {
+      case actionTypes.raise: {
+        return resolveRaise(actionObject as RaiseAction<TEvent>);
+      }
+      case actionTypes.send:
+        const sendAction = resolveSend(
+          actionObject as SendAction<TContext, TEvent, AnyEventObject>,
+          updatedContext,
+          _event,
+          machine.options.delays as any
+        ) as SendActionObject<TContext, TEvent>; // TODO: fix ActionTypes.Init
 
-            if (sendAction.to !== SpecialTargets.Internal) {
-              predictableExec?.(sendAction, updatedContext, _event);
-            }
-
-            return sendAction;
-          case actionTypes.log: {
-            const resolved = resolveLog(
-              actionObject as LogAction<TContext, TEvent>,
-              updatedContext,
-              _event
-            );
-            predictableExec?.(resolved, updatedContext, _event);
-            return resolved;
-          }
-          case actionTypes.choose: {
-            const chooseAction = actionObject as ChooseAction<TContext, TEvent>;
-            const matchedActions = chooseAction.conds.find((condition) => {
-              const guard = toGuard(
-                condition.cond,
-                machine.options.guards as any
-              );
-              return (
-                !guard ||
-                evaluateGuard(
-                  machine,
-                  guard,
-                  updatedContext,
-                  _event,
-                  (!predictableExec ? currentState : undefined) as any
-                )
-              );
-            })?.actions;
-
-            if (!matchedActions) {
-              return [];
-            }
-
-            const [
-              resolvedActionsFromChoose,
-              resolvedContextFromChoose
-            ] = resolveActions(
-              machine,
-              currentState,
-              updatedContext,
-              _event,
-              toActionObjects(
-                toArray(matchedActions),
-                machine.options.actions as any
-              ),
-              predictableExec,
-              preserveActionOrder
-            );
-            updatedContext = resolvedContextFromChoose;
-            preservedContexts?.push(updatedContext);
-            return resolvedActionsFromChoose;
-          }
-          case actionTypes.pure: {
-            const matchedActions = (actionObject as PureAction<
-              TContext,
-              TEvent
-            >).get(updatedContext, _event.data);
-            if (!matchedActions) {
-              return [];
-            }
-            const [resolvedActionsFromPure, resolvedContext] = resolveActions(
-              machine,
-              currentState,
-              updatedContext,
-              _event,
-              toActionObjects(
-                toArray(matchedActions),
-                machine.options.actions as any
-              ),
-              predictableExec,
-              preserveActionOrder
-            );
-            updatedContext = resolvedContext;
-            preservedContexts?.push(updatedContext);
-            return resolvedActionsFromPure;
-          }
-          case actionTypes.stop: {
-            const resolved = resolveStop(
-              actionObject as StopAction<TContext, TEvent>,
-              updatedContext,
-              _event
-            );
-            predictableExec?.(resolved, updatedContext, _event);
-            return resolved;
-          }
-          case actionTypes.assign: {
-            updatedContext = updateContext(
-              updatedContext,
-              _event,
-              [actionObject as AssignAction<TContext, TEvent>],
-              !predictableExec ? currentState : undefined
-            );
-            preservedContexts?.push(updatedContext);
-            break;
-          }
-          default:
-            let resolvedActionObject = toActionObject(
-              actionObject,
-              machine.options.actions as any
-            );
-            const { exec } = resolvedActionObject;
-            if (predictableExec) {
-              predictableExec(resolvedActionObject, updatedContext, _event);
-            } else if (exec && preservedContexts) {
-              const contextIndex = preservedContexts.length - 1;
-              resolvedActionObject = {
-                ...resolvedActionObject,
-                exec: (_ctx, ...args) => {
-                  exec(preservedContexts[contextIndex], ...args);
-                }
-              };
-            }
-            return resolvedActionObject;
+        if (!IS_PRODUCTION) {
+          // warn after resolving as we can create better contextual message here
+          warn(
+            !isString(actionObject.delay) ||
+              typeof sendAction.delay === 'number',
+            // tslint:disable-next-line:max-line-length
+            `No delay reference for delay expression '${actionObject.delay}' was found on machine '${machine.id}'`
+          );
         }
-      })
-      .filter((a): a is ActionObject<TContext, TEvent> => !!a)
-  );
+
+        if (predictableExec && sendAction.to !== SpecialTargets.Internal) {
+          deferredToBlockEnd.push(sendAction);
+        }
+
+        return sendAction;
+      case actionTypes.log: {
+        const resolved = resolveLog(
+          actionObject as LogAction<TContext, TEvent>,
+          updatedContext,
+          _event
+        );
+        predictableExec?.(resolved, updatedContext, _event);
+        return resolved;
+      }
+      case actionTypes.choose: {
+        const chooseAction = actionObject as ChooseAction<TContext, TEvent>;
+        const matchedActions = chooseAction.conds.find((condition) => {
+          const guard = toGuard(condition.cond, machine.options.guards as any);
+          return (
+            !guard ||
+            evaluateGuard(
+              machine,
+              guard,
+              updatedContext,
+              _event,
+              (!predictableExec ? currentState : undefined) as any
+            )
+          );
+        })?.actions;
+
+        if (!matchedActions) {
+          return [];
+        }
+
+        const [
+          resolvedActionsFromChoose,
+          resolvedContextFromChoose
+        ] = resolveActions(
+          machine,
+          currentState,
+          updatedContext,
+          _event,
+          [
+            toActionObjects(
+              toArray(matchedActions),
+              machine.options.actions as any
+            )
+          ],
+          predictableExec,
+          preserveActionOrder
+        );
+        updatedContext = resolvedContextFromChoose;
+        preservedContexts?.push(updatedContext);
+        return resolvedActionsFromChoose;
+      }
+      case actionTypes.pure: {
+        const matchedActions = (actionObject as PureAction<
+          TContext,
+          TEvent
+        >).get(updatedContext, _event.data);
+        if (!matchedActions) {
+          return [];
+        }
+        const [resolvedActionsFromPure, resolvedContext] = resolveActions(
+          machine,
+          currentState,
+          updatedContext,
+          _event,
+          [
+            toActionObjects(
+              toArray(matchedActions),
+              machine.options.actions as any
+            )
+          ],
+          predictableExec,
+          preserveActionOrder
+        );
+        updatedContext = resolvedContext;
+        preservedContexts?.push(updatedContext);
+        return resolvedActionsFromPure;
+      }
+      case actionTypes.stop: {
+        const resolved = resolveStop(
+          actionObject as StopAction<TContext, TEvent>,
+          updatedContext,
+          _event
+        );
+
+        predictableExec?.(resolved, currentContext, _event);
+        return resolved;
+      }
+      case actionTypes.assign: {
+        updatedContext = updateContext(
+          updatedContext,
+          _event,
+          [actionObject as AssignAction<TContext, TEvent>],
+          !predictableExec ? currentState : undefined
+        );
+        preservedContexts?.push(updatedContext);
+        break;
+      }
+      default:
+        let resolvedActionObject = toActionObject(
+          actionObject,
+          machine.options.actions as any
+        );
+        const { exec } = resolvedActionObject;
+        if (predictableExec) {
+          predictableExec(resolvedActionObject, updatedContext, _event);
+        } else if (exec && preservedContexts) {
+          const contextIndex = preservedContexts.length - 1;
+          resolvedActionObject = {
+            ...resolvedActionObject,
+            exec: (_ctx, ...args) => {
+              exec(preservedContexts[contextIndex], ...args);
+            }
+          };
+        }
+        return resolvedActionObject;
+    }
+  }
+
+  function processBlock(block: ActionObject<TContext, TEvent>[]) {
+    let resolvedActions: Array<ActionObject<TContext, TEvent>> = [];
+
+    for (const action of block) {
+      const resolved = handleAction(action);
+      if (resolved) {
+        resolvedActions = resolvedActions.concat(resolved);
+      }
+    }
+
+    deferredToBlockEnd.forEach((action) => {
+      predictableExec!(action, updatedContext, _event);
+    });
+    deferredToBlockEnd.length = 0;
+
+    return resolvedActions;
+  }
+
+  const resolvedActions = flatten(actionBlocks.map(processBlock));
   return [resolvedActions, updatedContext];
 }

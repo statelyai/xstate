@@ -20,7 +20,9 @@ export function partition<T, A extends T, B extends T>(
 export function getServiceSnapshot<
   TService extends Interpreter<any, any, any, any>
 >(service: TService): TService['state'] {
-  return service.status !== 0 ? service.state : service.machine.initialState;
+  return service.status !== 0
+    ? service.getSnapshot()
+    : service.machine.initialState;
 }
 
 // From https://github.com/reduxjs/react-redux/blob/master/src/utils/shallowEqual.ts

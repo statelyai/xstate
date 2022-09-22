@@ -208,6 +208,10 @@ export class Interpreter<
   public children: Map<string | number, ActorRef<any>> = new Map();
   private forwardTo: Set<string> = new Set();
 
+  private _outgoingQueue: Array<
+    [{ send: (ev: unknown) => void }, unknown]
+  > = [];
+
   // Dev Tools
   private devTools?: any;
 
@@ -267,6 +271,9 @@ export class Interpreter<
       return this._initialState;
     });
   }
+  /**
+   * @deprecated Use `.getSnapshot()` instead.
+   */
   public get state(): State<
     TContext,
     TEvent,
@@ -324,6 +331,11 @@ export class Interpreter<
       this.options.execute
     ) {
       this.execute(this.state);
+    } else {
+      let item: typeof this._outgoingQueue[number] | undefined;
+      while ((item = this._outgoingQueue.shift())) {
+        item[0].send(item[1]);
+      }
     }
 
     // Update children
@@ -369,6 +381,7 @@ export class Interpreter<
         listener(doneInvoke(this.id, doneData));
       }
       this._stop();
+      this._stopChildren();
     }
   }
   /*
@@ -550,6 +563,15 @@ export class Interpreter<
     });
     return this;
   }
+  private _stopChildren() {
+    // TODO: think about converting those to actions
+    this.children.forEach((child) => {
+      if (isFunction(child.stop)) {
+        child.stop();
+      }
+    });
+    this.children.clear();
+  }
   private _stop() {
     for (const listener of this.listeners) {
       this.listeners.delete(listener);
@@ -623,7 +645,7 @@ export class Interpreter<
           this.state,
           this.state.context,
           _event,
-          exitActions,
+          [exitActions],
           this.machine.config.predictableActionArguments
             ? this._exec
             : undefined,
@@ -658,15 +680,7 @@ export class Interpreter<
       });
 
       this.update(nextState, _event);
-
-      // TODO: think about converting those to actions
-      // Stop all children
-      this.children.forEach((child) => {
-        if (isFunction(child.stop)) {
-          child.stop();
-        }
-      });
-      this.children.clear();
+      this._stopChildren();
 
       registry.free(this.sessionId);
     });
@@ -726,7 +740,7 @@ export class Interpreter<
       // Forward copy of event to child actors
       this.forward(_event);
 
-      const nextState = this.nextState(_event);
+      const nextState = this._nextState(_event);
 
       this.update(nextState, _event);
     });
@@ -758,6 +772,12 @@ export class Interpreter<
       );
     }
 
+    if (!events.length) {
+      return;
+    }
+
+    const exec = !!this.machine.config.predictableActionArguments && this._exec;
+
     this.scheduler.schedule(() => {
       let nextState = this.state;
       let batchChanged = false;
@@ -768,13 +788,20 @@ export class Interpreter<
         this.forward(_event);
 
         nextState = serviceScope.provide(this, () => {
-          return this.machine.transition(nextState, _event);
+          return this.machine.transition(
+            nextState,
+            _event,
+            undefined,
+            exec || undefined
+          );
         });
 
         batchedActions.push(
-          ...(nextState.actions.map((a) =>
-            bindActionToState(a, nextState)
-          ) as Array<ActionObject<TContext, TEvent>>)
+          ...(this.machine.config.predictableActionArguments
+            ? nextState.actions
+            : (nextState.actions.map((a) =>
+                bindActionToState(a, nextState)
+              ) as Array<ActionObject<TContext, TEvent>>))
         );
 
         batchChanged = batchChanged || !!nextState.changed;
@@ -799,7 +826,8 @@ export class Interpreter<
 
   private sendTo = (
     event: SCXML.Event<AnyEventObject>,
-    to: string | number | ActorRef<any>
+    to: string | number | ActorRef<any>,
+    immediate: boolean
   ) => {
     const isParent =
       this.parent && (to === SpecialTargets.Parent || this.parent.id === to);
@@ -838,20 +866,32 @@ export class Interpreter<
         this.state.done
       ) {
         // Send SCXML events to machines
-        (target as AnyInterpreter).send({
+        const scxmlEvent = {
           ...event,
           name:
             event.name === actionTypes.error ? `${error(this.id)}` : event.name,
           origin: this.sessionId
-        });
+        };
+        if (!immediate && this.machine.config.predictableActionArguments) {
+          this._outgoingQueue.push([target, scxmlEvent]);
+        } else {
+          (target as AnyInterpreter).send(scxmlEvent);
+        }
       }
     } else {
       // Send normal events to other targets
-      target.send(event.data);
+      if (!immediate && this.machine.config.predictableActionArguments) {
+        this._outgoingQueue.push([target, event.data]);
+      } else {
+        target.send(event.data);
+      }
     }
   };
 
-  private _nextState(event: Event<TEvent> | SCXML.Event<TEvent>) {
+  private _nextState(
+    event: Event<TEvent> | SCXML.Event<TEvent>,
+    exec = !!this.machine.config.predictableActionArguments && this._exec
+  ) {
     const _event = toSCXMLEvent(event);
 
     if (
@@ -868,7 +908,7 @@ export class Interpreter<
         this.state,
         _event,
         undefined,
-        this.machine.config.predictableActionArguments ? this._exec : undefined
+        exec || undefined
       );
     });
 
@@ -885,7 +925,7 @@ export class Interpreter<
   public nextState(
     event: Event<TEvent> | SCXML.Event<TEvent>
   ): State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta> {
-    return this._nextState(event);
+    return this._nextState(event, false);
   }
 
   private forward(event: SCXML.Event<TEvent>): void {
@@ -904,7 +944,7 @@ export class Interpreter<
   private defer(sendAction: SendActionObject<TContext, TEvent>): void {
     this.delayedEventsMap[sendAction.id] = this.clock.setTimeout(() => {
       if (sendAction.to) {
-        this.sendTo(sendAction._event, sendAction.to);
+        this.sendTo(sendAction._event, sendAction.to, true);
       } else {
         this.send(
           (sendAction as SendActionObject<TContext, TEvent, TEvent>)._event
@@ -968,7 +1008,7 @@ export class Interpreter<
           return;
         } else {
           if (sendAction.to) {
-            this.sendTo(sendAction._event, sendAction.to);
+            this.sendTo(sendAction._event, sendAction.to, _event === initEvent);
           } else {
             this.send(
               (sendAction as SendActionObject<TContext, TEvent, TEvent>)._event
@@ -1159,7 +1199,7 @@ export class Interpreter<
   }
   public spawnMachine<
     TChildContext,
-    TChildStateSchema,
+    TChildStateSchema extends StateSchema,
     TChildEvent extends EventObject
   >(
     machine: StateMachine<TChildContext, TChildStateSchema, TChildEvent>,
@@ -1200,7 +1240,10 @@ export class Interpreter<
       })
       .start();
 
-    return actor as ActorRef<TChildEvent, State<TChildContext, TChildEvent>>;
+    return actor as ActorRef<
+      TChildEvent,
+      State<TChildContext, TChildEvent, any, any, any>
+    >;
   }
   private spawnBehavior<TActorEvent extends EventObject, TEmitted>(
     behavior: Behavior<TActorEvent, TEmitted>,
