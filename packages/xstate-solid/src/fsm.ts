@@ -65,18 +65,16 @@ export function useService<TService extends StateMachine.AnyService>(
   return [state, send, serviceMemo()];
 }
 
-const deriveFSMState = <
+function deriveFSMState<
   Service extends StateMachine.AnyService,
   State extends StateFrom<Service>
->(
-  service: Service,
-  state: State
-): State =>
-  ({
+>(service: Service, state: State): State {
+  return {
     ...(state as object),
     matches(...args: Parameters<State['matches']>) {
       // tslint:disable-next-line:no-unused-expression
-      (this as StateMachine.AnyState).value as State['value']; // sets state.value to be tracked by the store
+      (this as StateMachine.AnyState).value as State['value']; // reads state.value to be tracked by the store
       return service.state.matches(args[0] as never);
     }
-  } as State);
+  } as State;
+}

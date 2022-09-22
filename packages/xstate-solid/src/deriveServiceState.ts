@@ -30,17 +30,17 @@ export const deriveServiceState = <
       },
       can(...args: Parameters<InitialState['can']>) {
         // tslint:disable-next-line:no-unused-expression
-        this.value; // sets state.value to be tracked
+        this.value; // reads state.value to be tracked
         return service.state.can(args[0]);
       },
       hasTag(...args: Parameters<InitialState['hasTag']>) {
         // tslint:disable-next-line:no-unused-expression
-        this.value; // sets state.tags to be tracked
+        this.value; // reads state.value to be tracked
         return service.state.hasTag(args[0]);
       },
       matches(...args: Parameters<InitialState['matches']>) {
         // tslint:disable-next-line:no-unused-expression
-        this.value; // sets state.value to be tracked
+        this.value; // reads state.value to be tracked
         return service.state.matches(args[0] as never);
       }
     } as InitialState;

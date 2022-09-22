@@ -1130,6 +1130,53 @@ describe('useMachine hook', () => {
     expect(screen.getByTestId('result').textContent).toBe('b');
   });
 
+  it('should use updated function value', () => {
+    function getValue() {
+      return 2;
+    }
+
+    const machine = createMachine<{ getValue: () => number }>({
+      initial: 'a',
+      context: {
+        getValue() {
+          return 1;
+        }
+      },
+      states: {
+        a: {
+          on: {
+            CHANGE: {
+              actions: assign(() => ({ getValue }))
+            }
+          }
+        }
+      }
+    });
+
+    const App = () => {
+      const [state, send] = useMachine(machine);
+
+      return (
+        <div>
+          <div data-testid="result">{state.context.getValue()}</div>
+          <button
+            data-testid="change-button"
+            onclick={() => send({ type: 'CHANGE' })}
+          />
+        </div>
+      );
+    };
+
+    render(() => <App />);
+    const result = screen.getByTestId('result');
+
+    expect(result.textContent).toBe('1');
+
+    fireEvent.click(screen.getByTestId('change-button'));
+
+    expect(result.textContent).toBe('2');
+  });
+
   it('should not miss initial synchronous updates', () => {
     const m = createMachine<{ count: number }>({
       initial: 'idle',
@@ -1159,6 +1206,7 @@ describe('useMachine hook', () => {
     const countEl = screen.getByTestId('sync-count');
     expect(countEl.textContent).toBe('2');
   });
+
   it('should not use stale data in a guard', () => {
     const machine = createMachine({
       initial: 'a',
