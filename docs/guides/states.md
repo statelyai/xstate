@@ -248,8 +248,8 @@ const machine = createMachine({
 
 const inactiveState = machine.initialState;
 
-inactiveState.can({type: 'TOGGLE'}); // true
-inactiveState.can({type: 'DO_SOMETHING'}); // false
+inactiveState.can({ type: 'TOGGLE' }); // true
+inactiveState.can({ type: 'DO_SOMETHING' }); // false
 
 // Also takes in full event objects:
 inactiveState.can({
@@ -257,10 +257,10 @@ inactiveState.can({
   data: 42
 }); // false
 
-const activeState = machine.transition(inactiveState, {type: 'TOGGLE'});
+const activeState = machine.transition(inactiveState, { type: 'TOGGLE' });
 
-activeState.can({type: 'TOGGLE'}); // false
-activeState.can({type: 'DO_SOMETHING'}); // true, since an action will be executed
+activeState.can({ type: 'TOGGLE' }); // false
+activeState.can({ type: 'DO_SOMETHING' }); // true, since an action will be executed
 ```
 
 A state is considered “changed” if [`state.changed`](#state-changed) is `true` and if any of the following are true:
