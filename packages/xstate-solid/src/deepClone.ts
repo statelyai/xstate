@@ -1,4 +1,13 @@
-import { isWrappable } from './createImmutable';
+export function isWrappable(obj: any): obj is object {
+  let proto;
+  return (
+    obj != null &&
+    typeof obj === 'object' &&
+    (!(proto = Object.getPrototypeOf(obj)) ||
+      proto === Object.prototype ||
+      Array.isArray(obj))
+  );
+}
 
 /**
  * Accepts any value and creates a deep clone if it is an object

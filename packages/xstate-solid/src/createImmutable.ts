@@ -1,25 +1,21 @@
-import { createStore, Store } from 'solid-js/store';
-import { deepClone } from './deepClone';
+import type { Store } from 'solid-js/store';
+import { createStore } from 'solid-js/store';
+import { deepClone, isWrappable } from './deepClone';
 import { batch } from 'solid-js';
 
-export function isWrappable(obj: any): obj is object {
-  let proto;
-  return (
-    obj != null &&
-    typeof obj === 'object' &&
-    (!(proto = Object.getPrototypeOf(obj)) ||
-      proto === Object.prototype ||
-      Array.isArray(obj))
-  );
-}
-
-const resolvePath = (path: any[], obj = {}) =>
-  path.reduce((prev, curr) => prev?.[curr], obj);
+const resolvePath = (path: any[], obj = {}) => {
+  let current = obj;
+  // tslint:disable-next-line:prefer-for-of
+  for (let i = 0; i < path.length; i++) {
+    current = current?.[path[i]];
+  }
+  return current;
+};
 
 const updateStore = <Path extends unknown[]>(
   nextStore: Store<any>,
   prevStore: Store<any>,
-  set: (...args: [...Path, any?, any?]) => void,
+  set: (...args: [...Path, unknown, unknown?]) => void,
   store: Store<any>
 ) => {
   const valueRefs = new WeakMap<any, unknown>();
@@ -97,7 +93,7 @@ const updateStore = <Path extends unknown[]>(
  * Based on Ryan Carniato's createImmutable prototype
  * Clones the initial value and diffs updates
  */
-export function createImmutable<T extends object | []>(
+export function createImmutable<T extends object>(
   init: T
 ): [T, (next: T) => void] {
   const [store, setStore] = createStore(deepClone(init));

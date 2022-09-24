@@ -5,8 +5,8 @@ import type {
   StateMachine
 } from '@xstate/fsm';
 import { createMachine, interpret } from '@xstate/fsm';
-import type { Accessor } from 'solid-js';
-import { createEffect, createMemo, on, onCleanup } from 'solid-js';
+import { Accessor, createRenderEffect } from 'solid-js';
+import { createMemo, on, onCleanup } from 'solid-js';
 import { createImmutable } from './createImmutable';
 
 type UseFSMReturn<TService extends StateMachine.AnyService> = [
@@ -36,27 +36,25 @@ export function useService<TService extends StateMachine.AnyService>(
     typeof service === 'function' ? service() : service
   );
 
-  const getServiceState = () => serviceMemo().state as StateFrom<TService>;
-
-  const [state, setState] = createImmutable(
-    deriveFSMState(serviceMemo(), getServiceState())
-  );
+  const initialService = serviceMemo();
+  const [state, setState] = createImmutable(deriveFSMState(initialService));
 
   // Track if a new service is passed in, only update once per service
-  createEffect(
+  createRenderEffect(
     on(
       serviceMemo,
-      () => {
-        setState(deriveFSMState(serviceMemo(), getServiceState()));
+      (currentService) => {
+        setState(deriveFSMState(currentService));
       },
       { defer: true }
     )
   );
 
-  createEffect(() => {
-    const { unsubscribe } = serviceMemo().subscribe((nextState) => {
-      setState(deriveFSMState(serviceMemo(), nextState as StateFrom<TService>));
-    });
+  createRenderEffect(() => {
+    const currentService = serviceMemo();
+    const { unsubscribe } = currentService.subscribe(() =>
+      setState(deriveFSMState(currentService))
+    );
     onCleanup(unsubscribe);
   });
 
@@ -65,16 +63,16 @@ export function useService<TService extends StateMachine.AnyService>(
   return [state, send, serviceMemo()];
 }
 
-function deriveFSMState<
-  Service extends StateMachine.AnyService,
-  State extends StateFrom<Service>
->(service: Service, state: State): State {
+function deriveFSMState<Service extends StateMachine.AnyService>(
+  service: Service
+): StateFrom<Service> {
+  const state = service.state as StateFrom<Service>;
   return {
     ...(state as object),
-    matches(...args: Parameters<State['matches']>) {
+    matches(...args: Parameters<typeof state['matches']>) {
       // tslint:disable-next-line:no-unused-expression
-      (this as StateMachine.AnyState).value as State['value']; // reads state.value to be tracked by the store
+      (this as StateMachine.AnyState).value as typeof state['value']; // reads state.value to be tracked by the store
       return service.state.matches(args[0] as never);
     }
-  } as State;
+  } as typeof state;
 }

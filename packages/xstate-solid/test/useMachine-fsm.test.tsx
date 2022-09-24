@@ -147,7 +147,7 @@ describe('useMachine hook for fsm', () => {
     fireEvent.click(button);
   });
 
-  it('should keep options defined on a machine when they are not possed to `useMachine` hook', (done) => {
+  it('should keep options defined on a machine when they are not passed to `useMachine` hook', (done) => {
     let actual = false;
 
     const toggleMachine = createMachine(

@@ -1,25 +1,23 @@
-import type { ActorRef, Event, EventObject, Sender } from 'xstate';
+import type { ActorRef, EmittedFrom, Event, EventObject } from 'xstate';
 import type { Accessor } from 'solid-js';
-import { createEffect, createMemo, on, onCleanup } from 'solid-js';
-import { State } from 'xstate';
+import { createMemo, createRenderEffect, on, onCleanup } from 'solid-js';
 import { deriveServiceState } from './deriveServiceState';
 import { createImmutable } from './createImmutable';
-
-type EmittedFromActorRef<
-  TActor extends ActorRef<any>
-> = TActor extends ActorRef<any, infer TEmitted> ? TEmitted : never;
+import { isStateLike } from 'xstate/lib/utils';
 
 const noop = () => {
   /* ... */
 };
 
+type Sender<TEvent> = (event: TEvent) => void;
+
 // Only spread actor snapshot if it is a xstate state class
 const spreadIfStateInstance = <T>(value: T) =>
-  value instanceof State ? { ...value } : value;
+  isStateLike(value) ? { ...value } : value;
 
 export function useActor<TActor extends ActorRef<any>>(
   actorRef: Accessor<TActor> | TActor
-): [Accessor<EmittedFromActorRef<TActor>>, TActor['send']];
+): [Accessor<EmittedFrom<TActor>>, TActor['send']];
 export function useActor<TEvent extends EventObject, TEmitted>(
   actorRef: Accessor<ActorRef<TEvent, TEmitted>> | ActorRef<TEvent, TEmitted>
 ): [Accessor<TEmitted>, Sender<TEvent>];
@@ -40,25 +38,25 @@ export function useActor(
   });
 
   // Track if a new actor is passed in, only run once per actor
-  createEffect(
+  createRenderEffect(
     on(
       actorMemo,
-      () => {
+      (actor) => {
         setState({
-          snapshot: deriveServiceState(actorMemo(), getActorState())
+          snapshot: deriveServiceState(actor, getActorState())
         });
       },
       { defer: true }
     )
   );
 
-  createEffect(() => {
-    const { unsubscribe } = actorMemo().subscribe({
-      next: (emitted: unknown) => {
+  createRenderEffect(() => {
+    const actor = actorMemo();
+    const { unsubscribe } = actor.subscribe({
+      next: (emitted: unknown) =>
         setState({
-          snapshot: deriveServiceState(actorMemo(), emitted)
-        });
-      },
+          snapshot: deriveServiceState(actor, emitted)
+        }),
       error: noop,
       complete: noop
     });

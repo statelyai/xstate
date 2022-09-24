@@ -4,8 +4,6 @@ import { createMachine, assign, interpret, StateMachine } from '@xstate/fsm';
 import { render, fireEvent, screen } from 'solid-testing-library';
 import { Accessor, Component, createEffect, createSignal, on } from 'solid-js';
 
-afterEach(() => jest.clearAllMocks());
-
 describe('useService hook for fsm', () => {
   const counterMachine = createMachine<{ count: number }>({
     id: 'counter',
