@@ -1499,7 +1499,9 @@ describe('interpreter', () => {
       const service = interpret(createMachine({})).start();
 
       service.subscribe({
-        complete: completeCb
+        complete: () => {
+          completeCb();
+        }
       });
 
       service.stop();

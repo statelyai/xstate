@@ -107,12 +107,8 @@ export class Interpreter<
 
   private delayedEventsMap: Record<string, unknown> = {};
 
-  private observers: Set<
-    Required<Observer<SnapshotFrom<TBehavior>>>
-  > = new Set();
+  private observers: Set<Observer<SnapshotFrom<TBehavior>>> = new Set();
   private errorListeners: Set<ErrorListener> = new Set();
-  private doneListeners: Set<EventListener> = new Set();
-  private stopListeners: Set<Listener> = new Set();
   private logger: (...args: any[]) => void;
   /**
    * Whether the service is started.
@@ -201,7 +197,7 @@ export class Interpreter<
     }
 
     for (const observer of this.observers) {
-      observer.next(snapshot);
+      observer.next?.(snapshot);
     }
 
     if (isStateMachine(this.behavior) && isStateLike(state)) {
@@ -214,8 +210,8 @@ export class Interpreter<
           invokeid: this.id
         });
 
-        for (const listener of this.doneListeners) {
-          listener(doneEvent);
+        for (const observer of this.observers) {
+          observer.done?.(doneEvent);
         }
 
         this._parent?.send(doneEvent);
@@ -273,25 +269,15 @@ export class Interpreter<
       observer.next(this.getSnapshot());
     }
 
-    const completeOnce = () => {
-      this.doneListeners.delete(completeOnce);
-      this.stopListeners.delete(completeOnce);
-      observer.complete();
-    };
-
     if (this.status === InterpreterStatus.Stopped) {
       observer.complete();
-    } else {
-      this.onDone(completeOnce);
-      this.onStop(completeOnce);
+      this.observers.delete(observer);
     }
 
     return {
       unsubscribe: () => {
         this.observers.delete(observer);
         this.errorListeners.delete(observer.error);
-        this.doneListeners.delete(completeOnce);
-        this.stopListeners.delete(completeOnce);
       }
     };
   }
@@ -303,7 +289,9 @@ export class Interpreter<
    * @param listener The listener
    */
   public onStop(listener: Listener): this {
-    this.stopListeners.add(listener);
+    this.observers.add({
+      complete: listener
+    });
     return this;
   }
 
@@ -323,7 +311,10 @@ export class Interpreter<
    * @param listener The state listener
    */
   public onDone(listener: EventListener<DoneEvent>): this {
-    this.doneListeners.add(listener);
+    this.observers.add({
+      done: listener
+    });
+
     return this;
   }
 
@@ -446,14 +437,14 @@ export class Interpreter<
 
     return this;
   }
-  private _stop(): this {
-    this.observers.clear();
-    for (const listener of this.stopListeners) {
-      // call listener, then remove
-      listener();
+  private _complete(): void {
+    for (const observer of this.observers) {
+      observer.complete?.();
     }
-    this.stopListeners.clear();
-    this.doneListeners.clear();
+    this.observers.clear();
+  }
+  private _stop(): this {
+    this._complete();
 
     if (this.status !== InterpreterStatus.Running) {
       // Interpreter already stopped; do nothing
