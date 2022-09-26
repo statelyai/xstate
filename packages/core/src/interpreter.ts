@@ -202,26 +202,23 @@ export class Interpreter<
     }
 
     const status = this.behavior.getStatus?.(state);
-    if (status === 'done') {
-      this._done();
+    if (status?.status === 'done') {
+      this._done(status.data);
     }
   }
 
-  private _done() {
-    const state = this._state;
-    if (isStateLike(state)) {
-      const output = (state as State<any, any>).output;
+  // TODO: output type
+  private _done(output: any) {
+    const doneEvent = toSCXMLEvent(doneInvoke(this.id, output), {
+      invokeid: this.id
+    });
 
-      const doneEvent = toSCXMLEvent(doneInvoke(this.id, output), {
-        invokeid: this.id
-      });
-
-      for (const observer of this.observers) {
-        observer.done?.(doneEvent);
-      }
-
-      this._parent?.send(doneEvent);
+    for (const observer of this.observers) {
+      // TODO: done observers should only get output data
+      observer.done?.(doneEvent);
     }
+
+    this._parent?.send(doneEvent);
     this._stop();
   }
   /*
