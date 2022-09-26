@@ -191,6 +191,7 @@ export class Interpreter<
     this._state = state;
     const snapshot = this.getSnapshot();
 
+    // Execute deferred effects
     let deferredFn: typeof this._deferred[number] | undefined;
     while ((deferredFn = this._deferred.shift())) {
       deferredFn(state);
@@ -200,25 +201,28 @@ export class Interpreter<
       observer.next?.(snapshot);
     }
 
-    if (isStateMachine(this.behavior) && isStateLike(state)) {
-      const isDone = (state as State<any, any>).done;
-
-      if (isDone) {
-        const output = (state as State<any, any>).output;
-
-        const doneEvent = toSCXMLEvent(doneInvoke(this.id, output), {
-          invokeid: this.id
-        });
-
-        for (const observer of this.observers) {
-          observer.done?.(doneEvent);
-        }
-
-        this._parent?.send(doneEvent);
-
-        this._stop();
-      }
+    const status = this.behavior.getStatus?.(state);
+    if (status === 'done') {
+      this._done();
     }
+  }
+
+  private _done() {
+    const state = this._state;
+    if (isStateLike(state)) {
+      const output = (state as State<any, any>).output;
+
+      const doneEvent = toSCXMLEvent(doneInvoke(this.id, output), {
+        invokeid: this.id
+      });
+
+      for (const observer of this.observers) {
+        observer.done?.(doneEvent);
+      }
+
+      this._parent?.send(doneEvent);
+    }
+    this._stop();
   }
   /*
    * Adds a listener that is notified whenever a state transition happens. The listener is called with

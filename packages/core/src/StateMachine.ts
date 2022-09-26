@@ -388,6 +388,10 @@ export class StateMachine<
     return state as State<TContext, TEvent, TResolvedTypesMeta>;
   }
 
+  public getStatus(state: State<TContext, TEvent, TResolvedTypesMeta>): string {
+    return state.done ? 'done' : 'active';
+  }
+
   /**@deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
   __TContext!: TContext;
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
