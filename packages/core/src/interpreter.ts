@@ -108,7 +108,6 @@ export class Interpreter<
   private delayedEventsMap: Record<string, unknown> = {};
 
   private observers: Set<Observer<SnapshotFrom<TBehavior>>> = new Set();
-  private errorListeners: Set<ErrorListener> = new Set();
   private logger: (...args: any[]) => void;
   /**
    * Whether the service is started.
@@ -234,7 +233,7 @@ export class Interpreter<
 
     // Send current state to listener
     if (this.status === InterpreterStatus.Running) {
-      observer.next(this.getSnapshot());
+      observer.next?.(this.getSnapshot());
     }
 
     return this;
@@ -261,24 +260,19 @@ export class Interpreter<
 
     this.observers.add(observer);
 
-    if (errorListener) {
-      this.onError(errorListener);
-    }
-
     // Send current state to listener
     if (this.status !== InterpreterStatus.NotStarted) {
-      observer.next(this.getSnapshot());
+      observer.next?.(this.getSnapshot());
     }
 
     if (this.status === InterpreterStatus.Stopped) {
-      observer.complete();
+      observer.complete?.();
       this.observers.delete(observer);
     }
 
     return {
       unsubscribe: () => {
         this.observers.delete(observer);
-        this.errorListeners.delete(observer.error);
       }
     };
   }
@@ -290,7 +284,9 @@ export class Interpreter<
    * @param listener The error listener
    */
   public onError(listener: ErrorListener): this {
-    this.errorListeners.add(listener);
+    this.observers.add({
+      error: listener
+    });
     return this;
   }
 
@@ -385,9 +381,9 @@ export class Interpreter<
     ) {
       errored = true;
       // Error event unhandled by machine
-      if (this.errorListeners.size > 0) {
-        this.errorListeners.forEach((listener) => {
-          listener(event.data.data);
+      if (this.observers.size > 0) {
+        this.observers.forEach((observer) => {
+          observer.error?.(event.data.data);
         });
       } else {
         this.stop();
@@ -414,8 +410,6 @@ export class Interpreter<
 
   /**
    * Stops the interpreter and unsubscribe all listeners.
-   *
-   * This will also notify the `onStop` listeners.
    */
   public stop(): this {
     delete this.__initial;
@@ -504,12 +498,11 @@ export class Interpreter<
     this.mailbox.enqueue(_event);
   };
 
+  // TODO: remove
   private forward(event: SCXML.Event<TEvent>): void {
     const snapshot = this.getSnapshot();
-    if (!isStateLike(snapshot)) {
-      return;
-    }
 
+    // The _forwardTo set will be empty for non-machine actors anyway
     for (const id of this._forwardTo) {
       const child = (snapshot as AnyState).children[id];
 

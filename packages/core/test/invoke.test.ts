@@ -998,9 +998,12 @@ describe('invoke', () => {
           }
         });
 
-        const service = interpret(promiseMachine).onError((err) => {
-          expect(err.message).toEqual(expect.stringMatching(/test/));
-          done();
+        const service = interpret(promiseMachine);
+        service.subscribe({
+          error(err) {
+            expect(err.message).toEqual(expect.stringMatching(/test/));
+            done();
+          }
         });
         service.start();
       });
