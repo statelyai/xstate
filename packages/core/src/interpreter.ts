@@ -62,7 +62,7 @@ export enum InterpreterStatus {
   Stopped
 }
 
-const defaultOptions: InterpreterOptions = {
+const defaultOptions = {
   deferEvents: true,
   clock: {
     setTimeout: (fn, ms) => {
@@ -138,19 +138,19 @@ export class Interpreter<
     const resolvedOptions = {
       ...defaultOptions,
       ...options
-    } as Required<InterpreterOptions>;
+    };
 
     const { clock, logger, parent, id } = resolvedOptions;
     const self = this;
 
-    this.id = id;
+    // TODO: this should come from a "system"
+    this.sessionId = registry.bookId();
+    this.id = id ?? this.sessionId;
     this.logger = logger;
     this.clock = clock;
     this._parent = parent;
     this.options = resolvedOptions;
     this.ref = this;
-    // TODO: this should come from a "system"
-    this.sessionId = registry.bookId();
     this._actorContext = {
       self,
       id: this.id,
@@ -586,12 +586,7 @@ export function interpret<TBehavior extends Behavior<any, any>>(
   options?: InterpreterOptions
 ): Interpreter<TBehavior>;
 export function interpret(behavior: any, options?: InterpreterOptions): any {
-  const resolvedOptions = {
-    id: isStateMachine(behavior) ? behavior.id : undefined,
-    ...options
-  };
+  const interpreter = new Interpreter(behavior, options);
 
-  const interpreter = new Interpreter(behavior, resolvedOptions);
-
-  return interpreter as any;
+  return interpreter;
 }
