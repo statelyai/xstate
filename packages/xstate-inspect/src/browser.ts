@@ -41,9 +41,11 @@ export function createDevTools(): XStateDevInterface {
       serviceMap.set(service.sessionId, service);
       serviceListeners.forEach((listener) => listener(service));
 
-      service.onStop(() => {
-        services.delete(service);
-        serviceMap.delete(service.sessionId);
+      service.subscribe({
+        complete() {
+          services.delete(service);
+          serviceMap.delete(service.sessionId);
+        }
       });
     },
     unregister: (service) => {
@@ -197,11 +199,13 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
       });
     });
 
-    service.onStop(() => {
-      inspectService.send({
-        type: 'service.stop',
-        sessionId: service.sessionId
-      });
+    service.subscribe({
+      complete() {
+        inspectService.send({
+          type: 'service.stop',
+          sessionId: service.sessionId
+        });
+      }
     });
   });
 

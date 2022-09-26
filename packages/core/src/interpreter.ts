@@ -287,19 +287,6 @@ export class Interpreter<
   }
 
   /**
-
-   * Adds a listener that is notified when the machine is stopped.
-   *
-   * @param listener The listener
-   */
-  public onStop(listener: Listener): this {
-    this.observers.add({
-      complete: listener
-    });
-    return this;
-  }
-
-  /**
    * Adds an error listener that is notified with an `Error` whenever an
    * error occurs during execution.
    *

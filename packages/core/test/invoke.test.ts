@@ -1030,18 +1030,21 @@ describe('invoke', () => {
           }
         });
 
-        interpret(promiseMachine)
+        const actor = interpret(promiseMachine)
           .onDone(doneSpy)
           .onError((err) => {
             // TODO: determine if err should be the full SCXML error event
             expect(err).toBeInstanceOf(Error);
             expect(err.message).toBe('test');
           })
-          .onStop(() => {
+          .start();
+
+        actor.subscribe({
+          complete() {
             expect(doneSpy).not.toHaveBeenCalled();
             done();
-          })
-          .start();
+          }
+        });
       });
 
       it('should be invoked with a promise factory and resolve through onDone for compound state nodes', (done) => {

@@ -122,11 +122,13 @@ export function inspect(options: ServerInspectorOptions): Inspector {
       });
     });
 
-    service.onStop(() => {
-      inspectService.send({
-        type: 'service.stop',
-        sessionId: service.sessionId
-      });
+    service.subscribe({
+      complete() {
+        inspectService.send({
+          type: 'service.stop',
+          sessionId: service.sessionId
+        });
+      }
     });
   });
 
