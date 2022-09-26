@@ -545,6 +545,42 @@ describe('useMachine hook for fsm', () => {
     done();
   });
 
+  it('initial send should work only with createRenderEffect in fsm', (done) => {
+    const machine = createMachine({
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            done: 'success'
+          }
+        },
+        success: {}
+      }
+    });
+
+    const Spawner = () => {
+      const [current, send] = useMachine(machine);
+      // This should fail if useMachine is not using createRenderEffect
+      expect(current.value).toBe('start');
+      send({ type: 'done' });
+      expect(current.value).toBe('success');
+
+      return (
+        <Switch fallback={null}>
+          <Match when={current.value === 'start'}>
+            <span data-testid="start" />
+          </Match>
+          <Match when={current.value === 'success'}>
+            <span data-testid="success" />
+          </Match>
+        </Switch>
+      );
+    };
+
+    render(() => <Spawner />);
+    waitFor(() => screen.getByTestId('success')).then(() => done());
+  });
+
   // Example from: https://github.com/davidkpiano/xstate/discussions/1944
   it('fsm useMachine service should be typed correctly', () => {
     interface Context {

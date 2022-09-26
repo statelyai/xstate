@@ -9,15 +9,17 @@ import {
   ActorRefFrom,
   interpret
 } from 'xstate';
-import { fireEvent, screen, render } from 'solid-testing-library';
+import { fireEvent, screen, render, waitFor } from 'solid-testing-library';
 import { toActorRef } from 'xstate/lib/Actor';
 import {
   Accessor,
   Component,
   createEffect,
   createSignal,
+  Match,
   on,
-  onMount
+  onMount,
+  Switch
 } from 'solid-js';
 import { createStore, reconcile } from 'solid-js/store';
 
@@ -119,6 +121,45 @@ describe('useActor', () => {
     };
 
     render(() => <Test />);
+  });
+
+  it('initial send should work only with createRenderEffect in useActor', (done) => {
+    const machine = createMachine({
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            done: 'success'
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    const Spawner = () => {
+      const service = interpret(machine).start();
+      const [current, send] = useActor(service);
+      // This should fail if useMachine is not using createRenderEffect
+      expect(current().value).toBe('start');
+      send({ type: 'done' });
+      expect(current().value).toBe('success');
+
+      return (
+        <Switch fallback={null}>
+          <Match when={current().value === 'start'}>
+            <span data-testid="start" />
+          </Match>
+          <Match when={current().value === 'success'}>
+            <span data-testid="success" />
+          </Match>
+        </Switch>
+      );
+    };
+
+    render(() => <Spawner />);
+    waitFor(() => screen.getByTestId('success')).then(() => done());
   });
 
   it('should only trigger effects once for nested context values', (done) => {
@@ -1133,7 +1174,7 @@ describe('useActor', () => {
           // The `send` here is closed-in
           send({ type: 'anything' });
         }, 10);
-      }); // Intentionally omit `send` from dependency array
+      });
 
       return (
         <button data-testid="button" onclick={() => setActor(lastActor)} />

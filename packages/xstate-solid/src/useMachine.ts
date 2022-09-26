@@ -1,7 +1,7 @@
 import type { AnyStateMachine, StateFrom } from 'xstate';
 import type { RestParams } from './types';
 import { createService } from './createService';
-import { onCleanup, onMount } from 'solid-js';
+import { createRenderEffect, onCleanup } from 'solid-js';
 import type { InterpreterFrom, Prop } from 'xstate';
 import { deriveServiceState } from './deriveServiceState';
 import { createImmutable } from './createImmutable';
@@ -21,7 +21,7 @@ export function useMachine<TMachine extends AnyStateMachine>(
     deriveServiceState(service, service.state)
   );
 
-  onMount(() => {
+  createRenderEffect(() => {
     const { unsubscribe } = service.subscribe((nextState) => {
       setState(deriveServiceState(service, nextState) as StateFrom<TMachine>);
     });
