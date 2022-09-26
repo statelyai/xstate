@@ -259,9 +259,7 @@ export class StateMachine<
     const currentState =
       state instanceof State ? state : this.resolveStateValue(state);
     const scxmlEvent = toSCXMLEvent(event);
-
     const nextState = macrostep(currentState, scxmlEvent, actorCtx);
-    nextState._sessionid = actorCtx?.sessionId ?? currentState._sessionid;
 
     return nextState;
   }
@@ -387,6 +385,10 @@ export class StateMachine<
 
     state.machine = this;
     return state as State<TContext, TEvent, TResolvedTypesMeta>;
+  }
+
+  public getStatus(state: State<TContext, TEvent, TResolvedTypesMeta>): string {
+    return state.done ? 'done' : 'active';
   }
 
   /**@deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */

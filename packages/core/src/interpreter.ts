@@ -8,7 +8,7 @@ import type {
   SnapshotFrom
 } from './types';
 import { doneInvoke } from './actions';
-import { startSignalType } from './actors';
+import { startSignalType, stopSignalType } from './actors';
 import { devToolsAdapter } from './dev';
 import { IS_PRODUCTION } from './environment';
 import { Mailbox } from './Mailbox';
@@ -105,12 +105,8 @@ export class Interpreter<
 
   private delayedEventsMap: Record<string, unknown> = {};
 
-  private observers: Set<
-    Required<Observer<SnapshotFrom<TBehavior>>>
-  > = new Set();
+  private observers: Set<Observer<SnapshotFrom<TBehavior>>> = new Set();
   private errorListeners: Set<ErrorListener> = new Set();
-  private doneListeners: Set<EventListener> = new Set();
-  private stopListeners: Set<Listener> = new Set();
   private logger: (...args: any[]) => void;
   /**
    * Whether the service is started.
@@ -143,6 +139,7 @@ export class Interpreter<
     } as Required<InterpreterOptions>;
 
     const { clock, logger, parent, id } = resolvedOptions;
+    const self = this;
 
     this.id = id;
     this.logger = logger;
@@ -153,12 +150,16 @@ export class Interpreter<
     // TODO: this should come from a "system"
     this.sessionId = registry.bookId();
     this._actorContext = {
-      self: this,
+      self,
       id: this.id,
       sessionId: this.sessionId,
       logger: this.logger,
       exec: (fn) => {
-        fn();
+        if (self.status === InterpreterStatus.NotStarted) {
+          this._deferred.push(fn);
+        } else {
+          fn();
+        }
       },
       defer: (fn) => {
         this._deferred.push(fn);
@@ -192,33 +193,38 @@ export class Interpreter<
     this._state = state;
     const snapshot = this.getSnapshot();
 
-    while (this._deferred.length) {
-      this._deferred.shift()!(state);
+    // Execute deferred effects
+    let deferredFn: typeof this._deferred[number] | undefined;
+    while ((deferredFn = this._deferred.shift())) {
+      deferredFn(state);
     }
 
     for (const observer of this.observers) {
-      observer.next(snapshot);
+      observer.next?.(snapshot);
     }
 
-    if (isStateMachine(this.behavior) && isStateLike(state)) {
-      const isDone = (state as State<any, any>).done;
+    const status = this.behavior.getStatus?.(state);
+    if (status === 'done') {
+      this._done();
+    }
+  }
 
-      if (isDone) {
-        const output = (state as State<any, any>).output;
+  private _done() {
+    const state = this._state;
+    if (isStateLike(state)) {
+      const output = (state as State<any, any>).output;
 
-        const doneEvent = toSCXMLEvent(doneInvoke(this.id, output), {
-          invokeid: this.id
-        });
+      const doneEvent = toSCXMLEvent(doneInvoke(this.id, output), {
+        invokeid: this.id
+      });
 
-        for (const listener of this.doneListeners) {
-          listener(doneEvent);
-        }
-
-        this._parent?.send(doneEvent);
-
-        this._stop();
+      for (const observer of this.observers) {
+        observer.done?.(doneEvent);
       }
+
+      this._parent?.send(doneEvent);
     }
+    this._stop();
   }
   /*
    * Adds a listener that is notified whenever a state transition happens. The listener is called with
@@ -269,38 +275,17 @@ export class Interpreter<
       observer.next(this.getSnapshot());
     }
 
-    const completeOnce = () => {
-      this.doneListeners.delete(completeOnce);
-      this.stopListeners.delete(completeOnce);
-      observer.complete();
-    };
-
     if (this.status === InterpreterStatus.Stopped) {
       observer.complete();
-    } else {
-      this.onDone(completeOnce);
-      this.onStop(completeOnce);
+      this.observers.delete(observer);
     }
 
     return {
       unsubscribe: () => {
         this.observers.delete(observer);
         this.errorListeners.delete(observer.error);
-        this.doneListeners.delete(completeOnce);
-        this.stopListeners.delete(completeOnce);
       }
     };
-  }
-
-  /**
-
-   * Adds a listener that is notified when the machine is stopped.
-   *
-   * @param listener The listener
-   */
-  public onStop(listener: Listener): this {
-    this.stopListeners.add(listener);
-    return this;
   }
 
   /**
@@ -319,7 +304,10 @@ export class Interpreter<
    * @param listener The state listener
    */
   public onDone(listener: EventListener<DoneEvent>): this {
-    this.doneListeners.add(listener);
+    this.observers.add({
+      done: listener
+    });
+
     return this;
   }
 
@@ -422,7 +410,7 @@ export class Interpreter<
 
     this.update(nextState);
 
-    if (event.name === 'xstate.stop') {
+    if (event.name === stopSignalType) {
       this._stop();
     } else if (errored) {
       this.stop();
@@ -436,22 +424,20 @@ export class Interpreter<
    */
   public stop(): this {
     delete this.__initial;
-    // const mailbox = this.mailbox;
 
-    // this._stop();
     this.mailbox.clear();
-    this.mailbox.enqueue(toSCXMLEvent({ type: 'xstate.stop' }) as any);
+    this.mailbox.enqueue(toSCXMLEvent({ type: stopSignalType }) as any);
 
     return this;
   }
-  private _stop(): this {
-    this.observers.clear();
-    for (const listener of this.stopListeners) {
-      // call listener, then remove
-      listener();
+  private _complete(): void {
+    for (const observer of this.observers) {
+      observer.complete?.();
     }
-    this.stopListeners.clear();
-    this.doneListeners.clear();
+    this.observers.clear();
+  }
+  private _stop(): this {
+    this._complete();
 
     if (this.status !== InterpreterStatus.Running) {
       // Interpreter already stopped; do nothing

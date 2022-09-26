@@ -62,6 +62,7 @@ import {
   StateFromMachine
 } from '.';
 import { execAction } from './exec';
+import { stopSignalType } from './actors';
 
 type Configuration<
   TContext extends MachineContext,
@@ -1334,9 +1335,7 @@ export function resolveMicroTransition<
   // - OR there are transitions
   const willTransition = currentState._initial || transitions.length > 0;
 
-  const prevConfiguration = getConfiguration(
-    !currentState._initial ? currentState.configuration : [machine.root]
-  );
+  const prevConfiguration = new Set(currentState.configuration);
 
   if (!currentState._initial && !willTransition) {
     const inertState = currentState.clone({
@@ -1353,7 +1352,7 @@ export function resolveMicroTransition<
     currentState._initial
       ? [
           {
-            target: [...prevConfiguration].filter(isAtomicStateNode),
+            target: [...currentState.configuration].filter(isAtomicStateNode),
             source: machine.root,
             actions: [],
             eventType: null as any,
@@ -1535,7 +1534,7 @@ export function macrostep<TMachine extends AnyStateMachine>(
 ): typeof state {
   let nextState = state;
   // Handle stop event
-  if (scxmlEvent?.name === 'xstate.stop') {
+  if (scxmlEvent?.name === stopSignalType) {
     return stopStep(scxmlEvent);
   }
 

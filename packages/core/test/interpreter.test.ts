@@ -101,6 +101,8 @@ describe('interpreter', () => {
       callInitialState();
       callInitialState();
 
+      expect(promiseSpawned).toEqual(0);
+
       service.start();
 
       setTimeout(() => {
@@ -1517,7 +1519,9 @@ describe('interpreter', () => {
       const service = interpret(createMachine({})).start();
 
       service.subscribe({
-        complete: completeCb
+        complete: () => {
+          completeCb();
+        }
       });
 
       service.stop();
@@ -1908,5 +1912,20 @@ describe('interpreter', () => {
 
       actor.start();
     });
+  });
+
+  it("shouldn't execute actions when reading a snapshot of not started actor", () => {
+    const spy = jest.fn();
+    const actorRef = interpret(
+      createMachine({
+        entry: () => {
+          spy();
+        }
+      })
+    );
+
+    actorRef.getSnapshot();
+
+    expect(spy).not.toHaveBeenCalled();
   });
 });
