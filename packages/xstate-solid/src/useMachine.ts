@@ -1,5 +1,5 @@
 import type { AnyStateMachine, StateFrom } from 'xstate';
-import type { RestParams } from './types';
+import type { CheckSnapshot, RestParams } from './types';
 import { createService } from './createService';
 import { createRenderEffect, onCleanup } from 'solid-js';
 import type { InterpreterFrom, Prop } from 'xstate';
@@ -9,7 +9,11 @@ import { createImmutable } from './createImmutable';
 type UseMachineReturn<
   TMachine extends AnyStateMachine,
   TInterpreter = InterpreterFrom<TMachine>
-> = [StateFrom<TMachine>, Prop<TInterpreter, 'send'>, TInterpreter];
+> = [
+  CheckSnapshot<StateFrom<TMachine>>,
+  Prop<TInterpreter, 'send'>,
+  TInterpreter
+];
 
 export function useMachine<TMachine extends AnyStateMachine>(
   machine: TMachine,

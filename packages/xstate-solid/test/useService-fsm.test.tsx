@@ -242,4 +242,54 @@ describe('useService hook for fsm', () => {
     expect(countEl.textContent).toBe('2');
     expect(effectCountEl.textContent).toBe('0');
   });
+
+  it('service state should handle array context changes', () => {
+    const arrayMachine = (value) =>
+      createMachine({
+        context: { value },
+        initial: 'idle',
+        states: { idle: {} }
+      });
+    const Test = () => {
+      const [service, setService] = createSignal(
+        interpret(arrayMachine(['1', '2'])).start()
+      );
+      const [state] = useService(service);
+      const [change, setChange] = createSignal(0);
+
+      createEffect(() => {
+        if (state.context.value[0]) {
+          setChange((val) => val + 1);
+        }
+      });
+
+      return (
+        <div>
+          <div data-testid="change">{change()}</div>
+          <div data-testid="state">{state.context.value[1]}</div>
+          <div data-testid="state-2">{state.context.value[3]}</div>
+          <button
+            data-testid="button"
+            onclick={() =>
+              setService(interpret(arrayMachine(['1', '3', '5', '8'])).start())
+            }
+          />
+        </div>
+      );
+    };
+
+    render(() => <Test />);
+
+    const div = screen.getByTestId('state');
+    const div2 = screen.getByTestId('state-2');
+    const changeVal = screen.getByTestId('change');
+    const button = screen.getByTestId('button');
+
+    expect(changeVal.textContent).toEqual('1');
+    expect(div.textContent).toEqual('2');
+    fireEvent.click(button);
+    expect(div.textContent).toEqual('3');
+    expect(changeVal.textContent).toEqual('1');
+    expect(div2.textContent).toEqual('8');
+  });
 });

@@ -4,6 +4,7 @@ import { createMemo, createRenderEffect, on, onCleanup } from 'solid-js';
 import { deriveServiceState } from './deriveServiceState';
 import { createImmutable } from './createImmutable';
 import { isStateLike } from 'xstate/lib/utils';
+import type { CheckSnapshot } from './types';
 
 const noop = () => {
   /* ... */
@@ -17,10 +18,10 @@ const spreadIfStateInstance = <T>(value: T) =>
 
 export function useActor<TActor extends ActorRef<any>>(
   actorRef: Accessor<TActor> | TActor
-): [Accessor<EmittedFrom<TActor>>, TActor['send']];
+): [Accessor<CheckSnapshot<EmittedFrom<TActor>>>, TActor['send']];
 export function useActor<TEvent extends EventObject, TEmitted>(
   actorRef: Accessor<ActorRef<TEvent, TEmitted>> | ActorRef<TEvent, TEmitted>
-): [Accessor<TEmitted>, Sender<TEvent>];
+): [Accessor<CheckSnapshot<TEmitted>>, Sender<TEvent>];
 export function useActor(
   actorRef:
     | Accessor<ActorRef<EventObject, unknown>>

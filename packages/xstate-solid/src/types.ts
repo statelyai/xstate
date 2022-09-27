@@ -4,8 +4,30 @@ import type {
   EventObject,
   InternalMachineOptions,
   InterpreterOptions,
-  StateConfig
+  State,
+  StateConfig,
+  StateSchema,
+  TypegenDisabled,
+  Typestate
 } from 'xstate';
+
+type StateObject<
+  C,
+  E extends EventObject,
+  S extends StateSchema<C> = any,
+  T extends Typestate<C> = { value: any; context: C },
+  R = TypegenDisabled
+> = State<C, E, S, T, R>;
+
+export type CheckSnapshot<Snapshot> = Snapshot extends State<
+  infer C,
+  infer E,
+  infer S,
+  infer T,
+  infer R
+>
+  ? StateObject<C, E, S, T, R>
+  : Snapshot;
 
 interface UseMachineOptions<TContext, TEvent extends EventObject> {
   /**

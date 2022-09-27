@@ -5,8 +5,8 @@ import type {
   StateMachine
 } from '@xstate/fsm';
 import { createMachine, interpret } from '@xstate/fsm';
-import { Accessor, createRenderEffect } from 'solid-js';
-import { createMemo, on, onCleanup } from 'solid-js';
+import type { Accessor } from 'solid-js';
+import { createMemo, onCleanup, createRenderEffect } from 'solid-js';
 import { createImmutable } from './createImmutable';
 
 type UseFSMReturn<TService extends StateMachine.AnyService> = [
@@ -38,17 +38,6 @@ export function useService<TService extends StateMachine.AnyService>(
 
   const initialService = serviceMemo();
   const [state, setState] = createImmutable(deriveFSMState(initialService));
-
-  // Track if a new service is passed in, only update once per service
-  createRenderEffect(
-    on(
-      serviceMemo,
-      (currentService) => {
-        setState(deriveFSMState(currentService));
-      },
-      { defer: true }
-    )
-  );
 
   createRenderEffect(() => {
     const currentService = serviceMemo();
