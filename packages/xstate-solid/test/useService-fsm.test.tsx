@@ -301,7 +301,7 @@ describe('useService hook for fsm', () => {
     expect(div2.textContent).toEqual('8');
   });
 
-  it('initial send should work only with createComputed in useActor', (done) => {
+  it('initial send should work only with createComputed in useService', (done) => {
     const machine = createMachine({
       initial: 'start',
       states: {
