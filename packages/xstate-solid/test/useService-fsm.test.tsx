@@ -1,8 +1,16 @@
 /* @jsxImportSource solid-js */
 import { useService, useMachine } from '../src/fsm';
 import { createMachine, assign, interpret, StateMachine } from '@xstate/fsm';
-import { render, fireEvent, screen } from 'solid-testing-library';
-import { Accessor, Component, createEffect, createSignal, on } from 'solid-js';
+import { render, fireEvent, screen, waitFor } from 'solid-testing-library';
+import {
+  Accessor,
+  Component,
+  createEffect,
+  createSignal,
+  Match,
+  on,
+  Switch
+} from 'solid-js';
 
 describe('useService hook for fsm', () => {
   const counterMachine = createMachine<{ count: number }>({
@@ -291,5 +299,45 @@ describe('useService hook for fsm', () => {
     expect(div.textContent).toEqual('3');
     expect(changeVal.textContent).toEqual('1');
     expect(div2.textContent).toEqual('8');
+  });
+
+  it('initial send should work only with createComputed in useActor', (done) => {
+    const machine = createMachine({
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            done: 'success'
+          }
+        },
+        success: {}
+      }
+    });
+
+    const Spawner = () => {
+      const [service, setService] = createSignal(interpret(machine).start());
+      const [current, send] = useService(service);
+      // This should fail if useService is not using createComputed
+      expect(current.value).toBe('start');
+      send({ type: 'done' });
+      expect(current.value).toBe('success');
+      setService(interpret(machine).start());
+      expect(current.value).toBe('start');
+      send({ type: 'done' });
+
+      return (
+        <Switch fallback={null}>
+          <Match when={current.value === 'start'}>
+            <span data-testid="start" />
+          </Match>
+          <Match when={current.value === 'success'}>
+            <span data-testid="success" />
+          </Match>
+        </Switch>
+      );
+    };
+
+    render(() => <Spawner />);
+    waitFor(() => screen.getByTestId('success')).then(() => done());
   });
 });

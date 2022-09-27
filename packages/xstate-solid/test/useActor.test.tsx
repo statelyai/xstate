@@ -123,7 +123,7 @@ describe('useActor', () => {
     render(() => <Test />);
   });
 
-  it('initial send should work only with createRenderEffect in useActor', (done) => {
+  it('initial send should work only with createComputed in useActor', (done) => {
     const machine = createMachine({
       initial: 'start',
       states: {
@@ -139,12 +139,15 @@ describe('useActor', () => {
     });
 
     const Spawner = () => {
-      const service = interpret(machine).start();
+      const [service, setService] = createSignal(interpret(machine).start());
       const [current, send] = useActor(service);
-      // This should fail if useMachine is not using createRenderEffect
+      // This should fail if useActor is not using createComputed
       expect(current().value).toBe('start');
       send({ type: 'done' });
       expect(current().value).toBe('success');
+      setService(interpret(machine).start());
+      expect(current().value).toBe('start');
+      send({ type: 'done' });
 
       return (
         <Switch fallback={null}>

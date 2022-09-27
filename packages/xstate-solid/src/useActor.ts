@@ -1,6 +1,6 @@
 import type { ActorRef, EmittedFrom, Event, EventObject } from 'xstate';
 import type { Accessor } from 'solid-js';
-import { createMemo, createRenderEffect, on, onCleanup } from 'solid-js';
+import { createComputed, createMemo, onCleanup } from 'solid-js';
 import { deriveServiceState } from './deriveServiceState';
 import { createImmutable } from './createImmutable';
 import { isStateLike } from 'xstate/lib/utils';
@@ -38,31 +38,26 @@ export function useActor(
     snapshot: deriveServiceState(actorMemo(), getActorState())
   });
 
-  // Track if a new actor is passed in, only run once per actor
-  createRenderEffect(
-    on(
-      actorMemo,
-      (actor) => {
-        setState({
-          snapshot: deriveServiceState(actor, getActorState())
-        });
-      },
-      { defer: true }
-    )
-  );
+  const setActorState = (actorState: unknown) => {
+    setState({
+      snapshot: deriveServiceState(actorMemo(), actorState)
+    });
+  };
 
-  createRenderEffect(() => {
-    const actor = actorMemo();
-    const { unsubscribe } = actor.subscribe({
-      next: (emitted: unknown) =>
-        setState({
-          snapshot: deriveServiceState(actor, emitted)
-        }),
+  createComputed<boolean>((isInitialActor) => {
+    if (!isInitialActor) {
+      setActorState(getActorState());
+    }
+
+    const { unsubscribe } = actorMemo().subscribe({
+      next: setActorState,
       error: noop,
       complete: noop
     });
     onCleanup(unsubscribe);
-  });
+
+    return false;
+  }, true);
 
   const send = (event: Event<EventObject>) => actorMemo().send(event);
 
