@@ -2253,7 +2253,7 @@ describe('invoke', () => {
           }
           return count;
         },
-        initialState: 0
+        getInitialState: () => 0
       };
 
       const countMachine = createMachine({
@@ -2291,7 +2291,7 @@ describe('invoke', () => {
 
           return undefined;
         },
-        initialState: undefined
+        getInitialState: () => undefined
       };
 
       const pingMachine = createMachine({
@@ -2915,7 +2915,7 @@ describe('invoke', () => {
       expect(machine.root.invoke[0].meta).toEqual({ url: 'stately.ai' });
     });
 
-    it('meta data should be available in the invoke source function', () => {
+    it.only('meta data should be available in the invoke source function', () => {
       expect.assertions(1);
       const machine = createMachine({
         invoke: {

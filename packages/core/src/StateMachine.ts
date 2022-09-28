@@ -405,13 +405,20 @@ export class StateMachine<
   }
 
   public restoreState(
-    state: State<TContext, TEvent, TResolvedTypesMeta> | StateValue
+    state: State<TContext, TEvent, TResolvedTypesMeta> | StateValue,
+    actorCtx?: ActorContext<TEvent, State<TContext, TEvent>>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    if (isStateConfig(state)) {
-      return this.resolveState(state as any);
+    const restoredState = isStateConfig(state)
+      ? this.resolveState(state as any)
+      : this.resolveState(State.from(state as any, this.context, this));
+
+    if (actorCtx) {
+      for (const action of restoredState.actions) {
+        execAction(action, restoredState, actorCtx);
+      }
     }
 
-    return this.resolveState(State.from(state as any, this.context, this));
+    return restoredState;
   }
 
   /**@deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */

@@ -8,7 +8,7 @@ import type {
   SnapshotFrom
 } from './types';
 import { doneInvoke } from './actions';
-import { startSignalType, stopSignalType } from './actors';
+import { stopSignalType } from './actors';
 import { devToolsAdapter } from './dev';
 import { IS_PRODUCTION } from './environment';
 import { Mailbox } from './Mailbox';
@@ -27,15 +27,8 @@ import {
   StateValue,
   Subscription
 } from './types';
-import {
-  isStateMachine,
-  toEventObject,
-  toObserver,
-  toSCXMLEvent,
-  warn
-} from './utils';
+import { toEventObject, toObserver, toSCXMLEvent, warn } from './utils';
 import { symbolObservable } from './symbolObservable';
-import { execAction } from './exec';
 
 export type SnapshotListener<TBehavior extends Behavior<any, any>> = (
   state: SnapshotFrom<TBehavior>
@@ -175,9 +168,7 @@ export class Interpreter<
     // TODO: getSnapshot
     return (
       this.__initial ||
-      ((this.__initial =
-        this.behavior.getInitialState?.(this._actorContext) ??
-        this.behavior.initialState),
+      ((this.__initial = this.behavior.getInitialState(this._actorContext)),
       this.__initial!)
     );
   }
@@ -316,24 +307,8 @@ export class Interpreter<
     this.status = InterpreterStatus.Running;
 
     let resolvedState = initialState
-      ? this.behavior.restoreState?.(initialState)
-      : this.initialState;
-
-    if (initialState === undefined) {
-      // resolvedState = this.initialState;
-    } else {
-      for (const action of resolvedState.actions) {
-        execAction(action, resolvedState, this._actorContext);
-      }
-    }
-
-    if (!isStateMachine(this.behavior)) {
-      resolvedState = this.behavior.transition(
-        this.behavior.initialState,
-        { type: startSignalType },
-        this._actorContext
-      );
-    }
+      ? this.behavior.restoreState?.(initialState, this._actorContext)
+      : this.behavior.getInitialState?.(this._actorContext) ?? undefined;
 
     // TODO: this notifies all subscribers but usually this is redundant
     // if we are using the initialState as `resolvedState` then there is no real change happening here
