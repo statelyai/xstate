@@ -3,7 +3,7 @@ import { initEvent } from './actions';
 import { STATE_DELIMITER } from './constants';
 import { execAction } from './exec';
 import { createSpawner } from './spawn';
-import { State } from './State';
+import { isStateConfig, State } from './State';
 import { StateNode } from './StateNode';
 import {
   getConfiguration,
@@ -392,6 +392,16 @@ export class StateMachine<
     return state.done
       ? { status: 'done', data: state.output }
       : { status: 'active' };
+  }
+
+  public restoreState(
+    state: State<TContext, TEvent, TResolvedTypesMeta> | StateValue
+  ): State<TContext, TEvent, TResolvedTypesMeta> {
+    if (isStateConfig(state)) {
+      return this.resolveState(state as any);
+    }
+
+    return this.resolveState(State.from(state as any, this.context, this));
   }
 
   /**@deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */

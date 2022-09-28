@@ -307,7 +307,10 @@ export class Interpreter<
    * Starts the interpreter from the given state, or the initial state.
    * @param initialState The state to start the statechart from
    */
-  public start(initialState?: InternalStateFrom<TBehavior> | StateValue): this {
+  public start(
+    // TODO: remove this argument
+    initialState?: InternalStateFrom<TBehavior> | StateValue
+  ): this {
     if (this.status === InterpreterStatus.Running) {
       // Do not restart the service if it is already started
       return this;
@@ -316,28 +319,13 @@ export class Interpreter<
     registry.register(this.sessionId, this.ref);
     this.status = InterpreterStatus.Running;
 
-    let resolvedState;
+    let resolvedState = initialState
+      ? this.behavior.restoreState?.(initialState)
+      : this.initialState;
 
     if (initialState === undefined) {
-      resolvedState = this.initialState;
+      // resolvedState = this.initialState;
     } else {
-      if (isStateConfig(initialState)) {
-        // TODO: fix these types
-        resolvedState = ((this
-          .behavior as unknown) as AnyStateMachine).resolveState(
-          initialState as any
-        );
-      } else {
-        resolvedState = ((this
-          .behavior as unknown) as AnyStateMachine).resolveState(
-          State.from(
-            initialState as any, // TODO: fix type
-            ((this.behavior as unknown) as AnyStateMachine).context,
-            (this.behavior as unknown) as AnyStateMachine
-          )
-        );
-      }
-
       for (const action of resolvedState.actions) {
         execAction(action, resolvedState, this._actorContext);
       }

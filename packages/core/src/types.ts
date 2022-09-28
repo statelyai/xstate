@@ -1879,6 +1879,7 @@ export interface Behavior<
   getInitialState?: (
     actorCtx: ActorContext<TEvent, TSnapshot>
   ) => TInternalState;
+  restoreState?: (restoredState: any) => TInternalState;
   getSnapshot?: (state: TInternalState) => TSnapshot;
   getStatus?: (state: TInternalState) => { status: string; data?: any };
   start?: (actorCtx: ActorContext<TEvent, TSnapshot>) => TInternalState;
