@@ -51,7 +51,6 @@ import type { StateNode } from './StateNode';
 import { isDynamicAction } from '../actions/dynamicAction';
 import {
   ActorContext,
-  AnyActorRef,
   AnyHistoryValue,
   AnyState,
   AnyStateMachine,
