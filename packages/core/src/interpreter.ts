@@ -1,7 +1,6 @@
 import type {
   ActorContext,
   AnyActorRef,
-  AnyState,
   AnyStateMachine,
   Behavior,
   EventFromBehavior,
@@ -14,7 +13,6 @@ import { devToolsAdapter } from './dev';
 import { IS_PRODUCTION } from './environment';
 import { Mailbox } from './Mailbox';
 import { registry } from './registry';
-import { isStateConfig, State } from './State';
 import { AreAllImplementationsAssumedToBeProvided } from './typegenTypes';
 import type { PayloadSender } from './types';
 import {
@@ -30,8 +28,6 @@ import {
   Subscription
 } from './types';
 import {
-  isSCXMLErrorEvent,
-  isStateLike,
   isStateMachine,
   toEventObject,
   toObserver,
@@ -356,44 +352,28 @@ export class Interpreter<
   private _process(event: SCXML.Event<TEvent>) {
     this.forward(event);
 
-    let errored = false;
+    try {
+      const nextState = this.behavior.transition(
+        this._state,
+        event,
+        this._actorContext
+      );
 
-    const snapshot = this.getSnapshot();
+      this.update(nextState);
 
-    // TODO: handle errors
-    if (
-      isStateLike(snapshot) &&
-      isSCXMLErrorEvent(event) &&
-      !(snapshot as AnyState).nextEvents.some(
-        (nextEvent) => nextEvent === event.name
-      )
-    ) {
-      errored = true;
-      // Error event unhandled by machine
+      if (event.name === stopSignalType) {
+        this._stop();
+      }
+    } catch (err) {
+      // TODO: properly handle errors
       if (this.observers.size > 0) {
         this.observers.forEach((observer) => {
-          observer.error?.(event.data.data);
+          observer.error?.(err);
         });
-      } else {
         this.stop();
-
-        // TODO: improve this
-        throw event.data.data;
+      } else {
+        throw err;
       }
-    }
-
-    const nextState = this.behavior.transition(
-      this._state,
-      event,
-      this._actorContext
-    );
-
-    this.update(nextState);
-
-    if (event.name === stopSignalType) {
-      this._stop();
-    } else if (errored) {
-      this.stop();
     }
   }
 

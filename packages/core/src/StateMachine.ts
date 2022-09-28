@@ -40,7 +40,7 @@ import type {
   StateValue,
   Transitions
 } from './types';
-import { isFunction, toSCXMLEvent } from './utils';
+import { isFunction, isSCXMLErrorEvent, toSCXMLEvent } from './utils';
 
 export const NULL_EVENT = '';
 export const STATE_IDENTIFIER = '#';
@@ -259,7 +259,17 @@ export class StateMachine<
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const currentState =
       state instanceof State ? state : this.resolveStateValue(state);
+    // TODO: handle error events in a better way
     const scxmlEvent = toSCXMLEvent(event);
+    if (
+      isSCXMLErrorEvent(scxmlEvent) &&
+      !currentState.nextEvents.some(
+        (nextEvent) => nextEvent === scxmlEvent.name
+      )
+    ) {
+      throw scxmlEvent.data.data;
+    }
+
     const nextState = macrostep(currentState, scxmlEvent, actorCtx);
 
     return nextState;
