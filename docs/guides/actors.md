@@ -207,7 +207,7 @@ Just like [invoking promises](./communication.md#invoking-promises), promises ca
 ```js {11}
 // Returns a promise
 const fetchData = (query) => {
-  return fetch(`http://example.com?query=${event.query}`).then((data) =>
+  return fetch(`http://example.com?query=${query}`).then((data) =>
     data.json()
   );
 };
