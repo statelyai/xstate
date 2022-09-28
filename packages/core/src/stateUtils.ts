@@ -51,6 +51,7 @@ import type { StateNode } from './StateNode';
 import { isDynamicAction } from '../actions/dynamicAction';
 import {
   ActorContext,
+  AnyActorRef,
   AnyHistoryValue,
   AnyState,
   AnyStateMachine,
@@ -1368,8 +1369,7 @@ export function resolveMicroTransition<
 
   const { context, actions: nonRaisedActions } = microstate;
 
-  const children = { ...currentState.children };
-  setChildren();
+  const children = setChildren();
 
   const nextState = microstate.clone({
     value: {}, // TODO: make optional
@@ -1387,6 +1387,7 @@ export function resolveMicroTransition<
   return nextState;
 
   function setChildren() {
+    const children = { ...currentState.children };
     for (const action of nonRaisedActions) {
       if (
         action.type === actionTypes.invoke &&
@@ -1403,6 +1404,7 @@ export function resolveMicroTransition<
         }
       }
     }
+    return children;
   }
 }
 
@@ -1468,7 +1470,6 @@ export function resolveActionsAndContext<
         for (const spawnAction of resolvedActionObject.params.actions) {
           resolveAction(spawnAction);
         }
-        // } else if (executableActionObject.type === actionTypes.invoke) {
       } else {
         const resolvedActionObject = executableActionObject.resolve(
           executableActionObject,

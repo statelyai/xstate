@@ -1,5 +1,6 @@
 import type {
   ActorContext,
+  AnyActorRef,
   AnyState,
   AnyStateMachine,
   Behavior,
@@ -125,7 +126,7 @@ export class Interpreter<
   public sessionId: string;
 
   // TODO: remove
-  public _forwardTo: Set<string> = new Set();
+  public _forwardTo: Set<AnyActorRef> = new Set();
 
   /**
    * Creates a new Interpreter instance (i.e., service) for the given machine with the provided options, if any.
@@ -365,13 +366,13 @@ export class Interpreter<
   }
 
   private _process(event: SCXML.Event<TEvent>) {
-    // TODO: handle errors
     this.forward(event);
 
     let errored = false;
 
     const snapshot = this.getSnapshot();
 
+    // TODO: handle errors
     if (
       isStateLike(snapshot) &&
       isSCXMLErrorEvent(event) &&
@@ -500,21 +501,12 @@ export class Interpreter<
 
   // TODO: remove
   private forward(event: SCXML.Event<TEvent>): void {
-    const snapshot = this.getSnapshot();
-
     // The _forwardTo set will be empty for non-machine actors anyway
-    for (const id of this._forwardTo) {
-      const child = (snapshot as AnyState).children[id];
-
-      if (!child) {
-        throw new Error(
-          `Unable to forward event '${event.name}' from interpreter '${this.id}' to nonexistant child '${id}'.`
-        );
-      }
-
+    for (const child of this._forwardTo) {
       child.send(event);
     }
   }
+
   // TODO: make private (and figure out a way to do this within the machine)
   public defer(sendAction: SendActionObject): void {
     this.delayedEventsMap[sendAction.params.id] = this.clock.setTimeout(() => {

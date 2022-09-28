@@ -117,7 +117,7 @@ function getActionFunction<TState extends AnyState>(
       actorCtx.defer?.((state2) => {
         try {
           if (autoForward) {
-            interpreter._forwardTo.add(id);
+            interpreter._forwardTo.add(ref);
           }
 
           state2.children[id]?.start?.();
