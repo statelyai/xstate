@@ -1840,13 +1840,15 @@ export interface Behavior<
     message: TEvent | LifecycleSignal,
     ctx: ActorContext<TEvent, TSnapshot>
   ) => TInternalState;
-  // TODO: should we only use `getInitialState(...)`?
-  initialState: TInternalState;
-  getInitialState?: (
+  getInitialState: (
+    actorCtx: ActorContext<TEvent, TSnapshot>
+  ) => TInternalState;
+  restoreState?: (
+    restoredState: any,
     actorCtx: ActorContext<TEvent, TSnapshot>
   ) => TInternalState;
   getSnapshot?: (state: TInternalState) => TSnapshot;
-  getStatus?: (state: TInternalState) => string;
+  getStatus?: (state: TInternalState) => { status: string; data?: any };
   start?: (actorCtx: ActorContext<TEvent, TSnapshot>) => TInternalState;
 }
 

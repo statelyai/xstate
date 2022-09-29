@@ -325,7 +325,7 @@ describe('ActorRefFrom', () => {
   it('should return `ActorRef` based on a `Behavior`', () => {
     const behavior: Behavior<{ type: 'TEST' }> = {
       transition: () => {},
-      initialState: undefined
+      getInitialState: () => undefined
     };
 
     function acceptActorRef(actorRef: ActorRefFrom<typeof behavior>) {

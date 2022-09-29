@@ -511,7 +511,7 @@ export function toObserver<T>(
   nextHandler?: Observer<T> | ((value: T) => void),
   errorHandler?: (error: any) => void,
   completionHandler?: () => void
-): Required<Observer<T>> {
+): Observer<T> {
   const noop = () => {};
   const isObserver = typeof nextHandler === 'object';
   const self = isObserver ? nextHandler : null;

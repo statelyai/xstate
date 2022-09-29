@@ -3,7 +3,7 @@ import { initEvent } from './actions';
 import { STATE_DELIMITER } from './constants';
 import { execAction } from './exec';
 import { createSpawner } from './spawn';
-import { State } from './State';
+import { isStateConfig, State } from './State';
 import { StateNode } from './StateNode';
 import {
   getConfiguration,
@@ -39,7 +39,7 @@ import type {
   StateValue,
   Transitions
 } from './types';
-import { isFunction, toSCXMLEvent } from './utils';
+import { isFunction, isSCXMLErrorEvent, toSCXMLEvent } from './utils';
 
 export const NULL_EVENT = '';
 export const STATE_IDENTIFIER = '#';
@@ -258,7 +258,17 @@ export class StateMachine<
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const currentState =
       state instanceof State ? state : this.resolveStateValue(state);
+    // TODO: handle error events in a better way
     const scxmlEvent = toSCXMLEvent(event);
+    if (
+      isSCXMLErrorEvent(scxmlEvent) &&
+      !currentState.nextEvents.some(
+        (nextEvent) => nextEvent === scxmlEvent.name
+      )
+    ) {
+      throw scxmlEvent.data.data;
+    }
+
     const nextState = macrostep(currentState, scxmlEvent, actorCtx);
 
     return nextState;
@@ -387,8 +397,27 @@ export class StateMachine<
     return state as State<TContext, TEvent, TResolvedTypesMeta>;
   }
 
-  public getStatus(state: State<TContext, TEvent, TResolvedTypesMeta>): string {
-    return state.done ? 'done' : 'active';
+  public getStatus(state: State<TContext, TEvent, TResolvedTypesMeta>) {
+    return state.done
+      ? { status: 'done', data: state.output }
+      : { status: 'active' };
+  }
+
+  public restoreState(
+    state: State<TContext, TEvent, TResolvedTypesMeta> | StateValue,
+    actorCtx?: ActorContext<TEvent, State<TContext, TEvent>>
+  ): State<TContext, TEvent, TResolvedTypesMeta> {
+    const restoredState = isStateConfig(state)
+      ? this.resolveState(state as any)
+      : this.resolveState(State.from(state as any, this.context, this));
+
+    if (actorCtx) {
+      for (const action of restoredState.actions) {
+        execAction(action, restoredState, actorCtx);
+      }
+    }
+
+    return restoredState;
   }
 
   /**@deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */

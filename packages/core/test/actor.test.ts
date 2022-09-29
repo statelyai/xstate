@@ -1339,7 +1339,7 @@ describe('actors', () => {
 
           return undefined;
         },
-        initialState: undefined
+        getInitialState: () => undefined
       };
 
       const pingMachine = createMachine<{
