@@ -223,6 +223,46 @@ describe('entry/exit actions', () => {
     }
   });
 
+  const deepMachine2 = createMachine({
+    initial: 'A',
+    id: 'root',
+    predictableActionArguments: true,
+    states: {
+      A: {
+        initial: 'default',
+        entry: 'enter_A',
+        on: {
+          CHANGE_TO_A2: 'A.A2'
+        },
+        states: {
+          default: {
+            entry: 'enter_default'
+          },
+          A1: {
+            entry: 'enter_A1',
+            exit: 'exit_A1',
+            on: {
+              CHANGE_TO_A2A: 'A2.A2a'
+            }
+          },
+          A2: {
+            initial: 'A2a',
+            entry: 'enter_A2',
+            states: {
+              A2a: {
+                entry: 'enter_A2a',
+                exit: 'exit_A2a',
+                on: {
+                  CHANGE_TO_A: '#root.A'
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  });
+
   const parallelMachine2 = Machine({
     initial: 'A',
     states: {
@@ -520,6 +560,28 @@ describe('entry/exit actions', () => {
       expect(
         newLightMachine.transition('red', 'NOTHING').actions.map((a) => a.type)
       ).toEqual(['exit_walk', 'exit_red', 'enter_red', 'enter_walk']);
+    });
+
+    it('should exit current node and enter target node when target is not a descendent or ancestor of current', () => {
+      expect(
+        deepMachine2
+          .transition('A.A1', 'CHANGE_TO_A2A')
+          .actions.map((a) => a.type)
+      ).toEqual(['exit_A1', 'enter_A2', 'enter_A2a']);
+    });
+
+    it('should exit current node and enter target node when target is ancestor of current', () => {
+      expect(
+        deepMachine2
+          .transition('A.A2.A2a', 'CHANGE_TO_A')
+          .actions.map((a) => a.type)
+      ).toEqual(['exit_A2a', 'enter_A', 'enter_default']);
+    });
+
+    it('should enter all descendents when target is a descendent of current', () => {
+      expect(
+        deepMachine2.transition('A', 'CHANGE_TO_A2').actions.map((a) => a.type)
+      ).toEqual(['enter_A', 'enter_A2', 'enter_A2a']);
     });
 
     it('should exit deep descendant during a self-transition', () => {
