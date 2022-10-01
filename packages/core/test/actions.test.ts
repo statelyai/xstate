@@ -624,12 +624,14 @@ describe('entry/exit actions', () => {
           A: {
             initial: 'default',
             entry: () => actual.push('enter_A'),
+            exit: () => actual.push('exit_A'),
             on: {
               CHANGE_TO_A2: 'A.A2'
             },
             states: {
               default: {
-                entry: () => actual.push('enter_default')
+                entry: () => actual.push('enter_default'),
+                exit: () => actual.push('exit_default')
               },
               A1: {
                 entry: () => actual.push('enter_A1'),
@@ -659,7 +661,13 @@ describe('entry/exit actions', () => {
       const service = interpret(machine).start('A');
       service.send('CHANGE_TO_A2');
 
-      expect(actual).toEqual(['enter_A', 'enter_A2', 'enter_A2a']);
+      expect(actual).toEqual([
+        'exit_default',
+        'exit_A',
+        'enter_A',
+        'enter_A2',
+        'enter_A2a'
+      ]);
     });
 
     it('should exit deep descendant during a self-transition', () => {
