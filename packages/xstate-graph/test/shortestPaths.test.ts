@@ -1,8 +1,8 @@
 import { assign, createMachine } from 'xstate';
-import { getShortestPlansTo } from '../src';
-import { machineToBehavior } from '../src/shortestPaths';
+import { getMachineShortestPlansTo } from '../src';
+import { getMachineShortestPlansFromTo } from '../src/shortestPaths';
 
-describe('getShortestPlansTo', () => {
+describe('getMachineShortestPlansTo', () => {
   it('finds the shortest plans to a state without continuing traversal from that state', () => {
     const m = createMachine<{ count: number }>({
       initial: 'a',
@@ -38,20 +38,51 @@ describe('getShortestPlansTo', () => {
       }
     });
 
-    const p = getShortestPlansTo(machineToBehavior(m), (state) =>
-      state.matches('c')
+    const p = getMachineShortestPlansTo(m, (state) => state.matches('c'));
+
+    expect(p).toHaveLength(1);
+    expect(p[0].state.matches('c')).toBeTruthy();
+  });
+});
+
+describe('getMachineShortestPlansFromTo()', () => {
+  it('finds the shortest plans from a state to another state', () => {
+    const m = createMachine<{ count: number }>({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            TO_Y: 'y',
+            TO_B: 'b'
+          }
+        },
+        b: {
+          on: {
+            NEXT_B_TO_X: 'x'
+          }
+        },
+        x: {
+          on: {
+            NEXT_X_TO_Y: 'y'
+          }
+        },
+        y: {}
+      }
+    });
+
+    const plans = getMachineShortestPlansFromTo(
+      m,
+      (state) => state.matches('b'),
+      (state) => state.matches('y')
     );
 
-    expect(
-      p.map((plan) => {
-        return [plan.state.value, plan.paths.length];
-      })
-    ).toMatchInlineSnapshot(`
+    expect(plans).toHaveLength(1);
+    expect(plans[0].paths[0].steps.map((s) => s.event.type))
+      .toMatchInlineSnapshot(`
       Array [
-        Array [
-          "c",
-          1,
-        ],
+        "TO_B",
+        "NEXT_B_TO_X",
+        "NEXT_X_TO_Y",
       ]
     `);
   });

@@ -14,10 +14,12 @@ export {
   getSimplePlansFromTo
 } from './simplePaths';
 export {
-  getMachineShortestPlans,
   getShortestPlans,
+  getMachineShortestPlans,
   getShortestPlansTo,
-  getShortestPlansFromTo
+  getMachineShortestPlansTo,
+  getShortestPlansFromTo,
+  getMachineShortestPlansFromTo
 } from './shortestPaths';
 export { getPathFromEvents } from './pathFromEvents';
 export { getAdjacencyMap } from './adjacency';

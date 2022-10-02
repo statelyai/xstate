@@ -203,3 +203,17 @@ export function joinPaths<TState, TEvent extends EventObject>(
     weight: path1.weight + path2.weight
   };
 }
+
+export function joinPlans<TState, TEvent extends EventObject>(
+  fromPlan: StatePlan<TState, TEvent>,
+  toPlan: StatePlan<TState, TEvent>
+): StatePlan<TState, TEvent> {
+  return {
+    state: toPlan.state,
+    paths: flatten(
+      fromPlan.paths.map((fromPath) => {
+        return toPlan.paths.map((toPath) => joinPaths(fromPath, toPath));
+      })
+    )
+  };
+}

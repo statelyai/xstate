@@ -3,7 +3,6 @@ import {
   SerializedEvent,
   SerializedState,
   SimpleBehavior,
-  StatePath,
   StatePlan,
   StatePlanMap,
   TraversalOptions
@@ -11,10 +10,11 @@ import {
 import {
   resolveTraversalOptions,
   createDefaultMachineOptions,
-  filterPlans
+  filterPlans,
+  joinPlans
 } from './graph';
 import { getAdjacencyMap } from './adjacency';
-import { mapPlansToPaths } from './utils';
+import { flatten } from 'xstate/src/utils';
 
 export function machineToBehavior<TMachine extends AnyStateMachine>(
   machine: TMachine
@@ -24,31 +24,6 @@ export function machineToBehavior<TMachine extends AnyStateMachine>(
       machine.transition(state, event) as StateFrom<TMachine>,
     initialState: machine.initialState as StateFrom<TMachine>
   };
-}
-
-export function getMachineShortestPlans<TMachine extends AnyStateMachine>(
-  machine: TMachine,
-  options?: TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>>
-): Array<StatePlan<StateFrom<TMachine>, EventFrom<TMachine>>> {
-  const resolvedOptions = resolveTraversalOptions(
-    options,
-    createDefaultMachineOptions(machine)
-  );
-
-  return getShortestPlans(
-    {
-      transition: (state, event) => machine.transition(state, event),
-      initialState: machine.initialState
-    },
-    resolvedOptions
-  ) as Array<StatePlan<StateFrom<TMachine>, EventFrom<TMachine>>>;
-}
-
-export function getMachineShortestPaths<TMachine extends AnyStateMachine>(
-  machine: TMachine,
-  options?: TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>>
-): Array<StatePath<StateFrom<TMachine>, EventFrom<TMachine>>> {
-  return mapPlansToPaths(getMachineShortestPlans(machine, options));
 }
 
 export function getShortestPlans<TState, TEvent extends EventObject>(
@@ -153,6 +128,18 @@ export function getShortestPlans<TState, TEvent extends EventObject>(
   return Object.values(statePlanMap);
 }
 
+export function getMachineShortestPlans<TMachine extends AnyStateMachine>(
+  machine: TMachine,
+  options?: TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>>
+): Array<StatePlan<StateFrom<TMachine>, EventFrom<TMachine>>> {
+  const resolvedOptions = resolveTraversalOptions(
+    options,
+    createDefaultMachineOptions(machine)
+  );
+
+  return getShortestPlans(machineToBehavior(machine), resolvedOptions);
+}
+
 export function getShortestPlansTo<TState, TEvent extends EventObject>(
   behavior: SimpleBehavior<TState, TEvent>,
   predicate: (state: TState) => boolean,
@@ -172,19 +159,68 @@ export function getShortestPlansTo<TState, TEvent extends EventObject>(
   return filterPlans(simplePlansMap, predicate);
 }
 
+export function getMachineShortestPlansTo<TMachine extends AnyStateMachine>(
+  machine: TMachine,
+  predicate: (state: StateFrom<TMachine>) => boolean,
+  options?: TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>>
+): Array<StatePlan<StateFrom<TMachine>, EventFrom<TMachine>>> {
+  const resolvedOptions = resolveTraversalOptions(
+    options,
+    createDefaultMachineOptions(machine)
+  );
+
+  return getShortestPlansTo(
+    machineToBehavior(machine),
+    predicate,
+    resolvedOptions
+  );
+}
+
 export function getShortestPlansFromTo<TState, TEvent extends EventObject>(
   behavior: SimpleBehavior<TState, TEvent>,
   fromPredicate: (state: TState) => boolean,
   toPredicate: (state: TState) => boolean,
-  options: TraversalOptions<TState, TEvent>
+  options?: TraversalOptions<TState, TEvent>
 ): Array<StatePlan<TState, TEvent>> {
   const resolvedOptions = resolveTraversalOptions(options);
-  const shortesPlansMap = getShortestPlans(behavior, resolvedOptions);
 
-  // Return all plans that contain a "from" state and target a "to" state
-  return filterPlans(shortesPlansMap, (state, plan) => {
-    return (
-      toPredicate(state) && plan.paths.some((path) => fromPredicate(path.state))
-    );
-  });
+  // First, find all the shortest plans to the "from" state
+  const fromPlans = getShortestPlansTo(
+    behavior,
+    fromPredicate,
+    resolvedOptions
+  );
+
+  // Then from each "from" state, find the paths to the "to" state
+  const fromToPlans = flatten(
+    fromPlans.map((fromPlan) => {
+      const toPlans = getShortestPlansTo(behavior, toPredicate, {
+        ...resolvedOptions,
+        fromState: fromPlan.state
+      });
+
+      return toPlans.map((toPlan) => joinPlans(fromPlan, toPlan));
+    })
+  );
+
+  return fromToPlans;
+}
+
+export function getMachineShortestPlansFromTo<TMachine extends AnyStateMachine>(
+  machine: TMachine,
+  fromPredicate: (state: StateFrom<TMachine>) => boolean,
+  toPredicate: (state: StateFrom<TMachine>) => boolean,
+  options?: TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>>
+): Array<StatePlan<StateFrom<TMachine>, EventFrom<TMachine>>> {
+  const resolvedOptions = resolveTraversalOptions(
+    options,
+    createDefaultMachineOptions(machine)
+  );
+
+  return getShortestPlansFromTo(
+    machineToBehavior(machine),
+    fromPredicate,
+    toPredicate,
+    resolvedOptions
+  );
 }
