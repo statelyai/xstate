@@ -1,4 +1,5 @@
 import type {
+  AnyState,
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
   EventObject,
@@ -12,12 +13,15 @@ import type {
 } from 'xstate';
 
 type StateObject<
-  C,
-  E extends EventObject,
-  S extends StateSchema<C> = any,
-  T extends Typestate<C> = { value: any; context: C },
-  R = TypegenDisabled
-> = State<C, E, S, T, R>;
+  TContext,
+  TEvent extends EventObject = EventObject,
+  TStateSchema extends StateSchema<TContext> = any,
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext },
+  TResolvedTypesMeta = TypegenDisabled
+> = Pick<
+  State<TContext, TEvent, TStateSchema, TTypestate, TResolvedTypesMeta>,
+  keyof AnyState
+>;
 
 export type CheckSnapshot<Snapshot> = Snapshot extends State<
   infer C,
