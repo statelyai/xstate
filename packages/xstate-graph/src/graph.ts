@@ -172,6 +172,7 @@ export function resolveTraversalOptions<TState, TEvent extends EventObject>(
     getEvents: () => [],
     traversalLimit: Infinity,
     fromState: undefined,
+    stopCondition: undefined,
     ...defaultOptions,
     ...traversalOptions
   };

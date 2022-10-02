@@ -16,6 +16,16 @@ import {
 import { getAdjacencyMap } from './adjacency';
 import { mapPlansToPaths } from './utils';
 
+export function machineToBehavior<TMachine extends AnyStateMachine>(
+  machine: TMachine
+): SimpleBehavior<StateFrom<TMachine>, EventFrom<TMachine>> {
+  return {
+    transition: (state, event) =>
+      machine.transition(state, event) as StateFrom<TMachine>,
+    initialState: machine.initialState as StateFrom<TMachine>
+  };
+}
+
 export function getMachineShortestPlans<TMachine extends AnyStateMachine>(
   machine: TMachine,
   options?: TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>>
@@ -79,6 +89,7 @@ export function getShortestPlans<TState, TEvent extends EventObject>(
 
   unvisited.add(initialSerializedState);
   for (const serializedState of unvisited) {
+    const prevState = stateMap.get(serializedState);
     const { weight } = weightMap.get(serializedState)!;
     for (const event of Object.keys(
       adjacency[serializedState].transitions
@@ -86,7 +97,6 @@ export function getShortestPlans<TState, TEvent extends EventObject>(
       const { state: nextState, event: eventObject } = adjacency[
         serializedState
       ].transitions[event];
-      const prevState = stateMap.get(serializedState);
       const nextSerializedState = serializeState(
         nextState,
         eventObject,
@@ -146,9 +156,17 @@ export function getShortestPlans<TState, TEvent extends EventObject>(
 export function getShortestPlansTo<TState, TEvent extends EventObject>(
   behavior: SimpleBehavior<TState, TEvent>,
   predicate: (state: TState) => boolean,
-  options: TraversalOptions<TState, TEvent>
+  options?: TraversalOptions<TState, TEvent>
 ): Array<StatePlan<TState, TEvent>> {
-  const resolvedOptions = resolveTraversalOptions(options);
+  const resolvedOptions = resolveTraversalOptions(
+    {
+      ...options,
+      stopCondition: predicate
+    },
+
+    // @ts-ignore TODO
+    createDefaultMachineOptions(behavior)
+  );
   const simplePlansMap = getShortestPlans(behavior, resolvedOptions);
 
   return filterPlans(simplePlansMap, predicate);

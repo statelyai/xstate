@@ -19,7 +19,7 @@ import {
   joinPaths,
   getShortestPlans,
   getSimplePlans
-} from '../';
+} from '../src';
 import { flatten } from 'xstate/lib/utils';
 
 function getPlansSnapshot(

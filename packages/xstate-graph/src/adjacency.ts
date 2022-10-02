@@ -18,23 +18,22 @@ export function getAdjacencyMap<TState, TEvent extends EventObject>(
     getEvents,
     eventCases,
     traversalLimit: limit,
-    fromState: customInitialState
+    fromState: customInitialState,
+    stopCondition
   } = resolveTraversalOptions(options);
   const fromState = customInitialState ?? behavior.initialState;
   const adj: AdjacencyMap<TState, TEvent> = {};
 
   let iterations = 0;
-  const queue: Array<
-    [
-      nextState: TState,
-      event: TEvent | undefined,
-      prevState: TState | undefined
-    ]
-  > = [[fromState, undefined, undefined]];
+  const queue: Array<{
+    nextState: TState;
+    event: TEvent | undefined;
+    prevState: TState | undefined;
+  }> = [{ nextState: fromState, event: undefined, prevState: undefined }];
   const stateMap = new Map<SerializedState, TState>();
 
   while (queue.length) {
-    const [state, event, prevState] = queue.shift()!;
+    const { nextState: state, event, prevState } = queue.shift()!;
 
     if (iterations++ > limit) {
       throw new Error('Traversal limit exceeded');
@@ -55,6 +54,10 @@ export function getAdjacencyMap<TState, TEvent extends EventObject>(
       transitions: {}
     };
 
+    if (stopCondition && stopCondition(state)) {
+      continue;
+    }
+
     const events = getEvents(state, eventCases);
 
     for (const subEvent of events) {
@@ -67,7 +70,7 @@ export function getAdjacencyMap<TState, TEvent extends EventObject>(
           event: subEvent,
           state: nextState
         };
-        queue.push([nextState, subEvent, state]);
+        queue.push({ nextState, event: subEvent, prevState: state });
       }
     }
   }

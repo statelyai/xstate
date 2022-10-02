@@ -171,7 +171,7 @@ export type TraversalOptions<
   Partial<
     Pick<
       TraversalConfig<TState, TEvent>,
-      'filter' | 'getEvents' | 'traversalLimit' | 'fromState'
+      'filter' | 'getEvents' | 'traversalLimit' | 'fromState' | 'stopCondition'
     >
   >;
 
@@ -190,6 +190,11 @@ export interface TraversalConfig<TState, TEvent extends EventObject>
    */
   traversalLimit: number;
   fromState: TState | undefined;
+  /**
+   * When true, traversal of the adjacency list will stop
+   * for that current state.
+   */
+  stopCondition: ((state: TState) => boolean) | undefined;
 }
 
 export type EventCaseMap<TState, TEvent extends EventObject> = {
