@@ -1,4 +1,9 @@
-import { createMachine, interpret, assign, AnyEventObject } from '../src';
+import {
+  createMachine2 as createMachine,
+  interpret,
+  assign,
+  AnyEventObject
+} from '../src';
 
 const finalMachine = createMachine({
   id: 'final',
@@ -146,7 +151,7 @@ describe('final states', () => {
       revealedSecret?: string;
     }
 
-    const machine = createMachine<Ctx>({
+    const machine = createMachine<{ context: Ctx }>({
       initial: 'secret',
       context: {
         revealedSecret: undefined
@@ -197,7 +202,9 @@ describe('final states', () => {
 
   it("should only call data expression once when entering root's final state", () => {
     const spy = jest.fn();
-    const machine = createMachine({
+    const machine = createMachine<{
+      events: { type: 'FINISH'; value: number };
+    }>({
       initial: 'start',
       states: {
         start: {

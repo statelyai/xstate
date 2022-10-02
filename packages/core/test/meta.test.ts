@@ -1,4 +1,4 @@
-import { createMachine, interpret } from '../src/index';
+import { createMachine2 as createMachine, interpret } from '../src/index';
 
 describe('state meta data', () => {
   const pedestrianStates = {

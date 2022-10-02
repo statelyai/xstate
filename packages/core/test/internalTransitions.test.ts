@@ -1,4 +1,8 @@
-import { createMachine, interpret, assign } from '../src/index';
+import {
+  createMachine2 as createMachine,
+  interpret,
+  assign
+} from '../src/index';
 
 const wordMachine = createMachine({
   type: 'parallel',
@@ -142,9 +146,11 @@ describe('internal transitions', () => {
 
   it('should reenter proper descendants of a source state of an internal transition', () => {
     const machine = createMachine<{
-      sourceStateEntries: number;
-      directDescendantEntries: number;
-      deepDescendantEntries: number;
+      context: {
+        sourceStateEntries: number;
+        directDescendantEntries: number;
+        deepDescendantEntries: number;
+      };
     }>({
       context: {
         sourceStateEntries: 0,
@@ -195,9 +201,11 @@ describe('internal transitions', () => {
 
   it('should exit proper descendants of a source state of an internal transition', () => {
     const machine = createMachine<{
-      sourceStateExits: number;
-      directDescendantExits: number;
-      deepDescendantExits: number;
+      context: {
+        sourceStateExits: number;
+        directDescendantExits: number;
+        deepDescendantExits: number;
+      };
     }>({
       context: {
         sourceStateExits: 0,

@@ -9,8 +9,9 @@ import {
   EventObject,
   StateValue,
   AnyEventObject,
-  createMachine,
-  AnyState
+  createMachine2 as createMachine,
+  AnyState,
+  AnyActorRef
 } from '../src';
 import { State } from '../src/State';
 import { raise } from '../src/actions/raise';
@@ -71,7 +72,7 @@ describe('interpreter', () => {
     it('initially spawned actors should not be spawned when reading initial state', (done) => {
       let promiseSpawned = 0;
 
-      const machine = createMachine({
+      const machine = createMachine<{ context: { actor?: AnyActorRef } }>({
         initial: 'idle',
         context: {
           actor: undefined
@@ -279,10 +280,10 @@ describe('interpreter', () => {
         | { type: 'ACTIVATE'; wait: number }
         | { type: 'FINISH' };
 
-      const delayExprMachine = createMachine<
-        DelayExprMachineCtx,
-        DelayExpMachineEvents
-      >({
+      const delayExprMachine = createMachine<{
+        context: DelayExprMachineCtx;
+        events: DelayExpMachineEvents;
+      }>({
         id: 'delayExpr',
         context: {
           initialDelay: 100
@@ -351,10 +352,10 @@ describe('interpreter', () => {
             type: 'FINISH';
           };
 
-      const delayExprMachine = createMachine<
-        DelayExprMachineCtx,
-        DelayExpMachineEvents
-      >({
+      const delayExprMachine = createMachine<{
+        context: DelayExprMachineCtx;
+        events: DelayExpMachineEvents;
+      }>({
         id: 'delayExpr',
         context: {
           initialDelay: 100
@@ -806,7 +807,7 @@ describe('interpreter', () => {
   it('should be able to log (log action)', () => {
     const logs: any[] = [];
 
-    const logMachine = createMachine<{ count: number }>({
+    const logMachine = createMachine<{ context: { count: number } }>({
       id: 'log',
       initial: 'x',
       context: { count: 0 },
@@ -948,7 +949,7 @@ describe('interpreter', () => {
       type: 'NEXT';
       password: string;
     }
-    const machine = createMachine<Ctx, Events>({
+    const machine = createMachine<{ context: Ctx; events: Events }>({
       id: 'sendexpr',
       initial: 'start',
       context: {
@@ -1026,10 +1027,9 @@ describe('interpreter', () => {
         }
       });
 
-      const parentMachine = createMachine<
-        any,
-        { type: 'NEXT'; password: string }
-      >({
+      const parentMachine = createMachine<{
+        events: { type: 'NEXT'; password: string };
+      }>({
         id: 'parent',
         initial: 'start',
         states: {
@@ -1065,7 +1065,9 @@ describe('interpreter', () => {
   });
 
   describe('.send()', () => {
-    const sendMachine = createMachine({
+    const sendMachine = createMachine<{
+      events: { type: 'EVENT'; id: number } | { type: 'ACTIVATE' };
+    }>({
       id: 'send',
       initial: 'inactive',
       states: {
@@ -1073,7 +1075,7 @@ describe('interpreter', () => {
           on: {
             EVENT: {
               target: 'active',
-              guard: (_: any, e: any) => e.id === 42 // TODO: fix unknown event type
+              guard: (_, e) => e.id === 42
             },
             ACTIVATE: 'active'
           }
@@ -1394,7 +1396,7 @@ describe('interpreter', () => {
 
   describe('observable', () => {
     const context = { count: 0 };
-    const intervalMachine = createMachine<typeof context>({
+    const intervalMachine = createMachine<{ context: typeof context }>({
       id: 'interval',
       context,
       initial: 'active',
@@ -1455,7 +1457,7 @@ describe('interpreter', () => {
 
     it('should be unsubscribable', (done) => {
       const countContext = { count: 0 };
-      const machine = createMachine<typeof countContext>({
+      const machine = createMachine<{ context: typeof countContext }>({
         context: countContext,
         initial: 'active',
         states: {
@@ -1720,7 +1722,9 @@ describe('interpreter', () => {
         }
       });
 
-      const formMachine = createMachine({
+      const formMachine = createMachine<{
+        context: { firstNameRef?: AnyActorRef };
+      }>({
         id: 'form',
         initial: 'idle',
         context: {},
@@ -1748,7 +1752,13 @@ describe('interpreter', () => {
         }
       });
 
-      const parentMachine = createMachine({
+      const parentMachine = createMachine<{
+        context: {
+          machineRef?: AnyActorRef;
+          promiseRef?: AnyActorRef;
+          observableRef?: AnyActorRef;
+        };
+      }>({
         id: 'form',
         initial: 'present',
         context: {},

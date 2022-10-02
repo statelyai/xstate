@@ -9,7 +9,8 @@ import {
   ErrorPlatformEvent,
   DoneEventObject,
   MachineContext,
-  BaseActionObject
+  BaseActionObject,
+  SCXML
 } from './types';
 import * as actionTypes from './actionTypes';
 import { toSCXMLEvent, isArray } from './utils';
@@ -35,7 +36,11 @@ export { raise } from './actions/raise';
 export { choose } from './actions/choose';
 export { actionTypes };
 
-export const initEvent = toSCXMLEvent({ type: actionTypes.init });
+export function createInitEvent(
+  data: any
+): SCXML.Event<{ type: ActionTypes.Init; data: any }> {
+  return toSCXMLEvent({ type: actionTypes.init, data });
+}
 
 export function resolveActionObject(
   actionObject: BaseActionObject,

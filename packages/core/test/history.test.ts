@@ -1,4 +1,4 @@
-import { interpret, createMachine } from '../src/index';
+import { interpret, createMachine2 as createMachine } from '../src/index';
 
 describe('history states', () => {
   const historyMachine = createMachine({

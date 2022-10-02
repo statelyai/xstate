@@ -1,4 +1,4 @@
-import { createMachine, StateValue } from '../../src/index';
+import { createMachine2 as createMachine, StateValue } from '../../src/index';
 import { testMultiTransition } from '../utils';
 
 describe('Example 6.17', () => {

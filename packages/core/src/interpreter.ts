@@ -1,10 +1,12 @@
 import type {
   ActorContext,
   AnyActorRef,
+  AnyBehavior,
   AnyStateMachine,
   Behavior,
   EventFromBehavior,
   InterpreterFrom,
+  IsNever,
   SnapshotFrom
 } from './types';
 import { stopSignalType } from './actors';
@@ -12,7 +14,6 @@ import { devToolsAdapter } from './dev';
 import { IS_PRODUCTION } from './environment';
 import { Mailbox } from './Mailbox';
 import { registry } from './registry';
-import { AreAllImplementationsAssumedToBeProvided } from './typegenTypes';
 import type { PayloadSender } from './types';
 import {
   ActorRef,
@@ -29,6 +30,7 @@ import {
 import { toEventObject, toObserver, toSCXMLEvent, warn } from './utils';
 import { symbolObservable } from './symbolObservable';
 import { evict, memo } from './memo';
+import { GetValidityErrors } from './createTypes';
 
 export type SnapshotListener<TBehavior extends Behavior<any, any>> = (
   state: SnapshotFrom<TBehavior>
@@ -476,6 +478,12 @@ export class Interpreter<
   }
 }
 
+type BehaviorIfValid<TBehavior extends AnyBehavior> = IsNever<
+  GetValidityErrors<TBehavior>
+> extends true
+  ? TBehavior
+  : GetValidityErrors<TBehavior>;
+
 /**
  * Creates a new Interpreter instance for the given machine with the provided options, if any.
  *
@@ -483,15 +491,11 @@ export class Interpreter<
  * @param options Interpreter options
  */
 export function interpret<TMachine extends AnyStateMachine>(
-  machine: AreAllImplementationsAssumedToBeProvided<
-    TMachine['__TResolvedTypesMeta']
-  > extends true
-    ? TMachine
-    : 'Some implementations missing',
+  machine: BehaviorIfValid<TMachine>,
   options?: InterpreterOptions
 ): InterpreterFrom<TMachine>;
 export function interpret<TBehavior extends Behavior<any, any>>(
-  behavior: TBehavior,
+  behavior: BehaviorIfValid<TBehavior>,
   options?: InterpreterOptions
 ): Interpreter<TBehavior>;
 export function interpret(behavior: any, options?: InterpreterOptions): any {

@@ -1,4 +1,8 @@
-import { interpret, createMachine, assign } from '../src/index';
+import {
+  interpret,
+  createMachine2 as createMachine,
+  assign
+} from '../src/index';
 import { State } from '../src/State';
 
 const pedestrianStates = {
@@ -473,7 +477,7 @@ describe('machine', () => {
 
   describe('combinatorial machines', () => {
     it('should support combinatorial machines (single-state)', () => {
-      const testMachine = createMachine<{ value: number }>({
+      const testMachine = createMachine<{ context: { value: number } }>({
         context: { value: 42 },
         on: {
           INC: {

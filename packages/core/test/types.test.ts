@@ -1,9 +1,10 @@
 import { from } from 'rxjs';
 import { raise } from '../src/actions/raise';
+import { fromPromise } from '../src/actors';
 import {
   ActorRefFrom,
   assign,
-  createMachine,
+  createMachine2,
   interpret,
   MachineContext,
   Spawner,
@@ -24,7 +25,10 @@ describe('StateSchema', () => {
     elapsed: number;
   }
 
-  const lightMachine = createMachine<LightContext, LightEvent>({
+  const lightMachine = createMachine2<{
+    context: LightContext;
+    events: LightEvent;
+  }>({
     initial: 'green',
     meta: { interval: 1000 },
     context: { elapsed: 0 },
@@ -94,7 +98,10 @@ describe('Parallel StateSchema', () => {
     elapsed: number;
   }
 
-  const parallelMachine = createMachine<ParallelContext, ParallelEvent>({
+  const parallelMachine = createMachine2<{
+    context: ParallelContext;
+    events: ParallelEvent;
+  }>({
     type: 'parallel',
     states: {
       foo: {},
@@ -125,7 +132,10 @@ describe('Nested parallel stateSchema', () => {
     lastDate: Date;
   }
 
-  const nestedParallelMachine = createMachine<ParallelContext, ParallelEvent>({
+  const nestedParallelMachine = createMachine2<{
+    context: ParallelContext;
+    events: ParallelEvent;
+  }>({
     initial: 'foo',
     states: {
       foo: {},
@@ -175,7 +185,10 @@ describe('Raise events', () => {
 
     const greetingContext: GreetingContext = { hour: 10 };
 
-    const raiseGreetingMachine = createMachine<GreetingContext, GreetingEvent>({
+    const raiseGreetingMachine = createMachine2<{
+      context: GreetingContext;
+      events: GreetingEvent;
+    }>({
       context: greetingContext,
       initial: 'pending',
       states: {
@@ -229,7 +242,7 @@ describe('Raise events', () => {
 
 describe('types', () => {
   it('defined context in createMachine() should be an object', () => {
-    createMachine({
+    createMachine2({
       // @ts-expect-error
       context: 'string'
     });
@@ -237,8 +250,9 @@ describe('types', () => {
 });
 
 describe('context', () => {
-  it('should infer context type from `config.context` when there is no `schema.context`', () => {
-    createMachine(
+  // TODO: how would we do context inference here, if that is even desirable?
+  it.skip('should infer context type from `config.context` when there is no `schema.context`', () => {
+    createMachine2(
       {
         context: {
           foo: 'test'
@@ -248,7 +262,7 @@ describe('context', () => {
         actions: {
           someAction: (ctx) => {
             ((_accept: string) => {})(ctx.foo);
-            // @ts-expect-error
+            // @x-ts-expect-error
             ((_accept: number) => {})(ctx.foo);
           }
         }
@@ -257,9 +271,9 @@ describe('context', () => {
   });
 
   it('should not use actions as possible inference sites', () => {
-    createMachine(
+    createMachine2(
       {
-        schema: {
+        types: {
           context: {} as {
             count: number;
           }
@@ -281,16 +295,16 @@ describe('context', () => {
   it('should work with generic context', () => {
     function createMachineWithExtras<TContext extends MachineContext>(
       context: TContext
-    ): StateMachine<TContext, any, any> {
-      return createMachine({ context });
+    ) {
+      return createMachine2({ context: context });
     }
 
     createMachineWithExtras({ counter: 42 });
   });
 
   it('should not widen literal types defined in `schema.context` based on `config.context`', () => {
-    createMachine({
-      schema: {
+    createMachine2({
+      types: {
         context: {} as {
           literalTest: 'foo' | 'bar';
         }
@@ -305,8 +319,8 @@ describe('context', () => {
 
 describe('events', () => {
   it('should not use actions as possible inference sites 1', () => {
-    const machine = createMachine({
-      schema: {
+    const machine = createMachine2({
+      types: {
         events: {} as {
           type: 'FOO';
         }
@@ -322,8 +336,8 @@ describe('events', () => {
   });
 
   it('should not use actions as possible inference sites 2', () => {
-    const machine = createMachine({
-      schema: {
+    const machine = createMachine2({
+      types: {
         events: {} as {
           type: 'FOO';
         }
@@ -339,26 +353,26 @@ describe('events', () => {
   });
 
   it('event type should be inferrable from a simple state machine typr', () => {
-    const toggleMachine = createMachine<
-      {
+    const toggleMachine = createMachine2<{
+      context: {
         count: number;
-      },
-      {
+      };
+      events: {
         type: 'TOGGLE';
-      }
-    >({});
+      };
+    }>({});
 
     function acceptMachine<
       TContext extends {},
       TEvent extends { type: string }
-    >(_machine: StateMachine<TContext, any, TEvent>) {}
+    >(_machine: StateMachine<TContext, TEvent>) {}
 
     acceptMachine(toggleMachine);
   });
 
   it('should infer inline function parameters when narrowing transition actions based on the event type', () => {
-    createMachine({
-      schema: {
+    createMachine2({
+      types: {
         context: {} as {
           count: number;
         },
@@ -382,8 +396,8 @@ describe('events', () => {
   });
 
   it('should infer inline function parameters when for a wildcard transition', () => {
-    createMachine({
-      schema: {
+    createMachine2({
+      types: {
         context: {} as {
           count: number;
         },
@@ -408,31 +422,28 @@ describe('events', () => {
   });
 
   it('action objects used within implementations parameter should get access to the provided event type', () => {
-    createMachine(
-      {
-        schema: {
-          context: {} as { numbers: number[] },
-          events: {} as { type: 'ADD'; number: number }
-        }
-      },
-      {
-        actions: {
-          addNumber: assign({
-            numbers: (context, event) => {
-              ((_accept: number) => {})(event.number);
-              // @ts-expect-error
-              ((_accept: string) => {})(event.number);
-              return context.numbers.concat(event.number);
-            }
-          })
-        }
+    createMachine2({
+      types: {
+        context: {} as { numbers: number[] },
+        events: {} as { type: 'ADD'; number: number }
       }
-    );
+    }).provide({
+      actions: {
+        addNumber: assign({
+          numbers: (context, event) => {
+            ((_accept: number) => {})(event.number);
+            // @ts-expect-error
+            ((_accept: string) => {})(event.number);
+            return context.numbers.concat(event.number);
+          }
+        })
+      }
+    });
   });
 
   it('should provide the default TEvent to transition actions when there is no specific TEvent configured', () => {
-    createMachine({
-      schema: {
+    createMachine2({
+      types: {
         context: {} as {
           count: number;
         }
@@ -451,8 +462,8 @@ describe('events', () => {
 describe('interpreter', () => {
   it('should be convertable to Rx observable', () => {
     const s = interpret(
-      createMachine({
-        schema: {
+      createMachine2({
+        types: {
           context: {} as { count: number }
         }
       })
@@ -469,7 +480,7 @@ describe('interpreter', () => {
 
 describe('spawn', () => {
   it('spawned actor ref should be compatible with the result of ActorRefFrom', () => {
-    const createChild = () => createMachine({});
+    const createChild = () => createMachine2({});
 
     function createParent(_deps: {
       spawnChild: (spawn: Spawner) => ActorRefFrom<typeof createChild>;
@@ -477,6 +488,93 @@ describe('spawn', () => {
 
     createParent({
       spawnChild: (spawn: Spawner) => spawn(createChild())
+    });
+  });
+});
+
+describe('createMachine', () => {
+  it('should type implementations correctly', () => {
+    createMachine2<{
+      events: { type: 'foo' };
+      actions: { type: 'greet' };
+      guards: { type: 'isValid'; params: {} }; // TODO: make params optional
+      actors:
+        | {
+            src: 'notifier';
+            data: string | undefined;
+          }
+        | {
+            src: 'notifier2';
+            data: string | undefined;
+          };
+      delays: {
+        timeout: number;
+      };
+      input: {
+        message: string;
+      };
+    }>(
+      {},
+      {
+        actions: {
+          greet: () => {},
+          // @ts-expect-error
+          nonexistant: () => {}
+        },
+        delays: {
+          timeout: 234,
+          // @ts-expect-error
+          other: 123
+        },
+        guards: {
+          isValid: () => true,
+          // @ts-expect-error
+          nonexistant: () => false
+        },
+        actors: {
+          notifier: () => fromPromise(() => Promise.resolve('test')),
+          // @ts-expect-error
+          notifier2: () => fromPromise(() => Promise.resolve(42)),
+          // @ TODO: this should be an error
+          nonexistant: () => fromPromise(() => Promise.resolve(42))
+        },
+        input: {
+          message: 'asdf',
+          // @ts-expect-error
+          other: 42
+        }
+      }
+    );
+  });
+});
+
+describe('state.children', () => {
+  it('should type state children correctly', () => {
+    const machine = createMachine2({
+      types: {
+        children: {} as { id: 'foo'; snapshot: number }
+      }
+    });
+
+    machine.initialState.children.foo;
+
+    // @ts-expect-error
+    machine.initialState.children.bar;
+
+    const state = machine.transition(machine.initialState, {
+      type: 'anyEvent'
+    });
+
+    state.children.foo;
+
+    // @ts-expect-error
+    state.children.bar;
+
+    interpret(machine).subscribe((state) => {
+      state.children.foo;
+
+      // @ts-expect-error
+      state.children.bar;
     });
   });
 });

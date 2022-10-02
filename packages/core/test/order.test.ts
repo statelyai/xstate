@@ -1,4 +1,4 @@
-import { createMachine, StateNode } from '../src';
+import { createMachine2 as createMachine, StateNode } from '../src';
 import { flatten } from '../src/utils';
 
 describe('document order', () => {

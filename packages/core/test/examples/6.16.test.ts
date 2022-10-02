@@ -1,5 +1,5 @@
 import { stateIn } from '../../src/guards';
-import { createMachine, StateValue } from '../../src/index';
+import { createMachine2 as createMachine, StateValue } from '../../src/index';
 import { testAll } from '../utils';
 
 describe('Example 6.16', () => {

@@ -8,8 +8,10 @@ import {
   ResolveTypegenMeta,
   TypegenConstraint,
   MarkAllImplementationsAsProvided,
-  AreAllImplementationsAssumedToBeProvided
+  AreAllImplementationsAssumedToBeProvided,
+  TypegenMeta
 } from './typegenTypes';
+import { MachineTypes, PartialMachineTypes } from './createTypes';
 
 export type AnyFunction = (...args: any[]) => any;
 
@@ -44,6 +46,22 @@ export type MetaObject = Record<string, any>;
 
 export type Lazy<T> = () => T;
 export type MaybeLazy<T> = T | Lazy<T>;
+
+export type Get<T, TProps, TDefault = undefined> = TProps extends any[]
+  ? _Get<T, TProps, TDefault>
+  : _Get<T, [TProps], TDefault>;
+type _Get<T, P, F> = P extends []
+  ? T extends undefined
+    ? F
+    : T
+  : P extends [infer K1, ...infer Kr]
+  ? K1 extends keyof T
+    ? _Get<T[K1], Kr, F>
+    : F
+  : never;
+export type Entries<T> = {
+  [K in keyof T]: [K, T[K]];
+}[keyof T][];
 
 /**
  * The full definition of an event, with a string `type`.
@@ -268,6 +286,13 @@ export interface GuardDefinition<
   type: string;
   children?: Array<GuardDefinition<TContext, TEvent>>;
   predicate?: GuardPredicate<TContext, TEvent>;
+  params: { [key: string]: any };
+}
+
+export interface BaseGuardDefinition {
+  type: string;
+  children?: Array<BaseGuardDefinition>;
+  predicate?: any;
   params: { [key: string]: any };
 }
 
@@ -583,7 +608,11 @@ export interface InvokeConfig<
    *
    * Data should be mapped to match the child machine's context shape.
    */
-  data?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
+  // TODO: deprecate?
+  // data?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
+  data?:
+    | Mapper<TContext, TEvent, any>
+    | Record<string, any | ((context: TContext, event: TEvent) => any)>;
   /**
    * The transition to take upon the invoked child machine reaching its final top-level state.
    */
@@ -611,6 +640,121 @@ export interface StateNodeConfig<
   TEvent extends EventObject,
   TAction extends BaseActionObject = BaseActionObject
 > {
+  /**
+   * The initial state transition.
+   */
+  initial?:
+    | InitialTransitionConfig<TContext, TEvent>
+    | SingleOrArray<string>
+    | undefined;
+  /**
+   * The type of this state node:
+   *
+   *  - `'atomic'` - no child state nodes
+   *  - `'compound'` - nested child state nodes (XOR)
+   *  - `'parallel'` - orthogonal nested child state nodes (AND)
+   *  - `'history'` - history state node
+   *  - `'final'` - final state node
+   */
+  type?: 'atomic' | 'compound' | 'parallel' | 'final' | 'history';
+  /**
+   * Indicates whether the state node is a history state node, and what
+   * type of history:
+   * shallow, deep, true (shallow), false (none), undefined (none)
+   */
+  history?: 'shallow' | 'deep' | boolean | undefined;
+  /**
+   * The mapping of state node keys to their state node configurations (recursive).
+   */
+  states?: StatesConfig<TContext, TEvent, TAction> | undefined;
+  /**
+   * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
+   */
+  invoke?: SingleOrArray<
+    string | BehaviorCreator<TContext, TEvent> | InvokeConfig<TContext, TEvent>
+  >;
+  /**
+   * The mapping of event types to their potential transition(s).
+   */
+  on?: TransitionsConfig<TContext, TEvent>;
+  /**
+   * The action(s) to be executed upon entering the state node.
+   */
+  entry?: BaseActions<TContext, TEvent, TAction>;
+  /**
+   * The action(s) to be executed upon exiting the state node.
+   */
+  exit?: BaseActions<TContext, TEvent, TAction>;
+  /**
+   * The potential transition(s) to be taken upon reaching a final child state node.
+   *
+   * This is equivalent to defining a `[done(id)]` transition on this state node's `on` property.
+   */
+  onDone?:
+    | string
+    | SingleOrArray<TransitionConfig<TContext, DoneEventObject>>
+    | undefined;
+  /**
+   * The mapping (or array) of delays (in milliseconds) to their potential transition(s).
+   * The delayed transitions are taken after the specified delay in an interpreter.
+   */
+  after?: DelayedTransitions<TContext, TEvent>;
+
+  /**
+   * An eventless transition that is always taken when this state node is active.
+   */
+  always?: TransitionConfigOrTarget<TContext, TEvent>;
+  /**
+   * @private
+   */
+  parent?: StateNode<TContext, TEvent>;
+  strict?: boolean | undefined;
+  /**
+   * The meta data associated with this state node, which will be returned in State instances.
+   */
+  meta?: any;
+  /**
+   * The data sent with the "done.state._id_" event if this is a final state node.
+   *
+   * The data will be evaluated with the current `context` and placed on the `.data` property
+   * of the event.
+   */
+  data?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
+  /**
+   * The unique ID of the state node, which can be referenced as a transition target via the
+   * `#id` syntax.
+   */
+  id?: string | undefined;
+  /**
+   * The string delimiter for serializing the path to a string. The default is "."
+   */
+  delimiter?: string;
+  /**
+   * The order this state node appears. Corresponds to the implicit SCXML document order.
+   */
+  order?: number;
+
+  /**
+   * The tags for this state node, which are accumulated into the `state.tags` property.
+   */
+  tags?: SingleOrArray<string>;
+  /**
+   * A text description of the state node
+   */
+  description?: string;
+}
+
+export interface StateNodeConfig2<
+  TTypes extends MachineTypes<any>,
+  TContext extends MachineContext = TTypes['context'],
+  TEvent extends EventObject = TTypes['events'],
+  TAction extends BaseActionObject = BaseActionObject
+> {
+  /**
+   * The relative key of the state node, which represents its location in the overall state value.
+   * This is automatically determined by the configuration shape via the key where it was defined.
+   */
+  key?: string;
   /**
    * The initial state transition.
    */
@@ -818,7 +962,8 @@ export interface MachineImplementationsSimplified<
   actions: ActionFunctionMap<TContext, TEvent, TAction>;
   actors: Record<string, BehaviorCreator<TContext, TEvent> | AnyBehavior>;
   delays: DelayFunctionMap<TContext, TEvent>;
-  context: Partial<TContext> | ContextFactory<Partial<TContext>>;
+  context: Partial<TContext> | ContextFactory<Partial<TContext>, any>;
+  input: any;
 }
 
 type MachineImplementationsActions<
@@ -1001,6 +1146,35 @@ export type InternalMachineImplementations<
     TMissingImplementations
   >;
 
+export interface MachineImplementations2<TTypes extends MachineTypes<any>> {
+  actions?: {
+    [K in TTypes['actions']['type']]?:
+      | BaseDynamicActionObject<TTypes['context'], TTypes['events'], any, any>
+      | ActionFunction<TTypes['context'], TTypes['events'], BaseActionObject>;
+  };
+  guards?: {
+    [K in TTypes['guards']['type']]?: GuardPredicate<
+      TTypes['context'],
+      TTypes['events']
+    >;
+  };
+  actors?: {
+    [K in TTypes['actors']['src']]?: BehaviorCreator<
+      TTypes['context'],
+      TTypes['events'],
+      (TTypes['actors'] & { src: K })['data']
+    >;
+  };
+  delays?: {
+    [K in keyof TTypes['delays']]?: DelayConfig<
+      TTypes['context'],
+      TTypes['events']
+    >;
+  };
+  // TODO: autocomplete not working here, but it is strongly typed
+  input?: TTypes['input'];
+}
+
 export type MachineImplementations<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -1013,25 +1187,28 @@ export type MachineImplementations<
   ResolveTypegenMeta<TTypesMeta, TEvent, TAction, TActorMap>
 >;
 
-type InitialContext<TContext extends MachineContext> =
-  | TContext
-  | ContextFactory<TContext>;
+type InitialContext<
+  TContext extends MachineContext,
+  TTypes extends MachineTypes<any>
+> = TContext | ContextFactory<TContext, TTypes>;
 
-export type ContextFactory<TContext extends MachineContext> = (stuff: {
-  spawn: Spawner;
-}) => TContext;
+export type ContextFactory<
+  TContext extends MachineContext,
+  TTypes extends MachineTypes<any>
+> = (stuff: { spawn: Spawner; input: TTypes['input'] }) => TContext;
 
 export interface MachineConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TAction extends BaseActionObject = BaseActionObject,
   TActorMap extends ActorMap = ActorMap,
-  TTypesMeta = TypegenDisabled
+  TTypesMeta = TypegenDisabled,
+  TTypes extends MachineTypes<any> = MachineTypes<any>
 > extends StateNodeConfig<NoInfer<TContext>, NoInfer<TEvent>, TAction> {
   /**
    * The initial context (extended state)
    */
-  context?: InitialContext<LowInfer<TContext>>;
+  context?: InitialContext<LowInfer<TContext>, TTypes>;
   /**
    * The machine's own version.
    */
@@ -1044,7 +1221,60 @@ export interface MachineConfig<
   tsTypes?: TTypesMeta;
 }
 
-export type ActorMap = Record<string, { data: any }>;
+export type MachineConfig2<
+  TPartialTypes extends PartialMachineTypes = {},
+  TTypes extends MachineTypes<TPartialTypes> = MachineTypes<TPartialTypes>,
+  TContext extends MachineContext = TTypes['context'],
+  TEvent extends EventObject = TTypes['allEvents'],
+  TAction extends BaseActionObject = TTypes['actions'],
+  TTypesMeta extends TypegenMeta | TypegenDisabled = TypegenDisabled
+> = {
+  /**
+   * The initial context (extended state)
+   */
+  context?: InitialContext<LowInfer<TContext>, TTypes>;
+  /**
+   * The machine's own version.
+   */
+  version?: string;
+  /**
+   * If `true`, will use SCXML semantics, such as event token matching.
+   */
+  scxml?: boolean;
+  schema?: MachineSchema<TContext, TEvent, any>;
+  types?: TPartialTypes;
+  tsTypes?: TTypesMeta;
+  entry?: BaseActions<
+    TContext,
+    Extract<TEvent, { type: 'xstate.init' }>,
+    TAction
+  >;
+  initial?:
+    | InitialTransitionConfig<
+        TContext,
+        Extract<TEvent, { type: 'xstate.init' }>
+      >
+    | SingleOrArray<string>
+    | undefined;
+  type?: 'compound' | 'parallel' | 'atomic';
+} & Pick<
+  StateNodeConfig<NoInfer<TContext>, NoInfer<TEvent>, TAction>,
+  | 'states'
+  | 'invoke'
+  | 'on'
+  | 'exit'
+  | 'onDone'
+  | 'after'
+  | 'always'
+  | 'meta'
+  | 'data'
+  | 'id'
+  | 'tags'
+  | 'description'
+>;
+
+export type ActorMap = Record<string, { data?: any; snapshot?: any }>;
+
 export interface MachineSchema<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -1386,7 +1616,9 @@ export interface DynamicPureActionObject<
     get: (
       context: TContext,
       event: TEvent
-    ) => SingleOrArray<BaseActionObject> | undefined;
+    ) =>
+      | SingleOrArray<BaseAction<TContext, TEvent, BaseActionObject>>
+      | undefined;
   };
 }
 
@@ -1797,13 +2029,14 @@ export type InterpreterFrom<
   infer TEvent,
   any,
   any,
-  infer TResolvedTypesMeta
+  infer TResolvedTypesMeta,
+  infer TTypes
 >
   ? Interpreter<
       Behavior<
         TEvent,
-        State<TContext, TEvent, TResolvedTypesMeta>,
-        State<TContext, TEvent, TResolvedTypesMeta>
+        State<TContext, TEvent, TResolvedTypesMeta, TTypes>,
+        State<TContext, TEvent, TResolvedTypesMeta, TTypes>
       >
     >
   : never;

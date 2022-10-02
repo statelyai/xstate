@@ -1,4 +1,4 @@
-import { createMachine, interpret } from '../src';
+import { createMachine2 as createMachine, interpret } from '../src';
 import { after, actionTypes } from '../src/actions';
 
 const lightMachine = createMachine({
@@ -141,7 +141,7 @@ describe('delayed transitions', () => {
   it('should defer a single send event for a delayed transition with multiple conditions (#886)', () => {
     type Events = { type: 'FOO' };
 
-    const machine = createMachine<{}, Events>({
+    const machine = createMachine<{ events: Events }>({
       initial: 'X',
       states: {
         X: {
@@ -232,7 +232,10 @@ describe('delayed transitions', () => {
     type Events =
       | { type: 'ACTIVATE'; delay: number }
       | { type: 'NOEXPR'; delay: number };
-    const delayExprMachine = createMachine<{ delay: number }, Events>(
+    const delayExprMachine = createMachine<{
+      context: { delay: number };
+      events: Events;
+    }>(
       {
         id: 'delayExpr',
         initial: 'inactive',
@@ -272,7 +275,7 @@ describe('delayed transitions', () => {
       },
       {
         delays: {
-          someDelay: (ctx, event) => ctx.delay + (event as any).delay
+          someDelay: (ctx, event) => ctx.delay + event.delay
         }
       }
     );

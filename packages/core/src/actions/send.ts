@@ -192,7 +192,7 @@ export function forwardTo<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  target: Required<SendActionParams<TContext, TEvent>>['to'],
+  target: SendActionParams<TContext, TEvent>['to'],
   options?: SendActionOptions<TContext, TEvent>
 ) {
   if (

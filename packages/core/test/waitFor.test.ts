@@ -1,5 +1,5 @@
 import { interpret } from '../src';
-import { createMachine } from '../src';
+import { createMachine2 as createMachine } from '../src';
 import { waitFor } from '../src/waitFor';
 
 describe('waitFor', () => {

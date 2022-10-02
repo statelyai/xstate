@@ -16,7 +16,11 @@ export function pure<
   getActions: (
     context: TContext,
     event: TEvent
-  ) => SingleOrArray<BaseActionObject> | undefined
+  ) =>
+    | SingleOrArray<
+        BaseDynamicActionObject<TContext, TEvent, any, any> | BaseActionObject
+      >
+    | undefined
 ): BaseDynamicActionObject<
   TContext,
   TEvent,

@@ -1,5 +1,5 @@
 import { toggle, sequence } from '../src/patterns';
-import { createMachine } from '../src';
+import { createMachine2 as createMachine } from '../src';
 
 describe('patterns', () => {
   describe('toggle pattern', () => {

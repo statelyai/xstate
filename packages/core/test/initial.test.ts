@@ -1,4 +1,4 @@
-import { interpret, createMachine } from '../src';
+import { interpret, createMachine2 as createMachine } from '../src';
 
 const config = {
   initial: 'a',

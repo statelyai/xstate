@@ -1,6 +1,6 @@
 import { fromCallback } from '../src/actors';
 import { stateIn } from '../src/guards';
-import { interpret, createMachine } from '../src/index';
+import { interpret, createMachine2 as createMachine } from '../src/index';
 
 // TODO: remove this file but before doing that ensure that things tested here are covered by other tests
 

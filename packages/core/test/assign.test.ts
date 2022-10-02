@@ -1,5 +1,11 @@
-import { interpret, assign, send, sendParent, createMachine } from '../src';
-import { ActorRef } from '../src/types';
+import {
+  interpret,
+  assign,
+  send,
+  sendParent,
+  createMachine2 as createMachine,
+  AnyActorRef
+} from '../src';
 
 interface CounterContext {
   count: number;
@@ -8,7 +14,7 @@ interface CounterContext {
 }
 
 const createCounterMachine = (context: Partial<CounterContext> = {}) =>
-  createMachine<CounterContext>({
+  createMachine<{ context: CounterContext }>({
     initial: 'counting',
     context: { count: 0, foo: 'bar', ...context },
     states: {
@@ -230,10 +236,10 @@ describe('assign', () => {
   });
 
   it('can assign from event', () => {
-    const machine = createMachine<
-      { count: number },
-      { type: 'INC'; value: number }
-    >({
+    const machine = createMachine<{
+      context: { count: number };
+      events: { type: 'INC'; value: number };
+    }>({
       initial: 'active',
       context: {
         count: 0
@@ -258,7 +264,7 @@ describe('assign', () => {
 });
 
 describe('assign meta', () => {
-  const machine = createMachine<{ count: number }>({
+  const machine = createMachine<{ context: { count: number } }>({
     id: 'assign',
     initial: 'start',
     context: { count: 0 },
@@ -324,7 +330,7 @@ describe('assign meta', () => {
   it('should provide the pre-initial state when executing initial state actions', () => {
     let receivedCount = Infinity;
 
-    const machine = createMachine<{ count: number }>({
+    const machine = createMachine<{ context: { count: number } }>({
       id: 'assign',
       initial: 'start',
       context: { count: 101 },
@@ -347,7 +353,7 @@ describe('assign meta', () => {
 
   it('should provide meta._event to assigner', () => {
     interface Ctx {
-      eventLog: Array<{ event: string; origin?: ActorRef<any> }>;
+      eventLog: Array<{ event: string; origin?: AnyActorRef }>;
     }
 
     const assignEventLog = assign<Ctx>((ctx, event, meta) => ({
@@ -369,7 +375,7 @@ describe('assign meta', () => {
       }
     });
 
-    const parentMachine = createMachine<Ctx>({
+    const parentMachine = createMachine<{ context: Ctx }>({
       initial: 'foo',
       context: {
         eventLog: []

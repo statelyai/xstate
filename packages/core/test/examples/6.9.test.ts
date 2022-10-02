@@ -1,4 +1,4 @@
-import { createMachine } from '../../src/index';
+import { createMachine2 as createMachine } from '../../src/index';
 import { testAll } from '../utils';
 
 describe('Example 6.9', () => {

@@ -1,4 +1,8 @@
-import { interpret, DevToolsAdapter, createMachine } from '../src';
+import {
+  interpret,
+  DevToolsAdapter,
+  createMachine2 as createMachine
+} from '../src';
 
 describe('devTools', () => {
   it('should register services with a custom devTools adapter', (done) => {

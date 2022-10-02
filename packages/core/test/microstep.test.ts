@@ -1,4 +1,4 @@
-import { createMachine } from '../src';
+import { createMachine2 as createMachine } from '../src';
 import { raise } from '../src/actions/raise';
 
 describe('machine.microstep()', () => {

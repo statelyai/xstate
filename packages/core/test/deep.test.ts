@@ -1,4 +1,4 @@
-import { createMachine } from '../src/index';
+import { createMachine2 as createMachine } from '../src/index';
 
 describe('deep transitions', () => {
   const deepMachine = createMachine({

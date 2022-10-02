@@ -1,4 +1,9 @@
-import { createMachine, sendParent, interpret, assign } from '../src';
+import {
+  createMachine2 as createMachine,
+  sendParent,
+  interpret,
+  assign
+} from '../src';
 import { respond } from '../src/actions';
 import { send } from '../src/actions/send';
 import { fromCallback } from '../src/actors';
@@ -25,7 +30,7 @@ describe('SCXML events', () => {
           on: {
             EVENT: {
               target: 'success',
-              guard: (_: any, __: any, { _event }: any) => {
+              guard: (_, __, { _event }) => {
                 return !!_event.origin;
               }
             }
@@ -43,7 +48,7 @@ describe('SCXML events', () => {
   });
 
   it('should have the origin (id) from the sending callback service', (done) => {
-    const machine = createMachine<{ childOrigin?: string }>({
+    const machine = createMachine<{ context: { childOrigin?: string } }>({
       initial: 'active',
       context: {},
       states: {
@@ -139,7 +144,10 @@ interface ChangePassword {
   password: string;
 }
 
-const authMachine = createMachine<SignInContext, ChangePassword>(
+const authMachine = createMachine<{
+  context: SignInContext;
+  events: ChangePassword;
+}>(
   {
     context: { email: '', password: '' },
     initial: 'passwordField',
