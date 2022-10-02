@@ -102,7 +102,7 @@ A [React hook](https://reactjs.org/hooks) that subscribes to emitted changes fro
 
 - `actor` - an actor-like object that contains `.send(...)` and `.subscribe(...)` methods.
 - `getSnapshot` - a function that should return the latest emitted value from the `actor`.
-  - Defaults to attempting to get the `actor.state`, or returning `undefined` if that does not exist.
+  - Defaults to attempting to get the snapshot from `actor.getSnapshot()`, or returning `undefined` if that does not exist.
 
 ```js
 const [state, send] = useActor(someSpawnedActor);

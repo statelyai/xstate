@@ -102,7 +102,7 @@ A [React hook](https://reactjs.org/hooks) that subscribes to emitted changes fro
 
 - `actor` - an actor-like object that contains `.send(...)` and `.subscribe(...)` methods.
 - `getSnapshot` - a function that should return the latest emitted value from the `actor`.
-  - Defaults to attempting to get the `actor.state`, or returning `undefined` if that does not exist.
+  - Defaults to attempting to get the snapshot from `actor.getSnapshot()`, or returning `undefined` if that does not exist.
 
 ```js
 const [state, send] = useActor(someSpawnedActor);
@@ -178,7 +178,7 @@ _Since 1.3.0_
 - `selector` - a function that takes in an actor's "current state" (snapshot) as an argument and returns the desired selected value.
 - `compare` (optional) - a function that determines if the current selected value is the same as the previous selected value.
 - `getSnapshot` (optional) - a function that should return the latest emitted value from the `actor`.
-  - Defaults to attempting to get the `actor.state`, or returning `undefined` if that does not exist. Will automatically pull the state from services.
+  - Defaults to attempting to get the snapshot from `actor.getSnapshot()`, or returning `undefined` if that does not exist. Will automatically pull the state from services.
 
 ```js
 import { useSelector } from '@xstate/react';
@@ -208,6 +208,30 @@ const App = ({ service }) => {
 };
 ```
 
+### Shallow comparison
+
+The default comparison is a strict reference comparison (`===`). If your selector returns non-primitive values, such as objects or arrays, you should keep this in mind and either return the same reference, or provide a shallow or deep comparator.
+
+The `shallowEqual(...)` comparator function is available for shallow comparison:
+
+```js
+import { useSelector, shallowEqual } from '@xstate/react';
+
+// ...
+
+const selectUser = (state) => state.context.user;
+
+const App = ({ service }) => {
+  // shallowEqual comparator is needed to compare the object, whose
+  // reference might change despite the shallow object values being equal
+  const user = useSelector(service, selectUser, shallowEqual);
+
+  // ...
+};
+```
+
+:::
+
 With `useInterpret(...)`:
 
 ```js
@@ -216,7 +240,7 @@ import { someMachine } from '../path/to/someMachine';
 
 const selectCount = (state) => state.context.count;
 
-const App = ({ service }) => {
+const App = () => {
   const service = useInterpret(someMachine);
   const count = useSelector(service, selectCount);
 
@@ -224,7 +248,7 @@ const App = ({ service }) => {
 };
 ```
 
-### `useMachine(machine)` with `@xstate/fsm`
+### `useMachine(machine, options?)` with `@xstate/fsm`
 
 A [React hook](https://reactjs.org/hooks) that interprets the given finite state `machine` from [`@xstate/fsm`] and starts a service that runs for the lifetime of the component.
 

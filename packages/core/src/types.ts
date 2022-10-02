@@ -409,7 +409,7 @@ export type StateNodesConfig<
 > = {
   [K in keyof TStateSchema['states']]: StateNode<
     TContext,
-    TStateSchema['states'][K],
+    TStateSchema['states'][K] & {},
     TEvent
   >;
 };
@@ -422,7 +422,7 @@ export type StatesConfig<
 > = {
   [K in keyof TStateSchema['states']]: StateNodeConfig<
     TContext,
-    TStateSchema['states'][K],
+    TStateSchema['states'][K] & {},
     TEvent,
     TAction
   >;
@@ -435,7 +435,7 @@ export type StatesDefinition<
 > = {
   [K in keyof TStateSchema['states']]: StateNodeDefinition<
     TContext,
-    TStateSchema['states'][K],
+    TStateSchema['states'][K] & {},
     TEvent
   >;
 };
@@ -662,6 +662,12 @@ export interface StateNodeConfig<
    * @default false
    */
   preserveActionOrder?: boolean;
+  /**
+   * Whether XState calls actions with the event directly responsible for the related transition.
+   *
+   * @default false
+   */
+  predictableActionArguments?: boolean;
   /**
    * A text description of the state node
    */
@@ -1308,7 +1314,10 @@ export enum SpecialTargets {
 export interface SendActionOptions<TContext, TEvent extends EventObject> {
   id?: string | number;
   delay?: number | string | DelayExpr<TContext, TEvent>;
-  to?: string | ExprWithMeta<TContext, TEvent, string | number | ActorRef<any>>;
+  to?:
+    | string
+    | ActorRef<any>
+    | ExprWithMeta<TContext, TEvent, string | ActorRef<any>>;
 }
 
 export interface CancelAction extends ActionObject<any, any> {
@@ -1890,3 +1899,9 @@ export type StateValueFrom<
     ? TypegenEnabledArg
     : TypegenDisabledArg
   : never;
+
+export type PredictableActionArgumentsExec = (
+  action: ActionObject<unknown, EventObject>,
+  context: unknown,
+  _event: SCXML.Event<EventObject>
+) => void;

@@ -1,6 +1,6 @@
 {
   "name": "@xstate/react",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "XState tools for React",
   "keywords": [
     "state",
@@ -54,7 +54,7 @@
   "peerDependencies": {
     "@xstate/fsm": "^2.0.0",
     "react": "^16.8.0 || ^17.0.0 || ^18.0.0",
-    "xstate": "^4.32.1"
+    "xstate": "^4.33.6"
   },
   "peerDependenciesMeta": {
     "@xstate/fsm": {
@@ -88,7 +88,7 @@
     "rollup-plugin-terser": "^5.1.2",
     "rollup-plugin-typescript2": "^0.30.0",
     "ts-jest": "^26.5.6",
-    "typescript": "^4.5.2",
+    "typescript": "^4.8.2",
     "xstate": "*"
   }
 }

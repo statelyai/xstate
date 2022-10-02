@@ -699,20 +699,20 @@ export function toInvokeSource(
 }
 
 export function toObserver<T>(
-  nextHandler: Observer<T> | ((value: T) => void),
+  nextHandler?: Partial<Observer<T>> | ((value: T) => void),
   errorHandler?: (error: any) => void,
   completionHandler?: () => void
 ): Observer<T> {
-  if (typeof nextHandler === 'object') {
-    return nextHandler;
-  }
-
-  const noop = () => void 0;
+  const noop = () => {};
+  const isObserver = typeof nextHandler === 'object';
+  const self = isObserver ? nextHandler : null;
 
   return {
-    next: nextHandler,
-    error: errorHandler || noop,
-    complete: completionHandler || noop
+    next: ((isObserver ? nextHandler.next : nextHandler) || noop).bind(self),
+    error: ((isObserver ? nextHandler.error : errorHandler) || noop).bind(self),
+    complete: (
+      (isObserver ? nextHandler.complete : completionHandler) || noop
+    ).bind(self)
   };
 }
 
