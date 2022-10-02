@@ -9,6 +9,7 @@ import {
   createSignal,
   Match,
   on,
+  onMount,
   Switch
 } from 'solid-js';
 
@@ -301,7 +302,7 @@ describe('useService hook for fsm', () => {
     expect(div2.textContent).toEqual('8');
   });
 
-  it('initial send should work only with createComputed in useService', (done) => {
+  it('send should update synchronously', (done) => {
     const machine = createMachine({
       initial: 'start',
       states: {
@@ -315,15 +316,14 @@ describe('useService hook for fsm', () => {
     });
 
     const Spawner = () => {
-      const [service, setService] = createSignal(interpret(machine).start());
+      const [service] = createSignal(interpret(machine).start());
       const [current, send] = useService(service);
-      // This should fail if useService is not using createComputed
-      expect(current.value).toBe('start');
-      send({ type: 'done' });
-      expect(current.value).toBe('success');
-      setService(interpret(machine).start());
-      expect(current.value).toBe('start');
-      send({ type: 'done' });
+
+      onMount(() => {
+        expect(current.value).toBe('start');
+        send({ type: 'done' });
+        expect(current.value).toBe('success');
+      });
 
       return (
         <Switch fallback={null}>

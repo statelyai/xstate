@@ -1,6 +1,6 @@
 import type { ActorRef, EmittedFrom, Event, EventObject } from 'xstate';
 import type { Accessor } from 'solid-js';
-import { createComputed, createMemo, onCleanup } from 'solid-js';
+import { createEffect, createMemo, onCleanup } from 'solid-js';
 import { deriveServiceState } from './deriveServiceState';
 import { createImmutable } from './createImmutable';
 import { isStateLike } from 'xstate/lib/utils';
@@ -44,7 +44,7 @@ export function useActor(
     });
   };
 
-  createComputed<boolean>((isInitialActor) => {
+  createEffect<boolean>((isInitialActor) => {
     if (!isInitialActor) {
       setActorState(getActorState());
     }

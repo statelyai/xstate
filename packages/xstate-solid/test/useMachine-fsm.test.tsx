@@ -545,7 +545,7 @@ describe('useMachine hook for fsm', () => {
     done();
   });
 
-  it('initial send should work only with createRenderEffect in fsm', (done) => {
+  it('send should update synchronously', (done) => {
     const machine = createMachine({
       initial: 'start',
       states: {
@@ -560,10 +560,11 @@ describe('useMachine hook for fsm', () => {
 
     const Spawner = () => {
       const [current, send] = useMachine(machine);
-      // This should fail if useMachine is not using createRenderEffect
-      expect(current.value).toBe('start');
-      send({ type: 'done' });
-      expect(current.value).toBe('success');
+      onMount(() => {
+        expect(current.value).toBe('start');
+        send({ type: 'done' });
+        expect(current.value).toBe('success');
+      });
 
       return (
         <Switch fallback={null}>

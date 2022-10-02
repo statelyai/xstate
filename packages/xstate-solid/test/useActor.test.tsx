@@ -123,7 +123,7 @@ describe('useActor', () => {
     render(() => <Test />);
   });
 
-  it('initial send should work only with createComputed in useActor', (done) => {
+  it('send should update synchronously', (done) => {
     const machine = createMachine({
       initial: 'start',
       states: {
@@ -139,15 +139,14 @@ describe('useActor', () => {
     });
 
     const Spawner = () => {
-      const [service, setService] = createSignal(interpret(machine).start());
+      const [service] = createSignal(interpret(machine).start());
       const [current, send] = useActor(service);
-      // This should fail if useActor is not using createComputed
-      expect(current().value).toBe('start');
-      send({ type: 'done' });
-      expect(current().value).toBe('success');
-      setService(interpret(machine).start());
-      expect(current().value).toBe('start');
-      send({ type: 'done' });
+
+      onMount(() => {
+        expect(current().value).toBe('start');
+        send({ type: 'done' });
+        expect(current().value).toBe('success');
+      });
 
       return (
         <Switch fallback={null}>

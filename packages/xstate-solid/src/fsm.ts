@@ -6,7 +6,7 @@ import type {
 } from '@xstate/fsm';
 import { createMachine, interpret } from '@xstate/fsm';
 import type { Accessor } from 'solid-js';
-import { createMemo, onCleanup, createComputed } from 'solid-js';
+import { createMemo, onCleanup, createEffect } from 'solid-js';
 import { createImmutable } from './createImmutable';
 
 type UseFSMReturn<TService extends StateMachine.AnyService> = [
@@ -39,7 +39,7 @@ export function useService<TService extends StateMachine.AnyService>(
   const initialService = serviceMemo();
   const [state, setState] = createImmutable(deriveFSMState(initialService));
 
-  createComputed(() => {
+  createEffect(() => {
     const currentService = serviceMemo();
     const { unsubscribe } = currentService.subscribe(() =>
       setState(deriveFSMState(currentService))
