@@ -82,7 +82,7 @@ export class StateMachine<
     TActorMap
   >
 > {
-  private _contextFactory: (stuff: { spawn: Spawner }) => TContext;
+  private _contextFactory: (stuff: { spawn: Spawner; input: any }) => TContext;
   public get context(): TContext {
     return this.getContextAndActions()[0];
   }
@@ -90,7 +90,8 @@ export class StateMachine<
     const actions: InvokeActionObject[] = [];
     // TODO: merge with this.options.context
     const context = this._contextFactory({
-      spawn: createSpawner(this, null as any, null as any, actions) // TODO: fix types
+      spawn: createSpawner(this, null as any, null as any, actions), // TODO: fix types
+      input: this.options.input ?? {}
     });
 
     return [context, actions];
@@ -120,7 +121,10 @@ export class StateMachine<
   public id: string;
 
   public states: StateNode<TContext, TEvent>['states'];
+
   public events: Array<TEvent['type']>;
+
+  public input: any = {};
 
   constructor(
     /**
@@ -187,14 +191,15 @@ export class StateMachine<
       ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
       : TResolvedTypesMeta
   > {
-    const { actions, guards, actors, delays } = this.options;
+    const { actions, guards, actors, delays, input } = this.options;
 
     return new StateMachine(this.config, {
       actions: { ...actions, ...implementations.actions },
       guards: { ...guards, ...implementations.guards },
       actors: { ...actors, ...implementations.actors },
       delays: { ...delays, ...implementations.delays },
-      context: implementations.context!
+      context: implementations.context!,
+      input
     });
   }
 
@@ -419,6 +424,13 @@ export class StateMachine<
     }
 
     return restoredState;
+  }
+
+  public withInput(input: any): StateMachine<TContext, TEvent> {
+    return new StateMachine(this.config, {
+      ...this.options,
+      input
+    });
   }
 
   /**@deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
