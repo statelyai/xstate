@@ -55,11 +55,11 @@ export function getShortestPlans<TState, TEvent extends EventObject>(
   // weight, state, event
   const weightMap = new Map<
     SerializedState,
-    [
-      weight: number,
-      state: SerializedState | undefined,
-      event: TEvent | undefined
-    ]
+    {
+      weight: number;
+      state: SerializedState | undefined;
+      event: TEvent | undefined;
+    }
   >();
   const stateMap = new Map<SerializedState, TState>();
   const initialSerializedState = serializeState(
@@ -69,13 +69,17 @@ export function getShortestPlans<TState, TEvent extends EventObject>(
   );
   stateMap.set(initialSerializedState, fromState);
 
-  weightMap.set(initialSerializedState, [0, undefined, undefined]);
+  weightMap.set(initialSerializedState, {
+    weight: 0,
+    state: undefined,
+    event: undefined
+  });
   const unvisited = new Set<SerializedState>();
   const visited = new Set<SerializedState>();
 
   unvisited.add(initialSerializedState);
   for (const serializedState of unvisited) {
-    const [weight] = weightMap.get(serializedState)!;
+    const { weight } = weightMap.get(serializedState)!;
     for (const event of Object.keys(
       adjacency[serializedState].transitions
     ) as SerializedEvent[]) {
@@ -90,19 +94,19 @@ export function getShortestPlans<TState, TEvent extends EventObject>(
       );
       stateMap.set(nextSerializedState, nextState);
       if (!weightMap.has(nextSerializedState)) {
-        weightMap.set(nextSerializedState, [
-          weight + 1,
-          serializedState,
-          eventObject
-        ]);
+        weightMap.set(nextSerializedState, {
+          weight: weight + 1,
+          state: serializedState,
+          event: eventObject
+        });
       } else {
-        const [nextWeight] = weightMap.get(nextSerializedState)!;
+        const { weight: nextWeight } = weightMap.get(nextSerializedState)!;
         if (nextWeight > weight + 1) {
-          weightMap.set(nextSerializedState, [
-            weight + 1,
-            serializedState,
-            eventObject
-          ]);
+          weightMap.set(nextSerializedState, {
+            weight: weight + 1,
+            state: serializedState,
+            event: eventObject
+          });
         }
       }
       if (!visited.has(nextSerializedState)) {
@@ -115,30 +119,26 @@ export function getShortestPlans<TState, TEvent extends EventObject>(
 
   const statePlanMap: StatePlanMap<TState, TEvent> = {};
 
-  weightMap.forEach(([weight, fromState, fromEvent], stateSerial) => {
-    const state = stateMap.get(stateSerial)!;
-    statePlanMap[stateSerial] = {
-      state,
-      paths: !fromState
-        ? [
-            {
-              state,
-              steps: [],
-              weight
-            }
-          ]
-        : [
-            {
-              state,
-              steps: statePlanMap[fromState].paths[0].steps.concat({
-                state: stateMap.get(fromState)!,
-                event: fromEvent!
-              }),
-              weight
-            }
-          ]
-    };
-  });
+  weightMap.forEach(
+    ({ weight, state: fromState, event: fromEvent }, stateSerial) => {
+      const state = stateMap.get(stateSerial)!;
+      statePlanMap[stateSerial] = {
+        state,
+        paths: [
+          {
+            state,
+            steps: !fromState
+              ? []
+              : statePlanMap[fromState].paths[0].steps.concat({
+                  state: stateMap.get(fromState)!,
+                  event: fromEvent!
+                }),
+            weight
+          }
+        ]
+      };
+    }
+  );
 
   return Object.values(statePlanMap);
 }
