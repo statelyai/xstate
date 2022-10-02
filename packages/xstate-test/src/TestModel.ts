@@ -1,8 +1,6 @@
 import {
   getPathFromEvents,
   getAdjacencyMap,
-  getSimplePlansTo,
-  getShortestPlansTo,
   joinPaths,
   AdjacencyValue
 } from '@xstate/graph';
@@ -17,7 +15,14 @@ import type {
 import { EventObject } from 'xstate';
 import { isStateLike } from 'xstate/lib/utils';
 import { deduplicatePaths } from './deduplicatePaths';
-import { getShortestPaths, getSimplePaths } from './pathGenerators';
+import {
+  createShortestPathsGen,
+  createShortestPathsToGen,
+  createShortestPathsFromToGen,
+  createSimplePathsGen,
+  createSimplePathsToGen,
+  createSimplePathsFromToGen
+} from './pathGenerators';
 import type {
   EventExecutor,
   PathGenerator,
@@ -28,12 +33,7 @@ import type {
   TestPathResult,
   TestStepResult
 } from './types';
-import {
-  formatPathTestResult,
-  getDescription,
-  mapPlansToPaths,
-  simpleStringify
-} from './utils';
+import { formatPathTestResult, getDescription, simpleStringify } from './utils';
 
 /**
  * Creates a test model that represents an abstract model of a
@@ -74,12 +74,6 @@ export class TestModel<TState, TEvent extends EventObject> {
     };
   }
 
-  public getShortestPaths(
-    options?: Partial<TraversalOptions<TState, TEvent>>
-  ): Array<TestPath<TState, TEvent>> {
-    return this.getPaths(getShortestPaths, options);
-  }
-
   public getPaths(
     pathGenerator: PathGenerator<TState, TEvent>,
     options?: Partial<TraversalOptions<TState, TEvent>>
@@ -88,28 +82,52 @@ export class TestModel<TState, TEvent extends EventObject> {
     return deduplicatePaths(paths).map(this.toTestPath);
   }
 
-  public getShortestPathsTo(
-    statePredicate: StatePredicate<TState>
+  public getShortestPaths(
+    options?: Partial<TraversalOptions<TState, TEvent>>
   ): Array<TestPath<TState, TEvent>> {
-    return deduplicatePaths(
-      mapPlansToPaths(
-        getShortestPlansTo(this.behavior, statePredicate, this.options)
-      )
-    ).map(this.toTestPath);
+    return this.getPaths(createShortestPathsGen(), options);
+  }
+
+  public getShortestPathsTo(
+    statePredicate: StatePredicate<TState>,
+    options?: Partial<TraversalOptions<TState, TEvent>>
+  ): Array<TestPath<TState, TEvent>> {
+    return this.getPaths(createShortestPathsToGen(statePredicate), options);
+  }
+
+  public getShortestPathsFromTo(
+    fromStatePredicate: StatePredicate<TState>,
+    toStatePredicate: StatePredicate<TState>,
+    options?: Partial<TraversalOptions<TState, TEvent>>
+  ): Array<TestPath<TState, TEvent>> {
+    return this.getPaths(
+      createShortestPathsFromToGen(fromStatePredicate, toStatePredicate),
+      options
+    );
   }
 
   public getSimplePaths(
-    options?: Partial<TraversalOptions<TState, any>>
+    options?: Partial<TraversalOptions<TState, TEvent>>
   ): Array<TestPath<TState, TEvent>> {
-    return this.getPaths(getSimplePaths, options);
+    return this.getPaths(createSimplePathsGen(), options);
   }
 
   public getSimplePathsTo(
-    predicate: StatePredicate<TState>
+    predicate: StatePredicate<TState>,
+    options?: Partial<TraversalOptions<TState, TEvent>>
   ): Array<TestPath<TState, TEvent>> {
-    return mapPlansToPaths(
-      getSimplePlansTo(this.behavior, predicate, this.options)
-    ).map(this.toTestPath);
+    return this.getPaths(createSimplePathsToGen(predicate), options);
+  }
+
+  public getSimplePathsFromTo(
+    fromPredicate: StatePredicate<TState>,
+    toPredicate: StatePredicate<TState>,
+    options?: Partial<TraversalOptions<TState, TEvent>>
+  ): Array<TestPath<TState, TEvent>> {
+    return this.getPaths(
+      createSimplePathsFromToGen(fromPredicate, toPredicate),
+      options
+    );
   }
 
   private toTestPath = (

@@ -3,6 +3,7 @@ import {
   SerializedEvent,
   SerializedState,
   SimpleBehavior,
+  StatePath,
   StatePlan,
   StatePlanMap,
   TraversalOptions
@@ -13,6 +14,7 @@ import {
   filterPlans
 } from './graph';
 import { getAdjacencyMap } from './adjacency';
+import { mapPlansToPaths } from './utils';
 
 export function getMachineShortestPlans<TMachine extends AnyStateMachine>(
   machine: TMachine,
@@ -30,6 +32,13 @@ export function getMachineShortestPlans<TMachine extends AnyStateMachine>(
     },
     resolvedOptions
   ) as Array<StatePlan<StateFrom<TMachine>, EventFrom<TMachine>>>;
+}
+
+export function getMachineShortestPaths<TMachine extends AnyStateMachine>(
+  machine: TMachine,
+  options?: TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>>
+): Array<StatePath<StateFrom<TMachine>, EventFrom<TMachine>>> {
+  return mapPlansToPaths(getMachineShortestPlans(machine, options));
 }
 
 export function getShortestPlans<TState, TEvent extends EventObject>(
