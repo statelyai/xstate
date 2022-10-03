@@ -150,3 +150,20 @@ export function createMachine<
   }
   return new StateNode(config, options as any) as any;
 }
+
+createMachine({
+  schema: {
+    services: {
+      fetch: {} as { data: number }
+    }
+  },
+  invoke: {
+    src: 'fetch',
+    onDone: {
+      actions: (_ctx, ev) => {
+        // ev.data is number
+        ev.data;
+      }
+    }
+  }
+});

@@ -476,7 +476,12 @@ export interface InvokeSourceDefinition {
   type: string;
 }
 
-export interface InvokeConfig<TContext, TEvent extends EventObject> {
+export interface InvokeConfig<
+  TContext,
+  TEvent extends EventObject,
+  TSrc extends string = string,
+  TData = any
+> {
   /**
    * The unique identifier for the invoked machine. If not specified, this
    * will be the machine's own `id`, or the URL (from `src`).
@@ -486,7 +491,7 @@ export interface InvokeConfig<TContext, TEvent extends EventObject> {
    * The source of the machine to be invoked, or the machine itself.
    */
   src:
-    | string
+    | TSrc
     | InvokeSourceDefinition
     | AnyStateMachine
     | InvokeCreator<TContext, TEvent, any>;
@@ -514,7 +519,7 @@ export interface InvokeConfig<TContext, TEvent extends EventObject> {
    */
   onDone?:
     | string
-    | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
+    | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<TData>>>;
   /**
    * The transition to take upon the invoked child machine sending an error event.
    */
@@ -531,7 +536,8 @@ export interface StateNodeConfig<
   TContext,
   TStateSchema extends StateSchema,
   TEvent extends EventObject,
-  TAction extends BaseActionObject = BaseActionObject
+  TAction extends BaseActionObject = BaseActionObject,
+  TServiceMap extends ServiceMap = ServiceMap
 > {
   /**
    * The relative key of the state node, which represents its location in the overall state value.
@@ -569,7 +575,17 @@ export interface StateNodeConfig<
   /**
    * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
    */
-  invoke?: SingleOrArray<InvokeConfig<TContext, TEvent> | AnyStateMachine>;
+  invoke?: SingleOrArray<
+    | {
+        [K in keyof TServiceMap]: InvokeConfig<
+          TContext,
+          TEvent,
+          K & string,
+          TServiceMap[K]['data']
+        >;
+      }[keyof TServiceMap]
+    | AnyStateMachine
+  >;
   /**
    * The mapping of event types to their potential transition(s).
    */
@@ -975,7 +991,8 @@ export interface MachineConfig<
     NoInfer<TContext>,
     TStateSchema,
     NoInfer<TEvent>,
-    TAction
+    TAction,
+    TServiceMap
   > {
   /**
    * The initial context (extended state)
