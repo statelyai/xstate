@@ -324,6 +324,12 @@ export class TestModel<TState, TEvent extends EventObject> {
   ): Promise<void> {
     const resolvedOptions = this.resolveOptions(options);
 
+    // @ts-ignore I can't figure out how to make state.tags be seen as valid, even though
+    // it totally *is* valid-seeming
+    for (const tag of state.tags) {
+      await params.tags?.[tag](state);
+    }
+
     const stateTestKeys = this.getStateTestKeys(params, state, resolvedOptions);
 
     for (const stateTestKey of stateTestKeys) {
