@@ -1,7 +1,8 @@
 import type { AnyStateMachine, InterpreterFrom } from 'xstate';
 import { interpret, State } from 'xstate';
 import type { RestParams } from './types';
-import { createRenderEffect, onCleanup } from 'solid-js';
+import { onCleanup } from 'solid-js';
+import { isServer } from 'solid-js/web';
 
 export function createService<TMachine extends AnyStateMachine>(
   machine: TMachine,
@@ -33,11 +34,10 @@ export function createService<TMachine extends AnyStateMachine>(
 
   const service = interpret(machineWithConfig, interpreterOptions);
 
-  createRenderEffect(() => {
+  if (!isServer) {
     service.start(rehydratedState ? State.create(rehydratedState) : undefined);
-
     onCleanup(() => service.stop());
-  });
+  }
 
   return service as InterpreterFrom<TMachine>;
 }

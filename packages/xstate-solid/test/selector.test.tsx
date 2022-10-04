@@ -1,16 +1,8 @@
 /* @jsxImportSource solid-js */
-import {
-  ActorRefFrom,
-  AnyState,
-  assign,
-  createMachine,
-  InterpreterFrom,
-  spawn,
-  State
-} from 'xstate';
+import { ActorRefFrom, AnyState, assign, createMachine, spawn } from 'xstate';
 import { render, fireEvent, screen } from 'solid-testing-library';
 import { useActor, createService, useMachine } from '../src';
-import { Component, createMemo, createSignal, from } from 'solid-js';
+import { createMemo, createSignal, from } from 'solid-js';
 
 describe('usage of selectors with reactive service state', () => {
   it('only rerenders for selected values', () => {

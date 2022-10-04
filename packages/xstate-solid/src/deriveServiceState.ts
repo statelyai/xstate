@@ -1,6 +1,20 @@
-import type { ActorRef, Interpreter, InterpreterFrom } from 'xstate';
-import { State } from 'xstate';
-import { isStateLike } from 'xstate/lib/utils';
+import type {
+  ActorRef,
+  Interpreter,
+  InterpreterFrom,
+  StateLike,
+  State
+} from 'xstate';
+
+export function isStateLike(state: any): state is StateLike<any> {
+  return (
+    typeof state === 'object' &&
+    'value' in state &&
+    'context' in state &&
+    'event' in state &&
+    '_event' in state
+  );
+}
 
 function isService(value: any): value is Interpreter<any> {
   return 'state' in value && 'machine' in value;
