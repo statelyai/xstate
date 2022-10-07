@@ -11,7 +11,8 @@ import {
   StateValue,
   AnyEventObject,
   createMachine,
-  AnyState
+  AnyState,
+  InterpreterStatus
 } from '../src';
 import { State } from '../src/State';
 import { log, actionTypes, raise, stop, sendTo } from '../src/actions';
@@ -2049,6 +2050,27 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
 
           service.send('NEXT');
         }
+      });
+    });
+  });
+
+  describe('.onDone(...)', () => {
+    it('should call an onDone callback immediately if the service is already done', (done) => {
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            type: 'final'
+          }
+        }
+      });
+
+      const service = interpret(machine).start();
+
+      expect(service.status).toBe(InterpreterStatus.Stopped);
+
+      service.onDone(() => {
+        done();
       });
     });
   });

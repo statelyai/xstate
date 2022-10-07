@@ -7,7 +7,8 @@ import {
   spawn,
   ActorRefFrom,
   AnyStateMachine,
-  StateNode
+  StateNode,
+  SpecialTargets
 } from '../src/index';
 import {
   pure,
@@ -2602,6 +2603,45 @@ describe('sendTo', () => {
     });
 
     interpret(parentMachine).start();
+  });
+
+  it('should be able to send an event to itself', (done) => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          entry: sendTo(
+            SpecialTargets.Internal,
+            { type: 'EVENT' },
+            {
+              delay: 100
+            }
+          ),
+          on: {
+            TO_B: 'b'
+          }
+        },
+        b: {
+          on: {
+            EVENT: 'c'
+          }
+        },
+        c: {
+          type: 'final'
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    service.subscribe((state) => {
+      console.log(state.value, state.actions);
+    });
+
+    service.onDone(() => done());
+
+    // Ensures that the delayed self-event is sent when in the `b` state
+    service.send('TO_B');
   });
 });
 

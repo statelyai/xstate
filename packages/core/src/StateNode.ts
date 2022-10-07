@@ -1330,11 +1330,16 @@ class StateNode<
         action
       ): action is
         | RaiseActionObject<TEvent>
-        | SendActionObject<TContext, TEvent, TEvent> =>
-        action.type === actionTypes.raise ||
-        (action.type === actionTypes.send &&
+        | SendActionObject<TContext, TEvent, TEvent> => {
+        const isSendAction = action.type === actionTypes.send;
+        const isRaisableSendAction =
+          isSendAction &&
           (action as SendActionObject<TContext, TEvent>).to ===
-            SpecialTargets.Internal)
+            SpecialTargets.Internal &&
+          !(action as SendActionObject<TContext, TEvent>).delay;
+
+        return action.type === actionTypes.raise || isRaisableSendAction;
+      }
     );
 
     const invokeActions = resolvedActions.filter((action) => {

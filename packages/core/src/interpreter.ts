@@ -214,6 +214,7 @@ export class Interpreter<
 
   // Dev Tools
   private devTools?: any;
+  private _doneEvent?: DoneEvent;
 
   /**
    * Creates a new Interpreter instance (i.e., service) for the given machine with the provided options, if any.
@@ -377,8 +378,10 @@ export class Interpreter<
           ? mapContext(finalChildStateNode.doneData, state.context, _event)
           : undefined;
 
+      this._doneEvent = doneInvoke(this.id, doneData);
+
       for (const listener of this.doneListeners) {
-        listener(doneInvoke(this.id, doneData));
+        listener(this._doneEvent);
       }
       this._stop();
       this._stopChildren();
@@ -499,7 +502,11 @@ export class Interpreter<
    * @param listener The state listener
    */
   public onDone(listener: EventListener<DoneEvent>): this {
-    this.doneListeners.add(listener);
+    if (this.status === InterpreterStatus.Stopped && this._doneEvent) {
+      listener(this._doneEvent);
+    } else {
+      this.doneListeners.add(listener);
+    }
     return this;
   }
   /**
@@ -839,7 +846,9 @@ export class Interpreter<
     const target = isParent
       ? this.parent
       : isString(to)
-      ? this.children.get(to as string) || registry.get(to as string)
+      ? to === SpecialTargets.Internal
+        ? this
+        : this.children.get(to as string) || registry.get(to as string)
       : isActor(to)
       ? to
       : undefined;
