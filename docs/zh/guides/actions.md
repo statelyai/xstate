@@ -193,6 +193,19 @@ entry: send({ type: 'SOME_EVENT' });
 
 ## 发送动作（send action）
 
+::: warning
+
+The `send(...)` action creator is deprecated in favor of the `sendTo(...)` action creator:
+
+```diff
+-send({ type: 'EVENT' }, { to: 'someActor' });
++sendTo('someActor', { type: 'EVENT' });
+```
+
+The `send(...)` action creator will be removed in XState v5.0.
+
+:::
+
 `send(event)` 动作 创建者创建了一个特殊的“发送” 动作 对象，它告诉服务（即，[解释（interpret） 状态机](./interpretation.md)）将该事件发送给它自己。 它在外部事件队列中，将一个事件排入正在运行的服务中，这意味着该事件将在 解释（interpret） 的下一步“步骤”上发送。
 
 | 参数       | 类型                                       | 描述                                    |
