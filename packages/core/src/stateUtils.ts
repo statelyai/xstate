@@ -1712,17 +1712,6 @@ export function machineMicrostep(
     throw new Error(`An event cannot have the wildcard type ('${WILDCARD}')`);
   }
 
-  if (machine.strict) {
-    if (
-      !machine.root.events.includes(_event.name) &&
-      !isBuiltInEvent(_event.name)
-    ) {
-      throw new Error(
-        `Machine '${machine.id}' does not accept event '${_event.name}'`
-      );
-    }
-  }
-
   const transitions = machine.getTransitionData(state, _event);
 
   return resolveMicroTransition(transitions, state, actorCtx, _event);

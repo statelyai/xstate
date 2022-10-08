@@ -77,7 +77,7 @@ export class Interpreter<
   TEvent extends EventObject = EventFromBehavior<TBehavior>
 > implements ActorRef<TEvent, SnapshotFrom<TBehavior>> {
   /**
-   * The current state of the interpreted machine.
+   * The current state of the interpreted behavior.
    */
   private _state?: InternalStateFrom<TBehavior>;
   /**
@@ -118,9 +118,9 @@ export class Interpreter<
   public _forwardTo: Set<AnyActorRef> = new Set();
 
   /**
-   * Creates a new Interpreter instance (i.e., service) for the given machine with the provided options, if any.
+   * Creates a new Interpreter instance (i.e., service) for the given behavior with the provided options, if any.
    *
-   * @param behavior The machine to be interpreted
+   * @param behavior The behavior to be interpreted
    * @param options Interpreter options
    */
   constructor(public behavior: TBehavior, options?: InterpreterOptions) {

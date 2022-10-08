@@ -100,8 +100,6 @@ export class StateMachine<
    */
   public version?: string;
 
-  public strict: boolean;
-
   /**
    * The string delimiter for serializing the path to a string. The default is "."
    */
@@ -148,7 +146,6 @@ export class StateMachine<
     this.delimiter = this.config.delimiter || STATE_DELIMITER;
     this.version = this.config.version;
     this.schema = this.config.schema ?? (({} as any) as this['schema']);
-    this.strict = !!this.config.strict;
     this.transition = this.transition.bind(this);
 
     this.root = new StateNode(config, {
