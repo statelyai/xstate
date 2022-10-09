@@ -1116,7 +1116,7 @@ export function microstep<
   function microstepProcedure(
     transitions: Array<AnyTransitionDefinition>
   ): typeof currentState {
-    const { context, machine } = currentState;
+    const { machine } = currentState;
     const actions: BaseActionObject[] = [];
     const historyValue = {
       ...currentState.historyValue
@@ -1129,7 +1129,6 @@ export function microstep<
     );
 
     const internalQueue = [...currentState._internalQueue];
-    // internalQueue.shift();
 
     // Exit states
     if (!currentState._initial) {
@@ -1158,13 +1157,7 @@ export function microstep<
         actions: resolvedActions,
         raised,
         context: resolvedContext
-      } = resolveActionsAndContext(
-        actions,
-        _event,
-        currentState,
-        context,
-        actorCtx
-      );
+      } = resolveActionsAndContext(actions, _event, currentState, actorCtx);
 
       internalQueue.push(...raised.map((a) => a.params._event));
 
@@ -1392,7 +1385,6 @@ export function resolveActionsAndContext<
   actions: BaseActionObject[],
   _event: SCXML.Event<TEvent>,
   currentState: State<TContext, TEvent, any>,
-  context: TContext,
   actorCtx: ActorContext<any, any> | undefined
 ): {
   actions: typeof actions;
@@ -1402,6 +1394,7 @@ export function resolveActionsAndContext<
   const { machine } = currentState;
   const resolvedActions: BaseActionObject[] = [];
   const raiseActions: Array<RaiseActionObject<TEvent>> = [];
+  let { context } = currentState;
   let updatedContext = context;
 
   function resolveAction(actionObject: BaseActionObject) {
@@ -1613,7 +1606,7 @@ export function macrostep<TMachine extends AnyStateMachine>(
       stoppedState.actions,
       stoppedState._event,
       stoppedState,
-      stoppedState.context,
+      // stoppedState.context,
       actorCtx
     );
 
