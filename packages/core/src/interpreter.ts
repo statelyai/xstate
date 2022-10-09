@@ -164,8 +164,7 @@ export class Interpreter<
 
   private __initial: InternalStateFrom<TBehavior> | undefined = undefined;
 
-  public get initialState(): InternalStateFrom<TBehavior> {
-    // TODO: getSnapshot
+  public getInitialState(): InternalStateFrom<TBehavior> {
     return (
       this.__initial ||
       ((this.__initial = this.behavior.getInitialState(this._actorContext)),
@@ -308,7 +307,7 @@ export class Interpreter<
 
     let resolvedState = initialState
       ? this.behavior.restoreState?.(initialState, this._actorContext)
-      : this.behavior.getInitialState?.(this._actorContext) ?? undefined;
+      : this.getInitialState() ?? undefined;
 
     // TODO: this notifies all subscribers but usually this is redundant
     // if we are using the initialState as `resolvedState` then there is no real change happening here
@@ -489,7 +488,7 @@ export class Interpreter<
   public getSnapshot() {
     const getter = this.behavior.getSnapshot ?? ((s) => s);
     if (this.status === InterpreterStatus.NotStarted) {
-      return getter(this.initialState);
+      return getter(this.getInitialState());
     }
     return getter(this._state!);
   }
