@@ -11,10 +11,9 @@ import {
   getStateValue,
   isStateId,
   macrostep,
-  resolveMicroTransition,
+  realMicrostep,
   resolveStateValue,
-  transitionNode,
-  machineMicrostep
+  transitionNode
 } from './stateUtils';
 import type {
   AreAllImplementationsAssumedToBeProvided,
@@ -286,7 +285,9 @@ export class StateMachine<
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const scxmlEvent = toSCXMLEvent(event);
 
-    return machineMicrostep(state, scxmlEvent, actorCtx);
+    const transitions = this.getTransitionData(state, scxmlEvent);
+
+    return realMicrostep(transitions, state, actorCtx, scxmlEvent);
   }
 
   public getTransitionData(
@@ -344,7 +345,7 @@ export class StateMachine<
     actorCtx?: ActorContext<TEvent, State<TContext, TEvent>>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const preInitialState = this.getPreInitialState(actorCtx);
-    const nextState = resolveMicroTransition([], preInitialState, actorCtx);
+    const nextState = realMicrostep([], preInitialState, actorCtx);
     nextState.actions.unshift(...preInitialState.actions);
 
     const macroState = macrostep(nextState, initEvent, actorCtx);

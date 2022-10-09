@@ -1052,7 +1052,10 @@ export function microstep<
     currentState.historyValue
   );
 
-  const internalQueue: Array<SCXML.Event<TEvent>> = [];
+  const internalQueue: Array<SCXML.Event<TEvent>> = [
+    ...currentState._internalQueue
+  ];
+  // internalQueue.shift();
 
   // Exit states
   if (!currentState._initial) {
@@ -1320,7 +1323,7 @@ export function microstep<
   }
 }
 
-export function resolveMicroTransition<
+export function realMicrostep<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
@@ -1532,6 +1535,10 @@ export function macrostep<TMachine extends AnyStateMachine>(
   scxmlEvent: SCXML.Event<TMachine['__TEvent']>,
   actorCtx: ActorContext<any, any> | undefined
 ): typeof state {
+  if (!IS_PRODUCTION && scxmlEvent.name === WILDCARD) {
+    throw new Error(`An event cannot have the wildcard type ('${WILDCARD}')`);
+  }
+
   let nextState = state;
   // Handle stop event
   if (scxmlEvent?.name === stopSignalType) {
@@ -1540,17 +1547,15 @@ export function macrostep<TMachine extends AnyStateMachine>(
 
   // Assume the state is at rest (no raised events)
   // Determine the next state based on the next microstep
-  nextState =
-    scxmlEvent === initEvent
-      ? state
-      : machineMicrostep(state, scxmlEvent, actorCtx);
-
-  const { _internalQueue } = nextState;
+  if (scxmlEvent !== initEvent) {
+    const transitions = state.machine.getTransitionData(state, scxmlEvent);
+    nextState = realMicrostep(transitions, state, actorCtx, scxmlEvent);
+  }
 
   while (!nextState.done) {
-    const eventlessTransitions = selectEventlessTransitions();
+    let enabledTransitions = selectEventlessTransitions();
 
-    if (eventlessTransitions.length === 0) {
+    if (enabledTransitions.length === 0) {
       // TODO: this is a bit of a hack, we need to review this
       // this matches the behavior from v4 for eventless transitions
       // where for `hasAlwaysTransitions` we were always trying to resolve with a NULL event
@@ -1560,29 +1565,28 @@ export function macrostep<TMachine extends AnyStateMachine>(
         nextState.transitions = [];
       }
 
-      if (!_internalQueue.length) {
+      if (!nextState._internalQueue.length) {
         break;
       } else {
-        const internalEvent = _internalQueue.shift()!;
         const currentActions = nextState.actions;
+        const nextEvent = nextState._internalQueue[0];
+        const transitions = selectTransitions(nextEvent);
+        nextState = realMicrostep(transitions, nextState, actorCtx, nextEvent);
+        nextState._internalQueue.shift();
 
-        nextState = machineMicrostep(nextState, internalEvent, actorCtx);
-
-        _internalQueue.push(...nextState._internalQueue);
-
-        // Since macrostep actions have not been executed yet,
-        // prioritize them in the action queue
         nextState.actions.unshift(...currentActions);
       }
-    } else {
+    }
+
+    if (enabledTransitions.length) {
       const currentActions = nextState.actions;
-      nextState = resolveMicroTransition(
-        eventlessTransitions,
+      nextState = realMicrostep(
+        enabledTransitions,
         nextState,
         actorCtx,
         nextState._event
       );
-      _internalQueue.push(...nextState._internalQueue);
+
       nextState.actions.unshift(...currentActions);
     }
   }
@@ -1627,8 +1631,14 @@ export function macrostep<TMachine extends AnyStateMachine>(
     return stoppedState;
   }
 
+  function selectTransitions(
+    internalEvent: SCXML.Event<any>
+  ): AnyTransitionDefinition[] {
+    return nextState.machine.getTransitionData(nextState, internalEvent);
+  }
+
   function selectEventlessTransitions(): AnyTransitionDefinition[] {
-    const enabledTransitions: Set<AnyTransitionDefinition> = new Set();
+    const enabledTransitionSet: Set<AnyTransitionDefinition> = new Set();
 
     const atomicStates = nextState.configuration.filter(isAtomicStateNode);
 
@@ -1649,7 +1659,7 @@ export function macrostep<TMachine extends AnyStateMachine>(
               nextState
             )
           ) {
-            enabledTransitions.add(transition);
+            enabledTransitionSet.add(transition);
             break loop;
           }
         }
@@ -1657,7 +1667,7 @@ export function macrostep<TMachine extends AnyStateMachine>(
     }
 
     return removeConflictingTransitions(
-      Array.from(enabledTransitions),
+      Array.from(enabledTransitionSet),
       new Set(nextState.configuration),
       nextState.historyValue
     );
@@ -1700,19 +1710,4 @@ export function stateValuesEqual(
     aKeys.length === bKeys.length &&
     aKeys.every((key) => stateValuesEqual(a[key], b[key]))
   );
-}
-
-export function machineMicrostep(
-  state: AnyState,
-  _event: SCXML.Event<any>,
-  actorCtx: ActorContext<any, any> | undefined
-): typeof state {
-  const { machine } = state;
-  if (!IS_PRODUCTION && _event.name === WILDCARD) {
-    throw new Error(`An event cannot have the wildcard type ('${WILDCARD}')`);
-  }
-
-  const transitions = machine.getTransitionData(state, _event);
-
-  return resolveMicroTransition(transitions, state, actorCtx, _event);
 }
