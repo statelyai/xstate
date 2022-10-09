@@ -1890,7 +1890,7 @@ export type AnyBehavior = Behavior<any, any, any>;
 
 export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends Interpreter<infer _, infer __>
-    ? R['initialState']
+    ? ReturnType<R['getInitialState']>
     : R extends ActorRef<infer _, infer TSnapshot>
     ? TSnapshot
     : R extends Behavior<infer _, infer TSnapshot>
