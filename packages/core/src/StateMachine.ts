@@ -11,7 +11,7 @@ import {
   getStateValue,
   isStateId,
   macrostep,
-  realMicrostep,
+  microstep,
   resolveStateValue,
   transitionNode
 } from './stateUtils';
@@ -345,7 +345,7 @@ export class StateMachine<
     actorCtx?: ActorContext<TEvent, State<TContext, TEvent>>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const preInitialState = this.getPreInitialState(actorCtx);
-    const nextState = realMicrostep([], preInitialState, actorCtx);
+    const nextState = microstep([], preInitialState, actorCtx);
     nextState.actions.unshift(...preInitialState.actions);
 
     const { state: macroState } = macrostep(nextState, initEvent, actorCtx);
