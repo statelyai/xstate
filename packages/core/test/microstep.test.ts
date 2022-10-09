@@ -1,9 +1,48 @@
 import { createMachine } from '../src';
 import { raise } from '../src/actions/raise';
-import { toSCXMLEvent } from '../src/utils';
 
 describe('machine.microstep()', () => {
-  it('should return the state from microstep (transient)', () => {
+  it('should return an array of states from all microsteps', () => {
+    const machine = createMachine({
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            GO: 'a'
+          }
+        },
+        a: {
+          entry: raise('NEXT'),
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {
+          always: 'c'
+        },
+        c: {
+          entry: raise('NEXT'),
+          on: {
+            NEXT: 'd'
+          }
+        },
+        d: {}
+      }
+    });
+
+    const states = machine.microstep(machine.initialState, { type: 'GO' });
+
+    expect(states.map((s) => s.value)).toMatchInlineSnapshot(`
+      Array [
+        "a",
+        "b",
+        "c",
+        "d",
+      ]
+    `);
+  });
+
+  it('should return the states from microstep (transient)', () => {
     const machine = createMachine({
       initial: 'first',
       states: {
@@ -19,15 +58,21 @@ describe('machine.microstep()', () => {
       }
     });
 
-    const state = machine.microstep(
+    const states = machine.microstep(
       machine.resolveStateValue('first'),
       'TRIGGER',
       undefined
     );
-    expect(state.matches('second')).toBeTruthy();
+
+    expect(states.map((s) => s.value)).toMatchInlineSnapshot(`
+      Array [
+        "second",
+        "third",
+      ]
+    `);
   });
 
-  it('should return the state from microstep (raised event)', () => {
+  it('should return the states from microstep (raised event)', () => {
     const machine = createMachine({
       initial: 'first',
       states: {
@@ -48,19 +93,17 @@ describe('machine.microstep()', () => {
       }
     });
 
-    const state = machine.microstep(
+    const states = machine.microstep(
       machine.resolveStateValue('first'),
       'TRIGGER',
       undefined
     );
 
-    expect(state.matches('second')).toBeTruthy();
-    expect(state._internalQueue).toContainEqual(
-      expect.objectContaining(
-        toSCXMLEvent({
-          type: 'RAISED'
-        })
-      )
-    );
+    expect(states.map((s) => s.value)).toMatchInlineSnapshot(`
+      Array [
+        "second",
+        "third",
+      ]
+    `);
   });
 });

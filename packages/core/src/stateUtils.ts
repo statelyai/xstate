@@ -1534,22 +1534,34 @@ export function macrostep<TMachine extends AnyStateMachine>(
   state: StateFromMachine<TMachine>,
   scxmlEvent: SCXML.Event<TMachine['__TEvent']>,
   actorCtx: ActorContext<any, any> | undefined
-): typeof state {
+): {
+  state: typeof state;
+  microstates: Array<typeof state>;
+} {
   if (!IS_PRODUCTION && scxmlEvent.name === WILDCARD) {
     throw new Error(`An event cannot have the wildcard type ('${WILDCARD}')`);
   }
 
   let nextState = state;
+  const states: StateFromMachine<TMachine>[] = [];
+
   // Handle stop event
   if (scxmlEvent?.name === stopSignalType) {
-    return stopStep(scxmlEvent);
+    nextState = stopStep(scxmlEvent);
+    states.push(nextState);
+
+    return {
+      state: nextState,
+      microstates: states
+    };
   }
 
   // Assume the state is at rest (no raised events)
   // Determine the next state based on the next microstep
   if (scxmlEvent !== initEvent) {
-    const transitions = state.machine.getTransitionData(state, scxmlEvent);
+    const transitions = selectTransitions(scxmlEvent);
     nextState = realMicrostep(transitions, state, actorCtx, scxmlEvent);
+    states.push(nextState);
   }
 
   while (!nextState.done) {
@@ -1573,8 +1585,9 @@ export function macrostep<TMachine extends AnyStateMachine>(
         const transitions = selectTransitions(nextEvent);
         nextState = realMicrostep(transitions, nextState, actorCtx, nextEvent);
         nextState._internalQueue.shift();
-
         nextState.actions.unshift(...currentActions);
+
+        states.push(nextState);
       }
     }
 
@@ -1586,8 +1599,9 @@ export function macrostep<TMachine extends AnyStateMachine>(
         actorCtx,
         nextState._event
       );
-
       nextState.actions.unshift(...currentActions);
+
+      states.push(nextState);
     }
   }
 
@@ -1596,7 +1610,10 @@ export function macrostep<TMachine extends AnyStateMachine>(
     stopStep(nextState._event);
   }
 
-  return nextState;
+  return {
+    state: nextState,
+    microstates: states
+  };
 
   // ----- Internal functions -----
   function stopStep(scxmlEvent: SCXML.Event<any>): typeof nextState {

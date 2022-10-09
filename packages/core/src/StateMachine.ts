@@ -266,7 +266,7 @@ export class StateMachine<
       throw scxmlEvent.data.data;
     }
 
-    const nextState = macrostep(currentState, scxmlEvent, actorCtx);
+    const { state: nextState } = macrostep(currentState, scxmlEvent, actorCtx);
 
     return nextState;
   }
@@ -281,13 +281,13 @@ export class StateMachine<
   public microstep(
     state: State<TContext, TEvent, TResolvedTypesMeta> = this.initialState,
     event: Event<TEvent> | SCXML.Event<TEvent>,
-    actorCtx: ActorContext<any, any> | undefined
-  ): State<TContext, TEvent, TResolvedTypesMeta> {
+    actorCtx?: ActorContext<any, any>
+  ): State<TContext, TEvent, TResolvedTypesMeta>[] {
     const scxmlEvent = toSCXMLEvent(event);
 
-    const transitions = this.getTransitionData(state, scxmlEvent);
+    const { microstates } = macrostep(state, scxmlEvent, actorCtx);
 
-    return realMicrostep(transitions, state, actorCtx, scxmlEvent);
+    return microstates;
   }
 
   public getTransitionData(
@@ -348,7 +348,7 @@ export class StateMachine<
     const nextState = realMicrostep([], preInitialState, actorCtx);
     nextState.actions.unshift(...preInitialState.actions);
 
-    const macroState = macrostep(nextState, initEvent, actorCtx);
+    const { state: macroState } = macrostep(nextState, initEvent, actorCtx);
 
     return macroState;
   }
