@@ -32,14 +32,7 @@ describe('machine.microstep()', () => {
 
     const states = machine.microstep(machine.initialState, { type: 'GO' });
 
-    expect(states.map((s) => s.value)).toMatchInlineSnapshot(`
-      Array [
-        "a",
-        "b",
-        "c",
-        "d",
-      ]
-    `);
+    expect(states.map((s) => s.value)).toEqual(['a', 'b', 'c', 'd']);
   });
 
   it('should return the states from microstep (transient)', () => {
@@ -64,12 +57,7 @@ describe('machine.microstep()', () => {
       undefined
     );
 
-    expect(states.map((s) => s.value)).toMatchInlineSnapshot(`
-      Array [
-        "second",
-        "third",
-      ]
-    `);
+    expect(states.map((s) => s.value)).toEqual(['second', 'third']);
   });
 
   it('should return the states from microstep (raised event)', () => {
@@ -99,11 +87,24 @@ describe('machine.microstep()', () => {
       undefined
     );
 
-    expect(states.map((s) => s.value)).toMatchInlineSnapshot(`
-      Array [
-        "second",
-        "third",
-      ]
-    `);
+    expect(states.map((s) => s.value)).toEqual(['second', 'third']);
+  });
+
+  it('should return a single-item array for normal transitions', () => {
+    const machine = createMachine({
+      initial: 'first',
+      states: {
+        first: {
+          on: {
+            TRIGGER: 'second'
+          }
+        },
+        second: {}
+      }
+    });
+
+    const states = machine.microstep(machine.initialState, 'TRIGGER');
+
+    expect(states.map((s) => s.value)).toEqual(['second']);
   });
 });

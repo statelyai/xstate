@@ -1624,9 +1624,9 @@ export function macrostep<TMachine extends AnyStateMachine>(
   }
 
   function selectTransitions(
-    internalEvent: SCXML.Event<any>
+    scxmlEvent: SCXML.Event<any>
   ): AnyTransitionDefinition[] {
-    return nextState.machine.getTransitionData(nextState, internalEvent);
+    return nextState.machine.getTransitionData(nextState, scxmlEvent);
   }
 
   function selectEventlessTransitions(): AnyTransitionDefinition[] {
