@@ -11,7 +11,6 @@ import type {
   SerializedState,
   SimpleBehavior,
   StatePath,
-  StatePlan,
   DirectedGraphEdge,
   DirectedGraphNode,
   TraversalOptions,
@@ -178,15 +177,6 @@ export function resolveTraversalOptions<TState, TEvent extends EventObject>(
   };
 }
 
-export function filterPlans<TState, TEvent extends EventObject>(
-  plans: Array<StatePlan<TState, TEvent>>,
-  predicate: (state: TState, plan: StatePlan<TState, TEvent>) => boolean
-): Array<StatePlan<TState, TEvent>> {
-  const filteredPlans = plans.filter((plan) => predicate(plan.state, plan));
-
-  return filteredPlans;
-}
-
 export function joinPaths<TState, TEvent extends EventObject>(
   path1: StatePath<TState, TEvent>,
   path2: StatePath<TState, TEvent>
@@ -201,19 +191,5 @@ export function joinPaths<TState, TEvent extends EventObject>(
     state: path2.state,
     steps: path1.steps.concat(path2.steps),
     weight: path1.weight + path2.weight
-  };
-}
-
-export function joinPlans<TState, TEvent extends EventObject>(
-  fromPlan: StatePlan<TState, TEvent>,
-  toPlan: StatePlan<TState, TEvent>
-): StatePlan<TState, TEvent> {
-  return {
-    state: toPlan.state,
-    paths: flatten(
-      fromPlan.paths.map((fromPath) => {
-        return toPlan.paths.map((toPath) => joinPaths(fromPath, toPath));
-      })
-    )
   };
 }

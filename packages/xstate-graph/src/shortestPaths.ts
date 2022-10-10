@@ -3,15 +3,14 @@ import {
   SerializedEvent,
   SerializedState,
   SimpleBehavior,
-  StatePlan,
+  StatePath,
   StatePlanMap,
   TraversalOptions
 } from './types';
 import {
   resolveTraversalOptions,
   createDefaultMachineOptions,
-  filterPlans,
-  joinPlans
+  joinPaths
 } from './graph';
 import { getAdjacencyMap } from './adjacency';
 import { flatten } from 'xstate/src/utils';
@@ -26,10 +25,10 @@ export function machineToBehavior<TMachine extends AnyStateMachine>(
   };
 }
 
-export function getShortestPlans<TState, TEvent extends EventObject>(
+export function getShortestPaths<TState, TEvent extends EventObject>(
   behavior: SimpleBehavior<TState, TEvent>,
   options?: TraversalOptions<TState, TEvent>
-): Array<StatePlan<TState, TEvent>> {
+): Array<StatePath<TState, TEvent>> {
   const config = resolveTraversalOptions(options);
   const serializeState = config.serializeState as (
     ...args: Parameters<typeof config.serializeState>
@@ -103,10 +102,21 @@ export function getShortestPlans<TState, TEvent extends EventObject>(
   }
 
   const statePlanMap: StatePlanMap<TState, TEvent> = {};
+  const paths: Array<StatePath<TState, TEvent>> = [];
 
   weightMap.forEach(
     ({ weight, state: fromState, event: fromEvent }, stateSerial) => {
       const state = stateMap.get(stateSerial)!;
+      paths.push({
+        state,
+        steps: !fromState
+          ? []
+          : statePlanMap[fromState].paths[0].steps.concat({
+              state: stateMap.get(fromState)!,
+              event: fromEvent!
+            }),
+        weight
+      });
       statePlanMap[stateSerial] = {
         state,
         paths: [
@@ -125,26 +135,26 @@ export function getShortestPlans<TState, TEvent extends EventObject>(
     }
   );
 
-  return Object.values(statePlanMap);
+  return paths;
 }
 
-export function getMachineShortestPlans<TMachine extends AnyStateMachine>(
+export function getMachineShortestPaths<TMachine extends AnyStateMachine>(
   machine: TMachine,
   options?: TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>>
-): Array<StatePlan<StateFrom<TMachine>, EventFrom<TMachine>>> {
+): Array<StatePath<StateFrom<TMachine>, EventFrom<TMachine>>> {
   const resolvedOptions = resolveTraversalOptions(
     options,
     createDefaultMachineOptions(machine)
   );
 
-  return getShortestPlans(machineToBehavior(machine), resolvedOptions);
+  return getShortestPaths(machineToBehavior(machine), resolvedOptions);
 }
 
-export function getShortestPlansTo<TState, TEvent extends EventObject>(
+export function getShortestPathsTo<TState, TEvent extends EventObject>(
   behavior: SimpleBehavior<TState, TEvent>,
   predicate: (state: TState) => boolean,
   options?: TraversalOptions<TState, TEvent>
-): Array<StatePlan<TState, TEvent>> {
+): Array<StatePath<TState, TEvent>> {
   const resolvedOptions = resolveTraversalOptions(
     {
       ...options,
@@ -154,70 +164,72 @@ export function getShortestPlansTo<TState, TEvent extends EventObject>(
     // @ts-ignore TODO
     createDefaultMachineOptions(behavior)
   );
-  const simplePlansMap = getShortestPlans(behavior, resolvedOptions);
+  const simplePaths = getShortestPaths(behavior, resolvedOptions);
 
-  return filterPlans(simplePlansMap, predicate);
+  return simplePaths.filter((path) => predicate(path.state));
 }
 
-export function getMachineShortestPlansTo<TMachine extends AnyStateMachine>(
+export function getMachineShortestPathsTo<TMachine extends AnyStateMachine>(
   machine: TMachine,
   predicate: (state: StateFrom<TMachine>) => boolean,
   options?: TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>>
-): Array<StatePlan<StateFrom<TMachine>, EventFrom<TMachine>>> {
+): Array<StatePath<StateFrom<TMachine>, EventFrom<TMachine>>> {
   const resolvedOptions = resolveTraversalOptions(
     options,
     createDefaultMachineOptions(machine)
   );
 
-  return getShortestPlansTo(
+  return getShortestPathsTo(
     machineToBehavior(machine),
     predicate,
     resolvedOptions
   );
 }
 
-export function getShortestPlansFromTo<TState, TEvent extends EventObject>(
+export function getShortestPathsFromTo<TState, TEvent extends EventObject>(
   behavior: SimpleBehavior<TState, TEvent>,
   fromPredicate: (state: TState) => boolean,
   toPredicate: (state: TState) => boolean,
   options?: TraversalOptions<TState, TEvent>
-): Array<StatePlan<TState, TEvent>> {
+): Array<StatePath<TState, TEvent>> {
   const resolvedOptions = resolveTraversalOptions(options);
 
-  // First, find all the shortest plans to the "from" state
-  const fromPlans = getShortestPlansTo(
+  // First, find all the shortest paths to the "from" state
+  const fromStatePaths = getShortestPathsTo(
     behavior,
     fromPredicate,
     resolvedOptions
   );
 
   // Then from each "from" state, find the paths to the "to" state
-  const fromToPlans = flatten(
-    fromPlans.map((fromPlan) => {
-      const toPlans = getShortestPlansTo(behavior, toPredicate, {
+  const fromToPaths = flatten(
+    fromStatePaths.map((fromStatePath) => {
+      const toStatePath = getShortestPathsTo(behavior, toPredicate, {
         ...resolvedOptions,
-        fromState: fromPlan.state
+        fromState: fromStatePath.state
       });
 
-      return toPlans.map((toPlan) => joinPlans(fromPlan, toPlan));
+      return toStatePath.map((toStatePath) =>
+        joinPaths(fromStatePath, toStatePath)
+      );
     })
   );
 
-  return fromToPlans;
+  return fromToPaths;
 }
 
-export function getMachineShortestPlansFromTo<TMachine extends AnyStateMachine>(
+export function getMachineShortestPathsFromTo<TMachine extends AnyStateMachine>(
   machine: TMachine,
   fromPredicate: (state: StateFrom<TMachine>) => boolean,
   toPredicate: (state: StateFrom<TMachine>) => boolean,
   options?: TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>>
-): Array<StatePlan<StateFrom<TMachine>, EventFrom<TMachine>>> {
+): Array<StatePath<StateFrom<TMachine>, EventFrom<TMachine>>> {
   const resolvedOptions = resolveTraversalOptions(
     options,
     createDefaultMachineOptions(machine)
   );
 
-  return getShortestPlansFromTo(
+  return getShortestPathsFromTo(
     machineToBehavior(machine),
     fromPredicate,
     toPredicate,

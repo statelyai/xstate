@@ -8,18 +8,18 @@ export {
   AdjacencyValue
 } from './graph';
 export {
-  getMachineSimplePlans,
-  getSimplePlans,
-  getSimplePlansTo,
-  getSimplePlansFromTo
+  getMachineSimplePaths,
+  getSimplePaths,
+  getSimplePathsTo,
+  getSimplePathsFromTo
 } from './simplePaths';
 export {
-  getShortestPlans,
-  getMachineShortestPlans,
-  getShortestPlansTo,
-  getMachineShortestPlansTo,
-  getShortestPlansFromTo,
-  getMachineShortestPlansFromTo
+  getShortestPaths,
+  getMachineShortestPaths,
+  getShortestPathsTo,
+  getMachineShortestPathsTo,
+  getShortestPathsFromTo,
+  getMachineShortestPathsFromTo
 } from './shortestPaths';
 export { getPathFromEvents } from './pathFromEvents';
 export { getAdjacencyMap } from './adjacency';

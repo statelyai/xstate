@@ -76,7 +76,7 @@ function serializeMachineTransition(
  * Creates a test model that represents an abstract model of a
  * system under test (SUT).
  *
- * The test model is used to generate test plans, which are used to
+ * The test model is used to generate test paths, which are used to
  * verify that states in the `machine` are reachable in the SUT.
  *
  * @example

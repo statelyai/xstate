@@ -2,10 +2,9 @@ import {
   SerializationConfig,
   SerializedEvent,
   SerializedState,
-  StatePath,
-  StatePlan
+  StatePath
 } from '@xstate/graph';
-import { AnyState, EventObject } from 'xstate';
+import { AnyState } from 'xstate';
 import { TestMeta, TestPathResult } from './types';
 
 interface TestResultStringOptions extends SerializationConfig<any, any> {
@@ -106,11 +105,3 @@ export function getDescription<T, TContext>(state: AnyState): string {
 export function flatten<T>(array: Array<T | T[]>): T[] {
   return ([] as T[]).concat(...array);
 }
-
-export const mapPlansToPaths = <TState, TEvent extends EventObject>(
-  plans: StatePlan<TState, TEvent>[]
-): Array<StatePath<TState, TEvent>> => {
-  return plans.reduce((acc, plan) => {
-    return acc.concat(plan.paths);
-  }, [] as Array<StatePath<TState, TEvent>>);
-};

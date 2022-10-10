@@ -11,25 +11,19 @@ import {
 import {
   getStateNodes,
   getPathFromEvents,
-  getMachineSimplePlans,
-  getMachineShortestPlans,
+  getMachineSimplePaths,
+  getMachineShortestPaths,
   toDirectedGraph,
   StatePath,
-  StatePlan,
   joinPaths,
-  getShortestPlans,
-  getSimplePlans
+  getShortestPaths,
+  getSimplePaths
 } from '../src';
-import { flatten } from 'xstate/lib/utils';
 
-function getPlansSnapshot(
-  plans: Array<StatePlan<any, EventObject>>
+function getPathsSnapshot(
+  paths: Array<StatePath<any, EventObject>>
 ): Array<ReturnType<typeof getPathSnapshot>> {
-  return flatten(
-    plans.map((plan) => {
-      return plan.paths.map(getPathSnapshot);
-    })
-  );
+  return paths.map((path) => getPathSnapshot(path));
 }
 
 function getPathSnapshot(
@@ -196,30 +190,30 @@ describe('@xstate/graph', () => {
 
   describe('getShortestPaths()', () => {
     it('should return a mapping of shortest paths to all states', () => {
-      const paths = getMachineShortestPlans(lightMachine);
+      const paths = getMachineShortestPaths(lightMachine);
 
-      expect(getPlansSnapshot(paths)).toMatchSnapshot('shortest paths');
+      expect(getPathsSnapshot(paths)).toMatchSnapshot('shortest paths');
     });
 
     it('should return a mapping of shortest paths to all states (parallel)', () => {
-      const paths = getMachineShortestPlans(parallelMachine);
-      expect(getPlansSnapshot(paths)).toMatchSnapshot(
+      const paths = getMachineShortestPaths(parallelMachine);
+      expect(getPathsSnapshot(paths)).toMatchSnapshot(
         'shortest paths parallel'
       );
     });
 
     it('the initial state should have a zero-length path', () => {
-      const shortestPaths = getMachineShortestPlans(lightMachine);
+      const shortestPaths = getMachineShortestPaths(lightMachine);
 
       expect(
-        shortestPaths.find((plan) =>
-          plan.state.matches(lightMachine.initialState.value)
-        )!.paths[0].steps
+        shortestPaths.find((path) =>
+          path.state.matches(lightMachine.initialState.value)
+        )!.steps
       ).toHaveLength(0);
     });
 
     xit('should not throw when a condition is present', () => {
-      expect(() => getMachineShortestPlans(condMachine)).not.toThrow();
+      expect(() => getMachineShortestPaths(condMachine)).not.toThrow();
     });
 
     it.skip('should represent conditional paths based on context', () => {
@@ -253,7 +247,7 @@ describe('@xstate/graph', () => {
         }
       });
 
-      const paths = getMachineShortestPlans(machine, {
+      const paths = getMachineShortestPaths(machine, {
         getEvents: () =>
           [
             {
@@ -266,7 +260,7 @@ describe('@xstate/graph', () => {
           ] as const
       });
 
-      expect(getPlansSnapshot(paths)).toMatchSnapshot(
+      expect(getPathsSnapshot(paths)).toMatchSnapshot(
         'shortest paths conditional'
       );
     });
@@ -274,12 +268,25 @@ describe('@xstate/graph', () => {
 
   describe('getSimplePaths()', () => {
     it('should return a mapping of arrays of simple paths to all states', () => {
-      const paths = getMachineSimplePlans(lightMachine);
+      const paths = getMachineSimplePaths(lightMachine);
 
+      // Multiple different ways to get to flashing (from any other state)
       expect(paths.map((path) => path.state.value)).toMatchInlineSnapshot(`
         Array [
           "green",
           "yellow",
+          Object {
+            "red": "flashing",
+          },
+          Object {
+            "red": "flashing",
+          },
+          Object {
+            "red": "flashing",
+          },
+          Object {
+            "red": "flashing",
+          },
           Object {
             "red": "flashing",
           },
@@ -295,7 +302,7 @@ describe('@xstate/graph', () => {
         ]
       `);
 
-      expect(getPlansSnapshot(paths)).toMatchSnapshot();
+      expect(getPathsSnapshot(paths)).toMatchSnapshot();
     });
 
     const equivMachine = createMachine({
@@ -307,7 +314,7 @@ describe('@xstate/graph', () => {
     });
 
     it('should return a mapping of simple paths to all states (parallel)', () => {
-      const paths = getMachineSimplePlans(parallelMachine);
+      const paths = getMachineSimplePaths(parallelMachine);
 
       expect(paths.map((p) => p.state.value)).toMatchInlineSnapshot(`
         Array [
@@ -323,45 +330,58 @@ describe('@xstate/graph', () => {
             "a": "a3",
             "b": "b3",
           },
+          Object {
+            "a": "a3",
+            "b": "b3",
+          },
         ]
       `);
-      expect(getPlansSnapshot(paths)).toMatchSnapshot('simple paths parallel');
+      expect(getPathsSnapshot(paths)).toMatchSnapshot('simple paths parallel');
     });
 
     it('should return multiple paths for equivalent transitions', () => {
-      const paths = getMachineSimplePlans(equivMachine);
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: { on: { FOO: 'b', BAR: 'b' } },
+          b: { on: { FOO: 'a', BAR: 'a' } }
+        }
+      });
+
+      const paths = getMachineSimplePaths(machine);
 
       expect(paths.map((p) => p.state.value)).toMatchInlineSnapshot(`
         Array [
           "a",
           "b",
+          "b",
         ]
       `);
-      expect(getPlansSnapshot(paths)).toMatchSnapshot(
+      expect(getPathsSnapshot(paths)).toMatchSnapshot(
         'simple paths equal transitions'
       );
     });
 
     it('should return a single empty path for the initial state', () => {
       expect(
-        getMachineSimplePlans(lightMachine).find((p) =>
+        getMachineSimplePaths(lightMachine).find((p) =>
           p.state.matches(lightMachine.initialState.value)
-        )!.paths
-      ).toHaveLength(1);
+        )
+      ).toBeDefined();
       expect(
-        getMachineSimplePlans(lightMachine).find((p) =>
+        getMachineSimplePaths(lightMachine).find((p) =>
           p.state.matches(lightMachine.initialState.value)
-        )!.paths[0].steps
+        )!.steps
       ).toHaveLength(0);
       expect(
-        getMachineSimplePlans(equivMachine).find((p) =>
+        getMachineSimplePaths(equivMachine).find((p) =>
           p.state.matches(equivMachine.initialState.value)
-        )!.paths
-      ).toHaveLength(1);
+        )!
+      ).toBeDefined();
       expect(
-        getMachineSimplePlans(equivMachine).find((p) =>
+        getMachineSimplePaths(equivMachine).find((p) =>
           p.state.matches(equivMachine.initialState.value)
-        )!.paths[0].steps
+        )!.steps
       ).toHaveLength(0);
     });
 
@@ -397,7 +417,7 @@ describe('@xstate/graph', () => {
         }
       });
 
-      const paths = getMachineSimplePlans(countMachine, {
+      const paths = getMachineSimplePaths(countMachine, {
         getEvents: () => [{ type: 'INC', value: 1 }] as const
       });
 
@@ -409,7 +429,7 @@ describe('@xstate/graph', () => {
           "finish",
         ]
       `);
-      expect(getPlansSnapshot(paths)).toMatchSnapshot('simple paths context');
+      expect(getPathsSnapshot(paths)).toMatchSnapshot('simple paths context');
     });
   });
 
@@ -473,7 +493,7 @@ describe('@xstate/graph', () => {
 });
 
 it('simple paths for reducers', () => {
-  const a = getShortestPlans(
+  const a = getShortestPaths(
     {
       transition: (s, e) => {
         if (e.type === 'a') {
@@ -495,11 +515,11 @@ it('simple paths for reducers', () => {
     }
   );
 
-  expect(getPlansSnapshot(a)).toMatchSnapshot();
+  expect(getPathsSnapshot(a)).toMatchSnapshot();
 });
 
 it('shortest paths for reducers', () => {
-  const a = getSimplePlans(
+  const a = getSimplePaths(
     {
       transition: (s, e) => {
         if (e.type === 'a') {
@@ -521,7 +541,7 @@ it('shortest paths for reducers', () => {
     }
   );
 
-  expect(getPlansSnapshot(a)).toMatchSnapshot();
+  expect(getPathsSnapshot(a)).toMatchSnapshot();
 });
 
 describe('filtering', () => {
@@ -542,7 +562,7 @@ describe('filtering', () => {
       }
     });
 
-    const sp = getMachineShortestPlans(machine, {
+    const sp = getMachineShortestPaths(machine, {
       getEvents: () => [{ type: 'INC' }],
       filter: (s) => s.context.count < 5
     });
@@ -585,7 +605,7 @@ it('should provide previous state for serializeState()', () => {
     }
   });
 
-  const shortestPaths = getMachineShortestPlans(machine, {
+  const shortestPaths = getMachineShortestPaths(machine, {
     serializeState: (state, event, prevState) => {
       return `${JSON.stringify(state.value)} via ${event?.type}${
         prevState ? ` via ${JSON.stringify(prevState.value)}` : ''
@@ -599,13 +619,13 @@ it('should provide previous state for serializeState()', () => {
   expect(
     shortestPaths
       .filter((path) => path.state.matches('a'))
-      .map((plan) => plan.paths[0].steps.length)
+      .map((path) => path.steps.length)
   ).toEqual([0, 3]);
 });
 
-it.each([getMachineShortestPlans, getMachineSimplePlans])(
+it.each([getMachineShortestPaths, getMachineSimplePaths])(
   'from-state can be specified',
-  (getPlans) => {
+  (pathGetter) => {
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -621,23 +641,19 @@ it.each([getMachineShortestPlans, getMachineSimplePlans])(
       }
     });
 
-    const plans = getPlans(machine, {
+    const paths = pathGetter(machine, {
       fromState: machine.resolveState(State.from('b'))
     });
 
     // Instead of taking 1 step to reach state 'b', there should
     // exist a path that takes 0 steps
     expect(
-      plans
-        .find((plan) => plan.state.matches('b'))
-        ?.paths.find((path) => path.steps.length === 0)
+      paths.find((path) => path.state.matches('b') && path.steps.length === 0)
     ).toBeTruthy();
 
     // Instead of starting at state 'a', it should take > 0 steps to reach 'a'
     expect(
-      plans
-        .find((plan) => plan.state.matches('a'))
-        ?.paths.every((path) => path.steps.length > 0)
+      paths.find((path) => path.state.matches('a') && path.steps.length > 0)
     ).toBeTruthy();
   }
 );

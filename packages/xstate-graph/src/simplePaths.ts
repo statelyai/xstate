@@ -4,33 +4,29 @@ import {
   SerializedState,
   SimpleBehavior,
   StatePath,
-  StatePlan,
   TraversalOptions,
   VisitedContext
 } from './types';
-import {
-  resolveTraversalOptions,
-  createDefaultMachineOptions,
-  filterPlans
-} from './graph';
+import { resolveTraversalOptions, createDefaultMachineOptions } from './graph';
 import { getAdjacencyMap } from './adjacency';
+import { flatten } from 'xstate/src/utils';
 
-export function getMachineSimplePlans<TMachine extends AnyStateMachine>(
+export function getMachineSimplePaths<TMachine extends AnyStateMachine>(
   machine: TMachine,
   options?: TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>>
-): Array<StatePlan<StateFrom<TMachine>, EventFrom<TMachine>>> {
+): Array<StatePath<StateFrom<TMachine>, EventFrom<TMachine>>> {
   const resolvedOptions = resolveTraversalOptions(
     options,
     createDefaultMachineOptions(machine)
   );
 
-  return getSimplePlans(machine as SimpleBehavior<any, any>, resolvedOptions);
+  return getSimplePaths(machine as SimpleBehavior<any, any>, resolvedOptions);
 }
 
-export function getSimplePlans<TState, TEvent extends EventObject>(
+export function getSimplePaths<TState, TEvent extends EventObject>(
   behavior: SimpleBehavior<TState, TEvent>,
   options: TraversalOptions<TState, TEvent>
-): Array<StatePlan<TState, TEvent>> {
+): Array<StatePath<TState, TEvent>> {
   const resolvedOptions = resolveTraversalOptions(options);
   const fromState = resolvedOptions.fromState ?? behavior.initialState;
   const serializeState = resolvedOptions.serializeState as (
@@ -110,33 +106,33 @@ export function getSimplePlans<TState, TEvent extends EventObject>(
     util(fromStateSerial, nextStateSerial);
   }
 
-  return Object.values(pathMap);
+  return flatten(Object.values(pathMap).map((p) => p.paths));
 }
 
-export function getSimplePlansTo<TState, TEvent extends EventObject>(
+export function getSimplePathsTo<TState, TEvent extends EventObject>(
   behavior: SimpleBehavior<TState, TEvent>,
   predicate: (state: TState) => boolean,
   options: TraversalOptions<TState, TEvent>
-): Array<StatePlan<TState, TEvent>> {
+): Array<StatePath<TState, TEvent>> {
   const resolvedOptions = resolveTraversalOptions(options);
-  const simplePlansMap = getSimplePlans(behavior, resolvedOptions);
+  const simplePaths = getSimplePaths(behavior, resolvedOptions);
 
-  return filterPlans(simplePlansMap, predicate);
+  return simplePaths.filter((path) => predicate(path.state));
 }
 
-export function getSimplePlansFromTo<TState, TEvent extends EventObject>(
+export function getSimplePathsFromTo<TState, TEvent extends EventObject>(
   behavior: SimpleBehavior<TState, TEvent>,
   fromPredicate: (state: TState) => boolean,
   toPredicate: (state: TState) => boolean,
   options: TraversalOptions<TState, TEvent>
-): Array<StatePlan<TState, TEvent>> {
+): Array<StatePath<TState, TEvent>> {
   const resolvedOptions = resolveTraversalOptions(options);
-  const simplePlansMap = getSimplePlans(behavior, resolvedOptions);
+  const simplePaths = getSimplePaths(behavior, resolvedOptions);
 
-  // Return all plans that contain a "from" state and target a "to" state
-  return filterPlans(simplePlansMap, (state, plan) => {
+  return simplePaths.filter((path) => {
     return (
-      toPredicate(state) && plan.paths.some((path) => fromPredicate(path.state))
+      toPredicate(path.state) &&
+      path.steps.some((step) => fromPredicate(step.state))
     );
   });
 }
