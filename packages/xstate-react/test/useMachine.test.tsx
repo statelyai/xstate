@@ -1,4 +1,4 @@
-import { act, fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import * as React from 'react';
 import { useState } from 'react';
 import {
@@ -761,5 +761,55 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     const { container } = render(<App />);
 
     expect(container.textContent).toBe('2');
+  });
+
+  it('should invoke functions with correct order', async () => {
+    let counter = 0;
+    let onDone = 0;
+    let exit = 0;
+
+    const machine = createMachine(
+      {
+        id: 'action-order-bug',
+        initial: 'initial',
+        states: {
+          initial: {
+            exit: () => {
+              exit = ++counter;
+            },
+            order: 2,
+            invoke: {
+              id: 'fakeService',
+              src: 'fakeService',
+              onDone: {
+                actions: () => {
+                  onDone = ++counter;
+                },
+                target: 'done'
+              }
+            }
+          },
+          done: {}
+        }
+      },
+      {
+        services: {
+          fakeService: () => Promise.resolve('successs')
+        }
+      }
+    );
+
+    const App = () => {
+      const [state] = useMachine(machine);
+      return <>{state.value}</>;
+    };
+
+    const { container } = render(<App />);
+
+    await waitFor(() => expect(container.textContent).toBe('done'));
+
+    expect(onDone).toBeGreaterThan(0);
+    expect(exit).toBeGreaterThan(0);
+    expect(exit).toBeGreaterThan(onDone);
   });
 });
