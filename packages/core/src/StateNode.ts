@@ -1087,17 +1087,17 @@ class StateNode<
     const exitActions = Array.from(exitStates).map((stateNode) =>
       toActionObjects(
         [
-          ...stateNode.onExit,
-          ...stateNode.activities.map((activity) => stop(activity))
+          ...stateNode.activities.map((activity) => stop(activity)),
+          ...stateNode.onExit
         ],
         this.machine.options.actions as any
       )
     );
 
-    const actions = exitActions
-      .concat([
-        toActionObjects(transition.actions, this.machine.options.actions as any)
-      ])
+    const actions = [
+      toActionObjects(transition.actions, this.machine.options.actions as any)
+    ]
+      .concat(exitActions)
       .concat(entryActions);
 
     if (isDone) {

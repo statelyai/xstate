@@ -109,8 +109,8 @@ describe('transient states (eventless transitions)', () => {
     const state = machine.transition('A', 'TIMER');
 
     expect(state.actions.map((a) => a.type)).toEqual([
-      'exit_A',
       'timer',
+      'exit_A',
       'enter_B'
     ]);
   });

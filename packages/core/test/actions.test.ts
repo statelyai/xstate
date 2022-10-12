@@ -337,11 +337,11 @@ describe('entry/exit actions', () => {
           .transition(parallelMachine.initialState, 'CHANGE')
           .actions.map((a) => a.type)
       ).toEqual([
-        'exit_b1', // reverse document order
-        'exit_a1',
         'do_a2',
         'another_do_a2',
         'do_b2',
+        'exit_b1',
+        'exit_a1',
         'enter_a2',
         'enter_b2'
       ]);
@@ -377,7 +377,7 @@ describe('entry/exit actions', () => {
         deepMachine
           .transition('a.a3', 'NEXT')
           .actions.map((action) => action.type)
-      ).toEqual(['exit_a3_fn', 'do_a3_to_a2', 'enter_a2']);
+      ).toEqual(['do_a3_to_a2', 'exit_a3_fn', 'enter_a2']);
     });
 
     it('should exit children of parallel state nodes', () => {
@@ -1367,8 +1367,8 @@ describe('entry/exit actions', () => {
       service.send({ type: 'INITIALIZE_SYNC_SEQUENCE' });
 
       expect(executedActions).toEqual([
-        'foo exit action',
         'foo transition action',
+        'foo exit action',
         'bar exit action'
       ]);
     });
