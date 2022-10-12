@@ -29,6 +29,7 @@ import {
 } from './types';
 import { toEventObject, toObserver, toSCXMLEvent, warn } from './utils';
 import { symbolObservable } from './symbolObservable';
+import { memo } from './memo';
 
 export type SnapshotListener<TBehavior extends Behavior<any, any>> = (
   state: SnapshotFrom<TBehavior>
@@ -162,13 +163,9 @@ export class Interpreter<
   // array of functions to defer
   private _deferred: Array<(state: any) => void> = [];
 
-  private __initial: InternalStateFrom<TBehavior> | undefined = undefined;
-
   public getInitialState(): InternalStateFrom<TBehavior> {
-    return (
-      this.__initial ||
-      ((this.__initial = this.behavior.getInitialState(this._actorContext)),
-      this.__initial!)
+    return memo(this, 'initial', () =>
+      this.behavior.getInitialState(this._actorContext)
     );
   }
 
@@ -355,8 +352,6 @@ export class Interpreter<
    * Stops the interpreter and unsubscribe all listeners.
    */
   public stop(): this {
-    delete this.__initial;
-
     this.mailbox.clear();
     this.mailbox.enqueue(toSCXMLEvent({ type: stopSignalType }) as any);
 

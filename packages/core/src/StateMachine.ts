@@ -1,4 +1,10 @@
-import { ActorContext, AnyStateMachine, InvokeActionObject, Spawner } from '.';
+import {
+  ActorContext,
+  AnyStateMachine,
+  InvokeActionObject,
+  Spawner,
+  TransitionDefinition
+} from '.';
 import { initEvent } from './actions';
 import { STATE_DELIMITER } from './constants';
 import { execAction } from './exec';
@@ -36,8 +42,7 @@ import type {
   SCXML,
   StateConfig,
   StateNodeDefinition,
-  StateValue,
-  Transitions
+  StateValue
 } from './types';
 import { isFunction, isSCXMLErrorEvent, toSCXMLEvent } from './utils';
 
@@ -293,7 +298,8 @@ export class StateMachine<
   public getTransitionData(
     state: State<TContext, TEvent, TResolvedTypesMeta>,
     _event: SCXML.Event<TEvent>
-  ): Transitions<TContext, TEvent> {
+  ): Array<TransitionDefinition<TContext, TEvent>> {
+    // return this.transition(state, _event).transitions;
     return transitionNode(this.root, state.value, state, _event) || [];
   }
 
@@ -345,7 +351,12 @@ export class StateMachine<
     actorCtx?: ActorContext<TEvent, State<TContext, TEvent>>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const preInitialState = this.getPreInitialState(actorCtx);
-    const nextState = microstep([], preInitialState, actorCtx);
+    const nextState = microstep(
+      [],
+      preInitialState,
+      actorCtx,
+      initEvent as SCXML.Event<TEvent>
+    );
     nextState.actions.unshift(...preInitialState.actions);
 
     const { state: macroState } = macrostep(nextState, initEvent, actorCtx);

@@ -22,10 +22,8 @@ import {
   SingleOrArray,
   DelayExpr,
   SCXML,
-  Transitions,
   StateValueMap,
   RaiseActionObject,
-  HistoryValue,
   InitialTransitionConfig,
   MachineContext
 } from './types';
@@ -66,11 +64,9 @@ type Configuration<
   TContext extends MachineContext,
   TE extends EventObject
 > = Iterable<StateNode<TContext, TE>>;
+type AnyConfiguration = Configuration<any, any>;
 
-type AdjList<TContext extends MachineContext, TE extends EventObject> = Map<
-  StateNode<TContext, TE>,
-  Array<StateNode<TContext, TE>>
->;
+type AdjList = Map<AnyStateNode, Array<AnyStateNode>>;
 
 const isAtomicStateNode = (stateNode: StateNode<any, any>) =>
   stateNode.type === 'atomic' || stateNode.type === 'final';
@@ -137,13 +133,7 @@ export function getConfiguration(
   return configurationSet;
 }
 
-function getValueFromAdj<
-  TContext extends MachineContext,
-  TE extends EventObject
->(
-  baseNode: StateNode<TContext, TE>,
-  adjList: AdjList<TContext, TE>
-): StateValue {
+function getValueFromAdj(baseNode: AnyStateNode, adjList: AdjList): StateValue {
   const childStateNodes = adjList.get(baseNode);
 
   if (!childStateNodes) {
@@ -172,8 +162,8 @@ function getValueFromAdj<
 export function getAdjList<
   TContext extends MachineContext,
   TE extends EventObject
->(configuration: Configuration<TContext, TE>): AdjList<TContext, TE> {
-  const adjList: AdjList<TContext, TE> = new Map();
+>(configuration: Configuration<TContext, TE>): AdjList {
+  const adjList: AdjList = new Map();
 
   for (const s of configuration) {
     if (!adjList.has(s)) {
@@ -192,33 +182,24 @@ export function getAdjList<
   return adjList;
 }
 
-export function getStateValue<
-  TContext extends MachineContext,
-  TE extends EventObject
->(
-  rootNode: StateNode<TContext, TE>,
-  configuration: Configuration<TContext, TE>
+export function getStateValue(
+  rootNode: AnyStateNode,
+  configuration: AnyConfiguration
 ): StateValue {
   const config = getConfiguration(configuration);
   return getValueFromAdj(rootNode, getAdjList(config));
 }
 
-export function isInFinalState<
-  TContext extends MachineContext,
-  TE extends EventObject
->(
-  configuration: Array<StateNode<TContext, TE>>,
-  stateNode: StateNode<TContext, TE> = configuration[0].machine.root
+export function isInFinalState(
+  configuration: Array<AnyStateNode>,
+  stateNode: AnyStateNode = configuration[0].machine.root
 ): boolean {
-  if (stateNode.type === 'compound') {
-    return getChildren(stateNode).some(
-      (s) => s.type === 'final' && configuration.includes(s)
-    );
-  }
-  if (stateNode.type === 'parallel') {
-    return getChildren(stateNode).every((sn) =>
-      isInFinalState(configuration, sn)
-    );
+  const { type } = stateNode;
+  if (['compound', 'parallel'].includes(type)) {
+    const children = getChildren(stateNode);
+    return type === 'compound'
+      ? children.some((sn) => sn.type === 'final' && configuration.includes(sn))
+      : children.every((sn) => isInFinalState(configuration, sn));
   }
 
   return false;
@@ -293,6 +274,7 @@ export function getCandidates<TEvent extends EventObject>(
 
   return candidates;
 }
+
 /**
  * All delayed transitions from the config.
  */
@@ -306,6 +288,7 @@ export function getDelayedTransitions<
   if (!afterConfig) {
     return [];
   }
+
   const mutateEntryExit = (
     delay: string | number | DelayExpr<TContext, TEvent>,
     i: number
@@ -316,6 +299,7 @@ export function getDelayedTransitions<
     stateNode.exit.push(cancel(eventType));
     return eventType;
   };
+
   const delayedTransitions = isArray(afterConfig)
     ? afterConfig.map((transition, i) => {
         const eventType = mutateEntryExit(transition.delay, i);
@@ -364,6 +348,8 @@ export function formatTransition<
       : true;
   const { guards } = stateNode.machine.options;
   const target = resolveTarget(stateNode, normalizedTarget);
+
+  // TODO: should this be part of a lint rule instead?
   if (!IS_PRODUCTION && (transitionConfig as any).cond) {
     throw new Error(
       `State "${stateNode.id}" has declared \`cond\` for one of its transitions. This property has been renamed to \`guard\`. Please update your code.`
@@ -553,13 +539,13 @@ export function formatInitialTransition<
 
 export function resolveTarget(
   stateNode: AnyStateNode,
-  _target: Array<string | AnyStateNode> | undefined
+  targets: Array<string | AnyStateNode> | undefined
 ): Array<AnyStateNode> | undefined {
-  if (_target === undefined) {
+  if (targets === undefined) {
     // an undefined target signals that the state node should not transition from that state when receiving that event
     return undefined;
   }
-  return _target.map((target) => {
+  return targets.map((target) => {
     if (!isString(target)) {
       return target;
     }
@@ -735,7 +721,7 @@ export function getStateNodes<
   );
 }
 
-export function transitionLeafNode<
+export function transitionAtomicNode<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
@@ -743,7 +729,7 @@ export function transitionLeafNode<
   stateValue: string,
   state: State<TContext, TEvent>,
   _event: SCXML.Event<TEvent>
-): Transitions<TContext, TEvent> | undefined {
+): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const childStateNode = getStateNode(stateNode, stateValue);
   const next = childStateNode.next(state, _event);
 
@@ -762,7 +748,7 @@ export function transitionCompoundNode<
   stateValue: StateValueMap,
   state: State<TContext, TEvent>,
   _event: SCXML.Event<TEvent>
-): Transitions<TContext, TEvent> | undefined {
+): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   const subStateKeys = Object.keys(stateValue);
 
   const childStateNode = getStateNode(stateNode, subStateKeys[0]);
@@ -779,6 +765,7 @@ export function transitionCompoundNode<
 
   return next;
 }
+
 export function transitionParallelNode<
   TContext extends MachineContext,
   TEvent extends EventObject
@@ -787,8 +774,8 @@ export function transitionParallelNode<
   stateValue: StateValueMap,
   state: State<TContext, TEvent>,
   _event: SCXML.Event<TEvent>
-): Transitions<TContext, TEvent> | undefined {
-  const allInnerTransitions: Transitions<TContext, TEvent> = [];
+): Array<TransitionDefinition<TContext, TEvent>> | undefined {
+  const allInnerTransitions: Array<TransitionDefinition<TContext, TEvent>> = [];
 
   for (const subStateKey of Object.keys(stateValue)) {
     const subStateValue = stateValue[subStateKey];
@@ -823,10 +810,10 @@ export function transitionNode<
   stateValue: StateValue,
   state: State<TContext, TEvent, any>,
   _event: SCXML.Event<TEvent>
-): Transitions<TContext, TEvent> | undefined {
+): Array<TransitionDefinition<TContext, TEvent>> | undefined {
   // leaf node
   if (isString(stateValue)) {
-    return transitionLeafNode(stateNode, stateValue, state, _event);
+    return transitionAtomicNode(stateNode, stateValue, state, _event);
   }
 
   // compound node
@@ -885,13 +872,10 @@ function hasIntersection<T>(s1: Iterable<T>, s2: Iterable<T>): boolean {
   return false;
 }
 
-export function removeConflictingTransitions<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(
+export function removeConflictingTransitions(
   enabledTransitions: Array<AnyTransitionDefinition>,
   configuration: Set<AnyStateNode>,
-  historyValue: HistoryValue<TContext, TEvent>
+  historyValue: AnyHistoryValue
 ): Array<AnyTransitionDefinition> {
   const filteredTransitions = new Set<AnyTransitionDefinition>();
 
@@ -951,22 +935,22 @@ function getEffectiveTargetStates(
 
   const targets = new Set<AnyStateNode>();
 
-  for (const s of transition.target) {
-    if (isHistoryNode(s)) {
-      if (historyValue[s.id]) {
-        for (const node of historyValue[s.id]) {
+  for (const sn of transition.target) {
+    if (isHistoryNode(sn)) {
+      if (historyValue[sn.id]) {
+        for (const node of historyValue[sn.id]) {
           targets.add(node);
         }
       } else {
         for (const node of getEffectiveTargetStates(
-          { target: resolveHistoryTarget(s) } as AnyTransitionDefinition,
+          { target: resolveHistoryTarget(sn) } as AnyTransitionDefinition,
           historyValue
         )) {
           targets.add(node);
         }
       }
     } else {
-      targets.add(s);
+      targets.add(sn);
     }
   }
 
@@ -1033,10 +1017,10 @@ export function microstep<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  transitions: Transitions<TContext, TEvent>,
+  transitions: Array<TransitionDefinition<TContext, TEvent>>,
   currentState: State<TContext, TEvent, any>,
   actorCtx: ActorContext<any, any> | undefined,
-  _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>
+  _event: SCXML.Event<TEvent>
 ): State<TContext, TEvent, any> {
   const { machine } = currentState;
   // Transition will "apply" if:
@@ -1125,7 +1109,7 @@ export function microstep<
     const filteredTransitions = removeConflictingTransitions(
       transitions,
       mutConfiguration,
-      currentState.historyValue
+      historyValue
     );
 
     const internalQueue = [...currentState._internalQueue];
@@ -1624,7 +1608,6 @@ export function macrostep<TMachine extends AnyStateMachine>(
 
   function selectEventlessTransitions(): AnyTransitionDefinition[] {
     const enabledTransitionSet: Set<AnyTransitionDefinition> = new Set();
-
     const atomicStates = nextState.configuration.filter(isAtomicStateNode);
 
     for (const stateNode of atomicStates) {
