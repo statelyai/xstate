@@ -186,6 +186,7 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
           }
         }
       });
+
       const machine = createMachine<{
         actorRef?: ActorRefFrom<typeof childMachine>;
       }>({
@@ -435,55 +436,59 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
     });
   });
 
-  it('should work with initially deferred actors spawned in lazy context', () => {
-    const childMachine = createMachine({
-      initial: 'one',
-      states: {
-        one: {
-          on: { NEXT: 'two' }
-        },
-        two: {}
-      }
-    });
-
-    const machine = createMachine<{ ref: ActorRef<any> }>({
-      context: ({ spawn }) => ({
-        ref: spawn(childMachine)
-      }),
-      initial: 'waiting',
-      states: {
-        waiting: {
-          on: { TEST: 'success' }
-        },
-        success: {
-          type: 'final'
+  it(
+    'should work with initially deferred actors spawned in lazy context ' +
+      suiteKey,
+    () => {
+      const childMachine = createMachine({
+        initial: 'one',
+        states: {
+          one: {
+            on: { NEXT: 'two' }
+          },
+          two: {}
         }
-      }
-    });
+      });
 
-    const App = () => {
-      const [state] = useMachine(machine);
-      const [childState, childSend] = useActor(state.context.ref);
+      const machine = createMachine<{ ref: ActorRef<any> }>({
+        context: ({ spawn }) => ({
+          ref: spawn(childMachine)
+        }),
+        initial: 'waiting',
+        states: {
+          waiting: {
+            on: { TEST: 'success' }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      });
 
-      return (
-        <>
-          <div data-testid="child-state">{childState.value}</div>
-          <button
-            data-testid="child-send"
-            onClick={() => childSend({ type: 'NEXT' })}
-          ></button>
-        </>
-      );
-    };
+      const App = () => {
+        const [state] = useMachine(machine);
+        const [childState, childSend] = useActor(state.context.ref);
 
-    render(<App />);
+        return (
+          <>
+            <div data-testid="child-state">{childState.value}</div>
+            <button
+              data-testid="child-send"
+              onClick={() => childSend({ type: 'NEXT' })}
+            ></button>
+          </>
+        );
+      };
 
-    const elState = screen.getByTestId('child-state');
-    const elSend = screen.getByTestId('child-send');
+      render(<App />);
 
-    expect(elState.textContent).toEqual('one');
-    fireEvent.click(elSend);
+      const elState = screen.getByTestId('child-state');
+      const elSend = screen.getByTestId('child-send');
 
-    expect(elState.textContent).toEqual('two');
-  });
+      expect(elState.textContent).toEqual('one');
+      fireEvent.click(elSend);
+
+      expect(elState.textContent).toEqual('two');
+    }
+  );
 });

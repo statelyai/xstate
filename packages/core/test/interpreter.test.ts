@@ -63,7 +63,9 @@ describe('interpreter', () => {
     it('.initialState returns the initial state', () => {
       const service = interpret(idMachine);
 
-      expect(service.initialState.value).toEqual(idMachine.initialState.value);
+      expect(service.getInitialState().value).toEqual(
+        idMachine.getInitialState().value
+      );
     });
 
     it('initially spawned actors should not be spawned when reading initial state', (done) => {
@@ -96,10 +98,9 @@ describe('interpreter', () => {
 
       expect(promiseSpawned).toEqual(0);
 
-      const callInitialState = () => service.initialState;
-      callInitialState();
-      callInitialState();
-      callInitialState();
+      service.getInitialState();
+      service.getInitialState();
+      service.getInitialState();
 
       expect(promiseSpawned).toEqual(0);
 
