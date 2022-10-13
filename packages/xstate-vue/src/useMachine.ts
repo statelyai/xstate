@@ -56,11 +56,10 @@ export function useMachine<TMachine extends AnyStateMachine>(
 
   const service = useInterpret(getMachine, options, listener);
 
-  const { initialState } = service.behavior;
   const state = shallowRef(
     options.state
       ? (service.behavior as AnyStateMachine).createState(options.state)
-      : initialState
+      : service.getSnapshot()
   );
 
   return { state, send: service.send, service } as any;

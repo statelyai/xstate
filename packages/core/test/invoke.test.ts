@@ -2915,7 +2915,7 @@ describe('invoke', () => {
       expect(machine.root.invoke[0].meta).toEqual({ url: 'stately.ai' });
     });
 
-    it.only('meta data should be available in the invoke source function', () => {
+    it('meta data should be available in the invoke source function', () => {
       expect.assertions(1);
       const machine = createMachine({
         invoke: {

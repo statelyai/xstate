@@ -29,6 +29,7 @@ import {
 } from './types';
 import { toEventObject, toObserver, toSCXMLEvent, warn } from './utils';
 import { symbolObservable } from './symbolObservable';
+import { evict, memo } from './memo';
 
 export type SnapshotListener<TBehavior extends Behavior<any, any>> = (
   state: SnapshotFrom<TBehavior>
@@ -77,7 +78,7 @@ export class Interpreter<
   TEvent extends EventObject = EventFromBehavior<TBehavior>
 > implements ActorRef<TEvent, SnapshotFrom<TBehavior>> {
   /**
-   * The current state of the interpreted machine.
+   * The current state of the interpreted behavior.
    */
   private _state?: InternalStateFrom<TBehavior>;
   /**
@@ -118,9 +119,9 @@ export class Interpreter<
   public _forwardTo: Set<AnyActorRef> = new Set();
 
   /**
-   * Creates a new Interpreter instance (i.e., service) for the given machine with the provided options, if any.
+   * Creates a new Interpreter instance (i.e., service) for the given behavior with the provided options, if any.
    *
-   * @param behavior The machine to be interpreted
+   * @param behavior The behavior to be interpreted
    * @param options Interpreter options
    */
   constructor(public behavior: TBehavior, options?: InterpreterOptions) {
@@ -162,14 +163,9 @@ export class Interpreter<
   // array of functions to defer
   private _deferred: Array<(state: any) => void> = [];
 
-  private __initial: InternalStateFrom<TBehavior> | undefined = undefined;
-
-  public get initialState(): InternalStateFrom<TBehavior> {
-    // TODO: getSnapshot
-    return (
-      this.__initial ||
-      ((this.__initial = this.behavior.getInitialState(this._actorContext)),
-      this.__initial!)
+  public getInitialState(): InternalStateFrom<TBehavior> {
+    return memo(this, 'initial', () =>
+      this.behavior.getInitialState(this._actorContext)
     );
   }
 
@@ -308,7 +304,7 @@ export class Interpreter<
 
     let resolvedState = initialState
       ? this.behavior.restoreState?.(initialState, this._actorContext)
-      : this.behavior.getInitialState?.(this._actorContext) ?? undefined;
+      : this.getInitialState() ?? undefined;
 
     // TODO: this notifies all subscribers but usually this is redundant
     // if we are using the initialState as `resolvedState` then there is no real change happening here
@@ -356,8 +352,7 @@ export class Interpreter<
    * Stops the interpreter and unsubscribe all listeners.
    */
   public stop(): this {
-    delete this.__initial;
-
+    evict(this, 'initial');
     this.mailbox.clear();
     this.mailbox.enqueue(toSCXMLEvent({ type: stopSignalType }) as any);
 
@@ -489,7 +484,7 @@ export class Interpreter<
   public getSnapshot() {
     const getter = this.behavior.getSnapshot ?? ((s) => s);
     if (this.status === InterpreterStatus.NotStarted) {
-      return getter(this.initialState);
+      return getter(this.getInitialState());
     }
     return getter(this._state!);
   }
