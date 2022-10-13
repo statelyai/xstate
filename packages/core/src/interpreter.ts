@@ -29,7 +29,7 @@ import {
 } from './types';
 import { toEventObject, toObserver, toSCXMLEvent, warn } from './utils';
 import { symbolObservable } from './symbolObservable';
-import { memo } from './memo';
+import { evict, memo } from './memo';
 
 export type SnapshotListener<TBehavior extends Behavior<any, any>> = (
   state: SnapshotFrom<TBehavior>
@@ -352,6 +352,7 @@ export class Interpreter<
    * Stops the interpreter and unsubscribe all listeners.
    */
   public stop(): this {
+    evict(this, 'initial');
     this.mailbox.clear();
     this.mailbox.enqueue(toSCXMLEvent({ type: stopSignalType }) as any);
 
