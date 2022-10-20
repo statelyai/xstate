@@ -2643,6 +2643,33 @@ describe('sendTo', () => {
     // Ensures that the delayed self-event is sent when in the `b` state
     service.send('TO_B');
   });
+
+  it('should be able to read from event', () => {
+    expect.assertions(1);
+    const machine = createMachine<any, any>({
+      initial: 'a',
+      context: () => ({
+        foo: spawn((_, receive) => {
+          receive((event) => {
+            expect(event).toEqual({ type: 'EVENT' });
+          });
+        })
+      }),
+      states: {
+        a: {
+          on: {
+            EVENT: {
+              actions: sendTo((ctx, e) => ctx[e.value], { type: 'EVENT' })
+            }
+          }
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    service.send({ type: 'EVENT', value: 'foo' });
+  });
 });
 
 it('should call transition actions in document order for same-level parallel regions', () => {
