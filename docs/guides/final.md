@@ -129,7 +129,7 @@ const shoppingMachine = createMachine({
 });
 ```
 
-The `onDone` transition will only take place when all of the child states of `'cart'` (e.g., `'user'` and `'items'`) are in their final states. In the case of the shopping machine, once the `'shopping.cart.user.success'` and `'shopping.cart.items.success'` state nodes are reached, the machine will transition from the `'cart'` to the `'confirm'` state.
+The `onDone` transition will only take place when all of the child states of `'cart'` (e.g., `'user'` and `'items'`) are in their final states. In the case of the shopping machine, once the `'cart.user.success'` and `'cart.items.success'` state nodes are reached, the machine will transition from the `'cart'` to the `'confirm'` state.
 
 ::: warning
 
