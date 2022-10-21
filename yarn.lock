@@ -2750,10 +2750,10 @@ babel-plugin-jest-hoist@^26.6.2:
     "@types/babel__core" "^7.0.0"
     "@types/babel__traverse" "^7.0.6"
 
-babel-plugin-jsx-dom-expressions@^0.34.10:
-  version "0.34.10"
-  resolved "https://registry.yarnpkg.com/babel-plugin-jsx-dom-expressions/-/babel-plugin-jsx-dom-expressions-0.34.10.tgz#9a4a79b04f7f6bfcb16706ac0ba0c698829b534d"
-  integrity sha512-YTuTvhpGWuD67JTgb/oFDkQMEzsAG7GKBSl+WNTMkmD9tUBkDNZoKijsDRA2R+zV2VJz2aPaXu3gwPkIIbhMtg==
+babel-plugin-jsx-dom-expressions@^0.35.0:
+  version "0.35.1"
+  resolved "https://registry.yarnpkg.com/babel-plugin-jsx-dom-expressions/-/babel-plugin-jsx-dom-expressions-0.35.1.tgz#a06ffaf7e0c77396c5b3571bbdf20f6fbd6e102d"
+  integrity sha512-OnSFhoYE+tfuhiNCBtC4ZZvc/4kuEaJzhVnH/FfNVkCIGCPr+lG8PLeeFejkW8GSY88Ryt9T75TFABNb7y405g==
   dependencies:
     "@babel/helper-module-imports" "7.16.0"
     "@babel/plugin-syntax-jsx" "^7.16.5"
@@ -2810,12 +2810,12 @@ babel-preset-jest@^26.6.2:
     babel-plugin-jest-hoist "^26.6.2"
     babel-preset-current-node-syntax "^1.0.0"
 
-babel-preset-solid@^1.5.6:
-  version "1.5.6"
-  resolved "https://registry.yarnpkg.com/babel-preset-solid/-/babel-preset-solid-1.5.6.tgz#e6651b5f2eca6cf22ed977a9c7edac6df6927804"
-  integrity sha512-DETqhEygtRq627y5jII5szev495CvbPZJDTaosCbRWdbBh7nMBPI9JuVBUdWs56M2D4mqYa6Z2vH4mdIS6srwA==
+babel-preset-solid@^1.6.0:
+  version "1.6.0"
+  resolved "https://registry.yarnpkg.com/babel-preset-solid/-/babel-preset-solid-1.6.0.tgz#5f5b550b9983ef1cd073d4b6d9a229048d1e63d2"
+  integrity sha512-Unv2mU+H+AQ0PiGMlwywqAJqmDRZy8kfRkTDnTup3SYIp1UFkP5KcHg76O/2+wZ7mEgY071BsgeVcV1Cw96Fvg==
   dependencies:
-    babel-plugin-jsx-dom-expressions "^0.34.10"
+    babel-plugin-jsx-dom-expressions "^0.35.0"
 
 babel-register@^6.26.0:
   version "6.26.0"
@@ -8643,10 +8643,10 @@ solid-jest@^0.1.1:
     babel-jest "^26.6.3"
     enhanced-resolve-jest "^1.1.0"
 
-solid-js@^1.5.6:
-  version "1.5.6"
-  resolved "https://registry.yarnpkg.com/solid-js/-/solid-js-1.5.6.tgz#607e451e7d04301df8424b4d92197d3e3fcad30c"
-  integrity sha512-EA7hjMIEdDUuV6Fk3WUQ2fPx7sRnhjl+3M59zj6Sh+c7c3JF3N1cSViBvX8MYJG9vEBEqKQBZUfKHPe/9JgKvQ==
+solid-js@^1.6.0:
+  version "1.6.0"
+  resolved "https://registry.yarnpkg.com/solid-js/-/solid-js-1.6.0.tgz#52fe81e553e42fc6873ebd12093eb8fdc5d22571"
+  integrity sha512-db5s65ErgZnBhapPx77qauzul8akHlMCvirS+Y86U4abMa3uizMVNW9ql3UxbO0yMzMGNpFJwUiOlXmJCbwVpA==
   dependencies:
     csstype "^3.1.0"
 
