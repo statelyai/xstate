@@ -10,13 +10,11 @@ export {
 export {
   getMachineSimplePaths,
   getSimplePaths,
-  getSimplePathsTo,
   getSimplePathsFromTo
 } from './simplePaths';
 export {
   getShortestPaths,
   getMachineShortestPaths,
-  getShortestPathsTo,
   getMachineShortestPathsTo,
   getShortestPathsFromTo,
   getMachineShortestPathsFromTo

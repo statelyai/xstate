@@ -1,9 +1,7 @@
 import {
   getShortestPaths,
   getSimplePaths,
-  getShortestPathsTo,
   getShortestPathsFromTo,
-  getSimplePathsTo,
   getSimplePathsFromTo
 } from '@xstate/graph';
 import { EventObject } from 'xstate';
@@ -14,14 +12,6 @@ export const createShortestPathsGen = <
   TEvent extends EventObject
 >(): PathGenerator<TState, TEvent> => (behavior, defaultOptions) => {
   const paths = getShortestPaths(behavior, defaultOptions);
-
-  return paths;
-};
-
-export const createShortestPathsToGen = <TState, TEvent extends EventObject>(
-  predicate: (state: TState) => boolean
-): PathGenerator<TState, TEvent> => (behavior, defaultOptions) => {
-  const paths = getShortestPathsTo(behavior, predicate, defaultOptions);
 
   return paths;
 };
@@ -48,14 +38,6 @@ export const createSimplePathsGen = <
   TEvent extends EventObject
 >(): PathGenerator<TState, TEvent> => (behavior, defaultOptions) => {
   const paths = getSimplePaths(behavior, defaultOptions);
-
-  return paths;
-};
-
-export const createSimplePathsToGen = <TState, TEvent extends EventObject>(
-  predicate: (state: TState) => boolean
-): PathGenerator<TState, TEvent> => (behavior, defaultOptions) => {
-  const paths = getSimplePathsTo(behavior, predicate, defaultOptions);
 
   return paths;
 };

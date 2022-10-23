@@ -171,12 +171,21 @@ export type TraversalOptions<
   Partial<
     Pick<
       TraversalConfig<TState, TEvent>,
-      'filter' | 'getEvents' | 'traversalLimit' | 'fromState' | 'stopCondition'
+      | 'filter'
+      | 'getEvents'
+      | 'traversalLimit'
+      | 'fromState'
+      | 'stopCondition'
+      | 'toState'
     >
   >;
 
 export interface TraversalConfig<TState, TEvent extends EventObject>
   extends SerializationConfig<TState, TEvent> {
+  /**
+   * Determines whether to traverse a transition from `state` on
+   * `event` when building the adjacency map.
+   */
   filter: (state: TState, event: TEvent) => boolean;
   getEvents: (
     state: TState,
@@ -195,6 +204,7 @@ export interface TraversalConfig<TState, TEvent extends EventObject>
    * for that current state.
    */
   stopCondition: ((state: TState) => boolean) | undefined;
+  toState: ((state: TState) => boolean) | undefined;
 }
 
 export type EventCaseMap<TState, TEvent extends EventObject> = {

@@ -171,7 +171,10 @@ export function resolveTraversalOptions<TState, TEvent extends EventObject>(
     getEvents: () => [],
     traversalLimit: Infinity,
     fromState: undefined,
-    stopCondition: undefined,
+    toState: undefined,
+    // Traversal should not continue past the `toState` predicate
+    // since the target state has already been reached at that point
+    stopCondition: traversalOptions?.toState,
     ...defaultOptions,
     ...traversalOptions
   };

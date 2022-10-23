@@ -17,10 +17,8 @@ import { isStateLike } from 'xstate/lib/utils';
 import { deduplicatePaths } from './deduplicatePaths';
 import {
   createShortestPathsGen,
-  createShortestPathsToGen,
   createShortestPathsFromToGen,
   createSimplePathsGen,
-  createSimplePathsToGen,
   createSimplePathsFromToGen
 } from './pathGenerators';
 import type {
@@ -88,13 +86,6 @@ export class TestModel<TState, TEvent extends EventObject> {
     return this.getPaths(createShortestPathsGen(), options);
   }
 
-  public getShortestPathsTo(
-    statePredicate: StatePredicate<TState>,
-    options?: Partial<TraversalOptions<TState, TEvent>>
-  ): Array<TestPath<TState, TEvent>> {
-    return this.getPaths(createShortestPathsToGen(statePredicate), options);
-  }
-
   public getShortestPathsFromTo(
     fromStatePredicate: StatePredicate<TState>,
     toStatePredicate: StatePredicate<TState>,
@@ -110,13 +101,6 @@ export class TestModel<TState, TEvent extends EventObject> {
     options?: Partial<TraversalOptions<TState, TEvent>>
   ): Array<TestPath<TState, TEvent>> {
     return this.getPaths(createSimplePathsGen(), options);
-  }
-
-  public getSimplePathsTo(
-    predicate: StatePredicate<TState>,
-    options?: Partial<TraversalOptions<TState, TEvent>>
-  ): Array<TestPath<TState, TEvent>> {
-    return this.getPaths(createSimplePathsToGen(predicate), options);
   }
 
   public getSimplePathsFromTo(

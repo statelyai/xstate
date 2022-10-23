@@ -135,6 +135,10 @@ export function getShortestPaths<TState, TEvent extends EventObject>(
     }
   );
 
+  if (config.toState) {
+    return paths.filter((path) => config.toState!(path.state));
+  }
+
   return paths;
 }
 
@@ -150,40 +154,17 @@ export function getMachineShortestPaths<TMachine extends AnyStateMachine>(
   return getShortestPaths(machineToBehavior(machine), resolvedOptions);
 }
 
-export function getShortestPathsTo<TState, TEvent extends EventObject>(
-  behavior: SimpleBehavior<TState, TEvent>,
-  predicate: (state: TState) => boolean,
-  options?: TraversalOptions<TState, TEvent>
-): Array<StatePath<TState, TEvent>> {
-  const resolvedOptions = resolveTraversalOptions(
-    {
-      ...options,
-      stopCondition: predicate
-    },
-
-    // @ts-ignore TODO
-    createDefaultMachineOptions(behavior)
-  );
-  const simplePaths = getShortestPaths(behavior, resolvedOptions);
-
-  return simplePaths.filter((path) => predicate(path.state));
-}
-
 export function getMachineShortestPathsTo<TMachine extends AnyStateMachine>(
   machine: TMachine,
   predicate: (state: StateFrom<TMachine>) => boolean,
   options?: TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>>
 ): Array<StatePath<StateFrom<TMachine>, EventFrom<TMachine>>> {
   const resolvedOptions = resolveTraversalOptions(
-    options,
+    { ...options, toState: predicate },
     createDefaultMachineOptions(machine)
   );
 
-  return getShortestPathsTo(
-    machineToBehavior(machine),
-    predicate,
-    resolvedOptions
-  );
+  return getShortestPaths(machineToBehavior(machine), resolvedOptions);
 }
 
 export function getShortestPathsFromTo<TState, TEvent extends EventObject>(
@@ -192,22 +173,25 @@ export function getShortestPathsFromTo<TState, TEvent extends EventObject>(
   toPredicate: (state: TState) => boolean,
   options?: TraversalOptions<TState, TEvent>
 ): Array<StatePath<TState, TEvent>> {
-  const resolvedOptions = resolveTraversalOptions(options);
+  const fromStateOptions = resolveTraversalOptions({
+    ...options,
+    toState: fromPredicate
+  });
 
   // First, find all the shortest paths to the "from" state
-  const fromStatePaths = getShortestPathsTo(
-    behavior,
-    fromPredicate,
-    resolvedOptions
-  );
+  const fromStatePaths = getShortestPaths(behavior, fromStateOptions);
 
   // Then from each "from" state, find the paths to the "to" state
+
   const fromToPaths = flatten(
     fromStatePaths.map((fromStatePath) => {
-      const toStatePath = getShortestPathsTo(behavior, toPredicate, {
-        ...resolvedOptions,
-        fromState: fromStatePath.state
+      const toStateOptions = resolveTraversalOptions({
+        ...options,
+        fromState: fromStatePath.state,
+        toState: toPredicate
       });
+
+      const toStatePath = getShortestPaths(behavior, toStateOptions);
 
       return toStatePath.map((toStatePath) =>
         joinPaths(fromStatePath, toStatePath)

@@ -1,6 +1,8 @@
 import { assign, createMachine } from 'xstate';
-import { getMachineShortestPathsTo } from '../src';
-import { getMachineShortestPathsFromTo } from '../src/shortestPaths';
+import {
+  getMachineShortestPaths,
+  getMachineShortestPathsFromTo
+} from '../src/shortestPaths';
 
 describe('getMachineShortestPathsTo', () => {
   it('finds the shortest paths to a state without continuing traversal from that state', () => {
@@ -38,7 +40,9 @@ describe('getMachineShortestPathsTo', () => {
       }
     });
 
-    const p = getMachineShortestPathsTo(m, (state) => state.matches('c'));
+    const p = getMachineShortestPaths(m, {
+      toState: (state) => state.matches('c')
+    });
 
     expect(p).toHaveLength(1);
     expect(p[0].state.matches('c')).toBeTruthy();

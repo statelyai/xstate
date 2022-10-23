@@ -106,18 +106,13 @@ export function getSimplePaths<TState, TEvent extends EventObject>(
     util(fromStateSerial, nextStateSerial);
   }
 
-  return flatten(Object.values(pathMap).map((p) => p.paths));
-}
+  const simplePaths = flatten(Object.values(pathMap).map((p) => p.paths));
 
-export function getSimplePathsTo<TState, TEvent extends EventObject>(
-  behavior: SimpleBehavior<TState, TEvent>,
-  predicate: (state: TState) => boolean,
-  options: TraversalOptions<TState, TEvent>
-): Array<StatePath<TState, TEvent>> {
-  const resolvedOptions = resolveTraversalOptions(options);
-  const simplePaths = getSimplePaths(behavior, resolvedOptions);
+  if (resolvedOptions.toState) {
+    return simplePaths.filter((path) => resolvedOptions.toState!(path.state));
+  }
 
-  return simplePaths.filter((path) => predicate(path.state));
+  return simplePaths;
 }
 
 export function getSimplePathsFromTo<TState, TEvent extends EventObject>(

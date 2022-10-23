@@ -60,17 +60,17 @@ export function getAdjacencyMap<TState, TEvent extends EventObject>(
 
     const events = getEvents(state, eventCases);
 
-    for (const subEvent of events) {
-      const nextState = transition(state, subEvent);
+    for (const nextEvent of events) {
+      const nextState = transition(state, nextEvent);
 
-      if (!options.filter || options.filter(nextState, subEvent)) {
+      if (!options.filter || options.filter(nextState, nextEvent)) {
         adj[serializedState].transitions[
-          serializeEvent(subEvent) as SerializedEvent
+          serializeEvent(nextEvent) as SerializedEvent
         ] = {
-          event: subEvent,
+          event: nextEvent,
           state: nextState
         };
-        queue.push({ nextState, event: subEvent, prevState: state });
+        queue.push({ nextState, event: nextEvent, prevState: state });
       }
     }
   }
