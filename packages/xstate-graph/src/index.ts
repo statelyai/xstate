@@ -15,7 +15,6 @@ export {
 export {
   getShortestPaths,
   getMachineShortestPaths,
-  getMachineShortestPathsTo,
   getShortestPathsFromTo,
   getMachineShortestPathsFromTo
 } from './shortestPaths';

@@ -154,19 +154,6 @@ export function getMachineShortestPaths<TMachine extends AnyStateMachine>(
   return getShortestPaths(machineToBehavior(machine), resolvedOptions);
 }
 
-export function getMachineShortestPathsTo<TMachine extends AnyStateMachine>(
-  machine: TMachine,
-  predicate: (state: StateFrom<TMachine>) => boolean,
-  options?: TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>>
-): Array<StatePath<StateFrom<TMachine>, EventFrom<TMachine>>> {
-  const resolvedOptions = resolveTraversalOptions(
-    { ...options, toState: predicate },
-    createDefaultMachineOptions(machine)
-  );
-
-  return getShortestPaths(machineToBehavior(machine), resolvedOptions);
-}
-
 export function getShortestPathsFromTo<TState, TEvent extends EventObject>(
   behavior: SimpleBehavior<TState, TEvent>,
   fromPredicate: (state: TState) => boolean,
