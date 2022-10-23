@@ -1,3 +1,5 @@
+import { MachineSchema } from './schema';
+
 export type SingleOrArray<T> = T[] | T;
 
 export interface EventObject {
@@ -122,6 +124,20 @@ export type DoneTransitionConfig<Self, TMachine, TInvoke> = TransitionConfig<
     : never
 >;
 
+export type Action2<TSchema extends MachineSchema> =
+  | {
+      type: string;
+      _schema?: TSchema;
+    }
+  | ((ctx: TSchema['context'], ev: TSchema['event']) => void);
+
+export type SnapshotFrom<TBehavior> = TBehavior extends Behavior<
+  infer _,
+  infer T
+>
+  ? T
+  : unknown;
+
 export interface StateNodeConfig<
   Self,
   TMachine extends MachineConfig<any>,
@@ -143,19 +159,23 @@ export interface StateNodeConfig<
   };
   on?: {
     [EventType in string &
-      A.Get<TMachine, ['schema', 'event', 'type'], string>]?:
-      | TransitionConfig<
-          A.Get<Self, ['on', EventType]>,
-          TMachine,
-          TEvent extends { type: EventType } ? TEvent : never
-        >
-      | {
-          [Index in number]: TransitionConfig<
-            A.Get<Self, ['on', EventType, Index]>,
-            TMachine,
-            TEvent extends { type: EventType } ? TEvent : never
-          >;
-        };
+      A.Get<TMachine, ['schema', 'event', 'type'], string>]?: {
+      //
+      event: A.Get<TMachine, ['schema', 'event']>;
+      actions: Action2<TEvent>;
+    };
+    // | TransitionConfig<
+    //     A.Get<Self, ['on', EventType]>,
+    //     TMachine,
+    //     TEvent extends { type: EventType } ? TEvent : never
+    //   >
+    // | {
+    //     [Index in number]: TransitionConfig<
+    //       A.Get<Self, ['on', EventType, Index]>,
+    //       TMachine,
+    //       TEvent extends { type: EventType } ? TEvent : never
+    //     >;
+    //   };
   };
 }
 
@@ -263,3 +283,22 @@ export interface DynamicActionObject<
   (ctx: A.Get<TMachine, 'context'>, eventObject: TEvent): { type: string };
   __xstate: true;
 }
+
+type FooAction<TEvent> = {
+  type: string;
+  _event?: TEvent;
+};
+
+function assign<T>(assigner: Record<string, (e: T) => void>): FooAction<T> {}
+
+interface Config {
+  action: FooAction<{ type: 'a' }>;
+}
+
+function make(c: Config) {}
+
+make({
+  action: assign({
+    something: (e) => {}
+  })
+});
