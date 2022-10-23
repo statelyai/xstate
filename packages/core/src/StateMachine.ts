@@ -1,11 +1,12 @@
 import {
   ActorContext,
+  AnyEventObject,
   AnyStateMachine,
   InvokeActionObject,
   Spawner,
   TransitionDefinition
 } from '.';
-import { initEvent } from './actions';
+import { actionTypes, createInitEvent } from './actions';
 import { STATE_DELIMITER } from './constants';
 import { CreateMachineTypes } from './createTypes';
 import { execAction } from './exec';
@@ -26,6 +27,7 @@ import type {
   AreAllImplementationsAssumedToBeProvided,
   MarkAllImplementationsAsProvided,
   ResolveTypegenMeta,
+  TypegenConstraint,
   TypegenDisabled
 } from './typegenTypes';
 import type {
@@ -325,7 +327,7 @@ export class StateMachine<
       this.createState({
         value: getStateValue(this.root, getConfiguration([this.root])),
         context,
-        _event: initEvent as SCXML.Event<TEvent>,
+        _event: (createInitEvent({}) as unknown) as SCXML.Event<TEvent>, // TODO: fix
         _sessionid: actorCtx?.sessionId ?? undefined,
         actions: [],
         meta: undefined,
@@ -360,18 +362,21 @@ export class StateMachine<
   public getInitialState(
     actorCtx?: ActorContext<TEvent, State<TContext, TEvent>>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
+    const initEvent = this.getInitEvent();
     const preInitialState = this.getPreInitialState(actorCtx);
-    const nextState = microstep(
-      [],
-      preInitialState,
-      actorCtx,
-      initEvent as SCXML.Event<TEvent>
-    );
+    const nextState = microstep([], preInitialState, actorCtx, initEvent);
     nextState.actions.unshift(...preInitialState.actions);
 
     const { state: macroState } = macrostep(nextState, initEvent, actorCtx);
 
     return macroState;
+  }
+
+  public getInitEvent(): SCXML.Event<TEvent> {
+    return (toSCXMLEvent({
+      type: actionTypes.init,
+      input: this.options.input
+    }) as unknown) as SCXML.Event<TEvent>; // TODO: fix
   }
 
   public getStateNodeById(stateId: string): StateNode<TContext, TEvent> {
@@ -440,11 +445,11 @@ export class StateMachine<
     return restoredState;
   }
 
-  public withInput(input: any): StateMachine<TContext, TEvent> {
+  public withInput(input: TTypes['input']): this {
     return new StateMachine(this.config, {
       ...this.options,
       input
-    });
+    }) as this;
   }
 
   /**@deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
@@ -457,4 +462,48 @@ export class StateMachine<
   __TActorMap!: TActorMap;
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
   __TResolvedTypesMeta!: TResolvedTypesMeta;
+}
+
+export function createMachine2<TT extends CreateMachineTypes<any>>(
+  config: MachineConfig<
+    TT['context'],
+    TT['events'],
+    BaseActionObject,
+    any,
+    any,
+    TT
+  >
+): StateMachine<TT['context'], TT['events'], BaseActionObject, any, any, TT> {
+  return new StateMachine(config) as any;
+}
+
+export function createMachine<
+  TContext extends MachineContext,
+  TEvent extends EventObject = AnyEventObject,
+  TActorMap extends ActorMap = ActorMap,
+  TTypesMeta extends TypegenConstraint = TypegenDisabled
+>(
+  config: MachineConfig<
+    TContext,
+    TEvent,
+    BaseActionObject,
+    TActorMap,
+    TTypesMeta
+  >,
+  implementations?: InternalMachineImplementations<
+    TContext,
+    TEvent,
+    ResolveTypegenMeta<TTypesMeta, TEvent, BaseActionObject, TActorMap>
+  >
+): StateMachine<
+  TContext,
+  TEvent,
+  BaseActionObject,
+  TActorMap,
+  ResolveTypegenMeta<TTypesMeta, TEvent, BaseActionObject, TActorMap>
+> {
+  return new StateMachine<any, any, any, any, any>(
+    config,
+    implementations as any
+  );
 }

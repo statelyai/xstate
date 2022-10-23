@@ -1,5 +1,4 @@
 import { createMachine, interpret } from '../src/index';
-import { initEvent } from '../src/actions';
 import { assign } from '../src/actions/assign';
 import { toSCXMLEvent } from '../src/utils';
 import { fromCallback } from '../src/actors';
@@ -381,7 +380,7 @@ describe('State', () => {
     it('the ._event prop should be the initial event for the initial state', () => {
       const { initialState } = exampleMachine;
 
-      expect(initialState._event).toEqual(initEvent);
+      expect(initialState._event.name).toEqual('xstate.init');
     });
   });
 
@@ -410,7 +409,7 @@ describe('State', () => {
     it('the ._event prop should be the initial SCXML event for the initial state', () => {
       const { initialState } = exampleMachine;
 
-      expect(initialState._event).toEqual(toSCXMLEvent(initEvent));
+      expect(initialState._event.name).toEqual('xstate.init');
     });
 
     it('the ._event prop should be the SCXML event (SCXML metadata) that caused the transition', () => {

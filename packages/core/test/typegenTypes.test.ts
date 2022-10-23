@@ -1,6 +1,6 @@
 import { assign, interpret, MachineContext, StateMachine } from '../src';
 import { fromCallback, fromPromise } from '../src/actors';
-import { createMachine } from '../src/Machine';
+import { createMachine } from '../src/StateMachine';
 import { TypegenMeta } from '../src/typegenTypes';
 
 describe('typegen types', () => {

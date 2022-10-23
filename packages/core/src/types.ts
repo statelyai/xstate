@@ -721,6 +721,121 @@ export interface StateNodeConfig<
   description?: string;
 }
 
+export interface StateNodeConfig2<
+  TTypes extends CreateMachineTypes<any>,
+  TContext extends MachineContext = TTypes['context'],
+  TEvent extends EventObject = TTypes['events'],
+  TAction extends BaseActionObject = BaseActionObject
+> {
+  /**
+   * The relative key of the state node, which represents its location in the overall state value.
+   * This is automatically determined by the configuration shape via the key where it was defined.
+   */
+  key?: string;
+  /**
+   * The initial state transition.
+   */
+  initial?:
+    | InitialTransitionConfig<TContext, TEvent>
+    | SingleOrArray<string>
+    | undefined;
+  /**
+   * The type of this state node:
+   *
+   *  - `'atomic'` - no child state nodes
+   *  - `'compound'` - nested child state nodes (XOR)
+   *  - `'parallel'` - orthogonal nested child state nodes (AND)
+   *  - `'history'` - history state node
+   *  - `'final'` - final state node
+   */
+  type?: 'atomic' | 'compound' | 'parallel' | 'final' | 'history';
+  /**
+   * Indicates whether the state node is a history state node, and what
+   * type of history:
+   * shallow, deep, true (shallow), false (none), undefined (none)
+   */
+  history?: 'shallow' | 'deep' | boolean | undefined;
+  /**
+   * The mapping of state node keys to their state node configurations (recursive).
+   */
+  states?: StatesConfig<TContext, TEvent, TAction> | undefined;
+  /**
+   * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
+   */
+  invoke?: SingleOrArray<
+    string | BehaviorCreator<TContext, TEvent> | InvokeConfig<TContext, TEvent>
+  >;
+  /**
+   * The mapping of event types to their potential transition(s).
+   */
+  on?: TransitionsConfig<TContext, TEvent>;
+  /**
+   * The action(s) to be executed upon entering the state node.
+   */
+  entry?: BaseActions<TContext, TEvent, TAction>;
+  /**
+   * The action(s) to be executed upon exiting the state node.
+   */
+  exit?: BaseActions<TContext, TEvent, TAction>;
+  /**
+   * The potential transition(s) to be taken upon reaching a final child state node.
+   *
+   * This is equivalent to defining a `[done(id)]` transition on this state node's `on` property.
+   */
+  onDone?:
+    | string
+    | SingleOrArray<TransitionConfig<TContext, DoneEventObject>>
+    | undefined;
+  /**
+   * The mapping (or array) of delays (in milliseconds) to their potential transition(s).
+   * The delayed transitions are taken after the specified delay in an interpreter.
+   */
+  after?: DelayedTransitions<TContext, TEvent>;
+
+  /**
+   * An eventless transition that is always taken when this state node is active.
+   */
+  always?: TransitionConfigOrTarget<TContext, TEvent>;
+  /**
+   * @private
+   */
+  parent?: StateNode<TContext, TEvent>;
+  strict?: boolean | undefined;
+  /**
+   * The meta data associated with this state node, which will be returned in State instances.
+   */
+  meta?: any;
+  /**
+   * The data sent with the "done.state._id_" event if this is a final state node.
+   *
+   * The data will be evaluated with the current `context` and placed on the `.data` property
+   * of the event.
+   */
+  data?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
+  /**
+   * The unique ID of the state node, which can be referenced as a transition target via the
+   * `#id` syntax.
+   */
+  id?: string | undefined;
+  /**
+   * The string delimiter for serializing the path to a string. The default is "."
+   */
+  delimiter?: string;
+  /**
+   * The order this state node appears. Corresponds to the implicit SCXML document order.
+   */
+  order?: number;
+
+  /**
+   * The tags for this state node, which are accumulated into the `state.tags` property.
+   */
+  tags?: SingleOrArray<string>;
+  /**
+   * A text description of the state node
+   */
+  description?: string;
+}
+
 export interface StateNodeDefinition<
   TContext extends MachineContext,
   TEvent extends EventObject
@@ -1050,6 +1165,29 @@ export interface MachineConfig<
   scxml?: boolean;
   schema?: MachineSchema<TContext, TEvent, TActorMap>;
   tsTypes?: TTypesMeta;
+}
+
+export interface MachineConfig2<
+  TTypes extends CreateMachineTypes<any> = CreateMachineTypes<any>,
+  TContext extends MachineContext = TTypes['context'],
+  TEvent extends EventObject = TTypes['events'],
+  // TODO: add ttypes for these
+  TAction extends BaseActionObject = BaseActionObject,
+  TActorMap extends ActorMap = ActorMap
+> extends StateNodeConfig<NoInfer<TContext>, NoInfer<TEvent>, TAction> {
+  /**
+   * The initial context (extended state)
+   */
+  context?: InitialContext<LowInfer<TContext>, TTypes>;
+  /**
+   * The machine's own version.
+   */
+  version?: string;
+  /**
+   * If `true`, will use SCXML semantics, such as event token matching.
+   */
+  scxml?: boolean;
+  schema?: MachineSchema<TContext, TEvent, TActorMap>;
 }
 
 export type ActorMap = Record<string, { data: any }>;

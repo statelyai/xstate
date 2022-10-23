@@ -32,7 +32,6 @@ import {
   after,
   done,
   toActionObjects,
-  initEvent,
   actionTypes,
   resolveActionObject
 } from './actions';
@@ -1510,7 +1509,7 @@ export function macrostep<TMachine extends AnyStateMachine>(
 
   // Assume the state is at rest (no raised events)
   // Determine the next state based on the next microstep
-  if (scxmlEvent !== initEvent) {
+  if (scxmlEvent.name !== actionTypes.init) {
     const transitions = selectTransitions(scxmlEvent);
     nextState = microstep(transitions, state, actorCtx, scxmlEvent);
     states.push(nextState);

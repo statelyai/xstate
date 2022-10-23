@@ -1,4 +1,4 @@
-import { createMachine } from '../src/Machine';
+import { createMachine } from '../src/StateMachine';
 
 describe('deterministic machine', () => {
   const pedestrianStates = {
