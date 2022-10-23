@@ -1,11 +1,20 @@
-import { createMachine } from '../src';
+import { createTypes } from '../src/createTypes';
+import { createMachine2 } from '../src/Machine';
 
 describe('machine.withInput()', () => {
   it('should create a machine with input', () => {
-    const machine = createMachine({
+    const t = createTypes({
+      input: {} as { startCount: number },
+      context: {} as { count: number }
+    });
+
+    const machine = createMachine2<typeof t>({
       context: ({ input }) => ({
         count: input.startCount
-      })
+      }),
+      entry: (ctx) => {
+        ctx.count;
+      }
     });
 
     const inputMachine = machine.withInput({ startCount: 42 });

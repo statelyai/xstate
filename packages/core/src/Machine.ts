@@ -13,6 +13,27 @@ import {
   ResolveTypegenMeta
 } from './typegenTypes';
 import { StateMachine } from './StateMachine';
+import { CreateMachineTypes } from './createTypes';
+
+export function createMachine2<TT extends CreateMachineTypes<any>>(
+  config: MachineConfig<
+    TT['context'],
+    TT['events'] & EventObject,
+    BaseActionObject,
+    any,
+    any,
+    TT
+  >
+): StateMachine<
+  TT['context'],
+  TT['events'] & EventObject,
+  BaseActionObject,
+  any,
+  any,
+  TT
+> {
+  return new StateMachine(config) as any;
+}
 
 export function createMachine<
   TContext extends MachineContext,

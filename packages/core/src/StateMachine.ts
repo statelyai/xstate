@@ -7,6 +7,7 @@ import {
 } from '.';
 import { initEvent } from './actions';
 import { STATE_DELIMITER } from './constants';
+import { CreateMachineTypes } from './createTypes';
 import { execAction } from './exec';
 import { createSpawner } from './spawn';
 import { isStateConfig, State } from './State';
@@ -84,9 +85,13 @@ export class StateMachine<
     NoInfer<TEvent>,
     TAction,
     TActorMap
-  >
+  >,
+  TTypes extends CreateMachineTypes<any> = CreateMachineTypes<any>
 > {
-  private _contextFactory: (stuff: { spawn: Spawner; input: any }) => TContext;
+  private _contextFactory: (stuff: {
+    spawn: Spawner;
+    input: TTypes['input'];
+  }) => TContext;
   public get context(): TContext {
     return this.getContextAndActions()[0];
   }

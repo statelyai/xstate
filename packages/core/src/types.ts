@@ -10,6 +10,7 @@ import {
   MarkAllImplementationsAsProvided,
   AreAllImplementationsAssumedToBeProvided
 } from './typegenTypes';
+import { CreateMachineTypes } from './createTypes';
 
 export type AnyFunction = (...args: any[]) => any;
 
@@ -823,7 +824,7 @@ export interface MachineImplementationsSimplified<
   actions: ActionFunctionMap<TContext, TEvent, TAction>;
   actors: Record<string, BehaviorCreator<TContext, TEvent>>;
   delays: DelayFunctionMap<TContext, TEvent>;
-  context: Partial<TContext> | ContextFactory<Partial<TContext>>;
+  context: Partial<TContext> | ContextFactory<Partial<TContext>, any>;
   input: any;
 }
 
@@ -1017,26 +1018,28 @@ export type MachineImplementations<
   ResolveTypegenMeta<TTypesMeta, TEvent, TAction, TActorMap>
 >;
 
-type InitialContext<TContext extends MachineContext> =
-  | TContext
-  | ContextFactory<TContext>;
+type InitialContext<
+  TContext extends MachineContext,
+  TTypes extends CreateMachineTypes<any>
+> = TContext | ContextFactory<TContext, TTypes>;
 
-export type ContextFactory<TContext extends MachineContext> = (stuff: {
-  spawn: Spawner;
-  input: any;
-}) => TContext;
+export type ContextFactory<
+  TContext extends MachineContext,
+  TTypes extends CreateMachineTypes<any>
+> = (stuff: { spawn: Spawner; input: TTypes['input'] }) => TContext;
 
 export interface MachineConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TAction extends BaseActionObject = BaseActionObject,
   TActorMap extends ActorMap = ActorMap,
-  TTypesMeta = TypegenDisabled
+  TTypesMeta = TypegenDisabled,
+  TTypes extends CreateMachineTypes<any> = CreateMachineTypes<any>
 > extends StateNodeConfig<NoInfer<TContext>, NoInfer<TEvent>, TAction> {
   /**
    * The initial context (extended state)
    */
-  context?: InitialContext<LowInfer<TContext>>;
+  context?: InitialContext<LowInfer<TContext>, TTypes>;
   /**
    * The machine's own version.
    */
@@ -1050,6 +1053,7 @@ export interface MachineConfig<
 }
 
 export type ActorMap = Record<string, { data: any }>;
+
 export interface MachineSchema<
   TContext extends MachineContext,
   TEvent extends EventObject,
