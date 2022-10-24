@@ -96,20 +96,18 @@ const counterMachine = createMachine({
 The `context` property of the machine can also be initialized lazily; i.e., the context will not be created until the machine is actually created/used:
 
 ```js
-const getContext = () => ({
-  count: 0,
-  message: 'Currently empty',
-  user: {
-    name: 'David'
-  },
-  allowedToIncrement: true
-  // ... etc.
-});
-
 const counterMachine = createMachine({
   id: 'counter',
   // initial context
-  context: () => getContext(),
+  context: () => ({
+    count: 0,
+    message: 'Currently empty',
+    user: {
+      name: 'David'
+    },
+    allowedToIncrement: true
+    // ... etc.
+  }),
   states: {
     // ...
   }
