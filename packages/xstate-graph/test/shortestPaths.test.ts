@@ -41,7 +41,7 @@ describe('getMachineShortestPathsTo', () => {
     });
 
     const p = getMachineShortestPaths(m, {
-      toState: (state) => state.matches('c')
+      toState: [(state) => state.matches('c')]
     });
 
     expect(p).toHaveLength(1);

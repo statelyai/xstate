@@ -135,8 +135,8 @@ export function getShortestPaths<TState, TEvent extends EventObject>(
     }
   );
 
-  if (config.toState) {
-    return paths.filter((path) => config.toState!(path.state));
+  if (config.toState?.length) {
+    return paths.filter((path) => config.toState![0](path.state));
   }
 
   return paths;
@@ -162,7 +162,7 @@ export function getShortestPathsFromTo<TState, TEvent extends EventObject>(
 ): Array<StatePath<TState, TEvent>> {
   const fromStateOptions = resolveTraversalOptions({
     ...options,
-    toState: fromPredicate
+    toState: [fromPredicate]
   });
 
   // First, find all the shortest paths to the "from" state
@@ -175,7 +175,7 @@ export function getShortestPathsFromTo<TState, TEvent extends EventObject>(
       const toStateOptions = resolveTraversalOptions({
         ...options,
         fromState: fromStatePath.state,
-        toState: toPredicate
+        toState: [toPredicate]
       });
 
       const toStatePath = getShortestPaths(behavior, toStateOptions);

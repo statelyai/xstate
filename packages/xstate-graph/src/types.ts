@@ -204,7 +204,7 @@ export interface TraversalConfig<TState, TEvent extends EventObject>
    * for that current state.
    */
   stopCondition: ((state: TState) => boolean) | undefined;
-  toState: ((state: TState) => boolean) | undefined;
+  toState: Array<(state: TState) => boolean> | undefined;
 }
 
 export type EventCaseMap<TState, TEvent extends EventObject> = {

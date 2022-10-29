@@ -81,7 +81,7 @@ export function getPathsFromEvents<
 
   // If it is expected to reach a specific state (`toState`) and that state
   // isn't reached, there are no paths
-  if (resolvedOptions.toState && !resolvedOptions.toState(state)) {
+  if (resolvedOptions.toState?.length && !resolvedOptions.toState[0](state)) {
     return [];
   }
 
