@@ -18,7 +18,7 @@ export {
   getShortestPathsFromTo,
   getMachineShortestPathsFromTo
 } from './shortestPaths';
-export { getPathFromEvents } from './pathFromEvents';
+export { getPathsFromEvents } from './pathFromEvents';
 export { getAdjacencyMap } from './adjacency';
 
 export * from './types';

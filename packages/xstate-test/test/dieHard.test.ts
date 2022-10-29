@@ -197,7 +197,7 @@ describe('die hard example', () => {
   describe('testing a model (getPathFromEvents)', () => {
     const dieHardModel = createDieHardModel();
 
-    const path = dieHardModel.model.getPathFromEvents(
+    const path = dieHardModel.model.getPathsFromEvents(
       [
         { type: 'FILL_5' },
         { type: 'POUR_5_TO_3' },
@@ -206,8 +206,8 @@ describe('die hard example', () => {
         { type: 'FILL_5' },
         { type: 'POUR_5_TO_3' }
       ],
-      (state) => state.matches('success')
-    );
+      { toState: (state) => state.matches('success') }
+    )[0];
 
     describe(`reaches state ${JSON.stringify(
       path.state.value
@@ -217,12 +217,15 @@ describe('die hard example', () => {
       });
     });
 
-    it('should throw if the target does not match the last entered state', () => {
-      expect(() => {
-        dieHardModel.model.getPathFromEvents([{ type: 'FILL_5' }], (state) =>
-          state.matches('success')
-        );
-      }).toThrow();
+    it('should return no paths if the target does not match the last entered state', () => {
+      const paths = dieHardModel.model.getPathsFromEvents(
+        [{ type: 'FILL_5' }],
+        {
+          toState: (state) => state.matches('success')
+        }
+      );
+
+      expect(paths).toHaveLength(0);
     });
   });
 

@@ -10,7 +10,7 @@ import {
 } from 'xstate';
 import {
   getStateNodes,
-  getPathFromEvents,
+  getPathsFromEvents,
   getMachineSimplePaths,
   getMachineShortestPaths,
   toDirectedGraph,
@@ -435,19 +435,21 @@ describe('@xstate/graph', () => {
 
   describe('getPathFromEvents()', () => {
     it('should return a path to the last entered state by the event sequence', () => {
-      const path = getPathFromEvents(lightMachine, [
+      const paths = getPathsFromEvents(lightMachine, [
         { type: 'TIMER' },
         { type: 'TIMER' },
         { type: 'TIMER' },
         { type: 'POWER_OUTAGE' }
       ]);
 
-      expect(getPathSnapshot(path)).toMatchSnapshot('path from events');
+      expect(paths.length).toEqual(1);
+
+      expect(getPathSnapshot(paths[0])).toMatchSnapshot('path from events');
     });
 
     it.skip('should throw when an invalid event sequence is provided', () => {
       expect(() =>
-        getPathFromEvents(lightMachine, [
+        getPathsFromEvents(lightMachine, [
           { type: 'TIMER' },
           { type: 'INVALID_EVENT' }
         ])
@@ -455,12 +457,15 @@ describe('@xstate/graph', () => {
     });
 
     it('should return a path from a specified from-state', () => {
-      const path = getPathFromEvents(lightMachine, [{ type: 'TIMER' }], {
+      const path = getPathsFromEvents(lightMachine, [{ type: 'TIMER' }], {
         fromState: lightMachine.resolveState(State.from('yellow'))
-      });
+      })[0];
+
+      expect(path).toBeDefined();
 
       // TODO: types work fine in test file, but not when running test!
-      expect((path as any).state.matches('red')).toBeTruthy();
+      // @ts-ignore No idea why this isn't working... it's definitely a State
+      expect(path.state.matches('red')).toBeTruthy();
     });
   });
 
@@ -675,10 +680,14 @@ describe('joinPaths()', () => {
       }
     });
 
-    const pathToB = getPathFromEvents(machine, [{ type: 'NEXT' }]);
-    const pathToC = getPathFromEvents(machine, [{ type: 'TO_C' }], {
+    const pathToB = getPathsFromEvents(machine, [{ type: 'NEXT' }])[0];
+    const pathToC = getPathsFromEvents(machine, [{ type: 'TO_C' }], {
       fromState: pathToB.state
-    });
+    })[0];
+
+    expect(pathToB).toBeDefined();
+    expect(pathToC).toBeDefined();
+
     const pathToBAndC = joinPaths(pathToB, pathToC);
 
     expect(pathToBAndC.steps.map((step) => step.event.type))
@@ -709,8 +718,11 @@ describe('joinPaths()', () => {
       }
     });
 
-    const pathToB = getPathFromEvents(machine, [{ type: 'NEXT' }]);
-    const pathToCFromA = getPathFromEvents(machine, [{ type: 'TO_C' }]);
+    const pathToB = getPathsFromEvents(machine, [{ type: 'NEXT' }])[0];
+    const pathToCFromA = getPathsFromEvents(machine, [{ type: 'TO_C' }])[0];
+
+    expect(pathToB).toBeDefined();
+    expect(pathToCFromA).toBeDefined();
 
     expect(() => {
       joinPaths(pathToB, pathToCFromA);

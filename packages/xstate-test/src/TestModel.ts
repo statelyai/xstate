@@ -1,5 +1,5 @@
 import {
-  getPathFromEvents,
+  getPathsFromEvents,
   getAdjacencyMap,
   joinPaths,
   AdjacencyValue
@@ -144,21 +144,13 @@ export class TestModel<TState, TEvent extends EventObject> {
     };
   };
 
-  public getPathFromEvents(
+  public getPathsFromEvents(
     events: TEvent[],
-    statePredicate: StatePredicate<TState>
-  ): TestPath<TState, TEvent> {
-    const path = getPathFromEvents(this.behavior, events);
+    options?: TraversalOptions<TState, TEvent>
+  ): Array<TestPath<TState, TEvent>> {
+    const paths = getPathsFromEvents(this.behavior, events, options);
 
-    if (!statePredicate(path.state)) {
-      throw new Error(
-        `The last state ${JSON.stringify(
-          (path.state as any).value
-        )} does not match the target}`
-      );
-    }
-
-    return this.toTestPath(path);
+    return paths.map(this.toTestPath);
   }
 
   public getAllStates(): TState[] {

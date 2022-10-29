@@ -14,14 +14,14 @@ import {
   createDefaultBehaviorOptions
 } from './graph';
 
-export function getPathFromEvents<
+export function getPathsFromEvents<
   TState,
   TEvent extends EventObject = EventObject
 >(
   behavior: SimpleBehavior<TState, TEvent>,
   events: TEvent[],
   options?: TraversalOptions<TState, TEvent>
-): StatePath<TState, TEvent> {
+): Array<StatePath<TState, TEvent>> {
   const resolvedOptions = resolveTraversalOptions<TState, TEvent>(
     {
       getEvents: () => {
@@ -40,7 +40,7 @@ export function getPathFromEvents<
   const adjacency = getAdjacencyMap(behavior, resolvedOptions);
 
   const stateMap = new Map<SerializedState, TState>();
-  const path: Steps<TState, TEvent> = [];
+  const steps: Steps<TState, TEvent> = [];
 
   const initialSerializedState = serializeState(
     fromState,
@@ -52,7 +52,7 @@ export function getPathFromEvents<
   let stateSerial = initialSerializedState;
   let state = fromState;
   for (const event of events) {
-    path.push({
+    steps.push({
       state: stateMap.get(stateSerial)!,
       event
     });
@@ -79,9 +79,17 @@ export function getPathFromEvents<
     state = nextState;
   }
 
-  return {
-    state,
-    steps: path,
-    weight: path.length
-  };
+  // If it is expected to reach a specific state (`toState`) and that state
+  // isn't reached, there are no paths
+  if (resolvedOptions.toState && !resolvedOptions.toState(state)) {
+    return [];
+  }
+
+  return [
+    {
+      state,
+      steps,
+      weight: steps.length
+    }
+  ];
 }
