@@ -1,5 +1,21 @@
 # xstate
 
+## 4.34.0
+
+### Minor Changes
+
+- [#3588](https://github.com/statelyai/xstate/pull/3588) [`a4c8ead99`](https://github.com/statelyai/xstate/commit/a4c8ead9963f5e9097896ba0fdc1cdcc0acfd621) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The actions `raise` and `sendTo` can now be imported directly from `xstate`:
+
+  ```js
+  import { raise, sendTo } from 'xstate';
+
+  // ...
+  ```
+
+### Patch Changes
+
+- [#3599](https://github.com/statelyai/xstate/pull/3599) [`333f803f9`](https://github.com/statelyai/xstate/commit/333f803f96bae8ecb9a686160c0daca493f9979b) Thanks [@Andarist](https://github.com/Andarist)! - Fixed a regression that has caused `machine.getInitialState(value)` to not follow always transitions correctly.
+
 ## 4.33.6
 
 ### Patch Changes
