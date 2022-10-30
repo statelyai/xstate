@@ -292,4 +292,44 @@ describe('getShortestPathsFrom', () => {
 
     expect(shortestPaths.every((path) => path.steps.length === 2)).toBeTruthy();
   });
+
+  describe('getSimplePathsFrom', () => {
+    it('should get simple paths from array of paths', () => {
+      const machine = createTestMachine({
+        initial: 'a',
+        states: {
+          a: {
+            on: { NEXT: 'b', OTHER: 'b', TO_C: 'c', TO_D: 'd', TO_E: 'e' }
+          },
+          b: {
+            on: {
+              TO_C: 'c',
+              TO_D: 'd'
+            }
+          },
+          c: {},
+          d: {},
+          e: {}
+        }
+      });
+      const model = createTestModel(machine);
+      const pathsToB = model.getSimplePaths({
+        toState: (state) => state.matches('b')
+      });
+
+      // a (NEXT) -> b
+      // a (OTHER) -> b
+      expect(pathsToB).toHaveLength(2);
+
+      const simplePaths = model.getSimplePathsFrom(pathsToB);
+
+      // a (NEXT) -> b (TO_C) -> c
+      // a (OTHER) -> b (TO_C) -> c
+      // a (NEXT) -> b (TO_D) -> d
+      // a (OTHER) -> b (TO_D) -> d
+      expect(simplePaths).toHaveLength(4);
+
+      expect(simplePaths.every((path) => path.steps.length === 2)).toBeTruthy();
+    });
+  });
 });

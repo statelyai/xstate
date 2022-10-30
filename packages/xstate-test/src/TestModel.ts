@@ -86,6 +86,25 @@ export class TestModel<TState, TEvent extends EventObject> {
     return this.getPaths(createShortestPathsGen(), options);
   }
 
+  public getShortestPathsFrom(
+    paths: Array<TestPath<TState, TEvent>>,
+    options?: Partial<TraversalOptions<TState, any>>
+  ): Array<TestPath<TState, TEvent>> {
+    const resultPaths: TestPath<TState, TEvent>[] = [];
+
+    for (const path of paths) {
+      const shortestPaths = this.getShortestPaths({
+        ...options,
+        fromState: path.state
+      });
+      for (const shortestPath of shortestPaths) {
+        resultPaths.push(this.toTestPath(joinPaths(path, shortestPath)));
+      }
+    }
+
+    return resultPaths;
+  }
+
   public getShortestPathsFromTo(
     fromStatePredicate: StatePredicate<TState>,
     toStatePredicate: StatePredicate<TState>,
@@ -101,6 +120,25 @@ export class TestModel<TState, TEvent extends EventObject> {
     options?: Partial<TraversalOptions<TState, TEvent>>
   ): Array<TestPath<TState, TEvent>> {
     return this.getPaths(createSimplePathsGen(), options);
+  }
+
+  public getSimplePathsFrom(
+    paths: Array<TestPath<TState, TEvent>>,
+    options?: Partial<TraversalOptions<TState, any>>
+  ): Array<TestPath<TState, TEvent>> {
+    const resultPaths: TestPath<TState, TEvent>[] = [];
+
+    for (const path of paths) {
+      const shortestPaths = this.getSimplePaths({
+        ...options,
+        fromState: path.state
+      });
+      for (const shortestPath of shortestPaths) {
+        resultPaths.push(this.toTestPath(joinPaths(path, shortestPath)));
+      }
+    }
+
+    return resultPaths;
   }
 
   public getSimplePathsFromTo(
@@ -387,25 +425,6 @@ export class TestModel<TState, TEvent extends EventObject> {
     options?: Partial<TestModelOptions<TState, TEvent>>
   ): TestModelOptions<TState, TEvent> {
     return { ...this.defaultTraversalOptions, ...this.options, ...options };
-  }
-
-  public getShortestPathsFrom(
-    paths: Array<TestPath<TState, TEvent>>,
-    options?: Partial<TraversalOptions<TState, any>>
-  ): Array<TestPath<TState, TEvent>> {
-    const resultPaths: any[] = [];
-
-    for (const path of paths) {
-      const shortestPaths = this.getShortestPaths({
-        ...options,
-        fromState: path.state
-      });
-      for (const shortestPath of shortestPaths) {
-        resultPaths.push(joinPaths(path, shortestPath));
-      }
-    }
-
-    return resultPaths;
   }
 }
 
