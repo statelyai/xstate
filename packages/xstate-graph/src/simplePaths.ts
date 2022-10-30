@@ -10,6 +10,7 @@ import {
 import { resolveTraversalOptions, createDefaultMachineOptions } from './graph';
 import { getAdjacencyMap } from './adjacency';
 import { flatten } from 'xstate/src/utils';
+import { machineToBehavior } from './machineToBehavior';
 
 export function getMachineSimplePaths<TMachine extends AnyStateMachine>(
   machine: TMachine,
@@ -130,4 +131,23 @@ export function getSimplePathsFromTo<TState, TEvent extends EventObject>(
       path.steps.some((step) => fromPredicate(step.state))
     );
   });
+}
+
+export function getMachineSimplePathsFromTo<TMachine extends AnyStateMachine>(
+  machine: TMachine,
+  fromPredicate: (state: StateFrom<TMachine>) => boolean,
+  toPredicate: (state: StateFrom<TMachine>) => boolean,
+  options?: TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>>
+): Array<StatePath<StateFrom<TMachine>, EventFrom<TMachine>>> {
+  const resolvedOptions = resolveTraversalOptions(
+    options,
+    createDefaultMachineOptions(machine)
+  );
+
+  return getSimplePathsFromTo(
+    machineToBehavior(machine),
+    fromPredicate,
+    toPredicate,
+    resolvedOptions
+  );
 }
