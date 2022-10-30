@@ -37,14 +37,10 @@ export function getShortestPaths<TState, TEvent extends EventObject>(
     }
   >();
   const stateMap = new Map<SerializedState, TState>();
-  const initialSerializedState = serializeState(
-    fromState,
-    undefined,
-    undefined
-  );
-  stateMap.set(initialSerializedState, fromState);
+  const serializedFromState = serializeState(fromState, undefined, undefined);
+  stateMap.set(serializedFromState, fromState);
 
-  weightMap.set(initialSerializedState, {
+  weightMap.set(serializedFromState, {
     weight: 0,
     state: undefined,
     event: undefined
@@ -52,7 +48,7 @@ export function getShortestPaths<TState, TEvent extends EventObject>(
   const unvisited = new Set<SerializedState>();
   const visited = new Set<SerializedState>();
 
-  unvisited.add(initialSerializedState);
+  unvisited.add(serializedFromState);
   for (const serializedState of unvisited) {
     const prevState = stateMap.get(serializedState);
     const { weight } = weightMap.get(serializedState)!;

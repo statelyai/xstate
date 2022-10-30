@@ -42,14 +42,14 @@ export function getPathsFromEvents<
   const stateMap = new Map<SerializedState, TState>();
   const steps: Steps<TState, TEvent> = [];
 
-  const initialSerializedState = serializeState(
+  const serializedFromState = serializeState(
     fromState,
     undefined,
     undefined
   ) as SerializedState;
-  stateMap.set(initialSerializedState, fromState);
+  stateMap.set(serializedFromState, fromState);
 
-  let stateSerial = initialSerializedState;
+  let stateSerial = serializedFromState;
   let state = fromState;
   for (const event of events) {
     steps.push({
