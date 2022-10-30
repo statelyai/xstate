@@ -200,7 +200,7 @@ export interface TraversalConfig<TState, TEvent extends EventObject>
   traversalLimit: number;
   fromState: TState | undefined;
   /**
-   * When true, traversal of the adjacency list will stop
+   * When true, traversal of the adjacency map will stop
    * for that current state.
    */
   stopCondition: ((state: TState) => boolean) | undefined;

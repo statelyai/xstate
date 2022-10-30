@@ -196,26 +196,30 @@ export class TestModel<TState, TEvent extends EventObject> {
     return Object.values(adj).map((x) => x.state);
   }
 
+  /**
+   * An array of adjacencies, which are objects that represent each `state` with the `nextState`
+   * given the `event`.
+   */
   public getAdjacencyList(): Array<{
     state: TState;
     event: TEvent;
     nextState: TState;
   }> {
-    const adj = getAdjacencyMap(this.behavior, this.options);
+    const adjMap = getAdjacencyMap(this.behavior, this.options);
     const adjList: Array<{
       state: TState;
       event: TEvent;
       nextState: TState;
     }> = [];
 
-    for (const v of Object.values(adj)) {
-      for (const t of Object.values(
-        (v as AdjacencyValue<TState, TEvent>).transitions
+    for (const adjValue of Object.values(adjMap)) {
+      for (const transition of Object.values(
+        (adjValue as AdjacencyValue<TState, TEvent>).transitions
       )) {
         adjList.push({
-          state: (v as any).state,
-          event: t.event,
-          nextState: t.state
+          state: (adjValue as AdjacencyValue<TState, TEvent>).state,
+          event: transition.event,
+          nextState: transition.state
         });
       }
     }
