@@ -108,10 +108,8 @@ export function getSimplePaths<TState, TEvent extends EventObject>(
 
   const simplePaths = flatten(Object.values(pathMap).map((p) => p.paths));
 
-  if (resolvedOptions.toState?.length) {
-    return simplePaths.filter((path) =>
-      resolvedOptions.toState![0](path.state)
-    );
+  if (resolvedOptions.toState) {
+    return simplePaths.filter((path) => resolvedOptions.toState!(path.state));
   }
 
   return simplePaths;

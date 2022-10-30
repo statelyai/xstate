@@ -163,10 +163,6 @@ export function resolveTraversalOptions<TState, TEvent extends EventObject>(
     traversalOptions?.serializeState ??
     defaultOptions?.serializeState ??
     ((state) => JSON.stringify(state));
-
-  const toStates = traversalOptions?.toState;
-  const stopCondition = toStates ? toStates[toStates.length - 1] : undefined;
-
   return {
     serializeState,
     serializeEvent,
@@ -178,7 +174,7 @@ export function resolveTraversalOptions<TState, TEvent extends EventObject>(
     toState: undefined,
     // Traversal should not continue past the `toState` predicate
     // since the target state has already been reached at that point
-    stopCondition,
+    stopCondition: traversalOptions?.toState,
     ...defaultOptions,
     ...traversalOptions
   };
