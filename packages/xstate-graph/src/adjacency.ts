@@ -18,10 +18,10 @@ export function getAdjacencyMap<TState, TEvent extends EventObject>(
     getEvents,
     eventCases,
     traversalLimit: limit,
-    fromState: customInitialState,
+    fromState: customFromState,
     stopCondition
   } = resolveTraversalOptions(options);
-  const fromState = customInitialState ?? behavior.initialState;
+  const fromState = customFromState ?? behavior.initialState;
   const adj: AdjacencyMap<TState, TEvent> = {};
 
   let iterations = 0;
