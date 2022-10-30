@@ -7,7 +7,11 @@ import {
   TraversalOptions,
   VisitedContext
 } from './types';
-import { resolveTraversalOptions, createDefaultMachineOptions } from './graph';
+import {
+  resolveTraversalOptions,
+  createDefaultMachineOptions,
+  joinPaths
+} from './graph';
 import { getAdjacencyMap } from './adjacency';
 import { flatten } from 'xstate/src/utils';
 import { machineToBehavior } from './machineToBehavior';
@@ -122,15 +126,33 @@ export function getSimplePathsFromTo<TState, TEvent extends EventObject>(
   toPredicate: (state: TState) => boolean,
   options: TraversalOptions<TState, TEvent>
 ): Array<StatePath<TState, TEvent>> {
-  const resolvedOptions = resolveTraversalOptions(options);
-  const simplePaths = getSimplePaths(behavior, resolvedOptions);
-
-  return simplePaths.filter((path) => {
-    return (
-      toPredicate(path.state) &&
-      path.steps.some((step) => fromPredicate(step.state))
-    );
+  const fromStateOptions = resolveTraversalOptions({
+    ...options,
+    toState: fromPredicate
   });
+
+  // First, find all the shortest paths to the "from" state
+  const fromStatePaths = getSimplePaths(behavior, fromStateOptions);
+
+  // Then from each "from" state, find the paths to the "to" state
+
+  const fromToPaths = flatten(
+    fromStatePaths.map((fromStatePath) => {
+      const toStateOptions = resolveTraversalOptions({
+        ...options,
+        fromState: fromStatePath.state,
+        toState: toPredicate
+      });
+
+      const toStatePath = getSimplePaths(behavior, toStateOptions);
+
+      return toStatePath.map((toStatePath) =>
+        joinPaths(fromStatePath, toStatePath)
+      );
+    })
+  );
+
+  return fromToPaths;
 }
 
 export function getMachineSimplePathsFromTo<TMachine extends AnyStateMachine>(
