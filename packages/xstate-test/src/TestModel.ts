@@ -15,16 +15,10 @@ import type {
 import { EventObject } from 'xstate';
 import { isStateLike } from 'xstate/lib/utils';
 import { deduplicatePaths } from './deduplicatePaths';
-import {
-  createShortestPathsGen,
-  createShortestPathsFromToGen,
-  createSimplePathsGen,
-  createSimplePathsFromToGen
-} from './pathGenerators';
+import { createShortestPathsGen, createSimplePathsGen } from './pathGenerators';
 import type {
   EventExecutor,
   PathGenerator,
-  StatePredicate,
   TestModelOptions,
   TestParam,
   TestPath,
@@ -105,17 +99,6 @@ export class TestModel<TState, TEvent extends EventObject> {
     return resultPaths;
   }
 
-  public getShortestPathsFromTo(
-    fromStatePredicate: StatePredicate<TState>,
-    toStatePredicate: StatePredicate<TState>,
-    options?: Partial<TraversalOptions<TState, TEvent>>
-  ): Array<TestPath<TState, TEvent>> {
-    return this.getPaths(
-      createShortestPathsFromToGen(fromStatePredicate, toStatePredicate),
-      options
-    );
-  }
-
   public getSimplePaths(
     options?: Partial<TraversalOptions<TState, TEvent>>
   ): Array<TestPath<TState, TEvent>> {
@@ -139,17 +122,6 @@ export class TestModel<TState, TEvent extends EventObject> {
     }
 
     return resultPaths;
-  }
-
-  public getSimplePathsFromTo(
-    fromPredicate: StatePredicate<TState>,
-    toPredicate: StatePredicate<TState>,
-    options?: Partial<TraversalOptions<TState, TEvent>>
-  ): Array<TestPath<TState, TEvent>> {
-    return this.getPaths(
-      createSimplePathsFromToGen(fromPredicate, toPredicate),
-      options
-    );
   }
 
   private toTestPath = (

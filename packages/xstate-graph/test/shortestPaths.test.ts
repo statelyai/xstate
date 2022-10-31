@@ -1,10 +1,9 @@
 import { assign, createMachine } from 'xstate';
-import {
-  getMachineShortestPaths,
-  getMachineShortestPathsFromTo
-} from '../src/shortestPaths';
+import { flatten } from 'xstate/lib/utils';
+import { joinPaths } from '../src/graph';
+import { getMachineShortestPaths } from '../src/shortestPaths';
 
-describe('getMachineShortestPathsTo', () => {
+describe('getMachineShortestPaths', () => {
   it('finds the shortest paths to a state without continuing traversal from that state', () => {
     const m = createMachine<{ count: number }>({
       initial: 'a',
@@ -47,9 +46,7 @@ describe('getMachineShortestPathsTo', () => {
     expect(p).toHaveLength(1);
     expect(p[0].state.matches('c')).toBeTruthy();
   });
-});
 
-describe('getMachineShortestPathsFromTo()', () => {
   it('finds the shortest paths from a state to another state', () => {
     const m = createMachine<{ count: number }>({
       initial: 'a',
@@ -74,10 +71,20 @@ describe('getMachineShortestPathsFromTo()', () => {
       }
     });
 
-    const paths = getMachineShortestPathsFromTo(
-      m,
-      (state) => state.matches('b'),
-      (state) => state.matches('y')
+    const pathsToB = getMachineShortestPaths(m, {
+      toState: (state) => state.matches('b')
+    });
+    const paths = flatten(
+      pathsToB.map((path) => {
+        const pathsToY = getMachineShortestPaths(m, {
+          fromState: path.state,
+          toState: (state) => state.matches('y')
+        });
+
+        return pathsToY.map((pathToY) => {
+          return joinPaths(path, pathToY);
+        });
+      })
     );
 
     expect(paths).toHaveLength(1);

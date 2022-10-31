@@ -7,14 +7,9 @@ import {
   TraversalOptions,
   VisitedContext
 } from './types';
-import {
-  resolveTraversalOptions,
-  createDefaultMachineOptions,
-  joinPaths
-} from './graph';
+import { resolveTraversalOptions, createDefaultMachineOptions } from './graph';
 import { getAdjacencyMap } from './adjacency';
 import { flatten } from 'xstate/src/utils';
-import { machineToBehavior } from './machineToBehavior';
 
 export function getMachineSimplePaths<TMachine extends AnyStateMachine>(
   machine: TMachine,
@@ -118,58 +113,4 @@ export function getSimplePaths<TState, TEvent extends EventObject>(
   }
 
   return simplePaths;
-}
-
-export function getSimplePathsFromTo<TState, TEvent extends EventObject>(
-  behavior: SimpleBehavior<TState, TEvent>,
-  fromPredicate: (state: TState) => boolean,
-  toPredicate: (state: TState) => boolean,
-  options: TraversalOptions<TState, TEvent>
-): Array<StatePath<TState, TEvent>> {
-  const fromStateOptions = resolveTraversalOptions({
-    ...options,
-    toState: fromPredicate
-  });
-
-  // First, find all the shortest paths to the "from" state
-  const fromStatePaths = getSimplePaths(behavior, fromStateOptions);
-
-  // Then from each "from" state, find the paths to the "to" state
-
-  const fromToPaths = flatten(
-    fromStatePaths.map((fromStatePath) => {
-      const toStateOptions = resolveTraversalOptions({
-        ...options,
-        fromState: fromStatePath.state,
-        toState: toPredicate
-      });
-
-      const toStatePath = getSimplePaths(behavior, toStateOptions);
-
-      return toStatePath.map((toStatePath) =>
-        joinPaths(fromStatePath, toStatePath)
-      );
-    })
-  );
-
-  return fromToPaths;
-}
-
-export function getMachineSimplePathsFromTo<TMachine extends AnyStateMachine>(
-  machine: TMachine,
-  fromPredicate: (state: StateFrom<TMachine>) => boolean,
-  toPredicate: (state: StateFrom<TMachine>) => boolean,
-  options?: TraversalOptions<StateFrom<TMachine>, EventFrom<TMachine>>
-): Array<StatePath<StateFrom<TMachine>, EventFrom<TMachine>>> {
-  const resolvedOptions = resolveTraversalOptions(
-    options,
-    createDefaultMachineOptions(machine)
-  );
-
-  return getSimplePathsFromTo(
-    machineToBehavior(machine),
-    fromPredicate,
-    toPredicate,
-    resolvedOptions
-  );
 }
