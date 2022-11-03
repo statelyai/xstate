@@ -17,9 +17,6 @@ import {
   TypegenDisabled,
   ResolveTypegenMeta
 } from './typegenTypes';
-import { IS_PRODUCTION } from './environment';
-
-let warned = false;
 
 /**
  * @deprecated Use `createMachine(...)` instead.
@@ -142,11 +139,5 @@ export function createMachine<
   TServiceMap,
   TTypesMeta
 > {
-  if (!IS_PRODUCTION && !config.predictableActionArguments && !warned) {
-    warned = true;
-    console.warn(
-      'It is highly recommended to set `predictableActionArguments` to `true` when using `createMachine`. https://xstate.js.org/docs/guides/actions.html'
-    );
-  }
   return new StateNode(config, options as any) as any;
 }
