@@ -7,6 +7,9 @@ on:
 
 name: CodeSee Map
 
+permissions:
+  contents: read  #  to fetch code (actions/checkout)
+
 jobs:
   test_map_action:
     runs-on: ubuntu-latest
