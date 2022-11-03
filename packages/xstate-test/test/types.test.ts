@@ -26,7 +26,7 @@ describe('types', () => {
       }
     });
 
-    for (const path of createTestModel(machine).getPaths()) {
+    for (const path of createTestModel(machine).getShortestPaths()) {
       path.test({
         events: {
           a: ({ event }) => {
