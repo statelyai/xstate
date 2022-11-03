@@ -248,8 +248,8 @@ const machine = createMachine({
 
 const inactiveState = machine.initialState;
 
-inactiveState.can('TOGGLE'); // true
-inactiveState.can('DO_SOMETHING'); // false
+inactiveState.can({ type: 'TOGGLE' }); // true
+inactiveState.can({ type: 'DO_SOMETHING' }); // false
 
 // Also takes in full event objects:
 inactiveState.can({
@@ -257,10 +257,10 @@ inactiveState.can({
   data: 42
 }); // false
 
-const activeState = machine.transition(inactiveState, 'TOGGLE');
+const activeState = machine.transition(inactiveState, { type: 'TOGGLE' });
 
-activeState.can('TOGGLE'); // false
-activeState.can('DO_SOMETHING'); // true, since an action will be executed
+activeState.can({ type: 'TOGGLE' }); // false
+activeState.can({ type: 'DO_SOMETHING' }); // true, since an action will be executed
 ```
 
 A state is considered “changed” if [`state.changed`](#state-changed) is `true` and if any of the following are true:
@@ -268,6 +268,10 @@ A state is considered “changed” if [`state.changed`](#state-changed) is `tru
 - its `state.value` changes
 - there are new `state.actions` to be executed
 - its `state.context` changes.
+
+::: warning
+The `state.can(...)` function will also check transition guards by executing them. Transition guards should be pure functions.
+:::
 
 ## Persisting state
 

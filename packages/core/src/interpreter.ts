@@ -271,6 +271,9 @@ export class Interpreter<
       return this._initialState;
     });
   }
+  /**
+   * @deprecated Use `.getSnapshot()` instead.
+   */
   public get state(): State<
     TContext,
     TEvent,
@@ -769,6 +772,12 @@ export class Interpreter<
       );
     }
 
+    if (!events.length) {
+      return;
+    }
+
+    const exec = !!this.machine.config.predictableActionArguments && this._exec;
+
     this.scheduler.schedule(() => {
       let nextState = this.state;
       let batchChanged = false;
@@ -779,13 +788,20 @@ export class Interpreter<
         this.forward(_event);
 
         nextState = serviceScope.provide(this, () => {
-          return this.machine.transition(nextState, _event);
+          return this.machine.transition(
+            nextState,
+            _event,
+            undefined,
+            exec || undefined
+          );
         });
 
         batchedActions.push(
-          ...(nextState.actions.map((a) =>
-            bindActionToState(a, nextState)
-          ) as Array<ActionObject<TContext, TEvent>>)
+          ...(this.machine.config.predictableActionArguments
+            ? nextState.actions
+            : (nextState.actions.map((a) =>
+                bindActionToState(a, nextState)
+              ) as Array<ActionObject<TContext, TEvent>>))
         );
 
         batchChanged = batchChanged || !!nextState.changed;
@@ -1183,7 +1199,7 @@ export class Interpreter<
   }
   public spawnMachine<
     TChildContext,
-    TChildStateSchema,
+    TChildStateSchema extends StateSchema,
     TChildEvent extends EventObject
   >(
     machine: StateMachine<TChildContext, TChildStateSchema, TChildEvent>,
@@ -1224,7 +1240,10 @@ export class Interpreter<
       })
       .start();
 
-    return actor as ActorRef<TChildEvent, State<TChildContext, TChildEvent>>;
+    return actor as ActorRef<
+      TChildEvent,
+      State<TChildContext, TChildEvent, any, any, any>
+    >;
   }
   private spawnBehavior<TActorEvent extends EventObject, TEmitted>(
     behavior: Behavior<TActorEvent, TEmitted>,
