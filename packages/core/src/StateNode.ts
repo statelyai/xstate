@@ -1331,14 +1331,19 @@ class StateNode<
       ): action is
         | RaiseActionObject<TEvent>
         | SendActionObject<TContext, TEvent, TEvent> => {
-        const isSendAction = action.type === actionTypes.send;
+        if (action.type === actionTypes.raise) {
+          return true;
+        }
+        if (action.type !== actionTypes.send) {
+          return false;
+        }
+
         const isRaisableSendAction =
-          isSendAction &&
           (action as SendActionObject<TContext, TEvent>).to ===
             SpecialTargets.Internal &&
           !(action as SendActionObject<TContext, TEvent>).delay;
 
-        return action.type === actionTypes.raise || isRaisableSendAction;
+        return isRaisableSendAction;
       }
     );
 
