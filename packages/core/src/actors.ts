@@ -191,7 +191,12 @@ export function fromPromise<T>(
               origin: self
             })
           );
-          observers.forEach((o) => o.complete?.());
+
+          // Make sure that observers are completed only after the
+          // snapshot has been set on the actor
+          setTimeout(() => {
+            observers.forEach((o) => o.complete?.());
+          });
           return { ...state, data: eventObject.data };
         case rejectEventType:
           const errorEvent = error(id, _event.data.data);
@@ -251,7 +256,7 @@ export function fromObservable<T, TEvent extends EventObject>(
       data: T | undefined;
     }
   > = {
-    transition: (state, event, { self, id }) => {
+    transition: (state, event, { self, id, observers }) => {
       const _event = toSCXMLEvent(event);
       if (state.canceled) {
         return state;
@@ -283,6 +288,13 @@ export function fromObservable<T, TEvent extends EventObject>(
               origin: self
             })
           );
+
+          // Make sure that observers are completed only after the
+          // snapshot has been set on the actor
+          setTimeout(() => {
+            observers.forEach((o) => o.complete?.());
+          });
+
           return state;
         case stopSignalType:
           state.canceled = true;
@@ -303,7 +315,6 @@ export function fromObservable<T, TEvent extends EventObject>(
       state.subscription = state.observable.subscribe({
         next: (value) => {
           self.send({ type: nextEventType, data: value });
-          observers.forEach((o) => o.next?.(value));
         },
         error: (err) => {
           self.send({ type: errorEventType, data: err });
@@ -311,7 +322,6 @@ export function fromObservable<T, TEvent extends EventObject>(
         },
         complete: () => {
           self.send({ type: completeEventType });
-          observers.forEach((o) => o.complete?.());
         }
       });
       return state;
@@ -410,23 +420,4 @@ export function fromEventObservable<T extends EventObject>(
 
 export function isActorRef(item: any): item is ActorRef<any> {
   return !!item && typeof item === 'object' && typeof item.send === 'function';
-}
-
-// but it's best to avoid unneccessary breaking changes now
-export function toActorRef<
-  TEvent extends EventObject,
-  TSnapshot = any,
-  TActorRefLike extends BaseActorRef<TEvent> = BaseActorRef<TEvent>
->(
-  actorRefLike: TActorRefLike
-): ActorRef<TEvent, TSnapshot> & Omit<TActorRefLike, keyof ActorRef<any, any>> {
-  return {
-    subscribe: () => ({ unsubscribe: () => void 0 }),
-    id: 'anonymous',
-    getSnapshot: () => undefined,
-    [symbolObservable]: function () {
-      return this;
-    },
-    ...actorRefLike
-  };
 }
