@@ -30,6 +30,7 @@ import {
 import { toEventObject, toObserver, toSCXMLEvent, warn } from './utils';
 import { symbolObservable } from './symbolObservable';
 import { evict, memo } from './memo';
+import { StateFrom } from '.';
 
 export type SnapshotListener<TBehavior extends Behavior<any, any>> = (
   state: SnapshotFrom<TBehavior>
@@ -72,6 +73,8 @@ type InternalStateFrom<
 > = TBehavior extends Behavior<infer _, infer __, infer TInternalState>
   ? TInternalState
   : never;
+
+type Foo = Required<any>;
 
 export class Interpreter<
   TBehavior extends Behavior<any, any>,
@@ -481,7 +484,7 @@ export class Interpreter<
     return this;
   }
 
-  public getSnapshot() {
+  public getSnapshot(): SnapshotFrom<TBehavior> {
     const getter = this.behavior.getSnapshot ?? ((s) => s);
     if (this.status === InterpreterStatus.NotStarted) {
       return getter(this.getInitialState());

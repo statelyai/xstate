@@ -1760,6 +1760,7 @@ export interface ActorRef<TEvent extends EventObject, TSnapshot = any>
    */
   id: string;
   send: (event: TEvent) => void;
+  // TODO: should this be optional?
   start?: () => void;
   getSnapshot: () => TSnapshot | undefined;
   stop?: () => void;
