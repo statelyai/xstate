@@ -1892,6 +1892,8 @@ export type AnyBehavior = Behavior<any, any, any>;
 export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends ActorRef<infer _, infer TSnapshot>
     ? TSnapshot
+    : R extends Interpreter<infer TBehavior>
+    ? SnapshotFrom<TBehavior>
     : R extends Behavior<infer _, infer TSnapshot>
     ? TSnapshot
     : R extends ActorContext<infer _, infer TSnapshot>

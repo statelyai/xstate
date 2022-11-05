@@ -8,12 +8,10 @@ import type {
   Behavior,
   ActorContext,
   EventObject,
-  ActorRef,
-  BaseActorRef
+  ActorRef
 } from './types';
 import { toSCXMLEvent, isPromiseLike, isSCXMLEvent, isFunction } from './utils';
 import { doneInvoke, error } from './actions';
-import { symbolObservable } from './symbolObservable';
 
 /**
  * Returns an actor behavior from a reducer and its initial state.
