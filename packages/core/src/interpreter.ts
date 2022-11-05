@@ -483,7 +483,7 @@ export class Interpreter<
     return this;
   }
 
-  public getSnapshot() {
+  public getSnapshot(): SnapshotFrom<TBehavior> {
     const getter = this.behavior.getSnapshot ?? ((s) => s);
     if (this.status === InterpreterStatus.NotStarted) {
       return getter(this.getInitialState());

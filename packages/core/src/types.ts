@@ -1726,6 +1726,7 @@ export interface ActorRef<TEvent extends EventObject, TSnapshot = any>
    */
   id: string;
   send: (event: TEvent) => void;
+  // TODO: should this be optional?
   start?: () => void;
   getSnapshot: () => TSnapshot | undefined;
   stop?: () => void;
@@ -1855,10 +1856,10 @@ export interface Behavior<
 export type AnyBehavior = Behavior<any, any, any>;
 
 export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends Interpreter<infer _, infer __>
-    ? ReturnType<R['getInitialState']>
-    : R extends ActorRef<infer _, infer TSnapshot>
+  ? R extends ActorRef<infer _, infer TSnapshot>
     ? TSnapshot
+    : R extends Interpreter<infer TBehavior>
+    ? SnapshotFrom<TBehavior>
     : R extends Behavior<infer _, infer TSnapshot>
     ? TSnapshot
     : R extends ActorContext<infer _, infer TSnapshot>

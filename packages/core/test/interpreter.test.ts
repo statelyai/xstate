@@ -17,7 +17,7 @@ import { raise } from '../src/actions/raise';
 import { stop } from '../src/actions/stop';
 import { log } from '../src/actions/log';
 import { isObservable } from '../src/utils';
-import { interval, from, of, throwError, EMPTY } from 'rxjs';
+import { interval, from } from 'rxjs';
 import { fromCallback, fromObservable, fromPromise } from '../src/actors';
 
 const lightMachine = createMachine({
@@ -1801,117 +1801,6 @@ describe('interpreter', () => {
           service.send({ type: 'NEXT' });
         }
       });
-    });
-  });
-
-  describe('fromPromise', () => {
-    it('should resolve', (done) => {
-      const actor = interpret(fromPromise(() => Promise.resolve(42)));
-
-      actor.subscribe((state) => {
-        if (state === 42) {
-          done();
-        }
-      });
-
-      actor.start();
-    });
-
-    it('should resolve (observer .next)', (done) => {
-      const actor = interpret(fromPromise(() => Promise.resolve(42)));
-
-      actor.subscribe({
-        next: (state) => {
-          if (state === 42) {
-            done();
-          }
-        }
-      });
-
-      actor.start();
-    });
-
-    it('should reject (observer .error)', (done) => {
-      const actor = interpret(fromPromise(() => Promise.reject('Error')));
-
-      actor.subscribe({
-        error: (data) => {
-          expect(data).toBe('Error');
-          done();
-        }
-      });
-
-      actor.start();
-    });
-
-    // TODO: determine if tagged states should be used
-    it.skip('should complete (observer .complete)', (done) => {
-      const actor = interpret(fromPromise(() => Promise.resolve(42)));
-      expect.assertions(1);
-
-      actor.subscribe({
-        next: (state) => {
-          expect(state).toEqual(42);
-        },
-        complete: () => {
-          done();
-        }
-      });
-
-      actor.start();
-    });
-  });
-
-  describe('fromObservable', () => {
-    it('should resolve', (done) => {
-      const actor = interpret(fromObservable(() => of(42)));
-
-      actor.subscribe((state) => {
-        if (state === 42) {
-          done();
-        }
-      });
-
-      actor.start();
-    });
-
-    it('should resolve (observer .next)', (done) => {
-      const actor = interpret(fromObservable(() => of(42)));
-
-      actor.subscribe({
-        next: (state) => {
-          if (state === 42) {
-            done();
-          }
-        }
-      });
-
-      actor.start();
-    });
-
-    it('should reject (observer .error)', (done) => {
-      const actor = interpret(fromObservable(() => throwError(() => 'Error')));
-
-      actor.subscribe({
-        error: (data) => {
-          expect(data).toBe('Error');
-          done();
-        }
-      });
-
-      actor.start();
-    });
-
-    it('should complete (observer .complete)', (done) => {
-      const actor = interpret(fromObservable(() => EMPTY));
-
-      actor.subscribe({
-        complete: () => {
-          done();
-        }
-      });
-
-      actor.start();
     });
   });
 
