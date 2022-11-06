@@ -8,7 +8,6 @@ import {
   interpret,
   StateFrom
 } from 'xstate';
-import { toActorRef } from 'xstate/actors';
 import { shallowEqual, useInterpret, useMachine, useSelector } from '../src';
 import { describeEachReactMode } from './utils';
 
@@ -282,12 +281,13 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
   it('should immediately render snapshot of initially spawned custom actor', () => {
     const createActor = (latestValue: string) =>
-      toActorRef({
-        send: () => {},
+      interpret({
+        transition: (s) => s,
         subscribe: () => {
           return { unsubscribe: () => {} };
         },
-        getSnapshot: () => latestValue
+        getSnapshot: () => latestValue,
+        getInitialState: () => latestValue
       });
 
     const parentMachine = createMachine({
@@ -417,12 +417,13 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
   it("should render snapshot value when actor doesn't emit anything", () => {
     const createActor = (latestValue: string) =>
-      toActorRef({
-        send: () => {},
+      interpret({
+        transition: (s) => s,
         subscribe: () => {
           return { unsubscribe: () => {} };
         },
-        getSnapshot: () => latestValue
+        getSnapshot: () => latestValue,
+        getInitialState: () => latestValue
       });
 
     const parentMachine = createMachine({
@@ -453,12 +454,13 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
   it('should render snapshot state when actor changes', () => {
     const createActor = (latestValue: string) =>
-      toActorRef({
-        send: () => {},
+      interpret({
+        transition: (s) => s,
         subscribe: () => {
           return { unsubscribe: () => {} };
         },
-        getSnapshot: () => latestValue
+        getSnapshot: () => latestValue,
+        getInitialState: () => latestValue
       });
 
     const actor1 = createActor('foo');
@@ -483,14 +485,14 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   });
 
   it("should keep rendering a new selected value after selector change when the actor doesn't emit", async () => {
-    const actor = {
-      ...toActorRef({
-        send: () => {},
-        subscribe: () => {
-          return { unsubscribe: () => {} };
-        }
-      })
-    };
+    const actor = interpret({
+      transition: (s) => s,
+      subscribe: () => {
+        return { unsubscribe: () => {} };
+      },
+      getSnapshot: () => undefined,
+      getInitialState: () => undefined
+    });
 
     const App = ({ selector }: { selector: any }) => {
       const [, forceRerender] = React.useState(0);
