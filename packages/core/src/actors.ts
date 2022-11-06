@@ -8,10 +8,12 @@ import type {
   Behavior,
   ActorContext,
   EventObject,
-  ActorRef
+  ActorRef,
+  BaseActorRef
 } from './types';
 import { toSCXMLEvent, isPromiseLike, isSCXMLEvent, isFunction } from './utils';
 import { doneInvoke, error } from './actions';
+import { symbolObservable } from './symbolObservable';
 
 /**
  * Returns an actor behavior from a reducer and its initial state.
@@ -418,4 +420,25 @@ export function fromEventObservable<T extends EventObject>(
 
 export function isActorRef(item: any): item is ActorRef<any> {
   return !!item && typeof item === 'object' && typeof item.send === 'function';
+}
+
+// TODO: refactor the return type, this could be written in a better way
+// but it's best to avoid unneccessary breaking changes now
+// @deprecated use `interpret(behavior)` instead
+export function toActorRef<
+  TEvent extends EventObject,
+  TSnapshot = any,
+  TActorRefLike extends BaseActorRef<TEvent> = BaseActorRef<TEvent>
+>(
+  actorRefLike: TActorRefLike
+): ActorRef<TEvent, TSnapshot> & Omit<TActorRefLike, keyof ActorRef<any, any>> {
+  return {
+    subscribe: () => ({ unsubscribe: () => void 0 }),
+    id: 'anonymous',
+    getSnapshot: () => undefined,
+    [symbolObservable]: function () {
+      return this;
+    },
+    ...actorRefLike
+  };
 }
