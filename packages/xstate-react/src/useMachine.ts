@@ -56,7 +56,7 @@ type RestParams<
         >
     ];
 
-type UseMachineReturn<
+export type UseMachineReturn<
   TMachine extends AnyStateMachine,
   TInterpreter = InterpreterFrom<TMachine>
 > = [StateFrom<TMachine>, Prop<TInterpreter, 'send'>, TInterpreter];
