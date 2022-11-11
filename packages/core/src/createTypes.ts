@@ -50,6 +50,27 @@ type GetAllEvents<T extends PartialMachineTypes> =
 
 type DefaultIfNever<T, TDefault> = IsNever<T> extends true ? TDefault : T;
 
+// type PartialWildcards<T extends EventObject> = ValuesFrom<
+//   {
+//     [K in T['type']]: K extends `${infer A}.${infer B}`
+//       ?
+//           | {
+//               type: `${A}.*`;
+//               // TODO: add payload
+//             }
+//           | T
+//       : T;
+//   }
+// >;
+
+// type E = PartialWildcards<
+//   { type: 'foo'; foo: number } | { type: 'bar.baz'; payload: number }
+// >;
+
+// type GetEvents<T extends PartialMachineTypes> = PartialWildcards<
+//   DefaultIfNever<GetAllEvents<T>, EventObject>
+// >;
+
 type GetEvents<T extends PartialMachineTypes> = DefaultIfNever<
   GetAllEvents<T>,
   EventObject

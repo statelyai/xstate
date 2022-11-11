@@ -1366,7 +1366,8 @@ describe('actors', () => {
         states: {
           pending: {
             on: {
-              'error.invoke.test': {
+              // TODO: this should be error.invoke.test?
+              'error.platform.test': {
                 target: 'success',
                 guard: (_, e) => {
                   return e.data === errorMessage;
