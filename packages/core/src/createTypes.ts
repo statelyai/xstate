@@ -1,10 +1,10 @@
-import {
+import type {
   ActorMap,
   BaseActionObject,
   BaseGuardDefinition,
   EventObject,
   MachineContext
-} from '.';
+} from './types';
 
 export interface PartialMachineTypes {
   input?: Record<string, any>;
@@ -14,16 +14,17 @@ export interface PartialMachineTypes {
   // TODO: should this be a union instead?
   actors?: ActorMap;
   guards?: BaseGuardDefinition;
+  foo?: any;
 }
 
-type WithDefaultConstraint<T, TDefault> = T extends undefined
-  ? TDefault
-  : T extends TDefault
-  ? T
-  : TDefault;
+type WithDefaultConstraint<
+  T,
+  TDefault,
+  TConstraint = TDefault
+> = unknown extends T ? TDefault : T extends TConstraint ? T : never;
 
 export type CreateMachineTypes<T extends PartialMachineTypes> = {
-  input: WithDefaultConstraint<T['input'], MachineContext>;
+  input: WithDefaultConstraint<T['input'], undefined, MachineContext>;
   context: WithDefaultConstraint<T['context'], MachineContext>;
   events:
     | WithDefaultConstraint<T['events'], EventObject>
@@ -32,7 +33,6 @@ export type CreateMachineTypes<T extends PartialMachineTypes> = {
         input: T['input'];
       };
   actions: WithDefaultConstraint<T['actions'], BaseActionObject>;
-  // TODO: should this be a union instead?
   actors: WithDefaultConstraint<T['actors'], ActorMap>;
   guards: WithDefaultConstraint<T['guards'], BaseGuardDefinition>;
 };

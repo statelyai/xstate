@@ -60,4 +60,39 @@ describe('machine.withInput()', () => {
       machine.getInitialState();
     }).toThrowError(/Cannot read properties of undefined/);
   });
+
+  it('should not throw if input is not expected and not provided', () => {
+    const t = createTypes({
+      context: {} as { count: number }
+    });
+
+    const machine = createMachine2<typeof t>({
+      context: ({ input }) => {
+        try {
+          // @ts-expect-error
+          input.whatever;
+        } catch (_) {}
+
+        return { count: 42 };
+      }
+    });
+
+    expect(() => {
+      machine.getInitialState();
+    }).not.toThrowError();
+  });
+
+  it('should be a type error if input is not expected yet provided', () => {
+    const t = createTypes({
+      context: {} as { count: number }
+    });
+
+    const machine = createMachine2<typeof t>({
+      context: { count: 42 }
+    });
+
+    expect(() => {
+      machine.getInitialState();
+    }).not.toThrowError();
+  });
 });
