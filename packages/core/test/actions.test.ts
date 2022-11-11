@@ -1,15 +1,15 @@
 import {
-  createMachine,
+  createMachine2 as createMachine,
   assign,
   forwardTo,
   interpret,
-  ActorRefFrom
+  ActorRefFrom,
+  AnyActorRef
 } from '../src/index';
 import { sendParent } from '../src/actions/send';
 import { choose } from '../src/actions/choose';
 import { pure } from '../src/actions/pure';
 import { log } from '../src/actions/log';
-import { ActorRef } from '../src';
 import { sendTo, send } from '../src/actions/send';
 import { stop } from '../src/actions/stop';
 
@@ -39,7 +39,7 @@ describe('entry/exit actions', () => {
   };
 
   const lightMachine = createMachine({
-    key: 'light',
+    id: 'light',
     initial: 'green',
     states: {
       green: {
@@ -97,7 +97,7 @@ describe('entry/exit actions', () => {
   };
 
   const newLightMachine = createMachine({
-    key: 'light',
+    id: 'light',
     initial: 'green',
     states: {
       green: {
@@ -491,7 +491,7 @@ describe('entry/exit actions', () => {
 
       const pingPong = createMachine({
         initial: 'ping',
-        key: 'machine',
+        id: 'machine',
         states: {
           ping: {
             entry: ['entryEvent'],
@@ -1092,14 +1092,14 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const parent = createMachine({
+      const parent = createMachine<{ context: { child: AnyActorRef } }>({
         id: 'parent',
         context: ({ spawn }) => ({
           child: spawn(child)
         }),
         on: {
           STOP_CHILD: {
-            actions: stop((ctx: any) => ctx.child)
+            actions: stop((ctx) => ctx.child)
           },
           EXIT: {
             actions: () => {
@@ -1132,14 +1132,14 @@ describe('entry/exit actions', () => {
         exit: sendParent('CHILD_DONE')
       });
 
-      const parent = createMachine({
+      const parent = createMachine<{ context: { child: AnyActorRef } }>({
         id: 'parent',
         context: ({ spawn }) => ({
           child: spawn(child)
         }),
         on: {
           FINISH_CHILD: {
-            actions: send({ type: 'FINISH' }, { to: (ctx: any) => ctx.child })
+            actions: send({ type: 'FINISH' }, { to: (ctx) => ctx.child })
           },
           CHILD_DONE: {
             actions: () => {
@@ -1267,7 +1267,7 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const parent = createMachine({
+      const parent = createMachine<{ context: { actorRef?: AnyActorRef } }>({
         id: 'parent',
         context: {},
         exit: assign({
@@ -1303,7 +1303,7 @@ describe('entry/exit actions', () => {
     });
 
     it('should execute builtin actions correctly when stopping an interpreter', () => {
-      const machine = createMachine(
+      const machine = createMachine<{ context: { executedAssigns: string[] } }>(
         {
           context: {
             executedAssigns: [] as string[]
@@ -1311,7 +1311,7 @@ describe('entry/exit actions', () => {
           exit: [
             'referencedAction',
             assign({
-              executedAssigns: (ctx: any) => [...ctx.executedAssigns, 'inline']
+              executedAssigns: (ctx) => [...ctx.executedAssigns, 'inline']
             })
           ]
         },
@@ -1545,7 +1545,7 @@ describe('actions config', () => {
 
   // tslint:disable-next-line:no-empty
   const definedAction = () => {};
-  const simpleMachine = createMachine<Context, EventType>(
+  const simpleMachine = createMachine<{ context: Context; events: EventType }>(
     {
       initial: 'a',
       context: {
@@ -1603,7 +1603,7 @@ describe('actions config', () => {
   });
 
   it('should be able to reference action implementations from action objects', () => {
-    const machine = createMachine<Context, EventType>(
+    const machine = createMachine<{ context: Context; events: EventType }>(
       {
         initial: 'a',
         context: {
@@ -1738,7 +1738,7 @@ describe('purely defined actions', () => {
     | { type: 'NONE'; id: number }
     | { type: 'EACH' };
 
-  const dynamicMachine = createMachine<Ctx, Events>({
+  const dynamicMachine = createMachine<{ context: Ctx; events: Events }>({
     id: 'dynamic',
     initial: 'idle',
     context: {
@@ -1748,7 +1748,7 @@ describe('purely defined actions', () => {
       idle: {
         on: {
           SINGLE: {
-            actions: pure<any, any>((ctx, e) => {
+            actions: pure((ctx, e) => {
               if (ctx.items.length > 0) {
                 return {
                   type: 'SINGLE_EVENT',
@@ -1758,7 +1758,7 @@ describe('purely defined actions', () => {
             })
           },
           NONE: {
-            actions: pure<any, any>((ctx, e) => {
+            actions: pure((ctx, e) => {
               if (ctx.items.length > 5) {
                 return {
                   type: 'SINGLE_EVENT',
@@ -1768,8 +1768,8 @@ describe('purely defined actions', () => {
             })
           },
           EACH: {
-            actions: pure<any, any>((ctx) =>
-              ctx.items.map((item: any, index: number) => ({
+            actions: pure((ctx) =>
+              ctx.items.map((item, index) => ({
                 type: 'EVENT',
                 params: { item, index }
               }))
@@ -1831,7 +1831,9 @@ describe('purely defined actions', () => {
 
 describe('forwardTo()', () => {
   it('should forward an event to a service', (done) => {
-    const child = createMachine<any, { type: 'EVENT'; value: number }>({
+    const child = createMachine<{
+      events: { type: 'EVENT'; value: number };
+    }>({
       id: 'child',
       initial: 'active',
       states: {
@@ -1846,10 +1848,9 @@ describe('forwardTo()', () => {
       }
     });
 
-    const parent = createMachine<
-      any,
-      { type: 'EVENT'; value: number } | { type: 'SUCCESS' }
-    >({
+    const parent = createMachine<{
+      events: { type: 'EVENT'; value: number } | { type: 'SUCCESS' };
+    }>({
       id: 'parent',
       initial: 'first',
       states: {
@@ -1876,7 +1877,9 @@ describe('forwardTo()', () => {
   });
 
   it('should forward an event to a service (dynamic)', (done) => {
-    const child = createMachine<any, { type: 'EVENT'; value: number }>({
+    const child = createMachine<{
+      events: { type: 'EVENT'; value: number };
+    }>({
       id: 'child',
       initial: 'active',
       states: {
@@ -1891,10 +1894,10 @@ describe('forwardTo()', () => {
       }
     });
 
-    const parent = createMachine<
-      { child?: ActorRef<any> },
-      { type: 'EVENT'; value: number } | { type: 'SUCCESS' }
-    >({
+    const parent = createMachine<{
+      context: { child?: AnyActorRef };
+      events: { type: 'EVENT'; value: number } | { type: 'SUCCESS' };
+    }>({
       id: 'parent',
       initial: 'first',
       context: {
@@ -1928,7 +1931,7 @@ describe('forwardTo()', () => {
   it('should not cause an infinite loop when forwarding to undefined', () => {
     const machine = createMachine({
       on: {
-        '*': { guard: () => true, actions: forwardTo(undefined as any) }
+        '*': { guard: () => true, actions: forwardTo(undefined) }
       }
     });
 
@@ -1941,7 +1944,7 @@ describe('forwardTo()', () => {
 });
 
 describe('log()', () => {
-  const logMachine = createMachine<{ count: number }>({
+  const logMachine = createMachine<{ context: { count: number } }>({
     id: 'log',
     initial: 'string',
     context: {
@@ -1991,7 +1994,7 @@ describe('choose', () => {
       answer?: number;
     }
 
-    const machine = createMachine<Ctx>({
+    const machine = createMachine<{ context: Ctx }>({
       context: {},
       initial: 'foo',
       states: {
@@ -2015,7 +2018,7 @@ describe('choose', () => {
       answer?: number;
     }
 
-    const machine = createMachine<Ctx>({
+    const machine = createMachine<{ context: Ctx }>({
       context: {},
       initial: 'foo',
       states: {
@@ -2042,7 +2045,7 @@ describe('choose', () => {
       shouldNotAppear?: boolean;
     }
 
-    const machine = createMachine<Ctx>({
+    const machine = createMachine<{ context: Ctx }>({
       context: {},
       initial: 'foo',
       states: {
@@ -2069,7 +2072,7 @@ describe('choose', () => {
       shouldNotAppear?: boolean;
     }
 
-    const machine = createMachine<Ctx>({
+    const machine = createMachine<{ context: Ctx }>({
       context: {},
       initial: 'foo',
       states: {
@@ -2097,7 +2100,7 @@ describe('choose', () => {
       thirdLevel: boolean;
     }
 
-    const machine = createMachine<Ctx>({
+    const machine = createMachine<{ context: Ctx }>({
       context: {
         firstLevel: false,
         secondLevel: false,
@@ -2146,7 +2149,7 @@ describe('choose', () => {
       counter: number;
       answer?: number;
     }
-    const machine = createMachine<Ctx>({
+    const machine = createMachine<{ context: Ctx }>({
       context: {
         counter: 101
       },
@@ -2177,7 +2180,7 @@ describe('choose', () => {
       counter: number;
     }
 
-    const machine = createMachine<Ctx, Events>({
+    const machine = createMachine<{ context: Ctx; events: Events }>({
       context: {},
       initial: 'foo',
       states: {
@@ -2185,10 +2188,10 @@ describe('choose', () => {
           on: {
             NEXT: {
               target: 'bar',
-              actions: choose<Ctx, Events>([
+              actions: choose([
                 {
                   guard: (_, event) => event.counter > 100,
-                  actions: assign<Ctx, Events>({ answer: 42 })
+                  actions: assign({ answer: 42 })
                 }
               ])
             }
@@ -2205,7 +2208,7 @@ describe('choose', () => {
 
   it('should provide stateGuard.state to a condition expression', () => {
     type Ctx = { counter: number; answer?: number };
-    const machine = createMachine<Ctx>({
+    const machine = createMachine<{ context: Ctx }>({
       context: {
         counter: 101
       },
@@ -2244,7 +2247,7 @@ describe('choose', () => {
       answer?: number;
     }
 
-    const machine = createMachine<Ctx>(
+    const machine = createMachine<{ context: Ctx }>(
       {
         context: {},
         initial: 'foo',
@@ -2274,7 +2277,7 @@ describe('choose', () => {
       answer?: number;
     }
 
-    const machine = createMachine<Ctx>(
+    const machine = createMachine<{ context: Ctx }>(
       {
         context: {},
         initial: 'foo',
@@ -2311,7 +2314,7 @@ describe('sendParent', () => {
       type: 'CHILD';
     }
 
-    const child = createMachine<ChildContext, ChildEvent>({
+    const child = createMachine<{ context: ChildContext; events: ChildEvent }>({
       id: 'child',
       initial: 'start',
       states: {
@@ -2328,7 +2331,9 @@ describe('sendParent', () => {
 
 describe('sendTo', () => {
   it('should be able to send an event to an actor', (done) => {
-    const childMachine = createMachine<any, { type: 'EVENT' }>({
+    const childMachine = createMachine<{
+      events: { type: 'EVENT' };
+    }>({
       initial: 'waiting',
       states: {
         waiting: {
@@ -2353,7 +2358,9 @@ describe('sendTo', () => {
   });
 
   it('should be able to send an event from expression to an actor', (done) => {
-    const childMachine = createMachine<any, { type: 'EVENT'; count: number }>({
+    const childMachine = createMachine<{
+      events: { type: 'EVENT'; count: number };
+    }>({
       initial: 'waiting',
       states: {
         waiting: {
@@ -2383,7 +2390,9 @@ describe('sendTo', () => {
   });
 
   it('should report a type error for an invalid event', () => {
-    const childMachine = createMachine<any, { type: 'EVENT' }>({
+    const childMachine = createMachine<{
+      events: { type: 'EVENT' };
+    }>({
       initial: 'waiting',
       states: {
         waiting: {
@@ -2395,7 +2404,9 @@ describe('sendTo', () => {
     });
 
     createMachine<{
-      child: ActorRefFrom<typeof childMachine>;
+      context: {
+        child: ActorRefFrom<typeof childMachine>;
+      };
     }>({
       context: ({ spawn }) => ({
         child: spawn(childMachine)
@@ -2473,7 +2484,7 @@ describe('assign action order', () => {
   it('should preserve action order', () => {
     const captured: number[] = [];
 
-    const machine = createMachine<{ count: number }>({
+    const machine = createMachine<{ context: { count: number } }>({
       context: { count: 0 },
       entry: [
         (ctx) => captured.push(ctx.count), // 0
@@ -2496,16 +2507,16 @@ describe('assign action order', () => {
       count: number;
     }
 
-    const machine = createMachine<CountCtx>(
+    const machine = createMachine<{ context: CountCtx }>(
       {
         context: { count: 0 },
         entry: [
           (ctx) => captured.push(ctx.count), // 0
           pure(() => {
             return [
-              assign<CountCtx>({ count: (ctx) => ctx.count + 1 }),
+              assign({ count: (ctx) => ctx.count + 1 }),
               { type: 'capture' }, // 1
-              assign<CountCtx>({ count: (ctx) => ctx.count + 1 })
+              assign({ count: (ctx) => ctx.count + 1 })
             ];
           }),
           (ctx) => captured.push(ctx.count) // 2
@@ -2526,7 +2537,7 @@ describe('assign action order', () => {
   it('should capture correct context values on subsequent transitions', () => {
     let captured: number[] = [];
 
-    const machine = createMachine<{ counter: number }>({
+    const machine = createMachine<{ context: { counter: number } }>({
       context: {
         counter: 0
       },
@@ -2551,10 +2562,10 @@ describe('assign action order', () => {
 
 describe('types', () => {
   it('assign actions should be inferred correctly', () => {
-    createMachine<
-      { count: number; text: string },
-      { type: 'inc'; value: number } | { type: 'say'; value: string }
-    >({
+    createMachine<{
+      context: { count: number; text: string };
+      events: { type: 'inc'; value: number } | { type: 'say'; value: string };
+    }>({
       context: {
         count: 0,
         text: 'hello'
@@ -2597,10 +2608,10 @@ describe('types', () => {
   });
 
   it('choose actions should be inferred correctly', () => {
-    createMachine<
-      { count: number; text: string },
-      { type: 'inc'; value: number } | { type: 'say'; value: string }
-    >({
+    createMachine<{
+      context: { count: number; text: string };
+      events: { type: 'inc'; value: number } | { type: 'say'; value: string };
+    }>({
       context: {
         count: 0,
         text: 'hello'

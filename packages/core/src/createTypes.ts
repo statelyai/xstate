@@ -22,7 +22,7 @@ type WithDefaultConstraint<
   TConstraint = TDefault
 > = unknown extends T ? TDefault : T extends TConstraint ? T : never;
 
-export type CreateMachineTypes<T extends PartialMachineTypes> = {
+export type MachineTypes<T extends PartialMachineTypes> = {
   input: WithDefaultConstraint<T['input'], undefined, MachineContext>;
   context: WithDefaultConstraint<T['context'], MachineContext>;
   events:
@@ -38,6 +38,6 @@ export type CreateMachineTypes<T extends PartialMachineTypes> = {
 
 export function createTypes<T extends PartialMachineTypes>(
   types: T
-): CreateMachineTypes<T> {
+): MachineTypes<T> {
   return types as any;
 }

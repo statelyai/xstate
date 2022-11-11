@@ -10,7 +10,7 @@ import {
   MarkAllImplementationsAsProvided,
   AreAllImplementationsAssumedToBeProvided
 } from './typegenTypes';
-import { CreateMachineTypes } from './createTypes';
+import { MachineTypes } from './createTypes';
 
 export type AnyFunction = (...args: any[]) => any;
 
@@ -729,7 +729,7 @@ export interface StateNodeConfig<
 }
 
 export interface StateNodeConfig2<
-  TTypes extends CreateMachineTypes<any>,
+  TTypes extends MachineTypes<any>,
   TContext extends MachineContext = TTypes['context'],
   TEvent extends EventObject = TTypes['events'],
   TAction extends BaseActionObject = BaseActionObject
@@ -1142,12 +1142,12 @@ export type MachineImplementations<
 
 type InitialContext<
   TContext extends MachineContext,
-  TTypes extends CreateMachineTypes<any>
+  TTypes extends MachineTypes<any>
 > = TContext | ContextFactory<TContext, TTypes>;
 
 export type ContextFactory<
   TContext extends MachineContext,
-  TTypes extends CreateMachineTypes<any>
+  TTypes extends MachineTypes<any>
 > = (stuff: { spawn: Spawner; input: TTypes['input'] }) => TContext;
 
 export interface MachineConfig<
@@ -1156,7 +1156,7 @@ export interface MachineConfig<
   TAction extends BaseActionObject = BaseActionObject,
   TActorMap extends ActorMap = ActorMap,
   TTypesMeta = TypegenDisabled,
-  TTypes extends CreateMachineTypes<any> = CreateMachineTypes<any>
+  TTypes extends MachineTypes<any> = MachineTypes<any>
 > extends StateNodeConfig<NoInfer<TContext>, NoInfer<TEvent>, TAction> {
   /**
    * The initial context (extended state)
@@ -1180,7 +1180,7 @@ export type MachineConfig2<
   TAction extends BaseActionObject = BaseActionObject,
   TActorMap extends ActorMap = ActorMap,
   TTypesMeta = TypegenDisabled,
-  TTypes extends CreateMachineTypes<any> = CreateMachineTypes<any>
+  TTypes extends MachineTypes<any> = MachineTypes<any>
 > = {
   /**
    * The initial context (extended state)
@@ -1574,7 +1574,9 @@ export interface DynamicPureActionObject<
     get: (
       context: TContext,
       event: TEvent
-    ) => SingleOrArray<BaseActionObject> | undefined;
+    ) =>
+      | SingleOrArray<BaseAction<TContext, TEvent, BaseActionObject>>
+      | undefined;
   };
 }
 

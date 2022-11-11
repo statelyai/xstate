@@ -9,7 +9,7 @@ import {
 } from '.';
 import { actionTypes, createInitEvent } from './actions';
 import { STATE_DELIMITER } from './constants';
-import { CreateMachineTypes } from './createTypes';
+import { MachineTypes, PartialMachineTypes } from './createTypes';
 import { execAction } from './exec';
 import { createSpawner } from './spawn';
 import { isStateConfig, State } from './State';
@@ -89,7 +89,7 @@ export class StateMachine<
     TAction,
     TActorMap
   >,
-  TTypes extends CreateMachineTypes<any> = CreateMachineTypes<any>
+  TTypes extends MachineTypes<any> = MachineTypes<any>
 > {
   private _contextFactory: (stuff: {
     spawn: Spawner;
@@ -465,7 +465,10 @@ export class StateMachine<
   __TResolvedTypesMeta!: TResolvedTypesMeta;
 }
 
-export function createMachine2<TT extends CreateMachineTypes<any>>(
+export function createMachine2<
+  TTypes extends PartialMachineTypes,
+  TT extends MachineTypes<TTypes> = MachineTypes<TTypes>
+>(
   config: MachineConfig2<
     TT['context'],
     TT['events'],
@@ -473,6 +476,11 @@ export function createMachine2<TT extends CreateMachineTypes<any>>(
     TT['actors'],
     any,
     TT
+  >,
+  implementations?: InternalMachineImplementations<
+    TT['context'],
+    TT['events'],
+    any
   >
 ): StateMachine<
   TT['context'],
@@ -482,7 +490,7 @@ export function createMachine2<TT extends CreateMachineTypes<any>>(
   any,
   TT
 > {
-  return new StateMachine(config) as any;
+  return new StateMachine(config, implementations as any) as any;
 }
 
 export function createMachine<

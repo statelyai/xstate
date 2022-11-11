@@ -18,7 +18,7 @@ import { raise } from './actions/raise';
 import { send } from './actions/send';
 import { stop } from './actions/stop';
 import { interpret, Interpreter, InterpreterStatus } from './interpreter';
-import { createMachine } from './StateMachine';
+import { createMachine, createMachine2 } from './StateMachine';
 import { mapState } from './mapState';
 import { State } from './State';
 import { StateNode } from './StateNode';
@@ -50,7 +50,8 @@ export {
   Interpreter,
   InterpreterStatus,
   doneInvoke,
-  createMachine
+  createMachine,
+  createMachine2
 };
 
 const actions = {
