@@ -33,6 +33,7 @@ type DoneInvokeEvents<T extends ActorMap | undefined> = T extends ActorMap
               data: T[K]['data'];
             }
           | { type: `error.invoke.${K & string}`; data: unknown }
+          | { type: `error.platform.${K & string}`; data: unknown } // TODO: deprecate?
           | { type: `xstate.snapshot.${K & string}`; data: T[K]['snapshot'] };
       }
     >

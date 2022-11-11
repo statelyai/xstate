@@ -467,9 +467,6 @@ export class StateMachine<
 
 export function createMachine2<
   TTypes extends PartialMachineTypes,
-  // TT extends MachineTypes<TTypes> = IsAny<TTypes> extends true
-  //   ? MachineTypes<{}>
-  //   : MachineTypes<TTypes>
   TT extends MachineTypes<TTypes> = MachineTypes<TTypes>
 >(
   config: MachineConfig2<
@@ -479,7 +476,7 @@ export function createMachine2<
     TT['actors'],
     any,
     TT
-  >,
+  > & { schema?: TTypes },
   implementations?: InternalMachineImplementations<
     TT['context'],
     TT['events'],
