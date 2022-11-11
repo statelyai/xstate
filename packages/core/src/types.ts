@@ -272,6 +272,13 @@ export interface GuardDefinition<
   params: { [key: string]: any };
 }
 
+export interface BaseGuardDefinition {
+  type: string;
+  children?: Array<BaseGuardDefinition>;
+  predicate?: any;
+  params: { [key: string]: any };
+}
+
 export interface BooleanGuardObject<
   TContext extends MachineContext,
   TEvent extends EventObject
@@ -1167,14 +1174,14 @@ export interface MachineConfig<
   tsTypes?: TTypesMeta;
 }
 
-export interface MachineConfig2<
-  TTypes extends CreateMachineTypes<any> = CreateMachineTypes<any>,
-  TContext extends MachineContext = TTypes['context'],
-  TEvent extends EventObject = TTypes['events'],
-  // TODO: add ttypes for these
+export type MachineConfig2<
+  TContext extends MachineContext,
+  TEvent extends EventObject,
   TAction extends BaseActionObject = BaseActionObject,
-  TActorMap extends ActorMap = ActorMap
-> extends StateNodeConfig<NoInfer<TContext>, NoInfer<TEvent>, TAction> {
+  TActorMap extends ActorMap = ActorMap,
+  TTypesMeta = TypegenDisabled,
+  TTypes extends CreateMachineTypes<any> = CreateMachineTypes<any>
+> = {
   /**
    * The initial context (extended state)
    */
@@ -1188,7 +1195,35 @@ export interface MachineConfig2<
    */
   scxml?: boolean;
   schema?: MachineSchema<TContext, TEvent, TActorMap>;
-}
+  tsTypes?: TTypesMeta;
+  entry?: BaseActions<
+    TContext,
+    Extract<TEvent, { type: 'xstate.init' }>,
+    TAction
+  >;
+  initial?:
+    | InitialTransitionConfig<
+        TContext,
+        Extract<TEvent, { type: 'xstate.init' }>
+      >
+    | SingleOrArray<string>
+    | undefined;
+  type?: 'compound' | 'parallel' | 'atomic';
+} & Pick<
+  StateNodeConfig<NoInfer<TContext>, NoInfer<TEvent>, TAction>,
+  | 'states'
+  | 'invoke'
+  | 'on'
+  | 'exit'
+  | 'onDone'
+  | 'after'
+  | 'always'
+  | 'meta'
+  | 'data'
+  | 'id'
+  | 'tags'
+  | 'description'
+>;
 
 export type ActorMap = Record<string, { data: any }>;
 

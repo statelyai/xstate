@@ -3,6 +3,7 @@ import {
   AnyEventObject,
   AnyStateMachine,
   InvokeActionObject,
+  MachineConfig2,
   Spawner,
   TransitionDefinition
 } from '.';
@@ -102,7 +103,7 @@ export class StateMachine<
     // TODO: merge with this.options.context
     const context = this._contextFactory({
       spawn: createSpawner(this, null as any, null as any, actions), // TODO: fix types
-      input: this.options.input ?? {}
+      input: this.options.input
     });
 
     return [context, actions];
@@ -465,15 +466,22 @@ export class StateMachine<
 }
 
 export function createMachine2<TT extends CreateMachineTypes<any>>(
-  config: MachineConfig<
+  config: MachineConfig2<
     TT['context'],
     TT['events'],
-    BaseActionObject,
-    any,
+    TT['actions'],
+    TT['actors'],
     any,
     TT
   >
-): StateMachine<TT['context'], TT['events'], BaseActionObject, any, any, TT> {
+): StateMachine<
+  TT['context'],
+  TT['events'],
+  TT['actions'],
+  TT['actors'],
+  any,
+  TT
+> {
   return new StateMachine(config) as any;
 }
 

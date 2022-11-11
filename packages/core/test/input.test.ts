@@ -23,7 +23,9 @@ describe('machine.withInput()', () => {
     const initialState = inputMachine.getInitialState();
 
     expect(initialState.context.count).toEqual(42);
-    expect(machine.getInitialState().context.count).toBeUndefined();
+    expect(() => machine.getInitialState().context.count).toThrowError(
+      /Cannot read properties of undefined/
+    );
 
     interpret(machine.withInput({ startCount: 42 })).start();
   });
@@ -41,5 +43,21 @@ describe('machine.withInput()', () => {
     });
 
     interpret(machine.withInput({ greeting: 'hello' })).start();
+  });
+
+  it('should throw if input is expected but not provided', () => {
+    const t = createTypes({
+      input: {} as { greeting: string }
+    });
+
+    const machine = createMachine2<typeof t>({
+      context: ({ input }) => ({
+        message: `Hello, ${input.greeting}`
+      })
+    });
+
+    expect(() => {
+      machine.getInitialState();
+    }).toThrowError(/Cannot read properties of undefined/);
   });
 });
