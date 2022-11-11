@@ -14,7 +14,6 @@ export interface PartialMachineTypes {
   // TODO: should this be a union instead?
   actors?: ActorMap;
   guards?: BaseGuardDefinition;
-  foo?: any;
 }
 
 type WithDefaultConstraint<
