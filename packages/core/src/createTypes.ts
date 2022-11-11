@@ -3,6 +3,7 @@ import type {
   BaseActionObject,
   BaseGuardDefinition,
   EventObject,
+  IsNever,
   MachineContext
 } from './types';
 
@@ -22,15 +23,57 @@ type WithDefaultConstraint<
   TConstraint = TDefault
 > = unknown extends T ? TDefault : T extends TConstraint ? T : never;
 
+type ValuesFrom<T> = T extends Record<infer _, infer V> ? V : never;
+type DoneInvokeEvents<T extends ActorMap | undefined> = T extends ActorMap
+  ? ValuesFrom<
+      {
+        [K in keyof T]:
+          | {
+              type: `done.invoke.${K & string}`;
+              data: T[K]['data'];
+            }
+          | { type: `error.invoke.${K & string}`; data: unknown }
+          | { type: `xstate.snapshot.${K & string}`; data: T[K]['snapshot'] };
+      }
+    >
+  : never;
+
+type GetAllEvents<T extends PartialMachineTypes> =
+  | WithDefaultConstraint<T['events'], never, EventObject>
+  | (unknown extends T['input']
+      ? never
+      : {
+          type: 'xstate.init';
+          input: T['input'];
+        })
+  | DoneInvokeEvents<T['actors']>;
+
+type DefaultIfNever<T, TDefault> = IsNever<T> extends true ? TDefault : T;
+
+type GetEvents<T extends PartialMachineTypes> = DefaultIfNever<
+  GetAllEvents<T>,
+  EventObject
+>;
+
+// type TestEventNothing = GetEvents<{}>;
+// type TestEventInput = GetEvents<{ input: { foo: string } }>;
+// type TestEventActors = GetEvents<{
+//   actors: { foo: { data: string }; bar: { data: number } };
+// }>;
+// type TestEventInputActors = GetEvents<{
+//   input: { greeting: string };
+//   actors: { foo: { data: string }; bar: { data: number } };
+// }>;
+// type TestEventEverything = GetEvents<{
+//   input: { greeting: string };
+//   events: { type: 'a' } | { type: 'b'; params: any[] };
+//   actors: { foo: { data: string }; bar: { data: number } };
+// }>;
+
 export type MachineTypes<T extends PartialMachineTypes> = {
   input: WithDefaultConstraint<T['input'], undefined, MachineContext>;
   context: WithDefaultConstraint<T['context'], MachineContext>;
-  events:
-    | WithDefaultConstraint<T['events'], EventObject>
-    | {
-        type: 'xstate.init';
-        input: T['input'];
-      };
+  events: GetEvents<T>;
   actions: WithDefaultConstraint<T['actions'], BaseActionObject>;
   actors: WithDefaultConstraint<T['actors'], ActorMap>;
   guards: WithDefaultConstraint<T['guards'], BaseGuardDefinition>;

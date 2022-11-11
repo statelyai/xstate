@@ -1225,7 +1225,7 @@ export type MachineConfig2<
   | 'description'
 >;
 
-export type ActorMap = Record<string, { data: any }>;
+export type ActorMap = Record<string, { data?: any; snapshot?: any }>;
 
 export interface MachineSchema<
   TContext extends MachineContext,
