@@ -1,7 +1,7 @@
 import type { StateNode } from './StateNode';
 import type { State } from './State';
 import type { Clock, Interpreter } from './interpreter';
-import type { StateMachine } from './StateMachine';
+import type { StateMachine, StateMachine2 } from './StateMachine';
 import type { LifecycleSignal } from './actors';
 import {
   TypegenDisabled,
@@ -591,7 +591,11 @@ export interface InvokeConfig<
    *
    * Data should be mapped to match the child machine's context shape.
    */
-  data?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
+  // TODO: deprecate?
+  // data?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
+  data?:
+    | Mapper<TContext, TEvent, any>
+    | Record<string, (context: TContext, event: TEvent) => any>;
   /**
    * The transition to take upon the invoked child machine reaching its final top-level state.
    */
@@ -873,7 +877,9 @@ export type AnyStateNodeDefinition = StateNodeDefinition<any, any>;
 
 export type AnyState = State<any, any, any>;
 
-export type AnyStateMachine = StateMachine<any, any, any, any, any>;
+export type AnyStateMachine =
+  | StateMachine<any, any, any, any, any>
+  | StateMachine2<any>;
 
 export type AnyStateConfig = StateConfig<any, AnyEventObject>;
 
@@ -2000,6 +2006,14 @@ export type InterpreterFrom<
         TEvent,
         State<TContext, TEvent, TResolvedTypesMeta>,
         State<TContext, TEvent, TResolvedTypesMeta>
+      >
+    >
+  : ReturnTypeOrValue<T> extends StateMachine2<infer TTypes>
+  ? Interpreter<
+      Behavior<
+        TTypes['events'],
+        State<TTypes['context'], TTypes['events'], any>,
+        State<TTypes['context'], TTypes['events'], any>
       >
     >
   : never;

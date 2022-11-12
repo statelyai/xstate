@@ -1,4 +1,4 @@
-import { createMachine, assign } from '../src/index';
+import { createMachine2 as createMachine, assign } from '../src/index';
 import * as machineSchema from '../src/machine.schema.json';
 
 import Ajv from 'ajv';
@@ -12,7 +12,7 @@ describe('json', () => {
       [key: string]: any;
     }
 
-    const machine = createMachine<Context>({
+    const machine = createMachine<{ context: Context }>({
       initial: 'foo',
       version: '1.0.0',
       context: {

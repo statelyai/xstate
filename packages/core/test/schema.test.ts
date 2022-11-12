@@ -1,4 +1,4 @@
-import { createMachine, createSchema } from '../src';
+import { createMachine2 as createMachine, createSchema } from '../src';
 import { JSONSchema6 } from 'json-schema';
 
 export interface JSONSchemaObject<TK extends string> extends JSONSchema6 {

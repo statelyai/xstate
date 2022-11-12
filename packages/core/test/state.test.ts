@@ -1,4 +1,4 @@
-import { createMachine, interpret } from '../src/index';
+import { createMachine2 as createMachine, interpret } from '../src/index';
 import { assign } from '../src/actions/assign';
 import { toSCXMLEvent } from '../src/utils';
 import { fromCallback } from '../src/actors';
@@ -20,7 +20,7 @@ type Events =
   | { type: 'TO_TWO_MAYBE' }
   | { type: 'TO_FINAL' };
 
-const exampleMachine = createMachine<any, Events>({
+const exampleMachine = createMachine<{ events: Events }>({
   initial: 'one',
   states: {
     one: {
@@ -186,7 +186,7 @@ describe('State', () => {
     });
 
     it('should report any internal transition assignments as changed', () => {
-      const assignMachine = createMachine<{ count: number }>({
+      const assignMachine = createMachine<{ context: { count: number } }>({
         id: 'assign',
         initial: 'same',
         context: {
@@ -221,7 +221,10 @@ describe('State', () => {
         | {
             type: 'SAVE';
           };
-      const toggleMachine = createMachine<Ctx, ToggleEvents>({
+      const toggleMachine = createMachine<{
+        context: Ctx;
+        events: ToggleEvents;
+      }>({
         id: 'input',
         context: {
           value: ''

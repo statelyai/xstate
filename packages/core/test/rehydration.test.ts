@@ -1,4 +1,4 @@
-import { createMachine, interpret } from '../src';
+import { createMachine2 as createMachine, interpret } from '../src';
 
 describe('rehydration', () => {
   describe('using persisted state', () => {

@@ -1,7 +1,9 @@
 import {
+  ActionFunction,
   ActorContext,
   AnyEventObject,
   AnyStateMachine,
+  GuardConfig,
   InvokeActionObject,
   MachineConfig2,
   Spawner,
@@ -244,7 +246,7 @@ export class StateMachine<
       ...state,
       value: resolveStateValue(this.root, state.value),
       configuration
-    });
+    } as StateConfig<TContext, TEvent>);
   }
 
   public resolveStateValue(
@@ -463,6 +465,7 @@ export class StateMachine<
   __TActorMap!: TActorMap;
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
   __TResolvedTypesMeta!: TResolvedTypesMeta;
+  __TTypes!: TTypes;
 }
 
 export function createMachine2<
@@ -482,14 +485,7 @@ export function createMachine2<
     TT['events'],
     any
   >
-): StateMachine<
-  TT['context'],
-  TT['events'],
-  TT['actions'],
-  TT['actors'],
-  any,
-  TT
-> {
+): StateMachine2<TT> {
   return new StateMachine(config, implementations as any) as any;
 }
 
@@ -522,4 +518,31 @@ export function createMachine<
     config,
     implementations as any
   );
+}
+
+export class StateMachine2<
+  TTypes extends MachineTypes<any>
+> extends StateMachine<
+  TTypes['context'],
+  TTypes['events'],
+  TTypes['actions'],
+  TTypes['actors'],
+  any,
+  TTypes
+> {
+  // constructor(...args) {
+  //   super(...args);
+  // }
+  public provide(
+    impls: Partial<{
+      actions: Record<
+        string,
+        ActionFunction<TTypes['context'], TTypes['events']>
+      >;
+      guards: Record<string, GuardConfig<TTypes['context'], TTypes['events']>>;
+      context: MaybeLazy<Partial<TTypes['context']>>;
+    }>
+  ) {
+    return super.provide(impls as any);
+  }
 }

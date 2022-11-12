@@ -497,11 +497,7 @@ export class Interpreter<
  * @param options Interpreter options
  */
 export function interpret<TMachine extends AnyStateMachine>(
-  machine: AreAllImplementationsAssumedToBeProvided<
-    TMachine['__TResolvedTypesMeta']
-  > extends true
-    ? TMachine
-    : 'Some implementations missing',
+  machine: TMachine,
   options?: InterpreterOptions
 ): InterpreterFrom<TMachine>;
 export function interpret<TBehavior extends Behavior<any, any>>(

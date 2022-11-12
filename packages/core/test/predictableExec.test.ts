@@ -1,4 +1,10 @@
-import { createMachine, interpret, assign, AnyInterpreter } from '../src';
+import {
+  createMachine2 as createMachine,
+  interpret,
+  assign,
+  AnyInterpreter,
+  AnyActorRef
+} from '../src';
 import { raise, send, sendParent, stop } from '../src/actions';
 import { fromCallback } from '../src/actors';
 
@@ -255,7 +261,7 @@ describe('predictableExec', () => {
     const actual: string[] = [];
     let invokeCounter = 0;
 
-    const machine = createMachine({
+    const machine = createMachine<{ context: { actorRef: AnyActorRef } }>({
       initial: 'active',
       context: ({ spawn }) => {
         const localId = ++invokeCounter;
@@ -317,7 +323,7 @@ describe('predictableExec', () => {
     const actual: string[] = [];
     let invokeCounter = 0;
 
-    const machine = createMachine({
+    const machine = createMachine<{ context: { actorRef: AnyActorRef } }>({
       initial: 'active',
       context: ({ spawn }) => {
         const localId = ++invokeCounter;
@@ -377,7 +383,7 @@ describe('predictableExec', () => {
     const actual: string[] = [];
     let invokeCounter = 0;
 
-    const machine = createMachine({
+    const machine = createMachine<{ context: { actorRef: AnyActorRef } }>({
       initial: 'active',
       context: ({ spawn }) => {
         const localId = ++invokeCounter;
@@ -437,7 +443,7 @@ describe('predictableExec', () => {
     const actual: string[] = [];
     let invokeCounter = 0;
 
-    const machine = createMachine({
+    const machine = createMachine<{ context: { actorRef: AnyActorRef } }>({
       initial: 'active',
       context: ({ spawn }) => {
         const localId = ++invokeCounter;

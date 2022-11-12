@@ -1,11 +1,15 @@
-import { AnyState, createMachine, interpret, State } from '../src/index';
+import {
+  AnyState,
+  createMachine2 as createMachine,
+  interpret,
+  State
+} from '../src/index';
 import { raise } from '../src/actions/raise';
 import { assign } from '../src/actions/assign';
 import { stateIn } from '../src/guards';
 
 const greetingContext = { hour: 10 };
-const greetingMachine = createMachine<typeof greetingContext>({
-  key: 'greeting',
+const greetingMachine = createMachine<{ context: typeof greetingContext }>({
   id: 'greeting',
   initial: 'pending',
   context: greetingContext,
@@ -28,7 +32,9 @@ const greetingMachine = createMachine<typeof greetingContext>({
 });
 
 describe('transient states (eventless transitions)', () => {
-  const updateMachine = createMachine<{ data: boolean; status?: string }>({
+  const updateMachine = createMachine<{
+    context: { data: boolean; status?: string };
+  }>({
     initial: 'G',
     states: {
       G: {
@@ -545,7 +551,10 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should work with transient transition on root', (done) => {
-    const machine = createMachine<{ count: number }, any>({
+    const machine = createMachine<{
+      context: { count: number };
+      events: { type: 'ADD' };
+    }>({
       id: 'machine',
       initial: 'first',
       context: { count: 0 },
@@ -581,7 +590,10 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should work with transient transition on root (with `always`)', (done) => {
-    const machine = createMachine<{ count: number }, any>({
+    const machine = createMachine<{
+      context: { count: number };
+      events: { type: 'ADD' };
+    }>({
       id: 'machine',
       initial: 'first',
       context: { count: 0 },
@@ -640,7 +652,7 @@ describe('transient states (eventless transitions)', () => {
       }
     });
 
-    const machine = createMachine({
+    const machine = createMachine<{ context: { customDuration: number } }>({
       initial: 'active',
       context: {
         customDuration: 3000
@@ -650,7 +662,7 @@ describe('transient states (eventless transitions)', () => {
           invoke: {
             src: timerMachine,
             data: {
-              duration: (context: any) => context.customDuration
+              duration: (context) => context.customDuration
             }
           }
         }
@@ -751,32 +763,34 @@ describe('transient states (eventless transitions)', () => {
   it('events that trigger eventless transitions should be preserved in actions', () => {
     expect.assertions(3);
 
-    const machine = createMachine({
-      initial: 'a',
-      states: {
-        a: {
-          on: {
-            EVENT: 'b'
-          }
-        },
-        b: {
-          always: {
-            target: 'c',
-            actions: (_, event) => {
+    const machine = createMachine<{ events: { type: 'EVENT'; value: number } }>(
+      {
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              EVENT: 'b'
+            }
+          },
+          b: {
+            always: {
+              target: 'c',
+              actions: (_, event) => {
+                expect(event).toEqual({ type: 'EVENT', value: 42 });
+              }
+            },
+            exit: (_, event) => {
               expect(event).toEqual({ type: 'EVENT', value: 42 });
             }
           },
-          exit: (_, event) => {
-            expect(event).toEqual({ type: 'EVENT', value: 42 });
-          }
-        },
-        c: {
-          entry: (_, event) => {
-            expect(event).toEqual({ type: 'EVENT', value: 42 });
+          c: {
+            entry: (_, event) => {
+              expect(event).toEqual({ type: 'EVENT', value: 42 });
+            }
           }
         }
       }
-    });
+    );
 
     const service = interpret(machine).start();
     service.send({ type: 'EVENT', value: 42 });
