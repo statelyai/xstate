@@ -1,4 +1,9 @@
-import { interpret, State, createMachine, actions } from '../src';
+import {
+  interpret,
+  State,
+  createMachine2 as createMachine,
+  actions
+} from '../src';
 import { and, not, or } from '../src/guards';
 
 describe('guard conditions', () => {
@@ -14,9 +19,12 @@ describe('guard conditions', () => {
     | { type: 'TIMER_COND_OBJ' }
     | { type: 'BAD_COND' };
 
-  const lightMachine = createMachine<LightMachineCtx, LightMachineEvents>(
+  const lightMachine = createMachine<{
+    context: LightMachineCtx;
+    events: LightMachineEvents;
+  }>(
     {
-      key: 'light',
+      id: 'light',
       initial: 'green',
       states: {
         green: {
@@ -185,7 +193,7 @@ describe('guard conditions', () => {
 
 describe('guard conditions', () => {
   const machine = createMachine({
-    key: 'microsteps',
+    id: 'microsteps',
     type: 'parallel',
     states: {
       A: {
@@ -318,7 +326,7 @@ describe('custom guards', () => {
     type: 'EVENT';
     value: number;
   }
-  const machine = createMachine<Ctx, Events>(
+  const machine = createMachine<{ context: Ctx; events: Events }>(
     {
       id: 'custom',
       initial: 'inactive',

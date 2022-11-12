@@ -595,7 +595,7 @@ export interface InvokeConfig<
   // data?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
   data?:
     | Mapper<TContext, TEvent, any>
-    | Record<string, (context: TContext, event: TEvent) => any>;
+    | Record<string, any | ((context: TContext, event: TEvent) => any)>;
   /**
    * The transition to take upon the invoked child machine reaching its final top-level state.
    */

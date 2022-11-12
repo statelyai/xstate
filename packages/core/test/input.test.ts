@@ -1,6 +1,6 @@
 import { interpret } from '../src';
 import { createTypes } from '../src/createTypes';
-import { createMachine2 } from '../src/StateMachine';
+import { createMachine2 as createMachine } from '../src/StateMachine';
 
 describe('machine.withInput()', () => {
   it('should create a machine with input', () => {
@@ -10,7 +10,7 @@ describe('machine.withInput()', () => {
       context: {} as { count: number }
     });
 
-    const machine = createMachine2<typeof t>({
+    const machine = createMachine<typeof t>({
       context: ({ input }) => ({
         count: input.startCount
       }),
@@ -35,7 +35,7 @@ describe('machine.withInput()', () => {
       input: {} as { greeting: string }
     });
 
-    const machine = createMachine2<typeof t>({
+    const machine = createMachine<typeof t>({
       entry: (_, ev) => {
         expect(ev.input.greeting).toBe('hello');
         done();
@@ -50,7 +50,7 @@ describe('machine.withInput()', () => {
       input: {} as { greeting: string }
     });
 
-    const machine = createMachine2<typeof t>({
+    const machine = createMachine<typeof t>({
       context: ({ input }) => ({
         message: `Hello, ${input.greeting}`
       })
@@ -66,7 +66,7 @@ describe('machine.withInput()', () => {
       context: {} as { count: number }
     });
 
-    const machine = createMachine2<typeof t>({
+    const machine = createMachine<typeof t>({
       context: ({ input }) => {
         try {
           // @ts-expect-error
@@ -87,7 +87,7 @@ describe('machine.withInput()', () => {
       context: {} as { count: number }
     });
 
-    const machine = createMachine2<typeof t>({
+    const machine = createMachine<typeof t>({
       context: { count: 42 }
     });
 

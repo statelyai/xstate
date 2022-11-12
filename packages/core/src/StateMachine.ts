@@ -3,6 +3,7 @@ import {
   ActorContext,
   AnyEventObject,
   AnyStateMachine,
+  Behavior,
   GuardConfig,
   InvokeActionObject,
   MachineConfig2,
@@ -541,6 +542,7 @@ export class StateMachine2<
       >;
       guards: Record<string, GuardConfig<TTypes['context'], TTypes['events']>>;
       context: MaybeLazy<Partial<TTypes['context']>>;
+      actors: Record<string, Behavior<any, any, any>>;
     }>
   ) {
     return super.provide(impls as any);
