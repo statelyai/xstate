@@ -46,6 +46,22 @@ export type MetaObject = Record<string, any>;
 export type Lazy<T> = () => T;
 export type MaybeLazy<T> = T | Lazy<T>;
 
+export type Get<T, TProps, TDefault = undefined> = TProps extends any[]
+  ? _Get<T, TProps, TDefault>
+  : _Get<T, [TProps], TDefault>;
+type _Get<T, P, F> = P extends []
+  ? T extends undefined
+    ? F
+    : T
+  : P extends [infer K1, ...infer Kr]
+  ? K1 extends keyof T
+    ? _Get<T[K1], Kr, F>
+    : F
+  : never;
+export type Entries<T> = {
+  [K in keyof T]: [K, T[K]];
+}[keyof T][];
+
 /**
  * The full definition of an event, with a string `type`.
  */

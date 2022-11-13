@@ -398,48 +398,50 @@ describe('typegen types', () => {
     machine.initialState.hasTag('d');
   });
 
-  it('`withConfig` should require all missing implementations ', () => {
-    interface TypesMeta extends TypegenMeta {
-      missingImplementations: {
-        actions: 'myAction';
-        delays: 'myDelay';
-        guards: never;
-        actors: never;
-      };
-      eventsCausingActions: {
-        myAction: 'FOO';
-        myDelay: 'BAR';
-      };
-    }
+  // TODO: This test doesn't make sense because implementations can be partially provided
+  // and then eventually all satisfied, so `machine.provide({...})` should not be an error
+  // it('`withConfig` should require all missing implementations ', () => {
+  //   interface TypesMeta extends TypegenMeta {
+  //     missingImplementations: {
+  //       actions: 'myAction';
+  //       delays: 'myDelay';
+  //       guards: never;
+  //       actors: never;
+  //     };
+  //     eventsCausingActions: {
+  //       myAction: 'FOO';
+  //       myDelay: 'BAR';
+  //     };
+  //   }
 
-    const machine = createMachine({
-      tsTypes: {} as TypesMeta,
-      schema: {
-        events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
-      }
-    });
+  //   const machine = createMachine({
+  //     tsTypes: {} as TypesMeta,
+  //     schema: {
+  //       events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
+  //     }
+  //   });
 
-    // @ts-expect-error
-    machine.provide({});
-    machine.provide({
-      // @ts-expect-error
-      actions: {}
-    });
-    // @ts-expect-error
-    machine.provide({
-      actions: {
-        myAction: () => {}
-      }
-    });
-    machine.provide({
-      actions: {
-        myAction: () => {}
-      },
-      delays: {
-        myDelay: () => 42
-      }
-    });
-  });
+  //   // @ts-expect-error
+  //   machine.provide({});
+  //   machine.provide({
+  //     // @ts-expect-error
+  //     actions: {}
+  //   });
+  //   // @ts-expect-error
+  //   machine.provide({
+  //     actions: {
+  //       myAction: () => {}
+  //     }
+  //   });
+  //   machine.provide({
+  //     actions: {
+  //       myAction: () => {}
+  //     },
+  //     delays: {
+  //       myDelay: () => 42
+  //     }
+  //   });
+  // });
 
   it('should allow to create an actor out of a machine without any missing implementations', () => {
     interface TypesMeta extends TypegenMeta {
