@@ -15,6 +15,7 @@ export interface PartialMachineTypes {
   context?: MachineContext;
   events?: EventObject;
   actions?: BaseActionObject;
+  actors?: ActorMap;
   children?: ActorMap;
   guards?: BaseGuardDefinition;
 }
@@ -98,6 +99,7 @@ export type MachineTypes<T extends PartialMachineTypes> = {
   context: WithDefaultConstraint<T['context'], MachineContext>;
   events: GetEvents<T>;
   actions: WithDefaultConstraint<T['actions'], BaseActionObject>;
+  actors: WithDefaultConstraint<T['children'], ActorMap>;
   children: WithDefaultConstraint<T['children'], ActorMap>;
   guards: WithDefaultConstraint<T['guards'], BaseGuardDefinition>;
 };
