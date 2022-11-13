@@ -1,15 +1,17 @@
+import { StateMachine } from './StateMachine';
 import type {
   ActorMap,
   BaseActionObject,
   BaseGuardDefinition,
   EventObject,
+  Get,
   IsNever,
   MachineContext,
   Values
 } from './types';
 
 export interface PartialMachineTypes {
-  input?: Record<string, any>;
+  input?: {};
   context?: MachineContext;
   events?: EventObject;
   actions?: BaseActionObject;
@@ -105,3 +107,26 @@ export function createTypes<T extends PartialMachineTypes>(
 ): MachineTypes<T> {
   return types as any;
 }
+
+type CheckInput<
+  TT extends MachineTypes<any>,
+  TProvided,
+  TProvidedInput = Get<TProvided, 'input'>
+> = {} extends TT['input']
+  ? never
+  : TProvidedInput extends TT['input']
+  ? never
+  : 'Missing `input`';
+
+export type GetValidityErrors<T> = T extends StateMachine<
+  infer _TC,
+  infer _TE,
+  infer _TA,
+  infer _TAc,
+  infer _TR,
+  infer TT,
+  infer TProvided
+>
+  ? // TODO: more validation can be added here, like CheckActions, CheckGuards, etc.
+    CheckInput<TT, TProvided>
+  : never;

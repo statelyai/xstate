@@ -88,7 +88,8 @@ export class StateMachine<
     TAction,
     TActorMap
   >,
-  TTypes extends MachineTypes<any> = MachineTypes<any>
+  TTypes extends MachineTypes<any> = MachineTypes<any>,
+  TProvided = unknown
 > {
   private _contextFactory: (stuff: {
     spawn: Spawner;
@@ -183,10 +184,12 @@ export class StateMachine<
    *
    * @returns A new `StateMachine` instance with the provided implementations.
    */
-  public provide(
-    implementations: Partial<
+  public provide<
+    T extends Partial<
       MachineImplementationsSimplified<TContext, TEvent, TAction>
     >
+  >(
+    implementations: T
   ): StateMachine<
     TContext,
     TEvent,
@@ -194,7 +197,9 @@ export class StateMachine<
     TActorMap,
     AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
       ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
-      : TResolvedTypesMeta
+      : TResolvedTypesMeta,
+    TTypes,
+    TProvided & T
   > {
     const { actions, guards, actors, delays, input } = this.options;
 
@@ -442,11 +447,21 @@ export class StateMachine<
     return restoredState;
   }
 
-  public withInput(input: TTypes['input']): this {
+  public withInput(
+    input: TTypes['input']
+  ): StateMachine<
+    TContext,
+    TEvent,
+    TAction,
+    TActorMap,
+    TResolvedTypesMeta,
+    TTypes,
+    TProvided & { input: TTypes['input'] }
+  > {
     return new StateMachine(this.config, {
       ...this.options,
       input
-    }) as this;
+    });
   }
 
   /**@deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
@@ -460,25 +475,28 @@ export class StateMachine<
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
   __TResolvedTypesMeta!: TResolvedTypesMeta;
   __TTypes!: TTypes;
+  __TProvided!: TProvided;
 }
 
 export function createMachine2<
   TTypes extends PartialMachineTypes,
-  TT extends MachineTypes<TTypes> = MachineTypes<TTypes>
->(
-  config: MachineConfig2<TT> & { schema?: TTypes },
-  implementations?: InternalMachineImplementations<
+  TT extends MachineTypes<TTypes> = MachineTypes<TTypes>,
+  TProvided extends InternalMachineImplementations<
     TT['context'],
     TT['events'],
     any
-  >
+  > = InternalMachineImplementations<TT['context'], TT['events'], any>
+>(
+  config: MachineConfig2<TT> & { schema?: TTypes },
+  implementations?: TProvided
 ): StateMachine<
   TT['context'],
   TT['events'],
   TT['actions'],
   TT['children'],
   any,
-  TT
+  TT,
+  TProvided
 > {
   return new StateMachine(config, implementations as any) as any;
 }

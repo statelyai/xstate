@@ -27,6 +27,9 @@ describe('machine.withInput()', () => {
       /Cannot read properties of undefined/
     );
 
+    // @ts-expect-error ("Missing `input`")
+    interpret(machine);
+
     interpret(machine.withInput({ startCount: 42 })).start();
   });
 

@@ -1248,6 +1248,7 @@ describe('actors', () => {
             end: { type: 'final' }
           }
         });
+
         interpret(parent)
           .onTransition(() => {
             if (spawnCounter === 1) {
