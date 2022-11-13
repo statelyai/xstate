@@ -1195,12 +1195,12 @@ export interface MachineConfig<
 }
 
 export type MachineConfig2<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TAction extends BaseActionObject = BaseActionObject,
-  TActorMap extends ActorMap = ActorMap,
-  TTypesMeta = TypegenDisabled,
-  TTypes extends MachineTypes<any> = MachineTypes<any>
+  TTypes extends MachineTypes<any> = MachineTypes<any>,
+  TContext extends MachineContext = TTypes['context'],
+  TEvent extends EventObject = TTypes['events'],
+  TAction extends BaseActionObject = TTypes['actions'],
+  TActorMap extends ActorMap = TTypes['children'],
+  TTypesMeta = TypegenDisabled
 > = {
   /**
    * The initial context (extended state)

@@ -222,7 +222,7 @@ describe('spawning promises', () => {
   it('should be able to spawn a promise', (done) => {
     const promiseMachine = createMachine<{
       context: { promiseRef?: AnyActorRef };
-      actors: {
+      children: {
         'my-promise': { data: string };
       };
     }>({
@@ -271,8 +271,7 @@ describe('spawning promises', () => {
   it('should be able to spawn a referenced promise', (done) => {
     const promiseMachine = createMachine<{
       context: { promiseRef?: AnyActorRef };
-      // TODO: maybe we should distinguish between actors and children
-      actors: {
+      children: {
         'my-promise': { data: string };
       };
     }>(
@@ -373,7 +372,7 @@ describe('spawning observables', () => {
   it('should spawn an observable', (done) => {
     const observableMachine = createMachine<{
       context: { observableRef?: ActorRef<any, number | undefined> };
-      actors: {
+      children: {
         int: {
           snapshot: number;
         };
@@ -419,7 +418,7 @@ describe('spawning observables', () => {
   it('should spawn a referenced observable', (done) => {
     const observableMachine = createMachine<{
       context: { observableRef?: ActorRef<any, number | undefined> };
-      actors: {
+      children: {
         int: {
           snapshot: number;
         };
@@ -1302,7 +1301,7 @@ describe('actors', () => {
     it('should work with a promise behavior (fulfill)', (done) => {
       const countMachine = createMachine<{
         context: { count: ActorRefFrom<Promise<number>> | undefined };
-        actors: {
+        children: {
           test: { data: number };
         };
       }>({
@@ -1347,7 +1346,7 @@ describe('actors', () => {
       const errorMessage = 'An error occurred';
       const countMachine = createMachine<{
         context: { count: ActorRefFrom<Promise<number>> };
-        actors: {
+        children: {
           test: { data: any };
         };
       }>({

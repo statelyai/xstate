@@ -466,14 +466,7 @@ export function createMachine2<
   TTypes extends PartialMachineTypes,
   TT extends MachineTypes<TTypes> = MachineTypes<TTypes>
 >(
-  config: MachineConfig2<
-    TT['context'],
-    TT['events'],
-    TT['actions'],
-    TT['actors'],
-    any,
-    TT
-  > & { schema?: TTypes },
+  config: MachineConfig2<TT> & { schema?: TTypes },
   implementations?: InternalMachineImplementations<
     TT['context'],
     TT['events'],
@@ -483,7 +476,7 @@ export function createMachine2<
   TT['context'],
   TT['events'],
   TT['actions'],
-  TT['actors'],
+  TT['children'],
   any,
   TT
 > {

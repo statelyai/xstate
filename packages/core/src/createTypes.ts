@@ -4,7 +4,8 @@ import type {
   BaseGuardDefinition,
   EventObject,
   IsNever,
-  MachineContext
+  MachineContext,
+  Values
 } from './types';
 
 export interface PartialMachineTypes {
@@ -12,8 +13,7 @@ export interface PartialMachineTypes {
   context?: MachineContext;
   events?: EventObject;
   actions?: BaseActionObject;
-  // TODO: should this be a union instead?
-  actors?: ActorMap;
+  children?: ActorMap;
   guards?: BaseGuardDefinition;
 }
 
@@ -23,9 +23,8 @@ type WithDefaultConstraint<
   TConstraint = TDefault
 > = unknown extends T ? TDefault : T extends TConstraint ? T : never;
 
-type ValuesFrom<T> = T extends Record<infer _, infer V> ? V : never;
 type DoneInvokeEvents<T extends ActorMap | undefined> = T extends ActorMap
-  ? ValuesFrom<
+  ? Values<
       {
         [K in keyof T]:
           | {
@@ -47,7 +46,7 @@ type GetAllEvents<T extends PartialMachineTypes> =
           type: 'xstate.init';
           input: T['input'];
         })
-  | DoneInvokeEvents<T['actors']>;
+  | DoneInvokeEvents<T['children']>;
 
 type DefaultIfNever<T, TDefault> = IsNever<T> extends true ? TDefault : T;
 
@@ -80,16 +79,16 @@ type GetEvents<T extends PartialMachineTypes> = DefaultIfNever<
 // type TestEventNothing = GetEvents<{}>;
 // type TestEventInput = GetEvents<{ input: { foo: string } }>;
 // type TestEventActors = GetEvents<{
-//   actors: { foo: { data: string }; bar: { data: number } };
+//   children: { foo: { data: string }; bar: { data: number } };
 // }>;
 // type TestEventInputActors = GetEvents<{
 //   input: { greeting: string };
-//   actors: { foo: { data: string }; bar: { data: number } };
+//   children: { foo: { data: string }; bar: { data: number } };
 // }>;
 // type TestEventEverything = GetEvents<{
 //   input: { greeting: string };
 //   events: { type: 'a' } | { type: 'b'; params: any[] };
-//   actors: { foo: { data: string }; bar: { data: number } };
+//   children: { foo: { data: string }; bar: { data: number } };
 // }>;
 
 export type MachineTypes<T extends PartialMachineTypes> = {
@@ -97,7 +96,7 @@ export type MachineTypes<T extends PartialMachineTypes> = {
   context: WithDefaultConstraint<T['context'], MachineContext>;
   events: GetEvents<T>;
   actions: WithDefaultConstraint<T['actions'], BaseActionObject>;
-  actors: WithDefaultConstraint<T['actors'], ActorMap>;
+  children: WithDefaultConstraint<T['children'], ActorMap>;
   guards: WithDefaultConstraint<T['guards'], BaseGuardDefinition>;
 };
 
