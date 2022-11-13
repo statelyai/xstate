@@ -142,11 +142,12 @@ export function createMachine<
   TServiceMap,
   TTypesMeta
 > {
-  if (!IS_PRODUCTION && !config.predictableActionArguments && !warned) {
+  if (!IS_PRODUCTION && !('predictableActionArguments' in config) && !warned) {
     warned = true;
     console.warn(
       'It is highly recommended to set `predictableActionArguments` to `true` when using `createMachine`. https://xstate.js.org/docs/guides/actions.html'
     );
   }
+
   return new StateNode(config, options as any) as any;
 }

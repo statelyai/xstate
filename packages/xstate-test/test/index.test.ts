@@ -280,7 +280,9 @@ it('tests transitions', async () => {
 
   const model = createTestModel(machine);
 
-  const paths = model.getShortestPathsTo((state) => state.matches('second'));
+  const paths = model.getShortestPaths({
+    toState: (state) => state.matches('second')
+  });
 
   await paths[0].test({
     events: {
@@ -314,7 +316,9 @@ it('Event in event executor should contain payload from case', async () => {
     }
   });
 
-  const paths = model.getShortestPathsTo((state) => state.matches('second'));
+  const paths = model.getShortestPaths({
+    toState: (state) => state.matches('second')
+  });
 
   await model.testPath(
     paths[0],
