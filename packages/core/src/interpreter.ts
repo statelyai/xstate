@@ -13,7 +13,6 @@ import { devToolsAdapter } from './dev';
 import { IS_PRODUCTION } from './environment';
 import { Mailbox } from './Mailbox';
 import { registry } from './registry';
-import { AreAllImplementationsAssumedToBeProvided } from './typegenTypes';
 import type { PayloadSender } from './types';
 import {
   ActorRef,

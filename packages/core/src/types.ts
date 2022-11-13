@@ -1,7 +1,7 @@
 import type { StateNode } from './StateNode';
 import type { State } from './State';
 import type { Clock, Interpreter } from './interpreter';
-import type { StateMachine, StateMachine2 } from './StateMachine';
+import type { StateMachine } from './StateMachine';
 import type { LifecycleSignal } from './actors';
 import {
   TypegenDisabled,
@@ -877,9 +877,7 @@ export type AnyStateNodeDefinition = StateNodeDefinition<any, any>;
 
 export type AnyState = State<any, any, any>;
 
-export type AnyStateMachine =
-  | StateMachine<any, any, any, any, any>
-  | StateMachine2<any>;
+export type AnyStateMachine = StateMachine<any, any, any, any, any>;
 
 export type AnyStateConfig = StateConfig<any, AnyEventObject>;
 
@@ -2006,14 +2004,6 @@ export type InterpreterFrom<
         TEvent,
         State<TContext, TEvent, TResolvedTypesMeta>,
         State<TContext, TEvent, TResolvedTypesMeta>
-      >
-    >
-  : ReturnTypeOrValue<T> extends StateMachine2<infer TTypes>
-  ? Interpreter<
-      Behavior<
-        TTypes['events'],
-        State<TTypes['context'], TTypes['events'], any>,
-        State<TTypes['context'], TTypes['events'], any>
       >
     >
   : never;

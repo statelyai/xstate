@@ -3,7 +3,8 @@ import { raise } from '../src/actions/raise';
 import {
   ActorRefFrom,
   assign,
-  createMachine2 as createMachine,
+  createMachine,
+  createMachine2,
   interpret,
   MachineContext,
   Spawner,
@@ -24,7 +25,7 @@ describe('StateSchema', () => {
     elapsed: number;
   }
 
-  const lightMachine = createMachine<{
+  const lightMachine = createMachine2<{
     context: LightContext;
     events: LightEvent;
   }>({
@@ -132,7 +133,7 @@ describe('Nested parallel stateSchema', () => {
     lastDate: Date;
   }
 
-  const nestedParallelMachine = createMachine<{
+  const nestedParallelMachine = createMachine2<{
     context: ParallelContext;
     events: ParallelEvent;
   }>({
@@ -185,7 +186,7 @@ describe('Raise events', () => {
 
     const greetingContext: GreetingContext = { hour: 10 };
 
-    const raiseGreetingMachine = createMachine<{
+    const raiseGreetingMachine = createMachine2<{
       context: GreetingContext;
       events: GreetingEvent;
     }>({
@@ -253,7 +254,7 @@ describe('types', () => {
 describe('context', () => {
   // TODO: how would we do context inference here, if that is even desirable?
   it.skip('should infer context type from `config.context` when there is no `schema.context`', () => {
-    createMachine(
+    createMachine2(
       {
         context: {
           foo: 'test'
@@ -366,7 +367,7 @@ describe('events', () => {
     function acceptMachine<
       TContext extends {},
       TEvent extends { type: string }
-    >(_machine: StateMachine<TContext, any, TEvent>) {}
+    >(_machine: StateMachine<TContext, TEvent>) {}
 
     acceptMachine(toggleMachine);
   });

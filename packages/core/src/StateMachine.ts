@@ -1,10 +1,7 @@
 import {
-  ActionFunction,
   ActorContext,
   AnyEventObject,
   AnyStateMachine,
-  Behavior,
-  GuardConfig,
   InvokeActionObject,
   MachineConfig2,
   Spawner,
@@ -44,7 +41,6 @@ import type {
   MachineContext,
   MachineImplementationsSimplified,
   MachineSchema,
-  MaybeLazy,
   NoInfer,
   SCXML,
   StateConfig,
@@ -188,12 +184,9 @@ export class StateMachine<
    * @returns A new `StateMachine` instance with the provided implementations.
    */
   public provide(
-    implementations: InternalMachineImplementations<
-      TContext,
-      TEvent,
-      TResolvedTypesMeta,
-      true
-    > & { context?: MaybeLazy<Partial<TContext>> }
+    implementations: Partial<
+      MachineImplementationsSimplified<TContext, TEvent, TAction>
+    >
   ): StateMachine<
     TContext,
     TEvent,
@@ -486,7 +479,14 @@ export function createMachine2<
     TT['events'],
     any
   >
-): StateMachine2<TT> {
+): StateMachine<
+  TT['context'],
+  TT['events'],
+  TT['actions'],
+  TT['actors'],
+  any,
+  TT
+> {
   return new StateMachine(config, implementations as any) as any;
 }
 
@@ -519,32 +519,4 @@ export function createMachine<
     config,
     implementations as any
   );
-}
-
-export class StateMachine2<
-  TTypes extends MachineTypes<any>
-> extends StateMachine<
-  TTypes['context'],
-  TTypes['events'],
-  TTypes['actions'],
-  TTypes['actors'],
-  any,
-  TTypes
-> {
-  // constructor(...args) {
-  //   super(...args);
-  // }
-  public provide(
-    impls: Partial<{
-      actions: Record<
-        string,
-        ActionFunction<TTypes['context'], TTypes['events']>
-      >;
-      guards: Record<string, GuardConfig<TTypes['context'], TTypes['events']>>;
-      context: MaybeLazy<Partial<TTypes['context']>>;
-      actors: Record<string, Behavior<any, any, any>>;
-    }>
-  ) {
-    return super.provide(impls as any);
-  }
 }

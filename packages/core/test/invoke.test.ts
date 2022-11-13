@@ -540,15 +540,16 @@ describe('invoke', () => {
     interpret(
       someParentMachine.provide({
         actors: {
-          child: createMachine({
-            id: 'child',
-            initial: 'init',
-            states: {
-              init: {
-                entry: [sendParent('STOP')]
+          child: () =>
+            createMachine({
+              id: 'child',
+              initial: 'init',
+              states: {
+                init: {
+                  entry: [sendParent('STOP')]
+                }
               }
-            }
-          })
+            })
         }
       })
     )
