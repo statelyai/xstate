@@ -956,14 +956,11 @@ class StateNode<
       transitions: [selectedTransition],
       exitSet: isInternal
         ? []
-        : [
-            this,
-            ...flatten(
-              nextStateNodes.map((targetNode) =>
-                this.getExternalReentryNodes(targetNode)
-              )
+        : flatten(
+            nextStateNodes.map((targetNode) =>
+              this.getExternalReentryNodes(targetNode)
             )
-          ],
+          ),
       configuration: allNextStateNodes,
       source: state,
       actions
@@ -977,7 +974,7 @@ class StateNode<
     targetNode: StateNode<TContext, any, TEvent, any, any, any>
   ): Array<StateNode<TContext, any, TEvent, any, any, any>> {
     if (this.order < targetNode.order) {
-      return [];
+      return [this];
     }
 
     const nodes: Array<StateNode<TContext, any, TEvent, any, any, any>> = [];

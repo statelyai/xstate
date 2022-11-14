@@ -731,6 +731,111 @@ describe('entry/exit actions', () => {
         'enter: a.a1.a11'
       ]);
     });
+
+    it('should reenter leaf state during its self-transition', () => {
+      const m = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            initial: 'a1',
+            states: {
+              a1: {
+                on: {
+                  EV: 'a1'
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const flushTracked = trackEntries(m);
+
+      const service = interpret(m).start();
+
+      flushTracked();
+      service.send('EV');
+
+      expect(flushTracked()).toEqual(['exit: a.a1', 'enter: a.a1']);
+    });
+
+    it('should not enter exited state when targeting its ancestor and when its former descendant gets selected through initial state', () => {
+      const m = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            id: 'parent',
+            initial: 'a1',
+            states: {
+              a1: {
+                on: {
+                  EV: 'a2'
+                }
+              },
+              a2: {
+                on: {
+                  EV: '#parent'
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const flushTracked = trackEntries(m);
+
+      const service = interpret(m).start();
+      service.send('EV');
+
+      flushTracked();
+      service.send('EV');
+
+      expect(flushTracked()).toEqual([
+        'exit: a.a2',
+        'exit: a',
+        'enter: a',
+        'enter: a.a1'
+      ]);
+    });
+
+    it('should not enter exited state when targeting its ancestor and when its latter descendant gets selected through initial state', () => {
+      const m = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            id: 'parent',
+            initial: 'a2',
+            states: {
+              a1: {
+                on: {
+                  EV: '#parent'
+                }
+              },
+              a2: {
+                on: {
+                  EV: 'a1'
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const flushTracked = trackEntries(m);
+
+      const service = interpret(m).start();
+      service.send('EV');
+
+      flushTracked();
+      service.send('EV');
+
+      expect(flushTracked()).toEqual([
+        'exit: a.a1',
+        'exit: a',
+        'enter: a',
+        'enter: a.a2'
+      ]);
+    });
   });
 
   describe('parallel states', () => {
