@@ -873,8 +873,6 @@ describe('entry/exit actions', () => {
     });
 
     it('should reenter parallel region when a parallel state gets reentered while targeting another region', () => {
-      const actions: string[] = [];
-
       const machine = createMachine({
         initial: 'ready',
         states: {
@@ -884,13 +882,8 @@ describe('entry/exit actions', () => {
               FOO: '#cameraOff'
             },
             states: {
-              devicesInfo: {
-                entry: () => actions.push('entry devicesInfo'),
-                exit: () => actions.push('exit devicesInfo')
-              },
+              devicesInfo: {},
               camera: {
-                entry: () => actions.push('entry camera'),
-                exit: () => actions.push('exit camera'),
                 initial: 'on',
                 states: {
                   on: {},
@@ -904,16 +897,22 @@ describe('entry/exit actions', () => {
         }
       });
 
+      const flushTracked = trackEntries(machine);
+
       const service = interpret(machine).start();
 
-      actions.length = 0;
+      flushTracked();
       service.send('FOO');
 
-      expect(actions).toEqual([
-        'exit camera',
-        'exit devicesInfo',
-        'entry devicesInfo',
-        'entry camera'
+      expect(flushTracked()).toEqual([
+        'exit: ready.camera.on',
+        'exit: ready.camera',
+        'exit: ready.devicesInfo',
+        'exit: ready',
+        'enter: ready',
+        'enter: ready.devicesInfo',
+        'enter: ready.camera',
+        'enter: ready.camera.off'
       ]);
     });
   });

@@ -958,7 +958,7 @@ class StateNode<
         ? []
         : flatten(
             nextStateNodes.map((targetNode) =>
-              this.getExternalReentryNodes(targetNode)
+              this.getPotentiallyReenteringNodes(targetNode)
             )
           ),
       configuration: allNextStateNodes,
@@ -970,7 +970,7 @@ class StateNode<
   // even though the name of this function mentions reentry nodes
   // we are pushing its result into `exitSet`
   // that's because what we exit might be reentered (it's an invariant of reentrancy)
-  private getExternalReentryNodes(
+  private getPotentiallyReenteringNodes(
     targetNode: StateNode<TContext, any, TEvent, any, any, any>
   ): Array<StateNode<TContext, any, TEvent, any, any, any>> {
     if (this.order < targetNode.order) {
