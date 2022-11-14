@@ -1134,7 +1134,6 @@ export interface ActivityMap {
 export interface StateTransition<TContext, TEvent extends EventObject> {
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
   configuration: Array<StateNode<TContext, any, TEvent, any, any, any>>;
-  entrySet: Array<StateNode<TContext, any, TEvent, any, any, any>>;
   exitSet: Array<StateNode<TContext, any, TEvent, any, any, any>>;
   /**
    * The source state that preceded the transition.

@@ -463,6 +463,7 @@ describe('entry/exit actions', () => {
 
       expect(flushTracked()).toEqual([
         'exit: loaded.idle',
+        'exit: loaded',
         'enter: loaded',
         'enter: loaded.idle'
       ]);
@@ -647,6 +648,7 @@ describe('entry/exit actions', () => {
       expect(flushTracked()).toEqual([
         'exit: A.A2.A2_child',
         'exit: A.A2',
+        'exit: A',
         'enter: A',
         'enter: A.A1'
       ]);
@@ -725,7 +727,8 @@ describe('entry/exit actions', () => {
         'exit: a.a1',
         'exit: a',
         'enter: a',
-        'enter: a.a1'
+        'enter: a.a1',
+        'enter: a.a1.a11'
       ]);
     });
   });

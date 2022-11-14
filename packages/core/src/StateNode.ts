@@ -837,7 +837,6 @@ class StateNode<
     if (!willTransition) {
       return this.next(state, _event);
     }
-    const entryNodes = flatten(stateTransitions.map((t) => t.entrySet));
 
     const configuration = flatten(
       Object.keys(transitionMap).map((key) => transitionMap[key].configuration)
@@ -845,7 +844,6 @@ class StateNode<
 
     return {
       transitions: enabledTransitions,
-      entrySet: entryNodes,
       exitSet: flatten(stateTransitions.map((t) => t.exitSet)),
       configuration,
       source: state,
@@ -939,7 +937,6 @@ class StateNode<
     if (!nextStateNodes.length) {
       return {
         transitions: [selectedTransition],
-        entrySet: [],
         exitSet: [],
         configuration: state.value ? [this] : [],
         source: state,
@@ -955,35 +952,38 @@ class StateNode<
 
     const isInternal = !!selectedTransition.internal;
 
-    const reentryNodes: StateNode<any, any, any, any, any>[] = [];
-
-    if (!isInternal) {
-      nextStateNodes.forEach((targetNode) => {
-        reentryNodes.push(...this.getExternalReentryNodes(targetNode));
-      });
-    }
-
     return {
       transitions: [selectedTransition],
-      entrySet: reentryNodes,
-      exitSet: isInternal ? [] : [this],
+      exitSet: isInternal
+        ? []
+        : [
+            this,
+            ...flatten(
+              nextStateNodes.map((targetNode) =>
+                this.getExternalReentryNodes(targetNode)
+              )
+            )
+          ],
       configuration: allNextStateNodes,
       source: state,
       actions
     };
   }
 
+  // even though the name of this function mentions reentry nodes
+  // we are pushing its result into `exitSet`
+  // that's because what we exit might be reentered (it's an invariant of reentrancy)
   private getExternalReentryNodes(
     targetNode: StateNode<TContext, any, TEvent, any, any, any>
   ): Array<StateNode<TContext, any, TEvent, any, any, any>> {
-    if (this.order > targetNode.order) {
-      return [targetNode];
+    if (this.order < targetNode.order) {
+      return [];
     }
 
     const nodes: Array<StateNode<TContext, any, TEvent, any, any, any>> = [];
     let marker:
       | StateNode<TContext, any, TEvent, any, any, any>
-      | undefined = targetNode;
+      | undefined = this;
     let possibleAncestor: StateNode<
       TContext,
       any,
@@ -991,7 +991,7 @@ class StateNode<
       any,
       any,
       any
-    > = this;
+    > = targetNode;
 
     while (marker && marker !== possibleAncestor) {
       nodes.push(marker);
@@ -1015,17 +1015,20 @@ class StateNode<
     prevState?: State<TContext, any, any, any, any>,
     predictableExec?: PredictableActionArgumentsExec
   ): Array<Array<ActionObject<TContext, TEvent>>> {
-    const prevConfig = getConfiguration(
-      [],
-      prevState ? this.getStateNodes(prevState.value) : [this]
-    );
+    const prevConfig = prevState
+      ? getConfiguration([], this.getStateNodes(prevState.value))
+      : [];
+    const entrySet = new Set<StateNode<any, any, any, any, any, any>>();
 
-    for (const sn of resolvedConfig) {
+    for (const sn of Array.from(resolvedConfig).sort(
+      (a, b) => a.order - b.order
+    )) {
       if (
         !has(prevConfig, sn) ||
-        (has(transition.entrySet, sn.parent) && !has(transition.entrySet, sn))
+        has(transition.exitSet, sn) ||
+        (sn.parent && entrySet.has(sn.parent))
       ) {
-        transition.entrySet.push(sn);
+        entrySet.add(sn);
       }
     }
     for (const sn of prevConfig) {
@@ -1034,8 +1037,13 @@ class StateNode<
       }
     }
 
+    transition.exitSet.sort((a, b) => b.order - a.order);
+
+    const entryStates = Array.from(entrySet).sort((a, b) => a.order - b.order);
+    const exitStates = new Set(transition.exitSet);
+
     const doneEvents = flatten(
-      transition.entrySet.map((sn) => {
+      entryStates.map((sn) => {
         const events: DoneEventObject[] = [];
 
         if (sn.type !== 'final') {
@@ -1074,13 +1082,7 @@ class StateNode<
       })
     );
 
-    transition.exitSet.sort((a, b) => b.order - a.order);
-    transition.entrySet.sort((a, b) => a.order - b.order);
-
-    const entryStates = new Set(transition.entrySet);
-    const exitStates = new Set(transition.exitSet);
-
-    const entryActions = Array.from(entryStates)
+    const entryActions = entryStates
       .map((stateNode) => {
         const entryActions = stateNode.onEntry;
         const invokeActions = stateNode.activities.map((activity) =>
@@ -1192,7 +1194,6 @@ class StateNode<
     ) || {
       transitions: [],
       configuration: [],
-      entrySet: [],
       exitSet: [],
       source: currentState,
       actions: []
@@ -1675,7 +1676,6 @@ class StateNode<
     return this.resolveTransition(
       {
         configuration,
-        entrySet: configuration,
         exitSet: [],
         transitions: [],
         source: undefined,
