@@ -2,4 +2,4 @@
 'xstate': patch
 ---
 
-During external events, only enter target plus descendent nodes.
+Fixed an issue with external transitions targeting ancestor states. In such a case, `entry` actions were incorrectly called on the states between the source state and the target state for states that were not reentered within this transition.
