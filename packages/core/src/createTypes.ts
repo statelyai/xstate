@@ -114,7 +114,9 @@ type CheckInput<
   TT extends MachineTypes<any>,
   TProvided,
   TProvidedInput = Get<TProvided, 'input'>
-> = {} extends TT['input']
+> = TT['input'] extends undefined
+  ? never
+  : {} extends TT['input']
   ? never
   : TProvidedInput extends TT['input']
   ? never
