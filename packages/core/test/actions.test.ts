@@ -526,32 +526,24 @@ describe('entry/exit actions', () => {
       const actual: string[] = [];
       const machine = createMachine({
         initial: 'A',
-        id: 'root',
-        predictableActionArguments: true,
         states: {
           A: {
-            initial: 'default',
-            entry: () => actual.push('enter_A'),
-            on: {
-              CHANGE_TO_A2: 'A.A2'
-            },
+            exit: () => actual.push('exit_A'),
+            initial: 'A1',
             states: {
-              default: {
-                entry: () => actual.push('enter_default')
-              },
               A1: {
-                entry: () => actual.push('enter_A1'),
                 exit: () => actual.push('exit_A1'),
                 on: {
-                  CHANGE_TO_A2A: 'A2.A2a'
+                  NEXT: '#sibling_descendant'
                 }
               },
               A2: {
-                initial: 'A2a',
                 entry: () => actual.push('enter_A2'),
+                initial: 'A2_child',
                 states: {
-                  A2a: {
-                    entry: () => actual.push('enter_A2a')
+                  A2_child: {
+                    id: 'sibling_descendant',
+                    entry: () => actual.push('enter_A2_child')
                   }
                 }
               }
@@ -561,44 +553,38 @@ describe('entry/exit actions', () => {
       });
 
       const service = interpret(machine).start({ A: 'A1' });
-      service.send('CHANGE_TO_A2A');
+      service.send({ type: 'NEXT' });
 
-      expect(actual).toEqual(['exit_A1', 'enter_A2', 'enter_A2a']);
+      expect(actual).toEqual(['exit_A1', 'enter_A2', 'enter_A2_child']);
     });
 
     it('should exit current node and enter target node when target is ancestor of current', () => {
       const actual: string[] = [];
       const machine = createMachine({
         initial: 'A',
-        id: 'root',
-        predictableActionArguments: true,
         states: {
           A: {
-            initial: 'default',
+            id: 'ancestor',
             entry: () => actual.push('enter_A'),
-            on: {
-              CHANGE_TO_A2: 'A.A2'
-            },
+            exit: () => actual.push('exit_A'),
+            initial: 'A1',
             states: {
-              default: {
-                entry: () => actual.push('enter_default')
-              },
               A1: {
                 entry: () => actual.push('enter_A1'),
-                exit: () => actual.push('exit_A1'),
                 on: {
-                  CHANGE_TO_A2A: 'A2.A2a'
+                  NEXT: 'A2'
                 }
               },
               A2: {
-                initial: 'A2a',
                 entry: () => actual.push('enter_A2'),
+                exit: () => actual.push('exit_A2'),
+                initial: 'A2_child',
                 states: {
-                  A2a: {
-                    entry: () => actual.push('enter_A2a'),
-                    exit: () => actual.push('exit_A2a'),
+                  A2_child: {
+                    entry: () => actual.push('enter_A2_child'),
+                    exit: () => actual.push('exit_A2_child'),
                     on: {
-                      CHANGE_TO_A: '#root.A'
+                      NEXT: '#ancestor'
                     }
                   }
                 }
@@ -608,37 +594,39 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const service = interpret(machine).start({ A: { A2: 'A2a' } });
-      service.send('CHANGE_TO_A');
+      const service = interpret(machine).start();
+      service.send({ type: 'NEXT' });
 
-      expect(actual).toEqual(['exit_A2a', 'enter_A', 'enter_default']);
+      actual.length = 0;
+      service.send({ type: 'NEXT' });
+
+      expect(actual).toEqual([
+        'exit_A2_child',
+        'exit_A2',
+        'enter_A',
+        'enter_A1'
+      ]);
     });
 
     it('should enter all descendents when target is a descendent of current', () => {
       const actual: string[] = [];
       const machine = createMachine({
         initial: 'A',
-        id: 'root',
-        predictableActionArguments: true,
         states: {
           A: {
-            initial: 'default',
+            initial: 'A1',
             entry: () => actual.push('enter_A'),
             exit: () => actual.push('exit_A'),
             on: {
-              CHANGE_TO_A2: 'A.A2'
+              NEXT: {
+                internal: false,
+                target: '.A2'
+              }
             },
             states: {
-              default: {
-                entry: () => actual.push('enter_default'),
-                exit: () => actual.push('exit_default')
-              },
               A1: {
                 entry: () => actual.push('enter_A1'),
-                exit: () => actual.push('exit_A1'),
-                on: {
-                  CHANGE_TO_A2A: 'A2.A2a'
-                }
+                exit: () => actual.push('exit_A1')
               },
               A2: {
                 initial: 'A2a',
@@ -646,10 +634,7 @@ describe('entry/exit actions', () => {
                 states: {
                   A2a: {
                     entry: () => actual.push('enter_A2a'),
-                    exit: () => actual.push('exit_A2a'),
-                    on: {
-                      CHANGE_TO_A: '#root.A'
-                    }
+                    exit: () => actual.push('exit_A2a')
                   }
                 }
               }
@@ -658,11 +643,12 @@ describe('entry/exit actions', () => {
         }
       });
 
-      const service = interpret(machine).start('A');
-      service.send('CHANGE_TO_A2');
+      const service = interpret(machine).start();
+      actual.length = 0;
+      service.send({ type: 'NEXT' });
 
       expect(actual).toEqual([
-        'exit_default',
+        'exit_A1',
         'exit_A',
         'enter_A',
         'enter_A2',
