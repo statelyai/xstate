@@ -976,11 +976,22 @@ class StateNode<
   private getExternalReentryNodes(
     targetNode: StateNode<TContext, any, TEvent, any, any, any>
   ): Array<StateNode<TContext, any, TEvent, any, any, any>> {
+    if (this.order > targetNode.order) {
+      return [targetNode];
+    }
+
     const nodes: Array<StateNode<TContext, any, TEvent, any, any, any>> = [];
-    let [marker, possibleAncestor]: [
-      StateNode<TContext, any, TEvent, any, any, any> | undefined,
-      StateNode<TContext, any, TEvent, any, any, any>
-    ] = targetNode.order > this.order ? [targetNode, this] : [this, targetNode];
+    let marker:
+      | StateNode<TContext, any, TEvent, any, any, any>
+      | undefined = targetNode;
+    let possibleAncestor: StateNode<
+      TContext,
+      any,
+      TEvent,
+      any,
+      any,
+      any
+    > = this;
 
     while (marker && marker !== possibleAncestor) {
       nodes.push(marker);

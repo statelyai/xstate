@@ -522,6 +522,140 @@ describe('entry/exit actions', () => {
       ).toEqual(['exit_walk', 'exit_red', 'enter_red', 'enter_walk']);
     });
 
+    it('should exit current node and enter target node when target is not a descendent or ancestor of current', () => {
+      const actual: string[] = [];
+      const machine = createMachine({
+        initial: 'A',
+        states: {
+          A: {
+            exit: () => actual.push('exit_A'),
+            initial: 'A1',
+            states: {
+              A1: {
+                exit: () => actual.push('exit_A1'),
+                on: {
+                  NEXT: '#sibling_descendant'
+                }
+              },
+              A2: {
+                entry: () => actual.push('enter_A2'),
+                initial: 'A2_child',
+                states: {
+                  A2_child: {
+                    id: 'sibling_descendant',
+                    entry: () => actual.push('enter_A2_child')
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const service = interpret(machine).start({ A: 'A1' });
+      service.send({ type: 'NEXT' });
+
+      expect(actual).toEqual(['exit_A1', 'enter_A2', 'enter_A2_child']);
+    });
+
+    it('should exit current node and enter target node when target is ancestor of current', () => {
+      const actual: string[] = [];
+      const machine = createMachine({
+        initial: 'A',
+        states: {
+          A: {
+            id: 'ancestor',
+            entry: () => actual.push('enter_A'),
+            exit: () => actual.push('exit_A'),
+            initial: 'A1',
+            states: {
+              A1: {
+                entry: () => actual.push('enter_A1'),
+                on: {
+                  NEXT: 'A2'
+                }
+              },
+              A2: {
+                entry: () => actual.push('enter_A2'),
+                exit: () => actual.push('exit_A2'),
+                initial: 'A2_child',
+                states: {
+                  A2_child: {
+                    entry: () => actual.push('enter_A2_child'),
+                    exit: () => actual.push('exit_A2_child'),
+                    on: {
+                      NEXT: '#ancestor'
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const service = interpret(machine).start();
+      service.send({ type: 'NEXT' });
+
+      actual.length = 0;
+      service.send({ type: 'NEXT' });
+
+      expect(actual).toEqual([
+        'exit_A2_child',
+        'exit_A2',
+        'enter_A',
+        'enter_A1'
+      ]);
+    });
+
+    it('should enter all descendents when target is a descendent of current', () => {
+      const actual: string[] = [];
+      const machine = createMachine({
+        initial: 'A',
+        states: {
+          A: {
+            initial: 'A1',
+            entry: () => actual.push('enter_A'),
+            exit: () => actual.push('exit_A'),
+            on: {
+              NEXT: {
+                internal: false,
+                target: '.A2'
+              }
+            },
+            states: {
+              A1: {
+                entry: () => actual.push('enter_A1'),
+                exit: () => actual.push('exit_A1')
+              },
+              A2: {
+                initial: 'A2a',
+                entry: () => actual.push('enter_A2'),
+                states: {
+                  A2a: {
+                    entry: () => actual.push('enter_A2a'),
+                    exit: () => actual.push('exit_A2a')
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const service = interpret(machine).start();
+      actual.length = 0;
+      service.send({ type: 'NEXT' });
+
+      expect(actual).toEqual([
+        'exit_A1',
+        'exit_A',
+        'enter_A',
+        'enter_A2',
+        'enter_A2a'
+      ]);
+    });
+
     it('should exit deep descendant during a self-transition', () => {
       const actual: string[] = [];
       const m = createMachine({
