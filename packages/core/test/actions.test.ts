@@ -463,6 +463,7 @@ describe('entry/exit actions', () => {
 
       expect(flushTracked()).toEqual([
         'exit: loaded.idle',
+        'exit: loaded',
         'enter: loaded',
         'enter: loaded.idle'
       ]);
@@ -647,6 +648,7 @@ describe('entry/exit actions', () => {
       expect(flushTracked()).toEqual([
         'exit: A.A2.A2_child',
         'exit: A.A2',
+        'exit: A',
         'enter: A',
         'enter: A.A1'
       ]);
@@ -725,7 +727,113 @@ describe('entry/exit actions', () => {
         'exit: a.a1',
         'exit: a',
         'enter: a',
+        'enter: a.a1',
+        'enter: a.a1.a11'
+      ]);
+    });
+
+    it('should reenter leaf state during its self-transition', () => {
+      const m = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            initial: 'a1',
+            states: {
+              a1: {
+                on: {
+                  EV: 'a1'
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const flushTracked = trackEntries(m);
+
+      const service = interpret(m).start();
+
+      flushTracked();
+      service.send('EV');
+
+      expect(flushTracked()).toEqual(['exit: a.a1', 'enter: a.a1']);
+    });
+
+    it('should not enter exited state when targeting its ancestor and when its former descendant gets selected through initial state', () => {
+      const m = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            id: 'parent',
+            initial: 'a1',
+            states: {
+              a1: {
+                on: {
+                  EV: 'a2'
+                }
+              },
+              a2: {
+                on: {
+                  EV: '#parent'
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const flushTracked = trackEntries(m);
+
+      const service = interpret(m).start();
+      service.send('EV');
+
+      flushTracked();
+      service.send('EV');
+
+      expect(flushTracked()).toEqual([
+        'exit: a.a2',
+        'exit: a',
+        'enter: a',
         'enter: a.a1'
+      ]);
+    });
+
+    it('should not enter exited state when targeting its ancestor and when its latter descendant gets selected through initial state', () => {
+      const m = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            id: 'parent',
+            initial: 'a2',
+            states: {
+              a1: {
+                on: {
+                  EV: '#parent'
+                }
+              },
+              a2: {
+                on: {
+                  EV: 'a1'
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const flushTracked = trackEntries(m);
+
+      const service = interpret(m).start();
+      service.send('EV');
+
+      flushTracked();
+      service.send('EV');
+
+      expect(flushTracked()).toEqual([
+        'exit: a.a1',
+        'exit: a',
+        'enter: a',
+        'enter: a.a2'
       ]);
     });
   });
@@ -765,8 +873,6 @@ describe('entry/exit actions', () => {
     });
 
     it('should reenter parallel region when a parallel state gets reentered while targeting another region', () => {
-      const actions: string[] = [];
-
       const machine = createMachine({
         initial: 'ready',
         states: {
@@ -776,13 +882,8 @@ describe('entry/exit actions', () => {
               FOO: '#cameraOff'
             },
             states: {
-              devicesInfo: {
-                entry: () => actions.push('entry devicesInfo'),
-                exit: () => actions.push('exit devicesInfo')
-              },
+              devicesInfo: {},
               camera: {
-                entry: () => actions.push('entry camera'),
-                exit: () => actions.push('exit camera'),
                 initial: 'on',
                 states: {
                   on: {},
@@ -796,16 +897,22 @@ describe('entry/exit actions', () => {
         }
       });
 
+      const flushTracked = trackEntries(machine);
+
       const service = interpret(machine).start();
 
-      actions.length = 0;
+      flushTracked();
       service.send('FOO');
 
-      expect(actions).toEqual([
-        'exit camera',
-        'exit devicesInfo',
-        'entry devicesInfo',
-        'entry camera'
+      expect(flushTracked()).toEqual([
+        'exit: ready.camera.on',
+        'exit: ready.camera',
+        'exit: ready.devicesInfo',
+        'exit: ready',
+        'enter: ready',
+        'enter: ready.devicesInfo',
+        'enter: ready.camera',
+        'enter: ready.camera.off'
       ]);
     });
   });
