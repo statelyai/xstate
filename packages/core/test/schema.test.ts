@@ -27,25 +27,35 @@ function fromJSONSchema<T extends JSONSchema6>(
 describe('schema', () => {
   it('should infer types from provided schema', () => {
     const noop = (_: any) => void 0;
-
-    const m = createMachine({
-      schema: {
-        context: fromJSONSchema({
-          type: 'object',
-          properties: {
-            foo: { type: 'string' },
-            bar: { type: 'number' },
-            baz: {
-              type: 'object',
-              properties: {
-                one: { type: 'string' }
-              }
+    const schema = {
+      context: fromJSONSchema({
+        type: 'object',
+        properties: {
+          foo: { type: 'string' },
+          bar: { type: 'number' },
+          baz: {
+            type: 'object',
+            properties: {
+              one: { type: 'string' }
             }
           }
-        }),
-        events: createSchema<{ type: 'FOO' } | { type: 'BAR' }>()
+        }
+      }),
+      events: createSchema<{ type: 'FOO' } | { type: 'BAR' }>()
+    };
+
+    const m = createMachine({
+      // Schema no longer influences types
+      schema,
+      types: {} as typeof schema,
+      context: {
+        foo: '',
+        bar: 0,
+        baz: { one: '' },
+
+        // @ts-expect-error
+        unknown: 'asdf'
       },
-      context: { foo: '', bar: 0, baz: { one: '' } },
       initial: 'active',
       states: {
         active: {

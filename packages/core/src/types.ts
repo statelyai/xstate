@@ -10,7 +10,7 @@ import {
   MarkAllImplementationsAsProvided,
   AreAllImplementationsAssumedToBeProvided
 } from './typegenTypes';
-import { MachineTypes } from './createTypes';
+import { MachineTypes, PartialMachineTypes } from './createTypes';
 
 export type AnyFunction = (...args: any[]) => any;
 
@@ -1195,7 +1195,8 @@ export interface MachineConfig<
 }
 
 export type MachineConfig2<
-  TTypes extends MachineTypes<any> = MachineTypes<any>,
+  TPartialTypes extends PartialMachineTypes = {},
+  TTypes extends MachineTypes<TPartialTypes> = MachineTypes<TPartialTypes>,
   TContext extends MachineContext = TTypes['context'],
   TEvent extends EventObject = TTypes['events'],
   TAction extends BaseActionObject = TTypes['actions'],
@@ -1215,6 +1216,7 @@ export type MachineConfig2<
    */
   scxml?: boolean;
   schema?: MachineSchema<TContext, TEvent, TActorMap>;
+  types?: TPartialTypes;
   tsTypes?: TTypesMeta;
   entry?: BaseActions<
     TContext,

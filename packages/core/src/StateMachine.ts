@@ -479,26 +479,26 @@ export class StateMachine<
 }
 
 export function createMachine2<
-  TTypes extends PartialMachineTypes,
-  TT extends MachineTypes<TTypes> = MachineTypes<TTypes>,
+  TPartialTypes extends PartialMachineTypes,
+  TTypes extends MachineTypes<TPartialTypes> = MachineTypes<TPartialTypes>,
   TProvided extends InternalMachineImplementations<
-    TT['context'],
-    TT['events'],
+    TTypes['context'],
+    TTypes['events'],
     any
-  > = InternalMachineImplementations<TT['context'], TT['events'], any>
+  > = InternalMachineImplementations<TTypes['context'], TTypes['events'], any>
 >(
-  config: MachineConfig2<TT> & { schema?: TTypes },
+  config: MachineConfig2<TPartialTypes>,
   implementations?: TProvided
 ): StateMachine<
-  TT['context'],
-  TT['events'],
-  TT['actions'],
-  TT['children'],
+  TTypes['context'],
+  TTypes['events'],
+  TTypes['actions'],
+  TTypes['children'],
   any,
-  TT,
+  TTypes,
   TProvided
 > {
-  return new StateMachine(config, implementations as any) as any;
+  return new StateMachine(config as any, implementations as any) as any;
 }
 
 export function createMachine<
