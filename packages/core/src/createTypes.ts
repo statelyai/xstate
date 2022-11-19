@@ -3,6 +3,7 @@ import type {
   ActorMap,
   BaseActionObject,
   BaseGuardDefinition,
+  DelayConfig,
   EventObject,
   Get,
   IsNever,
@@ -18,6 +19,9 @@ export interface PartialMachineTypes {
   actors?: ActorMap;
   children?: ActorMap;
   guards?: BaseGuardDefinition;
+  delays?: {
+    [key: string]: DelayConfig<any, any>;
+  };
 }
 
 type WithDefaultConstraint<
@@ -99,9 +103,13 @@ export type MachineTypes<T extends PartialMachineTypes> = {
   context: WithDefaultConstraint<T['context'], MachineContext>;
   events: GetEvents<T>;
   actions: WithDefaultConstraint<T['actions'], BaseActionObject>;
-  actors: WithDefaultConstraint<T['children'], ActorMap>;
+  actors: WithDefaultConstraint<T['actors'], ActorMap>;
   children: WithDefaultConstraint<T['children'], ActorMap>;
   guards: WithDefaultConstraint<T['guards'], BaseGuardDefinition>;
+  delays: WithDefaultConstraint<
+    T['delays'],
+    Record<string, DelayConfig<any, any>>
+  >;
 };
 
 export function createTypes<T extends PartialMachineTypes>(

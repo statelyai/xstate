@@ -4,6 +4,7 @@ import {
   AnyStateMachine,
   InvokeActionObject,
   MachineConfig2,
+  MachineImplementations2,
   Spawner,
   TransitionDefinition
 } from '.';
@@ -481,11 +482,7 @@ export class StateMachine<
 export function createMachine2<
   TPartialTypes extends PartialMachineTypes,
   TTypes extends MachineTypes<TPartialTypes> = MachineTypes<TPartialTypes>,
-  TProvided extends InternalMachineImplementations<
-    TTypes['context'],
-    TTypes['events'],
-    any
-  > = InternalMachineImplementations<TTypes['context'], TTypes['events'], any>
+  TProvided extends MachineImplementations2<TTypes> = MachineImplementations2<TTypes>
 >(
   config: MachineConfig2<TPartialTypes>,
   implementations?: TProvided

@@ -1,5 +1,6 @@
 import { from } from 'rxjs';
 import { raise } from '../src/actions/raise';
+import { fromPromise } from '../src/actors';
 import {
   ActorRefFrom,
   assign,
@@ -495,5 +496,56 @@ describe('spawn', () => {
     createParent({
       spawnChild: (spawn: Spawner) => spawn(createChild())
     });
+  });
+});
+
+describe('createMachine', () => {
+  it('should type implementations correctly', () => {
+    createMachine2<{
+      events: { type: 'foo' };
+      actions: { type: 'greet' };
+      guards: { type: 'isValid'; params: {} }; // TODO: make params optional
+      actors: {
+        notifier: { data: string | undefined };
+        notifier2: { data: string | undefined };
+      };
+      delays: {
+        timeout: number;
+      };
+      input: {
+        message: string;
+      };
+    }>(
+      {},
+      {
+        actions: {
+          greet: () => {},
+          // @ts-expect-error
+          nonexistant: () => {}
+        },
+        delays: {
+          timeout: 234,
+          // @ts-expect-error
+          other: 123
+        },
+        guards: {
+          isValid: () => true,
+          // @ts-expect-error
+          nonexistant: () => false
+        },
+        actors: {
+          notifier: () => fromPromise(() => Promise.resolve('test')),
+          // @ts-expect-error
+          notifier2: () => fromPromise(() => Promise.resolve(42)),
+          // @xts-expect-error TODO: this should be an error
+          nonexistant: () => fromPromise(() => Promise.resolve(42))
+        },
+        input: {
+          message: 'asdf',
+          // @ts-expect-error
+          other: 42
+        }
+      }
+    );
   });
 });

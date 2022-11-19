@@ -1148,6 +1148,35 @@ export type InternalMachineImplementations<
     TMissingImplementations
   >;
 
+export interface MachineImplementations2<TTypes extends MachineTypes<any>> {
+  actions?: {
+    [K in TTypes['actions']['type']]?:
+      | BaseDynamicActionObject<TTypes['context'], TTypes['events'], any, any>
+      | ActionFunction<TTypes['context'], TTypes['events'], BaseActionObject>;
+  };
+  guards?: {
+    [K in TTypes['guards']['type']]?: GuardPredicate<
+      TTypes['context'],
+      TTypes['events']
+    >;
+  };
+  actors?: {
+    [K in keyof TTypes['actors']]?: BehaviorCreator<
+      TTypes['context'],
+      TTypes['events'],
+      TTypes['actors'][K]['data']
+    >;
+  };
+  delays?: {
+    [K in keyof TTypes['delays']]?: DelayConfig<
+      TTypes['context'],
+      TTypes['events']
+    >;
+  };
+  // TODO: autocomplete not working here, but it is strongly typed
+  input?: TTypes['input'];
+}
+
 export type MachineImplementations<
   TContext extends MachineContext,
   TEvent extends EventObject,
