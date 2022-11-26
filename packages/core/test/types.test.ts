@@ -567,5 +567,21 @@ describe('state.children', () => {
 
     // @ts-expect-error
     machine.initialState.children.bar;
+
+    const state = machine.transition(machine.initialState, {
+      type: 'anyEvent'
+    });
+
+    state.children.foo;
+
+    // @ts-expect-error
+    state.children.bar;
+
+    interpret(machine).subscribe((state) => {
+      state.children.foo;
+
+      // @ts-expect-error
+      state.children.bar;
+    });
   });
 });

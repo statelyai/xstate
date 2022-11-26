@@ -6,7 +6,6 @@ import type {
   EventObject,
   Get,
   IsNever,
-  MachineConfig2,
   MachineContext
 } from './types';
 

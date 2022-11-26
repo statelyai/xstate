@@ -2043,13 +2043,14 @@ export type InterpreterFrom<
   infer TEvent,
   any,
   any,
-  infer TResolvedTypesMeta
+  infer TResolvedTypesMeta,
+  infer TTypes
 >
   ? Interpreter<
       Behavior<
         TEvent,
-        State<TContext, TEvent, TResolvedTypesMeta>,
-        State<TContext, TEvent, TResolvedTypesMeta>
+        State<TContext, TEvent, TResolvedTypesMeta, TTypes>,
+        State<TContext, TEvent, TResolvedTypesMeta, TTypes>
       >
     >
   : never;

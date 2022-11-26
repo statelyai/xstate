@@ -272,7 +272,7 @@ export class StateMachine<
       .initialState,
     event: Event<TEvent> | SCXML.Event<TEvent>,
     actorCtx?: ActorContext<TEvent, State<TContext, TEvent, any>>
-  ): State<TContext, TEvent, TResolvedTypesMeta> {
+  ): State<TContext, TEvent, TResolvedTypesMeta, TTypes> {
     const currentState =
       state instanceof State ? state : this.resolveStateValue(state);
     // TODO: handle error events in a better way
