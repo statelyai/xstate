@@ -45,7 +45,7 @@ type DoneInvokeEvents<T extends ActorMap | undefined> = T extends ActorMap
     >
   : never;
 
-type GetAllEvents<T extends PartialMachineTypes> =
+type AllEvents<T extends PartialMachineTypes> =
   | WithDefaultConstraint<T['events'], never, EventObject>
   | (unknown extends T['input']
       ? never
@@ -78,8 +78,8 @@ type DefaultIfNever<T, TDefault> = IsNever<T> extends true ? TDefault : T;
 //   DefaultIfNever<GetAllEvents<T>, EventObject>
 // >;
 
-type GetEvents<T extends PartialMachineTypes> = DefaultIfNever<
-  GetAllEvents<T>,
+type GetAllEvents<T extends PartialMachineTypes> = DefaultIfNever<
+  AllEvents<T>,
   EventObject
 >;
 
@@ -101,7 +101,11 @@ type GetEvents<T extends PartialMachineTypes> = DefaultIfNever<
 export type MachineTypes<T extends PartialMachineTypes> = {
   input: WithDefaultConstraint<T['input'], undefined, MachineContext>;
   context: WithDefaultConstraint<T['context'], MachineContext>;
-  events: GetEvents<T>;
+  events: WithDefaultConstraint<T['events'], EventObject>;
+  /**
+   * All events, including special events (done.*, error.*, xstate.init, xstate.snapshot.*)
+   */
+  allEvents: GetAllEvents<T>;
   actions: WithDefaultConstraint<T['actions'], BaseActionObject>;
   actors: WithDefaultConstraint<T['actors'], ActorMap>;
   children: WithDefaultConstraint<T['children'], ActorMap>;

@@ -1227,7 +1227,7 @@ export type MachineConfig2<
   TPartialTypes extends PartialMachineTypes = {},
   TTypes extends MachineTypes<TPartialTypes> = MachineTypes<TPartialTypes>,
   TContext extends MachineContext = TTypes['context'],
-  TEvent extends EventObject = TTypes['events'],
+  TEvent extends EventObject = TTypes['allEvents'],
   TAction extends BaseActionObject = TTypes['actions'],
   TActorMap extends ActorMap = TTypes['children'],
   TTypesMeta = TypegenDisabled
