@@ -1161,10 +1161,10 @@ export interface MachineImplementations2<TTypes extends MachineTypes<any>> {
     >;
   };
   actors?: {
-    [K in keyof TTypes['actors']]?: BehaviorCreator<
+    [K in TTypes['actors']['src']]?: BehaviorCreator<
       TTypes['context'],
       TTypes['events'],
-      TTypes['actors'][K]['data']
+      (TTypes['actors'] & { src: K })['data']
     >;
   };
   delays?: {
@@ -1229,7 +1229,6 @@ export type MachineConfig2<
   TContext extends MachineContext = TTypes['context'],
   TEvent extends EventObject = TTypes['allEvents'],
   TAction extends BaseActionObject = TTypes['actions'],
-  TActorMap extends ActorMap = TTypes['children'],
   TTypesMeta = TypegenDisabled
 > = {
   /**
@@ -1244,7 +1243,7 @@ export type MachineConfig2<
    * If `true`, will use SCXML semantics, such as event token matching.
    */
   scxml?: boolean;
-  schema?: MachineSchema<TContext, TEvent, TActorMap>;
+  schema?: MachineSchema<TContext, TEvent, any>;
   types?: TPartialTypes;
   tsTypes?: TTypesMeta;
   entry?: BaseActions<

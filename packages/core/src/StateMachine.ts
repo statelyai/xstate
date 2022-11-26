@@ -355,7 +355,12 @@ export class StateMachine<
    * The initial State instance, which includes all actions to be executed from
    * entering the initial state.
    */
-  public get initialState(): State<TContext, TEvent, TResolvedTypesMeta> {
+  public get initialState(): State<
+    TContext,
+    TEvent,
+    TResolvedTypesMeta,
+    TTypes
+  > {
     return this.getInitialState();
   }
 
@@ -364,7 +369,7 @@ export class StateMachine<
    */
   public getInitialState(
     actorCtx?: ActorContext<TEvent, State<TContext, TEvent>>
-  ): State<TContext, TEvent, TResolvedTypesMeta> {
+  ): State<TContext, TEvent, TResolvedTypesMeta, TTypes> {
     const initEvent = this.getInitEvent();
     const preInitialState = this.getPreInitialState(actorCtx);
     const nextState = microstep([], preInitialState, actorCtx, initEvent);
@@ -490,7 +495,7 @@ export function createMachine2<
   TTypes['context'],
   TTypes['events'],
   TTypes['actions'],
-  TTypes['children'],
+  any,
   any,
   TTypes,
   TProvided

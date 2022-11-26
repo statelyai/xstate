@@ -505,10 +505,15 @@ describe('createMachine', () => {
       events: { type: 'foo' };
       actions: { type: 'greet' };
       guards: { type: 'isValid'; params: {} }; // TODO: make params optional
-      actors: {
-        notifier: { data: string | undefined };
-        notifier2: { data: string | undefined };
-      };
+      actors:
+        | {
+            src: 'notifier';
+            data: string | undefined;
+          }
+        | {
+            src: 'notifier2';
+            data: string | undefined;
+          };
       delays: {
         timeout: number;
       };
@@ -537,7 +542,7 @@ describe('createMachine', () => {
           notifier: () => fromPromise(() => Promise.resolve('test')),
           // @ts-expect-error
           notifier2: () => fromPromise(() => Promise.resolve(42)),
-          // @xts-expect-error TODO: this should be an error
+          // @ TODO: this should be an error
           nonexistant: () => fromPromise(() => Promise.resolve(42))
         },
         input: {
@@ -547,5 +552,20 @@ describe('createMachine', () => {
         }
       }
     );
+  });
+});
+
+describe('state.children', () => {
+  it('should type state children correctly', () => {
+    const machine = createMachine2({
+      types: {
+        children: {} as { id: 'foo'; snapshot: number }
+      }
+    });
+
+    machine.initialState.children.foo;
+
+    // @ts-expect-error
+    machine.initialState.children.bar;
   });
 });

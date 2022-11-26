@@ -1,4 +1,5 @@
 import { createInitEvent } from './actions';
+import { MachineTypes } from './createTypes';
 import { IS_PRODUCTION } from './environment';
 import { memo } from './memo';
 import type { StateNode } from './StateNode';
@@ -50,7 +51,8 @@ export const isState = isStateConfig;
 export class State<
   TContext extends MachineContext,
   TEvent extends EventObject = EventObject,
-  TResolvedTypesMeta = TypegenDisabled
+  TResolvedTypesMeta = TypegenDisabled,
+  TTypes extends MachineTypes<any> = any
 > {
   public value: StateValue;
   public context: TContext;
@@ -81,7 +83,7 @@ export class State<
   /**
    * An object mapping actor names to spawned/invoked actors.
    */
-  public children: Record<string, ActorRef<any>>;
+  public children: Record<TTypes['children']['id'], ActorRef<any>>;
   /**
    * Creates a new State instance for the given `stateValue` and `context`.
    * @param stateValue

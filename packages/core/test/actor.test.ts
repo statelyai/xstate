@@ -223,7 +223,8 @@ describe('spawning promises', () => {
     const promiseMachine = createMachine<{
       context: { promiseRef?: AnyActorRef };
       children: {
-        'my-promise': { data: string };
+        id: 'my-promise';
+        snapshot: string;
       };
     }>({
       id: 'promise',
@@ -274,7 +275,8 @@ describe('spawning promises', () => {
     const promiseMachine = createMachine<{
       context: { promiseRef?: AnyActorRef };
       children: {
-        'my-promise': { data: string };
+        id: 'my-promise';
+        snapshot: string;
       };
     }>(
       {
@@ -375,9 +377,8 @@ describe('spawning observables', () => {
     const observableMachine = createMachine<{
       context: { observableRef?: ActorRef<any, number | undefined> };
       children: {
-        int: {
-          snapshot: number;
-        };
+        id: 'int';
+        snapshot: number;
       };
     }>({
       id: 'observable',
@@ -421,9 +422,8 @@ describe('spawning observables', () => {
     const observableMachine = createMachine<{
       context: { observableRef?: ActorRef<any, number | undefined> };
       children: {
-        int: {
-          snapshot: number;
-        };
+        id: 'int';
+        snapshot: number;
       };
     }>(
       {
@@ -1305,7 +1305,8 @@ describe('actors', () => {
       const countMachine = createMachine<{
         context: { count: ActorRefFrom<Promise<number>> | undefined };
         children: {
-          test: { data: number };
+          id: 'test';
+          snapshot: number;
         };
       }>({
         context: {
@@ -1350,7 +1351,8 @@ describe('actors', () => {
       const countMachine = createMachine<{
         context: { count: ActorRefFrom<Promise<number>> };
         children: {
-          test: { data: any };
+          id: 'test';
+          snapshot: any;
         };
       }>({
         context: ({ spawn }) => ({

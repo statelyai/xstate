@@ -1,14 +1,13 @@
 import { StateMachine } from './StateMachine';
 import type {
-  ActorMap,
   BaseActionObject,
   BaseGuardDefinition,
   DelayConfig,
   EventObject,
   Get,
   IsNever,
-  MachineContext,
-  Values
+  MachineConfig2,
+  MachineContext
 } from './types';
 
 export interface PartialMachineTypes {
@@ -16,12 +15,22 @@ export interface PartialMachineTypes {
   context?: MachineContext;
   events?: EventObject;
   actions?: BaseActionObject;
-  actors?: ActorMap;
-  children?: ActorMap;
+  actors?: ActorInfo;
+  children?: ChildInfo;
   guards?: BaseGuardDefinition;
   delays?: {
     [key: string]: DelayConfig<any, any>;
   };
+}
+
+export interface ActorInfo {
+  src: string;
+  data: any;
+}
+
+export interface ChildInfo {
+  id: string;
+  snapshot: any;
 }
 
 type WithDefaultConstraint<
@@ -30,30 +39,33 @@ type WithDefaultConstraint<
   TConstraint = TDefault
 > = unknown extends T ? TDefault : T extends TConstraint ? T : never;
 
-type DoneInvokeEvents<T extends ActorMap | undefined> = T extends ActorMap
-  ? Values<
-      {
-        [K in keyof T]:
-          | {
-              type: `done.invoke.${K & string}`;
-              data: T[K]['data'];
-            }
-          | { type: `error.invoke.${K & string}`; data: unknown }
-          | { type: `error.platform.${K & string}`; data: unknown } // TODO: deprecate?
-          | { type: `xstate.snapshot.${K & string}`; data: T[K]['snapshot'] };
-      }
-    >
+type DoneInvokeEvents<
+  TTypes extends PartialMachineTypes
+> = TTypes['children'] extends ChildInfo
+  ? TTypes['children']['id'] extends infer K
+    ?
+        | {
+            type: `done.invoke.${K & string}`;
+            data: (TTypes['children'] & { id: K })['snapshot'];
+          }
+        | { type: `error.invoke.${K & string}`; data: unknown }
+        | { type: `error.platform.${K & string}`; data: unknown } // TODO: deprecate?
+        | {
+            type: `xstate.snapshot.${K & string}`;
+            data: (TTypes['children'] & { id: K })['snapshot'];
+          }
+    : never
   : never;
 
-type AllEvents<T extends PartialMachineTypes> =
-  | WithDefaultConstraint<T['events'], never, EventObject>
-  | (unknown extends T['input']
+type AllEvents<TPartialTypes extends PartialMachineTypes> =
+  | WithDefaultConstraint<TPartialTypes['events'], never, EventObject>
+  | (unknown extends TPartialTypes['input']
       ? never
       : {
           type: 'xstate.init';
-          input: T['input'];
+          input: TPartialTypes['input'];
         })
-  | DoneInvokeEvents<T['children']>;
+  | DoneInvokeEvents<TPartialTypes>;
 
 type DefaultIfNever<T, TDefault> = IsNever<T> extends true ? TDefault : T;
 
@@ -107,8 +119,8 @@ export type MachineTypes<T extends PartialMachineTypes> = {
    */
   allEvents: GetAllEvents<T>;
   actions: WithDefaultConstraint<T['actions'], BaseActionObject>;
-  actors: WithDefaultConstraint<T['actors'], ActorMap>;
-  children: WithDefaultConstraint<T['children'], ActorMap>;
+  actors: WithDefaultConstraint<T['actors'], ActorInfo>;
+  children: WithDefaultConstraint<T['children'], ChildInfo>;
   guards: WithDefaultConstraint<T['guards'], BaseGuardDefinition>;
   delays: WithDefaultConstraint<
     T['delays'],
