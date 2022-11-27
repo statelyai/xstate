@@ -262,8 +262,6 @@ describe('spawning promises', () => {
       }
     });
 
-    promiseMachine['__TTypes']['allEvents']['type'];
-
     const promiseService = interpret(promiseMachine).onDone(() => {
       done();
     });
