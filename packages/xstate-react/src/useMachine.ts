@@ -1,6 +1,7 @@
 import { useCallback, useEffect } from 'react';
 import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
 import {
+  AnyState,
   AnyStateMachine,
   AreAllImplementationsAssumedToBeProvided,
   EventObject,
@@ -32,7 +33,7 @@ export interface UseMachineOptions<TContext, TEvent extends EventObject> {
   /**
    * Convenient syntax to create a subscription to the interpreter at the creation time.
    */
-  subscribe?: (state: State<TContext, TEvent>) => void;
+  subscribe?: (state: AnyState) => void;
 }
 
 type RestParams<
