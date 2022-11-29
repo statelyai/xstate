@@ -29,6 +29,10 @@ export interface UseMachineOptions<TContext, TEvent extends EventObject> {
    * start at this state instead of its `initialState`.
    */
   state?: StateConfig<TContext, TEvent>;
+  /**
+   * Convenient syntax to create a subscription to the interpreter at the creation time.
+   */
+  subscribe?: (state: State<TContext, TEvent>) => void;
 }
 
 type RestParams<

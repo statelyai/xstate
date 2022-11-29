@@ -762,4 +762,52 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
 
     expect(container.textContent).toBe('2');
   });
+
+  it('options.subscribe should create a subscription to the interpreter', () => {
+    const machine = createMachine({
+      initial: 'off',
+      states: {
+        off: {
+          on: {
+            TOGGLE: 'on'
+          }
+        },
+        on: {
+          on: {
+            TOGGLE: 'off'
+          }
+        }
+      }
+    });
+
+    let count = 0;
+
+    const App = () => {
+      const [, send] = useMachine(machine, {
+        subscribe: (state) => {
+          if (state.matches('on')) {
+            count++;
+          }
+        }
+      });
+
+      return (
+        <button
+          data-testid="button"
+          onClick={() => {
+            send('TOGGLE');
+          }}
+        ></button>
+      );
+    };
+
+    render(<App />);
+    const button = screen.getByTestId('button');
+
+    fireEvent.click(button);
+    fireEvent.click(button);
+    fireEvent.click(button);
+
+    expect(count).toBe(2);
+  });
 });

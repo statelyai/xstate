@@ -82,6 +82,12 @@ export function useIdleInterpreter(
     Object.assign(service.machine.options.delays!, delays);
   }, [actions, guards, activities, services, delays]);
 
+  useIsomorphicLayoutEffect(() => {
+    if (options.subscribe) {
+      return service.subscribe(options.subscribe).unsubscribe;
+    }
+  }, []);
+
   return service as any;
 }
 
