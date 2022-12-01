@@ -9,6 +9,9 @@ name: CodeSee
 
 permissions: read-all
 
+permissions:
+  contents: read  #  to fetch code (actions/checkout)
+
 jobs:
   codesee:
     runs-on: ubuntu-latest

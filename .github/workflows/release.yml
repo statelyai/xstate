@@ -7,8 +7,14 @@ on:
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
+permissions: {}
 jobs:
   release:
+    permissions:
+      contents: write  #  to create release (changesets/action)
+      issues: write # to post issue comments (changesets/action)
+      pull-requests: write  #  to create pull request (changesets/action)
+
     if: github.repository == 'statelyai/xstate'
 
     timeout-minutes: 20
