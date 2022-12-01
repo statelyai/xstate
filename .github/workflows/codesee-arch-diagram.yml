@@ -7,8 +7,6 @@ on:
 
 name: CodeSee
 
-permissions: read-all
-
 permissions:
   contents: read  #  to fetch code (actions/checkout)
 
