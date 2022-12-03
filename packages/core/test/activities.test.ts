@@ -5,7 +5,6 @@ import { interpret, createMachine } from '../src/index';
 // TODO: remove this file but before doing that ensure that things tested here are covered by other tests
 
 const lightMachine = createMachine({
-  key: 'light',
   initial: 'green',
   states: {
     green: {

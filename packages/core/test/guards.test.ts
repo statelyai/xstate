@@ -16,7 +16,6 @@ describe('guard conditions', () => {
 
   const lightMachine = createMachine<LightMachineCtx, LightMachineEvents>(
     {
-      key: 'light',
       initial: 'green',
       states: {
         green: {
@@ -185,7 +184,6 @@ describe('guard conditions', () => {
 
 describe('guard conditions', () => {
   const machine = createMachine({
-    key: 'microsteps',
     type: 'parallel',
     states: {
       A: {

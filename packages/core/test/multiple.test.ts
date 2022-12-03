@@ -2,7 +2,6 @@ import { createMachine } from '../src/index';
 
 describe('multiple', () => {
   const machine = createMachine({
-    key: 'machine',
     initial: 'simple',
     states: {
       simple: {

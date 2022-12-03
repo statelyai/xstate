@@ -136,7 +136,7 @@ export class StateNode<
     options: StateNodeOptions<TContext, TEvent>
   ) {
     this.parent = options._parent;
-    this.key = this.config.key || options._key;
+    this.key = options._key;
     this.machine = options._machine;
     this.path = this.parent ? this.parent.path.concat(this.key) : [];
     this.id =

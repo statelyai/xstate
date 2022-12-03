@@ -612,11 +612,6 @@ export interface StateNodeConfig<
   TAction extends BaseActionObject = BaseActionObject
 > {
   /**
-   * The relative key of the state node, which represents its location in the overall state value.
-   * This is automatically determined by the configuration shape via the key where it was defined.
-   */
-  key?: string;
-  /**
    * The initial state transition.
    */
   initial?:

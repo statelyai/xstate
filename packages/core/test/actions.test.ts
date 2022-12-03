@@ -39,7 +39,6 @@ describe('entry/exit actions', () => {
   };
 
   const lightMachine = createMachine({
-    key: 'light',
     initial: 'green',
     states: {
       green: {
@@ -97,7 +96,6 @@ describe('entry/exit actions', () => {
   };
 
   const newLightMachine = createMachine({
-    key: 'light',
     initial: 'green',
     states: {
       green: {
@@ -490,8 +488,8 @@ describe('entry/exit actions', () => {
       };
 
       const pingPong = createMachine({
+        id: 'machine',
         initial: 'ping',
-        key: 'machine',
         states: {
           ping: {
             entry: ['entryEvent'],
