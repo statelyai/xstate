@@ -39,7 +39,7 @@ export function createSpawner<
           params: {
             src: actorRef,
             ref: actorRef,
-            id: actorRef.name,
+            id: actorRef.id,
             meta: undefined
           }
         });
@@ -58,7 +58,7 @@ export function createSpawner<
         params: {
           src: actorRef,
           ref: actorRef,
-          id: actorRef.name,
+          id: actorRef.id,
           meta: undefined
         }
       });

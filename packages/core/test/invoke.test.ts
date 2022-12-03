@@ -998,9 +998,12 @@ describe('invoke', () => {
           }
         });
 
-        const service = interpret(promiseMachine).onError((err) => {
-          expect(err.message).toEqual(expect.stringMatching(/test/));
-          done();
+        const service = interpret(promiseMachine);
+        service.subscribe({
+          error(err) {
+            expect(err.message).toEqual(expect.stringMatching(/test/));
+            done();
+          }
         });
         service.start();
       });
@@ -1030,18 +1033,21 @@ describe('invoke', () => {
           }
         });
 
-        interpret(promiseMachine)
+        const actor = interpret(promiseMachine)
           .onDone(doneSpy)
           .onError((err) => {
             // TODO: determine if err should be the full SCXML error event
             expect(err).toBeInstanceOf(Error);
             expect(err.message).toBe('test');
           })
-          .onStop(() => {
+          .start();
+
+        actor.subscribe({
+          complete() {
             expect(doneSpy).not.toHaveBeenCalled();
             done();
-          })
-          .start();
+          }
+        });
       });
 
       it('should be invoked with a promise factory and resolve through onDone for compound state nodes', (done) => {
@@ -2247,7 +2253,7 @@ describe('invoke', () => {
           }
           return count;
         },
-        initialState: 0
+        getInitialState: () => 0
       };
 
       const countMachine = createMachine({
@@ -2285,7 +2291,7 @@ describe('invoke', () => {
 
           return undefined;
         },
-        initialState: undefined
+        getInitialState: () => undefined
       };
 
       const pingMachine = createMachine({
@@ -2608,7 +2614,7 @@ describe('invoke', () => {
     });
 
     // TODO: determine the correct behavior for this: start then stop, or never start (more complicated)?
-    it.skip('should not invoke an actor if it gets stopped immediately by transitioning away in immediate microstep', () => {
+    it('should not invoke an actor if it gets stopped immediately by transitioning away in immediate microstep', () => {
       // Since an actor will be canceled when the state machine leaves the invoking state
       // it does not make sense to start an actor in a state that will be exited immediately
       let actorStarted = false;

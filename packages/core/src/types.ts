@@ -1249,6 +1249,7 @@ export interface SendActionObject<
     event: TSentEvent;
     delay?: number;
     id: string | number;
+    internal: boolean;
   };
 }
 
@@ -1689,22 +1690,12 @@ export declare namespace SCXML {
 }
 
 // Taken from RxJS
-export type Observer<T> =
-  | {
-      next: (value: T) => void;
-      error?: (err: any) => void;
-      complete?: () => void;
-    }
-  | {
-      next?: (value: T) => void;
-      error: (err: any) => void;
-      complete?: () => void;
-    }
-  | {
-      next?: (value: T) => void;
-      error?: (err: any) => void;
-      complete: () => void;
-    };
+export type Observer<T> = {
+  next?: (value: T) => void;
+  error?: (err: any) => void;
+  complete?: () => void;
+  done?: (output: any) => void;
+};
 
 export interface Subscription {
   unsubscribe(): void;
@@ -1759,8 +1750,12 @@ export type Sender<TEvent extends EventObject> = (event: TEvent) => void;
 export interface ActorRef<TEvent extends EventObject, TSnapshot = any>
   extends Subscribable<TSnapshot>,
     InteropObservable<TSnapshot> {
-  name: string;
+  /**
+   * The unique identifier for this actor relative to its parent.
+   */
+  id: string;
   send: (event: TEvent) => void;
+  // TODO: should this be optional?
   start?: () => void;
   getSnapshot: () => TSnapshot | undefined;
   stop?: () => void;
@@ -1857,11 +1852,11 @@ export type EventOfMachine<
 
 export interface ActorContext<TEvent extends EventObject, TSnapshot> {
   self: ActorRef<TEvent, TSnapshot>;
-  name: string;
+  id: string;
   sessionId: string;
   logger: (...args: any[]) => void;
   exec: (fn: () => void) => void;
-  defer: ((fn: () => void) => void) | undefined;
+  defer: ((fn: (any) => void) => void) | undefined;
   observers: Set<Observer<TSnapshot>>;
 }
 
@@ -1875,22 +1870,25 @@ export interface Behavior<
     message: TEvent | LifecycleSignal,
     ctx: ActorContext<TEvent, TSnapshot>
   ) => TInternalState;
-  // TODO: should we only use `getInitialState(...)`?
-  initialState: TInternalState;
-  getInitialState?: (
+  getInitialState: (
+    actorCtx: ActorContext<TEvent, TSnapshot>
+  ) => TInternalState;
+  restoreState?: (
+    restoredState: any,
     actorCtx: ActorContext<TEvent, TSnapshot>
   ) => TInternalState;
   getSnapshot?: (state: TInternalState) => TSnapshot;
+  getStatus?: (state: TInternalState) => { status: string; data?: any };
   start?: (actorCtx: ActorContext<TEvent, TSnapshot>) => TInternalState;
 }
 
 export type AnyBehavior = Behavior<any, any, any>;
 
 export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends Interpreter<infer _, infer __>
-    ? R['initialState']
-    : R extends ActorRef<infer _, infer TSnapshot>
+  ? R extends ActorRef<infer _, infer TSnapshot>
     ? TSnapshot
+    : R extends Interpreter<infer TBehavior>
+    ? SnapshotFrom<TBehavior>
     : R extends Behavior<infer _, infer TSnapshot>
     ? TSnapshot
     : R extends ActorContext<infer _, infer TSnapshot>

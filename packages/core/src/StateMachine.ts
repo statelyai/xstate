@@ -1,9 +1,15 @@
-import { ActorContext, AnyStateMachine, InvokeActionObject, Spawner } from '.';
+import {
+  ActorContext,
+  AnyStateMachine,
+  InvokeActionObject,
+  Spawner,
+  TransitionDefinition
+} from '.';
 import { initEvent } from './actions';
 import { STATE_DELIMITER } from './constants';
 import { execAction } from './exec';
 import { createSpawner } from './spawn';
-import { State } from './State';
+import { isStateConfig, State } from './State';
 import { StateNode } from './StateNode';
 import {
   getConfiguration,
@@ -11,10 +17,9 @@ import {
   getStateValue,
   isStateId,
   macrostep,
-  resolveMicroTransition,
+  microstep,
   resolveStateValue,
-  transitionNode,
-  machineMicrostep
+  transitionNode
 } from './stateUtils';
 import type {
   AreAllImplementationsAssumedToBeProvided,
@@ -37,10 +42,9 @@ import type {
   SCXML,
   StateConfig,
   StateNodeDefinition,
-  StateValue,
-  Transitions
+  StateValue
 } from './types';
-import { isFunction, toSCXMLEvent } from './utils';
+import { isFunction, isSCXMLErrorEvent, toSCXMLEvent } from './utils';
 
 export const NULL_EVENT = '';
 export const STATE_IDENTIFIER = '#';
@@ -100,8 +104,6 @@ export class StateMachine<
    */
   public version?: string;
 
-  public strict: boolean;
-
   /**
    * The string delimiter for serializing the path to a string. The default is "."
    */
@@ -148,7 +150,6 @@ export class StateMachine<
     this.delimiter = this.config.delimiter || STATE_DELIMITER;
     this.version = this.config.version;
     this.schema = this.config.schema ?? (({} as any) as this['schema']);
-    this.strict = !!this.config.strict;
     this.transition = this.transition.bind(this);
 
     this.root = new StateNode(config, {
@@ -259,10 +260,18 @@ export class StateMachine<
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const currentState =
       state instanceof State ? state : this.resolveStateValue(state);
+    // TODO: handle error events in a better way
     const scxmlEvent = toSCXMLEvent(event);
+    if (
+      isSCXMLErrorEvent(scxmlEvent) &&
+      !currentState.nextEvents.some(
+        (nextEvent) => nextEvent === scxmlEvent.name
+      )
+    ) {
+      throw scxmlEvent.data.data;
+    }
 
-    const nextState = macrostep(currentState, scxmlEvent, actorCtx);
-    nextState._sessionid = actorCtx?.sessionId ?? currentState._sessionid;
+    const { state: nextState } = macrostep(currentState, scxmlEvent, actorCtx);
 
     return nextState;
   }
@@ -277,17 +286,20 @@ export class StateMachine<
   public microstep(
     state: State<TContext, TEvent, TResolvedTypesMeta> = this.initialState,
     event: Event<TEvent> | SCXML.Event<TEvent>,
-    actorCtx: ActorContext<any, any> | undefined
-  ): State<TContext, TEvent, TResolvedTypesMeta> {
+    actorCtx?: ActorContext<any, any>
+  ): State<TContext, TEvent, TResolvedTypesMeta>[] {
     const scxmlEvent = toSCXMLEvent(event);
 
-    return machineMicrostep(state, scxmlEvent, actorCtx);
+    const { microstates } = macrostep(state, scxmlEvent, actorCtx);
+
+    return microstates;
   }
 
   public getTransitionData(
     state: State<TContext, TEvent, TResolvedTypesMeta>,
     _event: SCXML.Event<TEvent>
-  ): Transitions<TContext, TEvent> {
+  ): Array<TransitionDefinition<TContext, TEvent>> {
+    // return this.transition(state, _event).transitions;
     return transitionNode(this.root, state.value, state, _event) || [];
   }
 
@@ -339,10 +351,15 @@ export class StateMachine<
     actorCtx?: ActorContext<TEvent, State<TContext, TEvent>>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const preInitialState = this.getPreInitialState(actorCtx);
-    const nextState = resolveMicroTransition([], preInitialState, actorCtx);
+    const nextState = microstep(
+      [],
+      preInitialState,
+      actorCtx,
+      initEvent as SCXML.Event<TEvent>
+    );
     nextState.actions.unshift(...preInitialState.actions);
 
-    const macroState = macrostep(nextState, initEvent, actorCtx);
+    const { state: macroState } = macrostep(nextState, initEvent, actorCtx);
 
     return macroState;
   }
@@ -388,6 +405,29 @@ export class StateMachine<
 
     state.machine = this;
     return state as State<TContext, TEvent, TResolvedTypesMeta>;
+  }
+
+  public getStatus(state: State<TContext, TEvent, TResolvedTypesMeta>) {
+    return state.done
+      ? { status: 'done', data: state.output }
+      : { status: 'active' };
+  }
+
+  public restoreState(
+    state: State<TContext, TEvent, TResolvedTypesMeta> | StateValue,
+    actorCtx?: ActorContext<TEvent, State<TContext, TEvent>>
+  ): State<TContext, TEvent, TResolvedTypesMeta> {
+    const restoredState = isStateConfig(state)
+      ? this.resolveState(state as any)
+      : this.resolveState(State.from(state as any, this.context, this));
+
+    if (actorCtx) {
+      for (const action of restoredState.actions) {
+        execAction(action, restoredState, actorCtx);
+      }
+    }
+
+    return restoredState;
   }
 
   /**@deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */

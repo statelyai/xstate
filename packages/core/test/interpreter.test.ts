@@ -17,7 +17,7 @@ import { raise } from '../src/actions/raise';
 import { stop } from '../src/actions/stop';
 import { log } from '../src/actions/log';
 import { isObservable } from '../src/utils';
-import { interval, from, of, throwError, EMPTY } from 'rxjs';
+import { interval, from } from 'rxjs';
 import { fromCallback, fromObservable, fromPromise } from '../src/actors';
 
 const lightMachine = createMachine({
@@ -63,7 +63,9 @@ describe('interpreter', () => {
     it('.initialState returns the initial state', () => {
       const service = interpret(idMachine);
 
-      expect(service.initialState.value).toEqual(idMachine.initialState.value);
+      expect(service.getInitialState().value).toEqual(
+        idMachine.getInitialState().value
+      );
     });
 
     it('initially spawned actors should not be spawned when reading initial state', (done) => {
@@ -96,10 +98,11 @@ describe('interpreter', () => {
 
       expect(promiseSpawned).toEqual(0);
 
-      const callInitialState = () => service.initialState;
-      callInitialState();
-      callInitialState();
-      callInitialState();
+      service.getInitialState();
+      service.getInitialState();
+      service.getInitialState();
+
+      expect(promiseSpawned).toEqual(0);
 
       service.start();
 
@@ -1497,7 +1500,9 @@ describe('interpreter', () => {
       const service = interpret(createMachine({})).start();
 
       service.subscribe({
-        complete: completeCb
+        complete: () => {
+          completeCb();
+        }
       });
 
       service.stop();
@@ -1779,114 +1784,18 @@ describe('interpreter', () => {
     });
   });
 
-  describe('fromPromise', () => {
-    it('should resolve', (done) => {
-      const actor = interpret(fromPromise(() => Promise.resolve(42)));
-
-      actor.subscribe((state) => {
-        if (state === 42) {
-          done();
+  it("shouldn't execute actions when reading a snapshot of not started actor", () => {
+    const spy = jest.fn();
+    const actorRef = interpret(
+      createMachine({
+        entry: () => {
+          spy();
         }
-      });
+      })
+    );
 
-      actor.start();
-    });
+    actorRef.getSnapshot();
 
-    it('should resolve (observer .next)', (done) => {
-      const actor = interpret(fromPromise(() => Promise.resolve(42)));
-
-      actor.subscribe({
-        next: (state) => {
-          if (state === 42) {
-            done();
-          }
-        }
-      });
-
-      actor.start();
-    });
-
-    it('should reject (observer .error)', (done) => {
-      const actor = interpret(fromPromise(() => Promise.reject('Error')));
-
-      actor.subscribe({
-        error: (data) => {
-          expect(data).toBe('Error');
-          done();
-        }
-      });
-
-      actor.start();
-    });
-
-    // TODO: determine if tagged states should be used
-    it.skip('should complete (observer .complete)', (done) => {
-      const actor = interpret(fromPromise(() => Promise.resolve(42)));
-      expect.assertions(1);
-
-      actor.subscribe({
-        next: (state) => {
-          expect(state).toEqual(42);
-        },
-        complete: () => {
-          done();
-        }
-      });
-
-      actor.start();
-    });
-  });
-
-  describe('fromObservable', () => {
-    it('should resolve', (done) => {
-      const actor = interpret(fromObservable(() => of(42)));
-
-      actor.subscribe((state) => {
-        if (state === 42) {
-          done();
-        }
-      });
-
-      actor.start();
-    });
-
-    it('should resolve (observer .next)', (done) => {
-      const actor = interpret(fromObservable(() => of(42)));
-
-      actor.subscribe({
-        next: (state) => {
-          if (state === 42) {
-            done();
-          }
-        }
-      });
-
-      actor.start();
-    });
-
-    it('should reject (observer .error)', (done) => {
-      const actor = interpret(fromObservable(() => throwError(() => 'Error')));
-
-      actor.subscribe({
-        error: (data) => {
-          expect(data).toBe('Error');
-          done();
-        }
-      });
-
-      actor.start();
-    });
-
-    it('should complete (observer .complete)', (done) => {
-      const actor = interpret(fromObservable(() => EMPTY));
-
-      actor.subscribe({
-        complete: () => {
-          done();
-        }
-      });
-
-      actor.start();
-    });
+    expect(spy).not.toHaveBeenCalled();
   });
 });

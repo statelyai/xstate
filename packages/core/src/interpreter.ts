@@ -1,20 +1,18 @@
-import {
+import type {
   ActorContext,
-  AnyState,
+  AnyActorRef,
   AnyStateMachine,
   Behavior,
   EventFromBehavior,
   InterpreterFrom,
-  SnapshotFrom,
-  toObserver
-} from '.';
+  SnapshotFrom
+} from './types';
 import { doneInvoke } from './actions';
-import { startSignalType } from './actors';
+import { stopSignalType } from './actors';
 import { devToolsAdapter } from './dev';
 import { IS_PRODUCTION } from './environment';
 import { Mailbox } from './Mailbox';
 import { registry } from './registry';
-import { isStateConfig, State } from './State';
 import { AreAllImplementationsAssumedToBeProvided } from './typegenTypes';
 import type { PayloadSender } from './types';
 import {
@@ -29,16 +27,9 @@ import {
   StateValue,
   Subscription
 } from './types';
-import {
-  isSCXMLErrorEvent,
-  isStateLike,
-  isStateMachine,
-  toEventObject,
-  toSCXMLEvent,
-  warn
-} from './utils';
+import { toEventObject, toObserver, toSCXMLEvent, warn } from './utils';
 import { symbolObservable } from './symbolObservable';
-import { execAction } from './exec';
+import { evict, memo } from './memo';
 
 export type SnapshotListener<TBehavior extends Behavior<any, any>> = (
   state: SnapshotFrom<TBehavior>
@@ -62,7 +53,7 @@ export enum InterpreterStatus {
   Stopped
 }
 
-const defaultOptions: InterpreterOptions = {
+const defaultOptions = {
   deferEvents: true,
   clock: {
     setTimeout: (fn, ms) => {
@@ -87,7 +78,7 @@ export class Interpreter<
   TEvent extends EventObject = EventFromBehavior<TBehavior>
 > implements ActorRef<TEvent, SnapshotFrom<TBehavior>> {
   /**
-   * The current state of the interpreted machine.
+   * The current state of the interpreted behavior.
    */
   private _state?: InternalStateFrom<TBehavior>;
   /**
@@ -96,7 +87,10 @@ export class Interpreter<
   public clock: Clock;
   public options: Readonly<InterpreterOptions>;
 
-  public id: string | undefined;
+  /**
+   * The unique identifier for this actor relative to its parent.
+   */
+  public id: string;
 
   private mailbox: Mailbox<SCXML.Event<TEvent>> = new Mailbox(
     this._process.bind(this)
@@ -105,9 +99,6 @@ export class Interpreter<
   private delayedEventsMap: Record<string, unknown> = {};
 
   private observers: Set<Observer<SnapshotFrom<TBehavior>>> = new Set();
-  private errorListeners: Set<ErrorListener> = new Set();
-  private doneListeners: Set<EventListener> = new Set();
-  private stopListeners: Set<Listener> = new Set();
   private logger: (...args: any[]) => void;
   /**
    * Whether the service is started.
@@ -116,7 +107,6 @@ export class Interpreter<
 
   // Actor Ref
   public _parent?: ActorRef<any>;
-  public name: string;
   public ref: ActorRef<TEvent>;
   private _actorContext: ActorContext<TEvent, SnapshotFrom<TBehavior>>;
 
@@ -126,37 +116,42 @@ export class Interpreter<
   public sessionId: string;
 
   // TODO: remove
-  public _forwardTo: Set<string> = new Set();
+  public _forwardTo: Set<AnyActorRef> = new Set();
 
   /**
-   * Creates a new Interpreter instance (i.e., service) for the given machine with the provided options, if any.
+   * Creates a new Interpreter instance (i.e., service) for the given behavior with the provided options, if any.
    *
-   * @param behavior The machine to be interpreted
+   * @param behavior The behavior to be interpreted
    * @param options Interpreter options
    */
   constructor(public behavior: TBehavior, options?: InterpreterOptions) {
     const resolvedOptions = {
       ...defaultOptions,
       ...options
-    } as Required<InterpreterOptions>;
+    };
 
     const { clock, logger, parent, id } = resolvedOptions;
+    const self = this;
 
-    this.name = this.id = id;
+    // TODO: this should come from a "system"
+    this.sessionId = registry.bookId();
+    this.id = id ?? this.sessionId;
     this.logger = logger;
     this.clock = clock;
     this._parent = parent;
     this.options = resolvedOptions;
     this.ref = this;
-    // TODO: this should come from a "system"
-    this.sessionId = registry.bookId();
     this._actorContext = {
-      self: this,
-      name: this.id ?? 'todo',
+      self,
+      id: this.id,
       sessionId: this.sessionId,
       logger: this.logger,
       exec: (fn) => {
-        fn();
+        if (self.status === InterpreterStatus.NotStarted) {
+          this._deferred.push(fn);
+        } else {
+          fn();
+        }
       },
       defer: (fn) => {
         this._deferred.push(fn);
@@ -166,18 +161,11 @@ export class Interpreter<
   }
 
   // array of functions to defer
-  private _deferred: Array<() => void> = [];
+  private _deferred: Array<(state: any) => void> = [];
 
-  private __initial: InternalStateFrom<TBehavior> | undefined = undefined;
-
-  public get initialState(): InternalStateFrom<TBehavior> {
-    // TODO: getSnapshot
-    return (
-      this.__initial ||
-      ((this.__initial =
-        this.behavior.getInitialState?.(this._actorContext) ??
-        this.behavior.initialState),
-      this.__initial!)
+  public getInitialState(): InternalStateFrom<TBehavior> {
+    return memo(this, 'initial', () =>
+      this.behavior.getInitialState(this._actorContext)
     );
   }
 
@@ -186,33 +174,35 @@ export class Interpreter<
     this._state = state;
     const snapshot = this.getSnapshot();
 
-    while (this._deferred.length) {
-      this._deferred.shift()!();
+    // Execute deferred effects
+    let deferredFn: typeof this._deferred[number] | undefined;
+    while ((deferredFn = this._deferred.shift())) {
+      deferredFn(state);
     }
 
     for (const observer of this.observers) {
       observer.next?.(snapshot);
     }
 
-    if (isStateMachine(this.behavior) && isStateLike(state)) {
-      const isDone = (state as State<any, any>).done;
-
-      if (isDone) {
-        const output = (state as State<any, any>).output;
-
-        const doneEvent = toSCXMLEvent(doneInvoke(this.name, output), {
-          invokeid: this.name
-        });
-
-        for (const listener of this.doneListeners) {
-          listener(doneEvent);
-        }
-
-        this._parent?.send(doneEvent);
-
-        this._stop();
-      }
+    const status = this.behavior.getStatus?.(state);
+    if (status?.status === 'done') {
+      this._done(status.data);
     }
+  }
+
+  // TODO: output type
+  private _done(output: any) {
+    const doneEvent = toSCXMLEvent(doneInvoke(this.id, output), {
+      invokeid: this.id
+    });
+
+    for (const observer of this.observers) {
+      // TODO: done observers should only get output data
+      observer.done?.(doneEvent);
+    }
+
+    this._parent?.send(doneEvent);
+    this._stop();
   }
   /*
    * Adds a listener that is notified whenever a state transition happens. The listener is called with
@@ -227,7 +217,7 @@ export class Interpreter<
 
     // Send current state to listener
     if (this.status === InterpreterStatus.Running) {
-      observer.next(this.getSnapshot());
+      observer.next?.(this.getSnapshot());
     }
 
     return this;
@@ -254,47 +244,21 @@ export class Interpreter<
 
     this.observers.add(observer);
 
-    if (errorListener) {
-      this.onError(errorListener);
-    }
-
     // Send current state to listener
     if (this.status !== InterpreterStatus.NotStarted) {
-      observer.next(this.getSnapshot());
+      observer.next?.(this.getSnapshot());
     }
 
-    const completeOnce = () => {
-      this.doneListeners.delete(completeOnce);
-      this.stopListeners.delete(completeOnce);
-      observer.complete();
-    };
-
     if (this.status === InterpreterStatus.Stopped) {
-      observer.complete();
-    } else {
-      this.onDone(completeOnce);
-      this.onStop(completeOnce);
+      observer.complete?.();
+      this.observers.delete(observer);
     }
 
     return {
       unsubscribe: () => {
         this.observers.delete(observer);
-        this.errorListeners.delete(observer.error);
-        this.doneListeners.delete(completeOnce);
-        this.stopListeners.delete(completeOnce);
       }
     };
-  }
-
-  /**
-
-   * Adds a listener that is notified when the machine is stopped.
-   *
-   * @param listener The listener
-   */
-  public onStop(listener: Listener): this {
-    this.stopListeners.add(listener);
-    return this;
   }
 
   /**
@@ -304,7 +268,9 @@ export class Interpreter<
    * @param listener The error listener
    */
   public onError(listener: ErrorListener): this {
-    this.errorListeners.add(listener);
+    this.observers.add({
+      error: listener
+    });
     return this;
   }
 
@@ -313,7 +279,10 @@ export class Interpreter<
    * @param listener The state listener
    */
   public onDone(listener: EventListener<DoneEvent>): this {
-    this.doneListeners.add(listener);
+    this.observers.add({
+      done: listener
+    });
+
     return this;
   }
 
@@ -321,7 +290,10 @@ export class Interpreter<
    * Starts the interpreter from the given state, or the initial state.
    * @param initialState The state to start the statechart from
    */
-  public start(initialState?: InternalStateFrom<TBehavior> | StateValue): this {
+  public start(
+    // TODO: remove this argument
+    initialState?: InternalStateFrom<TBehavior> | StateValue
+  ): this {
     if (this.status === InterpreterStatus.Running) {
       // Do not restart the service if it is already started
       return this;
@@ -330,40 +302,9 @@ export class Interpreter<
     registry.register(this.sessionId, this.ref);
     this.status = InterpreterStatus.Running;
 
-    let resolvedState;
-
-    if (initialState === undefined) {
-      resolvedState = this.initialState;
-    } else {
-      if (isStateConfig(initialState)) {
-        // TODO: fix these types
-        resolvedState = ((this
-          .behavior as unknown) as AnyStateMachine).resolveState(
-          initialState as any
-        );
-      } else {
-        resolvedState = ((this
-          .behavior as unknown) as AnyStateMachine).resolveState(
-          State.from(
-            initialState as any, // TODO: fix type
-            ((this.behavior as unknown) as AnyStateMachine).context,
-            (this.behavior as unknown) as AnyStateMachine
-          )
-        );
-      }
-
-      for (const action of resolvedState.actions) {
-        execAction(action, resolvedState, this._actorContext);
-      }
-    }
-
-    if (!isStateMachine(this.behavior)) {
-      resolvedState = this.behavior.transition(
-        this.behavior.initialState,
-        { type: startSignalType },
-        this._actorContext
-      );
-    }
+    let resolvedState = initialState
+      ? this.behavior.restoreState?.(initialState, this._actorContext)
+      : this.getInitialState() ?? undefined;
 
     // TODO: this notifies all subscribers but usually this is redundant
     // if we are using the initialState as `resolvedState` then there is no real change happening here
@@ -380,72 +321,51 @@ export class Interpreter<
   }
 
   private _process(event: SCXML.Event<TEvent>) {
-    // TODO: handle errors
     this.forward(event);
 
-    let errored = false;
+    try {
+      const nextState = this.behavior.transition(
+        this._state,
+        event,
+        this._actorContext
+      );
 
-    const snapshot = this.getSnapshot();
+      this.update(nextState);
 
-    if (
-      isStateLike(snapshot) &&
-      isSCXMLErrorEvent(event) &&
-      !(snapshot as AnyState).nextEvents.some(
-        (nextEvent) => nextEvent === event.name
-      )
-    ) {
-      errored = true;
-      // Error event unhandled by machine
-      if (this.errorListeners.size > 0) {
-        this.errorListeners.forEach((listener) => {
-          listener(event.data.data);
-        });
-      } else {
-        this.stop();
-
-        // TODO: improve this
-        throw event.data.data;
+      if (event.name === stopSignalType) {
+        this._stop();
       }
-    }
-
-    const nextState = this.behavior.transition(
-      this._state,
-      event,
-      this._actorContext
-    );
-
-    this.update(nextState);
-
-    if (event.name === 'xstate.stop') {
-      this._stop();
-    } else if (errored) {
-      this.stop();
+    } catch (err) {
+      // TODO: properly handle errors
+      if (this.observers.size > 0) {
+        this.observers.forEach((observer) => {
+          observer.error?.(err);
+        });
+        this.stop();
+      } else {
+        throw err;
+      }
     }
   }
 
   /**
    * Stops the interpreter and unsubscribe all listeners.
-   *
-   * This will also notify the `onStop` listeners.
    */
   public stop(): this {
-    delete this.__initial;
-    // const mailbox = this.mailbox;
-
-    // this._stop();
+    evict(this, 'initial');
     this.mailbox.clear();
-    this.mailbox.enqueue(toSCXMLEvent({ type: 'xstate.stop' }) as any);
+    this.mailbox.enqueue(toSCXMLEvent({ type: stopSignalType }) as any);
 
     return this;
   }
-  private _stop(): this {
-    this.observers.clear();
-    for (const listener of this.stopListeners) {
-      // call listener, then remove
-      listener();
+  private _complete(): void {
+    for (const observer of this.observers) {
+      observer.complete?.();
     }
-    this.stopListeners.clear();
-    this.doneListeners.clear();
+    this.observers.clear();
+  }
+  private _stop(): this {
+    this._complete();
 
     if (this.status !== InterpreterStatus.Running) {
       // Interpreter already stopped; do nothing
@@ -482,10 +402,6 @@ export class Interpreter<
   public send: PayloadSender<TEvent> = (event, payload?): void => {
     const eventObject = toEventObject(event, payload);
     const _event = toSCXMLEvent(eventObject);
-    // console.log(
-    //   `${_event.origin?.sessionId} -> ${this.sessionId}`,
-    //   _event.name
-    // );
 
     if (this.status === InterpreterStatus.Stopped) {
       // do nothing
@@ -521,24 +437,14 @@ export class Interpreter<
     this.mailbox.enqueue(_event);
   };
 
+  // TODO: remove
   private forward(event: SCXML.Event<TEvent>): void {
-    const snapshot = this.getSnapshot();
-    if (!isStateLike(snapshot)) {
-      return;
-    }
-
-    for (const id of this._forwardTo) {
-      const child = (snapshot as AnyState).children[id];
-
-      if (!child) {
-        throw new Error(
-          `Unable to forward event '${event.name}' from interpreter '${this.name}' to nonexistant child '${id}'.`
-        );
-      }
-
+    // The _forwardTo set will be empty for non-machine actors anyway
+    for (const child of this._forwardTo) {
       child.send(event);
     }
   }
+
   // TODO: make private (and figure out a way to do this within the machine)
   public defer(sendAction: SendActionObject): void {
     this.delayedEventsMap[sendAction.params.id] = this.clock.setTimeout(() => {
@@ -567,7 +473,7 @@ export class Interpreter<
   }
   public toJSON() {
     return {
-      id: this.name
+      id: this.id
     };
   }
 
@@ -575,10 +481,10 @@ export class Interpreter<
     return this;
   }
 
-  public getSnapshot() {
+  public getSnapshot(): SnapshotFrom<TBehavior> {
     const getter = this.behavior.getSnapshot ?? ((s) => s);
     if (this.status === InterpreterStatus.NotStarted) {
-      return getter(this.initialState);
+      return getter(this.getInitialState());
     }
     return getter(this._state!);
   }
@@ -599,16 +505,11 @@ export function interpret<TMachine extends AnyStateMachine>(
   options?: InterpreterOptions
 ): InterpreterFrom<TMachine>;
 export function interpret<TBehavior extends Behavior<any, any>>(
-  machine: TBehavior,
+  behavior: TBehavior,
   options?: InterpreterOptions
 ): Interpreter<TBehavior>;
-export function interpret(machine: any, options?: InterpreterOptions): any {
-  const resolvedOptions = {
-    id: isStateMachine(machine) ? machine.id : undefined,
-    ...options
-  };
+export function interpret(behavior: any, options?: InterpreterOptions): any {
+  const interpreter = new Interpreter(behavior, options);
 
-  const interpreter = new Interpreter(machine, resolvedOptions);
-
-  return interpreter as any;
+  return interpreter;
 }

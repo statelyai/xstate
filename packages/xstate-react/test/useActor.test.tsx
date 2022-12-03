@@ -9,7 +9,6 @@ import {
   interpret,
   sendParent
 } from 'xstate';
-import { toActorRef } from 'xstate/actors';
 import { useMachine } from '../src';
 import { useActor } from '../src/useActor';
 import { describeEachReactMode } from './utils';
@@ -186,6 +185,7 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
           }
         }
       });
+
       const machine = createMachine<{
         actorRef?: ActorRefFrom<typeof childMachine>;
       }>({
@@ -235,9 +235,10 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
   );
 
   it('actor should provide snapshot value immediately', () => {
-    const simpleActor = toActorRef({
-      send: () => {},
-      getSnapshot: () => 42
+    const simpleActor = interpret({
+      transition: (s) => s,
+      getSnapshot: () => 42,
+      getInitialState: () => 42
     });
 
     const Test = () => {
@@ -255,9 +256,10 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
 
   it('should update snapshot value when actor changes', () => {
     const createSimpleActor = (value: number) =>
-      toActorRef({
-        send: () => {},
-        getSnapshot: () => value
+      interpret({
+        transition: (s) => s,
+        getSnapshot: () => value,
+        getInitialState: () => value
       });
 
     const Test = () => {
@@ -291,9 +293,11 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
       unsubscribe: noop
     });
 
-    const actor = toActorRef({
-      send: noop,
-      subscribe: fakeSubscribe
+    const actor = interpret({
+      transition: (s) => s,
+      subscribe: fakeSubscribe,
+      getSnapshot: () => undefined,
+      getInitialState: () => undefined
     });
 
     let latestSend: (...args: any[]) => void;
@@ -329,13 +333,17 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
     const fakeSubscribe = () => ({
       unsubscribe: noop
     });
-    const firstActor = toActorRef({
-      send: noop,
-      subscribe: fakeSubscribe
+    const firstActor = interpret({
+      transition: (s) => s,
+      subscribe: fakeSubscribe,
+      getSnapshot: () => undefined,
+      getInitialState: () => undefined
     });
-    const lastActor = toActorRef({
-      send: noop,
-      subscribe: fakeSubscribe
+    const lastActor = interpret({
+      transition: (s) => s,
+      subscribe: fakeSubscribe,
+      getSnapshot: () => undefined,
+      getInitialState: () => undefined
     });
 
     let latestSend: (...args: any[]) => void;
@@ -435,55 +443,59 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
     });
   });
 
-  it('should work with initially deferred actors spawned in lazy context', () => {
-    const childMachine = createMachine({
-      initial: 'one',
-      states: {
-        one: {
-          on: { NEXT: 'two' }
-        },
-        two: {}
-      }
-    });
-
-    const machine = createMachine<{ ref: ActorRef<any> }>({
-      context: ({ spawn }) => ({
-        ref: spawn(childMachine)
-      }),
-      initial: 'waiting',
-      states: {
-        waiting: {
-          on: { TEST: 'success' }
-        },
-        success: {
-          type: 'final'
+  it(
+    'should work with initially deferred actors spawned in lazy context ' +
+      suiteKey,
+    () => {
+      const childMachine = createMachine({
+        initial: 'one',
+        states: {
+          one: {
+            on: { NEXT: 'two' }
+          },
+          two: {}
         }
-      }
-    });
+      });
 
-    const App = () => {
-      const [state] = useMachine(machine);
-      const [childState, childSend] = useActor(state.context.ref);
+      const machine = createMachine<{ ref: ActorRef<any> }>({
+        context: ({ spawn }) => ({
+          ref: spawn(childMachine)
+        }),
+        initial: 'waiting',
+        states: {
+          waiting: {
+            on: { TEST: 'success' }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      });
 
-      return (
-        <>
-          <div data-testid="child-state">{childState.value}</div>
-          <button
-            data-testid="child-send"
-            onClick={() => childSend('NEXT')}
-          ></button>
-        </>
-      );
-    };
+      const App = () => {
+        const [state] = useMachine(machine);
+        const [childState, childSend] = useActor(state.context.ref);
 
-    render(<App />);
+        return (
+          <>
+            <div data-testid="child-state">{childState.value}</div>
+            <button
+              data-testid="child-send"
+              onClick={() => childSend('NEXT')}
+            ></button>
+          </>
+        );
+      };
 
-    const elState = screen.getByTestId('child-state');
-    const elSend = screen.getByTestId('child-send');
+      render(<App />);
 
-    expect(elState.textContent).toEqual('one');
-    fireEvent.click(elSend);
+      const elState = screen.getByTestId('child-state');
+      const elSend = screen.getByTestId('child-send');
 
-    expect(elState.textContent).toEqual('two');
-  });
+      expect(elState.textContent).toEqual('one');
+      fireEvent.click(elSend);
+
+      expect(elState.textContent).toEqual('two');
+    }
+  );
 });

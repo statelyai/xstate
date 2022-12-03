@@ -34,7 +34,7 @@ export function execAction(
 
   if (isExecutableAction(action) && action.type !== actionTypes.invoke) {
     try {
-      return action.execute(state);
+      return actorContext.exec(() => action.execute(state));
     } catch (err) {
       interpreter._parent?.send({
         type: 'xstate.error',
@@ -87,12 +87,8 @@ function getActionFunction<TState extends AnyState>(
         interpreter.defer(sendAction);
         return;
       } else {
-        if (sendAction.params.to) {
-          const target = sendAction.params.to;
-          execSendTo(sendAction.params._event, target, actorCtx);
-        } else {
-          interpreter.send(sendAction.params._event as SCXML.Event<any>);
-        }
+        const target = sendAction.params.to!;
+        execSendTo(sendAction.params._event, target, actorCtx);
       }
     },
     [actionTypes.cancel]: (_ctx, _e, { action }) => {
@@ -118,13 +114,13 @@ function getActionFunction<TState extends AnyState>(
       if (!state.children[id]) {
         state.children[id] = ref;
       }
-      actorCtx.defer?.(() => {
+      actorCtx.defer?.((state) => {
         try {
           if (autoForward) {
-            interpreter._forwardTo.add(id);
+            interpreter._forwardTo.add(ref);
           }
 
-          ref.start?.();
+          state.children[id]?.start?.();
         } catch (err) {
           interpreter.send(error(id, err));
           return;
@@ -136,6 +132,7 @@ function getActionFunction<TState extends AnyState>(
 
       if (actor) {
         actor.stop?.();
+        delete state.children[actor.id];
       }
     },
     [actionTypes.log]: (_ctx, _e, { action }) => {
@@ -158,8 +155,7 @@ function execSendTo(
   const origin = actorContext.self;
   const resolvedEvent: typeof event = {
     ...event,
-    name:
-      event.name === actionTypes.error ? `${error(origin.name)}` : event.name,
+    name: event.name === actionTypes.error ? `${error(origin.id)}` : event.name,
     origin: origin
   };
 

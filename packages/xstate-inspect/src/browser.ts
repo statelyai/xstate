@@ -41,9 +41,11 @@ export function createDevTools(): XStateDevInterface {
       serviceMap.set(service.sessionId, service);
       serviceListeners.forEach((listener) => listener(service));
 
-      service.onStop(() => {
-        services.delete(service);
-        serviceMap.delete(service.sessionId);
+      service.subscribe({
+        complete() {
+          services.delete(service);
+          serviceMap.delete(service.sessionId);
+        }
       });
     },
     unregister: (service) => {
@@ -146,13 +148,13 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
     stringify(value, options?.serialize);
 
   devTools.onRegister((service) => {
-    const state = service.getSnapshot() || service.initialState;
+    const state = service.getSnapshot() || service.getInitialState();
     inspectService.send({
       type: 'service.register',
       machine: stringifyMachine(service.behavior, options?.serialize),
       state: stringifyState(state, options?.serialize),
       sessionId: service.sessionId,
-      id: service.name,
+      id: service.id,
       parent: (service._parent as AnyInterpreter)?.sessionId
     });
 
@@ -197,11 +199,13 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
       });
     });
 
-    service.onStop(() => {
-      inspectService.send({
-        type: 'service.stop',
-        sessionId: service.sessionId
-      });
+    service.subscribe({
+      complete() {
+        inspectService.send({
+          type: 'service.stop',
+          sessionId: service.sessionId
+        });
+      }
     });
   });
 

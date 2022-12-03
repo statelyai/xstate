@@ -315,7 +315,7 @@ describe('SnapshotFrom', () => {
 
     function acceptState(_state: SnapshotFrom<typeof service>) {}
 
-    acceptState(service.initialState);
+    acceptState(service.getInitialState());
     // @ts-expect-error
     acceptState("isn't any");
   });
@@ -325,7 +325,7 @@ describe('ActorRefFrom', () => {
   it('should return `ActorRef` based on a `Behavior`', () => {
     const behavior: Behavior<{ type: 'TEST' }> = {
       transition: () => {},
-      initialState: undefined
+      getInitialState: () => undefined
     };
 
     function acceptActorRef(actorRef: ActorRefFrom<typeof behavior>) {
