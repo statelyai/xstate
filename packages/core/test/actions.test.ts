@@ -490,8 +490,8 @@ describe('entry/exit actions', () => {
       };
 
       const pingPong = createMachine({
-        initial: 'ping',
         id: 'machine',
+        initial: 'ping',
         states: {
           ping: {
             entry: ['entryEvent'],
