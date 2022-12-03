@@ -1,5 +1,11 @@
 # @xstate/svelte
 
+## 2.0.1
+
+### Patch Changes
+
+- [#3603](https://github.com/statelyai/xstate/pull/3603) [`44719c294`](https://github.com/statelyai/xstate/commit/44719c294d121e491eab19bf9dff19cf12225a1e) Thanks [@mittinatten](https://github.com/mittinatten)! - Improve performance of the `useSelector` by avoiding `get`
+
 ## 2.0.0
 
 ### Major Changes
