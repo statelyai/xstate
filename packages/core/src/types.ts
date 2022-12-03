@@ -1319,6 +1319,11 @@ export interface SendActionOptions<TContext, TEvent extends EventObject> {
     | ExprWithMeta<TContext, TEvent, string | ActorRef<any>>;
 }
 
+export interface RaiseActionOptions<TContext, TEvent extends EventObject> {
+  id?: string | number;
+  delay?: number | string | DelayExpr<TContext, TEvent>;
+}
+
 export interface CancelAction extends ActionObject<any, any> {
   sendId: string | number;
 }

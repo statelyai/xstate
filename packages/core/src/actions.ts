@@ -40,7 +40,8 @@ import {
   Cast,
   EventFrom,
   AnyActorRef,
-  PredictableActionArgumentsExec
+  PredictableActionArgumentsExec,
+  RaiseActionOptions
 } from './types';
 import * as actionTypes from './actionTypes';
 import {
@@ -157,11 +158,13 @@ export function toActivityDefinition<TContext, TEvent extends EventObject>(
  * @param eventType The event to raise.
  */
 export function raise<TContext, TEvent extends EventObject>(
-  event: Event<TEvent>
-): RaiseAction<TEvent> | SendAction<TContext, AnyEventObject, TEvent> {
-  if (!isString(event)) {
-    return send(event, { to: SpecialTargets.Internal });
+  event: Event<TEvent>,
+  options?: RaiseActionOptions<TContext, TEvent>
+): RaiseAction<TEvent> {
+  if (!isString(event) || options) {
+    return send(event, { ...options, to: SpecialTargets.Internal }) as any;
   }
+
   return {
     type: actionTypes.raise,
     event

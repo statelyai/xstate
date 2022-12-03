@@ -17,7 +17,8 @@ import {
   choose,
   sendTo,
   stop,
-  send
+  send,
+  raise
 } from '../src/actions';
 
 const seen = new WeakSet<AnyStateMachine>();
@@ -2605,45 +2606,6 @@ describe('sendTo', () => {
     interpret(parentMachine).start();
   });
 
-  it('should be able to send an event to itself', (done) => {
-    const machine = createMachine({
-      initial: 'a',
-      states: {
-        a: {
-          entry: sendTo(
-            SpecialTargets.Internal,
-            { type: 'EVENT' },
-            {
-              delay: 100
-            }
-          ),
-          on: {
-            TO_B: 'b'
-          }
-        },
-        b: {
-          on: {
-            EVENT: 'c'
-          }
-        },
-        c: {
-          type: 'final'
-        }
-      }
-    });
-
-    const service = interpret(machine).start();
-
-    service.subscribe((state) => {
-      console.log(state.value, state.actions);
-    });
-
-    service.onDone(() => done());
-
-    // Ensures that the delayed self-event is sent when in the `b` state
-    service.send('TO_B');
-  });
-
   it('should be able to read from event', () => {
     expect.assertions(1);
     const machine = createMachine<any, any>({
@@ -2669,6 +2631,76 @@ describe('sendTo', () => {
     const service = interpret(machine).start();
 
     service.send({ type: 'EVENT', value: 'foo' });
+  });
+});
+
+describe('raise', () => {
+  it('should be able to send an event to itself', (done) => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          entry: raise(
+            { type: 'EVENT' },
+            {
+              delay: 100
+            }
+          ),
+          on: {
+            TO_B: 'b'
+          }
+        },
+        b: {
+          on: {
+            EVENT: 'c'
+          }
+        },
+        c: {
+          type: 'final'
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    service.onDone(() => done());
+
+    // Ensures that the delayed self-event is sent when in the `b` state
+    service.send('TO_B');
+  });
+
+  it('should be able to send an event to itself', (done) => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          entry: raise(
+            { type: 'TO_B' },
+            {
+              delay: 100
+            }
+          ),
+          on: {
+            TO_B: 'b'
+          }
+        },
+        b: {
+          type: 'final'
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    service.onDone(() => done());
+
+    // Ensures that the delayed self-event is sent when in the `b` state
+    service.send('TO_B');
+
+    setTimeout(() => {
+      // didn't transition yet
+      expect(service.getSnapshot().value).toEqual('a');
+    }, 50);
   });
 });
 

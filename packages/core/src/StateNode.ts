@@ -1100,7 +1100,9 @@ class StateNode<
       })
       .concat({
         type: 'state_done',
-        actions: doneEvents.map(raise) as Array<ActionObject<TContext, TEvent>>
+        actions: doneEvents.map((event) => raise(event)) as Array<
+          ActionObject<TContext, TEvent>
+        >
       });
 
     const exitActions = Array.from(exitStates).map((stateNode) => ({
