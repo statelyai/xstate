@@ -5,7 +5,6 @@ import { stateIn } from '../src/guards';
 
 const greetingContext = { hour: 10 };
 const greetingMachine = createMachine<typeof greetingContext>({
-  key: 'greeting',
   id: 'greeting',
   initial: 'pending',
   context: greetingContext,

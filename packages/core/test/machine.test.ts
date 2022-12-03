@@ -19,7 +19,6 @@ const pedestrianStates = {
 };
 
 const lightMachine = createMachine({
-  key: 'light',
   initial: 'green',
   states: {
     green: {
@@ -461,16 +460,6 @@ describe('machine', () => {
       });
 
       expect(idMachine.states.idle.id).toEqual('idle');
-    });
-
-    it('should use the key as the ID if no ID is provided', () => {
-      const noIDMachine = createMachine({
-        key: 'some-key',
-        initial: 'idle',
-        states: { idle: {} }
-      });
-
-      expect(noIDMachine.id).toEqual('some-key');
     });
 
     it('should use the key as the ID if no ID is provided (state node)', () => {

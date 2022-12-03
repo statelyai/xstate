@@ -1,7 +1,6 @@
 import { createMachine, interpret, assign } from '../src/index';
 
 const wordMachine = createMachine({
-  key: 'word',
   type: 'parallel',
   states: {
     direction: {

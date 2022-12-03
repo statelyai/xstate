@@ -2,7 +2,6 @@ import { interpret, createMachine } from '../src/index';
 
 describe('history states', () => {
   const historyMachine = createMachine({
-    key: 'history',
     initial: 'off',
     states: {
       off: {
@@ -166,7 +165,6 @@ describe('history states', () => {
 
 describe('deep history states', () => {
   const historyMachine = createMachine({
-    key: 'history',
     initial: 'off',
     states: {
       off: {
@@ -271,7 +269,6 @@ describe('deep history states', () => {
 
 describe('parallel history states', () => {
   const historyMachine = createMachine({
-    key: 'parallelhistory',
     initial: 'off',
     states: {
       off: {
@@ -563,7 +560,6 @@ it('internal transition to a history state should enter default history state co
 
 describe('multistage history states', () => {
   const pcWithTurboButtonMachine = createMachine({
-    key: 'pc-with-turbo-button',
     initial: 'off',
     states: {
       off: {

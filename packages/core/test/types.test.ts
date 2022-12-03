@@ -25,7 +25,6 @@ describe('StateSchema', () => {
   }
 
   const lightMachine = createMachine<LightContext, LightEvent>({
-    key: 'light',
     initial: 'green',
     meta: { interval: 1000 },
     context: { elapsed: 0 },
@@ -177,7 +176,6 @@ describe('Raise events', () => {
     const greetingContext: GreetingContext = { hour: 10 };
 
     const raiseGreetingMachine = createMachine<GreetingContext, GreetingEvent>({
-      key: 'greeting',
       context: greetingContext,
       initial: 'pending',
       states: {

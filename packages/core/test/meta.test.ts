@@ -29,7 +29,7 @@ describe('state meta data', () => {
   };
 
   const lightMachine = createMachine({
-    key: 'light',
+    id: 'light',
     initial: 'green',
     states: {
       green: {

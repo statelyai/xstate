@@ -3,7 +3,6 @@ import { testAll } from '../utils';
 
 describe('Example: CD Player', () => {
   const machine = createMachine({
-    key: 'cd',
     initial: 'not_loaded',
     states: {
       not_loaded: {
