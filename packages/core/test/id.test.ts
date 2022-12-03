@@ -1,7 +1,7 @@
 import { testAll } from './utils';
-import { Machine } from '../src';
+import { AnyStateMachine, Machine } from '../src';
 
-const idMachine = Machine({
+const idMachine: AnyStateMachine = Machine({
   initial: 'A',
   states: {
     A: {

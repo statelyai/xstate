@@ -1,9 +1,14 @@
-import { createMachine } from 'xstate';
-import {
-  createModel,
-  ModelContextFrom,
-  ModelEventsFrom
-} from 'xstate/lib/model';
+import { createModel } from 'xstate/lib/model';
+import { ContextFrom, EventFrom, EventObject } from 'xstate';
+
+function assertEvent<TEvent extends EventObject, Type extends TEvent['type']>(
+  ev: TEvent,
+  type: Type
+): asserts ev is Extract<TEvent, { type: Type }> {
+  if (ev.type !== type) {
+    throw new Error('Unexpected event type.');
+  }
+}
 
 type Player = 'x' | 'o';
 
@@ -23,14 +28,18 @@ const model = createModel(
 );
 
 const isValidMove = (
-  ctx: ModelContextFrom<typeof model>,
-  e: ModelEventsFrom<typeof model> & { type: 'PLAY' }
+  context: ContextFrom<typeof model>,
+  event: EventFrom<typeof model>
 ) => {
-  return ctx.board[e.value] === null;
+  if (event.type !== 'PLAY') {
+    return false;
+  }
+
+  return context.board[event.value] === null;
 };
 
-function checkWin(ctx: ModelContextFrom<typeof model>) {
-  const { board } = ctx;
+function checkWin(context: ContextFrom<typeof model>) {
+  const { board } = context;
   const winningLines = [
     [0, 1, 2],
     [3, 4, 5],
@@ -59,13 +68,15 @@ function checkWin(ctx: ModelContextFrom<typeof model>) {
       return true;
     }
   }
+
+  return false;
 }
 
-function checkDraw(ctx: ModelContextFrom<typeof model>) {
-  return ctx.moves === 9;
+function checkDraw(context: ContextFrom<typeof model>) {
+  return context.moves === 9;
 }
 
-export const ticTacToeMachine = createMachine<typeof model>(
+export const ticTacToeMachine = model.createMachine(
   {
     initial: 'playing',
     context: model.initialContext,
@@ -107,21 +118,19 @@ export const ticTacToeMachine = createMachine<typeof model>(
   },
   {
     actions: {
-      updateBoard: model.assign(
-        {
-          board: (ctx, e) => {
-            const updatedBoard = [...ctx.board];
-            updatedBoard[e.value] = ctx.player;
-            return updatedBoard;
-          },
-          moves: (ctx) => ctx.moves + 1,
-          player: (ctx) => (ctx.player === 'x' ? 'o' : 'x')
+      updateBoard: model.assign({
+        board: (context, event) => {
+          assertEvent(event, 'PLAY');
+          const updatedBoard = [...context.board];
+          updatedBoard[event.value] = context.player;
+          return updatedBoard;
         },
-        'PLAY'
-      ),
+        moves: (context) => context.moves + 1,
+        player: (context) => (context.player === 'x' ? 'o' : 'x')
+      }),
       resetGame: model.reset(),
       setWinner: model.assign({
-        winner: (ctx) => (ctx.player === 'x' ? 'o' : 'x')
+        winner: (context) => (context.player === 'x' ? 'o' : 'x')
       })
     },
     guards: {

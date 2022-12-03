@@ -1,19 +1,26 @@
-import { useEffect, useRef, useState } from 'react';
-import { ActorRef, Interpreter, Subscribable } from 'xstate';
+import { useCallback, useRef } from 'react';
+import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
+import { ActorRef, AnyState, Interpreter, Subscribable } from 'xstate';
 import { isActorWithState } from './useActor';
-import { getServiceSnapshot } from './useService';
+import { getServiceSnapshot } from './utils';
 
 function isService(actor: any): actor is Interpreter<any, any, any, any> {
   return 'state' in actor && 'machine' in actor;
 }
 
 const defaultCompare = (a, b) => a === b;
-const defaultGetSnapshot = (a) =>
-  isService(a)
-    ? getServiceSnapshot(a)
-    : isActorWithState(a)
-    ? a.state
-    : undefined;
+const defaultGetSnapshot = (a, initialStateCacheRef) => {
+  if (isService(a)) {
+    // A status of 0 = interpreter not started
+    if (a.status === 0 && initialStateCacheRef.current) {
+      return initialStateCacheRef.current;
+    }
+    const snapshot = getServiceSnapshot(a);
+    initialStateCacheRef.current = a.status === 0 ? snapshot : null;
+    return snapshot;
+  }
+  return isActorWithState(a) ? a.state : undefined;
+};
 
 export function useSelector<
   TActor extends ActorRef<any, any>,
@@ -23,29 +30,32 @@ export function useSelector<
   actor: TActor,
   selector: (emitted: TEmitted) => T,
   compare: (a: T, b: T) => boolean = defaultCompare,
-  getSnapshot: (a: TActor) => TEmitted = defaultGetSnapshot
-) {
-  const [selected, setSelected] = useState(() => selector(getSnapshot(actor)));
-  const selectedRef = useRef<T>(selected);
+  getSnapshot?: (a: TActor) => TEmitted
+): T {
+  const initialStateCacheRef = useRef<AnyState | null>(null);
 
-  useEffect(() => {
-    const updateSelectedIfChanged = (nextSelected: T) => {
-      if (!compare(selectedRef.current, nextSelected)) {
-        setSelected(nextSelected);
-        selectedRef.current = nextSelected;
-      }
-    };
+  const subscribe = useCallback(
+    (handleStoreChange) => {
+      const { unsubscribe } = actor.subscribe(handleStoreChange);
+      return unsubscribe;
+    },
+    [actor]
+  );
 
-    const initialSelected = selector(getSnapshot(actor));
-    updateSelectedIfChanged(initialSelected);
+  const boundGetSnapshot = useCallback(() => {
+    if (getSnapshot) {
+      return getSnapshot(actor);
+    }
+    return defaultGetSnapshot(actor, initialStateCacheRef);
+  }, [actor, getSnapshot]);
 
-    const sub = actor.subscribe((emitted) => {
-      const nextSelected = selector(emitted);
-      updateSelectedIfChanged(nextSelected);
-    });
+  const selectedSnapshot = useSyncExternalStoreWithSelector(
+    subscribe,
+    boundGetSnapshot,
+    boundGetSnapshot,
+    selector,
+    compare
+  );
 
-    return () => sub.unsubscribe();
-  }, [selector, compare]);
-
-  return selected;
+  return selectedSnapshot;
 }

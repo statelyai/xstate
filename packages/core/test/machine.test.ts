@@ -194,6 +194,33 @@ describe('machine', () => {
         foo: 'different'
       });
     });
+
+    it('should allow for lazy context to be used with `withConfig`', () => {
+      const machine = createMachine({
+        context: { foo: { prop: 'bar' } }
+      });
+      const copiedMachine = machine.withConfig({}, () => ({
+        foo: { prop: 'baz' }
+      }));
+      expect(copiedMachine.initialState.context).toEqual({
+        foo: { prop: 'baz' }
+      });
+    });
+
+    it('should lazily create context for all interpreter instances created from the same machine template created by `withConfig`', () => {
+      const machine = createMachine({
+        context: { foo: { prop: 'bar' } }
+      });
+
+      const copiedMachine = machine.withConfig({}, () => ({
+        foo: { prop: 'baz' }
+      }));
+
+      const a = interpret(copiedMachine).start();
+      const b = interpret(copiedMachine).start();
+
+      expect(a.state.context.foo).not.toBe(b.state.context.foo);
+    });
   });
 
   describe('machine function context', () => {
@@ -300,6 +327,67 @@ describe('machine', () => {
       const resolvedState = machine.resolveState(tempState);
 
       expect(resolvedState.done).toBe(true);
+    });
+
+    it('should resolve from a state config object', () => {
+      const machine = createMachine({
+        initial: 'foo',
+        states: {
+          foo: {
+            on: { NEXT: 'bar' }
+          },
+          bar: {
+            type: 'final'
+          }
+        }
+      });
+
+      const barState = machine.transition(undefined, 'NEXT');
+
+      const jsonBarState = JSON.parse(JSON.stringify(barState));
+
+      expect(machine.resolveState(jsonBarState).matches('bar')).toBeTruthy();
+    });
+
+    it('should terminate on a resolved final state', (done) => {
+      const machine = createMachine({
+        initial: 'foo',
+        states: {
+          foo: {
+            on: { NEXT: 'bar' }
+          },
+          bar: {
+            type: 'final'
+          }
+        }
+      });
+
+      const nextState = machine.transition(undefined, 'NEXT');
+
+      const persistedState = JSON.stringify(nextState);
+
+      const service = interpret(machine).onDone(() => {
+        // Should reach done state immediately
+        done();
+      });
+
+      service.start(JSON.parse(persistedState!));
+    });
+  });
+
+  describe('machine.getInitialState', () => {
+    it('should follow always transition', () => {
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            always: [{ target: 'b' }]
+          },
+          b: {}
+        }
+      });
+
+      expect(machine.getInitialState('a').value).toBe('b');
     });
   });
 

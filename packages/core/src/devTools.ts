@@ -1,21 +1,24 @@
-import { Interpreter } from '.';
+import { IS_PRODUCTION } from './environment';
 import { AnyInterpreter } from './types';
 
 type ServiceListener = (service: AnyInterpreter) => void;
 
 export interface XStateDevInterface {
-  register: (service: Interpreter<any>) => void;
-  unregister: (service: Interpreter<any>) => void;
+  register: (service: AnyInterpreter) => void;
+  unregister: (service: AnyInterpreter) => void;
   onRegister: (
     listener: ServiceListener
   ) => {
     unsubscribe: () => void;
   };
-  services: Set<Interpreter<any>>;
+  services: Set<AnyInterpreter>;
 }
 
 // From https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/globalThis
-export function getGlobal() {
+export function getGlobal(): typeof globalThis | undefined {
+  if (typeof globalThis !== 'undefined') {
+    return globalThis;
+  }
   if (typeof self !== 'undefined') {
     return self;
   }
@@ -25,8 +28,11 @@ export function getGlobal() {
   if (typeof global !== 'undefined') {
     return global;
   }
-
-  return undefined;
+  if (!IS_PRODUCTION) {
+    console.warn(
+      'XState could not find a global object in this environment. Please let the maintainers know and raise an issue here: https://github.com/statelyai/xstate/issues'
+    );
+  }
 }
 
 function getDevTools(): XStateDevInterface | undefined {

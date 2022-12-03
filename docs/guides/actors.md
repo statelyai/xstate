@@ -19,7 +19,7 @@ State machines and statecharts work very well with the actor model, as they are 
 
 Actors can be _spawned_ or [_invoked_](./communication.md). Spawned actors have two major differences from invoked actors:
 
-- They can be _spawned_ at any time (via `spawn(...)` instead of an `assign(...)` action)
+- They can be _spawned_ at any time (via `spawn(...)` inside of an `assign(...)` action)
 - They can be _stopped_ at any time (via a `stop(...)` action)
 
 ## Actor API
@@ -28,7 +28,7 @@ An actor (as implemented in XState) has an interface of:
 
 - An `id` property, which uniquely identifies the actor in the local system
 - A `.send(...)` method, which is used to send events to this actor
-- A `.getSnapshot()` method, which synchronously returns the actor's last emitted value.
+- A `.getSnapshot()` method, which synchronously returns the actor's last _emitted value_.
 
 They may have optional methods:
 
@@ -41,6 +41,17 @@ All the existing invoked service patterns fit this interface:
 - [Invoked callbacks](./communication.md#invoking-callbacks) are actors that can send events to the parent (first `callback` argument), receive events (second `onReceive` argument), and act on them
 - [Invoked machines](./communication.md#invoking-machines) are actors that can send events to the parent (`sendParent(...)` action) or other actors it has references to (`send(...)` action), receive events, act on them (state transitions and actions), spawn new actors (`spawn(...)` function), and stop actors.
 - [Invoked observables](./communication.md#invoking-observables) are actors whose emitted values represent events to be sent back to the parent.
+
+::: tip What is an emitted value?
+
+An actor's **emitted value** is the value that subscribers receive in the actor's `.subscribe(...)` method.
+
+- For services, the current state is emitted.
+- For promises, the resolved value (or `undefined` if unfulfilled) is emitted.
+- For observables, the latest emitted value is emitted.
+- For callbacks, nothing is emitted.
+
+:::
 
 ## Spawning Actors
 
@@ -62,7 +73,7 @@ Alternatively `spawn` accepts an options object as the second argument which may
 
 - `name` (optional) - a string uniquely identifying the actor. This should be unique for all spawned actors and invoked services.
 - `autoForward` - (optional) `true` if all events sent to this machine should also be sent (or _forwarded_) to the invoked child (`false` by default)
-- `sync` - (optional) `true` if this machine should be automatically subscribed to the spawned child machine's state, the state will be stored as `.state` on the child machine ref
+- `sync` - (optional) `true` if this machine should be automatically subscribed to the spawned child machine's state, the state can be retrieved from `.getSnapshot()` on the child machine ref
 
 ```js {13-14}
 import { createMachine, spawn } from 'xstate';
@@ -196,7 +207,7 @@ Just like [invoking promises](./communication.md#invoking-promises), promises ca
 ```js {11}
 // Returns a promise
 const fetchData = (query) => {
-  return fetch(`http://example.com?query=${event.query}`).then((data) =>
+  return fetch(`http://example.com?query=${query}`).then((data) =>
     data.json()
   );
 };
@@ -360,13 +371,13 @@ To do this, set `{ sync: true }` as an option to `spawn(...)`:
 // ...
 ```
 
-This will automatically subscribe the machine to the spawned child machine's state, which is kept updated in `ref.state`:
+This will automatically subscribe the machine to the spawned child machine's state, which is kept updated and can be accessed via `getSnapshot()`:
 
 ```js
 someService.onTransition((state) => {
   const { someRef } = state.context;
 
-  console.log(someRef.state);
+  console.log(someRef.getSnapshot());
   // => State {
   //   value: ...,
   //   context: ...
@@ -375,7 +386,7 @@ someService.onTransition((state) => {
 ```
 
 ::: warning
-By default, `sync` is set to `false`. Never read an actor's `.state` when `sync` is disabled; otherwise, you will end up referencing stale state.
+By default, `sync` is set to `false`. Never read an actor's state from `.getSnapshot()` when `sync` is disabled; otherwise, you will end up referencing stale state.
 :::
 
 ## Sending Updates <Badge text="4.7+" />

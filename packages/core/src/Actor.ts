@@ -5,11 +5,17 @@ import {
   AnyEventObject,
   StateMachine,
   Spawnable,
-  SCXML
+  SCXML,
+  ActorRef,
+  BaseActorRef
 } from './types';
-import { isMachine, mapContext, toInvokeSource } from './utils';
+import {
+  symbolObservable,
+  isMachine,
+  mapContext,
+  toInvokeSource
+} from './utils';
 import * as serviceScope from './serviceScope';
-import { ActorRef, BaseActorRef } from '.';
 
 export interface Actor<
   TContext = any,
@@ -36,7 +42,10 @@ export function createNullActor(id: string): ActorRef<any> {
     getSnapshot: () => undefined,
     toJSON: () => ({
       id
-    })
+    }),
+    [symbolObservable]: function () {
+      return this;
+    }
   };
 }
 
@@ -105,15 +114,21 @@ export function isSpawnedActor(item: any): item is ActorRef<any> {
   return isActor(item) && 'id' in item;
 }
 
+// TODO: refactor the return type, this could be written in a better way but it's best to avoid unneccessary breaking changes now
 export function toActorRef<
   TEvent extends EventObject,
   TEmitted = any,
   TActorRefLike extends BaseActorRef<TEvent> = BaseActorRef<TEvent>
->(actorRefLike: TActorRefLike): ActorRef<TEvent, TEmitted> {
+>(
+  actorRefLike: TActorRefLike
+): ActorRef<TEvent, TEmitted> & Omit<TActorRefLike, keyof ActorRef<any, any>> {
   return {
     subscribe: () => ({ unsubscribe: () => void 0 }),
     id: 'anonymous',
     getSnapshot: () => undefined,
+    [symbolObservable]: function () {
+      return this;
+    },
     ...actorRefLike
   };
 }

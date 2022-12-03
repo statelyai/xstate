@@ -7,7 +7,7 @@
 - [XState - a TypeScript state machine with a lot of features](http://realfiction.net/2019/01/30/xstate-a-typescript-state-machine-with-a-lot-of-features) by Frank Quednau
   - An overview of creating state machines with XState and TypeScript
   - Includes a [full React example](https://github.com/flq/test-of-xstate)
-- [Creating a Complex IVR System with Ease with XState](https://www.nexmo.com/blog/2019/06/20/creating-a-complex-ivr-system-with-ease-with-xstate/) by Yonatan Mevorach
+- [Creating a Complex IVR System with Ease with XState](https://developer.vonage.com/blog/19/06/20/creating-a-complex-ivr-system-with-ease-with-xstate-dr) by Yonatan Mevorach
   - Tutorial on how to create an IVR (interactive voice response) system with XState, Express, and Nexmo
 - [My love letter to XState and statecharts ♥](https://dev.to/timdeschryver/my-love-letter-to-xstate-and-statecharts-287b) by [Tim Deschryver](https://dev.to/timdeschryver)
   - Overview of the benefits and experience of developing with XState
@@ -31,6 +31,7 @@
 ## Videos
 
 - [▶ Introduction to XState](https://www.youtube.com/watch?v=73Ch_EL4YVc) by Jon Bellah
+- [▶ Introduction to State Machines Using XState](https://egghead.io/courses/introduction-to-state-machines-using-xstate) by Kyle Shevlin
 - [▶ Let's learn state machines with David K. Piano - Learn With Jason](https://www.youtube.com/watch?v=czi24DqUfSA) with Jason Lengstorf
 - [▶ State Machines (playlist)](https://www.youtube.com/watch?v=iDZxjJYMOUQ&list=PL8fumNHsC-3MFSqjrn603qkkK6KY3PBDZ) by Leigh Halliday
   1. [▶ XState - An Introduction - Finite State Machines in React](https://www.youtube.com/watch?v=iDZxjJYMOUQ&list=PL8fumNHsC-3MFSqjrn603qkkK6KY3PBDZ&index=1)

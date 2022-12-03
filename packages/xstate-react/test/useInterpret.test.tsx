@@ -1,11 +1,16 @@
 import * as React from 'react';
 import { createMachine } from 'xstate';
-import { render, cleanup, fireEvent } from '@testing-library/react';
-import { useInterpret } from '../src';
+import { fireEvent, screen } from '@testing-library/react';
+import { useInterpret, useMachine } from '../src';
+import { describeEachReactMode } from './utils';
 
-afterEach(cleanup);
+const originalConsoleWarn = console.warn;
 
-describe('useInterpret', () => {
+afterEach(() => {
+  console.warn = originalConsoleWarn;
+});
+
+describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
   it('observer should be called with initial state', (done) => {
     const machine = createMachine({
       initial: 'inactive',
@@ -69,8 +74,8 @@ describe('useInterpret', () => {
       );
     };
 
-    const { getByTestId } = render(<App />);
-    const button = getByTestId('button');
+    render(<App />);
+    const button = screen.getByTestId('button');
 
     fireEvent.click(button);
   });
@@ -107,8 +112,70 @@ describe('useInterpret', () => {
 
     const { rerender } = render(<App value={1} />);
 
+    expect(actual).toEqual(suiteKey === 'strict' ? [1, 1] : [1]);
+
+    actual.length = 0;
     rerender(<App value={42} />);
 
-    expect(actual).toEqual([1, 42]);
+    expect(actual).toEqual([42]);
+  });
+
+  it('should warn when machine reference is updated during the hook lifecycle', () => {
+    console.warn = jest.fn();
+    const machine = createMachine({
+      initial: 'foo',
+      context: { id: 1 },
+      states: {
+        foo: {
+          on: {
+            CHECK: {
+              target: 'bar',
+              cond: 'hasOverflown'
+            }
+          }
+        },
+        bar: {}
+      }
+    });
+    const App = () => {
+      const [id, setId] = React.useState(1);
+      const [, send] = useMachine(
+        machine.withConfig({
+          guards: {
+            hasOverflown: () => id > 1
+          }
+        })
+      );
+
+      return (
+        <>
+          <button
+            onClick={() => {
+              setId(2);
+              send('CHECK');
+            }}
+          >
+            update id
+          </button>
+        </>
+      );
+    };
+
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button'));
+
+    expect(console.warn).toHaveBeenCalledTimes(suiteKey === 'strict' ? 2 : 1);
+    expect((console.warn as jest.Mock).mock.calls[0][0]).toMatchInlineSnapshot(`
+      "Machine given to \`useMachine\` has changed between renders. This is not supported and might lead to unexpected results.
+      Please make sure that you pass the same Machine as argument each time."
+    `);
+    if (suiteKey === 'strict') {
+      expect((console.warn as jest.Mock).mock.calls[1][0])
+        .toMatchInlineSnapshot(`
+        "Machine given to \`useMachine\` has changed between renders. This is not supported and might lead to unexpected results.
+        Please make sure that you pass the same Machine as argument each time."
+      `);
+    }
   });
 });

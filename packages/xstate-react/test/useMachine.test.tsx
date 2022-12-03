@@ -1,29 +1,27 @@
+import { act, fireEvent, screen } from '@testing-library/react';
 import * as React from 'react';
-import { useMachine, useService, useActor } from '../src';
-import {
-  Machine,
-  assign,
-  Interpreter,
-  spawn,
-  doneInvoke,
-  State,
-  createMachine,
-  send
-} from 'xstate';
-import {
-  render,
-  fireEvent,
-  cleanup,
-  waitForElement,
-  act
-} from '@testing-library/react';
 import { useState } from 'react';
-import { asEffect, asLayoutEffect } from '../src/useMachine';
-import { DoneEventObject } from 'xstate';
+import {
+  AnyState,
+  assign,
+  createMachine,
+  DoneEventObject,
+  doneInvoke,
+  Interpreter,
+  InterpreterFrom,
+  Machine,
+  send,
+  spawn,
+  State
+} from 'xstate';
+import { useActor, useMachine } from '../src';
+import { describeEachReactMode } from './utils';
 
-afterEach(cleanup);
+afterEach(() => {
+  jest.useRealTimers();
+});
 
-describe('useMachine hook', () => {
+describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
   const context = {
     data: undefined
   };
@@ -40,6 +38,7 @@ describe('useMachine hook', () => {
       },
       loading: {
         invoke: {
+          id: 'fetchData',
           src: 'fetchData',
           onDone: {
             target: 'success',
@@ -63,7 +62,7 @@ describe('useMachine hook', () => {
 
   const Fetcher: React.FC<{
     onFetch: () => Promise<any>;
-    persistedState?: State<any, any>;
+    persistedState?: AnyState;
   }> = ({
     onFetch = () => new Promise((res) => res('some data')),
     persistedState
@@ -92,27 +91,25 @@ describe('useMachine hook', () => {
   };
 
   it('should work with the useMachine hook', async () => {
-    const { getByText, getByTestId } = render(
-      <Fetcher onFetch={() => new Promise((res) => res('fake data'))} />
-    );
-    const button = getByText('Fetch');
+    render(<Fetcher onFetch={() => new Promise((res) => res('fake data'))} />);
+    const button = screen.getByText('Fetch');
     fireEvent.click(button);
-    getByText('Loading...');
-    await waitForElement(() => getByText(/Success/));
-    const dataEl = getByTestId('data');
+    screen.getByText('Loading...');
+    await screen.findByText(/Success/);
+    const dataEl = screen.getByTestId('data');
     expect(dataEl.textContent).toBe('fake data');
   });
 
   it('should work with the useMachine hook (rehydrated state)', async () => {
-    const { getByText, getByTestId } = render(
+    render(
       <Fetcher
         onFetch={() => new Promise((res) => res('fake data'))}
         persistedState={persistedFetchState}
       />
     );
 
-    await waitForElement(() => getByText(/Success/));
-    const dataEl = getByTestId('data');
+    await screen.findByText(/Success/);
+    const dataEl = screen.getByTestId('data');
     expect(dataEl.textContent).toBe('persisted data');
   });
 
@@ -120,15 +117,15 @@ describe('useMachine hook', () => {
     const persistedFetchStateConfig = JSON.parse(
       JSON.stringify(persistedFetchState)
     );
-    const { getByText, getByTestId } = render(
+    render(
       <Fetcher
         onFetch={() => new Promise((res) => res('fake data'))}
         persistedState={persistedFetchStateConfig}
       />
     );
 
-    await waitForElement(() => getByText(/Success/));
-    const dataEl = getByTestId('data');
+    await screen.findByText(/Success/);
+    const dataEl = screen.getByTestId('data');
     expect(dataEl.textContent).toBe('persisted data');
   });
 
@@ -219,8 +216,8 @@ describe('useMachine hook', () => {
       }
     };
 
-    const { getByTestId } = render(<Spawner />);
-    await waitForElement(() => getByTestId('success'));
+    render(<Spawner />);
+    await screen.findByTestId('success');
     done();
   });
 
@@ -269,10 +266,10 @@ describe('useMachine hook', () => {
       );
     };
 
-    const { getByTestId } = render(<Toggle />);
+    render(<Toggle />);
 
-    const button = getByTestId('button');
-    const extButton = getByTestId('extbutton');
+    const button = screen.getByTestId('button');
+    const extButton = screen.getByTestId('extbutton');
     fireEvent.click(extButton);
 
     fireEvent.click(button);
@@ -309,9 +306,9 @@ describe('useMachine hook', () => {
     });
 
     const ServiceApp: React.FC<{
-      service: Interpreter<TestContext, any, any, TestState>;
+      service: InterpreterFrom<typeof machine>;
     }> = ({ service }) => {
-      const [state] = useService(service);
+      const [state] = useActor(service);
 
       if (state.matches('loaded')) {
         const name = state.context.user.name;
@@ -346,203 +343,233 @@ describe('useMachine hook', () => {
     render(<App />);
   });
 
-  it('should capture all actions', (done) => {
-    let count = 0;
-
-    const machine = createMachine<any, { type: 'EVENT' }>({
-      initial: 'active',
-      states: {
-        active: {
-          on: {
-            EVENT: {
-              actions: asEffect(() => {
-                count++;
-              })
-            }
-          }
-        }
-      }
-    });
-
-    const App = () => {
-      const [stateCount, setStateCount] = useState(0);
-      const [state, send] = useMachine(machine);
-
-      React.useEffect(() => {
-        send('EVENT');
-        send('EVENT');
-        send('EVENT');
-        send('EVENT');
-      }, []);
-
-      React.useEffect(() => {
-        setStateCount((c) => c + 1);
-      }, [state]);
-
-      return <div data-testid="count">{stateCount}</div>;
-    };
-
-    const { getByTestId } = render(<App />);
-
-    const countEl = getByTestId('count');
-
-    // Component should only rerender twice:
-    // - 1 time for the initial state
-    // - and 1 time for the four (batched) events
-    expect(countEl.textContent).toEqual('2');
-    expect(count).toEqual(4);
-    done();
-  });
-
-  it('should capture initial actions', (done) => {
-    let count = 0;
+  it('should successfully spawn actors from the lazily declared context', () => {
+    let childSpawned = false;
 
     const machine = createMachine({
-      initial: 'active',
-      states: {
-        active: {
-          entry: asEffect(() => {
-            count++;
-          })
-        }
-      }
+      context: () => ({
+        ref: spawn(() => {
+          childSpawned = true;
+        })
+      })
     });
 
     const App = () => {
       useMachine(machine);
-
-      return <div />;
+      return null;
     };
 
     render(<App />);
 
-    expect(count).toEqual(1);
-    done();
+    expect(childSpawned).toBe(true);
   });
 
-  it('effects should happen after normal actions', (done) => {
-    const order: string[] = [];
-
-    const machine = createMachine({
-      initial: 'active',
-      states: {
-        active: {
-          entry: [
-            asEffect(() => {
-              order.push('effect');
-            }),
-            () => {
-              order.push('non-effect');
-            }
-          ]
-        }
-      }
-    });
-
-    const App = () => {
-      useMachine(machine);
-
-      return <div />;
-    };
-
-    render(<App />);
-
-    expect(order).toEqual(['non-effect', 'effect']);
-    done();
-  });
-
-  it('layout effects should happen after normal actions', (done) => {
-    const order: string[] = [];
+  it('should be able to use an action provided outside of React', () => {
+    let actionCalled = false;
 
     const machine = createMachine(
       {
-        initial: 'active',
-        states: {
-          active: {
-            entry: [
-              asEffect(() => {
-                order.push('effect');
-              }),
-              () => {
-                order.push('non-effect');
-              },
-              asLayoutEffect(() => {
-                order.push('layout effect');
-              }),
-              'stringEffect',
-              'stringLayoutEffect'
-            ]
+        on: {
+          EV: {
+            actions: 'foo'
           }
         }
       },
       {
         actions: {
-          stringEffect: asEffect(() => {
-            order.push('string effect');
-          }),
-          stringLayoutEffect: asLayoutEffect(() => {
-            order.push('string layout effect');
-          })
+          foo: () => (actionCalled = true)
         }
       }
     );
 
     const App = () => {
-      useMachine(machine);
-
-      return <div />;
+      const [_state, send] = useMachine(machine);
+      React.useEffect(() => {
+        send({ type: 'EV' });
+      }, []);
+      return null;
     };
 
     render(<App />);
 
-    expect(order).toEqual([
-      'non-effect',
-      'layout effect',
-      'string layout effect',
-      'effect',
-      'string effect'
-    ]);
-    done();
+    expect(actionCalled).toBe(true);
   });
 
-  it('initial effect actions should execute during the very first commit phase', (done) => {
-    let commitPhaseCounter = 0;
+  it('should be able to use a guard provided outside of React', () => {
+    let guardCalled = false;
 
-    const machine = createMachine({
-      initial: 'active',
-      states: {
-        active: {
-          entry: [
-            asLayoutEffect(() => {
-              expect(commitPhaseCounter).toBe(1);
-            }),
-            asEffect(() => {
-              expect(commitPhaseCounter).toBe(1);
-            })
-          ]
+    const machine = createMachine(
+      {
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              EV: {
+                cond: 'isAwesome',
+                target: 'b'
+              }
+            }
+          },
+          b: {}
         }
+      },
+      {
+        guards: {
+          isAwesome: () => {
+            guardCalled = true;
+            return true;
+          }
+        }
+      }
+    );
+
+    const App = () => {
+      const [_state, send] = useMachine(machine);
+      React.useEffect(() => {
+        send({ type: 'EV' });
+      }, []);
+      return null;
+    };
+
+    render(<App />);
+
+    expect(guardCalled).toBe(true);
+  });
+
+  it('should be able to use a service provided outside of React', () => {
+    let serviceCalled = false;
+
+    const machine = createMachine(
+      {
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              EV: 'b'
+            }
+          },
+          b: {
+            invoke: {
+              src: 'foo'
+            }
+          }
+        }
+      },
+      {
+        services: {
+          foo: () => {
+            serviceCalled = true;
+            return Promise.resolve();
+          }
+        }
+      }
+    );
+
+    const App = () => {
+      const [_state, send] = useMachine(machine);
+      React.useEffect(() => {
+        send({ type: 'EV' });
+      }, []);
+      return null;
+    };
+
+    render(<App />);
+
+    expect(serviceCalled).toBe(true);
+  });
+
+  it('should be able to use a delay provided outside of React', () => {
+    jest.useFakeTimers();
+
+    const machine = createMachine(
+      {
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              EV: 'b'
+            }
+          },
+          b: {
+            after: {
+              myDelay: 'c'
+            }
+          },
+          c: {}
+        }
+      },
+      {
+        delays: {
+          myDelay: () => {
+            return 300;
+          }
+        }
+      }
+    );
+
+    const App = () => {
+      const [state, send] = useMachine(machine);
+      return (
+        <>
+          <div data-testid="result">{state.value}</div>
+          <button onClick={() => send({ type: 'EV' })} />
+        </>
+      );
+    };
+
+    render(<App />);
+
+    const btn = screen.getByRole('button');
+    fireEvent.click(btn);
+
+    expect(screen.getByTestId('result').textContent).toBe('b');
+
+    act(() => {
+      jest.advanceTimersByTime(310);
+    });
+
+    expect(screen.getByTestId('result').textContent).toBe('c');
+  });
+
+  it('should not use stale data in a guard', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EV: {
+              cond: 'isAwesome',
+              target: 'b'
+            }
+          }
+        },
+        b: {}
       }
     });
 
-    const App = () => {
-      React.useLayoutEffect(() => {
-        commitPhaseCounter++;
+    const App = ({ isAwesome }: { isAwesome: boolean }) => {
+      const [state, send] = useMachine(machine, {
+        guards: {
+          isAwesome: () => isAwesome
+        }
       });
-      useMachine(machine);
-
-      return <div />;
+      return (
+        <>
+          <div data-testid="result">{state.value}</div>
+          <button onClick={() => send({ type: 'EV' })} />
+        </>
+      );
     };
 
-    render(
-      <React.StrictMode>
-        <App />
-      </React.StrictMode>
-    );
-    done();
-  });
-});
+    const { rerender } = render(<App isAwesome={false} />);
+    rerender(<App isAwesome={true} />);
 
-describe('useMachine (strict mode)', () => {
+    const btn = screen.getByRole('button');
+    fireEvent.click(btn);
+
+    expect(screen.getByTestId('result').textContent).toBe('b');
+  });
+
   it('should not invoke initial services more than once', () => {
     let activatedCount = 0;
     const machine = createMachine({
@@ -564,13 +591,9 @@ describe('useMachine (strict mode)', () => {
       return null;
     };
 
-    render(
-      <React.StrictMode>
-        <Test />
-      </React.StrictMode>
-    );
+    render(<Test />);
 
-    expect(activatedCount).toEqual(1);
+    expect(activatedCount).toEqual(suiteKey === 'strict' ? 2 : 1);
   });
 
   it('child component should be able to send an event to a parent immediately in an effect', (done) => {
@@ -604,14 +627,10 @@ describe('useMachine (strict mode)', () => {
       return <ChildTest send={send} />;
     };
 
-    render(
-      <React.StrictMode>
-        <Test />
-      </React.StrictMode>
-    );
+    render(<Test />);
   });
 
-  it('custom data should be available right away for the invoked actor', (done) => {
+  it('custom data should be available right away for the invoked actor', () => {
     const childMachine = Machine({
       initial: 'intitial',
       context: {
@@ -646,69 +665,56 @@ describe('useMachine (strict mode)', () => {
       return null;
     };
 
-    render(
-      <React.StrictMode>
-        <Test />
-      </React.StrictMode>
-    );
-    done();
+    render(<Test />);
   });
 
-  // https://github.com/davidkpiano/xstate/issues/1334
+  // https://github.com/statelyai/xstate/issues/1334
   it('delayed transitions should work when initializing from a rehydrated state', () => {
     jest.useFakeTimers();
-    try {
-      const testMachine = Machine<any, { type: 'START' }>({
-        id: 'app',
-        initial: 'idle',
-        states: {
-          idle: {
-            on: {
-              START: 'doingStuff'
-            }
-          },
-          doingStuff: {
-            id: 'doingStuff',
-            after: {
-              100: 'idle'
-            }
+    const testMachine = Machine<any, { type: 'START' }>({
+      id: 'app',
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            START: 'doingStuff'
+          }
+        },
+        doingStuff: {
+          id: 'doingStuff',
+          after: {
+            100: 'idle'
           }
         }
+      }
+    });
+
+    const persistedState = JSON.stringify(testMachine.initialState);
+
+    let currentState: State<any, any, any, any, any>;
+
+    const Test = () => {
+      const [state, send] = useMachine(testMachine, {
+        state: State.create(JSON.parse(persistedState))
       });
 
-      const persistedState = JSON.stringify(testMachine.initialState);
+      currentState = state;
 
-      let currentState;
-
-      const Test = () => {
-        const [state, send] = useMachine(testMachine, {
-          state: State.create(JSON.parse(persistedState))
-        });
-
-        currentState = state;
-
-        return (
-          <button onClick={() => send('START')} data-testid="button"></button>
-        );
-      };
-
-      const { getByTestId } = render(
-        <React.StrictMode>
-          <Test />
-        </React.StrictMode>
+      return (
+        <button onClick={() => send('START')} data-testid="button"></button>
       );
+    };
 
-      const button = getByTestId('button');
+    render(<Test />);
 
-      fireEvent.click(button);
-      act(() => {
-        jest.advanceTimersByTime(110);
-      });
+    const button = screen.getByTestId('button');
 
-      expect(currentState.matches('idle')).toBe(true);
-    } finally {
-      jest.useRealTimers();
-    }
+    fireEvent.click(button);
+    act(() => {
+      jest.advanceTimersByTime(110);
+    });
+
+    expect(currentState!.matches('idle')).toBe(true);
   });
 
   it('should accept a lazily created machine', () => {

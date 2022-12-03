@@ -10,7 +10,8 @@ import {
   EventObject,
   StateValue,
   AnyEventObject,
-  createMachine
+  createMachine,
+  AnyState
 } from '../src';
 import { State } from '../src/State';
 import { log, actionTypes, raise, stop } from '../src/actions';
@@ -78,7 +79,7 @@ describe('interpreter', () => {
       let entryCalled = 0;
       let promiseSpawned = 0;
 
-      const machine = createMachine<any>({
+      const machine = createMachine<any, any, any>({
         initial: 'idle',
         context: {
           actor: undefined
@@ -119,7 +120,7 @@ describe('interpreter', () => {
       }, 100);
     });
 
-    // https://github.com/davidkpiano/xstate/issues/1174
+    // https://github.com/statelyai/xstate/issues/1174
     it('executes actions from a restored state', (done) => {
       const lightMachine = Machine(
         {
@@ -163,10 +164,9 @@ describe('interpreter', () => {
       // saves state and recreate it
       const recreated = JSON.parse(JSON.stringify(nextState));
       const previousState = State.create(recreated);
-      const resolvedState = lightMachine.resolveState(previousState);
 
       const service = interpret(lightMachine);
-      service.start(resolvedState);
+      service.start(previousState);
     });
   });
 
@@ -217,8 +217,11 @@ describe('interpreter', () => {
 
   describe('send with delay', () => {
     it('can send an event after a delay', () => {
-      const currentStates: Array<State<any>> = [];
-      const listener = (state) => {
+      const currentStates: Array<AnyState> = [];
+
+      const service = interpret(lightMachine, {
+        clock: new SimulatedClock()
+      }).onTransition((state) => {
         currentStates.push(state);
 
         if (currentStates.length === 4) {
@@ -229,11 +232,7 @@ describe('interpreter', () => {
             'green'
           ]);
         }
-      };
-
-      const service = interpret(lightMachine, {
-        clock: new SimulatedClock()
-      }).onTransition(listener);
+      });
       const clock = service.clock as SimulatedClock;
       service.start();
 
@@ -496,7 +495,7 @@ describe('interpreter', () => {
     });
   });
 
-  describe('activities', () => {
+  describe('activities (deprecated)', () => {
     let activityState = 'off';
 
     const activityMachine = Machine(
@@ -632,12 +631,11 @@ describe('interpreter', () => {
   });
 
   it('can cancel a delayed event', () => {
-    let currentState: State<any>;
-    const listener = (state) => (currentState = state);
+    let currentState: AnyState;
 
     const service = interpret(lightMachine, {
       clock: new SimulatedClock()
-    }).onTransition(listener);
+    }).onTransition((state) => (currentState = state));
     const clock = service.clock as SimulatedClock;
     service.start();
 
@@ -944,7 +942,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         }
       });
 
-      let state: State<any>;
+      let state: AnyState;
 
       interpret(raiseMachine)
         .onTransition((s) => {
@@ -1165,7 +1163,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
   });
 
   describe('send()', () => {
-    const sendMachine = Machine({
+    const sendMachine = createMachine({
       id: 'send',
       initial: 'inactive',
       states: {
@@ -1173,7 +1171,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
           on: {
             EVENT: {
               target: 'active',
-              cond: (_, e: any) => e.id === 42 // TODO: fix unknown event type
+              cond: (_: any, e: any) => e.id === 42 // TODO: fix unknown event type
             },
             ACTIVATE: 'active'
           }
@@ -1752,6 +1750,46 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       service.send('INC');
       service.send('INC');
     });
+
+    it('should call complete() once a final state is reached', () => {
+      const completeCb = jest.fn();
+
+      const service = interpret(
+        createMachine({
+          initial: 'idle',
+          states: {
+            idle: {
+              on: {
+                NEXT: 'done'
+              }
+            },
+            done: { type: 'final' }
+          }
+        })
+      ).start();
+
+      service.subscribe({
+        complete: completeCb
+      });
+
+      service.send({ type: 'NEXT' });
+
+      expect(completeCb).toHaveBeenCalledTimes(1);
+    });
+
+    it('should call complete() once the interpreter is stopped', () => {
+      const completeCb = jest.fn();
+
+      const service = interpret(createMachine({})).start();
+
+      service.subscribe({
+        complete: completeCb
+      });
+
+      service.stop();
+
+      expect(completeCb).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('services', () => {
@@ -1853,16 +1891,16 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         }
       });
 
-      const subscriber = (data) => {
-        expect(data).toEqual(42);
-        done();
-      };
-      let subscription;
+      let subscribed = false;
 
       const service = interpret(parentMachine)
         .onTransition((state) => {
-          if (state.children.childActor && !subscription) {
-            subscription = state.children.childActor.subscribe(subscriber);
+          if (state.children.childActor && !subscribed) {
+            subscribed = true;
+            state.children.childActor.subscribe((data) => {
+              expect(data).toEqual(42);
+              done();
+            });
           }
         })
         .onDone(() => {
@@ -1887,7 +1925,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
             on: {
               FIRED: {
                 target: 'success',
-                cond: (_, e: AnyEventObject) => {
+                cond: (_: unknown, e: AnyEventObject) => {
                   return e.value === 3;
                 }
               }
@@ -1899,21 +1937,21 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         }
       });
 
-      const subscriber = (data) => {
-        if (data.value === 3) {
-          done();
-        }
-      };
-      let subscription;
+      let subscribed = false;
 
       const service = interpret(parentMachine)
         .onTransition((state) => {
           if (
             state.matches('active') &&
             state.children.childActor &&
-            !subscription
+            !subscribed
           ) {
-            subscription = state.children.childActor.subscribe(subscriber);
+            subscribed = true;
+            state.children.childActor.subscribe((data) => {
+              if (data.value === 3) {
+                done();
+              }
+            });
           }
         })
         .onDone(() => {
@@ -1931,7 +1969,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         }
       });
 
-      const formMachine = createMachine<any>({
+      const formMachine = createMachine<any, any, any>({
         id: 'form',
         initial: 'idle',
         context: {},

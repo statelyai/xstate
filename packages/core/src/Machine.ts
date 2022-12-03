@@ -1,16 +1,25 @@
-import {
-  StateMachine,
-  MachineOptions,
-  DefaultContext,
-  MachineConfig,
-  StateSchema,
-  EventObject,
-  AnyEventObject,
-  Typestate,
-  EventFrom
-} from './types';
 import { StateNode } from './StateNode';
-import { Model, ModelContextFrom } from './model.types';
+import {
+  AnyEventObject,
+  BaseActionObject,
+  DefaultContext,
+  EventObject,
+  MachineConfig,
+  MachineOptions,
+  InternalMachineOptions,
+  StateMachine,
+  StateSchema,
+  Typestate,
+  ServiceMap
+} from './types';
+import {
+  TypegenConstraint,
+  TypegenDisabled,
+  ResolveTypegenMeta
+} from './typegenTypes';
+import { IS_PRODUCTION } from './environment';
+
+let warned = false;
 
 /**
  * @deprecated Use `createMachine(...)` instead.
@@ -20,65 +29,125 @@ export function Machine<
   TEvent extends EventObject = AnyEventObject
 >(
   config: MachineConfig<TContext, any, TEvent>,
-  options?: Partial<MachineOptions<TContext, TEvent>>,
+  options?: InternalMachineOptions<
+    TContext,
+    TEvent,
+    ResolveTypegenMeta<TypegenDisabled, TEvent, BaseActionObject, ServiceMap>
+  >,
   initialContext?: TContext
-): StateMachine<TContext, any, TEvent>;
+): StateMachine<
+  TContext,
+  any,
+  TEvent,
+  any,
+  BaseActionObject,
+  ServiceMap,
+  ResolveTypegenMeta<TypegenDisabled, TEvent, BaseActionObject, ServiceMap>
+>;
 export function Machine<
   TContext = DefaultContext,
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = AnyEventObject
 >(
   config: MachineConfig<TContext, TStateSchema, TEvent>,
-  options?: Partial<MachineOptions<TContext, TEvent>>,
+  options?: InternalMachineOptions<
+    TContext,
+    TEvent,
+    ResolveTypegenMeta<TypegenDisabled, TEvent, BaseActionObject, ServiceMap>
+  >,
   initialContext?: TContext
-): StateMachine<TContext, TStateSchema, TEvent>;
+): StateMachine<
+  TContext,
+  TStateSchema,
+  TEvent,
+  any,
+  BaseActionObject,
+  ServiceMap,
+  ResolveTypegenMeta<TypegenDisabled, TEvent, BaseActionObject, ServiceMap>
+>;
 export function Machine<
   TContext = DefaultContext,
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = AnyEventObject
 >(
   config: MachineConfig<TContext, TStateSchema, TEvent>,
-  options?: Partial<MachineOptions<TContext, TEvent>>,
+  options?: MachineOptions<TContext, TEvent>,
   initialContext: TContext | (() => TContext) | undefined = config.context
-): StateMachine<TContext, TStateSchema, TEvent> {
+): any {
   return new StateNode<TContext, TStateSchema, TEvent>(
     config,
     options,
     initialContext
-  ) as StateMachine<TContext, TStateSchema, TEvent>;
+  ) as any;
 }
 
 export function createMachine<
-  TModel extends Model<any, any, any>,
-  TContext = ModelContextFrom<TModel>,
-  TEvent extends EventObject = EventFrom<TModel>,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TContext,
+  TEvent extends EventObject = AnyEventObject,
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext },
+  TServiceMap extends ServiceMap = ServiceMap,
+  TTypesMeta extends TypegenConstraint = TypegenDisabled
 >(
-  config: MachineConfig<TContext, any, TEvent> & { context: TContext },
-  options?: Partial<MachineOptions<TContext, TEvent>>
-): StateMachine<TContext, any, TEvent, TTypestate>;
+  config: MachineConfig<
+    TContext,
+    any,
+    TEvent,
+    BaseActionObject,
+    TServiceMap,
+    TTypesMeta
+  >,
+  options?: InternalMachineOptions<
+    TContext,
+    TEvent,
+    ResolveTypegenMeta<TTypesMeta, TEvent, BaseActionObject, TServiceMap>
+  >
+): StateMachine<
+  TContext,
+  any,
+  TEvent,
+  TTypestate,
+  BaseActionObject,
+  TServiceMap,
+  ResolveTypegenMeta<TTypesMeta, TEvent, BaseActionObject, TServiceMap>
+>;
+
 export function createMachine<
   TContext,
   TEvent extends EventObject = AnyEventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext },
+  TServiceMap extends ServiceMap = ServiceMap,
+  TTypesMeta extends TypegenConstraint = TypegenDisabled
 >(
-  // Ensure that only the first overload matches models, and prevent
-  // accidental inference of the model as the `TContext` (which leads to cryptic errors)
-  config: TContext extends Model<any, any, any>
-    ? never
-    : MachineConfig<TContext, any, TEvent>,
-  options?: Partial<MachineOptions<TContext, TEvent>>
-): StateMachine<TContext, any, TEvent, TTypestate>;
-export function createMachine<
+  config: MachineConfig<
+    TContext,
+    any,
+    TEvent,
+    BaseActionObject,
+    TServiceMap,
+    TTypesMeta
+  >,
+  options?: MachineOptions<
+    TContext,
+    TEvent,
+    BaseActionObject,
+    TServiceMap,
+    TTypesMeta
+  >
+): StateMachine<
   TContext,
-  TEvent extends EventObject = AnyEventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
->(
-  config: MachineConfig<TContext, any, TEvent>,
-  options?: Partial<MachineOptions<TContext, TEvent>>
-): StateMachine<TContext, any, TEvent, TTypestate> {
-  return new StateNode<TContext, any, TEvent, TTypestate>(
-    config,
-    options
-  ) as StateMachine<TContext, any, TEvent, TTypestate>;
+  any,
+  TEvent,
+  TTypestate,
+  BaseActionObject,
+  TServiceMap,
+  TTypesMeta
+> {
+  if (!IS_PRODUCTION && !('predictableActionArguments' in config) && !warned) {
+    warned = true;
+    console.warn(
+      'It is highly recommended to set `predictableActionArguments` to `true` when using `createMachine`. https://xstate.js.org/docs/guides/actions.html'
+    );
+  }
+
+  return new StateNode(config, options as any) as any;
 }

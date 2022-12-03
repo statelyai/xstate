@@ -8,7 +8,9 @@ import {
   StateValue,
   createMachine,
   Behavior,
-  ActorContext
+  ActorContext,
+  SpecialTargets,
+  AnyState
 } from '../src';
 import { fromReducer } from '../src/behaviors';
 import {
@@ -42,7 +44,7 @@ const fetchMachine = Machine<{ userId: string | undefined }>({
     },
     success: {
       type: 'final',
-      data: { user: (_, e) => e.user }
+      data: { user: (_: any, e: any) => e.user }
     },
     failure: {
       entry: sendParent('REJECT')
@@ -68,7 +70,7 @@ const fetcherMachine = Machine({
       invoke: {
         src: fetchMachine,
         data: {
-          userId: (ctx) => ctx.selectedUserId
+          userId: (ctx: any) => ctx.selectedUserId
         },
         onDone: {
           target: 'received',
@@ -284,15 +286,14 @@ describe('invoke', () => {
                 cond: (ctx) => {
                   actual.push('child got INCREMENT');
                   return ctx.count >= 2;
-                }
+                },
+                actions: assign((ctx) => ({ count: ++ctx.count }))
               },
               {
-                target: undefined
+                target: undefined,
+                actions: assign((ctx) => ({ count: ++ctx.count }))
               }
-            ].map((transition) => ({
-              ...transition,
-              actions: assign((ctx) => ({ count: ++ctx.count }))
-            }))
+            ]
           }
         },
         done: {
@@ -385,15 +386,14 @@ describe('invoke', () => {
                 cond: (ctx) => {
                   actual.push('child got INCREMENT');
                   return ctx.count >= 2;
-                }
+                },
+                actions: assign((ctx) => ({ count: ++ctx.count }))
               },
               {
-                target: undefined
+                target: undefined,
+                actions: assign((ctx) => ({ count: ++ctx.count }))
               }
-            ].map((transition) => ({
-              ...transition,
-              actions: assign((ctx) => ({ count: ++ctx.count }))
-            }))
+            ]
           }
         },
         done: {
@@ -787,7 +787,7 @@ describe('invoke', () => {
       });
 
       const expectedStateValue = 'two';
-      let currentState;
+      let currentState: AnyState;
       interpret(mainMachine)
         .onTransition((current) => (currentState = current))
         .start();
@@ -842,7 +842,7 @@ describe('invoke', () => {
     });
 
     it('should not reinvoke root-level invocations', (done) => {
-      // https://github.com/davidkpiano/xstate/issues/2147
+      // https://github.com/statelyai/xstate/issues/2147
 
       let invokeCount = 0;
       let invokeDisposeCount = 0;
@@ -888,6 +888,110 @@ describe('invoke', () => {
       expect(invokeDisposeCount).toEqual(0);
       expect(actionsCount).toEqual(2);
       done();
+    });
+
+    it('should stop a child actor when reaching a final state', () => {
+      let actorStopped = false;
+
+      const machine = createMachine({
+        id: 'machine',
+        invoke: {
+          src: () => () => () => (actorStopped = true)
+        },
+        initial: 'running',
+        states: {
+          running: {
+            on: {
+              finished: 'complete'
+            }
+          },
+          complete: { type: 'final' }
+        }
+      });
+
+      const service = interpret(machine).start();
+
+      service.send({
+        type: 'finished'
+      });
+
+      expect(actorStopped).toBe(true);
+    });
+
+    it('child should not invoke an actor when it transitions to an invoking state when it gets stopped by its parent', (done) => {
+      let invokeCount = 0;
+
+      const child = createMachine({
+        id: 'child',
+        initial: 'idle',
+        states: {
+          idle: {
+            invoke: {
+              src: () => {
+                invokeCount++;
+
+                if (invokeCount > 1) {
+                  // prevent a potential infinite loop
+                  throw new Error('This should be impossible.');
+                }
+
+                return (sendBack) => {
+                  // it's important for this test to send the event back when the parent is *not* currently processing an event
+                  // this ensures that the parent can process the received event immediately and can stop the child immediately
+                  setTimeout(() => sendBack({ type: 'STARTED' }));
+                };
+              }
+            },
+            on: {
+              STARTED: 'active'
+            }
+          },
+          active: {
+            invoke: {
+              src: () => {
+                return (sendBack) => {
+                  sendBack({ type: 'STOPPED' });
+                };
+              }
+            },
+            on: {
+              STOPPED: {
+                target: 'idle',
+                actions: forwardTo(SpecialTargets.Parent)
+              }
+            }
+          }
+        }
+      });
+      const parent = createMachine({
+        id: 'parent',
+        initial: 'idle',
+        states: {
+          idle: {
+            on: {
+              START: 'active'
+            }
+          },
+          active: {
+            invoke: { src: child },
+            on: {
+              STOPPED: 'done'
+            }
+          },
+          done: {
+            type: 'final'
+          }
+        }
+      });
+
+      const service = interpret(parent)
+        .onDone(() => {
+          expect(invokeCount).toBe(1);
+          done();
+        })
+        .start();
+
+      service.send('START');
     });
   });
 
@@ -1618,11 +1722,8 @@ describe('invoke', () => {
       });
 
       const expectedStateValue = 'failed';
-      let currentState;
-      interpret(errorMachine)
-        .onTransition((current) => (currentState = current))
-        .start();
-      expect(currentState.value).toEqual(expectedStateValue);
+      const service = interpret(errorMachine).start();
+      expect(service.state.value).toEqual(expectedStateValue);
     });
 
     it('should call onError upon error (async)', (done) => {
@@ -2600,6 +2701,238 @@ describe('invoke', () => {
       .onDone(() => done())
       .start();
   });
+
+  describe('meta data', () => {
+    it('should show meta data', () => {
+      const machine = createMachine({
+        invoke: {
+          src: 'someSource',
+          meta: {
+            url: 'stately.ai'
+          }
+        }
+      });
+
+      expect(machine.invoke[0].meta).toEqual({ url: 'stately.ai' });
+    });
+
+    it('meta data should be available in the invoke source function', () => {
+      expect.assertions(1);
+      const machine = createMachine({
+        invoke: {
+          src: (_ctx, _e, { meta }) => {
+            expect(meta).toEqual({ url: 'stately.ai' });
+            return Promise.resolve();
+          },
+          meta: {
+            url: 'stately.ai'
+          }
+        }
+      });
+
+      interpret(machine).start();
+    });
+  });
+
+  it('invoke generated ID should be predictable based on the state node where it is defined', (done) => {
+    const machine = createMachine(
+      {
+        initial: 'a',
+        states: {
+          a: {
+            invoke: {
+              src: 'someSrc',
+              onDone: {
+                cond: (_, e) => {
+                  // invoke ID should not be 'someSrc'
+                  const expectedType = 'done.invoke.(machine).a:invocation[0]';
+                  expect(e.type).toEqual(expectedType);
+                  return e.type === expectedType;
+                },
+                target: 'b'
+              }
+            }
+          },
+          b: {
+            type: 'final'
+          }
+        }
+      },
+      {
+        services: {
+          someSrc: () => Promise.resolve()
+        }
+      }
+    );
+
+    interpret(machine)
+      .onDone(() => {
+        done();
+      })
+      .start();
+  });
+
+  it.each([
+    ['src with string reference', { src: 'someSrc' }],
+    ['machine', createMachine({ id: 'someId' })],
+    [
+      'src containing a machine directly',
+      { src: createMachine({ id: 'someId' }) }
+    ],
+    [
+      'src containing a callback actor directly',
+      {
+        src: () => () => {
+          /* ... */
+        }
+      }
+    ],
+    [
+      'src containing a parametrized invokee with id parameter',
+      {
+        src: {
+          type: 'someSrc',
+          id: 'h4sh'
+        }
+      }
+    ]
+  ])(
+    'invoke config defined as %s should register unique and predictable child in state',
+    (_type, invokeConfig) => {
+      const machine = createMachine(
+        {
+          id: 'machine',
+          initial: 'a',
+          states: {
+            a: {
+              invoke: invokeConfig
+            }
+          }
+        },
+        {
+          services: {
+            someSrc: () => () => {
+              /* ... */
+            }
+          }
+        }
+      );
+
+      expect(
+        machine.initialState.children['machine.a:invocation[0]']
+      ).toBeDefined();
+    }
+  );
+
+  // https://github.com/statelyai/xstate/issues/464
+  it('done.invoke events should only select onDone transition on the invoking state when invokee is referenced using a string', (done) => {
+    let counter = 0;
+    let invoked = false;
+
+    const createSingleState = (): any => ({
+      initial: 'fetch',
+      states: {
+        fetch: {
+          invoke: {
+            src: 'fetchSmth',
+            onDone: {
+              actions: 'handleSuccess'
+            }
+          }
+        }
+      }
+    });
+
+    const testMachine = createMachine(
+      {
+        type: 'parallel',
+        states: {
+          first: createSingleState(),
+          second: createSingleState()
+        }
+      },
+      {
+        actions: {
+          handleSuccess: () => {
+            ++counter;
+          }
+        },
+        services: {
+          fetchSmth: () => {
+            if (invoked) {
+              // create a promise that won't ever resolve for the second invoking state
+              return new Promise(() => {});
+            }
+            invoked = true;
+            return Promise.resolve(42);
+          }
+        }
+      }
+    );
+
+    interpret(testMachine).start();
+
+    // check within a macrotask so all promise-induced microtasks have a chance to resolve first
+    setTimeout(() => {
+      expect(counter).toEqual(1);
+      done();
+    }, 0);
+  });
+
+  it('done.invoke events should have unique names when invokee is a machine with an id property', (done) => {
+    const actual: string[] = [];
+
+    const childMachine = createMachine({
+      id: 'child',
+      initial: 'a',
+      states: {
+        a: {
+          invoke: {
+            src: () => Promise.resolve(42),
+            onDone: 'b'
+          }
+        },
+        b: {
+          type: 'final'
+        }
+      }
+    });
+
+    const createSingleState = (): any => ({
+      initial: 'fetch',
+      states: {
+        fetch: {
+          invoke: childMachine
+        }
+      }
+    });
+
+    const testMachine = createMachine({
+      type: 'parallel',
+      states: {
+        first: createSingleState(),
+        second: createSingleState()
+      },
+      on: {
+        '*': {
+          actions: (_ctx, ev) => {
+            actual.push(ev.type);
+          }
+        }
+      }
+    });
+
+    interpret(testMachine).start();
+
+    // check within a macrotask so all promise-induced microtasks have a chance to resolve first
+    setTimeout(() => {
+      expect(actual).toEqual([
+        'done.invoke.(machine).first.fetch:invocation[0]',
+        'done.invoke.(machine).second.fetch:invocation[0]'
+      ]);
+      done();
+    }, 0);
+  });
 });
 
 describe('services option', () => {
@@ -2616,7 +2949,7 @@ describe('services option', () => {
               src: 'stringService',
               data: {
                 staticVal: 'hello',
-                newCount: (ctx) => ctx.count * 2
+                newCount: (ctx: any) => ctx.count * 2
               },
               onDone: 'success'
             }

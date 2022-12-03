@@ -1,5 +1,7 @@
 # @xstate/react
 
+The [@xstate/react package](https://github.com/statelyai/xstate/tree/main/packages/xstate-react) contains utilities for using [XState](https://github.com/statelyai/xstate) with [React](https://github.com/facebook/react/).
+
 [[toc]]
 
 ## Quick Start
@@ -84,32 +86,13 @@ A [React hook](https://reactjs.org/hooks) that interprets the given `machine` an
   );
   ```
 
-- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `immediate`, `context`, `state`.
+- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `immediate`, `context`, `state`. If the machine already contains any of these options, they will be merged, with these options taking precedence.
 
 **Returns** a tuple of `[state, send, service]`:
 
 - `state` - Represents the current state of the machine as an XState `State` object.
 - `send` - A function that sends events to the running service.
 - `service` - The created service.
-
-### `useService(service)`
-
-::: warning Deprecated
-
-In the next major version, `useService(service)` will be replaced with `useActor(service)`. Prefer using the `useActor(service)` hook for services instead, since services are also actors.
-
-:::
-
-A [React hook](https://reactjs.org/hooks) that subscribes to state changes from an existing [service](https://xstate.js.org/docs/guides/interpretation.html).
-
-**Arguments**
-
-- `service` - An [XState service](https://xstate.js.org/docs/guides/interpretation.html).
-
-**Returns** a tuple of `[state, send]`:
-
-- `state` - Represents the current state of the service as an XState `State` object.
-- `send` - A function that sends events to the running service.
 
 ### `useActor(actor, getSnapshot?)`
 
@@ -119,7 +102,7 @@ A [React hook](https://reactjs.org/hooks) that subscribes to emitted changes fro
 
 - `actor` - an actor-like object that contains `.send(...)` and `.subscribe(...)` methods.
 - `getSnapshot` - a function that should return the latest emitted value from the `actor`.
-  - Defaults to attempting to get the `actor.state`, or returning `undefined` if that does not exist.
+  - Defaults to attempting to get the snapshot from `actor.getSnapshot()`, or returning `undefined` if that does not exist.
 
 ```js
 const [state, send] = useActor(someSpawnedActor);
@@ -133,14 +116,18 @@ const [state, send] = useActor(customActor, (actor) => {
 
 ### `useInterpret(machine, options?, observer?)`
 
-A React hook that returns the `service` created from the `machine` with the `options`, if specified. It also sets up a subscription to the `service` with the `observer`, if provided.
+A React hook that returns the `service` created from the `machine` with the `options`, if specified. It starts the service and runs it for the lifetime of the component. This is similar to `useMachine`; however, `useInterpret` allows for a custom `observer` to subscribe to the `service`.
+
+The `useInterpret` is useful when you want fine-grained control, e.g. to add logging, or minimize re-renders. In contrast to `useMachine` that would flush each update from the machine to the React component, `useInterpret` instead returns a static reference (to just the interpreted machine) which will not rerender when its state changes.
+
+To use a piece of state from the service inside a render, use the `useSelector(...)` hook to subscribe to it.
 
 _Since 1.3.0_
 
 **Arguments**
 
 - `machine` - An [XState machine](https://xstate.js.org/docs/guides/machines.html) or a function that lazily returns a machine.
-- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `immediate`, `context`, `state`.
+- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) and/or any of the following machine config options: `guards`, `actions`, `services`, `delays`, `immediate`, `context`, `state`. If the machine already contains any of these options, they will be merged, with these options taking precedence.
 - `observer` (optional) - an observer or listener that listens to state updates:
   - an observer (e.g., `{ next: (state) => {/* ... */} }`)
   - or a listener (e.g., `(state) => {/* ... */}`)
@@ -191,7 +178,7 @@ _Since 1.3.0_
 - `selector` - a function that takes in an actor's "current state" (snapshot) as an argument and returns the desired selected value.
 - `compare` (optional) - a function that determines if the current selected value is the same as the previous selected value.
 - `getSnapshot` (optional) - a function that should return the latest emitted value from the `actor`.
-  - Defaults to attempting to get the `actor.state`, or returning `undefined` if that does not exist. Will automatically pull the state from services.
+  - Defaults to attempting to get the snapshot from `actor.getSnapshot()`, or returning `undefined` if that does not exist. Will automatically pull the state from services.
 
 ```js
 import { useSelector } from '@xstate/react';
@@ -221,6 +208,30 @@ const App = ({ service }) => {
 };
 ```
 
+### Shallow comparison
+
+The default comparison is a strict reference comparison (`===`). If your selector returns non-primitive values, such as objects or arrays, you should keep this in mind and either return the same reference, or provide a shallow or deep comparator.
+
+The `shallowEqual(...)` comparator function is available for shallow comparison:
+
+```js
+import { useSelector, shallowEqual } from '@xstate/react';
+
+// ...
+
+const selectUser = (state) => state.context.user;
+
+const App = ({ service }) => {
+  // shallowEqual comparator is needed to compare the object, whose
+  // reference might change despite the shallow object values being equal
+  const user = useSelector(service, selectUser, shallowEqual);
+
+  // ...
+};
+```
+
+:::
+
 With `useInterpret(...)`:
 
 ```js
@@ -229,7 +240,7 @@ import { someMachine } from '../path/to/someMachine';
 
 const selectCount = (state) => state.context.count;
 
-const App = ({ service }) => {
+const App = () => {
   const service = useInterpret(someMachine);
   const count = useSelector(service, selectCount);
 
@@ -237,53 +248,7 @@ const App = ({ service }) => {
 };
 ```
 
-### `asEffect(action)`
-
-Ensures that the `action` is executed as an effect in `useEffect`, rather than being immediately executed.
-
-**Arguments**
-
-- `action` - An action function (e.g., `(context, event) => { alert(context.message) })`)
-
-**Returns** a special action function that wraps the original so that `useMachine` knows to execute it in `useEffect`.
-
-**Example**
-
-```jsx
-const machine = createMachine({
-  initial: 'focused',
-  states: {
-    focused: {
-      entry: 'focus'
-    }
-  }
-});
-
-const Input = () => {
-  const inputRef = useRef(null);
-  const [state, send] = useMachine(machine, {
-    actions: {
-      focus: asEffect((context, event) => {
-        inputRef.current && inputRef.current.focus();
-      })
-    }
-  });
-
-  return <input ref={inputRef} />;
-};
-```
-
-### `asLayoutEffect(action)`
-
-Ensures that the `action` is executed as an effect in `useLayoutEffect`, rather than being immediately executed.
-
-**Arguments**
-
-- `action` - An action function (e.g., `(context, event) => { alert(context.message) })`)
-
-**Returns** a special action function that wraps the original so that `useMachine` knows to execute it in `useLayoutEffect`.
-
-### `useMachine(machine)` with `@xstate/fsm`
+### `useMachine(machine, options?)` with `@xstate/fsm`
 
 A [React hook](https://reactjs.org/hooks) that interprets the given finite state `machine` from [`@xstate/fsm`] and starts a service that runs for the lifetime of the component.
 
@@ -424,7 +389,7 @@ const Fetcher = ({ onResolve }) => {
   switch (state.value) {
     case 'idle':
       return (
-        <button onClick={() => send('FETCH', { query: 'something' })}>
+        <button onClick={() => send({ type: 'FETCH', query: 'something' })}>
           Search for something
         </button>
       );
@@ -543,18 +508,6 @@ useEffect(() => {
   return subscription.unsubscribe;
 }, [service]); // note: service should never change
 ```
-
-## Migration from 0.x
-
-- For spawned actors created using `invoke` or `spawn(...)`, use the `useActor()` hook instead of `useService()`:
-
-  ```diff
-  -import { useService } from '@xstate/react';
-  +import { useActor } from '@xstate/react';
-
-  -const [state, send] = useService(someActor);
-  +const [state, send] = useActor(someActor);
-  ```
 
 ## Resources
 

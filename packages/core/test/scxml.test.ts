@@ -4,10 +4,9 @@ import * as pkgUp from 'pkg-up';
 // import * as util from 'util';
 
 import { toMachine } from '../src/scxml';
-import { StateNode } from '../src/StateNode';
 import { interpret } from '../src/interpreter';
 import { SimulatedClock } from '../src/SimulatedClock';
-import { State } from '../src';
+import { AnyState, AnyStateMachine } from '../src';
 import { pathsToStateValue } from '../src/utils';
 // import { StateValue } from '../src/types';
 // import { Event, StateValue, ActionObject } from '../src/types';
@@ -19,7 +18,7 @@ const TEST_FRAMEWORK = path.dirname(
   }) as string
 );
 
-const testGroups = {
+const testGroups: Record<string, string[]> = {
   actionSend: [
     'send1',
     'send2',
@@ -339,7 +338,7 @@ const testGroups = {
   ]
 };
 
-const overrides = {
+const overrides: Record<string, string[]> = {
   'assign-current-small-step': [
     // original using <script/> to manipulate datamodel
     'test0'
@@ -355,9 +354,9 @@ interface SCIONTest {
   }>;
 }
 
-async function runW3TestToCompletion(machine: StateNode): Promise<void> {
+async function runW3TestToCompletion(machine: AnyStateMachine): Promise<void> {
   await new Promise<void>((resolve, reject) => {
-    let nextState: State<any>;
+    let nextState: AnyState;
 
     interpret(machine)
       .onTransition((state) => {
@@ -375,7 +374,7 @@ async function runW3TestToCompletion(machine: StateNode): Promise<void> {
 }
 
 async function runTestToCompletion(
-  machine: StateNode,
+  machine: AnyStateMachine,
   test: SCIONTest
 ): Promise<void> {
   if (!test.events.length && test.initialConfiguration[0] === 'pass') {
@@ -388,7 +387,7 @@ async function runTestToCompletion(
     )
   );
   let done = false;
-  let nextState: State<any> = machine.getInitialState(resolvedStateValue);
+  let nextState: AnyState = machine.getInitialState(resolvedStateValue);
   const service = interpret(machine, {
     clock: new SimulatedClock()
   })

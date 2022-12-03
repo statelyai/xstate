@@ -19,7 +19,7 @@ import {
   forwardTo,
   error
 } from '../src/actions';
-import { interval } from 'rxjs';
+import { interval, EMPTY } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { fromPromise } from '../src/behaviors';
 
@@ -480,7 +480,7 @@ describe('actors', () => {
           entry: assign({
             refs: (ctx) => {
               count++;
-              const c = ctx.items.map((item) =>
+              const c = ctx.items.map((item: any) =>
                 spawn(new Promise((res) => res(item)))
               );
 
@@ -496,6 +496,84 @@ describe('actors', () => {
         expect(count).toEqual(1);
       })
       .start();
+  });
+
+  it('should only spawn an actor in an initial state of a child that gets invoked in the initial state of a parent when the parent gets started', () => {
+    let spawnCounter = 0;
+
+    interface TestContext {
+      promise?: ActorRefFrom<Promise<string>>;
+    }
+
+    const child = Machine<TestContext>({
+      initial: 'bar',
+      context: {},
+      states: {
+        bar: {
+          entry: assign<TestContext>({
+            promise: () => {
+              return spawn(() => {
+                spawnCounter++;
+                return Promise.resolve('answer');
+              });
+            }
+          })
+        }
+      }
+    });
+
+    const parent = Machine({
+      initial: 'foo',
+      states: {
+        foo: {
+          invoke: {
+            src: child,
+            onDone: 'end'
+          }
+        },
+        end: { type: 'final' }
+      }
+    });
+    interpret(parent).start();
+    expect(spawnCounter).toBe(1);
+  });
+
+  // https://github.com/statelyai/xstate/issues/2565
+  it('should only spawn an initial actor once when it synchronously responds with an event', () => {
+    let spawnCalled = 0;
+    const anotherMachine = createMachine({
+      initial: 'hello',
+      states: {
+        hello: {
+          entry: sendParent('ping')
+        }
+      }
+    });
+
+    const testMachine = createMachine<{ ref: ActorRef<any> }>({
+      initial: 'testing',
+      context: () => {
+        spawnCalled++;
+        // throw in case of an infinite loop
+        expect(spawnCalled).toBe(1);
+        return {
+          ref: spawn(anotherMachine)
+        };
+      },
+      states: {
+        testing: {
+          on: {
+            ping: {
+              target: 'done'
+            }
+          }
+        },
+        done: {}
+      }
+    });
+
+    const service = interpret(testMachine).start();
+    expect(service.state.value).toEqual('done');
   });
 
   it('should spawn null actors if not used within a service', () => {
@@ -846,46 +924,6 @@ describe('actors', () => {
           })
           .start();
       });
-
-      it('should only spawn an actor in an initial state of a child that gets invoked in the initial state of a parent when the parent gets started', () => {
-        let spawnCounter = 0;
-
-        interface TestContext {
-          promise?: ActorRefFrom<Promise<string>>;
-        }
-
-        const child = Machine<TestContext>({
-          initial: 'bar',
-          context: {},
-          states: {
-            bar: {
-              entry: assign<TestContext>({
-                promise: () => {
-                  return spawn(() => {
-                    spawnCounter++;
-                    return Promise.resolve('answer');
-                  });
-                }
-              })
-            }
-          }
-        });
-
-        const parent = Machine({
-          initial: 'foo',
-          states: {
-            foo: {
-              invoke: {
-                src: child,
-                onDone: 'end'
-              }
-            },
-            end: { type: 'final' }
-          }
-        });
-        interpret(parent).start();
-        expect(spawnCounter).toBe(1);
-      });
     });
   });
 
@@ -934,7 +972,7 @@ describe('actors', () => {
       const promiseBehavior = fromPromise(
         () =>
           new Promise<number>((res) => {
-            setTimeout(res(42));
+            setTimeout(() => res(42));
           })
       );
 
@@ -974,7 +1012,7 @@ describe('actors', () => {
       const promiseBehavior = fromPromise(
         () =>
           new Promise<number>((_, rej) => {
-            setTimeout(rej(errorMessage), 1000);
+            setTimeout(() => rej(errorMessage), 1000);
           })
       );
 
@@ -1054,7 +1092,7 @@ describe('actors', () => {
     });
   });
 
-  it('should be able to spawn actors in (lazy) initial context', (done) => {
+  it('should be able to spawn callback actors in (lazy) initial context', (done) => {
     const machine = createMachine<{ ref: ActorRef<any> }>({
       context: () => ({
         ref: spawn((sendBack) => {
@@ -1077,5 +1115,139 @@ describe('actors', () => {
         done();
       })
       .start();
+  });
+
+  it('should be able to spawn machines in (lazy) initial context', (done) => {
+    const childMachine = createMachine({
+      entry: sendParent('TEST')
+    });
+
+    const machine = createMachine<{ ref: ActorRef<any> }>({
+      context: () => ({
+        ref: spawn(childMachine)
+      }),
+      initial: 'waiting',
+      states: {
+        waiting: {
+          on: { TEST: 'success' }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    interpret(machine)
+      .onDone(() => {
+        done();
+      })
+      .start();
+  });
+
+  // https://github.com/statelyai/xstate/issues/2507
+  it('should not crash on child machine sync completion during self-initialization', () => {
+    const childMachine = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          always: [
+            {
+              target: 'stopped'
+            }
+          ]
+        },
+        stopped: {
+          type: 'final'
+        }
+      }
+    });
+
+    const parentMachine = createMachine<{
+      child: ActorRefFrom<typeof childMachine> | null;
+    }>(
+      {
+        context: {
+          child: null
+        },
+        entry: 'setup'
+      },
+      {
+        actions: {
+          setup: assign({
+            child: (_) => spawn(childMachine)
+          })
+        }
+      }
+    );
+    const service = interpret(parentMachine);
+    expect(() => {
+      service.start();
+    }).not.toThrow();
+  });
+
+  it('should not crash on child promise-like sync completion during self-initialization', () => {
+    const parentMachine = createMachine<{
+      child: ActorRef<never, any> | null;
+    }>({
+      context: {
+        child: null
+      },
+      entry: assign({
+        child: () => spawn({ then: (fn: any) => fn(null) } as any)
+      })
+    });
+    const service = interpret(parentMachine);
+    expect(() => {
+      service.start();
+    }).not.toThrow();
+  });
+
+  it('should not crash on child observable sync completion during self-initialization', () => {
+    const createEmptyObservable = (): any => ({
+      subscribe(_next: () => void, _error: () => void, complete: () => void) {
+        complete();
+      }
+    });
+    const parentMachine = createMachine<{
+      child: ActorRef<never, any> | null;
+    }>({
+      context: {
+        child: null
+      },
+      entry: assign({
+        child: () => spawn(createEmptyObservable())
+      })
+    });
+    const service = interpret(parentMachine);
+    expect(() => {
+      service.start();
+    }).not.toThrow();
+  });
+
+  it('should receive done event from an immediately completed observable when self-initializing', () => {
+    const parentMachine = createMachine<{
+      child: ActorRef<EventObject, unknown> | null;
+    }>({
+      context: {
+        child: null
+      },
+      entry: assign({
+        child: () => spawn(EMPTY, 'myactor')
+      }),
+      initial: 'init',
+      states: {
+        init: {
+          on: {
+            'done.invoke.myactor': 'done'
+          }
+        },
+        done: {}
+      }
+    });
+    const service = interpret(parentMachine);
+
+    service.start();
+
+    expect(service.state.value).toBe('done');
   });
 });

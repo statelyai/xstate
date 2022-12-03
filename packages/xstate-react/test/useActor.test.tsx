@@ -1,22 +1,21 @@
+import { act, fireEvent, screen } from '@testing-library/react';
 import * as React from 'react';
-import { useMachine } from '../src';
+import { useState } from 'react';
 import {
-  createMachine,
-  sendParent,
-  assign,
-  spawn,
   ActorRef,
   ActorRefFrom,
-  interpret
+  assign,
+  createMachine,
+  interpret,
+  sendParent,
+  spawn,
+  toActorRef
 } from 'xstate';
-import { toActorRef } from 'xstate/lib/Actor';
-import { render, cleanup, fireEvent, act } from '@testing-library/react';
+import { useMachine } from '../src';
 import { useActor } from '../src/useActor';
-import { useState } from 'react';
+import { describeEachReactMode } from './utils';
 
-afterEach(cleanup);
-
-describe('useActor', () => {
+describeEachReactMode('useActor (%s)', ({ render }) => {
   it('initial invoked actor should be immediately available', (done) => {
     const childMachine = createMachine({
       id: 'childMachine',
@@ -58,11 +57,7 @@ describe('useActor', () => {
       );
     };
 
-    render(
-      <React.StrictMode>
-        <Test />
-      </React.StrictMode>
-    );
+    render(<Test />);
   });
 
   it('invoked actor should be able to receive (deferred) events that it replays when active', (done) => {
@@ -119,11 +114,7 @@ describe('useActor', () => {
       );
     };
 
-    render(
-      <React.StrictMode>
-        <Test />
-      </React.StrictMode>
-    );
+    render(<Test />);
   });
 
   it('initial spawned actor should be immediately available', (done) => {
@@ -172,11 +163,7 @@ describe('useActor', () => {
       return <ChildTest actor={actorRef!} />;
     };
 
-    render(
-      <React.StrictMode>
-        <Test />
-      </React.StrictMode>
-    );
+    render(<Test />);
   });
 
   it('spawned actor should be able to receive (deferred) events that it replays when active', (done) => {
@@ -235,11 +222,7 @@ describe('useActor', () => {
       return <ChildTest actor={actorRef!} />;
     };
 
-    render(
-      <React.StrictMode>
-        <Test />
-      </React.StrictMode>
-    );
+    render(<Test />);
   });
 
   it('actor should provide snapshot value immediately', () => {
@@ -265,9 +248,9 @@ describe('useActor', () => {
       return <div data-testid="state">{state}</div>;
     };
 
-    const { getByTestId } = render(<Test />);
+    render(<Test />);
 
-    const div = getByTestId('state');
+    const div = screen.getByTestId('state');
 
     expect(div.textContent).toEqual('42');
   });
@@ -294,9 +277,9 @@ describe('useActor', () => {
       return <div data-testid="state">{state}</div>;
     };
 
-    const { getByTestId } = render(<Test />);
+    render(<Test />);
 
-    const div = getByTestId('state');
+    const div = screen.getByTestId('state');
 
     expect(div.textContent).toEqual('42');
   });
@@ -332,10 +315,10 @@ describe('useActor', () => {
       );
     };
 
-    const { getByTestId } = render(<Test />);
+    render(<Test />);
 
-    const div = getByTestId('state');
-    const button = getByTestId('button');
+    const div = screen.getByTestId('state');
+    const button = screen.getByTestId('button');
 
     expect(div.textContent).toEqual('42');
     fireEvent.click(button);
@@ -386,11 +369,11 @@ describe('useActor', () => {
       );
     };
 
-    const { getByTestId } = render(<Test />);
+    render(<Test />);
 
     // At this point, `send` refers to the first (noop) actor
 
-    const button = getByTestId('button');
+    const button = screen.getByTestId('button');
     fireEvent.click(button);
 
     // At this point, `send` refers to the last actor
@@ -447,14 +430,14 @@ describe('useActor', () => {
       );
     };
 
-    const { getAllByTestId } = render(
+    render(
       <>
         <Counter />
         <Counter />
       </>
     );
 
-    const countEls = getAllByTestId('count');
+    const countEls = screen.getAllByTestId('count');
 
     expect(countEls.length).toBe(2);
 
@@ -469,5 +452,57 @@ describe('useActor', () => {
     countEls.forEach((countEl) => {
       expect(countEl.textContent).toBe('1');
     });
+  });
+
+  it('should work with initially deferred actors spawned in lazy context', () => {
+    const childMachine = createMachine({
+      initial: 'one',
+      states: {
+        one: {
+          on: { NEXT: 'two' }
+        },
+        two: {}
+      }
+    });
+
+    const machine = createMachine<{ ref: ActorRef<any> }>({
+      context: () => ({
+        ref: spawn(childMachine)
+      }),
+      initial: 'waiting',
+      states: {
+        waiting: {
+          on: { TEST: 'success' }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    const App = () => {
+      const [state] = useMachine(machine);
+      const [childState, childSend] = useActor(state.context.ref);
+
+      return (
+        <>
+          <div data-testid="child-state">{childState.value}</div>
+          <button
+            data-testid="child-send"
+            onClick={() => childSend('NEXT')}
+          ></button>
+        </>
+      );
+    };
+
+    render(<App />);
+
+    const elState = screen.getByTestId('child-state');
+    const elSend = screen.getByTestId('child-send');
+
+    expect(elState.textContent).toEqual('one');
+    fireEvent.click(elSend);
+
+    expect(elState.textContent).toEqual('two');
   });
 });

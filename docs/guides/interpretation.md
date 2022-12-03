@@ -134,6 +134,9 @@ service.onTransition((state) => {
 });
 ```
 
+::: tip
+The `.onTransition()` callback will not run between eventless ("always") transitions or other microsteps. It only runs on macrosteps.
+Microsteps are the intermediate transitions between macrosteps.
 :::
 
 ## Starting and Stopping
@@ -181,6 +184,62 @@ service.onTransition((state) => {
 service.start();
 ```
 
+## `waitFor`
+
+Lots of backend code relies on short-running processes, such as backend functions. This is especially true in serverless contexts, where code needs to boot up and shut down as fast as possible.
+
+A lot of this type of code relies on `async` functions:
+
+```ts
+const myFunc = async () => {};
+```
+
+The best pattern to use for async functions is `waitFor`, which gives you the ability to `await` a state machine being in a certain state.
+
+```ts
+import { interpret, createMachine } from 'xstate';
+import { waitFor } from 'xstate/lib/waitFor';
+
+const machine = createMachine({
+  initial: 'pending',
+  states: {
+    pending: {
+      after: {
+        3000: {
+          target: 'done'
+        }
+      }
+    },
+    done: {}
+  }
+});
+
+const myFunc = async () => {
+  const actor = interpret(machine).start();
+
+  const doneState = await waitFor(actor, (state) => state.matches('done'));
+
+  console.log(doneState.value); // 'done'
+};
+```
+
+In the example above, the machine waits for three seconds before moving on to its `done` state - at which point the `await` will resolve and the program will move on.
+
+By default, `waitFor` will throw an error after 10 seconds if the desired state is not reached. You can customize this timeout by passing `timeout` in the options:
+
+```ts {5-6}
+const myFunc = async () => {
+  const actor = interpret(machine).start();
+
+  const doneState = await waitFor(actor, (state) => state.matches('done'), {
+    // 20 seconds in ms
+    timeout: 20_000
+  });
+};
+```
+
+`waitFor` will also throw an error if it reaches a final state _other_ than the one you chose. For more information on final states, [click here](./final.md).
+
 ## Options
 
 The following options can be passed into the interpreter as the 2nd argument (`interpret(machine, options)`):
@@ -189,7 +248,7 @@ The following options can be passed into the interpreter as the 2nd argument (`i
   - See [Executing Actions](#executing-actions) for customizing this behavior.
 - `deferEvents` (boolean) <Badge text="4.4+"/> - Signifies whether events sent to an uninitialized service (i.e., prior to calling `service.start()`) should be deferred until the service is initialized. Defaults to `true`.
   - If `false`, events sent to an uninitialized service will throw an error.
-- `devTools` (boolean) - Signifies whether events should be sent to the [Redux DevTools extension](https://github.com/zalmoxisus/redux-devtools-extension). Defaults to `false`.
+- `devTools` (boolean) - Signifies whether events should be sent to the [Redux DevTools extension](https://github.com/reduxjs/redux-devtools). Defaults to `false`.
 - `logger` - Specifies the logger to be used for `log(...)` actions. Defaults to the native `console.log` method.
 - `clock` - Specifies the [clock interface for delayed actions](./delays.md#interpretation). Defaults to the native `setTimeout` and `clearTimeout` functions.
 
@@ -217,7 +276,7 @@ function send(event) {
 
   actions.forEach((action) => {
     // If the action is executable, execute it
-    action.exec && action.exec();
+    typeof action.exec === 'function' && action.exec();
   });
 
   // Notify the listeners

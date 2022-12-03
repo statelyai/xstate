@@ -1,5 +1,6 @@
-import { EventObject, StateNode, StateValue } from '.';
-import { keys, flatten } from './utils';
+import { EventObject, StateValue } from './types';
+import { StateNode } from './StateNode';
+import { flatten } from './utils';
 
 type Configuration<TC, TE extends EventObject> = Iterable<
   StateNode<TC, any, TE>
@@ -10,18 +11,25 @@ type AdjList<TC, TE extends EventObject> = Map<
   Array<StateNode<TC, any, TE>>
 >;
 
-export const isLeafNode = (stateNode: StateNode<any, any, any, any>) =>
-  stateNode.type === 'atomic' || stateNode.type === 'final';
+export const isLeafNode = (
+  stateNode: StateNode<any, any, any, any, any, any>
+) => stateNode.type === 'atomic' || stateNode.type === 'final';
+
+export function getAllChildren<TC, TE extends EventObject>(
+  stateNode: StateNode<TC, any, TE>
+): Array<StateNode<TC, any, TE>> {
+  return Object.keys(stateNode.states).map((key) => stateNode.states[key]);
+}
 
 export function getChildren<TC, TE extends EventObject>(
   stateNode: StateNode<TC, any, TE>
 ): Array<StateNode<TC, any, TE>> {
-  return keys(stateNode.states).map((key) => stateNode.states[key]);
+  return getAllChildren(stateNode).filter((sn) => sn.type !== 'history');
 }
 
 export function getAllStateNodes<TC, TE extends EventObject>(
-  stateNode: StateNode<TC, any, TE, any>
-): Array<StateNode<TC, any, TE, any>> {
+  stateNode: StateNode<TC, any, TE, any, any, any>
+): Array<StateNode<TC, any, TE, any, any, any>> {
   const stateNodes = [stateNode];
 
   if (isLeafNode(stateNode)) {
@@ -34,9 +42,9 @@ export function getAllStateNodes<TC, TE extends EventObject>(
 }
 
 export function getConfiguration<TC, TE extends EventObject>(
-  prevStateNodes: Iterable<StateNode<TC, any, TE, any>>,
-  stateNodes: Iterable<StateNode<TC, any, TE, any>>
-): Iterable<StateNode<TC, any, TE, any>> {
+  prevStateNodes: Iterable<StateNode<TC, any, TE, any, any, any>>,
+  stateNodes: Iterable<StateNode<TC, any, TE, any, any, any>>
+): Set<StateNode<TC, any, TE, any, any, any>> {
   const prevConfiguration = new Set(prevStateNodes);
   const prevAdjList = getAdjList(prevConfiguration);
 
@@ -66,10 +74,6 @@ export function getConfiguration<TC, TE extends EventObject>(
     } else {
       if (s.type === 'parallel') {
         for (const child of getChildren(s)) {
-          if (child.type === 'history') {
-            continue;
-          }
-
           if (!configuration.has(child)) {
             configuration.add(child);
 
@@ -176,8 +180,8 @@ export function nextEvents<TC, TE extends EventObject>(
 }
 
 export function isInFinalState<TC, TE extends EventObject>(
-  configuration: Array<StateNode<TC, any, TE, any>>,
-  stateNode: StateNode<TC, any, TE, any>
+  configuration: Array<StateNode<TC, any, TE, any, any, any>>,
+  stateNode: StateNode<TC, any, TE, any, any, any>
 ): boolean {
   if (stateNode.type === 'compound') {
     return getChildren(stateNode).some(
@@ -200,4 +204,10 @@ export function getMeta(configuration: StateNode[] = []): Record<string, any> {
     }
     return acc;
   }, {} as Record<string, any>);
+}
+
+export function getTagsFromConfiguration(
+  configuration: StateNode<any, any, any, any>[]
+) {
+  return new Set(flatten(configuration.map((sn) => sn.tags)));
 }

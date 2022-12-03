@@ -1,5 +1,5 @@
 import { raise, assign } from '../src/actions';
-import { createMachine, interpret, Machine } from '../src';
+import { createMachine, interpret, Machine, StateValue } from '../src';
 import { testMultiTransition } from './utils';
 
 const composerMachine = Machine({
@@ -504,7 +504,7 @@ describe('parallel states', () => {
     });
   });
 
-  const expected = {
+  const expected: Record<string, Record<string, StateValue>> = {
     'bold.off': {
       TOGGLE_BOLD: {
         bold: 'on',
@@ -735,7 +735,7 @@ describe('parallel states', () => {
     });
   });
 
-  // https://github.com/davidkpiano/xstate/issues/191
+  // https://github.com/statelyai/xstate/issues/191
   describe('nested flat parallel states', () => {
     const machine = Machine({
       initial: 'A',
@@ -825,7 +825,7 @@ describe('parallel states', () => {
   });
 
   describe('other', () => {
-    // https://github.com/davidkpiano/xstate/issues/518
+    // https://github.com/statelyai/xstate/issues/518
     it('regions should be able to transition to orthogonal regions', () => {
       const testMachine = Machine({
         id: 'app',
@@ -886,7 +886,7 @@ describe('parallel states', () => {
       ).toBe(true);
     });
 
-    // https://github.com/davidkpiano/xstate/issues/531
+    // https://github.com/statelyai/xstate/issues/531
     it('should calculate the entry set for external transitions in parallel states', () => {
       const testMachine = Machine<{ log: string[] }>({
         id: 'test',
@@ -986,5 +986,60 @@ describe('parallel states', () => {
       .start();
 
     service.send('FINISH');
+  });
+
+  it('should raise a "done.state.*" event when a pseudostate of a history type is directly on a parallel state', () => {
+    const machine = createMachine({
+      initial: 'parallelSteps',
+      states: {
+        parallelSteps: {
+          type: 'parallel',
+          states: {
+            hist: {
+              type: 'history'
+            },
+            one: {
+              initial: 'wait_one',
+              states: {
+                wait_one: {
+                  on: {
+                    finish_one: {
+                      target: 'done'
+                    }
+                  }
+                },
+                done: {
+                  type: 'final'
+                }
+              }
+            },
+            two: {
+              initial: 'wait_two',
+              states: {
+                wait_two: {
+                  on: {
+                    finish_two: {
+                      target: 'done'
+                    }
+                  }
+                },
+                done: {
+                  type: 'final'
+                }
+              }
+            }
+          },
+          onDone: 'finished'
+        },
+        finished: {}
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    service.send({ type: 'finish_one' });
+    service.send({ type: 'finish_two' });
+
+    expect(service.state.value).toBe('finished');
   });
 });

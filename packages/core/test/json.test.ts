@@ -89,7 +89,7 @@ describe('json', () => {
 
     try {
       validate(json);
-    } catch (err) {
+    } catch (err: any) {
       throw new Error(JSON.stringify(JSON.parse(err.message), null, 2));
     }
 
@@ -138,8 +138,8 @@ describe('json', () => {
         Object {
           "actions": Array [],
           "cond": undefined,
-          "event": "done.invoke.someSrc",
-          "eventType": "done.invoke.someSrc",
+          "event": "done.invoke.(machine).active:invocation[0]",
+          "eventType": "done.invoke.(machine).active:invocation[0]",
           "internal": false,
           "source": "#(machine).active",
           "target": Array [
@@ -150,8 +150,8 @@ describe('json', () => {
         Object {
           "actions": Array [],
           "cond": undefined,
-          "event": "error.platform.someSrc",
-          "eventType": "error.platform.someSrc",
+          "event": "error.platform.(machine).active:invocation[0]",
+          "eventType": "error.platform.(machine).active:invocation[0]",
           "internal": false,
           "source": "#(machine).active",
           "target": Array [

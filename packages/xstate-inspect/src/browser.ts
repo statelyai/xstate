@@ -1,13 +1,19 @@
 import {
-  Interpreter,
-  interpret,
-  EventObject,
+  ActorRef,
+  AnyInterpreter,
   EventData,
-  Observer
+  EventObject,
+  interpret,
+  Interpreter,
+  Observer,
+  toActorRef,
+  toEventObject,
+  toObserver,
+  toSCXMLEvent,
+  XStateDevInterface
 } from 'xstate';
-import { XStateDevInterface } from 'xstate/lib/devTools';
-import { toSCXMLEvent, toEventObject, toObserver } from 'xstate/lib/utils';
-import { createInspectMachine } from './inspectMachine';
+import { createInspectMachine, InspectMachineEvent } from './inspectMachine';
+import { stringifyMachine, stringifyState } from './serialize';
 import type {
   Inspector,
   InspectorOptions,
@@ -59,24 +65,34 @@ export function createDevTools(): XStateDevInterface {
   };
 }
 
-const defaultInspectorOptions: InspectorOptions = {
-  url: 'https://statecharts.io/inspect',
+const defaultInspectorOptions = {
+  url: 'https://stately.ai/viz?inspect',
   iframe: () =>
     document.querySelector<HTMLIFrameElement>('iframe[data-xstate]'),
   devTools: () => {
     const devTools = createDevTools();
     globalThis.__xstate__ = devTools;
     return devTools;
-  }
+  },
+  serialize: undefined
 };
 
-export function inspect(
-  options?: Partial<InspectorOptions>
-): Inspector | undefined {
-  const { iframe, url, devTools } = { ...defaultInspectorOptions, ...options };
-  const resolvedIframe = getLazy(iframe);
+const getFinalOptions = (options?: Partial<InspectorOptions>) => {
+  const withDefaults = { ...defaultInspectorOptions, ...options };
+  return {
+    ...withDefaults,
+    url: new URL(withDefaults.url),
+    iframe: getLazy(withDefaults.iframe),
+    devTools: getLazy(withDefaults.devTools)
+  };
+};
 
-  if (resolvedIframe === null) {
+const patchedInterpreters = new Set<AnyInterpreter>();
+
+export function inspect(options?: InspectorOptions): Inspector | undefined {
+  const { iframe, url, devTools } = getFinalOptions(options);
+
+  if (iframe === null) {
     console.warn(
       'No suitable <iframe> found to embed the inspector. Please pass an <iframe> element to `inspect(iframe)` or create an <iframe data-xstate></iframe> element.'
     );
@@ -84,8 +100,7 @@ export function inspect(
     return undefined;
   }
 
-  const resolvedDevTools = getLazy(devTools);
-  const inspectMachine = createInspectMachine(resolvedDevTools);
+  const inspectMachine = createInspectMachine(devTools, options);
   const inspectService = interpret(inspectMachine).start();
   const listeners = new Set<Observer<any>>();
 
@@ -94,30 +109,32 @@ export function inspect(
   });
 
   let targetWindow: Window | null | undefined;
-  let client: any;
+  let client: Pick<ActorRef<any>, 'send'>;
 
-  const messageHandler = (event) => {
+  const messageHandler = (event: MessageEvent<unknown>) => {
     if (
       typeof event.data === 'object' &&
       event.data !== null &&
       'type' in event.data
     ) {
-      if (resolvedIframe && !targetWindow) {
-        targetWindow = resolvedIframe.contentWindow;
+      if (iframe && !targetWindow) {
+        targetWindow = iframe.contentWindow;
       }
 
       if (!client) {
         client = {
           send: (e: any) => {
-            targetWindow!.postMessage(e, url);
+            targetWindow!.postMessage(e, url.origin);
           }
         };
       }
 
-      inspectService.send({
-        ...event.data,
+      const inspectEvent = {
+        ...(event.data as InspectMachineEvent),
         client
-      });
+      };
+
+      inspectService.send(inspectEvent);
     }
   };
 
@@ -127,15 +144,15 @@ export function inspect(
     inspectService.send({ type: 'unload' });
   });
 
-  if (resolvedIframe === false) {
-    targetWindow = window.open(url, 'xstateinspector');
-  }
+  const stringifyWithSerializer = (value: any) =>
+    stringify(value, options?.serialize);
 
-  resolvedDevTools.onRegister((service) => {
+  devTools.onRegister((service) => {
+    const state = service.state || service.initialState;
     inspectService.send({
       type: 'service.register',
-      machine: stringify(service.machine),
-      state: stringify(service.state || service.initialState),
+      machine: stringifyMachine(service.machine, options?.serialize),
+      state: stringifyState(state, options?.serialize),
       sessionId: service.sessionId,
       id: service.id,
       parent: service.parent?.sessionId
@@ -143,34 +160,44 @@ export function inspect(
 
     inspectService.send({
       type: 'service.event',
-      event: stringify((service.state || service.initialState)._event),
+      event: stringifyWithSerializer(state._event),
       sessionId: service.sessionId
     });
 
-    // monkey-patch service.send so that we know when an event was sent
-    // to a service *before* it is processed, since other events might occur
-    // while the sent one is being processed, which throws the order off
-    const originalSend = service.send.bind(service);
+    if (!patchedInterpreters.has(service)) {
+      patchedInterpreters.add(service);
 
-    service.send = function inspectSend(
-      event: EventObject,
-      payload?: EventData
-    ) {
-      inspectService.send({
-        type: 'service.event',
-        event: stringify(
-          toSCXMLEvent(toEventObject(event as EventObject, payload))
-        ),
-        sessionId: service.sessionId
-      });
+      // monkey-patch service.send so that we know when an event was sent
+      // to a service *before* it is processed, since other events might occur
+      // while the sent one is being processed, which throws the order off
+      const originalSend = service.send.bind(service);
 
-      return originalSend(event, payload);
-    };
+      service.send = function inspectSend(
+        event: EventObject,
+        payload?: EventData
+      ) {
+        inspectService.send({
+          type: 'service.event',
+          event: stringifyWithSerializer(
+            toSCXMLEvent(toEventObject(event as EventObject, payload))
+          ),
+          sessionId: service.sessionId
+        });
+
+        return originalSend(event, payload);
+      };
+    }
 
     service.subscribe((state) => {
+      // filter out synchronous notification from within `.start()` call
+      // when the `service.state` has not yet been assigned
+      if (state === undefined) {
+        return;
+      }
       inspectService.send({
         type: 'service.state',
-        state: stringify(state),
+        // TODO: investigate usage of structuredClone in browsers if available
+        state: stringifyState(state, options?.serialize),
         sessionId: service.sessionId
       });
     });
@@ -183,12 +210,14 @@ export function inspect(
     });
   });
 
-  if (resolvedIframe) {
-    resolvedIframe.addEventListener('load', () => {
-      targetWindow = resolvedIframe.contentWindow!;
+  if (iframe) {
+    iframe.addEventListener('load', () => {
+      targetWindow = iframe.contentWindow!;
     });
 
-    resolvedIframe.setAttribute('src', url);
+    iframe.setAttribute('src', String(url));
+  } else {
+    targetWindow = window.open(String(url), 'xstateinspector');
   }
 
   return {
@@ -199,6 +228,7 @@ export function inspect(
       const observer = toObserver(next, onError, onComplete);
 
       listeners.add(observer);
+      observer.next(inspectService.state);
 
       return {
         unsubscribe: () => {
@@ -234,7 +264,7 @@ export function createWindowReceiver(
 
   ownWindow.addEventListener('message', handler);
 
-  const actorRef: InspectReceiver = {
+  const actorRef: InspectReceiver = toActorRef({
     id: 'xstate.windowReceiver',
 
     send(event) {
@@ -262,7 +292,7 @@ export function createWindowReceiver(
     getSnapshot() {
       return latestEvent;
     }
-  };
+  });
 
   actorRef.send({
     type: 'xstate.inspecting'
@@ -279,10 +309,10 @@ export function createWebSocketReceiver(
   const observers = new Set<Observer<ParsedReceiverEvent>>();
   let latestEvent: ParsedReceiverEvent;
 
-  const actorRef: InspectReceiver = {
+  const actorRef: InspectReceiver = toActorRef({
     id: 'xstate.webSocketReceiver',
     send(event) {
-      ws.send(JSON.stringify(event));
+      ws.send(stringify(event, options.serialize));
     },
     subscribe(next, onError?, onComplete?) {
       const observer = toObserver(next, onError, onComplete);
@@ -298,7 +328,7 @@ export function createWebSocketReceiver(
     getSnapshot() {
       return latestEvent;
     }
-  };
+  });
 
   ws.onopen = () => {
     actorRef.send({
@@ -314,7 +344,7 @@ export function createWebSocketReceiver(
     try {
       const eventObject = JSON.parse(event.data);
 
-      if (isReceiverEvent(latestEvent)) {
+      if (isReceiverEvent(eventObject)) {
         latestEvent = parseReceiverEvent(eventObject);
         observers.forEach((observer) => {
           observer.next(latestEvent);

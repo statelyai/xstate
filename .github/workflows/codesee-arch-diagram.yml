@@ -1,0 +1,21 @@
+on:
+  push:
+    branches:
+      - main
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+name: CodeSee
+
+permissions:
+  contents: read  #  to fetch code (actions/checkout)
+
+jobs:
+  codesee:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    name: Analyze the repo with CodeSee
+    steps:
+      - uses: Codesee-io/codesee-action@v2
+        with:
+          codesee-token: ${{ secrets.CODESEE_ARCH_DIAG_API_TOKEN }}

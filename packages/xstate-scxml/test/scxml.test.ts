@@ -1,4 +1,4 @@
-import { Machine, StateNode, State, interpret } from 'xstate';
+import { Machine, interpret, AnyState, AnyStateMachine } from 'xstate';
 import { xml2js } from 'xml-js';
 import { transitionToSCXML, toSCXML } from '../src';
 import { toMachine } from 'xstate/lib/scxml';
@@ -16,7 +16,7 @@ interface SCIONTest {
 }
 
 async function runTestToCompletion(
-  machine: StateNode,
+  machine: AnyStateMachine,
   test: SCIONTest
 ): Promise<void> {
   const stateValue = test.events.length
@@ -28,7 +28,7 @@ async function runTestToCompletion(
   const resolvedStateValue = machine.resolve(stateValue);
 
   let done = false;
-  let nextState: State<any> = machine.getInitialState(
+  let nextState: AnyState = machine.getInitialState(
     resolvedStateValue,
     machine.initialState.context
   );

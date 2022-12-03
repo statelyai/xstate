@@ -1,17 +1,25 @@
-import { createMachine, assign, SCXML, ActorRef, Interpreter } from 'xstate';
-import { XStateDevInterface } from 'xstate/lib/devTools';
-import { ReceiverEvent } from './types';
-import { stringify } from './utils';
+import {
+  createMachine,
+  assign,
+  SCXML,
+  ActorRef,
+  Interpreter,
+  XStateDevInterface
+} from 'xstate';
+import { stringifyMachine, stringifyState } from './serialize';
+
+import { ReceiverEvent, Replacer } from './types';
 
 export type InspectMachineEvent =
   | ReceiverEvent
   | { type: 'unload' }
   | { type: 'disconnect' }
   | { type: 'xstate.event'; event: string; service: string }
-  | { type: 'xstate.inspecting'; client: ActorRef<any> };
+  | { type: 'xstate.inspecting'; client: Pick<ActorRef<any>, 'send'> };
 
 export function createInspectMachine(
-  devTools: XStateDevInterface = globalThis.__xstate__
+  devTools: XStateDevInterface = globalThis.__xstate__,
+  options?: { serialize?: Replacer | undefined }
 ) {
   const serviceMap = new Map<string, Interpreter<any, any, any>>();
 
@@ -23,7 +31,7 @@ export function createInspectMachine(
 
   return createMachine<
     {
-      client?: ActorRef<any>;
+      client?: Pick<ActorRef<any>, 'send'>;
     },
     InspectMachineEvent
   >({
@@ -84,8 +92,11 @@ export function createInspectMachine(
             devTools.services.forEach((service) => {
               ctx.client?.send({
                 type: 'service.register',
-                machine: stringify(service.machine),
-                state: stringify(service.state || service.initialState),
+                machine: stringifyMachine(service.machine, options?.serialize),
+                state: stringifyState(
+                  service.state || service.initialState,
+                  options?.serialize
+                ),
                 sessionId: service.sessionId
               });
             });

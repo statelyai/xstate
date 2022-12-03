@@ -1,25 +1,37 @@
-import { StateNode, State } from '../src/index';
-import { matchesState } from '../src';
+import {
+  AnyState,
+  AnyStateMachine,
+  matchesState,
+  StateValue
+} from '../src/index';
 
-export function testMultiTransition<TExt>(
-  machine: StateNode<TExt>,
+export function testMultiTransition(
+  machine: AnyStateMachine,
   fromState: string,
   eventTypes: string
-) {
-  const resultState = eventTypes
-    .split(/,\s?/)
-    .reduce((state: State<TExt> | string, eventType) => {
-      if (typeof state === 'string' && state[0] === '{') {
-        state = JSON.parse(state);
-      }
-      const nextState = machine.transition(state, eventType);
-      return nextState;
-    }, fromState) as State<TExt>;
+): AnyState {
+  const computeNext = (state: AnyState | string, eventType: string) => {
+    if (typeof state === 'string' && state[0] === '{') {
+      state = JSON.parse(state);
+    }
+    const nextState = machine.transition(state, eventType);
+    return nextState;
+  };
+
+  const [firstEventType, ...restEvents] = eventTypes.split(/,\s?/);
+
+  const resultState = restEvents.reduce<AnyState>(
+    computeNext,
+    computeNext(fromState, firstEventType)
+  );
 
   return resultState;
 }
 
-export function testAll(machine: StateNode, expected: {}): void {
+export function testAll(
+  machine: AnyStateMachine,
+  expected: Record<string, Record<string, StateValue | undefined>>
+): void {
   Object.keys(expected).forEach((fromState) => {
     Object.keys(expected[fromState]).forEach((eventTypes) => {
       const toState = expected[fromState][eventTypes];

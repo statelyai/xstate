@@ -1,8 +1,8 @@
 // hello
 
-import { State } from 'xstate';
+import { AnyState } from 'xstate';
 
-export type StateListener = (state: State<any, any>) => void;
+export type StateListener = (state: AnyState) => void;
 
 interface TransitionsAnalysis {
   count: number;
@@ -26,7 +26,7 @@ interface TransitionAnalysis {
   relativeWeight: number;
 }
 
-const serializeState = (state?: State<any, any>): string => {
+const serializeState = (state?: AnyState): string => {
   if (!state) {
     return '';
   }
@@ -36,7 +36,7 @@ const serializeState = (state?: State<any, any>): string => {
 };
 
 interface AnalyzerOptions {
-  filter: (state: State<any, any>) => boolean;
+  filter: (state: AnyState) => boolean;
   history?: TransitionsAnalysis;
 }
 
@@ -57,7 +57,7 @@ export function createAnalyzer(
     transitions: {}
   };
 
-  return (state: State<any, any>) => {
+  return (state: AnyState) => {
     if (!resolvedOptions.filter(state)) {
       return;
     }

@@ -5,10 +5,10 @@ import {
   SCXMLEventMeta,
   SendExpr,
   DelayExpr,
-  ChooseConditon
+  ChooseCondition
 } from './types';
-import { StateNode, Machine } from './index';
-import { mapValues, keys, isString } from './utils';
+import { AnyStateMachine, Machine } from './index';
+import { mapValues, isString } from './utils';
 import * as actions from './actions';
 
 function getAttribute(
@@ -102,7 +102,7 @@ const evaluateExecutableContent = <
   body: string
 ) => {
   const datamodel = context
-    ? keys(context)
+    ? Object.keys(context)
         .map((key) => `const ${key} = context['${key}'];`)
         .join('\n')
     : '';
@@ -215,9 +215,9 @@ function mapAction<
       );
     }
     case 'if': {
-      const conds: ChooseConditon<TContext, TEvent>[] = [];
+      const conds: ChooseCondition<TContext, TEvent>[] = [];
 
-      let current: ChooseConditon<TContext, TEvent> = {
+      let current: ChooseCondition<TContext, TEvent> = {
         cond: createCond(element.attributes!.cond as string),
         actions: []
       };
@@ -426,7 +426,7 @@ export interface ScxmlToMachineOptions {
 function scxmlToMachine(
   scxmlJson: XMLElement,
   options: ScxmlToMachineOptions
-): StateNode {
+): AnyStateMachine {
   const machineElement = scxmlJson.elements!.find(
     (element) => element.name === 'scxml'
   ) as XMLElement;
@@ -462,7 +462,7 @@ function scxmlToMachine(
 export function toMachine(
   xml: string,
   options: ScxmlToMachineOptions
-): StateNode {
+): AnyStateMachine {
   const json = xml2js(xml) as XMLElement;
   return scxmlToMachine(json, options);
 }
