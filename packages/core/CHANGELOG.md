@@ -1,5 +1,39 @@
 # xstate
 
+## 4.35.0
+
+### Minor Changes
+
+- [#3607](https://github.com/statelyai/xstate/pull/3607) [`f95180510`](https://github.com/statelyai/xstate/commit/f951805103937205992f52ba7ae84a1b8d6b11c1) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `createModel(...)` function is now marked as deprecated, as it will be removed in XState version 5. It is recommended to use [Typegen](https://stately.ai/blog/introducing-typescript-typegen-for-xstate) instead.
+
+### Patch Changes
+
+- [#3677](https://github.com/statelyai/xstate/pull/3677) [`a2ecf97ca`](https://github.com/statelyai/xstate/commit/a2ecf97cab7587946e947146c8bc3138393a55bf) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with targeted ancestors not being correctly exited when reented during external transitions.
+
+- [#3623](https://github.com/statelyai/xstate/pull/3623) [`163c25562`](https://github.com/statelyai/xstate/commit/163c25562db20b335540d1342a38a4a12343a299) Thanks [@arromeo](https://github.com/arromeo)! - Fixed an issue with external transitions targeting ancestor states. In such a case, `entry` actions were incorrectly called on the states between the source state and the target state for states that were not reentered within this transition.
+
+- [#3677](https://github.com/statelyai/xstate/pull/3677) [`a2ecf97ca`](https://github.com/statelyai/xstate/commit/a2ecf97cab7587946e947146c8bc3138393a55bf) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with the _active_ descendants of the targeted ancestor not being correctly reentered during external transitions.
+
+- [#3545](https://github.com/statelyai/xstate/pull/3545) [`b9995f0`](https://github.com/statelyai/xstate/commit/b9995f0844bbbff0c813fee020935dfd7562184b) Thanks [@with-heart](https://github.com/with-heart)! - Updated `pure` action types to allow action `type` strings to be returned in the array.
+
+  ```ts
+  const machine = createMachine(
+    {
+      entry: ['doStuff']
+    },
+    {
+      actions: {
+        doStuff: pure(() => ['someAction']),
+        someAction: () => console.log('executed by doStuff')
+      }
+    }
+  );
+  ```
+
+  Returning action `type` strings were already handled by `xstate` and the types now correctly reflect that.
+
+- [#3666](https://github.com/statelyai/xstate/pull/3666) [`5e0808eb4`](https://github.com/statelyai/xstate/commit/5e0808eb440f77b8404db6676401849053cfcfd8) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The warning for the `predictableActionArguments` setting has been improved to only warn if it is absent. You can disable the warning by setting `predictableActionArguments: false`. It's still recommended to set it to `true` though.
+
 ## 4.34.0
 
 ### Minor Changes
