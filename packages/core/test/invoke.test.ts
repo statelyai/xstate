@@ -1033,14 +1033,17 @@ describe('invoke', () => {
           }
         });
 
-        const actor = interpret(promiseMachine)
-          .onDone(doneSpy)
-          .onError((err) => {
+        const actor = interpret(promiseMachine);
+
+        actor.onDone(doneSpy);
+        actor.subscribe({
+          error: (err) => {
             // TODO: determine if err should be the full SCXML error event
             expect(err).toBeInstanceOf(Error);
             expect(err.message).toBe('test');
-          })
-          .start();
+          }
+        });
+        actor.start();
 
         actor.subscribe({
           complete() {
