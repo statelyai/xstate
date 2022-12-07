@@ -1,10 +1,10 @@
 import {
   AtomicStateNodeConfig,
-  StatesConfig,
   Event,
   EventObject,
+  StateNodeConfig,
   StateSchema,
-  StateNodeConfig
+  StatesConfig
 } from './types';
 import { toEventObject } from './utils';
 

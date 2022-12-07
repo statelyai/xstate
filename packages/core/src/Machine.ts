@@ -1,23 +1,23 @@
 import { StateNode } from './StateNode';
+import { IS_PRODUCTION } from './environment';
+import {
+  ResolveTypegenMeta,
+  TypegenConstraint,
+  TypegenDisabled
+} from './typegenTypes';
 import {
   AnyEventObject,
   BaseActionObject,
   DefaultContext,
   EventObject,
+  InternalMachineOptions,
   MachineConfig,
   MachineOptions,
-  InternalMachineOptions,
+  ServiceMap,
   StateMachine,
   StateSchema,
-  Typestate,
-  ServiceMap
+  Typestate
 } from './types';
-import {
-  TypegenConstraint,
-  TypegenDisabled,
-  ResolveTypegenMeta
-} from './typegenTypes';
-import { IS_PRODUCTION } from './environment';
 
 let warned = false;
 

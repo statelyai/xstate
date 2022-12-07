@@ -1,13 +1,13 @@
-import { Clock, Interpreter } from './interpreter';
-import { Model } from './model.types';
 import { State } from './State';
 import { StateNode } from './StateNode';
+import { Clock, Interpreter } from './interpreter';
+import { Model } from './model.types';
 import {
+  AreAllImplementationsAssumedToBeProvided,
   MarkAllImplementationsAsProvided,
-  TypegenDisabled,
   ResolveTypegenMeta,
   TypegenConstraint,
-  AreAllImplementationsAssumedToBeProvided,
+  TypegenDisabled,
   TypegenEnabled
 } from './typegenTypes';
 

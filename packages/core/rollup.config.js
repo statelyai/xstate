@@ -1,11 +1,11 @@
-import typescript from 'rollup-plugin-typescript2';
 import babel from '@rollup/plugin-babel';
-import { terser } from 'rollup-plugin-terser';
-import rollupReplace from 'rollup-plugin-replace';
-import fileSize from 'rollup-plugin-filesize';
 import glob from 'fast-glob';
-import path from 'path';
 import fs from 'fs';
+import path from 'path';
+import fileSize from 'rollup-plugin-filesize';
+import rollupReplace from 'rollup-plugin-replace';
+import { terser } from 'rollup-plugin-terser';
+import typescript from 'rollup-plugin-typescript2';
 
 const createTsPlugin = ({ declaration = true, target } = {}) =>
   typescript({

@@ -1,27 +1,28 @@
+import { StateNode } from './StateNode';
+import { initEvent } from './actions';
+import { EMPTY_ACTIVITY_MAP } from './constants';
+import { IS_PRODUCTION } from './environment';
+import { getMeta, nextEvents } from './stateUtils';
+import { TypegenDisabled, TypegenEnabled } from './typegenTypes';
 import {
-  StateValue,
+  ActionObject,
   ActivityMap,
+  ActorRef,
+  BaseActionObject,
   EventObject,
   HistoryValue,
-  ActionObject,
-  StateValueMap,
-  StateConfig,
+  Prop,
   SCXML,
-  StateSchema,
-  TransitionDefinition,
-  Typestate,
-  ActorRef,
+  SimpleEventsOf,
+  StateConfig,
   StateMachine,
-  SimpleEventsOf
+  StateSchema,
+  StateValue,
+  StateValueMap,
+  TransitionDefinition,
+  Typestate
 } from './types';
-import { EMPTY_ACTIVITY_MAP } from './constants';
-import { matchesState, isString, warn } from './utils';
-import { StateNode } from './StateNode';
-import { getMeta, nextEvents } from './stateUtils';
-import { initEvent } from './actions';
-import { IS_PRODUCTION } from './environment';
-import { TypegenDisabled, TypegenEnabled } from './typegenTypes';
-import { BaseActionObject, Prop } from './types';
+import { isString, matchesState, warn } from './utils';
 
 export function stateValuesEqual(
   a: StateValue | undefined,

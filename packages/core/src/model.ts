@@ -1,19 +1,19 @@
-import { assign } from './actions';
 import { createMachine } from './Machine';
-import type {
-  Cast,
-  EventObject,
-  BaseActionObject,
-  Prop,
-  IsNever
-} from './types';
-import { mapValues } from './utils';
+import { assign } from './actions';
 import {
-  UnionFromCreatorsReturnTypes,
   FinalModelCreators,
   Model,
-  ModelCreators
+  ModelCreators,
+  UnionFromCreatorsReturnTypes
 } from './model.types';
+import type {
+  BaseActionObject,
+  Cast,
+  EventObject,
+  IsNever,
+  Prop
+} from './types';
+import { mapValues } from './utils';
 
 /**
  * @deprecated Use [Typegen](https://stately.ai/blog/introducing-typescript-typegen-for-xstate) instead.

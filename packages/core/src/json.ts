@@ -1,5 +1,5 @@
-import { StateNode, ActionObject, Guard, InvokeDefinition } from './';
-import { mapValues, isFunction } from './utils';
+import { ActionObject, Guard, InvokeDefinition, StateNode } from './';
+import { isFunction, mapValues } from './utils';
 
 interface JSONFunction {
   $function: string;

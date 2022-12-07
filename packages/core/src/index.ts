@@ -1,17 +1,18 @@
-import * as actions from './actions';
 import { Actor, toActorRef } from './Actor';
+import { createMachine, Machine } from './Machine';
+import { State } from './State';
+import { StateNode } from './StateNode';
+import * as actions from './actions';
 import {
   interpret,
   Interpreter,
   InterpreterStatus,
   spawn
 } from './interpreter';
-import { createMachine, Machine } from './Machine';
 import { mapState } from './mapState';
 import { matchState } from './match';
 import { createSchema, t } from './schema';
-import { State } from './State';
-import { StateNode } from './StateNode';
+
 export { spawnBehavior } from './behaviors';
 export { XStateDevInterface } from './devTools';
 export * from './typegenTypes';

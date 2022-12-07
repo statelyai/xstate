@@ -1,15 +1,15 @@
-import { xml2js, Element as XMLElement } from 'xml-js';
-import {
-  EventObject,
-  ActionObject,
-  SCXMLEventMeta,
-  SendExpr,
-  DelayExpr,
-  ChooseCondition
-} from './types';
-import { AnyStateMachine, Machine } from './index';
-import { mapValues, isString } from './utils';
 import * as actions from './actions';
+import { AnyStateMachine, Machine } from './index';
+import {
+  ActionObject,
+  ChooseCondition,
+  DelayExpr,
+  EventObject,
+  SCXMLEventMeta,
+  SendExpr
+} from './types';
+import { isString, mapValues } from './utils';
+import { Element as XMLElement, xml2js } from 'xml-js';
 
 function getAttribute(
   element: XMLElement,
