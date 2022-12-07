@@ -42,6 +42,7 @@ import {
   AnyActorRef,
   PredictableActionArgumentsExec,
   RaiseActionOptions,
+  NoInfer,
   BaseActionObject,
   LowInfer
 } from './types';
@@ -159,22 +160,30 @@ export function toActivityDefinition<TContext, TEvent extends EventObject>(
  *
  * @param eventType The event to raise.
  */
-export function raise<TContext, TEvent extends EventObject>(
-  event: Event<TEvent> | SendExpr<TContext, TEvent, TEvent>,
-  options?: RaiseActionOptions<TContext, TEvent>
-): RaiseAction<TContext, TEvent> {
+export function raise<
+  TContext,
+  TExpressionEvent extends EventObject,
+  TEvent extends EventObject = TExpressionEvent
+>(
+  event: NoInfer<Event<TEvent>> | SendExpr<TContext, TExpressionEvent, TEvent>,
+  options?: RaiseActionOptions<TContext, TExpressionEvent>
+): RaiseAction<TContext, TExpressionEvent, TEvent> {
   return {
     type: actionTypes.raise,
-    event: typeof event === 'function' ? event : toEventObject<TEvent>(event),
+    event: typeof event === 'function' ? event : toEventObject<any>(event),
     delay: options ? options.delay : undefined,
     id: options?.id
   } as any;
 }
 
-export function resolveRaise<TContext, TEvent extends EventObject>(
-  action: RaiseAction<TContext, TEvent>,
+export function resolveRaise<
+  TContext,
+  TEvent extends EventObject,
+  TExpressionEvent extends EventObject
+>(
+  action: RaiseAction<TContext, TExpressionEvent, TEvent>,
   ctx: TContext,
-  _event: SCXML.Event<TEvent>,
+  _event: SCXML.Event<TExpressionEvent>,
   delaysMap?: DelayFunctionMap<TContext, TEvent>
 ): RaiseActionObject<TContext, TEvent> {
   const meta = {
@@ -190,7 +199,7 @@ export function resolveRaise<TContext, TEvent extends EventObject>(
   if (isString(action.delay)) {
     const configDelay = delaysMap && delaysMap[action.delay];
     resolvedDelay = isFunction(configDelay)
-      ? configDelay(ctx, _event.data, meta)
+      ? configDelay(ctx, _event.data as any, meta as any)
       : configDelay;
   } else {
     resolvedDelay = isFunction(action.delay)
@@ -495,11 +504,15 @@ export function resolveStop<TContext, TEvent extends EventObject>(
  *
  * @param assignment An object that represents the partial context to update.
  */
-export const assign = <TContext, TEvent extends EventObject = EventObject>(
+export const assign = <
+  TContext,
+  TExpressionEvent extends EventObject = EventObject,
+  TEvent extends EventObject = TExpressionEvent
+>(
   assignment:
-    | Assigner<LowInfer<TContext>, TEvent>
-    | PropertyAssigner<LowInfer<TContext>, TEvent>
-): AssignAction<TContext, TEvent> => {
+    | Assigner<LowInfer<TContext>, TExpressionEvent>
+    | PropertyAssigner<LowInfer<TContext>, TExpressionEvent>
+): AssignAction<TContext, TExpressionEvent, TEvent> => {
   return {
     type: actionTypes.assign,
     assignment

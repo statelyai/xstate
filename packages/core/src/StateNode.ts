@@ -1093,7 +1093,7 @@ class StateNode<
       })
       .concat({
         type: 'state_done',
-        actions: doneEvents.map((event) => raise(event)) as Array<
+        actions: doneEvents.map((event) => raise(event as any)) as Array<
           ActionObject<TContext, TEvent>
         >
       });

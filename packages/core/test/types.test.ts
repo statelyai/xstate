@@ -211,87 +211,111 @@ describe('Nested parallel stateSchema', () => {
 });
 
 describe('Raise events', () => {
-  it('should work with all the ways to raise events', () => {
-    interface GreetingStateSchema {
-      states: {
-        pending: {};
-        morning: {};
-        lunchTime: {};
-        afternoon: {};
-        evening: {};
-        night: {};
-      };
-    }
+  // TODO: will be rmeoved in v5
+  it('should accept a valid simple event type', () => {
+    interface Context {}
 
-    type GreetingEvent =
-      | { type: 'DECIDE'; aloha?: boolean }
-      | { type: 'MORNING' }
-      | { type: 'LUNCH_TIME' }
-      | { type: 'AFTERNOON' }
-      | { type: 'EVENING' }
-      | { type: 'NIGHT' }
-      | { type: 'ALOHA' };
+    type Events = { type: 'FOO' } | { type: 'BAR' };
 
-    interface GreetingContext {
-      hour: number;
-    }
+    createMachine<Context, Events>({
+      entry: raise('FOO')
+    });
+  });
 
-    const greetingContext: GreetingContext = { hour: 10 };
+  // TODO: will be rmeoved in v5
+  it('should reject an invalid simple event type', () => {
+    interface Context {}
 
-    const raiseGreetingMachine = Machine<
-      GreetingContext,
-      GreetingStateSchema,
-      GreetingEvent
-    >({
-      key: 'greeting',
-      context: greetingContext,
-      initial: 'pending',
-      states: {
-        pending: {
-          on: {
-            DECIDE: [
-              {
-                actions: raise({
-                  type: 'ALOHA'
-                } as any),
-                cond: (_ctx, ev) => !!ev.aloha
-              },
-              {
-                actions: raise({
-                  type: 'MORNING'
-                } as any),
-                cond: (ctx) => ctx.hour < 12
-              },
-              {
-                actions: raise({
-                  type: 'AFTERNOON'
-                } as any),
-                cond: (ctx) => ctx.hour < 18
-              },
-              {
-                actions: raise({ type: 'EVENING' } as any),
-                cond: (ctx) => ctx.hour < 22
-              }
-            ]
-          }
-        },
-        morning: {},
-        lunchTime: {},
-        afternoon: {},
-        evening: {},
-        night: {}
+    type Events = { type: 'FOO' } | { type: 'BAR' };
+
+    createMachine<Context, Events>({
+      // @ts-expect-error
+      entry: raise('UNKNOWN')
+    });
+  });
+
+  it('should accept a valid event type', () => {
+    interface Context {}
+
+    type Events = { type: 'FOO' } | { type: 'BAR' };
+
+    createMachine<Context, Events>({
+      entry: raise({
+        type: 'FOO'
+      })
+    });
+  });
+
+  it('should reject an invalid event type', () => {
+    interface Context {}
+
+    type Events = { type: 'FOO' } | { type: 'BAR' };
+
+    createMachine<Context, Events>({
+      entry: raise({
+        // @ts-expect-error
+        type: 'UNKNOWN'
+      })
+    });
+  });
+
+  it('should provide a narrowed down expression event type when used as a transition action', () => {
+    interface Context {}
+
+    type Events = { type: 'FOO' } | { type: 'BAR' };
+
+    createMachine<Context, Events>({
+      schema: {
+        context: {} as { counter: number },
+        events: {} as { type: 'FOO' } | { type: 'BAR' }
       },
       on: {
-        MORNING: '.morning',
-        LUNCH_TIME: '.lunchTime',
-        AFTERNOON: '.afternoon',
-        EVENING: '.evening',
-        NIGHT: '.night'
+        FOO: {
+          actions: raise((_ctx, ev) => {
+            ((_arg: 'FOO') => {})(ev.type);
+            // @ts-expect-error
+            ((_arg: 'BAR') => {})(ev.type);
+
+            return {
+              type: 'BAR'
+            };
+          })
+        }
       }
     });
+  });
 
-    noop(raiseGreetingMachine);
-    expect(true).toBeTruthy();
+  it('should accept a valid event type returned from an expression', () => {
+    interface Context {}
+
+    type Events = { type: 'FOO' } | { type: 'BAR' };
+
+    createMachine<Context, Events>({
+      schema: {
+        context: {} as { counter: number },
+        events: {} as { type: 'FOO' } | { type: 'BAR' }
+      },
+      entry: raise(() => ({
+        type: 'BAR'
+      }))
+    });
+  });
+
+  it('should reject an invalid event type returned from an expression', () => {
+    interface Context {}
+
+    type Events = { type: 'FOO' } | { type: 'BAR' };
+
+    createMachine<Context, Events>({
+      schema: {
+        context: {} as { counter: number },
+        events: {} as { type: 'FOO' } | { type: 'BAR' }
+      },
+      // @ts-expect-error
+      entry: raise(() => ({
+        type: 'UNKNOWN'
+      }))
+    });
   });
 });
 
@@ -472,7 +496,7 @@ describe('events', () => {
           type: 'FOO';
         }
       },
-      entry: raise('FOO')
+      entry: raise<any, any, any>('FOO')
     });
 
     const service = interpret(machine).start();
@@ -499,7 +523,7 @@ describe('events', () => {
     service.send({ type: 'UNKNOWN' });
   });
 
-  it('event type should be inferrable from a simple state machine typr', () => {
+  it('event type should be inferrable from a simple state machine type', () => {
     const toggleMachine = createMachine<
       {
         count: number;

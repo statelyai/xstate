@@ -134,7 +134,7 @@ describe('createActorContext', () => {
         obj: {
           counter: 0
         },
-        arr: []
+        arr: [] as string[]
       },
       on: {
         INC: {
