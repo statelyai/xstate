@@ -2635,7 +2635,7 @@ describe('sendTo', () => {
 });
 
 describe('raise', () => {
-  it('should be able to send an event to itself', (done) => {
+  it('should be able to send a delayed event to itself', (done) => {
     const machine = createMachine({
       initial: 'a',
       states: {
