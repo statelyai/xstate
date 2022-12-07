@@ -2666,7 +2666,7 @@ describe('raise', () => {
     service.onDone(() => done());
 
     // Ensures that the delayed self-event is sent when in the `b` state
-    service.send('TO_B');
+    service.send({ type: 'TO_B' });
   });
 
   it('should be able to send an event to itself', (done) => {
