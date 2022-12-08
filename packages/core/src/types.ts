@@ -1961,6 +1961,6 @@ export type StateValueFrom<TMachine extends AnyStateMachine> = Parameters<
   StateFrom<TMachine>['matches']
 >[0];
 
-export type StateFromMachine<
-  TMachine extends AnyStateMachine
-> = TMachine['initialState'];
+export type StateFromMachine<TMachine extends AnyStateMachine> = ReturnType<
+  TMachine['getInitialState']
+>;
