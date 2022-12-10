@@ -264,19 +264,6 @@ export class Interpreter<
   }
 
   /**
-   * Adds an error listener that is notified with an `Error` whenever an
-   * error occurs during execution.
-   *
-   * @param listener The error listener
-   */
-  public onError(listener: ErrorListener): this {
-    this.observers.add({
-      error: listener
-    });
-    return this;
-  }
-
-  /**
    * Adds a state listener that is notified when the statechart has reached its final state.
    * @param listener The state listener
    */
