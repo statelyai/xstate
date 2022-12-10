@@ -48,11 +48,14 @@ import type { StateNode } from './StateNode';
 import { isDynamicAction } from '../actions/dynamicAction';
 import {
   ActorContext,
+  AnyEventObject,
   AnyHistoryValue,
+  AnyState,
   AnyStateMachine,
   AnyStateNode,
   AnyTransitionDefinition,
   DelayedTransitionDefinition,
+  HistoryValue,
   InitialTransitionDefinition,
   SendActionObject,
   StateFromMachine
@@ -1052,12 +1055,16 @@ export function microstep<
             toJSON: null as any // TODO: fix
           }
         ]
-      : transitions
+      : transitions,
+    currentState,
+    mutConfiguration,
+    _event,
+    actorCtx
   );
 
   const { context, actions: nonRaisedActions } = microstate;
 
-  const children = setChildren();
+  const children = _setChildren(currentState, nonRaisedActions);
 
   const nextState = microstate.clone({
     value: {}, // TODO: make optional
@@ -1073,292 +1080,385 @@ export function microstep<
       context !== currentState.context;
 
   return nextState;
+}
 
-  // INTERNAL FUNCTIONS
-
-  function setChildren() {
-    const children = { ...currentState.children };
-    for (const action of nonRaisedActions) {
-      if (
-        action.type === actionTypes.invoke &&
-        (action as InvokeActionObject).params.ref
-      ) {
-        const ref = (action as InvokeActionObject).params.ref;
-        if (ref) {
-          children[ref.id] = ref;
-        }
-      } else if (action.type === actionTypes.stop) {
-        const ref = (action as StopActionObject).params.actor;
-        if (ref) {
-          delete children[ref.id];
-        }
+function _setChildren(
+  currentState: AnyState,
+  nonRaisedActions: BaseActionObject[]
+) {
+  const children = { ...currentState.children };
+  for (const action of nonRaisedActions) {
+    if (
+      action.type === actionTypes.invoke &&
+      (action as InvokeActionObject).params.ref
+    ) {
+      const ref = (action as InvokeActionObject).params.ref;
+      if (ref) {
+        children[ref.id] = ref;
+      }
+    } else if (action.type === actionTypes.stop) {
+      const ref = (action as StopActionObject).params.actor;
+      if (ref) {
+        delete children[ref.id];
       }
     }
-    return children;
+  }
+  return children;
+}
+
+function microstepProcedure(
+  transitions: Array<AnyTransitionDefinition>,
+  currentState: AnyState,
+  mutConfiguration: Set<AnyStateNode>,
+  _event: SCXML.Event<AnyEventObject>,
+  actorCtx: ActorContext<any, any> | undefined
+): typeof currentState {
+  const { machine } = currentState;
+  const actions: BaseActionObject[] = [];
+  const historyValue = {
+    ...currentState.historyValue
+  };
+
+  const filteredTransitions = removeConflictingTransitions(
+    transitions,
+    mutConfiguration,
+    historyValue
+  );
+
+  const internalQueue = [...currentState._internalQueue];
+
+  // Exit states
+  if (!currentState._initial) {
+    _exitStates(filteredTransitions, mutConfiguration, historyValue, actions);
   }
 
-  function microstepProcedure(
-    transitions: Array<AnyTransitionDefinition>
-  ): typeof currentState {
-    const { machine } = currentState;
-    const actions: BaseActionObject[] = [];
-    const historyValue = {
-      ...currentState.historyValue
-    };
+  // Execute transition content
+  for (const a of filteredTransitions.flatMap((t) => t.actions)) {
+    actions.push(a);
+  }
 
-    const filteredTransitions = removeConflictingTransitions(
-      transitions,
-      mutConfiguration,
-      historyValue
-    );
+  // Enter states
+  _enterStates(
+    filteredTransitions,
+    mutConfiguration,
+    actions,
+    internalQueue,
+    currentState,
+    historyValue
+  );
 
-    const internalQueue = [...currentState._internalQueue];
+  const nextConfiguration = [...mutConfiguration];
 
-    // Exit states
-    if (!currentState._initial) {
-      exitStates(filteredTransitions);
-    }
+  if (isInFinalState(nextConfiguration)) {
+    const finalActions = nextConfiguration
+      .sort((a, b) => b.order - a.order)
+      .flatMap((state) => state.exit);
+    actions.push(...finalActions);
+  }
 
-    // Execute transition content
-    for (const a of filteredTransitions.flatMap((t) => t.actions)) {
-      actions.push(a);
-    }
+  try {
+    const {
+      actions: resolvedActions,
+      raised,
+      context: resolvedContext
+    } = resolveActionsAndContext(actions, _event, currentState, actorCtx);
 
-    // Enter states
-    enterStates();
+    internalQueue.push(...raised.map((a) => a.params._event));
 
-    const nextConfiguration = [...mutConfiguration];
-
-    if (isInFinalState(nextConfiguration)) {
-      const finalActions = nextConfiguration
-        .sort((a, b) => b.order - a.order)
-        .flatMap((state) => state.exit);
-      actions.push(...finalActions);
-    }
-
-    try {
-      const {
-        actions: resolvedActions,
-        raised,
-        context: resolvedContext
-      } = resolveActionsAndContext(actions, _event, currentState, actorCtx);
-
-      internalQueue.push(...raised.map((a) => a.params._event));
-
+    return currentState.clone({
+      actions: resolvedActions,
+      configuration: Array.from(mutConfiguration),
+      historyValue,
+      _internalQueue: internalQueue,
+      context: resolvedContext,
+      _event
+    });
+  } catch (e) {
+    // TODO: Refactor this once proper error handling is implemented.
+    // See https://github.com/statelyai/rfcs/pull/4
+    if (machine.config.scxml) {
       return currentState.clone({
-        actions: resolvedActions,
+        actions: [],
         configuration: Array.from(mutConfiguration),
         historyValue,
-        _internalQueue: internalQueue,
-        context: resolvedContext,
-        _event
+        _internalQueue: [toSCXMLEvent({ type: 'error.execution' })],
+        context: machine.context
       });
-    } catch (e) {
-      // TODO: Refactor this once proper error handling is implemented.
-      // See https://github.com/statelyai/rfcs/pull/4
-      if (machine.config.scxml) {
-        return currentState.clone({
-          actions: [],
-          configuration: Array.from(mutConfiguration),
-          historyValue,
-          _internalQueue: [toSCXMLEvent({ type: 'error.execution' } as TEvent)],
-          context: machine.context
-        });
-      } else {
-        throw e;
-      }
+    } else {
+      throw e;
+    }
+  }
+}
+
+function _enterStates(
+  filteredTransitions: AnyTransitionDefinition[],
+  mutConfiguration: Set<AnyStateNode>,
+  actions: BaseActionObject[],
+  internalQueue: SCXML.Event<AnyEventObject>[],
+  currentState: AnyState,
+  historyValue: HistoryValue<any, any>
+): void {
+  const statesToEnter = new Set<AnyStateNode>();
+  const statesForDefaultEntry = new Set<AnyStateNode>();
+
+  _computeEntrySet(
+    filteredTransitions,
+    historyValue,
+    statesForDefaultEntry,
+    statesToEnter
+  );
+
+  for (const stateNodeToEnter of [...statesToEnter].sort(
+    (a, b) => a.order - b.order
+  )) {
+    mutConfiguration.add(stateNodeToEnter);
+
+    for (const invokeDef of stateNodeToEnter.invoke) {
+      actions.push(invoke(invokeDef));
     }
 
-    function enterStates() {
-      const statesToEnter = new Set<AnyStateNode>();
-      const statesForDefaultEntry = new Set<AnyStateNode>();
+    // Add entry actions
+    actions.push(...stateNodeToEnter.entry);
 
-      computeEntrySet(filteredTransitions);
+    if (statesForDefaultEntry.has(stateNodeToEnter)) {
+      for (const stateNode of statesForDefaultEntry) {
+        const initialActions = stateNode.initial!.actions;
+        actions.push(...initialActions);
+      }
+    }
+    // if (defaultHistoryContent[s.id]) {
+    //   actions.push(...defaultHistoryContent[s.id])
+    // }
+    if (stateNodeToEnter.type === 'final') {
+      const parent = stateNodeToEnter.parent!;
 
-      for (const stateNodeToEnter of [...statesToEnter].sort(
-        (a, b) => a.order - b.order
-      )) {
-        mutConfiguration.add(stateNodeToEnter);
+      if (!parent.parent) {
+        continue;
+      }
 
-        for (const invokeDef of stateNodeToEnter.invoke) {
-          actions.push(invoke(invokeDef));
-        }
-
-        // Add entry actions
-        actions.push(...stateNodeToEnter.entry);
-
-        if (statesForDefaultEntry.has(stateNodeToEnter)) {
-          for (const stateNode of statesForDefaultEntry) {
-            const initialActions = stateNode.initial!.actions;
-            actions.push(...initialActions);
-          }
-        }
-        // if (defaultHistoryContent[s.id]) {
-        //   actions.push(...defaultHistoryContent[s.id])
-        // }
-        if (stateNodeToEnter.type === 'final') {
-          const parent = stateNodeToEnter.parent!;
-
-          if (!parent.parent) {
-            continue;
-          }
-
-          internalQueue.push(
-            toSCXMLEvent(
-              done(
-                parent!.id,
-                stateNodeToEnter.doneData
-                  ? mapContext(
-                      stateNodeToEnter.doneData,
-                      currentState.context,
-                      currentState._event
-                    )
-                  : undefined
-              )
-            )
-          );
-
-          if (parent.parent) {
-            const grandparent = parent.parent;
-
-            if (grandparent.type === 'parallel') {
-              if (
-                getChildren(grandparent).every((parentNode) =>
-                  isInFinalState([...mutConfiguration], parentNode)
+      internalQueue.push(
+        toSCXMLEvent(
+          done(
+            parent!.id,
+            stateNodeToEnter.doneData
+              ? mapContext(
+                  stateNodeToEnter.doneData,
+                  currentState.context,
+                  currentState._event
                 )
-              ) {
-                internalQueue.push(toSCXMLEvent(done(grandparent.id)));
-              }
-            }
-          }
-        }
-      }
-
-      // Internal functions
-      function computeEntrySet(transitions: Array<AnyTransitionDefinition>) {
-        for (const t of transitions) {
-          for (const s of t.target || []) {
-            addDescendantStatesToEnter(s);
-          }
-          const ancestor = getTransitionDomain(t, historyValue);
-          const targetStates = getEffectiveTargetStates(t, historyValue);
-          for (const s of targetStates) {
-            addAncestorStatesToEnter(s, ancestor);
-          }
-        }
-      }
-
-      function addDescendantStatesToEnter<
-        TContext extends MachineContext,
-        TEvent extends EventObject
-      >(stateNode: AnyStateNode) {
-        if (isHistoryNode(stateNode)) {
-          if (historyValue[stateNode.id]) {
-            const historyStateNodes = historyValue[stateNode.id];
-            for (const s of historyStateNodes) {
-              addDescendantStatesToEnter(s);
-            }
-            for (const s of historyStateNodes) {
-              addAncestorStatesToEnter(s, stateNode.parent!);
-              for (const stateForDefaultEntry of statesForDefaultEntry) {
-                statesForDefaultEntry.add(stateForDefaultEntry);
-              }
-            }
-          } else {
-            const targets = resolveHistoryTarget<TContext, TEvent>(stateNode);
-            for (const s of targets) {
-              addDescendantStatesToEnter(s);
-            }
-            for (const s of targets) {
-              addAncestorStatesToEnter(s, stateNode);
-              for (const stateForDefaultEntry of statesForDefaultEntry) {
-                statesForDefaultEntry.add(stateForDefaultEntry);
-              }
-            }
-          }
-        } else {
-          statesToEnter.add(stateNode);
-          if (stateNode.type === 'compound') {
-            statesForDefaultEntry.add(stateNode);
-            const initialStates = stateNode.initial.target;
-
-            for (const initialState of initialStates) {
-              addDescendantStatesToEnter(initialState);
-            }
-
-            for (const initialState of initialStates) {
-              addAncestorStatesToEnter(initialState, stateNode);
-            }
-          } else {
-            if (stateNode.type === 'parallel') {
-              for (const child of getChildren(stateNode).filter(
-                (sn) => !isHistoryNode(sn)
-              )) {
-                if (![...statesToEnter].some((s) => isDescendant(s, child))) {
-                  addDescendantStatesToEnter(child);
-                }
-              }
-            }
-          }
-        }
-      }
-
-      function addAncestorStatesToEnter(
-        stateNode: AnyStateNode,
-        toStateNode: AnyStateNode | null
-      ) {
-        const properAncestors = getProperAncestors(stateNode, toStateNode);
-        for (const anc of properAncestors) {
-          statesToEnter.add(anc);
-          if (anc.type === 'parallel') {
-            for (const child of getChildren(anc).filter(
-              (sn) => !isHistoryNode(sn)
-            )) {
-              if (![...statesToEnter].some((s) => isDescendant(s, child))) {
-                addDescendantStatesToEnter(child);
-              }
-            }
-          }
-        }
-      }
-    }
-
-    function exitStates(transitions: AnyTransitionDefinition[]) {
-      const statesToExit = computeExitSet(
-        transitions,
-        mutConfiguration,
-        historyValue
+              : undefined
+          )
+        )
       );
 
-      for (const sn of statesToExit) {
-        actions.push(...sn.invoke.map((def) => stop(def.id)));
+      if (parent.parent) {
+        const grandparent = parent.parent;
+
+        if (grandparent.type === 'parallel') {
+          if (
+            getChildren(grandparent).every((parentNode) =>
+              isInFinalState([...mutConfiguration], parentNode)
+            )
+          ) {
+            internalQueue.push(toSCXMLEvent(done(grandparent.id)));
+          }
+        }
+      }
+    }
+  }
+}
+
+function _computeEntrySet(
+  transitions: Array<AnyTransitionDefinition>,
+  historyValue: HistoryValue<any, any>,
+  statesForDefaultEntry: Set<AnyStateNode>,
+  statesToEnter: Set<AnyStateNode>
+) {
+  for (const t of transitions) {
+    for (const s of t.target || []) {
+      _addDescendantStatesToEnter(
+        s,
+        historyValue,
+        statesForDefaultEntry,
+        statesToEnter
+      );
+    }
+    const ancestor = getTransitionDomain(t, historyValue);
+    const targetStates = getEffectiveTargetStates(t, historyValue);
+    for (const s of targetStates) {
+      _addAncestorStatesToEnter(
+        s,
+        ancestor,
+        statesToEnter,
+        historyValue,
+        statesForDefaultEntry
+      );
+    }
+  }
+}
+
+function _addDescendantStatesToEnter<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+>(
+  stateNode: AnyStateNode,
+  historyValue: HistoryValue<any, any>,
+  statesForDefaultEntry: Set<AnyStateNode>,
+  statesToEnter: Set<AnyStateNode>
+) {
+  if (isHistoryNode(stateNode)) {
+    if (historyValue[stateNode.id]) {
+      const historyStateNodes = historyValue[stateNode.id];
+      for (const s of historyStateNodes) {
+        _addDescendantStatesToEnter(
+          s,
+          historyValue,
+          statesForDefaultEntry,
+          statesToEnter
+        );
+      }
+      for (const s of historyStateNodes) {
+        _addAncestorStatesToEnter(
+          s,
+          stateNode.parent!,
+          statesToEnter,
+          historyValue,
+          statesForDefaultEntry
+        );
+        for (const stateForDefaultEntry of statesForDefaultEntry) {
+          statesForDefaultEntry.add(stateForDefaultEntry);
+        }
+      }
+    } else {
+      const targets = resolveHistoryTarget<TContext, TEvent>(stateNode);
+      for (const s of targets) {
+        _addDescendantStatesToEnter(
+          s,
+          historyValue,
+          statesForDefaultEntry,
+          statesToEnter
+        );
+      }
+      for (const s of targets) {
+        _addAncestorStatesToEnter(
+          s,
+          stateNode,
+          statesToEnter,
+          historyValue,
+          statesForDefaultEntry
+        );
+        for (const stateForDefaultEntry of statesForDefaultEntry) {
+          statesForDefaultEntry.add(stateForDefaultEntry);
+        }
+      }
+    }
+  } else {
+    statesToEnter.add(stateNode);
+    if (stateNode.type === 'compound') {
+      statesForDefaultEntry.add(stateNode);
+      const initialStates = stateNode.initial.target;
+
+      for (const initialState of initialStates) {
+        _addDescendantStatesToEnter(
+          initialState,
+          historyValue,
+          statesForDefaultEntry,
+          statesToEnter
+        );
       }
 
-      statesToExit.sort((a, b) => b.order - a.order);
-
-      // From SCXML algorithm: https://www.w3.org/TR/scxml/#exitStates
-      for (const exitStateNode of statesToExit) {
-        for (const historyNode of getHistoryNodes(exitStateNode)) {
-          let predicate: (sn: AnyStateNode) => boolean;
-          if (historyNode.history === 'deep') {
-            predicate = (sn) =>
-              isAtomicStateNode(sn) && isDescendant(sn, exitStateNode);
-          } else {
-            predicate = (sn) => {
-              return sn.parent === exitStateNode;
-            };
+      for (const initialState of initialStates) {
+        _addAncestorStatesToEnter(
+          initialState,
+          stateNode,
+          statesToEnter,
+          historyValue,
+          statesForDefaultEntry
+        );
+      }
+    } else {
+      if (stateNode.type === 'parallel') {
+        for (const child of getChildren(stateNode).filter(
+          (sn) => !isHistoryNode(sn)
+        )) {
+          if (![...statesToEnter].some((s) => isDescendant(s, child))) {
+            _addDescendantStatesToEnter(
+              child,
+              historyValue,
+              statesForDefaultEntry,
+              statesToEnter
+            );
           }
-          historyValue[historyNode.id] = Array.from(mutConfiguration).filter(
-            predicate
+        }
+      }
+    }
+  }
+}
+
+function _addAncestorStatesToEnter(
+  stateNode: AnyStateNode,
+  toStateNode: AnyStateNode | null,
+  statesToEnter: Set<AnyStateNode>,
+  historyValue: HistoryValue<any, any>,
+  statesForDefaultEntry: Set<AnyStateNode>
+) {
+  const properAncestors = getProperAncestors(stateNode, toStateNode);
+  for (const anc of properAncestors) {
+    statesToEnter.add(anc);
+    if (anc.type === 'parallel') {
+      for (const child of getChildren(anc).filter((sn) => !isHistoryNode(sn))) {
+        if (![...statesToEnter].some((s) => isDescendant(s, child))) {
+          _addDescendantStatesToEnter(
+            child,
+            historyValue,
+            statesForDefaultEntry,
+            statesToEnter
           );
         }
       }
-
-      for (const s of statesToExit) {
-        actions.push(...s.exit.flat());
-        mutConfiguration.delete(s);
-      }
     }
+  }
+}
+
+function _exitStates(
+  transitions: AnyTransitionDefinition[],
+  mutConfiguration: Set<AnyStateNode>,
+  historyValue: HistoryValue<any, any>,
+  actions: BaseActionObject[]
+) {
+  const statesToExit = computeExitSet(
+    transitions,
+    mutConfiguration,
+    historyValue
+  );
+
+  for (const sn of statesToExit) {
+    actions.push(...sn.invoke.map((def) => stop(def.id)));
+  }
+
+  statesToExit.sort((a, b) => b.order - a.order);
+
+  // From SCXML algorithm: https://www.w3.org/TR/scxml/#exitStates
+  for (const exitStateNode of statesToExit) {
+    for (const historyNode of getHistoryNodes(exitStateNode)) {
+      let predicate: (sn: AnyStateNode) => boolean;
+      if (historyNode.history === 'deep') {
+        predicate = (sn) =>
+          isAtomicStateNode(sn) && isDescendant(sn, exitStateNode);
+      } else {
+        predicate = (sn) => {
+          return sn.parent === exitStateNode;
+        };
+      }
+      historyValue[historyNode.id] = Array.from(mutConfiguration).filter(
+        predicate
+      );
+    }
+  }
+
+  for (const s of statesToExit) {
+    actions.push(...s.exit.flat());
+    mutConfiguration.delete(s);
   }
 }
 
@@ -1499,7 +1599,7 @@ export function macrostep<TMachine extends AnyStateMachine>(
 
   // Handle stop event
   if (scxmlEvent?.name === stopSignalType) {
-    nextState = stopStep(scxmlEvent);
+    nextState = _stopStep(scxmlEvent, nextState, actorCtx);
     states.push(nextState);
 
     return {
@@ -1510,14 +1610,14 @@ export function macrostep<TMachine extends AnyStateMachine>(
 
   // Assume the state is at rest (no raised events)
   // Determine the next state based on the next microstep
-  if (scxmlEvent !== initEvent) {
-    const transitions = selectTransitions(scxmlEvent);
+  if (scxmlEvent.name !== actionTypes.init) {
+    const transitions = _selectTransitions(scxmlEvent, nextState);
     nextState = microstep(transitions, state, actorCtx, scxmlEvent);
     states.push(nextState);
   }
 
   while (!nextState.done) {
-    let enabledTransitions = selectEventlessTransitions();
+    let enabledTransitions = _selectEventlessTransitions(nextState);
 
     if (enabledTransitions.length === 0) {
       // TODO: this is a bit of a hack, we need to review this
@@ -1534,7 +1634,7 @@ export function macrostep<TMachine extends AnyStateMachine>(
       } else {
         const currentActions = nextState.actions;
         const nextEvent = nextState._internalQueue[0];
-        const transitions = selectTransitions(nextEvent);
+        const transitions = _selectTransitions(nextEvent, nextState);
         nextState = microstep(transitions, nextState, actorCtx, nextEvent);
         nextState._internalQueue.shift();
         nextState.actions.unshift(...currentActions);
@@ -1559,87 +1659,93 @@ export function macrostep<TMachine extends AnyStateMachine>(
 
   if (nextState.done) {
     // Perform the stop step to ensure that child actors are stopped
-    stopStep(nextState._event);
+    _stopStep(nextState._event, nextState, actorCtx);
   }
 
   return {
     state: nextState,
     microstates: states
   };
+}
 
-  // ----- Internal functions -----
-  function stopStep(scxmlEvent: SCXML.Event<any>): typeof nextState {
-    const stoppedState = nextState.clone({
-      _event: scxmlEvent,
-      actions: []
-    });
+function _stopStep(
+  scxmlEvent: SCXML.Event<any>,
+  nextState: AnyState,
+  actorCtx: ActorContext<any, any> | undefined
+): AnyState {
+  const stoppedState = nextState.clone({
+    _event: scxmlEvent,
+    actions: []
+  });
 
-    stoppedState.actions.length = 0;
+  stoppedState.actions.length = 0;
 
-    for (const stateNode of nextState.configuration.sort(
-      (a, b) => b.order - a.order
+  for (const stateNode of nextState.configuration.sort(
+    (a, b) => b.order - a.order
+  )) {
+    stoppedState.actions.push(...stateNode.definition.exit);
+  }
+
+  for (const child of Object.values(nextState.children)) {
+    stoppedState.actions.push(stop(child));
+  }
+
+  const { actions, context } = resolveActionsAndContext(
+    stoppedState.actions,
+    stoppedState._event,
+    stoppedState,
+    // stoppedState.context,
+    actorCtx
+  );
+
+  stoppedState.actions = actions;
+  stoppedState.context = context;
+
+  return stoppedState;
+}
+
+function _selectTransitions(
+  scxmlEvent: SCXML.Event<any>,
+  nextState: AnyState
+): AnyTransitionDefinition[] {
+  return nextState.machine.getTransitionData(nextState, scxmlEvent);
+}
+
+function _selectEventlessTransitions(
+  nextState: AnyState
+): AnyTransitionDefinition[] {
+  const enabledTransitionSet: Set<AnyTransitionDefinition> = new Set();
+  const atomicStates = nextState.configuration.filter(isAtomicStateNode);
+
+  for (const stateNode of atomicStates) {
+    loop: for (const s of [stateNode].concat(
+      getProperAncestors(stateNode, null)
     )) {
-      stoppedState.actions.push(...stateNode.definition.exit);
-    }
-
-    for (const child of Object.values(nextState.children)) {
-      stoppedState.actions.push(stop(child));
-    }
-
-    const { actions, context } = resolveActionsAndContext(
-      stoppedState.actions,
-      stoppedState._event,
-      stoppedState,
-      // stoppedState.context,
-      actorCtx
-    );
-
-    stoppedState.actions = actions;
-    stoppedState.context = context;
-
-    return stoppedState;
-  }
-
-  function selectTransitions(
-    scxmlEvent: SCXML.Event<any>
-  ): AnyTransitionDefinition[] {
-    return nextState.machine.getTransitionData(nextState, scxmlEvent);
-  }
-
-  function selectEventlessTransitions(): AnyTransitionDefinition[] {
-    const enabledTransitionSet: Set<AnyTransitionDefinition> = new Set();
-    const atomicStates = nextState.configuration.filter(isAtomicStateNode);
-
-    for (const stateNode of atomicStates) {
-      loop: for (const s of [stateNode].concat(
-        getProperAncestors(stateNode, null)
-      )) {
-        if (!s.always) {
-          continue;
-        }
-        for (const transition of s.always) {
-          if (
-            transition.guard === undefined ||
-            evaluateGuard(
-              transition.guard,
-              nextState.context,
-              nextState._event,
-              nextState
-            )
-          ) {
-            enabledTransitionSet.add(transition);
-            break loop;
-          }
+      if (!s.always) {
+        continue;
+      }
+      for (const transition of s.always) {
+        if (
+          transition.guard === undefined ||
+          evaluateGuard(
+            transition.guard,
+            nextState.context,
+            nextState._event,
+            nextState
+          )
+        ) {
+          enabledTransitionSet.add(transition);
+          break loop;
         }
       }
     }
-
-    return removeConflictingTransitions(
-      Array.from(enabledTransitionSet),
-      new Set(nextState.configuration),
-      nextState.historyValue
-    );
   }
+
+  return removeConflictingTransitions(
+    Array.from(enabledTransitionSet),
+    new Set(nextState.configuration),
+    nextState.historyValue
+  );
 }
 
 /**
