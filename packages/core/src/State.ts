@@ -156,11 +156,13 @@ export class State<
     this.actions = config.actions ?? [];
     this.matches = this.matches.bind(this);
     this.toStrings = this.toStrings.bind(this);
-    this.configuration = config.configuration;
+    this.configuration =
+      config.configuration ??
+      Array.from(getConfiguration(getStateNodes(machine.root, config.value)));
     this.transitions = config.transitions;
     this.children = config.children;
 
-    this.value = getStateValue(machine.root, config.configuration);
+    this.value = getStateValue(machine.root, this.configuration);
   }
 
   /**
