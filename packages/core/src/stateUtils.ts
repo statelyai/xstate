@@ -32,7 +32,6 @@ import {
   after,
   done,
   toActionObjects,
-  initEvent,
   actionTypes,
   resolveActionObject
 } from './actions';
