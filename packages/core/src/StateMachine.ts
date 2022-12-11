@@ -489,12 +489,6 @@ export function createMachine2<
 >(
   config: MachineConfig2<TPartialTypes>,
   implementations?: TProvided
-  // implementations?: InternalMachineImplementations<
-  //   TTypes['context'],
-  //   TTypes['events'],
-  //   any
-  //   // ResolveTypegenMeta<TTypesMeta, TEvent, BaseActionObject, TActorMap>
-  // >
 ): StateMachine<
   TTypes['context'],
   TTypes['events'],
