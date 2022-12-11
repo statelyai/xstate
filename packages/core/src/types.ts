@@ -1809,7 +1809,7 @@ export interface StateConfig<
   historyValue?: HistoryValue<TContext, TEvent>;
   actions?: BaseActionObject[];
   meta?: any;
-  configuration: Array<StateNode<TContext, TEvent>>;
+  configuration?: Array<StateNode<TContext, TEvent>>;
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
   children: Record<string, ActorRef<any>>;
   done?: boolean;
