@@ -1058,6 +1058,7 @@ Array [
           "_event": Object {
             "$$type": "scxml",
             "data": Object {
+              "input": undefined,
               "type": "xstate.init",
             },
             "name": "xstate.init",
@@ -1071,6 +1072,7 @@ Array [
           "children": Object {},
           "context": Object {},
           "event": Object {
+            "input": undefined,
             "type": "xstate.init",
           },
           "historyValue": Object {},
@@ -1088,6 +1090,7 @@ Array [
       "_event": Object {
         "$$type": "scxml",
         "data": Object {
+          "input": undefined,
           "type": "xstate.init",
         },
         "name": "xstate.init",
@@ -1101,6 +1104,7 @@ Array [
       "children": Object {},
       "context": Object {},
       "event": Object {
+        "input": undefined,
         "type": "xstate.init",
       },
       "historyValue": Object {},
@@ -1149,6 +1153,7 @@ Array [
               "_event": Object {
                 "$$type": "scxml",
                 "data": Object {
+                  "input": undefined,
                   "type": "xstate.init",
                 },
                 "name": "xstate.init",
@@ -1162,6 +1167,7 @@ Array [
               "children": Object {},
               "context": Object {},
               "event": Object {
+                "input": undefined,
                 "type": "xstate.init",
               },
               "historyValue": Object {},
@@ -2429,6 +2435,7 @@ Array [
           "_event": Object {
             "$$type": "scxml",
             "data": Object {
+              "input": undefined,
               "type": "xstate.init",
             },
             "name": "xstate.init",
@@ -2442,6 +2449,7 @@ Array [
           "children": Object {},
           "context": Object {},
           "event": Object {
+            "input": undefined,
             "type": "xstate.init",
           },
           "historyValue": Object {},
@@ -2462,6 +2470,7 @@ Array [
       "_event": Object {
         "$$type": "scxml",
         "data": Object {
+          "input": undefined,
           "type": "xstate.init",
         },
         "name": "xstate.init",
@@ -2475,6 +2484,7 @@ Array [
       "children": Object {},
       "context": Object {},
       "event": Object {
+        "input": undefined,
         "type": "xstate.init",
       },
       "historyValue": Object {},
@@ -2529,6 +2539,7 @@ Array [
               "_event": Object {
                 "$$type": "scxml",
                 "data": Object {
+                  "input": undefined,
                   "type": "xstate.init",
                 },
                 "name": "xstate.init",
@@ -2542,6 +2553,7 @@ Array [
               "children": Object {},
               "context": Object {},
               "event": Object {
+                "input": undefined,
                 "type": "xstate.init",
               },
               "historyValue": Object {},
@@ -2630,6 +2642,7 @@ Array [
               "_event": Object {
                 "$$type": "scxml",
                 "data": Object {
+                  "input": undefined,
                   "type": "xstate.init",
                 },
                 "name": "xstate.init",
@@ -2643,6 +2656,7 @@ Array [
               "children": Object {},
               "context": Object {},
               "event": Object {
+                "input": undefined,
                 "type": "xstate.init",
               },
               "historyValue": Object {},
@@ -2804,6 +2818,7 @@ Array [
           "_event": Object {
             "$$type": "scxml",
             "data": Object {
+              "input": undefined,
               "type": "xstate.init",
             },
             "name": "xstate.init",
@@ -2817,6 +2832,7 @@ Array [
           "children": Object {},
           "context": Object {},
           "event": Object {
+            "input": undefined,
             "type": "xstate.init",
           },
           "historyValue": Object {},
@@ -2834,6 +2850,7 @@ Array [
       "_event": Object {
         "$$type": "scxml",
         "data": Object {
+          "input": undefined,
           "type": "xstate.init",
         },
         "name": "xstate.init",
@@ -2847,6 +2864,7 @@ Array [
       "children": Object {},
       "context": Object {},
       "event": Object {
+        "input": undefined,
         "type": "xstate.init",
       },
       "historyValue": Object {},
@@ -2895,6 +2913,7 @@ Array [
               "_event": Object {
                 "$$type": "scxml",
                 "data": Object {
+                  "input": undefined,
                   "type": "xstate.init",
                 },
                 "name": "xstate.init",
@@ -2908,6 +2927,7 @@ Array [
               "children": Object {},
               "context": Object {},
               "event": Object {
+                "input": undefined,
                 "type": "xstate.init",
               },
               "historyValue": Object {},
@@ -2957,6 +2977,7 @@ Array [
               "_event": Object {
                 "$$type": "scxml",
                 "data": Object {
+                  "input": undefined,
                   "type": "xstate.init",
                 },
                 "name": "xstate.init",
@@ -2970,6 +2991,7 @@ Array [
               "children": Object {},
               "context": Object {},
               "event": Object {
+                "input": undefined,
                 "type": "xstate.init",
               },
               "historyValue": Object {},
@@ -3023,6 +3045,7 @@ Array [
           "_event": Object {
             "$$type": "scxml",
             "data": Object {
+              "input": undefined,
               "type": "xstate.init",
             },
             "name": "xstate.init",
@@ -3038,6 +3061,7 @@ Array [
             "count": 0,
           },
           "event": Object {
+            "input": undefined,
             "type": "xstate.init",
           },
           "historyValue": Object {},
@@ -3055,6 +3079,7 @@ Array [
       "_event": Object {
         "$$type": "scxml",
         "data": Object {
+          "input": undefined,
           "type": "xstate.init",
         },
         "name": "xstate.init",
@@ -3070,6 +3095,7 @@ Array [
         "count": 0,
       },
       "event": Object {
+        "input": undefined,
         "type": "xstate.init",
       },
       "historyValue": Object {},
@@ -3133,6 +3159,7 @@ Array [
               "_event": Object {
                 "$$type": "scxml",
                 "data": Object {
+                  "input": undefined,
                   "type": "xstate.init",
                 },
                 "name": "xstate.init",
@@ -3148,6 +3175,7 @@ Array [
                 "count": 0,
               },
               "event": Object {
+                "input": undefined,
                 "type": "xstate.init",
               },
               "historyValue": Object {},
@@ -3256,6 +3284,7 @@ Array [
               "_event": Object {
                 "$$type": "scxml",
                 "data": Object {
+                  "input": undefined,
                   "type": "xstate.init",
                 },
                 "name": "xstate.init",
@@ -3271,6 +3300,7 @@ Array [
                 "count": 0,
               },
               "event": Object {
+                "input": undefined,
                 "type": "xstate.init",
               },
               "historyValue": Object {},
@@ -3425,6 +3455,7 @@ Array [
               "_event": Object {
                 "$$type": "scxml",
                 "data": Object {
+                  "input": undefined,
                   "type": "xstate.init",
                 },
                 "name": "xstate.init",
@@ -3440,6 +3471,7 @@ Array [
                 "count": 0,
               },
               "event": Object {
+                "input": undefined,
                 "type": "xstate.init",
               },
               "historyValue": Object {},
