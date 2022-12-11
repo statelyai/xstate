@@ -202,6 +202,13 @@ The `send(...)` action creator is deprecated in favor of the `sendTo(...)` actio
 +sendTo('someActor', { type: 'EVENT' });
 ```
 
+For sending events to self, `raise(...)` should be used:
+
+```diff
+-send({ type: 'EVENT' });
++raise({ type: 'EVENT' });
+```
+
 The `send(...)` action creator will be removed in XState v5.0.
 
 :::
