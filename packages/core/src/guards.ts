@@ -7,16 +7,16 @@ import type {
   GuardMeta,
   SCXML,
   GuardPredicate,
-  MachineContext
+  MachineContext,
+  AnyEventObject
 } from './types';
 import { isStateId } from './stateUtils';
 import { isFunction, isString } from './utils';
 import type { State } from './State';
 
-export function stateIn<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->(stateValue: StateValue): GuardDefinition<TContext, TEvent> {
+export function stateIn<TContext extends MachineContext>(
+  stateValue: StateValue
+): GuardDefinition<TContext, AnyEventObject> {
   return {
     type: 'xstate.guard:in',
     params: { stateValue },

@@ -1,4 +1,4 @@
-import { createMachine } from '../src';
+import { AnyStateMachine, createMachine2 as createMachine } from '../src';
 import { send } from '../src/actions/send';
 import { toSCXMLEvent } from '../src/utils';
 
@@ -68,7 +68,7 @@ describe('action creators', () => {
           value: number;
         }),
         {
-          machine: createMachine<any, any>({}),
+          machine: createMachine({}) as AnyStateMachine,
           state: null as any,
           action,
           actorContext: undefined

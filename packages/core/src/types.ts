@@ -8,7 +8,8 @@ import {
   ResolveTypegenMeta,
   TypegenConstraint,
   MarkAllImplementationsAsProvided,
-  AreAllImplementationsAssumedToBeProvided
+  AreAllImplementationsAssumedToBeProvided,
+  TypegenMeta
 } from './typegenTypes';
 import { MachineTypes, PartialMachineTypes } from './createTypes';
 
@@ -1224,7 +1225,7 @@ export type MachineConfig2<
   TContext extends MachineContext = TTypes['context'],
   TEvent extends EventObject = TTypes['allEvents'],
   TAction extends BaseActionObject = TTypes['actions'],
-  TTypesMeta = TypegenDisabled
+  TTypesMeta extends TypegenMeta | TypegenDisabled = TypegenDisabled
 > = {
   /**
    * The initial context (extended state)
