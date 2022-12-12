@@ -1,33 +1,33 @@
 import {
-  Event,
-  StateValue,
-  ActionType,
-  Action,
-  EventObject,
-  PropertyMapper,
-  Mapper,
-  EventType,
-  HistoryValue,
   AssignAction,
+  Assigner,
+  Behavior,
   Condition,
-  Subscribable,
   ConditionPredicate,
-  SCXML,
-  StateLike,
+  Event,
   EventData,
-  TransitionConfig,
-  TransitionConfigTarget,
-  NullEvent,
-  SingleOrArray,
+  EventObject,
+  EventType,
   Guard,
   GuardMeta,
+  HistoryValue,
   InvokeSourceDefinition,
+  Mapper,
+  NullEvent,
   Observer,
-  Behavior
+  PropertyAssigner,
+  PropertyMapper,
+  SCXML,
+  SingleOrArray,
+  StateLike,
+  StateValue,
+  Subscribable,
+  TransitionConfig,
+  TransitionConfigTarget
 } from './types';
 import {
-  STATE_DELIMITER,
   DEFAULT_GUARD_TYPE,
+  STATE_DELIMITER,
   TARGETLESS_KEY
 } from './constants';
 import { IS_PRODUCTION } from './environment';
@@ -74,25 +74,10 @@ export function getEventType<TEvent extends EventObject = EventObject>(
   event: Event<TEvent>
 ): TEvent['type'] {
   try {
-    return isString(event) || typeof event === 'number'
-      ? `${event}`
-      : (event as TEvent).type;
+    return isString(event) ? `${event}` : (event as TEvent).type;
   } catch (e) {
     throw new Error(
       'Events must be strings or objects with a string event.type property.'
-    );
-  }
-}
-export function getActionType(action: Action<any, any>): ActionType {
-  try {
-    return isString(action) || typeof action === 'number'
-      ? `${action}`
-      : isFunction(action)
-      ? action.name
-      : action.type;
-  } catch (e) {
-    throw new Error(
-      'Actions must be strings or objects with a string action.type property.'
     );
   }
 }
@@ -226,6 +211,7 @@ export const path = <T extends Record<string, any>>(props: string[]): any => (
 /**
  * Retrieves a value at the given path via the nested accessor prop.
  * @param props The deep path to the prop of the desired value
+ * @param accessorProp
  */
 export function nestedPath<T extends Record<string, any>>(
   props: string[],
@@ -251,7 +237,7 @@ export function toStatePaths(stateValue: StateValue | undefined): string[][] {
     return [[stateValue]];
   }
 
-  const result = flatten(
+  return flatten(
     Object.keys(stateValue).map((key) => {
       const subStateValue = stateValue[key];
 
@@ -267,8 +253,6 @@ export function toStatePaths(stateValue: StateValue | undefined): string[][] {
       });
     })
   );
-
-  return result;
 }
 
 export function pathsToStateValue(paths: string[][]): StateValue {
@@ -347,14 +331,11 @@ export function isPromiseLike(value: any): value is PromiseLike<any> {
     return true;
   }
   // Check if shape matches the Promise/A+ specification for a "thenable".
-  if (
+  return (
     value !== null &&
     (isFunction(value) || typeof value === 'object') &&
     isFunction(value.then)
-  ) {
-    return true;
-  }
-  return false;
+  );
 }
 
 export function isBehavior(value: any): value is Behavior<any, any> {
@@ -425,34 +406,39 @@ export function updateContext<TContext, TEvent extends EventObject>(
   if (!IS_PRODUCTION) {
     warn(!!context, 'Attempting to update undefined context');
   }
-  const updatedContext = context
-    ? assignActions.reduce((acc, assignAction) => {
-        const { assignment } = assignAction as AssignAction<TContext, TEvent>;
 
-        const meta = {
-          state,
-          action: assignAction,
-          _event
-        };
+  function mergeAssignments(
+    sourceContext: TContext,
+    assignAction: AssignAction<TContext, TEvent>
+  ): TContext {
+    const meta = {
+      state,
+      action: assignAction,
+      _event
+    };
 
-        let partialUpdate: Partial<TContext> = {};
+    let contextKeysToMerge: Partial<TContext> = {};
 
-        if (isFunction(assignment)) {
-          partialUpdate = assignment(acc, _event.data, meta);
-        } else {
-          for (const key of Object.keys(assignment)) {
-            const propAssignment = assignment[key];
+    const assignment:
+      | Assigner<TContext, TEvent>
+      | PropertyAssigner<TContext, TEvent> = assignAction.assignment;
 
-            partialUpdate[key] = isFunction(propAssignment)
-              ? propAssignment(acc, _event.data, meta)
-              : propAssignment;
-          }
-        }
+    if (isFunction(assignment)) {
+      contextKeysToMerge = assignment(sourceContext, _event.data, meta);
+    } else {
+      for (const contextKey of Object.keys(assignment)) {
+        const contextKeyAssignment = assignment[contextKey];
 
-        return Object.assign({}, acc, partialUpdate);
-      }, context)
-    : context;
-  return updatedContext;
+        contextKeysToMerge[contextKey] = isFunction(contextKeyAssignment)
+          ? contextKeyAssignment(sourceContext, _event.data, meta)
+          : contextKeyAssignment;
+      }
+    }
+
+    return Object.assign({}, sourceContext, contextKeysToMerge);
+  }
+
+  return context ? assignActions.reduce(mergeAssignments, context) : context;
 }
 
 // tslint:disable-next-line:no-empty
@@ -530,12 +516,13 @@ export const symbolObservable: typeof Symbol.observable = (() =>
   (typeof Symbol === 'function' && Symbol.observable) ||
   '@@observable')() as any;
 
-// TODO: to be removed in v5, left it out just to minimize the scope of the change and maintain compatibility with older versions of integration paackages
+// TODO: to be removed in v5, left it out just to minimize the scope of the change and maintain compatibility with older
+// versions of integration packages
 export const interopSymbols = {
-  [symbolObservable]: function () {
+  [symbolObservable]() {
     return this;
   },
-  [Symbol.observable]: function () {
+  [Symbol.observable]() {
     return this;
   }
 };
@@ -562,7 +549,7 @@ export function toEventObject<TEvent extends EventObject>(
   payload?: EventData
   // id?: TEvent['type']
 ): TEvent {
-  if (isString(event) || typeof event === 'number') {
+  if (isString(event)) {
     return { type: event, ...payload } as TEvent;
   }
 
@@ -599,7 +586,7 @@ export function toTransitionConfigArray<TContext, TEvent extends EventObject>(
     event: TEvent['type'] | NullEvent['type'] | '*';
   }
 > {
-  const transitions = toArrayStrict(configLike).map((transitionLike) => {
+  return toArrayStrict(configLike).map((transitionLike) => {
     if (
       typeof transitionLike === 'undefined' ||
       typeof transitionLike === 'string' ||
@@ -614,8 +601,6 @@ export function toTransitionConfigArray<TContext, TEvent extends EventObject>(
       event: TEvent['type'] | NullEvent['type'] | '*';
     } // TODO: fix 'as' (remove)
   >;
-
-  return transitions;
 }
 
 export function normalizeTarget<TContext, TEvent extends EventObject>(
@@ -703,6 +688,7 @@ export function toObserver<T>(
   errorHandler?: (error: any) => void,
   completionHandler?: () => void
 ): Observer<T> {
+  // tslint:disable-next-line:no-empty
   const noop = () => {};
   const isObserver = typeof nextHandler === 'object';
   const self = isObserver ? nextHandler : null;

@@ -154,7 +154,7 @@ export function toActivityDefinition<TContext, TEvent extends EventObject>(
  * Raises an event. This places the event in the internal event queue, so that
  * the event is immediately consumed by the machine in the current step.
  *
- * @param eventType The event to raise.
+ * @param event The event to raise.
  */
 export function raise<TContext, TEvent extends EventObject>(
   event: Event<TEvent>
@@ -450,12 +450,10 @@ export function resolveStop<TContext, TEvent extends EventObject>(
       ? { id: actorRefOrString }
       : actorRefOrString;
 
-  const actionObject = {
+  return {
     type: ActionTypes.Stop as const,
     activity: resolvedActorRef
   };
-
-  return actionObject;
 }
 
 /**
@@ -471,12 +469,6 @@ export const assign = <TContext, TEvent extends EventObject = EventObject>(
     assignment
   };
 };
-
-export function isActionObject<TContext, TEvent extends EventObject>(
-  action: Action<TContext, TEvent>
-): action is ActionObject<TContext, TEvent> {
-  return typeof action === 'object' && 'type' in action;
-}
 
 /**
  * Returns an event type that represents an implicit event that
@@ -665,14 +657,16 @@ export function resolveActions<TContext, TEvent extends EventObject>(
     ? [currentContext]
     : undefined;
 
-  const deferredToBlockEnd: Array<ActionObject<TContext, TEvent>> = [];
+  let deferredToBlockEnd: Array<ActionObject<TContext, TEvent>> = [];
 
-  function handleAction(actionObject: ActionObject<TContext, TEvent>) {
+  function resolveAction(
+    actionObject: ActionObject<TContext, TEvent>
+  ): Array<ActionObject<TContext, TEvent>> {
     switch (actionObject.type) {
       case actionTypes.raise: {
-        return resolveRaise(actionObject as RaiseAction<TEvent>);
+        return [resolveRaise(actionObject as RaiseAction<TEvent>)];
       }
-      case actionTypes.send:
+      case actionTypes.send: {
         const sendAction = resolveSend(
           actionObject as SendAction<TContext, TEvent, AnyEventObject>,
           updatedContext,
@@ -694,7 +688,8 @@ export function resolveActions<TContext, TEvent extends EventObject>(
           deferredToBlockEnd.push(sendAction);
         }
 
-        return sendAction;
+        return [sendAction];
+      }
       case actionTypes.log: {
         const resolved = resolveLog(
           actionObject as LogAction<TContext, TEvent>,
@@ -702,7 +697,7 @@ export function resolveActions<TContext, TEvent extends EventObject>(
           _event
         );
         predictableExec?.(resolved, updatedContext, _event);
-        return resolved;
+        return [resolved];
       }
       case actionTypes.choose: {
         const chooseAction = actionObject as ChooseAction<TContext, TEvent>;
@@ -779,7 +774,7 @@ export function resolveActions<TContext, TEvent extends EventObject>(
         );
 
         predictableExec?.(resolved, currentContext, _event);
-        return resolved;
+        return [resolved];
       }
       case actionTypes.assign: {
         updatedContext = updateContext(
@@ -789,9 +784,9 @@ export function resolveActions<TContext, TEvent extends EventObject>(
           !predictableExec ? currentState : undefined
         );
         preservedContexts?.push(updatedContext);
-        break;
+        return [];
       }
-      default:
+      default: {
         let resolvedActionObject = toActionObject(
           actionObject,
           machine.options.actions as any
@@ -808,28 +803,34 @@ export function resolveActions<TContext, TEvent extends EventObject>(
             }
           };
         }
-        return resolvedActionObject;
+        return [resolvedActionObject];
+      }
     }
   }
 
-  function processBlock(block: ActionObject<TContext, TEvent>[]) {
-    let resolvedActions: Array<ActionObject<TContext, TEvent>> = [];
+  function resolveActionBlocks(
+    _actionBlocks: ActionObject<TContext, TEvent>[]
+  ) {
+    const resolvedActions = flatten(_actionBlocks.map(resolveAction));
 
-    for (const action of block) {
-      const resolved = handleAction(action);
-      if (resolved) {
-        resolvedActions = resolvedActions.concat(resolved);
-      }
-    }
-
-    deferredToBlockEnd.forEach((action) => {
-      predictableExec!(action, updatedContext, _event);
-    });
-    deferredToBlockEnd.length = 0;
+    // predictableExec can not be undefined if deferredToBlockEnd has items
+    deferredToBlockEnd.forEach((action) =>
+      predictableExec?.(action, updatedContext, _event)
+    );
+    deferredToBlockEnd = [];
 
     return resolvedActions;
   }
 
-  const resolvedActions = flatten(actionBlocks.map(processBlock));
-  return [resolvedActions, updatedContext];
+  function resolveNestedActionBlocks(
+    nestedActionBlocks: Array<Array<ActionObject<TContext, TEvent>>>
+  ): ActionObject<TContext, TEvent>[] {
+    return flatten(
+      nestedActionBlocks.map((flatActionBlocks) =>
+        resolveActionBlocks(flatActionBlocks)
+      )
+    );
+  }
+
+  return [resolveNestedActionBlocks(actionBlocks), updatedContext];
 }
