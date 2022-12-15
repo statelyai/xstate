@@ -34,12 +34,12 @@ export function useActor(
     spreadIfStateInstance(actorMemo().getSnapshot?.());
 
   const [state, setState] = createImmutable({
-    snapshot: deriveServiceState(actorMemo(), getActorState())
+    snapshot: deriveServiceState(actorMemo().getSnapshot?.(), getActorState())
   });
 
   const setActorState = (actorState: unknown) => {
     setState({
-      snapshot: deriveServiceState(actorMemo(), actorState)
+      snapshot: deriveServiceState(actorMemo().getSnapshot?.(), actorState)
     });
   };
 

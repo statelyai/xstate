@@ -23,6 +23,8 @@ type StateObject<
   keyof AnyState
 >;
 
+// Converts a State class type to a POJO State type. This reflects that the state
+// is being spread into a new object for reactive tracking in SolidJS
 export type CheckSnapshot<Snapshot> = Snapshot extends State<
   infer C,
   infer E,

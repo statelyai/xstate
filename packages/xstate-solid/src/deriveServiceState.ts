@@ -1,10 +1,4 @@
-import type {
-  ActorRef,
-  Interpreter,
-  InterpreterFrom,
-  StateLike,
-  State
-} from 'xstate';
+import type { StateLike, AnyState } from 'xstate';
 
 export function isStateLike(state: any): state is StateLike<any> {
   return (
@@ -16,49 +10,51 @@ export function isStateLike(state: any): state is StateLike<any> {
   );
 }
 
-function isService(value: any): value is Interpreter<any> {
-  return 'state' in value && 'machine' in value;
+function isState(state: any): state is AnyState {
+  return isStateLike(state) && 'can' in state && 'matches' in state;
 }
 
 /**
  * Takes in an interpreter or actor ref and returns a State object with reactive
  * methods or if not State, the initial value passed in
- * @param service {InterpreterFrom<any> | ActorRef<any>}
- * @param initialState {State<any> | unknown}
+ * @param state {AnyState | unknown}
+ * @param nextStateObject {AnyState | undefined | unknown}
  */
 export const deriveServiceState = <
-  TService extends InterpreterFrom<any> | ActorRef<any>,
-  InitialState extends State<any>
+  StateSnapshot extends AnyState,
+  StateObject extends AnyState
 >(
-  service: TService,
-  initialState: InitialState extends unknown ? unknown : InitialState
-): InitialState => {
-  if (isService(service) && isStateLike(initialState)) {
+  state: StateSnapshot | unknown,
+  nextStateObject: StateObject | unknown = state
+): StateObject => {
+  if (isState(state) && isStateLike(nextStateObject)) {
     return {
-      ...(initialState as object),
+      ...(nextStateObject as object),
       toJSON() {
-        return service.state.toJSON();
+        return state.toJSON();
       },
-      toStrings(...args: Parameters<InitialState['toStrings']>) {
-        return service.state.toStrings(args[0], args[1]);
+      toStrings(...args: Parameters<StateObject['toStrings']>) {
+        return state.toStrings(args[0], args[1]);
       },
-      can(...args: Parameters<InitialState['can']>) {
+      can(...args: Parameters<StateObject['can']>) {
         // tslint:disable-next-line:no-unused-expression
         this.value; // reads state.value to be tracked
-        return service.state.can(args[0]);
+        // tslint:disable-next-line:no-unused-expression
+        this.context; // reads state.context to be tracked
+        return state.can(args[0]);
       },
-      hasTag(...args: Parameters<InitialState['hasTag']>) {
+      hasTag(...args: Parameters<StateObject['hasTag']>) {
         // tslint:disable-next-line:no-unused-expression
         this.value; // reads state.value to be tracked
-        return service.state.hasTag(args[0]);
+        return state.hasTag(args[0]);
       },
-      matches(...args: Parameters<InitialState['matches']>) {
+      matches(...args: Parameters<StateObject['matches']>) {
         // tslint:disable-next-line:no-unused-expression
         this.value; // reads state.value to be tracked
-        return service.state.matches(args[0] as never);
+        return state.matches(args[0] as never);
       }
-    } as InitialState;
+    } as StateObject;
   } else {
-    return initialState as InitialState;
+    return nextStateObject as StateObject;
   }
 };

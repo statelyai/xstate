@@ -7,10 +7,10 @@ import {
   spawn,
   ActorRef,
   ActorRefFrom,
-  interpret
+  interpret,
+  toActorRef
 } from 'xstate';
 import { fireEvent, screen, render, waitFor } from 'solid-testing-library';
-import { toActorRef } from 'xstate/lib/Actor';
 import {
   Accessor,
   Component,

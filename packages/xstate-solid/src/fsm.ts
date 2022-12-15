@@ -8,6 +8,7 @@ import { createMachine, interpret } from '@xstate/fsm';
 import type { Accessor } from 'solid-js';
 import { createMemo, onCleanup, createEffect } from 'solid-js';
 import { createImmutable } from './createImmutable';
+import { isServer } from 'solid-js/web';
 
 type UseFSMReturn<TService extends StateMachine.AnyService> = [
   StateFrom<TService>,
@@ -24,7 +25,12 @@ export function useMachine<TMachine extends StateMachine.AnyMachine>(
     options ? options : (machine as any)._options
   );
 
-  const service = interpret(resolvedMachine).start();
+  const service = interpret(resolvedMachine);
+
+  if (!isServer) {
+    service.start();
+    onCleanup(() => service.stop());
+  }
 
   return useService(service) as UseFSMReturn<ServiceFrom<TMachine>>;
 }
@@ -37,12 +43,14 @@ export function useService<TService extends StateMachine.AnyService>(
   );
 
   const initialService = serviceMemo();
-  const [state, setState] = createImmutable(deriveFSMState(initialService));
+  const [state, setState] = createImmutable(
+    deriveFSMState(initialService.state as StateFrom<TService>)
+  );
 
   createEffect(() => {
     const currentService = serviceMemo();
     const { unsubscribe } = currentService.subscribe(() =>
-      setState(deriveFSMState(currentService))
+      setState(deriveFSMState(currentService.state as StateFrom<TService>))
     );
     onCleanup(unsubscribe);
   });
@@ -52,16 +60,15 @@ export function useService<TService extends StateMachine.AnyService>(
   return [state, send, serviceMemo()];
 }
 
-function deriveFSMState<Service extends StateMachine.AnyService>(
-  service: Service
-): StateFrom<Service> {
-  const state = service.state as StateFrom<Service>;
+function deriveFSMState<State extends StateMachine.AnyState>(
+  state: State
+): State {
   return {
     ...(state as object),
     matches(...args: Parameters<typeof state['matches']>) {
       // tslint:disable-next-line:no-unused-expression
       (this as StateMachine.AnyState).value as typeof state['value']; // reads state.value to be tracked by the store
-      return service.state.matches(args[0] as never);
+      return state.matches(args[0] as never);
     }
   } as typeof state;
 }
