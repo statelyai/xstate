@@ -42,15 +42,13 @@ export function useService<TService extends StateMachine.AnyService>(
     typeof service === 'function' ? service() : service
   );
 
-  const initialService = serviceMemo();
   const [state, setState] = createImmutable(
-    deriveFSMState(initialService.state as StateFrom<TService>)
+    deriveFSMState(serviceMemo().state as StateFrom<TService>)
   );
 
   createEffect(() => {
-    const currentService = serviceMemo();
-    const { unsubscribe } = currentService.subscribe(() =>
-      setState(deriveFSMState(currentService.state as StateFrom<TService>))
+    const { unsubscribe } = serviceMemo().subscribe((nextState) =>
+      setState(deriveFSMState(nextState as StateFrom<TService>))
     );
     onCleanup(unsubscribe);
   });

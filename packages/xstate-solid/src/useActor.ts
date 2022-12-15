@@ -1,4 +1,11 @@
-import type { ActorRef, EmittedFrom, Event, EventObject } from 'xstate';
+import {
+  ActorRef,
+  AnyInterpreter,
+  EmittedFrom,
+  Event,
+  EventObject,
+  InterpreterStatus
+} from 'xstate';
 import type { Accessor } from 'solid-js';
 import { createEffect, createMemo, onCleanup } from 'solid-js';
 import { deriveServiceState, isStateLike } from './deriveServiceState';
@@ -15,6 +22,9 @@ type Sender<TEvent> = (event: TEvent) => void;
 const spreadIfStateInstance = <T>(value: T) =>
   isStateLike(value) ? { ...value } : value;
 
+const isServiceLike = (actor: ActorRef<any>): actor is AnyInterpreter =>
+  'machine' in actor;
+
 export function useActor<TActor extends ActorRef<any>>(
   actorRef: Accessor<TActor> | TActor
 ): [Accessor<CheckSnapshot<EmittedFrom<TActor>>>, TActor['send']];
@@ -30,26 +40,39 @@ export function useActor(
     typeof actorRef === 'function' ? actorRef() : actorRef
   );
 
-  const getActorState = () =>
-    spreadIfStateInstance(actorMemo().getSnapshot?.());
+  const initialActor = actorMemo();
+  const initialState =
+    isServiceLike(initialActor) &&
+    initialActor.status === InterpreterStatus.NotStarted
+      ? initialActor.machine.initialState
+      : initialActor.getSnapshot?.();
 
   const [state, setState] = createImmutable({
-    snapshot: deriveServiceState(actorMemo().getSnapshot?.(), getActorState())
+    snapshot: deriveServiceState(
+      initialState,
+      spreadIfStateInstance(initialState)
+    )
   });
 
-  const setActorState = (actorState: unknown) => {
-    setState({
-      snapshot: deriveServiceState(actorMemo().getSnapshot?.(), actorState)
-    });
-  };
-
   createEffect<boolean>((isInitialActor) => {
+    const actor = actorMemo();
+
     if (!isInitialActor) {
-      setActorState(getActorState());
+      const currentState = actor.getSnapshot?.();
+      setState({
+        snapshot: deriveServiceState(
+          currentState,
+          spreadIfStateInstance(currentState)
+        )
+      });
     }
 
-    const { unsubscribe } = actorMemo().subscribe({
-      next: setActorState,
+    const { unsubscribe } = actor.subscribe({
+      next: (state) => {
+        setState({
+          snapshot: deriveServiceState(state)
+        });
+      },
       error: noop,
       complete: noop
     });
