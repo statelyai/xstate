@@ -17,44 +17,40 @@ function isState(state: any): state is AnyState {
 /**
  * Takes in an interpreter or actor ref and returns a State object with reactive
  * methods or if not State, the initial value passed in
- * @param state {AnyState | unknown}
- * @param nextStateObject {AnyState | undefined | unknown}
+ * @param snapshot
+ * @param nextSnapshot
  */
-export const deriveServiceState = <
-  StateSnapshot extends AnyState,
-  StateObject extends AnyState
->(
-  state: StateSnapshot | unknown,
-  nextStateObject: StateObject | unknown = state
-): StateObject => {
-  if (isState(state) && isStateLike(nextStateObject)) {
+export const deriveServiceState = <TSnapshot>(
+  snapshot: TSnapshot,
+  nextSnapshot: TSnapshot = snapshot
+): TSnapshot => {
+  if (isState(snapshot) && isStateLike(nextSnapshot)) {
     return {
-      ...(nextStateObject as object),
+      ...(nextSnapshot as object),
       toJSON() {
-        return state.toJSON();
+        return snapshot.toJSON();
       },
-      toStrings(...args: Parameters<StateObject['toStrings']>) {
-        return state.toStrings(args[0], args[1]);
+      toStrings(...args: Parameters<typeof snapshot['toStrings']>) {
+        return snapshot.toStrings(args[0], args[1]);
       },
-      can(...args: Parameters<StateObject['can']>) {
+      can(...args: Parameters<typeof snapshot['can']>) {
         // tslint:disable-next-line:no-unused-expression
         this.value; // reads state.value to be tracked
         // tslint:disable-next-line:no-unused-expression
         this.context; // reads state.context to be tracked
-        return state.can(args[0]);
+        return snapshot.can(args[0]);
       },
-      hasTag(...args: Parameters<StateObject['hasTag']>) {
+      hasTag(...args: Parameters<typeof snapshot['hasTag']>) {
         // tslint:disable-next-line:no-unused-expression
         this.value; // reads state.value to be tracked
-        return state.hasTag(args[0]);
+        return snapshot.hasTag(args[0]);
       },
-      matches(...args: Parameters<StateObject['matches']>) {
+      matches(...args: Parameters<typeof snapshot['matches']>) {
         // tslint:disable-next-line:no-unused-expression
         this.value; // reads state.value to be tracked
-        return state.matches(args[0] as never);
+        return snapshot.matches(args[0] as never);
       }
-    } as StateObject;
-  } else {
-    return nextStateObject as StateObject;
+    } as TSnapshot;
   }
+  return nextSnapshot;
 };
