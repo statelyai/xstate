@@ -189,9 +189,49 @@ export class State<
   }
 
   public toJSON() {
-    const { configuration, transitions, tags, machine, ...jsonValues } = this;
+    const {
+      configuration,
+      transitions,
+      tags,
+      machine,
+      children,
+      ...jsonValues
+    } = this;
 
-    return { ...jsonValues, tags: Array.from(tags), meta: this.meta };
+    const childrenJson = {};
+
+    for (const key in children) {
+      childrenJson[key] = children[key].getPersisted?.();
+    }
+
+    return {
+      ...jsonValues,
+      tags: Array.from(tags),
+      meta: this.meta,
+      children: childrenJson
+    };
+  }
+
+  public getPersisted() {
+    const {
+      configuration,
+      transitions,
+      tags,
+      machine,
+      children,
+      ...jsonValues
+    } = this;
+
+    const childrenJson = {};
+
+    for (const key in children) {
+      childrenJson[key] = children[key].getPersisted?.();
+    }
+
+    return {
+      ...jsonValues,
+      children: childrenJson
+    };
   }
 
   /**

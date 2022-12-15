@@ -1,6 +1,7 @@
 import { EMPTY, interval, of, throwError } from 'rxjs';
 import { take } from 'rxjs/operators';
-import { interpret } from '../src';
+import { createMachine, interpret } from '../src';
+import { raise } from '../src/actions';
 import { fromObservable, fromPromise, fromReducer } from '../src/actors';
 import { waitFor } from '../src/waitFor';
 
@@ -66,6 +67,24 @@ describe('promise behavior (fromPromise)', () => {
 
     expect(snapshot).toBe(42);
   });
+
+  it('should persist a promise', async () => {
+    const actor = interpret(
+      fromPromise(
+        () =>
+          new Promise<number>((_res) => {
+            // never resolves
+          })
+      )
+    );
+
+    actor.start({
+      canceled: false,
+      data: 42
+    });
+
+    expect(actor.getSnapshot()).toBe(42);
+  });
 });
 
 describe('reducer behavior (fromReducer)', () => {
@@ -94,6 +113,20 @@ describe('reducer behavior (fromReducer)', () => {
     actor.send({ type: 'toggle' });
 
     expect(actor.getSnapshot().status).toBe('inactive');
+  });
+
+  it('should persist a reducer', () => {
+    const actor = interpret(
+      fromReducer((state) => state, {
+        status: 'inactive' as 'inactive' | 'active'
+      })
+    );
+
+    actor.start({
+      status: 'active'
+    });
+
+    expect(actor.getSnapshot().status).toBe('active');
   });
 });
 
@@ -157,5 +190,74 @@ describe('observable behavior (fromObservable)', () => {
     });
 
     actor.start();
+  });
+});
+
+describe('machine behavior', () => {
+  it('should persist a machine', async () => {
+    const childMachine = createMachine({
+      context: {
+        count: 55
+      },
+      initial: 'start',
+      states: {
+        start: {
+          invoke: {
+            id: 'reducer',
+            src: fromReducer((s) => s, { status: 'active' })
+          }
+        }
+      }
+    });
+    const machine = createMachine({
+      initial: 'waiting',
+      invoke: [
+        {
+          id: 'a',
+          src: fromPromise(() => Promise.resolve(42)),
+          onDone: {
+            actions: raise({ type: 'done' })
+          }
+        },
+        {
+          id: 'b',
+          src: childMachine
+        }
+      ],
+      states: {
+        waiting: {
+          on: {
+            done: 'success'
+          }
+        },
+        success: {}
+      }
+    });
+
+    const actor = interpret(machine).start();
+
+    await waitFor(actor, (s) => s.matches('success'));
+
+    expect(actor.getPersisted()).toEqual(
+      expect.objectContaining({
+        children: {
+          a: {
+            canceled: false,
+            data: 42
+          },
+          b: expect.objectContaining({
+            context: {
+              count: 55
+            },
+            value: 'start',
+            children: {
+              reducer: {
+                status: 'active'
+              }
+            }
+          })
+        }
+      })
+    );
   });
 });

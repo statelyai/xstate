@@ -277,10 +277,7 @@ export class Interpreter<
    * Starts the interpreter from the given state, or the initial state.
    * @param initialState The state to start the statechart from
    */
-  public start(
-    // TODO: remove this argument
-    initialState?: InternalStateFrom<TBehavior> | StateValue
-  ): this {
+  public start(initialState?: InternalStateFrom<TBehavior> | StateValue): this {
     if (this.status === InterpreterStatus.Running) {
       // Do not restart the service if it is already started
       return this;
@@ -458,10 +455,8 @@ export class Interpreter<
       resolvedDevToolsAdapter(this);
     }
   }
-  public toJSON() {
-    return {
-      id: this.id
-    };
+  public getPersisted(): object | undefined {
+    return this.behavior.getPersisted?.(this._state);
   }
 
   public [symbolObservable](): InteropSubscribable<SnapshotFrom<TBehavior>> {

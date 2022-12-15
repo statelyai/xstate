@@ -385,6 +385,9 @@ export class StateMachine<
   public toJSON() {
     return this.definition;
   }
+  public getPersisted(state: State<TContext, TEvent, TResolvedTypesMeta>) {
+    return state.getPersisted();
+  }
 
   public createState(
     stateConfig:

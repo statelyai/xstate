@@ -38,7 +38,9 @@ export function fromReducer<TState, TEvent extends EventObject>(
       return transition(state, resolvedEvent, actorCtx);
     },
     getInitialState: () => initialState,
-    getSnapshot: (state) => state
+    getSnapshot: (state) => state,
+    getPersisted: (state) => state,
+    restoreState: (state) => state
   };
 }
 
@@ -166,7 +168,11 @@ export function fromCallback<TEvent extends EventObject>(
 
 export function fromPromise<T>(
   lazyPromise: Lazy<PromiseLike<T>>
-): Behavior<{ type: string }, T | undefined> {
+): Behavior<
+  { type: string },
+  T | undefined,
+  { canceled: boolean; data: T | undefined }
+> {
   const resolveEventType = '$$xstate.resolve';
   const rejectEventType = '$$xstate.reject';
 
@@ -232,7 +238,9 @@ export function fromPromise<T>(
         data: undefined
       };
     },
-    getSnapshot: (state) => state.data
+    getSnapshot: (state) => state.data,
+    getPersisted: (state) => state,
+    restoreState: (state) => state
   };
 
   return behavior;
