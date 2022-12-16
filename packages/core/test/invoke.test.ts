@@ -59,6 +59,8 @@ const fetchMachine = createMachine<{ userId: string | undefined }>({
   }
 });
 
+jest.setTimeout(1000);
+
 const fetcherMachine = createMachine({
   id: 'fetcher',
   initial: 'idle',

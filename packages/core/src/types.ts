@@ -1580,7 +1580,7 @@ export interface StateConfig<
   configuration?: Array<StateNode<TContext, TEvent>>;
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
   children: Record<string, ActorRef<any>>;
-  done?: boolean;
+  output?: any;
   tags?: Set<string>;
   machine?: StateMachine<TContext, TEvent, any, any, any>;
   _internalQueue?: Array<SCXML.Event<TEvent>>;

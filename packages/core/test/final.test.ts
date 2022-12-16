@@ -196,6 +196,7 @@ describe('final states', () => {
   });
 
   it("should only call data expression once when entering root's final state", () => {
+    debugger;
     const spy = jest.fn();
     const machine = createMachine({
       initial: 'start',

@@ -44,16 +44,19 @@ export function isStateConfig<
 }
 
 function getOutput<TContext, TEvent extends EventObject>(
-  configuration: StateNode<TContext, TEvent>[]
+  configuration: StateNode<TContext, TEvent>[],
+  context: TContext,
+  _event: SCXML.Event<TEvent>
 ) {
+  const machine = configuration[0].machine;
   const finalChildStateNode = configuration.find(
     (stateNode) =>
-      stateNode.type === 'final' && stateNode.parent === this.machine.root
+      stateNode.type === 'final' && stateNode.parent === machine.root
   );
 
   const doneData =
     finalChildStateNode && finalChildStateNode.doneData
-      ? mapContext(finalChildStateNode.doneData, this.context, this._event)
+      ? mapContext(finalChildStateNode.doneData, context, _event)
       : undefined;
 
   return doneData;
@@ -187,8 +190,14 @@ export class State<
     this.children = config.children;
 
     this.value = getStateValue(machine.root, this.configuration);
-    this.done = isInFinalState(this.configuration);
-    this.output = this.done ? getOutput(this.configuration) : undefined;
+    this.done = this.configuration.length
+      ? isInFinalState(this.configuration)
+      : false;
+    this.output =
+      config.output ??
+      (this.done
+        ? getOutput(this.configuration, this.context, this._event)
+        : undefined);
   }
 
   /**
