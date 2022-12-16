@@ -15,6 +15,7 @@ import {
   getConfiguration,
   getStateNodes,
   getStateValue,
+  isInFinalState,
   isStateId,
   macrostep,
   microstep,
@@ -230,7 +231,8 @@ export class StateMachine<
     return this.createState({
       ...state,
       value: resolveStateValue(this.root, state.value),
-      configuration
+      configuration,
+      done: isInFinalState(configuration)
     });
   }
 
