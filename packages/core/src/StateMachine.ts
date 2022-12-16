@@ -1,6 +1,7 @@
 import {
   ActorContext,
   AnyStateMachine,
+  interpret,
   InvokeActionObject,
   Spawner,
   TransitionDefinition
@@ -414,6 +415,24 @@ export class StateMachine<
     const restoredState = isStateConfig(state)
       ? this.resolveState(state as any)
       : this.resolveState(State.from(state as any, this.context, this));
+
+    Object.keys(restoredState.children).forEach((key) => {
+      const persistedState = restoredState.children[key];
+      const impl = this.options.actors[key];
+
+      if (!impl) return;
+      const behavior = impl(restoredState.context, restoredState.event, {
+        id: key,
+        src: {} as any,
+        _event: restoredState._event,
+        meta: undefined
+      });
+
+      // TODO: this should only start if actorCtx is enabled
+      restoredState.children[key] = interpret(behavior, { id: key }).start(
+        persistedState
+      );
+    });
 
     if (actorCtx) {
       for (const action of restoredState.actions) {

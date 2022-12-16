@@ -275,9 +275,11 @@ export class Interpreter<
 
   /**
    * Starts the interpreter from the given state, or the initial state.
-   * @param initialState The state to start the statechart from
+   * @param persistedState The state to resume the statechart from
    */
-  public start(initialState?: InternalStateFrom<TBehavior> | StateValue): this {
+  public start(
+    persistedState?: InternalStateFrom<TBehavior> | StateValue
+  ): this {
     if (this.status === InterpreterStatus.Running) {
       // Do not restart the service if it is already started
       return this;
@@ -286,8 +288,8 @@ export class Interpreter<
     registry.register(this.sessionId, this.ref);
     this.status = InterpreterStatus.Running;
 
-    let resolvedState = initialState
-      ? this.behavior.restoreState?.(initialState, this._actorContext)
+    let resolvedState = persistedState
+      ? this.behavior.restoreState?.(persistedState, this._actorContext)
       : this.getInitialState() ?? undefined;
 
     // TODO: this notifies all subscribers but usually this is redundant

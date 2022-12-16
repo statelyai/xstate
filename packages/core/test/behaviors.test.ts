@@ -194,7 +194,7 @@ describe('observable behavior (fromObservable)', () => {
 });
 
 describe('machine behavior', () => {
-  it('should persist a machine', async () => {
+  it.only('should persist a machine', async () => {
     const childMachine = createMachine({
       context: {
         count: 55
@@ -238,7 +238,11 @@ describe('machine behavior', () => {
 
     await waitFor(actor, (s) => s.matches('success'));
 
-    expect(actor.getPersisted()).toEqual(
+    const persistedState = actor.getPersisted();
+
+    machine.restoreState(persistedState);
+
+    expect(persistedState).toEqual(
       expect.objectContaining({
         children: {
           a: {
