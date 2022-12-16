@@ -43,6 +43,22 @@ export function isStateConfig<
   return 'value' in state && '_event' in state;
 }
 
+function getOutput<TContext, TEvent extends EventObject>(
+  configuration: StateNode<TContext, TEvent>[]
+) {
+  const finalChildStateNode = configuration.find(
+    (stateNode) =>
+      stateNode.type === 'final' && stateNode.parent === this.machine.root
+  );
+
+  const doneData =
+    finalChildStateNode && finalChildStateNode.doneData
+      ? mapContext(finalChildStateNode.doneData, this.context, this._event)
+      : undefined;
+
+  return doneData;
+}
+
 /**
  * @deprecated Use `isStateConfig(object)` or `state instanceof State` instead.
  */
@@ -53,6 +69,14 @@ export class State<
   TResolvedTypesMeta = TypegenDisabled
 > {
   public value: StateValue;
+  /**
+   * Indicates whether the state is a final state.
+   */
+  public done: boolean;
+  /**
+   * The done data of the top-level finite state.
+   */
+  public output: any; // TODO: add an explicit type for `output`
   public context: TContext;
   public historyValue: Readonly<HistoryValue<TContext, TEvent>> = {};
   public actions: BaseActionObject[] = [];
@@ -161,6 +185,8 @@ export class State<
     this.children = config.children;
 
     this.value = getStateValue(machine.root, config.configuration);
+    this.done = isInFinalState(this.configuration);
+    this.output = this.done ? getOutput(this.configuration) : undefined;
   }
 
   /**
@@ -202,35 +228,6 @@ export class State<
       : StateValue
   >(parentStateValue: TSV): boolean {
     return matchesState(parentStateValue as any, this.value);
-  }
-
-  /**
-   * Indicates whether the state is a final state.
-   */
-  public get done(): boolean {
-    return isInFinalState(this.configuration);
-  }
-
-  /**
-   * The done data of the top-level finite state.
-   */
-  // TODO: add an explicit type for `output`
-  public get output(): any {
-    if (!this.done) {
-      return undefined;
-    }
-
-    const finalChildStateNode = this.configuration.find(
-      (stateNode) =>
-        stateNode.type === 'final' && stateNode.parent === this.machine.root
-    );
-
-    const doneData =
-      finalChildStateNode && finalChildStateNode.doneData
-        ? mapContext(finalChildStateNode.doneData, this.context, this._event)
-        : undefined;
-
-    return doneData;
   }
 
   /**
