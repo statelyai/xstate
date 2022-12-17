@@ -194,7 +194,7 @@ describe('observable behavior (fromObservable)', () => {
 });
 
 describe('machine behavior', () => {
-  it.only('should persist a machine', async () => {
+  it('should persist a machine', async () => {
     const childMachine = createMachine({
       context: {
         count: 55
@@ -242,24 +242,21 @@ describe('machine behavior', () => {
 
     machine.restoreState(persistedState);
 
-    expect(persistedState).toEqual(
+    expect(persistedState.children.a).toEqual({
+      canceled: false,
+      data: 42
+    });
+
+    expect(persistedState.children.b).toEqual(
       expect.objectContaining({
+        context: {
+          count: 55
+        },
+        value: 'start',
         children: {
-          a: {
-            canceled: false,
-            data: 42
-          },
-          b: expect.objectContaining({
-            context: {
-              count: 55
-            },
-            value: 'start',
-            children: {
-              reducer: {
-                status: 'active'
-              }
-            }
-          })
+          reducer: {
+            status: 'active'
+          }
         }
       })
     );

@@ -1,5 +1,6 @@
 import {
   ActorContext,
+  AnyActorRef,
   AnyStateMachine,
   interpret,
   InvokeActionObject,
@@ -10,7 +11,7 @@ import { initEvent } from './actions';
 import { STATE_DELIMITER } from './constants';
 import { execAction } from './exec';
 import { createSpawner } from './spawn';
-import { isStateConfig, State } from './State';
+import { getPersisted, isStateConfig, State } from './State';
 import { StateNode } from './StateNode';
 import {
   getConfiguration,
@@ -388,7 +389,7 @@ export class StateMachine<
     return this.definition;
   }
   public getPersisted(state: State<TContext, TEvent, TResolvedTypesMeta>) {
-    return state.getPersisted();
+    return getPersisted(state);
   }
 
   public createState(
@@ -413,26 +414,33 @@ export class StateMachine<
     state: State<TContext, TEvent, TResolvedTypesMeta> | StateValue,
     actorCtx?: ActorContext<TEvent, State<TContext, TEvent>>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    const restoredState = isStateConfig(state)
+    const resolvedState = isStateConfig(state)
       ? this.resolveState(state as any)
       : this.resolveState(State.from(state as any, this.context, this));
+    // const restoredState = resolvedState.clone();
 
-    Object.keys(restoredState.children).forEach((key) => {
-      const persistedState = restoredState.children[key];
+    const restoredChildren: Record<string, AnyActorRef> = {};
+
+    Object.keys(resolvedState.children).forEach((key) => {
+      const persistedState = resolvedState.children[key];
       const impl = this.options.actors[key];
 
       if (!impl) return;
-      const behavior = impl(restoredState.context, restoredState.event, {
+      const behavior = impl(resolvedState.context, resolvedState.event, {
         id: key,
         src: {} as any,
-        _event: restoredState._event,
+        _event: resolvedState._event,
         meta: undefined
       });
 
       // TODO: this should only start if actorCtx is enabled
-      restoredState.children[key] = interpret(behavior, { id: key }).start(
+      restoredChildren[key] = interpret(behavior, { id: key }).start(
         persistedState
       );
+    });
+
+    const restoredState = resolvedState.clone({
+      children: restoredChildren
     });
 
     if (actorCtx) {
@@ -441,6 +449,7 @@ export class StateMachine<
       }
     }
 
+    // @ts-ignore TODO: fix this
     return restoredState;
   }
 

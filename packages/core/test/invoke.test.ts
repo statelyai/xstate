@@ -1870,7 +1870,7 @@ describe('invoke', () => {
       expect(errorHandlersCalled).toEqual(1);
     });
 
-    it('should be able to be stringified', () => {
+    it.only('should be able to be stringified', () => {
       const waitingState = fetcherMachine.transition(
         fetcherMachine.initialState,
         'GO_TO_WAITING'

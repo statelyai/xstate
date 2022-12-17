@@ -6,6 +6,7 @@ import { getConfiguration, getStateNodes, getStateValue } from './stateUtils';
 import { TypegenDisabled, TypegenEnabled } from './typegenTypes';
 import type {
   ActorRef,
+  AnyState,
   AnyStateMachine,
   BaseActionObject,
   EventObject,
@@ -187,49 +188,9 @@ export class State<
   }
 
   public toJSON() {
-    const {
-      configuration,
-      transitions,
-      tags,
-      machine,
-      children,
-      ...jsonValues
-    } = this;
+    const { configuration, transitions, tags, machine, ...jsonValues } = this;
 
-    const childrenJson = {};
-
-    for (const key in children) {
-      childrenJson[key] = children[key].getPersisted?.();
-    }
-
-    return {
-      ...jsonValues,
-      tags: Array.from(tags),
-      meta: this.meta,
-      children: childrenJson
-    };
-  }
-
-  public getPersisted() {
-    const {
-      configuration,
-      transitions,
-      tags,
-      machine,
-      children,
-      ...jsonValues
-    } = this;
-
-    const childrenJson = {};
-
-    for (const key in children) {
-      childrenJson[key] = children[key].getPersisted?.();
-    }
-
-    return {
-      ...jsonValues,
-      children: childrenJson
-    };
+    return { ...jsonValues, tags: Array.from(tags), meta: this.meta };
   }
 
   /**
@@ -316,4 +277,26 @@ export class State<
       this.machine
     );
   }
+}
+
+export function getPersisted(state: AnyState): any {
+  const {
+    configuration,
+    transitions,
+    tags,
+    machine,
+    children,
+    ...jsonValues
+  } = state;
+
+  const childrenJson = {};
+
+  for (const key in children) {
+    childrenJson[key] = children[key].getPersisted?.();
+  }
+
+  return {
+    ...jsonValues,
+    children: childrenJson
+  };
 }

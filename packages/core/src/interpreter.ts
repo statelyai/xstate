@@ -457,7 +457,16 @@ export class Interpreter<
       resolvedDevToolsAdapter(this);
     }
   }
+  public toJSON() {
+    return {
+      id: this.id
+    };
+  }
   public getPersisted(): object | undefined {
+    if (!this._state) {
+      return undefined;
+    }
+
     return this.behavior.getPersisted?.(this._state);
   }
 
