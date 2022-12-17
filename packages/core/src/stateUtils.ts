@@ -70,6 +70,25 @@ type AnyConfiguration = Configuration<any, any>;
 
 type AdjList = Map<AnyStateNode, Array<AnyStateNode>>;
 
+function getOutput<TContext, TEvent extends EventObject>(
+  configuration: StateNode<TContext, TEvent>[],
+  context: TContext,
+  _event: SCXML.Event<TEvent>
+) {
+  const machine = configuration[0].machine;
+  const finalChildStateNode = configuration.find(
+    (stateNode) =>
+      stateNode.type === 'final' && stateNode.parent === machine.root
+  );
+
+  const doneData =
+    finalChildStateNode && finalChildStateNode.doneData
+      ? mapContext(finalChildStateNode.doneData, context, _event)
+      : undefined;
+
+  return doneData;
+}
+
 const isAtomicStateNode = (stateNode: StateNode<any, any>) =>
   stateNode.type === 'atomic' || stateNode.type === 'final';
 
@@ -1148,7 +1167,9 @@ function microstepProcedure(
 
   const nextConfiguration = [...mutConfiguration];
 
-  if (isInFinalState(nextConfiguration)) {
+  const done = isInFinalState(nextConfiguration);
+
+  if (done) {
     const finalActions = nextConfiguration
       .sort((a, b) => b.order - a.order)
       .flatMap((state) => state.exit);
@@ -1162,15 +1183,21 @@ function microstepProcedure(
       context: resolvedContext
     } = resolveActionsAndContext(actions, _event, currentState, actorCtx);
 
+    const output = done
+      ? getOutput(nextConfiguration, resolvedContext, _event)
+      : undefined;
+
     internalQueue.push(...raised.map((a) => a.params._event));
 
     return currentState.clone({
       actions: resolvedActions,
-      configuration: Array.from(mutConfiguration),
+      configuration: nextConfiguration,
       historyValue,
       _internalQueue: internalQueue,
       context: resolvedContext,
-      _event
+      _event,
+      done,
+      output
     });
   } catch (e) {
     // TODO: Refactor this once proper error handling is implemented.
