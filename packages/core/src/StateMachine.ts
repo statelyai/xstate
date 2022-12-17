@@ -11,7 +11,7 @@ import { initEvent } from './actions';
 import { STATE_DELIMITER } from './constants';
 import { execAction } from './exec';
 import { createSpawner } from './spawn';
-import { getPersisted, isStateConfig, State } from './State';
+import { getPersisted, isStateConfig, PersistedState, State } from './State';
 import { StateNode } from './StateNode';
 import {
   getConfiguration,
@@ -388,7 +388,9 @@ export class StateMachine<
   public toJSON() {
     return this.definition;
   }
-  public getPersisted(state: State<TContext, TEvent, TResolvedTypesMeta>) {
+  public getPersisted(
+    state: State<TContext, TEvent, TResolvedTypesMeta>
+  ): PersistedState<State<TContext, TEvent, TResolvedTypesMeta>> {
     return getPersisted(state);
   }
 

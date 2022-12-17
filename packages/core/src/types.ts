@@ -1,5 +1,5 @@
 import type { StateNode } from './StateNode';
-import type { State } from './State';
+import type { PersistedState, State } from './State';
 import type { Clock, Interpreter } from './interpreter';
 import type { StateMachine } from './StateMachine';
 import type { LifecycleSignal } from './actors';
@@ -1815,7 +1815,8 @@ export type InterpreterFrom<
       Behavior<
         TEvent,
         State<TContext, TEvent, TResolvedTypesMeta>,
-        State<TContext, TEvent, TResolvedTypesMeta>
+        State<TContext, TEvent, TResolvedTypesMeta>,
+        PersistedState<State<TContext, TEvent, TResolvedTypesMeta>>
       >
     >
   : never;
@@ -1865,7 +1866,8 @@ export interface ActorContext<TEvent extends EventObject, TSnapshot> {
 export interface Behavior<
   TEvent extends EventObject,
   TSnapshot = any,
-  TInternalState = any
+  TInternalState = any,
+  TPersisted extends {} = {}
 > {
   transition: (
     state: TInternalState,
@@ -1885,10 +1887,10 @@ export interface Behavior<
   /**
    * @returns Persisted state as JSON
    */
-  getPersisted?: (state: TInternalState) => any;
+  getPersisted?: (state: TInternalState) => TPersisted;
 }
 
-export type AnyBehavior = Behavior<any, any, any>;
+export type AnyBehavior = Behavior<any, any, any, any>;
 
 export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends ActorRef<infer _, infer TSnapshot>
@@ -1905,6 +1907,17 @@ export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
 export type EventFromBehavior<
   TBehavior extends Behavior<any, any>
 > = TBehavior extends Behavior<infer TEvent, infer _> ? TEvent : never;
+
+export type PersistedFrom<
+  TBehavior extends Behavior<any, any>
+> = TBehavior extends Behavior<
+  infer _TEvent,
+  infer _TSnapshot,
+  infer _TInternalState,
+  infer TPersisted
+>
+  ? TPersisted
+  : never;
 
 type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<

@@ -1,10 +1,12 @@
 import type {
   ActorContext,
   AnyActorRef,
+  AnyBehavior,
   AnyStateMachine,
   Behavior,
   EventFromBehavior,
   InterpreterFrom,
+  PersistedFrom,
   SnapshotFrom
 } from './types';
 import { doneInvoke } from './actions';
@@ -31,7 +33,7 @@ import { toEventObject, toObserver, toSCXMLEvent, warn } from './utils';
 import { symbolObservable } from './symbolObservable';
 import { evict, memo } from './memo';
 
-export type SnapshotListener<TBehavior extends Behavior<any, any>> = (
+export type SnapshotListener<TBehavior extends AnyBehavior> = (
   state: SnapshotFrom<TBehavior>
 ) => void;
 
@@ -74,7 +76,7 @@ type InternalStateFrom<
   : never;
 
 export class Interpreter<
-  TBehavior extends Behavior<any, any>,
+  TBehavior extends AnyBehavior,
   TEvent extends EventObject = EventFromBehavior<TBehavior>
 > implements ActorRef<TEvent, SnapshotFrom<TBehavior>> {
   /**
@@ -462,7 +464,7 @@ export class Interpreter<
       id: this.id
     };
   }
-  public getPersisted(): object | undefined {
+  public getPersisted(): PersistedFrom<TBehavior> | undefined {
     if (!this._state) {
       return undefined;
     }
@@ -497,7 +499,7 @@ export function interpret<TMachine extends AnyStateMachine>(
     : 'Some implementations missing',
   options?: InterpreterOptions
 ): InterpreterFrom<TMachine>;
-export function interpret<TBehavior extends Behavior<any, any>>(
+export function interpret<TBehavior extends AnyBehavior>(
   behavior: TBehavior,
   options?: InterpreterOptions
 ): Interpreter<TBehavior>;

@@ -70,7 +70,7 @@ type AnyConfiguration = Configuration<any, any>;
 
 type AdjList = Map<AnyStateNode, Array<AnyStateNode>>;
 
-function getOutput<TContext, TEvent extends EventObject>(
+function getOutput<TContext extends MachineContext, TEvent extends EventObject>(
   configuration: StateNode<TContext, TEvent>[],
   context: TContext,
   _event: SCXML.Event<TEvent>
