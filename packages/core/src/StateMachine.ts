@@ -301,7 +301,6 @@ export class StateMachine<
     state: State<TContext, TEvent, TResolvedTypesMeta>,
     _event: SCXML.Event<TEvent>
   ): Array<TransitionDefinition<TContext, TEvent>> {
-    // return this.transition(state, _event).transitions;
     return transitionNode(this.root, state.value, state, _event) || [];
   }
 
