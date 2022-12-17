@@ -19,6 +19,7 @@ import {
   getConfiguration,
   getStateNodes,
   getStateValue,
+  isInFinalState,
   isStateId,
   macrostep,
   microstep,
@@ -243,8 +244,9 @@ export class StateMachine<
     return this.createState({
       ...state,
       value: resolveStateValue(this.root, state.value),
-      configuration
-    } as StateConfig<TContext, TEvent>);
+      configuration,
+      done: isInFinalState(configuration)
+    });
   }
 
   public resolveStateValue(
@@ -312,7 +314,6 @@ export class StateMachine<
     state: State<TContext, TEvent, TResolvedTypesMeta>,
     _event: SCXML.Event<TEvent>
   ): Array<TransitionDefinition<TContext, TEvent>> {
-    // return this.transition(state, _event).transitions;
     return transitionNode(this.root, state.value, state, _event) || [];
   }
 

@@ -3,12 +3,7 @@ import { MachineTypes } from './createTypes';
 import { IS_PRODUCTION } from './environment';
 import { memo } from './memo';
 import type { StateNode } from './StateNode';
-import {
-  getConfiguration,
-  getStateNodes,
-  getStateValue,
-  isInFinalState
-} from './stateUtils';
+import { getConfiguration, getStateNodes, getStateValue } from './stateUtils';
 import { TypegenDisabled, TypegenEnabled } from './typegenTypes';
 import type {
   ActorRef,
@@ -24,14 +19,7 @@ import type {
   StateValue,
   TransitionDefinition
 } from './types';
-import {
-  flatten,
-  isString,
-  mapContext,
-  matchesState,
-  toSCXMLEvent,
-  warn
-} from './utils';
+import { flatten, isString, matchesState, toSCXMLEvent, warn } from './utils';
 
 export function isStateConfig<
   TContext extends MachineContext,
@@ -55,6 +43,14 @@ export class State<
   TTypes extends MachineTypes<any> = any
 > {
   public value: StateValue;
+  /**
+   * Indicates whether the state is a final state.
+   */
+  public done: boolean;
+  /**
+   * The done data of the top-level finite state.
+   */
+  public output: any; // TODO: add an explicit type for `output`
   public context: TContext;
   public historyValue: Readonly<HistoryValue<TContext, TEvent>> = {};
   public actions: BaseActionObject[] = [];
@@ -165,6 +161,8 @@ export class State<
     this.children = config.children;
 
     this.value = getStateValue(machine.root, this.configuration);
+    this.done = config.done ?? false;
+    this.output = config.output;
   }
 
   /**
@@ -206,35 +204,6 @@ export class State<
       : StateValue
   >(parentStateValue: TSV): boolean {
     return matchesState(parentStateValue as any, this.value);
-  }
-
-  /**
-   * Indicates whether the state is a final state.
-   */
-  public get done(): boolean {
-    return isInFinalState(this.configuration);
-  }
-
-  /**
-   * The done data of the top-level finite state.
-   */
-  // TODO: add an explicit type for `output`
-  public get output(): any {
-    if (!this.done) {
-      return undefined;
-    }
-
-    const finalChildStateNode = this.configuration.find(
-      (stateNode) =>
-        stateNode.type === 'final' && stateNode.parent === this.machine.root
-    );
-
-    const doneData =
-      finalChildStateNode && finalChildStateNode.doneData
-        ? mapContext(finalChildStateNode.doneData, this.context, this._event)
-        : undefined;
-
-    return doneData;
   }
 
   /**
