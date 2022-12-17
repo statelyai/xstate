@@ -101,7 +101,8 @@ export function send<
         } else if (resolvedTarget === SpecialTargets.Internal) {
           targetActorRef = actorContext?.self;
         } else if (resolvedTarget.startsWith('#_')) {
-          // SCXML compatibility
+          // SCXML compatibility: https://www.w3.org/TR/scxml/#SCXMLEventProcessor
+          // #_invokeid. If the target is the special term '#_invokeid', where invokeid is the invokeid of an SCXML session that the sending session has created by <invoke>, the Processor must add the event to the external queue of that session.
           targetActorRef = state.children[resolvedTarget.slice(2)];
         } else {
           targetActorRef = state.children[resolvedTarget];

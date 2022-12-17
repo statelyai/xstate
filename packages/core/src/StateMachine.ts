@@ -15,6 +15,7 @@ import {
   getConfiguration,
   getStateNodes,
   getStateValue,
+  isInFinalState,
   isStateId,
   macrostep,
   microstep,
@@ -229,7 +230,8 @@ export class StateMachine<
     return this.createState({
       ...state,
       value: resolveStateValue(this.root, state.value),
-      configuration
+      configuration,
+      done: isInFinalState(configuration)
     });
   }
 
@@ -298,7 +300,6 @@ export class StateMachine<
     state: State<TContext, TEvent, TResolvedTypesMeta>,
     _event: SCXML.Event<TEvent>
   ): Array<TransitionDefinition<TContext, TEvent>> {
-    // return this.transition(state, _event).transitions;
     return transitionNode(this.root, state.value, state, _event) || [];
   }
 
@@ -390,17 +391,8 @@ export class StateMachine<
       | State<TContext, TEvent, TResolvedTypesMeta>
       | StateConfig<TContext, TEvent>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    const configuration =
-      stateConfig.configuration ??
-      getConfiguration(getStateNodes(this.root, stateConfig.value));
-
     const state =
-      stateConfig instanceof State
-        ? stateConfig
-        : new State(
-            { ...stateConfig, configuration: Array.from(configuration) },
-            this
-          );
+      stateConfig instanceof State ? stateConfig : new State(stateConfig, this);
 
     state.machine = this;
     return state as State<TContext, TEvent, TResolvedTypesMeta>;
