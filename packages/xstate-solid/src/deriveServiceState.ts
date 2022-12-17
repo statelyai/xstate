@@ -1,4 +1,5 @@
 import type { StateLike, AnyState } from 'xstate';
+import type { CheckSnapshot } from './types';
 
 export function isStateLike(state: any): state is StateLike<any> {
   return (
@@ -22,14 +23,15 @@ function isState(state: any): state is AnyState {
  */
 export const deriveServiceState = <
   StateSnapshot extends AnyState,
-  StateObject extends StateLike<any>
+  StateObject extends StateLike<any>,
+  StateReturnType = CheckSnapshot<StateSnapshot>
 >(
   state: StateSnapshot | unknown,
   nextStateObject: StateObject | unknown = state
-): StateObject => {
+): StateReturnType => {
   if (isState(state) && isStateLike(nextStateObject)) {
     return {
-      ...(nextStateObject as object),
+      ...(nextStateObject as any),
       toJSON() {
         return state.toJSON();
       },
@@ -53,8 +55,8 @@ export const deriveServiceState = <
         this.value; // reads state.value to be tracked
         return state.matches(args[0] as never);
       }
-    } as StateObject;
+    } as StateReturnType;
   } else {
-    return nextStateObject as StateObject;
+    return nextStateObject as StateReturnType;
   }
 };
