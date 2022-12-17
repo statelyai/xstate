@@ -1,6 +1,12 @@
 /* @jsxImportSource solid-js */
 import { useMachine, useService } from '../src/fsm';
-import { createMachine, assign, interpret, StateMachine } from '@xstate/fsm';
+import {
+  createMachine,
+  assign,
+  interpret,
+  StateMachine,
+  InterpreterStatus
+} from '@xstate/fsm';
 import { screen, render, fireEvent, waitFor } from 'solid-testing-library';
 import {
   createEffect,
@@ -10,7 +16,9 @@ import {
   Match,
   on,
   Accessor,
-  Component
+  Component,
+  onCleanup,
+  Show
 } from 'solid-js';
 
 describe('useMachine hook for fsm', () => {
@@ -635,5 +643,44 @@ describe('useMachine hook for fsm', () => {
     };
 
     noop(App);
+  });
+
+  it('Service should stop on component cleanup', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EV: {
+              target: 'b'
+            }
+          }
+        },
+        b: {}
+      }
+    });
+
+    const Display = () => {
+      const [state, , service] = useMachine(machine);
+      onCleanup(() => {
+        expect(service.status).toBe(InterpreterStatus.Stopped);
+      });
+
+      return <div>{state.toString()}</div>;
+    };
+    const Counter = () => {
+      const [show, setShow] = createSignal(true);
+      setTimeout(() => setShow(false), 100);
+
+      return (
+        <div>
+          <Show keyed={false} when={show}>
+            <Display />;
+          </Show>
+        </div>
+      );
+    };
+
+    render(() => <Counter />);
   });
 });

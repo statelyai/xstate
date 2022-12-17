@@ -9,7 +9,8 @@ import {
   createMachine,
   send as xsend,
   InterpreterFrom,
-  AnyState
+  AnyState,
+  InterpreterStatus
 } from 'xstate';
 import { render, screen, waitFor, fireEvent } from 'solid-testing-library';
 import { DoneEventObject } from 'xstate';
@@ -19,7 +20,9 @@ import {
   Match,
   mergeProps,
   on,
+  onCleanup,
   onMount,
+  Show,
   Switch
 } from 'solid-js';
 
@@ -1364,6 +1367,44 @@ describe('useMachine hook', () => {
     expect(machine1Value.textContent).toEqual('101');
     expect(machine2Value.textContent).toEqual('101');
     done();
+  });
+
+  it('Service should stop on component cleanup', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EV: {
+              target: 'b'
+            }
+          }
+        },
+        b: {}
+      }
+    });
+    const Display = () => {
+      const [state, , service] = useMachine(machine);
+      onCleanup(() => {
+        expect(service.status).toBe(InterpreterStatus.Stopped);
+      });
+
+      return <div>{state.toString()}</div>;
+    };
+    const Counter = () => {
+      const [show, setShow] = createSignal(true);
+      setTimeout(() => setShow(false), 100);
+
+      return (
+        <div>
+          <Show keyed={false} when={show}>
+            <Display />;
+          </Show>
+        </div>
+      );
+    };
+
+    render(() => <Counter />);
   });
 });
 

@@ -22,7 +22,7 @@ function isState(state: any): state is AnyState {
  */
 export const deriveServiceState = <
   StateSnapshot extends AnyState,
-  StateObject extends AnyState
+  StateObject extends StateLike<any>
 >(
   state: StateSnapshot | unknown,
   nextStateObject: StateObject | unknown = state
@@ -33,22 +33,22 @@ export const deriveServiceState = <
       toJSON() {
         return state.toJSON();
       },
-      toStrings(...args: Parameters<StateObject['toStrings']>) {
+      toStrings(...args: Parameters<StateSnapshot['toStrings']>) {
         return state.toStrings(args[0], args[1]);
       },
-      can(...args: Parameters<StateObject['can']>) {
+      can(...args: Parameters<StateSnapshot['can']>) {
         // tslint:disable-next-line:no-unused-expression
         this.value; // reads state.value to be tracked
         // tslint:disable-next-line:no-unused-expression
         this.context; // reads state.context to be tracked
         return state.can(args[0]);
       },
-      hasTag(...args: Parameters<StateObject['hasTag']>) {
+      hasTag(...args: Parameters<StateSnapshot['hasTag']>) {
         // tslint:disable-next-line:no-unused-expression
         this.value; // reads state.value to be tracked
         return state.hasTag(args[0]);
       },
-      matches(...args: Parameters<StateObject['matches']>) {
+      matches(...args: Parameters<StateSnapshot['matches']>) {
         // tslint:disable-next-line:no-unused-expression
         this.value; // reads state.value to be tracked
         return state.matches(args[0] as never);
