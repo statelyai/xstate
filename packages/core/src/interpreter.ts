@@ -148,7 +148,7 @@ export class Interpreter<
       logger: this.logger,
       exec: (fn) => {
         if (self.status === InterpreterStatus.NotStarted) {
-          this._deferred.push(fn);
+          // this._deferred.push(fn);
         } else {
           fn();
         }
