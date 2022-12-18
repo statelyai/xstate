@@ -244,10 +244,11 @@ export function fromObservable<T, TEvent extends EventObject>(
       subscription: Subscription | undefined;
       observable: Subscribable<T> | undefined;
       canceled: boolean;
+      status: 'active' | 'done';
       data: T | undefined;
     }
   > = {
-    transition: (state, event, { self, id, observers }) => {
+    transition: (state, event, { self, id }) => {
       const _event = toSCXMLEvent(event);
       if (state.canceled) {
         return state;
@@ -274,19 +275,7 @@ export function fromObservable<T, TEvent extends EventObject>(
           );
           return state;
         case completeEventType:
-          self._parent?.send(
-            toSCXMLEvent(doneInvoke(id), {
-              origin: self
-            })
-          );
-
-          // Make sure that observers are completed only after the
-          // snapshot has been set on the actor
-          setTimeout(() => {
-            observers.forEach((o) => o.complete?.());
-          });
-
-          return state;
+          return { ...state, status: 'done' };
         case stopSignalType:
           state.canceled = true;
           state.subscription?.unsubscribe();
@@ -300,6 +289,7 @@ export function fromObservable<T, TEvent extends EventObject>(
         subscription: undefined as Subscription | undefined,
         observable: undefined as Subscribable<T> | undefined,
         canceled: false,
+        status: 'active' as const,
         data: undefined
       };
       state.observable = lazyObservable();
@@ -317,7 +307,8 @@ export function fromObservable<T, TEvent extends EventObject>(
       });
       return state;
     },
-    getSnapshot: (state) => state.data
+    getSnapshot: (state) => state.data,
+    getStatus: (state) => state
   };
 
   return behavior;
