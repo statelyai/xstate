@@ -242,10 +242,12 @@ describe('machine behavior', () => {
 
     machine.restoreState(persistedState);
 
-    expect(persistedState.children.a).toEqual({
-      canceled: false,
-      data: 42
-    });
+    expect(persistedState.children.a).toEqual(
+      expect.objectContaining({
+        canceled: false,
+        data: 42
+      })
+    );
 
     expect(persistedState.children.b).toEqual(
       expect.objectContaining({
