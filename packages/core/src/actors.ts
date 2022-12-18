@@ -174,7 +174,7 @@ export function fromPromise<T>(
   const behavior: Behavior<
     any,
     T | undefined,
-    { canceled: boolean; data: T | undefined }
+    { status: 'pending' | 'done'; canceled: boolean; data: T | undefined }
   > = {
     transition: (state, event, { self, id, observers }) => {
       const _event = toSCXMLEvent(event);
@@ -186,18 +186,7 @@ export function fromPromise<T>(
 
       switch (_event.name) {
         case resolveEventType:
-          self._parent?.send(
-            toSCXMLEvent(doneInvoke(id, eventObject.data) as any, {
-              origin: self
-            })
-          );
-
-          // Make sure that observers are completed only after the
-          // snapshot has been set on the actor
-          setTimeout(() => {
-            observers.forEach((o) => o.complete?.());
-          });
-          return { ...state, data: eventObject.data };
+          return { ...state, status: 'done', data: eventObject.data };
         case rejectEventType:
           const errorEvent = error(id, _event.data.data);
 
@@ -229,10 +218,12 @@ export function fromPromise<T>(
       );
       return {
         canceled: false,
+        status: 'pending',
         data: undefined
       };
     },
-    getSnapshot: (state) => state.data
+    getSnapshot: (state) => state.data,
+    getStatus: (state) => state
   };
 
   return behavior;

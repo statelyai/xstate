@@ -192,16 +192,12 @@ export class Interpreter<
 
   // TODO: output type
   private _done(output: any) {
-    const doneEvent = toSCXMLEvent(doneInvoke(this.id, output), {
-      invokeid: this.id
-    });
-
     for (const observer of this.observers) {
       // TODO: done observers should only get output data
-      observer.done?.(doneEvent);
+      observer.done?.(output);
     }
 
-    this._parent?.send(doneEvent);
+    this._complete();
     this._stop();
   }
   /*
