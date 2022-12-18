@@ -16,7 +16,9 @@ import {
   ContextFrom,
   EventFrom,
   AnyEventObject,
-  ActorRef
+  ActorRef,
+  toSCXMLEvent,
+  doneInvoke
 } from '.';
 import { isExecutableAction } from '../actions/ExecutableAction';
 import { actionTypes, error } from './actions';
@@ -114,13 +116,37 @@ function getActionFunction<TState extends AnyState>(
       if (!state.children[id]) {
         state.children[id] = ref;
       }
-      actorCtx.defer?.((state) => {
+      actorCtx.defer?.((state: AnyState) => {
         try {
+          const currentRef = state.children[id];
+          if (!currentRef) {
+            return;
+          }
           if (autoForward) {
-            interpreter._forwardTo.add(ref);
+            interpreter._forwardTo.add(currentRef);
           }
 
-          state.children[id]?.start?.();
+          currentRef.subscribe({
+            done: (data) => {
+              actorCtx.self.send(
+                toSCXMLEvent(doneInvoke(id, data) as any, {
+                  origin: currentRef,
+                  invokeid: id
+                })
+              );
+            },
+            error: (errData) => {
+              const errorEvent = error(id, errData);
+
+              actorCtx.self.send(
+                toSCXMLEvent(errorEvent, {
+                  origin: currentRef
+                })
+              );
+            }
+          });
+
+          currentRef.start?.();
         } catch (err) {
           interpreter.send(error(id, err));
           return;

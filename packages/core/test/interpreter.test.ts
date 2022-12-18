@@ -162,6 +162,34 @@ describe('interpreter', () => {
       const service = interpret(lightMachine);
       service.start(previousState);
     });
+
+    it('should not execute actions that are not part of the actual persisted state', () => {
+      let aCalled = false;
+      const machine = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            entry: () => {
+              // this should not be called when starting from a different state
+              aCalled = true;
+            },
+            always: 'b'
+          },
+          b: {}
+        }
+      });
+
+      const s = interpret(machine);
+
+      // would have deferred the entry action
+      s.getInitialState();
+
+      // instead, we start from a different state
+      // and only execute those actions
+      s.start('b');
+
+      expect(aCalled).toBe(false);
+    });
   });
 
   describe('subscribing', () => {
