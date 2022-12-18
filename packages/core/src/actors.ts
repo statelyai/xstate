@@ -174,9 +174,13 @@ export function fromPromise<T>(
   const behavior: Behavior<
     any,
     T | undefined,
-    { status: 'pending' | 'done'; canceled: boolean; data: T | undefined }
+    {
+      status: 'pending' | 'error' | 'done';
+      canceled: boolean;
+      data: T | undefined;
+    }
   > = {
-    transition: (state, event, { self, id, observers }) => {
+    transition: (state, event) => {
       const _event = toSCXMLEvent(event);
       if (state.canceled) {
         return state;
@@ -188,17 +192,7 @@ export function fromPromise<T>(
         case resolveEventType:
           return { ...state, status: 'done', data: eventObject.data };
         case rejectEventType:
-          const errorEvent = error(id, _event.data.data);
-
-          self._parent?.send(
-            toSCXMLEvent(errorEvent, {
-              origin: self
-            })
-          );
-
-          observers.forEach((observer) => observer.error?.(eventObject.data));
-
-          return { ...state, data: event.data };
+          return { ...state, status: 'error', data: eventObject.data };
         case stopSignalType:
           return { ...state, canceled: true };
         default:
@@ -244,7 +238,7 @@ export function fromObservable<T, TEvent extends EventObject>(
       subscription: Subscription | undefined;
       observable: Subscribable<T> | undefined;
       canceled: boolean;
-      status: 'active' | 'done';
+      status: 'active' | 'done' | 'error';
       data: T | undefined;
     }
   > = {
@@ -273,7 +267,7 @@ export function fromObservable<T, TEvent extends EventObject>(
               origin: self
             })
           );
-          return state;
+          return { ...state, status: 'error', data: _event.data.data };
         case completeEventType:
           return { ...state, status: 'done' };
         case stopSignalType:
@@ -284,7 +278,7 @@ export function fromObservable<T, TEvent extends EventObject>(
           return state;
       }
     },
-    getInitialState: ({ self, observers }) => {
+    getInitialState: ({ self }) => {
       const state = {
         subscription: undefined as Subscription | undefined,
         observable: undefined as Subscribable<T> | undefined,
@@ -299,7 +293,6 @@ export function fromObservable<T, TEvent extends EventObject>(
         },
         error: (err) => {
           self.send({ type: errorEventType, data: err });
-          observers.forEach((o) => o.error?.(err));
         },
         complete: () => {
           self.send({ type: completeEventType });

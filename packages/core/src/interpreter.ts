@@ -7,7 +7,6 @@ import type {
   InterpreterFrom,
   SnapshotFrom
 } from './types';
-import { doneInvoke } from './actions';
 import { stopSignalType } from './actors';
 import { devToolsAdapter } from './dev';
 import { IS_PRODUCTION } from './environment';
@@ -187,6 +186,11 @@ export class Interpreter<
     const status = this.behavior.getStatus?.(state);
     if (status?.status === 'done') {
       this._done(status.data);
+    }
+    if (status?.status === 'error') {
+      this.observers.forEach((observer) => {
+        observer.error?.(status.data);
+      });
     }
   }
 

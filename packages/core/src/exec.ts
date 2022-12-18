@@ -134,6 +134,15 @@ function getActionFunction<TState extends AnyState>(
                   invokeid: id
                 })
               );
+            },
+            error: (errData) => {
+              const errorEvent = error(id, errData);
+
+              actorCtx.self.send(
+                toSCXMLEvent(errorEvent, {
+                  origin: currentRef
+                })
+              );
             }
           });
 
