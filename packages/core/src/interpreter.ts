@@ -9,7 +9,6 @@ import type {
   PersistedFrom,
   SnapshotFrom
 } from './types';
-import { doneInvoke } from './actions';
 import { stopSignalType } from './actors';
 import { devToolsAdapter } from './dev';
 import { IS_PRODUCTION } from './environment';
@@ -150,7 +149,7 @@ export class Interpreter<
       logger: this.logger,
       exec: (fn) => {
         if (self.status === InterpreterStatus.NotStarted) {
-          this._deferred.push(fn);
+          // this._deferred.push(fn);
         } else {
           fn();
         }
@@ -190,20 +189,21 @@ export class Interpreter<
     if (status?.status === 'done') {
       this._done(status.data);
     }
+    if (status?.status === 'error') {
+      this.observers.forEach((observer) => {
+        observer.error?.(status.data);
+      });
+    }
   }
 
   // TODO: output type
   private _done(output: any) {
-    const doneEvent = toSCXMLEvent(doneInvoke(this.id, output), {
-      invokeid: this.id
-    });
-
     for (const observer of this.observers) {
       // TODO: done observers should only get output data
-      observer.done?.(doneEvent);
+      observer.done?.(output);
     }
 
-    this._parent?.send(doneEvent);
+    this._complete();
     this._stop();
   }
   /*

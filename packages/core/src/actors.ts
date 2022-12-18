@@ -180,9 +180,13 @@ export function fromPromise<T>(
   const behavior: Behavior<
     any,
     T | undefined,
-    { canceled: boolean; data: T | undefined }
+    {
+      status: 'pending' | 'error' | 'done';
+      canceled: boolean;
+      data: T | undefined;
+    }
   > = {
-    transition: (state, event, { self, id, observers }) => {
+    transition: (state, event) => {
       const _event = toSCXMLEvent(event);
       if (state.canceled) {
         return state;
@@ -192,30 +196,9 @@ export function fromPromise<T>(
 
       switch (_event.name) {
         case resolveEventType:
-          self._parent?.send(
-            toSCXMLEvent(doneInvoke(id, eventObject.data) as any, {
-              origin: self
-            })
-          );
-
-          // Make sure that observers are completed only after the
-          // snapshot has been set on the actor
-          setTimeout(() => {
-            observers.forEach((o) => o.complete?.());
-          });
-          return { ...state, data: eventObject.data };
+          return { ...state, status: 'done', data: eventObject.data };
         case rejectEventType:
-          const errorEvent = error(id, _event.data.data);
-
-          self._parent?.send(
-            toSCXMLEvent(errorEvent, {
-              origin: self
-            })
-          );
-
-          observers.forEach((observer) => observer.error?.(eventObject.data));
-
-          return { ...state, data: event.data };
+          return { ...state, status: 'error', data: eventObject.data };
         case stopSignalType:
           return { ...state, canceled: true };
         default:
@@ -235,12 +218,14 @@ export function fromPromise<T>(
       );
       return {
         canceled: false,
+        status: 'pending',
         data: undefined
       };
     },
     getSnapshot: (state) => state.data,
     getPersisted: (state) => state,
-    restoreState: (state) => state
+    restoreState: (state) => state,
+    getStatus: (state) => state
   };
 
   return behavior;
@@ -261,10 +246,11 @@ export function fromObservable<T, TEvent extends EventObject>(
       subscription: Subscription | undefined;
       observable: Subscribable<T> | undefined;
       canceled: boolean;
+      status: 'active' | 'done' | 'error';
       data: T | undefined;
     }
   > = {
-    transition: (state, event, { self, id, observers }) => {
+    transition: (state, event, { self, id }) => {
       const _event = toSCXMLEvent(event);
       if (state.canceled) {
         return state;
@@ -289,21 +275,9 @@ export function fromObservable<T, TEvent extends EventObject>(
               origin: self
             })
           );
-          return state;
+          return { ...state, status: 'error', data: _event.data.data };
         case completeEventType:
-          self._parent?.send(
-            toSCXMLEvent(doneInvoke(id), {
-              origin: self
-            })
-          );
-
-          // Make sure that observers are completed only after the
-          // snapshot has been set on the actor
-          setTimeout(() => {
-            observers.forEach((o) => o.complete?.());
-          });
-
-          return state;
+          return { ...state, status: 'done' };
         case stopSignalType:
           state.canceled = true;
           state.subscription?.unsubscribe();
@@ -312,11 +286,12 @@ export function fromObservable<T, TEvent extends EventObject>(
           return state;
       }
     },
-    getInitialState: ({ self, observers }) => {
+    getInitialState: ({ self }) => {
       const state = {
         subscription: undefined as Subscription | undefined,
         observable: undefined as Subscribable<T> | undefined,
         canceled: false,
+        status: 'active' as const,
         data: undefined
       };
       state.observable = lazyObservable();
@@ -326,7 +301,6 @@ export function fromObservable<T, TEvent extends EventObject>(
         },
         error: (err) => {
           self.send({ type: errorEventType, data: err });
-          observers.forEach((o) => o.error?.(err));
         },
         complete: () => {
           self.send({ type: completeEventType });
@@ -334,7 +308,8 @@ export function fromObservable<T, TEvent extends EventObject>(
       });
       return state;
     },
-    getSnapshot: (state) => state.data
+    getSnapshot: (state) => state.data,
+    getStatus: (state) => state
   };
 
   return behavior;
