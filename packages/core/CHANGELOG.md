@@ -1,5 +1,11 @@
 # xstate
 
+## 4.35.1
+
+### Patch Changes
+
+- [#3713](https://github.com/statelyai/xstate/pull/3713) [`96052976a`](https://github.com/statelyai/xstate/commit/96052976a0d498672b81d1b4e12f589c1e78dfad) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue that prevented events sent from the exit actions of the invoking state to be delivered to the invoked actor (when leaving that state).
+
 ## 4.35.0
 
 ### Minor Changes
