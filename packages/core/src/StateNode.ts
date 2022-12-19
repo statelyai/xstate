@@ -1011,7 +1011,10 @@ class StateNode<
     _event: SCXML.Event<TEvent>,
     prevState?: State<TContext, any, any, any, any>,
     predictableExec?: PredictableActionArgumentsExec
-  ): Array<Array<ActionObject<TContext, TEvent>>> {
+  ): Array<{
+    type: string;
+    actions: Array<ActionObject<TContext, TEvent>>;
+  }> {
     const prevConfig = prevState
       ? getConfiguration([], this.getStateNodes(prevState.value))
       : [];
@@ -1085,29 +1088,40 @@ class StateNode<
         const invokeActions = stateNode.activities.map((activity) =>
           start(activity)
         );
-        return toActionObjects(
-          predictableExec
-            ? [...entryActions, ...invokeActions]
-            : [...invokeActions, ...entryActions],
-          this.machine.options.actions as any
-        );
+        return {
+          type: 'entry',
+          actions: toActionObjects(
+            predictableExec
+              ? [...entryActions, ...invokeActions]
+              : [...invokeActions, ...entryActions],
+            this.machine.options.actions as any
+          )
+        };
       })
-      .concat([doneEvents.map(raise) as Array<ActionObject<TContext, TEvent>>]);
+      .concat({
+        type: 'state_done',
+        actions: doneEvents.map(raise) as Array<ActionObject<TContext, TEvent>>
+      });
 
-    const exitActions = Array.from(exitStates).map((stateNode) =>
-      toActionObjects(
+    const exitActions = Array.from(exitStates).map((stateNode) => ({
+      type: 'exit',
+      actions: toActionObjects(
         [
           ...stateNode.onExit,
           ...stateNode.activities.map((activity) => stop(activity))
         ],
         this.machine.options.actions as any
       )
-    );
+    }));
 
     const actions = exitActions
-      .concat([
-        toActionObjects(transition.actions, this.machine.options.actions as any)
-      ])
+      .concat({
+        type: 'transition',
+        actions: toActionObjects(
+          transition.actions,
+          this.machine.options.actions as any
+        )
+      })
       .concat(entryActions);
 
     if (isDone) {
@@ -1124,7 +1138,7 @@ class StateNode<
           (action.type !== actionTypes.send ||
             (!!action.to && action.to !== SpecialTargets.Internal))
       );
-      return actions.concat([stopActions]);
+      return actions.concat({ type: 'stop', actions: stopActions });
     }
 
     return actions;
@@ -1288,7 +1302,7 @@ class StateNode<
     );
     const activities = currentState ? { ...currentState.activities } : {};
     for (const block of actionBlocks) {
-      for (const action of block) {
+      for (const action of block.actions) {
         if (action.type === actionTypes.start) {
           activities[
             action.activity!.id || action.activity!.type
