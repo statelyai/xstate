@@ -2764,3 +2764,48 @@ describe('assign action order', () => {
     }
   );
 });
+
+// https://github.com/statelyai/xstate/issues/3617
+it('should only stop invoked services after exit actions have been executed', (done) => {
+  const machine = createMachine(
+    {
+      id: 'toggle',
+      initial: 'active',
+      predictableActionArguments: true,
+      states: {
+        inactive: {
+          on: { TOGGLE: 'active' }
+        },
+        active: {
+          invoke: {
+            id: 'my-service',
+            src: 'myService'
+          },
+
+          exit: sendTo('my-service', { type: 'my-event' }),
+
+          on: { TOGGLE: 'inactive' }
+        }
+      }
+    },
+    {
+      services: {
+        myService: (_, __) => (_, onReceive) => {
+          onReceive((event) => {
+            if (event.type === 'my-event') {
+              done();
+            }
+          });
+        }
+      }
+    }
+  );
+
+  const actor = interpret(machine).start();
+
+  actor.send('TOGGLE');
+
+  expect(() => {
+    actor.send('TOGGLE');
+  }).not.toThrow();
+});
