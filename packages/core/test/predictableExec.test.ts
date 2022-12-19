@@ -3,7 +3,8 @@ import {
   interpret,
   assign,
   spawn,
-  AnyInterpreter
+  AnyInterpreter,
+  sendTo
 } from '../src';
 import { raise, stop, send, sendParent } from '../src/actions';
 
@@ -774,5 +775,36 @@ describe('predictableExec', () => {
     service.send([{ type: 'PING_CHILD' }]);
 
     expect(gotEvent).toBe(true);
+  });
+
+  // https://github.com/statelyai/xstate/issues/3617
+  it('should deliver events sent from the exit actions to a service invoked in the same state', (done) => {
+    const machine = createMachine({
+      initial: 'active',
+      predictableActionArguments: true,
+      states: {
+        active: {
+          invoke: {
+            id: 'my-service',
+            src: (_, __) => (_, onReceive) => {
+              onReceive((event) => {
+                if (event.type === 'MY_EVENT') {
+                  done();
+                }
+              });
+            }
+          },
+          exit: sendTo('my-service', { type: 'MY_EVENT' }),
+          on: {
+            TOGGLE: 'inactive'
+          }
+        },
+        inactive: {}
+      }
+    });
+
+    const actor = interpret(machine).start();
+
+    actor.send({ type: 'TOGGLE' });
   });
 });

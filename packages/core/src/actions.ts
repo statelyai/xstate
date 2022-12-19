@@ -627,16 +627,19 @@ export function choose<TContext, TEvent extends EventObject>(
 }
 
 const pluckAssigns = <TContext, TEvent extends EventObject>(
-  actionBlocks: Array<Array<ActionObject<TContext, TEvent>>>
+  actionBlocks: Array<{
+    type: string;
+    actions: Array<ActionObject<TContext, TEvent>>;
+  }>
 ): AssignAction<TContext, TEvent>[] => {
   const assignActions: AssignAction<TContext, TEvent>[] = [];
 
   for (const block of actionBlocks) {
     let i = 0;
-    while (i < block.length) {
-      if (block[i].type === actionTypes.assign) {
-        assignActions.push(block[i] as AssignAction<TContext, TEvent>);
-        block.splice(i, 1);
+    while (i < block.actions.length) {
+      if (block.actions[i].type === actionTypes.assign) {
+        assignActions.push(block.actions[i] as AssignAction<TContext, TEvent>);
+        block.actions.splice(i, 1);
         continue;
       }
       i++;
@@ -651,7 +654,10 @@ export function resolveActions<TContext, TEvent extends EventObject>(
   currentState: State<TContext, TEvent, any, any, any> | undefined,
   currentContext: TContext,
   _event: SCXML.Event<TEvent>,
-  actionBlocks: Array<Array<ActionObject<TContext, TEvent>>>,
+  actionBlocks: Array<{
+    type: string;
+    actions: Array<ActionObject<TContext, TEvent>>;
+  }>,
   predictableExec?: PredictableActionArgumentsExec,
   preserveActionOrder: boolean = false
 ): [Array<ActionObject<TContext, TEvent>>, TContext] {
@@ -667,7 +673,10 @@ export function resolveActions<TContext, TEvent extends EventObject>(
 
   const deferredToBlockEnd: Array<ActionObject<TContext, TEvent>> = [];
 
-  function handleAction(actionObject: ActionObject<TContext, TEvent>) {
+  function handleAction(
+    blockType: string,
+    actionObject: ActionObject<TContext, TEvent>
+  ) {
     switch (actionObject.type) {
       case actionTypes.raise: {
         return resolveRaise(actionObject as RaiseAction<TEvent>);
@@ -691,7 +700,11 @@ export function resolveActions<TContext, TEvent extends EventObject>(
         }
 
         if (predictableExec && sendAction.to !== SpecialTargets.Internal) {
-          deferredToBlockEnd.push(sendAction);
+          if (blockType === 'entry') {
+            deferredToBlockEnd.push(sendAction);
+          } else {
+            predictableExec?.(sendAction, updatedContext, _event);
+          }
         }
 
         return sendAction;
@@ -733,10 +746,13 @@ export function resolveActions<TContext, TEvent extends EventObject>(
           updatedContext,
           _event,
           [
-            toActionObjects(
-              toArray(matchedActions),
-              machine.options.actions as any
-            )
+            {
+              type: blockType,
+              actions: toActionObjects(
+                toArray(matchedActions),
+                machine.options.actions as any
+              )
+            }
           ],
           predictableExec,
           preserveActionOrder
@@ -759,10 +775,13 @@ export function resolveActions<TContext, TEvent extends EventObject>(
           updatedContext,
           _event,
           [
-            toActionObjects(
-              toArray(matchedActions),
-              machine.options.actions as any
-            )
+            {
+              type: blockType,
+              actions: toActionObjects(
+                toArray(matchedActions),
+                machine.options.actions as any
+              )
+            }
           ],
           predictableExec,
           preserveActionOrder
@@ -812,11 +831,14 @@ export function resolveActions<TContext, TEvent extends EventObject>(
     }
   }
 
-  function processBlock(block: ActionObject<TContext, TEvent>[]) {
+  function processBlock(block: {
+    type: string;
+    actions: ActionObject<TContext, TEvent>[];
+  }) {
     let resolvedActions: Array<ActionObject<TContext, TEvent>> = [];
 
-    for (const action of block) {
-      const resolved = handleAction(action);
+    for (const action of block.actions) {
+      const resolved = handleAction(block.type, action);
       if (resolved) {
         resolvedActions = resolvedActions.concat(resolved);
       }
