@@ -146,8 +146,11 @@ export function getConfiguration(
 
   // add all ancestors
   for (const s of configurationSet) {
-    for (const a of getProperAncestors(s, null)) {
-      configurationSet.add(a);
+    let m = s.parent;
+
+    while (m) {
+      configurationSet.add(m);
+      m = m.parent;
     }
   }
 
