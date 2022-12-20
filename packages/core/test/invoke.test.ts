@@ -2779,7 +2779,7 @@ describe('invoke', () => {
     });
   });
 
-  it.skip('invoke `src` should accept invoke source definition', (done) => {
+  it('invoke `src` should accept invoke source definition', (done) => {
     const machine = createMachine(
       {
         initial: 'searching',
