@@ -1548,24 +1548,22 @@ describe('invoke', () => {
 
     it('should treat a callback source as an event stream', (done) => {
       const intervalMachine = createMachine<{
-        interval: number;
         count: number;
       }>({
         id: 'interval',
         initial: 'counting',
         context: {
-          interval: 10,
           count: 0
         },
         states: {
           counting: {
             invoke: {
               id: 'intervalService',
-              src: (ctx) =>
+              src: () =>
                 fromCallback((cb) => {
                   const ivl = setInterval(() => {
                     cb({ type: 'INC' });
-                  }, ctx.interval);
+                  }, 10);
 
                   return () => clearInterval(ivl);
                 })
@@ -1575,17 +1573,7 @@ describe('invoke', () => {
               guard: (ctx) => ctx.count === 3
             },
             on: {
-              INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) },
-              SKIP: 'wait'
-            }
-          },
-          wait: {
-            on: {
-              // this should never be called if interval service is properly disposed
               INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) }
-            },
-            after: {
-              50: 'finished'
             }
           },
           finished: {
@@ -1598,68 +1586,29 @@ describe('invoke', () => {
         .start();
     });
 
-    it('should dispose of the callback (if disposal function provided)', (done) => {
-      const intervalMachine = createMachine<{
-        interval: number;
-        count: number;
-      }>({
+    it('should dispose of the callback (if disposal function provided)', () => {
+      const spy = jest.fn();
+      const intervalMachine = createMachine({
         id: 'interval',
         initial: 'counting',
-        context: {
-          interval: 10,
-          count: 0
-        },
         states: {
           counting: {
             invoke: {
               id: 'intervalService',
-              src: (ctx) =>
-                fromCallback((cb) => {
-                  const ivl = setInterval(() => {
-                    cb({ type: 'INC' });
-                  }, ctx.interval);
-
-                  return () => clearInterval(ivl);
-                })
-            },
-            always: {
-              target: 'finished',
-              guard: (ctx) => ctx.count === 3
+              src: () => fromCallback(() => spy)
             },
             on: {
-              INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) },
-              SKIP: 'wait'
+              NEXT: 'idle'
             }
           },
-          wait: {
-            on: {
-              // this should never be called if interval service is properly disposed
-              INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) }
-            },
-            after: {
-              50: 'finished'
-            }
-          },
-          finished: {
-            type: 'final'
-          }
+          idle: {}
         }
       });
-      let state: any;
-      const service = interpret(intervalMachine)
-        .onTransition((s) => {
-          state = s;
-        })
-        .onDone(() => {
-          // if intervalService isn't disposed after skipping, 'INC' event will
-          // keep being sent
-          expect(state.context.count).toEqual(0);
-          done();
-        })
-        .start();
+      const actorRef = interpret(intervalMachine).start();
 
-      // waits 50 milliseconds before going to final state.
-      service.send('SKIP');
+      actorRef.send({ type: 'NEXT' });
+
+      expect(spy).toHaveBeenCalled();
     });
 
     it('callback should be able to receive messages from parent', (done) => {
