@@ -157,8 +157,9 @@ function getActionFunction<TState extends AnyState>(
       const { actor } = (action as StopActionObject).params;
 
       if (actor) {
-        actor.stop?.();
-        delete state.children[actor.id];
+        actorCtx.defer?.(() => {
+          actor.stop?.();
+        });
       }
     },
     [actionTypes.log]: (_ctx, _e, { action }) => {
