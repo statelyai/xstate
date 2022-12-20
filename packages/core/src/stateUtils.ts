@@ -1249,9 +1249,6 @@ function _enterStates(
         actions.push(...initialActions);
       }
     }
-    // if (defaultHistoryContent[s.id]) {
-    //   actions.push(...defaultHistoryContent[s.id])
-    // }
     if (stateNodeToEnter.type === 'final') {
       const parent = stateNodeToEnter.parent!;
 
