@@ -1568,7 +1568,6 @@ export function resolveActionsAndContext<
           raiseActions.push(resolvedActionObject);
         } else {
           resolvedActions.push(resolvedActionObject);
-          // TODO: only using actorCtx.exec as a flag to execute; actually use it for execution
           if (actorCtx) {
             execAction(resolvedActionObject, currentState, actorCtx);
           }
@@ -1580,11 +1579,9 @@ export function resolveActionsAndContext<
       executableActionObject.setContext(updatedContext);
     }
     resolvedActions.push(executableActionObject);
-    const resolvedAction = resolvedActions[resolvedActions.length - 1];
-    // TODO: only using actorCtx.exec as a flag to execute; actually use it for execution
     if (actorCtx) {
       execAction(
-        resolvedAction,
+        executableActionObject,
         cloneState(currentState, {
           context: updatedContext,
           _event
