@@ -871,7 +871,6 @@ describe('invoke', () => {
             }
           },
           active: {
-            // TODO: prevent this from being src: child in types
             invoke: { src: child },
             on: {
               STOPPED: 'done'
@@ -2616,7 +2615,6 @@ describe('invoke', () => {
       service.start();
     });
 
-    // TODO: determine the correct behavior for this: start then stop, or never start (more complicated)?
     it('should not invoke an actor if it gets stopped immediately by transitioning away in immediate microstep', () => {
       // Since an actor will be canceled when the state machine leaves the invoking state
       // it does not make sense to start an actor in a state that will be exited immediately
@@ -2646,9 +2644,8 @@ describe('invoke', () => {
       expect(actorStarted).toBe(false);
     });
 
-    // TODO: determine the correct behavior for this: start then stop, or never start (more complicated)?
     // tslint:disable-next-line: max-line-length
-    it.skip('should not invoke an actor if it gets stopped immediately by transitioning away in subsequent microstep', () => {
+    it('should not invoke an actor if it gets stopped immediately by transitioning away in subsequent microstep', () => {
       // Since an actor will be canceled when the state machine leaves the invoking state
       // it does not make sense to start an actor in a state that will be exited immediately
       let actorStarted = false;
@@ -2747,8 +2744,7 @@ describe('invoke', () => {
       service.send('NEXT');
     });
 
-    // TODO: make it work
-    it.skip('should invoke an actor when reentering invoking state within a single macrostep', () => {
+    it('should invoke an actor when reentering invoking state within a single macrostep', () => {
       let actorStartedCount = 0;
 
       const transientMachine = createMachine<{ counter: number }>({
