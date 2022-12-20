@@ -31,7 +31,7 @@ export const deriveServiceState = <
 ): StateReturnType => {
   if (isState(state) && isStateLike(nextStateObject)) {
     return {
-      ...(nextStateObject as any),
+      ...(nextStateObject as object),
       toJSON() {
         return state.toJSON();
       },
@@ -39,20 +39,12 @@ export const deriveServiceState = <
         return state.toStrings(args[0], args[1]);
       },
       can(...args: Parameters<StateSnapshot['can']>) {
-        // tslint:disable-next-line:no-unused-expression
-        this.value; // reads state.value to be tracked
-        // tslint:disable-next-line:no-unused-expression
-        this.context; // reads state.context to be tracked
         return state.can(args[0]);
       },
       hasTag(...args: Parameters<StateSnapshot['hasTag']>) {
-        // tslint:disable-next-line:no-unused-expression
-        this.value; // reads state.value to be tracked
         return state.hasTag(args[0]);
       },
       matches(...args: Parameters<StateSnapshot['matches']>) {
-        // tslint:disable-next-line:no-unused-expression
-        this.value; // reads state.value to be tracked
         return state.matches(args[0] as never);
       }
     } as StateReturnType;

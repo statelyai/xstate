@@ -1406,6 +1406,61 @@ describe('useMachine hook', () => {
 
     render(() => <Counter />);
   });
+
+  it('.can should trigger on context change', () => {
+    const machine = createMachine(
+      {
+        initial: 'a',
+        context: {
+          isAwesome: false
+        },
+        states: {
+          a: {
+            on: {
+              TOGGLE: {
+                actions: 'toggleIsAwesome'
+              },
+              EV: {
+                cond: 'isAwesome',
+                target: 'b'
+              }
+            }
+          },
+          b: {}
+        }
+      },
+      {
+        actions: {
+          toggleIsAwesome: assign((ctx) => ({ isAwesome: !ctx.isAwesome }))
+        },
+        guards: {
+          isAwesome: (ctx) => !!ctx.isAwesome
+        }
+      }
+    );
+
+    const App = () => {
+      const [state, send] = useMachine(machine);
+      return (
+        <div>
+          <button data-testid="toggle-button" onClick={() => send('TOGGLE')}>
+            Toggle
+          </button>
+          <Show keyed={false} when={state.can('EV')}>
+            <div data-testid="can-send-ev"></div>
+          </Show>
+        </div>
+      );
+    };
+
+    render(() => <App />);
+
+    const toggleButton = screen.getByTestId('toggle-button');
+
+    expect(screen.queryByTestId('can-send-ev')).not.toBeTruthy();
+    toggleButton.click();
+    expect(screen.queryByTestId('can-send-ev')).toBeTruthy();
+  });
 });
 
 describe('useMachine (strict mode)', () => {
