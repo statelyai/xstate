@@ -5,7 +5,6 @@ import {
   send,
   EventObject,
   StateValue,
-  UpdateObject,
   createMachine,
   ActorContext,
   Behavior,
@@ -2399,37 +2398,6 @@ describe('invoke', () => {
       interpret(pingMachine)
         .onDone(() => done())
         .start();
-    });
-
-    it.skip('should sync with child machine when sync: true option is provided', (done) => {
-      const childMachine = createMachine({
-        initial: 'working',
-        context: { count: 42 },
-        states: {
-          working: {}
-        }
-      });
-
-      const machine = createMachine<any, UpdateObject>({
-        initial: 'pending',
-        states: {
-          pending: {
-            invoke: {
-              src: childMachine /* , { sync: true } */
-            }
-          },
-          success: { type: 'final' }
-        }
-      });
-
-      const service = interpret(machine).onTransition((state) => {
-        if (state.event.type === actionTypes.update) {
-          expect(state.event.state.context).toEqual({ count: 42 });
-          done();
-        }
-      });
-
-      service.start();
     });
   });
 

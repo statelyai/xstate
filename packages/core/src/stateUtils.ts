@@ -1093,7 +1093,6 @@ export function microstep<
   nextState.changed = currentState._initial
     ? undefined
     : !stateValuesEqual(nextState.value, currentState.value) ||
-      _event.name === actionTypes.update ||
       nextState.actions.length > 0 ||
       context !== currentState.context;
 
