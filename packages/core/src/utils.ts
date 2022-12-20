@@ -366,7 +366,7 @@ export function isObservable<T>(value: any): value is Subscribable<T> {
 }
 
 export function isStateMachine(value: any): value is AnyStateMachine {
-  return value instanceof StateMachine;
+  return !!value && '__xstatenode' in value;
 }
 
 export const uniqueId = (() => {
