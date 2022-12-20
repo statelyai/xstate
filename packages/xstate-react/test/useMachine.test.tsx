@@ -490,7 +490,14 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
 
     render(<App />);
 
-    expect(rerenders).toBe(suiteKey === 'strict' ? 4 : 1);
+    expect(rerenders).toBe(
+      suiteKey === 'strict'
+        ? // it's rendered twice for the each state
+          // and the machine gets currently completely restarted in a double-invoked strict effect
+          // so we get a new state from that restarted machine (and thus 2 additional strict renders) and we end up with 4
+          4
+        : 1
+    );
   });
 
   it('should maintain the same reference for objects created when resolving initial state', () => {
@@ -541,7 +548,15 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
 
     const { getByRole } = render(<App />);
 
-    expect(effectsFired).toBe(suiteKey === 'strict' ? 3 : 1);
+    expect(effectsFired).toBe(
+      suiteKey === 'strict'
+        ? // TODO: probably it should be 2 for strict mode cause of the double-invoked strict effects
+          // atm it's 3 cause we the double-invoked effect sees the initial value
+          // but the 3rd call comes from the restarted machine (that happens because of the strict effects)
+          // the second effect with `service.start()` doesn't have a way to change what another effect in the same "effect batch" sees
+          3
+        : 1
+    );
 
     const button = getByRole('button');
     fireEvent.click(button);
