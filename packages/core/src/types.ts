@@ -816,7 +816,7 @@ export interface MachineImplementationsSimplified<
 > {
   guards: Record<string, GuardPredicate<TContext, TEvent>>;
   actions: ActionFunctionMap<TContext, TEvent, TAction>;
-  actors: Record<string, BehaviorCreator<TContext, TEvent>>;
+  actors: Record<string, BehaviorCreator<TContext, TEvent> | AnyBehavior>;
   delays: DelayFunctionMap<TContext, TEvent>;
   context: Partial<TContext> | ContextFactory<Partial<TContext>>;
 }
@@ -888,13 +888,15 @@ type MachineImplementationsActors<
     'invokeSrcNameMap'
   >
 > = {
-  [K in keyof TEventsCausingActors]?: BehaviorCreator<
-    TContext,
-    Cast<Prop<TIndexedEvents, TEventsCausingActors[K]>, EventObject>
-    // Prop<Prop<TIndexedEvents, Prop<TInvokeSrcNameMap, K>>, 'data'>,
-    // EventObject,
-    // Cast<TIndexedEvents[keyof TIndexedEvents], EventObject> // it would make sense to pass `TEvent` around to use it here directly
-  >;
+  [K in keyof TEventsCausingActors]?:
+    | BehaviorCreator<
+        TContext,
+        Cast<Prop<TIndexedEvents, TEventsCausingActors[K]>, EventObject>
+        // Prop<Prop<TIndexedEvents, Prop<TInvokeSrcNameMap, K>>, 'data'>,
+        // EventObject,
+        // Cast<TIndexedEvents[keyof TIndexedEvents], EventObject> // it would make sense to pass `TEvent` around to use it here directly
+      >
+    | AnyBehavior;
 };
 
 type MakeKeysRequired<T extends string> = { [K in T]: unknown };
@@ -1097,7 +1099,6 @@ export enum ActionTypes {
   ErrorCommunication = 'error.communication',
   ErrorPlatform = 'error.platform',
   ErrorCustom = 'xstate.error',
-  Update = 'xstate.update',
   Pure = 'xstate.pure',
   Choose = 'xstate.choose'
 }
@@ -1146,11 +1147,6 @@ export interface SCXMLErrorEvent extends SCXML.Event<any> {
 export interface DoneEventObject extends EventObject {
   data?: any;
   toString(): string;
-}
-
-export interface UpdateObject extends EventObject {
-  id: string | number;
-  state: AnyState;
 }
 
 export type DoneEvent = DoneEventObject & string;
@@ -1860,7 +1856,6 @@ export interface ActorContext<TEvent extends EventObject, TSnapshot> {
   logger: (...args: any[]) => void;
   exec: (fn: () => void) => void;
   defer: ((fn: (any) => void) => void) | undefined;
-  observers: Set<Observer<TSnapshot>>;
 }
 
 export interface Behavior<

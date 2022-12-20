@@ -402,7 +402,6 @@ export class StateMachine<
     const state =
       stateConfig instanceof State ? stateConfig : new State(stateConfig, this);
 
-    state.machine = this;
     return state as State<TContext, TEvent, TResolvedTypesMeta>;
   }
 
