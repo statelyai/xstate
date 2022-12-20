@@ -17,7 +17,6 @@ import {
 } from '../utils';
 import { createDynamicAction } from '../../actions/dynamicAction';
 import {
-  ActionTypes,
   AnyActorRef,
   BaseDynamicActionObject,
   Cast,
