@@ -1854,7 +1854,6 @@ export interface ActorContext<TEvent extends EventObject, TSnapshot> {
   logger: (...args: any[]) => void;
   exec: (fn: () => void) => void;
   defer: ((fn: (any) => void) => void) | undefined;
-  observers: Set<Observer<TSnapshot>>;
 }
 
 export interface Behavior<
