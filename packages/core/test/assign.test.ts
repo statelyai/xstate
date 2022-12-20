@@ -7,90 +7,93 @@ interface CounterContext {
   maybe?: string;
 }
 
-const counterMachine = createMachine<CounterContext>({
-  initial: 'counting',
-  context: { count: 0, foo: 'bar' },
-  states: {
-    counting: {
-      on: {
-        INC: [
-          {
-            target: 'counting',
-            actions: assign((ctx) => ({
-              count: ctx.count + 1
-            }))
-          }
-        ],
-        DEC: [
-          {
-            target: 'counting',
-            actions: [
-              assign({
-                count: (ctx) => ctx.count - 1
-              })
-            ]
-          }
-        ],
-        WIN_PROP: [
-          {
-            target: 'counting',
-            actions: [
-              assign({
-                count: () => 100,
-                foo: () => 'win'
-              })
-            ]
-          }
-        ],
-        WIN_STATIC: [
-          {
-            target: 'counting',
-            actions: [
-              assign({
-                count: 100,
-                foo: 'win'
-              })
-            ]
-          }
-        ],
-        WIN_MIX: [
-          {
-            target: 'counting',
-            actions: [
-              assign({
-                count: () => 100,
-                foo: 'win'
-              })
-            ]
-          }
-        ],
-        WIN: [
-          {
-            target: 'counting',
-            actions: [
-              assign(() => ({
-                count: 100,
-                foo: 'win'
+const createCounterMachine = (context: Partial<CounterContext> = {}) =>
+  createMachine<CounterContext>({
+    initial: 'counting',
+    context: { count: 0, foo: 'bar', ...context },
+    states: {
+      counting: {
+        on: {
+          INC: [
+            {
+              target: 'counting',
+              actions: assign((ctx) => ({
+                count: ctx.count + 1
               }))
-            ]
-          }
-        ],
-        SET_MAYBE: [
-          {
-            actions: [
-              assign({
-                maybe: 'defined'
-              })
-            ]
-          }
-        ]
+            }
+          ],
+          DEC: [
+            {
+              target: 'counting',
+              actions: [
+                assign({
+                  count: (ctx) => ctx.count - 1
+                })
+              ]
+            }
+          ],
+          WIN_PROP: [
+            {
+              target: 'counting',
+              actions: [
+                assign({
+                  count: () => 100,
+                  foo: () => 'win'
+                })
+              ]
+            }
+          ],
+          WIN_STATIC: [
+            {
+              target: 'counting',
+              actions: [
+                assign({
+                  count: 100,
+                  foo: 'win'
+                })
+              ]
+            }
+          ],
+          WIN_MIX: [
+            {
+              target: 'counting',
+              actions: [
+                assign({
+                  count: () => 100,
+                  foo: 'win'
+                })
+              ]
+            }
+          ],
+          WIN: [
+            {
+              target: 'counting',
+              actions: [
+                assign(() => ({
+                  count: 100,
+                  foo: 'win'
+                }))
+              ]
+            }
+          ],
+          SET_MAYBE: [
+            {
+              actions: [
+                assign({
+                  maybe: 'defined'
+                })
+              ]
+            }
+          ]
+        }
       }
     }
-  }
-});
+  });
 
 describe('assign', () => {
   it('applies the assignment to the external state (property assignment)', () => {
+    const counterMachine = createCounterMachine();
+
     const oneState = counterMachine.transition(counterMachine.initialState, {
       type: 'DEC'
     });
@@ -105,6 +108,8 @@ describe('assign', () => {
   });
 
   it('applies the assignment to the external state', () => {
+    const counterMachine = createCounterMachine();
+
     const oneState = counterMachine.transition(counterMachine.initialState, {
       type: 'INC'
     });
@@ -119,6 +124,7 @@ describe('assign', () => {
   });
 
   it('applies the assignment to multiple properties (property assignment)', () => {
+    const counterMachine = createCounterMachine();
     const nextState = counterMachine.transition(counterMachine.initialState, {
       type: 'WIN_PROP'
     });
@@ -127,6 +133,7 @@ describe('assign', () => {
   });
 
   it('applies the assignment to multiple properties (static)', () => {
+    const counterMachine = createCounterMachine();
     const nextState = counterMachine.transition(counterMachine.initialState, {
       type: 'WIN_STATIC'
     });
@@ -135,6 +142,7 @@ describe('assign', () => {
   });
 
   it('applies the assignment to multiple properties (static + prop assignment)', () => {
+    const counterMachine = createCounterMachine();
     const nextState = counterMachine.transition(counterMachine.initialState, {
       type: 'WIN_MIX'
     });
@@ -143,6 +151,7 @@ describe('assign', () => {
   });
 
   it('applies the assignment to multiple properties', () => {
+    const counterMachine = createCounterMachine();
     const nextState = counterMachine.transition(counterMachine.initialState, {
       type: 'WIN'
     });
@@ -151,65 +160,47 @@ describe('assign', () => {
   });
 
   it('applies the assignment to the explicit external state (property assignment)', () => {
-    const oneState = counterMachine.transition(
-      counterMachine.createState(
-        counterMachine.initialState.clone({
-          context: { count: 50, foo: 'bar' }
-        })
-      ),
-      { type: 'DEC' }
-    );
+    const machine = createCounterMachine({ count: 50, foo: 'bar' });
+    const oneState = machine.transition(undefined, { type: 'DEC' });
 
     expect(oneState.value).toEqual('counting');
     expect(oneState.context).toEqual({ count: 49, foo: 'bar' });
 
-    const twoState = counterMachine.transition(oneState, { type: 'DEC' });
+    const twoState = machine.transition(oneState, { type: 'DEC' });
 
     expect(twoState.value).toEqual('counting');
     expect(twoState.context).toEqual({ count: 48, foo: 'bar' });
 
-    const threeState = counterMachine.transition(
-      counterMachine.createState(
-        twoState.clone({ context: { count: 100, foo: 'bar' } })
-      ),
+    const machine2 = createCounterMachine({ count: 100, foo: 'bar' });
 
-      { type: 'DEC' }
-    );
+    const threeState = machine2.transition(undefined, { type: 'DEC' });
 
     expect(threeState.value).toEqual('counting');
     expect(threeState.context).toEqual({ count: 99, foo: 'bar' });
   });
 
   it('applies the assignment to the explicit external state', () => {
-    const oneState = counterMachine.transition(
-      counterMachine.createState(
-        counterMachine.initialState.clone({
-          context: { count: 50, foo: 'bar' }
-        })
-      ),
-      { type: 'INC' }
-    );
+    const machine = createCounterMachine({ count: 50, foo: 'bar' });
+    const oneState = machine.transition(undefined, { type: 'INC' });
 
     expect(oneState.value).toEqual('counting');
     expect(oneState.context).toEqual({ count: 51, foo: 'bar' });
 
-    const twoState = counterMachine.transition(oneState, { type: 'INC' });
+    const twoState = machine.transition(oneState, { type: 'INC' });
 
     expect(twoState.value).toEqual('counting');
     expect(twoState.context).toEqual({ count: 52, foo: 'bar' });
 
-    const threeState = counterMachine.transition(
-      counterMachine.createState(
-        twoState.clone({ context: { count: 102, foo: 'bar' } })
-      ),
-      { type: 'INC' }
-    );
+    const machine2 = createCounterMachine({ count: 102, foo: 'bar' });
+
+    const threeState = machine2.transition(undefined, { type: 'INC' });
 
     expect(threeState.value).toEqual('counting');
     expect(threeState.context).toEqual({ count: 103, foo: 'bar' });
   });
 
   it('should maintain state after unhandled event', () => {
+    const counterMachine = createCounterMachine();
     const { initialState } = counterMachine;
 
     const nextState = counterMachine.transition(initialState, {
@@ -221,6 +212,7 @@ describe('assign', () => {
   });
 
   it('sets undefined properties', () => {
+    const counterMachine = createCounterMachine();
     const { initialState } = counterMachine;
 
     const nextState = counterMachine.transition(initialState, {

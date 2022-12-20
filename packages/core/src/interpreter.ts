@@ -153,8 +153,7 @@ export class Interpreter<
       },
       defer: (fn) => {
         this._deferred.push(fn);
-      },
-      observers: this.observers
+      }
     };
 
     // Ensure that the send method is bound to this interpreter instance

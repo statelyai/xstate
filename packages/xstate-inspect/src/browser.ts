@@ -147,7 +147,7 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
     stringify(value, options?.serialize);
 
   devTools.onRegister((service) => {
-    const state = service.getSnapshot() || service.getInitialState();
+    const state = service.getSnapshot();
     inspectService.send({
       type: 'service.register',
       machine: stringifyMachine(service.behavior, options?.serialize),

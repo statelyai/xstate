@@ -10,7 +10,6 @@ import { send as sendActionType } from '../actionTypes';
 import { isFunction, isString, toSCXMLEvent } from '../utils';
 import { createDynamicAction } from '../../actions/dynamicAction';
 import {
-  ActionTypes,
   AnyActorRef,
   BaseDynamicActionObject,
   Cast,
@@ -129,18 +128,6 @@ export function send<
         }
       };
     }
-  );
-}
-
-/**
- * Sends an update event to this machine's parent.
- */
-export function sendUpdate<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->() {
-  return sendParent<TContext, TEvent, { type: ActionTypes.Update }>(
-    actionTypes.update as any
   );
 }
 

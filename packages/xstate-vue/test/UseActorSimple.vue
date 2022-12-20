@@ -4,8 +4,7 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { ActorRef } from 'xstate';
-import { interpret } from 'xstate/src';
+import { interpret, ActorRef } from 'xstate';
 import { useActor } from '../src';
 const simpleActor: ActorRef<any, number> = interpret({
   transition: s => s,

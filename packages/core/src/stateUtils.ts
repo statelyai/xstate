@@ -27,7 +27,7 @@ import {
   InitialTransitionConfig,
   MachineContext
 } from './types';
-import { State } from './State';
+import { cloneState, State } from './State';
 import {
   after,
   done,
@@ -70,7 +70,7 @@ type AnyConfiguration = Configuration<any, any>;
 
 type AdjList = Map<AnyStateNode, Array<AnyStateNode>>;
 
-function getOutput<TContext, TEvent extends EventObject>(
+function getOutput<TContext extends MachineContext, TEvent extends EventObject>(
   configuration: StateNode<TContext, TEvent>[],
   context: TContext,
   _event: SCXML.Event<TEvent>
@@ -1052,7 +1052,7 @@ export function microstep<
   const mutConfiguration = new Set(currentState.configuration);
 
   if (!currentState._initial && !willTransition) {
-    const inertState = currentState.clone({
+    const inertState = cloneState(currentState, {
       _event,
       actions: [],
       transitions: []
@@ -1084,7 +1084,7 @@ export function microstep<
 
   const children = _setChildren(currentState, nonRaisedActions);
 
-  const nextState = microstate.clone({
+  const nextState = cloneState(microstate, {
     value: {}, // TODO: make optional
     transitions,
     children
@@ -1093,7 +1093,6 @@ export function microstep<
   nextState.changed = currentState._initial
     ? undefined
     : !stateValuesEqual(nextState.value, currentState.value) ||
-      _event.name === actionTypes.update ||
       nextState.actions.length > 0 ||
       context !== currentState.context;
 
@@ -1189,7 +1188,7 @@ function microstepProcedure(
 
     internalQueue.push(...raised.map((a) => a.params._event));
 
-    return currentState.clone({
+    return cloneState(currentState, {
       actions: resolvedActions,
       configuration: nextConfiguration,
       historyValue,
@@ -1203,7 +1202,7 @@ function microstepProcedure(
     // TODO: Refactor this once proper error handling is implemented.
     // See https://github.com/statelyai/rfcs/pull/4
     if (machine.config.scxml) {
-      return currentState.clone({
+      return cloneState(currentState, {
         actions: [],
         configuration: Array.from(mutConfiguration),
         historyValue,
@@ -1588,7 +1587,7 @@ export function resolveActionsAndContext<
     if (actorCtx) {
       execAction(
         resolvedAction,
-        currentState.clone({
+        cloneState(currentState, {
           context: updatedContext,
           _event
         }),
@@ -1699,7 +1698,7 @@ function _stopStep(
   nextState: AnyState,
   actorCtx: ActorContext<any, any> | undefined
 ): AnyState {
-  const stoppedState = nextState.clone({
+  const stoppedState = cloneState(nextState, {
     _event: scxmlEvent,
     actions: []
   });
