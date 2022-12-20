@@ -1714,7 +1714,6 @@ function _stopStep(
     stoppedState.actions,
     stoppedState._event,
     stoppedState,
-    // stoppedState.context,
     actorCtx
   );
 
