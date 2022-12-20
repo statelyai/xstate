@@ -349,10 +349,6 @@ export function isObservable<T>(value: any): value is Subscribable<T> {
   }
 }
 
-export function isStateMachine(value: any): value is AnyStateMachine {
-  return !!value && '__xstatenode' in value;
-}
-
 export const uniqueId = (() => {
   let currentId = 0;
 
@@ -411,8 +407,7 @@ export function toTransitionConfigArray<
   const transitions = toArrayStrict(configLike).map((transitionLike) => {
     if (
       typeof transitionLike === 'undefined' ||
-      typeof transitionLike === 'string' ||
-      isStateMachine(transitionLike)
+      typeof transitionLike === 'string'
     ) {
       return { target: transitionLike, event };
     }
