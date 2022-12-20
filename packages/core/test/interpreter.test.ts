@@ -1290,7 +1290,7 @@ describe('interpreter', () => {
     });
   });
 
-  describe('.off()', () => {
+  describe('.unsubscribe()', () => {
     it('should remove transition listeners', () => {
       const toggleMachine = createMachine({
         id: 'toggle',

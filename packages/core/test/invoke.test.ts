@@ -5,7 +5,6 @@ import {
   send,
   EventObject,
   StateValue,
-  UpdateObject,
   createMachine2 as createMachine,
   ActorContext,
   Behavior,
@@ -873,7 +872,6 @@ describe('invoke', () => {
             }
           },
           active: {
-            // TODO: prevent this from being src: child in types
             invoke: { src: child },
             on: {
               STOPPED: 'done'
@@ -1561,18 +1559,18 @@ describe('invoke', () => {
         id: 'interval',
         initial: 'counting',
         context: {
-          interval: 10,
+          interval: 0,
           count: 0
         },
         states: {
           counting: {
             invoke: {
               id: 'intervalService',
-              src: (ctx) =>
+              src: () =>
                 fromCallback((cb) => {
                   const ivl = setInterval(() => {
                     cb({ type: 'INC' });
-                  }, ctx.interval);
+                  }, 10);
 
                   return () => clearInterval(ivl);
                 })
@@ -1582,17 +1580,7 @@ describe('invoke', () => {
               guard: (ctx) => ctx.count === 3
             },
             on: {
-              INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) },
-              SKIP: 'wait'
-            }
-          },
-          wait: {
-            on: {
-              // this should never be called if interval service is properly disposed
               INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) }
-            },
-            after: {
-              50: 'finished'
             }
           },
           finished: {
@@ -1605,70 +1593,29 @@ describe('invoke', () => {
         .start();
     });
 
-    it('should dispose of the callback (if disposal function provided)', (done) => {
-      const intervalMachine = createMachine<{
-        context: {
-          interval: number;
-          count: number;
-        };
-      }>({
+    it('should dispose of the callback (if disposal function provided)', () => {
+      const spy = jest.fn();
+      const intervalMachine = createMachine({
         id: 'interval',
         initial: 'counting',
-        context: {
-          interval: 10,
-          count: 0
-        },
         states: {
           counting: {
             invoke: {
               id: 'intervalService',
-              src: (ctx) =>
-                fromCallback((cb) => {
-                  const ivl = setInterval(() => {
-                    cb({ type: 'INC' });
-                  }, ctx.interval);
-
-                  return () => clearInterval(ivl);
-                })
-            },
-            always: {
-              target: 'finished',
-              guard: (ctx) => ctx.count === 3
+              src: () => fromCallback(() => spy)
             },
             on: {
-              INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) },
-              SKIP: 'wait'
+              NEXT: 'idle'
             }
           },
-          wait: {
-            on: {
-              // this should never be called if interval service is properly disposed
-              INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) }
-            },
-            after: {
-              50: 'finished'
-            }
-          },
-          finished: {
-            type: 'final'
-          }
+          idle: {}
         }
       });
-      let state: any;
-      const service = interpret(intervalMachine)
-        .onTransition((s) => {
-          state = s;
-        })
-        .onDone(() => {
-          // if intervalService isn't disposed after skipping, 'INC' event will
-          // keep being sent
-          expect(state.context.count).toEqual(0);
-          done();
-        })
-        .start();
+      const actorRef = interpret(intervalMachine).start();
 
-      // waits 50 milliseconds before going to final state.
-      service.send('SKIP');
+      actorRef.send({ type: 'NEXT' });
+
+      expect(spy).toHaveBeenCalled();
     });
 
     it('callback should be able to receive messages from parent', (done) => {
@@ -1976,8 +1923,6 @@ describe('invoke', () => {
   });
 
   describe('with observables', () => {
-    const infinite$ = interval(10);
-
     it('should work with an infinite observable', (done) => {
       interface Events {
         type: 'COUNT';
@@ -2034,7 +1979,7 @@ describe('invoke', () => {
         states: {
           counting: {
             invoke: {
-              src: fromObservable(() => infinite$.pipe(take(5))),
+              src: fromObservable(() => interval(10).pipe(take(5))),
               onSnapshot: {
                 actions: assign({
                   count: (_, e) => e.data
@@ -2075,7 +2020,7 @@ describe('invoke', () => {
           counting: {
             invoke: {
               src: fromObservable(() =>
-                infinite$.pipe(
+                interval(10).pipe(
                   map((value) => {
                     if (value === 5) {
                       throw new Error('some error');
@@ -2470,37 +2415,6 @@ describe('invoke', () => {
         .onDone(() => done())
         .start();
     });
-
-    it.skip('should sync with child machine when sync: true option is provided', (done) => {
-      const childMachine = createMachine({
-        initial: 'working',
-        context: { count: 42 },
-        states: {
-          working: {}
-        }
-      });
-
-      const machine = createMachine<{ events: UpdateObject }>({
-        initial: 'pending',
-        states: {
-          pending: {
-            invoke: {
-              src: childMachine /* , { sync: true } */
-            }
-          },
-          success: { type: 'final' }
-        }
-      });
-
-      const service = interpret(machine).onTransition((state) => {
-        if (state.event.type === actionTypes.update) {
-          expect(state.event.state.context).toEqual({ count: 42 });
-          done();
-        }
-      });
-
-      service.start();
-    });
   });
 
   describe('multiple simultaneous services', () => {
@@ -2632,7 +2546,6 @@ describe('invoke', () => {
       service.start();
     });
 
-    // TODO: determine the correct behavior for this: start then stop, or never start (more complicated)?
     it('should not invoke an actor if it gets stopped immediately by transitioning away in immediate microstep', () => {
       // Since an actor will be canceled when the state machine leaves the invoking state
       // it does not make sense to start an actor in a state that will be exited immediately
@@ -2662,9 +2575,8 @@ describe('invoke', () => {
       expect(actorStarted).toBe(false);
     });
 
-    // TODO: determine the correct behavior for this: start then stop, or never start (more complicated)?
     // tslint:disable-next-line: max-line-length
-    it.skip('should not invoke an actor if it gets stopped immediately by transitioning away in subsequent microstep', () => {
+    it('should not invoke an actor if it gets stopped immediately by transitioning away in subsequent microstep', () => {
       // Since an actor will be canceled when the state machine leaves the invoking state
       // it does not make sense to start an actor in a state that will be exited immediately
       let actorStarted = false;
@@ -2763,8 +2675,7 @@ describe('invoke', () => {
       service.send('NEXT');
     });
 
-    // TODO: make it work
-    it.skip('should invoke an actor when reentering invoking state within a single macrostep', () => {
+    it('should invoke an actor when reentering invoking state within a single macrostep', () => {
       let actorStartedCount = 0;
 
       const transientMachine = createMachine<{ context: { counter: number } }>({
@@ -2884,7 +2795,7 @@ describe('invoke', () => {
     });
   });
 
-  it.skip('invoke `src` should accept invoke source definition', (done) => {
+  it('invoke `src` should accept invoke source definition', (done) => {
     const machine = createMachine(
       {
         initial: 'searching',
@@ -2979,7 +2890,7 @@ describe('invoke', () => {
       },
       {
         actors: {
-          someSrc: () => fromPromise(() => Promise.resolve())
+          someSrc: fromPromise(() => Promise.resolve())
         }
       }
     );
@@ -3030,11 +2941,9 @@ describe('invoke', () => {
         },
         {
           actors: {
-            // TODO: allow Behavior, not just BehaviorCreator
-            someSrc: () =>
-              fromCallback(() => {
-                /* ... */
-              })
+            someSrc: fromCallback(() => {
+              /* ... */
+            })
           }
         }
       );
@@ -3079,17 +2988,16 @@ describe('invoke', () => {
           }
         },
         actors: {
-          fetchSmth: () =>
-            fromPromise(() => {
-              if (invoked) {
-                // create a promise that won't ever resolve for the second invoking state
-                return new Promise(() => {
-                  /* ... */
-                });
-              }
-              invoked = true;
-              return Promise.resolve(42);
-            })
+          fetchSmth: fromPromise(() => {
+            if (invoked) {
+              // create a promise that won't ever resolve for the second invoking state
+              return new Promise(() => {
+                /* ... */
+              });
+            }
+            invoked = true;
+            return Promise.resolve(42);
+          })
         }
       }
     );

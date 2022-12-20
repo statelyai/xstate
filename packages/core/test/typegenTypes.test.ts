@@ -722,7 +722,7 @@ describe('typegen types', () => {
       },
       {
         actors: {
-          myActor: () => fromPromise(() => Promise.resolve('foo'))
+          myActor: fromPromise(() => Promise.resolve('foo'))
         }
       }
     );

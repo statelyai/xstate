@@ -7,6 +7,7 @@ import { getConfiguration, getStateNodes, getStateValue } from './stateUtils';
 import { TypegenDisabled, TypegenEnabled } from './typegenTypes';
 import type {
   ActorRef,
+  AnyState,
   AnyStateMachine,
   BaseActionObject,
   EventObject,
@@ -269,13 +270,14 @@ export class State<
   public get tags(): Set<string> {
     return new Set(flatten(this.configuration.map((sn) => sn.tags)));
   }
+}
 
-  public clone(
-    config: Partial<StateConfig<any, any>> = {}
-  ): State<TContext, TEvent> {
-    return new State(
-      { ...this, ...config } as StateConfig<any, any>,
-      this.machine
-    );
-  }
+export function cloneState<TState extends AnyState>(
+  state: TState,
+  config: Partial<StateConfig<any, any>> = {}
+): TState {
+  return new State(
+    { ...state, ...config } as StateConfig<any, any>,
+    state.machine
+  ) as TState;
 }

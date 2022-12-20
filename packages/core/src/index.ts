@@ -6,8 +6,7 @@ import {
   forwardTo,
   respond,
   sendParent,
-  sendTo,
-  sendUpdate
+  sendTo
 } from './actions';
 import { assign } from './actions/assign';
 import { cancel } from './actions/cancel';
@@ -44,7 +43,6 @@ export {
   assign,
   send,
   sendParent,
-  sendUpdate,
   forwardTo,
   interpret,
   Interpreter,
@@ -59,7 +57,6 @@ const actions = {
   send,
   sendParent,
   sendTo,
-  sendUpdate,
   log,
   cancel,
   stop,

@@ -156,8 +156,7 @@ export class Interpreter<
       },
       defer: (fn) => {
         this._deferred.push(fn);
-      },
-      observers: this.observers
+      }
     };
   }
 
