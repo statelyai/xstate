@@ -90,10 +90,10 @@ const createCounterMachine = (context: Partial<CounterContext> = {}) =>
     }
   });
 
-const counterMachine = createCounterMachine();
-
 describe('assign', () => {
   it('applies the assignment to the external state (property assignment)', () => {
+    const counterMachine = createCounterMachine();
+
     const oneState = counterMachine.transition(
       counterMachine.initialState,
       'DEC'
@@ -109,6 +109,8 @@ describe('assign', () => {
   });
 
   it('applies the assignment to the external state', () => {
+    const counterMachine = createCounterMachine();
+
     const oneState = counterMachine.transition(
       counterMachine.initialState,
       'INC'
@@ -124,6 +126,7 @@ describe('assign', () => {
   });
 
   it('applies the assignment to multiple properties (property assignment)', () => {
+    const counterMachine = createCounterMachine();
     const nextState = counterMachine.transition(
       counterMachine.initialState,
       'WIN_PROP'
@@ -133,6 +136,7 @@ describe('assign', () => {
   });
 
   it('applies the assignment to multiple properties (static)', () => {
+    const counterMachine = createCounterMachine();
     const nextState = counterMachine.transition(
       counterMachine.initialState,
       'WIN_STATIC'
@@ -142,6 +146,7 @@ describe('assign', () => {
   });
 
   it('applies the assignment to multiple properties (static + prop assignment)', () => {
+    const counterMachine = createCounterMachine();
     const nextState = counterMachine.transition(
       counterMachine.initialState,
       'WIN_MIX'
@@ -151,6 +156,7 @@ describe('assign', () => {
   });
 
   it('applies the assignment to multiple properties', () => {
+    const counterMachine = createCounterMachine();
     const nextState = counterMachine.transition(
       counterMachine.initialState,
       'WIN'
@@ -200,6 +206,7 @@ describe('assign', () => {
   });
 
   it('should maintain state after unhandled event', () => {
+    const counterMachine = createCounterMachine();
     const { initialState } = counterMachine;
 
     const nextState = counterMachine.transition(initialState, 'FAKE_EVENT');
@@ -209,6 +216,7 @@ describe('assign', () => {
   });
 
   it('sets undefined properties', () => {
+    const counterMachine = createCounterMachine();
     const { initialState } = counterMachine;
 
     const nextState = counterMachine.transition(initialState, 'SET_MAYBE');
