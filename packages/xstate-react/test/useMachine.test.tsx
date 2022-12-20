@@ -72,7 +72,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
   }) => {
     const [current, send] = useMachine(fetchMachine, {
       actors: {
-        fetchData: () => fromPromise(onFetch)
+        fetchData: fromPromise(onFetch)
       },
       state: persistedState
     });

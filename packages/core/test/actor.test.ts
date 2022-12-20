@@ -421,7 +421,7 @@ describe('spawning observables', () => {
       },
       {
         actors: {
-          interval: () => fromObservable(() => interval(10))
+          interval: fromObservable(() => interval(10))
         }
       }
     );

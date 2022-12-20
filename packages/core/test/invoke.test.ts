@@ -2963,7 +2963,7 @@ describe('invoke', () => {
       },
       {
         actors: {
-          someSrc: () => fromPromise(() => Promise.resolve())
+          someSrc: fromPromise(() => Promise.resolve())
         }
       }
     );
@@ -3014,11 +3014,9 @@ describe('invoke', () => {
         },
         {
           actors: {
-            // TODO: allow Behavior, not just BehaviorCreator
-            someSrc: () =>
-              fromCallback(() => {
-                /* ... */
-              })
+            someSrc: fromCallback(() => {
+              /* ... */
+            })
           }
         }
       );
@@ -3063,17 +3061,16 @@ describe('invoke', () => {
           }
         },
         actors: {
-          fetchSmth: () =>
-            fromPromise(() => {
-              if (invoked) {
-                // create a promise that won't ever resolve for the second invoking state
-                return new Promise(() => {
-                  /* ... */
-                });
-              }
-              invoked = true;
-              return Promise.resolve(42);
-            })
+          fetchSmth: fromPromise(() => {
+            if (invoked) {
+              // create a promise that won't ever resolve for the second invoking state
+              return new Promise(() => {
+                /* ... */
+              });
+            }
+            invoked = true;
+            return Promise.resolve(42);
+          })
         }
       }
     );

@@ -816,7 +816,7 @@ export interface MachineImplementationsSimplified<
 > {
   guards: Record<string, GuardPredicate<TContext, TEvent>>;
   actions: ActionFunctionMap<TContext, TEvent, TAction>;
-  actors: Record<string, BehaviorCreator<TContext, TEvent>>;
+  actors: Record<string, BehaviorCreator<TContext, TEvent> | AnyBehavior>;
   delays: DelayFunctionMap<TContext, TEvent>;
   context: Partial<TContext> | ContextFactory<Partial<TContext>>;
 }
@@ -888,13 +888,15 @@ type MachineImplementationsActors<
     'invokeSrcNameMap'
   >
 > = {
-  [K in keyof TEventsCausingActors]?: BehaviorCreator<
-    TContext,
-    Cast<Prop<TIndexedEvents, TEventsCausingActors[K]>, EventObject>
-    // Prop<Prop<TIndexedEvents, Prop<TInvokeSrcNameMap, K>>, 'data'>,
-    // EventObject,
-    // Cast<TIndexedEvents[keyof TIndexedEvents], EventObject> // it would make sense to pass `TEvent` around to use it here directly
-  >;
+  [K in keyof TEventsCausingActors]?:
+    | BehaviorCreator<
+        TContext,
+        Cast<Prop<TIndexedEvents, TEventsCausingActors[K]>, EventObject>
+        // Prop<Prop<TIndexedEvents, Prop<TInvokeSrcNameMap, K>>, 'data'>,
+        // EventObject,
+        // Cast<TIndexedEvents[keyof TIndexedEvents], EventObject> // it would make sense to pass `TEvent` around to use it here directly
+      >
+    | AnyBehavior;
 };
 
 type MakeKeysRequired<T extends string> = { [K in T]: unknown };
