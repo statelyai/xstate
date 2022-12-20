@@ -1150,9 +1150,7 @@ function microstepProcedure(
   }
 
   // Execute transition content
-  for (const a of filteredTransitions.flatMap((t) => t.actions)) {
-    actions.push(a);
-  }
+  actions.push(...filteredTransitions.flatMap((t) => t.actions));
 
   // Enter states
   _enterStates(
