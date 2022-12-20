@@ -1914,8 +1914,6 @@ describe('invoke', () => {
   });
 
   describe('with observables', () => {
-    const infinite$ = interval(10);
-
     it('should work with an infinite observable', (done) => {
       interface Events {
         type: 'COUNT';
@@ -1969,7 +1967,7 @@ describe('invoke', () => {
         states: {
           counting: {
             invoke: {
-              src: fromObservable(() => infinite$.pipe(take(5))),
+              src: fromObservable(() => interval(10).pipe(take(5))),
               onSnapshot: {
                 actions: assign({
                   count: (_, e) => e.data
@@ -2010,7 +2008,7 @@ describe('invoke', () => {
           counting: {
             invoke: {
               src: fromObservable(() =>
-                infinite$.pipe(
+                interval(10).pipe(
                   map((value) => {
                     if (value === 5) {
                       throw new Error('some error');
