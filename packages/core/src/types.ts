@@ -1099,7 +1099,6 @@ export enum ActionTypes {
   ErrorCommunication = 'error.communication',
   ErrorPlatform = 'error.platform',
   ErrorCustom = 'xstate.error',
-  Update = 'xstate.update',
   Pure = 'xstate.pure',
   Choose = 'xstate.choose'
 }
@@ -1148,11 +1147,6 @@ export interface SCXMLErrorEvent extends SCXML.Event<any> {
 export interface DoneEventObject extends EventObject {
   data?: any;
   toString(): string;
-}
-
-export interface UpdateObject extends EventObject {
-  id: string | number;
-  state: AnyState;
 }
 
 export type DoneEvent = DoneEventObject & string;

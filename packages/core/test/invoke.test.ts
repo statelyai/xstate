@@ -5,7 +5,6 @@ import {
   send,
   EventObject,
   StateValue,
-  UpdateObject,
   createMachine,
   ActorContext,
   Behavior,

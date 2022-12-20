@@ -12,7 +12,6 @@ import {
 import {
   sendParent,
   doneInvoke,
-  sendUpdate,
   respond,
   forwardTo,
   error
@@ -21,7 +20,6 @@ import { raise } from '../src/actions/raise';
 import { assign } from '../src/actions/assign';
 import { send } from '../src/actions/send';
 import { EMPTY, interval } from 'rxjs';
-import * as actionTypes from '../src/actionTypes';
 import {
   fromCallback,
   fromObservable,

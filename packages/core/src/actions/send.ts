@@ -142,18 +142,6 @@ export function send<
 }
 
 /**
- * Sends an update event to this machine's parent.
- */
-export function sendUpdate<
-  TContext extends MachineContext,
-  TEvent extends EventObject
->() {
-  return sendParent<TContext, TEvent, { type: ActionTypes.Update }>(
-    actionTypes.update
-  );
-}
-
-/**
  * Sends an event to this machine's parent.
  *
  * @param event The event to send to the parent machine.
