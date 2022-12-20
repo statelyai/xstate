@@ -281,14 +281,7 @@ export interface BooleanGuardDefinition<
   };
 }
 
-export type TransitionTarget<
-  TContext extends MachineContext,
-  TEvent extends EventObject
-> = SingleOrArray<string | StateNode<TContext, TEvent>>;
-
-export type TransitionTargets<TContext extends MachineContext> = Array<
-  string | StateNode<TContext, any>
->;
+export type TransitionTarget = SingleOrArray<string>;
 
 export interface TransitionConfig<
   TContext extends MachineContext,
@@ -298,7 +291,7 @@ export interface TransitionConfig<
   guard?: GuardConfig<TContext, TEvent>;
   actions?: BaseActions<TContext, TEvent, TAction>;
   internal?: boolean;
-  target?: TransitionTarget<TContext, TEvent> | undefined;
+  target?: TransitionTarget | undefined;
   meta?: Record<string, any>;
   description?: string;
 }
@@ -307,7 +300,7 @@ export interface TargetTransitionConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
 > extends TransitionConfig<TContext, TEvent> {
-  target: TransitionTarget<TContext, TEvent>; // TODO: just make this non-optional
+  target: TransitionTarget; // TODO: just make this non-optional
 }
 
 export type ConditionalTransitionConfig<
@@ -320,7 +313,7 @@ export interface InitialTransitionConfig<
   TEvent extends EventObject
 > extends TransitionConfig<TContext, TEvent> {
   guard?: never;
-  target: TransitionTarget<TContext, TEvent>;
+  target: TransitionTarget;
 }
 
 export type Transition<
@@ -471,17 +464,12 @@ export type StatesDefinition<
   [K in string]: StateNodeDefinition<TContext, TEvent>;
 };
 
-export type TransitionConfigTarget<
-  TContext extends MachineContext,
-  TEvent extends EventObject
-> = string | undefined | StateNode<TContext, TEvent>;
+export type TransitionConfigTarget = string | undefined;
 
 export type TransitionConfigOrTarget<
   TContext extends MachineContext,
   TEvent extends EventObject
-> = SingleOrArray<
-  TransitionConfigTarget<TContext, TEvent> | TransitionConfig<TContext, TEvent>
->;
+> = SingleOrArray<TransitionConfigTarget | TransitionConfig<TContext, TEvent>>;
 
 export type TransitionsConfigMap<
   TContext extends MachineContext,
@@ -1389,7 +1377,7 @@ export interface ResolvedChooseAction extends BaseActionObject {
 export interface TransitionDefinition<
   TContext extends MachineContext,
   TEvent extends EventObject
-> extends TransitionConfig<TContext, TEvent> {
+> extends Omit<TransitionConfig<TContext, TEvent>, 'target'> {
   target: Array<StateNode<TContext, TEvent>> | undefined;
   source: StateNode<TContext, TEvent>;
   actions: BaseActionObject[];
