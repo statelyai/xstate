@@ -1837,3 +1837,19 @@ describe('interpreter', () => {
     expect(spy).not.toHaveBeenCalled();
   });
 });
+
+it(`should execute entry actions when starting the actor after reading its snapshot first`, () => {
+  const spy = jest.fn();
+
+  const actorRef = interpret(
+    createMachine({
+      entry: spy
+    })
+  );
+
+  actorRef.getSnapshot();
+
+  actorRef.start();
+
+  expect(spy).toHaveBeenCalled();
+});

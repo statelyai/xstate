@@ -118,7 +118,7 @@ export function useMachine<TMachine extends AnyStateMachine>(
         ? ((service.behavior as AnyStateMachine).createState(
             rehydratedState
           ) as any)
-        : undefined
+        : storeSnapshot
     );
 
     return () => {
