@@ -152,6 +152,54 @@ describe('history states', () => {
 
     expect(actual).toEqual(['a2 exited', 'a2 entered']);
   });
+
+  it('should go to the configured default target when a history state is the initial state of the machine', () => {
+    const machine = createMachine({
+      initial: 'foo',
+      states: {
+        foo: {
+          type: 'history',
+          target: 'bar'
+        },
+        bar: {}
+      }
+    });
+
+    const actor = interpret(machine).start();
+
+    expect(actor.getSnapshot().value).toBe('bar')
+  });
+
+  it(`should go to the configured default target when a history state is the initial state of the transition's target`, () => {
+    const a = createMachine({
+      initial: 'foo',
+      states: {
+        foo: {
+          on: {
+            NEXT: 'bar'
+          }
+        },
+        bar: {
+          initial: 'baz',
+          states: {
+            baz: {
+              type: 'history',
+              target: 'qwe'
+            },
+            qwe: {}
+          }
+        }
+      }
+    });
+
+    const actor = interpret(a).start();
+
+    actor.send({ type: 'NEXT' });
+
+    expect(actor.getSnapshot().value).toEqual({
+      bar: 'qwe'
+    });
+  });
 });
 
 describe('deep history states', () => {

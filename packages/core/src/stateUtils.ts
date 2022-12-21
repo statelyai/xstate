@@ -649,7 +649,7 @@ function resolveHistoryTarget<
   }
   return normalizedTarget.map((t) =>
     typeof t === 'string'
-      ? getStateNodeByPath<TContext, TEvent>(stateNode, t)
+      ? getStateNodeByPath<TContext, TEvent>(stateNode.parent!, t)
       : t
   );
 }
