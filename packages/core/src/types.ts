@@ -1654,7 +1654,7 @@ export declare namespace SCXML {
   }
 }
 
-// Taken from RxJS
+// Based on RxJS types
 export type Observer<T> = {
   next?: (value: T) => void;
   error?: (err: any) => void;
@@ -1752,13 +1752,6 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
     : R extends Behavior<infer TEvent, infer TSnapshot>
     ? ActorRef<TEvent, TSnapshot>
     : never
-  : never;
-
-export type ActorRefFromBehavior<T> = T extends Behavior<
-  infer TEvent,
-  infer TSnapshot
->
-  ? ActorRef<TEvent, TSnapshot>
   : never;
 
 export type DevToolsAdapter = (service: AnyInterpreter) => void;
