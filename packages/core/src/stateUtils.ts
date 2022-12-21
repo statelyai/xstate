@@ -218,12 +218,15 @@ export function isInFinalState(
   configuration: Array<AnyStateNode>,
   stateNode: AnyStateNode = configuration[0].machine.root
 ): boolean {
-  const { type } = stateNode;
-  if (['compound', 'parallel'].includes(type)) {
-    const children = getChildren(stateNode);
-    return type === 'compound'
-      ? children.some((sn) => sn.type === 'final' && configuration.includes(sn))
-      : children.every((sn) => isInFinalState(configuration, sn));
+  if (stateNode.type === 'compound') {
+    return getChildren(stateNode).some(
+      (s) => s.type === 'final' && configuration.includes(s)
+    );
+  }
+  if (stateNode.type === 'parallel') {
+    return getChildren(stateNode).every((sn) =>
+      isInFinalState(configuration, sn)
+    );
   }
 
   return false;
