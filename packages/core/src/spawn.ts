@@ -8,7 +8,7 @@ import {
   Spawner
 } from '.';
 import { interpret } from './interpreter';
-import { isBehavior, isString } from './utils';
+import { isString } from './utils';
 
 export function createSpawner<
   TContext extends MachineContext,
@@ -25,14 +25,15 @@ export function createSpawner<
 
       if (behaviorCreator) {
         const resolvedName = name ?? 'anon'; // TODO: better name
-        const createdBehavior = isBehavior(behaviorCreator)
-          ? behaviorCreator
-          : behaviorCreator(context, _event.data, {
-              id: name || 'anon',
-              src: { type: behavior },
-              _event,
-              meta: undefined
-            });
+        const createdBehavior =
+          typeof behaviorCreator === 'function'
+            ? behaviorCreator(context, _event.data, {
+                id: resolvedName,
+                src: { type: behavior },
+                _event,
+                meta: undefined
+              })
+            : behaviorCreator;
 
         const actorRef = interpret(createdBehavior, { id: resolvedName });
 

@@ -148,9 +148,8 @@ export class Interpreter<
       sessionId: this.sessionId,
       logger: this.logger,
       exec: (fn) => {
-        if (self.status === InterpreterStatus.NotStarted) {
-          // this._deferred.push(fn);
-        } else {
+        if (self.status === InterpreterStatus.Running) {
+          // Only execute effects if the interpreter is running
           fn();
         }
       },
@@ -164,9 +163,7 @@ export class Interpreter<
   private _deferred: Array<(state: any) => void> = [];
 
   public getInitialState(): InternalStateFrom<TBehavior> {
-    return memo(this, 'initial', () =>
-      this.behavior.getInitialState(this._actorContext)
-    );
+    return this.behavior.getInitialState(this._actorContext);
   }
 
   private update(state: InternalStateFrom<TBehavior>): void {
