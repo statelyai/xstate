@@ -1788,13 +1788,6 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
     : never
   : never;
 
-export type ActorRefFromBehavior<T> = T extends Behavior<
-  infer TEvent,
-  infer TSnapshot
->
-  ? ActorRef<TEvent, TSnapshot>
-  : never;
-
 export type DevToolsAdapter = (service: AnyInterpreter) => void;
 
 export type InterpreterFrom<
