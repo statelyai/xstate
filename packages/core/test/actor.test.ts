@@ -893,7 +893,7 @@ describe('actors', () => {
             fromPromise(
               () =>
                 new Promise<number>((_, rej) => {
-                  setTimeout(() => rej(errorMessage), 1000);
+                  setTimeout(() => rej(errorMessage), 1);
                 })
             ),
             'test'
