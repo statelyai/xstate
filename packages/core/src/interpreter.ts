@@ -28,7 +28,7 @@ import {
 } from './types';
 import { toEventObject, toObserver, toSCXMLEvent, warn } from './utils';
 import { symbolObservable } from './symbolObservable';
-import { evict, memo } from './memo';
+import { evict } from './memo';
 
 export type SnapshotListener<TBehavior extends Behavior<any, any>> = (
   state: SnapshotFrom<TBehavior>
