@@ -548,8 +548,7 @@ export function toObserver<T>(
     error: ((isObserver ? nextHandler.error : errorHandler) || noop).bind(self),
     complete: (
       (isObserver ? nextHandler.complete : completionHandler) || noop
-    ).bind(self),
-    done: isObserver ? nextHandler.done?.bind(self) : undefined
+    ).bind(self)
   };
 }
 
