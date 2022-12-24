@@ -1952,28 +1952,28 @@ describe('log()', () => {
   });
 
   it('should log a string', () => {
-    expect(logMachine.initialState.actions[0]).toMatchInlineSnapshot(`
-      Object {
-        "params": Object {
-          "label": "string label",
-          "value": "some string",
+    expect(logMachine.initialState.actions[0]).toEqual(
+      expect.objectContaining({
+        params: {
+          label: 'string label',
+          value: 'some string'
         },
-        "type": "xstate.log",
-      }
-    `);
+        type: 'xstate.log'
+      })
+    );
   });
 
   it('should log an expression', () => {
     const nextState = logMachine.transition(logMachine.initialState, 'EXPR');
-    expect(nextState.actions[0]).toMatchInlineSnapshot(`
-      Object {
-        "params": Object {
-          "label": "expr label",
-          "value": "expr 42",
+    expect(nextState.actions[0]).toEqual(
+      expect.objectContaining({
+        params: {
+          label: 'expr label',
+          value: 'expr 42'
         },
-        "type": "xstate.log",
-      }
-    `);
+        type: 'xstate.log'
+      })
+    );
   });
 });
 
@@ -2341,7 +2341,11 @@ describe('sendTo', () => {
       entry: sendTo((ctx) => ctx.child, { type: 'EVENT' })
     });
 
-    interpret(parentMachine).start();
+    interpret(parentMachine)
+      .onTransition((state) => {
+        state;
+      })
+      .start();
   });
 
   it('should be able to send an event from expression to an actor', (done) => {
@@ -2371,7 +2375,11 @@ describe('sendTo', () => {
       )
     });
 
-    interpret(parentMachine).start();
+    interpret(parentMachine)
+      .onTransition((state) => {
+        state;
+      })
+      .start();
   });
 
   it('should report a type error for an invalid event', () => {

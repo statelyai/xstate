@@ -715,15 +715,15 @@ describe('invoke', () => {
         }
       });
 
-      const expectedStateValue = 'two';
       let currentState: AnyState;
       interpret(mainMachine)
-        .onTransition((current) => (currentState = current))
+        .onTransition((current) => {
+          currentState = current;
+          if (currentState.matches('two')) {
+            done();
+          }
+        })
         .start();
-      setTimeout(() => {
-        expect(currentState.value).toEqual(expectedStateValue);
-        done();
-      }, 30);
     });
 
     it('should work with invocations defined in orthogonal state nodes', (done) => {
