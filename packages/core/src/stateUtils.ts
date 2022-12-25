@@ -1492,12 +1492,12 @@ function exitStates(
 }
 
 export function resolveActionsAndContext<
-  TContext extends MachineContext,
+  _TContext extends MachineContext,
   TEvent extends EventObject
 >(
   actions: BaseActionObject[],
   scxmlEvent: SCXML.Event<TEvent>,
-  currentState: State<TContext, TEvent, any>,
+  currentState: AnyState,
   actorCtx: ActorContext<any, any> | undefined
 ): {
   raised: Array<RaiseActionObject<TEvent>>;
@@ -1506,7 +1506,15 @@ export function resolveActionsAndContext<
   const { machine } = currentState;
   const resolvedActions: BaseActionObject[] = [];
   const raiseActions: Array<RaiseActionObject<TEvent>> = [];
-  let istate = currentState;
+  let intermediateState = currentState;
+
+  function handleAction(action: BaseActionObject): void {
+    resolvedActions.push(action);
+    if (actorCtx?.self.status === 1) {
+      action.execute2?.(actorCtx!);
+      delete action.execute2;
+    }
+  }
 
   function resolveAction(actionObject: BaseActionObject) {
     if (actionObject.type === actionTypes.invoke) {
@@ -1517,23 +1525,27 @@ export function resolveActionsAndContext<
         any
       >;
 
-      const resolved = actionObjectT.resolve(actionObjectT, scxmlEvent, {
-        machine,
-        state: istate,
-        action: actionObject,
-        actorContext: actorCtx
-      });
+      const resolvedActionObject = actionObjectT.resolve(
+        actionObjectT,
+        scxmlEvent,
+        {
+          machine,
+          state: intermediateState,
+          action: actionObject,
+          actorContext: actorCtx
+        }
+      );
 
-      istate = cloneState(istate, {
+      intermediateState = cloneState(intermediateState, {
         children: {
-          ...istate.children,
-          [resolved.params.id]: resolved.params.ref!
+          ...intermediateState.children,
+          [resolvedActionObject.params.id]: resolvedActionObject.params.ref!
         }
       });
 
-      resolved.execute2 = (actorx) => execAction(resolved, istate, actorx);
-
-      resolvedActions.push(resolved);
+      resolvedActionObject.execute2 = (actorx) =>
+        execAction(resolvedActionObject, intermediateState, actorx);
+      handleAction(resolvedActionObject);
     }
 
     const executableActionObject = resolveActionObject(
@@ -1551,7 +1563,7 @@ export function resolveActionsAndContext<
           scxmlEvent,
           {
             machine,
-            state: istate,
+            state: intermediateState,
             action: actionObject,
             actorContext: actorCtx
           }
@@ -1564,15 +1576,15 @@ export function resolveActionsAndContext<
           scxmlEvent,
           {
             machine,
-            state: istate,
+            state: intermediateState,
             action: actionObject,
             actorContext: actorCtx
           }
         );
 
-        resolvedActions.push(resolvedActionObject);
+        handleAction(resolvedActionObject);
 
-        istate = cloneState(istate, {
+        intermediateState = cloneState(intermediateState, {
           context: resolvedActionObject.params.context
         });
 
@@ -1585,7 +1597,7 @@ export function resolveActionsAndContext<
           scxmlEvent,
           {
             machine,
-            state: istate,
+            state: intermediateState,
             action: actionObject,
             actorContext: actorCtx
           }
@@ -1600,38 +1612,32 @@ export function resolveActionsAndContext<
           // TODO: raise actions
         } else {
           resolvedActionObject.execute2 = (actorx) =>
-            execAction(resolvedActionObject, istate, actorx);
-          resolvedActions.push(resolvedActionObject);
+            execAction(resolvedActionObject, intermediateState, actorx);
+          handleAction(resolvedActionObject);
         }
       }
       return;
     }
+
     if (isExecutableAction(executableActionObject)) {
-      const state = cloneState(istate, {
+      const state = cloneState(intermediateState, {
         _event: scxmlEvent
       });
-      executableActionObject.execute2 = (actorx) => {
+      executableActionObject.execute2 = () => {
         executableActionObject.execute(state);
       };
     }
 
-    resolvedActions.push(executableActionObject);
+    handleAction(executableActionObject);
   }
 
   for (const actionObject of actions) {
     resolveAction(actionObject);
   }
 
-  if (actorCtx?.status === 1) {
-    resolvedActions.forEach((ac) => {
-      ac.execute2?.(actorCtx!);
-      delete ac.execute2;
-    });
-  }
-
   return {
     raised: raiseActions,
-    nextState: cloneState(istate, {
+    nextState: cloneState(intermediateState, {
       actions: resolvedActions
     })
   };

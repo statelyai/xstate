@@ -7,7 +7,6 @@ import {
 } from '.';
 import { initEvent } from './actions';
 import { STATE_DELIMITER } from './constants';
-import { execAction } from './exec';
 import { createSpawner } from './spawn';
 import { isStateConfig, State } from './State';
 import { StateNode } from './StateNode';
@@ -411,18 +410,11 @@ export class StateMachine<
   }
 
   public restoreState(
-    state: State<TContext, TEvent, TResolvedTypesMeta> | StateValue,
-    actorCtx?: ActorContext<TEvent, State<TContext, TEvent>>
+    state: State<TContext, TEvent, TResolvedTypesMeta> | StateValue
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const restoredState = isStateConfig(state)
       ? this.resolveState(state as any)
       : this.resolveState(State.from(state as any, this.context, this));
-
-    if (actorCtx) {
-      for (const action of restoredState.actions) {
-        action.x = (actorx) => execAction(action, restoredState, actorx);
-      }
-    }
 
     return restoredState;
   }

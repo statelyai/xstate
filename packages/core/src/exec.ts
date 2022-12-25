@@ -31,12 +31,9 @@ export function execAction(
 
   const { _event } = state;
 
-  if (isExecutableAction(action) && action.type !== actionTypes.invoke) {
+  if (isExecutableAction(action)) {
     try {
-      return actorContext.exec(() => {
-        // action.execute(state);
-        action.execute2(actorContext);
-      });
+      return actorContext.exec(action);
     } catch (err) {
       interpreter._parent?.send({
         type: 'xstate.error',

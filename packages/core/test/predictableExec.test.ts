@@ -18,7 +18,6 @@ describe('predictableExec', () => {
         b: {
           entry: [
             (ctx) => {
-              console.log(ctx.assigned);
               actual.push('custom');
             },
             assign(() => {

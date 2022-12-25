@@ -1,6 +1,6 @@
 import type { StateNode } from './StateNode';
 import type { State } from './State';
-import type { Clock, Interpreter } from './interpreter';
+import type { ActorStatus, Clock, Interpreter } from './interpreter';
 import type { StateMachine } from './StateMachine';
 import type { LifecycleSignal } from './actors';
 import {
@@ -1758,6 +1758,7 @@ export interface ActorRef<TEvent extends EventObject, TSnapshot = any>
   toJSON?: () => any;
   // TODO: figure out how to hide this externally as `sendTo(ctx => ctx.actorRef._parent._parent._parent._parent)` shouldn't be allowed
   _parent?: ActorRef<any, any>;
+  status: ActorStatus;
 }
 
 export type AnyActorRef = ActorRef<any, any>;
@@ -1844,7 +1845,7 @@ export interface ActorContext<TEvent extends EventObject, TSnapshot> {
   id: string;
   sessionId: string;
   logger: (...args: any[]) => void;
-  exec: (fn: () => void) => void;
+  exec: (action: BaseActionObject) => void;
   defer: ((fn: (any) => void) => void) | undefined;
 }
 
