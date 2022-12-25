@@ -12,6 +12,7 @@ import * as actionTypes from '../actionTypes';
 import { createDynamicAction } from '../../actions/dynamicAction';
 import { isFunction } from '../utils';
 import { createSpawner } from '../spawn';
+import { cloneState } from '../State';
 
 /**
  * Updates the current context of the machine.
@@ -69,13 +70,18 @@ export function assign<
 
       const updatedContext = Object.assign({}, state.context, partialUpdate);
 
-      return {
-        type: actionTypes.assign,
-        params: {
-          context: updatedContext,
-          actions: capturedActions
-        }
-      } as AssignActionObject<TContext>;
+      return [
+        cloneState(state, {
+          context: updatedContext
+        }),
+        {
+          type: actionTypes.assign,
+          params: {
+            context: updatedContext,
+            actions: capturedActions
+          }
+        } as AssignActionObject<TContext>
+      ];
     }
   );
 }

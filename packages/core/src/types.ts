@@ -95,7 +95,7 @@ export interface BaseDynamicActionObject<
       action: BaseActionObject;
       actorContext: ActorContext<any, any> | undefined;
     }
-  ) => TResolvedAction;
+  ) => [AnyState, TResolvedAction];
 }
 
 export type MachineContext = Record<string, any>;

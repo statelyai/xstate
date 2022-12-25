@@ -42,10 +42,13 @@ export function stop<
       const actorRef =
         typeof resolved === 'string' ? state.children[resolved] : resolved;
 
-      return {
-        type,
-        params: { actor: actorRef }
-      } as StopActionObject;
+      return [
+        state,
+        {
+          type,
+          params: { actor: actorRef }
+        } as StopActionObject
+      ];
     }
   );
 }

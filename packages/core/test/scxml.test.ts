@@ -187,7 +187,7 @@ const testGroups: Record<string, string[]> = {
     // 'test245.txml', // conversion of namelist not implemented yet
     'test247.txml',
     // 'test250.txml', // this is a manual test - we could test it by snapshoting logged valued
-    // 'test252.txml', // TODO: determine why this fails
+    'test252.txml',
     // 'test253.txml', // _event.origintype not implemented yet
     // 'test276.txml', // <invoke src="...">
     // 'test277.txml', // illegal expression in datamodel creates unbound variable

@@ -124,18 +124,21 @@ export function send<
         targetActorRef = resolvedTarget || actorContext?.self;
       }
 
-      return {
-        type: actionTypes.send,
-        params: {
-          id: '', // TODO: generate?
-          ...params,
-          to: targetActorRef,
-          _event: resolvedEvent,
-          event: resolvedEvent.data,
-          delay: resolvedDelay,
-          internal: resolvedTarget === SpecialTargets.Internal
+      return [
+        state,
+        {
+          type: actionTypes.send,
+          params: {
+            id: '', // TODO: generate?
+            ...params,
+            to: targetActorRef,
+            _event: resolvedEvent,
+            event: resolvedEvent.data,
+            delay: resolvedDelay,
+            internal: resolvedTarget === SpecialTargets.Internal
+          }
         }
-      };
+      ];
     }
   );
 }

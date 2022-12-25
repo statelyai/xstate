@@ -29,12 +29,15 @@ export function pure<
       get: getActions
     },
     ({ params }, _event, { state }) => {
-      return {
-        type: pureActionType,
-        params: {
-          actions: toArray(params.get(state.context, _event.data)) ?? []
+      return [
+        state,
+        {
+          type: pureActionType,
+          params: {
+            actions: toArray(params.get(state.context, _event.data)) ?? []
+          }
         }
-      };
+      ];
     }
   );
 }

@@ -32,19 +32,22 @@ export function cancel<
     {
       sendId
     },
-    ({ params, type }, _event, { state: { context } }) => {
+    ({ params, type }, _event, { state }) => {
       const resolvedSendId = isFunction(params.sendId)
-        ? params.sendId(context, _event.data, {
+        ? params.sendId(state.context, _event.data, {
             _event
           })
         : params.sendId;
 
-      return {
-        type,
-        params: {
-          sendId: resolvedSendId
-        }
-      } as CancelActionObject;
+      return [
+        state,
+        {
+          type,
+          params: {
+            sendId: resolvedSendId
+          }
+        } as CancelActionObject
+      ];
     }
   );
 }

@@ -10,6 +10,7 @@ import {
 import { actionTypes } from '../actions';
 import { mapContext } from '../utils';
 import { interpret } from '../interpreter';
+import { cloneState } from '../State';
 
 export function invoke<
   TContext extends MachineContext,
@@ -28,43 +29,54 @@ export function invoke<
     ({ params }, _event, { machine, state }) => {
       const type = actionTypes.invoke;
       const { id, data, src, meta } = params;
+
+      let resolvedInvokeAction: InvokeActionObject;
       if (isActorRef(src)) {
-        return {
+        resolvedInvokeAction = {
           type,
           params: {
             ...params,
             ref: src
           }
         } as InvokeActionObject;
-      }
+      } else {
+        const behaviorImpl = machine.options.actors[src.type];
 
-      const behaviorImpl = machine.options.actors[src.type];
+        if (!behaviorImpl) {
+          resolvedInvokeAction = {
+            type,
+            params
+          } as InvokeActionObject;
+        } else {
+          const behavior =
+            typeof behaviorImpl === 'function'
+              ? behaviorImpl(state.context, _event.data, {
+                  id,
+                  data: data && mapContext(data, state.context, _event),
+                  src,
+                  _event,
+                  meta
+                })
+              : behaviorImpl;
 
-      if (!behaviorImpl) {
-        return {
-          type,
-          params
-        } as InvokeActionObject;
-      }
-
-      const behavior =
-        typeof behaviorImpl === 'function'
-          ? behaviorImpl(state.context, _event.data, {
-              id,
-              data: data && mapContext(data, state.context, _event),
-              src,
-              _event,
-              meta
-            })
-          : behaviorImpl;
-
-      return {
-        type,
-        params: {
-          ...params,
-          ref: interpret(behavior, { id })
+          resolvedInvokeAction = {
+            type,
+            params: {
+              ...params,
+              ref: interpret(behavior, { id })
+            }
+          } as InvokeActionObject;
         }
-      } as InvokeActionObject;
+      }
+
+      const invokedState = cloneState(state, {
+        children: {
+          ...state.children,
+          [id]: resolvedInvokeAction.params.ref!
+        }
+      });
+
+      return [invokedState, resolvedInvokeAction];
     }
   );
 }

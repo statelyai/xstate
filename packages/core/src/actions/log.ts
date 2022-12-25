@@ -40,17 +40,20 @@ export function log<
   return createDynamicAction(
     logActionType,
     { label, expr },
-    ({ type }, _event, { state: { context } }) => {
-      return {
-        type,
-        params: {
-          label,
-          value:
-            typeof expr === 'function'
-              ? expr(context, _event.data, { _event })
-              : expr
-        }
-      } as LogActionObject;
+    ({ type }, _event, { state }) => {
+      return [
+        state,
+        {
+          type,
+          params: {
+            label,
+            value:
+              typeof expr === 'function'
+                ? expr(state.context, _event.data, { _event })
+                : expr
+          }
+        } as LogActionObject
+      ];
     }
   );
 }

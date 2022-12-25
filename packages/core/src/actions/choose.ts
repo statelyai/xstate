@@ -34,12 +34,15 @@ export function choose<
         return !guard || evaluateGuard(guard, state.context, _event, state);
       })?.actions;
 
-      return {
-        type: actionTypes.choose,
-        params: {
-          actions: toActionObjects(matchedActions)
+      return [
+        state,
+        {
+          type: actionTypes.choose,
+          params: {
+            actions: toActionObjects(matchedActions)
+          }
         }
-      };
+      ];
     }
   );
 }

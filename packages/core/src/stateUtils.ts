@@ -1517,37 +1517,6 @@ export function resolveActionsAndContext<
   }
 
   function resolveAction(actionObject: BaseActionObject) {
-    if (actionObject.type === actionTypes.invoke) {
-      const actionObjectT = actionObject as BaseDynamicActionObject<
-        any,
-        any,
-        InvokeActionObject,
-        any
-      >;
-
-      const resolvedActionObject = actionObjectT.resolve(
-        actionObjectT,
-        scxmlEvent,
-        {
-          machine,
-          state: intermediateState,
-          action: actionObject,
-          actorContext: actorCtx
-        }
-      );
-
-      intermediateState = cloneState(intermediateState, {
-        children: {
-          ...intermediateState.children,
-          [resolvedActionObject.params.id]: resolvedActionObject.params.ref!
-        }
-      });
-
-      resolvedActionObject.execute2 = (actorx) =>
-        execAction(resolvedActionObject, intermediateState, actorx);
-      handleAction(resolvedActionObject);
-    }
-
     const executableActionObject = resolveActionObject(
       actionObject,
       machine.options.actions
@@ -1558,20 +1527,7 @@ export function resolveActionsAndContext<
         executableActionObject.type === actionTypes.pure ||
         executableActionObject.type === actionTypes.choose
       ) {
-        const matchedActions = executableActionObject.resolve(
-          executableActionObject,
-          scxmlEvent,
-          {
-            machine,
-            state: intermediateState,
-            action: actionObject,
-            actorContext: actorCtx
-          }
-        ).params.actions;
-
-        toActionObjects(matchedActions).forEach(resolveAction);
-      } else if (executableActionObject.type === actionTypes.assign) {
-        const resolvedActionObject = executableActionObject.resolve(
+        const [, resolvedAction] = executableActionObject.resolve(
           executableActionObject,
           scxmlEvent,
           {
@@ -1581,18 +1537,53 @@ export function resolveActionsAndContext<
             actorContext: actorCtx
           }
         );
+        const matchedActions = resolvedAction.params.actions;
+
+        toActionObjects(matchedActions).forEach(resolveAction);
+      } else if (executableActionObject.type === actionTypes.assign) {
+        const [
+          assignedState,
+          resolvedActionObject
+        ] = executableActionObject.resolve(executableActionObject, scxmlEvent, {
+          machine,
+          state: intermediateState,
+          action: actionObject,
+          actorContext: actorCtx
+        });
 
         handleAction(resolvedActionObject);
 
-        intermediateState = cloneState(intermediateState, {
-          context: resolvedActionObject.params.context
-        });
+        intermediateState = assignedState;
 
         for (const spawnAction of resolvedActionObject.params.actions) {
           resolveAction(spawnAction);
         }
-      } else if (executableActionObject.type !== actionTypes.invoke) {
-        const resolvedActionObject = executableActionObject.resolve(
+      } else if (actionObject.type === actionTypes.invoke) {
+        const actionObjectT = actionObject as BaseDynamicActionObject<
+          any,
+          any,
+          InvokeActionObject,
+          any
+        >;
+
+        const [invokedState, resolvedActionObject] = actionObjectT.resolve(
+          actionObjectT,
+          scxmlEvent,
+          {
+            machine,
+            state: intermediateState,
+            action: actionObject,
+            actorContext: actorCtx
+          }
+        );
+
+        intermediateState = invokedState;
+
+        resolvedActionObject.execute2 = (actorx) =>
+          execAction(resolvedActionObject, intermediateState, actorx);
+        handleAction(resolvedActionObject);
+      } else {
+        const [, resolvedActionObject] = executableActionObject.resolve(
           executableActionObject,
           scxmlEvent,
           {
@@ -1624,7 +1615,11 @@ export function resolveActionsAndContext<
         _event: scxmlEvent
       });
       executableActionObject.execute2 = () => {
-        executableActionObject.execute(state);
+        executableActionObject._exec(state.context, state.event, {
+          action: executableActionObject,
+          _event: scxmlEvent,
+          state
+        });
       };
     }
 
