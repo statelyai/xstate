@@ -39,10 +39,10 @@ export function assign<
     {
       assignment
     },
-    (_, context, _event, { machine, state, action }) => {
+    (_, _event, { machine, state, action }) => {
       const capturedActions: InvokeActionObject[] = [];
 
-      if (!context) {
+      if (!state.context) {
         throw new Error(
           'Cannot assign to undefined `context`. Ensure that `context` is defined in the machine config.'
         );
@@ -52,22 +52,22 @@ export function assign<
         state,
         action,
         _event,
-        spawn: createSpawner(machine, context, _event, capturedActions)
+        spawn: createSpawner(machine, state.context, _event, capturedActions)
       };
 
       let partialUpdate: Partial<TContext> = {};
       if (isFunction(assignment)) {
-        partialUpdate = assignment(context, _event.data, meta);
+        partialUpdate = assignment(state.context, _event.data, meta);
       } else {
         for (const key of Object.keys(assignment)) {
           const propAssignment = assignment[key];
           partialUpdate[key as keyof TContext] = isFunction(propAssignment)
-            ? propAssignment(context, _event.data, meta)
+            ? propAssignment(state.context, _event.data, meta)
             : propAssignment;
         }
       }
 
-      const updatedContext = Object.assign({}, context, partialUpdate);
+      const updatedContext = Object.assign({}, state.context, partialUpdate);
 
       return {
         type: actionTypes.assign,

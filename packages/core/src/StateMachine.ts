@@ -19,6 +19,7 @@ import {
   isStateId,
   macrostep,
   microstep,
+  resolveActionsAndContext,
   resolveStateValue,
   transitionNode
 } from './stateUtils';
@@ -329,9 +330,14 @@ export class StateMachine<
     preInitial.actions.unshift(...actions);
 
     if (actorCtx) {
-      for (const action of actions) {
-        execAction(action, preInitial, actorCtx);
-      }
+      const { nextState } = resolveActionsAndContext(
+        actions,
+        initEvent,
+        preInitial,
+        actorCtx
+      );
+      preInitial.children = nextState.children;
+      preInitial.actions = nextState.actions;
     }
 
     return preInitial;
@@ -414,7 +420,7 @@ export class StateMachine<
 
     if (actorCtx) {
       for (const action of restoredState.actions) {
-        execAction(action, restoredState, actorCtx);
+        action.x = (actorx) => execAction(action, restoredState, actorx);
       }
     }
 

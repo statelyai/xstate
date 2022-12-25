@@ -7,19 +7,17 @@ import {
   EventObject,
   ActionFunction,
   SendActionObject,
-  SCXML,
   CancelActionObject,
   InvokeSourceDefinition,
   StopActionObject,
   LogActionObject,
   ActionFunctionMap,
   ContextFrom,
-  EventFrom,
-  AnyEventObject,
-  ActorRef
+  EventFrom
 } from '.';
 import { isExecutableAction } from '../actions/ExecutableAction';
 import { actionTypes, error } from './actions';
+import { devLog } from './dev';
 import { IS_PRODUCTION } from './environment';
 import { isFunction, warn } from './utils';
 
@@ -28,13 +26,17 @@ export function execAction(
   state: AnyState,
   actorContext: ActorContext<any, any>
 ): void {
+  devLog('executing', action.type);
   const interpreter = actorContext.self as AnyInterpreter;
 
   const { _event } = state;
 
   if (isExecutableAction(action) && action.type !== actionTypes.invoke) {
     try {
-      return actorContext.exec(() => action.execute(state));
+      return actorContext.exec(() => {
+        // action.execute(state);
+        action.execute2(actorContext);
+      });
     } catch (err) {
       interpreter._parent?.send({
         type: 'xstate.error',
@@ -88,7 +90,19 @@ function getActionFunction<TState extends AnyState>(
         return;
       } else {
         const target = sendAction.params.to!;
-        execSendTo(sendAction.params._event, target, actorCtx);
+        const { _event } = sendAction.params;
+        actorCtx.defer?.(() => {
+          const origin = actorCtx.self;
+          const resolvedEvent: typeof _event = {
+            ..._event,
+            name:
+              _event.name === actionTypes.error
+                ? `${error(origin.id)}`
+                : _event.name,
+            origin: origin
+          };
+          target.send(resolvedEvent);
+        });
       }
     },
     [actionTypes.cancel]: (_ctx, _e, { action }) => {
@@ -109,11 +123,6 @@ function getActionFunction<TState extends AnyState>(
         return;
       }
       ref._parent = interpreter; // TODO: fix
-      // If the actor didn't end up being in the state
-      // (eg. going through transient states could stop it) don't bother starting the actor.
-      if (!state.children[id]) {
-        state.children[id] = ref;
-      }
       actorCtx.defer?.((state: AnyState) => {
         try {
           const currentRef = state.children[id];
@@ -150,21 +159,4 @@ function getActionFunction<TState extends AnyState>(
       }
     }
   } as ActionFunctionMap<ContextFrom<TState>, EventFrom<TState>>)[actionType];
-}
-
-function execSendTo(
-  event: SCXML.Event<AnyEventObject>,
-  destination: ActorRef<any>,
-  actorContext: ActorContext<any, any>
-) {
-  const origin = actorContext.self;
-  const resolvedEvent: typeof event = {
-    ...event,
-    name: event.name === actionTypes.error ? `${error(origin.id)}` : event.name,
-    origin: origin
-  };
-
-  actorContext.defer?.(() => {
-    destination.send(resolvedEvent);
-  });
 }

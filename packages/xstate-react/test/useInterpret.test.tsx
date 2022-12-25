@@ -165,7 +165,7 @@ describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
 
     fireEvent.click(screen.getByRole('button'));
 
-    expect(console.warn).toHaveBeenCalledTimes(suiteKey === 'strict' ? 4 : 1);
+    expect(console.warn).toHaveBeenCalledTimes(suiteKey === 'strict' ? 2 : 1);
     expect((console.warn as jest.Mock).mock.calls[0][0]).toMatchInlineSnapshot(`
       "Machine given to \`useMachine\` has changed between renders. This is not supported and might lead to unexpected results.
       Please make sure that you pass the same Machine as argument each time."

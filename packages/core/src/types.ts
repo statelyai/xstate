@@ -62,6 +62,7 @@ export interface AnyEventObject extends EventObject {
 export interface BaseActionObject {
   type: string;
   params?: Record<string, any>;
+  execute2?: (actorCtx: ActorContext<any, any>) => void;
 }
 
 export interface BuiltInActionObject {
@@ -84,7 +85,6 @@ export interface BaseDynamicActionObject<
       TResolvedAction,
       TDynamicParams
     >,
-    context: TContext,
     _event: SCXML.Event<TEvent>,
     extra: {
       machine: StateMachine<TContext, TEvent>;

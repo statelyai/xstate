@@ -152,9 +152,9 @@ describe('machine', () => {
 
       const service = interpret(differentMachine);
 
-      expect(() => service.start()).toThrowErrorMatchingInlineSnapshot(
-        `"new entry"`
-      );
+      expect(() => {
+        service.start();
+      }).toThrowErrorMatchingInlineSnapshot(`"new entry"`);
 
       expect(differentMachine.transition('foo', 'EVENT').value).toEqual('bar');
     });

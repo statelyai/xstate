@@ -28,11 +28,11 @@ export function pure<
     {
       get: getActions
     },
-    ({ params }, ctx, _event) => {
+    ({ params }, _event, { state }) => {
       return {
         type: pureActionType,
         params: {
-          actions: toArray(params.get(ctx, _event.data)) ?? []
+          actions: toArray(params.get(state.context, _event.data)) ?? []
         }
       };
     }

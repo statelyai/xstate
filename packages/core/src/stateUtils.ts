@@ -53,6 +53,7 @@ import {
   AnyStateMachine,
   AnyStateNode,
   AnyTransitionDefinition,
+  BaseDynamicActionObject,
   DelayedTransitionDefinition,
   HistoryValue,
   InitialTransitionDefinition,
@@ -1180,27 +1181,29 @@ function microstepProcedure(
   }
 
   try {
-    const {
-      actions: resolvedActions,
-      raised,
-      context: resolvedContext
-    } = resolveActionsAndContext(actions, scxmlEvent, currentState, actorCtx);
+    const { raised, nextState } = resolveActionsAndContext(
+      actions,
+      scxmlEvent,
+      currentState,
+      actorCtx
+    );
 
     const output = done
-      ? getOutput(nextConfiguration, resolvedContext, scxmlEvent)
+      ? getOutput(nextConfiguration, nextState.context, scxmlEvent)
       : undefined;
 
     internalQueue.push(...raised.map((a) => a.params._event));
 
     return cloneState(currentState, {
-      actions: resolvedActions,
+      actions: nextState.actions,
       configuration: nextConfiguration,
       historyValue,
       _internalQueue: internalQueue,
-      context: resolvedContext,
+      context: nextState.context,
       _event: scxmlEvent,
       done,
-      output
+      output,
+      children: nextState.children
     });
   } catch (e) {
     // TODO: Refactor this once proper error handling is implemented.
@@ -1497,17 +1500,42 @@ export function resolveActionsAndContext<
   currentState: State<TContext, TEvent, any>,
   actorCtx: ActorContext<any, any> | undefined
 ): {
-  actions: typeof actions;
   raised: Array<RaiseActionObject<TEvent>>;
-  context: TContext;
+  nextState: AnyState;
 } {
   const { machine } = currentState;
   const resolvedActions: BaseActionObject[] = [];
   const raiseActions: Array<RaiseActionObject<TEvent>> = [];
-  let { context } = currentState;
-  let updatedContext = context;
+  let istate = currentState;
 
   function resolveAction(actionObject: BaseActionObject) {
+    if (actionObject.type === actionTypes.invoke) {
+      const actionObjectT = actionObject as BaseDynamicActionObject<
+        any,
+        any,
+        InvokeActionObject,
+        any
+      >;
+
+      const resolved = actionObjectT.resolve(actionObjectT, scxmlEvent, {
+        machine,
+        state: istate,
+        action: actionObject,
+        actorContext: actorCtx
+      });
+
+      istate = cloneState(istate, {
+        children: {
+          ...istate.children,
+          [resolved.params.id]: resolved.params.ref!
+        }
+      });
+
+      resolved.execute2 = (actorx) => execAction(resolved, istate, actorx);
+
+      resolvedActions.push(resolved);
+    }
+
     const executableActionObject = resolveActionObject(
       actionObject,
       machine.options.actions
@@ -1520,11 +1548,10 @@ export function resolveActionsAndContext<
       ) {
         const matchedActions = executableActionObject.resolve(
           executableActionObject,
-          context,
           scxmlEvent,
           {
             machine,
-            state: currentState!,
+            state: istate,
             action: actionObject,
             actorContext: actorCtx
           }
@@ -1534,30 +1561,31 @@ export function resolveActionsAndContext<
       } else if (executableActionObject.type === actionTypes.assign) {
         const resolvedActionObject = executableActionObject.resolve(
           executableActionObject,
-          context,
           scxmlEvent,
           {
             machine,
-            state: currentState!,
+            state: istate,
             action: actionObject,
             actorContext: actorCtx
           }
         );
 
-        context = resolvedActionObject.params.context;
-        updatedContext = resolvedActionObject.params.context;
         resolvedActions.push(resolvedActionObject);
+
+        istate = cloneState(istate, {
+          context: resolvedActionObject.params.context
+        });
+
         for (const spawnAction of resolvedActionObject.params.actions) {
           resolveAction(spawnAction);
         }
-      } else {
+      } else if (executableActionObject.type !== actionTypes.invoke) {
         const resolvedActionObject = executableActionObject.resolve(
           executableActionObject,
-          context,
           scxmlEvent,
           {
             machine,
-            state: currentState!,
+            state: istate,
             action: actionObject,
             actorContext: actorCtx
           }
@@ -1569,39 +1597,43 @@ export function resolveActionsAndContext<
             (resolvedActionObject as SendActionObject).params.internal)
         ) {
           raiseActions.push(resolvedActionObject);
+          // TODO: raise actions
         } else {
+          resolvedActionObject.execute2 = (actorx) =>
+            execAction(resolvedActionObject, istate, actorx);
           resolvedActions.push(resolvedActionObject);
-          if (actorCtx) {
-            execAction(resolvedActionObject, currentState, actorCtx);
-          }
         }
       }
       return;
     }
     if (isExecutableAction(executableActionObject)) {
-      executableActionObject.setContext(updatedContext);
+      const state = cloneState(istate, {
+        _event: scxmlEvent
+      });
+      executableActionObject.execute2 = (actorx) => {
+        executableActionObject.execute(state);
+      };
     }
+
     resolvedActions.push(executableActionObject);
-    if (actorCtx) {
-      execAction(
-        executableActionObject,
-        cloneState(currentState, {
-          context: updatedContext,
-          _event: scxmlEvent
-        }),
-        actorCtx
-      );
-    }
   }
 
   for (const actionObject of actions) {
     resolveAction(actionObject);
   }
 
+  if (actorCtx?.status === 1) {
+    resolvedActions.forEach((ac) => {
+      ac.execute2?.(actorCtx!);
+      delete ac.execute2;
+    });
+  }
+
   return {
-    actions: resolvedActions,
     raised: raiseActions,
-    context
+    nextState: cloneState(istate, {
+      actions: resolvedActions
+    })
   };
 }
 
@@ -1713,15 +1745,16 @@ function stopStep(
     stoppedState.actions.push(stop(child));
   }
 
-  const { actions, context } = resolveActionsAndContext(
+  const { nextState: nst } = resolveActionsAndContext(
     stoppedState.actions,
     stoppedState._event,
     stoppedState,
     actorCtx
   );
 
-  stoppedState.actions = actions;
-  stoppedState.context = context;
+  stoppedState.actions = nst.actions;
+  stoppedState.context = nst.context;
+  stoppedState.children = nst.children;
 
   return stoppedState;
 }

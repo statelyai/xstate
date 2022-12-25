@@ -25,7 +25,7 @@ export function invoke<
   return createDynamicAction(
     invokeActionType,
     invokeDef,
-    ({ params }, context, _event, { machine }) => {
+    ({ params }, _event, { machine, state }) => {
       const type = actionTypes.invoke;
       const { id, data, src, meta } = params;
       if (isActorRef(src)) {
@@ -49,9 +49,9 @@ export function invoke<
 
       const behavior =
         typeof behaviorImpl === 'function'
-          ? behaviorImpl(context, _event.data, {
+          ? behaviorImpl(state.context, _event.data, {
               id,
-              data: data && mapContext(data, context, _event),
+              data: data && mapContext(data, state.context, _event),
               src,
               _event,
               meta

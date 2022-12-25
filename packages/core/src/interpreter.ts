@@ -1,6 +1,7 @@
 import type {
   ActorContext,
   AnyActorRef,
+  AnyState,
   AnyStateMachine,
   Behavior,
   EventFromBehavior,
@@ -8,7 +9,8 @@ import type {
   SnapshotFrom
 } from './types';
 import { stopSignalType } from './actors';
-import { devToolsAdapter } from './dev';
+import { devLog } from './dev';
+import { devToolsAdapter } from './dev/index';
 import { IS_PRODUCTION } from './environment';
 import { Mailbox } from './Mailbox';
 import { registry } from './registry';
@@ -26,9 +28,15 @@ import {
   StateValue,
   Subscription
 } from './types';
-import { toEventObject, toObserver, toSCXMLEvent, warn } from './utils';
+import {
+  isStateLike,
+  toEventObject,
+  toObserver,
+  toSCXMLEvent,
+  warn
+} from './utils';
 import { symbolObservable } from './symbolObservable';
-import { evict } from './memo';
+import { evict, memo } from './memo';
 import { doneInvoke, error } from './actions';
 
 export type SnapshotListener<TBehavior extends Behavior<any, any>> = (
@@ -162,21 +170,37 @@ export class Interpreter<
   private _deferred: Array<(state: any) => void> = [];
 
   public getInitialState(): InternalStateFrom<TBehavior> {
-    return this.behavior.getInitialState(this._actorContext);
+    return memo(this, 'init', () => {
+      return this.behavior.getInitialState(this._actorContext);
+    });
   }
 
   private update(state: InternalStateFrom<TBehavior>): void {
+    devLog('update', this.sessionId);
     // Update state
     this._state = state;
     const snapshot = this.getSnapshot();
 
     // Execute deferred effects
     let deferredFn: typeof this._deferred[number] | undefined;
+
+    try {
+      if (typeof state === 'object' && state !== null && 'actions' in state) {
+        (state as AnyState).actions.forEach((action) => {
+          devLog('exec', action.type);
+          action.execute2?.(this._actorContext);
+        });
+      }
+    } catch (e) {
+      throw e;
+    }
+
     while ((deferredFn = this._deferred.shift())) {
       deferredFn(state);
     }
 
     for (const observer of this.observers) {
+      devLog('notifying observers');
       observer.next?.(snapshot);
     }
 
@@ -288,6 +312,7 @@ export class Interpreter<
     // TODO: remove this argument
     initialState?: InternalStateFrom<TBehavior> | StateValue
   ): this {
+    devLog('start', this.sessionId);
     if (this.status === InterpreterStatus.Running) {
       // Do not restart the service if it is already started
       return this;
@@ -315,6 +340,7 @@ export class Interpreter<
   }
 
   private _process(event: SCXML.Event<TEvent>) {
+    devLog('process', event.data);
     this.forward(event);
 
     try {
@@ -347,6 +373,9 @@ export class Interpreter<
    */
   public stop(): this {
     evict(this, 'initial');
+    if (this.status === InterpreterStatus.Stopped) {
+      return this;
+    }
     this.mailbox.clear();
     this.mailbox.enqueue(toSCXMLEvent({ type: stopSignalType }) as any);
 
@@ -356,7 +385,7 @@ export class Interpreter<
     for (const observer of this.observers) {
       observer.complete?.();
     }
-    this.observers.clear();
+    // this.observers.clear();
   }
   private _stop(): this {
     this._complete();
@@ -366,11 +395,18 @@ export class Interpreter<
       return this;
     }
 
+    if (isStateLike(this._state)) {
+      Object.values((this._state as AnyState).children).forEach((child) =>
+        child.stop?.()
+      );
+    }
+
     // Cancel all delayed events
     for (const key of Object.keys(this.delayedEventsMap)) {
       this.clock.clearTimeout(this.delayedEventsMap[key]);
     }
 
+    // TODO: mailbox.reset
     this.mailbox.clear();
     // TODO: after `stop` we must prepare ourselves for receiving events again
     // events sent *after* stop signal must be queued
@@ -379,7 +415,7 @@ export class Interpreter<
     this.mailbox = new Mailbox(this._process.bind(this));
 
     this.status = InterpreterStatus.Stopped;
-    registry.free(this.sessionId);
+    // registry.free(this.sessionId);
 
     return this;
   }
@@ -394,6 +430,7 @@ export class Interpreter<
    * @param event The event(s) to send
    */
   public send: PayloadSender<TEvent> = (event, payload?): void => {
+    devLog('receive', this.sessionId, event);
     const eventObject = toEventObject(event, payload);
     const _event = toSCXMLEvent(eventObject);
 

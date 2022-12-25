@@ -14,10 +14,6 @@ export interface ResolvedActionObject<
 > {
   type: string;
   params: Record<string, any>;
-  /**
-   * The intermediate context
-   */
-  context: TContext | undefined;
   execute: (state: State<TContext, TEvent, TResolvedTypesMeta>) => any;
 }
 
@@ -29,7 +25,6 @@ export class ExecutableAction<
 > implements ResolvedActionObject<TContext, TEvent, TResolvedTypesMeta> {
   public type: string;
   public params: Record<string, any>;
-  public context: TContext | undefined = undefined;
   constructor(
     public actionObject: BaseActionObject,
     private _exec: ActionFunction<TContext, TEvent>
@@ -38,16 +33,13 @@ export class ExecutableAction<
     this.params = actionObject.params ?? {};
   }
   public execute(state: State<TContext, TEvent, TResolvedTypesMeta>) {
-    const context = this.context ?? state.context;
+    const context = state.context;
 
     return this._exec(context, state.event, {
       action: this.actionObject,
       _event: state._event,
       state
     });
-  }
-  public setContext(context: TContext) {
-    this.context = context;
   }
 }
 

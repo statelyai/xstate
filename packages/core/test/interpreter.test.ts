@@ -113,7 +113,7 @@ describe('interpreter', () => {
     });
 
     // https://github.com/statelyai/xstate/issues/1174
-    it.skip('executes actions from a restored state', (done) => {
+    it('executes actions from a restored state', (done) => {
       const lightMachine = createMachine(
         {
           id: 'light',
@@ -155,10 +155,10 @@ describe('interpreter', () => {
 
       // saves state and recreate it
       const recreated = JSON.parse(JSON.stringify(nextState));
-      const previousState = lightMachine.createState(recreated);
+      const restoredState = lightMachine.createState(recreated);
 
       const service = interpret(lightMachine);
-      service.start(previousState);
+      service.start(nextState);
     });
 
     it('should not execute actions that are not part of the actual persisted state', () => {
@@ -1842,4 +1842,50 @@ it(`should execute entry actions when starting the actor after reading its snaps
   actorRef.start();
 
   expect(spy).toHaveBeenCalled();
+});
+
+it('ref', (done) => {
+  const machine = createMachine({});
+
+  const actor = interpret(machine);
+
+  const initialState = actor.getInitialState();
+
+  actor
+    .onTransition((state) => {
+      expect(state).toBe(initialState);
+      done();
+    })
+    .start();
+});
+
+it('ref2', () => {
+  const machine = createMachine({
+    initial: 'active',
+    states: {
+      active: {
+        on: {
+          FINISH: 'success'
+        }
+      },
+      success: {
+        type: 'final'
+      }
+    }
+  });
+
+  const service = interpret(machine);
+
+  service.send({ type: 'FINISH' });
+
+  service.start();
+
+  service.stop();
+  service.status = 0;
+
+  service.send({ type: 'FINISH' });
+
+  service.start();
+
+  expect(service.getSnapshot().value).toBe('success');
 });

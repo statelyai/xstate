@@ -8,19 +8,24 @@ describe('predictableExec', () => {
 
     const machine = createMachine({
       initial: 'a',
-      context: {},
+      context: {
+        assigned: false
+      },
       states: {
         a: {
           on: { NEXT: 'b' }
         },
         b: {
           entry: [
-            () => {
+            (ctx) => {
+              console.log(ctx.assigned);
               actual.push('custom');
             },
             assign(() => {
               actual.push('assign');
-              return {};
+              return {
+                assigned: true
+              };
             })
           ]
         }

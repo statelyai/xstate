@@ -35,9 +35,9 @@ export function stop<
     {
       actor
     },
-    ({ params, type }, context, _event, { state }) => {
+    ({ params, type }, _event, { state }) => {
       const resolved = isFunction(params.actor)
-        ? params.actor(context, _event.data)
+        ? params.actor(state.context, _event.data)
         : params.actor;
       const actorRef =
         typeof resolved === 'string' ? state.children[resolved] : resolved;

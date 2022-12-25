@@ -73,7 +73,7 @@ export function send<
           ? event.name
           : (getEventType<TSentEvent>(event) as string)
     },
-    ({ params }, ctx, _event, { machine, actorContext, state }) => {
+    ({ params }, _event, { machine, actorContext, state }) => {
       const meta = {
         _event
       };
@@ -82,7 +82,7 @@ export function send<
       // TODO: helper function for resolving Expr
       const resolvedEvent = toSCXMLEvent(
         isFunction(eventOrExpr)
-          ? eventOrExpr(ctx, _event.data, meta)
+          ? eventOrExpr(state.context, _event.data, meta)
           : eventOrExpr
       );
 
@@ -90,16 +90,16 @@ export function send<
       if (isString(params.delay)) {
         const configDelay = delaysMap && delaysMap[params.delay];
         resolvedDelay = isFunction(configDelay)
-          ? configDelay(ctx, _event.data, meta)
+          ? configDelay(state.context, _event.data, meta)
           : configDelay;
       } else {
         resolvedDelay = isFunction(params.delay)
-          ? params.delay(ctx, _event.data, meta)
+          ? params.delay(state.context, _event.data, meta)
           : params.delay;
       }
 
       const resolvedTarget = isFunction(params.to)
-        ? params.to(ctx, _event.data, meta)
+        ? params.to(state.context, _event.data, meta)
         : params.to;
       let targetActorRef: AnyActorRef | undefined;
 
