@@ -68,7 +68,6 @@ describe('action creators', () => {
           value: number;
         }),
         {
-          machine,
           state: machine.createState({
             context: { delay: 100 },
             value: {},

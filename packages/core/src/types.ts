@@ -81,7 +81,6 @@ export interface BaseDynamicActionObject<
   resolve: (
     _event: SCXML.Event<TEvent>,
     extra: {
-      machine: StateMachine<TContext, TEvent>;
       state: State<TContext, TEvent>;
       /**
        * The original action object

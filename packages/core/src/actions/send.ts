@@ -74,7 +74,7 @@ export function send<
           ? event.name
           : (getEventType<TSentEvent>(event) as string)
     },
-    (_event, { machine, actorContext, state }) => {
+    (_event, { actorContext, state }) => {
       const params = {
         to: options ? options.to : undefined,
         delay: options ? options.delay : undefined,
@@ -89,7 +89,7 @@ export function send<
       const meta = {
         _event
       };
-      const delaysMap = machine.options.delays;
+      const delaysMap = state.machine.options.delays;
 
       // TODO: helper function for resolving Expr
       const resolvedEvent = toSCXMLEvent(
@@ -129,7 +129,7 @@ export function send<
         }
         if (!targetActorRef) {
           throw new Error(
-            `Unable to send event to actor '${resolvedTarget}' from machine '${machine.id}'.`
+            `Unable to send event to actor '${resolvedTarget}' from machine '${state.machine.id}'.`
           );
         }
       } else {

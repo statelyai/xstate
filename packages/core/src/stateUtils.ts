@@ -1526,7 +1526,6 @@ export function resolveActionsAndContext<
         executableActionObject.type === actionTypes.choose
       ) {
         const [, resolvedAction] = executableActionObject.resolve(scxmlEvent, {
-          machine,
           state: intermediateState,
           action: actionObject,
           actorContext: actorCtx
@@ -1539,7 +1538,6 @@ export function resolveActionsAndContext<
           assignedState,
           resolvedActionObject
         ] = executableActionObject.resolve(scxmlEvent, {
-          machine,
           state: intermediateState,
           action: actionObject,
           actorContext: actorCtx
@@ -1563,7 +1561,6 @@ export function resolveActionsAndContext<
         const [invokedState, resolvedActionObject] = actionObjectT.resolve(
           scxmlEvent,
           {
-            machine,
             state: intermediateState,
             action: actionObject,
             actorContext: actorCtx
@@ -1577,7 +1574,6 @@ export function resolveActionsAndContext<
         const [, resolvedActionObject] = executableActionObject.resolve(
           scxmlEvent,
           {
-            machine,
             state: intermediateState,
             action: actionObject,
             actorContext: actorCtx

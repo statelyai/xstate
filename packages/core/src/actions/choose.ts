@@ -23,13 +23,13 @@ export function choose<
   return createDynamicAction(
     actionTypes.choose,
     { guards },
-    (_event, { machine, state }) => {
+    (_event, { state }) => {
       const matchedActions = guards.find((condition) => {
         const guard =
           condition.guard &&
           toGuardDefinition(
             condition.guard,
-            (guardType) => machine.options.guards[guardType]
+            (guardType) => state.machine.options.guards[guardType]
           );
         return !guard || evaluateGuard(guard, state.context, _event, state);
       })?.actions;

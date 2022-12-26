@@ -29,7 +29,7 @@ export function invoke<
   return createDynamicAction(
     invokeActionType,
     invokeDef,
-    (_event, { machine, state }) => {
+    (_event, { state }) => {
       const type = actionTypes.invoke;
       const { id, data, src, meta } = invokeDef;
 
@@ -43,7 +43,7 @@ export function invoke<
           }
         } as InvokeActionObject;
       } else {
-        const behaviorImpl = machine.options.actors[src.type];
+        const behaviorImpl = state.machine.options.actors[src.type];
 
         if (!behaviorImpl) {
           resolvedInvokeAction = {

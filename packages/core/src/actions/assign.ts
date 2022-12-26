@@ -40,7 +40,7 @@ export function assign<
     {
       assignment
     },
-    (_event, { machine, state, action }) => {
+    (_event, { state, action }) => {
       const capturedActions: InvokeActionObject[] = [];
 
       if (!state.context) {
@@ -53,7 +53,12 @@ export function assign<
         state,
         action,
         _event,
-        spawn: createSpawner(machine, state.context, _event, capturedActions)
+        spawn: createSpawner(
+          state.machine,
+          state.context,
+          _event,
+          capturedActions
+        )
       };
 
       let partialUpdate: Partial<TContext> = {};
