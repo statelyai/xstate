@@ -202,7 +202,7 @@ it('prevents infinite recursion based on a provided limit', () => {
 });
 
 // TODO: have this as an opt-in
-it('executes actions', async () => {
+it.skip('executes actions', async () => {
   let executedActive = false;
   let executedDone = false;
   const machine = createTestMachine({

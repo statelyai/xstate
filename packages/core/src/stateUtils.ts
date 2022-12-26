@@ -1614,16 +1614,11 @@ export function resolveActionsAndContext<
       const state = cloneState(intermediateState, {
         _event: scxmlEvent
       });
-      executableActionObject.execute2 = () => {
-        executableActionObject._exec(state.context, state.event, {
-          action: executableActionObject,
-          _event: scxmlEvent,
-          state
-        });
-      };
+      const resolvedAction = executableActionObject.make(state);
+      handleAction(resolvedAction);
+    } else {
+      handleAction(executableActionObject);
     }
-
-    handleAction(executableActionObject);
   }
 
   for (const actionObject of actions) {

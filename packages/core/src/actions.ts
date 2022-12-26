@@ -14,7 +14,7 @@ import {
 import * as actionTypes from './actionTypes';
 import { toSCXMLEvent, isArray } from './utils';
 import {
-  ExecutableAction,
+  createExecutableAction,
   isExecutableAction
 } from '../actions/ExecutableAction';
 import { isDynamicAction } from '../actions/dynamicAction';
@@ -47,7 +47,7 @@ export function resolveActionObject(
   const dereferencedAction = actionFunctionMap[actionObject.type];
 
   if (typeof dereferencedAction === 'function') {
-    return new ExecutableAction(actionObject, dereferencedAction);
+    return createExecutableAction(actionObject, dereferencedAction);
   } else if (dereferencedAction) {
     return dereferencedAction;
   } else {
@@ -71,7 +71,7 @@ export function toActionObject<
 
   if (typeof action === 'function') {
     // TODO: we could defer instantiating this until `resolveActionObject`
-    return new ExecutableAction(
+    return createExecutableAction(
       {
         type: action.name ?? 'xstate:expr'
       },

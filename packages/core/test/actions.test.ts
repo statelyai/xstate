@@ -1663,25 +1663,11 @@ describe('actions config', () => {
       }
     });
 
-    const { initialState } = anonMachine;
-
-    initialState.actions.forEach((action) => {
-      if ('execute' in action) {
-        (action as any).execute(initialState);
-      }
-    });
+    const actor = interpret(anonMachine).start();
 
     expect(entryCalled).toBe(true);
 
-    const inactiveState = anonMachine.transition(initialState, 'EVENT');
-
-    expect(inactiveState.actions.length).toBe(2);
-
-    inactiveState.actions.forEach((action) => {
-      if ('execute' in action) {
-        (action as any).execute(inactiveState);
-      }
-    });
+    actor.send('EVENT');
 
     expect(exitCalled).toBe(true);
     expect(actionCalled).toBe(true);

@@ -1,50 +1,39 @@
 import type { State } from '../src/State';
-import { TypegenDisabled } from '../src/typegenTypes';
-import {
-  ActionFunction,
-  BaseActionObject,
-  EventObject,
-  MachineContext
-} from '../src/types';
+import { ActionFunction, BaseActionObject } from '../src/types';
 
-export interface ResolvedActionObject<
-  TContext extends MachineContext,
-  TEvent extends EventObject,
-  TResolvedTypesMeta = TypegenDisabled
-> {
+interface ExecutableActionObject {
   type: string;
   params: Record<string, any>;
-  execute: (state: State<TContext, TEvent, TResolvedTypesMeta>) => any;
+  make: (state: State<any, any>) => BaseActionObject;
 }
 
-// TODO: refactor out of class
-export class ExecutableAction<
-  TContext extends object,
-  TEvent extends EventObject,
-  TResolvedTypesMeta = TypegenDisabled
-> implements ResolvedActionObject<TContext, TEvent, TResolvedTypesMeta> {
-  public type: string;
-  public params: Record<string, any>;
-  constructor(
-    public actionObject: BaseActionObject,
-    private _exec: ActionFunction<TContext, TEvent>
-  ) {
-    this.type = actionObject.type;
-    this.params = actionObject.params ?? {};
-  }
-  public execute(state: State<TContext, TEvent, TResolvedTypesMeta>) {
-    const context = state.context;
+export function createExecutableAction(
+  action: BaseActionObject,
+  exec: ActionFunction<any, any>
+): ExecutableActionObject {
+  return {
+    type: action.type,
+    params: action.params ?? {},
+    make: (state: State<any, any>) => {
+      const a: BaseActionObject = {
+        type: action.type,
+        params: action.params,
+        execute2: (_actorCtx) => {
+          return exec(state.context, state.event, {
+            action: a,
+            _event: state._event,
+            state
+          });
+        }
+      };
 
-    return this._exec(context, state.event, {
-      action: this.actionObject,
-      _event: state._event,
-      state
-    });
-  }
+      return a;
+    }
+  };
 }
 
 export function isExecutableAction(
-  action: BaseActionObject | ResolvedActionObject<any, any, any>
-): action is ExecutableAction<any, any, any> {
-  return 'execute' in action && typeof action.execute === 'function';
+  action: BaseActionObject
+): action is ExecutableActionObject {
+  return 'make' in action;
 }
