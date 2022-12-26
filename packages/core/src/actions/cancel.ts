@@ -2,6 +2,7 @@ import { EventObject, ExprWithMeta, MachineContext } from '../types';
 import { cancel as cancelActionType } from '../actionTypes';
 import { isFunction } from '../utils';
 import {
+  AnyInterpreter,
   BaseDynamicActionObject,
   CancelActionObject,
   DynamicCancelActionObject
@@ -45,6 +46,11 @@ export function cancel<
           type,
           params: {
             sendId: resolvedSendId
+          },
+          execute2: (actorCtx) => {
+            const interpreter = actorCtx.self as AnyInterpreter;
+
+            interpreter.cancel(resolvedSendId);
           }
         } as CancelActionObject
       ];

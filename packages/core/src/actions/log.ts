@@ -41,16 +41,24 @@ export function log<
     logActionType,
     { label, expr },
     ({ type }, _event, { state }) => {
+      const resolvedValue =
+        typeof expr === 'function'
+          ? expr(state.context, _event.data, { _event })
+          : expr;
       return [
         state,
         {
-          type,
+          type: 'xstate.log',
           params: {
             label,
-            value:
-              typeof expr === 'function'
-                ? expr(state.context, _event.data, { _event })
-                : expr
+            value: resolvedValue
+          },
+          execute2: (actorCtx) => {
+            if (label) {
+              actorCtx.logger?.(label, resolvedValue);
+            } else {
+              actorCtx.logger?.(resolvedValue);
+            }
           }
         } as LogActionObject
       ];

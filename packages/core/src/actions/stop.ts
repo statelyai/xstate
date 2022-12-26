@@ -35,18 +35,27 @@ export function stop<
     {
       actor
     },
-    ({ params, type }, _event, { state }) => {
-      const resolved = isFunction(params.actor)
+    ({ params }, _event, { state }) => {
+      const actorRefOrString = isFunction(params.actor)
         ? params.actor(state.context, _event.data)
         : params.actor;
       const actorRef =
-        typeof resolved === 'string' ? state.children[resolved] : resolved;
+        typeof actorRefOrString === 'string'
+          ? state.children[actorRefOrString]
+          : actorRefOrString;
 
       return [
         state,
         {
-          type,
-          params: { actor: actorRef }
+          type: 'xstate.stop',
+          params: { actor: actorRef },
+          execute2: (actorCtx) => {
+            if (actorRef) {
+              actorCtx.defer?.(() => {
+                actorRef.stop?.();
+              });
+            }
+          }
         } as StopActionObject
       ];
     }

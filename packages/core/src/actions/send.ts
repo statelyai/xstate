@@ -18,6 +18,7 @@ import {
 import { createDynamicAction } from '../../actions/dynamicAction';
 import {
   AnyActorRef,
+  AnyInterpreter,
   BaseDynamicActionObject,
   Cast,
   EventFrom,
@@ -26,7 +27,7 @@ import {
   SendActionObject,
   SendActionOptions
 } from '..';
-import { actionTypes } from '../actions';
+import { actionTypes, error } from '../actions';
 
 /**
  * Sends an event. This returns an action that will be read by an interpreter to
@@ -124,21 +125,43 @@ export function send<
         targetActorRef = resolvedTarget || actorContext?.self;
       }
 
-      return [
-        state,
-        {
-          type: actionTypes.send,
-          params: {
-            id: '', // TODO: generate?
-            ...params,
-            to: targetActorRef,
-            _event: resolvedEvent,
-            event: resolvedEvent.data,
-            delay: resolvedDelay,
-            internal: resolvedTarget === SpecialTargets.Internal
+      const resolvedAction: SendActionObject = {
+        type: actionTypes.send,
+        params: {
+          id: '', // TODO: generate?
+          ...params,
+          to: targetActorRef,
+          _event: resolvedEvent,
+          event: resolvedEvent.data,
+          delay: resolvedDelay,
+          internal: resolvedTarget === SpecialTargets.Internal
+        },
+        execute2: (actorCtx) => {
+          const sendAction = resolvedAction as SendActionObject;
+
+          if (typeof sendAction.params.delay === 'number') {
+            (actorCtx.self as AnyInterpreter).defer(sendAction);
+            return;
+          } else {
+            const target = sendAction.params.to!;
+            const { _event } = sendAction.params;
+            actorCtx.defer?.(() => {
+              const origin = actorCtx.self;
+              const resolvedEvent: typeof _event = {
+                ..._event,
+                name:
+                  _event.name === actionTypes.error
+                    ? `${error(origin.id)}`
+                    : _event.name,
+                origin: origin
+              };
+              target.send(resolvedEvent);
+            });
           }
         }
-      ];
+      };
+
+      return [state, resolvedAction];
     }
   );
 }

@@ -59,7 +59,6 @@ import {
   SendActionObject,
   StateFromMachine
 } from '.';
-import { execAction } from './exec';
 import { stopSignalType } from './actors';
 
 type Configuration<
@@ -1578,8 +1577,6 @@ export function resolveActionsAndContext<
 
         intermediateState = invokedState;
 
-        resolvedActionObject.execute2 = (actorx) =>
-          execAction(resolvedActionObject, intermediateState, actorx);
         handleAction(resolvedActionObject);
       } else {
         const [, resolvedActionObject] = executableActionObject.resolve(
@@ -1600,10 +1597,6 @@ export function resolveActionsAndContext<
         ) {
           raiseActions.push(resolvedActionObject);
           // TODO: raise actions
-        } else if (resolvedActionObject.type.startsWith('xstate.')) {
-          resolvedActionObject.execute2 = (actorx) =>
-            execAction(resolvedActionObject, intermediateState, actorx);
-          handleAction(resolvedActionObject);
         } else {
           handleAction(resolvedActionObject);
         }
