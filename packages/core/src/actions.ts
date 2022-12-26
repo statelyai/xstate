@@ -13,11 +13,7 @@ import {
 } from './types';
 import * as actionTypes from './actionTypes';
 import { toSCXMLEvent, isArray } from './utils';
-import {
-  createExecutableAction,
-  isExecutableAction
-} from '../actions/ExecutableAction';
-import { isDynamicAction } from '../actions/dynamicAction';
+import { createDynamicAction, isDynamicAction } from '../actions/dynamicAction';
 export {
   send,
   sendTo,
@@ -41,13 +37,31 @@ export function resolveActionObject(
   actionObject: BaseActionObject,
   actionFunctionMap: ActionFunctionMap<any, any>
 ): BaseActionObject {
-  if (isDynamicAction(actionObject) || isExecutableAction(actionObject)) {
+  if (isDynamicAction(actionObject)) {
     return actionObject;
   }
   const dereferencedAction = actionFunctionMap[actionObject.type];
 
   if (typeof dereferencedAction === 'function') {
-    return createExecutableAction(actionObject, dereferencedAction);
+    return createDynamicAction(
+      actionObject.type,
+      actionObject.params,
+      (action, _event, { state }) => {
+        const a: BaseActionObject = {
+          type: action.type,
+          params: action.params,
+          execute2: (_actorCtx) => {
+            return dereferencedAction(state.context, state.event, {
+              action: a,
+              _event: state._event,
+              state
+            });
+          }
+        };
+
+        return [state, a];
+      }
+    );
   } else if (dereferencedAction) {
     return dereferencedAction;
   } else {
@@ -70,12 +84,24 @@ export function toActionObject<
   }
 
   if (typeof action === 'function') {
-    // TODO: we could defer instantiating this until `resolveActionObject`
-    return createExecutableAction(
-      {
-        type: action.name ?? 'xstate:expr'
-      },
-      action
+    return createDynamicAction(
+      action.name ?? 'xstate:expr',
+      {},
+      (actionObject, _event, { state }) => {
+        const a: BaseActionObject = {
+          type: actionObject.type,
+          params: actionObject.params,
+          execute2: (_actorCtx) => {
+            return action(state.context, _event.data, {
+              action: a,
+              _event,
+              state
+            });
+          }
+        };
+
+        return [state, a];
+      }
     );
   }
 

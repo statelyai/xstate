@@ -42,7 +42,6 @@ import { stop } from './actions/stop';
 import { IS_PRODUCTION } from './environment';
 import { STATE_IDENTIFIER, NULL_EVENT, WILDCARD } from './constants';
 import { evaluateGuard, toGuardDefinition } from './guards';
-import { isExecutableAction } from '../actions/ExecutableAction';
 import type { StateNode } from './StateNode';
 import { isDynamicAction } from '../actions/dynamicAction';
 import {
@@ -1601,24 +1600,18 @@ export function resolveActionsAndContext<
         ) {
           raiseActions.push(resolvedActionObject);
           // TODO: raise actions
-        } else {
+        } else if (resolvedActionObject.type.startsWith('xstate.')) {
           resolvedActionObject.execute2 = (actorx) =>
             execAction(resolvedActionObject, intermediateState, actorx);
+          handleAction(resolvedActionObject);
+        } else {
           handleAction(resolvedActionObject);
         }
       }
       return;
     }
 
-    if (isExecutableAction(executableActionObject)) {
-      const state = cloneState(intermediateState, {
-        _event: scxmlEvent
-      });
-      const resolvedAction = executableActionObject.make(state);
-      handleAction(resolvedAction);
-    } else {
-      handleAction(executableActionObject);
-    }
+    handleAction(executableActionObject);
   }
 
   for (const actionObject of actions) {

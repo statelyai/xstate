@@ -15,7 +15,6 @@ import {
   ContextFrom,
   EventFrom
 } from '.';
-import { isExecutableAction } from '../actions/ExecutableAction';
 import { actionTypes, error } from './actions';
 import { devLog } from './dev';
 import { IS_PRODUCTION } from './environment';
@@ -30,19 +29,6 @@ export function execAction(
   const interpreter = actorContext.self as AnyInterpreter;
 
   const { _event } = state;
-
-  if (isExecutableAction(action)) {
-    try {
-      return actorContext.exec(action);
-    } catch (err) {
-      interpreter._parent?.send({
-        type: 'xstate.error',
-        data: err
-      });
-
-      throw err;
-    }
-  }
 
   const actionOrExec = getActionFunction(state, action.type, actorContext);
   const exec = isFunction(actionOrExec) ? actionOrExec : undefined;
