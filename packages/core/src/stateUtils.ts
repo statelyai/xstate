@@ -1521,76 +1521,33 @@ export function resolveActionsAndContext<
     );
 
     if (isDynamicAction(executableActionObject)) {
+      const [nextState, resolvedAction] = executableActionObject.resolve(
+        scxmlEvent,
+        {
+          state: intermediateState,
+          action: actionObject,
+          actorContext: actorCtx
+        }
+      );
+      const matchedActions = resolvedAction.params?.actions;
+
+      intermediateState = nextState;
+
       if (
-        executableActionObject.type === actionTypes.pure ||
-        executableActionObject.type === actionTypes.choose
+        resolvedAction.type === actionTypes.raise ||
+        (resolvedAction.type === actionTypes.send &&
+          (resolvedAction as SendActionObject).params.internal)
       ) {
-        const [, resolvedAction] = executableActionObject.resolve(scxmlEvent, {
-          state: intermediateState,
-          action: actionObject,
-          actorContext: actorCtx
-        });
-        const matchedActions = resolvedAction.params.actions;
-
-        toActionObjects(matchedActions).forEach(resolveAction);
-      } else if (executableActionObject.type === actionTypes.assign) {
-        const [
-          assignedState,
-          resolvedActionObject
-        ] = executableActionObject.resolve(scxmlEvent, {
-          state: intermediateState,
-          action: actionObject,
-          actorContext: actorCtx
-        });
-
-        handleAction(resolvedActionObject);
-
-        intermediateState = assignedState;
-
-        for (const spawnAction of resolvedActionObject.params.actions) {
-          resolveAction(spawnAction);
-        }
-      } else if (actionObject.type === actionTypes.invoke) {
-        const actionObjectT = actionObject as BaseDynamicActionObject<
-          any,
-          any,
-          InvokeActionObject,
-          any
-        >;
-
-        const [invokedState, resolvedActionObject] = actionObjectT.resolve(
-          scxmlEvent,
-          {
-            state: intermediateState,
-            action: actionObject,
-            actorContext: actorCtx
-          }
-        );
-
-        intermediateState = invokedState;
-
-        handleAction(resolvedActionObject);
-      } else {
-        const [, resolvedActionObject] = executableActionObject.resolve(
-          scxmlEvent,
-          {
-            state: intermediateState,
-            action: actionObject,
-            actorContext: actorCtx
-          }
-        );
-
-        if (
-          resolvedActionObject.type === actionTypes.raise ||
-          (resolvedActionObject.type === actionTypes.send &&
-            (resolvedActionObject as SendActionObject).params.internal)
-        ) {
-          raiseActions.push(resolvedActionObject);
-          // TODO: raise actions
-        } else {
-          handleAction(resolvedActionObject);
-        }
+        raiseActions.push(resolvedAction);
       }
+
+      // TODO: remove the check; just handleAction
+      if (!matchedActions) {
+        handleAction(resolvedAction);
+      }
+
+      toActionObjects(matchedActions).forEach(resolveAction);
+
       return;
     }
 
