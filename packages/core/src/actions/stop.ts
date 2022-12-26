@@ -2,11 +2,11 @@ import { EventObject, ActorRef, Expr, MachineContext } from '../types';
 import { stop as stopActionType } from '../actionTypes';
 import { isFunction } from '../utils';
 import { createDynamicAction } from '../../actions/dynamicAction';
-import {
+import type {
   BaseDynamicActionObject,
   DynamicStopActionObject,
   StopActionObject
-} from '..';
+} from '../types';
 
 /**
  * Stops an actor.

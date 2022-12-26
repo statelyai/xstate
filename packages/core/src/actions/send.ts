@@ -16,7 +16,7 @@ import {
   toSCXMLEvent
 } from '../utils';
 import { createDynamicAction } from '../../actions/dynamicAction';
-import {
+import type {
   ActionTypes,
   AnyActorRef,
   BaseDynamicActionObject,
@@ -26,7 +26,7 @@ import {
   InferEvent,
   SendActionObject,
   SendActionOptions
-} from '..';
+} from '../types';
 import { actionTypes } from '../actions';
 
 /**

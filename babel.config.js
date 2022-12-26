@@ -36,26 +36,16 @@ module.exports = {
     '@babel/preset-react',
     [
       '@babel/preset-typescript',
-      { isTSX: true, allExtensions: true, disallowAmbiguousJSXLike: true }
+      {
+        isTSX: true,
+        allExtensions: true,
+        disallowAmbiguousJSXLike: true,
+        // Svelte script and template parts of a file are handled separately
+        // so Babel can't recognize that an import for a child component was actually being referenced by a source file
+        // because only the script is handed to it and the reference is in the template
+        onlyRemoveTypeImports: true
+      }
     ]
-  ],
-  overrides: [
-    {
-      test: /\.svelte$/,
-      presets: [
-        [
-          '@babel/preset-typescript',
-          {
-            isTSX: true,
-            allExtensions: true,
-            disallowAmbiguousJSXLike: true,
-            // this is the only overriden option
-            // potentially we could just configure it for all the files but surprisingly something crashes when we try to do it
-            onlyRemoveTypeImports: true
-          }
-        ]
-      ]
-    }
   ],
   plugins: [
     stripSymbolObservableMethodPlugin,

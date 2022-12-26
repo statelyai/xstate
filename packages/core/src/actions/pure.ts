@@ -1,12 +1,12 @@
 import { EventObject, SingleOrArray, MachineContext } from '../types';
 import { pure as pureActionType } from '../actionTypes';
 import { createDynamicAction } from '../../actions/dynamicAction';
-import {
+import type {
   BaseActionObject,
   BaseDynamicActionObject,
   DynamicPureActionObject,
   PureActionObject
-} from '..';
+} from '../types';
 import { toArray } from '../utils';
 
 export function pure<
