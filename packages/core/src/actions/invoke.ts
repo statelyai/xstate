@@ -29,16 +29,16 @@ export function invoke<
   return createDynamicAction(
     invokeActionType,
     invokeDef,
-    ({ params }, _event, { machine, state }) => {
+    (_event, { machine, state }) => {
       const type = actionTypes.invoke;
-      const { id, data, src, meta } = params;
+      const { id, data, src, meta } = invokeDef;
 
       let resolvedInvokeAction: InvokeActionObject;
       if (isActorRef(src)) {
         resolvedInvokeAction = {
           type,
           params: {
-            ...params,
+            ...invokeDef,
             ref: src
           }
         } as InvokeActionObject;
@@ -48,7 +48,7 @@ export function invoke<
         if (!behaviorImpl) {
           resolvedInvokeAction = {
             type,
-            params
+            params: invokeDef
           } as InvokeActionObject;
         } else {
           const behavior =
@@ -65,7 +65,7 @@ export function invoke<
           resolvedInvokeAction = {
             type,
             params: {
-              ...params,
+              ...invokeDef,
               ref: interpret(behavior, { id })
             }
           } as InvokeActionObject;

@@ -74,7 +74,18 @@ export function send<
           ? event.name
           : (getEventType<TSentEvent>(event) as string)
     },
-    ({ params }, _event, { machine, actorContext, state }) => {
+    (_event, { machine, actorContext, state }) => {
+      const params = {
+        to: options ? options.to : undefined,
+        delay: options ? options.delay : undefined,
+        event: eventOrExpr,
+        id:
+          options && options.id !== undefined
+            ? options.id
+            : isFunction(event)
+            ? event.name
+            : (getEventType<TSentEvent>(event) as string)
+      };
       const meta = {
         _event
       };

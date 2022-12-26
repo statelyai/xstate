@@ -63,7 +63,6 @@ describe('action creators', () => {
       const machine = createMachine<any, any>({});
 
       const [, resolvedAction] = action.resolve(
-        action,
         toSCXMLEvent({ type: 'EVENT', value: 50 } as {
           type: 'EVENT';
           value: number;

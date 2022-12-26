@@ -46,10 +46,10 @@ export function resolveActionObject(
     return createDynamicAction(
       actionObject.type,
       actionObject.params,
-      (action, _event, { state }) => {
+      (_event, { state }) => {
         const a: BaseActionObject = {
-          type: action.type,
-          params: action.params,
+          type: actionObject.type,
+          params: actionObject.params,
           execute2: (_actorCtx) => {
             return dereferencedAction(state.context, state.event, {
               action: a,
@@ -87,10 +87,10 @@ export function toActionObject<
     return createDynamicAction(
       action.name ?? 'xstate:expr',
       {},
-      (actionObject, _event, { state }) => {
+      (_event, { state }) => {
         const a: BaseActionObject = {
-          type: actionObject.type,
-          params: actionObject.params,
+          type: action.name ?? 'xstate:expr',
+          params: {},
           execute2: (_actorCtx) => {
             return action(state.context, _event.data, {
               action: a,

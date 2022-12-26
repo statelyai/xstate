@@ -79,12 +79,6 @@ export interface BaseDynamicActionObject<
   type: `xstate.${string}`;
   params: TDynamicParams;
   resolve: (
-    dynamicAction: BaseDynamicActionObject<
-      TContext,
-      TEvent,
-      TResolvedAction,
-      TDynamicParams
-    >,
     _event: SCXML.Event<TEvent>,
     extra: {
       machine: StateMachine<TContext, TEvent>;

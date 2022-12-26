@@ -28,13 +28,13 @@ export function pure<
     {
       get: getActions
     },
-    ({ params }, _event, { state }) => {
+    (_event, { state }) => {
       return [
         state,
         {
           type: pureActionType,
           params: {
-            actions: toArray(params.get(state.context, _event.data)) ?? []
+            actions: toArray(getActions(state.context, _event.data)) ?? []
           }
         }
       ];

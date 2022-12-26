@@ -22,13 +22,13 @@ export function raise<TEvent extends EventObject>(
   return createDynamicAction(
     actionTypes.raise,
     { _event: toSCXMLEvent(event) },
-    ({ params }, _event, { state }) => {
+    (_event, { state }) => {
       return [
         state,
         {
           type: actionTypes.raise,
           params: {
-            _event: params._event
+            _event: toSCXMLEvent(event)
           }
         }
       ];

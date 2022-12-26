@@ -40,7 +40,7 @@ export function assign<
     {
       assignment
     },
-    (_, _event, { machine, state, action }) => {
+    (_event, { machine, state, action }) => {
       const capturedActions: InvokeActionObject[] = [];
 
       if (!state.context) {
