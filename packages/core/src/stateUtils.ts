@@ -1179,7 +1179,7 @@ function microstepProcedure(
   }
 
   try {
-    const { raised, nextState } = resolveActionsAndContext(
+    const { nextState } = resolveActionsAndContext(
       actions,
       scxmlEvent,
       currentState,
@@ -1190,7 +1190,7 @@ function microstepProcedure(
       ? getOutput(nextConfiguration, nextState.context, scxmlEvent)
       : undefined;
 
-    internalQueue.push(...raised.map((a) => a.params._event));
+    internalQueue.push(...nextState._internalQueue);
 
     return cloneState(currentState, {
       actions: nextState.actions,
@@ -1498,7 +1498,6 @@ export function resolveActionsAndContext<
   currentState: AnyState,
   actorCtx: ActorContext<any, any> | undefined
 ): {
-  raised: Array<RaiseActionObject<TEvent>>;
   nextState: AnyState;
 } {
   const { machine } = currentState;
@@ -1559,9 +1558,9 @@ export function resolveActionsAndContext<
   }
 
   return {
-    raised: raiseActions,
     nextState: cloneState(intermediateState, {
-      actions: resolvedActions
+      actions: resolvedActions,
+      _internalQueue: raiseActions.map((a) => a.params._event)
     })
   };
 }
@@ -1657,33 +1656,24 @@ function stopStep(
   nextState: AnyState,
   actorCtx: ActorContext<any, any> | undefined
 ): AnyState {
-  const stoppedState = cloneState(nextState, {
-    _event: scxmlEvent,
-    actions: []
-  });
-
-  stoppedState.actions.length = 0;
+  const actions: BaseActionObject[] = [];
 
   for (const stateNode of nextState.configuration.sort(
     (a, b) => b.order - a.order
   )) {
-    stoppedState.actions.push(...stateNode.definition.exit);
+    actions.push(...stateNode.definition.exit);
   }
 
   for (const child of Object.values(nextState.children)) {
-    stoppedState.actions.push(stop(child));
+    actions.push(stop(child));
   }
 
-  const { nextState: nst } = resolveActionsAndContext(
-    stoppedState.actions,
-    stoppedState._event,
-    stoppedState,
+  const { nextState: stoppedState } = resolveActionsAndContext(
+    actions,
+    scxmlEvent,
+    nextState,
     actorCtx
   );
-
-  stoppedState.actions = nst.actions;
-  stoppedState.context = nst.context;
-  stoppedState.children = nst.children;
 
   return stoppedState;
 }
