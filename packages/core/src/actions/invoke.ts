@@ -7,7 +7,8 @@ import {
   AnyState,
   BaseDynamicActionObject,
   DynamicInvokeActionObject,
-  InvokeActionObject
+  InvokeActionObject,
+  InvokeSourceDefinition
 } from '..';
 import { actionTypes, error } from '../actions';
 import { mapContext, warn } from '../utils';
@@ -85,7 +86,9 @@ export function invoke<
           if (!IS_PRODUCTION) {
             warn(
               false,
-              `Actor type '${resolvedInvokeAction.params.src.type}' not found in machine '${actorCtx.id}'.`
+              `Actor type '${
+                (resolvedInvokeAction.params.src as InvokeSourceDefinition).type
+              }' not found in machine '${actorCtx.id}'.`
             );
           }
           return;

@@ -14,6 +14,7 @@ import type {
 import { toSCXMLEvent, isPromiseLike, isSCXMLEvent, isFunction } from './utils';
 import { doneInvoke, error } from './actions';
 import { symbolObservable } from './symbolObservable';
+import { ActorStatus } from './interpreter';
 
 /**
  * Returns an actor behavior from a reducer and its initial state.
@@ -414,6 +415,7 @@ export function toActorRef<
     [symbolObservable]: function () {
       return this;
     },
+    status: ActorStatus.Running,
     ...actorRefLike
   };
 }

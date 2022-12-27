@@ -9,7 +9,6 @@ import type {
   SnapshotFrom
 } from './types';
 import { stopSignalType } from './actors';
-import { devLog } from './dev';
 import { devToolsAdapter } from './dev/index';
 import { IS_PRODUCTION } from './environment';
 import { Mailbox } from './Mailbox';
@@ -176,7 +175,6 @@ export class Interpreter<
   }
 
   private update(state: InternalStateFrom<TBehavior>): void {
-    devLog('update', this.sessionId);
     // Update state
     this._state = state;
     const snapshot = this.getSnapshot();
@@ -187,7 +185,6 @@ export class Interpreter<
     try {
       if (typeof state === 'object' && state !== null && 'actions' in state) {
         (state as AnyState).actions.forEach((action) => {
-          devLog('exec', action.type);
           action.execute?.(this._actorContext);
         });
       }
@@ -200,7 +197,6 @@ export class Interpreter<
     }
 
     for (const observer of this.observers) {
-      devLog('notifying observers');
       observer.next?.(snapshot);
     }
 
@@ -312,7 +308,6 @@ export class Interpreter<
     // TODO: remove this argument
     initialState?: InternalStateFrom<TBehavior> | StateValue
   ): this {
-    devLog('start', this.sessionId);
     if (this.status === ActorStatus.Running) {
       // Do not restart the service if it is already started
       return this;
@@ -340,7 +335,6 @@ export class Interpreter<
   }
 
   private _process(event: SCXML.Event<TEvent>) {
-    devLog('process', event.data);
     this.forward(event);
 
     try {
@@ -430,7 +424,6 @@ export class Interpreter<
    * @param event The event(s) to send
    */
   public send: PayloadSender<TEvent> = (event, payload?): void => {
-    devLog('receive', this.sessionId, event);
     const eventObject = toEventObject(event, payload);
     const _event = toSCXMLEvent(eventObject);
 

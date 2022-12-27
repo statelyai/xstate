@@ -400,7 +400,14 @@ export class StateMachine<
     const state =
       stateConfig instanceof State ? stateConfig : new State(stateConfig, this);
 
-    return state as State<TContext, TEvent, TResolvedTypesMeta>;
+    const { nextState: resolvedState } = resolveActionsAndContext(
+      state.actions,
+      state._event,
+      state,
+      undefined
+    );
+
+    return resolvedState as State<TContext, TEvent, TResolvedTypesMeta>;
   }
 
   public getStatus(state: State<TContext, TEvent, TResolvedTypesMeta>) {

@@ -361,16 +361,27 @@ describe('entry/exit actions', () => {
     });
 
     it('should work with function actions', () => {
+      const { actions } = deepMachine.transition(
+        deepMachine.initialState,
+        'NEXT_FN'
+      );
+
       expect(
-        deepMachine
-          .transition(deepMachine.initialState, 'NEXT_FN')
-          .actions.map((action) => action.type)
+        actions.map((action) =>
+          action.type === 'xstate.function'
+            ? action.params?.function?.name
+            : action.type
+        )
       ).toEqual(['exit_a1', 'enter_a3_fn']);
 
       expect(
         deepMachine
           .transition({ a: 'a3' }, 'NEXT')
-          .actions.map((action) => action.type)
+          .actions.map((action) =>
+            action.type === 'xstate.function'
+              ? action.params?.function?.name
+              : action.type
+          )
       ).toEqual(['exit_a3_fn', 'do_a3_to_a2', 'enter_a2']);
     });
 

@@ -17,7 +17,7 @@ describe('predictableExec', () => {
         },
         b: {
           entry: [
-            (ctx) => {
+            () => {
               actual.push('custom');
             },
             assign(() => {

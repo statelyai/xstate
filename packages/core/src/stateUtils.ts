@@ -52,7 +52,6 @@ import {
   AnyStateMachine,
   AnyStateNode,
   AnyTransitionDefinition,
-  BaseDynamicActionObject,
   DelayedTransitionDefinition,
   HistoryValue,
   InitialTransitionDefinition,

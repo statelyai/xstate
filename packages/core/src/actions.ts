@@ -9,7 +9,9 @@ import {
   ErrorPlatformEvent,
   DoneEventObject,
   MachineContext,
-  BaseActionObject
+  BaseActionObject,
+  SCXML,
+  AnyState
 } from './types';
 import * as actionTypes from './actionTypes';
 import { toSCXMLEvent, isArray } from './utils';
@@ -44,7 +46,7 @@ export function resolveActionObject(
 
   if (typeof dereferencedAction === 'function') {
     return createDynamicAction(
-      { type: 'xstate.expr', params: actionObject.params },
+      { type: 'xstate.expr', params: actionObject.params ?? {} },
       (_event, { state }) => {
         const a: BaseActionObject = {
           type: actionObject.type,
@@ -83,16 +85,18 @@ export function toActionObject<
   }
 
   if (typeof action === 'function') {
-    const type = action.name ?? 'xstate:expr';
+    const type = 'xstate.function';
     return createDynamicAction({ type, params: {} }, (_event, { state }) => {
       const a: BaseActionObject = {
         type,
-        params: {},
+        params: {
+          function: action
+        },
         execute: (_actorCtx) => {
           return action(state.context as TContext, _event.data as TEvent, {
             action: a,
-            _event,
-            state
+            _event: _event as SCXML.Event<TEvent>,
+            state: state as AnyState
           });
         }
       };

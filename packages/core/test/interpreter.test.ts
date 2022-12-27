@@ -158,7 +158,7 @@ describe('interpreter', () => {
       const restoredState = lightMachine.createState(recreated);
 
       const service = interpret(lightMachine);
-      service.start(nextState);
+      service.start(restoredState);
     });
 
     it('should not execute actions that are not part of the actual persisted state', () => {
