@@ -15,6 +15,13 @@
   "license": "MIT",
   "main": "dist/xstate-graph.cjs.js",
   "module": "dist/xstate-graph.esm.js",
+  "exports": {
+    ".": {
+      "module": "./dist/xstate-graph.esm.js",
+      "default": "./dist/xstate-graph.cjs.js"
+    },
+    "./package.json": "./package.json"
+  },
   "sideEffects": false,
   "files": [
     "dist"

@@ -16,6 +16,13 @@
   "license": "MIT",
   "main": "dist/xstate-inspect.cjs.js",
   "module": "dist/xstate-inspect.esm.js",
+  "exports": {
+    ".": {
+      "module": "./dist/xstate-inspect.esm.js",
+      "default": "./dist/xstate-inspect.cjs.js"
+    },
+    "./package.json": "./package.json"
+  },
   "sideEffects": false,
   "files": [
     "dist"

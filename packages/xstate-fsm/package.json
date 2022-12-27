@@ -19,6 +19,13 @@
   "license": "MIT",
   "main": "dist/xstate-fsm.cjs.js",
   "module": "dist/xstate-fsm.esm.js",
+  "exports": {
+    ".": {
+      "module": "./dist/xstate-fsm.esm.js",
+      "default": "./dist/xstate-fsm.cjs.js"
+    },
+    "./package.json": "./package.json"
+  },
   "sideEffects": false,
   "files": [
     "dist"
