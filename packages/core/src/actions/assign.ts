@@ -36,9 +36,11 @@ export function assign<
       assignment: TAssignment;
     }
   >(
-    actionTypes.assign,
     {
-      assignment
+      type: actionTypes.assign,
+      params: {
+        assignment
+      }
     },
     (_event, { state, action }) => {
       const capturedActions: InvokeActionObject[] = [];

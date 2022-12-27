@@ -27,8 +27,7 @@ export function invoke<
   DynamicInvokeActionObject<TContext, TEvent>['params']
 > {
   return createDynamicAction(
-    invokeActionType,
-    invokeDef,
+    { type: invokeActionType, params: invokeDef },
     (_event, { state }) => {
       const type = actionTypes.invoke;
       const { id, data, src, meta } = invokeDef;
@@ -79,7 +78,7 @@ export function invoke<
         }
       });
 
-      resolvedInvokeAction.execute2 = (actorCtx) => {
+      resolvedInvokeAction.execute = (actorCtx) => {
         const interpreter = actorCtx.self as AnyInterpreter;
         const { id, autoForward, ref } = resolvedInvokeAction.params;
         if (!ref) {

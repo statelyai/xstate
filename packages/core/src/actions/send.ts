@@ -62,17 +62,19 @@ export function send<
     SendActionObject<AnyEventObject>,
     SendActionParams<TContext, TEvent>
   >(
-    sendActionType,
     {
-      to: options ? options.to : undefined,
-      delay: options ? options.delay : undefined,
-      event: eventOrExpr,
-      id:
-        options && options.id !== undefined
-          ? options.id
-          : isFunction(event)
-          ? event.name
-          : (getEventType<TSentEvent>(event) as string)
+      type: sendActionType,
+      params: {
+        to: options ? options.to : undefined,
+        delay: options ? options.delay : undefined,
+        event: eventOrExpr,
+        id:
+          options && options.id !== undefined
+            ? options.id
+            : isFunction(event)
+            ? event.name
+            : (getEventType<TSentEvent>(event) as string)
+      }
     },
     (_event, { actorContext, state }) => {
       const params = {
@@ -139,7 +141,6 @@ export function send<
       const resolvedAction: SendActionObject = {
         type: actionTypes.send,
         params: {
-          id: '', // TODO: generate?
           ...params,
           to: targetActorRef,
           _event: resolvedEvent,
@@ -147,7 +148,7 @@ export function send<
           delay: resolvedDelay,
           internal: resolvedTarget === SpecialTargets.Internal
         },
-        execute2: (actorCtx) => {
+        execute: (actorCtx) => {
           const sendAction = resolvedAction as SendActionObject;
 
           if (typeof sendAction.params.delay === 'number') {

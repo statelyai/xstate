@@ -21,8 +21,7 @@ export function choose<
   ChooseAction<TContext, TEvent>['params']
 > {
   return createDynamicAction(
-    actionTypes.choose,
-    { guards },
+    { type: actionTypes.choose, params: { guards } },
     (_event, { state }) => {
       const matchedActions = guards.find((condition) => {
         const guard =

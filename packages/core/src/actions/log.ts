@@ -38,8 +38,7 @@ export function log<
   DynamicLogAction<TContext, TEvent>['params']
 > {
   return createDynamicAction(
-    logActionType,
-    { label, expr },
+    { type: logActionType, params: { label, expr } },
     (_event, { state }) => {
       const resolvedValue =
         typeof expr === 'function'
@@ -53,7 +52,7 @@ export function log<
             label,
             value: resolvedValue
           },
-          execute2: (actorCtx) => {
+          execute: (actorCtx) => {
             if (label) {
               actorCtx.logger?.(label, resolvedValue);
             } else {

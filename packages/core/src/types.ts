@@ -62,7 +62,7 @@ export interface AnyEventObject extends EventObject {
 export interface BaseActionObject {
   type: string;
   params?: Record<string, any>;
-  execute2?: (actorCtx: ActorContext<any, any>) => void;
+  execute?: (actorCtx: ActorContext<any, any>) => void;
 }
 
 export interface BuiltInActionObject {

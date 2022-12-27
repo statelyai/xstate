@@ -1508,8 +1508,8 @@ export function resolveActionsAndContext<
   function handleAction(action: BaseActionObject): void {
     resolvedActions.push(action);
     if (actorCtx?.self.status === 1) {
-      action.execute2?.(actorCtx!);
-      delete action.execute2;
+      action.execute?.(actorCtx!);
+      delete action.execute;
     }
   }
 

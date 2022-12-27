@@ -157,7 +157,7 @@ export class Interpreter<
       exec: (action) => {
         if (self.status === ActorStatus.Running) {
           // Only execute effects if the interpreter is running
-          action.execute2?.(this._actorContext);
+          action.execute?.(this._actorContext);
         }
       },
       defer: (fn) => {
@@ -188,7 +188,7 @@ export class Interpreter<
       if (typeof state === 'object' && state !== null && 'actions' in state) {
         (state as AnyState).actions.forEach((action) => {
           devLog('exec', action.type);
-          action.execute2?.(this._actorContext);
+          action.execute?.(this._actorContext);
         });
       }
     } catch (e) {

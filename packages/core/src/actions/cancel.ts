@@ -29,9 +29,11 @@ export function cancel<
   DynamicCancelActionObject<TContext, TEvent>['params']
 > {
   return createDynamicAction(
-    cancelActionType,
     {
-      sendId
+      type: cancelActionType,
+      params: {
+        sendId
+      }
     },
     (_event, { state }) => {
       const resolvedSendId = isFunction(sendId)
@@ -47,7 +49,7 @@ export function cancel<
           params: {
             sendId: resolvedSendId
           },
-          execute2: (actorCtx) => {
+          execute: (actorCtx) => {
             const interpreter = actorCtx.self as AnyInterpreter;
 
             interpreter.cancel(resolvedSendId);

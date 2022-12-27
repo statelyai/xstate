@@ -24,9 +24,11 @@ export function pure<
   DynamicPureActionObject<TContext, TEvent>['params']
 > {
   return createDynamicAction(
-    pureActionType,
     {
-      get: getActions
+      type: pureActionType,
+      params: {
+        get: getActions
+      }
     },
     (_event, { state }) => {
       return [

@@ -44,13 +44,12 @@ export function resolveActionObject(
 
   if (typeof dereferencedAction === 'function') {
     return createDynamicAction(
-      actionObject.type,
-      actionObject.params,
+      { type: 'xstate.expr', params: actionObject.params },
       (_event, { state }) => {
         const a: BaseActionObject = {
           type: actionObject.type,
           params: actionObject.params,
-          execute2: (_actorCtx) => {
+          execute: (_actorCtx) => {
             return dereferencedAction(state.context, state.event, {
               action: a,
               _event: state._event,
@@ -84,25 +83,22 @@ export function toActionObject<
   }
 
   if (typeof action === 'function') {
-    return createDynamicAction(
-      action.name ?? 'xstate:expr',
-      {},
-      (_event, { state }) => {
-        const a: BaseActionObject = {
-          type: action.name ?? 'xstate:expr',
-          params: {},
-          execute2: (_actorCtx) => {
-            return action(state.context, _event.data, {
-              action: a,
-              _event,
-              state
-            });
-          }
-        };
+    const type = action.name ?? 'xstate:expr';
+    return createDynamicAction({ type, params: {} }, (_event, { state }) => {
+      const a: BaseActionObject = {
+        type,
+        params: {},
+        execute: (_actorCtx) => {
+          return action(state.context as TContext, _event.data as TEvent, {
+            action: a,
+            _event,
+            state
+          });
+        }
+      };
 
-        return [state, a];
-      }
-    );
+      return [state, a];
+    });
   }
 
   // action is already a BaseActionObject

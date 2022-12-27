@@ -1,6 +1,7 @@
 import type {
   BaseActionObject,
   BaseDynamicActionObject,
+  BuiltInActionObject,
   EventObject,
   MachineContext
 } from '../src/types';
@@ -11,8 +12,7 @@ export function createDynamicAction<
   TAction extends BaseActionObject,
   TDynamicParams extends Record<string, any>
 >(
-  type: `xstate.${string}`,
-  params: TDynamicParams,
+  action: BuiltInActionObject & { params: TDynamicParams },
   resolve: BaseDynamicActionObject<
     TContext,
     TEvent,
@@ -21,8 +21,8 @@ export function createDynamicAction<
   >['resolve']
 ): BaseDynamicActionObject<TContext, TEvent, TAction, TDynamicParams> {
   return {
-    type,
-    params,
+    type: action.type,
+    params: action.params,
     resolve
   };
 }

@@ -31,9 +31,11 @@ export function stop<
   const actor = actorRef;
 
   return createDynamicAction(
-    stopActionType,
     {
-      actor
+      type: stopActionType,
+      params: {
+        actor
+      }
     },
     (_event, { state }) => {
       const actorRefOrString = isFunction(actor)
@@ -49,7 +51,7 @@ export function stop<
         {
           type: 'xstate.stop',
           params: { actor: actorRef },
-          execute2: (actorCtx) => {
+          execute: (actorCtx) => {
             if (actorRef) {
               actorCtx.defer?.(() => {
                 actorRef.stop?.();
