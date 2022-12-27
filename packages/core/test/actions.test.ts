@@ -1474,7 +1474,7 @@ describe('initial actions', () => {
     }
   });
 
-  it.skip('should support initial actions', () => {
+  it('should support initial actions', () => {
     // TODO: fix initial state actions on root node
     expect(machine.initialState.actions.map((a) => a.type)).toEqual([
       'initialA',

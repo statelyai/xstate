@@ -1238,6 +1238,11 @@ function enterStates(
     statesToEnter
   );
 
+  // In the initial state, the root state node is "entered".
+  if (currentState._initial) {
+    statesForDefaultEntry.add(currentState.machine.root);
+  }
+
   for (const stateNodeToEnter of [...statesToEnter].sort(
     (a, b) => a.order - b.order
   )) {
