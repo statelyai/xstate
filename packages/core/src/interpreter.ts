@@ -54,7 +54,7 @@ export interface Clock {
   clearTimeout(id: any): void;
 }
 
-export const enum ActorStatus {
+export enum ActorStatus {
   NotStarted,
   Running,
   Stopped
