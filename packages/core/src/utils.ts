@@ -2,7 +2,6 @@ import { AnyState } from '.';
 import { errorExecution, errorPlatform } from './actionTypes';
 import { NULL_EVENT, STATE_DELIMITER, TARGETLESS_KEY } from './constants';
 import { IS_PRODUCTION } from './environment';
-import { StateMachine } from './StateMachine';
 import type { StateNode } from './StateNode';
 import type {
   Behavior,
@@ -549,8 +548,7 @@ export function toObserver<T>(
     error: ((isObserver ? nextHandler.error : errorHandler) || noop).bind(self),
     complete: (
       (isObserver ? nextHandler.complete : completionHandler) || noop
-    ).bind(self),
-    done: isObserver ? nextHandler.done?.bind(self) : undefined
+    ).bind(self)
   };
 }
 

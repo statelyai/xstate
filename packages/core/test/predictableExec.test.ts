@@ -259,11 +259,11 @@ describe('predictableExec', () => {
       initial: 'active',
       context: ({ spawn }) => {
         const localId = ++invokeCounter;
-        actual.push(`start ${localId}`);
 
         return {
           actorRef: spawn(
             fromCallback(() => {
+              actual.push(`start ${localId}`);
               return () => {
                 actual.push(`stop ${localId}`);
               };
@@ -283,10 +283,10 @@ describe('predictableExec', () => {
                 assign({
                   actorRef: (_ctx, _ev, { spawn }) => {
                     const localId = ++invokeCounter;
-                    actual.push(`start ${localId}`);
 
                     return spawn(
                       fromCallback(() => {
+                        actual.push(`start ${localId}`);
                         return () => {
                           actual.push(`stop ${localId}`);
                         };
@@ -321,11 +321,11 @@ describe('predictableExec', () => {
       initial: 'active',
       context: ({ spawn }) => {
         const localId = ++invokeCounter;
-        actual.push(`start ${localId}`);
 
         return {
           actorRef: spawn(
             fromCallback(() => {
+              actual.push(`start ${localId}`);
               return () => {
                 actual.push(`stop ${localId}`);
               };
@@ -343,10 +343,10 @@ describe('predictableExec', () => {
                 assign({
                   actorRef: (_ctx, _ev, { spawn }) => {
                     const localId = ++invokeCounter;
-                    actual.push(`start ${localId}`);
 
                     return spawn(
                       fromCallback(() => {
+                        actual.push(`start ${localId}`);
                         return () => {
                           actual.push(`stop ${localId}`);
                         };
@@ -381,11 +381,11 @@ describe('predictableExec', () => {
       initial: 'active',
       context: ({ spawn }) => {
         const localId = ++invokeCounter;
-        actual.push(`start ${localId}`);
 
         return {
           actorRef: spawn(
             fromCallback(() => {
+              actual.push(`start ${localId}`);
               return () => {
                 actual.push(`stop ${localId}`);
               };
@@ -403,10 +403,10 @@ describe('predictableExec', () => {
                 assign({
                   actorRef: (_ctx, _ev, { spawn }) => {
                     const localId = ++invokeCounter;
-                    actual.push(`start ${localId}`);
 
                     return spawn(
                       fromCallback(() => {
+                        actual.push(`start ${localId}`);
                         return () => {
                           actual.push(`stop ${localId}`);
                         };
@@ -463,10 +463,10 @@ describe('predictableExec', () => {
                 assign({
                   actorRef: (_ctx, _ev, { spawn }) => {
                     const localId = ++invokeCounter;
-                    actual.push(`start ${localId}`);
 
                     return spawn(
                       fromCallback(() => {
+                        actual.push(`start ${localId}`);
                         return () => {
                           actual.push(`stop ${localId}`);
                         };
