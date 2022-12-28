@@ -5,6 +5,29 @@
   "main": "dist/xstate.cjs.js",
   "module": "dist/xstate.esm.js",
   "umd:main": "dist/xstate.umd.min.js",
+  "exports": {
+    ".": {
+      "module": "./dist/xstate.esm.js",
+      "default": "./dist/xstate.cjs.js"
+    },
+    "./actors": {
+      "module": "./actors/dist/xstate-actors.esm.js",
+      "default": "./actors/dist/xstate-actors.cjs.js"
+    },
+    "./guards": {
+      "module": "./guards/dist/xstate-guards.esm.js",
+      "default": "./guards/dist/xstate-guards.cjs.js"
+    },
+    "./actions": {
+      "module": "./actions/dist/xstate-actions.esm.js",
+      "default": "./actions/dist/xstate-actions.cjs.js"
+    },
+    "./dev": {
+      "module": "./dev/dist/xstate-dev.esm.js",
+      "default": "./dev/dist/xstate-dev.cjs.js"
+    },
+    "./package.json": "./package.json"
+  },
   "sideEffects": false,
   "funding": {
     "type": "opencollective",

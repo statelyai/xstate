@@ -15,6 +15,13 @@
   "license": "MIT",
   "main": "dist/xstate-scxml.cjs.js",
   "module": "dist/xstate-scxml.esm.js",
+  "exports": {
+    ".": {
+      "module": "./dist/xstate-scxml.esm.js",
+      "default": "./dist/xstate-scxml.cjs.js"
+    },
+    "./package.json": "./package.json"
+  },
   "sideEffects": false,
   "files": [
     "dist"

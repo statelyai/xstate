@@ -14,6 +14,13 @@
   "license": "MIT",
   "main": "dist/xstate-immer.cjs.js",
   "module": "dist/xstate-immer.esm.js",
+  "exports": {
+    ".": {
+      "module": "./dist/xstate-immer.esm.js",
+      "default": "./dist/xstate-immer.cjs.js"
+    },
+    "./package.json": "./package.json"
+  },
   "sideEffects": false,
   "files": [
     "dist"

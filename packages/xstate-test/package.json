@@ -19,8 +19,17 @@
   "main": "dist/xstate-test.cjs.js",
   "module": "dist/xstate-test.esm.js",
   "browser": {
-    "./dist/xstate-test.cjs.js": "./dist/xstate-test.browser.cjs.js",
     "./dist/xstate-test.esm.js": "./dist/xstate-test.browser.esm.js"
+  },
+  "exports": {
+    ".": {
+      "module": {
+        "browser": "./dist/xstate-test.browser.esm.js",
+        "default": "./dist/xstate-test.esm.js"
+      },
+      "default": "./dist/xstate-test.cjs.js"
+    },
+    "./package.json": "./package.json"
   },
   "sideEffects": false,
   "files": [
@@ -43,5 +52,12 @@
   },
   "dependencies": {
     "@xstate/graph": "^2.0.0-alpha.0"
+  },
+  "preconstruct": {
+    "exports": {
+      "envConditions": [
+        "browser"
+      ]
+    }
   }
 }
