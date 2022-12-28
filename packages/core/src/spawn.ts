@@ -40,7 +40,7 @@ export function createSpawner<
         mutCapturedActions.push(
           (invoke({
             id: actorRef.id,
-            src: actorRef, // TODO
+            src: createdBehavior,
             ref: actorRef,
             meta: undefined
           }) as any) as InvokeActionObject
@@ -57,10 +57,11 @@ export function createSpawner<
 
       mutCapturedActions.push(
         (invoke({
-          src: actorRef,
+          src: behavior,
           ref: actorRef,
           id: actorRef.id,
-          meta: undefined
+          meta: undefined,
+          data: undefined
         }) as any) as InvokeActionObject
       );
 

@@ -1826,8 +1826,6 @@ describe('invoke', () => {
       expect(() => {
         JSON.stringify(waitingState);
       }).not.toThrow();
-
-      expect(typeof waitingState.actions[0].params?.src.type).toBe('string');
     });
 
     it('should throw error if unhandled (sync)', () => {
@@ -2779,7 +2777,7 @@ describe('invoke', () => {
     });
   });
 
-  it('invoke `src` should accept invoke source definition', (done) => {
+  it.only('invoke `src` should accept invoke source definition', (done) => {
     const machine = createMachine(
       {
         initial: 'searching',
