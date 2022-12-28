@@ -1,5 +1,6 @@
-import { EventObject, MachineContext } from '../types';
+import { EventObject, InvokeDefinition, MachineContext } from '../types';
 import { invoke as invokeActionType } from '../actionTypes';
+import { isActorRef } from '../actors';
 import { createDynamicAction } from '../../actions/dynamicAction';
 import {
   AnyInterpreter,
@@ -10,7 +11,7 @@ import {
   InvokeSourceDefinition
 } from '..';
 import { actionTypes, error } from '../actions';
-import { isBehavior, mapContext, warn } from '../utils';
+import { mapContext, warn } from '../utils';
 import { interpret } from '../interpreter';
 import { cloneState } from '../State';
 import { IS_PRODUCTION } from '../environment';
@@ -19,7 +20,7 @@ export function invoke<
   TContext extends MachineContext,
   TEvent extends EventObject
 >(
-  invokeDef: DynamicInvokeActionObject<TContext, TEvent>['params']
+  invokeDef: InvokeDefinition<TContext, TEvent>
 ): BaseDynamicActionObject<
   TContext,
   TEvent,
@@ -32,42 +33,43 @@ export function invoke<
       const type = actionTypes.invoke;
       const { id, data, src, meta } = invokeDef;
 
-      if (isBehavior(src)) {
-        throw new Error('what??');
-      }
-
       let resolvedInvokeAction: InvokeActionObject;
-
-      const behaviorImpl = state.machine.options.actors[src.type];
-
-      if (!behaviorImpl) {
+      if (isActorRef(src)) {
         resolvedInvokeAction = {
           type,
           params: {
             ...invokeDef,
-            src: null as any // TODO: fix
+            ref: src
           }
         } as InvokeActionObject;
       } else {
-        const behavior =
-          typeof behaviorImpl === 'function'
-            ? behaviorImpl(state.context, _event.data, {
-                id,
-                data: data && mapContext(data, state.context, _event),
-                src,
-                _event,
-                meta
-              })
-            : behaviorImpl;
+        const behaviorImpl = state.machine.options.actors[src.type];
 
-        resolvedInvokeAction = {
-          type,
-          params: {
-            ...invokeDef,
-            src: behavior,
-            ref: interpret(behavior, { id })
-          }
-        } as InvokeActionObject;
+        if (!behaviorImpl) {
+          resolvedInvokeAction = {
+            type,
+            params: invokeDef
+          } as InvokeActionObject;
+        } else {
+          const behavior =
+            typeof behaviorImpl === 'function'
+              ? behaviorImpl(state.context, _event.data, {
+                  id,
+                  data: data && mapContext(data, state.context, _event),
+                  src,
+                  _event,
+                  meta
+                })
+              : behaviorImpl;
+
+          resolvedInvokeAction = {
+            type,
+            params: {
+              ...invokeDef,
+              ref: interpret(behavior, { id })
+            }
+          } as InvokeActionObject;
+        }
       }
 
       const invokedState = cloneState(state, {
@@ -85,7 +87,7 @@ export function invoke<
             warn(
               false,
               `Actor type '${
-                (src as InvokeSourceDefinition).type
+                (resolvedInvokeAction.params.src as InvokeSourceDefinition).type
               }' not found in machine '${actorCtx.id}'.`
             );
           }

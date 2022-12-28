@@ -1545,7 +1545,7 @@ export function resolveActionsAndContext<
       }
 
       // TODO: remove the check; just handleAction
-      if (resolvedAction.type !== actionTypes.pure) {
+      if (!matchedActions) {
         handleAction(resolvedAction);
       }
 

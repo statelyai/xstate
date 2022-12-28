@@ -183,7 +183,7 @@ export class Interpreter<
     let deferredFn: typeof this._deferred[number] | undefined;
 
     try {
-      if (typeof state === 'object' && state !== null && state.actions) {
+      if (typeof state === 'object' && state !== null && 'actions' in state) {
         (state as AnyState).actions.forEach((action) => {
           action.execute?.(this._actorContext);
         });

@@ -393,7 +393,7 @@ export type BehaviorCreator<
   meta: {
     id: string;
     data?: any;
-    src: { type: string };
+    src: InvokeSourceDefinition;
     _event: SCXML.Event<TEvent>;
     meta: MetaObject | undefined;
   }
@@ -1159,18 +1159,13 @@ export interface DynamicInvokeActionObject<
   TEvent extends EventObject
 > {
   type: ActionTypes.Invoke;
-  params: {
-    id: string;
-    data?: any;
-    src: AnyBehavior | { type: string };
-    meta: any;
-  };
+  params: InvokeDefinition<TContext, TEvent>;
 }
 
 export interface InvokeActionObject extends BaseActionObject {
   type: ActionTypes.Invoke;
   params: {
-    src: AnyBehavior | ActorRef<any>;
+    src: InvokeSourceDefinition | ActorRef<any>;
     id: string;
     autoForward?: boolean;
     data?: any;
