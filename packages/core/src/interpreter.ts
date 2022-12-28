@@ -27,7 +27,8 @@ import {
 } from './types';
 import { toObserver, toSCXMLEvent, warn } from './utils';
 import { symbolObservable } from './symbolObservable';
-import { evict, memo } from './memo';
+import { evict } from './memo';
+import { doneInvoke, error } from './actions';
 
 export type SnapshotListener<TBehavior extends Behavior<any, any>> = (
   state: SnapshotFrom<TBehavior>
@@ -183,26 +184,31 @@ export class Interpreter<
     }
 
     const status = this.behavior.getStatus?.(state);
-    if (status?.status === 'done') {
-      this._done(status.data);
-    }
-    if (status?.status === 'error') {
-      this.observers.forEach((observer) => {
-        observer.error?.(status.data);
-      });
+
+    switch (status?.status) {
+      case 'done':
+        this._parent?.send(
+          toSCXMLEvent(doneInvoke(this.id, status.data) as any, {
+            origin: this,
+            invokeid: this.id
+          })
+        );
+
+        this._stop();
+        break;
+      case 'error':
+        this._parent?.send(
+          toSCXMLEvent(error(this.id, status.data), {
+            origin: this
+          })
+        );
+        for (const observer of this.observers) {
+          observer.error?.(status.data);
+        }
+        break;
     }
   }
 
-  // TODO: output type
-  private _done(output: any) {
-    for (const observer of this.observers) {
-      // TODO: done observers should only get output data
-      observer.done?.(output);
-    }
-
-    this._complete();
-    this._stop();
-  }
   /*
    * Adds a listener that is notified whenever a state transition happens. The listener is called with
    * the next state and the event object that caused the state transition.
@@ -266,7 +272,12 @@ export class Interpreter<
    */
   public onDone(listener: EventListener<DoneEvent>): this {
     this.observers.add({
-      done: listener
+      complete: () => {
+        const snapshot = this.getSnapshot();
+        if ((snapshot as any).done) {
+          listener(doneInvoke(this.id, (snapshot as any).output));
+        }
+      }
     });
 
     return this;
