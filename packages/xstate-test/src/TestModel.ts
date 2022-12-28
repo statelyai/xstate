@@ -12,7 +12,7 @@ import type {
   Step,
   TraversalOptions
 } from '@xstate/graph';
-import { EventObject } from 'xstate';
+import { EventObject, State } from 'xstate';
 import { isStateLike } from 'xstate/lib/utils';
 import { deduplicatePaths } from './deduplicatePaths';
 import { createShortestPathsGen, createSimplePathsGen } from './pathGenerators';
@@ -34,7 +34,7 @@ import { formatPathTestResult, getDescription, simpleStringify } from './utils';
  * The test model is used to generate test paths, which are used to
  * verify that states in the model are reachable in the SUT.
  */
-export class TestModel<TState, TEvent extends EventObject> {
+export class TestModel<TState extends State<any>, TEvent extends EventObject> {
   public options: TestModelOptions<TState, TEvent>;
   public defaultTraversalOptions?: TraversalOptions<TState, TEvent>;
   public getDefaultOptions(): TestModelOptions<TState, TEvent> {
@@ -314,8 +314,6 @@ export class TestModel<TState, TEvent extends EventObject> {
   ): Promise<void> {
     const resolvedOptions = this.resolveOptions(options);
 
-    // @ts-ignore I can't figure out how to make state.tags be seen as valid, even though
-    // it totally *is* valid-seeming
     for (const tag of state.tags) {
       await params.tags?.[tag](state);
     }
