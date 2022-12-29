@@ -1861,7 +1861,10 @@ export interface Behavior<
   ) => TInternalState;
   getSnapshot?: (state: TInternalState) => TSnapshot;
   getStatus?: (state: TInternalState) => { status: string; data?: any };
-  start?: (actorCtx: ActorContext<TEvent, TSnapshot>) => TInternalState;
+  start?: (
+    state: TInternalState,
+    actorCtx: ActorContext<TEvent, TSnapshot>
+  ) => TInternalState;
 }
 
 export type AnyBehavior = Behavior<any, any, any>;

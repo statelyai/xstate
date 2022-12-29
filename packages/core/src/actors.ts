@@ -85,8 +85,55 @@ export function fromCallback<TEvent extends EventObject>(
       dispose: void | (() => void) | Promise<any>;
     }
   > = {
-    transition: (state, event) => {
+    start: (state, { self }) => {
+      self.send({ type: startSignalType } as TEvent);
+
+      return state;
+    },
+    transition: (state, event, { self, id }) => {
       const _event = toSCXMLEvent(event);
+
+      if (_event.name === startSignalType) {
+        const sender: Sender<TEvent> = (e) => {
+          if (state.canceled) {
+            return state;
+          }
+
+          self._parent?.send(toSCXMLEvent(e, { origin: self }));
+        };
+
+        const receiver: Receiver<TEvent> = (newListener) => {
+          state.receivers.add(newListener);
+        };
+
+        state.dispose = invokeCallback(sender, receiver);
+
+        if (isPromiseLike(state.dispose)) {
+          state.dispose.then(
+            (resolved) => {
+              self._parent?.send(
+                toSCXMLEvent(doneInvoke(id, resolved), {
+                  origin: self
+                })
+              );
+
+              state.canceled = true;
+            },
+            (errorData) => {
+              const errorEvent = error(id, errorData);
+
+              self._parent?.send(
+                toSCXMLEvent(errorEvent, {
+                  origin: self
+                })
+              );
+
+              state.canceled = true;
+            }
+          );
+        }
+        return state;
+      }
 
       if (_event.name === stopSignalType) {
         state.canceled = true;
@@ -111,52 +158,13 @@ export function fromCallback<TEvent extends EventObject>(
 
       return state;
     },
-    getInitialState: ({ self, id }) => {
-      const { _parent: parent } = self;
+    getInitialState: () => {
       const state = {
         canceled: false,
         receivers: new Set<(e: EventObject) => void>(),
         dispose: undefined as Promise<any> | (() => void) | void
       };
 
-      const sender: Sender<TEvent> = (e) => {
-        if (state.canceled) {
-          return state;
-        }
-
-        parent?.send(toSCXMLEvent(e, { origin: self }));
-      };
-
-      const receiver: Receiver<TEvent> = (newListener) => {
-        state.receivers.add(newListener);
-      };
-
-      state.dispose = invokeCallback(sender, receiver);
-
-      if (isPromiseLike(state.dispose)) {
-        state.dispose.then(
-          (resolved) => {
-            self._parent?.send(
-              toSCXMLEvent(doneInvoke(id, resolved), {
-                origin: self
-              })
-            );
-
-            state.canceled = true;
-          },
-          (errorData) => {
-            const errorEvent = error(id, errorData);
-
-            self._parent?.send(
-              toSCXMLEvent(errorEvent, {
-                origin: self
-              })
-            );
-
-            state.canceled = true;
-          }
-        );
-      }
       return state;
     },
     getSnapshot: () => undefined
@@ -200,7 +208,7 @@ export function fromPromise<T>(
           return state;
       }
     },
-    getInitialState: ({ self }) => {
+    start: (state, { self }) => {
       const resolvedPromise = Promise.resolve(lazyPromise());
 
       resolvedPromise.then(
@@ -211,6 +219,10 @@ export function fromPromise<T>(
           self.send({ type: rejectEventType, data: errorData });
         }
       );
+
+      return state;
+    },
+    getInitialState: () => {
       return {
         canceled: false,
         status: 'pending',
@@ -279,7 +291,7 @@ export function fromObservable<T, TEvent extends EventObject>(
           return state;
       }
     },
-    getInitialState: ({ self }) => {
+    getInitialState: () => {
       const state = {
         subscription: undefined as Subscription | undefined,
         observable: undefined as Subscribable<T> | undefined,
@@ -287,8 +299,13 @@ export function fromObservable<T, TEvent extends EventObject>(
         status: 'active' as const,
         data: undefined
       };
-      state.observable = lazyObservable();
-      state.subscription = state.observable.subscribe({
+
+      return state;
+    },
+    start: (state, { self }) => {
+      const nextState = { ...state };
+      nextState.observable = lazyObservable();
+      nextState.subscription = nextState.observable.subscribe({
         next: (value) => {
           self.send({ type: nextEventType, data: value });
         },
@@ -299,7 +316,8 @@ export function fromObservable<T, TEvent extends EventObject>(
           self.send({ type: completeEventType });
         }
       });
-      return state;
+
+      return nextState;
     },
     getSnapshot: (state) => state.data,
     getStatus: (state) => state

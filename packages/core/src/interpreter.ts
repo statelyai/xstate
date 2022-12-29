@@ -320,6 +320,8 @@ export class Interpreter<
       ? this.behavior.restoreState?.(initialState, this._actorContext)
       : this.getInitialState() ?? undefined;
 
+    this.behavior.start?.(resolvedState, this._actorContext);
+
     // TODO: this notifies all subscribers but usually this is redundant
     // if we are using the initialState as `resolvedState` then there is no real change happening here
     // we need to rethink if this needs to be refactored

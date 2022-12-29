@@ -66,6 +66,20 @@ describe('promise behavior (fromPromise)', () => {
 
     expect(snapshot).toBe(42);
   });
+
+  it('should not execute when reading initial state', async () => {
+    let called = false;
+    const behavior = fromPromise(() => {
+      called = true;
+      return Promise.resolve(42);
+    });
+
+    const actor = interpret(behavior);
+
+    actor.getInitialState();
+
+    expect(called).toBe(false);
+  });
 });
 
 describe('reducer behavior (fromReducer)', () => {
@@ -157,5 +171,19 @@ describe('observable behavior (fromObservable)', () => {
     });
 
     actor.start();
+  });
+
+  it('should not execute when reading initial state', async () => {
+    let called = false;
+    const behavior = fromObservable(() => {
+      called = true;
+      return EMPTY;
+    });
+
+    const actor = interpret(behavior);
+
+    actor.getInitialState();
+
+    expect(called).toBe(false);
   });
 });
