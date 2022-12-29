@@ -820,7 +820,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
 
     render(<Test />);
 
-    expect(activatedCount).toEqual(suiteKey === 'strict' ? 1 : 1);
+    expect(activatedCount).toEqual(suiteKey === 'strict' ? 2 : 1);
   });
 
   it('child component should be able to send an event to a parent immediately in an effect', (done) => {
