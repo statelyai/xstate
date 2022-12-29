@@ -320,7 +320,9 @@ export class Interpreter<
       ? this.behavior.restoreState?.(initialState, this._actorContext)
       : this.getInitialState() ?? undefined;
 
-    this.behavior.start?.(resolvedState, this._actorContext);
+    if (this.behavior.start) {
+      resolvedState = this.behavior.start(resolvedState, this._actorContext);
+    }
 
     // TODO: this notifies all subscribers but usually this is redundant
     // if we are using the initialState as `resolvedState` then there is no real change happening here
@@ -381,7 +383,7 @@ export class Interpreter<
     for (const observer of this.observers) {
       observer.complete?.();
     }
-    // this.observers.clear();
+    this.observers.clear();
   }
   private _stop(): this {
     this._complete();
