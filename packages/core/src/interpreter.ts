@@ -182,16 +182,6 @@ export class Interpreter<
     // Execute deferred effects
     let deferredFn: typeof this._deferred[number] | undefined;
 
-    try {
-      if (typeof state === 'object' && state !== null && 'actions' in state) {
-        (state as AnyState).actions.forEach((action) => {
-          action.execute?.(this._actorContext);
-        });
-      }
-    } catch (e) {
-      throw e;
-    }
-
     while ((deferredFn = this._deferred.shift())) {
       deferredFn(state);
     }

@@ -369,6 +369,17 @@ export class StateMachine<
 
     return macroState;
   }
+  public start(
+    state: State<TContext, TEvent, TResolvedTypesMeta>,
+    actorCtx: ActorContext<TEvent, State<TContext, TEvent>>
+  ): State<TContext, TEvent, TResolvedTypesMeta> {
+    // When starting from a restored state, execute the actions
+    state.actions.forEach((action) => {
+      action.execute?.(actorCtx);
+    });
+
+    return state;
+  }
 
   public getStateNodeById(stateId: string): StateNode<TContext, TEvent> {
     const resolvedStateId = isStateId(stateId)

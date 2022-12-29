@@ -40,6 +40,7 @@ export function createSpawner<
         mutCapturedActions.push(
           (invoke({
             id: actorRef.id,
+            // @ts-ignore TODO: fix types
             src: actorRef, // TODO
             ref: actorRef,
             meta: undefined
@@ -57,6 +58,7 @@ export function createSpawner<
 
       mutCapturedActions.push(
         (invoke({
+          // @ts-ignore TODO: fix types
           src: actorRef,
           ref: actorRef,
           id: actorRef.id,
