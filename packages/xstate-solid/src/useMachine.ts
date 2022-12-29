@@ -41,9 +41,7 @@ export function useMachine<TMachine extends AnyStateMachine>(
 
   onMount(() => {
     const { unsubscribe } = service.subscribe((nextState) => {
-      setState(
-        deriveServiceState(getSnapshot(), nextState) as StateFrom<TMachine>
-      );
+      setState(deriveServiceState(nextState) as StateFrom<TMachine>);
     });
 
     onCleanup(unsubscribe);

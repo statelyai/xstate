@@ -1,37 +1,32 @@
-import type { StateLike, AnyState } from 'xstate';
+import type { AnyState } from 'xstate';
 import type { CheckSnapshot } from './types';
 
-export function isStateLike(state: any): state is StateLike<any> {
+function isState(state: any): state is AnyState {
   return (
     typeof state === 'object' &&
     'value' in state &&
     'context' in state &&
     'event' in state &&
-    '_event' in state
+    '_event' in state &&
+    'can' in state &&
+    'matches' in state
   );
-}
-
-function isState(state: any): state is AnyState {
-  return isStateLike(state) && 'can' in state && 'matches' in state;
 }
 
 /**
  * Takes in an interpreter or actor ref and returns a State object with reactive
  * methods or if not State, the initial value passed in
  * @param state {AnyState | unknown}
- * @param nextStateObject {AnyState | undefined | unknown}
  */
 export const deriveServiceState = <
   StateSnapshot extends AnyState,
-  StateObject extends StateLike<any>,
   StateReturnType = CheckSnapshot<StateSnapshot>
 >(
-  state: StateSnapshot | unknown,
-  nextStateObject: StateObject | unknown = state
+  state: StateSnapshot | unknown
 ): StateReturnType => {
-  if (isState(state) && isStateLike(nextStateObject)) {
+  if (isState(state)) {
     return {
-      ...(nextStateObject as object),
+      ...state,
       toJSON() {
         return state.toJSON();
       },
@@ -49,6 +44,6 @@ export const deriveServiceState = <
       }
     } as StateReturnType;
   } else {
-    return nextStateObject as StateReturnType;
+    return state as StateReturnType;
   }
 };

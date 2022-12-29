@@ -1,7 +1,7 @@
 import type { ActorRef, EmittedFrom, Event, EventObject } from 'xstate';
 import type { Accessor } from 'solid-js';
 import { createEffect, createMemo, onCleanup } from 'solid-js';
-import { deriveServiceState, isStateLike } from './deriveServiceState';
+import { deriveServiceState } from './deriveServiceState';
 import { createImmutable } from './createImmutable';
 import type { CheckSnapshot } from './types';
 
@@ -10,10 +10,6 @@ const noop = () => {
 };
 
 type Sender<TEvent> = (event: TEvent) => void;
-
-// Only spread actor snapshot if it is a xstate state class
-const spreadIfStateInstance = <T>(value: T) =>
-  isStateLike(value) ? { ...value } : value;
 
 export function useActor<TActor extends ActorRef<any>>(
   actorRef: Accessor<TActor> | TActor
@@ -30,16 +26,15 @@ export function useActor(
     typeof actorRef === 'function' ? actorRef() : actorRef
   );
 
-  const getActorState = () =>
-    spreadIfStateInstance(actorMemo().getSnapshot?.());
+  const getActorState = () => actorMemo().getSnapshot?.();
 
   const [state, setState] = createImmutable({
-    snapshot: deriveServiceState(actorMemo().getSnapshot?.(), getActorState())
+    snapshot: deriveServiceState(getActorState())
   });
 
   const setActorState = (actorState: unknown) => {
     setState({
-      snapshot: deriveServiceState(actorMemo().getSnapshot?.(), actorState)
+      snapshot: deriveServiceState(actorState)
     });
   };
 
