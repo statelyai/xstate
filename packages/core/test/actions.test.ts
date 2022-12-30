@@ -2338,11 +2338,7 @@ describe('sendTo', () => {
       entry: sendTo((ctx) => ctx.child, { type: 'EVENT' })
     });
 
-    interpret(parentMachine)
-      .onTransition((state) => {
-        state;
-      })
-      .start();
+    interpret(parentMachine).start();      
   });
 
   it('should be able to send an event from expression to an actor', (done) => {
