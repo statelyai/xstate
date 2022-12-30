@@ -153,12 +153,6 @@ export class Interpreter<
       id: this.id,
       sessionId: this.sessionId,
       logger: this.logger,
-      exec: (action) => {
-        if (self.status === ActorStatus.Running) {
-          // Only execute effects if the interpreter is running
-          action.execute?.(this._actorContext);
-        }
-      },
       defer: (fn) => {
         this._deferred.push(fn);
       }

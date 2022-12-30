@@ -1838,7 +1838,6 @@ export interface ActorContext<TEvent extends EventObject, TSnapshot> {
   id: string;
   sessionId: string;
   logger: (...args: any[]) => void;
-  exec: (action: BaseActionObject) => void;
   defer: ((fn: (any) => void) => void) | undefined;
 }
 
