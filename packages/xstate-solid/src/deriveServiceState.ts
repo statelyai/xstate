@@ -27,21 +27,11 @@ export const deriveServiceState = <
   if (isState(state)) {
     return {
       ...state,
-      toJSON() {
-        return state.toJSON();
-      },
-      toStrings(...args: Parameters<StateSnapshot['toStrings']>) {
-        return state.toStrings(args[0], args[1]);
-      },
-      can(...args: Parameters<StateSnapshot['can']>) {
-        return state.can(args[0]);
-      },
-      hasTag(...args: Parameters<StateSnapshot['hasTag']>) {
-        return state.hasTag(args[0]);
-      },
-      matches(...args: Parameters<StateSnapshot['matches']>) {
-        return state.matches(args[0] as never);
-      }
+      toJSON: state.toJSON,
+      toStrings: state.toStrings,
+      can: state.can,
+      hasTag: state.hasTag,
+      matches: state.matches
     } as StateReturnType;
   } else {
     return state as StateReturnType;
