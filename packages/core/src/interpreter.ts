@@ -163,7 +163,7 @@ export class Interpreter<
   private _deferred: Array<(state: any) => void> = [];
 
   public getInitialState(): InternalStateFrom<TBehavior> {
-    return memo(this, 'init', () => {
+    return memo(this, 'initial', () => {
       return this.behavior.getInitialState(this._actorContext);
     });
   }
