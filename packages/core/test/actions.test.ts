@@ -1677,7 +1677,7 @@ describe('actions config', () => {
 
     expect(entryCalled).toBe(true);
 
-    actor.send('EVENT');
+    actor.send({ type: 'EVENT' });
 
     expect(exitCalled).toBe(true);
     expect(actionCalled).toBe(true);
