@@ -680,7 +680,7 @@ describe('invoke', () => {
         .start();
     });
 
-    it('should transition correctly if child invocation causes it to directly go to final state', (done) => {
+    it('should transition correctly if child invocation causes it to directly go to final state', () => {
       const doneSubMachine = createMachine({
         id: 'child',
         initial: 'one',
@@ -715,15 +715,9 @@ describe('invoke', () => {
         }
       });
 
-      let currentState: AnyState;
-      interpret(mainMachine)
-        .onTransition((current) => {
-          currentState = current;
-          if (currentState.matches('two')) {
-            done();
-          }
-        })
-        .start();
+      const actor = interpret(mainMachine).start();
+
+      expect(actor.getSnapshot().value).toBe('two');
     });
 
     it('should work with invocations defined in orthogonal state nodes', (done) => {
