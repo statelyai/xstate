@@ -22,9 +22,7 @@ describe('predictableExec', () => {
             },
             assign(() => {
               actual.push('assign');
-              return {
-                assigned: true
-              };
+              return {};
             })
           ]
         }
