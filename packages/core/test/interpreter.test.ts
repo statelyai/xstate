@@ -1826,66 +1826,35 @@ describe('interpreter', () => {
 
     expect(spy).not.toHaveBeenCalled();
   });
-});
 
-it(`should execute entry actions when starting the actor after reading its snapshot first`, () => {
-  const spy = jest.fn();
+  it(`should execute entry actions when starting the actor after reading its snapshot first`, () => {
+    const spy = jest.fn();
 
-  const actorRef = interpret(
-    createMachine({
-      entry: spy
-    })
-  );
+    const actorRef = interpret(
+      createMachine({
+        entry: spy
+      })
+    );
 
-  actorRef.getSnapshot();
+    actorRef.getSnapshot();
 
-  actorRef.start();
+    actorRef.start();
 
-  expect(spy).toHaveBeenCalled();
-});
-
-it('ref', (done) => {
-  const machine = createMachine({});
-
-  const actor = interpret(machine);
-
-  const initialState = actor.getInitialState();
-
-  actor
-    .onTransition((state) => {
-      expect(state).toBe(initialState);
-      done();
-    })
-    .start();
-});
-
-it('ref2', () => {
-  const machine = createMachine({
-    initial: 'active',
-    states: {
-      active: {
-        on: {
-          FINISH: 'success'
-        }
-      },
-      success: {
-        type: 'final'
-      }
-    }
+    expect(spy).toHaveBeenCalled();
   });
 
-  const service = interpret(machine);
+  it('the first state of an actor should be its initial state', (done) => {
+    const machine = createMachine({});
 
-  service.send({ type: 'FINISH' });
+    const actor = interpret(machine);
 
-  service.start();
+    const initialState = actor.getInitialState();
 
-  service.stop();
-  service.status = 0;
-
-  service.send({ type: 'FINISH' });
-
-  service.start();
-
-  expect(service.getSnapshot().value).toBe('success');
+    actor
+      .onTransition((state) => {
+        expect(state).toBe(initialState);
+        done();
+      })
+      .start();
+  });
 });
