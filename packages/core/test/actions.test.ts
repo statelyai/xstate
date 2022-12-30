@@ -2368,11 +2368,7 @@ describe('sendTo', () => {
       )
     });
 
-    interpret(parentMachine)
-      .onTransition((state) => {
-        state;
-      })
-      .start();
+    interpret(parentMachine).start();
   });
 
   it('should report a type error for an invalid event', () => {
