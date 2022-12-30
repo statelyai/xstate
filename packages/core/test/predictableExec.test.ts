@@ -8,9 +8,7 @@ describe('predictableExec', () => {
 
     const machine = createMachine({
       initial: 'a',
-      context: {
-        assigned: false
-      },
+      context: {},
       states: {
         a: {
           on: { NEXT: 'b' }
