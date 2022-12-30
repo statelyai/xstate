@@ -9,7 +9,6 @@ import {
   ActorContext,
   Behavior,
   SpecialTargets,
-  AnyState,
   toSCXMLEvent
 } from '../src';
 import {
