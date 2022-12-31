@@ -45,7 +45,6 @@ interface MachineState {
   context: Record<string, any>;
   actions: BaseActionObject[];
   changed: boolean;
-  matches: (value: string) => boolean;
 }
 
 type Action = string | (() => void) | BaseActionObject | DynamicActionObject;
@@ -158,12 +157,6 @@ type MachineBehavior<T extends MachineTypes> = Behavior<
   implementations: Implementations;
 };
 
-function createStateMatcher(stateValue: string) {
-  return (value: string) => {
-    return value === stateValue;
-  };
-}
-
 export function createMachine<T extends MachineTypes>(
   machine: FSM<T>
 ): MachineBehavior<T> {
@@ -177,8 +170,7 @@ export function createMachine<T extends MachineTypes>(
       toArray(initialStateNode?.entry ?? []).map((a) =>
         toActionObject(a, machine.implementations?.actions)
       ) ?? [],
-    changed: false,
-    matches: createStateMatcher(machine.initial)
+    changed: false
   };
 
   for (let action of initialState.actions) {
@@ -241,8 +233,7 @@ export function createMachine<T extends MachineTypes>(
           actions: allActions.map((a) =>
             toActionObject(a, machine.implementations?.actions)
           ),
-          changed: nextValue !== state.value || allActions.length > 0,
-          matches: createStateMatcher(nextValue)
+          changed: nextValue !== state.value || allActions.length > 0
         };
 
         for (let action of allActions) {

@@ -347,9 +347,9 @@ describe('@xstate/fsm', () => {
   it('should match initialState', () => {
     const { initialState } = lightFSM;
 
-    expect(initialState.matches('green')).toBeTruthy();
+    expect(initialState.value === 'green').toBeTruthy();
 
-    if (initialState.matches('green')) {
+    if (initialState.value === 'green') {
       expect(initialState.context.go).toBeTruthy();
     }
   });
@@ -358,9 +358,9 @@ describe('@xstate/fsm', () => {
     const { initialState } = lightFSM;
     const nextState = lightFSM.transition(initialState, { type: 'TIMER' });
 
-    expect(nextState.matches('yellow')).toBeTruthy();
+    expect(nextState.value === 'yellow').toBeTruthy();
 
-    if (nextState.matches('yellow')) {
+    if (nextState.value === 'yellow') {
       expect(nextState.context.go).toBeFalsy();
     }
   });
@@ -381,7 +381,7 @@ describe('interpreter', () => {
     const toggleService = interpret(toggleMachine).start();
 
     toggleService.subscribe((state) => {
-      if (state.matches('active')) {
+      if (state.value === 'active') {
         done();
       }
     });
@@ -391,7 +391,7 @@ describe('interpreter', () => {
     const toggleService = interpret(toggleMachine).start();
 
     toggleService.subscribe((state) => {
-      if (state.matches('inactive')) {
+      if (state.value === 'inactive') {
         done();
       }
     });
@@ -582,7 +582,7 @@ describe('interpreter', () => {
       expect(service.getSnapshot().value).toBe('bar');
 
       service.send({ type: 'NEXT' });
-      expect(service.getSnapshot().matches('baz')).toBe(true);
+      expect(service.getSnapshot().value === 'baz').toBe(true);
     });
 
     it('should rehydrate the state and the context if both are provided', () => {
@@ -615,7 +615,7 @@ describe('interpreter', () => {
       expect(service.getSnapshot().context).toEqual({ hello: 'world' });
 
       service.send({ type: 'NEXT' });
-      expect(service.getSnapshot().matches('baz')).toBe(true);
+      expect(service.getSnapshot().value === 'baz').toBe(true);
     });
 
     it('should execute initial actions when re-starting a service', () => {
