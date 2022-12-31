@@ -86,7 +86,10 @@ export interface TestParam<TState, TEvent extends EventObject> {
     [key: string]: (state: TState) => void | Promise<void>;
   };
   events?: {
-    [TEventType in TEvent['type']]?: EventExecutor<TState, ExtractEvent<TEvent, TEventType>>;
+    [TEventType in TEvent['type']]?: EventExecutor<
+      TState,
+      ExtractEvent<TEvent, TEventType>
+    >;
   };
 }
 
@@ -116,10 +119,6 @@ export type EventExecutor<TState, TEvent extends EventObject> = (
 
 export interface TestModelOptions<TState, TEvent extends EventObject>
   extends TraversalOptions<TState, TEvent> {
-  /**
-   * Executes actions based on the `state` after the state is tested.
-   */
-  execute: (state: TState) => void;
   stateMatcher: (state: TState, stateKey: string) => boolean;
   logger: {
     log: (msg: string) => void;

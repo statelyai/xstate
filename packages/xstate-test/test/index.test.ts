@@ -201,40 +201,6 @@ it('prevents infinite recursion based on a provided limit', () => {
   }).toThrowErrorMatchingInlineSnapshot(`"Traversal limit exceeded"`);
 });
 
-// TODO: have this as an opt-in
-it('executes actions', async () => {
-  let executedActive = false;
-  let executedDone = false;
-  const machine = createTestMachine({
-    initial: 'idle',
-    states: {
-      idle: {
-        on: {
-          TOGGLE: { target: 'active', actions: 'boom' }
-        }
-      },
-      active: {
-        entry: () => {
-          executedActive = true;
-        },
-        on: { TOGGLE: 'done' }
-      },
-      done: {
-        entry: () => {
-          executedDone = true;
-        }
-      }
-    }
-  });
-
-  const model = createTestModel(machine);
-
-  await testUtils.testModel(model, {});
-
-  expect(executedActive).toBe(true);
-  expect(executedDone).toBe(true);
-});
-
 describe('test model options', () => {
   it('options.testState(...) should test state', async () => {
     const testedStates: any[] = [];

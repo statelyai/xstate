@@ -1,6 +1,5 @@
 import { SerializedState, serializeState, SimpleBehavior } from '@xstate/graph';
 import {
-  ActionObject,
   AnyEventObject,
   AnyState,
   AnyStateMachine,
@@ -38,19 +37,6 @@ export function createTestMachine<
   options?: TestMachineOptions<TContext, TEvent, TTypesMeta>
 ) {
   return createMachine(config, options as any);
-}
-
-export function executeAction(
-  actionObject: ActionObject<any, any>,
-  state: AnyState
-): void {
-  if (typeof actionObject.exec === 'function') {
-    actionObject.exec(state.context, state.event, {
-      _event: state._event,
-      action: actionObject,
-      state
-    });
-  }
 }
 
 function serializeMachineTransition(
@@ -124,11 +110,6 @@ export function createTestModel<TMachine extends AnyStateMachine>(
         return key.startsWith('#')
           ? state.configuration.includes(machine.getStateNodeById(key))
           : state.matches(key);
-      },
-      execute: (state) => {
-        state.actions.forEach((action) => {
-          executeAction(action, state);
-        });
       },
       getEvents: (state, eventCases) =>
         flatten(
