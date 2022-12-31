@@ -1,335 +1,329 @@
-import {
-  ContextFrom,
-  EventFrom,
-  EventObject,
-  InitEvent,
-  InterpreterStatus,
-  MachineImplementationsFrom,
-  ServiceFrom,
-  StateFrom,
-  StateMachine,
-  Typestate
-} from './types';
+import { SingleOrArray } from './types';
 
-export {
-  StateMachine,
-  EventObject,
-  InterpreterStatus,
-  Typestate,
-  MachineImplementationsFrom,
-  StateFrom,
-  EventFrom,
-  ContextFrom,
-  ServiceFrom
+interface EventObject {
+  type: string;
+}
+
+interface MachineTypes {
+  context: Record<string, any>;
+  events: EventObject;
+}
+
+interface Behavior<TEvent extends EventObject, _TSnapshot, TInternalState> {
+  transition: (state: TInternalState, event: TEvent) => TInternalState;
+  initialState: TInternalState;
+}
+
+type AnyBehavior = Behavior<any, any, any>;
+
+type EventFrom<T extends AnyBehavior> = T extends Behavior<
+  infer TEvent,
+  any,
+  any
+>
+  ? TEvent
+  : never;
+
+// type SnapshotFrom<T extends AnyBehavior> = T extends Behavior<
+//   any,
+//   infer TSnapshot,
+//   any
+// >
+//   ? TSnapshot
+//   : never;
+
+// type InternalStateFrom<T extends AnyBehavior> = T extends Behavior<
+//   any,
+//   any,
+//   infer TInternalState
+// >
+//   ? TInternalState
+//   : never;
+
+interface MachineState {
+  value: string;
+  context: Record<string, any>;
+  actions: BaseActionObject[];
+  changed: boolean;
+  matches: (value: string) => boolean;
+}
+
+type Action = string | (() => void) | BaseActionObject | DynamicActionObject;
+
+export interface FSM<T extends MachineTypes> {
+  initial: string;
+  context?: T['context'];
+  states?: {
+    [key: string]: {
+      entry?: SingleOrArray<Action>;
+      exit?: SingleOrArray<Action>;
+      on?: {
+        [K in T['events']['type']]?:
+          | string
+          | {
+              target?: string;
+              guard?: (
+                context: T['context'],
+                event: T['events'] & { type: K }
+              ) => boolean;
+              actions?: SingleOrArray<Action>;
+            };
+      };
+    };
+  };
+  implementations?: Implementations;
+}
+
+interface BaseActionObject {
+  type: string;
+  params?: Record<string, any>;
+  execute?: () => void;
+  resolve?: (
+    state: MachineState,
+    event: EventObject
+  ) => [MachineState, BaseActionObject];
+}
+
+interface DynamicActionObject {
+  type: string;
+  params: Record<string, any>;
+  resolve: (
+    state: MachineState,
+    event: EventObject
+  ) => [MachineState, BaseActionObject];
+}
+
+export function assign(assignments: any): DynamicActionObject {
+  return {
+    type: 'xstate.assign',
+    params: assignments,
+    resolve: (state, eventObject) => {
+      let tmpContext = { ...state.context };
+
+      if (typeof assignments === 'function') {
+        tmpContext = assignments(state.context, eventObject);
+      } else {
+        Object.keys(assignments).forEach((key) => {
+          tmpContext[key] =
+            typeof assignments[key] === 'function'
+              ? assignments[key](state.context, eventObject)
+              : assignments[key];
+        });
+      }
+      const nextState = {
+        ...state,
+        context: tmpContext
+      };
+      return [nextState, { type: 'xstate.assign', params: assignments }];
+    }
+  };
+}
+
+function toActionObject(
+  action: Action,
+  actionImpls?: Implementations['actions']
+): BaseActionObject {
+  if (typeof action === 'string') {
+    return actionImpls?.[action]
+      ? toActionObject(actionImpls[action], actionImpls)
+      : { type: action };
+  }
+
+  if (typeof action === 'function') {
+    return {
+      type: 'xstate.function',
+      execute: action
+    };
+  }
+  return action;
+}
+
+type Implementations = {
+  actions?: {
+    [key: string]: Action;
+  };
 };
 
-const INIT_EVENT: InitEvent = { type: 'xstate.init' };
-const ASSIGN_ACTION: StateMachine.AssignAction = 'xstate.assign';
+type MachineBehavior<T extends MachineTypes> = Behavior<
+  T['events'],
+  MachineState,
+  MachineState
+> & {
+  config: FSM<T>;
+  provide: (implementations: {
+    actions?: {
+      [key: string]: Action;
+    };
+  }) => MachineBehavior<T>;
+  implementations: Implementations;
+};
+
+function createStateMatcher(stateValue: string) {
+  return (value: string) => {
+    return value === stateValue;
+  };
+}
+
+export function createMachine<T extends MachineTypes>(
+  machine: FSM<T>
+): MachineBehavior<T> {
+  const initialStateNode = machine.initial
+    ? machine.states?.[machine.initial]
+    : undefined;
+  let initialState: MachineState = {
+    value: machine.initial,
+    context: machine.context ?? {},
+    actions:
+      toArray(initialStateNode?.entry ?? []).map((a) =>
+        toActionObject(a, machine.implementations?.actions)
+      ) ?? [],
+    changed: false,
+    matches: createStateMatcher(machine.initial)
+  };
+
+  for (let action of initialState.actions) {
+    const actionObject: BaseActionObject =
+      typeof action === 'string' ? { type: action } : action;
+    if (actionObject.resolve) {
+      let resolvedActionObject;
+      [initialState, resolvedActionObject] = actionObject.resolve(
+        initialState,
+        { type: 'xstate.init' }
+      );
+      resolvedActionObject;
+    }
+  }
+
+  return {
+    config: machine,
+    transition: (state, event): MachineState => {
+      const stateNode = machine.states?.[state.value];
+      if (!stateNode) {
+        throw new Error(
+          `State node not found for state value '${state.value}'`
+        );
+      }
+      const transition = stateNode?.on?.[(event as T['events']).type];
+      if (!transition) {
+        return { ...state, actions: [] };
+      }
+
+      const transitionObject =
+        typeof transition === 'string' ? { target: transition } : transition;
+
+      if (
+        !transitionObject.guard ||
+        transitionObject.guard(state.context, event)
+      ) {
+        const nextValue = transitionObject.target ?? state.value;
+        if (!machine.states?.[nextValue]) {
+          throw new Error(
+            `State node not found for state value '${nextValue}'`
+          );
+        }
+        const enteredState =
+          nextValue !== state.value ? machine.states?.[nextValue] : undefined;
+        const exitedState =
+          nextValue !== state.value ? machine.states?.[state.value] : undefined;
+        const entryActions = toArray(enteredState?.entry) ?? [];
+        const exitActions = toArray(exitedState?.exit) ?? [];
+        const transitionActions = toArray(transitionObject.actions) ?? [];
+
+        const allActions = [
+          ...exitActions,
+          ...transitionActions,
+          ...entryActions
+        ];
+
+        let nextState: MachineState = {
+          value: transitionObject.target ?? state.value,
+          context: state.context,
+          actions: allActions.map((a) =>
+            toActionObject(a, machine.implementations?.actions)
+          ),
+          changed: nextValue !== state.value || allActions.length > 0,
+          matches: createStateMatcher(nextValue)
+        };
+
+        for (let action of allActions) {
+          const actionObject =
+            typeof action === 'string' ? { type: action } : action;
+          if (actionObject.resolve) {
+            let resolvedActionObject;
+            [nextState, resolvedActionObject] = actionObject.resolve(
+              nextState,
+              event
+            );
+            resolvedActionObject;
+          }
+        }
+
+        return nextState;
+      }
+
+      return state;
+    },
+    initialState,
+    provide: (implementations) => {
+      return createMachine({
+        ...machine,
+        implementations
+      });
+    },
+    implementations: machine.implementations ?? {}
+  };
+}
+
+export function interpret<TBehavior extends MachineBehavior<any>>(
+  behavior: TBehavior
+) {
+  let currentState = behavior.initialState;
+  const observers = new Set<any>();
+
+  function update(state: MachineState) {
+    currentState = state;
+
+    state.actions.forEach((action) => {
+      action.execute?.();
+    });
+
+    observers.forEach((observer) => observer.next(currentState));
+  }
+
+  const actorRef = {
+    start: (restoredState?: MachineState) => {
+      update(restoredState ?? behavior.initialState);
+      return actorRef;
+    },
+    subscribe: (observerOrFn) => {
+      const observer =
+        typeof observerOrFn === 'function'
+          ? { next: observerOrFn }
+          : observerOrFn;
+      observers.add(observer);
+      observer.next(currentState);
+      return {
+        unsubscribe: () => observers.delete(observer)
+      };
+    },
+    send: (event: EventFrom<TBehavior>) => {
+      currentState = behavior.transition(currentState, event);
+
+      currentState.actions.forEach((action) => {
+        action.execute?.();
+      });
+      observers.forEach((observer) => observer.next(currentState));
+    },
+    stop: () => {
+      observers.forEach((observer) => observer.complete());
+      observers.clear();
+    },
+    getSnapshot: () => currentState
+  };
+
+  return actorRef;
+}
 
 function toArray<T>(item: T | T[] | undefined): T[] {
   return item === undefined ? [] : ([] as T[]).concat(item);
-}
-
-export function assign<TC extends object, TE extends EventObject = EventObject>(
-  assignment:
-    | StateMachine.Assigner<TC, TE>
-    | StateMachine.PropertyAssigner<TC, TE>
-): StateMachine.AssignActionObject<TC, TE> {
-  return {
-    type: ASSIGN_ACTION,
-    assignment
-  };
-}
-
-function toActionObject<TContext extends object, TEvent extends EventObject>(
-  // tslint:disable-next-line:ban-types
-  action:
-    | string
-    | StateMachine.ActionFunction<TContext, TEvent>
-    | StateMachine.ActionObject<TContext, TEvent>,
-  actionMap: StateMachine.ActionMap<TContext, TEvent> | undefined
-) {
-  action =
-    typeof action === 'string' && actionMap && actionMap[action]
-      ? actionMap[action]
-      : action;
-  return typeof action === 'string'
-    ? {
-        type: action
-      }
-    : typeof action === 'function'
-    ? {
-        type: action.name,
-        exec: action
-      }
-    : action;
-}
-
-const IS_PRODUCTION = process.env.NODE_ENV === 'production';
-
-function createMatcher(value: string) {
-  return (stateValue) => value === stateValue;
-}
-
-function toEventObject<TEvent extends EventObject>(
-  event: TEvent['type'] | TEvent
-): TEvent {
-  return (typeof event === 'string' ? { type: event } : event) as TEvent;
-}
-
-function createUnchangedState<
-  TC extends object,
-  TE extends EventObject,
-  TS extends Typestate<TC>
->(value: string, context: TC): StateMachine.State<TC, TE, TS> {
-  return {
-    value,
-    context,
-    actions: [],
-    changed: false,
-    matches: createMatcher(value)
-  };
-}
-
-function handleActions<
-  TContext extends object,
-  TEvent extends EventObject = EventObject
->(
-  actions: Array<StateMachine.ActionObject<TContext, TEvent>>,
-  context: TContext,
-  eventObject: TEvent
-): [Array<StateMachine.ActionObject<TContext, TEvent>>, TContext, boolean] {
-  let nextContext = context;
-  let assigned = false;
-
-  const nonAssignActions = actions.filter((action) => {
-    if (action.type === ASSIGN_ACTION) {
-      assigned = true;
-      let tmpContext = Object.assign({}, nextContext);
-
-      if (typeof action.assignment === 'function') {
-        tmpContext = action.assignment(nextContext, eventObject);
-      } else {
-        Object.keys(action.assignment).forEach((key) => {
-          tmpContext[key] =
-            typeof action.assignment[key] === 'function'
-              ? action.assignment[key](nextContext, eventObject)
-              : action.assignment[key];
-        });
-      }
-
-      nextContext = tmpContext;
-      return false;
-    }
-    return true;
-  });
-
-  return [nonAssignActions, nextContext, assigned];
-}
-
-export function createMachine<
-  TContext extends object,
-  TEvent extends EventObject = EventObject,
-  TState extends Typestate<TContext> = { value: any; context: TContext }
->(
-  fsmConfig: StateMachine.Config<TContext, TEvent, TState>,
-  implementations: {
-    actions?: StateMachine.ActionMap<TContext, TEvent>;
-  } = {}
-): StateMachine.Machine<TContext, TEvent, TState> {
-  if (!IS_PRODUCTION) {
-    Object.keys(fsmConfig.states).forEach((state) => {
-      if (fsmConfig.states[state].states) {
-        throw new Error(`Nested finite states not supported.
-            Please check the configuration for the "${state}" state.`);
-      }
-    });
-  }
-
-  const [initialActions, initialContext] = handleActions(
-    toArray(fsmConfig.states[fsmConfig.initial].entry).map((action) =>
-      toActionObject(action, implementations.actions)
-    ),
-    fsmConfig.context!,
-    INIT_EVENT as TEvent
-  );
-
-  const machine = {
-    config: fsmConfig,
-    _options: implementations,
-    initialState: {
-      value: fsmConfig.initial,
-      actions: initialActions,
-      context: initialContext,
-      matches: createMatcher(fsmConfig.initial)
-    },
-    transition: (
-      state: string | StateMachine.State<TContext, TEvent, TState>,
-      event: TEvent | TEvent['type']
-    ): StateMachine.State<TContext, TEvent, TState> => {
-      const { value, context } =
-        typeof state === 'string'
-          ? { value: state, context: fsmConfig.context! }
-          : state;
-      const eventObject = toEventObject<TEvent>(event);
-      const stateConfig = fsmConfig.states[value];
-
-      if (!IS_PRODUCTION && !stateConfig) {
-        throw new Error(
-          `State '${value}' not found on machine ${fsmConfig.id ?? ''}`
-        );
-      }
-
-      if (stateConfig.on) {
-        const transitions: Array<
-          StateMachine.Transition<TContext, TEvent>
-        > = toArray(stateConfig.on[eventObject.type]);
-
-        for (const transition of transitions) {
-          if (transition === undefined) {
-            return createUnchangedState(value, context);
-          }
-
-          const { target, actions = [], cond = () => true } =
-            typeof transition === 'string'
-              ? { target: transition }
-              : transition;
-
-          const isTargetless = target === undefined;
-
-          const nextStateValue = target ?? value;
-          const nextStateConfig = fsmConfig.states[nextStateValue];
-
-          if (!IS_PRODUCTION && !nextStateConfig) {
-            throw new Error(
-              `State '${nextStateValue}' not found on machine ${
-                fsmConfig.id ?? ''
-              }`
-            );
-          }
-
-          if (cond(context, eventObject)) {
-            const allActions = (isTargetless
-              ? toArray(actions)
-              : ([] as any[])
-                  .concat(stateConfig.exit, actions, nextStateConfig.entry)
-                  .filter((a) => a)
-            ).map<StateMachine.ActionObject<TContext, TEvent>>((action) =>
-              toActionObject(action, (machine as any)._options.actions)
-            );
-
-            const [nonAssignActions, nextContext, assigned] = handleActions(
-              allActions,
-              context,
-              eventObject
-            );
-
-            const resolvedTarget = target ?? value;
-
-            return {
-              value: resolvedTarget,
-              context: nextContext,
-              actions: nonAssignActions,
-              changed:
-                target !== value || nonAssignActions.length > 0 || assigned,
-              matches: createMatcher(resolvedTarget)
-            };
-          }
-        }
-      }
-
-      // No transitions match
-      return createUnchangedState(value, context);
-    }
-  };
-  return machine;
-}
-
-const executeStateActions = <
-  TContext extends object,
-  TEvent extends EventObject = any,
-  TState extends Typestate<TContext> = { value: any; context: TContext }
->(
-  state: StateMachine.State<TContext, TEvent, TState>,
-  event: TEvent | InitEvent
-) => state.actions.forEach(({ exec }) => exec && exec(state.context, event));
-
-export function interpret<
-  TContext extends object,
-  TEvent extends EventObject = EventObject,
-  TState extends Typestate<TContext> = { value: any; context: TContext }
->(
-  machine: StateMachine.Machine<TContext, TEvent, TState>
-): StateMachine.Service<TContext, TEvent, TState> {
-  let state = machine.initialState;
-  let status = InterpreterStatus.NotStarted;
-  const listeners = new Set<StateMachine.StateListener<typeof state>>();
-
-  const service = {
-    _machine: machine,
-    send: (event: TEvent | TEvent['type']): void => {
-      if (status !== InterpreterStatus.Running) {
-        return;
-      }
-      state = machine.transition(state, event);
-      executeStateActions(state, toEventObject(event));
-      listeners.forEach((listener) => listener(state));
-    },
-    subscribe: (listener: StateMachine.StateListener<typeof state>) => {
-      listeners.add(listener);
-      listener(state);
-
-      return {
-        unsubscribe: () => listeners.delete(listener)
-      };
-    },
-    start: (
-      initialState?:
-        | TState['value']
-        | { context: TContext; value: TState['value'] }
-    ) => {
-      if (initialState) {
-        const resolved =
-          typeof initialState === 'object'
-            ? initialState
-            : { context: machine.config.context!, value: initialState };
-        state = {
-          value: resolved.value,
-          actions: [],
-          context: resolved.context,
-          matches: createMatcher(resolved.value)
-        };
-
-        if (!IS_PRODUCTION) {
-          if (!(state.value in machine.config.states)) {
-            throw new Error(
-              `Cannot start service in state '${
-                state.value
-              }'. The state is not found on machine${
-                machine.config.id ? ` '${machine.config.id}'` : ''
-              }.`
-            );
-          }
-        }
-      } else {
-        state = machine.initialState;
-      }
-      status = InterpreterStatus.Running;
-      executeStateActions(state, INIT_EVENT);
-      return service;
-    },
-    stop: () => {
-      status = InterpreterStatus.Stopped;
-      listeners.clear();
-      return service;
-    },
-    get state() {
-      return state;
-    },
-    get status() {
-      return status;
-    }
-  };
-
-  return service;
 }
