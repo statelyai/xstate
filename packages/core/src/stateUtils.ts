@@ -1514,6 +1514,7 @@ export function resolveActionsAndContext<
     resolvedActions.push(action);
     if (actorCtx?.self.status === ActorStatus.Running) {
       action.execute?.(actorCtx!);
+      // TODO: this is hacky; re-evaluate
       delete action.execute;
     }
   }
