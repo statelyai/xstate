@@ -14,7 +14,6 @@ import { IS_PRODUCTION } from './environment';
 import { Mailbox } from './Mailbox';
 import { registry } from './registry';
 import { AreAllImplementationsAssumedToBeProvided } from './typegenTypes';
-import type { PayloadSender } from './types';
 import {
   ActorRef,
   DoneEvent,
@@ -27,13 +26,7 @@ import {
   StateValue,
   Subscription
 } from './types';
-import {
-  isStateLike,
-  toEventObject,
-  toObserver,
-  toSCXMLEvent,
-  warn
-} from './utils';
+import { isStateLike, toObserver, toSCXMLEvent, warn } from './utils';
 import { symbolObservable } from './symbolObservable';
 import { evict, memo } from './memo';
 import { doneInvoke, error } from './actions';
@@ -157,6 +150,10 @@ export class Interpreter<
         this._deferred.push(fn);
       }
     };
+
+    // Ensure that the send method is bound to this interpreter instance
+    // if destructured
+    this.send = this.send.bind(this);
   }
 
   // array of functions to defer
@@ -411,9 +408,8 @@ export class Interpreter<
    *
    * @param event The event(s) to send
    */
-  public send: PayloadSender<TEvent> = (event, payload?): void => {
-    const eventObject = toEventObject(event, payload);
-    const _event = toSCXMLEvent(eventObject);
+  public send(event: TEvent | SCXML.Event<TEvent>) {
+    const _event = toSCXMLEvent(event);
 
     if (this.status === ActorStatus.Stopped) {
       // do nothing
@@ -444,7 +440,7 @@ export class Interpreter<
     }
 
     this.mailbox.enqueue(_event);
-  };
+  }
 
   // TODO: remove
   private forward(event: SCXML.Event<TEvent>): void {

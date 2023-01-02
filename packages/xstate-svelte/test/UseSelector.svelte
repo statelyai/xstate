@@ -40,10 +40,12 @@
   $: $service.context.count && withoutSelector++;
 </script>
 
-<button data-testid="count" on:click={() => service.send('INCREMENT')}
+<button data-testid="count" on:click={() => service.send({ type: 'INCREMENT' })}
   >Increment count</button
 >
-<button data-testid="another" on:click={() => service.send('INCREMENT_ANOTHER')}
+<button
+  data-testid="another"
+  on:click={() => service.send({ type: 'INCREMENT_ANOTHER' })}
   >Increment another count</button
 >
 

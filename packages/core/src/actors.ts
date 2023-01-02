@@ -3,13 +3,13 @@ import type {
   Subscribable,
   Subscription,
   Lazy,
-  Sender,
   Receiver,
   Behavior,
   ActorContext,
   EventObject,
   ActorRef,
-  BaseActorRef
+  BaseActorRef,
+  AnyEventObject
 } from './types';
 import { toSCXMLEvent, isPromiseLike, isSCXMLEvent, isFunction } from './utils';
 import { doneInvoke, error } from './actions';
@@ -94,12 +94,12 @@ export function fromCallback<TEvent extends EventObject>(
       const _event = toSCXMLEvent(event);
 
       if (_event.name === startSignalType) {
-        const sender: Sender<TEvent> = (e) => {
+        const sender = (eventForParent: AnyEventObject) => {
           if (state.canceled) {
             return state;
           }
 
-          self._parent?.send(toSCXMLEvent(e, { origin: self }));
+          self._parent?.send(toSCXMLEvent(eventForParent, { origin: self }));
         };
 
         const receiver: Receiver<TEvent> = (newListener) => {

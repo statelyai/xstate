@@ -34,33 +34,43 @@ describe('history states', () => {
   });
 
   it('should go to the most recently visited state', () => {
-    const onSecondState = historyMachine.transition('on', 'SWITCH');
-    const offState = historyMachine.transition(onSecondState, 'POWER');
+    const onSecondState = historyMachine.transition('on', { type: 'SWITCH' });
+    const offState = historyMachine.transition(onSecondState, {
+      type: 'POWER'
+    });
 
-    expect(historyMachine.transition(offState, 'POWER').value).toEqual({
+    expect(
+      historyMachine.transition(offState, { type: 'POWER' }).value
+    ).toEqual({
       on: 'second'
     });
   });
 
   it('should go to the most recently visited state (explicit)', () => {
-    const onSecondState = historyMachine.transition('on', 'SWITCH');
-    const offState = historyMachine.transition(onSecondState, 'H_POWER');
+    const onSecondState = historyMachine.transition('on', { type: 'SWITCH' });
+    const offState = historyMachine.transition(onSecondState, {
+      type: 'H_POWER'
+    });
 
-    expect(historyMachine.transition(offState, 'H_POWER').value).toEqual({
+    expect(
+      historyMachine.transition(offState, { type: 'H_POWER' }).value
+    ).toEqual({
       on: 'second'
     });
   });
 
   it('should go to the initial state when no history present', () => {
-    expect(historyMachine.transition('off', 'POWER').value).toEqual({
+    expect(historyMachine.transition('off', { type: 'POWER' }).value).toEqual({
       on: 'first'
     });
   });
 
   it('should go to the initial state when no history present (explicit)', () => {
-    expect(historyMachine.transition('off', 'H_POWER').value).toEqual({
-      on: 'first'
-    });
+    expect(historyMachine.transition('off', { type: 'H_POWER' }).value).toEqual(
+      {
+        on: 'first'
+      }
+    );
   });
 
   it('should go to the most recently visited state by a transient transition', () => {
@@ -103,11 +113,11 @@ describe('history states', () => {
 
     const service = interpret(machine).start();
 
-    service.send('DEPLOY');
-    service.send('SUCCESS');
-    service.send('DESTROY');
-    service.send('DEPLOY');
-    service.send('FAILURE');
+    service.send({ type: 'DEPLOY' });
+    service.send({ type: 'SUCCESS' });
+    service.send({ type: 'DESTROY' });
+    service.send({ type: 'DEPLOY' });
+    service.send({ type: 'FAILURE' });
 
     expect(service.getSnapshot().value).toEqual({ idle: 'absent' });
   });
@@ -201,41 +211,56 @@ describe('deep history states', () => {
   describe('history', () => {
     it('should go to the shallow history', () => {
       // on.first -> on.second.A
-      const state2A = historyMachine.transition({ on: 'first' }, 'SWITCH');
+      const state2A = historyMachine.transition(
+        { on: 'first' },
+        { type: 'SWITCH' }
+      );
       // on.second.A -> on.second.B.P
-      const state2BP = historyMachine.transition(state2A, 'INNER');
+      const state2BP = historyMachine.transition(state2A, { type: 'INNER' });
 
       // on.second.B.P -> off
-      const stateOff = historyMachine.transition(state2BP, 'POWER');
-      expect(historyMachine.transition(stateOff, 'POWER').value).toEqual({
+      const stateOff = historyMachine.transition(state2BP, { type: 'POWER' });
+      expect(
+        historyMachine.transition(stateOff, { type: 'POWER' }).value
+      ).toEqual({
         on: { second: 'A' }
       });
     });
 
     it('should go to the deep history (explicit)', () => {
       // on.first -> on.second.A
-      const state2A = historyMachine.transition({ on: 'first' }, 'SWITCH');
+      const state2A = historyMachine.transition(
+        { on: 'first' },
+        { type: 'SWITCH' }
+      );
       // on.second.A -> on.second.B.P
-      const state2BP = historyMachine.transition(state2A, 'INNER');
+      const state2BP = historyMachine.transition(state2A, { type: 'INNER' });
 
       // on.second.B.P -> off
-      const stateOff = historyMachine.transition(state2BP, 'POWER');
-      expect(historyMachine.transition(stateOff, 'DEEP_POWER').value).toEqual({
+      const stateOff = historyMachine.transition(state2BP, { type: 'POWER' });
+      expect(
+        historyMachine.transition(stateOff, { type: 'DEEP_POWER' }).value
+      ).toEqual({
         on: { second: { B: 'P' } }
       });
     });
 
     it('should go to the deepest history', () => {
       // on.first -> on.second.A
-      const state2A = historyMachine.transition({ on: 'first' }, 'SWITCH');
+      const state2A = historyMachine.transition(
+        { on: 'first' },
+        { type: 'SWITCH' }
+      );
       // on.second.A -> on.second.B.P
-      const state2BP = historyMachine.transition(state2A, 'INNER');
+      const state2BP = historyMachine.transition(state2A, { type: 'INNER' });
       // on.second.B.P -> on.second.B.Q
-      const state2BQ = historyMachine.transition(state2BP, 'INNER');
+      const state2BQ = historyMachine.transition(state2BP, { type: 'INNER' });
 
       // on.second.B.Q -> off
-      const stateOff = historyMachine.transition(state2BQ, 'POWER');
-      expect(historyMachine.transition(stateOff, 'DEEP_POWER').value).toEqual({
+      const stateOff = historyMachine.transition(state2BQ, { type: 'POWER' });
+      expect(
+        historyMachine.transition(stateOff, { type: 'DEEP_POWER' }).value
+      ).toEqual({
         on: { second: { B: 'Q' } }
       });
     });
@@ -322,71 +347,93 @@ describe('parallel history states', () => {
 
   it('should ignore parallel state history', () => {
     // on.first -> on.second.A
-    const stateABKL = historyMachine.transition(
-      historyMachine.initialState,
-      'SWITCH'
-    );
+    const stateABKL = historyMachine.transition(historyMachine.initialState, {
+      type: 'SWITCH'
+    });
     // INNER_A twice
-    const stateACDKL = historyMachine.transition(stateABKL, 'INNER_A');
+    const stateACDKL = historyMachine.transition(stateABKL, {
+      type: 'INNER_A'
+    });
 
-    const stateOff = historyMachine.transition(stateACDKL, 'POWER');
-    expect(historyMachine.transition(stateOff, 'POWER').value).toEqual({
+    const stateOff = historyMachine.transition(stateACDKL, { type: 'POWER' });
+    expect(
+      historyMachine.transition(stateOff, { type: 'POWER' }).value
+    ).toEqual({
       on: { A: 'B', K: 'L' }
     });
   });
 
   it('should remember first level state history', () => {
     // on.first -> on.second.A
-    const stateABKL = historyMachine.transition(
-      historyMachine.initialState,
-      'SWITCH'
-    );
+    const stateABKL = historyMachine.transition(historyMachine.initialState, {
+      type: 'SWITCH'
+    });
     // INNER_A twice
-    const stateACDKL = historyMachine.transition(stateABKL, 'INNER_A');
+    const stateACDKL = historyMachine.transition(stateABKL, {
+      type: 'INNER_A'
+    });
 
-    const stateOff = historyMachine.transition(stateACDKL, 'POWER');
-    expect(historyMachine.transition(stateOff, 'DEEP_POWER').value).toEqual({
+    const stateOff = historyMachine.transition(stateACDKL, { type: 'POWER' });
+    expect(
+      historyMachine.transition(stateOff, { type: 'DEEP_POWER' }).value
+    ).toEqual({
       on: { A: { C: 'D' }, K: 'L' }
     });
   });
 
   it('should re-enter each regions of parallel state correctly', () => {
     // on.first -> on.second.A
-    const stateABKL = historyMachine.transition(
-      historyMachine.initialState,
-      'SWITCH'
-    );
+    const stateABKL = historyMachine.transition(historyMachine.initialState, {
+      type: 'SWITCH'
+    });
     // INNER_A twice
-    const stateACDKL = historyMachine.transition(stateABKL, 'INNER_A');
-    const stateACEKL = historyMachine.transition(stateACDKL, 'INNER_A');
+    const stateACDKL = historyMachine.transition(stateABKL, {
+      type: 'INNER_A'
+    });
+    const stateACEKL = historyMachine.transition(stateACDKL, {
+      type: 'INNER_A'
+    });
 
     // INNER_K twice
-    const stateACEKMN = historyMachine.transition(stateACEKL, 'INNER_K');
-    const stateACEKMO = historyMachine.transition(stateACEKMN, 'INNER_K');
+    const stateACEKMN = historyMachine.transition(stateACEKL, {
+      type: 'INNER_K'
+    });
+    const stateACEKMO = historyMachine.transition(stateACEKMN, {
+      type: 'INNER_K'
+    });
 
-    const stateOff = historyMachine.transition(stateACEKMO, 'POWER');
-    expect(historyMachine.transition(stateOff, 'DEEP_POWER').value).toEqual({
+    const stateOff = historyMachine.transition(stateACEKMO, { type: 'POWER' });
+    expect(
+      historyMachine.transition(stateOff, { type: 'DEEP_POWER' }).value
+    ).toEqual({
       on: { A: { C: 'E' }, K: { M: 'O' } }
     });
   });
 
   it('should re-enter multiple history states', () => {
     // on.first -> on.second.A
-    const stateABKL = historyMachine.transition(
-      historyMachine.initialState,
-      'SWITCH'
-    );
+    const stateABKL = historyMachine.transition(historyMachine.initialState, {
+      type: 'SWITCH'
+    });
     // INNER_A twice
-    const stateACDKL = historyMachine.transition(stateABKL, 'INNER_A');
-    const stateACEKL = historyMachine.transition(stateACDKL, 'INNER_A');
+    const stateACDKL = historyMachine.transition(stateABKL, {
+      type: 'INNER_A'
+    });
+    const stateACEKL = historyMachine.transition(stateACDKL, {
+      type: 'INNER_A'
+    });
 
     // INNER_K twice
-    const stateACEKMN = historyMachine.transition(stateACEKL, 'INNER_K');
-    const stateACEKMO = historyMachine.transition(stateACEKMN, 'INNER_K');
+    const stateACEKMN = historyMachine.transition(stateACEKL, {
+      type: 'INNER_K'
+    });
+    const stateACEKMO = historyMachine.transition(stateACEKMN, {
+      type: 'INNER_K'
+    });
 
-    const stateOff = historyMachine.transition(stateACEKMO, 'POWER');
+    const stateOff = historyMachine.transition(stateACEKMO, { type: 'POWER' });
     expect(
-      historyMachine.transition(stateOff, 'PARALLEL_HISTORY').value
+      historyMachine.transition(stateOff, { type: 'PARALLEL_HISTORY' }).value
     ).toEqual({
       on: { A: { C: 'D' }, K: { M: 'N' } }
     });
@@ -394,21 +441,29 @@ describe('parallel history states', () => {
 
   it('should re-enter a parallel with partial history', () => {
     // on.first -> on.second.A
-    const stateABKL = historyMachine.transition(
-      historyMachine.initialState,
-      'SWITCH'
-    );
+    const stateABKL = historyMachine.transition(historyMachine.initialState, {
+      type: 'SWITCH'
+    });
     // INNER_A twice
-    const stateACDKL = historyMachine.transition(stateABKL, 'INNER_A');
-    const stateACEKL = historyMachine.transition(stateACDKL, 'INNER_A');
+    const stateACDKL = historyMachine.transition(stateABKL, {
+      type: 'INNER_A'
+    });
+    const stateACEKL = historyMachine.transition(stateACDKL, {
+      type: 'INNER_A'
+    });
 
     // INNER_K twice
-    const stateACEKMN = historyMachine.transition(stateACEKL, 'INNER_K');
-    const stateACEKMO = historyMachine.transition(stateACEKMN, 'INNER_K');
+    const stateACEKMN = historyMachine.transition(stateACEKL, {
+      type: 'INNER_K'
+    });
+    const stateACEKMO = historyMachine.transition(stateACEKMN, {
+      type: 'INNER_K'
+    });
 
-    const stateOff = historyMachine.transition(stateACEKMO, 'POWER');
+    const stateOff = historyMachine.transition(stateACEKMO, { type: 'POWER' });
     expect(
-      historyMachine.transition(stateOff, 'PARALLEL_SOME_HISTORY').value
+      historyMachine.transition(stateOff, { type: 'PARALLEL_SOME_HISTORY' })
+        .value
     ).toEqual({
       on: { A: { C: 'D' }, K: { M: 'N' } }
     });
@@ -416,21 +471,29 @@ describe('parallel history states', () => {
 
   it('should re-enter a parallel with full history', () => {
     // on.first -> on.second.A
-    const stateABKL = historyMachine.transition(
-      historyMachine.initialState,
-      'SWITCH'
-    );
+    const stateABKL = historyMachine.transition(historyMachine.initialState, {
+      type: 'SWITCH'
+    });
     // INNER_A twice
-    const stateACDKL = historyMachine.transition(stateABKL, 'INNER_A');
-    const stateACEKL = historyMachine.transition(stateACDKL, 'INNER_A');
+    const stateACDKL = historyMachine.transition(stateABKL, {
+      type: 'INNER_A'
+    });
+    const stateACEKL = historyMachine.transition(stateACDKL, {
+      type: 'INNER_A'
+    });
 
     // INNER_K twice
-    const stateACEKMN = historyMachine.transition(stateACEKL, 'INNER_K');
-    const stateACEKMO = historyMachine.transition(stateACEKMN, 'INNER_K');
+    const stateACEKMN = historyMachine.transition(stateACEKL, {
+      type: 'INNER_K'
+    });
+    const stateACEKMO = historyMachine.transition(stateACEKMN, {
+      type: 'INNER_K'
+    });
 
-    const stateOff = historyMachine.transition(stateACEKMO, 'POWER');
+    const stateOff = historyMachine.transition(stateACEKMO, { type: 'POWER' });
     expect(
-      historyMachine.transition(stateOff, 'PARALLEL_DEEP_HISTORY').value
+      historyMachine.transition(stateOff, { type: 'PARALLEL_DEEP_HISTORY' })
+        .value
     ).toEqual({
       on: { A: { C: 'E' }, K: { M: 'O' } }
     });
@@ -453,7 +516,7 @@ describe('transient history', () => {
   });
 
   it('should have history on transient transitions', () => {
-    const nextState = transientMachine.transition('A', 'EVENT');
+    const nextState = transientMachine.transition('A', { type: 'EVENT' });
     expect(nextState.value).toEqual('C');
   });
 });
@@ -487,8 +550,8 @@ it('internal transition to a history state should enter default history state co
     })
   ).start();
 
-  service.send('NEXT');
-  service.send('NEXT');
+  service.send({ type: 'NEXT' });
+  service.send({ type: 'NEXT' });
 
   expect(service.getSnapshot().value).toEqual({
     second: 'nested'
@@ -526,15 +589,19 @@ describe('multistage history states', () => {
   });
 
   it('should go to the most recently visited state', () => {
-    const onTurboState = pcWithTurboButtonMachine.transition(
-      'running',
-      'SWITCH_TURBO'
-    );
-    const offState = pcWithTurboButtonMachine.transition(onTurboState, 'POWER');
-    const loadingState = pcWithTurboButtonMachine.transition(offState, 'POWER');
+    const onTurboState = pcWithTurboButtonMachine.transition('running', {
+      type: 'SWITCH_TURBO'
+    });
+    const offState = pcWithTurboButtonMachine.transition(onTurboState, {
+      type: 'POWER'
+    });
+    const loadingState = pcWithTurboButtonMachine.transition(offState, {
+      type: 'POWER'
+    });
 
     expect(
-      pcWithTurboButtonMachine.transition(loadingState, 'STARTED').value
+      pcWithTurboButtonMachine.transition(loadingState, { type: 'STARTED' })
+        .value
     ).toEqual({ running: 'turbo' });
   });
 });

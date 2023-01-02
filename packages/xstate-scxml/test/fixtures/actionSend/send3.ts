@@ -10,7 +10,7 @@ const m = createMachine({
       }
     },
     b: {
-      entry: actions.raise('s'),
+      entry: actions.raise({ type: 's' }),
       on: {
         s: 'c'
       }

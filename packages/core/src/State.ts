@@ -14,7 +14,6 @@ import type {
   MachineContext,
   Prop,
   SCXML,
-  SimpleEventsOf,
   StateConfig,
   StateValue,
   TransitionDefinition
@@ -225,7 +224,7 @@ export class State<
    * @param event The event to test
    * @returns Whether the event will cause a transition
    */
-  public can(event: TEvent | SimpleEventsOf<TEvent>['type']): boolean {
+  public can(event: TEvent): boolean {
     if (IS_PRODUCTION) {
       warn(
         !!this.machine,

@@ -52,7 +52,7 @@ const fetchMachine = createMachine<{ userId: string | undefined }>({
       data: { user: (_: any, e: any) => e.user }
     },
     failure: {
-      entry: sendParent('REJECT')
+      entry: sendParent({ type: 'REJECT' })
     }
   }
 });
@@ -105,7 +105,7 @@ describe('invoke', () => {
       initial: 'init',
       states: {
         init: {
-          entry: [sendParent('INC'), sendParent('INC')]
+          entry: [sendParent({ type: 'INC' }), sendParent({ type: 'INC' })]
         }
       }
     });
@@ -171,7 +171,11 @@ describe('invoke', () => {
         init: {
           on: {
             FORWARD_DEC: {
-              actions: [sendParent('DEC'), sendParent('DEC'), sendParent('DEC')]
+              actions: [
+                sendParent({ type: 'DEC' }),
+                sendParent({ type: 'DEC' }),
+                sendParent({ type: 'DEC' })
+              ]
             }
           }
         }
@@ -226,7 +230,7 @@ describe('invoke', () => {
       })
       .start();
 
-    service.send('FORWARD_DEC');
+    service.send({ type: 'FORWARD_DEC' });
   });
 
   it('should forward events to services if autoForward: true before processing them', (done) => {
@@ -323,10 +327,10 @@ describe('invoke', () => {
       })
       .start();
 
-    service.send('START');
-    service.send('INCREMENT');
-    service.send('INCREMENT');
-    service.send('INCREMENT');
+    service.send({ type: 'START' });
+    service.send({ type: 'INCREMENT' });
+    service.send({ type: 'INCREMENT' });
+    service.send({ type: 'INCREMENT' });
   });
 
   it('should start services (explicit machine, invoke = config)', (done) => {
@@ -353,7 +357,7 @@ describe('invoke', () => {
           data: { user: (_: any, e: any) => e.user }
         },
         failure: {
-          entry: sendParent('REJECT')
+          entry: sendParent({ type: 'REJECT' })
         }
       }
     });
@@ -400,7 +404,7 @@ describe('invoke', () => {
         done();
       })
       .start()
-      .send('GO_TO_WAITING');
+      .send({ type: 'GO_TO_WAITING' });
   });
 
   it('should start services (explicit machine, invoke = machine)', (done) => {
@@ -409,7 +413,7 @@ describe('invoke', () => {
         done();
       })
       .start()
-      .send('GO_TO_WAITING_MACHINE');
+      .send({ type: 'GO_TO_WAITING_MACHINE' });
   });
 
   it('should start services (machine as invoke config)', (done) => {
@@ -542,7 +546,7 @@ describe('invoke', () => {
               initial: 'init',
               states: {
                 init: {
-                  entry: [sendParent('STOP')]
+                  entry: [sendParent({ type: 'STOP' })]
                 }
               }
             })
@@ -589,7 +593,7 @@ describe('invoke', () => {
           on: { NEXT: 'two' }
         },
         two: {
-          entry: sendParent('NEXT')
+          entry: sendParent({ type: 'NEXT' })
         }
       }
     });
@@ -604,7 +608,7 @@ describe('invoke', () => {
         },
         states: {
           one: {
-            entry: send('NEXT', { to: 'foo-child' }),
+            entry: send({ type: 'NEXT' }, { to: 'foo-child' }),
             on: { NEXT: 'two' }
           },
           two: {
@@ -637,7 +641,7 @@ describe('invoke', () => {
         },
         states: {
           one: {
-            entry: send('NEXT', { to: 'foo-child' }),
+            entry: send({ type: 'NEXT' }, { to: 'foo-child' }),
             on: { NEXT: 'two' }
           },
           two: {
@@ -663,7 +667,7 @@ describe('invoke', () => {
               id: 'foo-child',
               src: subMachine
             },
-            entry: send('NEXT', { to: 'foo-child' }),
+            entry: send({ type: 'NEXT' }, { to: 'foo-child' }),
             on: { NEXT: 'two' }
           },
           two: {
@@ -703,7 +707,7 @@ describe('invoke', () => {
               src: doneSubMachine,
               onDone: 'two'
             },
-            entry: send('NEXT', { to: 'foo-child' })
+            entry: send({ type: 'NEXT' }, { to: 'foo-child' })
           },
           two: {
             on: { NEXT: 'three' }
@@ -798,13 +802,13 @@ describe('invoke', () => {
       expect(invokeDisposeCount).toEqual(0);
       expect(actionsCount).toEqual(0);
 
-      service.send('UPDATE');
+      service.send({ type: 'UPDATE' });
       expect(entryActionsCount).toEqual(1);
       expect(invokeCount).toEqual(1);
       expect(invokeDisposeCount).toEqual(0);
       expect(actionsCount).toEqual(1);
 
-      service.send('UPDATE');
+      service.send({ type: 'UPDATE' });
       expect(entryActionsCount).toEqual(1);
       expect(invokeCount).toEqual(1);
       expect(invokeDisposeCount).toEqual(0);
@@ -881,7 +885,7 @@ describe('invoke', () => {
         })
         .start();
 
-      service.send('START');
+      service.send({ type: 'START' });
     });
   });
 
@@ -1438,7 +1442,7 @@ describe('invoke', () => {
       interpret(callbackMachine)
         .onTransition((current) => stateValues.push(current.value))
         .start()
-        .send('BEGIN');
+        .send({ type: 'BEGIN' });
       for (let i = 0; i < expectedStateValues.length; i++) {
         expect(stateValues[i]).toEqual(expectedStateValues[i]);
       }
@@ -1480,7 +1484,7 @@ describe('invoke', () => {
       interpret(callbackMachine)
         .onTransition((current) => stateValues.push(current.value))
         .start()
-        .send('BEGIN');
+        .send({ type: 'BEGIN' });
       for (let i = 0; i < expectedStateValues.length; i++) {
         expect(stateValues[i]).toEqual(expectedStateValues[i]);
       }
@@ -1531,7 +1535,7 @@ describe('invoke', () => {
           stateValues.push(current.value);
         })
         .start()
-        .send('BEGIN');
+        .send({ type: 'BEGIN' });
 
       for (let i = 0; i < expectedStateValues.length; i++) {
         expect(stateValues[i]).toEqual(expectedStateValues[i]);
@@ -1619,7 +1623,7 @@ describe('invoke', () => {
                 });
               })
             },
-            entry: send('PING', { to: 'child' }),
+            entry: send({ type: 'PING' }, { to: 'child' }),
             on: {
               PONG: 'done'
             }
@@ -1805,7 +1809,7 @@ describe('invoke', () => {
         }
       });
 
-      interpret(errorMachine).start().send('FETCH');
+      interpret(errorMachine).start().send({ type: 'FETCH' });
 
       expect(errorHandlersCalled).toEqual(1);
     });
@@ -1813,7 +1817,7 @@ describe('invoke', () => {
     it('should be able to be stringified', () => {
       const waitingState = fetcherMachine.transition(
         fetcherMachine.initialState,
-        'GO_TO_WAITING'
+        { type: 'GO_TO_WAITING' }
       );
 
       expect(() => {
@@ -1871,7 +1875,7 @@ describe('invoke', () => {
             },
             on: {
               STOPCHILD: {
-                actions: send('STOP', { to: 'invoked.child' })
+                actions: send({ type: 'STOP' }, { to: 'invoked.child' })
               }
             }
           },
@@ -1900,7 +1904,7 @@ describe('invoke', () => {
           })
           .start();
 
-        service.send('STOPCHILD');
+        service.send({ type: 'STOPCHILD' });
       });
     });
   });
@@ -2217,8 +2221,8 @@ describe('invoke', () => {
         })
         .start();
 
-      countService.send('INC');
-      countService.send('INC');
+      countService.send({ type: 'INC' });
+      countService.send({ type: 'INC' });
     });
 
     it('behaviors should have reference to the parent', (done) => {
@@ -2239,7 +2243,7 @@ describe('invoke', () => {
         initial: 'waiting',
         states: {
           waiting: {
-            entry: send('PING', { to: 'ponger' }),
+            entry: send({ type: 'PING' }, { to: 'ponger' }),
             invoke: {
               id: 'ponger',
               src: pongBehavior
@@ -2295,8 +2299,8 @@ describe('invoke', () => {
         })
         .start();
 
-      countService.send('INC');
-      countService.send('INC');
+      countService.send({ type: 'INC' });
+      countService.send({ type: 'INC' });
     });
 
     it('should schedule events in a FIFO queue', (done) => {
@@ -2338,7 +2342,7 @@ describe('invoke', () => {
         })
         .start();
 
-      countService.send('INC');
+      countService.send({ type: 'INC' });
     });
   });
 
@@ -2351,7 +2355,7 @@ describe('invoke', () => {
           on: {
             PING: {
               // Sends 'PONG' event to parent machine
-              actions: sendParent('PONG')
+              actions: sendParent({ type: 'PONG' })
             }
           }
         }
@@ -2372,7 +2376,7 @@ describe('invoke', () => {
                 src: pongMachine
               },
               // Sends 'PING' event to child machine with ID 'pong'
-              entry: send('PING', { to: 'pong' }),
+              entry: send({ type: 'PING' }, { to: 'pong' }),
               on: {
                 PONG: 'innerSuccess'
               }
@@ -2614,7 +2618,7 @@ describe('invoke', () => {
                     },
                     on: {
                       NEXT: {
-                        actions: raise('STOP_ONE')
+                        actions: raise({ type: 'STOP_ONE' })
                       }
                     }
                   }
@@ -2649,7 +2653,7 @@ describe('invoke', () => {
         .onDone(() => done())
         .start();
 
-      service.send('NEXT');
+      service.send({ type: 'NEXT' });
     });
 
     it('should invoke an actor when reentering invoking state within a single macrostep', () => {
@@ -3099,7 +3103,7 @@ describe('invoke', () => {
     });
     const service = interpret(machine).start();
 
-    service.send('FINISH');
+    service.send({ type: 'FINISH' });
     expect(disposed).toBe(true);
   });
 
@@ -3133,7 +3137,7 @@ describe('invoke', () => {
     });
     const service = interpret(machine).start();
 
-    service.send('FINISH');
+    service.send({ type: 'FINISH' });
     expect(disposed).toBe(true);
   });
 });

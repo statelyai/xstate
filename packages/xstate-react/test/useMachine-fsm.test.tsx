@@ -45,7 +45,7 @@ describeEachReactMode('useMachine, fsm (%s)', ({ suiteKey, render }) => {
 
     switch (current.value) {
       case 'idle':
-        return <button onClick={(_) => send('FETCH')}>Fetch</button>;
+        return <button onClick={(_) => send({ type: 'FETCH' })}>Fetch</button>;
       case 'loading':
         return <div>Loading...</div>;
       case 'success':
@@ -119,7 +119,7 @@ describeEachReactMode('useMachine, fsm (%s)', ({ suiteKey, render }) => {
           <button
             data-testid="button"
             onClick={(_) => {
-              send('TOGGLE');
+              send({ type: 'TOGGLE' });
             }}
           />
         </>
@@ -163,7 +163,7 @@ describeEachReactMode('useMachine, fsm (%s)', ({ suiteKey, render }) => {
       const [, send] = useMachine(toggleMachine);
 
       React.useEffect(() => {
-        send('TOGGLE');
+        send({ type: 'TOGGLE' });
         expect(actual).toEqual(true);
         done();
       }, []);
@@ -257,7 +257,7 @@ describeEachReactMode('useMachine, fsm (%s)', ({ suiteKey, render }) => {
     render(<Comp />);
 
     const service = interpret(machine).start();
-    service.send('EV');
+    service.send({ type: 'EV' });
     expect(flag).toBe(true);
   });
 
@@ -339,7 +339,7 @@ describeEachReactMode('useMachine, fsm (%s)', ({ suiteKey, render }) => {
       });
 
       React.useLayoutEffect(() => {
-        send('EXEC_ACTION');
+        send({ type: 'EXEC_ACTION' });
       }, [value]);
 
       return null;

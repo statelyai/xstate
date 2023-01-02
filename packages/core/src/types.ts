@@ -93,11 +93,6 @@ export interface BaseDynamicActionObject<
 
 export type MachineContext = Record<string, any>;
 
-/**
- * The specified string event types or the specified event objects.
- */
-export type Event<TEvent extends EventObject> = TEvent['type'] | TEvent;
-
 export interface ActionMeta<
   TContext extends MachineContext,
   TEvent extends EventObject,
@@ -336,38 +331,11 @@ export type Transition<
   | TransitionConfig<TContext, TEvent>
   | ConditionalTransitionConfig<TContext, TEvent>;
 
-type ExcludeType<A> = { [K in Exclude<keyof A, 'type'>]: A[K] };
-
-type ExtractExtraParameters<A, T> = A extends { type: T }
-  ? ExcludeType<A>
-  : never;
-
 type ExtractWithSimpleSupport<T extends { type: string }> = T extends any
   ? { type: T['type'] } extends T
     ? T
     : never
   : never;
-
-type NeverIfEmpty<T> = {} extends T ? never : T;
-
-export interface PayloadSender<TEvent extends EventObject> {
-  /**
-   * Send an event object or just the event type, if the event has no other payload
-   */
-  (
-    event:
-      | SCXML.Event<TEvent>
-      | TEvent
-      | ExtractWithSimpleSupport<TEvent>['type']
-  ): void;
-  /**
-   * Send an event type and its payload
-   */
-  <K extends TEvent['type']>(
-    eventType: K,
-    payload: NeverIfEmpty<ExtractExtraParameters<TEvent, K>>
-  ): void;
-}
 
 export type Receiver<TEvent extends EventObject> = (
   listener: {
@@ -379,7 +347,7 @@ export type InvokeCallback<
   TEvent extends EventObject = AnyEventObject,
   TSentEvent extends EventObject = AnyEventObject
 > = (
-  callback: Sender<TSentEvent>,
+  callback: (event: TSentEvent) => void,
   onReceive: Receiver<TEvent>
 ) => (() => void) | Promise<any> | void;
 
@@ -1731,10 +1699,8 @@ export interface BaseActorRef<TEvent extends EventObject> {
 
 export interface ActorLike<TCurrent, TEvent extends EventObject>
   extends Subscribable<TCurrent> {
-  send: Sender<TEvent>;
+  send: (event: TEvent) => void;
 }
-
-export type Sender<TEvent extends EventObject> = (event: TEvent) => void;
 
 export interface ActorRef<TEvent extends EventObject, TSnapshot = any>
   extends Subscribable<TSnapshot>,
@@ -1909,13 +1875,6 @@ export type EventFrom<
   K extends Prop<TEvent, 'type'> = never,
   TEvent extends EventObject = ResolveEventType<T>
 > = IsNever<K> extends true ? TEvent : ExtractEvent<TEvent, K>;
-
-/**
- * Events that do not require payload
- */
-export type SimpleEventsOf<
-  TEvent extends EventObject
-> = ExtractWithSimpleSupport<TEvent>;
 
 export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<

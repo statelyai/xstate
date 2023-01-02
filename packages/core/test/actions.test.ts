@@ -282,53 +282,65 @@ describe('entry/exit actions', () => {
 
     it('should return the entry and exit actions of a transition', () => {
       expect(
-        lightMachine.transition('green', 'TIMER').actions.map((a) => a.type)
+        lightMachine
+          .transition('green', { type: 'TIMER' })
+          .actions.map((a) => a.type)
       ).toEqual(['exit_green', 'enter_yellow']);
     });
 
     it('should return the entry and exit actions of a deep transition', () => {
       expect(
-        lightMachine.transition('yellow', 'TIMER').actions.map((a) => a.type)
+        lightMachine
+          .transition('yellow', { type: 'TIMER' })
+          .actions.map((a) => a.type)
       ).toEqual(['exit_yellow', 'enter_red', 'enter_walk']);
     });
 
     it('should return the entry and exit actions of a nested transition', () => {
       expect(
         lightMachine
-          .transition({ red: 'walk' }, 'PED_COUNTDOWN')
+          .transition({ red: 'walk' }, { type: 'PED_COUNTDOWN' })
           .actions.map((a) => a.type)
       ).toEqual(['exit_walk', 'enter_wait']);
     });
 
     it('should not have actions for unhandled events (shallow)', () => {
       expect(
-        lightMachine.transition('green', 'FAKE').actions.map((a) => a.type)
+        lightMachine
+          .transition('green', { type: 'FAKE' })
+          .actions.map((a) => a.type)
       ).toEqual([]);
     });
 
     it('should not have actions for unhandled events (deep)', () => {
       expect(
-        lightMachine.transition('red', 'FAKE').actions.map((a) => a.type)
+        lightMachine
+          .transition('red', { type: 'FAKE' })
+          .actions.map((a) => a.type)
       ).toEqual([]);
     });
 
     it('should exit and enter the state for self-transitions (shallow)', () => {
       expect(
-        lightMachine.transition('green', 'NOTHING').actions.map((a) => a.type)
+        lightMachine
+          .transition('green', { type: 'NOTHING' })
+          .actions.map((a) => a.type)
       ).toEqual(['exit_green', 'enter_green']);
     });
 
     it('should exit and enter the state for self-transitions (deep)', () => {
       // 'red' state resolves to 'red.walk'
       expect(
-        lightMachine.transition('red', 'NOTHING').actions.map((a) => a.type)
+        lightMachine
+          .transition('red', { type: 'NOTHING' })
+          .actions.map((a) => a.type)
       ).toEqual(['exit_walk', 'exit_red', 'enter_red', 'enter_walk']);
     });
 
     it('should return actions for parallel machines', () => {
       expect(
         parallelMachine
-          .transition(parallelMachine.initialState, 'CHANGE')
+          .transition(parallelMachine.initialState, { type: 'CHANGE' })
           .actions.map((a) => a.type)
       ).toEqual([
         'exit_b1', // reverse document order
@@ -343,7 +355,9 @@ describe('entry/exit actions', () => {
 
     it('should return nested actions in the correct (child to parent) order', () => {
       expect(
-        deepMachine.transition({ a: 'a1' }, 'CHANGE').actions.map((a) => a.type)
+        deepMachine
+          .transition({ a: 'a1' }, { type: 'CHANGE' })
+          .actions.map((a) => a.type)
       ).toEqual([
         'exit_a1',
         'exit_a',
@@ -356,15 +370,16 @@ describe('entry/exit actions', () => {
 
     it('should ignore parent state actions for same-parent substates', () => {
       expect(
-        deepMachine.transition({ a: 'a1' }, 'NEXT').actions.map((a) => a.type)
+        deepMachine
+          .transition({ a: 'a1' }, { type: 'NEXT' })
+          .actions.map((a) => a.type)
       ).toEqual(['exit_a1', 'enter_a2']);
     });
 
     it('should work with function actions', () => {
-      const { actions } = deepMachine.transition(
-        deepMachine.initialState,
-        'NEXT_FN'
-      );
+      const { actions } = deepMachine.transition(deepMachine.initialState, {
+        type: 'NEXT_FN'
+      });
 
       expect(
         actions.map((action) =>
@@ -376,7 +391,7 @@ describe('entry/exit actions', () => {
 
       expect(
         deepMachine
-          .transition({ a: 'a3' }, 'NEXT')
+          .transition({ a: 'a3' }, { type: 'NEXT' })
           .actions.map((action) =>
             action.type === 'xstate.function'
               ? action.params?.function?.name
@@ -388,10 +403,10 @@ describe('entry/exit actions', () => {
     it('should exit children of parallel state nodes', () => {
       const stateB = parallelMachine2.transition(
         parallelMachine2.initialState,
-        'to-B'
+        { type: 'to-B' }
       );
-      const stateD2 = parallelMachine2.transition(stateB, 'to-D2');
-      const stateA = parallelMachine2.transition(stateD2, 'to-A');
+      const stateD2 = parallelMachine2.transition(stateB, { type: 'to-D2' });
+      const stateA = parallelMachine2.transition(stateD2, { type: 'to-A' });
 
       expect(stateA.actions.map((action) => action.type)).toEqual(['D2 Exit']);
     });
@@ -419,7 +434,7 @@ describe('entry/exit actions', () => {
       const service = interpret(machine).start();
 
       actual.length = 0;
-      service.send('UPDATE');
+      service.send({ type: 'UPDATE' });
 
       expect(actual).toEqual(['loaded entry']);
     });
@@ -519,13 +534,14 @@ describe('entry/exit actions', () => {
 
       it('with a relative transition', () => {
         expect(
-          pingPong.transition({ ping: 'foo' }, 'TACK').actions
+          pingPong.transition({ ping: 'foo' }, { type: 'TACK' }).actions
         ).toHaveLength(0);
       });
 
       it('with an absolute transition', () => {
         expect(
-          pingPong.transition({ ping: 'foo' }, 'ABSOLUTE_TACK').actions
+          pingPong.transition({ ping: 'foo' }, { type: 'ABSOLUTE_TACK' })
+            .actions
         ).toHaveLength(0);
       });
     });
@@ -540,40 +556,48 @@ describe('entry/exit actions', () => {
 
     it('should return the entry and exit actions of a transition', () => {
       expect(
-        newLightMachine.transition('green', 'TIMER').actions.map((a) => a.type)
+        newLightMachine
+          .transition('green', { type: 'TIMER' })
+          .actions.map((a) => a.type)
       ).toEqual(['exit_green', 'enter_yellow']);
     });
 
     it('should return the entry and exit actions of a deep transition', () => {
       expect(
-        newLightMachine.transition('yellow', 'TIMER').actions.map((a) => a.type)
+        newLightMachine
+          .transition('yellow', { type: 'TIMER' })
+          .actions.map((a) => a.type)
       ).toEqual(['exit_yellow', 'enter_red', 'enter_walk']);
     });
 
     it('should return the entry and exit actions of a nested transition', () => {
       expect(
         newLightMachine
-          .transition({ red: 'walk' }, 'PED_COUNTDOWN')
+          .transition({ red: 'walk' }, { type: 'PED_COUNTDOWN' })
           .actions.map((a) => a.type)
       ).toEqual(['exit_walk', 'enter_wait']);
     });
 
     it('should not have actions for unhandled events (shallow)', () => {
       expect(
-        newLightMachine.transition('green', 'FAKE').actions.map((a) => a.type)
+        newLightMachine
+          .transition('green', { type: 'FAKE' })
+          .actions.map((a) => a.type)
       ).toEqual([]);
     });
 
     it('should not have actions for unhandled events (deep)', () => {
       expect(
-        newLightMachine.transition('red', 'FAKE').actions.map((a) => a.type)
+        newLightMachine
+          .transition('red', { type: 'FAKE' })
+          .actions.map((a) => a.type)
       ).toEqual([]);
     });
 
     it('should exit and enter the state for self-transitions (shallow)', () => {
       expect(
         newLightMachine
-          .transition('green', 'NOTHING')
+          .transition('green', { type: 'NOTHING' })
           .actions.map((a) => a.type)
       ).toEqual(['exit_green', 'enter_green']);
     });
@@ -581,7 +605,9 @@ describe('entry/exit actions', () => {
     it('should exit and enter the state for self-transitions (deep)', () => {
       // 'red' state resolves to 'red.walk'
       expect(
-        newLightMachine.transition('red', 'NOTHING').actions.map((a) => a.type)
+        newLightMachine
+          .transition('red', { type: 'NOTHING' })
+          .actions.map((a) => a.type)
       ).toEqual(['exit_walk', 'exit_red', 'enter_red', 'enter_walk']);
     });
 
@@ -611,7 +637,7 @@ describe('entry/exit actions', () => {
 
       const service = interpret(m).start();
 
-      service.send('EV');
+      service.send({ type: 'EV' });
 
       expect(actual).toEqual(['a11.exit']);
     });
@@ -646,7 +672,7 @@ describe('entry/exit actions', () => {
 
       expect(
         parallelMachineWithEntry
-          .transition('start', 'ENTER_PARALLEL')
+          .transition('start', { type: 'ENTER_PARALLEL' })
           .actions.map((a) => a.type)
       ).toEqual(['enter_p1', 'enter_inner']);
     });
@@ -686,7 +712,7 @@ describe('entry/exit actions', () => {
       const service = interpret(machine).start();
 
       actions.length = 0;
-      service.send('FOO');
+      service.send({ type: 'FOO' });
 
       expect(actions).toEqual([
         'exit camera',
@@ -729,7 +755,7 @@ describe('entry/exit actions', () => {
 
       Promise.resolve()
         .then(() => {
-          service.send('WHATEVER');
+          service.send({ type: 'WHATEVER' });
         })
         .then(() => {
           expect(actual).toEqual(['entered one', 'got WHATEVER']);
@@ -1069,7 +1095,7 @@ describe('entry/exit actions', () => {
         initial: 'idle',
         states: {
           idle: {
-            exit: sendParent('EXIT')
+            exit: sendParent({ type: 'EXIT' })
           }
         }
       });
@@ -1096,7 +1122,7 @@ describe('entry/exit actions', () => {
         initial: 'idle',
         states: {
           idle: {
-            exit: sendParent('EXIT')
+            exit: sendParent({ type: 'EXIT' })
           }
         }
       });
@@ -1138,7 +1164,7 @@ describe('entry/exit actions', () => {
             type: 'final'
           }
         },
-        exit: sendParent('CHILD_DONE')
+        exit: sendParent({ type: 'CHILD_DONE' })
       });
 
       const parent = createMachine({
@@ -1493,7 +1519,7 @@ describe('initial actions', () => {
   });
 
   it('should support initial actions from transition', () => {
-    const nextState = machine.transition(undefined, 'NEXT');
+    const nextState = machine.transition(undefined, { type: 'NEXT' });
     expect(nextState.actions.map((a) => a.type)).toEqual([
       'entryB',
       'initialFoo',
@@ -1502,7 +1528,7 @@ describe('initial actions', () => {
   });
 
   it('should support initial actions from transition with target ID', () => {
-    const nextState = machine.transition('b', 'NEXT');
+    const nextState = machine.transition('b', { type: 'NEXT' });
     expect(nextState.actions.map((a) => a.type)).toEqual([
       'entryC',
       'initialBar',
@@ -1528,10 +1554,10 @@ describe('actions on invalid transition', () => {
   });
 
   it('should not recall previous actions', () => {
-    const nextState = stopMachine.transition('idle', 'STOP');
-    expect(stopMachine.transition(nextState, 'INVALID').actions).toHaveLength(
-      0
-    );
+    const nextState = stopMachine.transition('idle', { type: 'STOP' });
+    expect(
+      stopMachine.transition(nextState, { type: 'INVALID' }).actions
+    ).toHaveLength(0);
   });
 });
 
@@ -1583,7 +1609,7 @@ describe('actions config', () => {
 
   it('should reference actions defined in actions parameter of machine options', () => {
     const { initialState } = simpleMachine;
-    const nextState = simpleMachine.transition(initialState, 'E');
+    const nextState = simpleMachine.transition(initialState, { type: 'E' });
 
     expect(nextState.actions.map((a) => a.type)).toEqual(
       expect.arrayContaining(['definedAction', 'undefinedAction'])
@@ -1635,7 +1661,7 @@ describe('actions config', () => {
         }
       }
     );
-    const state = machine.transition('a', 'EVENT');
+    const state = machine.transition('a', { type: 'EVENT' });
 
     // expect(state.actions).toEqual([
     //   expect.objectContaining({
@@ -1795,10 +1821,9 @@ describe('purely defined actions', () => {
   });
 
   it('should allow for purely defined dynamic actions', () => {
-    const nextState = dynamicMachine.transition(
-      dynamicMachine.initialState,
-      'EACH'
-    );
+    const nextState = dynamicMachine.transition(dynamicMachine.initialState, {
+      type: 'EACH'
+    });
 
     expect(nextState.actions).toEqual([
       expect.objectContaining({
@@ -1826,7 +1851,7 @@ describe('forwardTo()', () => {
         active: {
           on: {
             EVENT: {
-              actions: sendParent('SUCCESS'),
+              actions: sendParent({ type: 'SUCCESS' }),
               guard: (_, e) => e.value === 42
             }
           }
@@ -1871,7 +1896,7 @@ describe('forwardTo()', () => {
         active: {
           on: {
             EVENT: {
-              actions: sendParent('SUCCESS'),
+              actions: sendParent({ type: 'SUCCESS' }),
               guard: (_, e) => e.value === 42
             }
           }
@@ -1922,7 +1947,9 @@ describe('forwardTo()', () => {
 
     const service = interpret(machine).start();
 
-    expect(() => service.send('TEST')).toThrowErrorMatchingInlineSnapshot(
+    expect(() =>
+      service.send({ type: 'TEST' })
+    ).toThrowErrorMatchingInlineSnapshot(
       `"Attempted to forward event to undefined actor. This risks an infinite loop in the sender."`
     );
   });
@@ -1960,7 +1987,9 @@ describe('log()', () => {
   });
 
   it('should log an expression', () => {
-    const nextState = logMachine.transition(logMachine.initialState, 'EXPR');
+    const nextState = logMachine.transition(logMachine.initialState, {
+      type: 'EXPR'
+    });
     expect(nextState.actions[0]).toEqual(
       expect.objectContaining({
         params: {
@@ -2222,7 +2251,7 @@ describe('choose', () => {
     });
 
     const service = interpret(machine).start();
-    service.send('GIVE_ANSWER');
+    service.send({ type: 'GIVE_ANSWER' });
 
     expect(service.getSnapshot().context).toEqual({ counter: 101, answer: 42 });
   });
@@ -2337,7 +2366,7 @@ describe('sendTo', () => {
       entry: sendTo((ctx) => ctx.child, { type: 'EVENT' })
     });
 
-    interpret(parentMachine).start();      
+    interpret(parentMachine).start();
   });
 
   it('should be able to send an event from expression to an actor', (done) => {
@@ -2530,8 +2559,8 @@ describe('assign action order', () => {
 
     const service = interpret(machine).start();
 
-    service.send('EV');
-    service.send('EV');
+    service.send({ type: 'EV' });
+    service.send({ type: 'EV' });
 
     expect(captured).toEqual([1, 2]);
   });

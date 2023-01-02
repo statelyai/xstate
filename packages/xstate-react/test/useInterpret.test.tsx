@@ -68,7 +68,7 @@ describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
         <button
           data-testid="button"
           onClick={() => {
-            service.send('ACTIVATE');
+            service.send({ type: 'ACTIVATE' });
           }}
         ></button>
       );
@@ -104,7 +104,7 @@ describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
       });
 
       React.useLayoutEffect(() => {
-        service.send('EXEC_ACTION');
+        service.send({ type: 'EXEC_ACTION' });
       });
 
       return null;
@@ -152,7 +152,7 @@ describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
           <button
             onClick={() => {
               setId(2);
-              send('CHECK');
+              send({ type: 'CHECK' });
             }}
           >
             update id

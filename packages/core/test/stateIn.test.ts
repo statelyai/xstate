@@ -104,7 +104,7 @@ describe('transition "in" check', () => {
             }
           }
         },
-        'EVENT2'
+        { type: 'EVENT2' }
       ).value
     ).toEqual({
       a: 'a2',
@@ -129,7 +129,7 @@ describe('transition "in" check', () => {
             }
           }
         },
-        'EVENT3'
+        { type: 'EVENT3' }
       ).value
     ).toEqual({
       a: 'a2',
@@ -143,7 +143,9 @@ describe('transition "in" check', () => {
   });
 
   it('should not transition if string state path does not match current state value', () => {
-    expect(machine.transition({ a: 'a1', b: 'b1' }, 'EVENT1').value).toEqual({
+    expect(
+      machine.transition({ a: 'a1', b: 'b1' }, { type: 'EVENT1' }).value
+    ).toEqual({
       a: 'a1',
       b: 'b1'
     });
@@ -161,7 +163,7 @@ describe('transition "in" check', () => {
             }
           }
         },
-        'EVENT2'
+        { type: 'EVENT2' }
       ).value
     ).toEqual({
       a: 'a2',
@@ -178,7 +180,7 @@ describe('transition "in" check', () => {
     expect(
       machine.transition(
         { a: 'a1', b: { b2: { foo: 'foo1', bar: 'bar1' } } },
-        'EVENT_DEEP'
+        { type: 'EVENT_DEEP' }
       ).value
     ).toEqual({
       a: 'a1',
@@ -195,7 +197,7 @@ describe('transition "in" check', () => {
     expect(
       machine.transition(
         { a: 'a1', b: { b2: { foo: 'foo1', bar: 'bar2' } } },
-        'EVENT_DEEP'
+        { type: 'EVENT_DEEP' }
       ).value
     ).toEqual({
       a: 'a1',
@@ -209,15 +211,24 @@ describe('transition "in" check', () => {
   });
 
   it('should work to forbid events', () => {
-    const walkState = lightMachine.transition({ red: 'walk' }, 'TIMER');
+    const walkState = lightMachine.transition(
+      { red: 'walk' },
+      { type: 'TIMER' }
+    );
 
     expect(walkState.value).toEqual({ red: 'walk' });
 
-    const waitState = lightMachine.transition({ red: 'wait' }, 'TIMER');
+    const waitState = lightMachine.transition(
+      { red: 'wait' },
+      { type: 'TIMER' }
+    );
 
     expect(waitState.value).toEqual({ red: 'wait' });
 
-    const stopState = lightMachine.transition({ red: 'stop' }, 'TIMER');
+    const stopState = lightMachine.transition(
+      { red: 'stop' },
+      { type: 'TIMER' }
+    );
 
     expect(stopState.value).toEqual('green');
   });
