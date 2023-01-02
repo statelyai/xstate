@@ -165,6 +165,9 @@ createMachine(
 );
 ```
 
+Note: The service returns an object with ONE key, i.e data. 
+You just have to mention ```data: yourType``` in service schema. But when writing the service function, make sure to return just the ```yourType```
+
 ### How to get the most out of the VS Code extension
 
 #### Use named actions/guards/services
