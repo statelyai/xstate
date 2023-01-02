@@ -442,7 +442,7 @@ export class Interpreter<
   }
 
   // TODO: make private (and figure out a way to do this within the machine)
-  public defer(sendAction: SendActionObject): void {
+  public delaySend(sendAction: SendActionObject): void {
     this.delayedEventsMap[sendAction.params.id] = this.clock.setTimeout(() => {
       if (sendAction.params.to) {
         sendAction.params.to.send(sendAction.params._event);

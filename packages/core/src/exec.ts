@@ -84,7 +84,7 @@ function getActionFunction<TState extends AnyState>(
       const sendAction = action as SendActionObject;
 
       if (typeof sendAction.params.delay === 'number') {
-        interpreter.defer(sendAction);
+        interpreter.delaySend(sendAction);
         return;
       } else {
         const target = sendAction.params.to!;
