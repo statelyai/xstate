@@ -4,7 +4,6 @@ import { isActorRef } from '../actors';
 import { createDynamicAction } from '../../actions/dynamicAction';
 import {
   AnyInterpreter,
-  AnyState,
   BaseDynamicActionObject,
   DynamicInvokeActionObject,
   InvokeActionObject,
@@ -12,7 +11,7 @@ import {
 } from '..';
 import { actionTypes, error } from '../actions';
 import { mapContext, warn } from '../utils';
-import { interpret } from '../interpreter';
+import { ActorStatus, interpret } from '../interpreter';
 import { cloneState } from '../State';
 import { IS_PRODUCTION } from '../environment';
 
@@ -72,10 +71,11 @@ export function invoke<
         }
       }
 
+      const actorRef = resolvedInvokeAction.params.ref!;
       const invokedState = cloneState(state, {
         children: {
           ...state.children,
-          [id]: resolvedInvokeAction.params.ref!
+          [id]: actorRef
         }
       });
 
@@ -94,17 +94,16 @@ export function invoke<
           return;
         }
         ref._parent = interpreter; // TODO: fix
-        actorCtx.defer?.((state: AnyState) => {
+        actorCtx.defer(() => {
+          if (actorRef.status === ActorStatus.Stopped) {
+            return;
+          }
           try {
-            const currentRef = state.children[id];
-            if (!currentRef) {
-              return;
-            }
             if (autoForward) {
-              interpreter._forwardTo.add(currentRef);
+              interpreter._forwardTo.add(actorRef);
             }
 
-            currentRef.start?.();
+            actorRef.start?.();
           } catch (err) {
             interpreter.send(error(id, err));
             return;

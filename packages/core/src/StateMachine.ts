@@ -1,10 +1,3 @@
-import {
-  ActorContext,
-  AnyStateMachine,
-  InvokeActionObject,
-  Spawner,
-  TransitionDefinition
-} from '.';
 import { initEvent } from './actions';
 import { STATE_DELIMITER } from './constants';
 import { createSpawner } from './spawn';
@@ -29,10 +22,13 @@ import type {
   TypegenDisabled
 } from './typegenTypes';
 import type {
+  ActorContext,
   ActorMap,
+  AnyStateMachine,
   BaseActionObject,
   EventObject,
   InternalMachineImplementations,
+  InvokeActionObject,
   MachineConfig,
   MachineContext,
   MachineImplementationsSimplified,
@@ -40,9 +36,11 @@ import type {
   MaybeLazy,
   NoInfer,
   SCXML,
+  Spawner,
   StateConfig,
-  StateNodeDefinition,
-  StateValue
+  StateMachineDefinition,
+  StateValue,
+  TransitionDefinition
 } from './types';
 import { isFunction, isSCXMLErrorEvent, toSCXMLEvent } from './utils';
 
@@ -394,8 +392,11 @@ export class StateMachine<
     return stateNode;
   }
 
-  public get definition(): StateNodeDefinition<TContext, TEvent> {
-    return this.root.definition;
+  public get definition(): StateMachineDefinition<TContext, TEvent> {
+    return {
+      context: this.context,
+      ...this.root.definition
+    };
   }
 
   public toJSON() {

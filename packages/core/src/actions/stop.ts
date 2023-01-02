@@ -1,12 +1,17 @@
-import { EventObject, ActorRef, Expr, MachineContext } from '../types';
-import { stop as stopActionType } from '../actionTypes';
-import { isFunction } from '../utils';
 import { createDynamicAction } from '../../actions/dynamicAction';
+import { stop as stopActionType } from '../actionTypes';
+import { ActorStatus } from '../interpreter';
 import {
+  ActorContext,
+  ActorRef,
   BaseDynamicActionObject,
   DynamicStopActionObject,
+  EventObject,
+  Expr,
+  MachineContext,
   StopActionObject
-} from '..';
+} from '../types';
+import { isFunction } from '../utils';
 
 /**
  * Stops an actor.
@@ -51,12 +56,17 @@ export function stop<
         {
           type: 'xstate.stop',
           params: { actor: actorRef },
-          execute: (actorCtx) => {
-            if (actorRef) {
-              actorCtx.defer?.(() => {
-                actorRef.stop?.();
-              });
+          execute: (actorCtx: ActorContext<any, any>) => {
+            if (!actorRef) {
+              return;
             }
+            if (actorRef.status !== ActorStatus.Running) {
+              actorRef.stop?.();
+              return;
+            }
+            actorCtx.defer(() => {
+              actorRef.stop?.();
+            });
           }
         } as StopActionObject
       ];

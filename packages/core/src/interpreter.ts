@@ -356,6 +356,10 @@ export class Interpreter<
       return this;
     }
     this.mailbox.clear();
+    if (this.status === ActorStatus.NotStarted) {
+      this.status = ActorStatus.Stopped;
+      return this;
+    }
     this.mailbox.enqueue(toSCXMLEvent({ type: stopSignalType }) as any);
 
     return this;
@@ -372,12 +376,6 @@ export class Interpreter<
     if (this.status !== ActorStatus.Running) {
       // Interpreter already stopped; do nothing
       return this;
-    }
-
-    if (isStateLike(this._state)) {
-      Object.values((this._state as AnyState).children).forEach((child) =>
-        child.stop?.()
-      );
     }
 
     // Cancel all delayed events
