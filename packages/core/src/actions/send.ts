@@ -143,7 +143,7 @@ export function send<
           const sendAction = resolvedAction as SendActionObject;
 
           if (typeof sendAction.params.delay === 'number') {
-            (actorCtx.self as AnyInterpreter).defer(sendAction);
+            (actorCtx.self as AnyInterpreter).delaySend(sendAction);
             return;
           } else {
             const target = sendAction.params.to!;
