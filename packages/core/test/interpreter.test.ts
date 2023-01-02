@@ -1857,6 +1857,7 @@ describe('interpreter', () => {
     );
 
     actorRef.getSnapshot();
+    expect(spy).not.toHaveBeenCalled();
 
     actorRef.start();
 
