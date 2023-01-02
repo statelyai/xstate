@@ -352,10 +352,11 @@ export function interpret<TBehavior extends AnyBehavior>(behavior: TBehavior) {
   }
 
   const actorRef = {
-    start: (_restoredState?: MachineState) => {
+    start: (restoredState?: MachineState) => {
+      const preInitialState = restoredState ?? behavior.initialState;
       const startState = behavior.start
-        ? behavior.start(behavior.initialState, { self: actorRef })
-        : behavior.initialState;
+        ? behavior.start(preInitialState, { self: actorRef })
+        : preInitialState;
       update(startState);
       return actorRef;
     },
