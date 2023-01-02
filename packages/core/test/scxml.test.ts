@@ -350,7 +350,9 @@ async function runW3TestToCompletion(machine: AnyStateMachine): Promise<void> {
     let nextState: AnyState;
     let prevState: AnyState;
 
-    interpret(machine)
+    interpret(machine, {
+      logger: () => void 0
+    })
       .onTransition((state) => {
         prevState = nextState;
         nextState = state;

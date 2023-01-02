@@ -1,14 +1,5 @@
-import {
-  ActorContext,
-  AnyStateMachine,
-  Behavior,
-  InvokeActionObject,
-  Spawner,
-  TransitionDefinition
-} from '.';
 import { initEvent } from './actions';
 import { STATE_DELIMITER } from './constants';
-import { execAction } from './exec';
 import { createSpawner } from './spawn';
 import { isStateConfig, State } from './State';
 import { StateNode } from './StateNode';
@@ -20,6 +11,7 @@ import {
   isStateId,
   macrostep,
   microstep,
+  resolveActionsAndContext,
   resolveStateValue,
   transitionNode
 } from './stateUtils';
@@ -30,10 +22,14 @@ import type {
   TypegenDisabled
 } from './typegenTypes';
 import type {
+  ActorContext,
   ActorMap,
+  AnyStateMachine,
   BaseActionObject,
+  Behavior,
   EventObject,
   InternalMachineImplementations,
+  InvokeActionObject,
   MachineConfig,
   MachineContext,
   MachineImplementationsSimplified,
@@ -41,9 +37,11 @@ import type {
   MaybeLazy,
   NoInfer,
   SCXML,
+  Spawner,
   StateConfig,
-  StateNodeDefinition,
-  StateValue
+  StateMachineDefinition,
+  StateValue,
+  TransitionDefinition
 } from './types';
 import { isFunction, isSCXMLErrorEvent, toSCXMLEvent } from './utils';
 
@@ -334,9 +332,14 @@ export class StateMachine<
     preInitial.actions.unshift(...actions);
 
     if (actorCtx) {
-      for (const action of actions) {
-        execAction(action, preInitial, actorCtx);
-      }
+      const { nextState } = resolveActionsAndContext(
+        actions,
+        initEvent as SCXML.Event<TEvent>,
+        preInitial,
+        actorCtx
+      );
+      preInitial.children = nextState.children;
+      preInitial.actions = nextState.actions;
     }
 
     return preInitial;
@@ -369,6 +372,17 @@ export class StateMachine<
 
     return macroState;
   }
+  public start(
+    state: State<TContext, TEvent, TResolvedTypesMeta>,
+    actorCtx: ActorContext<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>
+  ): State<TContext, TEvent, TResolvedTypesMeta> {
+    // When starting from a restored state, execute the actions
+    state.actions.forEach((action) => {
+      action.execute?.(actorCtx);
+    });
+
+    return state;
+  }
 
   public getStateNodeById(stateId: string): StateNode<TContext, TEvent> {
     const resolvedStateId = isStateId(stateId)
@@ -384,8 +398,11 @@ export class StateMachine<
     return stateNode;
   }
 
-  public get definition(): StateNodeDefinition<TContext, TEvent> {
-    return this.root.definition;
+  public get definition(): StateMachineDefinition<TContext, TEvent> {
+    return {
+      context: this.context,
+      ...this.root.definition
+    };
   }
 
   public toJSON() {
@@ -400,7 +417,14 @@ export class StateMachine<
     const state =
       stateConfig instanceof State ? stateConfig : new State(stateConfig, this);
 
-    return state as State<TContext, TEvent, TResolvedTypesMeta>;
+    const { nextState: resolvedState } = resolveActionsAndContext(
+      state.actions,
+      state._event,
+      state,
+      undefined
+    );
+
+    return resolvedState as State<TContext, TEvent, TResolvedTypesMeta>;
   }
 
   public getStatus(state: State<TContext, TEvent, TResolvedTypesMeta>) {
@@ -411,17 +435,14 @@ export class StateMachine<
 
   public restoreState(
     state: State<TContext, TEvent, TResolvedTypesMeta>,
-    actorCtx?: ActorContext<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>
+    _actorCtx?: ActorContext<
+      TEvent,
+      State<TContext, TEvent, TResolvedTypesMeta>
+    >
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const restoredState = isStateConfig(state)
       ? this.resolveState(state as any)
       : this.resolveState(State.from(state as any, this.context, this));
-
-    if (actorCtx) {
-      for (const action of restoredState.actions) {
-        execAction(action, restoredState, actorCtx);
-      }
-    }
 
     return restoredState;
   }

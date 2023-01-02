@@ -1,6 +1,6 @@
 import type { StateNode } from './StateNode';
 import type { State } from './State';
-import type { Clock, Interpreter } from './interpreter';
+import type { ActorStatus, Clock, Interpreter } from './interpreter';
 import type { StateMachine } from './StateMachine';
 import type { LifecycleSignal } from './actors';
 import {
@@ -62,6 +62,7 @@ export interface AnyEventObject extends EventObject {
 export interface BaseActionObject {
   type: string;
   params?: Record<string, any>;
+  execute?: (actorCtx: ActorContext<any, any>) => void;
 }
 
 export interface BuiltInActionObject {
@@ -78,16 +79,8 @@ export interface BaseDynamicActionObject<
   type: `xstate.${string}`;
   params: TDynamicParams;
   resolve: (
-    dynamicAction: BaseDynamicActionObject<
-      TContext,
-      TEvent,
-      TResolvedAction,
-      TDynamicParams
-    >,
-    context: TContext,
     _event: SCXML.Event<TEvent>,
     extra: {
-      machine: StateMachine<TContext, TEvent>;
       state: State<TContext, TEvent>;
       /**
        * The original action object
@@ -95,7 +88,7 @@ export interface BaseDynamicActionObject<
       action: BaseActionObject;
       actorContext: ActorContext<any, any> | undefined;
     }
-  ) => TResolvedAction;
+  ) => [AnyState, TResolvedAction];
 }
 
 export type MachineContext = Record<string, any>;
@@ -690,7 +683,6 @@ export interface StateNodeDefinition<
   id: string;
   version?: string | undefined;
   key: string;
-  context: TContext;
   type: 'atomic' | 'compound' | 'parallel' | 'final' | 'history';
   initial: InitialTransitionDefinition<TContext, TEvent> | undefined;
   history: boolean | 'shallow' | 'deep' | undefined;
@@ -705,6 +697,13 @@ export interface StateNodeDefinition<
   invoke: Array<InvokeDefinition<TContext, TEvent>>;
   description?: string;
   tags: string[];
+}
+
+export interface StateMachineDefinition<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+> extends StateNodeDefinition<TContext, TEvent> {
+  context: TContext;
 }
 
 export type AnyStateNode = StateNode<any, any>;
@@ -1724,6 +1723,7 @@ export interface ActorRef<TEvent extends EventObject, TSnapshot = any>
   toJSON?: () => any;
   // TODO: figure out how to hide this externally as `sendTo(ctx => ctx.actorRef._parent._parent._parent._parent)` shouldn't be allowed
   _parent?: ActorRef<any, any>;
+  status: ActorStatus;
 }
 
 export type AnyActorRef = ActorRef<any, any>;
@@ -1810,8 +1810,7 @@ export interface ActorContext<TEvent extends EventObject, TSnapshot> {
   id: string;
   sessionId: string;
   logger: (...args: any[]) => void;
-  exec: (fn: () => void) => void;
-  defer: ((fn: (any) => void) => void) | undefined;
+  defer: (fn: () => void) => void;
 }
 
 export interface Behavior<
@@ -1833,7 +1832,10 @@ export interface Behavior<
   ) => TInternalState;
   getSnapshot?: (state: TInternalState) => TSnapshot;
   getStatus?: (state: TInternalState) => { status: string; data?: any };
-  start?: (actorCtx: ActorContext<TEvent, TSnapshot>) => TInternalState;
+  start?: (
+    state: TInternalState,
+    actorCtx: ActorContext<TEvent, TSnapshot>
+  ) => TInternalState;
 }
 
 export type AnyBehavior = Behavior<any, any, any>;

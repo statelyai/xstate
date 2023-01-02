@@ -436,6 +436,47 @@ describe('spawning observables', () => {
 
     observableService.start();
   });
+
+  it(`should read the latest snapshot of the event's origin while handling that event`, (done) => {
+    const observableMachine = createMachine({
+      id: 'observable',
+      initial: 'idle',
+      context: {
+        observableRef: undefined
+      },
+      states: {
+        idle: {
+          entry: assign({
+            observableRef: (_, __, { spawn }) => {
+              const ref = spawn(
+                fromObservable(() => interval(10)),
+                'int'
+              );
+
+              return ref;
+            }
+          }),
+          on: {
+            'xstate.snapshot.int': {
+              target: 'success',
+              guard: (ctx: any, e: any) => {
+                return e.data === 1 && ctx.observableRef.getSnapshot() === 1;
+              }
+            }
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    const observableService = interpret(observableMachine).onDone(() => {
+      done();
+    });
+
+    observableService.start();
+  });
 });
 
 describe('spawning event observables', () => {

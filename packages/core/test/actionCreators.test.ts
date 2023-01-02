@@ -63,16 +63,22 @@ describe('action creators', () => {
         }
       );
 
-      const resolvedAction = action.resolve(
-        action,
-        { delay: 100 },
+      const machine = createMachine<any, any>({});
+
+      const [, resolvedAction] = action.resolve(
         toSCXMLEvent({ type: 'EVENT', value: 50 } as {
           type: 'EVENT';
           value: number;
         }),
         {
-          machine: createMachine<any, any>({}),
-          state: null as any,
+          state: machine.createState({
+            context: { delay: 100 },
+            value: {},
+            _event: {} as any,
+            _sessionid: '',
+            transitions: [],
+            children: {}
+          }),
           action,
           actorContext: undefined
         }

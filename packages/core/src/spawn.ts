@@ -3,10 +3,10 @@ import {
   EventObject,
   SCXML,
   InvokeActionObject,
-  ActionTypes,
   AnyStateMachine,
   Spawner
 } from '.';
+import { invoke } from './actions/invoke';
 import { interpret } from './interpreter';
 import { isString } from './utils';
 
@@ -37,15 +37,15 @@ export function createSpawner<
 
         const actorRef = interpret(createdBehavior, { id: resolvedName });
 
-        mutCapturedActions.push({
-          type: ActionTypes.Invoke,
-          params: {
-            src: actorRef,
-            ref: actorRef,
+        mutCapturedActions.push(
+          (invoke({
             id: actorRef.id,
+            // @ts-ignore TODO: fix types
+            src: actorRef, // TODO
+            ref: actorRef,
             meta: undefined
-          }
-        });
+          }) as any) as InvokeActionObject
+        );
 
         return actorRef as any; // TODO: fix types
       }
@@ -56,15 +56,15 @@ export function createSpawner<
     } else {
       const actorRef = interpret(behavior, { id: name || 'anonymous' });
 
-      mutCapturedActions.push({
-        type: ActionTypes.Invoke,
-        params: {
+      mutCapturedActions.push(
+        (invoke({
+          // @ts-ignore TODO: fix types
           src: actorRef,
           ref: actorRef,
           id: actorRef.id,
           meta: undefined
-        }
-      });
+        }) as any) as InvokeActionObject
+      );
 
       return actorRef as any; // TODO: fix types
     }

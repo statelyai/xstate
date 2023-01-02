@@ -3,13 +3,17 @@ import { invoke as invokeActionType } from '../actionTypes';
 import { isActorRef } from '../actors';
 import { createDynamicAction } from '../../actions/dynamicAction';
 import {
+  AnyInterpreter,
   BaseDynamicActionObject,
   DynamicInvokeActionObject,
-  InvokeActionObject
+  InvokeActionObject,
+  InvokeSourceDefinition
 } from '..';
-import { actionTypes } from '../actions';
-import { mapContext } from '../utils';
-import { interpret } from '../interpreter';
+import { actionTypes, error } from '../actions';
+import { mapContext, warn } from '../utils';
+import { ActorStatus, interpret } from '../interpreter';
+import { cloneState } from '../State';
+import { IS_PRODUCTION } from '../environment';
 
 export function invoke<
   TContext extends MachineContext,
@@ -23,48 +27,91 @@ export function invoke<
   DynamicInvokeActionObject<TContext, TEvent>['params']
 > {
   return createDynamicAction(
-    invokeActionType,
-    invokeDef,
-    ({ params }, context, _event, { machine }) => {
+    { type: invokeActionType, params: invokeDef },
+    (_event, { state }) => {
       const type = actionTypes.invoke;
-      const { id, data, src, meta } = params;
+      const { id, data, src, meta } = invokeDef;
+
+      let resolvedInvokeAction: InvokeActionObject;
       if (isActorRef(src)) {
-        return {
+        resolvedInvokeAction = {
           type,
           params: {
-            ...params,
+            ...invokeDef,
             ref: src
           }
         } as InvokeActionObject;
-      }
+      } else {
+        const behaviorImpl = state.machine.options.actors[src.type];
 
-      const behaviorImpl = machine.options.actors[src.type];
+        if (!behaviorImpl) {
+          resolvedInvokeAction = {
+            type,
+            params: invokeDef
+          } as InvokeActionObject;
+        } else {
+          const behavior =
+            typeof behaviorImpl === 'function'
+              ? behaviorImpl(state.context, _event.data, {
+                  id,
+                  data: data && mapContext(data, state.context, _event),
+                  src,
+                  _event,
+                  meta
+                })
+              : behaviorImpl;
 
-      if (!behaviorImpl) {
-        return {
-          type,
-          params
-        } as InvokeActionObject;
-      }
-
-      const behavior =
-        typeof behaviorImpl === 'function'
-          ? behaviorImpl(context, _event.data, {
-              id,
-              data: data && mapContext(data, context, _event),
-              src,
-              _event,
-              meta
-            })
-          : behaviorImpl;
-
-      return {
-        type,
-        params: {
-          ...params,
-          ref: interpret(behavior, { id })
+          resolvedInvokeAction = {
+            type,
+            params: {
+              ...invokeDef,
+              ref: interpret(behavior, { id })
+            }
+          } as InvokeActionObject;
         }
-      } as InvokeActionObject;
+      }
+
+      const actorRef = resolvedInvokeAction.params.ref!;
+      const invokedState = cloneState(state, {
+        children: {
+          ...state.children,
+          [id]: actorRef
+        }
+      });
+
+      resolvedInvokeAction.execute = (actorCtx) => {
+        const interpreter = actorCtx.self as AnyInterpreter;
+        const { id, autoForward, ref } = resolvedInvokeAction.params;
+        if (!ref) {
+          if (!IS_PRODUCTION) {
+            warn(
+              false,
+              `Actor type '${
+                (resolvedInvokeAction.params.src as InvokeSourceDefinition).type
+              }' not found in machine '${actorCtx.id}'.`
+            );
+          }
+          return;
+        }
+        ref._parent = interpreter; // TODO: fix
+        actorCtx.defer(() => {
+          if (actorRef.status === ActorStatus.Stopped) {
+            return;
+          }
+          try {
+            if (autoForward) {
+              interpreter._forwardTo.add(actorRef);
+            }
+
+            actorRef.start?.();
+          } catch (err) {
+            interpreter.send(error(id, err));
+            return;
+          }
+        });
+      };
+
+      return [invokedState, resolvedInvokeAction];
     }
   );
 }

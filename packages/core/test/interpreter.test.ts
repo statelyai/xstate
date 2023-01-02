@@ -60,10 +60,10 @@ describe('interpreter', () => {
       service.start();
     });
 
-    it('.initialState returns the initial state', () => {
+    it('.getSnapshot returns the initial state', () => {
       const service = interpret(idMachine);
 
-      expect(service.getInitialState().value).toEqual(
+      expect(service.getSnapshot().value).toEqual(
         idMachine.getInitialState().value
       );
     });
@@ -98,9 +98,9 @@ describe('interpreter', () => {
 
       expect(promiseSpawned).toEqual(0);
 
-      service.getInitialState();
-      service.getInitialState();
-      service.getInitialState();
+      service.getSnapshot();
+      service.getSnapshot();
+      service.getSnapshot();
 
       expect(promiseSpawned).toEqual(0);
 
@@ -113,7 +113,7 @@ describe('interpreter', () => {
     });
 
     // https://github.com/statelyai/xstate/issues/1174
-    it.skip('executes actions from a restored state', (done) => {
+    it('executes actions from a restored state', (done) => {
       const lightMachine = createMachine(
         {
           id: 'light',
@@ -157,10 +157,10 @@ describe('interpreter', () => {
 
       // saves state and recreate it
       const recreated = JSON.parse(JSON.stringify(nextState));
-      const previousState = lightMachine.createState(recreated);
+      const restoredState = lightMachine.createState(recreated);
 
       const service = interpret(lightMachine);
-      service.start(previousState);
+      service.start(restoredState);
     });
 
     it('should not execute actions that are not part of the actual persisted state', () => {
@@ -182,7 +182,7 @@ describe('interpreter', () => {
       const s = interpret(machine);
 
       // would have deferred the entry action
-      s.getInitialState();
+      s.getSnapshot();
 
       // instead, we start from a different state
       // and only execute those actions
@@ -1846,20 +1846,36 @@ describe('interpreter', () => {
 
     expect(spy).not.toHaveBeenCalled();
   });
-});
 
-it(`should execute entry actions when starting the actor after reading its snapshot first`, () => {
-  const spy = jest.fn();
+  it(`should execute entry actions when starting the actor after reading its snapshot first`, () => {
+    const spy = jest.fn();
 
-  const actorRef = interpret(
-    createMachine({
-      entry: spy
-    })
-  );
+    const actorRef = interpret(
+      createMachine({
+        entry: spy
+      })
+    );
 
-  actorRef.getSnapshot();
+    actorRef.getSnapshot();
+    expect(spy).not.toHaveBeenCalled();
 
-  actorRef.start();
+    actorRef.start();
 
-  expect(spy).toHaveBeenCalled();
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('the first state of an actor should be its initial state', (done) => {
+    const machine = createMachine({});
+
+    const actor = interpret(machine);
+
+    const initialState = actor.getSnapshot();
+
+    actor
+      .onTransition((state) => {
+        expect(state).toBe(initialState);
+        done();
+      })
+      .start();
+  });
 });

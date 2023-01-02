@@ -8,7 +8,7 @@ import type {
   SnapshotFrom
 } from './types';
 import { stopSignalType } from './actors';
-import { devToolsAdapter } from './dev';
+import { devToolsAdapter } from './dev/index';
 import { IS_PRODUCTION } from './environment';
 import { Mailbox } from './Mailbox';
 import { registry } from './registry';
@@ -27,7 +27,7 @@ import {
 } from './types';
 import { toObserver, toSCXMLEvent, warn } from './utils';
 import { symbolObservable } from './symbolObservable';
-import { evict } from './memo';
+import { evict, memo } from './memo';
 import { doneInvoke, error } from './actions';
 
 export type SnapshotListener<TBehavior extends Behavior<any, any>> = (
@@ -46,7 +46,7 @@ export interface Clock {
   clearTimeout(id: any): void;
 }
 
-export enum InterpreterStatus {
+export enum ActorStatus {
   NotStarted,
   Running,
   Stopped
@@ -102,7 +102,7 @@ export class Interpreter<
   /**
    * Whether the service is started.
    */
-  public status: InterpreterStatus = InterpreterStatus.NotStarted;
+  public status: ActorStatus = ActorStatus.NotStarted;
 
   // Actor Ref
   public _parent?: ActorRef<any>;
@@ -145,12 +145,6 @@ export class Interpreter<
       id: this.id,
       sessionId: this.sessionId,
       logger: this.logger,
-      exec: (fn) => {
-        if (self.status === InterpreterStatus.Running) {
-          // Only execute effects if the interpreter is running
-          fn();
-        }
-      },
       defer: (fn) => {
         this._deferred.push(fn);
       }
@@ -164,8 +158,10 @@ export class Interpreter<
   // array of functions to defer
   private _deferred: Array<(state: any) => void> = [];
 
-  public getInitialState(): InternalStateFrom<TBehavior> {
-    return this.behavior.getInitialState(this._actorContext);
+  private _getInitialState(): InternalStateFrom<TBehavior> {
+    return memo(this, 'initial', () => {
+      return this.behavior.getInitialState(this._actorContext);
+    });
   }
 
   private update(state: InternalStateFrom<TBehavior>): void {
@@ -175,6 +171,7 @@ export class Interpreter<
 
     // Execute deferred effects
     let deferredFn: typeof this._deferred[number] | undefined;
+
     while ((deferredFn = this._deferred.shift())) {
       deferredFn(state);
     }
@@ -221,7 +218,7 @@ export class Interpreter<
     this.observers.add(observer);
 
     // Send current state to listener
-    if (this.status === InterpreterStatus.Running) {
+    if (this.status === ActorStatus.Running) {
       observer.next?.(this.getSnapshot());
     }
 
@@ -250,11 +247,11 @@ export class Interpreter<
     this.observers.add(observer);
 
     // Send current state to listener
-    if (this.status !== InterpreterStatus.NotStarted) {
+    if (this.status !== ActorStatus.NotStarted) {
       observer.next?.(this.getSnapshot());
     }
 
-    if (this.status === InterpreterStatus.Stopped) {
+    if (this.status === ActorStatus.Stopped) {
       observer.complete?.();
       this.observers.delete(observer);
     }
@@ -291,17 +288,21 @@ export class Interpreter<
     // TODO: remove this argument
     initialState?: InternalStateFrom<TBehavior> | StateValue
   ): this {
-    if (this.status === InterpreterStatus.Running) {
+    if (this.status === ActorStatus.Running) {
       // Do not restart the service if it is already started
       return this;
     }
 
     registry.register(this.sessionId, this.ref);
-    this.status = InterpreterStatus.Running;
+    this.status = ActorStatus.Running;
 
     let resolvedState = initialState
       ? this.behavior.restoreState?.(initialState, this._actorContext)
-      : this.getInitialState() ?? undefined;
+      : this._getInitialState() ?? undefined;
+
+    if (this.behavior.start) {
+      resolvedState = this.behavior.start(resolvedState, this._actorContext);
+    }
 
     // TODO: this notifies all subscribers but usually this is redundant
     // if we are using the initialState as `resolvedState` then there is no real change happening here
@@ -350,7 +351,14 @@ export class Interpreter<
    */
   public stop(): this {
     evict(this, 'initial');
+    if (this.status === ActorStatus.Stopped) {
+      return this;
+    }
     this.mailbox.clear();
+    if (this.status === ActorStatus.NotStarted) {
+      this.status = ActorStatus.Stopped;
+      return this;
+    }
     this.mailbox.enqueue(toSCXMLEvent({ type: stopSignalType }) as any);
 
     return this;
@@ -364,7 +372,7 @@ export class Interpreter<
   private _stop(): this {
     this._complete();
 
-    if (this.status !== InterpreterStatus.Running) {
+    if (this.status !== ActorStatus.Running) {
       // Interpreter already stopped; do nothing
       return this;
     }
@@ -374,6 +382,7 @@ export class Interpreter<
       this.clock.clearTimeout(this.delayedEventsMap[key]);
     }
 
+    // TODO: mailbox.reset
     this.mailbox.clear();
     // TODO: after `stop` we must prepare ourselves for receiving events again
     // events sent *after* stop signal must be queued
@@ -381,7 +390,7 @@ export class Interpreter<
     // so perhaps this should be unified somehow for all of them
     this.mailbox = new Mailbox(this._process.bind(this));
 
-    this.status = InterpreterStatus.Stopped;
+    this.status = ActorStatus.Stopped;
     registry.free(this.sessionId);
 
     return this;
@@ -399,7 +408,7 @@ export class Interpreter<
   public send(event: TEvent | SCXML.Event<TEvent>) {
     const _event = toSCXMLEvent(event);
 
-    if (this.status === InterpreterStatus.Stopped) {
+    if (this.status === ActorStatus.Stopped) {
       // do nothing
       if (!IS_PRODUCTION) {
         const eventString = JSON.stringify(_event.data);
@@ -416,10 +425,7 @@ export class Interpreter<
       return;
     }
 
-    if (
-      this.status !== InterpreterStatus.Running &&
-      !this.options.deferEvents
-    ) {
+    if (this.status !== ActorStatus.Running && !this.options.deferEvents) {
       throw new Error(
         `Event "${_event.name}" was sent to uninitialized actor "${
           this.id
@@ -479,8 +485,8 @@ export class Interpreter<
 
   public getSnapshot(): SnapshotFrom<TBehavior> {
     const getter = this.behavior.getSnapshot ?? ((s) => s);
-    if (this.status === InterpreterStatus.NotStarted) {
-      return getter(this.getInitialState());
+    if (this.status === ActorStatus.NotStarted) {
+      return getter(this._getInitialState());
     }
     return getter(this._state!);
   }

@@ -9,15 +9,13 @@ import {
   ErrorPlatformEvent,
   DoneEventObject,
   MachineContext,
-  BaseActionObject
+  BaseActionObject,
+  SCXML,
+  AnyState
 } from './types';
 import * as actionTypes from './actionTypes';
 import { toSCXMLEvent, isArray } from './utils';
-import {
-  ExecutableAction,
-  isExecutableAction
-} from '../actions/ExecutableAction';
-import { isDynamicAction } from '../actions/dynamicAction';
+import { createDynamicAction, isDynamicAction } from '../actions/dynamicAction';
 export {
   send,
   sendTo,
@@ -41,13 +39,30 @@ export function resolveActionObject(
   actionObject: BaseActionObject,
   actionFunctionMap: ActionFunctionMap<any, any>
 ): BaseActionObject {
-  if (isDynamicAction(actionObject) || isExecutableAction(actionObject)) {
+  if (isDynamicAction(actionObject)) {
     return actionObject;
   }
   const dereferencedAction = actionFunctionMap[actionObject.type];
 
   if (typeof dereferencedAction === 'function') {
-    return new ExecutableAction(actionObject, dereferencedAction);
+    return createDynamicAction(
+      { type: 'xstate.expr', params: actionObject.params ?? {} },
+      (_event, { state }) => {
+        const a: BaseActionObject = {
+          type: actionObject.type,
+          params: actionObject.params,
+          execute: (_actorCtx) => {
+            return dereferencedAction(state.context, state.event, {
+              action: a,
+              _event: state._event,
+              state
+            });
+          }
+        };
+
+        return [state, a];
+      }
+    );
   } else if (dereferencedAction) {
     return dereferencedAction;
   } else {
@@ -70,13 +85,24 @@ export function toActionObject<
   }
 
   if (typeof action === 'function') {
-    // TODO: we could defer instantiating this until `resolveActionObject`
-    return new ExecutableAction(
-      {
-        type: action.name ?? 'xstate:expr'
-      },
-      action
-    );
+    const type = 'xstate.function';
+    return createDynamicAction({ type, params: {} }, (_event, { state }) => {
+      const a: BaseActionObject = {
+        type,
+        params: {
+          function: action
+        },
+        execute: (_actorCtx) => {
+          return action(state.context as TContext, _event.data as TEvent, {
+            action: a,
+            _event: _event as SCXML.Event<TEvent>,
+            state: state as AnyState
+          });
+        }
+      };
+
+      return [state, a];
+    });
   }
 
   // action is already a BaseActionObject

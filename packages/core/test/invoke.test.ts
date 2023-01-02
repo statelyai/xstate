@@ -9,7 +9,6 @@ import {
   ActorContext,
   Behavior,
   SpecialTargets,
-  AnyState,
   toSCXMLEvent
 } from '../src';
 import {
@@ -684,7 +683,7 @@ describe('invoke', () => {
         .start();
     });
 
-    it('should transition correctly if child invocation causes it to directly go to final state', (done) => {
+    it('should transition correctly if child invocation causes it to directly go to final state', () => {
       const doneSubMachine = createMachine({
         id: 'child',
         initial: 'one',
@@ -719,15 +718,9 @@ describe('invoke', () => {
         }
       });
 
-      const expectedStateValue = 'two';
-      let currentState: AnyState;
-      interpret(mainMachine)
-        .onTransition((current) => (currentState = current))
-        .start();
-      setTimeout(() => {
-        expect(currentState.value).toEqual(expectedStateValue);
-        done();
-      }, 30);
+      const actor = interpret(mainMachine).start();
+
+      expect(actor.getSnapshot().value).toBe('two');
     });
 
     it('should work with invocations defined in orthogonal state nodes', (done) => {

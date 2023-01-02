@@ -377,16 +377,26 @@ describe('entry/exit actions', () => {
     });
 
     it('should work with function actions', () => {
+      const { actions } = deepMachine.transition(deepMachine.initialState, {
+        type: 'NEXT_FN'
+      });
+
       expect(
-        deepMachine
-          .transition(deepMachine.initialState, { type: 'NEXT_FN' })
-          .actions.map((action) => action.type)
+        actions.map((action) =>
+          action.type === 'xstate.function'
+            ? action.params?.function?.name
+            : action.type
+        )
       ).toEqual(['exit_a1', 'enter_a3_fn']);
 
       expect(
         deepMachine
           .transition({ a: 'a3' }, { type: 'NEXT' })
-          .actions.map((action) => action.type)
+          .actions.map((action) =>
+            action.type === 'xstate.function'
+              ? action.params?.function?.name
+              : action.type
+          )
       ).toEqual(['exit_a3_fn', 'do_a3_to_a2', 'enter_a2']);
     });
 
@@ -1501,8 +1511,7 @@ describe('initial actions', () => {
     }
   });
 
-  it.skip('should support initial actions', () => {
-    // TODO: fix initial state actions on root node
+  it('should support initial actions', () => {
     expect(machine.initialState.actions.map((a) => a.type)).toEqual([
       'initialA',
       'entryA'
@@ -1690,27 +1699,11 @@ describe('actions config', () => {
       }
     });
 
-    const { initialState } = anonMachine;
-
-    initialState.actions.forEach((action) => {
-      if ('execute' in action) {
-        (action as any).execute(initialState);
-      }
-    });
+    const actor = interpret(anonMachine).start();
 
     expect(entryCalled).toBe(true);
 
-    const inactiveState = anonMachine.transition(initialState, {
-      type: 'EVENT'
-    });
-
-    expect(inactiveState.actions.length).toBe(2);
-
-    inactiveState.actions.forEach((action) => {
-      if ('execute' in action) {
-        (action as any).execute(inactiveState);
-      }
-    });
+    actor.send({ type: 'EVENT' });
 
     expect(exitCalled).toBe(true);
     expect(actionCalled).toBe(true);
@@ -1982,30 +1975,30 @@ describe('log()', () => {
   });
 
   it('should log a string', () => {
-    expect(logMachine.initialState.actions[0]).toMatchInlineSnapshot(`
-      Object {
-        "params": Object {
-          "label": "string label",
-          "value": "some string",
+    expect(logMachine.initialState.actions[0]).toEqual(
+      expect.objectContaining({
+        params: {
+          label: 'string label',
+          value: 'some string'
         },
-        "type": "xstate.log",
-      }
-    `);
+        type: 'xstate.log'
+      })
+    );
   });
 
   it('should log an expression', () => {
     const nextState = logMachine.transition(logMachine.initialState, {
       type: 'EXPR'
     });
-    expect(nextState.actions[0]).toMatchInlineSnapshot(`
-      Object {
-        "params": Object {
-          "label": "expr label",
-          "value": "expr 42",
+    expect(nextState.actions[0]).toEqual(
+      expect.objectContaining({
+        params: {
+          label: 'expr label',
+          value: 'expr 42'
         },
-        "type": "xstate.log",
-      }
-    `);
+        type: 'xstate.log'
+      })
+    );
   });
 });
 

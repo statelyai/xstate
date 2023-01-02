@@ -21,8 +21,9 @@ function identity<T>(a: T): T {
   return a;
 }
 
-const isEqual = (prevState: AnyState, nextState: AnyState) =>
-  prevState === nextState || nextState.changed === false;
+const isEqual = (prevState: AnyState, nextState: AnyState) => {
+  return prevState === nextState || nextState.changed === false;
+};
 
 export interface UseMachineOptions<
   TContext extends MachineContext,
@@ -118,7 +119,7 @@ export function useMachine<TMachine extends AnyStateMachine>(
         ? ((service.behavior as AnyStateMachine).createState(
             rehydratedState
           ) as any)
-        : storeSnapshot
+        : undefined
     );
 
     return () => {

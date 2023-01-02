@@ -397,7 +397,11 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
         <>
           <div data-testid="value">{value}</div>
 
-          <button onClick={() => actor.send({ type: 'INC' })} />
+          <button
+            onClick={() => {
+              actor.send({ type: 'INC' });
+            }}
+          />
         </>
       );
     };

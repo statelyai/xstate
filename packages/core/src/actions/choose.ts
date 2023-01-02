@@ -21,25 +21,27 @@ export function choose<
   ChooseAction<TContext, TEvent>['params']
 > {
   return createDynamicAction(
-    actionTypes.choose,
-    { guards },
-    ({ params }, context, _event, { machine, state }) => {
-      const matchedActions = params.guards.find((condition) => {
+    { type: actionTypes.choose, params: { guards } },
+    (_event, { state }) => {
+      const matchedActions = guards.find((condition) => {
         const guard =
           condition.guard &&
           toGuardDefinition(
             condition.guard,
-            (guardType) => machine.options.guards[guardType]
+            (guardType) => state.machine.options.guards[guardType]
           );
-        return !guard || evaluateGuard(guard, context, _event, state);
+        return !guard || evaluateGuard(guard, state.context, _event, state);
       })?.actions;
 
-      return {
-        type: actionTypes.choose,
-        params: {
-          actions: toActionObjects(matchedActions)
+      return [
+        state,
+        {
+          type: actionTypes.choose,
+          params: {
+            actions: toActionObjects(matchedActions)
+          }
         }
-      };
+      ];
     }
   );
 }

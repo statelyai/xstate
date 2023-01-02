@@ -11,6 +11,7 @@ import { isFunction, isString, toSCXMLEvent } from '../utils';
 import { createDynamicAction } from '../../actions/dynamicAction';
 import {
   AnyActorRef,
+  AnyInterpreter,
   BaseDynamicActionObject,
   Cast,
   EventFrom,
@@ -19,7 +20,7 @@ import {
   SendActionObject,
   SendActionOptions
 } from '..';
-import { actionTypes } from '../actions';
+import { actionTypes, error } from '../actions';
 
 /**
  * Sends an event. This returns an action that will be read by an interpreter to
@@ -52,28 +53,41 @@ export function send<
     SendActionObject<AnyEventObject>,
     SendActionParams<TContext, TEvent>
   >(
-    sendActionType,
     {
-      to: options ? options.to : undefined,
-      delay: options ? options.delay : undefined,
-      event: eventOrExpr,
-      id:
-        options && options.id !== undefined
-          ? options.id
-          : isFunction(event)
-          ? event.name
-          : event.type
+      type: sendActionType,
+      params: {
+        to: options ? options.to : undefined,
+        delay: options ? options.delay : undefined,
+        event: eventOrExpr,
+        id:
+          options && options.id !== undefined
+            ? options.id
+            : isFunction(event)
+            ? event.name
+            : event.type
+      }
     },
-    ({ params }, ctx, _event, { machine, actorContext, state }) => {
+    (_event, { actorContext, state }) => {
+      const params = {
+        to: options ? options.to : undefined,
+        delay: options ? options.delay : undefined,
+        event: eventOrExpr,
+        id:
+          options && options.id !== undefined
+            ? options.id
+            : isFunction(event)
+            ? event.name
+            : event.type
+      };
       const meta = {
         _event
       };
-      const delaysMap = machine.options.delays;
+      const delaysMap = state.machine.options.delays;
 
       // TODO: helper function for resolving Expr
       const resolvedEvent = toSCXMLEvent(
         isFunction(eventOrExpr)
-          ? eventOrExpr(ctx, _event.data, meta)
+          ? eventOrExpr(state.context, _event.data, meta)
           : eventOrExpr
       );
 
@@ -81,16 +95,16 @@ export function send<
       if (isString(params.delay)) {
         const configDelay = delaysMap && delaysMap[params.delay];
         resolvedDelay = isFunction(configDelay)
-          ? configDelay(ctx, _event.data, meta)
+          ? configDelay(state.context, _event.data, meta)
           : configDelay;
       } else {
         resolvedDelay = isFunction(params.delay)
-          ? params.delay(ctx, _event.data, meta)
+          ? params.delay(state.context, _event.data, meta)
           : params.delay;
       }
 
       const resolvedTarget = isFunction(params.to)
-        ? params.to(ctx, _event.data, meta)
+        ? params.to(state.context, _event.data, meta)
         : params.to;
       let targetActorRef: AnyActorRef | undefined;
 
@@ -108,25 +122,49 @@ export function send<
         }
         if (!targetActorRef) {
           throw new Error(
-            `Unable to send event to actor '${resolvedTarget}' from machine '${machine.id}'.`
+            `Unable to send event to actor '${resolvedTarget}' from machine '${state.machine.id}'.`
           );
         }
       } else {
         targetActorRef = resolvedTarget || actorContext?.self;
       }
 
-      return {
+      const resolvedAction: SendActionObject = {
         type: actionTypes.send,
         params: {
-          id: '', // TODO: generate?
           ...params,
           to: targetActorRef,
           _event: resolvedEvent,
           event: resolvedEvent.data,
           delay: resolvedDelay,
           internal: resolvedTarget === SpecialTargets.Internal
+        },
+        execute: (actorCtx) => {
+          const sendAction = resolvedAction as SendActionObject;
+
+          if (typeof sendAction.params.delay === 'number') {
+            (actorCtx.self as AnyInterpreter).delaySend(sendAction);
+            return;
+          } else {
+            const target = sendAction.params.to!;
+            const { _event } = sendAction.params;
+            actorCtx.defer(() => {
+              const origin = actorCtx.self;
+              const resolvedEvent: typeof _event = {
+                ..._event,
+                name:
+                  _event.name === actionTypes.error
+                    ? `${error(origin.id)}`
+                    : _event.name,
+                origin: origin
+              };
+              target.send(resolvedEvent);
+            });
+          }
         }
       };
+
+      return [state, resolvedAction];
     }
   );
 }

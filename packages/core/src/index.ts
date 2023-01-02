@@ -16,7 +16,7 @@ import { pure } from './actions/pure';
 import { raise } from './actions/raise';
 import { send } from './actions/send';
 import { stop } from './actions/stop';
-import { interpret, Interpreter, InterpreterStatus } from './interpreter';
+import { interpret, Interpreter, ActorStatus } from './interpreter';
 import { createMachine } from './Machine';
 import { mapState } from './mapState';
 import { State } from './State';
@@ -45,7 +45,7 @@ export {
   forwardTo,
   interpret,
   Interpreter,
-  InterpreterStatus,
+  ActorStatus as InterpreterStatus,
   doneInvoke,
   createMachine
 };

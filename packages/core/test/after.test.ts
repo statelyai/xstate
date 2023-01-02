@@ -31,36 +31,6 @@ describe('delayed transitions', () => {
     });
 
     expect(nextState.value).toEqual('yellow');
-    expect(nextState.actions).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "params": Object {
-            "sendId": "xstate.after(1000)#light.green",
-          },
-          "type": "xstate.cancel",
-        },
-        Object {
-          "params": Object {
-            "_event": Object {
-              "$$type": "scxml",
-              "data": Object {
-                "type": "xstate.after(1000)#light.yellow",
-              },
-              "name": "xstate.after(1000)#light.yellow",
-              "type": "external",
-            },
-            "delay": 1000,
-            "event": Object {
-              "type": "xstate.after(1000)#light.yellow",
-            },
-            "id": "xstate.after(1000)#light.yellow",
-            "internal": false,
-            "to": undefined,
-          },
-          "type": "xstate.send",
-        },
-      ]
-    `);
   });
 
   it('should format transitions properly', () => {

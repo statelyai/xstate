@@ -42,7 +42,6 @@ import { stop } from './actions/stop';
 import { IS_PRODUCTION } from './environment';
 import { STATE_IDENTIFIER, NULL_EVENT, WILDCARD } from './constants';
 import { evaluateGuard, toGuardDefinition } from './guards';
-import { isExecutableAction } from '../actions/ExecutableAction';
 import type { StateNode } from './StateNode';
 import { isDynamicAction } from '../actions/dynamicAction';
 import {
@@ -59,8 +58,8 @@ import {
   SendActionObject,
   StateFromMachine
 } from '.';
-import { execAction } from './exec';
 import { stopSignalType } from './actors';
+import { ActorStatus } from './interpreter';
 
 type Configuration<
   TContext extends MachineContext,
@@ -1180,27 +1179,29 @@ function microstepProcedure(
   }
 
   try {
-    const {
-      actions: resolvedActions,
-      raised,
-      context: resolvedContext
-    } = resolveActionsAndContext(actions, scxmlEvent, currentState, actorCtx);
+    const { nextState } = resolveActionsAndContext(
+      actions,
+      scxmlEvent,
+      currentState,
+      actorCtx
+    );
 
     const output = done
-      ? getOutput(nextConfiguration, resolvedContext, scxmlEvent)
+      ? getOutput(nextConfiguration, nextState.context, scxmlEvent)
       : undefined;
 
-    internalQueue.push(...raised.map((a) => a.params._event));
+    internalQueue.push(...nextState._internalQueue);
 
     return cloneState(currentState, {
-      actions: resolvedActions,
+      actions: nextState.actions,
       configuration: nextConfiguration,
       historyValue,
       _internalQueue: internalQueue,
-      context: resolvedContext,
+      context: nextState.context,
       _event: scxmlEvent,
       done,
-      output
+      output,
+      children: nextState.children
     });
   } catch (e) {
     // TODO: Refactor this once proper error handling is implemented.
@@ -1236,6 +1237,11 @@ function enterStates(
     statesForDefaultEntry,
     statesToEnter
   );
+
+  // In the initial state, the root state node is "entered".
+  if (currentState._initial) {
+    statesForDefaultEntry.add(currentState.machine.root);
+  }
 
   for (const stateNodeToEnter of [...statesToEnter].sort(
     (a, b) => a.order - b.order
@@ -1497,15 +1503,21 @@ export function resolveActionsAndContext<
   currentState: State<TContext, TEvent, any>,
   actorCtx: ActorContext<any, any> | undefined
 ): {
-  actions: typeof actions;
-  raised: Array<RaiseActionObject<TEvent>>;
-  context: TContext;
+  nextState: AnyState;
 } {
   const { machine } = currentState;
   const resolvedActions: BaseActionObject[] = [];
   const raiseActions: Array<RaiseActionObject<TEvent>> = [];
-  let { context } = currentState;
-  let updatedContext = context;
+  let intermediateState = currentState;
+
+  function handleAction(action: BaseActionObject): void {
+    resolvedActions.push(action);
+    if (actorCtx?.self.status === ActorStatus.Running) {
+      action.execute?.(actorCtx!);
+      // TODO: this is hacky; re-evaluate
+      delete action.execute;
+    }
+  }
 
   function resolveAction(actionObject: BaseActionObject) {
     const executableActionObject = resolveActionObject(
@@ -1514,84 +1526,37 @@ export function resolveActionsAndContext<
     );
 
     if (isDynamicAction(executableActionObject)) {
+      const [nextState, resolvedAction] = executableActionObject.resolve(
+        scxmlEvent,
+        {
+          state: intermediateState,
+          action: actionObject,
+          actorContext: actorCtx
+        }
+      );
+      const matchedActions = resolvedAction.params?.actions;
+
+      intermediateState = nextState;
+
       if (
-        executableActionObject.type === actionTypes.pure ||
-        executableActionObject.type === actionTypes.choose
+        resolvedAction.type === actionTypes.raise ||
+        (resolvedAction.type === actionTypes.send &&
+          (resolvedAction as SendActionObject).params.internal)
       ) {
-        const matchedActions = executableActionObject.resolve(
-          executableActionObject,
-          context,
-          scxmlEvent,
-          {
-            machine,
-            state: currentState!,
-            action: actionObject,
-            actorContext: actorCtx
-          }
-        ).params.actions;
-
-        toActionObjects(matchedActions).forEach(resolveAction);
-      } else if (executableActionObject.type === actionTypes.assign) {
-        const resolvedActionObject = executableActionObject.resolve(
-          executableActionObject,
-          context,
-          scxmlEvent,
-          {
-            machine,
-            state: currentState!,
-            action: actionObject,
-            actorContext: actorCtx
-          }
-        );
-
-        context = resolvedActionObject.params.context;
-        updatedContext = resolvedActionObject.params.context;
-        resolvedActions.push(resolvedActionObject);
-        for (const spawnAction of resolvedActionObject.params.actions) {
-          resolveAction(spawnAction);
-        }
-      } else {
-        const resolvedActionObject = executableActionObject.resolve(
-          executableActionObject,
-          context,
-          scxmlEvent,
-          {
-            machine,
-            state: currentState!,
-            action: actionObject,
-            actorContext: actorCtx
-          }
-        );
-
-        if (
-          resolvedActionObject.type === actionTypes.raise ||
-          (resolvedActionObject.type === actionTypes.send &&
-            (resolvedActionObject as SendActionObject).params.internal)
-        ) {
-          raiseActions.push(resolvedActionObject);
-        } else {
-          resolvedActions.push(resolvedActionObject);
-          if (actorCtx) {
-            execAction(resolvedActionObject, currentState, actorCtx);
-          }
-        }
+        raiseActions.push(resolvedAction);
       }
+
+      // TODO: remove the check; just handleAction
+      if (resolvedAction.type !== actionTypes.pure) {
+        handleAction(resolvedAction);
+      }
+
+      toActionObjects(matchedActions).forEach(resolveAction);
+
       return;
     }
-    if (isExecutableAction(executableActionObject)) {
-      executableActionObject.setContext(updatedContext);
-    }
-    resolvedActions.push(executableActionObject);
-    if (actorCtx) {
-      execAction(
-        executableActionObject,
-        cloneState(currentState, {
-          context: updatedContext,
-          _event: scxmlEvent
-        }),
-        actorCtx
-      );
-    }
+
+    handleAction(executableActionObject);
   }
 
   for (const actionObject of actions) {
@@ -1599,9 +1564,10 @@ export function resolveActionsAndContext<
   }
 
   return {
-    actions: resolvedActions,
-    raised: raiseActions,
-    context
+    nextState: cloneState(intermediateState, {
+      actions: resolvedActions,
+      _internalQueue: raiseActions.map((a) => a.params._event)
+    })
   };
 }
 
@@ -1696,32 +1662,24 @@ function stopStep(
   nextState: AnyState,
   actorCtx: ActorContext<any, any> | undefined
 ): AnyState {
-  const stoppedState = cloneState(nextState, {
-    _event: scxmlEvent,
-    actions: []
-  });
-
-  stoppedState.actions.length = 0;
+  const actions: BaseActionObject[] = [];
 
   for (const stateNode of nextState.configuration.sort(
     (a, b) => b.order - a.order
   )) {
-    stoppedState.actions.push(...stateNode.definition.exit);
+    actions.push(...stateNode.exit);
   }
 
   for (const child of Object.values(nextState.children)) {
-    stoppedState.actions.push(stop(child));
+    actions.push(stop(child));
   }
 
-  const { actions, context } = resolveActionsAndContext(
-    stoppedState.actions,
-    stoppedState._event,
-    stoppedState,
+  const { nextState: stoppedState } = resolveActionsAndContext(
+    actions,
+    scxmlEvent,
+    nextState,
     actorCtx
   );
-
-  stoppedState.actions = actions;
-  stoppedState.context = context;
 
   return stoppedState;
 }

@@ -188,7 +188,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     render(<Test />);
   });
 
-  it('should not spawn actors until service is started', async (done) => {
+  it('should not spawn actors until service is started', async () => {
     const spawnMachine = createMachine<{ ref?: ActorRef<any> }>({
       id: 'spawn',
       initial: 'start',
@@ -228,8 +228,8 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     };
 
     render(<Spawner />);
+
     await screen.findByTestId('success');
-    done();
   });
 
   it('actions should not use stale data in a builtin transition action', async (done) => {
