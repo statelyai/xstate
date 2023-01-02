@@ -68,7 +68,7 @@ describe('predictableExec', () => {
       ]
     });
 
-    expect(interpret(machine).getInitialState().context.called).toBe(true);
+    expect(interpret(machine).getSnapshot().context.called).toBe(true);
   });
 
   it('should call raised transition custom actions with raised event', () => {
