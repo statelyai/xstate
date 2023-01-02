@@ -391,7 +391,7 @@ export class Interpreter<
     this.mailbox = new Mailbox(this._process.bind(this));
 
     this.status = ActorStatus.Stopped;
-    // registry.free(this.sessionId);
+    registry.free(this.sessionId);
 
     return this;
   }
