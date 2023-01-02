@@ -59,6 +59,7 @@ import {
   StateFromMachine
 } from '.';
 import { stopSignalType } from './actors';
+import { ActorStatus } from './interpreter';
 
 type Configuration<
   TContext extends MachineContext,
@@ -1511,7 +1512,7 @@ export function resolveActionsAndContext<
 
   function handleAction(action: BaseActionObject): void {
     resolvedActions.push(action);
-    if (actorCtx?.self.status === 1) {
+    if (actorCtx?.self.status === ActorStatus.Running) {
       action.execute?.(actorCtx!);
       delete action.execute;
     }
