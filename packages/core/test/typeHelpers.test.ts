@@ -315,7 +315,7 @@ describe('SnapshotFrom', () => {
 
     function acceptState(_state: SnapshotFrom<typeof service>) {}
 
-    acceptState(service.getInitialState());
+    acceptState(service.getSnapshot());
     // @ts-expect-error
     acceptState("isn't any");
   });

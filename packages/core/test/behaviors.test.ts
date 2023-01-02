@@ -76,7 +76,7 @@ describe('promise behavior (fromPromise)', () => {
 
     const actor = interpret(behavior);
 
-    actor.getInitialState();
+    actor.getSnapshot();
 
     expect(called).toBe(false);
   });
@@ -182,7 +182,7 @@ describe('observable behavior (fromObservable)', () => {
 
     const actor = interpret(behavior);
 
-    actor.getInitialState();
+    actor.getSnapshot();
 
     expect(called).toBe(false);
   });

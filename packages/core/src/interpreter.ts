@@ -158,7 +158,7 @@ export class Interpreter<
   // array of functions to defer
   private _deferred: Array<(state: any) => void> = [];
 
-  public getInitialState(): InternalStateFrom<TBehavior> {
+  private _getInitialState(): InternalStateFrom<TBehavior> {
     return memo(this, 'initial', () => {
       return this.behavior.getInitialState(this._actorContext);
     });
@@ -298,7 +298,7 @@ export class Interpreter<
 
     let resolvedState = initialState
       ? this.behavior.restoreState?.(initialState, this._actorContext)
-      : this.getInitialState() ?? undefined;
+      : this._getInitialState() ?? undefined;
 
     if (this.behavior.start) {
       resolvedState = this.behavior.start(resolvedState, this._actorContext);
@@ -486,7 +486,7 @@ export class Interpreter<
   public getSnapshot(): SnapshotFrom<TBehavior> {
     const getter = this.behavior.getSnapshot ?? ((s) => s);
     if (this.status === ActorStatus.NotStarted) {
-      return getter(this.getInitialState());
+      return getter(this._getInitialState());
     }
     return getter(this._state!);
   }

@@ -60,10 +60,10 @@ describe('interpreter', () => {
       service.start();
     });
 
-    it('.initialState returns the initial state', () => {
+    it('.getSnapshot returns the initial state', () => {
       const service = interpret(idMachine);
 
-      expect(service.getInitialState().value).toEqual(
+      expect(service.getSnapshot().value).toEqual(
         idMachine.getInitialState().value
       );
     });
@@ -98,9 +98,9 @@ describe('interpreter', () => {
 
       expect(promiseSpawned).toEqual(0);
 
-      service.getInitialState();
-      service.getInitialState();
-      service.getInitialState();
+      service.getSnapshot();
+      service.getSnapshot();
+      service.getSnapshot();
 
       expect(promiseSpawned).toEqual(0);
 
@@ -182,7 +182,7 @@ describe('interpreter', () => {
       const s = interpret(machine);
 
       // would have deferred the entry action
-      s.getInitialState();
+      s.getSnapshot();
 
       // instead, we start from a different state
       // and only execute those actions
@@ -1868,7 +1868,7 @@ describe('interpreter', () => {
 
     const actor = interpret(machine);
 
-    const initialState = actor.getInitialState();
+    const initialState = actor.getSnapshot();
 
     actor
       .onTransition((state) => {
