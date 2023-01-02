@@ -1,7 +1,6 @@
 import type {
   ActorContext,
   AnyActorRef,
-  AnyState,
   AnyStateMachine,
   Behavior,
   EventFromBehavior,
@@ -26,7 +25,7 @@ import {
   StateValue,
   Subscription
 } from './types';
-import { isStateLike, toObserver, toSCXMLEvent, warn } from './utils';
+import { toObserver, toSCXMLEvent, warn } from './utils';
 import { symbolObservable } from './symbolObservable';
 import { evict, memo } from './memo';
 import { doneInvoke, error } from './actions';
@@ -356,6 +355,10 @@ export class Interpreter<
       return this;
     }
     this.mailbox.clear();
+    if (this.status === ActorStatus.NotStarted) {
+      this.status = ActorStatus.Stopped;
+      return this;
+    }
     this.mailbox.enqueue(toSCXMLEvent({ type: stopSignalType }) as any);
 
     return this;
@@ -372,12 +375,6 @@ export class Interpreter<
     if (this.status !== ActorStatus.Running) {
       // Interpreter already stopped; do nothing
       return this;
-    }
-
-    if (isStateLike(this._state)) {
-      Object.values((this._state as AnyState).children).forEach((child) =>
-        child.stop?.()
-      );
     }
 
     // Cancel all delayed events

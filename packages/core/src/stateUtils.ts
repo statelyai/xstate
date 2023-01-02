@@ -1665,7 +1665,7 @@ function stopStep(
   for (const stateNode of nextState.configuration.sort(
     (a, b) => b.order - a.order
   )) {
-    actions.push(...stateNode.definition.exit);
+    actions.push(...stateNode.exit);
   }
 
   for (const child of Object.values(nextState.children)) {

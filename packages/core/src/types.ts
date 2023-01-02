@@ -683,7 +683,6 @@ export interface StateNodeDefinition<
   id: string;
   version?: string | undefined;
   key: string;
-  context: TContext;
   type: 'atomic' | 'compound' | 'parallel' | 'final' | 'history';
   initial: InitialTransitionDefinition<TContext, TEvent> | undefined;
   history: boolean | 'shallow' | 'deep' | undefined;
@@ -698,6 +697,13 @@ export interface StateNodeDefinition<
   invoke: Array<InvokeDefinition<TContext, TEvent>>;
   description?: string;
   tags: string[];
+}
+
+export interface StateMachineDefinition<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+> extends StateNodeDefinition<TContext, TEvent> {
+  context: TContext;
 }
 
 export type AnyStateNode = StateNode<any, any>;
@@ -1804,7 +1810,7 @@ export interface ActorContext<TEvent extends EventObject, TSnapshot> {
   id: string;
   sessionId: string;
   logger: (...args: any[]) => void;
-  defer: ((fn: (any) => void) => void) | undefined;
+  defer: (fn: () => void) => void;
 }
 
 export interface Behavior<

@@ -148,7 +148,7 @@ export function send<
           } else {
             const target = sendAction.params.to!;
             const { _event } = sendAction.params;
-            actorCtx.defer?.(() => {
+            actorCtx.defer(() => {
               const origin = actorCtx.self;
               const resolvedEvent: typeof _event = {
                 ..._event,
