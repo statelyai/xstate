@@ -1128,9 +1128,10 @@ describe('invoke', () => {
           states: {
             pending: {
               invoke: {
-                src: fromPromise(() =>
-                  createPromise((resolve) => resolve({ count: 1 }))
-                ),
+                src: () =>
+                  fromPromise(() =>
+                    createPromise((resolve) => resolve({ count: 1 }))
+                  ),
                 onDone: {
                   target: 'success',
                   actions: assign({ count: (_, e) => e.data.count })
@@ -1208,9 +1209,10 @@ describe('invoke', () => {
           states: {
             pending: {
               invoke: {
-                src: fromPromise(() =>
-                  createPromise((resolve) => resolve({ count: 1 }))
-                ),
+                src: () =>
+                  fromPromise(() =>
+                    createPromise((resolve) => resolve({ count: 1 }))
+                  ),
                 onDone: {
                   target: 'success',
                   actions: (_, e) => {
@@ -1323,6 +1325,90 @@ describe('invoke', () => {
             type: 'BEGIN',
             payload: true
           });
+      });
+
+      it('should be able to reuse the same promise behavior multiple times and create unique promise for each created actor', (done) => {
+        const machine = createMachine<{
+          result1: number | null;
+          result2: number | null;
+        }>(
+          {
+            context: {
+              result1: null,
+              result2: null
+            },
+            initial: 'pending',
+            states: {
+              pending: {
+                type: 'parallel',
+                states: {
+                  state1: {
+                    initial: 'active',
+                    states: {
+                      active: {
+                        invoke: {
+                          src: 'getRandomNumber',
+                          onDone: {
+                            target: 'success',
+                            actions: assign((_ctx, ev) => ({
+                              result1: ev.data.result
+                            }))
+                          }
+                        }
+                      },
+                      success: {
+                        type: 'final'
+                      }
+                    }
+                  },
+                  state2: {
+                    initial: 'active',
+                    states: {
+                      active: {
+                        invoke: {
+                          src: 'getRandomNumber',
+                          onDone: {
+                            target: 'success',
+                            actions: assign((_ctx, ev) => ({
+                              result2: ev.data.result
+                            }))
+                          }
+                        }
+                      },
+                      success: {
+                        type: 'final'
+                      }
+                    }
+                  }
+                },
+                onDone: 'done'
+              },
+              done: {
+                type: 'final'
+              }
+            }
+          },
+          {
+            actors: {
+              // it's important for this actor to be reused, this test shouldn't use a factory or anything like that
+              getRandomNumber: fromPromise(() => {
+                return createPromise((resolve) =>
+                  resolve({ result: Math.random() })
+                );
+              })
+            }
+          }
+        );
+
+        const service = interpret(machine)
+          .onDone(() => {
+            const snapshot = service.getSnapshot();
+            expect(typeof snapshot.context.result1).toBe('number');
+            expect(typeof snapshot.context.result2).toBe('number');
+            expect(snapshot.context.result1).not.toBe(snapshot.context.result2);
+            done();
+          })
+          .start();
       });
     });
   });
