@@ -332,7 +332,6 @@ export function fromObservable<T, TEvent extends EventObject>(
 export function fromEventObservable<T extends EventObject>(
   lazyObservable: Lazy<Subscribable<T>>
 ): Behavior<EventObject, T | undefined> {
-  const nextEventType = '$$xstate.next';
   const errorEventType = '$$xstate.error';
   const completeEventType = '$$xstate.complete';
 
@@ -346,9 +345,6 @@ export function fromEventObservable<T extends EventObject>(
       }
 
       switch (_event.name) {
-        case nextEventType:
-          state.data = _event.data;
-          return state;
         case errorEventType:
           state.status = 'error';
           state.data = _event.data.data;
