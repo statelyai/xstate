@@ -262,7 +262,6 @@ export function fromObservable<T, TEvent extends EventObject>(
       switch (_event.name) {
         case nextEventType:
           state.data = event.data.data;
-
           self._parent?.send(
             toSCXMLEvent(
               {
@@ -272,27 +271,17 @@ export function fromObservable<T, TEvent extends EventObject>(
               { origin: self }
             )
           );
-
           return state;
         case errorEventType:
           state.status = 'error';
           state.data = _event.data.data;
-
-          const errorEvent = error(id, _event.data.data);
-          self._parent?.send(
-            toSCXMLEvent(errorEvent, {
-              origin: self
-            })
-          );
-
           return state;
         case completeEventType:
           state.status = 'done';
           return state;
         case stopSignalType:
           state.canceled = true;
-          state.subscription?.unsubscribe();
-
+          state.subscription!.unsubscribe();
           return state;
         default:
           return state;
@@ -345,7 +334,7 @@ export function fromEventObservable<T extends EventObject>(
 
   // TODO: event types
   const behavior: Behavior<any, T | undefined, ObservableInternalState<T>> = {
-    transition: (state, event, { self, id }) => {
+    transition: (state, event) => {
       const _event = toSCXMLEvent(event);
 
       if (state.canceled) {
@@ -358,23 +347,9 @@ export function fromEventObservable<T extends EventObject>(
           return state;
         case errorEventType:
           state.status = 'error';
-          state.status = _event.data.data;
-
-          const errorEvent = error(id, _event.data.data);
-
-          self._parent?.send(
-            toSCXMLEvent(errorEvent, {
-              origin: self
-            })
-          );
-
+          state.data = _event.data.data;
           return state;
         case completeEventType:
-          self._parent?.send(
-            toSCXMLEvent(doneInvoke(id), {
-              origin: self
-            })
-          );
           state.status = 'done';
           return state;
         case stopSignalType:
