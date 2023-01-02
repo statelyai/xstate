@@ -1,7 +1,6 @@
 import type {
   ActorContext,
   AnyActorRef,
-  AnyState,
   AnyStateMachine,
   Behavior,
   EventFromBehavior,
@@ -26,7 +25,7 @@ import {
   StateValue,
   Subscription
 } from './types';
-import { isStateLike, toObserver, toSCXMLEvent, warn } from './utils';
+import { toObserver, toSCXMLEvent, warn } from './utils';
 import { symbolObservable } from './symbolObservable';
 import { evict, memo } from './memo';
 import { doneInvoke, error } from './actions';
