@@ -252,7 +252,7 @@ export function fromObservable<T, TEvent extends EventObject>(
 
   // TODO: add event types
   const behavior: Behavior<any, T | undefined, ObservableInternalState<T>> = {
-    transition: (state, event, { self, id }) => {
+    transition: (state, event, { self, id, defer }) => {
       const _event = toSCXMLEvent(event);
 
       if (state.canceled) {
@@ -262,15 +262,19 @@ export function fromObservable<T, TEvent extends EventObject>(
       switch (_event.name) {
         case nextEventType:
           state.data = event.data.data;
-          self._parent?.send(
-            toSCXMLEvent(
-              {
-                type: `xstate.snapshot.${id}`,
-                data: _event.data.data
-              },
-              { origin: self }
-            )
-          );
+          // match the exact timing of events sent by machines
+          // send actions are not executed immediately
+          defer(() => {
+            self._parent?.send(
+              toSCXMLEvent(
+                {
+                  type: `xstate.snapshot.${id}`,
+                  data: _event.data.data
+                },
+                { origin: self }
+              )
+            );
+          });
           return state;
         case errorEventType:
           state.status = 'error';
