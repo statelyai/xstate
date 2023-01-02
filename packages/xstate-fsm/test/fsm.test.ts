@@ -1,4 +1,4 @@
-import { FSM, assign, createMachine, interpret } from '../src';
+import { FSM, assign, createMachine, fromPromise, interpret } from '../src';
 
 it('should work', () => {
   const machine = createMachine({

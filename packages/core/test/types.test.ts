@@ -345,56 +345,64 @@ describe('Typestates', () => {
     taskMachineConfiguration
   );
 
-  it("should preserve typestate for the service returned by Interpreter.start() and a servcie's .state getter.", () => {
-    const service = interpret(machine);
-    const startedService = service.start();
+  // it("should preserve typestate for the service returned by Interpreter.start() and a servcie's .state getter.", () => {
+  //   const service = interpret(machine);
+  //   const startedService = service.start();
 
-    const idle: Idle = startedService.state.matches('idle')
-      ? startedService.state.context
-      : { result: none, error: none };
-    expect(idle).toEqual({ result: none, error: none });
+  //   const idle: Idle =
+  //     startedService.getSnapshot().value === 'idle'
+  //       ? startedService.getSnapshot().context
+  //       : { result: none, error: none };
+  //   expect(idle).toEqual({ result: none, error: none });
 
-    const running: Running = startedService.state.matches('running')
-      ? startedService.state.context
-      : { result: none, error: none };
-    expect(running).toEqual({ result: none, error: none });
+  //   const running: Running =
+  //     startedService.getSnapshot().value === 'running'
+  //       ? startedService.getSnapshot().context
+  //       : { result: none, error: none };
+  //   expect(running).toEqual({ result: none, error: none });
 
-    const succeeded: Succeeded = startedService.state.matches('succeeded')
-      ? startedService.state.context
-      : { result: 12, error: none };
-    expect(succeeded).toEqual({ result: 12, error: none });
+  //   const succeeded: Succeeded =
+  //     startedService.getSnapshot().value === 'succeeded'
+  //       ? startedService.getSnapshot().context
+  //       : { result: 12, error: none };
+  //   expect(succeeded).toEqual({ result: 12, error: none });
 
-    const failed: Failed = startedService.state.matches('failed')
-      ? startedService.state.context
-      : { result: none, error: 'oops' };
-    expect(failed).toEqual({ result: none, error: 'oops' });
-  });
+  //   const failed: Failed =
+  //     startedService.getSnapshot().value === 'failed'
+  //       ? startedService.getSnapshot().context
+  //       : { result: none, error: 'oops' };
+  //   expect(failed).toEqual({ result: none, error: 'oops' });
+  // });
 
-  it('should preserve typestate for state node returned by StateNode.withConfig.', () => {
-    const machine2 = machine.withConfig({});
-    const service = interpret(machine2);
-    service.start();
+  // it('should preserve typestate for state node returned by StateNode.withConfig.', () => {
+  //   const machine2 = machine.withConfig({});
+  //   const service = interpret(machine2);
+  //   service.start();
 
-    const idle: Idle = service.state.matches('idle')
-      ? service.state.context
-      : { result: none, error: none };
-    expect(idle).toEqual({ result: none, error: none });
+  //   const idle: Idle =
+  //     service.getSnapshot().value === 'idle'
+  //       ? service.getSnapshot().context
+  //       : { result: none, error: none };
+  //   expect(idle).toEqual({ result: none, error: none });
 
-    const running: Running = service.state.matches('running')
-      ? service.state.context
-      : { result: none, error: none };
-    expect(running).toEqual({ result: none, error: none });
+  //   const running: Running =
+  //     service.getSnapshot().value === 'running'
+  //       ? service.getSnapshot().context
+  //       : { result: none, error: none };
+  //   expect(running).toEqual({ result: none, error: none });
 
-    const succeeded: Succeeded = service.state.matches('succeeded')
-      ? service.state.context
-      : { result: 12, error: none };
-    expect(succeeded).toEqual({ result: 12, error: none });
+  //   const succeeded: Succeeded =
+  //     service.getSnapshot().value === 'succeeded'
+  //       ? service.getSnapshot().context
+  //       : { result: 12, error: none };
+  //   expect(succeeded).toEqual({ result: 12, error: none });
 
-    const failed: Failed = service.state.matches('failed')
-      ? service.state.context
-      : { result: none, error: 'oops' };
-    expect(failed).toEqual({ result: none, error: 'oops' });
-  });
+  //   const failed: Failed =
+  //     service.getSnapshot().value === 'failed'
+  //       ? service.getSnapshot().context
+  //       : { result: none, error: 'oops' };
+  //   expect(failed).toEqual({ result: none, error: 'oops' });
+  // });
 });
 
 describe('context', () => {

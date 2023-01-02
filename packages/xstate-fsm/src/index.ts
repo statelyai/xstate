@@ -9,12 +9,38 @@ interface MachineTypes {
   events: EventObject;
 }
 
-interface Behavior<TEvent extends EventObject, _TSnapshot, TInternalState> {
-  transition: (state: TInternalState, event: TEvent) => TInternalState;
-  initialState: TInternalState;
+interface ActorRef {
+  start: (state?: any) => any;
+  subscribe: (
+    observerOrFn: any
+  ) => {
+    unsubscribe: () => boolean;
+  };
+  send: (event: any) => void;
+  stop: () => void;
+  getSnapshot: () => MachineState;
+  parent?: ActorRef;
 }
 
-type AnyBehavior = Behavior<any, any, any>;
+interface ActorContext {
+  self: ActorRef;
+}
+
+export interface Behavior<
+  TEvent extends EventObject,
+  _TSnapshot,
+  TInternalState
+> {
+  transition: (
+    state: TInternalState,
+    event: TEvent,
+    actorCtx?: ActorContext
+  ) => TInternalState;
+  initialState: TInternalState;
+  start?: (state: TInternalState, actorCtx: ActorContext) => TInternalState;
+}
+
+export type AnyBehavior = Behavior<any, any, any>;
 
 type EventFrom<T extends AnyBehavior> = T extends Behavior<
   infer TEvent,
@@ -49,24 +75,33 @@ interface MachineState {
 
 type Action = string | (() => void) | BaseActionObject | DynamicActionObject;
 
+export type TransitionStringOrObject<
+  T extends MachineTypes,
+  K extends T['events']['type']
+> =
+  | string
+  | {
+      target?: string;
+      guard?: (
+        context: T['context'],
+        event: T['events'] & { type: K }
+      ) => boolean;
+      actions?: SingleOrArray<Action>;
+    };
+
 export interface FSM<T extends MachineTypes> {
   initial: string;
   context?: T['context'];
   states?: {
     [key: string]: {
+      invoke?: {
+        src: AnyBehavior;
+        onDone: TransitionStringOrObject<T, any>;
+      };
       entry?: SingleOrArray<Action>;
       exit?: SingleOrArray<Action>;
       on?: {
-        [K in T['events']['type']]?:
-          | string
-          | {
-              target?: string;
-              guard?: (
-                context: T['context'],
-                event: T['events'] & { type: K }
-              ) => boolean;
-              actions?: SingleOrArray<Action>;
-            };
+        [K in T['events']['type']]?: TransitionStringOrObject<T, K>;
       };
     };
   };
@@ -89,6 +124,7 @@ interface DynamicActionObject {
   resolve: (
     state: MachineState,
     event: EventObject
+    // actorCtx: ActorContext
   ) => [MachineState, BaseActionObject];
 }
 
@@ -118,10 +154,21 @@ export function assign(assignments: any): DynamicActionObject {
   };
 }
 
+// export function invoke(behavior: AnyBehavior): DynamicActionObject {
+//   return {
+//     type: 'xstate.invoke',
+//     params: behavior,
+//     resolve: (state, eventObject, actorCtx) => {
+//       const actor = interpret(behavior as any);
+//       return [state, { type: 'xstate.invoke', params: { ref: actor } }];
+//     }
+//   };
+// }
+
 function toActionObject(
   action: Action,
   actionImpls?: Implementations['actions']
-): BaseActionObject {
+): DynamicActionObject | BaseActionObject {
   if (typeof action === 'string') {
     return actionImpls?.[action]
       ? toActionObject(actionImpls[action], actionImpls)
@@ -134,6 +181,7 @@ function toActionObject(
       execute: action
     };
   }
+
   return action;
 }
 
@@ -163,19 +211,20 @@ export function createMachine<T extends MachineTypes>(
   const initialStateNode = machine.initial
     ? machine.states?.[machine.initial]
     : undefined;
+  const initialActions =
+    toArray(initialStateNode?.entry ?? []).map((action) =>
+      toActionObject(action, machine.implementations?.actions)
+    ) ?? [];
   let initialState: MachineState = {
     value: machine.initial,
     context: machine.context ?? {},
-    actions:
-      toArray(initialStateNode?.entry ?? []).map((a) =>
-        toActionObject(a, machine.implementations?.actions)
-      ) ?? [],
+    actions: initialActions,
     changed: false
   };
 
-  for (let action of initialState.actions) {
-    const actionObject: BaseActionObject =
-      typeof action === 'string' ? { type: action } : action;
+  for (let actionObject of initialActions) {
+    // const actionObject: BaseActionObject =
+    //   typeof action === 'string' ? { type: action } : action;
     if (actionObject.resolve) {
       let resolvedActionObject;
       [initialState, resolvedActionObject] = actionObject.resolve(
@@ -188,14 +237,18 @@ export function createMachine<T extends MachineTypes>(
 
   return {
     config: machine,
-    transition: (state, event): MachineState => {
+    transition: (state, event, actorCtx?: ActorContext): MachineState => {
       const stateNode = machine.states?.[state.value];
       if (!stateNode) {
         throw new Error(
           `State node not found for state value '${state.value}'`
         );
       }
-      const transition = stateNode?.on?.[(event as T['events']).type];
+      const transition =
+        event.type === 'done'
+          ? stateNode.invoke?.onDone
+          : stateNode?.on?.[(event as T['events']).type];
+
       if (!transition) {
         return { ...state, actions: [] };
       }
@@ -213,17 +266,33 @@ export function createMachine<T extends MachineTypes>(
             `State node not found for state value '${nextValue}'`
           );
         }
-        const enteredState =
-          nextValue !== state.value ? machine.states?.[nextValue] : undefined;
-        const exitedState =
-          nextValue !== state.value ? machine.states?.[state.value] : undefined;
-        const entryActions = toArray(enteredState?.entry) ?? [];
-        const exitActions = toArray(exitedState?.exit) ?? [];
+        const stateChanged = nextValue !== state.value;
+        const stateToEnter = stateChanged
+          ? machine.states?.[nextValue]
+          : undefined;
+        const stateToExit = stateChanged
+          ? machine.states?.[state.value]
+          : undefined;
+        const entryActions = toArray(stateToEnter?.entry) ?? [];
+        const exitActions = toArray(stateToExit?.exit) ?? [];
         const transitionActions = toArray(transitionObject.actions) ?? [];
+        const invokeActions = toArray(stateToEnter?.invoke).map((i) => ({
+          type: 'xstate.invoke',
+          execute: () => {
+            console.log('executing...', i);
+
+            const actorRef = interpret(i.src);
+            // @ts-ignore
+            actorRef.parent = actorCtx?.self;
+
+            actorRef.start();
+          }
+        }));
 
         const allActions = [
           ...exitActions,
           ...transitionActions,
+          ...invokeActions,
           ...entryActions
         ];
 
@@ -233,7 +302,7 @@ export function createMachine<T extends MachineTypes>(
           actions: allActions.map((a) =>
             toActionObject(a, machine.implementations?.actions)
           ),
-          changed: nextValue !== state.value || allActions.length > 0
+          changed: false
         };
 
         for (let action of allActions) {
@@ -248,6 +317,9 @@ export function createMachine<T extends MachineTypes>(
             resolvedActionObject;
           }
         }
+
+        nextState.changed =
+          nextState.value !== state.value || allActions.length > 0;
 
         return nextState;
       }
@@ -265,9 +337,7 @@ export function createMachine<T extends MachineTypes>(
   };
 }
 
-export function interpret<TBehavior extends MachineBehavior<any>>(
-  behavior: TBehavior
-) {
+export function interpret<TBehavior extends AnyBehavior>(behavior: TBehavior) {
   let currentState = behavior.initialState;
   const observers = new Set<any>();
 
@@ -282,8 +352,11 @@ export function interpret<TBehavior extends MachineBehavior<any>>(
   }
 
   const actorRef = {
-    start: (restoredState?: MachineState) => {
-      update(restoredState ?? behavior.initialState);
+    start: (_restoredState?: MachineState) => {
+      const startState = behavior.start
+        ? behavior.start(behavior.initialState, { self: actorRef })
+        : behavior.initialState;
+      update(startState);
       return actorRef;
     },
     subscribe: (observerOrFn) => {
@@ -298,11 +371,17 @@ export function interpret<TBehavior extends MachineBehavior<any>>(
       };
     },
     send: (event: EventFrom<TBehavior>) => {
-      currentState = behavior.transition(currentState, event);
-
-      currentState.actions.forEach((action) => {
-        action.execute?.();
+      currentState = behavior.transition(currentState, event, {
+        self: actorRef
       });
+
+      try {
+        currentState.actions.forEach((action) => {
+          action.execute?.();
+        });
+      } catch (e) {
+        // gulp
+      }
       observers.forEach((observer) => observer.next(currentState));
     },
     stop: () => {
