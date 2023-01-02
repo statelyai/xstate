@@ -4,7 +4,6 @@ import {
   EventObject,
   interpret,
   Observer,
-  toEventObject,
   toObserver,
   toSCXMLEvent
 } from 'xstate';
@@ -172,16 +171,14 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
       // while the sent one is being processed, which throws the order off
       const originalSend = service.send.bind(service);
 
-      service.send = function inspectSend(event: EventObject, payload?: any) {
+      service.send = function inspectSend(event: EventObject) {
         inspectService.send({
           type: 'service.event',
-          event: stringifyWithSerializer(
-            toSCXMLEvent(toEventObject(event as EventObject, payload))
-          ),
+          event: stringifyWithSerializer(toSCXMLEvent(event)),
           sessionId: service.sessionId
         });
 
-        return originalSend(event, payload);
+        return originalSend(event);
       };
     }
 
@@ -236,7 +233,7 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
       };
     },
     disconnect: () => {
-      inspectService.send('disconnect');
+      inspectService.send({ type: 'disconnect' });
       window.removeEventListener('message', messageHandler);
       sub.unsubscribe();
     }

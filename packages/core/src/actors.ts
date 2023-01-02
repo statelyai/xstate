@@ -3,7 +3,6 @@ import type {
   Subscribable,
   Subscription,
   Lazy,
-  Sender,
   Receiver,
   Behavior,
   ActorContext,
@@ -118,7 +117,7 @@ export function fromCallback<TEvent extends EventObject>(
         dispose: undefined as Promise<any> | (() => void) | void
       };
 
-      const sender: Sender<TEvent> = (e) => {
+      const sender = (e) => {
         if (state.canceled) {
           return state;
         }

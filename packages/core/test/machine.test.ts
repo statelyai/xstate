@@ -156,7 +156,9 @@ describe('machine', () => {
         `"new entry"`
       );
 
-      expect(differentMachine.transition('foo', 'EVENT').value).toEqual('bar');
+      expect(
+        differentMachine.transition('foo', { type: 'EVENT' }).value
+      ).toEqual('bar');
     });
 
     it('should not override context if not defined', () => {
@@ -390,7 +392,7 @@ describe('machine', () => {
         }
       });
 
-      const barState = machine.transition(undefined, 'NEXT');
+      const barState = machine.transition(undefined, { type: 'NEXT' });
 
       const jsonBarState = JSON.parse(JSON.stringify(barState));
 
@@ -410,7 +412,7 @@ describe('machine', () => {
         }
       });
 
-      const nextState = machine.transition(undefined, 'NEXT');
+      const nextState = machine.transition(undefined, { type: 'NEXT' });
 
       const persistedState = JSON.stringify(nextState);
 
@@ -486,7 +488,7 @@ describe('machine', () => {
 
       expect(state.value).toEqual({});
 
-      const nextState = testMachine.transition(state, 'INC');
+      const nextState = testMachine.transition(state, { type: 'INC' });
 
       expect(nextState.context.value).toEqual(43);
     });

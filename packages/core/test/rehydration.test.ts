@@ -55,7 +55,7 @@ describe('rehydration', () => {
       const restoredState = JSON.parse(persistedState);
       const service = interpret(machine).start(restoredState);
 
-      expect(service.getSnapshot().can('FOO')).toBe(true);
+      expect(service.getSnapshot().can({ type: 'FOO' })).toBe(true);
     });
   });
 

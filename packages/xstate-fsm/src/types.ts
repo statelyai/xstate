@@ -150,7 +150,7 @@ export declare namespace StateMachine {
     initialState: State<TContext, TEvent, TState>;
     transition: (
       state: string | State<TContext, TEvent, TState>,
-      event: TEvent['type'] | TEvent
+      event: TEvent
     ) => State<TContext, TEvent, TState>;
   }
 
@@ -161,7 +161,7 @@ export declare namespace StateMachine {
     TEvent extends EventObject,
     TState extends Typestate<TContext> = { value: any; context: TContext }
   > {
-    send: (event: TEvent | TEvent['type']) => void;
+    send: (event: TEvent) => void;
     subscribe: (
       listener: StateListener<State<TContext, TEvent, TState>>
     ) => {

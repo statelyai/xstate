@@ -12,7 +12,7 @@ describe('machine.microstep()', () => {
           }
         },
         a: {
-          entry: raise('NEXT'),
+          entry: raise({ type: 'NEXT' }),
           on: {
             NEXT: 'b'
           }
@@ -21,7 +21,7 @@ describe('machine.microstep()', () => {
           always: 'c'
         },
         c: {
-          entry: raise('NEXT'),
+          entry: raise({ type: 'NEXT' }),
           on: {
             NEXT: 'd'
           }
@@ -53,7 +53,7 @@ describe('machine.microstep()', () => {
 
     const states = machine.microstep(
       machine.resolveStateValue('first'),
-      'TRIGGER',
+      { type: 'TRIGGER' },
       undefined
     );
 
@@ -68,7 +68,7 @@ describe('machine.microstep()', () => {
           on: {
             TRIGGER: {
               target: 'second',
-              actions: raise('RAISED')
+              actions: raise({ type: 'RAISED' })
             }
           }
         },
@@ -83,7 +83,7 @@ describe('machine.microstep()', () => {
 
     const states = machine.microstep(
       machine.resolveStateValue('first'),
-      'TRIGGER',
+      { type: 'TRIGGER' },
       undefined
     );
 
@@ -103,7 +103,7 @@ describe('machine.microstep()', () => {
       }
     });
 
-    const states = machine.microstep(machine.initialState, 'TRIGGER');
+    const states = machine.microstep(machine.initialState, { type: 'TRIGGER' });
 
     expect(states.map((s) => s.value)).toEqual(['second']);
   });
@@ -116,7 +116,7 @@ describe('machine.microstep()', () => {
           on: {
             TRIGGER: {
               target: 'second',
-              actions: [raise('FOO'), raise('BAR')]
+              actions: [raise({ type: 'FOO' }), raise({ type: 'BAR' })]
             }
           }
         },
@@ -141,7 +141,7 @@ describe('machine.microstep()', () => {
       }
     });
 
-    const states = machine.microstep(machine.initialState, 'TRIGGER');
+    const states = machine.microstep(machine.initialState, { type: 'TRIGGER' });
 
     expect(states.map((s) => [s.value, s._internalQueue.length])).toEqual([
       ['second', 2], // foo, bar
@@ -174,7 +174,7 @@ describe('machine.microstep()', () => {
       }
     });
 
-    const states = machine.microstep(machine.initialState, 'TRIGGER');
+    const states = machine.microstep(machine.initialState, { type: 'TRIGGER' });
 
     expect(states.map((s) => s.actions.map((a) => a.type))).toEqual([
       ['one'],

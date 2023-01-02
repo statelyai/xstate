@@ -1,5 +1,4 @@
 import {
-  Event,
   EventObject,
   SendActionParams,
   SpecialTargets,
@@ -8,13 +7,7 @@ import {
   MachineContext
 } from '../types';
 import { send as sendActionType } from '../actionTypes';
-import {
-  getEventType,
-  isFunction,
-  isString,
-  toEventObject,
-  toSCXMLEvent
-} from '../utils';
+import { isFunction, isString, toSCXMLEvent } from '../utils';
 import { createDynamicAction } from '../../actions/dynamicAction';
 import {
   AnyActorRef,
@@ -43,7 +36,7 @@ export function send<
   TEvent extends EventObject,
   TSentEvent extends EventObject = AnyEventObject
 >(
-  event: Event<TSentEvent> | SendExpr<TContext, TEvent, TSentEvent>,
+  event: TSentEvent | SendExpr<TContext, TEvent, TSentEvent>,
   options?: SendActionOptions<TContext, TEvent>
 ): BaseDynamicActionObject<
   TContext,
@@ -51,9 +44,7 @@ export function send<
   SendActionObject<AnyEventObject>,
   SendActionParams<TContext, TEvent>
 > {
-  const eventOrExpr = isFunction(event)
-    ? event
-    : toEventObject<TSentEvent>(event);
+  const eventOrExpr = isFunction(event) ? event : event;
 
   return createDynamicAction<
     TContext,
@@ -71,7 +62,7 @@ export function send<
           ? options.id
           : isFunction(event)
           ? event.name
-          : (getEventType<TSentEvent>(event) as string)
+          : event.type
     },
     ({ params }, ctx, _event, { machine, actorContext, state }) => {
       const meta = {
@@ -151,7 +142,7 @@ export function sendParent<
   TEvent extends EventObject,
   TSentEvent extends EventObject = AnyEventObject
 >(
-  event: Event<TSentEvent> | SendExpr<TContext, TEvent, TSentEvent>,
+  event: TSentEvent | SendExpr<TContext, TEvent, TSentEvent>,
   options?: SendActionOptions<TContext, TEvent>
 ) {
   return send<TContext, TEvent, TSentEvent>(event, {
@@ -171,7 +162,7 @@ export function respond<
   TEvent extends EventObject,
   TSentEvent extends EventObject = AnyEventObject
 >(
-  event: Event<TEvent> | SendExpr<TContext, TEvent, TSentEvent>,
+  event: TEvent | SendExpr<TContext, TEvent, TSentEvent>,
   options?: SendActionOptions<TContext, TEvent>
 ) {
   return send<TContext, TEvent>(event, {

@@ -223,7 +223,7 @@ describe('reddit machine (live)', () => {
 
     // Test that when the 'SELECT' event is sent, the machine eventually
     // reaches the { selected: 'loaded' } state with posts
-    redditService.send('SELECT', { name: 'reactjs' });
+    redditService.send({ type: 'SELECT', name: 'reactjs' });
   });
 });
 ```

@@ -539,9 +539,12 @@ const pongMachine = createMachine({
       on: {
         PING: {
           // Sends 'PONG' event to parent machine
-          actions: sendParent('PONG', {
-            delay: 1000
-          })
+          actions: sendParent(
+            { type: 'PONG' },
+            {
+              delay: 1000
+            }
+          )
         }
       }
     }

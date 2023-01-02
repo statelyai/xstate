@@ -75,9 +75,11 @@ const toggleMachine = createMachine({
 
 const { initialState } = toggleMachine;
 
-const toggledState = toggleMachine.transition(initialState, 'TOGGLE');
+const toggledState = toggleMachine.transition(initialState, { type: 'TOGGLE' });
 toggledState.value;
-const untoggledState = toggleMachine.transition(toggledState, 'TOGGLE');
+const untoggledState = toggleMachine.transition(toggledState, {
+  type: 'TOGGLE'
+});
 untoggledState.value;
 // => 'inactive'
 ```
@@ -95,7 +97,7 @@ toggleService.subscribe((state) => {
   console.log(state.value);
 });
 
-toggleService.send('TOGGLE');
-toggleService.send('TOGGLE');
+toggleService.send({ type: 'TOGGLE' });
+toggleService.send({ type: 'TOGGLE' });
 toggleService.stop();
 ```

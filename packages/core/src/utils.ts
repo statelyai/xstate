@@ -6,7 +6,6 @@ import type { StateNode } from './StateNode';
 import type {
   Behavior,
   BehaviorCreator,
-  Event,
   EventObject,
   EventType,
   InvokeConfig,
@@ -58,20 +57,6 @@ export function matchesState(
 
     return matchesState(parentStateValue[key], childStateValue[key]);
   });
-}
-
-export function getEventType<TEvent extends EventObject = EventObject>(
-  event: Event<TEvent>
-): TEvent['type'] {
-  try {
-    return isString(event) || typeof event === 'number'
-      ? `${event}`
-      : (event as TEvent).type;
-  } catch (e) {
-    throw new Error(
-      'Events must be strings or objects with a string event.type property.'
-    );
-  }
 }
 
 export function toStatePath(
@@ -377,21 +362,10 @@ export const uniqueId = (() => {
   };
 })();
 
-export function toEventObject<TEvent extends EventObject>(
-  event: Event<TEvent>,
-  payload?: Record<string, any>
-): TEvent {
-  if (isString(event)) {
-    return { type: event, ...payload } as TEvent;
-  }
-
-  return event;
-}
-
 export function isSCXMLEvent<TEvent extends EventObject>(
-  event: Event<TEvent> | SCXML.Event<TEvent>
+  event: TEvent | SCXML.Event<TEvent>
 ): event is SCXML.Event<TEvent> {
-  return !isString(event) && '$$type' in event && event.$$type === 'scxml';
+  return '$$type' in event && event.$$type === 'scxml';
 }
 
 export function isSCXMLErrorEvent(
@@ -404,18 +378,16 @@ export function isSCXMLErrorEvent(
 }
 
 export function toSCXMLEvent<TEvent extends EventObject>(
-  event: Event<TEvent> | SCXML.Event<TEvent>,
+  event: TEvent | SCXML.Event<TEvent>,
   scxmlEvent?: Partial<SCXML.Event<TEvent>>
 ): SCXML.Event<TEvent> {
   if (isSCXMLEvent(event)) {
     return event as SCXML.Event<TEvent>;
   }
 
-  const eventObject = toEventObject(event as Event<TEvent>);
-
   return {
-    name: eventObject.type,
-    data: eventObject,
+    name: event.type,
+    data: event,
     $$type: 'scxml',
     type: 'external',
     ...scxmlEvent

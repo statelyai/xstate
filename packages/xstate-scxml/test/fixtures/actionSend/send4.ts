@@ -8,7 +8,7 @@ const m = createMachine({
       on: { t: 'b' }
     },
     b: {
-      entry: actions.raise('s'),
+      entry: actions.raise({ type: 's' }),
       always: 'f1',
       on: {
         s: 'c'

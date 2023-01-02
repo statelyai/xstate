@@ -26,10 +26,9 @@ const lightMachine = createMachine({
 
 describe('delayed transitions', () => {
   it('should transition after delay', () => {
-    const nextState = lightMachine.transition(
-      lightMachine.initialState,
-      after(1000, 'light.green')
-    );
+    const nextState = lightMachine.transition(lightMachine.initialState, {
+      type: after(1000, 'light.green')
+    });
 
     expect(nextState.value).toEqual('yellow');
     expect(nextState.actions).toMatchInlineSnapshot(`
@@ -189,7 +188,7 @@ describe('delayed transitions', () => {
       }
     });
 
-    const withAfterState = machine.transition(undefined, 'next');
+    const withAfterState = machine.transition(undefined, { type: 'next' });
 
     interpret(machine)
       .onDone(() => done())

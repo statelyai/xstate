@@ -95,7 +95,8 @@ export function useService<
     }
   );
 
-  const send = (event: TEvent | TEvent['type']) => serviceRef.value.send(event);
+  const send: typeof serviceRef.value.send = (event) =>
+    serviceRef.value.send(event);
 
   return { state, send, service: serviceRef };
 }

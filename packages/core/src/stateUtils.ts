@@ -322,7 +322,7 @@ export function getDelayedTransitions<
   ) => {
     const delayRef = isFunction(delay) ? `${stateNode.id}:delay[${i}]` : delay;
     const eventType = after(delayRef, stateNode.id);
-    stateNode.entry.push(send(eventType, { delay }));
+    stateNode.entry.push(send({ type: eventType }, { delay }));
     stateNode.exit.push(cancel(eventType));
     return eventType;
   };

@@ -19,7 +19,7 @@
 
 <div>
   {#if $state.matches('idle')}
-    <button on:click={() => send('FETCH')}>Fetch</button>
+    <button on:click={() => send({ type: 'FETCH' })}>Fetch</button>
   {:else if $state.matches('loading')}
     <div>Loading...</div>
   {:else if $state.matches('success')}

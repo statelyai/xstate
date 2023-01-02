@@ -114,12 +114,14 @@ export const todosMachine = todosModel.createMachine({
     },
     'MARK.completed': {
       actions: (context) => {
-        context.todos.forEach((todo) => todo.ref.send('SET_COMPLETED'));
+        context.todos.forEach((todo) =>
+          todo.ref.send({ type: 'SET_COMPLETED' })
+        );
       }
     },
     'MARK.active': {
       actions: (context) => {
-        context.todos.forEach((todo) => todo.ref.send('SET_ACTIVE'));
+        context.todos.forEach((todo) => todo.ref.send({ type: 'SET_ACTIVE' }));
       }
     },
     CLEAR_COMPLETED: {

@@ -536,9 +536,12 @@ const pongMachine = createMachine({
       on: {
         PING: {
           // 向父状态机发送“PONG”事件
-          actions: sendParent('PONG', {
-            delay: 1000
-          })
+          actions: sendParent(
+            { type: 'PONG' },
+            {
+              delay: 1000
+            }
+          )
         }
       }
     }
