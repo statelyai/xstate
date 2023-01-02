@@ -1,4 +1,5 @@
-import { createMachine, fromPromise, assign, interpret } from '../src';
+import { createMachine, assign, interpret } from '../src';
+import { fromPromise } from '../src/behaviors';
 
 describe('invoking promises', () => {
   it('can invoke a promise', (done) => {
