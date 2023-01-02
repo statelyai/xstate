@@ -1,6 +1,7 @@
 import {
   ActorContext,
   AnyStateMachine,
+  Behavior,
   InvokeActionObject,
   Spawner,
   TransitionDefinition
@@ -85,7 +86,12 @@ export class StateMachine<
     TAction,
     TActorMap
   >
-> {
+> implements
+    Behavior<
+      TEvent | SCXML.Event<TEvent>,
+      State<TContext, TEvent, TResolvedTypesMeta>,
+      State<TContext, TEvent, TResolvedTypesMeta>
+    > {
   private _contextFactory: (stuff: { spawn: Spawner }) => TContext;
   public get context(): TContext {
     return this.getContextAndActions()[0];
@@ -254,7 +260,7 @@ export class StateMachine<
    * @param event The received event
    */
   public transition(
-    state: StateValue | State<TContext, TEvent, TResolvedTypesMeta> = this
+    state: State<TContext, TEvent, TResolvedTypesMeta> | StateValue = this
       .initialState,
     event: TEvent | SCXML.Event<TEvent>,
     actorCtx?: ActorContext<TEvent, State<TContext, TEvent, any>>
@@ -348,7 +354,7 @@ export class StateMachine<
    * Returns the initial `State` instance, with reference to `self` as an `ActorRef`.
    */
   public getInitialState(
-    actorCtx?: ActorContext<TEvent, State<TContext, TEvent>>
+    actorCtx?: ActorContext<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const preInitialState = this.getPreInitialState(actorCtx);
     const nextState = microstep(
@@ -404,8 +410,8 @@ export class StateMachine<
   }
 
   public restoreState(
-    state: State<TContext, TEvent, TResolvedTypesMeta> | StateValue,
-    actorCtx?: ActorContext<TEvent, State<TContext, TEvent>>
+    state: State<TContext, TEvent, TResolvedTypesMeta>,
+    actorCtx?: ActorContext<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const restoredState = isStateConfig(state)
       ? this.resolveState(state as any)
