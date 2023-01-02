@@ -328,7 +328,7 @@ export class StateMachine<
     if (actorCtx) {
       const { nextState } = resolveActionsAndContext(
         actions,
-        initEvent,
+        initEvent as SCXML.Event<TEvent>,
         preInitial,
         actorCtx
       );

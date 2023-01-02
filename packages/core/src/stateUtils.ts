@@ -1495,12 +1495,12 @@ function exitStates(
 }
 
 export function resolveActionsAndContext<
-  _TContext extends MachineContext,
+  TContext extends MachineContext,
   TEvent extends EventObject
 >(
   actions: BaseActionObject[],
   scxmlEvent: SCXML.Event<TEvent>,
-  currentState: AnyState,
+  currentState: State<TContext, TEvent, any>,
   actorCtx: ActorContext<any, any> | undefined
 ): {
   nextState: AnyState;
