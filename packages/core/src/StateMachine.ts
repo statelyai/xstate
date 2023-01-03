@@ -1,8 +1,9 @@
 import { initEvent } from './actions';
 import { STATE_DELIMITER } from './constants';
 import { createSpawner } from './spawn';
-import { isStateConfig, State } from './State';
+import { getPersisted, isStateConfig, PersistedState, State } from './State';
 import { StateNode } from './StateNode';
+import { interpret } from './interpreter';
 import {
   getConfiguration,
   getInitialConfiguration,
@@ -24,6 +25,7 @@ import type {
 import type {
   ActorContext,
   ActorMap,
+  AnyActorRef,
   AnyStateMachine,
   BaseActionObject,
   Behavior,
@@ -88,7 +90,8 @@ export class StateMachine<
     Behavior<
       TEvent | SCXML.Event<TEvent>,
       State<TContext, TEvent, TResolvedTypesMeta>,
-      State<TContext, TEvent, TResolvedTypesMeta>
+      State<TContext, TEvent, TResolvedTypesMeta>,
+      PersistedState<State<TContext, TEvent, TResolvedTypesMeta>>
     > {
   private _contextFactory: (stuff: { spawn: Spawner }) => TContext;
   public get context(): TContext {
@@ -410,6 +413,12 @@ export class StateMachine<
     return this.definition;
   }
 
+  public getPersisted(
+    state: State<TContext, TEvent, TResolvedTypesMeta>
+  ): PersistedState<State<TContext, TEvent, TResolvedTypesMeta>> {
+    return getPersisted(state);
+  }
+
   public createState(
     stateConfig:
       | State<TContext, TEvent, TResolvedTypesMeta>
@@ -424,6 +433,31 @@ export class StateMachine<
       state,
       undefined
     );
+
+    const restoredChildren: Record<string, AnyActorRef> = {};
+
+    Object.keys(resolvedState.children).forEach((key) => {
+      const persistedState = resolvedState.children[key];
+      const impl = this.options.actors[key];
+
+      if (!impl) return;
+
+      if (typeof impl === 'function') {
+        const behavior = impl(resolvedState.context, resolvedState.event, {
+          id: key,
+          src: {} as any,
+          _event: resolvedState._event,
+          meta: undefined
+        });
+
+        // TODO: this should only start if actorCtx is enabled
+        restoredChildren[key] = interpret(behavior, { id: key }).start(
+          persistedState
+        );
+      }
+    });
+
+    resolvedState.children = restoredChildren;
 
     return resolvedState as State<TContext, TEvent, TResolvedTypesMeta>;
   }

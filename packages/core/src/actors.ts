@@ -39,7 +39,9 @@ export function fromReducer<TState, TEvent extends EventObject>(
       return transition(state, resolvedEvent, actorCtx);
     },
     getInitialState: () => initialState,
-    getSnapshot: (state) => state
+    getSnapshot: (state) => state,
+    getPersisted: (state) => state,
+    restoreState: (state) => state
   };
 }
 
@@ -230,7 +232,9 @@ export function fromPromise<T>(
       };
     },
     getSnapshot: (state) => state.data,
-    getStatus: (state) => state
+    getStatus: (state) => state,
+    getPersisted: (state) => state,
+    restoreState: (state) => state
   };
 
   return behavior;

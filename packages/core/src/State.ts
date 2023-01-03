@@ -278,3 +278,34 @@ export function cloneState<TState extends AnyState>(
     state.machine
   ) as TState;
 }
+
+export interface PersistedState<TState extends AnyState> {
+  [key: string]: any;
+  children: {
+    [key in keyof TState['children']]: any;
+  };
+}
+
+export function getPersisted<TState extends AnyState>(
+  state: TState
+): PersistedState<TState> {
+  const {
+    configuration,
+    transitions,
+    tags,
+    machine,
+    children,
+    ...jsonValues
+  } = state;
+
+  const childrenJson: any = {};
+
+  for (const key in children) {
+    childrenJson[key] = children[key].getPersisted?.();
+  }
+
+  return {
+    ...jsonValues,
+    children: childrenJson
+  };
+}

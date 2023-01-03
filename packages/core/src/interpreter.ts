@@ -1,10 +1,12 @@
 import type {
   ActorContext,
   AnyActorRef,
+  AnyBehavior,
   AnyStateMachine,
   Behavior,
   EventFromBehavior,
   InterpreterFrom,
+  PersistedFrom,
   SnapshotFrom
 } from './types';
 import { stopSignalType } from './actors';
@@ -30,7 +32,7 @@ import { symbolObservable } from './symbolObservable';
 import { evict, memo } from './memo';
 import { doneInvoke, error } from './actions';
 
-export type SnapshotListener<TBehavior extends Behavior<any, any>> = (
+export type SnapshotListener<TBehavior extends AnyBehavior> = (
   state: SnapshotFrom<TBehavior>
 ) => void;
 
@@ -67,13 +69,13 @@ const defaultOptions = {
 };
 
 type InternalStateFrom<
-  TBehavior extends Behavior<any, any, any>
+  TBehavior extends AnyBehavior
 > = TBehavior extends Behavior<infer _, infer __, infer TInternalState>
   ? TInternalState
   : never;
 
 export class Interpreter<
-  TBehavior extends Behavior<any, any>,
+  TBehavior extends AnyBehavior,
   TEvent extends EventObject = EventFromBehavior<TBehavior>
 > implements ActorRef<TEvent, SnapshotFrom<TBehavior>> {
   /**
@@ -282,11 +284,11 @@ export class Interpreter<
 
   /**
    * Starts the interpreter from the given state, or the initial state.
-   * @param initialState The state to start the statechart from
+   * @param persistedState The state to start the statechart from
    */
   public start(
     // TODO: remove this argument
-    initialState?: InternalStateFrom<TBehavior> | StateValue
+    persistedState?: InternalStateFrom<TBehavior> | StateValue
   ): this {
     if (this.status === ActorStatus.Running) {
       // Do not restart the service if it is already started
@@ -296,8 +298,8 @@ export class Interpreter<
     registry.register(this.sessionId, this.ref);
     this.status = ActorStatus.Running;
 
-    let resolvedState = initialState
-      ? this.behavior.restoreState?.(initialState, this._actorContext)
+    let resolvedState = persistedState
+      ? this.behavior.restoreState?.(persistedState, this._actorContext)
       : this._getInitialState() ?? undefined;
 
     if (this.behavior.start) {
@@ -479,6 +481,14 @@ export class Interpreter<
     };
   }
 
+  public getPersisted(): PersistedFrom<TBehavior> | undefined {
+    if (!this._state) {
+      return undefined;
+    }
+
+    return this.behavior.getPersisted?.(this._state);
+  }
+
   public [symbolObservable](): InteropSubscribable<SnapshotFrom<TBehavior>> {
     return this;
   }
@@ -506,7 +516,7 @@ export function interpret<TMachine extends AnyStateMachine>(
     : 'Some implementations missing',
   options?: InterpreterOptions
 ): InterpreterFrom<TMachine>;
-export function interpret<TBehavior extends Behavior<any, any>>(
+export function interpret<TBehavior extends AnyBehavior>(
   behavior: TBehavior,
   options?: InterpreterOptions
 ): Interpreter<TBehavior>;
