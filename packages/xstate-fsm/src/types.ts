@@ -12,7 +12,9 @@ export interface MachineTypes {
 export interface ActorRef<TBehavior extends AnyBehavior> {
   start: (persistedState?: InternalStateFrom<TBehavior>) => any;
   subscribe: (
-    observerOrFn: any
+    observerOrFn:
+      | Observer<SnapshotFrom<TBehavior>>
+      | ((snapshot: SnapshotFrom<TBehavior>) => void)
   ) => {
     unsubscribe: () => void;
   };
@@ -101,10 +103,6 @@ export interface BaseActionObject {
   type: string;
   params?: Record<string, any>;
   execute?: () => void;
-  resolve?: (
-    state: MachineState<any>,
-    event: EventObject
-  ) => [MachineState<any>, BaseActionObject];
 }
 
 export interface DynamicActionObject<T extends MachineTypes> {
@@ -153,4 +151,10 @@ export interface StateMachineConfig<T extends MachineTypes> {
       };
     };
   };
+}
+
+export interface Observer<T> {
+  next?: (value: T) => void;
+  error?: (err: any) => void;
+  complete?: () => void;
 }

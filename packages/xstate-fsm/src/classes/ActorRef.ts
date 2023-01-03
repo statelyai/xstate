@@ -4,14 +4,15 @@ import {
   InternalStateFrom,
   ActorContext,
   EventFrom,
-  SnapshotFrom
+  SnapshotFrom,
+  Observer
 } from '../types';
 
 export class Actor<TBehavior extends AnyBehavior>
   implements ActorRef<TBehavior> {
   private state: InternalStateFrom<TBehavior>;
   private behavior: TBehavior;
-  private observers: Set<any> = new Set();
+  private observers: Set<Observer<SnapshotFrom<TBehavior>>> = new Set();
   private actorContext: ActorContext<TBehavior> = {
     self: this
   };
@@ -39,11 +40,12 @@ export class Actor<TBehavior extends AnyBehavior>
 
   private update(state: InternalStateFrom<TBehavior>) {
     this.state = state;
-    this.observers.forEach((observer) => observer.next(state));
+    const snapshot = this.behavior.getSnapshot(state);
+    this.observers.forEach((observer) => observer.next?.(snapshot));
   }
 
   public stop() {
-    this.observers.forEach((observer) => observer.complete());
+    this.observers.forEach((observer) => observer.complete?.());
     this.observers.clear();
   }
 

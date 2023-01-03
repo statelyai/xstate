@@ -11,6 +11,8 @@ import {
   MachineBehavior,
   MachineState,
   MachineTypes,
+  Observer,
+  SnapshotFrom,
   StateMachineConfig
 } from './types';
 
@@ -41,17 +43,6 @@ export function assign<T extends MachineTypes>(
     }
   };
 }
-
-// export function invoke(behavior: AnyBehavior): DynamicActionObject {
-//   return {
-//     type: 'xstate.invoke',
-//     params: behavior,
-//     resolve: (state, eventObject, actorCtx) => {
-//       const actor = interpret(behavior as any);
-//       return [state, { type: 'xstate.invoke', params: { ref: actor } }];
-//     }
-//   };
-// }
 
 function toActionObject<T extends MachineTypes>(
   action: Action<T>,
@@ -92,9 +83,7 @@ export function createMachine<T extends MachineTypes>(
   };
 
   for (let actionObject of initialActions) {
-    // const actionObject: BaseActionObject =
-    //   typeof action === 'string' ? { type: action } : action;
-    if (actionObject.resolve) {
+    if ('resolve' in actionObject) {
       let resolvedActionObject;
       [initialState, resolvedActionObject] = actionObject.resolve(
         initialState,
@@ -211,8 +200,8 @@ export function createMachine<T extends MachineTypes>(
 export function interpret<TBehavior extends AnyBehavior>(
   behavior: TBehavior
 ): ActorRef<TBehavior> {
-  let currentState = behavior.initialState;
-  const observers = new Set<any>();
+  let currentState: InternalStateFrom<TBehavior> = behavior.initialState;
+  const observers = new Set<Observer<SnapshotFrom<TBehavior>>>();
 
   function update(state: InternalStateFrom<TBehavior>) {
     currentState = state;
@@ -221,7 +210,9 @@ export function interpret<TBehavior extends AnyBehavior>(
       action.execute?.();
     });
 
-    observers.forEach((observer) => observer.next(currentState));
+    const snapshot = behavior.getSnapshot(state);
+
+    observers.forEach((observer) => observer.next?.(snapshot));
   }
 
   const actorRef: ActorRef<TBehavior> = {
@@ -234,12 +225,13 @@ export function interpret<TBehavior extends AnyBehavior>(
       return actorRef;
     },
     subscribe: (observerOrFn) => {
-      const observer =
+      const observer: Observer<SnapshotFrom<TBehavior>> =
         typeof observerOrFn === 'function'
           ? { next: observerOrFn }
           : observerOrFn;
       observers.add(observer);
-      observer.next(currentState);
+      const snapshot = behavior.getSnapshot(currentState);
+      observer.next?.(snapshot);
       return {
         unsubscribe: () => observers.delete(observer)
       };
@@ -260,10 +252,10 @@ export function interpret<TBehavior extends AnyBehavior>(
       update(currentState);
     },
     stop: () => {
-      observers.forEach((observer) => observer.complete());
+      observers.forEach((observer) => observer.complete?.());
       observers.clear();
     },
-    getSnapshot: () => currentState
+    getSnapshot: () => behavior.getSnapshot(currentState)
   };
 
   return actorRef;
