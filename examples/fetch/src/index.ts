@@ -18,4 +18,4 @@ const fetchService = interpret(fetchMachine)
   })
   .start();
 
-fetchService.send('FETCH');
+fetchService.send({ type: 'FETCH' });

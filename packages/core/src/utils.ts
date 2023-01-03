@@ -1,3 +1,4 @@
+import { AnyState } from '.';
 import { errorExecution, errorPlatform } from './actionTypes';
 import { NULL_EVENT, STATE_DELIMITER, TARGETLESS_KEY } from './constants';
 import { IS_PRODUCTION } from './environment';
@@ -5,7 +6,6 @@ import type { StateNode } from './StateNode';
 import type {
   Behavior,
   BehaviorCreator,
-  Event,
   EventObject,
   EventType,
   InvokeConfig,
@@ -59,20 +59,6 @@ export function matchesState(
   });
 }
 
-export function getEventType<TEvent extends EventObject = EventObject>(
-  event: Event<TEvent>
-): TEvent['type'] {
-  try {
-    return isString(event) || typeof event === 'number'
-      ? `${event}`
-      : (event as TEvent).type;
-  } catch (e) {
-    throw new Error(
-      'Events must be strings or objects with a string event.type property.'
-    );
-  }
-}
-
 export function toStatePath(
   stateId: string | string[],
   delimiter: string
@@ -88,7 +74,7 @@ export function toStatePath(
   }
 }
 
-export function isStateLike(state: any): state is StateLike<any> {
+export function isStateLike(state: any): state is AnyState {
   return (
     typeof state === 'object' &&
     'value' in state &&
@@ -363,10 +349,6 @@ export function isObservable<T>(value: any): value is Subscribable<T> {
   }
 }
 
-export const symbolObservable: typeof Symbol.observable = (() =>
-  (typeof Symbol === 'function' && Symbol.observable) ||
-  '@@observable')() as any;
-
 export function isStateMachine(value: any): value is AnyStateMachine {
   return !!value && '__xstatenode' in value;
 }
@@ -380,42 +362,32 @@ export const uniqueId = (() => {
   };
 })();
 
-export function toEventObject<TEvent extends EventObject>(
-  event: Event<TEvent>,
-  payload?: Record<string, any>
-): TEvent {
-  if (isString(event)) {
-    return { type: event, ...payload } as TEvent;
-  }
-
-  return event;
-}
-
 export function isSCXMLEvent<TEvent extends EventObject>(
-  event: Event<TEvent> | SCXML.Event<TEvent>
+  event: TEvent | SCXML.Event<TEvent>
 ): event is SCXML.Event<TEvent> {
-  return !isString(event) && '$$type' in event && event.$$type === 'scxml';
+  return '$$type' in event && event.$$type === 'scxml';
 }
 
 export function isSCXMLErrorEvent(
   event: SCXML.Event<any>
 ): event is SCXMLErrorEvent {
-  return event.name === errorExecution || event.name.startsWith(errorPlatform);
+  return (
+    typeof event.name === 'string' &&
+    (event.name === errorExecution || event.name.startsWith(errorPlatform))
+  );
 }
 
 export function toSCXMLEvent<TEvent extends EventObject>(
-  event: Event<TEvent> | SCXML.Event<TEvent>,
+  event: TEvent | SCXML.Event<TEvent>,
   scxmlEvent?: Partial<SCXML.Event<TEvent>>
 ): SCXML.Event<TEvent> {
   if (isSCXMLEvent(event)) {
     return event as SCXML.Event<TEvent>;
   }
 
-  const eventObject = toEventObject(event as Event<TEvent>);
-
   return {
-    name: eventObject.type,
-    data: eventObject,
+    name: event.type,
+    data: event,
     $$type: 'scxml',
     type: 'external',
     ...scxmlEvent
@@ -513,7 +485,7 @@ export function toInvokeConfig<
     if ('transition' in invocable) {
       return {
         id,
-        src: () => invocable
+        src: invocable
       };
     }
   }
@@ -538,7 +510,7 @@ export function toObserver<T>(
   nextHandler?: Observer<T> | ((value: T) => void),
   errorHandler?: (error: any) => void,
   completionHandler?: () => void
-): Required<Observer<T>> {
+): Observer<T> {
   const noop = () => {};
   const isObserver = typeof nextHandler === 'object';
   const self = isObserver ? nextHandler : null;

@@ -4,7 +4,6 @@ import {
   EventObject,
   interpret,
   Interpreter,
-  toEventObject,
   toSCXMLEvent
 } from 'xstate';
 import { toActorRef } from 'xstate/actors';
@@ -85,7 +84,7 @@ export function inspect(options: ServerInspectorOptions): Inspector {
   globalThis.__xstate__.onRegister((service: Interpreter<any>) => {
     inspectService.send({
       type: 'service.register',
-      machine: JSON.stringify(service.machine),
+      machine: JSON.stringify(service.behavior), // TODO: rename `machine` property
       state: JSON.stringify(service.getSnapshot()),
       id: service.id,
       sessionId: service.sessionId
@@ -102,16 +101,14 @@ export function inspect(options: ServerInspectorOptions): Inspector {
     // while the sent one is being processed, which throws the order off
     const originalSend = service.send.bind(service);
 
-    service.send = function inspectSend(event: EventObject, payload?: any) {
+    service.send = function inspectSend(event: EventObject) {
       inspectService.send({
         type: 'service.event',
-        event: stringify(
-          toSCXMLEvent(toEventObject(event as EventObject, payload))
-        ),
+        event: stringify(toSCXMLEvent(event)),
         sessionId: service.sessionId
       });
 
-      return originalSend(event, payload);
+      return originalSend(event);
     };
 
     service.subscribe((state) => {
@@ -122,11 +119,13 @@ export function inspect(options: ServerInspectorOptions): Inspector {
       });
     });
 
-    service.onStop(() => {
-      inspectService.send({
-        type: 'service.stop',
-        sessionId: service.sessionId
-      });
+    service.subscribe({
+      complete() {
+        inspectService.send({
+          type: 'service.stop',
+          sessionId: service.sessionId
+        });
+      }
     });
   });
 

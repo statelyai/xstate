@@ -315,7 +315,7 @@ const remoteMachine = createMachine({
     online: {
       after: {
         1000: {
-          actions: sendParent('REMOTE.ONLINE')
+          actions: sendParent({ type: 'REMOTE.ONLINE' })
         }
       }
     }

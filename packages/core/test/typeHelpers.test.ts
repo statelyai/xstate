@@ -6,7 +6,9 @@ import {
   EventFrom,
   interpret,
   MachineImplementationsFrom,
-  StateValueFrom
+  StateValueFrom,
+  Behavior,
+  ActorRefFrom
 } from '../src';
 import { TypegenMeta } from '../src/typegenTypes';
 
@@ -313,8 +315,23 @@ describe('SnapshotFrom', () => {
 
     function acceptState(_state: SnapshotFrom<typeof service>) {}
 
-    acceptState(service.initialState);
+    acceptState(service.getSnapshot());
     // @ts-expect-error
     acceptState("isn't any");
+  });
+});
+
+describe('ActorRefFrom', () => {
+  it('should return `ActorRef` based on a `Behavior`', () => {
+    const behavior: Behavior<{ type: 'TEST' }> = {
+      transition: () => {},
+      getInitialState: () => undefined
+    };
+
+    function acceptActorRef(actorRef: ActorRefFrom<typeof behavior>) {
+      actorRef.send({ type: 'TEST' });
+    }
+
+    acceptActorRef(interpret(behavior).start());
   });
 });

@@ -3,11 +3,11 @@ import {
   EventObject,
   SCXML,
   InvokeActionObject,
-  ActionTypes,
   AnyStateMachine,
   Spawner
 } from '.';
-import { ObservableActorRef } from './ObservableActorRef';
+import { invoke } from './actions/invoke';
+import { interpret } from './interpreter';
 import { isString } from './utils';
 
 export function createSpawner<
@@ -25,43 +25,46 @@ export function createSpawner<
 
       if (behaviorCreator) {
         const resolvedName = name ?? 'anon'; // TODO: better name
-        const createdBehavior = behaviorCreator(context, _event.data, {
-          id: name || 'anon',
-          src: { type: behavior },
-          _event,
-          meta: undefined
-        });
+        const createdBehavior =
+          typeof behaviorCreator === 'function'
+            ? behaviorCreator(context, _event.data, {
+                id: resolvedName,
+                src: { type: behavior },
+                _event,
+                meta: undefined
+              })
+            : behaviorCreator;
 
-        const actorRef = new ObservableActorRef(createdBehavior, resolvedName);
+        const actorRef = interpret(createdBehavior, { id: resolvedName });
 
-        mutCapturedActions.push({
-          type: ActionTypes.Invoke,
-          params: {
-            src: actorRef,
+        mutCapturedActions.push(
+          (invoke({
+            id: actorRef.id,
+            // @ts-ignore TODO: fix types
+            src: actorRef, // TODO
             ref: actorRef,
-            id: actorRef.name,
             meta: undefined
-          }
-        });
+          }) as any) as InvokeActionObject
+        );
 
         return actorRef as any; // TODO: fix types
       }
 
       throw new Error(
-        `Behavior '${behavior}' not implemented in machine '${machine.key}'`
+        `Behavior '${behavior}' not implemented in machine '${machine.id}'`
       );
     } else {
-      const actorRef = new ObservableActorRef(behavior, name || 'anonymous');
+      const actorRef = interpret(behavior, { id: name || 'anonymous' });
 
-      mutCapturedActions.push({
-        type: ActionTypes.Invoke,
-        params: {
+      mutCapturedActions.push(
+        (invoke({
+          // @ts-ignore TODO: fix types
           src: actorRef,
           ref: actorRef,
-          id: actorRef.name,
+          id: actorRef.id,
           meta: undefined
-        }
-      });
+        }) as any) as InvokeActionObject
+      );
 
       return actorRef as any; // TODO: fix types
     }

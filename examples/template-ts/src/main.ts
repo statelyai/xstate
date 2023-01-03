@@ -21,5 +21,5 @@ const service = interpret(machine).onTransition((state) => {
 service.start();
 
 button?.addEventListener('click', () => {
-  service.send('TOGGLE');
+  service.send({ type: 'TOGGLE' });
 });

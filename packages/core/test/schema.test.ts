@@ -56,13 +56,13 @@ describe('schema', () => {
 
     noop(m.context.foo);
     noop(m.context.baz.one);
-    m.transition('active', 'BAR');
+    m.transition('active', { type: 'BAR' });
 
     // @ts-expect-error
     noop(m.context.something);
 
     // @ts-expect-error
-    m.transition('active', 'INVALID');
+    m.transition('active', { type: 'INVALID' });
   });
 
   it('schema should be present in the machine definition', () => {

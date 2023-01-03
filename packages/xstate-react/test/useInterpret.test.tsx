@@ -68,7 +68,7 @@ describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
         <button
           data-testid="button"
           onClick={() => {
-            service.send('ACTIVATE');
+            service.send({ type: 'ACTIVATE' });
           }}
         ></button>
       );
@@ -104,7 +104,7 @@ describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
       });
 
       React.useLayoutEffect(() => {
-        service.send('EXEC_ACTION');
+        service.send({ type: 'EXEC_ACTION' });
       });
 
       return null;
@@ -152,7 +152,7 @@ describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
           <button
             onClick={() => {
               setId(2);
-              send('CHECK');
+              send({ type: 'CHECK' });
             }}
           >
             update id
@@ -172,16 +172,6 @@ describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
     `);
     if (suiteKey === 'strict') {
       expect((console.warn as jest.Mock).mock.calls[1][0])
-        .toMatchInlineSnapshot(`
-        "Machine given to \`useMachine\` has changed between renders. This is not supported and might lead to unexpected results.
-        Please make sure that you pass the same Machine as argument each time."
-      `);
-      expect((console.warn as jest.Mock).mock.calls[2][0])
-        .toMatchInlineSnapshot(`
-        "Machine given to \`useMachine\` has changed between renders. This is not supported and might lead to unexpected results.
-        Please make sure that you pass the same Machine as argument each time."
-      `);
-      expect((console.warn as jest.Mock).mock.calls[3][0])
         .toMatchInlineSnapshot(`
         "Machine given to \`useMachine\` has changed between renders. This is not supported and might lead to unexpected results.
         Please make sure that you pass the same Machine as argument each time."

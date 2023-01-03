@@ -4,7 +4,6 @@ import {
   EventObject,
   interpret,
   Observer,
-  toEventObject,
   toObserver,
   toSCXMLEvent
 } from 'xstate';
@@ -41,9 +40,11 @@ export function createDevTools(): XStateDevInterface {
       serviceMap.set(service.sessionId, service);
       serviceListeners.forEach((listener) => listener(service));
 
-      service.onStop(() => {
-        services.delete(service);
-        serviceMap.delete(service.sessionId);
+      service.subscribe({
+        complete() {
+          services.delete(service);
+          serviceMap.delete(service.sessionId);
+        }
       });
     },
     unregister: (service) => {
@@ -146,10 +147,10 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
     stringify(value, options?.serialize);
 
   devTools.onRegister((service) => {
-    const state = service.state || service.initialState;
+    const state = service.getSnapshot();
     inspectService.send({
       type: 'service.register',
-      machine: stringifyMachine(service.machine, options?.serialize),
+      machine: stringifyMachine(service.behavior, options?.serialize),
       state: stringifyState(state, options?.serialize),
       sessionId: service.sessionId,
       id: service.id,
@@ -170,16 +171,14 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
       // while the sent one is being processed, which throws the order off
       const originalSend = service.send.bind(service);
 
-      service.send = function inspectSend(event: EventObject, payload?: any) {
+      service.send = function inspectSend(event: EventObject) {
         inspectService.send({
           type: 'service.event',
-          event: stringifyWithSerializer(
-            toSCXMLEvent(toEventObject(event as EventObject, payload))
-          ),
+          event: stringifyWithSerializer(toSCXMLEvent(event)),
           sessionId: service.sessionId
         });
 
-        return originalSend(event, payload);
+        return originalSend(event);
       };
     }
 
@@ -197,11 +196,13 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
       });
     });
 
-    service.onStop(() => {
-      inspectService.send({
-        type: 'service.stop',
-        sessionId: service.sessionId
-      });
+    service.subscribe({
+      complete() {
+        inspectService.send({
+          type: 'service.stop',
+          sessionId: service.sessionId
+        });
+      }
     });
   });
 
@@ -223,7 +224,7 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
       const observer = toObserver(next, onError, onComplete);
 
       listeners.add(observer);
-      observer.next?.(inspectService.state);
+      observer.next?.(inspectService.getSnapshot());
 
       return {
         unsubscribe: () => {
@@ -232,7 +233,7 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
       };
     },
     disconnect: () => {
-      inspectService.send('disconnect');
+      inspectService.send({ type: 'disconnect' });
       window.removeEventListener('message', messageHandler);
       sub.unsubscribe();
     }

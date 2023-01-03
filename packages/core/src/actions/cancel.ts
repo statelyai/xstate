@@ -2,6 +2,7 @@ import { EventObject, ExprWithMeta, MachineContext } from '../types';
 import { cancel as cancelActionType } from '../actionTypes';
 import { isFunction } from '../utils';
 import {
+  AnyInterpreter,
   BaseDynamicActionObject,
   CancelActionObject,
   DynamicCancelActionObject
@@ -28,23 +29,33 @@ export function cancel<
   DynamicCancelActionObject<TContext, TEvent>['params']
 > {
   return createDynamicAction(
-    cancelActionType,
     {
-      sendId
+      type: cancelActionType,
+      params: {
+        sendId
+      }
     },
-    ({ params, type }, ctx, _event) => {
-      const resolvedSendId = isFunction(params.sendId)
-        ? params.sendId(ctx, _event.data, {
+    (_event, { state }) => {
+      const resolvedSendId = isFunction(sendId)
+        ? sendId(state.context, _event.data, {
             _event
           })
-        : params.sendId;
+        : sendId;
 
-      return {
-        type,
-        params: {
-          sendId: resolvedSendId
-        }
-      } as CancelActionObject;
+      return [
+        state,
+        {
+          type: 'xstate.cancel',
+          params: {
+            sendId: resolvedSendId
+          },
+          execute: (actorCtx) => {
+            const interpreter = actorCtx.self as AnyInterpreter;
+
+            interpreter.cancel(resolvedSendId);
+          }
+        } as CancelActionObject
+      ];
     }
   );
 }

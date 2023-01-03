@@ -281,12 +281,12 @@ describe('@xstate/inspect', () => {
       Array [
         Object {
           "event": "{\\"name\\":\\"EV\\",\\"data\\":{\\"type\\":\\"EV\\",\\"value\\":{\\"unsafe\\":\\"[unsafe]\\"}},\\"$$type\\":\\"scxml\\",\\"type\\":\\"external\\"}",
-          "sessionId": "(machine)",
+          "sessionId": "x:7",
           "type": "service.event",
         },
         Object {
-          "sessionId": "(machine)",
-          "state": "{\\"value\\":{},\\"context\\":{\\"value\\":{\\"unsafe\\":\\"[unsafe]\\"}},\\"historyValue\\":{},\\"actions\\":[{\\"type\\":\\"xstate.assign\\",\\"params\\":{\\"context\\":{\\"value\\":{\\"unsafe\\":\\"[unsafe]\\"}},\\"actions\\":[]}}],\\"meta\\":{},\\"event\\":{\\"type\\":\\"EV\\",\\"value\\":{\\"unsafe\\":\\"[unsafe]\\"}},\\"_event\\":{\\"name\\":\\"EV\\",\\"data\\":{\\"type\\":\\"EV\\",\\"value\\":{\\"unsafe\\":\\"[unsafe]\\"}},\\"$$type\\":\\"scxml\\",\\"type\\":\\"external\\"},\\"_sessionid\\":\\"(machine)\\",\\"_initial\\":false,\\"changed\\":true,\\"transitions\\":[{\\"actions\\":[{\\"type\\":\\"xstate.assign\\",\\"params\\":{\\"assignment\\":{}}}],\\"event\\":\\"EV\\",\\"source\\":\\"#(machine)\\",\\"internal\\":true,\\"eventType\\":\\"EV\\"}],\\"children\\":{},\\"tags\\":{}}",
+          "sessionId": "x:7",
+          "state": "{\\"value\\":{},\\"done\\":false,\\"context\\":{\\"value\\":{\\"unsafe\\":\\"[unsafe]\\"}},\\"historyValue\\":{},\\"actions\\":[{\\"type\\":\\"xstate.assign\\",\\"params\\":{\\"context\\":{\\"value\\":{\\"unsafe\\":\\"[unsafe]\\"}},\\"actions\\":[]}}],\\"event\\":{\\"type\\":\\"EV\\",\\"value\\":{\\"unsafe\\":\\"[unsafe]\\"}},\\"_event\\":{\\"name\\":\\"EV\\",\\"data\\":{\\"type\\":\\"EV\\",\\"value\\":{\\"unsafe\\":\\"[unsafe]\\"}},\\"$$type\\":\\"scxml\\",\\"type\\":\\"external\\"},\\"_sessionid\\":\\"x:7\\",\\"_initial\\":false,\\"changed\\":true,\\"transitions\\":[{\\"actions\\":[{\\"type\\":\\"xstate.assign\\",\\"params\\":{\\"assignment\\":{}}}],\\"event\\":\\"EV\\",\\"source\\":\\"#(machine)\\",\\"internal\\":true,\\"eventType\\":\\"EV\\"}],\\"children\\":{}}",
           "type": "service.state",
         },
       ]
@@ -300,12 +300,12 @@ describe('@xstate/inspect', () => {
       Array [
         Object {
           "event": "{\\"name\\":\\"UNKNOWN\\",\\"data\\":{\\"type\\":\\"UNKNOWN\\"},\\"$$type\\":\\"scxml\\",\\"type\\":\\"external\\"}",
-          "sessionId": "(machine)",
+          "sessionId": "x:7",
           "type": "service.event",
         },
         Object {
-          "sessionId": "(machine)",
-          "state": "{\\"value\\":{},\\"context\\":{\\"value\\":{\\"unsafe\\":\\"[unsafe]\\"}},\\"historyValue\\":{},\\"actions\\":[],\\"meta\\":{},\\"event\\":{\\"type\\":\\"UNKNOWN\\"},\\"_event\\":{\\"name\\":\\"UNKNOWN\\",\\"data\\":{\\"type\\":\\"UNKNOWN\\"},\\"$$type\\":\\"scxml\\",\\"type\\":\\"external\\"},\\"_sessionid\\":\\"(machine)\\",\\"_initial\\":false,\\"changed\\":false,\\"transitions\\":[],\\"children\\":{},\\"tags\\":{}}",
+          "sessionId": "x:7",
+          "state": "{\\"value\\":{},\\"done\\":false,\\"context\\":{\\"value\\":{\\"unsafe\\":\\"[unsafe]\\"}},\\"historyValue\\":{},\\"actions\\":[],\\"event\\":{\\"type\\":\\"UNKNOWN\\"},\\"_event\\":{\\"name\\":\\"UNKNOWN\\",\\"data\\":{\\"type\\":\\"UNKNOWN\\"},\\"$$type\\":\\"scxml\\",\\"type\\":\\"external\\"},\\"_sessionid\\":\\"x:7\\",\\"_initial\\":false,\\"changed\\":false,\\"transitions\\":[],\\"children\\":{}}",
           "type": "service.state",
         },
       ]

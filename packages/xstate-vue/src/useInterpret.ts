@@ -7,7 +7,6 @@ import {
   InterpreterFrom,
   InterpreterOptions,
   Observer,
-  State,
   StateFrom,
   toObserver
 } from 'xstate';
@@ -74,7 +73,9 @@ export function useInterpret<TMachine extends AnyStateMachine>(
   } as any);
 
   const service = interpret(machineWithConfig, interpreterOptions).start(
-    rehydratedState ? (State.create(rehydratedState) as any) : undefined
+    rehydratedState
+      ? (machineWithConfig.createState(rehydratedState) as any)
+      : undefined
   );
 
   let sub;

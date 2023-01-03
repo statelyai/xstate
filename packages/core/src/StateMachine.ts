@@ -1,20 +1,19 @@
-import { AnyStateMachine, InvokeActionObject, Spawner, StateFrom } from '.';
+import { initEvent } from './actions';
 import { STATE_DELIMITER } from './constants';
-import { IS_PRODUCTION } from './environment';
 import { createSpawner } from './spawn';
-import { State } from './State';
+import { isStateConfig, State } from './State';
 import { StateNode } from './StateNode';
 import {
   getConfiguration,
+  getInitialConfiguration,
   getStateNodes,
-  getStateValue,
+  isInFinalState,
   isStateId,
   macrostep,
-  resolveMicroTransition,
+  microstep,
+  resolveActionsAndContext,
   resolveStateValue,
-  toState,
-  transitionNode,
-  setChildren
+  transitionNode
 } from './stateUtils';
 import type {
   AreAllImplementationsAssumedToBeProvided,
@@ -23,11 +22,14 @@ import type {
   TypegenDisabled
 } from './typegenTypes';
 import type {
+  ActorContext,
   ActorMap,
+  AnyStateMachine,
   BaseActionObject,
-  Event,
+  Behavior,
   EventObject,
   InternalMachineImplementations,
+  InvokeActionObject,
   MachineConfig,
   MachineContext,
   MachineImplementationsSimplified,
@@ -35,13 +37,13 @@ import type {
   MaybeLazy,
   NoInfer,
   SCXML,
+  Spawner,
   StateConfig,
-  StateNodeDefinition,
+  StateMachineDefinition,
   StateValue,
-  Transitions,
-  PredictableActionArgumentsExec
+  TransitionDefinition
 } from './types';
-import { isBuiltInEvent, isFunction, toSCXMLEvent } from './utils';
+import { isFunction, isSCXMLErrorEvent, toSCXMLEvent } from './utils';
 
 export const NULL_EVENT = '';
 export const STATE_IDENTIFIER = '#';
@@ -82,7 +84,12 @@ export class StateMachine<
     TAction,
     TActorMap
   >
-> {
+> implements
+    Behavior<
+      TEvent | SCXML.Event<TEvent>,
+      State<TContext, TEvent, TResolvedTypesMeta>,
+      State<TContext, TEvent, TResolvedTypesMeta>
+    > {
   private _contextFactory: (stuff: { spawn: Spawner }) => TContext;
   public get context(): TContext {
     return this.getContextAndActions()[0];
@@ -101,8 +108,6 @@ export class StateMachine<
    */
   public version?: string;
 
-  public strict: boolean;
-
   /**
    * The string delimiter for serializing the path to a string. The default is "."
    */
@@ -118,7 +123,7 @@ export class StateMachine<
 
   public root: StateNode<TContext, TEvent>;
 
-  public key: string;
+  public id: string;
 
   public states: StateNode<TContext, TEvent>['states'];
   public events: Array<TEvent['type']>;
@@ -130,7 +135,7 @@ export class StateMachine<
     public config: MachineConfig<TContext, TEvent, any, any, any>,
     options?: MachineImplementationsSimplified<TContext, TEvent>
   ) {
-    this.key = config.key || config.id || '(machine)';
+    this.id = config.id || '(machine)';
     this.options = Object.assign(createDefaultOptions(), options);
     this._contextFactory = isFunction(config.context)
       ? config.context
@@ -149,11 +154,10 @@ export class StateMachine<
     this.delimiter = this.config.delimiter || STATE_DELIMITER;
     this.version = this.config.version;
     this.schema = this.config.schema ?? (({} as any) as this['schema']);
-    this.strict = !!this.config.strict;
     this.transition = this.transition.bind(this);
 
     this.root = new StateNode(config, {
-      _key: this.key,
+      _key: this.id,
       _machine: this
     });
 
@@ -223,25 +227,27 @@ export class StateMachine<
   public resolveState(
     state: State<TContext, TEvent, TResolvedTypesMeta>
   ): typeof state {
-    const configuration = Array.from(
-      getConfiguration(getStateNodes(this.root, state.value))
+    const configurationSet = getConfiguration(
+      getStateNodes(this.root, state.value)
     );
+    const configuration = Array.from(configurationSet);
     return this.createState({
       ...state,
       value: resolveStateValue(this.root, state.value),
-      configuration
+      configuration,
+      done: isInFinalState(configuration)
     });
   }
 
-  public _transition(
-    state: StateValue | State<TContext, TEvent, TResolvedTypesMeta> = this
-      .initialState,
-    event: Event<TEvent> | SCXML.Event<TEvent>,
-    predictableExec?: PredictableActionArgumentsExec
+  public resolveStateValue(
+    stateValue: StateValue
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    const currentState = toState(state, this);
+    const resolvedStateValue = resolveStateValue(this.root, stateValue);
+    const resolvedContext = this.context;
 
-    return macrostep(currentState, event, this, predictableExec);
+    return this.resolveState(
+      State.from(resolvedStateValue, resolvedContext, this)
+    );
   }
 
   /**
@@ -252,10 +258,27 @@ export class StateMachine<
    * @param event The received event
    */
   public transition(
-    state: StateValue | State<TContext, TEvent, TResolvedTypesMeta> | undefined,
-    event: Event<TEvent> | SCXML.Event<TEvent>
+    state: State<TContext, TEvent, TResolvedTypesMeta> | StateValue = this
+      .initialState,
+    event: TEvent | SCXML.Event<TEvent>,
+    actorCtx?: ActorContext<TEvent, State<TContext, TEvent, any>>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    return this._transition(state, event);
+    const currentState =
+      state instanceof State ? state : this.resolveStateValue(state);
+    // TODO: handle error events in a better way
+    const scxmlEvent = toSCXMLEvent(event);
+    if (
+      isSCXMLErrorEvent(scxmlEvent) &&
+      !currentState.nextEvents.some(
+        (nextEvent) => nextEvent === scxmlEvent.name
+      )
+    ) {
+      throw scxmlEvent.data.data;
+    }
+
+    const { state: nextState } = macrostep(currentState, scxmlEvent, actorCtx);
+
+    return nextState;
   }
 
   /**
@@ -266,44 +289,21 @@ export class StateMachine<
    * @param event The received event
    */
   public microstep(
-    state: StateValue | State<TContext, TEvent, TResolvedTypesMeta> = this
-      .initialState,
-    event: Event<TEvent> | SCXML.Event<TEvent>,
-    predictableExec?: PredictableActionArgumentsExec
-  ): State<TContext, TEvent, TResolvedTypesMeta> {
-    const resolvedState = toState(state, this);
-    const _event = toSCXMLEvent(event);
+    state: State<TContext, TEvent, TResolvedTypesMeta> = this.initialState,
+    event: TEvent | SCXML.Event<TEvent>,
+    actorCtx?: ActorContext<any, any> | undefined
+  ): Array<State<TContext, TEvent, TResolvedTypesMeta>> {
+    const scxmlEvent = toSCXMLEvent(event);
 
-    if (!IS_PRODUCTION && _event.name === WILDCARD) {
-      throw new Error(`An event cannot have the wildcard type ('${WILDCARD}')`);
-    }
+    const { microstates } = macrostep(state, scxmlEvent, actorCtx);
 
-    if (this.strict) {
-      if (
-        !this.root.events.includes(_event.name) &&
-        !isBuiltInEvent(_event.name)
-      ) {
-        throw new Error(
-          `Machine '${this.key}' does not accept event '${_event.name}'`
-        );
-      }
-    }
-
-    const transitions = this.getTransitionData(resolvedState, _event);
-
-    return resolveMicroTransition(
-      this,
-      transitions,
-      resolvedState,
-      predictableExec,
-      _event
-    );
+    return microstates;
   }
 
   public getTransitionData(
     state: State<TContext, TEvent, TResolvedTypesMeta>,
     _event: SCXML.Event<TEvent>
-  ): Transitions<TContext, TEvent> {
+  ): Array<TransitionDefinition<TContext, TEvent>> {
     return transitionNode(this.root, state.value, state, _event) || [];
   }
 
@@ -311,18 +311,37 @@ export class StateMachine<
    * The initial state _before_ evaluating any microsteps.
    * This "pre-initial" state is provided to initial actions executed in the initial state.
    */
-  private get preInitialState(): State<TContext, TEvent, TResolvedTypesMeta> {
+  private getPreInitialState(
+    actorCtx: ActorContext<any, any> | undefined
+  ): State<TContext, TEvent, TResolvedTypesMeta> {
     const [context, actions] = this.getContextAndActions();
+    const config = getInitialConfiguration(this.root);
     const preInitial = this.resolveState(
-      State.from(
-        getStateValue(this.root, getConfiguration([this.root])),
-        context
-      )
+      this.createState({
+        value: {}, // TODO: this is computed in state constructor
+        context,
+        _event: initEvent as SCXML.Event<TEvent>,
+        _sessionid: actorCtx?.sessionId ?? undefined,
+        actions: [],
+        meta: undefined,
+        configuration: config,
+        transitions: [],
+        children: {}
+      })
     );
     preInitial._initial = true;
     preInitial.actions.unshift(...actions);
 
-    setChildren(preInitial.children, actions);
+    if (actorCtx) {
+      const { nextState } = resolveActionsAndContext(
+        actions,
+        initEvent as SCXML.Event<TEvent>,
+        preInitial,
+        actorCtx
+      );
+      preInitial.children = nextState.children;
+      preInitial.actions = nextState.actions;
+    }
 
     return preInitial;
   }
@@ -338,16 +357,32 @@ export class StateMachine<
   /**
    * Returns the initial `State` instance, with reference to `self` as an `ActorRef`.
    */
-  public getInitialState(): State<TContext, TEvent, TResolvedTypesMeta> {
-    const { preInitialState } = this;
-    const nextState = resolveMicroTransition(this, [], preInitialState);
+  public getInitialState(
+    actorCtx?: ActorContext<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>
+  ): State<TContext, TEvent, TResolvedTypesMeta> {
+    const preInitialState = this.getPreInitialState(actorCtx);
+    const nextState = microstep(
+      [],
+      preInitialState,
+      actorCtx,
+      initEvent as SCXML.Event<TEvent>
+    );
     nextState.actions.unshift(...preInitialState.actions);
 
-    const macroState = macrostep(nextState, null as any, this) as StateFrom<
-      typeof this
-    >;
-    macroState.changed = undefined;
+    const { state: macroState } = macrostep(nextState, initEvent, actorCtx);
+
     return macroState;
+  }
+  public start(
+    state: State<TContext, TEvent, TResolvedTypesMeta>,
+    actorCtx: ActorContext<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>
+  ): State<TContext, TEvent, TResolvedTypesMeta> {
+    // When starting from a restored state, execute the actions
+    state.actions.forEach((action) => {
+      action.execute?.(actorCtx);
+    });
+
+    return state;
   }
 
   public getStateNodeById(stateId: string): StateNode<TContext, TEvent> {
@@ -358,14 +393,17 @@ export class StateMachine<
     const stateNode = this.idMap.get(resolvedStateId);
     if (!stateNode) {
       throw new Error(
-        `Child state node '#${resolvedStateId}' does not exist on machine '${this.key}'`
+        `Child state node '#${resolvedStateId}' does not exist on machine '${this.id}'`
       );
     }
     return stateNode;
   }
 
-  public get definition(): StateNodeDefinition<TContext, TEvent> {
-    return this.root.definition;
+  public get definition(): StateMachineDefinition<TContext, TEvent> {
+    return {
+      context: this.context,
+      ...this.root.definition
+    };
   }
 
   public toJSON() {
@@ -378,15 +416,36 @@ export class StateMachine<
       | StateConfig<TContext, TEvent>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const state =
-      stateConfig instanceof State
-        ? stateConfig
-        : (new State(stateConfig) as State<
-            TContext,
-            TEvent,
-            TResolvedTypesMeta
-          >);
-    state.machine = this;
-    return state;
+      stateConfig instanceof State ? stateConfig : new State(stateConfig, this);
+
+    const { nextState: resolvedState } = resolveActionsAndContext(
+      state.actions,
+      state._event,
+      state,
+      undefined
+    );
+
+    return resolvedState as State<TContext, TEvent, TResolvedTypesMeta>;
+  }
+
+  public getStatus(state: State<TContext, TEvent, TResolvedTypesMeta>) {
+    return state.done
+      ? { status: 'done', data: state.output }
+      : { status: 'active' };
+  }
+
+  public restoreState(
+    state: State<TContext, TEvent, TResolvedTypesMeta>,
+    _actorCtx?: ActorContext<
+      TEvent,
+      State<TContext, TEvent, TResolvedTypesMeta>
+    >
+  ): State<TContext, TEvent, TResolvedTypesMeta> {
+    const restoredState = isStateConfig(state)
+      ? this.resolveState(state as any)
+      : this.resolveState(State.from(state as any, this.context, this));
+
+    return restoredState;
   }
 
   /**@deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */

@@ -2,30 +2,19 @@ import type {
   InvokeCallback,
   Subscribable,
   Subscription,
-  InterpreterOptions,
   Lazy,
-  Sender,
   Receiver,
   Behavior,
   ActorContext,
   EventObject,
   ActorRef,
-  AnyStateMachine,
   BaseActorRef,
-  EventFrom,
-  InterpreterFrom,
-  StateFrom
+  AnyEventObject
 } from './types';
-import { AreAllImplementationsAssumedToBeProvided } from './typegenTypes';
-import {
-  toSCXMLEvent,
-  isPromiseLike,
-  isSCXMLEvent,
-  isFunction,
-  symbolObservable
-} from './utils';
-import { actionTypes, doneInvoke, error } from './actions';
-import { interpret } from './interpreter';
+import { toSCXMLEvent, isPromiseLike, isSCXMLEvent, isFunction } from './utils';
+import { doneInvoke, error } from './actions';
+import { symbolObservable } from './symbolObservable';
+import { ActorStatus } from './interpreter';
 
 /**
  * Returns an actor behavior from a reducer and its initial state.
@@ -49,24 +38,28 @@ export function fromReducer<TState, TEvent extends EventObject>(
       // @ts-ignore TODO
       return transition(state, resolvedEvent, actorCtx);
     },
-    initialState
+    getInitialState: () => initialState,
+    getSnapshot: (state) => state
   };
 }
 
-export const startSignalType = Symbol.for('xstate.invoke');
-export const stopSignalType = Symbol.for('xstate.stop');
-export const startSignal: StartSignal = { type: startSignalType };
-export const stopSignal: StopSignal = { type: stopSignalType };
+export const startSignalType = 'xstate.init';
+export const stopSignalType = 'xstate.stop';
+export const startSignal: StartSignal = { type: 'xstate.init' };
+export const stopSignal: StopSignal = { type: 'xstate.stop' };
 
 export interface StartSignal {
-  type: typeof startSignalType;
+  type: 'xstate.init';
 }
 
 export interface StopSignal {
-  type: typeof stopSignalType;
+  type: 'xstate.stop';
 }
 
 export type LifecycleSignal = StartSignal | StopSignal;
+export type LifecycleSignalType =
+  | typeof startSignalType
+  | typeof stopSignalType;
 
 /**
  * An object that expresses the behavior of an actor in reaction to received events,
@@ -76,51 +69,56 @@ export type LifecycleSignal = StartSignal | StopSignal;
  * @template TSnapshot The emitted value
  */
 
-function isSignal(
-  event: EventObject | LifecycleSignal
-): event is LifecycleSignal {
-  return typeof event.type === 'symbol';
+function isSignal(eventType: string): eventType is LifecycleSignalType {
+  return eventType === startSignalType || eventType === stopSignalType;
+}
+
+interface CallbackInternalState {
+  canceled: boolean;
+  receivers: Set<(e: EventObject) => void>;
+  dispose: void | (() => void) | Promise<any>;
 }
 
 export function fromCallback<TEvent extends EventObject>(
   invokeCallback: InvokeCallback
 ): Behavior<TEvent, undefined> {
-  let canceled = false;
-  const receivers = new Set<(e: EventObject) => void>();
-  let dispose;
+  const behavior: Behavior<TEvent, undefined, CallbackInternalState> = {
+    start: (state, { self }) => {
+      self.send({ type: startSignalType } as TEvent);
 
-  const behavior: Behavior<TEvent, undefined> = {
-    transition: (_, event, { self, name }) => {
-      const { _parent: parent } = self;
+      return state;
+    },
+    transition: (state, event, { self, id }) => {
+      const _event = toSCXMLEvent(event);
 
-      if (event.type === startSignalType) {
-        const sender: Sender<TEvent> = (e) => {
-          if (canceled) {
-            return;
+      if (_event.name === startSignalType) {
+        const sender = (eventForParent: AnyEventObject) => {
+          if (state.canceled) {
+            return state;
           }
 
-          parent?.send(toSCXMLEvent(e, { origin: self }));
+          self._parent?.send(toSCXMLEvent(eventForParent, { origin: self }));
         };
 
         const receiver: Receiver<TEvent> = (newListener) => {
-          receivers.add(newListener);
+          state.receivers.add(newListener);
         };
 
-        dispose = invokeCallback(sender, receiver);
+        state.dispose = invokeCallback(sender, receiver);
 
-        if (isPromiseLike(dispose)) {
-          dispose.then(
+        if (isPromiseLike(state.dispose)) {
+          state.dispose.then(
             (resolved) => {
               self._parent?.send(
-                toSCXMLEvent(doneInvoke(name, resolved), {
+                toSCXMLEvent(doneInvoke(id, resolved), {
                   origin: self
                 })
               );
 
-              canceled = true;
+              state.canceled = true;
             },
             (errorData) => {
-              const errorEvent = error(name, errorData);
+              const errorEvent = error(id, errorData);
 
               self._parent?.send(
                 toSCXMLEvent(errorEvent, {
@@ -128,159 +126,196 @@ export function fromCallback<TEvent extends EventObject>(
                 })
               );
 
-              canceled = true;
+              state.canceled = true;
             }
           );
         }
-        return undefined;
-      } else if (event.type === stopSignalType) {
-        canceled = true;
-
-        if (isFunction(dispose)) {
-          dispose();
-        }
-        return undefined;
+        return state;
       }
 
-      if (isSignal(event)) {
+      if (_event.name === stopSignalType) {
+        state.canceled = true;
+
+        if (isFunction(state.dispose)) {
+          state.dispose();
+        }
+        return state;
+      }
+
+      if (isSignal(_event.name)) {
         // TODO: unrecognized signal
-        return undefined;
+        return state;
       }
 
       const plainEvent = isSCXMLEvent(event) ? event.data : event;
-      receivers.forEach((receiver) => receiver(plainEvent));
+      if (!isSignal(plainEvent.type)) {
+        state.receivers.forEach((receiver) =>
+          receiver(plainEvent as EventObject)
+        );
+      }
 
-      return undefined;
+      return state;
     },
-    initialState: undefined
+    getInitialState: () => {
+      return {
+        canceled: false,
+        receivers: new Set(),
+        dispose: undefined
+      };
+    },
+    getSnapshot: () => undefined
   };
 
   return behavior;
+}
+
+interface PromiseInternalState<T> {
+  status: 'active' | 'error' | 'done';
+  canceled: boolean;
+  data: T | undefined;
 }
 
 export function fromPromise<T>(
   lazyPromise: Lazy<PromiseLike<T>>
 ): Behavior<{ type: string }, T | undefined> {
-  let canceled = false;
-  const resolveEventType = Symbol('resolve');
-  const rejectEventType = Symbol('reject');
+  const resolveEventType = '$$xstate.resolve';
+  const rejectEventType = '$$xstate.reject';
 
   // TODO: add event types
-  const behavior: Behavior<any, T | undefined> = {
-    transition: (state, event, { self, name }) => {
-      if (canceled) {
+  const behavior: Behavior<any, T | undefined, PromiseInternalState<T>> = {
+    transition: (state, event) => {
+      const _event = toSCXMLEvent(event);
+
+      if (state.canceled) {
         return state;
       }
 
-      switch (event.type) {
-        case startSignalType:
-          const resolvedPromise = Promise.resolve(lazyPromise());
+      const eventObject = _event.data;
 
-          resolvedPromise.then(
-            (response) => {
-              self.send({ type: resolveEventType, data: response });
-            },
-            (errorData) => {
-              self.send({ type: rejectEventType, data: errorData });
-            }
-          );
-          return undefined;
+      switch (_event.name) {
         case resolveEventType:
-          self._parent?.send(
-            toSCXMLEvent(doneInvoke(name, event.data) as any, {
-              origin: self
-            })
-          );
-          return event.data;
+          state.status = 'done';
+          state.data = eventObject.data;
+          return state;
         case rejectEventType:
-          const errorEvent = error(name, event.data);
-
-          self._parent?.send(
-            toSCXMLEvent(errorEvent, {
-              origin: self
-            })
-          );
-          return event.data;
+          state.status = 'error';
+          state.data = eventObject.data;
+          return state;
         case stopSignalType:
-          canceled = true;
-          return undefined;
+          state.canceled = true;
+          return state;
         default:
-          return undefined;
+          return state;
       }
     },
-    initialState: undefined
+    start: (state, { self }) => {
+      const resolvedPromise = Promise.resolve(lazyPromise());
+
+      resolvedPromise.then(
+        (response) => {
+          self.send({ type: resolveEventType, data: response });
+        },
+        (errorData) => {
+          self.send({ type: rejectEventType, data: errorData });
+        }
+      );
+
+      return state;
+    },
+    getInitialState: () => {
+      return {
+        canceled: false,
+        status: 'active',
+        data: undefined
+      };
+    },
+    getSnapshot: (state) => state.data,
+    getStatus: (state) => state
   };
 
   return behavior;
 }
 
+interface ObservableInternalState<T> {
+  subscription: Subscription | undefined;
+  canceled: boolean;
+  status: 'active' | 'done' | 'error';
+  data: T | undefined;
+}
+
 export function fromObservable<T, TEvent extends EventObject>(
   lazyObservable: Lazy<Subscribable<T>>
 ): Behavior<TEvent, T | undefined> {
-  let subscription: Subscription | undefined;
-  let observable: Subscribable<T> | undefined;
-  const nextEventType = Symbol('next');
-  const errorEventType = Symbol('error');
-  const completeEventType = Symbol('complete');
-  let canceled = false;
+  const nextEventType = '$$xstate.next';
+  const errorEventType = '$$xstate.error';
+  const completeEventType = '$$xstate.complete';
 
   // TODO: add event types
-  const behavior: Behavior<any, T | undefined> = {
-    transition: (state, event, { self, name }) => {
-      if (canceled) {
+  const behavior: Behavior<any, T | undefined, ObservableInternalState<T>> = {
+    transition: (state, event, { self, id, defer }) => {
+      const _event = toSCXMLEvent(event);
+
+      if (state.canceled) {
         return state;
       }
 
-      switch (event.type) {
-        case startSignalType:
-          observable = lazyObservable();
-          subscription = observable.subscribe({
-            next: (value) => {
-              self.send({ type: nextEventType, data: value });
-            },
-            error: (err) => {
-              self.send({ type: errorEventType, data: err });
-            },
-            complete: () => {
-              self.send({ type: completeEventType });
-            }
+      switch (_event.name) {
+        case nextEventType:
+          state.data = event.data.data;
+          // match the exact timing of events sent by machines
+          // send actions are not executed immediately
+          defer(() => {
+            self._parent?.send(
+              toSCXMLEvent(
+                {
+                  type: `xstate.snapshot.${id}`,
+                  data: _event.data.data
+                },
+                { origin: self }
+              )
+            );
           });
           return state;
-        case nextEventType:
-          self._parent?.send(
-            toSCXMLEvent(
-              {
-                type: `xstate.snapshot.${name}`,
-                data: event.data
-              },
-              { origin: self }
-            )
-          );
-          return event.data;
         case errorEventType:
-          const errorEvent = error(name, event.data);
-          self._parent?.send(
-            toSCXMLEvent(errorEvent, {
-              origin: self
-            })
-          );
+          state.status = 'error';
+          state.data = _event.data.data;
           return state;
         case completeEventType:
-          self._parent?.send(
-            toSCXMLEvent(doneInvoke(name), {
-              origin: self
-            })
-          );
+          state.status = 'done';
           return state;
         case stopSignalType:
-          canceled = true;
-          subscription?.unsubscribe();
+          state.canceled = true;
+          state.subscription!.unsubscribe();
           return state;
         default:
           return state;
       }
     },
-    initialState: undefined
+    getInitialState: () => {
+      return {
+        subscription: undefined,
+        canceled: false,
+        status: 'active',
+        data: undefined
+      };
+    },
+    start: (state, { self }) => {
+      state.subscription = lazyObservable().subscribe({
+        next: (value) => {
+          self.send({ type: nextEventType, data: value });
+        },
+        error: (err) => {
+          self.send({ type: errorEventType, data: err });
+        },
+        complete: () => {
+          self.send({ type: completeEventType });
+        }
+      });
+
+      return state;
+    },
+    getSnapshot: (state) => state.data,
+    getStatus: (state) => state
   };
 
   return behavior;
@@ -297,146 +332,59 @@ export function fromObservable<T, TEvent extends EventObject>(
 export function fromEventObservable<T extends EventObject>(
   lazyObservable: Lazy<Subscribable<T>>
 ): Behavior<EventObject, T | undefined> {
-  let subscription: Subscription | undefined;
-  let observable: Subscribable<T> | undefined;
-  const nextEventType = Symbol('next');
-  const errorEventType = Symbol('error');
-  const completeEventType = Symbol('complete');
-  let canceled = false;
+  const errorEventType = '$$xstate.error';
+  const completeEventType = '$$xstate.complete';
 
   // TODO: event types
-  const behavior: Behavior<any, T | undefined> = {
-    transition: (state, event, { self, name }) => {
-      if (canceled) {
+  const behavior: Behavior<any, T | undefined, ObservableInternalState<T>> = {
+    transition: (state, event) => {
+      const _event = toSCXMLEvent(event);
+
+      if (state.canceled) {
         return state;
       }
 
-      switch (event.type) {
-        case startSignalType:
-          observable = lazyObservable();
-          subscription = observable.subscribe({
-            next: (value) => {
-              self._parent?.send(toSCXMLEvent(value, { origin: self }));
-            },
-            error: (err) => {
-              self.send({ type: errorEventType, data: err });
-            },
-            complete: () => {
-              self.send({ type: completeEventType });
-            }
-          });
-          return state;
-        case nextEventType:
-          return event.data;
+      switch (_event.name) {
         case errorEventType:
-          const errorEvent = error(name, event.data);
-          self._parent?.send(
-            toSCXMLEvent(errorEvent, {
-              origin: self
-            })
-          );
+          state.status = 'error';
+          state.data = _event.data.data;
           return state;
         case completeEventType:
-          self._parent?.send(
-            toSCXMLEvent(doneInvoke(name), {
-              origin: self
-            })
-          );
+          state.status = 'done';
           return state;
         case stopSignalType:
-          canceled = true;
-          subscription?.unsubscribe();
+          state.canceled = true;
+          state.subscription!.unsubscribe();
           return state;
         default:
           return state;
       }
     },
-    initialState: undefined
-  };
-
-  return behavior;
-}
-
-export function fromMachine<TMachine extends AnyStateMachine>(
-  machine: AreAllImplementationsAssumedToBeProvided<
-    TMachine['__TResolvedTypesMeta']
-  > extends true
-    ? TMachine
-    : 'Some implementations missing',
-  options: Partial<InterpreterOptions> = {}
-): Behavior<EventFrom<TMachine>, StateFrom<TMachine>> {
-  const snapshotEventType = Symbol('snapshot');
-
-  const castedMachine = machine as TMachine;
-  let service: InterpreterFrom<TMachine> | undefined;
-  let initialState: StateFrom<TMachine>;
-
-  // TODO: use better type for `TEvent`
-  const behavior: Behavior<any, StateFrom<TMachine>> = {
-    transition: (state, event, actorContext) => {
-      const { _parent: parent } = actorContext.self;
-
-      switch (event.type) {
-        case startSignalType:
-          service = interpret(castedMachine as AnyStateMachine, {
-            ...options,
-            parent,
-            id: actorContext.name
-          }) as InterpreterFrom<TMachine>;
-          service.onDone((doneEvent) => {
-            parent?.send(
-              toSCXMLEvent(doneEvent, {
-                origin: actorContext.self
-              })
-            );
-          });
-
-          service.subscribe((state) => {
-            actorContext.self.send({
-              type: snapshotEventType,
-              snapshot: state
-            });
-          });
-          service.start();
-          return state;
-        case stopSignalType:
-          service?.stop();
-          return state;
-        case snapshotEventType: {
-          const snapshot = event.snapshot;
-          if (options.sync) {
-            parent?.send(
-              toSCXMLEvent(
-                {
-                  type: actionTypes.update,
-                  state: snapshot
-                },
-                { origin: actorContext.self }
-              )
-            );
-          }
-          return snapshot;
+    getInitialState: () => {
+      return {
+        subscription: undefined,
+        canceled: false,
+        status: 'active',
+        data: undefined
+      };
+    },
+    start: (state, { self }) => {
+      state.subscription = lazyObservable().subscribe({
+        next: (value) => {
+          self._parent?.send(toSCXMLEvent(value, { origin: self }));
+        },
+        error: (err) => {
+          self.send({ type: errorEventType, data: err });
+        },
+        complete: () => {
+          self.send({ type: completeEventType });
         }
-        default:
-          const _event = actorContext._event;
+      });
 
-          if (isSignal(_event)) {
-            // TODO: unrecognized signal
-            return state;
-          }
-
-          service?.send(_event);
-          return state;
-      }
+      return state;
     },
-    get initialState() {
-      // TODO: recheck if this caching is needed, write a test for its importance or remove the caching
-      if (initialState) {
-        return initialState;
-      }
-      initialState = castedMachine.getInitialState() as StateFrom<TMachine>;
-      return initialState;
-    }
+    getSnapshot: (_) => undefined,
+    getStatus: (state) => state
   };
 
   return behavior;
@@ -448,6 +396,7 @@ export function isActorRef(item: any): item is ActorRef<any> {
 
 // TODO: refactor the return type, this could be written in a better way
 // but it's best to avoid unneccessary breaking changes now
+// @deprecated use `interpret(behavior)` instead
 export function toActorRef<
   TEvent extends EventObject,
   TSnapshot = any,
@@ -457,11 +406,12 @@ export function toActorRef<
 ): ActorRef<TEvent, TSnapshot> & Omit<TActorRefLike, keyof ActorRef<any, any>> {
   return {
     subscribe: () => ({ unsubscribe: () => void 0 }),
-    name: 'anonymous',
+    id: 'anonymous',
     getSnapshot: () => undefined,
     [symbolObservable]: function () {
       return this;
     },
+    status: ActorStatus.Running,
     ...actorRefLike
   };
 }

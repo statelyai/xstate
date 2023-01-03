@@ -19,7 +19,6 @@ const pedestrianStates = {
 };
 
 const lightMachine = createMachine({
-  key: 'light',
   initial: 'green',
   states: {
     green: {
@@ -153,11 +152,13 @@ describe('machine', () => {
 
       const service = interpret(differentMachine);
 
-      expect(() => service.start()).toThrowErrorMatchingInlineSnapshot(
-        `"new entry"`
-      );
+      expect(() => {
+        service.start();
+      }).toThrowErrorMatchingInlineSnapshot(`"new entry"`);
 
-      expect(differentMachine.transition('foo', 'EVENT').value).toEqual('bar');
+      expect(
+        differentMachine.transition('foo', { type: 'EVENT' }).value
+      ).toEqual('bar');
     });
 
     it('should not override context if not defined', () => {
@@ -229,7 +230,7 @@ describe('machine', () => {
       const a = interpret(copiedMachine).start();
       const b = interpret(copiedMachine).start();
 
-      expect(a.state.context.foo).not.toBe(b.state.context.foo);
+      expect(a.getSnapshot().context.foo).not.toBe(b.getSnapshot().context.foo);
     });
   });
 
@@ -342,7 +343,7 @@ describe('machine', () => {
     });
 
     it('should resolve the state value', () => {
-      const tempState = State.from('foo');
+      const tempState = State.from('foo', undefined, resolveMachine);
 
       const resolvedState = resolveMachine.resolveState(tempState);
 
@@ -352,7 +353,7 @@ describe('machine', () => {
     });
 
     it('should resolve the state configuration (implicit via events)', () => {
-      const tempState = State.from('foo');
+      const tempState = State.from('foo', undefined, resolveMachine);
 
       const resolvedState = resolveMachine.resolveState(tempState);
 
@@ -371,7 +372,7 @@ describe('machine', () => {
           }
         }
       });
-      const tempState = State.from('bar');
+      const tempState = State.from('bar', undefined, machine);
 
       const resolvedState = machine.resolveState(tempState);
 
@@ -391,7 +392,7 @@ describe('machine', () => {
         }
       });
 
-      const barState = machine.transition(undefined, 'NEXT');
+      const barState = machine.transition(undefined, { type: 'NEXT' });
 
       const jsonBarState = JSON.parse(JSON.stringify(barState));
 
@@ -411,7 +412,7 @@ describe('machine', () => {
         }
       });
 
-      const nextState = machine.transition(undefined, 'NEXT');
+      const nextState = machine.transition(undefined, { type: 'NEXT' });
 
       const persistedState = JSON.stringify(nextState);
 
@@ -444,7 +445,7 @@ describe('machine', () => {
         states: { idle: {} }
       });
 
-      expect(idMachine.key).toEqual('some-id');
+      expect(idMachine.id).toEqual('some-id');
     });
 
     it('should represent the ID (state node)', () => {
@@ -459,16 +460,6 @@ describe('machine', () => {
       });
 
       expect(idMachine.states.idle.id).toEqual('idle');
-    });
-
-    it('should use the key as the ID if no ID is provided', () => {
-      const noIDMachine = createMachine({
-        key: 'some-key',
-        initial: 'idle',
-        states: { idle: {} }
-      });
-
-      expect(noIDMachine.key).toEqual('some-key');
     });
 
     it('should use the key as the ID if no ID is provided (state node)', () => {
@@ -497,7 +488,7 @@ describe('machine', () => {
 
       expect(state.value).toEqual({});
 
-      const nextState = testMachine.transition(state, 'INC');
+      const nextState = testMachine.transition(state, { type: 'INC' });
 
       expect(nextState.context.value).toEqual(43);
     });

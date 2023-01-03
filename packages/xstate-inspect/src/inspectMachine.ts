@@ -53,7 +53,7 @@ export function createInspectMachine(
             actions: (_, e) => {
               const { event } = e;
               const scxmlEventObject = JSON.parse(event) as SCXML.Event<any>;
-              const service = serviceMap.get(scxmlEventObject.origin?.name!);
+              const service = serviceMap.get(scxmlEventObject.origin?.id!);
               service?.send(scxmlEventObject);
             }
           },
@@ -86,7 +86,7 @@ export function createInspectMachine(
             devTools.services.forEach((service) => {
               ctx.client?.send({
                 type: 'service.register',
-                machine: stringifyMachine(service.machine, options?.serialize),
+                machine: stringifyMachine(service.behavior, options?.serialize),
                 state: stringifyState(
                   service.getSnapshot(),
                   options?.serialize

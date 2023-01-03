@@ -1,4 +1,4 @@
-import { createMachine, interpret, State } from '../src';
+import { createMachine, interpret } from '../src';
 
 describe('rehydration', () => {
   describe('using persisted state', () => {
@@ -13,11 +13,11 @@ describe('rehydration', () => {
       });
 
       const persistedState = JSON.stringify(machine.initialState);
-      const restoredState = State.create(JSON.parse(persistedState));
+      const restoredState = machine.createState(JSON.parse(persistedState));
 
       const service = interpret(machine).start(restoredState);
 
-      expect(service.state.hasTag('foo')).toBe(true);
+      expect(service.getSnapshot().hasTag('foo')).toBe(true);
     });
 
     it('should call exit actions when machine gets stopped immediately', () => {
@@ -33,7 +33,7 @@ describe('rehydration', () => {
       });
 
       const persistedState = JSON.stringify(machine.initialState);
-      const restoredState = State.create(JSON.parse(persistedState));
+      const restoredState = machine.createState(JSON.parse(persistedState));
 
       interpret(machine).start(restoredState).stop();
 
@@ -49,11 +49,13 @@ describe('rehydration', () => {
         }
       });
 
-      const persistedState = JSON.stringify(interpret(machine).start().state);
+      const persistedState = JSON.stringify(
+        interpret(machine).start().getSnapshot()
+      );
       const restoredState = JSON.parse(persistedState);
       const service = interpret(machine).start(restoredState);
 
-      expect(service.state.can('FOO')).toBe(true);
+      expect(service.getSnapshot().can({ type: 'FOO' })).toBe(true);
     });
   });
 
@@ -75,7 +77,7 @@ describe('rehydration', () => {
 
       service.start('active');
 
-      expect(service.state.hasTag('foo')).toBe(true);
+      expect(service.getSnapshot().hasTag('foo')).toBe(true);
     });
 
     it('should call exit actions when machine gets stopped immediately', () => {

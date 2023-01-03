@@ -11,7 +11,6 @@ import {
   InterpreterStatus,
   MachineImplementations,
   Observer,
-  State,
   StateFrom,
   toObserver
 } from 'xstate';
@@ -63,17 +62,20 @@ export function useIdleInterpreter(
     };
     const machineWithConfig = machine.provide(machineConfig as any);
 
-    return interpret(machineWithConfig as any, interpreterOptions);
+    return interpret(machineWithConfig as AnyStateMachine, interpreterOptions);
   });
 
   // Make sure options are kept updated when they change.
   // This mutation assignment is safe because the service instance is only used
   // in one place -- this hook's caller.
   useIsomorphicLayoutEffect(() => {
-    Object.assign(service.machine.options.actions, actions);
-    Object.assign(service.machine.options.guards, guards);
-    Object.assign(service.machine.options.actors, actors);
-    Object.assign(service.machine.options.delays, delays);
+    Object.assign(
+      (service.behavior as AnyStateMachine).options.actions,
+      actions
+    );
+    Object.assign((service.behavior as AnyStateMachine).options.guards, guards);
+    Object.assign((service.behavior as AnyStateMachine).options.actors, actors);
+    Object.assign((service.behavior as AnyStateMachine).options.delays, delays);
   }, [actions, guards, actors, delays]);
 
   return service as any;
@@ -129,7 +131,11 @@ export function useInterpret<TMachine extends AnyStateMachine>(
   useEffect(() => {
     const rehydratedState = options.state;
     service.start(
-      rehydratedState ? (State.create(rehydratedState) as any) : undefined
+      rehydratedState
+        ? ((service.behavior as AnyStateMachine).createState(
+            rehydratedState
+          ) as any)
+        : undefined
     );
 
     return () => {

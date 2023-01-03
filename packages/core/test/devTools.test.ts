@@ -27,6 +27,6 @@ describe('devTools', () => {
     });
 
     service.start();
-    service.send('TOGGLE');
+    service.send({ type: 'TOGGLE' });
   });
 });

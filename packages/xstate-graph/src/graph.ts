@@ -1,6 +1,5 @@
 import {
   State,
-  Event,
   EventObject,
   AnyStateMachine,
   AnyState,
@@ -27,16 +26,6 @@ import type {
 
 function flatten<T>(array: Array<T | T[]>): T[] {
   return ([] as T[]).concat(...array);
-}
-
-export function toEventObject<TEvent extends EventObject>(
-  event: Event<TEvent>
-): TEvent {
-  if (typeof event === 'string' || typeof event === 'number') {
-    return ({ type: event } as unknown) as TEvent;
-  }
-
-  return event;
 }
 
 /**
@@ -145,7 +134,7 @@ export function getValueAdjacencyMap<TMachine extends AnyStateMachine>(
 
         return getNextEvents;
       })
-    ).map((event) => toEventObject(event));
+    );
 
     for (const event of potentialEvents) {
       let nextState: TState;

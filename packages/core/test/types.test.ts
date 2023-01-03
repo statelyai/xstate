@@ -1,6 +1,5 @@
 import { from } from 'rxjs';
 import { raise } from '../src/actions/raise';
-import { fromMachine } from '../src/actors';
 import {
   ActorRefFrom,
   assign,
@@ -26,7 +25,6 @@ describe('StateSchema', () => {
   }
 
   const lightMachine = createMachine<LightContext, LightEvent>({
-    key: 'light',
     initial: 'green',
     meta: { interval: 1000 },
     context: { elapsed: 0 },
@@ -178,7 +176,6 @@ describe('Raise events', () => {
     const greetingContext: GreetingContext = { hour: 10 };
 
     const raiseGreetingMachine = createMachine<GreetingContext, GreetingEvent>({
-      key: 'greeting',
       context: greetingContext,
       initial: 'pending',
       states: {
@@ -314,7 +311,7 @@ describe('events', () => {
           type: 'FOO';
         }
       },
-      entry: raise('FOO')
+      entry: raise({ type: 'FOO' })
     });
 
     const service = interpret(machine).start();
@@ -351,9 +348,10 @@ describe('events', () => {
       }
     >({});
 
-    function acceptMachine<TContext, TEvent extends { type: string }>(
-      _machine: StateMachine<TContext, any, TEvent>
-    ) {}
+    function acceptMachine<
+      TContext extends {},
+      TEvent extends { type: string }
+    >(_machine: StateMachine<TContext, any, TEvent>) {}
 
     acceptMachine(toggleMachine);
   });
@@ -452,15 +450,14 @@ describe('events', () => {
 
 describe('interpreter', () => {
   it('should be convertable to Rx observable', () => {
-    const state$ = from(
-      interpret(
-        createMachine({
-          schema: {
-            context: {} as { count: number }
-          }
-        })
-      )
+    const s = interpret(
+      createMachine({
+        schema: {
+          context: {} as { count: number }
+        }
+      })
     );
+    const state$ = from(s);
 
     state$.subscribe((state) => {
       ((_val: number) => {})(state.context.count);
@@ -479,7 +476,7 @@ describe('spawn', () => {
     }) {}
 
     createParent({
-      spawnChild: (spawn: Spawner) => spawn(fromMachine(createChild()))
+      spawnChild: (spawn: Spawner) => spawn(createChild())
     });
   });
 });

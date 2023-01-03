@@ -8,7 +8,6 @@ import {
   interpret,
   StateFrom
 } from 'xstate';
-import { fromMachine, toActorRef } from 'xstate/actors';
 import { shallowEqual, useInterpret, useMachine, useSelector } from '../src';
 import { describeEachReactMode } from './utils';
 
@@ -52,11 +51,11 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
           <div data-testid="count">{count}</div>
           <button
             data-testid="other"
-            onClick={() => service.send('OTHER')}
+            onClick={() => service.send({ type: 'OTHER' })}
           ></button>
           <button
             data-testid="increment"
-            onClick={() => service.send('INCREMENT')}
+            onClick={() => service.send({ type: 'INCREMENT' })}
           ></button>
         </>
       );
@@ -247,7 +246,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
         }
       },
       context: ({ spawn }) => ({
-        childActor: spawn(fromMachine(childMachine))
+        childActor: spawn(childMachine)
       })
     });
     const selector = (state: StateFrom<typeof childMachine>) =>
@@ -282,12 +281,13 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
   it('should immediately render snapshot of initially spawned custom actor', () => {
     const createActor = (latestValue: string) =>
-      toActorRef({
-        send: () => {},
+      interpret({
+        transition: (s) => s,
         subscribe: () => {
           return { unsubscribe: () => {} };
         },
-        getSnapshot: () => latestValue
+        getSnapshot: () => latestValue,
+        getInitialState: () => latestValue
       });
 
     const parentMachine = createMachine({
@@ -337,7 +337,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
         }
       },
       context: ({ spawn }) => ({
-        childActor: spawn(fromMachine(childMachine))
+        childActor: spawn(childMachine)
       })
     });
 
@@ -381,7 +381,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
         }
       },
       context: ({ spawn }) => ({
-        childActor: spawn(fromMachine(childMachine))
+        childActor: spawn(childMachine)
       })
     });
 
@@ -397,7 +397,11 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
         <>
           <div data-testid="value">{value}</div>
 
-          <button onClick={() => actor.send({ type: 'INC' })} />
+          <button
+            onClick={() => {
+              actor.send({ type: 'INC' });
+            }}
+          />
         </>
       );
     };
@@ -417,12 +421,13 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
   it("should render snapshot value when actor doesn't emit anything", () => {
     const createActor = (latestValue: string) =>
-      toActorRef({
-        send: () => {},
+      interpret({
+        transition: (s) => s,
         subscribe: () => {
           return { unsubscribe: () => {} };
         },
-        getSnapshot: () => latestValue
+        getSnapshot: () => latestValue,
+        getInitialState: () => latestValue
       });
 
     const parentMachine = createMachine({
@@ -453,12 +458,13 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
 
   it('should render snapshot state when actor changes', () => {
     const createActor = (latestValue: string) =>
-      toActorRef({
-        send: () => {},
+      interpret({
+        transition: (s) => s,
         subscribe: () => {
           return { unsubscribe: () => {} };
         },
-        getSnapshot: () => latestValue
+        getSnapshot: () => latestValue,
+        getInitialState: () => latestValue
       });
 
     const actor1 = createActor('foo');
@@ -483,14 +489,14 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
   });
 
   it("should keep rendering a new selected value after selector change when the actor doesn't emit", async () => {
-    const actor = {
-      ...toActorRef({
-        send: () => {},
-        subscribe: () => {
-          return { unsubscribe: () => {} };
-        }
-      })
-    };
+    const actor = interpret({
+      transition: (s) => s,
+      subscribe: () => {
+        return { unsubscribe: () => {} };
+      },
+      getSnapshot: () => undefined,
+      getInitialState: () => undefined
+    });
 
     const App = ({ selector }: { selector: any }) => {
       const [, forceRerender] = React.useState(0);
@@ -560,7 +566,7 @@ describeEachReactMode('useSelector (%s)', ({ suiteKey, render }) => {
     const machine = createMachine({
       invoke: {
         id: 'child',
-        src: fromMachine(child)
+        src: child
       }
     });
 

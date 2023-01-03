@@ -1,7 +1,7 @@
 import { createMachine, sendParent, interpret, assign } from '../src';
 import { respond } from '../src/actions';
 import { send } from '../src/actions/send';
-import { fromCallback, fromMachine } from '../src/actors';
+import { fromCallback } from '../src/actors';
 
 describe('SCXML events', () => {
   it('should have the origin (id) from the sending machine service', (done) => {
@@ -9,7 +9,7 @@ describe('SCXML events', () => {
       initial: 'active',
       states: {
         active: {
-          entry: sendParent('EVENT')
+          entry: sendParent({ type: 'EVENT' })
         }
       }
     });
@@ -20,7 +20,7 @@ describe('SCXML events', () => {
         active: {
           invoke: {
             id: 'child',
-            src: fromMachine(childMachine)
+            src: childMachine
           },
           on: {
             EVENT: {
@@ -57,7 +57,7 @@ describe('SCXML events', () => {
               target: 'success',
               actions: assign({
                 childOrigin: (_, __, { _event }) => {
-                  return _event.origin?.name;
+                  return _event.origin?.id;
                 }
               })
             }
@@ -81,14 +81,18 @@ describe('SCXML events', () => {
 
   it('respond() should be able to respond to sender', (done) => {
     const authServerMachine = createMachine({
+      id: 'authServer',
       initial: 'waitingForCode',
       states: {
         waitingForCode: {
           on: {
             CODE: {
-              actions: respond('TOKEN', {
-                delay: 10
-              })
+              actions: respond(
+                { type: 'TOKEN' },
+                {
+                  delay: 10
+                }
+              )
             }
           }
         }
@@ -96,6 +100,7 @@ describe('SCXML events', () => {
     });
 
     const authClientMachine = createMachine({
+      id: 'authClient',
       initial: 'idle',
       states: {
         idle: {
@@ -104,11 +109,14 @@ describe('SCXML events', () => {
         authorizing: {
           invoke: {
             id: 'auth-server',
-            src: fromMachine(authServerMachine)
+            src: authServerMachine
           },
-          entry: send('CODE', {
-            to: 'auth-server'
-          }),
+          entry: send(
+            { type: 'CODE' },
+            {
+              to: 'auth-server'
+            }
+          ),
           on: {
             TOKEN: 'authorized'
           }
@@ -123,7 +131,7 @@ describe('SCXML events', () => {
       .onDone(() => done())
       .start();
 
-    service.send('AUTH');
+    service.send({ type: 'AUTH' });
   });
 });
 

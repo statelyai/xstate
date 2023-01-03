@@ -45,7 +45,7 @@ async function runTestToCompletion(
     if (after) {
       (service.clock as SimulatedClock).increment(after);
     }
-    service.send(event.name);
+    service.send({ type: event.name });
 
     const stateIds = getStateNodes(machine.root, nextState).map(
       (stateNode) => stateNode.id
@@ -168,7 +168,6 @@ const pedestrianStates = {
 };
 
 const lightMachine = createMachine({
-  key: 'light',
   initial: 'green',
   states: {
     green: {

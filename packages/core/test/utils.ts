@@ -14,7 +14,7 @@ export function testMultiTransition(
     if (typeof state === 'string' && state[0] === '{') {
       state = JSON.parse(state);
     }
-    const nextState = machine.transition(state, eventType);
+    const nextState = machine.transition(state, { type: eventType });
     return nextState;
   };
 

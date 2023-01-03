@@ -21,8 +21,9 @@ function identity<T>(a: T): T {
   return a;
 }
 
-const isEqual = (prevState: AnyState, nextState: AnyState) =>
-  prevState === nextState || nextState.changed === false;
+const isEqual = (prevState: AnyState, nextState: AnyState) => {
+  return prevState === nextState || nextState.changed === false;
+};
 
 export interface UseMachineOptions<
   TContext extends MachineContext,
@@ -86,7 +87,9 @@ export function useMachine<TMachine extends AnyStateMachine>(
       if (cached) {
         return cached;
       }
-      const created = State.create(options.state) as State<any, any, any>;
+      const created = (service.behavior as AnyStateMachine).createState(
+        options.state
+      ) as State<any, any, any>;
       cachedRehydratedStates.set(options.state, created);
       return created;
     }
@@ -112,7 +115,11 @@ export function useMachine<TMachine extends AnyStateMachine>(
   useEffect(() => {
     const rehydratedState = options.state;
     service.start(
-      rehydratedState ? (State.create(rehydratedState) as any) : undefined
+      rehydratedState
+        ? ((service.behavior as AnyStateMachine).createState(
+            rehydratedState
+          ) as any)
+        : undefined
     );
 
     return () => {

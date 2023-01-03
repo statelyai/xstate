@@ -5,7 +5,6 @@ import { choose } from './actions/choose';
 import { log } from './actions/log';
 import { raise } from './actions/raise';
 import { send } from './actions/send';
-import { fromMachine } from './actors';
 import { NULL_EVENT } from './constants';
 import { not, stateIn } from './guards';
 import { AnyStateMachine, BaseActionObject, createMachine } from './index';
@@ -141,7 +140,7 @@ function mapAction<
 >(element: XMLElement): BaseActionObject {
   switch (element.name) {
     case 'raise': {
-      return raise<TEvent>(element.attributes!.event! as string);
+      return raise<TEvent>({ type: element.attributes!.event! } as TEvent);
     }
     case 'assign': {
       return assign<TContext, TEvent>((context, e, meta) => {
@@ -169,7 +168,7 @@ return ${element.attributes!.sendidexpr};
     case 'send': {
       const { event, eventexpr, target, id } = element.attributes!;
 
-      let convertedEvent: TEvent['type'] | SendExpr<TContext, TEvent>;
+      let convertedEvent: TEvent | SendExpr<TContext, TEvent>;
       let convertedDelay: number | DelayExpr<TContext, TEvent> | undefined;
 
       const params =
@@ -184,7 +183,7 @@ return ${element.attributes!.sendidexpr};
         }, '');
 
       if (event && !params) {
-        convertedEvent = event as TEvent['type'];
+        convertedEvent = { type: event } as TEvent;
       } else {
         convertedEvent = (context, _ev, meta) => {
           const fnBody = `
@@ -444,7 +443,7 @@ function toConfig(
 
       return {
         ...(element.attributes!.id && { id: element.attributes!.id as string }),
-        src: fromMachine(scxmlToMachine(content, options)),
+        src: scxmlToMachine(content, options),
         autoForward: element.attributes!.autoforward === 'true'
       };
     });

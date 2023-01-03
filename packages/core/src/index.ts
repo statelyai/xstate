@@ -6,8 +6,7 @@ import {
   forwardTo,
   respond,
   sendParent,
-  sendTo,
-  sendUpdate
+  sendTo
 } from './actions';
 import { assign } from './actions/assign';
 import { cancel } from './actions/cancel';
@@ -17,24 +16,21 @@ import { pure } from './actions/pure';
 import { raise } from './actions/raise';
 import { send } from './actions/send';
 import { stop } from './actions/stop';
-import { interpret, Interpreter, InterpreterStatus } from './interpreter';
+import { interpret, Interpreter, ActorStatus } from './interpreter';
 import { createMachine } from './Machine';
 import { mapState } from './mapState';
-import { matchState } from './match';
 import { State } from './State';
 import { StateNode } from './StateNode';
 export { createSchema, t } from './schema';
 export { SimulatedClock } from './SimulatedClock';
 export { StateMachine } from './StateMachine';
 export { getStateNodes } from './stateUtils';
-export { ObservableActorRef } from './ObservableActorRef';
 export * from './typegenTypes';
 export * from './types';
 // TODO: decide from where those should be exported
 export {
   matchesState,
   pathToStateValue,
-  toEventObject,
   toObserver,
   toSCXMLEvent
 } from './utils';
@@ -46,12 +42,10 @@ export {
   assign,
   send,
   sendParent,
-  sendUpdate,
   forwardTo,
   interpret,
   Interpreter,
-  InterpreterStatus,
-  matchState,
+  ActorStatus as InterpreterStatus,
   doneInvoke,
   createMachine
 };
@@ -61,7 +55,6 @@ const actions = {
   send,
   sendParent,
   sendTo,
-  sendUpdate,
   log,
   cancel,
   stop,

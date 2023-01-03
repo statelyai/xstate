@@ -1,11 +1,5 @@
 import { defineComponent } from 'vue';
-import {
-  ActorRefFrom,
-  assign,
-  createMachine,
-  InterpreterFrom,
-  TypegenMeta
-} from 'xstate';
+import { ActorRefFrom, assign, createMachine, TypegenMeta } from 'xstate';
 import { useInterpret, useMachine } from '../src';
 
 describe('useMachine', () => {
@@ -497,7 +491,7 @@ describe('useInterpret', () => {
     });
   });
 
-  it('returned service created based on a machine that supplies missing implementations using `withConfig` should be assignable to the InterpreterFrom<...> type', () => {
+  it('returned service created based on a machine that supplies missing implementations using `withConfig` should be assignable to the ActorRefFrom<...> type', () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
         actions: 'someAction';
@@ -511,7 +505,7 @@ describe('useInterpret', () => {
       tsTypes: {} as TypesMeta
     });
 
-    function useMyActor(_actor: InterpreterFrom<typeof machine>) {}
+    function useMyActor(_actor: ActorRefFrom<typeof machine>) {}
 
     defineComponent({
       setup() {

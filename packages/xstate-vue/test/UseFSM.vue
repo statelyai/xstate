@@ -1,6 +1,6 @@
 <template>
   <div>
-    <button v-if="state.matches('idle')" @click="send('FETCH')">Fetch</button>
+    <button v-if="state.matches('idle')" @click="send({ type: 'FETCH' })">Fetch</button>
     <div v-else-if="state.matches('loading')">Loading...</div>
     <div v-else-if="state.matches('success')">
       Success! Data:

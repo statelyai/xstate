@@ -8,7 +8,7 @@ export default createMachine<any>({
       on: {
         t: {
           target: 'b',
-          actions: actions.raise('s')
+          actions: actions.raise({ type: 's' })
         }
       }
     },

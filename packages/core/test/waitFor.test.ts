@@ -1,4 +1,4 @@
-import { interpret } from '../src/interpreter';
+import { interpret } from '../src';
 import { createMachine } from '../src';
 import { waitFor } from '../src/waitFor';
 
@@ -16,7 +16,7 @@ describe('waitFor', () => {
 
     const service = interpret(machine).start();
 
-    setTimeout(() => service.send('NEXT'), 10);
+    setTimeout(() => service.send({ type: 'NEXT' }), 10);
 
     const state = await waitFor(service, (s) => s.matches('b'));
 
@@ -87,7 +87,7 @@ describe('waitFor', () => {
     const service = interpret(machine).start();
 
     setTimeout(() => {
-      service.send('NEXT');
+      service.send({ type: 'NEXT' });
     }, 10);
 
     await expect(

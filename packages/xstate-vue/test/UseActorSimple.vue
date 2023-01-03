@@ -4,14 +4,12 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { ActorRef } from 'xstate';
-import { toActorRef } from 'xstate/actors';
+import { interpret, ActorRef } from 'xstate';
 import { useActor } from '../src';
-const simpleActor: ActorRef<any, number> = toActorRef({
-  send: () => {
-    /* ... */
-  },
+const simpleActor: ActorRef<any, number> = interpret({
+  transition: s => s,
   getSnapshot: () => 42,
+  getInitialState: () => 42,
   subscribe: () => {
     return {
       unsubscribe: () => {

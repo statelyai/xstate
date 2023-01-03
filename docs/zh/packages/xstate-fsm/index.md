@@ -72,9 +72,11 @@ const toggleMachine = createMachine({
 
 const { initialState } = toggleMachine;
 
-const toggledState = toggleMachine.transition(initialState, 'TOGGLE');
+const toggledState = toggleMachine.transition(initialState, { type: 'TOGGLE' });
 toggledState.value;
-const untoggledState = toggleMachine.transition(toggledState, 'TOGGLE');
+const untoggledState = toggleMachine.transition(toggledState, {
+  type: 'TOGGLE'
+});
 untoggledState.value;
 // => 'inactive'
 ```
@@ -92,8 +94,8 @@ toggleService.subscribe((state) => {
   console.log(state.value);
 });
 
-toggleService.send('TOGGLE');
-toggleService.send('TOGGLE');
+toggleService.send({ type: 'TOGGLE' });
+toggleService.send({ type: 'TOGGLE' });
 toggleService.stop();
 ```
 
@@ -192,7 +194,7 @@ String syntax:
 Using the string or object syntax is useful for handling actions in a custom way, rather than baking in the implementation details to your machine:
 
 ```js
-const nextState = machine.transition();
+const nextState = machine.transition(state, event);
 
 nextState.actions.forEach((action) => {
   if (action.type === 'focus') {
@@ -212,10 +214,10 @@ A pure transition function that returns the next state given the current `state`
 
 The state can be a `string` state name, or a `State` object (the return type of `machine.transition(...)`).
 
-| Argument | Type                                | Description                                                      |
-| -------- | ----------------------------------- | ---------------------------------------------------------------- |
-| `state`  | `string` or `State` object          | The current state to transition from                             |
-| `event`  | `string` or `{ type: string, ... }` | The event that transitions the current `state` to the next state |
+| Argument | Type                       | Description                                                      |
+| -------- | -------------------------- | ---------------------------------------------------------------- |
+| `state`  | `string` or `State` object | The current state to transition from                             |
+| `event`  | `{ type: string, ... }`    | The event that transitions the current `state` to the next state |
 
 **Returns:**
 
@@ -224,8 +226,8 @@ A `State` object, which represents the next state.
 **Example:**
 
 ```js
-const yellowState = machine.transition('green', 'TIMER');
-const redState = machine.transition(yellowState, 'TIMER');
+const yellowState = machine.transition('green', { type: 'TIMER' });
+const redState = machine.transition(yellowState, { type: 'TIMER' });
 const greenState = machine.transition(yellowState, { type: 'TIMER' });
 // => { value: 'green', ... }
 ```
@@ -265,7 +267,7 @@ const subscription = service.subscribe((state) => {
 
 service.start();
 
-service.send('SOME_EVENT');
+service.send({ type: 'SOME_EVENT' });
 service.send({ type: 'ANOTHER_EVENT' });
 
 subscription.unsubscribe();
@@ -289,9 +291,9 @@ A subscription object with an `unsubscribe` method.
 
 Sends an `event` to the interpreted machine. The event can be a string (e.g., `"EVENT"`) or an object with a `type` property (e.g., `{ type: "EVENT" }`).
 
-| Argument | Type                                | Description                                      |
-| -------- | ----------------------------------- | ------------------------------------------------ |
-| `event`  | `string` or `{ type: string, ... }` | The event to be sent to the interpreted machine. |
+| Argument | Type                    | Description                                      |
+| -------- | ----------------------- | ------------------------------------------------ |
+| `event`  | `{ type: string, ... }` | The event to be sent to the interpreted machine. |
 
 ### `service.start()`
 
@@ -413,8 +415,8 @@ lightService.subscribe((state) => {
 });
 
 lightService.start();
-lightService.send('TIMER');
-lightService.send('TIMER');
+lightService.send({ type: 'TIMER' });
+lightService.send({ type: 'TIMER' });
 // => logs {
 //   value: 'red',
 //   context: { redLights: 1 },

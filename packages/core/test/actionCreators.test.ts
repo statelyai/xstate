@@ -5,7 +5,7 @@ import { toSCXMLEvent } from '../src/utils';
 describe('action creators', () => {
   describe('send()', () => {
     it('should accept a string event', () => {
-      const action = send('foo');
+      const action = send({ type: 'foo' });
       expect(action.params).toEqual(
         expect.objectContaining({
           to: undefined,
@@ -29,7 +29,7 @@ describe('action creators', () => {
     });
 
     it('should accept an id option', () => {
-      const action = send('foo', { id: 'foo-id' });
+      const action = send({ type: 'foo' }, { id: 'foo-id' });
       expect(action.params).toEqual(
         expect.objectContaining({
           to: undefined,
@@ -41,7 +41,7 @@ describe('action creators', () => {
     });
 
     it('should accept a delay option', () => {
-      const action = send('foo', { delay: 1000 });
+      const action = send({ type: 'foo' }, { delay: 1000 });
       expect(action.params).toEqual(
         expect.objectContaining({
           to: undefined,
@@ -56,18 +56,32 @@ describe('action creators', () => {
       const action = send<
         { delay: number },
         { type: 'EVENT'; value: number } | { type: 'RECEIVED' }
-      >('RECEIVED', {
-        delay: (ctx, e) => ctx.delay + ('value' in e ? e.value : 0)
-      });
+      >(
+        { type: 'RECEIVED' },
+        {
+          delay: (ctx, e) => ctx.delay + ('value' in e ? e.value : 0)
+        }
+      );
 
-      const resolvedAction = action.resolve(
-        action,
-        { delay: 100 },
+      const machine = createMachine<any, any>({});
+
+      const [, resolvedAction] = action.resolve(
         toSCXMLEvent({ type: 'EVENT', value: 50 } as {
           type: 'EVENT';
           value: number;
         }),
-        { machine: createMachine<any, any>({}), state: null as any, action }
+        {
+          state: machine.createState({
+            context: { delay: 100 },
+            value: {},
+            _event: {} as any,
+            _sessionid: '',
+            transitions: [],
+            children: {}
+          }),
+          action,
+          actorContext: undefined
+        }
       );
 
       expect(resolvedAction.params.delay).toEqual(150);

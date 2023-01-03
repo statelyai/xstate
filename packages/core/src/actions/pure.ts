@@ -24,17 +24,22 @@ export function pure<
   DynamicPureActionObject<TContext, TEvent>['params']
 > {
   return createDynamicAction(
-    pureActionType,
     {
-      get: getActions
+      type: pureActionType,
+      params: {
+        get: getActions
+      }
     },
-    ({ params }, ctx, _event) => {
-      return {
-        type: pureActionType,
-        params: {
-          actions: toArray(params.get(ctx, _event.data)) ?? []
+    (_event, { state }) => {
+      return [
+        state,
+        {
+          type: pureActionType,
+          params: {
+            actions: toArray(getActions(state.context, _event.data)) ?? []
+          }
         }
-      };
+      ];
     }
   );
 }

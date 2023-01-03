@@ -38,19 +38,29 @@ export function log<
   DynamicLogAction<TContext, TEvent>['params']
 > {
   return createDynamicAction(
-    logActionType,
-    { label, expr },
-    ({ type }, ctx, _event) => {
-      return {
-        type,
-        params: {
-          label,
-          value:
-            typeof expr === 'function'
-              ? expr(ctx, _event.data, { _event })
-              : expr
-        }
-      } as LogActionObject;
+    { type: logActionType, params: { label, expr } },
+    (_event, { state }) => {
+      const resolvedValue =
+        typeof expr === 'function'
+          ? expr(state.context, _event.data, { _event })
+          : expr;
+      return [
+        state,
+        {
+          type: 'xstate.log',
+          params: {
+            label,
+            value: resolvedValue
+          },
+          execute: (actorCtx) => {
+            if (label) {
+              actorCtx.logger?.(label, resolvedValue);
+            } else {
+              actorCtx.logger?.(resolvedValue);
+            }
+          }
+        } as LogActionObject
+      ];
     }
   );
 }

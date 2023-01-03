@@ -26,7 +26,6 @@ const pedestrianStates = {
 };
 
 const lightMachine = createMachine({
-  key: 'light',
   initial: 'green',
   states: {
     green: {
@@ -73,8 +72,8 @@ describe('@xstate/analytics', () => {
 
     service.start();
 
-    service.send('TIMER');
-    service.send('TIMER');
+    service.send({ type: 'TIMER' });
+    service.send({ type: 'TIMER' });
 
     expect(analysis).toMatchInlineSnapshot(`
       Object {

@@ -35,7 +35,7 @@ const machine = createMachine({
       }
     },
     active: {
-      entry: send('PING', { to: 'ponger', delay: 1000 }),
+      entry: send({ type: 'PING' }, { to: 'ponger', delay: 1000 }),
       on: {
         PONG: 'inactive'
       }

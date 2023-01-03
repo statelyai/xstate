@@ -45,7 +45,7 @@ describeEachReactMode('useService, fsm (%s)', ({ render }) => {
     });
 
     act(() => {
-      counterService.send('INC');
+      counterService.send({ type: 'INC' });
     });
 
     countEls.forEach((countEl) => {
@@ -66,7 +66,7 @@ describeEachReactMode('useService, fsm (%s)', ({ render }) => {
 
       return (
         <>
-          <button data-testid="inc" onClick={(_) => send('INC')} />
+          <button data-testid="inc" onClick={(_) => send({ type: 'INC' })} />
           <div data-testid="count">{state.context.count}</div>
         </>
       );
@@ -112,7 +112,7 @@ describeEachReactMode('useService, fsm (%s)', ({ render }) => {
 
       return (
         <>
-          <button data-testid="inc" onClick={(_) => send('INC')} />
+          <button data-testid="inc" onClick={(_) => send({ type: 'INC' })} />
           <CounterDisplay service={service} />
         </>
       );

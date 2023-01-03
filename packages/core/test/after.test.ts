@@ -1,4 +1,4 @@
-import { createMachine, interpret, State } from '../src';
+import { createMachine, interpret } from '../src';
 import { after, actionTypes } from '../src/actions';
 
 const lightMachine = createMachine({
@@ -26,41 +26,11 @@ const lightMachine = createMachine({
 
 describe('delayed transitions', () => {
   it('should transition after delay', () => {
-    const nextState = lightMachine.transition(
-      lightMachine.initialState,
-      after(1000, 'light.green')
-    );
+    const nextState = lightMachine.transition(lightMachine.initialState, {
+      type: after(1000, 'light.green')
+    });
 
     expect(nextState.value).toEqual('yellow');
-    expect(nextState.actions).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "params": Object {
-            "sendId": "xstate.after(1000)#light.green",
-          },
-          "type": "xstate.cancel",
-        },
-        Object {
-          "params": Object {
-            "_event": Object {
-              "$$type": "scxml",
-              "data": Object {
-                "type": "xstate.after(1000)#light.yellow",
-              },
-              "name": "xstate.after(1000)#light.yellow",
-              "type": "external",
-            },
-            "delay": 1000,
-            "event": Object {
-              "type": "xstate.after(1000)#light.yellow",
-            },
-            "id": "xstate.after(1000)#light.yellow",
-            "to": undefined,
-          },
-          "type": "xstate.send",
-        },
-      ]
-    `);
   });
 
   it('should format transitions properly', () => {
@@ -188,7 +158,7 @@ describe('delayed transitions', () => {
       }
     });
 
-    const withAfterState = machine.transition(undefined, 'next');
+    const withAfterState = machine.transition(undefined, { type: 'next' });
 
     interpret(machine)
       .onDone(() => done())
@@ -218,9 +188,7 @@ describe('delayed transitions', () => {
 
     let service = interpret(createMyMachine()).start();
 
-    const persistedState = State.create(
-      JSON.parse(JSON.stringify(service.state))
-    );
+    const persistedState = JSON.parse(JSON.stringify(service.getSnapshot()));
 
     service = interpret(createMyMachine()).start(persistedState);
 

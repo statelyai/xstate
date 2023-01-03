@@ -79,13 +79,13 @@ const toggleService = interpret(toggleMachine)
   })
   .start();
 
-toggleService.send('TOGGLE');
+toggleService.send({ type: 'TOGGLE' });
 // { count: 1, level: 0 }
 
 toggleService.send(levelUpdater.update(9));
 // { count: 1, level: 9 }
 
-toggleService.send('TOGGLE');
+toggleService.send({ type: 'TOGGLE' });
 // { count: 2, level: 9 }
 
 toggleService.send(levelUpdater.update(-100));

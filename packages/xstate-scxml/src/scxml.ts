@@ -11,7 +11,6 @@ import {
 } from 'xstate';
 import { mapValues, isString, flatten } from 'xstate/src/utils';
 import * as actions from 'xstate/actions';
-import { fromMachine } from 'xstate/actors';
 import { not, stateIn } from 'xstate/guards';
 
 function getAttribute(
@@ -140,7 +139,9 @@ function mapAction<
 >(element: XMLElement): BaseActionObject {
   switch (element.name) {
     case 'raise': {
-      return actions.raise<TEvent>(element.attributes!.event! as string);
+      return actions.raise<TEvent>({
+        type: element.attributes!.event!
+      } as TEvent);
     }
     case 'assign': {
       return actions.assign<TContext, TEvent>((context, e, meta) => {
@@ -167,7 +168,7 @@ function mapAction<
     case 'send': {
       const { event, eventexpr, target, id } = element.attributes!;
 
-      let convertedEvent: TEvent['type'] | SendExpr<TContext, TEvent>;
+      let convertedEvent: TEvent | SendExpr<TContext, TEvent>;
       let convertedDelay: number | DelayExpr<TContext, TEvent> | undefined;
 
       const params =
@@ -182,7 +183,7 @@ function mapAction<
         }, '');
 
       if (event && !params) {
-        convertedEvent = event as TEvent['type'];
+        convertedEvent = { type: event } as TEvent;
       } else {
         convertedEvent = (context, _ev, meta) => {
           const fnBody = `
@@ -439,7 +440,7 @@ function toConfig(
 
       return {
         ...(element.attributes!.id && { id: element.attributes!.id as string }),
-        src: fromMachine(scxmlToMachine(content, options)),
+        src: scxmlToMachine(content, options),
         autoForward: element.attributes!.autoforward === 'true'
       };
     });

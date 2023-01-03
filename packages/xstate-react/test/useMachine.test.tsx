@@ -10,12 +10,10 @@ import {
   DoneEventObject,
   doneInvoke,
   Interpreter,
-  InterpreterFrom,
   send,
-  State,
   StateFrom
 } from 'xstate';
-import { fromCallback, fromPromise, fromMachine } from 'xstate/actors';
+import { fromCallback, fromPromise } from 'xstate/actors';
 import { useActor, useMachine } from '../src';
 import { describeEachReactMode } from './utils';
 
@@ -74,14 +72,14 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
   }) => {
     const [current, send] = useMachine(fetchMachine, {
       actors: {
-        fetchData: () => fromPromise(onFetch)
+        fetchData: fromPromise(onFetch)
       },
       state: persistedState
     });
 
     switch (current.value) {
       case 'idle':
-        return <button onClick={(_) => send('FETCH')}>Fetch</button>;
+        return <button onClick={(_) => send({ type: 'FETCH' })}>Fetch</button>;
       case 'loading':
         return <div>Loading...</div>;
       case 'success':
@@ -190,7 +188,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     render(<Test />);
   });
 
-  it('should not spawn actors until service is started', async (done) => {
+  it('should not spawn actors until service is started', async () => {
     const spawnMachine = createMachine<{ ref?: ActorRef<any> }>({
       id: 'spawn',
       initial: 'start',
@@ -200,7 +198,9 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
           entry: assign({
             ref: (_, __, { spawn }) =>
               spawn(
-                fromPromise(() => new Promise((res) => res(42))),
+                fromPromise(() => {
+                  return new Promise((res) => res(42));
+                }),
                 'my-promise'
               )
           }),
@@ -228,11 +228,125 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     };
 
     render(<Spawner />);
+
     await screen.findByTestId('success');
-    done();
   });
 
-  it('actions should not have stale data', async (done) => {
+  it('actions should not use stale data in a builtin transition action', async (done) => {
+    const toggleMachine = createMachine<any, { type: 'SET_LATEST' }>({
+      context: {
+        latest: 0
+      },
+      on: {
+        SET_LATEST: {
+          actions: 'setLatest'
+        }
+      }
+    });
+
+    const Component = () => {
+      const [ext, setExt] = useState(1);
+
+      const [, send] = useMachine(toggleMachine, {
+        actions: {
+          setLatest: assign({
+            latest: () => {
+              expect(ext).toBe(2);
+              done();
+              return ext;
+            }
+          })
+        }
+      });
+
+      return (
+        <>
+          <button
+            data-testid="extbutton"
+            onClick={(_) => {
+              setExt(2);
+            }}
+          />
+          <button
+            data-testid="button"
+            onClick={(_) => {
+              send({ type: 'SET_LATEST' });
+            }}
+          />
+        </>
+      );
+    };
+
+    render(<Component />);
+
+    const button = screen.getByTestId('button');
+    const extButton = screen.getByTestId('extbutton');
+    fireEvent.click(extButton);
+
+    fireEvent.click(button);
+  });
+
+  it('actions should not use stale data in a builtin entry action', async (done) => {
+    const toggleMachine = createMachine<any, { type: 'NEXT' }>({
+      context: {
+        latest: 0
+      },
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {
+          entry: 'setLatest'
+        }
+      }
+    });
+
+    const Component = () => {
+      const [ext, setExt] = useState(1);
+
+      const [, send] = useMachine(toggleMachine, {
+        actions: {
+          setLatest: assign({
+            latest: () => {
+              expect(ext).toBe(2);
+              done();
+              return ext;
+            }
+          })
+        }
+      });
+
+      return (
+        <>
+          <button
+            data-testid="extbutton"
+            onClick={(_) => {
+              setExt(2);
+            }}
+          />
+          <button
+            data-testid="button"
+            onClick={(_) => {
+              send({ type: 'NEXT' });
+            }}
+          />
+        </>
+      );
+    };
+
+    render(<Component />);
+
+    const button = screen.getByTestId('button');
+    const extButton = screen.getByTestId('extbutton');
+    fireEvent.click(extButton);
+
+    fireEvent.click(button);
+  });
+
+  it('actions should not use stale data in a custom entry action', async (done) => {
     const toggleMachine = createMachine<any, { type: 'TOGGLE' }>({
       initial: 'inactive',
       states: {
@@ -270,7 +384,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
           <button
             data-testid="button"
             onClick={(_) => {
-              send('TOGGLE');
+              send({ type: 'TOGGLE' });
             }}
           />
         </>
@@ -307,7 +421,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     });
 
     const ServiceApp: React.FC<{
-      service: InterpreterFrom<typeof machine>;
+      service: ActorRefFrom<typeof machine>;
     }> = ({ service }) => {
       const [state] = useActor(service);
 
@@ -427,7 +541,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
       return (
         <>
           <div>{`Counter: ${state.context.counter}`}</div>
-          <button onClick={() => send('INC')}>Increase</button>
+          <button onClick={() => send({ type: 'INC' })}>Increase</button>
         </>
       );
     };
@@ -760,7 +874,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
         active: {
           invoke: {
             id: 'test',
-            src: fromMachine(childMachine.withContext({ value: 42 }))
+            src: childMachine.withContext({ value: 42 })
           }
         }
       }
@@ -807,13 +921,16 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
 
     const Test = () => {
       const [state, send] = useMachine(testMachine, {
-        state: State.create(JSON.parse(persistedState))
+        state: testMachine.createState(JSON.parse(persistedState))
       });
 
       currentState = state;
 
       return (
-        <button onClick={() => send('START')} data-testid="button"></button>
+        <button
+          onClick={() => send({ type: 'START' })}
+          data-testid="button"
+        ></button>
       );
     };
 
@@ -854,10 +971,13 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
       context: {
         count: 0
       },
-      entry: [assign({ count: 1 }), send('INC')],
+      entry: [assign({ count: 1 }), send({ type: 'INC' })],
       on: {
         INC: {
-          actions: [assign({ count: (ctx) => ++ctx.count }), send('UNHANDLED')]
+          actions: [
+            assign({ count: (ctx) => ctx.count + 1 }),
+            send({ type: 'UNHANDLED' })
+          ]
         }
       },
       states: {

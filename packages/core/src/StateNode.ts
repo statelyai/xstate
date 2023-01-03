@@ -1,5 +1,4 @@
 import {
-  getEventType,
   mapValues,
   flatten,
   toArray,
@@ -10,7 +9,6 @@ import {
   createInvokeId
 } from './utils';
 import type {
-  Event,
   EventObject,
   HistoryStateNodeConfig,
   StateNodeDefinition,
@@ -31,7 +29,7 @@ import type {
 } from './types';
 import type { State } from './State';
 import * as actionTypes from './actionTypes';
-import { toActionObject } from './actions';
+import { toActionObjects } from './actions';
 import { formatInitialTransition, formatTransition } from './stateUtils';
 import {
   getDelayedTransitions,
@@ -136,12 +134,12 @@ export class StateNode<
     options: StateNodeOptions<TContext, TEvent>
   ) {
     this.parent = options._parent;
-    this.key = this.config.key || options._key;
+    this.key = options._key;
     this.machine = options._machine;
     this.path = this.parent ? this.parent.path.concat(this.key) : [];
     this.id =
       this.config.id ||
-      [this.machine.key, ...this.path].join(this.machine.delimiter);
+      [this.machine.id, ...this.path].join(this.machine.delimiter);
     this.type =
       this.config.type ||
       (this.config.states && Object.keys(this.config.states).length
@@ -182,13 +180,9 @@ export class StateNode<
     this.history =
       this.config.history === true ? 'shallow' : this.config.history || false;
 
-    this.entry = toArray(this.config.entry).map((action) =>
-      toActionObject(action, this.machine.options.actions)
-    );
+    this.entry = toActionObjects(this.config.entry);
+    this.exit = toActionObjects(this.config.exit);
 
-    this.exit = toArray(this.config.exit).map((action) =>
-      toActionObject(action, this.machine.options.actions)
-    );
     this.meta = this.config.meta;
     this.doneData =
       this.type === 'final'
@@ -219,7 +213,6 @@ export class StateNode<
       id: this.id,
       key: this.key,
       version: this.machine.version,
-      context: this.machine.context,
       type: this.type,
       initial: this.initial
         ? {
@@ -331,13 +324,14 @@ export class StateNode<
    *
    * @param event The event in question
    */
-  public handles(event: Event<TEvent>): boolean {
-    const eventType = getEventType<TEvent>(event);
-
-    return this.events.includes(eventType);
+  public handles(event: TEvent): boolean {
+    return this.events.includes(event.type);
   }
 
-  public next(state: State<TContext, TEvent>, _event: SCXML.Event<TEvent>) {
+  public next(
+    state: State<TContext, TEvent>,
+    _event: SCXML.Event<TEvent>
+  ): TransitionDefinition<TContext, TEvent>[] | undefined {
     const eventName = _event.name;
     const actions: BaseActionObject[] = [];
 
@@ -367,8 +361,7 @@ export class StateNode<
             guard,
             resolvedContext,
             _event,
-            state,
-            this.machine
+            state
           );
       } catch (err) {
         throw new Error(
