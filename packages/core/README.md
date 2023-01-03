@@ -84,6 +84,7 @@ Read [📽 the slides](http://slides.com/davidkhourshid/finite-state-machines) (
 - [Pure UI](https://rauchg.com/2015/pure-ui) by Guillermo Rauch
 - [Pure UI Control](https://medium.com/@asolove/pure-ui-control-ac8d1be97a8d) by Adam Solove
 - [Stately Discord](https://discord.gg/xstate) chat about anything related to statecharts and XState
+- [GitHub Discussions](https://github.com/statelyai/xstate/discussions)
 
 ## Finite State Machines
 
