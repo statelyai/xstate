@@ -4,7 +4,7 @@ export function fromPromise<T>(
   promiseFn: () => Promise<T>
 ): Behavior<
   { type: 'RESOLVE'; data: T },
-  any,
+  T | undefined,
   {
     promise: Promise<void> | undefined;
     data: T | undefined;
@@ -32,6 +32,7 @@ export function fromPromise<T>(
           actorCtx.self.send({ type: 'RESOLVE', data });
         })
       };
-    }
+    },
+    getSnapshot: (state) => state.data
   };
 }

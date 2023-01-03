@@ -1,4 +1,5 @@
-import { FSM, assign, createMachine, interpret } from '../src';
+import { assign, createMachine, interpret } from '../src';
+import { StateMachineConfig } from '../src/types';
 
 it('should work', () => {
   const machine = createMachine({
@@ -99,7 +100,7 @@ describe('@xstate/fsm', () => {
     | { type: 'INC' }
     | { type: 'EMERGENCY'; value: number };
 
-  const lightConfig: FSM<{
+  const lightConfig: StateMachineConfig<{
     context: LightContext;
     events: LightEvent;
   }> = {
@@ -224,7 +225,7 @@ describe('@xstate/fsm', () => {
   });
 
   it('should throw an error for undefined next state config', () => {
-    const testConfig: FSM<any> = {
+    const testConfig: StateMachineConfig<any> = {
       initial: 'green',
       states: {
         green: {

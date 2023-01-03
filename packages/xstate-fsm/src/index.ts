@@ -1,134 +1,22 @@
-import { SingleOrArray } from './types';
+import {
+  Action,
+  ActorContext,
+  ActorRef,
+  AnyBehavior,
+  BaseActionObject,
+  DynamicActionObject,
+  EventFrom,
+  Implementations,
+  InternalStateFrom,
+  MachineBehavior,
+  MachineState,
+  MachineTypes,
+  StateMachineConfig
+} from './types';
 
-interface EventObject {
-  type: string;
-}
-
-interface MachineTypes {
-  context: Record<string, any>;
-  events: EventObject;
-}
-
-interface ActorRef {
-  start: (state?: any) => any;
-  subscribe: (
-    observerOrFn: any
-  ) => {
-    unsubscribe: () => boolean;
-  };
-  send: (event: any) => void;
-  stop: () => void;
-  getSnapshot: () => MachineState;
-  parent?: ActorRef;
-}
-
-interface ActorContext {
-  self: ActorRef;
-}
-
-export interface Behavior<
-  TEvent extends EventObject,
-  _TSnapshot,
-  TInternalState
-> {
-  transition: (
-    state: TInternalState,
-    event: TEvent,
-    actorCtx?: ActorContext
-  ) => TInternalState;
-  initialState: TInternalState;
-  start?: (state: TInternalState, actorCtx: ActorContext) => TInternalState;
-}
-
-export type AnyBehavior = Behavior<any, any, any>;
-
-type EventFrom<T extends AnyBehavior> = T extends Behavior<
-  infer TEvent,
-  any,
-  any
->
-  ? TEvent
-  : never;
-
-// type SnapshotFrom<T extends AnyBehavior> = T extends Behavior<
-//   any,
-//   infer TSnapshot,
-//   any
-// >
-//   ? TSnapshot
-//   : never;
-
-// type InternalStateFrom<T extends AnyBehavior> = T extends Behavior<
-//   any,
-//   any,
-//   infer TInternalState
-// >
-//   ? TInternalState
-//   : never;
-
-interface MachineState {
-  value: string;
-  context: Record<string, any>;
-  actions: BaseActionObject[];
-  changed: boolean;
-}
-
-type Action = string | (() => void) | BaseActionObject | DynamicActionObject;
-
-export type TransitionStringOrObject<
-  T extends MachineTypes,
-  K extends T['events']['type']
-> =
-  | string
-  | {
-      target?: string;
-      guard?: (
-        context: T['context'],
-        event: T['events'] & { type: K }
-      ) => boolean;
-      actions?: SingleOrArray<Action>;
-    };
-
-export interface FSM<T extends MachineTypes> {
-  initial: string;
-  context?: T['context'];
-  states?: {
-    [key: string]: {
-      invoke?: {
-        src: AnyBehavior;
-        onDone: TransitionStringOrObject<T, any>;
-      };
-      entry?: SingleOrArray<Action>;
-      exit?: SingleOrArray<Action>;
-      on?: {
-        [K in T['events']['type']]?: TransitionStringOrObject<T, K>;
-      };
-    };
-  };
-  implementations?: Implementations;
-}
-
-interface BaseActionObject {
-  type: string;
-  params?: Record<string, any>;
-  execute?: () => void;
-  resolve?: (
-    state: MachineState,
-    event: EventObject
-  ) => [MachineState, BaseActionObject];
-}
-
-interface DynamicActionObject {
-  type: string;
-  params: Record<string, any>;
-  resolve: (
-    state: MachineState,
-    event: EventObject
-    // actorCtx: ActorContext
-  ) => [MachineState, BaseActionObject];
-}
-
-export function assign(assignments: any): DynamicActionObject {
+export function assign<T extends MachineTypes>(
+  assignments: any
+): DynamicActionObject<T> {
   return {
     type: 'xstate.assign',
     params: assignments,
@@ -138,7 +26,7 @@ export function assign(assignments: any): DynamicActionObject {
       if (typeof assignments === 'function') {
         tmpContext = assignments(state.context, eventObject);
       } else {
-        Object.keys(assignments).forEach((key) => {
+        Object.keys(assignments).forEach((key: keyof T['context']) => {
           tmpContext[key] =
             typeof assignments[key] === 'function'
               ? assignments[key](state.context, eventObject)
@@ -165,10 +53,10 @@ export function assign(assignments: any): DynamicActionObject {
 //   };
 // }
 
-function toActionObject(
-  action: Action,
-  actionImpls?: Implementations['actions']
-): DynamicActionObject | BaseActionObject {
+function toActionObject<T extends MachineTypes>(
+  action: Action<T>,
+  actionImpls?: Implementations<T>['actions']
+): DynamicActionObject<any> | BaseActionObject {
   if (typeof action === 'string') {
     return actionImpls?.[action]
       ? toActionObject(actionImpls[action], actionImpls)
@@ -185,37 +73,18 @@ function toActionObject(
   return action;
 }
 
-type Implementations = {
-  actions?: {
-    [key: string]: Action;
-  };
-};
-
-type MachineBehavior<T extends MachineTypes> = Behavior<
-  T['events'],
-  MachineState,
-  MachineState
-> & {
-  config: FSM<T>;
-  provide: (implementations: {
-    actions?: {
-      [key: string]: Action;
-    };
-  }) => MachineBehavior<T>;
-  implementations: Implementations;
-};
-
 export function createMachine<T extends MachineTypes>(
-  machine: FSM<T>
+  machine: StateMachineConfig<T>,
+  implementations: Implementations<T> = {}
 ): MachineBehavior<T> {
   const initialStateNode = machine.initial
     ? machine.states?.[machine.initial]
     : undefined;
   const initialActions =
     toArray(initialStateNode?.entry ?? []).map((action) =>
-      toActionObject(action, machine.implementations?.actions)
+      toActionObject(action, implementations?.actions)
     ) ?? [];
-  let initialState: MachineState = {
+  let initialState: MachineState<T> = {
     value: machine.initial,
     context: machine.context ?? {},
     actions: initialActions,
@@ -237,7 +106,11 @@ export function createMachine<T extends MachineTypes>(
 
   return {
     config: machine,
-    transition: (state, event, actorCtx?: ActorContext): MachineState => {
+    transition: (
+      state,
+      event,
+      actorCtx?: ActorContext<MachineBehavior<T>>
+    ): MachineState<T> => {
       const stateNode = machine.states?.[state.value];
       if (!stateNode) {
         throw new Error(
@@ -296,11 +169,11 @@ export function createMachine<T extends MachineTypes>(
           ...entryActions
         ];
 
-        let nextState: MachineState = {
+        let nextState: MachineState<T> = {
           value: transitionObject.target ?? state.value,
           context: state.context,
           actions: allActions.map((a) =>
-            toActionObject(a, machine.implementations?.actions)
+            toActionObject(a, implementations.actions)
           ),
           changed: false
         };
@@ -327,21 +200,21 @@ export function createMachine<T extends MachineTypes>(
       return state;
     },
     initialState,
-    provide: (implementations) => {
-      return createMachine({
-        ...machine,
-        implementations
-      });
+    provide: (providedImpls) => {
+      return createMachine(machine, providedImpls);
     },
-    implementations: machine.implementations ?? {}
+    implementations: implementations ?? {},
+    getSnapshot: (state) => state
   };
 }
 
-export function interpret<TBehavior extends AnyBehavior>(behavior: TBehavior) {
+export function interpret<TBehavior extends AnyBehavior>(
+  behavior: TBehavior
+): ActorRef<TBehavior> {
   let currentState = behavior.initialState;
   const observers = new Set<any>();
 
-  function update(state: MachineState) {
+  function update(state: InternalStateFrom<TBehavior>) {
     currentState = state;
 
     state.actions.forEach((action) => {
@@ -351,8 +224,8 @@ export function interpret<TBehavior extends AnyBehavior>(behavior: TBehavior) {
     observers.forEach((observer) => observer.next(currentState));
   }
 
-  const actorRef = {
-    start: (restoredState?: MachineState) => {
+  const actorRef: ActorRef<TBehavior> = {
+    start: (restoredState) => {
       const preInitialState = restoredState ?? behavior.initialState;
       const startState = behavior.start
         ? behavior.start(preInitialState, { self: actorRef })
@@ -383,7 +256,8 @@ export function interpret<TBehavior extends AnyBehavior>(behavior: TBehavior) {
       } catch (e) {
         // gulp
       }
-      observers.forEach((observer) => observer.next(currentState));
+
+      update(currentState);
     },
     stop: () => {
       observers.forEach((observer) => observer.complete());
