@@ -1,4 +1,5 @@
 import { assign, createMachine, interpret } from '../src';
+import { fromPromise } from '../src/behaviors';
 import { StateMachineConfig } from '../src/types';
 
 it('should work', () => {
@@ -693,4 +694,49 @@ describe('interpreter', () => {
       expect(entryActionCalled).toBe(false);
     });
   });
+});
+
+// - No child states
+// - No history states
+// - No parallel states
+// - (maybe final states)
+// - Right now, no transient states (but maybe in the future)
+
+const approvalMachine = createMachine({
+  initial: 'pending',
+  states: {
+    pending: {
+      on: {
+        APPROVE: 'approved',
+        REJECT: 'rejected'
+      },
+      exit: 'someExitAction'
+    },
+    approved: {
+      entry: 'someEntryAction'
+      // type: 'final'
+    },
+    rejected: {
+      on: {
+        APPEAL: 'pending'
+      }
+    }
+  }
+});
+
+const actor = interpret(approvalMachine);
+
+actor.start();
+
+const dogBehavior = fromPromise(() =>
+  // creates a behavior from a promise
+  fetch('https://dog.ceo/api/breeds/image/random')
+);
+
+const dogActor = interpret(dogBehavior);
+
+dogActor.start(); // start the promise
+
+dogActor.subscribe((data) => {
+  console.log(data); // the dog stuff
 });

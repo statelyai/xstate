@@ -17,7 +17,7 @@ export class Actor<TBehavior extends AnyBehavior>
     self: this
   };
 
-  constructor(behavior: TBehavior) {
+  constructor(behavior: TBehavior, public storage) {
     this.behavior = behavior;
     this.state = behavior.initialState;
   }
@@ -27,6 +27,7 @@ export class Actor<TBehavior extends AnyBehavior>
     const initialState = this.behavior.start
       ? this.behavior.start(preInitialState, this.actorContext)
       : preInitialState;
+    this.update(initialState);
   }
 
   public send(event: EventFrom<TBehavior>): void {
@@ -39,6 +40,8 @@ export class Actor<TBehavior extends AnyBehavior>
   }
 
   private update(state: InternalStateFrom<TBehavior>) {
+    // Persist state to storage
+
     this.state = state;
     const snapshot = this.behavior.getSnapshot(state);
     this.observers.forEach((observer) => observer.next?.(snapshot));

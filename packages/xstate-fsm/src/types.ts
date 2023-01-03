@@ -4,6 +4,11 @@ export interface EventObject {
   type: string;
 }
 
+export type AnyEventObject = {
+  type: string;
+  [key: string]: any;
+};
+
 export interface MachineTypes {
   context: Record<string, any>;
   events: EventObject;
@@ -18,10 +23,10 @@ export interface ActorRef<TBehavior extends AnyBehavior> {
   ) => {
     unsubscribe: () => void;
   };
-  send: (event: any) => void;
+  send: (event: EventFrom<TBehavior>) => void;
   stop: () => void;
   getSnapshot: () => SnapshotFrom<TBehavior>;
-  parent?: ActorRef<any>;
+  parent?: ActorRef<Behavior<AnyEventObject, unknown, unknown>>;
 }
 
 export interface ActorContext<TBehavior extends AnyBehavior> {
@@ -43,6 +48,7 @@ export interface Behavior<
     state: TInternalState,
     actorCtx: ActorContext<this>
   ) => TInternalState;
+  execute?: (state: TInternalState) => void;
   getSnapshot: (state: TInternalState) => TSnapshot;
 }
 

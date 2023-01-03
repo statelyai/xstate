@@ -189,11 +189,16 @@ export function createMachine<T extends MachineTypes>(
       return state;
     },
     initialState,
+    getSnapshot: (state) => state,
+    execute: (state) => {
+      state.actions.forEach((action) => {
+        action.execute?.();
+      });
+    },
     provide: (providedImpls) => {
       return createMachine(machine, providedImpls);
     },
-    implementations: implementations ?? {},
-    getSnapshot: (state) => state
+    implementations: implementations ?? {}
   };
 }
 
@@ -204,14 +209,13 @@ export function interpret<TBehavior extends AnyBehavior>(
   const observers = new Set<Observer<SnapshotFrom<TBehavior>>>();
 
   function update(state: InternalStateFrom<TBehavior>) {
+    // Persist the next state
     currentState = state;
 
-    state.actions.forEach((action) => {
-      action.execute?.();
-    });
+    // Execute the actions
+    behavior.execute?.(state);
 
     const snapshot = behavior.getSnapshot(state);
-
     observers.forEach((observer) => observer.next?.(snapshot));
   }
 

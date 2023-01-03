@@ -1,4 +1,4 @@
-import { Behavior } from '.';
+import { Behavior } from './types';
 
 export function fromPromise<T>(
   promiseFn: () => Promise<T>
