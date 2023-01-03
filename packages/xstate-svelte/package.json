@@ -17,6 +17,17 @@
   "license": "MIT",
   "main": "dist/xstate-svelte.cjs.js",
   "module": "dist/xstate-svelte.esm.js",
+  "exports": {
+    "./fsm": {
+      "module": "./fsm/dist/xstate-svelte-fsm.esm.js",
+      "default": "./fsm/dist/xstate-svelte-fsm.cjs.js"
+    },
+    ".": {
+      "module": "./dist/xstate-svelte.esm.js",
+      "default": "./dist/xstate-svelte.cjs.js"
+    },
+    "./package.json": "./package.json"
+  },
   "sideEffects": false,
   "files": [
     "dist",

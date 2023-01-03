@@ -5,8 +5,8 @@ import { isStateConfig, State } from './State';
 import { StateNode } from './StateNode';
 import {
   getConfiguration,
+  getInitialConfiguration,
   getStateNodes,
-  getStateValue,
   isInFinalState,
   isStateId,
   macrostep,
@@ -315,15 +315,16 @@ export class StateMachine<
     actorCtx: ActorContext<any, any> | undefined
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     const [context, actions] = this.getContextAndActions();
+    const config = getInitialConfiguration(this.root);
     const preInitial = this.resolveState(
       this.createState({
-        value: getStateValue(this.root, getConfiguration([this.root])),
+        value: {}, // TODO: this is computed in state constructor
         context,
         _event: initEvent as SCXML.Event<TEvent>,
         _sessionid: actorCtx?.sessionId ?? undefined,
         actions: [],
         meta: undefined,
-        configuration: [],
+        configuration: config,
         transitions: [],
         children: {}
       })

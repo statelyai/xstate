@@ -674,6 +674,11 @@ export interface StateNodeConfig<
    * A text description of the state node
    */
   description?: string;
+
+  /**
+   * A default target for a history state
+   */
+  target?: string;
 }
 
 export interface StateNodeDefinition<

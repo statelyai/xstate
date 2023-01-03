@@ -3226,6 +3226,40 @@ describe('invoke', () => {
     service.send({ type: 'FINISH' });
     expect(disposed).toBe(true);
   });
+  // https://github.com/statelyai/xstate/issues/3072
+  it('root invocations should not restart on root external transitions', () => {
+    let count = 0;
+
+    const machine = createMachine({
+      id: 'root',
+      invoke: {
+        src: () =>
+          fromPromise(() => {
+            count++;
+            return Promise.resolve(42);
+          })
+      },
+      on: {
+        EVENT: {
+          target: '#two',
+          internal: false
+        }
+      },
+      initial: 'one',
+      states: {
+        one: {},
+        two: {
+          id: 'two'
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    service.send({ type: 'EVENT' });
+
+    expect(count).toEqual(1);
+  });
 });
 
 describe('actors option', () => {

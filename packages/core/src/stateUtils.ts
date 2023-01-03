@@ -364,7 +364,9 @@ export function formatTransition<
 ): AnyTransitionDefinition {
   const normalizedTarget = normalizeTarget(transitionConfig.target);
   const internal =
-    'internal' in transitionConfig
+    stateNode === stateNode.machine.root
+      ? true // always internal for root
+      : 'internal' in transitionConfig
       ? transitionConfig.internal
       : normalizedTarget
       ? normalizedTarget.some(
@@ -609,7 +611,7 @@ function resolveHistoryTarget<
     return stateNode.parent!.initial.target;
   }
   return normalizedTarget.map((t) =>
-    typeof t === 'string' ? getStateNodeByPath(stateNode, t) : t
+    typeof t === 'string' ? getStateNodeByPath(stateNode.parent!, t) : t
   );
 }
 
@@ -961,22 +963,24 @@ function getEffectiveTargetStates(
 
   const targets = new Set<AnyStateNode>();
 
-  for (const sn of transition.target) {
-    if (isHistoryNode(sn)) {
-      if (historyValue[sn.id]) {
-        for (const node of historyValue[sn.id]) {
+  for (const targetNode of transition.target) {
+    if (isHistoryNode(targetNode)) {
+      if (historyValue[targetNode.id]) {
+        for (const node of historyValue[targetNode.id]) {
           targets.add(node);
         }
       } else {
         for (const node of getEffectiveTargetStates(
-          { target: resolveHistoryTarget(sn) } as AnyTransitionDefinition,
+          {
+            target: resolveHistoryTarget(targetNode)
+          } as AnyTransitionDefinition,
           historyValue
         )) {
           targets.add(node);
         }
       }
     } else {
-      targets.add(sn);
+      targets.add(targetNode);
     }
   }
 
@@ -1016,12 +1020,12 @@ function computeExitSet(
   const statesToExit = new Set<AnyStateNode>();
 
   for (const t of transitions) {
-    if (t.target && t.target.length) {
+    if (t.target?.length) {
       const domain = getTransitionDomain(t, historyValue);
 
-      for (const s of configuration) {
-        if (isDescendant(s, domain!)) {
-          statesToExit.add(s);
+      for (const stateNode of configuration) {
+        if (isDescendant(stateNode, domain!)) {
+          statesToExit.add(stateNode);
         }
       }
     }
@@ -1764,4 +1768,29 @@ export function stateValuesEqual(
     aKeys.length === bKeys.length &&
     aKeys.every((key) => stateValuesEqual(a[key], b[key]))
   );
+}
+
+export function getInitialConfiguration(
+  rootNode: AnyStateNode
+): AnyStateNode[] {
+  const configuration: AnyStateNode[] = [];
+  const initialTransition = rootNode.initial;
+
+  const statesToEnter = new Set<AnyStateNode>();
+  const statesForDefaultEntry = new Set<AnyStateNode>([rootNode]);
+
+  computeEntrySet(
+    [initialTransition],
+    {},
+    statesForDefaultEntry,
+    statesToEnter
+  );
+
+  for (const stateNodeToEnter of [...statesToEnter].sort(
+    (a, b) => a.order - b.order
+  )) {
+    configuration.push(stateNodeToEnter);
+  }
+
+  return configuration;
 }

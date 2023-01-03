@@ -2039,10 +2039,10 @@
     "@nodelib/fs.scandir" "2.1.4"
     fastq "^1.6.0"
 
-"@preconstruct/cli@^2.1.5":
-  version "2.1.5"
-  resolved "https://registry.yarnpkg.com/@preconstruct/cli/-/cli-2.1.5.tgz#f7f6d06809f382521589af15f67b87009b240c58"
-  integrity sha512-bMnGTkaotxq+xoOkXoUOfTFvxBX/ZUxukcacf3mx3G7Iz5m/T4ZGzSOU12pxl64e+rVWGTKlUsgaDSgyFkup0A==
+"@preconstruct/cli@^2.2.2":
+  version "2.2.2"
+  resolved "https://registry.yarnpkg.com/@preconstruct/cli/-/cli-2.2.2.tgz#2327aa2486f7c3650cfa726e667a9d80007e50d8"
+  integrity sha512-7Zk8g/G+SPusoL1Ir3oslj19QDoFuAKeQO8B6fnNkRRgvIntxnylGZyC4wdKVX/eeDHwca1LNLT/GyjXx1f1nA==
   dependencies:
     "@babel/code-frame" "^7.5.5"
     "@babel/core" "^7.7.7"
@@ -2052,7 +2052,7 @@
     "@rollup/plugin-alias" "^3.1.1"
     "@rollup/plugin-commonjs" "^15.0.0"
     "@rollup/plugin-json" "^4.1.0"
-    "@rollup/plugin-node-resolve" "^9.0.0"
+    "@rollup/plugin-node-resolve" "^11.2.1"
     "@rollup/plugin-replace" "^2.4.1"
     builtin-modules "^3.1.0"
     chalk "^4.1.0"
@@ -2119,17 +2119,17 @@
   dependencies:
     "@rollup/pluginutils" "^3.0.8"
 
-"@rollup/plugin-node-resolve@^9.0.0":
-  version "9.0.0"
-  resolved "https://registry.yarnpkg.com/@rollup/plugin-node-resolve/-/plugin-node-resolve-9.0.0.tgz#39bd0034ce9126b39c1699695f440b4b7d2b62e6"
-  integrity sha512-gPz+utFHLRrd41WMP13Jq5mqqzHL3OXrfj3/MkSyB6UBIcuNt9j60GCbarzMzdf1VHFpOxfQh/ez7wyadLMqkg==
+"@rollup/plugin-node-resolve@^11.2.1":
+  version "11.2.1"
+  resolved "https://registry.yarnpkg.com/@rollup/plugin-node-resolve/-/plugin-node-resolve-11.2.1.tgz#82aa59397a29cd4e13248b106e6a4a1880362a60"
+  integrity sha512-yc2n43jcqVyGE2sqV5/YCmocy9ArjVAP/BeXyTtADTBBX6V0e5UMqwO8CdQ0kzjb6zu5P1qMzsScCMRvE9OlVg==
   dependencies:
     "@rollup/pluginutils" "^3.1.0"
     "@types/resolve" "1.17.1"
     builtin-modules "^3.1.0"
     deepmerge "^4.2.2"
     is-module "^1.0.0"
-    resolve "^1.17.0"
+    resolve "^1.19.0"
 
 "@rollup/plugin-replace@^2.4.1":
   version "2.4.2"
@@ -5478,6 +5478,13 @@ is-core-module@^2.2.0:
   dependencies:
     has "^1.0.3"
 
+is-core-module@^2.9.0:
+  version "2.11.0"
+  resolved "https://registry.yarnpkg.com/is-core-module/-/is-core-module-2.11.0.tgz#ad4cb3e3863e814523c96f3f58d26cc570ff0144"
+  integrity sha512-RRjxlvLDkD1YJwDbroBHMb+cukurkDWNyHx7D3oNB5x9rb5ogcksMC5wHCadcXoo67gVr/+3GFySh3134zi6rw==
+  dependencies:
+    has "^1.0.3"
+
 is-data-descriptor@^0.1.4:
   version "0.1.4"
   resolved "https://registry.yarnpkg.com/is-data-descriptor/-/is-data-descriptor-0.1.4.tgz#0b5ee648388e2c860282e793f1856fec3f301b56"
@@ -7846,6 +7853,11 @@ path-parse@^1.0.6:
   resolved "https://registry.yarnpkg.com/path-parse/-/path-parse-1.0.6.tgz#d62dbb5679405d72c4737ec58600e9ddcf06d24c"
   integrity sha512-GSmOT2EbHrINBf9SR7CDELwlJ8AENk3Qn7OikK4nFYAu3Ote2+JYNVvkpAEQm3/TLNEJFD/xZJjzyxg3KBWOzw==
 
+path-parse@^1.0.7:
+  version "1.0.7"
+  resolved "https://registry.yarnpkg.com/path-parse/-/path-parse-1.0.7.tgz#fbc114b60ca42b30d9daf5858e4bd68bbedb6735"
+  integrity sha512-LDJzPVEEEPR+y48z93A0Ed0yXb8pAByGWo/k5YYdYgpY2/2EsOsksJrq7lOHxryrVOn1ejG6oAp8ahvOIQD8sw==
+
 path-root-regex@^0.1.0:
   version "0.1.2"
   resolved "https://registry.yarnpkg.com/path-root-regex/-/path-root-regex-0.1.2.tgz#bfccdc8df5b12dc52c8b43ec38d18d72c04ba96d"
@@ -8521,6 +8533,15 @@ resolve@^1.14.2:
   dependencies:
     is-core-module "^2.2.0"
     path-parse "^1.0.6"
+
+resolve@^1.19.0:
+  version "1.22.1"
+  resolved "https://registry.yarnpkg.com/resolve/-/resolve-1.22.1.tgz#27cb2ebb53f91abb49470a928bba7558066ac177"
+  integrity sha512-nBpuuYuY5jFsli/JIs1oldw6fOQCBioohqWZg/2hiaOybXOft4lonv85uDOKXdf8rhyK159cxU5cDcK/NKk8zw==
+  dependencies:
+    is-core-module "^2.9.0"
+    path-parse "^1.0.7"
+    supports-preserve-symlinks-flag "^1.0.0"
 
 responselike@^1.0.2:
   version "1.0.2"
@@ -9224,6 +9245,11 @@ supports-hyperlinks@^2.0.0:
   dependencies:
     has-flag "^4.0.0"
     supports-color "^7.0.0"
+
+supports-preserve-symlinks-flag@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/supports-preserve-symlinks-flag/-/supports-preserve-symlinks-flag-1.0.0.tgz#6eda4bd344a3c94aea376d4cc31bc77311039e09"
+  integrity sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==
 
 svelte-check@^2.4.5:
   version "2.4.5"
