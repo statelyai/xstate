@@ -514,13 +514,13 @@ export interface InvokeConfig<TContext, TEvent extends EventObject> {
    */
   onDone?:
     | string
-    | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
+    | SingleOrArray<string | TransitionConfig<TContext, DoneInvokeEvent<any>>>;
   /**
    * The transition to take upon the invoked child machine sending an error event.
    */
   onError?:
     | string
-    | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
+    | SingleOrArray<string | TransitionConfig<TContext, DoneInvokeEvent<any>>>;
   /**
    * Meta data related to this invocation
    */
