@@ -696,12 +696,6 @@ describe('interpreter', () => {
   });
 });
 
-// - No child states
-// - No history states
-// - No parallel states
-// - (maybe final states)
-// - Right now, no transient states (but maybe in the future)
-
 const approvalMachine = createMachine({
   initial: 'pending',
   states: {
