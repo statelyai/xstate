@@ -1,5 +1,11 @@
 # xstate
 
+## 4.35.2
+
+### Patch Changes
+
+- [#3745](https://github.com/statelyai/xstate/pull/3745) [`8cc70d27e`](https://github.com/statelyai/xstate/commit/8cc70d27eb927b92603c9643a69351e6168073a6) Thanks [@viglucci](https://github.com/viglucci)! - Fix types to allow for string state name in service onDone/onError config
+
 ## 4.35.1
 
 ### Patch Changes
