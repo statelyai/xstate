@@ -1,5 +1,16 @@
 # Changelog
 
+## 4.0.0-alpha.1
+
+### Minor Changes
+
+- [#3727](https://github.com/statelyai/xstate/pull/3727) [`5fb3c683d`](https://github.com/statelyai/xstate/commit/5fb3c683d9a9bdc06637b3a13a5b575059aebadd) Thanks [@Andarist](https://github.com/Andarist)! - `exports` field has been added to the `package.json` manifest. It limits what files can be imported from a package - it's no longer possible to import from files that are not considered to be a part of the public API.
+
+### Patch Changes
+
+- Updated dependencies [[`5fb3c683d`](https://github.com/statelyai/xstate/commit/5fb3c683d9a9bdc06637b3a13a5b575059aebadd), [`ec39214c8`](https://github.com/statelyai/xstate/commit/ec39214c8eba11d75f6af72bae51ddb65ce003a0)]:
+  - @xstate/fsm@3.0.0-alpha.0
+
 ## 3.0.1
 
 ### Patch Changes
@@ -124,7 +135,7 @@
   Previously, guards could not reference external props, because they would not be updated when the props changed. For instance:
 
   ```tsx
-  const Modal = (props) => {
+  const Modal = props => {
     useMachine(modalMachine, {
       guards: {
         isModalOpen: () => props.isOpen
@@ -138,7 +149,7 @@
   This is not true of actions/services. This will work as expected:
 
   ```tsx
-  const Modal = (props) => {
+  const Modal = props => {
     useMachine(modalMachine, {
       actions: {
         consoleLogModalOpen: () => {
@@ -295,7 +306,7 @@
   import { useSelector } from '@xstate/react';
 
   const App = ({ someActor }) => {
-    const count = useSelector(someActor, (state) => state.context.count);
+    const count = useSelector(someActor, state => state.context.count);
 
     // ...
   };
@@ -416,7 +427,7 @@ All notable changes to this project will be documented in this file.
 - The `useActor` hook now takes a second argument: `getSnapshot` which is a function that should return the last emitted value:
 
   ```js
-  const [state, send] = useActor(someActor, (actor) => actor.current);
+  const [state, send] = useActor(someActor, actor => actor.current);
   ```
 
 ## [1.0.0-rc.6]
