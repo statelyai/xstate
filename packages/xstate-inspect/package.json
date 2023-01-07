@@ -39,12 +39,12 @@
     "@types/ws": "^8.2.2",
     "typescript": "^4.6.3",
     "ws": "^8.4.0",
-    "xstate": "5.0.0-alpha.0"
+    "xstate": "5.0.0-alpha.1"
   },
   "peerDependencies": {
     "@types/ws": "^8.0.0",
     "ws": "^8.0.0",
-    "xstate": "^5.0.0-alpha.0"
+    "xstate": "^5.0.0-alpha.1"
   },
   "peerDependenciesMeta": {
     "@types/ws": {

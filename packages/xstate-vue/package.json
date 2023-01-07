@@ -1,6 +1,6 @@
 {
   "name": "@xstate/vue",
-  "version": "3.0.0-alpha.0",
+  "version": "3.0.0-alpha.1",
   "description": "XState tools for Vue",
   "keywords": [
     "state",
@@ -42,9 +42,9 @@
     "url": "https://github.com/statelyai/xstate/issues"
   },
   "peerDependencies": {
-    "@xstate/fsm": "^2.0.0",
+    "@xstate/fsm": "^3.0.0-alpha.0",
     "vue": "^3.0.0",
-    "xstate": "^5.0.0-alpha.0"
+    "xstate": "^5.0.0-alpha.1"
   },
   "peerDependenciesMeta": {
     "@xstate/fsm": {
@@ -58,9 +58,9 @@
     "@testing-library/jest-dom": "^5.11.9",
     "@testing-library/vue": "^6.4.0",
     "@vue/compiler-sfc": "^3.0.11",
-    "@xstate/fsm": "2.0.0",
+    "@xstate/fsm": "3.0.0-alpha.0",
     "vue": "^3.0.11",
-    "xstate": "5.0.0-alpha.0"
+    "xstate": "5.0.0-alpha.1"
   },
   "preconstruct": {
     "entrypoints": [
