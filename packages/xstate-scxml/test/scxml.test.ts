@@ -27,7 +27,7 @@ async function runTestToCompletion(
   let done = false;
   let nextState: AnyState = machine.initialState;
 
-  const service = interpret(machine, {
+  const service = interpret(machine.at(nextState), {
     clock: new SimulatedClock()
   })
     .onTransition((state) => {
@@ -36,7 +36,7 @@ async function runTestToCompletion(
     .onDone(() => {
       done = true;
     })
-    .start(nextState);
+    .start();
 
   test.events.forEach(({ event, nextConfiguration, after }) => {
     if (done) {

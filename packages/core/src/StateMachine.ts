@@ -1,7 +1,12 @@
 import { initEvent } from './actions';
 import { STATE_DELIMITER } from './constants';
 import { createSpawner } from './spawn';
-import { getPersisted, isStateConfig, PersistedState, State } from './State';
+import {
+  getPersisted,
+  isStateConfig,
+  PersistedMachineState,
+  State
+} from './State';
 import { StateNode } from './StateNode';
 import { interpret } from './interpreter';
 import {
@@ -91,7 +96,7 @@ export class StateMachine<
       TEvent | SCXML.Event<TEvent>,
       State<TContext, TEvent, TResolvedTypesMeta>,
       State<TContext, TEvent, TResolvedTypesMeta>,
-      PersistedState<State<TContext, TEvent, TResolvedTypesMeta>>
+      PersistedMachineState<State<TContext, TEvent, TResolvedTypesMeta>>
     > {
   private _contextFactory: (stuff: { spawn: Spawner }) => TContext;
   public get context(): TContext {
@@ -310,6 +315,10 @@ export class StateMachine<
     return transitionNode(this.root, state.value, state, _event) || [];
   }
 
+  public preInitialState:
+    | State<TContext, TEvent, TResolvedTypesMeta>
+    | undefined;
+
   /**
    * The initial state _before_ evaluating any microsteps.
    * This "pre-initial" state is provided to initial actions executed in the initial state.
@@ -317,6 +326,10 @@ export class StateMachine<
   private getPreInitialState(
     actorCtx: ActorContext<any, any> | undefined
   ): State<TContext, TEvent, TResolvedTypesMeta> {
+    if (this.preInitialState) {
+      return this.preInitialState;
+    }
+
     const [context, actions] = this.getContextAndActions();
     const config = getInitialConfiguration(this.root);
     const preInitial = this.resolveState(
@@ -415,7 +428,7 @@ export class StateMachine<
 
   public getPersisted(
     state: State<TContext, TEvent, TResolvedTypesMeta>
-  ): PersistedState<State<TContext, TEvent, TResolvedTypesMeta>> {
+  ): PersistedMachineState<State<TContext, TEvent, TResolvedTypesMeta>> {
     return getPersisted(state);
   }
 
@@ -460,6 +473,53 @@ export class StateMachine<
     resolvedState.children = restoredChildren;
 
     return resolvedState as State<TContext, TEvent, TResolvedTypesMeta>;
+  }
+
+  public at(
+    state:
+      | State<TContext, TEvent, TResolvedTypesMeta>
+      | PersistedMachineState<State<TContext, TEvent, TResolvedTypesMeta>>
+  ): this {
+    const machine = new StateMachine(this.config) as typeof this;
+    let restoredState: State<TContext, TEvent, TResolvedTypesMeta>;
+
+    if ('persisted' in state) {
+      const restoredChildren: Record<string, AnyActorRef> = {};
+
+      Object.keys(state.children).forEach((key) => {
+        const persistedState = state.children[key];
+        const impl = this.options.actors[key];
+
+        if (!impl) return;
+
+        if (typeof impl === 'function') {
+          const behavior = impl(state.context, state.event, {
+            id: key,
+            src: {} as any,
+            _event: state._event,
+            meta: undefined
+          });
+
+          // TODO: this should only start if actorCtx is enabled
+          restoredChildren[key] = interpret(
+            behavior.at?.(persistedState) ?? behavior,
+            {
+              id: key
+            }
+          ).start();
+        }
+      });
+
+      state.children = restoredChildren;
+
+      restoredState = new State(state, this);
+    } else {
+      restoredState = this.createState(state);
+    }
+
+    machine.preInitialState = restoredState;
+
+    return machine;
   }
 
   public getStatus(state: State<TContext, TEvent, TResolvedTypesMeta>) {

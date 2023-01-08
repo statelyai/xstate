@@ -1,5 +1,5 @@
 import type { StateNode } from './StateNode';
-import type { PersistedState, State } from './State';
+import type { PersistedMachineState, State } from './State';
 import type { ActorStatus, Clock, Interpreter } from './interpreter';
 import type { StateMachine } from './StateMachine';
 import type { LifecycleSignal } from './actors';
@@ -1775,7 +1775,7 @@ export type InterpreterFrom<
         TEvent,
         State<TContext, TEvent, TResolvedTypesMeta>,
         State<TContext, TEvent, TResolvedTypesMeta>,
-        PersistedState<State<TContext, TEvent, TResolvedTypesMeta>>
+        PersistedMachineState<State<TContext, TEvent, TResolvedTypesMeta>>
       >
     >
   : never;
@@ -1844,6 +1844,10 @@ export interface Behavior<
     state: TInternalState,
     actorCtx: ActorContext<TEvent, TSnapshot>
   ) => TInternalState;
+  /**
+   * Clones behavior that starts at specified state
+   */
+  at?: (state: TInternalState) => this;
   /**
    * @returns Persisted state as JSON
    */

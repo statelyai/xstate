@@ -303,7 +303,7 @@ export class Interpreter<
       : this._getInitialState() ?? undefined;
 
     if (this.behavior.start) {
-      resolvedState = this.behavior.start(resolvedState, this._actorContext);
+      this.behavior.start(resolvedState, this._actorContext);
     }
 
     // TODO: this notifies all subscribers but usually this is redundant

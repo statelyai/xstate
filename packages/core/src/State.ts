@@ -279,16 +279,17 @@ export function cloneState<TState extends AnyState>(
   ) as TState;
 }
 
-export interface PersistedState<TState extends AnyState> {
+export interface PersistedMachineState<TState extends AnyState> {
   [key: string]: any;
   children: {
     [key in keyof TState['children']]: any;
   };
+  persisted: true;
 }
 
 export function getPersisted<TState extends AnyState>(
   state: TState
-): PersistedState<TState> {
+): PersistedMachineState<TState> {
   const {
     configuration,
     transitions,
@@ -306,6 +307,7 @@ export function getPersisted<TState extends AnyState>(
 
   return {
     ...jsonValues,
-    children: childrenJson
+    children: childrenJson,
+    persisted: true
   };
 }

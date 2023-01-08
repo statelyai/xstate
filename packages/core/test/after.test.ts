@@ -160,9 +160,9 @@ describe('delayed transitions', () => {
 
     const withAfterState = machine.transition(undefined, { type: 'next' });
 
-    interpret(machine)
+    interpret(machine.at(withAfterState))
       .onDone(() => done())
-      .start(withAfterState);
+      .start();
   });
 
   it('should execute an after transition after starting from a persisted state', (done) => {
@@ -190,7 +190,7 @@ describe('delayed transitions', () => {
 
     const persistedState = JSON.parse(JSON.stringify(service.getSnapshot()));
 
-    service = interpret(createMyMachine()).start(persistedState);
+    service = interpret(createMyMachine().at(persistedState)).start();
 
     service.send({ type: 'NEXT' });
 

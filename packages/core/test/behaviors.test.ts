@@ -3,7 +3,7 @@ import { take } from 'rxjs/operators';
 import { createMachine, interpret } from '../src';
 import { fromObservable, fromPromise, fromReducer } from '../src/actors';
 import { waitFor } from '../src/waitFor';
-import { raise } from '../src/actions';
+import { raise, sendTo } from '../src/actions';
 
 describe('promise behavior (fromPromise)', () => {
   it('should interpret a promise', async () => {
@@ -83,19 +83,21 @@ describe('promise behavior (fromPromise)', () => {
   });
 
   it('should persist a promise', async () => {
+    const promiseBehavior = fromPromise(
+      () =>
+        new Promise<number>((_res) => {
+          // never resolves
+        })
+    );
     const actor = interpret(
-      fromPromise(
-        () =>
-          new Promise<number>((_res) => {
-            // never resolves
-          })
-      )
+      promiseBehavior.at({
+        status: 'done',
+        canceled: false,
+        data: 42
+      }) ?? promiseBehavior
     );
 
-    actor.start({
-      canceled: false,
-      data: 42
-    });
+    actor.start();
 
     expect(actor.getSnapshot()).toBe(42);
   });
@@ -130,15 +132,16 @@ describe('reducer behavior (fromReducer)', () => {
   });
 
   it('should persist a reducer', () => {
+    const behavior = fromReducer((state) => state, {
+      status: 'inactive' as 'inactive' | 'active'
+    });
     const actor = interpret(
-      fromReducer((state) => state, {
-        status: 'inactive' as 'inactive' | 'active'
+      behavior.at?.({
+        status: 'active'
       })
     );
 
-    actor.start({
-      status: 'active'
-    });
+    actor.start();
 
     expect(actor.getSnapshot().status).toBe('active');
   });
@@ -288,5 +291,62 @@ describe('machine behavior', () => {
         }
       })
     );
+  });
+
+  it('should persist a machine2', () => {
+    const childMachine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {}
+      }
+    });
+
+    const parentMachine = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            START: 'invoked'
+          }
+        },
+        invoked: {
+          invoke: {
+            id: 'child',
+            src: childMachine
+          },
+          on: {
+            NEXT: {
+              actions: sendTo('child', { type: 'NEXT' })
+            }
+          }
+        }
+      }
+    });
+
+    const actor = interpret(parentMachine).start();
+
+    // parent is at 'idle'
+
+    actor.send({ type: 'START' });
+
+    // parent is at 'invoked'
+    // child is at 'a'
+
+    actor.send({ type: 'NEXT' });
+
+    // child is at 'b'
+
+    const p = actor.getPersisted()!;
+
+    const newActor = interpret(parentMachine.at(p)).start();
+
+    const n = newActor.getSnapshot();
+
+    expect(n.children.child.getSnapshot().value).toBe('b');
   });
 });

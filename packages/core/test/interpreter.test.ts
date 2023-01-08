@@ -159,8 +159,8 @@ describe('interpreter', () => {
       const recreated = JSON.parse(JSON.stringify(nextState));
       const restoredState = lightMachine.createState(recreated);
 
-      const service = interpret(lightMachine);
-      service.start(restoredState);
+      const service = interpret(lightMachine.at(restoredState));
+      service.start();
     });
 
     it('should not execute actions that are not part of the actual persisted state', () => {
@@ -179,14 +179,14 @@ describe('interpreter', () => {
         }
       });
 
-      const s = interpret(machine);
+      const bState = machine.initialState;
 
-      // would have deferred the entry action
-      s.getSnapshot();
+      expect(bState.value).toEqual('b');
 
-      // instead, we start from a different state
-      // and only execute those actions
-      s.start('b');
+      // Ensure that there are no actions attached to the state
+      bState.actions.length = 0;
+
+      interpret(machine.at(bState)).start();
 
       expect(aCalled).toBe(false);
     });
@@ -633,7 +633,7 @@ describe('interpreter', () => {
       });
       const bState = toggleMachine.transition(activeState, { type: 'SWITCH' });
 
-      interpret(toggleMachine).start(bState);
+      interpret(toggleMachine.at(bState)).start();
 
       setTimeout(() => {
         expect(activityActive).toBeFalsy();
@@ -1205,21 +1205,26 @@ describe('interpreter', () => {
     });
 
     it('should be able to be initialized at a custom state', (done) => {
-      const startService = interpret(startMachine).onTransition((state) => {
+      const startService = interpret(
+        startMachine.at(State.from('bar', undefined, startMachine))
+      ).onTransition((state) => {
         expect(state.matches('bar')).toBeTruthy();
         done();
       });
 
-      startService.start(State.from('bar', undefined, startMachine));
+      startService.start();
     });
 
     it('should be able to be initialized at a custom state value', (done) => {
-      const startService = interpret(startMachine).onTransition((state) => {
-        expect(state.matches('bar')).toBeTruthy();
-        done();
-      });
+      const barState = startMachine.resolveStateValue('bar');
+      const startService = interpret(startMachine.at(barState)).onTransition(
+        (state) => {
+          expect(state.matches('bar')).toBeTruthy();
+          done();
+        }
+      );
 
-      startService.start('bar');
+      startService.start();
     });
 
     it('should be able to resolve a custom initialized state', (done) => {

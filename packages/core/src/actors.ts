@@ -30,8 +30,8 @@ export function fromReducer<TState, TEvent extends EventObject>(
     actorContext: ActorContext<TEvent, TState>
   ) => TState,
   initialState: TState
-): Behavior<TEvent, TState> {
-  return {
+): WithRequired<Behavior<TEvent, TState, TState>, 'at'> {
+  const behavior = {
     transition: (state, event, actorCtx) => {
       // @ts-ignore TODO
       const resolvedEvent = isSCXMLEvent(event) ? event.data : event;
@@ -41,8 +41,14 @@ export function fromReducer<TState, TEvent extends EventObject>(
     getInitialState: () => initialState,
     getSnapshot: (state) => state,
     getPersisted: (state) => state,
-    restoreState: (state) => state
+    restoreState: (state) => state,
+    at: (state) => ({
+      ...behavior,
+      getInitialState: () => state
+    })
   };
+
+  return behavior;
 }
 
 export const startSignalType = 'xstate.init';
@@ -85,10 +91,10 @@ export function fromCallback<TEvent extends EventObject>(
   invokeCallback: InvokeCallback
 ): Behavior<TEvent, undefined> {
   const behavior: Behavior<TEvent, undefined, CallbackInternalState> = {
-    start: (state, { self }) => {
-      self.send({ type: startSignalType } as TEvent);
+    start: (state, actorCtx) => {
+      actorCtx.self.send({ type: startSignalType } as TEvent);
 
-      return state;
+      return behavior.getInitialState(actorCtx);
     },
     transition: (state, event, { self, id }) => {
       const _event = toSCXMLEvent(event);
@@ -177,14 +183,22 @@ interface PromiseInternalState<T> {
   data: T | undefined;
 }
 
+type WithRequired<T, K extends keyof T> = T & { [P in K]-?: T[P] };
+
 export function fromPromise<T>(
   lazyPromise: Lazy<PromiseLike<T>>
-): Behavior<{ type: string }, T | undefined> {
+): WithRequired<
+  Behavior<{ type: string }, T | undefined, PromiseInternalState<T>>,
+  'at'
+> {
   const resolveEventType = '$$xstate.resolve';
   const rejectEventType = '$$xstate.reject';
 
   // TODO: add event types
-  const behavior: Behavior<any, T | undefined, PromiseInternalState<T>> = {
+  const behavior: WithRequired<
+    Behavior<{ type: string }, T | undefined, PromiseInternalState<T>>,
+    'at'
+  > = {
     transition: (state, event) => {
       const _event = toSCXMLEvent(event);
 
@@ -223,6 +237,12 @@ export function fromPromise<T>(
       );
 
       return state;
+    },
+    at: (persistedState) => {
+      return {
+        ...behavior,
+        getInitialState: () => persistedState
+      };
     },
     getInitialState: () => {
       return {
