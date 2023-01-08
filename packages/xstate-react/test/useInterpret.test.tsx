@@ -180,7 +180,7 @@ describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
     }
   });
 
-  it.only('should change state when started', async () => {
+  it('should change state when started', async () => {
     const childMachine = createMachine({
       initial: 'waiting',
       states: {
