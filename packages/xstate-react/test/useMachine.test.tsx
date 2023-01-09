@@ -16,6 +16,7 @@ import {
 import { fromCallback, fromPromise } from 'xstate/actors';
 import { useActor, useMachine } from '../src';
 import { describeEachReactMode } from './utils';
+import { PersistedMachineState } from 'xstate/dist/declarations/src/State';
 
 afterEach(() => {
   jest.useRealTimers();
@@ -55,27 +56,32 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     }
   });
 
-  const persistedFetchState = fetchMachine.transition('loading', {
+  const successFetchState = fetchMachine.transition('loading', {
     type: 'done.invoke.fetchData',
     data: 'persisted data'
   });
 
+  const persistedSuccessFetchState = fetchMachine.getPersisted(
+    successFetchState
+  );
+
   const Fetcher: React.FC<{
     onFetch: () => Promise<any>;
-    persistedState?: AnyState;
+    persistedState?: PersistedMachineState<any>;
   }> = ({
     onFetch = () => {
-      console.log('fetching...');
       return new Promise((res) => res('some data'));
     },
     persistedState
   }) => {
-    const [current, send] = useMachine(fetchMachine, {
-      actors: {
-        fetchData: fromPromise(onFetch)
-      },
-      state: persistedState
-    });
+    const [current, send] = useMachine(
+      persistedState ? fetchMachine.at(persistedState) : fetchMachine,
+      {
+        actors: {
+          fetchData: fromPromise(onFetch)
+        }
+      }
+    );
 
     switch (current.value) {
       case 'idle':
@@ -107,7 +113,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     render(
       <Fetcher
         onFetch={() => new Promise((res) => res('fake data'))}
-        persistedState={persistedFetchState}
+        persistedState={persistedSuccessFetchState}
       />
     );
 
@@ -118,7 +124,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
 
   it('should work with the useMachine hook (rehydrated state config)', async () => {
     const persistedFetchStateConfig = JSON.parse(
-      JSON.stringify(persistedFetchState)
+      JSON.stringify(persistedSuccessFetchState)
     );
     render(
       <Fetcher
@@ -920,9 +926,9 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     let currentState: StateFrom<typeof testMachine>;
 
     const Test = () => {
-      const [state, send] = useMachine(testMachine, {
-        state: testMachine.createState(JSON.parse(persistedState))
-      });
+      const [state, send] = useMachine(
+        testMachine.at(testMachine.createState(JSON.parse(persistedState)))
+      );
 
       currentState = state;
 

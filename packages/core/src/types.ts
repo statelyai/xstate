@@ -791,6 +791,7 @@ export interface MachineImplementationsSimplified<
   actors: Record<string, BehaviorCreator<TContext, TEvent> | AnyBehavior>;
   delays: DelayFunctionMap<TContext, TEvent>;
   context: Partial<TContext> | ContextFactory<Partial<TContext>>;
+  state: State<TContext, TEvent, any> | undefined;
 }
 
 type MachineImplementationsActions<

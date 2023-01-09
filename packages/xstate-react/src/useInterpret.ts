@@ -48,7 +48,6 @@ export function useIdleInterpreter(
     guards,
     actions,
     delays,
-    state: rehydratedState,
     ...interpreterOptions
   } = options;
 
@@ -129,14 +128,7 @@ export function useInterpret<TMachine extends AnyStateMachine>(
   }, [observerOrListener]);
 
   useEffect(() => {
-    const rehydratedState = options.state;
-    service.start(
-      rehydratedState
-        ? ((service.behavior as AnyStateMachine).createState(
-            rehydratedState
-          ) as any)
-        : undefined
-    );
+    service.start();
 
     return () => {
       service.stop();
