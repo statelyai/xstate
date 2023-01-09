@@ -74,14 +74,11 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     },
     persistedState
   }) => {
-    const [current, send] = useMachine(
-      persistedState ? fetchMachine.at(persistedState) : fetchMachine,
-      {
-        actors: {
-          fetchData: fromPromise(onFetch)
-        }
+    const [current, send] = useMachine(fetchMachine.at(persistedState), {
+      actors: {
+        fetchData: fromPromise(onFetch)
       }
-    );
+    });
 
     switch (current.value) {
       case 'idle':

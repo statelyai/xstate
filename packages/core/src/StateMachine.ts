@@ -457,10 +457,14 @@ export class StateMachine<
   }
 
   public at(
-    state:
+    state?:
       | State<TContext, TEvent, TResolvedTypesMeta>
       | PersistedMachineState<State<TContext, TEvent, TResolvedTypesMeta>>
   ): this {
+    if (!state) {
+      return this;
+    }
+
     const machine = new StateMachine(this.config) as typeof this;
     let restoredState: State<TContext, TEvent, TResolvedTypesMeta>;
 
