@@ -788,7 +788,6 @@ describe('invoke', () => {
         entry: () => entryActionsCount++,
         on: {
           UPDATE: {
-            internal: true,
             actions: () => {
               actionsCount++;
             }
@@ -3226,8 +3225,8 @@ describe('invoke', () => {
     service.send({ type: 'FINISH' });
     expect(disposed).toBe(true);
   });
-  // https://github.com/statelyai/xstate/issues/3072
-  it('root invocations should not restart on root external transitions', () => {
+
+  it('root invocations should restart on root external transitions', () => {
     let count = 0;
 
     const machine = createMachine({
@@ -3242,7 +3241,7 @@ describe('invoke', () => {
       on: {
         EVENT: {
           target: '#two',
-          internal: false
+          external: true
         }
       },
       initial: 'one',
@@ -3258,7 +3257,7 @@ describe('invoke', () => {
 
     service.send({ type: 'EVENT' });
 
-    expect(count).toEqual(1);
+    expect(count).toEqual(2);
   });
 });
 
