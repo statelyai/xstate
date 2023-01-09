@@ -51,6 +51,7 @@ import type {
   TransitionDefinition
 } from './types';
 import { isFunction, isSCXMLErrorEvent, toSCXMLEvent } from './utils';
+import { invoke } from './actions/invoke';
 
 export const NULL_EVENT = '';
 export const STATE_IDENTIFIER = '#';
@@ -398,6 +399,10 @@ export class StateMachine<
       action.execute?.(actorCtx);
     });
 
+    // Object.values(state.children).forEach((child) => {
+    //   child.start?.();
+    // });
+
     return state;
   }
 
@@ -447,31 +452,6 @@ export class StateMachine<
       undefined
     );
 
-    const restoredChildren: Record<string, AnyActorRef> = {};
-
-    Object.keys(resolvedState.children).forEach((key) => {
-      const persistedState = resolvedState.children[key];
-      const impl = this.options.actors[key];
-
-      if (!impl) return;
-
-      if (typeof impl === 'function') {
-        const behavior = impl(resolvedState.context, resolvedState.event, {
-          id: key,
-          src: {} as any,
-          _event: resolvedState._event,
-          meta: undefined
-        });
-
-        // TODO: this should only start if actorCtx is enabled
-        restoredChildren[key] = interpret(behavior, { id: key }).start(
-          persistedState
-        );
-      }
-    });
-
-    resolvedState.children = restoredChildren;
-
     return resolvedState as State<TContext, TEvent, TResolvedTypesMeta>;
   }
 
@@ -500,19 +480,29 @@ export class StateMachine<
             meta: undefined
           });
 
-          // TODO: this should only start if actorCtx is enabled
-          restoredChildren[key] = interpret(
+          const actorRef = interpret(
             behavior.at?.(persistedState) ?? behavior,
-            {
-              id: key
-            }
-          ).start();
+            { id: key }
+          );
+
+          state.actions.unshift(
+            invoke({
+              id: key,
+              // @ts-ignore TODO: fix types
+              src: actorRef, // TODO
+              ref: actorRef,
+              meta: undefined
+            })
+          );
+
+          // TODO: this should only start if actorCtx is enabled
+          restoredChildren[key] = actorRef;
         }
       });
 
       state.children = restoredChildren;
 
-      restoredState = new State(state, this);
+      restoredState = this.createState(new State(state, this));
     } else {
       restoredState = this.createState(state);
     }

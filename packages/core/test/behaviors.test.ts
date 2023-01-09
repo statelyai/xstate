@@ -240,6 +240,7 @@ describe('machine behavior', () => {
         }
       }
     });
+
     const machine = createMachine({
       initial: 'waiting',
       invoke: [
@@ -293,7 +294,7 @@ describe('machine behavior', () => {
     );
   });
 
-  it('should persist a machine2', () => {
+  it('should persist and restore a nested machine', () => {
     const childMachine = createMachine({
       initial: 'a',
       states: {
@@ -302,7 +303,12 @@ describe('machine behavior', () => {
             NEXT: 'b'
           }
         },
-        b: {}
+        b: {
+          on: {
+            LAST: 'c'
+          }
+        },
+        c: {}
       }
     });
 
@@ -322,6 +328,9 @@ describe('machine behavior', () => {
           on: {
             NEXT: {
               actions: sendTo('child', { type: 'NEXT' })
+            },
+            LAST: {
+              actions: sendTo('child', { type: 'LAST' })
             }
           }
         }
@@ -331,22 +340,25 @@ describe('machine behavior', () => {
     const actor = interpret(parentMachine).start();
 
     // parent is at 'idle'
-
+    // ...
     actor.send({ type: 'START' });
-
     // parent is at 'invoked'
     // child is at 'a'
-
+    // ...
     actor.send({ type: 'NEXT' });
-
     // child is at 'b'
 
-    const p = actor.getPersisted()!;
+    const persistedState = actor.getPersisted()!;
+    const newActor = interpret(parentMachine.at(persistedState)).start();
+    const newSnapshot = newActor.getSnapshot();
 
-    const newActor = interpret(parentMachine.at(p)).start();
+    expect(newSnapshot.children.child.getSnapshot().value).toBe('b');
 
-    const n = newActor.getSnapshot();
+    // Ensure that the child actor is started
+    // LAST is sent to parent which sends LAST to child
+    newActor.send({ type: 'LAST' });
+    // child is at 'c'
 
-    expect(n.children.child.getSnapshot().value).toBe('b');
+    expect(newActor.getSnapshot().children.child.getSnapshot().value).toBe('c');
   });
 });
