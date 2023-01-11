@@ -400,10 +400,6 @@ export class StateMachine<
       action.execute?.(actorCtx);
     });
 
-    // Object.values(state.children).forEach((child) => {
-    //   child.start?.();
-    // });
-
     return state;
   }
 
