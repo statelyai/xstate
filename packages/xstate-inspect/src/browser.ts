@@ -8,7 +8,7 @@ import {
   toSCXMLEvent
 } from 'xstate';
 import { XStateDevInterface } from 'xstate/dev';
-import { toActorRef } from 'xstate/actors';
+import { toActorRef } from 'xstate/behaviors';
 import { createInspectMachine, InspectMachineEvent } from './inspectMachine';
 import { stringifyMachine, stringifyState } from './serialize';
 import type {

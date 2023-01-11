@@ -1,7 +1,7 @@
 import { createMachine, sendParent, interpret, assign } from '../src';
 import { respond } from '../src/actions';
 import { send } from '../src/actions/send';
-import { fromCallback } from '../src/actors';
+import { fromCallback } from '../src/behaviors/callback';
 
 describe('SCXML events', () => {
   it('should have the origin (id) from the sending machine service', (done) => {

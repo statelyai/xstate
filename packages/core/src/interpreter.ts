@@ -7,7 +7,7 @@ import type {
   InterpreterFrom,
   SnapshotFrom
 } from './types';
-import { stopSignalType } from './actors';
+import { stopSignalType } from './behaviors';
 import { devToolsAdapter } from './dev/index';
 import { IS_PRODUCTION } from './environment';
 import { Mailbox } from './Mailbox';

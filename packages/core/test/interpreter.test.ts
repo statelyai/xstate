@@ -18,7 +18,9 @@ import { stop } from '../src/actions/stop';
 import { log } from '../src/actions/log';
 import { isObservable } from '../src/utils';
 import { interval, from } from 'rxjs';
-import { fromCallback, fromObservable, fromPromise } from '../src/actors';
+import { fromObservable } from '../src/behaviors/observable';
+import { fromPromise } from '../src/behaviors/promise';
+import { fromCallback } from '../src/behaviors/callback';
 
 const lightMachine = createMachine({
   id: 'light',

@@ -11,13 +11,11 @@ import {
   SpecialTargets,
   toSCXMLEvent
 } from '../src';
-import {
-  fromCallback,
-  fromEventObservable,
-  fromObservable,
-  fromPromise,
-  fromReducer
-} from '../src/actors';
+import { fromEventObservable } from '../src/behaviors/eventObservable';
+import { fromObservable } from '../src/behaviors/observable';
+import { fromPromise } from '../src/behaviors/promise';
+import { fromCallback } from '../src/behaviors/callback';
+import { fromReducer } from '../src/behaviors/reducer';
 import {
   actionTypes,
   done as _done,

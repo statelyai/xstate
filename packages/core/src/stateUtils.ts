@@ -58,7 +58,7 @@ import {
   SendActionObject,
   StateFromMachine
 } from '.';
-import { stopSignalType } from './actors';
+import { stopSignalType } from './behaviors';
 import { ActorStatus } from './interpreter';
 
 type Configuration<

@@ -1,0 +1,8 @@
+{
+  "main": "dist/xstate-behaviors.cjs.js",
+  "module": "dist/xstate-behaviors.esm.js",
+  "umd:main": "dist/xstate-behaviors.umd.min.js",
+  "preconstruct": {
+    "umdName": "XStateBehaviors"
+  }
+}

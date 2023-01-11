@@ -20,13 +20,11 @@ import { raise } from '../src/actions/raise';
 import { assign } from '../src/actions/assign';
 import { send } from '../src/actions/send';
 import { EMPTY, interval } from 'rxjs';
-import {
-  fromCallback,
-  fromObservable,
-  fromEventObservable,
-  fromPromise,
-  fromReducer
-} from '../src/actors';
+import { fromEventObservable } from '../src/behaviors/eventObservable';
+import { fromObservable } from '../src/behaviors/observable';
+import { fromPromise } from '../src/behaviors/promise';
+import { fromCallback } from '../src/behaviors/callback';
+import { fromReducer } from '../src/behaviors/reducer';
 import { map } from 'rxjs/operators';
 
 describe('spawning machines', () => {

@@ -16,7 +16,7 @@
 import { defineComponent, PropType } from 'vue';
 import { useMachine } from '../src';
 import { createMachine, assign, AnyState } from 'xstate';
-import { fromPromise } from 'xstate/actors';
+import { fromPromise } from 'xstate/behaviors';
 
 const context = {
   data: undefined

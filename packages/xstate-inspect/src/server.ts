@@ -6,7 +6,7 @@ import {
   Interpreter,
   toSCXMLEvent
 } from 'xstate';
-import { toActorRef } from 'xstate/actors';
+import { toActorRef } from 'xstate/behaviors';
 import { createInspectMachine, InspectMachineEvent } from './inspectMachine';
 import { Inspector, Replacer } from './types';
 import { stringify } from './utils';

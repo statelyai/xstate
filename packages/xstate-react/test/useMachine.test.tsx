@@ -13,7 +13,7 @@ import {
   send,
   StateFrom
 } from 'xstate';
-import { fromCallback, fromPromise } from 'xstate/actors';
+import { fromCallback, fromPromise } from 'xstate/behaviors';
 import { useActor, useMachine } from '../src';
 import { describeEachReactMode } from './utils';
 

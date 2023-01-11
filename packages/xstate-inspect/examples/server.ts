@@ -2,7 +2,7 @@
 import { inspect } from '@xstate/inspect/src/server';
 import WebSocket from 'ws';
 import { createMachine, interpret, send, toSCXMLEvent } from 'xstate';
-import { fromCallback } from 'xstate/actors';
+import { fromCallback } from 'xstate/behaviors';
 
 inspect({
   server: new WebSocket.Server({
