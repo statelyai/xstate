@@ -1,12 +1,8 @@
 import { useCallback, useRef } from 'react';
 import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
-import { ActorRef, AnyState, Interpreter, Subscribable } from 'xstate';
+import { ActorRef, AnyState, Subscribable } from 'xstate';
 import { isActorWithState } from './useActor';
-import { getServiceSnapshot } from './utils';
-
-function isService(actor: any): actor is Interpreter<any, any, any, any> {
-  return 'state' in actor && 'machine' in actor;
-}
+import { getServiceSnapshot, isService } from './utils';
 
 const defaultCompare = (a, b) => a === b;
 const defaultGetSnapshot = (a, initialStateCacheRef) => {

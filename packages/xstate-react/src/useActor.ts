@@ -3,6 +3,7 @@ import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 import { ActorRef, EventObject, Sender } from 'xstate';
 import useConstant from './useConstant';
 import { useSyncExternalStore } from 'use-sync-external-store/shim';
+import { getServiceSnapshot, isService } from './utils';
 
 export function isActorWithState<T extends ActorRef<any>>(
   actorRef: T
@@ -24,7 +25,9 @@ function defaultGetSnapshot<TEmitted>(
   actorRef: ActorRef<any, TEmitted>
 ): TEmitted | undefined {
   return 'getSnapshot' in actorRef
-    ? actorRef.getSnapshot()
+    ? isService(actorRef)
+      ? getServiceSnapshot(actorRef as any)
+      : actorRef.getSnapshot()
     : isActorWithState(actorRef)
     ? actorRef.state
     : undefined;

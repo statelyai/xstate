@@ -136,10 +136,6 @@ export function useInterpret<TMachine extends AnyStateMachine>(
 
   useEffect(() => {
     const rehydratedState = options.state;
-    // @ts-ignore
-    // This ensures that the interpreter recomputes the initial state
-    // TODO: figure out a better way to do this
-    delete service._initialState;
     service.start(
       rehydratedState ? (State.create(rehydratedState) as any) : undefined
     );

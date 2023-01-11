@@ -62,3 +62,9 @@ export function shallowEqual(objA: any, objB: any) {
 
   return true;
 }
+
+export function isService(
+  actor: any
+): actor is Interpreter<any, any, any, any> {
+  return 'state' in actor && 'machine' in actor;
+}

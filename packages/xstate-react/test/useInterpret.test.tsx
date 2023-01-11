@@ -215,7 +215,64 @@ describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
         <>
           <button
             data-testid="button"
-            onClick={() => parentSend('SEND_TO_CHILD')}
+            onClick={() => parentSend({ type: 'SEND_TO_CHILD' })}
+          >
+            Send to child
+          </button>
+          <div data-testid="child-state">{childState.value}</div>
+        </>
+      );
+    };
+
+    render(<App />);
+
+    const button = screen.getByTestId('button');
+    const childState = screen.getByTestId('child-state');
+
+    expect(childState.textContent).toBe('waiting');
+
+    fireEvent.click(button);
+
+    await waitFor(() => {
+      expect(childState.textContent).toBe('received');
+    });
+  });
+
+  it('should change state when started (useMachine)', async () => {
+    const childMachine = createMachine({
+      initial: 'waiting',
+      states: {
+        waiting: {
+          on: {
+            EVENT: 'received'
+          }
+        },
+        received: {}
+      }
+    });
+
+    const parentMachine = createMachine<{
+      childRef: ActorRefFrom<typeof childMachine>;
+    }>({
+      context: () => ({
+        childRef: spawn(childMachine)
+      }),
+      on: {
+        SEND_TO_CHILD: {
+          actions: sendTo((ctx) => ctx.childRef, { type: 'EVENT' })
+        }
+      }
+    });
+
+    const App = () => {
+      const [parentState, parentSend] = useMachine(parentMachine);
+      const [childState] = useActor(parentState.context.childRef);
+
+      return (
+        <>
+          <button
+            data-testid="button"
+            onClick={() => parentSend({ type: 'SEND_TO_CHILD' })}
           >
             Send to child
           </button>
