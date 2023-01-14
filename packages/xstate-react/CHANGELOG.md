@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.0.2
+
+### Patch Changes
+
+- [#3752](https://github.com/statelyai/xstate/pull/3752) [`4190c3fd6`](https://github.com/statelyai/xstate/commit/4190c3fd6d9bb6e7fca5c01cc1722f40e7e63399) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Computing the initial state is now consistent with `useMachine` and `useActor`, avoiding stale initial state problems with nested machines
+
 ## 3.0.1
 
 ### Patch Changes
