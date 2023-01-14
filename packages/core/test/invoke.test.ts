@@ -136,7 +136,7 @@ describe('invoke', () => {
         }
       },
       {
-        actors: {
+        behaviors: {
           child: () => childMachine
         }
       }
@@ -207,7 +207,7 @@ describe('invoke', () => {
         }
       },
       {
-        actors: {
+        behaviors: {
           child: () => childMachine
         }
       }
@@ -529,7 +529,7 @@ describe('invoke', () => {
         }
       },
       {
-        actors: {
+        behaviors: {
           child: () => childMachine
         }
       }
@@ -537,7 +537,7 @@ describe('invoke', () => {
 
     interpret(
       someParentMachine.provide({
-        actors: {
+        behaviors: {
           child: () =>
             createMachine({
               id: 'child',
@@ -1106,7 +1106,7 @@ describe('invoke', () => {
             }
           },
           {
-            actors: {
+            behaviors: {
               somePromise: () =>
                 fromPromise(() => createPromise((resolve) => resolve()))
             }
@@ -1176,7 +1176,7 @@ describe('invoke', () => {
             }
           },
           {
-            actors: {
+            behaviors: {
               somePromise: () =>
                 fromPromise(() =>
                   createPromise((resolve) => resolve({ count: 1 }))
@@ -1258,7 +1258,7 @@ describe('invoke', () => {
             }
           },
           {
-            actors: {
+            behaviors: {
               somePromise: () =>
                 fromPromise(() =>
                   createPromise((resolve) => resolve({ count: 1 }))
@@ -1305,7 +1305,7 @@ describe('invoke', () => {
             }
           },
           {
-            actors: {
+            behaviors: {
               somePromise: (ctx, e) =>
                 fromPromise(() => {
                   return createPromise((resolve, reject) => {
@@ -1387,7 +1387,7 @@ describe('invoke', () => {
             }
           },
           {
-            actors: {
+            behaviors: {
               // it's important for this actor to be reused, this test shouldn't use a factory or anything like that
               getRandomNumber: fromPromise(() => {
                 return createPromise((resolve) =>
@@ -1456,7 +1456,7 @@ describe('invoke', () => {
           }
         },
         {
-          actors: {
+          behaviors: {
             someCallback: (ctx, e) =>
               fromCallback((cb) => {
                 if (ctx.foo && e.type === 'BEGIN') {
@@ -1512,7 +1512,7 @@ describe('invoke', () => {
           }
         },
         {
-          actors: {
+          behaviors: {
             someCallback: () =>
               fromCallback((cb) => {
                 cb({ type: 'CALLBACK' });
@@ -1554,7 +1554,7 @@ describe('invoke', () => {
           }
         },
         {
-          actors: {
+          behaviors: {
             someCallback: () =>
               fromCallback((cb) => {
                 cb({ type: 'CALLBACK' });
@@ -1603,7 +1603,7 @@ describe('invoke', () => {
           }
         },
         {
-          actors: {
+          behaviors: {
             someCallback: () =>
               fromCallback((cb) => {
                 cb({ type: 'CALLBACK' });
@@ -2880,7 +2880,7 @@ describe('invoke', () => {
         }
       },
       {
-        actors: {
+        behaviors: {
           search: (_, __, meta) =>
             fromPromise(async () => {
               expect(meta.src.endpoint).toEqual('example.com');
@@ -2954,7 +2954,7 @@ describe('invoke', () => {
         }
       },
       {
-        actors: {
+        behaviors: {
           someSrc: fromPromise(() => Promise.resolve())
         }
       }
@@ -3005,7 +3005,7 @@ describe('invoke', () => {
           }
         },
         {
-          actors: {
+          behaviors: {
             someSrc: fromCallback(() => {
               /* ... */
             })
@@ -3052,7 +3052,7 @@ describe('invoke', () => {
             ++counter;
           }
         },
-        actors: {
+        behaviors: {
           fetchSmth: fromPromise(() => {
             if (invoked) {
               // create a promise that won't ever resolve for the second invoking state
@@ -3286,7 +3286,7 @@ describe('actors option', () => {
         }
       },
       {
-        actors: {
+        behaviors: {
           stringService: (ctx, _, { data }) =>
             fromPromise(() => {
               expect(ctx).toEqual({ count: 42 });

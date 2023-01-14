@@ -31,7 +31,7 @@ export interface TypegenMeta extends TypegenEnabled {
    */
   missingImplementations: {
     actions: string;
-    actors: string;
+    behaviors: string;
     delays: string;
     guards: string;
   };
@@ -85,7 +85,7 @@ export interface TypegenMeta extends TypegenEnabled {
    * Key: 'EVENT_NAME'
    * Value: 'actorName' | 'otherActorName'
    */
-  eventsCausingActors: Record<string, string>;
+  eventsCausingBehaviors: Record<string, string>;
 }
 
 export interface ResolvedTypegenMeta extends TypegenMeta {
@@ -121,7 +121,7 @@ export type AreAllImplementationsAssumedToBeProvided<
 interface AllImplementationsProvided {
   missingImplementations: {
     actions: never;
-    actors: never;
+    behaviors: never;
     delays: never;
     guards: never;
   };
@@ -167,7 +167,7 @@ type MergeWithInternalEvents<TIndexedEvents, TInternalEvents> = TIndexedEvents &
 
 type AllowAllEvents = {
   eventsCausingActions: Record<string, string>;
-  eventsCausingActors: Record<string, string>;
+  eventsCausingBehaviors: Record<string, string>;
   eventsCausingDelays: Record<string, string>;
   eventsCausingGuards: Record<string, string>;
 };

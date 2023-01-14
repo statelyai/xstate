@@ -21,7 +21,7 @@ export function createSpawner<
 ): Spawner {
   return (behavior, name) => {
     if (isString(behavior)) {
-      const behaviorCreator = machine.options.actors[behavior];
+      const behaviorCreator = machine.options.behaviors[behavior];
 
       if (behaviorCreator) {
         const resolvedName = name ?? 'anon'; // TODO: better name

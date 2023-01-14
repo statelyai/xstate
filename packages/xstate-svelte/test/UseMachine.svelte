@@ -10,7 +10,7 @@
     new Promise((res) => setTimeout(() => res('some data'), 50));
 
   const { state, send } = useMachine(fetchMachine, {
-    actors: {
+    behaviors: {
       fetchData: () => fromPromise(onFetch)
     },
     state: persistedState

@@ -44,7 +44,7 @@ export function useIdleInterpreter(
 
   const {
     context,
-    actors,
+    behaviors,
     guards,
     actions,
     delays,
@@ -57,7 +57,7 @@ export function useIdleInterpreter(
       context,
       guards,
       actions,
-      actors,
+      behaviors,
       delays
     };
     const machineWithConfig = machine.provide(machineConfig as any);
@@ -74,9 +74,12 @@ export function useIdleInterpreter(
       actions
     );
     Object.assign((service.behavior as AnyStateMachine).options.guards, guards);
-    Object.assign((service.behavior as AnyStateMachine).options.actors, actors);
+    Object.assign(
+      (service.behavior as AnyStateMachine).options.behaviors,
+      behaviors
+    );
     Object.assign((service.behavior as AnyStateMachine).options.delays, delays);
-  }, [actions, guards, actors, delays]);
+  }, [actions, guards, behaviors, delays]);
 
   return service as any;
 }

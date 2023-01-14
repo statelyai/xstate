@@ -11,7 +11,7 @@ describe('typegen types', () => {
         actions: 'fooAction';
         delays: 'barDelay';
         guards: 'bazGuard';
-        actors: 'qwertyActor';
+        behaviors: 'qwertyActor';
       };
     }
     createMachine({
@@ -25,7 +25,7 @@ describe('typegen types', () => {
         actions: never;
         delays: never;
         guards: never;
-        actors: never;
+        behaviors: never;
       };
       eventsCausingActions: {
         myAction: 'FOO' | 'BAR';
@@ -59,7 +59,7 @@ describe('typegen types', () => {
         actions: never;
         delays: never;
         guards: never;
-        actors: never;
+        behaviors: never;
       };
       eventsCausingDelays: {
         myDelay: 'FOO' | 'BAR';
@@ -95,7 +95,7 @@ describe('typegen types', () => {
         actions: never;
         delays: never;
         guards: never;
-        actors: never;
+        behaviors: never;
       };
       eventsCausingGuards: {
         myGuard: 'FOO' | 'BAR';
@@ -131,9 +131,9 @@ describe('typegen types', () => {
         actions: never;
         delays: never;
         guards: never;
-        actors: never;
+        behaviors: never;
       };
-      eventsCausingActors: {
+      eventsCausingBehaviors: {
         myActor: 'FOO' | 'BAR';
       };
     }
@@ -147,7 +147,7 @@ describe('typegen types', () => {
         }
       },
       {
-        actors: {
+        behaviors: {
           myActor: (_ctx, event) =>
             fromPromise(() => {
               event.type === 'FOO';
@@ -168,7 +168,7 @@ describe('typegen types', () => {
         actions: never;
         delays: never;
         guards: never;
-        actors: never;
+        behaviors: never;
       };
       eventsCausingActions: {
         myAction: 'FOO' | 'BAR';
@@ -198,7 +198,7 @@ describe('typegen types', () => {
         actions: never;
         delays: never;
         guards: never;
-        actors: never;
+        behaviors: never;
       };
       eventsCausingDelays: {
         myDelay: 'FOO' | 'BAR';
@@ -228,7 +228,7 @@ describe('typegen types', () => {
         actions: never;
         delays: never;
         guards: never;
-        actors: never;
+        behaviors: never;
       };
       eventsCausingGuards: {
         myGuard: 'FOO' | 'BAR';
@@ -258,9 +258,9 @@ describe('typegen types', () => {
         actions: never;
         delays: never;
         guards: never;
-        actors: never;
+        behaviors: never;
       };
-      eventsCausingActors: {
+      eventsCausingBehaviors: {
         myActor: 'FOO' | 'BAR';
       };
     }
@@ -274,7 +274,7 @@ describe('typegen types', () => {
         }
       },
       {
-        actors: {
+        behaviors: {
           // @ts-expect-error
           unknownActor: () => () => {}
         }
@@ -405,7 +405,7 @@ describe('typegen types', () => {
         actions: 'myAction';
         delays: 'myDelay';
         guards: never;
-        actors: never;
+        behaviors: never;
       };
       eventsCausingActions: {
         myAction: 'FOO';
@@ -448,7 +448,7 @@ describe('typegen types', () => {
         actions: never;
         delays: never;
         guards: never;
-        actors: never;
+        behaviors: never;
       };
     }
 
@@ -465,7 +465,7 @@ describe('typegen types', () => {
         actions: 'myAction';
         delays: never;
         guards: never;
-        actors: never;
+        behaviors: never;
       };
       eventsCausingActions: {
         myAction: 'FOO';
@@ -490,7 +490,7 @@ describe('typegen types', () => {
         actions: 'myAction';
         delays: never;
         guards: never;
-        actors: never;
+        behaviors: never;
       };
       eventsCausingActions: {
         myAction: 'FOO';
@@ -519,12 +519,12 @@ describe('typegen types', () => {
         actions: 'fooAction';
         delays: 'barDelay';
         guards: 'bazGuard';
-        actors: 'qwertyActor';
+        behaviors: 'qwertyActor';
       };
       eventsCausingActions: { fooAction: 'FOO' };
       eventsCausingDelays: { barDelay: 'BAR' };
       eventsCausingGuards: { bazGuard: 'BAR' };
-      eventsCausingActors: { qwertyActor: 'BAR' };
+      eventsCausingBehaviors: { qwertyActor: 'BAR' };
     }
 
     createMachine(
@@ -548,7 +548,7 @@ describe('typegen types', () => {
         actions: 'fooAction';
         delays: never;
         guards: never;
-        actors: never;
+        behaviors: never;
       };
       eventsCausingActions: { fooAction: 'FOO' };
       eventsCausingDelays: { barDelay: 'BAR' };
@@ -605,7 +605,7 @@ describe('typegen types', () => {
     );
   });
 
-  it('should include generated dynamic internal event in the provided parameter if schema.actors is not provided', () => {
+  it('should include generated dynamic internal event in the provided parameter if schema.behaviors is not provided', () => {
     interface TypesMeta extends TypegenMeta {
       eventsCausingActions: {
         myAction: 'done.invoke.myActor' | 'FOO';
@@ -646,7 +646,7 @@ describe('typegen types', () => {
     );
   });
 
-  it('should use an event generated based on schema.actors for a dynamic internal event over the generated fallback', () => {
+  it('should use an event generated based on schema.behaviors for a dynamic internal event over the generated fallback', () => {
     interface TypesMeta extends TypegenMeta {
       eventsCausingActions: {
         myAction: 'done.invoke.myActor' | 'FOO';
@@ -668,7 +668,7 @@ describe('typegen types', () => {
         tsTypes: {} as import('./typegenTypes.test.typegen').Typegen23,
         schema: {
           events: {} as { type: 'FOO' } | { type: 'BAR' },
-          actors: {
+          behaviors: {
             myActor: {
               data: {} as string
             }
@@ -690,9 +690,9 @@ describe('typegen types', () => {
     );
   });
 
-  it('should allow a promise actor returning the explicitly declared data in the given schema.actors', () => {
+  it('should allow a promise actor returning the explicitly declared data in the given schema.behaviors', () => {
     interface TypesMeta extends TypegenMeta {
-      eventsCausingActors: {
+      eventsCausingBehaviors: {
         myActor: 'FOO';
       };
       internalEvents: {
@@ -712,7 +712,7 @@ describe('typegen types', () => {
         tsTypes: {} as import('./typegenTypes.test.typegen').Typegen24,
         schema: {
           events: {} as { type: 'FOO' },
-          actors: {
+          behaviors: {
             myActor: {
               data: {} as string
             }
@@ -720,16 +720,16 @@ describe('typegen types', () => {
         }
       },
       {
-        actors: {
+        behaviors: {
           myActor: fromPromise(() => Promise.resolve('foo'))
         }
       }
     );
   });
 
-  it('should not allow a promise actor returning a different type than the explicitly declared one in the given schema.actors', () => {
+  it('should not allow a promise actor returning a different type than the explicitly declared one in the given schema.behaviors', () => {
     interface TypesMeta extends TypegenMeta {
-      eventsCausingActors: {
+      eventsCausingBehaviors: {
         myActor: 'FOO';
       };
       internalEvents: {
@@ -749,7 +749,7 @@ describe('typegen types', () => {
         tsTypes: {} as import('./typegenTypes.test.typegen').Typegen25,
         schema: {
           events: {} as { type: 'FOO' },
-          actors: {
+          behaviors: {
             myActor: {
               data: {} as string
             }
@@ -757,7 +757,7 @@ describe('typegen types', () => {
         }
       },
       {
-        actors: {
+        behaviors: {
           // @ts-expect-error
           myActor: (_ctx) => Promise.resolve(42)
         }
@@ -765,9 +765,9 @@ describe('typegen types', () => {
     );
   });
 
-  it('should allow a machine actor returning the explicitly declared data in the given schema.actors', () => {
+  it('should allow a machine actor returning the explicitly declared data in the given schema.behaviors', () => {
     interface TypesMeta extends TypegenMeta {
-      eventsCausingActors: {
+      eventsCausingBehaviors: {
         myActor: 'FOO';
       };
       internalEvents: {
@@ -787,7 +787,7 @@ describe('typegen types', () => {
         tsTypes: {} as import('./typegenTypes.test.typegen').Typegen26,
         schema: {
           events: {} as { type: 'FOO' },
-          actors: {
+          behaviors: {
             myActor: {
               data: {} as { foo: string }
             }
@@ -795,16 +795,16 @@ describe('typegen types', () => {
         }
       },
       {
-        actors: {
+        behaviors: {
           myActor: (_ctx) => createMachine<{ foo: string }>({})
         }
       }
     );
   });
 
-  // it('should not allow a machine actor returning a different type than the explicitly declared one in the given schema.actors', () => {
+  // it('should not allow a machine actor returning a different type than the explicitly declared one in the given schema.behaviors', () => {
   //   interface TypesMeta extends TypegenMeta {
-  //     eventsCausingActors: {
+  //     eventsCausingBehaviors: {
   //       myActor: 'FOO';
   //     };
   //     internalEvents: {
@@ -824,7 +824,7 @@ describe('typegen types', () => {
   //       tsTypes: {} as TypesMeta,
   //       schema: {
   //         events: {} as { type: 'FOO' },
-  //         actors: {
+  //         behaviors: {
   //           myActor: {
   //             data: {} as { foo: string }
   //           }
@@ -832,7 +832,7 @@ describe('typegen types', () => {
   //       }
   //     },
   //     {
-  //       actors: {
+  //       behaviors: {
   //         // @ts-expect-error
   //         myActor: () => (createMachine<{ foo: number }>({}))
   //       }
@@ -867,7 +867,7 @@ describe('typegen types', () => {
 
   it('should accept a machine as an actor', () => {
     interface TypesMeta extends TypegenMeta {
-      eventsCausingActors: {
+      eventsCausingBehaviors: {
         fooActor: 'FOO';
       };
     }
@@ -880,7 +880,7 @@ describe('typegen types', () => {
         }
       },
       {
-        actors: {
+        behaviors: {
           fooActor: () => createMachine({})
         }
       }
@@ -889,7 +889,7 @@ describe('typegen types', () => {
 
   // it('should be able to send all of the parent event types back to the parent from an invoked callback', () => {
   //   interface TypesMeta extends TypegenMeta {
-  //     eventsCausingActors: {
+  //     eventsCausingBehaviors: {
   //       fooActor: 'FOO';
   //     };
   //   }
@@ -902,7 +902,7 @@ describe('typegen types', () => {
   //       }
   //     },
   //     {
-  //       actors: {
+  //       behaviors: {
   //         fooActor: () => fromCallback((send) => {
   //           ((_accept: 'FOO') => {})(event.type);
 
@@ -918,7 +918,7 @@ describe('typegen types', () => {
 
   it("should not provide a loose type for `onReceive`'s argument as a default", () => {
     interface TypesMeta extends TypegenMeta {
-      eventsCausingActors: {
+      eventsCausingBehaviors: {
         fooActor: 'FOO';
       };
     }
@@ -931,7 +931,7 @@ describe('typegen types', () => {
         }
       },
       {
-        actors: {
+        behaviors: {
           fooActor: () =>
             fromCallback((_send, onReceive) => {
               onReceive((event) => {
@@ -947,7 +947,7 @@ describe('typegen types', () => {
 
   it("should allow specifying `onReceive`'s argument type manually", () => {
     interface TypesMeta extends TypegenMeta {
-      eventsCausingActors: {
+      eventsCausingBehaviors: {
         fooActor: 'FOO';
       };
     }
@@ -960,7 +960,7 @@ describe('typegen types', () => {
         }
       },
       {
-        actors: {
+        behaviors: {
           fooActor: () =>
             fromCallback((_send, onReceive) => {
               onReceive((_event: { type: 'TEST' }) => {});
@@ -977,7 +977,7 @@ describe('typegen types', () => {
   //     eventsCausingActions: {
   //       myAction: 'done.invoke.invocation';
   //     };
-  //     eventsCausingActors: {
+  //     eventsCausingBehaviors: {
   //       myInvocation: 'xstate.init';
   //     };
   //     internalEvents: {
@@ -992,7 +992,7 @@ describe('typegen types', () => {
   //     {
   //       tsTypes: {} as TypesMeta,
   //       schema: {
-  //         actors: {
+  //         behaviors: {
   //           myInvocation: {} as {
   //             data: string;
   //           }
@@ -1000,7 +1000,7 @@ describe('typegen types', () => {
   //       }
   //     },
   //     {
-  //       actors: {
+  //       behaviors: {
   //         // @ts-expect-error
   //         myInvocation: invokePromise(() => {
   //           return Promise.resolve(1);
@@ -1144,7 +1144,7 @@ describe('typegen types', () => {
 
   it('should error on a provided actor where there are no declared actors', () => {
     interface TypesMeta extends TypegenMeta {
-      eventsCausingActors: never;
+      eventsCausingBehaviors: never;
       invokeSrcNameMap: never;
     }
 
@@ -1159,7 +1159,7 @@ describe('typegen types', () => {
       },
       {
         // @ts-expect-error
-        actors: {
+        behaviors: {
           testActor: () => Promise.resolve(42)
         }
       }

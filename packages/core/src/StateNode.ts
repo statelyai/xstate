@@ -265,12 +265,12 @@ export class StateNode<
         );
 
         if (
-          !this.machine.options.actors[resolvedId] &&
+          !this.machine.options.behaviors[resolvedId] &&
           typeof src !== 'string' &&
           !('type' in src)
         ) {
-          this.machine.options.actors = {
-            ...this.machine.options.actors,
+          this.machine.options.behaviors = {
+            ...this.machine.options.behaviors,
             [resolvedId]: typeof src === 'function' ? src : () => src
           };
         }

@@ -10,12 +10,12 @@ describe('useMachine', () => {
         actions: never;
         delays: never;
         guards: never;
-        actors: never;
+        behaviors: never;
       };
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta
+      tsTypes: {} as import('./typegenTypes.test.typegen').Typegen0
     });
 
     function App() {
@@ -32,7 +32,7 @@ describe('useMachine', () => {
         actions: 'myAction';
         delays: never;
         guards: never;
-        actors: never;
+        behaviors: never;
       };
       eventsCausingActions: {
         myAction: 'FOO';
@@ -40,7 +40,7 @@ describe('useMachine', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
+      tsTypes: {} as import('./typegenTypes.test.typegen').Typegen1,
       schema: {
         events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
@@ -61,7 +61,7 @@ describe('useMachine', () => {
         actions: 'myAction';
         delays: 'myDelay';
         guards: never;
-        actors: never;
+        behaviors: never;
       };
       eventsCausingActions: {
         myAction: 'FOO';
@@ -70,7 +70,7 @@ describe('useMachine', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
+      tsTypes: {} as import('./typegenTypes.test.typegen').Typegen2,
       schema: {
         events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
@@ -109,7 +109,7 @@ describe('useMachine', () => {
         actions: 'fooAction';
         delays: never;
         guards: never;
-        actors: never;
+        behaviors: never;
       };
       eventsCausingActions: { fooAction: 'FOO' };
       eventsCausingDelays: { barDelay: 'BAR' };
@@ -117,7 +117,7 @@ describe('useMachine', () => {
 
     const machine = createMachine(
       {
-        tsTypes: {} as TypesMeta,
+        tsTypes: {} as import('./typegenTypes.test.typegen').Typegen3,
         schema: {
           events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
         }
@@ -148,7 +148,7 @@ describe('useMachine', () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
         actions: never;
-        actors: never;
+        behaviors: never;
         guards: never;
         delays: never;
       };
@@ -158,7 +158,7 @@ describe('useMachine', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
+      tsTypes: {} as import('./typegenTypes.test.typegen').Typegen4,
       schema: {
         events: {} as { type: 'FOO' } | { type: 'BAR' }
       }
@@ -181,7 +181,7 @@ describe('useMachine', () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
         actions: never;
-        actors: never;
+        behaviors: never;
         guards: never;
         delays: never;
       };
@@ -191,7 +191,7 @@ describe('useMachine', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
+      tsTypes: {} as import('./typegenTypes.test.typegen').Typegen5,
       schema: {
         events: {} as { type: 'FOO' } | { type: 'BAR' }
       }
@@ -221,12 +221,12 @@ describe('useInterpret', () => {
         actions: never;
         delays: never;
         guards: never;
-        actors: never;
+        behaviors: never;
       };
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta
+      tsTypes: {} as import('./typegenTypes.test.typegen').Typegen6
     });
 
     function App() {
@@ -243,7 +243,7 @@ describe('useInterpret', () => {
         actions: 'myAction';
         delays: never;
         guards: never;
-        actors: never;
+        behaviors: never;
       };
       eventsCausingActions: {
         myAction: 'FOO';
@@ -251,7 +251,7 @@ describe('useInterpret', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
+      tsTypes: {} as import('./typegenTypes.test.typegen').Typegen7,
       schema: {
         events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
@@ -272,7 +272,7 @@ describe('useInterpret', () => {
         actions: 'myAction';
         delays: 'myDelay';
         guards: never;
-        actors: never;
+        behaviors: never;
       };
       eventsCausingActions: {
         myAction: 'FOO';
@@ -281,7 +281,7 @@ describe('useInterpret', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
+      tsTypes: {} as import('./typegenTypes.test.typegen').Typegen8,
       schema: {
         events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
@@ -320,7 +320,7 @@ describe('useInterpret', () => {
         actions: 'fooAction';
         delays: never;
         guards: never;
-        actors: never;
+        behaviors: never;
       };
       eventsCausingActions: { fooAction: 'FOO' };
       eventsCausingDelays: { barDelay: 'BAR' };
@@ -328,7 +328,7 @@ describe('useInterpret', () => {
 
     const machine = createMachine(
       {
-        tsTypes: {} as TypesMeta,
+        tsTypes: {} as import('./typegenTypes.test.typegen').Typegen9,
         schema: {
           events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
         }
@@ -359,7 +359,7 @@ describe('useInterpret', () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
         actions: never;
-        actors: never;
+        behaviors: never;
         guards: never;
         delays: never;
       };
@@ -369,7 +369,7 @@ describe('useInterpret', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
+      tsTypes: {} as import('./typegenTypes.test.typegen').Typegen10,
       schema: {
         events: {} as { type: 'FOO' } | { type: 'BAR' }
       }
@@ -392,7 +392,7 @@ describe('useInterpret', () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
         actions: never;
-        actors: never;
+        behaviors: never;
         guards: never;
         delays: never;
       };
@@ -402,7 +402,7 @@ describe('useInterpret', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
+      tsTypes: {} as import('./typegenTypes.test.typegen').Typegen11,
       schema: {
         events: {} as { type: 'FOO' } | { type: 'BAR' }
       }
@@ -429,14 +429,14 @@ describe('useInterpret', () => {
       matchesStates: 'a' | 'b';
       missingImplementations: {
         actions: never;
-        actors: never;
+        behaviors: never;
         guards: never;
         delays: never;
       };
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta
+      tsTypes: {} as import('./typegenTypes.test.typegen').Typegen12
     });
 
     () => {
@@ -474,12 +474,12 @@ describe('useInterpret', () => {
         actions: 'someAction';
         delays: never;
         guards: never;
-        actors: never;
+        behaviors: never;
       };
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta
+      tsTypes: {} as import('./typegenTypes.test.typegen').Typegen14
     });
 
     function ChildComponent({}: { actorRef: ActorRefFrom<typeof machine> }) {
@@ -507,12 +507,12 @@ describe('useInterpret', () => {
         actions: 'someAction';
         delays: never;
         guards: never;
-        actors: never;
+        behaviors: never;
       };
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta
+      tsTypes: {} as import('./typegenTypes.test.typegen').Typegen15
     });
 
     function ChildComponent({}: { actorRef: ActorRefFrom<typeof machine> }) {

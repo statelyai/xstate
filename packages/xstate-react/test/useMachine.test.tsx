@@ -71,7 +71,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     persistedState
   }) => {
     const [current, send] = useMachine(fetchMachine, {
-      actors: {
+      behaviors: {
         fetchData: fromPromise(onFetch)
       },
       state: persistedState
@@ -679,7 +679,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
         }
       },
       {
-        actors: {
+        behaviors: {
           foo: () =>
             fromPromise(() => {
               serviceCalled = true;

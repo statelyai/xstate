@@ -52,7 +52,7 @@ export const WILDCARD = '*';
 function createDefaultOptions() {
   return {
     actions: {},
-    actors: {},
+    behaviors: {},
     delays: {},
     guards: {},
     context: {}
@@ -192,12 +192,12 @@ export class StateMachine<
       ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
       : TResolvedTypesMeta
   > {
-    const { actions, guards, actors, delays } = this.options;
+    const { actions, guards, behaviors, delays } = this.options;
 
     return new StateMachine(this.config, {
       actions: { ...actions, ...implementations.actions },
       guards: { ...guards, ...implementations.guards },
-      actors: { ...actors, ...implementations.actors },
+      behaviors: { ...behaviors, ...implementations.behaviors },
       delays: { ...delays, ...implementations.delays },
       context: implementations.context!
     });

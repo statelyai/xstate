@@ -527,7 +527,7 @@ describe('interpreter', () => {
         }
       },
       {
-        actors: {
+        behaviors: {
           myActivity: () =>
             fromCallback(() => {
               activityState = 'on';
@@ -575,7 +575,7 @@ describe('interpreter', () => {
           }
         },
         {
-          actors: {
+          behaviors: {
             myActivity: () =>
               fromCallback(() => {
                 stopActivityState = 'on';
@@ -617,7 +617,7 @@ describe('interpreter', () => {
           }
         },
         {
-          actors: {
+          behaviors: {
             blink: () =>
               fromCallback(() => {
                 activityActive = true;
@@ -1575,7 +1575,7 @@ describe('interpreter', () => {
           }
         },
         {
-          actors: {
+          behaviors: {
             testService: () =>
               fromCallback(() => {
                 // nothing

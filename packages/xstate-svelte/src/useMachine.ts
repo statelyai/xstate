@@ -70,7 +70,7 @@ export function useMachine<TMachine extends AnyStateMachine>(
     context,
     guards,
     actions,
-    actors,
+    behaviors,
     delays,
     state: rehydratedState,
     ...interpreterOptions
@@ -80,7 +80,7 @@ export function useMachine<TMachine extends AnyStateMachine>(
     context,
     guards,
     actions,
-    actors,
+    behaviors,
     delays
   };
 

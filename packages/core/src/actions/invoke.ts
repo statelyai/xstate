@@ -42,7 +42,7 @@ export function invoke<
           }
         } as InvokeActionObject;
       } else {
-        const behaviorImpl = state.machine.options.actors[src.type];
+        const behaviorImpl = state.machine.options.behaviors[src.type];
 
         if (!behaviorImpl) {
           resolvedInvokeAction = {

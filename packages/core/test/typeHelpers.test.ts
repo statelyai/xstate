@@ -37,7 +37,7 @@ describe('ContextFrom', () => {
 
   it('should return context of a typegened machine', () => {
     const machine = createMachine({
-      tsTypes: {} as TypegenMeta,
+      tsTypes: {} as import('./typeHelpers.test.typegen').Typegen1,
       schema: {
         context: {} as { counter: number }
       }
@@ -85,7 +85,7 @@ describe('EventFrom', () => {
 
   it('should return events for a typegened machine', () => {
     const machine = createMachine({
-      tsTypes: {} as TypegenMeta,
+      tsTypes: {} as import('./typeHelpers.test.typegen').Typegen3,
       schema: {
         events: {} as
           | { type: 'UPDATE_NAME'; value: string }
@@ -184,14 +184,14 @@ describe('MachineImplementationsFrom', () => {
         actions: 'myAction';
         delays: never;
         guards: never;
-        actors: never;
+        behaviors: never;
       };
       eventsCausingActions: {
         myAction: 'FOO';
       };
     }
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
+      tsTypes: {} as import('./typeHelpers.test.typegen').Typegen6,
       context: {
         count: 100
       },
@@ -232,14 +232,14 @@ describe('MachineImplementationsFrom', () => {
         actions: 'myAction';
         delays: never;
         guards: never;
-        actors: never;
+        behaviors: never;
       };
       eventsCausingActions: {
         myAction: 'FOO';
       };
     }
     const machine = createMachine({
-      tsTypes: {} as TypesMeta,
+      tsTypes: {} as import('./typeHelpers.test.typegen').Typegen7,
       context: {
         count: 100
       },
@@ -283,7 +283,7 @@ describe('StateValueFrom', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as TypesMeta
+      tsTypes: {} as import('./typeHelpers.test.typegen').Typegen8
     });
 
     function matches(_value: StateValueFrom<typeof machine>) {}

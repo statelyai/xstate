@@ -54,7 +54,7 @@ describe('activities with guarded transitions', () => {
         }
       },
       {
-        actors: {
+        behaviors: {
           B_ACTIVITY: () =>
             fromCallback(() => {
               done();
@@ -90,7 +90,7 @@ describe('remembering activities', () => {
   it('should remember the activities even after an event', (done) => {
     const service = interpret(
       machine.provide({
-        actors: {
+        behaviors: {
           B_ACTIVITY: () =>
             fromCallback(() => {
               done();
@@ -108,7 +108,7 @@ describe('activities', () => {
   it('identifies initial activities', (done) => {
     const service = interpret(
       lightMachine.provide({
-        actors: {
+        behaviors: {
           fadeInGreen: () =>
             fromCallback(() => {
               done();
@@ -122,7 +122,7 @@ describe('activities', () => {
   it('identifies start activities', (done) => {
     const service = interpret(
       lightMachine.provide({
-        actors: {
+        behaviors: {
           activateCrosswalkLight: () =>
             fromCallback(() => {
               done();
@@ -139,7 +139,7 @@ describe('activities', () => {
   it('identifies start activities for child states and active activities', (done) => {
     const service = interpret(
       lightMachine.provide({
-        actors: {
+        behaviors: {
           blinkCrosswalkLight: () =>
             fromCallback(() => {
               done();
@@ -157,7 +157,7 @@ describe('activities', () => {
   it('identifies stop activities for child states', (done) => {
     const service = interpret(
       lightMachine.provide({
-        actors: {
+        behaviors: {
           blinkCrosswalkLight: () =>
             fromCallback(() => {
               return () => {
@@ -180,7 +180,7 @@ describe('activities', () => {
 
     const service = interpret(
       lightMachine.provide({
-        actors: {
+        behaviors: {
           fadeInGreen: () =>
             fromCallback(() => {
               if (stopActivateCrosswalkLightcalled) {
@@ -284,7 +284,7 @@ describe('transient activities', () => {
   it('should have started initial activities', (done) => {
     const service = interpret(
       machine.provide({
-        actors: {
+        behaviors: {
           A: () =>
             fromCallback(() => {
               done();
@@ -299,7 +299,7 @@ describe('transient activities', () => {
   it('should have started deep initial activities', (done) => {
     const service = interpret(
       machine.provide({
-        actors: {
+        behaviors: {
           A1: () =>
             fromCallback(() => {
               done();
@@ -313,7 +313,7 @@ describe('transient activities', () => {
   it('should have kept existing activities', (done) => {
     const service = interpret(
       machine.provide({
-        actors: {
+        behaviors: {
           A: () =>
             fromCallback(() => {
               done();
@@ -328,7 +328,7 @@ describe('transient activities', () => {
   it('should have kept same activities', (done) => {
     const service = interpret(
       machine.provide({
-        actors: {
+        behaviors: {
           C1: () =>
             fromCallback(() => {
               done();
@@ -343,7 +343,7 @@ describe('transient activities', () => {
   it('should have kept same activities after self transition', (done) => {
     const service = interpret(
       machine.provide({
-        actors: {
+        behaviors: {
           C1: () =>
             fromCallback(() => {
               done();
@@ -358,7 +358,7 @@ describe('transient activities', () => {
   it('should have stopped after automatic transitions', (done) => {
     const service = interpret(
       machine.provide({
-        actors: {
+        behaviors: {
           B2: () =>
             fromCallback(() => {
               done();

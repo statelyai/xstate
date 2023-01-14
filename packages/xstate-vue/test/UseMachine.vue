@@ -59,7 +59,7 @@ export default defineComponent({
       new Promise((res) => setTimeout(() => res('some data'), 50));
 
     const { state, send, service } = useMachine(fetchMachine, {
-      actors: {
+      behaviors: {
         fetchData: () => fromPromise(onFetch)
       },
       state: persistedState
