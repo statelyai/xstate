@@ -1,7 +1,7 @@
 import { interpret, DevToolsAdapter, createMachine } from '../src';
 
 describe('devTools', () => {
-  it('should register services with a custom devTools adapter', (done) => {
+  it('should register actors with a custom devTools adapter', (done) => {
     const customAdapter: DevToolsAdapter = (service) => {
       service.subscribe((state) => {
         if (state.matches('active')) {

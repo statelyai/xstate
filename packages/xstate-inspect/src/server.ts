@@ -11,26 +11,26 @@ import { createInspectMachine, InspectMachineEvent } from './inspectMachine';
 import { Inspector, Replacer } from './types';
 import { stringify } from './utils';
 
-const services = new Set<Interpreter<any>>();
+const actors = new Set<Interpreter<any>>();
 const serviceMap = new Map<string, Interpreter<any>>();
 const serviceListeners = new Set<any>();
 
 function createDevTools() {
   globalThis.__xstate__ = {
-    services,
+    actors,
     register: (service) => {
-      services.add(service);
+      actors.add(service);
       serviceMap.set(service.sessionId, service);
       serviceListeners.forEach((listener) => listener(service));
 
       service.onStop(() => {
-        services.delete(service);
+        actors.delete(service);
         serviceMap.delete(service.sessionId);
       });
     },
     onRegister: (listener) => {
       serviceListeners.add(listener);
-      services.forEach((service) => listener(service));
+      actors.forEach((service) => listener(service));
 
       return {
         unsubscribe: () => {

@@ -16,7 +16,7 @@ export interface XStateDevInterface {
   ) => {
     unsubscribe: () => void;
   };
-  behaviors: Set<AnyInterpreter>;
+  actors: Set<AnyInterpreter>;
 }
 
 // From https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/globalThis

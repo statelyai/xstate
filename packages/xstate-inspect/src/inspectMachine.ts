@@ -17,7 +17,7 @@ export function createInspectMachine(
 ) {
   const serviceMap = new Map<string, Interpreter<any, any>>();
 
-  // Listen for services being registered and index them
+  // Listen for actors being registered and index them
   // by their sessionId for quicker lookup
   const sub = devTools.onRegister((service) => {
     serviceMap.set(service.sessionId, service);
@@ -83,7 +83,7 @@ export function createInspectMachine(
             ) => e.client
           }),
           (ctx) => {
-            devTools.services.forEach((service) => {
+            devTools.actors.forEach((service) => {
               ctx.client?.send({
                 type: 'service.register',
                 machine: stringifyMachine(service.behavior, options?.serialize),

@@ -30,30 +30,30 @@ import {
 export const serviceMap = new Map<string, AnyInterpreter>();
 
 export function createDevTools(): XStateDevInterface {
-  const services = new Set<AnyInterpreter>();
+  const actors = new Set<AnyInterpreter>();
   const serviceListeners = new Set<ServiceListener>();
 
   return {
-    services,
+    actors,
     register: (service) => {
-      services.add(service);
+      actors.add(service);
       serviceMap.set(service.sessionId, service);
       serviceListeners.forEach((listener) => listener(service));
 
       service.subscribe({
         complete() {
-          services.delete(service);
+          actors.delete(service);
           serviceMap.delete(service.sessionId);
         }
       });
     },
     unregister: (service) => {
-      services.delete(service);
+      actors.delete(service);
       serviceMap.delete(service.sessionId);
     },
     onRegister: (listener) => {
       serviceListeners.add(listener);
-      services.forEach((service) => listener(service));
+      actors.forEach((service) => listener(service));
 
       return {
         unsubscribe: () => {

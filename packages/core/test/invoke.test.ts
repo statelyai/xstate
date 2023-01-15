@@ -97,7 +97,7 @@ const fetcherMachine = createMachine({
 });
 
 describe('invoke', () => {
-  it('should start services (external machines)', (done) => {
+  it('should start actors (external machines)', (done) => {
     const childMachine = createMachine({
       id: 'child',
       initial: 'init',
@@ -161,7 +161,7 @@ describe('invoke', () => {
       .start();
   });
 
-  it('should forward events to services if autoForward: true', () => {
+  it('should forward events to actors if autoForward: true', () => {
     const childMachine = createMachine({
       id: 'child',
       initial: 'init',
@@ -231,7 +231,7 @@ describe('invoke', () => {
     service.send({ type: 'FORWARD_DEC' });
   });
 
-  it('should forward events to services if autoForward: true before processing them', (done) => {
+  it('should forward events to actors if autoForward: true before processing them', (done) => {
     const actual: string[] = [];
 
     const childMachine = createMachine<{ count: number }>({
@@ -331,7 +331,7 @@ describe('invoke', () => {
     service.send({ type: 'INCREMENT' });
   });
 
-  it('should start services (explicit machine, invoke = config)', (done) => {
+  it('should start actors (explicit machine, invoke = config)', (done) => {
     const childMachine = createMachine<{ userId: string | undefined }>({
       id: 'fetch',
       context: {
@@ -405,7 +405,7 @@ describe('invoke', () => {
       .send({ type: 'GO_TO_WAITING' });
   });
 
-  it('should start services (explicit machine, invoke = machine)', (done) => {
+  it('should start actors (explicit machine, invoke = machine)', (done) => {
     interpret(fetcherMachine)
       .onDone((_) => {
         done();
@@ -414,7 +414,7 @@ describe('invoke', () => {
       .send({ type: 'GO_TO_WAITING_MACHINE' });
   });
 
-  it('should start services (machine as invoke config)', (done) => {
+  it('should start actors (machine as invoke config)', (done) => {
     const machineInvokeMachine = createMachine<
       any,
       { type: 'SUCCESS'; data: number }
@@ -557,7 +557,7 @@ describe('invoke', () => {
       .start();
   });
 
-  it('should not start services only once when using withContext', () => {
+  it('should not start actors only once when using withContext', () => {
     let startCount = 0;
 
     const startMachine = createMachine({
@@ -2482,7 +2482,7 @@ describe('invoke', () => {
     });
   });
 
-  describe('multiple simultaneous services', () => {
+  describe('multiple simultaneous actors', () => {
     const multiple = createMachine<any>({
       id: 'machine',
       initial: 'one',
@@ -2528,7 +2528,7 @@ describe('invoke', () => {
       }
     });
 
-    it('should start all services at once', (done) => {
+    it('should start all actors at once', (done) => {
       let state: any;
       const service = interpret(multiple)
         .onTransition((s) => {
@@ -2563,7 +2563,7 @@ describe('invoke', () => {
       },
 
       after: {
-        // allow both invoked services to get a chance to send their events
+        // allow both invoked actors to get a chance to send their events
         // and don't depend on a potential race condition (with an immediate transition)
         10: '.three'
       },
@@ -2597,7 +2597,7 @@ describe('invoke', () => {
       }
     });
 
-    it('should run services in parallel', (done) => {
+    it('should run actors in parallel', (done) => {
       let state: any;
       const service = interpret(parallel)
         .onTransition((s) => {

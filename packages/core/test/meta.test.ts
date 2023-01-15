@@ -100,7 +100,7 @@ describe('state meta data', () => {
   });
 
   // https://github.com/statelyai/xstate/issues/1105
-  it('services started from a persisted state should calculate meta data', (done) => {
+  it('actors started from a persisted state should calculate meta data', (done) => {
     const machine = createMachine({
       id: 'test',
       initial: 'first',
