@@ -1590,6 +1590,8 @@ export interface InterpreterOptions {
   autoForward?: boolean;
 
   sync?: boolean;
+
+  system?: System;
 }
 
 export type AnyInterpreter = Interpreter<any>;
@@ -1918,3 +1920,8 @@ export type StateValueFrom<TMachine extends AnyStateMachine> = Parameters<
 export type StateFromMachine<
   TMachine extends AnyStateMachine
 > = TMachine['initialState'];
+
+export interface System extends ActorRef<any, any> {
+  register: (actorRef: AnyActorRef) => string;
+  unregister: (actorRef: AnyActorRef) => void;
+}

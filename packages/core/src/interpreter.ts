@@ -5,7 +5,8 @@ import type {
   Behavior,
   EventFromBehavior,
   InterpreterFrom,
-  SnapshotFrom
+  SnapshotFrom,
+  System
 } from './types';
 import { stopSignalType } from './behaviors';
 import { devToolsAdapter } from './dev/index';
@@ -106,7 +107,6 @@ export class Interpreter<
 
   // Actor Ref
   public _parent?: ActorRef<any>;
-  public ref: ActorRef<TEvent>;
   private _actorContext: ActorContext<TEvent, SnapshotFrom<TBehavior>>;
 
   /**
@@ -116,6 +116,8 @@ export class Interpreter<
 
   // TODO: remove
   public _forwardTo: Set<AnyActorRef> = new Set();
+
+  private system: System;
 
   /**
    * Creates a new Interpreter instance (i.e., service) for the given behavior with the provided options, if any.
@@ -132,14 +134,26 @@ export class Interpreter<
     const { clock, logger, parent, id } = resolvedOptions;
     const self = this;
 
+    this.system =
+      options?.system ??
+      ({
+        register: (actorRef) => {
+          const sessionId = registry.bookId();
+          registry.register(sessionId, actorRef);
+          return sessionId;
+        },
+        unregister: (actorRef) => {
+          registry.free(self.sessionId);
+        }
+      } as System);
+
     // TODO: this should come from a "system"
-    this.sessionId = registry.bookId();
+    this.sessionId = this.system.register(this);
     this.id = id ?? this.sessionId;
     this.logger = logger;
     this.clock = clock;
     this._parent = parent;
     this.options = resolvedOptions;
-    this.ref = this;
     this._actorContext = {
       self,
       id: this.id,
@@ -293,7 +307,6 @@ export class Interpreter<
       return this;
     }
 
-    registry.register(this.sessionId, this.ref);
     this.status = ActorStatus.Running;
 
     let resolvedState = initialState
@@ -391,7 +404,7 @@ export class Interpreter<
     this.mailbox = new Mailbox(this._process.bind(this));
 
     this.status = ActorStatus.Stopped;
-    registry.free(this.sessionId);
+    this.system.unregister(this);
 
     return this;
   }
