@@ -191,7 +191,7 @@ describe('MachineImplementationsFrom', () => {
       };
     }
     const machine = createMachine({
-      tsTypes: {} as import('./typeHelpers.test.typegen').Typegen6,
+      tsTypes: {} as TypesMeta,
       context: {
         count: 100
       },
@@ -239,7 +239,7 @@ describe('MachineImplementationsFrom', () => {
       };
     }
     const machine = createMachine({
-      tsTypes: {} as import('./typeHelpers.test.typegen').Typegen7,
+      tsTypes: {} as TypesMeta,
       context: {
         count: 100
       },
@@ -283,7 +283,7 @@ describe('StateValueFrom', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as import('./typeHelpers.test.typegen').Typegen8
+      tsTypes: {} as TypesMeta
     });
 
     function matches(_value: StateValueFrom<typeof machine>) {}

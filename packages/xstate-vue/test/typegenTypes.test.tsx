@@ -9,7 +9,7 @@ describe('useMachine', () => {
         actions: never;
         delays: never;
         guards: never;
-        actors: never;
+        behaviors: never;
       };
     }
 
@@ -30,7 +30,7 @@ describe('useMachine', () => {
         actions: 'myAction';
         delays: never;
         guards: never;
-        actors: never;
+        behaviors: never;
       };
       eventsCausingActions: {
         myAction: 'FOO';
@@ -59,7 +59,7 @@ describe('useMachine', () => {
         actions: 'myAction';
         delays: 'myDelay';
         guards: never;
-        actors: never;
+        behaviors: never;
       };
       eventsCausingActions: {
         myAction: 'FOO';
@@ -106,7 +106,7 @@ describe('useMachine', () => {
         actions: 'fooAction';
         delays: never;
         guards: never;
-        actors: never;
+        behaviors: never;
       };
       eventsCausingActions: { fooAction: 'FOO' };
       eventsCausingDelays: { barDelay: 'BAR' };
@@ -144,7 +144,7 @@ describe('useMachine', () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
         actions: never;
-        actors: never;
+        behaviors: never;
         guards: never;
         delays: never;
       };
@@ -176,7 +176,7 @@ describe('useMachine', () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
         actions: never;
-        actors: never;
+        behaviors: never;
         guards: never;
         delays: never;
       };
@@ -215,7 +215,7 @@ describe('useInterpret', () => {
         actions: never;
         delays: never;
         guards: never;
-        actors: never;
+        behaviors: never;
       };
     }
 
@@ -236,7 +236,7 @@ describe('useInterpret', () => {
         actions: 'myAction';
         delays: never;
         guards: never;
-        actors: never;
+        behaviors: never;
       };
       eventsCausingActions: {
         myAction: 'FOO';
@@ -264,7 +264,7 @@ describe('useInterpret', () => {
         actions: 'myAction';
         delays: 'myDelay';
         guards: never;
-        actors: never;
+        behaviors: never;
       };
       eventsCausingActions: {
         myAction: 'FOO';
@@ -311,7 +311,7 @@ describe('useInterpret', () => {
         actions: 'fooAction';
         delays: never;
         guards: never;
-        actors: never;
+        behaviors: never;
       };
       eventsCausingActions: { fooAction: 'FOO' };
       eventsCausingDelays: { barDelay: 'BAR' };
@@ -349,7 +349,7 @@ describe('useInterpret', () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
         actions: never;
-        actors: never;
+        behaviors: never;
         guards: never;
         delays: never;
       };
@@ -381,7 +381,7 @@ describe('useInterpret', () => {
     interface TypesMeta extends TypegenMeta {
       missingImplementations: {
         actions: never;
-        actors: never;
+        behaviors: never;
         guards: never;
         delays: never;
       };
@@ -417,7 +417,7 @@ describe('useInterpret', () => {
       matchesStates: 'a' | 'b';
       missingImplementations: {
         actions: never;
-        actors: never;
+        behaviors: never;
         guards: never;
         delays: never;
       };
@@ -466,7 +466,7 @@ describe('useInterpret', () => {
         actions: 'someAction';
         delays: never;
         guards: never;
-        actors: never;
+        behaviors: never;
       };
     }
 
@@ -497,7 +497,7 @@ describe('useInterpret', () => {
         actions: 'someAction';
         delays: never;
         guards: never;
-        actors: never;
+        behaviors: never;
       };
     }
 

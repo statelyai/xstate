@@ -15,7 +15,7 @@ describe('useMachine', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as import('./typegenTypes.test.typegen').Typegen0
+      tsTypes: {} as TypesMeta
     });
 
     function App() {
@@ -40,7 +40,7 @@ describe('useMachine', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as import('./typegenTypes.test.typegen').Typegen1,
+      tsTypes: {} as TypesMeta,
       schema: {
         events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
@@ -70,7 +70,7 @@ describe('useMachine', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as import('./typegenTypes.test.typegen').Typegen2,
+      tsTypes: {} as TypesMeta,
       schema: {
         events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
@@ -117,7 +117,7 @@ describe('useMachine', () => {
 
     const machine = createMachine(
       {
-        tsTypes: {} as import('./typegenTypes.test.typegen').Typegen3,
+        tsTypes: {} as TypesMeta,
         schema: {
           events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
         }
@@ -158,7 +158,7 @@ describe('useMachine', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as import('./typegenTypes.test.typegen').Typegen4,
+      tsTypes: {} as TypesMeta,
       schema: {
         events: {} as { type: 'FOO' } | { type: 'BAR' }
       }
@@ -191,7 +191,7 @@ describe('useMachine', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as import('./typegenTypes.test.typegen').Typegen5,
+      tsTypes: {} as TypesMeta,
       schema: {
         events: {} as { type: 'FOO' } | { type: 'BAR' }
       }
@@ -226,7 +226,7 @@ describe('useInterpret', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as import('./typegenTypes.test.typegen').Typegen6
+      tsTypes: {} as TypesMeta
     });
 
     function App() {
@@ -251,7 +251,7 @@ describe('useInterpret', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as import('./typegenTypes.test.typegen').Typegen7,
+      tsTypes: {} as TypesMeta,
       schema: {
         events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
@@ -281,7 +281,7 @@ describe('useInterpret', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as import('./typegenTypes.test.typegen').Typegen8,
+      tsTypes: {} as TypesMeta,
       schema: {
         events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
       }
@@ -328,7 +328,7 @@ describe('useInterpret', () => {
 
     const machine = createMachine(
       {
-        tsTypes: {} as import('./typegenTypes.test.typegen').Typegen9,
+        tsTypes: {} as TypesMeta,
         schema: {
           events: {} as { type: 'FOO' } | { type: 'BAR' } | { type: 'BAZ' }
         }
@@ -369,7 +369,7 @@ describe('useInterpret', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as import('./typegenTypes.test.typegen').Typegen10,
+      tsTypes: {} as TypesMeta,
       schema: {
         events: {} as { type: 'FOO' } | { type: 'BAR' }
       }
@@ -402,7 +402,7 @@ describe('useInterpret', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as import('./typegenTypes.test.typegen').Typegen11,
+      tsTypes: {} as TypesMeta,
       schema: {
         events: {} as { type: 'FOO' } | { type: 'BAR' }
       }
@@ -436,7 +436,7 @@ describe('useInterpret', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as import('./typegenTypes.test.typegen').Typegen12
+      tsTypes: {} as TypesMeta
     });
 
     () => {
@@ -479,7 +479,7 @@ describe('useInterpret', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as import('./typegenTypes.test.typegen').Typegen14
+      tsTypes: {} as TypesMeta
     });
 
     function ChildComponent({}: { actorRef: ActorRefFrom<typeof machine> }) {
@@ -512,7 +512,7 @@ describe('useInterpret', () => {
     }
 
     const machine = createMachine({
-      tsTypes: {} as import('./typegenTypes.test.typegen').Typegen15
+      tsTypes: {} as TypesMeta
     });
 
     function ChildComponent({}: { actorRef: ActorRefFrom<typeof machine> }) {

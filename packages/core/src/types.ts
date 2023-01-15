@@ -2,7 +2,7 @@ import type { StateNode } from './StateNode';
 import type { State } from './State';
 import type { ActorStatus, Clock, Interpreter } from './interpreter';
 import type { StateMachine } from './StateMachine';
-import type { LifecycleSignal } from './actors';
+import type { LifecycleSignal } from './behaviors';
 import {
   TypegenDisabled,
   ResolveTypegenMeta,

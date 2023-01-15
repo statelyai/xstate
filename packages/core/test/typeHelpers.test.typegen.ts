@@ -10,12 +10,12 @@ export interface Typegen0 {
     actions: never;
     delays: never;
     guards: never;
-    services: never;
+    behaviors: never;
   };
   eventsCausingActions: {};
   eventsCausingDelays: {};
   eventsCausingGuards: {};
-  eventsCausingServices: {};
+  eventsCausingBehaviors: {};
   matchesStates: undefined;
   tags: never;
 }
@@ -30,12 +30,12 @@ export interface Typegen1 {
     actions: never;
     delays: never;
     guards: never;
-    services: never;
+    behaviors: never;
   };
   eventsCausingActions: {};
   eventsCausingDelays: {};
   eventsCausingGuards: {};
-  eventsCausingServices: {};
+  eventsCausingBehaviors: {};
   matchesStates: undefined;
   tags: never;
 }
@@ -50,12 +50,12 @@ export interface Typegen2 {
     actions: never;
     delays: never;
     guards: never;
-    services: never;
+    behaviors: never;
   };
   eventsCausingActions: {};
   eventsCausingDelays: {};
   eventsCausingGuards: {};
-  eventsCausingServices: {};
+  eventsCausingBehaviors: {};
   matchesStates: undefined;
   tags: never;
 }
@@ -70,12 +70,12 @@ export interface Typegen3 {
     actions: never;
     delays: never;
     guards: never;
-    services: never;
+    behaviors: never;
   };
   eventsCausingActions: {};
   eventsCausingDelays: {};
   eventsCausingGuards: {};
-  eventsCausingServices: {};
+  eventsCausingBehaviors: {};
   matchesStates: undefined;
   tags: never;
 }
@@ -90,12 +90,12 @@ export interface Typegen4 {
     actions: never;
     delays: never;
     guards: never;
-    services: never;
+    behaviors: never;
   };
   eventsCausingActions: {};
   eventsCausingDelays: {};
   eventsCausingGuards: {};
-  eventsCausingServices: {};
+  eventsCausingBehaviors: {};
   matchesStates: undefined;
   tags: never;
 }
@@ -111,12 +111,12 @@ export interface Typegen0 {
     actions: never;
     delays: never;
     guards: never;
-    services: never;
+    behaviors: never;
   };
   eventsCausingActions: {};
   eventsCausingDelays: {};
   eventsCausingGuards: {};
-  eventsCausingServices: {};
+  eventsCausingBehaviors: {};
   matchesStates: undefined;
   tags: never;
 }
@@ -131,12 +131,12 @@ export interface Typegen1 {
     actions: never;
     delays: never;
     guards: never;
-    services: never;
+    behaviors: never;
   };
   eventsCausingActions: {};
   eventsCausingDelays: {};
   eventsCausingGuards: {};
-  eventsCausingServices: {};
+  eventsCausingBehaviors: {};
   matchesStates: undefined;
   tags: never;
 }
@@ -151,12 +151,12 @@ export interface Typegen2 {
     actions: never;
     delays: never;
     guards: never;
-    services: never;
+    behaviors: never;
   };
   eventsCausingActions: {};
   eventsCausingDelays: {};
   eventsCausingGuards: {};
-  eventsCausingServices: {};
+  eventsCausingBehaviors: {};
   matchesStates: undefined;
   tags: never;
 }
@@ -171,12 +171,12 @@ export interface Typegen3 {
     actions: never;
     delays: never;
     guards: never;
-    services: never;
+    behaviors: never;
   };
   eventsCausingActions: {};
   eventsCausingDelays: {};
   eventsCausingGuards: {};
-  eventsCausingServices: {};
+  eventsCausingBehaviors: {};
   matchesStates: undefined;
   tags: never;
 }
@@ -191,12 +191,12 @@ export interface Typegen4 {
     actions: never;
     delays: never;
     guards: never;
-    services: never;
+    behaviors: never;
   };
   eventsCausingActions: {};
   eventsCausingDelays: {};
   eventsCausingGuards: {};
-  eventsCausingServices: {};
+  eventsCausingBehaviors: {};
   matchesStates: undefined;
   tags: never;
 }

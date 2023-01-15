@@ -2,7 +2,7 @@ import { IS_PRODUCTION } from '../environment';
 import { AnyInterpreter, DevToolsAdapter } from '../types';
 
 interface DevInterface {
-  services: Set<AnyInterpreter>;
+  behaviors: Set<AnyInterpreter>;
   register(service: AnyInterpreter): void;
   onRegister(listener: ServiceListener): void;
 }
@@ -16,7 +16,7 @@ export interface XStateDevInterface {
   ) => {
     unsubscribe: () => void;
   };
-  services: Set<AnyInterpreter>;
+  behaviors: Set<AnyInterpreter>;
 }
 
 // From https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/globalThis
