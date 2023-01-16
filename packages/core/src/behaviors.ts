@@ -1,3 +1,5 @@
+import { toActorRef } from './Actor';
+import { doneInvoke, error } from './actions';
 import {
   ActorContext,
   ActorRef,
@@ -5,8 +7,6 @@ import {
   EventObject,
   Observer
 } from './types';
-import { doneInvoke, error } from './actions';
-import { toActorRef } from './Actor';
 import { toObserver } from './utils';
 
 /**

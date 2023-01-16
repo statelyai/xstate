@@ -1,40 +1,40 @@
+import { AnyStateMachine } from '.';
+import { Actor } from './Actor';
+import { State } from './State';
+import { StateNode } from './StateNode';
 import {
-  Event,
-  StateValue,
-  ActionType,
-  Action,
-  EventObject,
-  PropertyMapper,
-  Mapper,
-  EventType,
-  HistoryValue,
-  AssignAction,
-  Condition,
-  Subscribable,
-  ConditionPredicate,
-  SCXML,
-  StateLike,
-  EventData,
-  TransitionConfig,
-  TransitionConfigTarget,
-  NullEvent,
-  SingleOrArray,
-  Guard,
-  GuardMeta,
-  InvokeSourceDefinition,
-  Observer,
-  Behavior
-} from './types';
-import {
-  STATE_DELIMITER,
   DEFAULT_GUARD_TYPE,
+  STATE_DELIMITER,
   TARGETLESS_KEY
 } from './constants';
 import { IS_PRODUCTION } from './environment';
-import { StateNode } from './StateNode';
-import { State } from './State';
-import { Actor } from './Actor';
-import { AnyStateMachine } from '.';
+import {
+  Action,
+  ActionType,
+  AssignAction,
+  Behavior,
+  Condition,
+  ConditionPredicate,
+  Event,
+  EventData,
+  EventObject,
+  EventType,
+  Guard,
+  GuardMeta,
+  HistoryValue,
+  InvokeSourceDefinition,
+  Mapper,
+  NullEvent,
+  Observer,
+  PropertyMapper,
+  SCXML,
+  SingleOrArray,
+  StateLike,
+  StateValue,
+  Subscribable,
+  TransitionConfig,
+  TransitionConfigTarget
+} from './types';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
   return Object.keys(value) as Array<keyof T & string>;

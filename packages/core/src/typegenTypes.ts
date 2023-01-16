@@ -1,13 +1,13 @@
 import {
   BaseActionObject,
+  Cast,
   EventObject,
   IndexByType,
+  IsAny,
   IsNever,
   Prop,
-  Values,
-  IsAny,
   ServiceMap,
-  Cast
+  Values
 } from './types';
 
 export interface TypegenDisabled {

@@ -1,21 +1,21 @@
+import * as serviceScope from './serviceScope';
 import {
-  EventObject,
-  Subscribable,
-  InvokeDefinition,
-  AnyEventObject,
-  StateMachine,
-  Spawnable,
-  SCXML,
   ActorRef,
-  BaseActorRef
+  AnyEventObject,
+  BaseActorRef,
+  EventObject,
+  InvokeDefinition,
+  SCXML,
+  Spawnable,
+  StateMachine,
+  Subscribable
 } from './types';
 import {
-  symbolObservable,
   isMachine,
   mapContext,
+  symbolObservable,
   toInvokeSource
 } from './utils';
-import * as serviceScope from './serviceScope';
 
 export interface Actor<
   TContext = any,

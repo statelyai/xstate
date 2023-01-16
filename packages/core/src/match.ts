@@ -1,5 +1,5 @@
 import { State } from './State';
-import { StateValue, EventObject } from './types';
+import { EventObject, StateValue } from './types';
 
 export type ValueFromStateGetter<T, TContext, TEvent extends EventObject> = (
   state: State<TContext, TEvent>

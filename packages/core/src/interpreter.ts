@@ -1,42 +1,5 @@
-import {
-  StateMachine,
-  Event,
-  EventObject,
-  CancelAction,
-  DefaultContext,
-  ActionObject,
-  StateSchema,
-  ActivityActionObject,
-  SpecialTargets,
-  ActionTypes,
-  InvokeDefinition,
-  SendActionObject,
-  InvokeCallback,
-  DisposeActivityFunction,
-  StateValue,
-  InterpreterOptions,
-  ActivityDefinition,
-  SingleOrArray,
-  Subscribable,
-  DoneEvent,
-  MachineOptions,
-  SCXML,
-  EventData,
-  Observer,
-  Spawnable,
-  Typestate,
-  AnyEventObject,
-  AnyInterpreter,
-  ActorRef,
-  ActorRefFrom,
-  Behavior,
-  StopActionObject,
-  Subscription,
-  AnyState,
-  StateConfig,
-  InteropSubscribable
-} from './types';
-import { State, bindActionToState, isStateConfig } from './State';
+import { Actor, createDeferredActor, isSpawnedActor } from './Actor';
+import { bindActionToState, isStateConfig, State } from './State';
 import * as actionTypes from './actionTypes';
 import {
   doneInvoke,
@@ -46,37 +9,74 @@ import {
   resolveActions,
   toActionObjects
 } from './actions';
-import { IS_PRODUCTION } from './environment';
-import {
-  isPromiseLike,
-  mapContext,
-  warn,
-  isArray,
-  isFunction,
-  isString,
-  isObservable,
-  uniqueId,
-  isMachine,
-  toEventObject,
-  toSCXMLEvent,
-  reportUnhandledExceptionOnInvocation,
-  toInvokeSource,
-  toObserver,
-  isActor,
-  isBehavior,
-  symbolObservable,
-  flatten
-} from './utils';
-import { Scheduler } from './scheduler';
-import { Actor, isSpawnedActor, createDeferredActor } from './Actor';
-import { registry } from './registry';
-import { getGlobal, registerService } from './devTools';
-import * as serviceScope from './serviceScope';
 import { spawnBehavior } from './behaviors';
+import { getGlobal, registerService } from './devTools';
+import { IS_PRODUCTION } from './environment';
+import { registry } from './registry';
+import { Scheduler } from './scheduler';
+import * as serviceScope from './serviceScope';
 import {
   AreAllImplementationsAssumedToBeProvided,
   TypegenDisabled
 } from './typegenTypes';
+import {
+  ActionObject,
+  ActionTypes,
+  ActivityActionObject,
+  ActivityDefinition,
+  ActorRef,
+  ActorRefFrom,
+  AnyEventObject,
+  AnyInterpreter,
+  AnyState,
+  Behavior,
+  CancelAction,
+  DefaultContext,
+  DisposeActivityFunction,
+  DoneEvent,
+  Event,
+  EventData,
+  EventObject,
+  InteropSubscribable,
+  InterpreterOptions,
+  InvokeCallback,
+  InvokeDefinition,
+  MachineOptions,
+  Observer,
+  SCXML,
+  SendActionObject,
+  SingleOrArray,
+  Spawnable,
+  SpecialTargets,
+  StateConfig,
+  StateMachine,
+  StateSchema,
+  StateValue,
+  StopActionObject,
+  Subscribable,
+  Subscription,
+  Typestate
+} from './types';
+import {
+  flatten,
+  isActor,
+  isArray,
+  isBehavior,
+  isFunction,
+  isMachine,
+  isObservable,
+  isPromiseLike,
+  isString,
+  mapContext,
+  reportUnhandledExceptionOnInvocation,
+  symbolObservable,
+  toEventObject,
+  toInvokeSource,
+  toObserver,
+  toSCXMLEvent,
+  uniqueId,
+  warn
+} from './utils';
 
 export type StateListener<
   TContext,

@@ -7,6 +7,7 @@ import {
 import {
   BaseActionObject,
   EventObject,
+  ExtractEvent,
   MachineConfig,
   MachineOptions,
   MachineSchema,
@@ -16,8 +17,7 @@ import {
   StateSchema,
   TransitionConfig,
   TypegenConstraint,
-  TypegenDisabled,
-  ExtractEvent
+  TypegenDisabled
 } from 'xstate';
 
 export type GetPathsOptions<TState, TEvent extends EventObject> = Partial<

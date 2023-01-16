@@ -1,22 +1,22 @@
 import {
+  ResolveTypegenMeta,
+  TypegenConstraint,
+  TypegenDisabled
+} from './typegenTypes';
+import {
   AnyFunction,
   AssignAction,
   Assigner,
   BaseActionObject,
   Compute,
   EventObject,
+  InternalMachineOptions,
   MachineConfig,
   Prop,
   PropertyAssigner,
-  StateMachine,
-  InternalMachineOptions,
-  ServiceMap
+  ServiceMap,
+  StateMachine
 } from './types';
-import {
-  ResolveTypegenMeta,
-  TypegenConstraint,
-  TypegenDisabled
-} from './typegenTypes';
 
 // real `ExtractEvent` breaks `model.assign` inference within transition actions
 type SimplisticExtractEvent<
