@@ -600,9 +600,9 @@ export interface StateNodeConfig<
    */
   states?: StatesConfig<TContext, TEvent, TAction> | undefined;
   /**
-   * The behaviors to invoke upon entering this state node.
+   * The behavior(s) to invoke upon entering this state node.
    * An invoked behavior is an actor.
-   * These actors will be stopped upon exiting this state node.
+   * These actor(s) will be stopped upon exiting this state node.
    */
   invoke?: SingleOrArray<
     string | BehaviorCreator<TContext, TEvent> | InvokeConfig<TContext, TEvent>
