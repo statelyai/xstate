@@ -849,7 +849,7 @@ type MachineImplementationsGuards<
   >;
 };
 
-type MachineImplementationsActors<
+type MachineImplementationsBehaviors<
   TContext extends MachineContext,
   TResolvedTypesMeta,
   TEventsCausingBehaviors = Prop<
@@ -938,7 +938,7 @@ type GenerateActorsImplementationsPart<
   Prop<TMissingImplementations, 'actors'>,
   TRequireMissingImplementations
 > & {
-  behaviors?: MachineImplementationsActors<TContext, TResolvedTypesMeta>;
+  behaviors?: MachineImplementationsBehaviors<TContext, TResolvedTypesMeta>;
 };
 
 export type InternalMachineImplementations<
