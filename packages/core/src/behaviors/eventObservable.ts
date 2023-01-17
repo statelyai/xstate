@@ -10,7 +10,6 @@ import { ObservableInternalState, stopSignalType } from '../behaviors';
  * @param lazyObservable A function that creates an observable
  * @returns An event observable behavior
  */
-
 export function fromEventObservable<T extends EventObject>(
   lazyObservable: Lazy<Subscribable<T>>
 ): Behavior<EventObject, T | undefined> {
