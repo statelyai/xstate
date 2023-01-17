@@ -85,7 +85,7 @@ describe('EventFrom', () => {
 
   it('should return events for a typegened machine', () => {
     const machine = createMachine({
-      tsTypes: {} as import('./typeHelpers.test.typegen').Typegen3,
+      tsTypes: {} as TypegenMeta,
       schema: {
         events: {} as
           | { type: 'UPDATE_NAME'; value: string }
