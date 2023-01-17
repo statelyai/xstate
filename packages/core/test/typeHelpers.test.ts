@@ -37,7 +37,7 @@ describe('ContextFrom', () => {
 
   it('should return context of a typegened machine', () => {
     const machine = createMachine({
-      tsTypes: {} as import('./typeHelpers.test.typegen').Typegen1,
+      tsTypes: {} as TypegenMeta,
       schema: {
         context: {} as { counter: number }
       }
