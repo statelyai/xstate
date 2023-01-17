@@ -31,14 +31,6 @@ export type LifecycleSignalType =
   | typeof startSignalType
   | typeof stopSignalType;
 
-/**
- * An object that expresses the behavior of an actor in reaction to received events,
- * as well as an optionally emitted stream of values.
- *
- * @template TReceived The received event
- * @template TSnapshot The emitted value
- */
-
 export function isSignal(eventType: string): eventType is LifecycleSignalType {
   return eventType === startSignalType || eventType === stopSignalType;
 }

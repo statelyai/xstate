@@ -1820,6 +1820,14 @@ export interface ActorContext<TEvent extends EventObject, TSnapshot> {
   defer: (fn: () => void) => void;
 }
 
+/**
+ * An object that expresses the behavior of an actor in reaction to received events,
+ * as well as an optionally emitted stream of values.
+ *
+ * @template TEvent The received event
+ * @template TSnapshot The emitted value
+ * @template TInternalState The internal state
+ */
 export interface Behavior<
   TEvent extends EventObject,
   TSnapshot = any,
