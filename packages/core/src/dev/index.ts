@@ -2,7 +2,7 @@ import { IS_PRODUCTION } from '../environment';
 import { AnyInterpreter, DevToolsAdapter } from '../types';
 
 interface DevInterface {
-  behaviors: Set<AnyInterpreter>;
+  actors: Set<AnyInterpreter>;
   register(service: AnyInterpreter): void;
   onRegister(listener: ServiceListener): void;
 }
