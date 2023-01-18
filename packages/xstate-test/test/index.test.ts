@@ -132,16 +132,16 @@ describe('events', () => {
     });
 
     expect(testedEvents).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "type": "EVENT",
           "value": 1,
         },
-        Object {
+        {
           "type": "EVENT",
           "value": 2,
         },
-        Object {
+        {
           "type": "EVENT",
           "value": 3,
         },
@@ -400,7 +400,7 @@ describe('state tests', () => {
       }
     });
     expect(testedStateValues).toMatchInlineSnapshot(`
-      Array [
+      [
         "a",
         "b",
         "b.b1",

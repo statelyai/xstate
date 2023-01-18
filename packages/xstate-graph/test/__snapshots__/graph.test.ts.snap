@@ -1,26 +1,26 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`@xstate/graph getPathFromEvents() should return a path to the last entered state by the event sequence: path from events 1`] = `
-Object {
-  "state": Object {
+{
+  "state": {
     "red": "flashing",
   },
-  "steps": Array [
-    Object {
+  "steps": [
+    {
       "eventType": "TIMER",
       "state": "green",
     },
-    Object {
+    {
       "eventType": "TIMER",
       "state": "yellow",
     },
-    Object {
+    {
       "eventType": "TIMER",
-      "state": Object {
+      "state": {
         "red": "walk",
       },
     },
-    Object {
+    {
       "eventType": "POWER_OUTAGE",
       "state": "green",
     },
@@ -29,143 +29,143 @@ Object {
 `;
 
 exports[`@xstate/graph getShortestPaths() should return a mapping of shortest paths to all states (parallel): shortest paths parallel 1`] = `
-Array [
-  Object {
-    "paths": Array [
-      Object {
-        "state": Object {
-          "_event": Object {
+[
+  {
+    "paths": [
+      {
+        "state": {
+          "_event": {
             "$$type": "scxml",
-            "data": Object {
+            "data": {
               "type": "1",
             },
             "name": "1",
             "type": "external",
           },
           "_initial": false,
-          "_internalQueue": Array [],
+          "_internalQueue": [],
           "_sessionid": undefined,
-          "actions": Array [],
+          "actions": [],
           "changed": true,
-          "children": Object {},
-          "context": Object {},
+          "children": {},
+          "context": {},
           "done": false,
-          "event": Object {
+          "event": {
             "type": "1",
           },
-          "historyValue": Object {},
+          "historyValue": {},
           "matches": [Function],
-          "meta": Object {},
+          "meta": {},
           "output": undefined,
-          "tags": Array [],
+          "tags": [],
           "toStrings": [Function],
-          "value": Object {
+          "value": {
             "a": "a1",
             "b": "b1",
           },
         },
-        "steps": Array [],
+        "steps": [],
         "weight": 0,
       },
     ],
-    "state": Object {
-      "_event": Object {
+    "state": {
+      "_event": {
         "$$type": "scxml",
-        "data": Object {
+        "data": {
           "type": "1",
         },
         "name": "1",
         "type": "external",
       },
       "_initial": false,
-      "_internalQueue": Array [],
+      "_internalQueue": [],
       "_sessionid": undefined,
-      "actions": Array [],
+      "actions": [],
       "changed": true,
-      "children": Object {},
-      "context": Object {},
+      "children": {},
+      "context": {},
       "done": false,
-      "event": Object {
+      "event": {
         "type": "1",
       },
-      "historyValue": Object {},
+      "historyValue": {},
       "matches": [Function],
-      "meta": Object {},
+      "meta": {},
       "output": undefined,
-      "tags": Array [],
+      "tags": [],
       "toStrings": [Function],
-      "value": Object {
+      "value": {
         "a": "a1",
         "b": "b1",
       },
     },
   },
-  Object {
-    "paths": Array [
-      Object {
-        "state": Object {
-          "_event": Object {
+  {
+    "paths": [
+      {
+        "state": {
+          "_event": {
             "$$type": "scxml",
-            "data": Object {
+            "data": {
               "type": "2",
             },
             "name": "2",
             "type": "external",
           },
           "_initial": false,
-          "_internalQueue": Array [],
+          "_internalQueue": [],
           "_sessionid": undefined,
-          "actions": Array [],
+          "actions": [],
           "changed": true,
-          "children": Object {},
-          "context": Object {},
+          "children": {},
+          "context": {},
           "done": false,
-          "event": Object {
+          "event": {
             "type": "2",
           },
-          "historyValue": Object {},
+          "historyValue": {},
           "matches": [Function],
-          "meta": Object {},
+          "meta": {},
           "output": undefined,
-          "tags": Array [],
+          "tags": [],
           "toStrings": [Function],
-          "value": Object {
+          "value": {
             "a": "a2",
             "b": "b2",
           },
         },
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "2",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "1",
                 },
                 "name": "1",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [],
+              "actions": [],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "1",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
-              "value": Object {
+              "value": {
                 "a": "a1",
                 "b": "b1",
               },
@@ -175,104 +175,104 @@ Array [
         "weight": 1,
       },
     ],
-    "state": Object {
-      "_event": Object {
+    "state": {
+      "_event": {
         "$$type": "scxml",
-        "data": Object {
+        "data": {
           "type": "2",
         },
         "name": "2",
         "type": "external",
       },
       "_initial": false,
-      "_internalQueue": Array [],
+      "_internalQueue": [],
       "_sessionid": undefined,
-      "actions": Array [],
+      "actions": [],
       "changed": true,
-      "children": Object {},
-      "context": Object {},
+      "children": {},
+      "context": {},
       "done": false,
-      "event": Object {
+      "event": {
         "type": "2",
       },
-      "historyValue": Object {},
+      "historyValue": {},
       "matches": [Function],
-      "meta": Object {},
+      "meta": {},
       "output": undefined,
-      "tags": Array [],
+      "tags": [],
       "toStrings": [Function],
-      "value": Object {
+      "value": {
         "a": "a2",
         "b": "b2",
       },
     },
   },
-  Object {
-    "paths": Array [
-      Object {
-        "state": Object {
-          "_event": Object {
+  {
+    "paths": [
+      {
+        "state": {
+          "_event": {
             "$$type": "scxml",
-            "data": Object {
+            "data": {
               "type": "3",
             },
             "name": "3",
             "type": "external",
           },
           "_initial": false,
-          "_internalQueue": Array [],
+          "_internalQueue": [],
           "_sessionid": undefined,
-          "actions": Array [],
+          "actions": [],
           "changed": true,
-          "children": Object {},
-          "context": Object {},
+          "children": {},
+          "context": {},
           "done": false,
-          "event": Object {
+          "event": {
             "type": "3",
           },
-          "historyValue": Object {},
+          "historyValue": {},
           "matches": [Function],
-          "meta": Object {},
+          "meta": {},
           "output": undefined,
-          "tags": Array [],
+          "tags": [],
           "toStrings": [Function],
-          "value": Object {
+          "value": {
             "a": "a3",
             "b": "b3",
           },
         },
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "3",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "1",
                 },
                 "name": "1",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [],
+              "actions": [],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "1",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
-              "value": Object {
+              "value": {
                 "a": "a1",
                 "b": "b1",
               },
@@ -282,33 +282,33 @@ Array [
         "weight": 1,
       },
     ],
-    "state": Object {
-      "_event": Object {
+    "state": {
+      "_event": {
         "$$type": "scxml",
-        "data": Object {
+        "data": {
           "type": "3",
         },
         "name": "3",
         "type": "external",
       },
       "_initial": false,
-      "_internalQueue": Array [],
+      "_internalQueue": [],
       "_sessionid": undefined,
-      "actions": Array [],
+      "actions": [],
       "changed": true,
-      "children": Object {},
-      "context": Object {},
+      "children": {},
+      "context": {},
       "done": false,
-      "event": Object {
+      "event": {
         "type": "3",
       },
-      "historyValue": Object {},
+      "historyValue": {},
       "matches": [Function],
-      "meta": Object {},
+      "meta": {},
       "output": undefined,
-      "tags": Array [],
+      "tags": [],
       "toStrings": [Function],
-      "value": Object {
+      "value": {
         "a": "a3",
         "b": "b3",
       },
@@ -318,132 +318,132 @@ Array [
 `;
 
 exports[`@xstate/graph getShortestPaths() should return a mapping of shortest paths to all states: shortest paths 1`] = `
-Array [
-  Object {
-    "paths": Array [
-      Object {
-        "state": Object {
-          "_event": Object {
+[
+  {
+    "paths": [
+      {
+        "state": {
+          "_event": {
             "$$type": "scxml",
-            "data": Object {
+            "data": {
               "type": "TIMER",
             },
             "name": "TIMER",
             "type": "external",
           },
           "_initial": false,
-          "_internalQueue": Array [],
+          "_internalQueue": [],
           "_sessionid": undefined,
-          "actions": Array [],
+          "actions": [],
           "changed": true,
-          "children": Object {},
-          "context": Object {},
+          "children": {},
+          "context": {},
           "done": false,
-          "event": Object {
+          "event": {
             "type": "TIMER",
           },
-          "historyValue": Object {},
+          "historyValue": {},
           "matches": [Function],
-          "meta": Object {},
+          "meta": {},
           "output": undefined,
-          "tags": Array [],
+          "tags": [],
           "toStrings": [Function],
           "value": "green",
         },
-        "steps": Array [],
+        "steps": [],
         "weight": 0,
       },
     ],
-    "state": Object {
-      "_event": Object {
+    "state": {
+      "_event": {
         "$$type": "scxml",
-        "data": Object {
+        "data": {
           "type": "TIMER",
         },
         "name": "TIMER",
         "type": "external",
       },
       "_initial": false,
-      "_internalQueue": Array [],
+      "_internalQueue": [],
       "_sessionid": undefined,
-      "actions": Array [],
+      "actions": [],
       "changed": true,
-      "children": Object {},
-      "context": Object {},
+      "children": {},
+      "context": {},
       "done": false,
-      "event": Object {
+      "event": {
         "type": "TIMER",
       },
-      "historyValue": Object {},
+      "historyValue": {},
       "matches": [Function],
-      "meta": Object {},
+      "meta": {},
       "output": undefined,
-      "tags": Array [],
+      "tags": [],
       "toStrings": [Function],
       "value": "green",
     },
   },
-  Object {
-    "paths": Array [
-      Object {
-        "state": Object {
-          "_event": Object {
+  {
+    "paths": [
+      {
+        "state": {
+          "_event": {
             "$$type": "scxml",
-            "data": Object {
+            "data": {
               "type": "TIMER",
             },
             "name": "TIMER",
             "type": "external",
           },
           "_initial": false,
-          "_internalQueue": Array [],
+          "_internalQueue": [],
           "_sessionid": undefined,
-          "actions": Array [],
+          "actions": [],
           "changed": true,
-          "children": Object {},
-          "context": Object {},
+          "children": {},
+          "context": {},
           "done": false,
-          "event": Object {
+          "event": {
             "type": "TIMER",
           },
-          "historyValue": Object {},
+          "historyValue": {},
           "matches": [Function],
-          "meta": Object {},
+          "meta": {},
           "output": undefined,
-          "tags": Array [],
+          "tags": [],
           "toStrings": [Function],
           "value": "yellow",
         },
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "TIMER",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "TIMER",
                 },
                 "name": "TIMER",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [],
+              "actions": [],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "TIMER",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
               "value": "green",
             },
@@ -452,98 +452,98 @@ Array [
         "weight": 1,
       },
     ],
-    "state": Object {
-      "_event": Object {
+    "state": {
+      "_event": {
         "$$type": "scxml",
-        "data": Object {
+        "data": {
           "type": "TIMER",
         },
         "name": "TIMER",
         "type": "external",
       },
       "_initial": false,
-      "_internalQueue": Array [],
+      "_internalQueue": [],
       "_sessionid": undefined,
-      "actions": Array [],
+      "actions": [],
       "changed": true,
-      "children": Object {},
-      "context": Object {},
+      "children": {},
+      "context": {},
       "done": false,
-      "event": Object {
+      "event": {
         "type": "TIMER",
       },
-      "historyValue": Object {},
+      "historyValue": {},
       "matches": [Function],
-      "meta": Object {},
+      "meta": {},
       "output": undefined,
-      "tags": Array [],
+      "tags": [],
       "toStrings": [Function],
       "value": "yellow",
     },
   },
-  Object {
-    "paths": Array [
-      Object {
-        "state": Object {
-          "_event": Object {
+  {
+    "paths": [
+      {
+        "state": {
+          "_event": {
             "$$type": "scxml",
-            "data": Object {
+            "data": {
               "type": "POWER_OUTAGE",
             },
             "name": "POWER_OUTAGE",
             "type": "external",
           },
           "_initial": false,
-          "_internalQueue": Array [],
+          "_internalQueue": [],
           "_sessionid": undefined,
-          "actions": Array [],
+          "actions": [],
           "changed": true,
-          "children": Object {},
-          "context": Object {},
+          "children": {},
+          "context": {},
           "done": false,
-          "event": Object {
+          "event": {
             "type": "POWER_OUTAGE",
           },
-          "historyValue": Object {},
+          "historyValue": {},
           "matches": [Function],
-          "meta": Object {},
+          "meta": {},
           "output": undefined,
-          "tags": Array [],
+          "tags": [],
           "toStrings": [Function],
-          "value": Object {
+          "value": {
             "red": "flashing",
           },
         },
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "POWER_OUTAGE",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "TIMER",
                 },
                 "name": "TIMER",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [],
+              "actions": [],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "TIMER",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
               "value": "green",
             },
@@ -552,133 +552,133 @@ Array [
         "weight": 1,
       },
     ],
-    "state": Object {
-      "_event": Object {
+    "state": {
+      "_event": {
         "$$type": "scxml",
-        "data": Object {
+        "data": {
           "type": "POWER_OUTAGE",
         },
         "name": "POWER_OUTAGE",
         "type": "external",
       },
       "_initial": false,
-      "_internalQueue": Array [],
+      "_internalQueue": [],
       "_sessionid": undefined,
-      "actions": Array [],
+      "actions": [],
       "changed": true,
-      "children": Object {},
-      "context": Object {},
+      "children": {},
+      "context": {},
       "done": false,
-      "event": Object {
+      "event": {
         "type": "POWER_OUTAGE",
       },
-      "historyValue": Object {},
+      "historyValue": {},
       "matches": [Function],
-      "meta": Object {},
+      "meta": {},
       "output": undefined,
-      "tags": Array [],
+      "tags": [],
       "toStrings": [Function],
-      "value": Object {
+      "value": {
         "red": "flashing",
       },
     },
   },
-  Object {
-    "paths": Array [
-      Object {
-        "state": Object {
-          "_event": Object {
+  {
+    "paths": [
+      {
+        "state": {
+          "_event": {
             "$$type": "scxml",
-            "data": Object {
+            "data": {
               "type": "TIMER",
             },
             "name": "TIMER",
             "type": "external",
           },
           "_initial": false,
-          "_internalQueue": Array [],
+          "_internalQueue": [],
           "_sessionid": undefined,
-          "actions": Array [],
+          "actions": [],
           "changed": true,
-          "children": Object {},
-          "context": Object {},
+          "children": {},
+          "context": {},
           "done": false,
-          "event": Object {
+          "event": {
             "type": "TIMER",
           },
-          "historyValue": Object {},
+          "historyValue": {},
           "matches": [Function],
-          "meta": Object {},
+          "meta": {},
           "output": undefined,
-          "tags": Array [],
+          "tags": [],
           "toStrings": [Function],
-          "value": Object {
+          "value": {
             "red": "walk",
           },
         },
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "TIMER",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "TIMER",
                 },
                 "name": "TIMER",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [],
+              "actions": [],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "TIMER",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
               "value": "green",
             },
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "TIMER",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "TIMER",
                 },
                 "name": "TIMER",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [],
+              "actions": [],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "TIMER",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
               "value": "yellow",
             },
@@ -687,173 +687,173 @@ Array [
         "weight": 2,
       },
     ],
-    "state": Object {
-      "_event": Object {
+    "state": {
+      "_event": {
         "$$type": "scxml",
-        "data": Object {
+        "data": {
           "type": "TIMER",
         },
         "name": "TIMER",
         "type": "external",
       },
       "_initial": false,
-      "_internalQueue": Array [],
+      "_internalQueue": [],
       "_sessionid": undefined,
-      "actions": Array [],
+      "actions": [],
       "changed": true,
-      "children": Object {},
-      "context": Object {},
+      "children": {},
+      "context": {},
       "done": false,
-      "event": Object {
+      "event": {
         "type": "TIMER",
       },
-      "historyValue": Object {},
+      "historyValue": {},
       "matches": [Function],
-      "meta": Object {},
+      "meta": {},
       "output": undefined,
-      "tags": Array [],
+      "tags": [],
       "toStrings": [Function],
-      "value": Object {
+      "value": {
         "red": "walk",
       },
     },
   },
-  Object {
-    "paths": Array [
-      Object {
-        "state": Object {
-          "_event": Object {
+  {
+    "paths": [
+      {
+        "state": {
+          "_event": {
             "$$type": "scxml",
-            "data": Object {
+            "data": {
               "type": "PED_COUNTDOWN",
             },
             "name": "PED_COUNTDOWN",
             "type": "external",
           },
           "_initial": false,
-          "_internalQueue": Array [],
+          "_internalQueue": [],
           "_sessionid": undefined,
-          "actions": Array [
-            Object {
-              "params": Object {},
+          "actions": [
+            {
+              "params": {},
               "type": "startCountdown",
             },
           ],
           "changed": true,
-          "children": Object {},
-          "context": Object {},
+          "children": {},
+          "context": {},
           "done": false,
-          "event": Object {
+          "event": {
             "type": "PED_COUNTDOWN",
           },
-          "historyValue": Object {},
+          "historyValue": {},
           "matches": [Function],
-          "meta": Object {},
+          "meta": {},
           "output": undefined,
-          "tags": Array [],
+          "tags": [],
           "toStrings": [Function],
-          "value": Object {
+          "value": {
             "red": "wait",
           },
         },
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "TIMER",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "TIMER",
                 },
                 "name": "TIMER",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [],
+              "actions": [],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "TIMER",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
               "value": "green",
             },
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "TIMER",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "TIMER",
                 },
                 "name": "TIMER",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [],
+              "actions": [],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "TIMER",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
               "value": "yellow",
             },
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "PED_COUNTDOWN",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "TIMER",
                 },
                 "name": "TIMER",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [],
+              "actions": [],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "TIMER",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
-              "value": Object {
+              "value": {
                 "red": "walk",
               },
             },
@@ -862,213 +862,213 @@ Array [
         "weight": 3,
       },
     ],
-    "state": Object {
-      "_event": Object {
+    "state": {
+      "_event": {
         "$$type": "scxml",
-        "data": Object {
+        "data": {
           "type": "PED_COUNTDOWN",
         },
         "name": "PED_COUNTDOWN",
         "type": "external",
       },
       "_initial": false,
-      "_internalQueue": Array [],
+      "_internalQueue": [],
       "_sessionid": undefined,
-      "actions": Array [
-        Object {
-          "params": Object {},
+      "actions": [
+        {
+          "params": {},
           "type": "startCountdown",
         },
       ],
       "changed": true,
-      "children": Object {},
-      "context": Object {},
+      "children": {},
+      "context": {},
       "done": false,
-      "event": Object {
+      "event": {
         "type": "PED_COUNTDOWN",
       },
-      "historyValue": Object {},
+      "historyValue": {},
       "matches": [Function],
-      "meta": Object {},
+      "meta": {},
       "output": undefined,
-      "tags": Array [],
+      "tags": [],
       "toStrings": [Function],
-      "value": Object {
+      "value": {
         "red": "wait",
       },
     },
   },
-  Object {
-    "paths": Array [
-      Object {
-        "state": Object {
-          "_event": Object {
+  {
+    "paths": [
+      {
+        "state": {
+          "_event": {
             "$$type": "scxml",
-            "data": Object {
+            "data": {
               "type": "PED_COUNTDOWN",
             },
             "name": "PED_COUNTDOWN",
             "type": "external",
           },
           "_initial": false,
-          "_internalQueue": Array [],
+          "_internalQueue": [],
           "_sessionid": undefined,
-          "actions": Array [],
+          "actions": [],
           "changed": true,
-          "children": Object {},
-          "context": Object {},
+          "children": {},
+          "context": {},
           "done": false,
-          "event": Object {
+          "event": {
             "type": "PED_COUNTDOWN",
           },
-          "historyValue": Object {},
+          "historyValue": {},
           "matches": [Function],
-          "meta": Object {},
+          "meta": {},
           "output": undefined,
-          "tags": Array [],
+          "tags": [],
           "toStrings": [Function],
-          "value": Object {
+          "value": {
             "red": "stop",
           },
         },
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "TIMER",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "TIMER",
                 },
                 "name": "TIMER",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [],
+              "actions": [],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "TIMER",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
               "value": "green",
             },
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "TIMER",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "TIMER",
                 },
                 "name": "TIMER",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [],
+              "actions": [],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "TIMER",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
               "value": "yellow",
             },
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "PED_COUNTDOWN",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "TIMER",
                 },
                 "name": "TIMER",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [],
+              "actions": [],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "TIMER",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
-              "value": Object {
+              "value": {
                 "red": "walk",
               },
             },
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "PED_COUNTDOWN",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "PED_COUNTDOWN",
                 },
                 "name": "PED_COUNTDOWN",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [
-                Object {
-                  "params": Object {},
+              "actions": [
+                {
+                  "params": {},
                   "type": "startCountdown",
                 },
               ],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "PED_COUNTDOWN",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
-              "value": Object {
+              "value": {
                 "red": "wait",
               },
             },
@@ -1077,33 +1077,33 @@ Array [
         "weight": 4,
       },
     ],
-    "state": Object {
-      "_event": Object {
+    "state": {
+      "_event": {
         "$$type": "scxml",
-        "data": Object {
+        "data": {
           "type": "PED_COUNTDOWN",
         },
         "name": "PED_COUNTDOWN",
         "type": "external",
       },
       "_initial": false,
-      "_internalQueue": Array [],
+      "_internalQueue": [],
       "_sessionid": undefined,
-      "actions": Array [],
+      "actions": [],
       "changed": true,
-      "children": Object {},
-      "context": Object {},
+      "children": {},
+      "context": {},
       "done": false,
-      "event": Object {
+      "event": {
         "type": "PED_COUNTDOWN",
       },
-      "historyValue": Object {},
+      "historyValue": {},
       "matches": [Function],
-      "meta": Object {},
+      "meta": {},
       "output": undefined,
-      "tags": Array [],
+      "tags": [],
       "toStrings": [Function],
-      "value": Object {
+      "value": {
         "red": "stop",
       },
     },
@@ -1112,132 +1112,132 @@ Array [
 `;
 
 exports[`@xstate/graph getSimplePaths() should return a mapping of arrays of simple paths to all states 2`] = `
-Array [
-  Object {
-    "paths": Array [
-      Object {
-        "state": Object {
-          "_event": Object {
+[
+  {
+    "paths": [
+      {
+        "state": {
+          "_event": {
             "$$type": "scxml",
-            "data": Object {
+            "data": {
               "type": "xstate.init",
             },
             "name": "xstate.init",
             "type": "external",
           },
           "_initial": false,
-          "_internalQueue": Array [],
+          "_internalQueue": [],
           "_sessionid": undefined,
-          "actions": Array [],
+          "actions": [],
           "changed": undefined,
-          "children": Object {},
-          "context": Object {},
+          "children": {},
+          "context": {},
           "done": false,
-          "event": Object {
+          "event": {
             "type": "xstate.init",
           },
-          "historyValue": Object {},
+          "historyValue": {},
           "matches": [Function],
-          "meta": Object {},
+          "meta": {},
           "output": undefined,
-          "tags": Array [],
+          "tags": [],
           "toStrings": [Function],
           "value": "green",
         },
-        "steps": Array [],
+        "steps": [],
         "weight": 0,
       },
     ],
-    "state": Object {
-      "_event": Object {
+    "state": {
+      "_event": {
         "$$type": "scxml",
-        "data": Object {
+        "data": {
           "type": "xstate.init",
         },
         "name": "xstate.init",
         "type": "external",
       },
       "_initial": false,
-      "_internalQueue": Array [],
+      "_internalQueue": [],
       "_sessionid": undefined,
-      "actions": Array [],
+      "actions": [],
       "changed": undefined,
-      "children": Object {},
-      "context": Object {},
+      "children": {},
+      "context": {},
       "done": false,
-      "event": Object {
+      "event": {
         "type": "xstate.init",
       },
-      "historyValue": Object {},
+      "historyValue": {},
       "matches": [Function],
-      "meta": Object {},
+      "meta": {},
       "output": undefined,
-      "tags": Array [],
+      "tags": [],
       "toStrings": [Function],
       "value": "green",
     },
   },
-  Object {
-    "paths": Array [
-      Object {
-        "state": Object {
-          "_event": Object {
+  {
+    "paths": [
+      {
+        "state": {
+          "_event": {
             "$$type": "scxml",
-            "data": Object {
+            "data": {
               "type": "TIMER",
             },
             "name": "TIMER",
             "type": "external",
           },
           "_initial": false,
-          "_internalQueue": Array [],
+          "_internalQueue": [],
           "_sessionid": undefined,
-          "actions": Array [],
+          "actions": [],
           "changed": true,
-          "children": Object {},
-          "context": Object {},
+          "children": {},
+          "context": {},
           "done": false,
-          "event": Object {
+          "event": {
             "type": "TIMER",
           },
-          "historyValue": Object {},
+          "historyValue": {},
           "matches": [Function],
-          "meta": Object {},
+          "meta": {},
           "output": undefined,
-          "tags": Array [],
+          "tags": [],
           "toStrings": [Function],
           "value": "yellow",
         },
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "TIMER",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "xstate.init",
                 },
                 "name": "xstate.init",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [],
+              "actions": [],
               "changed": undefined,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "xstate.init",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
               "value": "green",
             },
@@ -1246,171 +1246,171 @@ Array [
         "weight": 1,
       },
     ],
-    "state": Object {
-      "_event": Object {
+    "state": {
+      "_event": {
         "$$type": "scxml",
-        "data": Object {
+        "data": {
           "type": "TIMER",
         },
         "name": "TIMER",
         "type": "external",
       },
       "_initial": false,
-      "_internalQueue": Array [],
+      "_internalQueue": [],
       "_sessionid": undefined,
-      "actions": Array [],
+      "actions": [],
       "changed": true,
-      "children": Object {},
-      "context": Object {},
+      "children": {},
+      "context": {},
       "done": false,
-      "event": Object {
+      "event": {
         "type": "TIMER",
       },
-      "historyValue": Object {},
+      "historyValue": {},
       "matches": [Function],
-      "meta": Object {},
+      "meta": {},
       "output": undefined,
-      "tags": Array [],
+      "tags": [],
       "toStrings": [Function],
       "value": "yellow",
     },
   },
-  Object {
-    "paths": Array [
-      Object {
-        "state": Object {
-          "_event": Object {
+  {
+    "paths": [
+      {
+        "state": {
+          "_event": {
             "$$type": "scxml",
-            "data": Object {
+            "data": {
               "type": "POWER_OUTAGE",
             },
             "name": "POWER_OUTAGE",
             "type": "external",
           },
           "_initial": false,
-          "_internalQueue": Array [],
+          "_internalQueue": [],
           "_sessionid": undefined,
-          "actions": Array [],
+          "actions": [],
           "changed": true,
-          "children": Object {},
-          "context": Object {},
+          "children": {},
+          "context": {},
           "done": false,
-          "event": Object {
+          "event": {
             "type": "POWER_OUTAGE",
           },
-          "historyValue": Object {},
+          "historyValue": {},
           "matches": [Function],
-          "meta": Object {},
+          "meta": {},
           "output": undefined,
-          "tags": Array [],
+          "tags": [],
           "toStrings": [Function],
-          "value": Object {
+          "value": {
             "red": "flashing",
           },
         },
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "TIMER",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "PUSH_BUTTON",
                 },
                 "name": "PUSH_BUTTON",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [
-                Object {
-                  "params": Object {},
+              "actions": [
+                {
+                  "params": {},
                   "type": "doNothing",
                 },
               ],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "PUSH_BUTTON",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
               "value": "green",
             },
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "TIMER",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "TIMER",
                 },
                 "name": "TIMER",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [],
+              "actions": [],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "TIMER",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
               "value": "yellow",
             },
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "POWER_OUTAGE",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "TIMER",
                 },
                 "name": "TIMER",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [],
+              "actions": [],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "TIMER",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
-              "value": Object {
+              "value": {
                 "red": "walk",
               },
             },
@@ -1418,180 +1418,180 @@ Array [
         ],
         "weight": 3,
       },
-      Object {
-        "state": Object {
-          "_event": Object {
+      {
+        "state": {
+          "_event": {
             "$$type": "scxml",
-            "data": Object {
+            "data": {
               "type": "POWER_OUTAGE",
             },
             "name": "POWER_OUTAGE",
             "type": "external",
           },
           "_initial": false,
-          "_internalQueue": Array [],
+          "_internalQueue": [],
           "_sessionid": undefined,
-          "actions": Array [],
+          "actions": [],
           "changed": true,
-          "children": Object {},
-          "context": Object {},
+          "children": {},
+          "context": {},
           "done": false,
-          "event": Object {
+          "event": {
             "type": "POWER_OUTAGE",
           },
-          "historyValue": Object {},
+          "historyValue": {},
           "matches": [Function],
-          "meta": Object {},
+          "meta": {},
           "output": undefined,
-          "tags": Array [],
+          "tags": [],
           "toStrings": [Function],
-          "value": Object {
+          "value": {
             "red": "flashing",
           },
         },
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "TIMER",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "PUSH_BUTTON",
                 },
                 "name": "PUSH_BUTTON",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [
-                Object {
-                  "params": Object {},
+              "actions": [
+                {
+                  "params": {},
                   "type": "doNothing",
                 },
               ],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "PUSH_BUTTON",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
               "value": "green",
             },
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "TIMER",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "TIMER",
                 },
                 "name": "TIMER",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [],
+              "actions": [],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "TIMER",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
               "value": "yellow",
             },
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "PED_COUNTDOWN",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "TIMER",
                 },
                 "name": "TIMER",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [],
+              "actions": [],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "TIMER",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
-              "value": Object {
+              "value": {
                 "red": "walk",
               },
             },
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "POWER_OUTAGE",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "PED_COUNTDOWN",
                 },
                 "name": "PED_COUNTDOWN",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [
-                Object {
-                  "params": Object {},
+              "actions": [
+                {
+                  "params": {},
                   "type": "startCountdown",
                 },
               ],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "PED_COUNTDOWN",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
-              "value": Object {
+              "value": {
                 "red": "wait",
               },
             },
@@ -1599,215 +1599,215 @@ Array [
         ],
         "weight": 4,
       },
-      Object {
-        "state": Object {
-          "_event": Object {
+      {
+        "state": {
+          "_event": {
             "$$type": "scxml",
-            "data": Object {
+            "data": {
               "type": "POWER_OUTAGE",
             },
             "name": "POWER_OUTAGE",
             "type": "external",
           },
           "_initial": false,
-          "_internalQueue": Array [],
+          "_internalQueue": [],
           "_sessionid": undefined,
-          "actions": Array [],
+          "actions": [],
           "changed": true,
-          "children": Object {},
-          "context": Object {},
+          "children": {},
+          "context": {},
           "done": false,
-          "event": Object {
+          "event": {
             "type": "POWER_OUTAGE",
           },
-          "historyValue": Object {},
+          "historyValue": {},
           "matches": [Function],
-          "meta": Object {},
+          "meta": {},
           "output": undefined,
-          "tags": Array [],
+          "tags": [],
           "toStrings": [Function],
-          "value": Object {
+          "value": {
             "red": "flashing",
           },
         },
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "TIMER",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "PUSH_BUTTON",
                 },
                 "name": "PUSH_BUTTON",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [
-                Object {
-                  "params": Object {},
+              "actions": [
+                {
+                  "params": {},
                   "type": "doNothing",
                 },
               ],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "PUSH_BUTTON",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
               "value": "green",
             },
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "TIMER",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "TIMER",
                 },
                 "name": "TIMER",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [],
+              "actions": [],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "TIMER",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
               "value": "yellow",
             },
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "PED_COUNTDOWN",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "TIMER",
                 },
                 "name": "TIMER",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [],
+              "actions": [],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "TIMER",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
-              "value": Object {
+              "value": {
                 "red": "walk",
               },
             },
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "PED_COUNTDOWN",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "PED_COUNTDOWN",
                 },
                 "name": "PED_COUNTDOWN",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [
-                Object {
-                  "params": Object {},
+              "actions": [
+                {
+                  "params": {},
                   "type": "startCountdown",
                 },
               ],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "PED_COUNTDOWN",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
-              "value": Object {
+              "value": {
                 "red": "wait",
               },
             },
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "POWER_OUTAGE",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "PED_COUNTDOWN",
                 },
                 "name": "PED_COUNTDOWN",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [],
+              "actions": [],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "PED_COUNTDOWN",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
-              "value": Object {
+              "value": {
                 "red": "stop",
               },
             },
@@ -1815,105 +1815,105 @@ Array [
         ],
         "weight": 5,
       },
-      Object {
-        "state": Object {
-          "_event": Object {
+      {
+        "state": {
+          "_event": {
             "$$type": "scxml",
-            "data": Object {
+            "data": {
               "type": "POWER_OUTAGE",
             },
             "name": "POWER_OUTAGE",
             "type": "external",
           },
           "_initial": false,
-          "_internalQueue": Array [],
+          "_internalQueue": [],
           "_sessionid": undefined,
-          "actions": Array [],
+          "actions": [],
           "changed": true,
-          "children": Object {},
-          "context": Object {},
+          "children": {},
+          "context": {},
           "done": false,
-          "event": Object {
+          "event": {
             "type": "POWER_OUTAGE",
           },
-          "historyValue": Object {},
+          "historyValue": {},
           "matches": [Function],
-          "meta": Object {},
+          "meta": {},
           "output": undefined,
-          "tags": Array [],
+          "tags": [],
           "toStrings": [Function],
-          "value": Object {
+          "value": {
             "red": "flashing",
           },
         },
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "TIMER",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "PUSH_BUTTON",
                 },
                 "name": "PUSH_BUTTON",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [
-                Object {
-                  "params": Object {},
+              "actions": [
+                {
+                  "params": {},
                   "type": "doNothing",
                 },
               ],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "PUSH_BUTTON",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
               "value": "green",
             },
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "POWER_OUTAGE",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "TIMER",
                 },
                 "name": "TIMER",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [],
+              "actions": [],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "TIMER",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
               "value": "yellow",
             },
@@ -1921,67 +1921,67 @@ Array [
         ],
         "weight": 2,
       },
-      Object {
-        "state": Object {
-          "_event": Object {
+      {
+        "state": {
+          "_event": {
             "$$type": "scxml",
-            "data": Object {
+            "data": {
               "type": "POWER_OUTAGE",
             },
             "name": "POWER_OUTAGE",
             "type": "external",
           },
           "_initial": false,
-          "_internalQueue": Array [],
+          "_internalQueue": [],
           "_sessionid": undefined,
-          "actions": Array [],
+          "actions": [],
           "changed": true,
-          "children": Object {},
-          "context": Object {},
+          "children": {},
+          "context": {},
           "done": false,
-          "event": Object {
+          "event": {
             "type": "POWER_OUTAGE",
           },
-          "historyValue": Object {},
+          "historyValue": {},
           "matches": [Function],
-          "meta": Object {},
+          "meta": {},
           "output": undefined,
-          "tags": Array [],
+          "tags": [],
           "toStrings": [Function],
-          "value": Object {
+          "value": {
             "red": "flashing",
           },
         },
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "POWER_OUTAGE",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "TIMER",
                 },
                 "name": "TIMER",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [],
+              "actions": [],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "TIMER",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
               "value": "green",
             },
@@ -1990,138 +1990,138 @@ Array [
         "weight": 1,
       },
     ],
-    "state": Object {
-      "_event": Object {
+    "state": {
+      "_event": {
         "$$type": "scxml",
-        "data": Object {
+        "data": {
           "type": "POWER_OUTAGE",
         },
         "name": "POWER_OUTAGE",
         "type": "external",
       },
       "_initial": false,
-      "_internalQueue": Array [],
+      "_internalQueue": [],
       "_sessionid": undefined,
-      "actions": Array [],
+      "actions": [],
       "changed": true,
-      "children": Object {},
-      "context": Object {},
+      "children": {},
+      "context": {},
       "done": false,
-      "event": Object {
+      "event": {
         "type": "POWER_OUTAGE",
       },
-      "historyValue": Object {},
+      "historyValue": {},
       "matches": [Function],
-      "meta": Object {},
+      "meta": {},
       "output": undefined,
-      "tags": Array [],
+      "tags": [],
       "toStrings": [Function],
-      "value": Object {
+      "value": {
         "red": "flashing",
       },
     },
   },
-  Object {
-    "paths": Array [
-      Object {
-        "state": Object {
-          "_event": Object {
+  {
+    "paths": [
+      {
+        "state": {
+          "_event": {
             "$$type": "scxml",
-            "data": Object {
+            "data": {
               "type": "TIMER",
             },
             "name": "TIMER",
             "type": "external",
           },
           "_initial": false,
-          "_internalQueue": Array [],
+          "_internalQueue": [],
           "_sessionid": undefined,
-          "actions": Array [],
+          "actions": [],
           "changed": true,
-          "children": Object {},
-          "context": Object {},
+          "children": {},
+          "context": {},
           "done": false,
-          "event": Object {
+          "event": {
             "type": "TIMER",
           },
-          "historyValue": Object {},
+          "historyValue": {},
           "matches": [Function],
-          "meta": Object {},
+          "meta": {},
           "output": undefined,
-          "tags": Array [],
+          "tags": [],
           "toStrings": [Function],
-          "value": Object {
+          "value": {
             "red": "walk",
           },
         },
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "TIMER",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "PUSH_BUTTON",
                 },
                 "name": "PUSH_BUTTON",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [
-                Object {
-                  "params": Object {},
+              "actions": [
+                {
+                  "params": {},
                   "type": "doNothing",
                 },
               ],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "PUSH_BUTTON",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
               "value": "green",
             },
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "TIMER",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "TIMER",
                 },
                 "name": "TIMER",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [],
+              "actions": [],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "TIMER",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
               "value": "yellow",
             },
@@ -2130,178 +2130,178 @@ Array [
         "weight": 2,
       },
     ],
-    "state": Object {
-      "_event": Object {
+    "state": {
+      "_event": {
         "$$type": "scxml",
-        "data": Object {
+        "data": {
           "type": "TIMER",
         },
         "name": "TIMER",
         "type": "external",
       },
       "_initial": false,
-      "_internalQueue": Array [],
+      "_internalQueue": [],
       "_sessionid": undefined,
-      "actions": Array [],
+      "actions": [],
       "changed": true,
-      "children": Object {},
-      "context": Object {},
+      "children": {},
+      "context": {},
       "done": false,
-      "event": Object {
+      "event": {
         "type": "TIMER",
       },
-      "historyValue": Object {},
+      "historyValue": {},
       "matches": [Function],
-      "meta": Object {},
+      "meta": {},
       "output": undefined,
-      "tags": Array [],
+      "tags": [],
       "toStrings": [Function],
-      "value": Object {
+      "value": {
         "red": "walk",
       },
     },
   },
-  Object {
-    "paths": Array [
-      Object {
-        "state": Object {
-          "_event": Object {
+  {
+    "paths": [
+      {
+        "state": {
+          "_event": {
             "$$type": "scxml",
-            "data": Object {
+            "data": {
               "type": "PED_COUNTDOWN",
             },
             "name": "PED_COUNTDOWN",
             "type": "external",
           },
           "_initial": false,
-          "_internalQueue": Array [],
+          "_internalQueue": [],
           "_sessionid": undefined,
-          "actions": Array [
-            Object {
-              "params": Object {},
+          "actions": [
+            {
+              "params": {},
               "type": "startCountdown",
             },
           ],
           "changed": true,
-          "children": Object {},
-          "context": Object {},
+          "children": {},
+          "context": {},
           "done": false,
-          "event": Object {
+          "event": {
             "type": "PED_COUNTDOWN",
           },
-          "historyValue": Object {},
+          "historyValue": {},
           "matches": [Function],
-          "meta": Object {},
+          "meta": {},
           "output": undefined,
-          "tags": Array [],
+          "tags": [],
           "toStrings": [Function],
-          "value": Object {
+          "value": {
             "red": "wait",
           },
         },
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "TIMER",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "PUSH_BUTTON",
                 },
                 "name": "PUSH_BUTTON",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [
-                Object {
-                  "params": Object {},
+              "actions": [
+                {
+                  "params": {},
                   "type": "doNothing",
                 },
               ],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "PUSH_BUTTON",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
               "value": "green",
             },
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "TIMER",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "TIMER",
                 },
                 "name": "TIMER",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [],
+              "actions": [],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "TIMER",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
               "value": "yellow",
             },
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "PED_COUNTDOWN",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "TIMER",
                 },
                 "name": "TIMER",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [],
+              "actions": [],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "TIMER",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
-              "value": Object {
+              "value": {
                 "red": "walk",
               },
             },
@@ -2310,218 +2310,218 @@ Array [
         "weight": 3,
       },
     ],
-    "state": Object {
-      "_event": Object {
+    "state": {
+      "_event": {
         "$$type": "scxml",
-        "data": Object {
+        "data": {
           "type": "PED_COUNTDOWN",
         },
         "name": "PED_COUNTDOWN",
         "type": "external",
       },
       "_initial": false,
-      "_internalQueue": Array [],
+      "_internalQueue": [],
       "_sessionid": undefined,
-      "actions": Array [
-        Object {
-          "params": Object {},
+      "actions": [
+        {
+          "params": {},
           "type": "startCountdown",
         },
       ],
       "changed": true,
-      "children": Object {},
-      "context": Object {},
+      "children": {},
+      "context": {},
       "done": false,
-      "event": Object {
+      "event": {
         "type": "PED_COUNTDOWN",
       },
-      "historyValue": Object {},
+      "historyValue": {},
       "matches": [Function],
-      "meta": Object {},
+      "meta": {},
       "output": undefined,
-      "tags": Array [],
+      "tags": [],
       "toStrings": [Function],
-      "value": Object {
+      "value": {
         "red": "wait",
       },
     },
   },
-  Object {
-    "paths": Array [
-      Object {
-        "state": Object {
-          "_event": Object {
+  {
+    "paths": [
+      {
+        "state": {
+          "_event": {
             "$$type": "scxml",
-            "data": Object {
+            "data": {
               "type": "PED_COUNTDOWN",
             },
             "name": "PED_COUNTDOWN",
             "type": "external",
           },
           "_initial": false,
-          "_internalQueue": Array [],
+          "_internalQueue": [],
           "_sessionid": undefined,
-          "actions": Array [],
+          "actions": [],
           "changed": true,
-          "children": Object {},
-          "context": Object {},
+          "children": {},
+          "context": {},
           "done": false,
-          "event": Object {
+          "event": {
             "type": "PED_COUNTDOWN",
           },
-          "historyValue": Object {},
+          "historyValue": {},
           "matches": [Function],
-          "meta": Object {},
+          "meta": {},
           "output": undefined,
-          "tags": Array [],
+          "tags": [],
           "toStrings": [Function],
-          "value": Object {
+          "value": {
             "red": "stop",
           },
         },
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "TIMER",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "PUSH_BUTTON",
                 },
                 "name": "PUSH_BUTTON",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [
-                Object {
-                  "params": Object {},
+              "actions": [
+                {
+                  "params": {},
                   "type": "doNothing",
                 },
               ],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "PUSH_BUTTON",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
               "value": "green",
             },
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "TIMER",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "TIMER",
                 },
                 "name": "TIMER",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [],
+              "actions": [],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "TIMER",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
               "value": "yellow",
             },
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "PED_COUNTDOWN",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "TIMER",
                 },
                 "name": "TIMER",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [],
+              "actions": [],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "TIMER",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
-              "value": Object {
+              "value": {
                 "red": "walk",
               },
             },
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "PED_COUNTDOWN",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "PED_COUNTDOWN",
                 },
                 "name": "PED_COUNTDOWN",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [
-                Object {
-                  "params": Object {},
+              "actions": [
+                {
+                  "params": {},
                   "type": "startCountdown",
                 },
               ],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "PED_COUNTDOWN",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
-              "value": Object {
+              "value": {
                 "red": "wait",
               },
             },
@@ -2530,33 +2530,33 @@ Array [
         "weight": 4,
       },
     ],
-    "state": Object {
-      "_event": Object {
+    "state": {
+      "_event": {
         "$$type": "scxml",
-        "data": Object {
+        "data": {
           "type": "PED_COUNTDOWN",
         },
         "name": "PED_COUNTDOWN",
         "type": "external",
       },
       "_initial": false,
-      "_internalQueue": Array [],
+      "_internalQueue": [],
       "_sessionid": undefined,
-      "actions": Array [],
+      "actions": [],
       "changed": true,
-      "children": Object {},
-      "context": Object {},
+      "children": {},
+      "context": {},
       "done": false,
-      "event": Object {
+      "event": {
         "type": "PED_COUNTDOWN",
       },
-      "historyValue": Object {},
+      "historyValue": {},
       "matches": [Function],
-      "meta": Object {},
+      "meta": {},
       "output": undefined,
-      "tags": Array [],
+      "tags": [],
       "toStrings": [Function],
-      "value": Object {
+      "value": {
         "red": "stop",
       },
     },
@@ -2565,143 +2565,143 @@ Array [
 `;
 
 exports[`@xstate/graph getSimplePaths() should return a mapping of simple paths to all states (parallel): simple paths parallel 1`] = `
-Array [
-  Object {
-    "paths": Array [
-      Object {
-        "state": Object {
-          "_event": Object {
+[
+  {
+    "paths": [
+      {
+        "state": {
+          "_event": {
             "$$type": "scxml",
-            "data": Object {
+            "data": {
               "type": "xstate.init",
             },
             "name": "xstate.init",
             "type": "external",
           },
           "_initial": false,
-          "_internalQueue": Array [],
+          "_internalQueue": [],
           "_sessionid": undefined,
-          "actions": Array [],
+          "actions": [],
           "changed": undefined,
-          "children": Object {},
-          "context": Object {},
+          "children": {},
+          "context": {},
           "done": false,
-          "event": Object {
+          "event": {
             "type": "xstate.init",
           },
-          "historyValue": Object {},
+          "historyValue": {},
           "matches": [Function],
-          "meta": Object {},
+          "meta": {},
           "output": undefined,
-          "tags": Array [],
+          "tags": [],
           "toStrings": [Function],
-          "value": Object {
+          "value": {
             "a": "a1",
             "b": "b1",
           },
         },
-        "steps": Array [],
+        "steps": [],
         "weight": 0,
       },
     ],
-    "state": Object {
-      "_event": Object {
+    "state": {
+      "_event": {
         "$$type": "scxml",
-        "data": Object {
+        "data": {
           "type": "xstate.init",
         },
         "name": "xstate.init",
         "type": "external",
       },
       "_initial": false,
-      "_internalQueue": Array [],
+      "_internalQueue": [],
       "_sessionid": undefined,
-      "actions": Array [],
+      "actions": [],
       "changed": undefined,
-      "children": Object {},
-      "context": Object {},
+      "children": {},
+      "context": {},
       "done": false,
-      "event": Object {
+      "event": {
         "type": "xstate.init",
       },
-      "historyValue": Object {},
+      "historyValue": {},
       "matches": [Function],
-      "meta": Object {},
+      "meta": {},
       "output": undefined,
-      "tags": Array [],
+      "tags": [],
       "toStrings": [Function],
-      "value": Object {
+      "value": {
         "a": "a1",
         "b": "b1",
       },
     },
   },
-  Object {
-    "paths": Array [
-      Object {
-        "state": Object {
-          "_event": Object {
+  {
+    "paths": [
+      {
+        "state": {
+          "_event": {
             "$$type": "scxml",
-            "data": Object {
+            "data": {
               "type": "2",
             },
             "name": "2",
             "type": "external",
           },
           "_initial": false,
-          "_internalQueue": Array [],
+          "_internalQueue": [],
           "_sessionid": undefined,
-          "actions": Array [],
+          "actions": [],
           "changed": true,
-          "children": Object {},
-          "context": Object {},
+          "children": {},
+          "context": {},
           "done": false,
-          "event": Object {
+          "event": {
             "type": "2",
           },
-          "historyValue": Object {},
+          "historyValue": {},
           "matches": [Function],
-          "meta": Object {},
+          "meta": {},
           "output": undefined,
-          "tags": Array [],
+          "tags": [],
           "toStrings": [Function],
-          "value": Object {
+          "value": {
             "a": "a2",
             "b": "b2",
           },
         },
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "2",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "xstate.init",
                 },
                 "name": "xstate.init",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [],
+              "actions": [],
               "changed": undefined,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "xstate.init",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
-              "value": Object {
+              "value": {
                 "a": "a1",
                 "b": "b1",
               },
@@ -2711,140 +2711,140 @@ Array [
         "weight": 1,
       },
     ],
-    "state": Object {
-      "_event": Object {
+    "state": {
+      "_event": {
         "$$type": "scxml",
-        "data": Object {
+        "data": {
           "type": "2",
         },
         "name": "2",
         "type": "external",
       },
       "_initial": false,
-      "_internalQueue": Array [],
+      "_internalQueue": [],
       "_sessionid": undefined,
-      "actions": Array [],
+      "actions": [],
       "changed": true,
-      "children": Object {},
-      "context": Object {},
+      "children": {},
+      "context": {},
       "done": false,
-      "event": Object {
+      "event": {
         "type": "2",
       },
-      "historyValue": Object {},
+      "historyValue": {},
       "matches": [Function],
-      "meta": Object {},
+      "meta": {},
       "output": undefined,
-      "tags": Array [],
+      "tags": [],
       "toStrings": [Function],
-      "value": Object {
+      "value": {
         "a": "a2",
         "b": "b2",
       },
     },
   },
-  Object {
-    "paths": Array [
-      Object {
-        "state": Object {
-          "_event": Object {
+  {
+    "paths": [
+      {
+        "state": {
+          "_event": {
             "$$type": "scxml",
-            "data": Object {
+            "data": {
               "type": "3",
             },
             "name": "3",
             "type": "external",
           },
           "_initial": false,
-          "_internalQueue": Array [],
+          "_internalQueue": [],
           "_sessionid": undefined,
-          "actions": Array [],
+          "actions": [],
           "changed": true,
-          "children": Object {},
-          "context": Object {},
+          "children": {},
+          "context": {},
           "done": false,
-          "event": Object {
+          "event": {
             "type": "3",
           },
-          "historyValue": Object {},
+          "historyValue": {},
           "matches": [Function],
-          "meta": Object {},
+          "meta": {},
           "output": undefined,
-          "tags": Array [],
+          "tags": [],
           "toStrings": [Function],
-          "value": Object {
+          "value": {
             "a": "a3",
             "b": "b3",
           },
         },
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "2",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "xstate.init",
                 },
                 "name": "xstate.init",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [],
+              "actions": [],
               "changed": undefined,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "xstate.init",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
-              "value": Object {
+              "value": {
                 "a": "a1",
                 "b": "b1",
               },
             },
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "3",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "2",
                 },
                 "name": "2",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [],
+              "actions": [],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "2",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
-              "value": Object {
+              "value": {
                 "a": "a2",
                 "b": "b2",
               },
@@ -2853,70 +2853,70 @@ Array [
         ],
         "weight": 2,
       },
-      Object {
-        "state": Object {
-          "_event": Object {
+      {
+        "state": {
+          "_event": {
             "$$type": "scxml",
-            "data": Object {
+            "data": {
               "type": "3",
             },
             "name": "3",
             "type": "external",
           },
           "_initial": false,
-          "_internalQueue": Array [],
+          "_internalQueue": [],
           "_sessionid": undefined,
-          "actions": Array [],
+          "actions": [],
           "changed": true,
-          "children": Object {},
-          "context": Object {},
+          "children": {},
+          "context": {},
           "done": false,
-          "event": Object {
+          "event": {
             "type": "3",
           },
-          "historyValue": Object {},
+          "historyValue": {},
           "matches": [Function],
-          "meta": Object {},
+          "meta": {},
           "output": undefined,
-          "tags": Array [],
+          "tags": [],
           "toStrings": [Function],
-          "value": Object {
+          "value": {
             "a": "a3",
             "b": "b3",
           },
         },
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "3",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "1",
                 },
                 "name": "1",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [],
+              "actions": [],
               "changed": true,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "1",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
-              "value": Object {
+              "value": {
                 "a": "a1",
                 "b": "b1",
               },
@@ -2926,33 +2926,33 @@ Array [
         "weight": 1,
       },
     ],
-    "state": Object {
-      "_event": Object {
+    "state": {
+      "_event": {
         "$$type": "scxml",
-        "data": Object {
+        "data": {
           "type": "3",
         },
         "name": "3",
         "type": "external",
       },
       "_initial": false,
-      "_internalQueue": Array [],
+      "_internalQueue": [],
       "_sessionid": undefined,
-      "actions": Array [],
+      "actions": [],
       "changed": true,
-      "children": Object {},
-      "context": Object {},
+      "children": {},
+      "context": {},
       "done": false,
-      "event": Object {
+      "event": {
         "type": "3",
       },
-      "historyValue": Object {},
+      "historyValue": {},
       "matches": [Function],
-      "meta": Object {},
+      "meta": {},
       "output": undefined,
-      "tags": Array [],
+      "tags": [],
       "toStrings": [Function],
-      "value": Object {
+      "value": {
         "a": "a3",
         "b": "b3",
       },
@@ -2962,132 +2962,132 @@ Array [
 `;
 
 exports[`@xstate/graph getSimplePaths() should return multiple paths for equivalent transitions: simple paths equal transitions 1`] = `
-Array [
-  Object {
-    "paths": Array [
-      Object {
-        "state": Object {
-          "_event": Object {
+[
+  {
+    "paths": [
+      {
+        "state": {
+          "_event": {
             "$$type": "scxml",
-            "data": Object {
+            "data": {
               "type": "xstate.init",
             },
             "name": "xstate.init",
             "type": "external",
           },
           "_initial": false,
-          "_internalQueue": Array [],
+          "_internalQueue": [],
           "_sessionid": undefined,
-          "actions": Array [],
+          "actions": [],
           "changed": undefined,
-          "children": Object {},
-          "context": Object {},
+          "children": {},
+          "context": {},
           "done": false,
-          "event": Object {
+          "event": {
             "type": "xstate.init",
           },
-          "historyValue": Object {},
+          "historyValue": {},
           "matches": [Function],
-          "meta": Object {},
+          "meta": {},
           "output": undefined,
-          "tags": Array [],
+          "tags": [],
           "toStrings": [Function],
           "value": "a",
         },
-        "steps": Array [],
+        "steps": [],
         "weight": 0,
       },
     ],
-    "state": Object {
-      "_event": Object {
+    "state": {
+      "_event": {
         "$$type": "scxml",
-        "data": Object {
+        "data": {
           "type": "xstate.init",
         },
         "name": "xstate.init",
         "type": "external",
       },
       "_initial": false,
-      "_internalQueue": Array [],
+      "_internalQueue": [],
       "_sessionid": undefined,
-      "actions": Array [],
+      "actions": [],
       "changed": undefined,
-      "children": Object {},
-      "context": Object {},
+      "children": {},
+      "context": {},
       "done": false,
-      "event": Object {
+      "event": {
         "type": "xstate.init",
       },
-      "historyValue": Object {},
+      "historyValue": {},
       "matches": [Function],
-      "meta": Object {},
+      "meta": {},
       "output": undefined,
-      "tags": Array [],
+      "tags": [],
       "toStrings": [Function],
       "value": "a",
     },
   },
-  Object {
-    "paths": Array [
-      Object {
-        "state": Object {
-          "_event": Object {
+  {
+    "paths": [
+      {
+        "state": {
+          "_event": {
             "$$type": "scxml",
-            "data": Object {
+            "data": {
               "type": "FOO",
             },
             "name": "FOO",
             "type": "external",
           },
           "_initial": false,
-          "_internalQueue": Array [],
+          "_internalQueue": [],
           "_sessionid": undefined,
-          "actions": Array [],
+          "actions": [],
           "changed": true,
-          "children": Object {},
-          "context": Object {},
+          "children": {},
+          "context": {},
           "done": false,
-          "event": Object {
+          "event": {
             "type": "FOO",
           },
-          "historyValue": Object {},
+          "historyValue": {},
           "matches": [Function],
-          "meta": Object {},
+          "meta": {},
           "output": undefined,
-          "tags": Array [],
+          "tags": [],
           "toStrings": [Function],
           "value": "b",
         },
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "FOO",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "xstate.init",
                 },
                 "name": "xstate.init",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [],
+              "actions": [],
               "changed": undefined,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "xstate.init",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
               "value": "a",
             },
@@ -3095,65 +3095,65 @@ Array [
         ],
         "weight": 1,
       },
-      Object {
-        "state": Object {
-          "_event": Object {
+      {
+        "state": {
+          "_event": {
             "$$type": "scxml",
-            "data": Object {
+            "data": {
               "type": "BAR",
             },
             "name": "BAR",
             "type": "external",
           },
           "_initial": false,
-          "_internalQueue": Array [],
+          "_internalQueue": [],
           "_sessionid": undefined,
-          "actions": Array [],
+          "actions": [],
           "changed": true,
-          "children": Object {},
-          "context": Object {},
+          "children": {},
+          "context": {},
           "done": false,
-          "event": Object {
+          "event": {
             "type": "BAR",
           },
-          "historyValue": Object {},
+          "historyValue": {},
           "matches": [Function],
-          "meta": Object {},
+          "meta": {},
           "output": undefined,
-          "tags": Array [],
+          "tags": [],
           "toStrings": [Function],
           "value": "b",
         },
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "BAR",
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "xstate.init",
                 },
                 "name": "xstate.init",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [],
+              "actions": [],
               "changed": undefined,
-              "children": Object {},
-              "context": Object {},
+              "children": {},
+              "context": {},
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "xstate.init",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
               "value": "a",
             },
@@ -3162,31 +3162,31 @@ Array [
         "weight": 1,
       },
     ],
-    "state": Object {
-      "_event": Object {
+    "state": {
+      "_event": {
         "$$type": "scxml",
-        "data": Object {
+        "data": {
           "type": "FOO",
         },
         "name": "FOO",
         "type": "external",
       },
       "_initial": false,
-      "_internalQueue": Array [],
+      "_internalQueue": [],
       "_sessionid": undefined,
-      "actions": Array [],
+      "actions": [],
       "changed": true,
-      "children": Object {},
-      "context": Object {},
+      "children": {},
+      "context": {},
       "done": false,
-      "event": Object {
+      "event": {
         "type": "FOO",
       },
-      "historyValue": Object {},
+      "historyValue": {},
       "matches": [Function],
-      "meta": Object {},
+      "meta": {},
       "output": undefined,
-      "tags": Array [],
+      "tags": [],
       "toStrings": [Function],
       "value": "b",
     },
@@ -3195,82 +3195,82 @@ Array [
 `;
 
 exports[`@xstate/graph getSimplePaths() should return value-based paths: simple paths context 1`] = `
-Array [
-  Object {
-    "paths": Array [
-      Object {
-        "state": Object {
-          "_event": Object {
+[
+  {
+    "paths": [
+      {
+        "state": {
+          "_event": {
             "$$type": "scxml",
-            "data": Object {
+            "data": {
               "type": "xstate.init",
             },
             "name": "xstate.init",
             "type": "external",
           },
           "_initial": false,
-          "_internalQueue": Array [],
+          "_internalQueue": [],
           "_sessionid": undefined,
-          "actions": Array [],
+          "actions": [],
           "changed": undefined,
-          "children": Object {},
-          "context": Object {
+          "children": {},
+          "context": {
             "count": 0,
           },
           "done": false,
-          "event": Object {
+          "event": {
             "type": "xstate.init",
           },
-          "historyValue": Object {},
+          "historyValue": {},
           "matches": [Function],
-          "meta": Object {},
+          "meta": {},
           "output": undefined,
-          "tags": Array [],
+          "tags": [],
           "toStrings": [Function],
           "value": "start",
         },
-        "steps": Array [],
+        "steps": [],
         "weight": 0,
       },
     ],
-    "state": Object {
-      "_event": Object {
+    "state": {
+      "_event": {
         "$$type": "scxml",
-        "data": Object {
+        "data": {
           "type": "xstate.init",
         },
         "name": "xstate.init",
         "type": "external",
       },
       "_initial": false,
-      "_internalQueue": Array [],
+      "_internalQueue": [],
       "_sessionid": undefined,
-      "actions": Array [],
+      "actions": [],
       "changed": undefined,
-      "children": Object {},
-      "context": Object {
+      "children": {},
+      "context": {
         "count": 0,
       },
       "done": false,
-      "event": Object {
+      "event": {
         "type": "xstate.init",
       },
-      "historyValue": Object {},
+      "historyValue": {},
       "matches": [Function],
-      "meta": Object {},
+      "meta": {},
       "output": undefined,
-      "tags": Array [],
+      "tags": [],
       "toStrings": [Function],
       "value": "start",
     },
   },
-  Object {
-    "paths": Array [
-      Object {
-        "state": Object {
-          "_event": Object {
+  {
+    "paths": [
+      {
+        "state": {
+          "_event": {
             "$$type": "scxml",
-            "data": Object {
+            "data": {
               "type": "INC",
               "value": 1,
             },
@@ -3278,13 +3278,13 @@ Array [
             "type": "external",
           },
           "_initial": false,
-          "_internalQueue": Array [],
+          "_internalQueue": [],
           "_sessionid": undefined,
-          "actions": Array [
-            Object {
-              "params": Object {
-                "actions": Array [],
-                "context": Object {
+          "actions": [
+            {
+              "params": {
+                "actions": [],
+                "context": {
                   "count": 1,
                 },
               },
@@ -3292,56 +3292,56 @@ Array [
             },
           ],
           "changed": true,
-          "children": Object {},
-          "context": Object {
+          "children": {},
+          "context": {
             "count": 1,
           },
           "done": false,
-          "event": Object {
+          "event": {
             "type": "INC",
             "value": 1,
           },
-          "historyValue": Object {},
+          "historyValue": {},
           "matches": [Function],
-          "meta": Object {},
+          "meta": {},
           "output": undefined,
-          "tags": Array [],
+          "tags": [],
           "toStrings": [Function],
           "value": "start",
         },
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "INC",
               "value": 1,
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "xstate.init",
                 },
                 "name": "xstate.init",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [],
+              "actions": [],
               "changed": undefined,
-              "children": Object {},
-              "context": Object {
+              "children": {},
+              "context": {
                 "count": 0,
               },
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "xstate.init",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
               "value": "start",
             },
@@ -3350,10 +3350,10 @@ Array [
         "weight": 1,
       },
     ],
-    "state": Object {
-      "_event": Object {
+    "state": {
+      "_event": {
         "$$type": "scxml",
-        "data": Object {
+        "data": {
           "type": "INC",
           "value": 1,
         },
@@ -3361,13 +3361,13 @@ Array [
         "type": "external",
       },
       "_initial": false,
-      "_internalQueue": Array [],
+      "_internalQueue": [],
       "_sessionid": undefined,
-      "actions": Array [
-        Object {
-          "params": Object {
-            "actions": Array [],
-            "context": Object {
+      "actions": [
+        {
+          "params": {
+            "actions": [],
+            "context": {
               "count": 1,
             },
           },
@@ -3375,31 +3375,31 @@ Array [
         },
       ],
       "changed": true,
-      "children": Object {},
-      "context": Object {
+      "children": {},
+      "context": {
         "count": 1,
       },
       "done": false,
-      "event": Object {
+      "event": {
         "type": "INC",
         "value": 1,
       },
-      "historyValue": Object {},
+      "historyValue": {},
       "matches": [Function],
-      "meta": Object {},
+      "meta": {},
       "output": undefined,
-      "tags": Array [],
+      "tags": [],
       "toStrings": [Function],
       "value": "start",
     },
   },
-  Object {
-    "paths": Array [
-      Object {
-        "state": Object {
-          "_event": Object {
+  {
+    "paths": [
+      {
+        "state": {
+          "_event": {
             "$$type": "scxml",
-            "data": Object {
+            "data": {
               "type": "INC",
               "value": 1,
             },
@@ -3407,13 +3407,13 @@ Array [
             "type": "external",
           },
           "_initial": false,
-          "_internalQueue": Array [],
+          "_internalQueue": [],
           "_sessionid": undefined,
-          "actions": Array [
-            Object {
-              "params": Object {
-                "actions": Array [],
-                "context": Object {
+          "actions": [
+            {
+              "params": {
+                "actions": [],
+                "context": {
                   "count": 2,
                 },
               },
@@ -3421,69 +3421,69 @@ Array [
             },
           ],
           "changed": true,
-          "children": Object {},
-          "context": Object {
+          "children": {},
+          "context": {
             "count": 2,
           },
           "done": false,
-          "event": Object {
+          "event": {
             "type": "INC",
             "value": 1,
           },
-          "historyValue": Object {},
+          "historyValue": {},
           "matches": [Function],
-          "meta": Object {},
+          "meta": {},
           "output": undefined,
-          "tags": Array [],
+          "tags": [],
           "toStrings": [Function],
           "value": "start",
         },
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "INC",
               "value": 1,
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "xstate.init",
                 },
                 "name": "xstate.init",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [],
+              "actions": [],
               "changed": undefined,
-              "children": Object {},
-              "context": Object {
+              "children": {},
+              "context": {
                 "count": 0,
               },
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "xstate.init",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
               "value": "start",
             },
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "INC",
               "value": 1,
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "INC",
                   "value": 1,
                 },
@@ -3491,13 +3491,13 @@ Array [
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [
-                Object {
-                  "params": Object {
-                    "actions": Array [],
-                    "context": Object {
+              "actions": [
+                {
+                  "params": {
+                    "actions": [],
+                    "context": {
                       "count": 1,
                     },
                   },
@@ -3505,20 +3505,20 @@ Array [
                 },
               ],
               "changed": true,
-              "children": Object {},
-              "context": Object {
+              "children": {},
+              "context": {
                 "count": 1,
               },
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "INC",
                 "value": 1,
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
               "value": "start",
             },
@@ -3527,10 +3527,10 @@ Array [
         "weight": 2,
       },
     ],
-    "state": Object {
-      "_event": Object {
+    "state": {
+      "_event": {
         "$$type": "scxml",
-        "data": Object {
+        "data": {
           "type": "INC",
           "value": 1,
         },
@@ -3538,13 +3538,13 @@ Array [
         "type": "external",
       },
       "_initial": false,
-      "_internalQueue": Array [],
+      "_internalQueue": [],
       "_sessionid": undefined,
-      "actions": Array [
-        Object {
-          "params": Object {
-            "actions": Array [],
-            "context": Object {
+      "actions": [
+        {
+          "params": {
+            "actions": [],
+            "context": {
               "count": 2,
             },
           },
@@ -3552,31 +3552,31 @@ Array [
         },
       ],
       "changed": true,
-      "children": Object {},
-      "context": Object {
+      "children": {},
+      "context": {
         "count": 2,
       },
       "done": false,
-      "event": Object {
+      "event": {
         "type": "INC",
         "value": 1,
       },
-      "historyValue": Object {},
+      "historyValue": {},
       "matches": [Function],
-      "meta": Object {},
+      "meta": {},
       "output": undefined,
-      "tags": Array [],
+      "tags": [],
       "toStrings": [Function],
       "value": "start",
     },
   },
-  Object {
-    "paths": Array [
-      Object {
-        "state": Object {
-          "_event": Object {
+  {
+    "paths": [
+      {
+        "state": {
+          "_event": {
             "$$type": "scxml",
-            "data": Object {
+            "data": {
               "type": "INC",
               "value": 1,
             },
@@ -3584,13 +3584,13 @@ Array [
             "type": "external",
           },
           "_initial": false,
-          "_internalQueue": Array [],
+          "_internalQueue": [],
           "_sessionid": undefined,
-          "actions": Array [
-            Object {
-              "params": Object {
-                "actions": Array [],
-                "context": Object {
+          "actions": [
+            {
+              "params": {
+                "actions": [],
+                "context": {
                   "count": 3,
                 },
               },
@@ -3598,69 +3598,69 @@ Array [
             },
           ],
           "changed": true,
-          "children": Object {},
-          "context": Object {
+          "children": {},
+          "context": {
             "count": 3,
           },
           "done": false,
-          "event": Object {
+          "event": {
             "type": "INC",
             "value": 1,
           },
-          "historyValue": Object {},
+          "historyValue": {},
           "matches": [Function],
-          "meta": Object {},
+          "meta": {},
           "output": undefined,
-          "tags": Array [],
+          "tags": [],
           "toStrings": [Function],
           "value": "finish",
         },
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "INC",
               "value": 1,
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "xstate.init",
                 },
                 "name": "xstate.init",
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [],
+              "actions": [],
               "changed": undefined,
-              "children": Object {},
-              "context": Object {
+              "children": {},
+              "context": {
                 "count": 0,
               },
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "xstate.init",
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
               "value": "start",
             },
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "INC",
               "value": 1,
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "INC",
                   "value": 1,
                 },
@@ -3668,13 +3668,13 @@ Array [
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [
-                Object {
-                  "params": Object {
-                    "actions": Array [],
-                    "context": Object {
+              "actions": [
+                {
+                  "params": {
+                    "actions": [],
+                    "context": {
                       "count": 1,
                     },
                   },
@@ -3682,33 +3682,33 @@ Array [
                 },
               ],
               "changed": true,
-              "children": Object {},
-              "context": Object {
+              "children": {},
+              "context": {
                 "count": 1,
               },
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "INC",
                 "value": 1,
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
               "value": "start",
             },
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "INC",
               "value": 1,
             },
-            "state": Object {
-              "_event": Object {
+            "state": {
+              "_event": {
                 "$$type": "scxml",
-                "data": Object {
+                "data": {
                   "type": "INC",
                   "value": 1,
                 },
@@ -3716,13 +3716,13 @@ Array [
                 "type": "external",
               },
               "_initial": false,
-              "_internalQueue": Array [],
+              "_internalQueue": [],
               "_sessionid": undefined,
-              "actions": Array [
-                Object {
-                  "params": Object {
-                    "actions": Array [],
-                    "context": Object {
+              "actions": [
+                {
+                  "params": {
+                    "actions": [],
+                    "context": {
                       "count": 2,
                     },
                   },
@@ -3730,20 +3730,20 @@ Array [
                 },
               ],
               "changed": true,
-              "children": Object {},
-              "context": Object {
+              "children": {},
+              "context": {
                 "count": 2,
               },
               "done": false,
-              "event": Object {
+              "event": {
                 "type": "INC",
                 "value": 1,
               },
-              "historyValue": Object {},
+              "historyValue": {},
               "matches": [Function],
-              "meta": Object {},
+              "meta": {},
               "output": undefined,
-              "tags": Array [],
+              "tags": [],
               "toStrings": [Function],
               "value": "start",
             },
@@ -3752,10 +3752,10 @@ Array [
         "weight": 3,
       },
     ],
-    "state": Object {
-      "_event": Object {
+    "state": {
+      "_event": {
         "$$type": "scxml",
-        "data": Object {
+        "data": {
           "type": "INC",
           "value": 1,
         },
@@ -3763,13 +3763,13 @@ Array [
         "type": "external",
       },
       "_initial": false,
-      "_internalQueue": Array [],
+      "_internalQueue": [],
       "_sessionid": undefined,
-      "actions": Array [
-        Object {
-          "params": Object {
-            "actions": Array [],
-            "context": Object {
+      "actions": [
+        {
+          "params": {
+            "actions": [],
+            "context": {
               "count": 3,
             },
           },
@@ -3777,20 +3777,20 @@ Array [
         },
       ],
       "changed": true,
-      "children": Object {},
-      "context": Object {
+      "children": {},
+      "context": {
         "count": 3,
       },
       "done": false,
-      "event": Object {
+      "event": {
         "type": "INC",
         "value": 1,
       },
-      "historyValue": Object {},
+      "historyValue": {},
       "matches": [Function],
-      "meta": Object {},
+      "meta": {},
       "output": undefined,
-      "tags": Array [],
+      "tags": [],
       "toStrings": [Function],
       "value": "finish",
     },
@@ -3799,13 +3799,13 @@ Array [
 `;
 
 exports[`@xstate/graph toDirectedGraph should represent a statechart as a directed graph 1`] = `
-Object {
-  "children": Array [
-    Object {
-      "children": Array [],
-      "edges": Array [
-        Object {
-          "label": Object {
+{
+  "children": [
+    {
+      "children": [],
+      "edges": [
+        {
+          "label": {
             "text": "TIMER",
           },
           "source": "light.green",
@@ -3814,11 +3814,11 @@ Object {
       ],
       "id": "light.green",
     },
-    Object {
-      "children": Array [],
-      "edges": Array [
-        Object {
-          "label": Object {
+    {
+      "children": [],
+      "edges": [
+        {
+          "label": {
             "text": "TIMER",
           },
           "source": "light.yellow",
@@ -3827,13 +3827,13 @@ Object {
       ],
       "id": "light.yellow",
     },
-    Object {
-      "children": Array [
-        Object {
-          "children": Array [],
-          "edges": Array [
-            Object {
-              "label": Object {
+    {
+      "children": [
+        {
+          "children": [],
+          "edges": [
+            {
+              "label": {
                 "text": "COUNTDOWN",
               },
               "source": "light.red.walk",
@@ -3842,11 +3842,11 @@ Object {
           ],
           "id": "light.red.walk",
         },
-        Object {
-          "children": Array [],
-          "edges": Array [
-            Object {
-              "label": Object {
+        {
+          "children": [],
+          "edges": [
+            {
+              "label": {
                 "text": "COUNTDOWN",
               },
               "source": "light.red.wait",
@@ -3855,11 +3855,11 @@ Object {
           ],
           "id": "light.red.wait",
         },
-        Object {
-          "children": Array [],
-          "edges": Array [
-            Object {
-              "label": Object {
+        {
+          "children": [],
+          "edges": [
+            {
+              "label": {
                 "text": "COUNTDOWN",
               },
               "source": "light.red.stop",
@@ -3868,15 +3868,15 @@ Object {
           ],
           "id": "light.red.stop",
         },
-        Object {
-          "children": Array [],
-          "edges": Array [],
+        {
+          "children": [],
+          "edges": [],
           "id": "light.red.finished",
         },
       ],
-      "edges": Array [
-        Object {
-          "label": Object {
+      "edges": [
+        {
+          "label": {
             "text": "done.state.light.red",
           },
           "source": "light.red",
@@ -3886,30 +3886,30 @@ Object {
       "id": "light.red",
     },
   ],
-  "edges": Array [],
+  "edges": [],
   "id": "light",
 }
 `;
 
 exports[`shortest paths for reducers 1`] = `
-Array [
-  Object {
-    "paths": Array [
-      Object {
+[
+  {
+    "paths": [
+      {
         "state": 0,
-        "steps": Array [],
+        "steps": [],
         "weight": 0,
       },
     ],
     "state": 0,
   },
-  Object {
-    "paths": Array [
-      Object {
+  {
+    "paths": [
+      {
         "state": 1,
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "a",
             },
             "state": 0,
@@ -3917,17 +3917,17 @@ Array [
         ],
         "weight": 1,
       },
-      Object {
+      {
         "state": 1,
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "b",
             },
             "state": 0,
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "a",
             },
             "state": 0,
@@ -3935,23 +3935,23 @@ Array [
         ],
         "weight": 2,
       },
-      Object {
+      {
         "state": 1,
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "b",
             },
             "state": 0,
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "reset",
             },
             "state": 0,
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "a",
             },
             "state": 0,
@@ -3959,17 +3959,17 @@ Array [
         ],
         "weight": 3,
       },
-      Object {
+      {
         "state": 1,
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "reset",
             },
             "state": 0,
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "a",
             },
             "state": 0,
@@ -3977,23 +3977,23 @@ Array [
         ],
         "weight": 2,
       },
-      Object {
+      {
         "state": 1,
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "reset",
             },
             "state": 0,
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "b",
             },
             "state": 0,
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "a",
             },
             "state": 0,
@@ -4004,31 +4004,31 @@ Array [
     ],
     "state": 1,
   },
-  Object {
-    "paths": Array [
-      Object {
+  {
+    "paths": [
+      {
         "state": 0,
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "a",
             },
             "state": 0,
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "b",
             },
             "state": 1,
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "reset",
             },
             "state": 2,
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "b",
             },
             "state": 0,
@@ -4036,23 +4036,23 @@ Array [
         ],
         "weight": 4,
       },
-      Object {
+      {
         "state": 0,
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "a",
             },
             "state": 0,
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "reset",
             },
             "state": 1,
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "b",
             },
             "state": 0,
@@ -4060,11 +4060,11 @@ Array [
         ],
         "weight": 3,
       },
-      Object {
+      {
         "state": 0,
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "b",
             },
             "state": 0,
@@ -4072,17 +4072,17 @@ Array [
         ],
         "weight": 1,
       },
-      Object {
+      {
         "state": 0,
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "reset",
             },
             "state": 0,
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "b",
             },
             "state": 0,
@@ -4093,25 +4093,25 @@ Array [
     ],
     "state": 0,
   },
-  Object {
-    "paths": Array [
-      Object {
+  {
+    "paths": [
+      {
         "state": 0,
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "a",
             },
             "state": 0,
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "b",
             },
             "state": 1,
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "reset",
             },
             "state": 2,
@@ -4119,17 +4119,17 @@ Array [
         ],
         "weight": 3,
       },
-      Object {
+      {
         "state": 0,
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "a",
             },
             "state": 0,
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "reset",
             },
             "state": 1,
@@ -4137,29 +4137,29 @@ Array [
         ],
         "weight": 2,
       },
-      Object {
+      {
         "state": 0,
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "b",
             },
             "state": 0,
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "a",
             },
             "state": 0,
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "b",
             },
             "state": 1,
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "reset",
             },
             "state": 2,
@@ -4167,23 +4167,23 @@ Array [
         ],
         "weight": 4,
       },
-      Object {
+      {
         "state": 0,
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "b",
             },
             "state": 0,
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "a",
             },
             "state": 0,
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "reset",
             },
             "state": 1,
@@ -4191,17 +4191,17 @@ Array [
         ],
         "weight": 3,
       },
-      Object {
+      {
         "state": 0,
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "b",
             },
             "state": 0,
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "reset",
             },
             "state": 0,
@@ -4209,11 +4209,11 @@ Array [
         ],
         "weight": 2,
       },
-      Object {
+      {
         "state": 0,
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "reset",
             },
             "state": 0,
@@ -4224,19 +4224,19 @@ Array [
     ],
     "state": 0,
   },
-  Object {
-    "paths": Array [
-      Object {
+  {
+    "paths": [
+      {
         "state": 2,
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "a",
             },
             "state": 0,
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "b",
             },
             "state": 1,
@@ -4244,23 +4244,23 @@ Array [
         ],
         "weight": 2,
       },
-      Object {
+      {
         "state": 2,
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "b",
             },
             "state": 0,
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "a",
             },
             "state": 0,
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "b",
             },
             "state": 1,
@@ -4268,29 +4268,29 @@ Array [
         ],
         "weight": 3,
       },
-      Object {
+      {
         "state": 2,
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "b",
             },
             "state": 0,
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "reset",
             },
             "state": 0,
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "a",
             },
             "state": 0,
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "b",
             },
             "state": 1,
@@ -4298,23 +4298,23 @@ Array [
         ],
         "weight": 4,
       },
-      Object {
+      {
         "state": 2,
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "reset",
             },
             "state": 0,
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "a",
             },
             "state": 0,
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "b",
             },
             "state": 1,
@@ -4322,29 +4322,29 @@ Array [
         ],
         "weight": 3,
       },
-      Object {
+      {
         "state": 2,
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "reset",
             },
             "state": 0,
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "b",
             },
             "state": 0,
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "a",
             },
             "state": 0,
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "b",
             },
             "state": 1,
@@ -4359,24 +4359,24 @@ Array [
 `;
 
 exports[`simple paths for reducers 1`] = `
-Array [
-  Object {
-    "paths": Array [
-      Object {
+[
+  {
+    "paths": [
+      {
         "state": 0,
-        "steps": Array [],
+        "steps": [],
         "weight": 0,
       },
     ],
     "state": 0,
   },
-  Object {
-    "paths": Array [
-      Object {
+  {
+    "paths": [
+      {
         "state": 1,
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "a",
             },
             "state": 0,
@@ -4387,13 +4387,13 @@ Array [
     ],
     "state": 1,
   },
-  Object {
-    "paths": Array [
-      Object {
+  {
+    "paths": [
+      {
         "state": 0,
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "b",
             },
             "state": 0,
@@ -4404,13 +4404,13 @@ Array [
     ],
     "state": 0,
   },
-  Object {
-    "paths": Array [
-      Object {
+  {
+    "paths": [
+      {
         "state": 0,
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "reset",
             },
             "state": 0,
@@ -4421,19 +4421,19 @@ Array [
     ],
     "state": 0,
   },
-  Object {
-    "paths": Array [
-      Object {
+  {
+    "paths": [
+      {
         "state": 2,
-        "steps": Array [
-          Object {
-            "event": Object {
+        "steps": [
+          {
+            "event": {
               "type": "a",
             },
             "state": 0,
           },
-          Object {
-            "event": Object {
+          {
+            "event": {
               "type": "b",
             },
             "state": 1,

@@ -260,19 +260,19 @@ describe('@xstate/graph', () => {
       const paths = getSimplePlans(lightMachine);
 
       expect(paths.map((path) => path.state.value)).toMatchInlineSnapshot(`
-        Array [
+        [
           "green",
           "yellow",
-          Object {
+          {
             "red": "flashing",
           },
-          Object {
+          {
             "red": "walk",
           },
-          Object {
+          {
             "red": "wait",
           },
-          Object {
+          {
             "red": "stop",
           },
         ]
@@ -293,16 +293,16 @@ describe('@xstate/graph', () => {
       const paths = getSimplePlans(parallelMachine);
 
       expect(paths.map((p) => p.state.value)).toMatchInlineSnapshot(`
-        Array [
-          Object {
+        [
+          {
             "a": "a1",
             "b": "b1",
           },
-          Object {
+          {
             "a": "a2",
             "b": "b2",
           },
-          Object {
+          {
             "a": "a3",
             "b": "b3",
           },
@@ -315,7 +315,7 @@ describe('@xstate/graph', () => {
       const paths = getSimplePlans(equivMachine);
 
       expect(paths.map((p) => p.state.value)).toMatchInlineSnapshot(`
-        Array [
+        [
           "a",
           "b",
         ]
@@ -383,7 +383,7 @@ describe('@xstate/graph', () => {
       });
 
       expect(paths.map((p) => p.state.value)).toMatchInlineSnapshot(`
-        Array [
+        [
           "start",
           "start",
           "start",
@@ -621,20 +621,20 @@ describe('filtering', () => {
     });
 
     expect(sp.map((p) => p.state.context)).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "count": 0,
         },
-        Object {
+        {
           "count": 1,
         },
-        Object {
+        {
           "count": 2,
         },
-        Object {
+        {
           "count": 3,
         },
-        Object {
+        {
           "count": 4,
         },
       ]

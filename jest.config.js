@@ -1,6 +1,9 @@
 const { constants } = require('jest-config');
 const os = require('os');
 
+/**
+ * @type {import('@jest/types').Config.InitialOptions}
+ */
 module.exports = {
   transform: {
     [constants.DEFAULT_JS_PATTERN]: 'babel-jest',
@@ -28,5 +31,6 @@ module.exports = {
   watchPlugins: [
     'jest-watch-typeahead/filename',
     'jest-watch-typeahead/testname'
-  ]
+  ],
+  testEnvironment: 'jsdom'
 };
