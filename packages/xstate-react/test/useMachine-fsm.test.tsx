@@ -81,7 +81,7 @@ describeEachReactMode('useMachine, fsm (%s)', ({ suiteKey, render }) => {
     render(<Test />);
   });
 
-  it('actions should not have stale data', async (done) => {
+  it('actions should not have stale data', (done) => {
     const toggleMachine = createMachine({
       initial: 'inactive',
       states: {
@@ -135,7 +135,7 @@ describeEachReactMode('useMachine, fsm (%s)', ({ suiteKey, render }) => {
     fireEvent.click(button);
   });
 
-  it('should keep options defined on a machine when they are not possed to `useMachine` hook', async (done) => {
+  it('should keep options defined on a machine when they are not possed to `useMachine` hook', (done) => {
     let actual = false;
 
     const toggleMachine = createMachine(
@@ -174,7 +174,7 @@ describeEachReactMode('useMachine, fsm (%s)', ({ suiteKey, render }) => {
     render(<Comp />);
   });
 
-  it('should be able to lookup initial action passed to the hook', async (done) => {
+  it('should be able to lookup initial action passed to the hook', (done) => {
     let outer = false;
 
     const machine = createMachine(
