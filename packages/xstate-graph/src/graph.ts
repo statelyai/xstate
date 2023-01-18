@@ -22,7 +22,7 @@ import type {
   TraversalOptions,
   VisitedContext,
   AnyStateNode
-} from './types';
+} from './types.js';
 
 function flatten<T>(array: Array<T | T[]>): T[] {
   return ([] as T[]).concat(...array);

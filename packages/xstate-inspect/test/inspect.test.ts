@@ -1,5 +1,5 @@
 import { assign, createMachine, interpret } from 'xstate';
-import { createDevTools, inspect } from '../src';
+import { createDevTools, inspect } from '../src/index.js';
 
 afterEach(() => {
   // this clears timers, removes global listeners etc

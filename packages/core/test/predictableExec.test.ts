@@ -1,4 +1,9 @@
-import { createMachine, interpret, assign, AnyInterpreter } from '../src';
+import {
+  createMachine,
+  interpret,
+  assign,
+  AnyInterpreter
+} from '../src/index.js';
 import { raise, send, sendParent, stop } from '../src/actions';
 import { fromCallback } from '../src/actors';
 

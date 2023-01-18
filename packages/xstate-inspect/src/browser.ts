@@ -9,8 +9,8 @@ import {
 } from 'xstate';
 import { XStateDevInterface } from 'xstate/dev';
 import { toActorRef } from 'xstate/actors';
-import { createInspectMachine, InspectMachineEvent } from './inspectMachine';
-import { stringifyMachine, stringifyState } from './serialize';
+import { createInspectMachine, InspectMachineEvent } from './inspectMachine.js';
+import { stringifyMachine, stringifyState } from './serialize.js';
 import type {
   Inspector,
   InspectorOptions,
@@ -19,13 +19,13 @@ import type {
   ServiceListener,
   WebSocketReceiverOptions,
   WindowReceiverOptions
-} from './types';
+} from './types.js';
 import {
   getLazy,
   isReceiverEvent,
   parseReceiverEvent,
   stringify
-} from './utils';
+} from './utils.js';
 
 export const serviceMap = new Map<string, AnyInterpreter>();
 

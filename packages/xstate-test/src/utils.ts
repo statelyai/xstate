@@ -5,8 +5,8 @@ import {
   StatePath,
   StatePlan
 } from '@xstate/graph';
-import { AnyState, EventObject } from 'xstate';
-import { TestMeta, TestPathResult } from './types';
+import { AnyState, EventObject, MachineContext } from 'xstate';
+import { TestMeta, TestPathResult } from './types.js';
 
 interface TestResultStringOptions extends SerializationOptions<any, any> {
   formatColor: (color: string, string: string) => string;
@@ -75,7 +75,9 @@ export function formatPathTestResult(
   return errMessage;
 }
 
-export function getDescription<T, TContext>(state: AnyState): string {
+export function getDescription<T, TContext extends MachineContext>(
+  state: AnyState
+): string {
   const contextString = !Object.keys(state.context).length
     ? ''
     : `(${JSON.stringify(state.context)})`;

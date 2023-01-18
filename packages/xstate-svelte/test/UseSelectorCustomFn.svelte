@@ -1,6 +1,6 @@
 <script lang="ts">
   import { interpret, createMachine, assign } from 'xstate';
-  import { useSelector } from '../src';
+  import { useSelector } from '../src/index.js';
 
   const machine = createMachine<{ name: string }>({
     initial: 'active',

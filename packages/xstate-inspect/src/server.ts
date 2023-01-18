@@ -7,9 +7,9 @@ import {
   toSCXMLEvent
 } from 'xstate';
 import { toActorRef } from 'xstate/actors';
-import { createInspectMachine, InspectMachineEvent } from './inspectMachine';
-import { Inspector, Replacer } from './types';
-import { stringify } from './utils';
+import { createInspectMachine, InspectMachineEvent } from './inspectMachine.js';
+import { Inspector, Replacer } from './types.js';
+import { stringify } from './utils.js';
 
 const services = new Set<Interpreter<any>>();
 const serviceMap = new Map<string, Interpreter<any>>();

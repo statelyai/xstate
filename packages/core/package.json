@@ -10,6 +10,10 @@
       "module": "./dist/xstate.esm.js",
       "default": "./dist/xstate.cjs.js"
     },
+    "./scxml": {
+      "module": "./scxml/dist/xstate-scxml.esm.js",
+      "default": "./scxml/dist/xstate-scxml.cjs.js"
+    },
     "./actors": {
       "module": "./actors/dist/xstate-actors.esm.js",
       "default": "./actors/dist/xstate-actors.cjs.js"
@@ -39,8 +43,8 @@
     "actions",
     "invoke",
     "guards",
-    "dev",
-    "model"
+    "scxml",
+    "dev"
   ],
   "keywords": [
     "statechart",
@@ -67,7 +71,7 @@
     "jsdom": "^14.0.0",
     "jsdom-global": "^3.0.2",
     "pkg-up": "^3.1.0",
-    "rxjs": "^7.1.0",
+    "rxjs": "^7.8.0",
     "xml-js": "^1.6.11"
   },
   "preconstruct": {
@@ -77,6 +81,7 @@
       "./actions.ts",
       "./actors.ts",
       "./guards.ts",
+      "./scxml.ts",
       "./dev/index.ts"
     ]
   }

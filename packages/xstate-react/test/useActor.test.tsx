@@ -9,7 +9,7 @@ import {
   interpret,
   sendParent
 } from 'xstate';
-import { useMachine } from '../src';
+import { useMachine } from '../src/index.js';
 import { useActor } from '../src/useActor';
 import { describeEachReactMode } from './utils';
 

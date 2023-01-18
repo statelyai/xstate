@@ -7,7 +7,7 @@ import {
   toInvokeSource,
   toTransitionConfigArray,
   createInvokeId
-} from './utils';
+} from './utils.js';
 import type {
   EventObject,
   HistoryStateNodeConfig,
@@ -26,20 +26,20 @@ import type {
   InitialTransitionDefinition,
   MachineContext,
   BaseActionObject
-} from './types';
-import type { State } from './State';
-import * as actionTypes from './actionTypes';
-import { toActionObjects } from './actions';
-import { formatInitialTransition, formatTransition } from './stateUtils';
+} from './types.js';
+import type { State } from './State.js';
+import * as actionTypes from './actionTypes.js';
+import { toActionObjects } from './actions.js';
+import { formatInitialTransition, formatTransition } from './stateUtils.js';
 import {
   getDelayedTransitions,
   formatTransitions,
   getCandidates
-} from './stateUtils';
-import { evaluateGuard } from './guards';
-import type { StateMachine } from './StateMachine';
-import { memo } from './memo';
-import { NULL_EVENT } from './constants';
+} from './stateUtils.js';
+import { evaluateGuard } from './guards.js';
+import type { StateMachine } from './StateMachine.js';
+import { memo } from './memo.js';
+import { NULL_EVENT } from './constants.js';
 
 const EMPTY_OBJECT = {};
 

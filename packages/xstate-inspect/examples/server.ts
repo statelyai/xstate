@@ -1,5 +1,4 @@
-// TODO: create preconstruct entrypoint or something
-import { inspect } from '@xstate/inspect/src/server';
+import { inspect } from '@xstate/inspect/server';
 import WebSocket from 'ws';
 import { createMachine, interpret, send, toSCXMLEvent } from 'xstate';
 import { fromCallback } from 'xstate/actors';

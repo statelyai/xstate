@@ -1,4 +1,4 @@
-import { createMachine } from '../src';
+import { createMachine } from '../src/index.js';
 import { raise } from '../src/actions/raise';
 
 describe('machine.microstep()', () => {

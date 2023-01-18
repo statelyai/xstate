@@ -10,6 +10,6 @@ export {
   traverseShortestPlans,
   traverseSimplePlans,
   traverseSimplePathsTo
-} from './graph';
+} from './graph.js';
 
-export * from './types';
+export * from './types.js';

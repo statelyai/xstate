@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { createMachine } from 'xstate';
 import { fireEvent, screen } from '@testing-library/react';
-import { useInterpret, useMachine } from '../src';
+import { useInterpret, useMachine } from '../src/index.js';
 import { describeEachReactMode } from './utils';
 
 const originalConsoleWarn = console.warn;

@@ -9,7 +9,7 @@ import { sendParent } from '../src/actions/send';
 import { choose } from '../src/actions/choose';
 import { pure } from '../src/actions/pure';
 import { log } from '../src/actions/log';
-import { ActorRef } from '../src';
+import { ActorRef } from '../src/index.js';
 import { sendTo, send } from '../src/actions/send';
 import { stop } from '../src/actions/stop';
 

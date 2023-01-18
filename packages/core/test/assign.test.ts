@@ -1,4 +1,10 @@
-import { interpret, assign, send, sendParent, createMachine } from '../src';
+import {
+  interpret,
+  assign,
+  send,
+  sendParent,
+  createMachine
+} from '../src/index.js';
 import { ActorRef } from '../src/types';
 
 interface CounterContext {

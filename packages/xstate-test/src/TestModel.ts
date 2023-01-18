@@ -10,8 +10,8 @@ import {
   traverseSimplePathsTo
 } from '@xstate/graph';
 import { AnyState, EventObject } from 'xstate';
-import { deduplicatePaths } from './deduplicatePaths';
-import { getShortestPaths, getSimplePaths } from './pathGenerators';
+import { deduplicatePaths } from './deduplicatePaths.js';
+import { getShortestPaths, getSimplePaths } from './pathGenerators.js';
 import type {
   EventExecutor,
   GetPathsOptions,
@@ -22,13 +22,13 @@ import type {
   TestPath,
   TestPathResult,
   TestStepResult
-} from './types';
+} from './types.js';
 import {
   formatPathTestResult,
   getDescription,
   mapPlansToPaths,
   simpleStringify
-} from './utils';
+} from './utils.js';
 
 function isStateLike(state: any): state is AnyState {
   return (

@@ -6,7 +6,7 @@ import {
   traverseSimplePlans
 } from '@xstate/graph';
 import { EventObject } from 'xstate';
-import { mapPlansToPaths } from './utils';
+import { mapPlansToPaths } from './utils.js';
 
 export const getShortestPaths = <TState, TEvent extends EventObject>(
   behavior: SimpleBehavior<TState, TEvent>,
