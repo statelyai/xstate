@@ -8,7 +8,7 @@ import {
   interpret,
   SimulatedClock
 } from 'xstate';
-import { toMachine } from 'xstate/scxml';
+import { toMachine } from '../src/scxml';
 import { toSCXML, transitionToSCXML } from '../src/index.js';
 
 interface SCIONTest {
