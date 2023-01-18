@@ -59,13 +59,13 @@
   "devDependencies": {
     "@testing-library/svelte": "^3.0.0",
     "@tsconfig/svelte": "^1.0.8",
-    "@types/jest": "^24.0.23",
+    "@types/jest": "^29.2.5",
     "@xstate/fsm": "3.0.0-alpha.0",
     "svelte": "^3.24.1",
     "svelte-check": "^2.4.5",
-    "svelte-jester": "^1.1.2",
-    "svelte-preprocess": "^4.10.6",
-    "typescript": "^4.6.3",
+    "svelte-jester": "^2.3.2",
+    "svelte-preprocess": "^5.0.0",
+    "typescript": "^4.9.4",
     "xstate": "5.0.0-alpha.1"
   },
   "preconstruct": {
