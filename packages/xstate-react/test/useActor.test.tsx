@@ -14,7 +14,7 @@ import { useActor } from '../src/useActor';
 import { describeEachReactMode } from './utils';
 
 describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
-  it('initial invoked actor should be immediately available', (done) => {
+  it('initial invoked actor should be immediately available', () => {
     const childMachine = createMachine({
       id: 'childMachine',
       initial: 'active',
@@ -39,8 +39,6 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
       const [state] = useActor(actor);
 
       expect(state.value).toEqual('active');
-
-      done();
 
       return null;
     };
@@ -120,7 +118,7 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
     }
   );
 
-  it('initial spawned actor should be immediately available', (done) => {
+  it('initial spawned actor should be immediately available', () => {
     const childMachine = createMachine({
       id: 'childMachine',
       initial: 'active',
@@ -153,8 +151,6 @@ describeEachReactMode('useActor (%s)', ({ render, suiteKey }) => {
       const [state] = useActor(actor);
 
       expect(state.value).toEqual('active');
-
-      done();
 
       return null;
     };

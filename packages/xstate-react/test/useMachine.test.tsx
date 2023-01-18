@@ -823,7 +823,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     expect(activatedCount).toEqual(suiteKey === 'strict' ? 2 : 1);
   });
 
-  it('child component should be able to send an event to a parent immediately in an effect', (done) => {
+  it('child component should be able to send an event to a parent immediately in an effect', () => {
     const machine = createMachine<any, { type: 'FINISH' }>({
       initial: 'active',
       states: {
@@ -847,14 +847,17 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     const Test = () => {
       const [state, send] = useMachine(machine);
 
-      if (state.matches('success')) {
-        done();
-      }
-
-      return <ChildTest send={send} />;
+      return (
+        <>
+          <ChildTest send={send} />
+          {state.value}
+        </>
+      );
     };
 
-    render(<Test />);
+    const { container } = render(<Test />);
+
+    expect(container.textContent).toBe('success');
   });
 
   it('custom data should be available right away for the invoked actor', () => {
