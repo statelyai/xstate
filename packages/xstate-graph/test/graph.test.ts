@@ -278,19 +278,19 @@ describe('@xstate/graph', () => {
           {
             "red": "flashing",
           },
-          Object {
+          {
             "red": "flashing",
           },
-          Object {
+          {
             "red": "flashing",
           },
-          Object {
+          {
             "red": "flashing",
           },
-          Object {
+          {
             "red": "flashing",
           },
-          Object {
+          {
             "red": "walk",
           },
           {
@@ -330,7 +330,7 @@ describe('@xstate/graph', () => {
             "a": "a3",
             "b": "b3",
           },
-          Object {
+          {
             "a": "a3",
             "b": "b3",
           },
@@ -694,7 +694,7 @@ describe('joinPaths()', () => {
 
     expect(pathToBAndC.steps.map((step) => step.event.type))
       .toMatchInlineSnapshot(`
-      Array [
+      [
         "NEXT",
         "TO_C",
       ]
