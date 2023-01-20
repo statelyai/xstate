@@ -139,10 +139,10 @@ describe('transition coverage', () => {
     const paths = model.getShortestPaths();
 
     expect(paths.map((path) => path.description)).toMatchInlineSnapshot(`
-      Array [
-        "Reaches state \\"a\\": NEXT → PREV",
-        "Reaches state \\"a\\": NEXT → RESTART",
-        "Reaches state \\"b\\": END",
+      [
+        "Reaches state "a": NEXT → PREV",
+        "Reaches state "a": NEXT → RESTART",
+        "Reaches state "b": END",
       ]
     `);
   });
@@ -179,10 +179,10 @@ describe('transition coverage', () => {
 
     // { value: 1000 } already covered by first guarded transition
     expect(paths.map((path) => path.description)).toMatchInlineSnapshot(`
-      Array [
-        "Reaches state \\"b\\": NEXT ({\\"value\\":0})",
-        "Reaches state \\"b\\": NEXT ({\\"value\\":100})",
-        "Reaches state \\"b\\": NEXT ({\\"value\\":1000})",
+      [
+        "Reaches state "b": NEXT ({"value":0})",
+        "Reaches state "b": NEXT ({"value":100})",
+        "Reaches state "b": NEXT ({"value":1000})",
       ]
     `);
   });
