@@ -1,4 +1,4 @@
-import { Lazy, Behavior } from '../types';
+import { Lazy, ActorBehavior } from '../types';
 import { toSCXMLEvent } from '../utils';
 import { stopSignalType } from '../actors';
 
@@ -10,12 +10,12 @@ export interface PromiseInternalState<T> {
 
 export function fromPromise<T>(
   lazyPromise: Lazy<PromiseLike<T>>
-): Behavior<{ type: string }, T | undefined> {
+): ActorBehavior<{ type: string }, T | undefined> {
   const resolveEventType = '$$xstate.resolve';
   const rejectEventType = '$$xstate.reject';
 
   // TODO: add event types
-  const behavior: Behavior<any, T | undefined, PromiseInternalState<T>> = {
+  const behavior: ActorBehavior<any, T | undefined, PromiseInternalState<T>> = {
     transition: (state, event) => {
       const _event = toSCXMLEvent(event);
 

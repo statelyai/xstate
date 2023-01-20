@@ -4,7 +4,7 @@ import {
   ActorRef,
   ActorRefFrom,
   EventObject,
-  Behavior,
+  ActorBehavior,
   Subscribable,
   Observer,
   toSCXMLEvent
@@ -974,7 +974,7 @@ describe('actors', () => {
     });
 
     it('behaviors should have reference to the parent', (done) => {
-      const pongBehavior: Behavior<EventObject, undefined> = {
+      const pongBehavior: ActorBehavior<EventObject, undefined> = {
         transition: (_, event, { self }) => {
           const _event = toSCXMLEvent(event);
           if (_event.name === 'PING') {

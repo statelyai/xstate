@@ -7,7 +7,7 @@ import {
   interpret,
   MachineImplementationsFrom,
   StateValueFrom,
-  Behavior,
+  ActorBehavior,
   ActorRefFrom
 } from '../src';
 import { TypegenMeta } from '../src/typegenTypes';
@@ -323,7 +323,7 @@ describe('SnapshotFrom', () => {
 
 describe('ActorRefFrom', () => {
   it('should return `ActorRef` based on a `Behavior`', () => {
-    const behavior: Behavior<{ type: 'TEST' }> = {
+    const behavior: ActorBehavior<{ type: 'TEST' }> = {
       transition: () => {},
       getInitialState: () => undefined
     };

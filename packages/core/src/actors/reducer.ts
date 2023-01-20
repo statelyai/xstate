@@ -1,4 +1,4 @@
-import { Behavior, ActorContext, EventObject } from '../types';
+import { ActorBehavior, ActorContext, EventObject } from '../types';
 import { isSCXMLEvent } from '../utils';
 
 /**
@@ -16,7 +16,7 @@ export function fromReducer<TState, TEvent extends EventObject>(
     actorContext: ActorContext<TEvent, TState>
   ) => TState,
   initialState: TState
-): Behavior<TEvent, TState> {
+): ActorBehavior<TEvent, TState> {
   return {
     transition: (state, event, actorCtx) => {
       // @ts-ignore TODO

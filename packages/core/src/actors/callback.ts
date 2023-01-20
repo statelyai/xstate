@@ -1,7 +1,7 @@
 import {
   InvokeCallback,
   Receiver,
-  Behavior,
+  ActorBehavior,
   EventObject,
   AnyEventObject
 } from '../types';
@@ -22,8 +22,8 @@ export interface CallbackInternalState {
 
 export function fromCallback<TEvent extends EventObject>(
   invokeCallback: InvokeCallback
-): Behavior<TEvent, undefined> {
-  const behavior: Behavior<TEvent, undefined, CallbackInternalState> = {
+): ActorBehavior<TEvent, undefined> {
+  const behavior: ActorBehavior<TEvent, undefined, CallbackInternalState> = {
     start: (state, { self }) => {
       self.send({ type: startSignalType } as TEvent);
 

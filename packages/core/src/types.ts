@@ -105,10 +105,10 @@ export interface ActionMeta<
 // TODO: do not accept machines without all implementations
 // we should also accept a raw machine as a behavior here
 // or just make machine a behavior
-export type Spawner = <T extends Behavior<any, any> | string>( // TODO: read string from machine behavior keys
+export type Spawner = <T extends ActorBehavior<any, any> | string>( // TODO: read string from machine behavior keys
   behavior: T,
   name?: string
-) => T extends Behavior<infer TActorEvent, infer TActorEmitted>
+) => T extends ActorBehavior<infer TActorEvent, infer TActorEmitted>
   ? ActorRef<TActorEvent, TActorEmitted>
   : ActorRef<any, any>; // TODO: narrow this to behaviors from machine
 
@@ -358,7 +358,7 @@ export type BehaviorCreator<
     _event: SCXML.Event<TEvent>;
     meta: MetaObject | undefined;
   }
-) => Behavior<any, TSnapshot>;
+) => ActorBehavior<any, TSnapshot>;
 
 export interface InvokeMeta {
   data: any;
@@ -519,7 +519,7 @@ export interface InvokeConfig<
     | string
     | InvokeSourceDefinition
     | BehaviorCreator<TContext, TEvent>
-    | Behavior<any, any>; // TODO: fix types
+    | ActorBehavior<any, any>; // TODO: fix types
   /**
    * If `true`, events sent to the parent service will be forwarded to the invoked service.
    *
@@ -1681,7 +1681,7 @@ export type Spawnable =
   | InvokeCallback
   | InteropObservable<any>
   | Subscribable<any>
-  | Behavior<any, any>;
+  | ActorBehavior<any, any>;
 
 export type ExtractEvent<
   TEvent extends EventObject,
@@ -1741,7 +1741,7 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
       >
     : R extends Promise<infer U>
     ? ActorRef<{ type: string }, U | undefined>
-    : R extends Behavior<infer TEvent, infer TSnapshot>
+    : R extends ActorBehavior<infer TEvent, infer TSnapshot>
     ? ActorRef<TEvent, TSnapshot>
     : never
   : never;
@@ -1758,7 +1758,7 @@ export type InterpreterFrom<
   infer TResolvedTypesMeta
 >
   ? Interpreter<
-      Behavior<
+      ActorBehavior<
         TEvent,
         State<TContext, TEvent, TResolvedTypesMeta>,
         State<TContext, TEvent, TResolvedTypesMeta>
@@ -1806,7 +1806,7 @@ export interface ActorContext<TEvent extends EventObject, TSnapshot> {
   defer: (fn: () => void) => void;
 }
 
-export interface Behavior<
+export interface ActorBehavior<
   TEvent extends EventObject,
   TSnapshot = any,
   TInternalState = any
@@ -1831,14 +1831,14 @@ export interface Behavior<
   ) => TInternalState;
 }
 
-export type AnyBehavior = Behavior<any, any, any>;
+export type AnyBehavior = ActorBehavior<any, any, any>;
 
 export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends ActorRef<infer _, infer TSnapshot>
     ? TSnapshot
     : R extends Interpreter<infer TBehavior>
     ? SnapshotFrom<TBehavior>
-    : R extends Behavior<infer _, infer TSnapshot>
+    : R extends ActorBehavior<infer _, infer TSnapshot>
     ? TSnapshot
     : R extends ActorContext<infer _, infer TSnapshot>
     ? TSnapshot
@@ -1846,8 +1846,8 @@ export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
   : never;
 
 export type EventFromBehavior<
-  TBehavior extends Behavior<any, any>
-> = TBehavior extends Behavior<infer TEvent, infer _> ? TEvent : never;
+  TBehavior extends ActorBehavior<any, any>
+> = TBehavior extends ActorBehavior<infer TEvent, infer _> ? TEvent : never;
 
 type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends StateMachine<

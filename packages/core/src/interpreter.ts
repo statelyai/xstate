@@ -2,7 +2,7 @@ import type {
   ActorContext,
   AnyActorRef,
   AnyStateMachine,
-  Behavior,
+  ActorBehavior,
   EventFromBehavior,
   InterpreterFrom,
   SnapshotFrom
@@ -30,7 +30,7 @@ import { symbolObservable } from './symbolObservable';
 import { evict, memo } from './memo';
 import { doneInvoke, error } from './actions';
 
-export type SnapshotListener<TBehavior extends Behavior<any, any>> = (
+export type SnapshotListener<TBehavior extends ActorBehavior<any, any>> = (
   state: SnapshotFrom<TBehavior>
 ) => void;
 
@@ -67,13 +67,13 @@ const defaultOptions = {
 };
 
 type InternalStateFrom<
-  TBehavior extends Behavior<any, any, any>
-> = TBehavior extends Behavior<infer _, infer __, infer TInternalState>
+  TBehavior extends ActorBehavior<any, any, any>
+> = TBehavior extends ActorBehavior<infer _, infer __, infer TInternalState>
   ? TInternalState
   : never;
 
 export class Interpreter<
-  TBehavior extends Behavior<any, any>,
+  TBehavior extends ActorBehavior<any, any>,
   TEvent extends EventObject = EventFromBehavior<TBehavior>
 > implements ActorRef<TEvent, SnapshotFrom<TBehavior>> {
   /**
@@ -506,7 +506,7 @@ export function interpret<TMachine extends AnyStateMachine>(
     : 'Some implementations missing',
   options?: InterpreterOptions
 ): InterpreterFrom<TMachine>;
-export function interpret<TBehavior extends Behavior<any, any>>(
+export function interpret<TBehavior extends ActorBehavior<any, any>>(
   behavior: TBehavior,
   options?: InterpreterOptions
 ): Interpreter<TBehavior>;

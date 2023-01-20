@@ -1,7 +1,7 @@
 import {
   Subscribable,
   Lazy,
-  Behavior,
+  ActorBehavior,
   EventObject,
   Subscription
 } from '../types';
@@ -17,13 +17,17 @@ export interface ObservableInternalState<T> {
 
 export function fromObservable<T, TEvent extends EventObject>(
   lazyObservable: Lazy<Subscribable<T>>
-): Behavior<TEvent, T | undefined> {
+): ActorBehavior<TEvent, T | undefined> {
   const nextEventType = '$$xstate.next';
   const errorEventType = '$$xstate.error';
   const completeEventType = '$$xstate.complete';
 
   // TODO: add event types
-  const behavior: Behavior<any, T | undefined, ObservableInternalState<T>> = {
+  const behavior: ActorBehavior<
+    any,
+    T | undefined,
+    ObservableInternalState<T>
+  > = {
     transition: (state, event, { self, id, defer }) => {
       const _event = toSCXMLEvent(event);
 
@@ -104,12 +108,16 @@ export function fromObservable<T, TEvent extends EventObject>(
 
 export function fromEventObservable<T extends EventObject>(
   lazyObservable: Lazy<Subscribable<T>>
-): Behavior<EventObject, T | undefined> {
+): ActorBehavior<EventObject, T | undefined> {
   const errorEventType = '$$xstate.error';
   const completeEventType = '$$xstate.complete';
 
   // TODO: event types
-  const behavior: Behavior<any, T | undefined, ObservableInternalState<T>> = {
+  const behavior: ActorBehavior<
+    any,
+    T | undefined,
+    ObservableInternalState<T>
+  > = {
     transition: (state, event) => {
       const _event = toSCXMLEvent(event);
 

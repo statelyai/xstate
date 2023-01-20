@@ -7,7 +7,7 @@ import {
   StateValue,
   createMachine,
   ActorContext,
-  Behavior,
+  ActorBehavior,
   SpecialTargets,
   toSCXMLEvent
 } from '../src';
@@ -2269,7 +2269,7 @@ describe('invoke', () => {
 
   describe('with behaviors', () => {
     it('should work with a behavior', (done) => {
-      const countBehavior: Behavior<EventObject, number> = {
+      const countBehavior: ActorBehavior<EventObject, number> = {
         transition: (count, event) => {
           // TODO: all behaviors receive SCXML.Event objects,
           // make sure this is clear in the docs
@@ -2309,7 +2309,7 @@ describe('invoke', () => {
     });
 
     it('behaviors should have reference to the parent', (done) => {
-      const pongBehavior: Behavior<EventObject, undefined> = {
+      const pongBehavior: ActorBehavior<EventObject, undefined> = {
         transition: (_, event, { self }) => {
           const _event = toSCXMLEvent(event);
 
