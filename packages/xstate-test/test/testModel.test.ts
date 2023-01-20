@@ -24,7 +24,7 @@ describe('custom test models', () => {
       }
     );
 
-    const paths = model.getShortestPathsTo((state) => state === 1);
+    const paths = model.getShortestPaths({ toState: (state) => state === 1 });
 
     expect(paths.length).toBeGreaterThan(0);
   });
@@ -62,7 +62,7 @@ describe('custom test models', () => {
       }
     );
 
-    const paths = model.getShortestPathsTo((state) => state === 1);
+    const paths = model.getShortestPaths({ toState: (state) => state === 1 });
 
     await testUtils.testPaths(paths, {
       states: {

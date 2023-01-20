@@ -1,9 +1,13 @@
 <p align="center">
   <a href="https://xstate.js.org">
   <br />
-  <img src="https://user-images.githubusercontent.com/1093738/101672561-06aa7480-3a24-11eb-89d1-787fa7112138.png" alt="XState" width="150"/>
+
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/statelyai/public-assets/main/logos/xstate-logo-white-nobg.svg">
+    <img alt="XState logotype" src="https://raw.githubusercontent.com/statelyai/public-assets/main/logos/xstate-logo-black-nobg.svg" width="200">
+  </picture>
   <br />
-    <sub><strong>State machines and statecharts for the modern web.</strong></sub>
+    <sub><strong>JavaScript state machines and statecharts</strong></sub>
   <br />
   <br />
   </a>
@@ -14,13 +18,17 @@
 
 JavaScript and TypeScript [finite state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and [statecharts](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf) for the modern web.
 
-New to state machines and statecharts? [Read our introduction](/guides/introduction-to-state-machines-and-statecharts/).
+📖 [Read the documentation](https://xstate.js.org/docs)
 
-🖥 [Download our VS Code extension](https://marketplace.visualstudio.com/items?itemName=statelyai.stately-vscode).
+💙 [Explore our catalogue of examples](https://xstate-catalogue.com/)
+
+➡️ [Create state machines with the Stately Editor](https://stately.ai/editor)
+
+🖥 [Download our VS Code extension](https://marketplace.visualstudio.com/items?itemName=statelyai.stately-vscode)
 
 📑 Adheres to the [SCXML specification](https://www.w3.org/TR/scxml/)
 
-💬 Chat on the [Stately Discord Community](https://discord.gg/KCtSX7Cdjh)
+💬 Chat on the [Stately Discord Community](https://discord.gg/xstate)
 
 ## Packages
 
@@ -60,16 +68,8 @@ const toggleMachine = createMachine({
   id: 'toggle',
   initial: 'inactive',
   states: {
-    inactive: {
-      on: {
-        TOGGLE: { target: 'active' }
-      }
-    },
-    active: {
-      on: {
-        TOGGLE: { target: 'inactive' }
-      }
-    }
+    inactive: { on: { TOGGLE: 'active' } },
+    active: { on: { TOGGLE: 'inactive' } }
   }
 });
 
@@ -79,16 +79,19 @@ const toggleService = interpret(toggleMachine)
   .start();
 // => 'inactive'
 
-toggleService.send({ type: 'TOGGLE' });
+toggleService.send('TOGGLE');
 // => 'active'
 
-toggleService.send({ type: 'TOGGLE' });
+toggleService.send('TOGGLE');
 // => 'inactive'
 ```
 
 ## Promise example
 
 [📉 See the visualization on stately.ai/viz](https://stately.ai/viz?gist=bbcb4379b36edea0458f597e5eec2f91)
+
+<details>
+<summary>See the code</summary>
 
 ```js
 import { createMachine, interpret, assign } from 'xstate';
@@ -102,7 +105,7 @@ const fetchMachine = createMachine({
   states: {
     idle: {
       on: {
-        FETCH: { target: 'loading' }
+        FETCH: 'loading'
       }
     },
     loading: {
@@ -118,21 +121,19 @@ const fetchMachine = createMachine({
             dog: (_, event) => event.data
           })
         },
-        onError: {
-          target: 'rejected'
-        }
+        onError: 'rejected'
       },
       on: {
-        CANCEL: { target: 'idle' }
-      }
-    },
-    rejected: {
-      on: {
-        FETCH: { target: 'loading' }
+        CANCEL: 'idle'
       }
     },
     resolved: {
       type: 'final'
+    },
+    rejected: {
+      on: {
+        FETCH: 'loading'
+      }
     }
   }
 });
@@ -141,8 +142,10 @@ const dogService = interpret(fetchMachine)
   .onTransition((state) => console.log(state.value))
   .start();
 
-dogService.send({ type: 'FETCH' });
+dogService.send('FETCH');
 ```
+
+</details>
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
@@ -153,15 +156,18 @@ dogService.send({ type: 'FETCH' });
 - [Hierarchical (Nested) State Machines](#hierarchical-nested-state-machines)
 - [Parallel State Machines](#parallel-state-machines)
 - [History States](#history-states)
-- [Sponsors](#sponsors)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Visualizer
 
-**[Visualize, simulate, and share your statecharts in XState Viz!](https://stately.ai/viz)**
+**[Visualize, simulate, inspect, and share your statecharts in XState Viz](https://stately.ai/viz)**
 
-<a href="https://stately.ai/viz"><img src="https://i.imgur.com/3pEB0B3.png" alt="XState Visualizer" width="300" /></a>
+<a href="https://stately.ai/viz" title="XState Viz">
+  <img src="https://user-images.githubusercontent.com/1093738/131729181-5db835fc-77e7-4740-b03f-46bd0093baa1.png" alt="XState Viz" width="400" />
+</a>
+
+**[stately.ai/viz](https://stately.ai/viz)**
 
 ## Why?
 
@@ -177,7 +183,12 @@ Read [📽 the slides](http://slides.com/davidkhourshid/finite-state-machines) (
 
 ## Finite State Machines
 
-<img src="https://imgur.com/rqqmkJh.png" alt="Light Machine" width="300" />
+<a href="https://stately.ai/viz/2ac5915f-789a-493f-86d3-a8ec079773f4" title="Finite states">
+  <img src="https://user-images.githubusercontent.com/1093738/131727631-916d28a7-1a40-45ed-8636-c0c0fc1c3889.gif" alt="Finite states" width="400" />
+  <br />
+  <small>Open in Stately Viz</small>
+</a>
+<br />
 
 ```js
 import { createMachine } from 'xstate';
@@ -188,17 +199,17 @@ const lightMachine = createMachine({
   states: {
     green: {
       on: {
-        TIMER: { target: 'yellow' }
+        TIMER: 'yellow'
       }
     },
     yellow: {
       on: {
-        TIMER: { target: 'red' }
+        TIMER: 'red'
       }
     },
     red: {
       on: {
-        TIMER: { target: 'green' }
+        TIMER: 'green'
       }
     }
   }
@@ -206,15 +217,19 @@ const lightMachine = createMachine({
 
 const currentState = 'green';
 
-const nextState = lightMachine.transition(currentState, { type: 'TIMER' })
-  .value;
+const nextState = lightMachine.transition(currentState, 'TIMER').value;
 
 // => 'yellow'
 ```
 
 ## Hierarchical (Nested) State Machines
 
-<img src="https://imgur.com/GDZAeB9.png" alt="Hierarchical Light Machine" width="300" />
+<a href="https://stately.ai/viz/d3aeda4f-7f8e-44df-bdf9-dd3cdafb3312" title="Hierarchical states">
+  <img src="https://user-images.githubusercontent.com/1093738/131727794-86b63c76-5ee0-4d73-b84c-6992a1f0814e.gif" alt="Hierarchical states" width="400" />
+  <br />
+  <small>Open in Stately Viz</small>
+</a>
+<br />
 
 ```js
 import { createMachine } from 'xstate';
@@ -224,12 +239,12 @@ const pedestrianStates = {
   states: {
     walk: {
       on: {
-        PED_TIMER: { target: 'wait' }
+        PED_TIMER: 'wait'
       }
     },
     wait: {
       on: {
-        PED_TIMER: { target: 'stop' }
+        PED_TIMER: 'stop'
       }
     },
     stop: {}
@@ -242,17 +257,17 @@ const lightMachine = createMachine({
   states: {
     green: {
       on: {
-        TIMER: { target: 'yellow' }
+        TIMER: 'yellow'
       }
     },
     yellow: {
       on: {
-        TIMER: { target: 'red' }
+        TIMER: 'red'
       }
     },
     red: {
       on: {
-        TIMER: { target: 'green' }
+        TIMER: 'green'
       },
       ...pedestrianStates
     }
@@ -261,13 +276,12 @@ const lightMachine = createMachine({
 
 const currentState = 'yellow';
 
-const nextState = lightMachine.transition(currentState, { type: 'TIMER' })
-  .value;
+const nextState = lightMachine.transition(currentState, 'TIMER').value;
 // => {
 //   red: 'walk'
 // }
 
-lightMachine.transition('red.walk', { type: 'PED_TIMER' }).value;
+lightMachine.transition('red.walk', 'PED_TIMER').value;
 // => {
 //   red: 'wait'
 // }
@@ -277,29 +291,29 @@ lightMachine.transition('red.walk', { type: 'PED_TIMER' }).value;
 
 ```js
 // ...
-const waitState = lightMachine.transition(
-  { red: 'walk' },
-  { type: 'PED_TIMER' }
-).value;
+const waitState = lightMachine.transition({ red: 'walk' }, 'PED_TIMER').value;
 
 // => { red: 'wait' }
 
-lightMachine.transition(waitState, { type: 'PED_TIMER' }).value;
+lightMachine.transition(waitState, 'PED_TIMER').value;
 
 // => { red: 'stop' }
 
-lightMachine.transition({ red: 'stop' }, { type: 'TIMER' }).value;
+lightMachine.transition({ red: 'stop' }, 'TIMER').value;
 
 // => 'green'
 ```
 
 ## Parallel State Machines
 
-<img src="https://imgur.com/GKd4HwR.png" width="300" alt="Parallel state machine" />
+<a href="https://stately.ai/viz/9eb9c189-254d-4c87-827a-fab0c2f71508" title="Parallel states">
+  <img src="https://user-images.githubusercontent.com/1093738/131727915-23da4b4b-5e7e-46ea-9c56-5093e37e60e6.gif" alt="Parallel states" width="400" />
+  <br />
+  <small>Open in Stately Viz</small>
+</a>
+<br />
 
 ```js
-import { createMachine } from 'xstate';
-
 const wordMachine = createMachine({
   id: 'word',
   type: 'parallel',
@@ -308,14 +322,10 @@ const wordMachine = createMachine({
       initial: 'off',
       states: {
         on: {
-          on: {
-            TOGGLE_BOLD: { target: 'off' }
-          }
+          on: { TOGGLE_BOLD: 'off' }
         },
         off: {
-          on: {
-            TOGGLE_BOLD: { target: 'on' }
-          }
+          on: { TOGGLE_BOLD: 'on' }
         }
       }
     },
@@ -323,14 +333,10 @@ const wordMachine = createMachine({
       initial: 'off',
       states: {
         on: {
-          on: {
-            TOGGLE_UNDERLINE: { target: 'off' }
-          }
+          on: { TOGGLE_UNDERLINE: 'off' }
         },
         off: {
-          on: {
-            TOGGLE_UNDERLINE: { target: 'on' }
-          }
+          on: { TOGGLE_UNDERLINE: 'on' }
         }
       }
     },
@@ -338,14 +344,10 @@ const wordMachine = createMachine({
       initial: 'off',
       states: {
         on: {
-          on: {
-            TOGGLE_ITALICS: { target: 'off' }
-          }
+          on: { TOGGLE_ITALICS: 'off' }
         },
         off: {
-          on: {
-            TOGGLE_ITALICS: { target: 'on' }
-          }
+          on: { TOGGLE_ITALICS: 'on' }
         }
       }
     },
@@ -353,30 +355,20 @@ const wordMachine = createMachine({
       initial: 'none',
       states: {
         none: {
-          on: {
-            BULLETS: { target: 'bullets' },
-            NUMBERS: { target: 'numbers' }
-          }
+          on: { BULLETS: 'bullets', NUMBERS: 'numbers' }
         },
         bullets: {
-          on: {
-            NONE: { target: 'none' },
-            NUMBERS: { target: 'numbers' }
-          }
+          on: { NONE: 'none', NUMBERS: 'numbers' }
         },
         numbers: {
-          on: {
-            BULLETS: { target: 'bullets' },
-            NONE: { target: 'none' }
-          }
+          on: { BULLETS: 'bullets', NONE: 'none' }
         }
       }
     }
   }
 });
 
-const boldState = wordMachine.transition('bold.off', { type: 'TOGGLE_BOLD' })
-  .value;
+const boldState = wordMachine.transition('bold.off', 'TOGGLE_BOLD').value;
 
 // {
 //   bold: 'on',
@@ -392,7 +384,7 @@ const nextState = wordMachine.transition(
     underline: 'on',
     list: 'bullets'
   },
-  { type: 'TOGGLE_ITALICS' }
+  'TOGGLE_ITALICS'
 ).value;
 
 // {
@@ -405,11 +397,14 @@ const nextState = wordMachine.transition(
 
 ## History States
 
-<img src="https://imgur.com/I4QsQsz.png" width="300" alt="Machine with history state" />
+<a href="https://stately.ai/viz/33fd92e1-f9e6-49e6-bdeb-cef9e60195ec" title="History states">
+  <img src="https://user-images.githubusercontent.com/1093738/131728111-819cc824-9881-4ecf-948a-00c1162cd9e9.gif" alt="History state" width="400" />
+  <br />
+  <small>Open in Stately Viz</small>
+</a>
+<br />
 
 ```js
-import { createMachine } from 'xstate';
-
 const paymentMachine = createMachine({
   id: 'payment',
   initial: 'method',
@@ -417,56 +412,53 @@ const paymentMachine = createMachine({
     method: {
       initial: 'cash',
       states: {
-        cash: {
-          on: {
-            SWITCH_CHECK: { target: 'check' }
-          }
-        },
-        check: {
-          on: {
-            SWITCH_CASH: { target: 'cash' }
-          }
-        },
+        cash: { on: { SWITCH_CHECK: 'check' } },
+        check: { on: { SWITCH_CASH: 'cash' } },
         hist: { type: 'history' }
       },
-      on: {
-        NEXT: { target: 'review' }
-      }
+      on: { NEXT: 'review' }
     },
     review: {
-      on: {
-        PREVIOUS: { target: 'method.hist' }
-      }
+      on: { PREVIOUS: 'method.hist' }
     }
   }
 });
 
-const checkState = paymentMachine.transition('method.cash', {
-  type: 'SWITCH_CHECK'
-});
+const checkState = paymentMachine.transition('method.cash', 'SWITCH_CHECK');
 
 // => State {
 //   value: { method: 'check' },
 //   history: State { ... }
 // }
 
-const reviewState = paymentMachine.transition(checkState, { type: 'NEXT' });
+const reviewState = paymentMachine.transition(checkState, 'NEXT');
 
 // => State {
 //   value: 'review',
 //   history: State { ... }
 // }
 
-const previousState = paymentMachine.transition(reviewState, {
-  type: 'PREVIOUS'
-}).value;
+const previousState = paymentMachine.transition(reviewState, 'PREVIOUS').value;
 
 // => { method: 'check' }
 ```
 
-## Sponsors
+## SemVer Policy
 
-Huge thanks to the following companies for sponsoring `xstate`. You can sponsor further `xstate` development [on OpenCollective](https://opencollective.com/xstate).
+We understand the importance of the public contract and do not intend to release any breaking changes to the **runtime** API in a minor or patch release. We consider this with any changes we make to the XState libraries and aim to minimize their effects on existing users.
 
-<a href="https://tipe.io" title="Tipe.io"><img src="https://cdn.tipe.io/tipe/tipe-logo.svg?w=240" style="background:#613DEF" /></a>
-<a href="https://webflow.com" title="Webflow"><img src="https://uploads-ssl.webflow.com/583347ca8f6c7ee058111b3b/5b03bde0971fdd75d75b5591_webflow.png" height="100" /></a>
+### Breaking changes
+
+XState executes much of the user logic itself. Therefore, almost any change to its behavior might be considered a breaking change. We recognize this as a potential problem but believe that treating every change as a breaking change is not practical. We do our best to implement new features thoughtfully to enable our users to implement their logic in a better, safer way.
+
+Any change _could_ affect how existing XState machines behave if those machines are using particular configurations. We do not introduce behavior changes on a whim and aim to avoid making changes that affect most existing machines. But we reserve the right to make _some_ behavior changes in minor releases. Our best judgment of the situation will always dictate such changes. Please always read our release notes before deciding to upgrade.
+
+### TypeScript changes
+
+We also reserve a similar right to adjust declared TypeScript definitions or drop support for older versions of TypeScript in a minor release. The TypeScript language itself evolves quickly and often introduces breaking changes in its minor releases. Our team is also continuously learning how to leverage TypeScript more effectively - and the types improve as a result.
+
+For these reasons, it is impractical for our team to be bound by decisions taken when an older version of TypeScript was its latest version or when we didn’t know how to declare our types in a better way. We won’t introduce declaration changes often - but we are more likely to do so than with runtime changes.
+
+### Packages
+
+Most of the packages in the XState family declare a peer dependency on XState itself. We’ll be cautious about maintaining compatibility with already-released packages when releasing a new version of XState, **but** each release of packages depending on XState will always adjust the declared peer dependency range to include the latest version of XState. For example, you should always be able to update `xstate` without `@xstate/react`. But when you update `@xstate/react`, we highly recommend updating `xstate` too.

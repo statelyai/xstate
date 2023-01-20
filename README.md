@@ -1,7 +1,11 @@
 <p align="center">
   <a href="https://xstate.js.org">
   <br />
-  <img src="https://user-images.githubusercontent.com/1093738/101672561-06aa7480-3a24-11eb-89d1-787fa7112138.png" alt="XState" width="150"/>
+
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/statelyai/public-assets/main/logos/xstate-logo-white-nobg.svg">
+    <img alt="XState logotype" src="https://raw.githubusercontent.com/statelyai/public-assets/main/logos/xstate-logo-black-nobg.svg" width="200">
+  </picture>
   <br />
     <sub><strong>JavaScript state machines and statecharts</strong></sub>
   <br />
@@ -24,7 +28,7 @@ JavaScript and TypeScript [finite state machines](https://en.wikipedia.org/wiki/
 
 📑 Adheres to the [SCXML specification](https://www.w3.org/TR/scxml/)
 
-💬 Chat on the [Stately Discord Community](https://discord.gg/KCtSX7Cdjh)
+💬 Chat on the [Stately Discord Community](https://discord.gg/xstate)
 
 ## Packages
 

@@ -1,17 +1,62 @@
+import { ActorRef } from '../src';
+import { toActionObject } from '../src/actions';
+import { choose } from '../src/actions/choose';
+import { log } from '../src/actions/log';
+import { pure } from '../src/actions/pure';
+import { send, sendParent, sendTo } from '../src/actions/send';
+import { stop } from '../src/actions/stop';
 import {
-  createMachine,
+  ActorRefFrom,
+  AnyStateMachine,
   assign,
+  createMachine,
   forwardTo,
   interpret,
-  ActorRefFrom
+  StateNode
 } from '../src/index';
-import { sendParent } from '../src/actions/send';
-import { choose } from '../src/actions/choose';
-import { pure } from '../src/actions/pure';
-import { log } from '../src/actions/log';
-import { ActorRef } from '../src';
-import { sendTo, send } from '../src/actions/send';
-import { stop } from '../src/actions/stop';
+
+const seen = new WeakSet<AnyStateMachine>();
+
+function trackEntries(machine: AnyStateMachine) {
+  if (seen.has(machine)) {
+    throw new Error(`This helper can't accept the same machine more than once`);
+  }
+  seen.add(machine);
+
+  let logs: string[] = [];
+
+  function addTrackingActions(
+    state: StateNode<any, any>,
+    stateDescription: string
+  ) {
+    state.entry.unshift(
+      toActionObject(function __testEntryTracker() {
+        logs.push(`enter: ${stateDescription}`);
+      })
+    );
+    state.exit.unshift(
+      toActionObject(function __testExitTracker() {
+        logs.push(`exit: ${stateDescription}`);
+      })
+    );
+  }
+
+  function addTrackingActionsRecursively(state: StateNode<any, any>) {
+    for (const child of Object.values(state.states)) {
+      addTrackingActions(child, child.path.join('.'));
+      addTrackingActionsRecursively(child);
+    }
+  }
+
+  addTrackingActions(machine.root, `__root__`);
+  addTrackingActionsRecursively(machine.root);
+
+  return () => {
+    const flushed = logs;
+    logs = [];
+    return flushed;
+  };
+}
 
 describe('entry/exit actions', () => {
   const pedestrianStates = {
@@ -412,13 +457,11 @@ describe('entry/exit actions', () => {
     });
 
     it("should reenter targeted ancestor (as it's a descendant of the transition domain)", () => {
-      const actual: string[] = [];
       const machine = createMachine({
         initial: 'loaded',
         states: {
           loaded: {
             id: 'loaded',
-            entry: () => actual.push('loaded entry'),
             initial: 'idle',
             states: {
               idle: {
@@ -431,12 +474,19 @@ describe('entry/exit actions', () => {
         }
       });
 
+      const flushTracked = trackEntries(machine);
+
       const service = interpret(machine).start();
 
-      actual.length = 0;
+      flushTracked();
       service.send({ type: 'UPDATE' });
 
-      expect(actual).toEqual(['loaded entry']);
+      expect(flushTracked()).toEqual([
+        'exit: loaded.idle',
+        'exit: loaded',
+        'enter: loaded',
+        'enter: loaded.idle'
+      ]);
     });
 
     it("shouldn't use a referenced custom action over a builtin one when there is a naming conflict", () => {
@@ -645,8 +695,130 @@ describe('entry/exit actions', () => {
       ).toEqual(['exit_walk', 'exit_red', 'enter_red', 'enter_walk']);
     });
 
+    it('should exit current node and enter target node when target is not a descendent or ancestor of current', () => {
+      const machine = createMachine({
+        initial: 'A',
+        states: {
+          A: {
+            initial: 'A1',
+            states: {
+              A1: {
+                on: {
+                  NEXT: '#sibling_descendant'
+                }
+              },
+              A2: {
+                initial: 'A2_child',
+                states: {
+                  A2_child: {
+                    id: 'sibling_descendant'
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const flushTracked = trackEntries(machine);
+
+      const aa1State = machine.resolveStateValue({ A: 'A1' });
+      const service = interpret(machine.at(aa1State)).start();
+      service.send({ type: 'NEXT' });
+
+      expect(flushTracked()).toEqual([
+        'exit: A.A1',
+        'enter: A.A2',
+        'enter: A.A2.A2_child'
+      ]);
+    });
+
+    it('should exit current node and reenter target node when target is ancestor of current', () => {
+      const machine = createMachine({
+        initial: 'A',
+        states: {
+          A: {
+            id: 'ancestor',
+            initial: 'A1',
+            states: {
+              A1: {
+                on: {
+                  NEXT: 'A2'
+                }
+              },
+              A2: {
+                initial: 'A2_child',
+                states: {
+                  A2_child: {
+                    on: {
+                      NEXT: '#ancestor'
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const flushTracked = trackEntries(machine);
+
+      const service = interpret(machine).start();
+      service.send({ type: 'NEXT' });
+
+      flushTracked();
+      service.send({ type: 'NEXT' });
+
+      expect(flushTracked()).toEqual([
+        'exit: A.A2.A2_child',
+        'exit: A.A2',
+        'exit: A',
+        'enter: A',
+        'enter: A.A1'
+      ]);
+    });
+
+    it('should enter all descendents when target is a descendent of current', () => {
+      const machine = createMachine({
+        initial: 'A',
+        states: {
+          A: {
+            initial: 'A1',
+            on: {
+              NEXT: {
+                internal: false,
+                target: '.A2'
+              }
+            },
+            states: {
+              A1: {},
+              A2: {
+                initial: 'A2a',
+                states: {
+                  A2a: {}
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const flushTracked = trackEntries(machine);
+
+      const service = interpret(machine).start();
+      flushTracked();
+      service.send({ type: 'NEXT' });
+
+      expect(flushTracked()).toEqual([
+        'exit: A.A1',
+        'exit: A',
+        'enter: A',
+        'enter: A.A2',
+        'enter: A.A2.A2a'
+      ]);
+    });
+
     it('should exit deep descendant during a self-transition', () => {
-      const actual: string[] = [];
       const m = createMachine({
         initial: 'a',
         states: {
@@ -659,9 +831,7 @@ describe('entry/exit actions', () => {
               a1: {
                 initial: 'a11',
                 states: {
-                  a11: {
-                    exit: () => actual.push('a11.exit')
-                  }
+                  a11: {}
                 }
               }
             }
@@ -669,11 +839,126 @@ describe('entry/exit actions', () => {
         }
       });
 
+      const flushTracked = trackEntries(m);
+
       const service = interpret(m).start();
 
+      flushTracked();
       service.send({ type: 'EV' });
 
-      expect(actual).toEqual(['a11.exit']);
+      expect(flushTracked()).toEqual([
+        'exit: a.a1.a11',
+        'exit: a.a1',
+        'exit: a',
+        'enter: a',
+        'enter: a.a1',
+        'enter: a.a1.a11'
+      ]);
+    });
+
+    it('should reenter leaf state during its self-transition', () => {
+      const m = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            initial: 'a1',
+            states: {
+              a1: {
+                on: {
+                  EV: 'a1'
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const flushTracked = trackEntries(m);
+
+      const service = interpret(m).start();
+
+      flushTracked();
+      service.send({ type: 'EV' });
+
+      expect(flushTracked()).toEqual(['exit: a.a1', 'enter: a.a1']);
+    });
+
+    it('should not enter exited state when targeting its ancestor and when its former descendant gets selected through initial state', () => {
+      const m = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            id: 'parent',
+            initial: 'a1',
+            states: {
+              a1: {
+                on: {
+                  EV: 'a2'
+                }
+              },
+              a2: {
+                on: {
+                  EV: '#parent'
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const flushTracked = trackEntries(m);
+
+      const service = interpret(m).start();
+      service.send({ type: 'EV' });
+
+      flushTracked();
+      service.send({ type: 'EV' });
+
+      expect(flushTracked()).toEqual([
+        'exit: a.a2',
+        'exit: a',
+        'enter: a',
+        'enter: a.a1'
+      ]);
+    });
+
+    it('should not enter exited state when targeting its ancestor and when its latter descendant gets selected through initial state', () => {
+      const m = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            id: 'parent',
+            initial: 'a2',
+            states: {
+              a1: {
+                on: {
+                  EV: '#parent'
+                }
+              },
+              a2: {
+                on: {
+                  EV: 'a1'
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const flushTracked = trackEntries(m);
+
+      const service = interpret(m).start();
+      service.send({ type: 'EV' });
+
+      flushTracked();
+      service.send({ type: 'EV' });
+
+      expect(flushTracked()).toEqual([
+        'exit: a.a1',
+        'exit: a',
+        'enter: a',
+        'enter: a.a2'
+      ]);
     });
   });
 
@@ -712,8 +997,6 @@ describe('entry/exit actions', () => {
     });
 
     it('should reenter parallel region when a parallel state gets reentered while targeting another region', () => {
-      const actions: string[] = [];
-
       const machine = createMachine({
         initial: 'ready',
         states: {
@@ -723,13 +1006,8 @@ describe('entry/exit actions', () => {
               FOO: '#cameraOff'
             },
             states: {
-              devicesInfo: {
-                entry: () => actions.push('entry devicesInfo'),
-                exit: () => actions.push('exit devicesInfo')
-              },
+              devicesInfo: {},
               camera: {
-                entry: () => actions.push('entry camera'),
-                exit: () => actions.push('exit camera'),
                 initial: 'on',
                 states: {
                   on: {},
@@ -743,78 +1021,59 @@ describe('entry/exit actions', () => {
         }
       });
 
+      const flushTracked = trackEntries(machine);
+
       const service = interpret(machine).start();
 
-      actions.length = 0;
+      flushTracked();
       service.send({ type: 'FOO' });
 
-      expect(actions).toEqual([
-        'exit camera',
-        'exit devicesInfo',
-        'entry devicesInfo',
-        'entry camera'
+      expect(flushTracked()).toEqual([
+        'exit: ready.camera.on',
+        'exit: ready.camera',
+        'exit: ready.devicesInfo',
+        'exit: ready',
+        'enter: ready',
+        'enter: ready.devicesInfo',
+        'enter: ready.camera',
+        'enter: ready.camera.off'
       ]);
     });
   });
 
   describe('targetless transitions', () => {
-    it("shouldn't exit a state on a parent's targetless transition", (done) => {
-      const actual: string[] = [];
-
+    it("shouldn't exit a state on a parent's targetless transition", () => {
       const parent = createMachine({
         initial: 'one',
         on: {
           WHATEVER: {
-            actions: () => {
-              actual.push('got WHATEVER');
-            }
+            actions: () => {}
           }
         },
         states: {
-          one: {
-            entry: () => {
-              actual.push('entered one');
-            },
-            always: 'two'
-          },
-          two: {
-            exit: () => {
-              actual.push('exited two');
-            }
-          }
+          one: {}
         }
       });
 
+      const flushTracked = trackEntries(parent);
+
       const service = interpret(parent).start();
 
-      Promise.resolve()
-        .then(() => {
-          service.send({ type: 'WHATEVER' });
-        })
-        .then(() => {
-          expect(actual).toEqual(['entered one', 'got WHATEVER']);
-          done();
-        })
-        .catch(done);
+      flushTracked();
+      service.send({ type: 'WHATEVER' });
+
+      expect(flushTracked()).toEqual([]);
     });
 
     it("shouldn't exit (and reenter) state on targetless delayed transition", (done) => {
-      const actual: string[] = [];
-
       const machine = createMachine({
         initial: 'one',
         states: {
           one: {
-            entry: () => {
-              actual.push('entered one');
-            },
-            exit: () => {
-              actual.push('exited one');
-            },
             after: {
               10: {
                 actions: () => {
-                  actual.push('got FOO');
+                  // do smth
                 }
               }
             }
@@ -822,10 +1081,13 @@ describe('entry/exit actions', () => {
         }
       });
 
+      const flushTracked = trackEntries(machine);
+
       interpret(machine).start();
+      flushTracked();
 
       setTimeout(() => {
-        expect(actual).toEqual(['entered one', 'got FOO']);
+        expect(flushTracked()).toEqual([]);
         done();
       }, 50);
     });
@@ -903,35 +1165,37 @@ describe('entry/exit actions', () => {
     });
 
     it('should call each exit handler only once when the service gets stopped', () => {
-      const actual: string[] = [];
       const machine = createMachine({
-        exit: () => actual.push('root'),
         initial: 'a',
         states: {
           a: {
-            exit: () => actual.push('a'),
             initial: 'a1',
             states: {
-              a1: {
-                exit: () => actual.push('a1')
-              }
+              a1: {}
             }
           }
         }
       });
 
-      interpret(machine).start().stop();
-      expect(actual).toEqual(['a1', 'a', 'root']);
+      const flushTracked = trackEntries(machine);
+
+      const service = interpret(machine).start();
+
+      flushTracked();
+      service.stop();
+
+      expect(flushTracked()).toEqual([
+        'exit: a.a1',
+        'exit: a',
+        'exit: __root__'
+      ]);
     });
 
     it('should call exit actions in reversed document order when the service gets stopped', () => {
-      const actual: string[] = [];
       const machine = createMachine({
-        exit: () => actual.push('root'),
         initial: 'a',
         states: {
           a: {
-            exit: () => actual.push('a'),
             on: {
               EV: {
                 // just a noop action to ensure that a transition is selected when we send an event
@@ -942,27 +1206,27 @@ describe('entry/exit actions', () => {
         }
       });
 
+      const flushTracked = trackEntries(machine);
+
       const service = interpret(machine).start();
-      // it's important to send an event here that results in a transition  that computes new `state.configuration`
+
+      // it's important to send an event here that results in a transition that computes new `state.configuration`
       // and that could impact the order in which exit actions are called
       service.send({ type: 'EV' });
+      flushTracked();
       service.stop();
 
-      expect(actual).toEqual(['a', 'root']);
+      expect(flushTracked()).toEqual(['exit: a', 'exit: __root__']);
     });
 
     it('should call exit actions of parallel states in reversed document order when the service gets stopped after earlier region transition', () => {
-      const actual: string[] = [];
       const machine = createMachine({
-        exit: () => actual.push('root'),
         type: 'parallel',
         states: {
           a: {
-            exit: () => actual.push('a'),
             initial: 'child_a',
             states: {
               child_a: {
-                exit: () => actual.push('child_a'),
                 on: {
                   EV: {
                     // just a noop action to ensure that a transition is selected when we send an event
@@ -973,47 +1237,47 @@ describe('entry/exit actions', () => {
             }
           },
           b: {
-            exit: () => actual.push('b'),
             initial: 'child_b',
             states: {
-              child_b: {
-                exit: () => actual.push('child_b')
-              }
+              child_b: {}
             }
           }
         }
       });
 
+      const flushTracked = trackEntries(machine);
+
       const service = interpret(machine).start();
+
       // it's important to send an event here that results in a transition as that computes new `state.configuration`
       // and that could impact the order in which exit actions are called
       service.send({ type: 'EV' });
+      flushTracked();
       service.stop();
 
-      expect(actual).toEqual(['child_b', 'b', 'child_a', 'a', 'root']);
+      expect(flushTracked()).toEqual([
+        'exit: b.child_b',
+        'exit: b',
+        'exit: a.child_a',
+        'exit: a',
+        'exit: __root__'
+      ]);
     });
 
     it('should call exit actions of parallel states in reversed document order when the service gets stopped after later region transition', () => {
-      const actual: string[] = [];
       const machine = createMachine({
-        exit: () => actual.push('root'),
         type: 'parallel',
         states: {
           a: {
-            exit: () => actual.push('a'),
             initial: 'child_a',
             states: {
-              child_a: {
-                exit: () => actual.push('child_a')
-              }
+              child_a: {}
             }
           },
           b: {
-            exit: () => actual.push('b'),
             initial: 'child_b',
             states: {
               child_b: {
-                exit: () => actual.push('child_b'),
                 on: {
                   EV: {
                     // just a noop action to ensure that a transition is selected when we send an event
@@ -1026,27 +1290,33 @@ describe('entry/exit actions', () => {
         }
       });
 
+      const flushTracked = trackEntries(machine);
+
       const service = interpret(machine).start();
+
       // it's important to send an event here that results in a transition as that computes new `state.configuration`
       // and that could impact the order in which exit actions are called
       service.send({ type: 'EV' });
+      flushTracked();
       service.stop();
 
-      expect(actual).toEqual(['child_b', 'b', 'child_a', 'a', 'root']);
+      expect(flushTracked()).toEqual([
+        'exit: b.child_b',
+        'exit: b',
+        'exit: a.child_a',
+        'exit: a',
+        'exit: __root__'
+      ]);
     });
 
     it('should call exit actions of parallel states in reversed document order when the service gets stopped after multiple regions transition', () => {
-      const actual: string[] = [];
       const machine = createMachine({
-        exit: () => actual.push('root'),
         type: 'parallel',
         states: {
           a: {
-            exit: () => actual.push('a'),
             initial: 'child_a',
             states: {
               child_a: {
-                exit: () => actual.push('child_a'),
                 on: {
                   EV: {
                     // just a noop action to ensure that a transition is selected when we send an event
@@ -1057,11 +1327,9 @@ describe('entry/exit actions', () => {
             }
           },
           b: {
-            exit: () => actual.push('b'),
             initial: 'child_b',
             states: {
               child_b: {
-                exit: () => actual.push('child_b'),
                 on: {
                   EV: {
                     // just a noop action to ensure that a transition is selected when we send an event
@@ -1074,13 +1342,22 @@ describe('entry/exit actions', () => {
         }
       });
 
+      const flushTracked = trackEntries(machine);
+
       const service = interpret(machine).start();
       // it's important to send an event here that results in a transition as that computes new `state.configuration`
       // and that could impact the order in which exit actions are called
       service.send({ type: 'EV' });
+      flushTracked();
       service.stop();
 
-      expect(actual).toEqual(['child_b', 'b', 'child_a', 'a', 'root']);
+      expect(flushTracked()).toEqual([
+        'exit: b.child_b',
+        'exit: b',
+        'exit: a.child_a',
+        'exit: a',
+        'exit: __root__'
+      ]);
     });
 
     it('an exit action executed when an interpreter gets stopped should receive `xstate.stop` event', () => {
@@ -1334,7 +1611,7 @@ describe('entry/exit actions', () => {
         id: 'parent',
         context: {},
         exit: assign({
-          actorRef: (_ctx, _ev, { spawn }) => spawn(grandchild)
+          actorRef: (_ctx: any, _ev: any, { spawn }: any) => spawn(grandchild)
         })
       });
 
@@ -1784,7 +2061,8 @@ describe('purely defined actions', () => {
   type Events =
     | { type: 'SINGLE'; id: number }
     | { type: 'NONE'; id: number }
-    | { type: 'EACH' };
+    | { type: 'EACH' }
+    | { type: 'AS_STRINGS' };
 
   const dynamicMachine = createMachine<Ctx, Events>({
     id: 'dynamic',
@@ -1822,6 +2100,9 @@ describe('purely defined actions', () => {
                 params: { item, index }
               }))
             )
+          },
+          AS_STRINGS: {
+            actions: pure<any, any>(() => ['SOME_ACTION'])
           }
         }
       }
@@ -1873,6 +2154,14 @@ describe('purely defined actions', () => {
         params: { item: { id: 3 }, index: 2 }
       })
     ]);
+  });
+
+  it('should allow for purely defined action type strings', () => {
+    const nextState = dynamicMachine.transition(dynamicMachine.initialState, {
+      type: 'AS_STRINGS'
+    });
+
+    expect(nextState.actions).toEqual([{ type: 'SOME_ACTION', params: {} }]);
   });
 });
 
@@ -1954,7 +2243,7 @@ describe('forwardTo()', () => {
           }),
           on: {
             EVENT: {
-              actions: forwardTo((ctx) => ctx.child)
+              actions: forwardTo((ctx) => ctx.child!)
             },
             SUCCESS: 'last'
           }
@@ -2456,6 +2745,66 @@ describe('sendTo', () => {
         type: 'UNKNOWN'
       })
     });
+  });
+
+  it('should be able to send an event to a named actor', (done) => {
+    const childMachine = createMachine<any, { type: 'EVENT' }>({
+      initial: 'waiting',
+      states: {
+        waiting: {
+          on: {
+            EVENT: {
+              actions: () => done()
+            }
+          }
+        }
+      }
+    });
+
+    const parentMachine = createMachine<{
+      child: ActorRefFrom<typeof childMachine>;
+    }>({
+      context: ({ spawn }) => ({
+        child: spawn(childMachine, 'child')
+      }),
+      // No type-safety for the event yet
+      entry: sendTo('child', { type: 'EVENT' })
+    });
+
+    interpret(parentMachine).start();
+  });
+
+  it('should be able to send an event directly to an ActorRef', (done) => {
+    const childMachine = createMachine<any, { type: 'EVENT' }>({
+      initial: 'waiting',
+      states: {
+        waiting: {
+          on: {
+            EVENT: {
+              actions: () => done()
+            }
+          }
+        }
+      }
+    });
+
+    const parentMachine = createMachine<{
+      child: ActorRefFrom<typeof childMachine>;
+    }>({
+      context: ({ spawn }) => ({
+        child: spawn(childMachine)
+      }),
+      entry: pure<
+        {
+          child: ActorRefFrom<typeof childMachine>;
+        },
+        any
+      >((ctx) => {
+        return [sendTo(ctx.child, { type: 'EVENT' })];
+      })
+    });
+
+    interpret(parentMachine).start();
   });
 });
 

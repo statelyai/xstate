@@ -5,7 +5,7 @@ const testModel = async (
   model: TestModel<any, any>,
   params: TestParam<any, any>
 ) => {
-  for (const path of model.getPaths()) {
+  for (const path of model.getShortestPaths()) {
     await path.test(params);
   }
 };
