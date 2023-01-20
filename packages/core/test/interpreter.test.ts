@@ -1228,12 +1228,14 @@ describe('interpreter', () => {
     });
 
     it('should be able to resolve a custom initialized state', (done) => {
-      const startService = interpret(startMachine).onTransition((state) => {
+      const startService = interpret(
+        startMachine.at(State.from('foo', undefined, startMachine))
+      ).onTransition((state) => {
         expect(state.matches({ foo: 'one' })).toBeTruthy();
         done();
       });
 
-      startService.start(State.from('foo', undefined, startMachine));
+      startService.start();
     });
   });
 

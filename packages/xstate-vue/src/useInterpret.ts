@@ -72,11 +72,14 @@ export function useInterpret<TMachine extends AnyStateMachine>(
     context
   } as any);
 
-  const service = interpret(machineWithConfig, interpreterOptions).start(
-    rehydratedState
-      ? (machineWithConfig.createState(rehydratedState) as any)
-      : undefined
-  );
+  const service = interpret(
+    machineWithConfig.at(
+      rehydratedState
+        ? (machineWithConfig.createState(rehydratedState) as any)
+        : undefined
+    ),
+    interpreterOptions
+  ).start();
 
   let sub;
   onMounted(() => {

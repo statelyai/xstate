@@ -1,5 +1,5 @@
 import { interpret, createMachine, assign } from '../src/index';
-import { State } from '../src/State';
+import { State, getPersistedState } from '../src/State';
 
 const pedestrianStates = {
   initial: 'walk',
@@ -414,14 +414,14 @@ describe('machine', () => {
 
       const nextState = machine.transition(undefined, { type: 'NEXT' });
 
-      const persistedState = JSON.stringify(nextState);
+      const persistedState = getPersistedState(nextState);
 
-      const service = interpret(machine).onDone(() => {
+      const service = interpret(machine.at(persistedState)).onDone(() => {
         // Should reach done state immediately
         done();
       });
 
-      service.start(JSON.parse(persistedState!));
+      service.start();
     });
   });
 

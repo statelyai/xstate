@@ -84,11 +84,15 @@ export function useMachine<TMachine extends AnyStateMachine>(
     delays
   };
 
-  const resolvedMachine = machine.provide(machineConfig as any);
+  const resolvedMachine = machine
+    .provide(machineConfig as any)
+    .at(
+      rehydratedState
+        ? (machine.createState(rehydratedState) as any)
+        : undefined
+    );
 
-  const service = interpret(resolvedMachine, interpreterOptions).start(
-    rehydratedState ? (machine.createState(rehydratedState) as any) : undefined
-  );
+  const service = interpret(resolvedMachine, interpreterOptions).start();
 
   onDestroy(() => service.stop());
 

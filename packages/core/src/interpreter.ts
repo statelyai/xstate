@@ -24,7 +24,6 @@ import {
   Observer,
   SCXML,
   SendActionObject,
-  StateValue,
   Subscription
 } from './types';
 import { toObserver, toSCXMLEvent, warn } from './utils';
@@ -283,13 +282,9 @@ export class Interpreter<
   }
 
   /**
-   * Starts the interpreter from the given state, or the initial state.
-   * @param persistedState The state to start the statechart from
+   * Starts the interpreter from the initial state
    */
-  public start(
-    // TODO: remove this argument
-    persistedState?: InternalStateFrom<TBehavior> | StateValue
-  ): this {
+  public start(): this {
     if (this.status === ActorStatus.Running) {
       // Do not restart the service if it is already started
       return this;
@@ -298,9 +293,7 @@ export class Interpreter<
     registry.register(this.sessionId, this.ref);
     this.status = ActorStatus.Running;
 
-    let resolvedState = persistedState
-      ? this.behavior.restoreState?.(persistedState, this._actorContext)
-      : this._getInitialState() ?? undefined;
+    let resolvedState = this._getInitialState();
 
     if (this.behavior.start) {
       this.behavior.start(resolvedState, this._actorContext);

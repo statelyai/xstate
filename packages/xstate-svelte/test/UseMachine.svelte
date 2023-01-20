@@ -9,11 +9,10 @@
   const onFetch = () =>
     new Promise((res) => setTimeout(() => res('some data'), 50));
 
-  const { state, send } = useMachine(fetchMachine, {
+  const { state, send } = useMachine(fetchMachine.at(persistedState), {
     actors: {
       fetchData: () => fromPromise(onFetch)
-    },
-    state: persistedState
+    }
   });
 </script>
 
