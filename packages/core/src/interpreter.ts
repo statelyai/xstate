@@ -401,11 +401,7 @@ export class Interpreter<
   /**
    * Sends an event to the running interpreter to trigger a transition.
    *
-   * An array of events (batched) can be sent as well, which will send all
-   * batched events to the running interpreter. The listeners will be
-   * notified only **once** when all events are processed.
-   *
-   * @param event The event(s) to send
+   * @param event The event to send
    */
   public send(event: TEvent | SCXML.Event<TEvent>) {
     const _event = toSCXMLEvent(event);

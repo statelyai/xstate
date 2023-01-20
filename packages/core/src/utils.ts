@@ -23,7 +23,6 @@ import type {
   TransitionConfig,
   TransitionConfigTarget
 } from './types';
-import { AnyStateMachine } from './types';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
   return Object.keys(value) as Array<keyof T & string>;
@@ -349,10 +348,6 @@ export function isObservable<T>(value: any): value is Subscribable<T> {
   }
 }
 
-export function isStateMachine(value: any): value is AnyStateMachine {
-  return !!value && '__xstatenode' in value;
-}
-
 export const uniqueId = (() => {
   let currentId = 0;
 
@@ -400,8 +395,7 @@ export function toTransitionConfigArray<
 >(
   event: TEvent['type'] | typeof NULL_EVENT | '*',
   configLike: SingleOrArray<
-    | TransitionConfig<TContext, TEvent>
-    | TransitionConfigTarget<TContext, TEvent>
+    TransitionConfig<TContext, TEvent> | TransitionConfigTarget
   >
 ): Array<
   TransitionConfig<TContext, TEvent> & {
@@ -411,8 +405,7 @@ export function toTransitionConfigArray<
   const transitions = toArrayStrict(configLike).map((transitionLike) => {
     if (
       typeof transitionLike === 'undefined' ||
-      typeof transitionLike === 'string' ||
-      isStateMachine(transitionLike)
+      typeof transitionLike === 'string'
     ) {
       return { target: transitionLike, event };
     }
