@@ -1,6 +1,6 @@
 import { createMachine, interpret, assign, AnyInterpreter } from '../src';
 import { raise, send, sendParent, stop } from '../src/actions';
-import { fromCallback } from '../src/actors';
+import { fromCallback } from '../src/actors/callback';
 
 describe('predictableExec', () => {
   it('should call mixed custom and builtin actions in the definitions order', () => {

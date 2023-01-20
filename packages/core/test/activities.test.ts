@@ -1,4 +1,4 @@
-import { fromCallback } from '../src/actors';
+import { fromCallback } from '../src/actors/callback';
 import { stateIn } from '../src/guards';
 import { interpret, createMachine } from '../src/index';
 

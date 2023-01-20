@@ -1,0 +1,8 @@
+{
+  "main": "dist/xstate-actors-observable.cjs.js",
+  "module": "dist/xstate-actors-observable.esm.js",
+  "umd:main": "dist/xstate-actors-observable.umd.min.js",
+  "preconstruct": {
+    "umdName": "XStateActorsObservable"
+  }
+}

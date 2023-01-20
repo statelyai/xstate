@@ -1,0 +1,8 @@
+{
+  "main": "dist/xstate-actors-reducer.cjs.js",
+  "module": "dist/xstate-actors-reducer.esm.js",
+  "umd:main": "dist/xstate-actors-reducer.umd.min.js",
+  "preconstruct": {
+    "umdName": "XStateActorsReducer"
+  }
+}

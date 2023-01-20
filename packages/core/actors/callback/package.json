@@ -1,0 +1,8 @@
+{
+  "main": "dist/xstate-actors-callback.cjs.js",
+  "module": "dist/xstate-actors-callback.esm.js",
+  "umd:main": "dist/xstate-actors-callback.umd.min.js",
+  "preconstruct": {
+    "umdName": "XStateActorsCallback"
+  }
+}
