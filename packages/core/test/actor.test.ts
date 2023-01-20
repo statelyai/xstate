@@ -18,7 +18,7 @@ import {
 } from '../src/actions';
 import { raise } from '../src/actions/raise';
 import { assign } from '../src/actions/assign';
-import { send } from '../src/actions/send';
+import { send, sendTo } from '../src/actions/send';
 import { EMPTY, interval } from 'rxjs';
 import { fromReducer } from '../src/actors/reducer';
 import { fromObservable, fromEventObservable } from '../src/actors/observable';
@@ -335,7 +335,7 @@ describe('spawning callbacks', () => {
           }),
           on: {
             START_CB: {
-              actions: send({ type: 'START' }, { to: (ctx) => ctx.callbackRef })
+              actions: sendTo((ctx) => ctx.callbackRef!, { type: 'START' })
             },
             SEND_BACK: 'success'
           }
@@ -378,7 +378,7 @@ describe('spawning observables', () => {
           on: {
             'xstate.snapshot.int': {
               target: 'success',
-              guard: (_: any, e: any) => e.data === 5
+              guard: (_, e) => e.data === 5
             }
           }
         },
@@ -411,7 +411,7 @@ describe('spawning observables', () => {
             on: {
               'xstate.snapshot.int': {
                 target: 'success',
-                guard: (_: any, e: any) => e.data === 5
+                guard: (_, e) => e.data === 5
               }
             }
           },
@@ -596,10 +596,7 @@ describe('communicating with spawned actors', () => {
           },
           after: {
             100: {
-              actions: send(
-                { type: 'ACTIVATE' },
-                { to: (ctx) => ctx.existingRef }
-              )
+              actions: sendTo((ctx) => ctx.existingRef!, { type: 'ACTIVATE' })
             }
           }
         },

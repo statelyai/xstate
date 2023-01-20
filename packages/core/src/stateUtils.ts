@@ -1468,10 +1468,6 @@ function exitStates(
     historyValue
   );
 
-  for (const sn of statesToExit) {
-    actions.push(...sn.invoke.map((def) => stop(def.id)));
-  }
-
   statesToExit.sort((a, b) => b.order - a.order);
 
   // From SCXML algorithm: https://www.w3.org/TR/scxml/#exitStates
@@ -1493,7 +1489,7 @@ function exitStates(
   }
 
   for (const s of statesToExit) {
-    actions.push(...s.exit.flat());
+    actions.push(...s.exit.flat(), ...s.invoke.map((def) => stop(def.id)));
     mutConfiguration.delete(s);
   }
 }

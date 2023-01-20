@@ -538,17 +538,17 @@ export interface InvokeConfig<
    */
   onDone?:
     | string
-    | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
+    | SingleOrArray<TransitionConfigOrTarget<TContext, DoneInvokeEvent<any>>>;
   /**
    * The transition to take upon the invoked child machine sending an error event.
    */
   onError?:
     | string
-    | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
+    | SingleOrArray<TransitionConfigOrTarget<TContext, DoneInvokeEvent<any>>>;
 
   onSnapshot?:
     | string
-    | SingleOrArray<TransitionConfig<TContext, SnapshotEvent<any>>>;
+    | SingleOrArray<TransitionConfigOrTarget<TContext, SnapshotEvent<any>>>;
   /**
    * Meta data related to this invocation
    */
@@ -1240,8 +1240,8 @@ export interface SendActionOptions<
   delay?: number | string | DelayExpr<TContext, TEvent>;
   to?:
     | string
-    | ExprWithMeta<TContext, TEvent, string | ActorRef<any> | undefined>
-    | undefined;
+    | ActorRef<any, any>
+    | ExprWithMeta<TContext, TEvent, string | ActorRef<any, any>>;
 }
 
 export interface SendActionParams<
@@ -1346,7 +1346,7 @@ export interface DynamicPureActionObject<
     get: (
       context: TContext,
       event: TEvent
-    ) => SingleOrArray<BaseActionObject> | undefined;
+    ) => SingleOrArray<BaseActionObject | BaseActionObject['type']> | undefined;
   };
 }
 

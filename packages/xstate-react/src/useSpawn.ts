@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { ActorRef, Behavior, EventObject, interpret } from 'xstate';
+import { ActorRef, ActorBehavior, EventObject, interpret } from 'xstate';
 import useConstant from './useConstant';
 
 /**
@@ -10,7 +10,7 @@ import useConstant from './useConstant';
  * @returns An ActorRef with the specified `behavior`
  */
 export function useSpawn<TState, TEvent extends EventObject>(
-  behavior: Behavior<TEvent, TState>
+  behavior: ActorBehavior<TEvent, TState>
 ): ActorRef<TEvent, TState> {
   const actorRef = useConstant(() => {
     // TODO: figure out what to do about the name argument

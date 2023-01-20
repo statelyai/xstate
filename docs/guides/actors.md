@@ -73,7 +73,7 @@ Alternatively `spawn` accepts an options object as the second argument which may
 
 - `name` (optional) - a string uniquely identifying the actor. This should be unique for all spawned actors and invoked services.
 - `autoForward` - (optional) `true` if all events sent to this machine should also be sent (or _forwarded_) to the invoked child (`false` by default)
-- `sync` - (optional) `true` if this machine should be automatically subscribed to the spawned child machine's state, the state will be stored as `.state` on the child machine ref
+- `sync` - (optional) `true` if this machine should be automatically subscribed to the spawned child machine's state, the state can be retrieved from `.getSnapshot()` on the child machine ref
 
 ```js {13-14}
 import { createMachine, spawn } from 'xstate';
@@ -207,9 +207,7 @@ Just like [invoking promises](./communication.md#invoking-promises), promises ca
 ```js {11}
 // Returns a promise
 const fetchData = (query) => {
-  return fetch(`http://example.com?query=${event.query}`).then((data) =>
-    data.json()
-  );
+  return fetch(`http://example.com?query=${query}`).then((data) => data.json());
 };
 
 // ...
@@ -385,20 +383,8 @@ someService.onTransition((state) => {
 });
 ```
 
-```js
-someService.onTransition((state) => {
-  const { someRef } = state.context;
-
-  console.log(someRef.state);
-  // => State {
-  //   value: ...,
-  //   context: ...
-  // }
-});
-```
-
 ::: warning
-By default, `sync` is set to `false`. Never read an actor's `.state` when `sync` is disabled; otherwise, you will end up referencing stale state.
+By default, `sync` is set to `false`. Never read an actor's state from `.getSnapshot()` when `sync` is disabled; otherwise, you will end up referencing stale state.
 :::
 
 ## Sending Updates <Badge text="4.7+" />

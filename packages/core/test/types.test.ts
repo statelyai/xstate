@@ -1,5 +1,6 @@
 import { from } from 'rxjs';
 import { raise } from '../src/actions/raise';
+import { fromPromise } from '../src/actors';
 import {
   ActorRefFrom,
   assign,
@@ -478,5 +479,55 @@ describe('spawn', () => {
     createParent({
       spawnChild: (spawn: Spawner) => spawn(createChild())
     });
+  });
+});
+
+describe('service-targets', () => {
+  it('should work with a service that uses strings for both targets', () => {
+    const machine = createMachine({
+      invoke: {
+        src: fromPromise(() => new Promise((resolve) => resolve(1))),
+        onDone: ['a', 'b']
+      },
+      initial: 'a',
+      states: {
+        a: {},
+        b: {}
+      }
+    });
+    noop(machine);
+    expect(true).toBeTruthy();
+  });
+
+  it('should work with a service that uses TransitionConfigs for both targets', () => {
+    const machine = createMachine({
+      invoke: {
+        src: fromPromise(() => new Promise((resolve) => resolve(1))),
+        onDone: [{ target: 'a' }, { target: 'b' }]
+      },
+      initial: 'a',
+      states: {
+        a: {},
+        b: {}
+      }
+    });
+    noop(machine);
+    expect(true).toBeTruthy();
+  });
+
+  it('should work with a service that uses a string for one target and a TransitionConfig for another', () => {
+    const machine = createMachine({
+      invoke: {
+        src: fromPromise(() => new Promise((resolve) => resolve(1))),
+        onDone: [{ target: 'a' }, 'b']
+      },
+      initial: 'a',
+      states: {
+        a: {},
+        b: {}
+      }
+    });
+    noop(machine);
+    expect(true).toBeTruthy();
   });
 });
