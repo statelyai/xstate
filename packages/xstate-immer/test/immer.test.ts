@@ -1,5 +1,5 @@
 import { createMachine, interpret } from 'xstate';
-import { assign, createUpdater, ImmerUpdateEvent } from '../src';
+import { assign, createUpdater, ImmerUpdateEvent } from '../src/index.js';
 
 describe('@xstate/immer', () => {
   it('should update the context without modifying previous contexts', () => {

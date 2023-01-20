@@ -14,7 +14,7 @@ import {
   StateFrom
 } from 'xstate';
 import { fromCallback, fromPromise } from 'xstate/actors';
-import { useActor, useMachine } from '../src';
+import { useActor, useMachine } from '../src/index.js';
 import { describeEachReactMode } from './utils';
 
 afterEach(() => {

@@ -14,9 +14,9 @@ import {
   StateFrom,
   toObserver
 } from 'xstate';
-import { MaybeLazy } from './types';
-import useConstant from './useConstant';
-import { UseMachineOptions } from './useMachine';
+import { MaybeLazy } from './types.js';
+import useConstant from './useConstant.js';
+import { UseMachineOptions } from './useMachine.js';
 
 export function useIdleInterpreter(
   getMachine: MaybeLazy<AnyStateMachine>,

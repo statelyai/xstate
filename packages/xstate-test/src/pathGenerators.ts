@@ -1,6 +1,6 @@
 import { getShortestPaths, getSimplePaths } from '@xstate/graph';
 import { EventObject } from 'xstate';
-import { PathGenerator } from './types';
+import { PathGenerator } from './types.js';
 
 export const createShortestPathsGen = <
   TState,

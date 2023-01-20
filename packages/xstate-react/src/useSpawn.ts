@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { ActorRef, Behavior, EventObject, interpret } from 'xstate';
-import useConstant from './useConstant';
+import useConstant from './useConstant.js';
 
 /**
  * React hook that spawns an `ActorRef` with the specified `behavior`.

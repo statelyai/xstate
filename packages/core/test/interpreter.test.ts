@@ -11,7 +11,7 @@ import {
   AnyEventObject,
   createMachine,
   AnyState
-} from '../src';
+} from '../src/index.js';
 import { State } from '../src/State';
 import { raise } from '../src/actions/raise';
 import { stop } from '../src/actions/stop';

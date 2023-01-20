@@ -1,14 +1,14 @@
-export type { AdjacencyMap, AdjacencyValue } from './graph';
+export type { AdjacencyMap, AdjacencyValue } from './graph.js';
 export {
   getStateNodes,
   serializeEvent,
   serializeMachineState as serializeState,
   toDirectedGraph,
   joinPaths
-} from './graph';
-export { getMachineSimplePaths, getSimplePaths } from './simplePaths';
-export { getShortestPaths, getMachineShortestPaths } from './shortestPaths';
-export { getPathsFromEvents } from './pathFromEvents';
-export { getAdjacencyMap } from './adjacency';
+} from './graph.js';
+export { getMachineSimplePaths, getSimplePaths } from './simplePaths.js';
+export { getShortestPaths, getMachineShortestPaths } from './shortestPaths.js';
+export { getPathsFromEvents } from './pathFromEvents.js';
+export { getAdjacencyMap } from './adjacency.js';
 
-export * from './types';
+export * from './types.js';

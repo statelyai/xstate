@@ -8,7 +8,7 @@ import {
   IsAny,
   ActorMap,
   Cast
-} from './types';
+} from './types.js';
 
 export interface TypegenDisabled {
   '@@xstate/typegen': false;

@@ -3,7 +3,7 @@ import {
   SingleOrArray,
   MachineContext,
   BaseActionObject
-} from './types';
+} from './types.js';
 
 export function each<
   TContext extends MachineContext,

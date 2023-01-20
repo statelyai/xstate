@@ -29,5 +29,6 @@ module.exports = {
     'jest-watch-typeahead/filename',
     'jest-watch-typeahead/testname'
   ],
-  testEnvironment: 'jsdom'
+  testEnvironment: 'jsdom',
+  resolver: 'jest-ts-webcompat-resolver'
 };

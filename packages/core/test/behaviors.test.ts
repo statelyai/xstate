@@ -1,6 +1,6 @@
 import { EMPTY, interval, of, throwError } from 'rxjs';
 import { take } from 'rxjs/operators';
-import { interpret } from '../src';
+import { interpret } from '../src/index.js';
 import { fromObservable, fromPromise, fromReducer } from '../src/actors';
 import { waitFor } from '../src/waitFor';
 

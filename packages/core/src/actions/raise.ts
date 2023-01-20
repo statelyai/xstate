@@ -1,8 +1,8 @@
-import { EventObject, RaiseActionObject } from '../types';
-import * as actionTypes from '../actionTypes';
-import { toSCXMLEvent } from '../utils';
-import { createDynamicAction } from '../../actions/dynamicAction';
-import { BaseDynamicActionObject } from '..';
+import { EventObject, RaiseActionObject } from '../types.js';
+import * as actionTypes from '../actionTypes.js';
+import { toSCXMLEvent } from '../utils.js';
+import { createDynamicAction } from '../../actions/dynamicAction.js';
+import { BaseDynamicActionObject } from '../index.js';
 
 /**
  * Raises an event. This places the event in the internal event queue, so that

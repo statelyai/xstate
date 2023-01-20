@@ -3,10 +3,10 @@ import {
   LogExpr,
   MachineContext,
   LogActionObject
-} from '../types';
-import { log as logActionType } from '../actionTypes';
-import { createDynamicAction } from '../../actions/dynamicAction';
-import { BaseDynamicActionObject, DynamicLogAction } from '..';
+} from '../types.js';
+import { log as logActionType } from '../actionTypes.js';
+import { createDynamicAction } from '../../actions/dynamicAction.js';
+import { BaseDynamicActionObject, DynamicLogAction } from '../index.js';
 
 const defaultLogExpr = <TContext, TEvent extends EventObject>(
   context: TContext,

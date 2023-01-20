@@ -3,7 +3,7 @@ import {
   StatesConfig,
   EventObject,
   StateNodeConfig
-} from './types';
+} from './types.js';
 
 export function toggle<TEventType extends string = string>(
   onState: string,

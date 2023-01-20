@@ -12,23 +12,22 @@
 import { ActorRef } from 'xstate';
 import { defineComponent, shallowRef } from 'vue';
 
-import { useActor } from '../src';
+import { useActor } from '../src/index.js';
 import { interpret } from 'xstate/src';
 
-const createSimpleActor = (
-  value: number
-): ActorRef<any, number> => interpret({
-  transition: s => s,
-  getSnapshot: () => value,
-  getInitialState: () => value,
-  subscribe: () => {
-    return {
-      unsubscribe: () => {
-        /* ... */
-      }
-    };
-  }
-});
+const createSimpleActor = (value: number): ActorRef<any, number> =>
+  interpret({
+    transition: (s) => s,
+    getSnapshot: () => value,
+    getInitialState: () => value,
+    subscribe: () => {
+      return {
+        unsubscribe: () => {
+          /* ... */
+        }
+      };
+    }
+  });
 
 export default defineComponent({
   setup() {

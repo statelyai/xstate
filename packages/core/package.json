@@ -39,8 +39,7 @@
     "actions",
     "invoke",
     "guards",
-    "dev",
-    "model"
+    "dev"
   ],
   "keywords": [
     "statechart",

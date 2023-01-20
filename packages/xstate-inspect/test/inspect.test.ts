@@ -1,5 +1,5 @@
 import { assign, createMachine, interpret } from 'xstate';
-import { createDevTools, inspect } from '../src';
+import { createDevTools, inspect } from '../src/index.js';
 
 // mute the warning about this not being implemented by jsdom
 window.open = () => null;

@@ -1,4 +1,9 @@
-import { assign, interpret, MachineContext, StateMachine } from '../src';
+import {
+  assign,
+  interpret,
+  MachineContext,
+  StateMachine
+} from '../src/index.js';
 import { fromCallback, fromPromise } from '../src/actors';
 import { createMachine } from '../src/Machine';
 import { TypegenMeta } from '../src/typegenTypes';

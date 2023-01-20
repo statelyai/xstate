@@ -10,7 +10,7 @@ import {
   Behavior,
   SpecialTargets,
   toSCXMLEvent
-} from '../src';
+} from '../src/index.js';
 import {
   fromCallback,
   fromEventObservable,

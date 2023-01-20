@@ -1,4 +1,4 @@
-import { interpret, createMachine } from '../src';
+import { interpret, createMachine } from '../src/index.js';
 
 const config = {
   initial: 'a',
