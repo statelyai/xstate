@@ -16,7 +16,8 @@ import {
   TypegenConstraint,
   TypegenDisabled,
   ExtractEvent,
-  MachineImplementations
+  MachineImplementations,
+  MachineContext
 } from 'xstate';
 
 export type GetPathsOptions<TState, TEvent extends EventObject> = Partial<
@@ -26,7 +27,7 @@ export type GetPathsOptions<TState, TEvent extends EventObject> = Partial<
 >;
 
 export interface TestMachineConfig<
-  TContext,
+  TContext extends MachineContext,
   TEvent extends EventObject,
   TTypesMeta = TypegenDisabled
 > extends TestStateNodeConfig<TContext, TEvent> {
@@ -35,8 +36,10 @@ export interface TestMachineConfig<
   tsTypes?: TTypesMeta;
 }
 
-export interface TestStateNodeConfig<TContext, TEvent extends EventObject>
-  extends Pick<
+export interface TestStateNodeConfig<
+  TContext extends MachineContext,
+  TEvent extends EventObject
+> extends Pick<
     StateNodeConfig<TContext, TEvent>,
     | 'type'
     | 'history'
@@ -56,7 +59,7 @@ export interface TestStateNodeConfig<TContext, TEvent extends EventObject>
 }
 
 export type TestMachineOptions<
-  TContext,
+  TContext extends MachineContext,
   TEvent extends EventObject,
   TTypesMeta extends TypegenConstraint = TypegenDisabled
 > = Partial<
@@ -72,7 +75,7 @@ export type TestMachineOptions<
   >
 >;
 
-export interface TestMeta<T, TContext> {
+export interface TestMeta<T, TContext extends MachineContext> {
   test?: (testContext: T, state: State<TContext, any>) => Promise<void> | void;
   description?: string | ((state: State<TContext, any>) => string);
   skip?: boolean;
@@ -126,10 +129,6 @@ export type EventExecutor<TState, TEvent extends EventObject> = (
 
 export interface TestModelOptions<TState, TEvent extends EventObject>
   extends TraversalOptions<TState, TEvent> {
-  /**
-   * Executes actions based on the `state` after the state is tested.
-   */
-  execute: (state: TState) => void;
   stateMatcher: (state: TState, stateKey: string) => boolean;
   logger: {
     log: (msg: string) => void;
@@ -143,7 +142,7 @@ export interface TestModelOptions<TState, TEvent extends EventObject>
 }
 
 export interface TestTransitionConfig<
-  TContext,
+  TContext extends MachineContext,
   TEvent extends EventObject,
   TTestContext
 > extends TransitionConfig<TContext, TEvent> {
@@ -151,7 +150,7 @@ export interface TestTransitionConfig<
 }
 
 export type TestTransitionsConfigMap<
-  TContext,
+  TContext extends MachineContext,
   TEvent extends EventObject,
   TTestContext
 > = {
