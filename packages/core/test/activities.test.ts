@@ -3,8 +3,8 @@ import { interpret, createMachine, assign } from '../src/index';
 
 // TODO: remove this file but before doing that ensure that things tested here are covered by other tests
 
-describe('activities', () => {
-  it('identifies initial root activities', () => {
+describe('invocations (activities)', () => {
+  it('identifies initial root invocations', () => {
     let active = false;
     const machine = createMachine({
       invoke: {
@@ -18,7 +18,7 @@ describe('activities', () => {
     expect(active).toBe(true);
   });
 
-  it('identifies initial activities', () => {
+  it('identifies initial invocations', () => {
     let active = false;
     const machine = createMachine({
       initial: 'a',
@@ -37,7 +37,7 @@ describe('activities', () => {
     expect(active).toBe(true);
   });
 
-  it('identifies initial deep activities', () => {
+  it('identifies initial deep invocations', () => {
     let active = false;
     const machine = createMachine({
       initial: 'a',
@@ -61,7 +61,7 @@ describe('activities', () => {
     expect(active).toBe(true);
   });
 
-  it('identifies start activities', () => {
+  it('identifies start invocations', () => {
     let active = false;
     const machine = createMachine({
       initial: 'a',
@@ -88,7 +88,7 @@ describe('activities', () => {
     expect(active).toBe(true);
   });
 
-  it('identifies start activities for child states and active activities', () => {
+  it('identifies start invocations for child states and active invocations', () => {
     let active = false;
     const machine = createMachine({
       initial: 'a',
@@ -126,7 +126,7 @@ describe('activities', () => {
     expect(active).toBe(true);
   });
 
-  it('identifies stop activities for child states', () => {
+  it('identifies stop invocations for child states', () => {
     let active = false;
     const machine = createMachine({
       initial: 'a',
@@ -169,7 +169,7 @@ describe('activities', () => {
     expect(active).toBe(false);
   });
 
-  it('identifies multiple stop activities for child and parent states', () => {
+  it('identifies multiple stop invocations for child and parent states', () => {
     let active1 = false;
     let active2 = false;
 
@@ -244,7 +244,7 @@ describe('activities', () => {
     expect(active).toBe(true);
   });
 
-  it('should remember the activities even after an ignored event', () => {
+  it('should remember the invocations even after an ignored event', () => {
     let cleanupSpy = jest.fn();
     let active = false;
     const machine = createMachine({
@@ -277,7 +277,7 @@ describe('activities', () => {
     expect(cleanupSpy).not.toBeCalled();
   });
 
-  it('should remember the activities when transitioning within the invoking state', () => {
+  it('should remember the invocations when transitioning within the invoking state', () => {
     let cleanupSpy = jest.fn();
     let active = false;
     const machine = createMachine({
