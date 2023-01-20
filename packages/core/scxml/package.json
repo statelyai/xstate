@@ -1,8 +1,0 @@
-{
-  "main": "dist/xstate-scxml.cjs.js",
-  "module": "dist/xstate-scxml.esm.js",
-  "umd:main": "dist/xstate-scxml.umd.min.js",
-  "preconstruct": {
-    "umdName": "XStateSCXML"
-  }
-}
