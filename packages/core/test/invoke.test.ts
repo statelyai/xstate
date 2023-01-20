@@ -816,6 +816,34 @@ describe('invoke', () => {
       done();
     });
 
+    it('should stop a child actor when reaching a final state', () => {
+      let actorStopped = false;
+
+      const machine = createMachine({
+        id: 'machine',
+        invoke: {
+          src: () => fromCallback(() => () => (actorStopped = true))
+        },
+        initial: 'running',
+        states: {
+          running: {
+            on: {
+              finished: 'complete'
+            }
+          },
+          complete: { type: 'final' }
+        }
+      });
+
+      const service = interpret(machine).start();
+
+      service.send({
+        type: 'finished'
+      });
+
+      expect(actorStopped).toBe(true);
+    });
+
     it('child should not invoke an actor when it transitions to an invoking state when it gets stopped by its parent', (done) => {
       let invokeCount = 0;
 

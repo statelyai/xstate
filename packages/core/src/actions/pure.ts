@@ -8,6 +8,7 @@ import {
   PureActionObject
 } from '..';
 import { toArray } from '../utils';
+import { toActionObjects } from '../actions';
 
 export function pure<
   TContext extends MachineContext,
@@ -16,7 +17,7 @@ export function pure<
   getActions: (
     context: TContext,
     event: TEvent
-  ) => SingleOrArray<BaseActionObject> | undefined
+  ) => SingleOrArray<BaseActionObject | string> | undefined
 ): BaseDynamicActionObject<
   TContext,
   TEvent,
@@ -36,7 +37,10 @@ export function pure<
         {
           type: pureActionType,
           params: {
-            actions: toArray(getActions(state.context, _event.data)) ?? []
+            actions:
+              toArray(
+                toActionObjects(getActions(state.context, _event.data))
+              ) ?? []
           }
         }
       ];
