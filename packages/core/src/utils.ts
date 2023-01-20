@@ -5,7 +5,7 @@ import { IS_PRODUCTION } from './environment';
 import type { StateNode } from './StateNode';
 import type {
   ActorBehavior,
-  BehaviorCreator,
+  ActorBehaviorCreator,
   EventObject,
   EventType,
   InvokeConfig,
@@ -466,7 +466,7 @@ export function toInvokeConfig<
   invocable:
     | InvokeConfig<TContext, TEvent>
     | string
-    | BehaviorCreator<TContext, TEvent>
+    | ActorBehaviorCreator<TContext, TEvent>
     | ActorBehavior<any, any>,
   id: string
 ): InvokeConfig<TContext, TEvent> {

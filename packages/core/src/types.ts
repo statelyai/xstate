@@ -344,10 +344,10 @@ export type InvokeCallback<
   onReceive: Receiver<TEvent>
 ) => (() => void) | Promise<any> | void;
 
-export type BehaviorCreator<
+export type ActorBehaviorCreator<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TSnapshot = any
+  TActorBehavior extends AnyActorBehavior = AnyActorBehavior
 > = (
   context: TContext,
   event: TEvent,
@@ -358,7 +358,7 @@ export type BehaviorCreator<
     _event: SCXML.Event<TEvent>;
     meta: MetaObject | undefined;
   }
-) => ActorBehavior<any, TSnapshot>;
+) => TActorBehavior;
 
 export interface InvokeMeta {
   data: any;
@@ -518,7 +518,7 @@ export interface InvokeConfig<
   src:
     | string
     | InvokeSourceDefinition
-    | BehaviorCreator<TContext, TEvent>
+    | ActorBehaviorCreator<TContext, TEvent>
     | ActorBehavior<any, any>; // TODO: fix types
   /**
    * If `true`, events sent to the parent service will be forwarded to the invoked service.
@@ -591,7 +591,9 @@ export interface StateNodeConfig<
    * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
    */
   invoke?: SingleOrArray<
-    string | BehaviorCreator<TContext, TEvent> | InvokeConfig<TContext, TEvent>
+    | string
+    | ActorBehaviorCreator<TContext, TEvent>
+    | InvokeConfig<TContext, TEvent>
   >;
   /**
    * The mapping of event types to their potential transition(s).
@@ -776,7 +778,10 @@ export interface MachineImplementationsSimplified<
 > {
   guards: Record<string, GuardPredicate<TContext, TEvent>>;
   actions: ActionFunctionMap<TContext, TEvent, TAction>;
-  actors: Record<string, BehaviorCreator<TContext, TEvent> | AnyBehavior>;
+  actors: Record<
+    string,
+    ActorBehaviorCreator<TContext, TEvent> | AnyActorBehavior
+  >;
   delays: DelayFunctionMap<TContext, TEvent>;
   context: Partial<TContext> | ContextFactory<Partial<TContext>>;
 }
@@ -849,14 +854,14 @@ type MachineImplementationsActors<
   >
 > = {
   [K in keyof TEventsCausingActors]?:
-    | BehaviorCreator<
+    | ActorBehaviorCreator<
         TContext,
         Cast<Prop<TIndexedEvents, TEventsCausingActors[K]>, EventObject>
         // Prop<Prop<TIndexedEvents, Prop<TInvokeSrcNameMap, K>>, 'data'>,
         // EventObject,
         // Cast<TIndexedEvents[keyof TIndexedEvents], EventObject> // it would make sense to pass `TEvent` around to use it here directly
       >
-    | AnyBehavior;
+    | AnyActorBehavior;
 };
 
 type MakeKeysRequired<T extends string> = { [K in T]: unknown };
@@ -1831,7 +1836,7 @@ export interface ActorBehavior<
   ) => TInternalState;
 }
 
-export type AnyBehavior = ActorBehavior<any, any, any>;
+export type AnyActorBehavior = ActorBehavior<any, any, any>;
 
 export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends ActorRef<infer _, infer TSnapshot>
