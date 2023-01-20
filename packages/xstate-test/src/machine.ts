@@ -6,7 +6,6 @@ import {
   createMachine,
   EventFrom,
   EventObject,
-  MachineContext,
   StateFrom,
   TypegenConstraint,
   TypegenDisabled,
