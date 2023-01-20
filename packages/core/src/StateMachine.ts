@@ -1,12 +1,7 @@
 import { initEvent } from './actions';
 import { STATE_DELIMITER } from './constants';
 import { createSpawner } from './spawn';
-import {
-  getPersistedState,
-  isStateConfig,
-  PersistedMachineState,
-  State
-} from './State';
+import { getPersistedState, isStateConfig, State } from './State';
 import { StateNode } from './StateNode';
 import { interpret } from './interpreter';
 import {
@@ -48,7 +43,8 @@ import type {
   StateConfig,
   StateMachineDefinition,
   StateValue,
-  TransitionDefinition
+  TransitionDefinition,
+  PersistedMachineState
 } from './types';
 import { isFunction, isSCXMLErrorEvent, toSCXMLEvent } from './utils';
 import { invoke } from './actions/invoke';
@@ -508,7 +504,9 @@ export class StateMachine<
 
       state.children = restoredChildren;
 
-      restoredState = this.createState(new State(state, this));
+      restoredState = this.createState(
+        new State((state as unknown) as StateConfig<TContext, TEvent>, this)
+      );
     } else {
       restoredState = this.createState(state);
     }

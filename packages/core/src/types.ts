@@ -1,5 +1,5 @@
 import type { StateNode } from './StateNode';
-import type { PersistedMachineState, State } from './State';
+import type { State } from './State';
 import type { ActorStatus, Clock, Interpreter } from './interpreter';
 import type { StateMachine } from './StateMachine';
 import type { LifecycleSignal } from './actors';
@@ -1929,3 +1929,11 @@ export type StateValueFrom<TMachine extends AnyStateMachine> = Parameters<
 export type StateFromMachine<
   TMachine extends AnyStateMachine
 > = TMachine['initialState'];
+
+export interface PersistedMachineState<TState extends AnyState> {
+  [key: string]: any;
+  children: {
+    [key in keyof TState['children']]: any;
+  };
+  persisted: true;
+}

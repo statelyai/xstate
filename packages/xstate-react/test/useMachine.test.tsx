@@ -4,19 +4,18 @@ import { useState } from 'react';
 import {
   ActorRef,
   ActorRefFrom,
-  AnyState,
   assign,
   createMachine,
   DoneEventObject,
   doneInvoke,
   Interpreter,
+  PersistedMachineState,
   send,
   StateFrom
 } from 'xstate';
 import { fromCallback, fromPromise } from 'xstate/actors';
 import { useActor, useMachine } from '../src';
 import { describeEachReactMode } from './utils';
-import { PersistedMachineState } from 'xstate/dist/declarations/src/State';
 
 afterEach(() => {
   jest.useRealTimers();
@@ -61,7 +60,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     data: 'persisted data'
   });
 
-  const persistedSuccessFetchState = fetchMachine.getPersisted(
+  const persistedSuccessFetchState = fetchMachine.getPersistedState(
     successFetchState
   );
 

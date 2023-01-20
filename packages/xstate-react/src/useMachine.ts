@@ -64,9 +64,6 @@ type UseMachineReturn<
   TInterpreter = InterpreterFrom<TMachine>
 > = [StateFrom<TMachine>, Prop<TInterpreter, 'send'>, TInterpreter];
 
-// TODO: rethink how we can do this better
-const cachedRehydratedStates = new WeakMap();
-
 export function useMachine<TMachine extends AnyStateMachine>(
   getMachine: MaybeLazy<TMachine>,
   ...[options = {}]: RestParams<TMachine>

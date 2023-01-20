@@ -23,7 +23,7 @@ import { ActorStatus } from './interpreter';
  * @param initialState The initial state of the reducer.
  * @returns An actor behavior
  */
-export function fromReducer<TState, TEvent extends EventObject>(
+export function fromReducer<TState extends {}, TEvent extends EventObject>(
   transition: (
     state: TState,
     event: TEvent,
@@ -31,7 +31,10 @@ export function fromReducer<TState, TEvent extends EventObject>(
   ) => TState,
   initialState: TState
 ): WithRequired<Behavior<TEvent, TState, TState>, 'at'> {
-  const behavior = {
+  const behavior: WithRequired<
+    Behavior<TEvent, TState, TState, TState>,
+    'at'
+  > = {
     transition: (state, event, actorCtx) => {
       // @ts-ignore TODO
       const resolvedEvent = isSCXMLEvent(event) ? event.data : event;
@@ -40,7 +43,7 @@ export function fromReducer<TState, TEvent extends EventObject>(
     },
     getInitialState: () => initialState,
     getSnapshot: (state) => state,
-    getPersisted: (state) => state,
+    getPersistedState: (state) => state,
     restoreState: (state) => state,
     at: (state) => ({
       ...behavior,
@@ -91,7 +94,7 @@ export function fromCallback<TEvent extends EventObject>(
   invokeCallback: InvokeCallback
 ): Behavior<TEvent, undefined> {
   const behavior: Behavior<TEvent, undefined, CallbackInternalState> = {
-    start: (state, actorCtx) => {
+    start: (_state, actorCtx) => {
       actorCtx.self.send({ type: startSignalType } as TEvent);
 
       return behavior.getInitialState(actorCtx);
@@ -196,7 +199,19 @@ export function fromPromise<T>(
 
   // TODO: add event types
   const behavior: WithRequired<
-    Behavior<{ type: string }, T | undefined, PromiseInternalState<T>>,
+    Behavior<
+      | { type: string }
+      | {
+          type: typeof resolveEventType;
+          data: T;
+        }
+      | {
+          type: typeof rejectEventType;
+          data: any;
+        },
+      T | undefined,
+      PromiseInternalState<T>
+    >,
     'at'
   > = {
     transition: (state, event) => {

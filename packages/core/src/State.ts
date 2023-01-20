@@ -12,6 +12,7 @@ import type {
   EventObject,
   HistoryValue,
   MachineContext,
+  PersistedMachineState,
   Prop,
   SCXML,
   StateConfig,
@@ -277,14 +278,6 @@ export function cloneState<TState extends AnyState>(
     { ...state, ...config } as StateConfig<any, any>,
     state.machine
   ) as TState;
-}
-
-export interface PersistedMachineState<TState extends AnyState> {
-  [key: string]: any;
-  children: {
-    [key in keyof TState['children']]: any;
-  };
-  persisted: true;
 }
 
 export function getPersistedState<TState extends AnyState>(
