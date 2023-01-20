@@ -1713,7 +1713,7 @@ export interface ActorRef<TEvent extends EventObject, TSnapshot = any>
   // TODO: should this be optional?
   start?: () => void;
   getSnapshot: () => TSnapshot | undefined;
-  getPersisted?: () => any;
+  getPersistedState?: () => any;
   stop?: () => void;
   toJSON?: () => any;
   // TODO: figure out how to hide this externally as `sendTo(ctx => ctx.actorRef._parent._parent._parent._parent)` shouldn't be allowed
@@ -1840,7 +1840,7 @@ export interface Behavior<
   /**
    * @returns Persisted state as JSON
    */
-  getPersisted?: (state: TInternalState) => TPersisted;
+  getPersistedState?: (state: TInternalState) => TPersisted;
 }
 
 export type AnyBehavior = Behavior<any, any, any, any>;

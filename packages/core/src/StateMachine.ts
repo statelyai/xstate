@@ -2,7 +2,7 @@ import { initEvent } from './actions';
 import { STATE_DELIMITER } from './constants';
 import { createSpawner } from './spawn';
 import {
-  getPersisted,
+  getPersistedState,
   isStateConfig,
   PersistedMachineState,
   State
@@ -428,10 +428,10 @@ export class StateMachine<
     return this.definition;
   }
 
-  public getPersisted(
+  public getPersistedState(
     state: State<TContext, TEvent, TResolvedTypesMeta>
   ): PersistedMachineState<State<TContext, TEvent, TResolvedTypesMeta>> {
-    return getPersisted(state);
+    return getPersistedState(state);
   }
 
   public createState(
@@ -452,6 +452,11 @@ export class StateMachine<
     return resolvedState as State<TContext, TEvent, TResolvedTypesMeta>;
   }
 
+  /**
+   * Creates a new machine from this machine where the initial state is at the specified `state`.
+   *
+   * @param state The state to resolve the initial state from
+   */
   public at(
     state?:
       | State<TContext, TEvent, TResolvedTypesMeta>

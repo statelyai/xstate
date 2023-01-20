@@ -287,7 +287,7 @@ export interface PersistedMachineState<TState extends AnyState> {
   persisted: true;
 }
 
-export function getPersisted<TState extends AnyState>(
+export function getPersistedState<TState extends AnyState>(
   state: TState
 ): PersistedMachineState<TState> {
   const {
@@ -302,7 +302,7 @@ export function getPersisted<TState extends AnyState>(
   const childrenJson: any = {};
 
   for (const key in children) {
-    childrenJson[key] = children[key].getPersisted?.();
+    childrenJson[key] = children[key].getPersistedState?.();
   }
 
   return {

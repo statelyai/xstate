@@ -253,7 +253,7 @@ export function fromPromise<T>(
     },
     getSnapshot: (state) => state.data,
     getStatus: (state) => state,
-    getPersisted: (state) => state,
+    getPersistedState: (state) => state,
     restoreState: (state) => state
   };
 

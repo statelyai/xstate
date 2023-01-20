@@ -477,12 +477,12 @@ export class Interpreter<
     };
   }
 
-  public getPersisted(): PersistedFrom<TBehavior> | undefined {
+  public getPersistedState(): PersistedFrom<TBehavior> | undefined {
     if (!this._state) {
       return undefined;
     }
 
-    return this.behavior.getPersisted?.(this._state);
+    return this.behavior.getPersistedState?.(this._state);
   }
 
   public [symbolObservable](): InteropSubscribable<SnapshotFrom<TBehavior>> {

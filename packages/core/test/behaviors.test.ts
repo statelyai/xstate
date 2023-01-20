@@ -270,7 +270,7 @@ describe('machine behavior', () => {
 
     await waitFor(actor, (s) => s.matches('success'));
 
-    const persistedState = actor.getPersisted()!;
+    const persistedState = actor.getPersistedState()!;
 
     expect(persistedState.children.a).toEqual(
       expect.objectContaining({
@@ -348,7 +348,7 @@ describe('machine behavior', () => {
     actor.send({ type: 'NEXT' });
     // child is at 'b'
 
-    const persistedState = actor.getPersisted()!;
+    const persistedState = actor.getPersistedState()!;
     const newActor = interpret(parentMachine.at(persistedState)).start();
     const newSnapshot = newActor.getSnapshot();
 
