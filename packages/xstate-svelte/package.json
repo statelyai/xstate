@@ -1,6 +1,6 @@
 {
   "name": "@xstate/svelte",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "XState tools for Svelte",
   "keywords": [
     "state",
@@ -57,15 +57,14 @@
     }
   },
   "devDependencies": {
-    "@testing-library/svelte": "^3.0.0",
+    "@testing-library/svelte": "^3.2.2",
     "@tsconfig/svelte": "^1.0.8",
-    "@types/jest": "^24.0.23",
+    "@types/jest": "^29.2.5",
     "@xstate/fsm": "3.0.0-alpha.0",
     "svelte": "^3.55.1",
     "svelte-check": "^2.4.5",
-    "svelte-jester": "^1.1.2",
-    "svelte-preprocess": "^4.10.6",
-    "typescript": "^4.9.4",
+    "svelte-jester": "^2.3.2",
+    "svelte-preprocess": "^5.0.0",
     "xstate": "5.0.0-alpha.1"
   },
   "preconstruct": {

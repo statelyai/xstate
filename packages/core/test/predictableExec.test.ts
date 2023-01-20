@@ -1,11 +1,12 @@
 import {
+  AnyInterpreter,
+  assign,
   createMachine,
   interpret,
-  assign,
-  AnyInterpreter
+  sendTo
 } from '../src/index.js';
-import { raise, send, sendParent, stop } from '../src/actions';
-import { fromCallback } from '../src/actors';
+import { raise, send, sendParent, stop } from '../src/actions.js';
+import { fromCallback, fromPromise } from '../src/actors.js';
 
 describe('predictableExec', () => {
   it('should call mixed custom and builtin actions in the definitions order', () => {
@@ -41,17 +42,9 @@ describe('predictableExec', () => {
   it('should call initial custom actions when starting a service', () => {
     let called = false;
     const machine = createMachine({
-      context: {
-        initialized: false
-      },
-      entry: [
-        () => {
-          called = true;
-        },
-        assign({
-          initialized: true
-        })
-      ]
+      entry: () => {
+        called = true;
+      }
     });
 
     expect(called).toBe(false);
@@ -282,11 +275,11 @@ describe('predictableExec', () => {
           on: {
             update: {
               actions: [
-                stop((ctx: any) => {
+                stop((ctx) => {
                   return ctx.actorRef;
                 }),
                 assign({
-                  actorRef: (_ctx, _ev, { spawn }) => {
+                  actorRef: (_ctx: any, _ev: any, { spawn }: any) => {
                     const localId = ++invokeCounter;
 
                     return spawn(
@@ -346,7 +339,7 @@ describe('predictableExec', () => {
               actions: [
                 stop((ctx) => ctx.actorRef),
                 assign({
-                  actorRef: (_ctx, _ev, { spawn }) => {
+                  actorRef: (_ctx: any, _ev: any, { spawn }: any) => {
                     const localId = ++invokeCounter;
 
                     return spawn(
@@ -406,7 +399,7 @@ describe('predictableExec', () => {
               actions: [
                 stop('my_name'),
                 assign({
-                  actorRef: (_ctx, _ev, { spawn }) => {
+                  actorRef: (_ctx: any, _ev: any, { spawn }: any) => {
                     const localId = ++invokeCounter;
 
                     return spawn(
@@ -466,7 +459,7 @@ describe('predictableExec', () => {
               actions: [
                 stop(() => 'my_name'),
                 assign({
-                  actorRef: (_ctx, _ev, { spawn }) => {
+                  actorRef: (_ctx: any, _ev: any, { spawn }: any) => {
                     const localId = ++invokeCounter;
 
                     return spawn(
@@ -655,5 +648,200 @@ describe('predictableExec', () => {
     const service = interpret(machine).start();
 
     expect(service.getSnapshot().value).toBe('done');
+  });
+
+  // TODO: if we allow this by flipping [...invokes, ...entry] to [...entry, ...invokes]
+  // then we end up with a different problem, we no longer have the ability to target the invoked actor with entry send:
+  //
+  // invoke: { id: 'a', src: actor },
+  // entry: send('EVENT', { to: 'a' })
+  //
+  // this seems to be even a worse problem. It's likely that we will have to remove this test case and document it as a breaking change.
+  // in v4 we are actually deferring sends till the end of the entry block:
+  // https://github.com/statelyai/xstate/blob/aad4991b4eb04faf979a0c8a027a5bcf861f34b3/packages/core/src/actions.ts#L703-L704
+  //
+  // should this be implemented in v5 as well?
+  it.skip('should create invoke based on context updated by entry actions of the same state', () => {
+    const machine = createMachine({
+      context: {
+        updated: false
+      },
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {
+          entry: assign({ updated: true }),
+          invoke: {
+            src: (ctx) => {
+              expect(ctx.updated).toBe(true);
+              return fromPromise(() => Promise.resolve());
+            }
+          }
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+    service.send({ type: 'NEXT' });
+  });
+
+  it('should deliver events sent from the entry actions to a service invoked in the same state', () => {
+    let received: any;
+
+    const machine = createMachine({
+      context: {
+        updated: false
+      },
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: 'b'
+          }
+        },
+        b: {
+          entry: send({ type: 'KNOCK_KNOCK' }, { to: 'myChild' }),
+          invoke: {
+            id: 'myChild',
+            src: () =>
+              fromCallback((_sendBack, onReceive) => {
+                onReceive((event) => {
+                  received = event;
+                });
+                return () => {};
+              })
+          }
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+    service.send({ type: 'NEXT' });
+
+    expect(received).toEqual({ type: 'KNOCK_KNOCK' });
+  });
+
+  it('parent should be able to read the updated state of a child when receiving an event from it', (done) => {
+    const child = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          // we need to clear the call stack before we send the event to the parent
+          after: {
+            1: 'b'
+          }
+        },
+        b: {
+          entry: sendParent({ type: 'CHILD_UPDATED' })
+        }
+      }
+    });
+
+    let service: AnyInterpreter;
+
+    const machine = createMachine({
+      invoke: {
+        id: 'myChild',
+        src: child
+      },
+      initial: 'initial',
+      states: {
+        initial: {
+          on: {
+            CHILD_UPDATED: [
+              {
+                guard: () =>
+                  service.getSnapshot().children.myChild.getSnapshot().value ===
+                  'b',
+                target: 'success'
+              },
+              {
+                target: 'fail'
+              }
+            ]
+          }
+        },
+        success: {
+          type: 'final'
+        },
+        fail: {
+          type: 'final'
+        }
+      }
+    });
+
+    service = interpret(machine)
+      .onDone(() => {
+        expect(service.getSnapshot().value).toBe('success');
+        done();
+      })
+      .start();
+  });
+
+  it('should be possible to send immediate events to initially invoked actors', () => {
+    const child = createMachine({
+      on: {
+        PING: {
+          actions: sendParent({ type: 'PONG' })
+        }
+      }
+    });
+
+    const machine = createMachine({
+      initial: 'waiting',
+      states: {
+        waiting: {
+          invoke: {
+            id: 'ponger',
+            src: child
+          },
+          entry: send({ type: 'PING' }, { to: 'ponger' }),
+          on: {
+            PONG: 'done'
+          }
+        },
+        done: {
+          type: 'final'
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    expect(service.getSnapshot().value).toBe('done');
+  });
+
+  // https://github.com/statelyai/xstate/issues/3617
+  it('should deliver events sent from the exit actions to a service invoked in the same state', (done) => {
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          invoke: {
+            id: 'my-service',
+            src: fromCallback((_, onReceive) => {
+              onReceive((event) => {
+                if (event.type === 'MY_EVENT') {
+                  done();
+                }
+              });
+            })
+          },
+          exit: sendTo('my-service', { type: 'MY_EVENT' }),
+          on: {
+            TOGGLE: 'inactive'
+          }
+        },
+        inactive: {}
+      }
+    });
+
+    const actor = interpret(machine).start();
+
+    actor.send({ type: 'TOGGLE' });
   });
 });

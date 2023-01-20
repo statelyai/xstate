@@ -44,18 +44,18 @@ describe('states', () => {
     });
 
     expect(testedStateValues).toMatchInlineSnapshot(`
-      Array [
+      [
         "a",
-        Object {
+        {
           "b": "b1",
         },
-        Object {
+        {
           "b": "b1",
         },
-        Object {
+        {
           "b": "b2",
         },
-        Object {
+        {
           "b": "b2",
         },
       ]
@@ -108,18 +108,18 @@ describe('states', () => {
     });
 
     expect(testedStateValues).toMatchInlineSnapshot(`
-      Array [
+      [
         "a",
-        Object {
+        {
           "b": "b1",
         },
-        Object {
+        {
           "b": "b1",
         },
-        Object {
+        {
           "b": "b2",
         },
-        Object {
+        {
           "b": "b2",
         },
       ]

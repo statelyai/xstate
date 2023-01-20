@@ -1,4 +1,4 @@
-import { get, readable } from 'svelte/store';
+import { readable } from 'svelte/store';
 import type { ActorRef, SnapshotFrom, Subscription } from 'xstate';
 
 const defaultCompare = (a, b) => a === b;
@@ -9,10 +9,14 @@ export const useSelector = <TActor extends ActorRef<any, any>, T>(
   compare: (a: T, b: T) => boolean = defaultCompare
 ) => {
   let sub: Subscription;
-  const selected = readable(selector(actor.getSnapshot()), (set) => {
+
+  let prevSelected = selector(actor.getSnapshot());
+
+  const selected = readable(prevSelected, (set) => {
     sub = actor.subscribe((state) => {
       const nextSelected = selector(state);
-      if (!compare(get(selected), nextSelected)) {
+      if (!compare(prevSelected, nextSelected)) {
+        prevSelected = nextSelected;
         set(nextSelected);
       }
     });

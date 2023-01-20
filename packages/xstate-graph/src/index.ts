@@ -1,15 +1,14 @@
+export type { AdjacencyMap, AdjacencyValue } from './graph.js';
 export {
   getStateNodes,
-  getPathFromEvents,
-  getSimplePlans,
-  getShortestPlans,
   serializeEvent,
   serializeMachineState as serializeState,
   toDirectedGraph,
-  performDepthFirstTraversal,
-  traverseShortestPlans,
-  traverseSimplePlans,
-  traverseSimplePathsTo
+  joinPaths
 } from './graph.js';
+export { getMachineSimplePaths, getSimplePaths } from './simplePaths.js';
+export { getShortestPaths, getMachineShortestPaths } from './shortestPaths.js';
+export { getPathsFromEvents } from './pathFromEvents.js';
+export { getAdjacencyMap } from './adjacency.js';
 
 export * from './types.js';

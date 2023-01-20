@@ -410,25 +410,25 @@ describe('assign meta', () => {
     service.send({ type: 'PING_CHILD' });
 
     expect(state.context).toMatchInlineSnapshot(`
-      Object {
-        "eventLog": Array [
-          Object {
+      {
+        "eventLog": [
+          {
             "event": "PING_CHILD",
             "origin": undefined,
           },
-          Object {
+          {
             "event": "PONG",
-            "origin": Object {
+            "origin": {
               "id": "child",
             },
           },
-          Object {
+          {
             "event": "PING_CHILD",
             "origin": undefined,
           },
-          Object {
+          {
             "event": "PONG",
-            "origin": Object {
+            "origin": {
               "id": "child",
             },
           },

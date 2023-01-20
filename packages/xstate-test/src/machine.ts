@@ -1,12 +1,12 @@
 import { SerializedState, serializeState, SimpleBehavior } from '@xstate/graph';
 import {
-  BaseActionObject,
   AnyEventObject,
   AnyState,
   AnyStateMachine,
   createMachine,
   EventFrom,
   EventObject,
+  MachineContext,
   StateFrom,
   TypegenConstraint,
   TypegenDisabled,
@@ -41,21 +41,6 @@ export function createTestMachine<
   return createMachine(config, options as any);
 }
 
-export function executeAction(
-  actionObject: BaseActionObject,
-  state: AnyState
-): void {
-  // TODO: this is a hack, it doesn't correctly resolve actions
-  // what gets passed as `action` here is probably also not correct
-  if (typeof (actionObject as any)._exec === 'function') {
-    (actionObject as any)._exec(state.context, state.event, {
-      _event: state._event,
-      action: actionObject,
-      state
-    });
-  }
-}
-
 function serializeMachineTransition(
   state: AnyState,
   _event: AnyEventObject | undefined,
@@ -79,7 +64,7 @@ function serializeMachineTransition(
  * Creates a test model that represents an abstract model of a
  * system under test (SUT).
  *
- * The test model is used to generate test plans, which are used to
+ * The test model is used to generate test paths, which are used to
  * verify that states in the `machine` are reachable in the SUT.
  *
  * @example
@@ -127,11 +112,6 @@ export function createTestModel<TMachine extends AnyStateMachine>(
         return key.startsWith('#')
           ? state.configuration.includes(machine.getStateNodeById(key))
           : state.matches(key);
-      },
-      execute: (state) => {
-        state.actions.forEach((action) => {
-          executeAction(action, state);
-        });
       },
       getEvents: (state, eventCases) =>
         flatten(

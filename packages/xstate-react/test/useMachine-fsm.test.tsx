@@ -81,7 +81,7 @@ describeEachReactMode('useMachine, fsm (%s)', ({ suiteKey, render }) => {
     render(<Test />);
   });
 
-  it('actions should not have stale data', async (done) => {
+  it('actions should not have stale data', (done) => {
     const toggleMachine = createMachine({
       initial: 'inactive',
       states: {
@@ -135,7 +135,7 @@ describeEachReactMode('useMachine, fsm (%s)', ({ suiteKey, render }) => {
     fireEvent.click(button);
   });
 
-  it('should keep options defined on a machine when they are not possed to `useMachine` hook', async (done) => {
+  it('should keep options defined on a machine when they are not possed to `useMachine` hook', () => {
     let actual = false;
 
     const toggleMachine = createMachine(
@@ -165,7 +165,6 @@ describeEachReactMode('useMachine, fsm (%s)', ({ suiteKey, render }) => {
       React.useEffect(() => {
         send({ type: 'TOGGLE' });
         expect(actual).toEqual(true);
-        done();
       }, []);
 
       return null;
@@ -174,7 +173,7 @@ describeEachReactMode('useMachine, fsm (%s)', ({ suiteKey, render }) => {
     render(<Comp />);
   });
 
-  it('should be able to lookup initial action passed to the hook', async (done) => {
+  it('should be able to lookup initial action passed to the hook', () => {
     let outer = false;
 
     const machine = createMachine(
@@ -209,7 +208,6 @@ describeEachReactMode('useMachine, fsm (%s)', ({ suiteKey, render }) => {
       React.useEffect(() => {
         expect(outer).toBe(false);
         expect(inner).toBe(true);
-        done();
       }, []);
 
       return null;
@@ -355,7 +353,7 @@ describeEachReactMode('useMachine, fsm (%s)', ({ suiteKey, render }) => {
     expect(actual).toEqual([42]);
   });
 
-  it('child component should be able to send an event to a parent immediately in an effect', (done) => {
+  it('child component should be able to send an event to a parent immediately in an effect', () => {
     const machine = createMachine<any, { type: 'FINISH' }>({
       initial: 'active',
       states: {
@@ -379,14 +377,17 @@ describeEachReactMode('useMachine, fsm (%s)', ({ suiteKey, render }) => {
     const Test = () => {
       const [state, send] = useMachine(machine);
 
-      if (state.matches('success')) {
-        done();
-      }
-
-      return <ChildTest send={send} />;
+      return (
+        <>
+          <ChildTest send={send} />
+          {state.value}
+        </>
+      );
     };
 
-    render(<Test />);
+    const { container } = render(<Test />);
+
+    expect(container.textContent).toBe('success');
   });
 
   it('should not execute actions (side-effects) in render', () => {

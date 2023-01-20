@@ -1,14 +1,13 @@
 import {
-  SerializationOptions,
+  SerializationConfig,
   SerializedEvent,
   SerializedState,
-  StatePath,
-  StatePlan
+  StatePath
 } from '@xstate/graph';
-import { AnyState, EventObject, MachineContext } from 'xstate';
+import { AnyState, MachineContext } from 'xstate';
 import { TestMeta, TestPathResult } from './types.js';
 
-interface TestResultStringOptions extends SerializationOptions<any, any> {
+interface TestResultStringOptions extends SerializationConfig<any, any> {
   formatColor: (color: string, string: string) => string;
 }
 
@@ -109,11 +108,3 @@ export function getDescription<T, TContext extends MachineContext>(
 export function flatten<T>(array: Array<T | T[]>): T[] {
   return ([] as T[]).concat(...array);
 }
-
-export const mapPlansToPaths = <TState, TEvent extends EventObject>(
-  plans: StatePlan<TState, TEvent>[]
-): Array<StatePath<TState, TEvent>> => {
-  return plans.reduce((acc, plan) => {
-    return acc.concat(plan.paths);
-  }, [] as Array<StatePath<TState, TEvent>>);
-};
