@@ -30,6 +30,9 @@ export function fromCallback<TEvent>(
         dispose
       };
     },
+    stop: (state) => {
+      state.dispose?.();
+    },
     getSnapshot: () => undefined
   };
 }

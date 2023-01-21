@@ -153,6 +153,10 @@ export function createMachine<T extends MachineTypes>(
           })
         );
 
+        if (stateChanged) {
+          // stopping logic
+        }
+
         const allActions = [
           ...exitActions,
           ...transitionActions,

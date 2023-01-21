@@ -110,4 +110,41 @@ describe('invoking callbacks', () => {
 
     service.send({ type: 'FETCH' });
   });
+
+  it('can cancel a callback', (done) => {
+    let cancelCalled = false;
+    const fsm = createMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            FETCH: 'loading'
+          }
+        },
+        loading: {
+          invoke: {
+            src: fromCallback(() => {
+              return () => {
+                cancelCalled = true;
+              };
+            })
+          },
+          on: {
+            skip: 'skipped'
+          }
+        },
+        skipped: {}
+      }
+    });
+
+    const service = interpret(fsm).start();
+
+    service.send({ type: 'FETCH' });
+    service.send({ type: 'skip' });
+
+    setTimeout(() => {
+      expect(cancelCalled).toBeTruthy();
+      done();
+    }, 100);
+  });
 });

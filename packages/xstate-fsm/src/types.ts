@@ -48,6 +48,7 @@ export interface Behavior<
     state: TInternalState,
     actorCtx: ActorContext<this>
   ) => TInternalState;
+  stop?: (state: TInternalState) => void;
   execute?: (state: TInternalState) => void;
   getSnapshot: (state: TInternalState) => TSnapshot;
 }
