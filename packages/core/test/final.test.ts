@@ -1,4 +1,9 @@
-import { createMachine, interpret, assign, AnyEventObject } from '../src';
+import {
+  createMachine,
+  interpret,
+  assign,
+  AnyEventObject
+} from '../src/index.js';
 
 const finalMachine = createMachine({
   id: 'final',

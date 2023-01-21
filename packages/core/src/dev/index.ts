@@ -1,5 +1,5 @@
-import { IS_PRODUCTION } from '../environment';
-import { AnyInterpreter, DevToolsAdapter } from '../types';
+import { IS_PRODUCTION } from '../environment.js';
+import { AnyInterpreter, DevToolsAdapter } from '../types.js';
 
 interface DevInterface {
   services: Set<AnyInterpreter>;

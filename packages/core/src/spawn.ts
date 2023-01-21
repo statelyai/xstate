@@ -6,9 +6,9 @@ import {
   AnyStateMachine,
   Spawner
 } from '.';
-import { invoke } from './actions/invoke';
-import { interpret } from './interpreter';
-import { isString } from './utils';
+import { invoke } from './actions/invoke.js';
+import { interpret } from './interpreter.js';
+import { isString } from './utils.js';
 
 export function createSpawner<
   TContext extends MachineContext,

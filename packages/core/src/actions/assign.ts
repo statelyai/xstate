@@ -7,12 +7,12 @@ import type {
   DynamicAssignAction,
   AssignMeta,
   InvokeActionObject
-} from '../types';
-import * as actionTypes from '../actionTypes';
-import { createDynamicAction } from '../../actions/dynamicAction';
-import { isFunction } from '../utils';
-import { createSpawner } from '../spawn';
-import { cloneState } from '../State';
+} from '../types.js';
+import * as actionTypes from '../actionTypes.js';
+import { createDynamicAction } from '../../actions/dynamicAction.js';
+import { isFunction } from '../utils.js';
+import { createSpawner } from '../spawn.js';
+import { cloneState } from '../State.js';
 
 /**
  * Updates the current context of the machine.

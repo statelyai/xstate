@@ -1,4 +1,4 @@
-import { createMachine } from '../src';
+import { createMachine } from '../src/index.js';
 import { send } from '../src/actions/send';
 import { toSCXMLEvent } from '../src/utils';
 

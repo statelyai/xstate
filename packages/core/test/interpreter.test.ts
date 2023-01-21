@@ -11,7 +11,7 @@ import {
   AnyEventObject,
   createMachine,
   AnyState
-} from '../src';
+} from '../src/index.js';
 import { State } from '../src/State';
 import { raise } from '../src/actions/raise';
 import { stop } from '../src/actions/stop';
@@ -800,7 +800,7 @@ describe('interpreter', () => {
     expect(() => {
       interpret(createMachine(invalidMachine)).start();
     }).toThrowErrorMatchingInlineSnapshot(
-      `"Initial state node \\"create\\" not found on parent state node #fetchMachine"`
+      `"Initial state node "create" not found on parent state node #fetchMachine"`
     );
   });
 
@@ -902,24 +902,24 @@ describe('interpreter', () => {
 
     expect(logs.length).toBe(4);
     expect(logs).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "event": "PING_CHILD",
           "origin": undefined,
         },
-        Object {
+        {
           "event": "PONG",
-          "origin": Object {
+          "origin": {
             "id": "child",
           },
         },
-        Object {
+        {
           "event": "PING_CHILD",
           "origin": undefined,
         },
-        Object {
+        {
           "event": "PONG",
-          "origin": Object {
+          "origin": {
             "id": "child",
           },
         },

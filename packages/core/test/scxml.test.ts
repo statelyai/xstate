@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as pkgUp from 'pkg-up';
-import { AnyState, AnyStateMachine, interpret } from '../src';
+import { AnyState, AnyStateMachine, interpret } from '../src/index.js';
 import { toMachine } from '../src/scxml';
 import { SimulatedClock } from '../src/SimulatedClock';
 import { getStateNodes } from '../src/stateUtils';

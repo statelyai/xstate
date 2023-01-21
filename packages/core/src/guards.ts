@@ -8,10 +8,10 @@ import type {
   SCXML,
   GuardPredicate,
   MachineContext
-} from './types';
-import { isStateId } from './stateUtils';
-import { isFunction, isString } from './utils';
-import type { State } from './State';
+} from './types.js';
+import { isStateId } from './stateUtils.js';
+import { isFunction, isString } from './utils.js';
+import type { State } from './State.js';
 
 export function stateIn<
   TContext extends MachineContext,

@@ -1,4 +1,4 @@
-import { createMachine, sendParent, interpret, assign } from '../src';
+import { createMachine, sendParent, interpret, assign } from '../src/index.js';
 import { respond } from '../src/actions';
 import { send } from '../src/actions/send';
 import { fromCallback } from '../src/actors/callback';

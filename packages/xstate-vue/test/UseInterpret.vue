@@ -5,7 +5,7 @@
 </template>
 
 <script lang="ts">
-import { useInterpret } from '../src';
+import { useInterpret } from '../src/index.js';
 import { createMachine } from 'xstate';
 
 import { defineComponent, ref } from 'vue';

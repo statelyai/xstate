@@ -1,10 +1,10 @@
-import type { EventObject, ActorRef, BaseActorRef } from '../types';
-import { symbolObservable } from '../symbolObservable';
-import { ActorStatus } from '../interpreter';
-export { fromReducer } from './reducer';
-export { fromPromise } from './promise';
-export { fromObservable, fromEventObservable } from './observable';
-export { fromCallback } from './callback';
+import type { EventObject, ActorRef, BaseActorRef } from '../types.js';
+import { symbolObservable } from '../symbolObservable.js';
+import { ActorStatus } from '../interpreter.js';
+export { fromReducer } from './reducer.js';
+export { fromPromise } from './promise.js';
+export { fromObservable, fromEventObservable } from './observable.js';
+export { fromCallback } from './callback.js';
 
 export const startSignalType = 'xstate.init';
 export const stopSignalType = 'xstate.stop';

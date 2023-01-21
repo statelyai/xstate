@@ -4,9 +4,9 @@ import {
   InterpreterStatus,
   StateMachine,
   Typestate
-} from './types';
+} from './types.js';
 
-export * from './types';
+export * from './types.js';
 
 const INIT_EVENT: InitEvent = { type: 'xstate.init' };
 const ASSIGN_ACTION: StateMachine.AssignAction = 'xstate.assign';

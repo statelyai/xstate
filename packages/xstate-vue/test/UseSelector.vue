@@ -11,7 +11,7 @@
 <script lang="ts">
 import { defineComponent, onRenderTracked } from 'vue';
 import { assign, createMachine } from 'xstate';
-import { useInterpret, useSelector } from '../src';
+import { useInterpret, useSelector } from '../src/index.js';
 
 const machine = createMachine<{ count: number; other: number }>({
   initial: 'active',

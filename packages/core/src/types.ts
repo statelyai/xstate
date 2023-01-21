@@ -1,15 +1,15 @@
-import type { StateNode } from './StateNode';
-import type { State } from './State';
-import type { ActorStatus, Clock, Interpreter } from './interpreter';
-import type { StateMachine } from './StateMachine';
-import type { LifecycleSignal } from './actors';
+import type { StateNode } from './StateNode.js';
+import type { State } from './State.js';
+import type { ActorStatus, Clock, Interpreter } from './interpreter.js';
+import type { StateMachine } from './StateMachine.js';
+import type { LifecycleSignal } from './actors/index.js';
 import {
   TypegenDisabled,
   ResolveTypegenMeta,
   TypegenConstraint,
   MarkAllImplementationsAsProvided,
   AreAllImplementationsAssumedToBeProvided
-} from './typegenTypes';
+} from './typegenTypes.js';
 
 export type AnyFunction = (...args: any[]) => any;
 

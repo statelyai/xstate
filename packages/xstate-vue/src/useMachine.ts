@@ -7,8 +7,8 @@ import {
   InterpreterOptions,
   StateFrom
 } from 'xstate';
-import { MaybeLazy, Prop, UseMachineOptions } from './types';
-import { useInterpret } from './useInterpret';
+import { MaybeLazy, Prop, UseMachineOptions } from './types.js';
+import { useInterpret } from './useInterpret.js';
 
 type RestParams<
   TMachine extends AnyStateMachine

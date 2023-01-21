@@ -1,19 +1,19 @@
-import { EventObject, InvokeDefinition, MachineContext } from '../types';
-import { invoke as invokeActionType } from '../actionTypes';
-import { isActorRef } from '../actors';
-import { createDynamicAction } from '../../actions/dynamicAction';
+import { EventObject, InvokeDefinition, MachineContext } from '../types.js';
+import { invoke as invokeActionType } from '../actionTypes.js';
+import { isActorRef } from '../actors/index.js';
+import { createDynamicAction } from '../../actions/dynamicAction.js';
 import {
   AnyInterpreter,
   BaseDynamicActionObject,
   DynamicInvokeActionObject,
   InvokeActionObject,
   InvokeSourceDefinition
-} from '..';
-import { actionTypes, error } from '../actions';
-import { mapContext, warn } from '../utils';
-import { ActorStatus, interpret } from '../interpreter';
-import { cloneState } from '../State';
-import { IS_PRODUCTION } from '../environment';
+} from '../index.js';
+import { actionTypes, error } from '../actions.js';
+import { mapContext, warn } from '../utils.js';
+import { ActorStatus, interpret } from '../interpreter.js';
+import { cloneState } from '../State.js';
+import { IS_PRODUCTION } from '../environment.js';
 
 export function invoke<
   TContext extends MachineContext,

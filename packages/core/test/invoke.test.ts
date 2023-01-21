@@ -10,11 +10,14 @@ import {
   ActorBehavior,
   SpecialTargets,
   toSCXMLEvent
-} from '../src';
-import { fromReducer } from '../src/actors/reducer';
-import { fromObservable, fromEventObservable } from '../src/actors/observable';
-import { fromPromise } from '../src/actors/promise';
-import { fromCallback } from '../src/actors/callback';
+} from '../src/index.js';
+import { fromReducer } from '../src/actors/reducer.js';
+import {
+  fromObservable,
+  fromEventObservable
+} from '../src/actors/observable.js';
+import { fromPromise } from '../src/actors/promise.js';
+import { fromCallback } from '../src/actors/callback.js';
 import {
   actionTypes,
   done as _done,

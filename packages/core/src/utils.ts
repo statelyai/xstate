@@ -1,8 +1,8 @@
 import { AnyState } from '.';
-import { errorExecution, errorPlatform } from './actionTypes';
-import { NULL_EVENT, STATE_DELIMITER, TARGETLESS_KEY } from './constants';
-import { IS_PRODUCTION } from './environment';
-import type { StateNode } from './StateNode';
+import { errorExecution, errorPlatform } from './actionTypes.js';
+import { NULL_EVENT, STATE_DELIMITER, TARGETLESS_KEY } from './constants.js';
+import { IS_PRODUCTION } from './environment.js';
+import type { StateNode } from './StateNode.js';
 import type {
   ActorBehavior,
   ActorBehaviorCreator,
@@ -22,7 +22,7 @@ import type {
   Subscribable,
   TransitionConfig,
   TransitionConfigTarget
-} from './types';
+} from './types.js';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
   return Object.keys(value) as Array<keyof T & string>;

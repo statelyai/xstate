@@ -1,12 +1,20 @@
 import { assign, createMachine, interpret } from 'xstate';
-import { createDevTools, inspect } from '../src';
+import { createDevTools, inspect } from '../src/index.js';
+
+// mute the warning about this not being implemented by jsdom
+window.open = () => null;
+
+const windowListenersUsedArguments: Array<any[]> = [];
+const windowAddEventListener = window.addEventListener;
+window.addEventListener = function (...args: any[]) {
+  windowListenersUsedArguments.push(args);
+  return windowAddEventListener.apply(this, args);
+};
 
 afterEach(() => {
-  // this clears timers, removes global listeners etc
-  // I'm not sure if this is 100% safe to do
-  // it's not clear if the window object after this operation is still usable in the same way (is it recyclable?)
-  // it does seem to cover our needs so far though
-  window.close();
+  const args = [...windowListenersUsedArguments];
+  windowListenersUsedArguments.length = 0;
+  args.forEach((args) => window.removeEventListener.apply(window, args));
 });
 
 const createIframeMock = () => {
@@ -278,15 +286,15 @@ describe('@xstate/inspect', () => {
     });
 
     expect(iframeMock.flushMessages()).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "event": "{\\"name\\":\\"EV\\",\\"data\\":{\\"type\\":\\"EV\\",\\"value\\":{\\"unsafe\\":\\"[unsafe]\\"}},\\"$$type\\":\\"scxml\\",\\"type\\":\\"external\\"}",
+      [
+        {
+          "event": "{"name":"EV","data":{"type":"EV","value":{"unsafe":"[unsafe]"}},"$$type":"scxml","type":"external"}",
           "sessionId": "x:7",
           "type": "service.event",
         },
-        Object {
+        {
           "sessionId": "x:7",
-          "state": "{\\"value\\":{},\\"done\\":false,\\"context\\":{\\"value\\":{\\"unsafe\\":\\"[unsafe]\\"}},\\"historyValue\\":{},\\"actions\\":[{\\"type\\":\\"xstate.assign\\",\\"params\\":{\\"context\\":{\\"value\\":{\\"unsafe\\":\\"[unsafe]\\"}},\\"actions\\":[]}}],\\"event\\":{\\"type\\":\\"EV\\",\\"value\\":{\\"unsafe\\":\\"[unsafe]\\"}},\\"_event\\":{\\"name\\":\\"EV\\",\\"data\\":{\\"type\\":\\"EV\\",\\"value\\":{\\"unsafe\\":\\"[unsafe]\\"}},\\"$$type\\":\\"scxml\\",\\"type\\":\\"external\\"},\\"_sessionid\\":\\"x:7\\",\\"_initial\\":false,\\"changed\\":true,\\"transitions\\":[{\\"actions\\":[{\\"type\\":\\"xstate.assign\\",\\"params\\":{\\"assignment\\":{}}}],\\"event\\":\\"EV\\",\\"source\\":\\"#(machine)\\",\\"internal\\":true,\\"eventType\\":\\"EV\\"}],\\"children\\":{}}",
+          "state": "{"value":{},"done":false,"context":{"value":{"unsafe":"[unsafe]"}},"historyValue":{},"actions":[{"type":"xstate.assign","params":{"context":{"value":{"unsafe":"[unsafe]"}},"actions":[]}}],"event":{"type":"EV","value":{"unsafe":"[unsafe]"}},"_event":{"name":"EV","data":{"type":"EV","value":{"unsafe":"[unsafe]"}},"$$type":"scxml","type":"external"},"_sessionid":"x:7","_initial":false,"changed":true,"transitions":[{"actions":[{"type":"xstate.assign","params":{"assignment":{}}}],"event":"EV","source":"#(machine)","internal":true,"eventType":"EV"}],"children":{}}",
           "type": "service.state",
         },
       ]
@@ -297,15 +305,15 @@ describe('@xstate/inspect', () => {
     service.send({ type: 'UNKNOWN' });
 
     expect(iframeMock.flushMessages()).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "event": "{\\"name\\":\\"UNKNOWN\\",\\"data\\":{\\"type\\":\\"UNKNOWN\\"},\\"$$type\\":\\"scxml\\",\\"type\\":\\"external\\"}",
+      [
+        {
+          "event": "{"name":"UNKNOWN","data":{"type":"UNKNOWN"},"$$type":"scxml","type":"external"}",
           "sessionId": "x:7",
           "type": "service.event",
         },
-        Object {
+        {
           "sessionId": "x:7",
-          "state": "{\\"value\\":{},\\"done\\":false,\\"context\\":{\\"value\\":{\\"unsafe\\":\\"[unsafe]\\"}},\\"historyValue\\":{},\\"actions\\":[],\\"event\\":{\\"type\\":\\"UNKNOWN\\"},\\"_event\\":{\\"name\\":\\"UNKNOWN\\",\\"data\\":{\\"type\\":\\"UNKNOWN\\"},\\"$$type\\":\\"scxml\\",\\"type\\":\\"external\\"},\\"_sessionid\\":\\"x:7\\",\\"_initial\\":false,\\"changed\\":false,\\"transitions\\":[],\\"children\\":{}}",
+          "state": "{"value":{},"done":false,"context":{"value":{"unsafe":"[unsafe]"}},"historyValue":{},"actions":[],"event":{"type":"UNKNOWN"},"_event":{"name":"UNKNOWN","data":{"type":"UNKNOWN"},"$$type":"scxml","type":"external"},"_sessionid":"x:7","_initial":false,"changed":false,"transitions":[],"children":{}}",
           "type": "service.state",
         },
       ]

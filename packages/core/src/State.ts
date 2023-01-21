@@ -1,9 +1,13 @@
-import { initEvent } from './actions';
-import { IS_PRODUCTION } from './environment';
-import { memo } from './memo';
-import type { StateNode } from './StateNode';
-import { getConfiguration, getStateNodes, getStateValue } from './stateUtils';
-import { TypegenDisabled, TypegenEnabled } from './typegenTypes';
+import { initEvent } from './actions.js';
+import { IS_PRODUCTION } from './environment.js';
+import { memo } from './memo.js';
+import type { StateNode } from './StateNode.js';
+import {
+  getConfiguration,
+  getStateNodes,
+  getStateValue
+} from './stateUtils.js';
+import { TypegenDisabled, TypegenEnabled } from './typegenTypes.js';
 import type {
   ActorRef,
   AnyState,
@@ -17,8 +21,14 @@ import type {
   StateConfig,
   StateValue,
   TransitionDefinition
-} from './types';
-import { flatten, isString, matchesState, toSCXMLEvent, warn } from './utils';
+} from './types.js';
+import {
+  flatten,
+  isString,
+  matchesState,
+  toSCXMLEvent,
+  warn
+} from './utils.js';
 
 export function isStateConfig<
   TContext extends MachineContext,

@@ -8,7 +8,12 @@ import {
   interpret,
   StateFrom
 } from 'xstate';
-import { shallowEqual, useInterpret, useMachine, useSelector } from '../src';
+import {
+  shallowEqual,
+  useInterpret,
+  useMachine,
+  useSelector
+} from '../src/index.js';
 import { describeEachReactMode } from './utils';
 
 const originalConsoleError = console.error;

@@ -1,8 +1,8 @@
-import { initEvent } from './actions';
-import { STATE_DELIMITER } from './constants';
-import { createSpawner } from './spawn';
-import { isStateConfig, State } from './State';
-import { StateNode } from './StateNode';
+import { initEvent } from './actions.js';
+import { STATE_DELIMITER } from './constants.js';
+import { createSpawner } from './spawn.js';
+import { isStateConfig, State } from './State.js';
+import { StateNode } from './StateNode.js';
 import {
   getConfiguration,
   getInitialConfiguration,
@@ -14,13 +14,13 @@ import {
   resolveActionsAndContext,
   resolveStateValue,
   transitionNode
-} from './stateUtils';
+} from './stateUtils.js';
 import type {
   AreAllImplementationsAssumedToBeProvided,
   MarkAllImplementationsAsProvided,
   ResolveTypegenMeta,
   TypegenDisabled
-} from './typegenTypes';
+} from './typegenTypes.js';
 import type {
   ActorContext,
   ActorMap,
@@ -42,8 +42,8 @@ import type {
   StateMachineDefinition,
   StateValue,
   TransitionDefinition
-} from './types';
-import { isFunction, isSCXMLErrorEvent, toSCXMLEvent } from './utils';
+} from './types.js';
+import { isFunction, isSCXMLErrorEvent, toSCXMLEvent } from './utils.js';
 
 export const NULL_EVENT = '';
 export const STATE_IDENTIFIER = '#';
