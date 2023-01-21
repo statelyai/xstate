@@ -1,5 +1,5 @@
 import { assign, createMachine, interpret } from '../src';
-import { fromPromise } from '../src/behaviors';
+// import { fromPromise } from '../src/behaviors';
 import { StateMachineConfig } from '../src/types';
 
 it('should work', () => {
@@ -696,41 +696,41 @@ describe('interpreter', () => {
   });
 });
 
-const approvalMachine = createMachine({
-  initial: 'pending',
-  states: {
-    pending: {
-      on: {
-        APPROVE: 'approved',
-        REJECT: 'rejected'
-      },
-      exit: 'someExitAction'
-    },
-    approved: {
-      entry: 'someEntryAction'
-      // type: 'final'
-    },
-    rejected: {
-      on: {
-        APPEAL: 'pending'
-      }
-    }
-  }
-});
+// const approvalMachine = createMachine({
+//   initial: 'pending',
+//   states: {
+//     pending: {
+//       on: {
+//         APPROVE: 'approved',
+//         REJECT: 'rejected'
+//       },
+//       exit: 'someExitAction'
+//     },
+//     approved: {
+//       entry: 'someEntryAction'
+//       // type: 'final'
+//     },
+//     rejected: {
+//       on: {
+//         APPEAL: 'pending'
+//       }
+//     }
+//   }
+// });
 
-const actor = interpret(approvalMachine);
+// const actor = interpret(approvalMachine);
 
-actor.start();
+// actor.start();
 
-const dogBehavior = fromPromise(() =>
-  // creates a behavior from a promise
-  fetch('https://dog.ceo/api/breeds/image/random')
-);
+// const dogBehavior = fromPromise(() =>
+//   // creates a behavior from a promise
+//   fetch('https://dog.ceo/api/breeds/image/random')
+// );
 
-const dogActor = interpret(dogBehavior);
+// const dogActor = interpret(dogBehavior);
 
-dogActor.start(); // start the promise
+// dogActor.start(); // start the promise
 
-dogActor.subscribe((data) => {
-  console.log(data); // the dog stuff
-});
+// dogActor.subscribe((data) => {
+//   console.log(data); // the dog stuff
+// });
