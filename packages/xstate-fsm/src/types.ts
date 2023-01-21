@@ -148,7 +148,8 @@ export interface StateMachineConfig<T extends MachineTypes> {
     [key: string]: {
       invoke?: {
         src: AnyBehavior;
-        onDone: TransitionStringOrObject<T, any>;
+        onDone?: TransitionStringOrObject<T, any>;
+        onError?: TransitionStringOrObject<T, any>;
       };
       entry?: SingleOrArray<Action<T>>;
       exit?: SingleOrArray<Action<T>>;

@@ -109,6 +109,8 @@ export function createMachine<T extends MachineTypes>(
       const transition =
         event.type === 'done'
           ? stateNode.invoke?.onDone
+          : event.type === 'error'
+          ? stateNode.invoke?.onError
           : stateNode?.on?.[(event as T['events']).type];
 
       if (!transition) {
@@ -138,18 +140,18 @@ export function createMachine<T extends MachineTypes>(
         const entryActions = toArray(stateToEnter?.entry) ?? [];
         const exitActions = toArray(stateToExit?.exit) ?? [];
         const transitionActions = toArray(transitionObject.actions) ?? [];
-        const invokeActions = toArray(stateToEnter?.invoke).map((i) => ({
-          type: 'xstate.invoke',
-          execute: () => {
-            console.log('executing...', i);
+        const invokeActions = toArray(stateToEnter?.invoke).map(
+          (invokeDef) => ({
+            type: 'xstate.invoke',
+            execute: () => {
+              const actorRef = interpret(invokeDef.src);
+              // @ts-ignore
+              actorRef.parent = actorCtx?.self;
 
-            const actorRef = interpret(i.src);
-            // @ts-ignore
-            actorRef.parent = actorCtx?.self;
-
-            actorRef.start();
-          }
-        }));
+              actorRef.start();
+            }
+          })
+        );
 
         const allActions = [
           ...exitActions,
