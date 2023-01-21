@@ -48,7 +48,6 @@ export class TestModel<TState, TEvent extends EventObject> {
       getEvents: () => [],
       stateMatcher: (_, stateKey) => stateKey === '*',
       eventCases: {},
-      execute: () => void 0,
       logger: {
         log: console.log.bind(console),
         error: console.error.bind(console)
@@ -319,8 +318,6 @@ export class TestModel<TState, TEvent extends EventObject> {
     for (const stateTestKey of stateTestKeys) {
       await params.states?.[stateTestKey](state);
     }
-
-    this.afterTestState(state, resolvedOptions);
   }
 
   private getStateTestKeys(
@@ -341,13 +338,6 @@ export class TestModel<TState, TEvent extends EventObject> {
     return stateTestKeys;
   }
 
-  private afterTestState(
-    state: TState,
-    resolvedOptions: TestModelOptions<TState, TEvent>
-  ) {
-    resolvedOptions.execute(state);
-  }
-
   public testStateSync(
     params: TestParam<TState, TEvent>,
     state: TState,
@@ -363,8 +353,6 @@ export class TestModel<TState, TEvent extends EventObject> {
         `The test for '${stateTestKey}' returned a promise - did you mean to use the sync method?`
       );
     }
-
-    this.afterTestState(state, resolvedOptions);
   }
 
   private getEventExec(

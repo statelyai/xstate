@@ -676,3 +676,50 @@ describe('spawn', () => {
     });
   });
 });
+
+describe('service-targets', () => {
+  it('should work with a service that uses strings for both targets', () => {
+    const machine = createMachine({
+      invoke: {
+        src: () => new Promise((resolve) => resolve(1)),
+        onDone: ['a', 'b']
+      },
+      states: {
+        a: {},
+        b: {}
+      }
+    });
+    noop(machine);
+    expect(true).toBeTruthy();
+  });
+
+  it('should work with a service that uses TransitionConfigs for both targets', () => {
+    const machine = createMachine({
+      invoke: {
+        src: () => new Promise((resolve) => resolve(1)),
+        onDone: [{ target: 'a' }, { target: 'b' }]
+      },
+      states: {
+        a: {},
+        b: {}
+      }
+    });
+    noop(machine);
+    expect(true).toBeTruthy();
+  });
+
+  it('should work with a service that uses a string for one target and a TransitionConfig for another', () => {
+    const machine = createMachine({
+      invoke: {
+        src: () => new Promise((resolve) => resolve(1)),
+        onDone: [{ target: 'a' }, 'b']
+      },
+      states: {
+        a: {},
+        b: {}
+      }
+    });
+    noop(machine);
+    expect(true).toBeTruthy();
+  });
+});
