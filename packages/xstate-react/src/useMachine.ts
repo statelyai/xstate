@@ -12,8 +12,8 @@ import {
   MachineContext,
   StateFrom
 } from 'xstate';
-import { MaybeLazy, Prop } from './types';
-import { useIdleInterpreter } from './useInterpret';
+import { MaybeLazy, Prop } from './types.js';
+import { useIdleInterpreter } from './useInterpret.js';
 
 function identity<T>(a: T): T {
   return a;

@@ -1,4 +1,4 @@
-import { createMachine } from '../src';
+import { createMachine } from '../src/index.js';
 
 describe('matches', () => {
   it('should allow matches to be called multiple times in a single branch of code', () => {

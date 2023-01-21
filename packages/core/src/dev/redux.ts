@@ -1,5 +1,5 @@
-import { State } from '../State';
-import { DevToolsAdapter } from '../types';
+import { State } from '../State.js';
+import { DevToolsAdapter } from '../types.js';
 
 interface ReduxDevToolsOptions {
   [key: string]: any;

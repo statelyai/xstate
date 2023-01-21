@@ -1,5 +1,5 @@
 import { assign, createMachine } from 'xstate';
-import { createTestModel } from '../src';
+import { createTestModel } from '../src/index.js';
 import { createTestMachine } from '../src/machine';
 import { getDescription } from '../src/utils';
 
@@ -294,13 +294,13 @@ describe('error path trace', () => {
           expect(err.message).toMatchInlineSnapshot(`
               "test error
               Path:
-              	State: {\\"value\\":\\"first\\"}
-              	Event: {\\"type\\":\\"NEXT\\"}
+              	State: {"value":"first"}
+              	Event: {"type":"NEXT"}
 
-              	State: {\\"value\\":\\"second\\"} via {\\"type\\":\\"NEXT\\"}
-              	Event: {\\"type\\":\\"NEXT\\"}
+              	State: {"value":"second"} via {"type":"NEXT"}
+              	Event: {"type":"NEXT"}
 
-              	State: {\\"value\\":\\"third\\"} via {\\"type\\":\\"NEXT\\"}"
+              	State: {"value":"third"} via {"type":"NEXT"}"
             `);
           return;
         }

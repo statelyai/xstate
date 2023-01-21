@@ -1,14 +1,14 @@
-import { EventObject, SingleOrArray, MachineContext } from '../types';
-import { pure as pureActionType } from '../actionTypes';
-import { createDynamicAction } from '../../actions/dynamicAction';
+import { EventObject, SingleOrArray, MachineContext } from '../types.js';
+import { pure as pureActionType } from '../actionTypes.js';
+import { createDynamicAction } from '../../actions/dynamicAction.js';
 import {
   BaseActionObject,
   BaseDynamicActionObject,
   DynamicPureActionObject,
   PureActionObject
 } from '..';
-import { toArray } from '../utils';
-import { toActionObjects } from '../actions';
+import { toArray } from '../utils.js';
+import { toActionObjects } from '../actions.js';
 
 export function pure<
   TContext extends MachineContext,

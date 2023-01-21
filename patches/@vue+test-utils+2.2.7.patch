@@ -1,0 +1,19 @@
+diff --git a/node_modules/@vue/test-utils/package.json b/node_modules/@vue/test-utils/package.json
+index 43fd72a..7c99577 100644
+--- a/node_modules/@vue/test-utils/package.json
++++ b/node_modules/@vue/test-utils/package.json
+@@ -6,12 +6,13 @@
+   "unpkg": "dist/vue-test-utils.browser.js",
+   "types": "dist/index.d.ts",
+   "module": "dist/vue-test-utils.esm-bundler.mjs",
++  "//": "Jest was picking up the browser condition instead of require one (that would indicate that it's resolving package IDs on its own, instead of relying on node, which is likely if we consider its mocking features etc but then it's unclear why its picking up the browser condition - perhaps because we have JSDOM-based tests). The conditions were reordered to fix this.",
+   "exports": {
+     ".": {
+       "types": "./dist/index.d.ts",
+       "import": "./dist/vue-test-utils.esm-bundler.mjs",
+-      "browser": "./dist/vue-test-utils.browser.js",
+       "require": "./dist/vue-test-utils.cjs.js",
++      "browser": "./dist/vue-test-utils.browser.js",
+       "default": "./dist/vue-test-utils.cjs.js"
+     },
+     "./package.json": "./package.json"

@@ -9,7 +9,6 @@ import {
 } from './types';
 import { resolveTraversalOptions, createDefaultMachineOptions } from './graph';
 import { getAdjacencyMap } from './adjacency';
-import { flatten } from 'xstate/src/utils';
 
 export function getMachineSimplePaths<TMachine extends AnyStateMachine>(
   machine: TMachine,
@@ -106,7 +105,7 @@ export function getSimplePaths<TState, TEvent extends EventObject>(
     util(fromStateSerial, nextStateSerial);
   }
 
-  const simplePaths = flatten(Object.values(pathMap).map((p) => p.paths));
+  const simplePaths = Object.values(pathMap).flatMap((p) => p.paths);
 
   if (resolvedOptions.toState) {
     return simplePaths.filter((path) => resolvedOptions.toState!(path.state));

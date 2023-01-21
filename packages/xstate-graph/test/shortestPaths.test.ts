@@ -86,7 +86,7 @@ describe('getMachineShortestPaths', () => {
 
     expect(paths).toHaveLength(1);
     expect(paths[0].steps.map((s) => s.event.type)).toMatchInlineSnapshot(`
-      Array [
+      [
         "TO_B",
         "NEXT_B_TO_X",
         "NEXT_X_TO_Y",

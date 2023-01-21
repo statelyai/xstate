@@ -1,9 +1,9 @@
 import { EMPTY, interval, of, throwError } from 'rxjs';
 import { take } from 'rxjs/operators';
-import { createMachine, interpret } from '../src';
-import { fromObservable, fromPromise, fromReducer } from '../src/actors';
-import { waitFor } from '../src/waitFor';
-import { raise, sendTo } from '../src/actions';
+import { createMachine, interpret } from '../src/index.js';
+import { fromObservable, fromPromise, fromReducer } from '../src/actors.js';
+import { waitFor } from '../src/waitFor.js';
+import { raise, sendTo } from '../src/actions.js';
 
 describe('promise behavior (fromPromise)', () => {
   it('should interpret a promise', async () => {
@@ -158,58 +158,55 @@ describe('observable behavior (fromObservable)', () => {
     expect(snapshot).toEqual(3);
   });
 
-  it('should resolve', (done) => {
+  it('should resolve', () => {
     const actor = interpret(fromObservable(() => of(42)));
+    const spy = jest.fn();
 
-    actor.subscribe((state) => {
-      if (state === 42) {
-        done();
-      }
-    });
+    actor.subscribe(spy);
 
     actor.start();
+
+    expect(spy).toHaveBeenCalledWith(42);
   });
 
-  it('should resolve (observer .next)', (done) => {
+  it('should resolve (observer .next)', () => {
     const actor = interpret(fromObservable(() => of(42)));
+    const spy = jest.fn();
 
     actor.subscribe({
-      next: (state) => {
-        if (state === 42) {
-          done();
-        }
-      }
+      next: spy
     });
 
     actor.start();
+    expect(spy).toHaveBeenCalledWith(42);
   });
 
-  it('should reject (observer .error)', (done) => {
+  it('should reject (observer .error)', () => {
     const actor = interpret(fromObservable(() => throwError(() => 'Error')));
+    const spy = jest.fn();
 
     actor.subscribe({
-      error: (data) => {
-        expect(data).toBe('Error');
-        done();
-      }
+      error: spy
     });
 
     actor.start();
+    expect(spy).toHaveBeenCalledWith('Error');
   });
 
-  it('should complete (observer .complete)', (done) => {
+  it('should complete (observer .complete)', () => {
     const actor = interpret(fromObservable(() => EMPTY));
+    const spy = jest.fn();
 
     actor.subscribe({
-      complete: () => {
-        done();
-      }
+      complete: spy
     });
 
     actor.start();
+
+    expect(spy).toHaveBeenCalled();
   });
 
-  it('should not execute when reading initial state', async () => {
+  it('should not execute when reading initial state', () => {
     let called = false;
     const behavior = fromObservable(() => {
       called = true;

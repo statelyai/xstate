@@ -5,7 +5,7 @@ import {
   StatePath
 } from '@xstate/graph';
 import { AnyState, MachineContext } from 'xstate';
-import { TestMeta, TestPathResult } from './types';
+import { TestMeta, TestPathResult } from './types.js';
 
 interface TestResultStringOptions extends SerializationConfig<any, any> {
   formatColor: (color: string, string: string) => string;

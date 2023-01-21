@@ -21,11 +21,16 @@
       "module": "./dist/xstate-inspect.esm.js",
       "default": "./dist/xstate-inspect.cjs.js"
     },
+    "./server": {
+      "module": "./server/dist/xstate-inspect-server.esm.js",
+      "default": "./server/dist/xstate-inspect-server.cjs.js"
+    },
     "./package.json": "./package.json"
   },
   "sideEffects": false,
   "files": [
-    "dist"
+    "dist",
+    "server"
   ],
   "repository": {
     "type": "git",
@@ -52,5 +57,11 @@
   },
   "dependencies": {
     "fast-safe-stringify": "^2.1.1"
+  },
+  "preconstruct": {
+    "entrypoints": [
+      "./index.ts",
+      "./server.ts"
+    ]
   }
 }

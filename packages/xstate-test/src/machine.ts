@@ -6,19 +6,19 @@ import {
   createMachine,
   EventFrom,
   EventObject,
-  MachineContext,
   StateFrom,
   TypegenConstraint,
-  TypegenDisabled
+  TypegenDisabled,
+  MachineContext
 } from 'xstate';
-import { TestModel } from './TestModel';
+import { TestModel } from './TestModel.js';
 import {
   TestMachineConfig,
   TestMachineOptions,
   TestModelOptions
-} from './types';
-import { flatten, simpleStringify } from './utils';
-import { validateMachine } from './validateMachine';
+} from './types.js';
+import { flatten, simpleStringify } from './utils.js';
+import { validateMachine } from './validateMachine.js';
 
 export async function testStateFromMeta(state: AnyState) {
   for (const id of Object.keys(state.meta)) {

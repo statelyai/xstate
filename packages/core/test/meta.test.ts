@@ -154,8 +154,8 @@ describe('transition meta data', () => {
     const nextState = machine.transition(undefined, { type: 'EVENT' });
 
     expect(nextState.transitions.map((t) => t.meta)).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "description": "Going from inactive to active",
         },
       ]

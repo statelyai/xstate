@@ -1,9 +1,9 @@
-import { initEvent } from './actions';
-import { STATE_DELIMITER } from './constants';
-import { createSpawner } from './spawn';
-import { getPersistedState, isStateConfig, State } from './State';
-import { StateNode } from './StateNode';
-import { interpret } from './interpreter';
+import { initEvent } from './actions.js';
+import { STATE_DELIMITER } from './constants.js';
+import { createSpawner } from './spawn.js';
+import { getPersistedState, isStateConfig, State } from './State.js';
+import { StateNode } from './StateNode.js';
+import { interpret } from './interpreter.js';
 import {
   getConfiguration,
   getInitialConfiguration,
@@ -15,13 +15,13 @@ import {
   resolveActionsAndContext,
   resolveStateValue,
   transitionNode
-} from './stateUtils';
+} from './stateUtils.js';
 import type {
   AreAllImplementationsAssumedToBeProvided,
   MarkAllImplementationsAsProvided,
   ResolveTypegenMeta,
   TypegenDisabled
-} from './typegenTypes';
+} from './typegenTypes.js';
 import type {
   ActorContext,
   ActorMap,
@@ -45,9 +45,9 @@ import type {
   StateValue,
   TransitionDefinition,
   PersistedMachineState
-} from './types';
-import { isFunction, isSCXMLErrorEvent, toSCXMLEvent } from './utils';
-import { invoke } from './actions/invoke';
+} from './types.js';
+import { isFunction, isSCXMLErrorEvent, toSCXMLEvent } from './utils.js';
+import { invoke } from './actions/invoke.js';
 
 export const NULL_EVENT = '';
 export const STATE_IDENTIFIER = '#';

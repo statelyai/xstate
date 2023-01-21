@@ -42,7 +42,7 @@ describe('model.getAdjacencyList()', () => {
             `Given Mario is ${state.value}, when ${event.type}, then ${nextState.value}`
         )
     ).toMatchInlineSnapshot(`
-      Array [
+      [
         "Given Mario is standing, when left, then walking",
         "Given Mario is standing, when right, then walking",
         "Given Mario is standing, when down, then crouching",

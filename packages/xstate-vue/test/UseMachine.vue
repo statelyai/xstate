@@ -14,7 +14,7 @@
 
 <script lang="ts">
 import { defineComponent, PropType } from 'vue';
-import { useMachine } from '../src';
+import { useMachine } from '../src/index.js';
 import { createMachine, assign, AnyState } from 'xstate';
 import { fromPromise } from 'xstate/actors';
 

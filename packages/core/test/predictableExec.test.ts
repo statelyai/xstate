@@ -4,9 +4,9 @@ import {
   createMachine,
   interpret,
   sendTo
-} from '../src';
-import { raise, send, sendParent, stop } from '../src/actions';
-import { fromCallback, fromPromise } from '../src/actors';
+} from '../src/index.js';
+import { raise, send, sendParent, stop } from '../src/actions.js';
+import { fromCallback, fromPromise } from '../src/actors.js';
 
 describe('predictableExec', () => {
   it('should call mixed custom and builtin actions in the definitions order', () => {

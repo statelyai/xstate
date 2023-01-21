@@ -14,7 +14,7 @@ import {
   StateFrom
 } from 'xstate';
 import { fromCallback, fromPromise } from 'xstate/actors';
-import { useActor, useMachine } from '../src';
+import { useActor, useMachine } from '../src/index.js';
 import { describeEachReactMode } from './utils';
 
 afterEach(() => {
@@ -234,7 +234,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     await screen.findByTestId('success');
   });
 
-  it('actions should not use stale data in a builtin transition action', async (done) => {
+  it('actions should not use stale data in a builtin transition action', (done) => {
     const toggleMachine = createMachine<any, { type: 'SET_LATEST' }>({
       context: {
         latest: 0
@@ -288,7 +288,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     fireEvent.click(button);
   });
 
-  it('actions should not use stale data in a builtin entry action', async (done) => {
+  it('actions should not use stale data in a builtin entry action', (done) => {
     const toggleMachine = createMachine<any, { type: 'NEXT' }>({
       context: {
         latest: 0
@@ -348,7 +348,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     fireEvent.click(button);
   });
 
-  it('actions should not use stale data in a custom entry action', async (done) => {
+  it('actions should not use stale data in a custom entry action', (done) => {
     const toggleMachine = createMachine<any, { type: 'TOGGLE' }>({
       initial: 'inactive',
       states: {
@@ -825,7 +825,7 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     expect(activatedCount).toEqual(suiteKey === 'strict' ? 2 : 1);
   });
 
-  it('child component should be able to send an event to a parent immediately in an effect', (done) => {
+  it('child component should be able to send an event to a parent immediately in an effect', () => {
     const machine = createMachine<any, { type: 'FINISH' }>({
       initial: 'active',
       states: {
@@ -849,14 +849,17 @@ describeEachReactMode('useMachine (%s)', ({ suiteKey, render }) => {
     const Test = () => {
       const [state, send] = useMachine(machine);
 
-      if (state.matches('success')) {
-        done();
-      }
-
-      return <ChildTest send={send} />;
+      return (
+        <>
+          <ChildTest send={send} />
+          {state.value}
+        </>
+      );
     };
 
-    render(<Test />);
+    const { container } = render(<Test />);
+
+    expect(container.textContent).toBe('success');
   });
 
   it('custom data should be available right away for the invoked actor', () => {

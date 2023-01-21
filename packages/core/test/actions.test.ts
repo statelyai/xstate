@@ -1,10 +1,10 @@
-import { ActorRef } from '../src';
-import { toActionObject } from '../src/actions';
-import { choose } from '../src/actions/choose';
-import { log } from '../src/actions/log';
-import { pure } from '../src/actions/pure';
-import { send, sendParent, sendTo } from '../src/actions/send';
-import { stop } from '../src/actions/stop';
+import { ActorRef } from '../src/index.js';
+import { toActionObject } from '../src/actions.js';
+import { choose } from '../src/actions/choose.js';
+import { log } from '../src/actions/log.js';
+import { pure } from '../src/actions/pure.js';
+import { send, sendParent, sendTo } from '../src/actions/send.js';
+import { stop } from '../src/actions/stop.js';
 import {
   ActorRefFrom,
   AnyStateMachine,
@@ -13,7 +13,7 @@ import {
   forwardTo,
   interpret,
   StateNode
-} from '../src/index';
+} from '../src/index.js';
 
 const seen = new WeakSet<AnyStateMachine>();
 

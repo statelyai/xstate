@@ -10,7 +10,7 @@ import {
   StateFrom,
   toObserver
 } from 'xstate';
-import { MaybeLazy, UseMachineOptions } from './types';
+import { MaybeLazy, UseMachineOptions } from './types.js';
 
 type RestParams<
   TMachine extends AnyStateMachine

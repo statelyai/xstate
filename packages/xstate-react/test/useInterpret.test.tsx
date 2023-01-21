@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ActorRefFrom, createMachine, sendTo } from 'xstate';
 import { fireEvent, screen } from '@testing-library/react';
-import { useActor, useInterpret, useMachine } from '../src';
+import { useActor, useInterpret, useMachine } from '../src/index.js';
 import { describeEachReactMode } from './utils';
 
 const originalConsoleWarn = console.warn;
@@ -11,7 +11,9 @@ afterEach(() => {
 });
 
 describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
-  it('observer should be called with initial state', (done) => {
+  it('observer should be called with initial state', () => {
+    let initialState: any;
+
     const machine = createMachine({
       initial: 'inactive',
       states: {
@@ -29,8 +31,7 @@ describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
 
       React.useEffect(() => {
         service.subscribe((state) => {
-          expect(state.matches('inactive')).toBeTruthy();
-          done();
+          initialState ??= state;
         });
       }, [service]);
 
@@ -38,6 +39,8 @@ describeEachReactMode('useInterpret (%s)', ({ suiteKey, render }) => {
     };
 
     render(<App />);
+
+    expect(initialState.matches('inactive')).toBeTruthy();
   });
 
   it('observer should be called with next state', (done) => {

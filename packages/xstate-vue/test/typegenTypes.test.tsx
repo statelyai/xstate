@@ -1,6 +1,6 @@
 import { defineComponent } from 'vue';
 import { ActorRefFrom, assign, createMachine, TypegenMeta } from 'xstate';
-import { useInterpret, useMachine } from '../src';
+import { useInterpret, useMachine } from '../src/index.js';
 
 describe('useMachine', () => {
   it('should allow to be used with a machine without any missing implementations', () => {

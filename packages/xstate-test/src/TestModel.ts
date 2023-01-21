@@ -13,8 +13,11 @@ import type {
   TraversalOptions
 } from '@xstate/graph';
 import { EventObject, AnyState } from 'xstate';
-import { deduplicatePaths } from './deduplicatePaths';
-import { createShortestPathsGen, createSimplePathsGen } from './pathGenerators';
+import { deduplicatePaths } from './deduplicatePaths.js';
+import {
+  createShortestPathsGen,
+  createSimplePathsGen
+} from './pathGenerators.js';
 import type {
   EventExecutor,
   PathGenerator,
@@ -23,8 +26,12 @@ import type {
   TestPath,
   TestPathResult,
   TestStepResult
-} from './types';
-import { formatPathTestResult, getDescription, simpleStringify } from './utils';
+} from './types.js';
+import {
+  formatPathTestResult,
+  getDescription,
+  simpleStringify
+} from './utils.js';
 
 function isStateLike(state: any): state is AnyState {
   return (
