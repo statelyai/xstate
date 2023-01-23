@@ -9,7 +9,7 @@ import { EventFrom } from '@xstate/fsm';
 export function createProvider<TMachine extends AnyStateMachine>(
   machine: TMachine
 ): {
-  (props: { children: React.ReactNode }): JSX.Element;
+  (props: { children: React.ReactNode }): React.ReactElement<any, any>;
   useActor: () => [
     EmittedFrom<ActorRefFrom<TMachine>>,
     (event: EventFrom<TMachine>) => void
