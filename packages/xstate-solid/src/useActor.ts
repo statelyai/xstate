@@ -1,4 +1,4 @@
-import type { ActorRef, EmittedFrom, Event, EventObject } from 'xstate';
+import type { ActorRef, EmittedFrom, EventObject } from 'xstate';
 import type { Accessor } from 'solid-js';
 import { createEffect, createMemo, onCleanup } from 'solid-js';
 import { deriveServiceState } from './deriveServiceState';
@@ -26,10 +26,8 @@ export function useActor(
     typeof actorRef === 'function' ? actorRef() : actorRef
   );
 
-  const getActorState = () => actorMemo().getSnapshot?.();
-
   const [state, setState] = createImmutable({
-    snapshot: deriveServiceState(getActorState())
+    snapshot: deriveServiceState(actorMemo().getSnapshot?.())
   });
 
   const setActorState = (actorState: unknown) => {
@@ -39,11 +37,13 @@ export function useActor(
   };
 
   createEffect<boolean>((isInitialActor) => {
+    const currentActor = actorMemo();
+
     if (!isInitialActor) {
-      setActorState(getActorState());
+      setActorState(currentActor.getSnapshot?.());
     }
 
-    const { unsubscribe } = actorMemo().subscribe({
+    const { unsubscribe } = currentActor.subscribe({
       next: setActorState,
       error: noop,
       complete: noop
@@ -53,7 +53,7 @@ export function useActor(
     return false;
   }, true);
 
-  const send = (event: Event<EventObject>) => actorMemo().send(event);
+  const send = (event: EventObject) => actorMemo().send(event);
 
   return [() => state.snapshot, send];
 }
