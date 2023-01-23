@@ -109,7 +109,7 @@ describe("usage of interpret from core with Solid's from", () => {
     fireEvent.click(button);
   });
 
-  it('referenced object in context should not update both services', (done) => {
+  it('referenced object in context should not update both services', () => {
     const latestValue = { value: 100 };
     interface Context {
       latestValue: { value: number };
@@ -188,6 +188,5 @@ describe("usage of interpret from core with Solid's from", () => {
 
     expect(machine1Value.textContent).toEqual('101');
     expect(machine2Value.textContent).toEqual('101');
-    done();
   });
 });

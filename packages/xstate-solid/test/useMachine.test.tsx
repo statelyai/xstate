@@ -397,7 +397,7 @@ describe('useMachine hook', () => {
     render(() => <App />);
   });
 
-  it('should capture all actions', (done) => {
+  it('should capture all actions', () => {
     let count = 0;
 
     const machine = createMachine<any, { type: 'EVENT' }>({
@@ -445,10 +445,9 @@ describe('useMachine hook', () => {
     // - and 1 time for the four (batched) events
     expect(countEl.textContent).toEqual('2');
     expect(count).toEqual(4);
-    done();
   });
 
-  it('should capture only array updates', (done) => {
+  it('should capture only array updates', () => {
     const machine = createMachine<
       {
         item: {
@@ -527,7 +526,6 @@ describe('useMachine hook', () => {
 
     // Effect should only trigger once for the COUNT events:
     expect(countEl.textContent).toEqual('1');
-    done();
   });
 
   it('useMachine state should only trigger effect of directly tracked value', () => {
@@ -600,7 +598,7 @@ describe('useMachine hook', () => {
     expect(effectCountEl.textContent).toBe('0');
   });
 
-  it('should capture only nested value update', (done) => {
+  it('should capture only nested value update', () => {
     const machine = createMachine<
       { item: { count: number; total: number } },
       { type: 'COUNT' } | { type: 'TOTAL' }
@@ -662,10 +660,9 @@ describe('useMachine hook', () => {
 
     // Effect should only trigger once for the COUNT events:
     expect(countEl.textContent).toEqual('1');
-    done();
   });
 
-  it('should capture initial actions', (done) => {
+  it('should capture initial actions', () => {
     let count = 0;
 
     const machine = createMachine({
@@ -688,10 +685,9 @@ describe('useMachine hook', () => {
     render(() => <App />);
 
     expect(count).toEqual(1);
-    done();
   });
 
-  it('should be reactive to toStrings method calls', (done) => {
+  it('should be reactive to toStrings method calls', () => {
     const machine = createMachine({
       initial: 'green',
       states: {
@@ -753,11 +749,9 @@ describe('useMachine hook', () => {
 
     // Green
     expect(toStringsEl.textContent).toEqual('["green"]');
-
-    done();
   });
 
-  it('should be reactive to toJSON method calls', (done) => {
+  it('should be reactive to toJSON method calls', () => {
     const machine = createMachine({
       initial: 'green',
       states: {
@@ -819,11 +813,9 @@ describe('useMachine hook', () => {
 
     // Green
     expect(toJsonEl.textContent).toEqual('green');
-
-    done();
   });
 
-  it('should be reactive to hasTag method calls', (done) => {
+  it('should be reactive to hasTag method calls', () => {
     const machine = createMachine({
       initial: 'green',
       states: {
@@ -889,10 +881,9 @@ describe('useMachine hook', () => {
     // Green
     expect(canGoEl.textContent).toEqual('true');
     expect(stopEl.textContent).toEqual('false');
-    done();
   });
 
-  it('should be reactive to can method calls', (done) => {
+  it('should be reactive to can method calls', () => {
     const machine = createMachine({
       initial: 'inactive',
       states: {
@@ -939,7 +930,6 @@ describe('useMachine hook', () => {
     toggleBtn.click();
     expect(canToggleEl.textContent).toEqual('false');
     expect(canDoSomethingEl.textContent).toEqual('true');
-    done();
   });
 
   it('should successfully spawn actors from the lazily declared context', () => {
@@ -1288,7 +1278,7 @@ describe('useMachine hook', () => {
     expect(screen.getByTestId('result').textContent).toBe('b');
   });
 
-  it('referenced object in context should not update both machines', (done) => {
+  it('referenced object in context should not update both machines', () => {
     const latestValue = { value: 100 };
     interface Context {
       latestValue: { value: number };
@@ -1366,7 +1356,6 @@ describe('useMachine hook', () => {
 
     expect(machine1Value.textContent).toEqual('101');
     expect(machine2Value.textContent).toEqual('101');
-    done();
   });
 
   it('Service should stop on component cleanup', () => {
@@ -1526,7 +1515,7 @@ describe('useMachine (strict mode)', () => {
     render(() => <Test />);
   });
 
-  it('custom data should be available right away for the invoked actor', (done) => {
+  it('custom data should be available right away for the invoked actor', () => {
     const childMachine = createMachine({
       initial: 'intitial',
       context: {
@@ -1562,7 +1551,6 @@ describe('useMachine (strict mode)', () => {
     };
 
     render(() => <Test />);
-    done();
   });
 
   // https://github.com/davidkpiano/xstate/issues/1334

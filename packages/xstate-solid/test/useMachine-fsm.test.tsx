@@ -282,7 +282,7 @@ describe('useMachine hook for fsm', () => {
     expect(flag).toBe(true);
   });
 
-  it('should capture only nested value update', (done) => {
+  it('should capture only nested value update', () => {
     const machine = createMachine<
       { item: { count: number; total: number } },
       { type: 'COUNT' } | { type: 'TOTAL' }
@@ -344,7 +344,6 @@ describe('useMachine hook for fsm', () => {
 
     // Effect should only trigger once for the COUNT events:
     expect(countEl.textContent).toEqual('1');
-    done();
   });
 
   it('fsm useMachine should be updated when it changes shallow', () => {
@@ -472,7 +471,7 @@ describe('useMachine hook for fsm', () => {
     expect(effectCountEl.textContent).toBe('0');
   });
 
-  it('referenced object in context should not update both machines', (done) => {
+  it('referenced object in context should not update both machines', () => {
     const latestValue = { value: 100 };
     interface Context {
       latestValue: { value: number };
@@ -550,7 +549,6 @@ describe('useMachine hook for fsm', () => {
 
     expect(machine1Value.textContent).toEqual('101');
     expect(machine2Value.textContent).toEqual('101');
-    done();
   });
 
   it('send should update synchronously', (done) => {

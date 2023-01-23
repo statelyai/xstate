@@ -164,7 +164,7 @@ describe('useActor', () => {
     waitFor(() => screen.getByTestId('success')).then(() => done());
   });
 
-  it('should only trigger effects once for nested context values', (done) => {
+  it('should only trigger effects once for nested context values', () => {
     const childMachine = createMachine<{
       item: { count: number; total: number };
     }>({
@@ -269,10 +269,9 @@ describe('useActor', () => {
     // Effect should only trigger once for the count and total:
     expect(countEl.textContent).toEqual('1');
     expect(totalEl.textContent).toEqual('1');
-    done();
   });
 
-  it('initial spawned actor should be immediately available', (done) => {
+  it('initial spawned actor should be immediately available', () => {
     const childMachine = createMachine({
       id: 'childMachine',
       initial: 'active',
@@ -306,8 +305,6 @@ describe('useActor', () => {
 
       expect(state().value).toEqual('active');
 
-      done();
-
       return null;
     };
 
@@ -321,7 +318,7 @@ describe('useActor', () => {
     render(() => <Test />);
   });
 
-  it('should be reactive to toStrings method calls', (done) => {
+  it('should be reactive to toStrings method calls', () => {
     const machine = createMachine({
       initial: 'green',
       states: {
@@ -384,11 +381,9 @@ describe('useActor', () => {
 
     // Green
     expect(toStringsEl.textContent).toEqual('["green"]');
-
-    done();
   });
 
-  it('should be reactive to toJSON method calls', (done) => {
+  it('should be reactive to toJSON method calls', () => {
     const machine = createMachine({
       initial: 'green',
       states: {
@@ -451,11 +446,9 @@ describe('useActor', () => {
 
     // Green
     expect(toJsonEl.textContent).toEqual('green');
-
-    done();
   });
 
-  it('should be reactive to hasTag method calls', (done) => {
+  it('should be reactive to hasTag method calls', () => {
     const machine = createMachine({
       initial: 'green',
       states: {
@@ -522,10 +515,9 @@ describe('useActor', () => {
     // Green
     expect(canGoEl.textContent).toEqual('true');
     expect(stopEl.textContent).toEqual('false');
-    done();
   });
 
-  it('should be reactive to can method calls', (done) => {
+  it('should be reactive to can method calls', () => {
     const machine = createMachine({
       initial: 'inactive',
       states: {
@@ -573,7 +565,6 @@ describe('useActor', () => {
     toggleBtn.click();
     expect(canToggleEl.textContent).toEqual('false');
     expect(canDoSomethingEl.textContent).toEqual('true');
-    done();
   });
 
   it('spawned actor should be able to receive (deferred) events that it replays when active', (done) => {
@@ -1466,7 +1457,7 @@ describe('useActor', () => {
     expect(effectCountEl.textContent).toBe('0');
   });
 
-  it('referenced object in context should not update both services', (done) => {
+  it('referenced object in context should not update both services', () => {
     const latestValue = { value: 100 };
     interface Context {
       latestValue: { value: number };
@@ -1546,7 +1537,6 @@ describe('useActor', () => {
 
     expect(machine1Value.textContent).toEqual('101');
     expect(machine2Value.textContent).toEqual('101');
-    done();
   });
 
   it('should work with initially deferred actors spawned in lazy context', () => {
