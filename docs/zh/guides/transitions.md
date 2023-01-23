@@ -236,14 +236,17 @@ const buttonMachine = createMachine({
 
 默认情况下，转换是外部的，但任何转换都可以通过在转换上显式设置 `{ internal: false }` 来实现。
 
-```js {4-7}
+```js
 // ...
-on: {
-  // 外部转换
-  LEFT_CLICK: 'word.left',
-  RIGHT_CLICK: 'word.right',
-  CENTER_CLICK: { target: '.center', internal: false }, // 同 'word.center'
-  JUSTIFY_CLICK: { target: 'word.justify', internal: false } // 同 'word.justify'
+states: {
+  loading: {
+    entry: 'someEntryAction',
+    exit: 'someExitAction',
+    on: {
+      RETRY: { target: 'loading' },
+      RETRY2: { target: 'loading', internal: false }, // same as above
+    }
+  }
 }
 // ...
 ```

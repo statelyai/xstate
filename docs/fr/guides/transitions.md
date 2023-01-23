@@ -240,14 +240,17 @@ External transitions _will_ exit and reenter the state node in which the transit
 
 By default, transitions are external, but any transition can be made external by explicitly setting `{ internal: false }` on the transition.
 
-```js {4-7}
+```js
 // ...
-on: {
-  // external transitions
-  LEFT_CLICK: 'word.left',
-  RIGHT_CLICK: 'word.right',
-  CENTER_CLICK: { target: '.center', internal: false }, // same as 'word.center'
-  JUSTIFY_CLICK: { target: 'word.justify', internal: false } // same as 'word.justify'
+states: {
+  loading: {
+    entry: 'someEntryAction',
+    exit: 'someExitAction',
+    on: {
+      RETRY: { target: 'loading' },
+      RETRY2: { target: 'loading', internal: false }, // same as above
+    }
+  }
 }
 // ...
 ```
