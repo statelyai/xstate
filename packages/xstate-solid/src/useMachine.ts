@@ -27,17 +27,14 @@ export function useMachine<TMachine extends AnyStateMachine>(
 ): UseMachineReturn<TMachine> {
   const service = createService(machine, options);
 
-  const getSnapshot = () => {
-    if (service.status === InterpreterStatus.NotStarted) {
-      return (options.state
-        ? State.create(options.state)
-        : service.machine.initialState) as AnyState;
-    }
+  const initialState =
+    service.status === InterpreterStatus.NotStarted
+      ? ((options.state
+          ? State.create(options.state)
+          : service.machine.initialState) as AnyState)
+      : service.getSnapshot();
 
-    return service.getSnapshot();
-  };
-
-  const [state, setState] = createImmutable(deriveServiceState(getSnapshot()));
+  const [state, setState] = createImmutable(deriveServiceState(initialState));
 
   onMount(() => {
     const { unsubscribe } = service.subscribe((nextState) => {
