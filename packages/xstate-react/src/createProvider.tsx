@@ -3,8 +3,7 @@ import { createContext, useContext } from 'react';
 import { useInterpret } from './useInterpret';
 import { useActor } from './useActor';
 import { useSelector } from './useSelector';
-import { ActorRefFrom, AnyStateMachine, EmittedFrom } from 'xstate';
-import { EventFrom } from '@xstate/fsm';
+import { ActorRefFrom, AnyStateMachine, EmittedFrom, EventFrom } from 'xstate';
 
 export function createProvider<TMachine extends AnyStateMachine>(
   machine: TMachine
