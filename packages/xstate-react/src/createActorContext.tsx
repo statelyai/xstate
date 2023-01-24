@@ -13,7 +13,10 @@ export function createActorContext<TMachine extends AnyStateMachine>(
     EmittedFrom<ActorRefFrom<TMachine>>,
     (event: EventFrom<TMachine>) => void
   ];
-  useSelector: <T>(selector: (snapshot: EmittedFrom<TMachine>) => T) => T;
+  useSelector: <T>(
+    selector: (snapshot: EmittedFrom<TMachine>) => T,
+    compare?: (a: T, b: T) => boolean
+  ) => T;
   useContext: () => ActorRefFrom<TMachine>;
   Provider: (props: {
     children: React.ReactNode;
@@ -52,11 +55,12 @@ export function createActorContext<TMachine extends AnyStateMachine>(
   };
 
   ReactContext.useSelector = <T,>(
-    selector: (snapshot: EmittedFrom<TMachine>) => T
+    selector: (snapshot: EmittedFrom<TMachine>) => T,
+    compare?: (a: T, b: T) => boolean
   ): T => {
     const actor = useContext(ReactContext) as any;
 
-    return useSelector(actor, selector);
+    return useSelector(actor, selector, compare);
   };
 
   ReactContext.Provider = Provider;
