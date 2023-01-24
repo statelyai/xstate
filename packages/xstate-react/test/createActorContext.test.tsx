@@ -4,7 +4,7 @@ import { fireEvent, screen, render } from '@testing-library/react';
 import { createActorContext } from '../src/createActorContext';
 import { shallowEqual, useSelector } from '../src';
 
-describe('createProvider', () => {
+describe('createActorContext', () => {
   it('should work with useActor', () => {
     const someMachine = createMachine({
       initial: 'a',
