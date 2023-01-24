@@ -1814,7 +1814,25 @@ export interface Behavior<TEvent extends EventObject, TEmitted = any> {
 }
 
 export type EmittedFrom<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends Interpreter<infer _, infer __, infer ___, infer ____, infer _____>
+  ? // we need to specialcase the StateMachine here (even though it's a Behavior)
+    // because its `transition` method is too different from the `Behavior["transition"]`
+    R extends StateMachine<
+      infer _,
+      infer __,
+      infer ___,
+      infer ____,
+      infer _____,
+      infer ______,
+      infer _______
+    >
+    ? R['initialState']
+    : R extends Interpreter<
+        infer _,
+        infer __,
+        infer ___,
+        infer ____,
+        infer _____
+      >
     ? R['initialState']
     : R extends ActorRef<infer _, infer TEmitted>
     ? TEmitted
