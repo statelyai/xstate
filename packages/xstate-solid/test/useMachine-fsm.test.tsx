@@ -17,8 +17,7 @@ import {
   on,
   Accessor,
   Component,
-  onCleanup,
-  Show
+  onCleanup
 } from 'solid-js';
 
 describe('useMachine hook for fsm', () => {
