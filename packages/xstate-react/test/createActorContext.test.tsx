@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { createMachine } from 'xstate';
 import { fireEvent, render } from '@testing-library/react';
-import { createProvider } from '../src/createProvider';
+import { createActorContext } from '../src/createActorContext';
 import { useSelector } from '../src';
 
 describe('createProvider', () => {
@@ -11,19 +11,19 @@ describe('createProvider', () => {
       states: { a: {} }
     });
 
-    const SomeProvider = createProvider(someMachine);
+    const SomeContext = createActorContext(someMachine);
 
     const Component = () => {
-      const [state] = SomeProvider.useActor();
+      const [state] = SomeContext.useActor();
 
       return <div data-testid="value">{state.value}</div>;
     };
 
     const App = () => {
       return (
-        <SomeProvider>
+        <SomeContext.Provider>
           <Component />
-        </SomeProvider>
+        </SomeContext.Provider>
       );
     };
 
@@ -38,19 +38,19 @@ describe('createProvider', () => {
       states: { a: {} }
     });
 
-    const SomeProvider = createProvider(someMachine);
+    const SomeContext = createActorContext(someMachine);
 
     const Component = () => {
-      const value = SomeProvider.useSelector((state) => state.value);
+      const value = SomeContext.useSelector((state) => state.value);
 
       return <div data-testid="value">{value}</div>;
     };
 
     const App = () => {
       return (
-        <SomeProvider>
+        <SomeContext.Provider>
           <Component />
-        </SomeProvider>
+        </SomeContext.Provider>
       );
     };
 
@@ -72,10 +72,10 @@ describe('createProvider', () => {
       }
     });
 
-    const SomeProvider = createProvider(someMachine);
+    const SomeContext = createActorContext(someMachine);
 
     const Component = () => {
-      const [state, send] = SomeProvider.useActor();
+      const [state, send] = SomeContext.useActor();
 
       return (
         <>
@@ -89,9 +89,9 @@ describe('createProvider', () => {
 
     const App = () => {
       return (
-        <SomeProvider>
+        <SomeContext.Provider>
           <Component />
-        </SomeProvider>
+        </SomeContext.Provider>
       );
     };
 
@@ -110,10 +110,10 @@ describe('createProvider', () => {
       states: { a: {} }
     });
 
-    const SomeProvider = createProvider(someMachine);
+    const SomeContext = createActorContext(someMachine);
 
     const Component = () => {
-      const actor = SomeProvider.useContext();
+      const actor = SomeContext.useContext();
       const value = useSelector(actor, (state) => state.value);
 
       return <div data-testid="value">{value}</div>;
@@ -121,9 +121,9 @@ describe('createProvider', () => {
 
     const App = () => {
       return (
-        <SomeProvider>
+        <SomeContext.Provider>
           <Component />
-        </SomeProvider>
+        </SomeContext.Provider>
       );
     };
 

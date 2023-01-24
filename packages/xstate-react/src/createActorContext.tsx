@@ -5,31 +5,36 @@ import { useActor } from './useActor';
 import { useSelector } from './useSelector';
 import { ActorRefFrom, AnyStateMachine, EmittedFrom, EventFrom } from 'xstate';
 
-export function createProvider<TMachine extends AnyStateMachine>(
+export function createActorContext<TMachine extends AnyStateMachine>(
   machine: TMachine
-): {
-  (props: { children: React.ReactNode }): React.ReactElement<any, any>;
+): React.Context<ActorRefFrom<TMachine>> & {
+  // (props: { children: React.ReactNode }): React.ReactElement<any, any>;
   useActor: () => [
     EmittedFrom<ActorRefFrom<TMachine>>,
     (event: EventFrom<TMachine>) => void
   ];
   useSelector: <T>(selector: (snapshot: EmittedFrom<TMachine>) => T) => T;
   useContext: () => ActorRefFrom<TMachine>;
+  Provider: (props: {
+    children: React.ReactNode;
+  }) => React.ReactElement<any, any>;
 } {
-  const ReactContext = createContext<ActorRefFrom<TMachine> | null>(null);
+  const ReactContext = createContext<ActorRefFrom<TMachine> | null>(
+    null
+  ) as any; // TODO: fix types
+
+  const OriginalProvider = ReactContext.Provider;
 
   function Provider({ children }: { children: React.ReactNode }) {
     const actor = useInterpret(machine) as ActorRefFrom<TMachine>;
 
-    return (
-      <ReactContext.Provider value={actor}>{children}</ReactContext.Provider>
-    );
+    return <OriginalProvider value={actor}>{children}</OriginalProvider>;
   }
 
   Provider.displayName = `Provider(${machine.id})`;
 
-  Provider.useContext = () => {
-    const actor = useContext(ReactContext);
+  ReactContext.useContext = () => {
+    const actor = useContext(ReactContext) as any;
 
     if (!actor) {
       throw new Error(
@@ -40,19 +45,21 @@ export function createProvider<TMachine extends AnyStateMachine>(
     return actor;
   };
 
-  Provider.useActor = () => {
-    const actor = Provider.useContext();
+  ReactContext.useActor = () => {
+    const actor = useContext(ReactContext) as any;
 
     return useActor(actor);
   };
 
-  Provider.useSelector = <T,>(
+  ReactContext.useSelector = <T,>(
     selector: (snapshot: EmittedFrom<TMachine>) => T
   ): T => {
-    const actor = Provider.useContext();
+    const actor = useContext(ReactContext) as any;
 
     return useSelector(actor, selector);
   };
 
-  return Provider;
+  ReactContext.Provider = Provider;
+
+  return ReactContext;
 }
