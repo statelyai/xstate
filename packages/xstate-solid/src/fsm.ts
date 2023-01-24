@@ -62,11 +62,7 @@ function deriveFSMState<State extends StateMachine.AnyState>(
   state: State
 ): State {
   return {
-    ...(state as object),
-    matches(...args: Parameters<typeof state['matches']>) {
-      // tslint:disable-next-line:no-unused-expression
-      (this as StateMachine.AnyState).value as typeof state['value']; // reads state.value to be tracked by the store
-      return state.matches(args[0] as never);
-    }
+    ...state,
+    matches: state.matches
   } as typeof state;
 }
