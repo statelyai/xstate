@@ -15,24 +15,31 @@ export function createActorContext<TMachine extends AnyStateMachine>(
     selector: (snapshot: EmittedFrom<TMachine>) => T,
     compare?: (a: T, b: T) => boolean
   ) => T;
-  useActorRef: () => ActorRefFrom<TMachine>;
+  useContext: () => ActorRefFrom<TMachine>;
   Provider: (props: {
     children: React.ReactNode;
+    value?: TMachine | ActorRefFrom<TMachine>;
   }) => React.ReactElement<any, any>;
 } {
   const ReactContext = React.createContext<ActorRefFrom<TMachine> | null>(null);
 
   const OriginalProvider = ReactContext.Provider;
 
-  function Provider({ children }: { children: React.ReactNode }) {
-    const actor = useInterpret(machine) as ActorRefFrom<TMachine>;
+  function Provider({
+    children,
+    value = machine
+  }: {
+    children: React.ReactNode;
+    value: TMachine;
+  }) {
+    const actor = useInterpret(value) as ActorRefFrom<TMachine>;
 
     return <OriginalProvider value={actor}>{children}</OriginalProvider>;
   }
 
   Provider.displayName = `Provider(${machine.id})`;
 
-  function useActorRef() {
+  function useContext() {
     const actor = React.useContext(ReactContext);
 
     if (!actor) {
@@ -45,7 +52,7 @@ export function createActorContext<TMachine extends AnyStateMachine>(
   }
 
   function useActor() {
-    const actor = useActorRef();
+    const actor = useContext();
     return useActorUnbound(actor);
   }
 
@@ -53,13 +60,13 @@ export function createActorContext<TMachine extends AnyStateMachine>(
     selector: (snapshot: EmittedFrom<TMachine>) => T,
     compare?: (a: T, b: T) => boolean
   ): T {
-    const actor = useActorRef();
+    const actor = useContext();
     return useSelectorUnbound(actor, selector, compare);
   }
 
   return {
     Provider,
-    useActorRef,
+    useContext,
     useActor,
     useSelector
   };

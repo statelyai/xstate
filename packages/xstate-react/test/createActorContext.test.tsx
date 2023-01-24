@@ -139,7 +139,7 @@ describe('createActorContext', () => {
     let rerenders = 0;
 
     const Component = () => {
-      const actor = SomeContext.useActorRef();
+      const actor = SomeContext.useContext();
       const value = SomeContext.useSelector(
         (state: any) => state.context.obj,
         shallowEqual
@@ -193,7 +193,7 @@ describe('createActorContext', () => {
     const SomeContext = createActorContext(someMachine);
 
     const Component = () => {
-      const actor = SomeContext.useActorRef();
+      const actor = SomeContext.useContext();
       const value = useSelector(actor, (state) => state.value);
 
       return <div data-testid="value">{value}</div>;
@@ -210,5 +210,32 @@ describe('createActorContext', () => {
     render(<App />);
 
     expect(screen.getByTestId('value').textContent).toBe('a');
+  });
+
+  it('should work with a provided machine', () => {
+    const someMachine = createMachine({
+      context: { count: 0 }
+    });
+
+    const SomeContext = createActorContext(someMachine);
+
+    const Component = () => {
+      const actor = SomeContext.useContext();
+      const count = useSelector(actor, (state) => state.context.count);
+
+      return <div data-testid="value">{count}</div>;
+    };
+
+    const App = () => {
+      return (
+        <SomeContext.Provider value={someMachine.withContext({ count: 42 })}>
+          <Component />
+        </SomeContext.Provider>
+      );
+    };
+
+    render(<App />);
+
+    expect(screen.getByTestId('value').textContent).toBe('42');
   });
 });
