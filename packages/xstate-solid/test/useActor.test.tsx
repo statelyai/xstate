@@ -1180,7 +1180,7 @@ describe('useActor', () => {
 
     const button = screen.getByTestId('button');
     fireEvent.click(button);
-    done();
+    jest.advanceTimersByTime(100);
     // At this point, `send` refers to the last actor
     // The effect will call the closed-in `send`, which originally
     // was the reference to the first actor. Now that `send` is stable,

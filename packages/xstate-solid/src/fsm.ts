@@ -10,16 +10,20 @@ import { createMemo, onCleanup, createEffect } from 'solid-js';
 import { createImmutable } from './createImmutable';
 import { isServer } from 'solid-js/web';
 
-type UseFSMReturn<TService extends StateMachine.AnyService> = [
+type UseFSMServiceReturn<TService extends StateMachine.AnyService> = [
   StateFrom<TService>,
-  TService['send'],
+  TService['send']
+];
+
+type UseFSMMachineReturn<TService extends StateMachine.AnyService> = [
+  ...UseFSMServiceReturn<TService>,
   TService
 ];
 
 export function useMachine<TMachine extends StateMachine.AnyMachine>(
   machine: TMachine,
   options?: MachineImplementationsFrom<TMachine>
-): UseFSMReturn<ServiceFrom<TMachine>> {
+): UseFSMMachineReturn<ServiceFrom<TMachine>> {
   const resolvedMachine = createMachine(
     machine.config,
     options ? options : (machine as any)._options
@@ -32,12 +36,13 @@ export function useMachine<TMachine extends StateMachine.AnyMachine>(
     onCleanup(() => service.stop());
   }
 
-  return useService(service) as UseFSMReturn<ServiceFrom<TMachine>>;
+  const [state, send] = useService(service);
+  return [state, send, service] as UseFSMMachineReturn<ServiceFrom<TMachine>>;
 }
 
 export function useService<TService extends StateMachine.AnyService>(
   service: TService | Accessor<TService>
-): UseFSMReturn<TService> {
+): UseFSMServiceReturn<TService> {
   const serviceMemo = createMemo(() =>
     typeof service === 'function' ? service() : service
   );
@@ -55,7 +60,7 @@ export function useService<TService extends StateMachine.AnyService>(
 
   const send: TService['send'] = (event) => serviceMemo().send(event);
 
-  return [state, send, serviceMemo()];
+  return [state, send];
 }
 
 function deriveFSMState<State extends StateMachine.AnyState>(

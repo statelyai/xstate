@@ -1358,7 +1358,8 @@ describe('useMachine hook', () => {
     expect(machine2Value.textContent).toEqual('101');
   });
 
-  it('Service should stop on component cleanup', () => {
+  it('Service should stop on component cleanup', (done) => {
+    jest.useFakeTimers();
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -1376,6 +1377,7 @@ describe('useMachine hook', () => {
       const [state, , service] = useMachine(machine);
       onCleanup(() => {
         expect(service.status).toBe(InterpreterStatus.Stopped);
+        done();
       });
 
       return <div>{state.toString()}</div>;
@@ -1384,16 +1386,11 @@ describe('useMachine hook', () => {
       const [show, setShow] = createSignal(true);
       setTimeout(() => setShow(false), 100);
 
-      return (
-        <div>
-          <Show keyed={false} when={show}>
-            <Display />;
-          </Show>
-        </div>
-      );
+      return <div>{show() ? <Display /> : null}</div>;
     };
 
     render(() => <Counter />);
+    jest.advanceTimersByTime(200);
   });
 
   it('.can should trigger on context change', () => {
