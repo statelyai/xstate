@@ -1,10 +1,10 @@
 import * as React from 'react';
-import { createMachine } from 'xstate';
-import { fireEvent, render } from '@testing-library/react';
+import { createMachine, assign } from 'xstate';
+import { fireEvent, screen, render } from '@testing-library/react';
 import { createActorContext } from '../src/createActorContext';
-import { useSelector } from '../src';
+import { shallowEqual, useSelector } from '../src';
 
-describe('createProvider', () => {
+describe('createActorContext', () => {
   it('should work with useActor', () => {
     const someMachine = createMachine({
       initial: 'a',
@@ -102,6 +102,86 @@ describe('createProvider', () => {
     fireEvent.click(getByTestId('next'));
 
     expect(getByTestId('value').textContent).toBe('b');
+  });
+
+  it('should work with useSelector and a custom comparator', async () => {
+    interface SomeContext {
+      obj: {
+        counter: number;
+      };
+      arr: string[];
+    }
+    const someMachine = createMachine({
+      context: {
+        obj: {
+          counter: 0
+        },
+        arr: []
+      },
+      on: {
+        INC: {
+          actions: assign<SomeContext>((ctx) => ({
+            obj: {
+              counter: ctx.obj.counter + 1
+            }
+          }))
+        },
+        PUSH: {
+          actions: assign<SomeContext>((ctx) => ({
+            arr: [...ctx.arr, Math.random().toString(36).slice(2)]
+          }))
+        }
+      }
+    });
+
+    const SomeProvider = createActorContext(someMachine);
+
+    let rerenders = 0;
+
+    const Component = () => {
+      const actor = SomeProvider.useContext();
+      const value = SomeProvider.useSelector(
+        (state: any) => state.context.obj,
+        shallowEqual
+      );
+
+      rerenders += 1;
+
+      return (
+        <>
+          <button onClick={() => actor.send({ type: 'INC' })}>Inc</button>
+          <button onClick={() => actor.send({ type: 'PUSH' })}>Push</button>
+          <div data-testid="value">{value.counter}</div>;
+        </>
+      );
+    };
+
+    const App = () => {
+      return (
+        <SomeProvider.Provider>
+          <Component />
+        </SomeProvider.Provider>
+      );
+    };
+
+    render(<App />);
+
+    expect(screen.getByTestId('value').textContent).toBe('0');
+    expect(rerenders).toBe(1);
+
+    fireEvent.click(screen.getByText('Inc'));
+
+    expect(screen.getByTestId('value').textContent).toBe('1');
+    expect(rerenders).toBe(2);
+
+    fireEvent.click(screen.getByText('Push'));
+
+    expect(rerenders).toBe(2);
+
+    fireEvent.click(screen.getByText('Inc'));
+
+    expect(screen.getByTestId('value').textContent).toBe('2');
+    expect(rerenders).toBe(3);
   });
 
   it('should work with useContext', () => {
