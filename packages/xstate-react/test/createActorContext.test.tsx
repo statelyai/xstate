@@ -27,9 +27,9 @@ describe('createActorContext', () => {
       );
     };
 
-    const { getByTestId } = render(<App />);
+    render(<App />);
 
-    expect(getByTestId('value').textContent).toBe('a');
+    expect(screen.getByTestId('value').textContent).toBe('a');
   });
 
   it('should work with useSelector', () => {
@@ -54,9 +54,9 @@ describe('createActorContext', () => {
       );
     };
 
-    const { getByTestId } = render(<App />);
+    render(<App />);
 
-    expect(getByTestId('value').textContent).toBe('a');
+    expect(screen.getByTestId('value').textContent).toBe('a');
   });
 
   it('the actor should be able to receive events', () => {
@@ -95,13 +95,13 @@ describe('createActorContext', () => {
       );
     };
 
-    const { getByTestId } = render(<App />);
+    render(<App />);
 
-    expect(getByTestId('value').textContent).toBe('a');
+    expect(screen.getByTestId('value').textContent).toBe('a');
 
-    fireEvent.click(getByTestId('next'));
+    fireEvent.click(screen.getByTestId('next'));
 
-    expect(getByTestId('value').textContent).toBe('b');
+    expect(screen.getByTestId('value').textContent).toBe('b');
   });
 
   it('should work with useSelector and a custom comparator', async () => {
@@ -207,8 +207,8 @@ describe('createActorContext', () => {
       );
     };
 
-    const { getByTestId } = render(<App />);
+    render(<App />);
 
-    expect(getByTestId('value').textContent).toBe('a');
+    expect(screen.getByTestId('value').textContent).toBe('a');
   });
 });
