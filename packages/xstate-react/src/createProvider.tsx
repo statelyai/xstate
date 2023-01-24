@@ -8,7 +8,7 @@ import { ActorRefFrom, AnyStateMachine, EmittedFrom, EventFrom } from 'xstate';
 export function createProvider<TMachine extends AnyStateMachine>(
   machine: TMachine
 ): {
-  (props: { children: React.ReactNode }): JSX.Element;
+  (props: { children: React.ReactNode }): React.ReactElement<any, any>;
   useActor: () => [
     EmittedFrom<ActorRefFrom<TMachine>>,
     (event: EventFrom<TMachine>) => void
@@ -16,10 +16,10 @@ export function createProvider<TMachine extends AnyStateMachine>(
   useSelector: <T>(selector: (snapshot: EmittedFrom<TMachine>) => T) => T;
   useContext: () => ActorRefFrom<TMachine>;
 } {
-  const ReactContext = createContext(null as any);
+  const ReactContext = createContext<ActorRefFrom<TMachine> | null>(null);
 
   function Provider({ children }: { children: React.ReactNode }) {
-    const actor = useInterpret(machine);
+    const actor = useInterpret(machine) as ActorRefFrom<TMachine>;
 
     return (
       <ReactContext.Provider value={actor}>{children}</ReactContext.Provider>
@@ -46,11 +46,13 @@ export function createProvider<TMachine extends AnyStateMachine>(
     return useActor(actor);
   };
 
-  Provider.useSelector = (selector: any) => {
+  Provider.useSelector = <T,>(
+    selector: (snapshot: EmittedFrom<TMachine>) => T
+  ): T => {
     const actor = Provider.useContext();
 
     return useSelector(actor, selector);
   };
 
-  return Provider as any;
+  return Provider;
 }
