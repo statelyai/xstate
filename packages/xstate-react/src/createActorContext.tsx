@@ -8,7 +8,6 @@ import { ActorRefFrom, AnyStateMachine, EmittedFrom, EventFrom } from 'xstate';
 export function createActorContext<TMachine extends AnyStateMachine>(
   machine: TMachine
 ): React.Context<ActorRefFrom<TMachine>> & {
-  // (props: { children: React.ReactNode }): React.ReactElement<any, any>;
   useActor: () => [
     EmittedFrom<ActorRefFrom<TMachine>>,
     (event: EventFrom<TMachine>) => void
