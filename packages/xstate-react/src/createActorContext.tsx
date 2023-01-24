@@ -1,13 +1,12 @@
 import * as React from 'react';
-import { createContext, useContext } from 'react';
 import { useInterpret } from './useInterpret';
-import { useActor } from './useActor';
-import { useSelector } from './useSelector';
+import { useActor as useActorUnbound } from './useActor';
+import { useSelector as useSelectorUnbound } from './useSelector';
 import { ActorRefFrom, AnyStateMachine, EmittedFrom, EventFrom } from 'xstate';
 
 export function createActorContext<TMachine extends AnyStateMachine>(
   machine: TMachine
-): React.Context<ActorRefFrom<TMachine>> & {
+): {
   useActor: () => [
     EmittedFrom<ActorRefFrom<TMachine>>,
     (event: EventFrom<TMachine>) => void
@@ -21,9 +20,7 @@ export function createActorContext<TMachine extends AnyStateMachine>(
     children: React.ReactNode;
   }) => React.ReactElement<any, any>;
 } {
-  const ReactContext = createContext<ActorRefFrom<TMachine> | null>(
-    null
-  ) as any; // TODO: fix types
+  const ReactContext = React.createContext<ActorRefFrom<TMachine> | null>(null);
 
   const OriginalProvider = ReactContext.Provider;
 
@@ -35,8 +32,8 @@ export function createActorContext<TMachine extends AnyStateMachine>(
 
   Provider.displayName = `Provider(${machine.id})`;
 
-  ReactContext.useActorRef = () => {
-    const actor = useContext(ReactContext) as any;
+  function useActorRef() {
+    const actor = React.useContext(ReactContext);
 
     if (!actor) {
       throw new Error(
@@ -45,24 +42,25 @@ export function createActorContext<TMachine extends AnyStateMachine>(
     }
 
     return actor;
-  };
+  }
 
-  ReactContext.useActor = () => {
-    const actor = useContext(ReactContext) as any;
+  function useActor() {
+    const actor = useActorRef();
+    return useActorUnbound(actor);
+  }
 
-    return useActor(actor);
-  };
-
-  ReactContext.useSelector = <T,>(
+  function useSelector<T>(
     selector: (snapshot: EmittedFrom<TMachine>) => T,
     compare?: (a: T, b: T) => boolean
-  ): T => {
-    const actor = useContext(ReactContext) as any;
+  ): T {
+    const actor = useActorRef();
+    return useSelectorUnbound(actor, selector, compare);
+  }
 
-    return useSelector(actor, selector, compare);
+  return {
+    Provider,
+    useActorRef,
+    useActor,
+    useSelector
   };
-
-  ReactContext.Provider = Provider;
-
-  return ReactContext;
 }
