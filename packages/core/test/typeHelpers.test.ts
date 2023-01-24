@@ -403,4 +403,28 @@ describe('EmittedFrom', () => {
     // @ts-expect-error
     acceptState("isn't any");
   });
+
+  it('should return state from a machine without context', () => {
+    const machine = createMachine({});
+
+    function acceptState(_state: EmittedFrom<typeof machine>) {}
+
+    acceptState(machine.initialState);
+    // @ts-expect-error
+    acceptState("isn't any");
+  });
+
+  it('should return state from a machine with context', () => {
+    const machine = createMachine({
+      context: {
+        counter: 0
+      }
+    });
+
+    function acceptState(_state: EmittedFrom<typeof machine>) {}
+
+    acceptState(machine.initialState);
+    // @ts-expect-error
+    acceptState("isn't any");
+  });
 });
