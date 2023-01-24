@@ -105,7 +105,7 @@ describe('createActorContext', () => {
   });
 
   it('should work with useSelector and a custom comparator', async () => {
-    interface SomeContext {
+    interface MachineContext {
       obj: {
         counter: number;
       };
@@ -120,27 +120,27 @@ describe('createActorContext', () => {
       },
       on: {
         INC: {
-          actions: assign<SomeContext>((ctx) => ({
+          actions: assign<MachineContext>((ctx) => ({
             obj: {
               counter: ctx.obj.counter + 1
             }
           }))
         },
         PUSH: {
-          actions: assign<SomeContext>((ctx) => ({
+          actions: assign<MachineContext>((ctx) => ({
             arr: [...ctx.arr, Math.random().toString(36).slice(2)]
           }))
         }
       }
     });
 
-    const SomeProvider = createActorContext(someMachine);
+    const SomeContext = createActorContext(someMachine);
 
     let rerenders = 0;
 
     const Component = () => {
-      const actor = SomeProvider.useContext();
-      const value = SomeProvider.useSelector(
+      const actor = SomeContext.useActorRef();
+      const value = SomeContext.useSelector(
         (state: any) => state.context.obj,
         shallowEqual
       );
@@ -158,9 +158,9 @@ describe('createActorContext', () => {
 
     const App = () => {
       return (
-        <SomeProvider.Provider>
+        <SomeContext.Provider>
           <Component />
-        </SomeProvider.Provider>
+        </SomeContext.Provider>
       );
     };
 
@@ -184,7 +184,7 @@ describe('createActorContext', () => {
     expect(rerenders).toBe(3);
   });
 
-  it('should work with useContext', () => {
+  it('should work with useActorRef', () => {
     const someMachine = createMachine({
       initial: 'a',
       states: { a: {} }
@@ -193,7 +193,7 @@ describe('createActorContext', () => {
     const SomeContext = createActorContext(someMachine);
 
     const Component = () => {
-      const actor = SomeContext.useContext();
+      const actor = SomeContext.useActorRef();
       const value = useSelector(actor, (state) => state.value);
 
       return <div data-testid="value">{value}</div>;

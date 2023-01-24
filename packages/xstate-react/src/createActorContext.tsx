@@ -16,7 +16,7 @@ export function createActorContext<TMachine extends AnyStateMachine>(
     selector: (snapshot: EmittedFrom<TMachine>) => T,
     compare?: (a: T, b: T) => boolean
   ) => T;
-  useContext: () => ActorRefFrom<TMachine>;
+  useActorRef: () => ActorRefFrom<TMachine>;
   Provider: (props: {
     children: React.ReactNode;
   }) => React.ReactElement<any, any>;
@@ -35,7 +35,7 @@ export function createActorContext<TMachine extends AnyStateMachine>(
 
   Provider.displayName = `Provider(${machine.id})`;
 
-  ReactContext.useContext = () => {
+  ReactContext.useActorRef = () => {
     const actor = useContext(ReactContext) as any;
 
     if (!actor) {
