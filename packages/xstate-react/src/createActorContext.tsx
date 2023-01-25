@@ -18,7 +18,7 @@ export function createActorContext<TMachine extends AnyStateMachine>(
   useContext: () => ActorRefFrom<TMachine>;
   Provider: (props: {
     children: React.ReactNode;
-    value?: TMachine | ActorRefFrom<TMachine>;
+    value?: TMachine | (() => TMachine);
   }) => React.ReactElement<any, any>;
 } {
   const ReactContext = React.createContext<ActorRefFrom<TMachine> | null>(null);
