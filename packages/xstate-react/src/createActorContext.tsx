@@ -7,10 +7,7 @@ import { ActorRefFrom, AnyStateMachine, EmittedFrom, EventFrom } from 'xstate';
 export function createActorContext<TMachine extends AnyStateMachine>(
   machine: TMachine
 ): {
-  useActor: () => [
-    EmittedFrom<ActorRefFrom<TMachine>>,
-    (event: EventFrom<TMachine>) => void
-  ];
+  useActor: () => ReturnType<typeof useActorUnbound<ActorRefFrom<TMachine>>>;
   useSelector: <T>(
     selector: (snapshot: EmittedFrom<TMachine>) => T,
     compare?: (a: T, b: T) => boolean
