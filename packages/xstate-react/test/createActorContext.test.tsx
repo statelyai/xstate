@@ -247,7 +247,7 @@ describe('createActorContext', () => {
 
     const App = () => {
       return (
-        <SomeContext.Provider value={someMachine.withContext({ count: 42 })}>
+        <SomeContext.Provider value={() => someMachine.withContext({ count: 42 })}>
           <Component />
         </SomeContext.Provider>
       );
