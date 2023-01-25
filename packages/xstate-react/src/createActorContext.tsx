@@ -37,7 +37,7 @@ export function createActorContext<TMachine extends AnyStateMachine>(
     return <OriginalProvider value={actor}>{children}</OriginalProvider>;
   }
 
-  Provider.displayName = `Provider(${machine.id})`;
+  Provider.displayName = `ActorProvider(${machine.id})`;
 
   function useContext() {
     const actor = React.useContext(ReactContext);
