@@ -160,7 +160,7 @@ describe('createActorContext', () => {
     const Component = () => {
       const actor = SomeContext.useActorRef();
       const value = SomeContext.useSelector(
-        (state: any) => state.context.obj,
+        (state) => state.context.obj,
         shallowEqual
       );
 
