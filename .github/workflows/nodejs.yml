@@ -9,6 +9,9 @@ on:
     branches:
       - '**'
 
+permissions:
+  contents: read  #  to fetch code (actions/checkout)
+
 jobs:
   build:
     timeout-minutes: 20
@@ -17,7 +20,5 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-        with:
-          ref: ${{ github.event.pull_request && github.event.pull_request.head.sha || env.GITHUB_SHA }}
       - uses: ./.github/actions/ci-setup
       - uses: ./.github/actions/ci-checks

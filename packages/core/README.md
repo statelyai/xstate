@@ -63,7 +63,7 @@ toggleService.send('TOGGLE');
 - [Why? (info about statecharts)](#why)
 - [Installation](https://xstate.js.org/docs/guides/installation.html)
 - [Finite State Machines](#finite-state-machines)
-- [Hierarchical (Nested) State Machines](#hierarchical-nested-state-machines)
+- [Hierarchical (Nested) State Machines](#hierarchical--nested--state-machines)
 - [Parallel State Machines](#parallel-state-machines)
 - [History States](#history-states)
 
@@ -83,7 +83,8 @@ Read [📽 the slides](http://slides.com/davidkhourshid/finite-state-machines) (
 - [The World of Statecharts](https://statecharts.github.io/) by Erik Mogensen
 - [Pure UI](https://rauchg.com/2015/pure-ui) by Guillermo Rauch
 - [Pure UI Control](https://medium.com/@asolove/pure-ui-control-ac8d1be97a8d) by Adam Solove
-- [Spectrum - Statecharts Community](https://spectrum.chat/statecharts) (For XState specific questions, please use the [GitHub Discussions](https://github.com/statelyai/xstate/discussions))
+- [Stately Discord](https://discord.gg/xstate) chat about anything related to statecharts and XState
+- [GitHub Discussions](https://github.com/statelyai/xstate/discussions)
 
 ## Finite State Machines
 

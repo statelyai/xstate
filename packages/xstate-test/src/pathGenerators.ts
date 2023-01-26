@@ -1,27 +1,21 @@
-import {
-  SimpleBehavior,
-  StatePath,
-  TraversalOptions,
-  traverseShortestPlans,
-  traverseSimplePlans
-} from '@xstate/graph';
+import { getShortestPaths, getSimplePaths } from '@xstate/graph';
 import { EventObject } from 'xstate';
-import { mapPlansToPaths } from './utils';
+import { PathGenerator } from './types';
 
-export const getShortestPaths = <TState, TEvent extends EventObject>(
-  behavior: SimpleBehavior<TState, TEvent>,
-  options: TraversalOptions<TState, TEvent>
-): Array<StatePath<TState, TEvent>> => {
-  const plans = traverseShortestPlans(behavior, options);
+export const createShortestPathsGen = <
+  TState,
+  TEvent extends EventObject
+>(): PathGenerator<TState, TEvent> => (behavior, defaultOptions) => {
+  const paths = getShortestPaths(behavior, defaultOptions);
 
-  return mapPlansToPaths(plans);
+  return paths;
 };
 
-export const getSimplePaths = <TState, TEvent extends EventObject>(
-  behavior: SimpleBehavior<TState, TEvent>,
-  options: TraversalOptions<TState, TEvent>
-): Array<StatePath<TState, TEvent>> => {
-  const plans = traverseSimplePlans(behavior, options);
+export const createSimplePathsGen = <
+  TState,
+  TEvent extends EventObject
+>(): PathGenerator<TState, TEvent> => (behavior, defaultOptions) => {
+  const paths = getSimplePaths(behavior, defaultOptions);
 
-  return mapPlansToPaths(plans);
+  return paths;
 };

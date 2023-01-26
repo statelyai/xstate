@@ -157,7 +157,7 @@ const searchMachine = createMachine({
     },
     searching: {
       invoke: {
-        id: 'search'
+        id: 'search',
         src: search,
         onError: {
           target: 'failure',

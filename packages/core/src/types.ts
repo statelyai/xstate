@@ -514,13 +514,13 @@ export interface InvokeConfig<TContext, TEvent extends EventObject> {
    */
   onDone?:
     | string
-    | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
+    | SingleOrArray<TransitionConfigOrTarget<TContext, DoneInvokeEvent<any>>>;
   /**
    * The transition to take upon the invoked child machine sending an error event.
    */
   onError?:
     | string
-    | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
+    | SingleOrArray<TransitionConfigOrTarget<TContext, DoneInvokeEvent<any>>>;
   /**
    * Meta data related to this invocation
    */
@@ -1134,7 +1134,6 @@ export interface ActivityMap {
 export interface StateTransition<TContext, TEvent extends EventObject> {
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
   configuration: Array<StateNode<TContext, any, TEvent, any, any, any>>;
-  entrySet: Array<StateNode<TContext, any, TEvent, any, any, any>>;
   exitSet: Array<StateNode<TContext, any, TEvent, any, any, any>>;
   /**
    * The source state that preceded the transition.
@@ -1377,7 +1376,11 @@ export interface PureAction<TContext, TEvent extends EventObject>
   get: (
     context: TContext,
     event: TEvent
-  ) => SingleOrArray<ActionObject<TContext, TEvent>> | undefined;
+  ) =>
+    | SingleOrArray<
+        ActionObject<TContext, TEvent> | ActionObject<TContext, TEvent>['type']
+      >
+    | undefined;
 }
 
 export interface ChooseAction<TContext, TEvent extends EventObject>
@@ -1811,7 +1814,25 @@ export interface Behavior<TEvent extends EventObject, TEmitted = any> {
 }
 
 export type EmittedFrom<T> = ReturnTypeOrValue<T> extends infer R
-  ? R extends Interpreter<infer _, infer __, infer ___, infer ____, infer _____>
+  ? // we need to specialcase the StateMachine here (even though it's a Behavior)
+    // because its `transition` method is too different from the `Behavior["transition"]`
+    R extends StateMachine<
+      infer _,
+      infer __,
+      infer ___,
+      infer ____,
+      infer _____,
+      infer ______,
+      infer _______
+    >
+    ? R['initialState']
+    : R extends Interpreter<
+        infer _,
+        infer __,
+        infer ___,
+        infer ____,
+        infer _____
+      >
     ? R['initialState']
     : R extends ActorRef<infer _, infer TEmitted>
     ? TEmitted
