@@ -2669,6 +2669,42 @@ describe('raise', () => {
     service.send({ type: 'TO_B' });
   });
 
+  it.only('should be able to send a delayed event to itself with delay = 0', (done) => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          entry: raise(
+            { type: 'EVENT' },
+            {
+              delay: 0
+            }
+          ),
+          on: {
+            EVENT: 'b'
+          }
+        },
+        b: {}
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    service.onDone(() => done());
+
+    // Ensures that the delayed self-event is sent when in the `b` state
+    service.send({ type: 'TO_B' });
+
+    // The state should not be changed yet; equivalent to
+    // setTimeout(..., 0)
+    expect(service.getSnapshot().value).toEqual('a');
+
+    setTimeout(() => {
+      // The state should be changed now
+      expect(service.getSnapshot().value).toEqual('b');
+    });
+  });
+
   it('should be able to send an event to itself', (done) => {
     const machine = createMachine({
       initial: 'a',
