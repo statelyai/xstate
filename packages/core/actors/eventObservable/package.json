@@ -1,8 +1,0 @@
-{
-  "main": "dist/xstate-actors-eventObservable.cjs.js",
-  "module": "dist/xstate-actors-eventObservable.esm.js",
-  "umd:main": "dist/xstate-actors-eventObservable.umd.min.js",
-  "preconstruct": {
-    "umdName": "XStateActorsEventObservable"
-  }
-}

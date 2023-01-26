@@ -1,9 +1,9 @@
 import { EMPTY, interval, of, throwError } from 'rxjs';
 import { take } from 'rxjs/operators';
 import { interpret } from '../src/index.js';
-import { fromReducer } from '../src/actors/reducer.js';
-import { fromObservable } from '../src/actors/observable.js';
-import { fromPromise } from '../src/actors/promise.js';
+import { fromReducer } from '../src/actors/index.js';
+import { fromObservable } from '../src/actors/index.js';
+import { fromPromise } from '../src/actors/index.js';
 import { waitFor } from '../src/waitFor.js';
 
 describe('promise behavior (fromPromise)', () => {

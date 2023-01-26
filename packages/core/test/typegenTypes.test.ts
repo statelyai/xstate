@@ -4,8 +4,8 @@ import {
   MachineContext,
   StateMachine
 } from '../src/index.js';
-import { fromPromise } from '../src/actors/promise.js';
-import { fromCallback } from '../src/actors/callback.js';
+import { fromPromise } from '../src/actors/index.js';
+import { fromCallback } from '../src/actors/index.js';
 import { createMachine } from '../src/Machine.js';
 import { TypegenMeta } from '../src/typegenTypes.js';
 

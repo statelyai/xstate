@@ -26,22 +26,6 @@
       "module": "./actors/dist/xstate-actors.esm.js",
       "default": "./actors/dist/xstate-actors.cjs.js"
     },
-    "./actors/promise": {
-      "module": "./actors/promise/dist/xstate-actors-promise.esm.js",
-      "default": "./actors/promise/dist/xstate-actors-promise.cjs.js"
-    },
-    "./actors/reducer": {
-      "module": "./actors/reducer/dist/xstate-actors-reducer.esm.js",
-      "default": "./actors/reducer/dist/xstate-actors-reducer.cjs.js"
-    },
-    "./actors/callback": {
-      "module": "./actors/callback/dist/xstate-actors-callback.esm.js",
-      "default": "./actors/callback/dist/xstate-actors-callback.cjs.js"
-    },
-    "./actors/observable": {
-      "module": "./actors/observable/dist/xstate-actors-observable.esm.js",
-      "default": "./actors/observable/dist/xstate-actors-observable.cjs.js"
-    },
     "./package.json": "./package.json"
   },
   "sideEffects": false,
@@ -91,10 +75,6 @@
       "./index.ts",
       "./actions.ts",
       "./actors/index.ts",
-      "./actors/reducer.ts",
-      "./actors/promise.ts",
-      "./actors/observable.ts",
-      "./actors/callback.ts",
       "./guards.ts",
       "./dev/index.ts"
     ]
