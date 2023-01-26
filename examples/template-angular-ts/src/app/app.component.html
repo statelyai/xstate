@@ -1,13 +1,11 @@
-<ng-container *ngIf="state$ | async as state">
-  <div id="app">
-    <h1>XState Angular Template</h1>
-    <h2>Fork this template!</h2>
-    <button type="button" (click)="actor.send('TOGGLE')">
-      Click me ({{ state.matches('active') ? '✅' : '❌' }})
-    </button>
-    <code>
-      Toggled
-      <strong>{{ state.context.count }}</strong> times
-    </code>
-  </div>
-</ng-container>
+<div id="app">
+  <h1>XState Angular Template</h1>
+  <h2>Fork this template!</h2>
+  <button type="button" (click)="actor.send('TOGGLE')">
+    Click me ({{ actor.state.matches('active') ? '✅' : '❌' }})
+  </button>
+  <code>
+    Toggled
+    <strong>{{ actor.state.context.count }}</strong> times
+  </code>
+</div>
