@@ -2669,7 +2669,7 @@ describe('raise', () => {
     service.send({ type: 'TO_B' });
   });
 
-  it.only('should be able to send a delayed event to itself with delay = 0', (done) => {
+  it('should be able to send a delayed event to itself with delay = 0', (done) => {
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -2690,8 +2690,6 @@ describe('raise', () => {
 
     const service = interpret(machine).start();
 
-    service.onDone(() => done());
-
     // Ensures that the delayed self-event is sent when in the `b` state
     service.send({ type: 'TO_B' });
 
@@ -2702,6 +2700,7 @@ describe('raise', () => {
     setTimeout(() => {
       // The state should be changed now
       expect(service.getSnapshot().value).toEqual('b');
+      done();
     });
   });
 
@@ -2734,6 +2733,67 @@ describe('raise', () => {
       // didn't transition yet
       expect(service.getSnapshot().value).toEqual('a');
     }, 50);
+  });
+
+  it('should accept event expression', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: {
+              actions: raise(() => ({ type: 'RAISED' }))
+            },
+            RAISED: 'b'
+          }
+        },
+        b: {}
+      }
+    });
+
+    const actor = interpret(machine).start();
+
+    actor.send({ type: 'NEXT' });
+
+    expect(actor.getSnapshot().value).toBe('b');
+  });
+
+  it('should be possible to access context in the event expression', () => {
+    type MachineEvent =
+      | {
+          type: 'RAISED';
+        }
+      | {
+          type: 'NEXT';
+        };
+    interface MachineContext {
+      eventType: MachineEvent['type'];
+    }
+    const machine = createMachine<MachineContext, MachineEvent>({
+      initial: 'a',
+      context: {
+        eventType: 'RAISED'
+      },
+      states: {
+        a: {
+          on: {
+            NEXT: {
+              actions: raise<MachineContext, any>((ctx: any) => ({
+                type: ctx.eventType
+              }))
+            },
+            RAISED: 'b'
+          }
+        },
+        b: {}
+      }
+    });
+
+    const actor = interpret(machine).start();
+
+    actor.send({ type: 'NEXT' });
+
+    expect(actor.getSnapshot().value).toBe('b');
   });
 });
 
