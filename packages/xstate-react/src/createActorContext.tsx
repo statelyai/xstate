@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useInterpret } from './useInterpret';
 import { useActor as useActorUnbound } from './useActor';
 import { useSelector as useSelectorUnbound } from './useSelector';
-import { ActorRefFrom, AnyStateMachine, EmittedFrom, EventFrom } from 'xstate';
+import { ActorRefFrom, AnyStateMachine, EmittedFrom } from 'xstate';
 
 export function createActorContext<TMachine extends AnyStateMachine>(
   machine: TMachine
@@ -12,10 +12,10 @@ export function createActorContext<TMachine extends AnyStateMachine>(
     selector: (snapshot: EmittedFrom<TMachine>) => T,
     compare?: (a: T, b: T) => boolean
   ) => T;
-  useContext: () => ActorRefFrom<TMachine>;
+  useActorRef: () => ActorRefFrom<TMachine>;
   Provider: (props: {
     children: React.ReactNode;
-    value?: TMachine | (() => TMachine);
+    machine?: TMachine | (() => TMachine);
   }) => React.ReactElement<any, any>;
 } {
   const ReactContext = React.createContext<ActorRefFrom<TMachine> | null>(null);
@@ -24,12 +24,12 @@ export function createActorContext<TMachine extends AnyStateMachine>(
 
   function Provider({
     children,
-    value = machine
+    machine: providedMachine = machine
   }: {
     children: React.ReactNode;
-    value: TMachine;
+    machine: TMachine | (() => TMachine);
   }) {
-    const actor = useInterpret(value) as ActorRefFrom<TMachine>;
+    const actor = useInterpret(providedMachine) as ActorRefFrom<TMachine>;
 
     return <OriginalProvider value={actor}>{children}</OriginalProvider>;
   }
@@ -63,7 +63,7 @@ export function createActorContext<TMachine extends AnyStateMachine>(
 
   return {
     Provider,
-    useContext,
+    useActorRef: useContext,
     useActor,
     useSelector
   };

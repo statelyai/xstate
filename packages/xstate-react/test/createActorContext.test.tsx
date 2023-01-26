@@ -158,7 +158,7 @@ describe('createActorContext', () => {
     let rerenders = 0;
 
     const Component = () => {
-      const actor = SomeContext.useContext();
+      const actor = SomeContext.useActorRef();
       const value = SomeContext.useSelector(
         (state: any) => state.context.obj,
         shallowEqual
@@ -212,7 +212,7 @@ describe('createActorContext', () => {
     const SomeContext = createActorContext(someMachine);
 
     const Component = () => {
-      const actor = SomeContext.useContext();
+      const actor = SomeContext.useActorRef();
       const value = useSelector(actor, (state) => state.value);
 
       return <div data-testid="value">{value}</div>;
@@ -239,7 +239,7 @@ describe('createActorContext', () => {
     const SomeContext = createActorContext(someMachine);
 
     const Component = () => {
-      const actor = SomeContext.useContext();
+      const actor = SomeContext.useActorRef();
       const count = useSelector(actor, (state) => state.context.count);
 
       return <div data-testid="value">{count}</div>;
@@ -247,7 +247,9 @@ describe('createActorContext', () => {
 
     const App = () => {
       return (
-        <SomeContext.Provider value={() => someMachine.withContext({ count: 42 })}>
+        <SomeContext.Provider
+          machine={() => someMachine.withContext({ count: 42 })}
+        >
           <Component />
         </SomeContext.Provider>
       );
@@ -263,7 +265,7 @@ describe('createActorContext', () => {
     const SomeContext = createActorContext(createMachine({}));
 
     const App = () => {
-      SomeContext.useContext();
+      SomeContext.useActorRef();
       return null;
     };
 
