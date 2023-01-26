@@ -1254,6 +1254,65 @@ describe('useActor', () => {
     });
   });
 
+  it(`actor should not reevaluate a scope depending on state.matches when state.value doesn't change`, (done) => {
+    jest.useFakeTimers();
+
+    interface MachineContext {
+      counter: number;
+    }
+
+    const machine = createMachine<MachineContext>({
+      context: {
+        counter: 0
+      },
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            INCREMENT: {
+              actions: assign({
+                counter: (ctx) => ctx.counter + 1
+              })
+            }
+          }
+        }
+      }
+    });
+
+    const counterService = interpret(machine).start();
+
+    const Comp = () => {
+      let calls = 0;
+      const [state, send] = useActor(counterService);
+
+      createEffect(() => {
+        calls++;
+        state().matches('foo');
+      });
+
+      onMount(() => {
+        send({ type: 'INC' });
+        send({ type: 'INC' });
+        send({ type: 'INC' });
+        setTimeout(() => {
+          send({ type: 'INC' });
+          setTimeout(() => {
+            send({ type: 'INC' });
+            setTimeout(() => {
+              expect(calls).toBe(1);
+              done();
+            }, 100);
+          });
+        });
+      });
+
+      return null;
+    };
+
+    render(() => <Comp />);
+    jest.advanceTimersByTime(100);
+  });
+
   it('actor should be updated when it changes shallow', () => {
     const counterMachine = createMachine<{ count: number }>({
       id: 'counter',

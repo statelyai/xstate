@@ -9,6 +9,7 @@ import type { Accessor } from 'solid-js';
 import { createMemo, onCleanup, createEffect } from 'solid-js';
 import { createImmutable } from './createImmutable';
 import { isServer } from 'solid-js/web';
+import { unwrap } from 'solid-js/store';
 
 type UseFSMServiceReturn<TService extends StateMachine.AnyService> = [
   StateFrom<TService>,
@@ -53,7 +54,9 @@ export function useService<TService extends StateMachine.AnyService>(
 
   createEffect(() => {
     const { unsubscribe } = serviceMemo().subscribe((currentState) =>
-      setState(deriveFSMState(currentState as StateFrom<TService>))
+      setState(
+        deriveFSMState(currentState as StateFrom<TService>, unwrap(state))
+      )
     );
     onCleanup(unsubscribe);
   });
@@ -64,14 +67,14 @@ export function useService<TService extends StateMachine.AnyService>(
 }
 
 function deriveFSMState<State extends StateMachine.AnyState>(
-  state: State
+  state: State,
+  prevState?: State
 ): State {
   return {
     ...state,
-    matches(...args: Parameters<typeof state['matches']>) {
-      // tslint:disable-next-line:no-unused-expression
-      (this as StateMachine.AnyState).value as typeof state['value']; // reads state.value to be tracked by the store
-      return state.matches(args[0] as never);
-    }
+    matches:
+      prevState && prevState.value === state.value
+        ? prevState.matches
+        : state.matches
   } as typeof state;
 }

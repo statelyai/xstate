@@ -932,6 +932,60 @@ describe('useMachine hook', () => {
     expect(canDoSomethingEl.textContent).toEqual('true');
   });
 
+  it(`should not reevaluate a scope depending on state.matches when state.value doesn't change`, (done) => {
+    interface MachineContext {
+      counter: number;
+    }
+
+    const machine = createMachine<MachineContext>({
+      context: {
+        counter: 0
+      },
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            INCREMENT: {
+              actions: assign({
+                counter: (ctx) => ctx.counter + 1
+              })
+            }
+          }
+        }
+      }
+    });
+
+    const Comp = () => {
+      let calls = 0;
+      const [state, send] = useMachine(machine);
+
+      createEffect(() => {
+        calls++;
+        state.matches('foo');
+      });
+
+      onMount(() => {
+        send({ type: 'INC' });
+        send({ type: 'INC' });
+        send({ type: 'INC' });
+        setTimeout(() => {
+          send({ type: 'INC' });
+          setTimeout(() => {
+            send({ type: 'INC' });
+            setTimeout(() => {
+              expect(calls).toBe(1);
+              done();
+            }, 100);
+          });
+        });
+      });
+
+      return null;
+    };
+
+    render(() => <Comp />);
+  });
+
   it('should successfully spawn actors from the lazily declared context', () => {
     let childSpawned = false;
 

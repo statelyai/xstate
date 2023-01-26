@@ -4,6 +4,7 @@ import { createEffect, createMemo, onCleanup } from 'solid-js';
 import { deriveServiceState } from './deriveServiceState';
 import { createImmutable } from './createImmutable';
 import type { CheckSnapshot } from './types';
+import { unwrap } from 'solid-js/store';
 
 const noop = () => {
   /* ... */
@@ -30,9 +31,9 @@ export function useActor(
     snapshot: deriveServiceState(actorMemo().getSnapshot?.())
   });
 
-  const setActorState = (actorState: unknown) => {
+  const setActorState = (actorState: unknown, prevState?: unknown) => {
     setState({
-      snapshot: deriveServiceState(actorState)
+      snapshot: deriveServiceState(actorState, prevState)
     });
   };
 
@@ -44,7 +45,7 @@ export function useActor(
     }
 
     const { unsubscribe } = currentActor.subscribe({
-      next: setActorState,
+      next: (nextState) => setActorState(nextState, unwrap(state.snapshot)),
       error: noop,
       complete: noop
     });

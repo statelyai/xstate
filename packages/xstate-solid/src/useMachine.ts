@@ -11,6 +11,7 @@ import { createService } from './createService';
 import { onCleanup, onMount } from 'solid-js';
 import { deriveServiceState } from './deriveServiceState';
 import { createImmutable } from './createImmutable';
+import { unwrap } from 'solid-js/store';
 
 type UseMachineReturn<
   TMachine extends AnyStateMachine,
@@ -38,7 +39,9 @@ export function useMachine<TMachine extends AnyStateMachine>(
 
   onMount(() => {
     const { unsubscribe } = service.subscribe((nextState) => {
-      setState(deriveServiceState(nextState) as StateFrom<TMachine>);
+      setState(
+        deriveServiceState(nextState, unwrap(state)) as StateFrom<TMachine>
+      );
     });
 
     onCleanup(unsubscribe);
