@@ -1,8 +1,7 @@
 import * as React from 'react';
 import { createMachine, assign } from 'xstate';
 import { fireEvent, screen, render } from '@testing-library/react';
-import { createActorContext } from '../src/createActorContext';
-import { shallowEqual, useSelector } from '../src';
+import { shallowEqual, useSelector, createActorContext } from '../src';
 
 const originalConsoleError = console.error;
 
