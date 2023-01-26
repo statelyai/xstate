@@ -13,10 +13,10 @@ afterEach(() => {
 function checkConsoleErrorOutputForMissingProvider() {
   expect(console.error).toHaveBeenCalledTimes(3);
   expect((console.error as any).mock.calls[0][0].split('\n')[0]).toBe(
-    `Error: Uncaught [Error: You used Provider.useActorRef() but it's not inside a <Provider>.]`
+    `Error: Uncaught [Error: You used a hook from \"ActorProvider((machine))\" but it's not inside a <ActorProvider((machine))> component.]`
   );
   expect((console.error as any).mock.calls[1][0].split('\n')[0]).toBe(
-    `Error: Uncaught [Error: You used Provider.useActorRef() but it's not inside a <Provider>.]`
+    `Error: Uncaught [Error: You used a hook from \"ActorProvider((machine))\" but it's not inside a <ActorProvider((machine))> component.]`
   );
   expect((console.error as any).mock.calls[2][0].split('\n')[0]).toBe(
     `The above error occurred in the <App> component:`
@@ -270,7 +270,7 @@ describe('createActorContext', () => {
     };
 
     expect(() => render(<App />)).toThrowErrorMatchingInlineSnapshot(
-      `"You used Provider.useActorRef() but it's not inside a <Provider>."`
+      `"You used a hook from \\"ActorProvider((machine))\\" but it's not inside a <ActorProvider((machine))> component."`
     );
     checkConsoleErrorOutputForMissingProvider();
   });
@@ -285,7 +285,7 @@ describe('createActorContext', () => {
     };
 
     expect(() => render(<App />)).toThrowErrorMatchingInlineSnapshot(
-      `"You used Provider.useActorRef() but it's not inside a <Provider>."`
+      `"You used a hook from \\"ActorProvider((machine))\\" but it's not inside a <ActorProvider((machine))> component."`
     );
     checkConsoleErrorOutputForMissingProvider();
   });
@@ -300,7 +300,7 @@ describe('createActorContext', () => {
     };
 
     expect(() => render(<App />)).toThrowErrorMatchingInlineSnapshot(
-      `"You used Provider.useActorRef() but it's not inside a <Provider>."`
+      `"You used a hook from \\"ActorProvider((machine))\\" but it's not inside a <ActorProvider((machine))> component."`
     );
     checkConsoleErrorOutputForMissingProvider();
   });
