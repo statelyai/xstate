@@ -13,10 +13,10 @@ afterEach(() => {
 function checkConsoleErrorOutputForMissingProvider() {
   expect(console.error).toHaveBeenCalledTimes(3);
   expect((console.error as any).mock.calls[0][0].split('\n')[0]).toBe(
-    `Error: Uncaught [Error: You used Provider.useContext() but it's not inside a <Provider>.]`
+    `Error: Uncaught [Error: You used Provider.useActorRef() but it's not inside a <Provider>.]`
   );
   expect((console.error as any).mock.calls[1][0].split('\n')[0]).toBe(
-    `Error: Uncaught [Error: You used Provider.useContext() but it's not inside a <Provider>.]`
+    `Error: Uncaught [Error: You used Provider.useActorRef() but it's not inside a <Provider>.]`
   );
   expect((console.error as any).mock.calls[2][0].split('\n')[0]).toBe(
     `The above error occurred in the <App> component:`
@@ -260,7 +260,7 @@ describe('createActorContext', () => {
     expect(screen.getByTestId('value').textContent).toBe('42');
   });
 
-  it('useContext should throw when the actor was not provided', () => {
+  it('useActorRef should throw when the actor was not provided', () => {
     console.error = jest.fn();
     const SomeContext = createActorContext(createMachine({}));
 
@@ -270,7 +270,7 @@ describe('createActorContext', () => {
     };
 
     expect(() => render(<App />)).toThrowErrorMatchingInlineSnapshot(
-      `"You used Provider.useContext() but it's not inside a <Provider>."`
+      `"You used Provider.useActorRef() but it's not inside a <Provider>."`
     );
     checkConsoleErrorOutputForMissingProvider();
   });
@@ -285,7 +285,7 @@ describe('createActorContext', () => {
     };
 
     expect(() => render(<App />)).toThrowErrorMatchingInlineSnapshot(
-      `"You used Provider.useContext() but it's not inside a <Provider>."`
+      `"You used Provider.useActorRef() but it's not inside a <Provider>."`
     );
     checkConsoleErrorOutputForMissingProvider();
   });
@@ -300,7 +300,7 @@ describe('createActorContext', () => {
     };
 
     expect(() => render(<App />)).toThrowErrorMatchingInlineSnapshot(
-      `"You used Provider.useContext() but it's not inside a <Provider>."`
+      `"You used Provider.useActorRef() but it's not inside a <Provider>."`
     );
     checkConsoleErrorOutputForMissingProvider();
   });

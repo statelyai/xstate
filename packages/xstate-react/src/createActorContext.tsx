@@ -41,7 +41,7 @@ export function createActorContext<TMachine extends AnyStateMachine>(
 
     if (!actor) {
       throw new Error(
-        `You used Provider.useContext() but it's not inside a <Provider>.`
+        `You used a hook from "${Provider.displayName}" but it's not inside a <${Provider.displayName}> component.`
       );
     }
 
