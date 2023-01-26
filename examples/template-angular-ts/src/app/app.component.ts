@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { toggleMachine } from 'src/toggle.machine';
 import { interpret } from 'xstate';
 
@@ -8,6 +8,10 @@ import { interpret } from 'xstate';
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
 })
-export class AppComponent {
-  actor = interpret(toggleMachine).start();
+export class AppComponent implements OnInit {
+  actor = interpret(toggleMachine);
+
+  ngOnInit(): void {
+    this.actor.start();
+  }
 }
