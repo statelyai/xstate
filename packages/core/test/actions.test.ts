@@ -8,7 +8,7 @@ import {
   ActorRefFrom,
   AnyStateMachine,
   StateNode,
-  SpecialTargets
+  actions
 } from '../src/index';
 import {
   pure,
@@ -2643,7 +2643,7 @@ describe('raise', () => {
           entry: raise(
             { type: 'EVENT' },
             {
-              delay: 100
+              delay: 1
             }
           ),
           on: {
@@ -2690,9 +2690,6 @@ describe('raise', () => {
 
     const service = interpret(machine).start();
 
-    // Ensures that the delayed self-event is sent when in the `b` state
-    service.send({ type: 'TO_B' });
-
     // The state should not be changed yet; equivalent to
     // setTimeout(..., 0)
     expect(service.getSnapshot().value).toEqual('a');
@@ -2704,7 +2701,28 @@ describe('raise', () => {
     });
   });
 
-  it('should be able to send an event to itself', (done) => {
+  it('should be able to raise an event and respond to it in the same state', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          entry: raise({ type: 'TO_B' }),
+          on: {
+            TO_B: 'b'
+          }
+        },
+        b: {
+          type: 'final'
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    expect(service.getSnapshot().value).toEqual('b');
+  });
+
+  it('should be able to raise a delayed event and respond to it in the same state', (done) => {
     const machine = createMachine({
       initial: 'a',
       states: {
@@ -2794,6 +2812,34 @@ describe('raise', () => {
     actor.send({ type: 'NEXT' });
 
     expect(actor.getSnapshot().value).toBe('b');
+  });
+
+  it('should be possible to cancel a raised delayed event', () => {
+    const machine = createMachine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            NEXT: {
+              actions: raise({ type: 'RAISED' }, { delay: 1, id: 'myId' })
+            },
+            RAISED: 'b',
+            CANCEL: {
+              actions: actions.cancel('myId')
+            }
+          }
+        },
+        b: {}
+      }
+    });
+
+    const actor = interpret(machine).start();
+
+    actor.send({ type: 'CANCEL' });
+
+    setTimeout(() => {
+      expect(actor.getSnapshot().value).toBe('a');
+    }, 10);
   });
 });
 
