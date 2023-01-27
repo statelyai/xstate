@@ -341,7 +341,7 @@ describe('@xstate/inspect', () => {
     ).toHaveLength(1);
   });
 
-  describe.only('browser inspector', () => {
+  describe('browser inspector', () => {
     const windowMock = jest.fn() as unknown as Window;
     let windowSpy;
 
