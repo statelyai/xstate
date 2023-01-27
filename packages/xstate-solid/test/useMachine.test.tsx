@@ -945,7 +945,7 @@ describe('useMachine hook', () => {
       states: {
         idle: {
           on: {
-            INCREMENT: {
+            INC: {
               actions: assign({
                 counter: (ctx) => ctx.counter + 1
               })
@@ -1452,13 +1452,17 @@ describe('useMachine hook', () => {
       {
         initial: 'a',
         context: {
-          isAwesome: false
+          isAwesome: false,
+          isNotAwesome: true
         },
         states: {
           a: {
             on: {
               TOGGLE: {
                 actions: 'toggleIsAwesome'
+              },
+              TOGGLE_NOT: {
+                actions: 'toggleIsNotAwesome'
               },
               EV: {
                 cond: 'isAwesome',
@@ -1471,7 +1475,10 @@ describe('useMachine hook', () => {
       },
       {
         actions: {
-          toggleIsAwesome: assign((ctx) => ({ isAwesome: !ctx.isAwesome }))
+          toggleIsAwesome: assign((ctx) => ({ isAwesome: !ctx.isAwesome })),
+          toggleIsNotAwesome: assign((ctx) => ({
+            isNotAwesome: !ctx.isNotAwesome
+          }))
         },
         guards: {
           isAwesome: (ctx) => !!ctx.isAwesome
@@ -1479,12 +1486,24 @@ describe('useMachine hook', () => {
       }
     );
 
+    let count = 0;
+
     const App = () => {
       const [state, send] = useMachine(machine);
+      createEffect(() => {
+        count += 1;
+        state.can('EV');
+      });
       return (
         <div>
           <button data-testid="toggle-button" onClick={() => send('TOGGLE')}>
             Toggle
+          </button>
+          <button
+            data-testid="toggle-not-button"
+            onClick={() => send('TOGGLE_NOT')}
+          >
+            Toggle NOT
           </button>
           <Show keyed={false} when={state.can('EV')}>
             <div data-testid="can-send-ev"></div>
@@ -1496,10 +1515,21 @@ describe('useMachine hook', () => {
     render(() => <App />);
 
     const toggleButton = screen.getByTestId('toggle-button');
-
+    const toggleNotButton = screen.getByTestId('toggle-not-button');
+    expect(count).toEqual(1);
+    toggleNotButton.click();
     expect(screen.queryByTestId('can-send-ev')).not.toBeTruthy();
+    expect(count).toEqual(1);
+    toggleNotButton.click();
+    expect(screen.queryByTestId('can-send-ev')).not.toBeTruthy();
+    expect(count).toEqual(1);
     toggleButton.click();
     expect(screen.queryByTestId('can-send-ev')).toBeTruthy();
+    expect(count).toEqual(2);
+    toggleButton.click();
+    expect(count).toEqual(3);
+    toggleNotButton.click();
+    expect(count).toEqual(3);
   });
 });
 

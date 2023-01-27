@@ -693,7 +693,7 @@ describe('useMachine hook for fsm', () => {
       states: {
         idle: {
           on: {
-            INCREMENT: {
+            INC: {
               actions: assign({
                 counter: (ctx) => ctx.counter + 1
               })
