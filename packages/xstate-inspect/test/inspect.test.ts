@@ -340,4 +340,40 @@ describe('@xstate/inspect', () => {
         .filter((message: any) => message.type === 'service.event')
     ).toHaveLength(1);
   });
+
+  describe.only('browser inspector', () => {
+    const windowMock = jest.fn() as unknown as Window;
+    let windowSpy;
+
+    beforeEach(() => {
+      windowSpy = jest.spyOn(window, 'open');
+      windowSpy.mockImplementation(() => windowMock);
+    });
+
+    afterEach(() => {
+      windowSpy.mockRestore();
+    });
+
+    it('should return the new targetWindow if opened', () => {
+      const devTools = createDevTools();
+      const inspector = inspect({
+        devTools,
+        iframe: undefined
+      });
+
+      expect(inspector?.targetWindow).toEqual(windowMock);
+    });
+
+    it('should return the original targetWindow if provided', () => {
+      const localWindowMock = jest.fn() as unknown as Window;
+      const devTools = createDevTools();
+      const inspector = inspect({
+        devTools,
+        iframe: undefined,
+        targetWindow: localWindowMock
+      });
+
+      expect(inspector?.targetWindow).toEqual(localWindowMock);
+    });
+  });
 });

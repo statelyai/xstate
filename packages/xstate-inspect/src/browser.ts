@@ -15,7 +15,7 @@ import {
 import { createInspectMachine, InspectMachineEvent } from './inspectMachine';
 import { stringifyMachine, stringifyState } from './serialize';
 import type {
-  Inspector,
+  BrowserInspector,
   InspectorOptions,
   InspectReceiver,
   ParsedReceiverEvent,
@@ -89,7 +89,9 @@ const getFinalOptions = (options?: Partial<InspectorOptions>) => {
 
 const patchedInterpreters = new Set<AnyInterpreter>();
 
-export function inspect(options?: InspectorOptions): Inspector | undefined {
+export function inspect(
+  options?: InspectorOptions
+): BrowserInspector | undefined {
   const { iframe, url, devTools } = getFinalOptions(options);
 
   if (iframe === null) {
@@ -108,7 +110,7 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
     listeners.forEach((listener) => listener.next(state));
   });
 
-  let targetWindow: Window | null | undefined;
+  let targetWindow: Window | null | undefined = options?.targetWindow;
   let client: Pick<ActorRef<any>, 'send'>;
 
   const messageHandler = (event: MessageEvent<unknown>) => {
@@ -216,11 +218,12 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
     });
 
     iframe.setAttribute('src', String(url));
-  } else {
+  } else if (!targetWindow) {
     targetWindow = window.open(String(url), 'xstateinspector');
   }
 
   return {
+    targetWindow,
     send: (event) => {
       inspectService.send(event);
     },
@@ -241,7 +244,7 @@ export function inspect(options?: InspectorOptions): Inspector | undefined {
       window.removeEventListener('message', messageHandler);
       sub.unsubscribe();
     }
-  } as Inspector;
+  } as BrowserInspector;
 }
 
 export function createWindowReceiver(
