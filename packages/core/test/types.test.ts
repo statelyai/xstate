@@ -253,23 +253,23 @@ describe('Raise events', () => {
               {
                 actions: raise({
                   type: 'ALOHA'
-                }),
+                } as any),
                 cond: (_ctx, ev) => !!ev.aloha
               },
               {
                 actions: raise({
                   type: 'MORNING'
-                }),
+                } as any),
                 cond: (ctx) => ctx.hour < 12
               },
               {
                 actions: raise({
                   type: 'AFTERNOON'
-                }),
+                } as any),
                 cond: (ctx) => ctx.hour < 18
               },
               {
-                actions: raise({ type: 'EVENING' }),
+                actions: raise({ type: 'EVENING' } as any),
                 cond: (ctx) => ctx.hour < 22
               }
             ]

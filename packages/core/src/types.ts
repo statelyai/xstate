@@ -145,7 +145,7 @@ export type BaseAction<
 > =
   | SimpleActionsOf<TAction>['type']
   | TAction
-  | RaiseAction<any>
+  | RaiseAction<TContext, TEvent>
   | SendAction<TContext, TEvent, any>
   | AssignAction<TContext, TEvent>
   | LogAction<TContext, TEvent>
@@ -1171,14 +1171,20 @@ export enum ActionTypes {
   Choose = 'xstate.choose'
 }
 
-export interface RaiseAction<TEvent extends EventObject> {
+export interface RaiseAction<TContext, TEvent extends EventObject>
+  extends ActionObject<TContext, TEvent> {
   type: ActionTypes.Raise;
-  event: TEvent['type'];
+  event: TEvent | SendExpr<TContext, TEvent, TEvent>;
+  delay: number | string | undefined | DelayExpr<TContext, TEvent>;
+  id: string | number | undefined;
 }
 
-export interface RaiseActionObject<TEvent extends EventObject> {
+export interface RaiseActionObject<TContext, TEvent extends EventObject>
+  extends RaiseAction<TContext, TEvent> {
   type: ActionTypes.Raise;
   _event: SCXML.Event<TEvent>;
+  delay: number | undefined;
+  id: string | number | undefined;
 }
 
 export interface DoneInvokeEvent<TData> extends EventObject {
@@ -1251,6 +1257,7 @@ export interface SendAction<
   TEvent extends EventObject,
   TSentEvent extends EventObject
 > extends ActionObject<TContext, TEvent> {
+  type: ActionTypes.Send;
   to:
     | string
     | number
@@ -1310,9 +1317,8 @@ export enum SpecialTargets {
   Internal = '#_internal'
 }
 
-export interface SendActionOptions<TContext, TEvent extends EventObject> {
-  id?: string | number;
-  delay?: number | string | DelayExpr<TContext, TEvent>;
+export interface SendActionOptions<TContext, TEvent extends EventObject>
+  extends RaiseActionOptions<TContext, TEvent> {
   to?:
     | string
     | ActorRef<any>

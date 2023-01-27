@@ -34,7 +34,8 @@ import {
   Subscription,
   AnyState,
   StateConfig,
-  InteropSubscribable
+  InteropSubscribable,
+  RaiseActionObject
 } from './types';
 import { State, bindActionToState, isStateConfig } from './State';
 import * as actionTypes from './actionTypes';
@@ -65,7 +66,8 @@ import {
   isActor,
   isBehavior,
   symbolObservable,
-  flatten
+  flatten,
+  isRaisableAction
 } from './utils';
 import { Scheduler } from './scheduler';
 import { Actor, isSpawnedActor, createDeferredActor } from './Actor';
@@ -673,10 +675,7 @@ export class Interpreter<
           historyValue: undefined,
           history: this.state,
           actions: resolvedActions.filter(
-            (action) =>
-              action.type !== actionTypes.raise &&
-              (action.type !== actionTypes.send ||
-                (!!action.to && action.to !== SpecialTargets.Internal))
+            (action) => !isRaisableAction(action)
           ),
           activities: {},
           events: [],
@@ -955,8 +954,12 @@ export class Interpreter<
       child.send(event);
     }
   }
-  private defer(sendAction: SendActionObject<TContext, TEvent>): void {
-    this.delayedEventsMap[sendAction.id] = this.clock.setTimeout(() => {
+  private defer(
+    sendAction:
+      | SendActionObject<TContext, TEvent>
+      | RaiseActionObject<TContext, TEvent>
+  ): void {
+    const timerId = this.clock.setTimeout(() => {
       if (sendAction.to) {
         this.sendTo(sendAction._event, sendAction.to, true);
       } else {
@@ -965,6 +968,10 @@ export class Interpreter<
         );
       }
     }, sendAction.delay as number);
+
+    if (sendAction.id) {
+      this.delayedEventsMap[sendAction.id] = timerId;
+    }
   }
   private cancel(sendId: string | number): void {
     this.clock.clearTimeout(this.delayedEventsMap[sendId]);
@@ -1014,6 +1021,13 @@ export class Interpreter<
     }
 
     switch (action.type) {
+      case actionTypes.raise: {
+        // if raise action reached the interpreter then it's a delayed one
+        const sendAction = action as RaiseActionObject<TContext, TEvent>;
+        this.defer(sendAction);
+        break;
+      }
+
       case actionTypes.send:
         const sendAction = action as SendActionObject<TContext, TEvent>;
 

@@ -23,8 +23,12 @@ import {
   GuardMeta,
   InvokeSourceDefinition,
   Observer,
-  Behavior
+  Behavior,
+  RaiseActionObject,
+  SendActionObject,
+  SpecialTargets
 } from './types';
+import * as actionTypes from './actionTypes';
 import {
   STATE_DELIMITER,
   DEFAULT_GUARD_TYPE,
@@ -34,7 +38,7 @@ import { IS_PRODUCTION } from './environment';
 import { StateNode } from './StateNode';
 import { State } from './State';
 import { Actor } from './Actor';
-import { AnyStateMachine } from '.';
+import { ActionObject, AnyStateMachine } from '.';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
   return Object.keys(value) as Array<keyof T & string>;
@@ -211,17 +215,17 @@ export function mapFilterValues<T, P>(
  * Retrieves a value at the given path.
  * @param props The deep path to the prop of the desired value
  */
-export const path = <T extends Record<string, any>>(props: string[]): any => (
-  object: T
-): any => {
-  let result: T = object;
+export const path =
+  <T extends Record<string, any>>(props: string[]): any =>
+  (object: T): any => {
+    let result: T = object;
 
-  for (const prop of props) {
-    result = result[prop as keyof typeof result];
-  }
+    for (const prop of props) {
+      result = result[prop as keyof typeof result];
+    }
 
-  return result;
-};
+    return result;
+  };
 
 /**
  * Retrieves a value at the given path via the nested accessor prop.
@@ -718,4 +722,22 @@ export function toObserver<T>(
 
 export function createInvokeId(stateNodeId: string, index: number): string {
   return `${stateNodeId}:invocation[${index}]`;
+}
+
+export function isRaisableAction<TContext, TEvent extends EventObject>(
+  action: ActionObject<TContext, TEvent>
+): action is
+  | RaiseActionObject<TContext, TEvent>
+  | SendActionObject<TContext, TEvent, TEvent> {
+  return (
+    (action.type === actionTypes.raise ||
+      (action.type === actionTypes.send &&
+        (action as SendActionObject<TContext, TEvent>).to ===
+          SpecialTargets.Internal)) &&
+    typeof (
+      action as
+        | RaiseActionObject<TContext, TEvent>
+        | SendActionObject<TContext, TEvent>
+    ).delay !== 'number'
+  );
 }

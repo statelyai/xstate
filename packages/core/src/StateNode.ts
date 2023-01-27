@@ -24,7 +24,8 @@ import {
   toTransitionConfigArray,
   normalizeTarget,
   evaluateGuard,
-  createInvokeId
+  createInvokeId,
+  isRaisableAction
 } from './utils';
 import {
   Event,
@@ -54,10 +55,7 @@ import {
   InvokeCreator,
   DoneEventObject,
   SingleOrArray,
-  SendActionObject,
-  SpecialTargets,
   SCXML,
-  RaiseActionObject,
   ActivityActionObject,
   InvokeActionObject,
   Typestate,
@@ -1134,12 +1132,7 @@ class StateNode<
             .map((stateNode) => stateNode.onExit)
         ),
         this.machine.options.actions as any
-      ).filter(
-        (action) =>
-          action.type !== actionTypes.raise &&
-          (action.type !== actionTypes.send ||
-            (!!action.to && action.to !== SpecialTargets.Internal))
-      );
+      ).filter((action) => !isRaisableAction(action));
       return actions.concat({ type: 'stop', actions: stopActions });
     }
 
@@ -1328,25 +1321,7 @@ class StateNode<
 
     const [raisedEvents, nonRaisedActions] = partition(
       resolvedActions,
-      (
-        action
-      ): action is
-        | RaiseActionObject<TEvent>
-        | SendActionObject<TContext, TEvent, TEvent> => {
-        if (action.type === actionTypes.raise) {
-          return true;
-        }
-        if (action.type !== actionTypes.send) {
-          return false;
-        }
-
-        const isRaisableSendAction =
-          (action as SendActionObject<TContext, TEvent>).to ===
-            SpecialTargets.Internal &&
-          !(action as SendActionObject<TContext, TEvent>).delay;
-
-        return isRaisableSendAction;
-      }
+      isRaisableAction
     );
 
     const invokeActions = resolvedActions.filter((action) => {
