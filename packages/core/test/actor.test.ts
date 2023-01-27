@@ -4,7 +4,7 @@ import {
   ActorRef,
   ActorRefFrom,
   EventObject,
-  Behavior,
+  ActorBehavior,
   Subscribable,
   Observer,
   toSCXMLEvent
@@ -20,13 +20,10 @@ import { raise } from '../src/actions/raise';
 import { assign } from '../src/actions/assign';
 import { send, sendTo } from '../src/actions/send';
 import { EMPTY, interval } from 'rxjs';
-import {
-  fromCallback,
-  fromObservable,
-  fromEventObservable,
-  fromPromise,
-  fromReducer
-} from '../src/actors';
+import { fromReducer } from '../src/actors/reducer';
+import { fromObservable, fromEventObservable } from '../src/actors/observable';
+import { fromPromise } from '../src/actors/promise';
+import { fromCallback } from '../src/actors/callback';
 import { map } from 'rxjs/operators';
 
 describe('spawning machines', () => {
@@ -974,7 +971,7 @@ describe('actors', () => {
     });
 
     it('behaviors should have reference to the parent', (done) => {
-      const pongBehavior: Behavior<EventObject, undefined> = {
+      const pongBehavior: ActorBehavior<EventObject, undefined> = {
         transition: (_, event, { self }) => {
           const _event = toSCXMLEvent(event);
           if (_event.name === 'PING') {

@@ -1,6 +1,6 @@
 import { EventObject, InvokeDefinition, MachineContext } from '../types.js';
 import { invoke as invokeActionType } from '../actionTypes.js';
-import { isActorRef } from '../actors.js';
+import { isActorRef } from '../actors/index.js';
 import { createDynamicAction } from '../../actions/dynamicAction.js';
 import {
   AnyInterpreter,

@@ -1,5 +1,5 @@
-import { fromCallback } from '../src/actors';
-import { interpret, createMachine, assign } from '../src/index';
+import { fromCallback } from '../src/actors/index.js';
+import { interpret, createMachine, assign } from '../src/index.js';
 
 // TODO: remove this file but before doing that ensure that things tested here are covered by other tests
 
