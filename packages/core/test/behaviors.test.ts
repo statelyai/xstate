@@ -82,24 +82,32 @@ describe('promise behavior (fromPromise)', () => {
     expect(called).toBe(false);
   });
 
-  it('should persist a promise', async () => {
+  it('should persist a promise', (done) => {
     const promiseBehavior = fromPromise(
       () =>
-        new Promise<number>((_res) => {
-          // never resolves
+        new Promise<number>((res) => {
+          res(42);
         })
     );
-    const actor = interpret(
-      promiseBehavior.at({
-        status: 'done',
-        canceled: false,
-        data: 42
-      }) ?? promiseBehavior
-    );
 
+    const actor = interpret(promiseBehavior);
     actor.start();
 
-    expect(actor.getSnapshot()).toBe(42);
+    setTimeout(() => {
+      const resolvedPersistedState = actor.getPersistedState();
+
+      expect(resolvedPersistedState).toEqual(
+        expect.objectContaining({
+          data: 42
+        })
+      );
+
+      const restoredActor = interpret(
+        promiseBehavior.at?.(resolvedPersistedState!)
+      ).start();
+      expect(restoredActor.getSnapshot()).toBe(42);
+      done();
+    }, 5);
   });
 });
 
@@ -132,18 +140,30 @@ describe('reducer behavior (fromReducer)', () => {
   });
 
   it('should persist a reducer', () => {
-    const behavior = fromReducer((state) => state, {
-      status: 'inactive' as 'inactive' | 'active'
-    });
-    const actor = interpret(
-      behavior.at?.({
-        status: 'active'
-      })
+    const behavior = fromReducer(
+      (state, event) => {
+        if (event.type === 'activate') {
+          return { status: 'active' as const };
+        }
+        return state;
+      },
+      {
+        status: 'inactive' as 'inactive' | 'active'
+      }
     );
+    const actor = interpret(behavior).start();
+    actor.send({ type: 'activate' });
+    const persistedState = actor.getPersistedState();
 
-    actor.start();
+    expect(persistedState).toEqual({
+      status: 'active'
+    });
 
-    expect(actor.getSnapshot().status).toBe('active');
+    const restoredActor = interpret(behavior.at?.(persistedState!));
+
+    restoredActor.start();
+
+    expect(restoredActor.getSnapshot().status).toBe('active');
   });
 });
 

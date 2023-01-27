@@ -1813,7 +1813,7 @@ export interface Behavior<
   TEvent extends EventObject,
   TSnapshot = any,
   TInternalState = any,
-  TPersisted extends {} = {}
+  TPersisted = TInternalState
 > {
   transition: (
     state: TInternalState,
