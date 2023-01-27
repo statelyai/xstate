@@ -6,7 +6,8 @@ import {
   sendTo
 } from '../src/index.js';
 import { raise, send, sendParent, stop } from '../src/actions.js';
-import { fromCallback, fromPromise } from '../src/actors.js';
+import { fromCallback } from '../src/actors/index.js';
+import { fromPromise } from '../src/actors/index.js';
 
 describe('predictableExec', () => {
   it('should call mixed custom and builtin actions in the definitions order', () => {

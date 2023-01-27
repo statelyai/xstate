@@ -4,8 +4,8 @@ import { NULL_EVENT, STATE_DELIMITER, TARGETLESS_KEY } from './constants.js';
 import { IS_PRODUCTION } from './environment.js';
 import type { StateNode } from './StateNode.js';
 import type {
-  Behavior,
-  BehaviorCreator,
+  ActorBehavior,
+  ActorBehaviorCreator,
   EventObject,
   EventType,
   InvokeConfig,
@@ -277,7 +277,7 @@ export function isPromiseLike(value: any): value is PromiseLike<any> {
   return false;
 }
 
-export function isBehavior(value: any): value is Behavior<any, any> {
+export function isBehavior(value: any): value is ActorBehavior<any, any> {
   return (
     value !== null &&
     typeof value === 'object' &&
@@ -466,8 +466,8 @@ export function toInvokeConfig<
   invocable:
     | InvokeConfig<TContext, TEvent>
     | string
-    | BehaviorCreator<TContext, TEvent>
-    | Behavior<any, any>,
+    | ActorBehaviorCreator<TContext, TEvent>
+    | ActorBehavior<any, any>,
   id: string
 ): InvokeConfig<TContext, TEvent> {
   if (typeof invocable === 'object') {

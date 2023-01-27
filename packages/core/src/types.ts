@@ -2,7 +2,7 @@ import type { StateNode } from './StateNode.js';
 import type { State } from './State.js';
 import type { ActorStatus, Clock, Interpreter } from './interpreter.js';
 import type { StateMachine } from './StateMachine.js';
-import type { LifecycleSignal } from './actors.js';
+import type { LifecycleSignal } from './actors/index.js';
 import {
   TypegenDisabled,
   ResolveTypegenMeta,
@@ -105,10 +105,10 @@ export interface ActionMeta<
 // TODO: do not accept machines without all implementations
 // we should also accept a raw machine as a behavior here
 // or just make machine a behavior
-export type Spawner = <T extends Behavior<any, any> | string>( // TODO: read string from machine behavior keys
+export type Spawner = <T extends ActorBehavior<any, any> | string>( // TODO: read string from machine behavior keys
   behavior: T,
   name?: string
-) => T extends Behavior<infer TActorEvent, infer TActorEmitted>
+) => T extends ActorBehavior<infer TActorEvent, infer TActorEmitted>
   ? ActorRef<TActorEvent, TActorEmitted>
   : ActorRef<any, any>; // TODO: narrow this to behaviors from machine
 
@@ -344,10 +344,10 @@ export type InvokeCallback<
   onReceive: Receiver<TEvent>
 ) => (() => void) | Promise<any> | void;
 
-export type BehaviorCreator<
+export type ActorBehaviorCreator<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TSnapshot = any
+  TActorBehavior extends AnyActorBehavior = AnyActorBehavior
 > = (
   context: TContext,
   event: TEvent,
@@ -358,7 +358,7 @@ export type BehaviorCreator<
     _event: SCXML.Event<TEvent>;
     meta: MetaObject | undefined;
   }
-) => Behavior<any, TSnapshot>;
+) => TActorBehavior;
 
 export interface InvokeMeta {
   data: any;
@@ -518,8 +518,8 @@ export interface InvokeConfig<
   src:
     | string
     | InvokeSourceDefinition
-    | BehaviorCreator<TContext, TEvent>
-    | Behavior<any, any>; // TODO: fix types
+    | ActorBehaviorCreator<TContext, TEvent>
+    | ActorBehavior<any, any>; // TODO: fix types
   /**
    * If `true`, events sent to the parent service will be forwarded to the invoked service.
    *
@@ -591,7 +591,9 @@ export interface StateNodeConfig<
    * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
    */
   invoke?: SingleOrArray<
-    string | BehaviorCreator<TContext, TEvent> | InvokeConfig<TContext, TEvent>
+    | string
+    | ActorBehaviorCreator<TContext, TEvent>
+    | InvokeConfig<TContext, TEvent>
   >;
   /**
    * The mapping of event types to their potential transition(s).
@@ -776,7 +778,10 @@ export interface MachineImplementationsSimplified<
 > {
   guards: Record<string, GuardPredicate<TContext, TEvent>>;
   actions: ActionFunctionMap<TContext, TEvent, TAction>;
-  actors: Record<string, BehaviorCreator<TContext, TEvent> | AnyBehavior>;
+  actors: Record<
+    string,
+    ActorBehaviorCreator<TContext, TEvent> | AnyActorBehavior
+  >;
   delays: DelayFunctionMap<TContext, TEvent>;
   context: Partial<TContext> | ContextFactory<Partial<TContext>>;
   state: State<TContext, TEvent, any> | undefined;
@@ -850,14 +855,14 @@ type MachineImplementationsActors<
   >
 > = {
   [K in keyof TEventsCausingActors]?:
-    | BehaviorCreator<
+    | ActorBehaviorCreator<
         TContext,
         Cast<Prop<TIndexedEvents, TEventsCausingActors[K]>, EventObject>
         // Prop<Prop<TIndexedEvents, Prop<TInvokeSrcNameMap, K>>, 'data'>,
         // EventObject,
         // Cast<TIndexedEvents[keyof TIndexedEvents], EventObject> // it would make sense to pass `TEvent` around to use it here directly
       >
-    | AnyBehavior;
+    | AnyActorBehavior;
 };
 
 type MakeKeysRequired<T extends string> = { [K in T]: unknown };
@@ -1682,7 +1687,7 @@ export type Spawnable =
   | InvokeCallback
   | InteropObservable<any>
   | Subscribable<any>
-  | Behavior<any, any>;
+  | ActorBehavior<any, any>;
 
 export type ExtractEvent<
   TEvent extends EventObject,
@@ -1743,7 +1748,7 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
       >
     : R extends Promise<infer U>
     ? ActorRef<{ type: string }, U | undefined>
-    : R extends Behavior<infer TEvent, infer TSnapshot>
+    : R extends ActorBehavior<infer TEvent, infer TSnapshot>
     ? ActorRef<TEvent, TSnapshot>
     : never
   : never;
@@ -1760,7 +1765,7 @@ export type InterpreterFrom<
   infer TResolvedTypesMeta
 >
   ? Interpreter<
-      Behavior<
+      ActorBehavior<
         TEvent,
         State<TContext, TEvent, TResolvedTypesMeta>,
         State<TContext, TEvent, TResolvedTypesMeta>,
@@ -1809,7 +1814,7 @@ export interface ActorContext<TEvent extends EventObject, TSnapshot> {
   defer: (fn: () => void) => void;
 }
 
-export interface Behavior<
+export interface ActorBehavior<
   TEvent extends EventObject,
   TSnapshot = any,
   TInternalState = any,
@@ -1843,14 +1848,14 @@ export interface Behavior<
   getPersistedState?: (state: TInternalState) => TPersisted;
 }
 
-export type AnyBehavior = Behavior<any, any, any, any>;
+export type AnyActorBehavior = ActorBehavior<any, any, any, any>;
 
 export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
   ? R extends ActorRef<infer _, infer TSnapshot>
     ? TSnapshot
     : R extends Interpreter<infer TBehavior>
     ? SnapshotFrom<TBehavior>
-    : R extends Behavior<infer _, infer TSnapshot>
+    : R extends ActorBehavior<infer _, infer TSnapshot>
     ? TSnapshot
     : R extends ActorContext<infer _, infer TSnapshot>
     ? TSnapshot
@@ -1858,12 +1863,12 @@ export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
   : never;
 
 export type EventFromBehavior<
-  TBehavior extends Behavior<any, any>
-> = TBehavior extends Behavior<infer TEvent, infer _> ? TEvent : never;
+  TBehavior extends ActorBehavior<any, any>
+> = TBehavior extends ActorBehavior<infer TEvent, infer _> ? TEvent : never;
 
 export type PersistedFrom<
-  TBehavior extends Behavior<any, any>
-> = TBehavior extends Behavior<
+  TBehavior extends ActorBehavior<any, any>
+> = TBehavior extends ActorBehavior<
   infer _TEvent,
   infer _TSnapshot,
   infer _TInternalState,
@@ -1937,3 +1942,5 @@ export interface PersistedMachineState<TState extends AnyState> {
   };
   persisted: true;
 }
+
+export type WithRequired<T, K extends keyof T> = T & { [P in K]-?: T[P] };

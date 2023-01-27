@@ -28,7 +28,7 @@ import type {
   AnyActorRef,
   AnyStateMachine,
   BaseActionObject,
-  Behavior,
+  ActorBehavior,
   EventObject,
   InternalMachineImplementations,
   InvokeActionObject,
@@ -89,7 +89,7 @@ export class StateMachine<
     TActorMap
   >
 > implements
-    Behavior<
+    ActorBehavior<
       TEvent | SCXML.Event<TEvent>,
       State<TContext, TEvent, TResolvedTypesMeta>,
       State<TContext, TEvent, TResolvedTypesMeta>,

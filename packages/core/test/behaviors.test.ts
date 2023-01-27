@@ -1,7 +1,11 @@
 import { EMPTY, interval, of, throwError } from 'rxjs';
 import { take } from 'rxjs/operators';
 import { createMachine, interpret } from '../src/index.js';
-import { fromObservable, fromPromise, fromReducer } from '../src/actors.js';
+import {
+  fromObservable,
+  fromPromise,
+  fromReducer
+} from '../src/actors/index.js';
 import { waitFor } from '../src/waitFor.js';
 import { raise, sendTo } from '../src/actions.js';
 
