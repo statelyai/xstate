@@ -1,4 +1,4 @@
-import type { AnyState } from 'xstate';
+import { AnyState, matchesState } from 'xstate';
 import type { CheckSnapshot } from './types';
 
 function isState(state: any): state is AnyState {
@@ -34,9 +34,11 @@ export const deriveServiceState = <
       can: state.can,
       hasTag: state.hasTag,
       matches:
-        prevState && isState(prevState) && prevState.value === state.value
+        prevState && isState(prevState)
           ? prevState.matches
-          : state.matches
+          : function (parentStateValue: any) {
+              return matchesState(parentStateValue, this.value);
+            }
     } as StateReturnType;
   } else {
     return state as StateReturnType;
