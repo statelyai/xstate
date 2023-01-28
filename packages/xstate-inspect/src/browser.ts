@@ -94,7 +94,7 @@ export function inspect(
 ): BrowserInspector | undefined {
   const { iframe, url, devTools } = getFinalOptions(options);
 
-  if (iframe === null) {
+  if (iframe === null && !options?.targetWindow) {
     console.warn(
       'No suitable <iframe> found to embed the inspector. Please pass an <iframe> element to `inspect(iframe)` or create an <iframe data-xstate></iframe> element.'
     );

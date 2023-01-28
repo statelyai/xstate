@@ -341,39 +341,37 @@ describe('@xstate/inspect', () => {
     ).toHaveLength(1);
   });
 
-  describe('browser inspector', () => {
+  it('browser inspector should return the new targetWindow if opened', () => {
     const windowMock = jest.fn() as unknown as Window;
-    let windowSpy;
+    const windowSpy = jest.spyOn(window, 'open');
+    windowSpy.mockImplementation(() => windowMock);
 
-    beforeEach(() => {
-      windowSpy = jest.spyOn(window, 'open');
-      windowSpy.mockImplementation(() => windowMock);
+    const devTools = createDevTools();
+    const inspector = inspect({
+      devTools,
+      iframe: undefined
     });
 
-    afterEach(() => {
-      windowSpy.mockRestore();
+    expect(inspector?.targetWindow).toEqual(windowMock);
+
+    windowSpy.mockRestore();
+  });
+
+  it('browser inspector should return the original targetWindow if provided', () => {
+    const windowMock = jest.fn() as unknown as Window;
+    const windowSpy = jest.spyOn(window, 'open');
+    windowSpy.mockImplementation(() => windowMock);
+
+    const localWindowMock = jest.fn() as unknown as Window;
+    const devTools = createDevTools();
+    const inspector = inspect({
+      devTools,
+      iframe: undefined,
+      targetWindow: localWindowMock
     });
 
-    it('should return the new targetWindow if opened', () => {
-      const devTools = createDevTools();
-      const inspector = inspect({
-        devTools,
-        iframe: undefined
-      });
+    expect(inspector?.targetWindow).toEqual(localWindowMock);
 
-      expect(inspector?.targetWindow).toEqual(windowMock);
-    });
-
-    it('should return the original targetWindow if provided', () => {
-      const localWindowMock = jest.fn() as unknown as Window;
-      const devTools = createDevTools();
-      const inspector = inspect({
-        devTools,
-        iframe: undefined,
-        targetWindow: localWindowMock
-      });
-
-      expect(inspector?.targetWindow).toEqual(localWindowMock);
-    });
+    windowSpy.mockRestore();
   });
 });
