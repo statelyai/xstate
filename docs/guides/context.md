@@ -210,7 +210,7 @@ The `meta` object contains:
 - `action` - the assign action
 
 ::: warning
-Assigners **must be pure**; they should not contain any side-effects.
+Assigners **must be pure**; they should not contain any side-effects. This is because the `assign(...)` action is involved in determining the next state, and side-effects in the assigner could introduce nondeterminism.
 
 ```js
 actions: assign({
