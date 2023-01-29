@@ -1,4 +1,4 @@
-import { initEvent } from './actions.js';
+import { actionTypes, createInitEvent, initEvent } from './actions.js';
 import { STATE_DELIMITER } from './constants.js';
 import { createSpawner } from './spawn.js';
 import { getPersistedState, isStateConfig, State } from './State.js';
@@ -95,7 +95,10 @@ export class StateMachine<
       State<TContext, TEvent, TResolvedTypesMeta>,
       PersistedMachineState<State<TContext, TEvent, TResolvedTypesMeta>>
     > {
-  private _contextFactory: (stuff: { spawn: Spawner }) => TContext;
+  private _contextFactory: (stuff: {
+    spawn: Spawner;
+    input: any; // TODO: provide in single generic once implemented
+  }) => TContext;
   public get context(): TContext {
     return this.getContextAndActions()[0];
   }
@@ -103,7 +106,8 @@ export class StateMachine<
     const actions: InvokeActionObject[] = [];
     // TODO: merge with this.options.context
     const context = this._contextFactory({
-      spawn: createSpawner(this, null as any, null as any, actions) // TODO: fix types
+      spawn: createSpawner(this, null as any, null as any, actions), // TODO: fix types
+      input: this.options.input
     });
 
     return [context, actions];
@@ -132,6 +136,7 @@ export class StateMachine<
 
   public states: StateNode<TContext, TEvent>['states'];
   public events: Array<TEvent['type']>;
+  public input: any = {}; // TODO: fix
 
   constructor(
     /**
@@ -197,7 +202,7 @@ export class StateMachine<
       ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
       : TResolvedTypesMeta
   > {
-    const { actions, guards, actors, delays } = this.options;
+    const { actions, guards, actors, delays, input } = this.options;
 
     return new StateMachine(this.config, {
       actions: { ...actions, ...implementations.actions },
@@ -205,7 +210,8 @@ export class StateMachine<
       actors: { ...actors, ...implementations.actors },
       delays: { ...delays, ...implementations.delays },
       context: implementations.context!,
-      state: this.preInitialState
+      state: this.preInitialState,
+      input
     });
   }
 
@@ -334,7 +340,7 @@ export class StateMachine<
       this.createState({
         value: {}, // TODO: this is computed in state constructor
         context,
-        _event: initEvent as SCXML.Event<TEvent>,
+        _event: (createInitEvent({}) as unknown) as SCXML.Event<TEvent>, // TODO: fix
         _sessionid: actorCtx?.sessionId ?? undefined,
         actions: [],
         meta: undefined,
@@ -374,19 +380,23 @@ export class StateMachine<
   public getInitialState(
     actorCtx?: ActorContext<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>
   ): State<TContext, TEvent, TResolvedTypesMeta> {
+    const initEvent = this.getInitEvent();
     const preInitialState = this.getPreInitialState(actorCtx);
-    const nextState = microstep(
-      [],
-      preInitialState,
-      actorCtx,
-      initEvent as SCXML.Event<TEvent>
-    );
+    const nextState = microstep([], preInitialState, actorCtx, initEvent);
     nextState.actions.unshift(...preInitialState.actions);
 
     const { state: macroState } = macrostep(nextState, initEvent, actorCtx);
 
     return macroState;
   }
+
+  public getInitEvent(): SCXML.Event<TEvent> {
+    return (toSCXMLEvent({
+      type: actionTypes.init,
+      input: this.options.input
+    }) as unknown) as SCXML.Event<TEvent>; // TODO: fix
+  }
+
   public start(
     state: State<TContext, TEvent, TResolvedTypesMeta>,
     actorCtx: ActorContext<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>
@@ -534,6 +544,15 @@ export class StateMachine<
       : this.resolveState(State.from(state as any, this.context, this));
 
     return restoredState;
+  }
+
+  public withInput(
+    input: any // TODO: fix
+  ): this {
+    return new StateMachine(this.config, {
+      ...this.options,
+      input
+    }) as typeof this;
   }
 
   /**@deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */

@@ -785,6 +785,7 @@ export interface MachineImplementationsSimplified<
   delays: DelayFunctionMap<TContext, TEvent>;
   context: Partial<TContext> | ContextFactory<Partial<TContext>>;
   state: State<TContext, TEvent, any> | undefined;
+  input: any; // TODO: provide in single generic once implemented
 }
 
 type MachineImplementationsActions<
@@ -985,6 +986,7 @@ type InitialContext<TContext extends MachineContext> =
 
 export type ContextFactory<TContext extends MachineContext> = (stuff: {
   spawn: Spawner;
+  input: any; // TODO: fix
 }) => TContext;
 
 export interface MachineConfig<

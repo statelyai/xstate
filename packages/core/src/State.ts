@@ -1,4 +1,4 @@
-import { initEvent } from './actions.js';
+import { createInitEvent } from './actions.js';
 import { IS_PRODUCTION } from './environment.js';
 import { memo } from './memo.js';
 import type { StateNode } from './StateNode.js';
@@ -123,7 +123,7 @@ export class State<
       return stateValue;
     }
 
-    const _event = initEvent as SCXML.Event<TEvent>;
+    const _event = (createInitEvent({}) as unknown) as SCXML.Event<TEvent>; // TODO: fix
 
     const configuration = getConfiguration(
       getStateNodes(machine.root, stateValue)
