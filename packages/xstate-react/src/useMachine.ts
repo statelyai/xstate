@@ -14,6 +14,7 @@ import {
 } from 'xstate';
 import { MaybeLazy, Prop } from './types';
 import { useIdleInterpreter } from './useInterpret';
+import { isInterpreterStateEqual } from './utils';
 
 function identity<T>(a: T): T {
   return a;
@@ -31,30 +32,29 @@ export interface UseMachineOptions<TContext, TEvent extends EventObject> {
   state?: StateConfig<TContext, TEvent>;
 }
 
-type RestParams<
-  TMachine extends AnyStateMachine
-> = AreAllImplementationsAssumedToBeProvided<
-  TMachine['__TResolvedTypesMeta']
-> extends false
-  ? [
-      options: InterpreterOptions &
-        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
-        InternalMachineOptions<
-          TMachine['__TContext'],
-          TMachine['__TEvent'],
-          TMachine['__TResolvedTypesMeta'],
-          true
-        >
-    ]
-  : [
-      options?: InterpreterOptions &
-        UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
-        InternalMachineOptions<
-          TMachine['__TContext'],
-          TMachine['__TEvent'],
-          TMachine['__TResolvedTypesMeta']
-        >
-    ];
+type RestParams<TMachine extends AnyStateMachine> =
+  AreAllImplementationsAssumedToBeProvided<
+    TMachine['__TResolvedTypesMeta']
+  > extends false
+    ? [
+        options: InterpreterOptions &
+          UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+          InternalMachineOptions<
+            TMachine['__TContext'],
+            TMachine['__TEvent'],
+            TMachine['__TResolvedTypesMeta'],
+            true
+          >
+      ]
+    : [
+        options?: InterpreterOptions &
+          UseMachineOptions<TMachine['__TContext'], TMachine['__TEvent']> &
+          InternalMachineOptions<
+            TMachine['__TContext'],
+            TMachine['__TEvent'],
+            TMachine['__TResolvedTypesMeta']
+          >
+      ];
 
 type UseMachineReturn<
   TMachine extends AnyStateMachine,
@@ -71,32 +71,19 @@ export function useMachine<TMachine extends AnyStateMachine>(
 
   const getSnapshot = useCallback(() => {
     if (service.status === InterpreterStatus.NotStarted) {
-      return (options.state
-        ? State.create(options.state)
-        : service.machine.initialState) as State<any, any, any, any, any>;
+      return (
+        options.state
+          ? State.create(options.state)
+          : service.machine.initialState
+      ) as State<any, any, any, any, any>;
     }
 
     return service.getSnapshot();
   }, [service]);
 
   const isEqual = useCallback(
-    (prevState, nextState) => {
-      if (service.status === InterpreterStatus.NotStarted) {
-        return true;
-      }
-
-      // Only change the current state if:
-      // - the incoming state is the "live" initial state (since it might have new actors)
-      // - OR the incoming state actually changed.
-      //
-      // The "live" initial state will have .changed === undefined.
-      const initialStateChanged =
-        nextState.changed === undefined &&
-        (Object.keys(nextState.children).length > 0 ||
-          typeof prevState.changed === 'boolean');
-
-      return !(nextState.changed || initialStateChanged);
-    },
+    (prevState, nextState) =>
+      isInterpreterStateEqual(service, prevState, nextState),
     [service]
   );
 
