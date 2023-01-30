@@ -1,5 +1,11 @@
 # xstate
 
+## 4.35.4
+
+### Patch Changes
+
+- [#3801](https://github.com/statelyai/xstate/pull/3801) [`10d0ba76a`](https://github.com/statelyai/xstate/commit/10d0ba76a1e35e7a58d24496caa57da6c28f6c64) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with not clearing registered interpreters when their machines reached final states.
+
 ## 4.35.3
 
 ### Patch Changes
