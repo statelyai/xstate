@@ -715,3 +715,44 @@ describe('service-targets', () => {
     expect(true).toBeTruthy();
   });
 });
+
+describe('actions', () => {
+  it('context should get inferred for builtin actions used as an entry action', () => {
+    createMachine({
+      schema: {
+        context: {} as { count: number }
+      },
+      context: {
+        count: 0
+      },
+      entry: assign((ctx) => {
+        ((_accept: number) => {})(ctx.count);
+        // @ts-expect-error
+        ((_accept: "ain't any") => {})(ctx.count);
+        return {};
+      })
+    });
+  });
+
+  it('context should get inferred for builtin actions used as a transition action', () => {
+    createMachine({
+      schema: {
+        context: {} as { count: number },
+        events: {} as { type: 'FOO' } | { type: 'BAR' }
+      },
+      context: {
+        count: 0
+      },
+      on: {
+        FOO: {
+          actions: assign((ctx) => {
+            ((_accept: number) => {})(ctx.count);
+            // @ts-expect-error
+            ((_accept: "ain't any") => {})(ctx.count);
+            return {};
+          })
+        }
+      }
+    });
+  });
+});

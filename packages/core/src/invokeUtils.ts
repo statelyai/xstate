@@ -35,5 +35,5 @@ export function toInvokeDefinition<TContext, TEvent extends EventObject>(
         src: toInvokeSource(invokeConfig.src)
       };
     }
-  };
+  } as any;
 }

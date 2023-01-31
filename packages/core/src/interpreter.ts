@@ -30,7 +30,6 @@ import {
   ActorRef,
   ActorRefFrom,
   Behavior,
-  StopActionObject,
   Subscription,
   AnyState,
   StateConfig,
@@ -974,7 +973,7 @@ export class Interpreter<
     const exec = isFunction(actionOrExec)
       ? actionOrExec
       : actionOrExec
-      ? actionOrExec.exec
+      ? (actionOrExec as any).exec
       : action.exec;
 
     if (exec) {
@@ -1024,7 +1023,7 @@ export class Interpreter<
         break;
 
       case actionTypes.cancel:
-        this.cancel((action as CancelAction).sendId);
+        this.cancel((action as CancelAction<any, any>).sendId);
 
         break;
       case actionTypes.start: {
@@ -1118,7 +1117,7 @@ export class Interpreter<
         break;
       }
       case actionTypes.stop: {
-        this.stopChild((action as StopActionObject).activity.id);
+        this.stopChild((action as any).activity.id);
         break;
       }
 

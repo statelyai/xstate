@@ -368,10 +368,12 @@ describe('interpreter', () => {
             onEntry: send('FINISH', {
               delay: (ctx, _, { _event }) =>
                 ctx.initialDelay +
-                (_event.data as Extract<
-                  DelayExpMachineEvents,
-                  { type: 'ACTIVATE' }
-                >).wait
+                (
+                  _event.data as Extract<
+                    DelayExpMachineEvents,
+                    { type: 'ACTIVATE' }
+                  >
+                ).wait
             }),
             on: {
               FINISH: 'finished'
@@ -2019,9 +2021,9 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
                 target: 'gone',
                 actions: [
                   // TODO: type these correctly in TContext
-                  stop((ctx) => (ctx as any).machineRef),
-                  stop((ctx) => (ctx as any).promiseRef),
-                  stop((ctx) => (ctx as any).observableRef)
+                  stop((ctx: any) => ctx.machineRef),
+                  stop((ctx: any) => ctx.promiseRef),
+                  stop((ctx: any) => ctx.observableRef)
                 ]
               }
             }

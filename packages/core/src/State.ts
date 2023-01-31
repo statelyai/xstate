@@ -79,7 +79,7 @@ export function bindActionToState<TC, TE extends EventObject>(
               _event: state._event
             })
         : undefined
-  };
+  } as any;
 
   return boundAction;
 }

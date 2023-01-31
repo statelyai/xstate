@@ -36,11 +36,11 @@ function trackEntries(machine: AnyStateMachine) {
     state.onEntry.unshift({
       type: '__testEntryTracker',
       exec: () => logs.push(`enter: ${stateDescription}`)
-    });
+    } as any);
     state.onExit.unshift({
       type: '__testExitTracker',
       exec: () => logs.push(`exit: ${stateDescription}`)
-    });
+    } as any);
   }
 
   function addTrackingActionsRecursively(
