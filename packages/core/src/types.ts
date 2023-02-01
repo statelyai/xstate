@@ -60,7 +60,6 @@ export interface BaseActionObject {
    * The type of action that is executed.
    */
   type: string;
-  [other: string]: any;
 }
 
 /**
