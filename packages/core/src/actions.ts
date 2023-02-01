@@ -187,7 +187,7 @@ export function error(id: string, data?: any): ErrorPlatformEvent & string {
 }
 
 export function createInitEvent(
-  data: any
-): SCXML.Event<{ type: ActionTypes.Init; data: any }> {
-  return toSCXMLEvent({ type: actionTypes.init, data });
+  input: any
+): SCXML.Event<{ type: ActionTypes.Init; input: any }> {
+  return toSCXMLEvent({ type: actionTypes.init, input });
 }

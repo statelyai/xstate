@@ -1,28 +1,22 @@
 import { interpret } from '../src';
 import { createMachine } from '../src/Machine';
 
-describe('machine.withInput()', () => {
+describe('input', () => {
   it('should create a machine with input', () => {
-    expect.assertions(3);
+    const spy = jest.fn();
 
     const machine = createMachine<{ count: number }>({
       context: ({ input }) => ({
         count: input.startCount
       }),
       entry: (ctx) => {
-        expect(ctx.count).toBe(42);
+        spy(ctx.count);
       }
     });
 
-    const inputMachine = machine.withInput({ startCount: 42 });
-    const initialState = inputMachine.getInitialState();
+    interpret(machine, { input: { startCount: 42 } }).start();
 
-    expect(initialState.context.count).toEqual(42);
-    expect(() => machine.getInitialState().context.count).toThrowError(
-      /Cannot read properties of undefined/
-    );
-
-    interpret(machine.withInput({ startCount: 42 })).start();
+    expect(spy).toHaveBeenCalledWith(42);
   });
 
   it('initial event should have input property', (done) => {
@@ -33,7 +27,7 @@ describe('machine.withInput()', () => {
       }
     });
 
-    interpret(machine.withInput({ greeting: 'hello' })).start();
+    interpret(machine, { input: { greeting: 'hello' } }).start();
   });
 
   it('should throw if input is expected but not provided', () => {
@@ -46,23 +40,19 @@ describe('machine.withInput()', () => {
     });
 
     expect(() => {
-      machine.getInitialState();
+      interpret(machine).start();
     }).toThrowError(/Cannot read properties of undefined/);
   });
 
   it('should not throw if input is not expected and not provided', () => {
     const machine = createMachine<{ count: number }>({
-      context: ({ input }) => {
-        try {
-          input.whatever;
-        } catch (_) {}
-
+      context: () => {
         return { count: 42 };
       }
     });
 
     expect(() => {
-      machine.getInitialState();
+      interpret(machine).start();
     }).not.toThrowError();
   });
 
@@ -72,7 +62,8 @@ describe('machine.withInput()', () => {
     });
 
     expect(() => {
-      machine.getInitialState();
+      // TODO: add ts-expect-errpr
+      interpret(machine).start();
     }).not.toThrowError();
   });
 });

@@ -1,4 +1,4 @@
-import { actionTypes, createInitEvent, initEvent } from './actions.js';
+import { createInitEvent, initEvent } from './actions.js';
 import { STATE_DELIMITER } from './constants.js';
 import { createSpawner } from './spawn.js';
 import { getPersistedState, isStateConfig, State } from './State.js';
@@ -99,15 +99,16 @@ export class StateMachine<
     spawn: Spawner;
     input: any; // TODO: provide in single generic once implemented
   }) => TContext;
+  // TODO: this getter should be removed
   public get context(): TContext {
-    return this.getContextAndActions()[0];
+    return this.getContextAndActions({} as any)[0];
   }
-  private getContextAndActions(): [TContext, InvokeActionObject[]] {
+  private getContextAndActions(input: any): [TContext, InvokeActionObject[]] {
     const actions: InvokeActionObject[] = [];
     // TODO: merge with this.options.context
     const context = this._contextFactory({
       spawn: createSpawner(this, null as any, null as any, actions), // TODO: fix types
-      input: this.options.input
+      input
     });
 
     return [context, actions];
@@ -202,7 +203,7 @@ export class StateMachine<
       ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
       : TResolvedTypesMeta
   > {
-    const { actions, guards, actors, delays, input } = this.options;
+    const { actions, guards, actors, delays } = this.options;
 
     return new StateMachine(this.config, {
       actions: { ...actions, ...implementations.actions },
@@ -210,8 +211,7 @@ export class StateMachine<
       actors: { ...actors, ...implementations.actors },
       delays: { ...delays, ...implementations.delays },
       context: implementations.context!,
-      state: this.preInitialState,
-      input
+      state: this.preInitialState
     });
   }
 
@@ -328,13 +328,14 @@ export class StateMachine<
    * This "pre-initial" state is provided to initial actions executed in the initial state.
    */
   private getPreInitialState(
-    actorCtx: ActorContext<any, any> | undefined
+    actorCtx: ActorContext<any, any> | undefined,
+    input: any
   ): State<TContext, TEvent, TResolvedTypesMeta> {
     if (this.preInitialState) {
       return this.preInitialState;
     }
 
-    const [context, actions] = this.getContextAndActions();
+    const [context, actions] = this.getContextAndActions(input);
     const config = getInitialConfiguration(this.root);
     const preInitial = this.resolveState(
       this.createState({
@@ -378,23 +379,24 @@ export class StateMachine<
    * Returns the initial `State` instance, with reference to `self` as an `ActorRef`.
    */
   public getInitialState(
-    actorCtx?: ActorContext<TEvent, State<TContext, TEvent, TResolvedTypesMeta>>
+    actorCtx?: ActorContext<
+      TEvent,
+      State<TContext, TEvent, TResolvedTypesMeta>
+    >,
+    // TODO: input should not be optional when it's required
+    input?: any
   ): State<TContext, TEvent, TResolvedTypesMeta> {
-    const initEvent = this.getInitEvent();
-    const preInitialState = this.getPreInitialState(actorCtx);
+    const initEvent = (createInitEvent(
+      input
+    ) as unknown) as SCXML.Event<TEvent>; // TODO: fix;
+
+    const preInitialState = this.getPreInitialState(actorCtx, input);
     const nextState = microstep([], preInitialState, actorCtx, initEvent);
     nextState.actions.unshift(...preInitialState.actions);
 
     const { state: macroState } = macrostep(nextState, initEvent, actorCtx);
 
     return macroState;
-  }
-
-  public getInitEvent(): SCXML.Event<TEvent> {
-    return (toSCXMLEvent({
-      type: actionTypes.init,
-      input: this.options.input
-    }) as unknown) as SCXML.Event<TEvent>; // TODO: fix
   }
 
   public start(
@@ -544,15 +546,6 @@ export class StateMachine<
       : this.resolveState(State.from(state as any, this.context, this));
 
     return restoredState;
-  }
-
-  public withInput(
-    input: any // TODO: fix
-  ): this {
-    return new StateMachine(this.config, {
-      ...this.options,
-      input
-    }) as typeof this;
   }
 
   /**@deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */

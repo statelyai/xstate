@@ -161,7 +161,10 @@ export class Interpreter<
 
   private _getInitialState(): InternalStateFrom<TBehavior> {
     return memo(this, 'initial', () => {
-      return this.behavior.getInitialState(this._actorContext);
+      return this.behavior.getInitialState(
+        this._actorContext,
+        this.options.input
+      );
     });
   }
 
