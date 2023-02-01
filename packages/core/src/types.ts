@@ -785,7 +785,6 @@ export interface MachineImplementationsSimplified<
   delays: DelayFunctionMap<TContext, TEvent>;
   context: Partial<TContext> | ContextFactory<Partial<TContext>>;
   state: State<TContext, TEvent, any> | undefined;
-  input: any; // TODO: provide in single generic once implemented
 }
 
 type MachineImplementationsActions<
@@ -1586,6 +1585,8 @@ export interface InterpreterOptions {
   autoForward?: boolean;
 
   sync?: boolean;
+
+  input?: any;
 }
 
 export type AnyInterpreter = Interpreter<any>;
@@ -1828,7 +1829,8 @@ export interface ActorBehavior<
     ctx: ActorContext<TEvent, TSnapshot>
   ) => TInternalState;
   getInitialState: (
-    actorCtx: ActorContext<TEvent, TSnapshot>
+    actorCtx: ActorContext<TEvent, TSnapshot>,
+    input?: any
   ) => TInternalState;
   restoreState?: (
     restoredState: any,
