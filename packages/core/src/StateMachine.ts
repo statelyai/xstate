@@ -97,7 +97,7 @@ export class StateMachine<
     > {
   private _contextFactory: (stuff: {
     spawn: Spawner;
-    input: any; // TODO: provide in single generic once implemented
+    input: any; // TODO: fix types
   }) => TContext;
   public get context(): TContext {
     return this.getContextAndActions()[0];
