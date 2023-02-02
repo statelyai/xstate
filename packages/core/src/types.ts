@@ -61,6 +61,7 @@ export interface BaseActionObject {
    */
   type: string;
   [other: string]: any;
+  [notAnArrayLike: number]: never;
 }
 
 /**

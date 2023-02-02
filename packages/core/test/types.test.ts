@@ -755,4 +755,21 @@ describe('actions', () => {
       }
     });
   });
+
+  it('context should get inferred for a builtin action within an array of entry actions', () => {
+    createMachine({
+      schema: {
+        context: {} as { count: number }
+      },
+      entry: [
+        'foo',
+        assign((ctx) => {
+          ((_accept: number) => {})(ctx.count);
+          // @ts-expect-error
+          ((_accept: "ain't any") => {})(ctx.count);
+          return {};
+        })
+      ]
+    });
+  });
 });
