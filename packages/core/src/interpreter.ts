@@ -33,7 +33,8 @@ import {
   Subscription,
   AnyState,
   StateConfig,
-  InteropSubscribable
+  InteropSubscribable,
+  LogActionObject
 } from './types';
 import { State, bindActionToState, isStateConfig } from './State';
 import * as actionTypes from './actionTypes';
@@ -669,7 +670,8 @@ export class Interpreter<
             (action) =>
               action.type !== actionTypes.raise &&
               (action.type !== actionTypes.send ||
-                (!!action.to && action.to !== SpecialTargets.Internal))
+                (!!(action as any).to &&
+                  (action as any).to !== SpecialTargets.Internal))
           ),
           activities: {},
           events: [],
@@ -1122,7 +1124,7 @@ export class Interpreter<
       }
 
       case actionTypes.log:
-        const { label, value } = action;
+        const { label, value } = action as LogActionObject<TContext, TEvent>;
 
         if (label) {
           this.logger(label, value);

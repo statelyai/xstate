@@ -1131,7 +1131,8 @@ class StateNode<
         (action) =>
           action.type !== actionTypes.raise &&
           (action.type !== actionTypes.send ||
-            (!!action.to && action.to !== SpecialTargets.Internal))
+            (!!(action as any).to &&
+              (action as any).to !== SpecialTargets.Internal))
       );
       return actions.concat({ type: 'stop', actions: stopActions });
     }
@@ -1299,10 +1300,13 @@ class StateNode<
     for (const block of actionBlocks) {
       for (const action of block.actions) {
         if (action.type === actionTypes.start) {
-          activities[action.activity!.id || action.activity!.type] =
-            action as ActivityDefinition<TContext, TEvent>;
+          activities[
+            (action as any).activity!.id || (action as any).activity!.type
+          ] = action as ActivityDefinition<TContext, TEvent>;
         } else if (action.type === actionTypes.stop) {
-          activities[action.activity!.id || action.activity!.type] = false;
+          activities[
+            (action as any).activity!.id || (action as any).activity!.type
+          ] = false;
         }
       }
     }
@@ -2082,7 +2086,7 @@ class StateNode<
     }
 
     const invokeConfig = flatten(
-      this.invoke.map((invokeDef) => {
+      this.invoke.map((invokeDef: any) => {
         const settleTransitions: any[] = [];
         if (invokeDef.onDone) {
           settleTransitions.push(
