@@ -71,7 +71,8 @@ export interface ActionObject<
   TContext,
   TEvent extends EventObject,
   TAction extends BaseActionObject = BaseActionObject
-> extends BaseActionObject {
+> {
+  type: string;
   /**
    * The implementation for executing the action.
    */
