@@ -30,7 +30,11 @@ export function createActorContext<TMachine extends AnyStateMachine>(
     children: React.ReactNode;
     machine: TMachine | (() => TMachine);
   }) {
-    const actor = useInterpret(providedMachine, options, observerOrListener) as ActorRefFrom<TMachine>;
+    const actor = useInterpret(
+      providedMachine,
+      options,
+      observerOrListener
+    ) as ActorRefFrom<TMachine>;
 
     return <OriginalProvider value={actor}>{children}</OriginalProvider>;
   }
