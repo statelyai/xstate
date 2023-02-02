@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.1.2
+
+### Patch Changes
+
+- [#3804](https://github.com/statelyai/xstate/pull/3804) [`b53856d28`](https://github.com/statelyai/xstate/commit/b53856d28da4ecbba7d4393f72aa38894fd523d9) Thanks [@farskid](https://github.com/farskid)! - Interpreter options can now be specified in the second argument of createActorContext(machine, options).
+
 ## 3.1.1
 
 ### Patch Changes
