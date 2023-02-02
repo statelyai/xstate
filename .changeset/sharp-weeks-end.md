@@ -2,4 +2,4 @@
 '@xstate/solid': patch
 ---
 
-Change prepublish to prepare in package.json to fix build not running on npm publish for @xstate/solid
+Fixed an issue with npm lifecycle scripts that caused only a single set of files to be published.
