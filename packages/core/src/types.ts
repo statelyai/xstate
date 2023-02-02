@@ -1843,7 +1843,7 @@ export interface ActorBehavior<
    */
   at?: (state: TInternalState) => this;
   /**
-   * @returns Persisted state as JSON
+   * @returns Persisted state
    */
   getPersistedState?: (state: TInternalState) => TPersisted;
 }
