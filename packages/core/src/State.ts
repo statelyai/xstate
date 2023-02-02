@@ -74,7 +74,7 @@ export function bindActionToState<TC, TE extends EventObject>(
       exec !== undefined
         ? () =>
             exec(state.context, state.event as TE, {
-              action,
+              action: action as any,
               state,
               _event: state._event
             })
